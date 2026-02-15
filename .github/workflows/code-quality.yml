@@ -133,7 +133,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Check code style
         working-directory: ./desktop-app-vue
@@ -170,7 +170,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
@@ -189,6 +189,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxtst-dev libpng-dev
 
       - name: Cache node modules
         uses: actions/cache@v4

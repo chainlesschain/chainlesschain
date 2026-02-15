@@ -2,11 +2,8 @@ package com.chainlesschain.android.remote.webrtc
 
 import android.util.Log
 import com.chainlesschain.android.remote.config.SignalingConfig
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import okhttp3.OkHttpClient
@@ -94,11 +91,6 @@ class SignalingDiscoveryService @Inject constructor(
                     if (!deferred.isCompleted) deferred.complete(emptyList())
                 }
             })
-
-            CoroutineScope(Dispatchers.IO).launch {
-                delay(timeoutMs)
-                if (!deferred.isCompleted) deferred.complete(emptyList())
-            }
 
             val result = withTimeout(timeoutMs) { deferred.await() }
             debugBuilder.appendLine("========== 扫描完成 ==========")
