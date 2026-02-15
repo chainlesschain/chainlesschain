@@ -37,6 +37,12 @@ jobs:
         working-directory: ./desktop-app-vue
         run: npm run build:main
 
+      - name: Build desktop app renderer
+        working-directory: ./desktop-app-vue
+        run: npm run build:renderer
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
