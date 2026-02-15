@@ -26,6 +26,9 @@ describe("BrowserExtensionServer", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-apply mock implementations after clearAllMocks (which may clear them)
+    mockWss.close.mockImplementation((callback) => { if (callback) callback(); });
+    mockWss.on.mockImplementation(() => {});
     server = new BrowserExtensionServer({
       port: 18790,
       host: "127.0.0.1",
