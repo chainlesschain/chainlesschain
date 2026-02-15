@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import timber.log.Timber
 
 /**
  * 帮助与反馈页面
@@ -103,7 +104,7 @@ fun HelpFeedbackScreen(
                                 data = android.net.Uri.parse("mailto:support@chainlesschain.com")
                                 putExtra(android.content.Intent.EXTRA_SUBJECT, "ChainlessChain 反馈")
                             }
-                            try { context.startActivity(intent) } catch (_: Exception) {}
+                            try { context.startActivity(intent) } catch (e: Exception) { Timber.w(e, "Failed to launch email intent") }
                         }
                     )
                 }
@@ -350,7 +351,7 @@ fun TutorialCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = {
             val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://docs.chainlesschain.com"))
-            try { context.startActivity(intent) } catch (_: Exception) {}
+            try { context.startActivity(intent) } catch (e: Exception) { Timber.w(e, "Failed to launch browser intent") }
         },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
