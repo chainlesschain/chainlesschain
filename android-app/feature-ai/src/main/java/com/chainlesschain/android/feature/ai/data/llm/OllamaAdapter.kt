@@ -13,8 +13,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-
 /**
  * Ollama API适配器
  *
@@ -22,7 +20,7 @@ import javax.inject.Inject
  * 支持模型: llama3, qwen2, deepseek-coder, 等等
  * 默认端口: 11434
  */
-class OllamaAdapter @Inject constructor(
+class OllamaAdapter(
     private val baseUrl: String = "http://localhost:11434"
 ) : LLMAdapter {
 

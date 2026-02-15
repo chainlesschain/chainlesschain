@@ -65,31 +65,29 @@ class LocalNotificationManager @Inject constructor(
     }
 
     private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // PC notifications channel
-            val pcChannel = NotificationChannel(
-                CHANNEL_ID_PC_NOTIFICATIONS,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = CHANNEL_DESCRIPTION
-            }
-
-            // Workflow notifications channel
-            val workflowChannel = NotificationChannel(
-                CHANNEL_ID_WORKFLOW,
-                CHANNEL_NAME_WORKFLOW,
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = CHANNEL_DESCRIPTION_WORKFLOW
-            }
-
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(pcChannel)
-            manager.createNotificationChannel(workflowChannel)
-
-            Timber.d("Notification channels created")
+        // PC notifications channel
+        val pcChannel = NotificationChannel(
+            CHANNEL_ID_PC_NOTIFICATIONS,
+            CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = CHANNEL_DESCRIPTION
         }
+
+        // Workflow notifications channel
+        val workflowChannel = NotificationChannel(
+            CHANNEL_ID_WORKFLOW,
+            CHANNEL_NAME_WORKFLOW,
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = CHANNEL_DESCRIPTION_WORKFLOW
+        }
+
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(pcChannel)
+        manager.createNotificationChannel(workflowChannel)
+
+        Timber.d("Notification channels created")
     }
 
     private fun startListening() {

@@ -63,6 +63,10 @@ const HookEvents = [
   // 内存系统相关
   "MemorySave",
   "MemoryLoad",
+  // 审计和合规相关
+  "AuditLog",
+  "ComplianceCheck",
+  "DataSubjectRequest",
 ];
 
 /**

@@ -21,8 +21,9 @@ const { MarkdownSkill } = require("./markdown-skill");
  */
 const LAYER_PRIORITY = {
   bundled: 0, // 最低优先级：应用内置
-  managed: 1, // 中等优先级：用户全局
-  workspace: 2, // 最高优先级：项目级
+  marketplace: 1, // 社区市场技能
+  managed: 2, // 中等优先级：用户全局
+  workspace: 3, // 最高优先级：项目级
 };
 
 /**
@@ -48,6 +49,7 @@ class SkillLoader extends EventEmitter {
     // 存储各层级的技能定义
     this.layerDefinitions = {
       bundled: new Map(),
+      marketplace: new Map(),
       managed: new Map(),
       workspace: new Map(),
     };
@@ -68,6 +70,8 @@ class SkillLoader extends EventEmitter {
     return {
       // 内置技能目录（应用内）
       bundled: path.join(__dirname, "builtin"),
+      // 社区市场技能目录
+      marketplace: path.join(userDataPath, "marketplace", "skills"),
       // 用户全局技能目录
       managed: path.join(userDataPath, "skills"),
       // 工作区技能目录
@@ -91,7 +95,7 @@ class SkillLoader extends EventEmitter {
     };
 
     // 按优先级从低到高加载
-    const layers = ["bundled", "managed", "workspace"];
+    const layers = ["bundled", "marketplace", "managed", "workspace"];
 
     for (const layer of layers) {
       try {
@@ -211,7 +215,7 @@ class SkillLoader extends EventEmitter {
     this.resolvedSkills.clear();
 
     // 按优先级从低到高合并
-    const layers = ["bundled", "managed", "workspace"];
+    const layers = ["bundled", "marketplace", "managed", "workspace"];
 
     for (const layer of layers) {
       for (const [name, definition] of this.layerDefinitions[layer]) {
