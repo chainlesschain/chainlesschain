@@ -28,6 +28,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.chainlesschain.android.config.ThemeMode
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.presentation.ChatScreen
 import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
@@ -82,7 +83,9 @@ import com.chainlesschain.android.feature.p2p.ui.social.QRCodeScannerScreen
 fun NavGraph(
     navController: NavHostController,
     startDestination: String,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChanged: (ThemeMode) -> Unit = {}
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.SetupPin.route) {
@@ -246,7 +249,9 @@ fun NavGraph(
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToAbout = { navController.navigate(Screen.About.route) },
-                onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) }
+                onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) },
+                currentThemeMode = currentThemeMode,
+                onThemeModeChanged = onThemeModeChanged
             )
         }
 

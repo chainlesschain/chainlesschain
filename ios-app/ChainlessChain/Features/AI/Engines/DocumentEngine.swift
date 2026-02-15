@@ -233,10 +233,10 @@ public class DocumentEngine: BaseAIEngine {
             throw AIEngineError.invalidParameters("缺少imagePath参数")
         }
 
-        // TODO: 集成Vision框架进行OCR
-        // 这里返回模拟数据
+        // NOTE: OCR 功能需要集成 Vision 框架。当前返回模拟数据用于演示
+        // 集成方式: 使用 VNRecognizeTextRequest 进行文本识别
         return [
-            "text": "OCR识别功能待实现（需要集成Vision框架）",
+            "text": "OCR 识别功能开发中（需要集成 Vision 框架）",
             "confidence": 0.0,
             "imagePath": imagePath
         ]

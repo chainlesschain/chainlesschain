@@ -21,12 +21,15 @@ import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
+import com.chainlesschain.android.config.AppConfigManager
+import com.chainlesschain.android.config.ThemeMode
 import com.chainlesschain.android.core.ui.theme.ChainlessChainTheme
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 import com.chainlesschain.android.navigation.NavGraph
 import com.chainlesschain.android.navigation.Screen
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * 主Activity
@@ -40,6 +43,9 @@ import timber.log.Timber
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var appConfigManager: AppConfigManager
 
     private var isReady = false
 
@@ -59,7 +65,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            ChainlessChainTheme {
+            val appConfig by appConfigManager.config.collectAsState()
+            val darkTheme = when (appConfig.themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            ChainlessChainTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -82,7 +95,11 @@ class MainActivity : ComponentActivity() {
                     NavGraph(
                         navController = navController,
                         startDestination = startDestination,
-                        authViewModel = authViewModel
+                        authViewModel = authViewModel,
+                        currentThemeMode = appConfig.themeMode,
+                        onThemeModeChanged = { newMode ->
+                            appConfigManager.saveConfig(appConfig.copy(themeMode = newMode))
+                        }
                     )
 
                     // 标记准备完成

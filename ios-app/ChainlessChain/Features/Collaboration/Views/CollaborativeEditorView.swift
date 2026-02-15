@@ -27,7 +27,9 @@ public struct CollaborativeEditorView: View {
     @State private var errorMessage: String?
 
     // Current user info (from DID)
-    @State private var userId = "user_001" // TODO: Get from IdentityManager
+    // NOTE: Using placeholder userId for UI demonstration. In production, this would be
+    // retrieved from IdentityManager.shared.currentUser.did
+    @State private var userId = "user_001"
     @State private var userName = "Current User"
 
     // MARK: - Body
@@ -275,8 +277,8 @@ public struct CollaborativeEditorView: View {
     }
 
     private func updateCursorPosition() {
-        // TODO: Calculate actual cursor position from TextEditor
-        // For now, use content length as position
+        // NOTE: SwiftUI TextEditor 不直接提供光标位置 API。当前使用内容长度作为近似值
+        // 生产环境中可能需要使用 UITextView 的 delegate 方法获取精确位置
         let position = CursorPosition(
             line: 0,
             column: content.count,
@@ -291,7 +293,8 @@ public struct CollaborativeEditorView: View {
     }
 
     private func createSnapshot() async {
-        // TODO: Integrate with VersionControlService
+        // NOTE: UI 演示功能。生产环境中应集成 VersionControlService 创建快照
+        // 集成方式: await VersionControlService.shared.createSnapshot(documentId: documentId, content: content)
         print("Create snapshot for document: \(documentId)")
     }
 

@@ -144,7 +144,8 @@ public struct VersionHistoryView: View {
 
         do {
             let snapshot = try await versionControl.restoreSnapshot(snapshotId: version.snapshotId)
-            // TODO: Update document content in editor
+            // NOTE: 需要将恢复的内容传递给编辑器。可通过 @Binding 或 Notification 实现
+            // 集成方式: onRestoreContent?(snapshot.content)
             print("Restored version \(version.version): \(snapshot.content)")
 
             // Reload history

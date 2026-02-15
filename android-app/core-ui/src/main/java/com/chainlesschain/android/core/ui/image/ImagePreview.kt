@@ -6,7 +6,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
 import kotlinx.coroutines.launch
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
@@ -67,29 +70,74 @@ fun ImagePreviewDialog(
             ) { page ->
                 val zoomState = rememberZoomState()
                 val coroutineScope = rememberCoroutineScope()
+                var retryKey by remember { mutableIntStateOf(0) }
+                var loadState by remember { mutableStateOf<AsyncImagePainter.State?>(null) }
 
-                AsyncImage(
-                    model = images[page],
-                    contentDescription = "图片 ${page + 1}",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zoomable(zoomState)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onDoubleTap = { offset ->
-                                    // 双击缩放
-                                    coroutineScope.launch {
-                                        if (zoomState.scale > 1f) {
-                                            zoomState.reset()
-                                        } else {
-                                            zoomState.changeScale(2f, offset)
+                Box(modifier = Modifier.fillMaxSize()) {
+                    key(retryKey) {
+                        AsyncImage(
+                            model = images[page],
+                            contentDescription = "图片 ${page + 1}",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .zoomable(zoomState)
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onDoubleTap = { offset ->
+                                            // 双击缩放
+                                            coroutineScope.launch {
+                                                if (zoomState.scale > 1f) {
+                                                    zoomState.reset()
+                                                } else {
+                                                    zoomState.changeScale(2f, offset)
+                                                }
+                                            }
                                         }
-                                    }
-                                }
-                            )
-                        },
-                    contentScale = ContentScale.Fit
-                )
+                                    )
+                                },
+                            contentScale = ContentScale.Fit,
+                            onState = { loadState = it }
+                        )
+                    }
+
+                    // 加载中
+                    if (loadState is AsyncImagePainter.State.Loading) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color.White)
+                        }
+                    }
+
+                    // 加载失败，点击重试
+                    if (loadState is AsyncImagePainter.State.Error) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable {
+                                    loadState = null
+                                    retryKey++
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.BrokenImage,
+                                    contentDescription = null,
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "加载失败，点击重试",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             // 顶部工具栏

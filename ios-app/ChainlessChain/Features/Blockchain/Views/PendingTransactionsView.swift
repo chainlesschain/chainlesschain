@@ -482,28 +482,81 @@ class PendingTransactionsViewModel: ObservableObject {
     }
 
     func speedUpTransaction(_ transaction: PendingTransaction) {
-        guard let index = transactions.firstIndex(where: { $0.id == transaction.id }) else {
+        guard let index = transactions.firstIndex(where: { $0.id == transaction.id }),
+              let wallet = currentWallet else {
             return
         }
 
         // 更新状态
         transactions[index].isSpeedingUp = true
 
-        // TODO: 实现加速逻辑
-        // 1. 获取当前Gas价格
-        // 2. 设置更高的Gas价格
-        // 3. 重新发送相同nonce的交易
+        Task {
+            do {
+                // 1. 获取当前Gas价格并提高 20%
+                let currentGasPrice = try await GasManager.shared.getGasPrice(chainId: wallet.chainId)
+                let newGasPrice = String(format: "%.0f", Double(currentGasPrice) ?? 0 * 1.2)
 
-        Logger.shared.info("[PendingTransactions] 加速交易: \(transaction.hash)")
+                // 2. 使用相同的 nonce 重新发送交易（替换原交易）
+                // 注意：这里简化实现，实际应该保留原交易的所有参数
+                let hash = try await transactionManager.sendTransaction(
+                    wallet: wallet,
+                    to: transaction.to,
+                    value: transaction.value,
+                    gasPrice: newGasPrice,
+                    nonce: transaction.nonce
+                )
+
+                Logger.shared.info("[PendingTransactions] 交易加速成功，新交易哈希: \(hash)")
+
+                // 更新交易哈希
+                await MainActor.run {
+                    if let idx = self.transactions.firstIndex(where: { $0.id == transaction.id }) {
+                        self.transactions[idx].hash = hash
+                        self.transactions[idx].isSpeedingUp = false
+                    }
+                }
+            } catch {
+                Logger.shared.error("[PendingTransactions] 加速交易失败: \(error)")
+                await MainActor.run {
+                    if let idx = self.transactions.firstIndex(where: { $0.id == transaction.id }) {
+                        self.transactions[idx].isSpeedingUp = false
+                    }
+                }
+            }
+        }
     }
 
     func cancelTransaction(_ transaction: PendingTransaction) {
-        // TODO: 实现取消逻辑
-        // 1. 发送0值交易到自己的地址
-        // 2. 使用相同的nonce
-        // 3. 设置更高的Gas价格
+        guard let wallet = currentWallet else {
+            return
+        }
 
-        Logger.shared.info("[PendingTransactions] 取消交易: \(transaction.hash)")
+        Task {
+            do {
+                // 1. 获取当前Gas价格并提高 10%（确保优先处理）
+                let currentGasPrice = try await GasManager.shared.getGasPrice(chainId: wallet.chainId)
+                let newGasPrice = String(format: "%.0f", Double(currentGasPrice) ?? 0 * 1.1)
+
+                // 2. 发送 0 值交易到自己的地址，使用相同的 nonce
+                // 这样可以替换原交易，从而取消它
+                let hash = try await transactionManager.sendTransaction(
+                    wallet: wallet,
+                    to: wallet.address,  // 发送给自己
+                    value: "0",          // 0 值
+                    gasPrice: newGasPrice,
+                    nonce: transaction.nonce  // 相同的 nonce
+                )
+
+                Logger.shared.info("[PendingTransactions] 交易取消成功，替换交易哈希: \(hash)")
+
+                // 从列表中移除被取消的交易
+                await MainActor.run {
+                    self.transactions.removeAll { $0.id == transaction.id }
+                }
+            } catch {
+                Logger.shared.error("[PendingTransactions] 取消交易失败: \(error)")
+            }
+        }
     }
 
     func cancelAllTransactions() async {

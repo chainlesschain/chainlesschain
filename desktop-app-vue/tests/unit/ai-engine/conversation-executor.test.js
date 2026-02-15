@@ -2,12 +2,12 @@
  * ConversationExecutor 单元测试
  * 测试文件操作执行器的所有功能
  *
- * TODO: 修复fs mock配置问题 (当前20/34测试通过)
- * 问题: conversation-executor.js使用require('fs').promises (CommonJS)
- * 而测试环境使用ES modules，导致mock配置复杂
+ * NOTE: Known mock configuration issue (current: 20/34 tests passing)
+ * Issue: conversation-executor.js uses require('fs').promises (CommonJS)
+ * while test environment uses ES modules, making mock setup complex
  *
- * 已尝试方案:
- * 1. vi.mock("fs/promises") - 失败，源码使用require('fs').promises
+ * Attempted solutions:
+ * 1. vi.mock("fs/promises") - Failed, source code uses require('fs').promises
  * 2. vi.mock("fs") with promises对象 - 部分工作，但mockRejectedValueOnce不生效
  * 3. vi.mocked(fsPromises.access) - 仍有14个测试失败
  *

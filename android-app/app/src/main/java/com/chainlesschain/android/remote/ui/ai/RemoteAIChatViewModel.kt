@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.remote.client.StreamingCommandClient
 import com.chainlesschain.android.remote.commands.AICommands
-import com.chainlesschain.android.remote.commands.TokenUsage
 import com.chainlesschain.android.remote.model.ChatMessageType
 import com.chainlesschain.android.remote.model.ConfirmStatus
 import com.chainlesschain.android.remote.model.ContextMode
@@ -716,23 +715,3 @@ data class RemoteAIChatUiState(
     // Streaming mode
     val useStreaming: Boolean = true  // Default to streaming mode
 )
-
-// Legacy support - will be deprecated
-@Deprecated("Use EnhancedChatMessage instead", ReplaceWith("EnhancedChatMessage"))
-data class ChatMessage(
-    val id: String,
-    val role: MessageRole,
-    val content: String,
-    val timestamp: Long,
-    val model: String? = null,
-    val tokenUsage: TokenUsage? = null
-) {
-    fun toEnhanced(): EnhancedChatMessage = EnhancedChatMessage(
-        id = id,
-        role = role,
-        content = content,
-        timestamp = timestamp,
-        model = model,
-        tokenUsage = tokenUsage
-    )
-}

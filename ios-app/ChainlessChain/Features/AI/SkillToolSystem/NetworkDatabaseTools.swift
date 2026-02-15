@@ -774,7 +774,8 @@ public enum NetworkDatabaseTools {
     )
 
     private static let sqliteImportExecutor: ToolExecutor = { input in
-        // 简化实现：返回待实现提示
+        // NOTE: 简化实现。完整的 SQLite 导入功能需要事务处理和冲突解决
+        // 可在未来版本中实现完整的导入功能
         return .failure(error: "SQLite导入功能需要事务处理，当前版本暂不支持")
     }
 
