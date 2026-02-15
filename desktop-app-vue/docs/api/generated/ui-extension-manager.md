@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/ui-extension-manager.js`
 
-**Generated**: 2026-02-15T07:37:13.801Z
+**Generated**: 2026-02-15T08:42:37.208Z
 
 ---
 

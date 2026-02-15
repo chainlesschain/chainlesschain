@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/group-chat-sync-manager.js`
 
-**Generated**: 2026-02-15T07:37:13.773Z
+**Generated**: 2026-02-15T08:42:37.180Z
 
 ---
 
