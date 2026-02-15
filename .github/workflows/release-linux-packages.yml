@@ -28,6 +28,20 @@ jobs:
       - name: Install workspace dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Ensure desktop-app-vue dependencies are resolved
+        working-directory: desktop-app-vue
+        run: npm install --legacy-peer-deps --ignore-scripts
+
+      - name: Build main process
+        working-directory: desktop-app-vue
+        run: npm run build:main
+
+      - name: Build renderer
+        working-directory: desktop-app-vue
+        run: npm run build:renderer
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
       - name: Build Linux packages
         run: npm run make:linux --workspace=desktop-app-vue
         env:
