@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.StrictMode
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import com.chainlesschain.android.di.AppEntryPoint
@@ -13,6 +14,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * ChainlessChain应用程序主入口
@@ -25,7 +27,15 @@ import timber.log.Timber
  * @HiltAndroidApp 注解触发Hilt代码生成，包括应用级依赖容器
  */
 @HiltAndroidApp
-class ChainlessChainApplication : Application(), ImageLoaderFactory {
+class ChainlessChainApplication : Application(), ImageLoaderFactory, Configuration.Provider {
+
+    @Inject
+    lateinit var workerFactory: androidx.hilt.work.HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 
     override fun onCreate() {
         super.onCreate()
