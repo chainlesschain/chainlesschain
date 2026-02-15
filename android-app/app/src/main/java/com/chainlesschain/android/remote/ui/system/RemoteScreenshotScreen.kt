@@ -243,7 +243,7 @@ private fun LoadingState(text: String) {
 
 @Composable
 fun ScreenshotInfoCard(screenshot: ScreenshotItem) {
-    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
+    val timeFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -256,7 +256,7 @@ fun ScreenshotInfoCard(screenshot: ScreenshotItem) {
             InfoItem("Resolution", "${screenshot.width}x${screenshot.height}")
             InfoItem("Display", "#${screenshot.display}")
             InfoItem("Format", screenshot.format.uppercase())
-            InfoItem("Time", dateFormat.format(Date(screenshot.timestamp)).substring(11))
+            InfoItem("Time", timeFormat.format(Date(screenshot.timestamp)))
         }
     }
 }
