@@ -75,6 +75,12 @@ describe("SecurityHandler", () => {
 
   describe("getStatus", () => {
     it("应该返回安全状态摘要", async () => {
+      // Spy on sub-methods to avoid real system command execution
+      vi.spyOn(handler, "getFirewallStatus").mockResolvedValue({ success: true, enabled: true });
+      vi.spyOn(handler, "getAntivirusStatus").mockResolvedValue({ success: true, installed: true });
+      vi.spyOn(handler, "getEncryptionStatus").mockResolvedValue({ success: true, enabled: false });
+      vi.spyOn(handler, "getUpdates").mockResolvedValue({ success: true, pendingCount: 0 });
+
       const result = await handler.handle("getStatus", {}, mockContext);
 
       expect(result.success).toBe(true);

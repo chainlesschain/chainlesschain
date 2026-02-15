@@ -400,6 +400,7 @@ class WebRTCClient @Inject constructor(
         Timber.d("Cleanup")
 
         disconnect()
+        scope.coroutineContext[Job]?.cancelChildren()
 
         peerConnectionFactory?.dispose()
         peerConnectionFactory = null
@@ -459,6 +460,9 @@ class WebSocketSignalClient @Inject constructor(
     private var isConnected = false
     private var reconnectAttempts = 0
 
+    // General-purpose scope for callback dispatching
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     // Application-layer heartbeat
     private val heartbeatScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var heartbeatJob: Job? = null
@@ -505,7 +509,7 @@ class WebSocketSignalClient @Inject constructor(
 
                     if (reconnectAttempts < com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS) {
                         reconnectAttempts++
-                        CoroutineScope(Dispatchers.IO).launch {
+                        scope.launch {
                             delay(com.chainlesschain.android.remote.config.SignalingConfig.RECONNECT_DELAY_MS)
                             Timber.d("Reconnecting (${reconnectAttempts}/${com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS})...")
                             connect()
@@ -586,7 +590,7 @@ class WebSocketSignalClient @Inject constructor(
                             org.webrtc.SessionDescription.Type.ANSWER,
                             sdpString
                         )
-                        CoroutineScope(Dispatchers.IO).launch {
+                        scope.launch {
                             answerChannel.send(answer)
                         }
                         Timber.d("Answer received")
@@ -603,7 +607,7 @@ class WebSocketSignalClient @Inject constructor(
                         val sdp = candidateObj.optString("candidate", "")
                         if (sdp.isNotBlank()) {
                             val candidate = org.webrtc.IceCandidate(sdpMid, sdpMLineIndex, sdp)
-                            CoroutineScope(Dispatchers.IO).launch {
+                            scope.launch {
                                 iceCandidateChannel.send(candidate)
                             }
                             Timber.d("ICE candidate received")
@@ -615,7 +619,7 @@ class WebSocketSignalClient @Inject constructor(
                         val sdp = json.optString("candidate", "")
                         if (sdp.isNotBlank()) {
                             val candidate = org.webrtc.IceCandidate(sdpMid, sdpMLineIndex, sdp)
-                            CoroutineScope(Dispatchers.IO).launch {
+                            scope.launch {
                                 iceCandidateChannel.send(candidate)
                             }
                             Timber.d("ICE candidate received (flat format)")
@@ -627,7 +631,7 @@ class WebSocketSignalClient @Inject constructor(
                     // Batch ICE candidates (sent by desktop mobile-bridge.js every 100ms)
                     val candidatesArray = json.optJSONArray("candidates")
                     if (candidatesArray != null) {
-                        CoroutineScope(Dispatchers.IO).launch {
+                        scope.launch {
                             for (i in 0 until candidatesArray.length()) {
                                 val c = candidatesArray.optJSONObject(i) ?: continue
                                 val sdpMid = c.optString("sdpMid", "0")
@@ -842,6 +846,8 @@ class WebSocketSignalClient @Inject constructor(
     override fun disconnect() {
         Timber.d("Disconnect signaling")
         stopHeartbeat()
+        scope.coroutineContext[Job]?.cancelChildren()
+        heartbeatScope.coroutineContext[Job]?.cancelChildren()
         webSocket?.close(1000, "Normal closure")
         webSocket = null
         isConnected = false
