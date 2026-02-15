@@ -1,8 +1,8 @@
 # ai-engine-manager-p1
 
-**Source**: `src\main\ai-engine\ai-engine-manager-p1.js`
+**Source**: `src/main/ai-engine/ai-engine-manager-p1.js`
 
-**Generated**: 2026-01-27T06:44:03.884Z
+**Generated**: 2026-02-15T07:37:13.872Z
 
 ---
 
@@ -43,10 +43,10 @@ async initialize(options =
 
 ---
 
-## async processUserInput(userInput, context =
+## async processUserInput(
 
 ```javascript
-async processUserInput(userInput, context =
+async processUserInput(
 ```
 
 * 处理用户输入的核心方法（P1集成版）
@@ -58,10 +58,10 @@ async processUserInput(userInput, context =
 
 ---
 
-## async _executeTaskSteps(plan, context, executionId, intentIndex, onStepUpdate)
+## async _executeTaskSteps(
 
 ```javascript
-async _executeTaskSteps(plan, context, executionId, intentIndex, onStepUpdate)
+async _executeTaskSteps(
 ```
 
 * 执行任务步骤（内部方法，包含检查点校验）

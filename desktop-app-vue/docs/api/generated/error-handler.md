@@ -1,8 +1,8 @@
 # error-handler
 
-**Source**: `src\main\monitoring\error-handler.js`
+**Source**: `src/main/monitoring/error-handler.js`
 
-**Generated**: 2026-01-27T06:44:03.838Z
+**Generated**: 2026-02-15T07:37:13.812Z
 
 ---
 

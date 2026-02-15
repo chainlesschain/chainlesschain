@@ -1,8 +1,8 @@
 # email-client
 
-**Source**: `src\main\api\email-client.js`
+**Source**: `src/main/api/email-client.js`
 
-**Generated**: 2026-01-27T06:44:03.874Z
+**Generated**: 2026-02-15T07:37:13.862Z
 
 ---
 
@@ -30,10 +30,10 @@ configure(config)
 
 ---
 
-## async getConnection(accountId = 'default')
+## async getConnection(accountId = "default")
 
 ```javascript
-async getConnection(accountId = 'default')
+async getConnection(accountId = "default")
 ```
 
 * 从连接池获取连接
@@ -112,10 +112,10 @@ async getMailboxes()
 
 ---
 
-## async openMailbox(mailbox = 'INBOX')
+## async openMailbox(mailbox = "INBOX")
 
 ```javascript
-async openMailbox(mailbox = 'INBOX')
+async openMailbox(mailbox = "INBOX")
 ```
 
 * 打开邮箱
@@ -134,10 +134,10 @@ async fetchEmails(options =
 
 ---
 
-## async fetchEmail(uid, mailbox = 'INBOX')
+## async fetchEmail(uid, mailbox = "INBOX")
 
 ```javascript
-async fetchEmail(uid, mailbox = 'INBOX')
+async fetchEmail(uid, mailbox = "INBOX")
 ```
 
 * 获取单封邮件
@@ -145,10 +145,10 @@ async fetchEmail(uid, mailbox = 'INBOX')
 
 ---
 
-## async markAsRead(uid, mailbox = 'INBOX')
+## async markAsRead(uid, mailbox = "INBOX")
 
 ```javascript
-async markAsRead(uid, mailbox = 'INBOX')
+async markAsRead(uid, mailbox = "INBOX")
 ```
 
 * 标记邮件为已读
@@ -156,10 +156,10 @@ async markAsRead(uid, mailbox = 'INBOX')
 
 ---
 
-## async deleteEmail(uid, mailbox = 'INBOX')
+## async deleteEmail(uid, mailbox = "INBOX")
 
 ```javascript
-async deleteEmail(uid, mailbox = 'INBOX')
+async deleteEmail(uid, mailbox = "INBOX")
 ```
 
 * 删除邮件
@@ -188,10 +188,10 @@ normalizeEmail(parsed, seqno)
 
 ---
 
-## parseMailboxes(boxes, prefix = '')
+## parseMailboxes(boxes, prefix = "")
 
 ```javascript
-parseMailboxes(boxes, prefix = '')
+parseMailboxes(boxes, prefix = "")
 ```
 
 * 解析邮箱列表

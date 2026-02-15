@@ -1,8 +1,8 @@
 # skill-manager.test
 
-**Source**: `src\main\skill-tool-system\__tests__\skill-manager.test.js`
+**Source**: `src/main/skill-tool-system/__tests__/skill-manager.test.js`
 
-**Generated**: 2026-01-27T06:44:03.818Z
+**Generated**: 2026-02-15T07:37:13.785Z
 
 ---
 

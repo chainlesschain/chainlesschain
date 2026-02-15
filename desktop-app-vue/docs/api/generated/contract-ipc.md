@@ -1,8 +1,8 @@
 # contract-ipc
 
-**Source**: `src\main\blockchain\contract-ipc.js`
+**Source**: `src/main/blockchain/contract-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.871Z
+**Generated**: 2026-02-15T07:37:13.857Z
 
 ---
 

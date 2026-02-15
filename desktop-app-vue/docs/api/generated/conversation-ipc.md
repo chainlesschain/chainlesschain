@@ -1,8 +1,8 @@
 # conversation-ipc
 
-**Source**: `src\main\conversation\conversation-ipc.js`
+**Source**: `src/main/conversation/conversation-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.867Z
+**Generated**: 2026-02-15T07:37:13.843Z
 
 ---
 
@@ -65,6 +65,22 @@ ipcMain.handle("conversation:get-by-project", async (_event, projectId) =>
    *
    * @param {string} projectId - 项目ID
    * @returns {Promise<Object>} { success: boolean, data?: Object[], error?: string }
+
+---
+
+## ipcMain.handle("conversation:get-recent", async (_event, options =
+
+```javascript
+ipcMain.handle("conversation:get-recent", async (_event, options =
+```
+
+* 获取最近对话
+   * Channel: 'conversation:get-recent'
+   *
+   * @param {Object} options - 查询选项
+   * @param {number} options.limit - 返回数量限制
+   * @param {string} [options.projectId] - 可选的项目ID筛选
+   * @returns {Promise<Object>} { success: boolean, conversations?: Object[], error?: string }
 
 ---
 

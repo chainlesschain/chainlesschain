@@ -1,8 +1,8 @@
 # task-tracker-ipc
 
-**Source**: `src\main\ai-engine\task-tracker-ipc.js`
+**Source**: `src/main/ai-engine/task-tracker-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.876Z
+**Generated**: 2026-02-15T07:37:13.863Z
 
 ---
 
@@ -48,10 +48,10 @@ ipcMain.handle("task-tracker:start", async (event) =>
 
 ---
 
-## ipcMain.handle("task-tracker:update-progress", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("task-tracker:update-progress", async (event,
+ipcMain.handle(
 ```
 
 * 更新任务进度
@@ -88,10 +88,10 @@ ipcMain.handle("task-tracker:cancel", async (event, reason) =>
 
 ---
 
-## ipcMain.handle("task-tracker:record-error", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("task-tracker:record-error", async (event,
+ipcMain.handle(
 ```
 
 * 记录步骤错误
@@ -138,10 +138,10 @@ ipcMain.handle("task-tracker:get-prompt-context", async (event) =>
 
 ---
 
-## ipcMain.handle("task-tracker:save-result", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("task-tracker:save-result", async (event,
+ipcMain.handle(
 ```
 
 * 保存中间结果

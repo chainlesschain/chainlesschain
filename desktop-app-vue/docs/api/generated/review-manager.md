@@ -1,8 +1,8 @@
 # review-manager
 
-**Source**: `src\main\trade\review-manager.js`
+**Source**: `src/main/trade/review-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.795Z
+**Generated**: 2026-02-15T07:37:13.766Z
 
 ---
 
@@ -77,20 +77,20 @@ async markHelpful(reviewId)
 
 ---
 
-## async reportReview(reviewId, reason, description = '')
+## async reportReview(reviewId, reason, description = "")
 
 ```javascript
-async reportReview(reviewId, reason, description = '')
+async reportReview(reviewId, reason, description = "")
 ```
 
 * 举报评价
 
 ---
 
-## async resolveReport(reportId, resolution, action = 'none')
+## async resolveReport(reportId, resolution, action = "none")
 
 ```javascript
-async resolveReport(reportId, resolution, action = 'none')
+async resolveReport(reportId, resolution, action = "none")
 ```
 
 * 处理举报（管理员功能）
@@ -167,10 +167,10 @@ getFeaturedReviews(userDid, limit = 10)
 
 ---
 
-## getAvailableTags(type = 'positive')
+## getAvailableTags(type = "positive")
 
 ```javascript
-getAvailableTags(type = 'positive')
+getAvailableTags(type = "positive")
 ```
 
 * 获取评价标签库

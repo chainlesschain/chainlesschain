@@ -1,8 +1,8 @@
 # database
 
-**Source**: `src\main\database.js`
+**Source**: `src/main/database.js`
 
-**Generated**: 2026-01-27T06:44:03.775Z
+**Generated**: 2026-02-15T07:37:13.757Z
 
 ---
 
@@ -116,6 +116,16 @@ createTables()
 ```
 
 * 创建数据库表
+
+---
+
+## ensureTaskBoardOwnerSchema()
+
+```javascript
+ensureTaskBoardOwnerSchema()
+```
+
+* Ensure task_boards has required columns and related indexes.
 
 ---
 
@@ -457,6 +467,17 @@ exec(sql)
 
 ---
 
+## getDatabase()
+
+```javascript
+getDatabase()
+```
+
+* Get the underlying database instance
+   * @returns {Object} Database instance
+
+---
+
 ## prepare(sql)
 
 ```javascript
@@ -771,15 +792,27 @@ buildTemporalRelations(windowDays = 7)
 
 ---
 
-## getProjects(userId)
+## getProjects(userId, options =
 
 ```javascript
-getProjects(userId)
+getProjects(userId, options =
 ```
 
 * 获取所有项目
    * @param {string} userId - 用户ID
    * @returns {Array} 项目列表
+
+---
+
+## getProjectsCount(userId)
+
+```javascript
+getProjectsCount(userId)
+```
+
+* 获取项目总数
+   * @param {string} userId - 用户ID
+   * @returns {number} 项目总数
 
 ---
 

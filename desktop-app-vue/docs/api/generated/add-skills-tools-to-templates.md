@@ -1,8 +1,8 @@
 # add-skills-tools-to-templates
 
-**Source**: `src\main\templates\add-skills-tools-to-templates.js`
+**Source**: `src/main/templates/add-skills-tools-to-templates.js`
 
-**Generated**: 2026-01-27T06:44:03.799Z
+**Generated**: 2026-02-15T07:37:13.768Z
 
 ---
 

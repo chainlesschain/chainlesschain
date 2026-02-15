@@ -1,8 +1,8 @@
 # asset-manager
 
-**Source**: `src\main\trade\asset-manager.js`
+**Source**: `src/main/trade/asset-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.797Z
+**Generated**: 2026-02-15T07:37:13.768Z
 
 ---
 
@@ -108,10 +108,10 @@ async mintAsset(assetId, toDid, amount)
 
 ---
 
-## async transferAsset(assetId, toDid, amount, memo = '', onChainOptions =
+## async transferAsset(assetId, toDid, amount, memo = "", onChainOptions =
 
 ```javascript
-async transferAsset(assetId, toDid, amount, memo = '', onChainOptions =
+async transferAsset(assetId, toDid, amount, memo = "", onChainOptions =
 ```
 
 * 转账资产
@@ -139,10 +139,10 @@ async burnAsset(assetId, amount)
 
 ---
 
-## async transferNFTOnChain(assetId, toDid, toAddress, walletId, password, memo = '')
+## async transferNFTOnChain(
 
 ```javascript
-async transferNFTOnChain(assetId, toDid, toAddress, walletId, password, memo = '')
+async transferNFTOnChain(
 ```
 
 * 转账 NFT（链上）

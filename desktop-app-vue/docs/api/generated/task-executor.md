@@ -1,8 +1,8 @@
 # task-executor
 
-**Source**: `src\main\ai-engine\task-executor.js`
+**Source**: `src/main/ai-engine/task-executor.js`
 
-**Generated**: 2026-01-27T06:44:03.876Z
+**Generated**: 2026-02-15T07:37:13.864Z
 
 ---
 
@@ -38,10 +38,10 @@ setupListeners()
 
 ---
 
-## maybeTransition(targetPhase, reason = '')
+## maybeTransition(targetPhase, reason = "")
 
 ```javascript
-maybeTransition(targetPhase, reason = '')
+maybeTransition(targetPhase, reason = "")
 ```
 
 * 尝试切换阶段
@@ -58,10 +58,10 @@ shouldTransition(targetPhase)
 
 ---
 
-## manualTransition(targetPhase, reason = '手动触发')
+## manualTransition(targetPhase, reason = "手动触发")
 
 ```javascript
-manualTransition(targetPhase, reason = '手动触发')
+manualTransition(targetPhase, reason = "手动触发")
 ```
 
 * 手动切换阶段

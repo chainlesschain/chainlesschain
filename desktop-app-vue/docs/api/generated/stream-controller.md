@@ -1,8 +1,8 @@
 # stream-controller
 
-**Source**: `src\main\llm\stream-controller.js`
+**Source**: `src/main/llm/stream-controller.js`
 
-**Generated**: 2026-01-27T06:44:03.846Z
+**Generated**: 2026-02-15T07:37:13.821Z
 
 ---
 
@@ -103,10 +103,10 @@ waitForResume()
 
 ---
 
-## cancel(reason = '用户取消')
+## cancel(reason = "用户取消")
 
 ```javascript
-cancel(reason = '用户取消')
+cancel(reason = "用户取消")
 ```
 
 * 取消流式输出

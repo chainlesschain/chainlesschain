@@ -1,8 +1,8 @@
 # web-search-ipc
 
-**Source**: `src\main\utils\web-search-ipc.js`
+**Source**: `src/main/utils/web-search-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.789Z
+**Generated**: 2026-02-15T07:37:13.761Z
 
 ---
 
@@ -26,40 +26,40 @@ function registerWebSearchIPC()
 
 ---
 
-## ipcMain.handle('webSearch:search', async (_event, query, options =
+## ipcMain.handle("webSearch:search", async (_event, query, options =
 
 ```javascript
-ipcMain.handle('webSearch:search', async (_event, query, options =
+ipcMain.handle("webSearch:search", async (_event, query, options =
 ```
 
 * 通用搜索
 
 ---
 
-## ipcMain.handle('webSearch:duckduckgo', async (_event, query, options =
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('webSearch:duckduckgo', async (_event, query, options =
+ipcMain.handle(
 ```
 
 * DuckDuckGo搜索
 
 ---
 
-## ipcMain.handle('webSearch:bing', async (_event, query, options =
+## ipcMain.handle("webSearch:bing", async (_event, query, options =
 
 ```javascript
-ipcMain.handle('webSearch:bing', async (_event, query, options =
+ipcMain.handle("webSearch:bing", async (_event, query, options =
 ```
 
 * Bing搜索
 
 ---
 
-## ipcMain.handle('webSearch:format', async (_event, searchResult) =>
+## ipcMain.handle("webSearch:format", async (_event, searchResult) =>
 
 ```javascript
-ipcMain.handle('webSearch:format', async (_event, searchResult) =>
+ipcMain.handle("webSearch:format", async (_event, searchResult) =>
 ```
 
 * 格式化搜索结果

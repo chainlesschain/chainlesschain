@@ -1,8 +1,8 @@
 # llava-client
 
-**Source**: `src\main\llm\llava-client.js`
+**Source**: `src/main/llm/llava-client.js`
 
-**Generated**: 2026-01-27T06:44:03.849Z
+**Generated**: 2026-02-15T07:37:13.824Z
 
 ---
 
@@ -21,20 +21,20 @@ const
 
 ---
 
-## const SUPPORTED_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+## const SUPPORTED_FORMATS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"];
 
 ```javascript
-const SUPPORTED_FORMATS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+const SUPPORTED_FORMATS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"];
 ```
 
 * 支持的图片格式
 
 ---
 
-## const DEFAULT_VISION_MODEL = 'llava:7b';
+## const DEFAULT_VISION_MODEL = "llava:7b";
 
 ```javascript
-const DEFAULT_VISION_MODEL = 'llava:7b';
+const DEFAULT_VISION_MODEL = "llava:7b";
 ```
 
 * 默认视觉模型

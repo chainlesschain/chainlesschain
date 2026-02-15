@@ -1,8 +1,8 @@
 # subtitle-generator
 
-**Source**: `src\main\speech\subtitle-generator.js`
+**Source**: `src/main/speech/subtitle-generator.js`
 
-**Generated**: 2026-01-27T06:44:03.806Z
+**Generated**: 2026-02-15T07:37:13.774Z
 
 ---
 
@@ -218,10 +218,10 @@ parseVTT(vttText)
 
 ---
 
-## async saveSubtitleFile(subtitles, outputPath, format = 'srt')
+## async saveSubtitleFile(subtitles, outputPath, format = "srt")
 
 ```javascript
-async saveSubtitleFile(subtitles, outputPath, format = 'srt')
+async saveSubtitleFile(subtitles, outputPath, format = "srt")
 ```
 
 * 保存字幕文件
@@ -232,10 +232,10 @@ async saveSubtitleFile(subtitles, outputPath, format = 'srt')
 
 ---
 
-## async saveWhisperSubtitle(whisperResponse, outputPath, format = 'srt')
+## async saveWhisperSubtitle(whisperResponse, outputPath, format = "srt")
 
 ```javascript
-async saveWhisperSubtitle(whisperResponse, outputPath, format = 'srt')
+async saveWhisperSubtitle(whisperResponse, outputPath, format = "srt")
 ```
 
 * 从 Whisper API 响应生成字幕
@@ -246,10 +246,10 @@ async saveWhisperSubtitle(whisperResponse, outputPath, format = 'srt')
 
 ---
 
-## async batchGenerate(transcriptions, outputDir, format = 'srt')
+## async batchGenerate(transcriptions, outputDir, format = "srt")
 
 ```javascript
-async batchGenerate(transcriptions, outputDir, format = 'srt')
+async batchGenerate(transcriptions, outputDir, format = "srt")
 ```
 
 * 批量生成字幕文件

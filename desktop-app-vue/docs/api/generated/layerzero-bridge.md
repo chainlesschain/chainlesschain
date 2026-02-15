@@ -1,8 +1,8 @@
 # layerzero-bridge
 
-**Source**: `src\main\blockchain\bridges\layerzero-bridge.js`
+**Source**: `src/main/blockchain/bridges/layerzero-bridge.js`
 
-**Generated**: 2026-01-27T06:44:03.873Z
+**Generated**: 2026-02-15T07:37:13.859Z
 
 ---
 

@@ -1,8 +1,8 @@
 # api-doc-generator
 
-**Source**: `src\main\skill-tool-system\api-doc-generator.js`
+**Source**: `src/main/skill-tool-system/api-doc-generator.js`
 
-**Generated**: 2026-01-27T06:44:03.816Z
+**Generated**: 2026-02-15T07:37:13.783Z
 
 ---
 
@@ -84,6 +84,16 @@ formatMethodDoc(method)
 ```
 
 * 格式化方法文档
+
+---
+
+## generateUsageExamples(className, publicMethods)
+
+```javascript
+generateUsageExamples(className, publicMethods)
+```
+
+* 生成使用示例代码
 
 ---
 

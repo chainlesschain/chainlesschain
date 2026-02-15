@@ -1,15 +1,15 @@
 # image-gen-manager
 
-**Source**: `src\main\image-gen\image-gen-manager.js`
+**Source**: `src/main/image-gen/image-gen-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.854Z
+**Generated**: 2026-02-15T07:37:13.829Z
 
 ---
 
-## const EventEmitter = require('events');
+## const EventEmitter = require("events");
 
 ```javascript
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 ```
 
 * Image Generation Manager

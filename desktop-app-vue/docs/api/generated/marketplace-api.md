@@ -1,8 +1,8 @@
 # marketplace-api
 
-**Source**: `src\main\plugins\marketplace-api.js`
+**Source**: `src/main/plugins/marketplace-api.js`
 
-**Generated**: 2026-01-27T06:44:03.830Z
+**Generated**: 2026-02-15T07:37:13.803Z
 
 ---
 
@@ -89,10 +89,10 @@ async getPlugin(pluginId, useCache = true)
 
 ---
 
-## async downloadPlugin(pluginId, version = 'latest')
+## async downloadPlugin(pluginId, version = "latest")
 
 ```javascript
-async downloadPlugin(pluginId, version = 'latest')
+async downloadPlugin(pluginId, version = "latest")
 ```
 
 * 下载插件

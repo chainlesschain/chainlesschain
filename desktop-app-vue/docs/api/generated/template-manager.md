@@ -1,8 +1,8 @@
 # template-manager
 
-**Source**: `src\main\template\template-manager.js`
+**Source**: `src/main/template/template-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.799Z
+**Generated**: 2026-02-15T07:37:13.769Z
 
 ---
 
@@ -87,20 +87,20 @@ parseTemplateData(template)
 
 ---
 
-## validateVariables(variablesSchema, userVariables)
+## validateVariables(variablesSchema, userVariables =
 
 ```javascript
-validateVariables(variablesSchema, userVariables)
+validateVariables(variablesSchema, userVariables =
 ```
 
 * 验证模板变量
 
 ---
 
-## renderPrompt(template, userVariables)
+## renderPrompt(template, userVariables =
 
 ```javascript
-renderPrompt(template, userVariables)
+renderPrompt(template, userVariables =
 ```
 
 * 渲染模板提示词
@@ -127,10 +127,10 @@ async searchTemplates(keyword, filters =
 
 ---
 
-## async rateTemplate(templateId, userId, rating, review = '')
+## async rateTemplate(templateId, userId, rating, review = "")
 
 ```javascript
-async rateTemplate(templateId, userId, rating, review = '')
+async rateTemplate(templateId, userId, rating, review = "")
 ```
 
 * 提交模板评价

@@ -1,8 +1,8 @@
 # office-skill
 
-**Source**: `src\main\ai-engine\cowork\skills\office-skill.js`
+**Source**: `src/main/ai-engine/cowork/skills/office-skill.js`
 
-**Generated**: 2026-01-27T06:44:03.888Z
+**Generated**: 2026-02-15T07:37:13.876Z
 
 ---
 
@@ -27,6 +27,18 @@ class OfficeSkill extends BaseSkill
 ```
 
 * OfficeSkill 类
+
+---
+
+## canHandle(task)
+
+```javascript
+canHandle(task)
+```
+
+* 判断是否能处理任务（重写父类方法）
+   * @param {Object} task - 任务对象
+   * @returns {number} 匹配分数 (0-100)
 
 ---
 
@@ -56,10 +68,10 @@ async createExcel(input, context =
 
 ---
 
-## async _createExcelSheet(workbook, sheetData, options)
+## async _createExcelSheet(workbook, sheetData, _options)
 
 ```javascript
-async _createExcelSheet(workbook, sheetData, options)
+async _createExcelSheet(workbook, sheetData, _options)
 ```
 
 * 创建 Excel 工作表
@@ -67,10 +79,10 @@ async _createExcelSheet(workbook, sheetData, options)
 
 ---
 
-## async readExcel(input, context =
+## async readExcel(input, _context =
 
 ```javascript
-async readExcel(input, context =
+async readExcel(input, _context =
 ```
 
 * 读取 Excel 文件
@@ -80,10 +92,10 @@ async readExcel(input, context =
 
 ---
 
-## async createWord(input, context =
+## async createWord(input, _context =
 
 ```javascript
-async createWord(input, context =
+async createWord(input, _context =
 ```
 
 * 创建 Word 文档
@@ -93,10 +105,10 @@ async createWord(input, context =
 
 ---
 
-## async readWord(input, context =
+## async readWord(_input, _context =
 
 ```javascript
-async readWord(input, context =
+async readWord(_input, _context =
 ```
 
 * 读取 Word 文档
@@ -106,10 +118,10 @@ async readWord(input, context =
 
 ---
 
-## async createPowerPoint(input, context =
+## async createPowerPoint(input, _context =
 
 ```javascript
-async createPowerPoint(input, context =
+async createPowerPoint(input, _context =
 ```
 
 * 创建 PowerPoint 演示文稿

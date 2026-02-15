@@ -1,8 +1,8 @@
 # sync-config
 
-**Source**: `src\main\sync\sync-config.js`
+**Source**: `src/main/sync/sync-config.js`
 
-**Generated**: 2026-01-27T06:44:03.803Z
+**Generated**: 2026-02-15T07:37:13.772Z
 
 ---
 

@@ -1,8 +1,8 @@
 # pdf-ipc
 
-**Source**: `src\main\pdf\pdf-ipc.js`
+**Source**: `src/main/pdf/pdf-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.831Z
+**Generated**: 2026-02-15T07:37:13.804Z
 
 ---
 
@@ -32,40 +32,40 @@ function registerPDFIPC(
 
 ---
 
-## ipcMain.handle('pdf:markdownToPDF', async (_event, params) =>
+## ipcMain.handle("pdf:markdownToPDF", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('pdf:markdownToPDF', async (_event, params) =>
+ipcMain.handle("pdf:markdownToPDF", async (_event, params) =>
 ```
 
 * Markdown 转 PDF
 
 ---
 
-## ipcMain.handle('pdf:htmlFileToPDF', async (_event, params) =>
+## ipcMain.handle("pdf:htmlFileToPDF", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('pdf:htmlFileToPDF', async (_event, params) =>
+ipcMain.handle("pdf:htmlFileToPDF", async (_event, params) =>
 ```
 
 * HTML 文件转 PDF
 
 ---
 
-## ipcMain.handle('pdf:textFileToPDF', async (_event, params) =>
+## ipcMain.handle("pdf:textFileToPDF", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('pdf:textFileToPDF', async (_event, params) =>
+ipcMain.handle("pdf:textFileToPDF", async (_event, params) =>
 ```
 
 * 文本文件转 PDF
 
 ---
 
-## ipcMain.handle('pdf:batchConvert', async (_event, params) =>
+## ipcMain.handle("pdf:batchConvert", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('pdf:batchConvert', async (_event, params) =>
+ipcMain.handle("pdf:batchConvert", async (_event, params) =>
 ```
 
 * 批量转换 PDF

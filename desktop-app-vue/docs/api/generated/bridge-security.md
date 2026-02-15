@@ -1,8 +1,8 @@
 # bridge-security
 
-**Source**: `src\main\blockchain\bridge-security.js`
+**Source**: `src/main/blockchain/bridge-security.js`
 
-**Generated**: 2026-01-27T06:44:03.872Z
+**Generated**: 2026-02-15T07:37:13.858Z
 
 ---
 
@@ -145,10 +145,10 @@ async addSignature(txId, signature, signer)
 
 ---
 
-## async pauseBridge(duration = SECURITY_CONFIG.PAUSE_DURATION, reason = '')
+## async pauseBridge(duration = SECURITY_CONFIG.PAUSE_DURATION, reason = "")
 
 ```javascript
-async pauseBridge(duration = SECURITY_CONFIG.PAUSE_DURATION, reason = '')
+async pauseBridge(duration = SECURITY_CONFIG.PAUSE_DURATION, reason = "")
 ```
 
 * Emergency pause bridge
@@ -165,10 +165,10 @@ async resumeBridge()
 
 ---
 
-## async addToBlacklist(address, reason, addedBy = 'system')
+## async addToBlacklist(address, reason, addedBy = "system")
 
 ```javascript
-async addToBlacklist(address, reason, addedBy = 'system')
+async addToBlacklist(address, reason, addedBy = "system")
 ```
 
 * Add address to blacklist

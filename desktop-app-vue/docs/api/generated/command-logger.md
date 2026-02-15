@@ -1,8 +1,8 @@
 # command-logger
 
-**Source**: `src\main\remote\logging\command-logger.js`
+**Source**: `src/main/remote/logging/command-logger.js`
 
-**Generated**: 2026-01-27T06:44:03.822Z
+**Generated**: 2026-02-15T07:37:13.790Z
 
 ---
 

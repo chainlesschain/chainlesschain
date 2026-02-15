@@ -1,8 +1,8 @@
 # plugin-manager
 
-**Source**: `src\main\plugins\plugin-manager.js`
+**Source**: `src/main/plugins/plugin-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.829Z
+**Generated**: 2026-02-15T07:37:13.801Z
 
 ---
 
@@ -201,6 +201,94 @@ async triggerExtensionPoint(name, context =
    * @param {string} name - 扩展点名称
    * @param {Object} context - 上下文
    * @returns {Promise<Array>} 扩展点执行结果
+
+---
+
+## async handleUIPageExtension(context)
+
+```javascript
+async handleUIPageExtension(context)
+```
+
+* 处理UI页面扩展
+   * @param {Object} context - 扩展上下文
+   * @param {string} context.pluginId - 插件ID
+   * @param {Object} context.config - 页面配置
+
+---
+
+## async handleUIMenuExtension(context)
+
+```javascript
+async handleUIMenuExtension(context)
+```
+
+* 处理UI菜单扩展
+   * @param {Object} context - 扩展上下文
+   * @param {string} context.pluginId - 插件ID
+   * @param {Object} context.config - 菜单配置
+
+---
+
+## async handleUIComponentExtension(context)
+
+```javascript
+async handleUIComponentExtension(context)
+```
+
+* 处理UI组件扩展
+   * @param {Object} context - 扩展上下文
+   * @param {string} context.pluginId - 插件ID
+   * @param {Object} context.config - 组件配置
+
+---
+
+## getRegisteredPages(pluginId = null)
+
+```javascript
+getRegisteredPages(pluginId = null)
+```
+
+* 获取所有注册的页面
+   * @param {string} pluginId - 可选，按插件ID过滤
+   * @returns {Array} 页面列表
+
+---
+
+## getRegisteredMenus(position = null, pluginId = null)
+
+```javascript
+getRegisteredMenus(position = null, pluginId = null)
+```
+
+* 获取所有注册的菜单
+   * @param {string} position - 可选，按位置过滤 (sidebar/header/context)
+   * @param {string} pluginId - 可选，按插件ID过滤
+   * @returns {Array} 菜单列表
+
+---
+
+## getRegisteredComponents(slot = null, pluginId = null)
+
+```javascript
+getRegisteredComponents(slot = null, pluginId = null)
+```
+
+* 获取所有注册的组件
+   * @param {string} slot - 可选，按插槽过滤
+   * @param {string} pluginId - 可选，按插件ID过滤
+   * @returns {Array} 组件列表
+
+---
+
+## unregisterPluginUI(pluginId)
+
+```javascript
+unregisterPluginUI(pluginId)
+```
+
+* 注销插件的所有UI扩展
+   * @param {string} pluginId - 插件ID
 
 ---
 

@@ -1,8 +1,8 @@
 # interactive-planning-ipc
 
-**Source**: `src\main\ai-engine\interactive-planning-ipc.js`
+**Source**: `src/main/ai-engine/interactive-planning-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.878Z
+**Generated**: 2026-02-15T07:37:13.866Z
 
 ---
 
@@ -30,50 +30,50 @@ constructor(interactiveTaskPlanner, options =
 
 ---
 
-## this.ipcMain.handle('interactive-planning:start-session', async (event,
+## this.ipcMain.handle(
 
 ```javascript
-this.ipcMain.handle('interactive-planning:start-session', async (event,
+this.ipcMain.handle(
 ```
 
 * 开始Plan模式对话
 
 ---
 
-## this.ipcMain.handle('interactive-planning:respond', async (event,
+## this.ipcMain.handle(
 
 ```javascript
-this.ipcMain.handle('interactive-planning:respond', async (event,
+this.ipcMain.handle(
 ```
 
 * 用户确认或调整Plan
 
 ---
 
-## this.ipcMain.handle('interactive-planning:submit-feedback', async (event,
+## this.ipcMain.handle(
 
 ```javascript
-this.ipcMain.handle('interactive-planning:submit-feedback', async (event,
+this.ipcMain.handle(
 ```
 
 * 提交用户反馈
 
 ---
 
-## this.ipcMain.handle('interactive-planning:get-session', async (event,
+## this.ipcMain.handle(
 
 ```javascript
-this.ipcMain.handle('interactive-planning:get-session', async (event,
+this.ipcMain.handle(
 ```
 
 * 获取会话信息
 
 ---
 
-## this.ipcMain.handle('interactive-planning:cleanup', async (event,
+## this.ipcMain.handle(
 
 ```javascript
-this.ipcMain.handle('interactive-planning:cleanup', async (event,
+this.ipcMain.handle(
 ```
 
 * 清理过期会话

@@ -1,8 +1,8 @@
 # task-manager
 
-**Source**: `src\main\task\task-manager.js`
+**Source**: `src/main/task/task-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.800Z
+**Generated**: 2026-02-15T07:37:13.769Z
 
 ---
 
@@ -177,10 +177,10 @@ async getComments(taskId)
 
 ---
 
-## async deleteComment(commentId, deleterDID)
+## async deleteComment(commentId, _deleterDID)
 
 ```javascript
-async deleteComment(commentId, deleterDID)
+async deleteComment(commentId, _deleterDID)
 ```
 
 * 删除评论
@@ -244,6 +244,60 @@ async getBoards(orgId, workspaceId = null)
    * @param {string} orgId - 组织ID
    * @param {string} workspaceId - 工作区ID（可选）
    * @returns {Promise<Array>} 看板列表
+
+---
+
+## async updateBoard(boardId, updates)
+
+```javascript
+async updateBoard(boardId, updates)
+```
+
+* 更新看板
+   * @param {string} boardId - 看板ID
+   * @param {Object} updates - 更新数据
+   * @param {string} updates.name - 看板名称
+   * @param {string} updates.description - 看板描述
+   * @param {Array<Object>} updates.columns - 列配置
+   * @param {Object} updates.filters - 筛选条件
+   * @returns {Promise<Object>} 更新结果
+
+---
+
+## async deleteBoard(boardId, options =
+
+```javascript
+async deleteBoard(boardId, options =
+```
+
+* 删除看板
+   * @param {string} boardId - 看板ID
+   * @param {Object} options - 选项
+   * @param {boolean} options.force - 强制删除（即使有任务）
+   * @param {boolean} options.archive - 改为归档而非删除
+   * @returns {Promise<Object>} 删除结果
+
+---
+
+## async getBoard(boardId)
+
+```javascript
+async getBoard(boardId)
+```
+
+* 获取单个看板详情
+   * @param {string} boardId - 看板ID
+   * @returns {Promise<Object>} 看板详情
+
+---
+
+## function getTaskManager(database)
+
+```javascript
+function getTaskManager(database)
+```
+
+* Get TaskManager singleton instance
 
 ---
 

@@ -1,8 +1,8 @@
 # import-ipc
 
-**Source**: `src\main\import\import-ipc.js`
+**Source**: `src/main/import/import-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.853Z
+**Generated**: 2026-02-15T07:37:13.829Z
 
 ---
 

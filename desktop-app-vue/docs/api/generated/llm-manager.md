@@ -1,8 +1,8 @@
 # llm-manager
 
-**Source**: `src\main\llm\llm-manager.js`
+**Source**: `src/main/llm/llm-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.848Z
+**Generated**: 2026-02-15T07:37:13.823Z
 
 ---
 
@@ -548,10 +548,10 @@ LLMManager.prototype.buildOptimizedPrompt = function (options)
 
 ---
 
-## LLMManager.prototype.chatWithOptimizedPrompt = async function (messages, options =
+## LLMManager.prototype.chatWithOptimizedPrompt = async function (
 
 ```javascript
-LLMManager.prototype.chatWithOptimizedPrompt = async function (messages, options =
+LLMManager.prototype.chatWithOptimizedPrompt = async function (
 ```
 
 * 使用优化后的 Prompt 进行对话

@@ -1,8 +1,8 @@
 # ai-engine-manager-optimized
 
-**Source**: `src\main\ai-engine\ai-engine-manager-optimized.js`
+**Source**: `src/main/ai-engine/ai-engine-manager-optimized.js`
 
-**Generated**: 2026-01-27T06:44:03.884Z
+**Generated**: 2026-02-15T07:37:13.872Z
 
 ---
 
@@ -33,10 +33,10 @@ async initialize(options =
 
 ---
 
-## async processUserInput(userInput, context =
+## async processUserInput(
 
 ```javascript
-async processUserInput(userInput, context =
+async processUserInput(
 ```
 
 * 处理用户输入的核心方法（优化版）

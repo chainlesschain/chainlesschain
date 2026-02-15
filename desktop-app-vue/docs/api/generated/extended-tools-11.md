@@ -1,8 +1,8 @@
 # extended-tools-11
 
-**Source**: `src\main\ai-engine\extended-tools-11.js`
+**Source**: `src/main/ai-engine/extended-tools-11.js`
 
-**Generated**: 2026-01-27T06:44:03.883Z
+**Generated**: 2026-02-15T07:37:13.870Z
 
 ---
 
@@ -28,10 +28,10 @@ static registerAll(functionCaller)
 
 ---
 
-## functionCaller.registerTool('ligo_data_analyzer', async (params) =>
+## functionCaller.registerTool("ligo_data_analyzer", async (params) =>
 
 ```javascript
-functionCaller.registerTool('ligo_data_analyzer', async (params) =>
+functionCaller.registerTool("ligo_data_analyzer", async (params) =>
 ```
 
 * Tool 217: LIGO数据分析器
@@ -39,10 +39,10 @@ functionCaller.registerTool('ligo_data_analyzer', async (params) =>
 
 ---
 
-## functionCaller.registerTool('waveform_matcher', async (params) =>
+## functionCaller.registerTool("waveform_matcher", async (params) =>
 
 ```javascript
-functionCaller.registerTool('waveform_matcher', async (params) =>
+functionCaller.registerTool("waveform_matcher", async (params) =>
 ```
 
 * Tool 218: 引力波波形匹配器
@@ -50,10 +50,10 @@ functionCaller.registerTool('waveform_matcher', async (params) =>
 
 ---
 
-## functionCaller.registerTool('particle_simulator', async (params) =>
+## functionCaller.registerTool("particle_simulator", async (params) =>
 
 ```javascript
-functionCaller.registerTool('particle_simulator', async (params) =>
+functionCaller.registerTool("particle_simulator", async (params) =>
 ```
 
 * Tool 219: 粒子碰撞模拟器
@@ -61,10 +61,10 @@ functionCaller.registerTool('particle_simulator', async (params) =>
 
 ---
 
-## functionCaller.registerTool('event_generator', async (params) =>
+## functionCaller.registerTool("event_generator", async (params) =>
 
 ```javascript
-functionCaller.registerTool('event_generator', async (params) =>
+functionCaller.registerTool("event_generator", async (params) =>
 ```
 
 * Tool 220: 粒子事例生成器
@@ -72,10 +72,10 @@ functionCaller.registerTool('event_generator', async (params) =>
 
 ---
 
-## functionCaller.registerTool('wimp_detector', async (params) =>
+## functionCaller.registerTool("wimp_detector", async (params) =>
 
 ```javascript
-functionCaller.registerTool('wimp_detector', async (params) =>
+functionCaller.registerTool("wimp_detector", async (params) =>
 ```
 
 * Tool 221: WIMP探测器
@@ -83,10 +83,10 @@ functionCaller.registerTool('wimp_detector', async (params) =>
 
 ---
 
-## functionCaller.registerTool('axion_searcher', async (params) =>
+## functionCaller.registerTool("axion_searcher", async (params) =>
 
 ```javascript
-functionCaller.registerTool('axion_searcher', async (params) =>
+functionCaller.registerTool("axion_searcher", async (params) =>
 ```
 
 * Tool 222: 轴子搜寻器
@@ -94,10 +94,10 @@ functionCaller.registerTool('axion_searcher', async (params) =>
 
 ---
 
-## functionCaller.registerTool('tokamak_simulator', async (params) =>
+## functionCaller.registerTool("tokamak_simulator", async (params) =>
 
 ```javascript
-functionCaller.registerTool('tokamak_simulator', async (params) =>
+functionCaller.registerTool("tokamak_simulator", async (params) =>
 ```
 
 * Tool 223: 托卡马克模拟器
@@ -105,10 +105,10 @@ functionCaller.registerTool('tokamak_simulator', async (params) =>
 
 ---
 
-## functionCaller.registerTool('plasma_controller', async (params) =>
+## functionCaller.registerTool("plasma_controller", async (params) =>
 
 ```javascript
-functionCaller.registerTool('plasma_controller', async (params) =>
+functionCaller.registerTool("plasma_controller", async (params) =>
 ```
 
 * Tool 224: 等离子体控制器
@@ -116,10 +116,10 @@ functionCaller.registerTool('plasma_controller', async (params) =>
 
 ---
 
-## functionCaller.registerTool('photonic_router', async (params) =>
+## functionCaller.registerTool("photonic_router", async (params) =>
 
 ```javascript
-functionCaller.registerTool('photonic_router', async (params) =>
+functionCaller.registerTool("photonic_router", async (params) =>
 ```
 
 * Tool 225: 光子路由器
@@ -127,10 +127,10 @@ functionCaller.registerTool('photonic_router', async (params) =>
 
 ---
 
-## functionCaller.registerTool('optical_nn_designer', async (params) =>
+## functionCaller.registerTool("optical_nn_designer", async (params) =>
 
 ```javascript
-functionCaller.registerTool('optical_nn_designer', async (params) =>
+functionCaller.registerTool("optical_nn_designer", async (params) =>
 ```
 
 * Tool 226: 光学神经网络设计器
@@ -138,10 +138,10 @@ functionCaller.registerTool('optical_nn_designer', async (params) =>
 
 ---
 
-## functionCaller.registerTool('topological_state_calculator', async (params) =>
+## functionCaller.registerTool(
 
 ```javascript
-functionCaller.registerTool('topological_state_calculator', async (params) =>
+functionCaller.registerTool(
 ```
 
 * Tool 227: 拓扑态计算器
@@ -149,10 +149,10 @@ functionCaller.registerTool('topological_state_calculator', async (params) =>
 
 ---
 
-## functionCaller.registerTool('majorana_detector', async (params) =>
+## functionCaller.registerTool("majorana_detector", async (params) =>
 
 ```javascript
-functionCaller.registerTool('majorana_detector', async (params) =>
+functionCaller.registerTool("majorana_detector", async (params) =>
 ```
 
 * Tool 228: 马约拉纳费米子探测器
@@ -160,10 +160,10 @@ functionCaller.registerTool('majorana_detector', async (params) =>
 
 ---
 
-## functionCaller.registerTool('ice_core_analyzer', async (params) =>
+## functionCaller.registerTool("ice_core_analyzer", async (params) =>
 
 ```javascript
-functionCaller.registerTool('ice_core_analyzer', async (params) =>
+functionCaller.registerTool("ice_core_analyzer", async (params) =>
 ```
 
 * Tool 229: 冰芯分析器
@@ -171,10 +171,10 @@ functionCaller.registerTool('ice_core_analyzer', async (params) =>
 
 ---
 
-## functionCaller.registerTool('climate_reconstructor', async (params) =>
+## functionCaller.registerTool("climate_reconstructor", async (params) =>
 
 ```javascript
-functionCaller.registerTool('climate_reconstructor', async (params) =>
+functionCaller.registerTool("climate_reconstructor", async (params) =>
 ```
 
 * Tool 230: 气候重建器
@@ -182,10 +182,10 @@ functionCaller.registerTool('climate_reconstructor', async (params) =>
 
 ---
 
-## functionCaller.registerTool('magma_simulator', async (params) =>
+## functionCaller.registerTool("magma_simulator", async (params) =>
 
 ```javascript
-functionCaller.registerTool('magma_simulator', async (params) =>
+functionCaller.registerTool("magma_simulator", async (params) =>
 ```
 
 * Tool 231: 岩浆模拟器
@@ -193,10 +193,10 @@ functionCaller.registerTool('magma_simulator', async (params) =>
 
 ---
 
-## functionCaller.registerTool('volcanic_monitor', async (params) =>
+## functionCaller.registerTool("volcanic_monitor", async (params) =>
 
 ```javascript
-functionCaller.registerTool('volcanic_monitor', async (params) =>
+functionCaller.registerTool("volcanic_monitor", async (params) =>
 ```
 
 * Tool 232: 火山监测器
@@ -204,10 +204,10 @@ functionCaller.registerTool('volcanic_monitor', async (params) =>
 
 ---
 
-## functionCaller.registerTool('radiocarbon_dater', async (params) =>
+## functionCaller.registerTool("radiocarbon_dater", async (params) =>
 
 ```javascript
-functionCaller.registerTool('radiocarbon_dater', async (params) =>
+functionCaller.registerTool("radiocarbon_dater", async (params) =>
 ```
 
 * Tool 233: 放射性碳测年器
@@ -215,10 +215,10 @@ functionCaller.registerTool('radiocarbon_dater', async (params) =>
 
 ---
 
-## functionCaller.registerTool('artifact_reconstructor', async (params) =>
+## functionCaller.registerTool("artifact_reconstructor", async (params) =>
 
 ```javascript
-functionCaller.registerTool('artifact_reconstructor', async (params) =>
+functionCaller.registerTool("artifact_reconstructor", async (params) =>
 ```
 
 * Tool 234: 文物3D重建器
@@ -226,10 +226,10 @@ functionCaller.registerTool('artifact_reconstructor', async (params) =>
 
 ---
 
-## functionCaller.registerTool('flexible_sensor_designer', async (params) =>
+## functionCaller.registerTool("flexible_sensor_designer", async (params) =>
 
 ```javascript
-functionCaller.registerTool('flexible_sensor_designer', async (params) =>
+functionCaller.registerTool("flexible_sensor_designer", async (params) =>
 ```
 
 * Tool 235: 柔性传感器设计器
@@ -237,10 +237,10 @@ functionCaller.registerTool('flexible_sensor_designer', async (params) =>
 
 ---
 
-## functionCaller.registerTool('biochip_analyzer', async (params) =>
+## functionCaller.registerTool("biochip_analyzer", async (params) =>
 
 ```javascript
-functionCaller.registerTool('biochip_analyzer', async (params) =>
+functionCaller.registerTool("biochip_analyzer", async (params) =>
 ```
 
 * Tool 236: 生物芯片分析器

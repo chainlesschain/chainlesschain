@@ -1,8 +1,8 @@
 # project-rag-ipc
 
-**Source**: `src\main\project\project-rag-ipc.js`
+**Source**: `src/main/project/project-rag-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.826Z
+**Generated**: 2026-02-15T07:37:13.798Z
 
 ---
 
@@ -34,10 +34,10 @@ function registerProjectRAGIPC(
 
 ---
 
-## ipcMain.handle('project:indexFiles', async (_event, projectId, options =
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:indexFiles', async (_event, projectId, options =
+ipcMain.handle(
 ```
 
 * 索引项目文件
@@ -45,10 +45,10 @@ ipcMain.handle('project:indexFiles', async (_event, projectId, options =
 
 ---
 
-## ipcMain.handle('project:ragQuery', async (_event, projectId, query, options =
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:ragQuery', async (_event, projectId, query, options =
+ipcMain.handle(
 ```
 
 * RAG 增强查询（旧版）
@@ -56,10 +56,10 @@ ipcMain.handle('project:ragQuery', async (_event, projectId, query, options =
 
 ---
 
-## ipcMain.handle('project:updateFileIndex', async (_event, fileId) =>
+## ipcMain.handle("project:updateFileIndex", async (_event, fileId) =>
 
 ```javascript
-ipcMain.handle('project:updateFileIndex', async (_event, fileId) =>
+ipcMain.handle("project:updateFileIndex", async (_event, fileId) =>
 ```
 
 * 更新单个文件索引
@@ -67,10 +67,10 @@ ipcMain.handle('project:updateFileIndex', async (_event, fileId) =>
 
 ---
 
-## ipcMain.handle('project:deleteIndex', async (_event, projectId) =>
+## ipcMain.handle("project:deleteIndex", async (_event, projectId) =>
 
 ```javascript
-ipcMain.handle('project:deleteIndex', async (_event, projectId) =>
+ipcMain.handle("project:deleteIndex", async (_event, projectId) =>
 ```
 
 * 删除项目索引
@@ -78,10 +78,10 @@ ipcMain.handle('project:deleteIndex', async (_event, projectId) =>
 
 ---
 
-## ipcMain.handle('project:getIndexStats', async (_event, projectId) =>
+## ipcMain.handle("project:getIndexStats", async (_event, projectId) =>
 
 ```javascript
-ipcMain.handle('project:getIndexStats', async (_event, projectId) =>
+ipcMain.handle("project:getIndexStats", async (_event, projectId) =>
 ```
 
 * 获取项目索引统计
@@ -89,10 +89,10 @@ ipcMain.handle('project:getIndexStats', async (_event, projectId) =>
 
 ---
 
-## ipcMain.handle('project:rag-index', async (_event, projectId, repoPath) =>
+## ipcMain.handle("project:rag-index", async (_event, projectId, repoPath) =>
 
 ```javascript
-ipcMain.handle('project:rag-index', async (_event, projectId, repoPath) =>
+ipcMain.handle("project:rag-index", async (_event, projectId, repoPath) =>
 ```
 
 * 索引项目（新版）
@@ -100,10 +100,10 @@ ipcMain.handle('project:rag-index', async (_event, projectId, repoPath) =>
 
 ---
 
-## ipcMain.handle('project:rag-stats', async (_event, projectId) =>
+## ipcMain.handle("project:rag-stats", async (_event, projectId) =>
 
 ```javascript
-ipcMain.handle('project:rag-stats', async (_event, projectId) =>
+ipcMain.handle("project:rag-stats", async (_event, projectId) =>
 ```
 
 * 获取索引统计（新版）
@@ -111,10 +111,10 @@ ipcMain.handle('project:rag-stats', async (_event, projectId) =>
 
 ---
 
-## ipcMain.handle('project:rag-query', async (_event, projectId, query, topK = 5) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:rag-query', async (_event, projectId, query, topK = 5) =>
+ipcMain.handle(
 ```
 
 * RAG 增强查询（新版）
@@ -122,10 +122,10 @@ ipcMain.handle('project:rag-query', async (_event, projectId, query, topK = 5) =
 
 ---
 
-## ipcMain.handle('project:rag-update-file', async (_event, projectId, filePath, content) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:rag-update-file', async (_event, projectId, filePath, content) =>
+ipcMain.handle(
 ```
 
 * 更新文件索引（新版）
@@ -133,14 +133,79 @@ ipcMain.handle('project:rag-update-file', async (_event, projectId, filePath, co
 
 ---
 
-## ipcMain.handle('project:rag-delete', async (_event, projectId) =>
+## ipcMain.handle("project:rag-delete", async (_event, projectId) =>
 
 ```javascript
-ipcMain.handle('project:rag-delete', async (_event, projectId) =>
+ipcMain.handle("project:rag-delete", async (_event, projectId) =>
 ```
 
 * 删除项目索引（新版）
    * 使用 RAGAPI 删除项目的所有索引
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 增量索引项目文件
+   * 通过 content hash 检测变化，避免重复索引
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 多文件联合检索
+   * 支持文件关系追踪和跨文件上下文聚合
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 获取文件关系（导入/被导入）
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 统一检索（知识库-项目-对话联合）
+   * 并行检索3个数据源，应用来源权重
+
+---
+
+## ipcMain.handle("project:updateRetrieveWeights", async (_event, weights) =>
+
+```javascript
+ipcMain.handle("project:updateRetrieveWeights", async (_event, weights) =>
+```
+
+* 更新检索权重
+   * 调整项目/对话/知识库的检索权重
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 项目感知重排序
+   * 基于项目上下文优化检索结果排序
 
 ---
 

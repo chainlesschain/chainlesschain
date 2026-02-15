@@ -1,8 +1,8 @@
 # database-migration
 
-**Source**: `src\main\database\database-migration.js`
+**Source**: `src/main/database/database-migration.js`
 
-**Generated**: 2026-01-27T06:44:03.863Z
+**Generated**: 2026-02-15T07:37:13.839Z
 
 ---
 

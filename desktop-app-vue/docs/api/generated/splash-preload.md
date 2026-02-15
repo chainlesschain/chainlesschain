@@ -1,8 +1,8 @@
 # splash-preload
 
-**Source**: `src\main\splash\splash-preload.js`
+**Source**: `src/main/splash/splash-preload.js`
 
-**Generated**: 2026-01-27T06:44:03.805Z
+**Generated**: 2026-02-15T07:37:13.774Z
 
 ---
 

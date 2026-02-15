@@ -1,8 +1,8 @@
 # file-sharing-ipc
 
-**Source**: `src\main\ipc\file-sharing-ipc.js`
+**Source**: `src/main/ipc/file-sharing-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.852Z
+**Generated**: 2026-02-15T07:37:13.828Z
 
 ---
 
@@ -30,120 +30,120 @@ function registerFileSharingIPC(app)
 
 ---
 
-## ipcMain.handle('file:upload', async (event,
+## ipcMain.handle("file:upload", async (event,
 
 ```javascript
-ipcMain.handle('file:upload', async (event,
+ipcMain.handle("file:upload", async (event,
 ```
 
 * 上传文件
 
 ---
 
-## ipcMain.handle('file:list', async (event,
+## ipcMain.handle("file:list", async (event,
 
 ```javascript
-ipcMain.handle('file:list', async (event,
+ipcMain.handle("file:list", async (event,
 ```
 
 * 获取文件列表
 
 ---
 
-## ipcMain.handle('file:detail', async (event,
+## ipcMain.handle("file:detail", async (event,
 
 ```javascript
-ipcMain.handle('file:detail', async (event,
+ipcMain.handle("file:detail", async (event,
 ```
 
 * 获取文件详情
 
 ---
 
-## ipcMain.handle('file:delete', async (event,
+## ipcMain.handle("file:delete", async (event,
 
 ```javascript
-ipcMain.handle('file:delete', async (event,
+ipcMain.handle("file:delete", async (event,
 ```
 
 * 删除文件
 
 ---
 
-## ipcMain.handle('file:lock', async (event,
+## ipcMain.handle("file:lock", async (event,
 
 ```javascript
-ipcMain.handle('file:lock', async (event,
+ipcMain.handle("file:lock", async (event,
 ```
 
 * 锁定文件
 
 ---
 
-## ipcMain.handle('file:unlock', async (event,
+## ipcMain.handle("file:unlock", async (event,
 
 ```javascript
-ipcMain.handle('file:unlock', async (event,
+ipcMain.handle("file:unlock", async (event,
 ```
 
 * 解锁文件
 
 ---
 
-## ipcMain.handle('file:versions', async (event,
+## ipcMain.handle("file:versions", async (event,
 
 ```javascript
-ipcMain.handle('file:versions', async (event,
+ipcMain.handle("file:versions", async (event,
 ```
 
 * 获取文件版本列表
 
 ---
 
-## ipcMain.handle('file:rollback', async (event,
+## ipcMain.handle("file:rollback", async (event,
 
 ```javascript
-ipcMain.handle('file:rollback', async (event,
+ipcMain.handle("file:rollback", async (event,
 ```
 
 * 回滚到指定版本
 
 ---
 
-## ipcMain.handle('file:compareVersions', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:compareVersions', async (event,
+ipcMain.handle(
 ```
 
 * 比较两个版本
 
 ---
 
-## ipcMain.handle('file:grantPermission', async (event,
+## ipcMain.handle("file:grantPermission", async (event,
 
 ```javascript
-ipcMain.handle('file:grantPermission', async (event,
+ipcMain.handle("file:grantPermission", async (event,
 ```
 
 * 授予文件权限
 
 ---
 
-## ipcMain.handle('file:share', async (event,
+## ipcMain.handle("file:share", async (event,
 
 ```javascript
-ipcMain.handle('file:share', async (event,
+ipcMain.handle("file:share", async (event,
 ```
 
 * 共享文件
 
 ---
 
-## ipcMain.handle('file:sharedFiles', async (event,
+## ipcMain.handle("file:sharedFiles", async (event,
 
 ```javascript
-ipcMain.handle('file:sharedFiles', async (event,
+ipcMain.handle("file:sharedFiles", async (event,
 ```
 
 * 获取共享的文件列表

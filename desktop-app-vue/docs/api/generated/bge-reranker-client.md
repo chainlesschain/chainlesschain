@@ -1,8 +1,8 @@
 # bge-reranker-client
 
-**Source**: `src\main\rag\bge-reranker-client.js`
+**Source**: `src/main/rag/bge-reranker-client.js`
 
-**Generated**: 2026-01-27T06:44:03.825Z
+**Generated**: 2026-02-15T07:37:13.796Z
 
 ---
 

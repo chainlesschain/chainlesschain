@@ -1,8 +1,8 @@
 # ai-engine-manager
 
-**Source**: `src\main\ai-engine\ai-engine-manager.js`
+**Source**: `src/main/ai-engine/ai-engine-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.884Z
+**Generated**: 2026-02-15T07:37:13.872Z
 
 ---
 
@@ -28,6 +28,28 @@ async initialize()
 
 ---
 
+## async initializeWorkflowOptimizations()
+
+```javascript
+async initializeWorkflowOptimizations()
+```
+
+* 初始化工作流优化模块
+   * @private
+
+---
+
+## _loadWorkflowConfig()
+
+```javascript
+_loadWorkflowConfig()
+```
+
+* 加载工作流配置
+   * @private
+
+---
+
 ## getTaskPlanner()
 
 ```javascript
@@ -36,6 +58,17 @@ getTaskPlanner()
 
 * 获取增强版任务规划器
    * @returns {TaskPlannerEnhanced}
+
+---
+
+## getWorkflowStats()
+
+```javascript
+getWorkflowStats()
+```
+
+* 获取工作流优化统计
+   * @returns {Object}
 
 ---
 

@@ -1,8 +1,8 @@
 # knowledge-ipc
 
-**Source**: `src\main\knowledge\knowledge-ipc.js`
+**Source**: `src/main/knowledge/knowledge-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.851Z
+**Generated**: 2026-02-15T07:37:13.827Z
 
 ---
 
@@ -35,170 +35,170 @@ function registerKnowledgeIPC(
 
 ---
 
-## ipcMain.handle('knowledge:get-tags', async (_event) =>
+## ipcMain.handle("knowledge:get-tags", async (_event) =>
 
 ```javascript
-ipcMain.handle('knowledge:get-tags', async (_event) =>
+ipcMain.handle("knowledge:get-tags", async (_event) =>
 ```
 
 * 获取标签列表
 
 ---
 
-## ipcMain.handle('knowledge:get-version-history', async (_event, params) =>
+## ipcMain.handle("knowledge:get-version-history", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('knowledge:get-version-history', async (_event, params) =>
+ipcMain.handle("knowledge:get-version-history", async (_event, params) =>
 ```
 
 * 获取版本历史
 
 ---
 
-## ipcMain.handle('knowledge:restore-version', async (_event, params) =>
+## ipcMain.handle("knowledge:restore-version", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('knowledge:restore-version', async (_event, params) =>
+ipcMain.handle("knowledge:restore-version", async (_event, params) =>
 ```
 
 * 恢复版本
 
 ---
 
-## ipcMain.handle('knowledge:compare-versions', async (_event, params) =>
+## ipcMain.handle("knowledge:compare-versions", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('knowledge:compare-versions', async (_event, params) =>
+ipcMain.handle("knowledge:compare-versions", async (_event, params) =>
 ```
 
 * 对比版本
 
 ---
 
-## ipcMain.handle('knowledge:create-content', async (_event, options) =>
+## ipcMain.handle("knowledge:create-content", async (_event, options) =>
 
 ```javascript
-ipcMain.handle('knowledge:create-content', async (_event, options) =>
+ipcMain.handle("knowledge:create-content", async (_event, options) =>
 ```
 
 * 创建付费内容
 
 ---
 
-## ipcMain.handle('knowledge:update-content', async (_event, contentId, updates) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('knowledge:update-content', async (_event, contentId, updates) =>
+ipcMain.handle(
 ```
 
 * 更新内容
 
 ---
 
-## ipcMain.handle('knowledge:delete-content', async (_event, contentId) =>
+## ipcMain.handle("knowledge:delete-content", async (_event, contentId) =>
 
 ```javascript
-ipcMain.handle('knowledge:delete-content', async (_event, contentId) =>
+ipcMain.handle("knowledge:delete-content", async (_event, contentId) =>
 ```
 
 * 删除内容
 
 ---
 
-## ipcMain.handle('knowledge:get-content', async (_event, contentId) =>
+## ipcMain.handle("knowledge:get-content", async (_event, contentId) =>
 
 ```javascript
-ipcMain.handle('knowledge:get-content', async (_event, contentId) =>
+ipcMain.handle("knowledge:get-content", async (_event, contentId) =>
 ```
 
 * 获取内容
 
 ---
 
-## ipcMain.handle('knowledge:list-contents', async (_event, filters) =>
+## ipcMain.handle("knowledge:list-contents", async (_event, filters) =>
 
 ```javascript
-ipcMain.handle('knowledge:list-contents', async (_event, filters) =>
+ipcMain.handle("knowledge:list-contents", async (_event, filters) =>
 ```
 
 * 列出内容
 
 ---
 
-## ipcMain.handle('knowledge:purchase-content', async (_event, contentId, paymentAssetId) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('knowledge:purchase-content', async (_event, contentId, paymentAssetId) =>
+ipcMain.handle(
 ```
 
 * 购买内容
 
 ---
 
-## ipcMain.handle('knowledge:subscribe', async (_event, planId, paymentAssetId) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('knowledge:subscribe', async (_event, planId, paymentAssetId) =>
+ipcMain.handle(
 ```
 
 * 订阅
 
 ---
 
-## ipcMain.handle('knowledge:unsubscribe', async (_event, planId) =>
+## ipcMain.handle("knowledge:unsubscribe", async (_event, planId) =>
 
 ```javascript
-ipcMain.handle('knowledge:unsubscribe', async (_event, planId) =>
+ipcMain.handle("knowledge:unsubscribe", async (_event, planId) =>
 ```
 
 * 取消订阅
 
 ---
 
-## ipcMain.handle('knowledge:get-my-purchases', async (_event, userDid) =>
+## ipcMain.handle("knowledge:get-my-purchases", async (_event, userDid) =>
 
 ```javascript
-ipcMain.handle('knowledge:get-my-purchases', async (_event, userDid) =>
+ipcMain.handle("knowledge:get-my-purchases", async (_event, userDid) =>
 ```
 
 * 获取我的购买记录
 
 ---
 
-## ipcMain.handle('knowledge:get-my-subscriptions', async (_event, userDid) =>
+## ipcMain.handle("knowledge:get-my-subscriptions", async (_event, userDid) =>
 
 ```javascript
-ipcMain.handle('knowledge:get-my-subscriptions', async (_event, userDid) =>
+ipcMain.handle("knowledge:get-my-subscriptions", async (_event, userDid) =>
 ```
 
 * 获取我的订阅记录
 
 ---
 
-## ipcMain.handle('knowledge:access-content', async (_event, contentId) =>
+## ipcMain.handle("knowledge:access-content", async (_event, contentId) =>
 
 ```javascript
-ipcMain.handle('knowledge:access-content', async (_event, contentId) =>
+ipcMain.handle("knowledge:access-content", async (_event, contentId) =>
 ```
 
 * 访问内容
 
 ---
 
-## ipcMain.handle('knowledge:check-access', async (_event, contentId, userDid) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('knowledge:check-access', async (_event, contentId, userDid) =>
+ipcMain.handle(
 ```
 
 * 检查访问权限
 
 ---
 
-## ipcMain.handle('knowledge:get-statistics', async (_event, creatorDid) =>
+## ipcMain.handle("knowledge:get-statistics", async (_event, creatorDid) =>
 
 ```javascript
-ipcMain.handle('knowledge:get-statistics', async (_event, creatorDid) =>
+ipcMain.handle("knowledge:get-statistics", async (_event, creatorDid) =>
 ```
 
 * 获取统计信息

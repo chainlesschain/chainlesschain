@@ -1,8 +1,8 @@
 # intent-classifier
 
-**Source**: `src\main\ai-engine\intent-classifier.js`
+**Source**: `src/main/ai-engine/intent-classifier.js`
 
-**Generated**: 2026-01-27T06:44:03.879Z
+**Generated**: 2026-02-15T07:37:13.866Z
 
 ---
 

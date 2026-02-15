@@ -1,8 +1,8 @@
 # p2p-command-adapter
 
-**Source**: `src\main\remote\p2p-command-adapter.js`
+**Source**: `src/main/remote/p2p-command-adapter.js`
 
-**Generated**: 2026-01-27T06:44:03.820Z
+**Generated**: 2026-02-15T07:37:13.787Z
 
 ---
 
@@ -101,6 +101,46 @@ handleCommandResponse(response)
 ```
 
 * 处理命令响应（PC 主动发送命令后收到的响应）
+
+---
+
+## handleCommandCancel(peerId, payload)
+
+```javascript
+handleCommandCancel(peerId, payload)
+```
+
+* 处理命令取消请求
+
+---
+
+## cancelCommand(commandId, reason = "Cancelled by server")
+
+```javascript
+cancelCommand(commandId, reason = "Cancelled by server")
+```
+
+* 取消指定命令（PC 端主动取消）
+
+---
+
+## getRunningCommands()
+
+```javascript
+getRunningCommands()
+```
+
+* 获取运行中的命令列表
+
+---
+
+## cancelLongRunningCommands(maxDuration = 60000)
+
+```javascript
+cancelLongRunningCommands(maxDuration = 60000)
+```
+
+* 取消所有超时的命令
 
 ---
 
@@ -241,6 +281,46 @@ getStats()
 ```
 
 * 获取统计信息
+
+---
+
+## startPendingCleanup()
+
+```javascript
+startPendingCleanup()
+```
+
+* 启动待处理请求定期清理
+
+---
+
+## cleanupStalePendingRequests()
+
+```javascript
+cleanupStalePendingRequests()
+```
+
+* 清理过期的待处理请求
+
+---
+
+## stopPendingCleanup()
+
+```javascript
+stopPendingCleanup()
+```
+
+* 停止待处理请求清理
+
+---
+
+## async disconnectPeer(peerId)
+
+```javascript
+async disconnectPeer(peerId)
+```
+
+* 断开指定节点
 
 ---
 

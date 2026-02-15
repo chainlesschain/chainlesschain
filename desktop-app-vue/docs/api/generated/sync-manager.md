@@ -1,8 +1,8 @@
 # sync-manager
 
-**Source**: `src\main\file-sync\sync-manager.js`
+**Source**: `src/main/file-sync/sync-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.856Z
+**Generated**: 2026-02-15T07:37:13.833Z
 
 ---
 

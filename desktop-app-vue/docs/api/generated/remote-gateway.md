@@ -1,8 +1,8 @@
 # remote-gateway
 
-**Source**: `src\main\remote\remote-gateway.js`
+**Source**: `src/main/remote/remote-gateway.js`
 
-**Generated**: 2026-01-27T06:44:03.820Z
+**Generated**: 2026-02-15T07:37:13.787Z
 
 ---
 
@@ -133,6 +133,18 @@ getConnectedDevices()
 ```
 
 * 获取已连接设备列表
+
+---
+
+## async disconnectDevice(peerId)
+
+```javascript
+async disconnectDevice(peerId)
+```
+
+* 断开设备连接
+   * @param {string} peerId - 设备的 Peer ID 或 DID
+   * @returns {Promise<Object>} 断开结果
 
 ---
 

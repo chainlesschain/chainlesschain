@@ -1,8 +1,8 @@
 # message-aggregator
 
-**Source**: `src\main\utils\message-aggregator.js`
+**Source**: `src/main/utils/message-aggregator.js`
 
-**Generated**: 2026-01-27T06:44:03.790Z
+**Generated**: 2026-02-15T07:37:13.762Z
 
 ---
 

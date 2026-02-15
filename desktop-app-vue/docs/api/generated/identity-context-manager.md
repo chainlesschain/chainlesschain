@@ -1,8 +1,8 @@
 # identity-context-manager
 
-**Source**: `src\main\identity\identity-context-manager.js`
+**Source**: `src/main/identity/identity-context-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.855Z
+**Generated**: 2026-02-15T07:37:13.831Z
 
 ---
 
@@ -65,10 +65,10 @@ async createPersonalContext(userDID, displayName)
 
 ---
 
-## async createOrganizationContext(userDID, orgId, orgDID, displayName, avatar = null)
+## async createOrganizationContext(
 
 ```javascript
-async createOrganizationContext(userDID, orgId, orgDID, displayName, avatar = null)
+async createOrganizationContext(
 ```
 
 * 创建组织上下文

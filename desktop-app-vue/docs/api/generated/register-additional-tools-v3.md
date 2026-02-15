@@ -1,8 +1,8 @@
 # register-additional-tools-v3
 
-**Source**: `src\main\skill-tool-system\register-additional-tools-v3.js`
+**Source**: `src/main/skill-tool-system/register-additional-tools-v3.js`
 
-**Generated**: 2026-01-27T06:44:03.814Z
+**Generated**: 2026-02-15T07:37:13.782Z
 
 ---
 

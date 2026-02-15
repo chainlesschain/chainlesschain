@@ -1,8 +1,8 @@
 # post-manager
 
-**Source**: `src\main\social\post-manager.js`
+**Source**: `src/main/social/post-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.809Z
+**Generated**: 2026-02-15T07:37:13.777Z
 
 ---
 

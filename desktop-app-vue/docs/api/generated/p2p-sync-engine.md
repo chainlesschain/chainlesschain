@@ -1,15 +1,15 @@
 # p2p-sync-engine
 
-**Source**: `src\main\sync\p2p-sync-engine.js`
+**Source**: `src/main/sync/p2p-sync-engine.js`
 
-**Generated**: 2026-01-27T06:44:03.804Z
+**Generated**: 2026-02-15T07:37:13.773Z
 
 ---
 
-## class P2PSyncEngine
+## class P2PSyncEngine extends EventEmitter
 
 ```javascript
-class P2PSyncEngine
+class P2PSyncEngine extends EventEmitter
 ```
 
 * P2P 数据同步引擎
@@ -27,6 +27,17 @@ async initialize()
 
 * 初始化同步引擎
    * @returns {Promise<void>}
+
+---
+
+## setMainWindow(mainWindow)
+
+```javascript
+setMainWindow(mainWindow)
+```
+
+* 设置主窗口引用
+   * @param {BrowserWindow} mainWindow - Electron 主窗口
 
 ---
 
@@ -89,6 +100,32 @@ async requestRemoteChanges(orgId, options =
 
 ---
 
+## createResponseCollector(requestId, timeout, minResponses)
+
+```javascript
+createResponseCollector(requestId, timeout, minResponses)
+```
+
+* 创建响应收集器
+   * @param {string} requestId - 请求ID
+   * @param {number} timeout - 超时时间（毫秒）
+   * @param {number} minResponses - 最少响应数量
+   * @returns {Object} 收集器对象
+
+---
+
+## aggregateChanges(responses)
+
+```javascript
+aggregateChanges(responses)
+```
+
+* 聚合多个响应的变更
+   * @param {Array} responses - 响应列表
+   * @returns {Array} 去重后的变更列表
+
+---
+
 ## async applyRemoteChanges(orgId, changes)
 
 ```javascript
@@ -141,10 +178,10 @@ detectConflict(localState, remoteState)
 
 ---
 
-## async recordConflict(orgId, resourceType, resourceId, localState, remoteChange)
+## async recordConflict(
 
 ```javascript
-async recordConflict(orgId, resourceType, resourceId, localState, remoteChange)
+async recordConflict(
 ```
 
 * 记录冲突
@@ -157,10 +194,10 @@ async recordConflict(orgId, resourceType, resourceId, localState, remoteChange)
 
 ---
 
-## async resolveConflict(orgId, resourceType, resourceId, localState, remoteChange)
+## async resolveConflict(
 
 ```javascript
-async resolveConflict(orgId, resourceType, resourceId, localState, remoteChange)
+async resolveConflict(
 ```
 
 * 解决冲突
@@ -281,14 +318,15 @@ async verifyMessage(message)
 
 ---
 
-## async handleSyncRequest(message)
+## async handleSyncRequest(message, senderPeerId = null)
 
 ```javascript
-async handleSyncRequest(message)
+async handleSyncRequest(message, senderPeerId = null)
 ```
 
 * 处理同步请求
    * @param {Object} message - 同步请求消息
+   * @param {string} senderPeerId - 发送者的 Peer ID
 
 ---
 
@@ -325,10 +363,10 @@ async handleSyncConflict(message)
 
 ---
 
-## async getChangesSince(orgId, sinceTime, resourceTypes)
+## async getChangesSince(
 
 ```javascript
-async getChangesSince(orgId, sinceTime, resourceTypes)
+async getChangesSince(
 ```
 
 * 获取指定时间之后的变更

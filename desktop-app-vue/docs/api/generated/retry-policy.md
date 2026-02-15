@@ -1,8 +1,8 @@
 # retry-policy
 
-**Source**: `src\main\sync\retry-policy.js`
+**Source**: `src/main/sync/retry-policy.js`
 
-**Generated**: 2026-01-27T06:44:03.803Z
+**Generated**: 2026-02-15T07:37:13.772Z
 
 ---
 
@@ -30,10 +30,10 @@ constructor(
 
 ---
 
-## async executeWithRetry(fn, context = '操作', options =
+## async executeWithRetry(fn, context = "操作", options =
 
 ```javascript
-async executeWithRetry(fn, context = '操作', options =
+async executeWithRetry(fn, context = "操作", options =
 ```
 
 * 执行带重试的异步操作
