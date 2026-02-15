@@ -25,12 +25,13 @@ function normalizeSecurityPath(inputPath) {
     return "";
   }
 
-  // Convert to lowercase on Windows for case-insensitive comparison
-  let normalized = inputPath;
+  // Always convert backslashes to forward slashes for consistent security comparison
+  // (prevents cross-platform path confusion attacks)
+  let normalized = inputPath.replace(/\\/g, "/");
 
   if (isWindows) {
-    // Normalize Windows paths - convert backslashes to forward slashes
-    normalized = normalized.replace(/\\/g, "/").toLowerCase();
+    // Case-insensitive comparison on Windows
+    normalized = normalized.toLowerCase();
   }
 
   // Remove trailing slashes

@@ -99,11 +99,16 @@
 
 # ============== Data Models ==============
 # Keep data classes used for serialization/deserialization
+# Use ** to match multiple package segments (e.g., feature.ai.data.llm)
 -keep class com.chainlesschain.android.data.** { *; }
--keep class com.chainlesschain.android.*.data.** { *; }
+-keep class com.chainlesschain.android.**.data.** { *; }
 -keep class com.chainlesschain.android.**.entity.** { *; }
 -keep class com.chainlesschain.android.**.model.** { *; }
 -keep class com.chainlesschain.android.**.dto.** { *; }
+
+# ============== Reflection-Loaded Classes ==============
+# LLM adapters loaded via Class.forName() in LLMAdapterFactory (AIModule.kt)
+-keep class com.chainlesschain.android.feature.ai.data.llm.** { *; }
 
 # ============== General Android ==============
 # Native methods
