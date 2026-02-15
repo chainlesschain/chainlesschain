@@ -272,27 +272,26 @@ fun FilePreviewDialog(
                 coroutineScope.launch {
                     try {
                         val fileName = "${file.displayName.substringBeforeLast(".")}_ocr_${System.currentTimeMillis()}.txt"
-                        val documentsDir = android.os.Environment.getExternalStoragePublicDirectory(
-                            android.os.Environment.DIRECTORY_DOCUMENTS
+
+                        // Use MediaStore API (compatible with SDK 35+)
+                        val contentValues = android.content.ContentValues().apply {
+                            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+                            put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH,
+                                android.os.Environment.DIRECTORY_DOCUMENTS + "/ChainlessChain")
+                        }
+                        val uri = context.contentResolver.insert(
+                            android.provider.MediaStore.Files.getContentUri("external"),
+                            contentValues
                         )
-                        val outputFile = java.io.File(documentsDir, fileName)
-
-                        // Create directory if it doesn't exist
-                        documentsDir.mkdirs()
-
-                        // Write text to file
-                        outputFile.writeText(editedText)
-
-                        // Show success message via Log (UI can show Snackbar if available)
-                        android.util.Log.i("FilePreviewDialog", "OCR text saved to: ${outputFile.absolutePath}")
-
-                        // Optionally, scan the file so it appears in MediaStore
-                        android.media.MediaScannerConnection.scanFile(
-                            context,
-                            arrayOf(outputFile.absolutePath),
-                            arrayOf("text/plain"),
-                            null
-                        )
+                        if (uri != null) {
+                            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                                outputStream.write(editedText.toByteArray())
+                            }
+                            android.util.Log.i("FilePreviewDialog", "OCR text saved via MediaStore: $fileName")
+                        } else {
+                            android.util.Log.e("FilePreviewDialog", "Failed to create MediaStore entry")
+                        }
                     } catch (e: Exception) {
                         android.util.Log.e("FilePreviewDialog", "Error saving OCR text", e)
                     }

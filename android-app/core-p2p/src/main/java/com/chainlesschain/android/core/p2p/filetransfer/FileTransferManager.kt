@@ -143,9 +143,9 @@ class FileTransferManager @Inject constructor(
     private val _pendingRequests = MutableStateFlow<List<FileTransferMetadata>>(emptyList())
     val pendingRequests: StateFlow<List<FileTransferMetadata>> = _pendingRequests.asStateFlow()
 
-    // Download directory
+    // Download directory (use app-specific external storage, compatible with SDK 35)
     private val downloadDir: File by lazy {
-        File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "ChainlessChain")
+        File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "ChainlessChain")
             .also { it.mkdirs() }
     }
 
