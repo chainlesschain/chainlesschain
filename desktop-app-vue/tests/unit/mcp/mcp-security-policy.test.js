@@ -439,7 +439,11 @@ describe("MCPSecurityPolicy", () => {
 
       // Should not throw - Windows paths normalized (case-insensitive on Windows)
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "C:\\Users\\Test\\file.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "C:\\Users\\Test\\file.txt",
+        );
       }).not.toThrow();
     });
 
@@ -451,7 +455,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data///notes///file.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data///notes///file.txt",
+        );
       }).not.toThrow();
     });
 
@@ -475,7 +483,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "./data/notes/file.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "./data/notes/file.txt",
+        );
       }).not.toThrow();
     });
 
@@ -493,16 +505,25 @@ describe("MCPSecurityPolicy", () => {
     });
 
     it("should be case-insensitive on Windows", () => {
-      // Assuming platform detection - test behavior
+      // Case-insensitive path matching only applies on Windows
+      if (process.platform !== "win32") {
+        // On Linux/macOS, paths are case-sensitive
+        return;
+      }
+
       securityPolicy.setServerPermissions("test", {
         allowedPaths: ["data/notes/"],
         forbiddenPaths: [],
         readOnly: false,
       });
 
-      // Mixed case paths should work
+      // Mixed case paths should work on Windows
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "Data/Notes/file.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "Data/Notes/file.txt",
+        );
       }).not.toThrow();
     });
   });
@@ -516,7 +537,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/notes/file.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/notes/file.txt",
+        );
       }).not.toThrow();
     });
 
@@ -528,7 +553,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/notes/subdir/file.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/notes/subdir/file.txt",
+        );
       }).not.toThrow();
     });
 
@@ -540,7 +569,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/notes-backup/file.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/notes-backup/file.txt",
+        );
       }).not.toThrow();
     });
 
@@ -552,7 +585,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/notessecret/file.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/notessecret/file.txt",
+        );
       }).toThrow();
     });
 
@@ -564,7 +601,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/secrets/key.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/secrets/key.txt",
+        );
       }).toThrow();
     });
   });
@@ -577,12 +618,15 @@ describe("MCPSecurityPolicy", () => {
         readOnly: false,
       });
 
-      // Note: Current implementation doesn't explicitly block ../,
-      // but the normalized path won't match allowed paths unless it's within them
-      // Path normalization happens, then checked against allowed paths
+      // Path traversal: data/notes/../../etc/passwd resolves to etc/passwd
+      // which is outside allowed path data/notes/, so access should be denied
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/notes/../../etc/passwd");
-      }).not.toThrow(); // Changed: actual behavior is path gets normalized but may pass if no explicit blocking
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/notes/../../etc/passwd",
+        );
+      }).toThrow(); // Path traversal resolves outside allowed directory
     });
 
     it("should block paths outside allowed directories", () => {
@@ -594,7 +638,11 @@ describe("MCPSecurityPolicy", () => {
 
       // Path starting with ../ won't match allowed path data/notes/
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "../../../etc/passwd");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "../../../etc/passwd",
+        );
       }).toThrow();
     });
 
@@ -606,7 +654,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/notes/../../.env");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/notes/../../.env",
+        );
       }).toThrow();
     });
 
@@ -618,7 +670,11 @@ describe("MCPSecurityPolicy", () => {
       });
 
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/../chainlesschain.db");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/../chainlesschain.db",
+        );
       }).toThrow();
     });
 
@@ -633,7 +689,11 @@ describe("MCPSecurityPolicy", () => {
       // In production, URL decoding should happen before validation
       // This test documents current behavior
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data/%2e%2e/secrets/key.txt");
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data/%2e%2e/secrets/key.txt",
+        );
       }).not.toThrow(); // Changed expectation to match actual behavior
     });
 
@@ -646,10 +706,14 @@ describe("MCPSecurityPolicy", () => {
 
       // Backslashes are normalized to forward slashes
       // Path: data\notes\..\..\ becomes data/notes/../../ after normalization
-      // This would be outside allowed path, but test actual behavior
+      // This resolves outside allowed path, so access should be denied
       expect(() => {
-        securityPolicy._validatePathAccess("test", "read", "data\\notes\\..\\..\\secrets");
-      }).not.toThrow(); // Changed expectation to match actual behavior
+        securityPolicy._validatePathAccess(
+          "test",
+          "read",
+          "data\\notes\\..\\..\\secrets",
+        );
+      }).toThrow(); // Path traversal should be blocked
     });
   });
 
@@ -662,7 +726,10 @@ describe("MCPSecurityPolicy", () => {
     });
 
     it("should include details in SecurityError", () => {
-      const err = new SecurityError("Access denied", { path: "/test", reason: "forbidden" });
+      const err = new SecurityError("Access denied", {
+        path: "/test",
+        reason: "forbidden",
+      });
 
       expect(err.details.path).toBe("/test");
       expect(err.details.reason).toBe("forbidden");
@@ -817,7 +884,7 @@ describe("MCPSecurityPolicy", () => {
 
   describe("User Consent Flow", () => {
     it("should use cached always_allow consent", async () => {
-      const cacheKey = "filesystem:delete_file:{\"path\":\"test.txt\"}";
+      const cacheKey = 'filesystem:delete_file:{"path":"test.txt"}';
       securityPolicy.consentCache.set(cacheKey, {
         decision: "always_allow",
         timestamp: Date.now(),
@@ -825,19 +892,29 @@ describe("MCPSecurityPolicy", () => {
 
       // Should not trigger consent request
       await expect(
-        securityPolicy._requestUserConsent("filesystem", "delete_file", { path: "test.txt" }, "critical"),
+        securityPolicy._requestUserConsent(
+          "filesystem",
+          "delete_file",
+          { path: "test.txt" },
+          "critical",
+        ),
       ).resolves.not.toThrow();
     });
 
     it("should reject with cached always_deny consent", async () => {
-      const cacheKey = "filesystem:delete_file:{\"path\":\"secret.txt\"}";
+      const cacheKey = 'filesystem:delete_file:{"path":"secret.txt"}';
       securityPolicy.consentCache.set(cacheKey, {
         decision: "always_deny",
         timestamp: Date.now(),
       });
 
       await expect(
-        securityPolicy._requestUserConsent("filesystem", "delete_file", { path: "secret.txt" }, "critical"),
+        securityPolicy._requestUserConsent(
+          "filesystem",
+          "delete_file",
+          { path: "secret.txt" },
+          "critical",
+        ),
       ).rejects.toThrow("always deny");
     });
 
@@ -849,7 +926,12 @@ describe("MCPSecurityPolicy", () => {
         data.respond("allow");
       });
 
-      await securityPolicy._requestUserConsent("filesystem", "delete_file", { path: "test.txt" }, "high");
+      await securityPolicy._requestUserConsent(
+        "filesystem",
+        "delete_file",
+        { path: "test.txt" },
+        "high",
+      );
 
       expect(eventEmitted).toBe(true);
     });
@@ -859,14 +941,21 @@ describe("MCPSecurityPolicy", () => {
       const id2 = crypto.randomUUID();
 
       expect(id1).not.toBe(id2);
-      expect(id1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(id1).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
     });
 
     it("should timeout consent requests after CONSENT_TIMEOUT", async () => {
       securityPolicy.CONSENT_TIMEOUT = 100; // Short timeout for testing
 
       await expect(
-        securityPolicy._requestUserConsent("filesystem", "delete_file", { path: "test.txt" }, "high"),
+        securityPolicy._requestUserConsent(
+          "filesystem",
+          "delete_file",
+          { path: "test.txt" },
+          "high",
+        ),
       ).rejects.toThrow("timed out");
     }, 5000);
 
@@ -891,15 +980,23 @@ describe("MCPSecurityPolicy", () => {
     });
 
     it("should generate consistent cache keys", () => {
-      const key1 = securityPolicy._generateConsentKey("server", "tool", { a: 1 });
-      const key2 = securityPolicy._generateConsentKey("server", "tool", { a: 1 });
+      const key1 = securityPolicy._generateConsentKey("server", "tool", {
+        a: 1,
+      });
+      const key2 = securityPolicy._generateConsentKey("server", "tool", {
+        a: 1,
+      });
 
       expect(key1).toBe(key2);
     });
 
     it("should generate different cache keys for different params", () => {
-      const key1 = securityPolicy._generateConsentKey("server", "tool", { a: 1 });
-      const key2 = securityPolicy._generateConsentKey("server", "tool", { a: 2 });
+      const key1 = securityPolicy._generateConsentKey("server", "tool", {
+        a: 1,
+      });
+      const key2 = securityPolicy._generateConsentKey("server", "tool", {
+        a: 2,
+      });
 
       expect(key1).not.toBe(key2);
     });
@@ -907,7 +1004,11 @@ describe("MCPSecurityPolicy", () => {
 
   describe("validateToolCall (Synchronous)", () => {
     it("should allow tool call when no permissions configured", () => {
-      const result = securityPolicy.validateToolCall("unknown-server", "read_file", { path: "/test.txt" });
+      const result = securityPolicy.validateToolCall(
+        "unknown-server",
+        "read_file",
+        { path: "/test.txt" },
+      );
 
       expect(result.permitted).toBe(true);
     });
@@ -919,10 +1020,14 @@ describe("MCPSecurityPolicy", () => {
         readOnly: true,
       });
 
-      const result = securityPolicy.validateToolCall("filesystem", "write_file", {
-        path: "data/test.txt",
-        content: "data",
-      });
+      const result = securityPolicy.validateToolCall(
+        "filesystem",
+        "write_file",
+        {
+          path: "data/test.txt",
+          content: "data",
+        },
+      );
 
       expect(result.permitted).toBe(false);
       expect(result.reason).toContain("read-only");
@@ -935,9 +1040,13 @@ describe("MCPSecurityPolicy", () => {
         readOnly: false,
       });
 
-      const result = securityPolicy.validateToolCall("filesystem", "read_file", {
-        path: "data/secrets/key.txt",
-      });
+      const result = securityPolicy.validateToolCall(
+        "filesystem",
+        "read_file",
+        {
+          path: "data/secrets/key.txt",
+        },
+      );
 
       expect(result.permitted).toBe(false);
     });
@@ -949,7 +1058,11 @@ describe("MCPSecurityPolicy", () => {
         readOnly: false,
       });
 
-      const result = securityPolicy.validateToolCall("postgres", "list_tables", {});
+      const result = securityPolicy.validateToolCall(
+        "postgres",
+        "list_tables",
+        {},
+      );
 
       expect(result.permitted).toBe(true);
     });
@@ -963,7 +1076,9 @@ describe("MCPSecurityPolicy", () => {
 
       const beforeCount = securityPolicy.getAuditLog().length;
 
-      securityPolicy.validateToolCall("filesystem", "read_file", { path: "data/test.txt" });
+      securityPolicy.validateToolCall("filesystem", "read_file", {
+        path: "data/test.txt",
+      });
 
       const afterCount = securityPolicy.getAuditLog().length;
       expect(afterCount).toBeGreaterThan(beforeCount);
@@ -972,7 +1087,10 @@ describe("MCPSecurityPolicy", () => {
 
   describe("validateResourceAccess", () => {
     it("should allow resource access when no permissions configured", () => {
-      const result = securityPolicy.validateResourceAccess("unknown-server", "resource://test");
+      const result = securityPolicy.validateResourceAccess(
+        "unknown-server",
+        "resource://test",
+      );
 
       expect(result.permitted).toBe(true);
     });
@@ -984,7 +1102,10 @@ describe("MCPSecurityPolicy", () => {
         readOnly: false,
       });
 
-      const result = securityPolicy.validateResourceAccess("filesystem", "data/notes/test.md");
+      const result = securityPolicy.validateResourceAccess(
+        "filesystem",
+        "data/notes/test.md",
+      );
 
       expect(result.permitted).toBe(true);
     });
@@ -996,7 +1117,10 @@ describe("MCPSecurityPolicy", () => {
         readOnly: false,
       });
 
-      const result = securityPolicy.validateResourceAccess("filesystem", "data/chainlesschain.db");
+      const result = securityPolicy.validateResourceAccess(
+        "filesystem",
+        "data/chainlesschain.db",
+      );
 
       expect(result.permitted).toBe(false);
     });
@@ -1008,7 +1132,10 @@ describe("MCPSecurityPolicy", () => {
         readOnly: false,
       });
 
-      const result = securityPolicy.validateResourceAccess("filesystem", "any/path");
+      const result = securityPolicy.validateResourceAccess(
+        "filesystem",
+        "any/path",
+      );
 
       expect(result.permitted).toBe(true);
     });
@@ -1104,7 +1231,13 @@ describe("MCPSecurityPolicy", () => {
 
     it("should filter by multiple criteria", () => {
       securityPolicy._logAudit("ALLOWED", "filesystem", "read", {}, "OK");
-      securityPolicy._logAudit("DENIED", "filesystem", "write", {}, "Forbidden");
+      securityPolicy._logAudit(
+        "DENIED",
+        "filesystem",
+        "write",
+        {},
+        "Forbidden",
+      );
       securityPolicy._logAudit("ALLOWED", "postgres", "query", {}, "OK");
 
       const filtered = securityPolicy.getAuditLog({
@@ -1141,7 +1274,13 @@ describe("MCPSecurityPolicy", () => {
         eventData = data;
       });
 
-      securityPolicy._logAudit("ALLOWED", "filesystem", "read_file", { path: "/test" }, "low");
+      securityPolicy._logAudit(
+        "ALLOWED",
+        "filesystem",
+        "read_file",
+        { path: "/test" },
+        "low",
+      );
 
       expect(eventEmitted).toBe(true);
       expect(eventData.serverName).toBe("filesystem");
@@ -1194,7 +1333,11 @@ describe("MCPSecurityPolicy", () => {
 
     it("should handle undefined params in risk assessment", () => {
       const operation = { type: "read", isDestructive: false };
-      const risk = securityPolicy._assessRiskLevel("read_file", undefined, operation);
+      const risk = securityPolicy._assessRiskLevel(
+        "read_file",
+        undefined,
+        operation,
+      );
       expect(risk).toBe(securityPolicy.RISK_LEVELS.LOW);
     });
 
@@ -1232,7 +1375,10 @@ describe("MCPSecurityPolicy", () => {
     });
 
     it("should default unknown operations to read", () => {
-      const operation = securityPolicy._detectOperation("unknown_operation", {});
+      const operation = securityPolicy._detectOperation(
+        "unknown_operation",
+        {},
+      );
       expect(operation.type).toBe("read");
       expect(operation.isDestructive).toBe(false);
     });

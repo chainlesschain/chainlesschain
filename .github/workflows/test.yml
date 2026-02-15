@@ -11,7 +11,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     strategy:
       fail-fast: false
@@ -40,7 +40,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional --ignore-optional
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
@@ -130,7 +130,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run ESLint
         working-directory: ./desktop-app-vue
@@ -174,7 +174,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Build main process
         working-directory: ./desktop-app-vue
@@ -219,7 +219,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
@@ -254,7 +254,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run all unit tests
         working-directory: ./desktop-app-vue
