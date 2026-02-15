@@ -14,15 +14,15 @@ import javax.inject.Singleton
 class CacheManager @Inject constructor(
     private val repository: PerformanceRepository
 ) {
-    private val caches = ConcurrentHashMap<String, LRUCache<String, Any>>()
+    private val caches = ConcurrentHashMap<String, LRUCache<Any>>()
 
     /**
      * Create or get a cache by name
      */
+    @Suppress("UNCHECKED_CAST")
     fun <T : Any> getOrCreateCache(name: String, maxSize: Int = 100): Cache<T> {
-        @Suppress("UNCHECKED_CAST")
         return caches.getOrPut(name) {
-            LRUCache<String, Any>(name, maxSize, ::onCacheEvent)
+            LRUCache(name, maxSize, ::onCacheEvent)
         } as Cache<T>
     }
 
@@ -69,21 +69,20 @@ class CacheManager @Inject constructor(
     /**
      * LRU Cache implementation
      */
-    class LRUCache<K, V>(
+    class LRUCache<V>(
         private val name: String,
         private val maxSize: Int,
         private val onEvent: (suspend (CacheStatistics) -> Unit)? = null
     ) : Cache<V> {
 
-        private val cache = LinkedHashMap<K, V>(maxSize, 0.75f, true)
+        private val cache = LinkedHashMap<String, V>(maxSize, 0.75f, true)
         private var hitCount = 0L
         private var missCount = 0L
         private var evictionCount = 0L
 
         @Synchronized
         override fun get(key: String): V? {
-            @Suppress("UNCHECKED_CAST")
-            val value = cache[key as K]
+            val value = cache[key]
             if (value != null) {
                 hitCount++
             } else {
@@ -94,8 +93,7 @@ class CacheManager @Inject constructor(
 
         @Synchronized
         override fun put(key: String, value: V) {
-            @Suppress("UNCHECKED_CAST")
-            cache[key as K] = value
+            cache[key] = value
 
             while (cache.size > maxSize) {
                 val eldest = cache.entries.iterator().next()
@@ -106,8 +104,7 @@ class CacheManager @Inject constructor(
 
         @Synchronized
         override fun remove(key: String): V? {
-            @Suppress("UNCHECKED_CAST")
-            return cache.remove(key as K)
+            return cache.remove(key)
         }
 
         @Synchronized

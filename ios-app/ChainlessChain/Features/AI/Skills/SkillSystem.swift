@@ -103,6 +103,16 @@ public enum SkillCategory: String, Codable, CaseIterable {
     case generation = "generation"
     case general = "general"
     case custom = "custom"
+    // Tool system categories
+    case document = "document"
+    case data = "data"
+    case web = "web"
+    case knowledge = "knowledge"
+    case code = "code"
+    case system = "system"
+    case blockchain = "blockchain"
+    case communication = "communication"
+    case media = "media"
 
     public var displayName: String {
         switch self {
@@ -116,6 +126,15 @@ public enum SkillCategory: String, Codable, CaseIterable {
         case .generation: return "生成"
         case .general: return "通用"
         case .custom: return "自定义"
+        case .document: return "文档处理"
+        case .data: return "数据处理"
+        case .web: return "网络"
+        case .knowledge: return "知识库"
+        case .code: return "代码"
+        case .system: return "系统"
+        case .blockchain: return "区块链"
+        case .communication: return "通讯"
+        case .media: return "多媒体"
         }
     }
 }

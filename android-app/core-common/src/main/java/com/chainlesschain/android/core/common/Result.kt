@@ -102,7 +102,6 @@ fun <T> Flow<T>.asResult(): Flow<Result<T>> = flow {
             emit(Result.Success(value))
         }
     } catch (e: Exception) {
-        @Suppress("UNCHECKED_CAST")
-        emit(Result.Error(e) as Result<T>)
+        emit(Result.Error(e))
     }
 }

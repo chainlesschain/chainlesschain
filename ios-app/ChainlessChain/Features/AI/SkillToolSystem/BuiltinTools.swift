@@ -834,7 +834,7 @@ public enum BuiltinTools {
         let toolManager = ToolManager.shared
 
         for (tool, executor) in all {
-            toolManager.register(tool: tool, executor: executor)
+            toolManager.register(tool, executor: executor)
         }
 
         Logger.shared.info("[BuiltinTools] 已注册 \(all.count) 个内置工具")

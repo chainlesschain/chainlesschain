@@ -47,7 +47,7 @@ dependencies {
     implementation("org.web3j:core:4.10.3")
 
     // Biometric for transaction signing
-    api("androidx.biometric:biometric:1.2.0-alpha05")
+    api("androidx.biometric:biometric:1.1.0")
 
     // OkHttp for RPC calls
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

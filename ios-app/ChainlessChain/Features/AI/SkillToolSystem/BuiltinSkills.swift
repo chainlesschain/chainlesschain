@@ -509,6 +509,8 @@ public enum BuiltinSkills {
             return mediaSkills
         case .system:
             return systemSkills
+        default:
+            return []
         }
     }
 

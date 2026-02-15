@@ -34,7 +34,7 @@ dependencies {
     implementation(project(":core-common"))
 
     // AndroidX Security
-    api("androidx.security:security-crypto:1.1.0-alpha06")
+    api("androidx.security:security-crypto:1.1.0")
 
     // Tink Crypto
     api("com.google.crypto.tink:tink-android:1.15.0")
