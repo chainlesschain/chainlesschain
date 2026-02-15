@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- 开发环境：允许所有明文流量（用于局域网P2P通信） -->
-    <base-config cleartextTrafficPermitted="true">
+    <!-- 生产环境：默认禁止明文流量 -->
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
-            <!-- 信任系统证书 -->
             <certificates src="system" />
         </trust-anchors>
     </base-config>
+
+    <!-- 允许局域网P2P通信使用明文（WebSocket signaling） -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
 </network-security-config>
