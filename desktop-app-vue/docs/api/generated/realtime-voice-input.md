@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/realtime-voice-input.js`
 
-**Generated**: 2026-02-15T07:37:13.775Z
+**Generated**: 2026-02-15T08:42:37.182Z
 
 ---
 
