@@ -8,6 +8,7 @@ import com.chainlesschain.android.feature.p2p.webrtc.channel.DataChannelManager
 import com.chainlesschain.android.feature.p2p.webrtc.channel.IncomingMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -35,6 +36,7 @@ class P2PMessageBridge @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
     private var isRunning = false
+    private var collectJob: Job? = null
 
     /**
      * 启动桥接，监听 DataChannel 入站消息并转发到 MessageQueue
@@ -48,7 +50,7 @@ class P2PMessageBridge @Inject constructor(
         isRunning = true
         Log.i(TAG, "Starting P2P message bridge")
 
-        scope.launch {
+        collectJob = scope.launch {
             dataChannelManager.incomingMessages.collect { incoming ->
                 try {
                     val message = deserializeMessage(incoming)
@@ -68,6 +70,8 @@ class P2PMessageBridge @Inject constructor(
      */
     fun stop() {
         isRunning = false
+        collectJob?.cancel()
+        collectJob = null
         Log.i(TAG, "P2P message bridge stopped")
     }
 

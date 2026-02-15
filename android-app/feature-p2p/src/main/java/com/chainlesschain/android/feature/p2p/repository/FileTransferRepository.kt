@@ -17,6 +17,7 @@ import com.chainlesschain.android.core.p2p.filetransfer.model.TransferProgress
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
@@ -51,6 +52,8 @@ class FileTransferRepository @Inject constructor(
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var resultCollectJob: Job? = null
+    private var progressCollectJob: Job? = null
 
     // Real-time progress from tracker
     val progressFlow: SharedFlow<TransferProgress> = progressTracker.progressFlow
@@ -66,14 +69,14 @@ class FileTransferRepository @Inject constructor(
 
     init {
         // Listen for transfer results and persist to database
-        scope.launch {
+        resultCollectJob = scope.launch {
             fileTransferManager.transferResults.collect { result ->
                 handleTransferResult(result)
             }
         }
 
         // Listen for progress updates and persist periodically
-        scope.launch {
+        progressCollectJob = scope.launch {
             progressTracker.progressFlow.collect { progress ->
                 updateProgressInDatabase(progress)
             }
@@ -434,5 +437,12 @@ class FileTransferRepository @Inject constructor(
             FileTransferStatusEnum.REJECTED -> FileTransferStatus.REJECTED
             else -> FileTransferStatus.PENDING
         }
+    }
+
+    fun cleanup() {
+        resultCollectJob?.cancel()
+        resultCollectJob = null
+        progressCollectJob?.cancel()
+        progressCollectJob = null
     }
 }

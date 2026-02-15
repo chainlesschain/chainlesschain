@@ -853,13 +853,19 @@ const routes: RouteRecordRaw[] = [
       },
       // ===== 插件市场 (v0.34.0) =====
       {
-        path: 'marketplace',
-        name: 'PluginMarketplace',
+        path: 'plugin-marketplace',
+        name: 'PluginMarketplaceBrowse',
         component: () => import(/* webpackChunkName: "plugin-marketplace" */ '../pages/PluginMarketplacePage.vue'),
         meta: { title: '插件市场' },
       },
       {
-        path: 'marketplace/installed',
+        path: 'plugin-marketplace/:pluginId/detail',
+        name: 'PluginDetail',
+        component: () => import(/* webpackChunkName: "plugin-detail" */ '../pages/PluginDetailPage.vue'),
+        meta: { title: '插件详情' },
+      },
+      {
+        path: 'plugin-marketplace/installed',
         name: 'InstalledPlugins',
         component: () => import(/* webpackChunkName: "installed-plugins" */ '../pages/InstalledPluginsPage.vue'),
         meta: { title: '已安装插件' },

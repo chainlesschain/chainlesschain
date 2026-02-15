@@ -11,6 +11,7 @@ import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -41,6 +42,7 @@ class P2PMessageRepository @Inject constructor(
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
+    private var observeJob: Job? = null
 
     // 接收到的消息流（用于通知UI）
     private val _incomingMessages = MutableSharedFlow<P2PMessageEntity>()
@@ -285,7 +287,7 @@ class P2PMessageRepository @Inject constructor(
      * 监听网络消息
      */
     private fun observeNetworkMessages() {
-        scope.launch {
+        observeJob = scope.launch {
             connectionManager.receivedMessages.collect { p2pMessage ->
                 when (p2pMessage.type) {
                     MessageType.ACK -> {
@@ -354,5 +356,10 @@ class P2PMessageRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete message from sync: $resourceId", e)
         }
+    }
+
+    fun cleanup() {
+        observeJob?.cancel()
+        observeJob = null
     }
 }

@@ -408,7 +408,6 @@ async function handleExport() {
       eventType: filters.eventType || undefined,
       riskLevel: filters.riskLevel || undefined,
       actorDid: filters.actor || undefined,
-      dateRange: filters.dateRange,
     })
     message.success('审计日志导出成功')
   } catch (error) {

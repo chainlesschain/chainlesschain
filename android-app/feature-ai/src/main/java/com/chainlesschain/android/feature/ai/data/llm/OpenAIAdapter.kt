@@ -13,14 +13,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-
 /**
  * OpenAI API适配器
  *
  * 支持GPT-4, GPT-3.5-Turbo等模型
  */
-class OpenAIAdapter @Inject constructor(
+class OpenAIAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://api.openai.com/v1"
 ) : LLMAdapter {
@@ -176,7 +174,7 @@ class OpenAIAdapter @Inject constructor(
  *
  * API格式与OpenAI兼容
  */
-class DeepSeekAdapter @Inject constructor(
+class DeepSeekAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://api.deepseek.com/v1"
 ) : LLMAdapter {

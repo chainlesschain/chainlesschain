@@ -14,15 +14,13 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-
 /**
  * Claude (Anthropic) API适配器
  *
  * 官方文档: https://docs.anthropic.com/claude/reference/
  * 支持模型: claude-3-opus-20240229, claude-3-sonnet-20240229, claude-3-haiku-20240307
  */
-class ClaudeAdapter @Inject constructor(
+class ClaudeAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://api.anthropic.com"
 ) : LLMAdapter {
@@ -232,7 +230,7 @@ class ClaudeAdapter @Inject constructor(
  * 支持模型: gemini-pro, gemini-pro-vision
  * 使用OpenAI兼容格式 (通过OpenAI SDK proxy)
  */
-class GeminiAdapter @Inject constructor(
+class GeminiAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://generativelanguage.googleapis.com/v1beta"
 ) : LLMAdapter {
@@ -272,7 +270,7 @@ class GeminiAdapter @Inject constructor(
  * 支持模型: qwen-turbo, qwen-plus, qwen-max
  * API格式与OpenAI兼容
  */
-class QwenAdapter @Inject constructor(
+class QwenAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 ) : LLMAdapter {
@@ -312,7 +310,7 @@ class QwenAdapter @Inject constructor(
  * 支持模型: ernie-bot-4, ernie-bot-turbo
  * API格式与OpenAI兼容
  */
-class ErnieAdapter @Inject constructor(
+class ErnieAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop"
 ) : LLMAdapter {
@@ -352,7 +350,7 @@ class ErnieAdapter @Inject constructor(
  * 支持模型: glm-4, glm-3-turbo
  * API格式与OpenAI兼容
  */
-class ChatGLMAdapter @Inject constructor(
+class ChatGLMAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://open.bigmodel.cn/api/paas/v4"
 ) : LLMAdapter {
@@ -392,7 +390,7 @@ class ChatGLMAdapter @Inject constructor(
  * 支持模型: moonshot-v1-8k, moonshot-v1-32k, moonshot-v1-128k
  * API格式与OpenAI兼容
  */
-class MoonshotAdapter @Inject constructor(
+class MoonshotAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://api.moonshot.cn/v1"
 ) : LLMAdapter {
@@ -432,7 +430,7 @@ class MoonshotAdapter @Inject constructor(
  * 支持模型: spark-v3.5, spark-v3.0
  * API格式与OpenAI兼容
  */
-class SparkAdapter @Inject constructor(
+class SparkAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://spark-api-open.xf-yun.com/v1"
 ) : LLMAdapter {
@@ -472,7 +470,7 @@ class SparkAdapter @Inject constructor(
  * 支持模型: doubao-seed-1-8-251228 (推荐), doubao-seed-1-6-251015, doubao-pro-32k-240515
  * API格式与OpenAI兼容
  */
-class DoubaoAdapter @Inject constructor(
+class DoubaoAdapter(
     private val apiKey: String,
     private val baseUrl: String = "https://ark.cn-beijing.volces.com/api/v3"
 ) : LLMAdapter {

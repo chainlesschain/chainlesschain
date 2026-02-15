@@ -6,10 +6,6 @@ import com.chainlesschain.android.core.p2p.sync.ResourceType
 import com.chainlesschain.android.core.p2p.sync.SyncItem
 import com.chainlesschain.android.core.p2p.sync.SyncManager
 import com.chainlesschain.android.core.p2p.sync.SyncOperation
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -36,7 +32,6 @@ class SocialSyncAdapter @Inject constructor(
         private const val TAG = "SocialSyncAdapter"
     }
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
 
     // ===== 好友同步 =====
