@@ -263,9 +263,24 @@ class FileTransferWorker @AssistedInject constructor(
     private fun createForegroundInfo(fileName: String, isOutgoing: Boolean): ForegroundInfo {
         val title = if (isOutgoing) "正在发送文件" else "正在接收文件"
 
+        // Ensure notification channel exists (required for Android 8.0+)
+        val channelId = "file_transfer_progress"
+        val notificationManager = applicationContext.getSystemService(android.content.Context.NOTIFICATION_SERVICE)
+            as android.app.NotificationManager
+        if (notificationManager.getNotificationChannel(channelId) == null) {
+            val channel = android.app.NotificationChannel(
+                channelId,
+                "File Transfer Progress",
+                android.app.NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Shows file transfer progress"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
         val notification = androidx.core.app.NotificationCompat.Builder(
             applicationContext,
-            "file_transfer_progress"
+            channelId
         )
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle(title)

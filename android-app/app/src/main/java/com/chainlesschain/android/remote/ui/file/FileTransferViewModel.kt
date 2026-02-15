@@ -146,6 +146,9 @@ class FileTransferViewModel @Inject constructor(
             "paused" -> {
                 _uiState.value = FileTransferUiState.Paused(progress.fileName, progress.progress.toDouble())
             }
+            else -> {
+                // Other states (e.g., "transferring", "cancelled") - no UI state change needed
+            }
         }
     }
 
