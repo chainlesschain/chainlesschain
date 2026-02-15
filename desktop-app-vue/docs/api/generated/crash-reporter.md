@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/crash-reporter.js`
 
-**Generated**: 2026-02-15T08:42:37.219Z
+**Generated**: 2026-02-15T10:10:53.403Z
 
 ---
 
