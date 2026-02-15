@@ -53,7 +53,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run Rules Validator
         working-directory: ./desktop-app-vue
@@ -93,11 +93,11 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install root dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Install desktop-app-vue dependencies
         working-directory: ./desktop-app-vue
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Run npm audit (informational)
         run: npm audit --audit-level=high || true
