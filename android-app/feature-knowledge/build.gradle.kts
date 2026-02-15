@@ -46,7 +46,7 @@ dependencies {
     implementation(project(":data-knowledge"))
 
     // Kotlin Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     // Paging
     implementation("androidx.paging:paging-runtime-ktx:3.2.1")

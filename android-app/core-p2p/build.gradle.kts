@@ -56,7 +56,7 @@ dependencies {
     implementation("com.google.protobuf:protobuf-javalite:3.25.1")
 
     // JSON
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     // OkHttp (for WebSocket signaling)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
