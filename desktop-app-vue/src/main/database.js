@@ -3349,6 +3349,180 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_cross_org_discovery_discoverable ON cross_org_discovery(is_discoverable);
       CREATE INDEX IF NOT EXISTS idx_cross_org_discovery_verified ON cross_org_discovery(verified);
       CREATE INDEX IF NOT EXISTS idx_cross_org_discovery_reputation ON cross_org_discovery(reputation_score DESC);
+
+      -- ============================================================
+      -- 企业审计与合规模块 (v0.34.0)
+      -- ============================================================
+
+      -- 统一企业审计日志
+      CREATE TABLE IF NOT EXISTS enterprise_audit_log (
+        id TEXT PRIMARY KEY,
+        timestamp INTEGER NOT NULL,
+        event_type TEXT NOT NULL,
+        actor_did TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        resource_type TEXT,
+        resource_id TEXT,
+        details TEXT,
+        risk_level TEXT CHECK(risk_level IN ('low','medium','high','critical')),
+        compliance_tags TEXT,
+        outcome TEXT CHECK(outcome IN ('success','failure','blocked')),
+        retention_until INTEGER,
+        session_id TEXT
+      );
+
+      -- 合规策略
+      CREATE TABLE IF NOT EXISTS compliance_policies (
+        id TEXT PRIMARY KEY,
+        policy_type TEXT NOT NULL,
+        framework TEXT NOT NULL,
+        rules TEXT NOT NULL,
+        enabled INTEGER DEFAULT 1,
+        created_at INTEGER,
+        updated_at INTEGER
+      );
+
+      -- 数据主体请求 (GDPR)
+      CREATE TABLE IF NOT EXISTS data_subject_requests (
+        id TEXT PRIMARY KEY,
+        request_type TEXT NOT NULL,
+        subject_did TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        request_data TEXT,
+        response_data TEXT,
+        created_at INTEGER,
+        completed_at INTEGER,
+        deadline INTEGER
+      );
+
+      -- 企业审计索引
+      CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON enterprise_audit_log(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_audit_log_event_type ON enterprise_audit_log(event_type);
+      CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON enterprise_audit_log(actor_did);
+      CREATE INDEX IF NOT EXISTS idx_audit_log_risk ON enterprise_audit_log(risk_level);
+      CREATE INDEX IF NOT EXISTS idx_audit_log_outcome ON enterprise_audit_log(outcome);
+      CREATE INDEX IF NOT EXISTS idx_compliance_framework ON compliance_policies(framework);
+      CREATE INDEX IF NOT EXISTS idx_compliance_enabled ON compliance_policies(enabled);
+      CREATE INDEX IF NOT EXISTS idx_dsr_status ON data_subject_requests(status);
+      CREATE INDEX IF NOT EXISTS idx_dsr_subject ON data_subject_requests(subject_did);
+      CREATE INDEX IF NOT EXISTS idx_dsr_deadline ON data_subject_requests(deadline);
+
+      -- ============================================================
+      -- 插件市场模块 (v0.34.0)
+      -- ============================================================
+
+      -- 已安装插件追踪
+      CREATE TABLE IF NOT EXISTS installed_plugins (
+        id TEXT PRIMARY KEY,
+        plugin_id TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        version TEXT NOT NULL,
+        author TEXT,
+        install_path TEXT NOT NULL,
+        installed_at INTEGER NOT NULL,
+        enabled INTEGER DEFAULT 1,
+        auto_update INTEGER DEFAULT 1,
+        source TEXT DEFAULT 'marketplace',
+        metadata TEXT
+      );
+
+      -- 插件更新历史
+      CREATE TABLE IF NOT EXISTS plugin_update_history (
+        id TEXT PRIMARY KEY,
+        plugin_id TEXT NOT NULL,
+        from_version TEXT,
+        to_version TEXT NOT NULL,
+        updated_at INTEGER NOT NULL,
+        success INTEGER,
+        error_message TEXT
+      );
+
+      -- 插件市场索引
+      CREATE INDEX IF NOT EXISTS idx_installed_plugins_plugin_id ON installed_plugins(plugin_id);
+      CREATE INDEX IF NOT EXISTS idx_installed_plugins_enabled ON installed_plugins(enabled);
+      CREATE INDEX IF NOT EXISTS idx_plugin_update_history_plugin ON plugin_update_history(plugin_id);
+
+      -- ============================================================
+      -- 专业化代理模块 (v0.34.0)
+      -- ============================================================
+
+      -- 代理模板
+      CREATE TABLE IF NOT EXISTS agent_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT,
+        capabilities TEXT NOT NULL,
+        tools TEXT NOT NULL,
+        system_prompt TEXT,
+        config TEXT,
+        version TEXT DEFAULT '1.0.0',
+        enabled INTEGER DEFAULT 1,
+        created_at INTEGER NOT NULL
+      );
+
+      -- 代理任务历史
+      CREATE TABLE IF NOT EXISTS agent_task_history (
+        id TEXT PRIMARY KEY,
+        agent_id TEXT NOT NULL,
+        template_type TEXT NOT NULL,
+        task_description TEXT,
+        started_at INTEGER,
+        completed_at INTEGER,
+        success INTEGER,
+        result TEXT,
+        tokens_used INTEGER
+      );
+
+      -- 代理模块索引
+      CREATE INDEX IF NOT EXISTS idx_agent_templates_type ON agent_templates(type);
+      CREATE INDEX IF NOT EXISTS idx_agent_templates_enabled ON agent_templates(enabled);
+      CREATE INDEX IF NOT EXISTS idx_agent_task_history_agent ON agent_task_history(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_task_history_type ON agent_task_history(template_type);
+
+      -- ============================================================
+      -- SSO 企业认证模块 (v0.34.0)
+      -- ============================================================
+
+      -- SSO 配置
+      CREATE TABLE IF NOT EXISTS sso_configurations (
+        id TEXT PRIMARY KEY,
+        provider_type TEXT NOT NULL,
+        provider_name TEXT NOT NULL,
+        enabled INTEGER DEFAULT 1,
+        config TEXT NOT NULL,
+        created_at INTEGER,
+        updated_at INTEGER
+      );
+
+      -- SSO 会话
+      CREATE TABLE IF NOT EXISTS sso_sessions (
+        id TEXT PRIMARY KEY,
+        user_did TEXT NOT NULL,
+        provider_id TEXT NOT NULL,
+        access_token TEXT,
+        refresh_token TEXT,
+        expires_at INTEGER,
+        created_at INTEGER
+      );
+
+      -- 身份映射
+      CREATE TABLE IF NOT EXISTS identity_mappings (
+        id TEXT PRIMARY KEY,
+        did TEXT NOT NULL,
+        provider_id TEXT NOT NULL,
+        sso_subject TEXT NOT NULL,
+        sso_attributes TEXT,
+        verified INTEGER DEFAULT 0,
+        created_at INTEGER
+      );
+
+      -- SSO 索引
+      CREATE INDEX IF NOT EXISTS idx_sso_config_type ON sso_configurations(provider_type);
+      CREATE INDEX IF NOT EXISTS idx_sso_sessions_did ON sso_sessions(user_did);
+      CREATE INDEX IF NOT EXISTS idx_sso_sessions_provider ON sso_sessions(provider_id);
+      CREATE INDEX IF NOT EXISTS idx_identity_mappings_did ON identity_mappings(did);
+      CREATE INDEX IF NOT EXISTS idx_identity_mappings_provider ON identity_mappings(provider_id);
     `);
 
       // 重新启用外键约束
