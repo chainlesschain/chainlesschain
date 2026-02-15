@@ -260,9 +260,6 @@ class TransactionManager @Inject constructor(
         val privateKey = (pkResult as Result.Success).data
 
         try {
-            // TODO: Implement proper transaction signing with RLP encoding
-            // For now, we'll create a placeholder transaction
-
             // Build raw transaction
             val rawTx = buildRawTransaction(request)
 

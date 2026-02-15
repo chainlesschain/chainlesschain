@@ -3,6 +3,10 @@ package com.chainlesschain.android.core.ui.image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -14,6 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 
 /**
  * 图片网格布局
@@ -59,7 +64,7 @@ private fun SingleImageLayout(
     cornerRadius: Dp,
     onImageClick: (Int, String) -> Unit
 ) {
-    AsyncImage(
+    SubcomposeAsyncImage(
         model = imageUrl,
         contentDescription = null,
         modifier = modifier
@@ -67,7 +72,9 @@ private fun SingleImageLayout(
             .aspectRatio(16f / 9f)
             .clip(RoundedCornerShape(cornerRadius))
             .clickable { onImageClick(0, imageUrl) },
-        contentScale = ContentScale.Crop
+        contentScale = ContentScale.Crop,
+        loading = { ImageLoadingPlaceholder() },
+        error = { ImageErrorPlaceholder() }
     )
 }
 
@@ -87,7 +94,7 @@ private fun TwoImagesLayout(
         horizontalArrangement = Arrangement.spacedBy(spacing)
     ) {
         images.forEachIndexed { index, url ->
-            AsyncImage(
+            SubcomposeAsyncImage(
                 model = url,
                 contentDescription = null,
                 modifier = Modifier
@@ -95,7 +102,9 @@ private fun TwoImagesLayout(
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(cornerRadius))
                     .clickable { onImageClick(index, url) },
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                loading = { ImageLoadingPlaceholder() },
+                error = { ImageErrorPlaceholder() }
             )
         }
     }
@@ -117,7 +126,7 @@ private fun ThreeImagesLayout(
         horizontalArrangement = Arrangement.spacedBy(spacing)
     ) {
         // 左侧大图
-        AsyncImage(
+        SubcomposeAsyncImage(
             model = images[0],
             contentDescription = null,
             modifier = Modifier
@@ -125,7 +134,9 @@ private fun ThreeImagesLayout(
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(cornerRadius))
                 .clickable { onImageClick(0, images[0]) },
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            loading = { ImageLoadingPlaceholder() },
+            error = { ImageErrorPlaceholder() }
         )
         // 右侧两小图
         Column(
@@ -133,7 +144,7 @@ private fun ThreeImagesLayout(
             verticalArrangement = Arrangement.spacedBy(spacing)
         ) {
             images.drop(1).forEachIndexed { index, url ->
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = url,
                     contentDescription = null,
                     modifier = Modifier
@@ -141,7 +152,9 @@ private fun ThreeImagesLayout(
                         .aspectRatio(2f)
                         .clip(RoundedCornerShape(cornerRadius))
                         .clickable { onImageClick(index + 1, url) },
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    loading = { ImageLoadingPlaceholder() },
+                    error = { ImageErrorPlaceholder() }
                 )
             }
         }
@@ -170,7 +183,7 @@ private fun FourImagesLayout(
                 for (col in 0..1) {
                     val index = row * 2 + col
                     val url = images[index]
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = url,
                         contentDescription = null,
                         modifier = Modifier
@@ -178,7 +191,9 @@ private fun FourImagesLayout(
                             .aspectRatio(1f)
                             .clip(RoundedCornerShape(cornerRadius))
                             .clickable { onImageClick(index, url) },
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        loading = { ImageLoadingPlaceholder() },
+                        error = { ImageErrorPlaceholder() }
                     )
                 }
             }
@@ -217,14 +232,16 @@ private fun MultiImagesLayout(
                                 .weight(1f)
                                 .aspectRatio(1f)
                         ) {
-                            AsyncImage(
+                            SubcomposeAsyncImage(
                                 model = url,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(cornerRadius))
                                     .clickable { onImageClick(index, url) },
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                loading = { ImageLoadingPlaceholder() },
+                                error = { ImageErrorPlaceholder() }
                             )
                             // 最后一张显示剩余数量
                             if (index == 8 && remainingCount > 0) {
@@ -252,5 +269,32 @@ private fun MultiImagesLayout(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ImageLoadingPlaceholder() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(24.dp),
+            strokeWidth = 2.dp
+        )
+    }
+}
+
+@Composable
+private fun ImageErrorPlaceholder() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.BrokenImage,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

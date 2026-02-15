@@ -410,9 +410,9 @@ describe("StreamController", () => {
 
     it("应该发出error事件", () => {
       const handler = vi.fn();
-      // Remove the default error listener and add our test handler
-      controller.removeAllListeners("error");
-      controller.on("error", handler);
+      // Source emits "stream-error" (not "error") to avoid Node.js
+      // EventEmitter ERR_UNHANDLED_ERROR when there is no listener
+      controller.on("stream-error", handler);
 
       const testError = new Error("Test error");
       controller.error(testError);
