@@ -2,7 +2,7 @@
 
 **Source**: `src/main/webide/webide-ipc.js`
 
-**Generated**: 2026-02-15T08:42:37.166Z
+**Generated**: 2026-02-15T10:10:53.355Z
 
 ---
 

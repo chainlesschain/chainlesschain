@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/interactive-planning-ipc.js`
 
-**Generated**: 2026-02-15T08:42:37.271Z
+**Generated**: 2026-02-15T10:10:53.453Z
 
 ---
 

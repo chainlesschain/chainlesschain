@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/secure-storage-ipc.js`
 
-**Generated**: 2026-02-15T08:42:37.227Z
+**Generated**: 2026-02-15T10:10:53.410Z
 
 ---
 
