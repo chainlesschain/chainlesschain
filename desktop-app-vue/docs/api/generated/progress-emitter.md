@@ -1,8 +1,8 @@
 # progress-emitter
 
-**Source**: `src\main\utils\progress-emitter.js`
+**Source**: `src/main/utils/progress-emitter.js`
 
-**Generated**: 2026-01-27T06:44:03.790Z
+**Generated**: 2026-02-15T07:37:13.762Z
 
 ---
 
@@ -79,10 +79,10 @@ createTracker(taskId, options =
 
 ---
 
-## step: (message = '', increment = 1) =>
+## step: (message = "", increment = 1) =>
 
 ```javascript
-step: (message = '', increment = 1) =>
+step: (message = "", increment = 1) =>
 ```
 
 * 更新步进（自动计算百分比）
@@ -91,10 +91,10 @@ step: (message = '', increment = 1) =>
 
 ---
 
-## setPercent: (percent, message = '') =>
+## setPercent: (percent, message = "") =>
 
 ```javascript
-setPercent: (percent, message = '') =>
+setPercent: (percent, message = "") =>
 ```
 
 * 直接设置百分比
@@ -103,10 +103,10 @@ setPercent: (percent, message = '') =>
 
 ---
 
-## setStage: (stage, message = '') =>
+## setStage: (stage, message = "") =>
 
 ```javascript
-setStage: (stage, message = '') =>
+setStage: (stage, message = "") =>
 ```
 
 * 设置任务阶段
@@ -137,10 +137,10 @@ error: (error) =>
 
 ---
 
-## cancel: (reason = '用户取消') =>
+## cancel: (reason = "用户取消") =>
 
 ```javascript
-cancel: (reason = '用户取消') =>
+cancel: (reason = "用户取消") =>
 ```
 
 * 取消任务
@@ -182,10 +182,10 @@ updateParentProgress(childTaskId)
 
 ---
 
-## persistTaskProgress(taskId, eventData)
+## async persistTaskProgress(taskId, eventData)
 
 ```javascript
-persistTaskProgress(taskId, eventData)
+async persistTaskProgress(taskId, eventData)
 ```
 
 * 持久化任务进度（可选）

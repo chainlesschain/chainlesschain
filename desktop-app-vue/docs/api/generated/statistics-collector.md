@@ -1,8 +1,8 @@
 # statistics-collector
 
-**Source**: `src\main\remote\logging\statistics-collector.js`
+**Source**: `src/main/remote/logging/statistics-collector.js`
 
-**Generated**: 2026-01-27T06:44:03.821Z
+**Generated**: 2026-02-15T07:37:13.788Z
 
 ---
 

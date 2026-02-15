@@ -1,8 +1,8 @@
 # friend-manager
 
-**Source**: `src\main\social\friend-manager.js`
+**Source**: `src/main/social/friend-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.809Z
+**Generated**: 2026-02-15T07:37:13.777Z
 
 ---
 
@@ -122,10 +122,10 @@ async handlePeerDisconnected(peerId)
 
 ---
 
-## async sendFriendRequest(targetDid, message = '')
+## async sendFriendRequest(targetDid, message = "")
 
 ```javascript
-async sendFriendRequest(targetDid, message = '')
+async sendFriendRequest(targetDid, message = "")
 ```
 
 * 发送好友请求

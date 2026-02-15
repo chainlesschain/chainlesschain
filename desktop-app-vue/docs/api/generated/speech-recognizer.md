@@ -1,8 +1,8 @@
 # speech-recognizer
 
-**Source**: `src\main\speech\speech-recognizer.js`
+**Source**: `src/main/speech/speech-recognizer.js`
 
-**Generated**: 2026-01-27T06:44:03.806Z
+**Generated**: 2026-02-15T07:37:13.775Z
 
 ---
 

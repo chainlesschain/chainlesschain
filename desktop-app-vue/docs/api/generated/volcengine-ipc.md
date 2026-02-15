@@ -1,8 +1,8 @@
 # volcengine-ipc
 
-**Source**: `src\main\llm\volcengine-ipc.js`
+**Source**: `src/main/llm/volcengine-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.846Z
+**Generated**: 2026-02-15T07:37:13.820Z
 
 ---
 
@@ -38,110 +38,110 @@ function registerVolcengineIPC()
 
 ---
 
-## ipcMain.handle('volcengine:select-model', async (event,
+## ipcMain.handle("volcengine:select-model", async (event,
 
 ```javascript
-ipcMain.handle('volcengine:select-model', async (event,
+ipcMain.handle("volcengine:select-model", async (event,
 ```
 
 * 智能选择模型（根据场景）
 
 ---
 
-## ipcMain.handle('volcengine:select-model-by-task', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:select-model-by-task', async (event,
+ipcMain.handle(
 ```
 
 * 根据任务类型选择模型
 
 ---
 
-## ipcMain.handle('volcengine:estimate-cost', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:estimate-cost', async (event,
+ipcMain.handle(
 ```
 
 * 估算成本
 
 ---
 
-## ipcMain.handle('volcengine:list-models', async (event,
+## ipcMain.handle("volcengine:list-models", async (event,
 
 ```javascript
-ipcMain.handle('volcengine:list-models', async (event,
+ipcMain.handle("volcengine:list-models", async (event,
 ```
 
 * 列出所有模型
 
 ---
 
-## ipcMain.handle('volcengine:chat-with-web-search', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:chat-with-web-search', async (event,
+ipcMain.handle(
 ```
 
 * 联网搜索对话
 
 ---
 
-## ipcMain.handle('volcengine:chat-with-image', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:chat-with-image', async (event,
+ipcMain.handle(
 ```
 
 * 图像处理对话
 
 ---
 
-## ipcMain.handle('volcengine:understand-image', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:understand-image', async (event,
+ipcMain.handle(
 ```
 
 * 图像理解（简化接口）
 
 ---
 
-## ipcMain.handle('volcengine:setup-knowledge-base', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:setup-knowledge-base', async (event,
+ipcMain.handle(
 ```
 
 * 配置知识库（上传文档）
 
 ---
 
-## ipcMain.handle('volcengine:chat-with-knowledge-base', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:chat-with-knowledge-base', async (event,
+ipcMain.handle(
 ```
 
 * 知识库搜索对话
 
 ---
 
-## ipcMain.handle('volcengine:chat-with-function-calling', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:chat-with-function-calling', async (event,
+ipcMain.handle(
 ```
 
 * Function Calling 对话
 
 ---
 
-## ipcMain.handle('volcengine:execute-function-calling', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:execute-function-calling', async (event,
+ipcMain.handle(
 ```
 
 * 执行完整的 Function Calling 流程
@@ -149,40 +149,40 @@ ipcMain.handle('volcengine:execute-function-calling', async (event,
 
 ---
 
-## ipcMain.handle('volcengine:chat-with-mcp', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:chat-with-mcp', async (event,
+ipcMain.handle(
 ```
 
 * MCP 对话
 
 ---
 
-## ipcMain.handle('volcengine:chat-with-multiple-tools', async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('volcengine:chat-with-multiple-tools', async (event,
+ipcMain.handle(
 ```
 
 * 多工具混合对话
 
 ---
 
-## ipcMain.handle('volcengine:check-config', async (event) =>
+## ipcMain.handle("volcengine:check-config", async (event) =>
 
 ```javascript
-ipcMain.handle('volcengine:check-config', async (event) =>
+ipcMain.handle("volcengine:check-config", async (event) =>
 ```
 
 * 检查配置状态
 
 ---
 
-## ipcMain.handle('volcengine:update-config', async (event,
+## ipcMain.handle("volcengine:update-config", async (event,
 
 ```javascript
-ipcMain.handle('volcengine:update-config', async (event,
+ipcMain.handle("volcengine:update-config", async (event,
 ```
 
 * 更新配置

@@ -1,8 +1,8 @@
 # manus-ipc
 
-**Source**: `src\main\llm\manus-ipc.js`
+**Source**: `src/main/llm/manus-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.848Z
+**Generated**: 2026-02-15T07:37:13.823Z
 
 ---
 
@@ -41,10 +41,10 @@ ipcMain.handle("manus:start-task", async (event, task) =>
 
 ---
 
-## ipcMain.handle("manus:update-progress", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("manus:update-progress", async (event,
+ipcMain.handle(
 ```
 
 * 更新任务进度
@@ -93,10 +93,10 @@ ipcMain.handle("manus:get-current-task", async (event) =>
 
 ---
 
-## ipcMain.handle("manus:set-tool-available", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("manus:set-tool-available", async (event,
+ipcMain.handle(
 ```
 
 * 设置工具可用性
@@ -105,10 +105,10 @@ ipcMain.handle("manus:set-tool-available", async (event,
 
 ---
 
-## ipcMain.handle("manus:set-tools-by-prefix", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("manus:set-tools-by-prefix", async (event,
+ipcMain.handle(
 ```
 
 * 按前缀设置工具可用性

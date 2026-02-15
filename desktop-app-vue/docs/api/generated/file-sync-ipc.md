@@ -1,8 +1,8 @@
 # file-sync-ipc
 
-**Source**: `src\main\file-sync\file-sync-ipc.js`
+**Source**: `src/main/file-sync/file-sync-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.857Z
+**Generated**: 2026-02-15T07:37:13.833Z
 
 ---
 
@@ -34,10 +34,10 @@ function registerFileSyncIPC(
 
 ---
 
-## ipcMain.handle('file-sync:watch-project', async (_event, projectId) =>
+## ipcMain.handle("file-sync:watch-project", async (_event, projectId) =>
 
 ```javascript
-ipcMain.handle('file-sync:watch-project', async (_event, projectId) =>
+ipcMain.handle("file-sync:watch-project", async (_event, projectId) =>
 ```
 
 * 启动项目文件监听
@@ -48,10 +48,10 @@ ipcMain.handle('file-sync:watch-project', async (_event, projectId) =>
 
 ---
 
-## ipcMain.handle('file-sync:stop-watch', async (_event, projectId) =>
+## ipcMain.handle("file-sync:stop-watch", async (_event, projectId) =>
 
 ```javascript
-ipcMain.handle('file-sync:stop-watch', async (_event, projectId) =>
+ipcMain.handle("file-sync:stop-watch", async (_event, projectId) =>
 ```
 
 * 停止项目文件监听
@@ -62,10 +62,10 @@ ipcMain.handle('file-sync:stop-watch', async (_event, projectId) =>
 
 ---
 
-## ipcMain.handle('file-sync:get-status', async (_event, fileId) =>
+## ipcMain.handle("file-sync:get-status", async (_event, fileId) =>
 
 ```javascript
-ipcMain.handle('file-sync:get-status', async (_event, fileId) =>
+ipcMain.handle("file-sync:get-status", async (_event, fileId) =>
 ```
 
 * 获取文件同步状态

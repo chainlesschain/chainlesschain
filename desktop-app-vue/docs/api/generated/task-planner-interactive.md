@@ -1,8 +1,8 @@
 # task-planner-interactive
 
-**Source**: `src\main\ai-engine\task-planner-interactive.js`
+**Source**: `src/main/ai-engine/task-planner-interactive.js`
 
-**Generated**: 2026-01-27T06:44:03.876Z
+**Generated**: 2026-02-15T07:37:13.864Z
 
 ---
 
@@ -156,6 +156,26 @@ async generatePlanFromTemplate(template, userRequest, projectContext)
 ```
 
 * 从模板生成Plan
+
+---
+
+## extractVariablesFromRequest(request, templateVariables)
+
+```javascript
+extractVariablesFromRequest(request, templateVariables)
+```
+
+* 从用户请求中提取变量值
+
+---
+
+## replaceVariables(text, variables)
+
+```javascript
+replaceVariables(text, variables)
+```
+
+* 替换字符串中的变量占位符
 
 ---
 

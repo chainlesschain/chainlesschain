@@ -1,8 +1,8 @@
 # deep-link-handler
 
-**Source**: `src\main\system\deep-link-handler.js`
+**Source**: `src/main/system/deep-link-handler.js`
 
-**Generated**: 2026-01-27T06:44:03.801Z
+**Generated**: 2026-02-15T07:37:13.771Z
 
 ---
 
@@ -74,6 +74,52 @@ async handleKnowledgeLink(knowledgeId)
 
 * 处理知识库链接
    * @param {string} knowledgeId - 知识库ID
+
+---
+
+## async handleNotesLink(noteId, params)
+
+```javascript
+async handleNotesLink(noteId, params)
+```
+
+* 处理笔记链接
+   * @param {string} noteId - 笔记ID
+   * @param {URLSearchParams} params - URL参数
+
+---
+
+## async handleClipLink(clipId, params)
+
+```javascript
+async handleClipLink(clipId, params)
+```
+
+* 处理剪藏链接（来自浏览器扩展）
+   * @param {string} clipId - 剪藏ID
+   * @param {URLSearchParams} params - URL参数
+
+---
+
+## async handleGenericNavigation(path, params)
+
+```javascript
+async handleGenericNavigation(path, params)
+```
+
+* 处理通用导航链接
+   * @param {string} path - 路径
+   * @param {URLSearchParams} params - URL参数
+
+---
+
+## async focusMainWindow()
+
+```javascript
+async focusMainWindow()
+```
+
+* 聚焦主窗口
 
 ---
 

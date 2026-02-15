@@ -1,8 +1,8 @@
 # cowork-orchestrator
 
-**Source**: `src\main\ai-engine\multi-agent\cowork-orchestrator.js`
+**Source**: `src/main/ai-engine/multi-agent/cowork-orchestrator.js`
 
-**Generated**: 2026-01-27T06:44:03.886Z
+**Generated**: 2026-02-15T07:37:13.874Z
 
 ---
 
@@ -156,10 +156,10 @@ _splitTask(task)
 
 ---
 
-## _log(message, level = 'info')
+## _log(message, level = "info")
 
 ```javascript
-_log(message, level = 'info')
+_log(message, level = "info")
 ```
 
 * 日志输出
@@ -175,6 +175,19 @@ getCoworkStats()
 
 * 获取 Cowork 统计信息
    * @returns {Object}
+
+---
+
+## async shouldUseSingleAgent(task, context =
+
+```javascript
+async shouldUseSingleAgent(task, context =
+```
+
+* 判断是否应使用单代理（与 shouldUseMultiAgent 相反）
+   * @param {object} task - 任务对象
+   * @param {object} context - 上下文
+   * @returns {Promise<object>} 决策结果
 
 ---
 

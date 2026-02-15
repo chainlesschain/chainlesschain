@@ -1,8 +1,8 @@
 # builtin-skills
 
-**Source**: `src\main\skill-tool-system\builtin-skills.js`
+**Source**: `src/main/skill-tool-system/builtin-skills.js`
 
-**Generated**: 2026-01-27T06:44:03.816Z
+**Generated**: 2026-02-15T07:37:13.783Z
 
 ---
 

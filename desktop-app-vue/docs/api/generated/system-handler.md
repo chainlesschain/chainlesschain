@@ -1,8 +1,8 @@
 # system-handler
 
-**Source**: `src\main\remote\handlers\system-handler.js`
+**Source**: `src/main/remote/handlers/system-handler.js`
 
-**Generated**: 2026-01-27T06:44:03.822Z
+**Generated**: 2026-02-15T07:37:13.791Z
 
 ---
 
@@ -72,6 +72,7 @@ async screenshot(params, context)
 ```
 
 * 截图
+   * 使用 Electron desktopCapturer 获取屏幕截图
 
 ---
 

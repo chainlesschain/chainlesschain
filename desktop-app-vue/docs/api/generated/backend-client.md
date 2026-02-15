@@ -1,8 +1,8 @@
 # backend-client
 
-**Source**: `src\main\api\backend-client.js`
+**Source**: `src/main/api/backend-client.js`
 
-**Generated**: 2026-01-27T06:44:03.875Z
+**Generated**: 2026-02-15T07:37:13.862Z
 
 ---
 
@@ -48,10 +48,10 @@ class ProjectFileAPI
 
 ---
 
-## static async getFiles(projectId, fileType = null, pageNum = 1, pageSize = 50)
+## static async getFiles(
 
 ```javascript
-static async getFiles(projectId, fileType = null, pageNum = 1, pageSize = 50)
+static async getFiles(
 ```
 
 * 获取文件列表
@@ -118,10 +118,10 @@ class GitAPI
 
 ---
 
-## static async init(repoPath, remoteUrl = null, branchName = 'main')
+## static async init(repoPath, remoteUrl = null, branchName = "main")
 
 ```javascript
-static async init(repoPath, remoteUrl = null, branchName = 'main')
+static async init(repoPath, remoteUrl = null, branchName = "main")
 ```
 
 * 初始化仓库
@@ -138,30 +138,30 @@ static async status(repoPath)
 
 ---
 
-## static async commit(repoPath, message = null, files = null, autoGenerateMessage = false)
+## static async commit(
 
 ```javascript
-static async commit(repoPath, message = null, files = null, autoGenerateMessage = false)
+static async commit(
 ```
 
 * 提交更改
 
 ---
 
-## static async push(repoPath, remote = 'origin', branch = null)
+## static async push(repoPath, remote = "origin", branch = null)
 
 ```javascript
-static async push(repoPath, remote = 'origin', branch = null)
+static async push(repoPath, remote = "origin", branch = null)
 ```
 
 * 推送到远程
 
 ---
 
-## static async pull(repoPath, remote = 'origin', branch = null)
+## static async pull(repoPath, remote = "origin", branch = null)
 
 ```javascript
-static async pull(repoPath, remote = 'origin', branch = null)
+static async pull(repoPath, remote = "origin", branch = null)
 ```
 
 * 从远程拉取
@@ -228,20 +228,20 @@ static async merge(repoPath, sourceBranch, targetBranch = null)
 
 ---
 
-## static async resolveConflicts(repoPath, filePath = null, autoResolve = false, strategy = null)
+## static async resolveConflicts(
 
 ```javascript
-static async resolveConflicts(repoPath, filePath = null, autoResolve = false, strategy = null)
+static async resolveConflicts(
 ```
 
 * 解决冲突
 
 ---
 
-## static async generateCommitMessage(repoPath, stagedFiles = null, diffContent = null)
+## static async generateCommitMessage(
 
 ```javascript
-static async generateCommitMessage(repoPath, stagedFiles = null, diffContent = null)
+static async generateCommitMessage(
 ```
 
 * AI生成提交消息
@@ -258,10 +258,10 @@ class RAGAPI
 
 ---
 
-## static async indexProject(projectId, repoPath, fileTypes = null, forceReindex = false)
+## static async indexProject(
 
 ```javascript
-static async indexProject(projectId, repoPath, fileTypes = null, forceReindex = false)
+static async indexProject(
 ```
 
 * 索引项目文件
@@ -278,10 +278,10 @@ static async getIndexStats(projectId)
 
 ---
 
-## static async enhancedQuery(projectId, query, topK = 5, useReranker = false, sources = ['project'])
+## static async enhancedQuery(
 
 ```javascript
-static async enhancedQuery(projectId, query, topK = 5, useReranker = false, sources = ['project'])
+static async enhancedQuery(
 ```
 
 * 增强查询
@@ -318,10 +318,10 @@ class CodeAPI
 
 ---
 
-## static async generate(description, language, style = 'modern', includeTests = false, includeComments = true, context = null)
+## static async generate(
 
 ```javascript
-static async generate(description, language, style = 'modern', includeTests = false, includeComments = true, context = null)
+static async generate(
 ```
 
 * 生成代码
@@ -338,10 +338,10 @@ static async review(code, language, focusAreas = null)
 
 ---
 
-## static async refactor(code, language, refactorType = 'general', target = null)
+## static async refactor(
 
 ```javascript
-static async refactor(code, language, refactorType = 'general', target = null)
+static async refactor(
 ```
 
 * 代码重构

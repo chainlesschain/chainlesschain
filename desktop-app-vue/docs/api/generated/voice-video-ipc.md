@@ -1,8 +1,8 @@
 # voice-video-ipc
 
-**Source**: `src\main\p2p\voice-video-ipc.js`
+**Source**: `src/main/p2p/voice-video-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.831Z
+**Generated**: 2026-02-15T07:37:13.805Z
 
 ---
 

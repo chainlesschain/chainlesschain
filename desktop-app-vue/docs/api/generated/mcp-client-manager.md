@@ -1,8 +1,8 @@
 # mcp-client-manager
 
-**Source**: `src\main\mcp\mcp-client-manager.js`
+**Source**: `src/main/mcp/mcp-client-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.843Z
+**Generated**: 2026-02-15T07:37:13.817Z
 
 ---
 

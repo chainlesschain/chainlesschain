@@ -1,8 +1,8 @@
 # extended-tools-12
 
-**Source**: `src\main\ai-engine\extended-tools-12.js`
+**Source**: `src/main/ai-engine/extended-tools-12.js`
 
-**Generated**: 2026-01-27T06:44:03.883Z
+**Generated**: 2026-02-15T07:37:13.870Z
 
 ---
 
@@ -31,10 +31,10 @@ static registerAll(functionCaller)
 
 ---
 
-## functionCaller.registerTool('file_compressor', async (params) =>
+## functionCaller.registerTool("file_compressor", async (params) =>
 
 ```javascript
-functionCaller.registerTool('file_compressor', async (params) =>
+functionCaller.registerTool("file_compressor", async (params) =>
 ```
 
 * Tool 237: 文件压缩器
@@ -42,10 +42,10 @@ functionCaller.registerTool('file_compressor', async (params) =>
 
 ---
 
-## functionCaller.registerTool('file_decompressor', async (params) =>
+## functionCaller.registerTool("file_decompressor", async (params) =>
 
 ```javascript
-functionCaller.registerTool('file_decompressor', async (params) =>
+functionCaller.registerTool("file_decompressor", async (params) =>
 ```
 
 * Tool 238: 文件解压器
@@ -53,10 +53,10 @@ functionCaller.registerTool('file_decompressor', async (params) =>
 
 ---
 
-## functionCaller.registerTool('image_editor', async (params) =>
+## functionCaller.registerTool("image_editor", async (params) =>
 
 ```javascript
-functionCaller.registerTool('image_editor', async (params) =>
+functionCaller.registerTool("image_editor", async (params) =>
 ```
 
 * Tool 239: 图片编辑器
@@ -64,10 +64,10 @@ functionCaller.registerTool('image_editor', async (params) =>
 
 ---
 
-## functionCaller.registerTool('image_filter', async (params) =>
+## functionCaller.registerTool("image_filter", async (params) =>
 
 ```javascript
-functionCaller.registerTool('image_filter', async (params) =>
+functionCaller.registerTool("image_filter", async (params) =>
 ```
 
 * Tool 240: 图片滤镜器
@@ -75,10 +75,10 @@ functionCaller.registerTool('image_filter', async (params) =>
 
 ---
 
-## functionCaller.registerTool('video_cutter', async (params) =>
+## functionCaller.registerTool("video_cutter", async (params) =>
 
 ```javascript
-functionCaller.registerTool('video_cutter', async (params) =>
+functionCaller.registerTool("video_cutter", async (params) =>
 ```
 
 * Tool 241: 视频剪辑器
@@ -86,10 +86,10 @@ functionCaller.registerTool('video_cutter', async (params) =>
 
 ---
 
-## functionCaller.registerTool('video_merger', async (params) =>
+## functionCaller.registerTool("video_merger", async (params) =>
 
 ```javascript
-functionCaller.registerTool('video_merger', async (params) =>
+functionCaller.registerTool("video_merger", async (params) =>
 ```
 
 * Tool 242: 视频合并器
@@ -97,10 +97,10 @@ functionCaller.registerTool('video_merger', async (params) =>
 
 ---
 
-## functionCaller.registerTool('pdf_converter', async (params) =>
+## functionCaller.registerTool("pdf_converter", async (params) =>
 
 ```javascript
-functionCaller.registerTool('pdf_converter', async (params) =>
+functionCaller.registerTool("pdf_converter", async (params) =>
 ```
 
 * Tool 243: PDF转换器
@@ -108,10 +108,10 @@ functionCaller.registerTool('pdf_converter', async (params) =>
 
 ---
 
-## functionCaller.registerTool('office_converter', async (params) =>
+## functionCaller.registerTool("office_converter", async (params) =>
 
 ```javascript
-functionCaller.registerTool('office_converter', async (params) =>
+functionCaller.registerTool("office_converter", async (params) =>
 ```
 
 * Tool 244: Office文档转换器
@@ -119,10 +119,10 @@ functionCaller.registerTool('office_converter', async (params) =>
 
 ---
 
-## functionCaller.registerTool('qrcode_generator_advanced', async (params) =>
+## functionCaller.registerTool("qrcode_generator_advanced", async (params) =>
 
 ```javascript
-functionCaller.registerTool('qrcode_generator_advanced', async (params) =>
+functionCaller.registerTool("qrcode_generator_advanced", async (params) =>
 ```
 
 * Tool 245: 高级二维码生成器
@@ -130,10 +130,10 @@ functionCaller.registerTool('qrcode_generator_advanced', async (params) =>
 
 ---
 
-## functionCaller.registerTool('qrcode_scanner', async (params) =>
+## functionCaller.registerTool("qrcode_scanner", async (params) =>
 
 ```javascript
-functionCaller.registerTool('qrcode_scanner', async (params) =>
+functionCaller.registerTool("qrcode_scanner", async (params) =>
 ```
 
 * Tool 246: 二维码扫描器
@@ -141,10 +141,10 @@ functionCaller.registerTool('qrcode_scanner', async (params) =>
 
 ---
 
-## functionCaller.registerTool('screenshot_tool', async (params) =>
+## functionCaller.registerTool("screenshot_tool", async (params) =>
 
 ```javascript
-functionCaller.registerTool('screenshot_tool', async (params) =>
+functionCaller.registerTool("screenshot_tool", async (params) =>
 ```
 
 * Tool 247: 截图工具
@@ -152,10 +152,10 @@ functionCaller.registerTool('screenshot_tool', async (params) =>
 
 ---
 
-## functionCaller.registerTool('screen_recorder', async (params) =>
+## functionCaller.registerTool("screen_recorder", async (params) =>
 
 ```javascript
-functionCaller.registerTool('screen_recorder', async (params) =>
+functionCaller.registerTool("screen_recorder", async (params) =>
 ```
 
 * Tool 248: 屏幕录制器
@@ -163,10 +163,10 @@ functionCaller.registerTool('screen_recorder', async (params) =>
 
 ---
 
-## functionCaller.registerTool('calendar_manager', async (params) =>
+## functionCaller.registerTool("calendar_manager", async (params) =>
 
 ```javascript
-functionCaller.registerTool('calendar_manager', async (params) =>
+functionCaller.registerTool("calendar_manager", async (params) =>
 ```
 
 * Tool 249: 日历管理器
@@ -174,10 +174,10 @@ functionCaller.registerTool('calendar_manager', async (params) =>
 
 ---
 
-## functionCaller.registerTool('reminder_scheduler', async (params) =>
+## functionCaller.registerTool("reminder_scheduler", async (params) =>
 
 ```javascript
-functionCaller.registerTool('reminder_scheduler', async (params) =>
+functionCaller.registerTool("reminder_scheduler", async (params) =>
 ```
 
 * Tool 250: 提醒调度器
@@ -185,10 +185,10 @@ functionCaller.registerTool('reminder_scheduler', async (params) =>
 
 ---
 
-## functionCaller.registerTool('note_editor', async (params) =>
+## functionCaller.registerTool("note_editor", async (params) =>
 
 ```javascript
-functionCaller.registerTool('note_editor', async (params) =>
+functionCaller.registerTool("note_editor", async (params) =>
 ```
 
 * Tool 251: 笔记编辑器
@@ -196,10 +196,10 @@ functionCaller.registerTool('note_editor', async (params) =>
 
 ---
 
-## functionCaller.registerTool('note_searcher', async (params) =>
+## functionCaller.registerTool("note_searcher", async (params) =>
 
 ```javascript
-functionCaller.registerTool('note_searcher', async (params) =>
+functionCaller.registerTool("note_searcher", async (params) =>
 ```
 
 * Tool 252: 笔记搜索器
@@ -207,10 +207,10 @@ functionCaller.registerTool('note_searcher', async (params) =>
 
 ---
 
-## functionCaller.registerTool('password_generator_advanced', async (params) =>
+## functionCaller.registerTool(
 
 ```javascript
-functionCaller.registerTool('password_generator_advanced', async (params) =>
+functionCaller.registerTool(
 ```
 
 * Tool 253: 高级密码生成器
@@ -218,10 +218,10 @@ functionCaller.registerTool('password_generator_advanced', async (params) =>
 
 ---
 
-## functionCaller.registerTool('password_vault', async (params) =>
+## functionCaller.registerTool("password_vault", async (params) =>
 
 ```javascript
-functionCaller.registerTool('password_vault', async (params) =>
+functionCaller.registerTool("password_vault", async (params) =>
 ```
 
 * Tool 254: 密码保险库
@@ -229,10 +229,10 @@ functionCaller.registerTool('password_vault', async (params) =>
 
 ---
 
-## functionCaller.registerTool('network_speed_tester', async (params) =>
+## functionCaller.registerTool("network_speed_tester", async (params) =>
 
 ```javascript
-functionCaller.registerTool('network_speed_tester', async (params) =>
+functionCaller.registerTool("network_speed_tester", async (params) =>
 ```
 
 * Tool 255: 网速测试器
@@ -240,10 +240,10 @@ functionCaller.registerTool('network_speed_tester', async (params) =>
 
 ---
 
-## functionCaller.registerTool('network_diagnostic_tool', async (params) =>
+## functionCaller.registerTool("network_diagnostic_tool", async (params) =>
 
 ```javascript
-functionCaller.registerTool('network_diagnostic_tool', async (params) =>
+functionCaller.registerTool("network_diagnostic_tool", async (params) =>
 ```
 
 * Tool 256: 网络诊断工具

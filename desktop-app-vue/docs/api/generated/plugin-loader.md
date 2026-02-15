@@ -1,8 +1,8 @@
 # plugin-loader
 
-**Source**: `src\main\plugins\plugin-loader.js`
+**Source**: `src/main/plugins/plugin-loader.js`
 
-**Generated**: 2026-01-27T06:44:03.829Z
+**Generated**: 2026-02-15T07:37:13.801Z
 
 ---
 

@@ -1,8 +1,8 @@
 # auto-backup-manager-ipc
 
-**Source**: `src\main\memory\auto-backup-manager-ipc.js`
+**Source**: `src/main/memory/auto-backup-manager-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.842Z
+**Generated**: 2026-02-15T07:37:13.816Z
 
 ---
 

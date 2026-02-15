@@ -1,8 +1,8 @@
 # org-p2p-network
 
-**Source**: `src\main\organization\org-p2p-network.js`
+**Source**: `src/main/organization/org-p2p-network.js`
 
-**Generated**: 2026-01-27T06:44:03.836Z
+**Generated**: 2026-02-15T07:37:13.810Z
 
 ---
 

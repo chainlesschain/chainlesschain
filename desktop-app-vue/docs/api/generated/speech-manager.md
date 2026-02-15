@@ -1,8 +1,8 @@
 # speech-manager
 
-**Source**: `src\main\speech\speech-manager.js`
+**Source**: `src/main/speech/speech-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.806Z
+**Generated**: 2026-02-15T07:37:13.775Z
 
 ---
 
@@ -139,6 +139,16 @@ async getHistory(limit = 100, offset = 0)
 
 ---
 
+## async searchHistory(query, options =
+
+```javascript
+async searchHistory(query, options =
+```
+
+* 搜索转录历史
+
+---
+
 ## async deleteHistory(id)
 
 ```javascript
@@ -189,10 +199,10 @@ async deleteAudioFile(id)
 
 ---
 
-## async getStats(userId = 'local-user')
+## async getStats(userId = "local-user")
 
 ```javascript
-async getStats(userId = 'local-user')
+async getStats(userId = "local-user")
 ```
 
 * 获取统计信息
@@ -264,10 +274,10 @@ async detectLanguages(audioPaths)
 
 ---
 
-## async generateSubtitle(audioId, outputPath, format = 'srt')
+## async generateSubtitle(audioId, outputPath, format = "srt")
 
 ```javascript
-async generateSubtitle(audioId, outputPath, format = 'srt')
+async generateSubtitle(audioId, outputPath, format = "srt")
 ```
 
 * 生成字幕文件
@@ -292,10 +302,10 @@ async transcribeAndGenerateSubtitle(audioPath, subtitlePath, options =
 
 ---
 
-## async batchGenerateSubtitles(audioIds, outputDir, format = 'srt')
+## async batchGenerateSubtitles(audioIds, outputDir, format = "srt")
 
 ```javascript
-async batchGenerateSubtitles(audioIds, outputDir, format = 'srt')
+async batchGenerateSubtitles(audioIds, outputDir, format = "srt")
 ```
 
 * 批量生成字幕

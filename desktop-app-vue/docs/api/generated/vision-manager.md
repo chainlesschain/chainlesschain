@@ -1,8 +1,8 @@
 # vision-manager
 
-**Source**: `src\main\ai-engine\vision-manager.js`
+**Source**: `src/main/ai-engine/vision-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.875Z
+**Generated**: 2026-02-15T07:37:13.863Z
 
 ---
 

@@ -1,8 +1,8 @@
 # dalle-client
 
-**Source**: `src\main\image-gen\dalle-client.js`
+**Source**: `src/main/image-gen/dalle-client.js`
 
-**Generated**: 2026-01-27T06:44:03.854Z
+**Generated**: 2026-02-15T07:37:13.829Z
 
 ---
 

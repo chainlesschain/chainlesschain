@@ -1,8 +1,8 @@
 # vector-store
 
-**Source**: `src\main\vector\vector-store.js`
+**Source**: `src/main/vector/vector-store.js`
 
-**Generated**: 2026-01-27T06:44:03.779Z
+**Generated**: 2026-02-15T07:37:13.760Z
 
 ---
 

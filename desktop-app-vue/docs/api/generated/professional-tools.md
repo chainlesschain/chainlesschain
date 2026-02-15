@@ -1,8 +1,8 @@
 # professional-tools
 
-**Source**: `src\main\skill-tool-system\professional-tools.js`
+**Source**: `src/main/skill-tool-system/professional-tools.js`
 
-**Generated**: 2026-01-27T06:44:03.814Z
+**Generated**: 2026-02-15T07:37:13.782Z
 
 ---
 

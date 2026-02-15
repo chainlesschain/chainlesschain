@@ -1,8 +1,8 @@
 # stdio-transport
 
-**Source**: `src\main\mcp\transports\stdio-transport.js`
+**Source**: `src/main/mcp/transports/stdio-transport.js`
 
-**Generated**: 2026-01-27T06:44:03.844Z
+**Generated**: 2026-02-15T07:37:13.817Z
 
 ---
 

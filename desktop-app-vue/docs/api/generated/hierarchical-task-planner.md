@@ -1,8 +1,8 @@
 # hierarchical-task-planner
 
-**Source**: `src\main\ai-engine\hierarchical-task-planner.js`
+**Source**: `src/main/ai-engine/hierarchical-task-planner.js`
 
-**Generated**: 2026-01-27T06:44:03.879Z
+**Generated**: 2026-02-15T07:37:13.867Z
 
 ---
 

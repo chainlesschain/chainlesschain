@@ -1,8 +1,8 @@
 # menu-manager
 
-**Source**: `src\main\system\menu-manager.js`
+**Source**: `src/main/system/menu-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.801Z
+**Generated**: 2026-02-15T07:37:13.770Z
 
 ---
 

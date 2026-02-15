@@ -1,8 +1,8 @@
 # did-ipc
 
-**Source**: `src\main\did\did-ipc.js`
+**Source**: `src/main/did/did-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.862Z
+**Generated**: 2026-02-15T07:37:13.838Z
 
 ---
 
@@ -33,10 +33,10 @@ function registerDIDIPC(
 
 ---
 
-## ipcMain.handle('did:create-identity', async (_event, profile, options) =>
+## ipcMain.handle("did:create-identity", async (_event, profile, options) =>
 
 ```javascript
-ipcMain.handle('did:create-identity', async (_event, profile, options) =>
+ipcMain.handle("did:create-identity", async (_event, profile, options) =>
 ```
 
 * 创建 DID 身份
@@ -44,10 +44,10 @@ ipcMain.handle('did:create-identity', async (_event, profile, options) =>
 
 ---
 
-## ipcMain.handle('did:get-all-identities', async () =>
+## ipcMain.handle("did:get-all-identities", async () =>
 
 ```javascript
-ipcMain.handle('did:get-all-identities', async () =>
+ipcMain.handle("did:get-all-identities", async () =>
 ```
 
 * 获取所有身份
@@ -55,10 +55,10 @@ ipcMain.handle('did:get-all-identities', async () =>
 
 ---
 
-## ipcMain.handle('did:get-identity', async (_event, did) =>
+## ipcMain.handle("did:get-identity", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:get-identity', async (_event, did) =>
+ipcMain.handle("did:get-identity", async (_event, did) =>
 ```
 
 * 根据 DID 获取身份
@@ -66,10 +66,10 @@ ipcMain.handle('did:get-identity', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:get-current-identity', async () =>
+## ipcMain.handle("did:get-current-identity", async () =>
 
 ```javascript
-ipcMain.handle('did:get-current-identity', async () =>
+ipcMain.handle("did:get-current-identity", async () =>
 ```
 
 * 获取当前身份
@@ -77,10 +77,10 @@ ipcMain.handle('did:get-current-identity', async () =>
 
 ---
 
-## ipcMain.handle('did:set-default-identity', async (_event, did) =>
+## ipcMain.handle("did:set-default-identity", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:set-default-identity', async (_event, did) =>
+ipcMain.handle("did:set-default-identity", async (_event, did) =>
 ```
 
 * 设置默认身份
@@ -88,10 +88,10 @@ ipcMain.handle('did:set-default-identity', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:update-identity', async (_event, did, updates) =>
+## ipcMain.handle("did:update-identity", async (_event, did, updates) =>
 
 ```javascript
-ipcMain.handle('did:update-identity', async (_event, did, updates) =>
+ipcMain.handle("did:update-identity", async (_event, did, updates) =>
 ```
 
 * 更新身份信息
@@ -99,10 +99,10 @@ ipcMain.handle('did:update-identity', async (_event, did, updates) =>
 
 ---
 
-## ipcMain.handle('did:delete-identity', async (_event, did) =>
+## ipcMain.handle("did:delete-identity", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:delete-identity', async (_event, did) =>
+ipcMain.handle("did:delete-identity", async (_event, did) =>
 ```
 
 * 删除身份
@@ -110,10 +110,10 @@ ipcMain.handle('did:delete-identity', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:export-document', async (_event, did) =>
+## ipcMain.handle("did:export-document", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:export-document', async (_event, did) =>
+ipcMain.handle("did:export-document", async (_event, did) =>
 ```
 
 * 导出 DID 文档
@@ -121,10 +121,10 @@ ipcMain.handle('did:export-document', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:generate-qrcode', async (_event, did) =>
+## ipcMain.handle("did:generate-qrcode", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:generate-qrcode', async (_event, did) =>
+ipcMain.handle("did:generate-qrcode", async (_event, did) =>
 ```
 
 * 生成 DID 二维码
@@ -132,10 +132,10 @@ ipcMain.handle('did:generate-qrcode', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:verify-document', async (_event, document) =>
+## ipcMain.handle("did:verify-document", async (_event, document) =>
 
 ```javascript
-ipcMain.handle('did:verify-document', async (_event, document) =>
+ipcMain.handle("did:verify-document", async (_event, document) =>
 ```
 
 * 验证 DID 文档
@@ -143,10 +143,10 @@ ipcMain.handle('did:verify-document', async (_event, document) =>
 
 ---
 
-## ipcMain.handle('did:publish-to-dht', async (_event, did) =>
+## ipcMain.handle("did:publish-to-dht", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:publish-to-dht', async (_event, did) =>
+ipcMain.handle("did:publish-to-dht", async (_event, did) =>
 ```
 
 * 发布 DID 到 DHT
@@ -154,10 +154,10 @@ ipcMain.handle('did:publish-to-dht', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:resolve-from-dht', async (_event, did) =>
+## ipcMain.handle("did:resolve-from-dht", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:resolve-from-dht', async (_event, did) =>
+ipcMain.handle("did:resolve-from-dht", async (_event, did) =>
 ```
 
 * 从 DHT 解析 DID
@@ -165,10 +165,10 @@ ipcMain.handle('did:resolve-from-dht', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:unpublish-from-dht', async (_event, did) =>
+## ipcMain.handle("did:unpublish-from-dht", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:unpublish-from-dht', async (_event, did) =>
+ipcMain.handle("did:unpublish-from-dht", async (_event, did) =>
 ```
 
 * 从 DHT 取消发布 DID
@@ -176,10 +176,10 @@ ipcMain.handle('did:unpublish-from-dht', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:is-published-to-dht', async (_event, did) =>
+## ipcMain.handle("did:is-published-to-dht", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:is-published-to-dht', async (_event, did) =>
+ipcMain.handle("did:is-published-to-dht", async (_event, did) =>
 ```
 
 * 检查 DID 是否已发布到 DHT
@@ -187,10 +187,10 @@ ipcMain.handle('did:is-published-to-dht', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:start-auto-republish', async (_event, interval) =>
+## ipcMain.handle("did:start-auto-republish", async (_event, interval) =>
 
 ```javascript
-ipcMain.handle('did:start-auto-republish', async (_event, interval) =>
+ipcMain.handle("did:start-auto-republish", async (_event, interval) =>
 ```
 
 * 启动自动重新发布
@@ -198,10 +198,10 @@ ipcMain.handle('did:start-auto-republish', async (_event, interval) =>
 
 ---
 
-## ipcMain.handle('did:stop-auto-republish', async () =>
+## ipcMain.handle("did:stop-auto-republish", async () =>
 
 ```javascript
-ipcMain.handle('did:stop-auto-republish', async () =>
+ipcMain.handle("did:stop-auto-republish", async () =>
 ```
 
 * 停止自动重新发布
@@ -209,10 +209,10 @@ ipcMain.handle('did:stop-auto-republish', async () =>
 
 ---
 
-## ipcMain.handle('did:get-auto-republish-status', async () =>
+## ipcMain.handle("did:get-auto-republish-status", async () =>
 
 ```javascript
-ipcMain.handle('did:get-auto-republish-status', async () =>
+ipcMain.handle("did:get-auto-republish-status", async () =>
 ```
 
 * 获取自动重新发布状态
@@ -220,10 +220,10 @@ ipcMain.handle('did:get-auto-republish-status', async () =>
 
 ---
 
-## ipcMain.handle('did:set-auto-republish-interval', async (_event, interval) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('did:set-auto-republish-interval', async (_event, interval) =>
+ipcMain.handle(
 ```
 
 * 设置自动重新发布间隔
@@ -231,10 +231,10 @@ ipcMain.handle('did:set-auto-republish-interval', async (_event, interval) =>
 
 ---
 
-## ipcMain.handle('did:republish-all', async () =>
+## ipcMain.handle("did:republish-all", async () =>
 
 ```javascript
-ipcMain.handle('did:republish-all', async () =>
+ipcMain.handle("did:republish-all", async () =>
 ```
 
 * 重新发布所有 DID
@@ -242,10 +242,10 @@ ipcMain.handle('did:republish-all', async () =>
 
 ---
 
-## ipcMain.handle('did:generate-mnemonic', async (_event, strength) =>
+## ipcMain.handle("did:generate-mnemonic", async (_event, strength) =>
 
 ```javascript
-ipcMain.handle('did:generate-mnemonic', async (_event, strength) =>
+ipcMain.handle("did:generate-mnemonic", async (_event, strength) =>
 ```
 
 * 生成助记词
@@ -253,10 +253,10 @@ ipcMain.handle('did:generate-mnemonic', async (_event, strength) =>
 
 ---
 
-## ipcMain.handle('did:validate-mnemonic', async (_event, mnemonic) =>
+## ipcMain.handle("did:validate-mnemonic", async (_event, mnemonic) =>
 
 ```javascript
-ipcMain.handle('did:validate-mnemonic', async (_event, mnemonic) =>
+ipcMain.handle("did:validate-mnemonic", async (_event, mnemonic) =>
 ```
 
 * 验证助记词
@@ -264,10 +264,10 @@ ipcMain.handle('did:validate-mnemonic', async (_event, mnemonic) =>
 
 ---
 
-## ipcMain.handle('did:create-from-mnemonic', async (_event, profile, mnemonic, options) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('did:create-from-mnemonic', async (_event, profile, mnemonic, options) =>
+ipcMain.handle(
 ```
 
 * 从助记词创建身份
@@ -275,10 +275,10 @@ ipcMain.handle('did:create-from-mnemonic', async (_event, profile, mnemonic, opt
 
 ---
 
-## ipcMain.handle('did:export-mnemonic', async (_event, did) =>
+## ipcMain.handle("did:export-mnemonic", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:export-mnemonic', async (_event, did) =>
+ipcMain.handle("did:export-mnemonic", async (_event, did) =>
 ```
 
 * 导出助记词
@@ -286,10 +286,10 @@ ipcMain.handle('did:export-mnemonic', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('did:has-mnemonic', async (_event, did) =>
+## ipcMain.handle("did:has-mnemonic", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('did:has-mnemonic', async (_event, did) =>
+ipcMain.handle("did:has-mnemonic", async (_event, did) =>
 ```
 
 * 检查是否有助记词

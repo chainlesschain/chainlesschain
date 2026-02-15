@@ -1,8 +1,8 @@
 # memory-sync-service
 
-**Source**: `src\main\memory\memory-sync-service.js`
+**Source**: `src/main/memory/memory-sync-service.js`
 
-**Generated**: 2026-01-27T06:44:03.839Z
+**Generated**: 2026-02-15T07:37:13.814Z
 
 ---
 

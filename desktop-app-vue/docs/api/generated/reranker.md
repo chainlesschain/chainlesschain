@@ -1,8 +1,8 @@
 # reranker
 
-**Source**: `src\main\rag\reranker.js`
+**Source**: `src/main/rag/reranker.js`
 
-**Generated**: 2026-01-27T06:44:03.824Z
+**Generated**: 2026-02-15T07:37:13.794Z
 
 ---
 

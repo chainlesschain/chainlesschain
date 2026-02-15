@@ -1,8 +1,8 @@
 # multi-agent-ipc
 
-**Source**: `src\main\ai-engine\multi-agent\multi-agent-ipc.js`
+**Source**: `src/main/ai-engine/multi-agent/multi-agent-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.886Z
+**Generated**: 2026-02-15T07:37:13.873Z
 
 ---
 
@@ -59,10 +59,10 @@ ipcMain.handle("agent:dispatch", async (event, task) =>
 
 ---
 
-## ipcMain.handle("agent:execute-parallel", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("agent:execute-parallel", async (event,
+ipcMain.handle(
 ```
 
 * 并行执行多个任务
@@ -89,10 +89,10 @@ ipcMain.handle("agent:get-capable", async (event, task) =>
 
 ---
 
-## ipcMain.handle("agent:send-message", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("agent:send-message", async (event,
+ipcMain.handle(
 ```
 
 * 发送消息给特定 Agent
@@ -109,10 +109,10 @@ ipcMain.handle("agent:broadcast", async (event,
 
 ---
 
-## ipcMain.handle("agent:get-messages", async (event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle("agent:get-messages", async (event,
+ipcMain.handle(
 ```
 
 * 获取消息历史

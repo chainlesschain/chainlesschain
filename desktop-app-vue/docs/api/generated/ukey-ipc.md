@@ -1,8 +1,8 @@
 # ukey-ipc
 
-**Source**: `src\main\ukey\ukey-ipc.js`
+**Source**: `src/main/ukey/ukey-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.792Z
+**Generated**: 2026-02-15T07:37:13.764Z
 
 ---
 
@@ -34,10 +34,10 @@ function registerUKeyIPC(
 
 ---
 
-## ipcMain.handle('ukey:detect', async () =>
+## try
 
 ```javascript
-ipcMain.handle('ukey:detect', async () =>
+try
 ```
 
 * 检测 U-Key 设备

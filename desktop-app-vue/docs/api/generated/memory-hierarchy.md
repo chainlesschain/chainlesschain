@@ -1,15 +1,15 @@
 # memory-hierarchy
 
-**Source**: `src\main\memory\memory-hierarchy.js`
+**Source**: `src/main/memory/memory-hierarchy.js`
 
-**Generated**: 2026-01-27T06:44:03.840Z
+**Generated**: 2026-02-15T07:37:13.814Z
 
 ---
 
-## const EventEmitter = require('events');
+## const EventEmitter = require("events");
 
 ```javascript
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 ```
 
 * Memory Hierarchy System (MemGPT-style)
@@ -450,10 +450,10 @@ setRagManager(ragManager)
 
 ---
 
-## async addMemory(memory, layer = 'recall')
+## async addMemory(memory, layer = "recall")
 
 ```javascript
-async addMemory(memory, layer = 'recall')
+async addMemory(memory, layer = "recall")
 ```
 
 * Add memory to appropriate layer
@@ -521,10 +521,10 @@ async getStats()
 
 ---
 
-## async clear(layers = ['working', 'recall'])
+## async clear(layers = ["working", "recall"])
 
 ```javascript
-async clear(layers = ['working', 'recall'])
+async clear(layers = ["working", "recall"])
 ```
 
 * Clear all memories

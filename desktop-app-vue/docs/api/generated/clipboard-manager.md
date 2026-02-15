@@ -1,8 +1,8 @@
 # clipboard-manager
 
-**Source**: `src\main\system\clipboard-manager.js`
+**Source**: `src/main/browser/actions/clipboard-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.801Z
+**Generated**: 2026-02-15T07:37:13.852Z
 
 ---
 
@@ -12,88 +12,196 @@
 const
 ```
 
-* 剪贴板历史管理器
- * 管理剪贴板历史记录
+* ClipboardManager - 剪贴板管理器
+ *
+ * 高级剪贴板操作：
+ * - 文本/图片/HTML 复制粘贴
+ * - 剪贴板历史记录
+ * - 跨标签页剪贴板同步
+ * - 敏感内容过滤
+ *
+ * @module browser/actions/clipboard-manager
+ * @author ChainlessChain Team
+ * @since v0.33.0
 
 ---
 
-## startMonitoring()
+## const ClipboardType =
 
 ```javascript
-startMonitoring()
+const ClipboardType =
 ```
 
-* 开始监控剪贴板
+* 剪贴板内容类型
 
 ---
 
-## stopMonitoring()
+## const SENSITIVE_PATTERNS = [
 
 ```javascript
-stopMonitoring()
+const SENSITIVE_PATTERNS = [
 ```
 
-* 停止监控剪贴板
+* 敏感内容模式
 
 ---
 
-## checkClipboard()
+## constructor(browserEngine = null, config =
 
 ```javascript
-checkClipboard()
+constructor(browserEngine = null, config =
 ```
 
-* 检查剪贴板
+* @param {Object} browserEngine - Browser engine instance
+   * @param {Object} config - Configuration options
+   * @param {Object} [dependencies] - Optional dependency injection for testing
 
 ---
 
-## addToHistory(item)
+## setBrowserEngine(browserEngine)
 
 ```javascript
-addToHistory(item)
+setBrowserEngine(browserEngine)
 ```
 
-* 添加到历史记录
+* 设置浏览器引擎
+   * @param {Object} browserEngine
 
 ---
 
-## getHistory(limit = null)
+## copyText(text, options =
 
 ```javascript
-getHistory(limit = null)
+copyText(text, options =
+```
+
+* 复制文本到剪贴板
+   * @param {string} text - 文本内容
+   * @param {Object} options - 选项
+   * @returns {Object}
+
+---
+
+## copyHTML(html, fallbackText = "")
+
+```javascript
+copyHTML(html, fallbackText = "")
+```
+
+* 复制 HTML 到剪贴板
+   * @param {string} html - HTML 内容
+   * @param {string} fallbackText - 纯文本回退
+   * @returns {Object}
+
+---
+
+## copyImage(imageData)
+
+```javascript
+copyImage(imageData)
+```
+
+* 复制图片到剪贴板
+   * @param {string|Buffer} imageData - 图片数据（base64 或 Buffer）
+   * @returns {Object}
+
+---
+
+## async copyFromElement(targetId, selector, options =
+
+```javascript
+async copyFromElement(targetId, selector, options =
+```
+
+* 从页面元素复制
+   * @param {string} targetId - 标签页 ID
+   * @param {string} selector - 元素选择器
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>}
+
+---
+
+## read(type = null)
+
+```javascript
+read(type = null)
+```
+
+* 读取剪贴板内容
+   * @param {string} type - 内容类型
+   * @returns {Object}
+
+---
+
+## async pasteToElement(targetId, selector, options =
+
+```javascript
+async pasteToElement(targetId, selector, options =
+```
+
+* 粘贴到页面元素
+   * @param {string} targetId - 标签页 ID
+   * @param {string} selector - 元素选择器
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>}
+
+---
+
+## async simulatePaste(targetId)
+
+```javascript
+async simulatePaste(targetId)
+```
+
+* 模拟键盘粘贴
+   * @param {string} targetId - 标签页 ID
+   * @returns {Promise<Object>}
+
+---
+
+## clear()
+
+```javascript
+clear()
+```
+
+* 清空剪贴板
+   * @returns {Object}
+
+---
+
+## getFormats()
+
+```javascript
+getFormats()
+```
+
+* 获取可用格式
+   * @returns {Array}
+
+---
+
+## getHistory(limit = 20)
+
+```javascript
+getHistory(limit = 20)
 ```
 
 * 获取历史记录
+   * @param {number} limit - 返回数量
+   * @returns {Array}
 
 ---
 
-## searchHistory(query)
+## restoreFromHistory(index)
 
 ```javascript
-searchHistory(query)
+restoreFromHistory(index)
 ```
 
-* 搜索历史记录
-
----
-
-## copyToClipboard(index)
-
-```javascript
-copyToClipboard(index)
-```
-
-* 复制历史项到剪贴板
-
----
-
-## deleteHistoryItem(index)
-
-```javascript
-deleteHistoryItem(index)
-```
-
-* 删除历史项
+* 从历史记录恢复
+   * @param {number} index - 历史索引
+   * @returns {Object}
 
 ---
 
@@ -103,57 +211,103 @@ deleteHistoryItem(index)
 clearHistory()
 ```
 
-* 清空历史记录
+* 清除历史
 
 ---
 
-## loadHistory()
+## _checkSensitive(text)
 
 ```javascript
-loadHistory()
+_checkSensitive(text)
 ```
 
-* 加载历史记录
+* 检查敏感内容
+   * @private
 
 ---
 
-## saveHistory()
+## _stripHTML(html)
 
 ```javascript
-saveHistory()
+_stripHTML(html)
 ```
 
-* 保存历史记录
+* 去除 HTML 标签
+   * @private
 
 ---
 
-## exportHistory(outputPath)
+## _recordHistory(entry)
 
 ```javascript
-exportHistory(outputPath)
+_recordHistory(entry)
 ```
 
-* 导出历史记录
+* 记录历史
+   * @private
 
 ---
 
-## getStatistics()
+## _updateStats(type, action)
 
 ```javascript
-getStatistics()
+_updateStats(type, action)
 ```
 
-* 获取统计信息
+* 更新统计
+   * @private
 
 ---
 
-## destroy()
+## _startSync()
 
 ```javascript
-destroy()
+_startSync()
 ```
 
-* 销毁管理器
+* 启动同步
+   * @private
+
+---
+
+## stopSync()
+
+```javascript
+stopSync()
+```
+
+* 停止同步
+
+---
+
+## getStats()
+
+```javascript
+getStats()
+```
+
+* 获取统计
+   * @returns {Object}
+
+---
+
+## resetStats()
+
+```javascript
+resetStats()
+```
+
+* 重置统计
+
+---
+
+## cleanup()
+
+```javascript
+cleanup()
+```
+
+* 清理
 
 ---
 

@@ -1,8 +1,8 @@
 # streaming-response
 
-**Source**: `src\main\ai-engine\streaming-response.js`
+**Source**: `src/main/ai-engine/streaming-response.js`
 
-**Generated**: 2026-01-27T06:44:03.877Z
+**Generated**: 2026-02-15T07:37:13.864Z
 
 ---
 
@@ -56,10 +56,10 @@ class CancellationToken
 
 ---
 
-## cancel(reason = 'User cancelled')
+## cancel(reason = "User cancelled")
 
 ```javascript
-cancel(reason = 'User cancelled')
+cancel(reason = "User cancelled")
 ```
 
 * 请求取消
@@ -116,10 +116,10 @@ start(totalSteps = 0)
 
 ---
 
-## updateProgress(step, message = '', metadata =
+## updateProgress(step, message = "", metadata =
 
 ```javascript
-updateProgress(step, message = '', metadata =
+updateProgress(step, message = "", metadata =
 ```
 
 * 更新进度
@@ -166,10 +166,10 @@ fail(error)
 
 ---
 
-## cancel(reason = 'User cancelled')
+## cancel(reason = "User cancelled")
 
 ```javascript
-cancel(reason = 'User cancelled')
+cancel(reason = "User cancelled")
 ```
 
 * 取消任务
@@ -257,10 +257,10 @@ getTask(taskId)
 
 ---
 
-## cancelTask(taskId, reason = 'User cancelled')
+## cancelTask(taskId, reason = "User cancelled")
 
 ```javascript
-cancelTask(taskId, reason = 'User cancelled')
+cancelTask(taskId, reason = "User cancelled")
 ```
 
 * 取消任务
@@ -347,10 +347,10 @@ cleanup()
 
 ---
 
-## async function withStreaming(taskId, streamingResponse, asyncFn, totalSteps = 0)
+## async function withStreaming(
 
 ```javascript
-async function withStreaming(taskId, streamingResponse, asyncFn, totalSteps = 0)
+async function withStreaming(
 ```
 
 * 辅助函数：包装异步函数以支持流式进度

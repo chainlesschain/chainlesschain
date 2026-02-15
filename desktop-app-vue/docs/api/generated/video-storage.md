@@ -1,8 +1,8 @@
 # video-storage
 
-**Source**: `src\main\video\video-storage.js`
+**Source**: `src/main/video/video-storage.js`
 
-**Generated**: 2026-01-27T06:44:03.778Z
+**Generated**: 2026-02-15T07:37:13.759Z
 
 ---
 

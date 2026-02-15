@@ -1,8 +1,8 @@
 # native-binding
 
-**Source**: `src\main\ukey\native-binding.js`
+**Source**: `src/main/ukey/native-binding.js`
 
-**Generated**: 2026-01-27T06:44:03.793Z
+**Generated**: 2026-02-15T07:37:13.765Z
 
 ---
 

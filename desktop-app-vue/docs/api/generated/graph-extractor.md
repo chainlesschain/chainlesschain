@@ -1,8 +1,8 @@
 # graph-extractor
 
-**Source**: `src\main\knowledge-graph\graph-extractor.js`
+**Source**: `src/main/knowledge-graph/graph-extractor.js`
 
-**Generated**: 2026-01-27T06:44:03.850Z
+**Generated**: 2026-02-15T07:37:13.826Z
 
 ---
 

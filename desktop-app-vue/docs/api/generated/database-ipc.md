@@ -1,8 +1,8 @@
 # database-ipc
 
-**Source**: `src\main\database\database-ipc.js`
+**Source**: `src/main/database/database-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.863Z
+**Generated**: 2026-02-15T07:37:13.840Z
 
 ---
 
@@ -31,13 +31,15 @@ function registerDatabaseIPC(
  * @param {Object} dependencies.database - 数据库管理器
  * @param {Object} [dependencies.ragManager] - RAG 管理器（用于知识库同步）
  * @param {Function} dependencies.getAppConfig - 获取应用配置函数
+ * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} [dependencies.ipcGuard] - IPC防护对象（可选，用于测试注入）
 
 ---
 
-## ipcMain.handle('db:get-knowledge-items', async (_event, limit, offset) =>
+## ipcMain.handle("db:get-knowledge-items", async (_event, limit, offset) =>
 
 ```javascript
-ipcMain.handle('db:get-knowledge-items', async (_event, limit, offset) =>
+ipcMain.handle("db:get-knowledge-items", async (_event, limit, offset) =>
 ```
 
 * 获取知识库项列表（分页）
@@ -45,10 +47,10 @@ ipcMain.handle('db:get-knowledge-items', async (_event, limit, offset) =>
 
 ---
 
-## ipcMain.handle('db:get-knowledge-item-by-id', async (_event, id) =>
+## ipcMain.handle("db:get-knowledge-item-by-id", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('db:get-knowledge-item-by-id', async (_event, id) =>
+ipcMain.handle("db:get-knowledge-item-by-id", async (_event, id) =>
 ```
 
 * 根据 ID 获取知识库项
@@ -56,10 +58,10 @@ ipcMain.handle('db:get-knowledge-item-by-id', async (_event, id) =>
 
 ---
 
-## ipcMain.handle('db:add-knowledge-item', async (_event, item) =>
+## ipcMain.handle("db:add-knowledge-item", async (_event, item) =>
 
 ```javascript
-ipcMain.handle('db:add-knowledge-item', async (_event, item) =>
+ipcMain.handle("db:add-knowledge-item", async (_event, item) =>
 ```
 
 * 添加知识库项（自动同步到 RAG 索引）
@@ -67,10 +69,10 @@ ipcMain.handle('db:add-knowledge-item', async (_event, item) =>
 
 ---
 
-## ipcMain.handle('db:update-knowledge-item', async (_event, id, updates) =>
+## ipcMain.handle("db:update-knowledge-item", async (_event, id, updates) =>
 
 ```javascript
-ipcMain.handle('db:update-knowledge-item', async (_event, id, updates) =>
+ipcMain.handle("db:update-knowledge-item", async (_event, id, updates) =>
 ```
 
 * 更新知识库项（自动更新 RAG 索引）
@@ -78,10 +80,10 @@ ipcMain.handle('db:update-knowledge-item', async (_event, id, updates) =>
 
 ---
 
-## ipcMain.handle('db:delete-knowledge-item', async (_event, id) =>
+## ipcMain.handle("db:delete-knowledge-item", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('db:delete-knowledge-item', async (_event, id) =>
+ipcMain.handle("db:delete-knowledge-item", async (_event, id) =>
 ```
 
 * 删除知识库项（自动从 RAG 索引移除）
@@ -89,10 +91,10 @@ ipcMain.handle('db:delete-knowledge-item', async (_event, id) =>
 
 ---
 
-## ipcMain.handle('db:search-knowledge-items', async (_event, query) =>
+## ipcMain.handle("db:search-knowledge-items", async (_event, query) =>
 
 ```javascript
-ipcMain.handle('db:search-knowledge-items', async (_event, query) =>
+ipcMain.handle("db:search-knowledge-items", async (_event, query) =>
 ```
 
 * 搜索知识库项
@@ -100,10 +102,10 @@ ipcMain.handle('db:search-knowledge-items', async (_event, query) =>
 
 ---
 
-## ipcMain.handle('db:get-all-tags', async () =>
+## ipcMain.handle("db:get-all-tags", async () =>
 
 ```javascript
-ipcMain.handle('db:get-all-tags', async () =>
+ipcMain.handle("db:get-all-tags", async () =>
 ```
 
 * 获取所有标签
@@ -111,10 +113,10 @@ ipcMain.handle('db:get-all-tags', async () =>
 
 ---
 
-## ipcMain.handle('db:create-tag', async (_event, name, color) =>
+## ipcMain.handle("db:create-tag", async (_event, name, color) =>
 
 ```javascript
-ipcMain.handle('db:create-tag', async (_event, name, color) =>
+ipcMain.handle("db:create-tag", async (_event, name, color) =>
 ```
 
 * 创建新标签
@@ -122,10 +124,10 @@ ipcMain.handle('db:create-tag', async (_event, name, color) =>
 
 ---
 
-## ipcMain.handle('db:get-knowledge-tags', async (_event, knowledgeId) =>
+## ipcMain.handle("db:get-knowledge-tags", async (_event, knowledgeId) =>
 
 ```javascript
-ipcMain.handle('db:get-knowledge-tags', async (_event, knowledgeId) =>
+ipcMain.handle("db:get-knowledge-tags", async (_event, knowledgeId) =>
 ```
 
 * 获取知识库项的标签
@@ -133,10 +135,10 @@ ipcMain.handle('db:get-knowledge-tags', async (_event, knowledgeId) =>
 
 ---
 
-## ipcMain.handle('db:get-statistics', async () =>
+## ipcMain.handle("db:get-statistics", async () =>
 
 ```javascript
-ipcMain.handle('db:get-statistics', async () =>
+ipcMain.handle("db:get-statistics", async () =>
 ```
 
 * 获取数据库统计数据
@@ -144,10 +146,10 @@ ipcMain.handle('db:get-statistics', async () =>
 
 ---
 
-## ipcMain.handle('database:get-stats', async () =>
+## ipcMain.handle("database:get-stats", async () =>
 
 ```javascript
-ipcMain.handle('database:get-stats', async () =>
+ipcMain.handle("database:get-stats", async () =>
 ```
 
 * 获取数据库详细统计信息（调试用）
@@ -155,10 +157,10 @@ ipcMain.handle('database:get-stats', async () =>
 
 ---
 
-## ipcMain.handle('db:get-path', async () =>
+## ipcMain.handle("db:get-path", async () =>
 
 ```javascript
-ipcMain.handle('db:get-path', async () =>
+ipcMain.handle("db:get-path", async () =>
 ```
 
 * 获取数据库路径
@@ -166,10 +168,10 @@ ipcMain.handle('db:get-path', async () =>
 
 ---
 
-## ipcMain.handle('db:get-current-path', async () =>
+## ipcMain.handle("db:get-current-path", async () =>
 
 ```javascript
-ipcMain.handle('db:get-current-path', async () =>
+ipcMain.handle("db:get-current-path", async () =>
 ```
 
 * 获取当前数据库路径
@@ -177,10 +179,10 @@ ipcMain.handle('db:get-current-path', async () =>
 
 ---
 
-## ipcMain.handle('db:get-context-path', async (_event, contextId) =>
+## ipcMain.handle("db:get-context-path", async (_event, contextId) =>
 
 ```javascript
-ipcMain.handle('db:get-context-path', async (_event, contextId) =>
+ipcMain.handle("db:get-context-path", async (_event, contextId) =>
 ```
 
 * 获取身份上下文对应的数据库路径
@@ -188,10 +190,10 @@ ipcMain.handle('db:get-context-path', async (_event, contextId) =>
 
 ---
 
-## ipcMain.handle('db:switch-database', async (_event, contextId, options =
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('db:switch-database', async (_event, contextId, options =
+ipcMain.handle(
 ```
 
 * 切换数据库（企业版多身份功能）
@@ -199,10 +201,10 @@ ipcMain.handle('db:switch-database', async (_event, contextId, options =
 
 ---
 
-## ipcMain.handle('db:backup', async (_event, backupPath) =>
+## ipcMain.handle("db:backup", async (_event, backupPath) =>
 
 ```javascript
-ipcMain.handle('db:backup', async (_event, backupPath) =>
+ipcMain.handle("db:backup", async (_event, backupPath) =>
 ```
 
 * 备份数据库到指定路径
@@ -210,10 +212,10 @@ ipcMain.handle('db:backup', async (_event, backupPath) =>
 
 ---
 
-## ipcMain.handle('database:create-backup', async () =>
+## ipcMain.handle("database:create-backup", async () =>
 
 ```javascript
-ipcMain.handle('database:create-backup', async () =>
+ipcMain.handle("database:create-backup", async () =>
 ```
 
 * 创建数据库备份（自动路径）
@@ -221,10 +223,10 @@ ipcMain.handle('database:create-backup', async () =>
 
 ---
 
-## ipcMain.handle('database:list-backups', async () =>
+## ipcMain.handle("database:list-backups", async () =>
 
 ```javascript
-ipcMain.handle('database:list-backups', async () =>
+ipcMain.handle("database:list-backups", async () =>
 ```
 
 * 列出所有数据库备份
@@ -232,10 +234,10 @@ ipcMain.handle('database:list-backups', async () =>
 
 ---
 
-## ipcMain.handle('database:restore-backup', async (_event, backupPath) =>
+## ipcMain.handle("database:restore-backup", async (_event, backupPath) =>
 
 ```javascript
-ipcMain.handle('database:restore-backup', async (_event, backupPath) =>
+ipcMain.handle("database:restore-backup", async (_event, backupPath) =>
 ```
 
 * 从备份恢复数据库
@@ -243,10 +245,10 @@ ipcMain.handle('database:restore-backup', async (_event, backupPath) =>
 
 ---
 
-## ipcMain.handle('database:get-config', async () =>
+## ipcMain.handle("database:get-config", async () =>
 
 ```javascript
-ipcMain.handle('database:get-config', async () =>
+ipcMain.handle("database:get-config", async () =>
 ```
 
 * 获取数据库配置
@@ -254,10 +256,10 @@ ipcMain.handle('database:get-config', async () =>
 
 ---
 
-## ipcMain.handle('database:set-path', async (_event, newPath) =>
+## ipcMain.handle("database:set-path", async (_event, newPath) =>
 
 ```javascript
-ipcMain.handle('database:set-path', async (_event, newPath) =>
+ipcMain.handle("database:set-path", async (_event, newPath) =>
 ```
 
 * 设置数据库路径（需要重启应用）
@@ -265,10 +267,10 @@ ipcMain.handle('database:set-path', async (_event, newPath) =>
 
 ---
 
-## ipcMain.handle('database:migrate', async (_event, newPath) =>
+## ipcMain.handle("database:migrate", async (_event, newPath) =>
 
 ```javascript
-ipcMain.handle('database:migrate', async (_event, newPath) =>
+ipcMain.handle("database:migrate", async (_event, newPath) =>
 ```
 
 * 迁移数据库到新位置

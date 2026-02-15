@@ -1,8 +1,8 @@
 # vc-ipc
 
-**Source**: `src\main\vc\vc-ipc.js`
+**Source**: `src/main/vc/vc-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.789Z
+**Generated**: 2026-02-15T07:37:13.760Z
 
 ---
 
@@ -32,10 +32,10 @@ function registerVCIPC(
 
 ---
 
-## ipcMain.handle('vc:create', async (_event, params) =>
+## ipcMain.handle("vc:create", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('vc:create', async (_event, params) =>
+ipcMain.handle("vc:create", async (_event, params) =>
 ```
 
 * 创建可验证凭证
@@ -43,10 +43,10 @@ ipcMain.handle('vc:create', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('vc:get-all', async (_event, filters) =>
+## ipcMain.handle("vc:get-all", async (_event, filters) =>
 
 ```javascript
-ipcMain.handle('vc:get-all', async (_event, filters) =>
+ipcMain.handle("vc:get-all", async (_event, filters) =>
 ```
 
 * 获取所有凭证（支持过滤）
@@ -54,10 +54,10 @@ ipcMain.handle('vc:get-all', async (_event, filters) =>
 
 ---
 
-## ipcMain.handle('vc:get', async (_event, id) =>
+## ipcMain.handle("vc:get", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('vc:get', async (_event, id) =>
+ipcMain.handle("vc:get", async (_event, id) =>
 ```
 
 * 根据 ID 获取凭证
@@ -65,10 +65,10 @@ ipcMain.handle('vc:get', async (_event, id) =>
 
 ---
 
-## ipcMain.handle('vc:verify', async (_event, vcDocument) =>
+## ipcMain.handle("vc:verify", async (_event, vcDocument) =>
 
 ```javascript
-ipcMain.handle('vc:verify', async (_event, vcDocument) =>
+ipcMain.handle("vc:verify", async (_event, vcDocument) =>
 ```
 
 * 验证凭证
@@ -76,10 +76,10 @@ ipcMain.handle('vc:verify', async (_event, vcDocument) =>
 
 ---
 
-## ipcMain.handle('vc:revoke', async (_event, id, issuerDID) =>
+## ipcMain.handle("vc:revoke", async (_event, id, issuerDID) =>
 
 ```javascript
-ipcMain.handle('vc:revoke', async (_event, id, issuerDID) =>
+ipcMain.handle("vc:revoke", async (_event, id, issuerDID) =>
 ```
 
 * 撤销凭证
@@ -87,10 +87,10 @@ ipcMain.handle('vc:revoke', async (_event, id, issuerDID) =>
 
 ---
 
-## ipcMain.handle('vc:delete', async (_event, id) =>
+## ipcMain.handle("vc:delete", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('vc:delete', async (_event, id) =>
+ipcMain.handle("vc:delete", async (_event, id) =>
 ```
 
 * 删除凭证
@@ -98,10 +98,10 @@ ipcMain.handle('vc:delete', async (_event, id) =>
 
 ---
 
-## ipcMain.handle('vc:export', async (_event, id) =>
+## ipcMain.handle("vc:export", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('vc:export', async (_event, id) =>
+ipcMain.handle("vc:export", async (_event, id) =>
 ```
 
 * 导出凭证
@@ -109,10 +109,10 @@ ipcMain.handle('vc:export', async (_event, id) =>
 
 ---
 
-## ipcMain.handle('vc:generate-share-data', async (_event, id) =>
+## ipcMain.handle("vc:generate-share-data", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('vc:generate-share-data', async (_event, id) =>
+ipcMain.handle("vc:generate-share-data", async (_event, id) =>
 ```
 
 * 生成分享数据
@@ -120,10 +120,10 @@ ipcMain.handle('vc:generate-share-data', async (_event, id) =>
 
 ---
 
-## ipcMain.handle('vc:import-from-share', async (_event, shareData) =>
+## ipcMain.handle("vc:import-from-share", async (_event, shareData) =>
 
 ```javascript
-ipcMain.handle('vc:import-from-share', async (_event, shareData) =>
+ipcMain.handle("vc:import-from-share", async (_event, shareData) =>
 ```
 
 * 从分享数据导入凭证
@@ -131,10 +131,10 @@ ipcMain.handle('vc:import-from-share', async (_event, shareData) =>
 
 ---
 
-## ipcMain.handle('vc:get-statistics', async (_event, did) =>
+## ipcMain.handle("vc:get-statistics", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('vc:get-statistics', async (_event, did) =>
+ipcMain.handle("vc:get-statistics", async (_event, did) =>
 ```
 
 * 获取凭证统计信息

@@ -1,8 +1,8 @@
 # resource-monitor
 
-**Source**: `src\main\utils\resource-monitor.js`
+**Source**: `src/main/utils/resource-monitor.js`
 
-**Generated**: 2026-01-27T06:44:03.790Z
+**Generated**: 2026-02-15T07:37:13.761Z
 
 ---
 

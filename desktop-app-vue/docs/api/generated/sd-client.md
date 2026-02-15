@@ -1,8 +1,8 @@
 # sd-client
 
-**Source**: `src\main\image-gen\sd-client.js`
+**Source**: `src/main/image-gen/sd-client.js`
 
-**Generated**: 2026-01-27T06:44:03.853Z
+**Generated**: 2026-02-15T07:37:13.829Z
 
 ---
 

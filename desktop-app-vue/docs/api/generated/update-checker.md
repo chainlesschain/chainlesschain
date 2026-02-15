@@ -1,8 +1,8 @@
 # update-checker
 
-**Source**: `src\main\system\update-checker.js`
+**Source**: `src/main/system/update-checker.js`
 
-**Generated**: 2026-01-27T06:44:03.800Z
+**Generated**: 2026-02-15T07:37:13.770Z
 
 ---
 

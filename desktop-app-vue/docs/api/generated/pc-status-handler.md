@@ -1,8 +1,8 @@
 # pc-status-handler
 
-**Source**: `src\main\p2p\pc-status-handler.js`
+**Source**: `src/main/p2p/pc-status-handler.js`
 
-**Generated**: 2026-01-27T06:44:03.832Z
+**Generated**: 2026-02-15T07:37:13.807Z
 
 ---
 

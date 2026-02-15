@@ -1,8 +1,8 @@
 # teammate-tool
 
-**Source**: `src\main\ai-engine\cowork\teammate-tool.js`
+**Source**: `src/main/ai-engine/cowork/teammate-tool.js`
 
-**Generated**: 2026-01-27T06:44:03.887Z
+**Generated**: 2026-02-15T07:37:13.875Z
 
 ---
 
@@ -124,10 +124,10 @@ async requestJoin(teamId, agentId, agentInfo =
 
 ---
 
-## async assignTask(teamId, agentId, task)
+## async assignTask(teamId, agentIdOrTask, task)
 
 ```javascript
-async assignTask(teamId, agentId, task)
+async assignTask(teamId, agentIdOrTask, task)
 ```
 
 * 4. assignTask - 分配任务
@@ -192,10 +192,10 @@ async getTeamStatus(teamId)
 
 ---
 
-## async terminateAgent(agentId, reason = '')
+## async terminateAgent(agentId, reason = "")
 
 ```javascript
-async terminateAgent(agentId, reason = '')
+async terminateAgent(agentId, reason = "")
 ```
 
 * 9. terminateAgent - 终止代理
@@ -257,6 +257,30 @@ async updateTeamConfig(teamId, config)
 
 ---
 
+## async pauseTeam(teamId)
+
+```javascript
+async pauseTeam(teamId)
+```
+
+* 14. pauseTeam - 暂停团队
+   * @param {string} teamId - 团队 ID
+   * @returns {Promise<Object>} 暂停结果
+
+---
+
+## async resumeTeam(teamId)
+
+```javascript
+async resumeTeam(teamId)
+```
+
+* 15. resumeTeam - 恢复团队
+   * @param {string} teamId - 团队 ID
+   * @returns {Promise<Object>} 恢复结果
+
+---
+
 ## _selectAgentForTask(team, task)
 
 ```javascript
@@ -279,10 +303,10 @@ async _saveTeamConfig(team)
 
 ---
 
-## _log(message, level = 'info')
+## _log(message, level = "info")
 
 ```javascript
-_log(message, level = 'info')
+_log(message, level = "info")
 ```
 
 * 日志输出
@@ -418,6 +442,26 @@ async getMetrics(teamId)
 * 获取团队指标（兼容测试API）
    * @param {string} teamId - 团队ID
    * @returns {Promise<object>} 指标数据
+
+---
+
+## async cleanup()
+
+```javascript
+async cleanup()
+```
+
+* 清理资源（销毁代理池等）
+
+---
+
+## getAgentPoolStatus()
+
+```javascript
+getAgentPoolStatus()
+```
+
+* 获取代理池状态（调试用）
 
 ---
 

@@ -1,8 +1,8 @@
 # audio-processor
 
-**Source**: `src\main\speech\audio-processor.js`
+**Source**: `src/main/speech/audio-processor.js`
 
-**Generated**: 2026-01-27T06:44:03.808Z
+**Generated**: 2026-02-15T07:37:13.776Z
 
 ---
 
@@ -196,10 +196,10 @@ async detectSpeech(audioPath)
 
 ---
 
-## async batchProcess(audioPaths, operation = 'convert', options =
+## async batchProcess(audioPaths, operation = "convert", options =
 
 ```javascript
-async batchProcess(audioPaths, operation = 'convert', options =
+async batchProcess(audioPaths, operation = "convert", options =
 ```
 
 * 批量处理音频

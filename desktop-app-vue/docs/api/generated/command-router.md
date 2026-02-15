@@ -1,8 +1,8 @@
 # command-router
 
-**Source**: `src\main\remote\command-router.js`
+**Source**: `src/main/remote/command-router.js`
 
-**Generated**: 2026-01-27T06:44:03.821Z
+**Generated**: 2026-02-15T07:37:13.788Z
 
 ---
 

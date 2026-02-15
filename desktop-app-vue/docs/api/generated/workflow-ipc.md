@@ -1,8 +1,8 @@
 # workflow-ipc
 
-**Source**: `src\main\workflow\workflow-ipc.js`
+**Source**: `src/main/browser/workflow/workflow-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.776Z
+**Generated**: 2026-02-15T07:37:13.847Z
 
 ---
 
@@ -12,92 +12,325 @@
 const
 ```
 
-* 工作流 IPC 通信
+* Workflow IPC - IPC handlers for browser workflow system
  *
- * 处理渲染进程与工作流管理器之间的通信
- *
- * IPC 通道:
- * - workflow:create - 创建工作流
- * - workflow:start - 启动工作流
- * - workflow:pause - 暂停工作流
- * - workflow:resume - 恢复工作流
- * - workflow:cancel - 取消工作流
- * - workflow:retry - 重试失败阶段
- * - workflow:get-status - 获取工作流状态
- * - workflow:get-stages - 获取阶段列表
- * - workflow:get-logs - 获取执行日志
- * - workflow:get-gates - 获取门禁状态
- * - workflow:override-gate - 手动通过门禁
- * - workflow:get-all - 获取所有工作流
- * - workflow:delete - 删除工作流
- *
- * v0.27.0: 新建文件
+ * @module browser/workflow/workflow-ipc
+ * @author ChainlessChain Team
+ * @since v0.30.0
 
 ---
 
-## class WorkflowIPC
+## function initializeWorkflowSystem(browserEngine, db)
 
 ```javascript
-class WorkflowIPC
+function initializeWorkflowSystem(browserEngine, db)
 ```
 
-* 工作流 IPC 处理器类
+* Initialize workflow system
+ * @param {Object} browserEngine - Browser engine instance
+ * @param {Object} db - Database instance
 
 ---
 
-## _setupIPCHandlers()
+## function getWorkflowEngine()
 
 ```javascript
-_setupIPCHandlers()
+function getWorkflowEngine()
 ```
 
-* 设置 IPC 处理器
-   * @private
+* Get workflow engine instance
+ * @returns {WorkflowEngine}
 
 ---
 
-## _setupEventForwarding()
+## function getWorkflowStorage()
 
 ```javascript
-_setupEventForwarding()
+function getWorkflowStorage()
 ```
 
-* 设置事件转发
-   * @private
+* Get workflow storage instance
+ * @returns {WorkflowStorage}
 
 ---
 
-## broadcast(channel, data)
+## function registerWorkflowIPC()
 
 ```javascript
-broadcast(channel, data)
+function registerWorkflowIPC()
 ```
 
-* 广播到所有窗口
-   * @param {string} channel - 通道名
-   * @param {any} data - 数据
+* Register all Workflow IPC handlers
 
 ---
 
-## dispose()
+## ipcMain.handle(
 
 ```javascript
-dispose()
+ipcMain.handle(
 ```
 
-* 注销所有处理器
+* Create a new workflow
+   * @param {Object} workflow - Workflow data
+   * @returns {Promise<Object>} Created workflow
 
 ---
 
-## function registerWorkflowIPC(dependencies)
+## ipcMain.handle(
 
 ```javascript
-function registerWorkflowIPC(dependencies)
+ipcMain.handle(
 ```
 
-* 注册工作流 IPC
- * @param {Object} dependencies - 依赖项
- * @returns {WorkflowIPC} IPC 实例
+* Get workflow by ID
+   * @param {string} id - Workflow ID
+   * @returns {Promise<Object|null>} Workflow
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* List workflows
+   * @param {Object} options - Filter options
+   * @returns {Promise<Array>} Workflow list
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Update workflow
+   * @param {string} id - Workflow ID
+   * @param {Object} updates - Fields to update
+   * @returns {Promise<Object>} Updated workflow
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Delete workflow
+   * @param {string} id - Workflow ID
+   * @returns {Promise<boolean>} Success
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Duplicate workflow
+   * @param {string} id - Source workflow ID
+   * @param {string} newName - Name for the duplicate
+   * @returns {Promise<Object>} New workflow
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Execute a workflow
+   * @param {string} workflowId - Workflow ID
+   * @param {Object} options - Execution options
+   * @returns {Promise<Object>} Execution result
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Execute workflow inline (without saving)
+   * @param {Object} workflow - Workflow definition
+   * @param {Object} options - Execution options
+   * @returns {Promise<Object>} Execution result
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Pause workflow execution
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<boolean>} Success
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Resume workflow execution
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<boolean>} Success
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Cancel workflow execution
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<boolean>} Success
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Get workflow execution status
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<Object|null>} Status
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* List active executions
+   * @returns {Promise<Array>} Active executions
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Get execution by ID
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<Object>} Execution record
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* List workflow executions
+   * @param {Object} options - Filter options
+   * @returns {Promise<Array>} Execution list
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Get workflow statistics
+   * @param {string} workflowId - Workflow ID
+   * @returns {Promise<Object>} Statistics
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Set workflow variable during execution
+   * @param {string} executionId - Execution ID
+   * @param {string} name - Variable name
+   * @param {any} value - Variable value
+   * @returns {Promise<boolean>} Success
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Get workflow variables
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<Object>} Variables
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Export workflow to JSON
+   * @param {string} id - Workflow ID
+   * @returns {Promise<Object>} Exportable data
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Import workflow from JSON
+   * @param {Object} data - Imported data
+   * @param {Object} options - Import options
+   * @returns {Promise<Object>} Imported workflow
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Build workflow from steps (helper for frontend)
+   * @param {string} name - Workflow name
+   * @param {Array} steps - Step definitions
+   * @param {Object} options - Build options
+   * @returns {Promise<Object>} Built workflow
+
+---
+
+## function cleanupWorkflowSystem()
+
+```javascript
+function cleanupWorkflowSystem()
+```
+
+* Cleanup workflow system
 
 ---
 

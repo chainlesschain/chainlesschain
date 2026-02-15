@@ -1,8 +1,8 @@
 # wrtc-compat
 
-**Source**: `src\main\p2p\wrtc-compat.js`
+**Source**: `src/main/p2p/wrtc-compat.js`
 
-**Generated**: 2026-01-27T06:44:03.831Z
+**Generated**: 2026-02-15T07:37:13.805Z
 
 ---
 
@@ -41,6 +41,10 @@ class RTCSessionDescriptionCompat
 ```
 
 * RTCSessionDescription compatibility wrapper
+ *
+ * IMPORTANT: werift's RTCSessionDescription uses (sdp, type) as separate arguments,
+ * but the standard WebRTC API expects ({type, sdp}) as an init object.
+ * This wrapper provides the standard API.
 
 ---
 

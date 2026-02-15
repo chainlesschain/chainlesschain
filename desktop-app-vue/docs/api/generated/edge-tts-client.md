@@ -1,8 +1,8 @@
 # edge-tts-client
 
-**Source**: `src\main\speech\edge-tts-client.js`
+**Source**: `src/main/speech/edge-tts-client.js`
 
-**Generated**: 2026-01-27T06:44:03.807Z
+**Generated**: 2026-02-15T07:37:13.776Z
 
 ---
 

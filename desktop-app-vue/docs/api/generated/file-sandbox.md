@@ -1,8 +1,8 @@
 # file-sandbox
 
-**Source**: `src\main\ai-engine\cowork\file-sandbox.js`
+**Source**: `src/main/ai-engine/cowork/file-sandbox.js`
 
-**Generated**: 2026-01-27T06:44:03.887Z
+**Generated**: 2026-02-15T07:37:13.875Z
 
 ---
 
@@ -270,7 +270,7 @@ getAuditLog(filters =
 
 * 获取审计日志
    * @param {Object} filters - 过滤条件
-   * @param {number} limit - 限制数量
+   * @param {number} limitParam - 限制数量
    * @returns {Array}
 
 ---

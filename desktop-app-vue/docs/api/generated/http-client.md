@@ -1,8 +1,8 @@
 # http-client
 
-**Source**: `src\main\project\http-client.js`
+**Source**: `src/main/project/http-client.js`
 
-**Generated**: 2026-01-27T06:44:03.827Z
+**Generated**: 2026-02-15T07:37:13.799Z
 
 ---
 
@@ -34,10 +34,10 @@ async createProject(createData)
 
 ---
 
-## async createProjectStream(createData,
+## async createProjectStream(
 
 ```javascript
-async createProjectStream(createData,
+async createProjectStream(
 ```
 
 * 流式创建项目（SSE）

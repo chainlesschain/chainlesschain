@@ -1,8 +1,8 @@
 # notification-manager
 
-**Source**: `src\main\api\notification-manager.js`
+**Source**: `src/main/api/notification-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.874Z
+**Generated**: 2026-02-15T07:37:13.861Z
 
 ---
 
@@ -16,6 +16,17 @@ const
  * RSS 和 Email 通知管理器
  *
  * v0.20.0: 新增 RSS 和邮件通知功能
+
+---
+
+## setMainWindow(window)
+
+```javascript
+setMainWindow(window)
+```
+
+* 设置主窗口引用
+   * @param {BrowserWindow} window - Electron 主窗口
 
 ---
 
@@ -116,6 +127,42 @@ logNotification(type, action, data)
 ```
 
 * 记录通知日志
+
+---
+
+## openRSSReader(feedTitle, items = [])
+
+```javascript
+openRSSReader(feedTitle, items = [])
+```
+
+* 打开 RSS 阅读器
+   * @param {string} feedTitle - Feed 标题
+   * @param {Array} items - 新文章列表
+
+---
+
+## openEmailReader(accountEmail, emails = [])
+
+```javascript
+openEmailReader(accountEmail, emails = [])
+```
+
+* 打开邮件阅读器
+   * @param {string} accountEmail - 邮箱账户
+   * @param {Array} emails - 新邮件列表
+
+---
+
+## navigateTo(route, params =
+
+```javascript
+navigateTo(route, params =
+```
+
+* 打开特定路由
+   * @param {string} route - 路由路径
+   * @param {Object} params - 路由参数
 
 ---
 

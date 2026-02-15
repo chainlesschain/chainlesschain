@@ -1,8 +1,8 @@
 # performance-ipc
 
-**Source**: `src\main\performance\performance-ipc.js`
+**Source**: `src/main/performance/performance-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.830Z
+**Generated**: 2026-02-15T07:37:13.804Z
 
 ---
 

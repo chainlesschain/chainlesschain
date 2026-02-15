@@ -1,8 +1,8 @@
 # email-ipc
 
-**Source**: `src\main\api\email-ipc.js`
+**Source**: `src/main/api/email-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.874Z
+**Generated**: 2026-02-15T07:37:13.862Z
 
 ---
 
@@ -159,6 +159,16 @@ async markAsRead(emailId)
 
 ---
 
+## async markAsUnread(emailId)
+
+```javascript
+async markAsUnread(emailId)
+```
+
+* 标记为未读
+
+---
+
 ## async markAsStarred(emailId, starred = true)
 
 ```javascript
@@ -196,6 +206,36 @@ async sendEmail(accountId, mailOptions)
 ```
 
 * 发送邮件
+
+---
+
+## async saveDraft(accountId, draftData)
+
+```javascript
+async saveDraft(accountId, draftData)
+```
+
+* 保存草稿
+
+---
+
+## async getDrafts(accountId)
+
+```javascript
+async getDrafts(accountId)
+```
+
+* 获取草稿列表
+
+---
+
+## async deleteDraft(draftId)
+
+```javascript
+async deleteDraft(draftId)
+```
+
+* 删除草稿
 
 ---
 

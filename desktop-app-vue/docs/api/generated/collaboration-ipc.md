@@ -1,8 +1,8 @@
 # collaboration-ipc
 
-**Source**: `src\main\collaboration\collaboration-ipc.js`
+**Source**: `src/main/collaboration/collaboration-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.869Z
+**Generated**: 2026-02-15T07:37:13.845Z
 
 ---
 
