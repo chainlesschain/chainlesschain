@@ -1,8 +1,8 @@
 # permission-manager
 
-**Source**: `src\main\collaboration\permission-manager.js`
+**Source**: `src/main/collaboration/permission-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.868Z
+**Generated**: 2026-02-15T07:37:13.845Z
 
 ---
 
@@ -81,10 +81,10 @@ async updateFolderPermissions(orgId, folderId, userDID, newPermissions)
 
 ---
 
-## async updateKnowledgePermissions(orgId, knowledgeId, userDID, newPermissions)
+## async updateKnowledgePermissions(
 
 ```javascript
-async updateKnowledgePermissions(orgId, knowledgeId, userDID, newPermissions)
+async updateKnowledgePermissions(
 ```
 
 * Update knowledge item permissions

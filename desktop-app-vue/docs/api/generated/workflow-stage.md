@@ -1,8 +1,8 @@
 # workflow-stage
 
-**Source**: `src\main\workflow\workflow-stage.js`
+**Source**: `src/main/workflow/workflow-stage.js`
 
-**Generated**: 2026-01-27T06:44:03.776Z
+**Generated**: 2026-02-15T07:37:13.758Z
 
 ---
 
@@ -102,10 +102,10 @@ async _simulateStepExecution(step, input, context)
 
 ---
 
-## updateStepProgress(stepId, progress, message = '')
+## updateStepProgress(stepId, progress, message = "")
 
 ```javascript
-updateStepProgress(stepId, progress, message = '')
+updateStepProgress(stepId, progress, message = "")
 ```
 
 * 更新步骤进度
@@ -171,10 +171,10 @@ reset()
 
 ---
 
-## skip(reason = '')
+## skip(reason = "")
 
 ```javascript
-skip(reason = '')
+skip(reason = "")
 ```
 
 * 跳过阶段

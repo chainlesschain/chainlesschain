@@ -1,15 +1,15 @@
 # test-real-tools-phase3
 
-**Source**: `src\main\skill-tool-system\test-real-tools-phase3.js`
+**Source**: `src/main/skill-tool-system/test-real-tools-phase3.js`
 
-**Generated**: 2026-01-27T06:44:03.811Z
+**Generated**: 2026-02-15T07:37:13.779Z
 
 ---
 
-## process.env.USE_REAL_TOOLS = 'true';
+## process.env.USE_REAL_TOOLS = "true";
 
 ```javascript
-process.env.USE_REAL_TOOLS = 'true';
+process.env.USE_REAL_TOOLS = "true";
 ```
 
 * Phase 3 真实功能测试

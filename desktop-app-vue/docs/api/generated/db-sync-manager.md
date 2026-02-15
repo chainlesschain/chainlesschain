@@ -1,8 +1,8 @@
 # db-sync-manager
 
-**Source**: `src\main\sync\db-sync-manager.js`
+**Source**: `src/main/sync/db-sync-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.805Z
+**Generated**: 2026-02-15T07:37:13.773Z
 
 ---
 
@@ -163,13 +163,16 @@ insertOrUpdateLocal(tableName, record)
 
 ---
 
-## async resolveConflict(conflictId, resolution)
+## async resolveConflict(conflictId, resolution, mergedData = null)
 
 ```javascript
-async resolveConflict(conflictId, resolution)
+async resolveConflict(conflictId, resolution, mergedData = null)
 ```
 
 * 解决冲突
+   * @param {string} conflictId - 冲突ID (格式: tableName:recordId)
+   * @param {string} resolution - 解决策略: 'local', 'remote', 'merge'
+   * @param {Object} mergedData - 合并后的数据（仅当 resolution='merge' 时需要）
 
 ---
 

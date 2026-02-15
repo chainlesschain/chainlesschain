@@ -1,8 +1,8 @@
 # volcengine-tools
 
-**Source**: `src\main\llm\volcengine-tools.js`
+**Source**: `src/main/llm/volcengine-tools.js`
 
-**Generated**: 2026-01-27T06:44:03.845Z
+**Generated**: 2026-02-15T07:37:13.819Z
 
 ---
 
@@ -149,10 +149,10 @@ async chatWithFunctionCalling(messages, functions, options =
 
 ---
 
-## async executeFunctionCalling(messages, functions, functionExecutor, options =
+## async executeFunctionCalling(
 
 ```javascript
-async executeFunctionCalling(messages, functions, functionExecutor, options =
+async executeFunctionCalling(
 ```
 
 * 执行完整的 Function Calling 流程（包括函数执行）

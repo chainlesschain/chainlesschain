@@ -1,15 +1,15 @@
 # code-engine
 
-**Source**: `src\main\engines\code-engine.js`
+**Source**: `src/main/engines/code-engine.js`
 
-**Generated**: 2026-01-27T06:44:03.861Z
+**Generated**: 2026-02-15T07:37:13.837Z
 
 ---
 
-## class CodeEngine
+## const
 
 ```javascript
-class CodeEngine
+const
 ```
 
 * 代码开发引擎

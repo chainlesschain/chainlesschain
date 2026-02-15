@@ -1,8 +1,8 @@
 # knowledge-sync-manager
 
-**Source**: `src\main\p2p\knowledge-sync-manager.js`
+**Source**: `src/main/p2p/knowledge-sync-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.833Z
+**Generated**: 2026-02-15T07:37:13.808Z
 
 ---
 

@@ -1,8 +1,8 @@
 # file-permission-manager
 
-**Source**: `src\main\file\file-permission-manager.js`
+**Source**: `src/main/file/file-permission-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.858Z
+**Generated**: 2026-02-15T07:37:13.834Z
 
 ---
 

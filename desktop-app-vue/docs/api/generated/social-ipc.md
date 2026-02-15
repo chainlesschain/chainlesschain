@@ -1,8 +1,8 @@
 # social-ipc
 
-**Source**: `src\main\social\social-ipc.js`
+**Source**: `src/main/social/social-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.808Z
+**Generated**: 2026-02-15T07:37:13.777Z
 
 ---
 
@@ -36,10 +36,10 @@ function registerSocialIPC(
 
 ---
 
-## ipcMain.handle('contact:add', async (_event, contact) =>
+## ipcMain.handle("contact:add", async (_event, contact) =>
 
 ```javascript
-ipcMain.handle('contact:add', async (_event, contact) =>
+ipcMain.handle("contact:add", async (_event, contact) =>
 ```
 
 * 添加联系人
@@ -47,10 +47,10 @@ ipcMain.handle('contact:add', async (_event, contact) =>
 
 ---
 
-## ipcMain.handle('contact:add-from-qr', async (_event, qrData) =>
+## ipcMain.handle("contact:add-from-qr", async (_event, qrData) =>
 
 ```javascript
-ipcMain.handle('contact:add-from-qr', async (_event, qrData) =>
+ipcMain.handle("contact:add-from-qr", async (_event, qrData) =>
 ```
 
 * 从二维码添加联系人
@@ -58,10 +58,10 @@ ipcMain.handle('contact:add-from-qr', async (_event, qrData) =>
 
 ---
 
-## ipcMain.handle('contact:get-all', async () =>
+## ipcMain.handle("contact:get-all", async () =>
 
 ```javascript
-ipcMain.handle('contact:get-all', async () =>
+ipcMain.handle("contact:get-all", async () =>
 ```
 
 * 获取所有联系人
@@ -69,10 +69,10 @@ ipcMain.handle('contact:get-all', async () =>
 
 ---
 
-## ipcMain.handle('contact:get', async (_event, did) =>
+## ipcMain.handle("contact:get", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('contact:get', async (_event, did) =>
+ipcMain.handle("contact:get", async (_event, did) =>
 ```
 
 * 根据 DID 获取联系人
@@ -80,10 +80,10 @@ ipcMain.handle('contact:get', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('contact:update', async (_event, did, updates) =>
+## ipcMain.handle("contact:update", async (_event, did, updates) =>
 
 ```javascript
-ipcMain.handle('contact:update', async (_event, did, updates) =>
+ipcMain.handle("contact:update", async (_event, did, updates) =>
 ```
 
 * 更新联系人信息
@@ -91,10 +91,10 @@ ipcMain.handle('contact:update', async (_event, did, updates) =>
 
 ---
 
-## ipcMain.handle('contact:delete', async (_event, did) =>
+## ipcMain.handle("contact:delete", async (_event, did) =>
 
 ```javascript
-ipcMain.handle('contact:delete', async (_event, did) =>
+ipcMain.handle("contact:delete", async (_event, did) =>
 ```
 
 * 删除联系人
@@ -102,10 +102,10 @@ ipcMain.handle('contact:delete', async (_event, did) =>
 
 ---
 
-## ipcMain.handle('contact:search', async (_event, query) =>
+## ipcMain.handle("contact:search", async (_event, query) =>
 
 ```javascript
-ipcMain.handle('contact:search', async (_event, query) =>
+ipcMain.handle("contact:search", async (_event, query) =>
 ```
 
 * 搜索联系人
@@ -113,10 +113,10 @@ ipcMain.handle('contact:search', async (_event, query) =>
 
 ---
 
-## ipcMain.handle('contact:get-friends', async () =>
+## ipcMain.handle("contact:get-friends", async () =>
 
 ```javascript
-ipcMain.handle('contact:get-friends', async () =>
+ipcMain.handle("contact:get-friends", async () =>
 ```
 
 * 获取好友列表（通过联系人管理器）
@@ -124,10 +124,10 @@ ipcMain.handle('contact:get-friends', async () =>
 
 ---
 
-## ipcMain.handle('contact:get-statistics', async () =>
+## ipcMain.handle("contact:get-statistics", async () =>
 
 ```javascript
-ipcMain.handle('contact:get-statistics', async () =>
+ipcMain.handle("contact:get-statistics", async () =>
 ```
 
 * 获取联系人统计信息
@@ -135,10 +135,10 @@ ipcMain.handle('contact:get-statistics', async () =>
 
 ---
 
-## ipcMain.handle('friend:send-request', async (_event, targetDid, message) =>
+## ipcMain.handle("friend:send-request", async (_event, targetDid, message) =>
 
 ```javascript
-ipcMain.handle('friend:send-request', async (_event, targetDid, message) =>
+ipcMain.handle("friend:send-request", async (_event, targetDid, message) =>
 ```
 
 * 发送好友请求
@@ -146,10 +146,10 @@ ipcMain.handle('friend:send-request', async (_event, targetDid, message) =>
 
 ---
 
-## ipcMain.handle('friend:accept-request', async (_event, requestId) =>
+## ipcMain.handle("friend:accept-request", async (_event, requestId) =>
 
 ```javascript
-ipcMain.handle('friend:accept-request', async (_event, requestId) =>
+ipcMain.handle("friend:accept-request", async (_event, requestId) =>
 ```
 
 * 接受好友请求
@@ -157,10 +157,10 @@ ipcMain.handle('friend:accept-request', async (_event, requestId) =>
 
 ---
 
-## ipcMain.handle('friend:reject-request', async (_event, requestId) =>
+## ipcMain.handle("friend:reject-request", async (_event, requestId) =>
 
 ```javascript
-ipcMain.handle('friend:reject-request', async (_event, requestId) =>
+ipcMain.handle("friend:reject-request", async (_event, requestId) =>
 ```
 
 * 拒绝好友请求
@@ -168,10 +168,10 @@ ipcMain.handle('friend:reject-request', async (_event, requestId) =>
 
 ---
 
-## ipcMain.handle('friend:get-pending-requests', async () =>
+## ipcMain.handle("friend:get-pending-requests", async () =>
 
 ```javascript
-ipcMain.handle('friend:get-pending-requests', async () =>
+ipcMain.handle("friend:get-pending-requests", async () =>
 ```
 
 * 获取待处理的好友请求
@@ -179,10 +179,10 @@ ipcMain.handle('friend:get-pending-requests', async () =>
 
 ---
 
-## ipcMain.handle('friend:get-friends', async (_event, groupName) =>
+## ipcMain.handle("friend:get-friends", async (_event, groupName) =>
 
 ```javascript
-ipcMain.handle('friend:get-friends', async (_event, groupName) =>
+ipcMain.handle("friend:get-friends", async (_event, groupName) =>
 ```
 
 * 获取好友列表（可按分组过滤）
@@ -190,10 +190,10 @@ ipcMain.handle('friend:get-friends', async (_event, groupName) =>
 
 ---
 
-## ipcMain.handle('friend:get-list', async () =>
+## ipcMain.handle("friend:get-list", async () =>
 
 ```javascript
-ipcMain.handle('friend:get-list', async () =>
+ipcMain.handle("friend:get-list", async () =>
 ```
 
 * 获取好友列表（返回包装格式，供前端使用）
@@ -201,10 +201,10 @@ ipcMain.handle('friend:get-list', async () =>
 
 ---
 
-## ipcMain.handle('friend:remove', async (_event, friendDid) =>
+## ipcMain.handle("friend:remove", async (_event, friendDid) =>
 
 ```javascript
-ipcMain.handle('friend:remove', async (_event, friendDid) =>
+ipcMain.handle("friend:remove", async (_event, friendDid) =>
 ```
 
 * 删除好友
@@ -212,10 +212,10 @@ ipcMain.handle('friend:remove', async (_event, friendDid) =>
 
 ---
 
-## ipcMain.handle('friend:update-nickname', async (_event, friendDid, nickname) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('friend:update-nickname', async (_event, friendDid, nickname) =>
+ipcMain.handle(
 ```
 
 * 更新好友备注
@@ -223,10 +223,10 @@ ipcMain.handle('friend:update-nickname', async (_event, friendDid, nickname) =>
 
 ---
 
-## ipcMain.handle('friend:update-group', async (_event, friendDid, groupName) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('friend:update-group', async (_event, friendDid, groupName) =>
+ipcMain.handle(
 ```
 
 * 更新好友分组
@@ -234,10 +234,10 @@ ipcMain.handle('friend:update-group', async (_event, friendDid, groupName) =>
 
 ---
 
-## ipcMain.handle('friend:get-statistics', async () =>
+## ipcMain.handle("friend:get-statistics", async () =>
 
 ```javascript
-ipcMain.handle('friend:get-statistics', async () =>
+ipcMain.handle("friend:get-statistics", async () =>
 ```
 
 * 获取好友统计信息
@@ -245,10 +245,10 @@ ipcMain.handle('friend:get-statistics', async () =>
 
 ---
 
-## ipcMain.handle('post:create', async (_event, options) =>
+## ipcMain.handle("post:create", async (_event, options) =>
 
 ```javascript
-ipcMain.handle('post:create', async (_event, options) =>
+ipcMain.handle("post:create", async (_event, options) =>
 ```
 
 * 发布动态
@@ -256,10 +256,10 @@ ipcMain.handle('post:create', async (_event, options) =>
 
 ---
 
-## ipcMain.handle('post:get-feed', async (_event, options) =>
+## ipcMain.handle("post:get-feed", async (_event, options) =>
 
 ```javascript
-ipcMain.handle('post:get-feed', async (_event, options) =>
+ipcMain.handle("post:get-feed", async (_event, options) =>
 ```
 
 * 获取动态流
@@ -267,10 +267,10 @@ ipcMain.handle('post:get-feed', async (_event, options) =>
 
 ---
 
-## ipcMain.handle('post:get', async (_event, postId) =>
+## ipcMain.handle("post:get", async (_event, postId) =>
 
 ```javascript
-ipcMain.handle('post:get', async (_event, postId) =>
+ipcMain.handle("post:get", async (_event, postId) =>
 ```
 
 * 获取单条动态
@@ -278,10 +278,10 @@ ipcMain.handle('post:get', async (_event, postId) =>
 
 ---
 
-## ipcMain.handle('post:delete', async (_event, postId) =>
+## ipcMain.handle("post:delete", async (_event, postId) =>
 
 ```javascript
-ipcMain.handle('post:delete', async (_event, postId) =>
+ipcMain.handle("post:delete", async (_event, postId) =>
 ```
 
 * 删除动态
@@ -289,10 +289,10 @@ ipcMain.handle('post:delete', async (_event, postId) =>
 
 ---
 
-## ipcMain.handle('post:like', async (_event, postId) =>
+## ipcMain.handle("post:like", async (_event, postId) =>
 
 ```javascript
-ipcMain.handle('post:like', async (_event, postId) =>
+ipcMain.handle("post:like", async (_event, postId) =>
 ```
 
 * 点赞动态
@@ -300,10 +300,10 @@ ipcMain.handle('post:like', async (_event, postId) =>
 
 ---
 
-## ipcMain.handle('post:unlike', async (_event, postId) =>
+## ipcMain.handle("post:unlike", async (_event, postId) =>
 
 ```javascript
-ipcMain.handle('post:unlike', async (_event, postId) =>
+ipcMain.handle("post:unlike", async (_event, postId) =>
 ```
 
 * 取消点赞
@@ -311,10 +311,10 @@ ipcMain.handle('post:unlike', async (_event, postId) =>
 
 ---
 
-## ipcMain.handle('post:get-likes', async (_event, postId) =>
+## ipcMain.handle("post:get-likes", async (_event, postId) =>
 
 ```javascript
-ipcMain.handle('post:get-likes', async (_event, postId) =>
+ipcMain.handle("post:get-likes", async (_event, postId) =>
 ```
 
 * 获取点赞列表
@@ -322,10 +322,10 @@ ipcMain.handle('post:get-likes', async (_event, postId) =>
 
 ---
 
-## ipcMain.handle('post:add-comment', async (_event, postId, content, parentId) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('post:add-comment', async (_event, postId, content, parentId) =>
+ipcMain.handle(
 ```
 
 * 添加评论
@@ -333,10 +333,10 @@ ipcMain.handle('post:add-comment', async (_event, postId, content, parentId) =>
 
 ---
 
-## ipcMain.handle('post:get-comments', async (_event, postId) =>
+## ipcMain.handle("post:get-comments", async (_event, postId) =>
 
 ```javascript
-ipcMain.handle('post:get-comments', async (_event, postId) =>
+ipcMain.handle("post:get-comments", async (_event, postId) =>
 ```
 
 * 获取评论列表
@@ -344,10 +344,10 @@ ipcMain.handle('post:get-comments', async (_event, postId) =>
 
 ---
 
-## ipcMain.handle('post:delete-comment', async (_event, commentId) =>
+## ipcMain.handle("post:delete-comment", async (_event, commentId) =>
 
 ```javascript
-ipcMain.handle('post:delete-comment', async (_event, commentId) =>
+ipcMain.handle("post:delete-comment", async (_event, commentId) =>
 ```
 
 * 删除评论
@@ -355,10 +355,10 @@ ipcMain.handle('post:delete-comment', async (_event, commentId) =>
 
 ---
 
-## ipcMain.handle('chat:get-sessions', async () =>
+## ipcMain.handle("chat:get-sessions", async () =>
 
 ```javascript
-ipcMain.handle('chat:get-sessions', async () =>
+ipcMain.handle("chat:get-sessions", async () =>
 ```
 
 * 获取聊天会话列表
@@ -366,10 +366,10 @@ ipcMain.handle('chat:get-sessions', async () =>
 
 ---
 
-## ipcMain.handle('chat:get-messages', async (_event, sessionId, limit = 50, offset = 0) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:get-messages', async (_event, sessionId, limit = 50, offset = 0) =>
+ipcMain.handle(
 ```
 
 * 获取聊天消息
@@ -377,10 +377,10 @@ ipcMain.handle('chat:get-messages', async (_event, sessionId, limit = 50, offset
 
 ---
 
-## ipcMain.handle('chat:save-message', async (_event, message) =>
+## ipcMain.handle("chat:save-message", async (_event, message) =>
 
 ```javascript
-ipcMain.handle('chat:save-message', async (_event, message) =>
+ipcMain.handle("chat:save-message", async (_event, message) =>
 ```
 
 * 保存聊天消息
@@ -388,10 +388,10 @@ ipcMain.handle('chat:save-message', async (_event, message) =>
 
 ---
 
-## ipcMain.handle('chat:update-message-status', async (_event, messageId, status) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:update-message-status', async (_event, messageId, status) =>
+ipcMain.handle(
 ```
 
 * 更新消息状态
@@ -399,10 +399,10 @@ ipcMain.handle('chat:update-message-status', async (_event, messageId, status) =
 
 ---
 
-## ipcMain.handle('chat:mark-as-read', async (_event, sessionId) =>
+## ipcMain.handle("chat:mark-as-read", async (_event, sessionId) =>
 
 ```javascript
-ipcMain.handle('chat:mark-as-read', async (_event, sessionId) =>
+ipcMain.handle("chat:mark-as-read", async (_event, sessionId) =>
 ```
 
 * 标记会话为已读
@@ -410,10 +410,10 @@ ipcMain.handle('chat:mark-as-read', async (_event, sessionId) =>
 
 ---
 
-## ipcMain.handle('chat:add-reaction', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:add-reaction', async (_event,
+ipcMain.handle(
 ```
 
 * 添加消息表情回应
@@ -421,10 +421,10 @@ ipcMain.handle('chat:add-reaction', async (_event,
 
 ---
 
-## ipcMain.handle('chat:remove-reaction', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:remove-reaction', async (_event,
+ipcMain.handle(
 ```
 
 * 移除消息表情回应
@@ -432,10 +432,10 @@ ipcMain.handle('chat:remove-reaction', async (_event,
 
 ---
 
-## ipcMain.handle('chat:get-reactions', async (_event, messageId) =>
+## ipcMain.handle("chat:get-reactions", async (_event, messageId) =>
 
 ```javascript
-ipcMain.handle('chat:get-reactions', async (_event, messageId) =>
+ipcMain.handle("chat:get-reactions", async (_event, messageId) =>
 ```
 
 * 获取消息的所有表情回应
@@ -443,10 +443,10 @@ ipcMain.handle('chat:get-reactions', async (_event, messageId) =>
 
 ---
 
-## ipcMain.handle('chat:get-reaction-stats', async (_event, messageId) =>
+## ipcMain.handle("chat:get-reaction-stats", async (_event, messageId) =>
 
 ```javascript
-ipcMain.handle('chat:get-reaction-stats', async (_event, messageId) =>
+ipcMain.handle("chat:get-reaction-stats", async (_event, messageId) =>
 ```
 
 * 获取消息的表情回应统计
@@ -454,10 +454,10 @@ ipcMain.handle('chat:get-reaction-stats', async (_event, messageId) =>
 
 ---
 
-## ipcMain.handle('group:create', async (_event, options) =>
+## ipcMain.handle("group:create", async (_event, options) =>
 
 ```javascript
-ipcMain.handle('group:create', async (_event, options) =>
+ipcMain.handle("group:create", async (_event, options) =>
 ```
 
 * 创建群聊
@@ -465,10 +465,10 @@ ipcMain.handle('group:create', async (_event, options) =>
 
 ---
 
-## ipcMain.handle('group:get-list', async () =>
+## ipcMain.handle("group:get-list", async () =>
 
 ```javascript
-ipcMain.handle('group:get-list', async () =>
+ipcMain.handle("group:get-list", async () =>
 ```
 
 * 获取群聊列表
@@ -476,10 +476,10 @@ ipcMain.handle('group:get-list', async () =>
 
 ---
 
-## ipcMain.handle('group:get-details', async (_event, groupId) =>
+## ipcMain.handle("group:get-details", async (_event, groupId) =>
 
 ```javascript
-ipcMain.handle('group:get-details', async (_event, groupId) =>
+ipcMain.handle("group:get-details", async (_event, groupId) =>
 ```
 
 * 获取群聊详情
@@ -487,10 +487,10 @@ ipcMain.handle('group:get-details', async (_event, groupId) =>
 
 ---
 
-## ipcMain.handle('group:update-info', async (_event, groupId, updates) =>
+## ipcMain.handle("group:update-info", async (_event, groupId, updates) =>
 
 ```javascript
-ipcMain.handle('group:update-info', async (_event, groupId, updates) =>
+ipcMain.handle("group:update-info", async (_event, groupId, updates) =>
 ```
 
 * 更新群信息
@@ -498,10 +498,10 @@ ipcMain.handle('group:update-info', async (_event, groupId, updates) =>
 
 ---
 
-## ipcMain.handle('group:add-member', async (_event, groupId, memberDid, role) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('group:add-member', async (_event, groupId, memberDid, role) =>
+ipcMain.handle(
 ```
 
 * 添加群成员
@@ -509,10 +509,10 @@ ipcMain.handle('group:add-member', async (_event, groupId, memberDid, role) =>
 
 ---
 
-## ipcMain.handle('group:remove-member', async (_event, groupId, memberDid) =>
+## ipcMain.handle("group:remove-member", async (_event, groupId, memberDid) =>
 
 ```javascript
-ipcMain.handle('group:remove-member', async (_event, groupId, memberDid) =>
+ipcMain.handle("group:remove-member", async (_event, groupId, memberDid) =>
 ```
 
 * 移除群成员
@@ -520,10 +520,10 @@ ipcMain.handle('group:remove-member', async (_event, groupId, memberDid) =>
 
 ---
 
-## ipcMain.handle('group:leave', async (_event, groupId) =>
+## ipcMain.handle("group:leave", async (_event, groupId) =>
 
 ```javascript
-ipcMain.handle('group:leave', async (_event, groupId) =>
+ipcMain.handle("group:leave", async (_event, groupId) =>
 ```
 
 * 退出群聊
@@ -531,10 +531,10 @@ ipcMain.handle('group:leave', async (_event, groupId) =>
 
 ---
 
-## ipcMain.handle('group:dismiss', async (_event, groupId) =>
+## ipcMain.handle("group:dismiss", async (_event, groupId) =>
 
 ```javascript
-ipcMain.handle('group:dismiss', async (_event, groupId) =>
+ipcMain.handle("group:dismiss", async (_event, groupId) =>
 ```
 
 * 解散群聊
@@ -542,10 +542,10 @@ ipcMain.handle('group:dismiss', async (_event, groupId) =>
 
 ---
 
-## ipcMain.handle('group:send-message', async (_event, groupId, content, options) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('group:send-message', async (_event, groupId, content, options) =>
+ipcMain.handle(
 ```
 
 * 发送群消息
@@ -553,10 +553,10 @@ ipcMain.handle('group:send-message', async (_event, groupId, content, options) =
 
 ---
 
-## ipcMain.handle('group:get-messages', async (_event, groupId, limit, offset) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('group:get-messages', async (_event, groupId, limit, offset) =>
+ipcMain.handle(
 ```
 
 * 获取群消息
@@ -564,10 +564,10 @@ ipcMain.handle('group:get-messages', async (_event, groupId, limit, offset) =>
 
 ---
 
-## ipcMain.handle('group:mark-message-read', async (_event, messageId, groupId) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('group:mark-message-read', async (_event, messageId, groupId) =>
+ipcMain.handle(
 ```
 
 * 标记群消息为已读
@@ -575,10 +575,10 @@ ipcMain.handle('group:mark-message-read', async (_event, messageId, groupId) =>
 
 ---
 
-## ipcMain.handle('group:invite-member', async (_event, groupId, inviteeDid, message) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('group:invite-member', async (_event, groupId, inviteeDid, message) =>
+ipcMain.handle(
 ```
 
 * 邀请成员加入群聊
@@ -586,10 +586,10 @@ ipcMain.handle('group:invite-member', async (_event, groupId, inviteeDid, messag
 
 ---
 
-## ipcMain.handle('group:accept-invitation', async (_event, invitationId) =>
+## ipcMain.handle("group:accept-invitation", async (_event, invitationId) =>
 
 ```javascript
-ipcMain.handle('group:accept-invitation', async (_event, invitationId) =>
+ipcMain.handle("group:accept-invitation", async (_event, invitationId) =>
 ```
 
 * 接受群聊邀请
@@ -597,10 +597,10 @@ ipcMain.handle('group:accept-invitation', async (_event, invitationId) =>
 
 ---
 
-## ipcMain.handle('group:reject-invitation', async (_event, invitationId) =>
+## ipcMain.handle("group:reject-invitation", async (_event, invitationId) =>
 
 ```javascript
-ipcMain.handle('group:reject-invitation', async (_event, invitationId) =>
+ipcMain.handle("group:reject-invitation", async (_event, invitationId) =>
 ```
 
 * 拒绝群聊邀请
@@ -608,10 +608,10 @@ ipcMain.handle('group:reject-invitation', async (_event, invitationId) =>
 
 ---
 
-## ipcMain.handle('group:get-invitations', async (_event, inviteeDid) =>
+## ipcMain.handle("group:get-invitations", async (_event, inviteeDid) =>
 
 ```javascript
-ipcMain.handle('group:get-invitations', async (_event, inviteeDid) =>
+ipcMain.handle("group:get-invitations", async (_event, inviteeDid) =>
 ```
 
 * 获取群聊邀请列表
@@ -619,10 +619,10 @@ ipcMain.handle('group:get-invitations', async (_event, inviteeDid) =>
 
 ---
 
-## ipcMain.handle('chat:send-file', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:send-file', async (_event,
+ipcMain.handle(
 ```
 
 * 发送文件消息（图片/文件）
@@ -630,10 +630,10 @@ ipcMain.handle('chat:send-file', async (_event,
 
 ---
 
-## ipcMain.handle('chat:select-and-send-image', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:select-and-send-image', async (_event,
+ipcMain.handle(
 ```
 
 * 选择并发送图片
@@ -641,10 +641,10 @@ ipcMain.handle('chat:select-and-send-image', async (_event,
 
 ---
 
-## ipcMain.handle('chat:select-and-send-file', async (_event,
+## ipcMain.handle("chat:select-and-send-file", async (_event,
 
 ```javascript
-ipcMain.handle('chat:select-and-send-file', async (_event,
+ipcMain.handle("chat:select-and-send-file", async (_event,
 ```
 
 * 选择并发送文件
@@ -652,10 +652,10 @@ ipcMain.handle('chat:select-and-send-file', async (_event,
 
 ---
 
-## ipcMain.handle('chat:download-file', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:download-file', async (_event,
+ipcMain.handle(
 ```
 
 * 下载文件
@@ -663,10 +663,10 @@ ipcMain.handle('chat:download-file', async (_event,
 
 ---
 
-## ipcMain.handle('chat:forward-message', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:forward-message', async (_event,
+ipcMain.handle(
 ```
 
 * 转发消息
@@ -674,10 +674,10 @@ ipcMain.handle('chat:forward-message', async (_event,
 
 ---
 
-## ipcMain.handle('chat:get-transfer-progress', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:get-transfer-progress', async (_event,
+ipcMain.handle(
 ```
 
 * 获取文件传输进度
@@ -685,10 +685,10 @@ ipcMain.handle('chat:get-transfer-progress', async (_event,
 
 ---
 
-## ipcMain.handle('chat:cancel-transfer', async (_event,
+## ipcMain.handle("chat:cancel-transfer", async (_event,
 
 ```javascript
-ipcMain.handle('chat:cancel-transfer', async (_event,
+ipcMain.handle("chat:cancel-transfer", async (_event,
 ```
 
 * 取消文件传输
@@ -696,10 +696,10 @@ ipcMain.handle('chat:cancel-transfer', async (_event,
 
 ---
 
-## ipcMain.handle('chat:accept-transfer', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('chat:accept-transfer', async (_event,
+ipcMain.handle(
 ```
 
 * 接受文件传输
@@ -707,10 +707,10 @@ ipcMain.handle('chat:accept-transfer', async (_event,
 
 ---
 
-## ipcMain.handle('chat:play-voice-message', async (_event,
+## ipcMain.handle("chat:play-voice-message", async (_event,
 
 ```javascript
-ipcMain.handle('chat:play-voice-message', async (_event,
+ipcMain.handle("chat:play-voice-message", async (_event,
 ```
 
 * 播放语音消息

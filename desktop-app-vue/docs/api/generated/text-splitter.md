@@ -1,8 +1,8 @@
 # text-splitter
 
-**Source**: `src\main\rag\text-splitter.js`
+**Source**: `src/main/rag/text-splitter.js`
 
-**Generated**: 2026-01-27T06:44:03.823Z
+**Generated**: 2026-02-15T07:37:13.794Z
 
 ---
 

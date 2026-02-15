@@ -1,8 +1,8 @@
 # db-integration
 
-**Source**: `src\main\skill-tool-system\db-integration.js`
+**Source**: `src/main/skill-tool-system/db-integration.js`
 
-**Generated**: 2026-01-27T06:44:03.815Z
+**Generated**: 2026-02-15T07:37:13.782Z
 
 ---
 

@@ -1,8 +1,8 @@
 # context-associator-ipc
 
-**Source**: `src\main\memory\context-associator-ipc.js`
+**Source**: `src/main/memory/context-associator-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.841Z
+**Generated**: 2026-02-15T07:37:13.815Z
 
 ---
 

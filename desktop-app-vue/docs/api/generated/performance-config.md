@@ -1,8 +1,8 @@
 # performance-config
 
-**Source**: `src\main\remote\logging\performance-config.js`
+**Source**: `src/main/remote/logging/performance-config.js`
 
-**Generated**: 2026-01-27T06:44:03.821Z
+**Generated**: 2026-02-15T07:37:13.790Z
 
 ---
 

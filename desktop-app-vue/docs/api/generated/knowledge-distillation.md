@@ -1,8 +1,8 @@
 # knowledge-distillation
 
-**Source**: `src\main\ai-engine\knowledge-distillation.js`
+**Source**: `src/main/ai-engine/knowledge-distillation.js`
 
-**Generated**: 2026-01-27T06:44:03.878Z
+**Generated**: 2026-02-15T07:37:13.866Z
 
 ---
 
@@ -186,6 +186,28 @@ async _executeTask(task, modelName, context)
    * @param {string} modelName
    * @param {Object} context
    * @returns {Object} 执行结果
+
+---
+
+## _buildTaskPrompt(task)
+
+```javascript
+_buildTaskPrompt(task)
+```
+
+* 构建任务提示词
+   * @private
+
+---
+
+## _estimateConfidence(output, modelName)
+
+```javascript
+_estimateConfidence(output, modelName)
+```
+
+* 估计执行置信度
+   * @private
 
 ---
 

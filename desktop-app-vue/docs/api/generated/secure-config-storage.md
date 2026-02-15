@@ -1,8 +1,8 @@
 # secure-config-storage
 
-**Source**: `src\main\llm\secure-config-storage.js`
+**Source**: `src/main/llm/secure-config-storage.js`
 
-**Generated**: 2026-01-27T06:44:03.847Z
+**Generated**: 2026-02-15T07:37:13.821Z
 
 ---
 

@@ -1,8 +1,8 @@
 # permission-checker
 
-**Source**: `src\main\plugins\permission-checker.js`
+**Source**: `src/main/plugins/permission-checker.js`
 
-**Generated**: 2026-01-27T06:44:03.829Z
+**Generated**: 2026-02-15T07:37:13.802Z
 
 ---
 
@@ -174,10 +174,10 @@ hasPermissionGroup(pluginId, group)
 
 ---
 
-## async logPermissionCheck(pluginId, permission, granted, reason = '')
+## async logPermissionCheck(pluginId, permission, granted, reason = "")
 
 ```javascript
-async logPermissionCheck(pluginId, permission, granted, reason = '')
+async logPermissionCheck(pluginId, permission, granted, reason = "")
 ```
 
 * 记录权限检查日志（用于审计）

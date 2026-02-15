@@ -1,15 +1,15 @@
 # file-sandbox-integration.test
 
-**Source**: `src\main\cowork\__tests__\integration\file-sandbox-integration.test.js`
+**Source**: `src/main/cowork/__tests__/integration/file-sandbox-integration.test.js`
 
-**Generated**: 2026-01-27T06:44:03.865Z
+**Generated**: 2026-02-15T07:37:13.842Z
 
 ---
 
-## const path = require("path");
+## import
 
 ```javascript
-const path = require("path");
+import
 ```
 
 * File Sandbox Integration Tests
@@ -23,6 +23,8 @@ const path = require("path");
  *
  * @category Integration Tests
  * @module FileSandboxIntegration
+ *
+ * NOTE: Skipped - source files moved to ai-engine/cowork
 
 ---
 

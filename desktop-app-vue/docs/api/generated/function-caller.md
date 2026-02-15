@@ -1,8 +1,8 @@
 # function-caller
 
-**Source**: `src\main\ai-engine\function-caller.js`
+**Source**: `src/main/ai-engine/function-caller.js`
 
-**Generated**: 2026-01-27T06:44:03.879Z
+**Generated**: 2026-02-15T07:37:13.867Z
 
 ---
 
@@ -97,6 +97,28 @@ setTTSManager(ttsManager)
 
 * 设置 TTSManager（用于语音合成工具）
    * @param {TTSManager} ttsManager - 语音合成管理器实例
+
+---
+
+## setHookSystem(hookSystem)
+
+```javascript
+setHookSystem(hookSystem)
+```
+
+* 🔥 设置 HookSystem（用于工具调用钩子）
+   * @param {HookSystem} hookSystem - Hooks 系统实例
+
+---
+
+## _wrapToolsWithHooks()
+
+```javascript
+_wrapToolsWithHooks()
+```
+
+* 使用 Hooks 中间件包装所有工具
+   * @private
 
 ---
 

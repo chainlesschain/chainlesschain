@@ -1,8 +1,8 @@
 # file-ipc
 
-**Source**: `src\main\file\file-ipc.js`
+**Source**: `src/main/file/file-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.858Z
+**Generated**: 2026-02-15T07:37:13.834Z
 
 ---
 
@@ -38,170 +38,170 @@ function registerFileIPC(
 
 ---
 
-## ipcMain.handle('file:read-content', async (_event, filePath) =>
+## const handleReadContentLegacy = async (_event, filePath) =>
 
 ```javascript
-ipcMain.handle('file:read-content', async (_event, filePath) =>
+const handleReadContentLegacy = async (_event, filePath) =>
 ```
 
 * 读取文件内容（文本文件）
 
 ---
 
-## ipcMain.handle('file:write-content', async (_event, filePath, content) =>
+## ipcMain.handle("file:write-content", async (_event, filePath, content) =>
 
 ```javascript
-ipcMain.handle('file:write-content', async (_event, filePath, content) =>
+ipcMain.handle("file:write-content", async (_event, filePath, content) =>
 ```
 
 * 写入文件内容（文本文件）
 
 ---
 
-## ipcMain.handle('file:read-binary', async (_event, filePath) =>
+## ipcMain.handle("file:read-binary", async (_event, filePath) =>
 
 ```javascript
-ipcMain.handle('file:read-binary', async (_event, filePath) =>
+ipcMain.handle("file:read-binary", async (_event, filePath) =>
 ```
 
 * 读取二进制文件内容（图片等）
 
 ---
 
-## ipcMain.handle('file:revealInExplorer', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:revealInExplorer', async (_event,
+ipcMain.handle(
 ```
 
 * 在文件管理器中显示文件
 
 ---
 
-## ipcMain.handle('file:copyItem', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:copyItem', async (_event,
+ipcMain.handle(
 ```
 
 * 复制文件/文件夹
 
 ---
 
-## ipcMain.handle('file:moveItem', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:moveItem', async (_event,
+ipcMain.handle(
 ```
 
 * 移动文件/文件夹（用于剪切粘贴）
 
 ---
 
-## ipcMain.handle('file:deleteItem', async (_event,
+## ipcMain.handle("file:deleteItem", async (_event,
 
 ```javascript
-ipcMain.handle('file:deleteItem', async (_event,
+ipcMain.handle("file:deleteItem", async (_event,
 ```
 
 * 删除文件/文件夹
 
 ---
 
-## ipcMain.handle('file:renameItem', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:renameItem', async (_event,
+ipcMain.handle(
 ```
 
 * 重命名文件/文件夹
 
 ---
 
-## ipcMain.handle('file:createFile', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:createFile', async (_event,
+ipcMain.handle(
 ```
 
 * 创建新文件
 
 ---
 
-## ipcMain.handle('file:createFolder', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:createFolder', async (_event,
+ipcMain.handle(
 ```
 
 * 创建新文件夹
 
 ---
 
-## ipcMain.handle('file:openWithDefault', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:openWithDefault', async (_event,
+ipcMain.handle(
 ```
 
 * 使用默认程序打开文件
 
 ---
 
-## ipcMain.handle('file:copyToSystemClipboard', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:copyToSystemClipboard', async (_event,
+ipcMain.handle(
 ```
 
 * 复制文件到系统剪贴板
 
 ---
 
-## ipcMain.handle('file:cutToSystemClipboard', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:cutToSystemClipboard', async (_event,
+ipcMain.handle(
 ```
 
 * 剪切文件到系统剪贴板
 
 ---
 
-## ipcMain.handle('file:pasteFromSystemClipboard', async () =>
+## ipcMain.handle("file:pasteFromSystemClipboard", async () =>
 
 ```javascript
-ipcMain.handle('file:pasteFromSystemClipboard', async () =>
+ipcMain.handle("file:pasteFromSystemClipboard", async () =>
 ```
 
 * 从系统剪贴板粘贴
 
 ---
 
-## ipcMain.handle('file:importFromSystemClipboard', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:importFromSystemClipboard', async (_event,
+ipcMain.handle(
 ```
 
 * 从系统剪贴板导入文件到项目
 
 ---
 
-## ipcMain.handle('file:openWith', async (_event,
+## ipcMain.handle("file:openWith", async (_event,
 
 ```javascript
-ipcMain.handle('file:openWith', async (_event,
+ipcMain.handle("file:openWith", async (_event,
 ```
 
 * 使用指定程序打开文件
 
 ---
 
-## ipcMain.handle('file:openWithProgram', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('file:openWithProgram', async (_event,
+ipcMain.handle(
 ```
 
 * 使用指定程序路径打开文件

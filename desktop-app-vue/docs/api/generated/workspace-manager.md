@@ -1,8 +1,8 @@
 # workspace-manager
 
-**Source**: `src\main\workspace\workspace-manager.js`
+**Source**: `src/main/workspace/workspace-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.776Z
+**Generated**: 2026-02-15T07:37:13.757Z
 
 ---
 
@@ -136,10 +136,10 @@ async permanentDeleteWorkspace(workspaceId, deleterDID)
 
 ---
 
-## async addWorkspaceMember(workspaceId, memberDID, role = 'member')
+## async addWorkspaceMember(workspaceId, memberDID, role = "member")
 
 ```javascript
-async addWorkspaceMember(workspaceId, memberDID, role = 'member')
+async addWorkspaceMember(workspaceId, memberDID, role = "member")
 ```
 
 * 添加工作区成员

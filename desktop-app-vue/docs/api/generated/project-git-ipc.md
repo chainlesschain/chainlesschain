@@ -1,8 +1,8 @@
 # project-git-ipc
 
-**Source**: `src\main\project\project-git-ipc.js`
+**Source**: `src/main/project/project-git-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.826Z
+**Generated**: 2026-02-15T07:37:13.798Z
 
 ---
 
@@ -33,13 +33,14 @@ function registerProjectGitIPC(
  * @param {Object} dependencies.gitManager - Git 管理器
  * @param {Object} dependencies.fileSyncManager - 文件同步管理器
  * @param {Object} dependencies.mainWindow - 主窗口实例
+ * @param {Object} dependencies.ipcMain - IPC Main 实例（可选，用于测试）
 
 ---
 
-## ipcMain.handle('project:git-init', async (_event, repoPath, remoteUrl = null) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-init', async (_event, repoPath, remoteUrl = null) =>
+ipcMain.handle(
 ```
 
 * Git 初始化
@@ -47,10 +48,10 @@ ipcMain.handle('project:git-init', async (_event, repoPath, remoteUrl = null) =>
 
 ---
 
-## ipcMain.handle('project:git-status', async (_event, repoPath) =>
+## ipcMain.handle("project:git-status", async (_event, repoPath) =>
 
 ```javascript
-ipcMain.handle('project:git-status', async (_event, repoPath) =>
+ipcMain.handle("project:git-status", async (_event, repoPath) =>
 ```
 
 * Git 状态查询
@@ -58,10 +59,10 @@ ipcMain.handle('project:git-status', async (_event, repoPath) =>
 
 ---
 
-## ipcMain.handle('project:git-commit', async (_event, projectId, repoPath, message, autoGenerate = false) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-commit', async (_event, projectId, repoPath, message, autoGenerate = false) =>
+ipcMain.handle(
 ```
 
 * Git 提交
@@ -69,10 +70,10 @@ ipcMain.handle('project:git-commit', async (_event, projectId, repoPath, message
 
 ---
 
-## ipcMain.handle('project:git-push', async (_event, repoPath, remote = 'origin', branch = null) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-push', async (_event, repoPath, remote = 'origin', branch = null) =>
+ipcMain.handle(
 ```
 
 * Git 推送
@@ -80,10 +81,10 @@ ipcMain.handle('project:git-push', async (_event, repoPath, remote = 'origin', b
 
 ---
 
-## ipcMain.handle('project:git-pull', async (_event, projectId, repoPath, remote = 'origin', branch = null) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-pull', async (_event, projectId, repoPath, remote = 'origin', branch = null) =>
+ipcMain.handle(
 ```
 
 * Git 拉取
@@ -91,10 +92,10 @@ ipcMain.handle('project:git-pull', async (_event, projectId, repoPath, remote = 
 
 ---
 
-## ipcMain.handle('project:git-log', async (_event, repoPath, page = 1, pageSize = 20) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-log', async (_event, repoPath, page = 1, pageSize = 20) =>
+ipcMain.handle(
 ```
 
 * 获取提交历史
@@ -102,10 +103,10 @@ ipcMain.handle('project:git-log', async (_event, repoPath, page = 1, pageSize = 
 
 ---
 
-## ipcMain.handle('project:git-show-commit', async (_event, repoPath, sha) =>
+## ipcMain.handle("project:git-show-commit", async (_event, repoPath, sha) =>
 
 ```javascript
-ipcMain.handle('project:git-show-commit', async (_event, repoPath, sha) =>
+ipcMain.handle("project:git-show-commit", async (_event, repoPath, sha) =>
 ```
 
 * 获取提交详情
@@ -113,10 +114,10 @@ ipcMain.handle('project:git-show-commit', async (_event, repoPath, sha) =>
 
 ---
 
-## ipcMain.handle('project:git-diff', async (_event, repoPath, commit1 = null, commit2 = null) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-diff', async (_event, repoPath, commit1 = null, commit2 = null) =>
+ipcMain.handle(
 ```
 
 * 获取差异
@@ -124,10 +125,10 @@ ipcMain.handle('project:git-diff', async (_event, repoPath, commit1 = null, comm
 
 ---
 
-## ipcMain.handle('project:git-branches', async (_event, repoPath) =>
+## ipcMain.handle("project:git-branches", async (_event, repoPath) =>
 
 ```javascript
-ipcMain.handle('project:git-branches', async (_event, repoPath) =>
+ipcMain.handle("project:git-branches", async (_event, repoPath) =>
 ```
 
 * 获取分支列表
@@ -135,10 +136,10 @@ ipcMain.handle('project:git-branches', async (_event, repoPath) =>
 
 ---
 
-## ipcMain.handle('project:git-create-branch', async (_event, repoPath, branchName, fromBranch = null) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-create-branch', async (_event, repoPath, branchName, fromBranch = null) =>
+ipcMain.handle(
 ```
 
 * 创建分支
@@ -146,10 +147,10 @@ ipcMain.handle('project:git-create-branch', async (_event, repoPath, branchName,
 
 ---
 
-## ipcMain.handle('project:git-checkout', async (_event, repoPath, branchName) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-checkout', async (_event, repoPath, branchName) =>
+ipcMain.handle(
 ```
 
 * 切换分支
@@ -157,10 +158,10 @@ ipcMain.handle('project:git-checkout', async (_event, repoPath, branchName) =>
 
 ---
 
-## ipcMain.handle('project:git-merge', async (_event, repoPath, sourceBranch, targetBranch = null) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-merge', async (_event, repoPath, sourceBranch, targetBranch = null) =>
+ipcMain.handle(
 ```
 
 * 合并分支
@@ -168,10 +169,10 @@ ipcMain.handle('project:git-merge', async (_event, repoPath, sourceBranch, targe
 
 ---
 
-## ipcMain.handle('project:git-resolve-conflicts', async (_event, repoPath, filePath = null, strategy = null) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-resolve-conflicts', async (_event, repoPath, filePath = null, strategy = null) =>
+ipcMain.handle(
 ```
 
 * 解决冲突
@@ -179,10 +180,10 @@ ipcMain.handle('project:git-resolve-conflicts', async (_event, repoPath, filePat
 
 ---
 
-## ipcMain.handle('project:git-generate-commit-message', async (_event, repoPath) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:git-generate-commit-message', async (_event, repoPath) =>
+ipcMain.handle(
 ```
 
 * 生成提交消息

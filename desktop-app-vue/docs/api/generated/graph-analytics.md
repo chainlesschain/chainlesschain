@@ -1,8 +1,8 @@
 # graph-analytics
 
-**Source**: `src\main\knowledge-graph\graph-analytics.js`
+**Source**: `src/main/knowledge-graph/graph-analytics.js`
 
-**Generated**: 2026-01-27T06:44:03.850Z
+**Generated**: 2026-02-15T07:37:13.826Z
 
 ---
 
@@ -50,10 +50,10 @@ function calculateBetweennessCentrality(nodes, edges)
 
 ---
 
-## function calculatePageRank(nodes, edges, dampingFactor = 0.85, maxIterations = 100, tolerance = 1e-6)
+## function calculatePageRank(
 
 ```javascript
-function calculatePageRank(nodes, edges, dampingFactor = 0.85, maxIterations = 100, tolerance = 1e-6)
+function calculatePageRank(
 ```
 
 * PageRank 算法
@@ -72,10 +72,10 @@ function detectCommunities(nodes, edges)
 
 ---
 
-## function calculateModularityGain(nodeId, fromCommunity, toCommunity, communities, adjacency, m)
+## function calculateModularityGain(
 
 ```javascript
-function calculateModularityGain(nodeId, fromCommunity, toCommunity, communities, adjacency, m)
+function calculateModularityGain(
 ```
 
 * 计算模块度增益

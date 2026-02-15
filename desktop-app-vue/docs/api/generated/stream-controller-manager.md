@@ -1,8 +1,8 @@
 # stream-controller-manager
 
-**Source**: `src\main\conversation\stream-controller-manager.js`
+**Source**: `src/main/conversation/stream-controller-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.866Z
+**Generated**: 2026-02-15T07:37:13.843Z
 
 ---
 
@@ -124,10 +124,10 @@ resume(conversationId)
 
 ---
 
-## cancel(conversationId, reason = '用户取消')
+## cancel(conversationId, reason = "用户取消")
 
 ```javascript
-cancel(conversationId, reason = '用户取消')
+cancel(conversationId, reason = "用户取消")
 ```
 
 * 取消流式输出

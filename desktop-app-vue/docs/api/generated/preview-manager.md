@@ -1,8 +1,8 @@
 # preview-manager
 
-**Source**: `src\main\preview\preview-manager.js`
+**Source**: `src/main/preview/preview-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.828Z
+**Generated**: 2026-02-15T07:37:13.800Z
 
 ---
 
@@ -42,10 +42,10 @@ async stopStaticServer(projectId)
 
 ---
 
-## async startDevServer(projectId, rootPath, command = 'npm run dev')
+## async startDevServer(projectId, rootPath, command = "npm run dev")
 
 ```javascript
-async startDevServer(projectId, rootPath, command = 'npm run dev')
+async startDevServer(projectId, rootPath, command = "npm run dev")
 ```
 
 * 启动开发服务器（npm run dev）

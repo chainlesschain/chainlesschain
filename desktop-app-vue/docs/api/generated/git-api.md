@@ -1,8 +1,8 @@
 # git-api
 
-**Source**: `src\main\project\git-api.js`
+**Source**: `src/main/project/git-api.js`
 
-**Generated**: 2026-01-27T06:44:03.827Z
+**Generated**: 2026-02-15T07:37:13.800Z
 
 ---
 
@@ -86,10 +86,10 @@ async commit(repoPath, message, author, autoGenerate = false)
 
 ---
 
-## async push(repoPath, remote = 'origin', branch = 'main')
+## async push(repoPath, remote = "origin", branch = "main")
 
 ```javascript
-async push(repoPath, remote = 'origin', branch = 'main')
+async push(repoPath, remote = "origin", branch = "main")
 ```
 
 * 推送到远程仓库
@@ -100,10 +100,10 @@ async push(repoPath, remote = 'origin', branch = 'main')
 
 ---
 
-## async pull(repoPath, remote = 'origin', branch = 'main')
+## async pull(repoPath, remote = "origin", branch = "main")
 
 ```javascript
-async pull(repoPath, remote = 'origin', branch = 'main')
+async pull(repoPath, remote = "origin", branch = "main")
 ```
 
 * 从远程仓库拉取

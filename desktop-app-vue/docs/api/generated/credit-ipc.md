@@ -1,8 +1,8 @@
 # credit-ipc
 
-**Source**: `src\main\credit\credit-ipc.js`
+**Source**: `src/main/credit/credit-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.864Z
+**Generated**: 2026-02-15T07:37:13.841Z
 
 ---
 

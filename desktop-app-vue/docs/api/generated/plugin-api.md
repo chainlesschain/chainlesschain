@@ -1,8 +1,8 @@
 # plugin-api
 
-**Source**: `src\main\plugins\plugin-api.js`
+**Source**: `src/main/plugins/plugin-api.js`
 
-**Generated**: 2026-01-27T06:44:03.829Z
+**Generated**: 2026-02-15T07:37:13.802Z
 
 ---
 
@@ -159,10 +159,10 @@ updateStats(methodName)
 
 ---
 
-## async logAPICall(methodName, permission, success, duration, error = '')
+## async logAPICall(methodName, permission, success, duration, error = "")
 
 ```javascript
-async logAPICall(methodName, permission, success, duration, error = '')
+async logAPICall(methodName, permission, success, duration, error = "")
 ```
 
 * 记录API调用日志

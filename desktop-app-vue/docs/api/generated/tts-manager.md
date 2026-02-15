@@ -1,8 +1,8 @@
 # tts-manager
 
-**Source**: `src\main\speech\tts-manager.js`
+**Source**: `src/main/speech/tts-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.806Z
+**Generated**: 2026-02-15T07:37:13.774Z
 
 ---
 

@@ -1,8 +1,8 @@
 # git-ipc
 
-**Source**: `src\main\git\git-ipc.js`
+**Source**: `src/main/git/git-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.856Z
+**Generated**: 2026-02-15T07:37:13.832Z
 
 ---
 
@@ -37,10 +37,10 @@ function registerGitIPC(
 
 ---
 
-## ipcMain.handle('git:status', async () =>
+## ipcMain.handle("git:status", async () =>
 
 ```javascript
-ipcMain.handle('git:status', async () =>
+ipcMain.handle("git:status", async () =>
 ```
 
 * 获取 Git 状态
@@ -48,10 +48,10 @@ ipcMain.handle('git:status', async () =>
 
 ---
 
-## ipcMain.handle('git:sync', async () =>
+## ipcMain.handle("git:sync", async () =>
 
 ```javascript
-ipcMain.handle('git:sync', async () =>
+ipcMain.handle("git:sync", async () =>
 ```
 
 * 同步 Git（导出 + 自动同步）
@@ -59,10 +59,10 @@ ipcMain.handle('git:sync', async () =>
 
 ---
 
-## ipcMain.handle('git:push', async () =>
+## ipcMain.handle("git:push", async () =>
 
 ```javascript
-ipcMain.handle('git:push', async () =>
+ipcMain.handle("git:push", async () =>
 ```
 
 * 推送到远程仓库
@@ -70,10 +70,10 @@ ipcMain.handle('git:push', async () =>
 
 ---
 
-## ipcMain.handle('git:pull', async () =>
+## ipcMain.handle("git:pull", async () =>
 
 ```javascript
-ipcMain.handle('git:pull', async () =>
+ipcMain.handle("git:pull", async () =>
 ```
 
 * 从远程仓库拉取
@@ -81,10 +81,10 @@ ipcMain.handle('git:pull', async () =>
 
 ---
 
-## ipcMain.handle('git:clone', async (_event, url, targetPath, auth) =>
+## ipcMain.handle("git:clone", async (_event, url, targetPath, auth) =>
 
 ```javascript
-ipcMain.handle('git:clone', async (_event, url, targetPath, auth) =>
+ipcMain.handle("git:clone", async (_event, url, targetPath, auth) =>
 ```
 
 * 克隆远程仓库
@@ -92,10 +92,10 @@ ipcMain.handle('git:clone', async (_event, url, targetPath, auth) =>
 
 ---
 
-## ipcMain.handle('git:get-log', async (_event, depth = 10) =>
+## ipcMain.handle("git:get-log", async (_event, depth = 10) =>
 
 ```javascript
-ipcMain.handle('git:get-log', async (_event, depth = 10) =>
+ipcMain.handle("git:get-log", async (_event, depth = 10) =>
 ```
 
 * 获取 Git 日志
@@ -103,10 +103,10 @@ ipcMain.handle('git:get-log', async (_event, depth = 10) =>
 
 ---
 
-## ipcMain.handle('git:get-conflicts', async () =>
+## ipcMain.handle("git:get-conflicts", async () =>
 
 ```javascript
-ipcMain.handle('git:get-conflicts', async () =>
+ipcMain.handle("git:get-conflicts", async () =>
 ```
 
 * 获取冲突文件列表
@@ -114,10 +114,10 @@ ipcMain.handle('git:get-conflicts', async () =>
 
 ---
 
-## ipcMain.handle('git:get-conflict-content', async (_event, filepath) =>
+## ipcMain.handle("git:get-conflict-content", async (_event, filepath) =>
 
 ```javascript
-ipcMain.handle('git:get-conflict-content', async (_event, filepath) =>
+ipcMain.handle("git:get-conflict-content", async (_event, filepath) =>
 ```
 
 * 获取冲突文件内容
@@ -125,10 +125,10 @@ ipcMain.handle('git:get-conflict-content', async (_event, filepath) =>
 
 ---
 
-## ipcMain.handle('git:resolve-conflict', async (_event, filepath, resolution, content) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('git:resolve-conflict', async (_event, filepath, resolution, content) =>
+ipcMain.handle(
 ```
 
 * 解决冲突
@@ -136,10 +136,10 @@ ipcMain.handle('git:resolve-conflict', async (_event, filepath, resolution, cont
 
 ---
 
-## ipcMain.handle('git:abort-merge', async () =>
+## ipcMain.handle("git:abort-merge", async () =>
 
 ```javascript
-ipcMain.handle('git:abort-merge', async () =>
+ipcMain.handle("git:abort-merge", async () =>
 ```
 
 * 中止合并
@@ -147,10 +147,10 @@ ipcMain.handle('git:abort-merge', async () =>
 
 ---
 
-## ipcMain.handle('git:complete-merge', async (_event, message) =>
+## ipcMain.handle("git:complete-merge", async (_event, message) =>
 
 ```javascript
-ipcMain.handle('git:complete-merge', async (_event, message) =>
+ipcMain.handle("git:complete-merge", async (_event, message) =>
 ```
 
 * 完成合并
@@ -158,10 +158,10 @@ ipcMain.handle('git:complete-merge', async (_event, message) =>
 
 ---
 
-## ipcMain.handle('git:get-config', async () =>
+## ipcMain.handle("git:get-config", async () =>
 
 ```javascript
-ipcMain.handle('git:get-config', async () =>
+ipcMain.handle("git:get-config", async () =>
 ```
 
 * 获取 Git 配置
@@ -169,10 +169,10 @@ ipcMain.handle('git:get-config', async () =>
 
 ---
 
-## ipcMain.handle('git:get-sync-status', async () =>
+## ipcMain.handle("git:get-sync-status", async () =>
 
 ```javascript
-ipcMain.handle('git:get-sync-status', async () =>
+ipcMain.handle("git:get-sync-status", async () =>
 ```
 
 * 获取同步状态
@@ -180,10 +180,10 @@ ipcMain.handle('git:get-sync-status', async () =>
 
 ---
 
-## ipcMain.handle('git:set-config', async (_event, config) =>
+## ipcMain.handle("git:set-config", async (_event, config) =>
 
 ```javascript
-ipcMain.handle('git:set-config', async (_event, config) =>
+ipcMain.handle("git:set-config", async (_event, config) =>
 ```
 
 * 设置 Git 配置
@@ -191,10 +191,10 @@ ipcMain.handle('git:set-config', async (_event, config) =>
 
 ---
 
-## ipcMain.handle('git:set-remote', async (_event, url) =>
+## ipcMain.handle("git:set-remote", async (_event, url) =>
 
 ```javascript
-ipcMain.handle('git:set-remote', async (_event, url) =>
+ipcMain.handle("git:set-remote", async (_event, url) =>
 ```
 
 * 设置远程仓库 URL
@@ -202,10 +202,10 @@ ipcMain.handle('git:set-remote', async (_event, url) =>
 
 ---
 
-## ipcMain.handle('git:set-auth', async (_event, auth) =>
+## ipcMain.handle("git:set-auth", async (_event, auth) =>
 
 ```javascript
-ipcMain.handle('git:set-auth', async (_event, auth) =>
+ipcMain.handle("git:set-auth", async (_event, auth) =>
 ```
 
 * 设置认证信息
@@ -213,10 +213,10 @@ ipcMain.handle('git:set-auth', async (_event, auth) =>
 
 ---
 
-## ipcMain.handle('git:export-markdown', async () =>
+## ipcMain.handle("git:export-markdown", async () =>
 
 ```javascript
-ipcMain.handle('git:export-markdown', async () =>
+ipcMain.handle("git:export-markdown", async () =>
 ```
 
 * 导出所有数据为 Markdown
@@ -224,10 +224,10 @@ ipcMain.handle('git:export-markdown', async () =>
 
 ---
 
-## ipcMain.handle('git:generateCommitMessage', async (_event, projectPath) =>
+## ipcMain.handle("git:generateCommitMessage", async (_event, projectPath) =>
 
 ```javascript
-ipcMain.handle('git:generateCommitMessage', async (_event, projectPath) =>
+ipcMain.handle("git:generateCommitMessage", async (_event, projectPath) =>
 ```
 
 * AI 生成提交信息
@@ -235,10 +235,10 @@ ipcMain.handle('git:generateCommitMessage', async (_event, projectPath) =>
 
 ---
 
-## ipcMain.handle('git:hot-reload:start', async () =>
+## ipcMain.handle("git:hot-reload:start", async () =>
 
 ```javascript
-ipcMain.handle('git:hot-reload:start', async () =>
+ipcMain.handle("git:hot-reload:start", async () =>
 ```
 
 * 启动 Git 热重载
@@ -246,10 +246,10 @@ ipcMain.handle('git:hot-reload:start', async () =>
 
 ---
 
-## ipcMain.handle('git:hot-reload:stop', async () =>
+## ipcMain.handle("git:hot-reload:stop", async () =>
 
 ```javascript
-ipcMain.handle('git:hot-reload:stop', async () =>
+ipcMain.handle("git:hot-reload:stop", async () =>
 ```
 
 * 停止 Git 热重载
@@ -257,10 +257,10 @@ ipcMain.handle('git:hot-reload:stop', async () =>
 
 ---
 
-## ipcMain.handle('git:hot-reload:status', async () =>
+## ipcMain.handle("git:hot-reload:status", async () =>
 
 ```javascript
-ipcMain.handle('git:hot-reload:status', async () =>
+ipcMain.handle("git:hot-reload:status", async () =>
 ```
 
 * 获取 Git 热重载状态
@@ -268,10 +268,10 @@ ipcMain.handle('git:hot-reload:status', async () =>
 
 ---
 
-## ipcMain.handle('git:hot-reload:refresh', async () =>
+## ipcMain.handle("git:hot-reload:refresh", async () =>
 
 ```javascript
-ipcMain.handle('git:hot-reload:refresh', async () =>
+ipcMain.handle("git:hot-reload:refresh", async () =>
 ```
 
 * 手动刷新 Git 状态
@@ -279,10 +279,10 @@ ipcMain.handle('git:hot-reload:refresh', async () =>
 
 ---
 
-## ipcMain.handle('git:hot-reload:configure', async (_event, config) =>
+## ipcMain.handle("git:hot-reload:configure", async (_event, config) =>
 
 ```javascript
-ipcMain.handle('git:hot-reload:configure', async (_event, config) =>
+ipcMain.handle("git:hot-reload:configure", async (_event, config) =>
 ```
 
 * 设置 Git 热重载配置

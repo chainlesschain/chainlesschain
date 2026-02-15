@@ -1,8 +1,8 @@
 # sync-templates-to-db
 
-**Source**: `src\main\template\sync-templates-to-db.js`
+**Source**: `src/main/template/sync-templates-to-db.js`
 
-**Generated**: 2026-01-27T06:44:03.800Z
+**Generated**: 2026-02-15T07:37:13.769Z
 
 ---
 

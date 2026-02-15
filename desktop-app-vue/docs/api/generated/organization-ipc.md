@@ -1,8 +1,8 @@
 # organization-ipc
 
-**Source**: `src\main\organization\organization-ipc.js`
+**Source**: `src/main/organization/organization-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.836Z
+**Generated**: 2026-02-15T07:37:13.810Z
 
 ---
 
@@ -37,10 +37,10 @@ function registerOrganizationIPC(
 
 ---
 
-## ipcMain.handle('org:create-organization', async (_event, orgData) =>
+## safeHandle("org:create-organization", async (_event, orgData) =>
 
 ```javascript
-ipcMain.handle('org:create-organization', async (_event, orgData) =>
+safeHandle("org:create-organization", async (_event, orgData) =>
 ```
 
 * 创建组织
@@ -48,10 +48,10 @@ ipcMain.handle('org:create-organization', async (_event, orgData) =>
 
 ---
 
-## ipcMain.handle('org:join-organization', async (_event, inviteCode) =>
+## safeHandle("org:join-organization", async (_event, inviteCode) =>
 
 ```javascript
-ipcMain.handle('org:join-organization', async (_event, inviteCode) =>
+safeHandle("org:join-organization", async (_event, inviteCode) =>
 ```
 
 * 通过邀请码加入组织
@@ -59,10 +59,10 @@ ipcMain.handle('org:join-organization', async (_event, inviteCode) =>
 
 ---
 
-## ipcMain.handle('org:get-organization', async (_event, orgId) =>
+## safeHandle("org:get-organization", async (_event, orgId) =>
 
 ```javascript
-ipcMain.handle('org:get-organization', async (_event, orgId) =>
+safeHandle("org:get-organization", async (_event, orgId) =>
 ```
 
 * 获取组织信息
@@ -70,10 +70,24 @@ ipcMain.handle('org:get-organization', async (_event, orgId) =>
 
 ---
 
-## ipcMain.handle('org:update-organization', async (_event, params) =>
+## safeHandle("organization:get-info", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('org:update-organization', async (_event, params) =>
+safeHandle("organization:get-info", async (_event, params) =>
+```
+
+* 获取组织信息（前端友好格式）
+   * Channel: 'organization:get-info'
+   *
+   * 这是 org:get-organization 的别名，返回格式为 { success: true, organization: {...} }
+   * 用于 EnterpriseDashboard 等页面
+
+---
+
+## safeHandle("org:update-organization", async (_event, params) =>
+
+```javascript
+safeHandle("org:update-organization", async (_event, params) =>
 ```
 
 * 更新组织信息
@@ -81,10 +95,10 @@ ipcMain.handle('org:update-organization', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('org:get-user-organizations', async (_event, userDID) =>
+## safeHandle("org:get-user-organizations", async (_event, userDID) =>
 
 ```javascript
-ipcMain.handle('org:get-user-organizations', async (_event, userDID) =>
+safeHandle("org:get-user-organizations", async (_event, userDID) =>
 ```
 
 * 获取用户所属组织列表
@@ -92,10 +106,10 @@ ipcMain.handle('org:get-user-organizations', async (_event, userDID) =>
 
 ---
 
-## ipcMain.handle('org:leave-organization', async (_event, orgId, userDID) =>
+## safeHandle("org:leave-organization", async (_event, orgId, userDID) =>
 
 ```javascript
-ipcMain.handle('org:leave-organization', async (_event, orgId, userDID) =>
+safeHandle("org:leave-organization", async (_event, orgId, userDID) =>
 ```
 
 * 离开组织
@@ -103,10 +117,10 @@ ipcMain.handle('org:leave-organization', async (_event, orgId, userDID) =>
 
 ---
 
-## ipcMain.handle('org:delete-organization', async (_event, orgId, userDID) =>
+## safeHandle("org:delete-organization", async (_event, orgId, userDID) =>
 
 ```javascript
-ipcMain.handle('org:delete-organization', async (_event, orgId, userDID) =>
+safeHandle("org:delete-organization", async (_event, orgId, userDID) =>
 ```
 
 * 删除组织
@@ -114,10 +128,10 @@ ipcMain.handle('org:delete-organization', async (_event, orgId, userDID) =>
 
 ---
 
-## ipcMain.handle('org:get-members', async (_event, orgId) =>
+## safeHandle("org:get-members", async (_event, orgId) =>
 
 ```javascript
-ipcMain.handle('org:get-members', async (_event, orgId) =>
+safeHandle("org:get-members", async (_event, orgId) =>
 ```
 
 * 获取组织成员列表
@@ -125,10 +139,10 @@ ipcMain.handle('org:get-members', async (_event, orgId) =>
 
 ---
 
-## ipcMain.handle('org:update-member-role', async (_event, orgId, memberDID, newRole) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:update-member-role', async (_event, orgId, memberDID, newRole) =>
+ipcMain.handle(
 ```
 
 * 更新成员角色
@@ -136,10 +150,10 @@ ipcMain.handle('org:update-member-role', async (_event, orgId, memberDID, newRol
 
 ---
 
-## ipcMain.handle('org:remove-member', async (_event, orgId, memberDID) =>
+## safeHandle("org:remove-member", async (_event, orgId, memberDID) =>
 
 ```javascript
-ipcMain.handle('org:remove-member', async (_event, orgId, memberDID) =>
+safeHandle("org:remove-member", async (_event, orgId, memberDID) =>
 ```
 
 * 移除成员
@@ -147,10 +161,10 @@ ipcMain.handle('org:remove-member', async (_event, orgId, memberDID) =>
 
 ---
 
-## ipcMain.handle('org:check-permission', async (_event, orgId, userDID, permission) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:check-permission', async (_event, orgId, userDID, permission) =>
+ipcMain.handle(
 ```
 
 * 检查权限
@@ -158,10 +172,10 @@ ipcMain.handle('org:check-permission', async (_event, orgId, userDID, permission
 
 ---
 
-## ipcMain.handle('org:get-member-activities', async (_event, params) =>
+## safeHandle("org:get-member-activities", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('org:get-member-activities', async (_event, params) =>
+safeHandle("org:get-member-activities", async (_event, params) =>
 ```
 
 * 获取成员活动历史
@@ -169,10 +183,10 @@ ipcMain.handle('org:get-member-activities', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('org:create-invitation', async (_event, orgId, inviteData) =>
+## safeHandle("org:create-invitation", async (_event, orgId, inviteData) =>
 
 ```javascript
-ipcMain.handle('org:create-invitation', async (_event, orgId, inviteData) =>
+safeHandle("org:create-invitation", async (_event, orgId, inviteData) =>
 ```
 
 * 创建邀请
@@ -180,10 +194,10 @@ ipcMain.handle('org:create-invitation', async (_event, orgId, inviteData) =>
 
 ---
 
-## ipcMain.handle('org:invite-by-did', async (_event, orgId, inviteData) =>
+## safeHandle("org:invite-by-did", async (_event, orgId, inviteData) =>
 
 ```javascript
-ipcMain.handle('org:invite-by-did', async (_event, orgId, inviteData) =>
+safeHandle("org:invite-by-did", async (_event, orgId, inviteData) =>
 ```
 
 * 通过DID邀请用户
@@ -191,10 +205,10 @@ ipcMain.handle('org:invite-by-did', async (_event, orgId, inviteData) =>
 
 ---
 
-## ipcMain.handle('org:accept-did-invitation', async (_event, invitationId) =>
+## safeHandle("org:accept-did-invitation", async (_event, invitationId) =>
 
 ```javascript
-ipcMain.handle('org:accept-did-invitation', async (_event, invitationId) =>
+safeHandle("org:accept-did-invitation", async (_event, invitationId) =>
 ```
 
 * 接受DID邀请
@@ -202,10 +216,10 @@ ipcMain.handle('org:accept-did-invitation', async (_event, invitationId) =>
 
 ---
 
-## ipcMain.handle('org:reject-did-invitation', async (_event, invitationId) =>
+## safeHandle("org:reject-did-invitation", async (_event, invitationId) =>
 
 ```javascript
-ipcMain.handle('org:reject-did-invitation', async (_event, invitationId) =>
+safeHandle("org:reject-did-invitation", async (_event, invitationId) =>
 ```
 
 * 拒绝DID邀请
@@ -213,10 +227,10 @@ ipcMain.handle('org:reject-did-invitation', async (_event, invitationId) =>
 
 ---
 
-## ipcMain.handle('org:get-pending-did-invitations', async (_event) =>
+## safeHandle("org:get-pending-did-invitations", async (_event) =>
 
 ```javascript
-ipcMain.handle('org:get-pending-did-invitations', async (_event) =>
+safeHandle("org:get-pending-did-invitations", async (_event) =>
 ```
 
 * 获取待处理的DID邀请
@@ -224,10 +238,21 @@ ipcMain.handle('org:get-pending-did-invitations', async (_event) =>
 
 ---
 
-## ipcMain.handle('org:get-did-invitations', async (_event, orgId, options) =>
+## safeHandle("org:get-did-invitation-history", async (_event, options) =>
 
 ```javascript
-ipcMain.handle('org:get-did-invitations', async (_event, orgId, options) =>
+safeHandle("org:get-did-invitation-history", async (_event, options) =>
+```
+
+* 获取当前用户的DID邀请历史（已接受、已拒绝、已过期）
+   * Channel: 'org:get-did-invitation-history'
+
+---
+
+## safeHandle("org:get-did-invitations", async (_event, orgId, options) =>
+
+```javascript
+safeHandle("org:get-did-invitations", async (_event, orgId, options) =>
 ```
 
 * 获取组织的DID邀请列表
@@ -235,10 +260,10 @@ ipcMain.handle('org:get-did-invitations', async (_event, orgId, options) =>
 
 ---
 
-## ipcMain.handle('org:get-invitations', async (_event, orgId) =>
+## safeHandle("org:get-invitations", async (_event, orgId) =>
 
 ```javascript
-ipcMain.handle('org:get-invitations', async (_event, orgId) =>
+safeHandle("org:get-invitations", async (_event, orgId) =>
 ```
 
 * 获取邀请列表（包括邀请码和DID邀请）
@@ -246,10 +271,10 @@ ipcMain.handle('org:get-invitations', async (_event, orgId) =>
 
 ---
 
-## ipcMain.handle('org:revoke-invitation', async (_event, params) =>
+## safeHandle("org:revoke-invitation", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('org:revoke-invitation', async (_event, params) =>
+safeHandle("org:revoke-invitation", async (_event, params) =>
 ```
 
 * 撤销邀请
@@ -257,10 +282,10 @@ ipcMain.handle('org:revoke-invitation', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('org:delete-invitation', async (_event, params) =>
+## safeHandle("org:delete-invitation", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('org:delete-invitation', async (_event, params) =>
+safeHandle("org:delete-invitation", async (_event, params) =>
 ```
 
 * 删除邀请
@@ -268,10 +293,10 @@ ipcMain.handle('org:delete-invitation', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('org:create-invitation-link', async (_event, params) =>
+## safeHandle("org:create-invitation-link", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('org:create-invitation-link', async (_event, params) =>
+safeHandle("org:create-invitation-link", async (_event, params) =>
 ```
 
 * 创建邀请链接
@@ -279,10 +304,10 @@ ipcMain.handle('org:create-invitation-link', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('org:validate-invitation-token', async (_event, token) =>
+## safeHandle("org:validate-invitation-token", async (_event, token) =>
 
 ```javascript
-ipcMain.handle('org:validate-invitation-token', async (_event, token) =>
+safeHandle("org:validate-invitation-token", async (_event, token) =>
 ```
 
 * 验证邀请令牌
@@ -290,10 +315,10 @@ ipcMain.handle('org:validate-invitation-token', async (_event, token) =>
 
 ---
 
-## ipcMain.handle('org:accept-invitation-link', async (_event, token, options) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:accept-invitation-link', async (_event, token, options) =>
+ipcMain.handle(
 ```
 
 * 通过邀请链接加入组织
@@ -301,10 +326,10 @@ ipcMain.handle('org:accept-invitation-link', async (_event, token, options) =>
 
 ---
 
-## ipcMain.handle('org:get-invitation-links', async (_event, orgId, options) =>
+## safeHandle("org:get-invitation-links", async (_event, orgId, options) =>
 
 ```javascript
-ipcMain.handle('org:get-invitation-links', async (_event, orgId, options) =>
+safeHandle("org:get-invitation-links", async (_event, orgId, options) =>
 ```
 
 * 获取邀请链接列表
@@ -312,10 +337,10 @@ ipcMain.handle('org:get-invitation-links', async (_event, orgId, options) =>
 
 ---
 
-## ipcMain.handle('org:get-invitation-link', async (_event, linkId) =>
+## safeHandle("org:get-invitation-link", async (_event, linkId) =>
 
 ```javascript
-ipcMain.handle('org:get-invitation-link', async (_event, linkId) =>
+safeHandle("org:get-invitation-link", async (_event, linkId) =>
 ```
 
 * 获取邀请链接详情
@@ -323,10 +348,10 @@ ipcMain.handle('org:get-invitation-link', async (_event, linkId) =>
 
 ---
 
-## ipcMain.handle('org:revoke-invitation-link', async (_event, linkId) =>
+## safeHandle("org:revoke-invitation-link", async (_event, linkId) =>
 
 ```javascript
-ipcMain.handle('org:revoke-invitation-link', async (_event, linkId) =>
+safeHandle("org:revoke-invitation-link", async (_event, linkId) =>
 ```
 
 * 撤销邀请链接
@@ -334,10 +359,10 @@ ipcMain.handle('org:revoke-invitation-link', async (_event, linkId) =>
 
 ---
 
-## ipcMain.handle('org:delete-invitation-link', async (_event, linkId) =>
+## safeHandle("org:delete-invitation-link", async (_event, linkId) =>
 
 ```javascript
-ipcMain.handle('org:delete-invitation-link', async (_event, linkId) =>
+safeHandle("org:delete-invitation-link", async (_event, linkId) =>
 ```
 
 * 删除邀请链接
@@ -345,10 +370,10 @@ ipcMain.handle('org:delete-invitation-link', async (_event, linkId) =>
 
 ---
 
-## ipcMain.handle('org:get-invitation-link-stats', async (_event, orgId) =>
+## safeHandle("org:get-invitation-link-stats", async (_event, orgId) =>
 
 ```javascript
-ipcMain.handle('org:get-invitation-link-stats', async (_event, orgId) =>
+safeHandle("org:get-invitation-link-stats", async (_event, orgId) =>
 ```
 
 * 获取邀请链接统计信息
@@ -356,10 +381,10 @@ ipcMain.handle('org:get-invitation-link-stats', async (_event, orgId) =>
 
 ---
 
-## ipcMain.handle('org:copy-invitation-link', async (_event, invitationUrl) =>
+## safeHandle("org:copy-invitation-link", async (_event, invitationUrl) =>
 
 ```javascript
-ipcMain.handle('org:copy-invitation-link', async (_event, invitationUrl) =>
+safeHandle("org:copy-invitation-link", async (_event, invitationUrl) =>
 ```
 
 * 复制邀请链接到剪贴板
@@ -367,10 +392,10 @@ ipcMain.handle('org:copy-invitation-link', async (_event, invitationUrl) =>
 
 ---
 
-## ipcMain.handle('org:generate-invitation-qrcode', async (_event, linkId, options) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:generate-invitation-qrcode', async (_event, linkId, options) =>
+ipcMain.handle(
 ```
 
 * 为邀请链接生成QR码
@@ -378,10 +403,10 @@ ipcMain.handle('org:generate-invitation-qrcode', async (_event, linkId, options)
 
 ---
 
-## ipcMain.handle('org:generate-did-invitation-qrcode', async (_event, invitationId, options) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:generate-did-invitation-qrcode', async (_event, invitationId, options) =>
+ipcMain.handle(
 ```
 
 * 为DID邀请生成QR码
@@ -389,10 +414,10 @@ ipcMain.handle('org:generate-did-invitation-qrcode', async (_event, invitationId
 
 ---
 
-## ipcMain.handle('org:generate-batch-invitation-qrcodes', async (_event, orgId, options) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:generate-batch-invitation-qrcodes', async (_event, orgId, options) =>
+ipcMain.handle(
 ```
 
 * 批量生成邀请QR码
@@ -400,10 +425,10 @@ ipcMain.handle('org:generate-batch-invitation-qrcodes', async (_event, orgId, op
 
 ---
 
-## ipcMain.handle('org:parse-invitation-qrcode', async (_event, qrData) =>
+## safeHandle("org:parse-invitation-qrcode", async (_event, qrData) =>
 
 ```javascript
-ipcMain.handle('org:parse-invitation-qrcode', async (_event, qrData) =>
+safeHandle("org:parse-invitation-qrcode", async (_event, qrData) =>
 ```
 
 * 解析邀请QR码
@@ -411,10 +436,10 @@ ipcMain.handle('org:parse-invitation-qrcode', async (_event, qrData) =>
 
 ---
 
-## ipcMain.handle('org:download-qrcode', async (_event, qrCodeDataURL, filename) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:download-qrcode', async (_event, qrCodeDataURL, filename) =>
+ipcMain.handle(
 ```
 
 * 下载QR码图片
@@ -422,10 +447,10 @@ ipcMain.handle('org:download-qrcode', async (_event, qrCodeDataURL, filename) =>
 
 ---
 
-## ipcMain.handle('org:get-roles', async (_event, orgId) =>
+## safeHandle("org:get-roles", async (_event, orgId) =>
 
 ```javascript
-ipcMain.handle('org:get-roles', async (_event, orgId) =>
+safeHandle("org:get-roles", async (_event, orgId) =>
 ```
 
 * 获取组织所有角色
@@ -433,10 +458,10 @@ ipcMain.handle('org:get-roles', async (_event, orgId) =>
 
 ---
 
-## ipcMain.handle('org:get-role', async (_event, roleId) =>
+## safeHandle("org:get-role", async (_event, roleId) =>
 
 ```javascript
-ipcMain.handle('org:get-role', async (_event, roleId) =>
+safeHandle("org:get-role", async (_event, roleId) =>
 ```
 
 * 获取单个角色
@@ -444,10 +469,10 @@ ipcMain.handle('org:get-role', async (_event, roleId) =>
 
 ---
 
-## ipcMain.handle('org:create-custom-role', async (_event, orgId, roleData, creatorDID) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:create-custom-role', async (_event, orgId, roleData, creatorDID) =>
+ipcMain.handle(
 ```
 
 * 创建自定义角色
@@ -455,10 +480,10 @@ ipcMain.handle('org:create-custom-role', async (_event, orgId, roleData, creator
 
 ---
 
-## ipcMain.handle('org:update-role', async (_event, roleId, updates, updaterDID) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('org:update-role', async (_event, roleId, updates, updaterDID) =>
+ipcMain.handle(
 ```
 
 * 更新角色
@@ -466,10 +491,10 @@ ipcMain.handle('org:update-role', async (_event, roleId, updates, updaterDID) =>
 
 ---
 
-## ipcMain.handle('org:delete-role', async (_event, roleId, deleterDID) =>
+## safeHandle("org:delete-role", async (_event, roleId, deleterDID) =>
 
 ```javascript
-ipcMain.handle('org:delete-role', async (_event, roleId, deleterDID) =>
+safeHandle("org:delete-role", async (_event, roleId, deleterDID) =>
 ```
 
 * 删除角色
@@ -477,10 +502,10 @@ ipcMain.handle('org:delete-role', async (_event, roleId, deleterDID) =>
 
 ---
 
-## ipcMain.handle('org:get-all-permissions', async (_event) =>
+## safeHandle("org:get-all-permissions", async (_event) =>
 
 ```javascript
-ipcMain.handle('org:get-all-permissions', async (_event) =>
+safeHandle("org:get-all-permissions", async (_event) =>
 ```
 
 * 获取所有可用权限列表
@@ -488,10 +513,10 @@ ipcMain.handle('org:get-all-permissions', async (_event) =>
 
 ---
 
-## ipcMain.handle('org:get-activities', async (_event, options) =>
+## safeHandle("org:get-activities", async (_event, options) =>
 
 ```javascript
-ipcMain.handle('org:get-activities', async (_event, options) =>
+safeHandle("org:get-activities", async (_event, options) =>
 ```
 
 * 获取组织活动日志
@@ -499,10 +524,10 @@ ipcMain.handle('org:get-activities', async (_event, options) =>
 
 ---
 
-## ipcMain.handle('org:export-activities', async (_event, options) =>
+## safeHandle("org:export-activities", async (_event, options) =>
 
 ```javascript
-ipcMain.handle('org:export-activities', async (_event, options) =>
+safeHandle("org:export-activities", async (_event, options) =>
 ```
 
 * 导出组织活动日志
@@ -510,10 +535,10 @@ ipcMain.handle('org:export-activities', async (_event, options) =>
 
 ---
 
-## ipcMain.handle('org:get-knowledge-items', async (_event, params) =>
+## safeHandle("org:get-knowledge-items", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('org:get-knowledge-items', async (_event, params) =>
+safeHandle("org:get-knowledge-items", async (_event, params) =>
 ```
 
 * 获取组织知识列表
@@ -521,10 +546,10 @@ ipcMain.handle('org:get-knowledge-items', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('org:create-knowledge', async (_event, params) =>
+## safeHandle("org:create-knowledge", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('org:create-knowledge', async (_event, params) =>
+safeHandle("org:create-knowledge", async (_event, params) =>
 ```
 
 * 创建组织知识
@@ -532,10 +557,10 @@ ipcMain.handle('org:create-knowledge', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('org:delete-knowledge', async (_event, params) =>
+## safeHandle("org:delete-knowledge", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('org:delete-knowledge', async (_event, params) =>
+safeHandle("org:delete-knowledge", async (_event, params) =>
 ```
 
 * 删除组织知识

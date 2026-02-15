@@ -1,8 +1,8 @@
 # mcp-tool-adapter
 
-**Source**: `src\main\mcp\mcp-tool-adapter.js`
+**Source**: `src/main/mcp/mcp-tool-adapter.js`
 
-**Generated**: 2026-01-27T06:44:03.842Z
+**Generated**: 2026-02-15T07:37:13.816Z
 
 ---
 

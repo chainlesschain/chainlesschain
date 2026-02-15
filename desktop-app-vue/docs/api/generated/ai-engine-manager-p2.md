@@ -1,8 +1,8 @@
 # ai-engine-manager-p2
 
-**Source**: `src\main\ai-engine\ai-engine-manager-p2.js`
+**Source**: `src/main/ai-engine/ai-engine-manager-p2.js`
 
-**Generated**: 2026-01-27T06:44:03.884Z
+**Generated**: 2026-02-15T07:37:13.872Z
 
 ---
 

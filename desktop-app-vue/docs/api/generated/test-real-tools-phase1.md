@@ -1,15 +1,15 @@
 # test-real-tools-phase1
 
-**Source**: `src\main\skill-tool-system\test-real-tools-phase1.js`
+**Source**: `src/main/skill-tool-system/test-real-tools-phase1.js`
 
-**Generated**: 2026-01-27T06:44:03.812Z
+**Generated**: 2026-02-15T07:37:13.780Z
 
 ---
 
-## process.env.USE_REAL_TOOLS = 'true';
+## process.env.USE_REAL_TOOLS = "true";
 
 ```javascript
-process.env.USE_REAL_TOOLS = 'true';
+process.env.USE_REAL_TOOLS = "true";
 ```
 
 * Phase 1 真实功能测试

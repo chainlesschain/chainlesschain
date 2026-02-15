@@ -1,8 +1,8 @@
 # intent-fusion
 
-**Source**: `src\main\ai-engine\intent-fusion.js`
+**Source**: `src/main/ai-engine/intent-fusion.js`
 
-**Generated**: 2026-01-27T06:44:03.878Z
+**Generated**: 2026-02-15T07:37:13.866Z
 
 ---
 
@@ -170,10 +170,10 @@ _parseLLMFusionResponse(response)
 
 ---
 
-## async _recordFusion(sessionId, originalIntents, fusedIntents, strategy, context)
+## async _recordFusion(
 
 ```javascript
-async _recordFusion(sessionId, originalIntents, fusedIntents, strategy, context)
+async _recordFusion(
 ```
 
 * 记录融合历史到数据库

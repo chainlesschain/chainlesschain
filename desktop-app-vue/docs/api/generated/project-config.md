@@ -1,8 +1,8 @@
 # project-config
 
-**Source**: `src\main\project\project-config.js`
+**Source**: `src/main/project/project-config.js`
 
-**Generated**: 2026-01-27T06:44:03.827Z
+**Generated**: 2026-02-15T07:37:13.799Z
 
 ---
 

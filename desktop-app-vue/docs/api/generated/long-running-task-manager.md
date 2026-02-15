@@ -1,8 +1,8 @@
 # long-running-task-manager
 
-**Source**: `src\main\ai-engine\cowork\long-running-task-manager.js`
+**Source**: `src/main/ai-engine/cowork/long-running-task-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.887Z
+**Generated**: 2026-02-15T07:37:13.875Z
 
 ---
 
@@ -140,7 +140,7 @@ async startTask(taskId)
 
 * 启动任务
    * @param {string} taskId - 任务 ID
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} 返回任务执行Promise
 
 ---
 
@@ -376,6 +376,54 @@ getStats()
 
 * 获取统计信息
    * @returns {Object}
+
+---
+
+## getTask(taskId)
+
+```javascript
+getTask(taskId)
+```
+
+* 获取任务（别名：getTaskStatus）
+   * @param {string} taskId - 任务ID
+   * @returns {object} 任务对象
+
+---
+
+## getCheckpoints(taskId)
+
+```javascript
+getCheckpoints(taskId)
+```
+
+* 获取任务检查点列表
+   * @param {string} taskId - 任务ID
+   * @returns {Array} 检查点列表
+
+---
+
+## async retryTask(taskId)
+
+```javascript
+async retryTask(taskId)
+```
+
+* 重试失败的任务
+   * @param {string} taskId - 任务ID
+   * @returns {Promise<void>}
+
+---
+
+## listTasks(filters =
+
+```javascript
+listTasks(filters =
+```
+
+* 列出所有任务
+   * @param {object} filters - 筛选条件
+   * @returns {Array} 任务列表
 
 ---
 

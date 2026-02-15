@@ -1,8 +1,8 @@
 # performance-monitor
 
-**Source**: `src\main\monitoring\performance-monitor.js`
+**Source**: `src/main/monitoring/performance-monitor.js`
 
-**Generated**: 2026-01-27T06:44:03.837Z
+**Generated**: 2026-02-15T07:37:13.812Z
 
 ---
 
@@ -35,10 +35,10 @@ async initDatabase()
 
 ---
 
-## async recordPhase(phase, duration, metadata =
+## async recordPhase(
 
 ```javascript
-async recordPhase(phase, duration, metadata =
+async recordPhase(
 ```
 
 * 记录阶段性能

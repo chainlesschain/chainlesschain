@@ -1,8 +1,8 @@
 # cowork-performance.bench
 
-**Source**: `src\main\cowork\__tests__\benchmarks\cowork-performance.bench.js`
+**Source**: `src/main/cowork/__tests__/benchmarks/cowork-performance.bench.js`
 
-**Generated**: 2026-01-27T06:44:03.865Z
+**Generated**: 2026-02-15T07:37:13.843Z
 
 ---
 

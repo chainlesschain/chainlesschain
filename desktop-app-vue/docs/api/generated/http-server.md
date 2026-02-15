@@ -1,8 +1,8 @@
 # http-server
 
-**Source**: `src\main\native-messaging\http-server.js`
+**Source**: `src/main/mcp/sdk/http-server.js`
 
-**Generated**: 2026-01-27T06:44:03.837Z
+**Generated**: 2026-02-15T07:37:13.818Z
 
 ---
 
@@ -12,168 +12,584 @@
 const
 ```
 
-* ChainlessChain Native Messaging HTTP Server
- * 为 Native Messaging Host 提供 HTTP API，用于接收浏览器扩展的剪藏请求
+* MCP HTTP+SSE Server
+ *
+ * HTTP+Server-Sent Events based MCP server implementation.
+ * Provides a complete server that handles MCP protocol messages over
+ * HTTP POST requests and sends notifications/responses via SSE.
+ *
+ * Features:
+ * - JSON-RPC 2.0 message handling
+ * - SSE connection management for real-time notifications
+ * - CORS support for cross-origin access
+ * - Pluggable authentication (bearer, api-key, basic, custom)
+ * - Request middleware pipeline
+ * - Lifecycle hooks (onStart, onStop, onError, onToolCall)
+ * - Graceful shutdown with connection draining
+ *
+ * @module mcp/sdk/http-server
 
 ---
 
-## start(port = DEFAULT_PORT)
+## const MCP_PROTOCOL_VERSION = '2024-11-05';
 
 ```javascript
-start(port = DEFAULT_PORT)
+const MCP_PROTOCOL_VERSION = '2024-11-05';
 ```
 
-* 启动服务器
+* MCP protocol version supported by this server
+ * @constant
 
 ---
 
-## stop()
+## const JSON_RPC_ERRORS =
 
 ```javascript
-stop()
+const JSON_RPC_ERRORS =
 ```
 
-* 停止服务器
+* JSON-RPC 2.0 error codes
+ * @constant
 
 ---
 
-## async handleRequest(req, res)
+## const ServerState =
 
 ```javascript
-async handleRequest(req, res)
+const ServerState =
 ```
 
-* 处理请求
+* Server states
+ * @constant
 
 ---
 
-## handlePingRequest(req, res)
+## class MCPHttpServer extends EventEmitter
 
 ```javascript
-handlePingRequest(req, res)
+class MCPHttpServer extends EventEmitter
 ```
 
-* 处理 Ping 请求
+* HTTP+SSE MCP server implementation.
+ *
+ * Accepts tool/resource/prompt registrations (typically from MCPServerBuilder)
+ * and serves them over HTTP with SSE for notifications.
 
 ---
 
-## async handleClipRequest(req, res)
+## constructor(config =
 
 ```javascript
-async handleClipRequest(req, res)
+constructor(config =
 ```
 
-* 处理剪藏请求
+* Create a new MCPHttpServer
+   *
+   * @param {Object} config - Server configuration
+   * @param {string} config.name - Server name
+   * @param {string} config.version - Server version
+   * @param {string} [config.description] - Server description
+   * @param {Map<string, Object>} config.tools - Registered tools (name -> definition)
+   * @param {Map<string, Object>} config.resources - Registered resources (uri -> definition)
+   * @param {Map<string, Object>} config.prompts - Registered prompts (name -> definition)
+   * @param {number} [config.port=3100] - HTTP port
+   * @param {Object} [config.auth] - Authentication configuration
+   * @param {Function[]} [config.middleware] - Middleware functions
+   * @param {Object} [config.hooks] - Lifecycle hooks
 
 ---
 
-## async handleGenerateTagsRequest(req, res)
+## this.name = config.name || 'mcp-http-server';
 
 ```javascript
-async handleGenerateTagsRequest(req, res)
+this.name = config.name || 'mcp-http-server';
 ```
 
-* 处理AI标签生成请求
+@type {string} Server name
 
 ---
 
-## async handleGenerateSummaryRequest(req, res)
+## this.version = config.version || '1.0.0';
 
 ```javascript
-async handleGenerateSummaryRequest(req, res)
+this.version = config.version || '1.0.0';
 ```
 
-* 处理AI摘要生成请求
+@type {string} Server version
 
 ---
 
-## extractSimpleTags(data)
+## this.description = config.description || '';
 
 ```javascript
-extractSimpleTags(data)
+this.description = config.description || '';
 ```
 
-* 简单的标签提取（fallback）
+@type {string} Server description
 
 ---
 
-## extractSimpleSummary(content)
+## this.tools = config.tools || new Map();
 
 ```javascript
-extractSimpleSummary(content)
+this.tools = config.tools || new Map();
 ```
 
-* 简单的摘要提取（fallback）
+@type {Map<string, Object>} Registered tools
 
 ---
 
-## async handleUploadScreenshotRequest(req, res)
+## this.resources = config.resources || new Map();
 
 ```javascript
-async handleUploadScreenshotRequest(req, res)
+this.resources = config.resources || new Map();
 ```
 
-* 处理截图上传请求
+@type {Map<string, Object>} Registered resources
 
 ---
 
-## readRequestBody(req)
+## this.prompts = config.prompts || new Map();
 
 ```javascript
-readRequestBody(req)
+this.prompts = config.prompts || new Map();
 ```
 
-* 读取请求体
+@type {Map<string, Object>} Registered prompts
 
 ---
 
-## sendSuccess(res, data)
+## this.port = config.port || 3100;
 
 ```javascript
-sendSuccess(res, data)
+this.port = config.port || 3100;
 ```
 
-* 发送成功响应
+@type {number} HTTP port
 
 ---
 
-## sendError(res, statusCode, error)
+## this.authConfig = config.auth || null;
 
 ```javascript
-sendError(res, statusCode, error)
+this.authConfig = config.auth || null;
 ```
 
-* 发送错误响应
+@type {Object|null} Authentication config
 
 ---
 
-## async handleBatchClipRequest(req, res)
+## this.middleware = config.middleware || [];
 
 ```javascript
-async handleBatchClipRequest(req, res)
+this.middleware = config.middleware || [];
 ```
 
-* 处理批量剪藏请求
+@type {Function[]} Middleware pipeline
 
 ---
 
-## async handleSearchRequest(req, res)
+## this.hooks = config.hooks ||
 
 ```javascript
-async handleSearchRequest(req, res)
+this.hooks = config.hooks ||
 ```
 
-* 处理搜索请求
+@type {Object} Lifecycle hooks
 
 ---
 
-## async handleStatsRequest(req, res)
+## this.server = null;
 
 ```javascript
-async handleStatsRequest(req, res)
+this.server = null;
 ```
 
-* 处理统计请求
+@type {http.Server|null} HTTP server instance
+
+---
+
+## this.state = ServerState.STOPPED;
+
+```javascript
+this.state = ServerState.STOPPED;
+```
+
+@type {string} Current server state
+
+---
+
+## this.sseClients = new Map();
+
+```javascript
+this.sseClients = new Map();
+```
+
+@type {Map<string, Object>} Active SSE connections (clientId -> response)
+
+---
+
+## this.nextRequestId = 1;
+
+```javascript
+this.nextRequestId = 1;
+```
+
+@type {number} Next JSON-RPC request ID
+
+---
+
+## this.stats =
+
+```javascript
+this.stats =
+```
+
+@type {Object} Server statistics
+
+---
+
+## async start()
+
+```javascript
+async start()
+```
+
+* Start the HTTP+SSE server
+   *
+   * @returns {Promise<void>} Resolves when server is listening
+   * @throws {Error} If server fails to start
+
+---
+
+## async stop()
+
+```javascript
+async stop()
+```
+
+* Stop the HTTP+SSE server gracefully
+   *
+   * Closes all SSE connections and stops the HTTP server.
+   *
+   * @returns {Promise<void>} Resolves when server is stopped
+
+---
+
+## handleRequest(req, res)
+
+```javascript
+handleRequest(req, res)
+```
+
+* Handle an incoming HTTP request
+   *
+   * Routes requests to appropriate handlers based on URL path and method.
+   *
+   * @param {http.IncomingMessage} req - HTTP request
+   * @param {http.ServerResponse} res - HTTP response
+
+---
+
+## handleSSE(req, res)
+
+```javascript
+handleSSE(req, res)
+```
+
+* Set up an SSE connection for real-time notifications
+   *
+   * @param {http.IncomingMessage} req - HTTP request
+   * @param {http.ServerResponse} res - HTTP response
+
+---
+
+## _handleJsonRpcRequest(req, res)
+
+```javascript
+_handleJsonRpcRequest(req, res)
+```
+
+* Handle an incoming JSON-RPC request
+   *
+   * @private
+   * @param {http.IncomingMessage} req - HTTP request
+   * @param {http.ServerResponse} res - HTTP response
+
+---
+
+## async _routeMethod(message)
+
+```javascript
+async _routeMethod(message)
+```
+
+* Route a JSON-RPC method to the appropriate handler
+   *
+   * @private
+   * @param {Object} message - JSON-RPC message
+   * @returns {Promise<Object>} Method result
+
+---
+
+## handleInitialize(params)
+
+```javascript
+handleInitialize(params)
+```
+
+* Handle the MCP initialize handshake
+   *
+   * @param {Object} params - Initialize parameters
+   * @returns {Object} Server capabilities
+
+---
+
+## handleListTools(params)
+
+```javascript
+handleListTools(params)
+```
+
+* Handle tools/list request
+   *
+   * @param {Object} [params] - List parameters (pagination, etc.)
+   * @returns {Object} Tool list response
+
+---
+
+## async handleToolCall(toolName, params)
+
+```javascript
+async handleToolCall(toolName, params)
+```
+
+* Execute a tool handler
+   *
+   * @param {string} toolName - Name of the tool to call
+   * @param {Object} params - Tool parameters
+   * @returns {Promise<Object>} Tool execution result in MCP format
+
+---
+
+## handleListResources(params)
+
+```javascript
+handleListResources(params)
+```
+
+* Handle resources/list request
+   *
+   * @param {Object} [params] - List parameters
+   * @returns {Object} Resource list response
+
+---
+
+## async handleResourceRead(uri)
+
+```javascript
+async handleResourceRead(uri)
+```
+
+* Read a resource by URI
+   *
+   * @param {string} uri - Resource URI
+   * @returns {Promise<Object>} Resource content
+
+---
+
+## handleListPrompts(params)
+
+```javascript
+handleListPrompts(params)
+```
+
+* Handle prompts/list request
+   *
+   * @param {Object} [params] - List parameters
+   * @returns {Object} Prompt list response
+
+---
+
+## async handlePromptGet(promptName, params)
+
+```javascript
+async handlePromptGet(promptName, params)
+```
+
+* Get a prompt by name with parameters
+   *
+   * @param {string} promptName - Prompt name
+   * @param {Object} params - Prompt parameters
+   * @returns {Promise<Object>} Prompt content with messages
+
+---
+
+## _broadcastSSE(message)
+
+```javascript
+_broadcastSSE(message)
+```
+
+* Broadcast a message to all connected SSE clients
+   *
+   * @param {Object} message - Message to broadcast
+
+---
+
+## sendNotification(method, params)
+
+```javascript
+sendNotification(method, params)
+```
+
+* Send a notification to all SSE clients
+   *
+   * @param {string} method - Notification method name
+   * @param {Object} params - Notification parameters
+
+---
+
+## _authenticate(req)
+
+```javascript
+_authenticate(req)
+```
+
+* Authenticate an incoming request
+   *
+   * @private
+   * @param {http.IncomingMessage} req - HTTP request
+   * @returns {Object} Authentication result: { authenticated, reason? }
+
+---
+
+## _sendJsonRpcResponse(res, id, result)
+
+```javascript
+_sendJsonRpcResponse(res, id, result)
+```
+
+* Send a JSON-RPC success response
+   *
+   * @private
+   * @param {http.ServerResponse} res - HTTP response
+   * @param {number|string} id - Request ID
+   * @param {Object} result - Result data
+
+---
+
+## _sendJsonRpcError(res, id, code, message, data)
+
+```javascript
+_sendJsonRpcError(res, id, code, message, data)
+```
+
+* Send a JSON-RPC error response
+   *
+   * @private
+   * @param {http.ServerResponse} res - HTTP response
+   * @param {number|string|null} id - Request ID
+   * @param {number} code - JSON-RPC error code
+   * @param {string} message - Error message
+   * @param {Object} [data] - Additional error data
+
+---
+
+## _sendHttpError(res, statusCode, statusMessage, detail)
+
+```javascript
+_sendHttpError(res, statusCode, statusMessage, detail)
+```
+
+* Send an HTTP error response (non-JSON-RPC)
+   *
+   * @private
+   * @param {http.ServerResponse} res - HTTP response
+   * @param {number} statusCode - HTTP status code
+   * @param {string} statusMessage - HTTP status message
+   * @param {string} [detail] - Additional detail
+
+---
+
+## _setCorsHeaders(res)
+
+```javascript
+_setCorsHeaders(res)
+```
+
+* Set CORS headers on response
+   *
+   * @private
+   * @param {http.ServerResponse} res - HTTP response
+
+---
+
+## _handleHealthCheck(req, res)
+
+```javascript
+_handleHealthCheck(req, res)
+```
+
+* Handle health check request
+   *
+   * @private
+   * @param {http.IncomingMessage} req - HTTP request
+   * @param {http.ServerResponse} res - HTTP response
+
+---
+
+## getStats()
+
+```javascript
+getStats()
+```
+
+* Get server statistics
+   *
+   * @returns {Object} Server statistics
+
+---
+
+## _formatToolResult(result)
+
+```javascript
+_formatToolResult(result)
+```
+
+* Format a tool result into MCP content format
+   *
+   * @private
+   * @param {*} result - Raw tool result
+   * @returns {Object} MCP-formatted tool result
+
+---
+
+## async _runHooks(hookName, ...args)
+
+```javascript
+async _runHooks(hookName, ...args)
+```
+
+* Run lifecycle hooks
+   *
+   * @private
+   * @param {string} hookName - Hook name (onStart, onStop, etc.)
+   * @param {...*} args - Arguments to pass to hook functions
+
+---
+
+## async _runMiddleware(message)
+
+```javascript
+async _runMiddleware(message)
+```
+
+* Run the middleware pipeline
+   *
+   * @private
+   * @param {Object} message - JSON-RPC message
+   * @returns {Promise<Object|null>} Middleware result (null if all passed)
 
 ---
 

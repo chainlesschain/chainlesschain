@@ -1,8 +1,8 @@
 # ocr-worker-pool
 
-**Source**: `src\main\image\ocr-worker-pool.js`
+**Source**: `src/main/image/ocr-worker-pool.js`
 
-**Generated**: 2026-01-27T06:44:03.854Z
+**Generated**: 2026-02-15T07:37:13.830Z
 
 ---
 

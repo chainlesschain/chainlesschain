@@ -1,8 +1,8 @@
 # file-transfer-handler
 
-**Source**: `src\main\remote\handlers\file-transfer-handler.js`
+**Source**: `src/main/remote/handlers/file-transfer-handler.js`
 
-**Generated**: 2026-01-27T06:44:03.823Z
+**Generated**: 2026-02-15T07:37:13.793Z
 
 ---
 
@@ -144,6 +144,136 @@ async cleanupExpiredTransfers(maxAge = 24 * 60 * 60 * 1000)
 ```
 
 * 清理过期传输任务（可定期调用）
+
+---
+
+## async readFile(params, context)
+
+```javascript
+async readFile(params, context)
+```
+
+* 读取文件内容
+
+---
+
+## async writeFile(params, context)
+
+```javascript
+async writeFile(params, context)
+```
+
+* 写入文件内容
+
+---
+
+## async listDirectory(params, context)
+
+```javascript
+async listDirectory(params, context)
+```
+
+* 列出目录内容
+
+---
+
+## async deleteFile(params, context)
+
+```javascript
+async deleteFile(params, context)
+```
+
+* 删除文件或目录
+
+---
+
+## async moveFile(params, context)
+
+```javascript
+async moveFile(params, context)
+```
+
+* 移动文件
+
+---
+
+## async copyFile(params, context)
+
+```javascript
+async copyFile(params, context)
+```
+
+* 复制文件
+
+---
+
+## async getFileStats(params, context)
+
+```javascript
+async getFileStats(params, context)
+```
+
+* 获取文件统计信息
+
+---
+
+## async fileExists(params, context)
+
+```javascript
+async fileExists(params, context)
+```
+
+* 检查文件是否存在
+
+---
+
+## async createFile(params, context)
+
+```javascript
+async createFile(params, context)
+```
+
+* 创建文件（语义更清晰的 writeFile 别名）
+   *
+   * @param {Object} params - 参数
+   * @param {string} params.filePath - 文件路径
+   * @param {string} params.content - 文件内容
+   * @param {string} params.encoding - 编码（默认 utf8）
+   * @param {boolean} params.createDir - 是否自动创建目录（默认 true）
+
+---
+
+## async makeDirectory(params, context)
+
+```javascript
+async makeDirectory(params, context)
+```
+
+* 创建目录
+   *
+   * @param {Object} params - 参数
+   * @param {string} params.dirPath - 目录路径
+   * @param {boolean} params.recursive - 是否递归创建（默认 true）
+
+---
+
+## _resolvePath(filePath)
+
+```javascript
+_resolvePath(filePath)
+```
+
+* 解析文件路径（安全性检查）
+
+---
+
+## _getBasePath()
+
+```javascript
+_getBasePath()
+```
+
+* 获取基础路径
 
 ---
 

@@ -1,8 +1,8 @@
 # openai-client
 
-**Source**: `src\main\llm\openai-client.js`
+**Source**: `src/main/llm/openai-client.js`
 
-**Generated**: 2026-01-27T06:44:03.847Z
+**Generated**: 2026-02-15T07:37:13.822Z
 
 ---
 
@@ -105,6 +105,18 @@ async getModel(modelId)
 
 * 获取模型信息
    * @param {string} modelId - 模型ID
+
+---
+
+## _formatAPIError(error)
+
+```javascript
+_formatAPIError(error)
+```
+
+* 格式化 API 错误为用户友好的消息
+   * @param {Error} error - axios 错误对象
+   * @returns {string} 用户友好的错误消息
 
 ---
 

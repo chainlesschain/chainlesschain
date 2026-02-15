@@ -1,8 +1,8 @@
 # did-updater
 
-**Source**: `src\main\did\did-updater.js`
+**Source**: `src/main/did/did-updater.js`
 
-**Generated**: 2026-01-27T06:44:03.862Z
+**Generated**: 2026-02-15T07:37:13.838Z
 
 ---
 

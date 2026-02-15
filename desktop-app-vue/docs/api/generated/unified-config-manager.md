@@ -1,8 +1,8 @@
 # unified-config-manager
 
-**Source**: `src\main\config\unified-config-manager.js`
+**Source**: `src/main/config/unified-config-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.867Z
+**Generated**: 2026-02-15T07:37:13.843Z
 
 ---
 

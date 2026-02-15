@@ -1,8 +1,8 @@
 # file-handler
 
-**Source**: `src\main\utils\file-handler.js`
+**Source**: `src/main/browser/actions/file-handler.js`
 
-**Generated**: 2026-01-27T06:44:03.791Z
+**Generated**: 2026-02-15T07:37:13.851Z
 
 ---
 
@@ -12,129 +12,249 @@
 const
 ```
 
-* 文件处理工具模块 - 大文件性能优化
- * 提供流式处理、分块读写、内存管理等功能
+* FileHandler - 文件处理管理器
+ *
+ * 处理浏览器自动化中的文件操作：
+ * - 下载跟踪和管理
+ * - 上传处理
+ * - 文件类型验证
+ * - 下载进度监控
+ *
+ * @module browser/actions/file-handler
+ * @author ChainlessChain Team
+ * @since v0.33.0
 
 ---
 
-## async isLargeFile(filePath)
+## const DownloadState =
 
 ```javascript
-async isLargeFile(filePath)
+const DownloadState =
 ```
 
-* 检查是否为大文件
+* 下载状态
 
 ---
 
-## async getFileSize(filePath)
+## const FileCategory =
 
 ```javascript
-async getFileSize(filePath)
+const FileCategory =
 ```
 
-* 获取文件大小
+* 文件类型分类
 
 ---
 
-## checkAvailableMemory()
+## const FILE_TYPE_MAP =
 
 ```javascript
-checkAvailableMemory()
+const FILE_TYPE_MAP =
 ```
 
-* 检查可用内存
+* 文件类型映射
 
 ---
 
-## async readFileStream(filePath, onChunk, options =
+## constructor(browserEngine = null, config =
 
 ```javascript
-async readFileStream(filePath, onChunk, options =
+constructor(browserEngine = null, config =
 ```
 
-* 流式读取文件
-   * @param {string} filePath - 文件路径
-   * @param {Function} onChunk - 处理每个chunk的回调函数
+* @param {Object} browserEngine - Browser engine instance
+   * @param {Object} config - Configuration options
+   * @param {Object} [dependencies] - Optional dependency injection for testing
+
+---
+
+## setBrowserEngine(browserEngine)
+
+```javascript
+setBrowserEngine(browserEngine)
+```
+
+* 设置浏览器引擎
+   * @param {Object} browserEngine
+
+---
+
+## setDownloadDir(dir)
+
+```javascript
+setDownloadDir(dir)
+```
+
+* 设置下载目录
+   * @param {string} dir - 下载目录
+   * @returns {Object}
+
+---
+
+## async startDownload(targetId, url, options =
+
+```javascript
+async startDownload(targetId, url, options =
+```
+
+* 开始下载
+   * @param {string} targetId - 标签页 ID
+   * @param {string} url - 下载 URL
    * @param {Object} options - 选项
-   * @returns {Promise<Object>} 读取结果
+   * @returns {Promise<Object>}
 
 ---
 
-## async writeFileStream(filePath, dataSource, options =
+## async _downloadViaPage(download, options)
 
 ```javascript
-async writeFileStream(filePath, dataSource, options =
+async _downloadViaPage(download, options)
 ```
 
-* 流式写入文件
+* 通过页面下载
+   * @private
+
+---
+
+## async _downloadViaFetch(download, options)
+
+```javascript
+async _downloadViaFetch(download, options)
+```
+
+* 通过 fetch 下载
+   * @private
+
+---
+
+## cancelDownload(downloadId)
+
+```javascript
+cancelDownload(downloadId)
+```
+
+* 取消下载
+   * @param {string} downloadId - 下载 ID
+   * @returns {Object}
+
+---
+
+## getDownload(downloadId)
+
+```javascript
+getDownload(downloadId)
+```
+
+* 获取下载状态
+   * @param {string} downloadId - 下载 ID
+   * @returns {Object}
+
+---
+
+## listDownloads(filter =
+
+```javascript
+listDownloads(filter =
+```
+
+* 列出下载
+   * @param {Object} filter - 过滤条件
+   * @returns {Array}
+
+---
+
+## recordUpload(targetId, selector, files)
+
+```javascript
+recordUpload(targetId, selector, files)
+```
+
+* 记录上传
+   * @param {string} targetId - 标签页 ID
+   * @param {string} selector - 上传元素选择器
+   * @param {Array} files - 文件信息列表
+   * @returns {Object}
+
+---
+
+## getUploads(limit = 20)
+
+```javascript
+getUploads(limit = 20)
+```
+
+* 获取上传历史
+   * @param {number} limit - 返回数量
+   * @returns {Array}
+
+---
+
+## validateFile(filePath, rules =
+
+```javascript
+validateFile(filePath, rules =
+```
+
+* 验证文件
    * @param {string} filePath - 文件路径
-   * @param {AsyncIterable|Array} dataSource - 数据源（支持异步迭代器或数组）
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 写入结果
+   * @param {Object} rules - 验证规则
+   * @returns {Object}
 
 ---
 
-## async copyLargeFile(sourcePath, destPath, options =
+## getFileInfo(filePath)
 
 ```javascript
-async copyLargeFile(sourcePath, destPath, options =
+getFileInfo(filePath)
 ```
 
-* 复制大文件（使用流）
-
----
-
-## async processInChunks(filePath, processor, options =
-
-```javascript
-async processInChunks(filePath, processor, options =
-```
-
-* 分块处理文件
+* 获取文件信息
    * @param {string} filePath - 文件路径
-   * @param {Function} processor - 处理函数
-   * @param {Object} options - 选项
+   * @returns {Object}
 
 ---
 
-## async processBatch(files, processor, options =
+## _parseUrl(url)
 
 ```javascript
-async processBatch(files, processor, options =
+_parseUrl(url)
 ```
 
-* 批量处理文件（带并发控制）
+* 解析 URL
+   * @private
 
 ---
 
-## async processWithRetry(file, processor, options =
+## _generateUniqueName(dir, filename)
 
 ```javascript
-async processWithRetry(file, processor, options =
+_generateUniqueName(dir, filename)
 ```
 
-* 带重试的处理
+* 生成唯一文件名
+   * @private
 
 ---
 
-## async waitForMemory(timeout = 5000)
+## _getCategory(filename)
 
 ```javascript
-async waitForMemory(timeout = 5000)
+_getCategory(filename)
 ```
 
-* 等待内存释放
+* 获取文件分类
+   * @private
 
 ---
 
-## createTransformStream(transformFn)
+## _updateCategoryStats(category)
 
 ```javascript
-createTransformStream(transformFn)
+_updateCategoryStats(category)
 ```
 
-* 创建Transform流处理器
+* 更新分类统计
+   * @private
 
 ---
 
@@ -144,17 +264,30 @@ createTransformStream(transformFn)
 getStats()
 ```
 
-* 获取文件处理统计信息
+* 获取统计
+   * @returns {Object}
 
 ---
 
-## function getFileHandler(options)
+## resetStats()
 
 ```javascript
-function getFileHandler(options)
+resetStats()
 ```
 
-* 获取FileHandler单例
+* 重置统计
+
+---
+
+## cleanup(options =
+
+```javascript
+cleanup(options =
+```
+
+* 清理下载记录
+   * @param {Object} options - 清理选项
+   * @returns {Object}
 
 ---
 

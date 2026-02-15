@@ -1,8 +1,8 @@
 # external-device-file-manager
 
-**Source**: `src\main\file\external-device-file-manager.js`
+**Source**: `src/main/file/external-device-file-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.858Z
+**Generated**: 2026-02-15T07:37:13.835Z
 
 ---
 
@@ -406,7 +406,7 @@ async importToRAG(fileId, options =
    * @returns {boolean} return.success - 是否成功
    * @returns {string} return.fileId - 文件ID
    * @returns {string} return.fileName - 文件名
-   * @returns {string} [return.ragId] - RAG文档ID（TODO: 待实现）
+   * @returns {string} return.ragId - RAG文档ID
    *
    * @throws {Error} 文件不存在时抛出 "File not found"
    * @throws {Error} 文件拉取失败时抛出相应错误
@@ -449,9 +449,10 @@ async importToRAG(fileId, options =
    * - 支持语义搜索和AI问答
    *
    * **注意事项**:
-   * - 当前RAG集成为TODO状态，需要实现RAG管理器接口
+   * - RAG集成已完成，支持文本文件和部分二进制文件
    * - 大文件（>10MB）会自动分块处理
    * - 图片文件可能需要OCR识别（如已集成）
+   * - 二进制文件（如PDF）会使用元数据代替内容
 
 ---
 

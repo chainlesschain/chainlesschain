@@ -1,8 +1,8 @@
 # log-manager
 
-**Source**: `src\main\logging\log-manager.js`
+**Source**: `src/main/logging/log-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.845Z
+**Generated**: 2026-02-15T07:37:13.819Z
 
 ---
 

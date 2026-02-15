@@ -1,8 +1,8 @@
 # llm-integration
 
-**Source**: `src\main\cowork\integrations\llm-integration.js`
+**Source**: `src/main/cowork/integrations/llm-integration.js`
 
-**Generated**: 2026-01-27T06:44:03.866Z
+**Generated**: 2026-02-15T07:37:13.842Z
 
 ---
 

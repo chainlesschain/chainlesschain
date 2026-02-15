@@ -1,8 +1,8 @@
 # automation-manager
 
-**Source**: `src\main\project\automation-manager.js`
+**Source**: `src/main/project/automation-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.827Z
+**Generated**: 2026-02-15T07:37:13.800Z
 
 ---
 
@@ -189,6 +189,9 @@ matchesCondition(data, condition)
 ```
 
 * 条件匹配
+   * @param {Object} data - 要匹配的数据
+   * @param {Object} condition - 条件配置
+   * @returns {boolean} 是否匹配
 
 ---
 
@@ -199,6 +202,21 @@ calculateNextRun(ruleId)
 ```
 
 * 计算下次执行时间
+   * @param {string} ruleId - 规则ID
+   * @returns {number|null} 下次执行的时间戳（毫秒）
+
+---
+
+## getNextCronTime(cronExpression)
+
+```javascript
+getNextCronTime(cronExpression)
+```
+
+* 解析 cron 表达式并计算下次执行时间
+   * 支持标准 5 字段 cron: 分 时 日 月 周
+   * @param {string} cronExpression - cron 表达式
+   * @returns {number} 下次执行的时间戳
 
 ---
 

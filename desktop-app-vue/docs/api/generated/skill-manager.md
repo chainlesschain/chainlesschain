@@ -1,8 +1,8 @@
 # skill-manager
 
-**Source**: `src\main\skill-tool-system\skill-manager.js`
+**Source**: `src/main/skill-tool-system/skill-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.814Z
+**Generated**: 2026-02-15T07:37:13.781Z
 
 ---
 
@@ -131,10 +131,10 @@ async disableSkill(skillId)
 
 ---
 
-## async addToolToSkill(skillId, toolId, role = 'primary', priority = 0)
+## async addToolToSkill(skillId, toolId, role = "primary", priority = 0)
 
 ```javascript
-async addToolToSkill(skillId, toolId, role = 'primary', priority = 0)
+async addToolToSkill(skillId, toolId, role = "primary", priority = 0)
 ```
 
 * 添加工具到技能

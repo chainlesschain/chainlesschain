@@ -1,8 +1,8 @@
 # extended-tools
 
-**Source**: `src\main\ai-engine\extended-tools.js`
+**Source**: `src/main/ai-engine/extended-tools.js`
 
-**Generated**: 2026-01-27T06:44:03.880Z
+**Generated**: 2026-02-15T07:37:13.868Z
 
 ---
 
@@ -30,10 +30,10 @@ static registerAll(functionCaller)
 
 ---
 
-## static _formatDate(date, format = 'YYYY-MM-DD HH:mm:ss')
+## static _formatDate(date, format = "YYYY-MM-DD HH:mm:ss")
 
 ```javascript
-static _formatDate(date, format = 'YYYY-MM-DD HH:mm:ss')
+static _formatDate(date, format = "YYYY-MM-DD HH:mm:ss")
 ```
 
 * 格式化日期
