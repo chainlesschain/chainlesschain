@@ -133,7 +133,8 @@ class RemoteDesktopViewModel @Inject constructor(
                             )
                         }
 
-                        // 清空当前帧
+                        // 清空当前帧并回收内存
+                        _currentFrame.value?.recycle()
                         _currentFrame.value = null
                     },
                     onFailure = { error ->
@@ -359,6 +360,8 @@ class RemoteDesktopViewModel @Inject constructor(
                             val bitmap = decodeFrameToBitmap(frame.frameData)
 
                             if (bitmap != null) {
+                                // Recycle previous frame to prevent memory leak
+                                _currentFrame.value?.recycle()
                                 _currentFrame.value = bitmap
 
                                 // 更新统计
@@ -428,6 +431,8 @@ class RemoteDesktopViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         frameUpdateJob?.cancel()
+        _currentFrame.value?.recycle()
+        _currentFrame.value = null
     }
 }
 

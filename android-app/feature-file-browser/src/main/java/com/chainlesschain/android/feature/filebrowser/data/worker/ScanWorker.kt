@@ -136,6 +136,32 @@ class ScanWorker @AssistedInject constructor(
         }
     }
 
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        val channelId = "file_scan_progress"
+        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
+            as android.app.NotificationManager
+        if (notificationManager.getNotificationChannel(channelId) == null) {
+            val channel = android.app.NotificationChannel(
+                channelId,
+                "File Scan Progress",
+                android.app.NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Shows file scan progress"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val notification = androidx.core.app.NotificationCompat.Builder(applicationContext, channelId)
+            .setSmallIcon(android.R.drawable.ic_menu_search)
+            .setContentTitle("Scanning files")
+            .setContentText("Scanning media files in background...")
+            .setOngoing(true)
+            .setProgress(0, 0, true)
+            .build()
+
+        return ForegroundInfo(WORK_NAME_PERIODIC.hashCode(), notification)
+    }
+
     override suspend fun doWork(): Result {
         return try {
             Log.d(TAG, "Starting background scan")

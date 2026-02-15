@@ -78,7 +78,13 @@ class RemoteScreenshotViewModel @Inject constructor(
                 format = response.format
             )
 
-            _screenshots.update { listOf(item) + it.take(19) }
+            _screenshots.update { old ->
+                // Recycle bitmaps that will be dropped from history
+                if (old.size >= 5) {
+                    old.drop(4).forEach { it.bitmap.recycle() }
+                }
+                listOf(item) + old.take(4)
+            }
             _uiState.update {
                 it.copy(
                     isTakingScreenshot = false,
@@ -181,6 +187,12 @@ class RemoteScreenshotViewModel @Inject constructor(
 
     fun clearSaveSuccess() {
         _uiState.update { it.copy(saveSuccess = false) }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Recycle all bitmaps to prevent memory leaks
+        _screenshots.value.forEach { it.bitmap.recycle() }
     }
 
     private fun normalizeFormat(format: String): String {
