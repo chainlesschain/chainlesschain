@@ -449,7 +449,7 @@ interface SignalClient {
 
 class WebSocketSignalClient @Inject constructor(
     private val okHttpClient: okhttp3.OkHttpClient,
-    private val signalingConfig: com.chainlesschain.android.remote.config.SignalingConfig
+    private val signalingConfig: com.chainlesschain.android.core.p2p.config.SignalingConfig
 ) : SignalClient {
 
     private var webSocket: okhttp3.WebSocket? = null
@@ -503,15 +503,15 @@ class WebSocketSignalClient @Inject constructor(
                 }
 
                 override fun onFailure(webSocket: okhttp3.WebSocket, t: Throwable, response: okhttp3.Response?) {
-                    Timber.e(t, "WebSocket failed (attempt ${reconnectAttempts + 1}/${com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS})")
+                    Timber.e(t, "WebSocket failed (attempt ${reconnectAttempts + 1}/${com.chainlesschain.android.core.p2p.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS})")
                     isConnected = false
                     stopHeartbeat()
 
-                    if (reconnectAttempts < com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS) {
+                    if (reconnectAttempts < com.chainlesschain.android.core.p2p.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS) {
                         reconnectAttempts++
                         scope.launch {
-                            delay(com.chainlesschain.android.remote.config.SignalingConfig.RECONNECT_DELAY_MS)
-                            Timber.d("Reconnecting (${reconnectAttempts}/${com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS})...")
+                            delay(com.chainlesschain.android.core.p2p.config.SignalingConfig.RECONNECT_DELAY_MS)
+                            Timber.d("Reconnecting (${reconnectAttempts}/${com.chainlesschain.android.core.p2p.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS})...")
                             connect()
                         }
                     } else {
@@ -529,7 +529,7 @@ class WebSocketSignalClient @Inject constructor(
             webSocket = okHttpClient.newWebSocket(request, listener)
 
             var waited = 0
-            while (!isConnected && waited < com.chainlesschain.android.remote.config.SignalingConfig.CONNECT_TIMEOUT_MS.toInt()) {
+            while (!isConnected && waited < com.chainlesschain.android.core.p2p.config.SignalingConfig.CONNECT_TIMEOUT_MS.toInt()) {
                 delay(100)
                 waited += 100
             }
@@ -806,7 +806,7 @@ class WebSocketSignalClient @Inject constructor(
         heartbeatJob = heartbeatScope.launch {
             var missedPongs = 0
             while (isActive && isConnected) {
-                delay(com.chainlesschain.android.remote.config.SignalingConfig.PING_INTERVAL_SECONDS * 1000)
+                delay(com.chainlesschain.android.core.p2p.config.SignalingConfig.PING_INTERVAL_SECONDS * 1000)
                 if (!isConnected) break
 
                 val ping = org.json.JSONObject().apply {
@@ -817,7 +817,7 @@ class WebSocketSignalClient @Inject constructor(
 
                 // Check if we received a pong since last ping
                 val timeSinceLastPong = System.currentTimeMillis() - lastPongTime
-                val expectedInterval = com.chainlesschain.android.remote.config.SignalingConfig.PING_INTERVAL_SECONDS * 1000
+                val expectedInterval = com.chainlesschain.android.core.p2p.config.SignalingConfig.PING_INTERVAL_SECONDS * 1000
                 if (timeSinceLastPong > expectedInterval * 2) {
                     missedPongs++
                     Timber.w("Missed pong ($missedPongs/$missedPongThreshold), last pong ${timeSinceLastPong}ms ago")
@@ -825,7 +825,7 @@ class WebSocketSignalClient @Inject constructor(
                         Timber.e("Connection stale: $missedPongs missed pongs, triggering reconnect")
                         isConnected = false
                         webSocket?.cancel()
-                        if (reconnectAttempts < com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS) {
+                        if (reconnectAttempts < com.chainlesschain.android.core.p2p.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS) {
                             reconnectAttempts++
                             connect()
                         }

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.webrtc.signaling
 
-import com.chainlesschain.android.remote.config.SignalingConfig
+import com.chainlesschain.android.core.p2p.config.SignalingConfig
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
