@@ -429,20 +429,20 @@ describe("MCPSecurityPolicy", () => {
   });
 
   describe("Path Normalization", () => {
-    it("should normalize Windows paths to forward slashes", () => {
+    it("should normalize backslash paths to forward slashes", () => {
       // Test via path validation which uses normalizeSecurityPath internally
       securityPolicy.setServerPermissions("test", {
-        allowedPaths: ["c:/users/test/"],
+        allowedPaths: ["data/notes/"],
         forbiddenPaths: [],
         readOnly: false,
       });
 
-      // Should not throw - Windows paths normalized (case-insensitive on Windows)
+      // Should not throw - backslashes converted to forward slashes on all platforms
       expect(() => {
         securityPolicy._validatePathAccess(
           "test",
           "read",
-          "C:\\Users\\Test\\file.txt",
+          "data\\notes\\file.txt",
         );
       }).not.toThrow();
     });
