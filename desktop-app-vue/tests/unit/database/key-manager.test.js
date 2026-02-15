@@ -454,7 +454,15 @@ describe("KeyManager", () => {
 
   describe("saveKeyMetadata", () => {
     it("应该保存密钥元数据到配置文件", async () => {
-      keyManager = new KeyManager({ configPath: "/test/config.json" });
+      // Use a writable temp path to avoid EACCES when fs mock doesn't intercept CJS require('fs')
+      const os = await import("os");
+      const path = await import("path");
+      const testConfigPath = path.join(
+        os.tmpdir(),
+        "key-manager-test-" + Date.now(),
+        "config.json",
+      );
+      keyManager = new KeyManager({ configPath: testConfigPath });
       fsMock.existsSync.mockReturnValue(true);
 
       await keyManager.saveKeyMetadata({
@@ -466,15 +474,13 @@ describe("KeyManager", () => {
       // The fs mock intercepts the call via vi.mock('fs')
       if (fsMock.writeFileSync.mock.calls.length > 0) {
         expect(fsMock.writeFileSync).toHaveBeenCalledWith(
-          "/test/config.json",
+          testConfigPath,
           expect.stringContaining('"method"'),
           "utf8",
         );
       } else {
         // If the mock didn't intercept, verify the method ran without error
-        // This can happen when the vi.mock factory doesn't fully intercept require('fs')
-        // The method completing without throwing confirms the logic path is correct
-        expect(keyManager.configPath).toBe("/test/config.json");
+        expect(keyManager.configPath).toBe(testConfigPath);
       }
     });
 
@@ -490,8 +496,24 @@ describe("KeyManager", () => {
   });
 
   describe("loadKeyMetadata", () => {
-    it("应该从配置文件加载密钥元数据", () => {
-      keyManager = new KeyManager({ configPath: "/test/config.json" });
+    it("应该从配置文件加载密钥元数据", async () => {
+      // Use a real temp file to avoid issues when fs mock doesn't intercept CJS require('fs')
+      const os = await import("os");
+      const pathMod = await import("path");
+      const realFs = await import("fs");
+      const testDir = pathMod.join(
+        os.tmpdir(),
+        "key-manager-load-test-" + Date.now(),
+      );
+      const testConfigPath = pathMod.join(testDir, "config.json");
+      realFs.mkdirSync(testDir, { recursive: true });
+      realFs.writeFileSync(
+        testConfigPath,
+        JSON.stringify({ method: "password", salt: "test-salt", version: 1 }),
+        "utf8",
+      );
+
+      keyManager = new KeyManager({ configPath: testConfigPath });
       fsMock.existsSync.mockReturnValue(true);
       fsMock.readFileSync.mockReturnValue(
         JSON.stringify({ method: "password", salt: "test-salt", version: 1 }),
@@ -505,6 +527,9 @@ describe("KeyManager", () => {
       expect(result.method).toBe("password");
       expect(result.salt).toBe("test-salt");
       expect(result.version).toBe(1);
+
+      // Cleanup
+      realFs.rmSync(testDir, { recursive: true, force: true });
     });
 
     it("应该在配置文件不存在时返回null", () => {
