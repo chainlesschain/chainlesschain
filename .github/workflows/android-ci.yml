@@ -11,9 +11,8 @@ on:
     paths:
       - 'android-app/**'
       - '.github/workflows/android-ci.yml'
-
-# 允许手动触发
-workflow_dispatch:
+  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   lint:

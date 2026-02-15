@@ -49,20 +49,20 @@ class P2PClient @Inject constructor(
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
-    private var heartbeatJob: Job? = null
-    private var reconnectJob: Job? = null
-    private var heartbeatTimeoutJob: Job? = null
+    @Volatile private var heartbeatJob: Job? = null
+    @Volatile private var reconnectJob: Job? = null
+    @Volatile private var heartbeatTimeoutJob: Job? = null
 
     private val config = P2PClientConfig()
     private val gson = Gson()
 
     // Reconnection state
-    private var reconnectAttempts = 0
-    private var currentReconnectDelay = config.baseReconnectDelay
-    private var lastConnectedPeerId: String? = null
-    private var lastConnectedPeerDID: String? = null
-    private var lastHeartbeatReceived = System.currentTimeMillis()
-    private var autoReconnectEnabled = true
+    @Volatile private var reconnectAttempts = 0
+    @Volatile private var currentReconnectDelay = config.baseReconnectDelay
+    @Volatile private var lastConnectedPeerId: String? = null
+    @Volatile private var lastConnectedPeerDID: String? = null
+    @Volatile private var lastHeartbeatReceived = System.currentTimeMillis()
+    @Volatile private var autoReconnectEnabled = true
 
     private val _events = MutableSharedFlow<EventNotification>(replay = 0, extraBufferCapacity = 16)
     val events: SharedFlow<EventNotification> = _events.asSharedFlow()

@@ -323,6 +323,81 @@ Full TypeScript migration for frontend state management:
 
 **Store Location**: `src/renderer/stores/*.ts`
 
+### Enterprise Audit & Compliance
+
+**Status**: ✅ Implemented v0.34.0
+
+Enterprise-grade audit logging and compliance management:
+
+- **Unified Audit Logger**: Aggregates audit events across all subsystems (browser, permission, file, API, cowork)
+- **Compliance Manager**: GDPR/SOC2/HIPAA compliance checks, policy engine, report generation
+- **Data Subject Handler**: GDPR DSR (access, erasure, rectification, portability) request processing
+- **18 IPC Handlers**: Full CRUD for audit logs, compliance policies, DSR, retention policies
+- **Hook Events**: `AuditLog`, `ComplianceCheck`, `DataSubjectRequest` integrated into HookSystem
+
+**Key Files**: `src/main/audit/enterprise-audit-logger.js`, `src/main/audit/compliance-manager.js`, `src/main/audit/data-subject-handler.js`, `src/main/audit/audit-ipc.js`
+**Frontend**: `src/renderer/pages/EnterpriseAuditPage.vue`, `src/renderer/pages/ComplianceDashboard.vue`, `src/renderer/stores/audit.ts`
+
+### Plugin Marketplace
+
+**Status**: ✅ Implemented v0.34.0
+
+Desktop frontend and bridge for the plugin marketplace backend:
+
+- **Marketplace Client**: HTTP client with DID auth to marketplace REST API
+- **Plugin Installer**: Download, hash verification, extraction, SkillLoader registration
+- **Plugin Updater**: Background update checks, auto-update notifications
+- **22 IPC Handlers**: Browse, install, uninstall, update, rate, publish, configure plugins
+
+**Key Files**: `src/main/marketplace/marketplace-client.js`, `src/main/marketplace/plugin-installer.js`, `src/main/marketplace/plugin-updater.js`, `src/main/marketplace/marketplace-ipc.js`
+**Frontend**: `src/renderer/pages/PluginMarketplacePage.vue`, `src/renderer/pages/PluginDetailPage.vue`, `src/renderer/pages/InstalledPluginsPage.vue`, `src/renderer/stores/marketplace.ts`
+
+### Specialized Multi-Agent System
+
+**Status**: ✅ Implemented v0.34.0
+
+8 specialized AI agent templates with coordination capabilities:
+
+- **Agent Templates**: CodeSecurity, DevOps, DataAnalysis, Documentation, TestGenerator, Architect, Performance, Compliance
+- **Agent Coordinator**: Multi-agent task decomposition, assignment, result aggregation
+- **Agent Registry**: Type registry, factory, versioning, instance lifecycle management
+- **16 IPC Handlers**: Template CRUD, deploy/terminate, task assignment, orchestration, analytics
+- **5 Built-in Skills**: security-audit, devops-automation, data-analysis, test-generator, performance-optimizer
+- **4th Skill Layer**: Marketplace skills layer added to SkillLoader (bundled → marketplace → managed → workspace)
+
+**Key Files**: `src/main/ai-engine/agents/agent-templates.js`, `src/main/ai-engine/agents/agent-coordinator.js`, `src/main/ai-engine/agents/agent-registry.js`, `src/main/ai-engine/agents/agents-ipc.js`
+**Frontend**: `src/renderer/pages/AgentDashboardPage.vue`, `src/renderer/pages/AgentTemplateEditorPage.vue`, `src/renderer/stores/agents.ts`
+
+### SSO & Enterprise Authentication
+
+**Status**: ✅ Implemented v0.34.0
+
+Multi-provider Single Sign-On with DID identity linking:
+
+- **SSO Manager**: Multi-provider coordinator (SAML 2.0, OAuth 2.0, OIDC) with PKCE support
+- **SAML Provider**: SP metadata generation, AuthnRequest, assertion parsing, signature verification
+- **OAuth Provider**: Authorization code + PKCE, token refresh, userinfo, ID token validation
+- **Session Manager**: Encrypted token storage (AES-256-GCM), auto-refresh, session lifecycle
+- **Identity Bridge**: DID ↔ SSO identity linking with bidirectional lookup
+- **20 IPC Handlers**: Provider config, auth flows, identity linking, session management, SAML/OIDC
+
+**Key Files**: `src/main/auth/sso-manager.js`, `src/main/auth/saml-provider.js`, `src/main/auth/oauth-provider.js`, `src/main/auth/sso-session-manager.js`, `src/main/auth/identity-bridge.js`, `src/main/auth/sso-ipc.js`
+**Frontend**: `src/renderer/pages/SSOConfigurationPage.vue`, `src/renderer/pages/SSOLoginPage.vue`, `src/renderer/pages/IdentityLinkingPage.vue`, `src/renderer/stores/sso.ts`
+
+### MCP SDK & Community Registry
+
+**Status**: ✅ Implemented v0.34.0
+
+SDK for building custom MCP servers and community server discovery:
+
+- **Server Builder**: Fluent API (`new MCPServerBuilder().name().tool().build()`)
+- **HTTP+SSE Server**: HTTP server with SSE streaming, CORS, auth (Bearer/API-Key/Basic)
+- **Stdio Server**: Line-delimited JSON-RPC 2.0 over stdin/stdout
+- **Community Registry**: Discover/install 8+ pre-cataloged community MCP servers (filesystem, postgresql, sqlite, git, brave-search, puppeteer, slack, github)
+
+**Key Files**: `src/main/mcp/sdk/index.js`, `src/main/mcp/sdk/server-builder.js`, `src/main/mcp/sdk/http-server.js`, `src/main/mcp/sdk/stdio-server.js`, `src/main/mcp/community-registry.js`
+**Frontend**: `src/renderer/pages/MCPServerMarketplace.vue`
+
 ## Architecture Overview
 
 ### Desktop Application Structure
@@ -366,21 +441,46 @@ desktop-app-vue/
 │   │   ├── diagnostics/            # Smart diagnostics and snapshots
 │   │   └── recording/              # Recording and playback
 │   ├── mcp/               # MCP integration
+│   │   ├── sdk/                  # MCP Server SDK (v0.34.0)
+│   │   └── community-registry.js # Community MCP server discovery
+│   ├── audit/             # Enterprise Audit & Compliance (v0.34.0)
+│   │   ├── enterprise-audit-logger.js  # Unified audit aggregator
+│   │   ├── compliance-manager.js       # GDPR/SOC2 compliance
+│   │   ├── data-subject-handler.js     # GDPR DSR handling
+│   │   └── audit-ipc.js               # 18 IPC handlers
+│   ├── marketplace/       # Plugin Marketplace (v0.34.0)
+│   │   ├── marketplace-client.js  # HTTP client to marketplace API
+│   │   ├── plugin-installer.js    # Plugin download & install
+│   │   ├── plugin-updater.js      # Auto-update management
+│   │   └── marketplace-ipc.js     # 22 IPC handlers
+│   ├── auth/              # SSO Enterprise Authentication (v0.34.0)
+│   │   ├── sso-manager.js         # Multi-provider SSO coordinator
+│   │   ├── saml-provider.js       # SAML 2.0 SP
+│   │   ├── oauth-provider.js      # OAuth 2.0 + OIDC + PKCE
+│   │   ├── sso-session-manager.js # Encrypted session management
+│   │   ├── identity-bridge.js     # DID ↔ SSO identity linking
+│   │   └── sso-ipc.js             # 20 IPC handlers
 │   ├── utils/             # Utility modules
 │   │   └── ipc-error-handler.js    # IPC error middleware
 │   └── ai-engine/         # AI engine and multi-agent
 │       ├── plan-mode/             # Plan Mode (Claude Code style)
 │       │   ├── index.js           # PlanModeManager
 │       │   └── plan-mode-ipc.js   # Plan Mode IPC (14 handlers)
+│       ├── agents/                # Specialized Multi-Agent System (v0.34.0)
+│       │   ├── agent-templates.js    # 8 agent templates
+│       │   ├── agent-coordinator.js  # Task decomposition & orchestration
+│       │   ├── agent-registry.js     # Agent type registry & factory
+│       │   ├── agent-capabilities.js # Capability definitions
+│       │   └── agents-ipc.js         # 16 IPC handlers
 │       └── cowork/
 │           └── skills/            # Skills system
-│               ├── index.js       # Skill loader
+│               ├── index.js       # Skill loader (4-layer: bundled→marketplace→managed→workspace)
 │               ├── skills-ipc.js  # Skills IPC (17 handlers)
-│               └── builtin/       # Built-in skills (code-review, git-commit, explain-code)
+│               └── builtin/       # Built-in skills (code-review, git-commit, explain-code, security-audit, devops-automation, data-analysis, test-generator, performance-optimizer)
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
-    └── stores/            # Pinia state management (28 TypeScript stores)
+    └── stores/            # Pinia state management (32 TypeScript stores)
 ```
 
 ### Backend Services
@@ -502,7 +602,12 @@ Example: `feat(rag): add reranker support`
 - **P2P/WebRTC**: `src/main/p2p/webrtc-data-channel.js`
 - **Browser automation**: `src/main/browser/browser-engine.js`, `src/main/browser/element-locator.js`, `src/main/browser/recording/`
 - **Computer Use**: `src/main/browser/computer-use-agent.js`, `src/main/browser/actions/` (12+ modules: coordinate-action, vision-action, desktop-action, audit-logger, screen-recorder, action-replay, safe-mode, workflow-engine, element-highlighter, template-actions, computer-use-metrics)
-- **TypeScript stores**: `src/renderer/stores/*.ts` (28 stores)
+- **Enterprise Audit**: `src/main/audit/enterprise-audit-logger.js`, `src/main/audit/compliance-manager.js`, `src/main/audit/data-subject-handler.js`, `src/main/audit/audit-ipc.js`
+- **Plugin Marketplace**: `src/main/marketplace/marketplace-client.js`, `src/main/marketplace/plugin-installer.js`, `src/main/marketplace/marketplace-ipc.js`
+- **Specialized Agents**: `src/main/ai-engine/agents/agent-templates.js`, `src/main/ai-engine/agents/agent-coordinator.js`, `src/main/ai-engine/agents/agents-ipc.js`
+- **SSO Authentication**: `src/main/auth/sso-manager.js`, `src/main/auth/saml-provider.js`, `src/main/auth/oauth-provider.js`, `src/main/auth/sso-ipc.js`
+- **MCP SDK**: `src/main/mcp/sdk/index.js`, `src/main/mcp/sdk/server-builder.js`, `src/main/mcp/community-registry.js`
+- **TypeScript stores**: `src/renderer/stores/*.ts` (32 stores)
 - **Docker**: `docker-compose.yml`, `docker-compose.cloud.yml`
 - **Hooks config**: `.chainlesschain/hooks.json`, `.chainlesschain/hooks/*.js`
 

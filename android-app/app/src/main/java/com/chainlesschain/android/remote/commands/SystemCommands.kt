@@ -93,7 +93,7 @@ class SystemCommands @Inject constructor(
         sortBy: String = "cpu",
         limit: Int = 100,
         filter: String? = null
-    ): Result<ProcessListResponse> {
+    ): Result<SystemProcessListResponse> {
         val params = mutableMapOf<String, Any>(
             "sortBy" to sortBy,
             "limit" to limit
@@ -107,7 +107,7 @@ class SystemCommands @Inject constructor(
      *
      * @param pid 进程 ID
      */
-    suspend fun getProcessInfo(pid: Int): Result<ProcessInfoResponse> {
+    suspend fun getProcessInfo(pid: Int): Result<SystemProcessInfoResponse> {
         return client.invoke("system.getProcessInfo", mapOf("pid" to pid))
     }
 
@@ -746,7 +746,7 @@ enum class NotificationUrgency(val value: String) {
 // ==================== 进程管理响应 ====================
 
 @Serializable
-data class ProcessListResponse(
+data class SystemProcessListResponse(
     val success: Boolean,
     val processes: List<ProcessItem>,
     val total: Int
@@ -766,14 +766,14 @@ data class ProcessItem(
 )
 
 @Serializable
-data class ProcessInfoResponse(
+data class SystemProcessInfoResponse(
     val success: Boolean,
-    val process: ProcessDetail? = null,
+    val process: SystemProcessDetail? = null,
     val message: String? = null
 )
 
 @Serializable
-data class ProcessDetail(
+data class SystemProcessDetail(
     val pid: Int,
     val name: String,
     val cpu: Double,
