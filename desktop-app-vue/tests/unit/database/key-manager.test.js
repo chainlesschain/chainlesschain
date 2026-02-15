@@ -497,10 +497,10 @@ describe("KeyManager", () => {
 
   describe("loadKeyMetadata", () => {
     it("应该从配置文件加载密钥元数据", async () => {
-      // Use a real temp file to avoid issues when fs mock doesn't intercept CJS require('fs')
-      const os = await import("os");
-      const pathMod = await import("path");
-      const realFs = await import("fs");
+      // vi.mock("fs") intercepts ESM import("fs"), so use vi.importActual to get real fs
+      const realFs = await vi.importActual("fs");
+      const os = await vi.importActual("os");
+      const pathMod = await vi.importActual("path");
       const testDir = pathMod.join(
         os.tmpdir(),
         "key-manager-load-test-" + Date.now(),
@@ -514,10 +514,6 @@ describe("KeyManager", () => {
       );
 
       keyManager = new KeyManager({ configPath: testConfigPath });
-      fsMock.existsSync.mockReturnValue(true);
-      fsMock.readFileSync.mockReturnValue(
-        JSON.stringify({ method: "password", salt: "test-salt", version: 1 }),
-      );
 
       const result = keyManager.loadKeyMetadata();
 
