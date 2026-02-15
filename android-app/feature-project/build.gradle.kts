@@ -7,11 +7,10 @@ plugins {
 
 android {
     namespace = "com.chainlesschain.android.feature.project"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 26
-        targetSdk = 34
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
