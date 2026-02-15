@@ -515,28 +515,36 @@ jobs:
 
           cat release-notes.md
 
-      - name: Collect artifact files
-        id: artifacts
+      - name: Prepare and rename artifact files
         run: |
           shopt -s globstar nullglob
-          FILES=""
-          for f in artifacts/**/*.zip artifacts/**/*.dmg artifacts/**/*.deb \
-                   artifacts/**/*.rpm artifacts/**/*.AppImage artifacts/**/*.exe \
-                   artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa; do
-            if [ -f "$f" ]; then
-              echo "Found: $f"
-              FILES="$FILES $f"
-            fi
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          VER="${VERSION#v}"
+          mkdir -p release-assets
+
+          # Rename DMGs to include architecture (they all have the same name)
+          for dir in artifacts/macos-arm64-artifacts artifacts/macos-x64-artifacts; do
+            arch=$(echo "$dir" | grep -oP 'macos-\K(arm64|x64)')
+            for f in "$dir"/*.dmg; do
+              [ -f "$f" ] && cp "$f" "release-assets/ChainlessChain-darwin-${arch}-${VER}.dmg"
+            done
           done
-          echo "files=$FILES" >> $GITHUB_OUTPUT
-          echo "Found $(echo $FILES | wc -w) artifact files"
+
+          # Copy all other artifacts with unique names
+          for f in artifacts/**/*.zip artifacts/**/*.deb artifacts/**/*.rpm \
+                   artifacts/**/*.AppImage artifacts/**/*.exe \
+                   artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa; do
+            [ -f "$f" ] && cp "$f" release-assets/
+          done
+
+          echo "Release assets:"
+          ls -la release-assets/
 
       - name: Create Release with artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          FILES="${{ steps.artifacts.outputs.files }}"
           EXTRA_FLAGS=""
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             [ "${{ inputs.draft }}" == "true" ] && EXTRA_FLAGS="$EXTRA_FLAGS --draft"
@@ -549,13 +557,13 @@ jobs:
             gh release delete "$VERSION" --yes || true
           fi
 
-          # Create release with all artifacts in a single command
+          # Create release with all uniquely-named artifacts
           echo "Creating release ${VERSION} with artifacts..."
           gh release create "$VERSION" \
             --title "ChainlessChain ${VERSION}" \
             --notes-file release-notes.md \
             $EXTRA_FLAGS \
-            $FILES
+            release-assets/*
 
           echo "✅ Release ${VERSION} completed!"
           echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
