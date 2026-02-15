@@ -30,7 +30,7 @@ dependencies {
     api("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     // AndroidX
     api("androidx.core:core-ktx:1.12.0")
