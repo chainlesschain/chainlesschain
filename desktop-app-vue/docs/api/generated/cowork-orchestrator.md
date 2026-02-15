@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/cowork-orchestrator.js`
 
-**Generated**: 2026-02-15T07:37:13.874Z
+**Generated**: 2026-02-15T08:42:37.278Z
 
 ---
 

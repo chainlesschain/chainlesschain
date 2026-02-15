@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/email-client.js`
 
-**Generated**: 2026-02-15T07:37:13.862Z
+**Generated**: 2026-02-15T08:42:37.267Z
 
 ---
 

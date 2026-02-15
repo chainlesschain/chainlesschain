@@ -2,7 +2,7 @@
 
 **Source**: `src/main/knowledge-graph/entity-extraction.js`
 
-**Generated**: 2026-02-15T07:37:13.826Z
+**Generated**: 2026-02-15T08:42:37.232Z
 
 ---
 
