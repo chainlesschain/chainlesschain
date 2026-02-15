@@ -71,7 +71,7 @@ dependencies {
     implementation("androidx.paging:paging-compose:3.2.1")
 
     // Coil for image loading (NFT images)
-    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")

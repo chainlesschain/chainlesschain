@@ -1,6 +1,7 @@
 package com.chainlesschain.android.core.database.di
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.util.Log
 import androidx.room.Room
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
@@ -76,9 +77,13 @@ object DatabaseModule {
             .addMigrations(*DatabaseMigrations.getAllMigrations())
             // 添加迁移回调
             .addCallback(DatabaseMigrations.MigrationCallback())
-            // 仅在开发环境允许破坏性迁移作为最后手段
-            // 生产环境应该移除此行并确保所有迁移都已实现
-            .fallbackToDestructiveMigrationOnDowngrade()
+            .apply {
+                // 仅在调试版本允许降级时破坏性迁移
+                val isDebug = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+                if (isDebug) {
+                    fallbackToDestructiveMigrationOnDowngrade()
+                }
+            }
             .build()
             .also {
                 Log.i(TAG, "ChainlessChain database initialized successfully")

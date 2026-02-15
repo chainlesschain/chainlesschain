@@ -54,7 +54,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     // Crypto
-    implementation("org.bouncycastle:bcprov-jdk15on:1.70")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.77")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")

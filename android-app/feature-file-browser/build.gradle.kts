@@ -76,7 +76,7 @@ dependencies {
     ksp("androidx.hilt:hilt-compiler:1.1.0")
 
     // Image loading - Coil
-    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     // Media player - ExoPlayer
     implementation("androidx.media3:media3-exoplayer:1.2.1")
@@ -91,8 +91,8 @@ dependencies {
 
     // Testing
     testImplementation("junit:junit:4.13.2")
-    testImplementation("io.mockk:mockk:1.13.8")
-    testImplementation("io.mockk:mockk-android:1.13.8")
+    testImplementation("io.mockk:mockk:1.13.9")
+    testImplementation("io.mockk:mockk-android:1.13.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("app.cash.turbine:turbine:1.0.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")

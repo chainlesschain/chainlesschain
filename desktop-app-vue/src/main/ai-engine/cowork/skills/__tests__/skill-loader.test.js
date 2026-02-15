@@ -37,8 +37,9 @@ describe("SkillLoader", () => {
   describe("LAYER_PRIORITY", () => {
     it("should have correct priority values", () => {
       expect(LAYER_PRIORITY.bundled).toBe(0);
-      expect(LAYER_PRIORITY.managed).toBe(1);
-      expect(LAYER_PRIORITY.workspace).toBe(2);
+      expect(LAYER_PRIORITY.marketplace).toBe(1);
+      expect(LAYER_PRIORITY.managed).toBe(2);
+      expect(LAYER_PRIORITY.workspace).toBe(3);
     });
   });
 
