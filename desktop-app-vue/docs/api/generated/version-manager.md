@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/version-manager.js`
 
-**Generated**: 2026-02-15T08:42:37.239Z
+**Generated**: 2026-02-15T10:10:53.422Z
 
 ---
 
