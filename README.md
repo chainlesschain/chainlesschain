@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.33.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.34.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,13 +19,32 @@
 
 ---
 
-## ⭐ 当前版本: v0.33.0 (2026-02-13)
+## ⭐ 当前版本: v0.34.0 (2026-02-15)
 
-### 最新更新 - Remote Control 远程控制系统 + Browser Extension 浏览器扩展
+### 最新更新 - Enterprise Features 企业级功能 + 社区生态
+
+**Enterprise Audit & Compliance + Plugin Marketplace + Multi-Agent + SSO + MCP SDK** - 企业级审计合规、插件市场、专业化多代理、SSO认证、MCP SDK，76+ IPC handlers，26,000+行新代码
+
+#### 新增核心功能 (2026-02-15)
+
+- ✅ **Enterprise Audit System** - 统一审计日志、GDPR/SOC2合规检查、数据主体请求(DSR)、保留策略(18 IPC)
+- ✅ **Compliance Manager** - 合规策略引擎、框架检查、合规报告生成
+- ✅ **Plugin Marketplace** - 插件浏览/搜索/安装/卸载/评分/发布，完整生命周期管理(22 IPC)
+- ✅ **Plugin Installer** - 下载/哈希校验/解压/SkillLoader注册，自动更新检测
+- ✅ **Specialized Multi-Agent** - 8种专业代理模板(安全/DevOps/数据分析/文档/测试/架构/性能/合规)(16 IPC)
+- ✅ **Agent Coordinator** - 多代理任务分解、分配、结果聚合、编排引擎
+- ✅ **SSO Authentication** - SAML 2.0 + OAuth 2.0 + OIDC，PKCE支持，加密会话管理(20 IPC)
+- ✅ **Identity Bridge** - DID ↔ SSO身份关联，双向查找，验证流程
+- ✅ **MCP SDK** - Fluent API Server Builder，HTTP+SSE服务器，Stdio服务器
+- ✅ **Community Registry** - 8+社区MCP服务器发现/安装/管理
+- ✅ **5 Built-in Skills** - security-audit、devops-automation、data-analysis、test-generator、performance-optimizer
+- ✅ **4-Layer Skill System** - bundled → marketplace → managed → workspace 四层技能加载
+
+#### v0.33.0 功能回顾 - Remote Control 远程控制系统 + Browser Extension 浏览器扩展
 
 **P2P Remote Control System** - 基于P2P网络的远程命令系统，支持Android设备远程控制PC，24+命令处理器，45,000+行代码
 
-#### 新增核心功能 (2026-02-13)
+#### v0.33.0 新增核心功能 (2026-02-13)
 
 - ✅ **Remote Control Gateway** - P2P远程网关，命令路由、权限验证(1,876行)、日志统计
 - ✅ **24+ Command Handlers** - AI/系统/文件传输/浏览器/电源/进程/媒体/网络/存储/显示/输入/应用管理/安全/知识库/设备管理/命令历史/剪贴板/通知/工作流 全面控制
@@ -37,7 +56,7 @@
 - ✅ **Event Subscription** - 事件订阅系统，实时状态推送
 - ✅ **Logging System** - 命令日志(614行)/批量日志(457行)/统计收集(681行)/性能配置
 
-#### v0.33.0 功能回顾 - Computer Use (2026-02-11)
+#### v0.33.0 功能回顾 - Remote Control + Computer Use
 
 - ✅ **Computer Use Agent** - 统一代理整合所有电脑操作能力，68+ IPC handlers
 - ✅ **CoordinateAction** - 像素级坐标点击、拖拽、手势操作
@@ -126,6 +145,8 @@
 - 🟢 **企业版**: 100% 完成 - **知识库协作+DID邀请链接+企业仪表板**
 - 🟢 **区块链集成**: 100% 完成 - **15链支持+RPC管理+完整UI**
 - 🟢 **远程控制系统**: 100% 完成 - **P2P远程网关+24+命令处理器+Chrome扩展+45,000+行代码**
+- 🟢 **企业审计与合规**: 100% 完成 - **统一审计日志+GDPR合规+DSR处理+18 IPC**
+- 🟢 **插件市场与SSO**: 100% 完成 - **插件市场22 IPC+SSO认证20 IPC+MCP SDK+多代理16 IPC**
 - 🟢 **移动端应用**: 100% 完成 - **完整功能+桌面同步+Android P2P UI+远程控制UI**
 
 ## 核心特性
@@ -144,6 +165,10 @@
 - 🤖 **Cowork多代理协作**: AI智能编排 + 代理池复用 + 45个IPC接口 + 文件沙箱 + 10+可视化图表
 - ⚡ **智能工作流优化**: 17项优化(语义缓存+智能决策+关键路径+实时质量+自动化)
 - 🔌 **MCP集成**: Model Context Protocol支持,5个官方服务器 + 安全沙箱 + 63测试用例
+- 🏛️ **企业审计合规**: 统一审计日志 + GDPR/SOC2合规 + 数据主体请求 + 保留策略
+- 🛒 **插件市场**: 插件浏览/安装/评分/发布 + 自动更新 + 哈希校验安全
+- 🤖 **专业化代理**: 8种AI代理模板 + 任务分解编排 + 5个内置技能
+- 🔑 **SSO企业认证**: SAML 2.0 + OAuth 2.0/OIDC + PKCE + DID身份关联
 - 🪝 **Hooks系统**: 21种钩子事件 + 4种钩子类型 + 优先级系统 + 脚本钩子
 - 🎨 **Skills系统**: Markdown Skills + 三层加载机制 + /skill命令 + 门控检查
 - 📊 **知识图谱可视化**: 8个图分析算法 + 5种可视化方式 + 6种导出格式
@@ -153,7 +178,7 @@
 - 🧪 **全面测试体系**: 2000+测试用例 + 417测试文件 + OWASP安全验证 + DI测试重构
 - 🌐 **浏览器自动化**: BrowserEngine + SnapshotEngine + 智能元素定位 + 18个IPC通道
 - 📝 **TypeScript支持**: Stores/Composables TypeScript迁移 + 类型安全 + IDE增强
-- 🔓 **开源自主**: 250,000+行代码,358个Vue组件,完全透明可审计
+- 🔓 **开源自主**: 280,000+行代码,358个Vue组件,完全透明可审计
 
 更多特性详见 [功能详解](./docs/FEATURES.md)
 
@@ -464,12 +489,12 @@ chainlesschain/
   - [x] 安全审计
   - [x] 文档完善
 
-### 未来优化方向 ⏳
+### 已完成的优化 ✅
 
-- [ ] **扩展MCP服务器支持**: HTTP+SSE传输, 更多MCP服务器
-- [ ] **增强多代理协作**: 更多专业化代理
-- [ ] **社区生态**: 插件市场, 社区MCP服务器
-- [ ] **企业高级功能**: SSO, 审计日志, 合规管理
+- [x] **扩展MCP服务器支持**: MCP SDK (Server Builder + HTTP+SSE + Stdio) + 社区注册中心 ✅ v0.34.0
+- [x] **增强多代理协作**: 8种专业化代理模板 + 任务编排引擎 + 5个内置技能 ✅ v0.34.0
+- [x] **社区生态**: 插件市场(22 IPC) + 社区MCP服务器发现/安装 ✅ v0.34.0
+- [x] **企业高级功能**: SSO(SAML/OAuth/OIDC) + 审计日志(18 IPC) + 合规管理 ✅ v0.34.0
 
 详细路线图见 [开发计划](./docs/DEVELOPMENT.md#开发路线图)
 

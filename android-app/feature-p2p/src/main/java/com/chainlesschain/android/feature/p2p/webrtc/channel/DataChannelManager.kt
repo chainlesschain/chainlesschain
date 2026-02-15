@@ -163,6 +163,7 @@ class DataChannelManager @Inject constructor(
         }
 
         val channel = peerConnection.createDataChannel("reliable-$peerId", init)
+            ?: throw IllegalStateException("Failed to create reliable data channel for $peerId")
         channel.registerObserver(createDataChannelObserver(peerId, ChannelType.RELIABLE))
 
         Timber.d("Created reliable data channel for $peerId")
@@ -183,6 +184,7 @@ class DataChannelManager @Inject constructor(
         }
 
         val channel = peerConnection.createDataChannel("unreliable-$peerId", init)
+            ?: throw IllegalStateException("Failed to create unreliable data channel for $peerId")
         channel.registerObserver(createDataChannelObserver(peerId, ChannelType.UNRELIABLE))
 
         Timber.d("Created unreliable data channel for $peerId")

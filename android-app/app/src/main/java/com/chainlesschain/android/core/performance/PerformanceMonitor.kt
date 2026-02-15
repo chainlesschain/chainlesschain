@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.performance
 import android.content.Context
 import android.os.Build
 import android.os.StrictMode
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,10 +38,10 @@ object PerformanceMonitor {
     private const val UPDATE_INTERVAL_MS = 1000L
 
     // Sub-monitors (initialized lazily)
-    private var fpsMonitor: FPSMonitor? = null
-    private var cpuMonitor: CPUMonitor? = null
-    private var batteryMonitor: BatteryMonitor? = null
-    private var thermalMonitor: ThermalMonitor? = null
+    @Volatile private var fpsMonitor: FPSMonitor? = null
+    @Volatile private var cpuMonitor: CPUMonitor? = null
+    @Volatile private var batteryMonitor: BatteryMonitor? = null
+    @Volatile private var thermalMonitor: ThermalMonitor? = null
 
     // Monitoring state
     private val _isMonitoring = MutableStateFlow(false)
@@ -51,11 +52,11 @@ object PerformanceMonitor {
     val metrics: StateFlow<PerformanceMetrics> = _metrics.asStateFlow()
 
     // Coroutine scope for periodic updates
-    private var monitoringJob: Job? = null
+    @Volatile private var monitoringJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.Default)
 
     // Context reference
-    private var appContext: Context? = null
+    @Volatile private var appContext: Context? = null
 
     /**
      * Initialize performance monitoring
@@ -296,11 +297,13 @@ fun <T> throttle(
     scope: CoroutineScope,
     action: (T) -> Unit
 ): (T) -> Unit {
-    var lastExecutionTime = 0L
+    val lastExecutionTime = AtomicLong(0L)
     return { value: T ->
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastExecutionTime >= intervalMs) {
-            lastExecutionTime = currentTime
+        val lastTime = lastExecutionTime.get()
+        if (currentTime - lastTime >= intervalMs &&
+            lastExecutionTime.compareAndSet(lastTime, currentTime)
+        ) {
             scope.launch { action(value) }
         }
     }

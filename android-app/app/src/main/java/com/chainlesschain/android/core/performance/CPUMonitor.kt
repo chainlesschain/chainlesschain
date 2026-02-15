@@ -22,9 +22,9 @@ class CPUMonitor {
     }
 
     // Previous CPU time measurements for delta calculation
-    private var previousCpuTime: Long = 0
-    private var previousAppCpuTime: Long = 0
-    private var previousIdleTime: Long = 0
+    @Volatile private var previousCpuTime: Long = 0
+    @Volatile private var previousAppCpuTime: Long = 0
+    @Volatile private var previousIdleTime: Long = 0
 
     // StateFlow for reactive updates
     private val _cpuUsage = MutableStateFlow(0f)
