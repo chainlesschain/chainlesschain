@@ -635,13 +635,8 @@ class ToolsSkillsViewModel: ObservableObject {
         }
     }
 
-    private func categoryString(_ category: ToolCategory) -> String {
-        switch category {
-        case .system: return "system"
-        case .data: return "data"
-        case .web: return "web"
-        case .knowledge: return "knowledge"
-        }
+    private func categoryString(_ category: SkillCategory) -> String {
+        return category.displayName
     }
 
     private func typeString(_ type: ToolParameterType) -> String {
@@ -655,12 +650,18 @@ class ToolsSkillsViewModel: ObservableObject {
         }
     }
 
-    private func iconForCategory(_ category: ToolCategory) -> String {
+    private func iconForCategory(_ category: SkillCategory) -> String {
         switch category {
         case .system: return "gearshape.fill"
         case .data: return "chart.bar.fill"
         case .web: return "network"
         case .knowledge: return "brain"
+        case .document: return "doc.text.fill"
+        case .code: return "chevron.left.forwardslash.chevron.right"
+        case .blockchain: return "link"
+        case .communication: return "message.fill"
+        case .media: return "photo.fill"
+        default: return "star.fill"
         }
     }
 

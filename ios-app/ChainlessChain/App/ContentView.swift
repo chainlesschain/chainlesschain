@@ -528,6 +528,10 @@ struct ProfileView: View {
                     NavigationLink(destination: Text("社交")) {
                         Label("社交", systemImage: "person.3")
                     }
+
+                    NavigationLink(destination: ComputerUseView()) {
+                        Label("浏览器自动化", systemImage: "desktopcomputer")
+                    }
                 }
 
                 // 其他选项

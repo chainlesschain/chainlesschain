@@ -17,7 +17,7 @@ public struct ChainlessChainTool: Codable, Identifiable {
     public var isBuiltin: Bool
     public var pluginId: String?
     public var config: String?
-    public var examples: [ToolExample]
+    public var examples: [MCPToolExample]
 
     public init(
         id: String = UUID().uuidString,
@@ -31,7 +31,7 @@ public struct ChainlessChainTool: Codable, Identifiable {
         isBuiltin: Bool = false,
         pluginId: String? = nil,
         config: String? = nil,
-        examples: [ToolExample] = []
+        examples: [MCPToolExample] = []
     ) {
         self.id = id
         self.name = name
@@ -48,8 +48,8 @@ public struct ChainlessChainTool: Codable, Identifiable {
     }
 }
 
-/// 工具示例
-public struct ToolExample: Codable {
+/// MCP工具示例
+public struct MCPToolExample: Codable {
     public let input: [String: AnyCodable]
     public let output: AnyCodable?
     public let description: String?

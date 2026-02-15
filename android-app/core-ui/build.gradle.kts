@@ -1,7 +1,6 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -69,8 +68,7 @@ dependencies {
 
     // Prism4j (syntax highlighting for Markwon)
     api("io.noties:prism4j:2.0.0")
-    // Note: prism4j-bundler removed to avoid kapt conflicts
-    // Manual grammar registration will be used instead
+    // prism4j-bundler not used; manual grammar registration instead
 
     // Navigation
     api("androidx.navigation:navigation-compose:2.7.6")
