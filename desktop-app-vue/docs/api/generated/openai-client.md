@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/openai-client.js`
 
-**Generated**: 2026-02-15T07:37:13.822Z
+**Generated**: 2026-02-15T08:42:37.228Z
 
 ---
 

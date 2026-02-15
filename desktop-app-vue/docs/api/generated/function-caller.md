@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/function-caller.js`
 
-**Generated**: 2026-02-15T07:37:13.867Z
+**Generated**: 2026-02-15T08:42:37.272Z
 
 ---
 

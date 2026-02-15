@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/p2p-enhanced-ipc.js`
 
-**Generated**: 2026-02-15T07:37:13.807Z
+**Generated**: 2026-02-15T08:42:37.214Z
 
 ---
 
