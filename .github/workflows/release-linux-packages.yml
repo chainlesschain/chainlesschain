@@ -28,9 +28,11 @@ jobs:
       - name: Install workspace dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Install desktop-app-vue dependencies
-        working-directory: desktop-app-vue
-        run: npm install --legacy-peer-deps
+      - name: Link hoisted modules for packaging
+        run: |
+          rm -rf desktop-app-vue/node_modules
+          ln -s "$(pwd)/node_modules" desktop-app-vue/node_modules
+          echo "Hoisted modules symlinked to desktop-app-vue"
 
       - name: Build main process
         working-directory: desktop-app-vue
