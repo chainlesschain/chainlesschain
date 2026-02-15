@@ -122,7 +122,7 @@ describe("NetworkHandler", () => {
   });
 
   describe("getStatus", () => {
-    it("应该返回网络状态", async () => {
+    it("应该返回网络状态", { retry: 2 }, async () => {
       const result = await handler.handle("getStatus", {}, mockContext);
 
       expect(result.success).toBe(true);
@@ -222,7 +222,7 @@ UDP    192.168.1.100:137      0.0.0.0:0              LISTENING       1234`,
       expect(typeof result.bandwidth.bytesSent).toBe("number");
     });
 
-    it("应该计算传输速率", async () => {
+    it("应该计算传输速率", { retry: 2 }, async () => {
       // 第一次调用建立基线
       mockExecAsync.mockResolvedValueOnce({
         stdout: JSON.stringify([

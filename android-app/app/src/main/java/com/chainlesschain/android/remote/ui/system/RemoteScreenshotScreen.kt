@@ -139,7 +139,7 @@ fun RemoteScreenshotScreen(
                     LoadingState("Capturing screenshot...")
                 }
                 uiState.currentScreenshot != null -> {
-                    val current = uiState.currentScreenshot!!
+                    val current = uiState.currentScreenshot ?: return@Column
                     ScreenshotInfoCard(screenshot = current)
 
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -210,11 +210,14 @@ fun RemoteScreenshotScreen(
         )
     }
 
-    if (showFullScreen && uiState.currentScreenshot != null) {
-        FullScreenImageDialog(
-            screenshot = uiState.currentScreenshot!!,
-            onDismiss = { showFullScreen = false }
-        )
+    if (showFullScreen) {
+        val screenshotForFullScreen = uiState.currentScreenshot
+        if (screenshotForFullScreen != null) {
+            FullScreenImageDialog(
+                screenshot = screenshotForFullScreen,
+                onDismiss = { showFullScreen = false }
+            )
+        }
     }
 }
 

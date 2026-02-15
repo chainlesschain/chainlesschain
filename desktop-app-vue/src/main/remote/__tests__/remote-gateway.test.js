@@ -167,6 +167,71 @@ vi.mock("../browser-extension-server", () => ({
 // 在所有 mock 定义之后导入被测模块
 const RemoteGateway = (await import("../remote-gateway")).default;
 
+/**
+ * vi.mock() 在 CJS/ESM 互操作中无法拦截 require()，
+ * 所以真实模块被加载。此辅助函数在 initialize() 后
+ * 对真实对象设置 spy，以恢复预期的 mock 行为。
+ */
+function setupSpiesAfterInit(gw) {
+  if (gw.permissionGate) {
+    vi.spyOn(gw.permissionGate, "verify").mockResolvedValue(true);
+    vi.spyOn(gw.permissionGate, "setDevicePermissionLevel").mockResolvedValue({
+      success: true,
+    });
+    vi.spyOn(gw.permissionGate, "getDevicePermissionLevel").mockResolvedValue(2);
+    vi.spyOn(gw.permissionGate, "stopCleanup").mockImplementation(() => {});
+    vi.spyOn(gw.permissionGate, "getAuditLogs").mockReturnValue([]);
+    vi.spyOn(gw.permissionGate, "getStats").mockReturnValue({
+      devicePermissions: 0,
+    });
+  }
+  if (gw.p2pCommandAdapter) {
+    vi.spyOn(gw.p2pCommandAdapter, "sendCommand").mockResolvedValue({
+      success: true,
+    });
+    vi.spyOn(gw.p2pCommandAdapter, "broadcastEvent").mockImplementation(
+      () => {},
+    );
+    vi.spyOn(gw.p2pCommandAdapter, "getConnectedDevices").mockReturnValue([]);
+    vi.spyOn(gw.p2pCommandAdapter, "disconnectPeer").mockResolvedValue(
+      undefined,
+    );
+    vi.spyOn(gw.p2pCommandAdapter, "cleanup").mockResolvedValue(undefined);
+    vi.spyOn(gw.p2pCommandAdapter, "getStats").mockReturnValue({
+      connected: 0,
+    });
+  }
+  if (gw.handlers?.device) {
+    vi.spyOn(gw.handlers.device, "disconnectDevice").mockResolvedValue(
+      undefined,
+    );
+  }
+  if (gw.commandRouter) {
+    vi.spyOn(gw.commandRouter, "route").mockResolvedValue({
+      jsonrpc: "2.0",
+      id: "1",
+      result: { success: true },
+    });
+    vi.spyOn(gw.commandRouter, "getStats").mockReturnValue({
+      totalCommands: 0,
+    });
+  }
+  if (gw.handlers?.history) {
+    vi.spyOn(gw.handlers.history, "recordCommand").mockResolvedValue(undefined);
+  }
+  if (gw.browserExtensionServer) {
+    vi.spyOn(gw.browserExtensionServer, "start").mockResolvedValue(undefined);
+    vi.spyOn(gw.browserExtensionServer, "stop").mockResolvedValue(undefined);
+  }
+}
+
+/** Default fileTransfer options to bypass app.getPath in FileTransferHandler */
+const testFileTransferOpts = {
+  uploadDir: "/tmp/test-uploads",
+  downloadDir: "/tmp/test-downloads",
+  tempDir: "/tmp/test-temp",
+};
+
 describe("RemoteGateway", () => {
   let gateway;
   let mockDependencies;
@@ -201,17 +266,20 @@ describe("RemoteGateway", () => {
     gateway = new RemoteGateway(mockDependencies, {
       enableP2P: true,
       enableWebSocket: false,
-      fileTransfer: {
-        uploadDir: "/tmp/test-uploads",
-        downloadDir: "/tmp/test-downloads",
-        tempDir: "/tmp/test-temp",
-      },
+      fileTransfer: testFileTransferOpts,
+      browserExtension: { port: 0 }, // Random port to avoid EADDRINUSE between tests
     });
   });
 
   afterEach(async () => {
-    if (gateway && gateway.running) {
-      await gateway.stop();
+    if (gateway) {
+      // Stop extension server first to release port
+      if (gateway.browserExtensionServer?.stop) {
+        await gateway.browserExtensionServer.stop().catch(() => {});
+      }
+      if (gateway.running) {
+        await gateway.stop();
+      }
     }
     vi.clearAllMocks();
   });
@@ -285,6 +353,7 @@ describe("RemoteGateway", () => {
   describe("handleCommand", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该成功处理有效命令", async () => {
@@ -386,6 +455,7 @@ describe("RemoteGateway", () => {
   describe("sendCommand", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该发送命令到设备", async () => {
@@ -399,9 +469,10 @@ describe("RemoteGateway", () => {
     it("P2P 未初始化时应该抛出错误", async () => {
       const noP2PGateway = new RemoteGateway(
         { ...mockDependencies, p2pManager: null },
-        { enableP2P: false },
+        { enableP2P: false, fileTransfer: testFileTransferOpts, browserExtension: { port: 0 } },
       );
       await noP2PGateway.initialize();
+      setupSpiesAfterInit(noP2PGateway);
 
       await expect(
         noP2PGateway.sendCommand("peer1", "test", {}),
@@ -412,6 +483,7 @@ describe("RemoteGateway", () => {
   describe("broadcastEvent", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该广播事件到所有设备", () => {
@@ -427,9 +499,10 @@ describe("RemoteGateway", () => {
     it("P2P 未初始化时应该静默处理", async () => {
       const noP2PGateway = new RemoteGateway(
         { ...mockDependencies, p2pManager: null },
-        { enableP2P: false },
+        { enableP2P: false, fileTransfer: testFileTransferOpts, browserExtension: { port: 0 } },
       );
       await noP2PGateway.initialize();
+      setupSpiesAfterInit(noP2PGateway);
 
       // 不应该抛出错误
       expect(() => {
@@ -441,6 +514,7 @@ describe("RemoteGateway", () => {
   describe("getConnectedDevices", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该返回已连接设备列表", () => {
@@ -452,9 +526,10 @@ describe("RemoteGateway", () => {
     it("P2P 未初始化时应该返回空数组", async () => {
       const noP2PGateway = new RemoteGateway(
         { ...mockDependencies, p2pManager: null },
-        { enableP2P: false },
+        { enableP2P: false, fileTransfer: testFileTransferOpts, browserExtension: { port: 0 } },
       );
       await noP2PGateway.initialize();
+      setupSpiesAfterInit(noP2PGateway);
 
       const devices = noP2PGateway.getConnectedDevices();
 
@@ -465,6 +540,7 @@ describe("RemoteGateway", () => {
   describe("disconnectDevice", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该断开设备连接", async () => {
@@ -481,6 +557,7 @@ describe("RemoteGateway", () => {
   describe("setDevicePermission", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该设置设备权限", async () => {
@@ -507,6 +584,7 @@ describe("RemoteGateway", () => {
   describe("getDevicePermission", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该获取设备权限", async () => {
@@ -519,6 +597,7 @@ describe("RemoteGateway", () => {
   describe("getAuditLogs", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该返回审计日志", () => {
@@ -539,6 +618,7 @@ describe("RemoteGateway", () => {
   describe("getStats", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该返回完整统计信息", () => {
@@ -563,6 +643,7 @@ describe("RemoteGateway", () => {
   describe("stop", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该停止所有组件", async () => {
@@ -605,6 +686,7 @@ describe("RemoteGateway", () => {
   describe("事件处理", () => {
     beforeEach(async () => {
       await gateway.initialize();
+      setupSpiesAfterInit(gateway);
     });
 
     it("应该继承 EventEmitter", () => {
