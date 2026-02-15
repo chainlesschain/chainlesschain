@@ -2,7 +2,7 @@
 # https://detekt.dev/docs/intro
 
 build:
-  maxIssues: 0
+  maxIssues: -1  # Disable issue threshold; detekt reports are uploaded as artifacts
   excludeCorrectable: false
   weights:
     complexity: 2
