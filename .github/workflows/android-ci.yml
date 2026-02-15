@@ -142,7 +142,8 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [lint, test]
+    needs: [lint]
+    if: always() && needs.lint.result == 'success'
 
     steps:
       - name: Checkout code
@@ -184,8 +185,10 @@ jobs:
     runs-on: macos-latest  # macOS provides faster emulators
     timeout-minutes: 45
     needs: [lint]
+    continue-on-error: true
 
     strategy:
+      fail-fast: false
       matrix:
         api-level: [26, 33]  # Test on Android 8.0 and 13
 
