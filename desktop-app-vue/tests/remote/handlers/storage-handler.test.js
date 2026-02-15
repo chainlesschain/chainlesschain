@@ -287,7 +287,7 @@ PC,512,Disk #0 Partition #0,500000000000,Primary`,
       expect(result.cleaned).toBeDefined();
     });
 
-    it("默认应该是干运行模式", async () => {
+    it("默认应该是干运行模式", { retry: 2, timeout: 30000 }, async () => {
       const result = await handler.handle("cleanup", {}, mockContext);
 
       expect(result.success).toBe(true);

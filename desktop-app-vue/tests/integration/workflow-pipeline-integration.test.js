@@ -658,8 +658,9 @@ describe('工作流管理器 - 多工作流管理测试', () => {
     expect(duration).toBeLessThan(12000);
   }, 15000); // 增加超时时间到15秒
 
-  test('应该转发工作流事件', { retry: 2 }, async () => {
+  test('应该转发工作流事件', async () => {
     const events = [];
+    const passthrough = async (input) => input;
 
     workflowManager.on('workflow:start', (data) => {
       events.push('start');
@@ -672,7 +673,8 @@ describe('工作流管理器 - 多工作流管理测试', () => {
     const wf = workflowManager.createWorkflow({
       title: '测试工作流',
       stageExecutors: {
-        stage_1: async (input) => input,
+        stage_1: passthrough, stage_2: passthrough, stage_3: passthrough,
+        stage_4: passthrough, stage_5: passthrough, stage_6: passthrough,
       },
       qualityGateManager: mockQualityGateManager,
     });
@@ -705,11 +707,13 @@ describe('工作流管道 - 边界条件测试', () => {
     };
   });
 
-  test('应该处理空输入', { retry: 2 }, async () => {
+  test('应该处理空输入', async () => {
+    const passthrough = async (input) => input || {};
     const workflow = new WorkflowPipeline({
       title: '空输入测试',
       stageExecutors: {
-        stage_1: async (input) => input || {},
+        stage_1: passthrough, stage_2: passthrough, stage_3: passthrough,
+        stage_4: passthrough, stage_5: passthrough, stage_6: passthrough,
       },
       qualityGateManager: mockQualityGateManager,
     });
