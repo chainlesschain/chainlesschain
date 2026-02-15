@@ -1,7 +1,9 @@
 package com.chainlesschain.android.feature.p2p.worker
 
 import android.content.Context
+import android.content.pm.ServiceInfo
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
@@ -272,10 +274,18 @@ class FileTransferWorker @AssistedInject constructor(
             .setProgress(100, 0, true)
             .build()
 
-        return ForegroundInfo(
-            inputData.getString(KEY_TRANSFER_ID).hashCode(),
-            notification
-        )
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ForegroundInfo(
+                inputData.getString(KEY_TRANSFER_ID).hashCode(),
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            ForegroundInfo(
+                inputData.getString(KEY_TRANSFER_ID).hashCode(),
+                notification
+            )
+        }
     }
 }
 

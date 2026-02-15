@@ -61,8 +61,6 @@ fun GlobalFileBrowserScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val sortBy by viewModel.sortBy.collectAsState()
     val sortDirection by viewModel.sortDirection.collectAsState()
-    @Suppress("UNUSED_VARIABLE")
-    val aiClassifications by viewModel.aiClassifications.collectAsState()
     val isClassifying by viewModel.isClassifying.collectAsState()
     val statistics by viewModel.statistics.collectAsState()
 
