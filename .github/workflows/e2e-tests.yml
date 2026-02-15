@@ -46,9 +46,14 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Install Xvfb for Linux
+      - name: Install Linux dependencies for Electron
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 \
+            libcups2t64 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+            libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
+            libasound2t64 libxshmfence1 libglu1-mesa
 
       - name: Run E2E smoke tests
         run: |
@@ -56,7 +61,7 @@ jobs:
           # Increase timeout to 3 minutes per test for Electron startup
           # Use list,html reporters to get both console output and HTML report
           if [ "$RUNNER_OS" == "Linux" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24 -ac" \
               npx playwright test tests/e2e/simple-api.e2e.test.ts --timeout=180000 --reporter=list,html
           else
             npx playwright test tests/e2e/simple-api.e2e.test.ts --timeout=180000 --reporter=list,html
@@ -65,8 +70,9 @@ jobs:
         env:
           CI: true
           ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
-          # Disable GPU for headless Electron
           ELECTRON_ENABLE_LOGGING: "true"
+          ELECTRON_ENABLE_STACK_DUMPING: "true"
+          LIBGL_ALWAYS_SOFTWARE: "1"
 
       - name: Upload test results
         if: always()

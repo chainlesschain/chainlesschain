@@ -45,11 +45,19 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       '--disable-setuid-sandbox',
       // 禁用硬件加速
       '--disable-software-rasterizer',
+      // Linux CI: /dev/shm 分区可能太小，使用 /tmp 代替
+      '--disable-dev-shm-usage',
+      // 禁用扩展和不必要的后台功能以加速启动
+      '--disable-extensions',
+      '--disable-background-networking',
+      '--disable-default-apps',
     ],
     env: {
       ...process.env,
       NODE_ENV: 'test',
       ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+      // Linux: 强制使用软件 OpenGL
+      ...(process.platform === 'linux' ? { LIBGL_ALWAYS_SOFTWARE: '1' } : {}),
     },
     timeout: 120000, // 120秒启动超时（应用初始化需要较长时间）
   });
