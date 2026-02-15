@@ -234,19 +234,23 @@ struct AddressQRCodeView: View {
                     .font(.title2)
                     .bold()
 
-                // TODO: 生成QR码
-                // Image(uiImage: generateQRCode(from: address))
-                //     .interpolation(.none)
-                //     .resizable()
-                //     .frame(width: 250, height: 250)
-
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.2))
-                    .frame(width: 250, height: 250)
-                    .overlay(
-                        Text("QR码")
-                            .foregroundColor(.secondary)
-                    )
+                // QR码显示
+                if let qrImage = generateQRCode(from: address) {
+                    Image(uiImage: qrImage)
+                        .interpolation(.none)
+                        .resizable()
+                        .frame(width: 250, height: 250)
+                        .cornerRadius(12)
+                } else {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(width: 250, height: 250)
+                        .overlay(
+                            Text("生成QR码失败")
+                                .foregroundColor(.secondary)
+                        )
+                        .cornerRadius(12)
+                }
 
                 Text(address)
                     .font(.system(.caption, design: .monospaced))
@@ -276,12 +280,39 @@ struct AddressQRCodeView: View {
         }
     }
 
-    // TODO: 实现QR码生成
-    // private func generateQRCode(from string: String) -> UIImage {
-    //     let filter = CIFilter.qrCodeGenerator()
-    //     filter.message = Data(string.utf8)
-    //     ...
-    // }
+    /// 生成QR码图片
+    /// - Parameter string: 要编码的字符串（通常是钱包地址）
+    /// - Returns: QR码 UIImage，如果生成失败则返回 nil
+    private func generateQRCode(from string: String) -> UIImage? {
+        // 创建 QR 码生成器滤镜
+        guard let filter = CIFilter(name: "CIQRCodeGenerator") else {
+            return nil
+        }
+
+        // 将字符串转换为 Data
+        let data = Data(string.utf8)
+        filter.setValue(data, forKey: "inputMessage")
+
+        // 设置纠错级别（H = 最高，约 30% 的码字可以被修复）
+        filter.setValue("H", forKey: "inputCorrectionLevel")
+
+        // 获取生成的 CIImage
+        guard let ciImage = filter.outputImage else {
+            return nil
+        }
+
+        // QR码默认生成的尺寸很小，需要放大
+        let transform = CGAffineTransform(scaleX: 10, y: 10)
+        let scaledCIImage = ciImage.transformed(by: transform)
+
+        // 将 CIImage 转换为 UIImage
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(scaledCIImage, from: scaledCIImage.extent) else {
+            return nil
+        }
+
+        return UIImage(cgImage: cgImage)
+    }
 }
 
 // MARK: - 预览

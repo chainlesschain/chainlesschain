@@ -381,8 +381,8 @@ class AgentMonitorViewModel: ObservableObject {
     }
 
     private func loadTasksData() {
-        // TODO: 实际从AgentOrchestrator获取任务数据
-        // 这里使用模拟数据
+        // NOTE: 使用模拟数据用于 UI 演示。生产环境中应从 AgentOrchestrator 获取实时任务数据
+        // 集成方式: activeTasks = await AgentOrchestrator.shared.getActiveTasks(agentId: agentId)
 
         activeTasks = []
         runningTasks = 0
@@ -392,8 +392,8 @@ class AgentMonitorViewModel: ObservableObject {
     }
 
     private func loadCommunicationLogs() {
-        // TODO: 实际从Agent通信系统获取日志
-        // 这里使用模拟数据
+        // NOTE: 使用模拟数据用于 UI 演示。生产环境中应从 Agent 通信系统获取日志
+        // 集成方式: communicationLogs = await AgentCommunicationSystem.shared.getLogs(agentId: agentId)
 
         communicationLogs = []
     }
@@ -504,13 +504,15 @@ struct AgentDetailView: View {
             }
 
             Section(header: Text("执行历史")) {
-                Text("执行历史待实现")
+                Text("执行历史功能正在开发中...")
                     .foregroundColor(.secondary)
+                    .italic()
             }
 
             Section(header: Text("性能统计")) {
-                Text("性能统计待实现")
+                Text("性能统计功能正在开发中...")
                     .foregroundColor(.secondary)
+                    .italic()
             }
         }
         .navigationTitle(agent.name)

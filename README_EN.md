@@ -1195,7 +1195,7 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ✅ Ed25519 signing key pair + X25519 encryption key pair
 - ✅ DID document generation, signing, verification
 - ✅ Multi-identity support + mnemonic export
-- ⏳ P2P network publishing and resolution (framework ready)
+- ✅ P2P network publishing and resolution
 
 **Verifiable Credentials (VC)**:
 
@@ -1210,7 +1210,7 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ✅ mDNS local discovery + device hot-plug monitoring
 - ✅ Signal Protocol E2E encryption (complete implementation)
 - ✅ Device management + cross-device sync + offline message queue
-- ⏳ WebRTC support (framework ready)
+- ✅ WebRTC support (P2P voice/video calls + NAT traversal)
 
 **Social Features**:
 
@@ -2065,30 +2065,34 @@ chainlesschain/
 
 ### Version History
 
-| Version | Date       | Major Updates                                                                                                                                                                                                                                 |
-| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.29.0 | 2026-02-02 | **Enterprise RBAC + Context Engineering + Claude Code Style Tools**: Permission Engine (RBAC), Team Manager, Team Report Manager, Context Engineering (KV-Cache optimization, 17 IPC), Plan Mode (14 IPC), Skills System enhancement ⭐LATEST |
-| v0.28.0 | 2026-01-28 | **Permanent Memory + Hybrid Search + Hooks System**: Daily Notes auto-logging, MEMORY.md extraction, Vector+BM25 hybrid search, 21 hook events, 4 hook types, MCP integration tests (32+31)                                                   |
-| v0.27.0 | 2026-01-23 | **Hooks System + IPC Error Handler**: Claude Code-style hooks (21 events, 4 types, priority system), IPC error middleware (10 error types, ErrorMonitor integration), enterprise permission foundations                                       |
-| v0.26.0 | 2026-01-19 | **Unified Logging + Android P2P UI + Memory Optimization**: Centralized logger system (700+ migrations), Android P2P complete UI (8 screens), ChatPanel 4-layer memory protection                                                             |
-| v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache), Tool Masking, TaskTrackerFile (todo.md), Recoverable Compression, 3 specialized Agents                                                                        |
-| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP tools integrated into AI chat, invoke MCP server tools via Function Calling                                                                                                                                     |
-| v0.23.0 | 2026-01-15 | **SessionManager Enhancement + ErrorMonitor AI Diagnostics**: Session search/tags/export/summary, AI error diagnosis                                                                                                                          |
-| v0.22.0 | 2026-01-13 | **Blockchain Integration Complete**: 15 chain support + RPC management + event listening + complete UI ⭐Major Update                                                                                                                         |
-| v0.21.0 | 2026-01-06 | **Deep Performance Optimization**: 14,000+ lines optimization code, smart image system (WebP/AVIF), Core Web Vitals monitoring                                                                                                                |
-| v0.20.0 | 2026-01-03 | **Testing Framework Upgrade**: Full Vitest migration (94 files/900+ cases), performance optimization integration                                                                                                                              |
-| v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools**: AI engine optimization, 300 tools restored, application menu integration                                                                                                                                      |
-| v0.19.0 | 2025-12-31 | **Codebase Refinement**: Documentation update, template optimization, testing framework enhancement                                                                                                                                           |
-| v0.18.0 | 2025-12-30 | **Enterprise Edition + Skills Expansion**: Decentralized organizations, 115 skills + 300 tools, multi-database isolation                                                                                                                      |
-| v0.17.0 | 2025-12-29 | **Blockchain Integration Phase 1-3**: 6 smart contracts, wallet system, plugin system, browser extension                                                                                                                                      |
-| v0.16.0 | 2025-12-28 | **Phase 3 Complete**: 8 trading modules, 19 AI engines, backend services (149 APIs), database sync                                                                                                                                            |
-| v0.11.0 | 2025-12-18 | Image upload and OCR (Tesseract.js + Sharp)                                                                                                                                                                                                   |
-| v0.10.0 | 2025-12    | RAG reranker (3 algorithms) + query rewriting                                                                                                                                                                                                 |
-| v0.9.0  | 2025-11    | File import enhancement (PDF/Word/TXT)                                                                                                                                                                                                        |
-| v0.8.0  | 2025-11    | Verifiable credentials system (W3C VC standard, 5 types)                                                                                                                                                                                      |
-| v0.6.1  | 2025-10    | DHT network publishing (DID documents)                                                                                                                                                                                                        |
-| v0.4.0  | 2025-09    | Git conflict resolution (visual UI) + AI commit messages                                                                                                                                                                                      |
-| v0.1.0  | 2025-08    | First MVP release                                                                                                                                                                                                                             |
+| Version | Date       | Major Updates                                                                                                                                                                                                                              |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| v0.33.0 | 2026-02-13 | **Remote Control + Computer Use + Browser Extension**: P2P remote gateway, 24+ command handlers, Chrome extension (15,077 lines), Computer Use Agent (68+ IPC), Vision AI, Workflow Engine, SafeMode, Audit Logger, 45,000+ lines ⭐LATEST |
+| v0.32.0 | 2026-02-10 | **iOS Workflow + Android MCP/Hooks**: iOS WorkflowManager + VoiceManager, Android MCP integration + Hooks system + Knowledge Graph visualization                                                                                           |
+| v0.31.0 | 2026-02-09 | **Security Auth + Incremental RAG + SIMKey NFC**: Dev/prod mode JWT auth, MD5 change detection, context-aware reranking, file version control, LLM function calling                                                                        |
+| v0.30.0 | 2026-02-05 | **DI Test Refactoring + Social Notifications + ECharts Dashboard**: 102 database tests enabled via DI, TaskMonitor dashboard, AbortController AI cancel, Firebase integration                                                              |
+| v0.29.0 | 2026-02-02 | **Enterprise RBAC + Context Engineering + Claude Code Style Tools**: Permission Engine (RBAC), Team Manager, Team Report Manager, Context Engineering (KV-Cache optimization, 17 IPC), Plan Mode (14 IPC), Skills System enhancement       |
+| v0.28.0 | 2026-01-28 | **Permanent Memory + Hybrid Search + Hooks System**: Daily Notes auto-logging, MEMORY.md extraction, Vector+BM25 hybrid search, 21 hook events, 4 hook types, MCP integration tests (32+31)                                                |
+| v0.27.0 | 2026-01-23 | **Hooks System + IPC Error Handler**: Claude Code-style hooks (21 events, 4 types, priority system), IPC error middleware (10 error types, ErrorMonitor integration), enterprise permission foundations                                    |
+| v0.26.0 | 2026-01-19 | **Unified Logging + Android P2P UI + Memory Optimization**: Centralized logger system (700+ migrations), Android P2P complete UI (8 screens), ChatPanel 4-layer memory protection                                                          |
+| v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache), Tool Masking, TaskTrackerFile (todo.md), Recoverable Compression, 3 specialized Agents                                                                     |
+| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP tools integrated into AI chat, invoke MCP server tools via Function Calling                                                                                                                                  |
+| v0.23.0 | 2026-01-15 | **SessionManager Enhancement + ErrorMonitor AI Diagnostics**: Session search/tags/export/summary, AI error diagnosis                                                                                                                       |
+| v0.22.0 | 2026-01-13 | **Blockchain Integration Complete**: 15 chain support + RPC management + event listening + complete UI ⭐Major Update                                                                                                                      |
+| v0.21.0 | 2026-01-06 | **Deep Performance Optimization**: 14,000+ lines optimization code, smart image system (WebP/AVIF), Core Web Vitals monitoring                                                                                                             |
+| v0.20.0 | 2026-01-03 | **Testing Framework Upgrade**: Full Vitest migration (94 files/900+ cases), performance optimization integration                                                                                                                           |
+| v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools**: AI engine optimization, 300 tools restored, application menu integration                                                                                                                                   |
+| v0.19.0 | 2025-12-31 | **Codebase Refinement**: Documentation update, template optimization, testing framework enhancement                                                                                                                                        |
+| v0.18.0 | 2025-12-30 | **Enterprise Edition + Skills Expansion**: Decentralized organizations, 115 skills + 300 tools, multi-database isolation                                                                                                                   |
+| v0.17.0 | 2025-12-29 | **Blockchain Integration Phase 1-3**: 6 smart contracts, wallet system, plugin system, browser extension                                                                                                                                   |
+| v0.16.0 | 2025-12-28 | **Phase 3 Complete**: 8 trading modules, 19 AI engines, backend services (149 APIs), database sync                                                                                                                                         |
+| v0.11.0 | 2025-12-18 | Image upload and OCR (Tesseract.js + Sharp)                                                                                                                                                                                                |
+| v0.10.0 | 2025-12    | RAG reranker (3 algorithms) + query rewriting                                                                                                                                                                                              |
+| v0.9.0  | 2025-11    | File import enhancement (PDF/Word/TXT)                                                                                                                                                                                                     |
+| v0.8.0  | 2025-11    | Verifiable credentials system (W3C VC standard, 5 types)                                                                                                                                                                                   |
+| v0.6.1  | 2025-10    | DHT network publishing (DID documents)                                                                                                                                                                                                     |
+| v0.4.0  | 2025-09    | Git conflict resolution (visual UI) + AI commit messages                                                                                                                                                                                   |
+| v0.1.0  | 2025-08    | First MVP release                                                                                                                                                                                                                          |
 
 ## 🛠️ Tech Stack
 

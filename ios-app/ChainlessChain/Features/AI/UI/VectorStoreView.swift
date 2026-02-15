@@ -413,8 +413,9 @@ class VectorStoreViewModel: ObservableObject {
                 let count = try await store.count()
                 totalCount += count
 
-                // TODO: 实际实现需要VectorStore协议支持列表操作
-                // 这里使用模拟数据
+                // NOTE: 使用模拟数据用于 UI 演示。实际实现需要 VectorStore 协议支持列表操作
+                // 集成方式: 需要在 VectorStore 协议中添加 list() 方法
+                // vectorsByStore[storeName] = try await store.list(limit: 100)
                 vectorsByStore[storeName] = []
             } catch {
                 Logger.shared.error("加载存储\(storeName)失败: \(error)")

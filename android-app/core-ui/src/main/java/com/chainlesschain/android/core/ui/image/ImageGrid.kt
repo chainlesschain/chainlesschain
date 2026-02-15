@@ -11,13 +11,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 
 /**
@@ -64,17 +68,13 @@ private fun SingleImageLayout(
     cornerRadius: Dp,
     onImageClick: (Int, String) -> Unit
 ) {
-    SubcomposeAsyncImage(
-        model = imageUrl,
-        contentDescription = null,
+    GridImage(
+        url = imageUrl,
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
             .clip(RoundedCornerShape(cornerRadius))
-            .clickable { onImageClick(0, imageUrl) },
-        contentScale = ContentScale.Crop,
-        loading = { ImageLoadingPlaceholder() },
-        error = { ImageErrorPlaceholder() }
+            .clickable { onImageClick(0, imageUrl) }
     )
 }
 
@@ -94,17 +94,13 @@ private fun TwoImagesLayout(
         horizontalArrangement = Arrangement.spacedBy(spacing)
     ) {
         images.forEachIndexed { index, url ->
-            SubcomposeAsyncImage(
-                model = url,
-                contentDescription = null,
+            GridImage(
+                url = url,
                 modifier = Modifier
                     .weight(1f)
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(cornerRadius))
-                    .clickable { onImageClick(index, url) },
-                contentScale = ContentScale.Crop,
-                loading = { ImageLoadingPlaceholder() },
-                error = { ImageErrorPlaceholder() }
+                    .clickable { onImageClick(index, url) }
             )
         }
     }
@@ -126,17 +122,13 @@ private fun ThreeImagesLayout(
         horizontalArrangement = Arrangement.spacedBy(spacing)
     ) {
         // 左侧大图
-        SubcomposeAsyncImage(
-            model = images[0],
-            contentDescription = null,
+        GridImage(
+            url = images[0],
             modifier = Modifier
                 .weight(1f)
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(cornerRadius))
-                .clickable { onImageClick(0, images[0]) },
-            contentScale = ContentScale.Crop,
-            loading = { ImageLoadingPlaceholder() },
-            error = { ImageErrorPlaceholder() }
+                .clickable { onImageClick(0, images[0]) }
         )
         // 右侧两小图
         Column(
@@ -144,17 +136,13 @@ private fun ThreeImagesLayout(
             verticalArrangement = Arrangement.spacedBy(spacing)
         ) {
             images.drop(1).forEachIndexed { index, url ->
-                SubcomposeAsyncImage(
-                    model = url,
-                    contentDescription = null,
+                GridImage(
+                    url = url,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(2f)
                         .clip(RoundedCornerShape(cornerRadius))
-                        .clickable { onImageClick(index + 1, url) },
-                    contentScale = ContentScale.Crop,
-                    loading = { ImageLoadingPlaceholder() },
-                    error = { ImageErrorPlaceholder() }
+                        .clickable { onImageClick(index + 1, url) }
                 )
             }
         }
@@ -183,17 +171,13 @@ private fun FourImagesLayout(
                 for (col in 0..1) {
                     val index = row * 2 + col
                     val url = images[index]
-                    SubcomposeAsyncImage(
-                        model = url,
-                        contentDescription = null,
+                    GridImage(
+                        url = url,
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1f)
                             .clip(RoundedCornerShape(cornerRadius))
-                            .clickable { onImageClick(index, url) },
-                        contentScale = ContentScale.Crop,
-                        loading = { ImageLoadingPlaceholder() },
-                        error = { ImageErrorPlaceholder() }
+                            .clickable { onImageClick(index, url) }
                     )
                 }
             }
@@ -232,16 +216,12 @@ private fun MultiImagesLayout(
                                 .weight(1f)
                                 .aspectRatio(1f)
                         ) {
-                            SubcomposeAsyncImage(
-                                model = url,
-                                contentDescription = null,
+                            GridImage(
+                                url = url,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(cornerRadius))
-                                    .clickable { onImageClick(index, url) },
-                                contentScale = ContentScale.Crop,
-                                loading = { ImageLoadingPlaceholder() },
-                                error = { ImageErrorPlaceholder() }
+                                    .clickable { onImageClick(index, url) }
                             )
                             // 最后一张显示剩余数量
                             if (index == 8 && remainingCount > 0) {
@@ -272,6 +252,31 @@ private fun MultiImagesLayout(
     }
 }
 
+/**
+ * 可重试的图片加载组件
+ */
+@Composable
+private fun GridImage(
+    url: String,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    var retryKey by remember { mutableIntStateOf(0) }
+
+    key(retryKey) {
+        SubcomposeAsyncImage(
+            model = url,
+            contentDescription = null,
+            modifier = modifier,
+            contentScale = contentScale,
+            loading = { ImageLoadingPlaceholder() },
+            error = {
+                ImageErrorPlaceholder(onRetry = { retryKey++ })
+            }
+        )
+    }
+}
+
 @Composable
 private fun ImageLoadingPlaceholder() {
     Box(
@@ -286,15 +291,27 @@ private fun ImageLoadingPlaceholder() {
 }
 
 @Composable
-private fun ImageErrorPlaceholder() {
+private fun ImageErrorPlaceholder(onRetry: (() -> Unit)? = null) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .then(if (onRetry != null) Modifier.clickable { onRetry() } else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Default.BrokenImage,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.BrokenImage,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (onRetry != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "点击重试",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

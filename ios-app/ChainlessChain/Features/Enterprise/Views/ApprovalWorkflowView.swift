@@ -462,13 +462,15 @@ class ApprovalWorkflowViewModel: ObservableObject {
 
     // 当前用户 DID（从认证服务获取）
     private var currentUserDid: String {
-        // TODO: 从认证服务获取
+        // NOTE: 使用占位符 DID 用于 UI 演示。生产环境中应从 IdentityManager 获取
+        // 集成方式: IdentityManager.shared.currentUserDid
         return "did:test:current-user"
     }
 
     // 当前组织 ID
     private var currentOrgId: String {
-        // TODO: 从组织管理器获取
+        // NOTE: 使用占位符组织 ID 用于 UI 演示。生产环境中应从 OrganizationManager 获取
+        // 集成方式: OrganizationManager.shared.currentOrganizationId
         return "org-default"
     }
 

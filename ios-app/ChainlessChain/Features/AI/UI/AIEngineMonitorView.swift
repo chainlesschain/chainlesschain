@@ -305,8 +305,9 @@ struct EngineDetailView: View {
             }
 
             Section(header: Text("功能列表")) {
-                Text("功能列表待实现")
+                Text("功能列表正在开发中...")
                     .foregroundColor(.secondary)
+                    .italic()
             }
         }
         .navigationTitle(engine.name)

@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.config.ThemeMode
 import kotlinx.coroutines.launch
 
 /**
@@ -29,9 +30,11 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAbout: () -> Unit = {},
-    onNavigateToHelpFeedback: () -> Unit = {}
+    onNavigateToHelpFeedback: () -> Unit = {},
+    currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChanged: (ThemeMode) -> Unit = {}
 ) {
-    var darkModeEnabled by remember { mutableStateOf(false) }
+    val darkModeEnabled = currentThemeMode == ThemeMode.DARK
     var notificationsEnabled by remember { mutableStateOf(true) }
     var biometricEnabled by remember { mutableStateOf(false) }
     var autoSaveEnabled by remember { mutableStateOf(true) }
@@ -86,9 +89,11 @@ fun SettingsScreen(
                 SettingsToggleItem(
                     icon = Icons.Default.DarkMode,
                     title = "深色模式",
-                    subtitle = "使用深色主题界面",
+                    subtitle = if (darkModeEnabled) "已启用深色主题" else "跟随系统设置",
                     checked = darkModeEnabled,
-                    onCheckedChange = { darkModeEnabled = it }
+                    onCheckedChange = { enabled ->
+                        onThemeModeChanged(if (enabled) ThemeMode.DARK else ThemeMode.SYSTEM)
+                    }
                 )
             }
 

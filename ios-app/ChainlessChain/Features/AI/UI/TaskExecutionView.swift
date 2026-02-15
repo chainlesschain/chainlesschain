@@ -488,8 +488,9 @@ struct CreateTaskView: View {
                 }
 
                 Section(header: Text("依赖任务")) {
-                    Text("依赖管理待实现")
+                    Text("任务依赖管理功能正在开发中...")
                         .foregroundColor(.secondary)
+                        .italic()
                 }
             }
             .navigationTitle("创建任务")
@@ -542,8 +543,8 @@ class TaskExecutionViewModel: ObservableObject {
     }
 
     func loadData() {
-        // TODO: 从AgentOrchestrator获取实际任务数据
-        // 这里使用模拟数据
+        // NOTE: 使用模拟数据用于 UI 演示。生产环境中应从 AgentOrchestrator 获取实时任务数据
+        // 集成方式: let tasks = await AgentOrchestrator.shared.getAllTasks()
 
         totalTasks = runningTasksList.count + pendingTasksList.count + completedTasksList.count + failedTasksList.count
         runningTasks = runningTasksList.count
@@ -556,7 +557,8 @@ class TaskExecutionViewModel: ObservableObject {
     }
 
     func createTask(description: String, priority: String, dependencies: [String]) async {
-        // TODO: 调用AgentOrchestrator创建任务
+        // NOTE: UI 演示功能。生产环境中应调用 AgentOrchestrator 创建实际任务
+        // 集成方式: await AgentOrchestrator.shared.createTask(description: description, priority: priority)
         Logger.shared.info("创建任务: \(description)")
         loadData()
     }
@@ -586,17 +588,19 @@ class TaskDetailViewModel: ObservableObject {
     }
 
     private func loadTimeline() {
-        // TODO: 获取实际的时间线事件
-        // 这里使用模拟数据
+        // NOTE: 使用模拟数据用于 UI 演示。生产环境中应从 AgentOrchestrator 获取任务时间线
+        // 集成方式: timeline = await AgentOrchestrator.shared.getTaskTimeline(taskId: taskId)
     }
 
     func retryTask() async {
-        // TODO: 重试失败的任务
+        // NOTE: UI 演示功能。生产环境中应调用 AgentOrchestrator 重试任务
+        // 集成方式: await AgentOrchestrator.shared.retryTask(taskId: taskId)
         Logger.shared.info("重试任务: \(taskId)")
     }
 
     func cancelTask() async {
-        // TODO: 取消运行中的任务
+        // NOTE: UI 演示功能。生产环境中应调用 AgentOrchestrator 取消任务
+        // 集成方式: await AgentOrchestrator.shared.cancelTask(taskId: taskId)
         Logger.shared.info("取消任务: \(taskId)")
     }
 }

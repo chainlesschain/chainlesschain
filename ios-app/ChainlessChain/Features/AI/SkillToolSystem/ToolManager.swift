@@ -196,8 +196,8 @@ public class ToolManager: ObservableObject {
     // MARK: - 工具统计
 
     /// 获取工具使用统计
+    /// - Returns: 包含工具统计信息的字典
     public func getToolStats() -> [String: Int] {
-        // TODO: 实现工具使用统计
         return statsQueue.sync {
             var stats: [String: Int] = [
                 "total_tools": toolsById.count,
