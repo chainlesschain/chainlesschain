@@ -5,22 +5,22 @@ on:
     branches:
       - main
     paths:
-      - 'desktop-app-vue/src/**/*.js'
-      - 'desktop-app-vue/src/**/*.vue'
-      - 'desktop-app-vue/scripts/cowork-doc-generator.js'
-      - '.github/workflows/documentation.yml'
+      - "desktop-app-vue/src/**/*.js"
+      - "desktop-app-vue/src/**/*.vue"
+      - "desktop-app-vue/scripts/cowork-doc-generator.js"
+      - ".github/workflows/documentation.yml"
   pull_request:
     branches:
       - main
     paths:
-      - 'desktop-app-vue/src/**/*.js'
-      - 'desktop-app-vue/src/**/*.vue'
+      - "desktop-app-vue/src/**/*.js"
+      - "desktop-app-vue/src/**/*.vue"
   workflow_dispatch: # Allow manual trigger
     inputs:
       doc_type:
-        description: 'Documentation type to generate'
+        description: "Documentation type to generate"
         required: false
-        default: 'all'
+        default: "all"
         type: choice
         options:
           - all
@@ -28,6 +28,9 @@ on:
           - user-guide
           - changelog
           - architecture
+
+permissions:
+  contents: write
 
 jobs:
   generate-docs:
@@ -40,11 +43,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Full history for changelog
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.x'
+          node-version: "22.x"
 
       - name: Cache node modules
         uses: actions/cache@v4
@@ -59,7 +63,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm ci
+        run: npm install --legacy-peer-deps --ignore-optional
 
       - name: Preview documentation changes
         working-directory: ./desktop-app-vue

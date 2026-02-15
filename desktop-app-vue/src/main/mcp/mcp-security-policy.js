@@ -42,6 +42,18 @@ function normalizeSecurityPath(inputPath) {
   // Remove leading ./ if present
   normalized = normalized.replace(/^\.\//, "");
 
+  // Resolve '..' segments to prevent path traversal bypasses
+  const parts = normalized.split("/");
+  const resolved = [];
+  for (const part of parts) {
+    if (part === "..") {
+      resolved.pop();
+    } else if (part !== ".") {
+      resolved.push(part);
+    }
+  }
+  normalized = resolved.join("/");
+
   return normalized;
 }
 
