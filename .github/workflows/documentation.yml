@@ -110,6 +110,7 @@ jobs:
           - Changelog updated
 
           Co-Authored-By: Cowork Documentation Team <noreply@chainlesschain.com>"
+          git pull --rebase origin main || true
           git push
 
       - name: Upload documentation artifacts
