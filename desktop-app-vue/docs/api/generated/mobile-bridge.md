@@ -1,8 +1,8 @@
 # mobile-bridge
 
-**Source**: `src\main\p2p\mobile-bridge.js`
+**Source**: `src/main/p2p/mobile-bridge.js`
 
-**Generated**: 2026-01-27T06:44:03.833Z
+**Generated**: 2026-02-15T07:37:13.808Z
 
 ---
 
@@ -39,6 +39,8 @@ register()
 ```
 
 * 注册PC端身份到信令服务器
+   * 使用与 signaling-server registerLocal 相同的 deviceId，
+   * 这样 Android 发送 offer 到该 ID 时可以正确转发到 MobileBridge
 
 ---
 
@@ -182,13 +184,14 @@ handlePeerStatus(message)
 
 ---
 
-## handleOfflineMessage(message)
+## async handleOfflineMessage(message)
 
 ```javascript
-handleOfflineMessage(message)
+async handleOfflineMessage(message)
 ```
 
 * 处理离线消息
+   * 包括在 MobileBridge 连接前入队的 offer 等消息
 
 ---
 
@@ -248,7 +251,57 @@ closePeerConnection(peerId)
 scheduleReconnect()
 ```
 
-* 安排重连
+* 安排重连（指数退避策略）
+
+---
+
+## resetReconnectAttempts()
+
+```javascript
+resetReconnectAttempts()
+```
+
+* 重置重连计数（手动调用时）
+
+---
+
+## startHeartbeat()
+
+```javascript
+startHeartbeat()
+```
+
+* 启动心跳检测
+
+---
+
+## sendHeartbeat()
+
+```javascript
+sendHeartbeat()
+```
+
+* 发送心跳
+
+---
+
+## handleHeartbeatTimeout()
+
+```javascript
+handleHeartbeatTimeout()
+```
+
+* 处理心跳超时
+
+---
+
+## stopHeartbeat()
+
+```javascript
+stopHeartbeat()
+```
+
+* 停止心跳检测
 
 ---
 

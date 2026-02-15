@@ -1,8 +1,8 @@
 # audio-storage
 
-**Source**: `src\main\speech\audio-storage.js`
+**Source**: `src/main/speech/audio-storage.js`
 
-**Generated**: 2026-01-27T06:44:03.808Z
+**Generated**: 2026-02-15T07:37:13.776Z
 
 ---
 
@@ -161,6 +161,19 @@ async getAllTranscriptionHistory(options =
 
 ---
 
+## async searchTranscriptionHistory(query, options =
+
+```javascript
+async searchTranscriptionHistory(query, options =
+```
+
+* 搜索转录历史
+   * @param {string} query - 搜索关键词
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Array>}
+
+---
+
 ## async deleteTranscriptionHistory(id)
 
 ```javascript
@@ -173,10 +186,10 @@ async deleteTranscriptionHistory(id)
 
 ---
 
-## async getStats(user_id = 'local-user')
+## async getStats(user_id = "local-user")
 
 ```javascript
-async getStats(user_id = 'local-user')
+async getStats(user_id = "local-user")
 ```
 
 * 获取统计信息

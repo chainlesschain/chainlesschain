@@ -1,8 +1,8 @@
 # extended-tools-office
 
-**Source**: `src\main\ai-engine\extended-tools-office.js`
+**Source**: `src/main/ai-engine/extended-tools-office.js`
 
-**Generated**: 2026-01-27T06:44:03.881Z
+**Generated**: 2026-02-15T07:37:13.868Z
 
 ---
 

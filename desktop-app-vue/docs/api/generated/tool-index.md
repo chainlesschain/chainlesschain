@@ -1,8 +1,8 @@
 # tool-index
 
-**Source**: `src\main\skill-tool-system\tool-index.js`
+**Source**: `src/main/skill-tool-system/tool-index.js`
 
-**Generated**: 2026-01-27T06:44:03.810Z
+**Generated**: 2026-02-15T07:37:13.778Z
 
 ---
 
@@ -144,10 +144,10 @@ query(filters =
 
 ---
 
-## search(keyword, fields = ['name', 'display_name', 'description'])
+## search(keyword, fields = ["name", "display_name", "description"])
 
 ```javascript
-search(keyword, fields = ['name', 'display_name', 'description'])
+search(keyword, fields = ["name", "display_name", "description"])
 ```
 
 * 搜索工具（支持模糊匹配）

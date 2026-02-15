@@ -1,8 +1,8 @@
 # blockchain-adapter
 
-**Source**: `src\main\blockchain\blockchain-adapter.js`
+**Source**: `src/main/blockchain/blockchain-adapter.js`
 
-**Generated**: 2026-01-27T06:44:03.873Z
+**Generated**: 2026-02-15T07:37:13.859Z
 
 ---
 
@@ -338,10 +338,10 @@ async retryTransaction(txFunction, maxRetries = 3, baseDelay = 1000)
 
 ---
 
-## async getOptimizedGasPrice(speed = 'standard')
+## async getOptimizedGasPrice(speed = "standard")
 
 ```javascript
-async getOptimizedGasPrice(speed = 'standard')
+async getOptimizedGasPrice(speed = "standard")
 ```
 
 * Gas 价格优化（根据网络拥堵情况调整）
@@ -386,10 +386,10 @@ async monitorTransaction(txHash, confirmations = 1, onUpdate = null)
 
 ---
 
-## async replaceTransaction(walletId, txHash, action = 'speedup', password)
+## async replaceTransaction(walletId, txHash, action = "speedup", password)
 
 ```javascript
-async replaceTransaction(walletId, txHash, action = 'speedup', password)
+async replaceTransaction(walletId, txHash, action = "speedup", password)
 ```
 
 * 取消或加速交易（通过替换交易）

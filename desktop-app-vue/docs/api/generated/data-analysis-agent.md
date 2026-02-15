@@ -1,8 +1,8 @@
 # data-analysis-agent
 
-**Source**: `src\main\ai-engine\multi-agent\agents\data-analysis-agent.js`
+**Source**: `src/main/ai-engine/multi-agent/agents/data-analysis-agent.js`
 
-**Generated**: 2026-01-27T06:44:03.886Z
+**Generated**: 2026-02-15T07:37:13.874Z
 
 ---
 

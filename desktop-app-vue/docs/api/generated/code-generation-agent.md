@@ -1,8 +1,8 @@
 # code-generation-agent
 
-**Source**: `src\main\ai-engine\multi-agent\agents\code-generation-agent.js`
+**Source**: `src/main/ai-engine/multi-agent/agents/code-generation-agent.js`
 
-**Generated**: 2026-01-27T06:44:03.887Z
+**Generated**: 2026-02-15T07:37:13.874Z
 
 ---
 

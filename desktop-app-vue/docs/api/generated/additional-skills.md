@@ -1,8 +1,8 @@
 # additional-skills
 
-**Source**: `src\main\skill-tool-system\additional-skills.js`
+**Source**: `src/main/skill-tool-system/additional-skills.js`
 
-**Generated**: 2026-01-27T06:44:03.817Z
+**Generated**: 2026-02-15T07:37:13.784Z
 
 ---
 

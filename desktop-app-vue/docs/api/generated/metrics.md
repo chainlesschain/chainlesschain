@@ -1,8 +1,8 @@
 # metrics
 
-**Source**: `src\main\rag\metrics.js`
+**Source**: `src/main/rag/metrics.js`
 
-**Generated**: 2026-01-27T06:44:03.824Z
+**Generated**: 2026-02-15T07:37:13.795Z
 
 ---
 

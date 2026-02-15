@@ -1,8 +1,8 @@
 # extended-tools-3
 
-**Source**: `src\main\ai-engine\extended-tools-3.js`
+**Source**: `src/main/ai-engine/extended-tools-3.js`
 
-**Generated**: 2026-01-27T06:44:03.882Z
+**Generated**: 2026-02-15T07:37:13.870Z
 
 ---
 

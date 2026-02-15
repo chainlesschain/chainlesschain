@@ -1,8 +1,8 @@
 # project-export-ipc
 
-**Source**: `src\main\project\project-export-ipc.js`
+**Source**: `src/main/project/project-export-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.827Z
+**Generated**: 2026-02-15T07:37:13.799Z
 
 ---
 
@@ -36,13 +36,15 @@ function registerProjectExportIPC(
  * @param {Function} dependencies.getProjectConfig - 获取项目配置
  * @param {Function} dependencies.copyDirectory - 复制目录函数
  * @param {Function} dependencies.convertSlidesToOutline - 转换幻灯片为大纲
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} dependencies.dialog - Dialog对象（可选，用于测试注入）
 
 ---
 
-## ipcMain.handle('project:exportDocument', async (_event, params) =>
+## ipcMain.handle("project:exportDocument", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:exportDocument', async (_event, params) =>
+ipcMain.handle("project:exportDocument", async (_event, params) =>
 ```
 
 * 导出文档为不同格式
@@ -50,10 +52,10 @@ ipcMain.handle('project:exportDocument', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('project:generatePPT', async (_event, params) =>
+## ipcMain.handle("project:generatePPT", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:generatePPT', async (_event, params) =>
+ipcMain.handle("project:generatePPT", async (_event, params) =>
 ```
 
 * 生成 PPT 演示文稿
@@ -61,10 +63,10 @@ ipcMain.handle('project:generatePPT', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('project:generatePodcastScript', async (_event, params) =>
+## ipcMain.handle("project:generatePodcastScript", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:generatePodcastScript', async (_event, params) =>
+ipcMain.handle("project:generatePodcastScript", async (_event, params) =>
 ```
 
 * 生成播客脚本
@@ -72,10 +74,10 @@ ipcMain.handle('project:generatePodcastScript', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('project:generateArticleImages', async (_event, params) =>
+## ipcMain.handle("project:generateArticleImages", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:generateArticleImages', async (_event, params) =>
+ipcMain.handle("project:generateArticleImages", async (_event, params) =>
 ```
 
 * 生成文章配图
@@ -83,10 +85,10 @@ ipcMain.handle('project:generateArticleImages', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('project:shareProject', async (_event, params) =>
+## ipcMain.handle("project:shareProject", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:shareProject', async (_event, params) =>
+ipcMain.handle("project:shareProject", async (_event, params) =>
 ```
 
 * 创建或更新项目分享
@@ -94,120 +96,120 @@ ipcMain.handle('project:shareProject', async (_event, params) =>
 
 ---
 
-## ipcMain.handle('project:getShare', async (_event, projectId) =>
+## ipcMain.handle("project:getShare", async (_event, projectId) =>
 
 ```javascript
-ipcMain.handle('project:getShare', async (_event, projectId) =>
+ipcMain.handle("project:getShare", async (_event, projectId) =>
 ```
 
 * 获取项目分享信息
 
 ---
 
-## ipcMain.handle('project:deleteShare', async (_event, projectId) =>
+## ipcMain.handle("project:deleteShare", async (_event, projectId) =>
 
 ```javascript
-ipcMain.handle('project:deleteShare', async (_event, projectId) =>
+ipcMain.handle("project:deleteShare", async (_event, projectId) =>
 ```
 
 * 删除项目分享
 
 ---
 
-## ipcMain.handle('project:accessShare', async (_event, token) =>
+## ipcMain.handle("project:accessShare", async (_event, token) =>
 
 ```javascript
-ipcMain.handle('project:accessShare', async (_event, token) =>
+ipcMain.handle("project:accessShare", async (_event, token) =>
 ```
 
 * 根据 token 访问分享项目
 
 ---
 
-## ipcMain.handle('project:shareToWechat', async (_event, params) =>
+## ipcMain.handle("project:shareToWechat", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:shareToWechat', async (_event, params) =>
+ipcMain.handle("project:shareToWechat", async (_event, params) =>
 ```
 
 * 微信分享（生成二维码）
 
 ---
 
-## ipcMain.handle('project:copyFile', async (_event, params) =>
+## ipcMain.handle("project:copyFile", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:copyFile', async (_event, params) =>
+ipcMain.handle("project:copyFile", async (_event, params) =>
 ```
 
 * 复制文件（项目内）
 
 ---
 
-## ipcMain.handle('project:move-file', async (_event, params) =>
+## ipcMain.handle("project:move-file", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:move-file', async (_event, params) =>
+ipcMain.handle("project:move-file", async (_event, params) =>
 ```
 
 * 移动文件（项目内拖拽）
 
 ---
 
-## ipcMain.handle('project:import-file', async (_event, params) =>
+## ipcMain.handle("project:import-file", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:import-file', async (_event, params) =>
+ipcMain.handle("project:import-file", async (_event, params) =>
 ```
 
 * 从外部导入文件到项目
 
 ---
 
-## ipcMain.handle('project:export-file', async (_event, params) =>
+## ipcMain.handle("project:export-file", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:export-file', async (_event, params) =>
+ipcMain.handle("project:export-file", async (_event, params) =>
 ```
 
 * 导出文件到外部
 
 ---
 
-## ipcMain.handle('project:export-files', async (_event, params) =>
+## ipcMain.handle("project:export-files", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:export-files', async (_event, params) =>
+ipcMain.handle("project:export-files", async (_event, params) =>
 ```
 
 * 批量导出文件到外部
 
 ---
 
-## ipcMain.handle('project:select-export-directory', async (_event) =>
+## ipcMain.handle("project:select-export-directory", async (_event) =>
 
 ```javascript
-ipcMain.handle('project:select-export-directory', async (_event) =>
+ipcMain.handle("project:select-export-directory", async (_event) =>
 ```
 
 * 选择导出目录对话框
 
 ---
 
-## ipcMain.handle('project:select-import-files', async (_event, options =
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('project:select-import-files', async (_event, options =
+ipcMain.handle(
 ```
 
 * 选择导入文件对话框
 
 ---
 
-## ipcMain.handle('project:import-files', async (_event, params) =>
+## ipcMain.handle("project:import-files", async (_event, params) =>
 
 ```javascript
-ipcMain.handle('project:import-files', async (_event, params) =>
+ipcMain.handle("project:import-files", async (_event, params) =>
 ```
 
 * 批量导入文件到项目

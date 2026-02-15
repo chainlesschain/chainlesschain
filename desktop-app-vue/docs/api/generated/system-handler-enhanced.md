@@ -1,8 +1,8 @@
 # system-handler-enhanced
 
-**Source**: `src\main\remote\handlers\system-handler-enhanced.js`
+**Source**: `src/main/remote/handlers/system-handler-enhanced.js`
 
-**Generated**: 2026-01-27T06:44:03.822Z
+**Generated**: 2026-02-15T07:37:13.791Z
 
 ---
 

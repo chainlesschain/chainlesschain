@@ -1,8 +1,8 @@
 # resumable-processor
 
-**Source**: `src\main\utils\resumable-processor.js`
+**Source**: `src/main/utils/resumable-processor.js`
 
-**Generated**: 2026-01-27T06:44:03.789Z
+**Generated**: 2026-02-15T07:37:13.761Z
 
 ---
 

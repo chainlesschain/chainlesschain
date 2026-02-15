@@ -1,8 +1,8 @@
 # volcengine-model-selector-examples
 
-**Source**: `src\main\llm\volcengine-model-selector-examples.js`
+**Source**: `src/main/llm/volcengine-model-selector-examples.js`
 
-**Generated**: 2026-01-27T06:44:03.846Z
+**Generated**: 2026-02-15T07:37:13.820Z
 
 ---
 

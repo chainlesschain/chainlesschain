@@ -1,8 +1,8 @@
 # mcp-ipc
 
-**Source**: `src\main\mcp\mcp-ipc.js`
+**Source**: `src/main/mcp/mcp-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.843Z
+**Generated**: 2026-02-15T07:37:13.817Z
 
 ---
 
@@ -59,6 +59,27 @@ ipcMain.handle("mcp:list-servers", async () =>
 ```
 
 * List all available MCP servers from registry (always available)
+
+---
+
+## ipcMain.handle("mcp:get-server-config", async (event,
+
+```javascript
+ipcMain.handle("mcp:get-server-config", async (event,
+```
+
+* Get server config for a specific server (always available)
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Update server config for a specific server (always available)
+   * Note: Security policy permissions are only updated when MCP is enabled
 
 ---
 
@@ -212,26 +233,6 @@ ipcMain.handle("mcp:get-audit-log", async (event, filters =
 ```
 
 * Get audit log
-
----
-
-## ipcMain.handle("mcp:get-server-config", async (event,
-
-```javascript
-ipcMain.handle("mcp:get-server-config", async (event,
-```
-
-* Get server config for a specific server
-
----
-
-## ipcMain.handle(
-
-```javascript
-ipcMain.handle(
-```
-
-* Update server config for a specific server
 
 ---
 

@@ -1,8 +1,8 @@
 # prompt-template-manager
 
-**Source**: `src\main\prompt\prompt-template-manager.js`
+**Source**: `src/main/prompt/prompt-template-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.825Z
+**Generated**: 2026-02-15T07:37:13.797Z
 
 ---
 

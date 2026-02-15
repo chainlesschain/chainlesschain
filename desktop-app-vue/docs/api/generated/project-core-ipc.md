@@ -1,8 +1,8 @@
 # project-core-ipc
 
-**Source**: `src\main\project\project-core-ipc.js`
+**Source**: `src/main/project/project-core-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.827Z
+**Generated**: 2026-02-15T07:37:13.799Z
 
 ---
 
@@ -35,13 +35,13 @@ function registerProjectCoreIPC(
 
 ---
 
-## ipcMain.handle("project:get-all", async (_event, userId) =>
+## ipcMain.handle("project:get-all", async (_event, userId, options =
 
 ```javascript
-ipcMain.handle("project:get-all", async (_event, userId) =>
+ipcMain.handle("project:get-all", async (_event, userId, options =
 ```
 
-* 获取所有项目（本地SQLite）
+* 获取所有项目（本地SQLite，支持分页）
    * Channel: 'project:get-all'
 
 ---
@@ -195,8 +195,41 @@ ipcMain.handle("project:repair-all-root-paths", async (_event) =>
 ipcMain.handle(
 ```
 
-* 获取项目文件列表（直接从文件系统读取）
+* 获取项目文件列表（优化版本：使用缓存+分页）
    * Channel: 'project:get-files'
+
+---
+
+## ipcMain.handle("project:refresh-files", async (_event, projectId) =>
+
+```javascript
+ipcMain.handle("project:refresh-files", async (_event, projectId) =>
+```
+
+* 刷新项目文件缓存
+   * Channel: 'project:refresh-files'
+
+---
+
+## ipcMain.handle("project:clear-file-cache", async (_event, projectId) =>
+
+```javascript
+ipcMain.handle("project:clear-file-cache", async (_event, projectId) =>
+```
+
+* 清理项目文件缓存
+   * Channel: 'project:clear-file-cache'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 获取项目子目录文件列表（懒加载）
+   * Channel: 'project:get-files-lazy'
 
 ---
 
@@ -228,7 +261,7 @@ ipcMain.handle("project:save-files", async (_event, projectId, files) =>
 ipcMain.handle("project:update-file", async (_event, fileUpdate) =>
 ```
 
-* 更新文件
+* 更新文件（支持乐观锁）
    * Channel: 'project:update-file'
 
 ---
@@ -294,7 +327,7 @@ ipcMain.handle("project:resolve-path", async (_event, relativePath) =>
 ipcMain.handle("project:sync", async (_event, userId) =>
 ```
 
-* 同步项目
+* 同步项目（支持防抖和锁）
    * Channel: 'project:sync'
 
 ---
@@ -305,7 +338,7 @@ ipcMain.handle("project:sync", async (_event, userId) =>
 ipcMain.handle("project:sync-one", async (_event, projectId) =>
 ```
 
-* 同步单个项目
+* 同步单个项目（支持锁）
    * Channel: 'project:sync-one'
 
 ---
@@ -406,6 +439,149 @@ ipcMain.handle("project:stats:update", async (_event, projectId) =>
 
 * 更新项目统计
    * Channel: 'project:stats:update'
+
+---
+
+## ipcMain.handle("template:get-all", async () =>
+
+```javascript
+ipcMain.handle("template:get-all", async () =>
+```
+
+* 获取所有模板（预置 + 自定义）
+   * Channel: 'template:get-all'
+
+---
+
+## ipcMain.handle("template:get-by-id", async (_event, templateId) =>
+
+```javascript
+ipcMain.handle("template:get-by-id", async (_event, templateId) =>
+```
+
+* 根据ID获取模板
+   * Channel: 'template:get-by-id'
+
+---
+
+## ipcMain.handle("template:get-by-category", async (_event, category) =>
+
+```javascript
+ipcMain.handle("template:get-by-category", async (_event, category) =>
+```
+
+* 根据分类获取模板
+   * Channel: 'template:get-by-category'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 搜索模板
+   * Channel: 'template-library:search'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 推荐模板（基于项目描述）
+   * Channel: 'template-library:recommend'
+
+---
+
+## ipcMain.handle("template-library:preview", async (_event, templateId) =>
+
+```javascript
+ipcMain.handle("template-library:preview", async (_event, templateId) =>
+```
+
+* 获取模板预览（树形结构）
+   * Channel: 'template-library:preview'
+
+---
+
+## ipcMain.handle("template:save-custom", async (_event, template) =>
+
+```javascript
+ipcMain.handle("template:save-custom", async (_event, template) =>
+```
+
+* 保存自定义模板
+   * Channel: 'template:save-custom'
+
+---
+
+## ipcMain.handle("template:delete-custom", async (_event, templateId) =>
+
+```javascript
+ipcMain.handle("template:delete-custom", async (_event, templateId) =>
+```
+
+* 删除自定义模板
+   * Channel: 'template:delete-custom'
+
+---
+
+## ipcMain.handle("template:export", async (_event, templateIds) =>
+
+```javascript
+ipcMain.handle("template:export", async (_event, templateIds) =>
+```
+
+* 导出模板
+   * Channel: 'template:export'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 导入模板
+   * Channel: 'template:import'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 从项目创建模板
+   * Channel: 'template:create-from-project'
+
+---
+
+## ipcMain.handle("project-types:get-all", async () =>
+
+```javascript
+ipcMain.handle("project-types:get-all", async () =>
+```
+
+* 获取项目类型列表（与Android对齐的12种）
+   * Channel: 'project-types:get-all'
+
+---
+
+## ipcMain.handle("project:create-from-template", async (_event, createData) =>
+
+```javascript
+ipcMain.handle("project:create-from-template", async (_event, createData) =>
+```
+
+* 从模板创建项目
+   * Channel: 'project:create-from-template'
 
 ---
 

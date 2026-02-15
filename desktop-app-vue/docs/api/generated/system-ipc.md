@@ -1,8 +1,8 @@
 # system-ipc
 
-**Source**: `src\main\system\system-ipc.js`
+**Source**: `src/main/system/system-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.800Z
+**Generated**: 2026-02-15T07:37:13.770Z
 
 ---
 
@@ -32,10 +32,10 @@ function registerSystemIPC(
 
 ---
 
-## registerHandler('system:maximize', async () =>
+## registerHandler("system:maximize", async () =>
 
 ```javascript
-registerHandler('system:maximize', async () =>
+registerHandler("system:maximize", async () =>
 ```
 
 * 最大化窗口
@@ -43,10 +43,10 @@ registerHandler('system:maximize', async () =>
 
 ---
 
-## registerHandler('system:minimize', async () =>
+## registerHandler("system:minimize", async () =>
 
 ```javascript
-registerHandler('system:minimize', async () =>
+registerHandler("system:minimize", async () =>
 ```
 
 * 最小化窗口
@@ -54,10 +54,10 @@ registerHandler('system:minimize', async () =>
 
 ---
 
-## registerHandler('system:close', async () =>
+## registerHandler("system:close", async () =>
 
 ```javascript
-registerHandler('system:close', async () =>
+registerHandler("system:close", async () =>
 ```
 
 * 关闭窗口
@@ -65,10 +65,10 @@ registerHandler('system:close', async () =>
 
 ---
 
-## registerHandler('system:restart', async () =>
+## registerHandler("system:restart", async () =>
 
 ```javascript
-registerHandler('system:restart', async () =>
+registerHandler("system:restart", async () =>
 ```
 
 * 重启应用
@@ -76,10 +76,10 @@ registerHandler('system:restart', async () =>
 
 ---
 
-## registerHandler('system:get-window-state', async () =>
+## registerHandler("system:get-window-state", async () =>
 
 ```javascript
-registerHandler('system:get-window-state', async () =>
+registerHandler("system:get-window-state", async () =>
 ```
 
 * 获取窗口状态
@@ -87,10 +87,10 @@ registerHandler('system:get-window-state', async () =>
 
 ---
 
-## registerHandler('system:set-always-on-top', async (_event, flag) =>
+## registerHandler("system:set-always-on-top", async (_event, flag) =>
 
 ```javascript
-registerHandler('system:set-always-on-top', async (_event, flag) =>
+registerHandler("system:set-always-on-top", async (_event, flag) =>
 ```
 
 * 设置窗口总在最前
@@ -98,10 +98,10 @@ registerHandler('system:set-always-on-top', async (_event, flag) =>
 
 ---
 
-## registerHandler('system:get-system-info', async () =>
+## registerHandler("system:get-system-info", async () =>
 
 ```javascript
-registerHandler('system:get-system-info', async () =>
+registerHandler("system:get-system-info", async () =>
 ```
 
 * 获取系统信息
@@ -109,10 +109,10 @@ registerHandler('system:get-system-info', async () =>
 
 ---
 
-## registerHandler('system:get-app-info', async () =>
+## registerHandler("system:get-app-info", async () =>
 
 ```javascript
-registerHandler('system:get-app-info', async () =>
+registerHandler("system:get-app-info", async () =>
 ```
 
 * 获取应用信息
@@ -120,10 +120,10 @@ registerHandler('system:get-app-info', async () =>
 
 ---
 
-## registerHandler('system:get-platform', async () =>
+## registerHandler("system:get-platform", async () =>
 
 ```javascript
-registerHandler('system:get-platform', async () =>
+registerHandler("system:get-platform", async () =>
 ```
 
 * 获取平台信息
@@ -131,10 +131,10 @@ registerHandler('system:get-platform', async () =>
 
 ---
 
-## registerHandler('system:get-version', async () =>
+## registerHandler("system:get-version", async () =>
 
 ```javascript
-registerHandler('system:get-version', async () =>
+registerHandler("system:get-version", async () =>
 ```
 
 * 获取版本信息
@@ -142,10 +142,10 @@ registerHandler('system:get-version', async () =>
 
 ---
 
-## registerHandler('system:get-path', async (_event, name) =>
+## registerHandler("system:get-path", async (_event, name) =>
 
 ```javascript
-registerHandler('system:get-path', async (_event, name) =>
+registerHandler("system:get-path", async (_event, name) =>
 ```
 
 * 获取路径
@@ -153,10 +153,10 @@ registerHandler('system:get-path', async (_event, name) =>
 
 ---
 
-## registerHandler('system:open-external', async (_event, url) =>
+## registerHandler("system:open-external", async (_event, url) =>
 
 ```javascript
-registerHandler('system:open-external', async (_event, url) =>
+registerHandler("system:open-external", async (_event, url) =>
 ```
 
 * 打开外部链接
@@ -164,10 +164,10 @@ registerHandler('system:open-external', async (_event, url) =>
 
 ---
 
-## registerHandler('system:show-item-in-folder', async (_event, path) =>
+## registerHandler("system:show-item-in-folder", async (_event, path) =>
 
 ```javascript
-registerHandler('system:show-item-in-folder', async (_event, path) =>
+registerHandler("system:show-item-in-folder", async (_event, path) =>
 ```
 
 * 在文件夹中显示文件
@@ -175,10 +175,10 @@ registerHandler('system:show-item-in-folder', async (_event, path) =>
 
 ---
 
-## registerHandler('system:select-directory', async () =>
+## registerHandler("system:select-directory", async () =>
 
 ```javascript
-registerHandler('system:select-directory', async () =>
+registerHandler("system:select-directory", async () =>
 ```
 
 * 选择目录
@@ -186,10 +186,10 @@ registerHandler('system:select-directory', async () =>
 
 ---
 
-## registerHandler('system:select-file', async (_event, options =
+## registerHandler("system:select-file", async (_event, options =
 
 ```javascript
-registerHandler('system:select-file', async (_event, options =
+registerHandler("system:select-file", async (_event, options =
 ```
 
 * 选择文件
@@ -197,10 +197,10 @@ registerHandler('system:select-file', async (_event, options =
 
 ---
 
-## registerHandler('system:quit', async () =>
+## registerHandler("system:quit", async () =>
 
 ```javascript
-registerHandler('system:quit', async () =>
+registerHandler("system:quit", async () =>
 ```
 
 * 退出应用
@@ -208,10 +208,10 @@ registerHandler('system:quit', async () =>
 
 ---
 
-## registerHandler('dialog:select-folder', async (_event, options =
+## registerHandler("dialog:select-folder", async (_event, options =
 
 ```javascript
-registerHandler('dialog:select-folder', async (_event, options =
+registerHandler("dialog:select-folder", async (_event, options =
 ```
 
 * 选择文件夹（通用对话框）
@@ -219,10 +219,10 @@ registerHandler('dialog:select-folder', async (_event, options =
 
 ---
 
-## registerHandler('dialog:showOpenDialog', async (_event, options =
+## registerHandler("dialog:showOpenDialog", async (_event, options =
 
 ```javascript
-registerHandler('dialog:showOpenDialog', async (_event, options =
+registerHandler("dialog:showOpenDialog", async (_event, options =
 ```
 
 * 显示打开文件对话框
@@ -230,10 +230,10 @@ registerHandler('dialog:showOpenDialog', async (_event, options =
 
 ---
 
-## registerHandler('dialog:showSaveDialog', async (_event, options =
+## registerHandler("dialog:showSaveDialog", async (_event, options =
 
 ```javascript
-registerHandler('dialog:showSaveDialog', async (_event, options =
+registerHandler("dialog:showSaveDialog", async (_event, options =
 ```
 
 * 显示保存文件对话框
@@ -241,10 +241,10 @@ registerHandler('dialog:showSaveDialog', async (_event, options =
 
 ---
 
-## registerHandler('dialog:showMessageBox', async (_event, options =
+## registerHandler("dialog:showMessageBox", async (_event, options =
 
 ```javascript
-registerHandler('dialog:showMessageBox', async (_event, options =
+registerHandler("dialog:showMessageBox", async (_event, options =
 ```
 
 * 显示消息框

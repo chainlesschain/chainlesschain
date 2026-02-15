@@ -1,8 +1,8 @@
 # did-invitation-manager
 
-**Source**: `src\main\organization\did-invitation-manager.js`
+**Source**: `src/main/organization/did-invitation-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.836Z
+**Generated**: 2026-02-15T07:37:13.811Z
 
 ---
 
@@ -128,10 +128,10 @@ async acceptInvitation(invitationId)
 
 ---
 
-## async rejectInvitation(invitationId, reason = '')
+## async rejectInvitation(invitationId, reason = "")
 
 ```javascript
-async rejectInvitation(invitationId, reason = '')
+async rejectInvitation(invitationId, reason = "")
 ```
 
 * 拒绝邀请
@@ -153,10 +153,10 @@ async cancelInvitation(invitationId)
 
 ---
 
-## async notifyInviter(invitation, status, reason = '')
+## async notifyInviter(invitation, status, reason = "")
 
 ```javascript
-async notifyInviter(invitation, status, reason = '')
+async notifyInviter(invitation, status, reason = "")
 ```
 
 * 通知邀请人

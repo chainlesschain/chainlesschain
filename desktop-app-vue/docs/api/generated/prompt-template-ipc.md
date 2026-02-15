@@ -1,8 +1,8 @@
 # prompt-template-ipc
 
-**Source**: `src\main\prompt-template\prompt-template-ipc.js`
+**Source**: `src/main/prompt-template/prompt-template-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.825Z
+**Generated**: 2026-02-15T07:37:13.797Z
 
 ---
 
@@ -33,110 +33,110 @@ function registerPromptTemplateIPC(
 
 ---
 
-## ipcMain.handle('prompt-template:get-all', async (_event, filters) =>
+## ipcMain.handle("prompt-template:get-all", async (_event, filters) =>
 
 ```javascript
-ipcMain.handle('prompt-template:get-all', async (_event, filters) =>
+ipcMain.handle("prompt-template:get-all", async (_event, filters) =>
 ```
 
 * 获取所有模板
 
 ---
 
-## ipcMain.handle('prompt-template:get', async (_event, id) =>
+## ipcMain.handle("prompt-template:get", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('prompt-template:get', async (_event, id) =>
+ipcMain.handle("prompt-template:get", async (_event, id) =>
 ```
 
 * 根据ID获取模板
 
 ---
 
-## ipcMain.handle('prompt-template:search', async (_event, query) =>
+## ipcMain.handle("prompt-template:search", async (_event, query) =>
 
 ```javascript
-ipcMain.handle('prompt-template:search', async (_event, query) =>
+ipcMain.handle("prompt-template:search", async (_event, query) =>
 ```
 
 * 搜索模板
 
 ---
 
-## ipcMain.handle('prompt-template:create', async (_event, templateData) =>
+## ipcMain.handle("prompt-template:create", async (_event, templateData) =>
 
 ```javascript
-ipcMain.handle('prompt-template:create', async (_event, templateData) =>
+ipcMain.handle("prompt-template:create", async (_event, templateData) =>
 ```
 
 * 创建模板
 
 ---
 
-## ipcMain.handle('prompt-template:update', async (_event, id, updates) =>
+## ipcMain.handle("prompt-template:update", async (_event, id, updates) =>
 
 ```javascript
-ipcMain.handle('prompt-template:update', async (_event, id, updates) =>
+ipcMain.handle("prompt-template:update", async (_event, id, updates) =>
 ```
 
 * 更新模板
 
 ---
 
-## ipcMain.handle('prompt-template:delete', async (_event, id) =>
+## ipcMain.handle("prompt-template:delete", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('prompt-template:delete', async (_event, id) =>
+ipcMain.handle("prompt-template:delete", async (_event, id) =>
 ```
 
 * 删除模板
 
 ---
 
-## ipcMain.handle('prompt-template:fill', async (_event, id, values) =>
+## ipcMain.handle("prompt-template:fill", async (_event, id, values) =>
 
 ```javascript
-ipcMain.handle('prompt-template:fill', async (_event, id, values) =>
+ipcMain.handle("prompt-template:fill", async (_event, id, values) =>
 ```
 
 * 填充模板
 
 ---
 
-## ipcMain.handle('prompt-template:get-categories', async () =>
+## ipcMain.handle("prompt-template:get-categories", async () =>
 
 ```javascript
-ipcMain.handle('prompt-template:get-categories', async () =>
+ipcMain.handle("prompt-template:get-categories", async () =>
 ```
 
 * 获取分类列表
 
 ---
 
-## ipcMain.handle('prompt-template:get-statistics', async () =>
+## ipcMain.handle("prompt-template:get-statistics", async () =>
 
 ```javascript
-ipcMain.handle('prompt-template:get-statistics', async () =>
+ipcMain.handle("prompt-template:get-statistics", async () =>
 ```
 
 * 获取统计信息
 
 ---
 
-## ipcMain.handle('prompt-template:export', async (_event, id) =>
+## ipcMain.handle("prompt-template:export", async (_event, id) =>
 
 ```javascript
-ipcMain.handle('prompt-template:export', async (_event, id) =>
+ipcMain.handle("prompt-template:export", async (_event, id) =>
 ```
 
 * 导出模板
 
 ---
 
-## ipcMain.handle('prompt-template:import', async (_event, importData) =>
+## ipcMain.handle("prompt-template:import", async (_event, importData) =>
 
 ```javascript
-ipcMain.handle('prompt-template:import', async (_event, importData) =>
+ipcMain.handle("prompt-template:import", async (_event, importData) =>
 ```
 
 * 导入模板

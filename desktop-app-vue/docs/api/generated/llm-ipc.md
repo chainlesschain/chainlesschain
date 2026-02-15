@@ -1,8 +1,8 @@
 # llm-ipc
 
-**Source**: `src\main\llm\llm-ipc.js`
+**Source**: `src/main/llm/llm-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.849Z
+**Generated**: 2026-02-15T07:37:13.823Z
 
 ---
 

@@ -1,8 +1,8 @@
 # workspace-task-ipc
 
-**Source**: `src\main\ipc\workspace-task-ipc.js`
+**Source**: `src/main/ipc/workspace-task-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.852Z
+**Generated**: 2026-02-15T07:37:13.827Z
 
 ---
 
@@ -257,6 +257,16 @@ ipcMain.handle('tasks:board:delete', async (event,
 ```
 
 * 删除任务看板
+
+---
+
+## ipcMain.handle('tasks:board:get', async (event,
+
+```javascript
+ipcMain.handle('tasks:board:get', async (event,
+```
+
+* 获取任务看板详情
 
 ---
 

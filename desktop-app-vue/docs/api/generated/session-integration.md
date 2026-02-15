@@ -1,8 +1,8 @@
 # session-integration
 
-**Source**: `src\main\cowork\integrations\session-integration.js`
+**Source**: `src/main/cowork/integrations/session-integration.js`
 
-**Generated**: 2026-01-27T06:44:03.865Z
+**Generated**: 2026-02-15T07:37:13.841Z
 
 ---
 

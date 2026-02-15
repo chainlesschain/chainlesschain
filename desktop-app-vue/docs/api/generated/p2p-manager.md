@@ -1,8 +1,8 @@
 # p2p-manager
 
-**Source**: `src\main\p2p\p2p-manager.js`
+**Source**: `src/main/p2p/p2p-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.832Z
+**Generated**: 2026-02-15T07:37:13.807Z
 
 ---
 
@@ -471,6 +471,68 @@ getWebRTCOptimizationSuggestions(peerId)
 ```
 
 * 获取WebRTC优化建议
+
+---
+
+## async startSignalingServer()
+
+```javascript
+async startSignalingServer()
+```
+
+* 启动嵌入式信令服务器
+
+---
+
+## async stopSignalingServer()
+
+```javascript
+async stopSignalingServer()
+```
+
+* 停止嵌入式信令服务器
+
+---
+
+## getSignalingServer()
+
+```javascript
+getSignalingServer()
+```
+
+* 获取信令服务器实例
+   * @returns {SignalingServer|null}
+
+---
+
+## getSignalingServerStatus()
+
+```javascript
+getSignalingServerStatus()
+```
+
+* 获取信令服务器状态
+   * @returns {Object}
+
+---
+
+## startNSDService()
+
+```javascript
+startNSDService()
+```
+
+* 启动 NSD 服务（让 Android 设备能发现本机）
+
+---
+
+## stopNSDService()
+
+```javascript
+stopNSDService()
+```
+
+* 停止 NSD 服务
 
 ---
 

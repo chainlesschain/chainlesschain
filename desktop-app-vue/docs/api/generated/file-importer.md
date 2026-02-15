@@ -1,8 +1,8 @@
 # file-importer
 
-**Source**: `src\main\import\file-importer.js`
+**Source**: `src/main/import/file-importer.js`
 
-**Generated**: 2026-01-27T06:44:03.853Z
+**Generated**: 2026-02-15T07:37:13.829Z
 
 ---
 

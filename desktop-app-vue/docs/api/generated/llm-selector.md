@@ -1,8 +1,8 @@
 # llm-selector
 
-**Source**: `src\main\llm\llm-selector.js`
+**Source**: `src/main/llm/llm-selector.js`
 
-**Generated**: 2026-01-27T06:44:03.848Z
+**Generated**: 2026-02-15T07:37:13.823Z
 
 ---
 
@@ -77,10 +77,10 @@ isProviderConfigured(provider)
 
 ---
 
-## calculateScore(provider, strategy, taskType = 'chat')
+## calculateScore(provider, strategy, taskType = "chat")
 
 ```javascript
-calculateScore(provider, strategy, taskType = 'chat')
+calculateScore(provider, strategy, taskType = "chat")
 ```
 
 * 计算LLM得分
@@ -174,10 +174,10 @@ getTaskTypes()
 
 ---
 
-## generateSelectionReport(taskType = 'chat')
+## generateSelectionReport(taskType = "chat")
 
 ```javascript
-generateSelectionReport(taskType = 'chat')
+generateSelectionReport(taskType = "chat")
 ```
 
 * 生成选择报告

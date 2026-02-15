@@ -1,8 +1,8 @@
 # ipc-registry
 
-**Source**: `src\main\ipc\ipc-registry.js`
+**Source**: `src/main/ipc/ipc-registry.js`
 
-**Generated**: 2026-01-27T06:44:03.852Z
+**Generated**: 2026-02-15T07:37:13.828Z
 
 ---
 

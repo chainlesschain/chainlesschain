@@ -1,8 +1,8 @@
 # permission-dialog-manager
 
-**Source**: `src\main\plugins\permission-dialog-manager.js`
+**Source**: `src/main/plugins/permission-dialog-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.829Z
+**Generated**: 2026-02-15T07:37:13.802Z
 
 ---
 

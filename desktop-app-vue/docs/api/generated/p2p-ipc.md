@@ -1,8 +1,8 @@
 # p2p-ipc
 
-**Source**: `src\main\p2p\p2p-ipc.js`
+**Source**: `src/main/p2p/p2p-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.832Z
+**Generated**: 2026-02-15T07:37:13.807Z
 
 ---
 
@@ -33,10 +33,10 @@ function registerP2PIPC(
 
 ---
 
-## ipcMain.handle('p2p:get-node-info', async () =>
+## ipcMain.handle("p2p:get-node-info", async () =>
 
 ```javascript
-ipcMain.handle('p2p:get-node-info', async () =>
+ipcMain.handle("p2p:get-node-info", async () =>
 ```
 
 * 获取节点信息
@@ -44,10 +44,10 @@ ipcMain.handle('p2p:get-node-info', async () =>
 
 ---
 
-## ipcMain.handle('p2p:connect', async (_event, multiaddr) =>
+## ipcMain.handle("p2p:connect", async (_event, multiaddr) =>
 
 ```javascript
-ipcMain.handle('p2p:connect', async (_event, multiaddr) =>
+ipcMain.handle("p2p:connect", async (_event, multiaddr) =>
 ```
 
 * 连接到对等节点
@@ -55,10 +55,10 @@ ipcMain.handle('p2p:connect', async (_event, multiaddr) =>
 
 ---
 
-## ipcMain.handle('p2p:disconnect', async (_event, peerId) =>
+## ipcMain.handle("p2p:disconnect", async (_event, peerId) =>
 
 ```javascript
-ipcMain.handle('p2p:disconnect', async (_event, peerId) =>
+ipcMain.handle("p2p:disconnect", async (_event, peerId) =>
 ```
 
 * 断开对等节点连接
@@ -66,10 +66,10 @@ ipcMain.handle('p2p:disconnect', async (_event, peerId) =>
 
 ---
 
-## ipcMain.handle('p2p:get-peers', async () =>
+## ipcMain.handle("p2p:get-peers", async () =>
 
 ```javascript
-ipcMain.handle('p2p:get-peers', async () =>
+ipcMain.handle("p2p:get-peers", async () =>
 ```
 
 * 获取已连接的对等节点列表
@@ -77,10 +77,10 @@ ipcMain.handle('p2p:get-peers', async () =>
 
 ---
 
-## ipcMain.handle('p2p:send-encrypted-message', async (_event, peerId, message, deviceId, options) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('p2p:send-encrypted-message', async (_event, peerId, message, deviceId, options) =>
+ipcMain.handle(
 ```
 
 * 发送加密消息
@@ -88,10 +88,10 @@ ipcMain.handle('p2p:send-encrypted-message', async (_event, peerId, message, dev
 
 ---
 
-## ipcMain.handle('p2p:has-encrypted-session', async (_event, peerId) =>
+## ipcMain.handle("p2p:has-encrypted-session", async (_event, peerId) =>
 
 ```javascript
-ipcMain.handle('p2p:has-encrypted-session', async (_event, peerId) =>
+ipcMain.handle("p2p:has-encrypted-session", async (_event, peerId) =>
 ```
 
 * 检查是否存在加密会话
@@ -99,10 +99,10 @@ ipcMain.handle('p2p:has-encrypted-session', async (_event, peerId) =>
 
 ---
 
-## ipcMain.handle('p2p:initiate-key-exchange', async (_event, peerId, deviceId) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('p2p:initiate-key-exchange', async (_event, peerId, deviceId) =>
+ipcMain.handle(
 ```
 
 * 发起密钥交换
@@ -110,10 +110,10 @@ ipcMain.handle('p2p:initiate-key-exchange', async (_event, peerId, deviceId) =>
 
 ---
 
-## ipcMain.handle('p2p:get-user-devices', async (_event, userId) =>
+## ipcMain.handle("p2p:get-user-devices", async (_event, userId) =>
 
 ```javascript
-ipcMain.handle('p2p:get-user-devices', async (_event, userId) =>
+ipcMain.handle("p2p:get-user-devices", async (_event, userId) =>
 ```
 
 * 获取用户的所有设备列表
@@ -121,10 +121,10 @@ ipcMain.handle('p2p:get-user-devices', async (_event, userId) =>
 
 ---
 
-## ipcMain.handle('p2p:get-current-device', async () =>
+## ipcMain.handle("p2p:get-current-device", async () =>
 
 ```javascript
-ipcMain.handle('p2p:get-current-device', async () =>
+ipcMain.handle("p2p:get-current-device", async () =>
 ```
 
 * 获取当前设备信息
@@ -132,10 +132,10 @@ ipcMain.handle('p2p:get-current-device', async () =>
 
 ---
 
-## ipcMain.handle('p2p:get-device-statistics', async () =>
+## ipcMain.handle("p2p:get-device-statistics", async () =>
 
 ```javascript
-ipcMain.handle('p2p:get-device-statistics', async () =>
+ipcMain.handle("p2p:get-device-statistics", async () =>
 ```
 
 * 获取设备统计信息
@@ -143,10 +143,10 @@ ipcMain.handle('p2p:get-device-statistics', async () =>
 
 ---
 
-## ipcMain.handle('p2p:get-sync-statistics', async () =>
+## ipcMain.handle("p2p:get-sync-statistics", async () =>
 
 ```javascript
-ipcMain.handle('p2p:get-sync-statistics', async () =>
+ipcMain.handle("p2p:get-sync-statistics", async () =>
 ```
 
 * 获取同步统计信息
@@ -154,10 +154,10 @@ ipcMain.handle('p2p:get-sync-statistics', async () =>
 
 ---
 
-## ipcMain.handle('p2p:get-message-status', async (_event, messageId) =>
+## ipcMain.handle("p2p:get-message-status", async (_event, messageId) =>
 
 ```javascript
-ipcMain.handle('p2p:get-message-status', async (_event, messageId) =>
+ipcMain.handle("p2p:get-message-status", async (_event, messageId) =>
 ```
 
 * 获取消息状态
@@ -165,10 +165,10 @@ ipcMain.handle('p2p:get-message-status', async (_event, messageId) =>
 
 ---
 
-## ipcMain.handle('p2p:start-device-sync', async (_event, deviceId) =>
+## ipcMain.handle("p2p:start-device-sync", async (_event, deviceId) =>
 
 ```javascript
-ipcMain.handle('p2p:start-device-sync', async (_event, deviceId) =>
+ipcMain.handle("p2p:start-device-sync", async (_event, deviceId) =>
 ```
 
 * 启动设备同步
@@ -176,10 +176,10 @@ ipcMain.handle('p2p:start-device-sync', async (_event, deviceId) =>
 
 ---
 
-## ipcMain.handle('p2p:stop-device-sync', async (_event, deviceId) =>
+## ipcMain.handle("p2p:stop-device-sync", async (_event, deviceId) =>
 
 ```javascript
-ipcMain.handle('p2p:stop-device-sync', async (_event, deviceId) =>
+ipcMain.handle("p2p:stop-device-sync", async (_event, deviceId) =>
 ```
 
 * 停止设备同步
@@ -187,10 +187,10 @@ ipcMain.handle('p2p:stop-device-sync', async (_event, deviceId) =>
 
 ---
 
-## ipcMain.handle('p2p:detect-nat', async () =>
+## ipcMain.handle("p2p:detect-nat", async () =>
 
 ```javascript
-ipcMain.handle('p2p:detect-nat', async () =>
+ipcMain.handle("p2p:detect-nat", async () =>
 ```
 
 * 检测 NAT 类型
@@ -198,10 +198,10 @@ ipcMain.handle('p2p:detect-nat', async () =>
 
 ---
 
-## ipcMain.handle('p2p:get-nat-info', async () =>
+## ipcMain.handle("p2p:get-nat-info", async () =>
 
 ```javascript
-ipcMain.handle('p2p:get-nat-info', async () =>
+ipcMain.handle("p2p:get-nat-info", async () =>
 ```
 
 * 获取 NAT 信息
@@ -209,10 +209,10 @@ ipcMain.handle('p2p:get-nat-info', async () =>
 
 ---
 
-## ipcMain.handle('p2p:get-relay-info', async () =>
+## ipcMain.handle("p2p:get-relay-info", async () =>
 
 ```javascript
-ipcMain.handle('p2p:get-relay-info', async () =>
+ipcMain.handle("p2p:get-relay-info", async () =>
 ```
 
 * 获取中继信息
@@ -220,10 +220,10 @@ ipcMain.handle('p2p:get-relay-info', async () =>
 
 ---
 
-## ipcMain.handle('p2p:run-diagnostics', async () =>
+## ipcMain.handle("p2p:run-diagnostics", async () =>
 
 ```javascript
-ipcMain.handle('p2p:run-diagnostics', async () =>
+ipcMain.handle("p2p:run-diagnostics", async () =>
 ```
 
 * 运行网络诊断
@@ -231,10 +231,10 @@ ipcMain.handle('p2p:run-diagnostics', async () =>
 
 ---
 
-## ipcMain.handle('p2p:get-webrtc-quality-report', async (_event, peerId) =>
+## ipcMain.handle("p2p:get-webrtc-quality-report", async (_event, peerId) =>
 
 ```javascript
-ipcMain.handle('p2p:get-webrtc-quality-report', async (_event, peerId) =>
+ipcMain.handle("p2p:get-webrtc-quality-report", async (_event, peerId) =>
 ```
 
 * 获取WebRTC连接质量报告
@@ -243,10 +243,10 @@ ipcMain.handle('p2p:get-webrtc-quality-report', async (_event, peerId) =>
 
 ---
 
-## ipcMain.handle('p2p:get-webrtc-optimization-suggestions', async (_event, peerId) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('p2p:get-webrtc-optimization-suggestions', async (_event, peerId) =>
+ipcMain.handle(
 ```
 
 * 获取WebRTC优化建议
@@ -255,10 +255,10 @@ ipcMain.handle('p2p:get-webrtc-optimization-suggestions', async (_event, peerId)
 
 ---
 
-## ipcMain.handle('p2p:get-connection-pool-stats', async () =>
+## ipcMain.handle("p2p:get-connection-pool-stats", async () =>
 
 ```javascript
-ipcMain.handle('p2p:get-connection-pool-stats', async () =>
+ipcMain.handle("p2p:get-connection-pool-stats", async () =>
 ```
 
 * 获取连接池统计信息

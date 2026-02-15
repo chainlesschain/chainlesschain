@@ -1,8 +1,8 @@
 # enhanced-tray-manager
 
-**Source**: `src\main\system\enhanced-tray-manager.js`
+**Source**: `src/main/system/enhanced-tray-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.801Z
+**Generated**: 2026-02-15T07:37:13.771Z
 
 ---
 

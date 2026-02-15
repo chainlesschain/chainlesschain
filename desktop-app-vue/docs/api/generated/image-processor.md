@@ -1,8 +1,8 @@
 # image-processor
 
-**Source**: `src\main\image\image-processor.js`
+**Source**: `src/main/image/image-processor.js`
 
-**Generated**: 2026-01-27T06:44:03.855Z
+**Generated**: 2026-02-15T07:37:13.830Z
 
 ---
 
@@ -110,10 +110,10 @@ async convertFormat(input, outputPath, format)
 
 ---
 
-## async batchProcess(images, operation = 'compress')
+## async batchProcess(images, operation = "compress")
 
 ```javascript
-async batchProcess(images, operation = 'compress')
+async batchProcess(images, operation = "compress")
 ```
 
 * 批量处理图片

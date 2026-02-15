@@ -1,8 +1,8 @@
 # embeddings-service
 
-**Source**: `src\main\rag\embeddings-service.js`
+**Source**: `src/main/rag/embeddings-service.js`
 
-**Generated**: 2026-01-27T06:44:03.825Z
+**Generated**: 2026-02-15T07:37:13.795Z
 
 ---
 
@@ -15,6 +15,7 @@ const
 * 嵌入向量服务
  *
  * 负责文本向量化和相似度计算
+ * 支持双层缓存：内存 LRU 缓存 + SQLite 持久化缓存
 
 ---
 
@@ -25,6 +26,21 @@ class EmbeddingsService extends EventEmitter
 ```
 
 * 嵌入向量服务类
+
+---
+
+## constructor(llmManager, options =
+
+```javascript
+constructor(llmManager, options =
+```
+
+* 创建嵌入向量服务
+   * @param {Object} llmManager - LLM 管理器实例
+   * @param {Object} options - 配置选项
+   * @param {Object} [options.database] - 数据库实例（用于持久化缓存）
+   * @param {boolean} [options.enablePersistentCache=true] - 启用持久化缓存
+   * @param {string} [options.defaultModel='default'] - 默认模型名称
 
 ---
 
@@ -47,6 +63,8 @@ async generateEmbedding(text, options =
 * 生成文本嵌入向量
    * @param {string} text - 文本内容
    * @param {Object} options - 选项
+   * @param {boolean} [options.skipCache=false] - 跳过缓存
+   * @param {string} [options.model] - 模型名称
    * @returns {Promise<Array>} 向量数组
 
 ---
@@ -102,13 +120,15 @@ getCacheKey(text)
 
 ---
 
-## clearCache()
+## clearCache(options =
 
 ```javascript
-clearCache()
+clearCache(options =
 ```
 
 * 清除缓存
+   * @param {Object} options - 选项
+   * @param {boolean} [options.clearPersistent=false] - 是否同时清除持久化缓存
 
 ---
 
@@ -119,6 +139,36 @@ getCacheStats()
 ```
 
 * 获取缓存统计
+
+---
+
+## startPersistentCacheCleanup()
+
+```javascript
+startPersistentCacheCleanup()
+```
+
+* 启动持久化缓存自动清理
+
+---
+
+## stopPersistentCacheCleanup()
+
+```javascript
+stopPersistentCacheCleanup()
+```
+
+* 停止持久化缓存自动清理
+
+---
+
+## destroy()
+
+```javascript
+destroy()
+```
+
+* 销毁服务
 
 ---
 

@@ -1,8 +1,8 @@
 # image-engine
 
-**Source**: `src\main\engines\image-engine.js`
+**Source**: `src/main/engines/image-engine.js`
 
-**Generated**: 2026-01-27T06:44:03.860Z
+**Generated**: 2026-02-15T07:37:13.836Z
 
 ---
 
@@ -31,10 +31,10 @@ async handleProjectTask(params, onProgress = null)
 
 ---
 
-## async generateImageFromText(prompt, outputPath, options =
+## async generateImageFromText(
 
 ```javascript
-async generateImageFromText(prompt, outputPath, options =
+async generateImageFromText(
 ```
 
 * AI文生图
@@ -88,10 +88,10 @@ async generatePlaceholderImage(width, height, text)
 
 ---
 
-## async removeBackground(inputPath, outputPath, options =
+## async removeBackground(
 
 ```javascript
-async removeBackground(inputPath, outputPath, options =
+async removeBackground(
 ```
 
 * 移除背景

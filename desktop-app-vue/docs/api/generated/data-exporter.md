@@ -1,8 +1,8 @@
 # data-exporter
 
-**Source**: `src\main\file\data-exporter.js`
+**Source**: `src/main/file/data-exporter.js`
 
-**Generated**: 2026-01-27T06:44:03.859Z
+**Generated**: 2026-02-15T07:37:13.835Z
 
 ---
 

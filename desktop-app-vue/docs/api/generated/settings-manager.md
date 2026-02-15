@@ -1,8 +1,8 @@
 # settings-manager
 
-**Source**: `src\main\config\settings-manager.js`
+**Source**: `src/main/config/settings-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.867Z
+**Generated**: 2026-02-15T07:37:13.844Z
 
 ---
 

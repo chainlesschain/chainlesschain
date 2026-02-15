@@ -1,8 +1,8 @@
 # skill-registry
 
-**Source**: `src\main\ai-engine\cowork\skills\skill-registry.js`
+**Source**: `src/main/ai-engine/cowork/skills/skill-registry.js`
 
-**Generated**: 2026-01-27T06:44:03.888Z
+**Generated**: 2026-02-15T07:37:13.876Z
 
 ---
 
@@ -226,14 +226,105 @@ resetAllMetrics()
 
 ---
 
-## _log(message, level = 'info')
+## _log(message, level = "info")
 
 ```javascript
-_log(message, level = 'info')
+_log(message, level = "info")
 ```
 
 * 日志输出
    * @private
+
+---
+
+## async findBestSkill(task)
+
+```javascript
+async findBestSkill(task)
+```
+
+* 查找最佳技能（别名：selectBestSkill）
+   * @param {object} task - 任务对象
+   * @returns {Promise<object>} 匹配结果
+
+---
+
+## setLoader(loader)
+
+```javascript
+setLoader(loader)
+```
+
+* 设置技能加载器
+   * @param {SkillLoader} loader - 技能加载器实例
+
+---
+
+## async loadAllSkills()
+
+```javascript
+async loadAllSkills()
+```
+
+* 从加载器加载所有技能（三层加载）
+   * @returns {Promise<{loaded: number, registered: number, errors: Array}>}
+
+---
+
+## getSkillsBySource(source)
+
+```javascript
+getSkillsBySource(source)
+```
+
+* 按来源获取技能
+   * @param {'bundled'|'managed'|'workspace'} source - 来源
+   * @returns {Array<BaseSkill>}
+
+---
+
+## getUserInvocableSkills()
+
+```javascript
+getUserInvocableSkills()
+```
+
+* 获取用户可调用的技能
+   * @returns {Array<BaseSkill>}
+
+---
+
+## getSkillDefinition(skillId)
+
+```javascript
+getSkillDefinition(skillId)
+```
+
+* 获取技能定义（原始 SKILL.md 数据）
+   * @param {string} skillId - 技能 ID
+   * @returns {object|null}
+
+---
+
+## async reloadAllSkills()
+
+```javascript
+async reloadAllSkills()
+```
+
+* 重新加载所有技能
+   * @returns {Promise<object>}
+
+---
+
+## getSkillSources()
+
+```javascript
+getSkillSources()
+```
+
+* 获取三层目录信息
+   * @returns {object|null}
 
 ---
 

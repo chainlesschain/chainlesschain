@@ -1,8 +1,8 @@
 # graph-export
 
-**Source**: `src\main\knowledge-graph\graph-export.js`
+**Source**: `src/main/knowledge-graph/graph-export.js`
 
-**Generated**: 2026-01-27T06:44:03.850Z
+**Generated**: 2026-02-15T07:37:13.826Z
 
 ---
 
@@ -77,10 +77,10 @@ function exportToHTML(nodes, edges)
 
 ---
 
-## async function saveExportFile(content, format, defaultName = 'knowledge-graph')
+## async function saveExportFile(
 
 ```javascript
-async function saveExportFile(content, format, defaultName = 'knowledge-graph')
+async function saveExportFile(
 ```
 
 * 保存导出文件

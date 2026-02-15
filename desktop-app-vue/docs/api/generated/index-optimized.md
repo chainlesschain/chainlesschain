@@ -1,8 +1,8 @@
 # index-optimized
 
-**Source**: `src\main\index-optimized.js`
+**Source**: `src/main/index-optimized.js`
 
-**Generated**: 2026-01-27T06:44:03.775Z
+**Generated**: 2026-02-15T07:37:13.757Z
 
 ---
 
@@ -26,7 +26,7 @@ try
 class ChainlessChainApp
 ```
 
-* ChainlessChain 应用类 (优化版)
+* ChainlessChain 应用 (优化版)
 
 ---
 

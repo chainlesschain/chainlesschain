@@ -1,8 +1,8 @@
 # organization-manager
 
-**Source**: `src\main\organization\organization-manager.js`
+**Source**: `src/main/organization/organization-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.835Z
+**Generated**: 2026-02-15T07:37:13.810Z
 
 ---
 
@@ -273,6 +273,20 @@ async getPendingDIDInvitations()
 
 ---
 
+## async getDIDInvitationHistory(options =
+
+```javascript
+async getDIDInvitationHistory(options =
+```
+
+* 获取当前用户的DID邀请历史（已接受、已拒绝、已过期）
+   * @param {Object} options - 选项
+   * @param {string} options.status - 状态筛选（accepted|rejected）
+   * @param {number} options.limit - 限制数量
+   * @returns {Promise<Object>} { accepted, rejected, expired }
+
+---
+
 ## async getDIDInvitations(orgId, options =
 
 ```javascript
@@ -314,10 +328,10 @@ async checkPermission(orgId, userDID, permission)
 
 ---
 
-## async logActivity(orgId, actorDID, action, resourceType, resourceId, metadata)
+## async logActivity(
 
 ```javascript
-async logActivity(orgId, actorDID, action, resourceType, resourceId, metadata)
+async logActivity(
 ```
 
 * 记录活动日志
@@ -547,6 +561,53 @@ async syncKnowledgeChange(orgId, data)
 
 ---
 
+## async syncKnowledgeChange(orgId, data)
+
+```javascript
+async syncKnowledgeChange(orgId, data)
+```
+
+* 同步知识库变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 变更数据
+   * @param {string} data.type - 变更类型 (create|update|delete)
+   * @param {string} data.knowledgeId - 知识库条目ID
+   * @param {Object} data.content - 变更内容
+   * @param {string} data.authorDID - 作者DID
+   * @param {number} data.timestamp - 变更时间戳
+
+---
+
+## async createKnowledgeEntry(
+
+```javascript
+async createKnowledgeEntry(
+```
+
+* 创建知识库条目
+
+---
+
+## async updateKnowledgeEntry(
+
+```javascript
+async updateKnowledgeEntry(
+```
+
+* 更新知识库条目
+
+---
+
+## async deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp)
+
+```javascript
+async deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp)
+```
+
+* 删除知识库条目
+
+---
+
 ## async syncOrganizationData(orgId)
 
 ```javascript
@@ -717,10 +778,10 @@ async isMember(orgId, userDID)
 
 ---
 
-## async broadcastOrgMessage(orgId, message)
+## async broadcastOrgP2PMessage(orgId, message)
 
 ```javascript
-async broadcastOrgMessage(orgId, message)
+async broadcastOrgP2PMessage(orgId, message)
 ```
 
 * 广播消息到组织
@@ -762,9 +823,22 @@ async handleKnowledgeEvent(orgId, type, data)
 
 * 处理知识库事件
    * @param {string} orgId - 组织ID
-   * @param {string} type - 事件类型
+   * @param {string} type - 事件类型 (knowledge:create|knowledge:update|knowledge:delete|knowledge:sync)
    * @param {Object} data - 事件数据
-   * @returns {Promise<void>}
+   * @returns {Promise<Object>} 处理结果
+
+---
+
+## async getOrgKnowledgeForSync(orgId, since = 0)
+
+```javascript
+async getOrgKnowledgeForSync(orgId, since = 0)
+```
+
+* 获取组织知识库数据用于同步
+   * @param {string} orgId - 组织ID
+   * @param {number} since - 时间戳，获取此时间之后的数据
+   * @returns {Promise<Object>} 知识库数据
 
 ---
 

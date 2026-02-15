@@ -1,8 +1,8 @@
 # permission-gate
 
-**Source**: `src\main\remote\permission-gate.js`
+**Source**: `src/main/remote/permission-gate.js`
 
-**Generated**: 2026-01-27T06:44:03.820Z
+**Generated**: 2026-02-15T07:37:13.787Z
 
 ---
 
@@ -222,6 +222,46 @@ stopCleanup()
 
 ---
 
+## updateDeviceActivity(did)
+
+```javascript
+updateDeviceActivity(did)
+```
+
+* 更新设备最后活动时间
+
+---
+
+## startAutoRevokeCheck()
+
+```javascript
+startAutoRevokeCheck()
+```
+
+* 启动设备自动撤销检查
+
+---
+
+## checkInactiveDevices()
+
+```javascript
+checkInactiveDevices()
+```
+
+* 检查并降级不活跃设备
+
+---
+
+## stopAutoRevokeCheck()
+
+```javascript
+stopAutoRevokeCheck()
+```
+
+* 停止设备自动撤销检查
+
+---
+
 ## getStats()
 
 ```javascript
@@ -229,6 +269,36 @@ getStats()
 ```
 
 * 获取统计信息
+
+---
+
+## getInactiveDevices(days = 7)
+
+```javascript
+getInactiveDevices(days = 7)
+```
+
+* 获取不活跃设备列表
+
+---
+
+## async revokeDevice(did, reason = "Manual revocation")
+
+```javascript
+async revokeDevice(did, reason = "Manual revocation")
+```
+
+* 手动撤销设备权限
+
+---
+
+## shutdown()
+
+```javascript
+shutdown()
+```
+
+* 停止所有定时器
 
 ---
 

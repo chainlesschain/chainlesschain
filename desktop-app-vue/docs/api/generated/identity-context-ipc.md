@@ -1,8 +1,8 @@
 # identity-context-ipc
 
-**Source**: `src\main\identity-context\identity-context-ipc.js`
+**Source**: `src/main/identity-context/identity-context-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.855Z
+**Generated**: 2026-02-15T07:37:13.830Z
 
 ---
 
@@ -32,10 +32,10 @@ function registerIdentityContextIPC(
 
 ---
 
-## ipcMain.handle('identity:get-all-contexts', async (_event,
+## ipcMain.handle("identity:get-all-contexts", async (_event,
 
 ```javascript
-ipcMain.handle('identity:get-all-contexts', async (_event,
+ipcMain.handle("identity:get-all-contexts", async (_event,
 ```
 
 * 获取所有身份上下文
@@ -43,10 +43,10 @@ ipcMain.handle('identity:get-all-contexts', async (_event,
 
 ---
 
-## ipcMain.handle('identity:get-active-context', async (_event,
+## ipcMain.handle("identity:get-active-context", async (_event,
 
 ```javascript
-ipcMain.handle('identity:get-active-context', async (_event,
+ipcMain.handle("identity:get-active-context", async (_event,
 ```
 
 * 获取当前激活的上下文
@@ -54,10 +54,10 @@ ipcMain.handle('identity:get-active-context', async (_event,
 
 ---
 
-## ipcMain.handle('identity:create-personal-context', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('identity:create-personal-context', async (_event,
+ipcMain.handle(
 ```
 
 * 创建个人上下文
@@ -65,10 +65,10 @@ ipcMain.handle('identity:create-personal-context', async (_event,
 
 ---
 
-## ipcMain.handle('identity:create-organization-context', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('identity:create-organization-context', async (_event,
+ipcMain.handle(
 ```
 
 * 创建组织上下文
@@ -76,10 +76,10 @@ ipcMain.handle('identity:create-organization-context', async (_event,
 
 ---
 
-## ipcMain.handle('identity:switch-context', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('identity:switch-context', async (_event,
+ipcMain.handle(
 ```
 
 * 切换身份上下文
@@ -87,10 +87,10 @@ ipcMain.handle('identity:switch-context', async (_event,
 
 ---
 
-## ipcMain.handle('identity:delete-organization-context', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('identity:delete-organization-context', async (_event,
+ipcMain.handle(
 ```
 
 * 删除组织上下文
@@ -98,10 +98,10 @@ ipcMain.handle('identity:delete-organization-context', async (_event,
 
 ---
 
-## ipcMain.handle('identity:get-switch-history', async (_event,
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('identity:get-switch-history', async (_event,
+ipcMain.handle(
 ```
 
 * 获取切换历史

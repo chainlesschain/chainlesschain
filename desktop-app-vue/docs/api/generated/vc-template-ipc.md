@@ -1,8 +1,8 @@
 # vc-template-ipc
 
-**Source**: `src\main\vc-template\vc-template-ipc.js`
+**Source**: `src/main/vc-template/vc-template-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.788Z
+**Generated**: 2026-02-15T07:37:13.760Z
 
 ---
 

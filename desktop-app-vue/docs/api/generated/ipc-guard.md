@@ -1,8 +1,8 @@
 # ipc-guard
 
-**Source**: `src\main\ipc\ipc-guard.js`
+**Source**: `src/main/ipc/ipc-guard.js`
 
-**Generated**: 2026-01-27T06:44:03.852Z
+**Generated**: 2026-02-15T07:37:13.828Z
 
 ---
 
@@ -91,10 +91,10 @@ function markModuleRegistered(moduleName)
 
 ---
 
-## function safeRegisterHandler(channel, handler, moduleName = 'unknown')
+## function safeRegisterHandler(channel, handler, moduleName = "unknown")
 
 ```javascript
-function safeRegisterHandler(channel, handler, moduleName = 'unknown')
+function safeRegisterHandler(channel, handler, moduleName = "unknown")
 ```
 
 * 安全注册IPC handler（自动防重复）
@@ -105,10 +105,10 @@ function safeRegisterHandler(channel, handler, moduleName = 'unknown')
 
 ---
 
-## function safeRegisterHandlers(handlers, moduleName = 'unknown')
+## function safeRegisterHandlers(handlers, moduleName = "unknown")
 
 ```javascript
-function safeRegisterHandlers(handlers, moduleName = 'unknown')
+function safeRegisterHandlers(handlers, moduleName = "unknown")
 ```
 
 * 批量注册IPC handlers（自动防重复）

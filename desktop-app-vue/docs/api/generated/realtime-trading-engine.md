@@ -1,8 +1,8 @@
 # realtime-trading-engine
 
-**Source**: `src\main\trade\realtime-trading-engine.js`
+**Source**: `src/main/trade/realtime-trading-engine.js`
 
-**Generated**: 2026-01-27T06:44:03.796Z
+**Generated**: 2026-02-15T07:37:13.767Z
 
 ---
 
@@ -122,6 +122,30 @@ async checkBalance(order)
 ```
 
 * 检查余额
+
+---
+
+## async getUserFundBalance(userDid)
+
+```javascript
+async getUserFundBalance(userDid)
+```
+
+* 获取用户资金账户余额
+   * @param {string} userDid - 用户DID
+   * @returns {Promise<number>} 余额
+
+---
+
+## async getLockedFunds(userDid)
+
+```javascript
+async getLockedFunds(userDid)
+```
+
+* 获取用户已锁定的资金（未成交的买单占用）
+   * @param {string} userDid - 用户DID
+   * @returns {Promise<number>} 锁定金额
 
 ---
 

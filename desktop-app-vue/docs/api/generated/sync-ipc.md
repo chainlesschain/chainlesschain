@@ -1,8 +1,8 @@
 # sync-ipc
 
-**Source**: `src\main\sync\sync-ipc.js`
+**Source**: `src/main/sync/sync-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.803Z
+**Generated**: 2026-02-15T07:37:13.772Z
 
 ---
 
@@ -33,10 +33,10 @@ function registerSyncIPC(
 
 ---
 
-## ipcMain.handle('sync:start', async (_event, deviceId) =>
+## ipcMain.handle("sync:start", async (_event, deviceId) =>
 
 ```javascript
-ipcMain.handle('sync:start', async (_event, deviceId) =>
+ipcMain.handle("sync:start", async (_event, deviceId) =>
 ```
 
 * 启动数据同步
@@ -47,10 +47,10 @@ ipcMain.handle('sync:start', async (_event, deviceId) =>
 
 ---
 
-## ipcMain.handle('sync:get-status', async () =>
+## ipcMain.handle("sync:get-status", async () =>
 
 ```javascript
-ipcMain.handle('sync:get-status', async () =>
+ipcMain.handle("sync:get-status", async () =>
 ```
 
 * 获取同步状态
@@ -60,10 +60,10 @@ ipcMain.handle('sync:get-status', async () =>
 
 ---
 
-## ipcMain.handle('sync:incremental', async () =>
+## ipcMain.handle("sync:incremental", async () =>
 
 ```javascript
-ipcMain.handle('sync:incremental', async () =>
+ipcMain.handle("sync:incremental", async () =>
 ```
 
 * 手动触发增量同步
@@ -73,10 +73,10 @@ ipcMain.handle('sync:incremental', async () =>
 
 ---
 
-## ipcMain.handle('sync:resolve-conflict', async (_event, conflictId, resolution) =>
+## ipcMain.handle(
 
 ```javascript
-ipcMain.handle('sync:resolve-conflict', async (_event, conflictId, resolution) =>
+ipcMain.handle(
 ```
 
 * 解决同步冲突
@@ -93,10 +93,10 @@ ipcMain.handle('sync:resolve-conflict', async (_event, conflictId, resolution) =
 
 ---
 
-## ipcMain.handle('sync:set-auth-token', async (_event, token) =>
+## ipcMain.handle("sync:set-auth-token", async (_event, token) =>
 
 ```javascript
-ipcMain.handle('sync:set-auth-token', async (_event, token) =>
+ipcMain.handle("sync:set-auth-token", async (_event, token) =>
 ```
 
 * 设置同步认证Token
@@ -107,10 +107,10 @@ ipcMain.handle('sync:set-auth-token', async (_event, token) =>
 
 ---
 
-## ipcMain.handle('sync:clear-auth-token', async () =>
+## ipcMain.handle("sync:clear-auth-token", async () =>
 
 ```javascript
-ipcMain.handle('sync:clear-auth-token', async () =>
+ipcMain.handle("sync:clear-auth-token", async () =>
 ```
 
 * 清除同步认证Token
@@ -120,10 +120,10 @@ ipcMain.handle('sync:clear-auth-token', async () =>
 
 ---
 
-## ipcMain.handle('sync:has-auth', async () =>
+## ipcMain.handle("sync:has-auth", async () =>
 
 ```javascript
-ipcMain.handle('sync:has-auth', async () =>
+ipcMain.handle("sync:has-auth", async () =>
 ```
 
 * 检查同步认证状态
@@ -133,10 +133,10 @@ ipcMain.handle('sync:has-auth', async () =>
 
 ---
 
-## ipcMain.handle('sync:get-config', async () =>
+## ipcMain.handle("sync:get-config", async () =>
 
 ```javascript
-ipcMain.handle('sync:get-config', async () =>
+ipcMain.handle("sync:get-config", async () =>
 ```
 
 * 获取同步配置信息

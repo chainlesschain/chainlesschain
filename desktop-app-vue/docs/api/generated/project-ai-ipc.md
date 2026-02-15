@@ -1,8 +1,8 @@
 # project-ai-ipc
 
-**Source**: `src\main\project\project-ai-ipc.js`
+**Source**: `src/main/project/project-ai-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.827Z
+**Generated**: 2026-02-15T07:37:13.799Z
 
 ---
 
@@ -17,6 +17,17 @@ const
  *
  * @module project-ai-ipc
  * @description 提供 AI 对话、任务规划、代码助手、内容处理等 IPC 接口
+
+---
+
+## let activeChatAbortController = null;
+
+```javascript
+let activeChatAbortController = null;
+```
+
+* 当前活跃的AI对话AbortController
+ * 用于在主进程中取消正在进行的AI请求（因为AbortSignal无法通过IPC序列化）
 
 ---
 
@@ -100,6 +111,17 @@ ipcMain.handle("project:aiChat", async (_event, chatData) =>
 
 * 项目AI对话 - 支持文件操作
    * Channel: 'project:aiChat'
+
+---
+
+## ipcMain.handle("project:cancelAiChat", async () =>
+
+```javascript
+ipcMain.handle("project:cancelAiChat", async () =>
+```
+
+* 取消正在进行的AI对话请求
+   * Channel: 'project:cancelAiChat'
 
 ---
 

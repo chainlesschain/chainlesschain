@@ -1,8 +1,8 @@
 # initializer-factory
 
-**Source**: `src\main\bootstrap\initializer-factory.js`
+**Source**: `src/main/bootstrap/initializer-factory.js`
 
-**Generated**: 2026-01-27T06:44:03.869Z
+**Generated**: 2026-02-15T07:37:13.855Z
 
 ---
 
@@ -78,6 +78,16 @@ this.instances =
 ```
 
 @type {Object}
+
+---
+
+## this.runningPromises = new Map();
+
+```javascript
+this.runningPromises = new Map();
+```
+
+@type {Map<string, Promise<InitResult>>}
 
 ---
 

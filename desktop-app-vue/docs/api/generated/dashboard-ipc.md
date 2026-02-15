@@ -1,8 +1,8 @@
 # dashboard-ipc
 
-**Source**: `src\main\organization\dashboard-ipc.js`
+**Source**: `src/main/organization/dashboard-ipc.js`
 
-**Generated**: 2026-01-27T06:44:03.836Z
+**Generated**: 2026-02-15T07:37:13.811Z
 
 ---
 
@@ -133,6 +133,21 @@ async function getActivityHeatmap(database, orgId)
 ```
 
 * Get activity heatmap
+
+---
+
+## function getBandwidthUsed(db, orgId, dateRange)
+
+```javascript
+function getBandwidthUsed(db, orgId, dateRange)
+```
+
+* Get bandwidth usage for the organization
+ * Calculates total bytes transferred based on sync and P2P activity logs
+ * @param {Object} db - Database instance
+ * @param {string} orgId - Organization ID
+ * @param {Object} dateRange - Date range filter
+ * @returns {number} Bandwidth used in bytes
 
 ---
 

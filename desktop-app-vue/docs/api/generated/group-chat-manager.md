@@ -1,8 +1,8 @@
 # group-chat-manager
 
-**Source**: `src\main\social\group-chat-manager.js`
+**Source**: `src/main/social/group-chat-manager.js`
 
-**Generated**: 2026-01-27T06:44:03.809Z
+**Generated**: 2026-02-15T07:37:13.777Z
 
 ---
 
@@ -66,10 +66,10 @@ async getGroupDetails(groupId)
 
 ---
 
-## async addGroupMember(groupId, memberDid, role = 'member')
+## async addGroupMember(groupId, memberDid, role = "member")
 
 ```javascript
-async addGroupMember(groupId, memberDid, role = 'member')
+async addGroupMember(groupId, memberDid, role = "member")
 ```
 
 * 添加群成员
