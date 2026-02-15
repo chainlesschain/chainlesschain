@@ -515,28 +515,42 @@ jobs:
 
           cat release-notes.md
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.version.outputs.VERSION }}
-          name: ChainlessChain ${{ steps.version.outputs.VERSION }}
-          body_path: release-notes.md
-          draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
-          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
-          files: |
-            artifacts/**/*.zip
-            artifacts/**/*.dmg
-            artifacts/**/*.deb
-            artifacts/**/*.rpm
-            artifacts/**/*.AppImage
-            artifacts/**/*.exe
-            artifacts/**/*.apk
-            artifacts/**/*.aab
-            artifacts/**/*.ipa
+      - name: Create or update Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Release created
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "✅ Release ${{ steps.version.outputs.VERSION }} created successfully!"
-          echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.VERSION }}"
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          DRAFT_FLAG=""
+          PRERELEASE_FLAG=""
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            [ "${{ inputs.draft }}" == "true" ] && DRAFT_FLAG="--draft"
+            [ "${{ inputs.prerelease }}" == "true" ] && PRERELEASE_FLAG="--prerelease"
+          fi
+
+          # Create release if it doesn't exist
+          if ! gh release view "$VERSION" > /dev/null 2>&1; then
+            echo "Creating new release ${VERSION}..."
+            gh release create "$VERSION" \
+              --title "ChainlessChain ${VERSION}" \
+              --notes-file release-notes.md \
+              $DRAFT_FLAG $PRERELEASE_FLAG
+          else
+            echo "Release ${VERSION} already exists, updating notes..."
+            gh release edit "$VERSION" --notes-file release-notes.md || true
+          fi
+
+          # Upload all artifacts
+          echo "Uploading artifacts to release ${VERSION}..."
+          for pattern in "artifacts/**/*.zip" "artifacts/**/*.dmg" "artifacts/**/*.deb" \
+                         "artifacts/**/*.rpm" "artifacts/**/*.AppImage" "artifacts/**/*.exe" \
+                         "artifacts/**/*.apk" "artifacts/**/*.aab" "artifacts/**/*.ipa"; do
+            for f in $pattern; do
+              if [ -f "$f" ]; then
+                echo "Uploading $f"
+                gh release upload "$VERSION" "$f" --clobber || echo "Warning: Failed to upload $f"
+              fi
+            done
+          done
+
+          echo "✅ Release ${VERSION} completed!"
+          echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
