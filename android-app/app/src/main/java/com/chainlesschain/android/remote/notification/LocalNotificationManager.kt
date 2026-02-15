@@ -83,7 +83,8 @@ class LocalNotificationManager @Inject constructor(
             description = CHANNEL_DESCRIPTION_WORKFLOW
         }
 
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            ?: return
         manager.createNotificationChannel(pcChannel)
         manager.createNotificationChannel(workflowChannel)
 
