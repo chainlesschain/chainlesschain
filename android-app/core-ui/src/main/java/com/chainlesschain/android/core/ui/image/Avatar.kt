@@ -7,6 +7,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,6 +22,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
 
 /**
  * 头像尺寸枚举
@@ -48,6 +53,8 @@ fun Avatar(
     modifier: Modifier = Modifier,
     backgroundColor: Color = MaterialTheme.colorScheme.primaryContainer
 ) {
+    var imageLoadFailed by remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .size(size.size)
@@ -55,7 +62,7 @@ fun Avatar(
             .background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
-        if (!avatarUrl.isNullOrBlank()) {
+        if (!avatarUrl.isNullOrBlank() && !imageLoadFailed) {
             // 显示头像图片
             AsyncImage(
                 model = avatarUrl,
@@ -63,7 +70,12 @@ fun Avatar(
                 modifier = Modifier
                     .size(size.size)
                     .clip(CircleShape),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                onState = { state ->
+                    if (state is AsyncImagePainter.State.Error) {
+                        imageLoadFailed = true
+                    }
+                }
             )
         } else {
             // 显示首字母

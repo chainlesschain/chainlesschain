@@ -263,14 +263,9 @@ describe("Organization IPC 处理器", () => {
           description: "Test description",
           type: "company",
         };
-        const mockResult = {
-          success: true,
-          organization: { org_id: "org_123", name: "Test Organization" },
-        };
+        const mockOrg = { org_id: "org_123", name: "Test Organization" };
 
-        mockOrganizationManager.createOrganization.mockResolvedValue(
-          mockResult,
-        );
+        mockOrganizationManager.createOrganization.mockResolvedValue(mockOrg);
 
         const result = await handlers["org:create-organization"](
           {},
@@ -280,10 +275,13 @@ describe("Organization IPC 处理器", () => {
         expect(mockOrganizationManager.createOrganization).toHaveBeenCalledWith(
           mockOrgData,
         );
-        expect(result).toEqual(mockResult);
+        expect(result).toEqual({
+          success: true,
+          organization: mockOrg,
+        });
       });
 
-      it("should throw error when organizationManager is not initialized", async () => {
+      it("should return error object when organizationManager is not initialized", async () => {
         const nullHandlers = {};
         const nullMockIpcMain = {
           handle: (channel, handler) => {
@@ -299,18 +297,18 @@ describe("Organization IPC 处理器", () => {
           app: mockApp,
         });
 
-        await expect(
-          nullHandlers["org:create-organization"]({}, {}),
-        ).rejects.toThrow("组织管理器未初始化");
+        const result = await nullHandlers["org:create-organization"]({}, {});
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("组织管理器未初始化");
       });
 
       it("should handle errors from organizationManager", async () => {
         const error = new Error("创建组织失败");
         mockOrganizationManager.createOrganization.mockRejectedValue(error);
 
-        await expect(
-          handlers["org:create-organization"]({}, {}),
-        ).rejects.toThrow("创建组织失败");
+        const result = await handlers["org:create-organization"]({}, {});
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("创建组织失败");
       });
     });
 
@@ -2582,10 +2580,13 @@ describe("Organization IPC 处理器", () => {
         app: mockApp,
       });
 
-      // Should throw errors
-      await expect(
-        nullHandlers["org:create-organization"]({}, {}),
-      ).rejects.toThrow("组织管理器未初始化");
+      // org:create-organization returns error object instead of throwing
+      const createResult = await nullHandlers["org:create-organization"](
+        {},
+        {},
+      );
+      expect(createResult.success).toBe(false);
+      expect(createResult.error).toBe("组织管理器未初始化");
       await expect(
         nullHandlers["org:join-organization"]({}, "CODE123"),
       ).rejects.toThrow("组织管理器未初始化");
@@ -2655,9 +2656,9 @@ describe("Organization IPC 处理器", () => {
         new Error("Invalid organization data"),
       );
 
-      await expect(handlers["org:create-organization"]({}, {})).rejects.toThrow(
-        "Invalid organization data",
-      );
+      const result = await handlers["org:create-organization"]({}, {});
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Invalid organization data");
     });
 
     it("should handle network/P2P errors", async () => {

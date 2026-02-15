@@ -1,5 +1,9 @@
 package com.chainlesschain.android.feature.p2p.ui.social.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.core.database.entity.social.PostEntity
@@ -199,12 +204,11 @@ fun PostCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // 点赞
-                InteractionButton(
-                    icon = if (post.isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    text = formatCount(post.likeCount),
-                    onClick = onLikeClick,
-                    tint = if (post.isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                // 点赞（带动画）
+                LikeButton(
+                    isLiked = post.isLiked,
+                    likeCount = post.likeCount,
+                    onClick = onLikeClick
                 )
 
                 // 评论
@@ -230,6 +234,58 @@ fun PostCard(
             images = post.images,
             initialIndex = selectedImageIndex,
             onDismiss = { showImagePreview = false }
+        )
+    }
+}
+
+/**
+ * 点赞按钮（带缩放和颜色动画）
+ */
+@Composable
+private fun LikeButton(
+    isLiked: Boolean,
+    likeCount: Int,
+    onClick: () -> Unit
+) {
+    var animationTrigger by remember { mutableStateOf(isLiked) }
+
+    LaunchedEffect(isLiked) {
+        animationTrigger = isLiked
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = if (animationTrigger) 1.2f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        finishedListener = { if (animationTrigger) animationTrigger = false },
+        label = "likeScale"
+    )
+
+    val tintColor by animateColorAsState(
+        targetValue = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "likeTint"
+    )
+
+    TextButton(
+        onClick = {
+            animationTrigger = true
+            onClick()
+        },
+        colors = ButtonDefaults.textButtonColors(contentColor = tintColor)
+    ) {
+        Icon(
+            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            contentDescription = null,
+            modifier = Modifier
+                .size(20.dp)
+                .graphicsLayer(scaleX = scale, scaleY = scale)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = formatCount(likeCount),
+            style = MaterialTheme.typography.labelMedium
         )
     }
 }

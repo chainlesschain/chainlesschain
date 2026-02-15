@@ -45,11 +45,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +80,17 @@ fun RemoteRAGSearchScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
     var selectedResult by remember { mutableStateOf<SearchResult?>(null) }
+
+    @OptIn(FlowPreview::class)
+    LaunchedEffect(Unit) {
+        snapshotFlow { searchQuery }
+            .debounce(300)
+            .distinctUntilChanged()
+            .filter { it.isNotBlank() }
+            .collectLatest { query ->
+                viewModel.search(query, uiState.topK)
+            }
+    }
 
     Scaffold(
         topBar = {
