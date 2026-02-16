@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/manus-optimizations.js`
 
-**Generated**: 2026-02-15T10:10:53.411Z
+**Generated**: 2026-02-16T13:44:34.654Z
 
 ---
 
@@ -35,6 +35,28 @@ class ManusOptimizations
 * Manus 优化管理器
  *
  * 协调 Context Engineering 和 Tool Masking 的工作
+
+---
+
+## this.unifiedRegistry = null;
+
+```javascript
+this.unifiedRegistry = null;
+```
+
+@type {Object|null} UnifiedToolRegistry for skill-aware prompts
+
+---
+
+## bindUnifiedRegistry(registry)
+
+```javascript
+bindUnifiedRegistry(registry)
+```
+
+* Bind UnifiedToolRegistry for skill-aware prompt building.
+   * When bound, buildOptimizedPrompt will include skill context (instructions, examples).
+   * @param {Object} registry - UnifiedToolRegistry instance
 
 ---
 

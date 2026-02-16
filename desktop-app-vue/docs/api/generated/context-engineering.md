@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/context-engineering.js`
 
-**Generated**: 2026-02-15T10:10:53.412Z
+**Generated**: 2026-02-16T13:44:34.655Z
 
 ---
 
@@ -77,6 +77,19 @@ _serializeToolDefinitions(tools)
 
 * 序列化工具定义（确保确定性）
    * @private
+
+---
+
+## _serializeToolsWithSkillContext(registry)
+
+```javascript
+_serializeToolsWithSkillContext(registry)
+```
+
+* Serialize tools grouped by skill with instructions and examples
+   * @private
+   * @param {Object} registry - UnifiedToolRegistry instance
+   * @returns {string} Formatted tool definitions grouped by skill
 
 ---
 

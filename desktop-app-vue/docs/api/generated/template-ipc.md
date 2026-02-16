@@ -2,7 +2,7 @@
 
 **Source**: `src/main/template/template-ipc.js`
 
-**Generated**: 2026-02-15T10:10:53.363Z
+**Generated**: 2026-02-16T13:44:34.604Z
 
 ---
 
@@ -240,6 +240,46 @@ ipcMain.handle(
 ```
 
 * 获取默认变量值
+
+---
+
+## ipcMain.handle("template:get-demos", async (_event) =>
+
+```javascript
+ipcMain.handle("template:get-demos", async (_event) =>
+```
+
+* 获取所有 Demo 模板（按类别分组）
+
+---
+
+## ipcMain.handle("template:get-demo-by-skill", async (_event, skillName) =>
+
+```javascript
+ipcMain.handle("template:get-demo-by-skill", async (_event, skillName) =>
+```
+
+* 按技能名获取相关 Demo 模板
+
+---
+
+## ipcMain.handle("template:preview-demo", async (_event, templateId) =>
+
+```javascript
+ipcMain.handle("template:preview-demo", async (_event, templateId) =>
+```
+
+* 预览 Demo 模板内容
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 运行 Demo 工作流（渲染模板并返回可执行的技能指令）
 
 ---
 
