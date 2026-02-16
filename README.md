@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.34.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.35.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,13 +19,38 @@
 
 ---
 
-## ⭐ 当前版本: v0.34.0 (2026-02-15)
+## ⭐ 当前版本: v0.35.0 (2026-02-16)
 
-### 最新更新 - Enterprise Features 企业级功能 + 社区生态
+### 最新更新 - AI Skills System 智能技能系统 + 统一工具注册表
+
+**15 Built-in Skills + 10 Demo Templates + Agent Skills Open Standard + Unified Tool Registry** - 15个内置技能、10个演示模板、Agent Skills开放标准、统一工具注册表，6 新IPC handlers，3,000+行新代码
+
+#### 新增核心功能 (2026-02-16)
+
+- ✅ **15 Built-in Skills** - 15个内置技能覆盖7大类别(开发/自动化/知识/数据/安全/远程/学习)
+  - **核心**: code-review, git-commit, explain-code
+  - **自动化**: browser-automation, computer-use, workflow-automation
+  - **数据**: web-scraping, data-analysis
+  - **知识**: memory-management, smart-search
+  - **远程**: remote-control
+  - **安全**: security-audit
+  - **DevOps**: devops-automation
+  - **开发**: test-generator, performance-optimizer
+- ✅ **Unified Tool Registry** - 统一工具注册表，聚合3大工具系统(FunctionCaller 60+工具 + MCP 8服务器 + Skills 15技能)
+- ✅ **ToolSkillMapper** - 自动将未覆盖工具分组到10个技能类别
+- ✅ **MCPSkillGenerator** - MCP服务器连接时自动生成SkillManifestEntry
+- ✅ **Agent Skills Open Standard** - 13个扩展字段(tools/instructions/examples/dependencies/input-schema/output-schema等)
+- ✅ **Demo Templates** - 10个演示项目模板，覆盖自动化/AI工作流/知识管理/远程控制4大类
+- ✅ **Tools Explorer UI** - 工具浏览器页面，按技能分组展示所有工具(路由: `#/tools/explorer`)
+- ✅ **Demo Templates UI** - 演示模板浏览页面，支持预览和运行(路由: `#/demo-templates`)
+- ✅ **Name Normalization** - `browser-click`(SKILL.md) → `browser_click`(FunctionCaller) 自动桥接
+- ✅ **Context Engineering Integration** - 技能分组工具序列化集成到LLM提示词
+
+#### v0.34.0 功能回顾 - Enterprise Features 企业级功能 + 社区生态
 
 **Enterprise Audit & Compliance + Plugin Marketplace + Multi-Agent + SSO + MCP SDK** - 企业级审计合规、插件市场、专业化多代理、SSO认证、MCP SDK，76+ IPC handlers，26,000+行新代码
 
-#### 新增核心功能 (2026-02-15)
+#### v0.34.0 新增核心功能 (2026-02-15)
 
 - ✅ **Enterprise Audit System** - 统一审计日志、GDPR/SOC2合规检查、数据主体请求(DSR)、保留策略(18 IPC)
 - ✅ **Compliance Manager** - 合规策略引擎、框架检查、合规报告生成
@@ -147,6 +172,7 @@
 - 🟢 **远程控制系统**: 100% 完成 - **P2P远程网关+24+命令处理器+Chrome扩展+45,000+行代码**
 - 🟢 **企业审计与合规**: 100% 完成 - **统一审计日志+GDPR合规+DSR处理+18 IPC**
 - 🟢 **插件市场与SSO**: 100% 完成 - **插件市场22 IPC+SSO认证20 IPC+MCP SDK+多代理16 IPC**
+- 🟢 **AI技能系统**: 100% 完成 - **15内置技能+统一工具注册表+10演示模板+Agent Skills标准**
 - 🟢 **移动端应用**: 100% 完成 - **完整功能+桌面同步+Android P2P UI+远程控制UI**
 
 ## 核心特性
@@ -170,7 +196,9 @@
 - 🤖 **专业化代理**: 8种AI代理模板 + 任务分解编排 + 5个内置技能
 - 🔑 **SSO企业认证**: SAML 2.0 + OAuth 2.0/OIDC + PKCE + DID身份关联
 - 🪝 **Hooks系统**: 21种钩子事件 + 4种钩子类型 + 优先级系统 + 脚本钩子
-- 🎨 **Skills系统**: Markdown Skills + 三层加载机制 + /skill命令 + 门控检查
+- 🎨 **Skills系统**: 15个内置技能 + Agent Skills开放标准 + 统一工具注册表 + /skill命令
+- 🗂️ **统一工具注册表**: FunctionCaller 60+工具 + MCP 8服务器 + Skills 15技能统一管理
+- 📦 **演示模板系统**: 10个演示模板 + 4大类别 + 可视化浏览 + 一键运行
 - 📊 **知识图谱可视化**: 8个图分析算法 + 5种可视化方式 + 6种导出格式
 - ⛓️ **区块链集成**: 6个智能合约 + HD钱包系统 + LayerZero跨链桥
 - 🏢 **企业版**: 多身份架构 + RBAC权限 + 知识库协作 + DID邀请链接
@@ -296,11 +324,26 @@
 - ✅ **Plan Mode** - 安全分析模式、只允许Read/Search/Analyze
 - ✅ **计划生成** - 自动记录被阻止操作到计划
 - ✅ **审批流程** - 全部/部分审批、拒绝操作
-- ✅ **Skills系统** - Markdown技能定义、三层加载机制
+- ✅ **Skills系统** - Markdown技能定义、四层加载机制(bundled→marketplace→managed→workspace)
 - ✅ **/skill命令** - 用户命令解析、自动执行
 - ✅ **门控检查** - 平台、依赖、环境变量检测
+- ✅ **15个内置技能** - 7个可执行handler + 8个文档型技能，覆盖7大类别
+- ✅ **Agent Skills开放标准** - 13个扩展字段(tools/instructions/examples/dependencies等)
 
-详细功能说明见 [Hooks系统设计](./docs/design/HOOKS_SYSTEM_DESIGN.md)
+详细功能说明见 [Hooks系统设计](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [AI技能系统设计](./docs/design/modules/16_AI技能系统.md)
+
+### 🔟 统一工具注册表 + 演示模板 (100% 完成) ✅
+
+- ✅ **UnifiedToolRegistry** - 聚合FunctionCaller(60+)、MCP(8服务器)、Skills(15技能)三大工具系统
+- ✅ **ToolSkillMapper** - 自动将未覆盖工具分组到10个默认技能类别
+- ✅ **MCPSkillGenerator** - MCP服务器连接时自动生成技能清单
+- ✅ **Name Normalization** - SKILL.md命名(kebab-case) → FunctionCaller命名(snake_case)自动桥接
+- ✅ **Tools Explorer** - 按技能分组浏览所有工具，支持搜索/筛选/预览
+- ✅ **10个演示模板** - 展示技能组合能力(自动化/AI工作流/知识管理/远程控制)
+- ✅ **DemoTemplateLoader** - 自动发现JSON模板，4个IPC处理器
+- ✅ **6个统一工具IPC** - tools:get-all-with-skills/get-skill-manifest/get-by-skill/search-unified/get-tool-context/refresh-unified
+
+详细功能说明见 [AI技能系统设计](./docs/design/modules/16_AI技能系统.md)
 
 ## 🚀 快速开始
 
@@ -403,11 +446,16 @@ chainlesschain/
 │   │   │   │   ├── snapshot-ipc.js           # 快照 IPC (6通道)
 │   │   │   │   └── element-locator.js        # 元素定位器
 │   │   │   ├── ai-engine/    # AI引擎 + 工作流优化
+│   │   │   │   ├── unified-tool-registry.js     # 统一工具注册表 (3大系统)
+│   │   │   │   ├── tool-skill-mapper.js         # 工具-技能自动映射
+│   │   │   │   ├── unified-tools-ipc.js         # 统一工具 IPC (6通道)
 │   │   │   │   ├── cowork/   # Cowork多代理协作系统
 │   │   │   │   │   └── skills/               # Skills系统
-│   │   │   │   │       ├── index.js          # 技能加载器
+│   │   │   │   │       ├── index.js          # 技能加载器 (4层)
 │   │   │   │   │       ├── skills-ipc.js     # Skills IPC (17通道)
-│   │   │   │   │       └── builtin/          # 内置技能 (代码审查/Git提交/代码解释)
+│   │   │   │   │       ├── skill-md-parser.js # Agent Skills标准解析器
+│   │   │   │   │       ├── markdown-skill.js  # Markdown技能实现
+│   │   │   │   │       └── builtin/          # 15个内置技能
 │   │   │   │   ├── plan-mode/                # Plan Mode系统 (Claude Code风格)
 │   │   │   │   │   ├── index.js              # PlanModeManager
 │   │   │   │   │   └── plan-mode-ipc.js      # Plan Mode IPC (14通道)
@@ -417,8 +465,14 @@ chainlesschain/
 │   │   │   │   ├── real-time-quality-gate.js     # 实时质量检查
 │   │   │   │   ├── task-executor.js              # 任务执行器
 │   │   │   │   └── task-planner-enhanced.js      # 增强型任务规划器
+│   │   │   ├── templates/    # 演示模板系统 (v0.35.0)
+│   │   │   │   ├── demo-template-loader.js      # 模板发现和加载
+│   │   │   │   ├── automation/                  # 自动化模板 (3个)
+│   │   │   │   ├── ai-workflow/                 # AI工作流模板 (3个)
+│   │   │   │   ├── knowledge/                   # 知识管理模板 (2个)
+│   │   │   │   └── remote/                      # 远程控制模板 (2个)
 │   │   │   └── monitoring/   # 监控和日志
-│   │   └── renderer/         # 渲染进程 (Vue3 + TypeScript, 31 Pinia Stores)
+│   │   └── renderer/         # 渲染进程 (Vue3 + TypeScript, 32 Pinia Stores)
 │   ├── contracts/            # 智能合约 (Hardhat + Solidity)
 │   └── tests/                # 测试套件 (2000+测试用例, 417测试文件)
 │       ├── unit/             # 单元测试 (IPC处理器、数据库、Git、浏览器、AI引擎)
@@ -454,6 +508,7 @@ chainlesschain/
 - 远程控制: P2P网关 + 24+命令处理器 + Chrome扩展 + 工作流引擎 + 45,000+行
 - 浏览器控制: BrowserEngine + SnapshotEngine + DI可测性 + 18 IPC通道
 - Claude Code风格: 10子系统 + 127 IPC通道 (Hooks/Plan Mode/Skills等)
+- AI技能系统: 15内置技能 + 统一工具注册表 + 10演示模板 + Agent Skills标准
 - 工作流优化: 智能缓存 + LLM决策 + 代理池 + 关键路径 + 实时质量
 - 可视化: ECharts TaskMonitor仪表盘 + Tree-shaking优化
 - Firebase: 消息推送 + WebRTC增强
@@ -491,6 +546,7 @@ chainlesschain/
 
 ### 已完成的优化 ✅
 
+- [x] **AI技能系统**: 15内置技能 + 统一工具注册表 + 10演示模板 + Agent Skills标准 ✅ v0.35.0
 - [x] **扩展MCP服务器支持**: MCP SDK (Server Builder + HTTP+SSE + Stdio) + 社区注册中心 ✅ v0.34.0
 - [x] **增强多代理协作**: 8种专业化代理模板 + 任务编排引擎 + 5个内置技能 ✅ v0.34.0
 - [x] **社区生态**: 插件市场(22 IPC) + 社区MCP服务器发现/安装 ✅ v0.34.0
@@ -564,3 +620,10 @@ chainlesschain/
 - [📋 Plan Mode](./desktop-app-vue/src/main/ai-engine/plan-mode/) - 计划模式系统
 - [📡 远程控制系统](./desktop-app-vue/src/main/remote/) - P2P远程网关 + 24+命令处理器 + Chrome扩展
 - [🌐 浏览器控制](./desktop-app-vue/src/main/browser/) - BrowserEngine + SnapshotEngine
+
+**AI技能与工具文档**:
+
+- [🎨 AI技能系统设计](./docs/design/modules/16_AI技能系统.md) - 15内置技能 + 统一工具注册表 + 演示模板
+- [🗂️ 统一工具注册表](./desktop-app-vue/src/main/ai-engine/unified-tool-registry.js) - 3大工具系统聚合
+- [📦 演示模板系统](./desktop-app-vue/src/main/templates/demo-template-loader.js) - 10个演示模板加载器
+- [🔧 工具浏览器](./desktop-app-vue/src/renderer/pages/ToolsExplorerPage.vue) - 按技能分组浏览工具

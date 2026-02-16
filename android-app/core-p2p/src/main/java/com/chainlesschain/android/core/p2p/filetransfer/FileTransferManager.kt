@@ -3,7 +3,7 @@ package com.chainlesschain.android.core.p2p.filetransfer
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileChunk
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileChunkAck
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileTransferMetadata
@@ -115,8 +115,6 @@ class FileTransferManager @Inject constructor(
     private val checkpointManager: CheckpointManager
 ) {
     companion object {
-        private const val TAG = "FileTransferManager"
-
         /** Maximum concurrent transfers */
         const val MAX_CONCURRENT_TRANSFERS = 3
 
@@ -163,7 +161,7 @@ class FileTransferManager @Inject constructor(
      */
     fun initialize(deviceId: String) {
         localDeviceId = deviceId
-        Log.i(TAG, "FileTransferManager initialized with device: $deviceId")
+        Timber.i("FileTransferManager initialized with device: $deviceId")
     }
 
     /**
@@ -175,13 +173,13 @@ class FileTransferManager @Inject constructor(
      */
     suspend fun sendFile(fileUri: Uri, toDeviceId: String): FileTransferMetadata? {
         val localId = localDeviceId ?: run {
-            Log.e(TAG, "Local device ID not set")
+            Timber.e("Local device ID not set")
             return null
         }
 
         // Check concurrent transfer limit
         if (getActiveTransferCount() >= MAX_CONCURRENT_TRANSFERS) {
-            Log.w(TAG, "Maximum concurrent transfers reached")
+            Timber.w("Maximum concurrent transfers reached")
             return null
         }
 
@@ -219,10 +217,10 @@ class FileTransferManager @Inject constructor(
                 return null
             }
 
-            Log.i(TAG, "Transfer request sent: ${metadata.fileName} (${metadata.getReadableFileSize()})")
+            Timber.i("Transfer request sent: ${metadata.fileName} (${metadata.getReadableFileSize()})")
             return metadata
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start file transfer", e)
+            Timber.e(e, "Failed to start file transfer")
             return null
         }
     }
@@ -234,7 +232,7 @@ class FileTransferManager @Inject constructor(
      */
     suspend fun acceptTransfer(transferId: String) {
         val state = activeTransfers[transferId] as? TransferState.Incoming ?: run {
-            Log.w(TAG, "Transfer not found or not incoming: $transferId")
+            Timber.w("Transfer not found or not incoming: $transferId")
             return
         }
 
@@ -254,7 +252,7 @@ class FileTransferManager @Inject constructor(
         // Remove from pending requests
         updatePendingRequests()
 
-        Log.i(TAG, "Transfer accepted: ${state.metadata.fileName}")
+        Timber.i("Transfer accepted: ${state.metadata.fileName}")
     }
 
     /**
@@ -265,7 +263,7 @@ class FileTransferManager @Inject constructor(
      */
     suspend fun rejectTransfer(transferId: String, reason: String? = null) {
         val state = activeTransfers[transferId] as? TransferState.Incoming ?: run {
-            Log.w(TAG, "Transfer not found or not incoming: $transferId")
+            Timber.w("Transfer not found or not incoming: $transferId")
             return
         }
 
@@ -315,7 +313,7 @@ class FileTransferManager @Inject constructor(
         }
 
         progressTracker.updateStatus(transferId, FileTransferStatus.PAUSED)
-        Log.i(TAG, "Transfer paused: $transferId")
+        Timber.i("Transfer paused: $transferId")
     }
 
     /**
@@ -355,7 +353,7 @@ class FileTransferManager @Inject constructor(
             }
         }
 
-        Log.i(TAG, "Transfer resumed: $transferId")
+        Timber.i("Transfer resumed: $transferId")
     }
 
     /**
@@ -413,10 +411,10 @@ class FileTransferManager @Inject constructor(
             }
             is TransferState.Incoming -> {
                 // For incoming, we can't retry - need sender to re-initiate
-                Log.w(TAG, "Cannot retry incoming transfer")
+                Timber.w("Cannot retry incoming transfer")
             }
             null -> {
-                Log.w(TAG, "Transfer not found: $transferId")
+                Timber.w("Transfer not found: $transferId")
             }
         }
     }
@@ -485,11 +483,11 @@ class FileTransferManager @Inject constructor(
     }
 
     private suspend fun handleTransferRequest(event: FileTransferEvent.TransferRequested) {
-        Log.i(TAG, "Received transfer request: ${event.metadata.fileName}")
+        Timber.i("Received transfer request: ${event.metadata.fileName}")
 
         // Check concurrent transfer limit
         if (getActiveTransferCount() >= MAX_CONCURRENT_TRANSFERS) {
-            Log.w(TAG, "Rejecting transfer - max concurrent transfers reached")
+            Timber.w("Rejecting transfer - max concurrent transfers reached")
             transport.sendReject(
                 event.metadata.transferId,
                 event.fromDeviceId,
@@ -527,7 +525,7 @@ class FileTransferManager @Inject constructor(
     private suspend fun handleTransferAccepted(event: FileTransferEvent.TransferAccepted) {
         val state = activeTransfers[event.transferId] as? TransferState.Outgoing ?: return
 
-        Log.i(TAG, "Transfer accepted: ${state.metadata.fileName}")
+        Timber.i("Transfer accepted: ${state.metadata.fileName}")
 
         state.status = FileTransferStatus.TRANSFERRING
         progressTracker.updateStatus(event.transferId, FileTransferStatus.TRANSFERRING)
@@ -537,7 +535,7 @@ class FileTransferManager @Inject constructor(
     }
 
     private suspend fun handleTransferRejected(event: FileTransferEvent.TransferRejected) {
-        Log.i(TAG, "Transfer rejected: ${event.transferId} - ${event.reason}")
+        Timber.i("Transfer rejected: ${event.transferId} - ${event.reason}")
         cleanupTransfer(event.transferId, event.reason ?: "Rejected by peer")
     }
 
@@ -586,7 +584,7 @@ class FileTransferManager @Inject constructor(
                 finalizeIncomingTransfer(state)
             }
         } else {
-            Log.e(TAG, "Failed to write chunk ${event.chunk.chunkIndex}")
+            Timber.e("Failed to write chunk ${event.chunk.chunkIndex}")
         }
     }
 
@@ -612,7 +610,7 @@ class FileTransferManager @Inject constructor(
                 }
             }
         } else {
-            Log.w(TAG, "Chunk ${event.ack.chunkIndex} failed: ${event.ack.errorMessage}")
+            Timber.w("Chunk ${event.ack.chunkIndex} failed: ${event.ack.errorMessage}")
             // Chunk will be retried by the sending loop
         }
     }
@@ -631,7 +629,7 @@ class FileTransferManager @Inject constructor(
         }
 
         progressTracker.updateStatus(event.transferId, FileTransferStatus.PAUSED)
-        Log.i(TAG, "Transfer paused by peer: ${event.transferId}")
+        Timber.i("Transfer paused by peer: ${event.transferId}")
     }
 
     private suspend fun handleTransferResumed(event: FileTransferEvent.TransferResumed) {
@@ -651,11 +649,11 @@ class FileTransferManager @Inject constructor(
             }
         }
 
-        Log.i(TAG, "Transfer resumed by peer: ${event.transferId}")
+        Timber.i("Transfer resumed by peer: ${event.transferId}")
     }
 
     private suspend fun handleTransferCancelled(event: FileTransferEvent.TransferCancelled) {
-        Log.i(TAG, "Transfer cancelled by peer: ${event.transferId} - ${event.reason}")
+        Timber.i("Transfer cancelled by peer: ${event.transferId} - ${event.reason}")
         cleanupTransfer(event.transferId, event.reason ?: "Cancelled by peer")
     }
 
@@ -674,7 +672,7 @@ class FileTransferManager @Inject constructor(
         // Delete checkpoint on successful completion
         checkpointManager.deleteCheckpoint(event.transferId)
 
-        Log.i(TAG, "Transfer completed: ${state.metadata.fileName}")
+        Timber.i("Transfer completed: ${state.metadata.fileName}")
     }
 
     private fun startSendingChunks(state: TransferState.Outgoing) {
@@ -693,10 +691,10 @@ class FileTransferManager @Inject constructor(
                         for (chunkIndex in timedOut) {
                             val retryCount = state.incrementRetryCount(chunkIndex)
                             if (retryCount <= MAX_RETRIES) {
-                                Log.w(TAG, "Retrying chunk $chunkIndex (attempt $retryCount/$MAX_RETRIES)")
+                                Timber.w("Retrying chunk $chunkIndex (attempt $retryCount/$MAX_RETRIES)")
                                 retrySendChunk(state, chunkIndex, localId)
                             } else {
-                                Log.e(TAG, "Chunk $chunkIndex exceeded max retries ($MAX_RETRIES)")
+                                Timber.e("Chunk $chunkIndex exceeded max retries ($MAX_RETRIES)")
                                 cleanupTransfer(
                                     state.metadata.transferId,
                                     "Chunk $chunkIndex failed after $MAX_RETRIES retries"
@@ -734,13 +732,13 @@ class FileTransferManager @Inject constructor(
                             )
                             return@launch
                         }
-                        Log.w(TAG, "Failed to send chunk ${state.currentChunk}, retrying (attempt $retryCount)")
+                        Timber.w("Failed to send chunk ${state.currentChunk}, retrying (attempt $retryCount)")
                         delay(RETRY_DELAY_MS)
                     }
                 }
             } catch (e: Exception) {
                 if (state.status == FileTransferStatus.TRANSFERRING) {
-                    Log.e(TAG, "Error sending chunks", e)
+                    Timber.e(e, "Error sending chunks")
                     cleanupTransfer(state.metadata.transferId, e.message ?: "Unknown error")
                 }
             }
@@ -758,7 +756,7 @@ class FileTransferManager @Inject constructor(
             )
             transport.sendChunk(chunk, state.metadata.receiverDeviceId, localId)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to retry chunk $chunkIndex", e)
+            Timber.e(e, "Failed to retry chunk $chunkIndex")
         }
     }
 
@@ -769,7 +767,7 @@ class FileTransferManager @Inject constructor(
         val checksumValid = fileChunker.verifyFileChecksum(state.tempFile, state.metadata.checksum)
 
         if (!checksumValid) {
-            Log.e(TAG, "Checksum verification failed for ${state.metadata.fileName}")
+            Timber.e("Checksum verification failed for ${state.metadata.fileName}")
             cleanupTransfer(state.metadata.transferId, "Checksum verification failed")
             return
         }
@@ -801,7 +799,7 @@ class FileTransferManager @Inject constructor(
             // Delete checkpoint on successful completion
             checkpointManager.deleteCheckpoint(state.metadata.transferId)
 
-            Log.i(TAG, "Transfer completed and saved: ${finalFile.absolutePath}")
+            Timber.i("Transfer completed and saved: ${finalFile.absolutePath}")
         } else {
             cleanupTransfer(state.metadata.transferId, "Failed to finalize file")
         }
@@ -848,7 +846,7 @@ class FileTransferManager @Inject constructor(
             errorMessage = reason
         ))
 
-        Log.i(TAG, "Transfer cleaned up: $transferId - $reason")
+        Timber.i("Transfer cleaned up: $transferId - $reason")
     }
 
     private fun updatePendingRequests() {

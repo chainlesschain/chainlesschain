@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.project.viewmodel
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.feature.project.model.Task
@@ -43,9 +43,6 @@ class TaskViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    companion object {
-        private const val TAG = "TaskViewModel"
-    }
 
     // ===== 当前用户 =====
     private val _currentUserId = MutableStateFlow<String?>(null)
@@ -107,7 +104,7 @@ class TaskViewModel @Inject constructor(
      * 设置当前用户
      */
     fun setCurrentUser(userId: String) {
-        Log.d(TAG, "setCurrentUser: $userId")
+        Timber.d("setCurrentUser: $userId")
         _currentUserId.value = userId
         loadTasks()
         loadStats()
@@ -149,7 +146,7 @@ class TaskViewModel @Inject constructor(
                 tasksFlow
                     .map { tasks -> sortTasks(tasks) }
                     .catch { e ->
-                        Log.e(TAG, "Error loading tasks", e)
+                        Timber.e(e, "Error loading tasks")
                         _taskListState.value = TaskListState.Error(e.message ?: "加载失败")
                     }
                     .collect { tasks ->
@@ -169,7 +166,7 @@ class TaskViewModel @Inject constructor(
                         }
                     }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading tasks", e)
+                Timber.e(e, "Error loading tasks")
                 _taskListState.value = TaskListState.Error(e.message ?: "加载失败")
             }
         }
@@ -185,7 +182,7 @@ class TaskViewModel @Inject constructor(
             try {
                 _taskStats.value = taskRepository.getTaskStats(userId)
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading task stats", e)
+                Timber.e(e, "Error loading task stats")
             }
         }
     }
@@ -537,7 +534,7 @@ class TaskViewModel @Inject constructor(
         viewModelScope.launch {
             taskRepository.observeTask(taskId)
                 .catch { e ->
-                    Log.e(TAG, "Error observing task", e)
+                    Timber.e(e, "Error observing task")
                 }
                 .collect { task ->
                     _selectedTask.value = task
@@ -601,6 +598,6 @@ class TaskViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         loadTasksJob?.cancel()
-        Log.d(TAG, "TaskViewModel cleared")
+        Timber.d("TaskViewModel cleared")
     }
 }

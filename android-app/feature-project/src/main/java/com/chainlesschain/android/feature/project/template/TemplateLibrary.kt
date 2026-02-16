@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.project.template
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
@@ -37,7 +37,6 @@ class TemplateLibrary @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "TemplateLibrary"
         private const val CUSTOM_TEMPLATES_FILE = "custom_templates.json"
         private const val MAX_CUSTOM_TEMPLATES = 50
         private const val TEMPLATE_GENERATION_SYSTEM_PROMPT = """You are a project template generator.
@@ -125,7 +124,7 @@ Use common conventions and best practices for the chosen technology stack."""
             try {
                 enhanceRecommendationsWithLLM(adapter, projectDescription, recommendations)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to enhance recommendations with LLM", e)
+                Timber.e(e, "Failed to enhance recommendations with LLM")
                 recommendations
             }
         } else {
@@ -200,7 +199,7 @@ Use common conventions and best practices for the chosen technology stack."""
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Template generation failed", e)
+            Timber.e(e, "Template generation failed")
             GeneratedTemplateResult(
                 success = false,
                 template = null,
@@ -231,7 +230,7 @@ Use common conventions and best practices for the chosen technology stack."""
                 mutableListOf<ProjectTemplate>().also { customTemplatesCache = it }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load custom templates", e)
+            Timber.e(e, "Failed to load custom templates")
             mutableListOf<ProjectTemplate>().also { customTemplatesCache = it }
         }
     }
@@ -261,7 +260,7 @@ Use common conventions and best practices for the chosen technology stack."""
 
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save custom template", e)
+            Timber.e(e, "Failed to save custom template")
             Result.failure(e)
         }
     }
@@ -282,7 +281,7 @@ Use common conventions and best practices for the chosen technology stack."""
                 Result.failure(Exception("模板不存在"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete custom template", e)
+            Timber.e(e, "Failed to delete custom template")
             Result.failure(e)
         }
     }
@@ -354,7 +353,7 @@ Use common conventions and best practices for the chosen technology stack."""
             saveCustomTemplate(importedTemplate)
             Result.success(importedTemplate)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to import template", e)
+            Timber.e(e, "Failed to import template")
             Result.failure(e)
         }
     }
@@ -378,7 +377,7 @@ Use common conventions and best practices for the chosen technology stack."""
 
             Result.success(importedCount)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to import templates", e)
+            Timber.e(e, "Failed to import templates")
             Result.failure(e)
         }
     }
@@ -523,7 +522,7 @@ Use common conventions and best practices for the chosen technology stack."""
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse LLM response", e)
+            Timber.e(e, "Failed to parse LLM response")
         }
         return null
     }

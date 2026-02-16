@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.sync
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.transport.MessagePriority
 import kotlinx.coroutines.flow.Flow
@@ -22,8 +22,6 @@ import javax.inject.Singleton
 class MessageQueue @Inject constructor() {
 
     companion object {
-        private const val TAG = "MessageQueue"
-
         /** 最大队列大小 */
         private const val MAX_QUEUE_SIZE = 10000
     }
@@ -61,7 +59,7 @@ class MessageQueue @Inject constructor() {
      */
     fun enqueue(message: P2PMessage, priority: MessagePriority = MessagePriority.NORMAL): Boolean {
         if (outgoingQueue.size >= MAX_QUEUE_SIZE) {
-            Log.w(TAG, "Queue is full, dropping message: ${message.id}")
+            Timber.w("Queue is full, dropping message: ${message.id}")
             return false
         }
 
@@ -74,7 +72,7 @@ class MessageQueue @Inject constructor() {
         val success = outgoingQueue.offer(queuedMessage)
         if (success) {
             updateQueueState()
-            Log.d(TAG, "Message enqueued: ${message.id} (priority: $priority)")
+            Timber.d("Message enqueued: ${message.id} (priority: $priority)")
         }
 
         return success
@@ -91,7 +89,7 @@ class MessageQueue @Inject constructor() {
             // 添加到待确认列表
             sentPendingAck[queuedMessage.message.id] = queuedMessage
             updateQueueState()
-            Log.d(TAG, "Message dequeued: ${queuedMessage.message.id}")
+            Timber.d("Message dequeued: ${queuedMessage.message.id}")
         }
         return queuedMessage
     }
@@ -125,7 +123,7 @@ class MessageQueue @Inject constructor() {
     fun acknowledge(messageId: String) {
         sentPendingAck.remove(messageId)
         updateQueueState()
-        Log.d(TAG, "Message acknowledged: $messageId")
+        Timber.d("Message acknowledged: $messageId")
     }
 
     /**
@@ -142,9 +140,9 @@ class MessageQueue @Inject constructor() {
 
             if (updatedMessage.retryCount <= 3) {
                 outgoingQueue.offer(updatedMessage)
-                Log.d(TAG, "Message requeued: $messageId (retry: ${updatedMessage.retryCount})")
+                Timber.d("Message requeued: $messageId (retry: ${updatedMessage.retryCount})")
             } else {
-                Log.w(TAG, "Message dropped after max retries: $messageId")
+                Timber.w("Message dropped after max retries: $messageId")
             }
 
             updateQueueState()
@@ -161,7 +159,7 @@ class MessageQueue @Inject constructor() {
         val messages = offlineMessages.getOrPut(deviceId) { mutableListOf() }
         messages.add(message)
 
-        Log.d(TAG, "Offline message stored for device: $deviceId")
+        Timber.d("Offline message stored for device: $deviceId")
         updateQueueState()
     }
 
@@ -182,7 +180,7 @@ class MessageQueue @Inject constructor() {
      */
     fun clearOfflineMessages(deviceId: String) {
         offlineMessages.remove(deviceId)
-        Log.d(TAG, "Offline messages cleared for device: $deviceId")
+        Timber.d("Offline messages cleared for device: $deviceId")
         updateQueueState()
     }
 
@@ -215,7 +213,7 @@ class MessageQueue @Inject constructor() {
         sentPendingAck.clear()
         offlineMessages.clear()
         updateQueueState()
-        Log.d(TAG, "All queues cleared")
+        Timber.d("All queues cleared")
     }
 
     /**
@@ -229,9 +227,9 @@ class MessageQueue @Inject constructor() {
     suspend fun dispatchIncoming(message: P2PMessage): Boolean {
         return _incomingMessages.tryEmit(message).also { success ->
             if (success) {
-                Log.d(TAG, "Incoming message dispatched: ${message.id} (type: ${message.type})")
+                Timber.d("Incoming message dispatched: ${message.id} (type: ${message.type})")
             } else {
-                Log.w(TAG, "Failed to dispatch incoming message (buffer full): ${message.id}")
+                Timber.w("Failed to dispatch incoming message (buffer full): ${message.id}")
             }
         }
     }
@@ -257,7 +255,7 @@ class MessageQueue @Inject constructor() {
             val isStale = (now - queuedMessage.timestamp) > timeoutMs
 
             if (isStale) {
-                Log.w(TAG, "Removing stale message: ${queuedMessage.message.id}")
+                Timber.w("Removing stale message: ${queuedMessage.message.id}")
             }
 
             isStale

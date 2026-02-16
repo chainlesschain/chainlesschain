@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.ai.di
 
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.VectorEmbeddingDao
 import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.context.ContextManager
@@ -309,7 +310,7 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
                 else -> throw IllegalArgumentException("不支持的提供商: $provider")
             }
         } catch (e: Exception) {
-            android.util.Log.e("LLMAdapterFactory", "Failed to create cloud adapter for $provider", e)
+            Timber.tag("LLMAdapterFactory").e(e, "Failed to create cloud adapter for $provider")
             // 如果反射失败，使用OpenAI适配器作为兼容方案
             OpenAIAdapter(apiKey)
         }
@@ -333,7 +334,7 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
      */
     suspend fun testConnection(provider: LLMProvider): Result<String> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         return@withContext try {
-            android.util.Log.d("LLMAdapterFactory", "Testing connection for provider: ${provider.name}")
+            Timber.tag("LLMAdapterFactory").d("Testing connection for provider: ${provider.name}")
 
             // 获取API Key（如果需要）
             val apiKey = if (provider != LLMProvider.OLLAMA) {
@@ -345,33 +346,33 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
             // 创建适配器
             val adapter = if (provider == LLMProvider.OLLAMA) {
                 val url = configManager.getConfig().ollama.url
-                android.util.Log.d("LLMAdapterFactory", "Creating Ollama adapter with URL: $url")
+                Timber.tag("LLMAdapterFactory").d("Creating Ollama adapter with URL: $url")
                 createOllamaAdapter()
             } else {
                 if (apiKey.isNullOrBlank()) {
-                    android.util.Log.w("LLMAdapterFactory", "API Key is blank for ${provider.displayName}")
+                    Timber.tag("LLMAdapterFactory").w("API Key is blank for ${provider.displayName}")
                     return@withContext Result.failure(Exception(context.getString(R.string.error_configure_api_key, provider.displayName)))
                 }
                 createAdapter(provider, apiKey)
             }
 
             // 测试可用性
-            android.util.Log.d("LLMAdapterFactory", "Checking availability...")
+            Timber.tag("LLMAdapterFactory").d("Checking availability...")
             val isAvailable = adapter.checkAvailability()
-            android.util.Log.d("LLMAdapterFactory", "Availability check result: $isAvailable")
+            Timber.tag("LLMAdapterFactory").d("Availability check result: $isAvailable")
 
             if (isAvailable) {
                 val successMsg = context.getString(R.string.connection_success_message, provider.displayName)
-                android.util.Log.i("LLMAdapterFactory", successMsg)
+                Timber.tag("LLMAdapterFactory").i(successMsg)
                 Result.success(successMsg)
             } else {
                 val failMsg = "连接失败：服务不可用"
-                android.util.Log.w("LLMAdapterFactory", failMsg)
+                Timber.tag("LLMAdapterFactory").w(failMsg)
                 Result.failure(Exception(failMsg))
             }
         } catch (e: Exception) {
             val errorMsg = "连接失败：${e.message ?: "未知错误"}"
-            android.util.Log.e("LLMAdapterFactory", errorMsg, e)
+            Timber.tag("LLMAdapterFactory").e(e, errorMsg)
             Result.failure(Exception(errorMsg))
         }
     }

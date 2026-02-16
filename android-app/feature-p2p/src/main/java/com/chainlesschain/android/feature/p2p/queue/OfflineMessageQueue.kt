@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.queue
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.database.entity.MessagePriority
 import com.chainlesschain.android.core.database.entity.OfflineQueueEntity
@@ -26,7 +26,6 @@ class OfflineMessageQueue @Inject constructor(
     private val offlineQueueDao: OfflineQueueDao
 ) {
     companion object {
-        private const val TAG = "OfflineMessageQueue"
         private const val DEFAULT_MAX_RETRIES = 5
         private const val CLEANUP_INTERVAL = 60_000L // 1分钟
         private const val RETENTION_DAYS = 7L
@@ -81,7 +80,7 @@ class OfflineMessageQueue @Inject constructor(
         )
 
         offlineQueueDao.insert(message)
-        Log.d(TAG, "Enqueued message: ${message.id} for peer: $peerId")
+        Timber.d("Enqueued message: ${message.id} for peer: $peerId")
 
         _messageStatusChanged.emit(
             MessageStatusEvent(message.id, peerId, QueueStatus.PENDING)
@@ -125,7 +124,7 @@ class OfflineMessageQueue @Inject constructor(
      */
     suspend fun markAsSent(messageId: String) {
         offlineQueueDao.markAsSent(messageId)
-        Log.d(TAG, "Message marked as sent: $messageId")
+        Timber.d("Message marked as sent: $messageId")
 
         val message = offlineQueueDao.getMessageById(messageId)
         message?.let {
@@ -147,7 +146,7 @@ class OfflineMessageQueue @Inject constructor(
         if (shouldRetry && message.canRetry()) {
             // 安排重试
             offlineQueueDao.updateRetry(messageId)
-            Log.d(TAG, "Message scheduled for retry: $messageId (attempt ${message.retryCount + 1}/${message.maxRetries})")
+            Timber.d("Message scheduled for retry: $messageId (attempt ${message.retryCount + 1}/${message.maxRetries})")
 
             _messageStatusChanged.emit(
                 MessageStatusEvent(messageId, message.peerId, QueueStatus.RETRYING)
@@ -155,7 +154,7 @@ class OfflineMessageQueue @Inject constructor(
         } else {
             // 永久失败
             offlineQueueDao.markAsFailed(messageId)
-            Log.e(TAG, "Message permanently failed: $messageId")
+            Timber.e("Message permanently failed: $messageId")
 
             _messageStatusChanged.emit(
                 MessageStatusEvent(messageId, message.peerId, QueueStatus.FAILED)
@@ -180,12 +179,12 @@ class OfflineMessageQueue @Inject constructor(
                 val requiredDelay = message.getRetryDelay()
 
                 if (now - lastRetry >= requiredDelay) {
-                    Log.d(TAG, "Message ready for retry: ${message.id}")
+                    Timber.d("Message ready for retry: ${message.id}")
                     _retryReadyMessages.emit(message)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to process retry queue", e)
+            Timber.e(e, "Failed to process retry queue")
         }
     }
 
@@ -198,7 +197,7 @@ class OfflineMessageQueue @Inject constructor(
 
             for (message in expiredMessages) {
                 offlineQueueDao.markAsExpired(message.id)
-                Log.d(TAG, "Message expired: ${message.id}")
+                Timber.d("Message expired: ${message.id}")
 
                 _messageStatusChanged.emit(
                     MessageStatusEvent(message.id, message.peerId, QueueStatus.EXPIRED)
@@ -206,10 +205,10 @@ class OfflineMessageQueue @Inject constructor(
             }
 
             if (expiredMessages.isNotEmpty()) {
-                Log.i(TAG, "Cleaned up ${expiredMessages.size} expired messages")
+                Timber.i("Cleaned up ${expiredMessages.size} expired messages")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to cleanup expired messages", e)
+            Timber.e(e, "Failed to cleanup expired messages")
         }
     }
 
@@ -218,7 +217,7 @@ class OfflineMessageQueue @Inject constructor(
      */
     suspend fun clearQueue(peerId: String) {
         offlineQueueDao.clearQueue(peerId)
-        Log.i(TAG, "Cleared queue for peer: $peerId")
+        Timber.i("Cleared queue for peer: $peerId")
     }
 
     /**
@@ -226,7 +225,7 @@ class OfflineMessageQueue @Inject constructor(
      */
     suspend fun clearAllQueues() {
         offlineQueueDao.clearAll()
-        Log.i(TAG, "Cleared all queues")
+        Timber.i("Cleared all queues")
     }
 
     /**
@@ -241,9 +240,9 @@ class OfflineMessageQueue @Inject constructor(
             offlineQueueDao.clearSentMessages()
             offlineQueueDao.clearExpiredMessages()
 
-            Log.d(TAG, "Cleaned up old completed messages")
+            Timber.d("Cleaned up old completed messages")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to cleanup old messages", e)
+            Timber.e(e, "Failed to cleanup old messages")
         }
     }
 
@@ -288,7 +287,7 @@ class OfflineMessageQueue @Inject constructor(
                     processRetryQueue()
                     cleanupOldMessages()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Periodic task error", e)
+                    Timber.e(e, "Periodic task error")
                 }
             }
         }

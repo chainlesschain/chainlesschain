@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.did.resolver
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.did.generator.DidKeyGenerator
 import com.chainlesschain.android.core.did.model.DIDMethod
 import com.chainlesschain.android.core.did.model.DIDResolutionMetadata
@@ -16,12 +16,8 @@ import javax.inject.Singleton
 @Singleton
 class DidKeyResolver @Inject constructor() : DIDResolver {
 
-    companion object {
-        private const val TAG = "DidKeyResolver"
-    }
-
     override suspend fun resolve(did: String): DIDResolutionResult {
-        Log.d(TAG, "Resolving did:key: $did")
+        Timber.d("Resolving did:key: $did")
 
         return try {
             // 验证DID格式
@@ -37,14 +33,14 @@ class DidKeyResolver @Inject constructor() : DIDResolver {
             // 生成DID Document
             val didDocument = DidKeyGenerator.generateDocument(did)
 
-            Log.d(TAG, "Resolved did:key successfully")
+            Timber.d("Resolved did:key successfully")
 
             DIDResolutionResult(
                 didDocument = didDocument,
                 didResolutionMetadata = DIDResolutionMetadata()
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to resolve did:key", e)
+            Timber.e(e, "Failed to resolve did:key")
 
             DIDResolutionResult(
                 didDocument = null,

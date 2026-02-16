@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.protocol
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.AESCipher
 import com.chainlesschain.android.core.e2ee.crypto.HKDF
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
@@ -22,8 +22,6 @@ import kotlinx.serialization.Serializable
 class DoubleRatchet {
 
     companion object {
-        private const val TAG = "DoubleRatchet"
-
         /** 最大跳过消息数（防止DOS攻击） */
         private const val MAX_SKIP = 1000
     }
@@ -120,7 +118,7 @@ class DoubleRatchet {
         sendingRatchetKeyPair: X25519KeyPair,
         receivingRatchetKey: ByteArray
     ): RatchetState {
-        Log.d(TAG, "Initializing ratchet (sender)")
+        Timber.d("Initializing ratchet (sender)")
 
         // 使用共享密钥作为初始根密钥
         val initialRootKey = sharedSecret
@@ -151,7 +149,7 @@ class DoubleRatchet {
         sharedSecret: ByteArray,
         receivingRatchetKeyPair: X25519KeyPair
     ): RatchetState {
-        Log.d(TAG, "Initializing ratchet (receiver)")
+        Timber.d("Initializing ratchet (receiver)")
 
         return RatchetState(
             rootKey = sharedSecret,
@@ -175,12 +173,12 @@ class DoubleRatchet {
         plaintext: ByteArray,
         associatedData: ByteArray = ByteArray(0)
     ): RatchetMessage {
-        Log.d(TAG, "Encrypting message: ${plaintext.size} bytes")
+        Timber.d("Encrypting message: ${plaintext.size} bytes")
 
         // 如果 sendChainKey 未初始化（全零），这发生在 receiver 第一次发送回复时
         val isSendChainKeyUninitialized = state.sendChainKey.all { it == 0.toByte() }
         if (isSendChainKeyUninitialized && state.sendMessageNumber == 0) {
-            Log.d(TAG, "Initializing send chain key on first reply")
+            Timber.d("Initializing send chain key on first reply")
             // 生成新的发送密钥对
             state.sendRatchetKeyPair = X25519KeyPair.generate()
 
@@ -210,7 +208,7 @@ class DoubleRatchet {
         state.sendChainKey = HKDF.deriveNextChainKey(state.sendChainKey)
         state.sendMessageNumber++
 
-        Log.d(TAG, "Message encrypted: messageNumber=${header.messageNumber}")
+        Timber.d("Message encrypted: messageNumber=${header.messageNumber}")
 
         return RatchetMessage(
             header = header,
@@ -231,7 +229,7 @@ class DoubleRatchet {
         message: RatchetMessage,
         associatedData: ByteArray = ByteArray(0)
     ): ByteArray {
-        Log.d(TAG, "Decrypting message: messageNumber=${message.header.messageNumber}")
+        Timber.d("Decrypting message: messageNumber=${message.header.messageNumber}")
 
         // 检查是否需要执行DH棘轮
         if (!message.header.ratchetKey.contentEquals(state.receiveRatchetKey)) {
@@ -242,7 +240,7 @@ class DoubleRatchet {
             // 这发生在 receiver 第一次接收消息时
             val isReceiveChainKeyUninitialized = state.receiveChainKey.all { it == 0.toByte() }
             if (isReceiveChainKeyUninitialized && state.receiveMessageNumber == 0) {
-                Log.d(TAG, "Initializing receive chain key on first message")
+                Timber.d("Initializing receive chain key on first message")
                 // 派生接收链密钥：DH(receiver's key, sender's ratchet key)
                 val (newRootKey, receiveChainKey) = HKDF.deriveRootKey(
                     state.rootKey,
@@ -266,7 +264,7 @@ class DoubleRatchet {
         state.receiveChainKey = HKDF.deriveNextChainKey(state.receiveChainKey)
         state.receiveMessageNumber++
 
-        Log.d(TAG, "Message decrypted: ${plaintext.size} bytes")
+        Timber.d("Message decrypted: ${plaintext.size} bytes")
 
         return plaintext
     }
@@ -278,7 +276,7 @@ class DoubleRatchet {
      * @param newRatchetKey 新的接收DH公钥
      */
     private fun dhRatchet(state: RatchetState, newRatchetKey: ByteArray) {
-        Log.d(TAG, "Performing DH ratchet")
+        Timber.d("Performing DH ratchet")
 
         // 保存上一个发送链的长度
         state.previousSendChainLength = state.sendMessageNumber
@@ -318,7 +316,7 @@ class DoubleRatchet {
      */
     private fun skipMessageKeys(state: RatchetState, until: Int) {
         if (state.receiveMessageNumber + MAX_SKIP < until) {
-            Log.w(TAG, "Too many skipped messages: ${until - state.receiveMessageNumber}")
+            Timber.w("Too many skipped messages: ${until - state.receiveMessageNumber}")
             throw SecurityException("Too many skipped messages")
         }
 

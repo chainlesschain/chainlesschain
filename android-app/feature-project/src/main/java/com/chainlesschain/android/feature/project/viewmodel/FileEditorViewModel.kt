@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.project.viewmodel
 
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
@@ -42,7 +42,6 @@ class FileEditorViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private const val TAG = "FileEditorViewModel"
         private const val AUTO_SAVE_DELAY_MS = 2000L // 2 seconds
     }
 
@@ -165,7 +164,7 @@ class FileEditorViewModel @Inject constructor(
                     _uiEvents.emit(FileEditorUiEvent.ShowError("File not found"))
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading file", e)
+                Timber.e(e, "Error loading file")
                 _uiEvents.emit(FileEditorUiEvent.ShowError(e.message ?: "Failed to load file"))
             } finally {
                 _isLoading.value = false
@@ -252,14 +251,14 @@ class FileEditorViewModel @Inject constructor(
                             _uiEvents.emit(FileEditorUiEvent.FileSaved)
                         }
 
-                        Log.d(TAG, "File saved ${if (isAutoSave) "(auto)" else "(manual)"}")
+                        Timber.d("File saved ${if (isAutoSave) "(auto)" else "(manual)"}")
                     },
                     onFailure = { error ->
                         _uiEvents.emit(FileEditorUiEvent.ShowError(error.message ?: "Save failed"))
                     }
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Error saving file", e)
+                Timber.e(e, "Error saving file")
                 _uiEvents.emit(FileEditorUiEvent.ShowError(e.message ?: "Save failed"))
             } finally {
                 _isSaving.value = false
@@ -349,9 +348,9 @@ class FileEditorViewModel @Inject constructor(
                     }
                 }
 
-                Log.d(TAG, "AI assist completed: ${action.name}")
+                Timber.d("AI assist completed: ${action.name}")
             } catch (e: Exception) {
-                Log.e(TAG, "AI assist error", e)
+                Timber.e(e, "AI assist error")
                 _isAIProcessing.value = false
                 _uiEvents.emit(
                     FileEditorUiEvent.ShowError("AI处理失败: ${e.message ?: "未知错误"}")
@@ -535,6 +534,6 @@ class FileEditorViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         closeFile()
-        Log.d(TAG, "FileEditorViewModel cleared")
+        Timber.d("FileEditorViewModel cleared")
     }
 }

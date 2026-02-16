@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.filetransfer
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileChunk
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileChunkAck
@@ -84,8 +84,6 @@ class FileTransferTransport @Inject constructor(
     private val connectionManager: P2PConnectionManager
 ) {
     companion object {
-        private const val TAG = "FileTransferTransport"
-
         /** Maximum concurrent chunks in flight (sliding window) */
         const val MAX_CHUNKS_IN_FLIGHT = 4
 
@@ -207,7 +205,7 @@ class FileTransferTransport @Inject constructor(
                 else -> {}
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle file transfer message: ${message.type}", e)
+            Timber.e(e, "Failed to handle file transfer message: ${message.type}")
         }
     }
 
@@ -441,7 +439,7 @@ class FileTransferTransport @Inject constructor(
                     .let { (it as FileTransferEvent.ChunkAcknowledged).ack }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "ACK timeout for chunk $chunkIndex of transfer $transferId")
+            Timber.w("ACK timeout for chunk $chunkIndex of transfer $transferId")
             null
         }
     }
@@ -519,7 +517,7 @@ class FileTransferTransport @Inject constructor(
             connectionManager.sendMessage(toDeviceId, message)
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send $type message", e)
+            Timber.e(e, "Failed to send $type message")
             false
         }
     }
@@ -559,7 +557,7 @@ class FileTransferTransport @Inject constructor(
             val waitTimeMs = (deficit * 1000) / bandwidthLimit
 
             if (waitTimeMs > 0) {
-                Log.d(TAG, "Bandwidth throttling: waiting ${waitTimeMs}ms for ${deficit} bytes")
+                Timber.d("Bandwidth throttling: waiting ${waitTimeMs}ms for ${deficit} bytes")
                 delay(waitTimeMs)
 
                 // 等待后重置计数器

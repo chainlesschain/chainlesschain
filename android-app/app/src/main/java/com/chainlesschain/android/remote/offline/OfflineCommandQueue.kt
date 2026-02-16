@@ -92,13 +92,17 @@ class OfflineCommandQueue @Inject constructor(
         updateStats()
 
         // 监听连接状态，自动发送
-        p2pClient.connectionState.collect { state ->
-            if (state == com.chainlesschain.android.remote.p2p.ConnectionState.CONNECTED) {
-                Timber.d("连接已建立，开始自动发送队列命令")
-                startAutoSend()
-            } else {
-                stopAutoSend()
+        try {
+            p2pClient.connectionState.collect { state ->
+                if (state == com.chainlesschain.android.remote.p2p.ConnectionState.CONNECTED) {
+                    Timber.d("连接已建立，开始自动发送队列命令")
+                    startAutoSend()
+                } else {
+                    stopAutoSend()
+                }
             }
+        } catch (e: Exception) {
+            Timber.e(e, "监听连接状态失败")
         }
     }
 

@@ -267,13 +267,13 @@ fun QRCodeDisplay(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (qrCodeBitmap != null) {
+            qrCodeBitmap?.let { bitmap ->
                 Image(
-                    bitmap = qrCodeBitmap!!.asImageBitmap(),
+                    bitmap = bitmap.asImageBitmap(),
                     contentDescription = stringResource(R.string.verification_qr_code),
                     modifier = Modifier.size(200.dp)
                 )
-            } else {
+            } ?: run {
                 CircularProgressIndicator()
             }
 

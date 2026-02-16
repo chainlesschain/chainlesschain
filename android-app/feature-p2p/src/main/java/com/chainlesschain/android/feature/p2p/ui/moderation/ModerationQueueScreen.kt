@@ -97,7 +97,7 @@ fun ModerationQueueScreen(
                 appealingCount = uiState.statistics?.appealingCount ?: 0
             )
 
-            Divider()
+            HorizontalDivider()
 
             // 内容列表
             when {
@@ -332,7 +332,7 @@ private fun ModerationQueueItemCard(
                 )
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 操作按钮
             if (item.status == ModerationStatus.PENDING) {

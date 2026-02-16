@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.ai.data.repository
 
+import timber.log.Timber
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.entity.ConversationEntity
@@ -188,7 +189,7 @@ class ConversationRepository @Inject constructor(
                     )
                 } catch (e: Exception) {
                     // 使用统计记录失败不影响主流程
-                    android.util.Log.e("ConversationRepository", "Failed to record usage", e)
+                    Timber.tag("ConversationRepository").e(e, "Failed to record usage")
                 }
             }
 

@@ -3,7 +3,7 @@ package com.chainlesschain.android.feature.filebrowser.worker
 import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.Build
-import android.util.Log
+import timber.log.Timber
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
@@ -32,7 +32,6 @@ class FileScanWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
-        private const val TAG = "FileScanWorker"
         const val WORK_NAME = "file_scan_worker"
 
         // Worker配置
@@ -77,7 +76,7 @@ class FileScanWorker @AssistedInject constructor(
                     workRequest
                 )
 
-            Log.d(TAG, "File scan worker scheduled (every ${REPEAT_INTERVAL_HOURS}h)")
+            Timber.d("File scan worker scheduled (every ${REPEAT_INTERVAL_HOURS}h)")
         }
 
         /**
@@ -88,7 +87,7 @@ class FileScanWorker @AssistedInject constructor(
         fun cancel(context: Context) {
             WorkManager.getInstance(context)
                 .cancelUniqueWork(WORK_NAME)
-            Log.d(TAG, "File scan worker cancelled")
+            Timber.d("File scan worker cancelled")
         }
 
         /**
@@ -110,7 +109,7 @@ class FileScanWorker @AssistedInject constructor(
             WorkManager.getInstance(context)
                 .enqueue(workRequest)
 
-            Log.d(TAG, "File scan worker enqueued (one-time, incremental=$useIncrementalScan)")
+            Timber.d("File scan worker enqueued (one-time, incremental=$useIncrementalScan)")
         }
 
         private const val KEY_USE_INCREMENTAL_SCAN = "use_incremental_scan"
@@ -142,7 +141,7 @@ class FileScanWorker @AssistedInject constructor(
     }
 
     override suspend fun doWork(): Result {
-        Log.d(TAG, "File scan worker started (attempt ${runAttemptCount + 1})")
+        Timber.d("File scan worker started (attempt ${runAttemptCount + 1})")
 
         return try {
             // 检查是否使用增量扫描
@@ -151,22 +150,22 @@ class FileScanWorker @AssistedInject constructor(
             // 检查当前扫描状态，避免重复扫描
             val currentProgress = scanner.scanProgress.first()
             if (currentProgress is MediaStoreScanner.ScanProgress.Scanning) {
-                Log.w(TAG, "Scan already in progress, skipping")
+                Timber.w("Scan already in progress, skipping")
                 return Result.retry()
             }
 
             // 执行扫描
             val result = if (useIncrementalScan) {
-                Log.d(TAG, "Starting incremental scan...")
+                Timber.d("Starting incremental scan...")
                 scanner.scanIncrementalFiles()
             } else {
-                Log.d(TAG, "Starting full scan...")
+                Timber.d("Starting full scan...")
                 scanner.scanAllFiles()
             }
 
             if (result.isSuccess) {
                 val fileCount = result.getOrNull() ?: 0
-                Log.d(TAG, "File scan completed: $fileCount files")
+                Timber.d("File scan completed: $fileCount files")
 
                 // 返回结果数据
                 val outputData = Data.Builder()
@@ -177,7 +176,7 @@ class FileScanWorker @AssistedInject constructor(
                 Result.success(outputData)
             } else {
                 val error = result.exceptionOrNull()
-                Log.e(TAG, "File scan failed: ${error?.message}", error)
+                Timber.e(error, "File scan failed: ${error?.message}")
 
                 // 重试策略: 失败少于最大重试次数时重试
                 if (runAttemptCount < MAX_RETRY_COUNT) {
@@ -187,7 +186,7 @@ class FileScanWorker @AssistedInject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error during file scan", e)
+            Timber.e(e, "Unexpected error during file scan")
 
             if (runAttemptCount < MAX_RETRY_COUNT) {
                 Result.retry()
@@ -243,12 +242,12 @@ object FileScanWorkManager {
 
         // 配置WorkManager
         val config = Configuration.Builder()
-            .setMinimumLoggingLevel(Log.DEBUG)
+            .setMinimumLoggingLevel(android.util.Log.DEBUG)
             .build()
 
         WorkManager.initialize(context, config)
 
-        Log.d("FileScanWorkManager", "WorkManager initialized")
+        Timber.d("WorkManager initialized")
     }
 
     /**

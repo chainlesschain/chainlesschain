@@ -3,7 +3,7 @@ package com.chainlesschain.android.core.p2p.discovery
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.ConnectionStatus
 import com.chainlesschain.android.core.p2p.model.DeviceType
 import com.chainlesschain.android.core.p2p.model.P2PDevice
@@ -26,8 +26,6 @@ class NSDDiscovery @Inject constructor(
 ) : DeviceDiscovery {
 
     companion object {
-        private const val TAG = "NSDDiscovery"
-
         /** 服务类型 */
         const val SERVICE_TYPE = "_chainlesschain._tcp."
 
@@ -73,31 +71,31 @@ class NSDDiscovery @Inject constructor(
 
     override fun startDiscovery() {
         if (discovering) {
-            Log.w(TAG, "Discovery already running")
+            Timber.w("Discovery already running")
             return
         }
 
-        Log.i(TAG, "Starting NSD discovery for service type: $SERVICE_TYPE")
+        Timber.i("Starting NSD discovery for service type: $SERVICE_TYPE")
 
         discoveryListener = object : NsdManager.DiscoveryListener {
 
             override fun onDiscoveryStarted(regType: String) {
-                Log.d(TAG, "Service discovery started: $regType")
+                Timber.d("Service discovery started: $regType")
                 discovering = true
                 _discoveryEvents.value = DiscoveryEvent.DiscoveryStarted
             }
 
             override fun onServiceFound(service: NsdServiceInfo) {
-                Log.d(TAG, "Service found: ${service.serviceName}")
+                Timber.d("Service found: ${service.serviceName}")
 
                 // 解析服务信息
                 nsdManager.resolveService(service, object : NsdManager.ResolveListener {
                     override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
-                        Log.e(TAG, "Resolve failed: $errorCode")
+                        Timber.e("Resolve failed: $errorCode")
                     }
 
                     override fun onServiceResolved(serviceInfo: NsdServiceInfo) {
-                        Log.i(TAG, "Service resolved: ${serviceInfo.serviceName}")
+                        Timber.i("Service resolved: ${serviceInfo.serviceName}")
 
                         val device = parseServiceInfo(serviceInfo)
                         if (device != null) {
@@ -109,7 +107,7 @@ class NSDDiscovery @Inject constructor(
             }
 
             override fun onServiceLost(service: NsdServiceInfo) {
-                Log.d(TAG, "Service lost: ${service.serviceName}")
+                Timber.d("Service lost: ${service.serviceName}")
 
                 val deviceId = extractDeviceId(service.serviceName)
                 if (deviceId != null) {
@@ -119,19 +117,19 @@ class NSDDiscovery @Inject constructor(
             }
 
             override fun onDiscoveryStopped(serviceType: String) {
-                Log.d(TAG, "Discovery stopped")
+                Timber.d("Discovery stopped")
                 discovering = false
                 _discoveryEvents.value = DiscoveryEvent.DiscoveryStopped
             }
 
             override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
-                Log.e(TAG, "Discovery failed to start: $errorCode")
+                Timber.e("Discovery failed to start: $errorCode")
                 discovering = false
                 _discoveryEvents.value = DiscoveryEvent.DiscoveryFailed("Error code: $errorCode")
             }
 
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
-                Log.e(TAG, "Discovery failed to stop: $errorCode")
+                Timber.e("Discovery failed to stop: $errorCode")
                 _discoveryEvents.value = DiscoveryEvent.DiscoveryFailed("Failed to stop: $errorCode")
             }
         }
@@ -139,7 +137,7 @@ class NSDDiscovery @Inject constructor(
         try {
             nsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start discovery", e)
+            Timber.e(e, "Failed to start discovery")
             discovering = false
             _discoveryEvents.value = DiscoveryEvent.DiscoveryFailed(e.message ?: "Unknown error")
         }
@@ -147,7 +145,7 @@ class NSDDiscovery @Inject constructor(
 
     override fun stopDiscovery() {
         if (!discovering) {
-            Log.w(TAG, "Discovery not running")
+            Timber.w("Discovery not running")
             return
         }
 
@@ -157,7 +155,7 @@ class NSDDiscovery @Inject constructor(
                 discoveryListener = null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop discovery", e)
+            Timber.e(e, "Failed to stop discovery")
         }
 
         discovering = false
@@ -165,7 +163,7 @@ class NSDDiscovery @Inject constructor(
     }
 
     override fun registerService(deviceInfo: P2PDevice) {
-        Log.i(TAG, "Registering service for device: ${deviceInfo.deviceName}")
+        Timber.i("Registering service for device: ${deviceInfo.deviceName}")
 
         val serviceInfo = NsdServiceInfo().apply {
             serviceName = "${deviceInfo.deviceName}-${deviceInfo.deviceId.take(8)}"
@@ -184,29 +182,29 @@ class NSDDiscovery @Inject constructor(
 
             override fun onServiceRegistered(nsdServiceInfo: NsdServiceInfo) {
                 registeredServiceName = nsdServiceInfo.serviceName
-                Log.i(TAG, "Service registered: ${nsdServiceInfo.serviceName}")
+                Timber.i("Service registered: ${nsdServiceInfo.serviceName}")
                 _discoveryEvents.value = DiscoveryEvent.ServiceRegistered(nsdServiceInfo.serviceName)
             }
 
             override fun onRegistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
-                Log.e(TAG, "Service registration failed: $errorCode")
+                Timber.e("Service registration failed: $errorCode")
                 _discoveryEvents.value = DiscoveryEvent.ServiceRegistrationFailed("Error code: $errorCode")
             }
 
             override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) {
-                Log.i(TAG, "Service unregistered: ${serviceInfo.serviceName}")
+                Timber.i("Service unregistered: ${serviceInfo.serviceName}")
                 registeredServiceName = null
             }
 
             override fun onUnregistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
-                Log.e(TAG, "Service unregistration failed: $errorCode")
+                Timber.e("Service unregistration failed: $errorCode")
             }
         }
 
         try {
             nsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, registrationListener)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to register service", e)
+            Timber.e(e, "Failed to register service")
             _discoveryEvents.value = DiscoveryEvent.ServiceRegistrationFailed(e.message ?: "Unknown error")
         }
     }
@@ -219,7 +217,7 @@ class NSDDiscovery @Inject constructor(
             }
             registeredServiceName = null
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to unregister service", e)
+            Timber.e(e, "Failed to unregister service")
         }
     }
 
@@ -264,7 +262,7 @@ class NSDDiscovery @Inject constructor(
                 isTrusted = false
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse service info", e)
+            Timber.e(e, "Failed to parse service info")
             null
         }
     }

@@ -47,6 +47,9 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.50")
     ksp("com.google.dagger:hilt-compiler:2.50")
 
+    // Timber Logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
     // WebRTC (for P2P connections)
     // Using Threema's maintained WebRTC build (m134)
     // 使用 api 以便传递依赖到 app 模块

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.did.crypto
 
-import android.util.Log
+import timber.log.Timber
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
 import org.bouncycastle.crypto.signers.Ed25519Signer
@@ -12,8 +12,6 @@ import java.nio.charset.StandardCharsets
  * 提供消息签名和验证功能
  */
 object SignatureUtils {
-
-    private const val TAG = "SignatureUtils"
 
     /** 签名长度（64字节） */
     const val SIGNATURE_SIZE = 64
@@ -30,7 +28,7 @@ object SignatureUtils {
             "Private key is required for signing"
         }
 
-        Log.d(TAG, "Signing message: ${message.size} bytes")
+        Timber.d("Signing message: ${message.size} bytes")
 
         val privateKeyParams = Ed25519PrivateKeyParameters(keyPair.privateKey, 0)
         val signer = Ed25519Signer()
@@ -39,7 +37,7 @@ object SignatureUtils {
 
         val signature = signer.generateSignature()
 
-        Log.d(TAG, "Signature generated: ${signature.size} bytes")
+        Timber.d("Signature generated: ${signature.size} bytes")
 
         return signature
     }
@@ -71,7 +69,7 @@ object SignatureUtils {
             "Public key must be ${Ed25519KeyPair.PUBLIC_KEY_SIZE} bytes"
         }
 
-        Log.d(TAG, "Verifying signature for message: ${message.size} bytes")
+        Timber.d("Verifying signature for message: ${message.size} bytes")
 
         return try {
             val publicKeyParams = Ed25519PublicKeyParameters(publicKey, 0)
@@ -81,11 +79,11 @@ object SignatureUtils {
 
             val isValid = verifier.verifySignature(signature)
 
-            Log.d(TAG, "Signature verification: $isValid")
+            Timber.d("Signature verification: $isValid")
 
             isValid
         } catch (e: Exception) {
-            Log.e(TAG, "Signature verification failed", e)
+            Timber.e(e, "Signature verification failed")
             false
         }
     }
@@ -152,7 +150,7 @@ object SignatureUtils {
         val age = now - timestampedSignature.timestamp
 
         if (age > maxAgeMs || age < 0) {
-            Log.w(TAG, "Timestamp expired or invalid: age=$age ms, max=$maxAgeMs ms")
+            Timber.w("Timestamp expired or invalid: age=$age ms, max=$maxAgeMs ms")
             return false
         }
 
@@ -196,7 +194,7 @@ object SignatureUtils {
     fun verifyJWS(jws: String, publicKey: ByteArray): String? {
         val parts = jws.split(".")
         if (parts.size != 3) {
-            Log.w(TAG, "Invalid JWS format: expected 3 parts, got ${parts.size}")
+            Timber.w("Invalid JWS format: expected 3 parts, got ${parts.size}")
             return null
         }
 

@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-15 (TODO 清理 + 设计文档更新)
+> **最后更新**: 2026-02-16 (v0.35.0 全量文档更新)
 
 ---
 
@@ -10,6 +10,29 @@
 
 ### 活跃任务
 
+- [x] Unified Tool Registry — 统一工具注册表 + AI 调用链打通 ✅
+  - 8 步实现: Registry/MCPSkillGenerator/ToolSkillMapper/IPC/Vue 页面/Pinia store
+  - ManusOptimizations.bindUnifiedRegistry() 打通 AI 对话链 → 技能上下文注入 LLM 提示
+  - 质量修复: 初始化锁、IPC init-wait、参数限制、类型安全
+  - 31 个测试 (含 4 个 E2E) + 221 个相关测试零回归
+- [x] v0.35.0 全量文档更新 ✅
+  - README.md / README_EN.md - 版本升级、v0.35.0 功能亮点、项目状态、结构树、路线图
+  - docs/design/系统设计\_主文档.md - v2.28, 模块16索引, v0.35.0 更新节
+  - docs/design/README.md - 模块16条目
+  - docs/design/modules/16_AI技能系统.md - 新建设计文档 (~300行)
+  - docs/CHANGELOG.md - v0.35.0 条目 + v0.30.0-v0.34.0 补全
+  - docs/design/实施总结与附录.md - 统计更新、模块状态表
+  - docs-site (VitePress) - 首页、概览、技能页、变更日志全面更新
+  - docs-website (官网) - 版本徽章、下载链接、AI技能/企业功能卡片
+  - package.json (root + desktop) - 0.34.10 → 0.35.0
+  - Android build.gradle.kts - versionCode 32→35, versionName 0.32.0→0.35.0
+  - iOS Info.plist - CFBundleShortVersionString 0.32.0→0.35.0
+- [x] Unified Tool Registry — 统一工具注册表实现 (8 步全部完成) ✅
+  - UnifiedToolRegistry 核心 (529行)、MCPSkillGenerator (108行)、ToolSkillMapper (198行)
+  - unified-tools-ipc.js (6 IPC handlers)、ToolsExplorerPage.vue (485行)、unified-tools.ts store
+  - community-registry.js 丰富 Agent Skills 字段、context-engineering.js 技能分组序列化
+  - ipc-registry.js Phase 15 初始化、router + MainLayout 集成
+  - 27 个单元测试全部通过、157 个相关测试零回归
 - [x] TODO 清理 - 设计文档、测试文件、Android/iOS 代码全面检查 ✅
 - [x] 设计文档更新 - 实施总结与附录.md 进度标记更新（插件/浏览器/区块链 → 100%）✅
 - [x] 测试文件规范化 - TODO → NOTE 标记转换（技术限制说明）✅
@@ -99,7 +122,16 @@
 
 ### 最近完成
 
-0. **TODO 清理、功能实现和规范制定** (2026-02-15 最新):
+0. **v0.35.0 全量文档更新** (2026-02-16 最新):
+   - **版本升级**: package.json (root + desktop) 0.34.10→0.35.0, Android 32→35, iOS 32→35
+   - **README 更新**: 中英文 README 添加 v0.35.0 功能亮点（15技能、统一注册表、演示模板）
+   - **设计文档**: 系统设计主文档 v2.28, 新建 16_AI技能系统.md (~300行), 实施总结更新
+   - **CHANGELOG**: v0.35.0 详细条目 + v0.30.0-v0.34.0 历史补全
+   - **docs-site (VitePress)**: 首页/概览/技能页/变更日志全面更新至 v0.35.0
+   - **docs-website (官网)**: 版本徽章 v0.35.0, 下载链接, 新增 AI技能系统+企业功能卡片
+   - **修改文件**: 15+ modified + 1 new (16_AI技能系统.md)
+
+1. **TODO 清理、功能实现和规范制定** (2026-02-15):
    - **第一阶段：TODO 清理和文档更新**:
      - 设计文档更新 (docs/design/实施总结与附录.md):
        - 插件系统/浏览器扩展/音频处理/区块链集成 → 100% 完成

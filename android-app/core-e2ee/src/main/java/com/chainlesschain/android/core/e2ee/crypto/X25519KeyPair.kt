@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.crypto
 
-import android.util.Log
+import timber.log.Timber
 import org.bouncycastle.crypto.agreement.X25519Agreement
 import org.bouncycastle.crypto.generators.X25519KeyPairGenerator
 import org.bouncycastle.crypto.params.X25519KeyGenerationParameters
@@ -26,8 +26,6 @@ data class X25519KeyPair(
     val privateKey: ByteArray
 ) {
     companion object {
-        private const val TAG = "X25519KeyPair"
-
         /** 公钥长度 */
         const val PUBLIC_KEY_SIZE = 32
 
@@ -43,7 +41,7 @@ data class X25519KeyPair(
          * @return 密钥对
          */
         fun generate(): X25519KeyPair {
-            Log.d(TAG, "Generating X25519 key pair")
+            Timber.d("Generating X25519 key pair")
 
             val secureRandom = SecureRandom()
             val keyPairGenerator = X25519KeyPairGenerator()
@@ -57,7 +55,7 @@ data class X25519KeyPair(
             val publicKey = publicKeyParams.encoded
             val privateKey = privateKeyParams.encoded
 
-            Log.d(TAG, "Key pair generated: publicKey=${publicKey.size} bytes, privateKey=${privateKey.size} bytes")
+            Timber.d("Key pair generated: publicKey=${publicKey.size} bytes, privateKey=${privateKey.size} bytes")
 
             return X25519KeyPair(
                 publicKey = publicKey,
@@ -126,7 +124,7 @@ data class X25519KeyPair(
             val sharedSecret = ByteArray(SHARED_SECRET_SIZE)
             agreement.calculateAgreement(publicKeyParams, sharedSecret, 0)
 
-            Log.d(TAG, "Shared secret computed: ${sharedSecret.size} bytes")
+            Timber.d("Shared secret computed: ${sharedSecret.size} bytes")
 
             return sharedSecret
         }

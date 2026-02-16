@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.ai.domain.summary
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,7 +27,6 @@ class FileSummaryCache @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private const val TAG = "FileSummaryCache"
         private const val CACHE_DIR = "file_summaries"
         private const val MAX_MEMORY_CACHE_SIZE = 100
         private const val MAX_DISK_CACHE_SIZE = 500
@@ -169,7 +168,7 @@ class FileSummaryCache @Inject constructor(
             }
         }
 
-        Log.d(TAG, "Cleaned up $cleanedCount expired cache entries")
+        Timber.d("Cleaned up $cleanedCount expired cache entries")
         cleanedCount
     }
 
@@ -191,7 +190,7 @@ class FileSummaryCache @Inject constructor(
             val cached = json.decodeFromString<CachedSummary>(file.readText())
             cached.toFileSummary()
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to read cache: $contentHash", e)
+            Timber.w(e, "Failed to read cache: $contentHash")
             file.delete()
             null
         }
@@ -215,7 +214,7 @@ class FileSummaryCache @Inject constructor(
             val cached = CachedSummary(summary)
             file.writeText(json.encodeToString(cached))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save cache: $contentHash", e)
+            Timber.e(e, "Failed to save cache: $contentHash")
         }
     }
 
@@ -226,7 +225,7 @@ class FileSummaryCache @Inject constructor(
         try {
             File(cacheDir, "$contentHash.json").delete()
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to delete cache: $contentHash", e)
+            Timber.w(e, "Failed to delete cache: $contentHash")
         }
     }
 
@@ -251,9 +250,9 @@ class FileSummaryCache @Inject constructor(
                     }
                 }
 
-            Log.d(TAG, "Loaded ${memoryCache.size} hot cache entries")
+            Timber.d("Loaded ${memoryCache.size} hot cache entries")
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to load hot cache", e)
+            Timber.w(e, "Failed to load hot cache")
         }
     }
 }

@@ -1,0 +1,57 @@
+{
+  "id": "tpl_demo_kb_001",
+  "name": "personal_knowledge_base",
+  "display_name": "个人知识库搭建",
+  "description": "演示记忆管理和智能搜索技能，搭建个人知识库，含日记、标签、搜索模板",
+  "icon": "🧠",
+  "category": "knowledge",
+  "subcategory": "personal",
+  "tags": ["knowledge", "memory", "notes", "personal", "demo", "skill"],
+  "project_type": "knowledge",
+  "prompt_template": "请帮我搭建一个个人知识库系统：\n\n**知识库名称：** {{kbName}}\n**主要领域：** {{mainDomain}}\n**组织方式：** {{organizeMethod}}\n\n**搭建步骤：**\n\n### 步骤1：初始化知识库结构\n\n创建以下目录和文件结构：\n\n```\n{{kbName}}/\n├── MEMORY.md              # 长期记忆文件（核心洞察）\n├── daily/                 # 每日笔记\n│   └── YYYY-MM-DD.md     # 日期格式命名\n├── topics/                # 主题分类\n{{#eq mainDomain \"技术\"}}\n│   ├── programming.md\n│   ├── architecture.md\n│   └── tools.md\n{{/eq}}\n{{#eq mainDomain \"学习\"}}\n│   ├── courses.md\n│   ├── books.md\n│   └── insights.md\n{{/eq}}\n{{#eq mainDomain \"工作\"}}\n│   ├── projects.md\n│   ├── meetings.md\n│   └── decisions.md\n{{/eq}}\n{{#eq mainDomain \"生活\"}}\n│   ├── health.md\n│   ├── finance.md\n│   └── goals.md\n{{/eq}}\n└── templates/             # 笔记模板\n    ├── daily-note.md\n    ├── meeting-note.md\n    └── review.md\n```\n\n### 步骤2：配置每日笔记模板\n\n```markdown\n# {{currentDate}} 日记\n\n## 今日要点\n- \n\n## 学到的东西\n- \n\n## 待办事项\n- [ ] \n\n## 随想\n- \n```\n\n### 步骤3：开始记录\n```\n/memory-management save \"知识库初始化完成: {{kbName}} - 领域: {{mainDomain}}\"\n```\n\n### 步骤4：搜索测试\n验证搜索功能：\n```\n/smart-search {{mainDomain}}相关知识\n```\n\n### 使用技巧\n\n1. **快速记录**：使用 `/memory-management save \"内容\"` 快速保存想法\n2. **回顾总结**：使用 `/memory-management review today` 查看当日记录\n3. **知识搜索**：使用 `/smart-search 关键词` 搜索所有笔记\n4. **定期提取**：使用 `/memory-management extract` 从对话中提取关键信息\n\n**使用的技能：** memory-management, smart-search",
+  "variables_schema": [
+    {
+      "name": "kbName",
+      "label": "知识库名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：My Knowledge Base",
+      "default": "my-knowledge-base"
+    },
+    {
+      "name": "mainDomain",
+      "label": "主要领域",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "技术", "label": "技术开发" },
+        { "value": "学习", "label": "学习成长" },
+        { "value": "工作", "label": "工作管理" },
+        { "value": "生活", "label": "生活记录" }
+      ]
+    },
+    {
+      "name": "organizeMethod",
+      "label": "组织方式",
+      "type": "select",
+      "required": false,
+      "default": "主题分类",
+      "options": [
+        { "value": "主题分类", "label": "按主题分类" },
+        { "value": "时间线", "label": "按时间线" },
+        { "value": "混合", "label": "混合模式" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["memory-management", "smart-search"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

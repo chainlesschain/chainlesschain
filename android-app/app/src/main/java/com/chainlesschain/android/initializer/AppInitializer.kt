@@ -42,10 +42,6 @@ class AppInitializer @Inject constructor(
 
     private val initScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    companion object {
-        private const val TAG = "AppInitializer"
-    }
-
     /**
      * 同步初始化（启动时立即执行）
      *
@@ -53,7 +49,7 @@ class AppInitializer @Inject constructor(
      */
     fun initializeImmediately() {
         val startTime = System.currentTimeMillis()
-        Log.d(TAG, "Starting immediate initialization...")
+        Timber.d("Starting immediate initialization...")
 
         // 1. 初始化日志系统（必需）
         initializeLogging()
@@ -65,7 +61,7 @@ class AppInitializer @Inject constructor(
         // Database已通过Hilt自动初始化
 
         val elapsedTime = System.currentTimeMillis() - startTime
-        Log.d(TAG, "Immediate initialization completed in ${elapsedTime}ms")
+        Timber.d("Immediate initialization completed in ${elapsedTime}ms")
     }
 
     /**
@@ -74,7 +70,7 @@ class AppInitializer @Inject constructor(
      * 包含非关键的、耗时的初始化任务
      */
     fun initializeAsynchronously() {
-        Log.d(TAG, "Starting asynchronous initialization...")
+        Timber.d("Starting asynchronous initialization...")
 
         initScope.launch {
             val startTime = System.currentTimeMillis()
@@ -94,9 +90,9 @@ class AppInitializer @Inject constructor(
                 launch { preloadResources() }
 
                 val elapsedTime = System.currentTimeMillis() - startTime
-                Log.d(TAG, "Asynchronous initialization completed in ${elapsedTime}ms")
+                Timber.d("Asynchronous initialization completed in ${elapsedTime}ms")
             } catch (e: Exception) {
-                Log.e(TAG, "Error during asynchronous initialization", e)
+                Timber.e(e, "Error during asynchronous initialization")
             }
         }
     }
@@ -146,7 +142,7 @@ class AppInitializer @Inject constructor(
                 Timber.d("Logging initialized: RELEASE mode (ERROR level only)")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize logging", e)
+            Timber.e(e, "Failed to initialize logging")
         }
     }
 
@@ -190,9 +186,9 @@ class AppInitializer @Inject constructor(
         try {
             // 延迟初始化：首次访问时才创建实例
             // llmAdapter.get() 会触发实际的初始化
-            Log.d(TAG, "LLM adapter warmed up")
+            Timber.d("LLM adapter warmed up")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to warmup LLM adapter", e)
+            Timber.e(e, "Failed to warmup LLM adapter")
         }
     }
 
@@ -202,9 +198,9 @@ class AppInitializer @Inject constructor(
     private suspend fun warmupImageCache() {
         try {
             // Coil会自动初始化，这里可以预配置缓存大小
-            Log.d(TAG, "Image cache warmed up")
+            Timber.d("Image cache warmed up")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to warmup image cache", e)
+            Timber.e(e, "Failed to warmup image cache")
         }
     }
 
@@ -248,9 +244,9 @@ class AppInitializer @Inject constructor(
     private suspend fun preloadResources() {
         try {
             // 预加载常用的字体、图标等资源
-            Log.d(TAG, "Resources preloaded")
+            Timber.d("Resources preloaded")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to preload resources", e)
+            Timber.e(e, "Failed to preload resources")
         }
     }
 
@@ -260,7 +256,7 @@ class AppInitializer @Inject constructor(
     fun cleanup() {
         // 取消所有正在进行的初始化任务
         // initScope会在Application销毁时自动取消
-        Log.d(TAG, "AppInitializer cleanup")
+        Timber.d("AppInitializer cleanup")
     }
 }
 
@@ -276,20 +272,20 @@ object StartupPerformanceMonitor {
 
     fun recordAppStart() {
         appStartTime = System.currentTimeMillis()
-        Log.d("StartupPerf", "App start recorded: $appStartTime")
+        Timber.tag("StartupPerf").d("App start recorded: $appStartTime")
     }
 
     fun recordMilestone(name: String) {
         val currentTime = System.currentTimeMillis()
         milestones[name] = currentTime
         val elapsed = if (appStartTime > 0) currentTime - appStartTime else 0
-        Log.d("StartupPerf", "Milestone '$name': ${elapsed}ms from start")
+        Timber.tag("StartupPerf").d("Milestone '$name': ${elapsed}ms from start")
     }
 
     fun recordContentDisplay() {
         contentDisplayTime = System.currentTimeMillis()
         val elapsed = if (appStartTime > 0) contentDisplayTime - appStartTime else 0
-        Log.d("StartupPerf", "Content displayed: ${elapsed}ms from start")
+        Timber.tag("StartupPerf").d("Content displayed: ${elapsed}ms from start")
     }
 
     fun getTotalStartupTime(): Long {
@@ -311,14 +307,14 @@ object StartupPerformanceMonitor {
      */
     fun printReport() {
         val totalTime = getTotalStartupTime()
-        Log.d("StartupPerf", "===== Startup Performance Report =====")
-        Log.d("StartupPerf", "Total startup time: ${totalTime}ms")
-        Log.d("StartupPerf", "Milestones:")
+        Timber.tag("StartupPerf").d("===== Startup Performance Report =====")
+        Timber.tag("StartupPerf").d("Total startup time: ${totalTime}ms")
+        Timber.tag("StartupPerf").d("Milestones:")
         milestones.forEach { (name, time) ->
             val elapsed = time - appStartTime
             val percentage = if (totalTime > 0) (elapsed * 100.0 / totalTime) else 0.0
-            Log.d("StartupPerf", "  $name: ${elapsed}ms (${String.format("%.1f", percentage)}%)")
+            Timber.tag("StartupPerf").d("  $name: ${elapsed}ms (${String.format("%.1f", percentage)}%)")
         }
-        Log.d("StartupPerf", "======================================")
+        Timber.tag("StartupPerf").d("======================================")
     }
 }

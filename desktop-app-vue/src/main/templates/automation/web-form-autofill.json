@@ -1,0 +1,52 @@
+{
+  "id": "tpl_demo_autofill_001",
+  "name": "web_form_autofill",
+  "display_name": "网页表单自动填写",
+  "description": "演示浏览器自动化技能，自动填写网页表单、登录页面、注册表单等，支持批量操作",
+  "icon": "📝",
+  "category": "automation",
+  "subcategory": "browser",
+  "tags": ["browser", "automation", "form", "autofill", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个网页表单自动填写工作流：\n\n**目标网址：** {{targetUrl}}\n**表单类型：** {{formType}}\n**填写数据：**\n{{formData}}\n\n**工作流步骤：**\n\n1. **导航到目标页面**\n   ```\n   /browser-automation navigate {{targetUrl}}\n   ```\n\n2. **分析页面表单结构**\n   ```\n   /browser-automation extract forms\n   ```\n\n3. **自动填写表单**\n   ```\n   /browser-automation fill-form {{formData}}\n   ```\n\n4. **截图确认**\n   ```\n   /browser-automation screenshot\n   ```\n\n{{#eq formType \"登录表单\"}}\n5. **点击登录按钮**\n   ```\n   /browser-automation click \"Login\" \n   ```\n{{/eq}}\n{{#eq formType \"注册表单\"}}\n5. **点击注册按钮**\n   ```\n   /browser-automation click \"Register\"\n   ```\n{{/eq}}\n{{#eq formType \"搜索表单\"}}\n5. **点击搜索按钮**\n   ```\n   /browser-automation click \"Search\"\n   ```\n{{/eq}}\n\n6. **保存结果截图**\n   ```\n   /browser-automation screenshot\n   ```\n\n**使用的技能：** browser-automation, workflow-automation\n\n**注意事项：**\n- 确保浏览器引擎已启动\n- 对于需要验证码的页面，需要人工辅助\n- 敏感信息（密码等）请在填写后立即清除",
+  "variables_schema": [
+    {
+      "name": "targetUrl",
+      "label": "目标网址",
+      "type": "string",
+      "required": true,
+      "placeholder": "https://example.com/login"
+    },
+    {
+      "name": "formType",
+      "label": "表单类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "登录表单", "label": "登录表单" },
+        { "value": "注册表单", "label": "注册表单" },
+        { "value": "搜索表单", "label": "搜索表单" },
+        { "value": "数据录入", "label": "数据录入表单" }
+      ]
+    },
+    {
+      "name": "formData",
+      "label": "填写数据",
+      "type": "string",
+      "required": true,
+      "placeholder": "username=john email=john@example.com",
+      "default": "username=demo password=demo123"
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["browser-automation", "workflow-automation"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

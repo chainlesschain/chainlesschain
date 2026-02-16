@@ -11,6 +11,11 @@ plugins {
     jacoco
 }
 
+// Hilt configuration for multi-module builds
+hilt {
+    enableAggregatingTask = true
+}
+
 // Detekt configuration
 detekt {
     config.setFrom(files("${rootProject.projectDir}/detekt.yml"))
@@ -42,8 +47,8 @@ android {
         applicationId = "com.chainlesschain.android"
         minSdk = 26  // Android 8.0
         targetSdk = 35  // Android 15
-        versionCode = 32
-        versionName = "0.32.0"
+        versionCode = 36
+        versionName = "0.36.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"

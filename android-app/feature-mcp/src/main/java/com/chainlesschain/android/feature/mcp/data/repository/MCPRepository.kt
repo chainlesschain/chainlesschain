@@ -134,7 +134,7 @@ class MCPRepository @Inject constructor() {
             failedCalls = serverCalls.count { it.status == ToolCallStatus.FAILED },
             averageLatency = serverCalls
                 .filter { it.completedAt != null }
-                .map { it.completedAt!! - it.startedAt }
+                .map { (it.completedAt ?: it.startedAt) - it.startedAt }
                 .takeIf { it.isNotEmpty() }
                 ?.average()
                 ?.toLong() ?: 0L

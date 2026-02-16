@@ -108,7 +108,7 @@ fun CommentDetailScreen(
                 )
             }
             else -> {
-                val comment = uiState.comment!!
+                val comment = uiState.comment ?: return@Scaffold
                 val authorInfo = uiState.authorInfo[comment.authorDid]
 
                 LazyColumn(

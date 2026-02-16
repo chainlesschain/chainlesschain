@@ -120,7 +120,7 @@ fun OCRResultDialog(
                                 }
                                 context.startActivity(android.content.Intent.createChooser(intent, shareChooserTitle))
                             } catch (e: Exception) {
-                                android.util.Log.e("OCRResultDialog", "Error sharing text", e)
+                                timber.log.Timber.e(e, "Error sharing text")
                             }
                         }) {
                             Icon(Icons.Default.Share, contentDescription = stringResource(R.string.ocr_share))

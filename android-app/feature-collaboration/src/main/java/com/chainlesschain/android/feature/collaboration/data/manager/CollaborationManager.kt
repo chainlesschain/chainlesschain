@@ -80,7 +80,8 @@ class CollaborationManager @Inject constructor(
         repository.addUserToSession(sessionId, user)
         _events.emit(CollaborationEvent.UserJoined(user))
 
-        val updatedSession = repository.getSessionById(sessionId)!!
+        val updatedSession = repository.getSessionById(sessionId)
+            ?: throw IllegalStateException("Session not found after update: $sessionId")
         _currentSession.value = updatedSession
         updatedSession
     }

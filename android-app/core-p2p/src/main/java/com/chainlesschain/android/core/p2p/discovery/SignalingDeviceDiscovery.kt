@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.p2p.discovery
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.ConnectionStatus
 import com.chainlesschain.android.core.p2p.model.DeviceType
 import com.chainlesschain.android.core.p2p.model.P2PDevice
@@ -31,7 +31,6 @@ class SignalingDeviceDiscovery @Inject constructor(
 ) : DeviceDiscovery {
 
     companion object {
-        private const val TAG = "SignalingDeviceDiscovery"
         private const val PREFS_NAME = "signaling_prefs"
         private const val KEY_CUSTOM_URL = "custom_signaling_url"
         // 默认使用局域网广播发现或用户配置的地址
@@ -47,7 +46,7 @@ class SignalingDeviceDiscovery @Inject constructor(
      */
     fun setSignalingServerUrl(url: String) {
         prefs.edit().putString(KEY_CUSTOM_URL, url).apply()
-        Log.i(TAG, "Signaling server URL updated to: $url")
+        Timber.i("Signaling server URL updated to: $url")
 
         // 如果正在扫描，重新连接到新的服务器
         if (discovering) {
@@ -114,7 +113,7 @@ class SignalingDeviceDiscovery @Inject constructor(
 
     override fun startDiscovery() {
         if (discovering) {
-            Log.w(TAG, "Discovery already running")
+            Timber.w("Discovery already running")
             return
         }
 
@@ -122,10 +121,10 @@ class SignalingDeviceDiscovery @Inject constructor(
         _discoveryEvents.value = DiscoveryEvent.DiscoveryStarted
 
         val signalingUrl = getSignalingUrl()
-        Log.i(TAG, "========================================")
-        Log.i(TAG, "Starting signaling discovery")
-        Log.i(TAG, "Signaling URL: $signalingUrl")
-        Log.i(TAG, "========================================")
+        Timber.i("========================================")
+        Timber.i("Starting signaling discovery")
+        Timber.i("Signaling URL: $signalingUrl")
+        Timber.i("========================================")
 
         connectToSignalingServer(signalingUrl)
     }
@@ -138,7 +137,7 @@ class SignalingDeviceDiscovery @Inject constructor(
 
             webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
-                    Log.i(TAG, "WebSocket connected to signaling server")
+                    Timber.i("WebSocket connected to signaling server")
                     _discoveryEvents.value = DiscoveryEvent.DiscoveryStarted
 
                     // 注册本设备
@@ -152,7 +151,7 @@ class SignalingDeviceDiscovery @Inject constructor(
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
-                    Log.d(TAG, "Received message: $text")
+                    Timber.d("Received message: $text")
                     handleMessage(text)
                 }
 
@@ -161,23 +160,23 @@ class SignalingDeviceDiscovery @Inject constructor(
                 }
 
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                    Log.w(TAG, "WebSocket closing: $code - $reason")
+                    Timber.w("WebSocket closing: $code - $reason")
                     webSocket.close(1000, null)
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                    Log.i(TAG, "WebSocket closed: $code - $reason")
+                    Timber.i("WebSocket closed: $code - $reason")
                     handleDisconnection()
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    Log.e(TAG, "WebSocket failure: ${t.message}", t)
+                    Timber.e(t, "WebSocket failure: ${t.message}")
                     _discoveryEvents.value = DiscoveryEvent.DiscoveryFailed(t.message ?: "Connection failed")
                     handleDisconnection()
                 }
             })
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to connect to signaling server", e)
+            Timber.e(e, "Failed to connect to signaling server")
             _discoveryEvents.value = DiscoveryEvent.DiscoveryFailed(e.message ?: "Unknown error")
             discovering = false
         }
@@ -197,7 +196,7 @@ class SignalingDeviceDiscovery @Inject constructor(
 
         val jsonStr = json.encodeToString(registerMessage)
         ws.send(jsonStr)
-        Log.d(TAG, "Sent register message: $jsonStr")
+        Timber.d("Sent register message: $jsonStr")
     }
 
     private fun requestPeersList(ws: WebSocket) {
@@ -208,7 +207,7 @@ class SignalingDeviceDiscovery @Inject constructor(
 
         val jsonStr = json.encodeToString(message)
         ws.send(jsonStr)
-        Log.d(TAG, "Sent get-peers request")
+        Timber.d("Sent get-peers request")
     }
 
     private fun startHeartbeat(ws: WebSocket) {
@@ -226,7 +225,7 @@ class SignalingDeviceDiscovery @Inject constructor(
                     // 同时刷新设备列表
                     requestPeersList(ws)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Heartbeat failed", e)
+                    Timber.e(e, "Heartbeat failed")
                 }
             }
         }
@@ -239,7 +238,7 @@ class SignalingDeviceDiscovery @Inject constructor(
 
             when (type) {
                 "registered" -> {
-                    Log.i(TAG, "Successfully registered with signaling server")
+                    Timber.i("Successfully registered with signaling server")
                 }
                 "peers-list" -> {
                     handlePeersList(message)
@@ -248,18 +247,18 @@ class SignalingDeviceDiscovery @Inject constructor(
                     handlePeerStatus(message)
                 }
                 "pong" -> {
-                    Log.v(TAG, "Received pong")
+                    Timber.v("Received pong")
                 }
                 "error" -> {
                     val error = message["error"]?.toString()?.trim('"') ?: "Unknown error"
-                    Log.e(TAG, "Signaling server error: $error")
+                    Timber.e("Signaling server error: $error")
                 }
                 else -> {
-                    Log.d(TAG, "Unhandled message type: $type")
+                    Timber.d("Unhandled message type: $type")
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse message: $text", e)
+            Timber.e(e, "Failed to parse message: $text")
         }
     }
 
@@ -285,14 +284,14 @@ class SignalingDeviceDiscovery @Inject constructor(
                 }
 
                 _discoveredDevices.value = devices
-                Log.i(TAG, "Updated device list: ${devices.size} devices found")
+                Timber.i("Updated device list: ${devices.size} devices found")
 
                 devices.forEach { device ->
                     _discoveryEvents.value = DiscoveryEvent.DeviceFound(device)
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse peers list", e)
+            Timber.e(e, "Failed to parse peers list")
         }
     }
 
@@ -317,16 +316,16 @@ class SignalingDeviceDiscovery @Inject constructor(
                     )
                     addDiscoveredDevice(device)
                     _discoveryEvents.value = DiscoveryEvent.DeviceFound(device)
-                    Log.i(TAG, "Device came online: $peerId")
+                    Timber.i("Device came online: $peerId")
                 }
                 "offline" -> {
                     removeDiscoveredDevice(peerId)
                     _discoveryEvents.value = DiscoveryEvent.DeviceLost(peerId)
-                    Log.i(TAG, "Device went offline: $peerId")
+                    Timber.i("Device went offline: $peerId")
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle peer status", e)
+            Timber.e(e, "Failed to handle peer status")
         }
     }
 
@@ -351,7 +350,7 @@ class SignalingDeviceDiscovery @Inject constructor(
             reconnectJob = scope.launch {
                 delay(RECONNECT_DELAY_MS)
                 if (discovering) {
-                    Log.i(TAG, "Attempting to reconnect...")
+                    Timber.i("Attempting to reconnect...")
                     connectToSignalingServer(getSignalingUrl())
                 }
             }
@@ -360,7 +359,7 @@ class SignalingDeviceDiscovery @Inject constructor(
 
     override fun stopDiscovery() {
         if (!discovering) {
-            Log.w(TAG, "Discovery not running")
+            Timber.w("Discovery not running")
             return
         }
 
@@ -374,16 +373,16 @@ class SignalingDeviceDiscovery @Inject constructor(
             webSocket?.close(1000, "Discovery stopped")
             webSocket = null
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to close WebSocket", e)
+            Timber.e(e, "Failed to close WebSocket")
         }
 
         _discoveryEvents.value = DiscoveryEvent.DiscoveryStopped
-        Log.i(TAG, "Discovery stopped")
+        Timber.i("Discovery stopped")
     }
 
     override fun registerService(deviceInfo: P2PDevice) {
         localDeviceId = deviceInfo.deviceId
-        Log.i(TAG, "Local device ID set to: $localDeviceId")
+        Timber.i("Local device ID set to: $localDeviceId")
     }
 
     override fun unregisterService() {

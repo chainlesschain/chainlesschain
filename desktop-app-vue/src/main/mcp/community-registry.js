@@ -8,31 +8,31 @@
  * @module CommunityRegistry
  */
 
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * Server status constants
  */
 const SERVER_STATUS = {
-  AVAILABLE: 'available',
-  INSTALLED: 'installed',
-  UPDATING: 'updating',
-  ERROR: 'error',
+  AVAILABLE: "available",
+  INSTALLED: "installed",
+  UPDATING: "updating",
+  ERROR: "error",
 };
 
 /**
  * Server category constants
  */
 const SERVER_CATEGORIES = {
-  DATABASE: 'database',
-  FILESYSTEM: 'filesystem',
-  VERSION_CONTROL: 'version-control',
-  SEARCH: 'search',
-  AUTOMATION: 'automation',
-  COMMUNICATION: 'communication',
-  CLOUD: 'cloud',
-  PRODUCTIVITY: 'productivity',
+  DATABASE: "database",
+  FILESYSTEM: "filesystem",
+  VERSION_CONTROL: "version-control",
+  SEARCH: "search",
+  AUTOMATION: "automation",
+  COMMUNICATION: "communication",
+  CLOUD: "cloud",
+  PRODUCTIVITY: "productivity",
 };
 
 /**
@@ -40,212 +40,422 @@ const SERVER_CATEGORIES = {
  */
 const BUILTIN_CATALOG = [
   {
-    id: 'mcp-server-filesystem',
-    name: 'filesystem',
-    displayName: 'File System',
-    description: 'Provides file system access capabilities including reading, writing, and managing files and directories',
-    version: '1.0.0',
-    author: 'Anthropic',
+    id: "mcp-server-filesystem",
+    name: "filesystem",
+    displayName: "File System",
+    description:
+      "Provides file system access capabilities including reading, writing, and managing files and directories",
+    version: "1.0.0",
+    author: "Anthropic",
     category: SERVER_CATEGORIES.FILESYSTEM,
-    tags: ['file', 'directory', 'read', 'write', 'filesystem'],
-    npmPackage: '@modelcontextprotocol/server-filesystem',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-filesystem'],
-    transport: 'stdio',
+    tags: ["file", "directory", "read", "write", "filesystem"],
+    npmPackage: "@modelcontextprotocol/server-filesystem",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-filesystem"],
+    transport: "stdio",
     configSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         allowedPaths: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Directories the server can access',
+          type: "array",
+          items: { type: "string" },
+          description: "Directories the server can access",
         },
       },
     },
-    tools: ['read_file', 'write_file', 'list_directory', 'create_directory', 'move_file', 'search_files', 'get_file_info'],
-    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem',
+    tools: [
+      "read_file",
+      "write_file",
+      "list_directory",
+      "create_directory",
+      "move_file",
+      "search_files",
+      "get_file_info",
+    ],
+    homepage:
+      "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
     downloads: 0,
     rating: 5.0,
+    skillCategory: "filesystem",
+    skillInstructions:
+      "Use the File System MCP server for file and directory operations. Use list_directory to explore folder structure first. Use read_file to inspect content before modifications. Use search_files to find files by name pattern.",
+    skillExamples: [
+      {
+        input: "Read README",
+        tool: "read_file",
+        params: { path: "README.md" },
+      },
+      {
+        input: "List project files",
+        tool: "list_directory",
+        params: { path: "." },
+      },
+      {
+        input: "Search for config files",
+        tool: "search_files",
+        params: { pattern: "*.config.*" },
+      },
+    ],
   },
   {
-    id: 'mcp-server-postgresql',
-    name: 'postgresql',
-    displayName: 'PostgreSQL',
-    description: 'PostgreSQL database integration with query execution, schema inspection, and data management',
-    version: '1.0.0',
-    author: 'Anthropic',
+    id: "mcp-server-postgresql",
+    name: "postgresql",
+    displayName: "PostgreSQL",
+    description:
+      "PostgreSQL database integration with query execution, schema inspection, and data management",
+    version: "1.0.0",
+    author: "Anthropic",
     category: SERVER_CATEGORIES.DATABASE,
-    tags: ['database', 'sql', 'postgresql', 'postgres', 'query'],
-    npmPackage: '@modelcontextprotocol/server-postgres',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-postgres'],
-    transport: 'stdio',
+    tags: ["database", "sql", "postgresql", "postgres", "query"],
+    npmPackage: "@modelcontextprotocol/server-postgres",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-postgres"],
+    transport: "stdio",
     configSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        host: { type: 'string', default: 'localhost' },
-        port: { type: 'number', default: 5432 },
-        database: { type: 'string' },
-        user: { type: 'string' },
-        password: { type: 'string' },
+        host: { type: "string", default: "localhost" },
+        port: { type: "number", default: 5432 },
+        database: { type: "string" },
+        user: { type: "string" },
+        password: { type: "string" },
       },
-      required: ['database', 'user'],
+      required: ["database", "user"],
     },
-    tools: ['query', 'list_tables', 'describe_table'],
-    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/postgres',
+    tools: ["query", "list_tables", "describe_table"],
+    homepage:
+      "https://github.com/modelcontextprotocol/servers/tree/main/src/postgres",
     downloads: 0,
     rating: 4.8,
+    skillCategory: "database",
+    skillInstructions:
+      "Use the PostgreSQL MCP server for database operations. Always use list_tables and describe_table to understand the schema before running queries. Use parameterized queries to prevent SQL injection.",
+    skillExamples: [
+      { input: "List all tables", tool: "list_tables", params: {} },
+      {
+        input: "Describe users table",
+        tool: "describe_table",
+        params: { table: "users" },
+      },
+      {
+        input: "Query recent records",
+        tool: "query",
+        params: { sql: "SELECT * FROM users LIMIT 10" },
+      },
+    ],
   },
   {
-    id: 'mcp-server-sqlite',
-    name: 'sqlite',
-    displayName: 'SQLite',
-    description: 'SQLite database integration with query execution and schema management for local databases',
-    version: '1.0.0',
-    author: 'Anthropic',
+    id: "mcp-server-sqlite",
+    name: "sqlite",
+    displayName: "SQLite",
+    description:
+      "SQLite database integration with query execution and schema management for local databases",
+    version: "1.0.0",
+    author: "Anthropic",
     category: SERVER_CATEGORIES.DATABASE,
-    tags: ['database', 'sql', 'sqlite', 'local', 'embedded'],
-    npmPackage: '@modelcontextprotocol/server-sqlite',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-sqlite'],
-    transport: 'stdio',
+    tags: ["database", "sql", "sqlite", "local", "embedded"],
+    npmPackage: "@modelcontextprotocol/server-sqlite",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-sqlite"],
+    transport: "stdio",
     configSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        databasePath: { type: 'string', description: 'Path to SQLite database file' },
+        databasePath: {
+          type: "string",
+          description: "Path to SQLite database file",
+        },
       },
-      required: ['databasePath'],
+      required: ["databasePath"],
     },
-    tools: ['read_query', 'write_query', 'create_table', 'list_tables', 'describe_table', 'append_insight'],
-    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite',
+    tools: [
+      "read_query",
+      "write_query",
+      "create_table",
+      "list_tables",
+      "describe_table",
+      "append_insight",
+    ],
+    homepage:
+      "https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite",
     downloads: 0,
     rating: 4.7,
+    skillCategory: "database",
+    skillInstructions:
+      "Use the SQLite MCP server for local database operations. Use list_tables to discover available tables. Use read_query for SELECT statements and write_query for INSERT/UPDATE/DELETE. Use append_insight to save analysis results.",
+    skillExamples: [
+      { input: "List tables in DB", tool: "list_tables", params: {} },
+      {
+        input: "Query data",
+        tool: "read_query",
+        params: { query: "SELECT * FROM notes LIMIT 5" },
+      },
+      {
+        input: "Create a table",
+        tool: "create_table",
+        params: {
+          query:
+            "CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, msg TEXT)",
+        },
+      },
+    ],
   },
   {
-    id: 'mcp-server-git',
-    name: 'git',
-    displayName: 'Git',
-    description: 'Git version control operations including status, diff, log, commit, and branch management',
-    version: '1.0.0',
-    author: 'Anthropic',
+    id: "mcp-server-git",
+    name: "git",
+    displayName: "Git",
+    description:
+      "Git version control operations including status, diff, log, commit, and branch management",
+    version: "1.0.0",
+    author: "Anthropic",
     category: SERVER_CATEGORIES.VERSION_CONTROL,
-    tags: ['git', 'version-control', 'diff', 'commit', 'branch'],
-    npmPackage: '@modelcontextprotocol/server-git',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-git'],
-    transport: 'stdio',
+    tags: ["git", "version-control", "diff", "commit", "branch"],
+    npmPackage: "@modelcontextprotocol/server-git",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-git"],
+    transport: "stdio",
     configSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        repositoryPath: { type: 'string', description: 'Path to Git repository' },
+        repositoryPath: {
+          type: "string",
+          description: "Path to Git repository",
+        },
       },
-      required: ['repositoryPath'],
+      required: ["repositoryPath"],
     },
-    tools: ['git_status', 'git_diff', 'git_log', 'git_commit', 'git_branch_list', 'git_checkout'],
-    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/git',
+    tools: [
+      "git_status",
+      "git_diff",
+      "git_log",
+      "git_commit",
+      "git_branch_list",
+      "git_checkout",
+    ],
+    homepage:
+      "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
     downloads: 0,
     rating: 4.9,
+    skillCategory: "version-control",
+    skillInstructions:
+      "Use the Git MCP server for version control operations. Always check git_status before committing. Use git_diff to review changes. Use git_log to understand commit history before making changes.",
+    skillExamples: [
+      { input: "Check repo status", tool: "git_status", params: {} },
+      { input: "View recent commits", tool: "git_log", params: { count: 10 } },
+      { input: "Review changes", tool: "git_diff", params: {} },
+    ],
   },
   {
-    id: 'mcp-server-brave-search',
-    name: 'brave-search',
-    displayName: 'Brave Search',
-    description: 'Web search capabilities powered by Brave Search API for finding information online',
-    version: '1.0.0',
-    author: 'Anthropic',
+    id: "mcp-server-brave-search",
+    name: "brave-search",
+    displayName: "Brave Search",
+    description:
+      "Web search capabilities powered by Brave Search API for finding information online",
+    version: "1.0.0",
+    author: "Anthropic",
     category: SERVER_CATEGORIES.SEARCH,
-    tags: ['search', 'web', 'brave', 'internet', 'query'],
-    npmPackage: '@modelcontextprotocol/server-brave-search',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-brave-search'],
-    transport: 'stdio',
+    tags: ["search", "web", "brave", "internet", "query"],
+    npmPackage: "@modelcontextprotocol/server-brave-search",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-brave-search"],
+    transport: "stdio",
     configSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        apiKey: { type: 'string', description: 'Brave Search API key' },
+        apiKey: { type: "string", description: "Brave Search API key" },
       },
-      required: ['apiKey'],
+      required: ["apiKey"],
     },
-    tools: ['brave_web_search', 'brave_local_search'],
-    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search',
+    tools: ["brave_web_search", "brave_local_search"],
+    homepage:
+      "https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search",
     downloads: 0,
     rating: 4.6,
+    skillCategory: "search",
+    skillInstructions:
+      "Use the Brave Search MCP server to find information on the web. Use brave_web_search for general web queries. Use brave_local_search for location-based results. Formulate clear, specific search queries for best results.",
+    skillExamples: [
+      {
+        input: "Search the web",
+        tool: "brave_web_search",
+        params: { query: "latest Node.js LTS version" },
+      },
+      {
+        input: "Find local businesses",
+        tool: "brave_local_search",
+        params: { query: "coffee shops near me" },
+      },
+    ],
   },
   {
-    id: 'mcp-server-puppeteer',
-    name: 'puppeteer',
-    displayName: 'Puppeteer',
-    description: 'Browser automation with Puppeteer for web scraping, screenshots, and page interaction',
-    version: '1.0.0',
-    author: 'Anthropic',
+    id: "mcp-server-puppeteer",
+    name: "puppeteer",
+    displayName: "Puppeteer",
+    description:
+      "Browser automation with Puppeteer for web scraping, screenshots, and page interaction",
+    version: "1.0.0",
+    author: "Anthropic",
     category: SERVER_CATEGORIES.AUTOMATION,
-    tags: ['browser', 'automation', 'puppeteer', 'scraping', 'screenshot'],
-    npmPackage: '@modelcontextprotocol/server-puppeteer',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-puppeteer'],
-    transport: 'stdio',
+    tags: ["browser", "automation", "puppeteer", "scraping", "screenshot"],
+    npmPackage: "@modelcontextprotocol/server-puppeteer",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-puppeteer"],
+    transport: "stdio",
     configSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        headless: { type: 'boolean', default: true, description: 'Run browser in headless mode' },
-        launchTimeout: { type: 'number', default: 30000, description: 'Browser launch timeout in ms' },
+        headless: {
+          type: "boolean",
+          default: true,
+          description: "Run browser in headless mode",
+        },
+        launchTimeout: {
+          type: "number",
+          default: 30000,
+          description: "Browser launch timeout in ms",
+        },
       },
     },
-    tools: ['puppeteer_navigate', 'puppeteer_screenshot', 'puppeteer_click', 'puppeteer_fill', 'puppeteer_evaluate'],
-    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer',
+    tools: [
+      "puppeteer_navigate",
+      "puppeteer_screenshot",
+      "puppeteer_click",
+      "puppeteer_fill",
+      "puppeteer_evaluate",
+    ],
+    homepage:
+      "https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer",
     downloads: 0,
     rating: 4.5,
+    skillCategory: "automation",
+    skillInstructions:
+      "Use the Puppeteer MCP server for browser automation. Navigate to pages first with puppeteer_navigate. Take screenshots with puppeteer_screenshot to see the page state. Use puppeteer_click and puppeteer_fill for interaction. Use puppeteer_evaluate for custom JavaScript execution.",
+    skillExamples: [
+      {
+        input: "Open a webpage",
+        tool: "puppeteer_navigate",
+        params: { url: "https://example.com" },
+      },
+      { input: "Take a screenshot", tool: "puppeteer_screenshot", params: {} },
+      {
+        input: "Fill a form field",
+        tool: "puppeteer_fill",
+        params: { selector: "#email", value: "test@example.com" },
+      },
+    ],
   },
   {
-    id: 'mcp-server-slack',
-    name: 'slack',
-    displayName: 'Slack',
-    description: 'Slack workspace integration for reading messages, posting updates, and managing channels',
-    version: '1.0.0',
-    author: 'Anthropic',
+    id: "mcp-server-slack",
+    name: "slack",
+    displayName: "Slack",
+    description:
+      "Slack workspace integration for reading messages, posting updates, and managing channels",
+    version: "1.0.0",
+    author: "Anthropic",
     category: SERVER_CATEGORIES.COMMUNICATION,
-    tags: ['slack', 'messaging', 'chat', 'communication', 'team'],
-    npmPackage: '@modelcontextprotocol/server-slack',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-slack'],
-    transport: 'stdio',
+    tags: ["slack", "messaging", "chat", "communication", "team"],
+    npmPackage: "@modelcontextprotocol/server-slack",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-slack"],
+    transport: "stdio",
     configSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        botToken: { type: 'string', description: 'Slack Bot User OAuth Token (xoxb-...)' },
-        teamId: { type: 'string', description: 'Slack Team/Workspace ID' },
+        botToken: {
+          type: "string",
+          description: "Slack Bot User OAuth Token (xoxb-...)",
+        },
+        teamId: { type: "string", description: "Slack Team/Workspace ID" },
       },
-      required: ['botToken'],
+      required: ["botToken"],
     },
-    tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_get_channel_history', 'slack_search_messages'],
-    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/slack',
+    tools: [
+      "slack_list_channels",
+      "slack_post_message",
+      "slack_reply_to_thread",
+      "slack_get_channel_history",
+      "slack_search_messages",
+    ],
+    homepage:
+      "https://github.com/modelcontextprotocol/servers/tree/main/src/slack",
     downloads: 0,
     rating: 4.4,
+    skillCategory: "communication",
+    skillInstructions:
+      "Use the Slack MCP server for team messaging. Use slack_list_channels to discover available channels. Use slack_get_channel_history to read recent messages. Use slack_post_message to send messages and slack_reply_to_thread for threaded replies.",
+    skillExamples: [
+      { input: "List channels", tool: "slack_list_channels", params: {} },
+      {
+        input: "Post a message",
+        tool: "slack_post_message",
+        params: { channel: "#general", text: "Hello team!" },
+      },
+      {
+        input: "Search messages",
+        tool: "slack_search_messages",
+        params: { query: "deployment" },
+      },
+    ],
   },
   {
-    id: 'mcp-server-github',
-    name: 'github',
-    displayName: 'GitHub',
-    description: 'GitHub API integration for managing repositories, issues, pull requests, and actions',
-    version: '1.0.0',
-    author: 'Anthropic',
+    id: "mcp-server-github",
+    name: "github",
+    displayName: "GitHub",
+    description:
+      "GitHub API integration for managing repositories, issues, pull requests, and actions",
+    version: "1.0.0",
+    author: "Anthropic",
     category: SERVER_CATEGORIES.VERSION_CONTROL,
-    tags: ['github', 'repository', 'issues', 'pull-request', 'api'],
-    npmPackage: '@modelcontextprotocol/server-github',
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-github'],
-    transport: 'stdio',
+    tags: ["github", "repository", "issues", "pull-request", "api"],
+    npmPackage: "@modelcontextprotocol/server-github",
+    command: "npx",
+    args: ["-y", "@modelcontextprotocol/server-github"],
+    transport: "stdio",
     configSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        personalAccessToken: { type: 'string', description: 'GitHub Personal Access Token' },
+        personalAccessToken: {
+          type: "string",
+          description: "GitHub Personal Access Token",
+        },
       },
-      required: ['personalAccessToken'],
+      required: ["personalAccessToken"],
     },
-    tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'list_issues', 'list_commits'],
-    homepage: 'https://github.com/modelcontextprotocol/servers/tree/main/src/github',
+    tools: [
+      "create_or_update_file",
+      "search_repositories",
+      "create_repository",
+      "get_file_contents",
+      "push_files",
+      "create_issue",
+      "create_pull_request",
+      "list_issues",
+      "list_commits",
+    ],
+    homepage:
+      "https://github.com/modelcontextprotocol/servers/tree/main/src/github",
     downloads: 0,
     rating: 4.8,
+    skillCategory: "version-control",
+    skillInstructions:
+      "Use the GitHub MCP server for repository management. Use search_repositories to find repos. Use get_file_contents to read files. Use create_issue for bug reports and feature requests. Use create_pull_request for code contributions.",
+    skillExamples: [
+      {
+        input: "Search repos",
+        tool: "search_repositories",
+        params: { query: "language:javascript stars:>1000" },
+      },
+      {
+        input: "List issues",
+        tool: "list_issues",
+        params: { owner: "owner", repo: "repo" },
+      },
+      {
+        input: "Get file content",
+        tool: "get_file_contents",
+        params: { owner: "owner", repo: "repo", path: "README.md" },
+      },
+    ],
   },
 ];
 
@@ -279,7 +489,10 @@ class CommunityRegistry {
     // Restore installed servers from database
     this._restoreInstalledServers();
 
-    logger.info('[CommunityRegistry] Initialized with %d catalog entries', this.catalog.size);
+    logger.info(
+      "[CommunityRegistry] Initialized with %d catalog entries",
+      this.catalog.size,
+    );
   }
 
   // ===================================
@@ -305,34 +518,35 @@ class CommunityRegistry {
 
       // Apply category filter
       if (filters.category) {
-        servers = servers.filter(s => s.category === filters.category);
+        servers = servers.filter((s) => s.category === filters.category);
       }
 
       // Apply tag filter (any tag matches)
       if (filters.tags && filters.tags.length > 0) {
-        const filterTags = new Set(filters.tags.map(t => t.toLowerCase()));
-        servers = servers.filter(s =>
-          s.tags && s.tags.some(tag => filterTags.has(tag.toLowerCase()))
+        const filterTags = new Set(filters.tags.map((t) => t.toLowerCase()));
+        servers = servers.filter(
+          (s) =>
+            s.tags && s.tags.some((tag) => filterTags.has(tag.toLowerCase())),
         );
       }
 
       // Apply author filter
       if (filters.author) {
         const authorLower = filters.author.toLowerCase();
-        servers = servers.filter(s =>
-          s.author && s.author.toLowerCase().includes(authorLower)
+        servers = servers.filter(
+          (s) => s.author && s.author.toLowerCase().includes(authorLower),
         );
       }
 
       // Apply status filter
       if (filters.status === SERVER_STATUS.INSTALLED) {
-        servers = servers.filter(s => this.installedServers.has(s.id));
+        servers = servers.filter((s) => this.installedServers.has(s.id));
       } else if (filters.status === SERVER_STATUS.AVAILABLE) {
-        servers = servers.filter(s => !this.installedServers.has(s.id));
+        servers = servers.filter((s) => !this.installedServers.has(s.id));
       }
 
       // Annotate with installation status
-      servers = servers.map(s => ({
+      servers = servers.map((s) => ({
         ...s,
         installed: this.installedServers.has(s.id),
         installInfo: this.installedServers.get(s.id) || null,
@@ -341,14 +555,14 @@ class CommunityRegistry {
       const total = servers.length;
 
       // Sort
-      const sortBy = filters.sortBy || 'name';
-      const sortOrder = filters.sortOrder || 'asc';
-      const sortMultiplier = sortOrder === 'desc' ? -1 : 1;
+      const sortBy = filters.sortBy || "name";
+      const sortOrder = filters.sortOrder || "asc";
+      const sortMultiplier = sortOrder === "desc" ? -1 : 1;
 
       servers.sort((a, b) => {
-        const aVal = a[sortBy] || '';
-        const bVal = b[sortBy] || '';
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
+        const aVal = a[sortBy] || "";
+        const bVal = b[sortBy] || "";
+        if (typeof aVal === "number" && typeof bVal === "number") {
           return (aVal - bVal) * sortMultiplier;
         }
         return String(aVal).localeCompare(String(bVal)) * sortMultiplier;
@@ -359,11 +573,15 @@ class CommunityRegistry {
       const limit = filters.limit || servers.length;
       servers = servers.slice(offset, offset + limit);
 
-      logger.info('[CommunityRegistry] Listed %d servers (total: %d)', servers.length, total);
+      logger.info(
+        "[CommunityRegistry] Listed %d servers (total: %d)",
+        servers.length,
+        total,
+      );
 
       return { servers, total };
     } catch (error) {
-      logger.error('[CommunityRegistry] Error listing servers:', error);
+      logger.error("[CommunityRegistry] Error listing servers:", error);
       throw error;
     }
   }
@@ -375,7 +593,7 @@ class CommunityRegistry {
    */
   searchServers(keyword) {
     try {
-      if (!keyword || typeof keyword !== 'string') {
+      if (!keyword || typeof keyword !== "string") {
         return [];
       }
 
@@ -399,12 +617,18 @@ class CommunityRegistry {
         }
 
         // Display name match
-        if (server.displayName && server.displayName.toLowerCase().includes(normalizedKeyword)) {
+        if (
+          server.displayName &&
+          server.displayName.toLowerCase().includes(normalizedKeyword)
+        ) {
           relevanceScore += 40;
         }
 
         // Description match
-        if (server.description && server.description.toLowerCase().includes(normalizedKeyword)) {
+        if (
+          server.description &&
+          server.description.toLowerCase().includes(normalizedKeyword)
+        ) {
           relevanceScore += 20;
         }
 
@@ -420,7 +644,10 @@ class CommunityRegistry {
         }
 
         // Category match
-        if (server.category && server.category.toLowerCase().includes(normalizedKeyword)) {
+        if (
+          server.category &&
+          server.category.toLowerCase().includes(normalizedKeyword)
+        ) {
           relevanceScore += 25;
         }
 
@@ -437,11 +664,15 @@ class CommunityRegistry {
       // Sort by relevance (descending)
       results.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-      logger.info('[CommunityRegistry] Search "%s" found %d results', keyword, results.length);
+      logger.info(
+        '[CommunityRegistry] Search "%s" found %d results',
+        keyword,
+        results.length,
+      );
 
       return results;
     } catch (error) {
-      logger.error('[CommunityRegistry] Error searching servers:', error);
+      logger.error("[CommunityRegistry] Error searching servers:", error);
       throw error;
     }
   }
@@ -455,7 +686,7 @@ class CommunityRegistry {
     try {
       const server = this.catalog.get(id);
       if (!server) {
-        logger.warn('[CommunityRegistry] Server not found: %s', id);
+        logger.warn("[CommunityRegistry] Server not found: %s", id);
         return null;
       }
 
@@ -467,7 +698,7 @@ class CommunityRegistry {
         lastRefreshTime: this.lastRefreshTime,
       };
     } catch (error) {
-      logger.error('[CommunityRegistry] Error getting server detail:', error);
+      logger.error("[CommunityRegistry] Error getting server detail:", error);
       throw error;
     }
   }
@@ -487,7 +718,7 @@ class CommunityRegistry {
       }
 
       if (this.installedServers.has(id)) {
-        logger.warn('[CommunityRegistry] Server already installed: %s', id);
+        logger.warn("[CommunityRegistry] Server already installed: %s", id);
         return {
           success: true,
           alreadyInstalled: true,
@@ -495,14 +726,18 @@ class CommunityRegistry {
         };
       }
 
-      logger.info('[CommunityRegistry] Installing server: %s (%s)', server.displayName, id);
+      logger.info(
+        "[CommunityRegistry] Installing server: %s (%s)",
+        server.displayName,
+        id,
+      );
 
       // Build the MCP server configuration
       const serverConfig = {
         name: server.name,
         command: server.command,
         args: [...server.args],
-        transport: server.transport || 'stdio',
+        transport: server.transport || "stdio",
         enabled: true,
         autoConnect: false,
         permissions: {
@@ -521,9 +756,9 @@ class CommunityRegistry {
         }
         if (missingFields.length > 0) {
           logger.warn(
-            '[CommunityRegistry] Missing configuration fields for %s: %s',
+            "[CommunityRegistry] Missing configuration fields for %s: %s",
             id,
-            missingFields.join(', ')
+            missingFields.join(", "),
           );
           // Do not block installation; user can configure later
         }
@@ -549,7 +784,10 @@ class CommunityRegistry {
       // Save to database if available
       await this._persistInstalledServers();
 
-      logger.info('[CommunityRegistry] Server installed successfully: %s', server.displayName);
+      logger.info(
+        "[CommunityRegistry] Server installed successfully: %s",
+        server.displayName,
+      );
 
       return {
         success: true,
@@ -558,7 +796,11 @@ class CommunityRegistry {
         mcpConfig: serverConfig,
       };
     } catch (error) {
-      logger.error('[CommunityRegistry] Error installing server %s:', id, error);
+      logger.error(
+        "[CommunityRegistry] Error installing server %s:",
+        id,
+        error,
+      );
       throw error;
     }
   }
@@ -571,12 +813,15 @@ class CommunityRegistry {
   async uninstallServer(id) {
     try {
       if (!this.installedServers.has(id)) {
-        logger.warn('[CommunityRegistry] Server not installed: %s', id);
-        return { success: false, reason: 'Server is not installed' };
+        logger.warn("[CommunityRegistry] Server not installed: %s", id);
+        return { success: false, reason: "Server is not installed" };
       }
 
       const installInfo = this.installedServers.get(id);
-      logger.info('[CommunityRegistry] Uninstalling server: %s', installInfo.displayName);
+      logger.info(
+        "[CommunityRegistry] Uninstalling server: %s",
+        installInfo.displayName,
+      );
 
       // Remove from installed map
       this.installedServers.delete(id);
@@ -584,14 +829,21 @@ class CommunityRegistry {
       // Persist changes
       await this._persistInstalledServers();
 
-      logger.info('[CommunityRegistry] Server uninstalled: %s', installInfo.displayName);
+      logger.info(
+        "[CommunityRegistry] Server uninstalled: %s",
+        installInfo.displayName,
+      );
 
       return {
         success: true,
         uninstalledServer: installInfo,
       };
     } catch (error) {
-      logger.error('[CommunityRegistry] Error uninstalling server %s:', id, error);
+      logger.error(
+        "[CommunityRegistry] Error uninstalling server %s:",
+        id,
+        error,
+      );
       throw error;
     }
   }
@@ -609,15 +861,23 @@ class CommunityRegistry {
         installed.push({
           ...installInfo,
           catalogInfo: catalogEntry || null,
-          hasUpdate: catalogEntry ? this._hasUpdate(installInfo, catalogEntry) : false,
+          hasUpdate: catalogEntry
+            ? this._hasUpdate(installInfo, catalogEntry)
+            : false,
         });
       }
 
-      logger.info('[CommunityRegistry] Found %d installed servers', installed.length);
+      logger.info(
+        "[CommunityRegistry] Found %d installed servers",
+        installed.length,
+      );
 
       return installed;
     } catch (error) {
-      logger.error('[CommunityRegistry] Error getting installed servers:', error);
+      logger.error(
+        "[CommunityRegistry] Error getting installed servers:",
+        error,
+      );
       throw error;
     }
   }
@@ -648,11 +908,14 @@ class CommunityRegistry {
         }
       }
 
-      logger.info('[CommunityRegistry] Found %d updates available', updates.length);
+      logger.info(
+        "[CommunityRegistry] Found %d updates available",
+        updates.length,
+      );
 
       return updates;
     } catch (error) {
-      logger.error('[CommunityRegistry] Error checking updates:', error);
+      logger.error("[CommunityRegistry] Error checking updates:", error);
       throw error;
     }
   }
@@ -665,7 +928,7 @@ class CommunityRegistry {
    */
   async refreshCatalog() {
     try {
-      logger.info('[CommunityRegistry] Refreshing server catalog...');
+      logger.info("[CommunityRegistry] Refreshing server catalog...");
 
       const previousSize = this.catalog.size;
 
@@ -689,14 +952,14 @@ class CommunityRegistry {
       };
 
       logger.info(
-        '[CommunityRegistry] Catalog refreshed: %d servers (was %d)',
+        "[CommunityRegistry] Catalog refreshed: %d servers (was %d)",
         result.currentCount,
-        result.previousCount
+        result.previousCount,
       );
 
       return result;
     } catch (error) {
-      logger.error('[CommunityRegistry] Error refreshing catalog:', error);
+      logger.error("[CommunityRegistry] Error refreshing catalog:", error);
       throw error;
     }
   }
@@ -708,7 +971,7 @@ class CommunityRegistry {
   getStats() {
     const categoryCount = {};
     for (const server of this.catalog.values()) {
-      const cat = server.category || 'uncategorized';
+      const cat = server.category || "uncategorized";
       categoryCount[cat] = (categoryCount[cat] || 0) + 1;
     }
 
@@ -731,23 +994,24 @@ class CommunityRegistry {
   addCustomServer(serverDef) {
     try {
       if (!serverDef.name) {
-        throw new Error('Server definition must include a name');
+        throw new Error("Server definition must include a name");
       }
 
-      const id = serverDef.id || `custom-${serverDef.name}-${uuidv4().slice(0, 8)}`;
+      const id =
+        serverDef.id || `custom-${serverDef.name}-${uuidv4().slice(0, 8)}`;
 
       const entry = {
         id,
         name: serverDef.name,
         displayName: serverDef.displayName || serverDef.name,
-        description: serverDef.description || '',
-        version: serverDef.version || '0.1.0',
-        author: serverDef.author || 'Custom',
-        category: serverDef.category || 'custom',
+        description: serverDef.description || "",
+        version: serverDef.version || "0.1.0",
+        author: serverDef.author || "Custom",
+        category: serverDef.category || "custom",
         tags: serverDef.tags || [],
         command: serverDef.command,
         args: serverDef.args || [],
-        transport: serverDef.transport || 'stdio',
+        transport: serverDef.transport || "stdio",
         npmPackage: serverDef.npmPackage || null,
         configSchema: serverDef.configSchema || null,
         tools: serverDef.tools || [],
@@ -760,11 +1024,15 @@ class CommunityRegistry {
 
       this.catalog.set(id, entry);
 
-      logger.info('[CommunityRegistry] Added custom server: %s (%s)', entry.displayName, id);
+      logger.info(
+        "[CommunityRegistry] Added custom server: %s (%s)",
+        entry.displayName,
+        id,
+      );
 
       return entry;
     } catch (error) {
-      logger.error('[CommunityRegistry] Error adding custom server:', error);
+      logger.error("[CommunityRegistry] Error adding custom server:", error);
       throw error;
     }
   }
@@ -781,7 +1049,7 @@ class CommunityRegistry {
     }
 
     if (!server.isCustom) {
-      throw new Error('Cannot remove built-in server from catalog');
+      throw new Error("Cannot remove built-in server from catalog");
     }
 
     // Uninstall if installed
@@ -791,7 +1059,7 @@ class CommunityRegistry {
 
     this.catalog.delete(id);
 
-    logger.info('[CommunityRegistry] Removed custom server: %s', id);
+    logger.info("[CommunityRegistry] Removed custom server: %s", id);
 
     return true;
   }
@@ -823,9 +1091,11 @@ class CommunityRegistry {
         return;
       }
 
-      const rows = this.database.prepare?.(
-        `SELECT key, value FROM app_settings WHERE key LIKE 'mcp_community_installed_%'`
-      )?.all?.();
+      const rows = this.database
+        .prepare?.(
+          `SELECT key, value FROM app_settings WHERE key LIKE 'mcp_community_installed_%'`,
+        )
+        ?.all?.();
 
       if (!rows || rows.length === 0) {
         return;
@@ -838,14 +1108,23 @@ class CommunityRegistry {
             this.installedServers.set(installInfo.id, installInfo);
           }
         } catch (parseError) {
-          logger.warn('[CommunityRegistry] Failed to parse installed server data:', parseError.message);
+          logger.warn(
+            "[CommunityRegistry] Failed to parse installed server data:",
+            parseError.message,
+          );
         }
       }
 
-      logger.info('[CommunityRegistry] Restored %d installed servers from database', this.installedServers.size);
+      logger.info(
+        "[CommunityRegistry] Restored %d installed servers from database",
+        this.installedServers.size,
+      );
     } catch (error) {
       // Database may not have the table yet - that is fine
-      logger.debug('[CommunityRegistry] Could not restore installed servers: %s', error.message);
+      logger.debug(
+        "[CommunityRegistry] Could not restore installed servers: %s",
+        error.message,
+      );
     }
   }
 
@@ -860,7 +1139,7 @@ class CommunityRegistry {
       }
 
       const upsertStmt = this.database.prepare?.(
-        `INSERT OR REPLACE INTO app_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))`
+        `INSERT OR REPLACE INTO app_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))`,
       );
 
       if (!upsertStmt) {
@@ -868,9 +1147,11 @@ class CommunityRegistry {
       }
 
       // First, remove all existing community install entries
-      this.database.prepare?.(
-        `DELETE FROM app_settings WHERE key LIKE 'mcp_community_installed_%'`
-      )?.run?.();
+      this.database
+        .prepare?.(
+          `DELETE FROM app_settings WHERE key LIKE 'mcp_community_installed_%'`,
+        )
+        ?.run?.();
 
       // Insert current installed servers
       for (const [id, installInfo] of this.installedServers.entries()) {
@@ -878,9 +1159,15 @@ class CommunityRegistry {
         upsertStmt.run(key, JSON.stringify(installInfo));
       }
 
-      logger.debug('[CommunityRegistry] Persisted %d installed servers to database', this.installedServers.size);
+      logger.debug(
+        "[CommunityRegistry] Persisted %d installed servers to database",
+        this.installedServers.size,
+      );
     } catch (error) {
-      logger.warn('[CommunityRegistry] Failed to persist installed servers: %s', error.message);
+      logger.warn(
+        "[CommunityRegistry] Failed to persist installed servers: %s",
+        error.message,
+      );
     }
   }
 
@@ -895,7 +1182,12 @@ class CommunityRegistry {
     if (!installInfo.installedVersion || !catalogEntry.version) {
       return false;
     }
-    return this._compareVersions(catalogEntry.version, installInfo.installedVersion) > 0;
+    return (
+      this._compareVersions(
+        catalogEntry.version,
+        installInfo.installedVersion,
+      ) > 0
+    );
   }
 
   /**
@@ -906,8 +1198,8 @@ class CommunityRegistry {
    * @returns {number} Positive if A > B, negative if A < B, 0 if equal
    */
   _compareVersions(versionA, versionB) {
-    const partsA = versionA.split('.').map(Number);
-    const partsB = versionB.split('.').map(Number);
+    const partsA = versionA.split(".").map(Number);
+    const partsB = versionB.split(".").map(Number);
 
     for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
       const a = partsA[i] || 0;
@@ -921,4 +1213,9 @@ class CommunityRegistry {
   }
 }
 
-module.exports = { CommunityRegistry, SERVER_STATUS, SERVER_CATEGORIES, BUILTIN_CATALOG };
+module.exports = {
+  CommunityRegistry,
+  SERVER_STATUS,
+  SERVER_CATEGORIES,
+  BUILTIN_CATALOG,
+};

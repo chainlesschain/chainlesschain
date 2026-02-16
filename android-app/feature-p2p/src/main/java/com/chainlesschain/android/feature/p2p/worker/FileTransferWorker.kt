@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
-import android.util.Log
+import timber.log.Timber
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.chainlesschain.android.core.database.dao.FileTransferDao
@@ -41,8 +41,6 @@ class FileTransferWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
-        private const val TAG = "FileTransferWorker"
-
         // Input data keys
         const val KEY_TRANSFER_ID = "transfer_id"
         const val KEY_FILE_URI = "file_uri"
@@ -125,19 +123,19 @@ class FileTransferWorker @AssistedInject constructor(
         val transferId = inputData.getString(KEY_TRANSFER_ID) ?: return Result.failure()
         val isOutgoing = inputData.getBoolean(KEY_IS_OUTGOING, true)
 
-        Log.i(TAG, "Starting file transfer work: $transferId (outgoing: $isOutgoing)")
+        Timber.i("Starting file transfer work: $transferId (outgoing: $isOutgoing)")
 
         return try {
             // 获取传输记录
             val transfer = fileTransferDao.getById(transferId)
             if (transfer == null) {
-                Log.e(TAG, "Transfer not found: $transferId")
+                Timber.e("Transfer not found: $transferId")
                 return Result.failure()
             }
 
             // 检查是否已完成或取消
             if (FileTransferStatusEnum.isTerminal(transfer.status)) {
-                Log.i(TAG, "Transfer already in terminal state: ${transfer.status}")
+                Timber.i("Transfer already in terminal state: ${transfer.status}")
                 return Result.success()
             }
 
@@ -154,11 +152,11 @@ class FileTransferWorker @AssistedInject constructor(
             val finalTransfer = fileTransferDao.getById(transferId)
             when (finalTransfer?.status) {
                 FileTransferStatusEnum.COMPLETED -> {
-                    Log.i(TAG, "Transfer completed: $transferId")
+                    Timber.i("Transfer completed: $transferId")
                     Result.success()
                 }
                 FileTransferStatusEnum.FAILED -> {
-                    Log.w(TAG, "Transfer failed, will retry: $transferId")
+                    Timber.w("Transfer failed, will retry: $transferId")
                     if (runAttemptCount < 3) {
                         Result.retry()
                     } else {
@@ -166,21 +164,21 @@ class FileTransferWorker @AssistedInject constructor(
                     }
                 }
                 FileTransferStatusEnum.CANCELLED, FileTransferStatusEnum.REJECTED -> {
-                    Log.i(TAG, "Transfer cancelled/rejected: $transferId")
+                    Timber.i("Transfer cancelled/rejected: $transferId")
                     Result.success() // 不需要重试
                 }
                 FileTransferStatusEnum.PAUSED -> {
-                    Log.i(TAG, "Transfer paused: $transferId")
+                    Timber.i("Transfer paused: $transferId")
                     Result.success() // 暂停状态，等待用户恢复
                 }
                 else -> {
                     // 传输中状态，说明可能被中断
-                    Log.w(TAG, "Transfer interrupted: $transferId")
+                    Timber.w("Transfer interrupted: $transferId")
                     Result.retry()
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Transfer work failed", e)
+            Timber.e(e, "Transfer work failed")
             if (runAttemptCount < 3) {
                 Result.retry()
             } else {
@@ -194,7 +192,7 @@ class FileTransferWorker @AssistedInject constructor(
         val peerId = inputData.getString(KEY_PEER_ID)
 
         if (fileUriString == null || peerId == null) {
-            Log.e(TAG, "Missing file URI or peer ID")
+            Timber.e("Missing file URI or peer ID")
             return
         }
 
@@ -204,7 +202,7 @@ class FileTransferWorker @AssistedInject constructor(
         val transfer = fileTransferDao.getById(transferId)
         if (transfer != null && transfer.completedChunks > 0) {
             // 恢复传输
-            Log.i(TAG, "Resuming transfer from chunk ${transfer.completedChunks}")
+            Timber.i("Resuming transfer from chunk ${transfer.completedChunks}")
             fileTransferRepository.resumeTransfer(transferId)
         } else {
             // 新传输已经在 Repository 中开始，这里只需等待完成
@@ -219,7 +217,7 @@ class FileTransferWorker @AssistedInject constructor(
 
         if (transfer.status == FileTransferStatusEnum.REQUESTING) {
             // 等待用户接受
-            Log.i(TAG, "Waiting for user to accept transfer: $transferId")
+            Timber.i("Waiting for user to accept transfer: $transferId")
             return
         }
 
@@ -327,7 +325,7 @@ class FileTransferWorkScheduler(
             workRequest
         )
 
-        Log.i("FileTransferWorkScheduler", "Scheduled send work: $transferId")
+        Timber.i("Scheduled send work: $transferId")
     }
 
     /**
@@ -343,7 +341,7 @@ class FileTransferWorkScheduler(
             workRequest
         )
 
-        Log.i("FileTransferWorkScheduler", "Scheduled receive work: $transferId")
+        Timber.i("Scheduled receive work: $transferId")
     }
 
     /**
@@ -351,7 +349,7 @@ class FileTransferWorkScheduler(
      */
     fun cancelTransfer(transferId: String) {
         workManager.cancelUniqueWork(FileTransferWorker.getUniqueWorkName(transferId))
-        Log.i("FileTransferWorkScheduler", "Cancelled work: $transferId")
+        Timber.i("Cancelled work: $transferId")
     }
 
     /**
@@ -359,7 +357,7 @@ class FileTransferWorkScheduler(
      */
     fun cancelAllTransfers() {
         workManager.cancelAllWorkByTag("file_transfer")
-        Log.i("FileTransferWorkScheduler", "Cancelled all transfer works")
+        Timber.i("Cancelled all transfer works")
     }
 
     /**
@@ -388,6 +386,6 @@ class FileTransferWorkScheduler(
             }
         }
 
-        Log.i("FileTransferWorkScheduler", "Resumed ${activeTransfers.size} pending transfers")
+        Timber.i("Resumed ${activeTransfers.size} pending transfers")
     }
 }

@@ -3,7 +3,7 @@ package com.chainlesschain.android.feature.filebrowser.ai
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.feature.ai.data.llm.OllamaAdapter
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
@@ -49,8 +49,6 @@ class FileSummarizer @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "FileSummarizer"
-
         // Maximum file size to summarize (1MB)
         private const val MAX_FILE_SIZE = 1024 * 1024
 
@@ -157,7 +155,7 @@ class FileSummarizer @Inject constructor(
             // Generate summary based on file type
             generateSummary(content, fileType, fileName, maxLength)
         } catch (e: Exception) {
-            Log.e(TAG, "Error summarizing file: $uri", e)
+            Timber.e(e, "Error summarizing file: $uri")
             SummaryResult(
                 summary = context.getString(R.string.file_summary_failed, e.message ?: ""),
                 method = SummarizationMethod.RULE_BASED
@@ -191,7 +189,7 @@ class FileSummarizer @Inject constructor(
         val llmAvailable = try {
             ollamaAdapter.checkAvailability()
         } catch (e: Exception) {
-            Log.w(TAG, "Ollama not available, falling back to rule-based", e)
+            Timber.w(e, "Ollama not available, falling back to rule-based")
             false
         }
 
@@ -199,16 +197,16 @@ class FileSummarizer @Inject constructor(
             try {
                 val llmSummary = tryLLMSummarization(truncatedContent, fileType, fileName, maxLength)
                 if (llmSummary != null) {
-                    Log.d(TAG, "Successfully generated LLM summary")
+                    Timber.d("Successfully generated LLM summary")
                     return llmSummary
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "LLM summarization failed, falling back to rule-based", e)
+                Timber.w(e, "LLM summarization failed, falling back to rule-based")
             }
         }
 
         // Fallback to rule-based summarization
-        Log.d(TAG, "Using rule-based summarization")
+        Timber.d("Using rule-based summarization")
         return when (fileType) {
             FileType.CODE -> summarizeCode(truncatedContent, fileName, maxLength)
             FileType.DOCUMENT, FileType.TEXT -> summarizeText(truncatedContent, maxLength)
@@ -520,7 +518,7 @@ class FileSummarizer @Inject constructor(
                 method = SummarizationMethod.LLM
             )
         } catch (e: Exception) {
-            Log.e(TAG, "LLM summarization failed", e)
+            Timber.e(e, "LLM summarization failed")
             null
         }
     }
@@ -790,7 +788,7 @@ class FileSummarizer @Inject constructor(
             }
             content
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading text content: $uri", e)
+            Timber.e(e, "Error loading text content: $uri")
             null
         }
     }

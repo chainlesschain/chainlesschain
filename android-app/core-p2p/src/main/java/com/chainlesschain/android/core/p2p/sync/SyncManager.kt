@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.sync
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.transport.MessageTransport
@@ -30,8 +30,6 @@ class SyncManager @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "SyncManager"
-
         /** 同步间隔（毫秒） */
         private const val SYNC_INTERVAL_MS = 30000L // 30秒
     }
@@ -59,11 +57,11 @@ class SyncManager @Inject constructor(
      */
     fun startAutoSync() {
         if (syncJob?.isActive == true) {
-            Log.w(TAG, "Auto sync already running")
+            Timber.w("Auto sync already running")
             return
         }
 
-        Log.i(TAG, "Starting auto sync")
+        Timber.i("Starting auto sync")
 
         syncJob = scope.launch {
             while (isActive) {
@@ -82,7 +80,7 @@ class SyncManager @Inject constructor(
     fun stopAutoSync() {
         syncJob?.cancel()
         syncJob = null
-        Log.i(TAG, "Auto sync stopped")
+        Timber.i("Auto sync stopped")
     }
 
     /**
@@ -93,7 +91,7 @@ class SyncManager @Inject constructor(
     fun recordChange(item: SyncItem) {
         pendingChanges[item.resourceId] = item
         localState[item.resourceId] = item
-        Log.d(TAG, "Change recorded: ${item.resourceId} (${item.operation})")
+        Timber.d("Change recorded: ${item.resourceId} (${item.operation})")
     }
 
     /**
@@ -110,7 +108,7 @@ class SyncManager @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Sync failed", e)
+            Timber.e(e, "Sync failed")
             _syncState.value = SyncState.Failed(e.message ?: "Unknown error")
         }
     }
@@ -120,11 +118,11 @@ class SyncManager @Inject constructor(
      */
     private suspend fun performSync(targetDeviceId: String? = null) {
         if (pendingChanges.isEmpty()) {
-            Log.d(TAG, "No changes to sync")
+            Timber.d("No changes to sync")
             return
         }
 
-        Log.i(TAG, "Starting sync (${pendingChanges.size} changes)")
+        Timber.i("Starting sync (${pendingChanges.size} changes)")
 
         val changes = pendingChanges.values.toList()
         val totalChanges = changes.size
@@ -147,10 +145,10 @@ class SyncManager @Inject constructor(
                 val progress = (syncedCount * 100) / totalChanges
                 _syncState.value = SyncState.Syncing(progress)
 
-                Log.d(TAG, "Synced: ${change.resourceId} ($syncedCount/$totalChanges)")
+                Timber.d("Synced: ${change.resourceId} ($syncedCount/$totalChanges)")
 
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync item: ${change.resourceId}", e)
+                Timber.e(e, "Failed to sync item: ${change.resourceId}")
             }
         }
 
@@ -159,7 +157,7 @@ class SyncManager @Inject constructor(
             lastSyncTimestamp[targetDeviceId] = System.currentTimeMillis()
         }
 
-        Log.i(TAG, "Sync completed: $syncedCount/$totalChanges")
+        Timber.i("Sync completed: $syncedCount/$totalChanges")
     }
 
     /**
@@ -182,14 +180,14 @@ class SyncManager @Inject constructor(
                 // 解决冲突
                 val resolution = conflictResolver.resolve(conflict)
 
-                Log.d(TAG, "Conflict resolved: ${syncPayload.item.resourceId} -> ${resolution.strategy}")
+                Timber.d("Conflict resolved: ${syncPayload.item.resourceId} -> ${resolution.strategy}")
 
                 SyncResult.ConflictResolved(resolution)
             } else {
                 // 应用变更
                 applySyncItem(syncPayload.item)
 
-                Log.d(TAG, "Sync item applied: ${syncPayload.item.resourceId}")
+                Timber.d("Sync item applied: ${syncPayload.item.resourceId}")
 
                 SyncResult.Applied(syncPayload.item)
             }
@@ -197,7 +195,7 @@ class SyncManager @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle sync message", e)
+            Timber.e(e, "Failed to handle sync message")
             SyncResult.Error(e.message ?: "Unknown error")
         }
     }
@@ -254,7 +252,7 @@ class SyncManager @Inject constructor(
     private suspend fun applySyncItem(item: SyncItem) {
         when (item.operation) {
             SyncOperation.CREATE -> {
-                Log.d(TAG, "Applying CREATE for ${item.resourceType}: ${item.resourceId}")
+                Timber.d("Applying CREATE for ${item.resourceType}: ${item.resourceId}")
                 // 持久化到数据库
                 syncDataApplier.create(item.resourceType, item.resourceId, item.data)
                 // 更新本地状态缓存
@@ -263,12 +261,12 @@ class SyncManager @Inject constructor(
                 pendingChanges[item.resourceId]?.let { pending ->
                     if (pending.timestamp <= item.timestamp) {
                         pendingChanges.remove(item.resourceId)
-                        Log.d(TAG, "Discarded stale pending change for: ${item.resourceId}")
+                        Timber.d("Discarded stale pending change for: ${item.resourceId}")
                     }
                 }
             }
             SyncOperation.UPDATE -> {
-                Log.d(TAG, "Applying UPDATE for ${item.resourceType}: ${item.resourceId}")
+                Timber.d("Applying UPDATE for ${item.resourceType}: ${item.resourceId}")
                 val existing = localState[item.resourceId]
                 if (existing != null) {
                     // 仅在远程版本较新或版本号更高时才更新
@@ -277,7 +275,7 @@ class SyncManager @Inject constructor(
                         syncDataApplier.update(item.resourceType, item.resourceId, item.data)
                         localState[item.resourceId] = item
                     } else {
-                        Log.d(TAG, "Skipping UPDATE - local version is newer: ${item.resourceId}")
+                        Timber.d("Skipping UPDATE - local version is newer: ${item.resourceId}")
                         return
                     }
                 } else {
@@ -289,12 +287,12 @@ class SyncManager @Inject constructor(
                 pendingChanges[item.resourceId]?.let { pending ->
                     if (pending.timestamp <= item.timestamp) {
                         pendingChanges.remove(item.resourceId)
-                        Log.d(TAG, "Discarded stale pending change for: ${item.resourceId}")
+                        Timber.d("Discarded stale pending change for: ${item.resourceId}")
                     }
                 }
             }
             SyncOperation.DELETE -> {
-                Log.d(TAG, "Applying DELETE for ${item.resourceType}: ${item.resourceId}")
+                Timber.d("Applying DELETE for ${item.resourceType}: ${item.resourceId}")
                 // 从数据库删除
                 syncDataApplier.delete(item.resourceType, item.resourceId)
                 localState.remove(item.resourceId)
@@ -303,7 +301,7 @@ class SyncManager @Inject constructor(
             }
         }
 
-        Log.i(TAG, "Sync item applied: ${item.operation} ${item.resourceType} ${item.resourceId} (v${item.version})")
+        Timber.i("Sync item applied: ${item.operation} ${item.resourceType} ${item.resourceId} (v${item.version})")
     }
 
     /**

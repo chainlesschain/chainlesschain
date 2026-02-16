@@ -4,7 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
 import android.provider.MediaStore
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileCategory
@@ -37,7 +37,6 @@ class MediaStoreScanner @Inject constructor(
     private val externalFileDao: ExternalFileDao
 ) {
     companion object {
-        private const val TAG = "MediaStoreScanner"
         private const val BATCH_SIZE = 500
         private const val BATCH_DELAY_MS = 100L
     }
@@ -77,7 +76,7 @@ class MediaStoreScanner @Inject constructor(
                 MediaType.IMAGE
             )
             totalScanned += imageCount
-            Log.d(TAG, "Scanned $imageCount images")
+            Timber.d("Scanned $imageCount images")
 
             delay(BATCH_DELAY_MS)
 
@@ -88,7 +87,7 @@ class MediaStoreScanner @Inject constructor(
                 MediaType.VIDEO
             )
             totalScanned += videoCount
-            Log.d(TAG, "Scanned $videoCount videos")
+            Timber.d("Scanned $videoCount videos")
 
             delay(BATCH_DELAY_MS)
 
@@ -99,14 +98,14 @@ class MediaStoreScanner @Inject constructor(
                 MediaType.AUDIO
             )
             totalScanned += audioCount
-            Log.d(TAG, "Scanned $audioCount audio files")
+            Timber.d("Scanned $audioCount audio files")
 
             _scanProgress.value = ScanProgress.Completed(totalScanned)
-            Log.d(TAG, "Total files scanned: $totalScanned")
+            Timber.d("Total files scanned: $totalScanned")
 
             Result.success(totalScanned)
         } catch (e: Exception) {
-            Log.e(TAG, "Error scanning files", e)
+            Timber.e(e, "Error scanning files")
             _scanProgress.value = ScanProgress.Error(e.message ?: "Unknown error")
             Result.failure(e)
         }
@@ -203,7 +202,7 @@ class MediaStoreScanner @Inject constructor(
                         delay(BATCH_DELAY_MS)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error processing file", e)
+                    Timber.e(e, "Error processing file")
                 }
             }
 
@@ -254,7 +253,7 @@ class MediaStoreScanner @Inject constructor(
                 lastScanSeconds
             )
             totalScanned += imageCount
-            Log.d(TAG, "Incremental scan: $imageCount new/updated images")
+            Timber.d("Incremental scan: $imageCount new/updated images")
 
             delay(BATCH_DELAY_MS)
 
@@ -265,7 +264,7 @@ class MediaStoreScanner @Inject constructor(
                 lastScanSeconds
             )
             totalScanned += videoCount
-            Log.d(TAG, "Incremental scan: $videoCount new/updated videos")
+            Timber.d("Incremental scan: $videoCount new/updated videos")
 
             delay(BATCH_DELAY_MS)
 
@@ -276,14 +275,14 @@ class MediaStoreScanner @Inject constructor(
                 lastScanSeconds
             )
             totalScanned += audioCount
-            Log.d(TAG, "Incremental scan: $audioCount new/updated audio files")
+            Timber.d("Incremental scan: $audioCount new/updated audio files")
 
             _scanProgress.value = ScanProgress.Completed(totalScanned)
-            Log.d(TAG, "Incremental scan completed: $totalScanned new/updated files")
+            Timber.d("Incremental scan completed: $totalScanned new/updated files")
 
             Result.success(totalScanned)
         } catch (e: Exception) {
-            Log.e(TAG, "Error in incremental scan", e)
+            Timber.e(e, "Error in incremental scan")
             _scanProgress.value = ScanProgress.Error(e.message ?: "Incremental scan failed")
             Result.failure(e)
         }
@@ -383,7 +382,7 @@ class MediaStoreScanner @Inject constructor(
                         delay(BATCH_DELAY_MS)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error processing file in incremental scan", e)
+                    Timber.e(e, "Error processing file in incremental scan")
                 }
             }
 
@@ -406,10 +405,10 @@ class MediaStoreScanner @Inject constructor(
         try {
             externalFileDao.deleteAll()
             _scanProgress.value = ScanProgress.Idle
-            Log.d(TAG, "Cache cleared successfully")
+            Timber.d("Cache cleared successfully")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error clearing cache", e)
+            Timber.e(e, "Error clearing cache")
             Result.failure(e)
         }
     }

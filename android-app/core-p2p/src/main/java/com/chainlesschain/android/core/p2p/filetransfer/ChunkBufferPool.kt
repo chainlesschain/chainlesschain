@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.filetransfer
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileChunk
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -28,8 +28,6 @@ import javax.inject.Singleton
 class ByteArrayPool @Inject constructor() {
 
     companion object {
-        private const val TAG = "ByteArrayPool"
-
         // 池大小配置
         const val SMALL_BUFFER_SIZE = 64 * 1024    // 64KB
         const val MEDIUM_BUFFER_SIZE = 256 * 1024  // 256KB
@@ -107,7 +105,7 @@ class ByteArrayPool @Inject constructor() {
         allocations.set(0)
 
         updateStats()
-        Log.i(TAG, "Pool cleared")
+        Timber.i("Pool cleared")
     }
 
     /**
@@ -126,7 +124,7 @@ class ByteArrayPool @Inject constructor() {
 
         allocations.addAndGet(smallCount + mediumCount + largeCount)
         updateStats()
-        Log.i(TAG, "Pool warmed up: small=$smallCount, medium=$mediumCount, large=$largeCount")
+        Timber.i("Pool warmed up: small=$smallCount, medium=$mediumCount, large=$largeCount")
     }
 
     private fun getPoolForSize(size: Int): ConcurrentLinkedQueue<ByteArray>? {
@@ -199,9 +197,6 @@ class ChunkReadAheadBuffer(
     private val byteArrayPool: ByteArrayPool,
     private val readAheadCount: Int = 3
 ) {
-    companion object {
-        private const val TAG = "ChunkReadAheadBuffer"
-    }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -253,18 +248,18 @@ class ChunkReadAheadBuffer(
                     chunkChannel?.send(chunk)
                     currentChunk++
 
-                    Log.d(TAG, "Pre-read chunk $currentChunk/$totalChunks for $transferId")
+                    Timber.d("Pre-read chunk $currentChunk/$totalChunks for $transferId")
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
-                    Log.e(TAG, "Error pre-reading chunk $currentChunk", e)
+                    Timber.e(e, "Error pre-reading chunk $currentChunk")
                     break
                 }
             }
 
-            Log.d(TAG, "Read-ahead completed for $transferId")
+            Timber.d("Read-ahead completed for $transferId")
         }
 
-        Log.i(TAG, "Started read-ahead for $transferId from chunk $startChunk")
+        Timber.i("Started read-ahead for $transferId from chunk $startChunk")
     }
 
     /**
@@ -313,7 +308,7 @@ class ChunkReadAheadBuffer(
         chunkChannel = null
         currentTransferId = null
 
-        Log.d(TAG, "Read-ahead stopped")
+        Timber.d("Read-ahead stopped")
     }
 
     /**
@@ -332,7 +327,7 @@ class ChunkReadAheadBuffer(
         stop()
         start(transferId, uri, chunkIndex, totalChunks, chunkSize, mimeType, enableCompression)
 
-        Log.i(TAG, "Skipped to chunk $chunkIndex")
+        Timber.i("Skipped to chunk $chunkIndex")
     }
 }
 
@@ -347,7 +342,6 @@ class ChunkBufferManager @Inject constructor(
     private val byteArrayPool: ByteArrayPool
 ) {
     companion object {
-        private const val TAG = "ChunkBufferManager"
         private const val DEFAULT_READ_AHEAD_COUNT = 3
     }
 
@@ -374,7 +368,7 @@ class ChunkBufferManager @Inject constructor(
         buffer.start(transferId, uri, startChunk, totalChunks, chunkSize, mimeType, enableCompression)
 
         buffers[transferId] = buffer
-        Log.i(TAG, "Created buffer for $transferId")
+        Timber.i("Created buffer for $transferId")
 
         return buffer
     }
@@ -389,7 +383,7 @@ class ChunkBufferManager @Inject constructor(
      */
     fun removeBuffer(transferId: String) {
         buffers.remove(transferId)?.stop()
-        Log.d(TAG, "Removed buffer for $transferId")
+        Timber.d("Removed buffer for $transferId")
     }
 
     /**
@@ -398,6 +392,6 @@ class ChunkBufferManager @Inject constructor(
     fun clearAll() {
         buffers.values.forEach { it.stop() }
         buffers.clear()
-        Log.i(TAG, "Cleared all buffers")
+        Timber.i("Cleared all buffers")
     }
 }

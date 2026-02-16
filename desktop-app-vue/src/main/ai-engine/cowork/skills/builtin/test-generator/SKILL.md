@@ -1,24 +1,47 @@
 ---
 name: test-generator
-version: 1.0.0
+display-name: Test Generator
 description: 测试生成技能 - 单元测试创建、Mock生成、覆盖率分析
-author: ChainlessChain
+version: 1.0.0
 category: development
-gate:
-  platform: [win32, darwin, linux]
+user-invocable: true
+tags: [test, unit-test, mock, coverage, vitest, jest, pytest, junit]
+capabilities:
+  [
+    test-generation,
+    mock-generation,
+    coverage-analysis,
+    test-framework-detection,
+  ]
 tools:
   - file_reader
   - file_writer
   - code_analyzer
 supported-file-types: [js, ts, py, java, go, vue, jsx, tsx]
+instructions: |
+  Use this skill when the user wants to generate unit tests for source code.
+  Analyze function signatures, class structures, and dependencies to produce
+  comprehensive test suites. Support Vitest, Jest, Pytest, and JUnit with
+  automatic framework detection. Generate mocks for external dependencies.
+examples:
+  - input: "/test-generator src/main/utils/ipc-error-handler.js"
+    output: "Vitest test suite with describe/it blocks covering normal paths, edge cases, and error handling"
+  - input: "/test-generator src/main/llm/session-manager.js --framework vitest --mock-style spy"
+    output: "Test suite using vi.spyOn for dependency mocking"
+  - input: "/test-generator src/main/rag/bm25-search.js --coverage"
+    output: "Coverage analysis report with supplemental test cases for uncovered paths"
+os: [win32, darwin, linux]
+author: ChainlessChain
 ---
 
 # 测试生成技能
 
 ## 描述
+
 自动分析源代码并生成对应的单元测试，包括Mock对象生成、边界条件测试和覆盖率分析报告。支持Vitest、Jest、Pytest和JUnit。
 
 ## 使用方法
+
 ```
 /test-generator [源文件路径] [选项]
 ```
@@ -40,15 +63,16 @@ supported-file-types: [js, ts, py, java, go, vue, jsx, tsx]
 
 ## 测试类型
 
-| 类型 | 说明 | 场景 |
-|------|------|------|
-| 正常路径 | 验证预期输入的正确输出 | 标准参数调用 |
-| 边界条件 | 验证极端和边界值 | 空值、最大值、零 |
-| 错误处理 | 验证异常和错误情况 | 无效输入、网络错误 |
-| 异步测试 | 验证Promise和回调 | API调用、定时器 |
-| 快照测试 | 验证输出结构不变 | 组件渲染、序列化 |
+| 类型     | 说明                   | 场景               |
+| -------- | ---------------------- | ------------------ |
+| 正常路径 | 验证预期输入的正确输出 | 标准参数调用       |
+| 边界条件 | 验证极端和边界值       | 空值、最大值、零   |
+| 错误处理 | 验证异常和错误情况     | 无效输入、网络错误 |
+| 异步测试 | 验证Promise和回调      | API调用、定时器    |
+| 快照测试 | 验证输出结构不变       | 组件渲染、序列化   |
 
 ## 输出格式
+
 - 生成的测试文件内容（可直接保存运行）
 - 测试用例清单和描述
 - Mock依赖列表
@@ -57,16 +81,19 @@ supported-file-types: [js, ts, py, java, go, vue, jsx, tsx]
 ## 示例
 
 生成单元测试:
+
 ```
 /test-generator src/main/utils/ipc-error-handler.js
 ```
 
 指定框架和Mock风格:
+
 ```
 /test-generator src/main/llm/session-manager.js --framework vitest --mock-style spy
 ```
 
 分析覆盖率并补充测试:
+
 ```
 /test-generator src/main/rag/bm25-search.js --coverage
 ```

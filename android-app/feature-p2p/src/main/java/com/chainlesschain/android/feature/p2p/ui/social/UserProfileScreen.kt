@@ -99,8 +99,9 @@ fun UserProfileScreen(
                         .padding(paddingValues)
                 ) {
                     // 个人信息区
+                    val userInfo = uiState.userInfo ?: return@Scaffold
                     UserInfoSection(
-                        userInfo = uiState.userInfo!!,
+                        userInfo = userInfo,
                         relationship = uiState.relationship,
                         onAddFriend = { viewModel.sendFriendRequest() },
                         onSendMessage = { viewModel.sendMessage() },
@@ -158,8 +159,8 @@ fun UserProfileScreen(
                                     ) { post ->
                                         PostCard(
                                             post = post,
-                                            authorNickname = uiState.userInfo!!.nickname,
-                                            authorAvatar = uiState.userInfo!!.avatar,
+                                            authorNickname = userInfo.nickname,
+                                            authorAvatar = userInfo.avatar,
                                             onPostClick = { onNavigateToPost(post.id) },
                                             onAuthorClick = { /* Already on user profile */ },
                                             onLikeClick = { viewModel.toggleLike(post.id, post.isLiked, post.authorDid) },

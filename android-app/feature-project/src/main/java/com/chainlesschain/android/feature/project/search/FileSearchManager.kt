@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.project.search
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -27,7 +27,6 @@ import javax.inject.Singleton
 class FileSearchManager @Inject constructor() {
 
     companion object {
-        private const val TAG = "FileSearchManager"
         private const val MAX_SEARCH_RESULTS = 100
         private const val MAX_CONTENT_PREVIEW_LENGTH = 150
         private const val MAX_SEARCH_HISTORY = 20
@@ -107,7 +106,7 @@ class FileSearchManager @Inject constructor() {
 
             sortedResults
         } catch (e: Exception) {
-            Log.e(TAG, "Search error", e)
+            Timber.e(e, "Search error")
             _searchState.value = _searchState.value.copy(
                 isSearching = false,
                 error = e.message
@@ -142,7 +141,7 @@ class FileSearchManager @Inject constructor() {
                     val flags = if (options.caseSensitive) 0 else Pattern.CASE_INSENSITIVE
                     Pattern.compile(query, flags)
                 } catch (e: PatternSyntaxException) {
-                    Log.w(TAG, "Invalid regex pattern: $query")
+                    Timber.w("Invalid regex pattern: $query")
                     null
                 }
             } else null
@@ -183,7 +182,7 @@ class FileSearchManager @Inject constructor() {
 
             sortedResults
         } catch (e: Exception) {
-            Log.e(TAG, "Content search error", e)
+            Timber.e(e, "Content search error")
             _searchState.value = _searchState.value.copy(
                 isSearching = false,
                 error = e.message

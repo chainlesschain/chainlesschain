@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.filetransfer
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.TransferCheckpointDao
 import com.chainlesschain.android.core.database.entity.CheckpointSummary
 import com.chainlesschain.android.core.database.entity.TransferCheckpointEntity
@@ -25,8 +25,6 @@ class CheckpointManager @Inject constructor(
     private val checkpointDao: TransferCheckpointDao
 ) {
     companion object {
-        private const val TAG = "CheckpointManager"
-
         /** 自动保存频率（每N个分块） */
         const val AUTO_SAVE_INTERVAL = 10
 
@@ -65,7 +63,7 @@ class CheckpointManager @Inject constructor(
         )
 
         checkpointDao.upsert(checkpoint)
-        Log.d(TAG, "Created checkpoint for transfer: ${metadata.transferId}")
+        Timber.d("Created checkpoint for transfer: ${metadata.transferId}")
 
         return checkpoint
     }
@@ -79,14 +77,14 @@ class CheckpointManager @Inject constructor(
      */
     suspend fun updateCheckpoint(transferId: String, chunkIndex: Int, chunkSize: Long) {
         val checkpoint = checkpointDao.getByTransferId(transferId) ?: run {
-            Log.w(TAG, "Checkpoint not found for transfer: $transferId")
+            Timber.w("Checkpoint not found for transfer: $transferId")
             return
         }
 
         val updatedCheckpoint = checkpoint.withReceivedChunk(chunkIndex, chunkSize)
         checkpointDao.update(updatedCheckpoint)
 
-        Log.v(TAG, "Updated checkpoint for transfer $transferId: chunk $chunkIndex completed")
+        Timber.v("Updated checkpoint for transfer $transferId: chunk $chunkIndex completed")
     }
 
     /**
@@ -97,14 +95,14 @@ class CheckpointManager @Inject constructor(
      */
     suspend fun updateCheckpointBatch(transferId: String, chunkIndices: Collection<Int>) {
         val checkpoint = checkpointDao.getByTransferId(transferId) ?: run {
-            Log.w(TAG, "Checkpoint not found for transfer: $transferId")
+            Timber.w("Checkpoint not found for transfer: $transferId")
             return
         }
 
         val updatedCheckpoint = checkpoint.withReceivedChunks(chunkIndices)
         checkpointDao.update(updatedCheckpoint)
 
-        Log.d(TAG, "Batch updated checkpoint for transfer $transferId: ${chunkIndices.size} chunks")
+        Timber.d("Batch updated checkpoint for transfer $transferId: ${chunkIndices.size} chunks")
     }
 
     /**
@@ -168,7 +166,7 @@ class CheckpointManager @Inject constructor(
      */
     suspend fun deleteCheckpoint(transferId: String) {
         val deleted = checkpointDao.deleteByTransferId(transferId)
-        Log.d(TAG, "Deleted checkpoint for transfer $transferId (affected: $deleted)")
+        Timber.d("Deleted checkpoint for transfer $transferId (affected: $deleted)")
     }
 
     /**
@@ -176,7 +174,7 @@ class CheckpointManager @Inject constructor(
      */
     suspend fun deleteAllCheckpoints() {
         val deleted = checkpointDao.deleteAll()
-        Log.i(TAG, "Deleted all checkpoints (count: $deleted)")
+        Timber.i("Deleted all checkpoints (count: $deleted)")
     }
 
     /**
@@ -189,7 +187,7 @@ class CheckpointManager @Inject constructor(
         val deleted = checkpointDao.deleteOlderThan(cutoffTime)
 
         if (deleted > 0) {
-            Log.i(TAG, "Cleaned up $deleted expired checkpoints")
+            Timber.i("Cleaned up $deleted expired checkpoints")
         }
     }
 
@@ -229,12 +227,12 @@ class CheckpointManager @Inject constructor(
         val checkpoint = getCheckpoint(transferId) ?: return null
 
         if (!checkpoint.canResume()) {
-            Log.w(TAG, "Checkpoint for $transferId cannot be resumed")
+            Timber.w("Checkpoint for $transferId cannot be resumed")
             return null
         }
 
         val missingChunks = checkpoint.getMissingChunks()
-        Log.i(TAG, "Restored checkpoint for $transferId: ${missingChunks.size} chunks remaining")
+        Timber.i("Restored checkpoint for $transferId: ${missingChunks.size} chunks remaining")
 
         return missingChunks
     }
@@ -263,7 +261,7 @@ class CheckpointManager @Inject constructor(
             try {
                 cleanupExpiredCheckpoints()
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to cleanup expired checkpoints", e)
+                Timber.e(e, "Failed to cleanup expired checkpoints")
             }
         }
     }

@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.e2ee.verification
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.session.E2EESession
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
@@ -18,10 +18,6 @@ import javax.inject.Singleton
 class VerificationManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-
-    companion object {
-        private const val TAG = "VerificationManager"
-    }
 
     // 已验证的会话
     private val verifiedSessions = mutableMapOf<String, VerifiedSession>()
@@ -46,7 +42,7 @@ class VerificationManager @Inject constructor(
         remotePublicKey: ByteArray,
         associatedData: ByteArray
     ): CompleteVerificationInfo {
-        Log.d(TAG, "Generating verification info for peer: $peerId")
+        Timber.d("Generating verification info for peer: $peerId")
 
         // 生成 Safety Number
         val safetyNumber = SafetyNumbers.generate(
@@ -100,7 +96,7 @@ class VerificationManager @Inject constructor(
         peerId: String,
         verificationMethod: VerificationMethod
     ) = mutex.withLock {
-        Log.i(TAG, "Marking session as verified for peer: $peerId")
+        Timber.i("Marking session as verified for peer: $peerId")
 
         val verifiedSession = VerifiedSession(
             peerId = peerId,
@@ -110,7 +106,7 @@ class VerificationManager @Inject constructor(
 
         verifiedSessions[peerId] = verifiedSession
 
-        Log.i(TAG, "Session verified for peer: $peerId")
+        Timber.i("Session verified for peer: $peerId")
     }
 
     /**
@@ -120,7 +116,7 @@ class VerificationManager @Inject constructor(
      */
     suspend fun unmarkAsVerified(peerId: String) = mutex.withLock {
         verifiedSessions.remove(peerId)
-        Log.i(TAG, "Session verification removed for peer: $peerId")
+        Timber.i("Session verification removed for peer: $peerId")
     }
 
     /**
@@ -205,7 +201,7 @@ class VerificationManager @Inject constructor(
      */
     suspend fun clearAll() = mutex.withLock {
         verifiedSessions.clear()
-        Log.i(TAG, "All session verifications cleared")
+        Timber.i("All session verifications cleared")
     }
 }
 

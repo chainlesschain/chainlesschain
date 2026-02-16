@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.ice
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.webrtc.PeerConnection
@@ -20,8 +20,6 @@ import javax.inject.Singleton
 class IceServerConfig @Inject constructor() {
 
     companion object {
-        private const val TAG = "IceServerConfig"
-
         // 公共 STUN 服务器列表（免费）
         val DEFAULT_STUN_SERVERS = listOf(
             "stun:stun.l.google.com:19302",
@@ -87,7 +85,7 @@ class IceServerConfig @Inject constructor() {
                         .createIceServer()
                 )
             } catch (e: Exception) {
-                Log.w(TAG, "Invalid STUN server URL: $url", e)
+                Timber.w(e, "Invalid STUN server URL: $url")
             }
         }
 
@@ -101,11 +99,11 @@ class IceServerConfig @Inject constructor() {
                         .createIceServer()
                 )
             } catch (e: Exception) {
-                Log.w(TAG, "Invalid TURN server config: ${turn.url}", e)
+                Timber.w(e, "Invalid TURN server config: ${turn.url}")
             }
         }
 
-        Log.d(TAG, "ICE servers configured: ${servers.size} (${stunServers.size} STUN, ${turnServers.size} TURN)")
+        Timber.d("ICE servers configured: ${servers.size} (${stunServers.size} STUN, ${turnServers.size} TURN)")
 
         return servers
     }
@@ -144,7 +142,7 @@ class IceServerConfig @Inject constructor() {
     fun addStunServer(url: String) {
         if (!customStunServers.contains(url)) {
             customStunServers.add(url)
-            Log.i(TAG, "Added custom STUN server: $url")
+            Timber.i("Added custom STUN server: $url")
         }
     }
 
@@ -155,7 +153,7 @@ class IceServerConfig @Inject constructor() {
         val credentials = TurnServerCredentials(url, username, password)
         if (!turnServers.any { it.url == url }) {
             turnServers.add(credentials)
-            Log.i(TAG, "Added TURN server: $url")
+            Timber.i("Added TURN server: $url")
         }
     }
 
@@ -164,7 +162,7 @@ class IceServerConfig @Inject constructor() {
      */
     fun removeTurnServer(url: String) {
         turnServers.removeAll { it.url == url }
-        Log.i(TAG, "Removed TURN server: $url")
+        Timber.i("Removed TURN server: $url")
     }
 
     /**
@@ -173,7 +171,7 @@ class IceServerConfig @Inject constructor() {
     fun clearCustomServers() {
         customStunServers.clear()
         turnServers.clear()
-        Log.i(TAG, "Cleared all custom servers")
+        Timber.i("Cleared all custom servers")
     }
 
     /**
@@ -186,7 +184,7 @@ class IceServerConfig @Inject constructor() {
      */
     fun setIceTransportPolicy(policy: PeerConnection.IceTransportsType) {
         iceTransportPolicy = policy
-        Log.i(TAG, "ICE transport policy set to: $policy")
+        Timber.i("ICE transport policy set to: $policy")
     }
 
     /**
@@ -196,7 +194,7 @@ class IceServerConfig @Inject constructor() {
      */
     fun setIceCandidatePoolSize(size: Int) {
         iceCandidatePoolSize = size.coerceIn(0, 10)
-        Log.i(TAG, "ICE candidate pool size set to: $iceCandidatePoolSize")
+        Timber.i("ICE candidate pool size set to: $iceCandidatePoolSize")
     }
 
     /**
@@ -206,7 +204,7 @@ class IceServerConfig @Inject constructor() {
      */
     fun forceRelay() {
         if (turnServers.isEmpty()) {
-            Log.w(TAG, "No TURN servers configured, cannot force relay")
+            Timber.w("No TURN servers configured, cannot force relay")
             return
         }
         setIceTransportPolicy(PeerConnection.IceTransportsType.RELAY)
@@ -251,15 +249,15 @@ class IceServerConfig @Inject constructor() {
 
                 val latency = System.currentTimeMillis() - startTime
 
-                Log.i(TAG, "STUN server $url responded in ${latency}ms")
+                Timber.i("STUN server $url responded in ${latency}ms")
                 StunTestResult.Success(url, latency)
             }
 
         } catch (e: java.net.SocketTimeoutException) {
-            Log.w(TAG, "STUN server $url timeout")
+            Timber.w("STUN server $url timeout")
             StunTestResult.Timeout(url)
         } catch (e: Exception) {
-            Log.e(TAG, "STUN server $url failed", e)
+            Timber.e(e, "STUN server $url failed")
             StunTestResult.Failed(url, e.message ?: "Unknown error")
         }
     }

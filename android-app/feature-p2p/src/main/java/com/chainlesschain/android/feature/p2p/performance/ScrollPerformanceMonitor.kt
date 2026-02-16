@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.performance
 
-import android.util.Log
+import timber.log.Timber
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.*
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -119,20 +119,20 @@ private class PerformanceMetrics {
             0f
         }
 
-        Log.d(tag, "=== Scroll Performance Report ===")
-        Log.d(tag, "Duration: ${duration}ms")
-        Log.d(tag, "Recompositions: $recompositionCount")
-        Log.d(tag, "FPS: %.1f".format(fps))
-        Log.d(tag, "Index changes: $indexChangeCount")
-        Log.d(tag, "Scroll speed: %.1f items/s".format(scrollSpeed))
-        Log.d(tag, "================================")
+        Timber.tag(tag).d("=== Scroll Performance Report ===")
+        Timber.tag(tag).d("Duration: ${duration}ms")
+        Timber.tag(tag).d("Recompositions: $recompositionCount")
+        Timber.tag(tag).d("FPS: %.1f".format(fps))
+        Timber.tag(tag).d("Index changes: $indexChangeCount")
+        Timber.tag(tag).d("Scroll speed: %.1f items/s".format(scrollSpeed))
+        Timber.tag(tag).d("================================")
 
         // 性能告警
         if (fps < 55f) {
-            Log.w(tag, "⚠️ Low FPS detected: %.1f (target: 60)".format(fps))
+            Timber.tag(tag).w("⚠️ Low FPS detected: %.1f (target: 60)".format(fps))
         }
         if (recompositionCount > indexChangeCount * 3) {
-            Log.w(tag, "⚠️ Excessive recompositions: $recompositionCount for $indexChangeCount items")
+            Timber.tag(tag).w("⚠️ Excessive recompositions: $recompositionCount for $indexChangeCount items")
         }
     }
 }
@@ -160,7 +160,7 @@ fun RecompositionCounter(
 
     SideEffect {
         counter.value++
-        Log.d("Recomposition", "$tag: ${counter.value}")
+        Timber.d("$tag: ${counter.value}")
     }
 }
 

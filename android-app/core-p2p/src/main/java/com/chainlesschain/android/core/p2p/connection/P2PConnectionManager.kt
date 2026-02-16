@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.p2p.connection
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.core.p2p.model.ConnectionStatus
@@ -29,10 +29,6 @@ class P2PConnectionManager @Inject constructor(
     private val autoReconnectManager: AutoReconnectManager,
     private val iceServerConfig: IceServerConfig
 ) {
-
-    companion object {
-        private const val TAG = "P2PConnectionManager"
-    }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -82,7 +78,7 @@ class P2PConnectionManager @Inject constructor(
      */
     fun initialize(device: P2PDevice) {
         localDevice = device
-        Log.i(TAG, "P2P network initialized for device: ${device.deviceName}")
+        Timber.i("P2P network initialized for device: ${device.deviceName}")
 
         // 初始化心跳管理器
         heartbeatManager.start(device.deviceId) { deviceId, message ->
@@ -112,7 +108,7 @@ class P2PConnectionManager @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send heartbeat to $deviceId", e)
+            Timber.e(e, "Failed to send heartbeat to $deviceId")
         }
     }
 
@@ -120,14 +116,14 @@ class P2PConnectionManager @Inject constructor(
      * 重连到设备
      */
     private suspend fun reconnectToDevice(device: P2PDevice) {
-        Log.i(TAG, "Attempting to reconnect to: ${device.deviceName}")
+        Timber.i("Attempting to reconnect to: ${device.deviceName}")
 
         // 先断开旧连接
         connections[device.deviceId]?.let { oldConnection ->
             try {
                 oldConnection.disconnect()
             } catch (e: Exception) {
-                Log.w(TAG, "Error disconnecting old connection", e)
+                Timber.w(e, "Error disconnecting old connection")
             }
             connections.remove(device.deviceId)
         }
@@ -140,7 +136,7 @@ class P2PConnectionManager @Inject constructor(
      * 处理连接超时事件
      */
     private fun handleConnectionTimeout(event: ConnectionTimeoutEvent) {
-        Log.w(TAG, "Connection timeout for device: ${event.deviceId}, will retry: ${event.willRetry}")
+        Timber.w("Connection timeout for device: ${event.deviceId}, will retry: ${event.willRetry}")
 
         if (!event.willRetry) {
             // 最终断开连接
@@ -156,11 +152,11 @@ class P2PConnectionManager @Inject constructor(
      */
     suspend fun connectToDevice(device: P2PDevice) {
         if (connections.containsKey(device.deviceId)) {
-            Log.w(TAG, "Already connected to device: ${device.deviceName}")
+            Timber.w("Already connected to device: ${device.deviceName}")
             return
         }
 
-        Log.i(TAG, "Connecting to device: ${device.deviceName}")
+        Timber.i("Connecting to device: ${device.deviceName}")
 
         try {
             // 创建WebRTC连接
@@ -217,14 +213,14 @@ class P2PConnectionManager @Inject constructor(
                             // 重置重连计数
                             heartbeatManager.resetReconnectAttempts(device.deviceId)
 
-                            Log.i(TAG, "Connected to device: ${device.deviceName}")
+                            Timber.i("Connected to device: ${device.deviceName}")
                         }
                         is ConnectionState.Disconnected -> {
                             handleDeviceDisconnection(device.deviceId, device.deviceName, ReconnectReason.CONNECTION_LOST)
                         }
                         is ConnectionState.Failed -> {
                             handleDeviceDisconnection(device.deviceId, device.deviceName, ReconnectReason.ICE_FAILED)
-                            Log.e(TAG, "Connection failed: ${state.error}")
+                            Timber.e("Connection failed: ${state.error}")
                         }
                         else -> {}
                     }
@@ -255,7 +251,7 @@ class P2PConnectionManager @Inject constructor(
             connection.connect(device)
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to connect to device", e)
+            Timber.e(e, "Failed to connect to device")
         }
     }
 
@@ -275,12 +271,12 @@ class P2PConnectionManager @Inject constructor(
             val attempt = heartbeatManager.incrementReconnectAttempts(deviceId)
             val delay = heartbeatManager.calculateReconnectDelay(deviceId)
             autoReconnectManager.scheduleReconnect(deviceId, delay, reason)
-            Log.i(TAG, "Disconnected from $deviceName, will retry in ${delay}ms (attempt $attempt)")
+            Timber.i("Disconnected from $deviceName, will retry in ${delay}ms (attempt $attempt)")
         } else {
             // 达到最大重连次数，清理资源
             heartbeatManager.unregisterDevice(deviceId)
             autoReconnectManager.removeDeviceCache(deviceId)
-            Log.i(TAG, "Disconnected from $deviceName, max retries reached")
+            Timber.i("Disconnected from $deviceName, max retries reached")
         }
     }
 
@@ -303,7 +299,7 @@ class P2PConnectionManager @Inject constructor(
                 autoReconnectManager.removeDeviceCache(deviceId)
             }
 
-            Log.i(TAG, "Disconnected device: $deviceId (permanent: $permanent)")
+            Timber.i("Disconnected device: $deviceId (permanent: $permanent)")
         }
     }
 
@@ -317,7 +313,7 @@ class P2PConnectionManager @Inject constructor(
         connections[deviceId]?.let { connection ->
             connection.sendMessage(message)
         } ?: run {
-            Log.w(TAG, "No connection to device: $deviceId")
+            Timber.w("No connection to device: $deviceId")
         }
     }
 
@@ -331,7 +327,7 @@ class P2PConnectionManager @Inject constructor(
             try {
                 connection.sendMessage(message)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to send message", e)
+                Timber.e(e, "Failed to send message")
             }
         }
     }
@@ -342,37 +338,37 @@ class P2PConnectionManager @Inject constructor(
     private fun handleSignalingMessage(message: SignalingMessage) {
         when (message) {
             is SignalingMessage.Offer -> {
-                Log.d(TAG, "Received offer from: ${message.fromDeviceId}")
+                Timber.d("Received offer from: ${message.fromDeviceId}")
                 connections[message.fromDeviceId]?.handleOffer(message.sessionDescription)
             }
             is SignalingMessage.Answer -> {
-                Log.d(TAG, "Received answer from: ${message.fromDeviceId}")
+                Timber.d("Received answer from: ${message.fromDeviceId}")
                 connections[message.fromDeviceId]?.handleAnswer(message.sessionDescription)
             }
             is SignalingMessage.Candidate -> {
-                Log.d(TAG, "Received ICE candidate from: ${message.fromDeviceId}")
+                Timber.d("Received ICE candidate from: ${message.fromDeviceId}")
                 connections[message.fromDeviceId]?.addIceCandidate(message.iceCandidate)
             }
             is SignalingMessage.Heartbeat -> {
-                Log.v(TAG, "Received heartbeat: ${message.id}")
+                Timber.v("Received heartbeat: ${message.id}")
                 // 心跳由 HeartbeatManager 处理
             }
             is SignalingMessage.HeartbeatAck -> {
-                Log.v(TAG, "Received heartbeat ack: ${message.id}")
+                Timber.v("Received heartbeat ack: ${message.id}")
                 // 心跳响应由 HeartbeatManager 处理
             }
             is SignalingMessage.Close -> {
-                Log.d(TAG, "Received close from: ${message.fromDeviceId}, reason: ${message.reason}")
+                Timber.d("Received close from: ${message.fromDeviceId}, reason: ${message.reason}")
                 scope.launch {
                     disconnectDevice(message.fromDeviceId)
                 }
             }
             is SignalingMessage.MessageAck -> {
-                Log.v(TAG, "Received message ack for: ${message.ackMessageId}")
+                Timber.v("Received message ack for: ${message.ackMessageId}")
                 // ACK 由传输层处理
             }
             is SignalingMessage.MessageNack -> {
-                Log.w(TAG, "Received message nack for: ${message.nackMessageId}, reason: ${message.reason}")
+                Timber.w("Received message nack for: ${message.nackMessageId}, reason: ${message.reason}")
                 // NACK 由传输层处理
             }
         }
@@ -462,6 +458,6 @@ class P2PConnectionManager @Inject constructor(
         signalingClient.stopServer()
         signalingClient.disconnect()
 
-        Log.i(TAG, "P2P network shutdown")
+        Timber.i("P2P network shutdown")
     }
 }

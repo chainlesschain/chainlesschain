@@ -2,7 +2,7 @@ package com.chainlesschain.android.feature.filebrowser.data.repository
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.ImportSource
@@ -29,7 +29,6 @@ class FileImportRepository @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "FileImportRepository"
         private const val SMALL_FILE_THRESHOLD = 100 * 1024 // 100KB
     }
 
@@ -68,7 +67,7 @@ class FileImportRepository @Inject constructor(
                 ImportType.SYNC -> importByLink(externalFile, targetProjectId, importSource) // SYNC暂时等同于LINK
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Import failed", e)
+            Timber.e(e, "Import failed")
             ImportResult.Failure(ImportError("导入失败: ${e.message}", e))
         }
     }
@@ -92,7 +91,7 @@ class FileImportRepository @Inject constructor(
                 inputStream.bufferedReader().readText()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to read file content", e)
+            Timber.e(e, "Failed to read file content")
             null
         }
 

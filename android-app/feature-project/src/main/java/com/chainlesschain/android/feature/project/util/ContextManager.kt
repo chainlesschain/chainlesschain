@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.project.util
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
@@ -21,8 +21,6 @@ class ContextManager(
 ) {
 
     companion object {
-        private const val TAG = "ContextManager"
-
         // Token 估算：中文约 2 字符/token，英文约 4 字符/token
         private const val CHARS_PER_TOKEN_CN = 2.0f
         private const val CHARS_PER_TOKEN_EN = 4.0f
@@ -171,7 +169,7 @@ class ContextManager(
             .distinctBy { it.id }
             .sortedBy { it.createdAt }
 
-        Log.d(TAG, "Context selection: ${finalMessages.size} messages, $usedTokens tokens used, ${compressedMessages.size} compressed")
+        Timber.d("Context selection: ${finalMessages.size} messages, $usedTokens tokens used, ${compressedMessages.size} compressed")
 
         return ContextResult(
             messages = finalMessages,

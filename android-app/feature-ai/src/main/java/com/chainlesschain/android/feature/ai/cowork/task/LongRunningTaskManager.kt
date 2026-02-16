@@ -1,9 +1,11 @@
 package com.chainlesschain.android.feature.ai.cowork.task
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +27,6 @@ import javax.inject.Singleton
 class LongRunningTaskManager @Inject constructor() {
 
     companion object {
-        private const val TAG = "LongRunningTaskManager"
         private const val TIMEOUT_CHECK_INTERVAL_MS = 5000L
     }
 
@@ -35,7 +36,7 @@ class LongRunningTaskManager @Inject constructor() {
     private val mutex = Mutex()
 
     // Coroutine scope for background operations
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var timeoutMonitorJob: Job? = null
 
     // State flows
@@ -72,7 +73,7 @@ class LongRunningTaskManager @Inject constructor() {
         tasks[task.id] = task
         checkpoints[task.id] = mutableListOf()
         updateStateFlows()
-        Log.d(TAG, "Created task: ${task.name} (${task.id})")
+        Timber.d("Created task: ${task.name} (${task.id})")
         return@withLock task
     }
 
@@ -88,7 +89,7 @@ class LongRunningTaskManager @Inject constructor() {
         task.agentId = agentId
         task.start()
         updateStateFlows()
-        Log.d(TAG, "Started task: ${task.name}")
+        Timber.d("Started task: ${task.name}")
         return@withLock true
     }
 
@@ -101,7 +102,7 @@ class LongRunningTaskManager @Inject constructor() {
 
         task.pause()
         updateStateFlows()
-        Log.d(TAG, "Paused task: ${task.name}")
+        Timber.d("Paused task: ${task.name}")
         return@withLock true
     }
 
@@ -118,7 +119,7 @@ class LongRunningTaskManager @Inject constructor() {
         val latestCheckpoint = taskCheckpoints.maxByOrNull { it.timestamp }
 
         updateStateFlows()
-        Log.d(TAG, "Resumed task: ${task.name} from checkpoint ${latestCheckpoint?.name}")
+        Timber.d("Resumed task: ${task.name} from checkpoint ${latestCheckpoint?.name}")
         return@withLock latestCheckpoint
     }
 
@@ -130,7 +131,7 @@ class LongRunningTaskManager @Inject constructor() {
 
         task.complete(result)
         updateStateFlows()
-        Log.d(TAG, "Completed task: ${task.name}")
+        Timber.d("Completed task: ${task.name}")
         return@withLock true
     }
 
@@ -142,7 +143,7 @@ class LongRunningTaskManager @Inject constructor() {
 
         task.fail(error)
         updateStateFlows()
-        Log.e(TAG, "Failed task: ${task.name} - $error")
+        Timber.e("Failed task: ${task.name} - $error")
         return@withLock true
     }
 
@@ -154,7 +155,7 @@ class LongRunningTaskManager @Inject constructor() {
 
         task.cancel()
         updateStateFlows()
-        Log.d(TAG, "Cancelled task: ${task.name}")
+        Timber.d("Cancelled task: ${task.name}")
         return@withLock true
     }
 
@@ -201,7 +202,7 @@ class LongRunningTaskManager @Inject constructor() {
         checkpoints.getOrPut(taskId) { mutableListOf() }.add(checkpoint)
         task.latestCheckpointId = checkpoint.id
 
-        Log.d(TAG, "Created checkpoint: $name for task ${task.name}")
+        Timber.d("Created checkpoint: $name for task ${task.name}")
         return@withLock checkpoint
     }
 
@@ -266,7 +267,7 @@ class LongRunningTaskManager @Inject constructor() {
         checkpoints.remove(taskId)
         if (removed != null) {
             updateStateFlows()
-            Log.d(TAG, "Removed task: ${removed.name}")
+            Timber.d("Removed task: ${removed.name}")
         }
         return@withLock removed != null
     }
@@ -285,7 +286,7 @@ class LongRunningTaskManager @Inject constructor() {
         }
 
         updateStateFlows()
-        Log.d(TAG, "Cleared ${completedIds.size} completed tasks")
+        Timber.d("Cleared ${completedIds.size} completed tasks")
     }
 
     // ===== Private Helpers =====
@@ -307,7 +308,7 @@ class LongRunningTaskManager @Inject constructor() {
             .forEach { task ->
                 task.timeout()
                 hasChanges = true
-                Log.w(TAG, "Task timed out: ${task.name}")
+                Timber.w("Task timed out: ${task.name}")
             }
 
         if (hasChanges) {
@@ -327,5 +328,6 @@ class LongRunningTaskManager @Inject constructor() {
     fun stop() {
         timeoutMonitorJob?.cancel()
         timeoutMonitorJob = null
+        scope.cancel()
     }
 }

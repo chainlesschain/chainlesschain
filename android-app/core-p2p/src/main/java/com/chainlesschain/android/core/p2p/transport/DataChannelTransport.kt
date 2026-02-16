@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.transport
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.config.P2PFeatureFlags
 import com.chainlesschain.android.core.p2p.connection.P2PConnection
 import com.chainlesschain.android.core.p2p.model.MessageType
@@ -36,8 +36,6 @@ class DataChannelTransport @Inject constructor(
 ) : MessageTransport {
 
     companion object {
-        private const val TAG = "DataChannelTransport"
-
         /** 最大消息大小（256KB，避免DataChannel分片问题） */
         private const val MAX_MESSAGE_SIZE = 256 * 1024
 
@@ -195,11 +193,11 @@ class DataChannelTransport @Inject constructor(
                 totalBytes.addAndGet(payload.length.toLong())
                 qualityMonitor.recordMessageSent()
 
-                Log.d(TAG, "Message sent: ${message.id}")
+                Timber.d("Message sent: ${message.id}")
                 true
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send message", e)
+            Timber.e(e, "Failed to send message")
             failedMessages.incrementAndGet()
             false
         }
@@ -214,7 +212,7 @@ class DataChannelTransport @Inject constructor(
             }
         }
 
-        Log.d(TAG, "Batch sent: $successCount/${messages.size}")
+        Timber.d("Batch sent: $successCount/${messages.size}")
         return successCount
     }
 
@@ -228,7 +226,7 @@ class DataChannelTransport @Inject constructor(
             synchronized(pendingBatchAcks) {
                 pendingBatchAcks.add(messageId)
             }
-            Log.d(TAG, "ACK queued for batch: $messageId")
+            Timber.d("ACK queued for batch: $messageId")
         } else {
             // 立即发送 ACK
             sendAckImmediate(messageId)
@@ -249,7 +247,7 @@ class DataChannelTransport @Inject constructor(
         )
 
         connection.sendMessage(ackMessage)
-        Log.d(TAG, "ACK sent for message: $messageId")
+        Timber.d("ACK sent for message: $messageId")
     }
 
     /**
@@ -273,7 +271,7 @@ class DataChannelTransport @Inject constructor(
         )
 
         connection.sendMessage(batchAckMessage)
-        Log.d(TAG, "Batch ACK sent for ${ackList.size} messages")
+        Timber.d("Batch ACK sent for ${ackList.size} messages")
     }
 
     /**
@@ -287,7 +285,7 @@ class DataChannelTransport @Inject constructor(
                 sendBatchAck()
             }
         }
-        Log.d(TAG, "Batch ACK processor started (interval: ${ACK_BATCH_INTERVAL_MS}ms)")
+        Timber.d("Batch ACK processor started (interval: ${ACK_BATCH_INTERVAL_MS}ms)")
     }
 
     /**
@@ -319,7 +317,7 @@ class DataChannelTransport @Inject constructor(
         val payload = message.payload
         val totalChunks = (payload.length + CHUNK_SIZE - 1) / CHUNK_SIZE
 
-        Log.d(TAG, "Fragmenting message ${message.id} into $totalChunks chunks")
+        Timber.d("Fragmenting message ${message.id} into $totalChunks chunks")
 
         // 如果启用分片恢复，创建发送上下文
         val sentContext = if (P2PFeatureFlags.enableFragmentRecovery) {
@@ -393,9 +391,9 @@ class DataChannelTransport @Inject constructor(
                 try {
                     val ackIds = kotlinx.serialization.json.Json.decodeFromString<List<String>>(message.payload)
                     ackIds.forEach { handleAckReceived(it) }
-                    Log.d(TAG, "Batch ACK received for ${ackIds.size} messages")
+                    Timber.d("Batch ACK received for ${ackIds.size} messages")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to parse batch ACK", e)
+                    Timber.e(e, "Failed to parse batch ACK")
                 }
             }
 
@@ -408,7 +406,7 @@ class DataChannelTransport @Inject constructor(
                     )
                     handleFragmentNack(nackPayload)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to parse fragment NACK", e)
+                    Timber.e(e, "Failed to parse fragment NACK")
                 }
             }
 
@@ -449,10 +447,10 @@ class DataChannelTransport @Inject constructor(
             if (sendTime != null) {
                 val rttMs = System.currentTimeMillis() - sendTime
                 qualityMonitor.recordMessageAcked(rttMs)
-                Log.d(TAG, "ACK received for message: $messageId (RTT: ${rttMs}ms)")
+                Timber.d("ACK received for message: $messageId (RTT: ${rttMs}ms)")
             } else {
                 qualityMonitor.recordMessageAcked()
-                Log.d(TAG, "ACK received for message: $messageId")
+                Timber.d("ACK received for message: $messageId")
             }
         }
 
@@ -478,7 +476,7 @@ class DataChannelTransport @Inject constructor(
         // 检测重复分片
         if (P2PFeatureFlags.enableDuplicateDetection) {
             if (context.receivedIndices.contains(fragment.fragmentIndex)) {
-                Log.w(TAG, "Duplicate fragment detected: $messageId[${fragment.fragmentIndex}], ignoring")
+                Timber.w("Duplicate fragment detected: $messageId[${fragment.fragmentIndex}], ignoring")
                 return
             }
         }
@@ -488,7 +486,7 @@ class DataChannelTransport @Inject constructor(
         context.receivedIndices.add(fragment.fragmentIndex)
         context.lastUpdatedAt = System.currentTimeMillis()
 
-        Log.d(TAG, "Fragment received: ${context.fragments.size}/${fragment.totalFragments} for message $messageId")
+        Timber.d("Fragment received: ${context.fragments.size}/${fragment.totalFragments} for message $messageId")
 
         // 检查是否收到所有分片
         if (context.fragments.size == fragment.totalFragments) {
@@ -512,7 +510,7 @@ class DataChannelTransport @Inject constructor(
             fragmentCache.remove(messageId)
             processMessage(completeMessage)
 
-            Log.i(TAG, "Message reassembled: $messageId (${sortedFragments.size} fragments, from: ${firstFragment.fromDeviceId})")
+            Timber.i("Message reassembled: $messageId (${sortedFragments.size} fragments, from: ${firstFragment.fromDeviceId})")
         }
     }
 
@@ -538,7 +536,7 @@ class DataChannelTransport @Inject constructor(
             }
 
             if (missingIndices.isNotEmpty() && !context.nackSent) {
-                Log.w(TAG, "Missing fragments for $messageId: $missingIndices, sending NACK")
+                Timber.w("Missing fragments for $messageId: $missingIndices, sending NACK")
                 sendFragmentNack(messageId, missingIndices)
                 context.nackSent = true
                 context.nackSentAt = now
@@ -568,7 +566,7 @@ class DataChannelTransport @Inject constructor(
         )
 
         connection.sendMessage(nackMessage)
-        Log.d(TAG, "Fragment NACK sent for $messageId, missing: $missingIndices")
+        Timber.d("Fragment NACK sent for $messageId, missing: $missingIndices")
     }
 
     /**
@@ -581,11 +579,11 @@ class DataChannelTransport @Inject constructor(
         val sentContext = sentFragments[messageId]
 
         if (sentContext == null) {
-            Log.w(TAG, "Received NACK for unknown message: $messageId")
+            Timber.w("Received NACK for unknown message: $messageId")
             return
         }
 
-        Log.i(TAG, "Retransmitting fragments for $messageId: ${payload.missingIndices}")
+        Timber.i("Retransmitting fragments for $messageId: ${payload.missingIndices}")
 
         for (index in payload.missingIndices) {
             val fragment = sentContext.fragments[index]
@@ -604,7 +602,7 @@ class DataChannelTransport @Inject constructor(
                 connection.sendMessage(fragmentMessage)
                 sentContext.retransmitCount++
             } else {
-                Log.w(TAG, "Cannot retransmit fragment $index for $messageId - not found in cache")
+                Timber.w("Cannot retransmit fragment $index for $messageId - not found in cache")
             }
         }
     }
@@ -620,7 +618,7 @@ class DataChannelTransport @Inject constructor(
                 checkFragmentGapsAndSendNack()
             }
         }
-        Log.d(TAG, "NACK check started (interval: ${NACK_CHECK_INTERVAL_MS}ms)")
+        Timber.d("NACK check started (interval: ${NACK_CHECK_INTERVAL_MS}ms)")
     }
 
     /**
@@ -645,7 +643,7 @@ class DataChannelTransport @Inject constructor(
         // 发射到接收流
         _receivedMessages.emit(message)
 
-        Log.d(TAG, "Message processed: ${message.id}")
+        Timber.d("Message processed: ${message.id}")
     }
 
     /**
@@ -672,7 +670,7 @@ class DataChannelTransport @Inject constructor(
         fragmentCache.entries.removeIf { (messageId, context) ->
             val age = now - context.createdAt
             if (age > timeoutMs) {
-                Log.w(TAG, "Removing expired fragment group: $messageId (${context.fragments.size}/${context.totalFragments} fragments, age: ${age}ms)")
+                Timber.w("Removing expired fragment group: $messageId (${context.fragments.size}/${context.totalFragments} fragments, age: ${age}ms)")
                 cleanedCount++
                 true
             } else {
@@ -681,7 +679,7 @@ class DataChannelTransport @Inject constructor(
         }
 
         if (cleanedCount > 0) {
-            Log.i(TAG, "Cleaned up $cleanedCount expired fragment groups")
+            Timber.i("Cleaned up $cleanedCount expired fragment groups")
         }
 
         return cleanedCount
@@ -698,7 +696,7 @@ class DataChannelTransport @Inject constructor(
                 cleanupFragmentCache()
             }
         }
-        Log.d(TAG, "Fragment cleanup started (interval: ${FRAGMENT_CLEANUP_INTERVAL_MS}ms)")
+        Timber.d("Fragment cleanup started (interval: ${FRAGMENT_CLEANUP_INTERVAL_MS}ms)")
     }
 
     /**
@@ -739,20 +737,20 @@ class DataChannelTransport @Inject constructor(
         val previousAmount = currentBufferedAmount
         currentBufferedAmount = amount
 
-        Log.v(TAG, "Buffered amount: $amount bytes")
+        Timber.v("Buffered amount: $amount bytes")
 
         // 检查是否需要暂停/恢复发送
         when {
             amount > HIGH_WATER_MARK && !isPaused -> {
                 isPaused = true
-                Log.w(TAG, "High water mark reached ($amount > $HIGH_WATER_MARK), pausing sends")
+                Timber.w("High water mark reached ($amount > $HIGH_WATER_MARK), pausing sends")
                 scope.launch {
                     _flowControlState.emit(FlowControlState.Paused(amount, HIGH_WATER_MARK.toLong()))
                 }
             }
             amount < LOW_WATER_MARK && isPaused -> {
                 isPaused = false
-                Log.i(TAG, "Low water mark reached ($amount < $LOW_WATER_MARK), resuming sends")
+                Timber.i("Low water mark reached ($amount < $LOW_WATER_MARK), resuming sends")
                 scope.launch {
                     _flowControlState.emit(FlowControlState.Resumed(amount))
                     // 处理队列中的待发送消息
@@ -768,7 +766,7 @@ class DataChannelTransport @Inject constructor(
     suspend fun sendWithFlowControl(message: P2PMessage): SendResult {
         // 检查队列容量
         if (sendQueue.size >= MAX_QUEUE_SIZE) {
-            Log.w(TAG, "Send queue full, dropping message ${message.id}")
+            Timber.w("Send queue full, dropping message ${message.id}")
             return SendResult.QueueFull
         }
 
@@ -776,7 +774,7 @@ class DataChannelTransport @Inject constructor(
             // 暂停状态，加入队列
             val queued = QueuedMessage(message, System.currentTimeMillis())
             sendQueue.offer(queued)
-            Log.d(TAG, "Message queued due to backpressure: ${message.id}")
+            Timber.d("Message queued due to backpressure: ${message.id}")
             SendResult.Queued(sendQueue.size)
         } else {
             // 正常发送
@@ -808,7 +806,7 @@ class DataChannelTransport @Inject constructor(
                 // 等待到下一个窗口
                 val waitTime = rateLimitWindowMs - (now - lastSendTime)
                 if (waitTime > 0) {
-                    Log.d(TAG, "Rate limiting, waiting ${waitTime}ms")
+                    Timber.d("Rate limiting, waiting ${waitTime}ms")
                     delay(waitTime)
                 }
                 lastSendTime = System.currentTimeMillis()
@@ -831,20 +829,20 @@ class DataChannelTransport @Inject constructor(
             // 检查消息是否过期
             val age = System.currentTimeMillis() - queued.enqueuedAt
             if (age > BACKPRESSURE_TIMEOUT_MS) {
-                Log.w(TAG, "Queued message expired after ${age}ms: ${queued.message.id}")
+                Timber.w("Queued message expired after ${age}ms: ${queued.message.id}")
                 failedMessages.incrementAndGet()
                 continue
             }
 
             val success = sendWithRateLimit(queued.message)
             if (!success) {
-                Log.w(TAG, "Failed to send queued message: ${queued.message.id}")
+                Timber.w("Failed to send queued message: ${queued.message.id}")
                 failedMessages.incrementAndGet()
             }
         }
 
         if (sendQueue.isNotEmpty()) {
-            Log.d(TAG, "Queue processing paused, ${sendQueue.size} messages remaining")
+            Timber.d("Queue processing paused, ${sendQueue.size} messages remaining")
         }
     }
 
@@ -890,7 +888,7 @@ class DataChannelTransport @Inject constructor(
     fun clearQueue() {
         val count = sendQueue.size
         sendQueue.clear()
-        Log.i(TAG, "Cleared $count messages from send queue")
+        Timber.i("Cleared $count messages from send queue")
     }
 
     /**

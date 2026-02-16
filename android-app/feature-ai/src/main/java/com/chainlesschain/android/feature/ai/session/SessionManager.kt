@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.session
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.SessionEntity
 import com.chainlesschain.android.core.database.entity.SessionFilter
@@ -31,9 +31,7 @@ class SessionManager @Inject constructor(
     private val sessionCompressor: SessionCompressor
 ) {
 
-    companion object {
-        private const val TAG = "SessionManager"
-    }
+    companion object;
 
     private val gson = Gson()
 
@@ -70,7 +68,7 @@ class SessionManager @Inject constructor(
         messageCache[session.id] = emptyList()
 
         updateSessionList()
-        Log.d(TAG, "Created new session: ${session.id}")
+        Timber.d("Created new session: ${session.id}")
 
         return session
     }
@@ -101,7 +99,7 @@ class SessionManager @Inject constructor(
             )
             sessionCache[sessionId] = updatedSession
             _currentSession.value = updatedSession
-            Log.d(TAG, "Set current session: $sessionId")
+            Timber.d("Set current session: $sessionId")
         }
     }
 
@@ -189,7 +187,7 @@ class SessionManager @Inject constructor(
         val session = sessionCache[sessionId] ?: return null
         val messages = messageCache[sessionId] ?: return null
 
-        Log.d(TAG, "Auto-compressing session: $sessionId (${messages.size} messages)")
+        Timber.d("Auto-compressing session: $sessionId (${messages.size} messages)")
 
         val result = sessionCompressor.compressSession(
             messages = messages,
@@ -209,7 +207,7 @@ class SessionManager @Inject constructor(
             sessionCache[sessionId] = updatedSession
             updateSessionList()
 
-            Log.d(TAG, "Session compressed: ${result.savingsPercent}% savings")
+            Timber.d("Session compressed: ${result.savingsPercent}%% savings")
         }
 
         return result
@@ -364,7 +362,7 @@ class SessionManager @Inject constructor(
         }
 
         updateSessionList()
-        Log.d(TAG, "Deleted session: $sessionId")
+        Timber.d("Deleted session: $sessionId")
     }
 
     // --- Search & Filter ---
@@ -468,7 +466,7 @@ class SessionManager @Inject constructor(
 
             Result.success(importedSession)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to import session", e)
+            Timber.e(e, "Failed to import session")
             Result.failure(e)
         }
     }

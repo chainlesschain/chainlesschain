@@ -46,20 +46,28 @@ class ClipboardSyncViewModel @Inject constructor(
     init {
         // Listen for clipboard changes from PC
         viewModelScope.launch {
-            eventDispatcher.clipboardChanges.collect { event ->
-                _uiState.value = _uiState.value.copy(
-                    pcClipboard = event.content,
-                    pcClipboardType = event.contentType,
-                    lastUpdateTime = event.timestamp
-                )
-                _events.emit(ClipboardSyncEvent.ClipboardChanged(event.content, "pc"))
+            try {
+                eventDispatcher.clipboardChanges.collect { event ->
+                    _uiState.value = _uiState.value.copy(
+                        pcClipboard = event.content,
+                        pcClipboardType = event.contentType,
+                        lastUpdateTime = event.timestamp
+                    )
+                    _events.emit(ClipboardSyncEvent.ClipboardChanged(event.content, "pc"))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to collect clipboard changes from PC")
             }
         }
 
         // Sync local clipboard content
         viewModelScope.launch {
-            localClipboardManager.currentContent.collect { content ->
-                _uiState.value = _uiState.value.copy(localClipboard = content)
+            try {
+                localClipboardManager.currentContent.collect { content ->
+                    _uiState.value = _uiState.value.copy(localClipboard = content)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to collect local clipboard content")
             }
         }
     }
@@ -70,16 +78,21 @@ class ClipboardSyncViewModel @Inject constructor(
     fun toggleSync(enabled: Boolean) {
         localClipboardManager.setSyncEnabled(enabled)
         viewModelScope.launch {
-            if (enabled) {
-                // Start watching PC clipboard
-                clipboardCommands.watch().onSuccess {
-                    _events.emit(ClipboardSyncEvent.SyncEnabled)
-                }.onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message)
+            try {
+                if (enabled) {
+                    // Start watching PC clipboard
+                    clipboardCommands.watch().onSuccess {
+                        _events.emit(ClipboardSyncEvent.SyncEnabled)
+                    }.onFailure { e ->
+                        _uiState.value = _uiState.value.copy(error = e.message)
+                    }
+                } else {
+                    clipboardCommands.unwatch()
+                    _events.emit(ClipboardSyncEvent.SyncDisabled)
                 }
-            } else {
-                clipboardCommands.unwatch()
-                _events.emit(ClipboardSyncEvent.SyncDisabled)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to toggle clipboard sync")
+                _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
     }
@@ -137,22 +150,30 @@ class ClipboardSyncViewModel @Inject constructor(
      */
     fun loadHistory(limit: Int = 50) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoadingHistory = true)
+            try {
+                _uiState.value = _uiState.value.copy(isLoadingHistory = true)
 
-            clipboardCommands.getHistory(limit)
-                .onSuccess { response ->
-                    _uiState.value = _uiState.value.copy(
-                        history = response.history,
-                        isLoadingHistory = false,
-                        error = null
-                    )
-                }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoadingHistory = false,
-                        error = e.message
-                    )
-                }
+                clipboardCommands.getHistory(limit)
+                    .onSuccess { response ->
+                        _uiState.value = _uiState.value.copy(
+                            history = response.history,
+                            isLoadingHistory = false,
+                            error = null
+                        )
+                    }
+                    .onFailure { e ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoadingHistory = false,
+                            error = e.message
+                        )
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load clipboard history")
+                _uiState.value = _uiState.value.copy(
+                    isLoadingHistory = false,
+                    error = e.message
+                )
+            }
         }
     }
 
@@ -161,14 +182,19 @@ class ClipboardSyncViewModel @Inject constructor(
      */
     fun clearHistory() {
         viewModelScope.launch {
-            clipboardCommands.clearHistory()
-                .onSuccess {
-                    _uiState.value = _uiState.value.copy(history = emptyList())
-                    _events.emit(ClipboardSyncEvent.HistoryCleared)
-                }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message)
-                }
+            try {
+                clipboardCommands.clearHistory()
+                    .onSuccess {
+                        _uiState.value = _uiState.value.copy(history = emptyList())
+                        _events.emit(ClipboardSyncEvent.HistoryCleared)
+                    }
+                    .onFailure { e ->
+                        _uiState.value = _uiState.value.copy(error = e.message)
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to clear clipboard history")
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
         }
     }
 
@@ -177,14 +203,19 @@ class ClipboardSyncViewModel @Inject constructor(
      */
     fun setFromHistory(item: ClipboardHistoryItem) {
         viewModelScope.launch {
-            clipboardCommands.set(item.content)
-                .onSuccess {
-                    localClipboardManager.setLocalClipboard(item.content)
-                    _events.emit(ClipboardSyncEvent.ContentSet(item.content))
-                }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(error = e.message)
-                }
+            try {
+                clipboardCommands.set(item.content)
+                    .onSuccess {
+                        localClipboardManager.setLocalClipboard(item.content)
+                        _events.emit(ClipboardSyncEvent.ContentSet(item.content))
+                    }
+                    .onFailure { e ->
+                        _uiState.value = _uiState.value.copy(error = e.message)
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to set content from history")
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
         }
     }
 
@@ -196,13 +227,18 @@ class ClipboardSyncViewModel @Inject constructor(
 
         if (syncToPC) {
             viewModelScope.launch {
-                clipboardCommands.set(content)
-                    .onSuccess {
-                        _events.emit(ClipboardSyncEvent.ContentSet(content))
-                    }
-                    .onFailure { e ->
-                        _uiState.value = _uiState.value.copy(error = e.message)
-                    }
+                try {
+                    clipboardCommands.set(content)
+                        .onSuccess {
+                            _events.emit(ClipboardSyncEvent.ContentSet(content))
+                        }
+                        .onFailure { e ->
+                            _uiState.value = _uiState.value.copy(error = e.message)
+                        }
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to set clipboard content")
+                    _uiState.value = _uiState.value.copy(error = e.message)
+                }
             }
         }
     }

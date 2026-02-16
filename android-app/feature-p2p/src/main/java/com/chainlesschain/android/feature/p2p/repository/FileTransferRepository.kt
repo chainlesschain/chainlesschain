@@ -2,7 +2,7 @@ package com.chainlesschain.android.feature.p2p.repository
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.FileTransferDao
 import com.chainlesschain.android.core.database.entity.FileTransferEntity
 import com.chainlesschain.android.core.database.entity.FileTransferStatusEnum
@@ -47,10 +47,6 @@ class FileTransferRepository @Inject constructor(
     private val fileChunker: FileChunker,
     private val sessionManager: PersistentSessionManager
 ) {
-    companion object {
-        private const val TAG = "FileTransferRepository"
-    }
-
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var resultCollectJob: Job? = null
     private var progressCollectJob: Job? = null
@@ -102,7 +98,7 @@ class FileTransferRepository @Inject constructor(
     suspend fun sendFile(fileUri: Uri, peerId: String): FileTransferMetadata? {
         // Check if we have an E2EE session
         if (!sessionManager.hasSession(peerId)) {
-            Log.e(TAG, "No E2EE session with peer: $peerId")
+            Timber.e("No E2EE session with peer: $peerId")
             return null
         }
 
@@ -113,7 +109,7 @@ class FileTransferRepository @Inject constructor(
             // Persist to database
             val entity = metadataToEntity(metadata, isOutgoing = true, localFilePath = fileUri.toString())
             fileTransferDao.insert(entity)
-            Log.i(TAG, "File transfer initiated: ${metadata.fileName}")
+            Timber.i("File transfer initiated: ${metadata.fileName}")
         }
 
         return metadata
@@ -368,10 +364,10 @@ class FileTransferRepository @Inject constructor(
     private suspend fun handleTransferResult(result: TransferResult) {
         if (result.success) {
             fileTransferDao.markCompleted(result.transferId, result.localFilePath)
-            Log.i(TAG, "Transfer completed: ${result.transferId}")
+            Timber.i("Transfer completed: ${result.transferId}")
         } else {
             fileTransferDao.markFailed(result.transferId, result.errorMessage)
-            Log.w(TAG, "Transfer failed: ${result.transferId} - ${result.errorMessage}")
+            Timber.w("Transfer failed: ${result.transferId} - ${result.errorMessage}")
         }
     }
 
@@ -394,7 +390,7 @@ class FileTransferRepository @Inject constructor(
     internal suspend fun handleIncomingRequest(metadata: FileTransferMetadata) {
         val entity = metadataToEntity(metadata, isOutgoing = false)
         fileTransferDao.insert(entity)
-        Log.i(TAG, "Incoming transfer request received: ${metadata.fileName}")
+        Timber.i("Incoming transfer request received: ${metadata.fileName}")
     }
 
     private fun metadataToEntity(

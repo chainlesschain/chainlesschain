@@ -79,7 +79,7 @@ fun RichTextEditor(
             }
         )
 
-        Divider()
+        HorizontalDivider()
 
         // 编辑器内容区域
         when (editorMode) {

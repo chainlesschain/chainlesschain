@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.project.repository
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.TaskDao
 import com.chainlesschain.android.core.database.entity.TaskEntity
 import com.chainlesschain.android.core.database.entity.TaskStatusConst
@@ -76,9 +76,6 @@ data class UpdateTaskRequest(
 class TaskRepository @Inject constructor(
     private val taskDao: TaskDao
 ) {
-    companion object {
-        private const val TAG = "TaskRepository"
-    }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -227,7 +224,7 @@ class TaskRepository @Inject constructor(
                 val entity = TaskMapper.toEntity(task)
                 taskDao.insertTask(entity)
 
-                Log.i(TAG, "Created task: ${task.id} - ${task.title}")
+                Timber.i("Created task: ${task.id} - ${task.title}")
 
                 scope.launch {
                     _taskEvents.emit(TaskEvent.Created(task))
@@ -235,7 +232,7 @@ class TaskRepository @Inject constructor(
 
                 Result.success(task)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to create task", e)
+                Timber.e(e, "Failed to create task")
                 Result.failure(e)
             }
         }
@@ -266,7 +263,7 @@ class TaskRepository @Inject constructor(
 
                 taskDao.updateTask(TaskMapper.toEntity(updated))
 
-                Log.i(TAG, "Updated task: $taskId")
+                Timber.i("Updated task: $taskId")
 
                 scope.launch {
                     _taskEvents.emit(TaskEvent.Updated(updated))
@@ -274,7 +271,7 @@ class TaskRepository @Inject constructor(
 
                 Result.success(updated)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update task: $taskId", e)
+                Timber.e(e, "Failed to update task: $taskId")
                 Result.failure(e)
             }
         }
@@ -289,7 +286,7 @@ class TaskRepository @Inject constructor(
                 val updated = task.copy(updatedAt = System.currentTimeMillis())
                 taskDao.updateTask(TaskMapper.toEntity(updated))
 
-                Log.i(TAG, "Updated task: ${task.id}")
+                Timber.i("Updated task: ${task.id}")
 
                 scope.launch {
                     _taskEvents.emit(TaskEvent.Updated(updated))
@@ -297,7 +294,7 @@ class TaskRepository @Inject constructor(
 
                 Result.success(updated)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update task: ${task.id}", e)
+                Timber.e(e, "Failed to update task: ${task.id}")
                 Result.failure(e)
             }
         }
@@ -319,7 +316,7 @@ class TaskRepository @Inject constructor(
                     completedAt = completedAt
                 )
 
-                Log.i(TAG, "Updated task status: $taskId -> ${status.value}")
+                Timber.i("Updated task status: $taskId -> ${status.value}")
 
                 scope.launch {
                     _taskEvents.emit(TaskEvent.StatusChanged(taskId, status))
@@ -327,7 +324,7 @@ class TaskRepository @Inject constructor(
 
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update task status: $taskId", e)
+                Timber.e(e, "Failed to update task status: $taskId")
                 Result.failure(e)
             }
         }
@@ -363,7 +360,7 @@ class TaskRepository @Inject constructor(
 
                 taskDao.updateTask(TaskMapper.toEntity(updatedTask))
 
-                Log.i(TAG, "Toggled step completion: $taskId/$stepId")
+                Timber.i("Toggled step completion: $taskId/$stepId")
 
                 scope.launch {
                     _taskEvents.emit(TaskEvent.Updated(updatedTask))
@@ -371,7 +368,7 @@ class TaskRepository @Inject constructor(
 
                 Result.success(updatedTask)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to toggle step: $taskId/$stepId", e)
+                Timber.e(e, "Failed to toggle step: $taskId/$stepId")
                 Result.failure(e)
             }
         }
@@ -400,7 +397,7 @@ class TaskRepository @Inject constructor(
 
                 taskDao.updateTask(TaskMapper.toEntity(updatedTask))
 
-                Log.i(TAG, "Added step to task: $taskId")
+                Timber.i("Added step to task: $taskId")
 
                 scope.launch {
                     _taskEvents.emit(TaskEvent.Updated(updatedTask))
@@ -408,7 +405,7 @@ class TaskRepository @Inject constructor(
 
                 Result.success(updatedTask)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to add step: $taskId", e)
+                Timber.e(e, "Failed to add step: $taskId")
                 Result.failure(e)
             }
         }
@@ -431,7 +428,7 @@ class TaskRepository @Inject constructor(
 
                 taskDao.updateTask(TaskMapper.toEntity(updatedTask))
 
-                Log.i(TAG, "Removed step from task: $taskId/$stepId")
+                Timber.i("Removed step from task: $taskId/$stepId")
 
                 scope.launch {
                     _taskEvents.emit(TaskEvent.Updated(updatedTask))
@@ -439,7 +436,7 @@ class TaskRepository @Inject constructor(
 
                 Result.success(updatedTask)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to remove step: $taskId/$stepId", e)
+                Timber.e(e, "Failed to remove step: $taskId/$stepId")
                 Result.failure(e)
             }
         }
@@ -455,7 +452,7 @@ class TaskRepository @Inject constructor(
             try {
                 taskDao.deleteTask(taskId)
 
-                Log.i(TAG, "Deleted task: $taskId")
+                Timber.i("Deleted task: $taskId")
 
                 scope.launch {
                     _taskEvents.emit(TaskEvent.Deleted(taskId))
@@ -463,7 +460,7 @@ class TaskRepository @Inject constructor(
 
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete task: $taskId", e)
+                Timber.e(e, "Failed to delete task: $taskId")
                 Result.failure(e)
             }
         }
@@ -493,7 +490,7 @@ class TaskRepository @Inject constructor(
                     overdue = overdue
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to get task stats", e)
+                Timber.e(e, "Failed to get task stats")
                 TaskStats()
             }
         }

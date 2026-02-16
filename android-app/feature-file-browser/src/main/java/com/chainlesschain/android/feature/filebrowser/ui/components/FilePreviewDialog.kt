@@ -158,7 +158,7 @@ fun FilePreviewDialog(
                                     }
                                     context.startActivity(intent)
                                 } catch (e: Exception) {
-                                    android.util.Log.e("FilePreviewDialog", "Error opening file location", e)
+                                    timber.log.Timber.e(e, "Error opening file location")
                                 }
                             }
                         ) {
@@ -176,7 +176,7 @@ fun FilePreviewDialog(
                                     }
                                     context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.preview_share_file)))
                                 } catch (e: Exception) {
-                                    android.util.Log.e("FilePreviewDialog", "Error sharing file", e)
+                                    timber.log.Timber.e(e, "Error sharing file")
                                 }
                             }
                         ) {
@@ -291,12 +291,12 @@ fun FilePreviewDialog(
                             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                                 outputStream.write(editedText.toByteArray())
                             }
-                            android.util.Log.i("FilePreviewDialog", "OCR text saved via MediaStore: $fileName")
+                            timber.log.Timber.i("OCR text saved via MediaStore: $fileName")
                         } else {
-                            android.util.Log.e("FilePreviewDialog", "Failed to create MediaStore entry")
+                            timber.log.Timber.e("Failed to create MediaStore entry")
                         }
                     } catch (e: Exception) {
-                        android.util.Log.e("FilePreviewDialog", "Error saving OCR text", e)
+                        timber.log.Timber.e(e, "Error saving OCR text")
                     }
                 }
             }
@@ -560,24 +560,25 @@ private suspend fun loadTextContent(
 ): String? = withContext(Dispatchers.IO) {
     try {
         contentResolver.openInputStream(Uri.parse(uri))?.use { inputStream ->
-            val reader = BufferedReader(InputStreamReader(inputStream))
-            val content = StringBuilder()
-            var lineCount = 0
+            BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                val content = StringBuilder()
+                var lineCount = 0
 
-            reader.forEachLine { line ->
-                if (lineCount < maxLines) {
-                    content.appendLine(line)
-                    lineCount++
-                } else {
-                    return@forEachLine
+                reader.forEachLine { line ->
+                    if (lineCount < maxLines) {
+                        content.appendLine(line)
+                        lineCount++
+                    } else {
+                        return@forEachLine
+                    }
                 }
-            }
 
-            if (lineCount >= maxLines && truncationMessage != null) {
-                content.appendLine(truncationMessage)
-            }
+                if (lineCount >= maxLines && truncationMessage != null) {
+                    content.appendLine(truncationMessage)
+                }
 
-            content.toString()
+                content.toString()
+            }
         }
     } catch (e: Exception) {
         null

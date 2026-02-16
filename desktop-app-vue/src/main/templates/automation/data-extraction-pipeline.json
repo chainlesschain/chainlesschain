@@ -1,0 +1,74 @@
+{
+  "id": "tpl_demo_extract_001",
+  "name": "data_extraction_pipeline",
+  "display_name": "数据采集流水线",
+  "description": "演示网页数据采集和工作流自动化技能，从多个页面采集结构化数据并导出",
+  "icon": "🔄",
+  "category": "automation",
+  "subcategory": "data",
+  "tags": ["scraping", "data", "pipeline", "extraction", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个数据采集流水线：\n\n**采集目标：** {{targetDescription}}\n**数据源网址：** {{sourceUrl}}\n**提取类型：** {{extractType}}\n**输出格式：** {{outputFormat}}\n\n**流水线步骤：**\n\n1. **导航到数据源**\n   ```\n   /browser-automation navigate {{sourceUrl}}\n   ```\n\n2. **分析页面结构**\n   ```\n   /web-scraping all {{sourceUrl}}\n   ```\n\n3. **提取目标数据**\n   ```\n   {{#eq extractType \"表格数据\"}}\n   /web-scraping tables {{sourceUrl}}\n   {{/eq}}\n   {{#eq extractType \"链接列表\"}}\n   /web-scraping links {{sourceUrl}}\n   {{/eq}}\n   {{#eq extractType \"文本内容\"}}\n   /web-scraping text {{sourceUrl}}\n   {{/eq}}\n   {{#eq extractType \"自定义选择器\"}}\n   /web-scraping custom \"{{customSelector}}\" {{sourceUrl}}\n   {{/eq}}\n   ```\n\n4. **数据清洗和格式化**\n   - 去除空值和重复项\n   - 标准化字段格式\n   - 添加采集时间戳\n\n5. **导出数据**\n   - 格式：{{outputFormat}}\n   - 文件名：data_export_{{currentDate}}.{{#eq outputFormat \"JSON\"}}json{{else}}csv{{/eq}}\n\n6. **记录采集日志**\n   ```\n   /memory-management save \"数据采集完成: {{targetDescription}}, 来源: {{sourceUrl}}\"\n   ```\n\n**使用的技能：** web-scraping, browser-automation, workflow-automation, memory-management",
+  "variables_schema": [
+    {
+      "name": "targetDescription",
+      "label": "采集目标描述",
+      "type": "string",
+      "required": true,
+      "placeholder": "例如：商品价格列表"
+    },
+    {
+      "name": "sourceUrl",
+      "label": "数据源网址",
+      "type": "string",
+      "required": true,
+      "placeholder": "https://example.com/data"
+    },
+    {
+      "name": "extractType",
+      "label": "提取类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "表格数据", "label": "表格数据" },
+        { "value": "链接列表", "label": "链接列表" },
+        { "value": "文本内容", "label": "文本内容" },
+        { "value": "自定义选择器", "label": "自定义CSS选择器" }
+      ]
+    },
+    {
+      "name": "customSelector",
+      "label": "CSS选择器（自定义时填写）",
+      "type": "string",
+      "required": false,
+      "placeholder": ".product-card, table.data"
+    },
+    {
+      "name": "outputFormat",
+      "label": "输出格式",
+      "type": "select",
+      "required": false,
+      "default": "JSON",
+      "options": [
+        { "value": "JSON", "label": "JSON" },
+        { "value": "CSV", "label": "CSV" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": [
+    "web-scraping",
+    "browser-automation",
+    "workflow-automation",
+    "memory-management"
+  ],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

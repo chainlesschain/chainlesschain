@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.repository
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.entity.MessageSendStatus
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
@@ -36,10 +36,6 @@ class P2PMessageRepository @Inject constructor(
     private val sessionManager: PersistentSessionManager,
     private val connectionManager: P2PConnectionManager
 ) {
-    companion object {
-        private const val TAG = "P2PMessageRepository"
-    }
-
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
     private var observeJob: Job? = null
@@ -88,7 +84,7 @@ class P2PMessageRepository @Inject constructor(
         content: String
     ): Result<P2PMessageEntity> {
         return try {
-            Log.d(TAG, "Sending message to peer: $peerId")
+            Timber.d("Sending message to peer: $peerId")
 
             // 检查是否有会话
             if (!sessionManager.hasSession(peerId)) {
@@ -139,11 +135,11 @@ class P2PMessageRepository @Inject constructor(
             // 更新发送状态
             p2pMessageDao.updateSendStatus(messageId, MessageSendStatus.SENT)
 
-            Log.d(TAG, "Message sent successfully: $messageId")
+            Timber.d("Message sent successfully: $messageId")
             Result.success(messageEntity.copy(sendStatus = MessageSendStatus.SENT))
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send message", e)
+            Timber.e(e, "Failed to send message")
             Result.failure(e)
         }
     }
@@ -153,7 +149,7 @@ class P2PMessageRepository @Inject constructor(
      */
     suspend fun receiveMessage(p2pMessage: P2PMessage, localDeviceId: String): Result<P2PMessageEntity> {
         return try {
-            Log.d(TAG, "Receiving message from: ${p2pMessage.fromDeviceId}")
+            Timber.d("Receiving message from: ${p2pMessage.fromDeviceId}")
 
             val peerId = p2pMessage.fromDeviceId
 
@@ -193,11 +189,11 @@ class P2PMessageRepository @Inject constructor(
                 sendAck(p2pMessage.id, peerId, localDeviceId)
             }
 
-            Log.d(TAG, "Message received and processed: ${p2pMessage.id}")
+            Timber.d("Message received and processed: ${p2pMessage.id}")
             Result.success(messageEntity)
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to receive message", e)
+            Timber.e(e, "Failed to receive message")
             Result.failure(e)
         }
     }
@@ -219,9 +215,9 @@ class P2PMessageRepository @Inject constructor(
             )
 
             connectionManager.sendMessage(toPeerId, ackMessage)
-            Log.d(TAG, "ACK sent for message: $messageId")
+            Timber.d("ACK sent for message: $messageId")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send ACK", e)
+            Timber.e(e, "Failed to send ACK")
         }
     }
 
@@ -231,9 +227,9 @@ class P2PMessageRepository @Inject constructor(
     suspend fun handleAck(messageId: String) {
         try {
             p2pMessageDao.markAsAcknowledged(messageId)
-            Log.d(TAG, "Message acknowledged: $messageId")
+            Timber.d("Message acknowledged: $messageId")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle ACK", e)
+            Timber.e(e, "Failed to handle ACK")
         }
     }
 
@@ -278,7 +274,7 @@ class P2PMessageRepository @Inject constructor(
                 connectionManager.sendMessage(peerId, p2pMessage)
                 p2pMessageDao.updateSendStatus(message.id, MessageSendStatus.SENT)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to retry message: ${message.id}", e)
+                Timber.e(e, "Failed to retry message: ${message.id}")
             }
         }
     }
@@ -296,10 +292,10 @@ class P2PMessageRepository @Inject constructor(
                     MessageType.TEXT -> {
                         // 由ViewModel调用receiveMessage处理
                         // 这里只是记录日志
-                        Log.d(TAG, "Received text message from network: ${p2pMessage.id}")
+                        Timber.d("Received text message from network: ${p2pMessage.id}")
                     }
                     else -> {
-                        Log.d(TAG, "Received message of type: ${p2pMessage.type}")
+                        Timber.d("Received message of type: ${p2pMessage.type}")
                     }
                 }
             }
@@ -333,9 +329,9 @@ class P2PMessageRepository @Inject constructor(
         try {
             val entity = json.decodeFromString<P2PMessageEntity>(data)
             p2pMessageDao.insertMessage(entity)
-            Log.d(TAG, "Message saved from sync: $resourceId")
+            Timber.d("Message saved from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save message from sync: $resourceId", e)
+            Timber.e(e, "Failed to save message from sync: $resourceId")
         }
     }
 
@@ -343,18 +339,18 @@ class P2PMessageRepository @Inject constructor(
         try {
             val entity = json.decodeFromString<P2PMessageEntity>(data)
             p2pMessageDao.insertMessage(entity)
-            Log.d(TAG, "Message updated from sync: $resourceId")
+            Timber.d("Message updated from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to update message from sync: $resourceId", e)
+            Timber.e(e, "Failed to update message from sync: $resourceId")
         }
     }
 
     suspend fun deleteMessageFromSync(resourceId: String) {
         try {
             p2pMessageDao.deleteMessageById(resourceId)
-            Log.d(TAG, "Message deleted from sync: $resourceId")
+            Timber.d("Message deleted from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete message from sync: $resourceId", e)
+            Timber.e(e, "Failed to delete message from sync: $resourceId")
         }
     }
 

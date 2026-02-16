@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.filetransfer
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileTransferMetadata
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileTransferStatus
 import com.chainlesschain.android.core.p2p.filetransfer.model.NetworkType
@@ -56,10 +56,6 @@ class NetworkAwareTransferController @Inject constructor(
     private val fileTransferManager: FileTransferManager,
     private val progressTracker: TransferProgressTracker
 ) {
-    companion object {
-        private const val TAG = "NetworkAwareTransfer"
-    }
-
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     // 当前网络状态
@@ -92,7 +88,7 @@ class NetworkAwareTransferController @Inject constructor(
      */
     fun setTransferPolicy(policy: TransferPolicy) {
         _transferPolicy.value = policy
-        Log.i(TAG, "Transfer policy set to: $policy")
+        Timber.i("Transfer policy set to: $policy")
 
         when (policy) {
             TransferPolicy.PAUSE_ALL -> pauseAllTransfers("Policy changed to PAUSE_ALL")
@@ -112,7 +108,7 @@ class NetworkAwareTransferController @Inject constructor(
      */
     fun setPauseOnMetered(enabled: Boolean) {
         pauseOnMetered = enabled
-        Log.i(TAG, "Pause on metered: $enabled")
+        Timber.i("Pause on metered: $enabled")
 
         if (enabled) {
             val currentState = _currentNetworkState.value
@@ -127,7 +123,7 @@ class NetworkAwareTransferController @Inject constructor(
      */
     fun setAutoResumeOnUnmetered(enabled: Boolean) {
         autoResumeOnUnmetered = enabled
-        Log.i(TAG, "Auto resume on unmetered: $enabled")
+        Timber.i("Auto resume on unmetered: $enabled")
     }
 
     /**
@@ -208,7 +204,7 @@ class NetworkAwareTransferController @Inject constructor(
                 _currentNetworkState.value = newState
                 _networkEvents.emit(newState)
 
-                Log.i(TAG, "Network connected: $networkType, metered: $isMetered")
+                Timber.i("Network connected: $networkType, metered: $isMetered")
 
                 if (previousState is NetworkStateEvent.Unavailable) {
                     handleNetworkRestored(networkType, isMetered)
@@ -230,7 +226,7 @@ class NetworkAwareTransferController @Inject constructor(
                 val networkType = mapNetworkTypeFromInfo(event.networkInfo.type)
                 val isMetered = event.networkInfo.isMetered
 
-                Log.i(TAG, "Network available: $networkType, metered: $isMetered")
+                Timber.i("Network available: $networkType, metered: $isMetered")
             }
             is com.chainlesschain.android.core.p2p.network.NetworkEvent.Lost,
             is com.chainlesschain.android.core.p2p.network.NetworkEvent.Unavailable -> {
@@ -258,7 +254,7 @@ class NetworkAwareTransferController @Inject constructor(
     }
 
     private fun handleNetworkLost() {
-        Log.w(TAG, "Network lost")
+        Timber.w("Network lost")
 
         _currentNetworkState.value = NetworkStateEvent.Unavailable
 
@@ -293,11 +289,11 @@ class NetworkAwareTransferController @Inject constructor(
             }
         }
 
-        Log.i(TAG, "Metered status changed: $isMetered")
+        Timber.i("Metered status changed: $isMetered")
     }
 
     private fun handleNetworkRestored(networkType: NetworkType, isMetered: Boolean) {
-        Log.i(TAG, "Network restored: $networkType, metered: $isMetered")
+        Timber.i("Network restored: $networkType, metered: $isMetered")
 
         // 检查策略是否允许恢复
         val shouldResume = when (_transferPolicy.value) {
@@ -313,7 +309,7 @@ class NetworkAwareTransferController @Inject constructor(
     }
 
     private fun pauseAllTransfers(reason: String) {
-        Log.i(TAG, "Pausing all transfers: $reason")
+        Timber.i("Pausing all transfers: $reason")
 
         scope.launch {
             val activeTransfers = progressTracker.getAllActiveTransfers().keys
@@ -323,18 +319,18 @@ class NetworkAwareTransferController @Inject constructor(
                 if (progress?.status == FileTransferStatus.TRANSFERRING) {
                     fileTransferManager.pauseTransfer(transferId)
                     networkPausedTransfers.add(transferId)
-                    Log.d(TAG, "Paused transfer: $transferId")
+                    Timber.d("Paused transfer: $transferId")
                 }
             }
 
-            Log.i(TAG, "Paused ${networkPausedTransfers.size} transfers due to: $reason")
+            Timber.i("Paused ${networkPausedTransfers.size} transfers due to: $reason")
         }
     }
 
     private fun resumeNetworkPausedTransfers() {
         if (networkPausedTransfers.isEmpty()) return
 
-        Log.i(TAG, "Resuming ${networkPausedTransfers.size} network-paused transfers")
+        Timber.i("Resuming ${networkPausedTransfers.size} network-paused transfers")
 
         scope.launch {
             val toResume = networkPausedTransfers.toList()
@@ -343,9 +339,9 @@ class NetworkAwareTransferController @Inject constructor(
             for (transferId in toResume) {
                 try {
                     fileTransferManager.resumeTransfer(transferId)
-                    Log.d(TAG, "Resumed transfer: $transferId")
+                    Timber.d("Resumed transfer: $transferId")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to resume transfer: $transferId", e)
+                    Timber.e(e, "Failed to resume transfer: $transferId")
                 }
             }
         }

@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain-desktop-vue",
-  "version": "0.34.10",
+  "version": "0.36.0",
   "description": "ChainlessChain桌面应用 - 基于Electron和Vue3的个人AI知识库",
   "main": "dist/main/index.js",
   "scripts": {

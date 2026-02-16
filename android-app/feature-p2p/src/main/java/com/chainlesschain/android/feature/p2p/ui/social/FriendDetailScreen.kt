@@ -1,29 +1,19 @@
 package com.chainlesschain.android.feature.p2p.ui.social
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
-import androidx.compose.foundation.clickable
 import androidx.compose.runtime.*
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.clickable
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.p2p.realtime.PresenceStatus
 import com.chainlesschain.android.core.ui.components.EmptyState
@@ -107,7 +97,7 @@ fun FriendDetailScreen(
                 )
             }
             else -> {
-                val friend = uiState.friend!!
+                val friend = uiState.friend ?: return@Scaffold
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -227,7 +217,7 @@ fun FriendDetailScreen(
 
     // 备注名对话框
     if (uiState.showRemarkDialog && uiState.friend != null) {
-        var remarkName by remember { mutableStateOf(uiState.friend!!.remarkName ?: "") }
+        var remarkName by remember { mutableStateOf(uiState.friend?.remarkName ?: "") }
 
         AlertDialog(
             onDismissRequest = { viewModel.hideRemarkDialog() },
@@ -237,7 +227,7 @@ fun FriendDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "昵称: ${uiState.friend!!.nickname}",
+                        text = "昵称: ${uiState.friend?.nickname ?: ""}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

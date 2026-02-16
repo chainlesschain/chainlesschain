@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.database.migration
 
-import android.util.Log
+import timber.log.Timber
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
@@ -14,8 +14,6 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * - 迁移不能删除用户数据（除非明确要求）
  */
 object DatabaseMigrations {
-
-    private const val TAG = "DatabaseMigrations"
 
     /**
      * 获取所有迁移
@@ -53,7 +51,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 1 to 2")
+            Timber.i("Migrating database from version 1 to 2")
 
             // 创建 p2p_messages 表
             db.execSQL("""
@@ -78,7 +76,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_p2p_messages_timestamp` ON `p2p_messages` (`timestamp`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_p2p_messages_peerId_timestamp` ON `p2p_messages` (`peerId`, `timestamp`)")
 
-            Log.i(TAG, "Migration 1 to 2 completed successfully")
+            Timber.i("Migration 1 to 2 completed successfully")
         }
     }
 
@@ -90,7 +88,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_2_3 = object : Migration(2, 3) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 2 to 3")
+            Timber.i("Migrating database from version 2 to 3")
 
             // 为 p2p_messages 添加撤回状态字段
             db.execSQL("""
@@ -110,7 +108,7 @@ object DatabaseMigrations {
                 ADD COLUMN `embedding` TEXT
             """.trimIndent())
 
-            Log.i(TAG, "Migration 2 to 3 completed successfully")
+            Timber.i("Migration 2 to 3 completed successfully")
         }
     }
 
@@ -121,7 +119,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_3_4 = object : Migration(3, 4) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 3 to 4")
+            Timber.i("Migrating database from version 3 to 4")
 
             // 创建 offline_message_queue 表
             db.execSQL("""
@@ -147,7 +145,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_offline_message_queue_status_createdAt` ON `offline_message_queue` (`status`, `createdAt`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_offline_message_queue_priority_createdAt` ON `offline_message_queue` (`priority`, `createdAt`)")
 
-            Log.i(TAG, "Migration 3 to 4 completed successfully")
+            Timber.i("Migration 3 to 4 completed successfully")
         }
     }
 
@@ -158,7 +156,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_4_5 = object : Migration(4, 5) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 4 to 5")
+            Timber.i("Migrating database from version 4 to 5")
 
             // 创建 file_transfers 表
             db.execSQL("""
@@ -193,7 +191,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId_status` ON `file_transfers` (`peerId`, `status`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId_createdAt` ON `file_transfers` (`peerId`, `createdAt`)")
 
-            Log.i(TAG, "Migration 4 to 5 completed successfully")
+            Timber.i("Migration 4 to 5 completed successfully")
         }
     }
 
@@ -204,7 +202,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_5_6 = object : Migration(5, 6) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 5 to 6")
+            Timber.i("Migrating database from version 5 to 6")
 
             // 创建 projects 表
             db.execSQL("""
@@ -296,7 +294,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_activities_projectId` ON `project_activities` (`projectId`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_activities_createdAt` ON `project_activities` (`createdAt`)")
 
-            Log.i(TAG, "Migration 5 to 6 completed successfully")
+            Timber.i("Migration 5 to 6 completed successfully")
         }
     }
 
@@ -307,7 +305,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_6_7 = object : Migration(6, 7) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 6 to 7")
+            Timber.i("Migrating database from version 6 to 7")
 
             // 创建 FTS4 虚拟表用于知识库全文搜索
             // 使用 content= 指向 knowledge_items 表实现外部内容同步
@@ -350,7 +348,7 @@ object DatabaseMigrations {
             // 初始填充 FTS 表（重建索引）
             db.execSQL("INSERT INTO knowledge_items_fts(knowledge_items_fts) VALUES('rebuild')")
 
-            Log.i(TAG, "Migration 6 to 7 completed successfully")
+            Timber.i("Migration 6 to 7 completed successfully")
         }
     }
 
@@ -361,7 +359,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_7_8 = object : Migration(7, 8) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 7 to 8")
+            Timber.i("Migrating database from version 7 to 8")
 
             // 创建 project_chat_messages 表
             db.execSQL("""
@@ -387,7 +385,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_chat_messages_createdAt` ON `project_chat_messages` (`createdAt`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_chat_messages_projectId_createdAt` ON `project_chat_messages` (`projectId`, `createdAt`)")
 
-            Log.i(TAG, "Migration 7 to 8 completed successfully")
+            Timber.i("Migration 7 to 8 completed successfully")
         }
     }
 
@@ -398,7 +396,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_8_9 = object : Migration(8, 9) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 8 to 9")
+            Timber.i("Migrating database from version 8 to 9")
 
             // 添加消息类型字段
             db.execSQL("""
@@ -436,7 +434,7 @@ object DatabaseMigrations {
                 ADD COLUMN `metadata` TEXT
             """.trimIndent())
 
-            Log.i(TAG, "Migration 8 to 9 completed successfully")
+            Timber.i("Migration 8 to 9 completed successfully")
         }
     }
 
@@ -447,7 +445,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_9_10 = object : Migration(9, 10) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 9 to 10")
+            Timber.i("Migrating database from version 9 to 10")
 
             // 创建项目文件 FTS4 虚拟表
             db.execSQL("""
@@ -489,7 +487,7 @@ object DatabaseMigrations {
             // 初始填充 FTS 表
             db.execSQL("INSERT INTO project_files_fts(project_files_fts) VALUES('rebuild')")
 
-            Log.i(TAG, "Migration 9 to 10 completed successfully")
+            Timber.i("Migration 9 to 10 completed successfully")
         }
     }
 
@@ -500,7 +498,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_10_11 = object : Migration(10, 11) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 10 to 11")
+            Timber.i("Migrating database from version 10 to 11")
 
             // 创建 external_files 表
             db.execSQL("""
@@ -556,7 +554,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_import_history_importedFrom` ON `file_import_history` (`importedFrom`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_import_history_projectFileId` ON `file_import_history` (`projectFileId`)")
 
-            Log.i(TAG, "Migration 10 to 11 completed successfully")
+            Timber.i("Migration 10 to 11 completed successfully")
         }
     }
 
@@ -567,7 +565,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_11_12 = object : Migration(11, 12) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 11 to 12")
+            Timber.i("Migrating database from version 11 to 12")
 
             // 创建 transfer_queue 表
             db.execSQL("""
@@ -597,7 +595,7 @@ object DatabaseMigrations {
                 )
             """.trimIndent())
 
-            Log.i(TAG, "Migration 11 to 12 completed successfully")
+            Timber.i("Migration 11 to 12 completed successfully")
         }
     }
 
@@ -608,16 +606,16 @@ object DatabaseMigrations {
      */
     val MIGRATION_12_13 = object : Migration(12, 13) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 12 to 13")
+            Timber.i("Migrating database from version 12 to 13")
 
             // 添加项目相关新字段（如果之前版本没有）
             try {
                 db.execSQL("ALTER TABLE `projects` ADD COLUMN `lastViewedFileId` TEXT")
             } catch (e: Exception) {
-                Log.w(TAG, "Column lastViewedFileId may already exist", e)
+                Timber.w(e, "Column lastViewedFileId may already exist")
             }
 
-            Log.i(TAG, "Migration 12 to 13 completed successfully")
+            Timber.i("Migration 12 to 13 completed successfully")
         }
     }
 
@@ -628,7 +626,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_13_14 = object : Migration(13, 14) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 13 to 14")
+            Timber.i("Migrating database from version 13 to 14")
 
             // ===== 创建好友相关表 =====
 
@@ -775,7 +773,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_createdAt` ON `notifications` (`createdAt`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_actorDid` ON `notifications` (`actorDid`)")
 
-            Log.i(TAG, "Migration 13 to 14 completed successfully")
+            Timber.i("Migration 13 to 14 completed successfully")
         }
     }
 
@@ -786,7 +784,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_14_15 = object : Migration(14, 15) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 14 to 15")
+            Timber.i("Migrating database from version 14 to 15")
 
             // 创建 post_reports 表（举报动态）
             db.execSQL("""
@@ -826,7 +824,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_blocked_users_blockerDid` ON `blocked_users` (`blockerDid`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_blocked_users_createdAt` ON `blocked_users` (`createdAt`)")
 
-            Log.i(TAG, "Migration 14 to 15 completed successfully")
+            Timber.i("Migration 14 to 15 completed successfully")
         }
     }
 
@@ -839,7 +837,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_15_16 = object : Migration(15, 16) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 15 to 16")
+            Timber.i("Migrating database from version 15 to 16")
 
             // 创建 post_edit_history 表
             db.execSQL("""
@@ -862,7 +860,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_editedAt` ON `post_edit_history` (`editedAt`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_postId_editedAt` ON `post_edit_history` (`postId`, `editedAt`)")
 
-            Log.i(TAG, "Migration 15 to 16 completed successfully")
+            Timber.i("Migration 15 to 16 completed successfully")
         }
     }
 
@@ -873,7 +871,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_16_17 = object : Migration(16, 17) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 16 to 17")
+            Timber.i("Migrating database from version 16 to 17")
 
             // 创建 call_history 表
             db.execSQL("""
@@ -899,7 +897,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_call_type` ON `call_history` (`call_type`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_media_type` ON `call_history` (`media_type`)")
 
-            Log.i(TAG, "Migration 16 to 17 completed successfully")
+            Timber.i("Migration 16 to 17 completed successfully")
         }
     }
 
@@ -910,7 +908,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_17_18 = object : Migration(17, 18) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 17 to 18")
+            Timber.i("Migrating database from version 17 to 18")
 
             // 创建 moderation_queue 表
             db.execSQL("""
@@ -941,7 +939,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_content_type` ON `moderation_queue` (`content_type`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_author_did` ON `moderation_queue` (`author_did`)")
 
-            Log.i(TAG, "Migration 17 to 18 completed successfully")
+            Timber.i("Migration 17 to 18 completed successfully")
         }
     }
 
@@ -954,7 +952,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_18_19 = object : Migration(18, 19) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 18 to 19")
+            Timber.i("Migrating database from version 18 to 19")
 
             // 先删除可能存在的损坏的表
             db.execSQL("DROP TABLE IF EXISTS `post_bookmarks`")
@@ -975,7 +973,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_post_bookmarks_postId_userDid` ON `post_bookmarks` (`postId`, `userDid`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_bookmarks_createdAt` ON `post_bookmarks` (`createdAt`)")
 
-            Log.i(TAG, "Migration 18 to 19 completed successfully")
+            Timber.i("Migration 18 to 19 completed successfully")
         }
     }
 
@@ -988,7 +986,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_19_20 = object : Migration(19, 20) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 19 to 20")
+            Timber.i("Migrating database from version 19 to 20")
 
             // 创建 tasks 表
             db.execSQL("""
@@ -1021,7 +1019,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_dueDate` ON `tasks` (`dueDate`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_createdAt` ON `tasks` (`createdAt`)")
 
-            Log.i(TAG, "Migration 19 to 20 completed successfully")
+            Timber.i("Migration 19 to 20 completed successfully")
         }
     }
 
@@ -1032,14 +1030,14 @@ object DatabaseMigrations {
      */
     val MIGRATION_20_21 = object : Migration(20, 21) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 20 to 21")
+            Timber.i("Migrating database from version 20 to 21")
 
             db.execSQL("""
                 ALTER TABLE `transfer_queue`
                 ADD COLUMN `fileUri` TEXT
             """.trimIndent())
 
-            Log.i(TAG, "Migration 20 to 21 completed successfully")
+            Timber.i("Migration 20 to 21 completed successfully")
         }
     }
 
@@ -1052,7 +1050,7 @@ object DatabaseMigrations {
      */
     val MIGRATION_21_22 = object : Migration(21, 22) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            Log.i(TAG, "Migrating database from version 21 to 22")
+            Timber.i("Migrating database from version 21 to 22")
 
             // 创建 vector_embeddings 表
             db.execSQL("""
@@ -1077,7 +1075,7 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_vector_embeddings_createdAt` ON `vector_embeddings` (`createdAt`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_vector_embeddings_namespace_createdAt` ON `vector_embeddings` (`namespace`, `createdAt`)")
 
-            Log.i(TAG, "Migration 21 to 22 completed successfully")
+            Timber.i("Migration 21 to 22 completed successfully")
         }
     }
 
@@ -1087,27 +1085,27 @@ object DatabaseMigrations {
     class MigrationCallback : androidx.room.RoomDatabase.Callback() {
         override fun onOpen(db: SupportSQLiteDatabase) {
             super.onOpen(db)
-            Log.d(TAG, "Database opened, version: ${db.version}")
+            Timber.d("Database opened, version: ${db.version}")
 
             // SQLCipher 不允许在 onOpen 中使用 execSQL 执行 PRAGMA
             // 使用 query 方法代替
             try {
                 db.query("PRAGMA journal_mode=WAL").use { }
                 db.query("PRAGMA foreign_keys=ON").use { }
-                Log.d(TAG, "PRAGMA settings applied successfully")
+                Timber.d("PRAGMA settings applied successfully")
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to apply PRAGMA settings: ${e.message}")
+                Timber.w("Failed to apply PRAGMA settings: ${e.message}")
             }
         }
 
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
-            Log.d(TAG, "Database created, version: ${db.version}")
+            Timber.d("Database created, version: ${db.version}")
         }
 
         override fun onDestructiveMigration(db: SupportSQLiteDatabase) {
             super.onDestructiveMigration(db)
-            Log.w(TAG, "Destructive migration performed! Data may have been lost.")
+            Timber.w("Destructive migration performed! Data may have been lost.")
         }
     }
 }

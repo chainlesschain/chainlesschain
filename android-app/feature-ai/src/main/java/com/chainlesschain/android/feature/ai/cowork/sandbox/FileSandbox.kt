@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.cowork.sandbox
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -20,8 +20,6 @@ import javax.inject.Singleton
 class FileSandbox @Inject constructor() {
 
     companion object {
-        private const val TAG = "FileSandbox"
-
         /**
          * Sensitive file patterns that are always blocked
          */
@@ -83,7 +81,7 @@ class FileSandbox @Inject constructor() {
     ) {
         val agentPerms = permissions.getOrPut(agentId) { mutableMapOf() }
         agentPerms[normalizeBasePath(basePath)] = permission
-        Log.d(TAG, "Granted $permission to agent $agentId for $basePath")
+        Timber.d("Granted $permission to agent $agentId for $basePath")
     }
 
     /**
@@ -91,7 +89,7 @@ class FileSandbox @Inject constructor() {
      */
     fun revokeAllPermissions(agentId: String) {
         permissions.remove(agentId)
-        Log.d(TAG, "Revoked all permissions from agent $agentId")
+        Timber.d("Revoked all permissions from agent $agentId")
     }
 
     /**
@@ -267,7 +265,7 @@ class FileSandbox @Inject constructor() {
     fun addSensitivePattern(pattern: String) {
         // This would require making SENSITIVE_PATTERNS mutable
         // For now, log a warning
-        Log.w(TAG, "Custom sensitive patterns not yet supported: $pattern")
+        Timber.w("Custom sensitive patterns not yet supported: $pattern")
     }
 
     // ===== Audit Log =====
@@ -323,7 +321,7 @@ class FileSandbox @Inject constructor() {
         }
 
         if (!allowed) {
-            Log.w(TAG, "Denied $operation on $filePath for agent $agentId: $denialReason")
+            Timber.w("Denied $operation on $filePath for agent $agentId: $denialReason")
         }
     }
 

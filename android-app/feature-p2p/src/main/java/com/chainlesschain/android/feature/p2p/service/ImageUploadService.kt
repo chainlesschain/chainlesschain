@@ -251,13 +251,13 @@ class ImageUploadService @Inject constructor(
                 json.optString("url", json.optString("fileUrl", "file://${file.absolutePath}"))
             } else {
                 // Server not available, fall back to local file URI
-                android.util.Log.w("ImageUploadService",
+                timber.log.Timber.w(
                     "Upload server returned ${response.code}, using local path")
                 "file://${file.absolutePath}"
             }
         } catch (e: java.io.IOException) {
             // Network error, fall back to local file URI
-            android.util.Log.w("ImageUploadService",
+            timber.log.Timber.w(
                 "Upload failed (${e.message}), using local path")
             "file://${file.absolutePath}"
         } finally {

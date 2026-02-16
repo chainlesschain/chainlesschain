@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.e2ee.session
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.PreKeyBundle
@@ -25,10 +25,6 @@ import javax.inject.Singleton
 class PersistentSessionManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-
-    companion object {
-        private const val TAG = "PersistentSessionManager"
-    }
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val sessionStorage = SessionStorage(context)
@@ -73,22 +69,22 @@ class PersistentSessionManager @Inject constructor(
         enableRotation: Boolean = true
     ) = withContext(Dispatchers.IO) {
         if (isInitialized) {
-            Log.w(TAG, "Session manager already initialized")
+            Timber.w("Session manager already initialized")
             return@withContext
         }
 
-        Log.i(TAG, "Initializing persistent session manager")
+        Timber.i("Initializing persistent session manager")
 
         try {
             // 尝试加载保存的密钥
             val savedKeys = sessionStorage.loadIdentityKeys()
 
             if (savedKeys != null) {
-                Log.d(TAG, "Loaded saved identity keys")
+                Timber.d("Loaded saved identity keys")
                 identityKeyPair = savedKeys.first
                 signedPreKeyPair = savedKeys.second
             } else {
-                Log.d(TAG, "Generating new identity keys")
+                Timber.d("Generating new identity keys")
                 identityKeyPair = X25519KeyPair.generate()
                 signedPreKeyPair = X25519KeyPair.generate()
 
@@ -108,7 +104,7 @@ class PersistentSessionManager @Inject constructor(
                 sessionStorage.saveOneTimePreKeys(oneTimePreKeys)
             }
 
-            Log.d(TAG, "Loaded ${oneTimePreKeys.size} one-time pre-keys")
+            Timber.d("Loaded ${oneTimePreKeys.size} one-time pre-keys")
 
             // 自动恢复会话
             if (autoRestore) {
@@ -122,9 +118,9 @@ class PersistentSessionManager @Inject constructor(
 
             isInitialized = true
 
-            Log.i(TAG, "Persistent session manager initialized")
+            Timber.i("Persistent session manager initialized")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize session manager", e)
+            Timber.e(e, "Failed to initialize session manager")
             throw e
         }
     }
@@ -133,14 +129,14 @@ class PersistentSessionManager @Inject constructor(
      * 关闭会话管理器
      */
     fun shutdown() {
-        Log.i(TAG, "Shutting down persistent session manager")
+        Timber.i("Shutting down persistent session manager")
 
         rotationManager.release()
         scope.cancel()
 
         isInitialized = false
 
-        Log.i(TAG, "Persistent session manager shut down")
+        Timber.i("Persistent session manager shut down")
     }
 
     /**
@@ -149,7 +145,7 @@ class PersistentSessionManager @Inject constructor(
     private suspend fun restoreAllSessions() = withContext(Dispatchers.IO) {
         try {
             val sessionIds = sessionStorage.getAllSessionIds()
-            Log.i(TAG, "Restoring ${sessionIds.size} saved sessions")
+            Timber.i("Restoring ${sessionIds.size} saved sessions")
 
             var restoredCount = 0
 
@@ -163,15 +159,15 @@ class PersistentSessionManager @Inject constructor(
                         restoredCount++
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to restore session for peer: $peerId", e)
+                    Timber.e(e, "Failed to restore session for peer: $peerId")
                 }
             }
 
             updateActiveSessions()
 
-            Log.i(TAG, "Restored $restoredCount sessions")
+            Timber.i("Restored $restoredCount sessions")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to restore sessions", e)
+            Timber.e(e, "Failed to restore sessions")
         }
     }
 
@@ -184,7 +180,7 @@ class PersistentSessionManager @Inject constructor(
             val keyId = "opk_${System.currentTimeMillis()}_$it"
             oneTimePreKeys[keyId] = keyPair
         }
-        Log.d(TAG, "Generated $count one-time pre-keys")
+        Timber.d("Generated $count one-time pre-keys")
     }
 
     /**
@@ -213,14 +209,14 @@ class PersistentSessionManager @Inject constructor(
 
         return if (entry != null) {
             oneTimePreKeys.remove(entry.key)
-            Log.d(TAG, "Consumed one-time pre-key: ${entry.key}")
+            Timber.d("Consumed one-time pre-key: ${entry.key}")
 
             // 异步保存更新后的预密钥
             scope.launch {
                 try {
                     sessionStorage.saveOneTimePreKeys(oneTimePreKeys)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to save one-time pre-keys", e)
+                    Timber.e(e, "Failed to save one-time pre-keys")
                 }
             }
 
@@ -237,7 +233,7 @@ class PersistentSessionManager @Inject constructor(
         peerId: String,
         peerPreKeyBundle: PreKeyBundle
     ): Pair<E2EESession, InitialMessage> = withContext(Dispatchers.IO) {
-        Log.i(TAG, "Creating session with peer: $peerId")
+        Timber.i("Creating session with peer: $peerId")
 
         val (session, initialMessage) = E2EESession.initializeAsInitiator(
             peerId,
@@ -260,10 +256,10 @@ class PersistentSessionManager @Inject constructor(
                 session.getAssociatedData()
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save session", e)
+            Timber.e(e, "Failed to save session")
         }
 
-        Log.i(TAG, "Session created with peer: $peerId")
+        Timber.i("Session created with peer: $peerId")
 
         Pair(session, initialMessage)
     }
@@ -275,7 +271,7 @@ class PersistentSessionManager @Inject constructor(
         peerId: String,
         initialMessage: InitialMessage
     ): E2EESession = withContext(Dispatchers.IO) {
-        Log.i(TAG, "Accepting session from peer: $peerId")
+        Timber.i("Accepting session from peer: $peerId")
 
         val oneTimePreKeyPair = if (initialMessage.oneTimePreKeyUsed) {
             consumeOneTimePreKey(null)
@@ -306,10 +302,10 @@ class PersistentSessionManager @Inject constructor(
                 session.getAssociatedData()
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save session", e)
+            Timber.e(e, "Failed to save session")
         }
 
-        Log.i(TAG, "Session accepted from peer: $peerId")
+        Timber.i("Session accepted from peer: $peerId")
 
         session
     }
@@ -339,7 +335,7 @@ class PersistentSessionManager @Inject constructor(
                 session.getAssociatedData()
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save session after encryption", e)
+            Timber.e(e, "Failed to save session after encryption")
         }
 
         encrypted
@@ -370,7 +366,7 @@ class PersistentSessionManager @Inject constructor(
                 session.getAssociatedData()
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save session after decryption", e)
+            Timber.e(e, "Failed to save session after decryption")
         }
 
         decrypted
@@ -394,7 +390,7 @@ class PersistentSessionManager @Inject constructor(
         // 删除持久化的会话
         sessionStorage.deleteSession(peerId)
 
-        Log.i(TAG, "Session deleted: $peerId")
+        Timber.i("Session deleted: $peerId")
     }
 
     /**
@@ -432,23 +428,23 @@ class PersistentSessionManager @Inject constructor(
             sessionStorage.deleteSession(peerId)
         }
 
-        Log.i(TAG, "All sessions cleared")
+        Timber.i("All sessions cleared")
     }
 
     /**
      * 处理签名预密钥轮转
      */
     private suspend fun handleSignedPreKeyRotation(newSignedPreKeyPair: X25519KeyPair) {
-        Log.i(TAG, "Handling signed pre-key rotation")
+        Timber.i("Handling signed pre-key rotation")
 
         signedPreKeyPair = newSignedPreKeyPair
 
         // 保存新的签名预密钥
         try {
             sessionStorage.saveIdentityKeys(identityKeyPair, signedPreKeyPair)
-            Log.i(TAG, "New signed pre-key saved")
+            Timber.i("New signed pre-key saved")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save new signed pre-key", e)
+            Timber.e(e, "Failed to save new signed pre-key")
         }
     }
 
@@ -456,16 +452,16 @@ class PersistentSessionManager @Inject constructor(
      * 处理一次性预密钥生成
      */
     private suspend fun handleOneTimePreKeysGeneration(count: Int) {
-        Log.i(TAG, "Generating $count new one-time pre-keys")
+        Timber.i("Generating $count new one-time pre-keys")
 
         generateOneTimePreKeys(count)
 
         // 保存新生成的预密钥
         try {
             sessionStorage.saveOneTimePreKeys(oneTimePreKeys)
-            Log.i(TAG, "New one-time pre-keys saved")
+            Timber.i("New one-time pre-keys saved")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save new one-time pre-keys", e)
+            Timber.e(e, "Failed to save new one-time pre-keys")
         }
     }
 
@@ -473,7 +469,7 @@ class PersistentSessionManager @Inject constructor(
      * 处理一次性预密钥清理
      */
     private suspend fun handleOneTimePreKeysCleanup() {
-        Log.i(TAG, "Cleaning up old one-time pre-keys")
+        Timber.i("Cleaning up old one-time pre-keys")
 
         // 简化版：保留最新的20个密钥
         if (oneTimePreKeys.size > 20) {
@@ -485,9 +481,9 @@ class PersistentSessionManager @Inject constructor(
             // 保存更新后的预密钥
             try {
                 sessionStorage.saveOneTimePreKeys(oneTimePreKeys)
-                Log.i(TAG, "Removed $keysToRemove old one-time pre-keys")
+                Timber.i("Removed $keysToRemove old one-time pre-keys")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to save one-time pre-keys after cleanup", e)
+                Timber.e(e, "Failed to save one-time pre-keys after cleanup")
             }
         }
     }

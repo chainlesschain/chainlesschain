@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.session
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.DoubleRatchet
 import com.chainlesschain.android.core.e2ee.protocol.PreKeyBundle
@@ -25,8 +25,6 @@ class E2EESession(
 ) {
 
     companion object {
-        private const val TAG = "E2EESession"
-
         /**
          * 从持久化状态恢复会话
          *
@@ -40,7 +38,7 @@ class E2EESession(
             ratchetState: DoubleRatchet.RatchetState,
             associatedData: ByteArray
         ): E2EESession {
-            Log.d(TAG, "Restoring session for peer: $peerId")
+            Timber.d("Restoring session for peer: $peerId")
             return E2EESession(peerId, ratchetState, associatedData)
         }
 
@@ -57,7 +55,7 @@ class E2EESession(
             senderIdentityKeyPair: X25519KeyPair,
             receiverPreKeyBundle: PreKeyBundle
         ): Pair<E2EESession, InitialMessage> {
-            Log.d(TAG, "Initializing session as initiator with peer: $peerId")
+            Timber.d("Initializing session as initiator with peer: $peerId")
 
             // 生成临时密钥对
             val senderEphemeralKeyPair = X25519KeyPair.generate()
@@ -93,7 +91,7 @@ class E2EESession(
                 associatedData = x3dhResult.associatedData
             )
 
-            Log.d(TAG, "Session initialized as initiator")
+            Timber.d("Session initialized as initiator")
 
             return Pair(session, initialMessage)
         }
@@ -115,7 +113,7 @@ class E2EESession(
             receiverOneTimePreKeyPair: X25519KeyPair?,
             initialMessage: InitialMessage
         ): E2EESession {
-            Log.d(TAG, "Initializing session as responder with peer: $peerId")
+            Timber.d("Initializing session as responder with peer: $peerId")
 
             // 执行X3DH密钥交换
             val x3dhResult = X3DHKeyExchange.receiverX3DH(
@@ -142,7 +140,7 @@ class E2EESession(
                 associatedData = x3dhResult.associatedData
             )
 
-            Log.d(TAG, "Session initialized as responder")
+            Timber.d("Session initialized as responder")
 
             return session
         }
@@ -155,7 +153,7 @@ class E2EESession(
      * @return 加密消息
      */
     fun encrypt(plaintext: ByteArray): RatchetMessage {
-        Log.d(TAG, "Encrypting message for peer: $peerId")
+        Timber.d("Encrypting message for peer: $peerId")
 
         val doubleRatchet = DoubleRatchet()
         return doubleRatchet.encrypt(ratchetState, plaintext, associatedData)
@@ -178,7 +176,7 @@ class E2EESession(
      * @return 明文
      */
     fun decrypt(message: RatchetMessage): ByteArray {
-        Log.d(TAG, "Decrypting message from peer: $peerId")
+        Timber.d("Decrypting message from peer: $peerId")
 
         val doubleRatchet = DoubleRatchet()
         return doubleRatchet.decrypt(ratchetState, message, associatedData)

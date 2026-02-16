@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.context
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,10 +28,6 @@ import javax.inject.Singleton
 @Singleton
 class ContextManager @Inject constructor() {
 
-    companion object {
-        private const val TAG = "ContextManager"
-    }
-
     // Configuration
     private var config = ContextConfig.DEFAULT
 
@@ -56,7 +52,7 @@ class ContextManager @Inject constructor() {
             cache.evictTo(newConfig.maxContexts)
             updateStats()
         }
-        Log.d(TAG, "Config updated: maxContexts=${newConfig.maxContexts}")
+        Timber.d("Config updated: maxContexts=${newConfig.maxContexts}")
     }
 
     /**
@@ -67,7 +63,7 @@ class ContextManager @Inject constructor() {
         if (context == null) {
             context = ConversationContext(conversationId = conversationId)
             cache.put(conversationId, context)
-            Log.d(TAG, "Created new context: $conversationId")
+            Timber.d("Created new context: $conversationId")
         }
         updateStats()
         return context
@@ -100,7 +96,7 @@ class ContextManager @Inject constructor() {
                     }
                 }
             }
-            Log.d(TAG, "Evicted $removeCount old messages from context: $conversationId")
+            Timber.d("Evicted $removeCount old messages from context: $conversationId")
         }
 
         context.addMessage(message)
@@ -108,7 +104,7 @@ class ContextManager @Inject constructor() {
 
         // Check for auto-compression
         if (config.autoCompress && shouldCompress(context)) {
-            Log.d(TAG, "Context $conversationId needs compression")
+            Timber.d("Context $conversationId needs compression")
             // Compression would be triggered here - actual implementation depends on LLM service
         }
 
@@ -199,7 +195,7 @@ class ContextManager @Inject constructor() {
             _currentContextId.value = null
         }
         updateStats()
-        Log.d(TAG, "Cleared context: $conversationId")
+        Timber.d("Cleared context: $conversationId")
     }
 
     /**
@@ -209,7 +205,7 @@ class ContextManager @Inject constructor() {
         cache.clear()
         _currentContextId.value = null
         updateStats()
-        Log.d(TAG, "Cleared all contexts")
+        Timber.d("Cleared all contexts")
     }
 
     /**

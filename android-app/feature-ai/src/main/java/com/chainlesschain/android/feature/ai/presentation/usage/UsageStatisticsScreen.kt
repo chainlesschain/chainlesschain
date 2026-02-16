@@ -91,7 +91,7 @@ fun UsageStatisticsScreen(
             title = {
                 Text(
                     text = if (selectedProvider != null) {
-                        stringResource(R.string.usage_statistics_clear_provider_title, selectedProvider!!.displayName)
+                        stringResource(R.string.usage_statistics_clear_provider_title, selectedProvider?.displayName ?: "")
                     } else {
                         stringResource(R.string.usage_statistics_clear_all_title)
                     }
@@ -290,7 +290,7 @@ private fun ProviderUsageCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // 成本
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(

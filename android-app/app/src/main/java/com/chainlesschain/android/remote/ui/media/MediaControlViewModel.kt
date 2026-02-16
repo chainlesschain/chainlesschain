@@ -121,31 +121,35 @@ class MediaControlViewModel @Inject constructor(
      */
     private fun setupEventSubscription() {
         eventSubscriptionJob = viewModelScope.launch {
-            // 订阅媒体事件
-            eventClient.mediaEvents.collect { event ->
-                when (event.method) {
-                    "media.playback.state" -> {
-                        // 更新播放状态
-                        loadPlaybackStatus()
-                    }
-                    "media.volume.change" -> {
-                        val volume = (event.params["volume"] as? Number)?.toInt()
-                        val muted = event.params["muted"] as? Boolean
-                        volume?.let { _currentVolume.value = it }
-                        muted?.let { _isMuted.value = it }
-                    }
-                    "media.recording.state" -> {
-                        val isRecording = event.params["isRecording"] as? Boolean ?: false
-                        val duration = (event.params["duration"] as? Number)?.toLong() ?: 0
-                        _recordingState.value = if (isRecording) {
-                            RecordingState(
-                                isRecording = true,
-                                duration = duration,
-                                recordingId = event.params["recordingId"] as? String
-                            )
-                        } else null
+            try {
+                // 订阅媒体事件
+                eventClient.mediaEvents.collect { event ->
+                    when (event.method) {
+                        "media.playback.state" -> {
+                            // 更新播放状态
+                            loadPlaybackStatus()
+                        }
+                        "media.volume.change" -> {
+                            val volume = (event.params["volume"] as? Number)?.toInt()
+                            val muted = event.params["muted"] as? Boolean
+                            volume?.let { _currentVolume.value = it }
+                            muted?.let { _isMuted.value = it }
+                        }
+                        "media.recording.state" -> {
+                            val isRecording = event.params["isRecording"] as? Boolean ?: false
+                            val duration = (event.params["duration"] as? Number)?.toLong() ?: 0
+                            _recordingState.value = if (isRecording) {
+                                RecordingState(
+                                    isRecording = true,
+                                    duration = duration,
+                                    recordingId = event.params["recordingId"] as? String
+                                )
+                            } else null
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "媒体事件订阅失败")
             }
         }
     }
@@ -706,7 +710,7 @@ class MediaControlViewModel @Inject constructor(
     /**
      * 设置麦克风静音
      */
-    fun setMicrophoneMute(deviceId: String, muted: Boolean) {
+    fun setMicrophoneMute(@Suppress("UNUSED_PARAMETER") deviceId: String, muted: Boolean) {
         viewModelScope.launch {
             val result = if (muted) {
                 mediaCommands.muteMicrophone()
@@ -724,7 +728,7 @@ class MediaControlViewModel @Inject constructor(
     /**
      * 设置麦克风音量（增益）
      */
-    fun setMicrophoneVolume(deviceId: String, volume: Int) {
+    fun setMicrophoneVolume(@Suppress("UNUSED_PARAMETER") deviceId: String, volume: Int) {
         viewModelScope.launch {
             // Map volume (0-100) to gain (0-200, 100=normal)
             val gain = (volume.coerceIn(0, 100) * 2)

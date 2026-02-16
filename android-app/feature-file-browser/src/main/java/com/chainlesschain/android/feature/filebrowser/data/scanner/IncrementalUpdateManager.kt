@@ -3,7 +3,7 @@ package com.chainlesschain.android.feature.filebrowser.data.scanner
 import android.content.ContentResolver
 import android.content.Context
 import android.provider.MediaStore
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -32,7 +32,6 @@ class IncrementalUpdateManager @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "IncrementalUpdateManager"
         private const val BATCH_SIZE = 200
         private const val PREFS_NAME = "file_browser_prefs"
         private const val KEY_LAST_SCAN_TIMESTAMP = "last_scan_timestamp"
@@ -50,7 +49,7 @@ class IncrementalUpdateManager @Inject constructor(
             val lastScanTime = getLastScanTimestamp()
             val currentTime = System.currentTimeMillis()
 
-            Log.d(TAG, "Starting incremental update. Last scan: $lastScanTime")
+            Timber.d("Starting incremental update. Last scan: $lastScanTime")
 
             // Step 1: Find new and modified files
             val (newFiles, modifiedFiles) = findNewAndModifiedFiles(lastScanTime)
@@ -72,10 +71,7 @@ class IncrementalUpdateManager @Inject constructor(
             // Step 4: Update last scan timestamp
             saveLastScanTimestamp(currentTime)
 
-            Log.d(
-                TAG,
-                "Incremental update complete. New: ${newFiles.size}, Modified: ${modifiedFiles.size}, Deleted: $deletedCount"
-            )
+            Timber.d("Incremental update complete. New: ${newFiles.size}, Modified: ${modifiedFiles.size}, Deleted: $deletedCount")
 
             IncrementalUpdateResult(
                 newFilesCount = newFiles.size,
@@ -84,7 +80,7 @@ class IncrementalUpdateManager @Inject constructor(
                 totalProcessed = newFiles.size + modifiedFiles.size + deletedCount
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error during incremental update", e)
+            Timber.e(e, "Error during incremental update")
             IncrementalUpdateResult(
                 newFilesCount = 0,
                 modifiedFilesCount = 0,
@@ -169,7 +165,7 @@ class IncrementalUpdateManager @Inject constructor(
                             modifiedFiles.add(fileEntity.copy(id = existingFile.id))
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error processing file", e)
+                        Timber.e(e, "Error processing file")
                     }
                 }
             }

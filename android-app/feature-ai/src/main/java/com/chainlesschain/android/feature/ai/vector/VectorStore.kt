@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.vector
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +37,6 @@ class VectorStore @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "VectorStore"
         const val DEFAULT_NAMESPACE = "default"
         const val DEFAULT_TOP_K = 10
         const val DEFAULT_THRESHOLD = 0.5f
@@ -87,10 +86,10 @@ class VectorStore @Inject constructor(
         if (success) {
             invalidateCache(namespace)
             updateStats()
-            Log.d(TAG, "Added vector entry: $id to namespace: $namespace")
+            Timber.d("Added vector entry: $id to namespace: $namespace")
             id
         } else {
-            Log.d(TAG, "Duplicate content, skipped: ${content.take(50)}...")
+            Timber.d("Duplicate content, skipped: ${content.take(50)}...")
             null
         }
     }
@@ -150,7 +149,7 @@ class VectorStore @Inject constructor(
         if (count > 0) {
             invalidateCache(namespace)
             updateStats()
-            Log.d(TAG, "Batch added $count entries to namespace: $namespace")
+            Timber.d("Batch added $count entries to namespace: $namespace")
         }
         count
     }
@@ -337,7 +336,7 @@ class VectorStore @Inject constructor(
         repository.deleteByNamespace(namespace)
         invalidateCache(namespace)
         updateStats()
-        Log.d(TAG, "Deleted all entries in namespace: $namespace")
+        Timber.d("Deleted all entries in namespace: $namespace")
     }
 
     /**
@@ -365,7 +364,7 @@ class VectorStore @Inject constructor(
         repository.deleteAll()
         invalidateAllCaches()
         updateStats()
-        Log.d(TAG, "Cleared all entries")
+        Timber.d("Cleared all entries")
     }
 
     // ===== Utility Operations =====

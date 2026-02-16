@@ -4,7 +4,7 @@ import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import android.util.LruCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,7 +24,6 @@ import javax.inject.Singleton
 class ThumbnailCache @Inject constructor() {
 
     companion object {
-        private const val TAG = "ThumbnailCache"
         private const val MAX_MEMORY_PERCENT = 0.125 // 使用12.5%的应用内存
         private const val THUMBNAIL_MAX_WIDTH = 200
         private const val THUMBNAIL_MAX_HEIGHT = 200
@@ -58,7 +57,7 @@ class ThumbnailCache @Inject constructor() {
             }
         }
 
-        Log.d(TAG, "ThumbnailCache initialized with max size: ${cacheSize}KB")
+        Timber.d("ThumbnailCache initialized with max size: ${cacheSize}KB")
     }
 
     /**
@@ -96,7 +95,7 @@ class ThumbnailCache @Inject constructor() {
             // 检查缓存
             val cached = get(uri)
             if (cached != null) {
-                Log.d(TAG, "Thumbnail cache hit: $uri")
+                Timber.d("Thumbnail cache hit: $uri")
                 return@withContext cached
             }
 
@@ -132,12 +131,12 @@ class ThumbnailCache @Inject constructor() {
             if (bitmap != null) {
                 // 添加到缓存
                 put(uri, bitmap)
-                Log.d(TAG, "Thumbnail loaded and cached: $uri (${bitmap.width}x${bitmap.height})")
+                Timber.d("Thumbnail loaded and cached: $uri (${bitmap.width}x${bitmap.height})")
             }
 
             bitmap
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading thumbnail: $uri", e)
+            Timber.e(e, "Error loading thumbnail: $uri")
             null
         }
     }
@@ -195,7 +194,7 @@ class ThumbnailCache @Inject constructor() {
     fun clear() {
         // LruCache会自动调用entryRemoved回收Bitmap
         cache.evictAll()
-        Log.d(TAG, "Thumbnail cache cleared")
+        Timber.d("Thumbnail cache cleared")
     }
 
     /**

@@ -3,7 +3,7 @@ package com.chainlesschain.android.feature.ai.data.rag
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.LongBuffer
@@ -167,7 +167,6 @@ class SentenceTransformerEmbedder @Inject constructor(
 ) : VectorEmbedder {
 
     companion object {
-        private const val TAG = "SentenceTransformerEmbedder"
         private const val VECTOR_DIM = 384
     }
 
@@ -187,10 +186,10 @@ class SentenceTransformerEmbedder @Inject constructor(
         return try {
             withContext(Dispatchers.IO) {
                 if (!modelManager.isModelAvailable()) {
-                    Log.i(TAG, "Model not available, attempting download...")
+                    Timber.i("Model not available, attempting download...")
                     val downloaded = modelManager.ensureModelAvailable()
                     if (!downloaded) {
-                        Log.w(TAG, "Model download failed, will use fallback")
+                        Timber.w("Model download failed, will use fallback")
                         initFailed = true
                         return@withContext false
                     }
@@ -210,11 +209,11 @@ class SentenceTransformerEmbedder @Inject constructor(
                 tokenizer = WordPieceTokenizer(modelManager.vocabFile)
                 initialized = true
 
-                Log.i(TAG, "ONNX model loaded successfully")
+                Timber.i("ONNX model loaded successfully")
                 true
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize ONNX model", e)
+            Timber.e(e, "Failed to initialize ONNX model")
             initFailed = true
             false
         }
@@ -278,7 +277,7 @@ class SentenceTransformerEmbedder @Inject constructor(
 
                 normalize(pooled)
             } catch (e: Exception) {
-                Log.e(TAG, "ONNX inference failed, using fallback", e)
+                Timber.e(e, "ONNX inference failed, using fallback")
                 hashBasedFallback(text)
             }
         }

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.session
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectMessageType
 import com.chainlesschain.android.core.database.entity.SessionStats
@@ -21,8 +21,6 @@ import javax.inject.Singleton
 class SessionCompressor @Inject constructor() {
 
     companion object {
-        private const val TAG = "SessionCompressor"
-
         // Compression thresholds
         private const val MIN_MESSAGES_TO_KEEP = 5
         private const val IMPORTANT_MESSAGE_THRESHOLD = 60
@@ -69,7 +67,7 @@ class SessionCompressor @Inject constructor() {
             )
         }
 
-        Log.d(TAG, "Compressing ${messages.size} messages, $originalTokens tokens -> target $targetTokens")
+        Timber.d("Compressing ${messages.size} messages, $originalTokens tokens -> target $targetTokens")
 
         // Score and sort messages by importance
         val scoredMessages = messages.mapIndexed { index, msg ->
@@ -93,7 +91,7 @@ class SessionCompressor @Inject constructor() {
             ((originalTokens - compressedTokens).toFloat() / originalTokens) * 100
         } else 0f
 
-        Log.d(TAG, "Compression complete: $originalTokens -> $compressedTokens tokens (${savingsPercent.toInt()}% savings)")
+        Timber.d("Compression complete: $originalTokens -> $compressedTokens tokens (${savingsPercent.toInt()}% savings)")
 
         return CompressionResult(
             success = true,

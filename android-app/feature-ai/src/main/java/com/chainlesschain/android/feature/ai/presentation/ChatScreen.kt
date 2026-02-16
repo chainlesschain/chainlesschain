@@ -125,7 +125,7 @@ fun ChatScreen(
                 }
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 输入框
             ChatInput(

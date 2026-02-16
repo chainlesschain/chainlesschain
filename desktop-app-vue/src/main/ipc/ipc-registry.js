@@ -830,7 +830,10 @@ function registerAllIPC(dependencies) {
         registerVCIPC({ vcManager });
         logger.info("[IPC Registry] ✓ VC IPC registered (10 handlers)");
       } catch (vcError) {
-        logger.error("[IPC Registry] ✗ VC IPC registration failed (non-fatal):", vcError.message);
+        logger.error(
+          "[IPC Registry] ✗ VC IPC registration failed (non-fatal):",
+          vcError.message,
+        );
       }
     }
 
@@ -846,7 +849,10 @@ function registerAllIPC(dependencies) {
           "[IPC Registry] ✓ Identity Context IPC registered (7 handlers)",
         );
       } catch (icError) {
-        logger.error("[IPC Registry] ✗ Identity Context IPC registration failed (non-fatal):", icError.message);
+        logger.error(
+          "[IPC Registry] ✗ Identity Context IPC registration failed (non-fatal):",
+          icError.message,
+        );
       }
     }
 
@@ -873,7 +879,9 @@ function registerAllIPC(dependencies) {
         );
         logger.warn("[IPC Registry] 企业版功能将返回空数据直到依赖初始化");
       } else {
-        logger.info("[IPC Registry] ✓ Organization IPC registered (32 handlers)");
+        logger.info(
+          "[IPC Registry] ✓ Organization IPC registered (32 handlers)",
+        );
       }
     } catch (orgError) {
       logger.error(
@@ -889,7 +897,9 @@ function registerAllIPC(dependencies) {
     try {
       if (database) {
         logger.info("[IPC Registry] Registering Dashboard IPC...");
-        const { registerDashboardIPC } = require("../organization/dashboard-ipc");
+        const {
+          registerDashboardIPC,
+        } = require("../organization/dashboard-ipc");
         registerDashboardIPC({
           database,
           organizationManager,
@@ -1674,6 +1684,91 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
     logger.info(
       "[IPC Registry] Phase 14 Complete: All v0.34.0 features registered!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 15: Unified Tool Registry (v0.35.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Unified Tool Registry IPC...");
+      const {
+        UnifiedToolRegistry,
+      } = require("../ai-engine/unified-tool-registry");
+      const {
+        registerUnifiedToolsIPC,
+      } = require("../ai-engine/unified-tools-ipc");
+
+      const unifiedToolRegistry = new UnifiedToolRegistry();
+
+      // Bind available subsystems
+      const functionCaller = aiEngineManager?.functionCaller || null;
+      if (functionCaller) {
+        unifiedToolRegistry.bindFunctionCaller(functionCaller);
+      }
+      if (mcpToolAdapter) {
+        unifiedToolRegistry.bindMCPAdapter(mcpToolAdapter);
+      }
+
+      // Bind SkillRegistry (from skills-ipc singleton)
+      try {
+        const {
+          getSkillRegistry,
+        } = require("../ai-engine/cowork/skills/skill-registry");
+        const skillRegistry = getSkillRegistry?.();
+        if (skillRegistry) {
+          unifiedToolRegistry.bindSkillRegistry(skillRegistry);
+        }
+      } catch (srError) {
+        logger.warn(
+          "[IPC Registry] ⚠️  SkillRegistry not available for UnifiedToolRegistry:",
+          srError.message,
+        );
+      }
+
+      // Initialize asynchronously (non-blocking), then bind to ManusOptimizations
+      unifiedToolRegistry
+        .initialize()
+        .then(() => {
+          // Wire into ManusOptimizations so AI conversations get skill context in prompts
+          if (llmManager?.manusOptimizations?.bindUnifiedRegistry) {
+            llmManager.manusOptimizations.bindUnifiedRegistry(
+              unifiedToolRegistry,
+            );
+            logger.info(
+              "[IPC Registry] ✓ UnifiedToolRegistry bound to ManusOptimizations",
+            );
+          }
+        })
+        .catch((initError) => {
+          logger.warn(
+            "[IPC Registry] ⚠️  UnifiedToolRegistry initialization error:",
+            initError.message,
+          );
+        });
+
+      // Save to app instance
+      if (app) {
+        app.unifiedToolRegistry = unifiedToolRegistry;
+      }
+
+      // Register IPC handlers
+      registerUnifiedToolsIPC({ unifiedToolRegistry });
+
+      logger.info(
+        "[IPC Registry] ✓ Unified Tool Registry IPC registered (6 handlers)",
+      );
+    } catch (unifiedError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Unified Tool Registry IPC registration failed (non-fatal):",
+        unifiedError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 15 Complete: Unified Tool Registry ready!",
     );
     logger.info("[IPC Registry] ========================================");
 

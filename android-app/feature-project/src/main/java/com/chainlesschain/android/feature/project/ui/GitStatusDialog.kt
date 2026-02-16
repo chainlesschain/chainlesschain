@@ -29,7 +29,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -153,7 +153,7 @@ fun GitStatusDialog(
                     }
                 }
 
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 // Loading indicator
                 if (operationState is GitOperationState.Running) {
@@ -319,7 +319,7 @@ fun GitStatusDialog(
 
                     // Commit section
                     if (gitStatus.stagedFiles.isNotEmpty()) {
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                         Text(
                             text = stringResource(R.string.commit_message),
@@ -365,7 +365,7 @@ fun GitStatusDialog(
     // Diff dialog
     if (showDiffDialog && selectedFile != null) {
         DiffDialog(
-            fileName = selectedFile!!.path,
+            fileName = selectedFile?.path ?: "",
             diffContent = diffContent,
             onDismiss = {
                 showDiffDialog = false

@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.p2p.connection
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.config.P2PFeatureFlags
 import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.core.p2p.model.P2PDevice
@@ -32,7 +32,6 @@ class WebRTCPeerConnection @Inject constructor(
 ) : P2PConnection {
 
     companion object {
-        private const val TAG = "WebRTCPeerConnection"
         private const val DATA_CHANNEL_LABEL = "chainlesschain-data"
 
         /** ICE 收集超时（毫秒） */
@@ -89,7 +88,7 @@ class WebRTCPeerConnection @Inject constructor(
      * 初始化WebRTC
      */
     private fun initializeWebRTC() {
-        Log.d(TAG, "Initializing WebRTC")
+        Timber.d("Initializing WebRTC")
 
         // 初始化PeerConnectionFactory
         val options = PeerConnectionFactory.InitializationOptions.builder(context)
@@ -108,7 +107,7 @@ class WebRTCPeerConnection @Inject constructor(
     }
 
     override suspend fun connect(device: P2PDevice) {
-        Log.i(TAG, "Connecting to device: ${device.deviceName}")
+        Timber.i("Connecting to device: ${device.deviceName}")
 
         currentDevice = device
         _connectionState.value = ConnectionState.Connecting
@@ -120,13 +119,13 @@ class WebRTCPeerConnection @Inject constructor(
             // 创建Offer
             createOffer()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to connect", e)
+            Timber.e(e, "Failed to connect")
             _connectionState.value = ConnectionState.Failed(e.message ?: "Unknown error")
         }
     }
 
     override suspend fun disconnect() {
-        Log.i(TAG, "Disconnecting")
+        Timber.i("Disconnecting")
 
         dataChannel?.close()
         dataChannel = null
@@ -140,7 +139,7 @@ class WebRTCPeerConnection @Inject constructor(
 
     override suspend fun sendMessage(message: P2PMessage) {
         if (!isConnected()) {
-            Log.w(TAG, "Cannot send message: not connected")
+            Timber.w("Cannot send message: not connected")
             return
         }
 
@@ -157,9 +156,9 @@ class WebRTCPeerConnection @Inject constructor(
             )
 
             dataChannel?.send(buffer)
-            Log.d(TAG, "Message sent: ${message.id}")
+            Timber.d("Message sent: ${message.id}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send message", e)
+            Timber.e(e, "Failed to send message")
         }
     }
 
@@ -195,7 +194,7 @@ class WebRTCPeerConnection @Inject constructor(
         // 如果需要强制使用 TURN，切换传输策略
         if (forceTurnRelay && P2PFeatureFlags.enableTurnFallback) {
             iceServerConfig.forceRelay()
-            Log.i(TAG, "Forcing TURN relay mode")
+            Timber.i("Forcing TURN relay mode")
         } else {
             iceServerConfig.useNormalPolicy()
         }
@@ -203,17 +202,17 @@ class WebRTCPeerConnection @Inject constructor(
         // 使用配置化的 ICE 服务器
         val rtcConfig = iceServerConfig.getRtcConfiguration()
 
-        Log.d(TAG, "Creating PeerConnection with ${iceServerConfig.getConfigSummary()}")
+        Timber.d("Creating PeerConnection with ${iceServerConfig.getConfigSummary()}")
 
         peerConnection = peerConnectionFactory?.createPeerConnection(
             rtcConfig,
             object : PeerConnection.Observer {
                 override fun onSignalingChange(state: PeerConnection.SignalingState?) {
-                    Log.d(TAG, "Signaling state changed: $state")
+                    Timber.d("Signaling state changed: $state")
                 }
 
                 override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
-                    Log.d(TAG, "ICE connection state changed: $state")
+                    Timber.d("ICE connection state changed: $state")
 
                     // 更新内部状态
                     _iceConnectionState.value = when (state) {
@@ -237,16 +236,16 @@ class WebRTCPeerConnection @Inject constructor(
                             currentDevice?.let {
                                 _connectionState.value = ConnectionState.Connected(it)
                             }
-                            Log.i(TAG, "ICE connection established${if (iceServerConfig.getConfigSummary().transportPolicy == "RELAY") " (via TURN relay)" else ""}")
+                            Timber.i("ICE connection established${if (iceServerConfig.getConfigSummary().transportPolicy == "RELAY") " (via TURN relay)" else ""}")
                         }
                         PeerConnection.IceConnectionState.DISCONNECTED -> {
                             // ICE 断开，可能是临时的网络问题
-                            Log.w(TAG, "ICE disconnected, waiting for recovery...")
+                            Timber.w("ICE disconnected, waiting for recovery...")
                             // 启动恢复超时
                             startIceRecoveryTimeout()
                         }
                         PeerConnection.IceConnectionState.FAILED -> {
-                            Log.e(TAG, "ICE connection failed")
+                            Timber.e("ICE connection failed")
                             handleIceConnectionFailed()
                         }
                         PeerConnection.IceConnectionState.CHECKING -> {
@@ -258,14 +257,14 @@ class WebRTCPeerConnection @Inject constructor(
                 }
 
                 override fun onIceConnectionReceivingChange(receiving: Boolean) {
-                    Log.d(TAG, "ICE connection receiving: $receiving")
+                    Timber.d("ICE connection receiving: $receiving")
                     if (!receiving) {
-                        Log.w(TAG, "ICE not receiving data, connection may be degraded")
+                        Timber.w("ICE not receiving data, connection may be degraded")
                     }
                 }
 
                 override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {
-                    Log.d(TAG, "ICE gathering state changed: $state")
+                    Timber.d("ICE gathering state changed: $state")
 
                     _iceGatheringState.value = when (state) {
                         PeerConnection.IceGatheringState.NEW -> IceGatheringState.NEW
@@ -282,7 +281,7 @@ class WebRTCPeerConnection @Inject constructor(
                         PeerConnection.IceGatheringState.COMPLETE -> {
                             // 取消收集超时
                             iceGatheringJob?.cancel()
-                            Log.i(TAG, "ICE gathering complete")
+                            Timber.i("ICE gathering complete")
                             onIceGatheringComplete?.invoke()
                         }
                         else -> {}
@@ -291,7 +290,7 @@ class WebRTCPeerConnection @Inject constructor(
 
                 override fun onIceCandidate(candidate: org.webrtc.IceCandidate?) {
                     candidate?.let {
-                        Log.d(TAG, "ICE candidate found: ${it.sdp}")
+                        Timber.d("ICE candidate found: ${it.sdp}")
                         val iceCandidate = IceCandidate(
                             sdpMid = it.sdpMid,
                             sdpMLineIndex = it.sdpMLineIndex,
@@ -302,7 +301,7 @@ class WebRTCPeerConnection @Inject constructor(
                 }
 
                 override fun onIceCandidatesRemoved(candidates: Array<out org.webrtc.IceCandidate>?) {
-                    Log.d(TAG, "ICE candidates removed: ${candidates?.size ?: 0}")
+                    Timber.d("ICE candidates removed: ${candidates?.size ?: 0}")
                 }
 
                 override fun onAddStream(stream: MediaStream?) {
@@ -314,12 +313,12 @@ class WebRTCPeerConnection @Inject constructor(
                 }
 
                 override fun onDataChannel(dc: DataChannel?) {
-                    Log.d(TAG, "Data channel received: ${dc?.label()}")
+                    Timber.d("Data channel received: ${dc?.label()}")
                     dc?.let { setupDataChannel(it) }
                 }
 
                 override fun onRenegotiationNeeded() {
-                    Log.d(TAG, "Renegotiation needed")
+                    Timber.d("Renegotiation needed")
                 }
 
                 override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {
@@ -344,18 +343,18 @@ class WebRTCPeerConnection @Inject constructor(
     private fun setupDataChannel(dc: DataChannel) {
         dc.registerObserver(object : DataChannel.Observer {
             override fun onBufferedAmountChange(amount: Long) {
-                Log.d(TAG, "Buffered amount changed: $amount")
+                Timber.d("Buffered amount changed: $amount")
             }
 
             override fun onStateChange() {
-                Log.d(TAG, "DataChannel state changed: ${dc.state()}")
+                Timber.d("DataChannel state changed: ${dc.state()}")
 
                 when (dc.state()) {
                     DataChannel.State.OPEN -> {
-                        Log.i(TAG, "DataChannel opened")
+                        Timber.i("DataChannel opened")
                     }
                     DataChannel.State.CLOSED -> {
-                        Log.i(TAG, "DataChannel closed")
+                        Timber.i("DataChannel closed")
                     }
                     else -> {}
                 }
@@ -373,10 +372,10 @@ class WebRTCPeerConnection @Inject constructor(
                             json
                         )
 
-                        Log.d(TAG, "Message received: ${message.id}")
+                        Timber.d("Message received: ${message.id}")
                         _messages.value = message
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to parse message", e)
+                        Timber.e(e, "Failed to parse message")
                     }
                 }
             }
@@ -395,11 +394,11 @@ class WebRTCPeerConnection @Inject constructor(
         peerConnection?.createOffer(object : SdpObserver {
             override fun onCreateSuccess(sdp: org.webrtc.SessionDescription?) {
                 sdp?.let {
-                    Log.d(TAG, "Offer created")
+                    Timber.d("Offer created")
                     peerConnection?.setLocalDescription(object : SdpObserver {
                         override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
                         override fun onSetSuccess() {
-                            Log.d(TAG, "Local description set")
+                            Timber.d("Local description set")
                             onOfferCreated?.invoke(
                                 SessionDescription(
                                     type = SessionDescription.Type.OFFER,
@@ -408,10 +407,10 @@ class WebRTCPeerConnection @Inject constructor(
                             )
                         }
                         override fun onCreateFailure(error: String?) {
-                            Log.e(TAG, "Failed to create: $error")
+                            Timber.e("Failed to create: $error")
                         }
                         override fun onSetFailure(error: String?) {
-                            Log.e(TAG, "Failed to set local description: $error")
+                            Timber.e("Failed to set local description: $error")
                         }
                     }, it)
                 }
@@ -419,7 +418,7 @@ class WebRTCPeerConnection @Inject constructor(
 
             override fun onSetSuccess() {}
             override fun onCreateFailure(error: String?) {
-                Log.e(TAG, "Failed to create offer: $error")
+                Timber.e("Failed to create offer: $error")
                 _connectionState.value = ConnectionState.Failed(error ?: "Failed to create offer")
             }
             override fun onSetFailure(error: String?) {}
@@ -430,7 +429,7 @@ class WebRTCPeerConnection @Inject constructor(
      * 处理远程Offer
      */
     fun handleOffer(offer: SessionDescription) {
-        Log.d(TAG, "Handling remote offer")
+        Timber.d("Handling remote offer")
 
         if (peerConnection == null) {
             createPeerConnection()
@@ -444,14 +443,14 @@ class WebRTCPeerConnection @Inject constructor(
         peerConnection?.setRemoteDescription(object : SdpObserver {
             override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
             override fun onSetSuccess() {
-                Log.d(TAG, "Remote description set, creating answer")
+                Timber.d("Remote description set, creating answer")
                 isRemoteDescriptionSet = true
                 processPendingIceCandidates()
                 createAnswer()
             }
             override fun onCreateFailure(error: String?) {}
             override fun onSetFailure(error: String?) {
-                Log.e(TAG, "Failed to set remote description: $error")
+                Timber.e("Failed to set remote description: $error")
             }
         }, sdp)
     }
@@ -465,11 +464,11 @@ class WebRTCPeerConnection @Inject constructor(
         peerConnection?.createAnswer(object : SdpObserver {
             override fun onCreateSuccess(sdp: org.webrtc.SessionDescription?) {
                 sdp?.let {
-                    Log.d(TAG, "Answer created")
+                    Timber.d("Answer created")
                     peerConnection?.setLocalDescription(object : SdpObserver {
                         override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
                         override fun onSetSuccess() {
-                            Log.d(TAG, "Local answer set")
+                            Timber.d("Local answer set")
                             onAnswerCreated?.invoke(
                                 SessionDescription(
                                     type = SessionDescription.Type.ANSWER,
@@ -479,7 +478,7 @@ class WebRTCPeerConnection @Inject constructor(
                         }
                         override fun onCreateFailure(error: String?) {}
                         override fun onSetFailure(error: String?) {
-                            Log.e(TAG, "Failed to set local answer: $error")
+                            Timber.e("Failed to set local answer: $error")
                         }
                     }, it)
                 }
@@ -487,7 +486,7 @@ class WebRTCPeerConnection @Inject constructor(
 
             override fun onSetSuccess() {}
             override fun onCreateFailure(error: String?) {
-                Log.e(TAG, "Failed to create answer: $error")
+                Timber.e("Failed to create answer: $error")
             }
             override fun onSetFailure(error: String?) {}
         }, constraints)
@@ -497,7 +496,7 @@ class WebRTCPeerConnection @Inject constructor(
      * 处理远程Answer
      */
     fun handleAnswer(answer: SessionDescription) {
-        Log.d(TAG, "Handling remote answer")
+        Timber.d("Handling remote answer")
 
         val sdp = org.webrtc.SessionDescription(
             org.webrtc.SessionDescription.Type.ANSWER,
@@ -507,13 +506,13 @@ class WebRTCPeerConnection @Inject constructor(
         peerConnection?.setRemoteDescription(object : SdpObserver {
             override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
             override fun onSetSuccess() {
-                Log.d(TAG, "Remote answer set")
+                Timber.d("Remote answer set")
                 isRemoteDescriptionSet = true
                 processPendingIceCandidates()
             }
             override fun onCreateFailure(error: String?) {}
             override fun onSetFailure(error: String?) {
-                Log.e(TAG, "Failed to set remote answer: $error")
+                Timber.e("Failed to set remote answer: $error")
             }
         }, sdp)
     }
@@ -525,7 +524,7 @@ class WebRTCPeerConnection @Inject constructor(
      */
     fun addIceCandidate(candidate: IceCandidate) {
         if (!isRemoteDescriptionSet) {
-            Log.d(TAG, "Remote description not set, queuing ICE candidate")
+            Timber.d("Remote description not set, queuing ICE candidate")
             pendingIceCandidates.add(candidate)
             return
         }
@@ -542,9 +541,9 @@ class WebRTCPeerConnection @Inject constructor(
 
         val success = peerConnection?.addIceCandidate(iceCandidate) ?: false
         if (success) {
-            Log.d(TAG, "ICE candidate added: ${candidate.sdp.take(50)}...")
+            Timber.d("ICE candidate added: ${candidate.sdp.take(50)}...")
         } else {
-            Log.w(TAG, "Failed to add ICE candidate")
+            Timber.w("Failed to add ICE candidate")
         }
     }
 
@@ -554,7 +553,7 @@ class WebRTCPeerConnection @Inject constructor(
     private fun processPendingIceCandidates() {
         if (pendingIceCandidates.isEmpty()) return
 
-        Log.i(TAG, "Processing ${pendingIceCandidates.size} pending ICE candidates")
+        Timber.i("Processing ${pendingIceCandidates.size} pending ICE candidates")
         pendingIceCandidates.forEach { addIceCandidateInternal(it) }
         pendingIceCandidates.clear()
     }
@@ -567,7 +566,7 @@ class WebRTCPeerConnection @Inject constructor(
         iceGatheringJob = scope.launch {
             delay(ICE_GATHERING_TIMEOUT_MS)
             if (_iceGatheringState.value == IceGatheringState.GATHERING) {
-                Log.w(TAG, "ICE gathering timeout after ${ICE_GATHERING_TIMEOUT_MS}ms")
+                Timber.w("ICE gathering timeout after ${ICE_GATHERING_TIMEOUT_MS}ms")
                 // 收集超时不一定是致命错误，可能已有足够的候选
                 onIceGatheringComplete?.invoke()
             }
@@ -583,7 +582,7 @@ class WebRTCPeerConnection @Inject constructor(
             delay(ICE_CONNECTION_TIMEOUT_MS)
             val state = _iceConnectionState.value
             if (state == IceConnectionState.CHECKING || state == IceConnectionState.NEW) {
-                Log.e(TAG, "ICE connection timeout after ${ICE_CONNECTION_TIMEOUT_MS}ms")
+                Timber.e("ICE connection timeout after ${ICE_CONNECTION_TIMEOUT_MS}ms")
                 handleIceConnectionFailed()
             }
         }
@@ -598,7 +597,7 @@ class WebRTCPeerConnection @Inject constructor(
             // 给 15 秒恢复时间
             delay(15_000L)
             if (_iceConnectionState.value == IceConnectionState.DISCONNECTED) {
-                Log.w(TAG, "ICE recovery timeout, attempting restart")
+                Timber.w("ICE recovery timeout, attempting restart")
                 attemptIceRestart()
             }
         }
@@ -611,11 +610,11 @@ class WebRTCPeerConnection @Inject constructor(
         iceConnectionJob?.cancel()
 
         if (iceRestartAttempts < MAX_ICE_RESTART_ATTEMPTS) {
-            Log.w(TAG, "ICE connection failed, attempting restart (${iceRestartAttempts + 1}/$MAX_ICE_RESTART_ATTEMPTS)")
+            Timber.w("ICE connection failed, attempting restart (${iceRestartAttempts + 1}/$MAX_ICE_RESTART_ATTEMPTS)")
             attemptIceRestart()
         } else if (P2PFeatureFlags.enableTurnFallback && !turnFallbackAttempted && hasTurnServersConfigured()) {
             // 尝试 TURN 回退
-            Log.w(TAG, "ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts, falling back to TURN relay")
+            Timber.w("ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts, falling back to TURN relay")
             attemptTurnFallback()
         } else {
             val reason = if (turnFallbackAttempted) {
@@ -623,7 +622,7 @@ class WebRTCPeerConnection @Inject constructor(
             } else {
                 "ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts"
             }
-            Log.e(TAG, reason)
+            Timber.e(reason)
             _connectionState.value = ConnectionState.Failed(reason)
             onIceConnectionFailed?.invoke(reason)
         }
@@ -643,7 +642,7 @@ class WebRTCPeerConnection @Inject constructor(
         turnFallbackAttempted = true
         iceRestartAttempts = 0
 
-        Log.i(TAG, "Attempting TURN fallback")
+        Timber.i("Attempting TURN fallback")
 
         // 关闭当前连接
         peerConnection?.close()
@@ -668,7 +667,7 @@ class WebRTCPeerConnection @Inject constructor(
      */
     private fun attemptIceRestart() {
         iceRestartAttempts++
-        Log.i(TAG, "Attempting ICE restart (attempt $iceRestartAttempts)")
+        Timber.i("Attempting ICE restart (attempt $iceRestartAttempts)")
 
         // 使用 ICE restart 而非完全重建连接
         val constraints = MediaConstraints().apply {
@@ -678,11 +677,11 @@ class WebRTCPeerConnection @Inject constructor(
         peerConnection?.createOffer(object : SdpObserver {
             override fun onCreateSuccess(sdp: org.webrtc.SessionDescription?) {
                 sdp?.let {
-                    Log.d(TAG, "ICE restart offer created")
+                    Timber.d("ICE restart offer created")
                     peerConnection?.setLocalDescription(object : SdpObserver {
                         override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
                         override fun onSetSuccess() {
-                            Log.d(TAG, "ICE restart local description set")
+                            Timber.d("ICE restart local description set")
                             onOfferCreated?.invoke(
                                 SessionDescription(
                                     type = SessionDescription.Type.OFFER,
@@ -691,10 +690,10 @@ class WebRTCPeerConnection @Inject constructor(
                             )
                         }
                         override fun onCreateFailure(error: String?) {
-                            Log.e(TAG, "ICE restart create failure: $error")
+                            Timber.e("ICE restart create failure: $error")
                         }
                         override fun onSetFailure(error: String?) {
-                            Log.e(TAG, "ICE restart set failure: $error")
+                            Timber.e("ICE restart set failure: $error")
                         }
                     }, it)
                 }
@@ -702,7 +701,7 @@ class WebRTCPeerConnection @Inject constructor(
 
             override fun onSetSuccess() {}
             override fun onCreateFailure(error: String?) {
-                Log.e(TAG, "Failed to create ICE restart offer: $error")
+                Timber.e("Failed to create ICE restart offer: $error")
                 _connectionState.value = ConnectionState.Failed("ICE restart failed: $error")
             }
             override fun onSetFailure(error: String?) {}

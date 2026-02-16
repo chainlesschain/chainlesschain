@@ -433,7 +433,7 @@ fun DeviceConnectionPanel(
                 )
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 连接状态指示
             ConnectionStatusIndicator(connectionState, connectedPeer)
@@ -579,7 +579,7 @@ fun SystemStatusPanel(
                 }
             }
 
-            Divider()
+            HorizontalDivider()
 
             if (systemStatus != null) {
                 // CPU 状态
@@ -702,7 +702,7 @@ fun CommandShortcutsSection(
                 )
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 命令按钮
             commands.forEach { command ->
@@ -853,7 +853,7 @@ fun RecentActionsPanel(actions: List<String>) {
                 Icon(Icons.Default.History, contentDescription = null)
                 Text(stringResource(R.string.remote_recent_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
-            Divider()
+            HorizontalDivider()
             if (actions.isEmpty()) {
                 Text(stringResource(R.string.remote_no_action_history), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {

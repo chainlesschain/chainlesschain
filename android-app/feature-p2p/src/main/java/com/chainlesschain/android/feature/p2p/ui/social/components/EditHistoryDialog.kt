@@ -71,7 +71,7 @@ fun EditHistoryDialog(
                     }
                 }
 
-                Divider()
+                HorizontalDivider()
 
                 // 历史记录列表
                 if (editHistories.isEmpty()) {
@@ -179,7 +179,7 @@ private fun EditHistoryItem(
                 }
             }
 
-            Divider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             // 之前的内容预览
             Column(

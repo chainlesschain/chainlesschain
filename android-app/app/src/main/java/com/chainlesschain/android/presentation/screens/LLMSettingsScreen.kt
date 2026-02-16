@@ -89,7 +89,7 @@ fun LLMSettingsScreen(
                 modifier = Modifier.padding(16.dp)
             )
 
-            Divider()
+            HorizontalDivider()
 
             // 配置区域
             when (uiState.selectedProvider) {

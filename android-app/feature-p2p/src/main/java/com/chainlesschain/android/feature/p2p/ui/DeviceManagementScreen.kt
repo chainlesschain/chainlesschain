@@ -107,7 +107,7 @@ fun DeviceManagementScreen(
                 isScanning = isScanning
             )
 
-            Divider()
+            HorizontalDivider()
 
             // Tab 切换（已连接 / 发现的设备）
             TabRow(selectedTabIndex = selectedTab) {
@@ -266,7 +266,7 @@ fun DeviceStatisticsCard(
                 )
             }
 
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier
                     .height(80.dp)
                     .width(1.dp)
@@ -295,7 +295,7 @@ fun DeviceStatisticsCard(
                 )
             }
 
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier
                     .height(80.dp)
                     .width(1.dp)
@@ -470,7 +470,7 @@ fun DeviceCard(
                         )
                     }
 
-                    Divider()
+                    HorizontalDivider()
 
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.disconnect), color = MaterialTheme.colorScheme.error) },

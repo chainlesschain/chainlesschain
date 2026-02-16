@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.ai.data.llm
 
+import timber.log.Timber
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.StreamChunk
 import kotlinx.coroutines.delay
@@ -145,9 +146,9 @@ class OpenAIAdapter(
 
     override suspend fun checkAvailability(): Boolean {
         return try {
-            android.util.Log.d("OpenAIAdapter", "checkAvailability: baseUrl=$baseUrl, apiKey=${apiKey.take(10)}...")
+            Timber.tag("OpenAIAdapter").d("checkAvailability: baseUrl=$baseUrl, apiKey=${apiKey.take(10)}...")
             val url = "$baseUrl/models"
-            android.util.Log.d("OpenAIAdapter", "checkAvailability: requesting URL=$url")
+            Timber.tag("OpenAIAdapter").d("checkAvailability: requesting URL=$url")
 
             val request = Request.Builder()
                 .url(url)
@@ -155,15 +156,15 @@ class OpenAIAdapter(
                 .addHeader("Authorization", "Bearer $apiKey")
                 .build()
 
-            android.util.Log.d("OpenAIAdapter", "checkAvailability: executing request...")
+            Timber.tag("OpenAIAdapter").d("checkAvailability: executing request...")
             val result = client.newCall(request).execute().use { response ->
-                android.util.Log.d("OpenAIAdapter", "checkAvailability: response code=${response.code}, message=${response.message}")
+                Timber.tag("OpenAIAdapter").d("checkAvailability: response code=${response.code}, message=${response.message}")
                 response.isSuccessful
             }
-            android.util.Log.d("OpenAIAdapter", "checkAvailability: result=$result")
+            Timber.tag("OpenAIAdapter").d("checkAvailability: result=$result")
             result
         } catch (e: Exception) {
-            android.util.Log.e("OpenAIAdapter", "checkAvailability: exception", e)
+            Timber.tag("OpenAIAdapter").e(e, "checkAvailability: exception")
             false
         }
     }

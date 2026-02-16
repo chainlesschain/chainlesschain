@@ -144,7 +144,7 @@ fun AddFriendScreen(
                                 onAddClick = { viewModel.showFriendRequestDialog(user) }
                             )
                         }
-                        item { Divider(modifier = Modifier.padding(vertical = 8.dp)) }
+                        item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
                     }
 
                     // 好友推荐

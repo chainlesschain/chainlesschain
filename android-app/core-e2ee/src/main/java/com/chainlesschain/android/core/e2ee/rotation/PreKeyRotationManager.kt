@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.rotation
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import kotlinx.coroutines.*
 import java.util.concurrent.TimeUnit
@@ -17,8 +17,6 @@ class PreKeyRotationManager(
 ) {
 
     companion object {
-        private const val TAG = "PreKeyRotationManager"
-
         // 默认轮转间隔
         private val SIGNED_PRE_KEY_ROTATION_INTERVAL = TimeUnit.DAYS.toMillis(7) // 7天
         private val ONE_TIME_PRE_KEY_CHECK_INTERVAL = TimeUnit.HOURS.toMillis(6) // 6小时
@@ -47,7 +45,7 @@ class PreKeyRotationManager(
         signedPreKeyInterval: Long = SIGNED_PRE_KEY_ROTATION_INTERVAL,
         oneTimePreKeyCheckInterval: Long = ONE_TIME_PRE_KEY_CHECK_INTERVAL
     ) {
-        Log.i(TAG, "Starting pre-key rotation manager")
+        Timber.i("Starting pre-key rotation manager")
 
         // 启动签名预密钥轮转
         signedPreKeyRotationJob = scope.launch {
@@ -58,7 +56,7 @@ class PreKeyRotationManager(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error in signed pre-key rotation", e)
+                    Timber.e(e, "Error in signed pre-key rotation")
                 }
             }
         }
@@ -72,19 +70,19 @@ class PreKeyRotationManager(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error in one-time pre-key management", e)
+                    Timber.e(e, "Error in one-time pre-key management")
                 }
             }
         }
 
-        Log.i(TAG, "Pre-key rotation manager started")
+        Timber.i("Pre-key rotation manager started")
     }
 
     /**
      * 停止预密钥轮转
      */
     fun stop() {
-        Log.i(TAG, "Stopping pre-key rotation manager")
+        Timber.i("Stopping pre-key rotation manager")
 
         signedPreKeyRotationJob?.cancel()
         oneTimePreKeyManagementJob?.cancel()
@@ -92,7 +90,7 @@ class PreKeyRotationManager(
         signedPreKeyRotationJob = null
         oneTimePreKeyManagementJob = null
 
-        Log.i(TAG, "Pre-key rotation manager stopped")
+        Timber.i("Pre-key rotation manager stopped")
     }
 
     /**
@@ -107,7 +105,7 @@ class PreKeyRotationManager(
      * 立即轮转签名预密钥
      */
     suspend fun rotateSignedPreKey() {
-        Log.i(TAG, "Rotating signed pre-key")
+        Timber.i("Rotating signed pre-key")
 
         try {
             val newSignedPreKeyPair = X25519KeyPair.generate()
@@ -115,9 +113,9 @@ class PreKeyRotationManager(
 
             lastSignedPreKeyRotation = System.currentTimeMillis()
 
-            Log.i(TAG, "Signed pre-key rotated successfully")
+            Timber.i("Signed pre-key rotated successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to rotate signed pre-key", e)
+            Timber.e(e, "Failed to rotate signed pre-key")
             throw e
         }
     }
@@ -128,7 +126,7 @@ class PreKeyRotationManager(
      * 检查数量并在需要时生成新密钥，定期清理过期密钥
      */
     private suspend fun manageOneTimePreKeys() {
-        Log.d(TAG, "Managing one-time pre-keys")
+        Timber.d("Managing one-time pre-keys")
 
         try {
             // 生成新的一次性预密钥
@@ -140,7 +138,7 @@ class PreKeyRotationManager(
                 cleanupOneTimePreKeys()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to manage one-time pre-keys", e)
+            Timber.e(e, "Failed to manage one-time pre-keys")
         }
     }
 
@@ -148,15 +146,15 @@ class PreKeyRotationManager(
      * 清理过期的一次性预密钥
      */
     private suspend fun cleanupOneTimePreKeys() {
-        Log.i(TAG, "Cleaning up old one-time pre-keys")
+        Timber.i("Cleaning up old one-time pre-keys")
 
         try {
             onOneTimePreKeysCleanup()
             lastOneTimePreKeyCleanup = System.currentTimeMillis()
 
-            Log.i(TAG, "One-time pre-keys cleanup completed")
+            Timber.i("One-time pre-keys cleanup completed")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to cleanup one-time pre-keys", e)
+            Timber.e(e, "Failed to cleanup one-time pre-keys")
         }
     }
 

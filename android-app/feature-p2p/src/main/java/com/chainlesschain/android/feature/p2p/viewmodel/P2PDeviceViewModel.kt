@@ -131,7 +131,7 @@ class P2PDeviceViewModel @Inject constructor(
             // 获取会话
             val session = sessionManager.getSession(peerId)
             if (session == null) {
-                android.util.Log.w("P2PDeviceViewModel", "No session found for peer: $peerId")
+                timber.log.Timber.w("No session found for peer: $peerId")
                 return null
             }
 
@@ -139,7 +139,7 @@ class P2PDeviceViewModel @Inject constructor(
             val localPublicKey = sessionManager.getLocalIdentityPublicKey()
             val remotePublicKey = sessionManager.getPeerIdentityPublicKey(peerId)
             if (remotePublicKey == null) {
-                android.util.Log.w("P2PDeviceViewModel", "No peer identity key found for: $peerId")
+                timber.log.Timber.w("No peer identity key found for: $peerId")
                 return null
             }
 
@@ -169,7 +169,7 @@ class P2PDeviceViewModel @Inject constructor(
                 }
             )
         } catch (e: Exception) {
-            android.util.Log.e("P2PDeviceViewModel", "Failed to get verification info", e)
+            timber.log.Timber.e(e, "Failed to get verification info")
             null
         }
     }

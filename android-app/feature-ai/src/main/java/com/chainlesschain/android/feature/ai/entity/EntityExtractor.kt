@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.entity
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
@@ -30,8 +30,6 @@ import javax.inject.Singleton
 class EntityExtractor @Inject constructor() {
 
     companion object {
-        private const val TAG = "EntityExtractor"
-
         // Regex patterns for entity extraction
         private val URL_PATTERN = Regex(
             """https?://[^\s<>"{}|\\^`\[\]]+""",
@@ -179,7 +177,7 @@ class EntityExtractor @Inject constructor() {
                 entities.addAll(llmEntities)
                 llmMatches += llmEntities.size
             } catch (e: Exception) {
-                Log.e(TAG, "LLM extraction failed", e)
+                Timber.e(e, "LLM extraction failed")
             }
         }
 
@@ -294,7 +292,7 @@ class EntityExtractor @Inject constructor() {
             val response = adapter.chat(messages, "gpt-4", maxTokens = 1000)
             parseLLMResponse(response)
         } catch (e: Exception) {
-            Log.e(TAG, "LLM extraction error", e)
+            Timber.e(e, "LLM extraction error")
             emptyList()
         }
     }
@@ -329,7 +327,7 @@ class EntityExtractor @Inject constructor() {
                         }
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Failed to parse entity line: $line")
+                    Timber.w("Failed to parse entity line: $line")
                 }
             }
         }

@@ -2,7 +2,7 @@ package com.chainlesschain.android.core.database.di
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import android.util.Log
+import timber.log.Timber
 import androidx.room.Room
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ConversationDao
@@ -39,8 +39,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    private const val TAG = "DatabaseModule"
-
     /**
      * 提供数据库实例（使用SQLCipher加密）
      *
@@ -56,7 +54,7 @@ object DatabaseModule {
         @ApplicationContext context: Context,
         keyManager: KeyManager
     ): ChainlessChainDatabase {
-        Log.i(TAG, "Initializing ChainlessChain database")
+        Timber.i("Initializing ChainlessChain database")
 
         // 从Keystore获取数据库加密密钥
         val passphrase = keyManager.getDatabaseKey()
@@ -86,7 +84,7 @@ object DatabaseModule {
             }
             .build()
             .also {
-                Log.i(TAG, "ChainlessChain database initialized successfully")
+                Timber.i("ChainlessChain database initialized successfully")
             }
     }
 

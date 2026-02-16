@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.project.repository
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
@@ -56,9 +56,6 @@ class ProjectRepository @Inject constructor(
     private val projectDao: ProjectDao,
     @ApplicationContext private val context: Context
 ) {
-    companion object {
-        private const val TAG = "ProjectRepository"
-    }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -174,7 +171,7 @@ class ProjectRepository @Inject constructor(
                 // 记录活动
                 recordActivity(project.id, "created", "项目已创建: ${project.name}")
 
-                Log.i(TAG, "Created project: ${project.id} - ${project.name}")
+                Timber.i("Created project: ${project.id} - ${project.name}")
 
                 scope.launch {
                     _projectEvents.emit(ProjectEvent.Created(project))
@@ -182,7 +179,7 @@ class ProjectRepository @Inject constructor(
 
                 Result.success(project)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to create project", e)
+                Timber.e(e, "Failed to create project")
                 Result.failure(e)
             }
         }
@@ -219,7 +216,7 @@ class ProjectRepository @Inject constructor(
                 // 记录活动
                 recordActivity(projectId, "updated", "项目已更新")
 
-                Log.i(TAG, "Updated project: $projectId")
+                Timber.i("Updated project: $projectId")
 
                 scope.launch {
                     _projectEvents.emit(ProjectEvent.Updated(updated))
@@ -227,7 +224,7 @@ class ProjectRepository @Inject constructor(
 
                 Result.success(updated)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update project: $projectId", e)
+                Timber.e(e, "Failed to update project: $projectId")
                 Result.failure(e)
             }
         }
@@ -247,7 +244,7 @@ class ProjectRepository @Inject constructor(
                     projectDao.softDeleteProject(projectId)
                 }
 
-                Log.i(TAG, "Deleted project: $projectId (hard=$hard)")
+                Timber.i("Deleted project: $projectId (hard=$hard)")
 
                 scope.launch {
                     _projectEvents.emit(ProjectEvent.Deleted(projectId))
@@ -255,7 +252,7 @@ class ProjectRepository @Inject constructor(
 
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete project: $projectId", e)
+                Timber.e(e, "Failed to delete project: $projectId")
                 Result.failure(e)
             }
         }
@@ -284,7 +281,7 @@ class ProjectRepository @Inject constructor(
 
                 recordActivity(projectId, "status_changed", "状态变更为: ${getStatusDisplayName(status)}")
 
-                Log.i(TAG, "Updated project status: $projectId -> $status")
+                Timber.i("Updated project status: $projectId -> $status")
 
                 scope.launch {
                     _projectEvents.emit(ProjectEvent.StatusChanged(projectId, status))
@@ -292,7 +289,7 @@ class ProjectRepository @Inject constructor(
 
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update project status: $projectId", e)
+                Timber.e(e, "Failed to update project status: $projectId")
                 Result.failure(e)
             }
         }
@@ -310,11 +307,11 @@ class ProjectRepository @Inject constructor(
                 val newFavorite = !project.isFavorite
                 projectDao.updateFavorite(projectId, newFavorite)
 
-                Log.i(TAG, "Toggled favorite: $projectId -> $newFavorite")
+                Timber.i("Toggled favorite: $projectId -> $newFavorite")
 
                 Result.success(newFavorite)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to toggle favorite: $projectId", e)
+                Timber.e(e, "Failed to toggle favorite: $projectId")
                 Result.failure(e)
             }
         }
@@ -338,11 +335,11 @@ class ProjectRepository @Inject constructor(
                     if (newArchived) "项目已归档" else "项目已取消归档"
                 )
 
-                Log.i(TAG, "Toggled archive: $projectId -> $newArchived")
+                Timber.i("Toggled archive: $projectId -> $newArchived")
 
                 Result.success(newArchived)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to toggle archive: $projectId", e)
+                Timber.e(e, "Failed to toggle archive: $projectId")
                 Result.failure(e)
             }
         }
@@ -356,7 +353,7 @@ class ProjectRepository @Inject constructor(
             try {
                 projectDao.recordAccess(projectId)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to record access: $projectId", e)
+                Timber.e(e, "Failed to record access: $projectId")
             }
         }
     }
@@ -455,7 +452,7 @@ class ProjectRepository @Inject constructor(
                     file.id
                 )
 
-                Log.i(TAG, "Added file: ${file.id} - $name to project $projectId")
+                Timber.i("Added file: ${file.id} - $name to project $projectId")
 
                 scope.launch {
                     _projectEvents.emit(ProjectEvent.FileAdded(projectId, file))
@@ -463,7 +460,7 @@ class ProjectRepository @Inject constructor(
 
                 Result.success(file)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to add file to project: $projectId", e)
+                Timber.e(e, "Failed to add file to project: $projectId")
                 Result.failure(e)
             }
         }
@@ -476,10 +473,10 @@ class ProjectRepository @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 projectDao.updateFileContent(fileId, content, isDirty = true)
-                Log.i(TAG, "Updated file content: $fileId")
+                Timber.i("Updated file content: $fileId")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update file content: $fileId", e)
+                Timber.e(e, "Failed to update file content: $fileId")
                 Result.failure(e)
             }
         }
@@ -510,10 +507,10 @@ class ProjectRepository @Inject constructor(
                     fileId
                 )
 
-                Log.i(TAG, "Saved file: $fileId")
+                Timber.i("Saved file: $fileId")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to save file: $fileId", e)
+                Timber.e(e, "Failed to save file: $fileId")
                 Result.failure(e)
             }
         }
@@ -526,10 +523,10 @@ class ProjectRepository @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 projectDao.updateFileOpenStatus(fileId, isOpen = true)
-                Log.d(TAG, "Opened file: $fileId")
+                Timber.d("Opened file: $fileId")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to open file: $fileId", e)
+                Timber.e(e, "Failed to open file: $fileId")
                 Result.failure(e)
             }
         }
@@ -542,10 +539,10 @@ class ProjectRepository @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 projectDao.updateFileOpenStatus(fileId, isOpen = false)
-                Log.d(TAG, "Closed file: $fileId")
+                Timber.d("Closed file: $fileId")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to close file: $fileId", e)
+                Timber.e(e, "Failed to close file: $fileId")
                 Result.failure(e)
             }
         }
@@ -578,7 +575,7 @@ class ProjectRepository @Inject constructor(
                     fileId
                 )
 
-                Log.i(TAG, "Deleted file: $fileId")
+                Timber.i("Deleted file: $fileId")
 
                 scope.launch {
                     _projectEvents.emit(ProjectEvent.FileDeleted(file.projectId, fileId))
@@ -586,7 +583,7 @@ class ProjectRepository @Inject constructor(
 
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete file: $fileId", e)
+                Timber.e(e, "Failed to delete file: $fileId")
                 Result.failure(e)
             }
         }
@@ -623,10 +620,10 @@ class ProjectRepository @Inject constructor(
                     fileId
                 )
 
-                Log.i(TAG, "Renamed file: $fileId to $newName")
+                Timber.i("Renamed file: $fileId to $newName")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to rename file: $fileId", e)
+                Timber.e(e, "Failed to rename file: $fileId")
                 Result.failure(e)
             }
         }
@@ -668,10 +665,10 @@ class ProjectRepository @Inject constructor(
                     fileId
                 )
 
-                Log.i(TAG, "Moved file: $fileId to folder: $targetFolderId")
+                Timber.i("Moved file: $fileId to folder: $targetFolderId")
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to move file: $fileId", e)
+                Timber.e(e, "Failed to move file: $fileId")
                 Result.failure(e)
             }
         }
@@ -717,7 +714,7 @@ class ProjectRepository @Inject constructor(
             )
             projectDao.insertActivity(activity)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to record activity", e)
+            Timber.e(e, "Failed to record activity")
         }
     }
 
@@ -728,7 +725,7 @@ class ProjectRepository @Inject constructor(
         withContext(Dispatchers.IO) {
             val cutoffTime = System.currentTimeMillis() - (keepDays * 24 * 60 * 60 * 1000L)
             projectDao.deleteOldActivities(projectId, cutoffTime)
-            Log.i(TAG, "Cleaned up activities older than $keepDays days for project: $projectId")
+            Timber.i("Cleaned up activities older than $keepDays days for project: $projectId")
         }
     }
 
@@ -771,7 +768,7 @@ class ProjectRepository @Inject constructor(
             val totalSize = projectDao.getTotalFilesSize(projectId) ?: 0L
             projectDao.updateProjectStats(projectId, fileCount, totalSize)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to update project stats: $projectId", e)
+            Timber.e(e, "Failed to update project stats: $projectId")
         }
     }
 

@@ -9,6 +9,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import java.io.InputStream
 import java.io.OutputStream
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,7 +24,6 @@ class ConfigImportExportManager @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "ConfigImportExport"
         private const val CONFIG_FILE_NAME = "llm-config.json"
         private const val CONFIG_MIME_TYPE = "application/json"
     }
@@ -61,10 +61,10 @@ class ConfigImportExportManager @Inject constructor(
                 outputStream.flush()
             }
 
-            android.util.Log.i(TAG, "配置导出成功: $uri")
+            Timber.i("配置导出成功: $uri")
             true
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "配置导出失败", e)
+            Timber.e(e, "配置导出失败")
             false
         }
     }
@@ -98,10 +98,10 @@ class ConfigImportExportManager @Inject constructor(
             // 保存
             configManager.save(finalConfig)
 
-            android.util.Log.i(TAG, "配置导入成功: $uri")
+            Timber.i("配置导入成功: $uri")
             true
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "配置导入失败", e)
+            Timber.e(e, "配置导入失败")
             false
         }
     }
@@ -126,10 +126,10 @@ class ConfigImportExportManager @Inject constructor(
             // 直接应用（桌面端配置已经包含所有字段）
             configManager.save(desktopConfig)
 
-            android.util.Log.i(TAG, "从桌面端导入配置成功")
+            Timber.i("从桌面端导入配置成功")
             true
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "从桌面端导入配置失败", e)
+            Timber.e(e, "从桌面端导入配置失败")
             false
         }
     }
@@ -165,10 +165,10 @@ class ConfigImportExportManager @Inject constructor(
 
             configManager.save(finalConfig)
 
-            android.util.Log.i(TAG, "从字符串导入配置成功")
+            Timber.i("从字符串导入配置成功")
             true
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "从字符串导入配置失败", e)
+            Timber.e(e, "从字符串导入配置失败")
             false
         }
     }
@@ -189,7 +189,7 @@ class ConfigImportExportManager @Inject constructor(
 
             Pair(true, config.provider)
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "验证配置文件失败", e)
+            Timber.e(e, "验证配置文件失败")
             Pair(false, null)
         }
     }

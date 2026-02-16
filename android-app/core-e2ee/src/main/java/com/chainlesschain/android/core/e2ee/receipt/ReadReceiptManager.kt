@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.receipt
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.protocol.RatchetMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +22,6 @@ class ReadReceiptManager(
 ) {
 
     companion object {
-        private const val TAG = "ReadReceiptManager"
         private const val BATCH_SIZE = 10 // 批量确认的最大消息数
         private const val BATCH_DELAY = 2000L // 批量确认延迟（毫秒）
     }
@@ -49,7 +48,7 @@ class ReadReceiptManager(
      * @param messageId 消息ID
      */
     suspend fun markAsDelivered(peerId: String, messageId: String) {
-        Log.d(TAG, "Marking message as delivered: $messageId")
+        Timber.d("Marking message as delivered: $messageId")
 
         updateStatus(peerId, messageId) { status ->
             status.delivered = true
@@ -68,7 +67,7 @@ class ReadReceiptManager(
      * @param sendReceipt 是否发送已读回执（默认true）
      */
     suspend fun markAsRead(peerId: String, messageId: String, sendReceipt: Boolean = true) {
-        Log.d(TAG, "Marking message as read: $messageId")
+        Timber.d("Marking message as read: $messageId")
 
         updateStatus(peerId, messageId) { status ->
             status.read = true
@@ -93,7 +92,7 @@ class ReadReceiptManager(
      * @param messageIds 消息ID列表
      */
     suspend fun markMultipleAsRead(peerId: String, messageIds: List<String>) {
-        Log.d(TAG, "Marking ${messageIds.size} messages as read")
+        Timber.d("Marking ${messageIds.size} messages as read")
 
         messageIds.forEach { messageId ->
             updateStatus(peerId, messageId) { status ->
@@ -117,7 +116,7 @@ class ReadReceiptManager(
      * @param messageId 消息ID
      */
     suspend fun markAsPlayed(peerId: String, messageId: String) {
-        Log.d(TAG, "Marking message as played: $messageId")
+        Timber.d("Marking message as played: $messageId")
 
         updateStatus(peerId, messageId) { status ->
             status.played = true
@@ -134,7 +133,7 @@ class ReadReceiptManager(
      * @param messageId 消息ID
      */
     suspend fun markAsScreenshot(peerId: String, messageId: String) {
-        Log.d(TAG, "Marking message as screenshot: $messageId")
+        Timber.d("Marking message as screenshot: $messageId")
 
         updateStatus(peerId, messageId) { status ->
             status.screenshot = true
@@ -157,7 +156,7 @@ class ReadReceiptManager(
             val receiptJson = String(decryptedData, Charsets.UTF_8)
             val receipt = json.decodeFromString<ReadReceipt>(receiptJson)
 
-            Log.d(TAG, "Received ${receipt.type} receipt for ${receipt.messageIds.size} messages from $peerId")
+            Timber.d("Received ${receipt.type} receipt for ${receipt.messageIds.size} messages from $peerId")
 
             // 更新状态
             receipt.messageIds.forEach { messageId ->
@@ -166,7 +165,7 @@ class ReadReceiptManager(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle received receipt", e)
+            Timber.e(e, "Failed to handle received receipt")
         }
     }
 
@@ -199,7 +198,7 @@ class ReadReceiptManager(
     suspend fun clearReceiptStatuses(peerId: String) = mutex.withLock {
         receiptStatuses.remove(peerId)
         pendingReceipts.remove(peerId)
-        Log.i(TAG, "Cleared receipt statuses for peer: $peerId")
+        Timber.i("Cleared receipt statuses for peer: $peerId")
     }
 
     /**
@@ -208,7 +207,7 @@ class ReadReceiptManager(
     suspend fun clearAll() = mutex.withLock {
         receiptStatuses.clear()
         pendingReceipts.clear()
-        Log.i(TAG, "Cleared all receipt statuses")
+        Timber.i("Cleared all receipt statuses")
     }
 
     /**
@@ -264,9 +263,9 @@ class ReadReceiptManager(
             val encryptedReceipt = encryptCallback(peerId, receiptData)
 
             // 实际发送由调用方处理（通过回调或队列）
-            Log.d(TAG, "Encrypted ${receipt.type} receipt for ${receipt.messageIds.size} messages")
+            Timber.d("Encrypted ${receipt.type} receipt for ${receipt.messageIds.size} messages")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send receipt", e)
+            Timber.e(e, "Failed to send receipt")
         }
     }
 

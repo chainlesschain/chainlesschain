@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.ComponentCallbacks2
 import android.content.res.Configuration
 import android.os.Debug
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +32,7 @@ class MemoryManager @Inject constructor(
 ) : ComponentCallbacks2 {
 
     companion object {
-        private const val TAG = "MemoryManager"
+
     }
 
     // Memory pressure state
@@ -56,7 +56,7 @@ class MemoryManager @Inject constructor(
     init {
         // Register for memory callbacks
         application.registerComponentCallbacks(this)
-        Log.d(TAG, "MemoryManager initialized")
+        Timber.d("MemoryManager initialized")
     }
 
     // ===== Object Pool Management =====
@@ -165,7 +165,7 @@ class MemoryManager @Inject constructor(
         val pressureLevel = MemoryPressureLevel.fromTrimLevel(level)
         _pressureLevel.value = pressureLevel
 
-        Log.d(TAG, "onTrimMemory: level=$level, pressure=$pressureLevel")
+        Timber.d("onTrimMemory: level=$level, pressure=$pressureLevel")
 
         when (pressureLevel) {
             MemoryPressureLevel.NORMAL -> {
@@ -190,7 +190,7 @@ class MemoryManager @Inject constructor(
     }
 
     override fun onLowMemory() {
-        Log.w(TAG, "onLowMemory called")
+        Timber.w("onLowMemory called")
         _pressureLevel.value = MemoryPressureLevel.CRITICAL
         performCriticalCleanup()
         updateStatistics()
@@ -199,7 +199,7 @@ class MemoryManager @Inject constructor(
     // ===== Cleanup Operations =====
 
     private fun performModerateCleanup() {
-        Log.d(TAG, "Performing moderate cleanup")
+        Timber.d("Performing moderate cleanup")
 
         // Evict stale cache entries
         genericWeakCache.evictStale()
@@ -209,7 +209,7 @@ class MemoryManager @Inject constructor(
     }
 
     private fun performWarningCleanup() {
-        Log.d(TAG, "Performing warning cleanup")
+        Timber.d("Performing warning cleanup")
 
         // Evict stale and clear half the cache
         genericWeakCache.evictStale()
@@ -234,7 +234,7 @@ class MemoryManager @Inject constructor(
     }
 
     private fun performCriticalCleanup() {
-        Log.w(TAG, "Performing critical cleanup")
+        Timber.w("Performing critical cleanup")
 
         // Clear all caches
         genericWeakCache.clear()
@@ -258,7 +258,7 @@ class MemoryManager @Inject constructor(
                 try {
                     handler.onMemoryCleanup(level)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Cleanup handler error", e)
+                    Timber.e(e, "Cleanup handler error")
                 }
             }
         }
@@ -327,7 +327,7 @@ class MemoryManager @Inject constructor(
         performCriticalCleanup()
         cleanupHandlers.clear()
         objectPools.clear()
-        Log.d(TAG, "MemoryManager cleaned up")
+        Timber.d("MemoryManager cleaned up")
     }
 }
 

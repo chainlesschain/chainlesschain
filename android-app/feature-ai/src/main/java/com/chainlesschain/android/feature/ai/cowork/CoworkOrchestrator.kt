@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.cowork
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.feature.ai.cowork.agent.AgentCapability
 import com.chainlesschain.android.feature.ai.cowork.agent.AgentPool
 import com.chainlesschain.android.feature.ai.cowork.agent.AgentStatus
@@ -41,10 +41,6 @@ class CoworkOrchestrator @Inject constructor(
     private val taskManager: LongRunningTaskManager,
     private val fileSandbox: FileSandbox
 ) {
-
-    companion object {
-        private const val TAG = "CoworkOrchestrator"
-    }
 
     // Team storage
     private val teams = ConcurrentHashMap<String, CoworkTeam>()
@@ -118,7 +114,7 @@ class CoworkOrchestrator @Inject constructor(
         team.status = TeamStatus.READY
         updateTeamFlows()
 
-        Log.d(TAG, "Created team: ${team.name} (${team.id})")
+        Timber.d("Created team: ${team.name} (${team.id})")
         return@withLock team
     }
 
@@ -131,7 +127,7 @@ class CoworkOrchestrator @Inject constructor(
 
         if (team.addMember(agentId)) {
             agentPool.assignToTeam(agentId, teamId)
-            Log.d(TAG, "Added agent ${agent.name} to team ${team.name}")
+            Timber.d("Added agent ${agent.name} to team ${team.name}")
             return@withLock true
         }
         return@withLock false
@@ -145,7 +141,7 @@ class CoworkOrchestrator @Inject constructor(
 
         if (team.removeMember(agentId)) {
             agentPool.removeFromTeam(agentId)
-            Log.d(TAG, "Removed agent $agentId from team ${team.name}")
+            Timber.d("Removed agent $agentId from team ${team.name}")
             return@withLock true
         }
         return@withLock false
@@ -159,7 +155,7 @@ class CoworkOrchestrator @Inject constructor(
 
         if (team.start()) {
             updateTeamFlows()
-            Log.d(TAG, "Started team: ${team.name}")
+            Timber.d("Started team: ${team.name}")
             return@withLock true
         }
         return@withLock false
@@ -196,7 +192,7 @@ class CoworkOrchestrator @Inject constructor(
         teams.remove(teamId)
         updateTeamFlows()
 
-        Log.d(TAG, "Disbanded team: ${team.name}")
+        Timber.d("Disbanded team: ${team.name}")
         return@withLock true
     }
 
@@ -226,7 +222,7 @@ class CoworkOrchestrator @Inject constructor(
 
         if (taskManager.startTask(task.id, agentId)) {
             agentPool.assignTask(agentId, task.id)
-            Log.d(TAG, "Assigned task ${task.name} to agent ${agent.name}")
+            Timber.d("Assigned task ${task.name} to agent ${agent.name}")
             return task
         }
 
@@ -354,7 +350,7 @@ class CoworkOrchestrator @Inject constructor(
      * Shutdown the orchestrator
      */
     suspend fun shutdown() {
-        Log.d(TAG, "Shutting down orchestrator")
+        Timber.d("Shutting down orchestrator")
 
         // Stop all teams
         teams.keys.toList().forEach { disbandTeam(it) }

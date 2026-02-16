@@ -909,6 +909,20 @@ const routes: RouteRecordRaw[] = [
         component: () => import(/* webpackChunkName: "mcp-marketplace" */ '../pages/MCPServerMarketplace.vue'),
         meta: { title: 'MCP 服务器市场' },
       },
+      // ===== Tools Explorer (v0.35.0) =====
+      {
+        path: 'tools/explorer',
+        name: 'ToolsExplorer',
+        component: () => import(/* webpackChunkName: "tools-explorer" */ '../pages/ToolsExplorerPage.vue'),
+        meta: { title: 'Tools Explorer' },
+      },
+      // ===== Demo 模板中心 (v0.35.0) =====
+      {
+        path: 'demo-templates',
+        name: 'DemoTemplates',
+        component: () => import(/* webpackChunkName: "demo-templates" */ '../pages/DemoTemplatesPage.vue'),
+        meta: { title: 'AI 技能 Demo 模板' },
+      },
     ],
   },
 ];

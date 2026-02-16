@@ -6,7 +6,7 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileChunk
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileTransferMetadata
 import kotlinx.coroutines.Dispatchers
@@ -33,8 +33,6 @@ class FileChunker @Inject constructor(
     private val context: Context
 ) {
     companion object {
-        private const val TAG = "FileChunker"
-
         /** Thumbnail max width/height */
         private const val THUMBNAIL_MAX_SIZE = 200
 
@@ -224,7 +222,7 @@ class FileChunker @Inject constructor(
             // Verify chunk checksum
             val calculatedChecksum = calculateChunkChecksum(data)
             if (calculatedChecksum != chunk.chunkChecksum) {
-                Log.e(TAG, "Chunk checksum mismatch for chunk ${chunk.chunkIndex}")
+                Timber.e("Chunk checksum mismatch for chunk ${chunk.chunkIndex}")
                 return@withContext false
             }
 
@@ -241,7 +239,7 @@ class FileChunker @Inject constructor(
 
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to write chunk ${chunk.chunkIndex}", e)
+            Timber.e(e, "Failed to write chunk ${chunk.chunkIndex}")
             false
         }
     }
@@ -295,10 +293,10 @@ class FileChunker @Inject constructor(
             tempFile.copyTo(finalFile, overwrite = false)
             tempFile.delete()
 
-            Log.d(TAG, "File finalized: ${finalFile.absolutePath}")
+            Timber.d("File finalized: ${finalFile.absolutePath}")
             finalFile
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to finalize temp file", e)
+            Timber.e(e, "Failed to finalize temp file")
             null
         }
     }
@@ -381,7 +379,7 @@ class FileChunker @Inject constructor(
                 Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to generate image thumbnail", e)
+            Timber.e(e, "Failed to generate image thumbnail")
             null
         }
     }
@@ -451,13 +449,13 @@ class FileChunker @Inject constructor(
 
             Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to generate video thumbnail", e)
+            Timber.e(e, "Failed to generate video thumbnail")
             null
         } finally {
             try {
                 retriever?.release()
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to release MediaMetadataRetriever", e)
+                Timber.w(e, "Failed to release MediaMetadataRetriever")
             }
         }
     }

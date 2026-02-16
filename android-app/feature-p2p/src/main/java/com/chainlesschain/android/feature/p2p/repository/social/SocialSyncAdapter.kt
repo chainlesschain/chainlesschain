@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.social.*
 import com.chainlesschain.android.core.p2p.sync.ResourceType
 import com.chainlesschain.android.core.p2p.sync.SyncItem
@@ -28,10 +28,6 @@ class SocialSyncAdapter @Inject constructor(
     private val notificationRepository: Lazy<NotificationRepository>
 ) {
 
-    companion object {
-        private const val TAG = "SocialSyncAdapter"
-    }
-
     private val json = Json { ignoreUnknownKeys = true }
 
     // ===== 好友同步 =====
@@ -48,7 +44,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Friend added to sync queue: ${friend.did}")
+        Timber.d("Friend added to sync queue: ${friend.did}")
     }
 
     /**
@@ -63,7 +59,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Friend updated in sync queue: ${friend.did}")
+        Timber.d("Friend updated in sync queue: ${friend.did}")
     }
 
     /**
@@ -78,7 +74,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Friend deleted in sync queue: $did")
+        Timber.d("Friend deleted in sync queue: $did")
     }
 
     // ===== 动态同步 =====
@@ -95,7 +91,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Post created in sync queue: ${post.id}")
+        Timber.d("Post created in sync queue: ${post.id}")
     }
 
     /**
@@ -110,7 +106,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Post updated in sync queue: ${post.id}")
+        Timber.d("Post updated in sync queue: ${post.id}")
     }
 
     /**
@@ -125,7 +121,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Post deleted in sync queue: $postId")
+        Timber.d("Post deleted in sync queue: $postId")
     }
 
     // ===== 点赞同步 =====
@@ -142,7 +138,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Like added to sync queue: ${like.id}")
+        Timber.d("Like added to sync queue: ${like.id}")
     }
 
     /**
@@ -157,7 +153,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Like removed in sync queue: $likeId")
+        Timber.d("Like removed in sync queue: $likeId")
     }
 
     // ===== 评论同步 =====
@@ -174,7 +170,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Comment added to sync queue: ${comment.id}")
+        Timber.d("Comment added to sync queue: ${comment.id}")
     }
 
     /**
@@ -189,7 +185,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Comment deleted in sync queue: $commentId")
+        Timber.d("Comment deleted in sync queue: $commentId")
     }
 
     // ===== 通知同步 =====
@@ -206,7 +202,7 @@ class SocialSyncAdapter @Inject constructor(
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
-        Log.d(TAG, "Notification created in sync queue: ${notification.id}")
+        Timber.d("Notification created in sync queue: ${notification.id}")
     }
 
     /**
@@ -214,7 +210,7 @@ class SocialSyncAdapter @Inject constructor(
      */
     fun syncReportSubmitted(report: com.chainlesschain.android.core.database.entity.social.PostReportEntity) {
         // Backend moderation system integration pending
-        Log.d(TAG, "Report submitted for post: ${report.postId}, reason: ${report.reason}")
+        Timber.d("Report submitted for post: ${report.postId}, reason: ${report.reason}")
     }
 
     // ===== 应用同步变更 =====
@@ -230,10 +226,10 @@ class SocialSyncAdapter @Inject constructor(
                 ResourceType.POST_LIKE -> applyLikeSync(syncItem)
                 ResourceType.POST_COMMENT -> applyCommentSync(syncItem)
                 ResourceType.NOTIFICATION -> applyNotificationSync(syncItem)
-                else -> Log.w(TAG, "Unsupported resource type: ${syncItem.resourceType}")
+                else -> Timber.w("Unsupported resource type: ${syncItem.resourceType}")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to apply sync item: ${syncItem.resourceId}", e)
+            Timber.e(e, "Failed to apply sync item: ${syncItem.resourceId}")
         }
     }
 
@@ -244,11 +240,11 @@ class SocialSyncAdapter @Inject constructor(
             SyncOperation.CREATE, SyncOperation.UPDATE -> {
                 val friend = data.toEntity()
                 friendRepository.value.addFriend(friend)
-                Log.d(TAG, "Friend synced: ${friend.did}")
+                Timber.d("Friend synced: ${friend.did}")
             }
             SyncOperation.DELETE -> {
                 friendRepository.value.deleteFriend(data.did)
-                Log.d(TAG, "Friend deleted: ${data.did}")
+                Timber.d("Friend deleted: ${data.did}")
             }
         }
     }
@@ -260,16 +256,16 @@ class SocialSyncAdapter @Inject constructor(
             SyncOperation.CREATE -> {
                 val post = data.toEntity()
                 postRepository.value.createPost(post)
-                Log.d(TAG, "Post synced: ${post.id}")
+                Timber.d("Post synced: ${post.id}")
             }
             SyncOperation.UPDATE -> {
                 val post = data.toEntity()
                 postRepository.value.updatePost(post)
-                Log.d(TAG, "Post updated: ${post.id}")
+                Timber.d("Post updated: ${post.id}")
             }
             SyncOperation.DELETE -> {
                 postRepository.value.deletePost(data.id)
-                Log.d(TAG, "Post deleted: ${data.id}")
+                Timber.d("Post deleted: ${data.id}")
             }
         }
     }
@@ -282,7 +278,7 @@ class SocialSyncAdapter @Inject constructor(
                 data.postId?.let { postId ->
                     data.userDid?.let { userDid ->
                         postRepository.value.likePost(postId, userDid)
-                        Log.d(TAG, "Like synced: ${data.id}")
+                        Timber.d("Like synced: ${data.id}")
                     }
                 }
             }
@@ -290,7 +286,7 @@ class SocialSyncAdapter @Inject constructor(
                 data.postId?.let { postId ->
                     data.userDid?.let { userDid ->
                         postRepository.value.unlikePost(postId, userDid)
-                        Log.d(TAG, "Like removed: ${data.id}")
+                        Timber.d("Like removed: ${data.id}")
                     }
                 }
             }
@@ -305,12 +301,12 @@ class SocialSyncAdapter @Inject constructor(
             SyncOperation.CREATE -> {
                 val comment = data.toEntity()
                 postRepository.value.addComment(comment)
-                Log.d(TAG, "Comment synced: ${comment.id}")
+                Timber.d("Comment synced: ${comment.id}")
             }
             SyncOperation.DELETE -> {
                 data.toEntity().let { comment ->
                     postRepository.value.deleteComment(comment)
-                    Log.d(TAG, "Comment deleted: ${data.id}")
+                    Timber.d("Comment deleted: ${data.id}")
                 }
             }
             else -> {}
@@ -324,7 +320,7 @@ class SocialSyncAdapter @Inject constructor(
             SyncOperation.CREATE -> {
                 val notification = data.toEntity()
                 notificationRepository.value.createNotification(notification)
-                Log.d(TAG, "Notification synced: ${notification.id}")
+                Timber.d("Notification synced: ${notification.id}")
             }
             else -> {}
         }

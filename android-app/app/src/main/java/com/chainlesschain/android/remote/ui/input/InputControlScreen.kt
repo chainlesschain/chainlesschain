@@ -168,7 +168,7 @@ private fun KeyboardPanel(viewModel: InputControlViewModel, enabled: Boolean) {
             QuickActionButton(Modifier.weight(1f), "Save", enabled) { viewModel.save() }
         }
 
-        Divider()
+        HorizontalDivider()
 
         // 功能键
         Text("Function Keys", fontWeight = FontWeight.Bold)
@@ -189,7 +189,7 @@ private fun KeyboardPanel(viewModel: InputControlViewModel, enabled: Boolean) {
             }
         }
 
-        Divider()
+        HorizontalDivider()
 
         // 常用键
         Text("Common Keys", fontWeight = FontWeight.Bold)
@@ -212,7 +212,7 @@ private fun KeyboardPanel(viewModel: InputControlViewModel, enabled: Boolean) {
             KeyButton(Modifier.weight(1f), "End", enabled) { viewModel.pressEnd() }
         }
 
-        Divider()
+        HorizontalDivider()
 
         // 方向键
         Text("Arrow Keys", fontWeight = FontWeight.Bold)
@@ -228,7 +228,7 @@ private fun KeyboardPanel(viewModel: InputControlViewModel, enabled: Boolean) {
             }
         }
 
-        Divider()
+        HorizontalDivider()
 
         // Windows 组合键
         Text("Windows Shortcuts", fontWeight = FontWeight.Bold)
@@ -299,7 +299,7 @@ private fun MousePanel(
             }
         }
 
-        Divider()
+        HorizontalDivider()
 
         // 滚动
         Text("Scroll", fontWeight = FontWeight.Bold)
@@ -327,7 +327,7 @@ private fun MousePanel(
             }
         }
 
-        Divider()
+        HorizontalDivider()
 
         // 移动控制
         Text("Move Cursor", fontWeight = FontWeight.Bold)

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.data.rag
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -26,7 +26,6 @@ class RAGRetriever @Inject constructor(
     private val enhancedTfIdfEmbedder: EnhancedTfIdfEmbedder
 ) {
     companion object {
-        private const val TAG = "RAGRetriever"
         private const val MAX_CONTEXT_LENGTH = 2000
         private const val DEFAULT_TOP_K = 3
     }
@@ -64,14 +63,14 @@ class RAGRetriever @Inject constructor(
             if (isIndexed) return@withContext
 
             try {
-                Log.i(TAG, "Initializing RAG retriever...")
+                Timber.i("Initializing RAG retriever...")
 
                 // 初始化增强嵌入器
                 enhancedTfIdfEmbedder.initialize()
 
                 // 从数据库获取所有知识库项
                 val allItems = knowledgeItemDao.getAllItemsSync()
-                Log.i(TAG, "Found ${allItems.size} knowledge items")
+                Timber.i("Found ${allItems.size} knowledge items")
 
                 if (allItems.isNotEmpty()) {
                     // 转换为可索引文档
@@ -90,10 +89,10 @@ class RAGRetriever @Inject constructor(
                     enhancedTfIdfEmbedder.updateFromCorpus(documents.map { it.content })
 
                     isIndexed = true
-                    Log.i(TAG, "RAG retriever initialized with ${documents.size} documents")
+                    Timber.i("RAG retriever initialized with ${documents.size} documents")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialize RAG retriever", e)
+                Timber.e(e, "Failed to initialize RAG retriever")
             }
         }
     }
@@ -169,7 +168,7 @@ class RAGRetriever @Inject constructor(
                 else -> emptyList()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "FTS5 search failed", e)
+            Timber.e(e, "FTS5 search failed")
             emptyList()
         }
     }
@@ -202,7 +201,7 @@ class RAGRetriever @Inject constructor(
                 .sortedByDescending { it.score }
                 .take(topK)
         } catch (e: Exception) {
-            Log.e(TAG, "Vector search failed", e)
+            Timber.e(e, "Vector search failed")
             emptyList()
         }
     }
@@ -229,7 +228,7 @@ class RAGRetriever @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "BM25 search failed", e)
+            Timber.e(e, "BM25 search failed")
             emptyList()
         }
     }
@@ -258,7 +257,7 @@ class RAGRetriever @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Hybrid search failed", e)
+            Timber.e(e, "Hybrid search failed")
             // 降级到FTS5
             retrieveByFTS5(query, topK)
         }

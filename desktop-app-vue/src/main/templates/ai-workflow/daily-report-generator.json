@@ -1,0 +1,63 @@
+{
+  "id": "tpl_demo_dailyreport_001",
+  "name": "daily_report_generator",
+  "display_name": "每日报告生成器",
+  "description": "演示记忆管理和智能搜索技能，从每日活动记忆中自动生成日报或周报",
+  "icon": "📊",
+  "category": "ai-workflow",
+  "subcategory": "productivity",
+  "tags": [
+    "report",
+    "daily",
+    "weekly",
+    "memory",
+    "productivity",
+    "demo",
+    "skill"
+  ],
+  "project_type": "workflow",
+  "prompt_template": "请帮我生成{{reportType}}：\n\n**报告日期范围：** {{dateRange}}\n**报告风格：** {{reportStyle}}\n\n**生成步骤：**\n\n### 步骤1：检索活动记录\n从永久记忆中检索指定日期范围的活动：\n```\n/memory-management review {{dateRange}}\n```\n\n### 步骤2：搜索相关上下文\n搜索相关的项目和任务信息：\n```\n/smart-search 近期工作进展\n/smart-search 待办事项\n```\n\n### 步骤3：生成报告\n\n{{#eq reportType \"日报\"}}\n# 每日工作报告 - {{dateRange}}\n\n## 今日完成\n- [从记忆中提取已完成的任务]\n\n## 进行中\n- [从记忆中提取进行中的任务]\n\n## 遇到的问题\n- [从记忆中提取问题和障碍]\n\n## 明日计划\n- [基于当前进度推荐的下一步]\n{{/eq}}\n{{#eq reportType \"周报\"}}\n# 本周工作报告 - {{dateRange}}\n\n## 本周概要\n[一段话总结本周工作]\n\n## 重要成果\n| 项目 | 成果 | 状态 |\n|------|------|------|\n| [从记忆提取] | [描述] | [完成/进行中] |\n\n## 数据指标\n- 完成任务数：[统计]\n- 代码提交数：[统计]\n- 文档更新数：[统计]\n\n## 下周计划\n- [基于本周进展制定]\n\n## 需要支持\n- [列出需要协助的事项]\n{{/eq}}\n\n### 步骤4：保存报告\n```\n/memory-management save \"{{reportType}} - {{dateRange}}: [报告摘要]\"\n```\n\n**使用的技能：** memory-management, smart-search",
+  "variables_schema": [
+    {
+      "name": "reportType",
+      "label": "报告类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "日报", "label": "日报" },
+        { "value": "周报", "label": "周报" }
+      ]
+    },
+    {
+      "name": "dateRange",
+      "label": "日期范围",
+      "type": "string",
+      "required": true,
+      "placeholder": "2024-01-15 或 2024-01-15 ~ 2024-01-19",
+      "default": "today"
+    },
+    {
+      "name": "reportStyle",
+      "label": "报告风格",
+      "type": "select",
+      "required": false,
+      "default": "简洁",
+      "options": [
+        { "value": "简洁", "label": "简洁明了" },
+        { "value": "详细", "label": "详细全面" },
+        { "value": "数据驱动", "label": "数据驱动" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["memory-management", "smart-search"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

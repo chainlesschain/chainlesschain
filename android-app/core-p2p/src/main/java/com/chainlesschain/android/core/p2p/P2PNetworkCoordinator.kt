@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.connection.AutoReconnectManager
 import com.chainlesschain.android.core.p2p.connection.HeartbeatManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
@@ -37,10 +37,6 @@ class P2PNetworkCoordinator @Inject constructor(
     private val fileIndexProtocolHandler: FileIndexProtocolHandler
 ) {
 
-    companion object {
-        private const val TAG = "P2PNetworkCoordinator"
-    }
-
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     // P2P 网络综合状态
@@ -64,7 +60,7 @@ class P2PNetworkCoordinator @Inject constructor(
      */
     fun initialize(device: P2PDevice) {
         if (isInitialized) {
-            Log.w(TAG, "Already initialized")
+            Timber.w("Already initialized")
             return
         }
 
@@ -85,7 +81,7 @@ class P2PNetworkCoordinator @Inject constructor(
 
         updateState(P2PNetworkState.Ready)
 
-        Log.i(TAG, "P2P Network Coordinator initialized for device: ${device.deviceName}")
+        Timber.i("P2P Network Coordinator initialized for device: ${device.deviceName}")
     }
 
     /**
@@ -96,19 +92,19 @@ class P2PNetworkCoordinator @Inject constructor(
      */
     suspend fun connectToDevice(device: P2PDevice): Boolean {
         if (!isInitialized) {
-            Log.e(TAG, "Not initialized")
+            Timber.e("Not initialized")
             return false
         }
 
         if (!networkMonitor.isNetworkAvailable()) {
-            Log.w(TAG, "No network available")
+            Timber.w("No network available")
             updateState(P2PNetworkState.NoNetwork)
             return false
         }
 
         // 检查是否为 P2P 友好网络
         if (!networkMonitor.isP2PCapableNetwork()) {
-            Log.w(TAG, "Network not suitable for local P2P (using cellular)")
+            Timber.w("Network not suitable for local P2P (using cellular)")
             // 仍然允许连接，但记录警告
         }
 
@@ -117,7 +113,7 @@ class P2PNetworkCoordinator @Inject constructor(
             updateStatistics { it.copy(connectionAttempts = it.connectionAttempts + 1) }
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to connect to device", e)
+            Timber.e(e, "Failed to connect to device")
             updateStatistics { it.copy(connectionFailures = it.connectionFailures + 1) }
             false
         }
@@ -142,7 +138,7 @@ class P2PNetworkCoordinator @Inject constructor(
      */
     suspend fun sendMessage(deviceId: String, message: P2PMessage): Boolean {
         if (!networkMonitor.isNetworkAvailable()) {
-            Log.w(TAG, "No network, message will be queued")
+            Timber.w("No network, message will be queued")
             // 消息将被离线队列处理
             return false
         }
@@ -152,7 +148,7 @@ class P2PNetworkCoordinator @Inject constructor(
             updateStatistics { it.copy(messagesSent = it.messagesSent + 1) }
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send message", e)
+            Timber.e(e, "Failed to send message")
             false
         }
     }
@@ -220,12 +216,12 @@ class P2PNetworkCoordinator @Inject constructor(
      */
     fun triggerReconnectAll() {
         if (!networkMonitor.isNetworkAvailable()) {
-            Log.w(TAG, "No network, cannot reconnect")
+            Timber.w("No network, cannot reconnect")
             return
         }
 
         autoReconnectManager.resume()
-        Log.i(TAG, "Triggered reconnect for all pending devices")
+        Timber.i("Triggered reconnect for all pending devices")
     }
 
     /**
@@ -250,7 +246,7 @@ class P2PNetworkCoordinator @Inject constructor(
      * 关闭 P2P 网络
      */
     fun shutdown() {
-        Log.i(TAG, "Shutting down P2P network")
+        Timber.i("Shutting down P2P network")
 
         updateState(P2PNetworkState.ShuttingDown)
 
@@ -286,7 +282,7 @@ class P2PNetworkCoordinator @Inject constructor(
     private fun handleNetworkEvent(event: NetworkEvent) {
         when (event) {
             is NetworkEvent.Available -> {
-                Log.i(TAG, "Network available: ${event.networkInfo.type}")
+                Timber.i("Network available: ${event.networkInfo.type}")
 
                 // 恢复自动重连
                 if (isInitialized) {
@@ -299,7 +295,7 @@ class P2PNetworkCoordinator @Inject constructor(
             }
 
             is NetworkEvent.Lost -> {
-                Log.w(TAG, "Network lost")
+                Timber.w("Network lost")
 
                 // 暂停自动重连
                 autoReconnectManager.pause()
@@ -309,12 +305,12 @@ class P2PNetworkCoordinator @Inject constructor(
             }
 
             is NetworkEvent.Unavailable -> {
-                Log.w(TAG, "Network unavailable")
+                Timber.w("Network unavailable")
                 updateState(P2PNetworkState.NoNetwork)
             }
 
             is NetworkEvent.TypeChanged -> {
-                Log.i(TAG, "Network type changed: ${event.oldType} -> ${event.newType}")
+                Timber.i("Network type changed: ${event.oldType} -> ${event.newType}")
                 updateStatistics { it.copy(networkChanges = it.networkChanges + 1) }
             }
         }
@@ -378,14 +374,14 @@ class P2PNetworkCoordinator @Inject constructor(
                 // 委托给文件索引协议处理器
                 try {
                     fileIndexProtocolHandler.handleMessage(message)
-                    Log.d(TAG, "File protocol message handled: ${message.type}")
+                    Timber.d("File protocol message handled: ${message.type}")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error handling file protocol message", e)
+                    Timber.e(e, "Error handling file protocol message")
                 }
             }
             else -> {
                 // 非文件协议消息，忽略
-                Log.v(TAG, "Non-file protocol message: ${message.type}")
+                Timber.v("Non-file protocol message: ${message.type}")
             }
         }
     }
@@ -395,7 +391,7 @@ class P2PNetworkCoordinator @Inject constructor(
      */
     private fun updateState(state: P2PNetworkState) {
         _p2pNetworkState.value = state
-        Log.d(TAG, "P2P Network state: $state")
+        Timber.d("P2P Network state: $state")
     }
 
     /**

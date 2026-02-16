@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.crypto
 
-import android.util.Log
+import timber.log.Timber
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.IvParameterSpec
@@ -12,8 +12,6 @@ import javax.crypto.spec.SecretKeySpec
  * Signal Protocol使用AES-256-CBC + HMAC-SHA256进行消息加密
  */
 object AESCipher {
-
-    private const val TAG = "AESCipher"
 
     /** AES密钥长度（256位） */
     const val KEY_SIZE = 32
@@ -49,7 +47,7 @@ object AESCipher {
             "IV must be $IV_SIZE bytes"
         }
 
-        Log.d(TAG, "Encrypting message: ${plaintext.size} bytes")
+        Timber.d("Encrypting message: ${plaintext.size} bytes")
 
         // AES-256-CBC加密
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
@@ -67,7 +65,7 @@ object AESCipher {
         System.arraycopy(ciphertext, 0, result, 0, ciphertext.size)
         System.arraycopy(mac, 0, result, ciphertext.size, MAC_SIZE)
 
-        Log.d(TAG, "Encryption complete: ${result.size} bytes (ciphertext=${ciphertext.size}, mac=$MAC_SIZE)")
+        Timber.d("Encryption complete: ${result.size} bytes (ciphertext=${ciphertext.size}, mac=$MAC_SIZE)")
 
         return result
     }
@@ -101,7 +99,7 @@ object AESCipher {
             "Ciphertext too short"
         }
 
-        Log.d(TAG, "Decrypting message: ${ciphertextWithMAC.size} bytes")
+        Timber.d("Decrypting message: ${ciphertextWithMAC.size} bytes")
 
         // 分离密文和MAC
         val ciphertextSize = ciphertextWithMAC.size - MAC_SIZE
@@ -112,7 +110,7 @@ object AESCipher {
         val expectedMAC = computeMAC(macKey, iv, ciphertext)
 
         if (!receivedMAC.contentEquals(expectedMAC)) {
-            Log.e(TAG, "MAC verification failed")
+            Timber.e("MAC verification failed")
             throw SecurityException("MAC verification failed - message may be tampered")
         }
 
@@ -124,7 +122,7 @@ object AESCipher {
 
         val plaintext = cipher.doFinal(ciphertext)
 
-        Log.d(TAG, "Decryption complete: ${plaintext.size} bytes")
+        Timber.d("Decryption complete: ${plaintext.size} bytes")
 
         return plaintext
     }

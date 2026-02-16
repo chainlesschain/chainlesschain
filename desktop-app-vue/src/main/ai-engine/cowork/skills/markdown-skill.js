@@ -46,6 +46,15 @@ class MarkdownSkill extends BaseSkill {
     // 标签
     this.tags = definition.tags || [];
 
+    // Agent Skills Open Standard fields
+    this.tools = definition.tools || [];
+    this.instructions = definition.instructions || "";
+    this.examples = definition.examples || [];
+    this.dependencies = definition.dependencies || [];
+    this.inputSchema = definition.inputSchema || null;
+    this.outputSchema = definition.outputSchema || null;
+    this.author = definition.author || "";
+
     // handler 模块（延迟加载）
     this._handler = null;
     this._handlerLoaded = false;
@@ -184,6 +193,14 @@ class MarkdownSkill extends BaseSkill {
       hasBody: !!this.definition.body,
       requires: this.definition.requires,
       os: this.definition.os,
+      // Agent Skills Open Standard
+      tools: this.tools,
+      instructions: this.instructions,
+      examples: this.examples,
+      dependencies: this.dependencies,
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema,
+      author: this.author,
     };
   }
 

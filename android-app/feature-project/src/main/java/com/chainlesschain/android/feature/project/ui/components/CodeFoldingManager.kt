@@ -231,7 +231,9 @@ class CodeFoldingManager(
             when {
                 trimmed.startsWith("def ") -> {
                     blockStart?.let { start ->
-                        regions.add(FoldableRegion(start, index - 1, blockType!!, lines[start].trim()))
+                        blockType?.let { type ->
+                            regions.add(FoldableRegion(start, index - 1, type, lines[start].trim()))
+                        }
                     }
                     blockStart = index
                     blockType = FoldableRegionType.FUNCTION
@@ -239,7 +241,9 @@ class CodeFoldingManager(
                 }
                 trimmed.startsWith("class ") -> {
                     blockStart?.let { start ->
-                        regions.add(FoldableRegion(start, index - 1, blockType!!, lines[start].trim()))
+                        blockType?.let { type ->
+                            regions.add(FoldableRegion(start, index - 1, type, lines[start].trim()))
+                        }
                     }
                     blockStart = index
                     blockType = FoldableRegionType.CLASS
@@ -255,8 +259,8 @@ class CodeFoldingManager(
                         currentIndent = indent
                     } else if (blockType == FoldableRegionType.COMMENT && blockStart != null) {
                         // End of multiline
-                        val start = blockStart!!
-                        val type = blockType!!
+                        val start = blockStart ?: return@forEachIndexed
+                        val type = blockType ?: return@forEachIndexed
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                         blockStart = null
                         blockType = null
@@ -264,8 +268,8 @@ class CodeFoldingManager(
                 }
                 indent <= currentIndent && blockStart != null -> {
                     // End of current block
-                    val start = blockStart!!
-                    val type = blockType!!
+                    val start = blockStart ?: return@forEachIndexed
+                    val type = blockType ?: return@forEachIndexed
                     regions.add(FoldableRegion(start, index - 1, type, lines[start].trim()))
                     blockStart = null
                     blockType = null
@@ -275,7 +279,7 @@ class CodeFoldingManager(
 
         // Close last block if any
         blockStart?.let { start ->
-            val type = blockType!!
+            val type = blockType ?: return@let
             regions.add(FoldableRegion(start, lines.size - 1, type, lines[start].trim()))
         }
 
@@ -426,8 +430,8 @@ class CodeFoldingManager(
                 lastImportLine = index
             } else if (trimmed.isNotBlank() && importStart != null && lastImportLine != null) {
                 // End of import group (non-blank, non-import line)
-                val start = importStart!!
-                val end = lastImportLine!!
+                val start = importStart ?: return@forEachIndexed
+                val end = lastImportLine ?: return@forEachIndexed
 
                 // Only create region if there are at least 3 imports
                 if (end - start >= 2) {
@@ -446,8 +450,8 @@ class CodeFoldingManager(
 
         // Handle imports at end of file
         if (importStart != null && lastImportLine != null) {
-            val start = importStart!!
-            val end = lastImportLine!!
+            val start = importStart ?: return regions
+            val end = lastImportLine ?: return regions
             if (end - start >= 2) {
                 regions.add(FoldableRegion(
                     startLine = start,

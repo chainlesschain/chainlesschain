@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.p2p
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
@@ -39,8 +39,6 @@ class FileIndexProtocolHandler @Inject constructor(
     private val json: Json
 ) {
     companion object {
-        private const val TAG = "FileIndexProtocolHandler"
-
         // 默认分页大小
         private const val DEFAULT_PAGE_SIZE = 500
         private const val MAX_PAGE_SIZE = 1000
@@ -56,7 +54,7 @@ class FileIndexProtocolHandler @Inject constructor(
             MessageType.FILE_INDEX_REQUEST -> handleIndexRequest(message)
             MessageType.FILE_PULL_REQUEST -> handleFilePullRequest(message)
             else -> {
-                Log.w(TAG, "Unknown message type: ${message.type}")
+                Timber.w("Unknown message type: ${message.type}")
             }
         }
     }
@@ -68,7 +66,7 @@ class FileIndexProtocolHandler @Inject constructor(
         scope.launch {
             try {
                 val request = json.decodeFromString<IndexRequest>(message.payload)
-                Log.i(TAG, "收到文件索引请求: categories=${request.categories}, since=${request.since}, offset=${request.offset}")
+                Timber.i("收到文件索引请求: categories=${request.categories}, since=${request.since}, offset=${request.offset}")
 
                 // 验证参数
                 val limit = request.limit.coerceAtMost(MAX_PAGE_SIZE)
@@ -120,10 +118,10 @@ class FileIndexProtocolHandler @Inject constructor(
                 // 发送响应
                 sendIndexResponse(message.fromDeviceId, response)
 
-                Log.i(TAG, "文件索引响应已发送: ${files.size} 个文件, 总数 $total")
+                Timber.i("文件索引响应已发送: ${files.size} 个文件, 总数 $total")
 
             } catch (e: Exception) {
-                Log.e(TAG, "处理文件索引请求失败", e)
+                Timber.e(e, "处理文件索引请求失败")
                 sendError(message.fromDeviceId, message.payload, "处理请求失败: ${e.message}")
             }
         }
@@ -136,7 +134,7 @@ class FileIndexProtocolHandler @Inject constructor(
         scope.launch {
             try {
                 val request = json.decodeFromString<FilePullRequest>(message.payload)
-                Log.i(TAG, "收到文件拉取请求: fileId=${request.fileId}")
+                Timber.i("收到文件拉取请求: fileId=${request.fileId}")
 
                 // 查询文件信息
                 val file = externalFileDao.getById(request.fileId)
@@ -183,10 +181,10 @@ class FileIndexProtocolHandler @Inject constructor(
 
                 sendFilePullResponse(message.fromDeviceId, response)
 
-                Log.i(TAG, "文件拉取响应已发送: transferId=${transferMetadata.transferId}")
+                Timber.i("文件拉取响应已发送: transferId=${transferMetadata.transferId}")
 
             } catch (e: Exception) {
-                Log.e(TAG, "处理文件拉取请求失败", e)
+                Timber.e(e, "处理文件拉取请求失败")
                 sendError(message.fromDeviceId, message.payload, "文件传输失败: ${e.message}")
             }
         }
@@ -212,7 +210,7 @@ class FileIndexProtocolHandler @Inject constructor(
                 connectionManager.sendMessage(deviceId, message)
 
             } catch (e: Exception) {
-                Log.e(TAG, "发送文件索引响应失败", e)
+                Timber.e(e, "发送文件索引响应失败")
             }
         }
     }
@@ -237,7 +235,7 @@ class FileIndexProtocolHandler @Inject constructor(
                 connectionManager.sendMessage(deviceId, message)
 
             } catch (e: Exception) {
-                Log.e(TAG, "发送文件拉取响应失败", e)
+                Timber.e(e, "发送文件拉取响应失败")
             }
         }
     }
@@ -276,7 +274,7 @@ class FileIndexProtocolHandler @Inject constructor(
                 connectionManager.sendMessage(deviceId, message)
 
             } catch (e: Exception) {
-                Log.e(TAG, "发送错误响应失败", e)
+                Timber.e(e, "发送错误响应失败")
             }
         }
     }
@@ -305,10 +303,10 @@ class FileIndexProtocolHandler @Inject constructor(
 
                 connectionManager.sendMessage(deviceId, message)
 
-                Log.i(TAG, "文件索引变更通知已发送")
+                Timber.i("文件索引变更通知已发送")
 
             } catch (e: Exception) {
-                Log.e(TAG, "发送索引变更通知失败", e)
+                Timber.e(e, "发送索引变更通知失败")
             }
         }
     }
@@ -329,7 +327,7 @@ class FileIndexProtocolHandler @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to read DID from storage, falling back to Android ID", e)
+            Timber.w(e, "Failed to read DID from storage, falling back to Android ID")
         }
 
         // 回退到 Android ID

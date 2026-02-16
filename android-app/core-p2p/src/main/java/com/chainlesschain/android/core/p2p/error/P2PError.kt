@@ -465,30 +465,16 @@ fun P2PError.toJsonLogString(): String {
 }
 
 /**
- * 获取 Android Log 级别
+ * 使用 Timber 输出日志
  */
-fun P2PError.getLogLevel(): Int {
-    return when (severity) {
-        ErrorSeverity.INFO -> android.util.Log.INFO
-        ErrorSeverity.WARNING -> android.util.Log.WARN
-        ErrorSeverity.ERROR -> android.util.Log.ERROR
-        ErrorSeverity.FATAL -> android.util.Log.ASSERT
-    }
-}
-
-/**
- * 使用 Android Log 输出
- */
-fun P2PError.logToAndroid(tag: String = "P2P") {
-    val level = getLogLevel()
+fun P2PError.logToTimber() {
     val message = toLogString()
 
-    when (level) {
-        android.util.Log.INFO -> android.util.Log.i(tag, message, cause)
-        android.util.Log.WARN -> android.util.Log.w(tag, message, cause)
-        android.util.Log.ERROR -> android.util.Log.e(tag, message, cause)
-        android.util.Log.ASSERT -> android.util.Log.wtf(tag, message, cause)
-        else -> android.util.Log.d(tag, message, cause)
+    when (severity) {
+        ErrorSeverity.INFO -> timber.log.Timber.i(cause, message)
+        ErrorSeverity.WARNING -> timber.log.Timber.w(cause, message)
+        ErrorSeverity.ERROR -> timber.log.Timber.e(cause, message)
+        ErrorSeverity.FATAL -> timber.log.Timber.wtf(cause, message)
     }
 }
 

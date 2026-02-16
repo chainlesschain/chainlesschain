@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v0.33.0 | 军事级安全 | 完全去中心化 | AI原生 | Computer Use
+  tagline: v0.35.0 | 军事级安全 | 完全去中心化 | AI原生 | 15技能 | 统一工具注册表
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -64,6 +64,10 @@ features:
     title: 企业版
     details: 去中心化组织协作，RBAC权限，实时协作编辑，版本历史，评论讨论
 
+  - icon: 🎨
+    title: AI技能系统
+    details: 15个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+15技能)，10个演示模板
+
   - icon: ⛓️
     title: 区块链集成
     details: 6个智能合约，15链支持，HD钱包系统，MetaMask/WalletConnect集成
@@ -116,7 +120,7 @@ start.bat
 
 ### 1. ChainlessChain 个人AI管理系统
 
-完全去中心化的个人AI助手平台（v0.33.0 Computer Use企业版），整合知识库管理、社交网络和交易辅助三大核心功能。
+完全去中心化的个人AI助手平台（v0.35.0 AI技能系统），整合知识库管理、社交网络和交易辅助三大核心功能。
 
 **主要特性:**
 
@@ -124,7 +128,8 @@ start.bat
 - 🌐 完全去中心化 (P2P网络 + DHT)
 - 🧠 16个AI专用引擎 + 14+云LLM提供商
 - 📱 跨设备同步 (PC/移动端/浏览器扩展)
-- 🔌 MCP集成 + 115技能 + 300工具
+- 🔌 MCP集成 + 15内置技能 + 统一工具注册表
+- 🎨 AI技能系统 (15技能 + Agent Skills标准 + 10演示模板)
 - ⛓️ 区块链集成 (15链 + 6个智能合约)
 - 🤖 Cowork多智能体协作 (v1.0.0，200+测试用例)
 - 🖥️ Computer Use (68+ IPC处理器，视觉AI，工作流引擎)
@@ -174,10 +179,11 @@ start.bat
 
 ### 统计数据
 
-- 📊 220,000+ 行代码
-- 🧩 243个Vue组件
-- 🔌 149个API端点
-- 🧪 94个测试文件，900+测试用例
+- 📊 280,000+ 行代码
+- 🧩 358个Vue组件
+- 🔌 200+ IPC处理器
+- 🧪 417个测试文件，2000+测试用例
+- 🎨 15个内置技能 + 统一工具注册表
 
 ## 社区与支持
 

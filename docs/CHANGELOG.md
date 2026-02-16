@@ -12,24 +12,156 @@
 
 ## 最新版本
 
-### v0.29.0 (2026-02-06) ⭐ 当前版本
+### v0.35.0 (2026-02-16) ⭐ 当前版本
+
+**AI Skills System 智能技能系统** - 15个内置技能 + 统一工具注册表 + 10个演示模板 + Agent Skills开放标准
+
+#### 新增核心功能
+
+##### 15 Built-in Skills (15个内置技能)
+
+- ✅ **7个可执行Handler技能**:
+  - `browser-automation` (264行) - 浏览器导航/点击/输入/表单/截图/数据提取
+  - `computer-use` (271行) - 桌面截图/坐标点击/键盘/视觉AI
+  - `workflow-automation` - 多步骤工作流(条件分支/循环/并行执行)
+  - `memory-management` (252行) - 持久记忆(保存/搜索/日志/洞察提取)
+  - `smart-search` - 智能混合搜索(向量60%+BM25 40%)
+  - `web-scraping` - 网页数据抓取(表格/链接/文本)
+  - `remote-control` - 远程设备控制(命令/文件传输/剪贴板)
+- ✅ **8个文档型技能**: code-review, git-commit, explain-code, data-analysis, security-audit, devops-automation, test-generator, performance-optimizer
+
+##### Unified Tool Registry (统一工具注册表)
+
+- ✅ **UnifiedToolRegistry** (529行) - 聚合FunctionCaller(60+工具) + MCP(8服务器) + Skills(15技能)
+- ✅ **ToolSkillMapper** (198行) - 自动将未覆盖工具分组到10个默认技能类别
+- ✅ **MCPSkillGenerator** (108行) - MCP服务器连接时自动生成SkillManifestEntry
+- ✅ **unified-tools-ipc** (136行) - 6个IPC处理器
+- ✅ **Name Normalization** - kebab-case(SKILL.md) ↔ snake_case(FunctionCaller) 自动桥接
+
+##### Agent Skills Open Standard (Agent Skills开放标准)
+
+- ✅ **SkillMdParser** (363行) - YAML frontmatter + Markdown body解析，13个扩展字段
+- ✅ **MarkdownSkill** (224行) - 技能实现，热重载handler
+- ✅ **13个扩展字段**: tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository, capabilities
+
+##### Demo Templates (演示模板)
+
+- ✅ **DemoTemplateLoader** (235行) - 自动发现JSON模板，4个IPC处理器
+- ✅ **10个演示模板**: 自动化(3) + AI工作流(3) + 知识管理(2) + 远程控制(2)
+
+##### Frontend (前端)
+
+- ✅ **ToolsExplorerPage** (485行) - 工具浏览器，按技能分组展示 (路由: `#/tools/explorer`)
+- ✅ **DemoTemplatesPage** (479行) - 演示模板浏览 (路由: `#/demo-templates`)
+- ✅ **unified-tools.ts** (206行) - Pinia Store，工具和技能状态管理
+
+##### Context Engineering Integration
+
+- ✅ 技能分组工具序列化集成到LLM提示词
+- ✅ 社区MCP服务器增加 skillInstructions/skillExamples/skillCategory 元数据
+
+#### 性能指标
+
+| 指标             | v0.34.0 | v0.35.0  | 提升          |
+| ---------------- | ------- | -------- | ------------- |
+| 内置技能         | 8       | 15       | +7 skills     |
+| 工具系统         | 3个独立 | 1个统一  | 统一注册表    |
+| 演示模板         | 0       | 10       | +10 templates |
+| Agent Skills字段 | 基础    | 13个扩展 | 完整标准      |
+| 新增IPC          | -       | 6+4      | +10 handlers  |
+| Pinia Stores     | 32      | 33       | +1 store      |
+
+---
+
+### v0.34.0 (2026-02-15)
+
+**Enterprise Features 企业级功能** - 企业审计合规 + 插件市场 + 专业化多代理 + SSO认证 + MCP SDK
+
+#### 新增核心功能
+
+- ✅ **Enterprise Audit System** - 统一审计日志、GDPR/SOC2合规检查、数据主体请求(DSR)、保留策略(18 IPC)
+- ✅ **Plugin Marketplace** - 插件浏览/搜索/安装/卸载/评分/发布，完整生命周期管理(22 IPC)
+- ✅ **Specialized Multi-Agent** - 8种专业代理模板(安全/DevOps/数据分析/文档/测试/架构/性能/合规)(16 IPC)
+- ✅ **SSO Authentication** - SAML 2.0 + OAuth 2.0 + OIDC，PKCE支持，加密会话管理(20 IPC)
+- ✅ **MCP SDK** - Fluent API Server Builder，HTTP+SSE服务器，Stdio服务器，8+社区服务器
+- ✅ **5 Built-in Skills** - security-audit, devops-automation, data-analysis, test-generator, performance-optimizer
+- ✅ **4-Layer Skill System** - bundled → marketplace → managed → workspace 四层技能加载
+
+**新增代码**: ~26,000行 | **新增IPC**: 76+ handlers | **新增Stores**: 4个
+
+---
+
+### v0.33.0 (2026-02-13)
+
+**Remote Control + Computer Use** - P2P远程控制系统 + Chrome浏览器扩展 + Claude风格电脑操作
+
+#### 新增核心功能
+
+- ✅ **Remote Control Gateway** - P2P远程网关，24+命令处理器，权限验证
+- ✅ **Chrome Browser Extension** - Service Worker + Content Script + WebSocket服务器
+- ✅ **Computer Use Agent** - 统一代理，68+ IPC handlers
+- ✅ **CoordinateAction/VisionAction/DesktopAction** - 像素点击/视觉AI/桌面控制
+- ✅ **WorkflowEngine** - 工作流引擎(条件/循环/并行/子工作流)
+- ✅ **SafeMode/AuditLogger/ScreenRecorder/ActionReplay** - 安全/审计/录制/回放
+- ✅ **Android Remote UIs** - 8个远程控制界面
+
+**新增代码**: ~45,000行 | **提交数**: 20+
+
+---
+
+### v0.32.0 (2026-02-10)
+
+**iOS/Android 大规模功能增强** - iOS 核心模块扩展 + Android 功能模块
+
+- ✅ **iOS**: SessionManager, PermanentMemory, ContextEngineering, PermissionEngine, HookSystem, VoiceInput 等12个模块
+- ✅ **Android**: MCP集成, Hooks系统, 协作模块, 性能模块, 10+语法高亮器
+
+---
+
+### v0.31.0 (2026-02-09)
+
+**安全认证增强 + RAG索引** - 安全认证增强、增量RAG索引、SIMKey NFC
+
+- ✅ 安全认证增强(dev/prod模式, JWT认证)
+- ✅ 增量RAG索引系统(MD5 hash变化检测)
+- ✅ SIMKey NFC检测
+- ✅ 文件版本控制(SHA-256)
+- ✅ LLM Function Calling
+
+---
+
+### v0.30.0 (2026-02-07)
+
+**DI测试重构 + 社交通知** - 依赖注入测试重构、社交功能增强
+
+- ✅ 测试体系DI重构(102个数据库测试)
+- ✅ 社交通知UI
+- ✅ TaskMonitor ECharts仪表盘
+- ✅ AbortController AI对话取消
+
+---
+
+### v0.29.0 (2026-02-06)
 
 **TypeScript 迁移 + 浏览器控制 + Claude Code 风格系统完善** - 前端 TypeScript 重构、浏览器自动化控制、10 个 Claude Code 风格子系统
 
 #### 2026-02-06 更新
 
 ##### TypeScript 迁移
+
 - ✅ **Stores TypeScript 迁移** - memory, task, file, workspace stores 全面迁移
 - ✅ **Composables TypeScript 迁移** - 核心 composables 迁移到 TypeScript
 - ✅ **类型安全增强** - 完整类型定义、IDE 支持改进
 
 ##### 浏览器自动化控制
+
 - ✅ **BrowserEngine** - Playwright 集成、12 IPC 通道
 - ✅ **SnapshotEngine** - 智能快照引擎、元素定位
 - ✅ **Snapshot IPC** - 6 个快照相关 IPC 通道
 - ✅ **前端 UI** - SnapshotPanel 组件
 
 ##### Claude Code 风格系统 (10 子系统, 127 IPC 通道)
+
 - ✅ **Hooks System** - 11 IPC handlers
 - ✅ **Plan Mode** - 14 IPC handlers
 - ✅ **Skills System** - 17 IPC handlers
@@ -158,11 +290,11 @@
 
 #### 性能提升
 
-| 指标          | 优化前 | 优化后  | 提升      |
-| ------------- | ------ | ------- | --------- |
-| KV-Cache 命中 | -      | 60-85%  | **极高**  |
-| Token 节省    | -      | 30-40%  | **显著**  |
-| 权限检查延迟  | -      | <10ms   | **极快**  |
+| 指标          | 优化前 | 优化后 | 提升     |
+| ------------- | ------ | ------ | -------- |
+| KV-Cache 命中 | -      | 60-85% | **极高** |
+| Token 节省    | -      | 30-40% | **显著** |
+| 权限检查延迟  | -      | <10ms  | **极快** |
 
 ---
 
@@ -233,20 +365,20 @@
 
 #### 性能提升总结
 
-| 指标 | 优化前 | 优化后 | 提升 |
-|-----|--------|--------|------|
-| 任务成功率 | 40% | 70% | **+75%** |
-| LLM规划成本 | 基准 | 基准×0.3 | **-70%** |
-| 缓存命中率 | 20% | 60-85% | **+3-4x** |
-| 多代理利用率 | 70% | 90% | **+20%** |
-| 多代理决策准确率 | 75% | 92% | **+17%** |
-| 代理获取速度 | 基准 | 基准×10 | **10x** |
-| 代理创建开销 | 基准 | 基准×0.15 | **-85%** |
-| 任务执行时间(复杂流程) | 基准 | 基准×0.75 | **-25%** |
-| 质量问题发现时间 | 30分钟 | <1秒 | **1800x** |
-| 返工时间 | 基准 | 基准×0.5 | **-50%** |
-| IO开销(检查点) | 基准 | 基准×0.7 | **-30%** |
-| 人为错误(阶段转换) | 偶发 | 0 | **-100%** |
+| 指标                   | 优化前 | 优化后    | 提升      |
+| ---------------------- | ------ | --------- | --------- |
+| 任务成功率             | 40%    | 70%       | **+75%**  |
+| LLM规划成本            | 基准   | 基准×0.3  | **-70%**  |
+| 缓存命中率             | 20%    | 60-85%    | **+3-4x** |
+| 多代理利用率           | 70%    | 90%       | **+20%**  |
+| 多代理决策准确率       | 75%    | 92%       | **+17%**  |
+| 代理获取速度           | 基准   | 基准×10   | **10x**   |
+| 代理创建开销           | 基准   | 基准×0.15 | **-85%**  |
+| 任务执行时间(复杂流程) | 基准   | 基准×0.75 | **-25%**  |
+| 质量问题发现时间       | 30分钟 | <1秒      | **1800x** |
+| 返工时间               | 基准   | 基准×0.5  | **-50%**  |
+| IO开销(检查点)         | 基准   | 基准×0.7  | **-30%**  |
+| 人为错误(阶段转换)     | 偶发   | 0         | **-100%** |
 
 #### 测试验证
 
@@ -270,6 +402,7 @@
 #### 用户价值
 
 **核心改进**:
+
 - ✅ 更高的成功率: 任务执行从40%提升到70% (+75%)
 - ✅ 更低的成本: LLM规划成本减少70%, 月度节省$2,550 (1000次/天)
 - ✅ 更智能的决策: 多代理利用率90%, 决策准确率92%

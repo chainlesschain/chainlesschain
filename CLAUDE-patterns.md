@@ -2,8 +2,8 @@
 
 > 记录项目中已验证的架构模式和解决方案，供 AI 助手和开发者参考
 >
-> **版本**: v1.1.0
-> **最后更新**: 2026-02-15
+> **版本**: v1.2.0
+> **最后更新**: 2026-02-16
 
 ---
 
@@ -379,6 +379,7 @@ if (s > curveParams.n.shiftRight(1)) {
 ```
 
 **关键要点**:
+
 - 使用 `CustomNamedCurves` 而非 `ECNamedCurveTable` (性能更好)
 - BIP32 非硬化子密钥推导必须使用 33 字节压缩公钥
 - 签名后务必做 EIP-2 s 正规化，否则交易会被以太坊节点拒绝
@@ -413,6 +414,7 @@ object RLPEncoder {
 ```
 
 **关键要点**:
+
 - BigInteger 编码时需要去除前导零字节（符号位）
 - 零值编码为空字节数组 `encodeBytes(ByteArray(0))`
 - EIP-1559 交易需要 `0x02` 类型前缀在 RLP 之前
@@ -440,6 +442,7 @@ fun decryptKeystoreV3(keystoreJson: String, password: String): ByteArray {
 ```
 
 **关键要点**:
+
 - 同时支持 `"crypto"` 和 `"Crypto"` 字段名（不同钱包生成的格式不同）
 - MAC 验证失败 = 密码错误，需要给用户友好提示
 - BouncyCastle 的 `SCrypt.generate` 直接可用，无需额外依赖
@@ -474,6 +477,7 @@ LaunchedEffect(Unit) {
 ```
 
 **关键要点**:
+
 - `snapshotFlow` 将 Compose State 转为 Flow
 - `debounce(300)` 等待 300ms 无新输入后才触发
 - `distinctUntilChanged()` 避免相同查询重复请求
@@ -507,6 +511,7 @@ MaterialTheme(colorScheme = animatedColorScheme, ...)
 ```
 
 **关键要点**:
+
 - 使用 `ColorScheme.copy()` 扩展函数，保持原有结构
 - 每个颜色属性需要唯一的 `label` 参数（调试用）
 - 400ms tween 是视觉上舒适的过渡时长
@@ -543,6 +548,7 @@ Icon(modifier = Modifier.scale(likeScale.value), tint = tintColor)
 ```
 
 **关键要点**:
+
 - `Animatable` 比 `animateFloatAsState` 更适合脉冲效果（可串联动画）
 - `spring(DampingRatioMediumBouncy)` 产生自然的弹跳感
 - 颜色用 `animateColorAsState`（单向渐变），scale 用 `Animatable`（双向脉冲）
@@ -580,11 +586,221 @@ class LLMAdapterFactory {
 ```
 
 **关键要点**:
+
 - CUSTOM provider 复用 `OpenAIAdapter`，因为大多数第三方 API 兼容 OpenAI 格式
 - `requireNotNull` 会产生不友好的 `IllegalArgumentException`，改用 if-else + 带 provider 名称的错误信息
 - ViewModel 中按异常类型给出具体错误提示 (UnknownHost → 网络, Timeout → 超时, ConnectException → 服务未启动)
 
 **实现位置**: `android-app/feature-ai/src/main/java/.../di/AIModule.kt`
+
+---
+
+## 统一工具注册表模式 (v0.35.0)
+
+### Pattern: 三系统工具聚合
+
+**问题**: FunctionCaller (60+ 工具)、MCP (8 服务器)、Skills (15 技能) 三套工具系统各自独立，AI 无法统一发现和使用所有工具。
+
+**解决方案**:
+
+```javascript
+// UnifiedToolRegistry — 单例聚合三大工具系统
+class UnifiedToolRegistry extends EventEmitter {
+  constructor() {
+    super();
+    this.tools = new Map(); // 所有工具 keyed by normalized name
+    this.skills = new Map(); // 技能清单 keyed by skill name
+    this.functionCaller = null; // FunctionCaller 引用
+    this.mcpAdapter = null; // MCPToolAdapter 引用
+    this.skillRegistry = null; // SkillRegistry 引用
+  }
+
+  // 绑定三大系统
+  bindFunctionCaller(fc) {
+    this.functionCaller = fc;
+  }
+  bindMCPAdapter(adapter) {
+    this.mcpAdapter = adapter;
+    // 监听 MCP 服务器连接/断开事件
+    adapter.on?.("server-registered", ({ serverName, toolIds }) => {
+      this._onMCPServerRegistered(serverName, toolIds);
+    });
+  }
+  bindSkillRegistry(sr) {
+    this.skillRegistry = sr;
+  }
+
+  // 初始化: 导入所有工具 + 关联技能元数据
+  async initialize() {
+    this._importFunctionCallerTools();
+    this._importMCPTools();
+    this._importSkillTools();
+    this._applyToolSkillMapper(); // 未覆盖工具自动分组
+    this._applyMCPSkillGenerator(); // MCP 服务器自动生成技能
+  }
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/unified-tool-registry.js`
+
+---
+
+### Pattern: 工具名称标准化映射
+
+**问题**: SKILL.md 使用 kebab-case (如 `browser-automation`)，FunctionCaller 使用 snake_case (如 `file_reader`)，需要统一匹配。
+
+**解决方案**:
+
+```javascript
+// 标准化为 snake_case 进行内部匹配
+_normalizeName(name) {
+  return name.replace(/-/g, '_').toLowerCase();
+}
+
+// SKILL.md 中声明的 tools 字段与 FunctionCaller 工具匹配
+_associateSkillTools(skill) {
+  const toolNames = skill.tools || [];
+  for (const toolName of toolNames) {
+    const normalized = this._normalizeName(toolName);
+    const tool = this.tools.get(normalized);
+    if (tool) {
+      tool.skillName = skill.name;
+      tool.instructions = skill.instructions;
+      tool.examples = skill.examples;
+    }
+  }
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/unified-tool-registry.js`
+
+---
+
+### Pattern: 默认技能自动分组 (ToolSkillMapper)
+
+**问题**: 60+ FunctionCaller 工具中，只有部分被 SKILL.md 覆盖，其余工具缺少技能元数据。
+
+**解决方案**:
+
+```javascript
+// 10 个默认技能分组，使用正则匹配工具名
+const SKILL_GROUPS = [
+  { name: "file-operations",   match: [/^file_/], category: "core" },
+  { name: "code-generation",   match: [/^html_gen/, /^css_gen/, /^js_gen/], category: "development" },
+  { name: "git-operations",    match: [/^git_/], category: "development" },
+  { name: "data-processing",   match: [/^data_/, "json_parser"], category: "data" },
+  // ... 10 groups total
+];
+
+// 匹配逻辑: 字符串精确匹配 + 正则匹配
+matchTool(toolName, patterns) {
+  return patterns.some(p =>
+    p instanceof RegExp ? p.test(toolName) : toolName === p
+  );
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/tool-skill-mapper.js`
+
+---
+
+### Pattern: MCP 服务器自动生成技能 (MCPSkillGenerator)
+
+**问题**: MCP 服务器连接时，其工具没有 Agent Skills 元数据 (instructions/examples)。
+
+**解决方案**:
+
+```javascript
+// 从 BUILTIN_CATALOG 获取预定义元数据，否则自动生成
+generateSkillFromMCPServer(serverName, catalogEntry, tools) {
+  const instructions = catalogEntry?.skillInstructions
+    || this._generateInstructions(serverName, displayName, tools);
+  const examples = catalogEntry?.skillExamples
+    || this._generateExamples(serverName, tools);
+
+  return {
+    name: `mcp-${serverName}`,
+    displayName,
+    instructions,
+    examples,
+    toolNames: tools.map(t => t.toolId),
+    source: "mcp-auto",
+  };
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/mcp/mcp-skill-generator.js`
+
+---
+
+## 技能系统模式 (v0.35.0)
+
+### Pattern: 四层技能加载
+
+**问题**: 技能来源多样（内置、市场、用户管理、工作区），需要支持覆盖和优先级。
+
+**解决方案**:
+
+```javascript
+// 四层加载，高层覆盖低层同名技能
+async loadSkills() {
+  const layers = [
+    { source: "bundled",     dir: path.join(__dirname, "builtin") },
+    { source: "marketplace", dir: marketplaceSkillsDir },
+    { source: "managed",     dir: userManagedDir },
+    { source: "workspace",   dir: workspaceSkillsDir },  // 最高优先级
+  ];
+
+  for (const layer of layers) {
+    const skills = await this._loadFromDir(layer.dir, layer.source);
+    for (const skill of skills) {
+      this.registry.set(skill.name, skill); // 后加载覆盖前加载
+    }
+  }
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/cowork/skills/index.js`
+
+---
+
+### Pattern: SKILL.md + Agent Skills 标准解析
+
+**问题**: 技能定义需要支持 YAML frontmatter (基础元数据) + Markdown body (提示词/门控/参数) + Agent Skills 扩展字段。
+
+**解决方案**:
+
+```javascript
+// SkillMdParser: YAML frontmatter + Markdown sections
+parse(content) {
+  // 1. 解析 YAML frontmatter (gray-matter 或 fallback 解析器)
+  const { data: meta, content: body } = matter(content);
+
+  // 2. 解析 Markdown sections
+  const sections = this._parseSections(body);
+
+  // 3. 合并 Agent Skills 标准字段 (13 扩展字段)
+  return {
+    name: meta.name,
+    description: meta.description,
+    version: meta.version,
+    // Agent Skills 标准
+    tools: this._parseTools(sections["工具"] || sections["Tools"]),
+    instructions: sections["指南"] || sections["Instructions"] || meta.instructions,
+    examples: this._parseExamples(sections["示例"] || sections["Examples"]),
+    inputSchema: meta["input-schema"],
+    outputSchema: meta["output-schema"],
+    modelHints: meta["model-hints"],
+    dependencies: meta.dependencies,
+    // 门控检查
+    gates: this._parseGates(sections["门控检查"]),
+    // 提示词
+    prompt: sections["提示词"] || sections["Prompt"],
+  };
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/cowork/skills/skill-md-parser.js`
 
 ---
 

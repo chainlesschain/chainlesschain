@@ -89,6 +89,9 @@ dependencies {
     // ML Kit for text recognition
     implementation("com.google.mlkit:text-recognition:16.0.0")
 
+    // Logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")

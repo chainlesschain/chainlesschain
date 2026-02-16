@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.data.rag
 
-import android.util.Log
+import timber.log.Timber
 import kotlin.math.ln
 
 /**
@@ -24,8 +24,6 @@ class BM25Retriever(
     private val b: Double = 0.75
 ) {
     companion object {
-        private const val TAG = "BM25Retriever"
-
         // 停用词
         private val STOP_WORDS = setOf(
             "的", "了", "和", "是", "就", "都", "而", "及", "与", "着",
@@ -79,7 +77,7 @@ class BM25Retriever(
         // 预计算IDF
         calculateAllIDF()
 
-        Log.i(TAG, "Indexed ${documents.size} documents, avgLength=$avgDocLength")
+        Timber.i("Indexed ${documents.size} documents, avgLength=$avgDocLength")
     }
 
     /**

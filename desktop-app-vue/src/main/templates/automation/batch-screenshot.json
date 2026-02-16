@@ -1,0 +1,51 @@
+{
+  "id": "tpl_demo_screenshot_001",
+  "name": "batch_screenshot",
+  "display_name": "批量网页截图",
+  "description": "演示浏览器自动化和桌面控制技能，批量截图多个网页并保存为图片文件",
+  "icon": "📸",
+  "category": "automation",
+  "subcategory": "browser",
+  "tags": ["screenshot", "batch", "browser", "automation", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个批量网页截图工作流：\n\n**截图网址列表：**\n{{urlList}}\n\n**截图选项：**\n- 截图类型：{{screenshotType}}\n- 输出目录：{{outputDir}}\n\n**工作流步骤：**\n\n对于每个URL执行以下操作：\n\n1. **导航到目标页面**\n   ```\n   /browser-automation navigate <url>\n   ```\n\n2. **等待页面加载完成**\n   ```\n   /browser-automation wait 3000\n   ```\n\n3. **截图保存**\n   ```\n   {{#eq screenshotType \"全页截图\"}}\n   /browser-automation screenshot fullPage=true\n   {{else}}\n   /browser-automation screenshot\n   {{/eq}}\n   ```\n\n4. **记录到日志**\n   ```\n   /memory-management save \"截图完成: <url>\"\n   ```\n\n**使用的技能：** browser-automation, computer-use, memory-management\n\n**输出：**\n- 截图文件保存在 {{outputDir}} 目录\n- 每张截图以域名+时间戳命名\n- 完成后生成截图报告",
+  "variables_schema": [
+    {
+      "name": "urlList",
+      "label": "网址列表（每行一个）",
+      "type": "string",
+      "required": true,
+      "placeholder": "https://example.com\nhttps://github.com",
+      "default": "https://example.com\nhttps://github.com\nhttps://news.ycombinator.com"
+    },
+    {
+      "name": "screenshotType",
+      "label": "截图类型",
+      "type": "select",
+      "required": false,
+      "default": "可视区域",
+      "options": [
+        { "value": "可视区域", "label": "可视区域截图" },
+        { "value": "全页截图", "label": "全页截图" }
+      ]
+    },
+    {
+      "name": "outputDir",
+      "label": "输出目录",
+      "type": "string",
+      "required": false,
+      "default": "./screenshots"
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["browser-automation", "computer-use", "memory-management"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

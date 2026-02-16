@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.filebrowser.data.worker
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.chainlesschain.android.feature.filebrowser.data.scanner.IncrementalUpdateManager
@@ -31,7 +31,6 @@ class ScanWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
-        private const val TAG = "ScanWorker"
         const val WORK_NAME_PERIODIC = "periodic_file_scan"
         const val WORK_NAME_ONE_TIME = "one_time_file_scan"
         const val INPUT_SCAN_MODE = "scan_mode"
@@ -76,7 +75,7 @@ class ScanWorker @AssistedInject constructor(
                     workRequest
                 )
 
-            Log.d(TAG, "Scheduled periodic scan every $repeatInterval hours")
+            Timber.d("Scheduled periodic scan every $repeatInterval hours")
         }
 
         /**
@@ -106,7 +105,7 @@ class ScanWorker @AssistedInject constructor(
                     workRequest
                 )
 
-            Log.d(TAG, "Scheduled one-time $scanMode scan")
+            Timber.d("Scheduled one-time $scanMode scan")
         }
 
         /**
@@ -120,7 +119,7 @@ class ScanWorker @AssistedInject constructor(
                 cancelUniqueWork(WORK_NAME_ONE_TIME)
             }
 
-            Log.d(TAG, "Cancelled all scheduled scans")
+            Timber.d("Cancelled all scheduled scans")
         }
 
         /**
@@ -132,7 +131,7 @@ class ScanWorker @AssistedInject constructor(
             WorkManager.getInstance(context)
                 .cancelUniqueWork(WORK_NAME_PERIODIC)
 
-            Log.d(TAG, "Cancelled periodic scan")
+            Timber.d("Cancelled periodic scan")
         }
     }
 
@@ -164,7 +163,7 @@ class ScanWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            Log.d(TAG, "Starting background scan")
+            Timber.d("Starting background scan")
 
             val scanMode = inputData.getString(INPUT_SCAN_MODE) ?: SCAN_MODE_INCREMENTAL
 
@@ -172,20 +171,20 @@ class ScanWorker @AssistedInject constructor(
                 SCAN_MODE_FULL -> performFullScan()
                 SCAN_MODE_INCREMENTAL -> performIncrementalScan()
                 else -> {
-                    Log.w(TAG, "Unknown scan mode: $scanMode, defaulting to incremental")
+                    Timber.w("Unknown scan mode: $scanMode, defaulting to incremental")
                     performIncrementalScan()
                 }
             }
 
             if (result.isSuccess) {
-                Log.d(TAG, "Background scan completed successfully")
+                Timber.d("Background scan completed successfully")
                 Result.success(createOutputData(result))
             } else {
-                Log.e(TAG, "Background scan failed: ${result.error}")
+                Timber.e("Background scan failed: ${result.error}")
                 Result.failure(createOutputData(result))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during background scan", e)
+            Timber.e(e, "Error during background scan")
             Result.failure(
                 workDataOf(
                     OUTPUT_RESULT to "error",
@@ -232,7 +231,7 @@ class ScanWorker @AssistedInject constructor(
         return try {
             // Check if update is needed (1 hour threshold)
             if (!incrementalUpdateManager.isUpdateNeeded(threshold = 3600_000L)) {
-                Log.d(TAG, "Incremental update not needed yet")
+                Timber.d("Incremental update not needed yet")
                 return ScanResult(
                     success = true,
                     totalFiles = 0,
