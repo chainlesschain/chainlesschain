@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.35.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.36.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,32 +19,32 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.35.0 (2026-02-16)
+## ⭐ Current Version: v0.36.0 (2026-02-16)
 
-### Latest Updates - AI Skills System + Unified Tool Registry
+### Latest Updates - Unified Tool Registry + AI Skill Call Chain Integration
 
-**15 Built-in Skills + 10 Demo Templates + Agent Skills Open Standard + Unified Tool Registry** - 15 built-in skills, 10 demo templates, Agent Skills open standard compliance, unified tool registry aggregating 3 tool systems, 6 new IPC handlers, 3,000+ lines of new code
+**Unified Tool Registry + AI Call Chain Integration** - Unified tool registry fully wired into AI conversation loop, skill context (instructions/examples) auto-injected into LLM prompts, 31 tests (including 4 E2E integration)
 
-#### New Core Features (2026-02-16)
+#### v0.36.0 New Core Features (2026-02-16)
+
+- ✅ **AI Call Chain Integration** - ManusOptimizations.bindUnifiedRegistry() connects the full pipeline
+  - ipc-registry → ManusOptimizations → ContextEngineering → LLM Prompt
+  - AI conversations automatically receive skill groupings, instructions, and examples
+- ✅ **Initialization Safety** - Concurrent initialization lock, IPC init-wait guard (10s timeout)
+- ✅ **Parameter Safety** - JSON serialization depth limit (500 chars), circular reference protection
+- ✅ **Type Safety** - Store error handling upgraded to `err: unknown` with safe type casting
+- ✅ **E2E Integration Tests** - 4 end-to-end tests verifying full call chain (Registry→Manus→CE→LLM Prompt)
+
+#### v0.35.0 Features - AI Skills System + Unified Tool Registry
 
 - ✅ **15 Built-in Skills** - 15 skills covering 7 categories (Development/Automation/Knowledge/Data/Security/Remote/Learning)
-  - **Core**: code-review, git-commit, explain-code
-  - **Automation**: browser-automation, computer-use, workflow-automation
-  - **Data**: web-scraping, data-analysis
-  - **Knowledge**: memory-management, smart-search
-  - **Remote**: remote-control
-  - **Security**: security-audit
-  - **DevOps**: devops-automation
-  - **Development**: test-generator, performance-optimizer
 - ✅ **Unified Tool Registry** - Aggregates 3 tool systems (FunctionCaller 60+ tools + MCP 8 servers + Skills 15 skills)
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates SkillManifestEntry when MCP servers connect
-- ✅ **Agent Skills Open Standard** - 13 extended fields (tools/instructions/examples/dependencies/input-schema/output-schema etc.)
-- ✅ **Demo Templates** - 10 demo project templates across 4 categories (Automation/AI Workflow/Knowledge/Remote)
-- ✅ **Tools Explorer UI** - Browse all tools grouped by skill (route: `#/tools/explorer`)
-- ✅ **Demo Templates UI** - Browse and run demo templates (route: `#/demo-templates`)
-- ✅ **Name Normalization** - `browser-click` (SKILL.md) → `browser_click` (FunctionCaller) auto-bridging
-- ✅ **Context Engineering Integration** - Skill-grouped tool serialization in LLM prompts
+- ✅ **Agent Skills Open Standard** - 13 extended fields (tools/instructions/examples etc.)
+- ✅ **Demo Templates** - 10 demo templates across 4 categories
+- ✅ **Tools Explorer UI** - Browse tools by skill (`#/tools/explorer`)
+- ✅ **Demo Templates UI** - Browse and run demos (`#/demo-templates`)
 
 #### v0.34.0 Features Recap - Enterprise Features + Community Ecosystem
 
