@@ -71,7 +71,7 @@ data class DeepSeekConfig(
  */
 @Serializable
 data class VolcengineConfig(
-    val apiKey: String = "7185ce7d-9775-450c-8450-783176be6265",
+    val apiKey: String = "",
     val baseURL: String = "https://ark.cn-beijing.volces.com/api/v3",
     val model: String = "doubao-seed-1-8-251228",
     val embeddingModel: String = "doubao-embedding-text-240715"

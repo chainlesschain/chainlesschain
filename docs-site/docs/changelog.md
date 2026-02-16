@@ -12,6 +12,7 @@
 - 🔗 **AI调用链打通** - ManusOptimizations.bindUnifiedRegistry() 完整打通 Registry→Manus→ContextEngineering→LLM Prompt
 - 🛡️ **初始化安全** - _initPromise 并发锁 + IPC init-wait guard (10s超时)
 - 🧪 **E2E集成测试** - 4个端到端测试验证完整调用链 (31 tests total)
+- 🎨 **30个内置技能** - 新增15个技能(repo-map, refactor, doc-generator, api-tester, onboard-project, lint-and-fix, test-and-fix, dependency-analyzer, db-migration, project-scaffold, env-doctor, context-loader, vulnerability-scanner, release-manager, mcp-server-generator)，覆盖12大类别
 
 ### 改进
 

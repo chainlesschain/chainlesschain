@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v0.36.0 | 军事级安全 | 完全去中心化 | AI原生 | 15技能 | 统一工具注册表
+  tagline: v0.36.0 | 军事级安全 | 完全去中心化 | AI原生 | 30技能 | 统一工具注册表
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -66,7 +66,7 @@ features:
 
   - icon: 🎨
     title: AI技能系统
-    details: 15个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+15技能)，10个演示模板
+    details: 30个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+30技能)，10个演示模板
 
   - icon: ⛓️
     title: 区块链集成
@@ -128,8 +128,8 @@ start.bat
 - 🌐 完全去中心化 (P2P网络 + DHT)
 - 🧠 16个AI专用引擎 + 14+云LLM提供商
 - 📱 跨设备同步 (PC/移动端/浏览器扩展)
-- 🔌 MCP集成 + 15内置技能 + 统一工具注册表
-- 🎨 AI技能系统 (15技能 + Agent Skills标准 + 10演示模板)
+- 🔌 MCP集成 + 30内置技能 + 统一工具注册表
+- 🎨 AI技能系统 (30技能 + Agent Skills标准 + 10演示模板)
 - ⛓️ 区块链集成 (15链 + 6个智能合约)
 - 🤖 Cowork多智能体协作 (v1.0.0，200+测试用例)
 - 🖥️ Computer Use (68+ IPC处理器，视觉AI，工作流引擎)
@@ -183,7 +183,7 @@ start.bat
 - 🧩 358个Vue组件
 - 🔌 200+ IPC处理器
 - 🧪 417个测试文件，2000+测试用例
-- 🎨 15个内置技能 + 统一工具注册表
+- 🎨 30个内置技能 + 统一工具注册表
 
 ## 社区与支持
 

@@ -465,7 +465,7 @@ Android 端 AI 模块使用工厂模式创建 LLM 适配器，但 `CUSTOM` 提�
 **状态**: 已采纳
 
 **背景**:
-ChainlessChain 拥有三套独立的工具系统：FunctionCaller (60+ 内置工具)、MCP (8 个社区服务器)、Skills (15 个内置技能)。各系统独立管理，AI 引擎无法统一发现、搜索和使用所有工具。Context Engineering 的技能分组序列化也只覆盖了部分工具。
+ChainlessChain 拥有三套独立的工具系统：FunctionCaller (60+ 内置工具)、MCP (8 个社区服务器)、Skills (30 个内置技能)。各系统独立管理，AI 引擎无法统一发现、搜索和使用所有工具。Context Engineering 的技能分组序列化也只覆盖了部分工具。
 
 **决策**:
 创建 UnifiedToolRegistry 作为三大工具系统的聚合层，提供统一的工具发现、搜索和元数据查询接口。每个工具都关联 Agent Skills 元数据 (instructions, examples, tags)。
