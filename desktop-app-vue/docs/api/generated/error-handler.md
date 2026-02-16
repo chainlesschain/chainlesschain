@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/error-handler.js`
 
-**Generated**: 2026-02-16T13:44:34.643Z
+**Generated**: 2026-02-16T22:06:51.462Z
 
 ---
 

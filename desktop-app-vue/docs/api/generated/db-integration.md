@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/db-integration.js`
 
-**Generated**: 2026-02-16T13:44:34.616Z
+**Generated**: 2026-02-16T22:06:51.431Z
 
 ---
 

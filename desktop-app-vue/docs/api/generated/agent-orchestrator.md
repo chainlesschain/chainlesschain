@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/agent-orchestrator.js`
 
-**Generated**: 2026-02-16T13:44:34.697Z
+**Generated**: 2026-02-16T22:06:51.525Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/splash/splash-window.js`
 
-**Generated**: 2026-02-16T13:44:34.608Z
+**Generated**: 2026-02-16T22:06:51.422Z
 
 ---
 

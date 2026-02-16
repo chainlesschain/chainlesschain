@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/bge-reranker-client.js`
 
-**Generated**: 2026-02-16T13:44:34.626Z
+**Generated**: 2026-02-16T22:06:51.443Z
 
 ---
 
