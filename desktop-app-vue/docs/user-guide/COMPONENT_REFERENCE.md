@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-02-15T10:10:53.518Z
+**Generated**: 2026-02-16T13:44:34.756Z
 
-**Total Components**: 467
+**Total Components**: 469
 
 ---
 
@@ -37,6 +37,14 @@
 **File**: `src/renderer/pages/TradingHub.vue`
 
 **Description**: 信用评分快捷入口
+
+---
+
+### ToolsExplorerPage
+
+**File**: `src/renderer/pages/ToolsExplorerPage.vue`
+
+**Description**: Page Header
 
 ---
 
@@ -433,6 +441,14 @@
 **File**: `src/renderer/pages/EnterpriseAuditPage.vue`
 
 **Description**: Filter Bar
+
+---
+
+### DemoTemplatesPage
+
+**File**: `src/renderer/pages/DemoTemplatesPage.vue`
+
+**Description**: Page Header
 
 ---
 
