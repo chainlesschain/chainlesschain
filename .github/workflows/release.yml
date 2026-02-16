@@ -361,52 +361,66 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x android-app/gradlew
 
-      - name: Decode keystore
+      - name: Setup signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          cd android-app
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > android-app/keystore.jks
-            echo "✅ Keystore decoded successfully"
+            # Decode release keystore from secrets
+            echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+            # Create keystore.properties that build.gradle.kts reads
+            # storeFile path is relative to app/ module dir, so use ../ to reach android-app/
+            cat > keystore.properties << EOF
+          release.storeFile=../keystore.jks
+          release.storePassword=${KEYSTORE_PASSWORD}
+          release.keyAlias=${KEY_ALIAS}
+          release.keyPassword=${KEY_PASSWORD}
+          EOF
+            echo "✅ Release signing configured"
+            echo "SIGNING_TYPE=release" >> $GITHUB_ENV
           else
-            echo "⚠️ No keystore found, using debug signing"
+            # Generate a debug keystore for CI builds
+            keytool -genkey -v \
+              -keystore debug-ci.keystore \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 1 \
+              -storepass android -keypass android \
+              -dname "CN=CI Build, OU=CI, O=ChainlessChain, L=Unknown, ST=Unknown, C=US"
+            cat > keystore.properties << EOF
+          release.storeFile=../debug-ci.keystore
+          release.storePassword=android
+          release.keyAlias=androiddebugkey
+          release.keyPassword=android
+          EOF
+            echo "⚠️ No signing secrets found, using generated debug keystore"
+            echo "SIGNING_TYPE=debug" >> $GITHUB_ENV
           fi
 
       - name: Build release APK
         working-directory: android-app
-        continue-on-error: true
-        env:
-          KEYSTORE_FILE: keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          if [ -f keystore.jks ]; then
-            ./gradlew assembleRelease
-          else
-            ./gradlew assembleDebug
-            mkdir -p app/build/outputs/apk/release
-            cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release.apk
-          fi
+        run: ./gradlew assembleRelease
 
       - name: Build App Bundle
         working-directory: android-app
-        continue-on-error: true
-        env:
-          KEYSTORE_FILE: keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          if [ -f keystore.jks ]; then
-            ./gradlew bundleRelease
-          else
-            echo "⚠️ Skipping bundle build (requires release signing)"
-          fi
+        run: ./gradlew bundleRelease
 
-      - name: Clean up keystore
+      - name: List build outputs
         if: always()
-        run: rm -f android-app/keystore.jks
+        run: |
+          echo "=== APK outputs ==="
+          find android-app/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
+          echo ""
+          echo "=== AAB outputs ==="
+          find android-app/app/build/outputs/bundle -name "*.aab" -type f 2>/dev/null || echo "No AAB files found"
+
+      - name: Clean up signing files
+        if: always()
+        run: |
+          rm -f android-app/keystore.jks android-app/debug-ci.keystore android-app/keystore.properties
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
@@ -415,6 +429,7 @@ jobs:
           path: |
             android-app/app/build/outputs/apk/release/*.apk
             android-app/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
           retention-days: 7
 
   # Create GitHub Release
