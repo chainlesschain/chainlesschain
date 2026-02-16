@@ -2,27 +2,27 @@
 
 此目录包含应用内置的技能。内置技能具有最低优先级，可以被 marketplace、managed（用户全局）或 workspace（项目级）技能覆盖。
 
-## 当前内置技能 (30)
+## 当前内置技能 (40)
 
 ### 原有技能 (15)
 
-| 技能                  | 类别        | Handler | 说明                                     |
-| --------------------- | ----------- | ------- | ---------------------------------------- |
-| code-review           | development | -       | 代码审查                                 |
-| git-commit            | development | -       | Git 提交                                 |
-| explain-code          | learning    | -       | 代码讲解                                 |
-| browser-automation    | automation  | ✅      | 浏览器自动化（导航、点击、填表、截图）   |
-| computer-use          | automation  | ✅      | 桌面操作控制（截图、鼠标键盘、视觉定位） |
-| workflow-automation   | automation  | ✅      | 工作流自动化（条件分支、循环、并行）     |
-| web-scraping          | data        | ✅      | 网页数据采集（表格、链接、文本提取）     |
-| data-analysis         | data        | -       | 数据分析（CSV/JSON处理、统计）           |
-| memory-management     | knowledge   | ✅      | 永久记忆管理（保存、搜索、日记）         |
-| smart-search          | knowledge   | ✅      | 智能搜索（向量+BM25混合搜索）            |
-| remote-control        | remote      | ✅      | 远程设备控制（命令、文件、剪贴板）       |
-| security-audit        | security    | ✅      | 代码安全审计（OWASP、密钥检测）          |
-| devops-automation     | devops      | ✅      | DevOps自动化（CI/CD、Docker）            |
-| test-generator        | development | -       | 测试生成（单元测试、Mock、覆盖率）       |
-| performance-optimizer | development | -       | 性能优化（瓶颈识别、优化建议）           |
+| 技能                  | 类别        | Handler | 说明                                      |
+| --------------------- | ----------- | ------- | ----------------------------------------- |
+| code-review           | development | ✅      | 代码审查（多文件扫描、评分、建议）        |
+| git-commit            | development | ✅      | Git 提交（diff分析、conventional commit） |
+| explain-code          | learning    | ✅      | 代码讲解（函数提取、复杂度、依赖分析）    |
+| browser-automation    | automation  | ✅      | 浏览器自动化（导航、点击、填表、截图）    |
+| computer-use          | automation  | ✅      | 桌面操作控制（截图、鼠标键盘、视觉定位）  |
+| workflow-automation   | automation  | ✅      | 工作流自动化（条件分支、循环、并行）      |
+| web-scraping          | data        | ✅      | 网页数据采集（表格、链接、文本提取）      |
+| data-analysis         | data        | ✅      | 数据分析（CSV/JSON处理、统计）            |
+| memory-management     | knowledge   | ✅      | 永久记忆管理（保存、搜索、日记）          |
+| smart-search          | knowledge   | ✅      | 智能搜索（向量+BM25混合搜索）             |
+| remote-control        | remote      | ✅      | 远程设备控制（命令、文件、剪贴板）        |
+| security-audit        | security    | ✅      | 代码安全审计（OWASP、密钥检测）           |
+| devops-automation     | devops      | ✅      | DevOps自动化（CI/CD、Docker）             |
+| test-generator        | development | ✅      | 测试生成（单元测试、Mock、覆盖率）        |
+| performance-optimizer | development | ✅      | 性能优化（瓶颈识别、优化建议）            |
 
 ### 新增技能 v0.36.0 (15)
 
@@ -44,19 +44,35 @@
 | release-manager       | devops        | ✅      | 发布管理（版本计算、Changelog、Tag）      |
 | mcp-server-generator  | development   | ✅      | MCP服务器生成（从描述生成完整MCP服务器）  |
 
+### 高级技能 v0.36.1 (10)
+
+| 技能               | 类别        | Handler | 说明                                            |
+| ------------------ | ----------- | ------- | ----------------------------------------------- |
+| architect-mode     | development | ✅      | 架构模式（规划→审查→执行两阶段架构设计）        |
+| bugbot             | testing     | ✅      | Bug扫描（16种模式、4级严重度、scan/diff/watch） |
+| commit-splitter    | development | ✅      | 提交拆分（语义分组Git变更为原子提交）           |
+| diff-previewer     | development | ✅      | Diff预览（Git差异解析、分支对比、变更统计）     |
+| fault-localizer    | testing     | ✅      | 故障定位（堆栈解析、git blame交叉、修复建议）   |
+| rules-engine       | development | ✅      | 规则引擎（加载/验证/应用项目编码规则）          |
+| impact-analyzer    | analysis    | ✅      | 影响分析（导入图BFS、爆炸半径、测试映射）       |
+| research-agent     | knowledge   | ✅      | 研究代理（库对比、错误解决、依赖评估）          |
+| screenshot-to-code | development | ✅      | 截图转代码（图像分析→Vue/React/HTML生成）       |
+| task-decomposer    | development | ✅      | 任务分解（复杂任务→子任务DAG、依赖分析）        |
+
 ## 目录结构
 
-每个技能是一个独立的子目录，包含 `SKILL.md` 文件和可选的 `handler.js`：
+每个技能是一个独立的子目录，包含 `SKILL.md` 文件和 `handler.js`（100% Handler 覆盖率）：
 
 ```
 builtin/
 ├── README.md
 ├── code-review/
-│   └── SKILL.md
+│   ├── SKILL.md
+│   └── handler.js
 ├── browser-automation/
 │   ├── SKILL.md
 │   └── handler.js
-└── ...
+└── ...（共40个技能目录）
 ```
 
 ## SKILL.md 格式 (Agent Skills Open Standard)

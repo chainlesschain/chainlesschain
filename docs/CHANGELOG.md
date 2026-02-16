@@ -12,7 +12,31 @@
 
 ## 最新版本
 
-### v0.36.0 (2026-02-16) ⭐ 当前版本
+### v0.36.1 (2026-02-17) ⭐ 当前版本
+
+**Advanced Skills & Quality Fixes** - 10 个高级技能 + SSO 修复 + 技能系统 100% 覆盖
+
+#### 新增 10 个高级技能 (总计 40 个，Handler 覆盖 40/40)
+
+- ✅ **architect-mode** (~530行) - 双阶段架构模式：先规划后编辑，多文件变更计划审核与执行
+- ✅ **bugbot** (~460行) - 主动Bug检测：16种模式（SQL注入/XSS/空指针/竞态等），--scan/--diff/--watch 模式
+- ✅ **commit-splitter** (~460行) - 智能提交拆分：语义分组、测试+源码关联、conventional commit 消息生成
+- ✅ **diff-previewer** (~460行) - 差异预览器：git diff 解析、分支对比、staged 变更、变更统计分类
+- ✅ **fault-localizer** (~330行) - 故障定位器：堆栈解析、git blame 交叉分析、错误类型→修复映射
+- ✅ **impact-analyzer** (~280行) - 变更影响分析：import 图 BFS、爆炸半径、测试映射、风险评分
+- ✅ **research-agent** (~250行) - 技术研究代理：库对比、错误解决方案、依赖评估、本地文档搜索
+- ✅ **rules-engine** (~480行) - 规则引擎：加载/验证/应用项目编码规则（.chainlesschain/rules.md）
+- ✅ **screenshot-to-code** (~380行) - 截图转代码：图片验证、Vue/React/HTML 框架模板、AI 提示构建
+- ✅ **task-decomposer** (~300行) - 任务分解器：复杂任务→子任务 DAG、依赖分析、并行度计算
+
+#### Bug 修复
+
+- 🔧 **SSO verifyLink**: 从临时 `return { success: true }` 替换为真实 `sso:verify-link` IPC 调用
+- 🔧 **rules-engine**: 修复 Windows 路径 regex bug (`/\/g` → `/\\/g`)
+
+---
+
+### v0.36.0 (2026-02-16)
 
 **Unified Tool Registry AI Call Chain** - 统一工具注册表全面打通AI对话调用链
 
@@ -41,7 +65,7 @@
 - ✅ **安全类 (1)**: vulnerability-scanner (CVE扫描/SBOM/许可证审计)
 - ✅ **DevOps类 (2)**: env-doctor (环境诊断), release-manager (发布管理/Changelog/Tag)
 
-#### 新增 17 个可执行 Handler (总计 24 个)
+#### 新增 23 个可执行 Handler (总计 30/30, 100% 覆盖)
 
 **第一批 (5 个)**:
 
