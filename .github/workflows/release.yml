@@ -400,13 +400,22 @@ jobs:
             echo "SIGNING_TYPE=debug" >> $GITHUB_ENV
           fi
 
+      - name: Tune Gradle for CI
+        working-directory: android-app
+        run: |
+          # Override JVM args: gradle.properties requests 8GB but CI runners only have 7GB
+          sed -i 's/org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx4g -Xms1g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dfile.encoding=UTF-8/' gradle.properties
+          # Disable R8 full mode to avoid ConcurrentModificationException in CI
+          sed -i 's/android.enableR8.fullMode=true/android.enableR8.fullMode=false/' gradle.properties
+          echo "✅ Gradle properties tuned for CI"
+
       - name: Build release APK
         working-directory: android-app
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Build App Bundle
         working-directory: android-app
-        run: ./gradlew bundleRelease
+        run: ./gradlew bundleRelease --no-daemon
 
       - name: List build outputs
         if: always()
