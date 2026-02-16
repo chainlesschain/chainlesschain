@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.36.0 (Unified Tool Registry: AI 技能调用链打通 + E2E 集成) - Updated 2026-02-16
+**Current Version**: v0.36.1 (40 Skills + SSO Fix + 100% Handler Coverage) - Updated 2026-02-17
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -256,18 +256,20 @@ Extensible skill system with Markdown definitions:
 - **Gate Checks**: Platform, binary dependencies, environment variables
 - **/skill Commands**: User command parsing and auto-execution
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **30 Built-in Skills**:
+- **40 Built-in Skills** (Handler 覆盖 40/40, 100%):
   - **Core**: code-review, git-commit, explain-code
   - **Automation**: browser-automation, computer-use, workflow-automation
   - **Data**: web-scraping, data-analysis
-  - **Knowledge**: memory-management, smart-search, context-loader
+  - **Knowledge**: memory-management, smart-search, context-loader, research-agent
   - **Remote**: remote-control
   - **Security**: security-audit, vulnerability-scanner
   - **DevOps**: devops-automation, env-doctor, release-manager
-  - **Development**: test-generator, performance-optimizer, repo-map, refactor, onboard-project, project-scaffold, mcp-server-generator
+  - **Development**: test-generator, performance-optimizer, repo-map, refactor, onboard-project, project-scaffold, mcp-server-generator, architect-mode, commit-splitter, screenshot-to-code, diff-previewer, task-decomposer
   - **Documentation**: doc-generator
-  - **Testing**: api-tester, lint-and-fix, test-and-fix
-  - **Analysis**: dependency-analyzer
+  - **Testing**: api-tester, lint-and-fix, test-and-fix, bugbot, fault-localizer
+  - **Analysis**: dependency-analyzer, impact-analyzer, rules-engine
+  - **Database**: db-migration
+  - **Analysis**: dependency-analyzer, impact-analyzer
   - **Database**: db-migration
 
 **Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers), `src/main/ai-engine/cowork/skills/skill-md-parser.js`, `src/main/ai-engine/cowork/skills/markdown-skill.js`
@@ -292,7 +294,7 @@ Extensible skill system with Markdown definitions:
 
 **Status**: ✅ Implemented v0.36.0
 
-Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 30 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
+Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 40 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
 
 - **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry (with initialization lock)
 - **MCPSkillGenerator**: Auto-generates SkillManifestEntry when MCP servers connect
@@ -535,6 +537,26 @@ desktop-app-vue/
     └── stores/            # Pinia state management (32 TypeScript stores)
 ```
 
+### Android Application (Agent Skills System)
+
+```
+android-app/feature-ai/src/main/java/com/chainlesschain/android/feature/ai/cowork/skills/
+├── model/                    # Data models (Skill, SkillMetadata, SkillParameter, SkillCategory)
+├── registry/                 # SkillRegistry (thread-safe) + SkillIndex (category/fileType/tag indexes)
+├── loader/                   # SkillMdParser (YAML frontmatter) + SkillLoader (3-layer: bundled→managed→workspace)
+├── gating/                   # SkillGating (platform/SDK/permission checks)
+├── executor/                 # SkillExecutor (handler-first, LLM-fallback) + SkillCommandParser (/skill commands)
+├── handler/                  # SkillHandler interface + 7 implementations (CodeReview, ExplainCode, Summarize, Translate, Refactor, UnitTest, Debug)
+├── bridge/                   # P2PSkillBridge (desktop-only skill delegation placeholder)
+└── di/                       # SkillModule (Hilt DI)
+
+android-app/feature-ai/src/main/assets/skills/   # 15 bundled SKILL.md files (7 with handlers + 8 doc-only)
+```
+
+**Key Patterns**: Same SKILL.md format as desktop (YAML frontmatter + Markdown body), Agent Skills Open Standard compatible, `SkillRegistry.toFunctionDefinitions()` for LLM function calling, `/skill-name` command detection in `ConversationViewModel`.
+
+**Dependency**: `org.yaml:snakeyaml:2.2` in `feature-ai/build.gradle.kts`
+
 ### Backend Services
 
 - **project-service** (Spring Boot 3.1.11 + Java 17): PostgreSQL, Redis, MyBatis Plus 3.5.9
@@ -648,7 +670,7 @@ Example: `feat(rag): add reranker support`
 - **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
 - **Permission system**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`
 - **Plan Mode**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
-- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (30 skills)
+- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (40 skills)
 - **Demo Templates**: `src/main/templates/demo-template-loader.js`, `src/main/templates/{automation,ai-workflow,knowledge,remote}/` (10 templates)
 - **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`

@@ -511,12 +511,33 @@ export const useSSOStore = defineStore('sso', {
     },
 
     /**
-     * 验证身份关联（临时实现）
+     * 验证身份关联
      */
     async verifyLink(linkId: string): Promise<any> {
-      // TODO: 实现实际的验证逻辑
-      console.warn('[SSOStore] verifyLink 临时实现，需要后续完善');
-      return { success: true };
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const result = await (window as any).electronAPI.invoke(
+          'sso:verify-link',
+          { mappingId: linkId }
+        );
+
+        if (result.success) {
+          // 刷新已关联身份列表
+          await this.getLinkedIdentities();
+        } else {
+          this.error = result.error || '验证失败';
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[SSOStore] verifyLink 失败:', error);
+        this.error = (error as Error).message;
+        throw error;
+      } finally {
+        this.loading = false;
+      }
     },
 
     /**
