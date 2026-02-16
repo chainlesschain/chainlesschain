@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-22.04, macos-latest, windows-latest]
         node-version: [22.x]
 
     steps:
@@ -50,10 +50,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 \
-            libcups2t64 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+          sudo apt-get install -y xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
             libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
-            libasound2t64 libxshmfence1 libglu1-mesa
+            libasound2 libxshmfence1 libglu1-mesa
 
       - name: Run E2E smoke tests
         run: |
@@ -111,7 +111,7 @@ jobs:
           echo "## Test Results by Platform" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          for os in ubuntu-latest macos-latest windows-latest; do
+          for os in ubuntu-22.04 macos-latest windows-latest; do
             echo "### $os" >> $GITHUB_STEP_SUMMARY
             if [ -f "all-test-results/playwright-report-$os/results.json" ]; then
               echo "✅ Tests completed" >> $GITHUB_STEP_SUMMARY
