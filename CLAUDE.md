@@ -256,15 +256,19 @@ Extensible skill system with Markdown definitions:
 - **Gate Checks**: Platform, binary dependencies, environment variables
 - **/skill Commands**: User command parsing and auto-execution
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **15 Built-in Skills**:
+- **30 Built-in Skills**:
   - **Core**: code-review, git-commit, explain-code
   - **Automation**: browser-automation, computer-use, workflow-automation
   - **Data**: web-scraping, data-analysis
-  - **Knowledge**: memory-management, smart-search
+  - **Knowledge**: memory-management, smart-search, context-loader
   - **Remote**: remote-control
-  - **Security**: security-audit
-  - **DevOps**: devops-automation
-  - **Development**: test-generator, performance-optimizer
+  - **Security**: security-audit, vulnerability-scanner
+  - **DevOps**: devops-automation, env-doctor, release-manager
+  - **Development**: test-generator, performance-optimizer, repo-map, refactor, onboard-project, project-scaffold, mcp-server-generator
+  - **Documentation**: doc-generator
+  - **Testing**: api-tester, lint-and-fix, test-and-fix
+  - **Analysis**: dependency-analyzer
+  - **Database**: db-migration
 
 **Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers), `src/main/ai-engine/cowork/skills/skill-md-parser.js`, `src/main/ai-engine/cowork/skills/markdown-skill.js`
 
@@ -288,7 +292,7 @@ Extensible skill system with Markdown definitions:
 
 **Status**: ✅ Implemented v0.36.0
 
-Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 15 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
+Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 30 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
 
 - **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry (with initialization lock)
 - **MCPSkillGenerator**: Auto-generates SkillManifestEntry when MCP servers connect
@@ -524,7 +528,7 @@ desktop-app-vue/
 │           └── skills/            # Skills system
 │               ├── index.js       # Skill loader (4-layer: bundled→marketplace→managed→workspace)
 │               ├── skills-ipc.js  # Skills IPC (17 handlers)
-│               └── builtin/       # 15 built-in skills (code-review, git-commit, explain-code, browser-automation, computer-use, remote-control, memory-management, web-scraping, workflow-automation, smart-search, security-audit, devops-automation, data-analysis, test-generator, performance-optimizer)
+│               └── builtin/       # 30 built-in skills (15 original + 15 new in v0.36.0)
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
@@ -644,7 +648,7 @@ Example: `feat(rag): add reranker support`
 - **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
 - **Permission system**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`
 - **Plan Mode**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
-- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (15 skills)
+- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (30 skills)
 - **Demo Templates**: `src/main/templates/demo-template-loader.js`, `src/main/templates/{automation,ai-workflow,knowledge,remote}/` (10 templates)
 - **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`

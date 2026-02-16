@@ -182,4 +182,8 @@
     <string name="error_api_key_not_set">%1$s的API Key未配置，请在AI设置中配置后重试</string>
     <string name="error_configure_api_key">请先配置%1$s的API Key</string>
     <string name="connection_success_message">连接成功！%1$s服务正常</string>
+    <string name="connection_failed_service_unavailable">连接失败：服务不可用</string>
+    <string name="connection_failed_with_error">连接失败：%1$s</string>
+    <string name="error_unknown">未知错误</string>
+    <string name="error_unsupported_provider">不支持的提供商：%1$s</string>
 </resources>

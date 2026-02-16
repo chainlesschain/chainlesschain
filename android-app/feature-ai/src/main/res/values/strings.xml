@@ -182,4 +182,8 @@
     <string name="error_api_key_not_set">API Key for %1$s is not configured. Please configure it in AI Settings and try again.</string>
     <string name="error_configure_api_key">Please configure %1$s API Key first.</string>
     <string name="connection_success_message">Connection successful! %1$s service is working.</string>
+    <string name="connection_failed_service_unavailable">Connection failed: service unavailable</string>
+    <string name="connection_failed_with_error">Connection failed: %1$s</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_unsupported_provider">Unsupported provider: %1$s</string>
 </resources>

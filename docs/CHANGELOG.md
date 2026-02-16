@@ -30,6 +30,17 @@
 - ✅ **Error Recovery** - ToolsExplorerPage.vue `onMounted` try-catch 包裹
 - ✅ **E2E Integration Tests** - 4 个端到端测试验证完整调用链 (31 tests total, 221 related pass)
 
+#### 新增 15 个内置技能 (总计 30 个)
+
+- ✅ **开发类 (6)**: repo-map (AST代码库映射), refactor (多文件重构), onboard-project (项目入门分析), lint-and-fix (Lint自动修复循环), project-scaffold (项目脚手架), mcp-server-generator (MCP服务器生成)
+- ✅ **文档类 (1)**: doc-generator (JSDoc/API参考/序列图自动生成)
+- ✅ **测试类 (2)**: api-tester (IPC/API测试发现与生成), test-and-fix (测试自动修复循环)
+- ✅ **分析类 (1)**: dependency-analyzer (依赖图/影响分析/CVE可达性)
+- ✅ **数据库类 (1)**: db-migration (Schema检查/迁移脚本/漂移检测)
+- ✅ **知识类 (1)**: context-loader (智能上下文预加载)
+- ✅ **安全类 (1)**: vulnerability-scanner (CVE扫描/SBOM/许可证审计)
+- ✅ **DevOps类 (2)**: env-doctor (环境诊断), release-manager (发布管理/Changelog/Tag)
+
 ---
 
 ### v0.35.0 (2026-02-16)
@@ -52,7 +63,7 @@
 
 ##### Unified Tool Registry (统一工具注册表)
 
-- ✅ **UnifiedToolRegistry** (529行) - 聚合FunctionCaller(60+工具) + MCP(8服务器) + Skills(15技能)
+- ✅ **UnifiedToolRegistry** (529行) - 聚合FunctionCaller(60+工具) + MCP(8服务器) + Skills(30技能)
 - ✅ **ToolSkillMapper** (198行) - 自动将未覆盖工具分组到10个默认技能类别
 - ✅ **MCPSkillGenerator** (108行) - MCP服务器连接时自动生成SkillManifestEntry
 - ✅ **unified-tools-ipc** (136行) - 6个IPC处理器

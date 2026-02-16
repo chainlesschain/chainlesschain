@@ -307,7 +307,7 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
                     val config = configManager.getConfig().custom
                     OpenAIAdapter(apiKey, config.baseURL.ifBlank { "https://api.openai.com/v1" })
                 }
-                else -> throw IllegalArgumentException("不支持的提供商: $provider")
+                else -> throw IllegalArgumentException(context.getString(R.string.error_unsupported_provider, provider.name))
             }
         } catch (e: Exception) {
             Timber.tag("LLMAdapterFactory").e(e, "Failed to create cloud adapter for $provider")
@@ -318,12 +318,14 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
 
     /**
      * 根据预配置获取适配器（用于向后兼容）
+     * 从配置管理器读取API Key和URL
      */
     fun getAdapter(provider: LLMProvider): LLMAdapter {
+        val config = configManager.getConfig()
         return when (provider) {
-            LLMProvider.OPENAI -> OpenAIAdapter(System.getenv("OPENAI_API_KEY") ?: "")
-            LLMProvider.DEEPSEEK -> DeepSeekAdapter(System.getenv("DEEPSEEK_API_KEY") ?: "")
-            LLMProvider.OLLAMA -> OllamaAdapter(System.getenv("OLLAMA_BASE_URL") ?: "http://localhost:11434")
+            LLMProvider.OPENAI -> OpenAIAdapter(config.openai.apiKey)
+            LLMProvider.DEEPSEEK -> DeepSeekAdapter(config.deepseek.apiKey)
+            LLMProvider.OLLAMA -> OllamaAdapter(config.ollama.url.ifBlank { "http://localhost:11434" })
             else -> OpenAIAdapter("")
         }
     }
@@ -366,12 +368,12 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
                 Timber.tag("LLMAdapterFactory").i(successMsg)
                 Result.success(successMsg)
             } else {
-                val failMsg = "连接失败：服务不可用"
+                val failMsg = context.getString(R.string.connection_failed_service_unavailable)
                 Timber.tag("LLMAdapterFactory").w(failMsg)
                 Result.failure(Exception(failMsg))
             }
         } catch (e: Exception) {
-            val errorMsg = "连接失败：${e.message ?: "未知错误"}"
+            val errorMsg = context.getString(R.string.connection_failed_with_error, e.message ?: context.getString(R.string.error_unknown))
             Timber.tag("LLMAdapterFactory").e(e, errorMsg)
             Result.failure(Exception(errorMsg))
         }

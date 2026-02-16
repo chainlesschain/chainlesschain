@@ -599,7 +599,7 @@ class LLMAdapterFactory {
 
 ### Pattern: 三系统工具聚合
 
-**问题**: FunctionCaller (60+ 工具)、MCP (8 服务器)、Skills (15 技能) 三套工具系统各自独立，AI 无法统一发现和使用所有工具。
+**问题**: FunctionCaller (60+ 工具)、MCP (8 服务器)、Skills (30 技能) 三套工具系统各自独立，AI 无法统一发现和使用所有工具。
 
 **解决方案**:
 
