@@ -32,6 +32,7 @@ examples:
     output: "Before/after benchmark comparison with estimated performance gains"
 os: [win32, darwin, linux]
 author: ChainlessChain
+handler: ./handler.js
 ---
 
 # 性能优化技能

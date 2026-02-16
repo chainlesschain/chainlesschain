@@ -6,13 +6,7 @@ version: 1.0.0
 category: development
 user-invocable: true
 tags: [lint, eslint, fix, auto-fix, code-quality, formatting]
-capabilities:
-  [
-    linter-detection,
-    error-parsing,
-    auto-fix-loop,
-    config-detection,
-  ]
+capabilities: [linter-detection, error-parsing, auto-fix-loop, config-detection]
 tools:
   - file_reader
   - file_writer
@@ -33,6 +27,7 @@ examples:
     output: "Lint report: 23 errors, 56 warnings across 15 files. No changes applied."
 os: [win32, darwin, linux]
 author: ChainlessChain
+handler: ./handler.js
 ---
 
 # 自动 Lint 修复技能
@@ -56,13 +51,13 @@ author: ChainlessChain
 
 ## 支持的 Linter
 
-| Linter | 语言 | 配置检测 |
-| ------ | ---- | -------- |
-| ESLint | JS/TS/Vue | .eslintrc.*, eslint.config.* |
-| Prettier | JS/TS/CSS/HTML | .prettierrc.*, prettier.config.* |
-| Pylint | Python | .pylintrc, pyproject.toml |
-| Clippy | Rust | clippy.toml |
-| Checkstyle | Java | checkstyle.xml |
+| Linter     | 语言           | 配置检测                         |
+| ---------- | -------------- | -------------------------------- |
+| ESLint     | JS/TS/Vue      | .eslintrc._, eslint.config._     |
+| Prettier   | JS/TS/CSS/HTML | .prettierrc._, prettier.config._ |
+| Pylint     | Python         | .pylintrc, pyproject.toml        |
+| Clippy     | Rust           | clippy.toml                      |
+| Checkstyle | Java           | checkstyle.xml                   |
 
 ## 执行流程
 

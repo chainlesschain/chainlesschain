@@ -17,6 +17,7 @@ capabilities:
 tools:
   - file_reader
   - code_analyzer
+handler: ./handler.js
 instructions: |
   Use this skill when the user needs to understand module dependencies, analyze the
   impact of code changes, detect circular dependencies, or check dependency vulnerabilities.
@@ -56,6 +57,7 @@ author: ChainlessChain
 ```
 
 解析所有 `import`/`require` 语句，构建模块依赖图:
+
 - 直接依赖和传递依赖
 - 导出/导入的具体符号
 - Mermaid 图表输出
@@ -67,6 +69,7 @@ author: ChainlessChain
 ```
 
 给定一个文件修改，追踪所有受影响的下游消费者:
+
 - 直接导入者
 - 传递依赖者
 - 受影响的 IPC 处理器
@@ -79,6 +82,7 @@ author: ChainlessChain
 ```
 
 使用拓扑排序检测循环依赖:
+
 - 列出所有循环路径
 - 建议解耦方案
 - 影响严重度评估
@@ -90,6 +94,7 @@ author: ChainlessChain
 ```
 
 不仅列出 CVE，还追踪漏洞是否可达:
+
 - 运行 `npm audit` 获取 CVE 列表
 - 追踪漏洞函数是否被应用代码调用
 - 标记"可达"（需修复）vs "不可达"（低优先级）
@@ -102,6 +107,7 @@ author: ChainlessChain
 ```
 
 扫描所有依赖的许可证:
+
 - 许可证类型汇总 (MIT, Apache, GPL, BSD 等)
 - 兼容性矩阵
 - GPL 传染风险警告

@@ -10,6 +10,7 @@ capabilities: [git-analysis, message-generation]
 requires:
   bins: [git]
 os: [win32, darwin, linux]
+handler: ./handler.js
 ---
 
 # Git Commit Skill
@@ -30,16 +31,16 @@ Analyzes staged changes and generates appropriate semantic commit messages.
 
 ## Commit Types
 
-| Type | Description |
-|------|-------------|
-| feat | New feature |
-| fix | Bug fix |
-| docs | Documentation only |
-| style | Formatting, no code change |
-| refactor | Code restructuring |
-| test | Adding tests |
-| chore | Maintenance tasks |
-| perf | Performance improvements |
+| Type     | Description                |
+| -------- | -------------------------- |
+| feat     | New feature                |
+| fix      | Bug fix                    |
+| docs     | Documentation only         |
+| style    | Formatting, no code change |
+| refactor | Code restructuring         |
+| test     | Adding tests               |
+| chore    | Maintenance tasks          |
+| perf     | Performance improvements   |
 
 ## Process
 
@@ -53,16 +54,19 @@ Analyzes staged changes and generates appropriate semantic commit messages.
 ## Examples
 
 Basic usage:
+
 ```
 /git-commit
 ```
 
 With scope:
+
 ```
 /git-commit --scope api
 ```
 
 Preview only:
+
 ```
 /git-commit --dry-run
 ```

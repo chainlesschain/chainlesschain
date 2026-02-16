@@ -9,6 +9,7 @@ tags: [code, review, quality, development]
 capabilities: [code-analysis, suggestions]
 supported-file-types: [js, ts, py, java, go, rs, c, cpp, vue, jsx, tsx]
 os: [win32, darwin, linux]
+handler: ./handler.js
 ---
 
 # Code Review Skill
@@ -46,6 +47,7 @@ Performs comprehensive code review on provided code snippets or files.
 ## Output Format
 
 The review will include:
+
 - Summary of findings
 - List of issues with severity (critical/warning/info)
 - Specific recommendations with code examples
@@ -54,11 +56,13 @@ The review will include:
 ## Examples
 
 Review a specific file:
+
 ```
 /code-review src/main/database.js
 ```
 
 Review inline code:
+
 ```
 /code-review
 function foo(x) {

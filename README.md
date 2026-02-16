@@ -327,7 +327,7 @@
 - ✅ **Skills系统** - Markdown技能定义、四层加载机制(bundled→marketplace→managed→workspace)
 - ✅ **/skill命令** - 用户命令解析、自动执行
 - ✅ **门控检查** - 平台、依赖、环境变量检测
-- ✅ **30个内置技能** - 7个可执行handler + 8个文档型技能，覆盖7大类别
+- ✅ **30个内置技能** - 24个可执行handler + 6个提示型技能，覆盖12大类别
 - ✅ **Agent Skills开放标准** - 13个扩展字段(tools/instructions/examples/dependencies等)
 
 详细功能说明见 [Hooks系统设计](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [AI技能系统设计](./docs/design/modules/16_AI技能系统.md)

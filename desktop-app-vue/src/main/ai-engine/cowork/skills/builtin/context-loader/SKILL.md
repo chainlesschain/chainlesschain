@@ -32,6 +32,7 @@ examples:
     output: "Context budget set to 8000 tokens. Will prioritize highest-relevance files."
 os: [win32, darwin, linux]
 author: ChainlessChain
+handler: ./handler.js
 ---
 
 # 智能上下文加载技能
@@ -55,6 +56,7 @@ author: ChainlessChain
 ```
 
 分析主题关键词，搜索相关文件并加载:
+
 - 文件名匹配
 - 内容关键词匹配
 - 导入关系追踪
@@ -90,17 +92,17 @@ author: ChainlessChain
 
 根据主题词识别相关模块:
 
-| 关键词 | 模块 | 关键文件 |
-| ------ | ---- | -------- |
-| session, 会话 | llm | session-manager.js, session-compressor.js |
-| memory, 记忆 | llm | permanent-memory-manager.js |
-| search, 搜索 | rag | hybrid-search-engine.js, bm25-search.js |
-| p2p, webrtc | p2p | signaling-handlers.js, webrtc-data-channel.js |
-| permission, 权限 | permission | permission-engine.js, team-manager.js |
-| browser, 浏览器 | browser | browser-engine.js, computer-use-agent.js |
-| skill, 技能 | skills | index.js, skill-md-parser.js |
-| mcp | mcp | mcp-tool-adapter.js, community-registry.js |
-| audit, 审计 | audit | enterprise-audit-logger.js |
+| 关键词           | 模块       | 关键文件                                      |
+| ---------------- | ---------- | --------------------------------------------- |
+| session, 会话    | llm        | session-manager.js, session-compressor.js     |
+| memory, 记忆     | llm        | permanent-memory-manager.js                   |
+| search, 搜索     | rag        | hybrid-search-engine.js, bm25-search.js       |
+| p2p, webrtc      | p2p        | signaling-handlers.js, webrtc-data-channel.js |
+| permission, 权限 | permission | permission-engine.js, team-manager.js         |
+| browser, 浏览器  | browser    | browser-engine.js, computer-use-agent.js      |
+| skill, 技能      | skills     | index.js, skill-md-parser.js                  |
+| mcp              | mcp        | mcp-tool-adapter.js, community-registry.js    |
+| audit, 审计      | audit      | enterprise-audit-logger.js                    |
 
 ### 优先级规则
 

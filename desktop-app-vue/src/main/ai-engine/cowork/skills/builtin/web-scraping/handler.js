@@ -4,14 +4,14 @@
  * Data extraction from web pages via the browser engine.
  */
 
-const { logger } = require("../../../../utils/logger.js");
+const { logger } = require("../../../../../utils/logger.js");
 
 let computerUseAgent = null;
 
 module.exports = {
   async init(skill) {
     try {
-      const agentModule = require("../../../../browser/computer-use-agent.js");
+      const agentModule = require("../../../../../browser/computer-use-agent.js");
       computerUseAgent = agentModule.getInstance
         ? agentModule.getInstance()
         : agentModule;

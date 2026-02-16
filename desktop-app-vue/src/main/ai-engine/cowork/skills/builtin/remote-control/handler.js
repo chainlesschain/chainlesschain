@@ -4,14 +4,14 @@
  * Interfaces with the P2P mobile bridge for remote device management.
  */
 
-const { logger } = require("../../../../utils/logger.js");
+const { logger } = require("../../../../../utils/logger.js");
 
 let mobileBridge = null;
 
 module.exports = {
   async init(skill) {
     try {
-      mobileBridge = require("../../../../p2p/mobile-bridge.js");
+      mobileBridge = require("../../../../../p2p/mobile-bridge.js");
       logger.info("[RemoteControl] MobileBridge loaded");
     } catch (error) {
       logger.warn("[RemoteControl] MobileBridge not available:", error.message);

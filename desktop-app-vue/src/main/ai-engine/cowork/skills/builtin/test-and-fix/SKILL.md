@@ -34,6 +34,7 @@ examples:
     output: "Found 12 tests related to session-manager. Ran them: 10 passed, 2 failed. Fixed 2 issues."
 os: [win32, darwin, linux]
 author: ChainlessChain
+handler: ./handler.js
 ---
 
 # 自动测试修复技能
@@ -58,12 +59,12 @@ author: ChainlessChain
 
 ## 支持的测试框架
 
-| 框架 | 语言 | 配置检测 |
-| ---- | ---- | -------- |
-| Vitest | JS/TS | vitest.config.*, vite.config.* |
-| Jest | JS/TS | jest.config.*, package.json jest |
-| Pytest | Python | pytest.ini, pyproject.toml |
-| JUnit | Java/Kotlin | build.gradle, pom.xml |
+| 框架   | 语言        | 配置检测                          |
+| ------ | ----------- | --------------------------------- |
+| Vitest | JS/TS       | vitest.config._, vite.config._    |
+| Jest   | JS/TS       | jest.config.\*, package.json jest |
+| Pytest | Python      | pytest.ini, pyproject.toml        |
+| JUnit  | Java/Kotlin | build.gradle, pom.xml             |
 
 ## 执行流程
 

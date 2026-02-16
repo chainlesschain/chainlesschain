@@ -20,6 +20,7 @@ tools:
   - file_editor
   - code_analyzer
 supported-file-types: [js, ts, py, java, kt, go, vue, jsx, tsx]
+handler: ./handler.js
 instructions: |
   Use this skill when the user wants to refactor code - rename symbols across files,
   extract functions/classes, move modules, eliminate duplication, or apply design patterns.
@@ -58,6 +59,7 @@ author: ChainlessChain
 ```
 
 检测以下代码异味:
+
 - **Long Method**: 函数超过 50 行
 - **God Class**: 类超过 500 行或 20 个方法
 - **Feature Envy**: 方法过度使用其他类的数据

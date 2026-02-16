@@ -12,6 +12,7 @@ tools:
   - code_analyzer
   - secret_scanner
   - file_reader
+handler: ./handler.js
 instructions: |
   Use this skill when the user asks for security review, vulnerability scanning,
   or code audit. Scan for OWASP Top 10 vulnerabilities, hardcoded secrets,

@@ -4,7 +4,7 @@
 
 ChainlessChain是一个完全去中心化的个人AI管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能，通过U盾/SIMKey硬件加密和本地AI模型，为用户提供军事级隐私保护的个人数据管理平台。
 
-**v0.36.0新增**: AI技能系统 - 30个内置技能(7可执行Handler+23文档型)、统一工具注册表(FunctionCaller 60++MCP 8+Skills 30)、10个演示模板、Agent Skills开放标准(13扩展字段)。
+**v0.36.0新增**: AI技能系统 - 30个内置技能(12可执行Handler+18文档型)、统一工具注册表(FunctionCaller 60++MCP 8+Skills 30)、10个演示模板、Agent Skills开放标准(13扩展字段)。
 
 ## 项目统计
 

@@ -18,6 +18,7 @@ tools:
   - file_reader
   - file_writer
   - code_analyzer
+handler: ./handler.js
 instructions: |
   Use this skill to discover, test, and validate IPC handlers and REST API endpoints.
   Scan source code for ipcMain.handle() registrations, generate test stubs with
@@ -56,6 +57,7 @@ author: ChainlessChain
 ```
 
 扫描所有源文件，提取:
+
 - `ipcMain.handle('channel', handler)` 注册
 - `ipcMain.on('channel', handler)` 监听器
 - 处理器的参数签名和返回类型推断
@@ -68,6 +70,7 @@ author: ChainlessChain
 ```
 
 为每个发现的处理器生成:
+
 - 正常路径测试（有效输入 → 期望输出）
 - 参数验证测试（缺失/无效参数 → 错误响应）
 - Mock 注入（数据库、文件系统、外部服务）
@@ -81,6 +84,7 @@ author: ChainlessChain
 ```
 
 对所有已注册的 IPC 通道执行:
+
 - 可达性检查（通道是否注册）
 - 参数验证检查（空参数调用）
 - 响应格式验证
@@ -93,6 +97,7 @@ author: ChainlessChain
 ```
 
 基于已有测试用例:
+
 - 运行所有相关测试
 - 对比响应与基线快照
 - 报告变化和异常
@@ -117,8 +122,8 @@ By module:
 生成可直接运行的 Vitest 测试文件:
 
 ```javascript
-describe('audit-ipc handlers', () => {
-  it('audit:get-logs should return paginated logs', async () => {
+describe("audit-ipc handlers", () => {
+  it("audit:get-logs should return paginated logs", async () => {
     // ...
   });
 });

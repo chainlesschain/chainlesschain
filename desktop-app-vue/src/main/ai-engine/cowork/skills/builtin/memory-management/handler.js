@@ -5,7 +5,7 @@
  * knowledge persistence and retrieval.
  */
 
-const { logger } = require("../../../../utils/logger.js");
+const { logger } = require("../../../../../utils/logger.js");
 
 let memoryManager = null;
 
@@ -16,7 +16,7 @@ module.exports = {
    */
   async init(skill) {
     try {
-      memoryManager = require("../../../../llm/permanent-memory-manager.js");
+      memoryManager = require("../../../../../llm/permanent-memory-manager.js");
       logger.info("[MemoryManagement] Handler initialized");
     } catch (error) {
       logger.warn(
