@@ -3,8 +3,12 @@
  * 提供Electron应用启动、窗口管理等工具函数
  */
 
-import { _electron as electron, ElectronApplication, Page } from '@playwright/test';
-import path from 'path';
+import {
+  _electron as electron,
+  ElectronApplication,
+  Page,
+} from "@playwright/test";
+import path from "path";
 
 export interface ElectronTestContext {
   app: ElectronApplication;
@@ -16,20 +20,33 @@ export interface ElectronTestContext {
  */
 export async function launchElectronApp(): Promise<ElectronTestContext> {
   // 确定主进程入口文件路径
-  const mainPath = path.join(__dirname, '../../desktop-app-vue/dist/main/index.js');
+  const mainPath = path.join(
+    __dirname,
+    "../../desktop-app-vue/dist/main/index.js",
+  );
 
   // 设置固定的 userData 路径，确保配置文件能被读取（跨平台兼容）
-  const os = require('os');
+  const os = require("os");
   let userDataPath: string;
   switch (process.platform) {
-    case 'darwin':
-      userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'chainlesschain');
+    case "darwin":
+      userDataPath = path.join(
+        os.homedir(),
+        "Library",
+        "Application Support",
+        "chainlesschain",
+      );
       break;
-    case 'win32':
-      userDataPath = path.join(os.homedir(), 'AppData', 'Roaming', 'chainlesschain');
+    case "win32":
+      userDataPath = path.join(
+        os.homedir(),
+        "AppData",
+        "Roaming",
+        "chainlesschain",
+      );
       break;
     default: // Linux and others
-      userDataPath = path.join(os.homedir(), '.config', 'chainlesschain');
+      userDataPath = path.join(os.homedir(), ".config", "chainlesschain");
   }
 
   // 启动Electron（增加超时时间，指定 userData 路径，添加测试环境参数）
@@ -38,26 +55,24 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       mainPath,
       `--user-data-dir=${userDataPath}`,
       // 测试环境下禁用 GPU 加速以避免 GPU 进程崩溃
-      '--disable-gpu',
-      '--disable-gpu-compositing',
+      "--disable-gpu",
+      "--disable-gpu-compositing",
       // 在 CI 环境或无头模式下需要禁用沙箱
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      // 禁用硬件加速
-      '--disable-software-rasterizer',
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
       // Linux CI: /dev/shm 分区可能太小，使用 /tmp 代替
-      '--disable-dev-shm-usage',
+      "--disable-dev-shm-usage",
       // 禁用扩展和不必要的后台功能以加速启动
-      '--disable-extensions',
-      '--disable-background-networking',
-      '--disable-default-apps',
+      "--disable-extensions",
+      "--disable-background-networking",
+      "--disable-default-apps",
     ],
     env: {
       ...process.env,
-      NODE_ENV: 'test',
-      ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
+      NODE_ENV: "test",
+      ELECTRON_DISABLE_SECURITY_WARNINGS: "true",
       // Linux: 强制使用软件 OpenGL
-      ...(process.platform === 'linux' ? { LIBGL_ALWAYS_SOFTWARE: '1' } : {}),
+      ...(process.platform === "linux" ? { LIBGL_ALWAYS_SOFTWARE: "1" } : {}),
     },
     timeout: 120000, // 120秒启动超时（应用初始化需要较长时间）
   });
@@ -68,7 +83,7 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   });
 
   // 等待加载完成
-  await window.waitForLoadState('domcontentloaded', {
+  await window.waitForLoadState("domcontentloaded", {
     timeout: 30000,
   });
 
@@ -77,15 +92,15 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     await window.waitForFunction(
       () => {
         return (
-          typeof (window as any).electronAPI !== 'undefined' ||
-          typeof (window as any).electron !== 'undefined' ||
-          typeof (window as any).api !== 'undefined'
+          typeof (window as any).electronAPI !== "undefined" ||
+          typeof (window as any).electron !== "undefined" ||
+          typeof (window as any).api !== "undefined"
         );
       },
-      { timeout: 10000 }
+      { timeout: 10000 },
     );
   } catch (error) {
-    console.warn('Warning: electronAPI not found, but continuing anyway');
+    console.warn("Warning: electronAPI not found, but continuing anyway");
   }
 
   return { app, window };
@@ -94,7 +109,9 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
 /**
  * 关闭Electron应用
  */
-export async function closeElectronApp(app: ElectronApplication): Promise<void> {
+export async function closeElectronApp(
+  app: ElectronApplication,
+): Promise<void> {
   await app.close();
 }
 
@@ -117,30 +134,32 @@ export async function callIPC<T>(
       if ((window as any).electronAPI) {
         // 如果是IPC通道格式（如 'project:get-all'），转换为对象路径
         let apiPath = channel;
-        if (channel.includes(':')) {
+        if (channel.includes(":")) {
           // 将 'project:get-all' 转换为 'project.getAll'
           // 将 'project:stats:start' 转换为 'project.stats.start'
-          const parts = channel.split(':');
+          const parts = channel.split(":");
           const convertedParts = parts.map((part, index) => {
             // 第一部分保持不变（模块名）
             if (index === 0) return part;
             // 其他部分将 kebab-case 转换为 camelCase
             return part.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
           });
-          apiPath = convertedParts.join('.');
+          apiPath = convertedParts.join(".");
         }
 
-        const pathParts = apiPath.split('.');
+        const pathParts = apiPath.split(".");
         let api: any = (window as any).electronAPI;
 
         for (const part of pathParts) {
           api = api[part];
           if (!api) {
-            throw new Error(`API path not found: ${apiPath} (original: ${channel})`);
+            throw new Error(
+              `API path not found: ${apiPath} (original: ${channel})`,
+            );
           }
         }
 
-        if (typeof api !== 'function') {
+        if (typeof api !== "function") {
           throw new Error(`API is not a function: ${apiPath}`);
         }
 
@@ -148,19 +167,25 @@ export async function callIPC<T>(
       }
 
       // 备用：通过 window.api.invoke 调用（如果可用）
-      if ((window as any).api && typeof (window as any).api.invoke === 'function') {
+      if (
+        (window as any).api &&
+        typeof (window as any).api.invoke === "function"
+      ) {
         return await (window as any).api.invoke(channel, ...args);
       }
 
       // 最后备用：通过 window.electron.ipcRenderer 直接调用
       // 注意：这种方式需要传入正确的 IPC 通道名（如 'system:get-system-info'）
       if ((window as any).electron && (window as any).electron.ipcRenderer) {
-        return await (window as any).electron.ipcRenderer.invoke(channel, ...args);
+        return await (window as any).electron.ipcRenderer.invoke(
+          channel,
+          ...args,
+        );
       }
 
-      throw new Error('No IPC interface found in window object');
+      throw new Error("No IPC interface found in window object");
     },
-    { channel, args }
+    { channel, args },
   );
 }
 
@@ -169,7 +194,7 @@ export async function callIPC<T>(
  */
 export async function waitForIPC(
   window: Page,
-  timeout: number = 5000
+  timeout: number = 5000,
 ): Promise<void> {
   await window.waitForTimeout(timeout);
 }
@@ -179,7 +204,7 @@ export async function waitForIPC(
  */
 export async function takeScreenshot(
   window: Page,
-  name: string
+  name: string,
 ): Promise<void> {
   await window.screenshot({
     path: `test-results/screenshots/${name}.png`,
