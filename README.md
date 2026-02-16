@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.35.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.36.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,32 +19,32 @@
 
 ---
 
-## ⭐ 当前版本: v0.35.0 (2026-02-16)
+## ⭐ 当前版本: v0.36.0 (2026-02-16)
 
-### 最新更新 - AI Skills System 智能技能系统 + 统一工具注册表
+### 最新更新 - Unified Tool Registry + AI 技能调用链打通
 
-**15 Built-in Skills + 10 Demo Templates + Agent Skills Open Standard + Unified Tool Registry** - 15个内置技能、10个演示模板、Agent Skills开放标准、统一工具注册表，6 新IPC handlers，3,000+行新代码
+**Unified Tool Registry + AI Call Chain Integration** - 统一工具注册表全面打通AI对话调用链，技能上下文(instructions/examples)自动注入LLM提示词，31个测试(含4个E2E集成)
 
-#### 新增核心功能 (2026-02-16)
+#### v0.36.0 新增核心功能 (2026-02-16)
+
+- ✅ **AI Call Chain Integration** - ManusOptimizations.bindUnifiedRegistry() 打通完整调用链
+  - ipc-registry → ManusOptimizations → ContextEngineering → LLM Prompt
+  - AI对话自动获取技能分组、Instructions、Examples
+- ✅ **Initialization Safety** - 初始化锁防止并发竞态，IPC init-wait guard (10s超时)
+- ✅ **Parameter Safety** - JSON序列化深度限制(500字符)，circular reference保护
+- ✅ **Type Safety** - Store错误处理改为 `err: unknown` + 安全类型转换
+- ✅ **E2E Integration Tests** - 4个端到端测试验证完整调用链 (Registry→Manus→CE→LLM Prompt)
+
+#### v0.35.0 功能 - AI Skills System 智能技能系统 + 统一工具注册表
 
 - ✅ **15 Built-in Skills** - 15个内置技能覆盖7大类别(开发/自动化/知识/数据/安全/远程/学习)
-  - **核心**: code-review, git-commit, explain-code
-  - **自动化**: browser-automation, computer-use, workflow-automation
-  - **数据**: web-scraping, data-analysis
-  - **知识**: memory-management, smart-search
-  - **远程**: remote-control
-  - **安全**: security-audit
-  - **DevOps**: devops-automation
-  - **开发**: test-generator, performance-optimizer
 - ✅ **Unified Tool Registry** - 统一工具注册表，聚合3大工具系统(FunctionCaller 60+工具 + MCP 8服务器 + Skills 15技能)
 - ✅ **ToolSkillMapper** - 自动将未覆盖工具分组到10个技能类别
 - ✅ **MCPSkillGenerator** - MCP服务器连接时自动生成SkillManifestEntry
-- ✅ **Agent Skills Open Standard** - 13个扩展字段(tools/instructions/examples/dependencies/input-schema/output-schema等)
+- ✅ **Agent Skills Open Standard** - 13个扩展字段(tools/instructions/examples等)
 - ✅ **Demo Templates** - 10个演示项目模板，覆盖自动化/AI工作流/知识管理/远程控制4大类
-- ✅ **Tools Explorer UI** - 工具浏览器页面，按技能分组展示所有工具(路由: `#/tools/explorer`)
-- ✅ **Demo Templates UI** - 演示模板浏览页面，支持预览和运行(路由: `#/demo-templates`)
-- ✅ **Name Normalization** - `browser-click`(SKILL.md) → `browser_click`(FunctionCaller) 自动桥接
-- ✅ **Context Engineering Integration** - 技能分组工具序列化集成到LLM提示词
+- ✅ **Tools Explorer UI** - 工具浏览器页面(路由: `#/tools/explorer`)
+- ✅ **Demo Templates UI** - 演示模板浏览页面(路由: `#/demo-templates`)
 
 #### v0.34.0 功能回顾 - Enterprise Features 企业级功能 + 社区生态
 

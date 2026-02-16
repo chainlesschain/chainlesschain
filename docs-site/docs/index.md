@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v0.35.0 | 军事级安全 | 完全去中心化 | AI原生 | 15技能 | 统一工具注册表
+  tagline: v0.36.0 | 军事级安全 | 完全去中心化 | AI原生 | 15技能 | 统一工具注册表
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -120,7 +120,7 @@ start.bat
 
 ### 1. ChainlessChain 个人AI管理系统
 
-完全去中心化的个人AI助手平台（v0.35.0 AI技能系统），整合知识库管理、社交网络和交易辅助三大核心功能。
+完全去中心化的个人AI助手平台（v0.36.0 AI技能系统），整合知识库管理、社交网络和交易辅助三大核心功能。
 
 **主要特性:**
 

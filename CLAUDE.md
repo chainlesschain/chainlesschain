@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.35.0 (AI Skills System: 15 skills + 10 demo templates + Agent Skills standard + Unified Tool Registry) - Updated 2026-02-16
+**Current Version**: v0.36.0 (Unified Tool Registry: AI 技能调用链打通 + E2E 集成) - Updated 2026-02-16
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -286,19 +286,20 @@ Extensible skill system with Markdown definitions:
 
 ### Unified Tool Registry (Agent Skills Open Standard)
 
-**Status**: ✅ Implemented v0.35.0
+**Status**: ✅ Implemented v0.36.0
 
-Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 15 skills) with Agent Skills metadata:
+Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 15 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
 
-- **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry
+- **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry (with initialization lock)
 - **MCPSkillGenerator**: Auto-generates SkillManifestEntry when MCP servers connect
 - **ToolSkillMapper**: Auto-groups uncovered built-in tools into 10 skill categories
 - **Name Normalization**: `browser-click` (SKILL.md) → `browser_click` (FunctionCaller) bridging
-- **Context Engineering Integration**: Skill-grouped tool serialization in LLM prompts
-- **6 IPC Handlers**: `tools:get-all-with-skills`, `tools:get-skill-manifest`, `tools:get-by-skill`, `tools:search-unified`, `tools:get-tool-context`, `tools:refresh-unified`
+- **AI Call Chain Integration**: `ManusOptimizations.bindUnifiedRegistry()` → `ContextEngineering` skill-grouped prompts
+- **6 IPC Handlers**: `tools:get-all-with-skills`, `tools:get-skill-manifest`, `tools:get-by-skill`, `tools:search-unified`, `tools:get-tool-context`, `tools:refresh-unified` (with init-wait guard)
 - **Community Registry Enriched**: 8 MCP servers with `skillInstructions`, `skillExamples`, `skillCategory`
+- **31 Tests**: 27 unit + 4 E2E integration (full call chain verification)
 
-**Key Files**: `src/main/ai-engine/unified-tool-registry.js`, `src/main/ai-engine/tool-skill-mapper.js`, `src/main/mcp/mcp-skill-generator.js`, `src/main/ai-engine/unified-tools-ipc.js`
+**Key Files**: `src/main/ai-engine/unified-tool-registry.js`, `src/main/ai-engine/tool-skill-mapper.js`, `src/main/mcp/mcp-skill-generator.js`, `src/main/ai-engine/unified-tools-ipc.js`, `src/main/llm/manus-optimizations.js` (bindUnifiedRegistry)
 **Frontend**: `src/renderer/pages/ToolsExplorerPage.vue` (route: `#/tools/explorer`), `src/renderer/stores/unified-tools.ts`
 
 ### Browser Automation System

@@ -12,7 +12,27 @@
 
 ## 最新版本
 
-### v0.35.0 (2026-02-16) ⭐ 当前版本
+### v0.36.0 (2026-02-16) ⭐ 当前版本
+
+**Unified Tool Registry AI Call Chain** - 统一工具注册表全面打通AI对话调用链
+
+#### 核心改进
+
+- ✅ **AI Call Chain Integration** - `ManusOptimizations.bindUnifiedRegistry()` 打通完整调用链
+  - `ipc-registry.js` Phase 15: `registry.initialize().then()` → 绑定到 ManusOptimizations
+  - `manus-optimizations.js`: `buildOptimizedPrompt()` 自动传递 `unifiedRegistry` 到 ContextEngineering
+  - AI 对话提示词自动包含: 技能分组 + Instructions + Examples
+- ✅ **Initialization Safety** - `_initPromise` 锁防止并发 `initialize()` 竞态条件
+- ✅ **IPC Init-Wait Guard** - `_waitForInit()` helper (10s 超时) 保护所有 5 个读取 handler
+- ✅ **MCPSkillGenerator Safety** - 空工具名 `.filter(Boolean)` 过滤
+- ✅ **Parameter Serialization Limit** - `MAX_PARAMS_LENGTH = 500`，circular reference try-catch 保护
+- ✅ **Type Safety** - Store 错误处理升级为 `err: unknown` + `(err as Error)?.message`
+- ✅ **Error Recovery** - ToolsExplorerPage.vue `onMounted` try-catch 包裹
+- ✅ **E2E Integration Tests** - 4 个端到端测试验证完整调用链 (31 tests total, 221 related pass)
+
+---
+
+### v0.35.0 (2026-02-16)
 
 **AI Skills System 智能技能系统** - 15个内置技能 + 统一工具注册表 + 10个演示模板 + Agent Skills开放标准
 

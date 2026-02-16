@@ -5,6 +5,23 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.36.0] - 2026-02-16
+
+### 新增
+
+- 🔗 **AI调用链打通** - ManusOptimizations.bindUnifiedRegistry() 完整打通 Registry→Manus→ContextEngineering→LLM Prompt
+- 🛡️ **初始化安全** - _initPromise 并发锁 + IPC init-wait guard (10s超时)
+- 🧪 **E2E集成测试** - 4个端到端测试验证完整调用链 (31 tests total)
+
+### 改进
+
+- 📦 **参数序列化限制** - MAX_PARAMS_LENGTH=500 + circular reference保护
+- 🔒 **类型安全** - Store错误处理 `err: unknown` + 安全类型转换
+- 🛠️ **MCPSkillGenerator** - 空工具名过滤 `.filter(Boolean)`
+- 💪 **ToolsExplorerPage** - onMounted try-catch 错误恢复
+
+---
+
 ## [0.35.0] - 2026-02-16
 
 ### 新增
