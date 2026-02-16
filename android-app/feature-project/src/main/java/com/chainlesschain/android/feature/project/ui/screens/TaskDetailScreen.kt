@@ -53,6 +53,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.feature.project.model.Task
 import com.chainlesschain.android.feature.project.model.TaskPriority
 import com.chainlesschain.android.feature.project.model.TaskStatus
@@ -88,16 +90,16 @@ fun TaskDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("任务详情", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = { Text(stringResource(R.string.task_details), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     selectedTask?.let { task ->
                         IconButton(onClick = { viewModel.deleteTask(task.id) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "删除")
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
                         }
                     }
                 },
@@ -181,7 +183,7 @@ private fun TaskHeaderSection(task: Task, onStatusChange: (TaskStatus) -> Unit) 
                 if (task.isOverdue) {
                     Icon(
                         Icons.Default.Warning,
-                        contentDescription = "逾期",
+                        contentDescription = stringResource(R.string.overdue),
                         tint = Color(0xFFF44336),
                         modifier = Modifier.size(24.dp)
                     )
@@ -198,7 +200,7 @@ private fun TaskHeaderSection(task: Task, onStatusChange: (TaskStatus) -> Unit) 
                         onClick = { if (!isSelected) onStatusChange(status) },
                         label = {
                             Text(
-                                text = status.displayName,
+                                text = stringResource(status.displayNameResId),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         },
@@ -234,7 +236,7 @@ private fun TaskMetaSection(task: Task) {
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
-                text = task.priority.displayName,
+                text = stringResource(task.priority.displayNameResId),
                 color = Color.White,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold
@@ -263,7 +265,7 @@ private fun TaskDescriptionSection(description: String) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "描述",
+                text = stringResource(R.string.description_section),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -287,26 +289,26 @@ private fun TaskTimeSection(task: Task) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "时间信息",
+                text = stringResource(R.string.time_info),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            TimeRow("创建时间", dateFormat.format(Date(task.createdAt)))
-            TimeRow("更新时间", dateFormat.format(Date(task.updatedAt)))
+            TimeRow(stringResource(R.string.task_sort_created_at), dateFormat.format(Date(task.createdAt)))
+            TimeRow(stringResource(R.string.task_sort_updated_at), dateFormat.format(Date(task.updatedAt)))
 
             task.dueDate?.let {
                 TimeRow(
-                    "截止时间",
+                    stringResource(R.string.due_time),
                     dateFormat.format(Date(it)),
                     isWarning = task.isOverdue
                 )
             }
 
             task.completedAt?.let {
-                TimeRow("完成时间", dateFormat.format(Date(it)))
+                TimeRow(stringResource(R.string.completion_time), dateFormat.format(Date(it)))
             }
 
             if (task.estimateHours != null || task.actualHours != null) {
@@ -316,10 +318,10 @@ private fun TaskTimeSection(task: Task) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     task.estimateHours?.let {
-                        Text("预估: ${it}h", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.estimate_hours, it), style = MaterialTheme.typography.bodySmall)
                     }
                     task.actualHours?.let {
-                        Text("实际: ${it}h", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.actual_hours, it), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -362,7 +364,7 @@ private fun TaskStepsSection(task: Task, onToggleStep: (String) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "子步骤",
+                    text = stringResource(R.string.sub_steps),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

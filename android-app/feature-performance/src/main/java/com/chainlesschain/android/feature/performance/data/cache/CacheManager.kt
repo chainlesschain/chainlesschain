@@ -96,8 +96,8 @@ class CacheManager @Inject constructor(
             cache[key] = value
 
             while (cache.size > maxSize) {
-                val eldest = cache.entries.iterator().next()
-                cache.remove(eldest.key)
+                val eldest = cache.keys.firstOrNull() ?: break
+                cache.remove(eldest)
                 evictionCount++
             }
         }

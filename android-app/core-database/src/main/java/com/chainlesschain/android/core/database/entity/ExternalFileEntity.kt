@@ -1,8 +1,10 @@
 package com.chainlesschain.android.core.database.entity
 
+import androidx.annotation.StringRes
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.chainlesschain.android.core.database.R
 
 /**
  * 文件分类枚举
@@ -151,8 +153,25 @@ data class ExternalFileEntity(
     }
 
     /**
+     * 获取分类显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getCategoryDisplayNameResId(): Int {
+        return when (category) {
+            FileCategory.DOCUMENT -> R.string.file_category_document
+            FileCategory.IMAGE -> R.string.file_category_image
+            FileCategory.VIDEO -> R.string.file_category_video
+            FileCategory.AUDIO -> R.string.file_category_audio
+            FileCategory.ARCHIVE -> R.string.file_category_archive
+            FileCategory.CODE -> R.string.file_category_code
+            FileCategory.OTHER -> R.string.file_category_other
+        }
+    }
+
+    /**
      * 获取分类显示名称
      */
+    @Deprecated("Use getCategoryDisplayNameResId() instead", ReplaceWith("getCategoryDisplayNameResId()"))
     fun getCategoryDisplayName(): String {
         return when (category) {
             FileCategory.DOCUMENT -> "文档"

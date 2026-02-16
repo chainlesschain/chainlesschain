@@ -1307,11 +1307,3 @@ data class RestoreNoteResponse(
     val noteId: String,
     val message: String
 )
-
-@Serializable
-data class EmptyTrashResponse(
-    val success: Boolean,
-    val deletedCount: Int,
-    val freedSpace: Long,
-    val message: String
-)

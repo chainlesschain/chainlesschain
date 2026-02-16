@@ -1,8 +1,10 @@
 package com.chainlesschain.android.core.database.entity
 
+import androidx.annotation.StringRes
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.chainlesschain.android.core.database.R
 
 /**
  * 项目类型枚举
@@ -179,8 +181,41 @@ data class ProjectEntity(
     }
 
     /**
+     * 获取状态显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getStatusDisplayNameResId(): Int {
+        return when (status) {
+            ProjectStatus.ACTIVE -> R.string.project_status_active
+            ProjectStatus.PAUSED -> R.string.project_status_paused
+            ProjectStatus.COMPLETED -> R.string.project_status_completed
+            ProjectStatus.ARCHIVED -> R.string.project_status_archived
+            ProjectStatus.DELETED -> R.string.project_status_deleted
+            else -> R.string.project_status_unknown
+        }
+    }
+
+    /**
+     * 获取类型显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getTypeDisplayNameResId(): Int {
+        return when (type) {
+            ProjectType.DOCUMENT -> R.string.project_type_document
+            ProjectType.WEB -> R.string.project_type_web
+            ProjectType.APP -> R.string.project_type_app
+            ProjectType.DATA -> R.string.project_type_data
+            ProjectType.DESIGN -> R.string.project_type_design
+            ProjectType.RESEARCH -> R.string.project_type_research
+            ProjectType.OTHER -> R.string.project_type_other
+            else -> R.string.project_type_unknown
+        }
+    }
+
+    /**
      * 获取状态显示名称
      */
+    @Deprecated("Use getStatusDisplayNameResId() instead", ReplaceWith("getStatusDisplayNameResId()"))
     fun getStatusDisplayName(): String {
         return when (status) {
             ProjectStatus.ACTIVE -> "进行中"
@@ -195,6 +230,7 @@ data class ProjectEntity(
     /**
      * 获取类型显示名称
      */
+    @Deprecated("Use getTypeDisplayNameResId() instead", ReplaceWith("getTypeDisplayNameResId()"))
     fun getTypeDisplayName(): String {
         return when (type) {
             ProjectType.DOCUMENT -> "文档"

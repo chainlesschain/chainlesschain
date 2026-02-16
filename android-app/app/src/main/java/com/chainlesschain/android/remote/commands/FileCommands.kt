@@ -694,7 +694,7 @@ class FileCommands @Inject constructor(
      *
      * @param paths 文件路径列表
      */
-    suspend fun copyToClipboard(paths: List<String>): Result<ClipboardResponse> {
+    suspend fun copyToClipboard(paths: List<String>): Result<FileClipboardResponse> {
         return client.invoke("file.copyToClipboard", mapOf("paths" to paths))
     }
 
@@ -1054,18 +1054,6 @@ data class SymlinkResponse(
 // ==================== 磁盘信息响应 ====================
 
 @Serializable
-data class DiskUsageResponse(
-    val success: Boolean,
-    val path: String,
-    val total: Long,
-    val used: Long,
-    val available: Long,
-    val usedPercent: Double,
-    val mountPoint: String? = null,
-    val fileSystem: String? = null
-)
-
-@Serializable
 data class DirectorySizeResponse(
     val success: Boolean,
     val path: String,
@@ -1106,7 +1094,7 @@ data class TempFileResponse(
 // ==================== 剪贴板响应 ====================
 
 @Serializable
-data class ClipboardResponse(
+data class FileClipboardResponse(
     val success: Boolean,
     val fileCount: Int,
     val message: String? = null

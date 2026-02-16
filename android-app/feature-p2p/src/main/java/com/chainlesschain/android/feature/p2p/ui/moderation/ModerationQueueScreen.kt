@@ -13,12 +13,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ContentType
 import com.chainlesschain.android.core.database.entity.ModerationStatus
+import com.chainlesschain.android.feature.p2p.R
 import com.chainlesschain.android.feature.p2p.repository.moderation.ModerationSeverity
 import com.chainlesschain.android.feature.p2p.moderation.ViolationCategory
 import com.chainlesschain.android.feature.p2p.repository.moderation.ModerationQueueItem
@@ -50,10 +52,10 @@ fun ModerationQueueScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("内容审核") },
+                title = { Text(stringResource(R.string.content_moderation)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -64,13 +66,13 @@ fun ModerationQueueScreen(
                             modifier = Modifier.padding(horizontal = 8.dp)
                         ) {
                             StatisticsBadge(
-                                label = "待审",
+                                label = stringResource(R.string.stat_pending),
                                 count = stats.pendingCount,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             if (stats.appealingCount > 0) {
                                 StatisticsBadge(
-                                    label = "申诉",
+                                    label = stringResource(R.string.stat_appeal),
                                     count = stats.appealingCount,
                                     color = MaterialTheme.colorScheme.tertiary
                                 )
@@ -156,7 +158,13 @@ private fun FilterTabs(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(tab.displayName)
+                        Text(
+                            when (tab) {
+                                ModerationTab.PENDING -> stringResource(R.string.tab_pending)
+                                ModerationTab.APPEALING -> stringResource(R.string.tab_appealing)
+                                ModerationTab.ALL -> stringResource(R.string.tab_all)
+                            }
+                        )
                         when (tab) {
                             ModerationTab.PENDING -> {
                                 if (pendingCount > 0) {
@@ -241,7 +249,7 @@ private fun ModerationQueueItemCard(
             ) {
                 Column {
                     Text(
-                        text = item.authorName ?: "未知用户",
+                        text = item.authorName ?: stringResource(R.string.unknown_user),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -277,7 +285,7 @@ private fun ModerationQueueItemCard(
                         onClick = { showFullContent = !showFullContent },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text(if (showFullContent) "收起" else "展开")
+                        Text(if (showFullContent) stringResource(R.string.show_less) else stringResource(R.string.show_more))
                     }
                 }
             }
@@ -302,7 +310,7 @@ private fun ModerationQueueItemCard(
                             tint = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = "等待 ${item.getWaitingHours()} 小时，高优先级",
+                            text = stringResource(R.string.waiting_hours_high_priority, item.getWaitingHours()),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -310,7 +318,7 @@ private fun ModerationQueueItemCard(
                 }
             } else {
                 Text(
-                    text = "等待时长: ${item.getWaitingHours()} 小时",
+                    text = stringResource(R.string.waiting_hours, item.getWaitingHours()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -349,9 +357,9 @@ private fun ModerationQueueItemCard(
 @Composable
 private fun ContentTypeBadge(contentType: ContentType) {
     val (icon, label) = when (contentType) {
-        ContentType.POST -> Icons.Default.Article to "帖子"
-        ContentType.COMMENT -> Icons.Default.Comment to "评论"
-        ContentType.MESSAGE -> Icons.Default.Message to "私信"
+        ContentType.POST -> Icons.Default.Article to stringResource(R.string.content_type_post)
+        ContentType.COMMENT -> Icons.Default.Comment to stringResource(R.string.content_type_comment)
+        ContentType.MESSAGE -> Icons.Default.Message to stringResource(R.string.content_type_message)
     }
 
     Surface(
@@ -388,7 +396,7 @@ private fun AIResultSection(item: ModerationQueueItem) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "审核信息",
+            text = stringResource(R.string.moderation_info),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold
         )
@@ -396,7 +404,7 @@ private fun AIResultSection(item: ModerationQueueItem) {
         // 违规类型
         item.violationType?.let { vType ->
             Text(
-                text = "违规类型: ${vType.name}",
+                text = stringResource(R.string.violation_type_label, vType.name),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -409,13 +417,13 @@ private fun AIResultSection(item: ModerationQueueItem) {
         // 原因和建议
         item.reason?.let { reason ->
             Text(
-                text = "原因: $reason",
+                text = stringResource(R.string.reason_label, reason),
                 style = MaterialTheme.typography.bodySmall
             )
         }
         item.suggestion?.let { suggestion ->
             Text(
-                text = "建议: $suggestion",
+                text = stringResource(R.string.suggestion_label, suggestion),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -491,7 +499,7 @@ private fun AppealSection(appealText: String, appealAt: Long) {
                 tint = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Text(
-                text = "用户申诉",
+                text = stringResource(R.string.user_appeal),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -534,7 +542,7 @@ private fun PendingActions(
         ) {
             Icon(Icons.Default.Check, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text("批准")
+            Text(stringResource(R.string.approve))
         }
 
         // 拒绝
@@ -544,7 +552,7 @@ private fun PendingActions(
         ) {
             Icon(Icons.Default.Close, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text("拒绝")
+            Text(stringResource(R.string.reject))
         }
 
         // 删除
@@ -558,7 +566,7 @@ private fun PendingActions(
         ) {
             Icon(Icons.Default.Delete, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text("删除")
+            Text(stringResource(R.string.delete))
         }
     }
 }
@@ -586,7 +594,7 @@ private fun AppealingActions(
         ) {
             Icon(Icons.Default.CheckCircle, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text("批准申诉")
+            Text(stringResource(R.string.approve_appeal))
         }
 
         // 拒绝申诉
@@ -596,7 +604,7 @@ private fun AppealingActions(
         ) {
             Icon(Icons.Default.Cancel, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text("拒绝申诉")
+            Text(stringResource(R.string.reject_appeal))
         }
     }
 }
@@ -622,9 +630,9 @@ private fun EmptyQueueView(currentTab: ModerationTab) {
             )
             Text(
                 text = when (currentTab) {
-                    ModerationTab.PENDING -> "暂无待审核内容"
-                    ModerationTab.APPEALING -> "暂无申诉项目"
-                    ModerationTab.ALL -> "暂无审核记录"
+                    ModerationTab.PENDING -> stringResource(R.string.no_pending_content)
+                    ModerationTab.APPEALING -> stringResource(R.string.no_appeal_items)
+                    ModerationTab.ALL -> stringResource(R.string.no_moderation_records)
                 },
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

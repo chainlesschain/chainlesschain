@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.ai.di
 
 import com.chainlesschain.android.core.database.dao.VectorEmbeddingDao
+import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.context.ContextManager
 import com.chainlesschain.android.feature.ai.cowork.CoworkOrchestrator
 import com.chainlesschain.android.feature.ai.cowork.agent.AgentPool
@@ -198,6 +199,7 @@ object AIModule {
  * 根据provider动态创建adapter
  */
 class LLMAdapterFactory @javax.inject.Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val configManager: LLMConfigManager
 ) {
     /**
@@ -213,7 +215,7 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
         // 其他提供商需要API Key
         val finalApiKey = apiKey ?: configManager.getApiKey(provider)
         if (finalApiKey.isNullOrBlank()) {
-            throw IllegalArgumentException("${provider.displayName}的API Key未配置，请在AI设置中配置后重试")
+            throw IllegalArgumentException(context.getString(R.string.error_api_key_not_set, provider.displayName))
         }
 
         return when (provider) {
@@ -348,7 +350,7 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
             } else {
                 if (apiKey.isNullOrBlank()) {
                     android.util.Log.w("LLMAdapterFactory", "API Key is blank for ${provider.displayName}")
-                    return@withContext Result.failure(Exception("请先配置${provider.displayName}的API Key"))
+                    return@withContext Result.failure(Exception(context.getString(R.string.error_configure_api_key, provider.displayName)))
                 }
                 createAdapter(provider, apiKey)
             }
@@ -359,7 +361,7 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
             android.util.Log.d("LLMAdapterFactory", "Availability check result: $isAvailable")
 
             if (isAvailable) {
-                val successMsg = "连接成功！${provider.displayName}服务正常"
+                val successMsg = context.getString(R.string.connection_success_message, provider.displayName)
                 android.util.Log.i("LLMAdapterFactory", successMsg)
                 Result.success(successMsg)
             } else {

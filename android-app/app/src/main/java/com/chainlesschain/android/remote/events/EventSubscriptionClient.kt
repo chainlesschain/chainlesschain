@@ -32,6 +32,7 @@ class EventSubscriptionClient @Inject constructor(
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val subscriptions = ConcurrentHashMap<String, EventSubscriptionInfo>()
+    @Volatile
     private var eventCollectorJob: Job? = null
 
     // 分类事件流

@@ -66,7 +66,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chainlesschain.android.feature.project.ui.components.FindReplaceDialog
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.ui.components.MarkdownText
 import com.chainlesschain.android.feature.project.ui.components.AIAssistAction
@@ -581,7 +583,7 @@ private fun AIResultDialog(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "AI 处理结果",
+                    text = stringResource(R.string.ai_result),
                     style = MaterialTheme.typography.titleLarge
                 )
             }
@@ -613,7 +615,7 @@ private fun AIResultDialog(
 
                 // Info text
                 Text(
-                    text = "您可以选择应用此结果到文件，或者丢弃它。",
+                    text = stringResource(R.string.ai_result_apply_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -631,7 +633,7 @@ private fun AIResultDialog(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                        Text("丢弃")
+                        Text(stringResource(R.string.discard))
                     }
                 }
                 TextButton(
@@ -649,7 +651,7 @@ private fun AIResultDialog(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                        Text("应用到文件")
+                        Text(stringResource(R.string.apply_to_file))
                     }
                 }
             }

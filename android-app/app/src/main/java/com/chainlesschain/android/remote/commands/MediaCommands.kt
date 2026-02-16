@@ -663,9 +663,10 @@ class MediaCommands @Inject constructor(
 @Serializable
 data class VolumeResponse(
     val success: Boolean,
-    val volume: Int,
+    val volume: Int? = null,
+    val level: Int? = null,
     val muted: Boolean,
-    val platform: String
+    val platform: String? = null
 )
 
 @Serializable
@@ -686,7 +687,9 @@ data class MuteResponse(
 data class AudioDevicesResponse(
     val success: Boolean,
     val devices: List<AudioDevice>,
-    val total: Int
+    val total: Int? = null,
+    val defaultOutput: String? = null,
+    val defaultInput: String? = null
 )
 
 @Serializable
@@ -695,6 +698,7 @@ data class AudioDevice(
     val name: String,
     val type: String,
     val default: Boolean? = null,
+    val isDefault: Boolean? = null,
     val driver: String? = null,
     val format: String? = null,
     val state: String? = null,
@@ -721,7 +725,21 @@ data class PlaybackStatusResponse(
     val title: String? = null,
     val artist: String? = null,
     val album: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    val playback: PlaybackStatus? = null
+)
+
+/**
+ * 播放状态详情
+ */
+@Serializable
+data class PlaybackStatus(
+    val title: String? = null,
+    val artist: String? = null,
+    val album: String? = null,
+    val state: String? = null,
+    val duration: Double? = null,
+    val position: Double? = null
 )
 
 @Serializable
@@ -774,10 +792,15 @@ data class SetAppVolumeResponse(
 data class RecordingStartResponse(
     val success: Boolean,
     val recordingId: String,
-    val format: String,
-    val sampleRate: Int,
-    val channels: Int,
-    val deviceName: String? = null
+    val format: String? = null,
+    val sampleRate: Int? = null,
+    val channels: Int? = null,
+    val deviceName: String? = null,
+    val displayId: Int? = null,
+    val fps: Int? = null,
+    val quality: Int? = null,
+    val includeAudio: Boolean? = null,
+    val startTime: Long? = null
 )
 
 @Serializable
@@ -785,9 +808,10 @@ data class RecordingStopResponse(
     val success: Boolean,
     val recordingId: String,
     val filePath: String,
-    val duration: Double,
+    val duration: Double? = null,
     val fileSize: Long,
-    val format: String
+    val format: String? = null,
+    val frameCount: Long? = null
 )
 
 @Serializable
@@ -803,9 +827,12 @@ data class RecordingStatusResponse(
     val success: Boolean,
     val recordingId: String,
     val status: String,  // "recording", "paused", "stopped"
-    val duration: Double,
-    val fileSize: Long,
-    val peakLevel: Double? = null
+    val duration: Double? = null,
+    val fileSize: Long? = null,
+    val peakLevel: Double? = null,
+    val frameCount: Long? = null,
+    val estimatedSize: Long? = null,
+    val paused: Boolean? = null
 )
 
 @Serializable
@@ -819,9 +846,11 @@ data class RecordingsListResponse(
 data class RecordingInfo(
     val recordingId: String,
     val status: String,
-    val startTime: Long,
-    val duration: Double,
-    val format: String
+    val startTime: Long? = null,
+    val duration: Double? = null,
+    val format: String? = null,
+    val displayId: Int? = null,
+    val paused: Boolean? = null
 )
 
 // ==================== 麦克风响应 ====================

@@ -16,11 +16,13 @@ import com.chainlesschain.android.feature.p2p.repository.FileTransferRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
  * 文件传输 UI 状态
  */
+@Immutable
 data class FileTransferUiState(
     val isLoading: Boolean = false,
     val error: String? = null,

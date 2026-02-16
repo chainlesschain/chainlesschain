@@ -82,18 +82,23 @@ class SignalingDeviceDiscovery @Inject constructor(
     private val _discoveryEvents = MutableStateFlow<DiscoveryEvent>(DiscoveryEvent.DiscoveryStopped)
 
     // WebSocket 连接
+    @Volatile
     private var webSocket: WebSocket? = null
 
     // 是否正在发现
+    @Volatile
     private var discovering = false
 
     // 本设备 ID
+    @Volatile
     private var localDeviceId: String = UUID.randomUUID().toString()
 
     // 心跳任务
+    @Volatile
     private var heartbeatJob: Job? = null
 
     // 重连任务
+    @Volatile
     private var reconnectJob: Job? = null
 
     private val prefs by lazy {

@@ -572,6 +572,11 @@ class GlobalFileBrowserViewModel @Inject constructor(
         return _aiClassifications.value[fileId]
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        loadFilesJob?.cancel()
+    }
+
     /**
      * Internal filter state for combining flows
      */

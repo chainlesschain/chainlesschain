@@ -34,7 +34,9 @@ class LocalClipboardManager @Inject constructor(
         context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             ?: error("ClipboardManager system service unavailable")
 
+    @Volatile
     private var lastLocalContent: String? = null
+    @Volatile
     private var isListening = false
 
     // Sync state

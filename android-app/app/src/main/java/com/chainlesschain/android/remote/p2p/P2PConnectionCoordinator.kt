@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.p2p
 
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.webrtc.DiscoveredPeer
 import com.chainlesschain.android.remote.webrtc.P2PConnectionState
 import com.chainlesschain.android.remote.webrtc.SignalingDiscoveryService
@@ -34,6 +35,7 @@ enum class P2PState {
  */
 @Singleton
 class P2PConnectionCoordinator @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val webRTCClient: WebRTCClient,
     private val discoveryService: SignalingDiscoveryService
 ) {
@@ -94,7 +96,7 @@ class P2PConnectionCoordinator @Inject constructor(
                 Timber.i("[Coordinator] ✓ 连接成功: $targetPeerId")
             } else {
                 _state.value = P2PState.ERROR
-                val error = result.exceptionOrNull()?.message ?: "未知错误"
+                val error = result.exceptionOrNull()?.message ?: context.getString(R.string.error_unknown)
                 Timber.e("[Coordinator] ✗ 连接失败: $error")
             }
             result

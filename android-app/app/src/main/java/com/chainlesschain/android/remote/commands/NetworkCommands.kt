@@ -689,7 +689,21 @@ class NetworkCommands @Inject constructor(
 @Serializable
 data class NetworkStatusResponse(
     val success: Boolean,
-    val status: NetworkStatus
+    val status: NetworkStatus,
+    val network: NetworkStatusDetail? = null
+)
+
+/**
+ * 详细网络状态信息
+ */
+@Serializable
+data class NetworkStatusDetail(
+    val connected: Boolean = false,
+    val type: String? = null,
+    val ip: String? = null,
+    val gateway: String? = null,
+    val dns: List<String>? = null,
+    val mac: String? = null
 )
 
 @Serializable
@@ -718,7 +732,18 @@ data class NetworkInterfacesResponse(
 @Serializable
 data class NetworkInterface(
     val name: String,
-    val addresses: List<InterfaceAddress>
+    val addresses: List<InterfaceAddress> = emptyList(),
+    val mac: String? = null,
+    val ipv4: List<String>? = null,
+    val ipv6: List<String>? = null,
+    val ip4: String? = null,
+    val ip6: String? = null,
+    val netmask: String? = null,
+    val gateway: String? = null,
+    val type: String? = null,
+    val status: String? = null,
+    val up: Boolean? = null,
+    val speed: Long? = null
 )
 
 @Serializable
@@ -744,10 +769,11 @@ data class NetworkConnection(
     val protocol: String,
     val localAddress: String,
     val localPort: Int,
-    val remoteAddress: String,
-    val remotePort: Int,
+    val remoteAddress: String? = null,
+    val remotePort: Int? = null,
     val state: String,
-    val pid: Int? = null
+    val pid: Int? = null,
+    val processName: String? = null
 )
 
 @Serializable
@@ -773,7 +799,7 @@ data class BandwidthInfo(
 data class PingResponse(
     val success: Boolean,
     val host: String,
-    val reachable: Boolean,
+    val reachable: Boolean = true,
     val packetsTransmitted: Int? = null,
     val packetsReceived: Int? = null,
     val packetLoss: Double? = null,
@@ -781,7 +807,29 @@ data class PingResponse(
     val maxTime: Double? = null,
     val avgTime: Double? = null,
     val totalDuration: Long? = null,
-    val error: String? = null
+    val error: String? = null,
+    val ip: String? = null,
+    val packets: List<PingResult>? = null,
+    val stats: PingStats? = null
+)
+
+@Serializable
+data class PingResult(
+    val seq: Int,
+    val time: Double? = null,
+    val ttl: Int? = null,
+    val success: Boolean
+)
+
+@Serializable
+data class PingStats(
+    val sent: Int,
+    val received: Int,
+    val lost: Int,
+    val lossPercent: Double,
+    val minTime: Double? = null,
+    val maxTime: Double? = null,
+    val avgTime: Double? = null
 )
 
 @Serializable
@@ -1047,15 +1095,7 @@ data class VpnDisconnectResponse(
 )
 
 // ==================== 防火墙响应 ====================
-
-@Serializable
-data class FirewallStatusResponse(
-    val success: Boolean,
-    val enabled: Boolean,
-    val defaultInbound: String,
-    val defaultOutbound: String,
-    val ruleCount: Int
-)
+// FirewallStatusResponse is defined in SecurityCommands.kt
 
 @Serializable
 data class FirewallToggleResponse(
@@ -1328,9 +1368,11 @@ data class NetworkStatsResponse(
     val packetsSent: Long,
     val errorsIn: Long,
     val errorsOut: Long,
-    val dropsIn: Long,
-    val dropsOut: Long,
-    val uptime: Long
+    val dropsIn: Long = 0,
+    val dropsOut: Long = 0,
+    val uptime: Long = 0,
+    val interfaceName: String? = null,
+    val duration: Long? = null
 )
 
 @Serializable

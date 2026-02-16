@@ -153,7 +153,7 @@ private fun RolesTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(roles) { role ->
+        items(roles, key = { it.id }) { role ->
             RoleCard(
                 role = role,
                 isSelected = role == selectedRole,
@@ -246,7 +246,7 @@ private fun TeamsTab(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(teams) { team ->
+            items(teams, key = { it.id }) { team ->
                 TeamCard(
                     team = team,
                     memberCount = getMemberCount(team.id),
@@ -346,7 +346,7 @@ private fun TeamDetailPanel(
         )
         Spacer(modifier = Modifier.height(8.dp))
         LazyColumn {
-            items(members) { member ->
+            items(members, key = { it.id }) { member ->
                 ListItem(
                     headlineContent = { Text(member.displayName ?: member.userId) },
                     supportingContent = { Text(member.role.name) },
@@ -379,7 +379,7 @@ private fun PermissionsTab() {
                     style = MaterialTheme.typography.titleMedium
                 )
             }
-            items(permissions) { permission ->
+            items(permissions, key = { it.name }) { permission ->
                 ListItem(
                     headlineContent = { Text(permission.name.replace("_", " ")) },
                     supportingContent = { Text(permission.description) },
@@ -407,7 +407,7 @@ private fun AuditTab(logs: List<AuditLog>) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(logs) { log ->
+            items(logs, key = { it.id }) { log ->
                 AuditLogCard(log)
             }
         }

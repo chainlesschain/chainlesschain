@@ -19,6 +19,7 @@ import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -317,6 +318,7 @@ class UserProfileViewModel @Inject constructor(
 /**
  * 用户资料 UI 状态
  */
+@Immutable
 data class UserProfileUiState(
     val userDid: String = "",
     val userInfo: UserInfo? = null,

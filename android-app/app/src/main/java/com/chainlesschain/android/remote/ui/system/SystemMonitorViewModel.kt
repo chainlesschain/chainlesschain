@@ -15,12 +15,14 @@ import com.chainlesschain.android.remote.commands.SystemInfo
 import com.chainlesschain.android.remote.events.EventSubscriptionClient
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
+import com.chainlesschain.android.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -35,6 +37,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SystemMonitorViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val systemCommands: SystemCommands,
     private val systemInfoCommands: SystemInfoCommands,
     private val processCommands: ProcessCommands,
@@ -146,7 +149,7 @@ class SystemMonitorViewModel @Inject constructor(
                     updateHistory(status)
                 }
             } else {
-                val error = result.exceptionOrNull()?.message ?: "获取系统状态失败"
+                val error = result.exceptionOrNull()?.message ?: context.getString(R.string.error_fetch_status_failed)
                 Timber.e(result.exceptionOrNull(), "获取系统状态失败")
                 _uiState.update { it.copy(
                     isRefreshing = false,
@@ -492,6 +495,7 @@ data class ProcessInfo(
 /**
  * UI 状态
  */
+@Immutable
 data class SystemMonitorUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,

@@ -1,5 +1,6 @@
 package com.chainlesschain.android.presentation.components
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -7,8 +8,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.chainlesschain.android.R
 
 /**
  * 底部导航栏组件
@@ -26,6 +29,8 @@ fun BottomNavigationBar(
 ) {
     NavigationBar {
         bottomNavItems.forEachIndexed { index, item ->
+            val label = stringResource(item.labelResId)
+            val unreadDesc = if (index == 2 && socialUnreadCount > 0) stringResource(R.string.nav_unread_notifications, socialUnreadCount) else ""
             NavigationBarItem(
                 icon = {
                     if (index == 2 && socialUnreadCount > 0) {
@@ -33,7 +38,7 @@ fun BottomNavigationBar(
                             badge = {
                                 Badge(
                                     modifier = androidx.compose.ui.Modifier.semantics {
-                                        contentDescription = "$socialUnreadCount 条未读通知"
+                                        contentDescription = unreadDesc
                                     }
                                 ) {
                                     Text(if (socialUnreadCount > 99) "99+" else socialUnreadCount.toString())
@@ -42,17 +47,17 @@ fun BottomNavigationBar(
                         ) {
                             Icon(
                                 imageVector = if (selectedTab == index) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = item.label
+                                contentDescription = label
                             )
                         }
                     } else {
                         Icon(
                             imageVector = if (selectedTab == index) item.selectedIcon else item.unselectedIcon,
-                            contentDescription = item.label
+                            contentDescription = label
                         )
                     }
                 },
-                label = { Text(item.label) },
+                label = { Text(label) },
                 selected = selectedTab == index,
                 onClick = { onTabSelected(index) }
             )
@@ -68,7 +73,7 @@ fun BottomNavigationBar(
  */
 @Immutable
 data class BottomNavItem(
-    val label: String,
+    @StringRes val labelResId: Int,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector
 )
@@ -79,22 +84,22 @@ data class BottomNavItem(
  */
 val bottomNavItems = listOf(
     BottomNavItem(
-        label = "首页",
+        labelResId = R.string.nav_home,
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home
     ),
     BottomNavItem(
-        label = "项目",
+        labelResId = R.string.nav_projects,
         selectedIcon = Icons.Filled.FolderOpen,
         unselectedIcon = Icons.Outlined.FolderOpen
     ),
     BottomNavItem(
-        label = "社交",
+        labelResId = R.string.nav_social,
         selectedIcon = Icons.Filled.People,
         unselectedIcon = Icons.Outlined.People
     ),
     BottomNavItem(
-        label = "我的",
+        labelResId = R.string.nav_profile,
         selectedIcon = Icons.Filled.Person,
         unselectedIcon = Icons.Outlined.PersonOutline
     )

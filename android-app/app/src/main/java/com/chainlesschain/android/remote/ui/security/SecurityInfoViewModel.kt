@@ -15,6 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -270,6 +271,7 @@ class SecurityInfoViewModel @Inject constructor(
 /**
  * 安全信息 UI 状态
  */
+@Immutable
 data class SecurityInfoUiState(
     val isLoading: Boolean = false,
     val isExecuting: Boolean = false,

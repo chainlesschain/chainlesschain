@@ -229,31 +229,31 @@ class IceServerConfig @Inject constructor() {
             val port = url.substringAfter(":", "3478").toIntOrNull() ?: 3478
 
             val address = java.net.InetAddress.getByName(host)
-            val socket = java.net.DatagramSocket()
-            socket.soTimeout = 5000
+            java.net.DatagramSocket().use { socket ->
+                socket.soTimeout = 5000
 
-            // 发送 STUN Binding Request
-            val request = createStunBindingRequest()
-            val packet = java.net.DatagramPacket(
-                request,
-                request.size,
-                address,
-                port
-            )
+                // 发送 STUN Binding Request
+                val request = createStunBindingRequest()
+                val packet = java.net.DatagramPacket(
+                    request,
+                    request.size,
+                    address,
+                    port
+                )
 
-            val startTime = System.currentTimeMillis()
-            socket.send(packet)
+                val startTime = System.currentTimeMillis()
+                socket.send(packet)
 
-            // 接收响应
-            val response = ByteArray(512)
-            val responsePacket = java.net.DatagramPacket(response, response.size)
-            socket.receive(responsePacket)
+                // 接收响应
+                val response = ByteArray(512)
+                val responsePacket = java.net.DatagramPacket(response, response.size)
+                socket.receive(responsePacket)
 
-            val latency = System.currentTimeMillis() - startTime
-            socket.close()
+                val latency = System.currentTimeMillis() - startTime
 
-            Log.i(TAG, "STUN server $url responded in ${latency}ms")
-            StunTestResult.Success(url, latency)
+                Log.i(TAG, "STUN server $url responded in ${latency}ms")
+                StunTestResult.Success(url, latency)
+            }
 
         } catch (e: java.net.SocketTimeoutException) {
             Log.w(TAG, "STUN server $url timeout")

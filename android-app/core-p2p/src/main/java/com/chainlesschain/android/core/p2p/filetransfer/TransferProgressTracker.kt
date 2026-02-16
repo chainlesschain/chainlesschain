@@ -48,7 +48,7 @@ class TransferProgressTracker @Inject constructor() {
         var startTime: Long = System.currentTimeMillis(),
         var lastUpdateTime: Long = System.currentTimeMillis(),
         var lastEmissionTime: Long = 0,
-        val speedSamples: MutableList<SpeedSample> = mutableListOf()
+        val speedSamples: MutableList<SpeedSample> = java.util.Collections.synchronizedList(mutableListOf())
     )
 
     // Active transfers state

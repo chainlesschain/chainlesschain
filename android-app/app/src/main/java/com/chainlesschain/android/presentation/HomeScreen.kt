@@ -7,8 +7,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 
 /**
@@ -33,7 +35,7 @@ fun HomeScreen(
                 title = { Text("ChainlessChain") },
                 actions = {
                     IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "退出登录")
+                        Icon(Icons.Default.ExitToApp, contentDescription = stringResource(R.string.home_logout))
                     }
                 }
             )
@@ -57,7 +59,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "认证成功！",
+                text = stringResource(R.string.home_auth_success),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -65,7 +67,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "欢迎使用 ChainlessChain",
+                text = stringResource(R.string.home_welcome),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -80,7 +82,7 @@ fun HomeScreen(
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "用户信息",
+                        text = stringResource(R.string.home_user_info),
                         style = MaterialTheme.typography.titleMedium
                     )
 
@@ -88,15 +90,15 @@ fun HomeScreen(
 
                     uiState.currentUser?.let { user ->
                         Text(
-                            text = "用户ID: ${user.id.take(8)}...",
+                            text = stringResource(R.string.home_user_id, user.id.take(8)),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "设备ID: ${user.deviceId.take(8)}...",
+                            text = stringResource(R.string.home_device_id, user.deviceId.take(8)),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "生物识别: ${if (user.biometricEnabled) "已启用" else "未启用"}",
+                            text = stringResource(if (user.biometricEnabled) R.string.home_biometric_enabled else R.string.home_biometric_disabled),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -116,7 +118,7 @@ fun HomeScreen(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("进入知识库")
+                Text(stringResource(R.string.home_enter_knowledge_base))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -131,7 +133,7 @@ fun HomeScreen(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("AI对话助手")
+                Text(stringResource(R.string.home_ai_chat_assistant))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -146,13 +148,13 @@ fun HomeScreen(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("P2P设备管理")
+                Text(stringResource(R.string.home_p2p_device_management))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "更多功能即将推出...",
+                text = stringResource(R.string.home_more_features_coming),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -163,8 +165,8 @@ fun HomeScreen(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("退出登录") },
-            text = { Text("确定要退出登录吗？这将清除所有本地数据。") },
+            title = { Text(stringResource(R.string.home_logout)) },
+            text = { Text(stringResource(R.string.home_logout_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -173,12 +175,12 @@ fun HomeScreen(
                         onLogout()
                     }
                 ) {
-                    Text("确定")
+                    Text(stringResource(R.string.common_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )

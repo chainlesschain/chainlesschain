@@ -67,10 +67,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.feature.project.model.Task
 import com.chainlesschain.android.feature.project.model.TaskListState
 import com.chainlesschain.android.feature.project.model.TaskPriority
@@ -144,7 +146,7 @@ fun TaskListScreen(
                                 searchQuery = it
                                 viewModel.search(it)
                             },
-                            placeholder = { Text("搜索任务...") },
+                            placeholder = { Text(stringResource(R.string.search_tasks)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -157,18 +159,18 @@ fun TaskListScreen(
                                         searchQuery = ""
                                         viewModel.search("")
                                     }) {
-                                        Icon(Icons.Default.Clear, contentDescription = "清除")
+                                        Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.clear))
                                     }
                                 }
                             }
                         )
                     } else {
-                        Text("任务")
+                        Text(stringResource(R.string.tasks))
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -181,13 +183,13 @@ fun TaskListScreen(
                     }) {
                         Icon(
                             imageVector = if (showSearch) Icons.Default.Clear else Icons.Default.Search,
-                            contentDescription = "搜索"
+                            contentDescription = stringResource(R.string.search)
                         )
                     }
 
                     Box {
                         IconButton(onClick = { showSortMenu = true }) {
-                            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "排序")
+                            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.sort))
                         }
                         SortDropdownMenu(
                             expanded = showSortMenu,
@@ -201,7 +203,7 @@ fun TaskListScreen(
                     }
 
                     IconButton(onClick = { showFilterSheet = true }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "筛选")
+                        Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.filter))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -214,7 +216,7 @@ fun TaskListScreen(
                 onClick = onNavigateToCreateTask,
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "创建任务")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.create_task))
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -246,11 +248,11 @@ fun TaskListScreen(
                         FilterChip(
                             selected = true,
                             onClick = { viewModel.filterByStatus(null) },
-                            label = { Text(status.displayName) },
+                            label = { Text(stringResource(status.displayNameResId)) },
                             trailingIcon = {
                                 Icon(
                                     Icons.Default.Clear,
-                                    contentDescription = "清除",
+                                    contentDescription = stringResource(R.string.clear),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -261,11 +263,11 @@ fun TaskListScreen(
                         FilterChip(
                             selected = true,
                             onClick = { viewModel.filterByPriority(null) },
-                            label = { Text(priority.displayName) },
+                            label = { Text(stringResource(priority.displayNameResId)) },
                             trailingIcon = {
                                 Icon(
                                     Icons.Default.Clear,
-                                    contentDescription = "清除",
+                                    contentDescription = stringResource(R.string.clear),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -276,11 +278,11 @@ fun TaskListScreen(
                         FilterChip(
                             selected = true,
                             onClick = { viewModel.showOverdueOnly(false) },
-                            label = { Text("逾期") },
+                            label = { Text(stringResource(R.string.overdue)) },
                             trailingIcon = {
                                 Icon(
                                     Icons.Default.Clear,
-                                    contentDescription = "清除",
+                                    contentDescription = stringResource(R.string.clear),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -291,11 +293,11 @@ fun TaskListScreen(
                         FilterChip(
                             selected = true,
                             onClick = { viewModel.showTodayOnly(false) },
-                            label = { Text("今日") },
+                            label = { Text(stringResource(R.string.today)) },
                             trailingIcon = {
                                 Icon(
                                     Icons.Default.Clear,
-                                    contentDescription = "清除",
+                                    contentDescription = stringResource(R.string.clear),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -314,17 +316,17 @@ fun TaskListScreen(
                 FilterChip(
                     selected = filter.status == null && !filter.showOverdueOnly && !filter.showTodayOnly,
                     onClick = { viewModel.clearFilter() },
-                    label = { Text("全部") }
+                    label = { Text(stringResource(R.string.all)) }
                 )
                 FilterChip(
                     selected = filter.showTodayOnly,
                     onClick = { viewModel.showTodayOnly(!filter.showTodayOnly) },
-                    label = { Text("今日") }
+                    label = { Text(stringResource(R.string.today)) }
                 )
                 FilterChip(
                     selected = filter.showOverdueOnly,
                     onClick = { viewModel.showOverdueOnly(!filter.showOverdueOnly) },
-                    label = { Text("逾期") }
+                    label = { Text(stringResource(R.string.overdue)) }
                 )
                 FilterChip(
                     selected = filter.status == TaskStatus.COMPLETED,
@@ -333,7 +335,7 @@ fun TaskListScreen(
                             if (filter.status == TaskStatus.COMPLETED) null else TaskStatus.COMPLETED
                         )
                     },
-                    label = { Text("已完成") }
+                    label = { Text(stringResource(R.string.stat_completed)) }
                 )
             }
 
@@ -429,22 +431,22 @@ fun TaskStatsCard(
         ) {
             StatItem(
                 value = stats.active.toString(),
-                label = "进行中",
+                label = stringResource(R.string.stat_in_progress),
                 color = MaterialTheme.colorScheme.primary
             )
             StatItem(
                 value = stats.completed.toString(),
-                label = "已完成",
+                label = stringResource(R.string.stat_completed),
                 color = Color(0xFF4CAF50)
             )
             StatItem(
                 value = stats.overdue.toString(),
-                label = "逾期",
+                label = stringResource(R.string.stat_overdue),
                 color = MaterialTheme.colorScheme.error
             )
             StatItem(
                 value = "${(stats.completionRate * 100).toInt()}%",
-                label = "完成率",
+                label = stringResource(R.string.stat_completion_rate),
                 color = MaterialTheme.colorScheme.tertiary
             )
         }
@@ -494,7 +496,7 @@ fun SortDropdownMenu(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(sortBy.displayName)
+                        Text(stringResource(sortBy.displayNameResId))
                         if (sortBy == currentSortBy) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
@@ -533,13 +535,13 @@ fun EmptyTasksPlaceholder(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "暂无任务",
+            text = stringResource(R.string.no_tasks),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "点击右下角按钮创建第一个任务",
+            text = stringResource(R.string.create_first_task),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center
@@ -569,7 +571,7 @@ fun ErrorPlaceholder(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "加载失败",
+            text = stringResource(R.string.load_failed),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.error
         )
@@ -587,7 +589,7 @@ fun ErrorPlaceholder(
             shape = RoundedCornerShape(8.dp)
         ) {
             Text(
-                text = "重试",
+                text = stringResource(R.string.retry),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -623,12 +625,12 @@ fun TaskFilterSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "筛选",
+                    text = stringResource(R.string.filter_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Clear, contentDescription = "关闭")
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.close))
                 }
             }
 
@@ -636,7 +638,7 @@ fun TaskFilterSheet(
 
             // 状态筛选
             Text(
-                text = "状态",
+                text = stringResource(R.string.status_filter),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -652,7 +654,7 @@ fun TaskFilterSheet(
                                 status = if (currentFilter.status == status) null else status
                             ))
                         },
-                        label = { Text(status.displayName) }
+                        label = { Text(stringResource(status.displayNameResId)) }
                     )
                 }
             }
@@ -661,7 +663,7 @@ fun TaskFilterSheet(
 
             // 优先级筛选
             Text(
-                text = "优先级",
+                text = stringResource(R.string.priority_filter),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -677,7 +679,7 @@ fun TaskFilterSheet(
                                 priority = if (currentFilter.priority == priority) null else priority
                             ))
                         },
-                        label = { Text(priority.displayName) }
+                        label = { Text(stringResource(priority.displayNameResId)) }
                     )
                 }
             }
@@ -695,7 +697,7 @@ fun TaskFilterSheet(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "清除筛选",
+                    text = stringResource(R.string.clear_filter),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),

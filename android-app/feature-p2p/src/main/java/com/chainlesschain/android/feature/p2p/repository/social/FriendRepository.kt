@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
 import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.BlockedUserDao
@@ -120,7 +121,12 @@ class FriendRepository @Inject constructor(
         return nsdDiscovery.observeDiscoveredDevices()
             .map { devices ->
                 val results = devices.mapNotNull { device ->
-                    val isFriend = try { friendDao.isFriend(device.deviceId) } catch (e: Exception) { false }
+                    val isFriend = try {
+                        friendDao.isFriend(device.deviceId)
+                    } catch (e: Exception) {
+                        Timber.w(e, "Failed to check friend status for ${device.deviceId}")
+                        false
+                    }
                     if (isFriend) return@mapNotNull null
 
                     com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult(

@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.remote.commands.AudioDevice
+import com.chainlesschain.android.remote.commands.PlaybackStatus
 import com.chainlesschain.android.remote.p2p.ConnectionState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -256,7 +257,7 @@ private fun VolumeControlCard(
 
 @Composable
 private fun MediaPlaybackCard(
-    playbackStatus: com.chainlesschain.android.remote.commands.PlaybackStatus?,
+    playbackStatus: PlaybackStatus?,
     enabled: Boolean,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,

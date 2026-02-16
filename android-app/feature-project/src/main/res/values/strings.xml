@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+    <string name="done">Done</string>
+    <string name="save">Save</string>
+    <string name="create">Create</string>
+    <string name="delete">Delete</string>
+    <string name="confirm">OK</string>
+    <string name="back">Back</string>
+    <string name="more">More</string>
+    <string name="add">Add</string>
+    <string name="search">Search</string>
+    <string name="refresh">Refresh</string>
+    <string name="edit">Edit</string>
+    <string name="rename">Rename</string>
+    <string name="move">Move</string>
+    <string name="apply">Apply</string>
+    <string name="reset">Reset</string>
+    <string name="adjust">Adjust</string>
+    <string name="remove">Remove</string>
+    <string name="selected">Selected</string>
+    <string name="clear_selection">Clear selection</string>
+    <string name="favorite">Favorite</string>
+    <string name="discard">Discard</string>
+    <string name="ignore">Ignore</string>
+
+    <!-- AIAssistDialog -->
+    <string name="ai_code_assistant">AI Code Assistant</string>
+    <string name="ai_processing">AI is processing...</string>
+    <string name="ai_action_explain">Explain Code</string>
+    <string name="ai_action_explain_desc">Let AI explain how the current code works</string>
+    <string name="ai_action_optimize">Optimize Code</string>
+    <string name="ai_action_optimize_desc">Get code optimization and performance suggestions</string>
+    <string name="ai_action_fix_bugs">Detect Bugs</string>
+    <string name="ai_action_fix_bugs_desc">Analyze potential issues and bugs in code</string>
+    <string name="ai_action_add_comments">Add Comments</string>
+    <string name="ai_action_add_comments_desc">Generate detailed comments and documentation</string>
+    <string name="ai_action_refactor">Refactoring Suggestions</string>
+    <string name="ai_action_refactor_desc">Get code refactoring and architecture suggestions</string>
+    <string name="ai_action_generate_tests">Generate Tests</string>
+    <string name="ai_action_generate_tests_desc">Generate unit tests for the current code</string>
+    <string name="ai_action_improve_naming">Improve Naming</string>
+    <string name="ai_action_improve_naming_desc">Optimize variable, function and class names</string>
+    <string name="ai_action_complete_code">Smart Completion</string>
+    <string name="ai_action_complete_code_desc">Intelligently complete code based on context</string>
+
+    <!-- CreationProgressDialog -->
+    <string name="creation_failed">Creation Failed</string>
+    <string name="creating_project">Creating Project</string>
+    <string name="stage_connecting">Connecting to AI service</string>
+    <string name="stage_analyzing">Analyzing requirements</string>
+    <string name="stage_generating_structure">Generating project structure</string>
+    <string name="stage_generating_files">Generating file content</string>
+    <string name="stage_saving">Saving project</string>
+    <string name="stage_completed">Creation complete</string>
+    <string name="stage_failed">Creation failed</string>
+
+    <!-- EnhancedFileMentionPopup -->
+    <string name="project_files">Project Files</string>
+    <string name="phone_files">Phone Files</string>
+    <string name="search_project_files">Search project files...</string>
+    <string name="search_phone_files">Search phone files...</string>
+    <string name="no_files">No files</string>
+    <string name="no_matching_files">No matching files found</string>
+    <string name="no_phone_files">No phone files found\nPlease scan in File Browser first</string>
+    <string name="project_file_context_hint">Selected project file content will serve as AI context</string>
+    <string name="phone_file_context_hint">Phone files will be temporarily imported (linked mode), no extra space needed</string>
+
+    <!-- FileMentionPopup -->
+    <string name="search_files">Search files...</string>
+    <string name="file_context_hint">Selected file content will serve as AI context</string>
+
+    <!-- FileFilterSheet -->
+    <string name="file_filter_and_sort">File Filter and Sort</string>
+    <string name="sort_by">Sort By</string>
+    <string name="sort_direction">Sort Direction</string>
+    <string name="file_type_filter">File Type Filter</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_size">Size</string>
+    <string name="sort_modified">Modified</string>
+    <string name="sort_type">Type</string>
+    <string name="sort_path">Path</string>
+    <string name="sort_asc">Ascending</string>
+    <string name="sort_desc">Descending</string>
+    <string name="sort_label">Sort: %s</string>
+    <string name="type_count">%d types</string>
+
+    <!-- FilePreviewDialog -->
+    <string name="fullscreen_view">Full Screen</string>
+    <string name="metadata_size">Size</string>
+    <string name="metadata_type">Type</string>
+    <string name="metadata_modified_time">Modified</string>
+    <string name="metadata_access_time">Accessed</string>
+    <string name="markdown_preview">Markdown Preview</string>
+    <string name="code_label">%s Code</string>
+    <string name="text_content">Text Content</string>
+    <string name="file_content_empty">File content is empty</string>
+    <string name="unsupported_preview">Preview not supported for .%s files</string>
+    <string name="open_in_editor_hint">Click \"Edit\" button to open in editor</string>
+    <string name="image_preview">Image Preview</string>
+    <string name="image_load_failed">Image load failed</string>
+    <string name="cannot_preview_image">Cannot preview image</string>
+    <string name="need_project_path_for_image">Project path info needed to load image</string>
+    <string name="just_now">Just now</string>
+    <string name="minutes_ago">%d minutes ago</string>
+    <string name="hours_ago">%d hours ago</string>
+    <string name="days_ago">%d days ago</string>
+
+    <!-- FindReplaceDialog -->
+    <string name="find_and_replace">Find and Replace</string>
+    <string name="find">Find</string>
+    <string name="replace_with">Replace with</string>
+    <string name="replace">Replace</string>
+    <string name="replace_all">Replace All</string>
+    <string name="case_sensitive">Case sensitive</string>
+    <string name="whole_word">Whole word</string>
+    <string name="use_regex">Use regular expressions</string>
+
+    <!-- ModelSelectorDialog -->
+    <string name="select_ai_model">Select AI Model</string>
+    <string name="no_models_for_provider">No %s models available</string>
+    <string name="recommended">Recommended</string>
+    <string name="max_context">Max context</string>
+    <string name="response_speed">Response speed</string>
+    <string name="cost">Cost</string>
+    <string name="speed_fast">Fast</string>
+    <string name="speed_medium">Medium</string>
+
+    <!-- TemplateSelectionDialog -->
+    <string name="select_project_template">Select Project Template</string>
+    <string name="browse_templates">Browse Templates</string>
+    <string name="template_details">Template Details</string>
+    <string name="category_filter">Category Filter</string>
+    <string name="all">All</string>
+    <string name="use_this_template">Use This Template</string>
+    <string name="description_label">Description</string>
+    <string name="statistics">Statistics</string>
+    <string name="file_count">File count</string>
+    <string name="folder_count">Folder count</string>
+    <string name="total_size">Total size</string>
+    <string name="tags">Tags</string>
+    <string name="file_structure_preview">File Structure Preview</string>
+    <string name="files_count">%d files</string>
+    <string name="folders_count">%d folders</string>
+    <string name="more_folders">... and %d more folders</string>
+    <string name="more_files">... and %d more files</string>
+    <string name="file_count_stat">%d items</string>
+
+    <!-- CreateProjectScreen -->
+    <string name="create_project">Create Project</string>
+    <string name="project_name_required">Project Name *</string>
+    <string name="enter_project_name">Enter project name</string>
+    <string name="project_description">Project Description</string>
+    <string name="enter_project_description">Enter project description (optional)</string>
+    <string name="project_type">Project Type</string>
+    <string name="add_tags">Add Tags</string>
+    <string name="enter_tag_hint">Enter tag and press Enter to add</string>
+    <string name="creating">Creating...</string>
+    <string name="login_required_to_create">Please log in before creating a project</string>
+    <string name="ai_creation_assistant">AI Creation Assistant</string>
+    <string name="ai_creation_assistant_desc">Describe your project, AI will help you create it</string>
+    <string name="expand">Expand</string>
+    <string name="quick_templates">Quick templates:</string>
+    <string name="template_document">Document</string>
+    <string name="template_data_analysis">Data Analysis</string>
+    <string name="describe_project">Describe the project you want to create</string>
+    <string name="describe_project_example">E.g.: Create a blog project with articles and comments...</string>
+    <string name="send">Send</string>
+    <string name="ai_suggestion">AI Suggestion</string>
+    <string name="apply_suggestion">Apply Suggestion</string>
+    <string name="type_document">Document</string>
+    <string name="type_web">Website</string>
+    <string name="type_app">Application</string>
+    <string name="type_data">Data</string>
+    <string name="type_design">Design</string>
+    <string name="type_research">Research</string>
+    <string name="type_other">Other</string>
+    <string name="type_unknown">Unknown</string>
+
+    <!-- FileEditorScreen -->
+    <string name="apply_to_file">Apply to File</string>
+    <string name="ai_result">AI Result</string>
+    <string name="ai_result_apply_hint">You can apply this result to the file or discard it.</string>
+
+    <!-- FilePickerDialog -->
+    <string name="select_attachment">Select Attachment</string>
+    <string name="selected_files_count">%d files selected</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="storage_permission_required">Storage permission required</string>
+    <string name="storage_permission_desc">File selection requires access to your device storage.</string>
+    <string name="add_count">Add (%d)</string>
+    <string name="no_files_found">No files found\nPlease scan files in File Browser</string>
+    <string name="category_document">Document</string>
+    <string name="category_image">Image</string>
+    <string name="category_video">Video</string>
+    <string name="category_audio">Audio</string>
+    <string name="category_archive">Archive</string>
+    <string name="category_code">Code</string>
+    <string name="category_other">Other</string>
+
+    <!-- GitHistoryScreen -->
+    <string name="commit_history">Commit History</string>
+    <string name="no_commits">No commit records</string>
+    <string name="create_first_commit">Create the first commit to start tracking changes</string>
+    <string name="commit_details">Commit Details</string>
+    <string name="author">Author: </string>
+    <string name="date">Date: </string>
+    <string name="changed_files">Changed Files</string>
+    <string name="no_changed_files">No changed files</string>
+
+    <!-- GitStatusDialog -->
+    <string name="git_status">Git Status</string>
+    <string name="branch_label">Branch: %s</string>
+    <string name="history">History</string>
+    <string name="enter_commit_message">Enter commit message...</string>
+    <string name="commit_message">Commit Message</string>
+    <string name="commit_files_count">Commit (%d files)</string>
+    <string name="staged_changes">Staged changes</string>
+    <string name="unstaged_changes">Unstaged changes</string>
+    <string name="untracked_files">Untracked files</string>
+    <string name="unstage_all">Unstage all</string>
+    <string name="stage_all">Stage all</string>
+    <string name="add_all">Add all</string>
+    <string name="working_tree_clean">Working tree clean</string>
+    <string name="view_diff">View diff</string>
+    <string name="discard_changes">Discard changes</string>
+    <string name="diff_title">Diff: %s</string>
+
+    <!-- ProjectDetailScreen -->
+    <string name="project_details">Project Details</string>
+    <string name="edit_project">Edit Project</string>
+    <string name="pause_project">Pause Project</string>
+    <string name="complete_project">Complete Project</string>
+    <string name="resume_project">Resume Project</string>
+    <string name="restart_project">Restart</string>
+    <string name="unarchive">Unarchive</string>
+    <string name="archive">Archive</string>
+    <string name="delete_project">Delete Project</string>
+    <string name="files_tab">Files</string>
+    <string name="ai_assistant_tab">AI Assistant</string>
+    <string name="activity_tab">Activity</string>
+    <string name="no_files_yet">No files yet</string>
+    <string name="no_activity_records">No activity records</string>
+    <string name="new_file">New File</string>
+    <string name="new_folder">New Folder</string>
+    <string name="file_name">File name</string>
+    <string name="folder_name">Folder name</string>
+    <string name="project_name">Project name</string>
+    <string name="move_to">Move to...</string>
+    <string name="move_file_title">Move \"%s\"</string>
+    <string name="select_target_folder">Select target folder:</string>
+    <string name="root_directory">/ (root)</string>
+    <string name="no_other_folders">No other folders</string>
+    <string name="delete_project_confirm">Are you sure you want to delete this project? This action cannot be undone.</string>
+    <string name="rename_dialog_title">Rename</string>
+    <string name="new_name">New name</string>
+    <string name="status_label">Status</string>
+    <string name="type_label">Type</string>
+    <string name="file_count_label">Files</string>
+    <string name="size_label">Size</string>
+
+    <!-- EditProjectDialog -->
+    <string name="project_description_label">Project Description</string>
+    <string name="project_type_label">Project Type</string>
+    <string name="type_android">Android</string>
+    <string name="type_backend">Backend</string>
+
+    <!-- TemplateCategory -->
+    <string name="template_cat_android">Android</string>
+    <string name="template_cat_web">Web Dev</string>
+    <string name="template_cat_backend">Backend Service</string>
+    <string name="template_cat_data_science">Data Science</string>
+    <string name="template_cat_mobile">Mobile Dev</string>
+    <string name="template_cat_desktop">Desktop App</string>
+    <string name="template_cat_library">Library/Framework</string>
+    <string name="template_cat_multiplatform">Multiplatform</string>
+    <string name="template_cat_flutter">Flutter</string>
+    <string name="template_cat_other">Other</string>
+
+    <!-- Template Names and Descriptions -->
+    <string name="template_name_blank">Blank Project</string>
+    <string name="template_desc_blank">A blank project from scratch</string>
+    <string name="template_name_android_app">Android App</string>
+    <string name="template_desc_android_app">Standard Android app project structure</string>
+    <string name="template_name_react_web">React Web App</string>
+    <string name="template_desc_react_web">React + TypeScript frontend project</string>
+    <string name="template_name_python_ds">Python Data Science</string>
+    <string name="template_desc_python_ds">Data analysis and machine learning project</string>
+    <string name="template_name_kotlin_mp">Kotlin Multiplatform</string>
+    <string name="template_desc_kotlin_mp">Cross-platform Kotlin project</string>
+    <string name="template_name_spring_boot">Spring Boot API</string>
+    <string name="template_desc_spring_boot">Spring Boot REST API project</string>
+    <string name="template_name_flutter_app">Flutter App</string>
+    <string name="template_desc_flutter_app">Cross-platform Flutter mobile app</string>
+    <string name="template_name_vue_web">Vue Web App</string>
+    <string name="template_desc_vue_web">Vue 3 + TypeScript frontend project</string>
+    <string name="template_name_express_api">Express API</string>
+    <string name="template_desc_express_api">Simple Express REST API</string>
+    <string name="template_name_django_web">Django Web App</string>
+    <string name="template_desc_django_web">Python Django full-stack project</string>
+    <string name="template_name_nodejs_api">Node.js API</string>
+    <string name="template_desc_nodejs_api">Express + TypeScript REST API</string>
+
+    <!-- TaskStatus -->
+    <string name="task_status_pending">Pending</string>
+    <string name="task_status_in_progress">In Progress</string>
+    <string name="task_status_completed">Completed</string>
+    <string name="task_status_cancelled">Cancelled</string>
+
+    <!-- TaskPriority -->
+    <string name="task_priority_low">Low</string>
+    <string name="task_priority_medium">Medium</string>
+    <string name="task_priority_high">High</string>
+    <string name="task_priority_urgent">Urgent</string>
+
+    <!-- TaskSortBy -->
+    <string name="task_sort_created_at">Created time</string>
+    <string name="task_sort_updated_at">Updated time</string>
+    <string name="task_sort_due_date">Due date</string>
+    <string name="task_sort_priority">Priority</string>
+    <string name="task_sort_title">Title</string>
+    <string name="task_sort_status">Status</string>
+
+    <!-- ProjectListScreen -->
+    <string name="project_management">Project Management</string>
+    <string name="search_projects">Search projects...</string>
+    <string name="filter">Filter</string>
+    <string name="sort">Sort</string>
+    <string name="all_projects">All projects</string>
+    <string name="favorite_projects">Favorite projects</string>
+    <string name="archived_projects">Archived</string>
+    <string name="in_progress">In progress</string>
+    <string name="completed">Completed</string>
+    <string name="recently_updated">Recently updated</string>
+    <string name="created_time">Created time</string>
+    <string name="name">Name</string>
+    <string name="access_count">Access count</string>
+    <string name="file_count_sort">File count</string>
+    <string name="create_project_button">Create project</string>
+    <string name="unarchive_action">Unarchive</string>
+    <string name="archive_action">Archive</string>
+    <string name="updated_at_format">Updated at %s</string>
+    <string name="no_matching_projects">No matching projects found</string>
+    <string name="no_favorite_projects">No favorite projects</string>
+    <string name="no_archived_projects">No archived projects</string>
+    <string name="no_status_projects">No %s projects</string>
+    <string name="no_type_projects">No %s projects</string>
+    <string name="no_projects">No projects</string>
+    <string name="create_first_project">Click the button below to create your first project</string>
+
+    <!-- ProjectRepository -->
+    <string name="status_changed_to">Status changed to: %s</string>
+    <string name="project_status_active">In progress</string>
+    <string name="project_status_paused">Paused</string>
+    <string name="project_status_completed">Completed</string>
+    <string name="project_status_archived">Archived</string>
+    <string name="project_status_deleted">Deleted</string>
+    <string name="project_status_unknown">Unknown</string>
+
+    <!-- TaskListScreen -->
+    <string name="tasks">Tasks</string>
+    <string name="search_tasks">Search tasks...</string>
+    <string name="clear">Clear</string>
+    <string name="create_task">Create task</string>
+    <string name="overdue">Overdue</string>
+    <string name="today">Today</string>
+    <string name="stat_in_progress">In Progress</string>
+    <string name="stat_completed">Completed</string>
+    <string name="stat_overdue">Overdue</string>
+    <string name="stat_completion_rate">Completion</string>
+    <string name="no_tasks">No tasks</string>
+    <string name="create_first_task">Click the bottom right button to create your first task</string>
+    <string name="load_failed">Load failed</string>
+    <string name="retry">Retry</string>
+    <string name="filter_title">Filter</string>
+    <string name="status_filter">Status</string>
+    <string name="priority_filter">Priority</string>
+    <string name="clear_filter">Clear filter</string>
+
+    <!-- TaskDetailScreen -->
+    <string name="task_details">Task Details</string>
+    <string name="description_section">Description</string>
+    <string name="time_info">Time Info</string>
+    <string name="due_time">Due time</string>
+    <string name="completion_time">Completion time</string>
+    <string name="estimate_hours">Estimate: %sh</string>
+    <string name="actual_hours">Actual: %sh</string>
+    <string name="sub_steps">Sub-steps</string>
+
+    <!-- TaskCreateScreen -->
+    <string name="task_title_required">Task Title *</string>
+    <string name="enter_task_title">Enter task title...</string>
+    <string name="task_description_label">Task Description</string>
+    <string name="enter_task_description">Enter task description (optional)...</string>
+    <string name="priority_label">Priority</string>
+    <string name="due_date_label">Due Date</string>
+    <string name="select_due_date">Select due date (optional)</string>
+    <string name="labels_label">Labels</string>
+    <string name="add_label">Add label...</string>
+    <string name="sub_steps_label">Sub-steps</string>
+    <string name="add_sub_step">Add sub-step...</string>
+
+    <!-- TaskViewModel -->
+    <string name="status_updated_to">Status updated to: %s</string>
+</resources>

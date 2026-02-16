@@ -19,12 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.data.config.LLMConfiguration
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 
@@ -47,40 +49,40 @@ fun LLMSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("LLM配置") },
+                title = { Text(stringResource(R.string.llm_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.llm_settings_navigate_back))
                     }
                 },
                 actions = {
                     // 使用统计按钮
                     IconButton(onClick = onNavigateToUsageStatistics) {
-                        Icon(Icons.Default.Analytics, contentDescription = "使用统计")
+                        Icon(Icons.Default.Analytics, contentDescription = stringResource(R.string.llm_settings_usage_statistics))
                     }
                     // 智能推荐按钮
                     IconButton(onClick = { showRecommendationDialog = true }) {
-                        Icon(Icons.Default.Lightbulb, contentDescription = "智能推荐")
+                        Icon(Icons.Default.Lightbulb, contentDescription = stringResource(R.string.llm_settings_smart_recommendation))
                     }
                     // 导入导出按钮
                     IconButton(onClick = { showImportExportDialog = true }) {
-                        Icon(Icons.Default.ImportExport, contentDescription = "导入/导出")
+                        Icon(Icons.Default.ImportExport, contentDescription = stringResource(R.string.llm_settings_import_export))
                     }
                     // 刷新按钮
                     IconButton(onClick = { viewModel.loadConfig() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.llm_settings_refresh))
                     }
                     // 更多选项
                     var showMoreMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { showMoreMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.llm_settings_more))
                     }
                     DropdownMenu(
                         expanded = showMoreMenu,
                         onDismissRequest = { showMoreMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("重置为默认配置") },
+                            text = { Text(stringResource(R.string.llm_settings_reset_to_default)) },
                             onClick = {
                                 viewModel.resetToDefault()
                                 showMoreMenu = false
@@ -128,7 +130,7 @@ fun LLMSettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { viewModel.loadConfig() }) {
-                            Text("重试")
+                            Text(stringResource(R.string.llm_settings_retry))
                         }
                     }
                 }
@@ -195,7 +197,7 @@ fun LLMSettingsScreen(
                             ) {
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Text("测试连接中...")
+                                Text(stringResource(R.string.llm_settings_testing_connection))
                             }
                         }
                     }
@@ -260,7 +262,7 @@ fun LLMSettingsScreen(
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = if (testResult.success) "连接成功" else "连接失败",
+                                        text = if (testResult.success) stringResource(R.string.llm_settings_connection_success) else stringResource(R.string.llm_settings_connection_failed),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = if (testResult.success) {
@@ -348,13 +350,13 @@ private fun LLMSettingsContent(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "使用统计",
+                            text = stringResource(R.string.llm_settings_usage_statistics),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
-                            text = "查看各模型的Token使用与成本统计",
+                            text = stringResource(R.string.llm_settings_usage_stats_description),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                         )
@@ -411,7 +413,7 @@ private fun LLMSettingsContent(
 
                 LLMProvider.DOUBAO -> GenericProviderConfigCard(
                     provider = LLMProvider.DOUBAO,
-                    providerName = "豆包（火山引擎）",
+                    providerName = stringResource(R.string.llm_provider_doubao),
                     apiKey = config.volcengine.apiKey,
                     baseURL = config.volcengine.baseURL,
                     model = config.volcengine.model,
@@ -421,7 +423,7 @@ private fun LLMSettingsContent(
 
                 LLMProvider.QWEN -> GenericProviderConfigCard(
                     provider = LLMProvider.QWEN,
-                    providerName = "通义千问",
+                    providerName = stringResource(R.string.llm_provider_qwen),
                     apiKey = config.qwen.apiKey,
                     baseURL = config.qwen.baseURL,
                     model = config.qwen.model,
@@ -431,7 +433,7 @@ private fun LLMSettingsContent(
 
                 LLMProvider.ERNIE -> GenericProviderConfigCard(
                     provider = LLMProvider.ERNIE,
-                    providerName = "文心一言",
+                    providerName = stringResource(R.string.llm_provider_ernie),
                     apiKey = config.ernie.apiKey,
                     baseURL = config.ernie.baseURL,
                     model = config.ernie.model,
@@ -441,7 +443,7 @@ private fun LLMSettingsContent(
 
                 LLMProvider.CHATGLM -> GenericProviderConfigCard(
                     provider = LLMProvider.CHATGLM,
-                    providerName = "智谱AI",
+                    providerName = stringResource(R.string.llm_provider_chatglm),
                     apiKey = config.chatglm.apiKey,
                     baseURL = config.chatglm.baseURL,
                     model = config.chatglm.model,
@@ -451,7 +453,7 @@ private fun LLMSettingsContent(
 
                 LLMProvider.MOONSHOT -> GenericProviderConfigCard(
                     provider = LLMProvider.MOONSHOT,
-                    providerName = "月之暗面",
+                    providerName = stringResource(R.string.llm_provider_moonshot),
                     apiKey = config.moonshot.apiKey,
                     baseURL = config.moonshot.baseURL,
                     model = config.moonshot.model,
@@ -461,7 +463,7 @@ private fun LLMSettingsContent(
 
                 LLMProvider.SPARK -> GenericProviderConfigCard(
                     provider = LLMProvider.SPARK,
-                    providerName = "讯飞星火",
+                    providerName = stringResource(R.string.llm_provider_spark),
                     apiKey = config.spark.apiKey,
                     baseURL = config.spark.baseURL,
                     model = config.spark.model,
@@ -481,7 +483,7 @@ private fun LLMSettingsContent(
 
                 LLMProvider.CUSTOM -> GenericProviderConfigCard(
                     provider = LLMProvider.CUSTOM,
-                    providerName = "自定义",
+                    providerName = stringResource(R.string.llm_provider_custom),
                     apiKey = config.custom.apiKey,
                     baseURL = config.custom.baseURL,
                     model = config.custom.model,
@@ -507,7 +509,7 @@ private fun LLMSettingsContent(
             ) {
                 Icon(Icons.Default.Check, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("验证配置")
+                Text(stringResource(R.string.llm_settings_validate_config))
             }
         }
     }
@@ -528,25 +530,25 @@ private fun ProviderSelector(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "LLM提供商",
+                text = stringResource(R.string.llm_settings_provider_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(12.dp))
 
             val providers = listOf(
-                LLMProvider.OLLAMA to "Ollama (本地)",
+                LLMProvider.OLLAMA to stringResource(R.string.llm_settings_provider_ollama),
                 LLMProvider.OPENAI to "OpenAI",
                 LLMProvider.DEEPSEEK to "DeepSeek",
-                LLMProvider.CLAUDE to "Claude (Anthropic)",
-                LLMProvider.DOUBAO to "豆包 (火山引擎)",
-                LLMProvider.QWEN to "通义千问 (阿里云)",
-                LLMProvider.ERNIE to "文心一言 (百度)",
-                LLMProvider.CHATGLM to "智谱AI",
-                LLMProvider.MOONSHOT to "月之暗面 (Kimi)",
-                LLMProvider.SPARK to "讯飞星火",
-                LLMProvider.GEMINI to "Gemini (Google)",
-                LLMProvider.CUSTOM to "自定义"
+                LLMProvider.CLAUDE to stringResource(R.string.llm_settings_provider_claude),
+                LLMProvider.DOUBAO to stringResource(R.string.llm_settings_provider_doubao),
+                LLMProvider.QWEN to stringResource(R.string.llm_settings_provider_qwen),
+                LLMProvider.ERNIE to stringResource(R.string.llm_settings_provider_ernie),
+                LLMProvider.CHATGLM to stringResource(R.string.llm_settings_provider_chatglm),
+                LLMProvider.MOONSHOT to stringResource(R.string.llm_settings_provider_moonshot),
+                LLMProvider.SPARK to stringResource(R.string.llm_settings_provider_spark),
+                LLMProvider.GEMINI to stringResource(R.string.llm_settings_provider_gemini),
+                LLMProvider.CUSTOM to stringResource(R.string.llm_settings_provider_custom)
             )
 
             providers.forEach { (provider, name) ->
@@ -603,7 +605,7 @@ private fun ValidationErrorsCard(errors: List<String>) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "配置错误",
+                    text = stringResource(R.string.llm_settings_config_error),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.Bold
@@ -635,15 +637,15 @@ private fun OllamaConfigCard(
     var embeddingModel by remember { mutableStateOf(config.embeddingModel) }
 
     ProviderConfigCardTemplate(
-        title = "Ollama配置",
-        description = "本地LLM，完全免费",
+        title = stringResource(R.string.llm_settings_ollama_title),
+        description = stringResource(R.string.llm_settings_ollama_description),
         onSave = { onSave(url, model, embeddingModel) },
         onTest = onTest
     ) {
         OutlinedTextField(
             value = url,
             onValueChange = { url = it },
-            label = { Text("服务器地址") },
+            label = { Text(stringResource(R.string.llm_settings_server_url)) },
             placeholder = { Text("http://localhost:11434") },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
@@ -656,7 +658,7 @@ private fun OllamaConfigCard(
         OutlinedTextField(
             value = model,
             onValueChange = { model = it },
-            label = { Text("模型名称") },
+            label = { Text(stringResource(R.string.llm_settings_model_name)) },
             placeholder = { Text("qwen2:7b") },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
@@ -669,7 +671,7 @@ private fun OllamaConfigCard(
         OutlinedTextField(
             value = embeddingModel,
             onValueChange = { embeddingModel = it },
-            label = { Text("嵌入模型") },
+            label = { Text(stringResource(R.string.llm_settings_embedding_model)) },
             placeholder = { Text("nomic-embed-text") },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
@@ -694,8 +696,8 @@ private fun OpenAIConfigCard(
     var showApiKey by remember { mutableStateOf(false) }
 
     ProviderConfigCardTemplate(
-        title = "OpenAI配置",
-        description = "GPT系列模型",
+        title = stringResource(R.string.llm_settings_openai_title),
+        description = stringResource(R.string.llm_settings_openai_description),
         onSave = { onSave(apiKey, baseURL, model) },
         onTest = onTest
     ) {
@@ -713,7 +715,7 @@ private fun OpenAIConfigCard(
                 IconButton(onClick = { showApiKey = !showApiKey }) {
                     Icon(
                         if (showApiKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (showApiKey) "隐藏" else "显示"
+                        contentDescription = if (showApiKey) stringResource(R.string.llm_settings_api_key_show) else stringResource(R.string.llm_settings_api_key_hide)
                     )
                 }
             }
@@ -737,7 +739,7 @@ private fun OpenAIConfigCard(
         OutlinedTextField(
             value = model,
             onValueChange = { model = it },
-            label = { Text("模型") },
+            label = { Text(stringResource(R.string.llm_settings_model)) },
             placeholder = { Text("gpt-4o-mini") },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
@@ -762,8 +764,8 @@ private fun DeepSeekConfigCard(
     var showApiKey by remember { mutableStateOf(false) }
 
     ProviderConfigCardTemplate(
-        title = "DeepSeek配置",
-        description = "性价比极高的中文模型",
+        title = stringResource(R.string.llm_settings_deepseek_title),
+        description = stringResource(R.string.llm_settings_deepseek_description),
         onSave = { onSave(apiKey, baseURL, model) },
         onTest = onTest
     ) {
@@ -805,7 +807,7 @@ private fun DeepSeekConfigCard(
         OutlinedTextField(
             value = model,
             onValueChange = { model = it },
-            label = { Text("模型") },
+            label = { Text(stringResource(R.string.llm_settings_model)) },
             placeholder = { Text("deepseek-chat") },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
@@ -828,6 +830,11 @@ private fun ImportExportDialog(
     var showResult by remember { mutableStateOf<String?>(null) }
     var isProcessing by remember { mutableStateOf(false) }
 
+    val exportFullSuccessMsg = stringResource(R.string.llm_settings_export_full_success)
+    val exportSafeSuccessMsg = stringResource(R.string.llm_settings_export_safe_success)
+    val exportFailedMsg = stringResource(R.string.llm_settings_export_failed)
+    val importSuccessMsg = stringResource(R.string.llm_settings_import_success)
+
     // Export launcher - Create document
     val exportFullLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -835,7 +842,7 @@ private fun ImportExportDialog(
         uri?.let {
             isProcessing = true
             val success = viewModel.exportConfig(it, includeSensitive = true)
-            showResult = if (success) "✓ 完整配置导出成功" else "✗ 导出失败"
+            showResult = if (success) exportFullSuccessMsg else exportFailedMsg
             isProcessing = false
         }
     }
@@ -846,7 +853,7 @@ private fun ImportExportDialog(
         uri?.let {
             isProcessing = true
             val success = viewModel.exportConfig(it, includeSensitive = false)
-            showResult = if (success) "✓ 安全配置导出成功" else "✗ 导出失败"
+            showResult = if (success) exportSafeSuccessMsg else exportFailedMsg
             isProcessing = false
         }
     }
@@ -858,14 +865,14 @@ private fun ImportExportDialog(
         uri?.let {
             isProcessing = true
             viewModel.importConfig(it, mergeMode = false)
-            showResult = "✓ 配置导入成功，已重新加载"
+            showResult = importSuccessMsg
             isProcessing = false
         }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("配置导入/导出") },
+        title = { Text(stringResource(R.string.llm_settings_import_export_title)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -875,10 +882,7 @@ private fun ImportExportDialog(
                 if (showResult != null) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        color = if (showResult!!.startsWith("✓"))
-                            MaterialTheme.colorScheme.primaryContainer
-                        else
-                            MaterialTheme.colorScheme.errorContainer,
+                        color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
@@ -899,13 +903,13 @@ private fun ImportExportDialog(
                     ) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("处理中...")
+                        Text(stringResource(R.string.llm_settings_import_export_processing))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 Text(
-                    text = "可以将配置导出为文件，或从文件导入配置。支持与桌面端共享配置。",
+                    text = stringResource(R.string.llm_settings_import_export_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -914,7 +918,7 @@ private fun ImportExportDialog(
 
                 // Export Section
                 Text(
-                    text = "导出配置",
+                    text = stringResource(R.string.llm_settings_export_section),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -933,7 +937,7 @@ private fun ImportExportDialog(
                     ) {
                         Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("完整导出")
+                        Text(stringResource(R.string.llm_settings_export_full))
                     }
 
                     OutlinedButton(
@@ -946,7 +950,7 @@ private fun ImportExportDialog(
                     ) {
                         Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("安全导出")
+                        Text(stringResource(R.string.llm_settings_export_safe))
                     }
                 }
 
@@ -954,7 +958,7 @@ private fun ImportExportDialog(
 
                 // Import Section
                 Text(
-                    text = "导入配置",
+                    text = stringResource(R.string.llm_settings_import_section),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -973,12 +977,12 @@ private fun ImportExportDialog(
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("从文件导入")
+                        Text(stringResource(R.string.llm_settings_import_from_file))
                     }
                 }
 
                 Text(
-                    text = "提示: 安全导出不包含API密钥等敏感信息，适合分享配置模板。",
+                    text = stringResource(R.string.llm_settings_import_export_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -986,7 +990,7 @@ private fun ImportExportDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text(stringResource(R.string.llm_settings_import_export_close))
             }
         }
     )
@@ -1014,7 +1018,7 @@ private fun RecommendationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("智能推荐") },
+        title = { Text(stringResource(R.string.llm_settings_recommendation_title)) },
         text = {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -1022,7 +1026,7 @@ private fun RecommendationDialog(
             ) {
                 item {
                     Text(
-                        text = "根据您的使用场景和预算，为您推荐最合适的LLM提供商。",
+                        text = stringResource(R.string.llm_settings_recommendation_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1031,18 +1035,18 @@ private fun RecommendationDialog(
                 // Use Case Selector
                 item {
                     Text(
-                        text = "使用场景",
+                        text = stringResource(R.string.llm_settings_recommendation_use_case),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
 
                     val useCases = listOf(
-                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.FREE to "免费优先",
-                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.COST_EFFECTIVE to "性价比优先",
-                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.HIGH_QUALITY to "质量优先",
-                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.CHINESE to "中文优化",
-                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.GENERAL to "通用场景"
+                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.FREE to stringResource(R.string.llm_settings_recommendation_use_case_free),
+                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.COST_EFFECTIVE to stringResource(R.string.llm_settings_recommendation_use_case_cost),
+                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.HIGH_QUALITY to stringResource(R.string.llm_settings_recommendation_use_case_quality),
+                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.CHINESE to stringResource(R.string.llm_settings_recommendation_use_case_chinese),
+                        com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.UseCase.GENERAL to stringResource(R.string.llm_settings_recommendation_use_case_general)
                     )
 
                     useCases.chunked(2).forEach { rowItems ->
@@ -1069,7 +1073,7 @@ private fun RecommendationDialog(
                 // Budget Selector
                 item {
                     Text(
-                        text = "预算",
+                        text = stringResource(R.string.llm_settings_recommendation_budget),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -1080,10 +1084,10 @@ private fun RecommendationDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         val budgets = listOf(
-                            com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.Budget.LOW to "低",
-                            com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.Budget.MEDIUM to "中",
-                            com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.Budget.HIGH to "高",
-                            com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.Budget.UNLIMITED to "不限"
+                            com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.Budget.LOW to stringResource(R.string.llm_settings_recommendation_budget_low),
+                            com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.Budget.MEDIUM to stringResource(R.string.llm_settings_recommendation_budget_medium),
+                            com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.Budget.HIGH to stringResource(R.string.llm_settings_recommendation_budget_high),
+                            com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine.Budget.UNLIMITED to stringResource(R.string.llm_settings_recommendation_budget_unlimited)
                         )
 
                         budgets.forEach { (budget, label) ->
@@ -1102,7 +1106,7 @@ private fun RecommendationDialog(
                     HorizontalDivider()
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "推荐结果 (${recommendations.size}个)",
+                        text = stringResource(R.string.llm_settings_recommendation_results, recommendations.size),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -1138,7 +1142,7 @@ private fun RecommendationDialog(
                                     color = MaterialTheme.colorScheme.primary
                                 ) {
                                     Text(
-                                        text = "${(recommendation.score * 100).toInt()}分",
+                                        text = stringResource(R.string.llm_settings_recommendation_score, (recommendation.score * 100).toInt()),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -1163,7 +1167,7 @@ private fun RecommendationDialog(
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("应用此推荐")
+                                Text(stringResource(R.string.llm_settings_recommendation_apply))
                             }
                         }
                     }
@@ -1172,7 +1176,7 @@ private fun RecommendationDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text(stringResource(R.string.llm_settings_recommendation_close))
             }
         }
     )

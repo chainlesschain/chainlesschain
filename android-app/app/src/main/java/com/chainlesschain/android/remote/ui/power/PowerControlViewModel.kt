@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.remote.commands.PowerCommands
 import com.chainlesschain.android.remote.commands.ScheduleInfo
+import com.chainlesschain.android.remote.commands.ScheduledTask
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -34,7 +36,11 @@ class PowerControlViewModel @Inject constructor(
     // 连接状态
     val connectionState: StateFlow<ConnectionState> = p2pClient.connectionState
 
-    // 定时任务信息
+    // 定时任务列表
+    private val _scheduledTasks = MutableStateFlow<List<ScheduledTask>>(emptyList())
+    val scheduledTasks: StateFlow<List<ScheduledTask>> = _scheduledTasks.asStateFlow()
+
+    // 当前定时任务信息（供 UI 层使用）
     private val _scheduleInfo = MutableStateFlow<ScheduleInfo?>(null)
     val scheduleInfo: StateFlow<ScheduleInfo?> = _scheduleInfo.asStateFlow()
 
@@ -103,7 +109,7 @@ class PowerControlViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isExecuting = true, error = null) }
 
-            val result = powerCommands.scheduleShutdown(minutes, action)
+            val result = powerCommands.scheduleShutdown(delay = minutes * 60, action = action)
 
             if (result.isSuccess) {
                 val response = result.getOrNull()
@@ -120,16 +126,27 @@ class PowerControlViewModel @Inject constructor(
     }
 
     /**
-     * 取消定时任务
+     * 取消当前定时任务（无参数版本，取消第一个任务）
      */
     fun cancelSchedule() {
+        val taskId = _scheduledTasks.value.firstOrNull()?.id ?: return
+        cancelSchedule(taskId)
+    }
+
+    /**
+     * 取消定时任务
+     */
+    fun cancelSchedule(taskId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isExecuting = true, error = null) }
 
-            val result = powerCommands.cancelSchedule()
+            val result = powerCommands.cancelSchedule(taskId)
 
             if (result.isSuccess) {
-                _scheduleInfo.value = null
+                _scheduledTasks.value = _scheduledTasks.value.filter { it.id != taskId }
+                if (_scheduledTasks.value.isEmpty()) {
+                    _scheduleInfo.value = null
+                }
                 _uiState.update { it.copy(
                     isExecuting = false,
                     lastAction = "定时任务已取消",
@@ -150,7 +167,14 @@ class PowerControlViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 val response = result.getOrNull()
-                _scheduleInfo.value = response?.schedule
+                _scheduledTasks.value = response?.tasks ?: emptyList()
+                // Populate scheduleInfo from response or first task
+                _scheduleInfo.value = response?.schedule ?: response?.tasks?.firstOrNull()?.let { task ->
+                    ScheduleInfo(
+                        action = task.action,
+                        scheduledTime = task.scheduledTime
+                    )
+                }
             } else {
                 Timber.w(result.exceptionOrNull(), "获取定时任务信息失败")
             }
@@ -241,6 +265,7 @@ class PowerControlViewModel @Inject constructor(
 /**
  * 电源控制 UI 状态
  */
+@Immutable
 data class PowerControlUiState(
     val isExecuting: Boolean = false,
     val error: String? = null,

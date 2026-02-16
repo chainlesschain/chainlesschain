@@ -30,6 +30,9 @@ import com.chainlesschain.android.feature.project.model.ProjectListState
 import com.chainlesschain.android.feature.project.model.ProjectSortBy
 import com.chainlesschain.android.feature.project.model.ProjectWithStats
 import com.chainlesschain.android.feature.project.ui.components.TemplateSelectionDialog
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.chainlesschain.android.R
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import android.util.Log
@@ -46,6 +49,7 @@ fun ProjectScreen(
     projectViewModel: ProjectViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("全部") }
     var showSearchBar by remember { mutableStateOf(false) }
@@ -72,7 +76,7 @@ fun ProjectScreen(
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is ProjectUiEvent.ShowError -> {
-                    snackbarHostState.showSnackbar("错误: ${event.error}")
+                    snackbarHostState.showSnackbar(context.getString(R.string.error_prefix, event.error))
                 }
                 is ProjectUiEvent.NavigateToProject -> {
                     onProjectClick(event.projectId)
@@ -122,31 +126,31 @@ fun ProjectScreen(
                             showSearchBar = false
                             searchQuery = ""
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                         }
                     },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "清除")
+                                Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.common_clear))
                             }
                         }
                     },
-                    placeholder = { Text("搜索项目...") },
+                    placeholder = { Text(stringResource(R.string.project_search_hint)) },
                     modifier = Modifier.fillMaxWidth()
                 ) {}
             } else {
                 TopAppBar(
-                    title = { Text("我的项目", fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.project_my_projects), fontWeight = FontWeight.Bold) },
                     actions = {
                         IconButton(onClick = onNavigateToFileBrowser) {
-                            Icon(Icons.Default.FolderOpen, contentDescription = "文件浏览器")
+                            Icon(Icons.Default.FolderOpen, contentDescription = stringResource(R.string.feature_file_browser))
                         }
                         IconButton(onClick = { showSearchBar = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "搜索")
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.common_search))
                         }
                         IconButton(onClick = { showAddDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "新建项目")
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_new_project))
                         }
                     }
                 )
@@ -203,14 +207,14 @@ fun ProjectScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("排序")
+                            Text(stringResource(R.string.common_sort))
                         }
                         DropdownMenu(
                             expanded = showSortMenu,
                             onDismissRequest = { showSortMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("更新时间") },
+                                text = { Text(stringResource(R.string.project_sort_updated)) },
                                 onClick = {
                                     showSortMenu = false
                                     projectViewModel.setSorting(ProjectSortBy.UPDATED_AT)
@@ -218,7 +222,7 @@ fun ProjectScreen(
                                 leadingIcon = { Icon(Icons.Default.Update, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text("名称") },
+                                text = { Text(stringResource(R.string.project_sort_name)) },
                                 onClick = {
                                     showSortMenu = false
                                     projectViewModel.setSorting(ProjectSortBy.NAME)
@@ -226,7 +230,7 @@ fun ProjectScreen(
                                 leadingIcon = { Icon(Icons.Default.SortByAlpha, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text("创建时间") },
+                                text = { Text(stringResource(R.string.project_sort_created)) },
                                 onClick = {
                                     showSortMenu = false
                                     projectViewModel.setSorting(ProjectSortBy.CREATED_AT)
@@ -268,7 +272,7 @@ fun ProjectScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         TextButton(onClick = { projectViewModel.loadProjects() }) {
-                            Text("重试")
+                            Text(stringResource(R.string.common_retry))
                         }
                     }
                 }
@@ -323,7 +327,7 @@ fun ProjectScreen(
                     // 用户未登录，显示错误提示
                     Log.e("ProjectScreen", "currentUser is null, cannot create project")
                     scope.launch {
-                        snackbarHostState.showSnackbar("请先登录后再创建项目")
+                        snackbarHostState.showSnackbar(context.getString(R.string.project_login_first))
                     }
                 }
                 showAddDialog = false
@@ -389,22 +393,22 @@ fun ProjectStatsCard(
             ProjectStatItem(
                 icon = Icons.Outlined.Folder,
                 value = totalProjects.toString(),
-                label = "总项目"
+                label = stringResource(R.string.project_total_projects)
             )
             ProjectStatItem(
                 icon = Icons.Outlined.TrendingUp,
                 value = activeProjects.toString(),
-                label = "进行中"
+                label = stringResource(R.string.project_status_in_progress)
             )
             ProjectStatItem(
                 icon = Icons.Outlined.InsertDriveFile,
                 value = totalFiles.toString(),
-                label = "总文件"
+                label = stringResource(R.string.project_total_files)
             )
             ProjectStatItem(
                 icon = Icons.Outlined.CheckCircle,
                 value = completedProjects.toString(),
-                label = "已完成"
+                label = stringResource(R.string.project_status_completed)
             )
         }
     }
@@ -553,7 +557,7 @@ fun EnhancedProjectCard(
                     FileStatBadge(
                         icon = Icons.Outlined.InsertDriveFile,
                         count = project.fileCount,
-                        label = "文件"
+                        label = stringResource(R.string.project_files_label)
                     )
                     if (projectWithStats.fileCountByExtension.isNotEmpty()) {
                         Text(

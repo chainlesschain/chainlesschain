@@ -9,6 +9,7 @@ import com.chainlesschain.android.feature.mcp.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -198,6 +199,7 @@ class MCPViewModel @Inject constructor(
     }
 }
 
+@Immutable
 data class MCPUiState(
     val isLoading: Boolean = true,
     val servers: List<MCPServer> = emptyList(),

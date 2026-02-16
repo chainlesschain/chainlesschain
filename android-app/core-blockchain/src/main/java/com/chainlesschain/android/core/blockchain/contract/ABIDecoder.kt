@@ -74,42 +74,52 @@ object ABIDecoder {
     }
 
     /**
+     * Safe substring that validates bounds before extracting
+     */
+    private fun safeSubstring(data: String, start: Int, end: Int): String {
+        require(start >= 0 && end >= start && end <= data.length) {
+            "ABI data too short: need $end chars but got ${data.length}"
+        }
+        return data.substring(start, end)
+    }
+
+    /**
      * Decode value with offset tracking
      */
     private fun decodeValueWithOffset(type: String, data: String, offset: Int): Pair<Any, Int> {
         return when {
             type.startsWith("uint") -> {
-                val value = decodeUint(data.substring(offset, offset + 64))
+                val value = decodeUint(safeSubstring(data, offset, offset + 64))
                 Pair(value, offset + 64)
             }
             type.startsWith("int") -> {
-                val value = decodeInt(data.substring(offset, offset + 64))
+                val value = decodeInt(safeSubstring(data, offset, offset + 64))
                 Pair(value, offset + 64)
             }
             type == "address" -> {
-                val value = decodeAddress(data.substring(offset, offset + 64))
+                val value = decodeAddress(safeSubstring(data, offset, offset + 64))
                 Pair(value, offset + 64)
             }
             type == "bool" -> {
-                val value = decodeBool(data.substring(offset, offset + 64))
+                val value = decodeBool(safeSubstring(data, offset, offset + 64))
                 Pair(value, offset + 64)
             }
             type == "bytes32" -> {
-                val value = decodeBytes32(data.substring(offset, offset + 64))
+                val value = decodeBytes32(safeSubstring(data, offset, offset + 64))
                 Pair(value, offset + 64)
             }
             type == "bytes" -> {
-                val pointerOffset = decodeUint(data.substring(offset, offset + 64)).toInt() * 2
+                val pointerOffset = decodeUint(safeSubstring(data, offset, offset + 64)).toInt() * 2
                 val value = decodeDynamicBytes(data, pointerOffset)
                 Pair(value, offset + 64)
             }
             type == "string" -> {
-                val pointerOffset = decodeUint(data.substring(offset, offset + 64)).toInt() * 2
+                val pointerOffset = decodeUint(safeSubstring(data, offset, offset + 64)).toInt() * 2
                 val value = decodeString(data, pointerOffset)
                 Pair(value, offset + 64)
             }
             type.endsWith("[]") -> {
-                val pointerOffset = decodeUint(data.substring(offset, offset + 64)).toInt() * 2
+                val pointerOffset = decodeUint(safeSubstring(data, offset, offset + 64)).toInt() * 2
                 val value = decodeArray(type, data, pointerOffset)
                 Pair(value, offset + 64)
             }
@@ -179,8 +189,9 @@ object ABIDecoder {
      * Decode dynamic bytes
      */
     private fun decodeDynamicBytes(data: String, offset: Int): ByteArray {
-        val length = decodeUint(data.substring(offset, offset + 64)).toInt()
-        val bytesHex = data.substring(offset + 64, offset + 64 + length * 2)
+        val length = decodeUint(safeSubstring(data, offset, offset + 64)).toInt()
+        require(length >= 0) { "Invalid bytes length: $length" }
+        val bytesHex = safeSubstring(data, offset + 64, offset + 64 + length * 2)
         return bytesHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     }
 
@@ -197,7 +208,8 @@ object ABIDecoder {
      */
     private fun decodeArray(type: String, data: String, offset: Int): List<Any> {
         val elementType = type.removeSuffix("[]")
-        val length = decodeUint(data.substring(offset, offset + 64)).toInt()
+        val length = decodeUint(safeSubstring(data, offset, offset + 64)).toInt()
+        require(length in 0..10000) { "Invalid array length: $length" }
 
         val results = mutableListOf<Any>()
         var elementOffset = offset + 64
@@ -232,7 +244,7 @@ object ABIDecoder {
         }
         val results = decodeParameters(listOf(type), cleanData)
         @Suppress("UNCHECKED_CAST")
-        return results.first() as T
+        return (results.firstOrNull() ?: throw IllegalStateException("ABI decode returned empty results")) as T
     }
 
     /**

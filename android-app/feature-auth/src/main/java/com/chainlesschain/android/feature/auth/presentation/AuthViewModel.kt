@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -246,6 +247,7 @@ class AuthViewModel @Inject constructor(
 /**
  * 认证UI状态
  */
+@Immutable
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isSetupComplete: Boolean = false,

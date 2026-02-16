@@ -430,8 +430,8 @@ class GitManager @Inject constructor() {
                 .redirectErrorStream(false)
 
             val process = processBuilder.start()
-            val output = BufferedReader(InputStreamReader(process.inputStream)).readText()
-            val error = BufferedReader(InputStreamReader(process.errorStream)).readText()
+            val output = process.inputStream.bufferedReader().use { it.readText() }
+            val error = process.errorStream.bufferedReader().use { it.readText() }
             val exitCode = process.waitFor()
 
             CommandResult(

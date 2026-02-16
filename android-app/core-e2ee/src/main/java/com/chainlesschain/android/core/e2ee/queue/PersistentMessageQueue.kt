@@ -22,8 +22,10 @@ class PersistentMessageQueueManager(
     private val storage = MessageQueueStorage(context)
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    @Volatile
     private var autoSaveJob: Job? = null
 
+    @Volatile
     private var isInitialized = false
 
     /**

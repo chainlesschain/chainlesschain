@@ -10,9 +10,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.p2p.ConnectionState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,16 +34,16 @@ fun PowerControlScreen(
     if (uiState.showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissConfirmDialog() },
-            title = { Text("确认操作") },
-            text = { Text("确定要执行 ${uiState.pendingAction} 操作吗？") },
+            title = { Text(stringResource(R.string.power_confirm_title)) },
+            text = { Text(stringResource(R.string.power_confirm_message, uiState.pendingAction ?: "")) },
             confirmButton = {
                 TextButton(onClick = { viewModel.confirmAction() }) {
-                    Text("确认")
+                    Text(stringResource(R.string.common_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissConfirmDialog() }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -51,15 +53,15 @@ fun PowerControlScreen(
     if (showScheduleDialog) {
         AlertDialog(
             onDismissRequest = { showScheduleDialog = false },
-            title = { Text("设置定时关机") },
+            title = { Text(stringResource(R.string.power_timer_title)) },
             text = {
                 Column {
-                    Text("请输入延迟时间（分钟）：")
+                    Text(stringResource(R.string.power_timer_prompt))
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = scheduleMinutes,
                         onValueChange = { scheduleMinutes = it.filter { c -> c.isDigit() } },
-                        label = { Text("分钟") },
+                        label = { Text(stringResource(R.string.power_timer_label)) },
                         singleLine = true
                     )
                 }
@@ -72,12 +74,12 @@ fun PowerControlScreen(
                         showScheduleDialog = false
                     }
                 ) {
-                    Text("确定")
+                    Text(stringResource(R.string.common_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showScheduleDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )

@@ -16,10 +16,11 @@ import timber.log.Timber
  *
  * 提供电池状态监控和智能节能策略
  */
-class BatteryOptimization(private val context: Context) {
+class BatteryOptimization(context: Context) {
 
-    private val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-    private val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+    private val context: Context = context.applicationContext
+    private val powerManager = this.context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    private val batteryManager = this.context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
 
     /**
      * 电池信息数据类

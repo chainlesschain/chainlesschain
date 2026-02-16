@@ -10,8 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.p2p.R
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -35,15 +37,15 @@ fun MessageQueueScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("消息队列") },
+                title = { Text(stringResource(R.string.message_queue)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onClearCompleted) {
-                        Icon(Icons.Default.CleaningServices, contentDescription = "清理已完成")
+                        Icon(Icons.Default.CleaningServices, contentDescription = stringResource(R.string.clear_completed))
                     }
                 }
             )
@@ -63,7 +65,7 @@ fun MessageQueueScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("发送队列")
+                            Text(stringResource(R.string.send_queue))
                             if (outgoingMessages.isNotEmpty()) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Badge {
@@ -81,7 +83,7 @@ fun MessageQueueScreen(
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("接收队列")
+                            Text(stringResource(R.string.receive_queue))
                             if (incomingMessages.isNotEmpty()) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Badge {
@@ -143,7 +145,7 @@ fun MessageQueueList(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = if (isOutgoing) "发送队列为空" else "接收队列为空",
+                    text = if (isOutgoing) stringResource(R.string.send_queue_empty) else stringResource(R.string.receive_queue_empty),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -201,7 +203,7 @@ fun QueuedMessageItem(
 
                     Column {
                         Text(
-                            text = if (isOutgoing) "发送至 ${message.peerId}" else "来自 ${message.peerId}",
+                            text = if (isOutgoing) stringResource(R.string.sent_to, message.peerId) else stringResource(R.string.from, message.peerId),
                             style = MaterialTheme.typography.titleSmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -222,7 +224,7 @@ fun QueuedMessageItem(
                     Badge(
                         containerColor = MaterialTheme.colorScheme.error
                     ) {
-                        Text("高优先级")
+                        Text(stringResource(R.string.high_priority))
                     }
                 }
             }
@@ -248,7 +250,7 @@ fun QueuedMessageItem(
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = onCancel) {
-                            Text("取消")
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 }
@@ -267,7 +269,7 @@ fun QueuedMessageItem(
                     // 错误信息
                     message.error?.let { error ->
                         Text(
-                            text = "错误: $error",
+                            text = stringResource(R.string.error_label, error),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -280,7 +282,7 @@ fun QueuedMessageItem(
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = onCancel) {
-                            Text("删除")
+                            Text(stringResource(R.string.delete))
                         }
 
                         Spacer(modifier = Modifier.width(8.dp))
@@ -292,7 +294,7 @@ fun QueuedMessageItem(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("重试")
+                            Text(stringResource(R.string.retry))
                         }
                     }
                 }
@@ -313,7 +315,7 @@ fun QueuedMessageItem(
                         Spacer(modifier = Modifier.width(8.dp))
 
                         Text(
-                            text = if (isOutgoing) "已发送" else "已接收",
+                            text = if (isOutgoing) stringResource(R.string.sent) else stringResource(R.string.received),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )

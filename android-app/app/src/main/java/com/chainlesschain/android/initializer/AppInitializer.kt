@@ -138,7 +138,7 @@ class AppInitializer @Inject constructor(
                                     clazz.getMethod("recordException", Throwable::class.java).invoke(instance, t)
                                 }
                                 clazz.getMethod("log", String::class.java).invoke(instance, "[$tag] $message")
-                            } catch (_: Exception) { /* Firebase not available */ }
+                            } catch (_: ReflectiveOperationException) { /* Firebase not available */ }
                             Log.e(tag, message, t)
                         }
                     }

@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -285,7 +286,7 @@ fun NavGraph(
                 onFileImported = { fileId ->
                     android.widget.Toast.makeText(
                         navController.context,
-                        "文件已导入",
+                        navController.context.getString(R.string.nav_file_imported),
                         android.widget.Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -314,7 +315,7 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onQRCodeScanned = { qrContent ->
                     // 处理扫描结果：如果是好友添加链接，导航到添加好友页面
-                    android.widget.Toast.makeText(navController.context, "扫描成功: $qrContent", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(navController.context, navController.context.getString(R.string.nav_qr_scan_success, qrContent), android.widget.Toast.LENGTH_LONG).show()
                     navController.popBackStack()
                 }
             )

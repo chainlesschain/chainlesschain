@@ -1492,12 +1492,6 @@ data class DailyUsage(
 )
 
 @Serializable
-data class QuotaResponse(
-    val success: Boolean,
-    val quotas: List<ModelQuota>
-)
-
-@Serializable
 data class ModelQuota(
     val model: String,
     val limit: Long,

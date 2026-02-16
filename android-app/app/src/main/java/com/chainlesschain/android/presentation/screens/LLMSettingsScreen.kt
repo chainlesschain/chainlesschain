@@ -18,7 +18,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 
 /**
@@ -50,10 +53,10 @@ fun LLMSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI配置") },
+                title = { Text(stringResource(R.string.llm_settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "返回")
+                        Icon(Icons.Default.ArrowBack, stringResource(R.string.common_back))
                     }
                 },
                 actions = {
@@ -65,7 +68,7 @@ fun LLMSettingsScreen(
                         ) {
                             Icon(
                                 if (uiState.isDiscovering) Icons.Default.Refresh else Icons.Default.Wifi,
-                                "发现服务"
+                                stringResource(R.string.llm_settings_discover)
                             )
                         }
                     }
@@ -124,7 +127,7 @@ fun ProviderSelector(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "选择AI提供商",
+            text = stringResource(R.string.llm_select_provider),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -153,6 +156,7 @@ fun ProviderCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -177,7 +181,7 @@ fun ProviderCard(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = getProviderDescription(provider),
+                    text = getProviderDescription(context, provider),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -186,7 +190,7 @@ fun ProviderCard(
             if (isSelected) {
                 Icon(
                     Icons.Default.CheckCircle,
-                    contentDescription = "已选择",
+                    contentDescription = stringResource(R.string.llm_settings_selected),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -218,7 +222,7 @@ fun CloudProviderConfiguration(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "${uiState.selectedProvider.displayName} 配置",
+            text = stringResource(R.string.llm_settings_config_title, uiState.selectedProvider.displayName),
             style = MaterialTheme.typography.titleLarge
         )
 
@@ -227,7 +231,7 @@ fun CloudProviderConfiguration(
             value = apiKey,
             onValueChange = { apiKey = it },
             label = { Text("API Key") },
-            placeholder = { Text("输入API密钥") },
+            placeholder = { Text(stringResource(R.string.llm_settings_api_key_hint)) },
             visualTransformation = if (showPassword)
                 VisualTransformation.None
             else
@@ -236,7 +240,7 @@ fun CloudProviderConfiguration(
                 IconButton(onClick = { showPassword = !showPassword }) {
                     Icon(
                         if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        "显示/隐藏密钥"
+                        stringResource(R.string.llm_settings_toggle_key)
                     )
                 }
             },
@@ -248,7 +252,7 @@ fun CloudProviderConfiguration(
             OutlinedTextField(
                 value = endpoint,
                 onValueChange = { endpoint = it },
-                label = { Text("API端点") },
+                label = { Text(stringResource(R.string.llm_settings_api_endpoint)) },
                 placeholder = { Text("https://api.example.com/v1") },
                 leadingIcon = { Icon(Icons.Default.Link, null) },
                 modifier = Modifier.fillMaxWidth()
@@ -272,7 +276,7 @@ fun CloudProviderConfiguration(
             ) {
                 Icon(Icons.Default.Save, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("保存")
+                Text(stringResource(R.string.common_save))
             }
 
             OutlinedButton(
@@ -294,7 +298,7 @@ fun CloudProviderConfiguration(
                     Icon(Icons.Default.CloudSync, null, Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(4.dp))
-                Text("测试连接")
+                Text(stringResource(R.string.llm_settings_test_connection))
             }
         }
 
@@ -303,9 +307,9 @@ fun CloudProviderConfiguration(
             ConnectionStatusCard(
                 isSuccess = uiState.connectionStatus,
                 message = if (uiState.connectionStatus)
-                    "✅ 连接成功！可以开始使用"
+                    stringResource(R.string.llm_settings_test_success)
                 else
-                    "❌ 连接失败，请检查API密钥和网络"
+                    stringResource(R.string.llm_settings_test_fail)
             )
         }
 
@@ -332,7 +336,7 @@ fun OllamaConfiguration(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Ollama 本地服务配置",
+            text = stringResource(R.string.llm_settings_ollama_title),
             style = MaterialTheme.typography.titleLarge
         )
 
@@ -353,7 +357,7 @@ fun OllamaConfiguration(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "发现的服务",
+                        text = stringResource(R.string.llm_settings_discovered_services),
                         style = MaterialTheme.typography.titleMedium
                     )
                     if (uiState.isDiscovering) {
@@ -364,9 +368,9 @@ fun OllamaConfiguration(
                 if (uiState.discoveredOllamaServices.isEmpty()) {
                     Text(
                         text = if (uiState.isDiscovering)
-                            "正在扫描局域网..."
+                            stringResource(R.string.llm_settings_scanning)
                         else
-                            "未发现服务，请点击右上角刷新按钮扫描",
+                            stringResource(R.string.llm_settings_no_services),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                     )
@@ -386,7 +390,7 @@ fun OllamaConfiguration(
         OutlinedTextField(
             value = manualUrl,
             onValueChange = { manualUrl = it },
-            label = { Text("手动输入服务地址") },
+            label = { Text(stringResource(R.string.llm_settings_manual_input)) },
             placeholder = { Text("http://192.168.1.100:11434") },
             leadingIcon = { Icon(Icons.Default.Computer, null) },
             modifier = Modifier.fillMaxWidth()
@@ -407,7 +411,7 @@ fun OllamaConfiguration(
                 Icon(Icons.Default.PlayArrow, null)
             }
             Spacer(Modifier.width(8.dp))
-            Text("测试连接")
+            Text(stringResource(R.string.llm_settings_test_connection))
         }
 
         // 连接状态
@@ -415,9 +419,9 @@ fun OllamaConfiguration(
             ConnectionStatusCard(
                 isSuccess = uiState.connectionStatus,
                 message = if (uiState.connectionStatus) {
-                    "✅ 连接成功！\n可用模型: ${uiState.availableModels.joinToString(", ")}"
+                    stringResource(R.string.llm_settings_ollama_success, uiState.availableModels.joinToString(", "))
                 } else {
-                    "❌ 连接失败，请检查:\n1. PC端Ollama是否运行\n2. 防火墙是否开放11434端口\n3. 网络连接是否正常"
+                    stringResource(R.string.llm_settings_ollama_fail)
                 }
             )
         }
@@ -432,18 +436,13 @@ fun OllamaConfiguration(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "💡 使用提示",
+                    text = stringResource(R.string.llm_settings_usage_tips),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = """
-                        1. 确保PC端Ollama正在运行
-                        2. 手机和PC在同一局域网
-                        3. 点击右上角WiFi图标自动发现
-                        4. 或手动输入PC的IP地址
-                    """.trimIndent(),
+                    text = stringResource(R.string.llm_settings_ollama_usage_tips),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                 )
@@ -500,7 +499,7 @@ fun OllamaServiceItem(
             if (isSelected) {
                 Icon(
                     Icons.Default.CheckCircle,
-                    contentDescription = "已选择",
+                    contentDescription = stringResource(R.string.llm_settings_selected),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -551,6 +550,7 @@ fun ConnectionStatusCard(
  */
 @Composable
 fun ProviderHelpCard(provider: LLMProvider) {
+    val context = LocalContext.current
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -561,11 +561,11 @@ fun ProviderHelpCard(provider: LLMProvider) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "📖 获取API密钥",
+                text = stringResource(R.string.llm_settings_get_api_key),
                 style = MaterialTheme.typography.titleSmall
             )
             Text(
-                text = getProviderHelp(provider),
+                text = getProviderHelp(context, provider),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -576,35 +576,35 @@ fun ProviderHelpCard(provider: LLMProvider) {
 /**
  * 获取提供商描述
  */
-fun getProviderDescription(provider: LLMProvider): String = when (provider) {
+fun getProviderDescription(context: android.content.Context, provider: LLMProvider): String = when (provider) {
     LLMProvider.OPENAI -> "GPT-4, GPT-3.5-Turbo"
     LLMProvider.DEEPSEEK -> "DeepSeek-Chat, DeepSeek-Coder"
     LLMProvider.CLAUDE -> "Claude-3-Opus, Sonnet, Haiku"
     LLMProvider.GEMINI -> "Gemini-Pro, Gemini-Pro-Vision"
-    LLMProvider.QWEN -> "通义千问 Max/Plus/Turbo"
-    LLMProvider.ERNIE -> "文心一言 4.0/Turbo"
-    LLMProvider.CHATGLM -> "智谱清言 GLM-4/GLM-3"
-    LLMProvider.MOONSHOT -> "Kimi Chat 8K/32K/128K"
-    LLMProvider.SPARK -> "讯飞星火 v3.5/v3.0"
-    LLMProvider.DOUBAO -> "火山引擎豆包"
-    LLMProvider.OLLAMA -> "本地模型 (免费)"
-    LLMProvider.CUSTOM -> "自定义OpenAI兼容接口"
+    LLMProvider.QWEN -> context.getString(R.string.llm_provider_dashscope)
+    LLMProvider.ERNIE -> context.getString(R.string.llm_provider_ernie)
+    LLMProvider.CHATGLM -> context.getString(R.string.llm_provider_zhipu)
+    LLMProvider.MOONSHOT -> context.getString(R.string.llm_provider_kimi)
+    LLMProvider.SPARK -> context.getString(R.string.llm_provider_spark)
+    LLMProvider.DOUBAO -> context.getString(R.string.llm_provider_doubao)
+    LLMProvider.OLLAMA -> context.getString(R.string.llm_provider_ollama)
+    LLMProvider.CUSTOM -> context.getString(R.string.llm_provider_custom)
 }
 
 /**
  * 获取提供商帮助信息
  */
-fun getProviderHelp(provider: LLMProvider): String = when (provider) {
-    LLMProvider.OPENAI -> "访问 platform.openai.com 注册账户并创建API密钥"
-    LLMProvider.DEEPSEEK -> "访问 platform.deepseek.com 注册账户并创建API密钥"
-    LLMProvider.CLAUDE -> "访问 console.anthropic.com 注册账户并创建API密钥"
-    LLMProvider.GEMINI -> "访问 ai.google.dev 获取API密钥"
-    LLMProvider.QWEN -> "访问 dashscope.aliyun.com 开通服务并获取API-KEY"
-    LLMProvider.ERNIE -> "访问 console.bce.baidu.com/qianfan 创建应用获取密钥"
-    LLMProvider.CHATGLM -> "访问 open.bigmodel.cn 注册并创建API密钥"
-    LLMProvider.MOONSHOT -> "访问 platform.moonshot.cn 注册并获取API密钥"
-    LLMProvider.SPARK -> "访问 console.xfyun.cn 创建应用获取密钥"
-    LLMProvider.DOUBAO -> "访问 console.volcengine.com/ark 开通服务获取API密钥"
-    LLMProvider.OLLAMA -> "无需API密钥，请在PC端安装Ollama并运行"
-    LLMProvider.CUSTOM -> "输入兼容OpenAI格式的API端点和密钥"
+fun getProviderHelp(context: android.content.Context, provider: LLMProvider): String = when (provider) {
+    LLMProvider.OPENAI -> context.getString(R.string.llm_help_openai)
+    LLMProvider.DEEPSEEK -> context.getString(R.string.llm_help_deepseek)
+    LLMProvider.CLAUDE -> context.getString(R.string.llm_help_claude)
+    LLMProvider.GEMINI -> context.getString(R.string.llm_help_gemini)
+    LLMProvider.QWEN -> context.getString(R.string.llm_help_qwen)
+    LLMProvider.ERNIE -> context.getString(R.string.llm_help_ernie)
+    LLMProvider.CHATGLM -> context.getString(R.string.llm_help_chatglm)
+    LLMProvider.MOONSHOT -> context.getString(R.string.llm_help_moonshot)
+    LLMProvider.SPARK -> context.getString(R.string.llm_help_spark)
+    LLMProvider.DOUBAO -> context.getString(R.string.llm_help_doubao)
+    LLMProvider.OLLAMA -> context.getString(R.string.llm_help_ollama)
+    LLMProvider.CUSTOM -> context.getString(R.string.llm_help_custom)
 }

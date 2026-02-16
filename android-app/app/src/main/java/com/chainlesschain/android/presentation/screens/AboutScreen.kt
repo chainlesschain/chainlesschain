@@ -12,9 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 
 /**
  * 关于页面
@@ -28,10 +30,10 @@ fun AboutScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("关于", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.about_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -79,7 +81,7 @@ fun AboutScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "去中心化个人AI管理系统",
+                        text = stringResource(R.string.about_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -101,13 +103,13 @@ fun AboutScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        AboutInfoRow(label = "版本号", value = "0.32.0")
+                        AboutInfoRow(label = stringResource(R.string.about_version), value = "0.32.0")
                         HorizontalDivider()
-                        AboutInfoRow(label = "构建号", value = "32")
+                        AboutInfoRow(label = stringResource(R.string.about_build), value = "32")
                         HorizontalDivider()
-                        AboutInfoRow(label = "目标SDK", value = "Android 15 (API 35)")
+                        AboutInfoRow(label = stringResource(R.string.about_target_sdk), value = "Android 15 (API 35)")
                         HorizontalDivider()
-                        AboutInfoRow(label = "最低SDK", value = "Android 8.0 (API 26)")
+                        AboutInfoRow(label = stringResource(R.string.about_min_sdk), value = "Android 8.0 (API 26)")
                     }
                 }
             }
@@ -115,7 +117,7 @@ fun AboutScreen(
             // 核心功能
             item {
                 Text(
-                    text = "核心功能",
+                    text = stringResource(R.string.about_core_features),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.fillMaxWidth()
@@ -138,20 +140,20 @@ fun AboutScreen(
                     ) {
                         AboutFeatureItem(
                             icon = Icons.Default.School,
-                            title = "知识库管理",
-                            description = "RAG增强搜索的个人第二大脑"
+                            title = stringResource(R.string.about_feature_knowledge),
+                            description = stringResource(R.string.about_feature_knowledge_desc)
                         )
                         HorizontalDivider()
                         AboutFeatureItem(
                             icon = Icons.Default.People,
-                            title = "去中心化社交",
-                            description = "基于DID的身份认证和P2P加密通讯"
+                            title = stringResource(R.string.about_feature_social),
+                            description = stringResource(R.string.about_feature_social_desc)
                         )
                         HorizontalDivider()
                         AboutFeatureItem(
                             icon = Icons.Default.SwapHoriz,
-                            title = "去中心化交易",
-                            description = "数字资产管理和智能合约"
+                            title = stringResource(R.string.about_feature_trading),
+                            description = stringResource(R.string.about_feature_trading_desc)
                         )
                     }
                 }
@@ -160,7 +162,7 @@ fun AboutScreen(
             // 技术栈
             item {
                 Text(
-                    text = "技术栈",
+                    text = stringResource(R.string.about_tech_stack),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.fillMaxWidth()
@@ -181,13 +183,13 @@ fun AboutScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        AboutInfoRow(label = "框架", value = "Jetpack Compose")
+                        AboutInfoRow(label = stringResource(R.string.about_framework), value = "Jetpack Compose")
                         HorizontalDivider()
-                        AboutInfoRow(label = "语言", value = "Kotlin")
+                        AboutInfoRow(label = stringResource(R.string.about_language), value = "Kotlin")
                         HorizontalDivider()
-                        AboutInfoRow(label = "架构", value = "MVVM + MVI")
+                        AboutInfoRow(label = stringResource(R.string.about_architecture), value = "MVVM + MVI")
                         HorizontalDivider()
-                        AboutInfoRow(label = "依赖注入", value = "Hilt")
+                        AboutInfoRow(label = stringResource(R.string.about_di), value = "Hilt")
                         HorizontalDivider()
                         AboutInfoRow(label = "P2P", value = "libp2p + WebRTC")
                     }

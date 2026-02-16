@@ -16,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.stringResource
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 
 /**
@@ -58,15 +60,15 @@ fun ProfileDialog(
             ) {
                 // 顶部栏
                 TopAppBar(
-                    title = { Text("个人中心", fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.profile_center), fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "关闭")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
                         }
                     },
                     actions = {
                         IconButton(onClick = onNavigateToSettings) {
-                            Icon(Icons.Default.Settings, contentDescription = "设置")
+                            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.common_settings))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -114,7 +116,7 @@ fun ProfileDialog(
 
                                 uiState.currentUser?.let { user ->
                                     Text(
-                                        text = "用户 ${user.id.take(8)}",
+                                        text = stringResource(R.string.profile_user_label, user.id.take(8)),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -123,7 +125,7 @@ fun ProfileDialog(
                                     Spacer(modifier = Modifier.height(4.dp))
 
                                     Text(
-                                        text = "设备 ID: ${user.deviceId.take(12)}...",
+                                        text = stringResource(R.string.profile_device_id_label, user.deviceId.take(12)),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                     )
@@ -145,7 +147,7 @@ fun ProfileDialog(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Text(
-                                            text = if (user.biometricEnabled) "生物识别已启用" else "生物识别未启用",
+                                            text = if (user.biometricEnabled) stringResource(R.string.profile_biometric_enabled) else stringResource(R.string.profile_biometric_disabled),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
@@ -158,7 +160,7 @@ fun ProfileDialog(
                     // 功能菜单
                     item {
                         Text(
-                            text = "功能",
+                            text = stringResource(R.string.profile_section_features),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -167,8 +169,8 @@ fun ProfileDialog(
                     item {
                         ProfileDialogMenuItem(
                             icon = Icons.Default.Book,
-                            title = "知识库",
-                            subtitle = "管理我的知识库",
+                            title = stringResource(R.string.profile_knowledge_base),
+                            subtitle = stringResource(R.string.profile_knowledge_base_desc),
                             onClick = onNavigateToKnowledgeList
                         )
                     }
@@ -176,8 +178,8 @@ fun ProfileDialog(
                     item {
                         ProfileDialogMenuItem(
                             icon = Icons.Default.Chat,
-                            title = "AI对话",
-                            subtitle = "智能助手对话记录",
+                            title = stringResource(R.string.profile_ai_chat),
+                            subtitle = stringResource(R.string.profile_ai_chat_desc),
                             onClick = onNavigateToAIChat
                         )
                     }
@@ -185,8 +187,8 @@ fun ProfileDialog(
                     item {
                         ProfileDialogMenuItem(
                             icon = Icons.Default.SmartToy,
-                            title = "AI配置",
-                            subtitle = "配置LLM提供商和API密钥",
+                            title = stringResource(R.string.profile_ai_config),
+                            subtitle = stringResource(R.string.profile_ai_config_desc),
                             onClick = onNavigateToLLMSettings
                         )
                     }
@@ -194,8 +196,8 @@ fun ProfileDialog(
                     item {
                         ProfileDialogMenuItem(
                             icon = Icons.Default.Science,
-                            title = "AI测试",
-                            subtitle = "测试LLM连接和性能",
+                            title = stringResource(R.string.profile_ai_test),
+                            subtitle = stringResource(R.string.profile_ai_test_desc),
                             onClick = onNavigateToLLMTest
                         )
                     }
@@ -203,8 +205,8 @@ fun ProfileDialog(
                     item {
                         ProfileDialogMenuItem(
                             icon = Icons.Default.Devices,
-                            title = "P2P设备管理",
-                            subtitle = "管理连接的设备",
+                            title = stringResource(R.string.profile_p2p_devices),
+                            subtitle = stringResource(R.string.profile_p2p_devices_desc),
                             onClick = onNavigateToP2P
                         )
                     }
@@ -213,7 +215,7 @@ fun ProfileDialog(
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "系统",
+                            text = stringResource(R.string.profile_section_system),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -222,8 +224,8 @@ fun ProfileDialog(
                     item {
                         ProfileDialogMenuItem(
                             icon = Icons.Default.Settings,
-                            title = "设置",
-                            subtitle = "应用设置",
+                            title = stringResource(R.string.profile_settings),
+                            subtitle = stringResource(R.string.profile_settings_desc),
                             onClick = onNavigateToSettings
                         )
                     }
@@ -231,8 +233,8 @@ fun ProfileDialog(
                     item {
                         ProfileDialogMenuItem(
                             icon = Icons.Default.Info,
-                            title = "关于",
-                            subtitle = "应用信息和版本",
+                            title = stringResource(R.string.profile_about),
+                            subtitle = stringResource(R.string.profile_about_desc),
                             onClick = onNavigateToAbout
                         )
                     }
@@ -240,8 +242,8 @@ fun ProfileDialog(
                     item {
                         ProfileDialogMenuItem(
                             icon = Icons.Default.Help,
-                            title = "帮助与反馈",
-                            subtitle = "获取帮助",
+                            title = stringResource(R.string.profile_help),
+                            subtitle = stringResource(R.string.profile_help_desc),
                             onClick = onNavigateToHelpFeedback
                         )
                     }
@@ -263,7 +265,7 @@ fun ProfileDialog(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("退出登录")
+                            Text(stringResource(R.string.home_logout))
                         }
                     }
                 }
@@ -275,8 +277,8 @@ fun ProfileDialog(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("退出登录") },
-            text = { Text("确定要退出登录吗？这将清除所有本地数据。") },
+            title = { Text(stringResource(R.string.home_logout)) },
+            text = { Text(stringResource(R.string.home_logout_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -285,12 +287,12 @@ fun ProfileDialog(
                         onLogout()
                     }
                 ) {
-                    Text("确定", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.common_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )

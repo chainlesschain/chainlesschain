@@ -1147,23 +1147,6 @@ data class WindowsListResponse(
 )
 
 @Serializable
-data class WindowInfo(
-    val id: String,
-    val title: String,
-    val processName: String? = null,
-    val processId: Int? = null,
-    val x: Int,
-    val y: Int,
-    val width: Int,
-    val height: Int,
-    val visible: Boolean,
-    val minimized: Boolean,
-    val maximized: Boolean,
-    val focused: Boolean,
-    val className: String? = null
-)
-
-@Serializable
 data class WindowInfoResponse(
     val success: Boolean,
     val window: WindowInfo? = null,
@@ -1189,65 +1172,6 @@ data class WindowCaptureResponse(
     val size: Int
 )
 
-// ==================== 屏幕录制响应 ====================
-
-@Serializable
-data class RecordingStartResponse(
-    val success: Boolean,
-    val recordingId: String,
-    val displayId: Int,
-    val fps: Int,
-    val quality: Int,
-    val includeAudio: Boolean,
-    val startTime: Long
-)
-
-@Serializable
-data class RecordingStopResponse(
-    val success: Boolean,
-    val recordingId: String,
-    val filePath: String,
-    val duration: Long,
-    val fileSize: Long,
-    val frameCount: Long
-)
-
-@Serializable
-data class RecordingControlResponse(
-    val success: Boolean,
-    val recordingId: String,
-    val status: String,
-    val message: String? = null
-)
-
-@Serializable
-data class RecordingStatusResponse(
-    val success: Boolean,
-    val recordingId: String,
-    val status: String,  // "recording", "paused", "stopped"
-    val duration: Long,
-    val frameCount: Long,
-    val estimatedSize: Long,
-    val paused: Boolean
-)
-
-@Serializable
-data class RecordingsListResponse(
-    val success: Boolean,
-    val recordings: List<RecordingInfo>,
-    val total: Int
-)
-
-@Serializable
-data class RecordingInfo(
-    val recordingId: String,
-    val status: String,
-    val displayId: Int,
-    val startTime: Long,
-    val duration: Long,
-    val paused: Boolean
-)
-
 // ==================== 剪贴板响应 ====================
 
 @Serializable
@@ -1266,13 +1190,6 @@ data class DesktopClipboardSetResponse(
     val message: String? = null
 )
 
-@Serializable
-data class ClipboardWatchResponse(
-    val success: Boolean,
-    val enabled: Boolean,
-    val message: String? = null
-)
-
 // ==================== 音频控制响应 ====================
 
 @Serializable
@@ -1281,29 +1198,6 @@ data class AudioControlResponse(
     val sessionId: String,
     val audioEnabled: Boolean,
     val message: String? = null
-)
-
-@Serializable
-data class VolumeResponse(
-    val success: Boolean,
-    val level: Int,
-    val muted: Boolean
-)
-
-@Serializable
-data class AudioDevicesResponse(
-    val success: Boolean,
-    val devices: List<AudioDeviceInfo>,
-    val defaultOutput: String? = null,
-    val defaultInput: String? = null
-)
-
-@Serializable
-data class AudioDeviceInfo(
-    val id: String,
-    val name: String,
-    val type: String,  // "output", "input"
-    val isDefault: Boolean
 )
 
 // ==================== OCR 响应 ====================

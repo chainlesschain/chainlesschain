@@ -67,8 +67,9 @@ abstract class RemoteModule {
         @Provides
         @Singleton
         fun provideDeviceActivityManager(
+            @ApplicationContext context: Context,
             webRTCClient: WebRTCClient
-        ): DeviceActivityManager = DeviceActivityManager(webRTCClient).apply {
+        ): DeviceActivityManager = DeviceActivityManager(context, webRTCClient).apply {
             initialize()
         }
     }

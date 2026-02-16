@@ -272,7 +272,7 @@ private fun OverviewTab(
                 )
             }
         } else {
-            items(activeUsers) { user ->
+            items(activeUsers, key = { it.username }) { user ->
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -367,7 +367,7 @@ private fun UsersTab(
                 )
             }
         } else {
-            items(loginHistory) { record ->
+            items(loginHistory, key = { "${it.username}_${it.time}" }) { record ->
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -581,7 +581,7 @@ private fun UpdatesTab(
                 )
             }
 
-            items(updates) { update ->
+            items(updates, key = { it.kb ?: it.title }) { update ->
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface

@@ -7,8 +7,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 
@@ -62,7 +64,7 @@ fun FileImportDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "导入文件到项目",
+                text = stringResource(R.string.import_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -93,7 +95,7 @@ fun FileImportDialog(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "文件将被复制到项目中，保持独立性",
+                            text = stringResource(R.string.import_copy_note),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -103,7 +105,7 @@ fun FileImportDialog(
                 // Project selector (if needed)
                 if (showProjectSelector) {
                     Text(
-                        text = "选择目标项目",
+                        text = stringResource(R.string.import_select_project),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -123,8 +125,8 @@ fun FileImportDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor(),
-                            label = { Text("项目") },
-                            placeholder = { Text("搜索或选择项目...") },
+                            label = { Text(stringResource(R.string.import_project_label)) },
+                            placeholder = { Text(stringResource(R.string.import_project_hint)) },
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                             },
@@ -140,7 +142,7 @@ fun FileImportDialog(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            text = "未找到项目",
+                                            text = stringResource(R.string.import_no_project_found),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -231,12 +233,12 @@ fun FileImportDialog(
                                     )
                                     Column {
                                         Text(
-                                            text = "已选择: ${project.name}",
+                                            text = stringResource(R.string.import_selected, project.name),
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.Medium
                                         )
                                         Text(
-                                            text = "${project.fileCount} 个文件 • ${project.getReadableSize()}",
+                                            text = stringResource(R.string.import_file_count, project.fileCount, project.getReadableSize()),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -259,12 +261,12 @@ fun FileImportDialog(
                 },
                 enabled = selectedProjectId.isNotBlank() || projectId != null
             ) {
-                Text("导入")
+                Text(stringResource(R.string.import_button))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.import_cancel))
             }
         }
     )
@@ -314,10 +316,10 @@ private fun FileInfoCard(file: ExternalFileEntity) {
             }
 
             // File metadata
-            InfoRow(label = "类型", value = file.getCategoryDisplayName())
-            InfoRow(label = "大小", value = file.getReadableSize())
+            InfoRow(label = stringResource(R.string.file_info_type), value = file.getCategoryDisplayName())
+            InfoRow(label = stringResource(R.string.file_info_size), value = file.getReadableSize())
             file.displayPath?.let {
-                InfoRow(label = "路径", value = it)
+                InfoRow(label = stringResource(R.string.file_info_path), value = it)
             }
         }
     }

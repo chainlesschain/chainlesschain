@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -472,6 +473,7 @@ class FileSearchManager @Inject constructor() {
 
 // --- Data classes ---
 
+@Immutable
 data class SearchState(
     val isSearching: Boolean = false,
     val lastQuery: String = "",

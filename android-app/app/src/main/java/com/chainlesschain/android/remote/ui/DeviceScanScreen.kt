@@ -49,9 +49,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,17 +82,17 @@ fun DeviceScanScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("扫描设备") },
+                title = { Text(stringResource(R.string.device_scan_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     // 调试信息按钮
                     if (uiState.lastScanDebugInfo.isNotBlank()) {
                         IconButton(onClick = { showDebugDialog = true }) {
-                            Icon(Icons.Default.NetworkCheck, contentDescription = "调试信息")
+                            Icon(Icons.Default.NetworkCheck, contentDescription = stringResource(R.string.device_scan_debug_info))
                         }
                     }
                 }
@@ -173,7 +175,7 @@ fun DeviceScanScreen(
     if (showDebugDialog) {
         AlertDialog(
             onDismissRequest = { showDebugDialog = false },
-            title = { Text("扫描调试信息") },
+            title = { Text(stringResource(R.string.device_scan_debug_title)) },
             text = {
                 Column {
                     Text(
@@ -185,7 +187,7 @@ fun DeviceScanScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDebugDialog = false }) {
-                    Text("关闭")
+                    Text(stringResource(R.string.common_close))
                 }
             }
         )
@@ -246,7 +248,7 @@ fun ScanStatusCard(
                 enabled = !isScanning,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isScanning) "扫描中..." else "开始扫描")
+                Text(if (isScanning) stringResource(R.string.device_scan_scanning) else stringResource(R.string.device_scan_start))
             }
         }
     }
@@ -307,7 +309,7 @@ fun DiscoveredDeviceItem(
                             tint = Color(0xFF2E7D32)
                         )
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text("已注册", style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
+                        Text(stringResource(R.string.device_scan_registered), style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
                     }
                 }
             } else {
@@ -333,7 +335,7 @@ fun EmptyScanState() {
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text("未发现设备", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.device_scan_no_devices), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             "请确保桌面应用在同一局域网内运行",
@@ -352,15 +354,15 @@ fun RegisterDeviceDialog(
     var deviceName by remember { mutableStateOf(device.deviceName) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("注册设备") },
+        title = { Text(stringResource(R.string.device_scan_register_title)) },
         text = {
             Column {
-                Text("连接前请先注册此设备")
+                Text(stringResource(R.string.device_scan_register_hint))
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = deviceName,
                     onValueChange = { deviceName = it },
-                    label = { Text("设备名称") },
+                    label = { Text(stringResource(R.string.device_scan_device_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -370,12 +372,12 @@ fun RegisterDeviceDialog(
         },
         confirmButton = {
             Button(onClick = { onConfirm(deviceName) }, enabled = deviceName.isNotBlank()) {
-                Text("注册")
+                Text(stringResource(R.string.device_scan_register))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )

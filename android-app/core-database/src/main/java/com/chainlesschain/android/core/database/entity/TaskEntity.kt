@@ -1,8 +1,10 @@
 package com.chainlesschain.android.core.database.entity
 
+import androidx.annotation.StringRes
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.chainlesschain.android.core.database.R
 
 /**
  * 任务状态常量
@@ -15,6 +17,19 @@ object TaskStatusConst {
 
     val ALL = listOf(PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
 
+    /**
+     * 获取状态显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getDisplayNameResId(status: String): Int = when (status) {
+        PENDING -> R.string.task_status_pending
+        IN_PROGRESS -> R.string.task_status_in_progress
+        COMPLETED -> R.string.task_status_completed
+        CANCELLED -> R.string.task_status_cancelled
+        else -> R.string.task_status_unknown
+    }
+
+    @Deprecated("Use getDisplayNameResId() instead", ReplaceWith("getDisplayNameResId(status)"))
     fun getDisplayName(status: String): String = when (status) {
         PENDING -> "待办"
         IN_PROGRESS -> "进行中"
@@ -35,6 +50,19 @@ object TaskPriorityConst {
 
     val ALL = listOf(LOW, MEDIUM, HIGH, URGENT)
 
+    /**
+     * 获取优先级显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getDisplayNameResId(priority: String): Int = when (priority) {
+        LOW -> R.string.task_priority_low
+        MEDIUM -> R.string.task_priority_medium
+        HIGH -> R.string.task_priority_high
+        URGENT -> R.string.task_priority_urgent
+        else -> R.string.task_priority_unknown
+    }
+
+    @Deprecated("Use getDisplayNameResId() instead", ReplaceWith("getDisplayNameResId(priority)"))
     fun getDisplayName(priority: String): String = when (priority) {
         LOW -> "低"
         MEDIUM -> "中"
@@ -136,14 +164,28 @@ data class TaskEntity(
     }
 
     /**
+     * 获取状态显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getStatusDisplayNameResId(): Int = TaskStatusConst.getDisplayNameResId(status)
+
+    /**
+     * 获取优先级显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getPriorityDisplayNameResId(): Int = TaskPriorityConst.getDisplayNameResId(priority)
+
+    /**
      * 获取状态显示名称
      */
-    fun getStatusDisplayName(): String = TaskStatusConst.getDisplayName(status)
+    @Deprecated("Use getStatusDisplayNameResId() instead", ReplaceWith("getStatusDisplayNameResId()"))
+    fun getStatusDisplayName(): String = @Suppress("DEPRECATION") TaskStatusConst.getDisplayName(status)
 
     /**
      * 获取优先级显示名称
      */
-    fun getPriorityDisplayName(): String = TaskPriorityConst.getDisplayName(priority)
+    @Deprecated("Use getPriorityDisplayNameResId() instead", ReplaceWith("getPriorityDisplayNameResId()"))
+    fun getPriorityDisplayName(): String = @Suppress("DEPRECATION") TaskPriorityConst.getDisplayName(priority)
 
     /**
      * 解析标签列表

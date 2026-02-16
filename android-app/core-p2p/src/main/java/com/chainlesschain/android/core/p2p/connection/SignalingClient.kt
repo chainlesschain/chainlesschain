@@ -94,34 +94,50 @@ class SignalingClient @Inject constructor() {
     val connectionEvents: SharedFlow<SignalingConnectionEvent> = _connectionEvents.asSharedFlow()
 
     // 服务器Socket（接收连接）
+    @Volatile
     private var serverSocket: ServerSocket? = null
+    @Volatile
     private var isServerRunning = false
 
     // 客户端Socket（发起连接）
+    @Volatile
     private var clientSocket: Socket? = null
+    @Volatile
     private var writer: PrintWriter? = null
+    @Volatile
     private var reader: BufferedReader? = null
 
     // 当前连接的服务器信息
+    @Volatile
     private var currentHost: String? = null
+    @Volatile
     private var currentPort: Int = SIGNALING_PORT
 
     // 重连状态
+    @Volatile
     private var reconnectAttempts = 0
+    @Volatile
     private var reconnectJob: Job? = null
 
     // 心跳状态
+    @Volatile
     private var heartbeatJob: Job? = null
+    @Volatile
     private var lastHeartbeatResponse = 0L
+    @Volatile
     private var pendingHeartbeatId: String? = null
 
     // 连接健康度统计
+    @Volatile
     private var totalHeartbeatsSent = 0
+    @Volatile
     private var totalHeartbeatsReceived = 0
+    @Volatile
     private var connectionStartTime = 0L
 
     // 消息 ACK 系统
     private val pendingMessages = ConcurrentHashMap<String, PendingSignalingMessage>()
+    @Volatile
     private var ackProcessorJob: Job? = null
 
     /**

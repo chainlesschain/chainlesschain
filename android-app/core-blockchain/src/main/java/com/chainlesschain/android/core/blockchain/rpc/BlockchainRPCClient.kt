@@ -114,19 +114,25 @@ class BlockchainRPCClient @Inject constructor() {
 
         val response = httpClient.newCall(httpRequest).execute()
 
-        if (!response.isSuccessful) {
-            throw RPCException(
-                RPCError(
-                    code = response.code,
-                    message = "HTTP ${response.code}: ${response.message}"
+        response.use {
+            if (!it.isSuccessful) {
+                throw RPCException(
+                    RPCError(
+                        code = it.code,
+                        message = "HTTP ${it.code}: ${it.message}"
+                    )
                 )
-            )
+            }
+
+            val responseBody = it.body?.string()
+                ?: throw IllegalStateException("Empty response body")
+
+            try {
+                return json.decodeFromString(responseBody)
+            } catch (e: kotlinx.serialization.SerializationException) {
+                throw RPCException(RPCError(-32700, "Invalid JSON response: ${e.message}"))
+            }
         }
-
-        val responseBody = response.body?.string()
-            ?: throw IllegalStateException("Empty response body")
-
-        return json.decodeFromString(responseBody)
     }
 
     /**
@@ -156,23 +162,32 @@ class BlockchainRPCClient @Inject constructor() {
 
             val response = httpClient.newCall(httpRequest).execute()
 
-            if (!response.isSuccessful) {
-                return@withContext Result.error(
-                    RPCException(RPCError(response.code, "HTTP ${response.code}")),
-                    "Batch request failed"
-                )
+            response.use { resp ->
+                if (!resp.isSuccessful) {
+                    return@withContext Result.error(
+                        RPCException(RPCError(resp.code, "HTTP ${resp.code}")),
+                        "Batch request failed"
+                    )
+                }
+
+                val responseBody = resp.body?.string()
+                    ?: return@withContext Result.error(
+                        IllegalStateException("Empty response"),
+                        "Empty batch response"
+                    )
+
+                val responses: List<RPCResponse<JsonElement>> = try {
+                    json.decodeFromString(responseBody)
+                } catch (e: kotlinx.serialization.SerializationException) {
+                    return@withContext Result.error(
+                        RPCException(RPCError(-32700, "Invalid JSON batch response: ${e.message}")),
+                        "Failed to parse batch response"
+                    )
+                }
+                val results = responses.sortedBy { it.id }.map { it.result }
+
+                Result.success(results)
             }
-
-            val responseBody = response.body?.string()
-                ?: return@withContext Result.error(
-                    IllegalStateException("Empty response"),
-                    "Empty batch response"
-                )
-
-            val responses: List<RPCResponse<JsonElement>> = json.decodeFromString(responseBody)
-            val results = responses.sortedBy { it.id }.map { it.result }
-
-            Result.success(results)
         } catch (e: Exception) {
             Timber.e(e, "Batch RPC call failed")
             Result.error(e, e.message)

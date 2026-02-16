@@ -17,11 +17,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.project.domain.*
 
 /**
@@ -433,7 +435,7 @@ fun CodeBlockCard(codeBlock: CodeBlockData) {
 
                 Icon(
                     imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "复制代码",
+                    contentDescription = stringResource(R.string.common_copy_code),
                     modifier = Modifier.size(16.dp),
                     tint = Color.White.copy(alpha = 0.7f)
                 )
@@ -493,7 +495,7 @@ fun TerminalCard(terminal: TerminalOutputData) {
 
                 Icon(
                     imageVector = Icons.Default.OpenInNew,
-                    contentDescription = "展开",
+                    contentDescription = stringResource(R.string.common_expand),
                     modifier = Modifier.size(16.dp),
                     tint = Color.White.copy(alpha = 0.7f)
                 )

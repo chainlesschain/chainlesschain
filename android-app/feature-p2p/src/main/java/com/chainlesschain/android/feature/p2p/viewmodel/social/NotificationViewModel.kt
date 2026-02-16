@@ -13,6 +13,7 @@ import com.chainlesschain.android.feature.p2p.repository.social.NotificationRepo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -376,6 +377,7 @@ class NotificationViewModel @Inject constructor(
 /**
  * 通知 UI 状态
  */
+@Immutable
 data class NotificationUiState(
     val allNotifications: List<NotificationEntity> = emptyList(),
     val unreadNotifications: List<NotificationEntity> = emptyList(),

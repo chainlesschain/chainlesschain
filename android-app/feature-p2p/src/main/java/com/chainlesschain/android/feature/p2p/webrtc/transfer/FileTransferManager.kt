@@ -14,6 +14,7 @@ import java.io.File
 import java.io.RandomAccessFile
 import java.security.MessageDigest
 import java.util.UUID
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.ceil
@@ -435,6 +436,7 @@ class FileTransferManager @Inject constructor(
 /**
  * File transfer state
  */
+@Immutable
 data class FileTransferState(
     val transferId: String,
     val peerId: String,

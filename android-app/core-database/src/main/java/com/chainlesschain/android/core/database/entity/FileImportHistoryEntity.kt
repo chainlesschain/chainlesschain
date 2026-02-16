@@ -1,9 +1,11 @@
 package com.chainlesschain.android.core.database.entity
 
+import androidx.annotation.StringRes
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.chainlesschain.android.core.database.R
 
 /**
  * 文件导入类型
@@ -82,8 +84,33 @@ data class FileImportHistoryEntity(
     val note: String? = null
 ) {
     /**
+     * 获取导入类型显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getImportTypeDisplayNameResId(): Int {
+        return when (importType) {
+            ImportType.COPY -> R.string.import_type_copy
+            ImportType.LINK -> R.string.import_type_link
+            ImportType.SYNC -> R.string.import_type_sync
+        }
+    }
+
+    /**
+     * 获取导入来源显示名称的字符串资源ID
+     */
+    @StringRes
+    fun getImportSourceDisplayNameResId(): Int {
+        return when (importedFrom) {
+            ImportSource.FILE_BROWSER -> R.string.import_source_file_browser
+            ImportSource.SHARE_INTENT -> R.string.import_source_share_intent
+            ImportSource.AI_CHAT -> R.string.import_source_ai_chat
+        }
+    }
+
+    /**
      * 获取导入类型显示名称
      */
+    @Deprecated("Use getImportTypeDisplayNameResId() instead", ReplaceWith("getImportTypeDisplayNameResId()"))
     fun getImportTypeDisplayName(): String {
         return when (importType) {
             ImportType.COPY -> "复制"
@@ -95,6 +122,7 @@ data class FileImportHistoryEntity(
     /**
      * 获取导入来源显示名称
      */
+    @Deprecated("Use getImportSourceDisplayNameResId() instead", ReplaceWith("getImportSourceDisplayNameResId()"))
     fun getImportSourceDisplayName(): String {
         return when (importedFrom) {
             ImportSource.FILE_BROWSER -> "文件浏览器"

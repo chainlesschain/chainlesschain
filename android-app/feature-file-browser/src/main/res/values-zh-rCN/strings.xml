@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ==================== GlobalFileBrowserScreen ==================== -->
+    <string name="file_browser_title">文件浏览器</string>
+    <string name="file_browser_search_hint">搜索文件\u2026</string>
+    <string name="file_browser_back">返回</string>
+    <string name="file_browser_search">搜索</string>
+    <string name="file_browser_ai_classify">AI分类</string>
+    <string name="file_browser_refresh">刷新</string>
+    <string name="file_browser_settings">设置</string>
+    <string name="file_browser_scan_files">扫描文件</string>
+    <string name="file_browser_scanning">扫描中: %1$s (%2$d/%3$d)</string>
+    <string name="file_browser_scan_complete">扫描完成: %d 个文件</string>
+    <string name="file_browser_scan_error">扫描错误: %s</string>
+    <string name="file_browser_ai_classifying">AI 分类中\u2026</string>
+
+    <!-- Category names -->
+    <string name="category_all">全部</string>
+    <string name="category_all_with_count">全部 (%d)</string>
+    <string name="category_document">文档</string>
+    <string name="category_image">图片</string>
+    <string name="category_video">视频</string>
+    <string name="category_audio">音频</string>
+    <string name="category_archive">压缩包</string>
+    <string name="category_code">代码</string>
+    <string name="category_other">其他</string>
+    <string name="category_with_count">%1$s (%2$d)</string>
+
+    <!-- Sort options -->
+    <string name="sort_name">名称</string>
+    <string name="sort_size">大小</string>
+    <string name="sort_date">日期</string>
+    <string name="sort_type">类型</string>
+    <string name="sort_ascending">\u2191 升序</string>
+    <string name="sort_descending">\u2193 降序</string>
+
+    <!-- Permission -->
+    <string name="permission_required_title">需要存储权限</string>
+    <string name="permission_required_message">文件浏览器需要访问您的设备存储以扫描和显示文件。</string>
+    <string name="permission_grant">授予权限</string>
+
+    <!-- Empty / Error states -->
+    <string name="empty_no_files">未找到文件</string>
+    <string name="empty_tap_scan">点击右下角的按钮开始扫描文件</string>
+    <string name="error_load_failed">加载失败</string>
+    <string name="error_retry">重试</string>
+
+    <!-- ==================== AIClassificationBadge ==================== -->
+    <string name="ai_suggestion">AI建议</string>
+    <string name="ai_suggested_classification">AI 建议分类</string>
+    <string name="ai_suggest_classify_as">建议分类为:</string>
+    <string name="ai_detected_labels">检测到: %s</string>
+    <string name="ai_reject">拒绝</string>
+    <string name="ai_dismiss">忽略</string>
+    <string name="ai_accept">接受</string>
+    <string name="ai_apply">应用</string>
+    <string name="ai_chip_prefix">AI: %s</string>
+
+    <!-- ==================== FileBrowserSettingsDialog ==================== -->
+    <string name="settings_dialog_title">文件浏览器设置</string>
+    <string name="settings_close">关闭</string>
+    <string name="settings_auto_scan_section">自动扫描</string>
+    <string name="settings_auto_scan_enable">启用后台自动扫描</string>
+    <string name="settings_auto_scan_desc">每6小时自动扫描新文件</string>
+    <string name="settings_wifi_only">仅WiFi扫描</string>
+    <string name="settings_wifi_only_desc">避免消耗移动数据流量</string>
+    <string name="settings_charging_only">仅充电时扫描</string>
+    <string name="settings_charging_only_desc">节省电池电量</string>
+    <string name="settings_cache_section">缓存管理</string>
+    <string name="settings_clear_file_cache">清除文件索引缓存</string>
+    <string name="settings_clear_cache_note">清除缓存后需要重新扫描文件</string>
+    <string name="settings_auto_scan_note">自动扫描使用增量更新，仅扫描新增或修改的文件，不会影响设备性能。</string>
+    <string name="settings_done">完成</string>
+
+    <!-- ==================== FileImportDialog ==================== -->
+    <string name="import_title">导入文件到项目</string>
+    <string name="import_copy_note">文件将被复制到项目中，保持独立性</string>
+    <string name="import_select_project">选择目标项目</string>
+    <string name="import_project_label">项目</string>
+    <string name="import_project_hint">搜索或选择项目\u2026</string>
+    <string name="import_no_project_found">未找到项目</string>
+    <string name="import_selected">已选择: %s</string>
+    <string name="import_file_count">%1$d 个文件 \u2022 %2$s</string>
+    <string name="import_button">导入</string>
+    <string name="import_cancel">取消</string>
+
+    <!-- File info labels -->
+    <string name="file_info_type">类型</string>
+    <string name="file_info_size">大小</string>
+    <string name="file_info_path">路径</string>
+
+    <!-- ==================== FileListItem ==================== -->
+    <string name="file_unfavorite">取消收藏</string>
+    <string name="file_favorite">收藏</string>
+    <string name="file_import_to_project">导入到项目</string>
+
+    <!-- Relative time -->
+    <string name="time_just_now">刚刚</string>
+    <string name="time_minutes_ago">%d分钟前</string>
+    <string name="time_hours_ago">%d小时前</string>
+    <string name="time_days_ago">%d天前</string>
+
+    <!-- ==================== FilePreviewDialog ==================== -->
+    <string name="preview_close">关闭</string>
+    <string name="preview_ocr">文字识别</string>
+    <string name="preview_open_folder">打开所在文件夹</string>
+    <string name="preview_share">分享</string>
+    <string name="preview_share_file">分享文件</string>
+    <string name="preview_image">图片预览</string>
+    <string name="preview_not_supported">预览暂不支持</string>
+    <string name="preview_video_external">视频文件需要使用外部播放器打开</string>
+    <string name="preview_audio_external">音频文件需要使用外部播放器打开</string>
+    <string name="preview_cannot_preview">此类型文件无法预览</string>
+    <string name="preview_cannot_preview_file">无法预览此文件</string>
+    <string name="preview_cannot_read">无法读取文件内容</string>
+    <string name="preview_truncated">\n\u2026 (文件太大，仅显示前 %d 行)</string>
+
+    <!-- File info section labels -->
+    <string name="file_detail_name">文件名</string>
+    <string name="file_detail_size">大小</string>
+    <string name="file_detail_type">类型</string>
+    <string name="file_detail_category">分类</string>
+    <string name="file_detail_extension">扩展名</string>
+    <string name="file_detail_folder">文件夹</string>
+    <string name="file_detail_modified">修改时间</string>
+
+    <!-- ==================== FileSummarizer (rule-based summaries) ==================== -->
+    <string name="file_too_large_for_summary">文件过大，无法生成摘要（最大 %dKB）</string>
+    <string name="file_cannot_read_content">无法读取文件内容</string>
+    <string name="file_summary_failed">生成摘要失败: %s</string>
+    <string name="file_code_summary">%s 代码文件</string>
+    <string name="file_code_classes_count">，包含 %d 个类</string>
+    <string name="file_code_functions_count">，%d 个函数</string>
+    <string name="file_code_lines_count">。共 %d 行代码。</string>
+    <string name="file_code_classes_label">类: %s</string>
+    <string name="file_code_functions_label">函数: %s</string>
+
+    <!-- ==================== FileSummaryCard ==================== -->
+    <string name="summary_title">AI 摘要</string>
+    <string name="summary_copy">复制</string>
+    <string name="summary_collapse">收起</string>
+    <string name="summary_expand">展开</string>
+    <string name="summary_generating">正在生成摘要\u2026</string>
+    <string name="summary_analyzing">分析文件内容并提取关键信息</string>
+    <string name="summary_empty">还没有生成摘要</string>
+    <string name="summary_generate">生成摘要</string>
+    <string name="summary_key_points">关键点</string>
+    <string name="summary_word_count">%d 词</string>
+    <string name="summary_method_rule">规则</string>
+    <string name="summary_method_statistical">统计</string>
+    <string name="summary_method_hybrid">混合</string>
+    <string name="summary_clipboard_label">文件摘要</string>
+
+    <!-- ==================== MediaPlayerScreen ==================== -->
+    <string name="media_rewind">后退10秒</string>
+    <string name="media_pause">暂停</string>
+    <string name="media_play">播放</string>
+    <string name="media_forward">快进10秒</string>
+    <string name="media_audio_info">音频文件 \u2022 %s</string>
+    <string name="media_unknown_format">未知格式</string>
+
+    <!-- ==================== OCRResultDialog ==================== -->
+    <string name="ocr_result_title">文字识别结果</string>
+    <string name="ocr_close">关闭</string>
+    <string name="ocr_edit">编辑</string>
+    <string name="ocr_copy">复制</string>
+    <string name="ocr_share">分享</string>
+    <string name="ocr_share_subject">OCR识别结果: %s</string>
+    <string name="ocr_share_text">分享文字</string>
+    <string name="ocr_tab_text">文本</string>
+    <string name="ocr_tab_structure">结构</string>
+    <string name="ocr_tab_data">数据</string>
+    <string name="ocr_stat_characters">字符数</string>
+    <string name="ocr_stat_blocks">文本块</string>
+    <string name="ocr_stat_confidence">置信度</string>
+    <string name="ocr_stat_language">语言</string>
+    <string name="ocr_edit_placeholder">编辑识别的文本\u2026</string>
+    <string name="ocr_cancel">取消</string>
+    <string name="ocr_save">保存</string>
+    <string name="ocr_no_text">未识别到文字</string>
+    <string name="ocr_no_text_hint">图片中可能没有可识别的文字</string>
+    <string name="ocr_no_structured_data">未检测到结构化数据</string>
+    <string name="ocr_structured_data_hint">如: 邮箱、电话、网址、日期等</string>
+    <string name="ocr_confidence_label">置信度: %d%%</string>
+    <string name="ocr_language_label">语言: %s</string>
+    <string name="ocr_block_collapse">收起</string>
+    <string name="ocr_block_expand">展开</string>
+    <string name="ocr_copied_to_clipboard">已复制到剪贴板</string>
+
+    <!-- OCR data types -->
+    <string name="ocr_data_email">邮箱</string>
+    <string name="ocr_data_phone">电话</string>
+    <string name="ocr_data_url">网址</string>
+    <string name="ocr_data_date">日期</string>
+
+    <!-- ==================== FileStatisticsCard ==================== -->
+    <string name="statistics_title">文件统计</string>
+    <string name="statistics_summary">%1$d 个文件，%2$s</string>
+    <string name="statistics_collapse">收起</string>
+    <string name="statistics_expand">展开</string>
+    <string name="statistics_count">%d 个</string>
+    <string name="statistics_favorites">%d 个收藏</string>
+    <string name="statistics_imported">%d 个已导入</string>
+
+    <!-- ==================== File Category Display Names ==================== -->
+    <string name="file_category_document">文档</string>
+    <string name="file_category_image">图片</string>
+    <string name="file_category_video">视频</string>
+    <string name="file_category_audio">音频</string>
+    <string name="file_category_archive">压缩包</string>
+    <string name="file_category_code">代码</string>
+    <string name="file_category_other">其他</string>
+</resources>

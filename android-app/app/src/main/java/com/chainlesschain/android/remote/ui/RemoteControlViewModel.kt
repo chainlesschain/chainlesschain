@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -184,6 +185,7 @@ class RemoteControlViewModel @Inject constructor(
     }
 }
 
+@Immutable
 data class RemoteControlUiState(
     val isLoading: Boolean = false,
     val error: String? = null,

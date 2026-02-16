@@ -24,6 +24,7 @@ import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -201,6 +202,7 @@ class RemoteScreenshotViewModel @Inject constructor(
     }
 }
 
+@Immutable
 data class RemoteScreenshotUiState(
     val isTakingScreenshot: Boolean = false,
     val isSaving: Boolean = false,

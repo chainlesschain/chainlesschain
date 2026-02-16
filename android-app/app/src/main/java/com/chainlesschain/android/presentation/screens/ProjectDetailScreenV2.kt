@@ -21,7 +21,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatRole
 import com.chainlesschain.android.feature.project.model.ProjectDetailState
@@ -75,7 +78,7 @@ fun ProjectDetailScreenV2(
     // 获取项目标题
     val projectTitle = when (val state = projectDetailState) {
         is ProjectDetailState.Success -> state.project.name
-        else -> "项目详情"
+        else -> stringResource(R.string.project_detail_default_title)
     }
 
     Scaffold(
@@ -130,7 +133,7 @@ fun ProjectDetailScreenV2(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { viewModel.loadProjectDetail(projectId) }) {
-                            Text("重试")
+                            Text(stringResource(R.string.common_retry))
                         }
                     }
                 }
@@ -196,6 +199,7 @@ fun ProjectDetailTopBar(
     onNavigateToFileBrowser: () -> Unit = {},
     isLoading: Boolean = false
 ) {
+    val context = LocalContext.current
     TopAppBar(
         title = {
             Row(
@@ -219,24 +223,24 @@ fun ProjectDetailTopBar(
         },
         navigationIcon = {
             IconButton(onClick = onNavigateBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
             }
         },
         actions = {
             IconButton(onClick = { /* Add functionality planned for future release */ }) {
-                Icon(Icons.Default.Add, contentDescription = "添加")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_detail_add))
             }
             IconButton(onClick = onNavigateToFileBrowser) {
-                Icon(Icons.Outlined.Folder, contentDescription = "导入文件")
+                Icon(Icons.Outlined.Folder, contentDescription = stringResource(R.string.project_detail_import_file))
             }
             IconButton(onClick = {
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(android.content.Intent.EXTRA_TEXT, "ChainlessChain项目: $title")
+                    putExtra(android.content.Intent.EXTRA_TEXT, context.getString(R.string.project_detail_share_text, title))
                 }
                 // Share intent will be started by the caller
             }) {
-                Icon(Icons.Default.Share, contentDescription = "分享")
+                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.common_share))
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -280,7 +284,7 @@ fun ViewAllStepsButton(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "查看所有步骤",
+                    text = stringResource(R.string.project_detail_view_all_steps),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -352,7 +356,7 @@ fun UserMessageBubble(message: ProjectChatMessageEntity) {
 
         // 时间戳
         Text(
-            text = formatDetailTimestamp(message.createdAt),
+            text = formatDetailTimestamp(message.createdAt, LocalContext.current),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             modifier = Modifier.padding(top = 4.dp, end = 4.dp)
@@ -393,7 +397,7 @@ fun AiMessageBubble(
                 )
             }
             Text(
-                text = "AI 助手",
+                text = stringResource(R.string.project_detail_ai_assistant),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -442,7 +446,7 @@ fun AiMessageBubble(
                     message.error?.let { error ->
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "错误: $error",
+                            text = stringResource(R.string.error_prefix, error),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -475,7 +479,7 @@ fun AiMessageBubble(
 
         // 时间戳
         Text(
-            text = formatDetailTimestamp(message.createdAt),
+            text = formatDetailTimestamp(message.createdAt, LocalContext.current),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             modifier = Modifier.padding(start = 32.dp, top = 4.dp)
@@ -538,7 +542,7 @@ fun AiTypingIndicator() {
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "正在思考",
+                    text = stringResource(R.string.project_detail_thinking),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -574,13 +578,13 @@ fun EmptyConversationHint(
         )
 
         Text(
-            text = "开始与 AI 讨论 \"$projectName\"",
+            text = stringResource(R.string.project_detail_start_discuss, projectName),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Text(
-            text = "试试以下快捷操作",
+            text = stringResource(R.string.project_detail_try_quick_actions),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )
@@ -592,17 +596,17 @@ fun EmptyConversationHint(
         ) {
             QuickActionButton(
                 icon = Icons.Default.Description,
-                text = "生成 README",
+                text = stringResource(R.string.project_detail_generate_readme),
                 onClick = { onQuickAction("generate_readme") }
             )
             QuickActionButton(
                 icon = Icons.Default.Code,
-                text = "解释项目代码",
+                text = stringResource(R.string.project_detail_explain_code),
                 onClick = { onQuickAction("explain_project") }
             )
             QuickActionButton(
                 icon = Icons.Default.Lightbulb,
-                text = "建议改进",
+                text = stringResource(R.string.project_detail_suggest_improvements),
                 onClick = { onQuickAction("suggest_improvements") }
             )
         }
@@ -674,7 +678,7 @@ fun ProjectInputBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.AttachFile,
-                    contentDescription = "附件",
+                    contentDescription = stringResource(R.string.project_detail_attachment),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -686,7 +690,7 @@ fun ProjectInputBar(
                 modifier = Modifier.weight(1f),
                 placeholder = {
                     Text(
-                        "发消息或按住说话",
+                        stringResource(R.string.project_detail_input_hint),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
@@ -718,7 +722,7 @@ fun ProjectInputBar(
                     } else {
                         Icon(
                             imageVector = Icons.Default.Send,
-                            contentDescription = "发送",
+                            contentDescription = stringResource(R.string.common_send),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -734,7 +738,7 @@ fun ProjectInputBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Mic,
-                        contentDescription = "语音",
+                        contentDescription = stringResource(R.string.project_detail_voice),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -746,13 +750,13 @@ fun ProjectInputBar(
 /**
  * 格式化时间戳
  */
-private fun formatDetailTimestamp(timestamp: Long): String {
+private fun formatDetailTimestamp(timestamp: Long, context: android.content.Context): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
 
     return when {
-        diff < 60_000 -> "刚刚"
-        diff < 3600_000 -> "${diff / 60_000}分钟前"
+        diff < 60_000 -> context.getString(R.string.common_just_now)
+        diff < 3600_000 -> context.getString(R.string.common_minutes_ago, (diff / 60_000).toInt())
         diff < 86400_000 -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
         else -> SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(timestamp))
     }

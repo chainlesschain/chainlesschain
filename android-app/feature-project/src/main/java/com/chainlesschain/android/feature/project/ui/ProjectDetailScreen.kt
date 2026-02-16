@@ -79,9 +79,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
@@ -193,12 +195,12 @@ fun ProjectDetailScreen(
                 title = {
                     when (val state = detailState) {
                         is ProjectDetailState.Success -> Text(state.project.name)
-                        else -> Text("项目详情")
+                        else -> Text(stringResource(R.string.project_details))
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -208,14 +210,14 @@ fun ProjectDetailScreen(
                         IconButton(onClick = { viewModel.toggleFavorite(projectId) }) {
                             Icon(
                                 imageVector = if (project.isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
-                                contentDescription = "收藏",
+                                contentDescription = stringResource(R.string.favorite),
                                 tint = if (project.isFavorite) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
                         Box {
                             IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more))
                             }
 
                             DropdownMenu(
@@ -223,7 +225,7 @@ fun ProjectDetailScreen(
                                 onDismissRequest = { showMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("编辑项目") },
+                                    text = { Text(stringResource(R.string.edit_project)) },
                                     leadingIcon = { Icon(Icons.Default.Edit, null) },
                                     onClick = {
                                         showEditDialog = true
@@ -234,7 +236,7 @@ fun ProjectDetailScreen(
                                 when (project.status) {
                                     ProjectStatus.ACTIVE -> {
                                         DropdownMenuItem(
-                                            text = { Text("暂停项目") },
+                                            text = { Text(stringResource(R.string.pause_project)) },
                                             leadingIcon = { Icon(Icons.Default.Pause, null) },
                                             onClick = {
                                                 viewModel.updateProjectStatus(projectId, ProjectStatus.PAUSED)
@@ -242,7 +244,7 @@ fun ProjectDetailScreen(
                                             }
                                         )
                                         DropdownMenuItem(
-                                            text = { Text("完成项目") },
+                                            text = { Text(stringResource(R.string.complete_project)) },
                                             leadingIcon = { Icon(Icons.Default.CheckCircle, null) },
                                             onClick = {
                                                 viewModel.updateProjectStatus(projectId, ProjectStatus.COMPLETED)
@@ -252,7 +254,7 @@ fun ProjectDetailScreen(
                                     }
                                     ProjectStatus.PAUSED -> {
                                         DropdownMenuItem(
-                                            text = { Text("继续项目") },
+                                            text = { Text(stringResource(R.string.resume_project)) },
                                             leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
                                             onClick = {
                                                 viewModel.updateProjectStatus(projectId, ProjectStatus.ACTIVE)
@@ -262,7 +264,7 @@ fun ProjectDetailScreen(
                                     }
                                     ProjectStatus.COMPLETED -> {
                                         DropdownMenuItem(
-                                            text = { Text("重新开始") },
+                                            text = { Text(stringResource(R.string.restart_project)) },
                                             leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
                                             onClick = {
                                                 viewModel.updateProjectStatus(projectId, ProjectStatus.ACTIVE)
@@ -274,7 +276,7 @@ fun ProjectDetailScreen(
                                 }
 
                                 DropdownMenuItem(
-                                    text = { Text(if (project.isArchived) "取消归档" else "归档") },
+                                    text = { Text(if (project.isArchived) stringResource(R.string.unarchive) else stringResource(R.string.archive)) },
                                     leadingIcon = { Icon(Icons.Default.Archive, null) },
                                     onClick = {
                                         viewModel.toggleArchive(projectId)
@@ -283,7 +285,7 @@ fun ProjectDetailScreen(
                                 )
 
                                 DropdownMenuItem(
-                                    text = { Text("删除项目") },
+                                    text = { Text(stringResource(R.string.delete_project)) },
                                     leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
                                     onClick = {
                                         showDeleteDialog = true
@@ -299,7 +301,7 @@ fun ProjectDetailScreen(
         floatingActionButton = {
             if (selectedTab == 0 && detailState is ProjectDetailState.Success) {
                 FloatingActionButton(onClick = { showAddBottomSheet = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "添加")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add))
                 }
             }
         },
@@ -330,7 +332,7 @@ fun ProjectDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         TextButton(onClick = onNavigateBack) {
-                            Text("返回")
+                            Text(stringResource(R.string.back))
                         }
                     }
                 }
@@ -361,17 +363,17 @@ fun ProjectDetailScreen(
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
-                            text = { Text("文件") }
+                            text = { Text(stringResource(R.string.files_tab)) }
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
-                            text = { Text("AI 助手") }
+                            text = { Text(stringResource(R.string.ai_assistant_tab)) }
                         )
                         Tab(
                             selected = selectedTab == 2,
                             onClick = { selectedTab = 2 },
-                            text = { Text("活动") }
+                            text = { Text(stringResource(R.string.activity_tab)) }
                         )
                     }
 
@@ -473,7 +475,7 @@ fun ProjectDetailScreen(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "添加",
+                    text = stringResource(R.string.add),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
@@ -490,7 +492,7 @@ fun ProjectDetailScreen(
                 ) {
                     Icon(Icons.Default.NoteAdd, contentDescription = null)
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text("新建文件")
+                    Text(stringResource(R.string.new_file))
                 }
 
                 Row(
@@ -505,7 +507,7 @@ fun ProjectDetailScreen(
                 ) {
                     Icon(Icons.Default.CreateNewFolder, contentDescription = null)
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text("新建文件夹")
+                    Text(stringResource(R.string.new_folder))
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -519,12 +521,12 @@ fun ProjectDetailScreen(
 
         AlertDialog(
             onDismissRequest = { showNewFileDialog = false },
-            title = { Text("新建文件") },
+            title = { Text(stringResource(R.string.new_file)) },
             text = {
                 OutlinedTextField(
                     value = fileName,
                     onValueChange = { fileName = it },
-                    label = { Text("文件名") },
+                    label = { Text(stringResource(R.string.file_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -539,12 +541,12 @@ fun ProjectDetailScreen(
                     },
                     enabled = fileName.isNotBlank()
                 ) {
-                    Text("创建")
+                    Text(stringResource(R.string.create))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showNewFileDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -556,12 +558,12 @@ fun ProjectDetailScreen(
 
         AlertDialog(
             onDismissRequest = { showNewFolderDialog = false },
-            title = { Text("新建文件夹") },
+            title = { Text(stringResource(R.string.new_folder)) },
             text = {
                 OutlinedTextField(
                     value = folderName,
                     onValueChange = { folderName = it },
-                    label = { Text("文件夹名") },
+                    label = { Text(stringResource(R.string.folder_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -576,12 +578,12 @@ fun ProjectDetailScreen(
                     },
                     enabled = folderName.isNotBlank()
                 ) {
-                    Text("创建")
+                    Text(stringResource(R.string.create))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showNewFolderDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -634,8 +636,8 @@ fun ProjectDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("删除项目") },
-            text = { Text("确定要删除此项目吗？此操作无法撤销。") },
+            title = { Text(stringResource(R.string.delete_project)) },
+            text = { Text(stringResource(R.string.delete_project_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -643,12 +645,12 @@ fun ProjectDetailScreen(
                         showDeleteDialog = false
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -682,7 +684,7 @@ private fun ProjectInfoCard(
             ) {
                 Column {
                     Text(
-                        text = "状态",
+                        text = stringResource(R.string.status_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -694,7 +696,7 @@ private fun ProjectInfoCard(
 
                 Column {
                     Text(
-                        text = "类型",
+                        text = stringResource(R.string.type_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -706,7 +708,7 @@ private fun ProjectInfoCard(
 
                 Column {
                     Text(
-                        text = "文件数",
+                        text = stringResource(R.string.file_count_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -718,7 +720,7 @@ private fun ProjectInfoCard(
 
                 Column {
                     Text(
-                        text = "大小",
+                        text = stringResource(R.string.size_label),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -755,7 +757,7 @@ private fun FileTreeView(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "暂无文件",
+                    text = stringResource(R.string.no_files_yet),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -875,7 +877,7 @@ private fun FileTreeNodeItem(
                 ) {
                     Icon(
                         Icons.Default.MoreVert,
-                        contentDescription = "更多",
+                        contentDescription = stringResource(R.string.more),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -885,7 +887,7 @@ private fun FileTreeNodeItem(
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("重命名") },
+                        text = { Text(stringResource(R.string.rename)) },
                         leadingIcon = { Icon(Icons.Default.EditNote, null) },
                         onClick = {
                             onRenameFile(node)
@@ -893,7 +895,7 @@ private fun FileTreeNodeItem(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("移动到...") },
+                        text = { Text(stringResource(R.string.move_to)) },
                         leadingIcon = { Icon(Icons.Default.DriveFileMove, null) },
                         onClick = {
                             onMoveFile(node)
@@ -901,7 +903,7 @@ private fun FileTreeNodeItem(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("删除") },
+                        text = { Text(stringResource(R.string.delete)) },
                         leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
                         onClick = {
                             onDeleteFile(node.id)
@@ -950,7 +952,7 @@ private fun ActivityListView(activities: List<ProjectActivityEntity>) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "暂无活动记录",
+                    text = stringResource(R.string.no_activity_records),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1002,15 +1004,16 @@ private fun ActivityItem(activity: ProjectActivityEntity) {
     }
 }
 
+@Composable
 private fun formatActivityTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
 
     return when {
-        diff < 60 * 1000 -> "刚刚"
-        diff < 60 * 60 * 1000 -> "${diff / (60 * 1000)} 分钟前"
-        diff < 24 * 60 * 60 * 1000 -> "${diff / (60 * 60 * 1000)} 小时前"
-        diff < 7 * 24 * 60 * 60 * 1000 -> "${diff / (24 * 60 * 60 * 1000)} 天前"
+        diff < 60 * 1000 -> stringResource(R.string.just_now)
+        diff < 60 * 60 * 1000 -> stringResource(R.string.minutes_ago, (diff / (60 * 1000)).toInt())
+        diff < 24 * 60 * 60 * 1000 -> stringResource(R.string.hours_ago, (diff / (60 * 60 * 1000)).toInt())
+        diff < 7 * 24 * 60 * 60 * 1000 -> stringResource(R.string.days_ago, (diff / (24 * 60 * 60 * 1000)).toInt())
         else -> {
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
             sdf.format(Date(timestamp))
@@ -1032,36 +1035,34 @@ private fun EditProjectDialog(
     var editType by remember { mutableStateOf(project.type) }
     var typeMenuExpanded by remember { mutableStateOf(false) }
 
-    val typeOptions = remember {
-        listOf(
-            ProjectType.DOCUMENT to "文档",
-            ProjectType.WEB to "网站",
-            ProjectType.APP to "应用",
-            ProjectType.DATA to "数据",
-            ProjectType.DESIGN to "设计",
-            ProjectType.RESEARCH to "研究",
-            ProjectType.ANDROID to "Android",
-            ProjectType.BACKEND to "后端",
-            ProjectType.OTHER to "其他"
+    val typeOptions = listOf(
+            ProjectType.DOCUMENT to stringResource(R.string.type_document),
+            ProjectType.WEB to stringResource(R.string.type_web),
+            ProjectType.APP to stringResource(R.string.type_app),
+            ProjectType.DATA to stringResource(R.string.type_data),
+            ProjectType.DESIGN to stringResource(R.string.type_design),
+            ProjectType.RESEARCH to stringResource(R.string.type_research),
+            ProjectType.ANDROID to stringResource(R.string.type_android),
+            ProjectType.BACKEND to stringResource(R.string.type_backend),
+            ProjectType.OTHER to stringResource(R.string.type_other)
         )
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("编辑项目") },
+        title = { Text(stringResource(R.string.edit_project)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = editName,
                     onValueChange = { editName = it },
-                    label = { Text("项目名称") },
+                    label = { Text(stringResource(R.string.project_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = editDesc,
                     onValueChange = { editDesc = it },
-                    label = { Text("项目描述") },
+                    label = { Text(stringResource(R.string.project_description_label)) },
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1070,7 +1071,7 @@ private fun EditProjectDialog(
                         value = typeOptions.firstOrNull { it.first == editType }?.second ?: editType,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("项目类型") },
+                        label = { Text(stringResource(R.string.project_type_label)) },
                         trailingIcon = {
                             IconButton(onClick = { typeMenuExpanded = !typeMenuExpanded }) {
                                 Icon(
@@ -1107,12 +1108,12 @@ private fun EditProjectDialog(
                 },
                 enabled = editName.isNotBlank()
             ) {
-                Text("保存")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -1131,12 +1132,12 @@ private fun RenameFileDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("重命名") },
+        title = { Text(stringResource(R.string.rename_dialog_title)) },
         text = {
             OutlinedTextField(
                 value = newName,
                 onValueChange = { newName = it },
-                label = { Text("新名称") },
+                label = { Text(stringResource(R.string.new_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1146,12 +1147,12 @@ private fun RenameFileDialog(
                 onClick = { onConfirm(newName) },
                 enabled = newName.isNotBlank() && newName != currentName
             ) {
-                Text("确定")
+                Text(stringResource(R.string.confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -1171,11 +1172,11 @@ private fun MoveFileDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("移动 \"$fileName\"") },
+        title = { Text(stringResource(R.string.move_file_title, fileName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "选择目标文件夹:",
+                    text = stringResource(R.string.select_target_folder),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1201,7 +1202,7 @@ private fun MoveFileDialog(
                     ) {
                         Icon(Icons.Default.Folder, null, tint = Color(0xFFFFC107))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("/ (根目录)", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.root_directory), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
@@ -1233,7 +1234,7 @@ private fun MoveFileDialog(
 
                 if (folders.isEmpty()) {
                     Text(
-                        text = "没有其他文件夹",
+                        text = stringResource(R.string.no_other_folders),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -1243,12 +1244,12 @@ private fun MoveFileDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selectedFolderId) }) {
-                Text("移动")
+                Text(stringResource(R.string.move))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

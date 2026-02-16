@@ -48,9 +48,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 
 /**
@@ -104,7 +106,7 @@ fun FileMentionPopup(
                         .fillMaxWidth()
                         .padding(12.dp)
                         .focusRequester(focusRequester),
-                    placeholder = { Text("搜索文件...") },
+                    placeholder = { Text(stringResource(R.string.search_files)) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -136,7 +138,7 @@ fun FileMentionPopup(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = if (searchQuery.isBlank()) "暂无文件" else "未找到匹配的文件",
+                                    text = stringResource(if (searchQuery.isBlank()) R.string.no_files else R.string.no_matching_files),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
@@ -165,7 +167,7 @@ fun FileMentionPopup(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Text(
-                        text = "选择文件后，其内容将作为AI上下文",
+                        text = stringResource(R.string.file_context_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)

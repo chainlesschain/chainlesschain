@@ -1,22 +1,682 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">无链之链</string>
+    <string name="app_name">ChainlessChain</string>
 
-    <!-- Social Screen -->
-    <string name="social_tab_friends">好友</string>
-    <string name="social_tab_timeline">动态</string>
-    <string name="social_tab_notifications">通知</string>
-    <string name="social_friends_placeholder">好友页面为了构建稳定性暂时简化。</string>
-    <string name="social_timeline_placeholder">动态页面为了构建稳定性暂时简化。</string>
-    <string name="social_notifications_placeholder">通知页面为了构建稳定性暂时简化。</string>
+    <!-- ==================== Common / Shared ==================== -->
+    <string name="common_back">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_confirm">Confirm</string>
+    <string name="common_close">Close</string>
+    <string name="common_save">Save</string>
+    <string name="common_send">Send</string>
+    <string name="common_refresh">Refresh</string>
+    <string name="common_settings">Settings</string>
+    <string name="common_more">More</string>
+    <string name="common_copy">Copy</string>
+    <string name="common_remove">Remove</string>
+    <string name="common_download">Download</string>
+    <string name="common_search">Search</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_share">Share</string>
+    <string name="common_open">Open</string>
+    <string name="common_clear">Clear</string>
+    <string name="common_all">All</string>
+    <string name="common_no_data">No data</string>
+    <string name="common_feature_in_development">Feature in development</string>
+    <string name="common_just_now">Just now</string>
+    <string name="common_minutes_ago">%d min ago</string>
+    <string name="common_hours_ago">%d hours ago</string>
+    <string name="common_days_ago">%d days ago</string>
+    <string name="common_connected">Connected</string>
+    <string name="common_disconnected">Disconnected</string>
+    <string name="common_connecting">Connecting…</string>
+    <string name="common_reconnecting">Reconnecting…</string>
+    <string name="common_connection_error">Connection error</string>
+    <string name="common_connection_success">Connection successful</string>
+    <string name="common_connection_failed">Connection failed</string>
+    <string name="common_testing">Testing…</string>
+    <string name="common_processing">Processing…</string>
+    <string name="common_collapse">Collapse</string>
+    <string name="common_expand">Expand</string>
+    <string name="common_verified">Verified</string>
+    <string name="common_unknown">Unknown</string>
+    <string name="common_filter">Filter</string>
+    <string name="common_sort">Sort</string>
 
-    <!-- P2P Chat -->
-    <string name="p2p_chat_title">消息</string>
-    <string name="p2p_chat_empty">暂无对话</string>
+    <!-- ==================== Social Screen ==================== -->
+    <string name="social_tab_friends">Friends</string>
+    <string name="social_tab_timeline">Timeline</string>
+    <string name="social_tab_notifications">Notifications</string>
+    <string name="social_friends_placeholder">Friends page temporarily simplified for build stability.</string>
+    <string name="social_timeline_placeholder">Timeline page temporarily simplified for build stability.</string>
+    <string name="social_notifications_placeholder">Notifications page temporarily simplified for build stability.</string>
 
-    <!-- File Statistics -->
-    <string name="file_statistics_title">文件统计</string>
-    <string name="file_statistics_total">%1$d 个文件，%2$s</string>
-    <string name="file_statistics_favorites">%d 个收藏</string>
-    <string name="file_statistics_imported">%d 个已导入</string>
+    <!-- ==================== P2P Chat ==================== -->
+    <string name="p2p_chat_title">Messages</string>
+    <string name="p2p_chat_empty">No conversations</string>
+
+    <!-- ==================== File Statistics ==================== -->
+    <string name="file_statistics_title">File Statistics</string>
+    <string name="file_statistics_total">%1$d files, %2$s</string>
+    <string name="file_statistics_favorites">%d favorites</string>
+    <string name="file_statistics_imported">%d imported</string>
+
+    <!-- ==================== NavGraph ==================== -->
+    <string name="nav_file_imported">File imported</string>
+    <string name="nav_qr_scan_success">Scan success: %s</string>
+
+    <!-- ==================== Home Screen ==================== -->
+    <string name="home_subtitle">Your AI workspace</string>
+    <string name="home_usage_statistics">Usage Statistics</string>
+    <string name="home_profile_center">Profile</string>
+    <string name="home_more_features">More Features</string>
+    <string name="home_section_devices">Devices &amp; Connections</string>
+    <string name="home_section_data">Data &amp; Statistics</string>
+    <string name="home_section_other">Other Features</string>
+    <string name="home_hint_message_or_voice">Type a message or hold to talk…</string>
+    <string name="home_voice_input">Voice Input</string>
+    <!-- Home feature entries -->
+    <string name="feature_knowledge_base">Knowledge Base</string>
+    <string name="feature_ai_chat">AI Chat</string>
+    <string name="feature_llm_settings">LLM Settings</string>
+    <string name="feature_social_feed">Social Feed</string>
+    <string name="feature_my_qrcode">My QR Code</string>
+    <string name="feature_scan_qrcode">Scan QR</string>
+    <string name="feature_project_management">Project Management</string>
+    <string name="feature_file_browser">File Browser</string>
+    <string name="feature_p2p_devices">P2P Devices</string>
+    <string name="feature_remote_control">Remote Control</string>
+
+    <!-- ==================== Settings Screen ==================== -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_dark_mode">Dark Mode</string>
+    <string name="settings_dark_mode_enabled">Dark theme enabled</string>
+    <string name="settings_dark_mode_follow_system">Follow system setting</string>
+    <string name="settings_notifications">Message Notifications</string>
+    <string name="settings_notifications_desc">Receive messages and system notifications</string>
+    <string name="settings_auto_save">Auto Save</string>
+    <string name="settings_auto_save_desc">Automatically save edits</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_zh_cn">Simplified Chinese</string>
+    <string name="settings_section_network">Network</string>
+    <string name="settings_signaling_server">P2P Signaling Server</string>
+    <string name="settings_section_security">Security</string>
+    <string name="settings_biometric">Biometric</string>
+    <string name="settings_biometric_desc">Unlock with fingerprint or face</string>
+    <string name="settings_change_pin">Change PIN</string>
+    <string name="settings_change_pin_desc">Change app unlock password</string>
+    <string name="settings_key_management">Key Management</string>
+    <string name="settings_key_management_desc">Manage encryption keys and DID identities</string>
+    <string name="settings_section_storage">Storage</string>
+    <string name="settings_clear_cache">Clear Cache</string>
+    <string name="settings_clear_cache_desc">Free space used by temporary files</string>
+    <string name="settings_data_management">Data Management</string>
+    <string name="settings_data_management_desc">Export or backup personal data</string>
+    <string name="settings_section_other">Other</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_desc">App version and information</string>
+    <string name="settings_help_feedback">Help &amp; Feedback</string>
+    <string name="settings_help_feedback_desc">Get help or submit feedback</string>
+    <!-- Settings dialogs -->
+    <string name="settings_clear_cache_dialog_title">Clear Cache</string>
+    <string name="settings_clear_cache_dialog_msg">Are you sure you want to clear all cached data? This won\'t affect your personal data.</string>
+    <string name="settings_cache_cleared">Cache cleared</string>
+    <string name="settings_select_language">Select Language</string>
+    <string name="settings_language_set_to">Language set to %s</string>
+    <string name="settings_change_pin_dialog_title">Change PIN</string>
+    <string name="settings_current_pin">Current PIN</string>
+    <string name="settings_new_pin">New PIN</string>
+    <string name="settings_confirm_new_pin">Confirm New PIN</string>
+    <string name="settings_pin_changed">PIN changed successfully</string>
+    <string name="settings_pin_mismatch">PINs do not match</string>
+    <string name="settings_data_management_dialog_title">Data Management</string>
+    <string name="settings_export_in_development">Data export feature in development</string>
+    <string name="settings_export_data">Export Data</string>
+    <string name="settings_backup_in_development">Data backup feature in development</string>
+    <string name="settings_backup_data">Backup Data</string>
+    <string name="settings_signaling_dialog_title">P2P Signaling Server</string>
+    <string name="settings_signaling_format_hint">Enter PC signaling server address. Format: ws://IP:port</string>
+    <string name="settings_server_address">Server Address</string>
+    <string name="settings_testing_connection">Testing connection…</string>
+    <string name="settings_connection_ok">Connection successful!</string>
+    <string name="settings_connection_fail">Connection failed: %s</string>
+    <string name="settings_test_connection">Test Connection</string>
+    <string name="settings_signaling_saved">Signaling server address saved</string>
+
+    <!-- ==================== Remote Control Screen ==================== -->
+    <string name="remote_title">Remote Control</string>
+    <string name="remote_please_select_device">Please select a device in Device Management first</string>
+    <!-- AI Commands -->
+    <string name="remote_section_ai_commands">AI Commands</string>
+    <string name="remote_ai_chat">AI Chat</string>
+    <string name="remote_ai_chat_desc">Chat with PC LLM</string>
+    <string name="remote_rag_search">RAG Search</string>
+    <string name="remote_rag_search_desc">Search PC knowledge base</string>
+    <string name="remote_agent_control">Agent Control</string>
+    <string name="remote_agent_control_desc">Control PC AI Agent</string>
+    <!-- System Commands -->
+    <string name="remote_section_system_commands">System Commands</string>
+    <string name="remote_system_monitor">System Monitor</string>
+    <string name="remote_system_monitor_desc">Monitor PC system status in real time</string>
+    <string name="remote_desktop">Remote Desktop</string>
+    <string name="remote_desktop_desc">Connect to PC desktop and control remotely</string>
+    <string name="remote_file_transfer">File Transfer</string>
+    <string name="remote_file_transfer_desc">Transfer files between PC and Android</string>
+    <string name="remote_file_transfer_connect_first">Please connect or select a device before transferring files</string>
+    <string name="remote_screenshot">Screenshot</string>
+    <string name="remote_screenshot_desc">Capture PC screen</string>
+    <string name="remote_send_notification">Send Notification</string>
+    <string name="remote_send_notification_desc">Send notification to PC</string>
+    <string name="remote_command_history">Command History</string>
+    <string name="remote_command_history_desc">View command execution history</string>
+    <!-- Sync & Workflow -->
+    <string name="remote_section_sync_workflow">Sync &amp; Workflow</string>
+    <string name="remote_clipboard_sync">Clipboard Sync</string>
+    <string name="remote_clipboard_sync_desc">Sync clipboard between PC and Android</string>
+    <string name="remote_notification_center">Notification Center</string>
+    <string name="remote_notification_center_desc">Manage and send PC notifications</string>
+    <string name="remote_workflow_automation">Workflow Automation</string>
+    <string name="remote_workflow_automation_desc">Create and execute automated workflows</string>
+    <string name="remote_connection_status">Connection Status</string>
+    <string name="remote_connection_status_desc">View detailed connection status and reconnect settings</string>
+    <!-- Device Control -->
+    <string name="remote_section_device_control">Device Control</string>
+    <string name="remote_power_control">Power Control</string>
+    <string name="remote_power_control_desc">Shutdown, restart, sleep, hibernate, lock</string>
+    <string name="remote_process_management">Process Management</string>
+    <string name="remote_process_management_desc">View and manage running processes</string>
+    <string name="remote_media_control">Media Control</string>
+    <string name="remote_media_control_desc">Volume, mute, media playback control</string>
+    <string name="remote_input_control">Input Control</string>
+    <string name="remote_input_control_desc">Remote keyboard, mouse, touchpad</string>
+    <!-- System Info -->
+    <string name="remote_section_system_info">System Info</string>
+    <string name="remote_storage_info">Storage Info</string>
+    <string name="remote_storage_info_desc">Disk space, large files, cleanup</string>
+    <string name="remote_network_info">Network Info</string>
+    <string name="remote_network_info_desc">Network status, interfaces, bandwidth, tools</string>
+    <string name="remote_app_management">Application Management</string>
+    <string name="remote_app_management_desc">Installed apps, running apps</string>
+    <string name="remote_security_info">Security Info</string>
+    <string name="remote_security_info_desc">Firewall, antivirus, update status</string>
+    <!-- Connection panel -->
+    <string name="remote_pc_connection">PC Device Connection</string>
+    <string name="remote_connect_to_pc">Connect to PC</string>
+    <string name="remote_connecting">Connecting…</string>
+    <string name="remote_reconnecting">Reconnecting…</string>
+    <string name="remote_disconnect">Disconnect</string>
+    <string name="remote_reconnect">Reconnect</string>
+    <string name="remote_not_connected">Not Connected</string>
+    <string name="remote_status_connected">Connected</string>
+    <string name="remote_status_error">Connection Error</string>
+    <string name="remote_connected_at">Connected at %s</string>
+    <!-- System status -->
+    <string name="remote_system_status">System Status</string>
+    <string name="remote_cpu">CPU</string>
+    <string name="remote_memory">Memory</string>
+    <string name="remote_cpu_usage">%1$s (%2$s cores)</string>
+    <string name="remote_memory_usage">Used %1$s / Total %2$s</string>
+    <string name="remote_system">System</string>
+    <string name="remote_no_data">No data</string>
+    <!-- Notification dialog -->
+    <string name="remote_send_notification_to_pc">Send Notification to PC</string>
+    <string name="remote_notification_title">Title</string>
+    <string name="remote_notification_content">Content</string>
+    <!-- Recent actions -->
+    <string name="remote_recent_actions">Recent Actions</string>
+    <string name="remote_no_action_history">No action history</string>
+
+    <!-- ==================== Enhanced AI Chat Screen ==================== -->
+    <string name="ai_chat_title">AI Chat</string>
+    <string name="ai_chat_greeting">Hello! I\'m your AI assistant. How can I help you?</string>
+    <string name="ai_chat_sample_question">Help me analyze this project\'s architecture</string>
+    <string name="ai_chat_sample_response">I\'ve analyzed your project architecture. It follows a typical MVVM design…</string>
+    <string name="ai_chat_typing">AI is typing…</string>
+    <string name="ai_chat_attachment">Attachment</string>
+    <string name="ai_chat_attachment_label">[Attachment]</string>
+    <string name="ai_chat_file_analyzing">I\'ve received your file and am analyzing it…</string>
+    <string name="ai_chat_clear_title">Clear Conversation</string>
+    <string name="ai_chat_clear_message">Are you sure you want to clear all conversation content? This cannot be undone.</string>
+    <string name="ai_chat_user">User</string>
+    <string name="ai_chat_input_hint">Type a message…</string>
+    <string name="ai_chat_image">Image</string>
+    <string name="ai_chat_code">Code</string>
+    <string name="ai_chat_document">Document</string>
+    <string name="ai_chat_attachments_count">Attachments (%d)</string>
+
+    <!-- ==================== LLM Settings Screen (app module) ==================== -->
+    <string name="llm_settings_title">AI Configuration</string>
+    <string name="llm_settings_discover">Discover Services</string>
+    <string name="llm_settings_selected">Selected</string>
+    <string name="llm_settings_config_title">%s Configuration</string>
+    <string name="llm_settings_api_key_hint">Enter API key</string>
+    <string name="llm_settings_toggle_key">Show/Hide key</string>
+    <string name="llm_settings_api_endpoint">API Endpoint</string>
+    <string name="llm_settings_test_connection">Test Connection</string>
+    <string name="llm_settings_test_success">Connection successful! Ready to use</string>
+    <string name="llm_settings_test_fail">Connection failed. Please check API key and network</string>
+    <string name="llm_settings_ollama_title">Ollama Local Service Configuration</string>
+    <string name="llm_settings_discovered_services">Discovered Services</string>
+    <string name="llm_settings_scanning">Scanning LAN…</string>
+    <string name="llm_settings_no_services">No services found. Tap refresh to scan</string>
+    <string name="llm_settings_manual_input">Enter service address manually</string>
+    <string name="llm_settings_ollama_success">Connection successful!\nAvailable models: %s</string>
+    <string name="llm_settings_ollama_fail">Connection failed. Please check:\n1. Ollama is running on PC\n2. Firewall allows port 11434\n3. Network connection is ok</string>
+    <string name="llm_settings_usage_tips">Usage Tips</string>
+    <string name="llm_settings_get_api_key">Get API Key</string>
+    <string name="llm_select_provider">Select AI Provider</string>
+    <string name="llm_settings_ollama_usage_tips">1. Ensure Ollama is running on PC\n2. Phone and PC on the same LAN\n3. Tap the WiFi icon to auto-discover\n4. Or manually enter PC\'s IP address</string>
+    <!-- Provider help -->
+    <string name="llm_help_openai">Visit platform.openai.com to register and create an API key</string>
+    <string name="llm_help_deepseek">Visit platform.deepseek.com to register and create an API key</string>
+    <string name="llm_help_claude">Visit console.anthropic.com to register and create an API key</string>
+    <string name="llm_help_gemini">Visit ai.google.dev to get an API key</string>
+    <string name="llm_help_qwen">Visit dashscope.aliyun.com to activate service and get API-KEY</string>
+    <string name="llm_help_ernie">Visit console.bce.baidu.com/qianfan to create app and get key</string>
+    <string name="llm_help_chatglm">Visit open.bigmodel.cn to register and create API key</string>
+    <string name="llm_help_moonshot">Visit platform.moonshot.cn to register and get API key</string>
+    <string name="llm_help_spark">Visit console.xfyun.cn to create app and get key</string>
+    <string name="llm_help_doubao">Visit console.volcengine.com/ark to activate and get API key</string>
+    <string name="llm_help_ollama">No API key needed. Install Ollama on your PC and run it.</string>
+    <string name="llm_help_custom">Enter an OpenAI-compatible API endpoint and key</string>
+    <!-- Provider names -->
+    <string name="llm_provider_dashscope">DashScope Max/Plus/Turbo</string>
+    <string name="llm_provider_ernie">ERNIE Bot 4.0/Turbo</string>
+    <string name="llm_provider_zhipu">Zhipu GLM-4/GLM-3</string>
+    <string name="llm_provider_kimi">Kimi Chat 8K/32K/128K</string>
+    <string name="llm_provider_spark">Spark v3.5/v3.0</string>
+    <string name="llm_provider_doubao">Volcengine Doubao</string>
+    <string name="llm_provider_ollama">Local Model (Free)</string>
+    <string name="llm_provider_custom">Custom OpenAI-Compatible</string>
+
+    <!-- ==================== Project Screen (app module) ==================== -->
+    <string name="project_my_projects">My Projects</string>
+    <string name="project_new_project">New Project</string>
+    <string name="project_search_hint">Search projects…</string>
+    <string name="project_all_count">All Projects (%d)</string>
+    <string name="project_sort_updated">Updated</string>
+    <string name="project_sort_name">Name</string>
+    <string name="project_sort_created">Created</string>
+    <string name="project_load_failed">Failed to load projects</string>
+    <string name="project_empty">No projects</string>
+    <string name="project_login_first">Please log in before creating a project</string>
+    <string name="project_status_in_progress">In Progress</string>
+    <string name="project_status_completed">Completed</string>
+    <string name="project_status_paused">Paused</string>
+    <string name="project_status_archived">Archived</string>
+    <string name="project_total_projects">Total Projects</string>
+    <string name="project_total_files">Total Files</string>
+    <string name="project_files_label">files</string>
+    <string name="project_size_prefix">Size: %s</string>
+    <string name="project_just_updated">Just updated</string>
+
+    <!-- ==================== Device Management ==================== -->
+    <string name="device_title">Device Management</string>
+    <string name="device_stop_scan">Stop Scan</string>
+    <string name="device_scan_devices">Scan Devices</string>
+    <string name="device_connected_count">Connected (%d)</string>
+    <string name="device_discovered_count">Discovered (%d)</string>
+    <string name="device_no_connected">No connected devices</string>
+    <string name="device_tap_scan_hint">Tap the button below to scan for new devices</string>
+    <string name="device_scanning">Scanning nearby devices…</string>
+    <string name="device_scanning_wait">Please wait, searching…</string>
+    <string name="device_tap_to_scan">Tap the button below to start scanning</string>
+    <string name="device_scanning_label">Scanning</string>
+    <string name="device_discovered_label">Discovered</string>
+    <string name="device_id_label">Device ID: %s…</string>
+    <string name="device_e2ee_session">E2EE Session \u2022 %1$d/%2$d messages</string>
+    <string name="device_more_options">More options</string>
+    <string name="device_view_details">View Details</string>
+    <string name="device_verify">Verify Device</string>
+    <string name="device_connect">Connect</string>
+    <string name="device_scan_nearby_hint">Scan nearby devices to connect</string>
+    <string name="device_unknown_address">Unknown address</string>
+    <string name="device_disconnect_title">Disconnect Device</string>
+    <string name="device_disconnect_message">Are you sure you want to disconnect from \"%s\"?\n\nThis will delete the encrypted session. You will need to pair again to reconnect.</string>
+
+    <!-- ==================== Bottom Navigation ==================== -->
+    <string name="nav_home">Home</string>
+    <string name="nav_projects">Projects</string>
+    <string name="nav_social">Social</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_unread_notifications">%d unread notifications</string>
+
+    <!-- ==================== Common Components ==================== -->
+    <string name="common_loading">Loading…</string>
+    <string name="common_search_hint">Search…</string>
+    <string name="common_copy_code">Copy code</string>
+
+    <!-- ==================== Home Screen (Legacy) ==================== -->
+    <string name="home_auth_success">Authentication successful!</string>
+    <string name="home_welcome">Welcome to ChainlessChain</string>
+    <string name="home_user_info">User Info</string>
+    <string name="home_user_id">User ID: %s…</string>
+    <string name="home_device_id">Device ID: %s…</string>
+    <string name="home_biometric_enabled">Biometric: Enabled</string>
+    <string name="home_biometric_disabled">Biometric: Disabled</string>
+    <string name="home_more_features_coming">More features coming soon…</string>
+    <string name="home_enter_knowledge_base">Enter Knowledge Base</string>
+    <string name="home_ai_chat_assistant">AI Chat Assistant</string>
+    <string name="home_p2p_device_management">P2P Device Management</string>
+    <string name="home_logout">Log Out</string>
+    <string name="home_logout_confirm">Are you sure you want to log out? This will clear all local data.</string>
+
+    <!-- ==================== About Screen ==================== -->
+    <string name="about_title">About</string>
+    <string name="about_description">Decentralized Personal AI Management System</string>
+    <string name="about_version">Version</string>
+    <string name="about_build">Build</string>
+    <string name="about_target_sdk">Target SDK</string>
+    <string name="about_min_sdk">Min SDK</string>
+    <string name="about_core_features">Core Features</string>
+    <string name="about_feature_knowledge">Knowledge Management</string>
+    <string name="about_feature_knowledge_desc">Personal second brain with RAG-enhanced search</string>
+    <string name="about_feature_social">Decentralized Social</string>
+    <string name="about_feature_social_desc">DID-based identity authentication and P2P encrypted messaging</string>
+    <string name="about_feature_trading">Decentralized Trading</string>
+    <string name="about_feature_trading_desc">Digital asset management and smart contracts</string>
+    <string name="about_tech_stack">Tech Stack</string>
+    <string name="about_framework">Framework</string>
+    <string name="about_language">Language</string>
+    <string name="about_architecture">Architecture</string>
+    <string name="about_di">Dependency Injection</string>
+
+    <!-- ==================== Bookmark Screen ==================== -->
+    <string name="bookmark_title">My Bookmarks</string>
+    <string name="bookmark_search_hint">Search bookmarks…</string>
+    <string name="bookmark_manage">Manage</string>
+    <string name="bookmark_manage_done">Done</string>
+    <string name="bookmark_removed">Bookmark removed</string>
+    <string name="bookmark_new_tag_title">New Tag</string>
+    <string name="bookmark_tag_name">Tag name</string>
+    <string name="bookmark_tag_created">Tag \"%s\" created</string>
+    <string name="bookmark_new_tag">+ New Tag</string>
+    <string name="bookmark_total">Total Bookmarks</string>
+    <string name="bookmark_projects">Projects</string>
+    <string name="bookmark_documents">Documents</string>
+    <string name="bookmark_knowledge">Knowledge Base</string>
+    <string name="bookmark_remove_cd">Remove bookmark</string>
+    <string name="bookmark_view_details_developing">View details feature in development</string>
+    <!-- Bookmark sample data -->
+    <string name="bookmark_sample_1_title">Complete Guide to Kotlin Coroutines</string>
+    <string name="bookmark_sample_1_desc">Deep understanding of Kotlin coroutine principles and best practices with practical examples</string>
+    <string name="bookmark_sample_2_title">AI-Powered Project Management System</string>
+    <string name="bookmark_sample_2_desc">Optimize project management with AI to improve team collaboration efficiency</string>
+    <string name="bookmark_sample_3_title">Android Compose Best Practices</string>
+    <string name="bookmark_sample_3_desc">Master the core concepts of Jetpack Compose from beginner to expert</string>
+    <string name="bookmark_sample_4_title">How to Build Decentralized Apps</string>
+    <string name="bookmark_sample_4_desc">Explore blockchain technology in application development</string>
+    <string name="bookmark_sample_5_title">Tech Trends Analysis 2024</string>
+    <string name="bookmark_sample_5_desc">Comprehensive review of the most notable technology trends this year</string>
+    <string name="bookmark_tag_tech">Tech</string>
+    <string name="bookmark_tag_learning">Learning</string>
+    <string name="bookmark_tag_work">Work</string>
+    <string name="bookmark_tag_life">Life</string>
+    <string name="bookmark_filter_all">All</string>
+    <string name="bookmark_filter_no_tag">No Tag</string>
+    <string name="bookmark_add">Add</string>
+    <string name="bookmark_all_count">All Bookmarks (%d)</string>
+    <string name="bookmark_undo">Undo</string>
+    <string name="bookmark_empty_title">No bookmarks yet</string>
+    <string name="bookmark_empty_desc">Browse the explore page and bookmark interesting content</string>
+    <!-- Bookmark type labels -->
+    <string name="bookmark_type_project">Project</string>
+    <string name="bookmark_type_document">Document</string>
+    <string name="bookmark_type_knowledge">Knowledge Base</string>
+    <string name="bookmark_type_ai_chat">AI Chat</string>
+
+    <!-- ==================== Explore Screen ==================== -->
+    <string name="explore_title">Explore</string>
+    <string name="explore_like">Like</string>
+    <string name="explore_bookmark">Bookmark</string>
+    <!-- Explore sample data -->
+    <string name="explore_sample_1_title">Getting Started with AI Painting</string>
+    <string name="explore_sample_1_desc">Learn AI painting from scratch with Stable Diffusion and Midjourney</string>
+    <string name="explore_sample_1_author">Design Expert</string>
+    <string name="explore_sample_2_title">2024 Investment Strategy Analysis</string>
+    <string name="explore_sample_2_desc">In-depth review of market trends and investment opportunities this year</string>
+    <string name="explore_sample_2_author">Finance Observer</string>
+    <string name="explore_sample_3_title">Portrait Photography Color Grading Tips</string>
+    <string name="explore_sample_3_desc">Professional photographer shares portrait photo color grading secrets</string>
+    <string name="explore_sample_3_author">Photo Studio</string>
+    <string name="explore_sample_4_title">Efficient Learning Methods</string>
+    <string name="explore_sample_4_desc">Scientific learning methods to help you achieve more with less effort</string>
+    <string name="explore_sample_4_author">Learning Expert</string>
+    <string name="explore_sample_5_title">Weekend Food Vlog</string>
+    <string name="explore_sample_5_desc">Discover hidden gem restaurants in the city</string>
+    <string name="explore_sample_5_author">Food Explorer</string>
+    <string name="explore_sample_6_title">UI Design Trends 2024</string>
+    <string name="explore_sample_6_desc">The most popular UI design styles and techniques this year</string>
+    <string name="explore_sample_6_author">UI Designer</string>
+    <string name="explore_sample_7_title">Python Data Analysis in Practice</string>
+    <string name="explore_sample_7_desc">A complete tutorial on data analysis with Python</string>
+    <string name="explore_sample_7_author">Programming Teacher</string>
+    <string name="explore_sample_8_title">Indoor Portrait Lighting Tips</string>
+    <string name="explore_sample_8_desc">How to take great portrait photos indoors</string>
+    <string name="explore_sample_8_author">Light Master</string>
+    <!-- Explore category display names -->
+    <string name="explore_cat_all">Explore</string>
+    <string name="explore_cat_photography">Portrait Photography</string>
+    <string name="explore_cat_education">Education</string>
+    <string name="explore_cat_finance">Finance</string>
+    <string name="explore_cat_creative_design">Creative Design</string>
+    <string name="explore_cat_lifestyle">Lifestyle</string>
+
+    <!-- ==================== Help &amp; Feedback Screen ==================== -->
+    <string name="help_title">Help &amp; Feedback</string>
+    <string name="help_report_issue">Report Issue</string>
+    <string name="help_feature_request">Feature Request</string>
+    <string name="help_contact_us">Contact Us</string>
+    <string name="help_faq_title">FAQ</string>
+    <string name="help_faq_q1">How to create a knowledge base?</string>
+    <string name="help_faq_a1">Tap \"Knowledge Base\" on the home page, then tap the \"+\" button at the top right to create a new entry. Supports text, documents and more.</string>
+    <string name="help_faq_q2">How to configure AI models?</string>
+    <string name="help_faq_a2">Go to \"Profile\" \u003e \"AI Configuration\", select an LLM provider (e.g. Doubao/OpenAI/Ollama), and enter the API key. We recommend using \"AI Test\" to verify the connection first.</string>
+    <string name="help_faq_q3">What to do if P2P device connection fails?</string>
+    <string name="help_faq_a3">Make sure both devices are on the same network and check firewall settings to allow P2P communication. For remote connections, ensure the signaling server is reachable.</string>
+    <string name="help_faq_q4">How to backup data?</string>
+    <string name="help_faq_a4">Go to \"Settings\" \u003e \"Data Management\" to export personal data. The app uses SQLCipher encrypted storage and data is saved in the app\'s private directory by default.</string>
+    <string name="help_faq_q5">How is data security ensured?</string>
+    <string name="help_faq_a5">The app uses AES-256 encrypted database and supports PIN and biometric unlock. P2P communication uses Signal protocol for end-to-end encryption, with identity based on decentralized DID.</string>
+    <string name="help_feedback_email_subject">ChainlessChain Feedback</string>
+    <string name="help_tutorials">Tutorials</string>
+    <string name="help_quick_start">Quick Start</string>
+    <string name="help_quick_start_desc">Learn the core features and basic operations of ChainlessChain</string>
+    <string name="help_ai_advanced">AI Chat Advanced</string>
+    <string name="help_ai_advanced_desc">Master multi-model configuration, prompt optimization and token management</string>
+    <string name="help_device_connection">Device Connection</string>
+    <string name="help_device_connection_desc">Configure P2P connections for cross-device collaboration and remote control</string>
+    <string name="help_security_guide">Security Guide</string>
+    <string name="help_security_guide_desc">Learn about encryption mechanisms, DID identity and key management</string>
+    <string name="help_submit_feedback">Submit Feedback</string>
+    <string name="help_feedback_prompt">Please describe the issue or your suggestion:</string>
+    <string name="help_feedback_hint">Enter your feedback…</string>
+    <string name="help_submit_success">Submitted Successfully</string>
+    <string name="help_submit_thanks">Thank you for your feedback! We will process it as soon as possible.</string>
+
+    <!-- ==================== LLM Test Chat Screen ==================== -->
+    <string name="llm_test_title">LLM Test - %s</string>
+    <string name="llm_test_response_time">Response Time</string>
+    <string name="llm_test_total_tokens">Total Tokens</string>
+    <string name="llm_test_message_count">Messages</string>
+    <string name="llm_test_success_rate">Success Rate</string>
+    <string name="llm_test_input_hint">Enter test message…</string>
+    <string name="llm_test_api_key_not_configured">API key for %1$s is not configured. Please set it in AI Settings first.</string>
+
+    <!-- ==================== Profile ==================== -->
+    <string name="profile_center">Profile</string>
+    <string name="profile_knowledge_base">Knowledge Base</string>
+    <string name="profile_knowledge_base_desc">Manage my knowledge base</string>
+    <string name="profile_ai_chat">AI Chat</string>
+    <string name="profile_ai_chat_desc">AI assistant chat history</string>
+    <string name="profile_ai_config">AI Configuration</string>
+    <string name="profile_ai_config_desc">Configure LLM providers and API keys</string>
+    <string name="profile_ai_test">AI Test</string>
+    <string name="profile_ai_test_desc">Test LLM connection and performance</string>
+    <string name="profile_p2p_devices">P2P Device Management</string>
+    <string name="profile_p2p_devices_desc">Manage connected devices</string>
+    <string name="profile_settings">Settings</string>
+    <string name="profile_settings_desc">App settings</string>
+    <string name="profile_about">About</string>
+    <string name="profile_about_desc">App info and version</string>
+    <string name="profile_help">Help &amp; Feedback</string>
+    <string name="profile_help_desc">Get help</string>
+    <string name="profile_usage_stats">Usage Statistics</string>
+    <string name="profile_usage_stats_desc">View token usage and cost statistics</string>
+    <string name="profile_bookmarks">My Bookmarks</string>
+    <string name="profile_bookmarks_desc">View bookmarked content</string>
+    <string name="profile_tab">Profile</string>
+    <string name="profile_biometric_enabled">Biometric enabled</string>
+    <string name="profile_biometric_disabled">Biometric disabled</string>
+    <string name="profile_section_features">Features</string>
+    <string name="profile_section_system">System</string>
+    <string name="profile_user_label">User %s</string>
+    <string name="profile_device_id_label">Device ID: %s…</string>
+
+    <!-- ==================== Social Screen (additional) ==================== -->
+    <string name="social_mark_all_read">Mark All Read</string>
+    <string name="social_unread">Unread</string>
+
+    <!-- ==================== Stats Dashboard ==================== -->
+    <string name="stats_title">Statistics</string>
+    <string name="stats_knowledge_base">Knowledge Base</string>
+    <string name="stats_projects">Projects</string>
+    <string name="stats_ai_chat">AI Chat</string>
+    <string name="stats_completion_rate">Completion Rate</string>
+    <string name="stats_total_docs">Total Documents</string>
+    <string name="stats_avg_response_time">Avg Response Time</string>
+    <string name="stats_storage_usage">Storage Usage</string>
+    <string name="stats_collaborators">Collaborators</string>
+
+    <!-- ==================== Task Detail Screen ==================== -->
+    <string name="task_detail_title">Task Details</string>
+    <string name="task_complete">Complete Task</string>
+    <string name="task_add_step">Add Step</string>
+    <string name="task_created_at">Created</string>
+    <string name="task_due_date">Due Date</string>
+    <string name="task_completed_at">Completed</string>
+    <string name="task_updated_at">Updated</string>
+    <string name="task_completed_cd">Completed</string>
+
+    <!-- ==================== Project Detail V2 ==================== -->
+    <string name="project_detail_add">Add</string>
+    <string name="project_detail_import_file">Import file</string>
+    <string name="project_detail_attachment">Attachment</string>
+    <string name="project_detail_voice">Voice</string>
+    <string name="project_detail_share_text">ChainlessChain Project: %s</string>
+    <string name="project_detail_view_all_steps">View all steps</string>
+    <string name="project_detail_ai_assistant">AI Assistant</string>
+    <string name="project_detail_thinking">Thinking</string>
+    <string name="project_detail_start_discuss">Start discussing with AI \"%s\"</string>
+    <string name="project_detail_try_quick_actions">Try these quick actions</string>
+    <string name="project_detail_input_hint">Send message or hold to speak</string>
+    <string name="project_detail_default_title">Project Details</string>
+    <string name="project_detail_generate_readme">Generate README</string>
+    <string name="project_detail_explain_code">Explain Project Code</string>
+    <string name="project_detail_suggest_improvements">Suggest Improvements</string>
+    <string name="llm_discovery_no_service">No service found. Please ensure Ollama is running on PC.</string>
+    <string name="llm_discovery_found">Found %d services</string>
+
+    <!-- ==================== Device Scan Screen ==================== -->
+    <string name="device_scan_title">Scan Devices</string>
+    <string name="device_scan_debug_info">Debug info</string>
+    <string name="device_scan_debug_title">Scan Debug Info</string>
+    <string name="device_scan_scanning">Scanning…</string>
+    <string name="device_scan_start">Start Scan</string>
+    <string name="device_scan_registered">Registered</string>
+    <string name="device_scan_no_devices">No devices found</string>
+    <string name="device_scan_register_title">Register Device</string>
+    <string name="device_scan_register_hint">Please register the device before connecting</string>
+    <string name="device_scan_device_name">Device Name</string>
+    <string name="device_scan_register">Register</string>
+
+    <!-- ==================== Power Control ==================== -->
+    <string name="power_confirm_title">Confirm Action</string>
+    <string name="power_confirm_message">Are you sure you want to perform %s?</string>
+    <string name="power_timer_title">Set Shutdown Timer</string>
+    <string name="power_timer_prompt">Enter delay time (minutes):</string>
+    <string name="power_timer_label">Minutes</string>
+
+    <!-- ==================== Process Manager ==================== -->
+    <string name="process_kill_title">Kill Process</string>
+    <string name="process_kill_message">Are you sure you want to kill process %1$s (PID: %2$d)?</string>
+    <string name="process_kill">Kill</string>
+    <string name="process_force_kill">Force Kill</string>
+    <string name="process_kill_button">Kill Process</string>
+
+    <!-- ==================== Error Messages ==================== -->
+    <string name="error_prefix">Error: %s</string>
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_upload_failed">Upload failed</string>
+    <string name="error_download_failed">Download failed</string>
+    <string name="error_cancel_failed">Cancel failed</string>
+    <string name="error_replay_failed">Replay failed</string>
+    <string name="error_fetch_status_failed">Failed to fetch system status</string>
+    <string name="llm_config_saved">Configuration saved</string>
+    <string name="llm_save_failed">Save failed: %s</string>
+    <string name="llm_connection_success">Connection successful</string>
+    <string name="llm_connection_failed">Connection failed</string>
+    <string name="llm_connection_http_failed">Connection failed: HTTP %d</string>
+    <string name="llm_test_error">Test failed: %s</string>
+    <string name="llm_scan_failed">Scan failed: %s</string>
+    <string name="device_inactivity_warning">You haven\'t used remote control for %d days. Permissions may be automatically downgraded.</string>
+    <string name="device_inactivity_notice">You haven\'t used remote control for %d days.</string>
+    <string name="webrtc_pc_not_responding">PC is not responding. Please ensure the PC app is running and connected to the same network.</string>
+    <string name="webrtc_signaling_failed">Unable to connect to signaling server. Please check network settings.</string>
+
+    <!-- ==================== Enum Display Names ==================== -->
+    <!-- ProjectType -->
+    <string name="project_type_general">General</string>
+    <string name="project_type_research">Research</string>
+    <string name="project_type_development">Development</string>
+    <string name="project_type_writing">Writing</string>
+    <string name="project_type_design">Design</string>
+    <string name="project_type_android">Android</string>
+    <string name="project_type_backend">Backend</string>
+    <string name="project_type_data_science">Data Science</string>
+    <string name="project_type_multiplatform">Multiplatform</string>
+    <string name="project_type_flutter">Flutter</string>
+    <!-- ProjectStatus -->
+    <string name="project_status_draft">Draft</string>
+    <string name="project_status_active">Active</string>
+    <string name="project_status_paused_enum">Paused</string>
+    <string name="project_status_completed_enum">Completed</string>
+    <string name="project_status_archived_enum">Archived</string>
+    <!-- FileType -->
+    <string name="file_type_document">Document</string>
+    <string name="file_type_code">Code</string>
+    <string name="file_type_image">Image</string>
+    <string name="file_type_video">Video</string>
+    <string name="file_type_audio">Audio</string>
+    <string name="file_type_other">Other</string>
+    <!-- TaskStatus -->
+    <string name="task_status_todo">To Do</string>
+    <string name="task_status_in_progress">In Progress</string>
+    <string name="task_status_completed">Completed</string>
+    <string name="task_status_cancelled">Cancelled</string>
+    <!-- TaskPriority -->
+    <string name="task_priority_low">Low</string>
+    <string name="task_priority_medium">Medium</string>
+    <string name="task_priority_high">High</string>
+    <string name="task_priority_urgent">Urgent</string>
+    <!-- ExploreCategory -->
+    <string name="explore_category_all">All</string>
+    <string name="explore_category_project">Project</string>
+    <string name="explore_category_document">Document</string>
+    <string name="explore_category_ai_chat">AI Chat</string>
+    <string name="explore_category_knowledge">Knowledge Base</string>
+    <!-- MessageType -->
+    <string name="message_type_user">User Message</string>
+    <string name="message_type_ai">AI Message</string>
+    <string name="message_type_system">System Message</string>
+    <!-- StepType -->
+    <string name="step_type_user_message">User Message</string>
+    <string name="step_type_file_read">File Read</string>
+    <string name="step_type_ai_message">AI Message</string>
+    <string name="step_type_terminal">Terminal</string>
+    <string name="step_type_web_browse">Web Browse</string>
+    <string name="step_type_code_execute">Code Execute</string>
 </resources>

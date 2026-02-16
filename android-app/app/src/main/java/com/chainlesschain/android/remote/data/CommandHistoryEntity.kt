@@ -67,6 +67,10 @@ class Converters {
 
     @TypeConverter
     fun toCommandStatus(value: String): CommandStatus {
-        return CommandStatus.valueOf(value)
+        return try {
+            CommandStatus.valueOf(value)
+        } catch (_: IllegalArgumentException) {
+            CommandStatus.PENDING
+        }
     }
 }

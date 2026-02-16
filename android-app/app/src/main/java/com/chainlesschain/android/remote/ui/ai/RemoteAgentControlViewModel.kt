@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -165,6 +166,7 @@ class RemoteAgentControlViewModel @Inject constructor(
     }
 }
 
+@Immutable
 data class RemoteAgentControlUiState(
     val isLoading: Boolean = false,
     val error: String? = null

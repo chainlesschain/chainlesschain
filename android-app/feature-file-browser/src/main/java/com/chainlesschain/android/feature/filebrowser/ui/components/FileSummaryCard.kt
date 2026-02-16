@@ -16,8 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import com.chainlesschain.android.feature.filebrowser.ai.FileSummarizer
 
 /**
@@ -75,7 +77,7 @@ fun FileSummaryCard(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "AI 摘要",
+                        text = stringResource(R.string.summary_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -99,7 +101,7 @@ fun FileSummaryCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "复制",
+                                contentDescription = stringResource(R.string.summary_copy),
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -113,7 +115,7 @@ fun FileSummaryCard(
                         ) {
                             Icon(
                                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = if (expanded) "收起" else "展开",
+                                contentDescription = if (expanded) stringResource(R.string.summary_collapse) else stringResource(R.string.summary_expand),
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -161,17 +163,17 @@ private fun SummaryMethodBadge(method: FileSummarizer.SummarizationMethod) {
         )
         FileSummarizer.SummarizationMethod.RULE_BASED -> Triple(
             Icons.Default.Rule,
-            "规则",
+            stringResource(R.string.summary_method_rule),
             MaterialTheme.colorScheme.tertiary
         )
         FileSummarizer.SummarizationMethod.STATISTICAL -> Triple(
             Icons.Default.Analytics,
-            "统计",
+            stringResource(R.string.summary_method_statistical),
             MaterialTheme.colorScheme.secondary
         )
         FileSummarizer.SummarizationMethod.HYBRID -> Triple(
             Icons.Default.AutoAwesome,
-            "混合",
+            stringResource(R.string.summary_method_hybrid),
             MaterialTheme.colorScheme.primary
         )
     }
@@ -217,12 +219,12 @@ private fun LoadingSummary() {
         )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "正在生成摘要...",
+                text = stringResource(R.string.summary_generating),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Text(
-                text = "分析文件内容并提取关键信息",
+                text = stringResource(R.string.summary_analyzing),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
             )
@@ -247,7 +249,7 @@ private fun EmptySummary(onGenerate: () -> Unit) {
             tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.4f)
         )
         Text(
-            text = "还没有生成摘要",
+            text = stringResource(R.string.summary_empty),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
         )
@@ -264,7 +266,7 @@ private fun EmptySummary(onGenerate: () -> Unit) {
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("生成摘要")
+            Text(stringResource(R.string.summary_generate))
         }
     }
 }
@@ -293,7 +295,7 @@ private fun SummaryContent(summary: FileSummarizer.SummaryResult) {
         if (summary.keyPoints.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "关键点",
+                    text = stringResource(R.string.summary_key_points),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -328,7 +330,7 @@ private fun SummaryContent(summary: FileSummarizer.SummaryResult) {
             if (summary.wordCount > 0) {
                 StatChip(
                     icon = Icons.Default.TextFields,
-                    label = "${summary.wordCount} 词"
+                    label = stringResource(R.string.summary_word_count, summary.wordCount)
                 )
             }
 
@@ -417,7 +419,7 @@ fun FileSummaryBadge(
  * Copy text to clipboard
  */
 private fun copyToClipboard(context: Context, text: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val clip = ClipData.newPlainText("文件摘要", text)
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+    val clip = ClipData.newPlainText("File Summary", text)
     clipboard.setPrimaryClip(clip)
 }

@@ -17,7 +17,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 import com.chainlesschain.android.config.ThemeMode
 import kotlinx.coroutines.launch
 
@@ -43,10 +45,10 @@ fun SettingsScreen(
     var showPinDialog by remember { mutableStateOf(false) }
     var showDataManagementSheet by remember { mutableStateOf(false) }
     var showSignalingDialog by remember { mutableStateOf(false) }
-    var selectedLanguage by remember { mutableStateOf("简体中文") }
 
     // 信令服务器配置 (与 SignalingConfig 使用相同的 SharedPreferences)
     val context = LocalContext.current
+    var selectedLanguage by remember { mutableStateOf(context.getString(R.string.settings_language_zh_cn)) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val prefs = context.getSharedPreferences("signaling_prefs", android.content.Context.MODE_PRIVATE)
@@ -58,10 +60,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设置", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -78,7 +80,7 @@ fun SettingsScreen(
             // 通用设置
             item {
                 Text(
-                    text = "通用",
+                    text = stringResource(R.string.settings_section_general),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -88,8 +90,8 @@ fun SettingsScreen(
             item {
                 SettingsToggleItem(
                     icon = Icons.Default.DarkMode,
-                    title = "深色模式",
-                    subtitle = if (darkModeEnabled) "已启用深色主题" else "跟随系统设置",
+                    title = stringResource(R.string.settings_dark_mode),
+                    subtitle = if (darkModeEnabled) stringResource(R.string.settings_dark_mode_enabled) else stringResource(R.string.settings_dark_mode_follow_system),
                     checked = darkModeEnabled,
                     onCheckedChange = { enabled ->
                         onThemeModeChanged(if (enabled) ThemeMode.DARK else ThemeMode.SYSTEM)
@@ -100,8 +102,8 @@ fun SettingsScreen(
             item {
                 SettingsToggleItem(
                     icon = Icons.Default.Notifications,
-                    title = "消息通知",
-                    subtitle = "接收消息和系统通知",
+                    title = stringResource(R.string.settings_notifications),
+                    subtitle = stringResource(R.string.settings_notifications_desc),
                     checked = notificationsEnabled,
                     onCheckedChange = { notificationsEnabled = it }
                 )
@@ -110,8 +112,8 @@ fun SettingsScreen(
             item {
                 SettingsToggleItem(
                     icon = Icons.Default.Save,
-                    title = "自动保存",
-                    subtitle = "自动保存编辑内容",
+                    title = stringResource(R.string.settings_auto_save),
+                    subtitle = stringResource(R.string.settings_auto_save_desc),
                     checked = autoSaveEnabled,
                     onCheckedChange = { autoSaveEnabled = it }
                 )
@@ -120,8 +122,8 @@ fun SettingsScreen(
             item {
                 SettingsNavigationItem(
                     icon = Icons.Default.Language,
-                    title = "语言",
-                    subtitle = "简体中文",
+                    title = stringResource(R.string.settings_language),
+                    subtitle = stringResource(R.string.settings_language_zh_cn),
                     onClick = { showLanguageDialog = true }
                 )
             }
@@ -130,7 +132,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "网络",
+                    text = stringResource(R.string.settings_section_network),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -140,7 +142,7 @@ fun SettingsScreen(
             item {
                 SettingsNavigationItem(
                     icon = Icons.Default.Wifi,
-                    title = "P2P 信令服务器",
+                    title = stringResource(R.string.settings_signaling_server),
                     subtitle = signalingServerUrl,
                     onClick = { showSignalingDialog = true }
                 )
@@ -150,7 +152,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "安全",
+                    text = stringResource(R.string.settings_section_security),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -160,8 +162,8 @@ fun SettingsScreen(
             item {
                 SettingsToggleItem(
                     icon = Icons.Default.Fingerprint,
-                    title = "生物识别",
-                    subtitle = "使用指纹或面部识别解锁",
+                    title = stringResource(R.string.settings_biometric),
+                    subtitle = stringResource(R.string.settings_biometric_desc),
                     checked = biometricEnabled,
                     onCheckedChange = { biometricEnabled = it }
                 )
@@ -170,8 +172,8 @@ fun SettingsScreen(
             item {
                 SettingsNavigationItem(
                     icon = Icons.Default.Lock,
-                    title = "修改PIN码",
-                    subtitle = "更改应用解锁密码",
+                    title = stringResource(R.string.settings_change_pin),
+                    subtitle = stringResource(R.string.settings_change_pin_desc),
                     onClick = { showPinDialog = true }
                 )
             }
@@ -179,10 +181,10 @@ fun SettingsScreen(
             item {
                 SettingsNavigationItem(
                     icon = Icons.Default.Key,
-                    title = "密钥管理",
-                    subtitle = "管理加密密钥和DID身份",
+                    title = stringResource(R.string.settings_key_management),
+                    subtitle = stringResource(R.string.settings_key_management_desc),
                     onClick = {
-                        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
                     }
                 )
             }
@@ -191,7 +193,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "存储",
+                    text = stringResource(R.string.settings_section_storage),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -201,8 +203,8 @@ fun SettingsScreen(
             item {
                 SettingsNavigationItem(
                     icon = Icons.Default.CleaningServices,
-                    title = "清除缓存",
-                    subtitle = "释放临时文件占用的空间",
+                    title = stringResource(R.string.settings_clear_cache),
+                    subtitle = stringResource(R.string.settings_clear_cache_desc),
                     onClick = { showClearCacheDialog = true }
                 )
             }
@@ -210,8 +212,8 @@ fun SettingsScreen(
             item {
                 SettingsNavigationItem(
                     icon = Icons.Default.Storage,
-                    title = "数据管理",
-                    subtitle = "导出或备份个人数据",
+                    title = stringResource(R.string.settings_data_management),
+                    subtitle = stringResource(R.string.settings_data_management_desc),
                     onClick = { showDataManagementSheet = true }
                 )
             }
@@ -220,7 +222,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "其他",
+                    text = stringResource(R.string.settings_section_other),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -230,8 +232,8 @@ fun SettingsScreen(
             item {
                 SettingsNavigationItem(
                     icon = Icons.Default.Info,
-                    title = "关于",
-                    subtitle = "应用版本和信息",
+                    title = stringResource(R.string.settings_about),
+                    subtitle = stringResource(R.string.settings_about_desc),
                     onClick = onNavigateToAbout
                 )
             }
@@ -239,8 +241,8 @@ fun SettingsScreen(
             item {
                 SettingsNavigationItem(
                     icon = Icons.AutoMirrored.Filled.Help,
-                    title = "帮助与反馈",
-                    subtitle = "获取帮助或提交反馈",
+                    title = stringResource(R.string.settings_help_feedback),
+                    subtitle = stringResource(R.string.settings_help_feedback_desc),
                     onClick = onNavigateToHelpFeedback
                 )
             }
@@ -251,22 +253,22 @@ fun SettingsScreen(
     if (showClearCacheDialog) {
         AlertDialog(
             onDismissRequest = { showClearCacheDialog = false },
-            title = { Text("清除缓存") },
-            text = { Text("确定要清除所有缓存数据吗？此操作不会影响您的个人数据。") },
+            title = { Text(stringResource(R.string.settings_clear_cache_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_clear_cache_dialog_msg)) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         context.cacheDir.deleteRecursively()
                         showClearCacheDialog = false
-                        scope.launch { snackbarHostState.showSnackbar("缓存已清除") }
+                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_cache_cleared)) }
                     }
                 ) {
-                    Text("确定")
+                    Text(stringResource(R.string.common_confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearCacheDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -276,10 +278,10 @@ fun SettingsScreen(
     if (showLanguageDialog) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
-            title = { Text("选择语言") },
+            title = { Text(stringResource(R.string.settings_select_language)) },
             text = {
                 Column {
-                    listOf("简体中文", "English").forEach { lang ->
+                    listOf(stringResource(R.string.settings_language_zh_cn), "English").forEach { lang ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -299,11 +301,11 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showLanguageDialog = false
-                    scope.launch { snackbarHostState.showSnackbar("语言已设置为 $selectedLanguage") }
-                }) { Text("确定") }
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_language_set_to, selectedLanguage)) }
+                }) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showLanguageDialog = false }) { Text("取消") }
+                TextButton(onClick = { showLanguageDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -315,27 +317,27 @@ fun SettingsScreen(
         var confirmPin by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showPinDialog = false },
-            title = { Text("修改PIN码") },
+            title = { Text(stringResource(R.string.settings_change_pin_dialog_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = oldPin,
                         onValueChange = { oldPin = it },
-                        label = { Text("当前PIN码") },
+                        label = { Text(stringResource(R.string.settings_current_pin)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = newPin,
                         onValueChange = { newPin = it },
-                        label = { Text("新PIN码") },
+                        label = { Text(stringResource(R.string.settings_new_pin)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = confirmPin,
                         onValueChange = { confirmPin = it },
-                        label = { Text("确认新PIN码") },
+                        label = { Text(stringResource(R.string.settings_confirm_new_pin)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -346,15 +348,15 @@ fun SettingsScreen(
                     showPinDialog = false
                     scope.launch {
                         if (newPin == confirmPin && newPin.isNotBlank()) {
-                            snackbarHostState.showSnackbar("PIN码修改成功")
+                            snackbarHostState.showSnackbar(context.getString(R.string.settings_pin_changed))
                         } else {
-                            snackbarHostState.showSnackbar("两次输入的PIN码不一致")
+                            snackbarHostState.showSnackbar(context.getString(R.string.settings_pin_mismatch))
                         }
                     }
-                }) { Text("确定") }
+                }) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPinDialog = false }) { Text("取消") }
+                TextButton(onClick = { showPinDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -363,35 +365,35 @@ fun SettingsScreen(
     if (showDataManagementSheet) {
         AlertDialog(
             onDismissRequest = { showDataManagementSheet = false },
-            title = { Text("数据管理") },
+            title = { Text(stringResource(R.string.settings_data_management_dialog_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(
                         onClick = {
                             showDataManagementSheet = false
-                            scope.launch { snackbarHostState.showSnackbar("数据导出功能开发中") }
+                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_export_in_development)) }
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Upload, null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("导出数据")
+                        Text(stringResource(R.string.settings_export_data))
                     }
                     TextButton(
                         onClick = {
                             showDataManagementSheet = false
-                            scope.launch { snackbarHostState.showSnackbar("数据备份功能开发中") }
+                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_backup_in_development)) }
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Backup, null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("备份数据")
+                        Text(stringResource(R.string.settings_backup_data))
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showDataManagementSheet = false }) { Text("关闭") }
+                TextButton(onClick = { showDataManagementSheet = false }) { Text(stringResource(R.string.common_close)) }
             }
         )
     }
@@ -403,18 +405,18 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = { showSignalingDialog = false },
-            title = { Text("P2P 信令服务器") },
+            title = { Text(stringResource(R.string.settings_signaling_dialog_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "请输入 PC 端信令服务器地址。格式: ws://IP地址:端口",
+                        text = stringResource(R.string.settings_signaling_format_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = tempUrl,
                         onValueChange = { tempUrl = it },
-                        label = { Text("服务器地址") },
+                        label = { Text(stringResource(R.string.settings_server_address)) },
                         placeholder = { Text("ws://192.168.x.x:9001") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -424,19 +426,19 @@ fun SettingsScreen(
                     OutlinedButton(
                         onClick = {
                             isTesting = true
-                            signalingTestStatus = "正在测试连接..."
+                            signalingTestStatus = context.getString(R.string.settings_testing_connection)
                             scope.launch {
                                 try {
                                     // 简单的 WebSocket 连接测试
-                                    val socket = java.net.Socket()
                                     val uri = java.net.URI(tempUrl)
                                     val host = uri.host
                                     val port = if (uri.port > 0) uri.port else 9001
-                                    socket.connect(java.net.InetSocketAddress(host, port), 5000)
-                                    socket.close()
-                                    signalingTestStatus = "✓ 连接成功!"
+                                    java.net.Socket().use { socket ->
+                                        socket.connect(java.net.InetSocketAddress(host, port), 5000)
+                                    }
+                                    signalingTestStatus = context.getString(R.string.settings_connection_ok)
                                 } catch (e: Exception) {
-                                    signalingTestStatus = "✗ 连接失败: ${e.message}"
+                                    signalingTestStatus = context.getString(R.string.settings_connection_fail, e.message ?: "")
                                 } finally {
                                     isTesting = false
                                 }
@@ -452,7 +454,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(if (isTesting) "测试中..." else "测试连接")
+                        Text(if (isTesting) stringResource(R.string.common_testing) else stringResource(R.string.settings_test_connection))
                     }
 
                     // 测试状态
@@ -477,12 +479,12 @@ fun SettingsScreen(
                         prefs.edit().putString("custom_signaling_url", tempUrl).apply()
                         signalingServerUrl = tempUrl
                         showSignalingDialog = false
-                        scope.launch { snackbarHostState.showSnackbar("信令服务器地址已保存") }
+                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_signaling_saved)) }
                     }
-                ) { Text("保存") }
+                ) { Text(stringResource(R.string.common_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { showSignalingDialog = false }) { Text("取消") }
+                TextButton(onClick = { showSignalingDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }

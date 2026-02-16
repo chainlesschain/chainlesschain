@@ -24,9 +24,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 
 /**
@@ -134,7 +137,7 @@ fun HomeTopBar(
             IconButton(onClick = onNavigateToUsageStatistics) {
                 Icon(
                     imageVector = Icons.Default.Analytics,
-                    contentDescription = "使用统计",
+                    contentDescription = stringResource(R.string.home_usage_statistics),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -150,7 +153,7 @@ fun HomeTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Person,
-                        contentDescription = "个人中心",
+                        contentDescription = stringResource(R.string.home_profile_center),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(20.dp)
                     )
@@ -201,7 +204,7 @@ fun BrandSection() {
 
         // 副标题
         Text(
-            text = "你的AI办公空间",
+            text = stringResource(R.string.home_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -228,6 +231,7 @@ fun FunctionEntryGrid(
     socialUnreadCount: Int = 0
 ) {
     // 10 个核心功能入口，采用"8宫格 + 更多"布局
+    val context = LocalContext.current
     val functionItems = remember(
         onNavigateToUsageStatistics,
         onNavigateToKnowledgeList,
@@ -244,31 +248,31 @@ fun FunctionEntryGrid(
     ) {
         listOf(
             // 第一行：知识库管理（个人第二大脑）
-            FunctionEntryItem("知识库", Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
-            FunctionEntryItem("AI对话", Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
-            FunctionEntryItem("LLM设置", Icons.Outlined.Settings, Color(0xFF2196F3), FeatureGroup.CORE_WORK, onClick = onNavigateToLLMSettings),
+            FunctionEntryItem(context.getString(R.string.feature_knowledge_base), Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
+            FunctionEntryItem(context.getString(R.string.feature_ai_chat), Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
+            FunctionEntryItem(context.getString(R.string.feature_llm_settings), Icons.Outlined.Settings, Color(0xFF2196F3), FeatureGroup.CORE_WORK, onClick = onNavigateToLLMSettings),
 
             // 第二行：去中心化社交（DID + P2P）
-            FunctionEntryItem("社交广场", Icons.Outlined.Forum, Color(0xFF9C27B0), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToSocialFeed, badgeCount = socialUnreadCount),
-            FunctionEntryItem("我的二维码", Icons.Outlined.QrCode2, Color(0xFFE91E63), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToMyQRCode),
-            FunctionEntryItem("扫码添加", Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToQRScanner),
+            FunctionEntryItem(context.getString(R.string.feature_social_feed), Icons.Outlined.Forum, Color(0xFF9C27B0), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToSocialFeed, badgeCount = socialUnreadCount),
+            FunctionEntryItem(context.getString(R.string.feature_my_qrcode), Icons.Outlined.QrCode2, Color(0xFFE91E63), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToMyQRCode),
+            FunctionEntryItem(context.getString(R.string.feature_scan_qrcode), Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToQRScanner),
 
             // 第三行：项目管理 & 数字资产 & 设备管理
-            FunctionEntryItem("项目管理", Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
-            FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
+            FunctionEntryItem(context.getString(R.string.feature_project_management), Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
+            FunctionEntryItem(context.getString(R.string.feature_file_browser), Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
             // P2P设备管理
-            FunctionEntryItem("P2P设备", Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
+            FunctionEntryItem(context.getString(R.string.feature_p2p_devices), Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
             // 远程控制
-            FunctionEntryItem("远程控制", Icons.Outlined.Computer, Color(0xFF673AB7), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToRemoteControl),
+            FunctionEntryItem(context.getString(R.string.feature_remote_control), Icons.Outlined.Computer, Color(0xFF673AB7), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToRemoteControl),
             // 第四行：统计分析
-            FunctionEntryItem("使用统计", Icons.Outlined.Analytics, Color(0xFF3F51B5), FeatureGroup.DATA_STATISTICS, onClick = onNavigateToUsageStatistics)
+            FunctionEntryItem(context.getString(R.string.home_usage_statistics), Icons.Outlined.Analytics, Color(0xFF3F51B5), FeatureGroup.DATA_STATISTICS, onClick = onNavigateToUsageStatistics)
         )
     }
     var showMoreSheet by remember { mutableStateOf(false) }
     val primaryItems = functionItems.take(8)
     val remainingItems = functionItems.drop(8)
     val displayItems = primaryItems + FunctionEntryItem(
-        title = "更多",
+        title = stringResource(R.string.common_more),
         icon = Icons.Outlined.MoreHoriz,
         color = Color(0xFF607D8B),
         group = FeatureGroup.SYSTEM,
@@ -284,7 +288,7 @@ fun FunctionEntryGrid(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         userScrollEnabled = false  // 由父容器处理滚动
     ) {
-        items(displayItems) { item ->
+        items(displayItems, key = { it.title }) { item ->
             FunctionEntryCard(
                 icon = item.icon,
                 title = item.title,
@@ -309,7 +313,7 @@ fun FunctionEntryGrid(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "更多功能",
+                    text = stringResource(R.string.home_more_features),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -317,7 +321,7 @@ fun FunctionEntryGrid(
 
                 if (deviceItems.isNotEmpty()) {
                     Text(
-                        text = "设备与连接",
+                        text = stringResource(R.string.home_section_devices),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -359,7 +363,7 @@ fun FunctionEntryGrid(
 
                 if (dataItems.isNotEmpty()) {
                     Text(
-                        text = "数据与统计",
+                        text = stringResource(R.string.home_section_data),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -401,7 +405,7 @@ fun FunctionEntryGrid(
 
                 if (otherItems.isNotEmpty()) {
                     Text(
-                        text = "其他功能",
+                        text = stringResource(R.string.home_section_other),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -539,7 +543,7 @@ fun ChatInputBar(
                 modifier = Modifier.weight(1f),
                 placeholder = {
                     Text(
-                        text = "发消息或按住说话...",
+                        text = stringResource(R.string.home_hint_message_or_voice),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
@@ -555,7 +559,7 @@ fun ChatInputBar(
                         IconButton(onClick = onVoiceInput) {
                             Icon(
                                 imageVector = Icons.Default.Mic,
-                                contentDescription = "语音输入",
+                                contentDescription = stringResource(R.string.home_voice_input),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -571,7 +575,7 @@ fun ChatInputBar(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "发送"
+                        contentDescription = stringResource(R.string.common_send)
                     )
                 }
             }

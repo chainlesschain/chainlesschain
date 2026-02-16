@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -206,6 +207,7 @@ class AddFriendViewModel @Inject constructor(
 /**
  * 添加好友 UI 状态
  */
+@Immutable
 data class AddFriendUiState(
     val searchQuery: String = "",
     val searchResults: List<UserSearchResult> = emptyList(),

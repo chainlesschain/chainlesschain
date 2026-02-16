@@ -12,8 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import com.chainlesschain.android.core.database.entity.FileCategory
 import com.chainlesschain.android.feature.filebrowser.ml.FileClassifier
 
@@ -68,13 +70,13 @@ fun AIClassificationBadge(
                 ) {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = "AI建议",
+                        contentDescription = stringResource(R.string.ai_suggestion),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
 
                     Text(
-                        text = "AI 建议分类",
+                        text = stringResource(R.string.ai_suggested_classification),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -92,7 +94,7 @@ fun AIClassificationBadge(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "建议分类为:",
+                        text = stringResource(R.string.ai_suggest_classify_as),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
@@ -115,7 +117,7 @@ fun AIClassificationBadge(
                 // Top labels from ML Kit
                 if (classification.labels.isNotEmpty()) {
                     Text(
-                        text = "检测到: ${classification.labels.take(3).joinToString(", ")}",
+                        text = stringResource(R.string.ai_detected_labels, classification.labels.take(3).joinToString(", ")),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     )
@@ -135,11 +137,11 @@ fun AIClassificationBadge(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "拒绝",
+                            contentDescription = stringResource(R.string.ai_reject),
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("忽略")
+                        Text(stringResource(R.string.ai_dismiss))
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -153,11 +155,11 @@ fun AIClassificationBadge(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "接受",
+                            contentDescription = stringResource(R.string.ai_accept),
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("应用")
+                        Text(stringResource(R.string.ai_apply))
                     }
                 }
             }
@@ -197,15 +199,16 @@ private fun ConfidenceBadge(confidence: Float) {
 /**
  * Get display name for file category
  */
+@Composable
 private fun getCategoryDisplayName(category: FileCategory): String {
     return when (category) {
-        FileCategory.DOCUMENT -> "文档"
-        FileCategory.IMAGE -> "图片"
-        FileCategory.VIDEO -> "视频"
-        FileCategory.AUDIO -> "音频"
-        FileCategory.ARCHIVE -> "压缩包"
-        FileCategory.CODE -> "代码"
-        FileCategory.OTHER -> "其他"
+        FileCategory.DOCUMENT -> stringResource(R.string.file_category_document)
+        FileCategory.IMAGE -> stringResource(R.string.file_category_image)
+        FileCategory.VIDEO -> stringResource(R.string.file_category_video)
+        FileCategory.AUDIO -> stringResource(R.string.file_category_audio)
+        FileCategory.ARCHIVE -> stringResource(R.string.file_category_archive)
+        FileCategory.CODE -> stringResource(R.string.file_category_code)
+        FileCategory.OTHER -> stringResource(R.string.file_category_other)
     }
 }
 
@@ -240,7 +243,7 @@ fun AIClassificationChip(
                     modifier = Modifier.size(14.dp)
                 )
                 Text(
-                    text = "AI: ${getCategoryDisplayName(classification.suggestedCategory)}",
+                    text = stringResource(R.string.ai_chip_prefix, getCategoryDisplayName(classification.suggestedCategory)),
                     style = MaterialTheme.typography.labelSmall
                 )
             }

@@ -90,15 +90,13 @@ class ImageUploadService @Inject constructor(
      * @return 压缩后的文件
      */
     private suspend fun compressImage(uri: Uri): File = withContext(Dispatchers.IO) {
-        val inputStream = context.contentResolver.openInputStream(uri)
-            ?: throw IllegalArgumentException("无法打开图片")
-
-        // 解码图片
+        // 解码图片尺寸
         val options = BitmapFactory.Options().apply {
             inJustDecodeBounds = true
         }
-        BitmapFactory.decodeStream(inputStream, null, options)
-        inputStream.close()
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            BitmapFactory.decodeStream(inputStream, null, options)
+        } ?: throw IllegalArgumentException("无法打开图片")
 
         // 计算采样率
         val sampleSize = calculateInSampleSize(
@@ -109,15 +107,13 @@ class ImageUploadService @Inject constructor(
         )
 
         // 重新解码图片
-        val inputStream2 = context.contentResolver.openInputStream(uri)
-            ?: throw IllegalArgumentException("无法打开图片")
-
-        val bitmap = BitmapFactory.Options().run {
-            inSampleSize = sampleSize
-            inJustDecodeBounds = false
-            BitmapFactory.decodeStream(inputStream2, null, this)
-        }
-        inputStream2.close()
+        val bitmap = context.contentResolver.openInputStream(uri)?.use { inputStream2 ->
+            BitmapFactory.Options().run {
+                inSampleSize = sampleSize
+                inJustDecodeBounds = false
+                BitmapFactory.decodeStream(inputStream2, null, this)
+            }
+        } ?: throw IllegalArgumentException("无法打开图片")
 
         bitmap ?: throw IllegalArgumentException("无法解码图片")
 

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Task Status -->
+    <string name="task_status_pending">To Do</string>
+    <string name="task_status_in_progress">In Progress</string>
+    <string name="task_status_completed">Completed</string>
+    <string name="task_status_cancelled">Cancelled</string>
+    <string name="task_status_unknown">Unknown</string>
+
+    <!-- Task Priority -->
+    <string name="task_priority_low">Low</string>
+    <string name="task_priority_medium">Medium</string>
+    <string name="task_priority_high">High</string>
+    <string name="task_priority_urgent">Urgent</string>
+    <string name="task_priority_unknown">Unknown</string>
+
+    <!-- Project Status -->
+    <string name="project_status_active">Active</string>
+    <string name="project_status_paused">Paused</string>
+    <string name="project_status_completed">Completed</string>
+    <string name="project_status_archived">Archived</string>
+    <string name="project_status_deleted">Deleted</string>
+    <string name="project_status_unknown">Unknown</string>
+
+    <!-- Project Type -->
+    <string name="project_type_document">Document</string>
+    <string name="project_type_web">Website</string>
+    <string name="project_type_app">Application</string>
+    <string name="project_type_data">Data</string>
+    <string name="project_type_design">Design</string>
+    <string name="project_type_research">Research</string>
+    <string name="project_type_other">Other</string>
+    <string name="project_type_unknown">Unknown</string>
+
+    <!-- File Category -->
+    <string name="file_category_document">Document</string>
+    <string name="file_category_image">Image</string>
+    <string name="file_category_video">Video</string>
+    <string name="file_category_audio">Audio</string>
+    <string name="file_category_archive">Archive</string>
+    <string name="file_category_code">Code</string>
+    <string name="file_category_other">Other</string>
+
+    <!-- Import Type -->
+    <string name="import_type_copy">Copy</string>
+    <string name="import_type_link">Link</string>
+    <string name="import_type_sync">Sync</string>
+
+    <!-- Import Source -->
+    <string name="import_source_file_browser">File Browser</string>
+    <string name="import_source_share_intent">System Share</string>
+    <string name="import_source_ai_chat">AI Chat</string>
+
+    <!-- Transfer Priority -->
+    <string name="transfer_priority_highest">Highest</string>
+    <string name="transfer_priority_high">High</string>
+    <string name="transfer_priority_normal">Normal</string>
+    <string name="transfer_priority_low">Low</string>
+    <string name="transfer_priority_lowest">Lowest</string>
+</resources>

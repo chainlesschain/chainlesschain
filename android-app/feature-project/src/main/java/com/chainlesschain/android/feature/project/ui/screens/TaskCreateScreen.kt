@@ -68,9 +68,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.feature.project.model.TaskPriority
 import com.chainlesschain.android.feature.project.model.TaskUiEvent
 import com.chainlesschain.android.feature.project.viewmodel.TaskViewModel
@@ -134,10 +136,10 @@ fun TaskCreateScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("创建任务") },
+                title = { Text(stringResource(R.string.create_task)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -149,7 +151,7 @@ fun TaskCreateScreen(
                     ) {
                         Icon(
                             Icons.Default.Check,
-                            contentDescription = "保存",
+                            contentDescription = stringResource(R.string.save),
                             tint = if (title.isNotBlank() && !isLoading) {
                                 MaterialTheme.colorScheme.primary
                             } else {
@@ -177,8 +179,8 @@ fun TaskCreateScreen(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { viewModel.updateNewTaskTitle(it) },
-                    label = { Text("任务标题 *") },
-                    placeholder = { Text("输入任务标题...") },
+                    label = { Text(stringResource(R.string.task_title_required)) },
+                    placeholder = { Text(stringResource(R.string.enter_task_title)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     isError = title.isBlank()
@@ -190,8 +192,8 @@ fun TaskCreateScreen(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { viewModel.updateNewTaskDescription(it) },
-                    label = { Text("任务描述") },
-                    placeholder = { Text("输入任务描述（可选）...") },
+                    label = { Text(stringResource(R.string.task_description_label)) },
+                    placeholder = { Text(stringResource(R.string.enter_task_description)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 6
@@ -234,7 +236,7 @@ fun TaskCreateScreen(
             // 子步骤管理
             item {
                 Text(
-                    text = "子步骤",
+                    text = stringResource(R.string.sub_steps_label),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -259,7 +261,7 @@ fun TaskCreateScreen(
                     OutlinedTextField(
                         value = newStepInput,
                         onValueChange = { newStepInput = it },
-                        placeholder = { Text("添加子步骤...") },
+                        placeholder = { Text(stringResource(R.string.add_sub_step)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -283,7 +285,7 @@ fun TaskCreateScreen(
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "添加",
+                            contentDescription = stringResource(R.string.add),
                             tint = if (newStepInput.isNotBlank()) {
                                 MaterialTheme.colorScheme.primary
                             } else {
@@ -302,7 +304,7 @@ fun TaskCreateScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = title.isNotBlank() && !isLoading
                 ) {
-                    Text("创建任务")
+                    Text(stringResource(R.string.create_task))
                 }
             }
         }
@@ -325,12 +327,12 @@ fun TaskCreateScreen(
                         showDatePicker = false
                     }
                 ) {
-                    Text("确定")
+                    Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         ) {
@@ -349,7 +351,7 @@ fun PrioritySelector(
 ) {
     Column {
         Text(
-            text = "优先级",
+            text = stringResource(R.string.priority_label),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -393,7 +395,7 @@ fun PrioritySelector(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = priority.displayName,
+                            text = stringResource(priority.displayNameResId),
                             style = MaterialTheme.typography.labelMedium,
                             color = if (isSelected) priorityColor else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -415,7 +417,7 @@ fun DateSelector(
 ) {
     Column {
         Text(
-            text = "截止日期",
+            text = stringResource(R.string.due_date_label),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -451,7 +453,7 @@ fun DateSelector(
                         )
                     } else {
                         Text(
-                            text = "选择截止日期（可选）",
+                            text = stringResource(R.string.select_due_date),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -462,7 +464,7 @@ fun DateSelector(
                     IconButton(onClick = onClearDate) {
                         Icon(
                             Icons.Default.Clear,
-                            contentDescription = "清除",
+                            contentDescription = stringResource(R.string.clear),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -486,7 +488,7 @@ fun LabelsSection(
 ) {
     Column {
         Text(
-            text = "标签",
+            text = stringResource(R.string.labels_label),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -501,7 +503,7 @@ fun LabelsSection(
             OutlinedTextField(
                 value = newLabelInput,
                 onValueChange = onNewLabelInputChange,
-                placeholder = { Text("添加标签...") },
+                placeholder = { Text(stringResource(R.string.add_label)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
                 leadingIcon = {
@@ -520,7 +522,7 @@ fun LabelsSection(
             ) {
                 Icon(
                     Icons.Default.Add,
-                    contentDescription = "添加",
+                    contentDescription = stringResource(R.string.add),
                     tint = if (newLabelInput.isNotBlank()) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -545,7 +547,7 @@ fun LabelsSection(
                         trailingIcon = {
                             Icon(
                                 Icons.Default.Clear,
-                                contentDescription = "删除",
+                                contentDescription = stringResource(R.string.delete),
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -599,7 +601,7 @@ fun StepItem(
             IconButton(onClick = onRemove) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = stringResource(R.string.delete),
                     tint = MaterialTheme.colorScheme.error
                 )
             }

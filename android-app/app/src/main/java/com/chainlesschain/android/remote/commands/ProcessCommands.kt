@@ -442,7 +442,8 @@ data class ProcessDetail(
     val cpuTime: String? = null,
     val command: String? = null,
     val executablePath: String? = null,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val threads: Int? = null
 )
 
 @Serializable
@@ -466,6 +467,16 @@ data class StartProcessResponse(
 data class ResourcesResponse(
     val success: Boolean,
     val resources: SystemResources
+)
+
+/**
+ * 简化的资源使用情况（供 UI 层使用）
+ */
+@Serializable
+data class ResourceUsage(
+    val cpuUsage: Double = 0.0,
+    val memoryUsage: Double = 0.0,
+    val processCount: Int = 0
 )
 
 @Serializable

@@ -37,9 +37,9 @@ class SessionManager @Inject constructor(
 
     private val gson = Gson()
 
-    // In-memory session cache
-    private val sessionCache = mutableMapOf<String, SessionEntity>()
-    private val messageCache = mutableMapOf<String, List<ProjectChatMessageEntity>>()
+    // In-memory session cache (thread-safe for concurrent coroutine access)
+    private val sessionCache = java.util.concurrent.ConcurrentHashMap<String, SessionEntity>()
+    private val messageCache = java.util.concurrent.ConcurrentHashMap<String, List<ProjectChatMessageEntity>>()
 
     // Current active session
     private val _currentSession = MutableStateFlow<SessionEntity?>(null)

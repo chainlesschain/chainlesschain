@@ -15,6 +15,7 @@ import com.chainlesschain.android.core.did.manager.DIDManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -163,6 +164,7 @@ class CommentDetailViewModel @Inject constructor(
 /**
  * 评论详情 UI 状态
  */
+@Immutable
 data class CommentDetailUiState(
     val comment: PostCommentEntity? = null,
     val replies: List<PostCommentEntity> = emptyList(),

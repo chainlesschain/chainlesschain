@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.remote.commands.MediaCommands
 import com.chainlesschain.android.remote.commands.AudioDevice
 import com.chainlesschain.android.remote.commands.PlaybackStatus
+import com.chainlesschain.android.remote.commands.PlaybackStatusResponse
 import com.chainlesschain.android.remote.events.EventSubscriptionClient
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
@@ -14,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -65,8 +67,8 @@ class MediaControlViewModel @Inject constructor(
     val recordingState: StateFlow<RecordingState?> = _recordingState.asStateFlow()
 
     // 摄像头列表
-    private val _cameras = MutableStateFlow<List<CameraInfo>>(emptyList())
-    val cameras: StateFlow<List<CameraInfo>> = _cameras.asStateFlow()
+    private val _cameras = MutableStateFlow<List<LocalCameraInfo>>(emptyList())
+    val cameras: StateFlow<List<LocalCameraInfo>> = _cameras.asStateFlow()
 
     // 均衡器设置
     private val _equalizerBands = MutableStateFlow<List<Int>>(listOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
@@ -77,16 +79,16 @@ class MediaControlViewModel @Inject constructor(
     val equalizerPresets: StateFlow<List<String>> = _equalizerPresets.asStateFlow()
 
     // 媒体库
-    private val _mediaLibrary = MutableStateFlow<List<MediaItem>>(emptyList())
-    val mediaLibrary: StateFlow<List<MediaItem>> = _mediaLibrary.asStateFlow()
+    private val _mediaLibrary = MutableStateFlow<List<LocalMediaItem>>(emptyList())
+    val mediaLibrary: StateFlow<List<LocalMediaItem>> = _mediaLibrary.asStateFlow()
 
     // 播放列表
-    private val _playlists = MutableStateFlow<List<PlaylistInfo>>(emptyList())
-    val playlists: StateFlow<List<PlaylistInfo>> = _playlists.asStateFlow()
+    private val _playlists = MutableStateFlow<List<LocalPlaylistInfo>>(emptyList())
+    val playlists: StateFlow<List<LocalPlaylistInfo>> = _playlists.asStateFlow()
 
     // 当前播放列表
-    private val _currentPlaylist = MutableStateFlow<PlaylistInfo?>(null)
-    val currentPlaylist: StateFlow<PlaylistInfo?> = _currentPlaylist.asStateFlow()
+    private val _currentPlaylist = MutableStateFlow<LocalPlaylistInfo?>(null)
+    val currentPlaylist: StateFlow<LocalPlaylistInfo?> = _currentPlaylist.asStateFlow()
 
     // 麦克风列表
     private val _microphones = MutableStateFlow<List<MicrophoneInfo>>(emptyList())
@@ -188,32 +190,16 @@ class MediaControlViewModel @Inject constructor(
      * 增加音量
      */
     fun volumeUp(step: Int = 5) {
-        viewModelScope.launch {
-            val result = mediaCommands.volumeUp(step)
-
-            if (result.isSuccess) {
-                val newVolume = result.getOrNull()?.volume ?: (_currentVolume.value + step)
-                _currentVolume.value = newVolume.coerceIn(0, 100)
-            } else {
-                handleError(result.exceptionOrNull(), "增加音量失败")
-            }
-        }
+        val newVolume = (_currentVolume.value + step).coerceIn(0, 100)
+        setVolume(newVolume)
     }
 
     /**
      * 减少音量
      */
     fun volumeDown(step: Int = 5) {
-        viewModelScope.launch {
-            val result = mediaCommands.volumeDown(step)
-
-            if (result.isSuccess) {
-                val newVolume = result.getOrNull()?.volume ?: (_currentVolume.value - step)
-                _currentVolume.value = newVolume.coerceIn(0, 100)
-            } else {
-                handleError(result.exceptionOrNull(), "减少音量失败")
-            }
-        }
+        val newVolume = (_currentVolume.value - step).coerceIn(0, 100)
+        setVolume(newVolume)
     }
 
     /**
@@ -290,7 +276,16 @@ class MediaControlViewModel @Inject constructor(
             val result = mediaCommands.getPlaybackStatus()
 
             if (result.isSuccess) {
-                _playbackStatus.value = result.getOrNull()?.playback
+                val response = result.getOrNull()
+                // Use playback field if available, otherwise construct from top-level fields
+                _playbackStatus.value = response?.playback ?: response?.let {
+                    PlaybackStatus(
+                        title = it.title,
+                        artist = it.artist,
+                        album = it.album,
+                        state = if (it.playing) "playing" else "paused"
+                    )
+                }
             } else {
                 Timber.w(result.exceptionOrNull(), "获取播放状态失败")
             }
@@ -463,17 +458,16 @@ class MediaControlViewModel @Inject constructor(
      * 加载摄像头列表
      */
     private suspend fun loadCameras() {
-        val result = mediaCommands.getCameras()
+        val result = mediaCommands.listCameras()
         if (result.isSuccess) {
-            @Suppress("UNCHECKED_CAST")
-            val cameras = (result.getOrNull()?.cameras as? List<Map<String, Any>>)?.map { cam ->
-                CameraInfo(
-                    id = cam["id"] as? String ?: "",
-                    name = cam["name"] as? String ?: "",
-                    isDefault = cam["isDefault"] as? Boolean ?: false
+            val cameraList = result.getOrNull()?.cameras?.map { cam ->
+                LocalCameraInfo(
+                    id = cam.id,
+                    name = cam.name,
+                    isDefault = cam.default
                 )
             } ?: emptyList()
-            _cameras.value = cameras
+            _cameras.value = cameraList
         }
     }
 
@@ -490,7 +484,7 @@ class MediaControlViewModel @Inject constructor(
                 val response = result.getOrNull()
                 _uiState.update { it.copy(
                     isExecuting = false,
-                    lastCapturedPhoto = response?.imagePath,
+                    lastCapturedPhoto = response?.imageData,
                     lastAction = "photo_captured"
                 )}
             } else {
@@ -507,8 +501,7 @@ class MediaControlViewModel @Inject constructor(
     private suspend fun loadEqualizerPresets() {
         val result = mediaCommands.getEqualizerPresets()
         if (result.isSuccess) {
-            @Suppress("UNCHECKED_CAST")
-            val presets = result.getOrNull()?.presets as? List<String> ?: emptyList()
+            val presets = result.getOrNull()?.presets?.map { it.name } ?: emptyList()
             _equalizerPresets.value = presets
         }
     }
@@ -536,7 +529,7 @@ class MediaControlViewModel @Inject constructor(
             val result = mediaCommands.setEqualizer(preset = preset)
             if (result.isSuccess) {
                 // 获取更新后的频段值
-                val bands = result.getOrNull()?.bands
+                val bands = result.getOrNull()?.bands?.map { it.gain }
                 if (bands != null) {
                     _equalizerBands.value = bands
                 }
@@ -566,14 +559,15 @@ class MediaControlViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isExecuting = true, isScanningLibrary = true) }
 
-            val result = mediaCommands.scanLibrary(path)
+            val paths = path?.let { listOf(it) }
+            val result = mediaCommands.scanMediaLibrary(paths)
 
             if (result.isSuccess) {
                 val response = result.getOrNull()
                 _uiState.update { it.copy(
                     isExecuting = false,
                     isScanningLibrary = false,
-                    libraryItemCount = response?.itemCount ?: 0
+                    libraryItemCount = response?.scannedFiles ?: 0
                 )}
                 // 加载媒体库
                 loadMediaLibrary()
@@ -588,20 +582,23 @@ class MediaControlViewModel @Inject constructor(
      */
     fun loadMediaLibrary(type: String = "all", limit: Int = 100) {
         viewModelScope.launch {
-            val result = mediaCommands.getLibrary(type, limit)
+            val result = mediaCommands.searchMedia(
+                query = "*",
+                type = if (type == "all") null else type,
+                limit = limit
+            )
 
             if (result.isSuccess) {
-                @Suppress("UNCHECKED_CAST")
-                val items = (result.getOrNull()?.items as? List<Map<String, Any>>)?.map { item ->
-                    MediaItem(
-                        id = item["id"] as? String ?: "",
-                        title = item["title"] as? String ?: "",
-                        artist = item["artist"] as? String,
-                        album = item["album"] as? String,
-                        duration = (item["duration"] as? Number)?.toLong() ?: 0,
-                        path = item["path"] as? String ?: "",
-                        type = item["type"] as? String ?: "audio",
-                        thumbnail = item["thumbnail"] as? String
+                val items = result.getOrNull()?.results?.map { item ->
+                    LocalMediaItem(
+                        id = item.id,
+                        title = item.title,
+                        artist = item.artist,
+                        album = item.album,
+                        duration = item.duration?.toLong() ?: 0,
+                        path = item.path,
+                        type = item.type,
+                        thumbnail = item.thumbnail
                     )
                 } ?: emptyList()
                 _mediaLibrary.value = items
@@ -614,7 +611,7 @@ class MediaControlViewModel @Inject constructor(
      */
     fun playMediaItem(mediaId: String) {
         viewModelScope.launch {
-            val result = mediaCommands.playMedia(mediaId)
+            val result = mediaCommands.playMedia(path = mediaId)
             if (result.isSuccess) {
                 loadPlaybackStatus()
             } else {
@@ -631,13 +628,12 @@ class MediaControlViewModel @Inject constructor(
     private suspend fun loadPlaylists() {
         val result = mediaCommands.getPlaylists()
         if (result.isSuccess) {
-            @Suppress("UNCHECKED_CAST")
-            val playlists = (result.getOrNull()?.playlists as? List<Map<String, Any>>)?.map { pl ->
-                PlaylistInfo(
-                    id = pl["id"] as? String ?: "",
-                    name = pl["name"] as? String ?: "",
-                    itemCount = (pl["itemCount"] as? Number)?.toInt() ?: 0,
-                    duration = (pl["duration"] as? Number)?.toLong() ?: 0
+            val playlists = result.getOrNull()?.playlists?.map { pl ->
+                LocalPlaylistInfo(
+                    id = pl.id,
+                    name = pl.name,
+                    itemCount = pl.itemCount,
+                    duration = pl.totalDuration.toLong()
                 )
             } ?: emptyList()
             _playlists.value = playlists
@@ -693,15 +689,14 @@ class MediaControlViewModel @Inject constructor(
      * 加载麦克风列表
      */
     private suspend fun loadMicrophones() {
-        val result = mediaCommands.getMicrophones()
+        val result = mediaCommands.getInputDevices()
         if (result.isSuccess) {
-            @Suppress("UNCHECKED_CAST")
-            val mics = (result.getOrNull()?.microphones as? List<Map<String, Any>>)?.map { mic ->
+            val mics = result.getOrNull()?.devices?.map { device ->
                 MicrophoneInfo(
-                    id = mic["id"] as? String ?: "",
-                    name = mic["name"] as? String ?: "",
-                    isDefault = mic["isDefault"] as? Boolean ?: false,
-                    isMuted = mic["isMuted"] as? Boolean ?: false
+                    id = device.id ?: "",
+                    name = device.name,
+                    isDefault = device.default ?: false,
+                    isMuted = false
                 )
             } ?: emptyList()
             _microphones.value = mics
@@ -713,7 +708,11 @@ class MediaControlViewModel @Inject constructor(
      */
     fun setMicrophoneMute(deviceId: String, muted: Boolean) {
         viewModelScope.launch {
-            val result = mediaCommands.setMicrophoneMute(deviceId, muted)
+            val result = if (muted) {
+                mediaCommands.muteMicrophone()
+            } else {
+                mediaCommands.unmuteMicrophone()
+            }
             if (result.isSuccess) {
                 loadMicrophones()
             } else {
@@ -723,11 +722,13 @@ class MediaControlViewModel @Inject constructor(
     }
 
     /**
-     * 设置麦克风音量
+     * 设置麦克风音量（增益）
      */
     fun setMicrophoneVolume(deviceId: String, volume: Int) {
         viewModelScope.launch {
-            val result = mediaCommands.setMicrophoneVolume(deviceId, volume.coerceIn(0, 100))
+            // Map volume (0-100) to gain (0-200, 100=normal)
+            val gain = (volume.coerceIn(0, 100) * 2)
+            val result = mediaCommands.setMicrophoneGain(gain)
             if (result.isFailure) {
                 handleError(result.exceptionOrNull(), "设置麦克风音量失败")
             }
@@ -745,6 +746,7 @@ class MediaControlViewModel @Inject constructor(
 /**
  * 录制状态
  */
+@Immutable
 data class RecordingState(
     val isRecording: Boolean = false,
     val isPaused: Boolean = false,
@@ -754,9 +756,9 @@ data class RecordingState(
 )
 
 /**
- * 摄像头信息
+ * 摄像头信息（本地 UI 模型）
  */
-data class CameraInfo(
+data class LocalCameraInfo(
     val id: String,
     val name: String,
     val isDefault: Boolean
@@ -773,9 +775,9 @@ data class MicrophoneInfo(
 )
 
 /**
- * 媒体项
+ * 媒体项（本地 UI 模型）
  */
-data class MediaItem(
+data class LocalMediaItem(
     val id: String,
     val title: String,
     val artist: String?,
@@ -787,9 +789,9 @@ data class MediaItem(
 )
 
 /**
- * 播放列表信息
+ * 播放列表信息（本地 UI 模型）
  */
-data class PlaylistInfo(
+data class LocalPlaylistInfo(
     val id: String,
     val name: String,
     val itemCount: Int,
@@ -799,6 +801,7 @@ data class PlaylistInfo(
 /**
  * 媒体控制 UI 状态
  */
+@Immutable
 data class MediaControlUiState(
     val isExecuting: Boolean = false,
     val error: String? = null,

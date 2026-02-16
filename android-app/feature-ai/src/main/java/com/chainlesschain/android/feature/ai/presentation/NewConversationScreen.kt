@@ -8,8 +8,10 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.domain.model.LLMModel
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 
@@ -32,6 +34,7 @@ fun NewConversationScreen(
     var showApiKeyInput by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
+    val defaultTitle = stringResource(R.string.new_conversation_default_title)
 
     // 当选择模型时，自动加载已保存的API Key
     LaunchedEffect(selectedModel) {
@@ -58,10 +61,10 @@ fun NewConversationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("新建对话") },
+                title = { Text(stringResource(R.string.new_conversation_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.new_conversation_navigate_back))
                     }
                 },
                 actions = {
@@ -69,7 +72,7 @@ fun NewConversationScreen(
                     TextButton(
                         onClick = {
                             if (title.isBlank()) {
-                                title = "新对话"
+                                title = defaultTitle
                             }
                             selectedModel?.let { model ->
                                 // 先设置当前模型（setApiKey需要currentModel）
@@ -92,7 +95,7 @@ fun NewConversationScreen(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("创建")
+                            Text(stringResource(R.string.new_conversation_create))
                         }
                     }
                 }
@@ -111,8 +114,8 @@ fun NewConversationScreen(
                 value = title,
                 onValueChange = { title = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("对话标题") },
-                placeholder = { Text("例如：学习Kotlin") },
+                label = { Text(stringResource(R.string.new_conversation_label_title)) },
+                placeholder = { Text(stringResource(R.string.new_conversation_title_placeholder)) },
                 singleLine = true
             )
 
@@ -129,11 +132,11 @@ fun NewConversationScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "选择模型",
+                            text = stringResource(R.string.new_conversation_select_model),
                             style = MaterialTheme.typography.labelMedium
                         )
                         Text(
-                            text = selectedModel?.name ?: "请选择...",
+                            text = selectedModel?.name ?: stringResource(R.string.new_conversation_select_model_placeholder),
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (selectedModel != null) {
                                 MaterialTheme.colorScheme.onSurface
@@ -156,13 +159,13 @@ fun NewConversationScreen(
                     onValueChange = { apiKey = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("API Key") },
-                    placeholder = { Text("输入${selectedModel?.provider?.displayName} API Key") },
+                    placeholder = { Text(stringResource(R.string.new_conversation_api_key_placeholder, selectedModel?.provider?.displayName ?: "")) },
                     singleLine = true,
                     trailingIcon = {
                         IconButton(onClick = { showApiKeyInput = !showApiKeyInput }) {
                             Icon(
                                 imageVector = if (showApiKeyInput) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = if (showApiKeyInput) "隐藏" else "显示"
+                                contentDescription = if (showApiKeyInput) stringResource(R.string.new_conversation_api_key_hide) else stringResource(R.string.new_conversation_api_key_show)
                             )
                         }
                     },
@@ -174,7 +177,7 @@ fun NewConversationScreen(
                 )
 
                 Text(
-                    text = "API Key将加密保存在本地",
+                    text = stringResource(R.string.new_conversation_api_key_encrypted),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -197,7 +200,7 @@ fun NewConversationScreen(
                             tint = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
-                            text = "Ollama本地模型无需API Key，请确保Ollama服务正在运行",
+                            text = stringResource(R.string.new_conversation_ollama_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -245,7 +248,7 @@ fun ModelPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("选择模型") },
+        title = { Text(stringResource(R.string.new_conversation_model_dialog_title)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -285,7 +288,7 @@ fun ModelPickerDialog(
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "豆包 (火山引擎)",
+                        text = stringResource(R.string.new_conversation_doubao_label),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -301,7 +304,7 @@ fun ModelPickerDialog(
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Ollama (本地)",
+                        text = stringResource(R.string.new_conversation_ollama_label),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -317,7 +320,7 @@ fun ModelPickerDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.new_conversation_model_dialog_cancel))
             }
         }
     )
@@ -348,7 +351,7 @@ fun ModelCard(
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = "最大${model.maxTokens} tokens",
+                    text = stringResource(R.string.new_conversation_max_tokens, model.maxTokens),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -349,7 +349,7 @@ class FileEditorViewModel @Inject constructor(
                     }
                 }
 
-                Log.d(TAG, "AI assist completed: ${action.title}")
+                Log.d(TAG, "AI assist completed: ${action.name}")
             } catch (e: Exception) {
                 Log.e(TAG, "AI assist error", e)
                 _isAIProcessing.value = false

@@ -38,63 +38,65 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 
 /**
  * AI助手操作类型
  */
 enum class AIAssistAction(
-    val title: String,
-    val description: String,
+    val titleResId: Int,
+    val descriptionResId: Int,
     val icon: ImageVector,
     val color: Color
 ) {
     EXPLAIN(
-        "解释代码",
-        "让AI解释当前代码的功能和工作原理",
+        R.string.ai_action_explain,
+        R.string.ai_action_explain_desc,
         Icons.Default.LightbulbCircle,
         Color(0xFF4CAF50)
     ),
     OPTIMIZE(
-        "优化代码",
-        "获取代码优化建议和性能改进方案",
+        R.string.ai_action_optimize,
+        R.string.ai_action_optimize_desc,
         Icons.Default.AutoAwesome,
         Color(0xFF2196F3)
     ),
     FIX_BUGS(
-        "检测Bug",
-        "分析代码中可能存在的问题和潜在bug",
+        R.string.ai_action_fix_bugs,
+        R.string.ai_action_fix_bugs_desc,
         Icons.Default.BugReport,
         Color(0xFFF44336)
     ),
     ADD_COMMENTS(
-        "添加注释",
-        "为代码生成详细的注释和文档",
+        R.string.ai_action_add_comments,
+        R.string.ai_action_add_comments_desc,
         Icons.Default.Comment,
         Color(0xFF9C27B0)
     ),
     REFACTOR(
-        "重构建议",
-        "获取代码重构和架构改进建议",
+        R.string.ai_action_refactor,
+        R.string.ai_action_refactor_desc,
         Icons.Default.CompareArrows,
         Color(0xFFFF9800)
     ),
     GENERATE_TESTS(
-        "生成测试",
-        "为当前代码生成单元测试",
+        R.string.ai_action_generate_tests,
+        R.string.ai_action_generate_tests_desc,
         Icons.Default.Science,
         Color(0xFF00BCD4)
     ),
     IMPROVE_NAMING(
-        "改进命名",
-        "优化变量、函数和类的命名",
+        R.string.ai_action_improve_naming,
+        R.string.ai_action_improve_naming_desc,
         Icons.Default.Edit,
         Color(0xFFE91E63)
     ),
     COMPLETE_CODE(
-        "智能补全",
-        "根据上下文智能补全代码",
+        R.string.ai_action_complete_code,
+        R.string.ai_action_complete_code_desc,
         Icons.Default.Code,
         Color(0xFF673AB7)
     )
@@ -129,7 +131,7 @@ fun AIAssistDialog(
                 )
                 Column {
                     Text(
-                        text = "AI 代码助手",
+                        text = stringResource(R.string.ai_code_assistant),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -155,13 +157,13 @@ fun AIAssistDialog(
                 ) {
                     CircularProgressIndicator()
                     Text(
-                        text = "AI 正在处理...",
+                        text = stringResource(R.string.ai_processing),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     selectedAction?.let { action ->
                         Text(
-                            text = action.title,
+                            text = stringResource(action.titleResId),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -187,7 +189,7 @@ fun AIAssistDialog(
         confirmButton = {
             if (!isProcessing) {
                 TextButton(onClick = onDismiss) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         }
@@ -229,14 +231,14 @@ private fun AIAssistActionCard(
             // Action info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = action.title,
+                    text = stringResource(action.titleResId),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = action.description,
+                    text = stringResource(action.descriptionResId),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -288,7 +290,7 @@ fun AIAssistQuickActions(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = action.title,
+                        text = stringResource(action.titleResId),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )

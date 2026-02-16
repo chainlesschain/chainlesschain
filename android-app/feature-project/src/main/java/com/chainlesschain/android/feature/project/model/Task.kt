@@ -1,5 +1,7 @@
 package com.chainlesschain.android.feature.project.model
 
+import androidx.annotation.StringRes
+import com.chainlesschain.android.feature.project.R
 import java.util.UUID
 
 /**
@@ -7,13 +9,13 @@ import java.util.UUID
  */
 enum class TaskStatus(
     val value: String,
-    val displayName: String,
+    @StringRes val displayNameResId: Int,
     val color: Long
 ) {
-    PENDING("pending", "待办", 0xFF9E9E9E),
-    IN_PROGRESS("in_progress", "进行中", 0xFF2196F3),
-    COMPLETED("completed", "已完成", 0xFF4CAF50),
-    CANCELLED("cancelled", "已取消", 0xFFFF5722);
+    PENDING("pending", R.string.task_status_pending, 0xFF9E9E9E),
+    IN_PROGRESS("in_progress", R.string.task_status_in_progress, 0xFF2196F3),
+    COMPLETED("completed", R.string.task_status_completed, 0xFF4CAF50),
+    CANCELLED("cancelled", R.string.task_status_cancelled, 0xFFFF5722);
 
     companion object {
         fun fromString(value: String): TaskStatus {
@@ -27,14 +29,14 @@ enum class TaskStatus(
  */
 enum class TaskPriority(
     val value: String,
-    val displayName: String,
+    @StringRes val displayNameResId: Int,
     val color: Long,
     val sortOrder: Int
 ) {
-    LOW("low", "低", 0xFF8BC34A, 4),
-    MEDIUM("medium", "中", 0xFFFFC107, 3),
-    HIGH("high", "高", 0xFFFF9800, 2),
-    URGENT("urgent", "紧急", 0xFFF44336, 1);
+    LOW("low", R.string.task_priority_low, 0xFF8BC34A, 4),
+    MEDIUM("medium", R.string.task_priority_medium, 0xFFFFC107, 3),
+    HIGH("high", R.string.task_priority_high, 0xFFFF9800, 2),
+    URGENT("urgent", R.string.task_priority_urgent, 0xFFF44336, 1);
 
     companion object {
         fun fromString(value: String): TaskPriority {
@@ -173,13 +175,13 @@ data class TaskFilter(
 /**
  * 任务排序方式
  */
-enum class TaskSortBy(val displayName: String) {
-    CREATED_AT("创建时间"),
-    UPDATED_AT("更新时间"),
-    DUE_DATE("截止时间"),
-    PRIORITY("优先级"),
-    TITLE("标题"),
-    STATUS("状态")
+enum class TaskSortBy(@StringRes val displayNameResId: Int) {
+    CREATED_AT(R.string.task_sort_created_at),
+    UPDATED_AT(R.string.task_sort_updated_at),
+    DUE_DATE(R.string.task_sort_due_date),
+    PRIORITY(R.string.task_sort_priority),
+    TITLE(R.string.task_sort_title),
+    STATUS(R.string.task_sort_status)
 }
 
 /**

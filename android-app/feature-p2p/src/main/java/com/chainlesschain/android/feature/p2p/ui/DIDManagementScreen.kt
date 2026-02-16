@@ -11,10 +11,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.core.did.model.DIDDocument
+import com.chainlesschain.android.feature.p2p.R
 
 /**
  * DID 管理界面
@@ -36,15 +38,15 @@ fun DIDManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("DID 身份管理") },
+                title = { Text(stringResource(R.string.did_identity_management)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onShareDID) {
-                        Icon(Icons.Default.Share, contentDescription = "分享")
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.share))
                     }
                 }
             )
@@ -77,7 +79,7 @@ fun DIDManagementScreen(
 
                 // 身份密钥卡片
                 IdentityKeyCard(
-                    fingerprint = identityKeyFingerprint ?: "未知"
+                    fingerprint = identityKeyFingerprint ?: stringResource(R.string.unknown)
                 )
 
                 // 设备列表卡片
@@ -126,7 +128,7 @@ fun DIDIdentifierCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "您的 DID",
+                    text = stringResource(R.string.your_did),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -137,7 +139,7 @@ fun DIDIdentifierCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "复制",
+                        contentDescription = stringResource(R.string.copy),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
@@ -157,7 +159,7 @@ fun DIDIdentifierCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "这是您在去中心化网络中的唯一身份标识",
+                text = stringResource(R.string.did_unique_identifier_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
@@ -194,7 +196,7 @@ fun IdentityKeyCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "身份密钥指纹",
+                    text = stringResource(R.string.identity_key_fingerprint),
                     style = MaterialTheme.typography.titleSmall
                 )
 
@@ -251,14 +253,14 @@ fun DevicesCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "已连接设备",
+                    text = stringResource(R.string.connected_devices_title),
                     style = MaterialTheme.typography.titleSmall
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "$deviceCount 台设备使用此 DID",
+                    text = stringResource(R.string.devices_using_did, deviceCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -266,7 +268,7 @@ fun DevicesCard(
 
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "查看",
+                contentDescription = stringResource(R.string.view),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -285,7 +287,7 @@ fun QuickActionsSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "快捷操作",
+            text = stringResource(R.string.quick_actions),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -318,7 +320,7 @@ fun QuickActionsSection(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "导出 DID",
+                        text = stringResource(R.string.export_did),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -346,7 +348,7 @@ fun QuickActionsSection(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "备份密钥",
+                        text = stringResource(R.string.backup_keys),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -376,14 +378,14 @@ fun DIDDocumentSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "DID 文档详情",
+                text = stringResource(R.string.did_document_details),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
 
             Icon(
                 imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = if (expanded) "收起" else "展开",
+                contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -403,7 +405,7 @@ fun DIDDocumentSection(
                 ) {
                     // DID ID
                     DIDDocumentField(
-                        label = "DID 标识",
+                        label = stringResource(R.string.did_identifier),
                         value = didDocument.id
                     )
 
@@ -411,16 +413,16 @@ fun DIDDocumentSection(
 
                     // 验证方法数量
                     DIDDocumentField(
-                        label = "验证方法",
-                        value = "${didDocument.verificationMethod.size} 个公钥"
+                        label = stringResource(R.string.verification_methods),
+                        value = stringResource(R.string.public_keys_count, didDocument.verificationMethod.size)
                     )
 
                     Divider()
 
                     // 认证方法数量
                     DIDDocumentField(
-                        label = "认证方法",
-                        value = "${didDocument.authentication.size} 个"
+                        label = stringResource(R.string.authentication_methods),
+                        value = stringResource(R.string.count_items, didDocument.authentication.size)
                     )
 
                     Divider()
@@ -428,8 +430,8 @@ fun DIDDocumentSection(
                     // 密钥协商方法数量
                     if (didDocument.keyAgreement.isNotEmpty()) {
                         DIDDocumentField(
-                            label = "密钥协商",
-                            value = "${didDocument.keyAgreement.size} 个"
+                            label = stringResource(R.string.key_agreement),
+                            value = stringResource(R.string.count_items, didDocument.keyAgreement.size)
                         )
 
                         Divider()
@@ -438,8 +440,8 @@ fun DIDDocumentSection(
                     // 服务端点数量
                     if (didDocument.service.isNotEmpty()) {
                         DIDDocumentField(
-                            label = "服务端点",
-                            value = "${didDocument.service.size} 个"
+                            label = stringResource(R.string.service_endpoints),
+                            value = stringResource(R.string.count_items, didDocument.service.size)
                         )
                     }
 
@@ -447,7 +449,7 @@ fun DIDDocumentSection(
                     didDocument.created?.let { created ->
                         Divider()
                         DIDDocumentField(
-                            label = "创建时间",
+                            label = stringResource(R.string.creation_time),
                             value = created
                         )
                     }

@@ -17,10 +17,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.MessageSendStatus
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
+import com.chainlesschain.android.feature.p2p.R
 import com.chainlesschain.android.feature.p2p.viewmodel.ConnectionStatus
 import com.chainlesschain.android.feature.p2p.viewmodel.FileTransferViewModel
 import com.chainlesschain.android.feature.p2p.viewmodel.P2PChatViewModel
@@ -107,9 +109,9 @@ fun P2PChatScreen(
                             )
                             Text(
                                 text = when (connectionStatus) {
-                                    ConnectionStatus.CONNECTED -> "已连接"
-                                    ConnectionStatus.CONNECTING -> "连接中..."
-                                    ConnectionStatus.DISCONNECTED -> "已断开"
+                                    ConnectionStatus.CONNECTED -> stringResource(R.string.status_connected)
+                                    ConnectionStatus.CONNECTING -> stringResource(R.string.status_connecting)
+                                    ConnectionStatus.DISCONNECTED -> stringResource(R.string.status_disconnected)
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -117,7 +119,7 @@ fun P2PChatScreen(
                             if (isVerified) {
                                 Icon(
                                     imageVector = Icons.Default.Verified,
-                                    contentDescription = "已验证",
+                                    contentDescription = stringResource(R.string.verified),
                                     modifier = Modifier.size(16.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -127,7 +129,7 @@ fun P2PChatScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -136,7 +138,7 @@ fun P2PChatScreen(
                         IconButton(onClick = { viewModel.reconnect() }) {
                             Icon(
                                 Icons.Default.Refresh,
-                                contentDescription = "重新连接",
+                                contentDescription = stringResource(R.string.reconnect),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -146,7 +148,7 @@ fun P2PChatScreen(
                         IconButton(onClick = onVerifyDevice) {
                             Icon(
                                 Icons.Default.Security,
-                                contentDescription = "验证设备",
+                                contentDescription = stringResource(R.string.verify_device),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -154,14 +156,14 @@ fun P2PChatScreen(
                     // 更多选项
                     var showMenu by remember { mutableStateOf(false) }
                     IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more))
                     }
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("重发失败消息") },
+                            text = { Text(stringResource(R.string.retry_failed_messages)) },
                             onClick = {
                                 viewModel.retryFailedMessages()
                                 showMenu = false
@@ -171,7 +173,7 @@ fun P2PChatScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("清空聊天记录") },
+                            text = { Text(stringResource(R.string.clear_chat_history)) },
                             onClick = {
                                 viewModel.deleteAllMessages()
                                 showMenu = false
@@ -207,13 +209,13 @@ fun P2PChatScreen(
                             tint = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = "设备未验证，请先验证Safety Numbers",
+                            text = stringResource(R.string.device_not_verified_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         TextButton(onClick = onVerifyDevice) {
-                            Text("验证")
+                            Text(stringResource(R.string.verify))
                         }
                     }
                 }
@@ -252,12 +254,12 @@ fun P2PChatScreen(
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "开始安全聊天",
+                                    text = stringResource(R.string.start_secure_chat),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "消息已端到端加密",
+                                    text = stringResource(R.string.messages_e2ee),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
@@ -312,7 +314,7 @@ fun P2PChatScreen(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("关闭")
+                        Text(stringResource(R.string.close))
                     }
                 }
             ) {
@@ -381,11 +383,11 @@ fun P2PMessageBubble(
                     // 发送状态图标
                     if (isFromMe) {
                         val (icon, description) = when (message.sendStatus) {
-                            MessageSendStatus.PENDING -> Icons.Default.Schedule to "发送中"
-                            MessageSendStatus.SENT -> Icons.Default.Done to "已发送"
-                            MessageSendStatus.DELIVERED -> Icons.Default.DoneAll to "已送达"
-                            MessageSendStatus.FAILED -> Icons.Default.Error to "发送失败"
-                            else -> Icons.Default.Done to "已发送"
+                            MessageSendStatus.PENDING -> Icons.Default.Schedule to stringResource(R.string.status_sending)
+                            MessageSendStatus.SENT -> Icons.Default.Done to stringResource(R.string.status_sent)
+                            MessageSendStatus.DELIVERED -> Icons.Default.DoneAll to stringResource(R.string.status_delivered)
+                            MessageSendStatus.FAILED -> Icons.Default.Error to stringResource(R.string.status_send_failed)
+                            else -> Icons.Default.Done to stringResource(R.string.status_sent)
                         }
                         Icon(
                             imageVector = icon,
@@ -404,7 +406,7 @@ fun P2PMessageBubble(
                     // E2EE加密图标
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "端到端加密",
+                        contentDescription = stringResource(R.string.e2ee_encrypted),
                         modifier = Modifier.size(12.dp),
                         tint = if (isFromMe) {
                             MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
@@ -434,7 +436,7 @@ fun SendingIndicator() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "发送中",
+                text = stringResource(R.string.sending),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -474,7 +476,7 @@ fun P2PChatInput(
             ) {
                 Icon(
                     Icons.Default.AttachFile,
-                    contentDescription = "附件",
+                    contentDescription = stringResource(R.string.attachment),
                     tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
@@ -487,7 +489,7 @@ fun P2PChatInput(
             modifier = Modifier.weight(1f),
             placeholder = {
                 Text(
-                    if (enabled) "输入消息..." else "请先建立连接"
+                    if (enabled) stringResource(R.string.input_message_placeholder) else stringResource(R.string.connect_first_placeholder)
                 )
             },
             enabled = enabled,
@@ -495,7 +497,7 @@ fun P2PChatInput(
             trailingIcon = {
                 Icon(
                     Icons.Default.Lock,
-                    contentDescription = "加密",
+                    contentDescription = stringResource(R.string.encrypted),
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -506,7 +508,7 @@ fun P2PChatInput(
             onClick = onSend,
             enabled = enabled && value.isNotBlank()
         ) {
-            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "发送")
+            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.send))
         }
     }
 }

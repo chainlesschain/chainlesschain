@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.remote.commands.DiskInfo
 import com.chainlesschain.android.remote.commands.LargeFile
+import com.chainlesschain.android.remote.commands.StorageStats
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import java.util.Locale
 
@@ -137,7 +138,7 @@ fun StorageInfoScreen(
 @Composable
 private fun DisksTab(
     disks: List<DiskInfo>,
-    storageStats: com.chainlesschain.android.remote.commands.StorageStats?,
+    storageStats: StorageStats?,
     onDiskClick: (DiskInfo) -> Unit
 ) {
     LazyColumn(
@@ -208,7 +209,7 @@ private fun DisksTab(
                 )
             }
         } else {
-            items(disks) { disk ->
+            items(disks, key = { it.mountPoint ?: it.name }) { disk ->
                 DiskItem(disk, onClick = { onDiskClick(disk) })
             }
         }
@@ -338,7 +339,7 @@ private fun LargeFilesTab(
                     fontWeight = FontWeight.Bold
                 )
             }
-            items(largeFiles) { file ->
+            items(largeFiles, key = { it.path }) { file ->
                 LargeFileItem(file)
             }
         }

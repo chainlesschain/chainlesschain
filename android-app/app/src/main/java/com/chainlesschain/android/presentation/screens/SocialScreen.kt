@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.res.stringResource
 import com.chainlesschain.android.R
 import com.chainlesschain.android.core.database.entity.social.NotificationEntity
 import com.chainlesschain.android.feature.p2p.viewmodel.social.NotificationViewModel
@@ -148,7 +149,7 @@ private fun NotificationsTab(
                     color = MaterialTheme.colorScheme.primary
                 )
                 TextButton(onClick = { viewModel.markAllAsRead() }) {
-                    Text("全部已读")
+                    Text(stringResource(R.string.social_mark_all_read))
                 }
             }
         }
@@ -250,7 +251,7 @@ private fun NotificationItem(
             if (!notification.isRead) {
                 Icon(
                     imageVector = Icons.Default.Circle,
-                    contentDescription = "未读",
+                    contentDescription = stringResource(R.string.social_unread),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(8.dp)
                 )

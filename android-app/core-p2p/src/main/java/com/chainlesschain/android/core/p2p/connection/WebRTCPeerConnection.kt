@@ -72,7 +72,7 @@ class WebRTCPeerConnection @Inject constructor(
     private var turnFallbackAttempted = false
 
     // 协程作用域
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     // 信令回调（由外部设置）
     var onOfferCreated: ((SessionDescription) -> Unit)? = null

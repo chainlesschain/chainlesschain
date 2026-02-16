@@ -22,7 +22,9 @@ class RemoteDIDManager @Inject constructor(
         context.getSharedPreferences("remote_did_prefs", Context.MODE_PRIVATE)
     }
 
+    @Volatile
     private var currentDID: String? = null
+    @Volatile
     private var isInitialized = false
 
     companion object {

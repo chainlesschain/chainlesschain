@@ -377,21 +377,21 @@ class FileTransferRepository @Inject constructor(
      */
     private fun readChunk(file: File, chunkIndex: Int, chunkSize: Int): ByteArray {
         val offset = chunkIndex.toLong() * chunkSize
-        val inputStream = FileInputStream(file)
-        inputStream.skip(offset)
 
-        val isLastChunk = (offset + chunkSize) >= file.length()
-        val actualChunkSize = if (isLastChunk) {
-            (file.length() - offset).toInt()
-        } else {
-            chunkSize
+        return FileInputStream(file).use { inputStream ->
+            inputStream.skip(offset)
+
+            val isLastChunk = (offset + chunkSize) >= file.length()
+            val actualChunkSize = if (isLastChunk) {
+                (file.length() - offset).toInt()
+            } else {
+                chunkSize
+            }
+
+            val buffer = ByteArray(actualChunkSize)
+            inputStream.read(buffer)
+            buffer
         }
-
-        val buffer = ByteArray(actualChunkSize)
-        inputStream.read(buffer)
-        inputStream.close()
-
-        return buffer
     }
 
     /**
@@ -399,15 +399,15 @@ class FileTransferRepository @Inject constructor(
      */
     private fun calculateMD5(file: File): String {
         val md = MessageDigest.getInstance("MD5")
-        val inputStream = FileInputStream(file)
-        val buffer = ByteArray(8192)
-        var bytesRead: Int
 
-        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-            md.update(buffer, 0, bytesRead)
+        FileInputStream(file).use { inputStream ->
+            val buffer = ByteArray(8192)
+            var bytesRead: Int
+
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                md.update(buffer, 0, bytesRead)
+            }
         }
-
-        inputStream.close()
 
         val digest = md.digest()
         return digest.joinToString("") { "%02x".format(it) }

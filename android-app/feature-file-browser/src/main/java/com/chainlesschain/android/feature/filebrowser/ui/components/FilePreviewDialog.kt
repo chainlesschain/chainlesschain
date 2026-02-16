@@ -14,8 +14,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
@@ -73,11 +75,12 @@ fun FilePreviewDialog(
             file.category == FileCategory.IMAGE -> PreviewState.Image(file.uri)
             isPlayableMedia -> PreviewState.Media(file, file.uri)
             file.category == FileCategory.DOCUMENT || file.category == FileCategory.CODE -> {
-                val content = loadTextContent(contentResolver, file.uri, maxLines = 1000)
+                val truncMsg = context.getString(R.string.preview_truncated, 1000)
+                val content = loadTextContent(contentResolver, file.uri, maxLines = 1000, truncationMessage = truncMsg)
                 if (content != null) {
                     PreviewState.Text(content)
                 } else {
-                    PreviewState.Error("无法读取文件内容")
+                    PreviewState.Error(context.getString(R.string.preview_cannot_read))
                 }
             }
             else -> PreviewState.Info(file)
@@ -114,7 +117,7 @@ fun FilePreviewDialog(
                     },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "关闭")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.preview_close))
                         }
                     },
                     actions = {
@@ -140,7 +143,7 @@ fun FilePreviewDialog(
                                         strokeWidth = 2.dp
                                     )
                                 } else {
-                                    Icon(Icons.Default.TextFields, contentDescription = "文字识别")
+                                    Icon(Icons.Default.TextFields, contentDescription = stringResource(R.string.preview_ocr))
                                 }
                             }
                         }
@@ -159,7 +162,7 @@ fun FilePreviewDialog(
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.FolderOpen, contentDescription = "打开所在文件夹")
+                            Icon(Icons.Default.FolderOpen, contentDescription = stringResource(R.string.preview_open_folder))
                         }
 
                         IconButton(
@@ -171,13 +174,13 @@ fun FilePreviewDialog(
                                         putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(file.uri))
                                         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(android.content.Intent.createChooser(intent, "分享文件"))
+                                    context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.preview_share_file)))
                                 } catch (e: Exception) {
                                     android.util.Log.e("FilePreviewDialog", "Error sharing file", e)
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.Share, contentDescription = "分享")
+                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.preview_share))
                         }
                     }
                 )
@@ -341,7 +344,7 @@ private fun ImagePreview(uri: String) {
                 .data(Uri.parse(uri))
                 .crossfade(true)
                 .build(),
-            contentDescription = "图片预览",
+            contentDescription = stringResource(R.string.preview_image),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit
         )
@@ -406,7 +409,7 @@ private fun MediaInfoPreview(file: ExternalFileEntity) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "预览暂不支持",
+            text = stringResource(R.string.preview_not_supported),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -415,9 +418,9 @@ private fun MediaInfoPreview(file: ExternalFileEntity) {
 
         Text(
             text = when (file.category) {
-                FileCategory.VIDEO -> "视频文件需要使用外部播放器打开"
-                FileCategory.AUDIO -> "音频文件需要使用外部播放器打开"
-                else -> "此类型文件无法预览"
+                FileCategory.VIDEO -> stringResource(R.string.preview_video_external)
+                FileCategory.AUDIO -> stringResource(R.string.preview_audio_external)
+                else -> stringResource(R.string.preview_cannot_preview)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -451,7 +454,7 @@ private fun FileInfoPreview(file: ExternalFileEntity) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "无法预览此文件",
+            text = stringResource(R.string.preview_cannot_preview_file),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -476,18 +479,18 @@ private fun FileInfoSection(file: ExternalFileEntity) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            InfoRow(label = "文件名", value = file.displayName)
-            InfoRow(label = "大小", value = file.getReadableSize())
-            InfoRow(label = "类型", value = file.mimeType)
-            InfoRow(label = "分类", value = file.getCategoryDisplayName())
+            InfoRow(label = stringResource(R.string.file_detail_name), value = file.displayName)
+            InfoRow(label = stringResource(R.string.file_detail_size), value = file.getReadableSize())
+            InfoRow(label = stringResource(R.string.file_detail_type), value = file.mimeType)
+            InfoRow(label = stringResource(R.string.file_detail_category), value = file.getCategoryDisplayName())
             file.extension?.let {
-                InfoRow(label = "扩展名", value = it)
+                InfoRow(label = stringResource(R.string.file_detail_extension), value = it)
             }
             file.parentFolder?.let {
-                InfoRow(label = "文件夹", value = it)
+                InfoRow(label = stringResource(R.string.file_detail_folder), value = it)
             }
             InfoRow(
-                label = "修改时间",
+                label = stringResource(R.string.file_detail_modified),
                 value = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
                     .format(java.util.Date(file.lastModified))
             )
@@ -552,7 +555,8 @@ private fun ErrorPreview(message: String) {
 private suspend fun loadTextContent(
     contentResolver: ContentResolver,
     uri: String,
-    maxLines: Int = 1000
+    maxLines: Int = 1000,
+    truncationMessage: String? = null
 ): String? = withContext(Dispatchers.IO) {
     try {
         contentResolver.openInputStream(Uri.parse(uri))?.use { inputStream ->
@@ -569,8 +573,8 @@ private suspend fun loadTextContent(
                 }
             }
 
-            if (lineCount >= maxLines) {
-                content.appendLine("\n... (文件太大，仅显示前 $maxLines 行)")
+            if (lineCount >= maxLines && truncationMessage != null) {
+                content.appendLine(truncationMessage)
             }
 
             content.toString()

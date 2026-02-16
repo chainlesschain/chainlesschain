@@ -105,7 +105,8 @@ class PerformanceMonitor @Inject constructor(
 
     private fun collectMemoryMetrics(): MemoryMetrics {
         val runtime = Runtime.getRuntime()
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            ?: return MemoryMetrics(0, 0, 0, 0, 0L)
         val memInfo = ActivityManager.MemoryInfo()
         activityManager.getMemoryInfo(memInfo)
 

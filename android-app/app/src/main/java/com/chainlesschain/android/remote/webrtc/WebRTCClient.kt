@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.webrtc
 
+import com.chainlesschain.android.R
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,13 +33,17 @@ class WebRTCClient @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val signalClient: SignalClient
 ) {
+    @Volatile
     private var peerConnectionFactory: PeerConnectionFactory? = null
+    @Volatile
     private var peerConnection: PeerConnection? = null
+    @Volatile
     private var dataChannel: DataChannel? = null
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    @Volatile
     private var remoteIceJob: Job? = null
-    private val pendingRemoteCandidates = mutableListOf<IceCandidate>()
+    private val pendingRemoteCandidates = java.util.concurrent.CopyOnWriteArrayList<IceCandidate>()
     @Volatile
     private var isRemoteDescriptionSet = false
 
@@ -47,7 +52,9 @@ class WebRTCClient @Inject constructor(
         PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
     )
 
+    @Volatile
     private var onMessageReceived: ((String) -> Unit)? = null
+    @Volatile
     private var onDisconnected: (() -> Unit)? = null
 
     private val _connectionState = MutableStateFlow(P2PConnectionState.DISCONNECTED)
@@ -155,8 +162,8 @@ class WebRTCClient @Inject constructor(
             _connectionState.value = P2PConnectionState.FAILED
             // Provide more descriptive error messages
             val errorMessage = when {
-                e.message?.contains("timeout", ignoreCase = true) == true -> "PC端未响应，请确保PC应用已启动并连接到同一网络"
-                e.message?.contains("connect", ignoreCase = true) == true -> "无法连接到信令服务器，请检查网络设置"
+                e.message?.contains("timeout", ignoreCase = true) == true -> context.getString(R.string.webrtc_pc_not_responding)
+                e.message?.contains("connect", ignoreCase = true) == true -> context.getString(R.string.webrtc_signaling_failed)
                 else -> "连接失败: ${e.message}"
             }
             Result.failure(Exception(errorMessage, e))
@@ -452,12 +459,16 @@ class WebSocketSignalClient @Inject constructor(
     private val signalingConfig: com.chainlesschain.android.core.p2p.config.SignalingConfig
 ) : SignalClient {
 
+    @Volatile
     private var webSocket: okhttp3.WebSocket? = null
     private val answerChannel = kotlinx.coroutines.channels.Channel<org.webrtc.SessionDescription>(1)
     private val iceCandidateChannel = kotlinx.coroutines.channels.Channel<org.webrtc.IceCandidate>(kotlinx.coroutines.channels.Channel.UNLIMITED)
 
+    @Volatile
     private var currentPeerId: String? = null
+    @Volatile
     private var isConnected = false
+    @Volatile
     private var reconnectAttempts = 0
 
     // General-purpose scope for callback dispatching
@@ -465,12 +476,14 @@ class WebSocketSignalClient @Inject constructor(
 
     // Application-layer heartbeat
     private val heartbeatScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    @Volatile
     private var heartbeatJob: Job? = null
     @Volatile
     private var lastPongTime = 0L
     private val missedPongThreshold = 3
 
     // 用于转发来自信令服务器的 P2P 消息
+    @Volatile
     private var onForwardedMessageCallback: ((String) -> Unit)? = null
 
     override fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?) {

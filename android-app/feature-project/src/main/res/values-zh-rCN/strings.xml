@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="cancel">取消</string>
+    <string name="close">关闭</string>
+    <string name="done">完成</string>
+    <string name="save">保存</string>
+    <string name="create">创建</string>
+    <string name="delete">删除</string>
+    <string name="confirm">确定</string>
+    <string name="back">返回</string>
+    <string name="more">更多</string>
+    <string name="add">添加</string>
+    <string name="search">搜索</string>
+    <string name="refresh">刷新</string>
+    <string name="edit">编辑</string>
+    <string name="rename">重命名</string>
+    <string name="move">移动</string>
+    <string name="apply">应用</string>
+    <string name="reset">重置</string>
+    <string name="adjust">调整</string>
+    <string name="remove">移除</string>
+    <string name="selected">已选择</string>
+    <string name="clear_selection">清除选择</string>
+    <string name="favorite">收藏</string>
+    <string name="discard">丢弃</string>
+    <string name="ignore">忽略</string>
+
+    <!-- AIAssistDialog -->
+    <string name="ai_code_assistant">AI 代码助手</string>
+    <string name="ai_processing">AI 正在处理...</string>
+    <string name="ai_action_explain">解释代码</string>
+    <string name="ai_action_explain_desc">让AI解释当前代码的功能和工作原理</string>
+    <string name="ai_action_optimize">优化代码</string>
+    <string name="ai_action_optimize_desc">获取代码优化建议和性能改进方案</string>
+    <string name="ai_action_fix_bugs">检测Bug</string>
+    <string name="ai_action_fix_bugs_desc">分析代码中可能存在的问题和潜在bug</string>
+    <string name="ai_action_add_comments">添加注释</string>
+    <string name="ai_action_add_comments_desc">为代码生成详细的注释和文档</string>
+    <string name="ai_action_refactor">重构建议</string>
+    <string name="ai_action_refactor_desc">获取代码重构和架构改进建议</string>
+    <string name="ai_action_generate_tests">生成测试</string>
+    <string name="ai_action_generate_tests_desc">为当前代码生成单元测试</string>
+    <string name="ai_action_improve_naming">改进命名</string>
+    <string name="ai_action_improve_naming_desc">优化变量、函数和类的命名</string>
+    <string name="ai_action_complete_code">智能补全</string>
+    <string name="ai_action_complete_code_desc">根据上下文智能补全代码</string>
+
+    <!-- CreationProgressDialog -->
+    <string name="creation_failed">创建失败</string>
+    <string name="creating_project">正在创建项目</string>
+    <string name="stage_connecting">连接AI服务</string>
+    <string name="stage_analyzing">分析需求</string>
+    <string name="stage_generating_structure">生成项目结构</string>
+    <string name="stage_generating_files">生成文件内容</string>
+    <string name="stage_saving">保存项目</string>
+    <string name="stage_completed">创建完成</string>
+    <string name="stage_failed">创建失败</string>
+
+    <!-- EnhancedFileMentionPopup -->
+    <string name="project_files">项目文件</string>
+    <string name="phone_files">手机文件</string>
+    <string name="search_project_files">搜索项目文件...</string>
+    <string name="search_phone_files">搜索手机文件...</string>
+    <string name="no_files">暂无文件</string>
+    <string name="no_matching_files">未找到匹配的文件</string>
+    <string name="no_phone_files">未找到手机文件\n请先在文件浏览器中扫描</string>
+    <string name="project_file_context_hint">选择项目文件后，其内容将作为AI上下文</string>
+    <string name="phone_file_context_hint">手机文件将临时导入（链接模式），不占用额外空间</string>
+
+    <!-- FileMentionPopup -->
+    <string name="search_files">搜索文件...</string>
+    <string name="file_context_hint">选择文件后，其内容将作为AI上下文</string>
+
+    <!-- FileFilterSheet -->
+    <string name="file_filter_and_sort">文件过滤和排序</string>
+    <string name="sort_by">排序方式</string>
+    <string name="sort_direction">排序方向</string>
+    <string name="file_type_filter">文件类型过滤</string>
+    <string name="sort_name">名称</string>
+    <string name="sort_size">大小</string>
+    <string name="sort_modified">修改时间</string>
+    <string name="sort_type">类型</string>
+    <string name="sort_path">路径</string>
+    <string name="sort_asc">升序</string>
+    <string name="sort_desc">降序</string>
+    <string name="sort_label">排序: %s</string>
+    <string name="type_count">%d 个类型</string>
+
+    <!-- FilePreviewDialog -->
+    <string name="fullscreen_view">全屏查看</string>
+    <string name="metadata_size">大小</string>
+    <string name="metadata_type">类型</string>
+    <string name="metadata_modified_time">修改时间</string>
+    <string name="metadata_access_time">访问时间</string>
+    <string name="markdown_preview">Markdown 预览</string>
+    <string name="code_label">%s 代码</string>
+    <string name="text_content">文本内容</string>
+    <string name="file_content_empty">文件内容为空</string>
+    <string name="unsupported_preview">不支持 .%s 文件预览</string>
+    <string name="open_in_editor_hint">点击\"编辑\"按钮在编辑器中打开</string>
+    <string name="image_preview">图片预览</string>
+    <string name="image_load_failed">图片加载失败</string>
+    <string name="cannot_preview_image">无法预览图片</string>
+    <string name="need_project_path_for_image">需要项目路径信息才能加载图片</string>
+    <string name="just_now">刚刚</string>
+    <string name="minutes_ago">%d 分钟前</string>
+    <string name="hours_ago">%d 小时前</string>
+    <string name="days_ago">%d 天前</string>
+
+    <!-- FindReplaceDialog -->
+    <string name="find_and_replace">查找和替换</string>
+    <string name="find">查找</string>
+    <string name="replace_with">替换为</string>
+    <string name="replace">替换</string>
+    <string name="replace_all">全部替换</string>
+    <string name="case_sensitive">区分大小写</string>
+    <string name="whole_word">全字匹配</string>
+    <string name="use_regex">使用正则表达式</string>
+
+    <!-- ModelSelectorDialog -->
+    <string name="select_ai_model">选择AI模型</string>
+    <string name="no_models_for_provider">暂无%s模型</string>
+    <string name="recommended">推荐</string>
+    <string name="max_context">最大上下文</string>
+    <string name="response_speed">响应速度</string>
+    <string name="cost">成本</string>
+    <string name="speed_fast">快</string>
+    <string name="speed_medium">中</string>
+
+    <!-- TemplateSelectionDialog -->
+    <string name="select_project_template">选择项目模板</string>
+    <string name="browse_templates">浏览模板</string>
+    <string name="template_details">模板详情</string>
+    <string name="category_filter">分类筛选</string>
+    <string name="all">全部</string>
+    <string name="use_this_template">使用此模板</string>
+    <string name="description_label">描述</string>
+    <string name="statistics">统计信息</string>
+    <string name="file_count">文件数量</string>
+    <string name="folder_count">文件夹数量</string>
+    <string name="total_size">总大小</string>
+    <string name="tags">标签</string>
+    <string name="file_structure_preview">文件结构预览</string>
+    <string name="files_count">%d 文件</string>
+    <string name="folders_count">%d 文件夹</string>
+    <string name="more_folders">... 还有 %d 个文件夹</string>
+    <string name="more_files">... 还有 %d 个文件</string>
+    <string name="file_count_stat">%d 个</string>
+
+    <!-- CreateProjectScreen -->
+    <string name="create_project">创建项目</string>
+    <string name="project_name_required">项目名称 *</string>
+    <string name="enter_project_name">输入项目名称</string>
+    <string name="project_description">项目描述</string>
+    <string name="enter_project_description">输入项目描述（可选）</string>
+    <string name="project_type">项目类型</string>
+    <string name="add_tags">添加标签</string>
+    <string name="enter_tag_hint">输入标签后按回车添加</string>
+    <string name="creating">创建中...</string>
+    <string name="login_required_to_create">请先登录后再创建项目</string>
+    <string name="ai_creation_assistant">AI 创建助手</string>
+    <string name="ai_creation_assistant_desc">描述你的项目，AI 会帮你创建</string>
+    <string name="expand">展开</string>
+    <string name="quick_templates">快速模板:</string>
+    <string name="template_document">文档</string>
+    <string name="template_data_analysis">数据分析</string>
+    <string name="describe_project">描述你想创建的项目</string>
+    <string name="describe_project_example">例如：创建一个博客项目，包含文章、评论功能...</string>
+    <string name="send">发送</string>
+    <string name="ai_suggestion">AI 建议</string>
+    <string name="apply_suggestion">应用建议</string>
+    <string name="type_document">文档</string>
+    <string name="type_web">网站</string>
+    <string name="type_app">应用</string>
+    <string name="type_data">数据</string>
+    <string name="type_design">设计</string>
+    <string name="type_research">研究</string>
+    <string name="type_other">其他</string>
+    <string name="type_unknown">未知</string>
+
+    <!-- FileEditorScreen -->
+    <string name="apply_to_file">应用到文件</string>
+    <string name="ai_result">AI 处理结果</string>
+    <string name="ai_result_apply_hint">您可以选择应用此结果到文件，或者丢弃它。</string>
+
+    <!-- FilePickerDialog -->
+    <string name="select_attachment">选择附件</string>
+    <string name="selected_files_count">已选 %d 个文件</string>
+    <string name="grant_permission">授予权限</string>
+    <string name="storage_permission_required">需要存储权限</string>
+    <string name="storage_permission_desc">文件选择需要访问您的设备存储。</string>
+    <string name="add_count">添加 (%d)</string>
+    <string name="no_files_found">未找到文件\n请在文件浏览器中扫描文件</string>
+    <string name="category_document">文档</string>
+    <string name="category_image">图片</string>
+    <string name="category_video">视频</string>
+    <string name="category_audio">音频</string>
+    <string name="category_archive">压缩包</string>
+    <string name="category_code">代码</string>
+    <string name="category_other">其他</string>
+
+    <!-- GitHistoryScreen -->
+    <string name="commit_history">提交历史</string>
+    <string name="no_commits">暂无提交记录</string>
+    <string name="create_first_commit">创建第一个提交以开始追踪更改</string>
+    <string name="commit_details">提交详情</string>
+    <string name="author">作者: </string>
+    <string name="date">日期: </string>
+    <string name="changed_files">更改的文件</string>
+    <string name="no_changed_files">没有更改的文件</string>
+
+    <!-- GitStatusDialog -->
+    <string name="git_status">Git 状态</string>
+    <string name="branch_label">分支: %s</string>
+    <string name="history">历史</string>
+    <string name="enter_commit_message">输入提交信息...</string>
+    <string name="commit_message">提交信息</string>
+    <string name="commit_files_count">提交 (%d 个文件)</string>
+    <string name="staged_changes">已暂存的更改</string>
+    <string name="unstaged_changes">未暂存的更改</string>
+    <string name="untracked_files">未追踪的文件</string>
+    <string name="unstage_all">全部取消暂存</string>
+    <string name="stage_all">全部暂存</string>
+    <string name="add_all">全部添加</string>
+    <string name="working_tree_clean">工作区干净</string>
+    <string name="view_diff">查看差异</string>
+    <string name="discard_changes">放弃更改</string>
+    <string name="diff_title">差异: %s</string>
+
+    <!-- ProjectDetailScreen -->
+    <string name="project_details">项目详情</string>
+    <string name="edit_project">编辑项目</string>
+    <string name="pause_project">暂停项目</string>
+    <string name="complete_project">完成项目</string>
+    <string name="resume_project">继续项目</string>
+    <string name="restart_project">重新开始</string>
+    <string name="unarchive">取消归档</string>
+    <string name="archive">归档</string>
+    <string name="delete_project">删除项目</string>
+    <string name="files_tab">文件</string>
+    <string name="ai_assistant_tab">AI 助手</string>
+    <string name="activity_tab">活动</string>
+    <string name="no_files_yet">暂无文件</string>
+    <string name="no_activity_records">暂无活动记录</string>
+    <string name="new_file">新建文件</string>
+    <string name="new_folder">新建文件夹</string>
+    <string name="file_name">文件名</string>
+    <string name="folder_name">文件夹名</string>
+    <string name="project_name">项目名称</string>
+    <string name="move_to">移动到...</string>
+    <string name="move_file_title">移动 \"%s\"</string>
+    <string name="select_target_folder">选择目标文件夹:</string>
+    <string name="root_directory">/ (根目录)</string>
+    <string name="no_other_folders">没有其他文件夹</string>
+    <string name="delete_project_confirm">确定要删除此项目吗？此操作无法撤销。</string>
+    <string name="rename_dialog_title">重命名</string>
+    <string name="new_name">新名称</string>
+    <string name="status_label">状态</string>
+    <string name="type_label">类型</string>
+    <string name="file_count_label">文件数</string>
+    <string name="size_label">大小</string>
+
+    <!-- EditProjectDialog -->
+    <string name="project_description_label">项目描述</string>
+    <string name="project_type_label">项目类型</string>
+    <string name="type_android">Android</string>
+    <string name="type_backend">后端</string>
+
+    <!-- TemplateCategory -->
+    <string name="template_cat_android">Android</string>
+    <string name="template_cat_web">Web 开发</string>
+    <string name="template_cat_backend">后端服务</string>
+    <string name="template_cat_data_science">数据科学</string>
+    <string name="template_cat_mobile">移动开发</string>
+    <string name="template_cat_desktop">桌面应用</string>
+    <string name="template_cat_library">库/框架</string>
+    <string name="template_cat_multiplatform">跨平台</string>
+    <string name="template_cat_flutter">Flutter</string>
+    <string name="template_cat_other">其他</string>
+
+    <!-- Template Names and Descriptions -->
+    <string name="template_name_blank">空白项目</string>
+    <string name="template_desc_blank">从头开始的空白项目</string>
+    <string name="template_name_android_app">Android 应用</string>
+    <string name="template_desc_android_app">标准 Android 应用项目结构</string>
+    <string name="template_name_react_web">React Web 应用</string>
+    <string name="template_desc_react_web">React + TypeScript 前端项目</string>
+    <string name="template_name_python_ds">Python 数据科学</string>
+    <string name="template_desc_python_ds">数据分析和机器学习项目</string>
+    <string name="template_name_kotlin_mp">Kotlin Multiplatform</string>
+    <string name="template_desc_kotlin_mp">跨平台 Kotlin 项目</string>
+    <string name="template_name_spring_boot">Spring Boot API</string>
+    <string name="template_desc_spring_boot">Spring Boot REST API 项目</string>
+    <string name="template_name_flutter_app">Flutter 应用</string>
+    <string name="template_desc_flutter_app">跨平台 Flutter 移动应用</string>
+    <string name="template_name_vue_web">Vue Web 应用</string>
+    <string name="template_desc_vue_web">Vue 3 + TypeScript 前端项目</string>
+    <string name="template_name_express_api">Express API</string>
+    <string name="template_desc_express_api">简单的 Express REST API</string>
+    <string name="template_name_django_web">Django Web 应用</string>
+    <string name="template_desc_django_web">Python Django 全栈项目</string>
+    <string name="template_name_nodejs_api">Node.js API</string>
+    <string name="template_desc_nodejs_api">Express + TypeScript REST API</string>
+
+    <!-- TaskStatus -->
+    <string name="task_status_pending">待办</string>
+    <string name="task_status_in_progress">进行中</string>
+    <string name="task_status_completed">已完成</string>
+    <string name="task_status_cancelled">已取消</string>
+
+    <!-- TaskPriority -->
+    <string name="task_priority_low">低</string>
+    <string name="task_priority_medium">中</string>
+    <string name="task_priority_high">高</string>
+    <string name="task_priority_urgent">紧急</string>
+
+    <!-- TaskSortBy -->
+    <string name="task_sort_created_at">创建时间</string>
+    <string name="task_sort_updated_at">更新时间</string>
+    <string name="task_sort_due_date">截止时间</string>
+    <string name="task_sort_priority">优先级</string>
+    <string name="task_sort_title">标题</string>
+    <string name="task_sort_status">状态</string>
+
+    <!-- ProjectListScreen -->
+    <string name="project_management">项目管理</string>
+    <string name="search_projects">搜索项目...</string>
+    <string name="filter">筛选</string>
+    <string name="sort">排序</string>
+    <string name="all_projects">全部项目</string>
+    <string name="favorite_projects">收藏项目</string>
+    <string name="archived_projects">已归档</string>
+    <string name="in_progress">进行中</string>
+    <string name="completed">已完成</string>
+    <string name="recently_updated">最近更新</string>
+    <string name="created_time">创建时间</string>
+    <string name="name">名称</string>
+    <string name="access_count">访问次数</string>
+    <string name="file_count_sort">文件数量</string>
+    <string name="create_project_button">创建项目</string>
+    <string name="unarchive_action">取消归档</string>
+    <string name="archive_action">归档</string>
+    <string name="updated_at_format">更新于 %s</string>
+    <string name="no_matching_projects">未找到匹配的项目</string>
+    <string name="no_favorite_projects">暂无收藏项目</string>
+    <string name="no_archived_projects">暂无已归档项目</string>
+    <string name="no_status_projects">暂无%s的项目</string>
+    <string name="no_type_projects">暂无%s项目</string>
+    <string name="no_projects">暂无项目</string>
+    <string name="create_first_project">点击下方按钮创建您的第一个项目</string>
+
+    <!-- ProjectRepository -->
+    <string name="status_changed_to">状态变更为: %s</string>
+    <string name="project_status_active">进行中</string>
+    <string name="project_status_paused">已暂停</string>
+    <string name="project_status_completed">已完成</string>
+    <string name="project_status_archived">已归档</string>
+    <string name="project_status_deleted">已删除</string>
+    <string name="project_status_unknown">未知</string>
+
+    <!-- TaskListScreen -->
+    <string name="tasks">任务</string>
+    <string name="search_tasks">搜索任务...</string>
+    <string name="clear">清除</string>
+    <string name="create_task">创建任务</string>
+    <string name="overdue">逾期</string>
+    <string name="today">今日</string>
+    <string name="stat_in_progress">进行中</string>
+    <string name="stat_completed">已完成</string>
+    <string name="stat_overdue">逾期</string>
+    <string name="stat_completion_rate">完成率</string>
+    <string name="no_tasks">暂无任务</string>
+    <string name="create_first_task">点击右下角按钮创建第一个任务</string>
+    <string name="load_failed">加载失败</string>
+    <string name="retry">重试</string>
+    <string name="filter_title">筛选</string>
+    <string name="status_filter">状态</string>
+    <string name="priority_filter">优先级</string>
+    <string name="clear_filter">清除筛选</string>
+
+    <!-- TaskDetailScreen -->
+    <string name="task_details">任务详情</string>
+    <string name="description_section">描述</string>
+    <string name="time_info">时间信息</string>
+    <string name="due_time">截止时间</string>
+    <string name="completion_time">完成时间</string>
+    <string name="estimate_hours">预估: %sh</string>
+    <string name="actual_hours">实际: %sh</string>
+    <string name="sub_steps">子步骤</string>
+
+    <!-- TaskCreateScreen -->
+    <string name="task_title_required">任务标题 *</string>
+    <string name="enter_task_title">输入任务标题...</string>
+    <string name="task_description_label">任务描述</string>
+    <string name="enter_task_description">输入任务描述（可选）...</string>
+    <string name="priority_label">优先级</string>
+    <string name="due_date_label">截止日期</string>
+    <string name="select_due_date">选择截止日期（可选）</string>
+    <string name="labels_label">标签</string>
+    <string name="add_label">添加标签...</string>
+    <string name="sub_steps_label">子步骤</string>
+    <string name="add_sub_step">添加子步骤...</string>
+
+    <!-- TaskViewModel -->
+    <string name="status_updated_to">状态已更新为: %s</string>
+</resources>

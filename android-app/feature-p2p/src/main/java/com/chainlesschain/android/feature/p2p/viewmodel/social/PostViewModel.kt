@@ -18,6 +18,7 @@ import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -34,7 +35,9 @@ class PostViewModel @Inject constructor(
     initialState = PostUiState()
 ) {
 
+    @Volatile
     private var currentMyDid: String = ""
+    @Volatile
     private var currentFriendDids: List<String> = emptyList()
 
     /**
@@ -525,6 +528,7 @@ class PostViewModel @Inject constructor(
 /**
  * 动态 UI 状态
  */
+@Immutable
 data class PostUiState(
     val timelinePosts: List<PostEntity> = emptyList(),
     val userPosts: List<PostEntity> = emptyList(),

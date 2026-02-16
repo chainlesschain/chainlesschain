@@ -13,6 +13,7 @@ import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -281,6 +282,7 @@ class KnowledgeViewModel @Inject constructor(
 /**
  * 知识库UI状态
  */
+@Immutable
 data class KnowledgeUiState(
     val isLoading: Boolean = false,
     val error: String? = null,

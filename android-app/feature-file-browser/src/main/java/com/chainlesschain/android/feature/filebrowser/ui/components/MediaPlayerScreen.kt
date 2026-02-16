@@ -18,7 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -287,7 +289,7 @@ private fun MediaControls(
                 IconButton(onClick = onRewind) {
                     Icon(
                         imageVector = Icons.Default.Replay10,
-                        contentDescription = "后退10秒",
+                        contentDescription = stringResource(R.string.media_rewind),
                         tint = if (isVideo) Color.White else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(32.dp)
                     )
@@ -307,7 +309,7 @@ private fun MediaControls(
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        contentDescription = if (isPlaying) stringResource(R.string.media_pause) else stringResource(R.string.media_play),
                         modifier = Modifier.size(40.dp),
                         tint = if (isVideo) Color.Black else MaterialTheme.colorScheme.onPrimary
                     )
@@ -317,7 +319,7 @@ private fun MediaControls(
                 IconButton(onClick = onForward) {
                     Icon(
                         imageVector = Icons.Default.Forward10,
-                        contentDescription = "快进10秒",
+                        contentDescription = stringResource(R.string.media_forward),
                         tint = if (isVideo) Color.White else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(32.dp)
                     )
@@ -344,7 +346,7 @@ private fun MediaControls(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "音频文件 • ${file.mimeType ?: "未知格式"}",
+                            text = stringResource(R.string.media_audio_info, file.mimeType ?: stringResource(R.string.media_unknown_format)),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -45,9 +45,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import coil.request.ImageRequest
@@ -121,7 +123,7 @@ fun FilePreviewDialog(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "关闭",
+                        contentDescription = stringResource(R.string.close),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -162,7 +164,7 @@ fun FilePreviewDialog(
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onDismiss) {
-                    Text("关闭")
+                    Text(stringResource(R.string.close))
                 }
                 if (onEdit != null) {
                     TextButton(onClick = {
@@ -178,7 +180,7 @@ fun FilePreviewDialog(
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Text("编辑")
+                            Text(stringResource(R.string.edit))
                         }
                     }
                 }
@@ -208,11 +210,11 @@ private fun FileMetadataCard(file: ProjectFileEntity) {
         )
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            MetadataRow(label = "大小", value = file.getReadableSize())
-            MetadataRow(label = "类型", value = file.extension?.uppercase() ?: "UNKNOWN")
-            MetadataRow(label = "修改时间", value = formatTimestamp(file.updatedAt))
+            MetadataRow(label = stringResource(R.string.metadata_size), value = file.getReadableSize())
+            MetadataRow(label = stringResource(R.string.metadata_type), value = file.extension?.uppercase() ?: "UNKNOWN")
+            MetadataRow(label = stringResource(R.string.metadata_modified_time), value = formatTimestamp(file.updatedAt))
             file.lastAccessedAt?.let { lastAccessed ->
-                MetadataRow(label = "访问时间", value = formatTimestamp(lastAccessed))
+                MetadataRow(label = stringResource(R.string.metadata_access_time), value = formatTimestamp(lastAccessed))
             }
         }
     }
@@ -247,7 +249,7 @@ private fun MetadataRow(label: String, value: String) {
 private fun MarkdownPreview(content: String) {
     Column {
         Text(
-            text = "Markdown 预览",
+            text = stringResource(R.string.markdown_preview),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
@@ -285,7 +287,7 @@ private fun CodePreview(content: String, extension: String) {
                 tint = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "${extension.uppercase()} 代码",
+                text = stringResource(R.string.code_label, extension.uppercase()),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -320,7 +322,7 @@ private fun CodePreview(content: String, extension: String) {
 private fun TextPreview(content: String) {
     Column {
         Text(
-            text = "文本内容",
+            text = stringResource(R.string.text_content),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
@@ -363,7 +365,7 @@ private fun EmptyContentMessage() {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
             Text(
-                text = "文件内容为空",
+                text = stringResource(R.string.file_content_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -393,12 +395,12 @@ private fun UnsupportedPreviewMessage(extension: String) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
             Text(
-                text = "不支持 .$extension 文件预览",
+                text = stringResource(R.string.unsupported_preview, extension),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "点击\"编辑\"按钮在编辑器中打开",
+                text = stringResource(R.string.open_in_editor_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
@@ -471,7 +473,7 @@ private fun ImagePreview(
                 tint = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "图片预览",
+                text = stringResource(R.string.image_preview),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -526,7 +528,7 @@ private fun ImagePreview(
                                 tint = MaterialTheme.colorScheme.error
                             )
                             Text(
-                                text = "图片加载失败",
+                                text = stringResource(R.string.image_load_failed),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -551,7 +553,7 @@ private fun ImagePreview(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text("全屏查看")
+                        Text(stringResource(R.string.fullscreen_view))
                     }
                 }
             }
@@ -581,12 +583,12 @@ private fun ImagePathMissingMessage() {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
             Text(
-                text = "无法预览图片",
+                text = stringResource(R.string.cannot_preview_image),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "需要项目路径信息才能加载图片",
+                text = stringResource(R.string.need_project_path_for_image),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )

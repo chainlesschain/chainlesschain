@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -839,6 +840,7 @@ data class PendingCommandInfo(
 /**
  * 流状态信息
  */
+@Immutable
 data class StreamState(
     val streamId: String,
     val method: String,

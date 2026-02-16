@@ -29,9 +29,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,15 +48,15 @@ fun DeviceListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设备管理") },
+                title = { Text(stringResource(R.string.device_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToDeviceScan) {
-                        Icon(Icons.Default.Add, contentDescription = "扫描")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.common_search))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -109,7 +111,7 @@ fun DeviceListScreen(
                                 )
                             }
                             TextButton(onClick = { viewModel.remove(device.peerId) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "删除")
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_delete))
                             }
                             Icon(Icons.Default.ChevronRight, contentDescription = null)
                         }

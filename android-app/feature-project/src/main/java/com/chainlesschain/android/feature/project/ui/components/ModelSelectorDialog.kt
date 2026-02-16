@@ -40,8 +40,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.feature.ai.domain.model.LLMModel
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 
@@ -64,7 +66,7 @@ fun ModelSelectorDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "选择AI模型",
+                text = stringResource(R.string.select_ai_model),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -97,7 +99,7 @@ fun ModelSelectorDialog(
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(models) { model ->
+                        items(models, key = { it.id }) { model ->
                             ModelCard(
                                 model = model,
                                 isSelected = model.id == currentModel && model.provider == currentProvider,
@@ -113,7 +115,7 @@ fun ModelSelectorDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text(stringResource(R.string.close))
             }
         }
     )
@@ -231,18 +233,18 @@ private fun ModelCard(
                     ModelCapability(
                         icon = Icons.Default.Token,
                         label = "${model.maxTokens / 1024}K",
-                        tooltip = "最大上下文"
+                        tooltip = stringResource(R.string.max_context)
                     )
                     ModelCapability(
                         icon = Icons.Default.Speed,
                         label = getSpeedRating(model),
-                        tooltip = "响应速度"
+                        tooltip = stringResource(R.string.response_speed)
                     )
                     if (model.provider != LLMProvider.OLLAMA) {
                         ModelCapability(
                             icon = Icons.Default.Cloud,
                             label = getCostRating(model),
-                            tooltip = "成本"
+                            tooltip = stringResource(R.string.cost)
                         )
                     }
                 }
@@ -251,7 +253,7 @@ private fun ModelCard(
             if (isSelected) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "已选择",
+                    contentDescription = stringResource(R.string.selected),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(28.dp)
                 )
@@ -281,7 +283,7 @@ private fun RecommendedBadge() {
                 tint = MaterialTheme.colorScheme.tertiary
             )
             Text(
-                text = "推荐",
+                text = stringResource(R.string.recommended),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                 fontWeight = FontWeight.Bold
@@ -336,7 +338,7 @@ private fun EmptyModelsMessage(provider: LLMProvider) {
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
         Text(
-            text = "暂无${provider.displayName}模型",
+            text = stringResource(R.string.no_models_for_provider, provider.displayName),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -374,23 +376,24 @@ private fun isRecommended(model: LLMModel): Boolean = when {
 /**
  * 获取速度评级
  */
+@Composable
 private fun getSpeedRating(model: LLMModel): String = when (model.provider) {
     LLMProvider.OPENAI -> when (model.id) {
-        "gpt-4" -> "中"
-        "gpt-3.5-turbo" -> "快"
-        else -> "中"
+        "gpt-4" -> stringResource(R.string.speed_medium)
+        "gpt-3.5-turbo" -> stringResource(R.string.speed_fast)
+        else -> stringResource(R.string.speed_medium)
     }
-    LLMProvider.DEEPSEEK -> "快"
-    LLMProvider.CLAUDE -> "中"
-    LLMProvider.GEMINI -> "快"
-    LLMProvider.QWEN -> "快"
-    LLMProvider.ERNIE -> "中"
-    LLMProvider.CHATGLM -> "快"
-    LLMProvider.MOONSHOT -> "快"
-    LLMProvider.SPARK -> "中"
-    LLMProvider.DOUBAO -> "快"
-    LLMProvider.OLLAMA -> "快"
-    LLMProvider.CUSTOM -> "中"
+    LLMProvider.DEEPSEEK -> stringResource(R.string.speed_fast)
+    LLMProvider.CLAUDE -> stringResource(R.string.speed_medium)
+    LLMProvider.GEMINI -> stringResource(R.string.speed_fast)
+    LLMProvider.QWEN -> stringResource(R.string.speed_fast)
+    LLMProvider.ERNIE -> stringResource(R.string.speed_medium)
+    LLMProvider.CHATGLM -> stringResource(R.string.speed_fast)
+    LLMProvider.MOONSHOT -> stringResource(R.string.speed_fast)
+    LLMProvider.SPARK -> stringResource(R.string.speed_medium)
+    LLMProvider.DOUBAO -> stringResource(R.string.speed_fast)
+    LLMProvider.OLLAMA -> stringResource(R.string.speed_fast)
+    LLMProvider.CUSTOM -> stringResource(R.string.speed_medium)
 }
 
 /**

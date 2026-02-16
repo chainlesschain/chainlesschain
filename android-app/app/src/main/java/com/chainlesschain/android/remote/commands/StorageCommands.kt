@@ -561,9 +561,12 @@ data class DiskInfo(
     val free: Long,
     val used: Long,
     val usagePercent: Double,
-    val sizeFormatted: String,
-    val freeFormatted: String,
-    val usedFormatted: String
+    val sizeFormatted: String = "",
+    val freeFormatted: String = "",
+    val usedFormatted: String = "",
+    val total: Long? = null,
+    val available: Long? = null,
+    val usedPercent: Double? = null
 )
 
 @Serializable
@@ -600,6 +603,20 @@ data class PartitionInfo(
     val fileSystem: String? = null,
     val mountPoint: String? = null,
     val uuid: String? = null
+)
+
+/**
+ * 存储概览统计（供 UI 层使用）
+ */
+@Serializable
+data class StorageStats(
+    val total: Long = 0,
+    val used: Long = 0,
+    val free: Long = 0,
+    val totalFormatted: String? = null,
+    val usedFormatted: String? = null,
+    val freeFormatted: String? = null,
+    val usagePercent: Double = 0.0
 )
 
 @Serializable
@@ -692,8 +709,10 @@ data class CleanedFile(
 @Serializable
 data class EmptyTrashResponse(
     val success: Boolean,
-    val dryRun: Boolean,
-    val message: String
+    val dryRun: Boolean = false,
+    val message: String,
+    val deletedCount: Int? = null,
+    val freedSpace: Long? = null
 )
 
 @Serializable
@@ -945,7 +964,7 @@ data class DeleteDuplicatesResponse(
 @Serializable
 data class QuotaResponse(
     val success: Boolean,
-    val quotas: List<UserQuota>
+    val quotas: List<UserQuota> = emptyList()
 )
 
 @Serializable
@@ -968,16 +987,7 @@ data class SetQuotaResponse(
 )
 
 // ==================== 加密响应 ====================
-
-@Serializable
-data class EncryptionStatusResponse(
-    val success: Boolean,
-    val driveName: String,
-    val encrypted: Boolean,
-    val locked: Boolean,
-    val algorithm: String? = null,
-    val type: String? = null  // "BitLocker", "LUKS", etc.
-)
+// EncryptionStatusResponse is defined in SecurityCommands.kt
 
 @Serializable
 data class EncryptDriveResponse(
@@ -1018,11 +1028,15 @@ data class DiskIOStats(
     val name: String,
     val readBytes: Long,
     val writeBytes: Long,
-    val readOps: Long,
-    val writeOps: Long,
-    val readBytesPerSec: Long,
-    val writeBytesPerSec: Long,
-    val utilization: Double
+    val readOps: Long = 0,
+    val writeOps: Long = 0,
+    val readBytesPerSec: Long = 0,
+    val writeBytesPerSec: Long = 0,
+    val utilization: Double = 0.0,
+    val readCount: Long? = null,
+    val writeCount: Long? = null,
+    val readTime: Long? = null,
+    val writeTime: Long? = null
 )
 
 @Serializable
@@ -1038,6 +1052,18 @@ data class DiskIODataPoint(
     val readBytesPerSec: Long,
     val writeBytesPerSec: Long,
     val utilization: Double
+)
+
+@Serializable
+data class DiskUsageResponse(
+    val success: Boolean,
+    val path: String,
+    val total: Long,
+    val used: Long,
+    val available: Long,
+    val usedPercent: Double,
+    val mountPoint: String? = null,
+    val fileSystem: String? = null
 )
 
 // ==================== 文件索引响应 ====================

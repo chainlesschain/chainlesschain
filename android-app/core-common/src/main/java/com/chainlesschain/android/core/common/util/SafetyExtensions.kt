@@ -4,6 +4,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -66,11 +67,15 @@ fun <T> Flow<T>.collectSafelyWithLifecycle(
                     .collect { value ->
                         try {
                             action(value)
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             Timber.e(e, "Error in flow collection action")
                             onError?.invoke(e)
                         }
                     }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Timber.e(e, "Error setting up flow collection")
                 onError?.invoke(e)
@@ -108,6 +113,8 @@ suspend inline fun <T> tryCoSafely(
 ): T? {
     return try {
         block()
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Timber.e(e, "Safe coroutine execution failed")
         onError?.invoke(e)
@@ -126,6 +133,8 @@ fun CoroutineScope.launchSafely(
 ) = launch {
     try {
         block()
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Timber.e(e, "Safe coroutine launch failed")
         onError?.invoke(e)

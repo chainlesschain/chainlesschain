@@ -34,8 +34,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
 
@@ -183,7 +185,7 @@ fun FindReplaceDialog(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "查找和替换",
+                    text = stringResource(R.string.find_and_replace),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -201,7 +203,7 @@ fun FindReplaceDialog(
                         findText = it
                         findMatches()
                     },
-                    label = { Text("查找") },
+                    label = { Text(stringResource(R.string.find)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     isError = errorMessage != null,
@@ -230,7 +232,7 @@ fun FindReplaceDialog(
                 OutlinedTextField(
                     value = replaceText,
                     onValueChange = { replaceText = it },
-                    label = { Text("替换为") },
+                    label = { Text(stringResource(R.string.replace_with)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -256,7 +258,7 @@ fun FindReplaceDialog(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "区分大小写",
+                            text = stringResource(R.string.case_sensitive),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -273,7 +275,7 @@ fun FindReplaceDialog(
                             }
                         )
                         Text(
-                            text = "全字匹配",
+                            text = stringResource(R.string.whole_word),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -297,7 +299,7 @@ fun FindReplaceDialog(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "使用正则表达式",
+                            text = stringResource(R.string.use_regex),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -315,14 +317,14 @@ fun FindReplaceDialog(
                         enabled = matches.isNotEmpty() && currentMatchIndex >= 0,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("替换")
+                        Text(stringResource(R.string.replace))
                     }
                     FilledTonalButton(
                         onClick = ::replaceAll,
                         enabled = matches.isNotEmpty(),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("全部替换")
+                        Text(stringResource(R.string.replace_all))
                     }
                 }
             }
@@ -338,7 +340,7 @@ fun FindReplaceDialog(
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
-                    Text("关闭")
+                    Text(stringResource(R.string.close))
                 }
             }
         }

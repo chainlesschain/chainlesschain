@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -692,11 +693,18 @@ class RemoteAIChatViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
         taskPlanManager.clearError()
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        streamingJob?.cancel()
+        thinkingJob?.cancel()
+    }
 }
 
 /**
  * UI State for Remote AI Chat
  */
+@Immutable
 data class RemoteAIChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,

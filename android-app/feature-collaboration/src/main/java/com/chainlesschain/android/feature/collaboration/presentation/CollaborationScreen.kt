@@ -177,7 +177,7 @@ private fun SessionListPanel(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(sessions) { session ->
+            items(sessions, key = { it.id }) { session ->
                 SessionCard(
                     session = session,
                     onJoin = { onJoinSession(session) }
@@ -324,7 +324,7 @@ private fun ActiveSessionPanel(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(session.activeUsers) { user ->
+            items(session.activeUsers, key = { it.userId }) { user ->
                 ParticipantItem(user = user, isHost = user.userId == session.hostUserId)
             }
         }
@@ -419,7 +419,7 @@ private fun VersionHistoryPanel(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(versions) { version ->
+            items(versions, key = { it.versionId }) { version ->
                 VersionItem(version = version, onRestore = { onRestore(version) })
             }
         }

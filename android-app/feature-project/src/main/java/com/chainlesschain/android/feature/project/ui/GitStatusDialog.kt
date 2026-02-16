@@ -51,8 +51,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.chainlesschain.android.feature.project.R
 import androidx.compose.ui.window.DialogProperties
 import com.chainlesschain.android.feature.project.git.FileChangeType
 import com.chainlesschain.android.feature.project.git.GitFileStatus
@@ -119,13 +121,13 @@ fun GitStatusDialog(
                 ) {
                     Column {
                         Text(
-                            text = "Git 状态",
+                            text = stringResource(R.string.git_status),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
                         status?.let {
                             Text(
-                                text = "分支: ${it.branch}",
+                                text = stringResource(R.string.branch_label, it.branch),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -138,15 +140,15 @@ fun GitStatusDialog(
                                 gitManager.refreshStatus(projectPath)
                             }
                         }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                            Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                         }
 
                         TextButton(onClick = onViewHistory) {
-                            Text("历史")
+                            Text(stringResource(R.string.history))
                         }
 
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "关闭")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                         }
                     }
                 }
@@ -182,7 +184,7 @@ fun GitStatusDialog(
                         if (gitStatus.stagedFiles.isNotEmpty()) {
                             item {
                                 SectionHeader(
-                                    title = "已暂存的更改",
+                                    title = stringResource(R.string.staged_changes),
                                     count = gitStatus.stagedFiles.size,
                                     color = Color(0xFF4CAF50),
                                     onAction = {
@@ -190,11 +192,11 @@ fun GitStatusDialog(
                                             gitManager.unstageAll(projectPath)
                                         }
                                     },
-                                    actionText = "全部取消暂存"
+                                    actionText = stringResource(R.string.unstage_all)
                                 )
                             }
 
-                            items(gitStatus.stagedFiles) { file ->
+                            items(gitStatus.stagedFiles, key = { it.path }) { file ->
                                 FileStatusItem(
                                     file = file,
                                     isStaged = true,
@@ -218,7 +220,7 @@ fun GitStatusDialog(
                         if (gitStatus.unstagedFiles.isNotEmpty()) {
                             item {
                                 SectionHeader(
-                                    title = "未暂存的更改",
+                                    title = stringResource(R.string.unstaged_changes),
                                     count = gitStatus.unstagedFiles.size,
                                     color = Color(0xFFFF9800),
                                     onAction = {
@@ -228,11 +230,11 @@ fun GitStatusDialog(
                                             }
                                         }
                                     },
-                                    actionText = "全部暂存"
+                                    actionText = stringResource(R.string.stage_all)
                                 )
                             }
 
-                            items(gitStatus.unstagedFiles) { file ->
+                            items(gitStatus.unstagedFiles, key = { it.path }) { file ->
                                 FileStatusItem(
                                     file = file,
                                     isStaged = false,
@@ -261,7 +263,7 @@ fun GitStatusDialog(
                         if (gitStatus.untrackedFiles.isNotEmpty()) {
                             item {
                                 SectionHeader(
-                                    title = "未追踪的文件",
+                                    title = stringResource(R.string.untracked_files),
                                     count = gitStatus.untrackedFiles.size,
                                     color = Color(0xFF9E9E9E),
                                     onAction = {
@@ -269,11 +271,11 @@ fun GitStatusDialog(
                                             gitManager.stageAll(projectPath)
                                         }
                                     },
-                                    actionText = "全部添加"
+                                    actionText = stringResource(R.string.add_all)
                                 )
                             }
 
-                            items(gitStatus.untrackedFiles) { file ->
+                            items(gitStatus.untrackedFiles, key = { it.path }) { file ->
                                 FileStatusItem(
                                     file = file,
                                     isStaged = false,
@@ -305,7 +307,7 @@ fun GitStatusDialog(
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            text = "工作区干净",
+                                            text = stringResource(R.string.working_tree_clean),
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                         )
@@ -320,7 +322,7 @@ fun GitStatusDialog(
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
 
                         Text(
-                            text = "提交信息",
+                            text = stringResource(R.string.commit_message),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -331,7 +333,7 @@ fun GitStatusDialog(
                             value = commitMessage,
                             onValueChange = { commitMessage = it },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("输入提交信息...") },
+                            placeholder = { Text(stringResource(R.string.enter_commit_message)) },
                             minLines = 2,
                             maxLines = 4
                         )
@@ -352,7 +354,7 @@ fun GitStatusDialog(
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("提交 (${gitStatus.stagedFiles.size} 个文件)")
+                            Text(stringResource(R.string.commit_files_count, gitStatus.stagedFiles.size))
                         }
                     }
                 }
@@ -475,7 +477,7 @@ private fun FileStatusItem(
                 IconButton(onClick = onViewDiff, modifier = Modifier.size(32.dp)) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "查看差异",
+                        contentDescription = stringResource(R.string.view_diff),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -485,7 +487,7 @@ private fun FileStatusItem(
                 IconButton(onClick = onDiscard, modifier = Modifier.size(32.dp)) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "放弃更改",
+                        contentDescription = stringResource(R.string.discard_changes),
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.error
                     )
@@ -511,7 +513,7 @@ private fun DiffDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "差异: ${fileName.substringAfterLast('/')}",
+                text = stringResource(R.string.diff_title, fileName.substringAfterLast('/')),
                 style = MaterialTheme.typography.titleMedium
             )
         },
@@ -552,7 +554,7 @@ private fun DiffDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text(stringResource(R.string.close))
             }
         }
     )

@@ -1,8 +1,10 @@
 package com.chainlesschain.android.core.database.entity
 
+import androidx.annotation.StringRes
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.chainlesschain.android.core.database.R
 import java.util.UUID
 
 /**
@@ -213,6 +215,21 @@ object QueuePriority {
         return priority.coerceIn(HIGHEST, LOWEST)
     }
 
+    /**
+     * 获取优先级标签的字符串资源ID
+     */
+    @StringRes
+    fun getLabelResId(priority: Int): Int {
+        return when (priority) {
+            in HIGHEST..2 -> R.string.transfer_priority_highest
+            in 3..4 -> R.string.transfer_priority_high
+            5 -> R.string.transfer_priority_normal
+            in 6..7 -> R.string.transfer_priority_low
+            else -> R.string.transfer_priority_lowest
+        }
+    }
+
+    @Deprecated("Use getLabelResId() instead", ReplaceWith("getLabelResId(priority)"))
     fun getLabel(priority: Int): String {
         return when (priority) {
             in HIGHEST..2 -> "最高"
