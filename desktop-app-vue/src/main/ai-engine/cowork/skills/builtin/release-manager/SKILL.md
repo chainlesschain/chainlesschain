@@ -18,6 +18,7 @@ tools:
   - file_reader
   - file_writer
   - command_executor
+handler: ./handler.js
 instructions: |
   Use this skill to manage the release lifecycle. Calculate semantic version bumps
   from commit analysis, generate CHANGELOG.md entries from conventional commits,
@@ -60,6 +61,7 @@ author: ChainlessChain
 - `auto` - 从提交历史自动判断
 
 更新的文件:
+
 - `package.json` (根目录)
 - `desktop-app-vue/package.json`
 - `android-app/app/build.gradle.kts` (versionCode + versionName)
@@ -72,6 +74,7 @@ author: ChainlessChain
 ```
 
 从 Conventional Commits 生成分类条目:
+
 - **Features** (feat:)
 - **Bug Fixes** (fix:)
 - **Performance** (perf:)
@@ -86,6 +89,7 @@ author: ChainlessChain
 ```
 
 创建带注释的 Git Tag:
+
 - Tag 名: `v0.37.0`
 - 注释: 版本亮点摘要
 
@@ -96,6 +100,7 @@ author: ChainlessChain
 ```
 
 生成 GitHub Release Notes:
+
 - 版本亮点（从 feat 提交提取）
 - 完整变更列表
 - 贡献者列表
@@ -111,13 +116,13 @@ author: ChainlessChain
 
 ## 版本计算规则
 
-| 提交类型 | 版本影响 |
-| -------- | -------- |
-| feat: | minor |
-| fix: | patch |
-| perf: | patch |
-| BREAKING CHANGE: | major |
-| docs:/style:/test:/chore: | 无 |
+| 提交类型                  | 版本影响 |
+| ------------------------- | -------- |
+| feat:                     | minor    |
+| fix:                      | patch    |
+| perf:                     | patch    |
+| BREAKING CHANGE:          | major    |
+| docs:/style:/test:/chore: | 无       |
 
 ## 输出格式
 

@@ -7,8 +7,10 @@ category: learning
 user-invocable: true
 tags: [code, explain, learning, documentation]
 capabilities: [code-analysis, explanation]
-supported-file-types: [js, ts, py, java, go, rs, c, cpp, vue, jsx, tsx, sql, sh, bash]
+supported-file-types:
+  [js, ts, py, java, go, rs, c, cpp, vue, jsx, tsx, sql, sh, bash]
 os: [win32, darwin, linux]
+handler: ./handler.js
 ---
 
 # Explain Code Skill
@@ -49,11 +51,13 @@ Provides clear, beginner-friendly explanations of code snippets or files.
 ## Examples
 
 Explain a file:
+
 ```
 /explain-code src/utils/crypto.js
 ```
 
 Explain with detailed level:
+
 ```
 /explain-code --level detailed
 async function fetchData(url) {
@@ -66,25 +70,33 @@ async function fetchData(url) {
 
 ```markdown
 ## Overview
+
 This code implements a data fetching utility...
 
 ## Line-by-Line Breakdown
 
 ### Line 1: Function Declaration
+
 `async function fetchData(url)`
+
 - `async` allows the function to use await
 - `url` parameter expects a string URL
 
 ### Line 2: Fetch Call
+
 `const response = await fetch(url)`
+
 - `fetch()` makes an HTTP GET request
 - `await` pauses until the request completes
 
 ### Line 3: Return JSON
+
 `return response.json()`
+
 - Parses the response body as JSON
 - Also returns a Promise
 
 ## Summary
+
 This is an async utility for fetching JSON data from APIs.
 ```

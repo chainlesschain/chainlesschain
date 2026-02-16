@@ -41,6 +41,37 @@
 - ✅ **安全类 (1)**: vulnerability-scanner (CVE扫描/SBOM/许可证审计)
 - ✅ **DevOps类 (2)**: env-doctor (环境诊断), release-manager (发布管理/Changelog/Tag)
 
+#### 新增 17 个可执行 Handler (总计 24 个)
+
+**第一批 (5 个)**:
+
+- ✅ **env-doctor** (~200行) - 运行时检测(Node/npm/Java/Python/Docker/Git)、8端口扫描、Docker健康、配置验证
+- ✅ **repo-map** (~250行) - 代码库扫描、JS/TS/Vue/Python/Java符号提取、树/平铺输出、符号搜索
+- ✅ **context-loader** (~220行) - 意图关键词映射(25+)、文件相关度评分、token预算管理(默认6000)
+- ✅ **lint-and-fix** (~230行) - ESLint/Prettier自动检测、JSON错误解析、迭代修复循环(最多5轮)
+- ✅ **test-and-fix** (~230行) - Vitest/Jest/Pytest自动检测、失败解析、source-only/test-only模式
+
+**第二批 (6 个)**:
+
+- ✅ **refactor** (~200行) - 代码异味检测(Large File/God Class/Duplicate Code)、跨文件重命名预览、重复代码提取分析
+- ✅ **doc-generator** (~230行) - JSDoc注释生成、IPC处理器参考文档、Git Changelog生成、模块README生成
+- ✅ **api-tester** (~200行) - IPC handler自动发现、Vitest测试桩生成、按命名空间健康检查
+- ✅ **onboard-project** (~250行) - 项目分析(tech stack/目录/关键文件)、贡献者指南、代码审查指南
+- ✅ **dependency-analyzer** (~280行) - 导入图构建、变更影响分析(BFS传递)、循环依赖检测(DFS)、npm audit漏洞、许可证检查
+- ✅ **project-scaffold** (~250行) - Skill脚手架(SKILL.md+handler.js)、Vue页面(+Pinia store)、IPC模块(+handler桩)
+
+**第三批 (6 个)**:
+
+- ✅ **db-migration** (~230行) - Schema检查(CREATE TABLE解析)、迁移脚本生成(UP/DOWN)、漂移检测、索引优化建议
+- ✅ **vulnerability-scanner** (~220行) - npm audit扫描、SBOM生成(CycloneDX/SPDX)、许可证审计(GPL警告)
+- ✅ **release-manager** (~260行) - 语义版本计算(auto/major/minor/patch)、Changelog生成、dry-run预览、Release Notes
+- ✅ **mcp-server-generator** (~230行) - 自然语言→MCP服务器(4文件)、工具推断(CRUD模式)、传输/认证配置
+- ✅ **security-audit** (~220行) - OWASP Top 10扫描(SQL注入/XSS/eval/命令注入)、硬编码密钥检测(AWS/JWT/API Key)
+- ✅ **devops-automation** (~270行) - Dockerfile生成(多阶段构建)、CI/CD配置(GitHub/GitLab/Jenkins)、部署脚本、DevOps分析
+
+- 🔧 **Bug fix**: 修复所有handler的require路径(4级→5级)，确保正确解析到`src/main/`
+- 🧪 **63个测试**: skill-handlers.test.js覆盖17个新handler + SkillLoader验证(30技能/24handler)
+
 ---
 
 ### v0.35.0 (2026-02-16)

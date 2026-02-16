@@ -18,6 +18,7 @@ tools:
   - file_reader
   - file_writer
   - code_analyzer
+handler: ./handler.js
 instructions: |
   Use this skill when the user wants to create new modules, Vue pages, skills, or IPC
   handlers following the project's established conventions. Analyze existing code patterns
@@ -55,6 +56,7 @@ author: ChainlessChain
 ```
 
 生成:
+
 - `builtin/<name>/SKILL.md` - Agent Skills 标准格式
 - `builtin/<name>/handler.js` - 可选的执行处理器
 
@@ -65,6 +67,7 @@ author: ChainlessChain
 ```
 
 生成:
+
 - `pages/<Name>Page.vue` - Vue 3 Composition API + Ant Design Vue
 - `stores/<name>.ts` - Pinia TypeScript Store（可选）
 - 路由注册（router/index.ts 追加）
@@ -77,6 +80,7 @@ author: ChainlessChain
 ```
 
 生成:
+
 - `src/main/<name>/<name>.js` - 主逻辑模块
 - `src/main/<name>/<name>-ipc.js` - IPC 处理器（含错误中间件）
 - `ipc-registry.js` 注册条目
@@ -88,20 +92,21 @@ author: ChainlessChain
 ```
 
 生成:
+
 - Spring Boot Controller + Service + Repository
 - 或 FastAPI Router + Schema
 
 ## 遵循的项目约定
 
-| 约定 | 规则 |
-| ---- | ---- |
-| 文件命名 | kebab-case (如 `session-manager.js`) |
-| 类命名 | PascalCase (如 `SessionManager`) |
-| IPC 通道 | `module:action` (如 `audit:get-logs`) |
-| 页面组件 | `<Name>Page.vue` |
-| Store 文件 | `<name>.ts` (TypeScript) |
-| 错误处理 | IPC Error Handler 中间件 |
-| 日志 | `logger.info/warn/error` 格式 |
+| 约定       | 规则                                  |
+| ---------- | ------------------------------------- |
+| 文件命名   | kebab-case (如 `session-manager.js`)  |
+| 类命名     | PascalCase (如 `SessionManager`)      |
+| IPC 通道   | `module:action` (如 `audit:get-logs`) |
+| 页面组件   | `<Name>Page.vue`                      |
+| Store 文件 | `<name>.ts` (TypeScript)              |
+| 错误处理   | IPC Error Handler 中间件              |
+| 日志       | `logger.info/warn/error` 格式         |
 
 ## 示例
 

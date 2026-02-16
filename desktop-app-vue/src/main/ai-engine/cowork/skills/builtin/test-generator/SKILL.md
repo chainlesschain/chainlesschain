@@ -32,6 +32,7 @@ examples:
     output: "Coverage analysis report with supplemental test cases for uncovered paths"
 os: [win32, darwin, linux]
 author: ChainlessChain
+handler: ./handler.js
 ---
 
 # 测试生成技能

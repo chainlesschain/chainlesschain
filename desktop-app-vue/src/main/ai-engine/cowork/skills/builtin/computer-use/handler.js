@@ -4,7 +4,7 @@
  * Desktop-level automation via DesktopAction, CoordinateAction, and VisionAction.
  */
 
-const { logger } = require("../../../../utils/logger.js");
+const { logger } = require("../../../../../utils/logger.js");
 
 let desktopAction = null;
 let coordinateAction = null;
@@ -13,14 +13,14 @@ let visionAction = null;
 module.exports = {
   async init(skill) {
     try {
-      desktopAction = require("../../../../browser/actions/desktop-action.js");
+      desktopAction = require("../../../../../browser/actions/desktop-action.js");
       logger.info("[ComputerUse] DesktopAction loaded");
     } catch (error) {
       logger.warn("[ComputerUse] DesktopAction not available:", error.message);
     }
 
     try {
-      coordinateAction = require("../../../../browser/actions/coordinate-action.js");
+      coordinateAction = require("../../../../../browser/actions/coordinate-action.js");
       logger.info("[ComputerUse] CoordinateAction loaded");
     } catch (error) {
       logger.warn(
@@ -30,7 +30,7 @@ module.exports = {
     }
 
     try {
-      visionAction = require("../../../../browser/actions/vision-action.js");
+      visionAction = require("../../../../../browser/actions/vision-action.js");
       logger.info("[ComputerUse] VisionAction loaded");
     } catch (error) {
       logger.warn("[ComputerUse] VisionAction not available:", error.message);

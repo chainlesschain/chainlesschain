@@ -7,13 +7,7 @@ category: devops
 user-invocable: true
 tags: [environment, doctor, diagnostics, port, docker, health, setup]
 capabilities:
-  [
-    runtime-detection,
-    port-check,
-    service-health,
-    config-validation,
-    auto-fix,
-  ]
+  [runtime-detection, port-check, service-health, config-validation, auto-fix]
 tools:
   - file_reader
   - command_executor
@@ -32,6 +26,7 @@ examples:
     output: "Auto-fix: Starting Redis container... Starting Ollama service... All services running."
 os: [win32, darwin, linux]
 author: ChainlessChain
+handler: ./handler.js
 ---
 
 # 环境诊断技能
@@ -57,27 +52,27 @@ author: ChainlessChain
 
 ### 运行时检测
 
-| 运行时 | 要求 | 检测方式 |
-| ------ | ---- | -------- |
-| Node.js | ≥18.0.0 | `node --version` |
-| npm | ≥9.0.0 | `npm --version` |
-| Java | 17 | `java --version` |
-| Python | ≥3.9 | `python --version` |
-| Docker | ≥24.0 | `docker --version` |
-| Git | ≥2.30 | `git --version` |
+| 运行时  | 要求    | 检测方式           |
+| ------- | ------- | ------------------ |
+| Node.js | ≥18.0.0 | `node --version`   |
+| npm     | ≥9.0.0  | `npm --version`    |
+| Java    | 17      | `java --version`   |
+| Python  | ≥3.9    | `python --version` |
+| Docker  | ≥24.0   | `docker --version` |
+| Git     | ≥2.30   | `git --version`    |
 
 ### 端口检查
 
-| 端口 | 服务 |
-| ---- | ---- |
-| 5173 | Vite Dev Server |
-| 9001 | Signaling Server |
-| 11434 | Ollama |
-| 6333 | Qdrant |
-| 5432 | PostgreSQL |
-| 6379 | Redis |
-| 9090 | Project Service |
-| 8001 | AI Service |
+| 端口  | 服务             |
+| ----- | ---------------- |
+| 5173  | Vite Dev Server  |
+| 9001  | Signaling Server |
+| 11434 | Ollama           |
+| 6333  | Qdrant           |
+| 5432  | PostgreSQL       |
+| 6379  | Redis            |
+| 9090  | Project Service  |
+| 8001  | AI Service       |
 
 ### Docker 服务
 

@@ -26,6 +26,7 @@ examples:
     output: "Grouped statistics by category with comparison charts"
 os: [win32, darwin, linux]
 author: ChainlessChain
+handler: ./handler.js
 ---
 
 # 数据分析技能

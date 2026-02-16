@@ -4,14 +4,14 @@
  * Multi-step workflow creation and execution via WorkflowEngine.
  */
 
-const { logger } = require("../../../../utils/logger.js");
+const { logger } = require("../../../../../utils/logger.js");
 
 let workflowEngine = null;
 
 module.exports = {
   async init(skill) {
     try {
-      workflowEngine = require("../../../../browser/actions/workflow-engine.js");
+      workflowEngine = require("../../../../../browser/actions/workflow-engine.js");
       logger.info("[WorkflowAutomation] WorkflowEngine loaded");
     } catch (error) {
       logger.warn(

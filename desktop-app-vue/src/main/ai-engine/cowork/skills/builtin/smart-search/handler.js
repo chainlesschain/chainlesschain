@@ -4,7 +4,7 @@
  * Provides hybrid Vector+BM25 search across the knowledge base.
  */
 
-const { logger } = require("../../../../utils/logger.js");
+const { logger } = require("../../../../../utils/logger.js");
 
 let hybridSearchEngine = null;
 let ragManager = null;
@@ -12,7 +12,7 @@ let ragManager = null;
 module.exports = {
   async init(skill) {
     try {
-      hybridSearchEngine = require("../../../../rag/hybrid-search-engine.js");
+      hybridSearchEngine = require("../../../../../rag/hybrid-search-engine.js");
       logger.info("[SmartSearch] HybridSearchEngine loaded");
     } catch (error) {
       logger.warn(
@@ -22,7 +22,7 @@ module.exports = {
     }
 
     try {
-      ragManager = require("../../../../rag/rag-manager.js");
+      ragManager = require("../../../../../rag/rag-manager.js");
       logger.info("[SmartSearch] RAGManager loaded");
     } catch (error) {
       logger.warn("[SmartSearch] RAGManager not available:", error.message);

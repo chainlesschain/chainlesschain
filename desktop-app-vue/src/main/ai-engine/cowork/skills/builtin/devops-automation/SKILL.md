@@ -11,6 +11,7 @@ tools:
   - file_reader
   - file_writer
   - command_executor
+handler: ./handler.js
 instructions: |
   Use this skill when the user needs CI/CD pipeline configuration, Dockerfile
   generation, or deployment scripts. Analyze the project structure to detect

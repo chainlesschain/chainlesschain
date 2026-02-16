@@ -18,6 +18,7 @@ tools:
   - file_reader
   - file_writer
   - code_analyzer
+handler: ./handler.js
 dependencies:
   - mcp-sdk
 instructions: |
@@ -62,6 +63,7 @@ author: ChainlessChain
 ### 工具定义
 
 从描述自动推断工具集:
+
 - 工具名称和描述
 - 参数 JSON Schema
 - 返回值格式
@@ -69,19 +71,19 @@ author: ChainlessChain
 
 ### 传输配置
 
-| 传输方式 | 适用场景 |
-| -------- | -------- |
-| stdio | 本地使用、CLI 工具 |
+| 传输方式 | 适用场景           |
+| -------- | ------------------ |
+| stdio    | 本地使用、CLI 工具 |
 | HTTP+SSE | 远程访问、多客户端 |
 
 ### 认证设置
 
-| 认证方式 | 说明 |
-| -------- | ---- |
-| None | 本地开发 |
-| Bearer | Token 认证 |
-| API-Key | API 密钥 |
-| Basic | 用户名密码 |
+| 认证方式 | 说明       |
+| -------- | ---------- |
+| None     | 本地开发   |
+| Bearer   | Token 认证 |
+| API-Key  | API 密钥   |
+| Basic    | 用户名密码 |
 
 ## 生成示例
 
@@ -95,27 +97,31 @@ author: ChainlessChain
 
 ```javascript
 // Generated: mcp-server-notion/index.js
-const { MCPServerBuilder } = require('@chainlesschain/mcp-sdk');
+const { MCPServerBuilder } = require("@chainlesschain/mcp-sdk");
 
 const server = new MCPServerBuilder()
-  .name('notion-manager')
-  .description('Manage Notion pages and databases')
-  .version('1.0.0')
-  .tool('list_databases', {
-    description: 'List all Notion databases',
+  .name("notion-manager")
+  .description("Manage Notion pages and databases")
+  .version("1.0.0")
+  .tool("list_databases", {
+    description: "List all Notion databases",
     parameters: {},
-    handler: async () => { /* ... */ }
-  })
-  .tool('query_pages', {
-    description: 'Query pages in a database',
-    parameters: {
-      database_id: { type: 'string', required: true },
-      filter: { type: 'object' }
+    handler: async () => {
+      /* ... */
     },
-    handler: async ({ database_id, filter }) => { /* ... */ }
+  })
+  .tool("query_pages", {
+    description: "Query pages in a database",
+    parameters: {
+      database_id: { type: "string", required: true },
+      filter: { type: "object" },
+    },
+    handler: async ({ database_id, filter }) => {
+      /* ... */
+    },
   })
   // ...more tools
-  .transport('stdio')
+  .transport("stdio")
   .build();
 
 server.start();

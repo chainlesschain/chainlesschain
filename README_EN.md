@@ -383,7 +383,7 @@ Detailed documentation: [Context Engineering Docs](./docs/MANUS_OPTIMIZATION_GUI
 - ✅ **Skills system** - Markdown skill definitions, four-layer loading (bundled→marketplace→managed→workspace)
 - ✅ **/skill commands** - User command parsing, auto-execution
 - ✅ **Gate checks** - Platform, dependency, environment variable detection
-- ✅ **30 Built-in Skills** - 7 executable handlers + 23 documentation-only skills across 12 categories
+- ✅ **30 Built-in Skills** - 24 executable handlers + 6 prompt-only skills across 12 categories
 - ✅ **Agent Skills Open Standard** - 13 extended fields (tools/instructions/examples/dependencies etc.)
 
 Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [AI Skills System](./docs/design/modules/16_AI技能系统.md)

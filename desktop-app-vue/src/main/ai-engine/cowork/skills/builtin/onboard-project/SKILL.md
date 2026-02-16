@@ -16,6 +16,7 @@ capabilities:
 tools:
   - file_reader
   - code_analyzer
+handler: ./handler.js
 instructions: |
   Use this skill when a user opens a new or unfamiliar project and needs to quickly
   understand its structure, purpose, and how to work with it. Analyze the project's
@@ -93,25 +94,30 @@ author: ChainlessChain
 # Project Onboarding: [项目名]
 
 ## Quick Summary
+
 - **Purpose**: ...
 - **Tech Stack**: Electron 39.2.6, Vue 3.4, TypeScript 5.9
 - **Version**: v0.36.0
 - **Size**: 280,000+ lines, 358 components
 
 ## Architecture
+
 [架构图/描述]
 
 ## Getting Started
+
 1. Clone and install...
 2. Start services...
 3. Run dev...
 
 ## Key Files
+
 - Entry: src/main/index.js
 - Database: src/main/database.js
 - Router: src/renderer/router/index.ts
 
 ## Module Guide
+
 [各模块说明]
 ```
 

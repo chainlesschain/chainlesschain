@@ -19,6 +19,7 @@ tools:
   - file_writer
   - code_analyzer
 supported-file-types: [js, ts, py, java, kt, vue, jsx, tsx]
+handler: ./handler.js
 instructions: |
   Use this skill when the user needs to generate documentation from source code.
   This includes JSDoc/TSDoc comments, API reference docs, Mermaid sequence diagrams,
@@ -57,6 +58,7 @@ author: ChainlessChain
 ```
 
 分析函数签名和实现逻辑，生成 JSDoc 注释:
+
 - 参数类型和描述
 - 返回值类型和描述
 - @throws 异常说明
@@ -69,6 +71,7 @@ author: ChainlessChain
 ```
 
 扫描所有 `ipcMain.handle()` 和 `ipcMain.on()` 注册，生成:
+
 - 完整的 IPC 通道列表
 - 每个处理器的参数和返回值
 - 按模块分组的索引
@@ -81,6 +84,7 @@ author: ChainlessChain
 ```
 
 从代码流程分析生成 Mermaid 序列图:
+
 - 模块间调用关系
 - 异步消息流
 - 条件分支和循环
@@ -92,6 +96,7 @@ author: ChainlessChain
 ```
 
 从 Git 提交历史生成 Changelog:
+
 - 解析 Conventional Commits (feat/fix/docs/refactor)
 - 按类别分组
 - 包含 PR 链接和作者
@@ -104,6 +109,7 @@ author: ChainlessChain
 ```
 
 为目录生成 README.md:
+
 - 模块概述和目的
 - 文件清单和职责说明
 - 公共 API 摘要

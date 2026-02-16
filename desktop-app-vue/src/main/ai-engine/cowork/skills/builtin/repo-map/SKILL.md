@@ -7,16 +7,12 @@ category: development
 user-invocable: true
 tags: [repo, map, ast, codebase, symbols, tree-sitter, architecture]
 capabilities:
-  [
-    ast-parsing,
-    symbol-indexing,
-    dependency-visualization,
-    codebase-awareness,
-  ]
+  [ast-parsing, symbol-indexing, dependency-visualization, codebase-awareness]
 tools:
   - file_reader
   - code_analyzer
-supported-file-types: [js, ts, py, java, kt, go, rs, c, cpp, vue, jsx, tsx, swift]
+supported-file-types:
+  [js, ts, py, java, kt, go, rs, c, cpp, vue, jsx, tsx, swift]
 instructions: |
   Use this skill when the user needs to understand the overall structure of a codebase,
   find where specific functions/classes are defined, or needs the AI to be aware of the
@@ -33,6 +29,7 @@ examples:
     output: "Located handleFileUpload in src/main/p2p/file-transfer.js:142, called by 3 modules"
 os: [win32, darwin, linux]
 author: ChainlessChain
+handler: ./handler.js
 ---
 
 # 代码库结构映射技能
@@ -85,16 +82,16 @@ src/main/
 
 ## 支持的语言
 
-| 语言 | 文件类型 | 符号提取 |
-| ---- | -------- | -------- |
-| JavaScript | .js, .jsx, .mjs | 函数、类、const/let 导出、CommonJS |
-| TypeScript | .ts, .tsx | 接口、类型别名、枚举、泛型 |
-| Python | .py | 类、函数、装饰器 |
-| Java/Kotlin | .java, .kt | 类、接口、方法、注解 |
-| Vue | .vue | setup 函数、composables、defineEmits |
-| Go | .go | 结构体、函数、接口 |
-| Rust | .rs | struct、impl、trait、fn |
-| Swift | .swift | class、struct、protocol、func |
+| 语言        | 文件类型        | 符号提取                             |
+| ----------- | --------------- | ------------------------------------ |
+| JavaScript  | .js, .jsx, .mjs | 函数、类、const/let 导出、CommonJS   |
+| TypeScript  | .ts, .tsx       | 接口、类型别名、枚举、泛型           |
+| Python      | .py             | 类、函数、装饰器                     |
+| Java/Kotlin | .java, .kt      | 类、接口、方法、注解                 |
+| Vue         | .vue            | setup 函数、composables、defineEmits |
+| Go          | .go             | 结构体、函数、接口                   |
+| Rust        | .rs             | struct、impl、trait、fn              |
+| Swift       | .swift          | class、struct、protocol、func        |
 
 ## 示例
 

@@ -4,7 +4,7 @@
  * Interfaces with ComputerUseAgent and BrowserEngine for browser automation.
  */
 
-const { logger } = require("../../../../utils/logger.js");
+const { logger } = require("../../../../../utils/logger.js");
 
 let computerUseAgent = null;
 let templateActions = null;
@@ -12,7 +12,7 @@ let templateActions = null;
 module.exports = {
   async init(skill) {
     try {
-      const agentModule = require("../../../../browser/computer-use-agent.js");
+      const agentModule = require("../../../../../browser/computer-use-agent.js");
       computerUseAgent = agentModule.getInstance
         ? agentModule.getInstance()
         : agentModule;
@@ -25,7 +25,7 @@ module.exports = {
     }
 
     try {
-      templateActions = require("../../../../browser/actions/template-actions.js");
+      templateActions = require("../../../../../browser/actions/template-actions.js");
       logger.info("[BrowserAutomation] TemplateActions loaded");
     } catch (error) {
       logger.warn(

@@ -19,30 +19,30 @@
 | memory-management     | knowledge   | ✅      | 永久记忆管理（保存、搜索、日记）         |
 | smart-search          | knowledge   | ✅      | 智能搜索（向量+BM25混合搜索）            |
 | remote-control        | remote      | ✅      | 远程设备控制（命令、文件、剪贴板）       |
-| security-audit        | security    | -       | 代码安全审计（OWASP、密钥检测）          |
-| devops-automation     | devops      | -       | DevOps自动化（CI/CD、Docker）            |
+| security-audit        | security    | ✅      | 代码安全审计（OWASP、密钥检测）          |
+| devops-automation     | devops      | ✅      | DevOps自动化（CI/CD、Docker）            |
 | test-generator        | development | -       | 测试生成（单元测试、Mock、覆盖率）       |
 | performance-optimizer | development | -       | 性能优化（瓶颈识别、优化建议）           |
 
 ### 新增技能 v0.36.0 (15)
 
-| 技能                  | 类别          | Handler | 说明                                       |
-| --------------------- | ------------- | ------- | ------------------------------------------ |
-| repo-map              | development   | -       | 代码库结构映射（AST符号索引、全局感知）    |
-| refactor              | development   | -       | 多文件代码重构（重命名、提取、移动）       |
-| doc-generator         | documentation | -       | 文档自动生成（JSDoc、API参考、序列图）     |
-| api-tester            | testing       | -       | IPC/API测试（发现、生成、健康检查）        |
-| onboard-project       | development   | -       | 项目入门分析（架构理解、快速上手指南）     |
-| lint-and-fix          | development   | -       | Lint自动修复循环（ESLint→修复→重复）       |
-| test-and-fix          | testing       | -       | 测试自动修复循环（运行→分析→修复→重复）   |
-| dependency-analyzer   | analysis      | -       | 依赖分析（导入图、影响分析、CVE可达性）   |
-| db-migration          | database      | -       | 数据库迁移（Schema检查、迁移脚本、漂移）   |
-| project-scaffold      | development   | -       | 项目脚手架（模块/页面/技能的样板生成）     |
-| env-doctor            | devops        | -       | 环境诊断（运行时、端口、服务健康检查）     |
-| context-loader        | knowledge     | -       | 智能上下文预加载（意图分析、相关文件）     |
-| vulnerability-scanner | security      | -       | 依赖漏洞扫描（CVE、可达性、SBOM、许可证） |
-| release-manager       | devops        | -       | 发布管理（版本计算、Changelog、Tag）       |
-| mcp-server-generator  | development   | -       | MCP服务器生成（从描述生成完整MCP服务器）   |
+| 技能                  | 类别          | Handler | 说明                                      |
+| --------------------- | ------------- | ------- | ----------------------------------------- |
+| repo-map              | development   | ✅      | 代码库结构映射（AST符号索引、全局感知）   |
+| refactor              | development   | ✅      | 多文件代码重构（重命名、提取、移动）      |
+| doc-generator         | documentation | ✅      | 文档自动生成（JSDoc、API参考、序列图）    |
+| api-tester            | testing       | ✅      | IPC/API测试（发现、生成、健康检查）       |
+| onboard-project       | development   | ✅      | 项目入门分析（架构理解、快速上手指南）    |
+| lint-and-fix          | development   | ✅      | Lint自动修复循环（ESLint→修复→重复）      |
+| test-and-fix          | testing       | ✅      | 测试自动修复循环（运行→分析→修复→重复）   |
+| dependency-analyzer   | analysis      | ✅      | 依赖分析（导入图、影响分析、CVE可达性）   |
+| db-migration          | database      | ✅      | 数据库迁移（Schema检查、迁移脚本、漂移）  |
+| project-scaffold      | development   | ✅      | 项目脚手架（模块/页面/技能的样板生成）    |
+| env-doctor            | devops        | ✅      | 环境诊断（运行时、端口、服务健康检查）    |
+| context-loader        | knowledge     | ✅      | 智能上下文预加载（意图分析、相关文件）    |
+| vulnerability-scanner | security      | ✅      | 依赖漏洞扫描（CVE、可达性、SBOM、许可证） |
+| release-manager       | devops        | ✅      | 发布管理（版本计算、Changelog、Tag）      |
+| mcp-server-generator  | development   | ✅      | MCP服务器生成（从描述生成完整MCP服务器）  |
 
 ## 目录结构
 
