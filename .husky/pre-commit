@@ -66,6 +66,9 @@ echo "   (仅运行稳定的核心测试)"
 # 注意：vitest 3.x 在大型测试套件中可能产生 "Timeout calling onTaskUpdate"
 # 的 worker RPC 超时错误，导致退出码为 1 即使所有测试通过。
 # 因此我们捕获输出并检查是否有实际测试失败。
+# Temporarily disable exit-on-error so we can capture vitest exit code
+# (husky runs with set -e, which would abort before our error handling)
+set +e
 TEST_OUTPUT=$(npx vitest run tests/unit \
   --exclude="**/tests/ai-engine/**" \
   --exclude="**/tests/cowork/**" \
@@ -76,6 +79,7 @@ TEST_OUTPUT=$(npx vitest run tests/unit \
   --exclude="**/src/renderer/**/__tests__/**" \
   --exclude="**/tests/unit/document/ppt-engine.test.js" 2>&1)
 VITEST_EXIT=$?
+set -e
 
 echo "$TEST_OUTPUT"
 
