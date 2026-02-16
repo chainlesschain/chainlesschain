@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -201,7 +202,6 @@ class LLMConfigManager @Inject constructor(
         private const val PREFS_NAME = "llm_config"
         private const val ENCRYPTED_PREFS_NAME = "llm_config_secure"
         private const val KEY_CONFIG = "config"
-        private const val TAG = "LLMConfigManager"
     }
 
     private val json = Json {
@@ -241,11 +241,11 @@ class LLMConfigManager @Inject constructor(
             val configJson = prefs.getString(KEY_CONFIG, null)
             if (configJson != null) {
                 _config = json.decodeFromString(configJson)
-                android.util.Log.i(TAG, "从SharedPreferences加载配置")
+                Timber.i("从SharedPreferences加载配置")
             } else {
                 // 首次启动，使用默认配置
                 _config = LLMConfiguration()
-                android.util.Log.i(TAG, "首次启动，使用默认配置（包含豆包API Key）")
+                Timber.i("首次启动，使用默认配置（包含豆包API Key）")
                 // 保存默认配置以便下次使用
                 save(_config)
             }
@@ -253,9 +253,9 @@ class LLMConfigManager @Inject constructor(
             // 加载敏感配置（API Keys）
             loadSensitiveFields()
 
-            android.util.Log.i(TAG, "配置加载成功，volcengine.apiKey=${_config.volcengine.apiKey.take(10)}...")
+            Timber.i("配置加载成功，volcengine.apiKey=${_config.volcengine.apiKey.take(10)}...")
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "配置加载失败", e)
+            Timber.e(e, "配置加载失败")
             _config = LLMConfiguration()
         }
         return _config
@@ -276,10 +276,10 @@ class LLMConfigManager @Inject constructor(
             val configJson = json.encodeToString(sanitizedConfig)
             prefs.edit().putString(KEY_CONFIG, configJson).apply()
 
-            android.util.Log.i(TAG, "配置保存成功")
+            Timber.i("配置保存成功")
             true
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "配置保存失败", e)
+            Timber.e(e, "配置保存失败")
             false
         }
     }
@@ -523,7 +523,7 @@ class LLMConfigManager @Inject constructor(
                 )
             )
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "加载敏感配置失败", e)
+            Timber.e(e, "加载敏感配置失败")
         }
     }
 
@@ -547,7 +547,7 @@ class LLMConfigManager @Inject constructor(
                 apply()
             }
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "保存敏感配置失败", e)
+            Timber.e(e, "保存敏感配置失败")
         }
     }
 

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.verification
 
-import android.util.Log
+import timber.log.Timber
 import java.security.MessageDigest
 import java.util.*
 
@@ -11,7 +11,6 @@ import java.util.*
  */
 object SafetyNumbers {
 
-    private const val TAG = "SafetyNumbers"
     private const val VERSION = 1
     private const val ITERATION_COUNT = 5200 // 迭代次数
 
@@ -30,7 +29,7 @@ object SafetyNumbers {
         remoteIdentifier: String,
         remotePublicKey: ByteArray
     ): String {
-        Log.d(TAG, "Generating safety number for $localIdentifier <-> $remoteIdentifier")
+        Timber.d("Generating safety number for $localIdentifier <-> $remoteIdentifier")
 
         // 确保顺序一致（字典序）
         val (firstIdentifier, firstKey, secondIdentifier, secondKey) = if (localIdentifier < remoteIdentifier) {
@@ -134,7 +133,7 @@ object SafetyNumbers {
                 safetyNumber = safetyNumber
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to verify QR code data", e)
+            Timber.e(e, "Failed to verify QR code data")
             VerificationResult.Invalid("Failed to parse QR code: ${e.message}")
         }
     }

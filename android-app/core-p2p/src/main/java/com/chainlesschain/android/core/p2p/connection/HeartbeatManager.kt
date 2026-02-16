@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.connection
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import kotlinx.coroutines.*
@@ -22,8 +22,6 @@ import javax.inject.Singleton
 class HeartbeatManager @Inject constructor() {
 
     companion object {
-        private const val TAG = "HeartbeatManager"
-
         /** 心跳间隔（毫秒） */
         const val HEARTBEAT_INTERVAL_MS = 15_000L
 
@@ -84,7 +82,7 @@ class HeartbeatManager @Inject constructor() {
         startHeartbeatSending()
         startTimeoutChecking()
 
-        Log.i(TAG, "HeartbeatManager started for device: $localDeviceId")
+        Timber.i("HeartbeatManager started for device: $localDeviceId")
     }
 
     /**
@@ -99,7 +97,7 @@ class HeartbeatManager @Inject constructor() {
         lastHeartbeatTimes.clear()
         reconnectAttempts.clear()
 
-        Log.i(TAG, "HeartbeatManager stopped")
+        Timber.i("HeartbeatManager stopped")
     }
 
     /**
@@ -110,7 +108,7 @@ class HeartbeatManager @Inject constructor() {
     fun registerDevice(deviceId: String) {
         lastHeartbeatTimes[deviceId] = System.currentTimeMillis()
         reconnectAttempts[deviceId] = 0
-        Log.d(TAG, "Device registered: $deviceId")
+        Timber.d("Device registered: $deviceId")
     }
 
     /**
@@ -121,7 +119,7 @@ class HeartbeatManager @Inject constructor() {
     fun unregisterDevice(deviceId: String) {
         lastHeartbeatTimes.remove(deviceId)
         reconnectAttempts.remove(deviceId)
-        Log.d(TAG, "Device unregistered: $deviceId")
+        Timber.d("Device unregistered: $deviceId")
     }
 
     /**
@@ -132,7 +130,7 @@ class HeartbeatManager @Inject constructor() {
     fun recordHeartbeat(deviceId: String) {
         lastHeartbeatTimes[deviceId] = System.currentTimeMillis()
         reconnectAttempts[deviceId] = 0 // 重置重连计数
-        Log.v(TAG, "Heartbeat received from: $deviceId")
+        Timber.v("Heartbeat received from: $deviceId")
     }
 
     /**
@@ -249,7 +247,7 @@ class HeartbeatManager @Inject constructor() {
                     try {
                         sendHeartbeat(deviceId)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to send heartbeat to $deviceId", e)
+                        Timber.e(e, "Failed to send heartbeat to $deviceId")
                     }
                 }
             }
@@ -272,7 +270,7 @@ class HeartbeatManager @Inject constructor() {
         )
 
         onSendHeartbeat?.invoke(deviceId, heartbeatMessage)
-        Log.v(TAG, "Heartbeat sent to: $deviceId")
+        Timber.v("Heartbeat sent to: $deviceId")
     }
 
     /**
@@ -306,7 +304,7 @@ class HeartbeatManager @Inject constructor() {
      * 处理连接超时
      */
     private suspend fun handleConnectionTimeout(deviceId: String) {
-        Log.w(TAG, "Connection timeout detected for device: $deviceId")
+        Timber.w("Connection timeout detected for device: $deviceId")
 
         val attempts = incrementReconnectAttempts(deviceId)
         val canRetry = canRetryReconnect(deviceId)
@@ -323,7 +321,7 @@ class HeartbeatManager @Inject constructor() {
 
         if (canRetry) {
             val delay = calculateReconnectDelay(deviceId)
-            Log.i(TAG, "Will retry reconnect to $deviceId in ${delay}ms (attempt $attempts)")
+            Timber.i("Will retry reconnect to $deviceId in ${delay}ms (attempt $attempts)")
 
             // 发出重连事件
             _reconnectEvents.emit(
@@ -335,7 +333,7 @@ class HeartbeatManager @Inject constructor() {
                 )
             )
         } else {
-            Log.e(TAG, "Max reconnect attempts reached for device: $deviceId")
+            Timber.e("Max reconnect attempts reached for device: $deviceId")
             // 移除该设备
             unregisterDevice(deviceId)
         }

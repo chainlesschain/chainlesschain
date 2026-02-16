@@ -128,7 +128,7 @@ fun NotificationCenterScreen(
                                     Icon(Icons.Default.CleaningServices, contentDescription = null)
                                 }
                             )
-                            Divider()
+                            HorizontalDivider()
                             DropdownMenuItem(
                                 text = { Text(if (uiState.showOnlyUnread) "显示全部" else "仅显示未读") },
                                 onClick = {
@@ -205,7 +205,7 @@ fun NotificationCenterScreen(
                         }
                     }
                 }
-                Divider()
+                HorizontalDivider()
             }
 
             // 通知列表
@@ -261,7 +261,7 @@ fun NotificationCenterScreen(
 
     // 通知操作菜单
     if (uiState.showNotificationMenu && uiState.selectedNotification != null) {
-        val notification = uiState.selectedNotification!!
+        val notification = uiState.selectedNotification ?: return
 
         ModalBottomSheet(
             onDismissRequest = { viewModel.hideNotificationMenu() }
@@ -287,7 +287,7 @@ fun NotificationCenterScreen(
                     }
                 )
 
-                Divider()
+                HorizontalDivider()
 
                 ListItem(
                     headlineContent = { Text("删除") },

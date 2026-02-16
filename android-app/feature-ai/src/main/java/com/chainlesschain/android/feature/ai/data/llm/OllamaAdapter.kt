@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.ai.data.llm
 
+import timber.log.Timber
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.feature.ai.domain.model.StreamChunk
@@ -25,9 +26,6 @@ class OllamaAdapter(
 ) : LLMAdapter {
 
     // 不需要API key，Ollama是本地运行的
-    companion object {
-        private const val TAG = "OllamaAdapter"
-    }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -92,13 +90,13 @@ class OllamaAdapter(
                             }
                         } catch (e: Exception) {
                             // 忽略解析错误
-                            android.util.Log.e(TAG, "Error parsing stream response", e)
+                            Timber.e(e, "Error parsing stream response")
                         }
                     }
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Error in streamChat", e)
+            Timber.e(e, "Error in streamChat")
             emit(StreamChunk("", isDone = true, error = e.message ?: "Ollama连接失败"))
         }
     }
@@ -144,7 +142,7 @@ class OllamaAdapter(
 
     override suspend fun checkAvailability(): Boolean {
         return try {
-            android.util.Log.d(TAG, "Testing Ollama connection to: $baseUrl/api/tags")
+            Timber.d("Testing Ollama connection to: $baseUrl/api/tags")
             val request = Request.Builder()
                 .url("$baseUrl/api/tags")
                 .get()
@@ -152,14 +150,14 @@ class OllamaAdapter(
 
             client.newCall(request).execute().use { response ->
                 val isSuccess = response.isSuccessful
-                android.util.Log.d(TAG, "Ollama connection test result: $isSuccess (code=${response.code})")
+                Timber.d("Ollama connection test result: $isSuccess (code=${response.code})")
                 if (!isSuccess) {
-                    android.util.Log.w(TAG, "Response body: ${response.body?.string()}")
+                    Timber.w("Response body: ${response.body?.string()}")
                 }
                 isSuccess
             }
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Ollama connection failed: ${e.javaClass.simpleName}: ${e.message}", e)
+            Timber.e(e, "Ollama connection failed: ${e.javaClass.simpleName}: ${e.message}")
             false
         }
     }

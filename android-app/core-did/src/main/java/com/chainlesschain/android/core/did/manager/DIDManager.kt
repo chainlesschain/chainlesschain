@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.did.manager
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.did.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.did.crypto.Ed25519KeyPairJson
 import com.chainlesschain.android.core.did.crypto.SignatureUtils
@@ -36,8 +36,6 @@ class DIDManager @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "DIDManager"
-
         /** 密钥存储文件名 */
         private const val KEY_FILE = "did_keypair.json"
 
@@ -60,7 +58,7 @@ class DIDManager @Inject constructor(
      * 初始化DID管理器
      */
     suspend fun initialize() {
-        Log.i(TAG, "Initializing DID Manager")
+        Timber.i("Initializing DID Manager")
 
         // 加载或创建身份
         val identity = loadIdentity() ?: createIdentity()
@@ -69,7 +67,7 @@ class DIDManager @Inject constructor(
         // 加载可信设备
         loadTrustedDevices()
 
-        Log.i(TAG, "DID Manager initialized: did=${identity.did}")
+        Timber.i("DID Manager initialized: did=${identity.did}")
     }
 
     /**
@@ -79,7 +77,7 @@ class DIDManager @Inject constructor(
      * @return DID身份
      */
     fun createIdentity(deviceName: String = android.os.Build.MODEL ?: "Unknown Device"): DIDIdentity {
-        Log.i(TAG, "Creating new DID identity for device: $deviceName")
+        Timber.i("Creating new DID identity for device: $deviceName")
 
         // 生成Ed25519密钥对
         val keyPair = Ed25519KeyPair.generate()
@@ -101,7 +99,7 @@ class DIDManager @Inject constructor(
         // 保存到本地
         saveIdentity(identity)
 
-        Log.i(TAG, "DID identity created: $did")
+        Timber.i("DID identity created: $did")
 
         return identity
     }
@@ -169,7 +167,7 @@ class DIDManager @Inject constructor(
             // 验证签名
             SignatureUtils.verify(message, signature, publicKey)
         } catch (e: Exception) {
-            Log.e(TAG, "Signature verification failed", e)
+            Timber.e(e, "Signature verification failed")
             false
         }
     }
@@ -200,7 +198,7 @@ class DIDManager @Inject constructor(
             val publicKey = DidKeyGenerator.extractPublicKey(did)
             SignatureUtils.verifyWithTimestamp(message, timestampedSignature, publicKey, maxAgeMs)
         } catch (e: Exception) {
-            Log.e(TAG, "Timestamped signature verification failed", e)
+            Timber.e(e, "Timestamped signature verification failed")
             false
         }
     }
@@ -213,7 +211,7 @@ class DIDManager @Inject constructor(
      * @param publicKey 公钥
      */
     fun addTrustedDevice(did: String, deviceName: String, publicKey: ByteArray? = null) {
-        Log.i(TAG, "Adding trusted device: $did ($deviceName)")
+        Timber.i("Adding trusted device: $did ($deviceName)")
 
         val device = TrustedDevice(
             did = did,
@@ -232,7 +230,7 @@ class DIDManager @Inject constructor(
      * 移除可信设备
      */
     fun removeTrustedDevice(did: String) {
-        Log.i(TAG, "Removing trusted device: $did")
+        Timber.i("Removing trusted device: $did")
 
         trustedDevices.remove(did)
         _trustedDevicesList.value = trustedDevices.values.toList()
@@ -278,9 +276,9 @@ class DIDManager @Inject constructor(
             val file = File(context.filesDir, KEY_FILE)
             file.writeText(jsonString)
 
-            Log.d(TAG, "Identity saved to: ${file.absolutePath}")
+            Timber.d("Identity saved to: ${file.absolutePath}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save identity", e)
+            Timber.e(e, "Failed to save identity")
         }
     }
 
@@ -291,7 +289,7 @@ class DIDManager @Inject constructor(
         return try {
             val file = File(context.filesDir, KEY_FILE)
             if (!file.exists()) {
-                Log.d(TAG, "No existing identity found")
+                Timber.d("No existing identity found")
                 return null
             }
 
@@ -301,7 +299,7 @@ class DIDManager @Inject constructor(
             val keyPair = data.keyPair.toKeyPair()
             val didDocument = DidKeyGenerator.generateDocument(data.did)
 
-            Log.d(TAG, "Identity loaded: ${data.did}")
+            Timber.d("Identity loaded: ${data.did}")
 
             DIDIdentity(
                 did = data.did,
@@ -311,7 +309,7 @@ class DIDManager @Inject constructor(
                 createdAt = data.createdAt
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load identity", e)
+            Timber.e(e, "Failed to load identity")
             null
         }
     }
@@ -326,9 +324,9 @@ class DIDManager @Inject constructor(
             val file = File(context.filesDir, TRUSTED_DEVICES_FILE)
             file.writeText(jsonString)
 
-            Log.d(TAG, "Trusted devices saved: ${data.size} devices")
+            Timber.d("Trusted devices saved: ${data.size} devices")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save trusted devices", e)
+            Timber.e(e, "Failed to save trusted devices")
         }
     }
 
@@ -339,7 +337,7 @@ class DIDManager @Inject constructor(
         try {
             val file = File(context.filesDir, TRUSTED_DEVICES_FILE)
             if (!file.exists()) {
-                Log.d(TAG, "No trusted devices file found")
+                Timber.d("No trusted devices file found")
                 return
             }
 
@@ -352,9 +350,9 @@ class DIDManager @Inject constructor(
             }
             _trustedDevicesList.value = trustedDevices.values.toList()
 
-            Log.d(TAG, "Trusted devices loaded: ${data.size} devices")
+            Timber.d("Trusted devices loaded: ${data.size} devices")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load trusted devices", e)
+            Timber.e(e, "Failed to load trusted devices")
         }
     }
 }

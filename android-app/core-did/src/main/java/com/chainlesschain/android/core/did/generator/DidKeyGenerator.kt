@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.did.generator
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.did.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.did.crypto.toBase64Url
 import com.chainlesschain.android.core.did.model.DIDDocument
@@ -19,8 +19,6 @@ import java.nio.ByteBuffer
  */
 object DidKeyGenerator {
 
-    private const val TAG = "DidKeyGenerator"
-
     /** did:key前缀 */
     private const val DID_KEY_PREFIX = "did:key:"
 
@@ -37,7 +35,7 @@ object DidKeyGenerator {
      * @return did:key字符串
      */
     fun generate(keyPair: Ed25519KeyPair): String {
-        Log.d(TAG, "Generating did:key from Ed25519 public key")
+        Timber.d("Generating did:key from Ed25519 public key")
 
         // 1. 公钥添加Multicodec前缀
         val multicodecKey = ED25519_MULTICODEC_PREFIX + keyPair.publicKey
@@ -48,7 +46,7 @@ object DidKeyGenerator {
         // 3. 组装did:key
         val didKey = "$DID_KEY_PREFIX$multibaseKey"
 
-        Log.d(TAG, "Generated did:key: $didKey")
+        Timber.d("Generated did:key: $didKey")
 
         return didKey
     }
@@ -64,7 +62,7 @@ object DidKeyGenerator {
             "Invalid did:key format: must start with '$DID_KEY_PREFIX'"
         }
 
-        Log.d(TAG, "Extracting public key from did:key")
+        Timber.d("Extracting public key from did:key")
 
         // 1. 移除did:key前缀
         val multibaseKey = didKey.removePrefix(DID_KEY_PREFIX)
@@ -92,7 +90,7 @@ object DidKeyGenerator {
             "Invalid public key size: expected ${Ed25519KeyPair.PUBLIC_KEY_SIZE}, got ${publicKey.size}"
         }
 
-        Log.d(TAG, "Extracted public key: ${publicKey.size} bytes")
+        Timber.d("Extracted public key: ${publicKey.size} bytes")
 
         return publicKey
     }
@@ -124,7 +122,7 @@ object DidKeyGenerator {
             extractPublicKey(didKey)
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Invalid did:key: ${e.message}")
+            Timber.w("Invalid did:key: ${e.message}")
             false
         }
     }

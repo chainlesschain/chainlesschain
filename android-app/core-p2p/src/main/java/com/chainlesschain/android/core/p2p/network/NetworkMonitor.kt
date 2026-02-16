@@ -6,7 +6,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.util.Log
+import timber.log.Timber
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,10 +30,6 @@ class NetworkMonitor @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    companion object {
-        private const val TAG = "NetworkMonitor"
-    }
-
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val connectivityManager by lazy {
@@ -55,13 +51,13 @@ class NetworkMonitor @Inject constructor(
     // 网络回调
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
-            Log.i(TAG, "Network available: $network")
+            Timber.i("Network available: $network")
             updateNetworkState(network)
             emitEvent(NetworkEvent.Available(getNetworkInfo(network)))
         }
 
         override fun onLost(network: Network) {
-            Log.i(TAG, "Network lost: $network")
+            Timber.i("Network lost: $network")
             _networkState.value = NetworkState.Disconnected
             emitEvent(NetworkEvent.Lost)
         }
@@ -70,12 +66,12 @@ class NetworkMonitor @Inject constructor(
             network: Network,
             networkCapabilities: NetworkCapabilities
         ) {
-            Log.d(TAG, "Network capabilities changed")
+            Timber.d("Network capabilities changed")
             updateNetworkState(network)
         }
 
         override fun onUnavailable() {
-            Log.w(TAG, "Network unavailable")
+            Timber.w("Network unavailable")
             _networkState.value = NetworkState.Unavailable
             emitEvent(NetworkEvent.Unavailable)
         }
@@ -87,7 +83,7 @@ class NetworkMonitor @Inject constructor(
     @SuppressLint("MissingPermission")
     fun startMonitoring() {
         if (isRegistered) {
-            Log.w(TAG, "Already monitoring network")
+            Timber.w("Already monitoring network")
             return
         }
 
@@ -105,9 +101,9 @@ class NetworkMonitor @Inject constructor(
             // 获取初始状态
             checkCurrentNetwork()
 
-            Log.i(TAG, "Network monitoring started")
+            Timber.i("Network monitoring started")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start network monitoring", e)
+            Timber.e(e, "Failed to start network monitoring")
         }
     }
 
@@ -120,9 +116,9 @@ class NetworkMonitor @Inject constructor(
         try {
             connectivityManager.unregisterNetworkCallback(networkCallback)
             isRegistered = false
-            Log.i(TAG, "Network monitoring stopped")
+            Timber.i("Network monitoring stopped")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop network monitoring", e)
+            Timber.e(e, "Failed to stop network monitoring")
         }
     }
 
@@ -216,7 +212,7 @@ class NetworkMonitor @Inject constructor(
     private fun updateNetworkState(network: Network) {
         val info = getNetworkInfo(network)
         _networkState.value = NetworkState.Connected(info)
-        Log.d(TAG, "Network state updated: $info")
+        Timber.d("Network state updated: $info")
     }
 
     /**

@@ -1,6 +1,5 @@
 package com.chainlesschain.android.remote.webrtc
 
-import android.util.Log
 import com.chainlesschain.android.core.p2p.config.SignalingConfig
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -21,10 +20,6 @@ class SignalingDiscoveryService @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val signalingConfig: SignalingConfig
 ) {
-    companion object {
-        private const val TAG = "SignalingDiscoveryService"
-    }
-
     // 最后一次扫描的调试信息
     var lastScanDebugInfo: String = ""
         private set
@@ -36,16 +31,16 @@ class SignalingDiscoveryService @Inject constructor(
         debugBuilder.appendLine("========== 设备扫描调试信息 ==========")
         debugBuilder.appendLine("信令服务器: $signalingUrl")
         debugBuilder.appendLine("开始时间: ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
-        Log.i(TAG, "========================================")
-        Log.i(TAG, "Starting peer discovery")
-        Log.i(TAG, "Signaling URL: $signalingUrl")
-        Log.i(TAG, "========================================")
+        Timber.i("========================================")
+        Timber.i("Starting peer discovery")
+        Timber.i("Signaling URL: $signalingUrl")
+        Timber.i("========================================")
         val request = Request.Builder().url(signalingUrl).build()
         var ws: WebSocket? = null
         try {
             ws = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
-                    Log.i(TAG, "WebSocket connected to $signalingUrl")
+                    Timber.i("WebSocket connected to $signalingUrl")
                     debugBuilder.appendLine("✓ WebSocket 连接成功")
                     // Register first so the server accepts our get-peers request
                     val registerMsg = JSONObject().apply {
@@ -68,7 +63,7 @@ class SignalingDiscoveryService @Inject constructor(
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
-                    Log.d(TAG, "Received message: $text")
+                    Timber.d("Received message: $text")
                     debugBuilder.appendLine("收到消息: ${text.take(200)}${if (text.length > 200) "..." else ""}")
                     val peers = parsePeerPayload(text)
                     if (peers == null) {
@@ -79,14 +74,14 @@ class SignalingDiscoveryService @Inject constructor(
                     peers.forEach { peer ->
                         debugBuilder.appendLine("    - ${peer.deviceName} (${peer.deviceType}) [${peer.peerId.take(8)}...]")
                     }
-                    Log.i(TAG, "Parsed ${peers.size} peers: ${peers.map { it.deviceName }}")
+                    Timber.i("Parsed ${peers.size} peers: ${peers.map { it.deviceName }}")
                     if (!deferred.isCompleted) {
                         deferred.complete(peers)
                     }
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    Log.e(TAG, "WebSocket failure: ${t.message}", t)
+                    Timber.e(t, "WebSocket failure: ${t.message}")
                     debugBuilder.appendLine("✗ WebSocket 连接失败: ${t.message}")
                     if (!deferred.isCompleted) deferred.complete(emptyList())
                 }

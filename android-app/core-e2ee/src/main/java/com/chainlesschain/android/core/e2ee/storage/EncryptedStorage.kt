@@ -3,7 +3,7 @@ package com.chainlesschain.android.core.e2ee.storage
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.util.Log
+import timber.log.Timber
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -17,7 +17,6 @@ import javax.crypto.spec.GCMParameterSpec
  */
 object EncryptedStorage {
 
-    private const val TAG = "EncryptedStorage"
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
     private const val KEY_ALIAS = "chainlesschain_e2ee_master_key"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
@@ -43,7 +42,7 @@ object EncryptedStorage {
             // 格式: IV (12 bytes) + 密文 + Tag (16 bytes, GCM 自动添加)
             return iv + encrypted
         } catch (e: Exception) {
-            Log.e(TAG, "Encryption failed", e)
+            Timber.e(e, "Encryption failed")
             throw SecurityException("Failed to encrypt data", e)
         }
     }
@@ -73,7 +72,7 @@ object EncryptedStorage {
 
             return cipher.doFinal(ciphertext)
         } catch (e: Exception) {
-            Log.e(TAG, "Decryption failed", e)
+            Timber.e(e, "Decryption failed")
             throw SecurityException("Failed to decrypt data", e)
         }
     }
@@ -103,7 +102,7 @@ object EncryptedStorage {
      * 生成 Secret Key
      */
     private fun generateSecretKey(): SecretKey {
-        Log.d(TAG, "Generating new secret key")
+        Timber.d("Generating new secret key")
 
         val keyGenerator = KeyGenerator.getInstance(
             KeyProperties.KEY_ALGORITHM_AES,
@@ -137,10 +136,10 @@ object EncryptedStorage {
 
             if (keyStore.containsAlias(KEY_ALIAS)) {
                 keyStore.deleteEntry(KEY_ALIAS)
-                Log.d(TAG, "Secret key deleted")
+                Timber.d("Secret key deleted")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete secret key", e)
+            Timber.e(e, "Failed to delete secret key")
         }
     }
 
@@ -153,7 +152,7 @@ object EncryptedStorage {
             keyStore.load(null)
             keyStore.containsAlias(KEY_ALIAS)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to check key existence", e)
+            Timber.e(e, "Failed to check key existence")
             false
         }
     }

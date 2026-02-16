@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.queue
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.protocol.RatchetMessage
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -13,10 +13,6 @@ import java.util.UUID
  * 管理待发送和已接收但未处理的消息
  */
 class MessageQueue {
-
-    companion object {
-        private const val TAG = "MessageQueue"
-    }
 
     // 待发送消息队列
     private val pendingOutgoingMessages = mutableListOf<QueuedMessage>()
@@ -60,7 +56,7 @@ class MessageQueue {
             pendingOutgoingMessages.add(insertIndex, queuedMessage)
         }
 
-        Log.d(TAG, "Enqueued outgoing message: $messageId for peer: $peerId")
+        Timber.d("Enqueued outgoing message: $messageId for peer: $peerId")
 
         messageId
     }
@@ -98,7 +94,7 @@ class MessageQueue {
         val index = pendingOutgoingMessages.indexOfFirst { it.id == messageId }
         if (index != -1) {
             pendingOutgoingMessages.removeAt(index)
-            Log.d(TAG, "Marked outgoing message as sent: $messageId")
+            Timber.d("Marked outgoing message as sent: $messageId")
         }
     }
 
@@ -119,11 +115,11 @@ class MessageQueue {
                     status = MessageStatus.PENDING,
                     retryCount = message.retryCount + 1
                 )
-                Log.d(TAG, "Retry outgoing message: $messageId (${message.retryCount + 1}/${message.maxRetries})")
+                Timber.d("Retry outgoing message: $messageId (${message.retryCount + 1}/${message.maxRetries})")
             } else {
                 // 达到最大重试次数或不重试
                 pendingOutgoingMessages[index] = message.copy(status = MessageStatus.FAILED)
-                Log.w(TAG, "Outgoing message failed: $messageId")
+                Timber.w("Outgoing message failed: $messageId")
             }
         }
     }
@@ -154,7 +150,7 @@ class MessageQueue {
 
         pendingIncomingMessages.add(queuedMessage)
 
-        Log.d(TAG, "Enqueued incoming message: $messageId from peer: $peerId")
+        Timber.d("Enqueued incoming message: $messageId from peer: $peerId")
 
         messageId
     }
@@ -192,7 +188,7 @@ class MessageQueue {
         val index = pendingIncomingMessages.indexOfFirst { it.id == messageId }
         if (index != -1) {
             pendingIncomingMessages.removeAt(index)
-            Log.d(TAG, "Marked incoming message as processed: $messageId")
+            Timber.d("Marked incoming message as processed: $messageId")
         }
     }
 
@@ -206,7 +202,7 @@ class MessageQueue {
         if (index != -1) {
             val message = pendingIncomingMessages[index]
             pendingIncomingMessages[index] = message.copy(status = MessageStatus.FAILED)
-            Log.w(TAG, "Incoming message processing failed: $messageId")
+            Timber.w("Incoming message processing failed: $messageId")
         }
     }
 
@@ -252,7 +248,7 @@ class MessageQueue {
             pendingIncomingMessages.removeAll { it.peerId == peerId }
         }
 
-        Log.i(TAG, "Cleared all messages for peer: $peerId")
+        Timber.i("Cleared all messages for peer: $peerId")
     }
 
     /**
@@ -267,7 +263,7 @@ class MessageQueue {
             pendingIncomingMessages.clear()
         }
 
-        Log.i(TAG, "Cleared all messages")
+        Timber.i("Cleared all messages")
     }
 
     /**

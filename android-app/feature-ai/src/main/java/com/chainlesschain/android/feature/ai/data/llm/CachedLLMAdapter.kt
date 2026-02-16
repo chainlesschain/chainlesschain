@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.data.llm
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.feature.ai.domain.model.StreamChunk
@@ -27,10 +27,6 @@ class CachedLLMAdapter(
     private val delegate: LLMAdapter,
     private val cacheConfig: CacheConfig = CacheConfig()
 ) : LLMAdapter {
-
-    companion object {
-        private const val TAG = "CachedLLMAdapter"
-    }
 
     // Cache for static prefixes
     private val prefixCache = mutableMapOf<String, CachedPrefix>()
@@ -80,7 +76,7 @@ class CachedLLMAdapter(
         if (cachedPrefix != null) {
             cacheHits++
             tokensSaved += cachedPrefix.tokenCount
-            Log.d(TAG, "Cache HIT: ${cachedPrefix.tokenCount} tokens saved (total: $tokensSaved)")
+            Timber.d("Cache HIT: ${cachedPrefix.tokenCount} tokens saved (total: $tokensSaved)")
 
             // Reconstruct messages with cache hint
             val optimizedMessages = buildOptimizedMessages(cachedPrefix, dynamicMessages)
@@ -118,7 +114,7 @@ class CachedLLMAdapter(
         if (cachedPrefix != null) {
             cacheHits++
             tokensSaved += cachedPrefix.tokenCount
-            Log.d(TAG, "Cache HIT: ${cachedPrefix.tokenCount} tokens saved")
+            Timber.d("Cache HIT: ${cachedPrefix.tokenCount} tokens saved")
 
             val optimizedMessages = buildOptimizedMessages(cachedPrefix, dynamicMessages)
             return delegate.chat(optimizedMessages, model, temperature, maxTokens)
@@ -186,7 +182,7 @@ class CachedLLMAdapter(
                 .minByOrNull { it.value.createdAt }?.key
             if (oldestKey != null) {
                 prefixCache.remove(oldestKey)
-                Log.d(TAG, "Evicted cache entry: $oldestKey")
+                Timber.d("Evicted cache entry: $oldestKey")
             }
         }
 
@@ -196,7 +192,7 @@ class CachedLLMAdapter(
             tokenCount = tokenCount
         )
 
-        Log.d(TAG, "Cached prefix: $cacheKey ($tokenCount tokens)")
+        Timber.d("Cached prefix: $cacheKey ($tokenCount tokens)")
     }
 
     /**
@@ -262,7 +258,7 @@ class CachedLLMAdapter(
      */
     fun clearCache() = cacheLock.withLock {
         prefixCache.clear()
-        Log.d(TAG, "Cache cleared")
+        Timber.d("Cache cleared")
     }
 
     /**
@@ -270,7 +266,7 @@ class CachedLLMAdapter(
      */
     fun invalidateCache(cacheKey: String) = cacheLock.withLock {
         prefixCache.remove(cacheKey)
-        Log.d(TAG, "Cache invalidated: $cacheKey")
+        Timber.d("Cache invalidated: $cacheKey")
     }
 
     /**
@@ -296,7 +292,7 @@ class CachedLLMAdapter(
             tokenCount = tokenCount
         )
 
-        Log.d(TAG, "Preloaded cache for project $projectId: $tokenCount tokens")
+        Timber.d("Preloaded cache for project $projectId: $tokenCount tokens")
     }
 }
 

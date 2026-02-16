@@ -84,14 +84,14 @@ fun HooksScreen(
                         )
 
                         // Hook Detail
-                        if (selectedHook != null) {
+                        selectedHook?.let { hook ->
                             VerticalDivider()
                             HookDetailPanel(
-                                hook = selectedHook!!,
+                                hook = hook,
                                 stats = uiState.hookStats,
                                 logs = uiState.hookLogs,
-                                onTest = { viewModel.testHook(selectedHook!!.id) },
-                                onDelete = { viewModel.deleteHook(selectedHook!!.id) },
+                                onTest = { viewModel.testHook(hook.id) },
+                                onDelete = { viewModel.deleteHook(hook.id) },
                                 onClose = { viewModel.selectHook(null) },
                                 modifier = Modifier.width(350.dp)
                             )

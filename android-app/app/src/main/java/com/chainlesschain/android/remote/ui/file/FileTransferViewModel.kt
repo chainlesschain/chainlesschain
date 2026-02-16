@@ -106,8 +106,12 @@ class FileTransferViewModel @Inject constructor(
      */
     private fun setupProgressSubscription() {
         progressSubscriptionJob = viewModelScope.launch {
-            eventClient.subscribeFileTransferProgress().collect { progress ->
-                updateTransferProgress(progress)
+            try {
+                eventClient.subscribeFileTransferProgress().collect { progress ->
+                    updateTransferProgress(progress)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "文件传输进度订阅失败")
             }
         }
     }
@@ -532,14 +536,20 @@ class FileTransferViewModel @Inject constructor(
      */
     fun getDiskInfo() {
         viewModelScope.launch {
-            val result = fileCommands.getDiskUsage()
-            if (result.isSuccess) {
-                val info = result.getOrNull()
-                _uiState.value = FileTransferUiState.DiskInfo(
-                    totalSpace = info?.total ?: 0,
-                    freeSpace = info?.available ?: 0,
-                    usedSpace = info?.used ?: 0
-                )
+            try {
+                val result = fileCommands.getDiskUsage()
+                if (result.isSuccess) {
+                    val info = result.getOrNull()
+                    _uiState.value = FileTransferUiState.DiskInfo(
+                        totalSpace = info?.total ?: 0,
+                        freeSpace = info?.available ?: 0,
+                        usedSpace = info?.used ?: 0
+                    )
+                } else {
+                    Timber.w(result.exceptionOrNull(), "获取磁盘信息失败")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "获取磁盘信息异常")
             }
         }
     }

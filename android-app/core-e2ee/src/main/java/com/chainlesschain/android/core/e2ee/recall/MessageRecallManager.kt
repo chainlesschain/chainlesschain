@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.recall
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.protocol.RatchetMessage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,10 +22,6 @@ class MessageRecallManager(
     private val decryptCallback: suspend (peerId: String, message: RatchetMessage) -> ByteArray,
     private val policy: RecallPolicy = RecallPolicy.DEFAULT
 ) {
-
-    companion object {
-        private const val TAG = "MessageRecallManager"
-    }
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -63,11 +59,11 @@ class MessageRecallManager(
         reason: RecallReason = RecallReason.USER_REQUEST,
         replacementText: String? = null
     ): Boolean {
-        Log.d(TAG, "Requesting recall for message: $messageId")
+        Timber.d("Requesting recall for message: $messageId")
 
         // 检查是否可以撤回
         if (!policy.canRecall(messageSentAt, isRead)) {
-            Log.w(TAG, "Cannot recall message: policy restriction")
+            Timber.w("Cannot recall message: policy restriction")
             _recallEvents.value = RecallEvent.Failed(peerId, messageId, "Cannot recall: policy restriction")
             return false
         }
@@ -99,10 +95,10 @@ class MessageRecallManager(
             // 触发事件
             _recallEvents.value = RecallEvent.Requested(peerId, messageId)
 
-            Log.d(TAG, "Recall request sent for message: $messageId")
+            Timber.d("Recall request sent for message: $messageId")
             return true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send recall request", e)
+            Timber.e(e, "Failed to send recall request")
 
             // 更新状态为失败
             updateRecallStatus(peerId, messageId, RecallStatus.FAILED, "Failed to send request: ${e.message}")
@@ -129,7 +125,7 @@ class MessageRecallManager(
             val requestJson = String(decryptedData, Charsets.UTF_8)
             val request = json.decodeFromString<MessageRecallRequest>(requestJson)
 
-            Log.d(TAG, "Received recall request for message: ${request.messageId}")
+            Timber.d("Received recall request for message: ${request.messageId}")
 
             // 获取消息信息
             val messageInfo = messageCallback(request.messageId)
@@ -159,7 +155,7 @@ class MessageRecallManager(
                 _recallEvents.value = RecallEvent.Recalled(peerId, request.messageId, request.replacementText)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle recall request", e)
+            Timber.e(e, "Failed to handle recall request")
         }
     }
 
@@ -179,7 +175,7 @@ class MessageRecallManager(
             val responseJson = String(decryptedData, Charsets.UTF_8)
             val response = json.decodeFromString<MessageRecallResponse>(responseJson)
 
-            Log.d(TAG, "Received recall response for message: ${response.messageId}, success: ${response.success}")
+            Timber.d("Received recall response for message: ${response.messageId}, success: ${response.success}")
 
             // 取消超时任务
             cancelTimeoutJob("${peerId}_${response.messageId}")
@@ -198,7 +194,7 @@ class MessageRecallManager(
                 _recallEvents.value = RecallEvent.Failed(peerId, response.messageId, response.failureReason ?: "Unknown error")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle recall response", e)
+            Timber.e(e, "Failed to handle recall response")
         }
     }
 
@@ -232,7 +228,7 @@ class MessageRecallManager(
      */
     suspend fun clearRecallStatuses(peerId: String) = mutex.withLock {
         recallStatuses.remove(peerId)
-        Log.i(TAG, "Cleared recall statuses for peer: $peerId")
+        Timber.i("Cleared recall statuses for peer: $peerId")
     }
 
     /**
@@ -243,7 +239,7 @@ class MessageRecallManager(
         // 取消所有超时任务
         timeoutJobs.values.forEach { it.cancel() }
         timeoutJobs.clear()
-        Log.i(TAG, "Cleared all recall statuses")
+        Timber.i("Cleared all recall statuses")
     }
 
     /**
@@ -257,7 +253,7 @@ class MessageRecallManager(
      * 执行撤回
      */
     private suspend fun executeRecall(peerId: String, messageId: String, request: MessageRecallRequest) {
-        Log.d(TAG, "Executing recall for message: $messageId")
+        Timber.d("Executing recall for message: $messageId")
 
         // 记录撤回状态（如果配置保留记录）
         if (policy.keepRecallRecord) {
@@ -309,7 +305,7 @@ class MessageRecallManager(
         val encryptedRequest = encryptCallback(peerId, requestData)
 
         // 实际发送由调用方处理
-        Log.d(TAG, "Encrypted recall request for message: ${request.messageId}")
+        Timber.d("Encrypted recall request for message: ${request.messageId}")
     }
 
     /**
@@ -321,7 +317,7 @@ class MessageRecallManager(
         val encryptedResponse = encryptCallback(peerId, responseData)
 
         // 实际发送由调用方处理
-        Log.d(TAG, "Encrypted recall response for message: ${response.messageId}")
+        Timber.d("Encrypted recall response for message: ${response.messageId}")
     }
 
     /**
@@ -339,7 +335,7 @@ class MessageRecallManager(
             // 触发事件
             _recallEvents.value = RecallEvent.Timeout(peerId, messageId)
 
-            Log.w(TAG, "Recall timeout for message: $messageId")
+            Timber.w("Recall timeout for message: $messageId")
         }
 
         timeoutJobs[jobKey] = job

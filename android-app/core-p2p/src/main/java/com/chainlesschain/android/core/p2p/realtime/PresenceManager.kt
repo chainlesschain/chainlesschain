@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.realtime
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.sync.MessageQueue
@@ -27,8 +27,6 @@ class PresenceManager @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "PresenceManager"
-
         /** 心跳间隔（毫秒） */
         private const val HEARTBEAT_INTERVAL_MS = 60000L // 1 分钟
 
@@ -62,11 +60,11 @@ class PresenceManager @Inject constructor(
      */
     fun startBroadcasting() {
         if (heartbeatJob?.isActive == true) {
-            Log.w(TAG, "Already broadcasting presence")
+            Timber.w("Already broadcasting presence")
             return
         }
 
-        Log.i(TAG, "Starting presence broadcasting")
+        Timber.i("Starting presence broadcasting")
 
         // 立即广播一次
         scope.launch {
@@ -105,7 +103,7 @@ class PresenceManager @Inject constructor(
             broadcastPresence()
         }
 
-        Log.i(TAG, "Stopped presence broadcasting")
+        Timber.i("Stopped presence broadcasting")
     }
 
     /**
@@ -114,7 +112,7 @@ class PresenceManager @Inject constructor(
     suspend fun setStatus(status: PresenceStatus) {
         if (_currentStatus.value != status) {
             _currentStatus.value = status
-            Log.d(TAG, "Status changed to: $status")
+            Timber.d("Status changed to: $status")
             broadcastPresence()
         }
     }
@@ -172,10 +170,10 @@ class PresenceManager @Inject constructor(
             )
             _presenceUpdates.emit(event)
 
-            Log.d(TAG, "Presence updated: $did -> ${payload.status}")
+            Timber.d("Presence updated: $did -> ${payload.status}")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to handle presence update", e)
+            Timber.e(e, "Failed to handle presence update")
         }
     }
 
@@ -198,7 +196,7 @@ class PresenceManager @Inject constructor(
         )
 
         messageQueue.enqueue(message)
-        Log.d(TAG, "Presence broadcasted: ${_currentStatus.value}")
+        Timber.d("Presence broadcasted: ${_currentStatus.value}")
     }
 
     /**
@@ -212,11 +210,11 @@ class PresenceManager @Inject constructor(
 
         expiredDids.forEach { did ->
             presenceCache.remove(did)
-            Log.d(TAG, "Presence expired and removed: $did")
+            Timber.d("Presence expired and removed: $did")
         }
 
         if (expiredDids.isNotEmpty()) {
-            Log.i(TAG, "Cleaned up ${expiredDids.size} expired presence records")
+            Timber.i("Cleaned up ${expiredDids.size} expired presence records")
         }
     }
 }

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.33.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.35.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,23 +19,43 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.33.0 (2026-02-13)
+## ⭐ Current Version: v0.35.0 (2026-02-16)
 
-### Latest Updates - Remote Control System + Browser Extension
+### Latest Updates - AI Skills System + Unified Tool Registry
 
-**P2P Remote Control System** - P2P network-based remote command system, enabling Android devices to remotely control PC, 24+ command handlers, 45,000+ lines of code
+**15 Built-in Skills + 10 Demo Templates + Agent Skills Open Standard + Unified Tool Registry** - 15 built-in skills, 10 demo templates, Agent Skills open standard compliance, unified tool registry aggregating 3 tool systems, 6 new IPC handlers, 3,000+ lines of new code
 
-#### New Core Features (2026-02-13)
+#### New Core Features (2026-02-16)
+
+- ✅ **15 Built-in Skills** - 15 skills covering 7 categories (Development/Automation/Knowledge/Data/Security/Remote/Learning)
+  - **Core**: code-review, git-commit, explain-code
+  - **Automation**: browser-automation, computer-use, workflow-automation
+  - **Data**: web-scraping, data-analysis
+  - **Knowledge**: memory-management, smart-search
+  - **Remote**: remote-control
+  - **Security**: security-audit
+  - **DevOps**: devops-automation
+  - **Development**: test-generator, performance-optimizer
+- ✅ **Unified Tool Registry** - Aggregates 3 tool systems (FunctionCaller 60+ tools + MCP 8 servers + Skills 15 skills)
+- ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
+- ✅ **MCPSkillGenerator** - Auto-generates SkillManifestEntry when MCP servers connect
+- ✅ **Agent Skills Open Standard** - 13 extended fields (tools/instructions/examples/dependencies/input-schema/output-schema etc.)
+- ✅ **Demo Templates** - 10 demo project templates across 4 categories (Automation/AI Workflow/Knowledge/Remote)
+- ✅ **Tools Explorer UI** - Browse all tools grouped by skill (route: `#/tools/explorer`)
+- ✅ **Demo Templates UI** - Browse and run demo templates (route: `#/demo-templates`)
+- ✅ **Name Normalization** - `browser-click` (SKILL.md) → `browser_click` (FunctionCaller) auto-bridging
+- ✅ **Context Engineering Integration** - Skill-grouped tool serialization in LLM prompts
+
+#### v0.34.0 Features Recap - Enterprise Features + Community Ecosystem
+
+**Enterprise Audit & Compliance + Plugin Marketplace + Multi-Agent + SSO + MCP SDK** - 76+ IPC handlers, 26,000+ lines of new code
+
+#### v0.33.0 Features Recap - Remote Control System + Browser Extension
 
 - ✅ **Remote Control Gateway** - P2P remote gateway, command routing, permission verification (1,876 lines), logging & statistics
 - ✅ **24+ Command Handlers** - AI/System/File Transfer/Browser/Power/Process/Media/Network/Storage/Display/Input/Application/Security/Knowledge Base/Device Management/Command History/Clipboard/Notifications/Workflow comprehensive control
 - ✅ **Chrome Browser Extension** - Chrome extension integration, WebSocket server (3,326 lines), Service Worker (15,077 lines), Content Script
-- ✅ **Browser Extension APIs (Phase 11-25)** - Clipboard/Files/Notifications/Session Management/Console/Debugging/Network Emulation/Device Emulation/Web APIs/WebRTC/Advanced Storage/Chrome Features/Hardware/Media/Reader Mode/Screenshot/Annotations
-- ✅ **Remote Workflow Engine** - Remote workflow engine (812 lines), conditional branches and automated task orchestration
 - ✅ **Android Remote UIs** - Power/Process/Media/Network/Storage/Input/Application Manager/Security Info 8 remote control screens
-- ✅ **Streaming Command Client** - Streaming command client for real-time data transmission
-- ✅ **Event Subscription** - Event subscription system for real-time status push
-- ✅ **Logging System** - Command logger (614 lines)/Batched logger (457 lines)/Statistics collector (681 lines)/Performance config
 
 #### v0.33.0 Features Recap - Computer Use (2026-02-11)
 
@@ -197,7 +217,8 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🟢 **Social System**: 100% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding + Message Reactions + Voice Message Recording & Playback** ⭐Completed
 - 🟢 **Trading System**: 100% Complete - **8 Modules + On-chain Contracts + NFT Transfers + Order Editing + Sharing + QR Codes** ⭐Completed
 - 🟢 **Browser Extension**: 100% Complete - **Testing Framework + Documentation** ⭐Completed
-- 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension + 45,000+ Lines** ⭐NEW
+- 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension + 45,000+ Lines** ⭐Completed
+- 🟢 **AI Skills System**: 100% Complete - **15 Built-in Skills + Unified Tool Registry + 10 Demo Templates + Agent Skills Standard** ⭐NEW
 - 🟢 **Mobile Application**: 100% Complete - **Knowledge Base + AI Chat + Trading System + Social Features + Mobile UX Optimization + P2P Sync + Android Remote Control UIs** ⭐Completed
 
 ## Core Features
@@ -211,7 +232,9 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
-- 🎨 **Skills System**: Markdown Skills + Three-layer loading + /skill commands + Gate checks ✅ ⭐NEW
+- 🎨 **Skills System**: 15 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐Updated
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 15 skills unified management ✅ ⭐NEW
+- 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
 - 🌐 **Fully Decentralized**: P2P network (libp2p 3.1.2) + DHT + local data storage, no central servers needed ✅
 - 📁 **P2P File Transfer**: Large file chunked transfer (64KB) + resume capability + real-time progress + SHA-256 verification ✅
@@ -357,11 +380,26 @@ Detailed documentation: [Context Engineering Docs](./docs/MANUS_OPTIMIZATION_GUI
 - ✅ **Plan Mode** - Security analysis mode, only allows Read/Search/Analyze
 - ✅ **Plan generation** - Auto-record blocked operations to plan
 - ✅ **Approval workflow** - Full/partial approval, rejection operations
-- ✅ **Skills system** - Markdown skill definitions, three-layer loading mechanism
+- ✅ **Skills system** - Markdown skill definitions, four-layer loading (bundled→marketplace→managed→workspace)
 - ✅ **/skill commands** - User command parsing, auto-execution
 - ✅ **Gate checks** - Platform, dependency, environment variable detection
+- ✅ **15 Built-in Skills** - 7 executable handlers + 8 documentation-only skills across 7 categories
+- ✅ **Agent Skills Open Standard** - 13 extended fields (tools/instructions/examples/dependencies etc.)
 
-Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md)
+Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [AI Skills System](./docs/design/modules/16_AI技能系统.md)
+
+### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
+
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (15 skills) into single registry
+- ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
+- ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
+- ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging
+- ✅ **Tools Explorer** - Browse all tools grouped by skill with search/filter/preview
+- ✅ **10 Demo Templates** - Showcase skill combinations (Automation/AI Workflow/Knowledge/Remote)
+- ✅ **DemoTemplateLoader** - Auto-discover JSON templates, 4 IPC handlers
+- ✅ **6 Unified Tool IPCs** - tools:get-all-with-skills/get-skill-manifest/get-by-skill/search-unified/get-tool-context/refresh-unified
+
+Detailed documentation: [AI Skills System](./docs/design/modules/16_AI技能系统.md)
 
 ### MCP (Model Context Protocol) Integration ⭐NEW
 

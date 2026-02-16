@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.ai.presentation.settings
 
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.feature.ai.data.config.*
@@ -292,26 +293,26 @@ class LLMSettingsViewModel @Inject constructor(
     fun testConnection(provider: LLMProvider) {
         viewModelScope.launch {
             try {
-                android.util.Log.d("LLMSettingsViewModel", "testConnection called for provider: ${provider.name}")
+                Timber.tag("LLMSettingsViewModel").d("testConnection called for provider: ${provider.name}")
                 _uiState.value = LLMSettingsUiState.Testing(provider)
-                android.util.Log.d("LLMSettingsViewModel", "UI state set to Testing")
+                Timber.tag("LLMSettingsViewModel").d("UI state set to Testing")
 
                 // 添加超时控制：60秒后强制返回失败
                 val result = kotlinx.coroutines.withTimeoutOrNull(60000) {
-                    android.util.Log.d("LLMSettingsViewModel", "Calling adapterFactory.testConnection...")
+                    Timber.tag("LLMSettingsViewModel").d("Calling adapterFactory.testConnection...")
                     adapterFactory.testConnection(provider)
                 }
 
                 if (result == null) {
                     // 超时
-                    android.util.Log.w("LLMSettingsViewModel", "Test connection timeout after 60s")
+                    Timber.tag("LLMSettingsViewModel").w("Test connection timeout after 60s")
                     _uiState.value = LLMSettingsUiState.TestResult(
                         provider = provider,
                         success = false,
                         message = "连接超时（60秒），请检查网络和配置"
                     )
                 } else {
-                    android.util.Log.d("LLMSettingsViewModel", "Test result: success=${result.isSuccess}, message=${result.getOrNull() ?: result.exceptionOrNull()?.message}")
+                    Timber.tag("LLMSettingsViewModel").d("Test result: success=${result.isSuccess}, message=${result.getOrNull() ?: result.exceptionOrNull()?.message}")
 
                     _uiState.value = if (result.isSuccess) {
                         LLMSettingsUiState.TestResult(
@@ -326,12 +327,12 @@ class LLMSettingsViewModel @Inject constructor(
                             message = result.exceptionOrNull()?.message ?: "连接失败"
                         )
                     }
-                    android.util.Log.d("LLMSettingsViewModel", "UI state set to TestResult: success=${result.isSuccess}")
+                    Timber.tag("LLMSettingsViewModel").d("UI state set to TestResult: success=${result.isSuccess}")
                 }
 
                 // 移除自动恢复，让 UI 层控制显示时长
             } catch (e: Exception) {
-                android.util.Log.e("LLMSettingsViewModel", "testConnection exception", e)
+                Timber.tag("LLMSettingsViewModel").e(e, "testConnection exception")
                 _uiState.value = LLMSettingsUiState.TestResult(
                     provider = provider,
                     success = false,

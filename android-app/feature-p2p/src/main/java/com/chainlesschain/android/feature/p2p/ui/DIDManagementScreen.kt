@@ -409,7 +409,7 @@ fun DIDDocumentSection(
                         value = didDocument.id
                     )
 
-                    Divider()
+                    HorizontalDivider()
 
                     // 验证方法数量
                     DIDDocumentField(
@@ -417,7 +417,7 @@ fun DIDDocumentSection(
                         value = stringResource(R.string.public_keys_count, didDocument.verificationMethod.size)
                     )
 
-                    Divider()
+                    HorizontalDivider()
 
                     // 认证方法数量
                     DIDDocumentField(
@@ -425,7 +425,7 @@ fun DIDDocumentSection(
                         value = stringResource(R.string.count_items, didDocument.authentication.size)
                     )
 
-                    Divider()
+                    HorizontalDivider()
 
                     // 密钥协商方法数量
                     if (didDocument.keyAgreement.isNotEmpty()) {
@@ -434,7 +434,7 @@ fun DIDDocumentSection(
                             value = stringResource(R.string.count_items, didDocument.keyAgreement.size)
                         )
 
-                        Divider()
+                        HorizontalDivider()
                     }
 
                     // 服务端点数量
@@ -447,7 +447,7 @@ fun DIDDocumentSection(
 
                     // 创建时间
                     didDocument.created?.let { created ->
-                        Divider()
+                        HorizontalDivider()
                         DIDDocumentField(
                             label = stringResource(R.string.creation_time),
                             value = created

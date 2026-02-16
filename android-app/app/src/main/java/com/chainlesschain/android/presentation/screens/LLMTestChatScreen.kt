@@ -153,7 +153,7 @@ fun LLMTestChatScreen(
                 }
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 输入区域
             ChatInputArea(
@@ -483,7 +483,7 @@ fun ChatInputArea(
             )
         }
 
-        Divider()
+        HorizontalDivider()
 
         // 输入框
         Row(

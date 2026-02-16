@@ -209,7 +209,7 @@ fun PowerControlScreen(
                 )
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 定时任务
             Text(

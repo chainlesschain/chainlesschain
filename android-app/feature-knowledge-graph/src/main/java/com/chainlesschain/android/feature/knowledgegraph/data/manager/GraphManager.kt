@@ -176,8 +176,8 @@ class GraphManager @Inject constructor(
                 for (j in i + 1 until graph.nodes.size) {
                     val v = graph.nodes[i]
                     val u = graph.nodes[j]
-                    val (vx, vy) = positions[v.id]!!
-                    val (ux, uy) = positions[u.id]!!
+                    val (vx, vy) = positions[v.id] ?: continue
+                    val (ux, uy) = positions[u.id] ?: continue
 
                     val dx = vx - ux
                     val dy = vy - uy
@@ -187,8 +187,10 @@ class GraphManager @Inject constructor(
                     val fx = dx / dist * force
                     val fy = dy / dist * force
 
-                    forces[v.id] = Pair(forces[v.id]!!.first + fx, forces[v.id]!!.second + fy)
-                    forces[u.id] = Pair(forces[u.id]!!.first - fx, forces[u.id]!!.second - fy)
+                    val vForce = forces[v.id] ?: Pair(0f, 0f)
+                    forces[v.id] = Pair(vForce.first + fx, vForce.second + fy)
+                    val uForce = forces[u.id] ?: Pair(0f, 0f)
+                    forces[u.id] = Pair(uForce.first - fx, uForce.second - fy)
                 }
             }
 
@@ -205,14 +207,16 @@ class GraphManager @Inject constructor(
                 val fx = dx / dist * force
                 val fy = dy / dist * force
 
-                forces[edge.source] = Pair(forces[edge.source]!!.first + fx, forces[edge.source]!!.second + fy)
-                forces[edge.target] = Pair(forces[edge.target]!!.first - fx, forces[edge.target]!!.second - fy)
+                val sourceForce = forces[edge.source] ?: Pair(0f, 0f)
+                forces[edge.source] = Pair(sourceForce.first + fx, sourceForce.second + fy)
+                val targetForce = forces[edge.target] ?: Pair(0f, 0f)
+                forces[edge.target] = Pair(targetForce.first - fx, targetForce.second - fy)
             }
 
             // Apply forces
             for (node in graph.nodes) {
-                val (fx, fy) = forces[node.id]!!
-                val (x, y) = positions[node.id]!!
+                val (fx, fy) = forces[node.id] ?: Pair(0f, 0f)
+                val (x, y) = positions[node.id] ?: continue
                 val forceMag = kotlin.math.sqrt(fx * fx + fy * fy).coerceAtLeast(0.01f)
                 val scale = minOf(forceMag, cooling) / forceMag
 
@@ -220,8 +224,8 @@ class GraphManager @Inject constructor(
             }
         }
 
-        return graph.nodes.map { node ->
-            val (x, y) = positions[node.id]!!
+        return graph.nodes.mapNotNull { node ->
+            val (x, y) = positions[node.id] ?: return@mapNotNull null
             node.copy(x = x, y = y)
         }
     }

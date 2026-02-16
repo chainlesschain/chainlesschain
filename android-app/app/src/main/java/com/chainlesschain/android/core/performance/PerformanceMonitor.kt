@@ -128,6 +128,8 @@ object PerformanceMonitor {
         thermalMonitor?.stop()
         thermalMonitor = null
 
+        appContext = null
+
         _isMonitoring.value = false
         Timber.d("$TAG: Stopped monitoring")
     }

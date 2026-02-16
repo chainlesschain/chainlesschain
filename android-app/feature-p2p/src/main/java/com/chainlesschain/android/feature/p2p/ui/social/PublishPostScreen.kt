@@ -248,10 +248,12 @@ fun PublishPostScreen(
                     LinkPreviewSkeleton()
                 }
                 linkPreview != null -> {
-                    LinkPreviewCard(
-                        preview = linkPreview!!,
-                        onRemove = { linkPreview = null }
-                    )
+                    linkPreview?.let { preview ->
+                        LinkPreviewCard(
+                            preview = preview,
+                            onRemove = { linkPreview = null }
+                        )
+                    }
                 }
             }
 
@@ -268,7 +270,7 @@ fun PublishPostScreen(
                 singleLine = true
             )
 
-            Divider()
+            HorizontalDivider()
 
             // 可见性选择
             Column(
@@ -304,7 +306,7 @@ fun PublishPostScreen(
                 )
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 功能按钮
             Row(

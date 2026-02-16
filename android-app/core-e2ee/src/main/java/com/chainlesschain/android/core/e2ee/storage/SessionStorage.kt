@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.e2ee.storage
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.DoubleRatchet
 import com.chainlesschain.android.core.e2ee.protocol.MessageHeader
@@ -23,7 +23,6 @@ import java.io.File
 class SessionStorage(private val context: Context) {
 
     companion object {
-        private const val TAG = "SessionStorage"
         private const val STORAGE_DIR = "e2ee_sessions"
         private const val SESSION_FILE_SUFFIX = ".session"
         private const val IDENTITY_FILE = "identity_keys.json"
@@ -58,7 +57,7 @@ class SessionStorage(private val context: Context) {
         associatedData: ByteArray
     ) = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Saving session for peer: $peerId")
+            Timber.d("Saving session for peer: $peerId")
 
             val persistentSession = PersistentSession(
                 peerId = peerId,
@@ -71,9 +70,9 @@ class SessionStorage(private val context: Context) {
             val encryptedData = encryptSessionData(json.encodeToString(persistentSession))
             sessionFile.writeBytes(encryptedData)
 
-            Log.d(TAG, "Session saved successfully for peer: $peerId")
+            Timber.d("Session saved successfully for peer: $peerId")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save session for peer: $peerId", e)
+            Timber.e(e, "Failed to save session for peer: $peerId")
             throw e
         }
     }
@@ -88,11 +87,11 @@ class SessionStorage(private val context: Context) {
         peerId: String
     ): Pair<DoubleRatchet.RatchetState, ByteArray>? = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Loading session for peer: $peerId")
+            Timber.d("Loading session for peer: $peerId")
 
             val sessionFile = File(storageDir, "${peerId}${SESSION_FILE_SUFFIX}")
             if (!sessionFile.exists()) {
-                Log.d(TAG, "No saved session found for peer: $peerId")
+                Timber.d("No saved session found for peer: $peerId")
                 return@withContext null
             }
 
@@ -102,11 +101,11 @@ class SessionStorage(private val context: Context) {
 
             val ratchetState = deserializeRatchetState(persistentSession.ratchetState)
 
-            Log.d(TAG, "Session loaded successfully for peer: $peerId")
+            Timber.d("Session loaded successfully for peer: $peerId")
 
             Pair(ratchetState, persistentSession.associatedData)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load session for peer: $peerId", e)
+            Timber.e(e, "Failed to load session for peer: $peerId")
             null
         }
     }
@@ -118,15 +117,15 @@ class SessionStorage(private val context: Context) {
      */
     suspend fun deleteSession(peerId: String): Unit = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Deleting session for peer: $peerId")
+            Timber.d("Deleting session for peer: $peerId")
 
             val sessionFile = File(storageDir, "${peerId}${SESSION_FILE_SUFFIX}")
             if (sessionFile.exists()) {
                 sessionFile.delete()
-                Log.d(TAG, "Session deleted for peer: $peerId")
+                Timber.d("Session deleted for peer: $peerId")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete session for peer: $peerId", e)
+            Timber.e(e, "Failed to delete session for peer: $peerId")
         }
     }
 
@@ -140,7 +139,7 @@ class SessionStorage(private val context: Context) {
                 ?.map { it.name.removeSuffix(SESSION_FILE_SUFFIX) }
                 ?: emptyList()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to list sessions", e)
+            Timber.e(e, "Failed to list sessions")
             emptyList()
         }
     }
@@ -153,7 +152,7 @@ class SessionStorage(private val context: Context) {
         signedPreKeyPair: X25519KeyPair
     ) = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Saving identity keys")
+            Timber.d("Saving identity keys")
 
             val identityKeys = IdentityKeys(
                 identityPublicKey = identityKeyPair.publicKey,
@@ -167,9 +166,9 @@ class SessionStorage(private val context: Context) {
             val encryptedData = encryptSessionData(json.encodeToString(identityKeys))
             identityFile.writeBytes(encryptedData)
 
-            Log.d(TAG, "Identity keys saved successfully")
+            Timber.d("Identity keys saved successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save identity keys", e)
+            Timber.e(e, "Failed to save identity keys")
             throw e
         }
     }
@@ -179,11 +178,11 @@ class SessionStorage(private val context: Context) {
      */
     suspend fun loadIdentityKeys(): Pair<X25519KeyPair, X25519KeyPair>? = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Loading identity keys")
+            Timber.d("Loading identity keys")
 
             val identityFile = File(storageDir, IDENTITY_FILE)
             if (!identityFile.exists()) {
-                Log.d(TAG, "No saved identity keys found")
+                Timber.d("No saved identity keys found")
                 return@withContext null
             }
 
@@ -200,11 +199,11 @@ class SessionStorage(private val context: Context) {
                 identityKeys.signedPreKeyPrivate
             )
 
-            Log.d(TAG, "Identity keys loaded successfully")
+            Timber.d("Identity keys loaded successfully")
 
             Pair(identityKeyPair, signedPreKeyPair)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load identity keys", e)
+            Timber.e(e, "Failed to load identity keys")
             null
         }
     }
@@ -216,7 +215,7 @@ class SessionStorage(private val context: Context) {
         preKeys: Map<String, X25519KeyPair>
     ) = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Saving ${preKeys.size} one-time pre-keys")
+            Timber.d("Saving ${preKeys.size} one-time pre-keys")
 
             val preKeysList = preKeys.map { (id, keyPair) ->
                 PreKeyEntry(id, keyPair.publicKey, keyPair.privateKey)
@@ -228,9 +227,9 @@ class SessionStorage(private val context: Context) {
             val encryptedData = encryptSessionData(json.encodeToString(preKeysData))
             preKeysFile.writeBytes(encryptedData)
 
-            Log.d(TAG, "One-time pre-keys saved successfully")
+            Timber.d("One-time pre-keys saved successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save one-time pre-keys", e)
+            Timber.e(e, "Failed to save one-time pre-keys")
             throw e
         }
     }
@@ -240,11 +239,11 @@ class SessionStorage(private val context: Context) {
      */
     suspend fun loadOneTimePreKeys(): Map<String, X25519KeyPair> = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Loading one-time pre-keys")
+            Timber.d("Loading one-time pre-keys")
 
             val preKeysFile = File(storageDir, PRE_KEYS_FILE)
             if (!preKeysFile.exists()) {
-                Log.d(TAG, "No saved one-time pre-keys found")
+                Timber.d("No saved one-time pre-keys found")
                 return@withContext emptyMap()
             }
 
@@ -256,11 +255,11 @@ class SessionStorage(private val context: Context) {
                 entry.id to X25519KeyPair(entry.publicKey, entry.privateKey)
             }
 
-            Log.d(TAG, "Loaded ${preKeys.size} one-time pre-keys")
+            Timber.d("Loaded ${preKeys.size} one-time pre-keys")
 
             preKeys
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load one-time pre-keys", e)
+            Timber.e(e, "Failed to load one-time pre-keys")
             emptyMap()
         }
     }

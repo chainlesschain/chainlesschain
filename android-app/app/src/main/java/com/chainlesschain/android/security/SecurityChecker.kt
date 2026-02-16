@@ -182,8 +182,9 @@ class SecurityChecker @Inject constructor(
      * 如果检测到读写挂载（rw），可能表示设备已被Root
      */
     private fun checkSystemMountedReadWrite(): Boolean {
+        var process: Process? = null
         return try {
-            val process = Runtime.getRuntime().exec("mount")
+            process = Runtime.getRuntime().exec("mount")
             val lines = process.inputStream.bufferedReader().use { it.readLines() }
             process.errorStream.close()
             process.waitFor()
@@ -197,6 +198,8 @@ class SecurityChecker @Inject constructor(
         } catch (e: Exception) {
             Timber.d(e, "$TAG 检查系统分区挂载状态失败")
             false
+        } finally {
+            process?.destroy()
         }
     }
 

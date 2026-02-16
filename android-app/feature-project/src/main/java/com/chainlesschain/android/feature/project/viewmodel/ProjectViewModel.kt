@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.project.viewmodel
 
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
@@ -85,7 +85,6 @@ class ProjectViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private const val TAG = "ProjectViewModel"
         private const val DEFAULT_MODEL = "deepseek-chat"
         private const val DEFAULT_PROVIDER = "DEEPSEEK"
         private const val MAX_CONTEXT_TOKENS = 4000  // DeepSeek 默认上下文窗口
@@ -223,9 +222,9 @@ class ProjectViewModel @Inject constructor(
      * 设置当前用户
      */
     fun setCurrentUser(userId: String) {
-        Log.d(TAG, "setCurrentUser called: userId=$userId")
+        Timber.d("setCurrentUser called: userId=$userId")
         _currentUserId.value = userId
-        Log.d(TAG, "currentUserId updated to: ${_currentUserId.value}")
+        Timber.d("currentUserId updated to: ${_currentUserId.value}")
         loadProjects()
         loadStatistics()
     }
@@ -268,7 +267,7 @@ class ProjectViewModel @Inject constructor(
                         sortProjects(projects)
                     }
                     .catch { e ->
-                        Log.e(TAG, "Error loading projects", e)
+                        Timber.e(e, "Error loading projects")
                         _projectListState.value = ProjectListState.Error(e.message ?: "加载失败")
                     }
                     .collect { projects ->
@@ -284,7 +283,7 @@ class ProjectViewModel @Inject constructor(
                         }
                     }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading projects", e)
+                Timber.e(e, "Error loading projects")
                 _projectListState.value = ProjectListState.Error(e.message ?: "加载失败")
             }
         }
@@ -353,7 +352,7 @@ class ProjectViewModel @Inject constructor(
                 _projectCount.value = projectRepository.getProjectCount(userId)
                 _projectCountByType.value = projectRepository.getProjectCountByType(userId)
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading statistics", e)
+                Timber.e(e, "Error loading statistics")
             }
         }
     }
@@ -372,10 +371,10 @@ class ProjectViewModel @Inject constructor(
         val userId = _currentUserId.value
 
         // 添加日志和错误处理
-        Log.d(TAG, "createProject called. userId=$userId, name=$name")
+        Timber.d("createProject called. userId=$userId, name=$name")
 
         if (userId == null) {
-            Log.e(TAG, "Cannot create project: userId is null")
+            Timber.e("Cannot create project: userId is null")
             viewModelScope.launch {
                 _uiEvents.emit(ProjectUiEvent.ShowError("请先登录"))
             }
@@ -422,10 +421,10 @@ class ProjectViewModel @Inject constructor(
         val userId = _currentUserId.value
 
         // 添加日志和错误处理
-        Log.d(TAG, "createProjectFromTemplate called. userId=$userId, template=${template.name}")
+        Timber.d("createProjectFromTemplate called. userId=$userId, template=${template.name}")
 
         if (userId == null) {
-            Log.e(TAG, "Cannot create project: userId is null")
+            Timber.e("Cannot create project: userId is null")
             viewModelScope.launch {
                 _uiEvents.emit(ProjectUiEvent.ShowError("请先登录"))
             }
@@ -434,7 +433,7 @@ class ProjectViewModel @Inject constructor(
 
         viewModelScope.launch {
             _isLoading.value = true
-            Log.d(TAG, "Creating project from template: ${template.name}")
+            Timber.d("Creating project from template: ${template.name}")
 
             try {
                 // Apply template
@@ -446,21 +445,21 @@ class ProjectViewModel @Inject constructor(
 
                 projectResult.fold(
                     onSuccess = { project ->
-                        Log.d(TAG, "Project created in database: ${project.id}")
+                        Timber.d("Project created in database: ${project.id}")
 
                         // 1. 创建项目目录结构（与PC端对齐）
                         val projectPath = projectFileStorage.createProjectDirectories(
                             projectId = project.id,
                             directories = result.folders
                         )
-                        Log.d(TAG, "Project directory created: $projectPath")
+                        Timber.d("Project directory created: $projectPath")
 
                         // 2. 写入文件到存储（与PC端对齐）
                         val filesWritten = projectFileStorage.writeProjectFiles(
                             projectId = project.id,
                             files = result.files
                         )
-                        Log.d(TAG, "Files written to storage: $filesWritten/${result.files.size}")
+                        Timber.d("Files written to storage: $filesWritten/${result.files.size}")
 
                         // 3. 保存文件记录到数据库
                         result.files.forEach { file ->
@@ -475,7 +474,7 @@ class ProjectViewModel @Inject constructor(
                                 content = file.content
                             )
                         }
-                        Log.d(TAG, "Files saved to database: ${result.files.size}")
+                        Timber.d("Files saved to database: ${result.files.size}")
 
                         // 4. 更新项目的 rootPath
                         projectRepository.updateProject(
@@ -490,12 +489,12 @@ class ProjectViewModel @Inject constructor(
                         loadStatistics()
                     },
                     onFailure = { error ->
-                        Log.e(TAG, "Failed to create project", error)
+                        Timber.e(error, "Failed to create project")
                         _uiEvents.emit(ProjectUiEvent.ShowError(error.message ?: "创建失败"))
                     }
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Error creating project from template", e)
+                Timber.e(e, "Error creating project from template")
                 _uiEvents.emit(ProjectUiEvent.ShowError(e.message ?: "创建失败"))
             } finally {
                 _isLoading.value = false
@@ -628,7 +627,7 @@ class ProjectViewModel @Inject constructor(
                 // 观察项目
                 projectRepository.observeProject(projectId)
                     .catch { e ->
-                        Log.e(TAG, "Error loading project detail", e)
+                        Timber.e(e, "Error loading project detail")
                         _projectDetailState.value = ProjectDetailState.Error(e.message ?: "加载失败")
                     }
                     .collect { project ->
@@ -639,7 +638,7 @@ class ProjectViewModel @Inject constructor(
                         }
                     }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading project detail", e)
+                Timber.e(e, "Error loading project detail")
                 _projectDetailState.value = ProjectDetailState.Error(e.message ?: "加载失败")
             }
         }
@@ -661,7 +660,7 @@ class ProjectViewModel @Inject constructor(
         viewModelScope.launch {
             projectRepository.getProjectFiles(projectId)
                 .catch { e ->
-                    Log.e(TAG, "Error loading project files", e)
+                    Timber.e(e, "Error loading project files")
                 }
                 .collect { files ->
                     _projectFiles.value = files
@@ -672,7 +671,7 @@ class ProjectViewModel @Inject constructor(
         viewModelScope.launch {
             projectRepository.getOpenFiles(projectId)
                 .catch { e ->
-                    Log.e(TAG, "Error loading open files", e)
+                    Timber.e(e, "Error loading open files")
                 }
                 .collect { files ->
                     _openFiles.value = files
@@ -726,7 +725,7 @@ class ProjectViewModel @Inject constructor(
         viewModelScope.launch {
             projectRepository.getProjectActivities(projectId)
                 .catch { e ->
-                    Log.e(TAG, "Error loading project activities", e)
+                    Timber.e(e, "Error loading project activities")
                 }
                 .collect { activities ->
                     _projectActivities.value = activities
@@ -932,7 +931,7 @@ class ProjectViewModel @Inject constructor(
         viewModelScope.launch {
             projectChatRepository.getMessages(projectId)
                 .catch { e ->
-                    Log.e(TAG, "Error loading chat messages", e)
+                    Timber.e(e, "Error loading chat messages")
                 }
                 .collect { messages ->
                     _chatMessages.value = messages
@@ -1027,7 +1026,7 @@ class ProjectViewModel @Inject constructor(
             _contextStats.value = contextResult
             _totalContextTokens.value = contextResult.totalTokens
 
-            Log.d(TAG, contextManager.generateContextSummary(contextResult))
+            Timber.d(contextManager.generateContextSummary(contextResult))
 
             // Build message list for LLM
             val messages = mutableListOf<Message>()
@@ -1109,7 +1108,7 @@ class ProjectViewModel @Inject constructor(
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error streaming AI response", e)
+                    Timber.e(e, "Error streaming AI response")
                     projectChatRepository.setMessageError(placeholderMessage.id, e.message ?: "Unknown error")
                     _uiEvents.emit(ProjectUiEvent.ShowError(e.message ?: "AI response failed"))
                 }
@@ -1118,7 +1117,7 @@ class ProjectViewModel @Inject constructor(
             currentStreamingJob?.join()
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending to AI", e)
+            Timber.e(e, "Error sending to AI")
             _uiEvents.emit(ProjectUiEvent.ShowError(e.message ?: "Failed to get AI response"))
         } finally {
             _isAiResponding.value = false
@@ -1223,7 +1222,7 @@ class ProjectViewModel @Inject constructor(
                         inputStream.bufferedReader().readText()
                     } ?: "(无法读取外部文件内容)"
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to load external file content", e)
+                    Timber.e(e, "Failed to load external file content")
                     "(加载外部文件失败: ${e.message})"
                 }
             }
@@ -1233,7 +1232,7 @@ class ProjectViewModel @Inject constructor(
                 try {
                     java.io.File(file.path).readText()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to load file from path", e)
+                    Timber.e(e, "Failed to load file from path")
                     "(加载文件失败: ${e.message})"
                 }
             }
@@ -1519,7 +1518,7 @@ class ProjectViewModel @Inject constructor(
                 }
                 _availableExternalFiles.value = files
             } catch (e: Exception) {
-                Log.e(TAG, "Error searching external files", e)
+                Timber.e(e, "Error searching external files")
                 _availableExternalFiles.value = emptyList()
             }
         }
@@ -1558,7 +1557,7 @@ class ProjectViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error importing external file for chat", e)
+                Timber.e(e, "Error importing external file for chat")
                 _uiEvents.emit(ProjectUiEvent.ShowError("导入失败: ${e.message}"))
             } finally {
                 _isLoading.value = false
@@ -1707,6 +1706,6 @@ class ProjectViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         currentStreamingJob?.cancel()
-        Log.d(TAG, "ProjectViewModel cleared")
+        Timber.d("ProjectViewModel cleared")
     }
 }

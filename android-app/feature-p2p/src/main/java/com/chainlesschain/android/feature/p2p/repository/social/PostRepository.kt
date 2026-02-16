@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.PostDao
@@ -583,9 +583,9 @@ class PostRepository @Inject constructor(
         try {
             val entity = syncJson.decodeFromString<PostEntity>(data)
             postDao.insert(entity)
-            Log.d("PostRepository", "Post saved from sync: $resourceId")
+            Timber.d("Post saved from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("PostRepository", "Failed to save post from sync: $resourceId", e)
+            Timber.e(e, "Failed to save post from sync: $resourceId")
         }
     }
 
@@ -593,18 +593,18 @@ class PostRepository @Inject constructor(
         try {
             val entity = syncJson.decodeFromString<PostEntity>(data)
             postDao.insert(entity)
-            Log.d("PostRepository", "Post updated from sync: $resourceId")
+            Timber.d("Post updated from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("PostRepository", "Failed to update post from sync: $resourceId", e)
+            Timber.e(e, "Failed to update post from sync: $resourceId")
         }
     }
 
     suspend fun deletePostFromSync(resourceId: String) {
         try {
             postDao.deleteById(resourceId)
-            Log.d("PostRepository", "Post deleted from sync: $resourceId")
+            Timber.d("Post deleted from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("PostRepository", "Failed to delete post from sync: $resourceId", e)
+            Timber.e(e, "Failed to delete post from sync: $resourceId")
         }
     }
 
@@ -612,9 +612,9 @@ class PostRepository @Inject constructor(
         try {
             val entity = syncJson.decodeFromString<PostCommentEntity>(data)
             interactionDao.insertComment(entity)
-            Log.d("PostRepository", "Comment saved from sync: $resourceId")
+            Timber.d("Comment saved from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("PostRepository", "Failed to save comment from sync: $resourceId", e)
+            Timber.e(e, "Failed to save comment from sync: $resourceId")
         }
     }
 
@@ -622,18 +622,18 @@ class PostRepository @Inject constructor(
         try {
             val entity = syncJson.decodeFromString<PostCommentEntity>(data)
             interactionDao.insertComment(entity)
-            Log.d("PostRepository", "Comment updated from sync: $resourceId")
+            Timber.d("Comment updated from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("PostRepository", "Failed to update comment from sync: $resourceId", e)
+            Timber.e(e, "Failed to update comment from sync: $resourceId")
         }
     }
 
     suspend fun deleteCommentFromSync(resourceId: String) {
         try {
             interactionDao.deleteCommentById(resourceId)
-            Log.d("PostRepository", "Comment deleted from sync: $resourceId")
+            Timber.d("Comment deleted from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("PostRepository", "Failed to delete comment from sync: $resourceId", e)
+            Timber.e(e, "Failed to delete comment from sync: $resourceId")
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.monitor
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.config.P2PFeatureFlags
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,8 +31,6 @@ import javax.inject.Singleton
 class ConnectionQualityMonitor @Inject constructor() {
 
     companion object {
-        private const val TAG = "ConnectionQualityMonitor"
-
         /** 采样窗口大小 */
         private const val SAMPLE_WINDOW_SIZE = 50
 
@@ -86,14 +84,14 @@ class ConnectionQualityMonitor @Inject constructor() {
      */
     fun start() {
         if (!P2PFeatureFlags.enableQualityMonitor) {
-            Log.d(TAG, "Quality monitor disabled by feature flag")
+            Timber.d("Quality monitor disabled by feature flag")
             return
         }
 
         stop()
 
         updateJob = scope.launch {
-            Log.i(TAG, "Connection quality monitor started")
+            Timber.i("Connection quality monitor started")
 
             while (isActive) {
                 delay(UPDATE_INTERVAL_MS)
@@ -228,7 +226,7 @@ class ConnectionQualityMonitor @Inject constructor() {
 
         _connectionQuality.value = quality
 
-        Log.d(TAG, "Quality updated: $level (RTT: ${avgRtt}ms, Loss: ${String.format("%.2f", lossRate)}%)")
+        Timber.d("Quality updated: $level (RTT: ${avgRtt}ms, Loss: ${String.format("%.2f", lossRate)}%)")
     }
 
     /**

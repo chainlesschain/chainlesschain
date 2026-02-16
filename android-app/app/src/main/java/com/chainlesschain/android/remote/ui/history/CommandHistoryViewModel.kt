@@ -74,8 +74,12 @@ class CommandHistoryViewModel @Inject constructor(
      */
     private fun loadStatistics() {
         viewModelScope.launch {
-            val count = repository.getCount()
-            _uiState.update { it.copy(totalCount = count) }
+            try {
+                val count = repository.getCount()
+                _uiState.update { it.copy(totalCount = count) }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load statistics")
+            }
         }
     }
 
@@ -108,8 +112,12 @@ class CommandHistoryViewModel @Inject constructor(
      */
     fun viewCommandDetail(commandId: Long) {
         viewModelScope.launch {
-            val command = repository.getById(commandId)
-            _uiState.update { it.copy(selectedCommand = command) }
+            try {
+                val command = repository.getById(commandId)
+                _uiState.update { it.copy(selectedCommand = command) }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to view command detail: $commandId")
+            }
         }
     }
 
@@ -162,8 +170,12 @@ class CommandHistoryViewModel @Inject constructor(
      */
     fun deleteCommand(command: CommandHistoryEntity) {
         viewModelScope.launch {
-            repository.delete(command)
-            loadStatistics()
+            try {
+                repository.delete(command)
+                loadStatistics()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to delete command")
+            }
         }
     }
 
@@ -172,12 +184,17 @@ class CommandHistoryViewModel @Inject constructor(
      */
     fun clearAllCommands() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isClearing = true) }
-            repository.deleteAll()
-            _uiState.update { it.copy(
-                isClearing = false,
-                totalCount = 0
-            )}
+            try {
+                _uiState.update { it.copy(isClearing = true) }
+                repository.deleteAll()
+                _uiState.update { it.copy(
+                    isClearing = false,
+                    totalCount = 0
+                )}
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to clear all commands")
+                _uiState.update { it.copy(isClearing = false) }
+            }
         }
     }
 
@@ -186,8 +203,12 @@ class CommandHistoryViewModel @Inject constructor(
      */
     fun cleanupOldRecords(keepCount: Int = 1000) {
         viewModelScope.launch {
-            repository.cleanup(keepCount)
-            loadStatistics()
+            try {
+                repository.cleanup(keepCount)
+                loadStatistics()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to cleanup old records")
+            }
         }
     }
 

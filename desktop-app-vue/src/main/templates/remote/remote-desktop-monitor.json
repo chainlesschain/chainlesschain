@@ -1,0 +1,74 @@
+{
+  "id": "tpl_demo_monitor_001",
+  "name": "remote_desktop_monitor",
+  "display_name": "远程桌面监控",
+  "description": "演示远程控制和桌面操作技能，实现远程桌面监控、定时截图和异常告警",
+  "icon": "🖥️",
+  "category": "remote",
+  "subcategory": "monitoring",
+  "tags": [
+    "monitor",
+    "remote",
+    "desktop",
+    "screenshot",
+    "alert",
+    "demo",
+    "skill"
+  ],
+  "project_type": "workflow",
+  "prompt_template": "请帮我配置远程桌面监控工作流：\n\n**监控模式：** {{monitorMode}}\n**监控间隔：** {{interval}}\n**告警条件：** {{alertCondition}}\n\n**工作流步骤：**\n\n### 步骤1：检查远程设备连接\n```\n/remote-control list-devices\n/remote-control system-info\n```\n\n### 步骤2：配置监控任务\n\n{{#eq monitorMode \"定时截图\"}}\n#### 定时截图模式\n按照 {{interval}} 间隔自动截图：\n```\n/computer-use screenshot\n/memory-management save \"监控截图: [时间戳]\"\n```\n{{/eq}}\n\n{{#eq monitorMode \"进程监控\"}}\n#### 进程监控模式\n定期检查远程设备进程状态：\n```\n/remote-control process-list\n```\n\n如果发现异常进程则告警：\n{{#eq alertCondition \"CPU超过80%\"}}\n- 检查 CPU 使用率 > 80% 的进程\n{{/eq}}\n{{#eq alertCondition \"内存超过90%\"}}\n- 检查内存使用率 > 90% 的进程\n{{/eq}}\n{{/eq}}\n\n{{#eq monitorMode \"综合监控\"}}\n#### 综合监控模式\n1. 截图当前桌面状态\n```\n/computer-use screenshot\n```\n2. 检查系统资源\n```\n/remote-control system-info\n```\n3. 检查进程状态\n```\n/remote-control process-list\n```\n{{/eq}}\n\n### 步骤3：异常告警\n\n检测到异常时执行：\n1. 保存截图证据\n2. 记录告警日志\n```\n/memory-management save \"告警: [异常类型] - [详细信息] - [时间]\"\n```\n3. 发送通知\n\n### 步骤4：生成监控报告\n```\n/smart-search 监控记录 告警\n```\n\n**使用的技能：** remote-control, computer-use, memory-management, smart-search\n\n**安全提示：**\n- 监控功能仅限授权设备使用\n- 截图数据会自动加密存储\n- 建议定期清理历史截图以节省空间",
+  "variables_schema": [
+    {
+      "name": "monitorMode",
+      "label": "监控模式",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "定时截图", "label": "定时截图" },
+        { "value": "进程监控", "label": "进程监控" },
+        { "value": "综合监控", "label": "综合监控" }
+      ]
+    },
+    {
+      "name": "interval",
+      "label": "监控间隔",
+      "type": "select",
+      "required": false,
+      "default": "5分钟",
+      "options": [
+        { "value": "1分钟", "label": "每1分钟" },
+        { "value": "5分钟", "label": "每5分钟" },
+        { "value": "15分钟", "label": "每15分钟" },
+        { "value": "30分钟", "label": "每30分钟" }
+      ]
+    },
+    {
+      "name": "alertCondition",
+      "label": "告警条件",
+      "type": "select",
+      "required": false,
+      "default": "CPU超过80%",
+      "options": [
+        { "value": "CPU超过80%", "label": "CPU使用率超过80%" },
+        { "value": "内存超过90%", "label": "内存使用率超过90%" },
+        { "value": "自定义", "label": "自定义条件" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": [
+    "remote-control",
+    "computer-use",
+    "memory-management",
+    "smart-search"
+  ],
+  "difficulty": "advanced",
+  "execution_engine": "skill"
+}

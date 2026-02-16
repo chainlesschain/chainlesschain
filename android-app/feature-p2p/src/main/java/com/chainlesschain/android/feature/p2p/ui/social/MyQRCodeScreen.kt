@@ -232,7 +232,7 @@ fun MyQRCodeScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = uiState.errorMessage!!,
+                        text = uiState.errorMessage ?: "",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error
                     )

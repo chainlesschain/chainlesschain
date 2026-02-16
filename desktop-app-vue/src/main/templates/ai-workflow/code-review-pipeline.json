@@ -1,0 +1,56 @@
+{
+  "id": "tpl_demo_codereview_001",
+  "name": "code_review_pipeline",
+  "display_name": "代码审查流水线",
+  "description": "演示代码审查和Git提交技能联动，自动审查代码、生成修复建议并提交",
+  "icon": "🔍",
+  "category": "ai-workflow",
+  "subcategory": "development",
+  "tags": ["code-review", "git", "pipeline", "development", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个代码审查流水线：\n\n**审查目标：** {{reviewTarget}}\n**审查重点：** {{reviewFocus}}\n**严格程度：** {{strictLevel}}\n\n**流水线步骤：**\n\n### 步骤1：代码审查\n对目标文件/目录进行全面审查：\n```\n/code-review {{reviewTarget}}\n```\n\n审查关注点：\n{{#eq reviewFocus \"安全性\"}}\n- SQL注入、XSS、CSRF等安全漏洞\n- 密码和密钥硬编码\n- 输入验证和输出编码\n- 权限控制检查\n{{/eq}}\n{{#eq reviewFocus \"性能\"}}\n- 算法复杂度优化\n- 内存泄漏风险\n- 不必要的重复计算\n- 数据库查询优化\n{{/eq}}\n{{#eq reviewFocus \"代码质量\"}}\n- 命名规范\n- 函数复杂度\n- 代码重复\n- 错误处理\n{{/eq}}\n{{#eq reviewFocus \"全面审查\"}}\n- 安全性、性能、代码质量全面检查\n- OWASP Top 10 安全检查\n- 最佳实践合规性\n{{/eq}}\n\n### 步骤2：生成审查报告\n\n**审查报告模板：**\n\n# 代码审查报告\n\n## 审查概要\n- 文件/目录：{{reviewTarget}}\n- 审查重点：{{reviewFocus}}\n- 严格程度：{{strictLevel}}\n\n## 发现的问题\n| 严重度 | 文件 | 行号 | 描述 | 建议修复 |\n|--------|------|------|------|----------|\n| [CRITICAL/WARNING/INFO] | [文件名] | [行号] | [问题描述] | [修复建议] |\n\n## 代码质量评分\n- 总体评分：[1-10]\n- 安全性：[1-10]\n- 可维护性：[1-10]\n- 性能：[1-10]\n\n### 步骤3：保存审查结果\n```\n/memory-management save \"代码审查: {{reviewTarget}} - [审查摘要]\"\n```\n\n{{#eq strictLevel \"严格\"}}\n### 步骤4：自动生成修复补丁\n根据审查发现生成代码修复建议，供开发者参考。\n{{/eq}}\n\n**使用的技能：** code-review, git-commit, memory-management",
+  "variables_schema": [
+    {
+      "name": "reviewTarget",
+      "label": "审查目标",
+      "type": "string",
+      "required": true,
+      "placeholder": "文件路径或目录，如 src/main/database.js"
+    },
+    {
+      "name": "reviewFocus",
+      "label": "审查重点",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "全面审查", "label": "全面审查" },
+        { "value": "安全性", "label": "安全性" },
+        { "value": "性能", "label": "性能" },
+        { "value": "代码质量", "label": "代码质量" }
+      ]
+    },
+    {
+      "name": "strictLevel",
+      "label": "严格程度",
+      "type": "select",
+      "required": false,
+      "default": "标准",
+      "options": [
+        { "value": "宽松", "label": "宽松（仅关键问题）" },
+        { "value": "标准", "label": "标准" },
+        { "value": "严格", "label": "严格（含修复建议）" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["code-review", "git-commit", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

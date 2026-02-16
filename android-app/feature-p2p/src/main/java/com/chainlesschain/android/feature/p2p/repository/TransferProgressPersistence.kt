@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.repository
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.FileTransferDao
 import com.chainlesschain.android.core.database.entity.FileTransferStatusEnum
 import com.chainlesschain.android.core.p2p.filetransfer.TransferProgressTracker
@@ -26,8 +26,6 @@ class TransferProgressPersistence @Inject constructor(
     private val progressTracker: TransferProgressTracker
 ) {
     companion object {
-        private const val TAG = "ProgressPersistence"
-
         /** 最小保存间隔（毫秒） */
         private const val MIN_SAVE_INTERVAL_MS = 2000L // 2秒
 
@@ -103,7 +101,7 @@ class TransferProgressPersistence @Inject constructor(
             saveProgress(progress)
         }
 
-        Log.i(TAG, "Flushed ${toSave.size} pending saves")
+        Timber.i("Flushed ${toSave.size} pending saves")
     }
 
     /**
@@ -137,7 +135,7 @@ class TransferProgressPersistence @Inject constructor(
 
             recoverable.add(recoverableTransfer)
 
-            Log.i(TAG, "Found recoverable transfer: ${transfer.id}, " +
+            Timber.i("Found recoverable transfer: ${transfer.id}, " +
                     "progress: ${transfer.completedChunks}/${transfer.totalChunks}")
         }
 
@@ -219,11 +217,11 @@ class TransferProgressPersistence @Inject constructor(
             lastSavedChunks[transferId] = progress.completedChunks
             lastSavedBytes[transferId] = progress.bytesTransferred
 
-            Log.d(TAG, "Saved progress: $transferId - " +
+            Timber.d("Saved progress: $transferId - " +
                     "${progress.completedChunks}/${progress.totalChunks} chunks, " +
                     "${progress.bytesTransferred} bytes")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save progress: $transferId", e)
+            Timber.e(e, "Failed to save progress: $transferId")
         }
     }
 
@@ -241,7 +239,7 @@ class TransferProgressPersistence @Inject constructor(
                         saveProgress(progress)
                     }
 
-                    Log.d(TAG, "Batch saved ${toSave.size} progress updates")
+                    Timber.d("Batch saved ${toSave.size} progress updates")
                 }
             }
         }

@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.34.0 (Enterprise features: SSO, Audit, Marketplace, Multi-Agent) - Updated 2026-02-15
+**Current Version**: v0.35.0 (AI Skills System: 15 skills + 10 demo templates + Agent Skills standard + Unified Tool Registry) - Updated 2026-02-16
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -255,9 +255,51 @@ Extensible skill system with Markdown definitions:
 - **Three-Layer Loading**: bundled → managed → workspace (higher layers override)
 - **Gate Checks**: Platform, binary dependencies, environment variables
 - **/skill Commands**: User command parsing and auto-execution
-- **Built-in Skills**: code-review, git-commit, explain-code
+- **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
+- **15 Built-in Skills**:
+  - **Core**: code-review, git-commit, explain-code
+  - **Automation**: browser-automation, computer-use, workflow-automation
+  - **Data**: web-scraping, data-analysis
+  - **Knowledge**: memory-management, smart-search
+  - **Remote**: remote-control
+  - **Security**: security-audit
+  - **DevOps**: devops-automation
+  - **Development**: test-generator, performance-optimizer
 
-**Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers)
+**Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers), `src/main/ai-engine/cowork/skills/skill-md-parser.js`, `src/main/ai-engine/cowork/skills/markdown-skill.js`
+
+### AI Skills Demo Templates
+
+**Status**: ✅ Implemented v0.35.0
+
+10 demo project templates showcasing AI skills with browsable UI:
+
+- **Automation**: web-form-autofill, batch-screenshot, data-extraction-pipeline
+- **AI Workflow**: ai-research-assistant, daily-report-generator, code-review-pipeline
+- **Knowledge**: personal-knowledge-base, meeting-notes-manager
+- **Remote**: multi-device-sync, remote-desktop-monitor
+- **DemoTemplateLoader**: Auto-discovers JSON templates from `src/main/templates/{category}/`
+- **4 IPC Handlers**: template:get-demos, template:get-demo-by-skill, template:preview-demo, template:run-demo
+
+**Key Files**: `src/main/templates/demo-template-loader.js`
+**Frontend**: `src/renderer/pages/DemoTemplatesPage.vue` (route: `#/demo-templates`)
+
+### Unified Tool Registry (Agent Skills Open Standard)
+
+**Status**: ✅ Implemented v0.35.0
+
+Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 15 skills) with Agent Skills metadata:
+
+- **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry
+- **MCPSkillGenerator**: Auto-generates SkillManifestEntry when MCP servers connect
+- **ToolSkillMapper**: Auto-groups uncovered built-in tools into 10 skill categories
+- **Name Normalization**: `browser-click` (SKILL.md) → `browser_click` (FunctionCaller) bridging
+- **Context Engineering Integration**: Skill-grouped tool serialization in LLM prompts
+- **6 IPC Handlers**: `tools:get-all-with-skills`, `tools:get-skill-manifest`, `tools:get-by-skill`, `tools:search-unified`, `tools:get-tool-context`, `tools:refresh-unified`
+- **Community Registry Enriched**: 8 MCP servers with `skillInstructions`, `skillExamples`, `skillCategory`
+
+**Key Files**: `src/main/ai-engine/unified-tool-registry.js`, `src/main/ai-engine/tool-skill-mapper.js`, `src/main/mcp/mcp-skill-generator.js`, `src/main/ai-engine/unified-tools-ipc.js`
+**Frontend**: `src/renderer/pages/ToolsExplorerPage.vue` (route: `#/tools/explorer`), `src/renderer/stores/unified-tools.ts`
 
 ### Browser Automation System
 
@@ -295,6 +337,7 @@ Complete browser automation system with workflow editing, intelligent element lo
 - **ComputerUseMetrics**: 性能指标收集和分析
 
 **与 Claude Computer Use 对比优势**：
+
 - Shadow DOM 支持（Web Components 兼容）
 - 多语言 OCR（10+ 语言）
 - 完整工作流引擎（条件/循环/并行）
@@ -442,7 +485,8 @@ desktop-app-vue/
 │   │   └── recording/              # Recording and playback
 │   ├── mcp/               # MCP integration
 │   │   ├── sdk/                  # MCP Server SDK (v0.34.0)
-│   │   └── community-registry.js # Community MCP server discovery
+│   │   ├── community-registry.js # Community MCP server discovery
+│   │   └── mcp-skill-generator.js # Auto-generate skills from MCP servers
 │   ├── audit/             # Enterprise Audit & Compliance (v0.34.0)
 │   │   ├── enterprise-audit-logger.js  # Unified audit aggregator
 │   │   ├── compliance-manager.js       # GDPR/SOC2 compliance
@@ -472,11 +516,14 @@ desktop-app-vue/
 │       │   ├── agent-registry.js     # Agent type registry & factory
 │       │   ├── agent-capabilities.js # Capability definitions
 │       │   └── agents-ipc.js         # 16 IPC handlers
+│       ├── unified-tool-registry.js   # Unified tool registry (3 systems)
+│       ├── tool-skill-mapper.js       # Auto-group tools into skills
+│       ├── unified-tools-ipc.js       # Unified tools IPC (6 handlers)
 │       └── cowork/
 │           └── skills/            # Skills system
 │               ├── index.js       # Skill loader (4-layer: bundled→marketplace→managed→workspace)
 │               ├── skills-ipc.js  # Skills IPC (17 handlers)
-│               └── builtin/       # Built-in skills (code-review, git-commit, explain-code, security-audit, devops-automation, data-analysis, test-generator, performance-optimizer)
+│               └── builtin/       # 15 built-in skills (code-review, git-commit, explain-code, browser-automation, computer-use, remote-control, memory-management, web-scraping, workflow-automation, smart-search, security-audit, devops-automation, data-analysis, test-generator, performance-optimizer)
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
@@ -596,7 +643,8 @@ Example: `feat(rag): add reranker support`
 - **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
 - **Permission system**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`
 - **Plan Mode**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
-- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`
+- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (15 skills)
+- **Demo Templates**: `src/main/templates/demo-template-loader.js`, `src/main/templates/{automation,ai-workflow,knowledge,remote}/` (10 templates)
 - **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`
 - **P2P/WebRTC**: `src/main/p2p/webrtc-data-channel.js`
@@ -608,6 +656,9 @@ Example: `feat(rag): add reranker support`
 - **SSO Authentication**: `src/main/auth/sso-manager.js`, `src/main/auth/saml-provider.js`, `src/main/auth/oauth-provider.js`, `src/main/auth/sso-ipc.js`
 - **MCP SDK**: `src/main/mcp/sdk/index.js`, `src/main/mcp/sdk/server-builder.js`, `src/main/mcp/community-registry.js`
 - **TypeScript stores**: `src/renderer/stores/*.ts` (32 stores)
+- **Unified Tool Registry**: `src/main/ai-engine/unified-tool-registry.js`, `src/main/ai-engine/tool-skill-mapper.js`, `src/main/mcp/mcp-skill-generator.js`, `src/main/ai-engine/unified-tools-ipc.js`
+- **Tools Explorer UI**: `src/renderer/pages/ToolsExplorerPage.vue` (route: `#/tools/explorer`), `src/renderer/stores/unified-tools.ts`
+- **Demo Templates UI**: `src/renderer/pages/DemoTemplatesPage.vue` (route: `#/demo-templates`)
 - **Docker**: `docker-compose.yml`, `docker-compose.cloud.yml`
 - **Hooks config**: `.chainlesschain/hooks.json`, `.chainlesschain/hooks/*.js`
 

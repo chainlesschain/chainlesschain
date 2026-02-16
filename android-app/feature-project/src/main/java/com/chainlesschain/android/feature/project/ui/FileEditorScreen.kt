@@ -292,7 +292,7 @@ fun FileEditorScreen(
 
                 // File info bar
                 FileInfoBar(
-                    file = file!!,
+                    file = file ?: return@Scaffold,
                     isAutoSaveEnabled = isAutoSaveEnabled,
                     lastSaveTime = lastSaveTime
                 )
@@ -401,7 +401,7 @@ fun FileEditorScreen(
     // AI Result Dialog
     if (showAIResultDialog && aiResult != null) {
         AIResultDialog(
-            result = aiResult!!,
+            result = aiResult ?: return,
             onApply = {
                 viewModel.applyAIResult()
                 showAIResultDialog = false

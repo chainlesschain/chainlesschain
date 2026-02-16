@@ -5,6 +5,49 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.35.0] - 2026-02-16
+
+### 新增
+
+- 🎨 **15个内置技能** - 7个可执行Handler + 8个文档型技能，覆盖7大类别
+  - 自动化: browser-automation, computer-use, workflow-automation
+  - 知识: memory-management, smart-search
+  - 数据: web-scraping, data-analysis
+  - 开发: code-review, git-commit, explain-code, test-generator, performance-optimizer
+  - 安全: security-audit
+  - DevOps: devops-automation
+  - 远程: remote-control
+- 🗂️ **统一工具注册表 (UnifiedToolRegistry)** - 聚合FunctionCaller(60+) + MCP(8) + Skills(15)
+- 📦 **ToolSkillMapper** - 自动将未覆盖工具分组到10个默认技能类别
+- 🔧 **MCPSkillGenerator** - MCP服务器连接时自动生成SkillManifestEntry
+- 📋 **Agent Skills开放标准** - 13个扩展字段(tools/instructions/examples/dependencies等)
+- 📄 **10个演示模板** - 自动化(3)+AI工作流(3)+知识管理(2)+远程控制(2)
+- 🖥️ **ToolsExplorerPage** - 工具浏览器页面(路由: #/tools/explorer)
+- 📄 **DemoTemplatesPage** - 演示模板浏览页面(路由: #/demo-templates)
+- 📊 **unified-tools Pinia Store** - 统一工具状态管理
+- 🔗 **名称标准化** - kebab-case(SKILL.md) ↔ snake_case(FunctionCaller)自动桥接
+
+### 改进
+
+- ⚡ SkillMdParser增强 - 支持13个Agent Skills标准字段
+- 🔧 Context Engineering集成 - 技能分组工具序列化到LLM提示词
+- 📊 社区MCP服务器 - 增加skillInstructions/skillExamples/skillCategory元数据
+
+---
+
+## [0.34.0] - 2026-02-15
+
+### 新增
+
+- 🏛️ **企业审计合规** - 统一审计日志+GDPR合规+DSR处理(18 IPC)
+- 🛒 **插件市场** - 浏览/安装/评分/发布+自动更新(22 IPC)
+- 🤖 **专业化多代理** - 8种代理模板+任务编排(16 IPC)
+- 🔑 **SSO企业认证** - SAML 2.0+OAuth 2.0/OIDC+PKCE(20 IPC)
+- 🔧 **MCP SDK** - Server Builder+HTTP+SSE+社区注册中心
+- 🎨 **5个内置技能** - security-audit, devops-automation, data-analysis, test-generator, performance-optimizer
+
+---
+
 ## [0.33.0] - 2026-02-11
 
 ### 新增

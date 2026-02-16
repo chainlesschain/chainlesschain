@@ -207,6 +207,11 @@ class ProjectTemplateManager {
       "business", // 商业
       "hr", // 人力资源
       "project", // 项目管理
+      // AI Skills Demo 分类（v0.35.0）
+      "automation", // 自动化脚本模板
+      "ai-workflow", // AI 工作流模板
+      "knowledge", // 知识管理模板
+      "remote", // 远程控制模板
     ];
 
     let loadedCount = 0;

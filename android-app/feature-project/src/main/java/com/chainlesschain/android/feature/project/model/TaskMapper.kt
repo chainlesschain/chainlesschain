@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.project.model
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.TaskEntity
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -12,8 +12,6 @@ import kotlinx.serialization.json.Json
  * 负责 TaskEntity（数据库实体）和 Task（UI 模型）之间的转换
  */
 object TaskMapper {
-
-    private const val TAG = "TaskMapper"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -95,7 +93,7 @@ object TaskMapper {
         return try {
             json.decodeFromString<List<String>>(labelsJson)
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to parse labels JSON: $labelsJson", e)
+            Timber.w(e, "Failed to parse labels JSON: $labelsJson")
             emptyList()
         }
     }
@@ -108,7 +106,7 @@ object TaskMapper {
         return try {
             json.encodeToString(labels)
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to serialize labels: $labels", e)
+            Timber.w(e, "Failed to serialize labels: $labels")
             null
         }
     }
@@ -129,7 +127,7 @@ object TaskMapper {
                 )
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to parse steps JSON: $stepsJson", e)
+            Timber.w(e, "Failed to parse steps JSON: $stepsJson")
             emptyList()
         }
     }
@@ -150,7 +148,7 @@ object TaskMapper {
             }
             json.encodeToString(stepDtos)
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to serialize steps: $steps", e)
+            Timber.w(e, "Failed to serialize steps: $steps")
             null
         }
     }

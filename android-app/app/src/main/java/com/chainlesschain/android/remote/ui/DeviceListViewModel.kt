@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,13 +23,21 @@ class DeviceListViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            repository.getDevicesFlow().collect { _devices.value = it }
+            try {
+                repository.getDevicesFlow().collect { _devices.value = it }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to collect devices flow")
+            }
         }
     }
 
     fun remove(peerId: String) {
         viewModelScope.launch {
-            repository.remove(peerId)
+            try {
+                repository.remove(peerId)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to remove device: $peerId")
+            }
         }
     }
 }

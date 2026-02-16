@@ -4,7 +4,7 @@ import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.FileCategory
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
@@ -37,8 +37,6 @@ import kotlin.coroutines.resume
 class FileClassifier @Inject constructor() {
 
     companion object {
-        private const val TAG = "FileClassifier"
-
         // Confidence threshold for ML Kit predictions
         private const val DEFAULT_CONFIDENCE_THRESHOLD = 0.7f
 
@@ -147,7 +145,7 @@ class FileClassifier @Inject constructor() {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error classifying file: $uri", e)
+            Timber.e(e, "Error classifying file: $uri")
             // Fallback to current category
             ClassificationResult(
                 suggestedCategory = currentCategory,
@@ -194,7 +192,7 @@ class FileClassifier @Inject constructor() {
                         .average()
                         .toFloat()
 
-                    Log.d(TAG, "Image labels: $topLabels, confidence: $avgConfidence")
+                    Timber.d("Image labels: $topLabels, confidence: $avgConfidence")
 
                     // Analyze labels to suggest category
                     val suggestedCategory = when {
@@ -219,7 +217,7 @@ class FileClassifier @Inject constructor() {
                     }
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "ML Kit labeling failed", e)
+                    Timber.e(e, "ML Kit labeling failed")
                     continuation.resume(
                         ClassificationResult(
                             suggestedCategory = FileCategory.IMAGE,
@@ -234,7 +232,7 @@ class FileClassifier @Inject constructor() {
                     }
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Error in classifyImage", e)
+            Timber.e(e, "Error in classifyImage")
             continuation.resume(
                 ClassificationResult(
                     suggestedCategory = FileCategory.IMAGE,
@@ -333,7 +331,7 @@ class FileClassifier @Inject constructor() {
 
             bitmap
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading image: $uri", e)
+            Timber.e(e, "Error loading image: $uri")
             null
         }
     }
@@ -394,7 +392,7 @@ class FileClassifier @Inject constructor() {
         try {
             imageLabeler.close()
         } catch (e: Exception) {
-            Log.e(TAG, "Error closing image labeler", e)
+            Timber.e(e, "Error closing image labeler")
         }
     }
 }

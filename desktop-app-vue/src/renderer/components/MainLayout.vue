@@ -568,6 +568,18 @@
                 </template>
                 技能管理
               </a-menu-item>
+              <a-menu-item key="demo-templates">
+                <template #icon>
+                  <ExperimentOutlined />
+                </template>
+                Skills Demo
+              </a-menu-item>
+              <a-menu-item key="tools-explorer">
+                <template #icon>
+                  <AppstoreOutlined />
+                </template>
+                Tools Explorer
+              </a-menu-item>
               <a-menu-item key="tool-management">
                 <template #icon>
                   <ToolOutlined />
@@ -1227,6 +1239,7 @@ import {
   HistoryOutlined,
   BookOutlined,
   SearchOutlined,
+  ExperimentOutlined,
 } from "@ant-design/icons-vue";
 import { useAppStore } from "../stores/app";
 import { useSocialStore } from "../stores/social";
@@ -1354,6 +1367,8 @@ const menuConfig = {
   "plugin-marketplace": { path: "/plugins/marketplace", title: "插件市场" },
   "plugin-publisher": { path: "/plugins/publisher", title: "插件发布" },
   "skill-management": { path: "/settings/skills", title: "技能管理" },
+  "demo-templates": { path: "/demo-templates", title: "AI Skills Demo" },
+  "tools-explorer": { path: "/tools/explorer", title: "Tools Explorer" },
   "tool-management": { path: "/settings/tools", title: "工具管理" },
   "llm-settings": {
     path: "/settings",
@@ -2288,6 +2303,8 @@ const getMenuIcon = (key) => {
     "plugin-marketplace": "ShopOutlined",
     "plugin-publisher": "CloudUploadOutlined",
     "skill-management": "ThunderboltOutlined",
+    "demo-templates": "ExperimentOutlined",
+    "tools-explorer": "AppstoreOutlined",
     "tool-management": "ToolOutlined",
     "llm-settings": "ApiOutlined",
     "rag-settings": "DatabaseOutlined",

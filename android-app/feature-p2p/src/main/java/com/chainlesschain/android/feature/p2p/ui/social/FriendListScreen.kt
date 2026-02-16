@@ -298,7 +298,7 @@ fun FriendListScreen(
 
     // 好友操作菜单
     if (uiState.showFriendMenu && uiState.selectedFriend != null) {
-        val friend = uiState.selectedFriend!!
+        val friend = uiState.selectedFriend ?: return
 
         ModalBottomSheet(
             onDismissRequest = { viewModel.hideFriendMenu() }

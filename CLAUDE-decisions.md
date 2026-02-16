@@ -3,7 +3,7 @@
 > 记录项目中重要的架构决策及其背景，帮助理解"为什么这样做"
 >
 > **格式**: Architecture Decision Record (ADR)
-> **最后更新**: 2026-02-15
+> **最后更新**: 2026-02-16
 
 ---
 
@@ -459,6 +459,72 @@ Android 端 AI 模块使用工厂模式创建 LLM 适配器，但 `CUSTOM` 提�
 ---
 
 ## 添加新的 ADR
+
+## ADR-013: 统一工具注册表聚合三大工具系统
+
+**状态**: 已采纳
+
+**背景**:
+ChainlessChain 拥有三套独立的工具系统：FunctionCaller (60+ 内置工具)、MCP (8 个社区服务器)、Skills (15 个内置技能)。各系统独立管理，AI 引擎无法统一发现、搜索和使用所有工具。Context Engineering 的技能分组序列化也只覆盖了部分工具。
+
+**决策**:
+创建 UnifiedToolRegistry 作为三大工具系统的聚合层，提供统一的工具发现、搜索和元数据查询接口。每个工具都关联 Agent Skills 元数据 (instructions, examples, tags)。
+
+**理由**:
+
+1. **统一视图**: AI 引擎只需查询一个注册表即可获取所有可用工具
+2. **自动映射**: ToolSkillMapper 为未被 SKILL.md 覆盖的工具提供默认分组
+3. **动态扩展**: MCPSkillGenerator 在 MCP 服务器连接时自动生成技能
+4. **标准化**: Agent Skills 开放标准 (13 扩展字段) 为每个工具提供 instructions 和 examples
+
+**替代方案**:
+
+- **方案 A: 直接修改各系统添加统一接口** — 侵入性强，耦合度高
+- **方案 B: 在 Context Engineering 中硬编码所有工具映射** — 不可扩展，维护成本高
+- **方案 C: 使用数据库存储工具注册信息** — 过度设计，增加数据库依赖
+
+**后果**:
+
+- (+) AI 可以按技能分组浏览所有工具，提升工具选择准确性
+- (+) 新增 MCP 服务器自动获得技能元数据，无需手动配置
+- (+) Agent Skills 标准使技能定义可移植
+- (-) 额外的抽象层增加约 900 行代码 (UnifiedToolRegistry 529 + ToolSkillMapper 198 + MCPSkillGenerator 108)
+- (-) 工具名称标准化 (kebab-case ↔ snake_case) 需要确保一致性
+
+---
+
+## ADR-014: 采用 Markdown (SKILL.md) 定义技能而非 JSON/YAML
+
+**状态**: 已采纳
+
+**背景**:
+需要一种可读、可扩展的技能定义格式，支持 AI 提示词 (可能很长且包含格式化文本)、门控检查、参数定义等结构化和非结构化内容。
+
+**决策**:
+采用 Markdown + YAML frontmatter (SKILL.md) 作为技能定义格式，使用 SkillMdParser 解析。结构化数据放在 YAML frontmatter，非结构化内容 (提示词、指南) 放在 Markdown sections。
+
+**理由**:
+
+1. **人类可读**: Markdown 是开发者最熟悉的格式，无需专用编辑器
+2. **混合内容**: YAML frontmatter 适合元数据，Markdown body 适合长文本 (提示词)
+3. **Git 友好**: 纯文本格式，diff 清晰，合并冲突容易解决
+4. **Agent Skills 兼容**: 13 个扩展字段自然映射到 YAML frontmatter + Markdown sections
+5. **四层覆盖**: 同名 SKILL.md 在高优先级层自动覆盖低优先级层
+
+**替代方案**:
+
+- **JSON**: 结构化好但不适合长文本提示词，缺乏注释支持
+- **YAML**: 缩进敏感，长文本多行字符串语法容易出错
+- **TypeScript/JS**: 运行时安全风险，过度灵活
+
+**后果**:
+
+- (+) 用户可以用任何文本编辑器创建/编辑技能
+- (+) 社区可以轻松分享技能定义
+- (-) 需要 YAML 解析 (gray-matter) + Markdown section 解析的双重逻辑
+- (-) 简易 YAML 后备解析器不支持完整 YAML 规范
+
+---
 
 当做出重要架构决策时，请按以下格式添加：
 

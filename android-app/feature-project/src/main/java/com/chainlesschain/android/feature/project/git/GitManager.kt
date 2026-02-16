@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.project.git
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,9 +31,6 @@ import javax.inject.Singleton
 @Singleton
 class GitManager @Inject constructor() {
 
-    companion object {
-        private const val TAG = "GitManager"
-    }
 
     // Git status state
     private val _gitStatus = MutableStateFlow<GitStatus?>(null)
@@ -72,7 +69,7 @@ class GitManager @Inject constructor() {
                 GitResult.Error("Failed to initialize: ${result.error}")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Init failed", e)
+            Timber.e(e, "Init failed")
             GitResult.Error(e.message ?: "Unknown error")
         } finally {
             _operationState.value = GitOperationState.Idle
@@ -102,7 +99,7 @@ class GitManager @Inject constructor() {
             _gitStatus.value = status
             status
         } catch (e: Exception) {
-            Log.e(TAG, "Status refresh failed", e)
+            Timber.e(e, "Status refresh failed")
             GitStatus(isRepository = false)
         }
     }
@@ -226,7 +223,7 @@ class GitManager @Inject constructor() {
             val result = executeGitCommand(projectPath, *args.toTypedArray())
             result.output.ifEmpty { "No changes" }
         } catch (e: Exception) {
-            Log.e(TAG, "Diff failed", e)
+            Timber.e(e, "Diff failed")
             "Error getting diff: ${e.message}"
         }
     }
@@ -269,7 +266,7 @@ class GitManager @Inject constructor() {
             _commitHistory.value = commits
             commits
         } catch (e: Exception) {
-            Log.e(TAG, "Load history failed", e)
+            Timber.e(e, "Load history failed")
             emptyList()
         }
     }
@@ -324,7 +321,7 @@ class GitManager @Inject constructor() {
                 changedFiles = changedFiles
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Get commit details failed", e)
+            Timber.e(e, "Get commit details failed")
             null
         }
     }
@@ -349,7 +346,7 @@ class GitManager @Inject constructor() {
                     )
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Get branches failed", e)
+            Timber.e(e, "Get branches failed")
             emptyList()
         }
     }
@@ -441,7 +438,7 @@ class GitManager @Inject constructor() {
                 exitCode = exitCode
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Command failed: ${args.joinToString(" ")}", e)
+            Timber.e(e, "Command failed: ${args.joinToString(" ")}")
             CommandResult(
                 success = false,
                 output = "",

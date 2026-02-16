@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.e2ee.session
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.PreKeyBundle
@@ -23,10 +23,6 @@ class SessionManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    companion object {
-        private const val TAG = "SessionManager"
-    }
-
     // 当前设备的密钥对
     private lateinit var identityKeyPair: X25519KeyPair
     private lateinit var signingKeyPair: Ed25519KeyPair
@@ -42,7 +38,7 @@ class SessionManager @Inject constructor(
      * 初始化会话管理器
      */
     fun initialize() {
-        Log.i(TAG, "Initializing session manager")
+        Timber.i("Initializing session manager")
 
         // 生成身份密钥对（长期）
         identityKeyPair = X25519KeyPair.generate()
@@ -56,7 +52,7 @@ class SessionManager @Inject constructor(
         // 生成一次性预密钥（短期）
         generateOneTimePreKeys(10) // 生成10个一次性预密钥
 
-        Log.i(TAG, "Session manager initialized")
+        Timber.i("Session manager initialized")
     }
 
     /**
@@ -70,7 +66,7 @@ class SessionManager @Inject constructor(
             val keyId = "opk_${System.currentTimeMillis()}_$it"
             oneTimePreKeys[keyId] = keyPair
         }
-        Log.d(TAG, "Generated $count one-time pre-keys")
+        Timber.d("Generated $count one-time pre-keys")
     }
 
     /**
@@ -104,7 +100,7 @@ class SessionManager @Inject constructor(
 
         return if (entry != null) {
             oneTimePreKeys.remove(entry.key)
-            Log.d(TAG, "Consumed one-time pre-key: ${entry.key}")
+            Timber.d("Consumed one-time pre-key: ${entry.key}")
             entry.value
         } else {
             null
@@ -122,7 +118,7 @@ class SessionManager @Inject constructor(
         peerId: String,
         peerPreKeyBundle: PreKeyBundle
     ): Pair<E2EESession, InitialMessage> {
-        Log.i(TAG, "Creating session with peer: $peerId")
+        Timber.i("Creating session with peer: $peerId")
 
         val (session, initialMessage) = E2EESession.initializeAsInitiator(
             peerId,
@@ -133,7 +129,7 @@ class SessionManager @Inject constructor(
         sessions[peerId] = session
         updateActiveSessions()
 
-        Log.i(TAG, "Session created with peer: $peerId")
+        Timber.i("Session created with peer: $peerId")
 
         return Pair(session, initialMessage)
     }
@@ -149,7 +145,7 @@ class SessionManager @Inject constructor(
         peerId: String,
         initialMessage: InitialMessage
     ): E2EESession {
-        Log.i(TAG, "Accepting session from peer: $peerId")
+        Timber.i("Accepting session from peer: $peerId")
 
         // 获取对应的一次性预密钥
         val oneTimePreKeyPair = if (initialMessage.oneTimePreKeyUsed) {
@@ -169,7 +165,7 @@ class SessionManager @Inject constructor(
         sessions[peerId] = session
         updateActiveSessions()
 
-        Log.i(TAG, "Session accepted from peer: $peerId")
+        Timber.i("Session accepted from peer: $peerId")
 
         return session
     }
@@ -245,7 +241,7 @@ class SessionManager @Inject constructor(
     fun deleteSession(peerId: String) {
         sessions.remove(peerId)
         updateActiveSessions()
-        Log.i(TAG, "Session deleted: $peerId")
+        Timber.i("Session deleted: $peerId")
     }
 
     /**
@@ -284,7 +280,7 @@ class SessionManager @Inject constructor(
         if (oneTimePreKeys.size < threshold) {
             val currentCount = oneTimePreKeys.size
             generateOneTimePreKeys(count)
-            Log.i(TAG, "Replenished one-time pre-keys: $currentCount -> ${oneTimePreKeys.size}")
+            Timber.i("Replenished one-time pre-keys: $currentCount -> ${oneTimePreKeys.size}")
         }
     }
 
@@ -294,6 +290,6 @@ class SessionManager @Inject constructor(
     fun clearAllSessions() {
         sessions.clear()
         updateActiveSessions()
-        Log.i(TAG, "All sessions cleared")
+        Timber.i("All sessions cleared")
     }
 }

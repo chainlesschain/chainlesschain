@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.p2p.transport
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -40,7 +40,6 @@ class OfflineMessageQueue @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private const val TAG = "OfflineMessageQueue"
         private const val QUEUE_DIR = "offline_messages"
         private const val MAX_MESSAGES_PER_DEVICE = 1000
         private const val DEFAULT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000L  // 7天
@@ -109,7 +108,7 @@ class OfflineMessageQueue @Inject constructor(
             // 检查队列容量
             val deviceQueue = messageCache.getOrPut(deviceId) { mutableListOf() }
             if (deviceQueue.size >= MAX_MESSAGES_PER_DEVICE) {
-                Log.w(TAG, "Queue full for device $deviceId, removing oldest message")
+                Timber.w("Queue full for device $deviceId, removing oldest message")
                 val removed = deviceQueue.removeAt(0)
                 deleteMessageFile(deviceId, removed.id)
             }
@@ -120,14 +119,14 @@ class OfflineMessageQueue @Inject constructor(
             // 持久化
             saveMessage(deviceId, offlineMessage)
 
-            Log.d(TAG, "Message enqueued for $deviceId: ${message.id}")
+            Timber.d("Message enqueued for $deviceId: ${message.id}")
             _events.emit(OfflineQueueEvent.MessageEnqueued(deviceId, message.id))
 
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to enqueue message", e)
+            Timber.e(e, "Failed to enqueue message")
             Result.failure(e)
         }
     }
@@ -163,14 +162,14 @@ class OfflineMessageQueue @Inject constructor(
             queue.removeIf { it.id == messageId }
             deleteMessageFile(deviceId, messageId)
 
-            Log.d(TAG, "Message marked as sent: $messageId")
+            Timber.d("Message marked as sent: $messageId")
             _events.emit(OfflineQueueEvent.MessageSent(deviceId, messageId))
 
             Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to mark message as sent", e)
+            Timber.e(e, "Failed to mark message as sent")
             Result.failure(e)
         }
     }
@@ -190,7 +189,7 @@ class OfflineMessageQueue @Inject constructor(
                 // 超过最大重试次数，移除消息
                 queue.removeIf { it.id == messageId }
                 deleteMessageFile(deviceId, messageId)
-                Log.w(TAG, "Message exceeded max retries, removed: $messageId")
+                Timber.w("Message exceeded max retries, removed: $messageId")
                 _events.emit(OfflineQueueEvent.MessageDropped(deviceId, messageId, "Max retries exceeded"))
                 return Result.success(null)
             }
@@ -210,14 +209,14 @@ class OfflineMessageQueue @Inject constructor(
                 saveMessage(deviceId, queue[index])
             }
 
-            Log.d(TAG, "Message retry scheduled: $messageId ($newRetryCount/$MAX_RETRY_COUNT) delay=${retryDelay}ms")
+            Timber.d("Message retry scheduled: $messageId ($newRetryCount/$MAX_RETRY_COUNT) delay=${retryDelay}ms")
             _events.emit(OfflineQueueEvent.MessageRetrying(deviceId, messageId, newRetryCount))
 
             Result.success(retryDelay)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to mark message as failed", e)
+            Timber.e(e, "Failed to mark message as failed")
             Result.failure(e)
         }
     }
@@ -249,7 +248,7 @@ class OfflineMessageQueue @Inject constructor(
             val result = enqueue(deviceId, message, expiryMs, priority)
             if (result.isSuccess) successCount++
         }
-        Log.d(TAG, "Batch enqueued $successCount/${messages.size} messages for $deviceId")
+        Timber.d("Batch enqueued $successCount/${messages.size} messages for $deviceId")
         return Result.success(successCount)
     }
 
@@ -269,7 +268,7 @@ class OfflineMessageQueue @Inject constructor(
             }
 
             if (removedCount > 0) {
-                Log.d(TAG, "Batch marked $removedCount messages as sent for $deviceId")
+                Timber.d("Batch marked $removedCount messages as sent for $deviceId")
                 _events.emit(OfflineQueueEvent.BatchSent(deviceId, removedCount))
             }
 
@@ -277,7 +276,7 @@ class OfflineMessageQueue @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to batch mark messages as sent", e)
+            Timber.e(e, "Failed to batch mark messages as sent")
             Result.failure(e)
         }
     }
@@ -288,7 +287,7 @@ class OfflineMessageQueue @Inject constructor(
     suspend fun onConnectionRestored(deviceId: String): List<P2PMessage> {
         val messages = getMessages(deviceId)
         if (messages.isNotEmpty()) {
-            Log.i(TAG, "Connection restored for $deviceId, ${messages.size} messages to resend")
+            Timber.i("Connection restored for $deviceId, ${messages.size} messages to resend")
             _events.emit(OfflineQueueEvent.ConnectionRestored(deviceId, messages.size))
         }
         return messages.map { it.message }
@@ -308,14 +307,14 @@ class OfflineMessageQueue @Inject constructor(
                 deviceDir.deleteRecursively()
             }
 
-            Log.i(TAG, "Cleared $count messages for device $deviceId")
+            Timber.i("Cleared $count messages for device $deviceId")
             _events.emit(OfflineQueueEvent.DeviceCleared(deviceId, count))
 
             Result.success(count)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to clear device messages", e)
+            Timber.e(e, "Failed to clear device messages")
             Result.failure(e)
         }
     }
@@ -337,7 +336,7 @@ class OfflineMessageQueue @Inject constructor(
         }
 
         if (cleanedCount > 0) {
-            Log.i(TAG, "Cleaned up $cleanedCount expired messages")
+            Timber.i("Cleaned up $cleanedCount expired messages")
             _events.emit(OfflineQueueEvent.ExpiredMessagesCleared(cleanedCount))
         }
 
@@ -408,21 +407,21 @@ class OfflineMessageQueue @Inject constructor(
                             val message = json.decodeFromString<OfflineMessage>(content)
                             messages.add(message)
                         } catch (e: Exception) {
-                            Log.w(TAG, "Failed to load message file: ${file.name}", e)
+                            Timber.w(e, "Failed to load message file: ${file.name}")
                             file.delete()
                         }
                     }
 
                     if (messages.isNotEmpty()) {
                         messageCache[deviceId] = messages.sortedBy { it.enqueuedAt }.toMutableList()
-                        Log.d(TAG, "Loaded ${messages.size} messages for device $deviceId")
+                        Timber.d("Loaded ${messages.size} messages for device $deviceId")
                     }
                 }
             }
 
-            Log.i(TAG, "Loaded offline messages for ${messageCache.size} devices")
+            Timber.i("Loaded offline messages for ${messageCache.size} devices")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load offline messages", e)
+            Timber.e(e, "Failed to load offline messages")
         }
     }
 
@@ -435,7 +434,7 @@ class OfflineMessageQueue @Inject constructor(
             val file = File(deviceDir, "${message.id}.json")
             file.writeText(json.encodeToString(message))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save message: ${message.id}", e)
+            Timber.e(e, "Failed to save message: ${message.id}")
         }
     }
 
@@ -447,7 +446,7 @@ class OfflineMessageQueue @Inject constructor(
             val file = File(File(queueDir, deviceId), "$messageId.json")
             if (file.exists()) file.delete() else Unit
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to delete message file: $messageId", e)
+            Timber.w(e, "Failed to delete message file: $messageId")
         }
     }
 

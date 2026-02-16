@@ -282,7 +282,7 @@ fun TimelineScreen(
 
     // 动态操作菜单
     if (uiState.showPostMenu && uiState.currentPost != null) {
-        val post = uiState.currentPost!!
+        val post = uiState.currentPost ?: return
         val isMyPost = post.authorDid == myDid
 
         ModalBottomSheet(

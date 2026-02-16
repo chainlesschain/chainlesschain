@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.p2p.filetransfer
 
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.dao.TransferQueueDao
 import com.chainlesschain.android.core.database.entity.TransferQueueEntity
 import com.chainlesschain.android.core.database.entity.TransferQueueStatus
@@ -30,8 +30,6 @@ class TransferScheduler @Inject constructor(
     private val fileTransferManager: FileTransferManager
 ) {
     companion object {
-        private const val TAG = "TransferScheduler"
-
         /** 最大并发传输数量 */
         const val MAX_CONCURRENT_TRANSFERS = 3
 
@@ -63,12 +61,12 @@ class TransferScheduler @Inject constructor(
      */
     fun start() {
         if (isRunning) {
-            Log.w(TAG, "Scheduler already running")
+            Timber.w("Scheduler already running")
             return
         }
 
         isRunning = true
-        Log.i(TAG, "Transfer scheduler started")
+        Timber.i("Transfer scheduler started")
 
         // 启动调度循环
         scope.launch {
@@ -77,7 +75,7 @@ class TransferScheduler @Inject constructor(
                     scheduleNext()
                     updateStatistics()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error in scheduler loop", e)
+                    Timber.e(e, "Error in scheduler loop")
                 }
                 delay(SCHEDULE_CHECK_INTERVAL_MS)
             }
@@ -96,7 +94,7 @@ class TransferScheduler @Inject constructor(
      */
     fun stop() {
         isRunning = false
-        Log.i(TAG, "Transfer scheduler stopped")
+        Timber.i("Transfer scheduler stopped")
     }
 
     /**
@@ -107,7 +105,7 @@ class TransferScheduler @Inject constructor(
     suspend fun enqueue(queueItem: TransferQueueEntity) {
         queueDao.insert(queueItem)
         _queueEvents.emit(QueueEvent.ItemAdded(queueItem))
-        Log.i(TAG, "Transfer enqueued: ${queueItem.fileName} (priority: ${queueItem.priority})")
+        Timber.i("Transfer enqueued: ${queueItem.fileName} (priority: ${queueItem.priority})")
 
         // 立即尝试调度
         scheduleNext()
@@ -119,7 +117,7 @@ class TransferScheduler @Inject constructor(
     suspend fun enqueueAll(queueItems: List<TransferQueueEntity>) {
         queueDao.insertAll(queueItems)
         queueItems.forEach { _queueEvents.emit(QueueEvent.ItemAdded(it)) }
-        Log.i(TAG, "Batch enqueued: ${queueItems.size} items")
+        Timber.i("Batch enqueued: ${queueItems.size} items")
 
         // 立即尝试调度
         scheduleNext()
@@ -138,7 +136,7 @@ class TransferScheduler @Inject constructor(
                 // 直接取消排队中的项
                 queueDao.updateStatus(transferId, TransferQueueStatus.CANCELLED)
                 _queueEvents.emit(QueueEvent.ItemCancelled(queueItem))
-                Log.i(TAG, "Cancelled queued transfer: ${queueItem.fileName}")
+                Timber.i("Cancelled queued transfer: ${queueItem.fileName}")
             }
             TransferQueueStatus.TRANSFERRING -> {
                 // 取消正在传输的项
@@ -146,10 +144,10 @@ class TransferScheduler @Inject constructor(
                 activeTransfers.remove(transferId)
                 queueDao.updateStatus(transferId, TransferQueueStatus.CANCELLED)
                 _queueEvents.emit(QueueEvent.ItemCancelled(queueItem))
-                Log.i(TAG, "Cancelled active transfer: ${queueItem.fileName}")
+                Timber.i("Cancelled active transfer: ${queueItem.fileName}")
             }
             else -> {
-                Log.w(TAG, "Cannot cancel transfer in status: ${queueItem.status}")
+                Timber.w("Cannot cancel transfer in status: ${queueItem.status}")
             }
         }
     }
@@ -163,14 +161,14 @@ class TransferScheduler @Inject constructor(
         val queueItem = queueDao.getByTransferId(transferId) ?: return
 
         if (!queueItem.canRetry()) {
-            Log.w(TAG, "Transfer cannot be retried: ${queueItem.fileName}")
+            Timber.w("Transfer cannot be retried: ${queueItem.fileName}")
             return
         }
 
         val updated = queueItem.withRetry()
         queueDao.update(updated)
         _queueEvents.emit(QueueEvent.ItemRetried(updated))
-        Log.i(TAG, "Retrying transfer: ${queueItem.fileName} (attempt ${updated.retryCount})")
+        Timber.i("Retrying transfer: ${queueItem.fileName} (attempt ${updated.retryCount})")
 
         // 延迟后尝试调度
         scope.launch {
@@ -188,7 +186,7 @@ class TransferScheduler @Inject constructor(
         val cutoffTime = System.currentTimeMillis() - olderThanMs
         val deleted = queueDao.deleteCompletedBefore(cutoffTime)
         if (deleted > 0) {
-            Log.i(TAG, "Cleaned up $deleted completed queue items")
+            Timber.i("Cleaned up $deleted completed queue items")
         }
     }
 
@@ -250,7 +248,7 @@ class TransferScheduler @Inject constructor(
             activeTransfers.add(queueItem.transferId)
 
             _queueEvents.emit(QueueEvent.ItemStarted(queueItem))
-            Log.i(TAG, "Starting transfer: ${queueItem.fileName}")
+            Timber.i("Starting transfer: ${queueItem.fileName}")
 
             if (queueItem.isOutgoing) {
                 // 出站传输：使用实际文件 URI 发送文件
@@ -264,15 +262,15 @@ class TransferScheduler @Inject constructor(
                     throw IllegalStateException("FileTransferManager failed to initiate transfer for: ${queueItem.fileName}")
                 }
 
-                Log.i(TAG, "Outgoing transfer initiated: ${queueItem.fileName} -> ${queueItem.peerId}")
+                Timber.i("Outgoing transfer initiated: ${queueItem.fileName} -> ${queueItem.peerId}")
             } else {
                 // 入站传输：接受已收到的传输请求
                 fileTransferManager.acceptTransfer(queueItem.transferId)
-                Log.i(TAG, "Incoming transfer accepted: ${queueItem.fileName} from ${queueItem.peerId}")
+                Timber.i("Incoming transfer accepted: ${queueItem.fileName} from ${queueItem.peerId}")
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start transfer: ${queueItem.fileName}", e)
+            Timber.e(e, "Failed to start transfer: ${queueItem.fileName}")
             queueDao.updateStatus(queueItem.transferId, TransferQueueStatus.FAILED)
             activeTransfers.remove(queueItem.transferId)
             _queueEvents.emit(QueueEvent.ItemFailed(queueItem, e.message ?: "Unknown error"))
@@ -306,7 +304,7 @@ class TransferScheduler @Inject constructor(
         }
         _queueEvents.emit(event)
 
-        Log.i(TAG, "Transfer completed: ${queueItem.fileName} (success: ${result.success})")
+        Timber.i("Transfer completed: ${queueItem.fileName} (success: ${result.success})")
 
         // 尝试调度下一个传输
         scheduleNext()

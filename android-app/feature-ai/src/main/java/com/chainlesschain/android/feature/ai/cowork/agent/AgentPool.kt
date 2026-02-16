@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.cowork.agent
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +20,6 @@ import javax.inject.Singleton
 class AgentPool @Inject constructor() {
 
     companion object {
-        private const val TAG = "AgentPool"
         private const val DEFAULT_MAX_AGENTS = 10
     }
 
@@ -54,7 +53,7 @@ class AgentPool @Inject constructor() {
         model: String = "gpt-4"
     ): CoworkAgent? = mutex.withLock {
         if (agents.size >= maxAgents) {
-            Log.w(TAG, "Agent pool is full ($maxAgents agents)")
+            Timber.w("Agent pool is full ($maxAgents agents)")
             return@withLock null
         }
 
@@ -68,7 +67,7 @@ class AgentPool @Inject constructor() {
 
         agents[agent.id] = agent
         updateStateFlows()
-        Log.d(TAG, "Created agent: ${agent.name} (${agent.id})")
+        Timber.d("Created agent: ${agent.name} (${agent.id})")
         return@withLock agent
     }
 
@@ -157,7 +156,7 @@ class AgentPool @Inject constructor() {
         val success = agent.assignTask(taskId)
         if (success) {
             updateStateFlows()
-            Log.d(TAG, "Assigned task $taskId to agent ${agent.name}")
+            Timber.d("Assigned task $taskId to agent ${agent.name}")
         }
         return@withLock success
     }
@@ -172,7 +171,7 @@ class AgentPool @Inject constructor() {
         val agent = agents[agentId] ?: return@withLock false
         agent.completeTask(success)
         updateStateFlows()
-        Log.d(TAG, "Agent ${agent.name} completed task (success=$success)")
+        Timber.d("Agent ${agent.name} completed task (success=$success)")
         return@withLock true
     }
 
@@ -200,7 +199,7 @@ class AgentPool @Inject constructor() {
         val removed = agents.remove(agentId)
         if (removed != null) {
             updateStateFlows()
-            Log.d(TAG, "Removed agent: ${removed.name}")
+            Timber.d("Removed agent: ${removed.name}")
         }
         return@withLock removed
     }
@@ -211,7 +210,7 @@ class AgentPool @Inject constructor() {
     suspend fun clear() = mutex.withLock {
         agents.clear()
         updateStateFlows()
-        Log.d(TAG, "Cleared all agents")
+        Timber.d("Cleared all agents")
     }
 
     // ===== Team Management =====
@@ -266,7 +265,7 @@ class AgentPool @Inject constructor() {
     suspend fun resetAll() = mutex.withLock {
         agents.values.forEach { it.reset() }
         updateStateFlows()
-        Log.d(TAG, "Reset all agents to idle")
+        Timber.d("Reset all agents to idle")
     }
 
     // ===== Private Helpers =====

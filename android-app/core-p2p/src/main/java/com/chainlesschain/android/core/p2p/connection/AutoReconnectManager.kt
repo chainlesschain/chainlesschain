@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.connection
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -24,8 +24,6 @@ class AutoReconnectManager @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "AutoReconnectManager"
-
         /** 重连队列处理间隔（毫秒） */
         const val QUEUE_PROCESS_INTERVAL_MS = 1_000L
     }
@@ -69,7 +67,7 @@ class AutoReconnectManager @Inject constructor(
         }
 
         startQueueProcessing()
-        Log.i(TAG, "AutoReconnectManager started")
+        Timber.i("AutoReconnectManager started")
     }
 
     /**
@@ -79,7 +77,7 @@ class AutoReconnectManager @Inject constructor(
         queueProcessJob?.cancel()
         queueProcessJob = null
         reconnectQueue.clear()
-        Log.i(TAG, "AutoReconnectManager stopped")
+        Timber.i("AutoReconnectManager stopped")
     }
 
     /**
@@ -89,7 +87,7 @@ class AutoReconnectManager @Inject constructor(
      */
     fun cacheDevice(device: P2PDevice) {
         deviceCache[device.deviceId] = device
-        Log.d(TAG, "Device cached: ${device.deviceName}")
+        Timber.d("Device cached: ${device.deviceName}")
     }
 
     /**
@@ -99,7 +97,7 @@ class AutoReconnectManager @Inject constructor(
      */
     fun removeDeviceCache(deviceId: String) {
         deviceCache.remove(deviceId)
-        Log.d(TAG, "Device cache removed: $deviceId")
+        Timber.d("Device cache removed: $deviceId")
     }
 
     /**
@@ -121,13 +119,13 @@ class AutoReconnectManager @Inject constructor(
      */
     fun scheduleReconnect(deviceId: String, delayMs: Long, reason: ReconnectReason) {
         if (isPaused) {
-            Log.d(TAG, "Reconnect paused, skipping schedule for: $deviceId")
+            Timber.d("Reconnect paused, skipping schedule for: $deviceId")
             return
         }
 
         val device = deviceCache[deviceId]
         if (device == null) {
-            Log.w(TAG, "No cached device info for: $deviceId, cannot schedule reconnect")
+            Timber.w("No cached device info for: $deviceId, cannot schedule reconnect")
             return
         }
 
@@ -144,7 +142,7 @@ class AutoReconnectManager @Inject constructor(
 
         reconnectQueue[deviceId] = task
 
-        Log.i(TAG, "Reconnect scheduled for $deviceId at +${delayMs}ms (attempt $attemptNumber)")
+        Timber.i("Reconnect scheduled for $deviceId at +${delayMs}ms (attempt $attemptNumber)")
 
         scope.launch {
             _reconnectStatusEvents.emit(
@@ -166,7 +164,7 @@ class AutoReconnectManager @Inject constructor(
     fun cancelReconnect(deviceId: String) {
         reconnectQueue.remove(deviceId)
         heartbeatManager.resetReconnectAttempts(deviceId)
-        Log.i(TAG, "Reconnect cancelled for: $deviceId")
+        Timber.i("Reconnect cancelled for: $deviceId")
 
         scope.launch {
             _reconnectStatusEvents.emit(
@@ -183,7 +181,7 @@ class AutoReconnectManager @Inject constructor(
      */
     fun pause() {
         isPaused = true
-        Log.i(TAG, "AutoReconnect paused")
+        Timber.i("AutoReconnect paused")
     }
 
     /**
@@ -191,7 +189,7 @@ class AutoReconnectManager @Inject constructor(
      */
     fun resume() {
         isPaused = false
-        Log.i(TAG, "AutoReconnect resumed")
+        Timber.i("AutoReconnect resumed")
     }
 
     /**
@@ -202,7 +200,7 @@ class AutoReconnectManager @Inject constructor(
     suspend fun reconnectNow(deviceId: String) {
         val device = deviceCache[deviceId]
         if (device == null) {
-            Log.w(TAG, "No cached device info for: $deviceId")
+            Timber.w("No cached device info for: $deviceId")
             return
         }
 
@@ -257,7 +255,7 @@ class AutoReconnectManager @Inject constructor(
         val deviceId = device.deviceId
         val attemptNumber = heartbeatManager.getReconnectAttempts(deviceId)
 
-        Log.i(TAG, "Executing reconnect for ${device.deviceName} (attempt $attemptNumber)")
+        Timber.i("Executing reconnect for ${device.deviceName} (attempt $attemptNumber)")
 
         _reconnectStatusEvents.emit(
             ReconnectStatusEvent(
@@ -278,9 +276,9 @@ class AutoReconnectManager @Inject constructor(
                 )
             )
 
-            Log.i(TAG, "Reconnect successful for: ${device.deviceName}")
+            Timber.i("Reconnect successful for: ${device.deviceName}")
         } catch (e: Exception) {
-            Log.e(TAG, "Reconnect failed for ${device.deviceName}", e)
+            Timber.e(e, "Reconnect failed for ${device.deviceName}")
 
             _reconnectStatusEvents.emit(
                 ReconnectStatusEvent(
@@ -297,7 +295,7 @@ class AutoReconnectManager @Inject constructor(
                 val delay = heartbeatManager.calculateReconnectDelay(deviceId)
                 scheduleReconnect(deviceId, delay, ReconnectReason.CONNECTION_LOST)
             } else {
-                Log.e(TAG, "Max reconnect attempts reached for: ${device.deviceName}")
+                Timber.e("Max reconnect attempts reached for: ${device.deviceName}")
 
                 _reconnectStatusEvents.emit(
                     ReconnectStatusEvent(

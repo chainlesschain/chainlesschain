@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.bridge
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.sync.MessageQueue
@@ -29,10 +29,6 @@ class P2PMessageBridge @Inject constructor(
     private val messageQueue: MessageQueue
 ) {
 
-    companion object {
-        private const val TAG = "P2PMessageBridge"
-    }
-
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
     private var isRunning = false
@@ -43,12 +39,12 @@ class P2PMessageBridge @Inject constructor(
      */
     fun start() {
         if (isRunning) {
-            Log.w(TAG, "Bridge already running")
+            Timber.w("Bridge already running")
             return
         }
 
         isRunning = true
-        Log.i(TAG, "Starting P2P message bridge")
+        Timber.i("Starting P2P message bridge")
 
         collectJob = scope.launch {
             dataChannelManager.incomingMessages.collect { incoming ->
@@ -56,10 +52,10 @@ class P2PMessageBridge @Inject constructor(
                     val message = deserializeMessage(incoming)
                     if (message != null) {
                         messageQueue.dispatchIncoming(message)
-                        Log.d(TAG, "Bridged message: ${message.id} (type: ${message.type})")
+                        Timber.d("Bridged message: ${message.id} (type: ${message.type})")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to bridge incoming message from ${incoming.peerId}", e)
+                    Timber.e(e, "Failed to bridge incoming message from ${incoming.peerId}")
                 }
             }
         }
@@ -72,7 +68,7 @@ class P2PMessageBridge @Inject constructor(
         isRunning = false
         collectJob?.cancel()
         collectJob = null
-        Log.i(TAG, "P2P message bridge stopped")
+        Timber.i("P2P message bridge stopped")
     }
 
     /**
@@ -102,7 +98,7 @@ class P2PMessageBridge @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to deserialize message from ${incoming.peerId}", e)
+            Timber.e(e, "Failed to deserialize message from ${incoming.peerId}")
             null
         }
     }

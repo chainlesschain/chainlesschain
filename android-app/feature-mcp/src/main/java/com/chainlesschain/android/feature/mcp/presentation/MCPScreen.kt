@@ -86,17 +86,17 @@ fun MCPScreen(
                         )
 
                         // Server Detail
-                        if (selectedServer != null) {
+                        selectedServer?.let { server ->
                             VerticalDivider()
                             ServerDetailPanel(
-                                server = selectedServer!!,
-                                isConnected = selectedServer!!.id in uiState.connectedServerIds,
+                                server = server,
+                                isConnected = server.id in uiState.connectedServerIds,
                                 statistics = uiState.serverStatistics,
                                 toolCalls = uiState.serverToolCalls,
                                 onCallTool = { tool ->
-                                    viewModel.callTool(selectedServer!!.id, tool.name)
+                                    viewModel.callTool(server.id, tool.name)
                                 },
-                                onDelete = { viewModel.deleteServer(selectedServer!!.id) },
+                                onDelete = { viewModel.deleteServer(server.id) },
                                 onClose = { viewModel.selectServer(null) },
                                 modifier = Modifier.width(350.dp)
                             )

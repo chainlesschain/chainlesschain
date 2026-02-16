@@ -44,43 +44,55 @@ class ConnectionViewModel @Inject constructor(
     init {
         // Observe connection state changes
         viewModelScope.launch {
-            p2pClient.connectionState.collect { state ->
-                _uiState.value = _uiState.value.copy(
-                    connectionState = state,
-                    isConnected = state == ConnectionState.CONNECTED,
-                    isConnecting = state == ConnectionState.CONNECTING,
-                    isReconnecting = state == ConnectionState.RECONNECTING
-                )
+            try {
+                p2pClient.connectionState.collect { state ->
+                    _uiState.value = _uiState.value.copy(
+                        connectionState = state,
+                        isConnected = state == ConnectionState.CONNECTED,
+                        isConnecting = state == ConnectionState.CONNECTING,
+                        isReconnecting = state == ConnectionState.RECONNECTING
+                    )
 
-                when (state) {
-                    ConnectionState.CONNECTED -> {
-                        _events.emit(ConnectionEvent.Connected)
+                    when (state) {
+                        ConnectionState.CONNECTED -> {
+                            _events.emit(ConnectionEvent.Connected)
+                        }
+                        ConnectionState.DISCONNECTED -> {
+                            _events.emit(ConnectionEvent.Disconnected)
+                        }
+                        ConnectionState.ERROR -> {
+                            _events.emit(ConnectionEvent.Error("Connection error"))
+                        }
+                        else -> {}
                     }
-                    ConnectionState.DISCONNECTED -> {
-                        _events.emit(ConnectionEvent.Disconnected)
-                    }
-                    ConnectionState.ERROR -> {
-                        _events.emit(ConnectionEvent.Error("Connection error"))
-                    }
-                    else -> {}
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to collect connection state")
             }
         }
 
         // Observe peer info changes
         viewModelScope.launch {
-            p2pClient.connectedPeer.collect { peer ->
-                _uiState.value = _uiState.value.copy(
-                    connectedPeer = peer,
-                    connectedSince = peer?.connectedAt
-                )
+            try {
+                p2pClient.connectedPeer.collect { peer ->
+                    _uiState.value = _uiState.value.copy(
+                        connectedPeer = peer,
+                        connectedSince = peer?.connectedAt
+                    )
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to collect peer info")
             }
         }
 
         // Observe reconnection events
         viewModelScope.launch {
-            p2pClient.reconnectionEvents.collect { event ->
-                handleReconnectionEvent(event)
+            try {
+                p2pClient.reconnectionEvents.collect { event ->
+                    handleReconnectionEvent(event)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to collect reconnection events")
             }
         }
     }
@@ -125,22 +137,30 @@ class ConnectionViewModel @Inject constructor(
      */
     fun connect(peerId: String, peerDID: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isConnecting = true,
-                error = null
-            )
+            try {
+                _uiState.value = _uiState.value.copy(
+                    isConnecting = true,
+                    error = null
+                )
 
-            p2pClient.connect(peerId, peerDID)
-                .onSuccess {
-                    _uiState.value = _uiState.value.copy(isConnecting = false)
-                }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isConnecting = false,
-                        error = e.message
-                    )
-                    _events.emit(ConnectionEvent.Error(e.message ?: "Connection failed"))
-                }
+                p2pClient.connect(peerId, peerDID)
+                    .onSuccess {
+                        _uiState.value = _uiState.value.copy(isConnecting = false)
+                    }
+                    .onFailure { e ->
+                        _uiState.value = _uiState.value.copy(
+                            isConnecting = false,
+                            error = e.message
+                        )
+                        _events.emit(ConnectionEvent.Error(e.message ?: "Connection failed"))
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to connect to device: $peerId")
+                _uiState.value = _uiState.value.copy(
+                    isConnecting = false,
+                    error = e.message
+                )
+            }
         }
     }
 

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.crypto
 
-import android.util.Log
+import timber.log.Timber
 import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator
 import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
@@ -29,8 +29,6 @@ data class Ed25519KeyPair(
     val privateKey: ByteArray
 ) {
     companion object {
-        private const val TAG = "Ed25519KeyPair"
-
         /** 公钥长度 */
         const val PUBLIC_KEY_SIZE = 32
 
@@ -46,7 +44,7 @@ data class Ed25519KeyPair(
          * @return 密钥对
          */
         fun generate(): Ed25519KeyPair {
-            Log.d(TAG, "Generating Ed25519 key pair")
+            Timber.d("Generating Ed25519 key pair")
 
             val secureRandom = SecureRandom()
             val keyPairGenerator = Ed25519KeyPairGenerator()
@@ -60,7 +58,7 @@ data class Ed25519KeyPair(
             val publicKey = publicKeyParams.encoded
             val privateKey = privateKeyParams.encoded
 
-            Log.d(TAG, "Key pair generated: publicKey=${publicKey.size} bytes, privateKey=${privateKey.size} bytes")
+            Timber.d("Key pair generated: publicKey=${publicKey.size} bytes, privateKey=${privateKey.size} bytes")
 
             return Ed25519KeyPair(
                 publicKey = publicKey,
@@ -147,7 +145,7 @@ data class Ed25519KeyPair(
                 verifier.update(data, 0, data.size)
                 verifier.verifySignature(signature)
             } catch (e: Exception) {
-                Log.w(TAG, "Signature verification failed", e)
+                Timber.w(e, "Signature verification failed")
                 false
             }
         }

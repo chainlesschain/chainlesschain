@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.e2ee.queue
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.storage.EncryptedStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,7 +19,6 @@ import java.io.File
 class MessageQueueStorage(private val context: Context) {
 
     companion object {
-        private const val TAG = "MessageQueueStorage"
         private const val STORAGE_DIR = "message_queue"
         private const val OUTGOING_FILE = "outgoing_messages.json"
         private const val INCOMING_FILE = "incoming_messages.json"
@@ -45,7 +44,7 @@ class MessageQueueStorage(private val context: Context) {
      */
     suspend fun saveOutgoingMessages(messages: List<QueuedMessage>) = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Saving ${messages.size} outgoing messages")
+            Timber.d("Saving ${messages.size} outgoing messages")
 
             val persistentQueue = PersistentMessageQueue(
                 messages = messages,
@@ -56,9 +55,9 @@ class MessageQueueStorage(private val context: Context) {
             val encryptedData = encryptQueueData(json.encodeToString(persistentQueue))
             outgoingFile.writeBytes(encryptedData)
 
-            Log.d(TAG, "Outgoing messages saved successfully")
+            Timber.d("Outgoing messages saved successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save outgoing messages", e)
+            Timber.e(e, "Failed to save outgoing messages")
             throw e
         }
     }
@@ -70,11 +69,11 @@ class MessageQueueStorage(private val context: Context) {
      */
     suspend fun loadOutgoingMessages(): List<QueuedMessage> = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Loading outgoing messages")
+            Timber.d("Loading outgoing messages")
 
             val outgoingFile = File(storageDir, OUTGOING_FILE)
             if (!outgoingFile.exists()) {
-                Log.d(TAG, "No saved outgoing messages found")
+                Timber.d("No saved outgoing messages found")
                 return@withContext emptyList()
             }
 
@@ -82,11 +81,11 @@ class MessageQueueStorage(private val context: Context) {
             val decryptedJson = decryptQueueData(encryptedData)
             val persistentQueue = json.decodeFromString<PersistentMessageQueue>(decryptedJson)
 
-            Log.d(TAG, "Loaded ${persistentQueue.messages.size} outgoing messages")
+            Timber.d("Loaded ${persistentQueue.messages.size} outgoing messages")
 
             persistentQueue.messages
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load outgoing messages", e)
+            Timber.e(e, "Failed to load outgoing messages")
             emptyList()
         }
     }
@@ -98,7 +97,7 @@ class MessageQueueStorage(private val context: Context) {
      */
     suspend fun saveIncomingMessages(messages: List<QueuedMessage>) = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Saving ${messages.size} incoming messages")
+            Timber.d("Saving ${messages.size} incoming messages")
 
             val persistentQueue = PersistentMessageQueue(
                 messages = messages,
@@ -109,9 +108,9 @@ class MessageQueueStorage(private val context: Context) {
             val encryptedData = encryptQueueData(json.encodeToString(persistentQueue))
             incomingFile.writeBytes(encryptedData)
 
-            Log.d(TAG, "Incoming messages saved successfully")
+            Timber.d("Incoming messages saved successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save incoming messages", e)
+            Timber.e(e, "Failed to save incoming messages")
             throw e
         }
     }
@@ -123,11 +122,11 @@ class MessageQueueStorage(private val context: Context) {
      */
     suspend fun loadIncomingMessages(): List<QueuedMessage> = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Loading incoming messages")
+            Timber.d("Loading incoming messages")
 
             val incomingFile = File(storageDir, INCOMING_FILE)
             if (!incomingFile.exists()) {
-                Log.d(TAG, "No saved incoming messages found")
+                Timber.d("No saved incoming messages found")
                 return@withContext emptyList()
             }
 
@@ -135,11 +134,11 @@ class MessageQueueStorage(private val context: Context) {
             val decryptedJson = decryptQueueData(encryptedData)
             val persistentQueue = json.decodeFromString<PersistentMessageQueue>(decryptedJson)
 
-            Log.d(TAG, "Loaded ${persistentQueue.messages.size} incoming messages")
+            Timber.d("Loaded ${persistentQueue.messages.size} incoming messages")
 
             persistentQueue.messages
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load incoming messages", e)
+            Timber.e(e, "Failed to load incoming messages")
             emptyList()
         }
     }
@@ -149,14 +148,14 @@ class MessageQueueStorage(private val context: Context) {
      */
     suspend fun clearAll() = withContext(Dispatchers.IO) {
         try {
-            Log.i(TAG, "Clearing all persisted messages")
+            Timber.i("Clearing all persisted messages")
 
             File(storageDir, OUTGOING_FILE).delete()
             File(storageDir, INCOMING_FILE).delete()
 
-            Log.i(TAG, "All persisted messages cleared")
+            Timber.i("All persisted messages cleared")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to clear persisted messages", e)
+            Timber.e(e, "Failed to clear persisted messages")
         }
     }
 

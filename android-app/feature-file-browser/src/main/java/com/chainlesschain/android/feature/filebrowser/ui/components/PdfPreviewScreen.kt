@@ -414,7 +414,7 @@ private suspend fun loadPdfPage(
 
         PdfPageResult(bitmap, totalPages)
     } catch (e: Exception) {
-        android.util.Log.e("PdfPreview", "Error loading PDF page", e)
+        timber.log.Timber.e(e, "Error loading PDF page")
         null
     } finally {
         pdfRenderer?.close()

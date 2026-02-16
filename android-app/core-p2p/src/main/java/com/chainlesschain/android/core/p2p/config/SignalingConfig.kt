@@ -2,7 +2,7 @@ package com.chainlesschain.android.core.p2p.config
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import android.util.Log
+import timber.log.Timber
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,8 +18,6 @@ class SignalingConfig @Inject constructor(
 ) {
 
     companion object {
-        private const val TAG = "SignalingConfig"
-
         const val DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"
 
         /** Debug-only fallback - use local network IP for real device testing */
@@ -46,25 +44,25 @@ class SignalingConfig @Inject constructor(
         // Priority 1: User-configured URL (SharedPreferences / settings UI)
         val storedValue = prefs.getString(KEY_CUSTOM_URL, null)?.trim().orEmpty()
         if (storedValue.isNotBlank()) {
-            Log.i(TAG, "Using signaling server from preferences: $storedValue")
+            Timber.i("Using signaling server from preferences: $storedValue")
             return storedValue
         }
 
         // Priority 2: Environment variable
         val envValue = System.getenv(ENV_SIGNALING_URL)?.trim().orEmpty()
         if (envValue.isNotBlank()) {
-            Log.i(TAG, "Using signaling server from environment: $envValue")
+            Timber.i("Using signaling server from environment: $envValue")
             return envValue
         }
 
         // Priority 3: Debug builds fall back to emulator-friendly local URL
         if (isDebug) {
-            Log.d(TAG, "Debug build: using local signaling server: $DEBUG_SIGNALING_URL")
+            Timber.d("Debug build: using local signaling server: $DEBUG_SIGNALING_URL")
             return DEBUG_SIGNALING_URL
         }
 
         // Priority 4: Production default
-        Log.i(TAG, "Using production signaling server: $DEFAULT_SIGNALING_URL")
+        Timber.i("Using production signaling server: $DEFAULT_SIGNALING_URL")
         return DEFAULT_SIGNALING_URL
     }
 

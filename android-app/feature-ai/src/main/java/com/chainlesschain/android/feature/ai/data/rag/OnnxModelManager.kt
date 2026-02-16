@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.ai.data.rag
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -20,7 +20,6 @@ class OnnxModelManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private const val TAG = "OnnxModelManager"
         private const val MODELS_DIR = "onnx_models"
         private const val MODEL_FILENAME = "all-MiniLM-L6-v2.onnx"
         private const val VOCAB_FILENAME = "vocab.txt"
@@ -59,20 +58,20 @@ class OnnxModelManager @Inject constructor(
         return try {
             withContext(Dispatchers.IO) {
                 if (!vocabFile.exists() || vocabFile.length() == 0L) {
-                    Log.i(TAG, "Downloading vocab file...")
+                    Timber.i("Downloading vocab file...")
                     downloadFile(VOCAB_URL, vocabFile)
                 }
 
                 if (!modelFile.exists() || modelFile.length() == 0L) {
-                    Log.i(TAG, "Downloading ONNX model (~23MB)...")
+                    Timber.i("Downloading ONNX model (~23MB)...")
                     downloadFile(MODEL_URL, modelFile)
                 }
 
-                Log.i(TAG, "Model files ready")
+                Timber.i("Model files ready")
                 true
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to download model files", e)
+            Timber.e(e, "Failed to download model files")
             // Clean up partial downloads
             if (modelFile.exists() && modelFile.length() == 0L) modelFile.delete()
             if (vocabFile.exists() && vocabFile.length() == 0L) vocabFile.delete()
@@ -100,6 +99,6 @@ class OnnxModelManager @Inject constructor(
     fun clearCache() {
         modelFile.delete()
         vocabFile.delete()
-        Log.i(TAG, "Model cache cleared")
+        Timber.i("Model cache cleared")
     }
 }

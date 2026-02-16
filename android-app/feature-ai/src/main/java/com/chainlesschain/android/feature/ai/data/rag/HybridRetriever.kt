@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.ai.data.rag
 
-import android.util.Log
+import timber.log.Timber
 import kotlin.math.exp
 
 /**
@@ -18,10 +18,6 @@ class HybridRetriever(
     private val vectorEmbedder: VectorEmbedder,
     private val config: HybridConfig = HybridConfig()
 ) {
-    companion object {
-        private const val TAG = "HybridRetriever"
-    }
-
     // 文档向量缓存
     private val documentVectors = mutableMapOf<String, FloatArray>()
 
@@ -50,7 +46,7 @@ class HybridRetriever(
      * 索引文档
      */
     suspend fun indexDocuments(documents: List<IndexableDocument>) {
-        Log.i(TAG, "Indexing ${documents.size} documents for hybrid search")
+        Timber.i("Indexing ${documents.size} documents for hybrid search")
 
         // 清理旧索引
         indexedDocuments.clear()
@@ -70,11 +66,11 @@ class HybridRetriever(
                     content = doc.content
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to embed document: ${doc.id}", e)
+                Timber.e(e, "Failed to embed document: ${doc.id}")
             }
         }
 
-        Log.i(TAG, "Indexed ${indexedDocuments.size} documents with vectors")
+        Timber.i("Indexed ${indexedDocuments.size} documents with vectors")
     }
 
     /**

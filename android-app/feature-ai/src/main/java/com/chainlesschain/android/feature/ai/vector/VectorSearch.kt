@@ -148,7 +148,7 @@ object VectorSearch {
         val remaining = similarities.toMutableList()
 
         // Select first item (most relevant)
-        val first = remaining.maxByOrNull { it.second }!!
+        val first = remaining.maxBy { it.second }
         selected.add(VectorSearchResult(first.first, first.second))
         remaining.remove(first)
 

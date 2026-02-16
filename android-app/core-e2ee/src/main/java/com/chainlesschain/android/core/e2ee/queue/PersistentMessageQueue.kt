@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.e2ee.queue
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.*
 
 /**
@@ -14,7 +14,6 @@ class PersistentMessageQueueManager(
 ) {
 
     companion object {
-        private const val TAG = "PersistentMessageQueueManager"
         private const val AUTO_SAVE_INTERVAL = 10_000L // 10秒自动保存
     }
 
@@ -39,11 +38,11 @@ class PersistentMessageQueueManager(
         enableAutoSave: Boolean = true
     ) = withContext(Dispatchers.IO) {
         if (isInitialized) {
-            Log.w(TAG, "Message queue already initialized")
+            Timber.w("Message queue already initialized")
             return@withContext
         }
 
-        Log.i(TAG, "Initializing persistent message queue")
+        Timber.i("Initializing persistent message queue")
 
         try {
             // 恢复保存的消息
@@ -58,9 +57,9 @@ class PersistentMessageQueueManager(
 
             isInitialized = true
 
-            Log.i(TAG, "Persistent message queue initialized")
+            Timber.i("Persistent message queue initialized")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize message queue", e)
+            Timber.e(e, "Failed to initialize message queue")
             throw e
         }
     }
@@ -69,7 +68,7 @@ class PersistentMessageQueueManager(
      * 关闭消息队列
      */
     suspend fun shutdown() {
-        Log.i(TAG, "Shutting down persistent message queue")
+        Timber.i("Shutting down persistent message queue")
 
         // 停止自动保存
         autoSaveJob?.cancel()
@@ -82,20 +81,20 @@ class PersistentMessageQueueManager(
 
         isInitialized = false
 
-        Log.i(TAG, "Persistent message queue shut down")
+        Timber.i("Persistent message queue shut down")
     }
 
     /**
      * 恢复保存的消息
      */
     private suspend fun restoreMessages() {
-        Log.i(TAG, "Restoring saved messages")
+        Timber.i("Restoring saved messages")
 
         try {
             val outgoingMessages = storage.loadOutgoingMessages()
             val incomingMessages = storage.loadIncomingMessages()
 
-            Log.i(TAG, "Restored ${outgoingMessages.size} outgoing and ${incomingMessages.size} incoming messages")
+            Timber.i("Restored ${outgoingMessages.size} outgoing and ${incomingMessages.size} incoming messages")
 
             // 重新入队（仅恢复 PENDING 状态的消息）
             outgoingMessages
@@ -117,7 +116,7 @@ class PersistentMessageQueueManager(
                     )
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to restore messages", e)
+            Timber.e(e, "Failed to restore messages")
         }
     }
 
@@ -132,9 +131,9 @@ class PersistentMessageQueueManager(
             storage.saveOutgoingMessages(outgoingMessages)
             storage.saveIncomingMessages(incomingMessages)
 
-            Log.d(TAG, "Messages saved (outgoing: ${outgoingMessages.size}, incoming: ${incomingMessages.size})")
+            Timber.d("Messages saved (outgoing: ${outgoingMessages.size}, incoming: ${incomingMessages.size})")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save messages", e)
+            Timber.e(e, "Failed to save messages")
         }
     }
 
@@ -150,12 +149,12 @@ class PersistentMessageQueueManager(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error in auto-save", e)
+                    Timber.e(e, "Error in auto-save")
                 }
             }
         }
 
-        Log.d(TAG, "Auto-save started")
+        Timber.d("Auto-save started")
     }
 
     /**

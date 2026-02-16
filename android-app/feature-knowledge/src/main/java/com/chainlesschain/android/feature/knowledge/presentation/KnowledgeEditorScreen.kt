@@ -135,7 +135,7 @@ fun KnowledgeEditorScreen(
                 singleLine = true
             )
 
-            Divider()
+            HorizontalDivider()
 
             // Markdown编辑器（支持编辑/预览/分屏模式）
             RichTextEditor(

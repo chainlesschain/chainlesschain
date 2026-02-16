@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
@@ -500,9 +500,9 @@ class NotificationRepository @Inject constructor(
         try {
             val entity = syncJson.decodeFromString<NotificationEntity>(data)
             notificationDao.insert(entity)
-            Log.d("NotificationRepository", "Notification saved from sync: $resourceId")
+            Timber.d("Notification saved from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("NotificationRepository", "Failed to save notification from sync: $resourceId", e)
+            Timber.e(e, "Failed to save notification from sync: $resourceId")
         }
     }
 
@@ -510,18 +510,18 @@ class NotificationRepository @Inject constructor(
         try {
             val entity = syncJson.decodeFromString<NotificationEntity>(data)
             notificationDao.insert(entity)
-            Log.d("NotificationRepository", "Notification updated from sync: $resourceId")
+            Timber.d("Notification updated from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("NotificationRepository", "Failed to update notification from sync: $resourceId", e)
+            Timber.e(e, "Failed to update notification from sync: $resourceId")
         }
     }
 
     suspend fun deleteNotificationFromSync(resourceId: String) {
         try {
             notificationDao.deleteById(resourceId)
-            Log.d("NotificationRepository", "Notification deleted from sync: $resourceId")
+            Timber.d("Notification deleted from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("NotificationRepository", "Failed to delete notification from sync: $resourceId", e)
+            Timber.e(e, "Failed to delete notification from sync: $resourceId")
         }
     }
 }

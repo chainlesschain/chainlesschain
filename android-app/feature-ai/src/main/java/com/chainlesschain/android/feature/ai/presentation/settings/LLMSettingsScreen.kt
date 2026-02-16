@@ -879,14 +879,14 @@ private fun ImportExportDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Result message
-                if (showResult != null) {
+                showResult?.let { result ->
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = showResult!!,
+                            text = result,
                             modifier = Modifier.padding(12.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium

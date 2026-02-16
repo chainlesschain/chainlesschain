@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.p2p.viewmodel
 
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.entity.FileTransferEntity
@@ -57,7 +57,6 @@ class FileTransferViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        private const val TAG = "FileTransferViewModel"
         /** 通知更新间隔（毫秒） */
         private const val NOTIFICATION_UPDATE_INTERVAL = 500L
     }
@@ -105,7 +104,7 @@ class FileTransferViewModel @Inject constructor(
      */
     fun loadTransfers(peerId: String) {
         currentPeerId = peerId
-        Log.d(TAG, "Loading transfers with peer: $peerId")
+        Timber.d("Loading transfers with peer: $peerId")
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -128,7 +127,7 @@ class FileTransferViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load transfers", e)
+                Timber.e(e, "Failed to load transfers")
                 _uiState.update {
                     it.copy(isLoading = false, error = e.message)
                 }
@@ -141,7 +140,7 @@ class FileTransferViewModel @Inject constructor(
      */
     fun loadAllTransfers() {
         currentPeerId = null
-        Log.d(TAG, "Loading all transfers")
+        Timber.d("Loading all transfers")
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -163,7 +162,7 @@ class FileTransferViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load all transfers", e)
+                Timber.e(e, "Failed to load all transfers")
                 _uiState.update {
                     it.copy(isLoading = false, error = e.message)
                 }
@@ -213,7 +212,7 @@ class FileTransferViewModel @Inject constructor(
 
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to send file", e)
+                Timber.e(e, "Failed to send file")
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
                 _events.emit(FileTransferUiEvent.ShowError(
                     e.message ?: "Failed to send file"
@@ -231,7 +230,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.acceptTransfer(transferId)
                 _events.emit(FileTransferUiEvent.ShowMessage("Transfer accepted"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to accept transfer", e)
+                Timber.e(e, "Failed to accept transfer")
                 _events.emit(FileTransferUiEvent.ShowError(
                     e.message ?: "Failed to accept transfer"
                 ))
@@ -248,7 +247,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.rejectTransfer(transferId, reason)
                 _events.emit(FileTransferUiEvent.ShowMessage("Transfer rejected"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to reject transfer", e)
+                Timber.e(e, "Failed to reject transfer")
                 _events.emit(FileTransferUiEvent.ShowError(
                     e.message ?: "Failed to reject transfer"
                 ))
@@ -265,7 +264,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.pauseTransfer(transferId)
                 _events.emit(FileTransferUiEvent.ShowMessage("Transfer paused"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to pause transfer", e)
+                Timber.e(e, "Failed to pause transfer")
                 _events.emit(FileTransferUiEvent.ShowError(
                     e.message ?: "Failed to pause transfer"
                 ))
@@ -282,7 +281,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.resumeTransfer(transferId)
                 _events.emit(FileTransferUiEvent.ShowMessage("Transfer resumed"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to resume transfer", e)
+                Timber.e(e, "Failed to resume transfer")
                 _events.emit(FileTransferUiEvent.ShowError(
                     e.message ?: "Failed to resume transfer"
                 ))
@@ -299,7 +298,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.cancelTransfer(transferId, "Cancelled by user")
                 _events.emit(FileTransferUiEvent.ShowMessage("Transfer cancelled"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to cancel transfer", e)
+                Timber.e(e, "Failed to cancel transfer")
                 _events.emit(FileTransferUiEvent.ShowError(
                     e.message ?: "Failed to cancel transfer"
                 ))
@@ -316,7 +315,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.retryTransfer(transferId)
                 _events.emit(FileTransferUiEvent.ShowMessage("Retrying transfer..."))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to retry transfer", e)
+                Timber.e(e, "Failed to retry transfer")
                 _events.emit(FileTransferUiEvent.ShowError(
                     e.message ?: "Failed to retry transfer"
                 ))
@@ -333,7 +332,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.deleteTransfer(transferId)
                 _events.emit(FileTransferUiEvent.ShowMessage("Transfer deleted"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete transfer", e)
+                Timber.e(e, "Failed to delete transfer")
                 _events.emit(FileTransferUiEvent.ShowError(
                     e.message ?: "Failed to delete transfer"
                 ))
@@ -350,7 +349,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.clearCompletedTransfers()
                 _events.emit(FileTransferUiEvent.ShowMessage("Completed transfers cleared"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to clear completed transfers", e)
+                Timber.e(e, "Failed to clear completed transfers")
             }
         }
     }
@@ -364,7 +363,7 @@ class FileTransferViewModel @Inject constructor(
                 fileTransferRepository.clearFailedTransfers()
                 _events.emit(FileTransferUiEvent.ShowMessage("Failed transfers cleared"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to clear failed transfers", e)
+                Timber.e(e, "Failed to clear failed transfers")
             }
         }
     }

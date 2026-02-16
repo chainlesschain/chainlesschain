@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.sync
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
@@ -25,10 +25,6 @@ import javax.inject.Singleton
 @Singleton
 class ConflictResolver @Inject constructor() {
 
-    companion object {
-        private const val TAG = "ConflictResolver"
-    }
-
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
@@ -38,7 +34,7 @@ class ConflictResolver @Inject constructor() {
      * @return 解决结果
      */
     fun resolve(conflict: SyncConflict): ConflictResolution {
-        Log.d(TAG, "Resolving conflict: ${conflict.resourceId} (${conflict.strategy})")
+        Timber.d("Resolving conflict: ${conflict.resourceId} (${conflict.strategy})")
 
         return when (conflict.strategy) {
             ConflictStrategy.LAST_WRITE_WINS -> resolveLastWriteWins(conflict)
@@ -60,7 +56,7 @@ class ConflictResolver @Inject constructor() {
             conflict.remoteItem
         }
 
-        Log.d(TAG, "Last-Write-Wins: ${winner.resourceId} (${winner.timestamp})")
+        Timber.d("Last-Write-Wins: ${winner.resourceId} (${winner.timestamp})")
 
         return ConflictResolution(
             strategy = ConflictStrategy.LAST_WRITE_WINS,
@@ -83,7 +79,7 @@ class ConflictResolver @Inject constructor() {
             conflict.remoteItem
         }
 
-        Log.d(TAG, "First-Write-Wins: ${winner.resourceId} (${winner.timestamp})")
+        Timber.d("First-Write-Wins: ${winner.resourceId} (${winner.timestamp})")
 
         return ConflictResolution(
             strategy = ConflictStrategy.FIRST_WRITE_WINS,
@@ -100,7 +96,7 @@ class ConflictResolver @Inject constructor() {
      * 需要用户介入选择版本
      */
     private fun resolveManual(conflict: SyncConflict): ConflictResolution {
-        Log.d(TAG, "Manual resolution required: ${conflict.resourceId}")
+        Timber.d("Manual resolution required: ${conflict.resourceId}")
 
         // 默认保留本地版本，等待用户决策
         return ConflictResolution(
@@ -119,7 +115,7 @@ class ConflictResolver @Inject constructor() {
      * 根据资源类型使用不同的解决逻辑
      */
     private fun resolveCustom(conflict: SyncConflict): ConflictResolution {
-        Log.d(TAG, "Custom resolution: ${conflict.resourceId} (${conflict.localItem.resourceType})")
+        Timber.d("Custom resolution: ${conflict.resourceId} (${conflict.localItem.resourceType})")
 
         return when (conflict.localItem.resourceType) {
             ResourceType.KNOWLEDGE_ITEM -> resolveKnowledgeItemConflict(conflict)
@@ -200,7 +196,7 @@ class ConflictResolver @Inject constructor() {
                 description = "Knowledge item merged: LWW for title/content, union for tags/references, OR for isFavorite/isPinned"
             )
         } catch (e: Exception) {
-            Log.w(TAG, "Knowledge item merge failed, falling back to Last-Write-Wins", e)
+            Timber.w(e, "Knowledge item merge failed, falling back to Last-Write-Wins")
             resolveLastWriteWins(conflict).copy(
                 description = "Knowledge item resolved using Last-Write-Wins (merge failed: ${e.message})"
             )
@@ -270,7 +266,7 @@ class ConflictResolver @Inject constructor() {
                 description = "Conversation merged: ${mergedMessages.size} messages deduplicated, isPinned OR-merged"
             )
         } catch (e: Exception) {
-            Log.w(TAG, "Conversation merge failed, falling back to Last-Write-Wins", e)
+            Timber.w(e, "Conversation merge failed, falling back to Last-Write-Wins")
             resolveLastWriteWins(conflict).copy(
                 description = "Conversation resolved using Last-Write-Wins (merge failed: ${e.message})"
             )
@@ -288,7 +284,7 @@ class ConflictResolver @Inject constructor() {
     private fun resolveMessageConflict(conflict: SyncConflict): ConflictResolution {
         // 消息是追加型数据，保留远程版本（本地版本已在localState中）
         // 两条消息都应被保留，不会互相覆盖
-        Log.d(TAG, "Message conflict (append-only, keeping both): ${conflict.resourceId}")
+        Timber.d("Message conflict (append-only, keeping both): ${conflict.resourceId}")
 
         return ConflictResolution(
             strategy = ConflictStrategy.CUSTOM,
@@ -367,7 +363,7 @@ class ConflictResolver @Inject constructor() {
                 description = "Contact merged: LWW for nickname/avatar, union for tags, prefer-longer for notes"
             )
         } catch (e: Exception) {
-            Log.w(TAG, "Contact merge failed, falling back to Last-Write-Wins", e)
+            Timber.w(e, "Contact merge failed, falling back to Last-Write-Wins")
             resolveLastWriteWins(conflict).copy(
                 description = "Contact resolved using Last-Write-Wins (merge failed: ${e.message})"
             )
@@ -422,7 +418,7 @@ class ConflictResolver @Inject constructor() {
         }
 
         // 存在冲突
-        Log.d(TAG, "Conflict detected: ${local.resourceId} (local:${local.timestamp} vs remote:${remote.timestamp})")
+        Timber.d("Conflict detected: ${local.resourceId} (local:${local.timestamp} vs remote:${remote.timestamp})")
 
         return SyncConflict(
             resourceId = local.resourceId,

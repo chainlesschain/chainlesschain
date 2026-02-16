@@ -89,6 +89,9 @@ class ManusOptimizations {
     // 当前任务上下文
     this.currentTask = null;
 
+    /** @type {Object|null} UnifiedToolRegistry for skill-aware prompts */
+    this.unifiedRegistry = null;
+
     logger.info("[ManusOptimizations] 初始化完成", {
       kvCache: this.config.enableKVCacheOptimization,
       toolMasking: this.config.enableToolMasking,
@@ -96,6 +99,20 @@ class ManusOptimizations {
       fileBasedTask:
         this.config.enableFileBasedTaskTracking && !!this.taskTracker,
     });
+  }
+
+  // ==========================================
+  // Registry Binding
+  // ==========================================
+
+  /**
+   * Bind UnifiedToolRegistry for skill-aware prompt building.
+   * When bound, buildOptimizedPrompt will include skill context (instructions, examples).
+   * @param {Object} registry - UnifiedToolRegistry instance
+   */
+  bindUnifiedRegistry(registry) {
+    this.unifiedRegistry = registry;
+    logger.info("[ManusOptimizations] UnifiedToolRegistry bound");
   }
 
   // ==========================================
@@ -128,11 +145,13 @@ class ManusOptimizations {
         : []);
 
     // 使用 Context Engineering 构建优化 Prompt
+    // Pass unifiedRegistry so skill context (instructions, examples) is injected into the prompt
     return this.contextEngineering.buildOptimizedPrompt({
       systemPrompt: options.systemPrompt,
       messages: options.messages || [],
       tools,
       taskContext: this.currentTask,
+      unifiedRegistry: this.unifiedRegistry,
     });
   }
 

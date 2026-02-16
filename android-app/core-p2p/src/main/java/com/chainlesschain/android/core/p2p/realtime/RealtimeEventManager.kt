@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.realtime
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.sync.MessageQueue
@@ -26,10 +26,6 @@ class RealtimeEventManager @Inject constructor(
     private val messageQueue: MessageQueue,
     private val presenceManager: PresenceManager
 ) {
-
-    companion object {
-        private const val TAG = "RealtimeEventManager"
-    }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
@@ -59,12 +55,12 @@ class RealtimeEventManager @Inject constructor(
      */
     fun startListening() {
         if (isListening) {
-            Log.w(TAG, "Already listening to realtime events")
+            Timber.w("Already listening to realtime events")
             return
         }
 
         isListening = true
-        Log.i(TAG, "Starting realtime event listening")
+        Timber.i("Starting realtime event listening")
 
         // 监听消息队列中的实时消息
         scope.launch {
@@ -74,7 +70,7 @@ class RealtimeEventManager @Inject constructor(
                     try {
                         handleRealtimeMessage(message)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to handle realtime message: ${message.id}", e)
+                        Timber.e(e, "Failed to handle realtime message: ${message.id}")
                     }
                 }
         }
@@ -89,7 +85,7 @@ class RealtimeEventManager @Inject constructor(
     fun stopListening() {
         isListening = false
         presenceManager.stopBroadcasting()
-        Log.i(TAG, "Stopped realtime event listening")
+        Timber.i("Stopped realtime event listening")
     }
 
     /**
@@ -107,7 +103,7 @@ class RealtimeEventManager @Inject constructor(
             payload = json.encodeToString(FriendRequestPayload.serializer(), payload)
         )
 
-        Log.d(TAG, "Friend request sent to: $targetDid")
+        Timber.d("Friend request sent to: $targetDid")
     }
 
     /**
@@ -125,7 +121,7 @@ class RealtimeEventManager @Inject constructor(
             payload = json.encodeToString(FriendResponsePayload.serializer(), payload)
         )
 
-        Log.d(TAG, "Friend request response sent to: $targetDid, accepted: $accepted")
+        Timber.d("Friend request response sent to: $targetDid, accepted: $accepted")
     }
 
     /**
@@ -159,7 +155,7 @@ class RealtimeEventManager @Inject constructor(
             payload = json.encodeToString(NotificationPayload.serializer(), payload)
         )
 
-        Log.d(TAG, "Notification sent to: $targetDid, type: $notificationType")
+        Timber.d("Notification sent to: $targetDid, type: $notificationType")
     }
 
     /**
@@ -192,7 +188,7 @@ class RealtimeEventManager @Inject constructor(
             MessageType.MENTION_NOTIFICATION,
             MessageType.POST_NOTIFICATION -> handleNotification(message)
             MessageType.TYPING_INDICATOR -> handleTypingIndicator(message)
-            else -> Log.w(TAG, "Unhandled realtime message type: ${message.type}")
+            else -> Timber.w("Unhandled realtime message type: ${message.type}")
         }
     }
 
@@ -205,7 +201,7 @@ class RealtimeEventManager @Inject constructor(
         )
         _friendRequestEvents.emit(event)
         _realtimeEvents.emit(RealtimeEvent.FriendRequest(event))
-        Log.d(TAG, "Friend request received from: ${message.fromDeviceId}")
+        Timber.d("Friend request received from: ${message.fromDeviceId}")
     }
 
     private suspend fun handleFriendResponse(message: P2PMessage) {
@@ -216,7 +212,7 @@ class RealtimeEventManager @Inject constructor(
             timestamp = payload.timestamp
         )
         _realtimeEvents.emit(RealtimeEvent.FriendResponse(event))
-        Log.d(TAG, "Friend response received from: ${message.fromDeviceId}, accepted: ${payload.accepted}")
+        Timber.d("Friend response received from: ${message.fromDeviceId}, accepted: ${payload.accepted}")
     }
 
     private suspend fun handlePresenceUpdate(message: P2PMessage) {
@@ -227,7 +223,7 @@ class RealtimeEventManager @Inject constructor(
             lastActiveAt = payload.lastActiveAt
         )
         _realtimeEvents.emit(RealtimeEvent.PresenceUpdate(event))
-        Log.d(TAG, "Presence update received: ${message.fromDeviceId} -> ${payload.status}")
+        Timber.d("Presence update received: ${message.fromDeviceId} -> ${payload.status}")
     }
 
     private suspend fun handleNotification(message: P2PMessage) {
@@ -242,7 +238,7 @@ class RealtimeEventManager @Inject constructor(
         )
         _notificationEvents.emit(event)
         _realtimeEvents.emit(RealtimeEvent.Notification(event))
-        Log.d(TAG, "Notification received: ${payload.type} from ${message.fromDeviceId}")
+        Timber.d("Notification received: ${payload.type} from ${message.fromDeviceId}")
     }
 
     private suspend fun handleTypingIndicator(message: P2PMessage) {
@@ -253,7 +249,7 @@ class RealtimeEventManager @Inject constructor(
             timestamp = payload.timestamp
         )
         _typingEvents.emit(event)
-        Log.d(TAG, "Typing indicator: ${message.fromDeviceId} -> ${payload.isTyping}")
+        Timber.d("Typing indicator: ${message.fromDeviceId} -> ${payload.isTyping}")
     }
 
     /**

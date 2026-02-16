@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.ai.data.rag
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -33,7 +33,6 @@ class EnhancedTfIdfEmbedder @Inject constructor(
 ) : VectorEmbedder {
 
     companion object {
-        private const val TAG = "EnhancedTfIdfEmbedder"
         private const val VECTOR_DIM = 256
         private const val MIN_WORD_LENGTH = 1  // 中文单字也有效
         private const val MAX_VOCAB_SIZE = 10000
@@ -92,9 +91,9 @@ class EnhancedTfIdfEmbedder @Inject constructor(
                 loadVocabulary()
                 loadCache()
                 isInitialized = true
-                Log.i(TAG, "Embedder initialized: vocab=${vocabulary.size}, cache=${vectorCache.size}")
+                Timber.i("Embedder initialized: vocab=${vocabulary.size}, cache=${vectorCache.size}")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialize embedder", e)
+                Timber.e(e, "Failed to initialize embedder")
             }
         }
     }
@@ -244,7 +243,7 @@ class EnhancedTfIdfEmbedder @Inject constructor(
      */
     suspend fun updateFromCorpus(documents: List<String>) = withContext(Dispatchers.IO) {
         mutex.withLock {
-            Log.i(TAG, "Updating corpus with ${documents.size} documents")
+            Timber.i("Updating corpus with ${documents.size} documents")
 
             totalDocuments += documents.size
 
@@ -257,7 +256,7 @@ class EnhancedTfIdfEmbedder @Inject constructor(
 
             // 保存词汇表
             saveVocabulary()
-            Log.i(TAG, "Corpus updated: totalDocs=$totalDocuments, vocab=${vocabulary.size}")
+            Timber.i("Corpus updated: totalDocs=$totalDocuments, vocab=${vocabulary.size}")
         }
     }
 
@@ -296,7 +295,7 @@ class EnhancedTfIdfEmbedder @Inject constructor(
             val jsonString = json.encodeToString(data)
             File(context.filesDir, VOCAB_FILE).writeText(jsonString)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save vocabulary", e)
+            Timber.e(e, "Failed to save vocabulary")
         }
     }
 
@@ -318,9 +317,9 @@ class EnhancedTfIdfEmbedder @Inject constructor(
             totalDocuments = data.totalDocuments
             nextVocabIndex = data.nextVocabIndex
 
-            Log.d(TAG, "Vocabulary loaded: ${vocabulary.size} terms")
+            Timber.d("Vocabulary loaded: ${vocabulary.size} terms")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load vocabulary", e)
+            Timber.e(e, "Failed to load vocabulary")
         }
     }
 
@@ -335,7 +334,7 @@ class EnhancedTfIdfEmbedder @Inject constructor(
             val jsonString = json.encodeToString(cacheData)
             File(context.filesDir, CACHE_FILE).writeText(jsonString)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save cache", e)
+            Timber.e(e, "Failed to save cache")
         }
     }
 
@@ -355,9 +354,9 @@ class EnhancedTfIdfEmbedder @Inject constructor(
                 vectorCache[hash] = list.toFloatArray()
             }
 
-            Log.d(TAG, "Cache loaded: ${vectorCache.size} vectors")
+            Timber.d("Cache loaded: ${vectorCache.size} vectors")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load cache", e)
+            Timber.e(e, "Failed to load cache")
         }
     }
 
@@ -368,7 +367,7 @@ class EnhancedTfIdfEmbedder @Inject constructor(
         mutex.withLock {
             vectorCache.clear()
             File(context.filesDir, CACHE_FILE).delete()
-            Log.i(TAG, "Cache cleared")
+            Timber.i("Cache cleared")
         }
     }
 

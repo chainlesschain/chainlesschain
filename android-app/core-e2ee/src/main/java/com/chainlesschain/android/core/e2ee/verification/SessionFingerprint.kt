@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.verification
 
-import android.util.Log
+import timber.log.Timber
 import java.security.MessageDigest
 
 /**
@@ -9,8 +9,6 @@ import java.security.MessageDigest
  * 用于验证会话的完整性和真实性
  */
 object SessionFingerprint {
-
-    private const val TAG = "SessionFingerprint"
 
     /**
      * 生成会话指纹
@@ -27,7 +25,7 @@ object SessionFingerprint {
         remotePublicKey: ByteArray,
         associatedData: ByteArray
     ): String {
-        Log.d(TAG, "Generating session fingerprint")
+        Timber.d("Generating session fingerprint")
 
         // 确保顺序一致
         val (firstKey, secondKey) = if (compareKeys(localPublicKey, remotePublicKey) < 0) {

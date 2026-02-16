@@ -39,7 +39,9 @@ android {
 
 dependencies {
     implementation(project(":core-common"))
-    implementation(project(":core-security"))
+    // Use api to expose core-security types (e.g. KeyManager) to downstream modules,
+    // required by Hilt KSP when processing DatabaseModule's @Provides methods
+    api(project(":core-security"))
 
     // Room
     val roomVersion = "2.6.1"
@@ -62,6 +64,9 @@ dependencies {
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
     ksp("com.google.dagger:hilt-compiler:2.50")
+
+    // Timber Logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.p2p.connection
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.config.P2PFeatureFlags
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -38,7 +38,6 @@ import kotlin.concurrent.thread
 class SignalingClient @Inject constructor() {
 
     companion object {
-        private const val TAG = "SignalingClient"
         private const val SIGNALING_PORT = 9999
 
         /** 连接超时（毫秒） */
@@ -145,7 +144,7 @@ class SignalingClient @Inject constructor() {
      */
     fun startServer() {
         if (isServerRunning) {
-            Log.w(TAG, "Server already running")
+            Timber.w("Server already running")
             return
         }
 
@@ -155,7 +154,7 @@ class SignalingClient @Inject constructor() {
                     soTimeout = 0 // 无限等待连接
                 }
                 isServerRunning = true
-                Log.i(TAG, "Signaling server started on port $SIGNALING_PORT")
+                Timber.i("Signaling server started on port $SIGNALING_PORT")
 
                 _connectionState.value = SignalingConnectionState.Listening
 
@@ -163,7 +162,7 @@ class SignalingClient @Inject constructor() {
                     try {
                         val socket = serverSocket?.accept()
                         socket?.let {
-                            Log.i(TAG, "Client connected: ${it.inetAddress}")
+                            Timber.i("Client connected: ${it.inetAddress}")
                             // 设置socket超时
                             it.soTimeout = READ_TIMEOUT_MS
                             handleClient(it)
@@ -173,12 +172,12 @@ class SignalingClient @Inject constructor() {
                         continue
                     } catch (e: Exception) {
                         if (isServerRunning) {
-                            Log.e(TAG, "Error accepting client", e)
+                            Timber.e(e, "Error accepting client")
                         }
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start server", e)
+                Timber.e(e, "Failed to start server")
                 scope.launch {
                     _connectionEvents.emit(SignalingConnectionEvent.ServerError(e.message ?: "Unknown error"))
                 }
@@ -196,7 +195,7 @@ class SignalingClient @Inject constructor() {
         isServerRunning = false
         serverSocket?.close()
         serverSocket = null
-        Log.i(TAG, "Signaling server stopped")
+        Timber.i("Signaling server stopped")
     }
 
     /**
@@ -225,7 +224,7 @@ class SignalingClient @Inject constructor() {
                 val socket = Socket()
                 socket.soTimeout = READ_TIMEOUT_MS
 
-                Log.d(TAG, "Connecting to signaling server: $host:$port with timeout ${CONNECT_TIMEOUT_MS}ms")
+                Timber.d("Connecting to signaling server: $host:$port with timeout ${CONNECT_TIMEOUT_MS}ms")
 
                 // 带超时的连接
                 socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
@@ -239,7 +238,7 @@ class SignalingClient @Inject constructor() {
                 connectionStartTime = System.currentTimeMillis()
                 lastHeartbeatResponse = System.currentTimeMillis()
 
-                Log.i(TAG, "Connected to signaling server: $host:$port")
+                Timber.i("Connected to signaling server: $host:$port")
 
                 scope.launch {
                     _connectionEvents.emit(SignalingConnectionEvent.Connected(host, port))
@@ -255,13 +254,27 @@ class SignalingClient @Inject constructor() {
                 listenForMessages()
 
             } catch (e: SocketTimeoutException) {
-                Log.e(TAG, "Connection timeout to $host:$port", e)
+                Timber.e(e, "Connection timeout to $host:$port")
+                cleanupConnection()
                 handleConnectionFailure("Connection timeout", e)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to connect to server", e)
+                Timber.e(e, "Failed to connect to server")
+                cleanupConnection()
                 handleConnectionFailure(e.message ?: "Unknown error", e)
             }
         }
+    }
+
+    /**
+     * 清理连接资源
+     */
+    private fun cleanupConnection() {
+        try { writer?.close() } catch (_: Exception) {}
+        try { reader?.close() } catch (_: Exception) {}
+        try { clientSocket?.close() } catch (_: Exception) {}
+        writer = null
+        reader = null
+        clientSocket = null
     }
 
     /**
@@ -278,7 +291,7 @@ class SignalingClient @Inject constructor() {
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             scheduleReconnect()
         } else {
-            Log.e(TAG, "Max reconnect attempts reached")
+            Timber.e("Max reconnect attempts reached")
             scope.launch {
                 _connectionEvents.emit(SignalingConnectionEvent.MaxReconnectReached)
             }
@@ -304,7 +317,7 @@ class SignalingClient @Inject constructor() {
         val jitter = (cappedDelay * 0.2 * (Math.random() * 2 - 1)).toLong()
         val finalDelay = (cappedDelay + jitter).coerceAtLeast(RECONNECT_BASE_DELAY_MS)
 
-        Log.i(TAG, "Scheduling reconnect to $host:$port in ${finalDelay}ms (attempt $reconnectAttempts/$MAX_RECONNECT_ATTEMPTS)")
+        Timber.i("Scheduling reconnect to $host:$port in ${finalDelay}ms (attempt $reconnectAttempts/$MAX_RECONNECT_ATTEMPTS)")
 
         _connectionState.value = SignalingConnectionState.Reconnecting(reconnectAttempts)
 
@@ -325,7 +338,7 @@ class SignalingClient @Inject constructor() {
         reconnectJob?.cancel()
         reconnectJob = null
         reconnectAttempts = 0
-        Log.i(TAG, "Reconnect cancelled")
+        Timber.i("Reconnect cancelled")
     }
 
     /**
@@ -340,7 +353,7 @@ class SignalingClient @Inject constructor() {
             reconnectAttempts = 0
             doConnect(host, port)
         } else {
-            Log.w(TAG, "No server to reconnect to")
+            Timber.w("No server to reconnect to")
         }
     }
 
@@ -355,9 +368,9 @@ class SignalingClient @Inject constructor() {
         // 清理待确认消息
         pendingMessages.clear()
 
-        writer?.close()
-        reader?.close()
-        clientSocket?.close()
+        try { writer?.close() } catch (_: Exception) {}
+        try { reader?.close() } catch (_: Exception) {}
+        try { clientSocket?.close() } catch (_: Exception) {}
 
         writer = null
         reader = null
@@ -369,7 +382,7 @@ class SignalingClient @Inject constructor() {
             _connectionEvents.emit(SignalingConnectionEvent.Disconnected)
         }
 
-        Log.i(TAG, "Disconnected from signaling server")
+        Timber.i("Disconnected from signaling server")
     }
 
     /**
@@ -388,9 +401,9 @@ class SignalingClient @Inject constructor() {
             val jsonString = json.encodeToString(wrapper)
 
             writer?.println(jsonString)
-            Log.d(TAG, "Sent signaling message: ${message::class.simpleName}")
+            Timber.d("Sent signaling message: ${message::class.simpleName}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send message", e)
+            Timber.e(e, "Failed to send message")
         }
     }
 
@@ -472,7 +485,7 @@ class SignalingClient @Inject constructor() {
 
                 if (ackReceived) {
                     pendingMessages.remove(messageId)
-                    Log.d(TAG, "Message $messageId acknowledged")
+                    Timber.d("Message $messageId acknowledged")
                     return SignalingResult.Success
                 }
 
@@ -482,17 +495,17 @@ class SignalingClient @Inject constructor() {
                 if (pendingMessage.retryCount <= MAX_MESSAGE_RETRIES) {
                     // 指数退避
                     val retryDelay = RETRANSMIT_BASE_DELAY_MS * (1L shl (pendingMessage.retryCount - 1))
-                    Log.w(TAG, "Message $messageId not acknowledged, retrying in ${retryDelay}ms (attempt ${pendingMessage.retryCount}/$MAX_MESSAGE_RETRIES)")
+                    Timber.w("Message $messageId not acknowledged, retrying in ${retryDelay}ms (attempt ${pendingMessage.retryCount}/$MAX_MESSAGE_RETRIES)")
                     delay(retryDelay)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error sending message $messageId", e)
+                Timber.e(e, "Error sending message $messageId")
                 pendingMessage.retryCount++
             }
         }
 
         pendingMessages.remove(messageId)
-        Log.e(TAG, "Message $messageId failed after $MAX_MESSAGE_RETRIES retries")
+        Timber.e("Message $messageId failed after $MAX_MESSAGE_RETRIES retries")
         return SignalingResult.MaxRetriesExceeded
     }
 
@@ -528,9 +541,9 @@ class SignalingClient @Inject constructor() {
         if (pending != null) {
             pending.acknowledged = true
             pendingMessages.remove(ackMessageId)
-            Log.d(TAG, "ACK received for message: $ackMessageId")
+            Timber.d("ACK received for message: $ackMessageId")
         } else {
-            Log.w(TAG, "Received ACK for unknown message: $ackMessageId")
+            Timber.w("Received ACK for unknown message: $ackMessageId")
         }
     }
 
@@ -540,7 +553,7 @@ class SignalingClient @Inject constructor() {
     private fun handleMessageNack(nackMessageId: String, reason: String) {
         val pending = pendingMessages[nackMessageId]
         if (pending != null) {
-            Log.w(TAG, "NACK received for message $nackMessageId: $reason")
+            Timber.w("NACK received for message $nackMessageId: $reason")
             // NACK 可能触发立即重传或标记失败
             // 当前实现依赖超时机制进行重传
         }
@@ -554,7 +567,7 @@ class SignalingClient @Inject constructor() {
 
         val ackMessage = SignalingMessage.MessageAck(ackMessageId = messageId)
         sendMessage(ackMessage)
-        Log.d(TAG, "ACK sent for message: $messageId")
+        Timber.d("ACK sent for message: $messageId")
     }
 
     /**
@@ -591,7 +604,7 @@ class SignalingClient @Inject constructor() {
         pendingMessages.entries.removeIf { (id, msg) ->
             val age = now - msg.sentAt
             if (age > maxAge) {
-                Log.w(TAG, "Removing timed out message: $id")
+                Timber.w("Removing timed out message: $id")
                 true
             } else {
                 false
@@ -608,11 +621,17 @@ class SignalingClient @Inject constructor() {
                 writer = PrintWriter(socket.getOutputStream(), true)
                 reader = BufferedReader(InputStreamReader(socket.getInputStream()))
 
+                _connectionState.value = SignalingConnectionState.Connected
+
                 listenForMessages()
             } catch (e: Exception) {
-                Log.e(TAG, "Error handling client", e)
+                Timber.e(e, "Error handling client")
             } finally {
-                socket.close()
+                try { writer?.close() } catch (_: Exception) {}
+                try { reader?.close() } catch (_: Exception) {}
+                try { socket.close() } catch (_: Exception) {}
+                writer = null
+                reader = null
             }
         }
     }
@@ -629,7 +648,7 @@ class SignalingClient @Inject constructor() {
                         val wrapper = json.decodeFromString<SignalingMessageWrapper>(it)
                         val message = wrapper.toSignalingMessage()
 
-                        Log.d(TAG, "Received signaling message: ${message::class.simpleName}")
+                        Timber.d("Received signaling message: ${message::class.simpleName}")
 
                         // 处理消息
                         when (message) {
@@ -652,7 +671,7 @@ class SignalingClient @Inject constructor() {
                                 handleMessageNack(message.nackMessageId, message.reason)
                             }
                             is SignalingMessage.Close -> {
-                                Log.i(TAG, "Received close message: ${message.reason}")
+                                Timber.i("Received close message: ${message.reason}")
                                 _connectionState.value = SignalingConnectionState.Disconnected
                                 scope.launch {
                                     _connectionEvents.emit(SignalingConnectionEvent.RemoteClosed(message.reason))
@@ -673,13 +692,13 @@ class SignalingClient @Inject constructor() {
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed to parse message", e)
+                        Timber.e(e, "Failed to parse message")
                     }
                 }
             }
 
             // 连接正常关闭
-            Log.i(TAG, "Connection closed by remote")
+            Timber.i("Connection closed by remote")
             stopHeartbeat()
             _connectionState.value = SignalingConnectionState.Disconnected
             scope.launch {
@@ -692,12 +711,12 @@ class SignalingClient @Inject constructor() {
             }
 
         } catch (e: SocketTimeoutException) {
-            Log.w(TAG, "Read timeout, connection may be stale")
+            Timber.w("Read timeout, connection may be stale")
             stopHeartbeat()
             handleConnectionFailure("Read timeout", e)
         } catch (e: Exception) {
             if (_connectionState.value is SignalingConnectionState.Connected) {
-                Log.e(TAG, "Error listening for messages", e)
+                Timber.e(e, "Error listening for messages")
                 stopHeartbeat()
                 handleConnectionFailure(e.message ?: "Connection error", e)
             }
@@ -711,20 +730,20 @@ class SignalingClient @Inject constructor() {
         stopHeartbeat()
 
         heartbeatJob = scope.launch {
-            Log.i(TAG, "Heartbeat started")
+            Timber.i("Heartbeat started")
 
             while (coroutineContext.isActive) {
                 delay(HEARTBEAT_INTERVAL_MS)
 
                 if (_connectionState.value !is SignalingConnectionState.Connected) {
-                    Log.d(TAG, "Heartbeat stopped: not connected")
+                    Timber.d("Heartbeat stopped: not connected")
                     break
                 }
 
                 // 检查上次心跳响应时间
                 val timeSinceLastResponse = System.currentTimeMillis() - lastHeartbeatResponse
                 if (timeSinceLastResponse > HEARTBEAT_TIMEOUT_MS) {
-                    Log.w(TAG, "Heartbeat timeout: ${timeSinceLastResponse}ms since last response")
+                    Timber.w("Heartbeat timeout: ${timeSinceLastResponse}ms since last response")
                     handleHeartbeatTimeout()
                     break
                 }
@@ -755,7 +774,7 @@ class SignalingClient @Inject constructor() {
         sendMessage(heartbeatMessage)
 
         totalHeartbeatsSent++
-        Log.d(TAG, "Heartbeat sent: $heartbeatId (total: $totalHeartbeatsSent)")
+        Timber.d("Heartbeat sent: $heartbeatId (total: $totalHeartbeatsSent)")
     }
 
     /**
@@ -767,9 +786,9 @@ class SignalingClient @Inject constructor() {
             pendingHeartbeatId = null
             totalHeartbeatsReceived++
 
-            Log.d(TAG, "Heartbeat response received: $heartbeatId (total: $totalHeartbeatsReceived)")
+            Timber.d("Heartbeat response received: $heartbeatId (total: $totalHeartbeatsReceived)")
         } else {
-            Log.w(TAG, "Unexpected heartbeat response: $heartbeatId (expected: $pendingHeartbeatId)")
+            Timber.w("Unexpected heartbeat response: $heartbeatId (expected: $pendingHeartbeatId)")
         }
     }
 
@@ -777,7 +796,7 @@ class SignalingClient @Inject constructor() {
      * 处理心跳超时
      */
     private fun handleHeartbeatTimeout() {
-        Log.w(TAG, "Connection appears dead, initiating reconnect")
+        Timber.w("Connection appears dead, initiating reconnect")
 
         _connectionState.value = SignalingConnectionState.Failed("Heartbeat timeout")
 
@@ -786,17 +805,7 @@ class SignalingClient @Inject constructor() {
         }
 
         // 关闭当前连接并尝试重连
-        try {
-            writer?.close()
-            reader?.close()
-            clientSocket?.close()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error closing socket after heartbeat timeout", e)
-        }
-
-        writer = null
-        reader = null
-        clientSocket = null
+        cleanupConnection()
 
         // 触发重连
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {

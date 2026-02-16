@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.backup
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.HKDF
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import kotlinx.serialization.Serializable
@@ -21,7 +21,6 @@ import javax.crypto.spec.SecretKeySpec
 class KeyBackupManager {
 
     companion object {
-        private const val TAG = "KeyBackupManager"
         private const val VERSION = 1
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val GCM_TAG_LENGTH = 128
@@ -49,7 +48,7 @@ class KeyBackupManager {
         oneTimePreKeys: Map<String, X25519KeyPair>,
         passphrase: String
     ): EncryptedBackup {
-        Log.i(TAG, "Creating key backup")
+        Timber.i("Creating key backup")
 
         try {
             // 构建备份数据
@@ -77,7 +76,7 @@ class KeyBackupManager {
             // 加密备份数据
             val encryptedData = encryptData(backupJson.toByteArray(Charsets.UTF_8), encryptionKey)
 
-            Log.i(TAG, "Key backup created successfully")
+            Timber.i("Key backup created successfully")
 
             return EncryptedBackup(
                 version = VERSION,
@@ -86,7 +85,7 @@ class KeyBackupManager {
                 timestamp = backup.timestamp
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create backup", e)
+            Timber.e(e, "Failed to create backup")
             throw BackupException("Failed to create backup", e)
         }
     }
@@ -102,7 +101,7 @@ class KeyBackupManager {
         encryptedBackup: EncryptedBackup,
         passphrase: String
     ): RestoredKeys {
-        Log.i(TAG, "Restoring key backup")
+        Timber.i("Restoring key backup")
 
         try {
             // 派生解密密钥
@@ -135,7 +134,7 @@ class KeyBackupManager {
                 preKey.id to X25519KeyPair(preKey.publicKey, preKey.privateKey)
             }
 
-            Log.i(TAG, "Key backup restored successfully")
+            Timber.i("Key backup restored successfully")
 
             return RestoredKeys(
                 identityKeyPair = identityKeyPair,
@@ -144,7 +143,7 @@ class KeyBackupManager {
                 backupTimestamp = backup.timestamp
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to restore backup", e)
+            Timber.e(e, "Failed to restore backup")
             throw BackupException("Failed to restore backup", e)
         }
     }
@@ -233,7 +232,7 @@ class KeyBackupManager {
             encryptedBackup.salt.size == 32 &&
             encryptedBackup.encryptedData.isNotEmpty()
         } catch (e: Exception) {
-            Log.e(TAG, "Backup validation failed", e)
+            Timber.e(e, "Backup validation failed")
             false
         }
     }

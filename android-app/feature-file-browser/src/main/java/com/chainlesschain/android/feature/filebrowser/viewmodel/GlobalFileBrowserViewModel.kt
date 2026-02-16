@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -44,9 +45,6 @@ class GlobalFileBrowserViewModel @Inject constructor(
     val fileSummarizer: com.chainlesschain.android.feature.filebrowser.ai.FileSummarizer
 ) : ViewModel() {
 
-    companion object {
-        private const val TAG = "GlobalFileBrowserViewModel"
-    }
 
     // Permission state
     private val _permissionGranted = MutableStateFlow(false)
@@ -311,7 +309,7 @@ class GlobalFileBrowserViewModel @Inject constructor(
                     importedCount = importedCount
                 )
             } catch (e: Exception) {
-                android.util.Log.e(TAG, "Error loading statistics", e)
+                Timber.e(e, "Error loading statistics")
             }
         }
     }
@@ -376,10 +374,10 @@ class GlobalFileBrowserViewModel @Inject constructor(
             when (result) {
                 is FileImportRepository.ImportResult.Success -> {
                     externalFileRepository.markAsImported(fileId, projectId)
-                    android.util.Log.d(TAG, "File imported successfully: ${result.projectFile.id}")
+                    Timber.d("File imported successfully: ${result.projectFile.id}")
                 }
                 is FileImportRepository.ImportResult.Failure -> {
-                    android.util.Log.e(TAG, "Error importing file", result.error.cause)
+                    Timber.e(result.error.cause, "Error importing file")
                 }
             }
         }
@@ -421,7 +419,7 @@ class GlobalFileBrowserViewModel @Inject constructor(
             _files.value = emptyList()
             _statistics.value = null
             _uiState.value = FileBrowserUiState.Empty
-            android.util.Log.d(TAG, "File cache cleared")
+            Timber.d("File cache cleared")
         }
     }
 
@@ -448,12 +446,9 @@ class GlobalFileBrowserViewModel @Inject constructor(
                     current + (fileId to result)
                 }
 
-                android.util.Log.d(
-                    TAG,
-                    "Classified file $fileId: ${result.suggestedCategory} (${result.confidence})"
-                )
+                Timber.d("Classified file $fileId: ${result.suggestedCategory} (${result.confidence})")
             } catch (e: Exception) {
-                android.util.Log.e(TAG, "Error classifying file $fileId", e)
+                Timber.e(e, "Error classifying file $fileId")
             }
         }
     }
@@ -481,7 +476,7 @@ class GlobalFileBrowserViewModel @Inject constructor(
                         !_aiClassifications.value.containsKey(file.id)
                     }
 
-                android.util.Log.d(TAG, "Classifying ${filesToClassify.size} files...")
+                Timber.d("Classifying ${filesToClassify.size} files...")
 
                 // Classify in batches
                 filesToClassify.forEach { file ->
@@ -498,9 +493,9 @@ class GlobalFileBrowserViewModel @Inject constructor(
                     }
                 }
 
-                android.util.Log.d(TAG, "Classification complete")
+                Timber.d("Classification complete")
             } catch (e: Exception) {
-                android.util.Log.e(TAG, "Error in batch classification", e)
+                Timber.e(e, "Error in batch classification")
             } finally {
                 _isClassifying.value = false
             }
@@ -530,12 +525,9 @@ class GlobalFileBrowserViewModel @Inject constructor(
                     current - fileId
                 }
 
-                android.util.Log.d(
-                    TAG,
-                    "Accepted AI classification for $fileId: ${classification.suggestedCategory}"
-                )
+                Timber.d("Accepted AI classification for $fileId: ${classification.suggestedCategory}")
             } catch (e: Exception) {
-                android.util.Log.e(TAG, "Error accepting AI classification", e)
+                Timber.e(e, "Error accepting AI classification")
             }
         }
     }
@@ -551,7 +543,7 @@ class GlobalFileBrowserViewModel @Inject constructor(
         _aiClassifications.update { current ->
             current - fileId
         }
-        android.util.Log.d(TAG, "Rejected AI classification for $fileId")
+        Timber.d("Rejected AI classification for $fileId")
     }
 
     /**
@@ -559,7 +551,7 @@ class GlobalFileBrowserViewModel @Inject constructor(
      */
     fun clearAIClassifications() {
         _aiClassifications.value = emptyMap()
-        android.util.Log.d(TAG, "Cleared all AI classifications")
+        Timber.d("Cleared all AI classifications")
     }
 
     /**

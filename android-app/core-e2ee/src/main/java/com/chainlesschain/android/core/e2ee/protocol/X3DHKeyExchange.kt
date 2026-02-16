@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.protocol
 
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.HKDF
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
@@ -20,8 +20,6 @@ import kotlinx.serialization.Serializable
  * 参考：https://signal.org/docs/specifications/x3dh/
  */
 object X3DHKeyExchange {
-
-    private const val TAG = "X3DHKeyExchange"
 
     /**
      * 生成预密钥包（Pre-Key Bundle）
@@ -50,7 +48,7 @@ object X3DHKeyExchange {
             "Signed pre-key must have private key"
         }
 
-        Log.d(TAG, "Generating pre-key bundle")
+        Timber.d("Generating pre-key bundle")
 
         // 使用Ed25519签名对signedPreKey的公钥进行签名
         val signedPreKeySignature = Ed25519KeyPair.sign(
@@ -87,7 +85,7 @@ object X3DHKeyExchange {
             "Sender ephemeral key must have private key"
         }
 
-        Log.d(TAG, "Sender executing X3DH")
+        Timber.d("Sender executing X3DH")
 
         // 验证接收方的signedPreKey签名
         if (receiverPreKeyBundle.signingPublicKey != null) {
@@ -99,7 +97,7 @@ object X3DHKeyExchange {
             require(signatureValid) {
                 "Receiver's signed pre-key signature verification failed"
             }
-            Log.d(TAG, "Signed pre-key signature verified successfully")
+            Timber.d("Signed pre-key signature verified successfully")
         }
 
         // DH1 = DH(IK_A, SPK_B)
@@ -147,7 +145,7 @@ object X3DHKeyExchange {
             receiverPreKeyBundle.identityKey
         )
 
-        Log.d(TAG, "Sender X3DH complete")
+        Timber.d("Sender X3DH complete")
 
         return X3DHResult(
             sharedSecret = sharedSecret,
@@ -179,7 +177,7 @@ object X3DHKeyExchange {
             "Receiver signed pre-key must have private key"
         }
 
-        Log.d(TAG, "Receiver executing X3DH")
+        Timber.d("Receiver executing X3DH")
 
         // DH1 = DH(SPK_B, IK_A)
         val dh1 = X25519KeyPair.computeSharedSecret(
@@ -226,7 +224,7 @@ object X3DHKeyExchange {
             receiverIdentityKeyPair.publicKey
         )
 
-        Log.d(TAG, "Receiver X3DH complete")
+        Timber.d("Receiver X3DH complete")
 
         return X3DHResult(
             sharedSecret = sharedSecret,

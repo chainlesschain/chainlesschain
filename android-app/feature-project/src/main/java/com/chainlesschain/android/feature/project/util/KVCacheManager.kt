@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.project.util
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.security.MessageDigest
@@ -22,10 +22,6 @@ class KVCacheManager(
     private val maxCacheSize: Int = 100,  // Maximum number of cache entries
     private val cacheExpirationMs: Long = 30 * 60 * 1000  // 30 minutes cache TTL
 ) {
-
-    companion object {
-        private const val TAG = "KVCacheManager"
-    }
 
     // Cache storage for static prefixes
     private val cacheEntries = LinkedHashMap<String, CacheEntry>(maxCacheSize, 0.75f, true)
@@ -207,7 +203,7 @@ Guidelines:
 
         if (existingEntry != null && !existingEntry.isExpired(cacheExpirationMs)) {
             cacheHits++
-            Log.d(TAG, "Cache HIT for project: $projectId (hits: $cacheHits)")
+            Timber.d("Cache HIT for project: $projectId (hits: $cacheHits)")
             return Pair(existingEntry.staticPrefix, true)
         }
 
@@ -223,7 +219,7 @@ Guidelines:
             cacheEntries[cacheKey] = existingEntry.copy(createdAt = System.currentTimeMillis())
             cacheHits++
             cacheMisses--
-            Log.d(TAG, "Cache refresh for project: $projectId (content unchanged)")
+            Timber.d("Cache refresh for project: $projectId (content unchanged)")
             return Pair(existingEntry.staticPrefix, true)
         }
 
@@ -240,12 +236,12 @@ Guidelines:
             val oldestKey = cacheEntries.keys.firstOrNull()
             if (oldestKey != null) {
                 cacheEntries.remove(oldestKey)
-                Log.d(TAG, "Evicted cache entry: $oldestKey")
+                Timber.d("Evicted cache entry: $oldestKey")
             }
         }
 
         cacheEntries[cacheKey] = newEntry
-        Log.d(TAG, "Cache MISS for project: $projectId (misses: $cacheMisses)")
+        Timber.d("Cache MISS for project: $projectId (misses: $cacheMisses)")
 
         return Pair(newPrefix, false)
     }
@@ -255,7 +251,7 @@ Guidelines:
      */
     suspend fun invalidateCache(projectId: String) = cacheMutex.withLock {
         cacheEntries.remove(projectId)
-        Log.d(TAG, "Cache invalidated for project: $projectId")
+        Timber.d("Cache invalidated for project: $projectId")
     }
 
     /**
@@ -263,7 +259,7 @@ Guidelines:
      */
     suspend fun clearCache() = cacheMutex.withLock {
         cacheEntries.clear()
-        Log.d(TAG, "All cache entries cleared")
+        Timber.d("All cache entries cleared")
     }
 
     /**
@@ -320,7 +316,7 @@ Guidelines:
                     hash = hash
                 )
             }
-            Log.d(TAG, "Proactively refreshed cache for: $projectId")
+            Timber.d("Proactively refreshed cache for: $projectId")
         }
     }
 }

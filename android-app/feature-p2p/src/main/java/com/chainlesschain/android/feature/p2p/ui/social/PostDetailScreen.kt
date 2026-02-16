@@ -73,9 +73,9 @@ fun PostDetailScreen(
                     }
                 },
                 actions = {
-                    if (uiState.currentPost != null) {
+                    uiState.currentPost?.let { post ->
                         IconButton(onClick = {
-                            viewModel.showPostMenu(uiState.currentPost!!)
+                            viewModel.showPostMenu(post)
                         }) {
                             Icon(Icons.Default.MoreVert, contentDescription = "更多")
                         }
@@ -109,7 +109,7 @@ fun PostDetailScreen(
                 LoadingState(modifier = Modifier.padding(paddingValues))
             }
             else -> {
-                val post = uiState.currentPost!!
+                val post = uiState.currentPost ?: return@Scaffold
 
                 LazyColumn(
                     modifier = Modifier

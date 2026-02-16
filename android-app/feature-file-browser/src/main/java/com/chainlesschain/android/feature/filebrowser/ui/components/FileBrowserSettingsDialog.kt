@@ -76,7 +76,7 @@ fun FileBrowserSettingsDialog(
                     }
                 }
 
-                Divider()
+                HorizontalDivider()
 
                 // 自动扫描设置
                 Text(
@@ -136,7 +136,7 @@ fun FileBrowserSettingsDialog(
                     )
                 }
 
-                Divider()
+                HorizontalDivider()
 
                 // 缓存管理
                 Text(
@@ -167,7 +167,7 @@ fun FileBrowserSettingsDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Divider()
+                HorizontalDivider()
 
                 // 说明信息
                 Surface(

@@ -1,6 +1,6 @@
 package com.chainlesschain.android.feature.p2p.viewmodel
 
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.entity.MessageSendStatus
@@ -35,10 +35,6 @@ class P2PChatViewModel @Inject constructor(
     private val didManager: DIDManager,
     private val messageRepository: P2PMessageRepository
 ) : ViewModel() {
-
-    companion object {
-        private const val TAG = "P2PChatViewModel"
-    }
 
     // 聊天消息列表
     private val _messages = MutableStateFlow<List<P2PMessageEntity>>(emptyList())
@@ -75,7 +71,7 @@ class P2PChatViewModel @Inject constructor(
      */
     fun loadChat(peerId: String) {
         currentPeerId = peerId
-        Log.d(TAG, "Loading chat with peer: $peerId")
+        Timber.d("Loading chat with peer: $peerId")
 
         viewModelScope.launch {
             try {
@@ -95,11 +91,11 @@ class P2PChatViewModel @Inject constructor(
                 // 加载历史消息
                 messageRepository.getMessages(peerId).collect { messageList ->
                     _messages.value = messageList
-                    Log.d(TAG, "Loaded ${messageList.size} messages")
+                    Timber.d("Loaded ${messageList.size} messages")
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load chat", e)
+                Timber.e(e, "Failed to load chat")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "加载聊天失败: ${e.message}"
@@ -144,11 +140,11 @@ class P2PChatViewModel @Inject constructor(
 
                 result.fold(
                     onSuccess = { message ->
-                        Log.d(TAG, "Message sent: ${message.id}")
+                        Timber.d("Message sent: ${message.id}")
                         // 消息会通过Flow自动更新到UI
                     },
                     onFailure = { error ->
-                        Log.e(TAG, "Failed to send message", error)
+                        Timber.e(error, "Failed to send message")
                         _uiState.value = _uiState.value.copy(
                             error = "发送失败: ${error.message}"
                         )
@@ -156,7 +152,7 @@ class P2PChatViewModel @Inject constructor(
                 )
 
             } catch (e: Exception) {
-                Log.e(TAG, "Send message error", e)
+                Timber.e(e, "Send message error")
                 _uiState.value = _uiState.value.copy(
                     error = "发送失败: ${e.message}"
                 )
@@ -174,7 +170,7 @@ class P2PChatViewModel @Inject constructor(
             messageRepository.incomingMessages.collect { message ->
                 if (message.peerId == currentPeerId) {
                     // 消息已通过Flow自动更新，这里可以做额外处理
-                    Log.d(TAG, "New message received for current chat: ${message.id}")
+                    Timber.d("New message received for current chat: ${message.id}")
                 }
             }
         }
@@ -186,7 +182,7 @@ class P2PChatViewModel @Inject constructor(
     private fun observeNetworkMessages() {
         viewModelScope.launch {
             connectionManager.receivedMessages.collect { p2pMessage ->
-                Log.d(TAG, "Network message received: ${p2pMessage.type}")
+                Timber.d("Network message received: ${p2pMessage.type}")
 
                 when (p2pMessage.type) {
                     MessageType.TEXT -> {
@@ -199,7 +195,7 @@ class P2PChatViewModel @Inject constructor(
                         // ACK由仓库处理
                     }
                     else -> {
-                        Log.d(TAG, "Unhandled message type: ${p2pMessage.type}")
+                        Timber.d("Unhandled message type: ${p2pMessage.type}")
                     }
                 }
             }
@@ -213,10 +209,10 @@ class P2PChatViewModel @Inject constructor(
         val result = messageRepository.receiveMessage(p2pMessage, localDeviceId)
         result.fold(
             onSuccess = { message ->
-                Log.d(TAG, "Incoming message processed: ${message.id}")
+                Timber.d("Incoming message processed: ${message.id}")
             },
             onFailure = { error ->
-                Log.e(TAG, "Failed to process incoming message", error)
+                Timber.e(error, "Failed to process incoming message")
             }
         )
     }
@@ -261,10 +257,10 @@ class P2PChatViewModel @Inject constructor(
                     messageRepository.retryFailedMessages(peerId, localDeviceId)
 
                     _connectionStatus.value = ConnectionStatus.CONNECTED
-                    Log.d(TAG, "Reconnected to peer: $peerId")
+                    Timber.d("Reconnected to peer: $peerId")
 
                 } catch (e: Exception) {
-                    Log.e(TAG, "Reconnect failed", e)
+                    Timber.e(e, "Reconnect failed")
                     _connectionStatus.value = ConnectionStatus.DISCONNECTED
                     _uiState.value = _uiState.value.copy(
                         error = "重连失败: ${e.message}"
@@ -283,7 +279,7 @@ class P2PChatViewModel @Inject constructor(
                 try {
                     messageRepository.retryFailedMessages(peerId, localDeviceId)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to retry messages", e)
+                    Timber.e(e, "Failed to retry messages")
                 }
             }
         }
@@ -297,9 +293,9 @@ class P2PChatViewModel @Inject constructor(
             viewModelScope.launch {
                 try {
                     messageRepository.deleteMessages(peerId)
-                    Log.d(TAG, "All messages deleted for peer: $peerId")
+                    Timber.d("All messages deleted for peer: $peerId")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to delete messages", e)
+                    Timber.e(e, "Failed to delete messages")
                     _uiState.value = _uiState.value.copy(
                         error = "删除失败: ${e.message}"
                     )
@@ -318,7 +314,7 @@ class P2PChatViewModel @Inject constructor(
                     val results = messageRepository.searchMessages(peerId, query)
                     _messages.value = results
                 } catch (e: Exception) {
-                    Log.e(TAG, "Search failed", e)
+                    Timber.e(e, "Search failed")
                 }
             }
         }
@@ -333,7 +329,7 @@ class P2PChatViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        Log.d(TAG, "ViewModel cleared")
+        Timber.d("ViewModel cleared")
     }
 }
 

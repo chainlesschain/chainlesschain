@@ -78,6 +78,7 @@ class ContextEngineering {
       messages = [],
       tools = [],
       taskContext = null,
+      unifiedRegistry = null,
     } = options;
 
     this.stats.totalCalls++;
@@ -101,8 +102,15 @@ class ContextEngineering {
       content: cleanedSystemPrompt,
     });
 
-    // 2. 工具定义（确定性序列化）
-    if (tools.length > 0) {
+    // 2. 工具定义（确定性序列化，优先使用统一注册表的技能分组）
+    if (unifiedRegistry && unifiedRegistry.skills?.size > 0) {
+      const toolDefinitions =
+        this._serializeToolsWithSkillContext(unifiedRegistry);
+      result.messages.push({
+        role: "system",
+        content: `## Available Tools (by Skill)\n${toolDefinitions}`,
+      });
+    } else if (tools.length > 0) {
       const toolDefinitions = this._serializeToolDefinitions(tools);
       result.messages.push({
         role: "system",
@@ -144,10 +152,7 @@ class ContextEngineering {
       result.messages.length - result.metadata.staticPartLength;
 
     // 检查是否命中缓存（静态部分未变化）
-    const currentHash = this._computeStaticHash(
-      cleanedSystemPrompt,
-      tools,
-    );
+    const currentHash = this._computeStaticHash(cleanedSystemPrompt, tools);
     if (this.staticPromptHash === currentHash) {
       this.stats.cacheHits++;
       result.metadata.wasCacheOptimized = true;
@@ -164,7 +169,9 @@ class ContextEngineering {
    * @private
    */
   _cleanSystemPrompt(systemPrompt) {
-    if (!systemPrompt) {return "";}
+    if (!systemPrompt) {
+      return "";
+    }
 
     let cleaned = systemPrompt;
 
@@ -173,10 +180,7 @@ class ContextEngineering {
       /\b\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z?)?\b/g,
       "[DATE]",
     );
-    cleaned = cleaned.replace(
-      /\b\d{2}:\d{2}(:\d{2})?\b/g,
-      "[TIME]",
-    );
+    cleaned = cleaned.replace(/\b\d{2}:\d{2}(:\d{2})?\b/g, "[TIME]");
 
     // 移除随机 ID 模式
     cleaned = cleaned.replace(
@@ -217,10 +221,7 @@ class ContextEngineering {
       const description =
         tool.description || tool.function?.description || "No description";
       const parameters =
-        tool.parameters ||
-        tool.function?.parameters ||
-        tool.input_schema ||
-        {};
+        tool.parameters || tool.function?.parameters || tool.input_schema || {};
 
       return `### ${name}
 ${description}
@@ -233,6 +234,98 @@ ${JSON.stringify(parameters, null, 2)}`;
     this.cachedToolDefinitions = definitions.join("\n\n");
 
     return this.cachedToolDefinitions;
+  }
+
+  /**
+   * Serialize tools grouped by skill with instructions and examples
+   * @private
+   * @param {Object} registry - UnifiedToolRegistry instance
+   * @returns {string} Formatted tool definitions grouped by skill
+   */
+  _serializeToolsWithSkillContext(registry) {
+    const MAX_INSTRUCTIONS_LENGTH = 200;
+    const MAX_EXAMPLES_PER_SKILL = 3;
+    const MAX_PARAMS_LENGTH = 500;
+
+    const skills = registry.getSkillManifest();
+    const allTools = registry.getAllTools();
+
+    // Sort skills by name for deterministic output
+    skills.sort((a, b) => a.name.localeCompare(b.name));
+
+    const sections = [];
+
+    for (const skill of skills) {
+      const skillTools = skill.toolNames
+        .map((tn) => allTools.find((t) => t.name === tn))
+        .filter((t) => t && t.available !== false);
+
+      if (skillTools.length === 0) {
+        continue;
+      }
+
+      let section = `## Skill: ${skill.displayName || skill.name}\n${skill.description || ""}`;
+
+      // Add instructions (truncated)
+      if (skill.instructions) {
+        const instr =
+          skill.instructions.length > MAX_INSTRUCTIONS_LENGTH
+            ? skill.instructions.slice(0, MAX_INSTRUCTIONS_LENGTH) + "..."
+            : skill.instructions;
+        section += `\n\n### Instructions\n${instr}`;
+      }
+
+      // Add examples (limited)
+      if (skill.examples && skill.examples.length > 0) {
+        const exampleLines = skill.examples
+          .slice(0, MAX_EXAMPLES_PER_SKILL)
+          .map((ex) => {
+            const params = ex.params ? JSON.stringify(ex.params) : "";
+            return `- "${ex.input}" → ${ex.tool}${params ? " " + params : ""}`;
+          });
+        section += `\n\n### Examples\n${exampleLines.join("\n")}`;
+      }
+
+      // Add tool definitions
+      section += "\n\n### Tools";
+      for (const tool of skillTools) {
+        let paramStr = "";
+        try {
+          paramStr = JSON.stringify(tool.parameters || {}, null, 2);
+          if (paramStr.length > MAX_PARAMS_LENGTH) {
+            paramStr = paramStr.slice(0, MAX_PARAMS_LENGTH) + "\n...}";
+          }
+        } catch {
+          paramStr = "{}";
+        }
+        section += `\n#### ${tool.name}\n${tool.description || "No description"}\nParameters:\n${paramStr}`;
+      }
+
+      sections.push(section);
+    }
+
+    // Add ungrouped tools (those without a skill)
+    const ungroupedTools = allTools.filter(
+      (t) => !t.skillName && t.available !== false,
+    );
+    if (ungroupedTools.length > 0) {
+      let section = "## Other Tools";
+      for (const tool of ungroupedTools) {
+        let paramStr = "";
+        try {
+          paramStr = JSON.stringify(tool.parameters || {}, null, 2);
+          if (paramStr.length > MAX_PARAMS_LENGTH) {
+            paramStr = paramStr.slice(0, MAX_PARAMS_LENGTH) + "\n...}";
+          }
+        } catch {
+          paramStr = "{}";
+        }
+        section += `\n### ${tool.name}\n${tool.description || "No description"}\nParameters:\n${paramStr}`;
+      }
+      sections.push(section);
+    }
+
+    return sections.join("\n\n---\n\n");
   }
 
   /**
@@ -265,14 +358,13 @@ ${JSON.stringify(parameters, null, 2)}`;
    * @private
    */
   _buildErrorContext() {
-    if (this.errorHistory.length === 0) {return "";}
+    if (this.errorHistory.length === 0) {
+      return "";
+    }
 
     const errors = this.errorHistory.slice(-this.config.maxPreservedErrors);
 
-    const lines = [
-      "## Recent Errors (for learning)",
-      "",
-    ];
+    const lines = ["## Recent Errors (for learning)", ""];
 
     errors.forEach((error, index) => {
       lines.push(`### Error ${index + 1}`);
@@ -318,7 +410,9 @@ ${JSON.stringify(parameters, null, 2)}`;
         taskContext.steps[taskContext.currentStep]?.description ||
         taskContext.steps[taskContext.currentStep] ||
         "unknown";
-      lines.push(`**Current Focus**: Step ${taskContext.currentStep + 1} - ${currentStepDesc}`);
+      lines.push(
+        `**Current Focus**: Step ${taskContext.currentStep + 1} - ${currentStepDesc}`,
+      );
     }
 
     return lines.join("\n");
@@ -355,7 +449,9 @@ ${JSON.stringify(parameters, null, 2)}`;
 
     // 保持历史记录在限制内
     if (this.errorHistory.length > this.config.maxPreservedErrors * 2) {
-      this.errorHistory = this.errorHistory.slice(-this.config.maxPreservedErrors);
+      this.errorHistory = this.errorHistory.slice(
+        -this.config.maxPreservedErrors,
+      );
     }
   }
 
@@ -465,7 +561,9 @@ class RecoverableCompressor {
    * @returns {Object} 压缩后的引用
    */
   compress(content, type = "default") {
-    if (!content) {return content;}
+    if (!content) {
+      return content;
+    }
 
     const threshold = this.thresholds[type] || this.thresholds.default;
 

@@ -532,12 +532,133 @@ function registerTemplateIPC({ templateManager }) {
     },
   );
 
-  logger.info("[Template IPC] ✓ 21 handlers registered");
+  // ============================================================
+  // Demo 模板操作 (4 handlers)
+  // ============================================================
+
+  /**
+   * 获取所有 Demo 模板（按类别分组）
+   */
+  ipcMain.handle("template:get-demos", async (_event) => {
+    try {
+      const {
+        getDemoTemplateLoader,
+      } = require("../templates/demo-template-loader.js");
+      const loader = getDemoTemplateLoader();
+
+      if (!loader.loaded) {
+        await loader.loadAll();
+      }
+
+      const grouped = loader.getDemosByCategory();
+      const summary = loader.getSummary();
+
+      return { success: true, demos: grouped, summary };
+    } catch (error) {
+      logger.error("[Template] 获取Demo模板失败:", error);
+      return { success: false, error: error.message, demos: {} };
+    }
+  });
+
+  /**
+   * 按技能名获取相关 Demo 模板
+   */
+  ipcMain.handle("template:get-demo-by-skill", async (_event, skillName) => {
+    try {
+      const {
+        getDemoTemplateLoader,
+      } = require("../templates/demo-template-loader.js");
+      const loader = getDemoTemplateLoader();
+
+      if (!loader.loaded) {
+        await loader.loadAll();
+      }
+
+      const demos = loader.getDemosBySkill(skillName);
+      return { success: true, demos };
+    } catch (error) {
+      logger.error("[Template] 按技能获取Demo失败:", error);
+      return { success: false, error: error.message, demos: [] };
+    }
+  });
+
+  /**
+   * 预览 Demo 模板内容
+   */
+  ipcMain.handle("template:preview-demo", async (_event, templateId) => {
+    try {
+      const {
+        getDemoTemplateLoader,
+      } = require("../templates/demo-template-loader.js");
+      const loader = getDemoTemplateLoader();
+
+      if (!loader.loaded) {
+        await loader.loadAll();
+      }
+
+      const demo = loader.getDemoById(templateId);
+      if (!demo) {
+        throw new Error(`Demo模板不存在: ${templateId}`);
+      }
+
+      return { success: true, demo };
+    } catch (error) {
+      logger.error("[Template] 预览Demo失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 运行 Demo 工作流（渲染模板并返回可执行的技能指令）
+   */
+  ipcMain.handle(
+    "template:run-demo",
+    async (_event, templateId, userVariables = {}) => {
+      try {
+        if (!templateManager) {
+          throw new Error("模板管理器未初始化");
+        }
+
+        const {
+          getDemoTemplateLoader,
+        } = require("../templates/demo-template-loader.js");
+        const loader = getDemoTemplateLoader();
+
+        if (!loader.loaded) {
+          await loader.loadAll();
+        }
+
+        const demo = loader.getDemoById(templateId);
+        if (!demo) {
+          throw new Error(`Demo模板不存在: ${templateId}`);
+        }
+
+        // Render the template with user variables
+        const renderedPrompt = templateManager.renderPrompt(
+          demo,
+          userVariables,
+        );
+
+        return {
+          success: true,
+          templateId,
+          skillsUsed: demo.skills_used || [],
+          renderedPrompt,
+        };
+      } catch (error) {
+        logger.error("[Template] 运行Demo失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  logger.info("[Template IPC] ✓ 25 handlers registered");
   logger.info("[Template IPC] - 7 template query handlers (包含智能推荐)");
   logger.info("[Template IPC] - 4 template management handlers");
   logger.info("[Template IPC] - 3 template rendering handlers");
   logger.info("[Template IPC] - 2 usage & rating handlers");
   logger.info("[Template IPC] - 5 template file handlers");
+  logger.info("[Template IPC] - 4 demo template handlers");
 }
 
 module.exports = {

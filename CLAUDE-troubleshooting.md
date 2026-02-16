@@ -2,8 +2,8 @@
 
 > 记录已知问题和验证过的解决方案，避免重复排查
 >
-> **版本**: v1.1.0
-> **最后更新**: 2026-02-15
+> **版本**: v1.2.0
+> **最后更新**: 2026-02-16
 
 ---
 
@@ -832,6 +832,146 @@ git commit --no-verify -m "message"
 3. **拆分快速/慢速测试**: pre-commit 仅运行快速测试，push 时运行全量
 
 **状态**: 使用 `--no-verify` 临时绕过，待优化 hook 配置
+
+---
+
+## 技能系统问题 (v0.35.0)
+
+### Issue: SKILL.md 解析失败 — gray-matter 不可用
+
+**症状**:
+
+```
+[SkillMdParser] gray-matter not available, using simple parser
+Warning: Skill "xxx" frontmatter parsing incomplete
+```
+
+**原因**: `gray-matter` 是可选依赖，未安装时使用简易解析器。简易解析器不支持完整 YAML（多行字符串、嵌套数组等）。
+
+**解决方案**:
+
+1. **安装 gray-matter**:
+
+```bash
+cd desktop-app-vue
+npm install gray-matter
+```
+
+2. **简化 YAML frontmatter**: 如果无法安装，避免使用多行字符串和复杂嵌套：
+
+```yaml
+# ✅ 简易解析器支持
+name: my-skill
+description: 简单描述
+version: 1.0.0
+
+# ❌ 简易解析器不支持
+description: |
+  多行
+  描述
+capabilities:
+  - name: cap1
+    value: true
+```
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/cowork/skills/skill-md-parser.js:14-19`
+
+**状态**: 已解决 — 简易解析器可满足大多数场景
+
+---
+
+### Issue: 统一工具注册表初始化顺序错误
+
+**症状**:
+
+```
+[UnifiedToolRegistry] FunctionCaller not bound, skipping import
+[UnifiedToolRegistry] 0 tools imported (expected 60+)
+```
+
+**原因**: `UnifiedToolRegistry.initialize()` 在 `bindFunctionCaller()` 之前被调用。IPC Registry 中初始化顺序不正确。
+
+**解决方案**:
+
+1. **确保正确的初始化顺序** (在 `ipc-registry.js` Phase 15):
+
+```javascript
+// Phase 15: Unified Tools (必须在 FunctionCaller、MCP、Skills 之后)
+const registry = new UnifiedToolRegistry();
+registry.bindFunctionCaller(functionCaller); // 先绑定
+registry.bindMCPAdapter(mcpAdapter);
+registry.bindSkillRegistry(skillRegistry);
+await registry.initialize(); // 最后初始化
+```
+
+2. **检查 \_initPromise 防重入**: `initialize()` 有内置防重入保护，确保不会并发调用。
+
+**实现位置**: `desktop-app-vue/src/main/ipc/ipc-registry.js` (Phase 15)
+
+**状态**: 已解决 — 初始化顺序在 ipc-registry.js 中明确控制
+
+---
+
+### Issue: ToolSkillMapper 未匹配到预期工具
+
+**症状**: 某些 FunctionCaller 工具在 ToolsExplorerPage 中显示为 "uncategorized" 而非预期分组。
+
+**原因**: 工具名称不匹配 SKILL_GROUPS 中定义的正则模式。
+
+**解决方案**:
+
+1. **检查工具名称**: 确认工具注册时使用的名称与 SKILL_GROUPS 模式匹配
+2. **添加新的匹配模式**:
+
+```javascript
+// tool-skill-mapper.js — 添加匹配规则
+{ name: "my-group", match: [/^my_prefix_/, "specific_tool_name"], category: "custom" }
+```
+
+3. **使用 SKILL.md 覆盖**: 创建 SKILL.md 并在 `## 工具` 中明确列出工具名，优先级高于 ToolSkillMapper
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/tool-skill-mapper.js`
+
+**状态**: 设计预期 — uncategorized 工具可通过 SKILL.md 或修改 SKILL_GROUPS 解决
+
+---
+
+### Issue: 演示模板加载时 JSON 解析失败
+
+**症状**:
+
+```
+[DemoTemplateLoader] Failed to parse template: SyntaxError: Unexpected token
+```
+
+**原因**: 模板 JSON 文件格式错误（尾随逗号、注释等非标准 JSON）。
+
+**解决方案**:
+
+1. **验证 JSON 格式**: 使用 `JSON.parse()` 前先验证
+
+```bash
+# 检查 JSON 语法
+node -e "JSON.parse(require('fs').readFileSync('path/to/template.json'))"
+```
+
+2. **模板 JSON 结构要求**:
+
+```json
+{
+  "name": "template-name",
+  "displayName": "显示名",
+  "description": "描述",
+  "category": "automation|ai-workflow|knowledge|remote",
+  "difficulty": "beginner|intermediate|advanced",
+  "skills": ["skill-1", "skill-2"],
+  "steps": [...]
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/templates/demo-template-loader.js`
+
+**状态**: 已解决 — DemoTemplateLoader 包含 try-catch 错误处理
 
 ---
 

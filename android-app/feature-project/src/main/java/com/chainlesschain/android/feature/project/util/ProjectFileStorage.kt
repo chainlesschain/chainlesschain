@@ -1,7 +1,7 @@
 package com.chainlesschain.android.feature.project.util
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +23,6 @@ class ProjectFileStorage @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private const val TAG = "ProjectFileStorage"
         private const val PROJECTS_DIR = "projects"
     }
 
@@ -60,7 +59,7 @@ class ProjectFileStorage @Inject constructor(
         // 创建项目根目录
         if (!projectDir.exists()) {
             projectDir.mkdirs()
-            Log.d(TAG, "Created project directory: ${projectDir.absolutePath}")
+            Timber.d("Created project directory: ${projectDir.absolutePath}")
         }
 
         // 创建子目录
@@ -68,7 +67,7 @@ class ProjectFileStorage @Inject constructor(
             val subDir = File(projectDir, dir)
             if (!subDir.exists()) {
                 subDir.mkdirs()
-                Log.d(TAG, "Created subdirectory: $dir")
+                Timber.d("Created subdirectory: $dir")
             }
         }
 
@@ -100,7 +99,7 @@ class ProjectFileStorage @Inject constructor(
                     val folderPath = File(projectDir, fileEntity.path)
                     if (!folderPath.exists()) {
                         folderPath.mkdirs()
-                        Log.d(TAG, "Created folder: ${fileEntity.path}")
+                        Timber.d("Created folder: ${fileEntity.path}")
                     }
                     successCount++
                 } else {
@@ -118,15 +117,15 @@ class ProjectFileStorage @Inject constructor(
                     val content = fileEntity.content ?: ""
                     filePath.writeText(content, Charsets.UTF_8)
 
-                    Log.d(TAG, "Wrote file: ${fileEntity.path} (${content.length} chars)")
+                    Timber.d("Wrote file: ${fileEntity.path} (${content.length} chars)")
                     successCount++
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to write file: ${fileEntity.path}", e)
+                Timber.e(e, "Failed to write file: ${fileEntity.path}")
             }
         }
 
-        Log.i(TAG, "Wrote $successCount/${files.size} files to project $projectId")
+        Timber.i("Wrote $successCount/${files.size} files to project $projectId")
         successCount
     }
 
@@ -150,10 +149,10 @@ class ProjectFileStorage @Inject constructor(
             }
 
             filePath.writeText(content, Charsets.UTF_8)
-            Log.d(TAG, "Wrote file: $relativePath")
+            Timber.d("Wrote file: $relativePath")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to write file: $relativePath", e)
+            Timber.e(e, "Failed to write file: $relativePath")
             false
         }
     }
@@ -173,7 +172,7 @@ class ProjectFileStorage @Inject constructor(
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to read file: $relativePath", e)
+            Timber.e(e, "Failed to read file: $relativePath")
             null
         }
     }
@@ -186,11 +185,11 @@ class ProjectFileStorage @Inject constructor(
             val projectDir = getProjectDir(projectId)
             if (projectDir.exists()) {
                 projectDir.deleteRecursively()
-                Log.d(TAG, "Deleted project directory: $projectId")
+                Timber.d("Deleted project directory: $projectId")
             }
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete project directory: $projectId", e)
+            Timber.e(e, "Failed to delete project directory: $projectId")
             false
         }
     }

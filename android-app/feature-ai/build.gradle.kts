@@ -61,6 +61,9 @@ dependencies {
     // ONNX Runtime for ML model inference
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.0")
 
+    // Logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")

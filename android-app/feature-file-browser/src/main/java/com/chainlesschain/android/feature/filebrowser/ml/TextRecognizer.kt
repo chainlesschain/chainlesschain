@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -42,8 +42,6 @@ import kotlin.coroutines.resume
 class TextRecognizer @Inject constructor() {
 
     companion object {
-        private const val TAG = "TextRecognizer"
-
         // Maximum image dimension for processing (to avoid OOM)
         private const val MAX_IMAGE_DIMENSION = 2048
     }
@@ -163,7 +161,7 @@ class TextRecognizer @Inject constructor() {
             // Load and prepare image
             val bitmap = loadAndScaleImage(contentResolver, uri)
             if (bitmap == null) {
-                Log.e(TAG, "Failed to load image: $uri")
+                Timber.e("Failed to load image: $uri")
                 return@withContext RecognitionResult(
                     text = "",
                     blocks = emptyList(),
@@ -182,7 +180,7 @@ class TextRecognizer @Inject constructor() {
 
             result
         } catch (e: Exception) {
-            Log.e(TAG, "Error recognizing text from $uri", e)
+            Timber.e(e, "Error recognizing text from $uri")
             RecognitionResult(
                 text = "",
                 blocks = emptyList(),
@@ -255,11 +253,11 @@ class TextRecognizer @Inject constructor() {
                         language = language
                     )
 
-                    Log.d(TAG, "Recognized ${blocks.size} blocks, ${result.text.length} characters")
+                    Timber.d("Recognized ${blocks.size} blocks, ${result.text.length} characters")
                     continuation.resume(result)
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "Text recognition failed", e)
+                    Timber.e(e, "Text recognition failed")
                     continuation.resume(
                         RecognitionResult(
                             text = "",
@@ -270,7 +268,7 @@ class TextRecognizer @Inject constructor() {
                     )
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Error in recognizeTextFromBitmap", e)
+            Timber.e(e, "Error in recognizeTextFromBitmap")
             continuation.resume(
                 RecognitionResult(
                     text = "",
@@ -326,7 +324,7 @@ class TextRecognizer @Inject constructor() {
 
             bitmap
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading image: $uri", e)
+            Timber.e(e, "Error loading image: $uri")
             null
         }
     }
@@ -425,7 +423,7 @@ class TextRecognizer @Inject constructor() {
         try {
             recognizer.close()
         } catch (e: Exception) {
-            Log.e(TAG, "Error closing recognizer", e)
+            Timber.e(e, "Error closing recognizer")
         }
     }
 }

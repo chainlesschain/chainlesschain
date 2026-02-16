@@ -325,7 +325,7 @@ class TransactionManager @Inject constructor(
             val receiptResult = rpcClient.getTransactionReceipt(config, txHash)
 
             if (receiptResult is Result.Success && receiptResult.data != null) {
-                val receipt = receiptResult.data!!
+                val receipt = receiptResult.data ?: continue
                 val status = receipt["status"]?.toString()
 
                 val txStatus = if (status == "0x1") {

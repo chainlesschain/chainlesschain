@@ -75,11 +75,12 @@ fun CollaborationScreen(
                     }
                 }
                 selectedTab == 0 -> {
-                    if (currentSession != null) {
+                    val session = currentSession
+                    if (session != null) {
                         ActiveSessionPanel(
-                            session = currentSession!!,
-                            onLeave = { viewModel.leaveSession(currentSession!!.id, currentSession!!.hostUserId) },
-                            onClose = { viewModel.closeSession(currentSession!!.id) },
+                            session = session,
+                            onLeave = { viewModel.leaveSession(session.id, session.hostUserId) },
+                            onClose = { viewModel.closeSession(session.id) },
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {

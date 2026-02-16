@@ -1,7 +1,7 @@
 package com.chainlesschain.android.core.p2p.discovery
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
@@ -20,10 +20,6 @@ class CompositeDeviceDiscovery @Inject constructor(
     private val nsdDiscovery: NSDDiscovery,
     private val signalingDiscovery: SignalingDeviceDiscovery
 ) : DeviceDiscovery {
-
-    companion object {
-        private const val TAG = "CompositeDeviceDiscovery"
-    }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -84,27 +80,27 @@ class CompositeDeviceDiscovery @Inject constructor(
 
     override fun startDiscovery() {
         if (discovering) {
-            Log.w(TAG, "Discovery already running")
+            Timber.w("Discovery already running")
             return
         }
 
-        Log.i(TAG, "Starting composite discovery (NSD + Signaling)")
+        Timber.i("Starting composite discovery (NSD + Signaling)")
         discovering = true
 
         // 启动 NSD 发现
         try {
             nsdDiscovery.startDiscovery()
-            Log.i(TAG, "NSD discovery started")
+            Timber.i("NSD discovery started")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start NSD discovery", e)
+            Timber.e(e, "Failed to start NSD discovery")
         }
 
         // 启动信令服务器发现
         try {
             signalingDiscovery.startDiscovery()
-            Log.i(TAG, "Signaling discovery started")
+            Timber.i("Signaling discovery started")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start signaling discovery", e)
+            Timber.e(e, "Failed to start signaling discovery")
         }
 
         // 收集发现事件
@@ -129,11 +125,11 @@ class CompositeDeviceDiscovery @Inject constructor(
 
     override fun stopDiscovery() {
         if (!discovering) {
-            Log.w(TAG, "Discovery not running")
+            Timber.w("Discovery not running")
             return
         }
 
-        Log.i(TAG, "Stopping composite discovery")
+        Timber.i("Stopping composite discovery")
         discovering = false
 
         collectionJob?.cancel()
@@ -142,13 +138,13 @@ class CompositeDeviceDiscovery @Inject constructor(
         try {
             nsdDiscovery.stopDiscovery()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop NSD discovery", e)
+            Timber.e(e, "Failed to stop NSD discovery")
         }
 
         try {
             signalingDiscovery.stopDiscovery()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop signaling discovery", e)
+            Timber.e(e, "Failed to stop signaling discovery")
         }
 
         scope.launch {
@@ -157,19 +153,19 @@ class CompositeDeviceDiscovery @Inject constructor(
     }
 
     override fun registerService(deviceInfo: P2PDevice) {
-        Log.i(TAG, "Registering service for device: ${deviceInfo.deviceName}")
+        Timber.i("Registering service for device: ${deviceInfo.deviceName}")
 
         // 同时注册到 NSD 和信令服务器
         try {
             nsdDiscovery.registerService(deviceInfo)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to register NSD service", e)
+            Timber.e(e, "Failed to register NSD service")
         }
 
         try {
             signalingDiscovery.registerService(deviceInfo)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to register with signaling server", e)
+            Timber.e(e, "Failed to register with signaling server")
         }
     }
 

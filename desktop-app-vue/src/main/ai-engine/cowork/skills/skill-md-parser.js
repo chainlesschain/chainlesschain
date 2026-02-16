@@ -222,6 +222,20 @@ class SkillMdParser {
       capabilities: normalized.capabilities || [],
       supportedFileTypes: normalized.supportedFileTypes || [],
 
+      // Agent Skills Open Standard fields
+      tools: normalized.tools || [],
+      instructions: normalized.instructions || "",
+      examples: normalized.examples || [],
+      dependencies: normalized.dependencies || [],
+      inputSchema: normalized.inputSchema || null,
+      outputSchema: normalized.outputSchema || null,
+      modelHints: normalized.modelHints || null,
+      cost: normalized.cost || null,
+      author: normalized.author || "",
+      license: normalized.license || "",
+      homepage: normalized.homepage || "",
+      repository: normalized.repository || "",
+
       // Markdown 正文
       body: body.trim(),
 
@@ -319,6 +333,22 @@ class SkillMdParser {
       capabilities: "capabilities",
       "supported-file-types": "supportedFileTypes",
       supportedFileTypes: "supportedFileTypes",
+      // Agent Skills Open Standard fields
+      tools: "tools",
+      instructions: "instructions",
+      examples: "examples",
+      dependencies: "dependencies",
+      "input-schema": "inputSchema",
+      inputSchema: "inputSchema",
+      "output-schema": "outputSchema",
+      outputSchema: "outputSchema",
+      "model-hints": "modelHints",
+      modelHints: "modelHints",
+      cost: "cost",
+      author: "author",
+      license: "license",
+      homepage: "homepage",
+      repository: "repository",
     };
 
     for (const [key, value] of Object.entries(obj)) {

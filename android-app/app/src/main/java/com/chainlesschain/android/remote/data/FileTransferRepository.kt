@@ -3,7 +3,6 @@ package com.chainlesschain.android.remote.data
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
 import com.chainlesschain.android.remote.commands.FileCommands
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +14,7 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
+import timber.log.Timber
 
 /**
  * 文件传输 Repository
@@ -28,7 +28,6 @@ class FileTransferRepository @Inject constructor(
     private val database: CommandHistoryDatabase
 ) {
     private val dao = database.fileTransferDao()
-    private val TAG = "FileTransferRepository"
 
     // 默认分块大小（256KB）
     private val DEFAULT_CHUNK_SIZE = 256 * 1024
@@ -130,7 +129,7 @@ class FileTransferRepository @Inject constructor(
 
                 onProgress?.invoke(progress)
 
-                Log.d(TAG, "Uploaded chunk $chunkIndex/$totalChunks (${progress}%)")
+                Timber.d("Uploaded chunk $chunkIndex/$totalChunks (${progress}%)")
             }
 
             // 6. 完成上传
@@ -168,7 +167,7 @@ class FileTransferRepository @Inject constructor(
             Result.success(finalTransfer)
 
         } catch (e: Exception) {
-            Log.e(TAG, "Upload failed", e)
+            Timber.e(e, "Upload failed")
             Result.failure(e)
         }
     }
@@ -257,7 +256,7 @@ class FileTransferRepository @Inject constructor(
 
                     onProgress?.invoke(progress)
 
-                    Log.d(TAG, "Downloaded chunk $chunkIndex/$totalChunks (${progress}%)")
+                    Timber.d("Downloaded chunk $chunkIndex/$totalChunks (${progress}%)")
                 }
             }
 
@@ -294,7 +293,7 @@ class FileTransferRepository @Inject constructor(
             Result.success(finalTransfer)
 
         } catch (e: Exception) {
-            Log.e(TAG, "Download failed", e)
+            Timber.e(e, "Download failed")
             Result.failure(e)
         }
     }
@@ -329,7 +328,7 @@ class FileTransferRepository @Inject constructor(
             Result.success(Unit)
 
         } catch (e: Exception) {
-            Log.e(TAG, "Cancel failed", e)
+            Timber.e(e, "Cancel failed")
             Result.failure(e)
         }
     }

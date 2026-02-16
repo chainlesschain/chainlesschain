@@ -117,20 +117,21 @@ fun KnowledgeGraphScreen(
                         )
                     }
                     uiState.graphData != null -> {
+                        val graphData = uiState.graphData ?: return@Box
                         GraphCanvas(
-                            graphData = uiState.graphData!!,
+                            graphData = graphData,
                             selectedNodeId = selectedNode?.id,
                             highlightedPath = uiState.highlightedPath,
                             onNodeClick = { nodeId ->
-                                val node = uiState.graphData!!.getNode(nodeId)
+                                val node = graphData.getNode(nodeId)
                                 viewModel.selectNode(node)
                             }
                         )
 
                         // Stats overlay
                         GraphStatsOverlay(
-                            nodeCount = uiState.graphData!!.nodes.size,
-                            edgeCount = uiState.graphData!!.edges.size,
+                            nodeCount = graphData.nodes.size,
+                            edgeCount = graphData.edges.size,
                             modifier = Modifier.align(Alignment.TopStart)
                         )
                     }
@@ -144,13 +145,13 @@ fun KnowledgeGraphScreen(
             }
 
             // Detail Panel
-            if (selectedNode != null) {
+            selectedNode?.let { node ->
                 VerticalDivider()
                 NodeDetailPanel(
-                    node = selectedNode!!,
+                    node = node,
                     edges = uiState.selectedNodeEdges,
                     onClose = { viewModel.selectNode(null) },
-                    onDelete = { viewModel.deleteNode(selectedNode!!.id) },
+                    onDelete = { viewModel.deleteNode(node.id) },
                     modifier = Modifier.width(300.dp)
                 )
             }

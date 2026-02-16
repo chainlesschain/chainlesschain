@@ -1,6 +1,5 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
-import android.util.Log
 import timber.log.Timber
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.common.asResult
@@ -142,7 +141,7 @@ class FriendRepository @Inject constructor(
                 Result.Success(results)
             }
             .catch { e ->
-                Log.e("FriendRepository", "Error getting nearby users", e)
+                Timber.e(e, "Error getting nearby users")
                 emit(Result.Success(emptyList()))
             }
     }
@@ -191,7 +190,7 @@ class FriendRepository @Inject constructor(
 
                 emit(Result.Success(scored))
             } catch (e: Exception) {
-                Log.e("FriendRepository", "Error getting recommended friends", e)
+                Timber.e(e, "Error getting recommended friends")
                 emit(Result.Success(emptyList()))
             }
         }
@@ -555,9 +554,9 @@ class FriendRepository @Inject constructor(
         try {
             val entity = syncJson.decodeFromString<FriendEntity>(data)
             friendDao.insert(entity)
-            Log.d("FriendRepository", "Friend saved from sync: $resourceId")
+            Timber.d("Friend saved from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("FriendRepository", "Failed to save friend from sync: $resourceId", e)
+            Timber.e(e, "Failed to save friend from sync: $resourceId")
         }
     }
 
@@ -565,18 +564,18 @@ class FriendRepository @Inject constructor(
         try {
             val entity = syncJson.decodeFromString<FriendEntity>(data)
             friendDao.insert(entity)
-            Log.d("FriendRepository", "Friend updated from sync: $resourceId")
+            Timber.d("Friend updated from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("FriendRepository", "Failed to update friend from sync: $resourceId", e)
+            Timber.e(e, "Failed to update friend from sync: $resourceId")
         }
     }
 
     suspend fun deleteFriendFromSync(resourceId: String) {
         try {
             friendDao.deleteByDid(resourceId)
-            Log.d("FriendRepository", "Friend deleted from sync: $resourceId")
+            Timber.d("Friend deleted from sync: $resourceId")
         } catch (e: Exception) {
-            Log.e("FriendRepository", "Failed to delete friend from sync: $resourceId", e)
+            Timber.e(e, "Failed to delete friend from sync: $resourceId")
         }
     }
 }
