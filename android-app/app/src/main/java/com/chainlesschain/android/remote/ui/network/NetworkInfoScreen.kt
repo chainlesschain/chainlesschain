@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.remote.commands.NetworkInterface
+import com.chainlesschain.android.remote.commands.NetworkStatusDetail
 import com.chainlesschain.android.remote.p2p.ConnectionState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,7 +146,7 @@ fun NetworkInfoScreen(
 
 @Composable
 private fun StatusTab(
-    networkStatus: com.chainlesschain.android.remote.commands.NetworkStatusDetail?,
+    networkStatus: NetworkStatusDetail?,
     bandwidth: com.chainlesschain.android.remote.commands.BandwidthInfo?,
     publicIP: String?,
     wifiInfo: com.chainlesschain.android.remote.commands.WifiInfo?,
@@ -269,12 +270,12 @@ private fun StatusTab(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.ArrowDownward, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Text(bw.rxFormatted ?: "${bw.rx} B/s", fontWeight = FontWeight.Bold)
+                                Text(bw.rxRateFormatted, fontWeight = FontWeight.Bold)
                                 Text("Download", style = MaterialTheme.typography.bodySmall)
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
-                                Text(bw.txFormatted ?: "${bw.tx} B/s", fontWeight = FontWeight.Bold)
+                                Text(bw.txRateFormatted, fontWeight = FontWeight.Bold)
                                 Text("Upload", style = MaterialTheme.typography.bodySmall)
                             }
                         }
@@ -310,9 +311,9 @@ private fun StatusTab(
                     ) {
                         Text("WiFi", fontWeight = FontWeight.Bold)
                         wifi.ssid?.let { Text("SSID: $it") }
-                        wifi.signalStrength?.let { Text("Signal: $it dBm") }
+                        wifi.signal?.let { Text("Signal: $it dBm") }
                         wifi.channel?.let { Text("Channel: $it") }
-                        wifi.security?.let { Text("Security: $it") }
+                        wifi.authentication?.let { Text("Security: $it") }
                     }
                 }
             }

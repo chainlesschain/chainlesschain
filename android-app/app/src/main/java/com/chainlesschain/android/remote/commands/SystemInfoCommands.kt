@@ -375,7 +375,10 @@ data class CpuTimes(
 @Serializable
 data class MemoryInfoResponse(
     val success: Boolean,
-    val memory: MemoryDetail
+    val memory: MemoryDetail? = null,
+    val jsHeapSizeLimit: Long? = null,
+    val totalJSHeapSize: Long? = null,
+    val usedJSHeapSize: Long? = null
 )
 
 @Serializable
@@ -419,10 +422,14 @@ data class TemperatureInfoResponse(
 
 @Serializable
 data class TemperatureSensor(
-    val label: String,
-    val value: Double,
+    val label: String = "",
+    val value: Double = 0.0,
     val max: Double? = null,
-    val critical: Double? = null
+    val critical: Double? = null,
+    val name: String? = null,
+    val temperature: Double? = null,
+    val high: Double? = null,
+    val unit: String? = null
 )
 
 @Serializable
@@ -493,7 +500,8 @@ data class HardwareDetail(
 data class SystemLogsResponse(
     val success: Boolean,
     val logs: List<LogEntry>,
-    val total: Int
+    val total: Int,
+    val hasMore: Boolean = false
 )
 
 @Serializable
@@ -501,7 +509,9 @@ data class LogEntry(
     val timestamp: String? = null,
     val level: String? = null,
     val source: String? = null,
-    val message: String
+    val message: String,
+    val eventId: Int? = null,
+    val category: String? = null
 )
 
 @Serializable

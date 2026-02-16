@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -292,6 +293,7 @@ class NotificationCenterViewModel @Inject constructor(
 /**
  * UI State
  */
+@Immutable
 data class NotificationCenterUiState(
     val notifications: List<NotificationHistoryItem> = emptyList(),
     val settings: NotificationSettings = NotificationSettings(),

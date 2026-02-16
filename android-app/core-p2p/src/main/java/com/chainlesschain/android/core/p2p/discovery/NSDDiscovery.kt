@@ -45,7 +45,8 @@ class NSDDiscovery @Inject constructor(
     }
 
     private val nsdManager: NsdManager by lazy {
-        context.getSystemService(Context.NSD_SERVICE) as NsdManager
+        context.getSystemService(Context.NSD_SERVICE) as? NsdManager
+            ?: error("NsdManager system service unavailable")
     }
 
     // 发现的设备列表
@@ -54,16 +55,20 @@ class NSDDiscovery @Inject constructor(
     // 发现事件流
     private val _discoveryEvents = MutableStateFlow<DiscoveryEvent>(DiscoveryEvent.DiscoveryStopped)
 
-    // 是否正在发现
+    // 是否正在发现 (accessed from NSD system threads)
+    @Volatile
     private var discovering = false
 
-    // 已注册的服务
+    // 已注册的服务 (accessed from NSD registration callback thread)
+    @Volatile
     private var registeredServiceName: String? = null
 
     // 发现监听器
+    @Volatile
     private var discoveryListener: NsdManager.DiscoveryListener? = null
 
     // 注册监听器
+    @Volatile
     private var registrationListener: NsdManager.RegistrationListener? = null
 
     override fun startDiscovery() {

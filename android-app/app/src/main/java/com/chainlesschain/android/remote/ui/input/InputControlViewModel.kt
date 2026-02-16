@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -359,6 +360,7 @@ enum class InputMode {
 /**
  * 输入控制 UI 状态
  */
+@Immutable
 data class InputControlUiState(
     val isExecuting: Boolean = false,
     val error: String? = null,

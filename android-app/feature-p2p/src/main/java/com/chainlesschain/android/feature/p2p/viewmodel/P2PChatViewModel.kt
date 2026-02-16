@@ -15,6 +15,7 @@ import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -348,6 +349,7 @@ enum class ConnectionStatus {
 /**
  * P2P聊天UI状态
  */
+@Immutable
 data class P2PChatUiState(
     val isLoading: Boolean = false,
     val isSending: Boolean = false,

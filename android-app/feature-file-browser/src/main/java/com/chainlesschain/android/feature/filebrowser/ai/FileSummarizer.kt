@@ -1,11 +1,14 @@
 package com.chainlesschain.android.feature.filebrowser.ai
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.chainlesschain.android.feature.ai.data.llm.OllamaAdapter
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
+import com.chainlesschain.android.feature.filebrowser.R
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -41,6 +44,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class FileSummarizer @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val ollamaAdapter: OllamaAdapter
 ) {
 
@@ -133,7 +137,7 @@ class FileSummarizer @Inject constructor(
             val fileSize = getFileSize(contentResolver, uri)
             if (fileSize > MAX_FILE_SIZE) {
                 return@withContext SummaryResult(
-                    summary = "文件过大，无法生成摘要（最大 ${MAX_FILE_SIZE / 1024}KB）",
+                    summary = context.getString(R.string.file_too_large_for_summary, MAX_FILE_SIZE / 1024),
                     method = SummarizationMethod.RULE_BASED
                 )
             }
@@ -142,7 +146,7 @@ class FileSummarizer @Inject constructor(
             val content = loadTextContent(contentResolver, uri)
             if (content.isNullOrBlank()) {
                 return@withContext SummaryResult(
-                    summary = "无法读取文件内容",
+                    summary = context.getString(R.string.file_cannot_read_content),
                     method = SummarizationMethod.RULE_BASED
                 )
             }
@@ -155,7 +159,7 @@ class FileSummarizer @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error summarizing file: $uri", e)
             SummaryResult(
-                summary = "生成摘要失败: ${e.message}",
+                summary = context.getString(R.string.file_summary_failed, e.message ?: ""),
                 method = SummarizationMethod.RULE_BASED
             )
         }
@@ -258,28 +262,28 @@ class FileSummarizer @Inject constructor(
 
         // Build summary
         val summary = buildString {
-            append("$language 代码文件")
+            append(context.getString(R.string.file_code_summary, language))
             if (classes.isNotEmpty()) {
-                append("，包含 ${classes.size} 个类")
+                append(context.getString(R.string.file_code_classes_count, classes.size))
                 if (classes.size <= 3) {
                     append(": ${classes.joinToString(", ")}")
                 }
             }
             if (functions.isNotEmpty()) {
-                append("，${functions.size} 个函数")
+                append(context.getString(R.string.file_code_functions_count, functions.size))
                 if (functions.size <= 5) {
                     append(": ${functions.take(5).joinToString(", ")}")
                 }
             }
-            append("。共 ${lines.size} 行代码。")
+            append(context.getString(R.string.file_code_lines_count, lines.size))
         }
 
         val keyPoints = mutableListOf<String>()
         if (classes.isNotEmpty()) {
-            keyPoints.add("类: ${classes.take(5).joinToString(", ")}")
+            keyPoints.add(context.getString(R.string.file_code_classes_label, classes.take(5).joinToString(", ")))
         }
         if (functions.isNotEmpty()) {
-            keyPoints.add("函数: ${functions.take(5).joinToString(", ")}")
+            keyPoints.add(context.getString(R.string.file_code_functions_label, functions.take(5).joinToString(", ")))
         }
 
         return SummaryResult(
@@ -781,10 +785,9 @@ class FileSummarizer @Inject constructor(
         uri: String
     ): String? {
         return try {
-            val inputStream = contentResolver.openInputStream(Uri.parse(uri)) ?: return null
-            val reader = BufferedReader(InputStreamReader(inputStream))
-            val content = reader.use { it.readText() }
-            inputStream.close()
+            val content = contentResolver.openInputStream(Uri.parse(uri))?.use { inputStream ->
+                inputStream.bufferedReader().readText()
+            }
             content
         } catch (e: Exception) {
             Log.e(TAG, "Error loading text content: $uri", e)

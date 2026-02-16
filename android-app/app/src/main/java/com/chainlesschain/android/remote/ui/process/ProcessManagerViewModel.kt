@@ -6,6 +6,7 @@ import com.chainlesschain.android.remote.commands.ProcessCommands
 import com.chainlesschain.android.remote.commands.ProcessInfo
 import com.chainlesschain.android.remote.commands.ProcessDetail
 import com.chainlesschain.android.remote.commands.ResourceUsage
+import com.chainlesschain.android.remote.commands.SystemResources
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -125,7 +127,7 @@ class ProcessManagerViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isExecuting = true, error = null) }
 
-            val result = processCommands.kill(pid, force)
+            val result = processCommands.kill(pid, force = force)
 
             if (result.isSuccess) {
                 _uiState.update { it.copy(
@@ -153,7 +155,7 @@ class ProcessManagerViewModel @Inject constructor(
                 val response = result.getOrNull()
                 _uiState.update { it.copy(
                     isExecuting = false,
-                    lastAction = "Started: ${response?.name ?: command} (PID: ${response?.pid})"
+                    lastAction = "Started: ${response?.command ?: command} (PID: ${response?.pid})"
                 )}
                 // 刷新进程列表
                 delay(500) // 等待进程启动
@@ -199,7 +201,14 @@ class ProcessManagerViewModel @Inject constructor(
             val result = processCommands.getResources()
 
             if (result.isSuccess) {
-                _resourceUsage.value = result.getOrNull()?.resources
+                val resources = result.getOrNull()?.resources
+                _resourceUsage.value = resources?.let {
+                    ResourceUsage(
+                        cpuUsage = it.cpu.usage,
+                        memoryUsage = it.memory.usagePercent,
+                        processCount = _processes.value.size
+                    )
+                }
             } else {
                 Timber.w(result.exceptionOrNull(), "获取资源使用情况失败")
             }
@@ -306,6 +315,7 @@ class ProcessManagerViewModel @Inject constructor(
 /**
  * 进程管理 UI 状态
  */
+@Immutable
 data class ProcessManagerUiState(
     val isLoading: Boolean = false,
     val isExecuting: Boolean = false,

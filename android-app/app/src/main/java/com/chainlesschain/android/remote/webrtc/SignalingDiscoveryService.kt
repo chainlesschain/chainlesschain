@@ -102,7 +102,7 @@ class SignalingDiscoveryService @Inject constructor(
             debugBuilder.appendLine("✗ 扫描超时或失败: ${e.message}")
             debugBuilder.appendLine("========== 扫描结束 ==========")
             lastScanDebugInfo = debugBuilder.toString()
-            Result.success(emptyList())
+            Result.failure(e)
         } finally {
             ws?.close(1000, "done")
         }
@@ -151,7 +151,8 @@ class SignalingDiscoveryService @Inject constructor(
                     )
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to parse peer payload")
             null
         }
     }

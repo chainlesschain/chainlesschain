@@ -24,8 +24,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.project.ui.AttachedFileData
 import com.chainlesschain.android.feature.project.ui.FilePickerDialog
 import kotlinx.coroutines.launch
@@ -40,9 +43,11 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun EnhancedAIChatScreen(
     conversationId: String,
-    conversationTitle: String = "AI对话",
+    conversationTitle: String = "",
     onNavigateBack: () -> Unit = {}
 ) {
+    val displayTitle = conversationTitle.ifEmpty { stringResource(R.string.ai_chat_title) }
+    val context = LocalContext.current
     var inputText by remember { mutableStateOf("") }
     var isTyping by remember { mutableStateOf(false) }
     var showFilePicker by remember { mutableStateOf(false) }
@@ -58,19 +63,19 @@ fun EnhancedAIChatScreen(
         mutableStateListOf(
             ChatMessage(
                 id = "1",
-                content = "你好！我是你的AI助手，有什么可以帮助你的吗？",
+                content = context.getString(R.string.ai_chat_greeting),
                 isUser = false,
                 timestamp = LocalDateTime.now().minusMinutes(5)
             ),
             ChatMessage(
                 id = "2",
-                content = "帮我分析一下这个项目的架构",
+                content = context.getString(R.string.ai_chat_sample_question),
                 isUser = true,
                 timestamp = LocalDateTime.now().minusMinutes(4)
             ),
             ChatMessage(
                 id = "3",
-                content = "我已经分析了你的项目架构，这是一个典型的MVVM架构设计...",
+                content = context.getString(R.string.ai_chat_sample_response),
                 isUser = false,
                 timestamp = LocalDateTime.now().minusMinutes(3),
                 codeBlock = """
@@ -88,10 +93,10 @@ fun EnhancedAIChatScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(conversationTitle)
+                        Text(displayTitle)
                         if (isTyping) {
                             Text(
-                                text = "AI正在输入...",
+                                text = stringResource(R.string.ai_chat_typing),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -100,17 +105,17 @@ fun EnhancedAIChatScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showClearConfirmDialog = true }) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = "清空")
+                        Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.common_clear))
                     }
                     IconButton(onClick = {
-                        coroutineScope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                        coroutineScope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
                     }) {
-                        Icon(Icons.Default.Settings, contentDescription = "设置")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.common_settings))
                     }
                 }
             )
@@ -140,7 +145,7 @@ fun EnhancedAIChatScreen(
                             messages.add(
                                 ChatMessage(
                                     id = System.currentTimeMillis().toString(),
-                                    content = inputText.ifBlank { "[附件]" },
+                                    content = inputText.ifBlank { context.getString(R.string.ai_chat_attachment_label) },
                                     isUser = true,
                                     timestamp = LocalDateTime.now(),
                                     attachedFiles = pendingAttachments.toList()
@@ -159,7 +164,7 @@ fun EnhancedAIChatScreen(
                                 messages.add(
                                     ChatMessage(
                                         id = System.currentTimeMillis().toString(),
-                                        content = "我已经收到了你的文件，正在分析...",
+                                        content = context.getString(R.string.ai_chat_file_analyzing),
                                         isUser = false,
                                         timestamp = LocalDateTime.now()
                                     )
@@ -194,7 +199,7 @@ fun EnhancedAIChatScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(messages) { message ->
+                items(messages, key = { it.id }) { message ->
                     ChatMessageBubble(message)
                 }
 
@@ -230,16 +235,16 @@ fun EnhancedAIChatScreen(
     if (showClearConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showClearConfirmDialog = false },
-            title = { Text("清空对话") },
-            text = { Text("确定要清空所有对话内容吗？此操作不可恢复。") },
+            title = { Text(stringResource(R.string.ai_chat_clear_title)) },
+            text = { Text(stringResource(R.string.ai_chat_clear_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     messages.clear()
                     showClearConfirmDialog = false
-                }) { Text("清空") }
+                }) { Text(stringResource(R.string.common_clear)) }
             },
             dismissButton = {
-                TextButton(onClick = { showClearConfirmDialog = false }) { Text("取消") }
+                TextButton(onClick = { showClearConfirmDialog = false }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -367,7 +372,7 @@ fun ChatMessageBubble(message: ChatMessage) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Person,
-                        contentDescription = "用户",
+                        contentDescription = stringResource(R.string.ai_chat_user),
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onTertiaryContainer
                     )
@@ -411,7 +416,7 @@ fun CodeBlock(code: String) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "复制",
+                        contentDescription = stringResource(R.string.common_copy),
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.size(16.dp)
                     )
@@ -459,7 +464,7 @@ fun ChatInputBar(
                 onClick = onAttachFile,
                 modifier = Modifier.size(40.dp)
             ) {
-                Icon(Icons.Default.AttachFile, contentDescription = "附件")
+                Icon(Icons.Default.AttachFile, contentDescription = stringResource(R.string.ai_chat_attachment))
             }
 
             // 输入框
@@ -469,7 +474,7 @@ fun ChatInputBar(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 40.dp, max = 120.dp),
-                placeholder = { Text("输入消息...") },
+                placeholder = { Text(stringResource(R.string.ai_chat_input_hint)) },
                 shape = RoundedCornerShape(20.dp),
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Send
@@ -488,7 +493,7 @@ fun ChatInputBar(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "发送",
+                    contentDescription = stringResource(R.string.common_send),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -579,17 +584,17 @@ fun QuickActionFAB(modifier: Modifier = Modifier) {
             ) {
                 QuickActionButton(
                     icon = Icons.Default.Image,
-                    text = "图片",
+                    text = stringResource(R.string.ai_chat_image),
                     onClick = { expanded = false }
                 )
                 QuickActionButton(
                     icon = Icons.Default.Code,
-                    text = "代码",
+                    text = stringResource(R.string.ai_chat_code),
                     onClick = { expanded = false }
                 )
                 QuickActionButton(
                     icon = Icons.Default.Description,
-                    text = "文档",
+                    text = stringResource(R.string.ai_chat_document),
                     onClick = { expanded = false }
                 )
             }
@@ -601,7 +606,7 @@ fun QuickActionFAB(modifier: Modifier = Modifier) {
         ) {
             Icon(
                 imageVector = if (expanded) Icons.Default.Close else Icons.Default.Add,
-                contentDescription = if (expanded) "关闭" else "打开"
+                contentDescription = if (expanded) stringResource(R.string.common_close) else stringResource(R.string.common_open)
             )
         }
     }
@@ -659,7 +664,7 @@ fun AttachmentPreviewBar(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "附件 (${attachments.size})",
+                    text = stringResource(R.string.ai_chat_attachments_count, attachments.size),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -671,7 +676,7 @@ fun AttachmentPreviewBar(
             androidx.compose.foundation.lazy.LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(attachments) { file ->
+                items(attachments, key = { it.id }) { file ->
                     AttachmentPreviewItem(
                         file = file,
                         onRemove = { onRemoveAttachment(file.id) }
@@ -748,7 +753,7 @@ fun AttachmentPreviewItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "移除",
+                    contentDescription = stringResource(R.string.common_remove),
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.error
                 )
@@ -869,7 +874,7 @@ fun AttachmentBubble(
             // 下载/查看图标
             Icon(
                 imageVector = Icons.Default.FileDownload,
-                contentDescription = "下载",
+                contentDescription = stringResource(R.string.common_download),
                 modifier = Modifier.size(20.dp),
                 tint = if (isUserMessage) {
                     MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)

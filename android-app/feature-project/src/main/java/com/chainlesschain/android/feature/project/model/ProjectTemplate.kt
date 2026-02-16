@@ -1,6 +1,8 @@
 package com.chainlesschain.android.feature.project.model
 
+import androidx.annotation.StringRes
 import com.chainlesschain.android.core.database.entity.ProjectType
+import com.chainlesschain.android.feature.project.R
 
 /**
  * Project template
@@ -16,23 +18,25 @@ data class ProjectTemplate(
     val type: String = ProjectType.OTHER,
     val tags: List<String> = emptyList(),
     val structure: ProjectStructure,
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
+    @StringRes val nameResId: Int = 0,
+    @StringRes val descriptionResId: Int = 0
 )
 
 /**
  * Template category
  */
-enum class TemplateCategory(val displayName: String) {
-    ANDROID("Android"),
-    WEB("Web 开发"),
-    BACKEND("后端服务"),
-    DATA_SCIENCE("数据科学"),
-    MOBILE("移动开发"),
-    DESKTOP("桌面应用"),
-    LIBRARY("库/框架"),
-    MULTIPLATFORM("跨平台"),
-    FLUTTER("Flutter"),
-    OTHER("其他")
+enum class TemplateCategory(@StringRes val displayNameResId: Int) {
+    ANDROID(R.string.template_cat_android),
+    WEB(R.string.template_cat_web),
+    BACKEND(R.string.template_cat_backend),
+    DATA_SCIENCE(R.string.template_cat_data_science),
+    MOBILE(R.string.template_cat_mobile),
+    DESKTOP(R.string.template_cat_desktop),
+    LIBRARY(R.string.template_cat_library),
+    MULTIPLATFORM(R.string.template_cat_multiplatform),
+    FLUTTER(R.string.template_cat_flutter),
+    OTHER(R.string.template_cat_other)
 }
 
 /**
@@ -99,7 +103,9 @@ object ProjectTemplates {
         icon = "📄",
         category = TemplateCategory.OTHER,
         type = ProjectType.OTHER,
-        structure = ProjectStructure()
+        structure = ProjectStructure(),
+        nameResId = R.string.template_name_blank,
+        descriptionResId = R.string.template_desc_blank
     )
 
     val androidAppTemplate = ProjectTemplate(
@@ -110,6 +116,8 @@ object ProjectTemplates {
         category = TemplateCategory.ANDROID,
         type = ProjectType.ANDROID,
         tags = listOf("android", "kotlin", "mobile"),
+        nameResId = R.string.template_name_android_app,
+        descriptionResId = R.string.template_desc_android_app,
         structure = ProjectStructure(
             folders = listOf(
                 "app/src/main/java",
@@ -228,6 +236,8 @@ object ProjectTemplates {
         category = TemplateCategory.WEB,
         type = ProjectType.WEB,
         tags = listOf("react", "typescript", "web", "frontend"),
+        nameResId = R.string.template_name_react_web,
+        descriptionResId = R.string.template_desc_react_web,
         structure = ProjectStructure(
             folders = listOf(
                 "src/components",
@@ -345,6 +355,8 @@ object ProjectTemplates {
         category = TemplateCategory.BACKEND,
         type = ProjectType.BACKEND,
         tags = listOf("nodejs", "typescript", "api", "backend"),
+        nameResId = R.string.template_name_nodejs_api,
+        descriptionResId = R.string.template_desc_nodejs_api,
         structure = ProjectStructure(
             folders = listOf(
                 "src/routes",
@@ -462,6 +474,8 @@ object ProjectTemplates {
         category = TemplateCategory.DATA_SCIENCE,
         type = ProjectType.DATA_SCIENCE,
         tags = listOf("python", "data-science", "ml", "analytics"),
+        nameResId = R.string.template_name_python_ds,
+        descriptionResId = R.string.template_desc_python_ds,
         structure = ProjectStructure(
             folders = listOf(
                 "data/raw",
@@ -544,6 +558,8 @@ object ProjectTemplates {
         category = TemplateCategory.MOBILE,
         type = ProjectType.MULTIPLATFORM,
         tags = listOf("kotlin", "multiplatform", "mobile"),
+        nameResId = R.string.template_name_kotlin_mp,
+        descriptionResId = R.string.template_desc_kotlin_mp,
         structure = ProjectStructure(
             folders = listOf(
                 "shared/src/commonMain/kotlin",
@@ -599,6 +615,8 @@ object ProjectTemplates {
         category = TemplateCategory.BACKEND,
         type = ProjectType.BACKEND,
         tags = listOf("java", "spring", "backend", "api"),
+        nameResId = R.string.template_name_spring_boot,
+        descriptionResId = R.string.template_desc_spring_boot,
         structure = ProjectStructure(
             folders = listOf(
                 "src/main/java/com/example/demo/controller",
@@ -658,6 +676,8 @@ object ProjectTemplates {
         category = TemplateCategory.MOBILE,
         type = ProjectType.FLUTTER,
         tags = listOf("flutter", "dart", "mobile"),
+        nameResId = R.string.template_name_flutter_app,
+        descriptionResId = R.string.template_desc_flutter_app,
         structure = ProjectStructure(
             folders = listOf(
                 "lib/screens",
@@ -751,6 +771,8 @@ object ProjectTemplates {
         category = TemplateCategory.WEB,
         type = ProjectType.WEB,
         tags = listOf("vue", "typescript", "web", "frontend"),
+        nameResId = R.string.template_name_vue_web,
+        descriptionResId = R.string.template_desc_vue_web,
         structure = ProjectStructure(
             folders = listOf(
                 "src/components",
@@ -811,6 +833,8 @@ object ProjectTemplates {
         category = TemplateCategory.BACKEND,
         type = ProjectType.BACKEND,
         tags = listOf("nodejs", "express", "api"),
+        nameResId = R.string.template_name_express_api,
+        descriptionResId = R.string.template_desc_express_api,
         structure = ProjectStructure(
             folders = listOf("routes", "controllers", "models", "middleware"),
             files = listOf(
@@ -861,6 +885,8 @@ object ProjectTemplates {
         category = TemplateCategory.WEB,
         type = ProjectType.WEB,
         tags = listOf("python", "django", "web", "fullstack"),
+        nameResId = R.string.template_name_django_web,
+        descriptionResId = R.string.template_desc_django_web,
         structure = ProjectStructure(
             folders = listOf(
                 "mysite",

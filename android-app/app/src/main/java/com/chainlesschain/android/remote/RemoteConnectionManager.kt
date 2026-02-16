@@ -313,7 +313,12 @@ class RemoteConnectionManager @Inject constructor(
         args: List<String> = emptyList(),
         workingDirectory: String? = null
     ): Result<ExecCommandResponse> {
-        return system.execCommand(command, args, workingDirectory)
+        val fullCommand = if (args.isNotEmpty()) {
+            "$command ${args.joinToString(" ")}"
+        } else {
+            command
+        }
+        return system.execCommand(fullCommand, workingDirectory)
     }
 
     /**

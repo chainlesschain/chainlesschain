@@ -20,6 +20,7 @@ import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -284,6 +285,7 @@ class FriendDetailViewModel @Inject constructor(
 /**
  * 好友详情 UI 状态
  */
+@Immutable
 data class FriendDetailUiState(
     val friend: FriendEntity? = null,
     val posts: List<PostEntity> = emptyList(),

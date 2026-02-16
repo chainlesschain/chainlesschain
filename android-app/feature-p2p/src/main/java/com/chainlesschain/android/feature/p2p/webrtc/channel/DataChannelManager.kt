@@ -11,6 +11,7 @@ import org.webrtc.PeerConnection
 import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -337,6 +338,7 @@ enum class ChannelType {
 /**
  * Data channel state
  */
+@Immutable
 data class DataChannelState(
     val reliableState: DataChannel.State,
     val unreliableState: DataChannel.State

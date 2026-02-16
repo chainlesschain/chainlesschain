@@ -12,6 +12,7 @@ import com.chainlesschain.android.remote.data.FileTransferStatistics
 import com.chainlesschain.android.remote.events.EventSubscriptionClient
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
+import com.chainlesschain.android.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -31,6 +32,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class FileTransferViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val repository: FileTransferRepository,
     private val fileCommands: FileCommands,
     private val streamingClient: StreamingCommandClient,
@@ -182,7 +184,7 @@ class FileTransferViewModel @Inject constructor(
                 FileTransferUiState.Success("文件上传成功: $fileName")
             } else {
                 FileTransferUiState.Error(
-                    result.exceptionOrNull()?.message ?: "上传失败"
+                    result.exceptionOrNull()?.message ?: context.getString(R.string.error_upload_failed)
                 )
             }
         }
@@ -212,7 +214,7 @@ class FileTransferViewModel @Inject constructor(
                 FileTransferUiState.Success("文件下载成功: $fileName")
             } else {
                 FileTransferUiState.Error(
-                    result.exceptionOrNull()?.message ?: "下载失败"
+                    result.exceptionOrNull()?.message ?: context.getString(R.string.error_download_failed)
                 )
             }
         }
@@ -227,7 +229,7 @@ class FileTransferViewModel @Inject constructor(
 
             if (result.isFailure) {
                 _uiState.value = FileTransferUiState.Error(
-                    result.exceptionOrNull()?.message ?: "取消失败"
+                    result.exceptionOrNull()?.message ?: context.getString(R.string.error_cancel_failed)
                 )
             }
         }
@@ -398,18 +400,17 @@ class FileTransferViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = FileTransferUiState.Loading
 
-            val result = fileCommands.list(path)
+            val result = fileCommands.listDirectory(path)
             if (result.isSuccess) {
                 val response = result.getOrNull()
-                @Suppress("UNCHECKED_CAST")
-                val files = (response?.files as? List<Map<String, Any>>)?.map { file ->
+                val files = response?.entries?.map { entry ->
                     RemoteFileInfo(
-                        name = file["name"] as? String ?: "",
-                        path = file["path"] as? String ?: "",
-                        size = (file["size"] as? Number)?.toLong() ?: 0,
-                        isDirectory = file["isDirectory"] as? Boolean ?: false,
-                        modifiedTime = (file["modifiedTime"] as? Number)?.toLong() ?: 0,
-                        permissions = file["permissions"] as? String
+                        name = entry.name,
+                        path = entry.path,
+                        size = entry.size,
+                        isDirectory = entry.type == "directory",
+                        modifiedTime = entry.modifiedTime,
+                        permissions = entry.permissions
                     )
                 } ?: emptyList()
 
@@ -514,7 +515,7 @@ class FileTransferViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = FileTransferUiState.Extracting(archivePath, 0.0)
 
-            val result = fileCommands.extract(archivePath, destination)
+            val result = fileCommands.decompress(archivePath, destination)
             if (result.isSuccess) {
                 _uiState.value = FileTransferUiState.Success("解压完成")
                 browseRemoteFiles(destination)
@@ -531,13 +532,13 @@ class FileTransferViewModel @Inject constructor(
      */
     fun getDiskInfo() {
         viewModelScope.launch {
-            val result = fileCommands.getDiskInfo()
+            val result = fileCommands.getDiskUsage()
             if (result.isSuccess) {
                 val info = result.getOrNull()
                 _uiState.value = FileTransferUiState.DiskInfo(
-                    totalSpace = info?.totalSpace ?: 0,
-                    freeSpace = info?.freeSpace ?: 0,
-                    usedSpace = info?.usedSpace ?: 0
+                    totalSpace = info?.total ?: 0,
+                    freeSpace = info?.available ?: 0,
+                    usedSpace = info?.used ?: 0
                 )
             }
         }

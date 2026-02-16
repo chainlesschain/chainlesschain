@@ -49,8 +49,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.feature.project.git.FileChangeType
 import com.chainlesschain.android.feature.project.git.GitCommit
 import com.chainlesschain.android.feature.project.git.GitCommitDetails
@@ -90,11 +92,11 @@ fun GitHistoryScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("提交历史")
+                    Text(stringResource(R.string.commit_history))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -105,7 +107,7 @@ fun GitHistoryScreen(
                             isLoading = false
                         }
                     }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -132,13 +134,13 @@ fun GitHistoryScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "暂无提交记录",
+                        text = stringResource(R.string.no_commits),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "创建第一个提交以开始追踪更改",
+                        text = stringResource(R.string.create_first_commit),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
@@ -152,7 +154,7 @@ fun GitHistoryScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(commitHistory) { commit ->
+                items(commitHistory, key = { it.hash }) { commit ->
                     CommitCard(
                         commit = commit,
                         onClick = {
@@ -299,12 +301,12 @@ private fun CommitDetailsDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "提交详情",
+                    text = stringResource(R.string.commit_details),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
             }
 
@@ -338,7 +340,7 @@ private fun CommitDetailsDialog(
                     // Author
                     Row {
                         Text(
-                            text = "作者: ",
+                            text = stringResource(R.string.author),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -353,7 +355,7 @@ private fun CommitDetailsDialog(
                     // Date
                     Row {
                         Text(
-                            text = "日期: ",
+                            text = stringResource(R.string.date),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -378,7 +380,7 @@ private fun CommitDetailsDialog(
 
             // Changed files
             Text(
-                text = "更改的文件",
+                text = stringResource(R.string.changed_files),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -396,7 +398,7 @@ private fun CommitDetailsDialog(
                 }
             } else if (details.changedFiles.isEmpty()) {
                 Text(
-                    text = "没有更改的文件",
+                    text = stringResource(R.string.no_changed_files),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
@@ -405,7 +407,7 @@ private fun CommitDetailsDialog(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(details.changedFiles) { file ->
+                    items(details.changedFiles, key = { it.path }) { file ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

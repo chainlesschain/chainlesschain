@@ -427,7 +427,8 @@ data class CancelScheduleResponse(
 data class ScheduleListResponse(
     val success: Boolean,
     val tasks: List<ScheduledTask>,
-    val total: Int
+    val total: Int,
+    val schedule: ScheduleInfo? = null
 )
 
 @Serializable
@@ -437,6 +438,16 @@ data class ScheduledTask(
     val scheduledTime: String,
     val createdAt: String,
     val createdBy: String
+)
+
+/**
+ * 定时任务信息（供 UI 层使用）
+ */
+@Serializable
+data class ScheduleInfo(
+    val action: String,
+    val scheduledTime: String? = null,
+    val remainingMinutes: Int? = null
 )
 
 // ==================== 电池响应 ====================
@@ -453,7 +464,8 @@ data class BatteryStatusResponse(
     val timeToFullCharge: Int? = null,  // minutes
     val cycleCount: Int? = null,
     val voltage: Double? = null,
-    val wattage: Double? = null
+    val wattage: Double? = null,
+    val health: String? = null
 )
 
 @Serializable
@@ -547,20 +559,7 @@ data class UpdatePowerPlanResponse(
 )
 
 // ==================== 屏幕响应 ====================
-
-@Serializable
-data class BrightnessResponse(
-    val success: Boolean,
-    val level: Int,
-    val isAutomatic: Boolean? = null
-)
-
-@Serializable
-data class SetBrightnessResponse(
-    val success: Boolean,
-    val level: Int,
-    val message: String
-)
+// BrightnessResponse and SetBrightnessResponse are defined in DisplayCommands.kt
 
 @Serializable
 data class DisplayPowerResponse(

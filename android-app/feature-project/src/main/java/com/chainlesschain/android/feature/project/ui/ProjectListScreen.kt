@@ -66,9 +66,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.core.database.entity.ProjectStatus
 import com.chainlesschain.android.core.database.entity.ProjectType
 import com.chainlesschain.android.feature.project.model.ProjectFilter
@@ -122,16 +124,16 @@ fun ProjectListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("项目管理") },
+                title = { Text(stringResource(R.string.project_management)) },
                 actions = {
                     IconButton(onClick = { isSearchActive = !isSearchActive }) {
-                        Icon(Icons.Default.Search, contentDescription = "搜索")
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
                     }
                     IconButton(onClick = { showFilterMenu = true }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "筛选")
+                        Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.filter))
                     }
                     IconButton(onClick = { showSortMenu = true }) {
-                        Icon(Icons.Default.Sort, contentDescription = "排序")
+                        Icon(Icons.Default.Sort, contentDescription = stringResource(R.string.sort))
                     }
 
                     // 筛选菜单
@@ -140,14 +142,14 @@ fun ProjectListScreen(
                         onDismissRequest = { showFilterMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("全部项目") },
+                            text = { Text(stringResource(R.string.all_projects)) },
                             onClick = {
                                 viewModel.clearFilter()
                                 showFilterMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("收藏项目") },
+                            text = { Text(stringResource(R.string.favorite_projects)) },
                             leadingIcon = { Icon(Icons.Default.Star, null) },
                             onClick = {
                                 viewModel.setFilter(ProjectFilter(isFavorite = true))
@@ -155,7 +157,7 @@ fun ProjectListScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("已归档") },
+                            text = { Text(stringResource(R.string.archived_projects)) },
                             leadingIcon = { Icon(Icons.Default.Archive, null) },
                             onClick = {
                                 viewModel.setFilter(ProjectFilter(isArchived = true))
@@ -163,14 +165,14 @@ fun ProjectListScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("进行中") },
+                            text = { Text(stringResource(R.string.in_progress)) },
                             onClick = {
                                 viewModel.setFilter(ProjectFilter(status = ProjectStatus.ACTIVE))
                                 showFilterMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("已完成") },
+                            text = { Text(stringResource(R.string.completed)) },
                             onClick = {
                                 viewModel.setFilter(ProjectFilter(status = ProjectStatus.COMPLETED))
                                 showFilterMenu = false
@@ -184,35 +186,35 @@ fun ProjectListScreen(
                         onDismissRequest = { showSortMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("最近更新") },
+                            text = { Text(stringResource(R.string.recently_updated)) },
                             onClick = {
                                 viewModel.setSorting(ProjectSortBy.UPDATED_AT)
                                 showSortMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("创建时间") },
+                            text = { Text(stringResource(R.string.created_time)) },
                             onClick = {
                                 viewModel.setSorting(ProjectSortBy.CREATED_AT)
                                 showSortMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("名称") },
+                            text = { Text(stringResource(R.string.name)) },
                             onClick = {
                                 viewModel.setSorting(ProjectSortBy.NAME, SortDirection.ASC)
                                 showSortMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("访问次数") },
+                            text = { Text(stringResource(R.string.access_count)) },
                             onClick = {
                                 viewModel.setSorting(ProjectSortBy.ACCESS_COUNT)
                                 showSortMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("文件数量") },
+                            text = { Text(stringResource(R.string.file_count_sort)) },
                             onClick = {
                                 viewModel.setSorting(ProjectSortBy.FILE_COUNT)
                                 showSortMenu = false
@@ -224,7 +226,7 @@ fun ProjectListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onNavigateToCreateProject) {
-                Icon(Icons.Default.Add, contentDescription = "创建项目")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.create_project_button))
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -249,7 +251,7 @@ fun ProjectListScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("搜索项目...") },
+                    placeholder = { Text(stringResource(R.string.search_projects)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
@@ -411,14 +413,14 @@ private fun ProjectCard(
                     IconButton(onClick = onFavoriteClick) {
                         Icon(
                             imageVector = if (project.isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
-                            contentDescription = "收藏",
+                            contentDescription = stringResource(R.string.favorite),
                             tint = if (project.isFavorite) Color(0xFFFFC107) else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     Box {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more))
                         }
 
                         DropdownMenu(
@@ -426,14 +428,14 @@ private fun ProjectCard(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text(if (project.isArchived) "取消归档" else "归档") },
+                                text = { Text(stringResource(if (project.isArchived) R.string.unarchive_action else R.string.archive_action)) },
                                 onClick = {
                                     onArchiveClick()
                                     showMenu = false
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("删除") },
+                                text = { Text(stringResource(R.string.delete)) },
                                 onClick = {
                                     onDeleteClick()
                                     showMenu = false
@@ -493,7 +495,7 @@ private fun ProjectCard(
 
             // 更新时间
             Text(
-                text = "更新于 ${formatDate(project.updatedAt)}",
+                text = stringResource(R.string.updated_at_format, formatDate(project.updatedAt)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp)
@@ -525,12 +527,12 @@ private fun EmptyProjectsView(
 
         Text(
             text = when {
-                filter.searchQuery != null -> "未找到匹配的项目"
-                filter.isFavorite == true -> "暂无收藏项目"
-                filter.isArchived == true -> "暂无已归档项目"
-                filter.status != null -> "暂无${getStatusDisplayName(filter.status)}的项目"
-                filter.type != null -> "暂无${getTypeDisplayName(filter.type)}项目"
-                else -> "暂无项目"
+                filter.searchQuery != null -> stringResource(R.string.no_matching_projects)
+                filter.isFavorite == true -> stringResource(R.string.no_favorite_projects)
+                filter.isArchived == true -> stringResource(R.string.no_archived_projects)
+                filter.status != null -> stringResource(R.string.no_status_projects, getStatusDisplayName(filter.status))
+                filter.type != null -> stringResource(R.string.no_type_projects, getTypeDisplayName(filter.type))
+                else -> stringResource(R.string.no_projects)
             },
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -539,7 +541,7 @@ private fun EmptyProjectsView(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "点击下方按钮创建您的第一个项目",
+            text = stringResource(R.string.create_first_project),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )
@@ -558,26 +560,28 @@ private fun getProjectTypeColor(type: String): Color {
     }
 }
 
+@Composable
 private fun getTypeDisplayName(type: String): String {
     return when (type) {
-        ProjectType.DOCUMENT -> "文档"
-        ProjectType.WEB -> "网站"
-        ProjectType.APP -> "应用"
-        ProjectType.DATA -> "数据"
-        ProjectType.DESIGN -> "设计"
-        ProjectType.RESEARCH -> "研究"
-        ProjectType.OTHER -> "其他"
-        else -> "未知"
+        ProjectType.DOCUMENT -> stringResource(R.string.type_document)
+        ProjectType.WEB -> stringResource(R.string.type_web)
+        ProjectType.APP -> stringResource(R.string.type_app)
+        ProjectType.DATA -> stringResource(R.string.type_data)
+        ProjectType.DESIGN -> stringResource(R.string.type_design)
+        ProjectType.RESEARCH -> stringResource(R.string.type_research)
+        ProjectType.OTHER -> stringResource(R.string.type_other)
+        else -> stringResource(R.string.type_unknown)
     }
 }
 
+@Composable
 private fun getStatusDisplayName(status: String): String {
     return when (status) {
-        ProjectStatus.ACTIVE -> "进行中"
-        ProjectStatus.PAUSED -> "已暂停"
-        ProjectStatus.COMPLETED -> "已完成"
-        ProjectStatus.ARCHIVED -> "已归档"
-        else -> "未知"
+        ProjectStatus.ACTIVE -> stringResource(R.string.project_status_active)
+        ProjectStatus.PAUSED -> stringResource(R.string.project_status_paused)
+        ProjectStatus.COMPLETED -> stringResource(R.string.project_status_completed)
+        ProjectStatus.ARCHIVED -> stringResource(R.string.project_status_archived)
+        else -> stringResource(R.string.project_status_unknown)
     }
 }
 

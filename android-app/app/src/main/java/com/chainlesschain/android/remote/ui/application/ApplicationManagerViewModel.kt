@@ -13,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -321,6 +322,7 @@ class ApplicationManagerViewModel @Inject constructor(
 /**
  * 应用程序管理 UI 状态
  */
+@Immutable
 data class ApplicationManagerUiState(
     val isLoading: Boolean = false,
     val isExecuting: Boolean = false,

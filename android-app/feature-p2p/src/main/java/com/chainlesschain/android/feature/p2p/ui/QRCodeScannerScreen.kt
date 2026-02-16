@@ -17,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.chainlesschain.android.feature.p2p.R
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.PlanarYUVLuminanceSource
@@ -63,10 +65,10 @@ fun QRCodeScannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("扫描 QR 码") },
+                title = { Text(stringResource(R.string.scan_qr_code)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -108,14 +110,14 @@ fun QRCodeScannerScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "将 QR 码对准扫描框",
+                            text = stringResource(R.string.align_qr_code),
                             style = MaterialTheme.typography.titleSmall
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = "扫描 $peerId 显示的 QR 码",
+                            text = stringResource(R.string.scan_peer_qr_code, peerId),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -283,7 +285,7 @@ fun PermissionDeniedContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "需要相机权限",
+                text = stringResource(R.string.camera_permission_required),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -291,7 +293,7 @@ fun PermissionDeniedContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "扫描 QR 码需要访问相机",
+                text = stringResource(R.string.camera_permission_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -304,7 +306,7 @@ fun PermissionDeniedContent(
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("授予权限")
+                Text(stringResource(R.string.grant_permission))
             }
         }
     }

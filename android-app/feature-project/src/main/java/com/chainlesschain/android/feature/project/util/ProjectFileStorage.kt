@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.project.util
 import android.content.Context
 import android.util.Log
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -19,7 +20,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class ProjectFileStorage @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         private const val TAG = "ProjectFileStorage"

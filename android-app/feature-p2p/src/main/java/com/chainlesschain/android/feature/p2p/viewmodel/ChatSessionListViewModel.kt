@@ -9,6 +9,7 @@ import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -27,6 +28,7 @@ data class ChatSession(
 /**
  * UI state for the chat session list screen
  */
+@Immutable
 data class ChatSessionListUiState(
     val isLoading: Boolean = true,
     val sessions: List<ChatSession> = emptyList()

@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.chainlesschain.android.feature.project.model.Task
 import com.chainlesschain.android.feature.project.model.TaskPriority
 import com.chainlesschain.android.feature.project.model.TaskStatus
@@ -261,7 +262,7 @@ fun TaskStatusChip(status: TaskStatus) {
                     .background(textColor)
             )
             Text(
-                text = status.displayName,
+                text = stringResource(status.displayNameResId),
                 style = MaterialTheme.typography.labelSmall,
                 color = textColor,
                 fontWeight = FontWeight.Medium
@@ -285,7 +286,7 @@ fun TaskPriorityIcon(priority: TaskPriority) {
 
     Icon(
         imageVector = icon,
-        contentDescription = priority.displayName,
+        contentDescription = stringResource(priority.displayNameResId),
         tint = color,
         modifier = Modifier.size(16.dp)
     )

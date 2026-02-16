@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.project.repository
 
+import android.content.Context
 import android.util.Log
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
@@ -7,9 +8,11 @@ import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectStatus
 import com.chainlesschain.android.core.database.entity.ProjectType
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.feature.project.model.CreateProjectRequest
 import com.chainlesschain.android.feature.project.model.ProjectWithStats
 import com.chainlesschain.android.feature.project.model.UpdateProjectRequest
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,7 +53,8 @@ sealed class ProjectEvent {
  */
 @Singleton
 class ProjectRepository @Inject constructor(
-    private val projectDao: ProjectDao
+    private val projectDao: ProjectDao,
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         private const val TAG = "ProjectRepository"
@@ -236,10 +240,8 @@ class ProjectRepository @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 if (hard) {
-                    // 硬删除：删除所有文件和活动
-                    projectDao.deleteAllProjectFiles(projectId)
-                    projectDao.deleteProjectActivities(projectId)
-                    projectDao.deleteProject(projectId)
+                    // 硬删除：事务删除所有文件、活动和项目
+                    projectDao.hardDeleteProject(projectId)
                 } else {
                     // 软删除
                     projectDao.softDeleteProject(projectId)
@@ -777,12 +779,12 @@ class ProjectRepository @Inject constructor(
 
     private fun getStatusDisplayName(status: String): String {
         return when (status) {
-            ProjectStatus.ACTIVE -> "进行中"
-            ProjectStatus.PAUSED -> "已暂停"
-            ProjectStatus.COMPLETED -> "已完成"
-            ProjectStatus.ARCHIVED -> "已归档"
-            ProjectStatus.DELETED -> "已删除"
-            else -> "未知"
+            ProjectStatus.ACTIVE -> context.getString(R.string.project_status_active)
+            ProjectStatus.PAUSED -> context.getString(R.string.project_status_paused)
+            ProjectStatus.COMPLETED -> context.getString(R.string.project_status_completed)
+            ProjectStatus.ARCHIVED -> context.getString(R.string.project_status_archived)
+            ProjectStatus.DELETED -> context.getString(R.string.project_status_deleted)
+            else -> context.getString(R.string.project_status_unknown)
         }
     }
 }

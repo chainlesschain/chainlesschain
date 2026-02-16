@@ -156,7 +156,9 @@ data class InstalledApp(
     val publisher: String? = null,
     val version: String? = null,
     val installDate: String? = null,
-    val installPath: String? = null
+    val installPath: String? = null,
+    val size: Long? = null,
+    val installLocation: String? = null
 )
 
 @Serializable
@@ -179,7 +181,8 @@ data class RunningApp(
 @Serializable
 data class AppInfoResponse(
     val success: Boolean,
-    val app: AppDetail? = null
+    val app: AppDetail? = null,
+    val message: String? = null
 )
 
 @Serializable

@@ -212,7 +212,9 @@ class ChunkReadAheadBuffer(
     private var readAheadJob: Job? = null
 
     // 当前传输状态
+    @Volatile
     private var currentTransferId: String? = null
+    @Volatile
     private var isActive = false
 
     /**

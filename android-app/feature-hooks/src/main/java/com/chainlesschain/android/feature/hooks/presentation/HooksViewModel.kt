@@ -8,6 +8,7 @@ import com.chainlesschain.android.feature.hooks.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -202,6 +203,7 @@ class HooksViewModel @Inject constructor(
     }
 }
 
+@Immutable
 data class HooksUiState(
     val isLoading: Boolean = true,
     val hooks: List<HookConfig> = emptyList(),

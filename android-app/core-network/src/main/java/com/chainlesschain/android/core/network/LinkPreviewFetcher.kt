@@ -33,12 +33,14 @@ class LinkPreviewFetcher @Inject constructor() {
         .readTimeout(5, TimeUnit.SECONDS)
         .build()
 
-    // LRU 缓存 (max 50)
-    private val cache = object : LinkedHashMap<String, LinkPreview>(50, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, LinkPreview>?): Boolean {
-            return size > 50
+    // LRU 缓存 (max 50, thread-safe)
+    private val cache: MutableMap<String, LinkPreview> = java.util.Collections.synchronizedMap(
+        object : LinkedHashMap<String, LinkPreview>(50, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, LinkPreview>?): Boolean {
+                return size > 50
+            }
         }
-    }
+    )
 
     /**
      * 获取链接预览

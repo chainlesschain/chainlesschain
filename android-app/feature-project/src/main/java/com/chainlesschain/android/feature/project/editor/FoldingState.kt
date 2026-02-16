@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.project.editor
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -130,6 +131,7 @@ class FoldingStatePersistence @Inject constructor() {
 /**
  * 文件折叠状态（可序列化）
  */
+@Immutable
 @Serializable
 data class FileFoldingState(
     val filePath: String,

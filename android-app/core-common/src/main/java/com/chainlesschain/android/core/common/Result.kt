@@ -1,5 +1,6 @@
 package com.chainlesschain.android.core.common
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -101,6 +102,8 @@ fun <T> Flow<T>.asResult(): Flow<Result<T>> = flow {
         collect { value ->
             emit(Result.Success(value))
         }
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         emit(Result.Error(e))
     }

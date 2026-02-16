@@ -11,9 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.domain.usage.UsageStatistics
 
@@ -33,18 +35,18 @@ fun UsageStatisticsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Token使用统计") },
+                title = { Text(stringResource(R.string.usage_statistics_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.usage_statistics_navigate_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.usage_statistics_refresh))
                     }
                     IconButton(onClick = { showClearDialog = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "清除")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.usage_statistics_clear))
                     }
                 }
             )
@@ -63,7 +65,7 @@ fun UsageStatisticsScreen(
             }
 
             // 各提供商统计
-            items(allUsage) { usage ->
+            items(allUsage, key = { it.provider }) { usage ->
                 ProviderUsageCard(
                     usage = usage,
                     onClear = {
@@ -89,13 +91,13 @@ fun UsageStatisticsScreen(
             title = {
                 Text(
                     text = if (selectedProvider != null) {
-                        "清除${selectedProvider!!.displayName}的统计数据？"
+                        stringResource(R.string.usage_statistics_clear_provider_title, selectedProvider!!.displayName)
                     } else {
-                        "清除所有统计数据？"
+                        stringResource(R.string.usage_statistics_clear_all_title)
                     }
                 )
             },
-            text = { Text("此操作不可撤销") },
+            text = { Text(stringResource(R.string.usage_statistics_clear_warning)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -104,7 +106,7 @@ fun UsageStatisticsScreen(
                         selectedProvider = null
                     }
                 ) {
-                    Text("确认", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.usage_statistics_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -112,7 +114,7 @@ fun UsageStatisticsScreen(
                     showClearDialog = false
                     selectedProvider = null
                 }) {
-                    Text("取消")
+                    Text(stringResource(R.string.usage_statistics_cancel))
                 }
             }
         )
@@ -144,14 +146,14 @@ private fun TotalUsageCard(allUsage: List<UsageStatistics>) {
             ) {
                 Column {
                     Text(
-                        text = "总使用量",
+                        text = stringResource(R.string.usage_statistics_total_usage),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "所有提供商统计",
+                        text = stringResource(R.string.usage_statistics_all_providers),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -173,19 +175,19 @@ private fun TotalUsageCard(allUsage: List<UsageStatistics>) {
             ) {
                 StatisticItem(
                     icon = Icons.Default.Token,
-                    label = "总Tokens",
+                    label = stringResource(R.string.usage_statistics_total_tokens),
                     value = formatNumber(totalTokens),
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 StatisticItem(
                     icon = Icons.Default.AttachMoney,
-                    label = "总成本",
+                    label = stringResource(R.string.usage_statistics_total_cost),
                     value = "$${String.format("%.4f", totalCost)}",
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 StatisticItem(
                     icon = Icons.AutoMirrored.Filled.Chat,
-                    label = "总请求",
+                    label = stringResource(R.string.usage_statistics_total_requests),
                     value = formatNumber(totalRequests),
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -222,7 +224,7 @@ private fun ProviderUsageCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "请求次数: ${usage.requestCount}",
+                        text = stringResource(R.string.usage_statistics_request_count, usage.requestCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -231,7 +233,7 @@ private fun ProviderUsageCard(
                 IconButton(onClick = onClear) {
                     Icon(
                         Icons.Default.DeleteOutline,
-                        contentDescription = "清除",
+                        contentDescription = stringResource(R.string.usage_statistics_clear),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -246,7 +248,7 @@ private fun ProviderUsageCard(
             ) {
                 Column {
                     Text(
-                        text = "输入Token",
+                        text = stringResource(R.string.usage_statistics_input_tokens),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -259,7 +261,7 @@ private fun ProviderUsageCard(
 
                 Column {
                     Text(
-                        text = "输出Token",
+                        text = stringResource(R.string.usage_statistics_output_tokens),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -272,7 +274,7 @@ private fun ProviderUsageCard(
 
                 Column {
                     Text(
-                        text = "总计",
+                        text = stringResource(R.string.usage_statistics_total),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -305,14 +307,14 @@ private fun ProviderUsageCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "预估成本",
+                        text = stringResource(R.string.usage_statistics_estimated_cost),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
 
                 Text(
                     text = if (usage.estimatedCost == 0.0) {
-                        "免费"
+                        stringResource(R.string.usage_statistics_free)
                     } else {
                         "$${String.format("%.6f", usage.estimatedCost)} USD"
                     },
@@ -382,13 +384,13 @@ private fun EmptyUsageState() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "暂无使用数据",
+            text = stringResource(R.string.usage_statistics_empty_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "开始使用AI功能后，这里会显示统计信息",
+            text = stringResource(R.string.usage_statistics_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )

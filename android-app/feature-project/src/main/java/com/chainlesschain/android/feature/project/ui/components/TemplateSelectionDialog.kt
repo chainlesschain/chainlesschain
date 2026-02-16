@@ -41,9 +41,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.feature.project.model.ProjectTemplate
 import com.chainlesschain.android.feature.project.model.ProjectTemplates
 import com.chainlesschain.android.feature.project.model.TemplateCategory
@@ -91,7 +93,7 @@ fun TemplateSelectionDialog(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "选择项目模板",
+                    text = stringResource(R.string.select_project_template),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -107,12 +109,12 @@ fun TemplateSelectionDialog(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("浏览模板") }
+                        text = { Text(stringResource(R.string.browse_templates)) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("模板详情") },
+                        text = { Text(stringResource(R.string.template_details)) },
                         enabled = selectedTemplate != null
                     )
                 }
@@ -122,7 +124,7 @@ fun TemplateSelectionDialog(
                         // Browse templates
                         // Category filters
                         Text(
-                            text = "分类筛选",
+                            text = stringResource(R.string.category_filter),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -133,7 +135,7 @@ fun TemplateSelectionDialog(
                             FilterChip(
                                 selected = selectedCategory == null,
                                 onClick = { selectedCategory = null },
-                                label = { Text("全部") },
+                                label = { Text(stringResource(R.string.all)) },
                                 leadingIcon = if (selectedCategory == null) {
                                     { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
                                 } else null
@@ -142,7 +144,7 @@ fun TemplateSelectionDialog(
                                 FilterChip(
                                     selected = selectedCategory == category,
                                     onClick = { selectedCategory = category },
-                                    label = { Text(category.displayName) },
+                                    label = { Text(stringResource(category.displayNameResId)) },
                                     leadingIcon = if (selectedCategory == category) {
                                         { Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }
                                     } else null
@@ -159,7 +161,7 @@ fun TemplateSelectionDialog(
                                 .fillMaxWidth()
                                 .height(400.dp)
                         ) {
-                            items(filteredTemplates) { template ->
+                            items(filteredTemplates, key = { it.id }) { template ->
                                 TemplateCard(
                                     template = template,
                                     isSelected = selectedTemplate == template,
@@ -202,7 +204,7 @@ fun TemplateSelectionDialog(
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
-                        Text("取消")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
                 selectedTemplate?.let { template ->
@@ -221,7 +223,7 @@ fun TemplateSelectionDialog(
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Text("使用此模板", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.use_this_template), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -288,14 +290,14 @@ private fun TemplateCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = template.name,
+                    text = if (template.nameResId != 0) stringResource(template.nameResId) else template.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = template.description,
+                    text = if (template.descriptionResId != 0) stringResource(template.descriptionResId) else template.description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -312,7 +314,7 @@ private fun TemplateCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${sizeEstimate.fileCount} 文件",
+                        text = stringResource(R.string.files_count, sizeEstimate.fileCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -324,7 +326,7 @@ private fun TemplateCard(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${sizeEstimate.folderCount} 文件夹",
+                        text = stringResource(R.string.folders_count, sizeEstimate.folderCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -335,7 +337,7 @@ private fun TemplateCard(
             if (isSelected) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    contentDescription = "已选择",
+                    contentDescription = stringResource(R.string.selected),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
@@ -382,12 +384,12 @@ private fun TemplateDetailsView(
                 }
                 Column {
                     Text(
-                        text = template.name,
+                        text = if (template.nameResId != 0) stringResource(template.nameResId) else template.name,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = template.category.displayName,
+                        text = stringResource(template.category.displayNameResId),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -398,12 +400,12 @@ private fun TemplateDetailsView(
         item {
             // Description
             Text(
-                text = "描述",
+                text = stringResource(R.string.description_label),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = template.description,
+                text = if (template.descriptionResId != 0) stringResource(template.descriptionResId) else template.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -412,7 +414,7 @@ private fun TemplateDetailsView(
         item {
             // Statistics
             Text(
-                text = "统计信息",
+                text = stringResource(R.string.statistics),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium
             )
@@ -425,9 +427,9 @@ private fun TemplateDetailsView(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    StatRow("文件数量", "${sizeEstimate.fileCount} 个")
-                    StatRow("文件夹数量", "${sizeEstimate.folderCount} 个")
-                    StatRow("总大小", sizeEstimate.readableSize)
+                    StatRow(stringResource(R.string.file_count), stringResource(R.string.file_count_stat, sizeEstimate.fileCount))
+                    StatRow(stringResource(R.string.folder_count), stringResource(R.string.file_count_stat, sizeEstimate.folderCount))
+                    StatRow(stringResource(R.string.total_size), sizeEstimate.readableSize)
                 }
             }
         }
@@ -436,7 +438,7 @@ private fun TemplateDetailsView(
             item {
                 // Tags
                 Text(
-                    text = "标签",
+                    text = stringResource(R.string.tags),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -464,7 +466,7 @@ private fun TemplateDetailsView(
         item {
             // File structure preview
             Text(
-                text = "文件结构预览",
+                text = stringResource(R.string.file_structure_preview),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium
             )
@@ -498,7 +500,7 @@ private fun TemplateDetailsView(
                     }
                     if (template.structure.folders.size > 5) {
                         Text(
-                            text = "... 还有 ${template.structure.folders.size - 5} 个文件夹",
+                            text = stringResource(R.string.more_folders, template.structure.folders.size - 5),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -526,7 +528,7 @@ private fun TemplateDetailsView(
                     }
                     if (template.structure.files.size > 5) {
                         Text(
-                            text = "... 还有 ${template.structure.files.size - 5} 个文件",
+                            text = stringResource(R.string.more_files, template.structure.files.size - 5),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

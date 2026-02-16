@@ -10,9 +10,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileCategory
 import java.text.SimpleDateFormat
@@ -118,7 +120,7 @@ fun FileListItem(
             ) {
                 Icon(
                     imageVector = if (file.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                    contentDescription = if (file.isFavorite) "取消收藏" else "收藏",
+                    contentDescription = if (file.isFavorite) stringResource(R.string.file_unfavorite) else stringResource(R.string.file_favorite),
                     tint = if (file.isFavorite) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -136,7 +138,7 @@ fun FileListItem(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "导入到项目",
+                        contentDescription = stringResource(R.string.file_import_to_project),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -200,15 +202,16 @@ private fun FileTypeIcon(
 /**
  * Format timestamp to readable date string
  */
+@Composable
 private fun formatDate(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
 
     return when {
-        diff < 60_000 -> "刚刚" // Less than 1 minute
-        diff < 3600_000 -> "${diff / 60_000}分钟前" // Less than 1 hour
-        diff < 86400_000 -> "${diff / 3600_000}小时前" // Less than 1 day
-        diff < 604800_000 -> "${diff / 86400_000}天前" // Less than 1 week
+        diff < 60_000 -> stringResource(R.string.time_just_now) // Less than 1 minute
+        diff < 3600_000 -> stringResource(R.string.time_minutes_ago, (diff / 60_000).toInt()) // Less than 1 hour
+        diff < 86400_000 -> stringResource(R.string.time_hours_ago, (diff / 3600_000).toInt()) // Less than 1 day
+        diff < 604800_000 -> stringResource(R.string.time_days_ago, (diff / 86400_000).toInt()) // Less than 1 week
         else -> {
             // Format as date
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())

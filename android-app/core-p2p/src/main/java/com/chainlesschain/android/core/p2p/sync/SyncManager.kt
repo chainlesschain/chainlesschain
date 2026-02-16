@@ -107,6 +107,8 @@ class SyncManager @Inject constructor(
         try {
             performSync(deviceId)
             _syncState.value = SyncState.Completed
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed", e)
             _syncState.value = SyncState.Failed(e.message ?: "Unknown error")
@@ -192,6 +194,8 @@ class SyncManager @Inject constructor(
                 SyncResult.Applied(syncPayload.item)
             }
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to handle sync message", e)
             SyncResult.Error(e.message ?: "Unknown error")

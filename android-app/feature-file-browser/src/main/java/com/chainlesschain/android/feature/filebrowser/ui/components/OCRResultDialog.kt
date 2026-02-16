@@ -16,9 +16,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer
@@ -69,7 +71,7 @@ fun OCRResultDialog(
                     title = {
                         Column {
                             Text(
-                                text = "文字识别结果",
+                                text = stringResource(R.string.ocr_result_title),
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(
@@ -81,14 +83,14 @@ fun OCRResultDialog(
                     },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "关闭")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.ocr_close))
                         }
                     },
                     actions = {
                         // Edit button
                         if (!isEditMode) {
                             IconButton(onClick = { isEditMode = true }) {
-                                Icon(Icons.Default.Edit, contentDescription = "编辑")
+                                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.ocr_edit))
                             }
                         }
 
@@ -101,10 +103,12 @@ fun OCRResultDialog(
                                 )
                             }
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "复制")
+                            Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.ocr_copy))
                         }
 
                         // Share button
+                        val shareSubject = stringResource(R.string.ocr_share_subject, fileName)
+                        val shareChooserTitle = stringResource(R.string.ocr_share_text)
                         IconButton(onClick = {
                             // Share OCR text using Android Share Sheet
                             try {
@@ -112,14 +116,14 @@ fun OCRResultDialog(
                                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                     type = "text/plain"
                                     putExtra(android.content.Intent.EXTRA_TEXT, textToShare)
-                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "OCR识别结果: $fileName")
+                                    putExtra(android.content.Intent.EXTRA_SUBJECT, shareSubject)
                                 }
-                                context.startActivity(android.content.Intent.createChooser(intent, "分享文字"))
+                                context.startActivity(android.content.Intent.createChooser(intent, shareChooserTitle))
                             } catch (e: Exception) {
                                 android.util.Log.e("OCRResultDialog", "Error sharing text", e)
                             }
                         }) {
-                            Icon(Icons.Default.Share, contentDescription = "分享")
+                            Icon(Icons.Default.Share, contentDescription = stringResource(R.string.ocr_share))
                         }
                     }
                 )
@@ -129,17 +133,17 @@ fun OCRResultDialog(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("文本") }
+                        text = { Text(stringResource(R.string.ocr_tab_text)) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("结构") }
+                        text = { Text(stringResource(R.string.ocr_tab_structure)) }
                     )
                     Tab(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
-                        text = { Text("数据") }
+                        text = { Text(stringResource(R.string.ocr_tab_data)) }
                     )
                 }
 
@@ -174,7 +178,7 @@ fun OCRResultDialog(
                             editedText = result.text
                             isEditMode = false
                         }) {
-                            Text("取消")
+                            Text(stringResource(R.string.ocr_cancel))
                         }
 
                         Spacer(modifier = Modifier.width(8.dp))
@@ -191,7 +195,7 @@ fun OCRResultDialog(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("保存")
+                            Text(stringResource(R.string.ocr_save))
                         }
                     }
                 }
@@ -222,20 +226,20 @@ private fun TextTab(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             StatItem(
-                label = "字符数",
+                label = stringResource(R.string.ocr_stat_characters),
                 value = result.text.length.toString()
             )
             StatItem(
-                label = "文本块",
+                label = stringResource(R.string.ocr_stat_blocks),
                 value = result.blocks.size.toString()
             )
             StatItem(
-                label = "置信度",
+                label = stringResource(R.string.ocr_stat_confidence),
                 value = "${(result.confidence * 100).toInt()}%"
             )
             result.language?.let { lang ->
                 StatItem(
-                    label = "语言",
+                    label = stringResource(R.string.ocr_stat_language),
                     value = lang.uppercase()
                 )
             }
@@ -254,7 +258,7 @@ private fun TextTab(
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontFamily = FontFamily.Monospace
                 ),
-                placeholder = { Text("编辑识别的文本...") }
+                placeholder = { Text(stringResource(R.string.ocr_edit_placeholder)) }
             )
         } else {
             if (result.isEmpty()) {
@@ -334,12 +338,12 @@ private fun DataTab(result: TextRecognizer.RecognitionResult) {
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
                 Text(
-                    text = "未检测到结构化数据",
+                    text = stringResource(R.string.ocr_no_structured_data),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "如: 邮箱、电话、网址、日期等",
+                    text = stringResource(R.string.ocr_structured_data_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -398,14 +402,14 @@ private fun TextBlockCard(block: TextRecognizer.TextBlock) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "置信度: ${(block.confidence * 100).toInt()}%",
+                    text = stringResource(R.string.ocr_confidence_label, (block.confidence * 100).toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 block.recognizedLanguage?.let { lang ->
                     Text(
-                        text = "语言: ${lang.uppercase()}",
+                        text = stringResource(R.string.ocr_language_label, lang.uppercase()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -414,7 +418,7 @@ private fun TextBlockCard(block: TextRecognizer.TextBlock) {
                 Spacer(modifier = Modifier.weight(1f))
 
                 TextButton(onClick = { expanded = !expanded }) {
-                    Text(if (expanded) "收起" else "展开")
+                    Text(if (expanded) stringResource(R.string.ocr_block_collapse) else stringResource(R.string.ocr_block_expand))
                     Icon(
                         imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = null
@@ -438,7 +442,7 @@ private fun TextBlockCard(block: TextRecognizer.TextBlock) {
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
-                                text = "置信度: ${(line.confidence * 100).toInt()}%",
+                                text = stringResource(R.string.ocr_confidence_label, (line.confidence * 100).toInt()),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -468,10 +472,10 @@ private fun DataTypeCard(
     }
 
     val label = when (type) {
-        "email" -> "邮箱"
-        "phone" -> "电话"
-        "url" -> "网址"
-        "date" -> "日期"
+        "email" -> stringResource(R.string.ocr_data_email)
+        "phone" -> stringResource(R.string.ocr_data_phone)
+        "url" -> stringResource(R.string.ocr_data_url)
+        "date" -> stringResource(R.string.ocr_data_date)
         else -> type
     }
 
@@ -533,7 +537,7 @@ private fun DataTypeCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "复制",
+                                contentDescription = stringResource(R.string.ocr_copy),
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -584,12 +588,12 @@ private fun EmptyTextContent() {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
             Text(
-                text = "未识别到文字",
+                text = stringResource(R.string.ocr_no_text),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "图片中可能没有可识别的文字",
+                text = stringResource(R.string.ocr_no_text_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
@@ -601,14 +605,14 @@ private fun EmptyTextContent() {
  * Copy text to clipboard
  */
 private fun copyToClipboard(context: Context, text: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
     val clip = ClipData.newPlainText("OCR Text", text)
     clipboard.setPrimaryClip(clip)
 
     // Show toast notification
     android.widget.Toast.makeText(
         context,
-        "已复制到剪贴板",
+        context.getString(R.string.ocr_copied_to_clipboard),
         android.widget.Toast.LENGTH_SHORT
     ).show()
 }

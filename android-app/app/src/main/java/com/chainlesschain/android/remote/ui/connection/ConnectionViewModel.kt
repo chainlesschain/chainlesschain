@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -213,6 +214,7 @@ class ConnectionViewModel @Inject constructor(
 /**
  * UI State
  */
+@Immutable
 data class ConnectionUiState(
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     val isConnected: Boolean = false,

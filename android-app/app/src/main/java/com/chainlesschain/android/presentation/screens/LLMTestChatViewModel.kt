@@ -1,7 +1,9 @@
 package com.chainlesschain.android.presentation.screens
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.android.R
 import com.chainlesschain.android.core.security.SecurePreferences
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.di.LLMAdapterFactory
@@ -9,6 +11,7 @@ import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +34,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class LLMTestChatViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val llmAdapterFactory: LLMAdapterFactory,
     private val securePreferences: SecurePreferences
 ) : ViewModel() {
@@ -69,7 +73,7 @@ class LLMTestChatViewModel @Inject constructor(
 
                 if (currentAdapter == null) {
                     _uiState.update { it.copy(
-                        error = "未配置${provider.displayName}的API密钥，请先在AI配置中设置"
+                        error = context.getString(R.string.llm_test_api_key_not_configured, provider.displayName)
                     )}
                 }
             } catch (e: Exception) {

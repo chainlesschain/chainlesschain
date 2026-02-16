@@ -8,6 +8,7 @@ import com.chainlesschain.android.feature.collaboration.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -208,6 +209,7 @@ class CollaborationViewModel @Inject constructor(
     }
 }
 
+@Immutable
 data class CollaborationUiState(
     val isLoading: Boolean = true,
     val sessions: List<CollaborationSession> = emptyList(),

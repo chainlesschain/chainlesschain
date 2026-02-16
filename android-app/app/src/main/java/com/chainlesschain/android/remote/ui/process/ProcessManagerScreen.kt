@@ -11,9 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.commands.ProcessInfo
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import java.util.Locale
@@ -35,12 +37,12 @@ fun ProcessManagerScreen(
     if (uiState.showKillConfirmDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissKillConfirmDialog() },
-            title = { Text("终止进程") },
-            text = { Text("确定要终止进程 ${uiState.pendingKillName} (PID: ${uiState.pendingKillPid}) 吗？") },
+            title = { Text(stringResource(R.string.process_kill_title)) },
+            text = { Text(stringResource(R.string.process_kill_message, uiState.pendingKillName ?: "", uiState.pendingKillPid ?: 0)) },
             confirmButton = {
                 Row {
                     TextButton(onClick = { viewModel.confirmKill(force = false) }) {
-                        Text("终止")
+                        Text(stringResource(R.string.process_kill))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     TextButton(
@@ -49,13 +51,13 @@ fun ProcessManagerScreen(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("强制终止")
+                        Text(stringResource(R.string.process_force_kill))
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissKillConfirmDialog() }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -88,12 +90,12 @@ fun ProcessManagerScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("终止进程")
+                    Text(stringResource(R.string.process_kill_button))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.clearSelectedProcess() }) {
-                    Text("关闭")
+                    Text(stringResource(R.string.common_close))
                 }
             }
         )

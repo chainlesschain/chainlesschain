@@ -12,11 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import com.chainlesschain.android.core.database.entity.FileCategory
 import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel.CategoryStats
 import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel.FileBrowserStatistics
@@ -64,7 +66,7 @@ fun FileStatisticsCard(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "\u6587\u4EF6\u7EDF\u8BA1",
+                        text = stringResource(R.string.statistics_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -75,13 +77,13 @@ fun FileStatisticsCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${statistics.totalFiles} \u4E2A\u6587\u4EF6\uFF0C${formatSize(statistics.totalSize)}",
+                        text = stringResource(R.string.statistics_summary, statistics.totalFiles, formatSize(statistics.totalSize)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "\u6536\u8D77" else "\u5C55\u5F00",
+                        contentDescription = if (isExpanded) stringResource(R.string.statistics_collapse) else stringResource(R.string.statistics_expand),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -123,12 +125,12 @@ fun FileStatisticsCard(
                     ) {
                         StatChip(
                             icon = Icons.Default.Star,
-                            label = "${statistics.favoriteCount} \u4E2A\u6536\u85CF",
+                            label = stringResource(R.string.statistics_favorites, statistics.favoriteCount),
                             color = Color(0xFFFFA000)
                         )
                         StatChip(
                             icon = Icons.Default.CloudDownload,
-                            label = "${statistics.importedCount} \u4E2A\u5DF2\u5BFC\u5165",
+                            label = stringResource(R.string.statistics_imported, statistics.importedCount),
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -213,7 +215,7 @@ private fun CategoryStatRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${categoryStats.count} \u4E2A",
+                text = stringResource(R.string.statistics_count, categoryStats.count),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -307,15 +309,16 @@ private fun getCategoryIconAndColor(categoryName: String): Pair<ImageVector, Col
 /**
  * Get display name for a category
  */
+@Composable
 private fun getCategoryDisplayName(categoryName: String): String {
     return when (categoryName) {
-        FileCategory.DOCUMENT.name -> "\u6587\u6863"
-        FileCategory.IMAGE.name -> "\u56FE\u7247"
-        FileCategory.VIDEO.name -> "\u89C6\u9891"
-        FileCategory.AUDIO.name -> "\u97F3\u9891"
-        FileCategory.ARCHIVE.name -> "\u538B\u7F29\u5305"
-        FileCategory.CODE.name -> "\u4EE3\u7801"
-        FileCategory.OTHER.name -> "\u5176\u4ED6"
+        FileCategory.DOCUMENT.name -> stringResource(R.string.file_category_document)
+        FileCategory.IMAGE.name -> stringResource(R.string.file_category_image)
+        FileCategory.VIDEO.name -> stringResource(R.string.file_category_video)
+        FileCategory.AUDIO.name -> stringResource(R.string.file_category_audio)
+        FileCategory.ARCHIVE.name -> stringResource(R.string.file_category_archive)
+        FileCategory.CODE.name -> stringResource(R.string.file_category_code)
+        FileCategory.OTHER.name -> stringResource(R.string.file_category_other)
         else -> categoryName
     }
 }

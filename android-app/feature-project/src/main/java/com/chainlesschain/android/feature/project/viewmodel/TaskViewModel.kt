@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.project.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,7 +16,9 @@ import com.chainlesschain.android.feature.project.model.TodoStep
 import com.chainlesschain.android.feature.project.repository.CreateTaskRequest
 import com.chainlesschain.android.feature.project.repository.TaskRepository
 import com.chainlesschain.android.feature.project.repository.UpdateTaskRequest
+import com.chainlesschain.android.feature.project.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +39,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class TaskViewModel @Inject constructor(
-    private val taskRepository: TaskRepository
+    private val taskRepository: TaskRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     companion object {
@@ -418,8 +422,8 @@ class TaskViewModel @Inject constructor(
 
             result.fold(
                 onSuccess = {
-                    val statusName = status.displayName
-                    _uiEvents.emit(TaskUiEvent.ShowMessage("状态已更新为: $statusName"))
+                    val statusName = context.getString(status.displayNameResId)
+                    _uiEvents.emit(TaskUiEvent.ShowMessage(context.getString(R.string.status_updated_to, statusName)))
                     loadStats()
                 },
                 onFailure = { error ->

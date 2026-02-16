@@ -274,7 +274,7 @@ class LocalNotificationManager @Inject constructor(
             try {
                 val result = notificationCommands.getUnreadCount()
                 result.onSuccess { response ->
-                    _unreadCount.value = response.unreadCount
+                    _unreadCount.value = response.count
                 }.onFailure {
                     // Fallback: increment locally if query fails
                     _unreadCount.value++

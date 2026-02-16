@@ -71,8 +71,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ProjectType
 import com.chainlesschain.android.feature.project.viewmodel.ProjectUiEvent
@@ -90,6 +93,7 @@ fun CreateProjectScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -131,10 +135,10 @@ fun CreateProjectScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("创建项目") },
+                title = { Text(stringResource(R.string.create_project)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -193,8 +197,8 @@ fun CreateProjectScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("项目名称 *") },
-                placeholder = { Text("输入项目名称") },
+                label = { Text(stringResource(R.string.project_name_required)) },
+                placeholder = { Text(stringResource(R.string.enter_project_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -205,8 +209,8 @@ fun CreateProjectScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("项目描述") },
-                placeholder = { Text("输入项目描述（可选）") },
+                label = { Text(stringResource(R.string.project_description)) },
+                placeholder = { Text(stringResource(R.string.enter_project_description)) },
                 minLines = 3,
                 maxLines = 5,
                 modifier = Modifier.fillMaxWidth()
@@ -216,7 +220,7 @@ fun CreateProjectScreen(
 
             // 项目类型
             Text(
-                text = "项目类型",
+                text = stringResource(R.string.project_type),
                 style = MaterialTheme.typography.titleMedium
             )
 
@@ -240,7 +244,7 @@ fun CreateProjectScreen(
 
             // 标签
             Text(
-                text = "标签",
+                text = stringResource(R.string.tags),
                 style = MaterialTheme.typography.titleMedium
             )
 
@@ -249,8 +253,8 @@ fun CreateProjectScreen(
             OutlinedTextField(
                 value = tagInput,
                 onValueChange = { tagInput = it },
-                label = { Text("添加标签") },
-                placeholder = { Text("输入标签后按回车添加") },
+                label = { Text(stringResource(R.string.add_tags)) },
+                placeholder = { Text(stringResource(R.string.enter_tag_hint)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
@@ -261,7 +265,7 @@ fun CreateProjectScreen(
                                 tagInput = ""
                             }
                         }) {
-                            Icon(Icons.Default.Add, contentDescription = "添加")
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add))
                         }
                     }
                 },
@@ -296,7 +300,7 @@ fun CreateProjectScreen(
                                 ) {
                                     Icon(
                                         Icons.Default.Close,
-                                        contentDescription = "移除",
+                                        contentDescription = stringResource(R.string.remove),
                                         modifier = Modifier.size(14.dp)
                                     )
                                 }
@@ -323,14 +327,14 @@ fun CreateProjectScreen(
                         )
                     } else {
                         scope.launch {
-                            snackbarHostState.showSnackbar("请先登录后再创建项目")
+                            snackbarHostState.showSnackbar(context.getString(R.string.login_required_to_create))
                         }
                     }
                 },
                 enabled = name.isNotBlank() && !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isLoading) "创建中..." else "创建项目")
+                Text(stringResource(if (isLoading) R.string.creating else R.string.create_project))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -412,16 +416,17 @@ private fun getTypeIconAndColor(type: String): Pair<ImageVector, Color> {
     }
 }
 
+@Composable
 private fun getTypeDisplayName(type: String): String {
     return when (type) {
-        ProjectType.DOCUMENT -> "文档"
-        ProjectType.WEB -> "网站"
-        ProjectType.APP -> "应用"
-        ProjectType.DATA -> "数据"
-        ProjectType.DESIGN -> "设计"
-        ProjectType.RESEARCH -> "研究"
-        ProjectType.OTHER -> "其他"
-        else -> "未知"
+        ProjectType.DOCUMENT -> stringResource(R.string.type_document)
+        ProjectType.WEB -> stringResource(R.string.type_web)
+        ProjectType.APP -> stringResource(R.string.type_app)
+        ProjectType.DATA -> stringResource(R.string.type_data)
+        ProjectType.DESIGN -> stringResource(R.string.type_design)
+        ProjectType.RESEARCH -> stringResource(R.string.type_research)
+        ProjectType.OTHER -> stringResource(R.string.type_other)
+        else -> stringResource(R.string.type_unknown)
     }
 }
 
@@ -463,19 +468,19 @@ private fun AiAssistantSection(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "AI 创建助手",
+                        text = stringResource(R.string.ai_creation_assistant),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "描述你的项目，AI 会帮你创建",
+                        text = stringResource(R.string.ai_creation_assistant_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     imageVector = if (showAssistant) Icons.Default.Close else Icons.Default.SmartToy,
-                    contentDescription = if (showAssistant) "关闭" else "展开",
+                    contentDescription = stringResource(if (showAssistant) R.string.close else R.string.expand),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
@@ -491,7 +496,7 @@ private fun AiAssistantSection(
 
                     // Quick templates
                     Text(
-                        text = "快速模板:",
+                        text = stringResource(R.string.quick_templates),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -505,11 +510,11 @@ private fun AiAssistantSection(
                             onClick = { onPromptChange("Create a web application project") }
                         )
                         QuickTemplateChip(
-                            text = "文档",
+                            text = stringResource(R.string.template_document),
                             onClick = { onPromptChange("Create a documentation project") }
                         )
                         QuickTemplateChip(
-                            text = "数据分析",
+                            text = stringResource(R.string.template_data_analysis),
                             onClick = { onPromptChange("Create a data analysis project") }
                         )
                     }
@@ -520,8 +525,8 @@ private fun AiAssistantSection(
                     OutlinedTextField(
                         value = aiPrompt,
                         onValueChange = onPromptChange,
-                        label = { Text("描述你想创建的项目") },
-                        placeholder = { Text("例如：创建一个博客项目，包含文章、评论功能...") },
+                        label = { Text(stringResource(R.string.describe_project)) },
+                        placeholder = { Text(stringResource(R.string.describe_project_example)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4,
@@ -530,7 +535,7 @@ private fun AiAssistantSection(
                                 IconButton(onClick = onSubmitPrompt) {
                                     Icon(
                                         Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = "发送",
+                                        contentDescription = stringResource(R.string.send),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -561,7 +566,7 @@ private fun AiAssistantSection(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "AI 建议",
+                                        text = stringResource(R.string.ai_suggestion),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -577,11 +582,11 @@ private fun AiAssistantSection(
                                     horizontalArrangement = Arrangement.End
                                 ) {
                                     TextButton(onClick = onDismissSuggestion) {
-                                        Text("忽略")
+                                        Text(stringResource(R.string.ignore))
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Button(onClick = onApplySuggestion) {
-                                        Text("应用建议")
+                                        Text(stringResource(R.string.apply_suggestion))
                                     }
                                 }
                             }

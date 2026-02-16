@@ -17,6 +17,7 @@ import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
@@ -422,6 +423,7 @@ class FriendViewModel @Inject constructor(
 /**
  * 好友 UI 状态
  */
+@Immutable
 data class FriendUiState(
     val friends: List<FriendEntity> = emptyList(),
     val groups: List<FriendGroupEntity> = emptyList(),

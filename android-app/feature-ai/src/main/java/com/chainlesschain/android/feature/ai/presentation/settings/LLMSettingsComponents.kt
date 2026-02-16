@@ -8,11 +8,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 
 /**
@@ -30,8 +32,8 @@ fun AnthropicConfigCard(
     var showApiKey by remember { mutableStateOf(false) }
 
     ProviderConfigCardTemplate(
-        title = "Anthropic Claude配置",
-        description = "Claude系列模型，推理能力强",
+        title = stringResource(R.string.llm_settings_anthropic_title),
+        description = stringResource(R.string.llm_settings_anthropic_description),
         onSave = { onSave(apiKey, baseURL, model) },
         onTest = onTest
     ) {
@@ -73,7 +75,7 @@ fun AnthropicConfigCard(
         OutlinedTextField(
             value = model,
             onValueChange = { model = it },
-            label = { Text("模型") },
+            label = { Text(stringResource(R.string.llm_settings_model)) },
             placeholder = { Text("claude-3-5-sonnet-20241022") },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
@@ -102,8 +104,8 @@ fun GenericProviderConfigCard(
     var showApiKey by remember { mutableStateOf(false) }
 
     ProviderConfigCardTemplate(
-        title = "$providerName 配置",
-        description = "配置 $providerName API",
+        title = stringResource(R.string.llm_settings_generic_config_title, providerName),
+        description = stringResource(R.string.llm_settings_generic_config_description, providerName),
         onSave = { onSave(provider, apiKeyState, baseURLState, modelState) },
         onTest = onTest
     ) {
@@ -111,7 +113,7 @@ fun GenericProviderConfigCard(
             value = apiKeyState,
             onValueChange = { apiKeyState = it },
             label = { Text("API Key") },
-            placeholder = { Text("输入API Key") },
+            placeholder = { Text(stringResource(R.string.llm_settings_generic_api_key_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
             leadingIcon = {
@@ -145,8 +147,8 @@ fun GenericProviderConfigCard(
         OutlinedTextField(
             value = modelState,
             onValueChange = { modelState = it },
-            label = { Text("模型") },
-            placeholder = { Text("模型名称") },
+            label = { Text(stringResource(R.string.llm_settings_model)) },
+            placeholder = { Text(stringResource(R.string.llm_settings_generic_model_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
                 Icon(Icons.Default.Psychology, contentDescription = null)
@@ -175,14 +177,14 @@ fun OptionsCard(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "通用选项",
+                text = stringResource(R.string.llm_options_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
 
             // Temperature
-            Text("Temperature: ${String.format("%.2f", temperature)}")
+            Text(stringResource(R.string.llm_options_temperature, String.format("%.2f", temperature)))
             Slider(
                 value = temperature,
                 onValueChange = { temperature = it },
@@ -190,7 +192,7 @@ fun OptionsCard(
                 steps = 19
             )
             Text(
-                text = "控制输出随机性。较低值更确定，较高值更创造性。",
+                text = stringResource(R.string.llm_options_temperature_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -198,7 +200,7 @@ fun OptionsCard(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Top P
-            Text("Top P: ${String.format("%.2f", topP)}")
+            Text(stringResource(R.string.llm_options_top_p, String.format("%.2f", topP)))
             Slider(
                 value = topP,
                 onValueChange = { topP = it },
@@ -206,7 +208,7 @@ fun OptionsCard(
                 steps = 9
             )
             Text(
-                text = "控制采样多样性。推荐0.9-1.0。",
+                text = stringResource(R.string.llm_options_top_p_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -224,7 +226,7 @@ fun OptionsCard(
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                text = "限制采样候选数量。推荐40。",
+                text = stringResource(R.string.llm_options_top_k_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -237,12 +239,12 @@ fun OptionsCard(
                 onValueChange = {
                     it.toIntOrNull()?.let { value -> maxTokens = value }
                 },
-                label = { Text("最大Token数") },
+                label = { Text(stringResource(R.string.llm_options_max_tokens)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                text = "单次响应的最大长度。",
+                text = stringResource(R.string.llm_options_max_tokens_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -255,7 +257,7 @@ fun OptionsCard(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("保存选项")
+                Text(stringResource(R.string.llm_options_save))
             }
         }
     }
@@ -316,7 +318,7 @@ fun ProviderConfigCardTemplate(
                 ) {
                     Icon(Icons.Default.Save, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("保存")
+                    Text(stringResource(R.string.llm_config_save))
                 }
 
                 OutlinedButton(
@@ -325,7 +327,7 @@ fun ProviderConfigCardTemplate(
                 ) {
                     Icon(Icons.Default.PlayArrow, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("测试")
+                    Text(stringResource(R.string.llm_config_test))
                 }
             }
         }

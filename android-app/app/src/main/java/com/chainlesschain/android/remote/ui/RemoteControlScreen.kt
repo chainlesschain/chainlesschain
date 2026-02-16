@@ -15,8 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.commands.SystemStatus
@@ -63,6 +66,7 @@ fun RemoteControlScreen(
     val connectionState by viewModel.connectionState.collectAsState()
     val connectedPeer by viewModel.connectedPeer.collectAsState()
 
+    val context = LocalContext.current
     var showNotificationDialog by remember { mutableStateOf(false) }
 
     // Auto-connect when navigating from DeviceScanScreen with valid peerId
@@ -91,7 +95,7 @@ fun RemoteControlScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("远程控制") },
+                title = { Text(stringResource(R.string.remote_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -102,7 +106,7 @@ fun RemoteControlScreen(
                         onClick = { viewModel.refreshSystemStatus() },
                         enabled = connectionState == ConnectionState.CONNECTED
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh))
                     }
                 }
             )
@@ -123,7 +127,7 @@ fun RemoteControlScreen(
                     onConnect = {
                         val peerId = defaultPeerId?.trim().orEmpty()
                         if (peerId.isBlank()) {
-                            viewModel.setError("请先在设备管理中选择要连接的设备")
+                            viewModel.setError(context.getString(R.string.remote_please_select_device))
                             return@DeviceConnectionPanel
                         }
                         val did = defaultDid?.trim().takeUnless { it.isNullOrBlank() } ?: "did:key:$peerId"
@@ -160,25 +164,25 @@ fun RemoteControlScreen(
             // 3. AI 命令快捷入口
             item {
                 CommandShortcutsSection(
-                    title = "AI 命令",
+                    title = stringResource(R.string.remote_section_ai_commands),
                     icon = Icons.Default.Psychology,
                     enabled = connectionState == ConnectionState.CONNECTED,
                     commands = listOf(
                         CommandShortcut(
-                            title = "AI 对话",
-                            subtitle = "与 PC 端 LLM 对话",
+                            title = stringResource(R.string.remote_ai_chat),
+                            subtitle = stringResource(R.string.remote_ai_chat_desc),
                             icon = Icons.Default.Chat,
                             onClick = onNavigateToAIChat
                         ),
                         CommandShortcut(
-                            title = "RAG 搜索",
-                            subtitle = "搜索 PC 端知识库",
+                            title = stringResource(R.string.remote_rag_search),
+                            subtitle = stringResource(R.string.remote_rag_search_desc),
                             icon = Icons.Default.Search,
                             onClick = onNavigateToRAGSearch
                         ),
                         CommandShortcut(
-                            title = "Agent 控制",
-                            subtitle = "控制 PC 端 AI Agent",
+                            title = stringResource(R.string.remote_agent_control),
+                            subtitle = stringResource(R.string.remote_agent_control_desc),
                             icon = Icons.Default.SmartToy,
                             onClick = onNavigateToAgentControl
                         )
@@ -189,51 +193,51 @@ fun RemoteControlScreen(
             // 4. 系统命令快捷入口
             item {
                 CommandShortcutsSection(
-                    title = "系统命令",
+                    title = stringResource(R.string.remote_section_system_commands),
                     icon = Icons.Default.Computer,
                     enabled = connectionState == ConnectionState.CONNECTED,
                     commands = listOf(
                         CommandShortcut(
-                            title = "系统监控",
-                            subtitle = "实时监控 PC 端系统状态",
+                            title = stringResource(R.string.remote_system_monitor),
+                            subtitle = stringResource(R.string.remote_system_monitor_desc),
                             icon = Icons.Default.Monitor,
                             onClick = onNavigateToSystemMonitor
                         ),
                         CommandShortcut(
-                            title = "远程桌面",
-                            subtitle = "连接到 PC 端桌面并远程控制",
+                            title = stringResource(R.string.remote_desktop),
+                            subtitle = stringResource(R.string.remote_desktop_desc),
                             icon = Icons.Default.DesktopWindows,
                             onClick = onNavigateToRemoteDesktop
                         ),
                         CommandShortcut(
-                            title = "文件传输",
-                            subtitle = "在 PC 和 Android 之间传输文件",
+                            title = stringResource(R.string.remote_file_transfer),
+                            subtitle = stringResource(R.string.remote_file_transfer_desc),
                             icon = Icons.Default.Folder,
                             onClick = {
                                 val did = connectedPeer?.did
                                     ?: defaultDid?.trim().orEmpty()
                                 if (did.isBlank()) {
-                                    viewModel.setError("请先连接或选择设备后再进行文件传输")
+                                    viewModel.setError(context.getString(R.string.remote_file_transfer_connect_first))
                                 } else {
                                     onNavigateToFileTransfer(did)
                                 }
                             }
                         ),
                         CommandShortcut(
-                            title = "截图",
-                            subtitle = "获取 PC 端屏幕截图",
+                            title = stringResource(R.string.remote_screenshot),
+                            subtitle = stringResource(R.string.remote_screenshot_desc),
                             icon = Icons.Default.Screenshot,
                             onClick = onNavigateToScreenshot
                         ),
                         CommandShortcut(
-                            title = "发送通知",
-                            subtitle = "向 PC 端发送通知",
+                            title = stringResource(R.string.remote_send_notification),
+                            subtitle = stringResource(R.string.remote_send_notification_desc),
                             icon = Icons.Default.Notifications,
                             onClick = { showNotificationDialog = true }
                         ),
                         CommandShortcut(
-                            title = "命令历史",
-                            subtitle = "查看命令执行记录",
+                            title = stringResource(R.string.remote_command_history),
+                            subtitle = stringResource(R.string.remote_command_history_desc),
                             icon = Icons.Default.History,
                             onClick = onNavigateToCommandHistory
                         )
@@ -244,31 +248,31 @@ fun RemoteControlScreen(
             // 5. 同步与工作流
             item {
                 CommandShortcutsSection(
-                    title = "同步与工作流",
+                    title = stringResource(R.string.remote_section_sync_workflow),
                     icon = Icons.Default.Sync,
                     enabled = connectionState == ConnectionState.CONNECTED,
                     commands = listOf(
                         CommandShortcut(
-                            title = "剪贴板同步",
-                            subtitle = "在 PC 和 Android 之间同步剪贴板",
+                            title = stringResource(R.string.remote_clipboard_sync),
+                            subtitle = stringResource(R.string.remote_clipboard_sync_desc),
                             icon = Icons.Default.ContentPaste,
                             onClick = onNavigateToClipboardSync
                         ),
                         CommandShortcut(
-                            title = "通知中心",
-                            subtitle = "管理和发送 PC 端通知",
+                            title = stringResource(R.string.remote_notification_center),
+                            subtitle = stringResource(R.string.remote_notification_center_desc),
                             icon = Icons.Default.NotificationsActive,
                             onClick = onNavigateToNotificationCenter
                         ),
                         CommandShortcut(
-                            title = "工作流自动化",
-                            subtitle = "创建和执行自动化工作流",
+                            title = stringResource(R.string.remote_workflow_automation),
+                            subtitle = stringResource(R.string.remote_workflow_automation_desc),
                             icon = Icons.Default.PlayCircle,
                             onClick = onNavigateToWorkflow
                         ),
                         CommandShortcut(
-                            title = "连接状态",
-                            subtitle = "查看详细连接状态和重连设置",
+                            title = stringResource(R.string.remote_connection_status),
+                            subtitle = stringResource(R.string.remote_connection_status_desc),
                             icon = Icons.Default.SignalCellularAlt,
                             onClick = onNavigateToConnectionStatus
                         )
@@ -279,31 +283,31 @@ fun RemoteControlScreen(
             // 6. 设备控制 (Phase 17A)
             item {
                 CommandShortcutsSection(
-                    title = "设备控制",
+                    title = stringResource(R.string.remote_section_device_control),
                     icon = Icons.Default.SettingsRemote,
                     enabled = connectionState == ConnectionState.CONNECTED,
                     commands = listOf(
                         CommandShortcut(
-                            title = "电源控制",
-                            subtitle = "关机、重启、睡眠、休眠、锁定",
+                            title = stringResource(R.string.remote_power_control),
+                            subtitle = stringResource(R.string.remote_power_control_desc),
                             icon = Icons.Default.PowerSettingsNew,
                             onClick = onNavigateToPowerControl
                         ),
                         CommandShortcut(
-                            title = "进程管理",
-                            subtitle = "查看和管理运行中的进程",
+                            title = stringResource(R.string.remote_process_management),
+                            subtitle = stringResource(R.string.remote_process_management_desc),
                             icon = Icons.Default.Memory,
                             onClick = onNavigateToProcessManager
                         ),
                         CommandShortcut(
-                            title = "媒体控制",
-                            subtitle = "音量、静音、媒体播放控制",
+                            title = stringResource(R.string.remote_media_control),
+                            subtitle = stringResource(R.string.remote_media_control_desc),
                             icon = Icons.Default.VolumeUp,
                             onClick = onNavigateToMediaControl
                         ),
                         CommandShortcut(
-                            title = "输入控制",
-                            subtitle = "远程键盘、鼠标、触摸板",
+                            title = stringResource(R.string.remote_input_control),
+                            subtitle = stringResource(R.string.remote_input_control_desc),
                             icon = Icons.Default.Keyboard,
                             onClick = onNavigateToInputControl
                         )
@@ -314,31 +318,31 @@ fun RemoteControlScreen(
             // 7. 系统信息 (Phase 17A)
             item {
                 CommandShortcutsSection(
-                    title = "系统信息",
+                    title = stringResource(R.string.remote_section_system_info),
                     icon = Icons.Default.Info,
                     enabled = connectionState == ConnectionState.CONNECTED,
                     commands = listOf(
                         CommandShortcut(
-                            title = "存储信息",
-                            subtitle = "磁盘空间、大文件、清理",
+                            title = stringResource(R.string.remote_storage_info),
+                            subtitle = stringResource(R.string.remote_storage_info_desc),
                             icon = Icons.Default.Storage,
                             onClick = onNavigateToStorageInfo
                         ),
                         CommandShortcut(
-                            title = "网络信息",
-                            subtitle = "网络状态、接口、带宽、工具",
+                            title = stringResource(R.string.remote_network_info),
+                            subtitle = stringResource(R.string.remote_network_info_desc),
                             icon = Icons.Default.Wifi,
                             onClick = onNavigateToNetworkInfo
                         ),
                         CommandShortcut(
-                            title = "应用管理",
-                            subtitle = "已安装应用、运行中应用",
+                            title = stringResource(R.string.remote_app_management),
+                            subtitle = stringResource(R.string.remote_app_management_desc),
                             icon = Icons.Default.Apps,
                             onClick = onNavigateToApplicationManager
                         ),
                         CommandShortcut(
-                            title = "安全信息",
-                            subtitle = "防火墙、杀毒、更新状态",
+                            title = stringResource(R.string.remote_security_info),
+                            subtitle = stringResource(R.string.remote_security_info_desc),
                             icon = Icons.Default.Security,
                             onClick = onNavigateToSecurityInfo
                         )
@@ -353,7 +357,7 @@ fun RemoteControlScreen(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("关闭")
+                        Text(stringResource(R.string.common_close))
                     }
                 }
             ) {
@@ -423,7 +427,7 @@ fun DeviceConnectionPanel(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "PC 设备连接",
+                    text = stringResource(R.string.remote_pc_connection),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -457,11 +461,11 @@ fun DeviceConnectionPanel(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = when (connectionState) {
-                        ConnectionState.DISCONNECTED -> "连接到 PC"
-                        ConnectionState.CONNECTING -> "连接中..."
-                        ConnectionState.RECONNECTING -> "重连中..."
-                        ConnectionState.CONNECTED -> "断开连接"
-                        ConnectionState.ERROR -> "重新连接"
+                        ConnectionState.DISCONNECTED -> stringResource(R.string.remote_connect_to_pc)
+                        ConnectionState.CONNECTING -> stringResource(R.string.remote_connecting)
+                        ConnectionState.RECONNECTING -> stringResource(R.string.remote_reconnecting)
+                        ConnectionState.CONNECTED -> stringResource(R.string.remote_disconnect)
+                        ConnectionState.ERROR -> stringResource(R.string.remote_reconnect)
                     }
                 )
             }
@@ -486,11 +490,11 @@ fun ConnectionStatusIndicator(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = when (connectionState) {
-                    ConnectionState.DISCONNECTED -> "未连接"
-                    ConnectionState.CONNECTING -> "正在连接..."
-                    ConnectionState.RECONNECTING -> "正在重连..."
-                    ConnectionState.CONNECTED -> connectedPeer?.peerId ?: "已连接"
-                    ConnectionState.ERROR -> "连接错误"
+                    ConnectionState.DISCONNECTED -> stringResource(R.string.remote_not_connected)
+                    ConnectionState.CONNECTING -> stringResource(R.string.remote_connecting)
+                    ConnectionState.RECONNECTING -> stringResource(R.string.remote_reconnecting)
+                    ConnectionState.CONNECTED -> connectedPeer?.peerId ?: stringResource(R.string.remote_status_connected)
+                    ConnectionState.ERROR -> stringResource(R.string.remote_status_error)
                 },
                 style = MaterialTheme.typography.bodyLarge
             )
@@ -498,7 +502,7 @@ fun ConnectionStatusIndicator(
             if (connectionState == ConnectionState.CONNECTED && connectedPeer != null) {
                 val dateFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
                 Text(
-                    text = "连接于 ${dateFormat.format(Date(connectedPeer.connectedAt))}",
+                    text = stringResource(R.string.remote_connected_at, dateFormat.format(Date(connectedPeer.connectedAt))),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -558,7 +562,7 @@ fun SystemStatusPanel(
                         tint = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
-                        text = "系统状态",
+                        text = stringResource(R.string.remote_system_status),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -581,31 +585,31 @@ fun SystemStatusPanel(
                 // CPU 状态
                 StatusItem(
                     icon = Icons.Default.Memory,
-                    label = "CPU",
-                    value = "${systemStatus.cpu.usage} (${systemStatus.cpu.cores} 核)",
+                    label = stringResource(R.string.remote_cpu),
+                    value = stringResource(R.string.remote_cpu_usage, systemStatus.cpu.usage, systemStatus.cpu.cores),
                     subtitle = systemStatus.cpu.model
                 )
 
                 // 内存状态
                 StatusItem(
                     icon = Icons.Default.Storage,
-                    label = "内存",
+                    label = stringResource(R.string.remote_memory),
                     value = systemStatus.memory.usagePercent,
-                    subtitle = "已用 ${formatBytes(systemStatus.memory.used)} / 总计 ${formatBytes(systemStatus.memory.total)}"
+                    subtitle = stringResource(R.string.remote_memory_usage, formatBytes(systemStatus.memory.used), formatBytes(systemStatus.memory.total))
                 )
 
                 // 系统信息
                 systemInfo?.let { info ->
                     StatusItem(
                         icon = Icons.Default.Info,
-                        label = "系统",
+                        label = stringResource(R.string.remote_system),
                         value = "${info.os.platform} ${info.os.arch}",
                         subtitle = info.hostname
                     )
                 }
             } else {
                 Text(
-                    text = "暂无数据",
+                    text = stringResource(R.string.remote_no_data),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.5f)
                 )
@@ -773,13 +777,13 @@ fun SendNotificationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("发送通知到 PC") },
+        title = { Text(stringResource(R.string.remote_send_notification_to_pc)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("标题") },
+                    label = { Text(stringResource(R.string.remote_notification_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -787,7 +791,7 @@ fun SendNotificationDialog(
                 OutlinedTextField(
                     value = body,
                     onValueChange = { body = it },
-                    label = { Text("内容") },
+                    label = { Text(stringResource(R.string.remote_notification_content)) },
                     minLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -798,12 +802,12 @@ fun SendNotificationDialog(
                 onClick = { onSend(title, body) },
                 enabled = title.isNotBlank() && body.isNotBlank()
             ) {
-                Text("发送")
+                Text(stringResource(R.string.common_send))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -847,11 +851,11 @@ fun RecentActionsPanel(actions: List<String>) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(Icons.Default.History, contentDescription = null)
-                Text("最近操作", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.remote_recent_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             Divider()
             if (actions.isEmpty()) {
-                Text("暂无操作记录", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.remote_no_action_history), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 actions.forEach { action ->
                     Text("• $action", style = MaterialTheme.typography.bodySmall)

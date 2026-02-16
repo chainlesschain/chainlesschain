@@ -11,8 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 import com.chainlesschain.android.presentation.components.*
 import kotlinx.coroutines.launch
 
@@ -25,6 +28,7 @@ import kotlinx.coroutines.launch
 fun StatsDashboardScreen() {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     // 模拟数据
     val knowledgeCategories = remember {
         listOf(
@@ -66,17 +70,17 @@ fun StatsDashboardScreen() {
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("统计分析", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.stats_title), fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = {
-                        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
                     }) {
-                        Icon(Icons.Default.Download, contentDescription = "导出")
+                        Icon(Icons.Default.Download, contentDescription = stringResource(R.string.common_share))
                     }
                     IconButton(onClick = {
-                        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
                     }) {
-                        Icon(Icons.Default.Settings, contentDescription = "设置")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.common_settings))
                     }
                 }
             )
@@ -152,7 +156,7 @@ fun OverviewCards() {
             // 知识库数量
             StatsCard(
                 modifier = Modifier.weight(1f),
-                title = "知识库",
+                title = stringResource(R.string.stats_knowledge_base),
                 value = "130",
                 change = "+12",
                 isPositive = true,
@@ -162,7 +166,7 @@ fun OverviewCards() {
             // 项目数量
             StatsCard(
                 modifier = Modifier.weight(1f),
-                title = "项目",
+                title = stringResource(R.string.stats_projects),
                 value = "24",
                 change = "+3",
                 isPositive = true,
@@ -177,7 +181,7 @@ fun OverviewCards() {
             // AI对话次数
             StatsCard(
                 modifier = Modifier.weight(1f),
-                title = "AI对话",
+                title = stringResource(R.string.stats_ai_chat),
                 value = "89",
                 change = "+15",
                 isPositive = true,
@@ -187,7 +191,7 @@ fun OverviewCards() {
             // 任务完成率
             StatsCard(
                 modifier = Modifier.weight(1f),
-                title = "完成率",
+                title = stringResource(R.string.stats_completion_rate),
                 value = "78%",
                 change = "+5%",
                 isPositive = true,
@@ -301,7 +305,7 @@ fun DetailedStatsList() {
 
             DetailedStatItem(
                 icon = Icons.Default.Description,
-                label = "文档总数",
+                label = stringResource(R.string.stats_total_docs),
                 value = "130 篇",
                 trend = "+12 本周"
             )
@@ -310,7 +314,7 @@ fun DetailedStatsList() {
 
             DetailedStatItem(
                 icon = Icons.Default.Schedule,
-                label = "平均响应时间",
+                label = stringResource(R.string.stats_avg_response_time),
                 value = "2.3 秒",
                 trend = "-0.5 优化"
             )
@@ -319,7 +323,7 @@ fun DetailedStatsList() {
 
             DetailedStatItem(
                 icon = Icons.Default.Storage,
-                label = "存储使用",
+                label = stringResource(R.string.stats_storage_usage),
                 value = "3.2 GB",
                 trend = "总容量 10GB"
             )
@@ -328,7 +332,7 @@ fun DetailedStatsList() {
 
             DetailedStatItem(
                 icon = Icons.Default.Group,
-                label = "协作成员",
+                label = stringResource(R.string.stats_collaborators),
                 value = "8 人",
                 trend = "+2 本月"
             )

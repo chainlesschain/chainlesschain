@@ -8,10 +8,12 @@ import com.chainlesschain.android.remote.client.RemoteCommandClient
 import com.chainlesschain.android.remote.data.*
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
+import com.chainlesschain.android.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -26,6 +28,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class CommandHistoryViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val repository: CommandHistoryRepository,
     private val commandClient: RemoteCommandClient,
     private val p2pClient: P2PClient
@@ -138,7 +141,7 @@ class CommandHistoryViewModel @Inject constructor(
                         replaySuccess = true
                     )}
                 } else {
-                    val error = result.exceptionOrNull()?.message ?: "重放失败"
+                    val error = result.exceptionOrNull()?.message ?: context.getString(R.string.error_replay_failed)
                     _uiState.update { it.copy(
                         isReplaying = false,
                         error = error
@@ -148,7 +151,7 @@ class CommandHistoryViewModel @Inject constructor(
                 Timber.e(e, "命令重放失败")
                 _uiState.update { it.copy(
                     isReplaying = false,
-                    error = e.message ?: "重放失败"
+                    error = e.message ?: context.getString(R.string.error_replay_failed)
                 )}
             }
         }
@@ -206,6 +209,7 @@ class CommandHistoryViewModel @Inject constructor(
 /**
  * UI 状态
  */
+@Immutable
 data class CommandHistoryUiState(
     val isReplaying: Boolean = false,
     val isClearing: Boolean = false,

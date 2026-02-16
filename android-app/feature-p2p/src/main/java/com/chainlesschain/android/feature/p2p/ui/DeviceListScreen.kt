@@ -9,10 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.p2p.model.P2PDevice
+import com.chainlesschain.android.feature.p2p.R
 import com.chainlesschain.android.feature.p2p.viewmodel.DeviceUiState
 import com.chainlesschain.android.feature.p2p.viewmodel.DeviceWithSession
 import com.chainlesschain.android.feature.p2p.viewmodel.P2PDeviceViewModel
@@ -35,7 +37,7 @@ fun DeviceListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("P2P 设备") },
+                title = { Text(stringResource(R.string.p2p_devices)) },
                 actions = {
                     IconButton(
                         onClick = {
@@ -48,7 +50,7 @@ fun DeviceListScreen(
                     ) {
                         Icon(
                             imageVector = if (isScanning) Icons.Default.Stop else Icons.Default.Search,
-                            contentDescription = if (isScanning) "停止扫描" else "开始扫描"
+                            contentDescription = if (isScanning) stringResource(R.string.stop_scanning) else stringResource(R.string.start_scanning)
                         )
                     }
                 }
@@ -83,7 +85,7 @@ fun DeviceListScreen(
                 // 已连接设备
                 if (connectedDevices.isNotEmpty()) {
                     item {
-                        SectionHeader(text = "已连接设备")
+                        SectionHeader(text = stringResource(R.string.connected_devices))
                     }
 
                     items(connectedDevices) { device ->
@@ -103,7 +105,7 @@ fun DeviceListScreen(
                 // 发现的设备
                 if (discoveredDevices.isNotEmpty()) {
                     item {
-                        SectionHeader(text = "附近设备")
+                        SectionHeader(text = stringResource(R.string.nearby_devices))
                     }
 
                     items(discoveredDevices) { device ->
@@ -190,7 +192,7 @@ fun ConnectedDeviceItem(
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.Default.Verified,
-                            contentDescription = "已验证",
+                            contentDescription = stringResource(R.string.verified),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.tertiary
                         )
@@ -200,7 +202,7 @@ fun ConnectedDeviceItem(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "消息: ${device.sessionInfo.sendMessageNumber} 发送 / ${device.sessionInfo.receiveMessageNumber} 接收",
+                    text = stringResource(R.string.message_stats, device.sessionInfo.sendMessageNumber, device.sessionInfo.receiveMessageNumber),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -212,7 +214,7 @@ fun ConnectedDeviceItem(
                     IconButton(onClick = onVerify) {
                         Icon(
                             imageVector = Icons.Default.VerifiedUser,
-                            contentDescription = "验证"
+                            contentDescription = stringResource(R.string.verify)
                         )
                     }
                 }
@@ -220,7 +222,7 @@ fun ConnectedDeviceItem(
                 IconButton(onClick = onDisconnect) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "断开连接"
+                        contentDescription = stringResource(R.string.disconnect)
                     )
                 }
             }
@@ -286,7 +288,7 @@ fun DiscoveredDeviceItem(
             } else {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "连接"
+                    contentDescription = stringResource(R.string.connect)
                 )
             }
         }
@@ -332,7 +334,7 @@ fun ErrorBanner(
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "关闭",
+                    contentDescription = stringResource(R.string.close),
                     tint = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
@@ -363,7 +365,7 @@ fun EmptyState(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "未发现设备",
+            text = stringResource(R.string.no_devices_found),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -371,7 +373,7 @@ fun EmptyState(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "点击搜索按钮开始扫描附近的设备",
+            text = stringResource(R.string.tap_search_to_scan),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -384,7 +386,7 @@ fun EmptyState(
                 contentDescription = null
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("开始扫描")
+            Text(stringResource(R.string.start_scanning))
         }
     }
 }

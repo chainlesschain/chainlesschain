@@ -14,9 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import kotlinx.coroutines.launch
@@ -64,7 +66,7 @@ fun ChatScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(conversation?.title ?: "对话")
+                        Text(conversation?.title ?: stringResource(R.string.chat_default_title))
                         Text(
                             text = conversation?.model ?: "",
                             style = MaterialTheme.typography.labelSmall,
@@ -74,12 +76,12 @@ fun ChatScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.chat_navigate_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "设置")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.chat_settings))
                     }
                 }
             )
@@ -145,7 +147,7 @@ fun ChatScreen(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("关闭")
+                        Text(stringResource(R.string.chat_dismiss_error))
                     }
                 }
             ) {
@@ -322,7 +324,7 @@ fun ChatInput(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.weight(1f),
-            placeholder = { Text("输入消息...") },
+            placeholder = { Text(stringResource(R.string.chat_input_placeholder)) },
             enabled = enabled,
             maxLines = 4
         )
@@ -331,7 +333,7 @@ fun ChatInput(
             onClick = onSend,
             enabled = enabled && value.isNotBlank()
         ) {
-            Icon(Icons.Default.Send, contentDescription = "发送")
+            Icon(Icons.Default.Send, contentDescription = stringResource(R.string.chat_send))
         }
     }
 }

@@ -163,9 +163,11 @@ data class ClipboardSetResponse(
 @Serializable
 data class ClipboardWatchResponse(
     val success: Boolean,
-    val watching: Boolean,
+    val watching: Boolean? = null,
+    val enabled: Boolean? = null,
     val interval: Long? = null,
-    val error: String? = null
+    val error: String? = null,
+    val message: String? = null
 )
 
 /**

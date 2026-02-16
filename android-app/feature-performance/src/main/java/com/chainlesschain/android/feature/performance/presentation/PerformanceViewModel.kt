@@ -9,6 +9,7 @@ import com.chainlesschain.android.feature.performance.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -117,6 +118,7 @@ private data class PerformanceData(
     val traces: List<OperationTrace>
 )
 
+@Immutable
 data class PerformanceUiState(
     val isLoading: Boolean = true,
     val snapshots: List<PerformanceSnapshot> = emptyList(),

@@ -1,14 +1,18 @@
 package com.chainlesschain.android.feature.ai.presentation
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.data.rag.RAGRetriever
 import com.chainlesschain.android.feature.ai.data.repository.ConversationRepository
 import com.chainlesschain.android.feature.ai.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -18,6 +22,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val repository: ConversationRepository,
     private val ragRetriever: RAGRetriever
 ) : ViewModel() {
@@ -129,7 +134,7 @@ class ConversationViewModel @Inject constructor(
         if (provider != LLMProvider.OLLAMA && apiKey.isNullOrEmpty()) {
             android.util.Log.w("ConversationViewModel", "API Key missing for provider: $provider")
             _uiState.update {
-                it.copy(error = "请先配置${provider.displayName} API Key，可在AI设置中配置")
+                it.copy(error = context.getString(R.string.error_api_key_not_configured, provider.displayName))
             }
             return
         }
@@ -396,6 +401,7 @@ class ConversationViewModel @Inject constructor(
 /**
  * 对话UI状态
  */
+@Immutable
 data class ConversationUiState(
     val isLoading: Boolean = false,
     val isSending: Boolean = false,

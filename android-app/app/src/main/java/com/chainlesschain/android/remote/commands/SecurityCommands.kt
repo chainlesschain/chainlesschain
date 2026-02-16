@@ -136,7 +136,12 @@ data class FirewallStatusResponse(
     val enabled: Boolean? = null,
     val type: String? = null,
     val profiles: List<FirewallProfile>? = null,
-    val error: String? = null
+    val error: String? = null,
+    val defaultInbound: String? = null,
+    val defaultOutbound: String? = null,
+    val ruleCount: Int? = null,
+    val profile: String? = null,
+    val rules: Int? = null
 )
 
 @Serializable
@@ -166,7 +171,13 @@ data class EncryptionStatusResponse(
     val enabled: Boolean? = null,
     val type: String? = null,
     val percentage: Int? = null,
-    val error: String? = null
+    val error: String? = null,
+    val driveName: String? = null,
+    val encrypted: Boolean? = null,
+    val locked: Boolean? = null,
+    val algorithm: String? = null,
+    val method: String? = null,
+    val status: String? = null
 )
 
 @Serializable

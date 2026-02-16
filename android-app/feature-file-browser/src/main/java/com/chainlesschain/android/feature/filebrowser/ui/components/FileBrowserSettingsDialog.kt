@@ -9,7 +9,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.filebrowser.R
 import androidx.compose.ui.window.Dialog
 import com.chainlesschain.android.feature.filebrowser.worker.FileScanWorkManager
 
@@ -64,13 +66,13 @@ fun FileBrowserSettingsDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "文件浏览器设置",
+                        text = stringResource(R.string.settings_dialog_title),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "关闭")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.settings_close))
                     }
                 }
 
@@ -78,15 +80,15 @@ fun FileBrowserSettingsDialog(
 
                 // 自动扫描设置
                 Text(
-                    text = "自动扫描",
+                    text = stringResource(R.string.settings_auto_scan_section),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
 
                 SettingSwitchItem(
                     icon = Icons.Default.Autorenew,
-                    title = "启用后台自动扫描",
-                    description = "每6小时自动扫描新文件",
+                    title = stringResource(R.string.settings_auto_scan_enable),
+                    description = stringResource(R.string.settings_auto_scan_desc),
                     checked = autoScanEnabled,
                     onCheckedChange = { enabled ->
                         autoScanEnabled = enabled
@@ -103,8 +105,8 @@ fun FileBrowserSettingsDialog(
                 if (autoScanEnabled) {
                     SettingSwitchItem(
                         icon = Icons.Default.Wifi,
-                        title = "仅WiFi扫描",
-                        description = "避免消耗移动数据流量",
+                        title = stringResource(R.string.settings_wifi_only),
+                        description = stringResource(R.string.settings_wifi_only_desc),
                         checked = scanOnWifiOnly,
                         onCheckedChange = { enabled ->
                             scanOnWifiOnly = enabled
@@ -119,8 +121,8 @@ fun FileBrowserSettingsDialog(
 
                     SettingSwitchItem(
                         icon = Icons.Default.BatteryChargingFull,
-                        title = "仅充电时扫描",
-                        description = "节省电池电量",
+                        title = stringResource(R.string.settings_charging_only),
+                        description = stringResource(R.string.settings_charging_only_desc),
                         checked = scanOnChargingOnly,
                         onCheckedChange = { enabled ->
                             scanOnChargingOnly = enabled
@@ -138,7 +140,7 @@ fun FileBrowserSettingsDialog(
 
                 // 缓存管理
                 Text(
-                    text = "缓存管理",
+                    text = stringResource(R.string.settings_cache_section),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -156,11 +158,11 @@ fun FileBrowserSettingsDialog(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("清除文件索引缓存")
+                    Text(stringResource(R.string.settings_clear_file_cache))
                 }
 
                 Text(
-                    text = "清除缓存后需要重新扫描文件",
+                    text = stringResource(R.string.settings_clear_cache_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -184,7 +186,7 @@ fun FileBrowserSettingsDialog(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "自动扫描使用增量更新，仅扫描新增或修改的文件，不会影响设备性能。",
+                            text = stringResource(R.string.settings_auto_scan_note),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -196,7 +198,7 @@ fun FileBrowserSettingsDialog(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("完成")
+                    Text(stringResource(R.string.settings_done))
                 }
             }
         }

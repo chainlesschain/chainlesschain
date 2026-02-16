@@ -2,7 +2,50 @@
 <resources>
     <string name="app_name">无链之链</string>
 
-    <!-- Social Screen -->
+    <!-- ==================== Common / Shared ==================== -->
+    <string name="common_back">返回</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_confirm">确定</string>
+    <string name="common_close">关闭</string>
+    <string name="common_save">保存</string>
+    <string name="common_send">发送</string>
+    <string name="common_refresh">刷新</string>
+    <string name="common_settings">设置</string>
+    <string name="common_more">更多</string>
+    <string name="common_copy">复制</string>
+    <string name="common_remove">移除</string>
+    <string name="common_download">下载</string>
+    <string name="common_search">搜索</string>
+    <string name="common_retry">重试</string>
+    <string name="common_delete">删除</string>
+    <string name="common_edit">编辑</string>
+    <string name="common_share">分享</string>
+    <string name="common_open">打开</string>
+    <string name="common_clear">清空</string>
+    <string name="common_all">全部</string>
+    <string name="common_no_data">暂无数据</string>
+    <string name="common_feature_in_development">功能开发中</string>
+    <string name="common_just_now">刚刚</string>
+    <string name="common_minutes_ago">%d分钟前</string>
+    <string name="common_hours_ago">%d小时前</string>
+    <string name="common_days_ago">%d天前</string>
+    <string name="common_connected">已连接</string>
+    <string name="common_disconnected">未连接</string>
+    <string name="common_connecting">正在连接…</string>
+    <string name="common_reconnecting">正在重连…</string>
+    <string name="common_connection_error">连接错误</string>
+    <string name="common_connection_success">连接成功</string>
+    <string name="common_connection_failed">连接失败</string>
+    <string name="common_testing">测试中…</string>
+    <string name="common_processing">处理中…</string>
+    <string name="common_collapse">收起</string>
+    <string name="common_expand">展开</string>
+    <string name="common_verified">已验证</string>
+    <string name="common_unknown">未知</string>
+    <string name="common_filter">筛选</string>
+    <string name="common_sort">排序</string>
+
+    <!-- ==================== Social Screen ==================== -->
     <string name="social_tab_friends">好友</string>
     <string name="social_tab_timeline">动态</string>
     <string name="social_tab_notifications">通知</string>
@@ -10,13 +53,630 @@
     <string name="social_timeline_placeholder">动态页面为了构建稳定性暂时简化。</string>
     <string name="social_notifications_placeholder">通知页面为了构建稳定性暂时简化。</string>
 
-    <!-- P2P Chat -->
+    <!-- ==================== P2P Chat ==================== -->
     <string name="p2p_chat_title">消息</string>
     <string name="p2p_chat_empty">暂无对话</string>
 
-    <!-- File Statistics -->
+    <!-- ==================== File Statistics ==================== -->
     <string name="file_statistics_title">文件统计</string>
     <string name="file_statistics_total">%1$d 个文件，%2$s</string>
     <string name="file_statistics_favorites">%d 个收藏</string>
     <string name="file_statistics_imported">%d 个已导入</string>
+
+    <!-- ==================== NavGraph ==================== -->
+    <string name="nav_file_imported">文件已导入</string>
+    <string name="nav_qr_scan_success">扫描成功: %s</string>
+
+    <!-- ==================== Home Screen ==================== -->
+    <string name="home_subtitle">你的AI办公空间</string>
+    <string name="home_usage_statistics">使用统计</string>
+    <string name="home_profile_center">个人中心</string>
+    <string name="home_more_features">更多功能</string>
+    <string name="home_section_devices">设备与连接</string>
+    <string name="home_section_data">数据与统计</string>
+    <string name="home_section_other">其他功能</string>
+    <string name="home_hint_message_or_voice">发消息或按住说话…</string>
+    <string name="home_voice_input">语音输入</string>
+    <!-- Home feature entries -->
+    <string name="feature_knowledge_base">知识库</string>
+    <string name="feature_ai_chat">AI对话</string>
+    <string name="feature_llm_settings">LLM设置</string>
+    <string name="feature_social_feed">社交广场</string>
+    <string name="feature_my_qrcode">我的二维码</string>
+    <string name="feature_scan_qrcode">扫码添加</string>
+    <string name="feature_project_management">项目管理</string>
+    <string name="feature_file_browser">文件浏览</string>
+    <string name="feature_p2p_devices">P2P设备</string>
+    <string name="feature_remote_control">远程控制</string>
+
+    <!-- ==================== Settings Screen ==================== -->
+    <string name="settings_title">设置</string>
+    <string name="settings_section_general">通用</string>
+    <string name="settings_dark_mode">深色模式</string>
+    <string name="settings_dark_mode_enabled">已启用深色主题</string>
+    <string name="settings_dark_mode_follow_system">跟随系统设置</string>
+    <string name="settings_notifications">消息通知</string>
+    <string name="settings_notifications_desc">接收消息和系统通知</string>
+    <string name="settings_auto_save">自动保存</string>
+    <string name="settings_auto_save_desc">自动保存编辑内容</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_zh_cn">简体中文</string>
+    <string name="settings_section_network">网络</string>
+    <string name="settings_signaling_server">P2P 信令服务器</string>
+    <string name="settings_section_security">安全</string>
+    <string name="settings_biometric">生物识别</string>
+    <string name="settings_biometric_desc">使用指纹或面部识别解锁</string>
+    <string name="settings_change_pin">修改PIN码</string>
+    <string name="settings_change_pin_desc">更改应用解锁密码</string>
+    <string name="settings_key_management">密钥管理</string>
+    <string name="settings_key_management_desc">管理加密密钥和DID身份</string>
+    <string name="settings_section_storage">存储</string>
+    <string name="settings_clear_cache">清除缓存</string>
+    <string name="settings_clear_cache_desc">释放临时文件占用的空间</string>
+    <string name="settings_data_management">数据管理</string>
+    <string name="settings_data_management_desc">导出或备份个人数据</string>
+    <string name="settings_section_other">其他</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_about_desc">应用版本和信息</string>
+    <string name="settings_help_feedback">帮助与反馈</string>
+    <string name="settings_help_feedback_desc">获取帮助或提交反馈</string>
+    <!-- Settings dialogs -->
+    <string name="settings_clear_cache_dialog_title">清除缓存</string>
+    <string name="settings_clear_cache_dialog_msg">确定要清除所有缓存数据吗？此操作不会影响您的个人数据。</string>
+    <string name="settings_cache_cleared">缓存已清除</string>
+    <string name="settings_select_language">选择语言</string>
+    <string name="settings_language_set_to">语言已设置为 %s</string>
+    <string name="settings_change_pin_dialog_title">修改PIN码</string>
+    <string name="settings_current_pin">当前PIN码</string>
+    <string name="settings_new_pin">新PIN码</string>
+    <string name="settings_confirm_new_pin">确认新PIN码</string>
+    <string name="settings_pin_changed">PIN码修改成功</string>
+    <string name="settings_pin_mismatch">两次输入的PIN码不一致</string>
+    <string name="settings_data_management_dialog_title">数据管理</string>
+    <string name="settings_export_in_development">数据导出功能开发中</string>
+    <string name="settings_export_data">导出数据</string>
+    <string name="settings_backup_in_development">数据备份功能开发中</string>
+    <string name="settings_backup_data">备份数据</string>
+    <string name="settings_signaling_dialog_title">P2P 信令服务器</string>
+    <string name="settings_signaling_format_hint">请输入 PC 端信令服务器地址。格式: ws://IP地址:端口</string>
+    <string name="settings_server_address">服务器地址</string>
+    <string name="settings_testing_connection">正在测试连接…</string>
+    <string name="settings_connection_ok">✓ 连接成功!</string>
+    <string name="settings_connection_fail">✗ 连接失败: %s</string>
+    <string name="settings_test_connection">测试连接</string>
+    <string name="settings_signaling_saved">信令服务器地址已保存</string>
+
+    <!-- ==================== Remote Control Screen ==================== -->
+    <string name="remote_title">远程控制</string>
+    <string name="remote_please_select_device">请先在设备管理中选择要连接的设备</string>
+    <!-- AI Commands -->
+    <string name="remote_section_ai_commands">AI 命令</string>
+    <string name="remote_ai_chat">AI 对话</string>
+    <string name="remote_ai_chat_desc">与 PC 端 LLM 对话</string>
+    <string name="remote_rag_search">RAG 搜索</string>
+    <string name="remote_rag_search_desc">搜索 PC 端知识库</string>
+    <string name="remote_agent_control">Agent 控制</string>
+    <string name="remote_agent_control_desc">控制 PC 端 AI Agent</string>
+    <!-- System Commands -->
+    <string name="remote_section_system_commands">系统命令</string>
+    <string name="remote_system_monitor">系统监控</string>
+    <string name="remote_system_monitor_desc">实时监控 PC 端系统状态</string>
+    <string name="remote_desktop">远程桌面</string>
+    <string name="remote_desktop_desc">连接到 PC 端桌面并远程控制</string>
+    <string name="remote_file_transfer">文件传输</string>
+    <string name="remote_file_transfer_desc">在 PC 和 Android 之间传输文件</string>
+    <string name="remote_file_transfer_connect_first">请先连接或选择设备后再进行文件传输</string>
+    <string name="remote_screenshot">截图</string>
+    <string name="remote_screenshot_desc">获取 PC 端屏幕截图</string>
+    <string name="remote_send_notification">发送通知</string>
+    <string name="remote_send_notification_desc">向 PC 端发送通知</string>
+    <string name="remote_command_history">命令历史</string>
+    <string name="remote_command_history_desc">查看命令执行记录</string>
+    <!-- Sync & Workflow -->
+    <string name="remote_section_sync_workflow">同步与工作流</string>
+    <string name="remote_clipboard_sync">剪贴板同步</string>
+    <string name="remote_clipboard_sync_desc">在 PC 和 Android 之间同步剪贴板</string>
+    <string name="remote_notification_center">通知中心</string>
+    <string name="remote_notification_center_desc">管理和发送 PC 端通知</string>
+    <string name="remote_workflow_automation">工作流自动化</string>
+    <string name="remote_workflow_automation_desc">创建和执行自动化工作流</string>
+    <string name="remote_connection_status">连接状态</string>
+    <string name="remote_connection_status_desc">查看详细连接状态和重连设置</string>
+    <!-- Device Control -->
+    <string name="remote_section_device_control">设备控制</string>
+    <string name="remote_power_control">电源控制</string>
+    <string name="remote_power_control_desc">关机、重启、睡眠、休眠、锁定</string>
+    <string name="remote_process_management">进程管理</string>
+    <string name="remote_process_management_desc">查看和管理运行中的进程</string>
+    <string name="remote_media_control">媒体控制</string>
+    <string name="remote_media_control_desc">音量、静音、媒体播放控制</string>
+    <string name="remote_input_control">输入控制</string>
+    <string name="remote_input_control_desc">远程键盘、鼠标、触摸板</string>
+    <!-- System Info -->
+    <string name="remote_section_system_info">系统信息</string>
+    <string name="remote_storage_info">存储信息</string>
+    <string name="remote_storage_info_desc">磁盘空间、大文件、清理</string>
+    <string name="remote_network_info">网络信息</string>
+    <string name="remote_network_info_desc">网络状态、接口、带宽、工具</string>
+    <string name="remote_app_management">应用管理</string>
+    <string name="remote_app_management_desc">已安装应用、运行中应用</string>
+    <string name="remote_security_info">安全信息</string>
+    <string name="remote_security_info_desc">防火墙、杀毒、更新状态</string>
+    <!-- Connection panel -->
+    <string name="remote_pc_connection">PC 设备连接</string>
+    <string name="remote_connect_to_pc">连接到 PC</string>
+    <string name="remote_connecting">连接中…</string>
+    <string name="remote_reconnecting">重连中…</string>
+    <string name="remote_disconnect">断开连接</string>
+    <string name="remote_reconnect">重新连接</string>
+    <string name="remote_not_connected">未连接</string>
+    <string name="remote_status_connected">已连接</string>
+    <string name="remote_status_error">连接错误</string>
+    <string name="remote_connected_at">连接于 %s</string>
+    <!-- System status -->
+    <string name="remote_system_status">系统状态</string>
+    <string name="remote_cpu">CPU</string>
+    <string name="remote_memory">内存</string>
+    <string name="remote_cpu_usage">%1$s (%2$s 核)</string>
+    <string name="remote_memory_usage">已用 %1$s / 总计 %2$s</string>
+    <string name="remote_system">系统</string>
+    <string name="remote_no_data">暂无数据</string>
+    <!-- Notification dialog -->
+    <string name="remote_send_notification_to_pc">发送通知到 PC</string>
+    <string name="remote_notification_title">标题</string>
+    <string name="remote_notification_content">内容</string>
+    <!-- Recent actions -->
+    <string name="remote_recent_actions">最近操作</string>
+    <string name="remote_no_action_history">暂无操作记录</string>
+
+    <!-- ==================== Enhanced AI Chat Screen ==================== -->
+    <string name="ai_chat_title">AI对话</string>
+    <string name="ai_chat_greeting">你好！我是你的AI助手，有什么可以帮助你的吗？</string>
+    <string name="ai_chat_sample_question">帮我分析一下这个项目的架构</string>
+    <string name="ai_chat_sample_response">我已经分析了你的项目架构，这是一个典型的MVVM架构设计…</string>
+    <string name="ai_chat_typing">AI正在输入…</string>
+    <string name="ai_chat_attachment">附件</string>
+    <string name="ai_chat_attachment_label">[附件]</string>
+    <string name="ai_chat_file_analyzing">我已经收到了你的文件，正在分析…</string>
+    <string name="ai_chat_clear_title">清空对话</string>
+    <string name="ai_chat_clear_message">确定要清空所有对话内容吗？此操作不可恢复。</string>
+    <string name="ai_chat_user">用户</string>
+    <string name="ai_chat_input_hint">输入消息…</string>
+    <string name="ai_chat_image">图片</string>
+    <string name="ai_chat_code">代码</string>
+    <string name="ai_chat_document">文档</string>
+    <string name="ai_chat_attachments_count">附件 (%d)</string>
+
+    <!-- ==================== LLM Settings Screen (app module) ==================== -->
+    <string name="llm_settings_title">AI配置</string>
+    <string name="llm_settings_discover">发现服务</string>
+    <string name="llm_settings_selected">已选择</string>
+    <string name="llm_settings_config_title">%s 配置</string>
+    <string name="llm_settings_api_key_hint">输入API密钥</string>
+    <string name="llm_settings_toggle_key">显示/隐藏密钥</string>
+    <string name="llm_settings_api_endpoint">API端点</string>
+    <string name="llm_settings_test_connection">测试连接</string>
+    <string name="llm_settings_test_success">✅ 连接成功！可以开始使用</string>
+    <string name="llm_settings_test_fail">❌ 连接失败，请检查API密钥和网络</string>
+    <string name="llm_settings_ollama_title">Ollama 本地服务配置</string>
+    <string name="llm_settings_discovered_services">发现的服务</string>
+    <string name="llm_settings_scanning">正在扫描局域网…</string>
+    <string name="llm_settings_no_services">未发现服务，请点击右上角刷新按钮扫描</string>
+    <string name="llm_settings_manual_input">手动输入服务地址</string>
+    <string name="llm_settings_ollama_success">✅ 连接成功！\n可用模型: %s</string>
+    <string name="llm_settings_ollama_fail">❌ 连接失败，请检查:\n1. PC端Ollama是否运行\n2. 防火墙是否开放11434端口\n3. 网络连接是否正常</string>
+    <string name="llm_settings_usage_tips">💡 使用提示</string>
+    <string name="llm_settings_get_api_key">📖 获取API密钥</string>
+    <string name="llm_select_provider">选择AI提供商</string>
+    <string name="llm_settings_ollama_usage_tips">1. 确保PC端Ollama正在运行\n2. 手机和PC在同一局域网\n3. 点击右上角WiFi图标自动发现\n4. 或手动输入PC的IP地址</string>
+    <!-- Provider help -->
+    <string name="llm_help_openai">访问 platform.openai.com 注册账户并创建API密钥</string>
+    <string name="llm_help_deepseek">访问 platform.deepseek.com 注册账户并创建API密钥</string>
+    <string name="llm_help_claude">访问 console.anthropic.com 注册账户并创建API密钥</string>
+    <string name="llm_help_gemini">访问 ai.google.dev 获取API密钥</string>
+    <string name="llm_help_qwen">访问 dashscope.aliyun.com 开通服务并获取API-KEY</string>
+    <string name="llm_help_ernie">访问 console.bce.baidu.com/qianfan 创建应用获取密钥</string>
+    <string name="llm_help_chatglm">访问 open.bigmodel.cn 注册并创建API密钥</string>
+    <string name="llm_help_moonshot">访问 platform.moonshot.cn 注册并获取API密钥</string>
+    <string name="llm_help_spark">访问 console.xfyun.cn 创建应用获取密钥</string>
+    <string name="llm_help_doubao">访问 console.volcengine.com/ark 开通服务获取API密钥</string>
+    <string name="llm_help_ollama">无需API密钥，请在PC端安装Ollama并运行</string>
+    <string name="llm_help_custom">输入兼容OpenAI格式的API端点和密钥</string>
+    <!-- Provider names -->
+    <string name="llm_provider_dashscope">通义千问 Max/Plus/Turbo</string>
+    <string name="llm_provider_ernie">文心一言 4.0/Turbo</string>
+    <string name="llm_provider_zhipu">智谱清言 GLM-4/GLM-3</string>
+    <string name="llm_provider_kimi">Kimi Chat 8K/32K/128K</string>
+    <string name="llm_provider_spark">讯飞星火 v3.5/v3.0</string>
+    <string name="llm_provider_doubao">火山引擎豆包</string>
+    <string name="llm_provider_ollama">本地模型 (免费)</string>
+    <string name="llm_provider_custom">自定义OpenAI兼容接口</string>
+
+    <!-- ==================== Project Screen (app module) ==================== -->
+    <string name="project_my_projects">我的项目</string>
+    <string name="project_new_project">新建项目</string>
+    <string name="project_search_hint">搜索项目…</string>
+    <string name="project_all_count">全部项目 (%d)</string>
+    <string name="project_sort_updated">更新时间</string>
+    <string name="project_sort_name">名称</string>
+    <string name="project_sort_created">创建时间</string>
+    <string name="project_load_failed">加载项目失败</string>
+    <string name="project_empty">暂无项目</string>
+    <string name="project_login_first">请先登录后再创建项目</string>
+    <string name="project_status_in_progress">进行中</string>
+    <string name="project_status_completed">已完成</string>
+    <string name="project_status_paused">已暂停</string>
+    <string name="project_status_archived">已归档</string>
+    <string name="project_total_projects">总项目</string>
+    <string name="project_total_files">总文件</string>
+    <string name="project_files_label">文件</string>
+    <string name="project_size_prefix">大小: %s</string>
+    <string name="project_just_updated">刚刚更新</string>
+
+    <!-- ==================== Device Management ==================== -->
+    <string name="device_title">设备管理</string>
+    <string name="device_stop_scan">停止扫描</string>
+    <string name="device_scan_devices">扫描设备</string>
+    <string name="device_connected_count">已连接 (%d)</string>
+    <string name="device_discovered_count">发现的设备 (%d)</string>
+    <string name="device_no_connected">暂无已连接设备</string>
+    <string name="device_tap_scan_hint">点击右下角按钮扫描新设备</string>
+    <string name="device_scanning">正在扫描附近设备…</string>
+    <string name="device_scanning_wait">请稍候，正在搜索中</string>
+    <string name="device_tap_to_scan">点击右下角按钮开始扫描</string>
+    <string name="device_scanning_label">扫描中</string>
+    <string name="device_discovered_label">已发现</string>
+    <string name="device_id_label">设备ID: %s…</string>
+    <string name="device_e2ee_session">E2EE会话 \u2022 %1$d/%2$d 消息</string>
+    <string name="device_more_options">更多选项</string>
+    <string name="device_view_details">查看详情</string>
+    <string name="device_verify">验证设备</string>
+    <string name="device_connect">连接</string>
+    <string name="device_scan_nearby_hint">扫描附近设备以建立连接</string>
+    <string name="device_unknown_address">未知地址</string>
+    <string name="device_disconnect_title">断开设备连接</string>
+    <string name="device_disconnect_message">确定要断开与 \"%s\" 的连接吗？\n\n这将删除与该设备的加密会话，需要重新配对才能再次连接.</string>
+
+    <!-- ==================== Bottom Navigation ==================== -->
+    <string name="nav_home">首页</string>
+    <string name="nav_projects">项目</string>
+    <string name="nav_social">社交</string>
+    <string name="nav_profile">我的</string>
+    <string name="nav_unread_notifications">%d 条未读通知</string>
+
+    <!-- ==================== Common Components ==================== -->
+    <string name="common_loading">加载中…</string>
+    <string name="common_search_hint">搜索…</string>
+    <string name="common_copy_code">复制代码</string>
+
+    <!-- ==================== Home Screen (Legacy) ==================== -->
+    <string name="home_auth_success">认证成功！</string>
+    <string name="home_welcome">欢迎使用 ChainlessChain</string>
+    <string name="home_user_info">用户信息</string>
+    <string name="home_user_id">用户ID: %s…</string>
+    <string name="home_device_id">设备ID: %s…</string>
+    <string name="home_biometric_enabled">生物识别: 已启用</string>
+    <string name="home_biometric_disabled">生物识别: 未启用</string>
+    <string name="home_more_features_coming">更多功能即将推出…</string>
+    <string name="home_enter_knowledge_base">进入知识库</string>
+    <string name="home_ai_chat_assistant">AI对话助手</string>
+    <string name="home_p2p_device_management">P2P设备管理</string>
+    <string name="home_logout">退出登录</string>
+    <string name="home_logout_confirm">确定要退出登录吗？这将清除所有本地数据。</string>
+
+    <!-- ==================== About Screen ==================== -->
+    <string name="about_title">关于</string>
+    <string name="about_description">去中心化个人AI管理系统</string>
+    <string name="about_version">版本号</string>
+    <string name="about_build">构建号</string>
+    <string name="about_target_sdk">目标SDK</string>
+    <string name="about_min_sdk">最低SDK</string>
+    <string name="about_core_features">核心功能</string>
+    <string name="about_feature_knowledge">知识库管理</string>
+    <string name="about_feature_knowledge_desc">RAG增强搜索的个人第二大脑</string>
+    <string name="about_feature_social">去中心化社交</string>
+    <string name="about_feature_social_desc">基于DID的身份认证和P2P加密通讯</string>
+    <string name="about_feature_trading">去中心化交易</string>
+    <string name="about_feature_trading_desc">数字资产管理和智能合约</string>
+    <string name="about_tech_stack">技术栈</string>
+    <string name="about_framework">框架</string>
+    <string name="about_language">语言</string>
+    <string name="about_architecture">架构</string>
+    <string name="about_di">依赖注入</string>
+
+    <!-- ==================== Bookmark Screen ==================== -->
+    <string name="bookmark_title">我的收藏</string>
+    <string name="bookmark_search_hint">搜索收藏内容…</string>
+    <string name="bookmark_manage">管理</string>
+    <string name="bookmark_manage_done">完成</string>
+    <string name="bookmark_removed">已移除收藏</string>
+    <string name="bookmark_new_tag_title">新建标签</string>
+    <string name="bookmark_tag_name">标签名称</string>
+    <string name="bookmark_tag_created">标签「%s」已创建</string>
+    <string name="bookmark_new_tag">+ 新建标签</string>
+    <string name="bookmark_total">总收藏</string>
+    <string name="bookmark_projects">项目</string>
+    <string name="bookmark_documents">文档</string>
+    <string name="bookmark_knowledge">知识库</string>
+    <string name="bookmark_remove_cd">移除收藏</string>
+    <string name="bookmark_view_details_developing">查看详情功能开发中</string>
+    <!-- Bookmark sample data -->
+    <string name="bookmark_sample_1_title">Kotlin协程完全指南</string>
+    <string name="bookmark_sample_1_desc">深入理解Kotlin协程的工作原理和最佳实践，包含大量实际案例</string>
+    <string name="bookmark_sample_2_title">AI驱动的项目管理系统</string>
+    <string name="bookmark_sample_2_desc">使用人工智能优化项目管理流程，提高团队协作效率</string>
+    <string name="bookmark_sample_3_title">Android Compose最佳实践</string>
+    <string name="bookmark_sample_3_desc">从入门到精通，掌握Jetpack Compose的核心概念</string>
+    <string name="bookmark_sample_4_title">如何构建去中心化应用</string>
+    <string name="bookmark_sample_4_desc">探索区块链技术在应用开发中的实践</string>
+    <string name="bookmark_sample_5_title">2024年技术趋势分析</string>
+    <string name="bookmark_sample_5_desc">全面解读今年最值得关注的技术方向</string>
+    <string name="bookmark_tag_tech">技术</string>
+    <string name="bookmark_tag_learning">学习</string>
+    <string name="bookmark_tag_work">工作</string>
+    <string name="bookmark_tag_life">生活</string>
+    <string name="bookmark_filter_all">全部</string>
+    <string name="bookmark_filter_no_tag">无标签</string>
+    <string name="bookmark_add">添加</string>
+    <string name="bookmark_all_count">全部收藏 (%d)</string>
+    <string name="bookmark_undo">撤销</string>
+    <string name="bookmark_empty_title">暂无收藏内容</string>
+    <string name="bookmark_empty_desc">浏览探索页面，收藏感兴趣的内容</string>
+    <!-- Bookmark type labels -->
+    <string name="bookmark_type_project">项目</string>
+    <string name="bookmark_type_document">文档</string>
+    <string name="bookmark_type_knowledge">知识库</string>
+    <string name="bookmark_type_ai_chat">AI对话</string>
+
+    <!-- ==================== Explore Screen ==================== -->
+    <string name="explore_title">探索</string>
+    <string name="explore_like">点赞</string>
+    <string name="explore_bookmark">收藏</string>
+    <!-- Explore sample data -->
+    <string name="explore_sample_1_title">AI绘画入门指南</string>
+    <string name="explore_sample_1_desc">从零开始学习AI绘画，掌握Stable Diffusion和Midjourney</string>
+    <string name="explore_sample_1_author">设计达人</string>
+    <string name="explore_sample_2_title">2024年投资策略分析</string>
+    <string name="explore_sample_2_desc">深度解读今年的市场趋势和投资机会</string>
+    <string name="explore_sample_2_author">财经观察</string>
+    <string name="explore_sample_3_title">人像摄影后期调色技巧</string>
+    <string name="explore_sample_3_desc">专业摄影师分享人像照片的调色秘诀</string>
+    <string name="explore_sample_3_author">摄影工作室</string>
+    <string name="explore_sample_4_title">高效学习方法论</string>
+    <string name="explore_sample_4_desc">科学的学习方法帮你事半功倍</string>
+    <string name="explore_sample_4_author">学习达人</string>
+    <string name="explore_sample_5_title">周末美食探店vlog</string>
+    <string name="explore_sample_5_desc">带你发现城市里的宝藏美食店</string>
+    <string name="explore_sample_5_author">美食探险家</string>
+    <string name="explore_sample_6_title">UI设计趋势2024</string>
+    <string name="explore_sample_6_desc">今年最流行的UI设计风格和技巧</string>
+    <string name="explore_sample_6_author">UI设计师</string>
+    <string name="explore_sample_7_title">Python数据分析实战</string>
+    <string name="explore_sample_7_desc">用Python进行数据分析的完整教程</string>
+    <string name="explore_sample_7_author">编程老师</string>
+    <string name="explore_sample_8_title">室内人像打光技巧</string>
+    <string name="explore_sample_8_desc">如何在室内拍出好看的人像照片</string>
+    <string name="explore_sample_8_author">光影大师</string>
+    <!-- Explore category display names -->
+    <string name="explore_cat_all">探索</string>
+    <string name="explore_cat_photography">人像摄影</string>
+    <string name="explore_cat_education">教育学习</string>
+    <string name="explore_cat_finance">财经分析</string>
+    <string name="explore_cat_creative_design">创意设计</string>
+    <string name="explore_cat_lifestyle">生活娱乐</string>
+
+    <!-- ==================== Help &amp; Feedback Screen ==================== -->
+    <string name="help_title">帮助与反馈</string>
+    <string name="help_report_issue">报告问题</string>
+    <string name="help_feature_request">功能建议</string>
+    <string name="help_contact_us">联系我们</string>
+    <string name="help_faq_title">常见问题</string>
+    <string name="help_faq_q1">如何创建知识库？</string>
+    <string name="help_faq_a1">在首页点击「知识库」入口，进入知识库列表后点击右上角「+」按钮即可创建新的知识库条目。支持文本、文档等多种格式。</string>
+    <string name="help_faq_q2">如何配置AI模型？</string>
+    <string name="help_faq_a2">进入「我的」\u003e「AI配置」，选择LLM提供商（如豆包/OpenAI/Ollama等），填入API密钥即可完成配置。推荐先使用「AI测试」验证连接。</string>
+    <string name="help_faq_q3">P2P设备连接失败怎么办？</string>
+    <string name="help_faq_a3">请确保两台设备在同一网络环境下，检查防火墙设置是否允许P2P通信。若使用远程连接，请确保信令服务器可达。</string>
+    <string name="help_faq_q4">数据如何备份？</string>
+    <string name="help_faq_a4">进入「设置」\u003e「数据管理」，可以导出个人数据。应用使用SQLCipher加密存储，数据默认保存在应用私有目录中。</string>
+    <string name="help_faq_q5">如何保障数据安全？</string>
+    <string name="help_faq_a5">应用采用AES-256加密数据库，支持PIN码和生物识别解锁。P2P通信使用Signal协议端到端加密，身份基于DID去中心化标识。</string>
+    <string name="help_feedback_email_subject">ChainlessChain 反馈</string>
+    <string name="help_tutorials">使用教程</string>
+    <string name="help_quick_start">快速入门</string>
+    <string name="help_quick_start_desc">了解ChainlessChain的核心功能和基本操作</string>
+    <string name="help_ai_advanced">AI对话进阶</string>
+    <string name="help_ai_advanced_desc">掌握多模型配置、提示词优化和Token管理</string>
+    <string name="help_device_connection">设备互联</string>
+    <string name="help_device_connection_desc">配置P2P连接，实现跨设备协作和远程控制</string>
+    <string name="help_security_guide">安全指南</string>
+    <string name="help_security_guide_desc">了解加密机制、DID身份和密钥管理</string>
+    <string name="help_submit_feedback">提交反馈</string>
+    <string name="help_feedback_prompt">请描述您遇到的问题或建议：</string>
+    <string name="help_feedback_hint">请输入反馈内容…</string>
+    <string name="help_submit_success">提交成功</string>
+    <string name="help_submit_thanks">感谢您的反馈！我们会尽快处理。</string>
+
+    <!-- ==================== LLM Test Chat Screen ==================== -->
+    <string name="llm_test_title">LLM测试 - %s</string>
+    <string name="llm_test_response_time">响应时间</string>
+    <string name="llm_test_total_tokens">总Token</string>
+    <string name="llm_test_message_count">消息数</string>
+    <string name="llm_test_success_rate">成功率</string>
+    <string name="llm_test_input_hint">输入测试消息…</string>
+    <string name="llm_test_api_key_not_configured">未配置%1$s的API密钥，请先在AI配置中设置</string>
+
+    <!-- ==================== Profile ==================== -->
+    <string name="profile_center">个人中心</string>
+    <string name="profile_knowledge_base">知识库</string>
+    <string name="profile_knowledge_base_desc">管理我的知识库</string>
+    <string name="profile_ai_chat">AI对话</string>
+    <string name="profile_ai_chat_desc">智能助手对话记录</string>
+    <string name="profile_ai_config">AI配置</string>
+    <string name="profile_ai_config_desc">配置LLM提供商和API密钥</string>
+    <string name="profile_ai_test">AI测试</string>
+    <string name="profile_ai_test_desc">测试LLM连接和性能</string>
+    <string name="profile_p2p_devices">P2P设备管理</string>
+    <string name="profile_p2p_devices_desc">管理连接的设备</string>
+    <string name="profile_settings">设置</string>
+    <string name="profile_settings_desc">应用设置</string>
+    <string name="profile_about">关于</string>
+    <string name="profile_about_desc">应用版本和信息</string>
+    <string name="profile_help">帮助与反馈</string>
+    <string name="profile_help_desc">获取帮助</string>
+    <string name="profile_usage_stats">使用统计</string>
+    <string name="profile_usage_stats_desc">查看Token使用和成本统计</string>
+    <string name="profile_bookmarks">我的收藏</string>
+    <string name="profile_bookmarks_desc">查看收藏的内容</string>
+    <string name="profile_tab">我的</string>
+    <string name="profile_biometric_enabled">生物识别已启用</string>
+    <string name="profile_biometric_disabled">生物识别未启用</string>
+    <string name="profile_section_features">功能</string>
+    <string name="profile_section_system">系统</string>
+    <string name="profile_user_label">用户 %s</string>
+    <string name="profile_device_id_label">设备 ID: %s…</string>
+
+    <!-- ==================== Social Screen (additional) ==================== -->
+    <string name="social_mark_all_read">全部已读</string>
+    <string name="social_unread">未读</string>
+
+    <!-- ==================== Stats Dashboard ==================== -->
+    <string name="stats_title">统计分析</string>
+    <string name="stats_knowledge_base">知识库</string>
+    <string name="stats_projects">项目</string>
+    <string name="stats_ai_chat">AI对话</string>
+    <string name="stats_completion_rate">完成率</string>
+    <string name="stats_total_docs">文档总数</string>
+    <string name="stats_avg_response_time">平均响应时间</string>
+    <string name="stats_storage_usage">存储使用</string>
+    <string name="stats_collaborators">协作成员</string>
+
+    <!-- ==================== Task Detail Screen ==================== -->
+    <string name="task_detail_title">任务详情</string>
+    <string name="task_complete">完成任务</string>
+    <string name="task_add_step">添加步骤</string>
+    <string name="task_created_at">创建时间</string>
+    <string name="task_due_date">截止时间</string>
+    <string name="task_completed_at">完成时间</string>
+    <string name="task_updated_at">更新时间</string>
+    <string name="task_completed_cd">已完成</string>
+
+    <!-- ==================== Project Detail V2 ==================== -->
+    <string name="project_detail_add">添加</string>
+    <string name="project_detail_import_file">导入文件</string>
+    <string name="project_detail_attachment">附件</string>
+    <string name="project_detail_voice">语音</string>
+    <string name="project_detail_share_text">ChainlessChain项目: %s</string>
+    <string name="project_detail_view_all_steps">查看所有步骤</string>
+    <string name="project_detail_ai_assistant">AI 助手</string>
+    <string name="project_detail_thinking">正在思考</string>
+    <string name="project_detail_start_discuss">开始与 AI 讨论 \"%s\"</string>
+    <string name="project_detail_try_quick_actions">试试以下快捷操作</string>
+    <string name="project_detail_input_hint">发消息或按住说话</string>
+    <string name="project_detail_default_title">项目详情</string>
+    <string name="project_detail_generate_readme">生成 README</string>
+    <string name="project_detail_explain_code">解释项目代码</string>
+    <string name="project_detail_suggest_improvements">建议改进</string>
+    <string name="llm_discovery_no_service">未发现服务，请确保PC端Ollama正在运行</string>
+    <string name="llm_discovery_found">发现 %d 个服务</string>
+
+    <!-- ==================== Device Scan Screen ==================== -->
+    <string name="device_scan_title">扫描设备</string>
+    <string name="device_scan_debug_info">调试信息</string>
+    <string name="device_scan_debug_title">扫描调试信息</string>
+    <string name="device_scan_scanning">扫描中…</string>
+    <string name="device_scan_start">开始扫描</string>
+    <string name="device_scan_registered">已注册</string>
+    <string name="device_scan_no_devices">未发现设备</string>
+    <string name="device_scan_register_title">注册设备</string>
+    <string name="device_scan_register_hint">连接前请先注册此设备</string>
+    <string name="device_scan_device_name">设备名称</string>
+    <string name="device_scan_register">注册</string>
+
+    <!-- ==================== Power Control ==================== -->
+    <string name="power_confirm_title">确认操作</string>
+    <string name="power_confirm_message">确定要执行 %s 操作吗？</string>
+    <string name="power_timer_title">设置定时关机</string>
+    <string name="power_timer_prompt">请输入延迟时间（分钟）：</string>
+    <string name="power_timer_label">分钟</string>
+
+    <!-- ==================== Process Manager ==================== -->
+    <string name="process_kill_title">终止进程</string>
+    <string name="process_kill_message">确定要终止进程 %1$s (PID: %2$d) 吗？</string>
+    <string name="process_kill">终止</string>
+    <string name="process_force_kill">强制终止</string>
+    <string name="process_kill_button">终止进程</string>
+
+    <!-- ==================== Error Messages ==================== -->
+    <string name="error_prefix">错误: %s</string>
+    <string name="error_unknown">未知错误</string>
+    <string name="error_upload_failed">上传失败</string>
+    <string name="error_download_failed">下载失败</string>
+    <string name="error_cancel_failed">取消失败</string>
+    <string name="error_replay_failed">重放失败</string>
+    <string name="error_fetch_status_failed">获取系统状态失败</string>
+    <string name="llm_config_saved">✅ 配置已保存</string>
+    <string name="llm_save_failed">❌ 保存失败: %s</string>
+    <string name="llm_connection_success">✅ 连接成功</string>
+    <string name="llm_connection_failed">❌ 连接失败</string>
+    <string name="llm_connection_http_failed">❌ 连接失败: HTTP %d</string>
+    <string name="llm_test_error">❌ 测试失败: %s</string>
+    <string name="llm_scan_failed">扫描失败: %s</string>
+    <string name="device_inactivity_warning">您已有 %d 天未使用远程控制，权限可能会被自动降级</string>
+    <string name="device_inactivity_notice">您已有 %d 天未使用远程控制</string>
+    <string name="webrtc_pc_not_responding">PC端未响应，请确保PC应用已启动并连接到同一网络</string>
+    <string name="webrtc_signaling_failed">无法连接到信令服务器，请检查网络设置</string>
+
+    <!-- ==================== Enum Display Names ==================== -->
+    <!-- ProjectType -->
+    <string name="project_type_general">通用</string>
+    <string name="project_type_research">研究</string>
+    <string name="project_type_development">开发</string>
+    <string name="project_type_writing">写作</string>
+    <string name="project_type_design">设计</string>
+    <string name="project_type_android">Android</string>
+    <string name="project_type_backend">后端</string>
+    <string name="project_type_data_science">数据科学</string>
+    <string name="project_type_multiplatform">多平台</string>
+    <string name="project_type_flutter">Flutter</string>
+    <!-- ProjectStatus -->
+    <string name="project_status_draft">草稿</string>
+    <string name="project_status_active">进行中</string>
+    <string name="project_status_paused_enum">暂停</string>
+    <string name="project_status_completed_enum">已完成</string>
+    <string name="project_status_archived_enum">已归档</string>
+    <!-- FileType -->
+    <string name="file_type_document">文档</string>
+    <string name="file_type_code">代码</string>
+    <string name="file_type_image">图片</string>
+    <string name="file_type_video">视频</string>
+    <string name="file_type_audio">音频</string>
+    <string name="file_type_other">其他</string>
+    <!-- TaskStatus -->
+    <string name="task_status_todo">待处理</string>
+    <string name="task_status_in_progress">进行中</string>
+    <string name="task_status_completed">已完成</string>
+    <string name="task_status_cancelled">已取消</string>
+    <!-- TaskPriority -->
+    <string name="task_priority_low">低</string>
+    <string name="task_priority_medium">中</string>
+    <string name="task_priority_high">高</string>
+    <string name="task_priority_urgent">紧急</string>
+    <!-- ExploreCategory -->
+    <string name="explore_category_all">全部</string>
+    <string name="explore_category_project">项目</string>
+    <string name="explore_category_document">文档</string>
+    <string name="explore_category_ai_chat">AI对话</string>
+    <string name="explore_category_knowledge">知识库</string>
+    <!-- MessageType -->
+    <string name="message_type_user">用户消息</string>
+    <string name="message_type_ai">AI消息</string>
+    <string name="message_type_system">系统消息</string>
+    <!-- StepType -->
+    <string name="step_type_user_message">用户发送消息</string>
+    <string name="step_type_file_read">文件读取</string>
+    <string name="step_type_ai_message">AI发送消息</string>
+    <string name="step_type_terminal">虚拟终端</string>
+    <string name="step_type_web_browse">网页浏览</string>
+    <string name="step_type_code_execute">代码执行</string>
 </resources>

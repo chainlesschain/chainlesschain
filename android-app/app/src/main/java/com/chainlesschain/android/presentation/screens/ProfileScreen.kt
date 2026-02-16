@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 
 /**
@@ -43,7 +45,7 @@ fun ProfileScreen(
     ) {
         // 顶部栏
         TopAppBar(
-            title = { Text("我的", fontWeight = FontWeight.Bold) }
+            title = { Text(stringResource(R.string.profile_tab), fontWeight = FontWeight.Bold) }
         )
 
         LazyColumn(
@@ -85,7 +87,7 @@ fun ProfileScreen(
 
                         uiState.currentUser?.let { user ->
                             Text(
-                                text = "用户 ${user.id.take(8)}",
+                                text = stringResource(R.string.profile_user_label, user.id.take(8)),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -94,7 +96,7 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = "设备 ID: ${user.deviceId.take(12)}...",
+                                text = stringResource(R.string.profile_device_id_label, user.deviceId.take(12)),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
@@ -116,7 +118,7 @@ fun ProfileScreen(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    text = if (user.biometricEnabled) "生物识别已启用" else "生物识别未启用",
+                                    text = if (user.biometricEnabled) stringResource(R.string.profile_biometric_enabled) else stringResource(R.string.profile_biometric_disabled),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -129,7 +131,7 @@ fun ProfileScreen(
             // 功能菜单
             item {
                 Text(
-                    text = "功能",
+                    text = stringResource(R.string.profile_section_features),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -138,8 +140,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.Book,
-                    title = "知识库",
-                    subtitle = "管理我的知识库",
+                    title = stringResource(R.string.profile_knowledge_base),
+                    subtitle = stringResource(R.string.profile_knowledge_base_desc),
                     onClick = onNavigateToKnowledgeList
                 )
             }
@@ -147,8 +149,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.Chat,
-                    title = "AI对话",
-                    subtitle = "智能助手对话记录",
+                    title = stringResource(R.string.profile_ai_chat),
+                    subtitle = stringResource(R.string.profile_ai_chat_desc),
                     onClick = onNavigateToAIChat
                 )
             }
@@ -156,8 +158,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.SmartToy,
-                    title = "AI配置",
-                    subtitle = "配置LLM提供商和API密钥",
+                    title = stringResource(R.string.profile_ai_config),
+                    subtitle = stringResource(R.string.profile_ai_config_desc),
                     onClick = onNavigateToLLMSettings
                 )
             }
@@ -165,8 +167,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.Analytics,
-                    title = "使用统计",
-                    subtitle = "查看Token使用和成本统计",
+                    title = stringResource(R.string.profile_usage_stats),
+                    subtitle = stringResource(R.string.profile_usage_stats_desc),
                     onClick = onNavigateToUsageStatistics
                 )
             }
@@ -174,8 +176,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.Devices,
-                    title = "P2P设备管理",
-                    subtitle = "管理连接的设备",
+                    title = stringResource(R.string.profile_p2p_devices),
+                    subtitle = stringResource(R.string.profile_p2p_devices_desc),
                     onClick = onNavigateToP2P
                 )
             }
@@ -183,8 +185,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.Bookmark,
-                    title = "我的收藏",
-                    subtitle = "查看收藏的内容",
+                    title = stringResource(R.string.profile_bookmarks),
+                    subtitle = stringResource(R.string.profile_bookmarks_desc),
                     onClick = onNavigateToBookmark
                 )
             }
@@ -193,7 +195,7 @@ fun ProfileScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "系统",
+                    text = stringResource(R.string.profile_section_system),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -202,8 +204,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.Settings,
-                    title = "设置",
-                    subtitle = "应用设置",
+                    title = stringResource(R.string.profile_settings),
+                    subtitle = stringResource(R.string.profile_settings_desc),
                     onClick = onNavigateToSettings
                 )
             }
@@ -211,8 +213,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.Info,
-                    title = "关于",
-                    subtitle = "应用版本和信息",
+                    title = stringResource(R.string.profile_about),
+                    subtitle = stringResource(R.string.profile_about_desc),
                     onClick = onNavigateToAbout
                 )
             }
@@ -220,8 +222,8 @@ fun ProfileScreen(
             item {
                 ProfileMenuItem(
                     icon = Icons.Default.Help,
-                    title = "帮助与反馈",
-                    subtitle = "获取帮助或提交反馈",
+                    title = stringResource(R.string.profile_help),
+                    subtitle = stringResource(R.string.profile_help_desc),
                     onClick = onNavigateToHelpFeedback
                 )
             }
@@ -242,7 +244,7 @@ fun ProfileScreen(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("退出登录")
+                    Text(stringResource(R.string.home_logout))
                 }
             }
         }
@@ -252,8 +254,8 @@ fun ProfileScreen(
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("退出登录") },
-            text = { Text("确定要退出登录吗？这将清除所有本地数据。") },
+            title = { Text(stringResource(R.string.home_logout)) },
+            text = { Text(stringResource(R.string.home_logout_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -262,12 +264,12 @@ fun ProfileScreen(
                         onLogout()
                     }
                 ) {
-                    Text("确定", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.common_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )

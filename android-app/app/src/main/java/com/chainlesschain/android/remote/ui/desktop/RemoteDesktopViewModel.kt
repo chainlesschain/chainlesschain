@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -439,6 +440,7 @@ class RemoteDesktopViewModel @Inject constructor(
 /**
  * 远程桌面 UI 状态
  */
+@Immutable
 data class RemoteDesktopUiState(
     val isLoading: Boolean = false,
     val isConnected: Boolean = false,

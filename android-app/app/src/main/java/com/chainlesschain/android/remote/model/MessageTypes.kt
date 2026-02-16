@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.model
 
+import androidx.compose.runtime.Immutable
 import com.chainlesschain.android.remote.commands.TokenUsage
 import kotlinx.serialization.Serializable
 import java.util.UUID
@@ -45,6 +46,7 @@ data class FileReference(
 /**
  * Task plan data structure
  */
+@Immutable
 @Serializable
 data class TaskPlan(
     val id: String = UUID.randomUUID().toString(),
@@ -59,6 +61,7 @@ data class TaskPlan(
 /**
  * Individual task item in a plan
  */
+@Immutable
 @Serializable
 data class TaskItem(
     val id: Int,
@@ -99,6 +102,7 @@ enum class PlanningState {
 /**
  * Interview question for task clarification
  */
+@Immutable
 @Serializable
 data class InterviewQuestion(
     val id: Int,
@@ -111,6 +115,7 @@ data class InterviewQuestion(
 /**
  * Intent understanding data
  */
+@Immutable
 @Serializable
 data class IntentUnderstanding(
     val intent: String,
@@ -224,6 +229,7 @@ sealed class ChatMessageType {
 /**
  * Enhanced chat message with full type support
  */
+@Immutable
 data class EnhancedChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val role: MessageRole,
@@ -262,6 +268,7 @@ enum class MessageRole {
 /**
  * Creation step for AI project creation progress
  */
+@Immutable
 @Serializable
 data class CreationStep(
     val id: Int,
@@ -283,6 +290,7 @@ enum class StepStatus {
 /**
  * AI creation progress state
  */
+@Immutable
 data class CreationProgress(
     val steps: List<CreationStep>,
     val currentStep: Int = 0,

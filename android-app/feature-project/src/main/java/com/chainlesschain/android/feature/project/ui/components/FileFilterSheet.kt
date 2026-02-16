@@ -34,8 +34,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 
 /**
  * 文件过滤器底部表单
@@ -81,7 +83,7 @@ fun FileFilterSheet(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "文件过滤和排序",
+                        text = stringResource(R.string.file_filter_and_sort),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -92,7 +94,7 @@ fun FileFilterSheet(
 
             // Sort by
             Text(
-                text = "排序方式",
+                text = stringResource(R.string.sort_by),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium
             )
@@ -102,7 +104,7 @@ fun FileFilterSheet(
                     FilterChip(
                         selected = tempSortBy == sortBy,
                         onClick = { tempSortBy = sortBy },
-                        label = { Text(sortBy.displayName) },
+                        label = { Text(stringResource(sortBy.displayNameResId)) },
                         leadingIcon = if (tempSortBy == sortBy) {
                             {
                                 Icon(
@@ -120,7 +122,7 @@ fun FileFilterSheet(
 
             // Sort direction
             Text(
-                text = "排序方向",
+                text = stringResource(R.string.sort_direction),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium
             )
@@ -130,7 +132,7 @@ fun FileFilterSheet(
                     FilterChip(
                         selected = tempSortDirection == direction,
                         onClick = { tempSortDirection = direction },
-                        label = { Text(direction.displayName) },
+                        label = { Text(stringResource(direction.displayNameResId)) },
                         leadingIcon = {
                             Icon(
                                 imageVector = when (direction) {
@@ -149,7 +151,7 @@ fun FileFilterSheet(
 
             // Extension filter
             Text(
-                text = "文件类型过滤",
+                text = stringResource(R.string.file_type_filter),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium
             )
@@ -182,14 +184,14 @@ fun FileFilterSheet(
                     tempSortDirection = SortDirection.ASC
                     tempExtensions = emptySet()
                 }) {
-                    Text("重置")
+                    Text(stringResource(R.string.reset))
                 }
                 TextButton(onClick = {
                     onSortChange(tempSortBy, tempSortDirection)
                     onExtensionFilterChange(tempExtensions)
                     onDismiss()
                 }) {
-                    Text("应用", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.apply), fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -201,20 +203,20 @@ fun FileFilterSheet(
 /**
  * 文件排序方式
  */
-enum class FileSortBy(val displayName: String) {
-    NAME("名称"),
-    SIZE("大小"),
-    MODIFIED("修改时间"),
-    TYPE("类型"),
-    PATH("路径")
+enum class FileSortBy(val displayNameResId: Int) {
+    NAME(R.string.sort_name),
+    SIZE(R.string.sort_size),
+    MODIFIED(R.string.sort_modified),
+    TYPE(R.string.sort_type),
+    PATH(R.string.sort_path)
 }
 
 /**
  * 排序方向
  */
-enum class SortDirection(val displayName: String) {
-    ASC("升序"),
-    DESC("降序")
+enum class SortDirection(val displayNameResId: Int) {
+    ASC(R.string.sort_asc),
+    DESC(R.string.sort_desc)
 }
 
 /**
@@ -259,7 +261,7 @@ fun FiltersBar(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "排序: ${currentSortBy.displayName}",
+                    text = stringResource(R.string.sort_label, stringResource(currentSortBy.displayNameResId)),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -269,7 +271,7 @@ fun FiltersBar(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = "$selectedExtensionsCount 个类型",
+                            text = stringResource(R.string.type_count, selectedExtensionsCount),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -278,7 +280,7 @@ fun FiltersBar(
                 }
             }
             Text(
-                text = "调整",
+                text = stringResource(R.string.adjust),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium

@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.remote.commands.StorageCommands
 import com.chainlesschain.android.remote.commands.DiskInfo
 import com.chainlesschain.android.remote.commands.PartitionInfo
+import com.chainlesschain.android.remote.commands.FileStats
 import com.chainlesschain.android.remote.commands.StorageStats
+import com.chainlesschain.android.remote.commands.StorageUsageResponse
 import com.chainlesschain.android.remote.commands.LargeFile
 import com.chainlesschain.android.remote.commands.RecentFile
 import com.chainlesschain.android.remote.p2p.ConnectionState
@@ -14,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -86,11 +89,11 @@ class StorageInfoViewModel @Inject constructor(
     /**
      * 获取磁盘使用情况
      */
-    fun getUsage(path: String = "/") {
+    fun getUsage(path: String? = null) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val result = storageCommands.getUsage(path)
+            val result = storageCommands.getUsage()
 
             if (result.isSuccess) {
                 val response = result.getOrNull()
@@ -127,10 +130,21 @@ class StorageInfoViewModel @Inject constructor(
      */
     fun loadStorageStats() {
         viewModelScope.launch {
-            val result = storageCommands.getStats()
+            val result = storageCommands.getUsage()
 
             if (result.isSuccess) {
-                _storageStats.value = result.getOrNull()?.stats
+                val usage = result.getOrNull()?.usage
+                _storageStats.value = usage?.let {
+                    StorageStats(
+                        total = it.total,
+                        used = it.used,
+                        free = it.free,
+                        totalFormatted = it.totalFormatted,
+                        usedFormatted = it.usedFormatted,
+                        freeFormatted = it.freeFormatted,
+                        usagePercent = it.usagePercent
+                    )
+                }
             } else {
                 Timber.w(result.exceptionOrNull(), "获取存储统计失败")
             }
@@ -183,7 +197,7 @@ class StorageInfoViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val result = storageCommands.getRecentFiles(limit)
+            val result = storageCommands.getRecentFiles(limit = limit)
 
             if (result.isSuccess) {
                 _recentFiles.value = result.getOrNull()?.files ?: emptyList()
@@ -197,17 +211,17 @@ class StorageInfoViewModel @Inject constructor(
     /**
      * 清理磁盘
      */
-    fun cleanup(options: Map<String, Boolean> = emptyMap()) {
+    fun cleanup(dryRun: Boolean = true, maxAge: Int = 7) {
         viewModelScope.launch {
             _uiState.update { it.copy(isExecuting = true, error = null) }
 
-            val result = storageCommands.cleanup(options)
+            val result = storageCommands.cleanup(dryRun, maxAge)
 
             if (result.isSuccess) {
                 val response = result.getOrNull()
                 _uiState.update { it.copy(
                     isExecuting = false,
-                    lastAction = "Cleaned: ${response?.freedFormatted ?: "0 B"}"
+                    lastAction = "Cleaned: ${response?.cleaned?.totalSizeFormatted ?: "0 B"}"
                 )}
                 // 刷新统计
                 loadStorageStats()
@@ -230,7 +244,7 @@ class StorageInfoViewModel @Inject constructor(
                 val response = result.getOrNull()
                 _uiState.update { it.copy(
                     isExecuting = false,
-                    lastAction = "Trash emptied: ${response?.freedFormatted ?: "0 B"}"
+                    lastAction = "Trash emptied: ${response?.message ?: "Done"}"
                 )}
             } else {
                 handleError(result.exceptionOrNull(), "清空回收站失败")
@@ -241,11 +255,11 @@ class StorageInfoViewModel @Inject constructor(
     /**
      * 获取磁盘健康状态
      */
-    fun getDriveHealth(drive: String? = null) {
+    fun getDriveHealth() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val result = storageCommands.getDriveHealth(drive)
+            val result = storageCommands.getDriveHealth()
 
             if (result.isSuccess) {
                 val response = result.getOrNull()
@@ -291,11 +305,12 @@ class StorageInfoViewModel @Inject constructor(
 /**
  * 存储信息 UI 状态
  */
+@Immutable
 data class StorageInfoUiState(
     val isLoading: Boolean = false,
     val isExecuting: Boolean = false,
     val error: String? = null,
     val lastAction: String? = null,
-    val selectedDiskUsage: com.chainlesschain.android.remote.commands.DiskUsageResponse? = null,
+    val selectedDiskUsage: StorageUsageResponse? = null,
     val driveHealthInfo: com.chainlesschain.android.remote.commands.DriveHealthResponse? = null
 )

@@ -7,6 +7,7 @@ import com.chainlesschain.android.remote.commands.NetworkInterface
 import com.chainlesschain.android.remote.commands.NetworkConnection
 import com.chainlesschain.android.remote.commands.BandwidthInfo
 import com.chainlesschain.android.remote.commands.WifiInfo
+import com.chainlesschain.android.remote.commands.NetworkStatusDetail
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -40,8 +42,8 @@ class NetworkInfoViewModel @Inject constructor(
     val connectionState: StateFlow<ConnectionState> = p2pClient.connectionState
 
     // 网络状态
-    private val _networkStatus = MutableStateFlow<com.chainlesschain.android.remote.commands.NetworkStatusDetail?>(null)
-    val networkStatus: StateFlow<com.chainlesschain.android.remote.commands.NetworkStatusDetail?> = _networkStatus.asStateFlow()
+    private val _networkStatus = MutableStateFlow<NetworkStatusDetail?>(null)
+    val networkStatus: StateFlow<NetworkStatusDetail?> = _networkStatus.asStateFlow()
 
     // 网络接口列表
     private val _interfaces = MutableStateFlow<List<NetworkInterface>>(emptyList())
@@ -168,8 +170,8 @@ class NetworkInfoViewModel @Inject constructor(
                 val response = result.getOrNull()
                 _uiState.update { it.copy(
                     isExecuting = false,
-                    pingResult = if (response?.success == true) {
-                        "Ping $host: ${response.time}ms (TTL: ${response.ttl})"
+                    pingResult = if (response?.reachable == true) {
+                        "Ping $host: ${response.avgTime ?: 0}ms (packets: ${response.packetsReceived}/${response.packetsTransmitted})"
                     } else {
                         "Ping failed: ${response?.error ?: "Unknown error"}"
                     }
@@ -191,10 +193,10 @@ class NetworkInfoViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 val response = result.getOrNull()
-                val addresses = response?.addresses?.joinToString(", ") ?: "N/A"
+                val records = response?.records?.joinToString(", ") ?: "N/A"
                 _uiState.update { it.copy(
                     isExecuting = false,
-                    resolveResult = "$hostname -> $addresses"
+                    resolveResult = "$hostname -> $records"
                 )}
             } else {
                 handleError(result.exceptionOrNull(), "DNS 解析失败")
@@ -214,7 +216,8 @@ class NetworkInfoViewModel @Inject constructor(
             if (result.isSuccess) {
                 val response = result.getOrNull()
                 val hops = response?.hops?.mapIndexed { index, hop ->
-                    "${index + 1}. ${hop.address ?: "*"} (${hop.time}ms)"
+                    val avgTime = if (hop.times.isNotEmpty()) hop.times.average() else 0.0
+                    "${index + 1}. ${hop.ip ?: "*"} (${String.format("%.1f", avgTime)}ms)"
                 }?.joinToString("\n") ?: "No data"
                 _uiState.update { it.copy(
                     isExecuting = false,
@@ -254,7 +257,7 @@ class NetworkInfoViewModel @Inject constructor(
                 val response = result.getOrNull()
                 _uiState.update { it.copy(
                     isExecuting = false,
-                    speedTestResult = "Download: ${response?.downloadFormatted ?: "N/A"}, Upload: ${response?.uploadFormatted ?: "N/A"}, Ping: ${response?.ping ?: 0}ms"
+                    speedTestResult = "Download: ${response?.download?.speedFormatted ?: "N/A"}"
                 )}
             } else {
                 handleError(result.exceptionOrNull(), "速度测试失败")
@@ -326,6 +329,7 @@ class NetworkInfoViewModel @Inject constructor(
 /**
  * 网络信息 UI 状态
  */
+@Immutable
 data class NetworkInfoUiState(
     val isLoading: Boolean = false,
     val isExecuting: Boolean = false,

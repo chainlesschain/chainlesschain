@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -123,6 +124,8 @@ class OfflineMessageQueue @Inject constructor(
             _events.emit(OfflineQueueEvent.MessageEnqueued(deviceId, message.id))
 
             Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to enqueue message", e)
             Result.failure(e)
@@ -164,6 +167,8 @@ class OfflineMessageQueue @Inject constructor(
             _events.emit(OfflineQueueEvent.MessageSent(deviceId, messageId))
 
             Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to mark message as sent", e)
             Result.failure(e)
@@ -209,6 +214,8 @@ class OfflineMessageQueue @Inject constructor(
             _events.emit(OfflineQueueEvent.MessageRetrying(deviceId, messageId, newRetryCount))
 
             Result.success(retryDelay)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to mark message as failed", e)
             Result.failure(e)
@@ -267,6 +274,8 @@ class OfflineMessageQueue @Inject constructor(
             }
 
             Result.success(removedCount)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to batch mark messages as sent", e)
             Result.failure(e)
@@ -303,6 +312,8 @@ class OfflineMessageQueue @Inject constructor(
             _events.emit(OfflineQueueEvent.DeviceCleared(deviceId, count))
 
             Result.success(count)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to clear device messages", e)
             Result.failure(e)

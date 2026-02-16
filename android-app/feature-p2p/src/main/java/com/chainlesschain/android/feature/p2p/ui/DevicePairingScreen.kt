@@ -9,8 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.p2p.R
 
 /**
  * 设备配对流程界面
@@ -33,10 +35,10 @@ fun DevicePairingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设备配对") },
+                title = { Text(stringResource(R.string.device_pairing)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.Default.Close, contentDescription = "取消")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel))
                     }
                 }
             )
@@ -89,14 +91,14 @@ fun InitializingContent() {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "正在初始化配对...",
+            text = stringResource(R.string.initializing_pairing),
             style = MaterialTheme.typography.titleMedium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "请稍候",
+            text = stringResource(R.string.please_wait),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -134,14 +136,14 @@ fun ExchangingKeysContent(progress: Float) {
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "正在交换加密密钥",
+            text = stringResource(R.string.exchanging_encryption_keys),
             style = MaterialTheme.typography.titleMedium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "建立端到端加密连接",
+            text = stringResource(R.string.establishing_e2ee_connection),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -171,7 +173,7 @@ fun ExchangingKeysContent(progress: Float) {
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Text(
-                    text = "使用端到端加密保护您的通信安全",
+                    text = stringResource(R.string.e2ee_security_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -204,14 +206,14 @@ fun VerifyingIdentityContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "验证设备身份",
+            text = stringResource(R.string.verify_device_identity),
             style = MaterialTheme.typography.headlineSmall
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "已与 $deviceName 建立连接",
+            text = stringResource(R.string.connection_established_with, deviceName),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -236,7 +238,7 @@ fun VerifyingIdentityContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "下一步",
+                        text = stringResource(R.string.next_step),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -245,11 +247,7 @@ fun VerifyingIdentityContent(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "为了确保连接安全，建议您验证设备的安全码。\n\n" +
-                            "您可以：\n" +
-                            "• 与对方面对面比对安全码\n" +
-                            "• 通过可信渠道（如电话）确认\n" +
-                            "• 扫描对方的二维码",
+                    text = stringResource(R.string.verify_safety_code_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -271,7 +269,7 @@ fun VerifyingIdentityContent(
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("验证安全码")
+                Text(stringResource(R.string.verify_safety_code))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -280,7 +278,7 @@ fun VerifyingIdentityContent(
                 onClick = onContinue,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("稍后验证")
+                Text(stringResource(R.string.verify_later))
             }
         }
     }
@@ -310,14 +308,14 @@ fun CompletedContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "配对成功！",
+            text = stringResource(R.string.pairing_success),
             style = MaterialTheme.typography.headlineSmall
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "已与 $deviceName 建立安全连接",
+            text = stringResource(R.string.secure_connection_established_with, deviceName),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -336,7 +334,7 @@ fun CompletedContent(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "现在您可以：",
+                    text = stringResource(R.string.now_you_can),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -345,17 +343,17 @@ fun CompletedContent(
 
                 FeatureItem(
                     icon = Icons.Default.Message,
-                    text = "发送端到端加密消息"
+                    text = stringResource(R.string.feature_e2ee_messages)
                 )
 
                 FeatureItem(
                     icon = Icons.Default.Call,
-                    text = "进行加密语音/视频通话"
+                    text = stringResource(R.string.feature_encrypted_calls)
                 )
 
                 FeatureItem(
                     icon = Icons.Default.Folder,
-                    text = "安全地分享文件"
+                    text = stringResource(R.string.feature_secure_files)
                 )
             }
         }
@@ -366,7 +364,7 @@ fun CompletedContent(
             onClick = onDone,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("开始使用")
+            Text(stringResource(R.string.get_started))
         }
     }
 }
@@ -427,7 +425,7 @@ fun FailedContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "配对失败",
+            text = stringResource(R.string.pairing_failed),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.error
         )
@@ -454,7 +452,7 @@ fun FailedContent(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "可能的原因：",
+                    text = stringResource(R.string.possible_reasons),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
@@ -462,10 +460,7 @@ fun FailedContent(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "• 网络连接不稳定\n" +
-                            "• 设备不在可连接范围内\n" +
-                            "• 对方拒绝了配对请求\n" +
-                            "• 加密密钥交换失败",
+                    text = stringResource(R.string.pairing_failure_reasons),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
@@ -487,7 +482,7 @@ fun FailedContent(
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("重试")
+                Text(stringResource(R.string.retry))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -496,7 +491,7 @@ fun FailedContent(
                 onClick = onCancel,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     }

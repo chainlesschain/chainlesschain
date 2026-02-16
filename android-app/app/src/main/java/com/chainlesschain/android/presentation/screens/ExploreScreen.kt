@@ -33,6 +33,9 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
+import com.chainlesschain.android.R
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
@@ -50,92 +53,93 @@ fun ExploreScreen() {
     var searchQuery by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // 模拟探索内容数据
     val exploreContents = remember {
         listOf(
             ExploreContent(
                 id = "1",
-                title = "AI绘画入门指南",
-                description = "从零开始学习AI绘画，掌握Stable Diffusion和Midjourney",
+                title = context.getString(R.string.explore_sample_1_title),
+                description = context.getString(R.string.explore_sample_1_desc),
                 category = ExploreContentCategory.CREATIVE_DESIGN,
                 imageUrl = null,
                 viewCount = 2345,
                 likeCount = 189,
-                author = "设计达人",
+                author = context.getString(R.string.explore_sample_1_author),
                 height = 200
             ),
             ExploreContent(
                 id = "2",
-                title = "2024年投资策略分析",
-                description = "深度解读今年的市场趋势和投资机会",
+                title = context.getString(R.string.explore_sample_2_title),
+                description = context.getString(R.string.explore_sample_2_desc),
                 category = ExploreContentCategory.FINANCE,
                 viewCount = 5678,
                 likeCount = 432,
-                author = "财经观察",
+                author = context.getString(R.string.explore_sample_2_author),
                 height = 160
             ),
             ExploreContent(
                 id = "3",
-                title = "人像摄影后期调色技巧",
-                description = "专业摄影师分享人像照片的调色秘诀",
+                title = context.getString(R.string.explore_sample_3_title),
+                description = context.getString(R.string.explore_sample_3_desc),
                 category = ExploreContentCategory.PHOTOGRAPHY,
                 imageUrl = null,
                 viewCount = 1234,
                 likeCount = 98,
-                author = "摄影工作室",
+                author = context.getString(R.string.explore_sample_3_author),
                 height = 220
             ),
             ExploreContent(
                 id = "4",
-                title = "高效学习方法论",
-                description = "科学的学习方法帮你事半功倍",
+                title = context.getString(R.string.explore_sample_4_title),
+                description = context.getString(R.string.explore_sample_4_desc),
                 category = ExploreContentCategory.EDUCATION,
                 viewCount = 8901,
                 likeCount = 756,
-                author = "学习达人",
+                author = context.getString(R.string.explore_sample_4_author),
                 height = 150
             ),
             ExploreContent(
                 id = "5",
-                title = "周末美食探店vlog",
-                description = "带你发现城市里的宝藏美食店",
+                title = context.getString(R.string.explore_sample_5_title),
+                description = context.getString(R.string.explore_sample_5_desc),
                 category = ExploreContentCategory.LIFESTYLE,
                 imageUrl = null,
                 viewCount = 3456,
                 likeCount = 234,
-                author = "美食探险家",
+                author = context.getString(R.string.explore_sample_5_author),
                 height = 180
             ),
             ExploreContent(
                 id = "6",
-                title = "UI设计趋势2024",
-                description = "今年最流行的UI设计风格和技巧",
+                title = context.getString(R.string.explore_sample_6_title),
+                description = context.getString(R.string.explore_sample_6_desc),
                 category = ExploreContentCategory.CREATIVE_DESIGN,
                 viewCount = 4567,
                 likeCount = 321,
-                author = "UI设计师",
+                author = context.getString(R.string.explore_sample_6_author),
                 height = 170
             ),
             ExploreContent(
                 id = "7",
-                title = "Python数据分析实战",
-                description = "用Python进行数据分析的完整教程",
+                title = context.getString(R.string.explore_sample_7_title),
+                description = context.getString(R.string.explore_sample_7_desc),
                 category = ExploreContentCategory.EDUCATION,
                 viewCount = 6789,
                 likeCount = 543,
-                author = "编程老师",
+                author = context.getString(R.string.explore_sample_7_author),
                 height = 190
             ),
             ExploreContent(
                 id = "8",
-                title = "室内人像打光技巧",
-                description = "如何在室内拍出好看的人像照片",
+                title = context.getString(R.string.explore_sample_8_title),
+                description = context.getString(R.string.explore_sample_8_desc),
                 category = ExploreContentCategory.PHOTOGRAPHY,
                 imageUrl = null,
                 viewCount = 2345,
                 likeCount = 187,
-                author = "光影大师",
+                author = context.getString(R.string.explore_sample_8_author),
                 height = 210
             )
         )
@@ -161,15 +165,15 @@ fun ExploreScreen() {
     ) {
         // 顶部栏
         TopAppBar(
-            title = { Text("探索", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.explore_title), fontWeight = FontWeight.Bold) },
             actions = {
                 IconButton(onClick = { showSearchBar = !showSearchBar }) {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.common_search))
                 }
                 IconButton(onClick = {
-                    scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
                 }) {
-                    Icon(Icons.Default.Add, contentDescription = "发布")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.common_share))
                 }
             }
         )
@@ -192,7 +196,7 @@ fun ExploreScreen() {
                 ExploreContentCard(
                     content = content,
                     onClick = {
-                        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                        scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
                     },
                     onLike = { },
                     onBookmark = { }
@@ -240,7 +244,7 @@ fun ExploreCategoryChip(
         onClick = onClick,
         label = {
             Text(
-                text = category.displayName,
+                text = stringResource(category.labelResId),
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
             )
         },
@@ -334,7 +338,7 @@ fun ExploreContentCard(
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
-                            text = content.category.displayName,
+                            text = stringResource(content.category.labelResId),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
@@ -374,7 +378,7 @@ fun ExploreContentCard(
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
-                            text = content.category.displayName,
+                            text = stringResource(content.category.labelResId),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White,
@@ -469,7 +473,7 @@ fun ExploreContentCard(
                         ) {
                             Icon(
                                 imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                contentDescription = "点赞",
+                                contentDescription = stringResource(R.string.explore_like),
                                 modifier = Modifier
                                     .size(16.dp)
                                     .scale(likeScale.value),
@@ -487,7 +491,7 @@ fun ExploreContentCard(
                         ) {
                             Icon(
                                 imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
-                                contentDescription = "收藏",
+                                contentDescription = stringResource(R.string.explore_bookmark),
                                 modifier = Modifier.size(16.dp),
                                 tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -531,14 +535,14 @@ data class ExploreContent(
  * 探索内容分类
  */
 enum class ExploreContentCategory(
-    val displayName: String,
+    @StringRes val labelResId: Int,
     val icon: ImageVector,
     val color: Color
 ) {
-    ALL("探索", Icons.Outlined.Explore, Color(0xFF2196F3)),
-    PHOTOGRAPHY("人像摄影", Icons.Outlined.CameraAlt, Color(0xFFE91E63)),
-    EDUCATION("教育学习", Icons.Outlined.School, Color(0xFF4CAF50)),
-    FINANCE("财经分析", Icons.Outlined.TrendingUp, Color(0xFFFF9800)),
-    CREATIVE_DESIGN("创意设计", Icons.Outlined.Palette, Color(0xFF9C27B0)),
-    LIFESTYLE("生活娱乐", Icons.Outlined.Celebration, Color(0xFF00BCD4))
+    ALL(R.string.explore_cat_all, Icons.Outlined.Explore, Color(0xFF2196F3)),
+    PHOTOGRAPHY(R.string.explore_cat_photography, Icons.Outlined.CameraAlt, Color(0xFFE91E63)),
+    EDUCATION(R.string.explore_cat_education, Icons.Outlined.School, Color(0xFF4CAF50)),
+    FINANCE(R.string.explore_cat_finance, Icons.Outlined.TrendingUp, Color(0xFFFF9800)),
+    CREATIVE_DESIGN(R.string.explore_cat_creative_design, Icons.Outlined.Palette, Color(0xFF9C27B0)),
+    LIFESTYLE(R.string.explore_cat_lifestyle, Icons.Outlined.Celebration, Color(0xFF00BCD4))
 }

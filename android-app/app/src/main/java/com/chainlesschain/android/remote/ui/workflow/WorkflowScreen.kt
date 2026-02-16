@@ -300,7 +300,7 @@ private fun WorkflowListTab(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(workflows) { workflow ->
+            items(workflows, key = { it.id }) { workflow ->
                 WorkflowCard(
                     workflow = workflow,
                     onExecute = { onExecute(workflow.id) },
@@ -422,7 +422,7 @@ private fun RunningWorkflowsTab(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(runningWorkflows) { running ->
+            items(runningWorkflows, key = { it.executionId }) { running ->
                 RunningWorkflowCard(
                     workflow = running,
                     onCancel = { onCancel(running.executionId) }
@@ -535,7 +535,7 @@ private fun HistoryTab(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(history) { execution ->
+            items(history, key = { it.id }) { execution ->
                 HistoryCard(execution = execution)
             }
         }

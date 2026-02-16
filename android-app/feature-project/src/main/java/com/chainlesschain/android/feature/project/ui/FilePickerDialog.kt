@@ -21,9 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileCategory
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
@@ -98,16 +100,16 @@ fun FilePickerDialog(
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { viewModel.searchFiles(it) },
-                                placeholder = { Text("搜索文件...") },
+                                placeholder = { Text(stringResource(R.string.search_files)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
                         } else {
                             Column {
-                                Text("选择附件")
+                                Text(stringResource(R.string.select_attachment))
                                 if (selectedFileIds.isNotEmpty()) {
                                     Text(
-                                        text = "已选 ${selectedFileIds.size} 个文件",
+                                        text = stringResource(R.string.selected_files_count, selectedFileIds.size),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -117,12 +119,12 @@ fun FilePickerDialog(
                     },
                     navigationIcon = {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "关闭")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                         }
                     },
                     actions = {
                         IconButton(onClick = { showSearchBar = !showSearchBar }) {
-                            Icon(Icons.Default.Search, contentDescription = "搜索")
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
                         }
                         if (selectedFileIds.isNotEmpty()) {
                             IconButton(
@@ -130,7 +132,7 @@ fun FilePickerDialog(
                                     selectedFileIds = emptySet()
                                 }
                             ) {
-                                Icon(Icons.Default.Clear, contentDescription = "清除选择")
+                                Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.clear_selection))
                             }
                         }
                     },
@@ -153,13 +155,13 @@ fun FilePickerDialog(
                             modifier = Modifier.padding(24.dp)
                         ) {
                             Text(
-                                text = "需要存储权限",
+                                text = stringResource(R.string.storage_permission_required),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
                             Text(
-                                text = "文件选择需要访问您的设备存储。",
+                                text = stringResource(R.string.storage_permission_desc),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
@@ -181,7 +183,7 @@ fun FilePickerDialog(
                                 },
                                 modifier = Modifier.padding(top = 24.dp)
                             ) {
-                                Text("授予权限")
+                                Text(stringResource(R.string.grant_permission))
                             }
                         }
                     }
@@ -196,7 +198,7 @@ fun FilePickerDialog(
                             FilterChip(
                                 selected = selectedCategory == null,
                                 onClick = { viewModel.selectCategory(null) },
-                                label = { Text("全部") }
+                                label = { Text(stringResource(R.string.all)) }
                             )
                         }
 
@@ -207,13 +209,13 @@ fun FilePickerDialog(
                                 label = {
                                     Text(
                                         when (category) {
-                                            FileCategory.DOCUMENT -> "文档"
-                                            FileCategory.IMAGE -> "图片"
-                                            FileCategory.VIDEO -> "视频"
-                                            FileCategory.AUDIO -> "音频"
-                                            FileCategory.ARCHIVE -> "压缩包"
-                                            FileCategory.CODE -> "代码"
-                                            FileCategory.OTHER -> "其他"
+                                            FileCategory.DOCUMENT -> stringResource(R.string.category_document)
+                                            FileCategory.IMAGE -> stringResource(R.string.category_image)
+                                            FileCategory.VIDEO -> stringResource(R.string.category_video)
+                                            FileCategory.AUDIO -> stringResource(R.string.category_audio)
+                                            FileCategory.ARCHIVE -> stringResource(R.string.category_archive)
+                                            FileCategory.CODE -> stringResource(R.string.category_code)
+                                            FileCategory.OTHER -> stringResource(R.string.category_other)
                                         }
                                     )
                                 }
@@ -238,7 +240,7 @@ fun FilePickerDialog(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "未找到文件\n请在文件浏览器中扫描文件",
+                                        text = stringResource(R.string.no_files_found),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center
@@ -275,7 +277,7 @@ fun FilePickerDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(onClick = onDismiss) {
-                                Text("取消")
+                                Text(stringResource(R.string.cancel))
                             }
 
                             Button(
@@ -287,7 +289,7 @@ fun FilePickerDialog(
                                 },
                                 enabled = selectedFileIds.isNotEmpty()
                             ) {
-                                Text("添加 (${selectedFileIds.size})")
+                                Text(stringResource(R.string.add_count, selectedFileIds.size))
                             }
                         }
                     }

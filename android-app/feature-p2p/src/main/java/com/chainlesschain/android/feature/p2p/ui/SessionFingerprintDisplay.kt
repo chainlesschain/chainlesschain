@@ -13,9 +13,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.p2p.R
 
 /**
  * 会话指纹显示组件
@@ -45,7 +47,7 @@ fun SessionFingerprintDisplay(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "会话指纹",
+                    text = stringResource(R.string.session_fingerprint),
                     style = MaterialTheme.typography.titleMedium
                 )
 
@@ -55,13 +57,13 @@ fun SessionFingerprintDisplay(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Verified,
-                            contentDescription = "已验证",
+                            contentDescription = stringResource(R.string.verified),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.tertiary
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "已验证",
+                            text = stringResource(R.string.verified),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
@@ -87,7 +89,7 @@ fun SessionFingerprintDisplay(
 
             // 说明文本
             Text(
-                text = "此指纹由会话密钥生成，用于验证端到端加密的安全性",
+                text = stringResource(R.string.fingerprint_security_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -107,7 +109,7 @@ fun SessionFingerprintDisplay(
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("验证此会话")
+                    Text(stringResource(R.string.verify_this_session))
                 }
             }
         }
@@ -183,7 +185,7 @@ fun FingerprintHexDisplay(
                 .padding(12.dp)
         ) {
             Text(
-                text = "SHA-256 指纹",
+                text = stringResource(R.string.sha256_fingerprint),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -260,10 +262,10 @@ fun SessionFingerprintComparisonScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("指纹对比") },
+                title = { Text(stringResource(R.string.fingerprint_comparison)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -297,7 +299,7 @@ fun SessionFingerprintComparisonScreen(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Text(
-                        text = "请与对方比对以下指纹是否完全一致",
+                        text = stringResource(R.string.compare_fingerprints_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -308,7 +310,7 @@ fun SessionFingerprintComparisonScreen(
 
             // 本地指纹
             Text(
-                text = "您的指纹",
+                text = stringResource(R.string.your_fingerprint),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -324,7 +326,7 @@ fun SessionFingerprintComparisonScreen(
 
             // 远程指纹
             Text(
-                text = "$peerId 的指纹",
+                text = stringResource(R.string.peer_fingerprint, peerId),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -348,7 +350,7 @@ fun SessionFingerprintComparisonScreen(
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("指纹一致，确认验证")
+                Text(stringResource(R.string.fingerprint_match_confirm))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -365,7 +367,7 @@ fun SessionFingerprintComparisonScreen(
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("指纹不一致")
+                Text(stringResource(R.string.fingerprint_mismatch))
             }
         }
 
@@ -381,13 +383,10 @@ fun SessionFingerprintComparisonScreen(
                     )
                 },
                 title = {
-                    Text("安全警告")
+                    Text(stringResource(R.string.security_warning))
                 },
                 text = {
-                    Text(
-                        "指纹不一致可能意味着通信被中间人攻击！\n\n" +
-                                "建议立即断开连接并通过其他可信渠道联系对方。"
-                    )
+                    Text(stringResource(R.string.fingerprint_mismatch_warning))
                 },
                 confirmButton = {
                     TextButton(
@@ -396,12 +395,12 @@ fun SessionFingerprintComparisonScreen(
                             onReportMismatch()
                         }
                     ) {
-                        Text("断开连接")
+                        Text(stringResource(R.string.disconnect))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showWarning = false }) {
-                        Text("取消")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )

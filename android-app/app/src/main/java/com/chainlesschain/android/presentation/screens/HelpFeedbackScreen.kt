@@ -15,8 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 import timber.log.Timber
 
 /**
@@ -33,38 +35,36 @@ fun HelpFeedbackScreen(
     var showFeedbackDialog by remember { mutableStateOf(false) }
     var showSubmittedDialog by remember { mutableStateOf(false) }
 
-    val faqItems = remember {
-        listOf(
-            FAQItem(
-                question = "如何创建知识库？",
-                answer = "在首页点击「知识库」入口，进入知识库列表后点击右上角「+」按钮即可创建新的知识库条目。支持文本、文档等多种格式。"
-            ),
-            FAQItem(
-                question = "如何配置AI模型？",
-                answer = "进入「我的」>「AI配置」，选择LLM提供商（如豆包/OpenAI/Ollama等），填入API密钥即可完成配置。推荐先使用「AI测试」验证连接。"
-            ),
-            FAQItem(
-                question = "P2P设备连接失败怎么办？",
-                answer = "请确保两台设备在同一网络环境下，检查防火墙设置是否允许P2P通信。若使用远程连接，请确保信令服务器可达。"
-            ),
-            FAQItem(
-                question = "数据如何备份？",
-                answer = "进入「设置」>「数据管理」，可以导出个人数据。应用使用SQLCipher加密存储，数据默认保存在应用私有目录中。"
-            ),
-            FAQItem(
-                question = "如何保障数据安全？",
-                answer = "应用采用AES-256加密数据库，支持PIN码和生物识别解锁。P2P通信使用Signal协议端到端加密，身份基于DID去中心化标识。"
-            )
+    val faqItems = listOf(
+        FAQItem(
+            question = stringResource(R.string.help_faq_q1),
+            answer = stringResource(R.string.help_faq_a1)
+        ),
+        FAQItem(
+            question = stringResource(R.string.help_faq_q2),
+            answer = stringResource(R.string.help_faq_a2)
+        ),
+        FAQItem(
+            question = stringResource(R.string.help_faq_q3),
+            answer = stringResource(R.string.help_faq_a3)
+        ),
+        FAQItem(
+            question = stringResource(R.string.help_faq_q4),
+            answer = stringResource(R.string.help_faq_a4)
+        ),
+        FAQItem(
+            question = stringResource(R.string.help_faq_q5),
+            answer = stringResource(R.string.help_faq_a5)
         )
-    }
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("帮助与反馈", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.help_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             )
@@ -85,24 +85,24 @@ fun HelpFeedbackScreen(
                 ) {
                     HelpActionCard(
                         icon = Icons.Default.BugReport,
-                        title = "报告问题",
+                        title = stringResource(R.string.help_report_issue),
                         modifier = Modifier.weight(1f),
                         onClick = { showFeedbackDialog = true }
                     )
                     HelpActionCard(
                         icon = Icons.Default.Lightbulb,
-                        title = "功能建议",
+                        title = stringResource(R.string.help_feature_request),
                         modifier = Modifier.weight(1f),
                         onClick = { showFeedbackDialog = true }
                     )
                     HelpActionCard(
                         icon = Icons.Default.Email,
-                        title = "联系我们",
+                        title = stringResource(R.string.help_contact_us),
                         modifier = Modifier.weight(1f),
                         onClick = {
                             val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
                                 data = android.net.Uri.parse("mailto:support@chainlesschain.com")
-                                putExtra(android.content.Intent.EXTRA_SUBJECT, "ChainlessChain 反馈")
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.help_feedback_email_subject))
                             }
                             try { context.startActivity(intent) } catch (e: Exception) { Timber.w(e, "Failed to launch email intent") }
                         }
@@ -113,7 +113,7 @@ fun HelpFeedbackScreen(
             // 常见问题
             item {
                 Text(
-                    text = "常见问题",
+                    text = stringResource(R.string.help_faq_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -128,7 +128,7 @@ fun HelpFeedbackScreen(
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "使用教程",
+                    text = stringResource(R.string.help_tutorials),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -138,32 +138,32 @@ fun HelpFeedbackScreen(
             item {
                 TutorialCard(
                     icon = Icons.Default.PlayCircle,
-                    title = "快速入门",
-                    description = "了解ChainlessChain的核心功能和基本操作"
+                    title = stringResource(R.string.help_quick_start),
+                    description = stringResource(R.string.help_quick_start_desc)
                 )
             }
 
             item {
                 TutorialCard(
                     icon = Icons.Default.SmartToy,
-                    title = "AI对话进阶",
-                    description = "掌握多模型配置、提示词优化和Token管理"
+                    title = stringResource(R.string.help_ai_advanced),
+                    description = stringResource(R.string.help_ai_advanced_desc)
                 )
             }
 
             item {
                 TutorialCard(
                     icon = Icons.Default.Devices,
-                    title = "设备互联",
-                    description = "配置P2P连接，实现跨设备协作和远程控制"
+                    title = stringResource(R.string.help_device_connection),
+                    description = stringResource(R.string.help_device_connection_desc)
                 )
             }
 
             item {
                 TutorialCard(
                     icon = Icons.Default.Security,
-                    title = "安全指南",
-                    description = "了解加密机制、DID身份和密钥管理"
+                    title = stringResource(R.string.help_security_guide),
+                    description = stringResource(R.string.help_security_guide_desc)
                 )
             }
         }
@@ -173,11 +173,11 @@ fun HelpFeedbackScreen(
     if (showFeedbackDialog) {
         AlertDialog(
             onDismissRequest = { showFeedbackDialog = false },
-            title = { Text("提交反馈") },
+            title = { Text(stringResource(R.string.help_submit_feedback)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "请描述您遇到的问题或建议：",
+                        stringResource(R.string.help_feedback_prompt),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     OutlinedTextField(
@@ -186,7 +186,7 @@ fun HelpFeedbackScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 120.dp),
-                        placeholder = { Text("请输入反馈内容...") },
+                        placeholder = { Text(stringResource(R.string.help_feedback_hint)) },
                         maxLines = 6
                     )
                 }
@@ -202,7 +202,7 @@ fun HelpFeedbackScreen(
                     },
                     enabled = feedbackText.isNotBlank()
                 ) {
-                    Text("提交")
+                    Text(stringResource(R.string.common_send))
                 }
             },
             dismissButton = {
@@ -210,7 +210,7 @@ fun HelpFeedbackScreen(
                     showFeedbackDialog = false
                     feedbackText = ""
                 }) {
-                    Text("取消")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -221,11 +221,11 @@ fun HelpFeedbackScreen(
         AlertDialog(
             onDismissRequest = { showSubmittedDialog = false },
             icon = { Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("提交成功") },
-            text = { Text("感谢您的反馈！我们会尽快处理。") },
+            title = { Text(stringResource(R.string.help_submit_success)) },
+            text = { Text(stringResource(R.string.help_submit_thanks)) },
             confirmButton = {
                 TextButton(onClick = { showSubmittedDialog = false }) {
-                    Text("好的")
+                    Text(stringResource(R.string.common_confirm))
                 }
             }
         )

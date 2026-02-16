@@ -26,7 +26,9 @@ class Converters {
 
     @TypeConverter
     fun toStringList(value: String?): List<String>? {
-        return value?.let { json.decodeFromString(it) }
+        return value?.let {
+            try { json.decodeFromString(it) } catch (_: Exception) { emptyList() }
+        }
     }
 
     /**
@@ -39,7 +41,9 @@ class Converters {
 
     @TypeConverter
     fun toStringMap(value: String?): Map<String, String>? {
-        return value?.let { json.decodeFromString(it) }
+        return value?.let {
+            try { json.decodeFromString(it) } catch (_: Exception) { emptyMap() }
+        }
     }
 
     /**

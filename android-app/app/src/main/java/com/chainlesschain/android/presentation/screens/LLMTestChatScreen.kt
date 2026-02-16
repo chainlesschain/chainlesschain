@@ -18,7 +18,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
@@ -68,7 +71,7 @@ fun LLMTestChatScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("LLM测试 - ${uiState.provider.displayName}")
+                        Text(stringResource(R.string.llm_test_title, uiState.provider.displayName))
                         if (uiState.currentModel.isNotEmpty()) {
                             Text(
                                 text = uiState.currentModel,
@@ -131,7 +134,7 @@ fun LLMTestChatScreen(
                     }
                 }
 
-                items(uiState.messages) { message ->
+                items(uiState.messages, key = { it.id }) { message ->
                     MessageBubbleTest(message = message)
                 }
 
@@ -397,19 +400,19 @@ fun PerformanceStatsCard(
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             StatItem(
-                label = "响应时间",
+                label = stringResource(R.string.llm_test_response_time),
                 value = "${stats.lastResponseTime}ms"
             )
             StatItem(
-                label = "总Token",
+                label = stringResource(R.string.llm_test_total_tokens),
                 value = "${stats.totalTokens}"
             )
             StatItem(
-                label = "消息数",
+                label = stringResource(R.string.llm_test_message_count),
                 value = "${stats.messageCount}"
             )
             StatItem(
-                label = "成功率",
+                label = stringResource(R.string.llm_test_success_rate),
                 value = "${stats.successRate}%"
             )
         }
@@ -494,7 +497,7 @@ fun ChatInputArea(
                 value = message,
                 onValueChange = { message = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("输入测试消息...") },
+                placeholder = { Text(stringResource(R.string.llm_test_input_hint)) },
                 maxLines = 4,
                 enabled = !isLoading
             )

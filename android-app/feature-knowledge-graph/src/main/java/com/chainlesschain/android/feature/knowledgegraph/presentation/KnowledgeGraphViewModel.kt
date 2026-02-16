@@ -8,6 +8,7 @@ import com.chainlesschain.android.feature.knowledgegraph.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 @HiltViewModel
@@ -231,6 +232,7 @@ class KnowledgeGraphViewModel @Inject constructor(
     }
 }
 
+@Immutable
 data class GraphUiState(
     val isLoading: Boolean = true,
     val graphData: GraphData? = null,

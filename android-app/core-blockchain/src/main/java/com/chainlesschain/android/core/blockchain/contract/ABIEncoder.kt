@@ -29,7 +29,8 @@ object ABIEncoder {
         require(entry.type == ABIType.FUNCTION) { "Entry must be a function" }
 
         val paramTypes = entry.inputs.map { it.type }
-        return encodeFunction(entry.name!!, paramTypes, params)
+        val name = entry.name ?: throw IllegalArgumentException("ABI entry name is null")
+        return encodeFunction(name, paramTypes, params)
     }
 
     /**
@@ -202,7 +203,7 @@ object ABIEncoder {
         val elementType = type.removeSuffix("[]")
         val length = encodeUint256(BigInteger.valueOf(values.size.toLong()))
 
-        val elements = values.map { encodeValue(elementType, it!!) }
+        val elements = values.map { encodeValue(elementType, it ?: throw IllegalArgumentException("Null element in ABI array")) }
         return length + elements.joinToString("")
     }
 

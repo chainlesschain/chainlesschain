@@ -818,83 +818,10 @@ data class ProcessStartResponse(
 // ==================== 网络信息响应 ====================
 
 @Serializable
-data class NetworkInterfacesResponse(
-    val success: Boolean,
-    val interfaces: List<NetworkInterface>,
-    val total: Int
-)
-
-@Serializable
-data class NetworkInterface(
-    val name: String,
-    val mac: String? = null,
-    val ipv4: List<String>,
-    val ipv6: List<String>,
-    val netmask: String? = null,
-    val gateway: String? = null,
-    val type: String,  // "ethernet", "wifi", "loopback", etc.
-    val status: String,  // "up", "down"
-    val speed: Long? = null  // Mbps
-)
-
-@Serializable
 data class NetworkConnectionsResponse(
     val success: Boolean,
     val connections: List<NetworkConnection>,
     val total: Int
-)
-
-@Serializable
-data class NetworkConnection(
-    val protocol: String,
-    val localAddress: String,
-    val localPort: Int,
-    val remoteAddress: String? = null,
-    val remotePort: Int? = null,
-    val state: String,
-    val pid: Int? = null,
-    val processName: String? = null
-)
-
-@Serializable
-data class NetworkStatsResponse(
-    val success: Boolean,
-    val bytesReceived: Long,
-    val bytesSent: Long,
-    val packetsReceived: Long,
-    val packetsSent: Long,
-    val errorsIn: Long,
-    val errorsOut: Long,
-    val interfaceName: String? = null,
-    val duration: Long? = null  // seconds
-)
-
-@Serializable
-data class PingResponse(
-    val success: Boolean,
-    val host: String,
-    val ip: String? = null,
-    val packets: List<PingResult>,
-    val stats: PingStats
-)
-
-@Serializable
-data class PingResult(
-    val seq: Int,
-    val time: Double? = null,  // ms
-    val ttl: Int? = null,
-    val success: Boolean
-)
-
-@Serializable
-data class PingStats(
-    val sent: Int,
-    val received: Int,
-    val lost: Int,
-    val lossPercent: Double,
-    val minTime: Double? = null,
-    val maxTime: Double? = null,
-    val avgTime: Double? = null
 )
 
 @Serializable
@@ -911,54 +838,6 @@ data class DnsRecord(
     val type: String,
     val value: String,
     val priority: Int? = null  // for MX records
-)
-
-// ==================== 磁盘信息响应 ====================
-
-@Serializable
-data class DisksResponse(
-    val success: Boolean,
-    val disks: List<DiskInfo>,
-    val total: Int
-)
-
-@Serializable
-data class DiskInfo(
-    val name: String,
-    val mountPoint: String,
-    val fileSystem: String,
-    val total: Long,
-    val used: Long,
-    val available: Long,
-    val usedPercent: Double,
-    val type: String  // "local", "removable", "network", etc.
-)
-
-@Serializable
-data class DiskUsageResponse(
-    val success: Boolean,
-    val path: String,
-    val total: Long,
-    val used: Long,
-    val available: Long,
-    val usedPercent: Double
-)
-
-@Serializable
-data class DiskIOResponse(
-    val success: Boolean,
-    val disks: List<DiskIOStats>
-)
-
-@Serializable
-data class DiskIOStats(
-    val name: String,
-    val readBytes: Long,
-    val writeBytes: Long,
-    val readCount: Long,
-    val writeCount: Long,
-    val readTime: Long,
-    val writeTime: Long
 )
 
 // ==================== 服务管理响应 ====================
@@ -1104,55 +983,9 @@ data class LoadAverageResponse(
 )
 
 @Serializable
-data class BatteryStatusResponse(
-    val success: Boolean,
-    val hasBattery: Boolean,
-    val level: Int? = null,
-    val isCharging: Boolean? = null,
-    val isPluggedIn: Boolean? = null,
-    val timeRemaining: Long? = null,  // minutes
-    val health: String? = null
-)
-
-@Serializable
 data class TemperaturesResponse(
     val success: Boolean,
     val sensors: List<TemperatureSensor>
-)
-
-@Serializable
-data class TemperatureSensor(
-    val name: String,
-    val temperature: Double,
-    val high: Double? = null,
-    val critical: Double? = null,
-    val unit: String = "C"
-)
-
-// ==================== 已安装软件响应 ====================
-
-@Serializable
-data class InstalledAppsResponse(
-    val success: Boolean,
-    val apps: List<InstalledApp>,
-    val total: Int
-)
-
-@Serializable
-data class InstalledApp(
-    val name: String,
-    val version: String,
-    val publisher: String? = null,
-    val installDate: Long? = null,
-    val size: Long? = null,
-    val installLocation: String? = null
-)
-
-@Serializable
-data class AppInfoResponse(
-    val success: Boolean,
-    val app: InstalledApp? = null,
-    val message: String? = null
 )
 
 // ==================== 启动项响应 ====================
@@ -1219,24 +1052,6 @@ data class ScheduledTaskOperationResponse(
 )
 
 // ==================== 系统日志响应 ====================
-
-@Serializable
-data class SystemLogsResponse(
-    val success: Boolean,
-    val logs: List<LogEntry>,
-    val total: Int,
-    val hasMore: Boolean
-)
-
-@Serializable
-data class LogEntry(
-    val timestamp: Long,
-    val level: String,
-    val source: String,
-    val message: String,
-    val eventId: Int? = null,
-    val category: String? = null
-)
 
 @Serializable
 data class ClearLogsResponse(

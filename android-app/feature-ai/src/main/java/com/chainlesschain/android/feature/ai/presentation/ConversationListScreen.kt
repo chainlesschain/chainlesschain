@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.ai.presentation
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,9 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.ai.R
 import com.chainlesschain.android.feature.ai.domain.model.Conversation
 import java.text.SimpleDateFormat
 import java.util.*
@@ -35,17 +39,17 @@ fun ConversationListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI对话") },
+                title = { Text(stringResource(R.string.conversation_list_title)) },
                 actions = {
                     IconButton(onClick = onSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "设置")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.conversation_list_settings))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewConversation) {
-                Icon(Icons.Default.Add, contentDescription = "新建对话")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.conversation_list_new))
             }
         }
     ) { paddingValues ->
@@ -68,12 +72,12 @@ fun ConversationListScreen(
                         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                     )
                     Text(
-                        text = "暂无对话",
+                        text = stringResource(R.string.conversation_list_empty_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "点击右下角按钮开始新对话",
+                        text = stringResource(R.string.conversation_list_empty_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -102,8 +106,8 @@ fun ConversationListScreen(
         showDeleteDialog?.let { conversationId ->
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = null },
-                title = { Text("确认删除") },
-                text = { Text("确定要删除此对话吗？所有消息将被永久删除。") },
+                title = { Text(stringResource(R.string.conversation_list_delete_confirm_title)) },
+                text = { Text(stringResource(R.string.conversation_list_delete_confirm_message)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -111,12 +115,12 @@ fun ConversationListScreen(
                             showDeleteDialog = null
                         }
                     ) {
-                        Text("删除")
+                        Text(stringResource(R.string.conversation_list_delete))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteDialog = null }) {
-                        Text("取消")
+                        Text(stringResource(R.string.conversation_list_cancel))
                     }
                 }
             )
@@ -128,7 +132,7 @@ fun ConversationListScreen(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("关闭")
+                        Text(stringResource(R.string.conversation_list_dismiss_error))
                     }
                 }
             ) {
@@ -149,6 +153,8 @@ fun ConversationCard(
     onPinClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth()
@@ -173,7 +179,7 @@ fun ConversationCard(
                     if (conversation.isPinned) {
                         Icon(
                             imageVector = Icons.Default.PushPin,
-                            contentDescription = "置顶",
+                            contentDescription = stringResource(R.string.conversation_list_pinned),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
@@ -193,7 +199,7 @@ fun ConversationCard(
                     IconButton(onClick = onPinClick) {
                         Icon(
                             imageVector = if (conversation.isPinned) Icons.Default.PushPin else Icons.Default.PushPin,
-                            contentDescription = if (conversation.isPinned) "取消置顶" else "置顶",
+                            contentDescription = if (conversation.isPinned) stringResource(R.string.conversation_list_unpin) else stringResource(R.string.conversation_list_pin),
                             tint = if (conversation.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -201,7 +207,7 @@ fun ConversationCard(
                     IconButton(onClick = onDeleteClick) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "删除",
+                            contentDescription = stringResource(R.string.conversation_list_delete),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -237,13 +243,13 @@ fun ConversationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${conversation.messageCount} 条消息",
+                    text = stringResource(R.string.conversation_list_message_count, conversation.messageCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(
-                    text = formatTimestamp(conversation.updatedAt),
+                    text = formatTimestamp(conversation.updatedAt, context),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -255,15 +261,15 @@ fun ConversationCard(
 /**
  * 格式化时间戳
  */
-private fun formatTimestamp(timestamp: Long): String {
+private fun formatTimestamp(timestamp: Long, context: Context): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
 
     return when {
-        diff < 60_000 -> "刚刚"
-        diff < 3600_000 -> "${diff / 60_000}分钟前"
-        diff < 86400_000 -> "${diff / 3600_000}小时前"
-        diff < 604800_000 -> "${diff / 86400_000}天前"
+        diff < 60_000 -> context.getString(R.string.conversation_list_time_just_now)
+        diff < 3600_000 -> context.getString(R.string.conversation_list_time_minutes_ago, (diff / 60_000).toInt())
+        diff < 86400_000 -> context.getString(R.string.conversation_list_time_hours_ago, (diff / 3600_000).toInt())
+        diff < 604800_000 -> context.getString(R.string.conversation_list_time_days_ago, (diff / 86400_000).toInt())
         else -> {
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             sdf.format(Date(timestamp))

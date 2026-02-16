@@ -50,11 +50,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.chainlesschain.android.feature.project.R
 import kotlinx.coroutines.delay
 
 /**
@@ -96,14 +98,14 @@ enum class CreationStage {
      */
     FAILED;
 
-    fun getDisplayName(): String = when (this) {
-        CONNECTING -> "连接AI服务"
-        ANALYZING -> "分析需求"
-        GENERATING_STRUCTURE -> "生成项目结构"
-        GENERATING_FILES -> "生成文件内容"
-        SAVING -> "保存项目"
-        COMPLETED -> "创建完成"
-        FAILED -> "创建失败"
+    fun getDisplayNameResId(): Int = when (this) {
+        CONNECTING -> R.string.stage_connecting
+        ANALYZING -> R.string.stage_analyzing
+        GENERATING_STRUCTURE -> R.string.stage_generating_structure
+        GENERATING_FILES -> R.string.stage_generating_files
+        SAVING -> R.string.stage_saving
+        COMPLETED -> R.string.stage_completed
+        FAILED -> R.string.stage_failed
     }
 
     fun getIcon(): ImageVector = when (this) {
@@ -214,7 +216,7 @@ fun CreationProgressDialog(
 
                 // 标题
                 Text(
-                    text = if (currentStage == CreationStage.FAILED) "创建失败" else "正在创建项目",
+                    text = stringResource(if (currentStage == CreationStage.FAILED) R.string.creation_failed else R.string.creating_project),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = if (currentStage == CreationStage.FAILED) {
@@ -226,11 +228,11 @@ fun CreationProgressDialog(
 
                 // 当前阶段
                 AnimatedContent(
-                    targetState = currentStage.getDisplayName(),
+                    targetState = currentStage.getDisplayNameResId(),
                     label = "stageName"
-                ) { stageName ->
+                ) { stageNameResId ->
                     Text(
-                        text = stageName,
+                        text = stringResource(stageNameResId),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
@@ -317,7 +319,7 @@ fun CreationProgressDialog(
                         TextButton(
                             onClick = onDismiss
                         ) {
-                            Text("完成")
+                            Text(stringResource(R.string.done))
                         }
                     }
 
@@ -326,7 +328,7 @@ fun CreationProgressDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             TextButton(onClick = onDismiss) {
-                                Text("关闭")
+                                Text(stringResource(R.string.close))
                             }
                         }
                     }
@@ -335,7 +337,7 @@ fun CreationProgressDialog(
                         TextButton(
                             onClick = onCancel
                         ) {
-                            Text("取消")
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 }

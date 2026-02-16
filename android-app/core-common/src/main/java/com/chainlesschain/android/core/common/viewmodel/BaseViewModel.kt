@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.common.error.AppError
 import com.chainlesschain.android.core.common.error.ErrorHandler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -123,6 +124,8 @@ abstract class BaseViewModel<State : UiState, Event : UiEvent>(
         return viewModelScope.launch(exceptionHandler) {
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 handleError(e)
             }
@@ -139,6 +142,8 @@ abstract class BaseViewModel<State : UiState, Event : UiEvent>(
             setLoading(true)
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 handleError(e)
             } finally {

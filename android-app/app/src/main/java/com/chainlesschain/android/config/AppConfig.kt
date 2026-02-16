@@ -79,12 +79,14 @@ class AppConfigManager @Inject constructor(
                 ),
 
                 // UI配置
-                themeMode = ThemeMode.valueOf(
-                    sharedPreferences.getString(
-                        KEY_THEME_MODE,
-                        DEFAULT_THEME_MODE.name
-                    ) ?: DEFAULT_THEME_MODE.name
-                ),
+                themeMode = try {
+                    ThemeMode.valueOf(
+                        sharedPreferences.getString(
+                            KEY_THEME_MODE,
+                            DEFAULT_THEME_MODE.name
+                        ) ?: DEFAULT_THEME_MODE.name
+                    )
+                } catch (_: IllegalArgumentException) { DEFAULT_THEME_MODE },
                 language = sharedPreferences.getString(
                     KEY_LANGUAGE,
                     DEFAULT_LANGUAGE

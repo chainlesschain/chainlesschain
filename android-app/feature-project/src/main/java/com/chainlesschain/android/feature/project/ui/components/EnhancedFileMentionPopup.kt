@@ -54,9 +54,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.R
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileCategory
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
@@ -147,7 +149,7 @@ fun EnhancedFileMentionPopup(
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Text("项目文件")
+                                Text(stringResource(R.string.project_files))
                             }
                         }
                     )
@@ -164,7 +166,7 @@ fun EnhancedFileMentionPopup(
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Text("手机文件")
+                                Text(stringResource(R.string.phone_files))
                             }
                         }
                     )
@@ -185,7 +187,7 @@ fun EnhancedFileMentionPopup(
                         .padding(12.dp)
                         .focusRequester(focusRequester),
                     placeholder = {
-                        Text(if (selectedTab == 0) "搜索项目文件..." else "搜索手机文件...")
+                        Text(stringResource(if (selectedTab == 0) R.string.search_project_files else R.string.search_phone_files))
                     },
                     leadingIcon = {
                         Icon(
@@ -230,8 +232,8 @@ fun EnhancedFileMentionPopup(
                 ) {
                     Text(
                         text = when (selectedTab) {
-                            0 -> "选择项目文件后，其内容将作为AI上下文"
-                            1 -> "手机文件将临时导入（链接模式），不占用额外空间"
+                            0 -> stringResource(R.string.project_file_context_hint)
+                            1 -> stringResource(R.string.phone_file_context_hint)
                             else -> ""
                         },
                         style = MaterialTheme.typography.labelSmall,
@@ -271,7 +273,7 @@ private fun ProjectFileList(
         if (files.isEmpty()) {
             item {
                 EmptyState(
-                    message = if (searchQuery.isBlank()) "暂无文件" else "未找到匹配的文件"
+                    message = if (searchQuery.isBlank()) stringResource(R.string.no_files) else stringResource(R.string.no_matching_files)
                 )
             }
         } else {
@@ -307,9 +309,9 @@ private fun ExternalFileList(
             item {
                 EmptyState(
                     message = if (searchQuery.isBlank()) {
-                        "未找到手机文件\n请先在文件浏览器中扫描"
+                        stringResource(R.string.no_phone_files)
                     } else {
-                        "未找到匹配的文件"
+                        stringResource(R.string.no_matching_files)
                     }
                 )
             }

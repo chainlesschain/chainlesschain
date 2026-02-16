@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DeviceListScreen -->
+    <string name="p2p_devices">P2P Devices</string>
+    <string name="stop_scanning">Stop Scanning</string>
+    <string name="start_scanning">Start Scanning</string>
+    <string name="connected_devices">Connected Devices</string>
+    <string name="nearby_devices">Nearby Devices</string>
+    <string name="verified">Verified</string>
+    <string name="message_stats">Messages: %1$d sent / %2$d received</string>
+    <string name="verify">Verify</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connect">Connect</string>
+    <string name="close">Close</string>
+    <string name="no_devices_found">No Devices Found</string>
+    <string name="tap_search_to_scan">Tap the search button to scan for nearby devices</string>
+
+    <!-- DeviceManagementScreen -->
+    <string name="device_management">Device Management</string>
+    <string name="back">Back</string>
+    <string name="scan_devices">Scan Devices</string>
+    <string name="connected_count">Connected (%1$d)</string>
+    <string name="discovered_count">Discovered (%1$d)</string>
+    <string name="stat_connected">Connected</string>
+    <string name="stat_verified">Verified</string>
+    <string name="scanning">Scanning</string>
+    <string name="discovered">Discovered</string>
+    <string name="no_connected_devices">No connected devices</string>
+    <string name="tap_fab_to_scan">Tap the button at bottom right to scan for new devices</string>
+    <string name="scanning_nearby_devices">Scanning nearby devices...</string>
+    <string name="please_wait_searching">Please wait, searching...</string>
+    <string name="tap_fab_to_start_scan">Tap the button at bottom right to start scanning</string>
+    <string name="scan_nearby_to_connect">Scan nearby devices to connect</string>
+    <string name="device_id_label">Device ID: %1$s...</string>
+    <string name="e2ee_session_messages">E2EE session \u2022 %1$d/%2$d messages</string>
+    <string name="more_options">More Options</string>
+    <string name="view_details">View Details</string>
+    <string name="verify_device">Verify Device</string>
+    <string name="unknown_address">Unknown address</string>
+    <string name="disconnect_device_title">Disconnect Device</string>
+    <string name="disconnect_device_message">Are you sure you want to disconnect from \"%1$s\"?\n\nThis will delete the encrypted session with this device. You will need to pair again to reconnect.</string>
+    <string name="cancel">Cancel</string>
+    <string name="time_just_now">Just now</string>
+    <string name="time_minutes_ago">%1$d minutes ago</string>
+    <string name="time_hours_ago">%1$d hours ago</string>
+    <string name="time_days_ago">%1$d days ago</string>
+
+    <!-- DevicePairingScreen -->
+    <string name="device_pairing">Device Pairing</string>
+    <string name="initializing_pairing">Initializing pairing...</string>
+    <string name="please_wait">Please wait</string>
+    <string name="exchanging_encryption_keys">Exchanging Encryption Keys</string>
+    <string name="establishing_e2ee_connection">Establishing end-to-end encrypted connection</string>
+    <string name="e2ee_security_hint">End-to-end encryption protects your communication security</string>
+    <string name="verify_device_identity">Verify Device Identity</string>
+    <string name="connection_established_with">Connected with %1$s</string>
+    <string name="next_step">Next Step</string>
+    <string name="verify_safety_code_hint">To ensure connection security, it is recommended to verify the device\'s safety code.\n\nYou can:\n\u2022 Compare safety codes face-to-face\n\u2022 Confirm via a trusted channel (e.g., phone call)\n\u2022 Scan the other party\'s QR code</string>
+    <string name="verify_safety_code">Verify Safety Code</string>
+    <string name="verify_later">Verify Later</string>
+    <string name="pairing_success">Pairing Successful!</string>
+    <string name="secure_connection_established_with">Secure connection established with %1$s</string>
+    <string name="now_you_can">Now you can:</string>
+    <string name="feature_e2ee_messages">Send end-to-end encrypted messages</string>
+    <string name="feature_encrypted_calls">Make encrypted voice/video calls</string>
+    <string name="feature_secure_files">Share files securely</string>
+    <string name="get_started">Get Started</string>
+    <string name="pairing_failed">Pairing Failed</string>
+    <string name="possible_reasons">Possible reasons:</string>
+    <string name="pairing_failure_reasons">\u2022 Unstable network connection\n\u2022 Device out of range\n\u2022 The other party rejected the pairing request\n\u2022 Encryption key exchange failed</string>
+    <string name="retry">Retry</string>
+
+    <!-- DIDManagementScreen -->
+    <string name="did_identity_management">DID Identity Management</string>
+    <string name="share">Share</string>
+    <string name="your_did">Your DID</string>
+    <string name="copy">Copy</string>
+    <string name="did_unique_identifier_hint">This is your unique identity in the decentralized network</string>
+    <string name="identity_key_fingerprint">Identity Key Fingerprint</string>
+    <string name="unknown">Unknown</string>
+    <string name="connected_devices_title">Connected Devices</string>
+    <string name="devices_using_did">%1$d devices using this DID</string>
+    <string name="view">View</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="export_did">Export DID</string>
+    <string name="backup_keys">Backup Keys</string>
+    <string name="did_document_details">DID Document Details</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+    <string name="did_identifier">DID Identifier</string>
+    <string name="verification_methods">Verification Methods</string>
+    <string name="public_keys_count">%1$d public keys</string>
+    <string name="authentication_methods">Authentication Methods</string>
+    <string name="count_items">%1$d items</string>
+    <string name="key_agreement">Key Agreement</string>
+    <string name="service_endpoints">Service Endpoints</string>
+    <string name="creation_time">Creation Time</string>
+
+    <!-- MessageQueueScreen -->
+    <string name="message_queue">Message Queue</string>
+    <string name="clear_completed">Clear Completed</string>
+    <string name="send_queue">Send Queue</string>
+    <string name="receive_queue">Receive Queue</string>
+    <string name="send_queue_empty">Send queue is empty</string>
+    <string name="receive_queue_empty">Receive queue is empty</string>
+    <string name="sent_to">Sent to %1$s</string>
+    <string name="from">From %1$s</string>
+    <string name="high_priority">High Priority</string>
+    <string name="delete">Delete</string>
+    <string name="error_label">Error: %1$s</string>
+    <string name="sent">Sent</string>
+    <string name="received">Received</string>
+
+    <!-- ModerationQueueScreen -->
+    <string name="content_moderation">Content Moderation</string>
+    <string name="stat_pending">Pending</string>
+    <string name="stat_appeal">Appeal</string>
+    <string name="unknown_user">Unknown User</string>
+    <string name="content_type_post">Post</string>
+    <string name="content_type_comment">Comment</string>
+    <string name="content_type_message">Message</string>
+    <string name="show_less">Show Less</string>
+    <string name="show_more">Show More</string>
+    <string name="moderation_info">Moderation Info</string>
+    <string name="violation_type_label">Violation type: %1$s</string>
+    <string name="reason_label">Reason: %1$s</string>
+    <string name="suggestion_label">Suggestion: %1$s</string>
+    <string name="waiting_hours_high_priority">Waiting %1$d hours, high priority</string>
+    <string name="waiting_hours">Waiting time: %1$d hours</string>
+    <string name="user_appeal">User Appeal</string>
+    <string name="approve">Approve</string>
+    <string name="reject">Reject</string>
+    <string name="approve_appeal">Approve Appeal</string>
+    <string name="reject_appeal">Reject Appeal</string>
+    <string name="no_pending_content">No pending content</string>
+    <string name="no_appeal_items">No appeal items</string>
+    <string name="no_moderation_records">No moderation records</string>
+    <string name="tab_pending">Pending</string>
+    <string name="tab_appealing">Appealing</string>
+    <string name="tab_all">All</string>
+
+    <!-- P2PChatScreen -->
+    <string name="status_connected">Connected</string>
+    <string name="status_connecting">Connecting...</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="reconnect">Reconnect</string>
+    <string name="more">More</string>
+    <string name="retry_failed_messages">Retry Failed Messages</string>
+    <string name="clear_chat_history">Clear Chat History</string>
+    <string name="device_not_verified_warning">Device not verified, please verify Safety Numbers first</string>
+    <string name="start_secure_chat">Start Secure Chat</string>
+    <string name="messages_e2ee">Messages are end-to-end encrypted</string>
+    <string name="status_sending">Sending</string>
+    <string name="status_sent">Sent</string>
+    <string name="status_delivered">Delivered</string>
+    <string name="status_send_failed">Send Failed</string>
+    <string name="sending">Sending</string>
+    <string name="e2ee_encrypted">End-to-end encrypted</string>
+    <string name="attachment">Attachment</string>
+    <string name="input_message_placeholder">Type a message...</string>
+    <string name="connect_first_placeholder">Please connect first</string>
+    <string name="encrypted">Encrypted</string>
+    <string name="send">Send</string>
+
+    <!-- QRCodeScannerScreen -->
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="align_qr_code">Align QR code within the frame</string>
+    <string name="scan_peer_qr_code">Scan the QR code shown by %1$s</string>
+    <string name="camera_permission_required">Camera Permission Required</string>
+    <string name="camera_permission_hint">Camera access is needed to scan QR codes</string>
+    <string name="grant_permission">Grant Permission</string>
+
+    <!-- SafetyNumbersScreen -->
+    <string name="safety_code_verification">Safety Code Verification</string>
+    <string name="compare_safety_codes_hint">Compare the following safety codes with the other party to ensure communication security</string>
+    <string name="not_verified">Not Verified</string>
+    <string name="safety_code">Safety Code</string>
+    <string name="scan_other_party">Scan Other Party</string>
+    <string name="confirm_verification">Confirm Verification</string>
+    <string name="qr_code">QR Code</string>
+    <string name="verification_qr_code">Verification QR Code</string>
+    <string name="let_other_scan">Let the other party scan this QR code</string>
+    <string name="how_to_verify">How to verify?</string>
+    <string name="verification_steps">1. Meet the other party face-to-face, or use a trusted channel (e.g., phone call)\n2. Compare whether the safety codes shown by both parties are identical\n3. Or scan the other party\'s QR code for quick verification\n4. After confirming they match, tap the \"Confirm Verification\" button</string>
+
+    <!-- SessionFingerprintDisplay -->
+    <string name="session_fingerprint">Session Fingerprint</string>
+    <string name="fingerprint_security_hint">This fingerprint is generated from the session key, used to verify end-to-end encryption security</string>
+    <string name="verify_this_session">Verify This Session</string>
+    <string name="sha256_fingerprint">SHA-256 Fingerprint</string>
+    <string name="fingerprint_comparison">Fingerprint Comparison</string>
+    <string name="compare_fingerprints_hint">Please compare the following fingerprints with the other party to verify they match</string>
+    <string name="your_fingerprint">Your Fingerprint</string>
+    <string name="peer_fingerprint">%1$s\'s Fingerprint</string>
+    <string name="fingerprint_match_confirm">Fingerprints match, confirm verification</string>
+    <string name="fingerprint_mismatch">Fingerprints do not match</string>
+    <string name="security_warning">Security Warning</string>
+    <string name="fingerprint_mismatch_warning">Mismatched fingerprints may indicate a man-in-the-middle attack!\n\nIt is recommended to disconnect immediately and contact the other party through a trusted channel.</string>
+</resources>

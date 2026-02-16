@@ -102,15 +102,14 @@ class ThumbnailCache @Inject constructor() {
 
             // 从URI加载图片
             val parsedUri = Uri.parse(uri)
-            val inputStream = contentResolver.openInputStream(parsedUri)
-                ?: return@withContext null
 
             // 首先获取图片尺寸
             val options = BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
             }
-            BitmapFactory.decodeStream(inputStream, null, options)
-            inputStream.close()
+            contentResolver.openInputStream(parsedUri)?.use { inputStream ->
+                BitmapFactory.decodeStream(inputStream, null, options)
+            } ?: return@withContext null
 
             // 计算缩放比例
             val scaleFactor = calculateScaleFactor(
@@ -121,16 +120,14 @@ class ThumbnailCache @Inject constructor() {
             )
 
             // 加载缩略图
-            val inputStream2 = contentResolver.openInputStream(parsedUri)
-                ?: return@withContext null
-
             val thumbnailOptions = BitmapFactory.Options().apply {
                 inSampleSize = scaleFactor
                 inPreferredConfig = Bitmap.Config.RGB_565 // 使用RGB_565减少内存占用
             }
 
-            val bitmap = BitmapFactory.decodeStream(inputStream2, null, thumbnailOptions)
-            inputStream2.close()
+            val bitmap = contentResolver.openInputStream(parsedUri)?.use { inputStream2 ->
+                BitmapFactory.decodeStream(inputStream2, null, thumbnailOptions)
+            }
 
             if (bitmap != null) {
                 // 添加到缓存

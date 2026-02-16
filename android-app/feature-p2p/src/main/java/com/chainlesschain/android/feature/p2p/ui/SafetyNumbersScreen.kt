@@ -13,10 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo
+import com.chainlesschain.android.feature.p2p.R
 
 /**
  * Safety Numbers 验证界面
@@ -33,10 +35,10 @@ fun SafetyNumbersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("安全码验证") },
+                title = { Text(stringResource(R.string.safety_code_verification)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -71,7 +73,7 @@ fun SafetyNumbersScreen(
 
                 // 说明文本
                 Text(
-                    text = "与对方比对以下安全码，确保通信安全",
+                    text = stringResource(R.string.compare_safety_codes_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -107,7 +109,7 @@ fun SafetyNumbersScreen(
                             contentDescription = null
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("扫描对方")
+                        Text(stringResource(R.string.scan_other_party))
                     }
 
                     Button(
@@ -120,7 +122,7 @@ fun SafetyNumbersScreen(
                             contentDescription = null
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (verificationInfo.isVerified) "已验证" else "确认验证")
+                        Text(if (verificationInfo.isVerified) stringResource(R.string.verified) else stringResource(R.string.confirm_verification))
                     }
                 }
 
@@ -170,7 +172,7 @@ fun VerificationStatusCard(
 
             Column {
                 Text(
-                    text = if (isVerified) "已验证" else "未验证",
+                    text = if (isVerified) stringResource(R.string.verified) else stringResource(R.string.not_verified),
                     style = MaterialTheme.typography.titleMedium,
                     color = if (isVerified)
                         MaterialTheme.colorScheme.onTertiaryContainer
@@ -208,7 +210,7 @@ fun SafetyNumberDisplay(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "安全码",
+                text = stringResource(R.string.safety_code),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -258,7 +260,7 @@ fun QRCodeDisplay(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "二维码",
+                text = stringResource(R.string.qr_code),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -268,7 +270,7 @@ fun QRCodeDisplay(
             if (qrCodeBitmap != null) {
                 Image(
                     bitmap = qrCodeBitmap!!.asImageBitmap(),
-                    contentDescription = "验证二维码",
+                    contentDescription = stringResource(R.string.verification_qr_code),
                     modifier = Modifier.size(200.dp)
                 )
             } else {
@@ -278,7 +280,7 @@ fun QRCodeDisplay(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "让对方扫描此二维码",
+                text = stringResource(R.string.let_other_scan),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -312,7 +314,7 @@ fun HelpCard() {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "如何验证？",
+                    text = stringResource(R.string.how_to_verify),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -321,10 +323,7 @@ fun HelpCard() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "1. 与对方面对面，或通过可信渠道（如电话）\n" +
-                        "2. 比对双方显示的安全码是否一致\n" +
-                        "3. 或扫描对方的二维码进行快速验证\n" +
-                        "4. 确认一致后点击「确认验证」按钮",
+                text = stringResource(R.string.verification_steps),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

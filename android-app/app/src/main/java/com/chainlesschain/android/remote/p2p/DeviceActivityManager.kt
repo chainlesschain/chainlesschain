@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.p2p
 
+import com.chainlesschain.android.R
 import com.chainlesschain.android.remote.data.MessageTypes
 import com.chainlesschain.android.remote.data.P2PMessage
 import com.chainlesschain.android.remote.data.toJsonString
@@ -29,6 +30,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class DeviceActivityManager @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val webRTCClient: WebRTCClient
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -40,13 +42,18 @@ class DeviceActivityManager @Inject constructor(
         private const val INACTIVITY_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000L  // 7 天（与 PC 端一致）
     }
 
-    // 活动统计
+    // 活动统计 (accessed from multiple coroutines)
+    @Volatile
     private var lastActivityTime = System.currentTimeMillis()
+    @Volatile
     private var activityCount = 0
+    @Volatile
     private var commandCount = 0
+    @Volatile
     private var sessionStartTime = System.currentTimeMillis()
 
     // 连接状态监听
+    @Volatile
     private var isConnected = false
 
     /**
@@ -181,12 +188,12 @@ class DeviceActivityManager @Inject constructor(
         return when (stats.warningLevel) {
             WarningLevel.HIGH -> InactivityWarning(
                 level = WarningLevel.HIGH,
-                message = "您已有 ${stats.inactivityDays} 天未使用远程控制，权限可能会被自动降级",
+                message = context.getString(R.string.device_inactivity_warning, stats.inactivityDays),
                 daysRemaining = 7 - stats.inactivityDays
             )
             WarningLevel.MEDIUM -> InactivityWarning(
                 level = WarningLevel.MEDIUM,
-                message = "您已有 ${stats.inactivityDays} 天未使用远程控制",
+                message = context.getString(R.string.device_inactivity_notice, stats.inactivityDays),
                 daysRemaining = 7 - stats.inactivityDays
             )
             else -> null

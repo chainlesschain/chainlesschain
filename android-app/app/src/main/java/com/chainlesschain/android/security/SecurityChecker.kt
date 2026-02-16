@@ -184,9 +184,8 @@ class SecurityChecker @Inject constructor(
     private fun checkSystemMountedReadWrite(): Boolean {
         return try {
             val process = Runtime.getRuntime().exec("mount")
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            val lines = reader.readLines()
-            reader.close()
+            val lines = process.inputStream.bufferedReader().use { it.readLines() }
+            process.errorStream.close()
             process.waitFor()
 
             lines.any { line ->

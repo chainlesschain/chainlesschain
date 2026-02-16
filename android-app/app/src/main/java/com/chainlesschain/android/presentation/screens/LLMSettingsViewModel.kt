@@ -1,6 +1,7 @@
 package com.chainlesschain.android.presentation.screens
 
 import androidx.lifecycle.ViewModel
+import timber.log.Timber
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.security.SecurePreferences
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
@@ -18,6 +19,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.InetAddress
 import java.util.concurrent.TimeUnit
+import com.chainlesschain.android.R
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -31,6 +34,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class LLMSettingsViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val securePreferences: SecurePreferences,
     private val llmAdapterFactory: LLMAdapterFactory
 ) : ViewModel() {
@@ -109,11 +113,11 @@ class LLMSettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(
                     currentApiKey = apiKey,
                     currentEndpoint = endpoint,
-                    message = "✅ 配置已保存"
+                    message = context.getString(R.string.llm_config_saved)
                 )}
             } catch (e: Exception) {
                 _uiState.update { it.copy(
-                    message = "❌ 保存失败: ${e.message}"
+                    message = context.getString(R.string.llm_save_failed, e.message ?: "")
                 )}
             }
         }
@@ -136,14 +140,14 @@ class LLMSettingsViewModel @Inject constructor(
                     _uiState.update { it.copy(
                         isTesting = false,
                         connectionStatus = isAvailable,
-                        message = if (isAvailable) "✅ 连接成功" else "❌ 连接失败"
+                        message = if (isAvailable) context.getString(R.string.llm_connection_success) else context.getString(R.string.llm_connection_failed)
                     )}
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(
                     isTesting = false,
                     connectionStatus = false,
-                    message = "❌ 测试失败: ${e.message}"
+                    message = context.getString(R.string.llm_test_error, e.message ?: "")
                 )}
             }
         }
@@ -165,7 +169,7 @@ class LLMSettingsViewModel @Inject constructor(
                         .build()
 
                     val response = httpClient.newCall(request).execute()
-                    val isSuccess = response.isSuccessful
+                    val isSuccess = response.use { it.isSuccessful }
 
                     if (isSuccess) {
                         // 解析模型列表（简化版本）
@@ -179,13 +183,13 @@ class LLMSettingsViewModel @Inject constructor(
                             connectionStatus = true,
                             currentEndpoint = url,
                             availableModels = models,
-                            message = "✅ 连接成功"
+                            message = context.getString(R.string.llm_connection_success)
                         )}
                     } else {
                         _uiState.update { it.copy(
                             isTesting = false,
                             connectionStatus = false,
-                            message = "❌ 连接失败: HTTP ${response.code}"
+                            message = context.getString(R.string.llm_connection_http_failed, response.code)
                         )}
                     }
                 }
@@ -193,7 +197,7 @@ class LLMSettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(
                     isTesting = false,
                     connectionStatus = false,
-                    message = "❌ 连接失败: ${e.message}"
+                    message = context.getString(R.string.llm_test_error, e.message ?: "")
                 )}
             }
         }
@@ -218,14 +222,14 @@ class LLMSettingsViewModel @Inject constructor(
                     isDiscovering = false,
                     discoveredOllamaServices = discovered,
                     message = if (discovered.isEmpty())
-                        "未发现服务，请确保PC端Ollama正在运行"
+                        context.getString(R.string.llm_discovery_no_service)
                     else
-                        "发现 ${discovered.size} 个服务"
+                        context.getString(R.string.llm_discovery_found, discovered.size)
                 )}
             } catch (e: Exception) {
                 _uiState.update { it.copy(
                     isDiscovering = false,
-                    message = "扫描失败: ${e.message}"
+                    message = context.getString(R.string.llm_scan_failed, e.message ?: "")
                 )}
             }
         }
@@ -294,15 +298,17 @@ class LLMSettingsViewModel @Inject constructor(
                         .build()
 
                     val response = httpClient.newCall(request).execute()
-                    if (response.isSuccessful) {
-                        discovered.add(url)
+                    response.use {
+                        if (it.isSuccessful) {
+                            discovered.add(url)
+                        }
                     }
-                } catch (e: Exception) {
-                    // 忽略连接失败的IP
+                } catch (_: Exception) {
+                    // Expected: connection refused for unreachable IPs
                 }
             }
         } catch (e: Exception) {
-            // 发现失败
+            Timber.w(e, "Ollama LAN discovery failed")
         }
 
         return discovered.distinct()
@@ -312,6 +318,7 @@ class LLMSettingsViewModel @Inject constructor(
 /**
  * LLM设置界面UI状态
  */
+@Immutable
 data class LLMSettingsUiState(
     val selectedProvider: LLMProvider = LLMProvider.DEEPSEEK,
     val currentApiKey: String? = null,

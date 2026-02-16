@@ -17,8 +17,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 
 /**
  * 渐变卡片
@@ -192,9 +194,10 @@ fun EmptyState(
  */
 @Composable
 fun LoadingState(
-    message: String = "加载中...",
+    message: String = "",
     modifier: Modifier = Modifier
 ) {
+    val displayMessage = message.ifEmpty { stringResource(R.string.common_loading) }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -210,7 +213,7 @@ fun LoadingState(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = message,
+            text = displayMessage,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -317,25 +320,26 @@ fun CircularProgress(
 fun EnhancedSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String = "搜索...",
+    placeholder: String = "",
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector = Icons.Default.Search,
     onSearch: (() -> Unit)? = null
 ) {
+    val displayPlaceholder = placeholder.ifEmpty { stringResource(R.string.common_search_hint) }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         placeholder = {
             Text(
-                text = placeholder,
+                text = displayPlaceholder,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
         leadingIcon = {
             Icon(
                 imageVector = leadingIcon,
-                contentDescription = "搜索",
+                contentDescription = stringResource(R.string.common_search),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
@@ -344,7 +348,7 @@ fun EnhancedSearchBar(
                 IconButton(onClick = { onValueChange("") }) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "清除",
+                        contentDescription = stringResource(R.string.common_clear),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -352,7 +356,7 @@ fun EnhancedSearchBar(
                 IconButton(onClick = onSearch) {
                     Icon(
                         imageVector = Icons.Default.Search,
-                        contentDescription = "搜索"
+                        contentDescription = stringResource(R.string.common_search)
                     )
                 }
             }

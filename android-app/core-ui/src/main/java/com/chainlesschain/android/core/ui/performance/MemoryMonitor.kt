@@ -14,9 +14,9 @@ import kotlin.math.roundToInt
  *
  * 用于监控应用的内存使用情况，帮助发现内存泄漏和优化内存占用
  */
-class MemoryMonitor(private val context: Context) {
+class MemoryMonitor(context: Context) {
 
-    private val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    private val activityManager = context.applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val runtime = Runtime.getRuntime()
 
     /**

@@ -41,10 +41,15 @@ class WebSocketSignalingClient @Inject constructor(
     )
     override val incomingMessages: Flow<SignalingMessage> = _incomingMessages.asSharedFlow()
 
+    @Volatile
     private var webSocket: WebSocket? = null
+    @Volatile
     private var userId: String? = null
+    @Volatile
     private var token: String? = null
+    @Volatile
     private var reconnectAttempts = 0
+    @Volatile
     private var heartbeatJob: Job? = null
 
     private val messageQueue = ArrayDeque<SignalingMessage>()

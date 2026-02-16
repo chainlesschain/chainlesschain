@@ -11,6 +11,7 @@ import com.chainlesschain.android.feature.blockchain.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -218,6 +219,7 @@ class WalletViewModel @Inject constructor(
 /**
  * Wallet UI State
  */
+@Immutable
 data class WalletUiState(
     val wallets: List<Wallet> = emptyList(),
     val activeWallet: Wallet? = null,

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -222,6 +223,7 @@ class ClipboardSyncViewModel @Inject constructor(
 /**
  * UI State
  */
+@Immutable
 data class ClipboardSyncUiState(
     val localClipboard: String? = null,
     val pcClipboard: String? = null,

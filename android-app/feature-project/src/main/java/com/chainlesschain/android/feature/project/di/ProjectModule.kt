@@ -42,8 +42,8 @@ object ProjectModule {
 
     @Provides
     @Singleton
-    fun provideProjectRepository(projectDao: ProjectDao): ProjectRepository {
-        return ProjectRepository(projectDao)
+    fun provideProjectRepository(projectDao: ProjectDao, @ApplicationContext context: Context): ProjectRepository {
+        return ProjectRepository(projectDao, context)
     }
 
     @Provides

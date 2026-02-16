@@ -9,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.p2p.R
 import com.chainlesschain.android.feature.p2p.viewmodel.P2PDeviceViewModel
 import com.chainlesschain.android.feature.p2p.viewmodel.DeviceWithSession
 import java.text.SimpleDateFormat
@@ -41,10 +43,10 @@ fun DeviceManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设备管理") },
+                title = { Text(stringResource(R.string.device_management)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -61,7 +63,7 @@ fun DeviceManagementScreen(
                     ) {
                         Icon(
                             imageVector = if (isScanning) Icons.Default.Stop else Icons.Default.Search,
-                            contentDescription = if (isScanning) "停止扫描" else "扫描设备",
+                            contentDescription = if (isScanning) stringResource(R.string.stop_scanning) else stringResource(R.string.scan_devices),
                             tint = if (isScanning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                         )
                     }
@@ -87,7 +89,7 @@ fun DeviceManagementScreen(
             ) {
                 Icon(
                     imageVector = if (isScanning) Icons.Default.Stop else Icons.Default.Search,
-                    contentDescription = if (isScanning) "停止扫描" else "扫描设备"
+                    contentDescription = if (isScanning) stringResource(R.string.stop_scanning) else stringResource(R.string.scan_devices)
                 )
             }
         }
@@ -112,7 +114,7 @@ fun DeviceManagementScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("已连接 (${connectedDevices.size})") }
+                    text = { Text(stringResource(R.string.connected_count, connectedDevices.size)) }
                 )
                 Tab(
                     selected = selectedTab == 1,
@@ -122,7 +124,7 @@ fun DeviceManagementScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("发现的设备 (${discoveredDevices.size})")
+                            Text(stringResource(R.string.discovered_count, discoveredDevices.size))
                             if (isScanning) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
@@ -139,7 +141,10 @@ fun DeviceManagementScreen(
                 0 -> {
                     // 已连接的设备
                     if (connectedDevices.isEmpty()) {
-                        EmptyDeviceList(message = "暂无已连接设备", hint = "点击右下角按钮扫描新设备")
+                        EmptyDeviceList(
+                            message = stringResource(R.string.no_connected_devices),
+                            hint = stringResource(R.string.tap_fab_to_scan)
+                        )
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -161,8 +166,8 @@ fun DeviceManagementScreen(
                     // 发现的设备
                     if (discoveredDevices.isEmpty()) {
                         EmptyDeviceList(
-                            message = if (isScanning) "正在扫描附近设备..." else "未发现设备",
-                            hint = if (isScanning) "请稍候，正在搜索中" else "点击右下角按钮开始扫描"
+                            message = if (isScanning) stringResource(R.string.scanning_nearby_devices) else stringResource(R.string.no_devices_found),
+                            hint = if (isScanning) stringResource(R.string.please_wait_searching) else stringResource(R.string.tap_fab_to_start_scan)
                         )
                     } else {
                         LazyColumn(
@@ -204,7 +209,7 @@ fun DeviceManagementScreen(
                 modifier = Modifier.padding(16.dp),
                 action = {
                     TextButton(onClick = { viewModel.clearError() }) {
-                        Text("关闭")
+                        Text(stringResource(R.string.close))
                     }
                 }
             ) {
@@ -255,7 +260,7 @@ fun DeviceStatisticsCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "已连接",
+                    text = stringResource(R.string.stat_connected),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -284,7 +289,7 @@ fun DeviceStatisticsCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "已验证",
+                    text = stringResource(R.string.stat_verified),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -313,7 +318,7 @@ fun DeviceStatisticsCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = if (isScanning) "扫描中" else "已发现",
+                    text = if (isScanning) stringResource(R.string.scanning) else stringResource(R.string.discovered),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -390,7 +395,7 @@ fun DeviceCard(
                     if (device.isVerified) {
                         Icon(
                             imageVector = Icons.Default.Verified,
-                            contentDescription = "已验证",
+                            contentDescription = stringResource(R.string.verified),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -400,7 +405,7 @@ fun DeviceCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "设备ID: ${device.deviceId.take(16)}...",
+                    text = stringResource(R.string.device_id_label, device.deviceId.take(16)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -421,7 +426,7 @@ fun DeviceCard(
                         tint = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
-                        text = "E2EE会话 • ${device.sessionInfo.sendMessageNumber}/${device.sessionInfo.receiveMessageNumber} 消息",
+                        text = stringResource(R.string.e2ee_session_messages, device.sessionInfo.sendMessageNumber, device.sessionInfo.receiveMessageNumber),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -433,7 +438,7 @@ fun DeviceCard(
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
                         Icons.Default.MoreVert,
-                        contentDescription = "更多选项"
+                        contentDescription = stringResource(R.string.more_options)
                     )
                 }
 
@@ -442,7 +447,7 @@ fun DeviceCard(
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("查看详情") },
+                        text = { Text(stringResource(R.string.view_details)) },
                         onClick = {
                             showMenu = false
                             onClick()
@@ -454,7 +459,7 @@ fun DeviceCard(
 
                     if (!device.isVerified) {
                         DropdownMenuItem(
-                            text = { Text("验证设备") },
+                            text = { Text(stringResource(R.string.verify_device)) },
                             onClick = {
                                 showMenu = false
                                 onVerify()
@@ -468,7 +473,7 @@ fun DeviceCard(
                     Divider()
 
                     DropdownMenuItem(
-                        text = { Text("断开连接", color = MaterialTheme.colorScheme.error) },
+                        text = { Text(stringResource(R.string.disconnect), color = MaterialTheme.colorScheme.error) },
                         onClick = {
                             showMenu = false
                             onDisconnect()
@@ -492,8 +497,8 @@ fun DeviceCard(
  */
 @Composable
 fun EmptyDeviceList(
-    message: String = "暂无已连接设备",
-    hint: String = "扫描附近设备以建立连接"
+    message: String = stringResource(R.string.no_connected_devices),
+    hint: String = stringResource(R.string.scan_nearby_to_connect)
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -577,7 +582,7 @@ fun DiscoveredDeviceCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "设备ID: ${device.deviceId.take(16)}...",
+                    text = stringResource(R.string.device_id_label, device.deviceId.take(16)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -598,7 +603,7 @@ fun DiscoveredDeviceCard(
                         tint = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
-                        text = device.address ?: "未知地址",
+                        text = device.address ?: stringResource(R.string.unknown_address),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -616,7 +621,7 @@ fun DiscoveredDeviceCard(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("连接")
+                Text(stringResource(R.string.connect))
             }
         }
     }
@@ -641,10 +646,10 @@ fun DisconnectConfirmDialog(
             )
         },
         title = {
-            Text("断开设备连接")
+            Text(stringResource(R.string.disconnect_device_title))
         },
         text = {
-            Text("确定要断开与 \"$deviceName\" 的连接吗？\n\n这将删除与该设备的加密会话，需要重新配对才能再次连接。")
+            Text(stringResource(R.string.disconnect_device_message, deviceName))
         },
         confirmButton = {
             TextButton(
@@ -653,12 +658,12 @@ fun DisconnectConfirmDialog(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("断开连接")
+                Text(stringResource(R.string.disconnect))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

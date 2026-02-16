@@ -39,16 +39,18 @@ class FileSummaryCache @Inject constructor(
         prettyPrint = false
     }
 
-    // 内存缓存（LRU）
-    private val memoryCache = object : LinkedHashMap<String, FileSummary>(
-        MAX_MEMORY_CACHE_SIZE,
-        0.75f,
-        true // access order
-    ) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, FileSummary>?): Boolean {
-            return size > MAX_MEMORY_CACHE_SIZE
+    // 内存缓存（LRU, thread-safe）
+    private val memoryCache: MutableMap<String, FileSummary> = java.util.Collections.synchronizedMap(
+        object : LinkedHashMap<String, FileSummary>(
+            MAX_MEMORY_CACHE_SIZE,
+            0.75f,
+            true // access order
+        ) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, FileSummary>?): Boolean {
+                return size > MAX_MEMORY_CACHE_SIZE
+            }
         }
-    }
+    )
 
     // 缓存目录
     private val cacheDir: File by lazy {
@@ -141,9 +143,12 @@ class FileSummaryCache @Inject constructor(
         var cleanedCount = 0
 
         // 清理内存缓存
-        val expiredKeys = memoryCache.entries
-            .filter { isExpired(it.value) }
-            .map { it.key }
+        val expiredKeys: List<String>
+        synchronized(memoryCache) {
+            expiredKeys = memoryCache.entries
+                .filter { isExpired(it.value) }
+                .map { it.key }
+        }
         expiredKeys.forEach { key ->
             memoryCache.remove(key)
             cleanedCount++

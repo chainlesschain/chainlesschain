@@ -10,6 +10,7 @@ import com.chainlesschain.android.core.did.manager.DIDManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
 /**
@@ -302,6 +303,7 @@ class ModerationQueueViewModel @Inject constructor(
 /**
  * UI状态
  */
+@Immutable
 data class ModerationQueueUiState(
     val items: List<ModerationQueueItem> = emptyList(),
     val currentTab: ModerationTab = ModerationTab.PENDING,

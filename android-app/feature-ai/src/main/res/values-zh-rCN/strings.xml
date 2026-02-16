@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ChatScreen -->
+    <string name="chat_default_title">对话</string>
+    <string name="chat_navigate_back">返回</string>
+    <string name="chat_settings">设置</string>
+    <string name="chat_dismiss_error">关闭</string>
+    <string name="chat_input_placeholder">输入消息\u2026</string>
+    <string name="chat_send">发送</string>
+
+    <!-- ConversationListScreen -->
+    <string name="conversation_list_title">AI对话</string>
+    <string name="conversation_list_settings">设置</string>
+    <string name="conversation_list_new">新建对话</string>
+    <string name="conversation_list_empty_title">暂无对话</string>
+    <string name="conversation_list_empty_subtitle">点击右下角按钮开始新对话</string>
+    <string name="conversation_list_delete_confirm_title">确认删除</string>
+    <string name="conversation_list_delete_confirm_message">确定要删除此对话吗？所有消息将被永久删除。</string>
+    <string name="conversation_list_delete">删除</string>
+    <string name="conversation_list_cancel">取消</string>
+    <string name="conversation_list_dismiss_error">关闭</string>
+    <string name="conversation_list_pinned">置顶</string>
+    <string name="conversation_list_unpin">取消置顶</string>
+    <string name="conversation_list_pin">置顶</string>
+    <string name="conversation_list_message_count">%1$d 条消息</string>
+    <string name="conversation_list_time_just_now">刚刚</string>
+    <string name="conversation_list_time_minutes_ago">%1$d分钟前</string>
+    <string name="conversation_list_time_hours_ago">%1$d小时前</string>
+    <string name="conversation_list_time_days_ago">%1$d天前</string>
+
+    <!-- NewConversationScreen -->
+    <string name="new_conversation_title">新建对话</string>
+    <string name="new_conversation_navigate_back">返回</string>
+    <string name="new_conversation_default_title">新对话</string>
+    <string name="new_conversation_create">创建</string>
+    <string name="new_conversation_label_title">对话标题</string>
+    <string name="new_conversation_title_placeholder">例如：学习Kotlin</string>
+    <string name="new_conversation_select_model">选择模型</string>
+    <string name="new_conversation_select_model_placeholder">请选择\u2026</string>
+    <string name="new_conversation_api_key_placeholder">输入%1$s API Key</string>
+    <string name="new_conversation_api_key_show">显示</string>
+    <string name="new_conversation_api_key_hide">隐藏</string>
+    <string name="new_conversation_api_key_encrypted">API Key将加密保存在本地</string>
+    <string name="new_conversation_ollama_hint">Ollama本地模型无需API Key，请确保Ollama服务正在运行</string>
+    <string name="new_conversation_model_dialog_title">选择模型</string>
+    <string name="new_conversation_model_dialog_cancel">取消</string>
+    <string name="new_conversation_doubao_label">豆包 (火山引擎)</string>
+    <string name="new_conversation_ollama_label">Ollama (本地)</string>
+    <string name="new_conversation_max_tokens">最大%1$d tokens</string>
+
+    <!-- LLMSettingsScreen -->
+    <string name="llm_settings_title">LLM配置</string>
+    <string name="llm_settings_navigate_back">返回</string>
+    <string name="llm_settings_usage_statistics">使用统计</string>
+    <string name="llm_settings_smart_recommendation">智能推荐</string>
+    <string name="llm_settings_import_export">导入/导出</string>
+    <string name="llm_settings_refresh">刷新</string>
+    <string name="llm_settings_more">更多</string>
+    <string name="llm_settings_reset_to_default">重置为默认配置</string>
+    <string name="llm_settings_retry">重试</string>
+    <string name="llm_settings_testing_connection">测试连接中\u2026</string>
+    <string name="llm_settings_validate_config">验证配置</string>
+    <string name="llm_settings_connection_success">连接成功</string>
+    <string name="llm_settings_connection_failed">连接失败</string>
+    <string name="llm_settings_usage_stats_description">查看各模型的Token使用与成本统计</string>
+    <string name="llm_settings_provider_title">LLM提供商</string>
+    <string name="llm_settings_provider_ollama">Ollama (本地)</string>
+    <string name="llm_settings_provider_claude">Claude (Anthropic)</string>
+    <string name="llm_settings_provider_doubao">豆包 (火山引擎)</string>
+    <string name="llm_settings_provider_qwen">通义千问 (阿里云)</string>
+    <string name="llm_settings_provider_ernie">文心一言 (百度)</string>
+    <string name="llm_settings_provider_chatglm">智谱AI</string>
+    <string name="llm_settings_provider_moonshot">月之暗面 (Kimi)</string>
+    <string name="llm_settings_provider_spark">讯飞星火</string>
+    <string name="llm_settings_provider_gemini">Gemini (Google)</string>
+    <string name="llm_settings_provider_custom">自定义</string>
+    <string name="llm_settings_config_error">配置错误</string>
+    <string name="llm_settings_ollama_title">Ollama配置</string>
+    <string name="llm_settings_ollama_description">本地LLM，完全免费</string>
+    <string name="llm_settings_server_url">服务器地址</string>
+    <string name="llm_settings_model_name">模型名称</string>
+    <string name="llm_settings_embedding_model">嵌入模型</string>
+    <string name="llm_settings_openai_title">OpenAI配置</string>
+    <string name="llm_settings_openai_description">GPT系列模型</string>
+    <string name="llm_settings_api_key_show">隐藏</string>
+    <string name="llm_settings_api_key_hide">显示</string>
+    <string name="llm_settings_model">模型</string>
+    <string name="llm_settings_deepseek_title">DeepSeek配置</string>
+    <string name="llm_settings_deepseek_description">性价比极高的中文模型</string>
+    <string name="llm_settings_anthropic_title">Anthropic Claude配置</string>
+    <string name="llm_settings_anthropic_description">Claude系列模型，推理能力强</string>
+    <string name="llm_settings_generic_config_title">%1$s 配置</string>
+    <string name="llm_settings_generic_config_description">配置 %1$s API</string>
+    <string name="llm_settings_generic_api_key_placeholder">输入API Key</string>
+    <string name="llm_settings_generic_model_placeholder">模型名称</string>
+
+    <!-- LLMSettingsScreen - Import/Export Dialog -->
+    <string name="llm_settings_import_export_title">配置导入/导出</string>
+    <string name="llm_settings_import_export_processing">处理中\u2026</string>
+    <string name="llm_settings_import_export_description">可以将配置导出为文件，或从文件导入配置。支持与桌面端共享配置。</string>
+    <string name="llm_settings_export_section">导出配置</string>
+    <string name="llm_settings_export_full">完整导出</string>
+    <string name="llm_settings_export_safe">安全导出</string>
+    <string name="llm_settings_import_section">导入配置</string>
+    <string name="llm_settings_import_from_file">从文件导入</string>
+    <string name="llm_settings_import_export_close">关闭</string>
+    <string name="llm_settings_import_export_hint">提示: 安全导出不包含API密钥等敏感信息，适合分享配置模板。</string>
+    <string name="llm_settings_export_full_success">完整配置导出成功</string>
+    <string name="llm_settings_export_failed">导出失败</string>
+    <string name="llm_settings_export_safe_success">安全配置导出成功</string>
+    <string name="llm_settings_import_success">配置导入成功，已重新加载</string>
+
+    <!-- LLMSettingsScreen - Recommendation Dialog -->
+    <string name="llm_settings_recommendation_title">智能推荐</string>
+    <string name="llm_settings_recommendation_description">根据您的使用场景和预算，为您推荐最合适的LLM提供商。</string>
+    <string name="llm_settings_recommendation_use_case">使用场景</string>
+    <string name="llm_settings_recommendation_use_case_free">免费优先</string>
+    <string name="llm_settings_recommendation_use_case_cost">性价比优先</string>
+    <string name="llm_settings_recommendation_use_case_quality">质量优先</string>
+    <string name="llm_settings_recommendation_use_case_chinese">中文优化</string>
+    <string name="llm_settings_recommendation_use_case_general">通用场景</string>
+    <string name="llm_settings_recommendation_budget">预算</string>
+    <string name="llm_settings_recommendation_budget_low">低</string>
+    <string name="llm_settings_recommendation_budget_medium">中</string>
+    <string name="llm_settings_recommendation_budget_high">高</string>
+    <string name="llm_settings_recommendation_budget_unlimited">不限</string>
+    <string name="llm_settings_recommendation_results">推荐结果 (%1$d个)</string>
+    <string name="llm_settings_recommendation_score">%1$d分</string>
+    <string name="llm_settings_recommendation_apply">应用此推荐</string>
+    <string name="llm_settings_recommendation_close">关闭</string>
+
+    <!-- LLMSettingsScreen - Provider Names (for GenericProviderConfigCard) -->
+    <string name="llm_provider_doubao">豆包（火山引擎）</string>
+    <string name="llm_provider_qwen">通义千问</string>
+    <string name="llm_provider_ernie">文心一言</string>
+    <string name="llm_provider_chatglm">智谱AI</string>
+    <string name="llm_provider_moonshot">月之暗面</string>
+    <string name="llm_provider_spark">讯飞星火</string>
+    <string name="llm_provider_custom">自定义</string>
+
+    <!-- LLMSettingsComponents - OptionsCard -->
+    <string name="llm_options_title">通用选项</string>
+    <string name="llm_options_temperature">Temperature: %1$s</string>
+    <string name="llm_options_temperature_hint">控制输出随机性。较低值更确定，较高值更创造性。</string>
+    <string name="llm_options_top_p">Top P: %1$s</string>
+    <string name="llm_options_top_p_hint">控制采样多样性。推荐0.9-1.0。</string>
+    <string name="llm_options_top_k_hint">限制采样候选数量。推荐40。</string>
+    <string name="llm_options_max_tokens">最大Token数</string>
+    <string name="llm_options_max_tokens_hint">单次响应的最大长度。</string>
+    <string name="llm_options_save">保存选项</string>
+
+    <!-- LLMSettingsComponents - ProviderConfigCardTemplate -->
+    <string name="llm_config_save">保存</string>
+    <string name="llm_config_test">测试</string>
+
+    <!-- UsageStatisticsScreen -->
+    <string name="usage_statistics_title">Token使用统计</string>
+    <string name="usage_statistics_navigate_back">返回</string>
+    <string name="usage_statistics_refresh">刷新</string>
+    <string name="usage_statistics_clear">清除</string>
+    <string name="usage_statistics_clear_provider_title">清除%1$s的统计数据？</string>
+    <string name="usage_statistics_clear_all_title">清除所有统计数据？</string>
+    <string name="usage_statistics_clear_warning">此操作不可撤销</string>
+    <string name="usage_statistics_confirm">确认</string>
+    <string name="usage_statistics_cancel">取消</string>
+    <string name="usage_statistics_total_usage">总使用量</string>
+    <string name="usage_statistics_all_providers">所有提供商统计</string>
+    <string name="usage_statistics_total_tokens">总Tokens</string>
+    <string name="usage_statistics_total_cost">总成本</string>
+    <string name="usage_statistics_total_requests">总请求</string>
+    <string name="usage_statistics_request_count">请求次数: %1$d</string>
+    <string name="usage_statistics_input_tokens">输入Token</string>
+    <string name="usage_statistics_output_tokens">输出Token</string>
+    <string name="usage_statistics_total">总计</string>
+    <string name="usage_statistics_estimated_cost">预估成本</string>
+    <string name="usage_statistics_free">免费</string>
+    <string name="usage_statistics_empty_title">暂无使用数据</string>
+    <string name="usage_statistics_empty_subtitle">开始使用AI功能后，这里会显示统计信息</string>
+
+    <!-- Error messages for API Key / Connection -->
+    <string name="error_api_key_not_configured">请先配置%1$s API Key，可在AI设置中配置</string>
+    <string name="error_api_key_not_set">%1$s的API Key未配置，请在AI设置中配置后重试</string>
+    <string name="error_configure_api_key">请先配置%1$s的API Key</string>
+    <string name="connection_success_message">连接成功！%1$s服务正常</string>
+</resources>

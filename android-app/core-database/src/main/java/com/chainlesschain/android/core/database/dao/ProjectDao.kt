@@ -80,6 +80,13 @@ interface ProjectDao {
     @Query("DELETE FROM projects WHERE id = :projectId")
     suspend fun deleteProject(projectId: String)
 
+    @Transaction
+    suspend fun hardDeleteProject(projectId: String) {
+        deleteAllProjectFiles(projectId)
+        deleteProjectActivities(projectId)
+        deleteProject(projectId)
+    }
+
     @Query("UPDATE projects SET status = 'deleted', updatedAt = :updatedAt WHERE id = :projectId")
     suspend fun softDeleteProject(projectId: String, updatedAt: Long = System.currentTimeMillis())
 

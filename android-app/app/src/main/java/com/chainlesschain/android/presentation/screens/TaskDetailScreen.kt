@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.chainlesschain.android.R
 import com.chainlesschain.android.feature.project.domain.*
 import com.chainlesschain.android.presentation.components.*
 import java.time.LocalDateTime
@@ -43,22 +45,22 @@ fun TaskDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("任务详情") },
+                title = { Text(stringResource(R.string.task_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.common_more))
                     }
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("编辑") },
+                            text = { Text(stringResource(R.string.common_edit)) },
                             onClick = {
                                 showMenu = false
                                 showEditDialog = true
@@ -66,7 +68,7 @@ fun TaskDetailScreen(
                             leadingIcon = { Icon(Icons.Default.Edit, null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("复制") },
+                            text = { Text(stringResource(R.string.common_copy)) },
                             onClick = {
                                 showMenu = false
                                 onTaskUpdate(editedTask.copy(id = "copy_${System.currentTimeMillis()}"))
@@ -75,7 +77,7 @@ fun TaskDetailScreen(
                         )
                         HorizontalDivider()
                         DropdownMenuItem(
-                            text = { Text("删除", color = MaterialTheme.colorScheme.error) },
+                            text = { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) },
                             onClick = {
                                 showMenu = false
                                 onNavigateBack()
@@ -98,7 +100,7 @@ fun TaskDetailScreen(
                         onTaskUpdate(completed)
                     }
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = "完成任务")
+                    Icon(Icons.Default.Check, contentDescription = stringResource(R.string.task_complete))
                 }
             }
         }
@@ -159,7 +161,7 @@ fun TaskDetailScreen(
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("添加步骤")
+                        Text(stringResource(R.string.task_add_step))
                     }
                 }
             }
@@ -298,7 +300,7 @@ fun TaskInfoCard(task: TaskEntity) {
             // 创建时间
             TaskInfoRow(
                 icon = Icons.Default.CalendarToday,
-                label = "创建时间",
+                label = stringResource(R.string.task_created_at),
                 value = task.createdAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
             )
 
@@ -306,7 +308,7 @@ fun TaskInfoCard(task: TaskEntity) {
             task.dueDate?.let { dueDate ->
                 TaskInfoRow(
                     icon = Icons.Default.Event,
-                    label = "截止时间",
+                    label = stringResource(R.string.task_due_date),
                     value = dueDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
                     valueColor = if (task.isOverdue) MaterialTheme.colorScheme.error else null
                 )
@@ -316,7 +318,7 @@ fun TaskInfoCard(task: TaskEntity) {
             task.completedAt?.let { completedAt ->
                 TaskInfoRow(
                     icon = Icons.Default.CheckCircle,
-                    label = "完成时间",
+                    label = stringResource(R.string.task_completed_at),
                     value = completedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
                     valueColor = MaterialTheme.colorScheme.tertiary
                 )
@@ -325,7 +327,7 @@ fun TaskInfoCard(task: TaskEntity) {
             // 更新时间
             TaskInfoRow(
                 icon = Icons.Default.Update,
-                label = "更新时间",
+                label = stringResource(R.string.task_updated_at),
                 value = task.updatedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
             )
         }
@@ -409,7 +411,7 @@ fun TaskStepItem(
             if (step.completed) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "已完成",
+                    contentDescription = stringResource(R.string.task_completed_cd),
                     tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -501,7 +503,7 @@ fun StatusChip(status: TaskStatus) {
                     .background(color)
             )
             Text(
-                text = status.displayName,
+                text = stringResource(status.displayNameResId),
                 style = MaterialTheme.typography.labelSmall,
                 color = color,
                 fontWeight = FontWeight.Medium
@@ -538,7 +540,7 @@ fun PriorityChip(priority: TaskPriority) {
                 tint = color
             )
             Text(
-                text = priority.displayName,
+                text = stringResource(priority.displayNameResId),
                 style = MaterialTheme.typography.labelSmall,
                 color = color,
                 fontWeight = FontWeight.Medium

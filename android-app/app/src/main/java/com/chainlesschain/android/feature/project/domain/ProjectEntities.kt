@@ -1,5 +1,7 @@
 package com.chainlesschain.android.feature.project.domain
 
+import androidx.annotation.StringRes
+import com.chainlesschain.android.R
 import java.time.LocalDateTime
 
 /**
@@ -50,28 +52,28 @@ data class ProjectEntity(
 /**
  * 项目类型
  */
-enum class ProjectType(val displayName: String) {
-    GENERAL("通用"),
-    RESEARCH("研究"),
-    DEVELOPMENT("开发"),
-    WRITING("写作"),
-    DESIGN("设计"),
-    ANDROID("Android"),
-    BACKEND("后端"),
-    DATA_SCIENCE("数据科学"),
-    MULTIPLATFORM("多平台"),
-    FLUTTER("Flutter")
+enum class ProjectType(@StringRes val displayNameResId: Int) {
+    GENERAL(R.string.project_type_general),
+    RESEARCH(R.string.project_type_research),
+    DEVELOPMENT(R.string.project_type_development),
+    WRITING(R.string.project_type_writing),
+    DESIGN(R.string.project_type_design),
+    ANDROID(R.string.project_type_android),
+    BACKEND(R.string.project_type_backend),
+    DATA_SCIENCE(R.string.project_type_data_science),
+    MULTIPLATFORM(R.string.project_type_multiplatform),
+    FLUTTER(R.string.project_type_flutter)
 }
 
 /**
  * 项目状态
  */
-enum class ProjectStatus(val displayName: String) {
-    DRAFT("草稿"),
-    ACTIVE("进行中"),
-    PAUSED("暂停"),
-    COMPLETED("已完成"),
-    ARCHIVED("已归档")
+enum class ProjectStatus(@StringRes val displayNameResId: Int) {
+    DRAFT(R.string.project_status_draft),
+    ACTIVE(R.string.project_status_active),
+    PAUSED(R.string.project_status_paused_enum),
+    COMPLETED(R.string.project_status_completed_enum),
+    ARCHIVED(R.string.project_status_archived_enum)
 }
 
 /**
@@ -102,13 +104,13 @@ data class ProjectFileEntity(
 /**
  * 文件类型
  */
-enum class FileType(val displayName: String) {
-    DOCUMENT("文档"),
-    CODE("代码"),
-    IMAGE("图片"),
-    VIDEO("视频"),
-    AUDIO("音频"),
-    OTHER("其他")
+enum class FileType(@StringRes val displayNameResId: Int) {
+    DOCUMENT(R.string.file_type_document),
+    CODE(R.string.file_type_code),
+    IMAGE(R.string.file_type_image),
+    VIDEO(R.string.file_type_video),
+    AUDIO(R.string.file_type_audio),
+    OTHER(R.string.file_type_other)
 }
 
 /**
@@ -154,21 +156,21 @@ data class TaskEntity(
 /**
  * 任务状态
  */
-enum class TaskStatus(val displayName: String) {
-    TODO("待处理"),
-    IN_PROGRESS("进行中"),
-    COMPLETED("已完成"),
-    CANCELLED("已取消")
+enum class TaskStatus(@StringRes val displayNameResId: Int) {
+    TODO(R.string.task_status_todo),
+    IN_PROGRESS(R.string.task_status_in_progress),
+    COMPLETED(R.string.task_status_completed),
+    CANCELLED(R.string.task_status_cancelled)
 }
 
 /**
  * 任务优先级
  */
-enum class TaskPriority(val displayName: String) {
-    LOW("低"),
-    MEDIUM("中"),
-    HIGH("高"),
-    URGENT("紧急")
+enum class TaskPriority(@StringRes val displayNameResId: Int) {
+    LOW(R.string.task_priority_low),
+    MEDIUM(R.string.task_priority_medium),
+    HIGH(R.string.task_priority_high),
+    URGENT(R.string.task_priority_urgent)
 }
 
 /**
@@ -199,12 +201,12 @@ data class ExploreItem(
 /**
  * 探索分类
  */
-enum class ExploreCategory(val displayName: String) {
-    ALL("全部"),
-    PROJECT("项目"),
-    DOCUMENT("文档"),
-    AI_CHAT("AI对话"),
-    KNOWLEDGE("知识库")
+enum class ExploreCategory(@StringRes val displayNameResId: Int) {
+    ALL(R.string.explore_category_all),
+    PROJECT(R.string.explore_category_project),
+    DOCUMENT(R.string.explore_category_document),
+    AI_CHAT(R.string.explore_category_ai_chat),
+    KNOWLEDGE(R.string.explore_category_knowledge)
 }
 
 // ==================== 项目详情和步骤相关实体 ====================
@@ -238,10 +240,10 @@ data class ProjectMessage(
 /**
  * 消息类型
  */
-enum class MessageType(val displayName: String) {
-    USER("用户消息"),
-    AI("AI消息"),
-    SYSTEM("系统消息")
+enum class MessageType(@StringRes val displayNameResId: Int) {
+    USER(R.string.message_type_user),
+    AI(R.string.message_type_ai),
+    SYSTEM(R.string.message_type_system)
 }
 
 /**
@@ -282,13 +284,13 @@ data class ExecutionStep(
 /**
  * 步骤类型
  */
-enum class StepType(val displayName: String, val iconName: String) {
-    USER_MESSAGE("用户发送消息", "person"),
-    FILE_READ("文件读取", "folder"),
-    AI_MESSAGE("AI发送消息", "smart_toy"),
-    TERMINAL("虚拟终端", "terminal"),
-    WEB_BROWSE("网页浏览", "language"),
-    CODE_EXECUTE("代码执行", "code")
+enum class StepType(@StringRes val displayNameResId: Int, val iconName: String) {
+    USER_MESSAGE(R.string.step_type_user_message, "person"),
+    FILE_READ(R.string.step_type_file_read, "folder"),
+    AI_MESSAGE(R.string.step_type_ai_message, "smart_toy"),
+    TERMINAL(R.string.step_type_terminal, "terminal"),
+    WEB_BROWSE(R.string.step_type_web_browse, "language"),
+    CODE_EXECUTE(R.string.step_type_code_execute, "code")
 }
 
 /**

@@ -194,14 +194,18 @@ data class ResolutionInfo(
 data class BrightnessResponse(
     val success: Boolean,
     val brightness: Int? = null,
-    val platform: String,
-    val error: String? = null
+    val level: Int? = null,
+    val platform: String? = null,
+    val error: String? = null,
+    val isAutomatic: Boolean? = null,
+    val maxLevel: Int? = null
 )
 
 @Serializable
 data class SetBrightnessResponse(
     val success: Boolean,
-    val brightness: Int,
+    val brightness: Int? = null,
+    val level: Int? = null,
     val message: String
 )
 
@@ -262,9 +266,21 @@ data class WindowListResponse(
 @Serializable
 data class WindowInfo(
     val id: String,
-    val name: String,
+    val name: String? = null,
+    val title: String? = null,
     val displayId: String? = null,
-    val appIcon: String? = null
+    val appIcon: String? = null,
+    val processName: String? = null,
+    val processId: Int? = null,
+    val x: Int? = null,
+    val y: Int? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    val visible: Boolean? = null,
+    val minimized: Boolean? = null,
+    val maximized: Boolean? = null,
+    val focused: Boolean? = null,
+    val className: String? = null
 )
 
 @Serializable

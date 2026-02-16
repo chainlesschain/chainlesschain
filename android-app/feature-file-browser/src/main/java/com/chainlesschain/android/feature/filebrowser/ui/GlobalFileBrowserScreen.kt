@@ -18,9 +18,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.filebrowser.R
 import com.chainlesschain.android.core.database.entity.FileCategory
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
@@ -105,25 +107,25 @@ fun GlobalFileBrowserScreen(
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = { viewModel.searchFiles(it) },
-                            placeholder = { Text("搜索文件...") },
+                            placeholder = { Text(stringResource(R.string.file_browser_search_hint)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                     } else {
-                        Text(text = "文件浏览器")
+                        Text(text = stringResource(R.string.file_browser_title))
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(R.string.file_browser_back)
                         )
                     }
                 },
                 actions = {
                     IconButton(onClick = { showSearchBar = !showSearchBar }) {
-                        Icon(Icons.Default.Search, contentDescription = "搜索")
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.file_browser_search))
                     }
                     IconButton(
                         onClick = {
@@ -131,13 +133,13 @@ fun GlobalFileBrowserScreen(
                         },
                         enabled = !isClassifying && files.isNotEmpty()
                     ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = "AI分类")
+                        Icon(Icons.Default.AutoAwesome, contentDescription = stringResource(R.string.file_browser_ai_classify))
                     }
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.file_browser_refresh))
                     }
                     IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "设置")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.file_browser_settings))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -151,7 +153,7 @@ fun GlobalFileBrowserScreen(
                 FloatingActionButton(
                     onClick = { viewModel.startScan() }
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "扫描文件")
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.file_browser_scan_files))
                 }
             }
         }
@@ -201,14 +203,14 @@ fun GlobalFileBrowserScreen(
                             progress = { if (progress.total > 0) progress.current.toFloat() / progress.total else 0f }
                         )
                         Text(
-                            text = "扫描中: ${progress.currentType} (${progress.current}/${progress.total})",
+                            text = stringResource(R.string.file_browser_scanning, progress.currentType, progress.current, progress.total),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
                     is MediaStoreScanner.ScanProgress.Completed -> {
                         Text(
-                            text = "扫描完成: ${progress.totalFiles} 个文件",
+                            text = stringResource(R.string.file_browser_scan_complete, progress.totalFiles),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -216,7 +218,7 @@ fun GlobalFileBrowserScreen(
                     }
                     is MediaStoreScanner.ScanProgress.Error -> {
                         Text(
-                            text = "扫描错误: ${progress.message}",
+                            text = stringResource(R.string.file_browser_scan_error, progress.message),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -248,7 +250,7 @@ fun GlobalFileBrowserScreen(
                             strokeWidth = 2.dp
                         )
                         Text(
-                            text = "AI 分类中...",
+                            text = stringResource(R.string.file_browser_ai_classifying),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -358,7 +360,11 @@ private fun CategoryTabRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
-            val totalLabel = if (statistics != null) "全部 (${statistics.totalFiles})" else "全部"
+            val totalLabel = if (statistics != null) {
+                stringResource(R.string.category_all_with_count, statistics.totalFiles)
+            } else {
+                stringResource(R.string.category_all)
+            }
             FilterChip(
                 selected = selectedCategory == null,
                 onClick = { onCategorySelected(null) },
@@ -370,16 +376,16 @@ private fun CategoryTabRow(
             val categoryCount = statistics?.categories
                 ?.find { it.category == category.name }?.count
             val displayName = when (category) {
-                FileCategory.DOCUMENT -> "文档"
-                FileCategory.IMAGE -> "图片"
-                FileCategory.VIDEO -> "视频"
-                FileCategory.AUDIO -> "音频"
-                FileCategory.ARCHIVE -> "压缩包"
-                FileCategory.CODE -> "代码"
-                FileCategory.OTHER -> "其他"
+                FileCategory.DOCUMENT -> stringResource(R.string.category_document)
+                FileCategory.IMAGE -> stringResource(R.string.category_image)
+                FileCategory.VIDEO -> stringResource(R.string.category_video)
+                FileCategory.AUDIO -> stringResource(R.string.category_audio)
+                FileCategory.ARCHIVE -> stringResource(R.string.category_archive)
+                FileCategory.CODE -> stringResource(R.string.category_code)
+                FileCategory.OTHER -> stringResource(R.string.category_other)
             }
             val label = if (categoryCount != null && categoryCount > 0) {
-                "$displayName ($categoryCount)"
+                stringResource(R.string.category_with_count, displayName, categoryCount)
             } else {
                 displayName
             }
@@ -417,10 +423,10 @@ private fun SortBar(
                     label = {
                         Text(
                             when (sort) {
-                                GlobalFileBrowserViewModel.SortBy.NAME -> "名称"
-                                GlobalFileBrowserViewModel.SortBy.SIZE -> "大小"
-                                GlobalFileBrowserViewModel.SortBy.DATE -> "日期"
-                                GlobalFileBrowserViewModel.SortBy.TYPE -> "类型"
+                                GlobalFileBrowserViewModel.SortBy.NAME -> stringResource(R.string.sort_name)
+                                GlobalFileBrowserViewModel.SortBy.SIZE -> stringResource(R.string.sort_size)
+                                GlobalFileBrowserViewModel.SortBy.DATE -> stringResource(R.string.sort_date)
+                                GlobalFileBrowserViewModel.SortBy.TYPE -> stringResource(R.string.sort_type)
                             }
                         )
                     }
@@ -429,7 +435,7 @@ private fun SortBar(
         }
 
         TextButton(onClick = onToggleSortDirection) {
-            Text(if (sortDirection == GlobalFileBrowserViewModel.SortDirection.ASC) "↑ 升序" else "↓ 降序")
+            Text(if (sortDirection == GlobalFileBrowserViewModel.SortDirection.ASC) stringResource(R.string.sort_ascending) else stringResource(R.string.sort_descending))
         }
     }
 }
@@ -448,13 +454,13 @@ private fun PermissionRequiredContent(onRequestPermission: () -> Unit) {
             modifier = Modifier.padding(24.dp)
         ) {
             Text(
-                text = "需要存储权限",
+                text = stringResource(R.string.permission_required_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
-                text = "文件浏览器需要访问您的设备存储以扫描和显示文件。",
+                text = stringResource(R.string.permission_required_message),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -465,7 +471,7 @@ private fun PermissionRequiredContent(onRequestPermission: () -> Unit) {
                 onClick = onRequestPermission,
                 modifier = Modifier.padding(top = 24.dp)
             ) {
-                Text("授予权限")
+                Text(stringResource(R.string.permission_grant))
             }
         }
     }
@@ -485,13 +491,13 @@ private fun EmptyStateContent() {
             modifier = Modifier.padding(24.dp)
         ) {
             Text(
-                text = "未找到文件",
+                text = stringResource(R.string.empty_no_files),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
-                text = "点击右下角的按钮开始扫描文件",
+                text = stringResource(R.string.empty_tap_scan),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -515,7 +521,7 @@ private fun ErrorStateContent(message: String, onRetry: () -> Unit) {
             modifier = Modifier.padding(24.dp)
         ) {
             Text(
-                text = "加载失败",
+                text = stringResource(R.string.error_load_failed),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.error
             )
@@ -532,7 +538,7 @@ private fun ErrorStateContent(message: String, onRetry: () -> Unit) {
                 onClick = onRetry,
                 modifier = Modifier.padding(top = 24.dp)
             ) {
-                Text("重试")
+                Text(stringResource(R.string.error_retry))
             }
         }
     }

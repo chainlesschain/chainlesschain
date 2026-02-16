@@ -1288,14 +1288,6 @@ data class PerformanceMetrics(
 )
 
 @Serializable
-data class MemoryInfoResponse(
-    val success: Boolean,
-    val jsHeapSizeLimit: Long,
-    val totalJSHeapSize: Long,
-    val usedJSHeapSize: Long
-)
-
-@Serializable
 data class AccessibilityTreeResponse(
     val success: Boolean,
     val tree: AccessibilityNode? = null
@@ -1338,12 +1330,6 @@ data class WebRTCConnection(
     val state: String,
     val localDescription: String? = null,
     val remoteDescription: String? = null
-)
-
-@Serializable
-data class NotificationResponse(
-    val success: Boolean,
-    val notificationId: String
 )
 
 // ==================== 高级调试响应数据类 ====================

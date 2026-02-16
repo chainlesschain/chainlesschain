@@ -15,9 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.content.Context
+import com.chainlesschain.android.R
 import com.chainlesschain.android.presentation.components.EnhancedSearchBar
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -40,64 +44,77 @@ fun BookmarkScreen(
     var newTagName by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // 模拟标签数据
-    val tags = remember {
-        listOf("全部", "无标签", "工作", "学习", "生活", "技术")
+    val filterAllLabel = stringResource(R.string.bookmark_filter_all)
+    val filterNoTagLabel = stringResource(R.string.bookmark_filter_no_tag)
+    val tags = remember(filterAllLabel, filterNoTagLabel) {
+        listOf(
+            filterAllLabel,
+            filterNoTagLabel,
+            context.getString(R.string.bookmark_tag_work),
+            context.getString(R.string.bookmark_tag_learning),
+            context.getString(R.string.bookmark_tag_life),
+            context.getString(R.string.bookmark_tag_tech)
+        )
     }
 
     // 模拟收藏数据
-    val bookmarks = remember {
+    val tagTech = stringResource(R.string.bookmark_tag_tech)
+    val tagLearning = stringResource(R.string.bookmark_tag_learning)
+    val tagWork = stringResource(R.string.bookmark_tag_work)
+    val bookmarks = remember(tagTech, tagLearning, tagWork) {
         listOf(
             BookmarkItem(
                 id = "1",
-                title = "Kotlin协程完全指南",
-                description = "深入理解Kotlin协程的工作原理和最佳实践，包含大量实际案例",
+                title = context.getString(R.string.bookmark_sample_1_title),
+                description = context.getString(R.string.bookmark_sample_1_desc),
                 type = BookmarkType.DOCUMENT,
-                tags = listOf("技术", "学习"),
+                tags = listOf(tagTech, tagLearning),
                 createdAt = LocalDateTime.now().minusDays(1)
             ),
             BookmarkItem(
                 id = "2",
-                title = "AI驱动的项目管理系统",
-                description = "使用人工智能优化项目管理流程，提高团队协作效率",
+                title = context.getString(R.string.bookmark_sample_2_title),
+                description = context.getString(R.string.bookmark_sample_2_desc),
                 type = BookmarkType.PROJECT,
-                tags = listOf("工作"),
+                tags = listOf(tagWork),
                 createdAt = LocalDateTime.now().minusDays(2)
             ),
             BookmarkItem(
                 id = "3",
-                title = "Android Compose最佳实践",
-                description = "从入门到精通，掌握Jetpack Compose的核心概念",
+                title = context.getString(R.string.bookmark_sample_3_title),
+                description = context.getString(R.string.bookmark_sample_3_desc),
                 type = BookmarkType.KNOWLEDGE,
-                tags = listOf("技术"),
+                tags = listOf(tagTech),
                 createdAt = LocalDateTime.now().minusDays(3)
             ),
             BookmarkItem(
                 id = "4",
-                title = "如何构建去中心化应用",
-                description = "探索区块链技术在应用开发中的实践",
+                title = context.getString(R.string.bookmark_sample_4_title),
+                description = context.getString(R.string.bookmark_sample_4_desc),
                 type = BookmarkType.AI_CHAT,
                 tags = emptyList(),
                 createdAt = LocalDateTime.now().minusDays(5)
             ),
             BookmarkItem(
                 id = "5",
-                title = "2024年技术趋势分析",
-                description = "全面解读今年最值得关注的技术方向",
+                title = context.getString(R.string.bookmark_sample_5_title),
+                description = context.getString(R.string.bookmark_sample_5_desc),
                 type = BookmarkType.DOCUMENT,
-                tags = listOf("学习", "技术"),
+                tags = listOf(tagLearning, tagTech),
                 createdAt = LocalDateTime.now().minusWeeks(1)
             )
         )
     }
 
     // 筛选收藏
-    val filteredBookmarks = remember(selectedTag, searchQuery, bookmarks) {
+    val filteredBookmarks = remember(selectedTag, searchQuery, bookmarks, filterAllLabel, filterNoTagLabel) {
         bookmarks.filter { bookmark ->
             val matchesTag = when (selectedTag) {
-                null, "全部" -> true
-                "无标签" -> bookmark.tags.isEmpty()
+                null, filterAllLabel -> true
+                filterNoTagLabel -> bookmark.tags.isEmpty()
                 else -> bookmark.tags.contains(selectedTag)
             }
             val matchesSearch = searchQuery.isEmpty() ||
@@ -118,22 +135,22 @@ fun BookmarkScreen(
     ) {
         // 顶部栏
         TopAppBar(
-            title = { Text("我的收藏", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.bookmark_title), fontWeight = FontWeight.Bold) },
             navigationIcon = {
                 if (onNavigateBack != null) {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 }
             },
             actions = {
                 IconButton(onClick = { showSearchBar = !showSearchBar }) {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.common_search))
                 }
                 IconButton(onClick = {
-                    scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.common_feature_in_development)) }
                 }) {
-                    Icon(Icons.Default.Add, contentDescription = "添加")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.bookmark_add))
                 }
             }
         )
@@ -148,7 +165,7 @@ fun BookmarkScreen(
                 EnhancedSearchBar(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = "搜索收藏内容...",
+                    placeholder = stringResource(R.string.bookmark_search_hint),
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
@@ -157,9 +174,9 @@ fun BookmarkScreen(
             item {
                 BookmarkTagFilter(
                     tags = tags,
-                    selectedTag = selectedTag ?: "全部",
+                    selectedTag = selectedTag ?: filterAllLabel,
                     onTagSelected = { tag ->
-                        selectedTag = if (tag == "全部") null else tag
+                        selectedTag = if (tag == filterAllLabel) null else tag
                     },
                     onNewTagClick = { showNewTagDialog = true }
                 )
@@ -185,12 +202,12 @@ fun BookmarkScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "全部收藏 (${filteredBookmarks.size})",
+                        text = stringResource(R.string.bookmark_all_count, filteredBookmarks.size),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     TextButton(onClick = { isManageMode = !isManageMode }) {
-                        Text(if (isManageMode) "完成" else "管理")
+                        Text(if (isManageMode) stringResource(R.string.bookmark_manage_done) else stringResource(R.string.bookmark_manage))
                     }
                 }
             }
@@ -207,15 +224,15 @@ fun BookmarkScreen(
                         onRemove = {
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    message = "已移除收藏",
-                                    actionLabel = "撤销",
+                                    message = context.getString(R.string.bookmark_removed),
+                                    actionLabel = context.getString(R.string.bookmark_undo),
                                     duration = SnackbarDuration.Short
                                 )
                             }
                         },
                         onClick = {
                             scope.launch {
-                                snackbarHostState.showSnackbar("查看详情功能开发中")
+                                snackbarHostState.showSnackbar(context.getString(R.string.bookmark_view_details_developing))
                             }
                         }
                     )
@@ -229,12 +246,12 @@ fun BookmarkScreen(
     if (showNewTagDialog) {
         AlertDialog(
             onDismissRequest = { showNewTagDialog = false },
-            title = { Text("新建标签") },
+            title = { Text(stringResource(R.string.bookmark_new_tag_title)) },
             text = {
                 OutlinedTextField(
                     value = newTagName,
                     onValueChange = { newTagName = it },
-                    label = { Text("标签名称") },
+                    label = { Text(stringResource(R.string.bookmark_tag_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -243,18 +260,18 @@ fun BookmarkScreen(
                 TextButton(
                     onClick = {
                         if (newTagName.isNotBlank()) {
-                            scope.launch { snackbarHostState.showSnackbar("标签「${newTagName}」已创建") }
+                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.bookmark_tag_created, newTagName)) }
                             newTagName = ""
                         }
                         showNewTagDialog = false
                     }
-                ) { Text("创建") }
+                ) { Text(stringResource(R.string.common_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showNewTagDialog = false
                     newTagName = ""
-                }) { Text("取消") }
+                }) { Text(stringResource(R.string.common_cancel)) }
             }
         )
     }
@@ -290,7 +307,7 @@ fun BookmarkTagFilter(
         item {
             AssistChip(
                 onClick = onNewTagClick,
-                label = { Text("+ 新建标签") },
+                label = { Text(stringResource(R.string.bookmark_new_tag)) },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -327,22 +344,22 @@ fun BookmarkStatsCard(
             BookmarkStatItem(
                 icon = Icons.Outlined.Bookmark,
                 value = totalCount.toString(),
-                label = "总收藏"
+                label = stringResource(R.string.bookmark_total)
             )
             BookmarkStatItem(
                 icon = Icons.Outlined.Folder,
                 value = projectCount.toString(),
-                label = "项目"
+                label = stringResource(R.string.bookmark_projects)
             )
             BookmarkStatItem(
                 icon = Icons.Outlined.Description,
                 value = documentCount.toString(),
-                label = "文档"
+                label = stringResource(R.string.bookmark_documents)
             )
             BookmarkStatItem(
                 icon = Icons.Outlined.School,
                 value = knowledgeCount.toString(),
-                label = "知识库"
+                label = stringResource(R.string.bookmark_knowledge)
             )
         }
     }
@@ -391,7 +408,8 @@ fun BookmarkCard(
     onRemove: () -> Unit,
     onClick: () -> Unit
 ) {
-    val typeInfo = bookmark.type.getTypeInfo()
+    val context = LocalContext.current
+    val typeInfo = bookmark.type.getTypeInfo(context)
 
     Card(
         modifier = Modifier
@@ -446,7 +464,7 @@ fun BookmarkCard(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Bookmark,
-                        contentDescription = "移除收藏",
+                        contentDescription = stringResource(R.string.bookmark_remove_cd),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -511,7 +529,7 @@ fun BookmarkCard(
 
                 // 收藏时间
                 Text(
-                    text = formatBookmarkTime(bookmark.createdAt),
+                    text = formatBookmarkTime(context, bookmark.createdAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -539,13 +557,13 @@ fun EmptyBookmarkState() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "暂无收藏内容",
+            text = stringResource(R.string.bookmark_empty_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "浏览探索页面，收藏感兴趣的内容",
+            text = stringResource(R.string.bookmark_empty_desc),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
         )
@@ -555,15 +573,15 @@ fun EmptyBookmarkState() {
 /**
  * 格式化收藏时间
  */
-fun formatBookmarkTime(dateTime: LocalDateTime): String {
+fun formatBookmarkTime(context: Context, dateTime: LocalDateTime): String {
     val now = LocalDateTime.now()
     val minutes = java.time.Duration.between(dateTime, now).toMinutes()
 
     return when {
-        minutes < 1 -> "刚刚"
-        minutes < 60 -> "${minutes}分钟前"
-        minutes < 1440 -> "${minutes / 60}小时前"
-        minutes < 10080 -> "${minutes / 1440}天前"
+        minutes < 1 -> context.getString(R.string.common_just_now)
+        minutes < 60 -> context.getString(R.string.common_minutes_ago, minutes.toInt())
+        minutes < 1440 -> context.getString(R.string.common_hours_ago, (minutes / 60).toInt())
+        minutes < 10080 -> context.getString(R.string.common_days_ago, (minutes / 1440).toInt())
         else -> dateTime.format(DateTimeFormatter.ofPattern("MM-dd"))
     }
 }
@@ -589,12 +607,12 @@ enum class BookmarkType {
     KNOWLEDGE,
     AI_CHAT;
 
-    fun getTypeInfo(): BookmarkTypeInfo {
+    fun getTypeInfo(context: Context): BookmarkTypeInfo {
         return when (this) {
-            PROJECT -> BookmarkTypeInfo("项目", Icons.Outlined.Folder, androidx.compose.ui.graphics.Color(0xFF4CAF50))
-            DOCUMENT -> BookmarkTypeInfo("文档", Icons.Outlined.Description, androidx.compose.ui.graphics.Color(0xFF2196F3))
-            KNOWLEDGE -> BookmarkTypeInfo("知识库", Icons.Outlined.School, androidx.compose.ui.graphics.Color(0xFFFF9800))
-            AI_CHAT -> BookmarkTypeInfo("AI对话", Icons.Outlined.Psychology, androidx.compose.ui.graphics.Color(0xFF9C27B0))
+            PROJECT -> BookmarkTypeInfo(context.getString(R.string.bookmark_type_project), Icons.Outlined.Folder, androidx.compose.ui.graphics.Color(0xFF4CAF50))
+            DOCUMENT -> BookmarkTypeInfo(context.getString(R.string.bookmark_type_document), Icons.Outlined.Description, androidx.compose.ui.graphics.Color(0xFF2196F3))
+            KNOWLEDGE -> BookmarkTypeInfo(context.getString(R.string.bookmark_type_knowledge), Icons.Outlined.School, androidx.compose.ui.graphics.Color(0xFFFF9800))
+            AI_CHAT -> BookmarkTypeInfo(context.getString(R.string.bookmark_type_ai_chat), Icons.Outlined.Psychology, androidx.compose.ui.graphics.Color(0xFF9C27B0))
         }
     }
 }

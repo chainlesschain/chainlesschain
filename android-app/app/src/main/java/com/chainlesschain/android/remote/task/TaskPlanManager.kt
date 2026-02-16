@@ -130,7 +130,7 @@ class TaskPlanManager @Inject constructor(
         if (unanswered.isEmpty()) {
             _planningState.value = PlanningState.PLANNING
         } else {
-            _currentQuestionIndex.value = questions.indexOf(unanswered.first())
+            _currentQuestionIndex.value = questions.indexOf(unanswered.firstOrNull() ?: return)
         }
     }
 
@@ -150,7 +150,7 @@ class TaskPlanManager @Inject constructor(
             if (unanswered.isEmpty()) {
                 _planningState.value = PlanningState.PLANNING
             } else {
-                _currentQuestionIndex.value = questions.indexOf(unanswered.first())
+                _currentQuestionIndex.value = questions.indexOf(unanswered.firstOrNull() ?: return)
             }
         }
     }
@@ -354,7 +354,7 @@ class TaskPlanManager @Inject constructor(
     private fun parseIntentFromResponse(response: String): IntentUnderstanding {
         return try {
             // Try to extract JSON from response
-            val jsonMatch = Regex("""\{[\s\S]*\}""").find(response)
+            val jsonMatch = Regex("""\{[\s\S]*?\}""").find(response)
             if (jsonMatch != null) {
                 gson.fromJson(jsonMatch.value, IntentUnderstanding::class.java)
             } else {
@@ -375,7 +375,7 @@ class TaskPlanManager @Inject constructor(
 
     private fun parsePlanFromResponse(response: String): TaskPlan {
         return try {
-            val jsonMatch = Regex("""\{[\s\S]*\}""").find(response)
+            val jsonMatch = Regex("""\{[\s\S]*?\}""").find(response)
             if (jsonMatch != null) {
                 gson.fromJson(jsonMatch.value, TaskPlan::class.java)
             } else {
