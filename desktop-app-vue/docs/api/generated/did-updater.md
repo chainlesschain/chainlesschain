@@ -2,7 +2,7 @@
 
 **Source**: `src/main/did/did-updater.js`
 
-**Generated**: 2026-02-16T13:44:34.667Z
+**Generated**: 2026-02-16T22:06:51.489Z
 
 ---
 

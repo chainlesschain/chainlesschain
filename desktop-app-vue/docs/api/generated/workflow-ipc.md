@@ -2,7 +2,7 @@
 
 **Source**: `src/main/browser/workflow/workflow-ipc.js`
 
-**Generated**: 2026-02-16T13:44:34.674Z
+**Generated**: 2026-02-16T22:06:51.498Z
 
 ---
 

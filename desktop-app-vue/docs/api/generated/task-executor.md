@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/task-executor.js`
 
-**Generated**: 2026-02-16T13:44:34.688Z
+**Generated**: 2026-02-16T22:06:51.516Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/prompt-template/prompt-template-ipc.js`
 
-**Generated**: 2026-02-16T13:44:34.627Z
+**Generated**: 2026-02-16T22:06:51.444Z
 
 ---
 

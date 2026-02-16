@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/professional-skills.js`
 
-**Generated**: 2026-02-16T13:44:34.615Z
+**Generated**: 2026-02-16T22:06:51.430Z
 
 ---
 
