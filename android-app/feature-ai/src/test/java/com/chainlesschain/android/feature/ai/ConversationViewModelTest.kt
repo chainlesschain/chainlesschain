@@ -2,6 +2,9 @@ package com.chainlesschain.android.feature.ai
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.feature.ai.cowork.skills.executor.SkillCommandParser
+import com.chainlesschain.android.feature.ai.cowork.skills.executor.SkillExecutor
+import com.chainlesschain.android.feature.ai.cowork.skills.registry.SkillRegistry
 import com.chainlesschain.android.feature.ai.data.rag.RAGRetriever
 import com.chainlesschain.android.feature.ai.data.repository.ConversationRepository
 import com.chainlesschain.android.feature.ai.domain.model.*
@@ -36,6 +39,9 @@ class ConversationViewModelTest {
     private lateinit var viewModel: ConversationViewModel
     private val repository = mockk<ConversationRepository>(relaxed = true)
     private val ragRetriever = mockk<RAGRetriever>(relaxed = true)
+    private val skillCommandParser = mockk<SkillCommandParser>(relaxed = true)
+    private val skillExecutor = mockk<SkillExecutor>(relaxed = true)
+    private val skillRegistry = SkillRegistry()
 
     private val testConversation = Conversation(
         id = "test-conv-id",
@@ -61,7 +67,14 @@ class ConversationViewModelTest {
         coEvery { repository.getAllConversations() } returns flowOf(emptyList())
         coEvery { ragRetriever.buildContext(any(), any()) } returns ""
 
-        viewModel = ConversationViewModel(repository, ragRetriever)
+        viewModel = ConversationViewModel(
+            mockk(relaxed = true),  // context
+            repository,
+            ragRetriever,
+            skillCommandParser,
+            skillExecutor,
+            skillRegistry
+        )
     }
 
     @After

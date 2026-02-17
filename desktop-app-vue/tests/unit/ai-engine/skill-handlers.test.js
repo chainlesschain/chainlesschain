@@ -7,7 +7,13 @@
  * - context-loader: 智能上下文加载（意图分析、token预算）
  * - lint-and-fix: Lint自动修复（linter检测、报告生成）
  * - test-and-fix: 测试自动修复（框架检测、结果解析）
- * - SkillLoader: 30个内置技能加载验证
+ * - SkillLoader: 60个内置技能加载验证
+ * - v0.36.2: prompt-enhancer, codebase-qa, auto-context, multi-model-router,
+ *            code-translator, dead-code-eliminator, changelog-generator,
+ *            mock-data-generator, git-history-analyzer, i18n-manager
+ * - v0.37.2: pdf-toolkit, doc-converter, excel-analyzer, pptx-creator,
+ *            doc-comparator, audio-transcriber, video-toolkit,
+ *            subtitle-generator, tts-synthesizer, media-metadata
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -1186,10 +1192,627 @@ describe("Skill Handlers", () => {
   });
 
   // ============================================================
-  // SkillLoader - verify 40 builtin skills
+  // prompt-enhancer handler (v0.36.2)
   // ============================================================
-  describe("SkillLoader - 40 builtin skills", () => {
-    it("should find 40 SKILL.md files in builtin directory", () => {
+  describe("prompt-enhancer handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/prompt-enhancer/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should enhance a prompt", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--enhance fix the login bug" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.intent).toBe("debug");
+      expect(result.result.enhanced).toBeDefined();
+    });
+
+    it("should analyze a prompt", async () => {
+      const result = await handler.execute(
+        { input: "--analyze run unit tests for the search module" },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.intent).toBe("test");
+    });
+
+    it("should return template", async () => {
+      const result = await handler.execute(
+        { input: "--template code-review" },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.template).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // codebase-qa handler (v0.36.2)
+  // ============================================================
+  describe("codebase-qa handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/codebase-qa/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should build index", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--index" },
+        { workspacePath: path.join(projectRoot, "src/main/utils") },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.totalFiles).toBeGreaterThan(0);
+    });
+
+    it("should search for symbols", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--search logger" },
+        { workspacePath: path.join(projectRoot, "src/main/utils") },
+      );
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ============================================================
+  // auto-context handler (v0.36.2)
+  // ============================================================
+  describe("auto-context handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/auto-context/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should detect context for a query", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--detect permission system" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.files).toBeDefined();
+      expect(result.result.keywords).toBeDefined();
+    });
+
+    it("should set token budget", async () => {
+      const result = await handler.execute({ input: "--budget 8000" }, {});
+      expect(result.success).toBe(true);
+    });
+  });
+
+  // ============================================================
+  // multi-model-router handler (v0.36.2)
+  // ============================================================
+  describe("multi-model-router handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/multi-model-router/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should route a simple task to lightweight model", async () => {
+      const result = await handler.execute(
+        { input: "--route fix a typo in README" },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.complexity).toBeLessThanOrEqual(5);
+      expect(result.result.recommendedModel).toBeDefined();
+    });
+
+    it("should route a complex task to premium model", async () => {
+      const result = await handler.execute(
+        {
+          input:
+            "--route refactor the entire authentication architecture across 15 files with security audit",
+        },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.complexity).toBeGreaterThanOrEqual(6);
+    });
+
+    it("should show config", async () => {
+      const result = await handler.execute({ input: "--config" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result.models).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // code-translator handler (v0.36.2)
+  // ============================================================
+  describe("code-translator handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/code-translator/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should detect language of a JS file", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--detect src/main/utils/logger.js" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.language).toBe("javascript");
+    });
+
+    it("should show usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result.supportedTranslations).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // dead-code-eliminator handler (v0.36.2)
+  // ============================================================
+  describe("dead-code-eliminator handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/dead-code-eliminator/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should scan for unused exports", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--exports" },
+        { workspacePath: path.join(projectRoot, "src/main/utils") },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.deadCode).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // changelog-generator handler (v0.36.2)
+  // ============================================================
+  describe("changelog-generator handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/changelog-generator/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should generate changelog", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--generate" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.stats).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // mock-data-generator handler (v0.36.2)
+  // ============================================================
+  describe("mock-data-generator handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/mock-data-generator/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should generate user mock data", async () => {
+      const result = await handler.execute(
+        { input: "--type user --count 5" },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.data).toBeDefined();
+      expect(result.result.data.length).toBe(5);
+    });
+
+    it("should generate product mock data", async () => {
+      const result = await handler.execute(
+        { input: "--type product --count 3" },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.data.length).toBe(3);
+    });
+
+    it("should show available types when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result.availableTypes).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // git-history-analyzer handler (v0.36.2)
+  // ============================================================
+  describe("git-history-analyzer handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/git-history-analyzer/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should analyze hotspots", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--hotspots" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.analysis.hotspots).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // i18n-manager handler (v0.36.2)
+  // ============================================================
+  describe("i18n-manager handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/i18n-manager/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should extract hardcoded strings", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--extract" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.total).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should show usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("i18n Manager");
+    });
+  });
+
+  // ============================================================
+  // pdf-toolkit handler (v0.37.2)
+  // ============================================================
+  describe("pdf-toolkit handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/pdf-toolkit/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("PDF Toolkit");
+    });
+
+    it("should handle non-existent file", async () => {
+      const result = await handler.execute(
+        { input: "--extract /nonexistent/file.pdf" },
+        {},
+      );
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ============================================================
+  // doc-converter handler (v0.37.2)
+  // ============================================================
+  describe("doc-converter handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/doc-converter/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should detect format of a file", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--detect package.json" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.format).toBeDefined();
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Document Converter");
+    });
+  });
+
+  // ============================================================
+  // excel-analyzer handler (v0.37.2)
+  // ============================================================
+  describe("excel-analyzer handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/excel-analyzer/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Excel Analyzer");
+    });
+  });
+
+  // ============================================================
+  // pptx-creator handler (v0.37.2)
+  // ============================================================
+  describe("pptx-creator handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/pptx-creator/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should list templates", async () => {
+      const result = await handler.execute({ input: "--list-templates" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result.templates).toBeDefined();
+      expect(result.result.templates.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("PPTX Creator");
+    });
+  });
+
+  // ============================================================
+  // doc-comparator handler (v0.37.2)
+  // ============================================================
+  describe("doc-comparator handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/doc-comparator/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should compare two text files", async () => {
+      const projectRoot = path.resolve(__dirname, "../../..");
+      const result = await handler.execute(
+        { input: "--compare package.json vitest.config.ts" },
+        { workspacePath: projectRoot },
+      );
+      expect(result.success).toBe(true);
+      expect(result.result.stats).toBeDefined();
+      expect(result.result.stats.similarity).toBeDefined();
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Document Comparator");
+    });
+  });
+
+  // ============================================================
+  // audio-transcriber handler (v0.37.2)
+  // ============================================================
+  describe("audio-transcriber handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/audio-transcriber/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should list providers", async () => {
+      const result = await handler.execute({ input: "--providers" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result.providers).toBeDefined();
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Audio Transcriber");
+    });
+  });
+
+  // ============================================================
+  // video-toolkit handler (v0.37.2)
+  // ============================================================
+  describe("video-toolkit handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/video-toolkit/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Video Toolkit");
+    });
+  });
+
+  // ============================================================
+  // subtitle-generator handler (v0.37.2)
+  // ============================================================
+  describe("subtitle-generator handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/subtitle-generator/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Subtitle Generator");
+    });
+  });
+
+  // ============================================================
+  // tts-synthesizer handler (v0.37.2)
+  // ============================================================
+  describe("tts-synthesizer handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/tts-synthesizer/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should list voices", async () => {
+      const result = await handler.execute({ input: "--list-voices" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result.voices).toBeDefined();
+      expect(result.result.count).toBeGreaterThan(0);
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("TTS Synthesizer");
+    });
+  });
+
+  // ============================================================
+  // media-metadata handler (v0.37.2)
+  // ============================================================
+  describe("media-metadata handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/media-metadata/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Media Metadata");
+    });
+
+    it("should handle non-existent file", async () => {
+      const result = await handler.execute(
+        { input: "--extract /nonexistent/photo.jpg" },
+        {},
+      );
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Not found");
+    });
+  });
+
+  // ============================================================
+  // SkillLoader - verify 60 builtin skills
+  // ============================================================
+  describe("SkillLoader - 60 builtin skills", () => {
+    it("should find 60 SKILL.md files in builtin directory", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
@@ -1203,10 +1826,10 @@ describe("Skill Handlers", () => {
         return fs.existsSync(skillMd);
       });
 
-      expect(skillDirs.length).toBe(40);
+      expect(skillDirs.length).toBe(60);
     });
 
-    it("should have 40 skills with handler.js (100% coverage)", () => {
+    it("should have 60 skills with handler.js (100% coverage)", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
@@ -1220,10 +1843,10 @@ describe("Skill Handlers", () => {
         return fs.existsSync(handlerJs);
       });
 
-      expect(handlerDirs.length).toBe(40);
+      expect(handlerDirs.length).toBe(60);
     });
 
-    it("should load all 40 handlers without errors", () => {
+    it("should load all 60 handlers without errors", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",

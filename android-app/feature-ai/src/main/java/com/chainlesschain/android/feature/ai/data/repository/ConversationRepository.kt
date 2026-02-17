@@ -7,6 +7,7 @@ import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
 import com.chainlesschain.android.core.security.SecurePreferences
 import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
+import com.chainlesschain.android.feature.ai.data.llm.ChatWithToolsResponse
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.di.LLMAdapterFactory
 import com.chainlesschain.android.feature.ai.domain.model.*
@@ -150,6 +151,21 @@ class ConversationRepository @Inject constructor(
                 currentOutputTokens += estimateTokenCount(chunk.content)
             }
         }
+    }
+
+    /**
+     * Non-streaming chat with tools support (for function calling loop).
+     * Creates an adapter and calls chatWithTools.
+     */
+    suspend fun chatWithTools(
+        messages: List<Message>,
+        model: String,
+        tools: List<Map<String, Any>>,
+        provider: LLMProvider,
+        apiKey: String? = null
+    ): ChatWithToolsResponse {
+        val adapter = llmAdapterFactory.createAdapter(provider, apiKey)
+        return adapter.chatWithTools(messages, model, tools)
     }
 
     /**

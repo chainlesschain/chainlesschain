@@ -2,11 +2,15 @@ package com.chainlesschain.android.feature.ai.data.llm
 
 import timber.log.Timber
 import com.chainlesschain.android.feature.ai.domain.model.Message
+import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.feature.ai.domain.model.StreamChunk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import okhttp3.MediaType.Companion.toMediaType
@@ -43,12 +47,7 @@ class OpenAIAdapter(
         try {
             val requestBody = OpenAIChatRequest(
                 model = model,
-                messages = messages.map { msg ->
-                    OpenAIMessage(
-                        role = msg.role.value,
-                        content = msg.content
-                    )
-                },
+                messages = messages.map { msg -> msg.toOpenAIMessage() },
                 temperature = temperature,
                 max_tokens = maxTokens,
                 stream = true
@@ -113,12 +112,7 @@ class OpenAIAdapter(
     ): String {
         val requestBody = OpenAIChatRequest(
             model = model,
-            messages = messages.map { msg ->
-                OpenAIMessage(
-                    role = msg.role.value,
-                    content = msg.content
-                )
-            },
+            messages = messages.map { msg -> msg.toOpenAIMessage() },
             temperature = temperature,
             max_tokens = maxTokens,
             stream = false
@@ -141,6 +135,93 @@ class OpenAIAdapter(
 
             return chatResponse.choices.firstOrNull()?.message?.content
                 ?: throw Exception("无效响应")
+        }
+    }
+
+    override suspend fun chatWithTools(
+        messages: List<Message>,
+        model: String,
+        tools: List<Map<String, Any>>,
+        temperature: Float,
+        maxTokens: Int
+    ): ChatWithToolsResponse {
+        // Convert tools maps to JsonElements for serialization
+        val toolsJson: List<JsonElement>? = if (tools.isNotEmpty()) {
+            tools.map { json.parseToJsonElement(json.encodeToString(kotlinx.serialization.serializer<Map<String, Any>>(), it)) }
+        } else null
+
+        val requestBody = OpenAIChatRequest(
+            model = model,
+            messages = messages.map { msg -> msg.toOpenAIMessage() },
+            temperature = temperature,
+            max_tokens = maxTokens,
+            stream = false,
+            tools = toolsJson
+        )
+
+        val request = Request.Builder()
+            .url("$baseUrl/chat/completions")
+            .post(json.encodeToString(requestBody).toRequestBody("application/json".toMediaType()))
+            .addHeader("Authorization", "Bearer $apiKey")
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw Exception("API错误: ${response.code}")
+            }
+
+            val responseBody = response.body?.string() ?: throw Exception("响应为空")
+            val chatResponse = json.decodeFromString<OpenAIChatResponse>(responseBody)
+            val choice = chatResponse.choices.firstOrNull()
+                ?: throw Exception("无效响应")
+
+            val responseMessage = choice.message
+            val toolCallsList = responseMessage.tool_calls
+
+            return if (!toolCallsList.isNullOrEmpty()) {
+                ChatWithToolsResponse(
+                    content = responseMessage.content,
+                    toolCalls = toolCallsList.map { tc ->
+                        val argsMap = try {
+                            val parsed = json.parseToJsonElement(tc.function.arguments)
+                            parsed.jsonObject.entries.associate { (k, v) ->
+                                k to (v.jsonPrimitive.content as Any)
+                            }
+                        } catch (_: Exception) {
+                            mapOf("input" to tc.function.arguments)
+                        }
+                        ToolCall(
+                            id = tc.id,
+                            name = tc.function.name,
+                            arguments = argsMap
+                        )
+                    },
+                    finishReason = choice.finish_reason
+                )
+            } else {
+                ChatWithToolsResponse(
+                    content = responseMessage.content,
+                    finishReason = choice.finish_reason
+                )
+            }
+        }
+    }
+
+    /**
+     * Convert domain Message to OpenAI API message format.
+     */
+    private fun Message.toOpenAIMessage(): OpenAIMessage {
+        return when (role) {
+            MessageRole.TOOL -> OpenAIMessage(
+                role = "tool",
+                content = content,
+                tool_call_id = toolCallId
+            )
+            else -> OpenAIMessage(
+                role = role.value,
+                content = content
+            )
         }
     }
 
@@ -198,6 +279,16 @@ class DeepSeekAdapter(
         maxTokens: Int
     ): String {
         return openAIAdapter.chat(messages, model, temperature, maxTokens)
+    }
+
+    override suspend fun chatWithTools(
+        messages: List<Message>,
+        model: String,
+        tools: List<Map<String, Any>>,
+        temperature: Float,
+        maxTokens: Int
+    ): ChatWithToolsResponse {
+        return openAIAdapter.chatWithTools(messages, model, tools, temperature, maxTokens)
     }
 
     override suspend fun checkAvailability(): Boolean {

@@ -2,7 +2,7 @@
 
 此目录包含应用内置的技能。内置技能具有最低优先级，可以被 marketplace、managed（用户全局）或 workspace（项目级）技能覆盖。
 
-## 当前内置技能 (40)
+## 当前内置技能 (60)
 
 ### 原有技能 (15)
 
@@ -59,6 +59,36 @@
 | screenshot-to-code | development | ✅      | 截图转代码（图像分析→Vue/React/HTML生成）       |
 | task-decomposer    | development | ✅      | 任务分解（复杂任务→子任务DAG、依赖分析）        |
 
+### AI会话增强 + 开发效率 v0.36.2 (10)
+
+| 技能                 | 类别        | Handler | 说明                                             |
+| -------------------- | ----------- | ------- | ------------------------------------------------ |
+| prompt-enhancer      | ai          | ✅      | 提示词增强（意图分析→上下文注入→提示词重写）     |
+| codebase-qa          | knowledge   | ✅      | 代码库语义问答（文件索引、符号提取、关键词匹配） |
+| auto-context         | ai          | ✅      | 智能上下文检测（文件评分、Token预算管理）        |
+| multi-model-router   | ai          | ✅      | 多模型路由（复杂度评分→模型选择→成本优化）       |
+| code-translator      | development | ✅      | 跨语言转换（JS↔TS、Python↔JS语法映射）           |
+| dead-code-eliminator | development | ✅      | 死代码检测（未用导出/变量/文件、安全删除建议）   |
+| changelog-generator  | development | ✅      | Changelog生成（Git commits→分类→Markdown）       |
+| mock-data-generator  | development | ✅      | 模拟数据生成（Schema/类型→真实测试数据）         |
+| git-history-analyzer | analysis    | ✅      | Git历史分析（热点/贡献者/流失率/耦合检测）       |
+| i18n-manager         | development | ✅      | 国际化管理（字符串提取/翻译缺失/Locale生成）     |
+
+### Office文档 + 音视频 v0.37.3 (10)
+
+| 技能               | 类别     | Handler | 说明                                            |
+| ------------------ | -------- | ------- | ----------------------------------------------- |
+| pdf-toolkit        | document | ✅      | PDF处理（提取文本/合并/拆分/OCR/信息/水印）     |
+| doc-converter      | document | ✅      | 万能格式转换（DOCX↔PDF↔MD↔HTML↔TXT）            |
+| excel-analyzer     | document | ✅      | Excel深度分析（公式审计/数据验证/透视摘要）     |
+| pptx-creator       | document | ✅      | 演示文稿生成（大纲/Markdown→PPTX, 4种主题）     |
+| doc-comparator     | document | ✅      | 文档对比（文本差异/结构对比/相似度/LCS diff）   |
+| audio-transcriber  | media    | ✅      | 语音转文字（Whisper API/本地, SRT/VTT/JSON）    |
+| video-toolkit      | media    | ✅      | 视频操作（信息/缩略图/提取音频/压缩/裁剪/转换） |
+| subtitle-generator | media    | ✅      | 字幕生成（SRT/VTT生成/转换/时间轴调整/翻译）    |
+| tts-synthesizer    | media    | ✅      | 文本转语音（多语言/多引擎/文件朗读）            |
+| media-metadata     | media    | ✅      | 媒体元数据（图片EXIF/音频/视频元信息/批量提取） |
+
 ## 目录结构
 
 每个技能是一个独立的子目录，包含 `SKILL.md` 文件和 `handler.js`（100% Handler 覆盖率）：
@@ -72,7 +102,7 @@ builtin/
 ├── browser-automation/
 │   ├── SKILL.md
 │   └── handler.js
-└── ...（共40个技能目录）
+└── ...（共60个技能目录）
 ```
 
 ## SKILL.md 格式 (Agent Skills Open Standard)
