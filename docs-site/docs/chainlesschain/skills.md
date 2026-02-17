@@ -1,8 +1,8 @@
 # Skills 技能系统
 
-> **版本: v0.37.5 | 80内置技能 | Agent Skills开放标准 | 统一工具注册表**
+> **版本: v0.37.5 | 90内置技能 | Agent Skills开放标准 | 统一工具注册表**
 
-Skills 系统提供 80 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v0.37.5 新增 10 个开发效率+系统工具技能（json-yaml-toolkit、regex-playground、log-analyzer、system-monitor、http-client、markdown-enhancer、snippet-library、knowledge-graph、clipboard-manager、env-file-manager），Handler 覆盖率 80/80 (100%)。
+Skills 系统提供 90 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v0.37.5 新增 30 个技能（含图像+数据+开发效率+文档+媒体+系统工具），Handler 覆盖率 90/90 (100%)。
 
 ## 系统概述
 

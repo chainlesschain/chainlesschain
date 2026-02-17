@@ -39,7 +39,7 @@
 
 #### 测试更新
 
-- ✅ **skill-handlers.test.js**: 新增 ~28 个测试用例，SkillLoader 验证 70→80，总计 216 测试全部通过
+- ✅ **skill-handlers.test.js**: 新增 ~28 个测试用例，SkillLoader 验证 70→90，总计 216 测试全部通过
 
 #### 技术亮点
 
