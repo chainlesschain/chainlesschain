@@ -58,6 +58,9 @@ dependencies {
     // DocumentFile
     implementation("androidx.documentfile:documentfile:1.0.1")
 
+    // YAML parsing (SKILL.md frontmatter)
+    implementation("org.yaml:snakeyaml:2.2")
+
     // ONNX Runtime for ML model inference
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.0")
 

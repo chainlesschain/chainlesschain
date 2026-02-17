@@ -1066,9 +1066,103 @@ class ChainlessChainApp {
       case "knowledge":
         return this.handleKnowledgeCommand(action, params);
 
+      case "skill":
+        return this.handleSkillCommand(action, params);
+
       default:
         throw new Error(`Unknown command namespace: ${namespace}`);
     }
+  }
+
+  /**
+   * 处理来自移动端的技能命令
+   * Handles skill.execute and skill.list commands from Android P2P
+   */
+  async handleSkillCommand(action, params) {
+    const registry = this._getSkillRegistry();
+
+    switch (action) {
+      case "execute": {
+        const { skillName, input } = params;
+        if (!registry) {
+          throw new Error("Skill system not initialized");
+        }
+
+        logger.info(`[Main] Mobile skill execute: ${skillName}`);
+
+        try {
+          const task = {
+            type: "skill",
+            operation: skillName,
+            input: input?.input || "",
+            params: input || {},
+          };
+          const result = await registry.executeSkill(skillName, task, {
+            source: "mobile-p2p",
+          });
+          return {
+            success: true,
+            output:
+              typeof result === "string"
+                ? result
+                : result?.output || result?.message || JSON.stringify(result),
+            skillName,
+          };
+        } catch (error) {
+          logger.error(
+            `[Main] Mobile skill execute failed: ${skillName}`,
+            error,
+          );
+          return {
+            success: false,
+            output: "",
+            error: error.message,
+            skillName,
+          };
+        }
+      }
+
+      case "list": {
+        if (!registry) {
+          return { skills: [] };
+        }
+
+        const skills = registry.getAllSkills().map((s) => ({
+          name: s.skillId || s.name,
+          description: s.description || "",
+          category: s.config?.category || s.definition?.category || "",
+          tags: s.config?.tags || s.definition?.tags || [],
+        }));
+        return { skills };
+      }
+
+      default:
+        throw new Error(`Unknown skill action: ${action}`);
+    }
+  }
+
+  /**
+   * Get the cowork SkillRegistry instance.
+   * Falls back to skillManager if cowork registry not available.
+   */
+  _getSkillRegistry() {
+    // Try cowork SkillRegistry singleton first (for markdown skills)
+    try {
+      const {
+        getSkillRegistry,
+      } = require("./ai-engine/cowork/skills/skill-registry");
+      const registry = getSkillRegistry();
+      if (registry && registry.getAllSkills().length > 0) {
+        return registry;
+      }
+    } catch (_e) {
+      // Cowork registry not available
+    }
+    // Fall back to skill-tool-system SkillManager
+    if (this.skillManager) {
+      return this.skillManager;
+    }
+    return null;
   }
 
   /**

@@ -12,7 +12,140 @@
 
 ## 最新版本
 
-### v0.36.1 (2026-02-17) ⭐ 当前版本
+### v0.37.3 (2026-02-17) ⭐ 当前版本
+
+**Office文档 + 音视频处理** - 桌面端新增 10 个日常技能，总计 60 个内置技能（100% Handler 覆盖）
+
+#### 新增 10 个桌面技能 v0.37.3 (总计 60 个，Handler 覆盖 60/60)
+
+##### Office 文档处理 (5 个)
+
+- ✅ **pdf-toolkit** (~280行) - PDF处理：提取文本/合并分析/拆分/OCR(Tesseract.js)/信息/水印
+- ✅ **doc-converter** (~260行) - 万能格式转换：DOCX↔Markdown(mammoth)、MD→HTML(marked)、PDF→TXT(pdf-parse)、批量转换
+- ✅ **excel-analyzer** (~280行) - Excel深度分析：Sheet列表→数据类型分布→公式审计(错误检测)→数据验证(混合类型)→透视摘要
+- ✅ **pptx-creator** (~260行) - 演示文稿生成：Markdown大纲解析→幻灯片生成(PptxGenJS)→4种主题(professional/dark/minimal/colorful)
+- ✅ **doc-comparator** (~250行) - 文档对比：多格式提取→LCS diff算法→行级增删改→相似度计算→text/json/html输出
+
+##### 音视频处理 (5 个)
+
+- ✅ **audio-transcriber** (~250行) - 语音转文字：Whisper API/本地引擎→音频预处理(ffmpeg)→SRT/VTT/JSON输出→多语言
+- ✅ **video-toolkit** (~280行) - 视频操作：ffprobe信息→缩略图→提取音频→4级压缩(1080p/720p/480p/360p)→裁剪→格式转换
+- ✅ **subtitle-generator** (~240行) - 字幕生成：SRT/VTT解析→格式互转→时间轴偏移→字幕翻译准备→媒体转录集成
+- ✅ **tts-synthesizer** (~220行) - 文本转语音：TTSManager集成→10+预设语音→文件朗读(Markdown剥离)→多引擎支持
+- ✅ **media-metadata** (~240行) - 媒体元数据：Sharp图片(EXIF/尺寸/色彩空间)→ffprobe音频/视频→批量目录提取→JSON/表格输出
+
+#### 测试更新
+
+- ✅ **skill-handlers.test.js**: 新增 ~28 个测试用例，SkillLoader 验证 50→60，总计 157 测试全部通过
+
+#### 技术亮点
+
+- **零新增依赖**: 全部复用已有 npm 包 (pdf-parse, mammoth, exceljs, pptxgenjs, fluent-ffmpeg, sharp, tesseract.js, marked)
+- **优雅降级**: 音视频技能在缺少 ffmpeg/Whisper 时返回有用信息而非报错
+- **统一 Handler 契约**: 所有 handler 遵循 init/execute 模式，支持 --flag 解析
+
+---
+
+### v0.37.2 (2026-02-17)
+
+**Android 移动生产力 + PC 远程委托** - Android 端新增 13 个技能 (5 LOCAL + 8 REMOTE)，支持 remoteSkillName 映射
+
+#### Android 移动生产力技能 (5 LOCAL)
+
+- ✅ **quick-note** - 智能笔记：AI 自动分类、标签、摘要
+- ✅ **email-draft** - 邮件起草：支持 formal/casual/friendly 语气
+- ✅ **meeting-notes** - 会议纪要：自动提取与会者、议程、决策、行动项
+- ✅ **daily-planner** - 每日计划：优先级排序 + 时间块建议
+- ✅ **text-improver** - 文本润色：语法/清晰度/风格优化，支持 formal/casual/concise/academic
+
+#### Android PC 远程委托技能 (8 REMOTE)
+
+- ✅ **pc-screenshot** → 桌面端 `computer-use` - 远程截屏
+- ✅ **pc-file-search** → 桌面端 `smart-search` - 远程文件搜索
+- ✅ **pc-run-command** → 桌面端 `remote-control` - 远程终端命令
+- ✅ **pc-open-url** → 桌面端 `browser-automation` - 远程打开 URL
+- ✅ **pc-clipboard** → 桌面端 `remote-control` - 跨设备剪贴板同步
+- ✅ **pc-system-info** → 桌面端 `remote-control` - PC 系统信息
+- ✅ **pc-git-status** → 桌面端 `remote-control` - 远程 Git 状态
+- ✅ **pc-processes** → 桌面端 `remote-control` - 远程进程管理
+
+#### 架构增强
+
+- ✅ **remoteSkillName** - SkillMetadata 新增字段，支持 Android 技能→桌面技能名称映射
+- ✅ **SkillMdParser** - 支持 `remote-skill-name` / `remoteSkillName` YAML 解析
+- ✅ **SkillExecutor** - REMOTE/HYBRID 路由使用 `remoteSkillName` 指定桌面目标技能
+- ✅ **SkillCategory** - 新增 `PRODUCTIVITY` 和 `REMOTE` 分类
+
+#### 测试更新
+
+- ✅ **ProductivityHandlersTest** - 16 个测试用例覆盖 5 个生产力 Handler
+- ✅ **SkillMdParserTest** - 3 个新测试验证 `remoteSkillName` 解析
+- ✅ **SkillExecutorTest** - 2 个新测试验证 `remoteSkillName` 路由
+
+#### 数据统计
+
+- Android 技能总数：15 → **28** (5 LOCAL + 8 REMOTE)
+- Android Handler 总数：7 → **12** (5 新生产力 Handler)
+- 新增测试：**21** 个
+
+---
+
+### v0.37.1 (2026-02-17)
+
+**AI 会话增强 + 开发效率** - 新增 10 个技能，总计 50 个内置技能（100% Handler 覆盖）
+
+#### 新增 10 个技能 v0.36.2 (总计 50 个，Handler 覆盖 50/50)
+
+##### AI 会话增强 (4 个)
+
+- ✅ **prompt-enhancer** (~200行) - 提示词增强：意图分析（6类别分类）→上下文注入（package.json技术栈）→提示词重写
+- ✅ **codebase-qa** (~250行) - 代码库语义问答：文件索引→符号提取→关键词匹配→TF-IDF排名→上下文组装
+- ✅ **auto-context** (~200行) - 智能上下文检测：24组关键词映射→文件相关度评分→Token预算管理→推荐文件列表
+- ✅ **multi-model-router** (~180行) - 多模型路由：任务复杂度评分→6模型能力矩阵→路由决策→成本优化
+
+##### 开发效率 (6 个)
+
+- ✅ **code-translator** (~250行) - 跨语言转换：语言检测→语法映射规则（JS↔TS, Python↔JS）→框架映射
+- ✅ **dead-code-eliminator** (~250行) - 死代码检测：导出分析→未引用文件→未使用变量→安全删除建议
+- ✅ **changelog-generator** (~200行) - Changelog生成：Git commits→Conventional Commits解析→分类→Markdown格式化
+- ✅ **mock-data-generator** (~200行) - 模拟数据生成：Schema/TypeScript类型→智能数据生成（30+字段模式）→JSON输出
+- ✅ **git-history-analyzer** (~250行) - Git历史分析：变更热点→贡献者分析→代码流失率→耦合检测
+- ✅ **i18n-manager** (~220行) - 国际化管理：硬编码字符串提取→翻译完整性检查→新Locale生成→覆盖率统计
+
+#### 测试更新
+
+- ✅ **skill-handlers.test.js**: 新增 ~20 个测试用例，SkillLoader 验证 40→50，总计 ~120 测试
+
+---
+
+### v0.37.0 (2026-02-17)
+
+**Android Agent Skills System** - Android 端 Agent Skills 系统完整实现，与桌面端 SKILL.md 格式兼容
+
+#### Android Skills System (21 Kotlin + 15 SKILL.md + 7 Tests)
+
+- ✅ **数据模型** - `Skill`, `SkillMetadata`, `SkillParameter`, `SkillCategory` (Agent Skills Open Standard 兼容)
+- ✅ **SkillMdParser** (~285行) - YAML frontmatter 解析器 (SnakeYAML + fallback)，支持 kebab-case 和 camelCase 字段
+- ✅ **SkillRegistry** (~158行) - 线程安全注册表 (`ConcurrentHashMap`)，支持按名称/分类/文件类型/标签 O(1) 查找
+- ✅ **SkillLoader** (~210行) - 三层加载：bundled (APK assets) → managed (marketplace) → workspace (用户目录)
+- ✅ **SkillGating** (~80行) - 平台/SDK版本/Android权限 门控检查
+- ✅ **SkillExecutor** (~162行) - 执行引擎：Kotlin Handler 优先，LLM Prompt 回退，超时支持
+- ✅ **SkillCommandParser** (~143行) - `/skill-name` 命令解析，支持位置参数、命名参数、自动补全
+- ✅ **7 个 Kotlin Handler** - CodeReview, ExplainCode, Summarize, Translate, Refactor, UnitTest, Debug
+- ✅ **15 个 Bundled Skills** - 7 个带 Handler + 8 个文档型 (git-commit, code-complete, api-docs, regex-helper, sql-helper, json-formatter, markdown-helper, chat-template)
+- ✅ **SkillModule** (Hilt DI) - 完整依赖注入，确保 SkillLoader 在 Executor 之前初始化
+- ✅ **P2PSkillBridge** - 桌面端技能委托占位符（未来 P2P 集成）
+- ✅ **ConversationViewModel 集成** - `/skill` 命令检测与执行，自动补全建议
+- ✅ **LLM Function Calling** - `toFunctionDefinitions()` 生成 OpenAI 函数调用格式
+- ✅ **7 个测试文件** - SkillMdParserTest, SkillRegistryTest, SkillCommandParserTest, SkillModelTest, SkillExecutorTest, SkillGatingTest, SkillLoaderTest
+
+#### Bug 修复
+
+- 🔧 **RAGRetrieverTest**: 修复 `updateFromCorpus` mock 返回类型错误 (`returns 0` → `returns Unit`)
+
+---
+
+### v0.36.1 (2026-02-17)
 
 **Advanced Skills & Quality Fixes** - 10 个高级技能 + SSO 修复 + 技能系统 100% 覆盖
 

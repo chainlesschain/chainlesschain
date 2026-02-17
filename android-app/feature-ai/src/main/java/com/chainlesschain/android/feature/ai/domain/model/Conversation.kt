@@ -23,7 +23,8 @@ data class Message(
     val content: String,
     val createdAt: Long,
     val tokenCount: Int? = null,
-    val isStreaming: Boolean = false  // 标记是否正在流式输出
+    val isStreaming: Boolean = false,  // 标记是否正在流式输出
+    val toolCallId: String? = null     // tool role消息关联的tool_call_id
 )
 
 /**
@@ -32,7 +33,8 @@ data class Message(
 enum class MessageRole(val value: String) {
     USER("user"),
     ASSISTANT("assistant"),
-    SYSTEM("system");
+    SYSTEM("system"),
+    TOOL("tool");
 
     companion object {
         fun fromValue(value: String): MessageRole {

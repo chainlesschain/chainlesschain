@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.36.1 (40 Skills + SSO Fix + 100% Handler Coverage) - Updated 2026-02-17
+**Current Version**: v0.37.3 (60 Desktop Skills + Android 28 Skills + PC Remote Delegation) - Updated 2026-02-17
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -256,21 +256,22 @@ Extensible skill system with Markdown definitions:
 - **Gate Checks**: Platform, binary dependencies, environment variables
 - **/skill Commands**: User command parsing and auto-execution
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **40 Built-in Skills** (Handler 覆盖 40/40, 100%):
+- **60 Built-in Skills** (Handler 覆盖 60/60, 100%):
   - **Core**: code-review, git-commit, explain-code
   - **Automation**: browser-automation, computer-use, workflow-automation
   - **Data**: web-scraping, data-analysis
-  - **Knowledge**: memory-management, smart-search, context-loader, research-agent
+  - **Knowledge**: memory-management, smart-search, context-loader, research-agent, codebase-qa
   - **Remote**: remote-control
   - **Security**: security-audit, vulnerability-scanner
   - **DevOps**: devops-automation, env-doctor, release-manager
-  - **Development**: test-generator, performance-optimizer, repo-map, refactor, onboard-project, project-scaffold, mcp-server-generator, architect-mode, commit-splitter, screenshot-to-code, diff-previewer, task-decomposer
+  - **Development**: test-generator, performance-optimizer, repo-map, refactor, onboard-project, project-scaffold, mcp-server-generator, architect-mode, commit-splitter, screenshot-to-code, diff-previewer, task-decomposer, code-translator, dead-code-eliminator, changelog-generator, mock-data-generator, i18n-manager
   - **Documentation**: doc-generator
   - **Testing**: api-tester, lint-and-fix, test-and-fix, bugbot, fault-localizer
-  - **Analysis**: dependency-analyzer, impact-analyzer, rules-engine
+  - **Analysis**: dependency-analyzer, impact-analyzer, rules-engine, git-history-analyzer
   - **Database**: db-migration
-  - **Analysis**: dependency-analyzer, impact-analyzer
-  - **Database**: db-migration
+  - **AI**: prompt-enhancer, auto-context, multi-model-router
+  - **Document**: pdf-toolkit, doc-converter, excel-analyzer, pptx-creator, doc-comparator
+  - **Media**: audio-transcriber, video-toolkit, subtitle-generator, tts-synthesizer, media-metadata
 
 **Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers), `src/main/ai-engine/cowork/skills/skill-md-parser.js`, `src/main/ai-engine/cowork/skills/markdown-skill.js`
 
@@ -294,7 +295,7 @@ Extensible skill system with Markdown definitions:
 
 **Status**: ✅ Implemented v0.36.0
 
-Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 40 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
+Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 60 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
 
 - **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry (with initialization lock)
 - **MCPSkillGenerator**: Auto-generates SkillManifestEntry when MCP servers connect
@@ -530,7 +531,7 @@ desktop-app-vue/
 │           └── skills/            # Skills system
 │               ├── index.js       # Skill loader (4-layer: bundled→marketplace→managed→workspace)
 │               ├── skills-ipc.js  # Skills IPC (17 handlers)
-│               └── builtin/       # 30 built-in skills (15 original + 15 new in v0.36.0)
+│               └── builtin/       # 60 built-in skills (100% Handler coverage)
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
@@ -546,14 +547,14 @@ android-app/feature-ai/src/main/java/com/chainlesschain/android/feature/ai/cowor
 ├── loader/                   # SkillMdParser (YAML frontmatter) + SkillLoader (3-layer: bundled→managed→workspace)
 ├── gating/                   # SkillGating (platform/SDK/permission checks)
 ├── executor/                 # SkillExecutor (handler-first, LLM-fallback) + SkillCommandParser (/skill commands)
-├── handler/                  # SkillHandler interface + 7 implementations (CodeReview, ExplainCode, Summarize, Translate, Refactor, UnitTest, Debug)
+├── handler/                  # SkillHandler interface + 12 implementations (CodeReview, ExplainCode, Summarize, Translate, Refactor, UnitTest, Debug, QuickNote, EmailDraft, MeetingNotes, DailyPlanner, TextImprover)
 ├── bridge/                   # P2PSkillBridge (desktop-only skill delegation placeholder)
 └── di/                       # SkillModule (Hilt DI)
 
-android-app/feature-ai/src/main/assets/skills/   # 15 bundled SKILL.md files (7 with handlers + 8 doc-only)
+android-app/feature-ai/src/main/assets/skills/   # 28 bundled SKILL.md files (12 with handlers + 8 doc-only + 8 remote)
 ```
 
-**Key Patterns**: Same SKILL.md format as desktop (YAML frontmatter + Markdown body), Agent Skills Open Standard compatible, `SkillRegistry.toFunctionDefinitions()` for LLM function calling, `/skill-name` command detection in `ConversationViewModel`.
+**Key Patterns**: Same SKILL.md format as desktop (YAML frontmatter + Markdown body), Agent Skills Open Standard compatible, `SkillRegistry.toFunctionDefinitions()` for LLM function calling, `/skill-name` command detection in `ConversationViewModel`. REMOTE skills use `remoteSkillName` in YAML frontmatter to map Android skill → desktop skill name via P2PSkillBridge.
 
 **Dependency**: `org.yaml:snakeyaml:2.2` in `feature-ai/build.gradle.kts`
 
@@ -670,7 +671,7 @@ Example: `feat(rag): add reranker support`
 - **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
 - **Permission system**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`
 - **Plan Mode**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
-- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (40 skills)
+- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (60 skills)
 - **Demo Templates**: `src/main/templates/demo-template-loader.js`, `src/main/templates/{automation,ai-workflow,knowledge,remote}/` (10 templates)
 - **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`

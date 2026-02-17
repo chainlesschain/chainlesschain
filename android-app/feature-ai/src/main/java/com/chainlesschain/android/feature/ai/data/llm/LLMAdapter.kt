@@ -43,10 +43,52 @@ interface LLMAdapter {
     ): String
 
     /**
+     * 非流式对话（带函数调用/工具支持）
+     *
+     * @param messages 历史消息列表
+     * @param model 模型ID
+     * @param tools OpenAI格式的工具定义列表
+     * @param temperature 温度参数
+     * @param maxTokens 最大令牌数
+     * @return ChatWithToolsResponse，可能包含文本或工具调用
+     */
+    suspend fun chatWithTools(
+        messages: List<Message>,
+        model: String,
+        tools: List<Map<String, Any>> = emptyList(),
+        temperature: Float = 0.7f,
+        maxTokens: Int = 4096
+    ): ChatWithToolsResponse {
+        // Default implementation: ignore tools, return text-only response
+        val text = chat(messages, model, temperature, maxTokens)
+        return ChatWithToolsResponse(content = text, finishReason = "stop")
+    }
+
+    /**
      * 检查API可用性
      */
     suspend fun checkAvailability(): Boolean
 }
+
+/**
+ * Response from chatWithTools that may contain tool calls.
+ */
+data class ChatWithToolsResponse(
+    val content: String? = null,
+    val toolCalls: List<ToolCall>? = null,
+    val finishReason: String? = null
+) {
+    val hasToolCalls: Boolean get() = !toolCalls.isNullOrEmpty()
+}
+
+/**
+ * A single tool call requested by the LLM.
+ */
+data class ToolCall(
+    val id: String,
+    val name: String,
+    val arguments: Map<String, Any>
+)
 
 /**
  * OpenAI API请求体
@@ -57,13 +99,32 @@ data class OpenAIChatRequest(
     val messages: List<OpenAIMessage>,
     val temperature: Float = 0.7f,
     val max_tokens: Int = 4096,
-    val stream: Boolean = false
+    val stream: Boolean = false,
+    val tools: List<kotlinx.serialization.json.JsonElement>? = null
 )
 
 @kotlinx.serialization.Serializable
 data class OpenAIMessage(
     val role: String,
-    val content: String
+    val content: String? = null,
+    val tool_calls: List<OpenAIToolCall>? = null,
+    val tool_call_id: String? = null
+)
+
+/**
+ * OpenAI tool call in response
+ */
+@kotlinx.serialization.Serializable
+data class OpenAIToolCall(
+    val id: String,
+    val type: String = "function",
+    val function: OpenAIFunctionCall
+)
+
+@kotlinx.serialization.Serializable
+data class OpenAIFunctionCall(
+    val name: String,
+    val arguments: String  // JSON string of arguments
 )
 
 /**
@@ -78,8 +139,15 @@ data class OpenAIChatResponse(
 
 @kotlinx.serialization.Serializable
 data class OpenAIChoice(
-    val message: OpenAIMessage,
+    val message: OpenAIResponseMessage,
     val finish_reason: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class OpenAIResponseMessage(
+    val role: String? = null,
+    val content: String? = null,
+    val tool_calls: List<OpenAIToolCall>? = null
 )
 
 @kotlinx.serialization.Serializable
