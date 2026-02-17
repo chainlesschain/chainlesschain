@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain-website",
-  "version": "11.0.0",
+  "version": "11.1.0",
   "description": "ChainlessChain 官方网站 - 性能优化版",
   "scripts": {
     "build": "node build.js",
