@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/ppt-engine.js`
 
-**Generated**: 2026-02-16T22:06:51.487Z
+**Generated**: 2026-02-17T10:13:18.247Z
 
 ---
 

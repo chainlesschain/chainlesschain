@@ -2,7 +2,7 @@
 
 **Source**: `src/main/workspace/workspace-manager.js`
 
-**Generated**: 2026-02-16T22:06:51.405Z
+**Generated**: 2026-02-17T10:13:18.170Z
 
 ---
 
