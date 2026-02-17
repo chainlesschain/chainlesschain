@@ -12,7 +12,44 @@
 
 ## 最新版本
 
-### v0.37.5 (2026-02-17) ⭐ 当前版本
+### v0.37.6 (2026-02-17) ⭐ 当前版本
+
+**系统+安全+设计+分析技能** - 桌面端新增 10 个日常技能，总计 90 个内置技能（100% Handler 覆盖）
+
+#### 新增 10 个桌面技能 v0.37.6 (总计 90 个，Handler 覆盖 90/90)
+
+##### 系统管理 (2 个)
+
+- ✅ **backup-manager** (~340行) - 数据备份：ZIP创建(archiver)/恢复(adm-zip)/列表/信息/清理/定时备份建议
+- ✅ **performance-profiler** (~280行) - 性能分析：进程快照/命令基准测试/内存增长分析/启动时间/V8堆统计/报告
+
+##### 知识管理 (2 个)
+
+- ✅ **query-enhancer** (~260行) - RAG查询优化：多查询展开/HyDE假设文档/查询分解/同义词扩展/意图分析
+- ✅ **memory-insights** (~240行) - 知识库分析：文件统计/健康评分(0-100)/关键词提取/活动趋势/知识空白检测
+
+##### 安全工具 (2 个)
+
+- ✅ **crypto-toolkit** (~540行) - 加密工具：SHA256/MD5哈希/HMAC/AES-256-GCM加解密/Base64+URL+Hex编解码/UUID/随机数
+- ✅ **password-generator** (~620行) - 密码生成：随机密码/记忆口令(280词库)/PIN码/API Token/UUID/强度检测/批量生成
+
+##### 数据+网络 (2 个)
+
+- ✅ **data-exporter** (~540行) - 数据导出：JSON↔CSV↔TSV↔Markdown↔HTML转换/格式检测/批量转换
+- ✅ **network-diagnostics** (~235行) - 网络诊断：Ping/DNS查询(A/MX/TXT等)/TCP端口检测/端口扫描/Traceroute/HTTP检查
+
+##### 设计+工具 (2 个)
+
+- ✅ **color-picker** (~790行) - 颜色工具：HEX↔RGB↔HSL转换/调色板生成(互补/类似/三色)/WCAG对比度/明暗调节/混色/148 CSS命名色
+- ✅ **text-transformer** (~225行) - 文本转换：Base64/URL/HTML编解码/哈希/大小写转换/camelCase/snake_case/kebab-case/Slug
+
+#### 测试更新
+
+- ✅ **skill-handlers.test.js**: 新增 ~34 个测试用例，SkillLoader 验证 80→90，总计 250 测试全部通过
+
+---
+
+### v0.37.5 (2026-02-17)
 
 **开发效率+系统工具技能** - 桌面端新增 10 个日常技能，总计 80 个内置技能（100% Handler 覆盖）
 

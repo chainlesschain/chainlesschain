@@ -7,7 +7,9 @@
  * - context-loader: 智能上下文加载（意图分析、token预算）
  * - lint-and-fix: Lint自动修复（linter检测、报告生成）
  * - test-and-fix: 测试自动修复（框架检测、结果解析）
- * - SkillLoader: 80个内置技能加载验证
+ * - v0.37.6: backup-manager, query-enhancer, memory-insights, data-exporter, crypto-toolkit,
+ *           network-diagnostics, password-generator, text-transformer, color-picker, performance-profiler
+ * - SkillLoader: 90个内置技能加载验证
  * - v0.36.2: prompt-enhancer, codebase-qa, auto-context, multi-model-router,
  *            code-translator, dead-code-eliminator, changelog-generator,
  *            mock-data-generator, git-history-analyzer, i18n-manager
@@ -2381,6 +2383,330 @@ describe("Skill Handlers", () => {
         {},
       );
       expect(result.success).toBe(false);
+    });
+  });
+
+  // ============================================================
+  // backup-manager handler (v0.37.6)
+  // ============================================================
+  describe("backup-manager handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/backup-manager/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toBeDefined();
+    });
+
+    it("should list backups", async () => {
+      const result = await handler.execute({ input: "--list" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // query-enhancer handler (v0.37.6)
+  // ============================================================
+  describe("query-enhancer handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/query-enhancer/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toBeDefined();
+    });
+
+    it("should rewrite a query", async () => {
+      const result = await handler.execute(
+        { input: '--rewrite "how to fix memory leaks"' },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // memory-insights handler (v0.37.6)
+  // ============================================================
+  describe("memory-insights handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/memory-insights/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return overview by default", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+
+    it("should compute health score", async () => {
+      const result = await handler.execute({ input: "--health" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // data-exporter handler (v0.37.6)
+  // ============================================================
+  describe("data-exporter handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/data-exporter/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toBeDefined();
+    });
+
+    it("should detect file format", async () => {
+      const result = await handler.execute(
+        { input: "--detect " + __filename },
+        {},
+      );
+      expect(result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // crypto-toolkit handler (v0.37.6)
+  // ============================================================
+  describe("crypto-toolkit handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/crypto-toolkit/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toBeDefined();
+    });
+
+    it("should hash text", async () => {
+      const result = await handler.execute(
+        { input: '--hash "hello world"' },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+
+    it("should generate uuid", async () => {
+      const result = await handler.execute({ input: "--uuid" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // network-diagnostics handler (v0.37.6)
+  // ============================================================
+  describe("network-diagnostics handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/network-diagnostics/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toBeDefined();
+    });
+
+    it("should show local IPs", async () => {
+      const result = await handler.execute({ input: "--ip" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // password-generator handler (v0.37.6)
+  // ============================================================
+  describe("password-generator handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/password-generator/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should generate password with no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+
+    it("should generate passphrase", async () => {
+      const result = await handler.execute(
+        { input: "--passphrase --words 4" },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+
+    it("should check password strength", async () => {
+      const result = await handler.execute(
+        { input: '--check "MyP@ssw0rd!123"' },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // text-transformer handler (v0.37.6)
+  // ============================================================
+  describe("text-transformer handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/text-transformer/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toBeDefined();
+    });
+
+    it("should base64 encode text", async () => {
+      const result = await handler.execute(
+        { input: '--base64-encode "hello world"' },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+
+    it("should convert to camelCase", async () => {
+      const result = await handler.execute(
+        { input: '--camel "hello world test"' },
+        {},
+      );
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // color-picker handler (v0.37.6)
+  // ============================================================
+  describe("color-picker handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/color-picker/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return usage when no input", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.message).toBeDefined();
+    });
+
+    it("should convert hex color", async () => {
+      const result = await handler.execute({ input: "--convert #ff5733" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+
+    it("should generate random colors", async () => {
+      const result = await handler.execute({ input: "--random --count 3" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+  });
+
+  // ============================================================
+  // performance-profiler handler (v0.37.6)
+  // ============================================================
+  describe("performance-profiler handler", () => {
+    let handler;
+
+    beforeEach(() => {
+      handler = require("../../../src/main/ai-engine/cowork/skills/builtin/performance-profiler/handler.js");
+    });
+
+    it("should export init and execute functions", () => {
+      expect(typeof handler.init).toBe("function");
+      expect(typeof handler.execute).toBe("function");
+    });
+
+    it("should return snapshot by default", async () => {
+      const result = await handler.execute({ input: "" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+    });
+
+    it("should analyze memory", async () => {
+      const result = await handler.execute({ input: "--memory" }, {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
     });
   });
 

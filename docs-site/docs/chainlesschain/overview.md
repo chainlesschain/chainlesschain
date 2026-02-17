@@ -1,10 +1,10 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v0.36.0 AI技能系统 | 完成度: 100% | 生产就绪**
+> **当前版本: v0.37.6 AI技能系统 | 完成度: 100% | 生产就绪**
 
 ChainlessChain是一个完全去中心化的个人AI管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能，通过U盾/SIMKey硬件加密和本地AI模型，为用户提供军事级隐私保护的个人数据管理平台。
 
-**v0.36.0新增**: AI技能系统 - 30个内置技能(12可执行Handler+18文档型)、统一工具注册表(FunctionCaller 60++MCP 8+Skills 30)、10个演示模板、Agent Skills开放标准(13扩展字段)。
+**v0.37.6新增**: AI技能系统 - 90个内置技能(100% Handler覆盖)、统一工具注册表(FunctionCaller 60++MCP 8+Skills 90)、10个演示模板、Agent Skills开放标准(13扩展字段)、Android 28技能(含PC远程委托)。
 
 ## 项目统计
 
@@ -15,8 +15,8 @@ ChainlessChain是一个完全去中心化的个人AI管理系统，整合知识�
 | IPC处理器  | 200+                                   |
 | 测试用例   | 2000+                                  |
 | AI专用引擎 | 16个                                   |
-| 内置技能   | 30个                                   |
-| 统一工具   | 60+ FunctionCaller + 8 MCP + 30 Skills |
+| 内置技能   | 90个                                   |
+| 统一工具   | 60+ FunctionCaller + 8 MCP + 90 Skills |
 | 演示模板   | 10个                                   |
 | 浏览器命令 | 215个                                  |
 
