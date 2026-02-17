@@ -2,7 +2,7 @@
 
 此目录包含应用内置的技能。内置技能具有最低优先级，可以被 marketplace、managed（用户全局）或 workspace（项目级）技能覆盖。
 
-## 当前内置技能 (60)
+## 当前内置技能 (80)
 
 ### 原有技能 (15)
 
@@ -89,6 +89,36 @@
 | tts-synthesizer    | media    | ✅      | 文本转语音（多语言/多引擎/文件朗读）            |
 | media-metadata     | media    | ✅      | 媒体元数据（图片EXIF/音频/视频元信息/批量提取） |
 
+### 图像+数据+工具 v0.37.4 (10)
+
+| 技能              | 类别        | Handler | 说明                                                |
+| ----------------- | ----------- | ------- | --------------------------------------------------- |
+| image-editor      | media       | ✅      | 图片编辑（缩放/压缩/格式转换/缩略图/旋转/裁剪）     |
+| ocr-scanner       | media       | ✅      | OCR文字识别（多语言/批量/置信度/Tesseract.js）      |
+| image-generator   | ai          | ✅      | AI图像生成（文生图/增强/锐化/降噪/放大）            |
+| chart-creator     | data        | ✅      | 数据可视化（折线/柱状/饼图/散点/雷达/漏斗/ECharts） |
+| word-generator    | document    | ✅      | Word文档生成（Markdown→DOCX/模板/读取/docx库）      |
+| csv-processor     | data        | ✅      | CSV数据处理（读取/分析/过滤/排序/转换/合并）        |
+| template-renderer | development | ✅      | 模板渲染（Handlebars/变量替换/条件循环/批量生成）   |
+| code-runner       | development | ✅      | 代码执行（Python/JS/Bash/超时控制/输出捕获）        |
+| voice-commander   | automation  | ✅      | 语音命令（命令注册/宏定义/命令链/上下文感知）       |
+| file-compressor   | utility     | ✅      | 文件压缩（ZIP创建/解压/文件列表/压缩率分析）        |
+
+### 开发效率+系统工具 v0.37.5 (10)
+
+| 技能              | 类别        | Handler | 说明                                                   |
+| ----------------- | ----------- | ------- | ------------------------------------------------------ |
+| json-yaml-toolkit | development | ✅      | JSON/YAML处理（格式化/验证/转换/JSONPath/Diff/Schema） |
+| regex-playground  | development | ✅      | 正则工具（测试/替换/解释/模式库/文件提取）             |
+| log-analyzer      | devops      | ✅      | 日志分析（解析/过滤/错误提取/统计/模式搜索）           |
+| system-monitor    | devops      | ✅      | 系统监控（CPU/内存/磁盘/进程/网络/健康评分）           |
+| http-client       | development | ✅      | HTTP客户端（GET/POST/PUT/DELETE/认证/自定义头）        |
+| markdown-enhancer | document    | ✅      | Markdown增强（TOC/统计/链接检查/Lint/表格/HTML）       |
+| snippet-library   | development | ✅      | 代码片段库（保存/搜索/标签/导入导出/模板）             |
+| knowledge-graph   | knowledge   | ✅      | 知识图谱（实体提取/关系发现/中心性分析/导出）          |
+| clipboard-manager | utility     | ✅      | 剪贴板管理（读写/历史/搜索/置顶/敏感过滤）             |
+| env-file-manager  | devops      | ✅      | 环境变量管理（解析/对比/缺失检测/模板/安全检查）       |
+
 ## 目录结构
 
 每个技能是一个独立的子目录，包含 `SKILL.md` 文件和 `handler.js`（100% Handler 覆盖率）：
@@ -102,7 +132,7 @@ builtin/
 ├── browser-automation/
 │   ├── SKILL.md
 │   └── handler.js
-└── ...（共60个技能目录）
+└── ...（共80个技能目录）
 ```
 
 ## SKILL.md 格式 (Agent Skills Open Standard)

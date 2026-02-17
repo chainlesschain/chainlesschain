@@ -12,7 +12,84 @@
 
 ## 最新版本
 
-### v0.37.3 (2026-02-17) ⭐ 当前版本
+### v0.37.5 (2026-02-17) ⭐ 当前版本
+
+**开发效率+系统工具技能** - 桌面端新增 10 个日常技能，总计 80 个内置技能（100% Handler 覆盖）
+
+#### 新增 10 个桌面技能 v0.37.5 (总计 80 个，Handler 覆盖 80/80)
+
+##### 开发效率 (5 个)
+
+- ✅ **json-yaml-toolkit** (~300行) - JSON/YAML处理：格式化/压缩/验证/JSON↔YAML转换/JSONPath查询/Diff对比/Schema生成
+- ✅ **regex-playground** (~270行) - 正则表达式工具：测试匹配/替换/模式解释/12+常用模式库/文件内容提取
+- ✅ **http-client** (~280行) - HTTP客户端：GET/POST/PUT/DELETE/PATCH/HEAD/自定义请求头/Bearer+Basic+API Key认证
+- ✅ **snippet-library** (~250行) - 代码片段库：保存/搜索/列表/删除/导出导入/标签分类/.chainlesschain/snippets.json
+- ✅ **markdown-enhancer** (~280行) - Markdown增强：TOC生成/字数统计/链接检查/Lint/表格格式化/HTML转换(marked)
+
+##### 系统运维 (3 个)
+
+- ✅ **log-analyzer** (~290行) - 日志分析：多格式解析/按级别时间过滤/错误提取/统计报告/模式搜索/尾部追踪
+- ✅ **system-monitor** (~260行) - 系统监控：Node.js os模块/CPU使用率/内存/磁盘/进程列表/网络接口/健康评分
+- ✅ **env-file-manager** (~250行) - 环境变量管理：.env解析/多环境对比/缺失检测/模板生成/.example生成/安全检查
+
+##### 知识+工具 (2 个)
+
+- ✅ **knowledge-graph** (~300行) - 知识图谱：NLP实体提取/关系发现/中心性分析/PageRank/DOT+JSON导出/统计
+- ✅ **clipboard-manager** (~240行) - 剪贴板管理：读写/历史追踪(100条)/搜索/置顶/敏感内容自动过滤/统计
+
+#### 测试更新
+
+- ✅ **skill-handlers.test.js**: 新增 ~28 个测试用例，SkillLoader 验证 70→80，总计 216 测试全部通过
+
+#### 技术亮点
+
+- **零新增依赖**: 全部使用 Node.js 内置模块 (os, fs, path, child_process, http/https) + 已有 npm 包 (js-yaml, marked)
+- **Agent Skills 开放标准兼容**: 所有技能含完整 YAML frontmatter (tools, instructions, examples, input-schema)
+- **GitHub/OpenClaw 研究驱动**: 参考 VoltAgent/awesome-agent-skills (380+)、OpenClaw/ClawHub (5,700+)、Composio (850+) 选定实用技能
+
+---
+
+### v0.37.4 (2026-02-17)
+
+**图像+数据+工具技能** - 桌面端新增 10 个日常技能，总计 70 个内置技能（100% Handler 覆盖）
+
+#### 新增 10 个桌面技能 v0.37.4 (总计 70 个，Handler 覆盖 70/70)
+
+##### 图像处理 (3 个)
+
+- ✅ **image-editor** (~280行) - 图片编辑：缩放/压缩/格式转换(Sharp)/缩略图/旋转/裁剪/信息提取
+- ✅ **ocr-scanner** (~240行) - OCR文字识别：Tesseract.js多语言(中英日韩法德)/批量识别/置信度评分
+- ✅ **image-generator** (~260行) - AI图像生成：Stable Diffusion/DALL-E/图片增强(锐化/降噪/放大)/预设尺寸
+
+##### 数据处理 (2 个)
+
+- ✅ **chart-creator** (~280行) - 数据可视化：ECharts配置生成(折线/柱状/饼图/散点/雷达/漏斗)/CSV数据源/4种主题
+- ✅ **csv-processor** (~300行) - CSV数据处理：读取/统计分析/条件过滤/排序/格式转换(CSV↔JSON↔TSV)/合并
+
+##### 开发工具 (3 个)
+
+- ✅ **word-generator** (~260行) - Word文档生成：Markdown→DOCX(docx库)/模板创建/mammoth读取/格式化
+- ✅ **template-renderer** (~240行) - 模板渲染：Handlebars变量替换/条件循环/自定义Helper/变量提取/批量生成
+- ✅ **code-runner** (~250行) - 安全代码执行：Python/JavaScript/Bash/30s超时/输出捕获/退出码
+
+##### 自动化+工具 (2 个)
+
+- ✅ **voice-commander** (~230行) - 语音命令管理：32+命令注册/宏定义(命令序列)/命令测试/历史/5类别
+- ✅ **file-compressor** (~260行) - 文件压缩解压：ZIP创建(adm-zip)/解压/文件列表/压缩率分析/目录压缩
+
+#### 测试更新
+
+- ✅ **skill-handlers.test.js**: 新增 ~31 个测试用例，SkillLoader 验证 60→70，总计 188 测试全部通过
+
+#### 技术亮点
+
+- **零新增依赖**: 全部复用已有 npm 包 (sharp, tesseract.js, adm-zip, handlebars, docx, mammoth, axios)
+- **深度复用引擎**: 直接封装 image-processor.js, ocr-service.js, data-viz-engine.js, template-engine.js 等 16 个已有引擎
+- **Agent Skills 标准**: 所有技能遵循开放标准（YAML frontmatter + Markdown body），方便 AI 调用
+
+---
+
+### v0.37.3 (2026-02-17)
 
 **Office文档 + 音视频处理** - 桌面端新增 10 个日常技能，总计 60 个内置技能（100% Handler 覆盖）
 
