@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/settings-manager.js`
 
-**Generated**: 2026-02-16T22:06:51.495Z
+**Generated**: 2026-02-17T10:13:18.254Z
 
 ---
 

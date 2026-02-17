@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/streaming-response.js`
 
-**Generated**: 2026-02-16T22:06:51.516Z
+**Generated**: 2026-02-17T10:13:18.276Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/video/video-ipc.js`
 
-**Generated**: 2026-02-16T22:06:51.407Z
+**Generated**: 2026-02-17T10:13:18.172Z
 
 ---
 
