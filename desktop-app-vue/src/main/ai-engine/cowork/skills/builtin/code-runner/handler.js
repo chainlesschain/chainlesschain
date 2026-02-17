@@ -6,7 +6,7 @@
  * Supports Python, JavaScript (Node.js), and Bash.
  */
 
-const { spawn, execSync } = require("child_process");
+const { spawn, execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -97,9 +97,14 @@ function detectLanguageFromExtension(filePath) {
 // ── Command availability check ───────────────────────────────────
 
 function isCommandAvailable(command) {
+  // Sanitize: only allow alphanumeric, dash, underscore, dot (prevent injection)
+  if (!/^[\w.-]+$/.test(command)) {
+    return false;
+  }
   try {
     const checkCmd = process.platform === "win32" ? "where" : "which";
-    execSync(`${checkCmd} ${command}`, {
+    const args = [command];
+    execFileSync(checkCmd, args, {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
@@ -416,11 +421,11 @@ async function handleLanguages() {
 // ── Handler export ───────────────────────────────────────────────
 
 module.exports = {
-  async init(skill) {
+  async init(_skill) {
     logger.info("[CodeRunner] Handler initialized");
   },
 
-  async execute(task, context = {}, skill) {
+  async execute(task, context = {}, _skill) {
     const input = (
       task?.params?.input ||
       task?.input ||

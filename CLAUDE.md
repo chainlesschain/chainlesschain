@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.37.5 (80 Desktop Skills + Android 28 Skills + PC Remote Delegation) - Updated 2026-02-17
+**Current Version**: v0.37.5 (90 Desktop Skills + Android 28 Skills + PC Remote Delegation) - Updated 2026-02-17
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -256,7 +256,7 @@ Extensible skill system with Markdown definitions:
 - **Gate Checks**: Platform, binary dependencies, environment variables
 - **/skill Commands**: User command parsing and auto-execution
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **80 Built-in Skills** (Handler 覆盖 80/80, 100%):
+- **90 Built-in Skills** (Handler 覆盖 90/90, 100%):
   - **Core**: code-review, git-commit, explain-code
   - **Automation**: browser-automation, computer-use, workflow-automation, voice-commander
   - **Data**: web-scraping, data-analysis, chart-creator, csv-processor
@@ -298,7 +298,7 @@ Extensible skill system with Markdown definitions:
 
 **Status**: ✅ Implemented v0.36.0
 
-Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 80 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
+Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 90 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
 
 - **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry (with initialization lock)
 - **MCPSkillGenerator**: Auto-generates SkillManifestEntry when MCP servers connect
@@ -674,7 +674,7 @@ Example: `feat(rag): add reranker support`
 - **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
 - **Permission system**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`
 - **Plan Mode**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
-- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (80 skills)
+- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (90 skills)
 - **Demo Templates**: `src/main/templates/demo-template-loader.js`, `src/main/templates/{automation,ai-workflow,knowledge,remote}/` (10 templates)
 - **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`
