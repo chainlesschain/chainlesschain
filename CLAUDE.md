@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.37.5 (90 Desktop Skills + Android 28 Skills + PC Remote Delegation) - Updated 2026-02-17
+**Current Version**: v0.37.6 (90 Desktop Skills + Android 28 Skills + PC Remote Delegation) - Updated 2026-02-17
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -272,9 +272,13 @@ Extensible skill system with Markdown definitions:
   - **AI**: prompt-enhancer, auto-context, multi-model-router, image-generator
   - **Document**: pdf-toolkit, doc-converter, excel-analyzer, pptx-creator, doc-comparator, word-generator, markdown-enhancer
   - **Media**: audio-transcriber, video-toolkit, subtitle-generator, tts-synthesizer, media-metadata, image-editor, ocr-scanner
-  - **Knowledge**: knowledge-graph
-  - **DevOps**: log-analyzer, system-monitor, env-file-manager
-  - **Utility**: file-compressor, json-yaml-toolkit, regex-playground, http-client, snippet-library, clipboard-manager
+  - **Knowledge**: knowledge-graph, query-enhancer, memory-insights
+  - **DevOps**: log-analyzer, system-monitor, env-file-manager, network-diagnostics, performance-profiler
+  - **Security**: crypto-toolkit, password-generator
+  - **System**: backup-manager
+  - **Data**: data-exporter
+  - **Design**: color-picker
+  - **Utility**: file-compressor, json-yaml-toolkit, regex-playground, http-client, snippet-library, clipboard-manager, text-transformer
 
 **Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers), `src/main/ai-engine/cowork/skills/skill-md-parser.js`, `src/main/ai-engine/cowork/skills/markdown-skill.js`
 

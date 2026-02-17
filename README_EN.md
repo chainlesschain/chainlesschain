@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.36.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.37.6-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,32 +19,44 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.36.0 (2026-02-16)
+## ⭐ Current Version: v0.37.6 (2026-02-17)
 
-### Latest Updates - Unified Tool Registry + AI Skill Call Chain Integration
+### Latest Updates - 90 Built-in Skills (100% Handler Coverage) + Android 28 Skills + PC Remote Delegation
 
-**Unified Tool Registry + AI Call Chain Integration** - Unified tool registry fully wired into AI conversation loop, skill context (instructions/examples) auto-injected into LLM prompts, 31 tests (including 4 E2E integration)
+**90 Desktop Skills + 28 Android Skills + PC Remote Delegation** - 90 desktop built-in skills all with executable handlers, 28 Android skills (including 8 PC remote delegation), unified tool registry fully wired into AI conversation loop
 
-#### v0.36.0 New Core Features (2026-02-16)
+#### v0.37.4~v0.37.6 New 30 Desktop Skills (Total 90)
 
+- ✅ **Office Documents (5)** - pdf-toolkit, doc-converter, excel-analyzer, pptx-creator, doc-comparator
+- ✅ **Audio/Video (5)** - audio-transcriber, video-toolkit, subtitle-generator, tts-synthesizer, media-metadata
+- ✅ **Image Processing (3)** - image-editor, ocr-scanner, image-generator
+- ✅ **Data Processing (2)** - chart-creator, csv-processor
+- ✅ **Dev Tools (3)** - word-generator, template-renderer, code-runner
+- ✅ **Automation (2)** - voice-commander, file-compressor
+- ✅ **System Ops (5)** - log-analyzer, system-monitor, env-file-manager, backup-manager, performance-profiler
+- ✅ **Knowledge (3)** - knowledge-graph, query-enhancer, memory-insights
+- ✅ **Security+Data+Network (4)** - crypto-toolkit, password-generator, data-exporter, network-diagnostics
+- ✅ **Design+Utility (3)** - color-picker, text-transformer, clipboard-manager
+
+#### v0.37.2 Android Mobile Productivity + PC Remote Delegation (28 Skills)
+
+- ✅ **5 LOCAL Productivity Skills** - quick-note, email-draft, meeting-notes, daily-planner, text-improver
+- ✅ **8 REMOTE PC Delegation Skills** - pc-screenshot→computer-use, pc-file-search→smart-search, pc-run-command→remote-control, etc.
+- ✅ **remoteSkillName Mapping** - Android skill → Desktop skill name automatic routing
+
+#### v0.37.0~v0.37.1 AI Conversation + Developer Efficiency (20 Skills)
+
+- ✅ **AI Conversation (4)** - prompt-enhancer, codebase-qa, auto-context, multi-model-router
+- ✅ **Dev Efficiency (6)** - code-translator, dead-code-eliminator, changelog-generator, mock-data-generator, git-history-analyzer, i18n-manager
+- ✅ **Advanced Dev (10)** - architect-mode, commit-splitter, screenshot-to-code, diff-previewer, task-decomposer, bugbot, fault-localizer, impact-analyzer, rules-engine, research-agent
+
+#### v0.36.0 Features - AI Skills System + Unified Tool Registry
+
+- ✅ **Unified Tool Registry** - Aggregates 3 tool systems (FunctionCaller 60+ tools + MCP 8 servers + Skills 90 skills)
 - ✅ **AI Call Chain Integration** - ManusOptimizations.bindUnifiedRegistry() connects the full pipeline
-  - ipc-registry → ManusOptimizations → ContextEngineering → LLM Prompt
-  - AI conversations automatically receive skill groupings, instructions, and examples
-- ✅ **Initialization Safety** - Concurrent initialization lock, IPC init-wait guard (10s timeout)
-- ✅ **Parameter Safety** - JSON serialization depth limit (500 chars), circular reference protection
-- ✅ **Type Safety** - Store error handling upgraded to `err: unknown` with safe type casting
-- ✅ **E2E Integration Tests** - 4 end-to-end tests verifying full call chain (Registry→Manus→CE→LLM Prompt)
-
-#### v0.35.0 Features - AI Skills System + Unified Tool Registry
-
-- ✅ **30 Built-in Skills** - 30 skills covering 12 categories (Development/Automation/Knowledge/Data/Security/Remote/Learning/Documentation/Testing/Analysis/Database/DevOps)
-- ✅ **Unified Tool Registry** - Aggregates 3 tool systems (FunctionCaller 60+ tools + MCP 8 servers + Skills 30 skills)
-- ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
-- ✅ **MCPSkillGenerator** - Auto-generates SkillManifestEntry when MCP servers connect
 - ✅ **Agent Skills Open Standard** - 13 extended fields (tools/instructions/examples etc.)
 - ✅ **Demo Templates** - 10 demo templates across 4 categories
 - ✅ **Tools Explorer UI** - Browse tools by skill (`#/tools/explorer`)
-- ✅ **Demo Templates UI** - Browse and run demos (`#/demo-templates`)
 
 #### v0.34.0 Features Recap - Enterprise Features + Community Ecosystem
 
@@ -218,7 +230,7 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🟢 **Trading System**: 100% Complete - **8 Modules + On-chain Contracts + NFT Transfers + Order Editing + Sharing + QR Codes** ⭐Completed
 - 🟢 **Browser Extension**: 100% Complete - **Testing Framework + Documentation** ⭐Completed
 - 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension + 45,000+ Lines** ⭐Completed
-- 🟢 **AI Skills System**: 100% Complete - **30 Built-in Skills + Unified Tool Registry + 10 Demo Templates + Agent Skills Standard** ⭐NEW
+- 🟢 **AI Skills System**: 100% Complete - **90 Built-in Skills (100% Handler) + 28 Android Skills + Unified Tool Registry + Agent Skills Standard** ⭐v0.37.6
 - 🟢 **Mobile Application**: 100% Complete - **Knowledge Base + AI Chat + Trading System + Social Features + Mobile UX Optimization + P2P Sync + Android Remote Control UIs** ⭐Completed
 
 ## Core Features
@@ -233,7 +245,7 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
 - 🎨 **Skills System**: 30 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐Updated
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 30 skills unified management ✅ ⭐NEW
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 90 skills unified management ✅ ⭐v0.37.6
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
 - 🌐 **Fully Decentralized**: P2P network (libp2p 3.1.2) + DHT + local data storage, no central servers needed ✅
@@ -383,14 +395,14 @@ Detailed documentation: [Context Engineering Docs](./docs/MANUS_OPTIMIZATION_GUI
 - ✅ **Skills system** - Markdown skill definitions, four-layer loading (bundled→marketplace→managed→workspace)
 - ✅ **/skill commands** - User command parsing, auto-execution
 - ✅ **Gate checks** - Platform, dependency, environment variable detection
-- ✅ **30 Built-in Skills** - 24 executable handlers + 6 prompt-only skills across 12 categories
+- ✅ **90 Built-in Skills** - All with executable handlers (100% coverage) across 18+ categories
 - ✅ **Agent Skills Open Standard** - 13 extended fields (tools/instructions/examples/dependencies etc.)
 
 Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [AI Skills System](./docs/design/modules/16_AI技能系统.md)
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (30 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (90 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging

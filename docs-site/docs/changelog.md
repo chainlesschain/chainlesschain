@@ -5,6 +5,116 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.37.6] - 2026-02-17
+
+### 新增
+
+- 🎨 **10个系统+安全+设计+分析技能** - 总计90个内置技能，Handler覆盖率100%
+  - 系统管理: backup-manager（数据备份恢复）、performance-profiler（性能分析基准）
+  - 知识管理: query-enhancer（RAG查询优化）、memory-insights（知识库分析）
+  - 安全工具: crypto-toolkit（加密哈希编码）、password-generator（密码Token生成）
+  - 数据+网络: data-exporter（多格式数据导出）、network-diagnostics（网络诊断工具）
+  - 设计+工具: color-picker（颜色调色板工具）、text-transformer（文本编解码转换）
+
+### 改进
+
+- 🧪 新增 ~34 个测试用例，总计 250 测试全部通过
+
+---
+
+## [0.37.5] - 2026-02-17
+
+### 新增
+
+- 🎨 **10个开发效率+系统工具技能** - 总计80个内置技能，Handler覆盖率100%
+  - 开发效率: json-yaml-toolkit、regex-playground、http-client、snippet-library、markdown-enhancer
+  - 系统运维: log-analyzer、system-monitor、env-file-manager
+  - 知识+工具: knowledge-graph、clipboard-manager
+
+### 改进
+
+- 🧪 新增 ~28 个测试用例，总计 216 测试全部通过
+- ⚡ 零新增依赖，全部使用Node.js内置模块 + 已有npm包
+
+---
+
+## [0.37.4] - 2026-02-17
+
+### 新增
+
+- 🎨 **10个图像+数据+工具技能** - 总计70个内置技能，Handler覆盖率100%
+  - 图像处理: image-editor、ocr-scanner、image-generator
+  - 数据处理: chart-creator、csv-processor
+  - 开发工具: word-generator、template-renderer、code-runner
+  - 自动化+工具: voice-commander、file-compressor
+
+### 改进
+
+- 🧪 新增 ~31 个测试用例，总计 188 测试全部通过
+- ⚡ 零新增依赖，深度复用16个已有引擎
+
+---
+
+## [0.37.3] - 2026-02-17
+
+### 新增
+
+- 🎨 **10个Office文档+音视频处理技能** - 总计60个内置技能，Handler覆盖率100%
+  - Office文档: pdf-toolkit、doc-converter、excel-analyzer、pptx-creator、doc-comparator
+  - 音视频: audio-transcriber、video-toolkit、subtitle-generator、tts-synthesizer、media-metadata
+
+### 改进
+
+- 🧪 新增 ~28 个测试用例，总计 157 测试全部通过
+- ⚡ 音视频技能支持优雅降级（缺少ffmpeg/Whisper时返回有用信息）
+
+---
+
+## [0.37.2] - 2026-02-17
+
+### 新增
+
+- 📱 **Android移动生产力技能** - 5个LOCAL技能: quick-note、email-draft、meeting-notes、daily-planner、text-improver
+- 🔗 **Android PC远程委托技能** - 8个REMOTE技能: pc-screenshot、pc-file-search、pc-run-command、pc-open-url、pc-clipboard、pc-system-info、pc-git-status、pc-processes
+- 🏗️ **remoteSkillName映射** - Android技能→桌面技能名称映射，支持REMOTE/HYBRID路由
+- 🎨 **10个Office+媒体技能** - 桌面端新增pdf-toolkit、doc-converter、excel-analyzer等
+
+### 改进
+
+- 📱 Android技能总数: 15 → 28 (5 LOCAL + 8 REMOTE)
+- 🧪 Android新增 21 个测试用例
+
+---
+
+## [0.37.1] - 2026-02-17
+
+### 新增
+
+- 🎨 **10个AI会话+开发效率技能** - 总计50个内置技能，Handler覆盖率100%
+  - AI会话增强: prompt-enhancer、codebase-qa、auto-context、multi-model-router
+  - 开发效率: code-translator、dead-code-eliminator、changelog-generator、mock-data-generator、git-history-analyzer、i18n-manager
+
+### 改进
+
+- 🧪 新增 ~20 个测试用例，总计 ~120 测试
+
+---
+
+## [0.37.0] - 2026-02-17
+
+### 新增
+
+- 📱 **Android Agent Skills系统** - 完整的Agent Skills系统实现
+  - SkillMdParser: YAML frontmatter解析（SnakeYAML）
+  - SkillRegistry: 线程安全注册表（ConcurrentHashMap + SkillIndex）
+  - SkillLoader: 三层加载（bundled→managed→workspace）
+  - SkillExecutor: Handler优先，LLM-prompt降级
+  - 7个Kotlin Handler: CodeReview、ExplainCode、Summarize、Translate、Refactor、UnitTest、Debug
+  - 15个SKILL.md资产文件
+  - SkillRegistry.toFunctionDefinitions() 支持OpenAI函数调用格式
+
+---
+
 ## [0.36.0] - 2026-02-16
 
 ### 新增

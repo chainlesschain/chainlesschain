@@ -2,7 +2,7 @@
 
 此目录包含应用内置的技能。内置技能具有最低优先级，可以被 marketplace、managed（用户全局）或 workspace（项目级）技能覆盖。
 
-## 当前内置技能 (80)
+## 当前内置技能 (90)
 
 ### 原有技能 (15)
 
@@ -119,6 +119,21 @@
 | clipboard-manager | utility     | ✅      | 剪贴板管理（读写/历史/搜索/置顶/敏感过滤）             |
 | env-file-manager  | devops      | ✅      | 环境变量管理（解析/对比/缺失检测/模板/安全检查）       |
 
+### 系统+安全+设计+分析 v0.37.6 (10)
+
+| 技能                 | 类别      | Handler | 说明                                                   |
+| -------------------- | --------- | ------- | ------------------------------------------------------ |
+| backup-manager       | system    | ✅      | 数据备份（ZIP创建/恢复/清理/信息/定时建议/archiver）   |
+| query-enhancer       | knowledge | ✅      | RAG查询优化（多查询/HyDE/分解/扩展/分析）              |
+| memory-insights      | knowledge | ✅      | 知识库分析（概览/健康评分/关键词/趋势/知识空白）       |
+| data-exporter        | data      | ✅      | 多格式导出（JSON↔CSV↔MD↔HTML↔TSV/批量/格式检测）       |
+| crypto-toolkit       | security  | ✅      | 加密工具（哈希/HMAC/AES-256-GCM/编解码/UUID/随机数）   |
+| network-diagnostics  | devops    | ✅      | 网络诊断（Ping/DNS/端口检测/扫描/Traceroute/HTTP检查） |
+| password-generator   | security  | ✅      | 密码生成（随机密码/口令/PIN/Token/UUID/强度检测）      |
+| text-transformer     | utility   | ✅      | 文本转换（Base64/URL/HTML编解码/哈希/大小写/Slug）     |
+| color-picker         | design    | ✅      | 颜色工具（HEX↔RGB↔HSL/调色板/WCAG对比度/明暗调节）     |
+| performance-profiler | devops    | ✅      | 性能分析（快照/基准测试/内存分析/启动时间/报告）       |
+
 ## 目录结构
 
 每个技能是一个独立的子目录，包含 `SKILL.md` 文件和 `handler.js`（100% Handler 覆盖率）：
@@ -132,7 +147,7 @@ builtin/
 ├── browser-automation/
 │   ├── SKILL.md
 │   └── handler.js
-└── ...（共80个技能目录）
+└── ...（共90个技能目录）
 ```
 
 ## SKILL.md 格式 (Agent Skills Open Standard)
