@@ -48,6 +48,12 @@ class ContextEngineering {
     // 任务追踪状态
     this.currentTask = null;
 
+    // Instinct Manager（可选，通过 setInstinctManager 注入）
+    this._instinctManager = null;
+
+    // Code Knowledge Graph（可选，通过 setCodeKnowledgeGraph 注入）
+    this._codeKnowledgeGraph = null;
+
     // 统计
     this.stats = {
       cacheHits: 0,
@@ -55,6 +61,22 @@ class ContextEngineering {
       totalCalls: 0,
       compressionSavings: 0,
     };
+  }
+
+  /**
+   * Set the InstinctManager for learned pattern injection
+   * @param {Object} instinctManager - InstinctManager instance
+   */
+  setInstinctManager(instinctManager) {
+    this._instinctManager = instinctManager;
+  }
+
+  /**
+   * Set the CodeKnowledgeGraph for architectural insight injection
+   * @param {Object} codeKnowledgeGraph - CodeKnowledgeGraph instance
+   */
+  setCodeKnowledgeGraph(codeKnowledgeGraph) {
+    this._codeKnowledgeGraph = codeKnowledgeGraph;
   }
 
   /**
@@ -135,6 +157,45 @@ class ContextEngineering {
         role: "system",
         content: errorContext,
       });
+    }
+
+    // 4.5 注入 Instinct 上下文（已学习的模式）
+    if (this._instinctManager) {
+      try {
+        const contextHint =
+          taskContext?.objective ||
+          messages
+            .slice(-3)
+            .map((m) => m.content || "")
+            .join(" ");
+        const instinctContext = this._instinctManager.buildInstinctContext(
+          contextHint,
+          5,
+        );
+        if (instinctContext) {
+          result.messages.push({
+            role: "system",
+            content: instinctContext,
+          });
+        }
+      } catch (_e) {
+        // Instinct context is non-critical, silently skip
+      }
+    }
+
+    // 4.6 注入 Code Knowledge Graph 上下文（架构洞察）
+    if (this._codeKnowledgeGraph) {
+      try {
+        const kgContext = this._codeKnowledgeGraph.buildKGContext();
+        if (kgContext) {
+          result.messages.push({
+            role: "system",
+            content: kgContext,
+          });
+        }
+      } catch (_e) {
+        // KG context is non-critical, silently skip
+      }
     }
 
     // === 第三部分：任务重述（解决"丢失中间"问题） ===
