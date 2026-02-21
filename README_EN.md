@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.37.6-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.38.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,11 +19,31 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.37.6 (2026-02-17)
+## ⭐ Current Version: v0.38.0 (2026-02-22)
 
-### Latest Updates - 90 Built-in Skills (100% Handler Coverage) + Android 28 Skills + PC Remote Delegation
+### Latest Updates - SIMKey v0.38.0 Six Security Enhancements + Documentation Site Expansion
 
-**90 Desktop Skills + 28 Android Skills + PC Remote Delegation** - 90 desktop built-in skills all with executable handlers, 28 Android skills (including 8 PC remote delegation), unified tool registry fully wired into AI conversation loop
+**SIMKey 6 Security Enhancements** - iOS eSIM support, 5G SIM optimization, NFC offline signing, multi-SIM auto-switch, SIM health monitoring, quantum-resistant algorithm upgrade; documentation site expanded with 4,400+ lines across 10 pages
+
+#### v0.38.0 SIMKey Six Security Enhancements (2026-02-21)
+
+- ✅ **iOS eSIM Support** - Apple eSIM API + Secure Enclave integration, iOS users can use eSIM as SIMKey security carrier
+- ✅ **5G SIM Optimization** - 3-5x signature speed improvement, Chinese national crypto SM2/SM3/SM4/SM9, batch signing pipeline
+- ✅ **NFC Offline Signing** - Near-field communication offline identity verification, transaction signing, file signing without network
+- ✅ **Multi-SIM Auto-Switch** - Dual-SIM intelligent management, network failover, work/personal separation
+- ✅ **SIM Health Monitoring** - Real-time health score dashboard, smart alerts, auto-maintenance, report export
+- ✅ **Quantum-Resistant Algorithm Upgrade** - NIST PQC standards (ML-KEM/ML-DSA/SLH-DSA), hybrid encryption mode, key migration tools
+
+#### v0.38.0 Documentation Site Expansion (10 pages, 4,400+ lines added)
+
+- ✅ **AI Models Docs** - 16+ cloud LLM providers overview, multimodal vision models, intelligent routing, Context Engineering
+- ✅ **SIMKey/U-Key Docs** - v0.38.0 features with API examples, configuration guides, security mechanisms
+- ✅ **Social System Roadmap** - Versioned future feature planning
+- ✅ **Trading System Roadmap** - Auction system, group buying, installment payments, Lightning Network payments
+- ✅ **Git Sync Roadmap** - Cross-device sync enhancement, collaborative editing, version visualization
+- ✅ **Encryption System Expansion** - Post-quantum cryptography, TEE integration, zero-knowledge proofs
+- ✅ **Cowork Collaboration Expansion** - Multi-agent workflow orchestration, Agent communication protocol
+- ✅ **Overview Expansion** - Phase 5 roadmap, competitor comparison, application scenarios
 
 #### v0.37.4~v0.37.6 New 30 Desktop Skills (Total 90)
 
@@ -231,12 +251,14 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🟢 **Browser Extension**: 100% Complete - **Testing Framework + Documentation** ⭐Completed
 - 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension + 45,000+ Lines** ⭐Completed
 - 🟢 **AI Skills System**: 100% Complete - **90 Built-in Skills (100% Handler) + 28 Android Skills + Unified Tool Registry + Agent Skills Standard** ⭐v0.37.6
+- 🟢 **SIMKey Security Enhancements**: 100% Complete - **iOS eSIM + 5G Optimization + NFC Offline Signing + Multi-SIM Switch + Health Monitoring + Quantum-Resistant** ⭐v0.38.0
 - 🟢 **Mobile Application**: 100% Complete - **Knowledge Base + AI Chat + Trading System + Social Features + Mobile UX Optimization + P2P Sync + Android Remote Control UIs** ⭐Completed
 
 ## Core Features
 
-- 🔐 **Military-Grade Security**: SQLCipher AES-256 encryption + Cross-Platform USB Key hardware keys + Signal protocol E2E encryption ✅
-- 📡 **Remote Control**: P2P remote control + 24+ command handlers + Chrome extension + 45,000+ lines ✅ ⭐NEW
+- 🔐 **Military-Grade Security**: SQLCipher AES-256 encryption + Cross-Platform USB Key hardware keys + Signal protocol E2E encryption + Post-Quantum Crypto (ML-KEM/ML-DSA) ✅
+- 📱 **SIMKey v0.38.0**: iOS eSIM + 5G Optimization (3-5x) + NFC Offline Signing + Multi-SIM Switch + Health Monitoring + Quantum-Resistant ✅ ⭐NEW
+- 📡 **Remote Control**: P2P remote control + 24+ command handlers + Chrome extension + 45,000+ lines ✅
 - 🖥️ **Computer Use**: Claude-style desktop automation + Vision AI locator + Workflow engine + 68+ IPC channels ✅
 - 🧠 **Permanent Memory System**: Daily Notes auto-logging + MEMORY.md long-term extraction + Hybrid Search (Vector+BM25) ✅
 - 🎯 **Context Engineering**: KV-Cache optimization + Token estimation + Recoverable compression + Task context management ✅

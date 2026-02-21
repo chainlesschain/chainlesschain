@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.37.6-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.38.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,11 +19,31 @@
 
 ---
 
-## ⭐ 当前版本: v0.37.6 (2026-02-17)
+## ⭐ 当前版本: v0.38.0 (2026-02-22)
 
-### 最新更新 - 90 Built-in Skills (100% Handler 覆盖) + Android 28 Skills + PC 远程委托
+### 最新更新 - SIMKey v0.38.0 六大安全增强 + 文档站全面扩展
 
-**90 Desktop Skills + 28 Android Skills + PC Remote Delegation** - 桌面端 90 个内置技能全部配备可执行 Handler，Android 端 28 个技能(含 8 个 PC 远程委托)，统一工具注册表全面打通 AI 对话调用链
+**SIMKey 6 Security Enhancements** - iOS eSIM支持、5G SIM卡优化、NFC离线签名、多SIM卡自动切换、SIM卡健康监控、量子抗性算法升级；文档站10个页面扩展4,400+行内容
+
+#### v0.38.0 SIMKey 六大安全增强 (2026-02-21)
+
+- ✅ **iOS eSIM支持** - Apple eSIM API + Secure Enclave集成，iOS用户可使用eSIM作为SIMKey安全载体
+- ✅ **5G SIM卡优化** - 签名速度提升3-5倍，支持国密SM2/SM3/SM4/SM9，批量签名流水线
+- ✅ **NFC离线签名** - 近场通信离线身份验证、交易签名、文件签名，无需网络
+- ✅ **多SIM卡自动切换** - 双卡双待智能管理，网络故障自动切换，工作/个人分离
+- ✅ **SIM卡健康监控** - 实时健康评分仪表盘，智能告警，自动维护，报告导出
+- ✅ **量子抗性算法升级** - NIST PQC标准(ML-KEM/ML-DSA/SLH-DSA)，混合加密模式，密钥迁移工具
+
+#### v0.38.0 文档站全面扩展 (10个页面, 4,400+行新增)
+
+- ✅ **AI模型文档** - 16+云LLM提供商总览，多模态视觉模型，智能模型路由，Context Engineering详解
+- ✅ **SIMKey/U盾文档** - v0.38.0六大功能详细文档，API示例，配置指南，安全机制
+- ✅ **社交系统路线图** - 分版本未来功能详细规划
+- ✅ **交易系统路线图** - 拍卖系统、团购/拼单、分期付款、闪电网络支付等未来规划
+- ✅ **Git同步路线图** - 跨设备同步增强、协作编辑、版本可视化等未来规划
+- ✅ **加密系统扩展** - 后量子密码学、TEE集成、零知识证明详解
+- ✅ **Cowork协作扩展** - 多智能体工作流编排、Agent通信协议详解
+- ✅ **系统概述扩展** - Phase 5路线图、竞品对比、应用场景详解
 
 #### v0.37.4~v0.37.6 新增 30 个桌面技能 (总计 90 个)
 
@@ -185,11 +205,13 @@
 - 🟢 **企业审计与合规**: 100% 完成 - **统一审计日志+GDPR合规+DSR处理+18 IPC**
 - 🟢 **插件市场与SSO**: 100% 完成 - **插件市场22 IPC+SSO认证20 IPC+MCP SDK+多代理16 IPC**
 - 🟢 **AI技能系统**: 100% 完成 - **90内置技能(100% Handler覆盖)+统一工具注册表+10演示模板+Agent Skills标准**
+- 🟢 **SIMKey安全增强**: 100% 完成 - **iOS eSIM+5G优化+NFC离线签名+多SIM卡切换+健康监控+量子抗性**
 - 🟢 **移动端应用**: 100% 完成 - **完整功能+桌面同步+Android P2P UI+远程控制UI**
 
 ## 核心特性
 
-- 🔐 **军事级安全**: SQLCipher AES-256加密 + U盾硬件密钥 + Signal协议E2E加密
+- 🔐 **军事级安全**: SQLCipher AES-256加密 + U盾硬件密钥 + Signal协议E2E加密 + 后量子密码学(ML-KEM/ML-DSA)
+- 📱 **SIMKey v0.38.0**: iOS eSIM + 5G优化(3-5x) + NFC离线签名 + 多SIM卡切换 + 健康监控 + 量子抗性
 - 📡 **Remote Control**: P2P远程控制 + 24+命令处理器 + Chrome扩展 + 45,000+行代码
 - 🖥️ **Computer Use**: Claude风格电脑操作 + 视觉AI定位 + 工作流引擎 + 68+ IPC通道
 - 🧠 **永久记忆系统**: Daily Notes自动记录 + MEMORY.md长期萃取 + 混合搜索(Vector+BM25)
@@ -218,7 +240,7 @@
 - 🧪 **全面测试体系**: 2000+测试用例 + 417测试文件 + OWASP安全验证 + DI测试重构
 - 🌐 **浏览器自动化**: BrowserEngine + SnapshotEngine + 智能元素定位 + 18个IPC通道
 - 📝 **TypeScript支持**: Stores/Composables TypeScript迁移 + 类型安全 + IDE增强
-- 🔓 **开源自主**: 290,000+行代码,358个Vue组件,完全透明可审计
+- 🔓 **开源自主**: 290,000+行代码,358个Vue组件,完全透明可审计,文档站8,200+行
 
 更多特性详见 [功能详解](./docs/FEATURES.md)
 
@@ -513,7 +535,7 @@ chainlesschain/
 
 - Electron 39.2.7 + Vue 3.4 + TypeScript 5.9 + Ant Design Vue 4.1
 - SQLite/SQLCipher (AES-256) + libp2p 3.1.2
-- 16个专用AI引擎 + 17项智能优化 + 115个技能 + 300个工具
+- 16个专用AI引擎 + 17项智能优化 + 115个技能 + 300个工具 + 后量子密码学
 - 永久记忆: Daily Notes + MEMORY.md + 混合搜索(Vector+BM25)
 - Context Engineering: KV-Cache优化 + Token预估 + 可恢复压缩
 - 企业权限: RBAC引擎 + 团队管理 + 审批工作流 + 权限委托
@@ -558,6 +580,8 @@ chainlesschain/
 
 ### 已完成的优化 ✅
 
+- [x] **SIMKey六大安全增强**: iOS eSIM + 5G优化 + NFC离线签名 + 多SIM卡切换 + 健康监控 + 量子抗性算法 ✅ v0.38.0
+- [x] **文档站全面扩展**: 10个页面4,400+行新增(AI模型/社交/交易/加密/Git同步/SIMKey/U盾/Cowork等) ✅ v0.38.0
 - [x] **AI技能系统**: 90内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + Agent Skills标准 ✅ v0.37.6
 - [x] **扩展MCP服务器支持**: MCP SDK (Server Builder + HTTP+SSE + Stdio) + 社区注册中心 ✅ v0.34.0
 - [x] **增强多代理协作**: 8种专业化代理模板 + 任务编排引擎 + 5个内置技能 ✅ v0.34.0
