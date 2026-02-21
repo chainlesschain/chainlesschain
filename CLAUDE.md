@@ -35,15 +35,15 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 
 ## Memory Bank System
 
-项目使用 Memory Bank 系统保持 AI 助手的跨会话上下文：
+Project uses Memory Bank system to maintain AI assistant cross-session context:
 
-| 文件                        | 用途                   | 更新时机       |
-| --------------------------- | ---------------------- | -------------- |
-| `CLAUDE.md`                 | 主要项目文档和 AI 指南 | 重大功能变更时 |
-| `CLAUDE-patterns.md`        | 已验证的架构模式       | 发现新模式时   |
-| `CLAUDE-decisions.md`       | 架构决策记录 (ADR)     | 重大架构决策时 |
-| `CLAUDE-troubleshooting.md` | 已知问题和解决方案     | 解决新问题时   |
-| `CLAUDE-activeContext.md`   | 当前会话状态           | 每次会话结束时 |
+| File                        | Purpose                        | Update Trigger               |
+| --------------------------- | ------------------------------ | ---------------------------- |
+| `CLAUDE.md`                 | Main project docs & AI guide   | Major feature changes        |
+| `CLAUDE-patterns.md`        | Verified architecture patterns | New patterns discovered      |
+| `CLAUDE-decisions.md`       | Architecture Decision Records  | Major architecture decisions |
+| `CLAUDE-troubleshooting.md` | Known issues & solutions       | New issues resolved          |
+| `CLAUDE-activeContext.md`   | Current session state          | Each session end             |
 
 ## Critical Build & Development Commands
 
@@ -93,423 +93,74 @@ npm run docker:up          # Start Docker services
 npm run lint && npm run format
 ```
 
-## Key Features (Summary)
-
-### MCP (Model Context Protocol) Integration
-
-**Status**: POC v0.1.0 | **Docs**: [`docs/features/MCP_USER_GUIDE.md`](docs/features/MCP_USER_GUIDE.md)
-
-Standardized AI tool integration supporting Filesystem, PostgreSQL, SQLite, Git servers with defense-in-depth security.
-
-### LLM Performance Dashboard
-
-**Status**: ✅ Implemented | **Route**: `#/llm/performance` | **Docs**: [`docs/features/LLM_PERFORMANCE_DASHBOARD.md`](docs/features/LLM_PERFORMANCE_DASHBOARD.md)
-
-Token usage tracking, cost analysis, and performance monitoring with ECharts visualization.
-
-### SessionManager
-
-**Status**: ✅ Implemented v0.29.0 | **Docs**: [`docs/features/SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)
-
-Intelligent session context management with auto-compression (30-40% token savings), search, tags, export/import, auto-summary, and Permanent Memory integration.
-
-### ErrorMonitor AI Diagnostics
-
-**Status**: ✅ Implemented | **Docs**: [`docs/features/ERROR_MONITOR.md`](docs/features/ERROR_MONITOR.md)
-
-Smart error diagnosis with local Ollama LLM (free), auto-classification, severity assessment, and auto-fix strategies.
-
-### Manus Optimizations
-
-**Status**: ✅ Implemented v0.24.0 | **Docs**: [`docs/MANUS_OPTIMIZATION_GUIDE.md`](docs/MANUS_OPTIMIZATION_GUIDE.md)
-
-Context Engineering (KV-Cache optimization), Tool Masking, Task Tracking (todo.md), and Multi-Agent system.
-
-### Cowork Multi-Agent Collaboration
-
-**Status**: ✅ Implemented v1.0.0 | **Docs**: [`docs/features/COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md) | [`docs/features/COWORK_FINAL_SUMMARY.md`](docs/features/COWORK_FINAL_SUMMARY.md)
-
-Claude Cowork-style multi-agent collaboration system with 13 core operations (TeammateTool), secure file access control (FileSandbox), long-running task management with checkpoint/recovery, and extensible Skills framework (Office, Data Analysis). Includes intelligent single/multi-agent decision engine, 45 IPC handlers, and 200+ test cases with ~90% code coverage.
-
-**Workflow Integration**: [`docs/PROJECT_WORKFLOW_OPTIMIZATION_PLAN.md`](docs/PROJECT_WORKFLOW_OPTIMIZATION_PLAN.md) | [`docs/COWORK_INTEGRATION_ROADMAP.md`](docs/COWORK_INTEGRATION_ROADMAP.md)
-
-Comprehensive plan to integrate Cowork into project workflow, achieving 80-120% productivity boost. Covers requirement analysis, parallel development, intelligent code review, CI/CD optimization, and automated documentation generation.
-
-### Permanent Memory System (Clawdbot Integration)
-
-**Status**: ✅ Implemented v0.26.2 | **Docs**: [`docs/features/PERMANENT_MEMORY_INTEGRATION.md`](docs/features/PERMANENT_MEMORY_INTEGRATION.md)
-
-Cross-session persistent memory inspired by Clawdbot architecture:
-
-- **Daily Notes**: Auto-logging daily activities to `.chainlesschain/memory/daily/YYYY-MM-DD.md`
-- **MEMORY.md**: Long-term knowledge extraction and persistent insights
-- **Pre-compaction Flush**: Auto-save before context compression (prevents data loss)
-- **Hybrid Search**: Vector (semantic, 0.6 weight) + BM25 (keyword, 0.4 weight) with RRF fusion
-- **Auto-indexing**: File watching with 1.5s debounce, automatic index rebuild
-- **Embedding Cache**: SQLite-based cache to avoid redundant computation
-
-### Hooks System (Claude Code Inspired)
-
-**Status**: ✅ Implemented v0.27.0 | **Docs**: [`docs/design/HOOKS_SYSTEM_DESIGN.md`](docs/design/HOOKS_SYSTEM_DESIGN.md)
-
-Extensible hooks system inspired by Claude Code, enabling custom logic at key operation points:
-
-- **21 Hook Events**: PreToolUse, PostToolUse, SessionStart, PreCompact, FileModified, etc.
-- **4 Hook Types**: Sync, Async, Command (shell), Script (JS/Python/Bash)
-- **Priority System**: SYSTEM(0) → HIGH(100) → NORMAL(500) → LOW(900) → MONITOR(1000)
-- **Middleware Integration**: IPC, Tool, Session, File, Agent middleware factories
-- **Configuration**: `.chainlesschain/hooks.json` (project) and `~/.chainlesschain/hooks.json` (user)
-- **Script Hooks**: Auto-load from `.chainlesschain/hooks/*.js`
-
-**Key Files**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
-
-**Key Files**: `src/main/llm/permanent-memory-manager.js`, `src/main/llm/permanent-memory-ipc.js`
-
-### Hybrid Search Engine
-
-**Status**: ✅ Implemented v0.26.2 | **Docs**: [`docs/features/PERMANENT_MEMORY_INTEGRATION.md`](docs/features/PERMANENT_MEMORY_INTEGRATION.md)
-
-Dual-path search combining semantic and keyword matching:
-
-- **Vector Search**: Semantic similarity via RAG Manager embeddings
-- **BM25 Search**: Okapi BM25 algorithm with Chinese/English tokenizer
-- **RRF Fusion**: Reciprocal Rank Fusion for result merging
-- **Performance**: <20ms search latency, parallel execution
-
-**Key Files**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
-
-### IPC Error Handler Middleware
-
-**Status**: ✅ Implemented v0.26.2 | **Docs**: [`docs/guides/IPC_ERROR_HANDLER_GUIDE.md`](docs/guides/IPC_ERROR_HANDLER_GUIDE.md)
-
-Enterprise-grade error handling for IPC channels:
-
-- **Error Classification**: 10 error types (Validation, Network, Permission, NotFound, Conflict, Timeout, Database, Filesystem, Internal, Unknown)
-- **Standardized Response**: Unified error format with severity, retry hints, suggestions
-- **ErrorMonitor Integration**: AI-powered error diagnosis via local Ollama
-- **Statistics Collection**: Error tracking and reporting
-
-**Key Files**: `src/main/utils/ipc-error-handler.js`
-
-### Permission Engine (Enterprise RBAC)
-
-**Status**: ✅ Implemented v0.29.0
-
-Enterprise-grade Role-Based Access Control system:
-
-- **Resource-Level Permissions**: Fine-grained access control on individual resources
-- **Permission Inheritance**: Parent-child resource permission propagation
-- **Permission Delegation**: Temporary permission grants with time bounds
-- **Team-Based Permissions**: Team membership-driven access control
-- **Audit Logging**: Complete permission change history
-
-**Key Files**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`, `src/main/permission/delegation-manager.js`
-
-### Team Manager
-
-**Status**: ✅ Implemented v0.29.0
-
-Organization sub-team management system:
-
-- **Team CRUD**: Create, update, delete teams with hierarchy support
-- **Member Management**: Add/remove members, set team leads
-- **Team Hierarchy**: Parent-child team relationships
-- **Team Reports**: Daily standup and weekly report system with AI summaries
-
-**Key Files**: `src/main/permission/team-manager.js`, `src/main/task/team-report-manager.js`
-
-### Context Engineering (KV-Cache Optimization)
-
-**Status**: ✅ Implemented v0.29.0
-
-KV-Cache optimization system for improved LLM performance:
-
-- **Static/Dynamic Separation**: Place static content first for cache hits (60-85% hit rate)
-- **Tool Definition Serialization**: Deterministic ordering by name
-- **Task Context Management**: Goal restatement to prevent "lost in the middle"
-- **Error History Tracking**: Learn from past errors
-- **Recoverable Compression**: Preserve references for later recovery
-- **Token Estimation**: Chinese/English auto-detection
-
-**Key Files**: `src/main/llm/context-engineering.js`, `src/main/llm/context-engineering-ipc.js` (17 IPC handlers)
-
-### Plan Mode (Claude Code Style)
-
-**Status**: ✅ Implemented v0.29.0
-
-Safe planning mode inspired by Claude Code:
-
-- **Security Analysis Mode**: Only allow Read/Search/Analyze tools
-- **Plan Generation**: Auto-record blocked operations to plan
-- **Approval Workflow**: Full/partial approval, rejection support
-- **Hooks Integration**: Works with PreToolUse hooks for permission control
-
-**Key Files**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js` (14 IPC handlers)
-
-### Skills System (Markdown Skills)
-
-**Status**: ✅ Implemented v0.29.0
-
-Extensible skill system with Markdown definitions:
-
-- **Three-Layer Loading**: bundled → managed → workspace (higher layers override)
-- **Gate Checks**: Platform, binary dependencies, environment variables
-- **/skill Commands**: User command parsing and auto-execution
-- **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **92 Built-in Skills** (Handler 覆盖 92/92, 100%):
-  - **Core**: code-review, git-commit, explain-code
-  - **Automation**: browser-automation, computer-use, workflow-automation, voice-commander
-  - **Data**: web-scraping, data-analysis, chart-creator, csv-processor
-  - **Knowledge**: memory-management, smart-search, context-loader, research-agent, codebase-qa
-  - **Remote**: remote-control
-  - **Security**: security-audit, vulnerability-scanner
-  - **DevOps**: devops-automation, env-doctor, release-manager
-  - **Development**: test-generator, performance-optimizer, repo-map, refactor, onboard-project, project-scaffold, mcp-server-generator, architect-mode, commit-splitter, screenshot-to-code, diff-previewer, task-decomposer, code-translator, dead-code-eliminator, changelog-generator, mock-data-generator, i18n-manager, template-renderer, code-runner
-  - **Documentation**: doc-generator
-  - **Testing**: api-tester, lint-and-fix, test-and-fix, bugbot, fault-localizer
-  - **Analysis**: dependency-analyzer, impact-analyzer, rules-engine, git-history-analyzer
-  - **Database**: db-migration
-  - **AI**: prompt-enhancer, auto-context, multi-model-router, image-generator
-  - **Document**: pdf-toolkit, doc-converter, excel-analyzer, pptx-creator, doc-comparator, word-generator, markdown-enhancer
-  - **Media**: audio-transcriber, video-toolkit, subtitle-generator, tts-synthesizer, media-metadata, image-editor, ocr-scanner
-  - **Knowledge**: knowledge-graph, query-enhancer, memory-insights
-  - **DevOps**: log-analyzer, system-monitor, env-file-manager, network-diagnostics, performance-profiler
-  - **Security**: crypto-toolkit, password-generator
-  - **System**: backup-manager
-  - **Data**: data-exporter
-  - **Design**: color-picker
-  - **Utility**: file-compressor, json-yaml-toolkit, regex-playground, http-client, snippet-library, clipboard-manager, text-transformer
-  - **Quality**: verification-loop
-  - **Workflow**: orchestrate
-
-**Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers), `src/main/ai-engine/cowork/skills/skill-md-parser.js`, `src/main/ai-engine/cowork/skills/markdown-skill.js`
-
-### AI Skills Demo Templates
-
-**Status**: ✅ Implemented v0.35.0
-
-10 demo project templates showcasing AI skills with browsable UI:
-
-- **Automation**: web-form-autofill, batch-screenshot, data-extraction-pipeline
-- **AI Workflow**: ai-research-assistant, daily-report-generator, code-review-pipeline
-- **Knowledge**: personal-knowledge-base, meeting-notes-manager
-- **Remote**: multi-device-sync, remote-desktop-monitor
-- **DemoTemplateLoader**: Auto-discovers JSON templates from `src/main/templates/{category}/`
-- **4 IPC Handlers**: template:get-demos, template:get-demo-by-skill, template:preview-demo, template:run-demo
-
-**Key Files**: `src/main/templates/demo-template-loader.js`
-**Frontend**: `src/renderer/pages/DemoTemplatesPage.vue` (route: `#/demo-templates`)
-
-### Unified Tool Registry (Agent Skills Open Standard)
-
-**Status**: ✅ Implemented v0.36.0
-
-Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 92 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
-
-- **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry (with initialization lock)
-- **MCPSkillGenerator**: Auto-generates SkillManifestEntry when MCP servers connect
-- **ToolSkillMapper**: Auto-groups uncovered built-in tools into 10 skill categories
-- **Name Normalization**: `browser-click` (SKILL.md) → `browser_click` (FunctionCaller) bridging
-- **AI Call Chain Integration**: `ManusOptimizations.bindUnifiedRegistry()` → `ContextEngineering` skill-grouped prompts
-- **6 IPC Handlers**: `tools:get-all-with-skills`, `tools:get-skill-manifest`, `tools:get-by-skill`, `tools:search-unified`, `tools:get-tool-context`, `tools:refresh-unified` (with init-wait guard)
-- **Community Registry Enriched**: 8 MCP servers with `skillInstructions`, `skillExamples`, `skillCategory`
-- **31 Tests**: 27 unit + 4 E2E integration (full call chain verification)
-
-**Key Files**: `src/main/ai-engine/unified-tool-registry.js`, `src/main/ai-engine/tool-skill-mapper.js`, `src/main/mcp/mcp-skill-generator.js`, `src/main/ai-engine/unified-tools-ipc.js`, `src/main/llm/manus-optimizations.js` (bindUnifiedRegistry)
-**Frontend**: `src/renderer/pages/ToolsExplorerPage.vue` (route: `#/tools/explorer`), `src/renderer/stores/unified-tools.ts`
-
-### Browser Automation System
-
-**Status**: ✅ Implemented v0.29.0 | **Docs**: [`docs/design/modules/09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)
-
-Complete browser automation system with workflow editing, intelligent element location, and recording/playback:
-
-- **BrowserEngine** (~300 lines): Core automation engine, Puppeteer API compatible
-- **ElementLocator** (~450 lines): Multi-strategy element location (XPath/CSS/Text/Visual)
-- **SnapshotEngine** (~280 lines): Snapshot comparison and diagnostics
-- **RecordingEngine** (~250 lines): User action recording and playback
-- **SmartDiagnostics** (~350 lines): AI-powered diagnostics with auto-fix suggestions
-- **Performance**: 95%+ element location accuracy, <200ms snapshot comparison
-
-**Key Files**: `src/main/browser/browser-engine.js`, `src/main/browser/element-locator.js`, `src/main/browser/recording/recorder.js`
-
-### Computer Use Capabilities (Claude Computer Use 风格)
-
-**Status**: ✅ Implemented v0.33.0 | **Docs**: [`docs/features/COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)
-
-类似 Claude Computer Use 的电脑操作能力，支持浏览器和桌面级操作（68+ IPC handlers）：
-
-- **CoordinateAction**: 像素级坐标点击、拖拽、手势操作
-- **VisionAction**: Vision AI 集成，视觉元素定位，支持 Claude/GPT-4V/LLaVA
-- **NetworkInterceptor**: 网络请求拦截、模拟、条件控制
-- **DesktopAction**: 桌面级截图、鼠标键盘控制、窗口管理
-- **ComputerUseAgent**: 统一代理，整合所有能力
-- **AuditLogger**: 操作审计日志，风险评估（LOW/MEDIUM/HIGH/CRITICAL），敏感信息自动脱敏
-- **ScreenRecorder**: 屏幕录制为截图序列，支持暂停/恢复/导出
-- **ActionReplay**: 操作回放引擎，支持变速、单步、断点调试
-- **SafeMode**: 安全模式，权限控制、区域限制、速率限制、确认提示
-- **WorkflowEngine**: 工作流引擎，支持条件分支、循环、并行执行、子工作流
-- **ElementHighlighter**: 元素高亮显示，调试和演示可视化
-- **TemplateActions**: 预定义操作模板，快速执行常用自动化任务
-- **ComputerUseMetrics**: 性能指标收集和分析
-
-**与 Claude Computer Use 对比优势**：
-
-- Shadow DOM 支持（Web Components 兼容）
-- 多语言 OCR（10+ 语言）
-- 完整工作流引擎（条件/循环/并行）
-- 用户录制回放与断点调试
-- 操作审计与风险评估
-- 安全模式与权限控制
-
-**AI Tools Integration**: 12 个工具可供 AI 调用（browser_click, visual_click, browser_type, browser_key, browser_scroll, browser_screenshot, analyze_page, browser_navigate, browser_wait, desktop_screenshot, desktop_click, desktop_type）
-
-**IPC Handlers**: 45+ 个 IPC 处理器（审计 5、录制 10、回放 8、安全模式 7、工作流 11）
-
-**Frontend Component**: `src/renderer/components/browser/ComputerUsePanel.vue`
-
-**Key Files**: `src/main/browser/computer-use-agent.js`, `src/main/browser/actions/coordinate-action.js`, `src/main/browser/actions/vision-action.js`, `src/main/browser/actions/network-interceptor.js`, `src/main/browser/actions/desktop-action.js`, `src/main/browser/actions/audit-logger.js`, `src/main/browser/actions/screen-recorder.js`, `src/main/browser/actions/action-replay.js`, `src/main/browser/actions/safe-mode.js`, `src/main/browser/actions/workflow-engine.js`
-
-### TypeScript Migration
-
-**Status**: ✅ Completed v0.29.0
-
-Full TypeScript migration for frontend state management:
-
-- **28 Pinia Stores**: All stores migrated to TypeScript (app.ts, auth.ts, session.ts, conversation.ts, llm.ts, task.ts, memory.ts, file.ts, workspace.ts, etc.)
-- **Type Safety**: Complete type definitions and interfaces
-- **IDE Support**: Full type inference and intelligent hints
-- **Compatibility**: Improved logger.info() call compatibility
-
-**Store Location**: `src/renderer/stores/*.ts`
-
-### Enterprise Audit & Compliance
-
-**Status**: ✅ Implemented v0.34.0
-
-Enterprise-grade audit logging and compliance management:
-
-- **Unified Audit Logger**: Aggregates audit events across all subsystems (browser, permission, file, API, cowork)
-- **Compliance Manager**: GDPR/SOC2/HIPAA compliance checks, policy engine, report generation
-- **Data Subject Handler**: GDPR DSR (access, erasure, rectification, portability) request processing
-- **18 IPC Handlers**: Full CRUD for audit logs, compliance policies, DSR, retention policies
-- **Hook Events**: `AuditLog`, `ComplianceCheck`, `DataSubjectRequest` integrated into HookSystem
-
-**Key Files**: `src/main/audit/enterprise-audit-logger.js`, `src/main/audit/compliance-manager.js`, `src/main/audit/data-subject-handler.js`, `src/main/audit/audit-ipc.js`
-**Frontend**: `src/renderer/pages/EnterpriseAuditPage.vue`, `src/renderer/pages/ComplianceDashboard.vue`, `src/renderer/stores/audit.ts`
-
-### Plugin Marketplace
-
-**Status**: ✅ Implemented v0.34.0
-
-Desktop frontend and bridge for the plugin marketplace backend:
-
-- **Marketplace Client**: HTTP client with DID auth to marketplace REST API
-- **Plugin Installer**: Download, hash verification, extraction, SkillLoader registration
-- **Plugin Updater**: Background update checks, auto-update notifications
-- **22 IPC Handlers**: Browse, install, uninstall, update, rate, publish, configure plugins
-
-**Key Files**: `src/main/marketplace/marketplace-client.js`, `src/main/marketplace/plugin-installer.js`, `src/main/marketplace/plugin-updater.js`, `src/main/marketplace/marketplace-ipc.js`
-**Frontend**: `src/renderer/pages/PluginMarketplacePage.vue`, `src/renderer/pages/PluginDetailPage.vue`, `src/renderer/pages/InstalledPluginsPage.vue`, `src/renderer/stores/marketplace.ts`
-
-### Specialized Multi-Agent System
-
-**Status**: ✅ Implemented v0.34.0
-
-8 specialized AI agent templates with coordination capabilities:
-
-- **Agent Templates**: CodeSecurity, DevOps, DataAnalysis, Documentation, TestGenerator, Architect, Performance, Compliance
-- **Agent Coordinator**: Multi-agent task decomposition, assignment, result aggregation
-- **Agent Registry**: Type registry, factory, versioning, instance lifecycle management
-- **16 IPC Handlers**: Template CRUD, deploy/terminate, task assignment, orchestration, analytics
-- **5 Built-in Skills**: security-audit, devops-automation, data-analysis, test-generator, performance-optimizer
-- **4th Skill Layer**: Marketplace skills layer added to SkillLoader (bundled → marketplace → managed → workspace)
-
-**Key Files**: `src/main/ai-engine/agents/agent-templates.js`, `src/main/ai-engine/agents/agent-coordinator.js`, `src/main/ai-engine/agents/agent-registry.js`, `src/main/ai-engine/agents/agents-ipc.js`
-**Frontend**: `src/renderer/pages/AgentDashboardPage.vue`, `src/renderer/pages/AgentTemplateEditorPage.vue`, `src/renderer/stores/agents.ts`
-
-### SSO & Enterprise Authentication
-
-**Status**: ✅ Implemented v0.34.0
-
-Multi-provider Single Sign-On with DID identity linking:
-
-- **SSO Manager**: Multi-provider coordinator (SAML 2.0, OAuth 2.0, OIDC) with PKCE support
-- **SAML Provider**: SP metadata generation, AuthnRequest, assertion parsing, signature verification
-- **OAuth Provider**: Authorization code + PKCE, token refresh, userinfo, ID token validation
-- **Session Manager**: Encrypted token storage (AES-256-GCM), auto-refresh, session lifecycle
-- **Identity Bridge**: DID ↔ SSO identity linking with bidirectional lookup
-- **20 IPC Handlers**: Provider config, auth flows, identity linking, session management, SAML/OIDC
-
-**Key Files**: `src/main/auth/sso-manager.js`, `src/main/auth/saml-provider.js`, `src/main/auth/oauth-provider.js`, `src/main/auth/sso-session-manager.js`, `src/main/auth/identity-bridge.js`, `src/main/auth/sso-ipc.js`
-**Frontend**: `src/renderer/pages/SSOConfigurationPage.vue`, `src/renderer/pages/SSOLoginPage.vue`, `src/renderer/pages/IdentityLinkingPage.vue`, `src/renderer/stores/sso.ts`
-
-### MCP SDK & Community Registry
-
-**Status**: ✅ Implemented v0.34.0
-
-SDK for building custom MCP servers and community server discovery:
-
-- **Server Builder**: Fluent API (`new MCPServerBuilder().name().tool().build()`)
-- **HTTP+SSE Server**: HTTP server with SSE streaming, CORS, auth (Bearer/API-Key/Basic)
-- **Stdio Server**: Line-delimited JSON-RPC 2.0 over stdin/stdout
-- **Community Registry**: Discover/install 8+ pre-cataloged community MCP servers (filesystem, postgresql, sqlite, git, brave-search, puppeteer, slack, github)
-
-**Key Files**: `src/main/mcp/sdk/index.js`, `src/main/mcp/sdk/server-builder.js`, `src/main/mcp/sdk/http-server.js`, `src/main/mcp/sdk/stdio-server.js`, `src/main/mcp/community-registry.js`
-**Frontend**: `src/renderer/pages/MCPServerMarketplace.vue`
-
-### Verification Loop Skill (everything-claude-code Pattern)
-
-**Status**: ✅ Implemented v0.39.0
-
-6-stage automated verification pipeline producing READY/NOT READY verdict:
-
-- **Build Stage**: Runs `npm run build` / `mvn compile` / `pip install`, captures exit code
-- **TypeCheck Stage**: Runs `tsc --noEmit` or equivalent type checker
-- **Lint Stage**: Runs ESLint / configured linter with error parsing
-- **Test Stage**: Runs `npm test` / `vitest` / `pytest`, parses pass/fail counts
-- **Security Stage**: Delegates to existing `security-audit` skill handler
-- **DiffReview Stage**: Scans `git diff` for console.log, debugger, TODO, hardcoded credentials
-- **Auto-Detection**: Identifies project type (typescript, nodejs, python, java) from config files
-- **Verdict**: READY (all stages pass) / NOT READY (with failure details and stage-by-stage breakdown)
-
-**Key Files**: `src/main/ai-engine/cowork/skills/builtin/verification-loop/SKILL.md`, `src/main/ai-engine/cowork/skills/builtin/verification-loop/handler.js`
-
-### Orchestrate Workflow Skill (everything-claude-code Pattern)
-
-**Status**: ✅ Implemented v0.39.0
-
-Predefined multi-agent workflow templates with agent handoff protocol:
-
-- **4 Workflow Templates**:
-  - `feature`: planner → architect → coder → reviewer → verification-loop
-  - `bugfix`: debugger → coder → tester → verification-loop
-  - `refactor`: architect → coder → reviewer → verification-loop
-  - `security-audit`: security-reviewer → coder → security-verifier → verification-loop
-- **Handoff Documents**: Structured inter-agent context (deliverables, decisions, concerns, next instructions)
-- **AgentCoordinator Integration**: Uses existing agent orchestration when available, graceful fallback otherwise
-- **Verdict**: SHIP (all success) / NEEDS WORK (concerns or verification fail) / BLOCKED (critical failure)
-- **Usage**: `/orchestrate feature "add user profile page"`
-
-**Key Files**: `src/main/ai-engine/cowork/skills/builtin/orchestrate/SKILL.md`, `src/main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`
-
-### Instinct Learning System (everything-claude-code Pattern)
-
-**Status**: ✅ Implemented v0.39.0
-
-Automatically extract reusable patterns ("instincts") from user sessions via hooks observation:
-
-- **InstinctManager**: Singleton with confidence-scored pattern storage (0.1-0.95 range)
-- **8 Categories**: CODING_PATTERN, TOOL_PREFERENCE, WORKFLOW, ERROR_FIX, STYLE, ARCHITECTURE, TESTING, GENERAL
-- **Observation Pipeline**: PostToolUse/PreCompact hooks → observation buffer (50 items, 60s flush) → pattern extraction
-- **Confidence Dynamics**: Reinforce (+5% diminishing) on successful use, Decay (×0.9) on failure/disuse
-- **Context Injection**: Relevant instincts auto-injected into LLM prompts via Context Engineering integration
-- **Pattern Evolution**: `evolve()` clusters high-confidence instincts, detects tool frequency/sequence patterns
-- **Data Portability**: JSON export/import for instinct sharing
-- **11 IPC Handlers**: Full CRUD, reinforce/decay, evolve, export/import, stats
-- **Database Tables**: `instincts` (pattern storage), `instinct_observations` (event buffering)
-
-**Key Files**: `src/main/llm/instinct-manager.js`, `src/main/llm/instinct-ipc.js`
+## Feature Index
+
+All features are implemented. Entry files are relative to `desktop-app-vue/src/`.
+
+| Feature                       | Entry File(s)                                                       | Docs                                                                               |
+| ----------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| MCP Integration               | `main/mcp/`                                                         | [`MCP_USER_GUIDE.md`](docs/features/MCP_USER_GUIDE.md)                             |
+| MCP SDK & Community Registry  | `main/mcp/sdk/index.js`, `main/mcp/community-registry.js`           | —                                                                                  |
+| LLM Performance Dashboard     | `main/llm/token-tracker.js`                                         | [`LLM_PERFORMANCE_DASHBOARD.md`](docs/features/LLM_PERFORMANCE_DASHBOARD.md)       |
+| SessionManager                | `main/llm/session-manager.js`                                       | [`SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)                           |
+| ErrorMonitor AI Diagnostics   | `main/monitoring/error-monitor.js`                                  | [`ERROR_MONITOR.md`](docs/features/ERROR_MONITOR.md)                               |
+| Manus Optimizations           | `main/llm/manus-optimizations.js`                                   | [`MANUS_OPTIMIZATION_GUIDE.md`](docs/MANUS_OPTIMIZATION_GUIDE.md)                  |
+| Cowork Multi-Agent            | `main/ai-engine/cowork/`                                            | [`COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md)                     |
+| Permanent Memory              | `main/llm/permanent-memory-manager.js`                              | [`PERMANENT_MEMORY_INTEGRATION.md`](docs/features/PERMANENT_MEMORY_INTEGRATION.md) |
+| Hooks System                  | `main/hooks/index.js`                                               | [`HOOKS_SYSTEM_DESIGN.md`](docs/design/HOOKS_SYSTEM_DESIGN.md)                     |
+| Hybrid Search Engine          | `main/rag/hybrid-search-engine.js`, `main/rag/bm25-search.js`       | —                                                                                  |
+| IPC Error Handler             | `main/utils/ipc-error-handler.js`                                   | [`IPC_ERROR_HANDLER_GUIDE.md`](docs/guides/IPC_ERROR_HANDLER_GUIDE.md)             |
+| Permission Engine (RBAC)      | `main/permission/permission-engine.js`                              | —                                                                                  |
+| Team Manager                  | `main/permission/team-manager.js`                                   | —                                                                                  |
+| Context Engineering           | `main/llm/context-engineering.js`                                   | —                                                                                  |
+| Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                 | —                                                                                  |
+| Skills System (92 built-in)   | `main/ai-engine/cowork/skills/index.js`, `builtin/`                 | —                                                                                  |
+| Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                           | —                                                                                  |
+| Browser Automation            | `main/browser/browser-engine.js`                                    | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
+| Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`       | [`COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)                     |
+| Enterprise Audit & Compliance | `main/audit/enterprise-audit-logger.js`                             | —                                                                                  |
+| Plugin Marketplace            | `main/marketplace/marketplace-client.js`                            | —                                                                                  |
+| Specialized Multi-Agent       | `main/ai-engine/agents/agent-coordinator.js`                        | —                                                                                  |
+| SSO & Enterprise Auth         | `main/auth/sso-manager.js`                                          | —                                                                                  |
+| Verification Loop Skill       | `main/ai-engine/cowork/skills/builtin/verification-loop/handler.js` | —                                                                                  |
+| Orchestrate Workflow Skill    | `main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`       | —                                                                                  |
+| Instinct Learning System      | `main/llm/instinct-manager.js`                                      | —                                                                                  |
+| Demo Templates                | `main/templates/demo-template-loader.js`                            | —                                                                                  |
+| TypeScript Stores (32)        | `renderer/stores/*.ts`                                              | —                                                                                  |
+
+### Skills System Details
+
+- 4-layer loading: bundled → marketplace → managed → workspace (higher overrides)
+- Agent Skills Open Standard: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
+- 92 built-in skills with handlers in `main/ai-engine/cowork/skills/builtin/`
+- `/skill` commands parsed via `skills-ipc.js`
+- Parser: `skill-md-parser.js` (YAML frontmatter + Markdown body)
+
+### Hooks System Details
+
+- 21 hook events, 4 hook types (Sync, Async, Command, Script)
+- Priority: SYSTEM(0) → HIGH(100) → NORMAL(500) → LOW(900) → MONITOR(1000)
+- Config: `.chainlesschain/hooks.json` (project), `~/.chainlesschain/hooks.json` (user)
+- Script hooks auto-load from `.chainlesschain/hooks/*.js`
+
+### Instinct Learning Details
+
+- 8 categories: CODING_PATTERN, TOOL_PREFERENCE, WORKFLOW, ERROR_FIX, STYLE, ARCHITECTURE, TESTING, GENERAL
+- Observation pipeline: PostToolUse/PreCompact hooks → buffer (50 items, 60s flush) → pattern extraction
+- Confidence dynamics: reinforce (+5% diminishing), decay (×0.9)
+- Auto-injected into LLM prompts via Context Engineering integration
+- DB tables: `instincts`, `instinct_observations`
+
+### Orchestrate Workflows
+
+- 4 templates: `feature` (planner→architect→coder→reviewer→verify), `bugfix`, `refactor`, `security-audit`
+- Usage: `/orchestrate feature "add user profile page"`
+
+### Verification Loop
+
+- 6 stages: Build → TypeCheck → Lint → Test → Security → DiffReview
+- Auto-detects project type (typescript, nodejs, python, java)
+- Verdict: READY / NOT READY
 
 ## Architecture Overview
 
@@ -521,108 +172,35 @@ desktop-app-vue/
 │   ├── index.js           # Main entry point
 │   ├── database.js        # SQLite/SQLCipher database
 │   ├── ukey/              # U-Key hardware integration
-│   ├── llm/               # LLM service integration
-│   │   ├── session-manager.js           # Session context management
-│   │   ├── permanent-memory-manager.js  # Clawdbot memory system
-│   │   ├── permanent-memory-ipc.js      # Memory IPC handlers
-│   │   ├── context-engineering.js       # KV-Cache optimization + instinct injection
-│   │   ├── context-engineering-ipc.js   # Context Engineering IPC (17 handlers)
-│   │   ├── instinct-manager.js          # Instinct Learning System (v0.39.0)
-│   │   └── instinct-ipc.js             # Instinct IPC (11 handlers)
-│   ├── rag/               # RAG retrieval system
-│   │   ├── rag-manager.js          # Vector search
-│   │   ├── hybrid-search-engine.js # Vector + BM25 fusion
-│   │   └── bm25-search.js          # Okapi BM25 implementation
-│   ├── permission/        # Enterprise RBAC system (v0.29.0)
-│   │   ├── permission-engine.js        # RBAC permission engine
-│   │   ├── team-manager.js             # Team management
-│   │   ├── delegation-manager.js       # Permission delegation
-│   │   └── approval-workflow-manager.js # Approval workflows
-│   ├── task/              # Task management (v0.29.0)
-│   │   └── team-report-manager.js      # Daily/weekly reports
-│   ├── hooks/             # Hooks system (Claude Code inspired)
-│   │   ├── index.js               # Main entry, HookSystem class
-│   │   ├── hook-registry.js       # Hook registration and management
-│   │   ├── hook-executor.js       # Hook execution engine
-│   │   ├── hook-middleware.js     # IPC/Tool/Session middleware
-│   │   └── hooks-ipc.js           # IPC handlers for hooks
+│   ├── llm/               # LLM service (session, memory, context-engineering, instinct)
+│   ├── rag/               # RAG retrieval (vector, BM25, hybrid search)
+│   ├── permission/        # Enterprise RBAC (engine, team, delegation, approval)
+│   ├── task/              # Task management (team reports)
+│   ├── hooks/             # Hooks system (registry, executor, middleware)
 │   ├── did/               # DID identity system
-│   ├── p2p/               # P2P network (libp2p + Signal)
-│   │   └── webrtc-data-channel.js  # WebRTC data channel manager
-│   ├── browser/           # Browser automation system (v0.29.0)
-│   │   ├── browser-engine.js       # Core automation engine
-│   │   ├── element-locator.js      # Intelligent element location
-│   │   ├── actions/                # Automation actions (click, input, etc.)
-│   │   ├── diagnostics/            # Smart diagnostics and snapshots
-│   │   └── recording/              # Recording and playback
-│   ├── mcp/               # MCP integration
-│   │   ├── sdk/                  # MCP Server SDK (v0.34.0)
-│   │   ├── community-registry.js # Community MCP server discovery
-│   │   └── mcp-skill-generator.js # Auto-generate skills from MCP servers
-│   ├── audit/             # Enterprise Audit & Compliance (v0.34.0)
-│   │   ├── enterprise-audit-logger.js  # Unified audit aggregator
-│   │   ├── compliance-manager.js       # GDPR/SOC2 compliance
-│   │   ├── data-subject-handler.js     # GDPR DSR handling
-│   │   └── audit-ipc.js               # 18 IPC handlers
-│   ├── marketplace/       # Plugin Marketplace (v0.34.0)
-│   │   ├── marketplace-client.js  # HTTP client to marketplace API
-│   │   ├── plugin-installer.js    # Plugin download & install
-│   │   ├── plugin-updater.js      # Auto-update management
-│   │   └── marketplace-ipc.js     # 22 IPC handlers
-│   ├── auth/              # SSO Enterprise Authentication (v0.34.0)
-│   │   ├── sso-manager.js         # Multi-provider SSO coordinator
-│   │   ├── saml-provider.js       # SAML 2.0 SP
-│   │   ├── oauth-provider.js      # OAuth 2.0 + OIDC + PKCE
-│   │   ├── sso-session-manager.js # Encrypted session management
-│   │   ├── identity-bridge.js     # DID ↔ SSO identity linking
-│   │   └── sso-ipc.js             # 20 IPC handlers
-│   ├── utils/             # Utility modules
-│   │   └── ipc-error-handler.js    # IPC error middleware
-│   └── ai-engine/         # AI engine and multi-agent
-│       ├── plan-mode/             # Plan Mode (Claude Code style)
-│       │   ├── index.js           # PlanModeManager
-│       │   └── plan-mode-ipc.js   # Plan Mode IPC (14 handlers)
-│       ├── agents/                # Specialized Multi-Agent System (v0.34.0)
-│       │   ├── agent-templates.js    # 8 agent templates
-│       │   ├── agent-coordinator.js  # Task decomposition & orchestration
-│       │   ├── agent-registry.js     # Agent type registry & factory
-│       │   ├── agent-capabilities.js # Capability definitions
-│       │   └── agents-ipc.js         # 16 IPC handlers
-│       ├── unified-tool-registry.js   # Unified tool registry (3 systems)
-│       ├── tool-skill-mapper.js       # Auto-group tools into skills
-│       ├── unified-tools-ipc.js       # Unified tools IPC (6 handlers)
-│       └── cowork/
-│           └── skills/            # Skills system
-│               ├── index.js       # Skill loader (4-layer: bundled→marketplace→managed→workspace)
-│               ├── skills-ipc.js  # Skills IPC (17 handlers)
-│               └── builtin/       # 92 built-in skills (100% Handler coverage)
-│                   ├── verification-loop/  # 6-stage verification pipeline (v0.39.0)
-│                   └── orchestrate/        # Multi-agent workflow templates (v0.39.0)
+│   ├── p2p/               # P2P network (libp2p + Signal + WebRTC)
+│   ├── browser/           # Browser automation + Computer Use actions
+│   ├── mcp/               # MCP integration + SDK + community registry
+│   ├── audit/             # Enterprise Audit & Compliance
+│   ├── marketplace/       # Plugin Marketplace
+│   ├── auth/              # SSO Enterprise Authentication (SAML, OAuth, OIDC)
+│   ├── templates/         # Demo templates (10 templates)
+│   ├── utils/             # Utility modules (ipc-error-handler)
+│   └── ai-engine/         # AI engine
+│       ├── plan-mode/     # Plan Mode (Claude Code style)
+│       ├── agents/        # Specialized Multi-Agent (8 templates)
+│       ├── unified-tool-registry.js
+│       ├── tool-skill-mapper.js
+│       └── cowork/skills/ # Skills system (92 built-in, 4-layer loading)
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
     └── stores/            # Pinia state management (32 TypeScript stores)
 ```
 
-### Android Application (Agent Skills System)
+### Android Application
 
-```
-android-app/feature-ai/src/main/java/com/chainlesschain/android/feature/ai/cowork/skills/
-├── model/                    # Data models (Skill, SkillMetadata, SkillParameter, SkillCategory)
-├── registry/                 # SkillRegistry (thread-safe) + SkillIndex (category/fileType/tag indexes)
-├── loader/                   # SkillMdParser (YAML frontmatter) + SkillLoader (3-layer: bundled→managed→workspace)
-├── gating/                   # SkillGating (platform/SDK/permission checks)
-├── executor/                 # SkillExecutor (handler-first, LLM-fallback) + SkillCommandParser (/skill commands)
-├── handler/                  # SkillHandler interface + 12 implementations (CodeReview, ExplainCode, Summarize, Translate, Refactor, UnitTest, Debug, QuickNote, EmailDraft, MeetingNotes, DailyPlanner, TextImprover)
-├── bridge/                   # P2PSkillBridge (desktop-only skill delegation placeholder)
-└── di/                       # SkillModule (Hilt DI)
-
-android-app/feature-ai/src/main/assets/skills/   # 28 bundled SKILL.md files (12 with handlers + 8 doc-only + 8 remote)
-```
-
-**Key Patterns**: Same SKILL.md format as desktop (YAML frontmatter + Markdown body), Agent Skills Open Standard compatible, `SkillRegistry.toFunctionDefinitions()` for LLM function calling, `/skill-name` command detection in `ConversationViewModel`. REMOTE skills use `remoteSkillName` in YAML frontmatter to map Android skill → desktop skill name via P2PSkillBridge.
-
-**Dependency**: `org.yaml:snakeyaml:2.2` in `feature-ai/build.gradle.kts`
+28 skills in `android-app/feature-ai/.../cowork/skills/` — same SKILL.md format as desktop. 12 Kotlin handlers, 8 doc-only, 8 REMOTE skills (delegated to desktop via P2PSkillBridge). Details in `MEMORY.md`.
 
 ### Backend Services
 
@@ -633,20 +211,9 @@ android-app/feature-ai/src/main/assets/skills/   # 28 bundled SKILL.md files (12
 
 SQLite with SQLCipher (AES-256). Key tables:
 
-**Core Tables**: `notes`, `chat_conversations`, `did_identities`, `p2p_messages`, `contacts`, `social_posts`
-
-**Memory System Tables** (v0.26.2):
-
-- `embedding_cache` - Vector embedding cache for RAG
-- `memory_file_hashes` - File hash tracking for change detection
-- `daily_notes_metadata` - Daily notes metadata and statistics
-- `memory_sections` - MEMORY.md section categorization
-- `memory_stats` - Memory usage statistics
-
-**Instinct Learning Tables** (v0.39.0):
-
-- `instincts` - Pattern storage with confidence scoring and category
-- `instinct_observations` - Hook event buffering for pattern extraction
+- **Core**: `notes`, `chat_conversations`, `did_identities`, `p2p_messages`, `contacts`, `social_posts`
+- **Memory**: `embedding_cache`, `memory_file_hashes`, `daily_notes_metadata`, `memory_sections`, `memory_stats`
+- **Instinct**: `instincts`, `instinct_observations`
 
 ## Technology Stack
 
@@ -657,7 +224,6 @@ SQLite with SQLCipher (AES-256). Key tables:
 - **P2P**: libp2p 3.1.2, WebRTC (wrtc), **Crypto**: Signal Protocol
 - **Image**: Sharp, Tesseract.js, **Git**: isomorphic-git
 - **Search**: natural (BM25/TF-IDF), Qdrant (Vector)
-- **Browser Automation**: Custom engine with multi-strategy element location
 
 ### Backend
 
@@ -719,8 +285,6 @@ cd backend/project-service && mvn test
 cd backend/ai-service && pytest
 ```
 
-**Test Coverage** (v0.29.0): ~75% code coverage, 233+ test cases, 99.6% pass rate
-
 ## Code Style & Commit Conventions
 
 Semantic commits: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
@@ -731,38 +295,6 @@ Example: `feat(rag): add reranker support`
 
 1. **U-Key**: Windows only (macOS/Linux simulation mode)
 2. **GPU**: Docker Ollama requires NVIDIA GPU for acceleration
-
-## Important File Locations
-
-- **Main config**: `desktop-app-vue/package.json`
-- **Database schema**: `desktop-app-vue/src/main/database.js`
-- **IPC handlers**: `desktop-app-vue/src/main/index.js`, `src/main/ipc/ipc-registry.js`
-- **Memory system**: `src/main/llm/permanent-memory-manager.js`, `src/main/llm/permanent-memory-ipc.js`
-- **Context Engineering**: `src/main/llm/context-engineering.js`, `src/main/llm/context-engineering-ipc.js`
-- **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
-- **Permission system**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`
-- **Plan Mode**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
-- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (92 skills)
-- **Instinct Learning**: `src/main/llm/instinct-manager.js`, `src/main/llm/instinct-ipc.js` (11 IPC handlers)
-- **Verification Loop**: `src/main/ai-engine/cowork/skills/builtin/verification-loop/handler.js`
-- **Orchestrate Workflow**: `src/main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`
-- **Demo Templates**: `src/main/templates/demo-template-loader.js`, `src/main/templates/{automation,ai-workflow,knowledge,remote}/` (10 templates)
-- **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
-- **Error handler**: `src/main/utils/ipc-error-handler.js`
-- **P2P/WebRTC**: `src/main/p2p/webrtc-data-channel.js`
-- **Browser automation**: `src/main/browser/browser-engine.js`, `src/main/browser/element-locator.js`, `src/main/browser/recording/`
-- **Computer Use**: `src/main/browser/computer-use-agent.js`, `src/main/browser/actions/` (12+ modules: coordinate-action, vision-action, desktop-action, audit-logger, screen-recorder, action-replay, safe-mode, workflow-engine, element-highlighter, template-actions, computer-use-metrics)
-- **Enterprise Audit**: `src/main/audit/enterprise-audit-logger.js`, `src/main/audit/compliance-manager.js`, `src/main/audit/data-subject-handler.js`, `src/main/audit/audit-ipc.js`
-- **Plugin Marketplace**: `src/main/marketplace/marketplace-client.js`, `src/main/marketplace/plugin-installer.js`, `src/main/marketplace/marketplace-ipc.js`
-- **Specialized Agents**: `src/main/ai-engine/agents/agent-templates.js`, `src/main/ai-engine/agents/agent-coordinator.js`, `src/main/ai-engine/agents/agents-ipc.js`
-- **SSO Authentication**: `src/main/auth/sso-manager.js`, `src/main/auth/saml-provider.js`, `src/main/auth/oauth-provider.js`, `src/main/auth/sso-ipc.js`
-- **MCP SDK**: `src/main/mcp/sdk/index.js`, `src/main/mcp/sdk/server-builder.js`, `src/main/mcp/community-registry.js`
-- **TypeScript stores**: `src/renderer/stores/*.ts` (32 stores)
-- **Unified Tool Registry**: `src/main/ai-engine/unified-tool-registry.js`, `src/main/ai-engine/tool-skill-mapper.js`, `src/main/mcp/mcp-skill-generator.js`, `src/main/ai-engine/unified-tools-ipc.js`
-- **Tools Explorer UI**: `src/renderer/pages/ToolsExplorerPage.vue` (route: `#/tools/explorer`), `src/renderer/stores/unified-tools.ts`
-- **Demo Templates UI**: `src/renderer/pages/DemoTemplatesPage.vue` (route: `#/demo-templates`)
-- **Docker**: `docker-compose.yml`, `docker-compose.cloud.yml`
-- **Hooks config**: `.chainlesschain/hooks.json`, `.chainlesschain/hooks/*.js`
 
 ## Troubleshooting
 
@@ -785,10 +317,7 @@ Example: `feat(rag): add reranker support`
 - **Spring Boot**: Check MyBatis Plus 3.5.9 and jakarta imports
 - **Python**: Ensure `httpx<0.26.0`
 
-### Database Issues
-
-- Reset: Delete `data/chainlesschain.db`
-- Default PIN: `123456`
+See `CLAUDE-troubleshooting.md` for detailed issue solutions (database, LLM, P2P, Electron, U-Key, performance).
 
 ## Documentation References
 
