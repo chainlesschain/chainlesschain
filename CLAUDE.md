@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.38.0 (90 Desktop Skills + Android 28 Skills + SIMKey Six Security Enhancements) - Updated 2026-02-22
+**Current Version**: v0.39.0 (92 Desktop Skills + Android 28 Skills + Instinct Learning System) - Updated 2026-02-22
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -256,7 +256,7 @@ Extensible skill system with Markdown definitions:
 - **Gate Checks**: Platform, binary dependencies, environment variables
 - **/skill Commands**: User command parsing and auto-execution
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **90 Built-in Skills** (Handler 覆盖 90/90, 100%):
+- **92 Built-in Skills** (Handler 覆盖 92/92, 100%):
   - **Core**: code-review, git-commit, explain-code
   - **Automation**: browser-automation, computer-use, workflow-automation, voice-commander
   - **Data**: web-scraping, data-analysis, chart-creator, csv-processor
@@ -279,6 +279,8 @@ Extensible skill system with Markdown definitions:
   - **Data**: data-exporter
   - **Design**: color-picker
   - **Utility**: file-compressor, json-yaml-toolkit, regex-playground, http-client, snippet-library, clipboard-manager, text-transformer
+  - **Quality**: verification-loop
+  - **Workflow**: orchestrate
 
 **Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers), `src/main/ai-engine/cowork/skills/skill-md-parser.js`, `src/main/ai-engine/cowork/skills/markdown-skill.js`
 
@@ -302,7 +304,7 @@ Extensible skill system with Markdown definitions:
 
 **Status**: ✅ Implemented v0.36.0
 
-Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 90 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
+Unified registry aggregating three tool systems (FunctionCaller 60+ tools, MCP 8 servers, Skills 92 skills) with Agent Skills metadata, fully wired into AI conversation call chain:
 
 - **UnifiedToolRegistry**: Core registry binding FunctionCaller, MCPToolAdapter, SkillRegistry (with initialization lock)
 - **MCPSkillGenerator**: Auto-generates SkillManifestEntry when MCP servers connect
@@ -456,6 +458,59 @@ SDK for building custom MCP servers and community server discovery:
 **Key Files**: `src/main/mcp/sdk/index.js`, `src/main/mcp/sdk/server-builder.js`, `src/main/mcp/sdk/http-server.js`, `src/main/mcp/sdk/stdio-server.js`, `src/main/mcp/community-registry.js`
 **Frontend**: `src/renderer/pages/MCPServerMarketplace.vue`
 
+### Verification Loop Skill (everything-claude-code Pattern)
+
+**Status**: ✅ Implemented v0.39.0
+
+6-stage automated verification pipeline producing READY/NOT READY verdict:
+
+- **Build Stage**: Runs `npm run build` / `mvn compile` / `pip install`, captures exit code
+- **TypeCheck Stage**: Runs `tsc --noEmit` or equivalent type checker
+- **Lint Stage**: Runs ESLint / configured linter with error parsing
+- **Test Stage**: Runs `npm test` / `vitest` / `pytest`, parses pass/fail counts
+- **Security Stage**: Delegates to existing `security-audit` skill handler
+- **DiffReview Stage**: Scans `git diff` for console.log, debugger, TODO, hardcoded credentials
+- **Auto-Detection**: Identifies project type (typescript, nodejs, python, java) from config files
+- **Verdict**: READY (all stages pass) / NOT READY (with failure details and stage-by-stage breakdown)
+
+**Key Files**: `src/main/ai-engine/cowork/skills/builtin/verification-loop/SKILL.md`, `src/main/ai-engine/cowork/skills/builtin/verification-loop/handler.js`
+
+### Orchestrate Workflow Skill (everything-claude-code Pattern)
+
+**Status**: ✅ Implemented v0.39.0
+
+Predefined multi-agent workflow templates with agent handoff protocol:
+
+- **4 Workflow Templates**:
+  - `feature`: planner → architect → coder → reviewer → verification-loop
+  - `bugfix`: debugger → coder → tester → verification-loop
+  - `refactor`: architect → coder → reviewer → verification-loop
+  - `security-audit`: security-reviewer → coder → security-verifier → verification-loop
+- **Handoff Documents**: Structured inter-agent context (deliverables, decisions, concerns, next instructions)
+- **AgentCoordinator Integration**: Uses existing agent orchestration when available, graceful fallback otherwise
+- **Verdict**: SHIP (all success) / NEEDS WORK (concerns or verification fail) / BLOCKED (critical failure)
+- **Usage**: `/orchestrate feature "add user profile page"`
+
+**Key Files**: `src/main/ai-engine/cowork/skills/builtin/orchestrate/SKILL.md`, `src/main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`
+
+### Instinct Learning System (everything-claude-code Pattern)
+
+**Status**: ✅ Implemented v0.39.0
+
+Automatically extract reusable patterns ("instincts") from user sessions via hooks observation:
+
+- **InstinctManager**: Singleton with confidence-scored pattern storage (0.1-0.95 range)
+- **8 Categories**: CODING_PATTERN, TOOL_PREFERENCE, WORKFLOW, ERROR_FIX, STYLE, ARCHITECTURE, TESTING, GENERAL
+- **Observation Pipeline**: PostToolUse/PreCompact hooks → observation buffer (50 items, 60s flush) → pattern extraction
+- **Confidence Dynamics**: Reinforce (+5% diminishing) on successful use, Decay (×0.9) on failure/disuse
+- **Context Injection**: Relevant instincts auto-injected into LLM prompts via Context Engineering integration
+- **Pattern Evolution**: `evolve()` clusters high-confidence instincts, detects tool frequency/sequence patterns
+- **Data Portability**: JSON export/import for instinct sharing
+- **11 IPC Handlers**: Full CRUD, reinforce/decay, evolve, export/import, stats
+- **Database Tables**: `instincts` (pattern storage), `instinct_observations` (event buffering)
+
+**Key Files**: `src/main/llm/instinct-manager.js`, `src/main/llm/instinct-ipc.js`
+
 ## Architecture Overview
 
 ### Desktop Application Structure
@@ -470,8 +525,10 @@ desktop-app-vue/
 │   │   ├── session-manager.js           # Session context management
 │   │   ├── permanent-memory-manager.js  # Clawdbot memory system
 │   │   ├── permanent-memory-ipc.js      # Memory IPC handlers
-│   │   ├── context-engineering.js       # KV-Cache optimization
-│   │   └── context-engineering-ipc.js   # Context Engineering IPC (17 handlers)
+│   │   ├── context-engineering.js       # KV-Cache optimization + instinct injection
+│   │   ├── context-engineering-ipc.js   # Context Engineering IPC (17 handlers)
+│   │   ├── instinct-manager.js          # Instinct Learning System (v0.39.0)
+│   │   └── instinct-ipc.js             # Instinct IPC (11 handlers)
 │   ├── rag/               # RAG retrieval system
 │   │   ├── rag-manager.js          # Vector search
 │   │   ├── hybrid-search-engine.js # Vector + BM25 fusion
@@ -538,7 +595,9 @@ desktop-app-vue/
 │           └── skills/            # Skills system
 │               ├── index.js       # Skill loader (4-layer: bundled→marketplace→managed→workspace)
 │               ├── skills-ipc.js  # Skills IPC (17 handlers)
-│               └── builtin/       # 60 built-in skills (100% Handler coverage)
+│               └── builtin/       # 92 built-in skills (100% Handler coverage)
+│                   ├── verification-loop/  # 6-stage verification pipeline (v0.39.0)
+│                   └── orchestrate/        # Multi-agent workflow templates (v0.39.0)
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
@@ -583,6 +642,11 @@ SQLite with SQLCipher (AES-256). Key tables:
 - `daily_notes_metadata` - Daily notes metadata and statistics
 - `memory_sections` - MEMORY.md section categorization
 - `memory_stats` - Memory usage statistics
+
+**Instinct Learning Tables** (v0.39.0):
+
+- `instincts` - Pattern storage with confidence scoring and category
+- `instinct_observations` - Hook event buffering for pattern extraction
 
 ## Technology Stack
 
@@ -678,7 +742,10 @@ Example: `feat(rag): add reranker support`
 - **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
 - **Permission system**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`
 - **Plan Mode**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
-- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (90 skills)
+- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`, `src/main/ai-engine/cowork/skills/skill-md-parser.js` (Agent Skills standard), `src/main/ai-engine/cowork/skills/builtin/` (92 skills)
+- **Instinct Learning**: `src/main/llm/instinct-manager.js`, `src/main/llm/instinct-ipc.js` (11 IPC handlers)
+- **Verification Loop**: `src/main/ai-engine/cowork/skills/builtin/verification-loop/handler.js`
+- **Orchestrate Workflow**: `src/main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`
 - **Demo Templates**: `src/main/templates/demo-template-loader.js`, `src/main/templates/{automation,ai-workflow,knowledge,remote}/` (10 templates)
 - **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`
