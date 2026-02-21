@@ -132,6 +132,13 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
     }
   }
 
+  function updateNodePosition(nodeId: string, position: { x: number; y: number }) {
+    const node = nodes.value.find(n => n.id === nodeId);
+    if (node) {
+      node.position = { ...position };
+    }
+  }
+
   function addNode(node: Partial<WorkflowNode>) {
     const newNode: WorkflowNode = {
       id: node.id || `node-${Date.now()}`,
@@ -271,6 +278,7 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
     createWorkflow,
     loadWorkflow,
     updateNode,
+    updateNodePosition,
     addNode,
     addConnection,
     removeNode,
