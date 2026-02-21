@@ -71,11 +71,11 @@ AI会根据历史交易数据给出定价建议：
 
 ```typescript
 interface PriceSuggestion {
-  suggestedMin: number    // 建议最低价
-  suggestedMax: number    // 建议最高价
-  averagePrice: number    // 平均成交价
-  similarListings: []     // 相似商品
-  confidence: number      // 建议可信度 0-1
+  suggestedMin: number; // 建议最低价
+  suggestedMax: number; // 建议最高价
+  averagePrice: number; // 平均成交价
+  similarListings: []; // 相似商品
+  confidence: number; // 建议可信度 0-1
 }
 ```
 
@@ -211,12 +211,12 @@ contract EscrowContract {
 
 #### 支持的加密货币
 
-| 货币 | 链 | 手续费 | 到账时间 |
-|------|-----|--------|----------|
-| ETH | Ethereum | ~$5 | 1-5分钟 |
-| USDT | Polygon | ~$0.01 | 10秒 |
-| USDC | Polygon | ~$0.01 | 10秒 |
-| BTC | Bitcoin | ~$1 | 10-60分钟 |
+| 货币 | 链       | 手续费 | 到账时间  |
+| ---- | -------- | ------ | --------- |
+| ETH  | Ethereum | ~$5    | 1-5分钟   |
+| USDT | Polygon  | ~$0.01 | 10秒      |
+| USDC | Polygon  | ~$0.01 | 10秒      |
+| BTC  | Bitcoin  | ~$1    | 10-60分钟 |
 
 #### 法币托管（可选）
 
@@ -438,24 +438,30 @@ AI会为仲裁员提供参考：
 ## AI分析报告
 
 ### 案件基本信息
+
 - 交易金额: ¥1,200
 - 争议类型: 货不对板
 - 买家信誉: 4.8/5.0 (98笔交易)
 - 卖家信誉: 3.2/5.0 (12笔交易)
 
 ### 证据分析
+
 ✓ 买家提供了 5 张商品照片
 ✓ 卖家提供了发货前照片
 ✗ 两组照片中的序列号不一致 ← 关键证据
 
 ### 相似案例
+
 找到 3 个相似判例:
+
 1. 案例#1234: 支持买家，全额退款
 2. 案例#5678: 支持买家，部分退款 (70%)
 3. 案例#9012: 支持卖家
 
 ### 建议判决
+
 建议支持买家，理由:
+
 - 序列号不符是有力证据
 - 卖家信誉较低
 - 相似案例多数支持买家
@@ -681,9 +687,534 @@ AI会为仲裁员提供参考：
 
 ## 未来功能
 
-- [ ] 拍卖功能
-- [ ] 团购/拼单
-- [ ] 分期付款支持
-- [ ] 信用借贷（基于信誉）
-- [ ] 保险服务
-- [ ] 更多支付方式（闪电网络、稳定币）
+以下功能正在规划和开发中，将在后续版本中陆续推出。
+
+### 拍卖功能
+
+支持多种拍卖模式的去中心化拍卖系统。
+
+#### 拍卖类型
+
+```
+[拍卖模式]
+├─ 英式拍卖（加价拍）
+│  ├─ 从底价开始，竞价递增
+│  ├─ 设置最低加价幅度
+│  └─ 倒计时结束，最高价者得
+├─ 荷兰式拍卖（降价拍）
+│  ├─ 从高价开始，自动递减
+│  ├─ 第一个出价者得
+│  └─ 适合快速出货
+├─ 密封拍卖
+│  ├─ 所有出价密封提交
+│  ├─ 截止后统一开标
+│  └─ 最高价者得（防串标）
+└─ 反向拍卖（求购）
+   ├─ 买家发布需求和预算
+   ├─ 卖家竞标报价
+   └─ 买家选择最优报价
+```
+
+#### 智能合约拍卖
+
+```solidity
+contract AuctionContract {
+    address seller;
+    uint256 startPrice;
+    uint256 highestBid;
+    address highestBidder;
+    uint256 endTime;
+
+    // 出价（自动退还前一个出价者）
+    function bid() public payable {
+        require(block.timestamp < endTime, "Auction ended");
+        require(msg.value > highestBid, "Bid too low");
+        if (highestBidder != address(0)) {
+            payable(highestBidder).transfer(highestBid);
+        }
+        highestBid = msg.value;
+        highestBidder = msg.sender;
+    }
+
+    // 拍卖结束，结算
+    function settle() public {
+        require(block.timestamp >= endTime, "Auction not ended");
+        payable(seller).transfer(highestBid);
+    }
+}
+```
+
+#### 拍卖辅助功能
+
+```
+AI辅助:
+- 🤖 起拍价建议（基于市场行情分析）
+- 📊 实时竞价趋势图表
+- ⏰ 智能延时（最后30秒有新出价自动延时2分钟）
+- 🔔 出价提醒和被超越通知
+- 📈 历史拍卖数据分析
+
+安全保障:
+- 出价冻结资金，防止恶意抬价
+- 防止卖家自拍自卖（DID + IP 分析）
+- 拍卖记录上链，公开透明
+```
+
+---
+
+### 团购/拼单
+
+多人合力拼单，享受更低价格。
+
+#### 拼单流程
+
+```
+发起人创建拼单
+    ↓
+设置拼单规则:
+  - 目标人数（最少几人成团）
+  - 截止时间
+  - 阶梯价格（人越多越便宜）
+  - 最大参与人数
+    ↓
+分享拼单链接/二维码
+    ↓
+参与者加入拼单
+  - 锁定资金到托管合约
+  - 实时显示拼单进度
+    ↓
+成团判断:
+  ├─ ✅ 达到目标 → 通知卖家发货
+  └─ ❌ 未达标 → 自动退款给所有人
+```
+
+#### 阶梯价格
+
+```
+示例: 某品牌耳机拼单
+
+参与人数    单价       折扣
+1-2人      ¥299       无折扣
+3-5人      ¥269       9折
+6-10人     ¥239       8折
+11-20人    ¥209       7折
+20人以上   ¥179       6折
+
+当前进度: [████████░░] 14/20人，当前价 ¥209
+```
+
+#### 智能合约拼团
+
+```solidity
+contract GroupBuyContract {
+    uint256 targetCount;       // 目标人数
+    uint256 deadline;          // 截止时间
+    uint256[] tierPrices;      // 阶梯价格
+    uint256[] tierCounts;      // 阶梯人数
+    mapping(address => uint256) deposits;
+    address[] participants;
+
+    // 参与拼单
+    function join() public payable {
+        require(block.timestamp < deadline, "Expired");
+        deposits[msg.sender] = msg.value;
+        participants.push(msg.sender);
+    }
+
+    // 成团结算（退还多付金额）
+    function settle() public {
+        require(participants.length >= targetCount, "Not enough");
+        uint256 finalPrice = getCurrentTierPrice();
+        for (uint i = 0; i < participants.length; i++) {
+            uint256 refund = deposits[participants[i]] - finalPrice;
+            if (refund > 0) {
+                payable(participants[i]).transfer(refund);
+            }
+        }
+    }
+
+    // 未成团退款
+    function refundAll() public {
+        require(block.timestamp >= deadline, "Not expired");
+        require(participants.length < targetCount, "Already settled");
+        for (uint i = 0; i < participants.length; i++) {
+            payable(participants[i]).transfer(deposits[participants[i]]);
+        }
+    }
+}
+```
+
+---
+
+### 分期付款支持
+
+大额交易支持灵活的分期付款方案。
+
+#### 分期方案
+
+```
+[分期选项]
+├─ 2期免息 (每期50%)
+├─ 3期免息 (每期33.3%)
+├─ 6期 (每期16.7% + 0.5%手续费)
+└─ 12期 (每期8.3% + 0.8%手续费)
+
+示例: 购买 ¥6,000 的笔记本电脑
+
+选择3期免息:
+  第1期: ¥2,000 (下单时支付)
+  第2期: ¥2,000 (30天后自动扣款)
+  第3期: ¥2,000 (60天后自动扣款)
+  总计: ¥6,000 (0手续费)
+
+选择6期:
+  每期: ¥1,030 (本金¥1,000 + 手续费¥30)
+  总计: ¥6,180 (手续费¥180)
+```
+
+#### 分期智能合约
+
+```solidity
+contract InstallmentContract {
+    address buyer;
+    address seller;
+    uint256 totalAmount;
+    uint256 installments;       // 分期数
+    uint256 paidCount;
+    uint256 intervalSeconds;    // 每期间隔
+
+    // 买家按期付款
+    function payInstallment() public payable {
+        require(msg.sender == buyer);
+        require(paidCount < installments);
+        uint256 perAmount = totalAmount / installments;
+        require(msg.value >= perAmount, "Insufficient");
+        paidCount++;
+        // 每期付款实时转给卖家
+        payable(seller).transfer(msg.value);
+    }
+
+    // 逾期处理
+    function handleOverdue() public {
+        // 通知买家 → 宽限期 → 信誉扣分 → 仲裁
+    }
+}
+```
+
+#### 风控措施
+
+```
+买家资质审核:
+✓ 信誉评分 ≥ 4.0
+✓ 完成交易 ≥ 5 笔
+✓ 账号注册 ≥ 60 天
+✓ 无逾期记录
+
+逾期处理流程:
+到期日 → 自动提醒(3天前)
+    ↓
+到期未付 → 宽限期(7天)
+    ↓
+宽限期结束 → 信誉扣分 + 限制交易
+    ↓
+逾期30天 → 交易暂停 + 社区公示
+```
+
+---
+
+### 信用借贷（基于信誉）
+
+利用去中心化信誉数据构建 P2P 借贷市场。
+
+#### 信用评级
+
+```python
+def calculate_credit_score(user):
+    score = 300  # 基础分
+
+    # 1. 信誉历史 (+200)
+    score += 200 * user.reputation_score
+
+    # 2. 交易活跃度 (+100)
+    activity = min(user.monthly_transactions / 10, 1)
+    score += 100 * activity
+
+    # 3. 账户年龄 (+50)
+    score += 50 * min(user.account_age_days / 365, 1)
+
+    # 4. 社交信任网络 (+100)
+    score += 100 * user.trust_network_score
+
+    # 5. 还款记录 (+100)
+    if user.total_loans > 0:
+        repayment_rate = user.on_time_repayments / user.total_loans
+        score += 100 * repayment_rate
+
+    # 6. 违约扣分 (-150)
+    score -= 150 * (user.defaults / max(user.total_loans, 1))
+
+    return max(300, min(850, score))
+
+# 信用等级
+# 750-850: AAA级 (最低利率)
+# 650-749: AA级
+# 550-649: A级
+# 450-549: B级
+# 300-449: C级 (不可借贷)
+```
+
+#### 借贷流程
+
+```
+借款人发起借贷请求
+    ↓
+系统自动评估信用等级
+    ↓
+生成借贷条款建议:
+  - 可借金额: 信用等级 × 系数
+  - 建议利率: 基于信用等级
+  - 最长期限: 基于信用等级
+    ↓
+发布到借贷市场
+    ↓
+出借人浏览并选择:
+  - 查看借款人信用报告
+  - AI风险评估
+  - 选择投资金额
+    ↓
+智能合约自动执行:
+  - 锁定资金
+  - 按期自动还款
+  - 逾期自动处理
+```
+
+#### 借贷产品
+
+```
+[个人借贷]
+├─ 小额信用贷
+│  ├─ 额度: ¥500 - ¥5,000
+│  ├─ 期限: 7-90天
+│  └─ 利率: 年化 5%-15%
+├─ 交易保证金贷
+│  ├─ 额度: 交易金额的30%-50%
+│  ├─ 期限: 交易完成后自动归还
+│  └─ 利率: 年化 3%-8%
+└─ 分散借贷
+   ├─ 多个出借人共同出借
+   ├─ 分散风险
+   └─ 最低出借金额: ¥100
+
+[出借人收益]
+├─ 稳健型: 年化 4%-6% (AAA级借款人)
+├─ 平衡型: 年化 6%-10% (AA-A级)
+└─ 进取型: 年化 10%-15% (B级，高风险)
+```
+
+---
+
+### 保险服务
+
+去中心化的交易保险，为买卖双方提供额外保障。
+
+#### 保险类型
+
+```
+[交易保险]
+├─ 货物运输险
+│  ├─ 保障: 运输途中损坏/丢失
+│  ├─ 保费: 交易金额的 0.5%-1%
+│  └─ 赔付: 全额赔付商品价值
+├─ 质量保证险
+│  ├─ 保障: 商品质量问题（7天内）
+│  ├─ 保费: 交易金额的 1%-2%
+│  └─ 赔付: 维修费用或全额退款
+├─ 信用违约险
+│  ├─ 保障: 对方违约不履行合约
+│  ├─ 保费: 交易金额的 1.5%-3%
+│  └─ 赔付: 合约约定金额
+└─ 延迟交付险
+   ├─ 保障: 卖家超期未交付
+   ├─ 保费: 交易金额的 0.3%-0.8%
+   └─ 赔付: 每延迟1天赔付交易金额的1%
+```
+
+#### 去中心化保险池
+
+```python
+class InsurancePool:
+    """
+    去中心化保险池 - 社区共保模式
+    """
+    def __init__(self):
+        self.total_pool = 0        # 保险池总额
+        self.providers = {}         # 保险提供者
+        self.active_policies = []   # 生效保单
+
+    def stake(self, provider, amount):
+        """保险提供者质押资金到保险池"""
+        self.providers[provider] = amount
+        self.total_pool += amount
+        # 保险提供者赚取保费分红
+
+    def purchase(self, buyer, policy_type, trade_amount):
+        """购买保险"""
+        premium = self.calculate_premium(policy_type, trade_amount)
+        policy = {
+            'buyer': buyer,
+            'type': policy_type,
+            'coverage': trade_amount,
+            'premium': premium,
+            'status': 'active'
+        }
+        self.active_policies.append(policy)
+        # 保费分配给保险池提供者
+
+    def claim(self, policy_id, evidence):
+        """理赔申请"""
+        # AI初步审核证据
+        # 社区投票确认
+        # 智能合约自动赔付
+```
+
+#### 保险购买流程
+
+```
+交易创建时:
+    ↓
+系统自动推荐保险方案
+  ├─ 根据交易金额
+  ├─ 根据对方信誉
+  └─ 根据交易类型
+    ↓
+买家选择保险 (可选)
+    ↓
+支付保费 (从交易金额中扣除或额外支付)
+    ↓
+保单生效
+    ↓
+发生问题时:
+  ├─ 提交理赔申请 + 证据
+  ├─ AI初步审核 (秒级)
+  ├─ 简单案件自动赔付
+  └─ 复杂案件社区投票 → 赔付
+```
+
+---
+
+### 更多支付方式
+
+扩展支付渠道，支持更快速和低成本的转账。
+
+#### 闪电网络 (Lightning Network)
+
+```
+[闪电网络支付]
+优势:
+✓ 即时到账 (毫秒级)
+✓ 极低手续费 (~$0.001)
+✓ 支持微支付 (低至1聪 ≈ ¥0.005)
+✓ 支持频繁小额交易
+
+工作原理:
+1. 开启支付通道 (一次链上交易)
+2. 通道内无限次即时转账
+3. 关闭通道时结算 (一次链上交易)
+
+适用场景:
+- 小额商品交易 (<¥100)
+- 打赏/小费
+- 订阅付款
+- 游戏内交易
+```
+
+#### 新增稳定币支持
+
+```
+[新增稳定币]
+├─ DAI (MakerDAO)
+│  ├─ 链: Ethereum / Polygon / Arbitrum
+│  ├─ 特点: 去中心化超额抵押
+│  └─ 手续费: ~$0.01 (L2)
+├─ PYUSD (PayPal USD)
+│  ├─ 链: Ethereum / Solana
+│  ├─ 特点: PayPal发行，合规性强
+│  └─ 手续费: ~$0.01 (Solana)
+├─ cUSD (Celo Dollar)
+│  ├─ 链: Celo
+│  ├─ 特点: 移动优先，手机号转账
+│  └─ 手续费: ~$0.001
+└─ UST (Terra) / FRAX
+   ├─ 链: 多链
+   ├─ 特点: 算法稳定币
+   └─ 手续费: 因链而异
+```
+
+#### 跨链支付
+
+```
+跨链支付桥:
+  买家使用 Ethereum 上的 ETH
+      ↓
+  自动跨链桥转换
+      ↓
+  卖家收到 Polygon 上的 USDT
+
+支持路径:
+  Ethereum ↔ Polygon
+  Ethereum ↔ Arbitrum
+  Ethereum ↔ Optimism
+  Bitcoin ↔ Lightning Network
+  Solana ↔ Ethereum
+
+预计手续费: $0.5-$3 (含桥接费)
+预计时间: 1-10分钟
+```
+
+#### 法币出入金（合规渠道）
+
+```
+[法币通道] (合规地区)
+├─ 银行卡充值
+│  ├─ 通过合规支付网关
+│  ├─ 支持 Visa / Mastercard
+│  └─ 自动转换为稳定币托管
+├─ 本地支付
+│  ├─ 支付宝 / 微信 (中国大陆)
+│  ├─ PayPal (国际)
+│  └─ 银行转账 (通用)
+└─ 提现
+   ├─ 稳定币 → 法币
+   ├─ T+1 到账
+   └─ KYC验证要求
+
+注意: 法币通道需遵守当地法规，部分地区可能不可用
+```
+
+---
+
+### 路线图
+
+```
+[开发路线图]
+
+Phase 1 (v0.38 - v0.39):
+  ✦ 拍卖功能 - 英式拍卖 + 密封拍卖
+  ✦ 闪电网络支付集成
+  ✦ 基础分期付款 (2期/3期免息)
+
+Phase 2 (v0.40 - v0.41):
+  ✦ 团购/拼单系统
+  ✦ 阶梯价格智能合约
+  ✦ 新增 DAI / PYUSD 稳定币
+
+Phase 3 (v0.42 - v0.43):
+  ✦ 信用评级系统
+  ✦ P2P借贷市场
+  ✦ 跨链支付桥
+
+Phase 4 (v0.44+):
+  ✦ 去中心化保险池
+  ✦ 荷兰式/反向拍卖
+  ✦ 法币出入金 (合规地区)
+```
