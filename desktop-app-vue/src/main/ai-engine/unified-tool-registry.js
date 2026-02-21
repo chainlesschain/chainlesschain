@@ -73,6 +73,72 @@ class UnifiedToolRegistry extends EventEmitter {
    */
   bindSkillRegistry(sr) {
     this.skillRegistry = sr;
+
+    // v1.1.0: Listen for skill registry changes to auto-refresh
+    if (sr) {
+      sr.on?.("skill-registered", () => this._onSkillRegistryUpdate());
+      sr.on?.("skill-unregistered", () => this._onSkillRegistryUpdate());
+      sr.on?.("skill-hot-loaded", () => this._onSkillRegistryUpdate());
+      sr.on?.("skill-hot-unloaded", () => this._onSkillRegistryUpdate());
+    }
+  }
+
+  // ===== v1.1.0: Execution API =====
+
+  /**
+   * Execute a tool by name, routing to the correct subsystem
+   * @param {string} toolName - Tool name (normalized or raw)
+   * @param {Object} params - Tool parameters
+   * @param {Object} [context] - Execution context
+   * @returns {Promise<any>} Execution result
+   */
+  async executeToolByName(toolName, params = {}, context = {}) {
+    const normalized = this._normalizeToolName(toolName);
+    const tool = this.tools.get(normalized);
+    if (!tool) {
+      throw new Error(`Tool not found: ${toolName}`);
+    }
+
+    // Route based on source
+    if (tool.source === "builtin" && this.functionCaller) {
+      if (typeof this.functionCaller.executeTool === "function") {
+        return await this.functionCaller.executeTool(toolName, params, context);
+      }
+      if (typeof this.functionCaller.callFunction === "function") {
+        return await this.functionCaller.callFunction(toolName, params);
+      }
+    }
+
+    if (tool.source === "mcp" && this.mcpAdapter) {
+      if (typeof this.mcpAdapter.callTool === "function") {
+        return await this.mcpAdapter.callTool(toolName, params);
+      }
+    }
+
+    if (tool.source === "skill-handler" && this.skillRegistry) {
+      const skillName = tool.skillName || toolName;
+      return await this.skillRegistry.executeSkill(skillName, params, context);
+    }
+
+    throw new Error(
+      `No executor available for tool: ${toolName} (source: ${tool.source})`,
+    );
+  }
+
+  /**
+   * Get a bound executor function for a tool
+   * @param {string} toolName
+   * @returns {Function|null}
+   */
+  getToolExecutor(toolName) {
+    const normalized = this._normalizeToolName(toolName);
+    const tool = this.tools.get(normalized);
+    if (!tool) {
+      return null;
+    }
+
+    return (params, context) =>
+      this.executeToolByName(toolName, params, context);
   }
 
   // ===== Initialization =====
@@ -599,6 +665,28 @@ class UnifiedToolRegistry extends EventEmitter {
   }
 
   // ===== Private: Helpers =====
+
+  /**
+   * Handle SkillRegistry updates — re-import skills (v1.1.0)
+   * @private
+   */
+  _onSkillRegistryUpdate() {
+    if (!this._initialized) {
+      return;
+    }
+
+    // Debounce: skip if called within 500ms
+    if (this._lastSkillUpdate && Date.now() - this._lastSkillUpdate < 500) {
+      return;
+    }
+    this._lastSkillUpdate = Date.now();
+
+    logger.info(
+      "[UnifiedToolRegistry] SkillRegistry updated, refreshing skills...",
+    );
+    this._importSkills();
+    this.emit("tools-updated", { reason: "skill-registry-update" });
+  }
 
   /**
    * Normalize tool name: replace hyphens with underscores

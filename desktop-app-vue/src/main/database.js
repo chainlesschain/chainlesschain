@@ -3525,6 +3525,42 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_identity_mappings_provider ON identity_mappings(provider_id);
     `);
 
+      // ============================================================
+      // v1.1.0: Skill Pipeline & Metrics tables
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS skill_execution_metrics (
+        id TEXT PRIMARY KEY,
+        skill_id TEXT NOT NULL,
+        pipeline_id TEXT,
+        started_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        duration_ms INTEGER,
+        success INTEGER DEFAULT 0,
+        tokens_input INTEGER DEFAULT 0,
+        tokens_output INTEGER DEFAULT 0,
+        cost_usd REAL DEFAULT 0,
+        error_message TEXT,
+        context_json TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_skill_metrics_skill ON skill_execution_metrics(skill_id);
+      CREATE INDEX IF NOT EXISTS idx_skill_metrics_time ON skill_execution_metrics(started_at);
+
+      CREATE TABLE IF NOT EXISTS skill_pipeline_definitions (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT,
+        definition_json TEXT NOT NULL,
+        is_template INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        execution_count INTEGER DEFAULT 0,
+        last_executed_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_pipeline_defs_category ON skill_pipeline_definitions(category);
+      `);
+
       // 重新启用外键约束
       logger.info("[Database] 重新启用外键约束...");
       this.db.run("PRAGMA foreign_keys = ON");

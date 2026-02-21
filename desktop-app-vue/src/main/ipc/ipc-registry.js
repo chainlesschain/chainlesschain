@@ -1757,7 +1757,7 @@ function registerAllIPC(dependencies) {
       registerUnifiedToolsIPC({ unifiedToolRegistry });
 
       logger.info(
-        "[IPC Registry] ✓ Unified Tool Registry IPC registered (6 handlers)",
+        "[IPC Registry] ✓ Unified Tool Registry IPC registered (8 handlers)",
       );
     } catch (unifiedError) {
       logger.warn(
@@ -1770,6 +1770,80 @@ function registerAllIPC(dependencies) {
     logger.info(
       "[IPC Registry] Phase 15 Complete: Unified Tool Registry ready!",
     );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 16: v1.1.0 — Skill Pipeline, Metrics, Workflow, Git Hooks
+    // ============================================================
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 16: v1.1.0 Skill Ecosystem & Workflow");
+    logger.info("[IPC Registry] ========================================");
+
+    // 🔥 Skill Pipeline IPC (流水线引擎, 12 handlers)
+    logger.info("[IPC Registry] Registering Skill Pipeline IPC...");
+    try {
+      const {
+        registerSkillPipelineIPC,
+      } = require("../ai-engine/cowork/skills/skill-pipeline-ipc");
+      registerSkillPipelineIPC({ hookSystem });
+      logger.info(
+        "[IPC Registry] ✓ Skill Pipeline IPC registered (12 handlers)",
+      );
+    } catch (pipelineError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Skill Pipeline IPC registration failed (non-fatal):",
+        pipelineError.message,
+      );
+    }
+
+    // 🔥 Skill Metrics IPC (技能指标, 5 handlers)
+    logger.info("[IPC Registry] Registering Skill Metrics IPC...");
+    try {
+      const {
+        registerSkillMetricsIPC,
+      } = require("../ai-engine/cowork/skills/skill-metrics-ipc");
+      registerSkillMetricsIPC({});
+      logger.info("[IPC Registry] ✓ Skill Metrics IPC registered (5 handlers)");
+    } catch (metricsError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Skill Metrics IPC registration failed (non-fatal):",
+        metricsError.message,
+      );
+    }
+
+    // 🔥 Skill Workflow IPC (工作流引擎, 10 handlers)
+    logger.info("[IPC Registry] Registering Skill Workflow IPC...");
+    try {
+      const {
+        registerSkillWorkflowIPC,
+      } = require("../ai-engine/cowork/skills/skill-workflow-ipc");
+      registerSkillWorkflowIPC({});
+      logger.info(
+        "[IPC Registry] ✓ Skill Workflow IPC registered (10 handlers)",
+      );
+    } catch (workflowError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Skill Workflow IPC registration failed (non-fatal):",
+        workflowError.message,
+      );
+    }
+
+    // 🔥 Git Hook IPC (Git 钩子, 8 handlers)
+    logger.info("[IPC Registry] Registering Git Hook IPC...");
+    try {
+      const { registerGitHookIPC } = require("../hooks/git-hook-ipc");
+      registerGitHookIPC({ hookSystem });
+      logger.info("[IPC Registry] ✓ Git Hook IPC registered (8 handlers)");
+    } catch (gitHookError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Git Hook IPC registration failed (non-fatal):",
+        gitHookError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 16 Complete: v1.1.0 Ecosystem ready!");
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================

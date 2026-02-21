@@ -134,6 +134,42 @@ class SkillRegistry extends EventEmitter {
     this.emit("skill-unregistered", { skillId, skill });
   }
 
+  /**
+   * 热加载单个技能
+   * @param {string} skillId - 技能 ID
+   * @param {object} definition - 技能定义
+   * @returns {boolean} 是否成功
+   */
+  hotLoadSkill(skillId, definition) {
+    try {
+      const { MarkdownSkill } = require("./markdown-skill");
+      const skill = new MarkdownSkill(definition);
+      this.register(skill);
+      this._log(`技能热加载成功: ${skillId}`);
+      this.emit("skill-hot-loaded", { skillId, skill });
+      return true;
+    } catch (error) {
+      this._log(`技能热加载失败 ${skillId}: ${error.message}`, "error");
+      return false;
+    }
+  }
+
+  /**
+   * 热卸载单个技能
+   * @param {string} skillId - 技能 ID
+   * @returns {boolean} 是否成功
+   */
+  hotUnloadSkill(skillId) {
+    if (!this.skills.has(skillId)) {
+      this._log(`技能不存在，无法热卸载: ${skillId}`, "warn");
+      return false;
+    }
+    this.unregister(skillId);
+    this._log(`技能热卸载成功: ${skillId}`);
+    this.emit("skill-hot-unloaded", { skillId });
+    return true;
+  }
+
   // ==========================================
   // 技能查找
   // ==========================================
@@ -144,7 +180,12 @@ class SkillRegistry extends EventEmitter {
    * @returns {BaseSkill|undefined}
    */
   getSkill(skillId) {
-    return this.skills.get(skillId);
+    const skill = this.skills.get(skillId);
+    if (skill && typeof skill.ensureFullyLoaded === "function") {
+      // Trigger lazy loading (non-blocking, best effort)
+      skill.ensureFullyLoaded().catch(() => {});
+    }
+    return skill;
   }
 
   /**

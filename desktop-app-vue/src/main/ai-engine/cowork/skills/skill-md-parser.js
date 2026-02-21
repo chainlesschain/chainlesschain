@@ -309,6 +309,88 @@ class SkillMdParser {
   }
 
   /**
+   * 仅解析 YAML frontmatter（到第二个 ---），跳过 Markdown body
+   * 返回轻量 SkillDefinitionStub
+   * @param {string} filePath - 文件路径
+   * @returns {Promise<object>} SkillDefinitionStub
+   */
+  async parseMetadataOnly(filePath) {
+    try {
+      const content = await fs.promises.readFile(filePath, "utf-8");
+      return this.parseMetadataOnlyContent(content, filePath);
+    } catch (error) {
+      throw new Error(
+        `Failed to parse metadata from ${filePath}: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * 仅从内容解析 YAML frontmatter
+   * @param {string} content - 文件内容
+   * @param {string} sourcePath - 源文件路径
+   * @returns {object} SkillDefinitionStub
+   */
+  parseMetadataOnlyContent(content, sourcePath = "unknown") {
+    const lines = content.split("\n");
+
+    if (lines[0].trim() !== "---") {
+      return this._createStub({}, sourcePath);
+    }
+
+    let endIndex = -1;
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === "---") {
+        endIndex = i;
+        break;
+      }
+    }
+
+    if (endIndex === -1) {
+      return this._createStub({}, sourcePath);
+    }
+
+    // Only parse the YAML portion, skip body entirely
+    const yamlContent = lines.slice(0, endIndex + 1).join("\n") + "\n";
+    const parsed = matter
+      ? matter(yamlContent)
+      : simpleFrontmatterParser(yamlContent);
+    const frontmatter = parsed.data || {};
+    const normalized = this._normalizeFields(frontmatter);
+
+    return this._createStub(normalized, sourcePath);
+  }
+
+  /**
+   * 创建轻量级 SkillDefinitionStub
+   * @private
+   */
+  _createStub(normalized, sourcePath) {
+    return {
+      name: normalized.name || path.basename(path.dirname(sourcePath)),
+      description: normalized.description || "",
+      displayName: normalized.displayName || normalized.name || "",
+      version: normalized.version || "1.0.0",
+      category: normalized.category || "custom",
+      tags: normalized.tags || [],
+      handler: normalized.handler || null,
+      os: normalized.os || ["win32", "darwin", "linux"],
+      requires: {
+        bins: normalized.requires?.bins || [],
+        env: normalized.requires?.env || [],
+      },
+      enabled: normalized.enabled !== false,
+      userInvocable: normalized.userInvocable !== false,
+      hidden: normalized.hidden === true,
+      source: normalized.source || "unknown",
+      sourcePath,
+      // Mark as stub (metadata only)
+      _isStub: true,
+      _bodyLoaded: false,
+    };
+  }
+
+  /**
    * 规范化字段名
    * @private
    */

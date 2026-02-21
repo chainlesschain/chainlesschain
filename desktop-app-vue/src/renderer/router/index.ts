@@ -96,6 +96,11 @@ const coworkPages = createRouteGroup('cowork', {
   tasks: () => import(/* webpackChunkName: "cowork-tasks" */ '../pages/TaskMonitor.vue'),
   skills: () => import(/* webpackChunkName: "cowork-skills" */ '../pages/SkillManager.vue'),
   analytics: () => import(/* webpackChunkName: "cowork-analytics" */ '../pages/CoworkAnalytics.vue'),
+  // v1.1.0 新增
+  pipelineDesigner: () => import(/* webpackChunkName: "cowork-pipeline" */ '../pages/SkillPipelinePage.vue'),
+  workflowDesigner: () => import(/* webpackChunkName: "cowork-workflow" */ '../pages/WorkflowDesignerPage.vue'),
+  skillPerformance: () => import(/* webpackChunkName: "cowork-performance" */ '../pages/SkillPerformancePage.vue'),
+  gitHooks: () => import(/* webpackChunkName: "cowork-git-hooks" */ '../pages/GitHooksPage.vue'),
 });
 
 // 企业版协作页面组（中优先级）
@@ -730,6 +735,31 @@ const routes: RouteRecordRaw[] = [
         name: 'CoworkAnalytics',
         component: coworkPages.analytics,
         meta: { title: '数据分析' },
+      },
+      // ===== Cowork v1.1.0 新增路由 =====
+      {
+        path: 'cowork/pipeline',
+        name: 'PipelineDesigner',
+        component: coworkPages.pipelineDesigner,
+        meta: { title: '流水线编排' },
+      },
+      {
+        path: 'cowork/workflow',
+        name: 'WorkflowDesigner',
+        component: coworkPages.workflowDesigner,
+        meta: { title: '工作流设计器' },
+      },
+      {
+        path: 'cowork/performance',
+        name: 'SkillPerformance',
+        component: coworkPages.skillPerformance,
+        meta: { title: '技能性能' },
+      },
+      {
+        path: 'cowork/git-hooks',
+        name: 'GitHooks',
+        component: coworkPages.gitHooks,
+        meta: { title: 'Git Hooks' },
       },
       {
         path: 'error/monitor',

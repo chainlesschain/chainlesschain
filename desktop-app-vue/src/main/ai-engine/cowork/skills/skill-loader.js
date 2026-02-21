@@ -161,7 +161,8 @@ class SkillLoader extends EventEmitter {
 
       try {
         // 解析 SKILL.md
-        const definition = await this.parser.parseFile(skillMdPath);
+        // v1.1.0: Use metadata-only parsing for faster startup
+        const definition = await this.parser.parseMetadataOnly(skillMdPath);
         definition.source = layer;
 
         // 门控检查
@@ -314,6 +315,56 @@ class SkillLoader extends EventEmitter {
     this.gating.clearCache();
 
     return await this.loadAll();
+  }
+  /**
+   * 加载单个指定目录的技能（完整解析）
+   * @param {string} skillDir - 技能目录路径
+   * @param {string} layer - 来源层级
+   * @returns {Promise<object|null>} SkillDefinition or null
+   */
+  async loadSingleSkill(skillDir, layer = "managed") {
+    const skillMdPath = path.join(skillDir, "SKILL.md");
+
+    if (!fs.existsSync(skillMdPath)) {
+      logger.warn(`[SkillLoader] No SKILL.md found in ${skillDir}`);
+      return null;
+    }
+
+    try {
+      // Full parse for single skill loading
+      const definition = await this.parser.parseFile(skillMdPath);
+      definition.source = layer;
+
+      // Gating check
+      if (this.options.autoGating) {
+        const gatingResult = await this.gating.checkRequirements(definition);
+        if (!gatingResult.passed && this.options.strictGating) {
+          const summary = this.gating.getSummary(gatingResult);
+          logger.warn(
+            `[SkillLoader] Skill ${definition.name} failed gating: ${summary}`,
+          );
+          return null;
+        }
+      }
+
+      // Store in appropriate layer
+      if (this.layerDefinitions[layer]) {
+        this.layerDefinitions[layer].set(definition.name, definition);
+      }
+      this.resolvedSkills.set(definition.name, definition);
+
+      this.emit("skill-loaded", { layer, definition });
+      logger.info(
+        `[SkillLoader] Single skill loaded: ${definition.name} (${layer})`,
+      );
+
+      return definition;
+    } catch (error) {
+      logger.error(
+        `[SkillLoader] Failed to load single skill from ${skillDir}: ${error.message}`,
+      );
+      return null;
+    }
   }
 }
 
