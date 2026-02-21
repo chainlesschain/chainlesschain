@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/reranker.js`
 
-**Generated**: 2026-02-21T22:04:25.794Z
+**Generated**: 2026-02-21T22:45:05.263Z
 
 ---
 

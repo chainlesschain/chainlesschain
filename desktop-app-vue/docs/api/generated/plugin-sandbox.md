@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-sandbox.js`
 
-**Generated**: 2026-02-21T22:04:25.800Z
+**Generated**: 2026-02-21T22:45:05.268Z
 
 ---
 

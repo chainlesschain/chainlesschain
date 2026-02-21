@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/excel-engine.js`
 
-**Generated**: 2026-02-21T22:04:25.837Z
+**Generated**: 2026-02-21T22:45:05.299Z
 
 ---
 

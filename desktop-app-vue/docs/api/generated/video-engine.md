@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/video-engine.js`
 
-**Generated**: 2026-02-21T22:04:25.836Z
+**Generated**: 2026-02-21T22:45:05.298Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/identity/identity-context-manager.js`
 
-**Generated**: 2026-02-21T22:04:25.831Z
+**Generated**: 2026-02-21T22:45:05.293Z
 
 ---
 
