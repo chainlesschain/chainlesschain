@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/device-sync-manager.js`
 
-**Generated**: 2026-02-21T20:04:16.228Z
+**Generated**: 2026-02-21T22:04:25.808Z
 
 ---
 

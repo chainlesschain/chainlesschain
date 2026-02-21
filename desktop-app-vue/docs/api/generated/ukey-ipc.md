@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/ukey-ipc.js`
 
-**Generated**: 2026-02-21T20:04:16.189Z
+**Generated**: 2026-02-21T22:04:25.766Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-tool-adapter.js`
 
-**Generated**: 2026-02-21T20:04:16.234Z
+**Generated**: 2026-02-21T22:04:25.816Z
 
 ---
 

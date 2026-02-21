@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/project-core-ipc.js`
 
-**Generated**: 2026-02-21T20:04:16.220Z
+**Generated**: 2026-02-21T22:04:25.798Z
 
 ---
 
