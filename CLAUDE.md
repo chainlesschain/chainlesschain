@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.37.6 (90 Desktop Skills + Android 28 Skills + PC Remote Delegation) - Updated 2026-02-17
+**Current Version**: v0.38.0 (90 Desktop Skills + Android 28 Skills + SIMKey Six Security Enhancements) - Updated 2026-02-22
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
