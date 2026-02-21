@@ -33,7 +33,10 @@ ChainlessChain旨在成为用户的"第二大脑"和数字资产管理中心：
 - 🤖 **Cowork协作**: 多智能体协作系统，智能任务分配，文件沙箱安全
 - 🖥️ **Computer Use**: 类似Claude Computer Use的电脑操作能力，视觉AI定位
 - 🌐 **浏览器插件**: 215个远程命令，完整浏览器自动化控制
-- 🏢 **企业版**: 去中心化组织协作，实时协作编辑，团队工作流
+- 🧩 **技能系统**: 90个内置技能，Agent Skills开放标准，四层加载架构
+- 🪝 **Hooks扩展**: 21个钩子事件，4种类型，自定义逻辑注入
+- 🧠 **永久记忆**: 跨会话持久化，Daily Notes，混合搜索引擎
+- 🏢 **企业版**: SSO认证、RBAC权限、审计合规、插件市场、专业化Agent
 
 ## 核心功能
 
@@ -111,7 +114,7 @@ ChainlessChain旨在成为用户的"第二大脑"和数字资产管理中心：
 #### 硬件钱包集成
 
 - **U盾集成**: 支持各类U盾硬件
-- **SIMKey集成**: 支持SIM卡密钥存储
+- **SIMKey集成**: SIM卡密钥存储，iOS eSIM，5G优化，NFC离线签名，量子抗性
 - **多链支持**: Ethereum、Bitcoin、Polygon等
 - **私钥保护**: 私钥永不离开硬件设备
 
@@ -256,7 +259,7 @@ ChainlessChain Desktop的浏览器扩展组件，提供完整的浏览器自动�
 #### 硬件级加密
 
 - **U盾加密**: 基于国密SM2/SM3/SM4算法
-- **SIMKey加密**: 利用SIM卡安全单元
+- **SIMKey加密**: SIM卡安全单元 + iOS eSIM + 后量子密码学
 - **TEE支持**: Trusted Execution Environment
 - **生物识别**: 指纹、面部识别集成
 
@@ -335,6 +338,159 @@ ChainlessChain Desktop的浏览器扩展组件，提供完整的浏览器自动�
 - **快速恢复**: 从Git恢复数据
 
 [详细了解Git同步 →](/chainlesschain/git-sync)
+
+---
+
+### 🧩 AI技能系统 (v0.29.0+)
+
+可扩展的技能框架，90个内置技能覆盖开发、文档、安全、媒体等全场景。
+
+#### 技能概览
+
+| 分类     | 技能数 | 示例                                                 |
+| -------- | ------ | ---------------------------------------------------- |
+| 开发工具 | 22     | code-review, test-generator, refactor, code-runner   |
+| 文档处理 | 8      | pdf-toolkit, word-generator, pptx-creator, doc-converter |
+| 媒体处理 | 7      | audio-transcriber, video-toolkit, image-editor, ocr-scanner |
+| DevOps   | 8      | devops-automation, log-analyzer, system-monitor      |
+| 安全审计 | 4      | security-audit, vulnerability-scanner, crypto-toolkit |
+| AI增强   | 5      | prompt-enhancer, multi-model-router, image-generator |
+| 自动化   | 4      | browser-automation, computer-use, workflow-automation |
+| 数据分析 | 5      | data-analysis, chart-creator, csv-processor          |
+| 知识管理 | 6      | knowledge-graph, memory-management, codebase-qa      |
+| 实用工具 | 21     | json-yaml-toolkit, regex-playground, http-client     |
+
+#### 核心架构
+
+- **四层加载**: bundled → marketplace → managed → workspace（高层覆盖低层）
+- **Gate检查**: 平台、二进制依赖、环境变量前置校验
+- **Agent Skills开放标准**: 13个扩展字段（tools, instructions, examples, dependencies, input-schema, output-schema, model-hints等）
+- **统一工具注册表**: FunctionCaller 60+ 工具 + MCP 8 服务器 + Skills 90 技能
+- **/skill命令**: 用户命令解析和自动执行
+- **Android端**: 28个技能（含PC远程委托），SkillRegistry支持LLM function calling
+
+#### 演示模板
+
+10个演示项目模板，涵盖自动化、AI工作流、知识管理、远程控制四大场景。
+
+[详细了解技能系统 →](/chainlesschain/skills)
+
+---
+
+### 🔌 MCP集成 (v0.29.0+)
+
+Model Context Protocol标准化AI工具集成，支持社区服务器发现和自定义SDK开发。
+
+#### 支持的服务器
+
+| 服务器     | 功能           | 类型   |
+| ---------- | -------------- | ------ |
+| Filesystem | 文件系统操作   | 官方   |
+| PostgreSQL | 数据库查询     | 官方   |
+| SQLite     | 本地数据库     | 官方   |
+| Git        | 版本控制操作   | 官方   |
+| Brave Search | 网络搜索     | 社区   |
+| Puppeteer  | 浏览器自动化   | 社区   |
+| Slack      | 团队通讯       | 社区   |
+| GitHub     | 代码仓库管理   | 社区   |
+
+#### MCP SDK
+
+- **Server Builder**: 流式API (`new MCPServerBuilder().name().tool().build()`)
+- **HTTP+SSE Server**: HTTP服务器，SSE流式传输，CORS，Bearer/API-Key/Basic认证
+- **Stdio Server**: 行分隔JSON-RPC 2.0，stdin/stdout通信
+- **社区注册表**: 8+预配置社区MCP服务器，一键安装
+
+#### 安全架构
+
+- 纵深防御安全模型
+- 工具级权限控制
+- 审计日志全覆盖
+
+---
+
+### 🪝 Hooks扩展系统 (v0.27.0+)
+
+受Claude Code启发的可扩展钩子系统，在关键操作点注入自定义逻辑。
+
+#### 钩子能力
+
+- **21个钩子事件**: PreToolUse, PostToolUse, SessionStart, PreCompact, FileModified等
+- **4种钩子类型**: Sync（同步）, Async（异步）, Command（Shell命令）, Script（JS/Python/Bash脚本）
+- **优先级系统**: SYSTEM(0) → HIGH(100) → NORMAL(500) → LOW(900) → MONITOR(1000)
+- **中间件集成**: IPC、Tool、Session、File、Agent中间件工厂
+- **脚本钩子**: 自动加载 `.chainlesschain/hooks/*.js`
+
+[详细了解Hooks系统 →](/chainlesschain/hooks)
+
+---
+
+### 🧠 永久记忆系统 (v0.26.2+)
+
+跨会话持久化记忆，灵感源自Clawdbot架构，确保AI助手保持长期上下文。
+
+#### 核心功能
+
+- **Daily Notes**: 自动记录每日活动到 `.chainlesschain/memory/daily/YYYY-MM-DD.md`
+- **MEMORY.md**: 长期知识提取和持久洞察
+- **Pre-compaction Flush**: 上下文压缩前自动保存（防止数据丢失）
+- **混合搜索**: 向量语义(0.6权重) + BM25关键词(0.4权重) + RRF融合
+- **自动索引**: 文件监听（1.5s去抖），自动重建索引
+- **嵌入缓存**: SQLite缓存，避免重复计算
+
+#### Context Engineering
+
+KV-Cache优化系统，提升LLM性能：
+
+- **静态/动态分离**: 静态内容前置，缓存命中率60-85%
+- **任务上下文管理**: 目标重述，防止"lost in the middle"
+- **错误历史追踪**: 从过去错误中学习
+- **Token估算**: 中英文自动检测
+
+[详细了解会话管理 →](/chainlesschain/session-manager)
+
+---
+
+### 🏢 企业级功能 (v0.34.0+)
+
+面向企业的安全合规、身份认证和扩展能力。
+
+#### 企业审计与合规
+
+- **统一审计日志**: 跨子系统审计事件聚合（浏览器、权限、文件、API、Cowork）
+- **合规管理**: GDPR/SOC2/HIPAA合规检查，策略引擎，报告生成
+- **数据主体处理**: GDPR DSR请求（访问、擦除、更正、可携带性）
+- **18个IPC处理器**: 审计日志、合规策略、DSR、数据保留策略全覆盖
+
+#### SSO企业认证
+
+- **多提供商SSO**: SAML 2.0、OAuth 2.0、OIDC，支持PKCE
+- **身份桥接**: DID ↔ SSO身份双向链接
+- **加密会话**: AES-256-GCM令牌加密存储，自动刷新
+- **20个IPC处理器**: 提供商配置、认证流程、身份链接、会话管理
+
+#### 权限引擎 (Enterprise RBAC)
+
+- **资源级权限**: 个体资源细粒度访问控制
+- **权限继承**: 父子资源权限传播
+- **权限委派**: 带时间边界的临时权限授予
+- **团队权限**: 基于团队成员的访问控制
+- **审计日志**: 完整权限变更历史
+
+[详细了解权限系统 →](/chainlesschain/permissions)
+
+#### 插件市场
+
+- **市场客户端**: HTTP客户端，DID认证，REST API
+- **插件安装**: 下载、哈希校验、解压、SkillLoader注册
+- **插件更新**: 后台更新检查，自动更新通知
+- **22个IPC处理器**: 浏览、安装、卸载、更新、评分、发布、配置
+
+#### 专业化多Agent系统
+
+- **8个Agent模板**: CodeSecurity, DevOps, DataAnalysis, Documentation, TestGenerator, Architect, Performance, Compliance
+- **Agent协调器**: 多Agent任务分解、分配、结果聚合
+- **Agent注册表**: 类型注册、工厂、版本管理、实例生命周期
 
 ---
 
@@ -667,10 +823,13 @@ ChainlessChain Desktop的浏览器扩展组件，提供完整的浏览器自动�
 - 支持国密SM2/SM3/SM4算法
 - USB接口
 
-**SIMKey**:
+**SIMKey** (v0.38.0):
 
-- 支持JavaCard
-- SIM卡插槽
+- 支持JavaCard / 5G USIM / iOS eSIM
+- SIM卡插槽 / eSIM Profile
+- NFC离线签名、多SIM卡自动切换
+- 健康监控仪表盘
+- 后量子密码学 (ML-KEM/ML-DSA)
 
 ---
 
@@ -725,33 +884,78 @@ npm run dev:desktop
 
 ## 路线图
 
-### v1.0 (当前版本) ✅
+### Phase 1: 基础平台 (v0.1–v0.26) ✅
 
-- ✅ 知识库基础功能
-- ✅ Markdown编辑器
-- ✅ 本地全文搜索
-- ✅ Git同步
-- ✅ U盾/SIMKey集成
-- ✅ PC端（Windows/Mac/Linux）
-- ✅ 移动端（Android）
+- ✅ 知识库基础功能 + Markdown编辑器
+- ✅ 本地全文搜索 + 向量检索(RAG)
+- ✅ Git同步 + 版本控制
+- ✅ U盾/SIMKey硬件加密集成
+- ✅ PC端（Windows/Mac/Linux）+ Android端
+- ✅ DID身份 + P2P即时通讯 + Signal加密
+- ✅ Ollama本地模型 + 14+云LLM集成
+- ✅ 永久记忆系统 + 混合搜索引擎(Vector+BM25)
+- ✅ IPC错误处理中间件
 
-### v1.5 (计划中)
+### Phase 2: AI增强 (v0.27–v0.29) ✅
 
-- 🔄 iOS端应用
-- 🔄 P2P即时通讯
-- 🔄 Ollama集成
-- 🔄 RAG检索增强
-- 🔄 多链钱包
-- 🔄 知识图谱可视化
+- ✅ Cowork多智能体协作系统 (13核心操作, 文件沙箱)
+- ✅ Hooks可扩展系统 (21事件, 4类型)
+- ✅ Manus优化 (Context Engineering, KV-Cache)
+- ✅ Plan Mode安全规划模式
+- ✅ Skills技能系统 (Markdown定义, 三层加载)
+- ✅ 权限引擎 (Enterprise RBAC)
+- ✅ 团队管理 + 日报/周报
+- ✅ SessionManager智能会话管理
+- ✅ 浏览器自动化系统 + 录制回放
+- ✅ iOS端应用 + WebRTC语音/视频
 
-### v2.0 (未来)
+### Phase 3: 能力扩展 (v0.33–v0.34) ✅
 
-- 📋 团队协作功能
-- 📋 插件系统
-- 📋 WebRTC视频通话
-- 📋 去中心化存储(IPFS)
-- 📋 更多AI模型支持
-- 📋 更多区块链支持
+- ✅ Computer Use电脑操作 (12 AI工具, 68+ IPC)
+- ✅ 企业审计与合规 (GDPR/SOC2/HIPAA)
+- ✅ SSO企业认证 (SAML/OAuth/OIDC)
+- ✅ 插件市场 (发现/安装/更新)
+- ✅ MCP SDK + 社区注册表 (8服务器)
+- ✅ 专业化多Agent系统 (8模板)
+- ✅ 浏览器插件 (215远程命令)
+
+### Phase 4: 技能生态 (v0.35–v0.37) ✅ 当前版本
+
+- ✅ 90个内置技能 (100% Handler覆盖)
+- ✅ 统一工具注册表 (FunctionCaller+MCP+Skills)
+- ✅ Agent Skills开放标准 (13扩展字段)
+- ✅ 10个AI演示模板
+- ✅ Android 28技能 + PC远程委托
+- ✅ 技能市场第四层加载 (bundled→marketplace→managed→workspace)
+
+### Phase 5: 生态完善 (v0.38–v0.40) 🔄 进行中
+
+- ✅ SIMKey v0.38.0 (iOS eSIM, 5G优化, NFC离线签名, 多SIM卡切换, 健康监控, 量子抗性算法)
+- 🔄 多模态AI能力增强 (图片/音频/视频理解)
+- 🔄 工作流编排可视化编辑器
+- 🔄 跨设备技能同步和迁移
+- 🔄 社区技能市场上线 (用户贡献技能)
+- 🔄 MCP服务器热加载和动态发现
+- 🔄 iOS端技能系统 + Computer Use
+
+### Phase 6: 企业级 (v1.0) 📋 计划中
+
+- 📋 企业组织管理 (多层级, 审批流)
+- 📋 实时协作编辑 (CRDT/OT)
+- 📋 去中心化存储 (IPFS集成)
+- 📋 高级数据分析仪表盘
+- 📋 AI Agent自主任务执行 (长时间运行)
+- 📋 多语言国际化 (i18n完善)
+- 📋 性能监控和自动调优
+
+### 远景 (v2.0+) 🔮
+
+- 🔮 去中心化AI模型训练和推理市场
+- 🔮 跨链互操作协议
+- 🔮 语音/手势自然交互
+- 🔮 AR/VR知识空间
+- 🔮 联邦学习隐私保护AI
+- 🔮 开放Agent协议 (跨平台Agent互操作)
 
 ---
 
@@ -783,8 +987,14 @@ npm run dev:desktop
 
 - [安装部署](/chainlesschain/installation) - 详细安装指南
 - [知识库管理](/chainlesschain/knowledge-base) - 学习知识库功能
+- [AI技能系统](/chainlesschain/skills) - 90个内置技能
+- [Cowork多智能体](/chainlesschain/cowork) - 多Agent协作
+- [Computer Use](/chainlesschain/computer-use) - 电脑操作能力
 - [去中心化社交](/chainlesschain/social) - 了解P2P通讯
 - [AI模型配置](/chainlesschain/ai-models) - 配置本地AI
+- [会话管理](/chainlesschain/session-manager) - 智能会话和记忆
+- [Hooks扩展](/chainlesschain/hooks) - 自定义钩子系统
+- [权限管理](/chainlesschain/permissions) - 企业级RBAC
 - [Git同步](/chainlesschain/git-sync) - 设置跨设备同步
 
 ---
