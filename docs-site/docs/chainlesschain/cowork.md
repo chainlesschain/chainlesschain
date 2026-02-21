@@ -27,6 +27,13 @@ ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Cla
 - 🌍 **RESTful API**: 20+ 端点，SSE 实时推送，Bearer/API-Key 认证
 - 🪝 **Webhook 事件**: 17 种事件类型，HMAC 签名，指数退避重试
 - 🛡️ **完整审计**: 所有文件操作审计日志，数据库 + 文件系统双持久化
+- 🕸️ **Code Knowledge Graph**: 代码实体/关系图谱，环形依赖检测，中心度分析，架构洞察注入
+- 📚 **Decision Knowledge Base**: 决策历史积累，相似决策检索，最佳实践提取，投票/编排自动记录
+- 🧬 **Prompt Optimizer**: Prompt 自优化，A/B 变体测试，SHA-256 哈希去重，成功率追踪
+- 🔍 **Skill Discoverer**: 任务失败分析，Marketplace 技能自动发现与安装建议
+- 🎭 **Debate Review**: 多视角辩论式代码审查（性能/安全/可维护性），共识投票裁决
+- ⚖️ **A/B Comparator**: 多代理方案生成与基准对比，自动评分排名
+- 🔄 **Experience Replay**: 工作流模板自动提取，成功路径沉淀为 Instinct 模式
 
 ## TeammateTool — 13 核心操作
 
@@ -2623,15 +2630,29 @@ CREATE TABLE cowork_webhook_deliveries (
 
 ---
 
-### v2.1.0 — 自进化与知识图谱
+### v2.1.0 — 自进化与知识图谱 ✅
 
 **目标**: 构建能够自我学习和知识积累的智能代理网络
 
+#### 已完成
+
+- [x] **代码知识图谱** — 8 种实体类型，7 种关系类型，度中心度分析，热点检测，环形依赖检测（DFS），架构建议注入 ContextEngineering（~650 行）
+- [x] **决策知识库** — 自动记录投票/编排决策，相似决策检索，最佳实践提取，4 种来源，Hook 集成自动捕获（~500 行）
+- [x] **Prompt 自优化** — SHA-256 哈希去重，A/B 变体管理，成功率自动追踪，优化建议生成（~450 行）
+- [x] **技能自动发现** — 任务失败关键词提取，Marketplace 自动搜索，安装建议，发现历史追踪（~400 行）
+- [x] **辩论式代码审查** — 3 视角审查代理，结构化 issue 输出，共识投票裁决，决策记录到 DecisionKB（~550 行）
+- [x] **A/B 方案对比** — 5 种代理风格，3 维基准评分，自动排名选优（~500 行）
+- [x] **经验回放** — Instinct evolveInstincts 扩展，成功工作流自动沉淀为 instinct（~100 行）
+- [x] **KG 上下文注入** — ContextEngineering 步骤 4.6 注入代码知识图谱架构洞察（~30 行）
+- [x] **IPC Handler 注册** — 35 个 IPC handler（Phase 20），6 模块全覆盖
+- [x] **数据库 Schema** — 8 张新表
+- [x] **3 新内置技能** — debate-review, ab-compare, stream-processor
+
 #### 知识图谱驱动
 
-- [ ] **代码知识图谱** — 基于 `knowledge-graph` 技能自动构建项目代码的实体关系图谱（类、函数、模块、依赖）
-- [ ] **决策知识库** — 积累历史决策数据（投票结果、方案选择、故障处理），为未来决策提供参考
-- [ ] **最佳实践推荐** — 基于知识图谱分析，自动推荐适合当前任务的代码模式和解决方案
+- [x] **代码知识图谱** — 基于 `knowledge-graph` 技能自动构建项目代码的实体关系图谱（类、函数、模块、依赖）
+- [x] **决策知识库** — 积累历史决策数据（投票结果、方案选择、故障处理），为未来决策提供参考
+- [x] **最佳实践推荐** — 基于知识图谱分析，自动推荐适合当前任务的代码模式和解决方案
 
 #### 知识图谱架构
 
@@ -2670,15 +2691,15 @@ CREATE TABLE cowork_webhook_deliveries (
 
 #### 自进化代理
 
-- [ ] **技能自动发现** — 代理根据任务失败原因自动搜索 Marketplace 中的新技能并建议安装
-- [ ] **Prompt 自优化** — 基于执行结果反馈，自动调优技能的 Prompt 模板（集成 `prompt-enhancer`）
-- [ ] **经验回放学习** — 将成功的任务执行路径提取为新的工作流模板，持续丰富模板库
+- [x] **技能自动发现** — 代理根据任务失败原因自动搜索 Marketplace 中的新技能并建议安装
+- [x] **Prompt 自优化** — 基于执行结果反馈，自动调优技能的 Prompt 模板（集成 `prompt-enhancer`）
+- [x] **经验回放学习** — 将成功的任务执行路径提取为新的工作流模板，持续丰富模板库
 
 #### 高级协作模式
 
-- [ ] **辩论式代码审查** — 多个代理从不同角度（性能、安全、可维护性）审查代码，通过投票达成共识
-- [ ] **A/B 方案对比** — 对同一任务生成多个实现方案，自动运行基准测试并推荐最优方案
-- [ ] **流式任务处理** — 支持数据流式处理模式，适用于日志分析、实时监控等持续性任务
+- [x] **辩论式代码审查** — 多个代理从不同角度（性能、安全、可维护性）审查代码，通过投票达成共识
+- [x] **A/B 方案对比** — 对同一任务生成多个实现方案，自动运行基准测试并推荐最优方案
+- [x] **流式任务处理** — 支持数据流式处理模式，适用于日志分析、实时监控等持续性任务
 
 #### 辩论式代码审查流程
 
@@ -2707,16 +2728,20 @@ CREATE TABLE cowork_webhook_deliveries (
               └──────────────┘
 ```
 
-#### 关键文件（规划）
+#### 关键文件
 
-| 文件                                                   | 职责              |
-| ------------------------------------------------------ | ----------------- |
-| `src/main/ai-engine/cowork/code-knowledge-graph.js`    | 代码知识图谱构建  |
-| `src/main/ai-engine/cowork/decision-knowledge-base.js` | 决策知识库        |
-| `src/main/ai-engine/cowork/skill-discoverer.js`        | 技能自动发现      |
-| `src/main/ai-engine/cowork/prompt-optimizer.js`        | Prompt 自优化引擎 |
-| `src/main/ai-engine/cowork/debate-review.js`           | 辩论式代码审查    |
-| `src/main/ai-engine/cowork/ab-comparator.js`           | A/B 方案对比引擎  |
+| 文件                                                         | 行数 | 职责                   |
+| ------------------------------------------------------------ | ---- | ---------------------- |
+| `src/main/ai-engine/cowork/code-knowledge-graph.js`          | ~650 | 代码知识图谱构建与分析 |
+| `src/main/ai-engine/cowork/decision-knowledge-base.js`       | ~500 | 决策知识库             |
+| `src/main/ai-engine/cowork/prompt-optimizer.js`              | ~450 | Prompt 自优化引擎      |
+| `src/main/ai-engine/cowork/skill-discoverer.js`              | ~400 | 技能自动发现           |
+| `src/main/ai-engine/cowork/debate-review.js`                 | ~550 | 辩论式代码审查         |
+| `src/main/ai-engine/cowork/ab-comparator.js`                 | ~500 | A/B 方案对比引擎       |
+| `src/main/ai-engine/cowork/evolution-ipc.js`                 | ~550 | 35 个 IPC handler      |
+| `src/main/ai-engine/cowork/skills/builtin/debate-review/`    | ~240 | debate-review 技能     |
+| `src/main/ai-engine/cowork/skills/builtin/ab-compare/`       | ~230 | ab-compare 技能        |
+| `src/main/ai-engine/cowork/skills/builtin/stream-processor/` | ~350 | stream-processor 技能  |
 
 ---
 
@@ -2738,7 +2763,7 @@ CREATE TABLE cowork_webhook_deliveries (
 | v1.2.0 | 专业化代理与智能调度   | Instinct、Orchestrate、Verification | ✅ 已完成 |
 | v1.3.0 | ML 调度与 CI/CD 优化   | 线性回归、负载均衡、OpenAPI 3.0     | ✅ 已完成 |
 | v2.0.0 | 跨设备协作与分布式执行 | WebRTC P2P、REST API、Webhook       | ✅ 已完成 |
-| v2.1.0 | 自进化与知识图谱       | 知识图谱、Prompt 优化               | ⭐⭐⭐    |
+| v2.1.0 | 自进化与知识图谱       | 知识图谱、Prompt 优化、辩论审查     | ✅ 已完成 |
 
 ## 贡献指南
 
@@ -2753,9 +2778,10 @@ MIT License - 详见 [LICENSE](https://github.com/chainlesschain/LICENSE)
 
 ---
 
-**代码行数**: ~24,300 行 (含测试和文档)
-**IPC 处理器**: 131 个 (51 核心 + 35 v1.1.0 + 11 v1.2.0 + 34 v2.0.0)
-**内置技能**: 92+ 个 (100% Handler 覆盖, 懒加载, +12 CU Bridge 技能)
+**代码行数**: ~28,000 行 (含测试和文档)
+**IPC 处理器**: 166 个 (51 核心 + 35 v1.1.0 + 11 v1.2.0 + 34 v2.0.0 + 35 v2.1.0)
+**内置技能**: 95 个 (100% Handler 覆盖, 懒加载, +12 CU Bridge 技能, +3 v2.1.0 技能)
+**数据库表**: 8 张新表 (v2.1.0: 知识图谱 2 + 决策 1 + Prompt 2 + 发现 1 + 辩论 1 + A/B 1)
 **流水线模板**: 10 个预置模板
 **跨设备支持**: Desktop + Android + iOS + Cloud (4 平台)
 **API 端点**: 20+ RESTful 端点 + SSE 实时推送
