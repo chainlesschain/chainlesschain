@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/task-tracker-ipc.js`
 
-**Generated**: 2026-02-21T22:04:25.867Z
+**Generated**: 2026-02-21T22:45:05.324Z
 
 ---
 

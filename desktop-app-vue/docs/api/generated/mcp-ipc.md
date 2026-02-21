@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-ipc.js`
 
-**Generated**: 2026-02-21T22:04:25.816Z
+**Generated**: 2026-02-21T22:45:05.281Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/knowledge-graph/graph-export.js`
 
-**Generated**: 2026-02-21T22:04:25.826Z
+**Generated**: 2026-02-21T22:45:05.289Z
 
 ---
 
