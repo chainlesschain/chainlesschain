@@ -1847,6 +1847,464 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 17: Instinct Learning System (v0.39.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Instinct Learning IPC...");
+      const { registerInstinctIPC } = require("../llm/instinct-ipc");
+      const { getInstinctManager } = require("../llm/instinct-manager");
+
+      const instinctManager = getInstinctManager();
+      const database = dependencies.database || null;
+      const permanentMemoryManager =
+        dependencies.permanentMemoryManager || null;
+      const hookSystem = dependencies.hookSystem || null;
+
+      if (database) {
+        instinctManager
+          .initialize(database, permanentMemoryManager, hookSystem)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] InstinctManager async init error (non-fatal):",
+              err.message,
+            ),
+          );
+      }
+
+      registerInstinctIPC(instinctManager);
+      registeredModules.instinctManager = instinctManager;
+      logger.info(
+        "[IPC Registry] ✓ Instinct Learning IPC registered (11 handlers)",
+      );
+    } catch (instinctError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Instinct Learning IPC registration failed (non-fatal):",
+        instinctError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 17 Complete: Instinct Learning System ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 18: Cowork v2.0.0 — Cross-device Collaboration (v0.39.0)
+    // ============================================================
+
+    try {
+      logger.info(
+        "[IPC Registry] Registering Cowork v2.0.0 Cross-device IPC...",
+      );
+
+      const {
+        getP2PAgentNetwork,
+      } = require("../ai-engine/cowork/p2p-agent-network");
+      const {
+        getDeviceDiscovery,
+      } = require("../ai-engine/cowork/device-discovery");
+      const {
+        getHybridExecutor,
+      } = require("../ai-engine/cowork/hybrid-executor");
+      const {
+        getComputerUseBridge,
+      } = require("../ai-engine/cowork/computer-use-bridge");
+      const {
+        getCoworkAPIServer,
+      } = require("../ai-engine/cowork/cowork-api-server");
+      const {
+        getWebhookManager,
+      } = require("../ai-engine/cowork/webhook-manager");
+      const {
+        registerCoworkV2IPC,
+      } = require("../ai-engine/cowork/cowork-v2-ipc");
+
+      const p2pNetwork = getP2PAgentNetwork();
+      const deviceDiscovery = getDeviceDiscovery();
+      const hybridExecutor = getHybridExecutor();
+      const computerUseBridge = getComputerUseBridge();
+      const coworkAPIServer = getCoworkAPIServer();
+      const webhookManager = getWebhookManager();
+
+      // Wire dependencies
+      const database = dependencies.database || null;
+      const skillRegistry = registeredModules.skillRegistry || null;
+      const mobileBridge = dependencies.mobileBridge || null;
+      const teammateTool = registeredModules.teammateTool || null;
+
+      // Initialize P2P Agent Network
+      p2pNetwork.mobileBridge = mobileBridge;
+      p2pNetwork.teammateTool = teammateTool;
+      p2pNetwork.skillRegistry = skillRegistry;
+      p2pNetwork.db = database;
+      p2pNetwork
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] P2PAgentNetwork init warning:",
+            err.message,
+          ),
+        );
+
+      // Initialize Device Discovery
+      deviceDiscovery.p2pNetwork = p2pNetwork;
+      deviceDiscovery.skillRegistry = skillRegistry;
+      deviceDiscovery.db = database;
+      deviceDiscovery
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] DeviceDiscovery init warning:",
+            err.message,
+          ),
+        );
+
+      // Initialize Hybrid Executor
+      hybridExecutor.p2pNetwork = p2pNetwork;
+      hybridExecutor.deviceDiscovery = deviceDiscovery;
+      hybridExecutor.skillRegistry = skillRegistry;
+      hybridExecutor
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] HybridExecutor init warning:",
+            err.message,
+          ),
+        );
+
+      // Initialize Computer Use Bridge
+      computerUseBridge.skillRegistry = skillRegistry;
+      computerUseBridge
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] ComputerUseBridge init warning:",
+            err.message,
+          ),
+        );
+
+      // Initialize Cowork API Server (wires teammateTool, skills, etc.)
+      coworkAPIServer.teammateTool = teammateTool;
+      coworkAPIServer.skillRegistry = skillRegistry;
+      coworkAPIServer.hybridExecutor = hybridExecutor;
+      coworkAPIServer.deviceDiscovery = deviceDiscovery;
+      coworkAPIServer.webhookManager = webhookManager;
+
+      // Initialize Webhook Manager
+      webhookManager.teammateTool = teammateTool;
+      webhookManager.p2pNetwork = p2pNetwork;
+      webhookManager.deviceDiscovery = deviceDiscovery;
+      webhookManager.db = database;
+      webhookManager
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] WebhookManager init warning:",
+            err.message,
+          ),
+        );
+
+      // Register IPC handlers
+      const { handlerCount } = registerCoworkV2IPC({
+        p2pNetwork,
+        deviceDiscovery,
+        hybridExecutor,
+        computerUseBridge,
+        coworkAPIServer,
+        webhookManager,
+      });
+
+      registeredModules.p2pNetwork = p2pNetwork;
+      registeredModules.deviceDiscovery = deviceDiscovery;
+      registeredModules.hybridExecutor = hybridExecutor;
+      registeredModules.computerUseBridge = computerUseBridge;
+      registeredModules.coworkAPIServer = coworkAPIServer;
+      registeredModules.webhookManager = webhookManager;
+
+      logger.info(
+        `[IPC Registry] ✓ Cowork v2.0.0 IPC registered (${handlerCount} handlers)`,
+      );
+    } catch (v2Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Cowork v2.0.0 IPC registration failed (non-fatal):",
+        v2Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 18 Complete: Cross-device Collaboration ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 19: v1.3.0 ML Scheduler, Load Balancer, CI/CD, API Docs
+    // ============================================================
+
+    // 🔥 ML Task Scheduler (ML 驱动的任务调度, 8 handlers)
+    try {
+      logger.info("[IPC Registry] Registering ML Task Scheduler IPC...");
+      const {
+        MLTaskScheduler,
+      } = require("../ai-engine/cowork/ml-task-scheduler");
+      const {
+        registerMLSchedulerIPC,
+      } = require("../ai-engine/cowork/ml-task-scheduler-ipc");
+
+      const mlTaskScheduler = new MLTaskScheduler(database || null);
+      mlTaskScheduler
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] MLTaskScheduler async init error (non-fatal):",
+            err.message,
+          ),
+        );
+
+      registerMLSchedulerIPC(mlTaskScheduler);
+      registeredModules.mlTaskScheduler = mlTaskScheduler;
+      logger.info(
+        "[IPC Registry] ✓ ML Task Scheduler IPC registered (8 handlers)",
+      );
+    } catch (mlSchedulerError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  ML Task Scheduler IPC registration failed (non-fatal):",
+        mlSchedulerError.message,
+      );
+    }
+
+    // 🔥 Load Balancer (动态负载均衡, 8 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Load Balancer IPC...");
+      const { LoadBalancer } = require("../ai-engine/cowork/load-balancer");
+      const {
+        registerLoadBalancerIPC,
+      } = require("../ai-engine/cowork/load-balancer-ipc");
+
+      const loadBalancer = new LoadBalancer(null, null, database || null);
+      loadBalancer
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] LoadBalancer async init error (non-fatal):",
+            err.message,
+          ),
+        );
+
+      registerLoadBalancerIPC(loadBalancer);
+      registeredModules.loadBalancer = loadBalancer;
+      logger.info("[IPC Registry] ✓ Load Balancer IPC registered (8 handlers)");
+    } catch (loadBalancerError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Load Balancer IPC registration failed (non-fatal):",
+        loadBalancerError.message,
+      );
+    }
+
+    // 🔥 CI/CD Optimizer (CI/CD 深度优化, 10 handlers)
+    try {
+      logger.info("[IPC Registry] Registering CI/CD Optimizer IPC...");
+      const { CICDOptimizer } = require("../ai-engine/cowork/cicd-optimizer");
+      const {
+        registerCICDOptimizerIPC,
+      } = require("../ai-engine/cowork/cicd-optimizer-ipc");
+
+      const cicdOptimizer = new CICDOptimizer(database || null, process.cwd());
+      cicdOptimizer
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] CICDOptimizer async init error (non-fatal):",
+            err.message,
+          ),
+        );
+
+      registerCICDOptimizerIPC(cicdOptimizer);
+      registeredModules.cicdOptimizer = cicdOptimizer;
+      logger.info(
+        "[IPC Registry] ✓ CI/CD Optimizer IPC registered (10 handlers)",
+      );
+    } catch (cicdError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  CI/CD Optimizer IPC registration failed (non-fatal):",
+        cicdError.message,
+      );
+    }
+
+    // 🔥 IPC API Doc Generator (API 文档自动生成, 6 handlers)
+    try {
+      logger.info("[IPC Registry] Registering API Doc Generator IPC...");
+      const {
+        IPCApiDocGenerator,
+      } = require("../ai-engine/cowork/ipc-api-doc-generator");
+      const {
+        registerApiDocsIPC,
+      } = require("../ai-engine/cowork/ipc-api-doc-generator-ipc");
+
+      const srcDir = require("path").join(__dirname, "..");
+      const apiDocGenerator = new IPCApiDocGenerator(srcDir);
+      apiDocGenerator
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] IPCApiDocGenerator async init error (non-fatal):",
+            err.message,
+          ),
+        );
+
+      registerApiDocsIPC(apiDocGenerator);
+      registeredModules.apiDocGenerator = apiDocGenerator;
+      logger.info(
+        "[IPC Registry] ✓ API Doc Generator IPC registered (6 handlers)",
+      );
+    } catch (apiDocsError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  API Doc Generator IPC registration failed (non-fatal):",
+        apiDocsError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 19 Complete: v1.3.0 ML/LB/CICD/APIDocs ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 20: Self-Evolution & Knowledge Graph (v2.1.0)
+    // ============================================================
+
+    try {
+      logger.info(
+        "[IPC Registry] Registering Self-Evolution & Knowledge Graph IPC...",
+      );
+
+      const {
+        getCodeKnowledgeGraph,
+      } = require("../ai-engine/cowork/code-knowledge-graph");
+      const {
+        getDecisionKnowledgeBase,
+      } = require("../ai-engine/cowork/decision-knowledge-base");
+      const {
+        getPromptOptimizer,
+      } = require("../ai-engine/cowork/prompt-optimizer");
+      const {
+        getSkillDiscoverer,
+      } = require("../ai-engine/cowork/skill-discoverer");
+      const { getDebateReview } = require("../ai-engine/cowork/debate-review");
+      const { getABComparator } = require("../ai-engine/cowork/ab-comparator");
+      const {
+        registerEvolutionIPC,
+      } = require("../ai-engine/cowork/evolution-ipc");
+
+      const database = dependencies.database || null;
+      const hookSystem = dependencies.hookSystem || null;
+      const marketplaceClient = registeredModules.marketplaceClient || null;
+      const teammateTool = registeredModules.teammateTool || null;
+      const agentCoordinator = registeredModules.agentCoordinator || null;
+
+      // Initialize managers
+      const codeKnowledgeGraph = getCodeKnowledgeGraph();
+      const decisionKnowledgeBase = getDecisionKnowledgeBase();
+      const promptOptimizer = getPromptOptimizer();
+      const skillDiscoverer = getSkillDiscoverer();
+      const debateReview = getDebateReview();
+      const abComparator = getABComparator();
+
+      if (database) {
+        codeKnowledgeGraph
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] CodeKnowledgeGraph init warning:",
+              err.message,
+            ),
+          );
+        decisionKnowledgeBase
+          .initialize(database, hookSystem)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] DecisionKnowledgeBase init warning:",
+              err.message,
+            ),
+          );
+        promptOptimizer
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] PromptOptimizer init warning:",
+              err.message,
+            ),
+          );
+        skillDiscoverer
+          .initialize(database, marketplaceClient, hookSystem)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] SkillDiscoverer init warning:",
+              err.message,
+            ),
+          );
+        debateReview
+          .initialize(database, teammateTool, decisionKnowledgeBase)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] DebateReview init warning:",
+              err.message,
+            ),
+          );
+        abComparator
+          .initialize(database, agentCoordinator, decisionKnowledgeBase)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ABComparator init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      // Wire CodeKnowledgeGraph into ContextEngineering
+      if (registeredModules.contextEngineering) {
+        registeredModules.contextEngineering.setCodeKnowledgeGraph(
+          codeKnowledgeGraph,
+        );
+      }
+
+      // Register IPC handlers
+      const { handlerCount } = registerEvolutionIPC({
+        codeKnowledgeGraph,
+        decisionKnowledgeBase,
+        promptOptimizer,
+        skillDiscoverer,
+        debateReview,
+        abComparator,
+      });
+
+      registeredModules.codeKnowledgeGraph = codeKnowledgeGraph;
+      registeredModules.decisionKnowledgeBase = decisionKnowledgeBase;
+      registeredModules.promptOptimizer = promptOptimizer;
+      registeredModules.skillDiscoverer = skillDiscoverer;
+      registeredModules.debateReview = debateReview;
+      registeredModules.abComparator = abComparator;
+
+      logger.info(
+        `[IPC Registry] ✓ Self-Evolution & Knowledge Graph IPC registered (${handlerCount} handlers)`,
+      );
+    } catch (evolutionError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Self-Evolution & Knowledge Graph IPC registration failed (non-fatal):",
+        evolutionError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 20 Complete: Self-Evolution & Knowledge Graph ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

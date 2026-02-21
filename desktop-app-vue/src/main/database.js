@@ -3561,6 +3561,270 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_pipeline_defs_category ON skill_pipeline_definitions(category);
       `);
 
+      // ============================================================
+      // v0.39.0: Instinct Learning System tables
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS instincts (
+        id TEXT PRIMARY KEY,
+        pattern TEXT NOT NULL,
+        confidence REAL DEFAULT 0.5,
+        category TEXT DEFAULT 'general',
+        examples TEXT DEFAULT '[]',
+        source TEXT DEFAULT 'auto',
+        use_count INTEGER DEFAULT 0,
+        last_used TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_instincts_category ON instincts(category);
+      CREATE INDEX IF NOT EXISTS idx_instincts_confidence ON instincts(confidence);
+
+      CREATE TABLE IF NOT EXISTS instinct_observations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        event_data TEXT DEFAULT '{}',
+        processed INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_observations_processed ON instinct_observations(processed);
+      CREATE INDEX IF NOT EXISTS idx_observations_type ON instinct_observations(event_type);
+      `);
+
+      // ============================================================
+      // v0.39.0: Cowork v2.0.0 — Cross-device Collaboration tables
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS p2p_remote_agents (
+        peer_id TEXT PRIMARY KEY,
+        device_id TEXT NOT NULL,
+        platform TEXT,
+        skills TEXT DEFAULT '[]',
+        resources TEXT DEFAULT '{}',
+        state TEXT DEFAULT 'offline',
+        last_heartbeat TEXT,
+        registered_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_remote_agents_state ON p2p_remote_agents(state);
+
+      CREATE TABLE IF NOT EXISTS p2p_remote_tasks (
+        task_id TEXT PRIMARY KEY,
+        peer_id TEXT NOT NULL,
+        skill_id TEXT,
+        description TEXT,
+        input TEXT DEFAULT '{}',
+        status TEXT DEFAULT 'pending',
+        result TEXT,
+        delegated_at TEXT DEFAULT (datetime('now')),
+        completed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_remote_tasks_status ON p2p_remote_tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_remote_tasks_peer ON p2p_remote_tasks(peer_id);
+
+      CREATE TABLE IF NOT EXISTS cowork_webhooks (
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        events TEXT DEFAULT '[]',
+        secret TEXT,
+        metadata TEXT DEFAULT '{}',
+        active INTEGER DEFAULT 1,
+        delivery_count INTEGER DEFAULT 0,
+        last_delivery TEXT,
+        fail_count INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS cowork_webhook_deliveries (
+        id TEXT PRIMARY KEY,
+        webhook_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        http_status INTEGER,
+        attempt INTEGER DEFAULT 0,
+        error TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook ON cowork_webhook_deliveries(webhook_id);
+      CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON cowork_webhook_deliveries(status);
+      `);
+
+      // ============================================================
+      // v1.3.0: ML Scheduler, Load Balancer, CI/CD Optimizer tables
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS ml_task_features (
+        id TEXT PRIMARY KEY,
+        task_id TEXT,
+        features TEXT,
+        predicted_complexity REAL,
+        predicted_duration INTEGER,
+        actual_duration INTEGER,
+        actual_complexity REAL,
+        model_version INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_ml_task_features_task ON ml_task_features(task_id);
+
+      CREATE TABLE IF NOT EXISTS agent_load_metrics (
+        id TEXT PRIMARY KEY,
+        agent_id TEXT NOT NULL,
+        active_tasks INTEGER DEFAULT 0,
+        queue_depth INTEGER DEFAULT 0,
+        avg_response_ms REAL DEFAULT 0,
+        error_rate REAL DEFAULT 0,
+        load_score REAL DEFAULT 0,
+        tokens_processed INTEGER DEFAULT 0,
+        last_heartbeat TEXT,
+        recorded_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_agent_load_agent ON agent_load_metrics(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_load_time ON agent_load_metrics(recorded_at);
+
+      CREATE TABLE IF NOT EXISTS cicd_test_cache (
+        id TEXT PRIMARY KEY,
+        file_hash TEXT NOT NULL,
+        selected_tests TEXT,
+        execution_time_ms INTEGER,
+        pass_count INTEGER,
+        fail_count INTEGER,
+        created_at TEXT DEFAULT (datetime('now')),
+        last_hit_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_cicd_cache_hash ON cicd_test_cache(file_hash);
+
+      CREATE TABLE IF NOT EXISTS cicd_test_history (
+        id TEXT PRIMARY KEY,
+        test_path TEXT NOT NULL,
+        passed INTEGER DEFAULT 1,
+        duration_ms INTEGER,
+        flakiness_score REAL DEFAULT 0,
+        run_count INTEGER DEFAULT 0,
+        fail_count INTEGER DEFAULT 0,
+        last_run_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_cicd_history_path ON cicd_test_history(test_path);
+
+      CREATE TABLE IF NOT EXISTS cicd_build_cache (
+        id TEXT PRIMARY KEY,
+        step_name TEXT NOT NULL,
+        input_hash TEXT NOT NULL,
+        output_path TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_cicd_build_hash ON cicd_build_cache(input_hash);
+      `);
+
+      // ============================================================
+      // v0.39.0: Self-Evolution & Knowledge Graph tables (v2.1.0)
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS code_kg_entities (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        file_path TEXT,
+        line_start INTEGER,
+        line_end INTEGER,
+        language TEXT,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_kg_entities_type ON code_kg_entities(type);
+      CREATE INDEX IF NOT EXISTS idx_kg_entities_file ON code_kg_entities(file_path);
+      CREATE INDEX IF NOT EXISTS idx_kg_entities_name ON code_kg_entities(name);
+
+      CREATE TABLE IF NOT EXISTS code_kg_relationships (
+        id TEXT PRIMARY KEY,
+        source_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        weight REAL DEFAULT 1.0,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (source_id) REFERENCES code_kg_entities(id) ON DELETE CASCADE,
+        FOREIGN KEY (target_id) REFERENCES code_kg_entities(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_kg_rels_source ON code_kg_relationships(source_id);
+      CREATE INDEX IF NOT EXISTS idx_kg_rels_target ON code_kg_relationships(target_id);
+      CREATE INDEX IF NOT EXISTS idx_kg_rels_type ON code_kg_relationships(type);
+
+      CREATE TABLE IF NOT EXISTS decision_records (
+        id TEXT PRIMARY KEY,
+        problem TEXT NOT NULL,
+        problem_category TEXT,
+        solutions TEXT DEFAULT '[]',
+        chosen_solution TEXT,
+        outcome TEXT,
+        context TEXT DEFAULT '{}',
+        agents TEXT DEFAULT '[]',
+        source TEXT DEFAULT 'manual',
+        success_rate REAL DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_decisions_category ON decision_records(problem_category);
+      CREATE INDEX IF NOT EXISTS idx_decisions_source ON decision_records(source);
+
+      CREATE TABLE IF NOT EXISTS prompt_executions (
+        id TEXT PRIMARY KEY,
+        skill_name TEXT NOT NULL,
+        prompt_hash TEXT,
+        prompt_text TEXT,
+        result_success INTEGER DEFAULT 0,
+        execution_time_ms INTEGER DEFAULT 0,
+        feedback TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_prompt_exec_skill ON prompt_executions(skill_name);
+      CREATE INDEX IF NOT EXISTS idx_prompt_exec_hash ON prompt_executions(prompt_hash);
+
+      CREATE TABLE IF NOT EXISTS prompt_variants (
+        id TEXT PRIMARY KEY,
+        skill_name TEXT NOT NULL,
+        variant_name TEXT,
+        prompt_text TEXT NOT NULL,
+        success_rate REAL DEFAULT 0,
+        use_count INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_prompt_variants_skill ON prompt_variants(skill_name);
+      CREATE INDEX IF NOT EXISTS idx_prompt_variants_active ON prompt_variants(is_active);
+
+      CREATE TABLE IF NOT EXISTS skill_discovery_log (
+        id TEXT PRIMARY KEY,
+        task_id TEXT,
+        failure_reason TEXT,
+        searched_keywords TEXT,
+        suggested_skills TEXT DEFAULT '[]',
+        installed INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_discovery_task ON skill_discovery_log(task_id);
+
+      CREATE TABLE IF NOT EXISTS debate_reviews (
+        id TEXT PRIMARY KEY,
+        target TEXT NOT NULL,
+        reviews TEXT DEFAULT '[]',
+        votes TEXT DEFAULT '[]',
+        verdict TEXT,
+        consensus_score REAL DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_debate_target ON debate_reviews(target);
+
+      CREATE TABLE IF NOT EXISTS ab_comparisons (
+        id TEXT PRIMARY KEY,
+        task_description TEXT NOT NULL,
+        variants TEXT DEFAULT '[]',
+        winner TEXT,
+        scores TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_ab_task ON ab_comparisons(task_description);
+      `);
+
       // 重新启用外键约束
       logger.info("[Database] 重新启用外键约束...");
       this.db.run("PRAGMA foreign_keys = ON");
