@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/asset-ipc.js`
 
-**Generated**: 2026-02-21T20:04:16.275Z
+**Generated**: 2026-02-21T22:04:25.863Z
 
 ---
 

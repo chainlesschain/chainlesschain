@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/wallet-ipc.js`
 
-**Generated**: 2026-02-21T20:04:16.271Z
+**Generated**: 2026-02-21T22:04:25.860Z
 
 ---
 

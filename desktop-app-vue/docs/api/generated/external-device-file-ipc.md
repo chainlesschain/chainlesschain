@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/external-device-file-ipc.js`
 
-**Generated**: 2026-02-21T20:04:16.251Z
+**Generated**: 2026-02-21T22:04:25.836Z
 
 ---
 

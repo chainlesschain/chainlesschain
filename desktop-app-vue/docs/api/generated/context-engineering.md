@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/context-engineering.js`
 
-**Generated**: 2026-02-21T20:04:16.241Z
+**Generated**: 2026-02-21T22:04:25.824Z
 
 ---
 
@@ -33,6 +33,28 @@ class ContextEngineering
 ```
 
 * 上下文工程管理器
+
+---
+
+## setInstinctManager(instinctManager)
+
+```javascript
+setInstinctManager(instinctManager)
+```
+
+* Set the InstinctManager for learned pattern injection
+   * @param {Object} instinctManager - InstinctManager instance
+
+---
+
+## setCodeKnowledgeGraph(codeKnowledgeGraph)
+
+```javascript
+setCodeKnowledgeGraph(codeKnowledgeGraph)
+```
+
+* Set the CodeKnowledgeGraph for architectural insight injection
+   * @param {Object} codeKnowledgeGraph - CodeKnowledgeGraph instance
 
 ---
 

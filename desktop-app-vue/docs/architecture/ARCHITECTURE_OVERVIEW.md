@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-02-21T20:04:16.428Z
+**Generated**: 2026-02-21T22:04:26.059Z
 
 ---
 
@@ -8,26 +8,26 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 947 | 15.44 MB |
+| main | 954 | 15.55 MB |
 | renderer | 12 | 0.05 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 947
+**Files**: 954
 
 **Top 10 Largest Files**:
 
 1. `src/main/skill-tool-system/builtin-tools.js` - 580.9 KB
 2. `src/main/remote/browser-extension/background.js` - 444.4 KB
-3. `src/main/database.js` - 278.5 KB
+3. `src/main/database.js` - 288.6 KB
 4. `src/main/browser/browser-ipc.js` - 96.8 KB
 5. `src/main/remote/browser-extension-server.js` - 87.7 KB
 6. `src/main/monitoring/error-monitor.js` - 84.6 KB
-7. `src/main/skill-tool-system/additional-tools-v3-handler.js` - 78.0 KB
-8. `src/main/ai-engine/extended-tools-11.js` - 77.5 KB
-9. `src/main/llm/llm-ipc.js` - 77.3 KB
-10. `src/main/organization/organization-manager.js` - 76.4 KB
+7. `src/main/ipc/ipc-registry.js` - 83.5 KB
+8. `src/main/skill-tool-system/additional-tools-v3-handler.js` - 78.0 KB
+9. `src/main/ai-engine/extended-tools-11.js` - 77.5 KB
+10. `src/main/llm/llm-ipc.js` - 77.3 KB
 
 ## renderer Module
 
