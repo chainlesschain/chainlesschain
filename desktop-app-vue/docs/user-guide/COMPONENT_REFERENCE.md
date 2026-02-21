@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-02-17T10:13:18.363Z
+**Generated**: 2026-02-21T20:04:16.365Z
 
-**Total Components**: 469
+**Total Components**: 482
 
 ---
 
@@ -13,6 +13,14 @@
 **File**: `src/renderer/pages/WorkflowMonitorPage.vue`
 
 **Description**: 页面标题
+
+---
+
+### WorkflowDesignerPage
+
+**File**: `src/renderer/pages/WorkflowDesignerPage.vue`
+
+**Description**: Left: Workflow list / Skill palette
 
 ---
 
@@ -77,6 +85,22 @@
 **File**: `src/renderer/pages/SyncConflictsPage.vue`
 
 **Description**: 页面头部
+
+---
+
+### SkillPipelinePage
+
+**File**: `src/renderer/pages/SkillPipelinePage.vue`
+
+**Description**: Pipeline list
+
+---
+
+### SkillPerformancePage
+
+**File**: `src/renderer/pages/SkillPerformancePage.vue`
+
+**Description**: Summary cards
 
 ---
 
@@ -401,6 +425,14 @@
 **File**: `src/renderer/pages/HomePage.vue`
 
 **Description**: 项目历史侧边栏
+
+---
+
+### GitHooksPage
+
+**File**: `src/renderer/pages/GitHooksPage.vue`
+
+**Description**: Config
 
 ---
 
@@ -1402,6 +1434,26 @@
 
 ---
 
+### WorkflowDebugPanel
+
+**File**: `src/renderer/components/workflow/WorkflowDebugPanel.vue`
+
+**Description**: 执行状态栏
+
+---
+
+### WorkflowCanvas
+
+**File**: `src/renderer/components/workflow/WorkflowCanvas.vue`
+
+---
+
+### TransformNode
+
+**File**: `src/renderer/components/workflow/TransformNode.vue`
+
+---
+
 ### StepTimeline
 
 **File**: `src/renderer/components/workflow/StepTimeline.vue`
@@ -1418,11 +1470,41 @@
 
 ---
 
+### SkillPalette
+
+**File**: `src/renderer/components/workflow/SkillPalette.vue`
+
+---
+
+### SkillNode
+
+**File**: `src/renderer/components/workflow/SkillNode.vue`
+
+---
+
 ### QualityGateCard
 
 **File**: `src/renderer/components/workflow/QualityGateCard.vue`
 
 **Description**: 检查项列表
+
+---
+
+### ParallelNode
+
+**File**: `src/renderer/components/workflow/ParallelNode.vue`
+
+---
+
+### NodePropertyPanel
+
+**File**: `src/renderer/components/workflow/NodePropertyPanel.vue`
+
+---
+
+### ConditionNode
+
+**File**: `src/renderer/components/workflow/ConditionNode.vue`
 
 ---
 
@@ -3097,6 +3179,16 @@
 **File**: `src/renderer/components/graph/GraphAnalyticsPanel.vue`
 
 **Description**: 中心性分析
+
+---
+
+## src/renderer/components/git
+
+### GitHooksPanel
+
+**File**: `src/renderer/components/git/GitHooksPanel.vue`
+
+**Description**: Quick Actions
 
 ---
 

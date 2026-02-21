@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/long-running-task-manager.js`
 
-**Generated**: 2026-02-17T10:13:18.286Z
+**Generated**: 2026-02-21T20:04:16.289Z
 
 ---
 
@@ -85,6 +85,98 @@ reset()
 ```
 
 * 重置统计
+
+---
+
+## class IncrementalCheckpoint
+
+```javascript
+class IncrementalCheckpoint
+```
+
+* IncrementalCheckpoint - 增量检查点 (v1.1.0)
+ *
+ * 只保存与上次基线的 JSON diff，减少检查点大小 60-80%。
+
+---
+
+## createBaseline(state)
+
+```javascript
+createBaseline(state)
+```
+
+* 创建全量基线快照
+   * @param {Object} state - 当前完整状态
+   * @returns {string} Baseline ID
+
+---
+
+## createDelta(currentState)
+
+```javascript
+createDelta(currentState)
+```
+
+* 创建增量 delta（只保存差异）
+   * @param {Object} currentState - 当前状态
+   * @returns {Object} Delta object
+
+---
+
+## restore(checkpointId = null)
+
+```javascript
+restore(checkpointId = null)
+```
+
+* 从基线 + 累加 delta 恢复状态
+   * @param {string} [checkpointId] - 恢复到指定检查点（默认最新）
+   * @returns {Object} 恢复的状态
+
+---
+
+## compact(currentState = null)
+
+```javascript
+compact(currentState = null)
+```
+
+* 合并旧 delta 为新基线
+   * @param {Object} [currentState] - 可选：直接用当前状态作为新基线
+
+---
+
+## getStats()
+
+```javascript
+getStats()
+```
+
+* 获取检查点统计
+   * @returns {Object}
+
+---
+
+## _computeDiff(oldObj, newObj, path = "")
+
+```javascript
+_computeDiff(oldObj, newObj, path = "")
+```
+
+* 计算两个对象的差异
+   * @private
+
+---
+
+## _applyDiff(state, changes)
+
+```javascript
+_applyDiff(state, changes)
+```
+
+* 应用差异到状态
+   * @private
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/skill-executor.js`
 
-**Generated**: 2026-02-17T10:13:18.192Z
+**Generated**: 2026-02-21T20:04:16.206Z
 
 ---
 

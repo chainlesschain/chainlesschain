@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/skills/skill-registry.js`
 
-**Generated**: 2026-02-17T10:13:18.287Z
+**Generated**: 2026-02-21T20:04:16.290Z
 
 ---
 
@@ -60,6 +60,31 @@ unregister(skillId)
 
 * 注销技能
    * @param {string} skillId - 技能 ID
+
+---
+
+## hotLoadSkill(skillId, definition)
+
+```javascript
+hotLoadSkill(skillId, definition)
+```
+
+* 热加载单个技能
+   * @param {string} skillId - 技能 ID
+   * @param {object} definition - 技能定义
+   * @returns {boolean} 是否成功
+
+---
+
+## hotUnloadSkill(skillId)
+
+```javascript
+hotUnloadSkill(skillId)
+```
+
+* 热卸载单个技能
+   * @param {string} skillId - 技能 ID
+   * @returns {boolean} 是否成功
 
 ---
 

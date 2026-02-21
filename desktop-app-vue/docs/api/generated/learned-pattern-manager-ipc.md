@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/learned-pattern-manager-ipc.js`
 
-**Generated**: 2026-02-17T10:13:18.223Z
+**Generated**: 2026-02-21T20:04:16.233Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/backup-manager.js`
 
-**Generated**: 2026-02-17T10:13:18.183Z
+**Generated**: 2026-02-21T20:04:16.197Z
 
 ---
 

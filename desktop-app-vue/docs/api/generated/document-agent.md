@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/agents/document-agent.js`
 
-**Generated**: 2026-02-17T10:13:18.286Z
+**Generated**: 2026-02-21T20:04:16.289Z
 
 ---
 
