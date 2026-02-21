@@ -139,6 +139,15 @@ ChainlessChain旨在成为用户的"第二大脑"和数字资产管理中心：
 - **NFT管理**: NFT展示和交易
 - **DAO治理**: 参与DAO投票
 
+#### 规划中功能
+
+- **拍卖系统**: 英式/荷兰式/密封/反向拍卖，智能合约自动结算
+- **团购/拼单**: 阶梯价格，多人合力享受更低价格
+- **分期付款**: 智能合约分期，2-12期灵活方案
+- **信用借贷**: 基于去中心化信誉的P2P借贷市场
+- **保险服务**: 去中心化保险池，运输/质量/违约/延迟保障
+- **更多支付**: 闪电网络、DAI/PYUSD稳定币、跨链支付桥
+
 [详细了解交易辅助 →](/chainlesschain/trading)
 
 ---
@@ -347,18 +356,18 @@ ChainlessChain Desktop的浏览器扩展组件，提供完整的浏览器自动�
 
 #### 技能概览
 
-| 分类     | 技能数 | 示例                                                 |
-| -------- | ------ | ---------------------------------------------------- |
-| 开发工具 | 22     | code-review, test-generator, refactor, code-runner   |
-| 文档处理 | 8      | pdf-toolkit, word-generator, pptx-creator, doc-converter |
+| 分类     | 技能数 | 示例                                                        |
+| -------- | ------ | ----------------------------------------------------------- |
+| 开发工具 | 22     | code-review, test-generator, refactor, code-runner          |
+| 文档处理 | 8      | pdf-toolkit, word-generator, pptx-creator, doc-converter    |
 | 媒体处理 | 7      | audio-transcriber, video-toolkit, image-editor, ocr-scanner |
-| DevOps   | 8      | devops-automation, log-analyzer, system-monitor      |
-| 安全审计 | 4      | security-audit, vulnerability-scanner, crypto-toolkit |
-| AI增强   | 5      | prompt-enhancer, multi-model-router, image-generator |
-| 自动化   | 4      | browser-automation, computer-use, workflow-automation |
-| 数据分析 | 5      | data-analysis, chart-creator, csv-processor          |
-| 知识管理 | 6      | knowledge-graph, memory-management, codebase-qa      |
-| 实用工具 | 21     | json-yaml-toolkit, regex-playground, http-client     |
+| DevOps   | 8      | devops-automation, log-analyzer, system-monitor             |
+| 安全审计 | 4      | security-audit, vulnerability-scanner, crypto-toolkit       |
+| AI增强   | 5      | prompt-enhancer, multi-model-router, image-generator        |
+| 自动化   | 4      | browser-automation, computer-use, workflow-automation       |
+| 数据分析 | 5      | data-analysis, chart-creator, csv-processor                 |
+| 知识管理 | 6      | knowledge-graph, memory-management, codebase-qa             |
+| 实用工具 | 21     | json-yaml-toolkit, regex-playground, http-client            |
 
 #### 核心架构
 
@@ -383,16 +392,16 @@ Model Context Protocol标准化AI工具集成，支持社区服务器发现和�
 
 #### 支持的服务器
 
-| 服务器     | 功能           | 类型   |
-| ---------- | -------------- | ------ |
-| Filesystem | 文件系统操作   | 官方   |
-| PostgreSQL | 数据库查询     | 官方   |
-| SQLite     | 本地数据库     | 官方   |
-| Git        | 版本控制操作   | 官方   |
-| Brave Search | 网络搜索     | 社区   |
-| Puppeteer  | 浏览器自动化   | 社区   |
-| Slack      | 团队通讯       | 社区   |
-| GitHub     | 代码仓库管理   | 社区   |
+| 服务器       | 功能         | 类型 |
+| ------------ | ------------ | ---- |
+| Filesystem   | 文件系统操作 | 官方 |
+| PostgreSQL   | 数据库查询   | 官方 |
+| SQLite       | 本地数据库   | 官方 |
+| Git          | 版本控制操作 | 官方 |
+| Brave Search | 网络搜索     | 社区 |
+| Puppeteer    | 浏览器自动化 | 社区 |
+| Slack        | 团队通讯     | 社区 |
+| GitHub       | 代码仓库管理 | 社区 |
 
 #### MCP SDK
 
@@ -937,6 +946,8 @@ npm run dev:desktop
 - 🔄 社区技能市场上线 (用户贡献技能)
 - 🔄 MCP服务器热加载和动态发现
 - 🔄 iOS端技能系统 + Computer Use
+- 🔄 交易辅助增强 (拍卖系统、团购/拼单、分期付款、闪电网络支付)
+- 🔄 去中心化金融扩展 (P2P信用借贷、保险池、跨链支付桥)
 
 ### Phase 6: 企业级 (v1.0) 📋 计划中
 

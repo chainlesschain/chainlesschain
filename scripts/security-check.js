@@ -66,6 +66,7 @@ const ALLOWED_FILES = [
   "TESTING_GUIDE.md",
   // docs-site 文档（包含示例代码）
   "computer-use.md",
+  "ai-models.md",
 ];
 
 function checkFileForSecrets(filePath) {

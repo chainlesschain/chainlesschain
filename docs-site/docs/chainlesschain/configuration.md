@@ -74,9 +74,7 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
       "relay1.chainlesschain.com:4001",
       "relay2.chainlesschain.com:4001"
     ],
-    "bootstrapNodes": [
-      "/ip4/104.131.131.82/tcp/4001/p2p/..."
-    ]
+    "bootstrapNodes": ["/ip4/104.131.131.82/tcp/4001/p2p/..."]
   }
 }
 ```
@@ -86,6 +84,7 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
 ### 语言设置
 
 支持的语言：
+
 - `zh-CN`: 简体中文
 - `zh-TW`: 繁体中文
 - `en-US`: English
@@ -103,6 +102,7 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
 ### 主题设置
 
 支持的主题：
+
 - `light`: 亮色模式
 - `dark`: 暗色模式
 - `auto`: 跟随系统
@@ -133,6 +133,7 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
 ```
 
 支持的U盾类型：
+
 - `feitian`: 飞天诚信
 - `watchdata`: 握奇数据
 - `generic`: 通用PKCS#11设备
@@ -145,7 +146,18 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
     "simkeyEnabled": true,
     "simkeyConfig": {
       "appletAID": "A000000151000000",
-      "pinLength": 6
+      "pinLength": 6,
+      "eSIMEnabled": true,
+      "fiveGOptimization": true,
+      "nfcSigningEnabled": true,
+      "multiSimAutoSwitch": "auto",
+      "healthMonitorInterval": 43200,
+      "quantumResistant": {
+        "enabled": true,
+        "mode": "hybrid",
+        "signAlgorithm": "ML-DSA-65",
+        "kemAlgorithm": "ML-KEM-768"
+      }
     }
   }
 }
@@ -260,6 +272,7 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
 ```
 
 冲突解决策略：
+
 - `manual`: 手动解决（推荐）
 - `local`: 优先本地
 - `remote`: 优先远程
@@ -346,6 +359,7 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
 ```
 
 参数说明：
+
 - `topK`: 检索的文档数量
 - `minScore`: 最低相似度阈值
 - `reranking`: 是否重排序
@@ -391,10 +405,7 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
 {
   "network": {
     "p2pEnabled": true,
-    "listenAddresses": [
-      "/ip4/0.0.0.0/tcp/4001",
-      "/ip4/0.0.0.0/tcp/4002/ws"
-    ],
+    "listenAddresses": ["/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/tcp/4002/ws"],
     "announceAddresses": [],
     "noAnnounce": false
   }
@@ -470,6 +481,7 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
 ```
 
 日志级别：
+
 - `error`: 仅错误
 - `warn`: 警告及以上
 - `info`: 信息及以上（推荐）
@@ -589,6 +601,7 @@ chainlesschain config validate
 ```
 
 输出示例：
+
 ```
 ✓ Configuration is valid
 - App settings: OK
