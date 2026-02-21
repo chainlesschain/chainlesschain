@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools-imagegen.js`
 
-**Generated**: 2026-02-17T10:13:18.280Z
+**Generated**: 2026-02-21T20:04:16.284Z
 
 ---
 
