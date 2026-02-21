@@ -58,6 +58,53 @@ class MarkdownSkill extends BaseSkill {
     // handler 模块（延迟加载）
     this._handler = null;
     this._handlerLoaded = false;
+
+    // Lazy loading support (v1.1.0)
+    this._bodyLoaded = !definition._isStub;
+  }
+
+  /**
+   * 确保技能已完整加载（懒加载支持）
+   * 首次访问 body/handler 时触发完整解析
+   * @returns {Promise<void>}
+   */
+  async ensureFullyLoaded() {
+    if (this._bodyLoaded) {
+      return;
+    }
+
+    if (!this.sourcePath || this.sourcePath === "unknown") {
+      this._bodyLoaded = true;
+      return;
+    }
+
+    try {
+      const { SkillMdParser } = require("./skill-md-parser");
+      const parser = new SkillMdParser({ strictValidation: false });
+      const fullDefinition = await parser.parseFile(this.sourcePath);
+
+      // Merge full definition into this instance
+      this.definition = {
+        ...this.definition,
+        ...fullDefinition,
+        _isStub: false,
+      };
+      this.tools = fullDefinition.tools || this.tools;
+      this.instructions = fullDefinition.instructions || this.instructions;
+      this.examples = fullDefinition.examples || this.examples;
+      this.dependencies = fullDefinition.dependencies || this.dependencies;
+      this.inputSchema = fullDefinition.inputSchema || this.inputSchema;
+      this.outputSchema = fullDefinition.outputSchema || this.outputSchema;
+
+      this._bodyLoaded = true;
+      this._log("Fully loaded (lazy)");
+    } catch (error) {
+      this._bodyLoaded = true; // Prevent infinite retries
+      this._log(
+        `Failed to lazy-load full definition: ${error.message}`,
+        "error",
+      );
+    }
   }
 
   /**
@@ -95,6 +142,9 @@ class MarkdownSkill extends BaseSkill {
    * @returns {Promise<object>}
    */
   async execute(task, context = {}) {
+    // Ensure full definition is loaded (lazy loading support)
+    await this.ensureFullyLoaded();
+
     // 如果有 handler，加载并执行
     if (this.definition.handler) {
       const handler = await this._loadHandler();
@@ -209,6 +259,8 @@ class MarkdownSkill extends BaseSkill {
    * @returns {string}
    */
   getBody() {
+    // Note: synchronous - returns whatever is available
+    // Call ensureFullyLoaded() before this if full body needed
     return this.definition.body || "";
   }
 

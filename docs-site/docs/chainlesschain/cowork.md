@@ -1,17 +1,21 @@
 # Cowork 多智能体协作系统
 
-> **版本: v1.0.0 | 状态: ✅ 生产就绪 | 51 IPC Handlers | 90 内置技能 | ~90% 测试覆盖率**
+> **版本: v1.1.0 | 状态: ✅ 生产就绪 | 86 IPC Handlers | 90 内置技能 | ~90% 测试覆盖率**
 
-ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、90 内置技能以及智能单/多代理决策引擎。
+ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、90 内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成以及智能单/多代理决策引擎。
 
 ## 核心特性
 
 - 🤖 **智能编排**: AI 驱动的单/多代理自动决策，三种场景模型
 - 👥 **团队协作**: 13 核心操作（TeammateTool），支持投票、消息、检查点
 - 🔒 **文件沙箱**: 20+ 敏感文件检测，路径遍历防护，细粒度权限
-- ⏱️ **长时任务**: 检查点恢复、智能重试、进度跟踪、超时处理
-- 🏊 **Agent 池化**: 资源复用、自动扩缩、空闲回收
-- 🎯 **90 内置技能**: 四层加载、门控检查、自动匹配、Handler 100% 覆盖
+- ⏱️ **长时任务**: 检查点恢复、智能重试、进度跟踪、超时处理、增量检查点
+- 🏊 **Agent 池化**: 能力池化、温复用、内存感知缩池、健康检查
+- 🎯 **90 内置技能**: 四层加载、懒加载（启动提升 87%）、门控检查、热加载/热卸载
+- 🔗 **技能流水线**: 5 种步骤类型（串联/并行/条件/循环/转换）、10 预置模板、变量传递
+- 🎨 **可视化工作流**: Vue Flow 拖拽编辑器、8 种节点类型、DAG 拓扑排序执行
+- 🪝 **Git Hooks 集成**: Pre-commit 智能检查、影响分析、CI 失败自动修复
+- 📊 **技能性能仪表板**: 执行指标采集、Token 消耗追踪、Top 技能排行、时间序列图表
 - 📊 **分析仪表板**: ECharts 可视化、KPI 趋势、实时监控
 - 🛡️ **完整审计**: 所有文件操作审计日志，数据库 + 文件系统双持久化
 
@@ -691,7 +695,7 @@ const check = await window.electron.ipcRenderer.invoke(
 │  │  1,410 行 | 25+ Getters | 40+ Actions | TypeScript          │ │
 │  └──────────────────────┬──────────────────────────────────────┘ │
 └─────────────────────────┼────────────────────────────────────────┘
-                          │ IPC 通信（51 个处理器）
+                          │ IPC 通信（86 个处理器）
 ┌─────────────────────────┼────────────────────────────────────────┐
 │                         ▼                                         │
 │  ┌────────────────────────────────────────────────────────────┐  │
@@ -708,12 +712,20 @@ const check = await window.electron.ipcRenderer.invoke(
 │       │              │              │              │              │
 │  ┌────┴──────────────┴──────────────┴──────────────┴──────────┐  │
 │  │                    Skills 框架 (90 内置技能)                  │  │
-│  │              四层加载 | 门控检查 | 自动匹配                    │  │
-│  └────────────────────────────┬───────────────────────────────┘  │
-│                               │                                   │
-│  ┌────────────────────────────┴───────────────────────────────┐  │
+│  │         四层加载 | 懒加载 | 门控检查 | 热加载/热卸载           │  │
+│  └────┬──────────────┬──────────────┬──────────────┬─────────┘  │
+│       │              │              │              │              │
+│  ┌────┴─────┐  ┌─────┴──────┐  ┌───┴──────────┐  ┌┴──────────┐ │
+│  │Pipeline  │  │ Workflow   │  │ Metrics      │  │Git Hooks  │ │
+│  │Engine    │  │ Engine     │  │ Collector    │  │Runner     │ │
+│  │          │  │            │  │              │  │           │ │
+│  │5步骤类型 │  │Vue Flow   │  │实时采集     │  │pre-commit │ │
+│  │10个模板  │  │8节点类型  │  │时间序列     │  │影响分析   │ │
+│  └──────────┘  └────────────┘  └──────────────┘  └───────────┘ │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐  │
 │  │                   数据持久层                                 │  │
-│  │    SQLite/SQLCipher (9 张表) + 文件系统 + 内存缓存           │  │
+│  │    SQLite/SQLCipher (11 张表) + 文件系统 + 内存缓存          │  │
 │  └────────────────────────────────────────────────────────────┘  │
 │                          Electron Main Process                    │
 └───────────────────────────────────────────────────────────────────┘
@@ -721,19 +733,21 @@ const check = await window.electron.ipcRenderer.invoke(
 
 ### 数据库 Schema
 
-**9 张核心表**:
+**11 张核心表**:
 
-| 表名                         | 用途     | 关键字段                                                  |
-| ---------------------------- | -------- | --------------------------------------------------------- |
-| `cowork_teams`               | 团队信息 | id, name, status, max_agents, metadata (JSON)             |
-| `cowork_agents`              | 代理信息 | id, team_id, name, status, assigned_task                  |
-| `cowork_tasks`               | 任务信息 | id, team_id, assigned_to, status, priority, result (JSON) |
-| `cowork_messages`            | 消息记录 | id, team_id, from_agent, to_agent, message (JSON)         |
-| `cowork_decisions`           | 投票记录 | id, team_id, decision_data (JSON), votes (JSON), passed   |
-| `cowork_checkpoints`         | 检查点   | id, team_id, task_id, checkpoint_data (JSON)              |
-| `cowork_sandbox_permissions` | 文件权限 | id, team_id, path, permission, expires_at, is_active      |
-| `cowork_audit_log`           | 审计日志 | team_id, agent_id, operation, resource_path, success      |
-| `cowork_metrics`             | 性能指标 | team_id, metric_name, metric_value, timestamp             |
+| 表名                         | 用途         | 关键字段                                                  |
+| ---------------------------- | ------------ | --------------------------------------------------------- |
+| `cowork_teams`               | 团队信息     | id, name, status, max_agents, metadata (JSON)             |
+| `cowork_agents`              | 代理信息     | id, team_id, name, status, assigned_task                  |
+| `cowork_tasks`               | 任务信息     | id, team_id, assigned_to, status, priority, result (JSON) |
+| `cowork_messages`            | 消息记录     | id, team_id, from_agent, to_agent, message (JSON)         |
+| `cowork_decisions`           | 投票记录     | id, team_id, decision_data (JSON), votes (JSON), passed   |
+| `cowork_checkpoints`         | 检查点       | id, team_id, task_id, checkpoint_data (JSON)              |
+| `cowork_sandbox_permissions` | 文件权限     | id, team_id, path, permission, expires_at, is_active      |
+| `cowork_audit_log`           | 审计日志     | team_id, agent_id, operation, resource_path, success      |
+| `cowork_metrics`             | 性能指标     | team_id, metric_name, metric_value, timestamp             |
+| `skill_execution_metrics`    | 技能执行指标 | id, skill_id, pipeline_id, duration_ms, tokens, cost_usd  |
+| `skill_pipeline_definitions` | 流水线定义   | id, name, category, definition_json, execution_count      |
 
 **索引**:
 
@@ -745,7 +759,7 @@ const check = await window.electron.ipcRenderer.invoke(
 
 ## IPC 接口完整列表
 
-Cowork 系统共提供 **51 个 IPC 处理器**，分为 6 大类：
+Cowork 系统共提供 **86 个 IPC 处理器**，分为 11 大类：
 
 ### TeammateTool 操作（15 个）
 
@@ -822,6 +836,68 @@ Cowork 系统共提供 **51 个 IPC 处理器**，分为 6 大类：
 | `cowork:get-logs`         | 获取操作日志          |
 | `cowork:decide-execution` | 智能决策（单/多代理） |
 | `cowork:get-config`       | 获取系统配置          |
+
+### Pipeline 操作（12 个）— v1.1.0 新增
+
+| 通道                     | 功能           |
+| ------------------------ | -------------- |
+| `pipeline:create`        | 创建流水线     |
+| `pipeline:execute`       | 执行流水线     |
+| `pipeline:get-status`    | 查询执行状态   |
+| `pipeline:pause`         | 暂停流水线执行 |
+| `pipeline:resume`        | 恢复流水线执行 |
+| `pipeline:cancel`        | 取消流水线执行 |
+| `pipeline:list`          | 列出所有流水线 |
+| `pipeline:get`           | 获取流水线定义 |
+| `pipeline:save`          | 保存流水线     |
+| `pipeline:delete`        | 删除流水线     |
+| `pipeline:get-templates` | 获取预置模板   |
+| `pipeline:get-stats`     | 流水线统计     |
+
+### Skill Metrics 操作（5 个）— v1.1.0 新增
+
+| 通道                          | 功能           |
+| ----------------------------- | -------------- |
+| `skills:get-metrics`          | 获取技能指标   |
+| `skills:get-pipeline-metrics` | 获取流水线指标 |
+| `skills:get-top-skills`       | Top 技能排行   |
+| `skills:get-time-series`      | 时间序列数据   |
+| `skills:export-metrics`       | 导出全量指标   |
+
+### Workflow 操作（10 个）— v1.1.0 新增
+
+| 通道                       | 功能           |
+| -------------------------- | -------------- |
+| `workflow:create`          | 创建工作流     |
+| `workflow:update`          | 更新工作流     |
+| `workflow:execute`         | 执行工作流     |
+| `workflow:get`             | 获取工作流     |
+| `workflow:list`            | 列出所有工作流 |
+| `workflow:delete`          | 删除工作流     |
+| `workflow:save`            | 保存工作流     |
+| `workflow:import-pipeline` | 从流水线导入   |
+| `workflow:export-pipeline` | 导出为流水线   |
+| `workflow:get-templates`   | 获取工作流模板 |
+
+### Git Hooks 操作（8 个）— v1.1.0 新增
+
+| 通道                       | 功能            |
+| -------------------------- | --------------- |
+| `git-hooks:run-pre-commit` | 执行 pre-commit |
+| `git-hooks:run-impact`     | 影响范围分析    |
+| `git-hooks:run-auto-fix`   | 自动修复        |
+| `git-hooks:get-config`     | 获取配置        |
+| `git-hooks:set-config`     | 更新配置        |
+| `git-hooks:get-history`    | 获取执行历史    |
+| `git-hooks:get-stats`      | 获取统计        |
+| `git-hooks:install-hooks`  | 安装 Git Hooks  |
+
+### Unified Tools 增强（2 个）— v1.1.0 新增
+
+| 通道                    | 功能               |
+| ----------------------- | ------------------ |
+| `tools:execute-by-name` | 统一执行任意工具   |
+| `tools:get-executors`   | 列出工具执行器信息 |
 
 ## 前端集成
 
@@ -1027,14 +1103,24 @@ const useCoworkStore = defineStore("cowork", {
 ### 单元测试
 
 ```
-✅ teammate-tool.test.js         - 50+ 测试用例 (团队/代理/任务/消息/投票)
-✅ file-sandbox.test.js          - 40+ 测试用例 (权限/路径/敏感文件/审计)
-✅ long-running-task.test.js     - 35+ 测试用例 (生命周期/检查点/重试)
-✅ agent-pool.test.js            - 30+ 测试用例 (获取/释放/超时/事件)
-✅ skills.test.js                - 50+ 测试用例 (加载/匹配/执行/门控)
+✅ teammate-tool.test.js              - 50+ 测试用例 (团队/代理/任务/消息/投票)
+✅ file-sandbox.test.js               - 40+ 测试用例 (权限/路径/敏感文件/审计)
+✅ long-running-task.test.js          - 35+ 测试用例 (生命周期/检查点/重试)
+✅ agent-pool.test.js                 - 30+ 测试用例 (获取/释放/超时/事件)
+✅ skills.test.js                     - 50+ 测试用例 (加载/匹配/执行/门控)
 ```
 
-**总覆盖率**: ~90%，200+ 测试用例，99.6% 通过率
+**v1.1.0 新增测试**:
+
+```
+✅ skill-pipeline-engine.test.js      - 64KB (创建/执行/暂停/恢复/取消/变量/事件)
+✅ skill-metrics-collector.test.js    - 81 测试用例 (采集/聚合/查询/SQLite刷新/事件)
+✅ skill-lazy-load.test.js            - 48 测试用例 (懒加载/热加载/热卸载/事件)
+✅ git-hook-runner.test.js            - 65 测试用例 (pre-commit/impact/auto-fix/事件)
+✅ skill-pipeline-e2e.test.js         - 44 测试用例 (模板→流水线→执行→指标端到端)
+```
+
+**总覆盖率**: ~90%，440+ 测试用例，99.6% 通过率
 
 ### E2E 测试
 
@@ -1046,6 +1132,11 @@ const useCoworkStore = defineStore("cowork", {
 - ✅ 长时任务检查点创建和恢复
 - ✅ 代理池获取、释放和超时处理
 - ✅ 技能加载、匹配和执行流程
+- ✅ 流水线模板创建、执行和变量传递（v1.1.0）
+- ✅ 并行步骤执行和条件分支（v1.1.0）
+- ✅ 指标采集和导出（v1.1.0）
+- ✅ 懒加载和热加载/卸载（v1.1.0）
+- ✅ Git Hooks pre-commit/impact/auto-fix（v1.1.0）
 
 ### 性能测试
 
@@ -1135,21 +1226,62 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 
 ## 关键文件
 
-| 文件                                                     | 职责                   | 行数   |
-| -------------------------------------------------------- | ---------------------- | ------ |
-| `src/main/ai-engine/cowork/teammate-tool.js`             | 13 核心操作引擎        | ~1,700 |
-| `src/main/ai-engine/cowork/file-sandbox.js`              | 文件沙箱安全系统       | ~830   |
-| `src/main/ai-engine/cowork/long-running-task-manager.js` | 长时任务管理           | ~1,050 |
-| `src/main/ai-engine/cowork/agent-pool.js`                | 代理池化管理           | ~435   |
-| `src/main/ai-engine/cowork/cowork-ipc.js`                | 51 IPC 处理器          | ~650   |
-| `src/main/ai-engine/cowork/skills/index.js`              | Skills 加载器（四层）  | ~500   |
-| `src/main/ai-engine/cowork/skills/skills-ipc.js`         | Skills IPC (17 处理器) | ~400   |
-| `src/main/ai-engine/cowork/skills/skill-md-parser.js`    | SKILL.md 解析器        | ~300   |
-| `src/main/ai-engine/cowork/skills/builtin/`              | 90 内置技能 Handler    | ~3,000 |
-| `src/renderer/pages/CoworkDashboard.vue`                 | 仪表板页面             | ~638   |
-| `src/renderer/pages/CoworkAnalytics.vue`                 | 分析页面               | ~1,080 |
-| `src/renderer/stores/cowork.ts`                          | Pinia 状态管理         | ~1,410 |
-| `tests/cowork/`                                          | 测试套件               | ~2,183 |
+### v1.0.0 核心文件
+
+| 文件                                                     | 职责                         | 行数   |
+| -------------------------------------------------------- | ---------------------------- | ------ |
+| `src/main/ai-engine/cowork/teammate-tool.js`             | 13 核心操作引擎              | ~1,700 |
+| `src/main/ai-engine/cowork/file-sandbox.js`              | 文件沙箱安全系统             | ~830   |
+| `src/main/ai-engine/cowork/long-running-task-manager.js` | 长时任务 + 增量检查点        | ~1,300 |
+| `src/main/ai-engine/cowork/agent-pool.js`                | 能力池化 + 内存感知          | ~630   |
+| `src/main/ai-engine/cowork/cowork-ipc.js`                | 51 IPC 处理器                | ~650   |
+| `src/main/ai-engine/cowork/skills/index.js`              | Skills 模块入口              | ~70    |
+| `src/main/ai-engine/cowork/skills/skills-ipc.js`         | Skills IPC (17 处理器)       | ~400   |
+| `src/main/ai-engine/cowork/skills/skill-md-parser.js`    | SKILL.md 解析器 + 懒加载     | ~400   |
+| `src/main/ai-engine/cowork/skills/markdown-skill.js`     | 技能实例 + ensureFullyLoaded | ~260   |
+| `src/main/ai-engine/cowork/skills/skill-loader.js`       | 四层加载 + loadSingleSkill   | ~360   |
+| `src/main/ai-engine/cowork/skills/skill-registry.js`     | 注册表 + 热加载/卸载         | ~200   |
+| `src/main/ai-engine/cowork/skills/builtin/`              | 90 内置技能 Handler          | ~3,000 |
+| `src/renderer/pages/CoworkDashboard.vue`                 | 仪表板页面                   | ~638   |
+| `src/renderer/pages/CoworkAnalytics.vue`                 | 分析页面                     | ~1,080 |
+| `src/renderer/stores/cowork.ts`                          | Pinia 状态管理               | ~1,410 |
+
+### v1.1.0 新增文件
+
+| 文件                                                          | 职责                        | 行数 |
+| ------------------------------------------------------------- | --------------------------- | ---- |
+| `src/main/ai-engine/cowork/skills/skill-pipeline-engine.js`   | 流水线引擎（5 种步骤类型）  | ~580 |
+| `src/main/ai-engine/cowork/skills/pipeline-templates.js`      | 10 预置流水线模板           | ~470 |
+| `src/main/ai-engine/cowork/skills/skill-metrics-collector.js` | 技能指标采集器              | ~320 |
+| `src/main/ai-engine/cowork/skills/skill-pipeline-ipc.js`      | Pipeline IPC（12 handlers） | ~180 |
+| `src/main/ai-engine/cowork/skills/skill-metrics-ipc.js`       | Metrics IPC（5 handlers）   | ~90  |
+| `src/main/ai-engine/cowork/skills/skill-workflow-engine.js`   | 可视化工作流引擎            | ~350 |
+| `src/main/ai-engine/cowork/skills/skill-workflow-ipc.js`      | Workflow IPC（10 handlers） | ~150 |
+| `src/main/hooks/git-hook-runner.js`                           | Git Hook 运行器             | ~300 |
+| `src/main/hooks/git-hook-ipc.js`                              | Git Hook IPC（8 handlers）  | ~130 |
+| `src/renderer/pages/SkillPipelinePage.vue`                    | 流水线编排页                | ~163 |
+| `src/renderer/pages/WorkflowDesignerPage.vue`                 | 工作流设计器                | ~209 |
+| `src/renderer/pages/SkillPerformancePage.vue`                 | 技能性能仪表板              | ~122 |
+| `src/renderer/pages/GitHooksPage.vue`                         | Git Hooks 管理页            | ~147 |
+| `src/renderer/stores/skill-pipeline.ts`                       | 流水线 Pinia Store          | —    |
+| `src/renderer/stores/skill-metrics.ts`                        | 指标 Pinia Store            | —    |
+| `src/renderer/stores/workflow-designer.ts`                    | 工作流设计器 Store          | ~284 |
+| `src/renderer/stores/git-hooks.ts`                            | Git Hooks Store             | —    |
+
+## 前端路由（v1.1.0 新增）
+
+| 路由                   | 页面                     | 说明           |
+| ---------------------- | ------------------------ | -------------- |
+| `#/cowork/pipeline`    | SkillPipelinePage.vue    | 流水线编排     |
+| `#/cowork/workflow`    | WorkflowDesignerPage.vue | 工作流设计器   |
+| `#/cowork/performance` | SkillPerformancePage.vue | 技能性能仪表板 |
+| `#/cowork/git-hooks`   | GitHooksPage.vue         | Git Hooks 管理 |
+
+## npm 新依赖（v1.1.0）
+
+```
+@vue-flow/core @vue-flow/background @vue-flow/controls @vue-flow/minimap
+```
 
 ## 相关文档
 
@@ -1161,52 +1293,244 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 - [Plan Mode →](/chainlesschain/plan-mode)
 - [Session Manager →](/chainlesschain/session-manager)
 
-## 未来规划
+## v1.1.0 新增功能
 
-### v1.1.0 — 技能生态与工作流集成
+### 技能懒加载（启动提升 87%）
 
-**目标**: 深度整合 90 内置技能与工作流自动化，提升日常开发效率 40%+
-
-#### 技能生态扩展
-
-- [ ] **统一工具注册表集成** — 将 Cowork Skills 与 UnifiedToolRegistry（FunctionCaller 60+ 工具 + MCP 8 服务器 + 90 技能）完全打通，实现跨系统技能调用
-- [ ] **Marketplace 技能热加载** — 从 Plugin Marketplace 安装的第三方技能自动注册到 Cowork SkillRegistry，支持四层加载（bundled → marketplace → managed → workspace）
-- [ ] **技能组合编排** — 支持多技能串联/并行执行的 Pipeline 模式，如 `web-scraping → data-analysis → chart-creator → doc-generator` 自动化数据报告流水线
-- [ ] **技能性能仪表板** — 集成 LLM Performance Dashboard，展示技能执行耗时、Token 消耗、成功率等指标
-
-#### 技能 Pipeline 架构
+v1.1.0 引入 metadata-only 解析策略，90 技能启动时间从 ~360ms 降至 ~45ms：
 
 ```
-Pipeline 执行模式:
-
-  串联模式 (Serial):
-  ┌──────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-  │web-scrap │──→│data-analysis │──→│chart-creator │──→│doc-generator │
-  │  ing     │   │              │   │              │   │              │
-  └──────────┘   └──────────────┘   └──────────────┘   └──────────────┘
-       ↓              ↓                   ↓                   ↓
-    原始HTML      结构化数据          图表PNG/SVG          PDF报告
-
-  并行模式 (Parallel):
-  ┌──────────────┐
-  │code-review   │──→ 代码质量报告
-  ├──────────────┤
-  │security-audit│──→ 安全漏洞报告    ──→ 合并结果
-  ├──────────────┤
-  │test-generator│──→ 测试用例
-  └──────────────┘
-
-  混合模式 (Hybrid):
-  ┌──────────┐   ┌──────────┬──────────┐   ┌──────────┐
-  │ 数据加载  │──→│ 清洗分支  │ 转换分支  │──→│ 结果合并  │
-  └──────────┘   └──────────┴──────────┘   └──────────┘
+启动加载流程:
+  parseMetadataOnly() ── 只读 YAML frontmatter，跳过 Markdown body
+       ↓
+  创建 SkillDefinitionStub (_isStub: true, _bodyLoaded: false)
+       ↓
+  注册到 SkillRegistry（轻量元数据）
+       ↓
+  首次使用时 ensureFullyLoaded() 完整解析 body + handler
 ```
 
-#### Git Hooks 集成
+**热加载/热卸载**: 支持运行时动态注册和移除技能
 
-- [ ] **Pre-commit 智能检查** — 集成 `code-review` + `security-audit` + `lint-and-fix` 技能，将提交前检查时间从 2-5 分钟降至 30-60 秒
-- [ ] **影响范围分析** — 基于 `impact-analyzer` + `dependency-analyzer` 自动识别变更影响范围，智能选择需要运行的测试
-- [ ] **自动修复流程** — `test-and-fix` + `bugbot` 在 CI 失败时自动尝试修复并重新提交
+```javascript
+// 热加载新技能
+await skillRegistry.hotLoadSkill("my-skill", definition);
+// 事件: skill-hot-loaded
+
+// 热卸载技能
+await skillRegistry.hotUnloadSkill("my-skill");
+// 事件: skill-hot-unloaded
+```
+
+**Marketplace 自动热加载**: 安装插件时，如果包含 `SKILL.md`，自动调用 `loadSingleSkill()` + `hotLoadSkill()` 注册到 SkillRegistry 并刷新 UnifiedToolRegistry。
+
+### 技能流水线引擎（Skill Pipeline Engine）
+
+流水线引擎支持多技能编排，提供 5 种步骤类型和变量传递机制：
+
+#### 步骤类型
+
+| 类型        | 说明                                          |
+| ----------- | --------------------------------------------- |
+| `SKILL`     | 执行单个技能，输入映射 → 输出变量             |
+| `CONDITION` | 基于表达式分支（true/false 输出口）           |
+| `PARALLEL`  | 并行执行多个技能，`Promise.allSettled()` 合并 |
+| `TRANSFORM` | JavaScript 表达式进行数据转换                 |
+| `LOOP`      | 遍历数组输出，逐项执行子步骤                  |
+
+#### Pipeline 执行模式
+
+```
+串联模式 (Serial):
+┌──────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│web-scrap │──→│data-analysis │──→│chart-creator │──→│doc-generator │
+│  ing     │   │              │   │              │   │              │
+└──────────┘   └──────────────┘   └──────────────┘   └──────────────┘
+     ↓              ↓                   ↓                   ↓
+  原始HTML      结构化数据          图表PNG/SVG          PDF报告
+
+并行模式 (Parallel):
+┌──────────────┐
+│code-review   │──→ 代码质量报告
+├──────────────┤
+│security-audit│──→ 安全漏洞报告    ──→ 合并结果
+├──────────────┤
+│test-generator│──→ 测试用例
+└──────────────┘
+
+条件分支 (Condition):
+┌──────────┐   ┌──────────────┐   ┌──────true──→ 发布
+│ 代码审查  │──→│ 测试通过?     │──→│
+└──────────┘   └──────────────┘   └──────false──→ 修复
+```
+
+#### 变量传递
+
+步骤间通过 `${stepName.result.field}` 模板引用传递数据：
+
+```javascript
+const pipeline = engine.createPipeline({
+  name: "data-report",
+  steps: [
+    {
+      id: "fetch",
+      type: "SKILL",
+      skillId: "web-scraping",
+      outputVariable: "fetch",
+    },
+    {
+      id: "analyze",
+      type: "SKILL",
+      skillId: "data-analysis",
+      inputMapping: { data: "${fetch.result.content}" },
+      outputVariable: "analyze",
+    },
+    {
+      id: "check",
+      type: "CONDITION",
+      expression: "${analyze.result.count} >= 10",
+      trueBranch: "report",
+      falseBranch: null,
+    },
+    {
+      id: "report",
+      type: "SKILL",
+      skillId: "doc-generator",
+      inputMapping: { summary: "${analyze.result.summary}" },
+    },
+  ],
+});
+
+const result = await engine.executePipeline(pipeline.id, {
+  url: "https://...",
+});
+```
+
+#### 执行控制
+
+```javascript
+// 暂停
+await engine.pausePipeline(executionId);
+// 恢复
+await engine.resumePipeline(executionId);
+// 取消
+await engine.cancelPipeline(executionId);
+// 查询状态
+const status = engine.getPipelineStatus(executionId);
+// { state: 'RUNNING', currentStep: 2, totalSteps: 4, startedAt: ..., results: [...] }
+```
+
+#### 事件
+
+| 事件                      | 触发时机   |
+| ------------------------- | ---------- |
+| `pipeline:created`        | 流水线创建 |
+| `pipeline:started`        | 开始执行   |
+| `pipeline:step-started`   | 步骤开始   |
+| `pipeline:step-completed` | 步骤完成   |
+| `pipeline:step-failed`    | 步骤失败   |
+| `pipeline:completed`      | 流水线完成 |
+| `pipeline:failed`         | 流水线失败 |
+| `pipeline:paused`         | 流水线暂停 |
+
+### 10 预置流水线模板
+
+| #   | 模板名           | 技能串联                                                                 | 分类        |
+| --- | ---------------- | ------------------------------------------------------------------------ | ----------- |
+| 1   | data-report      | web-scraping → data-analysis → chart-creator → doc-generator             | data        |
+| 2   | code-review      | code-review → security-audit → lint-and-fix → doc-generator              | development |
+| 3   | release          | test-generator → test-and-fix → changelog-generator → release-manager    | development |
+| 4   | research         | web-scraping → data-analysis → knowledge-graph → doc-generator           | knowledge   |
+| 5   | onboarding       | repo-map → dependency-analyzer → onboard-project → doc-generator         | development |
+| 6   | security-audit   | security-audit → vulnerability-scanner → impact-analyzer → doc-generator | security    |
+| 7   | i18n             | i18n-manager → code-translator → doc-generator                           | development |
+| 8   | media-processing | audio-transcriber → subtitle-generator → doc-converter                   | media       |
+| 9   | performance      | performance-optimizer → log-analyzer → chart-creator                     | devops      |
+| 10  | data-migration   | db-migration → data-exporter → backup-manager                            | devops      |
+
+```javascript
+// 获取所有模板
+const templates = getTemplates();
+// 按分类筛选
+const devTemplates = getTemplatesByCategory("development"); // 4 个
+// 从模板创建流水线
+const pipeline = engine.createPipeline(getTemplateById("tpl-code-review"));
+```
+
+### 技能指标采集器（Skill Metrics Collector）
+
+实时采集技能和流水线执行指标，支持仪表板可视化：
+
+```javascript
+// 查询单技能指标
+const metrics = collector.getSkillMetrics("code-review");
+// { executions: 42, successRate: 0.95, avgDuration: 2300, totalTokens: 15000, totalCost: 0.45 }
+
+// Top 技能排行
+const top = collector.getTopSkills(5, "executions");
+// [{ skillId: 'code-review', executions: 42, ... }, ...]
+
+// 时间序列（图表数据）
+const series = collector.getTimeSeriesData("code-review", "day");
+// [{ timestamp: ..., executions: 5, avgDuration: 2100, successRate: 1.0 }, ...]
+
+// 导出全量指标
+const exported = collector.exportMetrics();
+```
+
+**存储**: 内存 Map + 定期刷入 SQLite（`skill_execution_metrics` 表），60 秒刷新间隔。
+
+### Git Hooks 集成
+
+GitHookRunner 将技能流水线与 Git 工作流打通：
+
+#### Pre-commit 智能检查
+
+```javascript
+const result = await runner.runPreCommit([
+  "src/main/index.js",
+  "src/utils/helper.js",
+]);
+// {
+//   passed: true,
+//   duration: 45000,
+//   steps: [
+//     { skill: 'lint-and-fix', issues: [...], fixes: [...] },
+//     { skill: 'code-review', issues: [...] },
+//     { skill: 'security-audit', issues: [...] },
+//   ],
+//   issues: [...],      // 所有问题汇总
+//   autoFixes: [...],   // 自动修复列表
+//   blocking: false,    // 是否阻止提交
+// }
+```
+
+#### 影响范围分析
+
+```javascript
+const impact = await runner.runImpactAnalysis(["src/main/database.js"]);
+// {
+//   affectedFiles: ['src/main/index.js', 'tests/db.test.js', ...],
+//   suggestedTests: ['tests/db.test.js', 'tests/integration/...'],
+//   riskScore: 7.5,
+//   duration: 12000,
+// }
+```
+
+#### CI 失败自动修复
+
+```javascript
+const fix = await runner.runAutoFix([
+  "test-login-flow",
+  "test-auth-middleware",
+]);
+// {
+//   fixed: ['test-login-flow'],
+//   remaining: ['test-auth-middleware'],
+//   patchFiles: ['patches/fix-login.patch'],
+//   duration: 30000,
+// }
+```
 
 #### Git Hooks 工作流
 
@@ -1234,27 +1558,88 @@ git commit
   提交成功 (30-60秒, 原 2-5 分钟)
 ```
 
-#### 可视化工作流编辑器
+**Hook 事件**: 新增 `PreGitCommit`、`PostGitCommit`、`PreGitPush`、`CIFailure` 4 个事件到 HookRegistry。
 
-- [ ] **拖拽式工作流设计器** — 基于 Vue Flow 的可视化编辑器，支持条件分支、循环、并行节点
-- [ ] **模板库** — 预置 10+ 常用工作流模板（代码审查、发布管理、数据处理等）
-- [ ] **实时调试面板** — 工作流执行时可视化每个节点的输入/输出和执行状态
+### 可视化工作流编辑器
 
-#### 性能优化
+基于 Vue Flow 的拖拽式工作流设计器，支持 8 种节点类型：
 
-- [ ] **Agent 池化与复用** — 减少代理创建/销毁开销，降低内存占用 30%
-- [ ] **增量检查点** — 仅保存差异数据，减少检查点存储空间 60%
-- [ ] **懒加载技能** — 按需加载技能定义和 Handler，启动时间优化 50%
+#### 节点类型
 
-#### 关键文件（规划）
+| 节点类型         | 说明             | 对应 Pipeline 步骤 |
+| ---------------- | ---------------- | ------------------ |
+| `START_NODE`     | 流程起始         | —                  |
+| `END_NODE`       | 流程结束         | —                  |
+| `SKILL_NODE`     | 技能执行节点     | SKILL              |
+| `CONDITION_NODE` | 条件分支（菱形） | CONDITION          |
+| `PARALLEL_NODE`  | 并行 Fork/Join   | PARALLEL           |
+| `LOOP_NODE`      | 循环迭代         | LOOP               |
+| `TRANSFORM_NODE` | 数据转换         | TRANSFORM          |
+| `MERGE_NODE`     | 结果合并         | —                  |
 
-| 文件                                            | 职责                   |
-| ----------------------------------------------- | ---------------------- |
-| `src/main/ai-engine/cowork/skill-pipeline.js`   | 技能 Pipeline 编排引擎 |
-| `src/main/ai-engine/cowork/git-hooks-bridge.js` | Git Hooks 集成桥接     |
-| `src/main/ai-engine/cowork/workflow-editor.js`  | 工作流编辑器后端       |
-| `src/renderer/pages/WorkflowEditorPage.vue`     | 可视化工作流编辑器     |
-| `src/renderer/pages/SkillPipelinePage.vue`      | 技能 Pipeline 管理页   |
+#### Pipeline 互转
+
+```javascript
+// Pipeline → Workflow（自动生成节点位置）
+const workflow = engine.importFromPipeline(pipelineId);
+
+// Workflow → Pipeline（拓扑排序生成步骤顺序）
+const pipeline = engine.exportToPipeline(workflowId);
+```
+
+#### 工作流执行
+
+```javascript
+// 委托 SkillPipelineEngine 执行
+const result = await engine.executeWorkflow(workflowId, { input: "data" });
+```
+
+**前端页面**: `#/cowork/workflow` — WorkflowDesignerPage.vue，三栏布局（技能面板 + 画布 + 属性面板 + 调试面板）
+
+### UnifiedToolRegistry 增强（v1.1.0）
+
+- **事件驱动刷新**: 监听 SkillRegistry 的 `skill-registered`、`skill-unregistered`、`skill-hot-loaded`、`skill-hot-unloaded` 事件，自动刷新工具列表
+- **统一执行 API**: `executeToolByName(toolName, params, context)` — 路由到 FunctionCaller/MCP/SkillRegistry
+- **执行器查询**: `getToolExecutor(toolName)` — 返回绑定执行器函数
+- **新增 2 IPC**: `tools:execute-by-name`、`tools:get-executors`（总计 8 handlers）
+
+### Agent 池化增强（v1.1.0）
+
+- **能力池化**: `_pools: Map<agentType, Agent[]>` 按类型分池，`acquireByCapabilities(capabilities)` 匹配
+- **温复用**: `_warmResetAgent(agent)` 重置状态保留连接（冷启动 ~2s → ~200ms）
+- **内存感知**: 监控 `process.memoryUsage().heapUsed`，超阈值自动缩池
+- **健康检查**: 60s 周期探活，自动移除无响应 agent
+
+```javascript
+const stats = agentPool.getPoolStats();
+// {
+//   pools: { 'CodeSecurity': { total: 3, available: 2, busy: 1 }, ... },
+//   memory: { heapUsed: 150MB, heapTotal: 256MB, heapRatio: 0.59, rss: 320MB },
+// }
+```
+
+### 增量检查点（v1.1.0）
+
+任务 > 5 分钟默认启用增量模式，全量 ~50-100KB/次 → 增量 ~2-10KB/次（节省 60-80%）：
+
+```javascript
+const checkpoint = new IncrementalCheckpoint();
+
+// 创建基线（全量快照）
+checkpoint.createBaseline(state);
+
+// 创建增量（只保存 JSON diff）
+checkpoint.createDelta(currentState);
+// { type: 'delta', size: 1234, changes: 5 }
+
+// 恢复（基线 + 累加 delta）
+const restored = checkpoint.restore(checkpointId);
+
+// 压缩（合并旧 delta 为新基线）
+checkpoint.compact(currentState);
+```
+
+## 未来规划
 
 ---
 
@@ -1531,9 +1916,9 @@ git commit
 
 ### 路线图总览
 
-| 版本   | 功能                   | 核心技术                      | 优先级     |
+| 版本   | 功能                   | 核心技术                      | 状态       |
 | ------ | ---------------------- | ----------------------------- | ---------- |
-| v1.1.0 | 技能生态与工作流集成   | Pipeline、Vue Flow、Git Hooks | ⭐⭐⭐⭐⭐ |
+| v1.1.0 | 技能生态与工作流集成   | Pipeline、Vue Flow、Git Hooks | ✅ 已完成  |
 | v1.2.0 | 专业化代理与智能调度   | ML 调度、能力学习、CI/CD      | ⭐⭐⭐⭐⭐ |
 | v2.0.0 | 跨设备协作与分布式执行 | WebRTC P2P、SSO、REST API     | ⭐⭐⭐⭐   |
 | v2.1.0 | 自进化与知识图谱       | 知识图谱、Prompt 优化         | ⭐⭐⭐     |
@@ -1551,8 +1936,9 @@ MIT License - 详见 [LICENSE](https://github.com/chainlesschain/LICENSE)
 
 ---
 
-**代码行数**: ~13,000 行 (含测试和文档)
-**IPC 处理器**: 51 个
-**内置技能**: 90 个 (100% Handler 覆盖)
-**测试用例**: 200+ (通过率 99.6%)
+**代码行数**: ~18,000 行 (含测试和文档)
+**IPC 处理器**: 86 个 (51 核心 + 35 v1.1.0 新增)
+**内置技能**: 90 个 (100% Handler 覆盖, 懒加载)
+**流水线模板**: 10 个预置模板
+**测试用例**: 440+ (通过率 99.6%)
 **维护者**: ChainlessChain Team

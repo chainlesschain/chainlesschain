@@ -13,6 +13,24 @@ const { SkillGating } = require("./skill-gating");
 const { MarkdownSkill } = require("./markdown-skill");
 const { registerSkillsIPC, unregisterSkillsIPC } = require("./skills-ipc");
 
+// v1.1.0: Pipeline, Metrics, Workflow
+const {
+  SkillPipelineEngine,
+  StepType,
+  PipelineState,
+} = require("./skill-pipeline-engine");
+const { SkillMetricsCollector } = require("./skill-metrics-collector");
+const {
+  PIPELINE_TEMPLATES,
+  getTemplates,
+  getTemplateById,
+  getTemplatesByCategory,
+} = require("./pipeline-templates");
+const { registerSkillPipelineIPC } = require("./skill-pipeline-ipc");
+const { registerSkillMetricsIPC } = require("./skill-metrics-ipc");
+const { SkillWorkflowEngine, NodeType } = require("./skill-workflow-engine");
+const { registerSkillWorkflowIPC } = require("./skill-workflow-ipc");
+
 module.exports = {
   // 基类
   BaseSkill,
@@ -34,4 +52,21 @@ module.exports = {
   // IPC 处理器
   registerSkillsIPC,
   unregisterSkillsIPC,
+
+  // v1.1.0: Pipeline Engine
+  SkillPipelineEngine,
+  StepType,
+  PipelineState,
+  SkillMetricsCollector,
+  PIPELINE_TEMPLATES,
+  getTemplates,
+  getTemplateById,
+  getTemplatesByCategory,
+  registerSkillPipelineIPC,
+  registerSkillMetricsIPC,
+
+  // v1.1.0: Workflow Engine
+  SkillWorkflowEngine,
+  NodeType,
+  registerSkillWorkflowIPC,
 };

@@ -245,7 +245,9 @@ class PluginInstaller {
       }
 
       const targetVersion =
-        version === "latest" ? pluginInfo.latestVersion || pluginInfo.version : version;
+        version === "latest"
+          ? pluginInfo.latestVersion || pluginInfo.version
+          : version;
       const expectedHash = pluginInfo.hash || pluginInfo.sha256 || null;
 
       // Step 2: Download the zip file
@@ -253,7 +255,10 @@ class PluginInstaller {
         `[PluginInstaller] Downloading ${pluginId}@${targetVersion}...`,
       );
 
-      downloadPath = path.join(this.tempDir, `${pluginId}-${targetVersion}.zip`);
+      downloadPath = path.join(
+        this.tempDir,
+        `${pluginId}-${targetVersion}.zip`,
+      );
       await this._downloadPlugin(pluginId, targetVersion, downloadPath);
 
       // Step 3: Verify file hash (SHA256)
@@ -282,7 +287,9 @@ class PluginInstaller {
       await fs.mkdir(pluginDir, { recursive: true });
 
       // Step 5: Extract zip to plugin directory
-      logger.info(`[PluginInstaller] Extracting ${pluginId} to ${pluginDir}...`);
+      logger.info(
+        `[PluginInstaller] Extracting ${pluginId} to ${pluginDir}...`,
+      );
       const extractResult = await this.extractPlugin(downloadPath, pluginDir);
       if (!extractResult.success) {
         throw new Error(`Extraction failed: ${extractResult.error}`);
@@ -329,6 +336,45 @@ class PluginInstaller {
           }),
         ],
       );
+
+      // v1.1.0: Hot-load skill if plugin contains SKILL.md
+      try {
+        const skillMdPath = path.join(pluginDir, "SKILL.md");
+        const hasSkillMd = await fs
+          .access(skillMdPath)
+          .then(() => true)
+          .catch(() => false);
+
+        if (hasSkillMd) {
+          logger.info(
+            `[PluginInstaller] Found SKILL.md in ${pluginId}, hot-loading skill...`,
+          );
+          const {
+            getSkillRegistry,
+          } = require("../ai-engine/cowork/skills/skill-registry");
+          const {
+            SkillLoader,
+          } = require("../ai-engine/cowork/skills/skill-loader");
+
+          const registry = getSkillRegistry?.();
+          if (registry && registry._loader) {
+            const definition = await registry._loader.loadSingleSkill?.(
+              pluginDir,
+              "marketplace",
+            );
+            if (definition) {
+              registry.hotLoadSkill(definition.name, definition);
+              logger.info(
+                `[PluginInstaller] Skill hot-loaded: ${definition.name}`,
+              );
+            }
+          }
+        }
+      } catch (skillError) {
+        logger.warn(
+          `[PluginInstaller] Skill hot-load failed (non-fatal): ${skillError.message}`,
+        );
+      }
 
       // Cleanup: remove downloaded zip
       await this._safeDelete(downloadPath);
@@ -388,19 +434,17 @@ class PluginInstaller {
         };
       }
 
-      const pluginDir = installed.data.install_path || this.getPluginDir(pluginId);
+      const pluginDir =
+        installed.data.install_path || this.getPluginDir(pluginId);
 
       // Step 1: Delete plugin directory recursively
-      logger.info(
-        `[PluginInstaller] Removing plugin directory: ${pluginDir}`,
-      );
+      logger.info(`[PluginInstaller] Removing plugin directory: ${pluginDir}`);
       await this._safeDeleteDir(pluginDir);
 
       // Step 2: Remove from database
-      await this.db.run(
-        "DELETE FROM installed_plugins WHERE plugin_id = ?",
-        [pluginId],
-      );
+      await this.db.run("DELETE FROM installed_plugins WHERE plugin_id = ?", [
+        pluginId,
+      ]);
 
       logger.info(`[PluginInstaller] Successfully uninstalled ${pluginId}`);
 
@@ -446,7 +490,8 @@ class PluginInstaller {
       }
 
       fromVersion = installed.data.version;
-      const pluginDir = installed.data.install_path || this.getPluginDir(pluginId);
+      const pluginDir =
+        installed.data.install_path || this.getPluginDir(pluginId);
 
       // Check if versions are the same
       if (fromVersion === newVersion) {
@@ -476,9 +521,7 @@ class PluginInstaller {
       );
 
       // Download new version
-      logger.info(
-        `[PluginInstaller] Downloading ${pluginId}@${newVersion}...`,
-      );
+      logger.info(`[PluginInstaller] Downloading ${pluginId}@${newVersion}...`);
       await this._downloadPlugin(pluginId, newVersion, downloadPath);
 
       // Get plugin info for hash verification
@@ -502,13 +545,17 @@ class PluginInstaller {
       await fs.mkdir(pluginDir, { recursive: true });
       const extractResult = await this.extractPlugin(downloadPath, pluginDir);
       if (!extractResult.success) {
-        throw new Error(`Extraction failed during update: ${extractResult.error}`);
+        throw new Error(
+          `Extraction failed during update: ${extractResult.error}`,
+        );
       }
 
       // Read new manifest
       const manifestResult = await this.readManifest(pluginDir);
       if (!manifestResult.success) {
-        throw new Error(`Invalid manifest in new version: ${manifestResult.error}`);
+        throw new Error(
+          `Invalid manifest in new version: ${manifestResult.error}`,
+        );
       }
 
       const manifest = manifestResult.data;
@@ -562,10 +609,7 @@ class PluginInstaller {
         },
       };
     } catch (error) {
-      logger.error(
-        `[PluginInstaller] Update failed for ${pluginId}:`,
-        error,
-      );
+      logger.error(`[PluginInstaller] Update failed for ${pluginId}:`, error);
 
       // Restore from backup if available
       if (backupDir) {
@@ -577,9 +621,7 @@ class PluginInstaller {
           await this._safeDeleteDir(pluginDir);
           await this._copyDir(backupDir, pluginDir);
           await this._safeDeleteDir(backupDir);
-          logger.info(
-            `[PluginInstaller] Backup restored for ${pluginId}`,
-          );
+          logger.info(`[PluginInstaller] Backup restored for ${pluginId}`);
         } catch (restoreError) {
           logger.error(
             `[PluginInstaller] Backup restore failed for ${pluginId}:`,
@@ -652,10 +694,7 @@ class PluginInstaller {
 
       return { success: true };
     } catch (error) {
-      logger.error(
-        `[PluginInstaller] Enable failed for ${pluginId}:`,
-        error,
-      );
+      logger.error(`[PluginInstaller] Enable failed for ${pluginId}:`, error);
       return { success: false, error: error.message };
     }
   }
@@ -693,10 +732,7 @@ class PluginInstaller {
 
       return { success: true };
     } catch (error) {
-      logger.error(
-        `[PluginInstaller] Disable failed for ${pluginId}:`,
-        error,
-      );
+      logger.error(`[PluginInstaller] Disable failed for ${pluginId}:`, error);
       return { success: false, error: error.message };
     }
   }
@@ -894,12 +930,13 @@ class PluginInstaller {
       const normalizedActual = actualHash.toLowerCase();
 
       if (normalizedActual === normalizedExpected) {
-        logger.info(
-          `[PluginInstaller] Hash verified: ${normalizedActual}`,
-        );
+        logger.info(`[PluginInstaller] Hash verified: ${normalizedActual}`);
         return {
           success: true,
-          data: { actualHash: normalizedActual, expectedHash: normalizedExpected },
+          data: {
+            actualHash: normalizedActual,
+            expectedHash: normalizedExpected,
+          },
         };
       } else {
         logger.warn(
@@ -907,7 +944,10 @@ class PluginInstaller {
         );
         return {
           success: false,
-          data: { actualHash: normalizedActual, expectedHash: normalizedExpected },
+          data: {
+            actualHash: normalizedActual,
+            expectedHash: normalizedExpected,
+          },
           error: `Hash mismatch: expected ${normalizedExpected}, got ${normalizedActual}`,
         };
       }
@@ -1256,12 +1296,13 @@ class PluginInstaller {
    */
   async batchInstall(plugins) {
     if (!Array.isArray(plugins) || plugins.length === 0) {
-      return { success: false, error: "plugins array is required and must not be empty" };
+      return {
+        success: false,
+        error: "plugins array is required and must not be empty",
+      };
     }
 
-    logger.info(
-      `[PluginInstaller] Batch installing ${plugins.length} plugins`,
-    );
+    logger.info(`[PluginInstaller] Batch installing ${plugins.length} plugins`);
 
     const results = {
       total: plugins.length,
@@ -1306,7 +1347,10 @@ class PluginInstaller {
    */
   async batchUninstall(pluginIds) {
     if (!Array.isArray(pluginIds) || pluginIds.length === 0) {
-      return { success: false, error: "pluginIds array is required and must not be empty" };
+      return {
+        success: false,
+        error: "pluginIds array is required and must not be empty",
+      };
     }
 
     logger.info(
@@ -1360,7 +1404,10 @@ class PluginInstaller {
   async _downloadPlugin(pluginId, version, destPath) {
     try {
       // Try using marketplaceClient's download method
-      const data = await this.marketplaceClient.downloadPlugin(pluginId, version);
+      const data = await this.marketplaceClient.downloadPlugin(
+        pluginId,
+        version,
+      );
 
       if (Buffer.isBuffer(data)) {
         await fs.writeFile(destPath, data);
@@ -1401,7 +1448,9 @@ class PluginInstaller {
    */
   async _downloadFromUrl(url, destPath) {
     return new Promise((resolve, reject) => {
-      const protocol = url.startsWith("https") ? require("https") : require("http");
+      const protocol = url.startsWith("https")
+        ? require("https")
+        : require("http");
       const fsSync = require("fs");
       const file = fsSync.createWriteStream(destPath);
 
@@ -1482,9 +1531,7 @@ class PluginInstaller {
     if (this.activeInstalls.has(pluginId)) {
       this.activeInstalls.get(pluginId).state = state;
     }
-    logger.info(
-      `[PluginInstaller] Install state for ${pluginId}: ${state}`,
-    );
+    logger.info(`[PluginInstaller] Install state for ${pluginId}: ${state}`);
   }
 
   /**
@@ -1519,10 +1566,7 @@ class PluginInstaller {
       errors.push("invalid 'permissions' field (must be an array)");
     }
 
-    if (
-      manifest.dependencies &&
-      typeof manifest.dependencies !== "object"
-    ) {
+    if (manifest.dependencies && typeof manifest.dependencies !== "object") {
       errors.push("invalid 'dependencies' field (must be an object)");
     }
 
@@ -1536,7 +1580,9 @@ class PluginInstaller {
    * @returns {Object} Parsed plugin object
    */
   _parsePluginRow(row) {
-    if (!row) return null;
+    if (!row) {
+      return null;
+    }
 
     const parsed = { ...row };
 
@@ -1557,7 +1603,9 @@ class PluginInstaller {
    * @param {string} filePath - Path to the file
    */
   async _safeDelete(filePath) {
-    if (!filePath) return;
+    if (!filePath) {
+      return;
+    }
 
     try {
       await fs.unlink(filePath);
@@ -1577,7 +1625,9 @@ class PluginInstaller {
    * @param {string} dirPath - Path to the directory
    */
   async _safeDeleteDir(dirPath) {
-    if (!dirPath) return;
+    if (!dirPath) {
+      return;
+    }
 
     try {
       await fs.rm(dirPath, { recursive: true, force: true });

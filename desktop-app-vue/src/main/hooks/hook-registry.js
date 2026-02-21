@@ -67,6 +67,11 @@ const HookEvents = [
   "AuditLog",
   "ComplianceCheck",
   "DataSubjectRequest",
+  // Git 相关 (v1.1.0)
+  "PreGitCommit",
+  "PostGitCommit",
+  "PreGitPush",
+  "CIFailure",
 ];
 
 /**

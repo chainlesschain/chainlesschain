@@ -31,7 +31,7 @@ async function _waitForInit(registry, timeoutMs = 10000) {
  * @param {Object} options.unifiedToolRegistry - UnifiedToolRegistry instance
  */
 function registerUnifiedToolsIPC({ unifiedToolRegistry }) {
-  logger.info("[UnifiedToolsIPC] Registering 6 handlers...");
+  logger.info("[UnifiedToolsIPC] Registering 8 handlers...");
 
   // 1. Get all tools with skill metadata
   ipcMain.handle("tools:get-all-with-skills", async () => {
@@ -163,7 +163,61 @@ function registerUnifiedToolsIPC({ unifiedToolRegistry }) {
     }
   });
 
-  logger.info("[UnifiedToolsIPC] ✓ 6 handlers registered");
+  // 7. Execute tool by name (v1.1.0)
+  ipcMain.handle(
+    "tools:execute-by-name",
+    async (_event, { toolName, params, context }) => {
+      try {
+        if (
+          !unifiedToolRegistry ||
+          !(await _waitForInit(unifiedToolRegistry))
+        ) {
+          return {
+            success: false,
+            error: "UnifiedToolRegistry not initialized",
+          };
+        }
+        const result = await unifiedToolRegistry.executeToolByName(
+          toolName,
+          params || {},
+          context || {},
+        );
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error(
+          "[UnifiedToolsIPC] tools:execute-by-name error:",
+          error.message,
+        );
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  // 8. Get tool executors info (v1.1.0)
+  ipcMain.handle("tools:get-executors", async () => {
+    try {
+      if (!unifiedToolRegistry || !(await _waitForInit(unifiedToolRegistry))) {
+        return { success: false, error: "UnifiedToolRegistry not initialized" };
+      }
+      const tools = unifiedToolRegistry.getAllTools();
+      const executors = tools.map((t) => ({
+        name: t.name,
+        source: t.source,
+        available: t.available,
+        hasExecutor: !!unifiedToolRegistry.getToolExecutor(t.name),
+        skillName: t.skillName,
+      }));
+      return { success: true, data: executors, count: executors.length };
+    } catch (error) {
+      logger.error(
+        "[UnifiedToolsIPC] tools:get-executors error:",
+        error.message,
+      );
+      return { success: false, error: error.message };
+    }
+  });
+
+  logger.info("[UnifiedToolsIPC] ✓ 8 handlers registered");
 }
 
 module.exports = { registerUnifiedToolsIPC };
