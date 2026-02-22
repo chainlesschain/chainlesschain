@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v0.37.6 | 军事级安全 | 完全去中心化 | AI原生 | 90技能 | 统一工具注册表
+  tagline: v0.39.0 | 军事级安全 | 完全去中心化 | AI原生 | 92技能 | 统一工具注册表
   image:
     src: /logo.png
     alt: ChainlessChain Logo

@@ -2,7 +2,7 @@
 
 echo ""
 echo "========================================"
-echo "  文档网站打包脚本 v0.27.0"
+echo "  文档网站打包脚本 v0.39.0"
 echo "========================================"
 echo ""
 
@@ -54,7 +54,7 @@ echo "✅ 构建成功"
 echo ""
 echo "[5/5] 打包文件..."
 DIST_DIR="docs/.vitepress/dist"
-PACKAGE_NAME="chainlesschain-docs-v0.27.0-$(date +%Y%m%d).tar.gz"
+PACKAGE_NAME="chainlesschain-docs-v0.39.0-$(date +%Y%m%d).tar.gz"
 
 if [ -f "$PACKAGE_NAME" ]; then
     rm "$PACKAGE_NAME"

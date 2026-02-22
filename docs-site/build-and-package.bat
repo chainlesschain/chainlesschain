@@ -2,7 +2,7 @@
 chcp 65001 >nul
 echo.
 echo ========================================
-echo   文档网站打包脚本 v0.27.0
+echo   文档网站打包脚本 v0.39.0
 echo ========================================
 echo.
 
@@ -58,7 +58,7 @@ echo ✅ 构建成功
 echo.
 echo [5/5] 打包文件...
 set DIST_DIR=docs\.vitepress\dist
-set PACKAGE_NAME=chainlesschain-docs-v0.27.0-%date:~0,4%%date:~5,2%%date:~8,2%.zip
+set PACKAGE_NAME=chainlesschain-docs-v0.39.0-%date:~0,4%%date:~5,2%%date:~8,2%.zip
 
 if exist "%PACKAGE_NAME%" (
     del "%PACKAGE_NAME%"

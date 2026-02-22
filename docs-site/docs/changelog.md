@@ -5,6 +5,79 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.39.0] - 2026-02-22
+
+### 新增
+
+- 🧠 **Cowork v2.1.0 - 自进化与知识图谱系统** (7个核心模块, 35个IPC处理器)
+  - **代码知识图谱** (`code-knowledge-graph`): 工作区代码扫描，8种实体类型，7种关系类型，中心性分析，循环依赖检测，热点发现 (14个IPC)
+  - **决策知识库** (`decision-knowledge-base`): 历史决策记录，相似性搜索，最佳实践提取，9个问题类别 (6个IPC)
+  - **Prompt优化器** (`prompt-optimizer`): 技能提示词自优化，A/B变体测试，SHA-256去重，成功率追踪 (5个IPC)
+  - **技能发现器** (`skill-discoverer`): 任务失败分析，关键词提取，Marketplace技能搜索推荐 (4个IPC)
+  - **辩论式代码审查** (`debate-review`): 3视角多Agent审查(性能/安全/可维护性)，共识投票，APPROVE/NEEDS_WORK/REJECT裁决 (3个IPC)
+  - **A/B方案对比** (`ab-comparator`): 5种Agent风格方案生成，3维基准评测(正确性/性能/质量)，自动评分排名 (3个IPC)
+  - **统一IPC注册** (`evolution-ipc`): 6个模块35个处理器统一注册
+
+- 🔧 **Cowork支撑模块**
+  - **CI/CD优化器**: 智能测试选择，依赖图分析，Flakiness评分，增量构建编排 (10个IPC)
+  - **负载均衡器**: 实时Agent指标追踪，复合负载评分，任务自动迁移 (8个IPC)
+  - **ML任务调度器**: 加权线性回归复杂度预测，资源估算，在线学习 (8个IPC)
+  - **IPC API文档生成器**: 递归扫描`*-ipc.js`，OpenAPI 3.0生成，Markdown文档自动生成 (6个IPC)
+
+- 🌐 **Cowork v2.0.0 - 跨设备协作**
+  - **P2P Agent网络**: WebRTC DataChannel跨设备Agent通信，15种消息协议 (12个IPC)
+  - **设备发现**: 网络设备自动发现，4级能力分层 (6个IPC)
+  - **混合执行器**: 6种执行策略(本地优先/远程优先/最佳适配/负载均衡) (5个IPC)
+  - **Computer Use桥接**: 12个AI工具映射为Cowork技能 (6个IPC)
+  - **Cowork API服务器**: RESTful API 20+端点，Bearer/API-Key认证，SSE流 (5个IPC)
+  - **Webhook管理器**: 17种事件类型，HMAC签名验证，指数退避重试 (7个IPC)
+
+- 🎯 **新增技能**: ab-compare, debate-review, stream-processor (总计92个)
+
+### 改进
+
+- 📊 8个新数据库表(知识图谱/决策/提示词/发现)
+- 🔗 Hook系统集成: DecisionKB自动捕获PostToolUse事件，SkillDiscoverer监听ToolError
+- 🧠 ContextEngineering集成: 知识图谱架构洞察注入LLM提示
+
+---
+
+## [0.39.0] - 2026-02-22
+
+### 新增
+
+- 🧠 **Cowork v2.1.0 - 自进化与知识图谱系统** (7个核心模块, 35个IPC处理器)
+  - **代码知识图谱**: 工作区代码扫描，8种实体类型，7种关系类型，中心性分析，循环依赖检测，热点发现 (14个IPC)
+  - **决策知识库**: 历史决策记录，相似性搜索，最佳实践提取，9个问题类别 (6个IPC)
+  - **Prompt优化器**: 技能提示词自优化，A/B变体测试，SHA-256去重，成功率追踪 (5个IPC)
+  - **技能发现器**: 任务失败分析，关键词提取，Marketplace技能搜索推荐 (4个IPC)
+  - **辩论式代码审查**: 3视角多Agent审查(性能/安全/可维护性)，共识投票 (3个IPC)
+  - **A/B方案对比**: 5种Agent风格方案生成，3维基准评测，自动评分排名 (3个IPC)
+
+- 🔧 **Cowork支撑模块**
+  - **CI/CD优化器**: 智能测试选择，依赖图分析，Flakiness评分，增量构建编排 (10个IPC)
+  - **负载均衡器**: 实时Agent指标追踪，复合负载评分，任务自动迁移 (8个IPC)
+  - **ML任务调度器**: 加权线性回归复杂度预测，资源估算，在线学习 (8个IPC)
+  - **IPC API文档生成器**: 递归扫描，OpenAPI 3.0生成，Markdown文档自动生成 (6个IPC)
+
+- 🌐 **Cowork v2.0.0 - 跨设备协作**
+  - **P2P Agent网络**: WebRTC DataChannel跨设备Agent通信，15种消息协议 (12个IPC)
+  - **设备发现**: 网络设备自动发现，4级能力分层 (6个IPC)
+  - **混合执行器**: 6种执行策略(本地优先/远程优先/最佳适配/负载均衡) (5个IPC)
+  - **Computer Use桥接**: 12个AI工具映射为Cowork技能 (6个IPC)
+  - **Cowork API服务器**: RESTful API 20+端点，Bearer/API-Key认证，SSE流 (5个IPC)
+  - **Webhook管理器**: 17种事件类型，HMAC签名验证，指数退避重试 (7个IPC)
+
+- 🎯 **新增技能**: ab-compare, debate-review, stream-processor (总计92个)
+
+### 改进
+
+- 📊 8个新数据库表(知识图谱/决策/提示词/发现)
+- 🔗 Hook系统集成: DecisionKB自动捕获PostToolUse事件，SkillDiscoverer监听ToolError
+- 🧠 ContextEngineering集成: 知识图谱架构洞察注入LLM提示
+
+---
+
 ## [0.38.0] - 2026-02-21
 
 ### 新增
