@@ -169,6 +169,35 @@ All features are implemented. Entry files are relative to `desktop-app-vue/src/`
 - Auto-detects project type (typescript, nodejs, python, java)
 - Verdict: READY / NOT READY
 
+### Code Knowledge Graph (v2.1.0)
+
+- Entity types: module, class, function, variable, interface, type, enum, component
+- Relationship types: imports, exports, extends, implements, calls, contains, depends_on
+- Analysis: degree centrality, hotspot detection, circular dependency detection (DFS)
+- Auto-injected into LLM prompts via Context Engineering step 4.6
+- DB tables: `code_kg_entities`, `code_kg_relationships`
+
+### Decision Knowledge Base (v2.1.0)
+
+- Sources: manual, voting (TeammateTool), orchestrate, instinct
+- Similarity search via keyword matching with success-rate boosting
+- Auto-records PostToolUse events for voteOnDecision and orchestrate results
+- DB table: `decision_records`
+
+### Self-Evolution (v2.1.0)
+
+- **Prompt Optimizer**: A/B variant testing with SHA-256 prompt hashing, success rate tracking
+- **Skill Discoverer**: Task failure keyword extraction → marketplace skill auto-discovery
+- **Experience Replay**: Extracts successful orchestrate/verification-loop patterns as workflow instincts
+- DB tables: `prompt_executions`, `prompt_variants`, `skill_discovery_log`
+
+### Advanced Collaboration Skills (v2.1.0)
+
+- **Debate Review** (`/debate-review`): Multi-perspective code review (performance, security, maintainability) with consensus voting
+- **A/B Comparator** (`/ab-compare`): Multi-agent variant generation with benchmarking via verification-loop
+- **Stream Processor** (`/stream-processor`): Per-line stream processing for log/csv/json files
+- DB tables: `debate_reviews`, `ab_comparisons`
+
 ## Architecture Overview
 
 ### Desktop Application Structure
@@ -198,7 +227,15 @@ desktop-app-vue/
 │       ├── agents/        # Specialized Multi-Agent (8 templates)
 │       ├── unified-tool-registry.js
 │       ├── tool-skill-mapper.js
-│       └── cowork/skills/ # Skills system (92 built-in, 4-layer loading)
+│       └── cowork/        # Cowork system
+│           ├── code-knowledge-graph.js  # v2.1.0 KG
+│           ├── decision-knowledge-base.js
+│           ├── prompt-optimizer.js
+│           ├── skill-discoverer.js
+│           ├── debate-review.js
+│           ├── ab-comparator.js
+│           ├── evolution-ipc.js  # 35 IPC handlers
+│           └── skills/    # Skills system (95 built-in, 4-layer loading)
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
@@ -221,6 +258,9 @@ SQLite with SQLCipher (AES-256). Key tables:
 - **Core**: `notes`, `chat_conversations`, `did_identities`, `p2p_messages`, `contacts`, `social_posts`
 - **Memory**: `embedding_cache`, `memory_file_hashes`, `daily_notes_metadata`, `memory_sections`, `memory_stats`
 - **Instinct**: `instincts`, `instinct_observations`
+- **Knowledge Graph**: `code_kg_entities`, `code_kg_relationships`
+- **Self-Evolution**: `decision_records`, `prompt_executions`, `prompt_variants`, `skill_discovery_log`
+- **Collaboration**: `debate_reviews`, `ab_comparisons`
 
 ## Technology Stack
 
