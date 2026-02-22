@@ -2,7 +2,7 @@
 
 > **版本: v2.1.0 | 状态: ✅ 生产就绪 | 166 IPC Handlers | 95 内置技能 | ~90% 测试覆盖率**
 
-ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、92+ 内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成、Instinct 学习系统、Orchestrate 编排工作流、Verification Loop 验证流水线、**P2P 跨设备代理网络、设备能力发现、混合执行策略、Computer Use Bridge、RESTful API 服务、Webhook 事件推送**以及智能单/多代理决策引擎。
+ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、95 内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成、Instinct 学习系统、Orchestrate 编排工作流、Verification Loop 验证流水线、**P2P 跨设备代理网络、设备能力发现、混合执行策略、Computer Use Bridge、RESTful API 服务、Webhook 事件推送**以及智能单/多代理决策引擎。
 
 ## 核心特性
 
@@ -11,7 +11,7 @@ ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Cla
 - 🔒 **文件沙箱**: 20+ 敏感文件检测，路径遍历防护，细粒度权限
 - ⏱️ **长时任务**: 检查点恢复、智能重试、进度跟踪、超时处理、增量检查点
 - 🏊 **Agent 池化**: 能力池化、温复用、内存感知缩池、健康检查
-- 🎯 **92 内置技能**: 四层加载、懒加载（启动提升 87%）、门控检查、热加载/热卸载
+- 🎯 **95 内置技能**: 四层加载、懒加载（启动提升 87%）、门控检查、热加载/热卸载
 - 🔗 **技能流水线**: 5 种步骤类型（串联/并行/条件/循环/转换）、10 预置模板、变量传递
 - 🎨 **可视化工作流**: Vue Flow 拖拽编辑器、8 种节点类型、DAG 拓扑排序执行
 - 🪝 **Git Hooks 集成**: Pre-commit 智能检查、影响分析、CI 失败自动修复
@@ -994,6 +994,71 @@ Cowork 系统共提供 **97 个 IPC 处理器**，分为 12 大类：
 | `webhook:dispatch`         | 手动派发事件      |
 | `webhook:get-delivery-log` | 获取投递日志      |
 | `webhook:get-stats`        | Webhook 统计      |
+
+### Code Knowledge Graph（14 个）— v2.1.0 新增
+
+| 通道                          | 功能                     |
+| ----------------------------- | ------------------------ |
+| `ckg:scan-workspace`          | 扫描工作区构建知识图谱   |
+| `ckg:scan-file`               | 扫描单个文件             |
+| `ckg:incremental-update`      | 增量更新                 |
+| `ckg:query-entity`            | 查询实体                 |
+| `ckg:get-relationships`       | 获取实体关系             |
+| `ckg:get-dependency-tree`     | 获取模块依赖树           |
+| `ckg:find-hotspots`           | 查找热点模块             |
+| `ckg:find-circular-deps`      | 检测环形依赖             |
+| `ckg:recommend-patterns`      | 推荐架构模式             |
+| `ckg:build-context`           | 构建 KG 上下文           |
+| `ckg:export-graph`            | 导出图谱数据             |
+| `ckg:get-stats`               | 图谱统计                 |
+| `ckg:get-entity-types`        | 获取实体类型列表         |
+| `ckg:get-relationship-types`  | 获取关系类型列表         |
+
+### Decision Knowledge Base（6 个）— v2.1.0 新增
+
+| 通道                          | 功能                     |
+| ----------------------------- | ------------------------ |
+| `dkb:record-decision`         | 记录决策                 |
+| `dkb:find-similar`            | 查找相似决策             |
+| `dkb:get-history`             | 获取决策历史             |
+| `dkb:get-best-practice`       | 获取最佳实践             |
+| `dkb:get-success-rates`       | 按分类获取成功率         |
+| `dkb:get-stats`               | 决策统计                 |
+
+### Prompt Optimizer（5 个）— v2.1.0 新增
+
+| 通道                          | 功能                     |
+| ----------------------------- | ------------------------ |
+| `prompt-opt:record-execution`  | 记录 Prompt 执行         |
+| `prompt-opt:create-variant`    | 创建 Prompt 变体         |
+| `prompt-opt:optimize`          | 分析优化建议             |
+| `prompt-opt:compare-variants`  | 对比两个变体             |
+| `prompt-opt:get-stats`         | 优化器统计               |
+
+### Skill Discoverer（4 个）— v2.1.0 新增
+
+| 通道                          | 功能                     |
+| ----------------------------- | ------------------------ |
+| `skill-disc:analyze-failure`   | 分析任务失败并发现技能   |
+| `skill-disc:suggest-install`   | 建议安装技能             |
+| `skill-disc:get-history`       | 获取发现历史             |
+| `skill-disc:get-stats`         | 发现统计                 |
+
+### Debate Review（3 个）— v2.1.0 新增
+
+| 通道                          | 功能                     |
+| ----------------------------- | ------------------------ |
+| `debate:start`                 | 启动辩论式代码审查       |
+| `debate:get-history`           | 获取审查历史             |
+| `debate:get-stats`             | 辩论统计                 |
+
+### A/B Comparator（3 个）— v2.1.0 新增
+
+| 通道                          | 功能                     |
+| ----------------------------- | ------------------------ |
+| `ab:compare`                   | 启动 A/B 方案对比        |
+| `ab:get-history`               | 获取对比历史             |
+| `ab:get-stats`                 | 对比统计                 |
 
 ## Instinct Learning System — v1.2.0
 
@@ -2742,6 +2807,119 @@ CREATE TABLE cowork_webhook_deliveries (
 | `src/main/ai-engine/cowork/skills/builtin/debate-review/`    | ~240 | debate-review 技能     |
 | `src/main/ai-engine/cowork/skills/builtin/ab-compare/`       | ~230 | ab-compare 技能        |
 | `src/main/ai-engine/cowork/skills/builtin/stream-processor/` | ~350 | stream-processor 技能  |
+
+#### v2.1.0 IPC 通道（35 个 — Phase 20）
+
+| 模块                  | 前缀          | 数量 | 主要功能                           |
+| --------------------- | ------------- | ---- | ---------------------------------- |
+| Code Knowledge Graph  | `ckg:`        | 14   | 图谱扫描、实体查询、热点/环形依赖 |
+| Decision Knowledge Base | `dkb:`      | 6    | 决策记录、相似检索、最佳实践       |
+| Prompt Optimizer      | `prompt-opt:` | 5    | 执行记录、变体管理、优化分析       |
+| Skill Discoverer      | `skill-disc:` | 4    | 失败分析、安装建议、发现历史       |
+| Debate Review         | `debate:`     | 3    | 辩论审查、历史查询、统计           |
+| A/B Comparator        | `ab:`         | 3    | 方案对比、历史查询、统计           |
+
+#### 数据库 Schema（v2.1.0 新增 8 表）
+
+```sql
+-- 代码知识图谱：实体表
+CREATE TABLE code_kg_entities (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,        -- module, class, function, variable, interface, type, enum, component
+  file_path TEXT,
+  line_start INTEGER,
+  line_end INTEGER,
+  language TEXT,
+  metadata TEXT DEFAULT '{}',
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 代码知识图谱：关系表
+CREATE TABLE code_kg_relationships (
+  id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  type TEXT NOT NULL,        -- imports, exports, extends, implements, calls, contains, depends_on
+  weight REAL DEFAULT 1.0,
+  metadata TEXT DEFAULT '{}',
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (source_id) REFERENCES code_kg_entities(id),
+  FOREIGN KEY (target_id) REFERENCES code_kg_entities(id)
+);
+
+-- 决策知识库
+CREATE TABLE decision_records (
+  id TEXT PRIMARY KEY,
+  problem TEXT NOT NULL,
+  problem_category TEXT,     -- architecture, implementation, testing, performance, security, etc.
+  solutions TEXT DEFAULT '[]',
+  chosen_solution TEXT,
+  outcome TEXT,
+  context TEXT DEFAULT '{}',
+  agents TEXT DEFAULT '[]',
+  source TEXT DEFAULT 'manual',  -- manual, voting, orchestrate, instinct
+  success_rate REAL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Prompt 执行记录
+CREATE TABLE prompt_executions (
+  id TEXT PRIMARY KEY,
+  skill_name TEXT NOT NULL,
+  prompt_hash TEXT,          -- SHA-256 前 16 字符
+  prompt_text TEXT,
+  result_success INTEGER DEFAULT 0,
+  execution_time_ms INTEGER DEFAULT 0,
+  feedback TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Prompt 变体
+CREATE TABLE prompt_variants (
+  id TEXT PRIMARY KEY,
+  skill_name TEXT NOT NULL,
+  variant_name TEXT,
+  prompt_text TEXT NOT NULL,
+  success_rate REAL DEFAULT 0,
+  use_count INTEGER DEFAULT 0,
+  is_active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 技能发现日志
+CREATE TABLE skill_discovery_log (
+  id TEXT PRIMARY KEY,
+  task_id TEXT,
+  failure_reason TEXT,
+  searched_keywords TEXT,
+  suggested_skills TEXT DEFAULT '[]',
+  installed INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 辩论式审查记录
+CREATE TABLE debate_reviews (
+  id TEXT PRIMARY KEY,
+  target TEXT NOT NULL,
+  reviews TEXT DEFAULT '[]',
+  votes TEXT DEFAULT '{}',
+  verdict TEXT,              -- APPROVE, NEEDS_WORK, REJECT
+  consensus_score REAL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- A/B 对比记录
+CREATE TABLE ab_comparisons (
+  id TEXT PRIMARY KEY,
+  task_description TEXT NOT NULL,
+  variants TEXT DEFAULT '[]',
+  winner TEXT,
+  scores TEXT DEFAULT '{}',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+```
 
 ---
 
