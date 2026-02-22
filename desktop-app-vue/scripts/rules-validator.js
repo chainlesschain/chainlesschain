@@ -179,10 +179,33 @@ class RulesValidator {
           const isComment =
             line.trim().startsWith("//") || line.trim().startsWith("*");
 
+          // 排除日志/控制台调用（logger.info/warn/error 等中的 SQL 关键词不构成注入风险）
+          const isLoggerCall =
+            /\b(?:logger|console)\s*\.\s*(?:info|warn|error|debug|log|trace)\s*\(/.test(
+              line,
+            );
+
+          // 排除正则表达式字面量（安全检查工具中的模式匹配）
+          const isRegexPattern = /^\s*\/.*\/[gimsuy]*/.test(line.trim());
+
+          // 要求实际 SQL 语句结构（关键词后跟 SQL 语法），
+          // 排除描述文本中偶然出现 SQL 关键词的情况（如 "Create optimized Dockerfiles"）
+          const hasActualSQLStructure =
+            /\bSELECT\b[^]*?\bFROM\b/i.test(line) ||
+            /\bINSERT\b[^]*?\bINTO\b/i.test(line) ||
+            /\bUPDATE\b[^]*?\bSET\b/i.test(line) ||
+            /\bDELETE\b[^]*?\bFROM\b/i.test(line) ||
+            /\bDROP\b\s+(?:TABLE|INDEX|VIEW|DATABASE)\b/i.test(line) ||
+            /\bCREATE\b\s+(?:TABLE|INDEX|VIEW|DATABASE)\b/i.test(line) ||
+            /\bALTER\b\s+TABLE\b/i.test(line);
+
           if (
             !isSafePlaceholder &&
             !isComment &&
-            !line.includes("db.prepare")
+            !line.includes("db.prepare") &&
+            !isLoggerCall &&
+            !isRegexPattern &&
+            hasActualSQLStructure
           ) {
             this.warnings.push({
               type: "SQL_INJECTION",

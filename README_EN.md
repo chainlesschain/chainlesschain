@@ -21,17 +21,43 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ## ⭐ Current Version: v0.39.0 (2026-02-22)
 
-### Latest Updates - everything-claude-code Patterns Integration + Instinct Learning System
+### Latest Updates - Cowork Self-Evolution System + everything-claude-code Patterns
 
-**Verification Loop + Orchestrate Workflow + Instinct Learning** - 6-stage automated verification pipeline, 4 multi-agent workflow templates, hooks-based instinct pattern learning system, 92 desktop skills
+**Cowork v2.1.0 Knowledge Graph & Self-Evolution** + **Cowork v2.0.0 Cross-Device Collaboration** + **Verification Loop + Orchestrate + Instinct Learning** - Code knowledge graph, decision knowledge base, prompt optimizer, debate review, A/B comparator, P2P agent network, 92 desktop skills, 108 new IPC handlers
 
-#### v0.39.0 everything-claude-code Patterns Integration (2026-02-22)
+#### v0.39.0 Cowork Self-Evolution + everything-claude-code (2026-02-22)
 
-- ✅ **Verification Loop Skill** - 6-stage automated verification pipeline (Build→TypeCheck→Lint→Test→Security→DiffReview), READY/NOT READY verdict
-- ✅ **Orchestrate Workflow Skill** - 4 predefined multi-agent workflow templates (feature/bugfix/refactor/security-audit), structured handoff documents
-- ✅ **Instinct Learning System** - Auto-extract reusable patterns ("instincts") from user sessions, 8 categories + confidence scoring + context injection
-- ✅ **InstinctManager** - Observation pipeline (PostToolUse/PreCompact hooks → buffer → pattern extraction), confidence dynamics
-- ✅ **Context Engineering Integration** - Relevant instincts auto-injected into LLM prompts, improving AI response quality
+**Cowork v2.1.0 Self-Evolution & Knowledge Graph** (7 core modules, 35 IPC handlers):
+
+- ✅ **Code Knowledge Graph** - Workspace code scanning, 8 entity types, 7 relationship types, centrality analysis, circular dependency detection, hotspot discovery (14 IPC)
+- ✅ **Decision Knowledge Base** - Historical decision records, similarity search, best practice extraction, 9 problem categories, Hook auto-capture (6 IPC)
+- ✅ **Prompt Optimizer** - Skill prompt self-optimization, A/B variant testing, SHA-256 deduplication, success rate tracking (5 IPC)
+- ✅ **Skill Discoverer** - Task failure analysis, keyword extraction, marketplace skill search recommendations (4 IPC)
+- ✅ **Debate Review** - 3-perspective multi-agent review (performance/security/maintainability), consensus voting verdict (3 IPC)
+- ✅ **A/B Comparator** - 5 agent style variants, 3-dimension benchmarking, auto-scoring and ranking (3 IPC)
+- ✅ **Unified Evolution IPC** - 6 modules, 35 handlers unified registration
+
+**Cowork v2.0.0 Cross-Device Collaboration** (7 modules, 41 IPC handlers):
+
+- ✅ **P2P Agent Network** - WebRTC DataChannel cross-device agent communication, 15 message protocol types (12 IPC)
+- ✅ **Device Discovery** - Network device auto-discovery, 4-level capability tiers, health monitoring (6 IPC)
+- ✅ **Hybrid Executor** - 6 execution strategies (local-first/remote-first/best-fit/load-balance) (5 IPC)
+- ✅ **Computer Use Bridge** - 12 AI tools mapped as Cowork skills (6 IPC)
+- ✅ **Cowork API Server** - RESTful API 20+ endpoints, Bearer/API-Key auth, SSE streaming (5 IPC)
+- ✅ **Webhook Manager** - 17 event types, HMAC signature verification, exponential backoff retry (7 IPC)
+
+**Cowork Support Modules** (4 modules, 32 IPC handlers):
+
+- ✅ **CI/CD Optimizer** - Intelligent test selection, dependency graph analysis, flakiness scoring (10 IPC)
+- ✅ **Load Balancer** - Real-time agent metrics tracking, composite load scoring, auto task migration (8 IPC)
+- ✅ **ML Task Scheduler** - Weighted linear regression complexity prediction, resource estimation (8 IPC)
+- ✅ **IPC API Doc Generator** - Recursive scanning, OpenAPI 3.0 generation, Markdown auto-generation (6 IPC)
+
+**everything-claude-code Patterns Integration**:
+
+- ✅ **Verification Loop Skill** - 6-stage automated verification pipeline (Build→TypeCheck→Lint→Test→Security→DiffReview)
+- ✅ **Orchestrate Workflow Skill** - 4 predefined multi-agent workflow templates (feature/bugfix/refactor/security-audit)
+- ✅ **Instinct Learning System** - Auto-extract reusable patterns, 8 categories + confidence scoring + context injection
 - ✅ **11 IPC Handlers** - Full CRUD, reinforce/decay, evolve, export/import, stats
 - ✅ **2 Database Tables** - instincts (pattern storage) + instinct_observations (event buffering)
 
