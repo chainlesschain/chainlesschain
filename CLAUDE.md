@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.39.0 (92 Desktop Skills + Android 28 Skills + Instinct Learning System) - Updated 2026-02-22
+**Current Version**: v0.39.0 (95 Desktop Skills + Android 28 Skills + Self-Evolution & Knowledge Graph v2.1.0) - Updated 2026-02-22
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -125,6 +125,13 @@ All features are implemented. Entry files are relative to `desktop-app-vue/src/`
 | Verification Loop Skill       | `main/ai-engine/cowork/skills/builtin/verification-loop/handler.js` | —                                                                                  |
 | Orchestrate Workflow Skill    | `main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`       | —                                                                                  |
 | Instinct Learning System      | `main/llm/instinct-manager.js`                                      | —                                                                                  |
+| Code Knowledge Graph          | `main/ai-engine/cowork/code-knowledge-graph.js`                     | —                                                                                  |
+| Decision Knowledge Base       | `main/ai-engine/cowork/decision-knowledge-base.js`                  | —                                                                                  |
+| Prompt Optimizer              | `main/ai-engine/cowork/prompt-optimizer.js`                         | —                                                                                  |
+| Skill Discoverer              | `main/ai-engine/cowork/skill-discoverer.js`                         | —                                                                                  |
+| Debate Review Skill           | `main/ai-engine/cowork/debate-review.js`                            | —                                                                                  |
+| A/B Comparator Skill          | `main/ai-engine/cowork/ab-comparator.js`                            | —                                                                                  |
+| Evolution IPC (35 handlers)   | `main/ai-engine/cowork/evolution-ipc.js`                            | —                                                                                  |
 | Demo Templates                | `main/templates/demo-template-loader.js`                            | —                                                                                  |
 | TypeScript Stores (32)        | `renderer/stores/*.ts`                                              | —                                                                                  |
 
@@ -132,7 +139,7 @@ All features are implemented. Entry files are relative to `desktop-app-vue/src/`
 
 - 4-layer loading: bundled → marketplace → managed → workspace (higher overrides)
 - Agent Skills Open Standard: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- 92 built-in skills with handlers in `main/ai-engine/cowork/skills/builtin/`
+- 95 built-in skills with handlers in `main/ai-engine/cowork/skills/builtin/`
 - `/skill` commands parsed via `skills-ipc.js`
 - Parser: `skill-md-parser.js` (YAML frontmatter + Markdown body)
 
