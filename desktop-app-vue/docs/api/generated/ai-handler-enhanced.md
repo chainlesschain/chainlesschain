@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/handlers/ai-handler-enhanced.js`
 
-**Generated**: 2026-02-21T22:45:05.263Z
+**Generated**: 2026-02-22T01:23:36.686Z
 
 ---
 

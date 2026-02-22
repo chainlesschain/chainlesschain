@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/category-manager.js`
 
-**Generated**: 2026-02-21T22:45:05.276Z
+**Generated**: 2026-02-22T01:23:36.704Z
 
 ---
 

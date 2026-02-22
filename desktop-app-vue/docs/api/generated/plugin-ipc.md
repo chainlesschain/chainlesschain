@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-ipc.js`
 
-**Generated**: 2026-02-21T22:45:05.269Z
+**Generated**: 2026-02-22T01:23:36.695Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/tool-runner.js`
 
-**Generated**: 2026-02-21T22:45:05.252Z
+**Generated**: 2026-02-22T01:23:36.673Z
 
 ---
 
