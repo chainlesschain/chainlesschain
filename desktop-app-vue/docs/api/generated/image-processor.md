@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image/image-processor.js`
 
-**Generated**: 2026-02-21T22:45:05.292Z
+**Generated**: 2026-02-22T01:23:36.727Z
 
 ---
 

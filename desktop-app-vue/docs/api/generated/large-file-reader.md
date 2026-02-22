@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/large-file-reader.js`
 
-**Generated**: 2026-02-21T22:45:05.296Z
+**Generated**: 2026-02-22T01:23:36.731Z
 
 ---
 

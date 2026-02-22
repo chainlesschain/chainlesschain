@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/memory-dashboard-ipc.js`
 
-**Generated**: 2026-02-21T22:45:05.279Z
+**Generated**: 2026-02-22T01:23:36.707Z
 
 ---
 
