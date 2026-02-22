@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.38.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.39.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,11 +19,21 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.38.0 (2026-02-22)
+## ⭐ Current Version: v0.39.0 (2026-02-22)
 
-### Latest Updates - SIMKey v0.38.0 Six Security Enhancements + Documentation Site Expansion
+### Latest Updates - everything-claude-code Patterns Integration + Instinct Learning System
 
-**SIMKey 6 Security Enhancements** - iOS eSIM support, 5G SIM optimization, NFC offline signing, multi-SIM auto-switch, SIM health monitoring, quantum-resistant algorithm upgrade; documentation site expanded with 4,400+ lines across 10 pages
+**Verification Loop + Orchestrate Workflow + Instinct Learning** - 6-stage automated verification pipeline, 4 multi-agent workflow templates, hooks-based instinct pattern learning system, 92 desktop skills
+
+#### v0.39.0 everything-claude-code Patterns Integration (2026-02-22)
+
+- ✅ **Verification Loop Skill** - 6-stage automated verification pipeline (Build→TypeCheck→Lint→Test→Security→DiffReview), READY/NOT READY verdict
+- ✅ **Orchestrate Workflow Skill** - 4 predefined multi-agent workflow templates (feature/bugfix/refactor/security-audit), structured handoff documents
+- ✅ **Instinct Learning System** - Auto-extract reusable patterns ("instincts") from user sessions, 8 categories + confidence scoring + context injection
+- ✅ **InstinctManager** - Observation pipeline (PostToolUse/PreCompact hooks → buffer → pattern extraction), confidence dynamics
+- ✅ **Context Engineering Integration** - Relevant instincts auto-injected into LLM prompts, improving AI response quality
+- ✅ **11 IPC Handlers** - Full CRUD, reinforce/decay, evolve, export/import, stats
+- ✅ **2 Database Tables** - instincts (pattern storage) + instinct_observations (event buffering)
 
 #### v0.38.0 SIMKey Six Security Enhancements (2026-02-21)
 
@@ -266,8 +276,9 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
-- 🎨 **Skills System**: 30 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐Updated
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 90 skills unified management ✅ ⭐v0.37.6
+- 🎨 **Skills System**: 92 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v0.39.0
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 92 skills unified management ✅ ⭐v0.39.0
+- 🧬 **Instinct Learning**: Auto-extract user patterns + Confidence scoring + Context injection + Hooks observation pipeline ✅ ⭐v0.39.0
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
 - 🌐 **Fully Decentralized**: P2P network (libp2p 3.1.2) + DHT + local data storage, no central servers needed ✅
@@ -417,14 +428,14 @@ Detailed documentation: [Context Engineering Docs](./docs/MANUS_OPTIMIZATION_GUI
 - ✅ **Skills system** - Markdown skill definitions, four-layer loading (bundled→marketplace→managed→workspace)
 - ✅ **/skill commands** - User command parsing, auto-execution
 - ✅ **Gate checks** - Platform, dependency, environment variable detection
-- ✅ **90 Built-in Skills** - All with executable handlers (100% coverage) across 18+ categories
+- ✅ **92 Built-in Skills** - All with executable handlers (100% coverage) across 18+ categories (incl. verification-loop, orchestrate)
 - ✅ **Agent Skills Open Standard** - 13 extended fields (tools/instructions/examples/dependencies etc.)
 
 Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [AI Skills System](./docs/design/modules/16_AI技能系统.md)
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (90 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (92 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging
