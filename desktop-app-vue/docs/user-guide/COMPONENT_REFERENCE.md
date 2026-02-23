@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-02-23T09:52:53.738Z
+**Generated**: 2026-02-23T10:36:20.721Z
 
-**Total Components**: 502
+**Total Components**: 514
 
 ---
 
@@ -72,6 +72,14 @@
 
 ---
 
+### TimeMachinePage
+
+**File**: `src/renderer/pages/TimeMachinePage.vue`
+
+**Description**: Header with date picker
+
+---
+
 ### TaskMonitor
 
 **File**: `src/renderer/pages/TaskMonitor.vue`
@@ -131,6 +139,14 @@
 ### SimpleTestPage
 
 **File**: `src/renderer/pages/SimpleTestPage.vue`
+
+---
+
+### SharedAlbumsPage
+
+**File**: `src/renderer/pages/SharedAlbumsPage.vue`
+
+**Description**: Header
 
 ---
 
@@ -374,6 +390,14 @@
 
 ---
 
+### LivestreamPage
+
+**File**: `src/renderer/pages/LivestreamPage.vue`
+
+**Description**: Main content area
+
+---
+
 ### LLMTestChatPage
 
 **File**: `src/renderer/pages/LLMTestChatPage.vue`
@@ -540,11 +564,35 @@
 
 ---
 
+### CommunityPage
+
+**File**: `src/renderer/pages/CommunityPage.vue`
+
+**Description**: Left Sidebar: Community List
+
+---
+
 ### CommandLogsPage
 
 **File**: `src/renderer/pages/CommandLogsPage.vue`
 
 **Description**: 统计卡片
+
+---
+
+### CollabEditorPage
+
+**File**: `src/renderer/pages/CollabEditorPage.vue`
+
+**Description**: Header Bar
+
+---
+
+### ChannelPage
+
+**File**: `src/renderer/pages/ChannelPage.vue`
+
+**Description**: Left Sidebar: Channel List
 
 ---
 
@@ -2138,6 +2186,14 @@
 
 ---
 
+### PhotoViewer
+
+**File**: `src/renderer/components/social/PhotoViewer.vue`
+
+**Description**: Close button
+
+---
+
 ### NotificationCenter
 
 **File**: `src/renderer/components/social/NotificationCenter.vue`
@@ -2162,6 +2218,22 @@
 
 ---
 
+### MemoryCard
+
+**File**: `src/renderer/components/social/MemoryCard.vue`
+
+**Description**: Cover image
+
+---
+
+### IncomingCall
+
+**File**: `src/renderer/components/social/IncomingCall.vue`
+
+**Description**: Call Type Icon
+
+---
+
 ### GroupChatWindow
 
 **File**: `src/renderer/components/social/GroupChatWindow.vue`
@@ -2178,6 +2250,22 @@
 
 ---
 
+### DanmakuOverlay
+
+**File**: `src/renderer/components/social/DanmakuOverlay.vue`
+
+**Description**: Scrolling (normal) danmaku
+
+---
+
+### CursorOverlay
+
+**File**: `src/renderer/components/social/CursorOverlay.vue`
+
+**Description**: Cursor Line
+
+---
+
 ### ConversationList
 
 **File**: `src/renderer/components/social/ConversationList.vue`
@@ -2191,6 +2279,14 @@
 **File**: `src/renderer/components/social/ChatWindow.vue`
 
 **Description**: 来电通知
+
+---
+
+### CallPanel
+
+**File**: `src/renderer/components/social/CallPanel.vue`
+
+**Description**: Call Header
 
 ---
 

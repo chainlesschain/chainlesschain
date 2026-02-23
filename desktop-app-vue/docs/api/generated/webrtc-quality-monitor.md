@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/webrtc-quality-monitor.js`
 
-**Generated**: 2026-02-23T09:52:53.589Z
+**Generated**: 2026-02-23T10:36:20.544Z
 
 ---
 
