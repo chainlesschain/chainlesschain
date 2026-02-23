@@ -130,6 +130,14 @@ const p2pAdvancedPages = createRouteGroup('p2p-advanced', {
   messageQueue: () => import(/* webpackChunkName: "p2p-msg-queue" */ '../pages/p2p/MessageQueuePage.vue'),
 });
 
+// Enterprise Edition v1.0 页面组（中优先级）
+const enterpriseV1Pages = createRouteGroup('enterprise-v1', {
+  orgManagement: () => import(/* webpackChunkName: "enterprise-org" */ '../pages/enterprise/EnterpriseOrgPage.vue'),
+  ipfsStorage: () => import(/* webpackChunkName: "ipfs-storage" */ '../pages/IPFSStoragePage.vue'),
+  analyticsDashboard: () => import(/* webpackChunkName: "analytics-dashboard" */ '../pages/AnalyticsDashboardPage.vue'),
+  autonomousAgent: () => import(/* webpackChunkName: "autonomous-agent" */ '../pages/AutonomousAgentPage.vue'),
+});
+
 // 其他功能页面（按需加载）
 const miscPages = {
   webIDE: lazyRoute(() => import(/* webpackChunkName: "misc-webide" */ '../pages/webide/WebIDEPage.vue'), {
@@ -952,6 +960,31 @@ const routes: RouteRecordRaw[] = [
         name: 'DemoTemplates',
         component: () => import(/* webpackChunkName: "demo-templates" */ '../pages/DemoTemplatesPage.vue'),
         meta: { title: 'AI 技能 Demo 模板' },
+      },
+      // ===== Enterprise Edition v1.0 =====
+      {
+        path: 'org/:orgId/enterprise',
+        name: 'EnterpriseOrgManagement',
+        component: enterpriseV1Pages.orgManagement,
+        meta: { title: '企业组织管理' },
+      },
+      {
+        path: 'storage/ipfs',
+        name: 'IPFSStorage',
+        component: enterpriseV1Pages.ipfsStorage,
+        meta: { title: 'IPFS 去中心化存储' },
+      },
+      {
+        path: 'analytics/dashboard',
+        name: 'AnalyticsDashboard',
+        component: enterpriseV1Pages.analyticsDashboard,
+        meta: { title: '高级分析仪表板' },
+      },
+      {
+        path: 'agent/autonomous',
+        name: 'AutonomousAgent',
+        component: enterpriseV1Pages.autonomousAgent,
+        meta: { title: 'AI 自主执行代理' },
       },
     ],
   },

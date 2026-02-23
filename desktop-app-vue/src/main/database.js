@@ -3823,6 +3823,119 @@ class DatabaseManager {
         created_at TEXT DEFAULT (datetime('now'))
       );
       CREATE INDEX IF NOT EXISTS idx_ab_task ON ab_comparisons(task_description);
+
+      -- ============================================================
+      -- Phase 6: Enterprise Edition (v1.0) Tables
+      -- ============================================================
+
+      -- Yjs CRDT collaborative editing updates (Feature 2)
+      CREATE TABLE IF NOT EXISTS collab_yjs_updates (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL,
+        update_data BLOB NOT NULL,
+        origin TEXT DEFAULT 'local',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_yjs_knowledge ON collab_yjs_updates(knowledge_id);
+      CREATE INDEX IF NOT EXISTS idx_yjs_created ON collab_yjs_updates(created_at);
+
+      -- IPFS decentralized storage content registry (Feature 3)
+      CREATE TABLE IF NOT EXISTS ipfs_content (
+        id TEXT PRIMARY KEY,
+        cid TEXT NOT NULL UNIQUE,
+        filename TEXT,
+        content_type TEXT,
+        size INTEGER DEFAULT 0,
+        pinned INTEGER DEFAULT 1,
+        encrypted INTEGER DEFAULT 0,
+        encryption_key TEXT,
+        knowledge_id TEXT,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_ipfs_cid ON ipfs_content(cid);
+      CREATE INDEX IF NOT EXISTS idx_ipfs_knowledge ON ipfs_content(knowledge_id);
+      CREATE INDEX IF NOT EXISTS idx_ipfs_pinned ON ipfs_content(pinned);
+
+      -- IPFS storage statistics snapshots (Feature 3)
+      CREATE TABLE IF NOT EXISTS ipfs_storage_stats (
+        id TEXT PRIMARY KEY,
+        total_pinned INTEGER DEFAULT 0,
+        total_size INTEGER DEFAULT 0,
+        peer_count INTEGER DEFAULT 0,
+        quota_bytes INTEGER DEFAULT 1073741824,
+        mode TEXT DEFAULT 'embedded',
+        snapshot_at TEXT DEFAULT (datetime('now'))
+      );
+
+      -- Analytics aggregation buckets (Feature 4)
+      CREATE TABLE IF NOT EXISTS analytics_aggregations (
+        id TEXT PRIMARY KEY,
+        bucket_key TEXT NOT NULL,
+        granularity TEXT NOT NULL CHECK(granularity IN ('raw', 'hourly', 'daily', 'weekly', 'monthly')),
+        metrics TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_analytics_bucket ON analytics_aggregations(bucket_key);
+      CREATE INDEX IF NOT EXISTS idx_analytics_granularity ON analytics_aggregations(granularity);
+      CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_aggregations(created_at);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_bucket_gran ON analytics_aggregations(bucket_key, granularity);
+
+      -- Autonomous agent goals (Feature 5)
+      CREATE TABLE IF NOT EXISTS autonomous_goals (
+        id TEXT PRIMARY KEY,
+        description TEXT NOT NULL,
+        priority INTEGER DEFAULT 5 CHECK(priority BETWEEN 1 AND 10),
+        status TEXT DEFAULT 'queued' CHECK(status IN ('queued', 'running', 'paused', 'completed', 'failed', 'cancelled')),
+        tool_permissions TEXT DEFAULT '[]',
+        context TEXT,
+        decomposed_steps TEXT DEFAULT '[]',
+        result TEXT,
+        error_message TEXT,
+        step_count INTEGER DEFAULT 0,
+        tokens_used INTEGER DEFAULT 0,
+        max_steps INTEGER DEFAULT 100,
+        created_by TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        completed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_goals_status ON autonomous_goals(status);
+      CREATE INDEX IF NOT EXISTS idx_goals_priority ON autonomous_goals(priority);
+      CREATE INDEX IF NOT EXISTS idx_goals_created ON autonomous_goals(created_at);
+
+      -- Autonomous agent goal execution steps (Feature 5)
+      CREATE TABLE IF NOT EXISTS autonomous_goal_steps (
+        id TEXT PRIMARY KEY,
+        goal_id TEXT NOT NULL,
+        step_number INTEGER NOT NULL,
+        phase TEXT NOT NULL CHECK(phase IN ('reason', 'act', 'observe')),
+        thought TEXT,
+        action_type TEXT,
+        action_params TEXT DEFAULT '{}',
+        result TEXT,
+        success INTEGER DEFAULT 1,
+        tokens_used INTEGER DEFAULT 0,
+        duration_ms INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (goal_id) REFERENCES autonomous_goals(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_steps_goal ON autonomous_goal_steps(goal_id);
+      CREATE INDEX IF NOT EXISTS idx_steps_number ON autonomous_goal_steps(goal_id, step_number);
+
+      -- Autonomous agent goal logs (Feature 5)
+      CREATE TABLE IF NOT EXISTS autonomous_goal_logs (
+        id TEXT PRIMARY KEY,
+        goal_id TEXT NOT NULL,
+        level TEXT DEFAULT 'info' CHECK(level IN ('debug', 'info', 'warn', 'error')),
+        message TEXT NOT NULL,
+        data TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (goal_id) REFERENCES autonomous_goals(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_goal_logs_goal ON autonomous_goal_logs(goal_id);
+      CREATE INDEX IF NOT EXISTS idx_goal_logs_level ON autonomous_goal_logs(level);
       `);
 
       // 重新启用外键约束
@@ -4336,6 +4449,18 @@ class DatabaseManager {
       if (!projectsInfoV6.some((col) => col.name === "delivered_at")) {
         logger.info("[Database] 添加 projects.delivered_at 列");
         this.db.run("ALTER TABLE projects ADD COLUMN delivered_at TEXT");
+      }
+
+      // ==================== Phase 6: Enterprise Edition Migrations ====================
+      // Add team_type column to org_teams for department support (Feature 1)
+      const orgTeamsInfo = this.db
+        .prepare("PRAGMA table_info(org_teams)")
+        .all();
+      if (!orgTeamsInfo.some((col) => col.name === "team_type")) {
+        logger.info("[Database] 添加 org_teams.team_type 列");
+        this.db.run(
+          "ALTER TABLE org_teams ADD COLUMN team_type TEXT DEFAULT 'team'",
+        );
       }
 
       logger.info("[Database] 数据库迁移完成");

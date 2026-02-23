@@ -1,7 +1,7 @@
 /**
  * Real-time Collaboration IPC Handlers
  *
- * Provides 18 IPC handlers for real-time collaborative editing:
+ * Provides 21 IPC handlers for real-time collaborative editing:
  * - Document open/close
  * - Sync update/receive
  * - Awareness (cursor/selection)
@@ -12,6 +12,7 @@
  * - Statistics
  * - Subscriptions
  * - Export
+ * - Yjs IPC bridge (connect/update/disconnect)
  *
  * @module collaboration/realtime-collab-ipc
  */
@@ -23,7 +24,7 @@ const { logger } = require('../utils/logger.js');
  * Register all real-time collaboration IPC handlers
  */
 function registerRealtimeCollabIPC(database) {
-  logger.info('[IPC] 注册实时协作IPC处理器 (18个handlers)');
+  logger.info('[IPC] 注册实时协作IPC处理器 (21个handlers)');
 
   // ========================================
   // 1. Document Open/Close
@@ -492,7 +493,159 @@ function registerRealtimeCollabIPC(database) {
     }
   });
 
-  logger.info('[IPC] 实时协作IPC处理器注册完成 (18个handlers)');
+  // ========================================
+  // 11. Yjs IPC Bridge Handlers
+  // ========================================
+
+  /**
+   * Connect renderer Y.Doc to main process document session
+   * Returns initial document state for syncing
+   * @channel collab:yjs-connect
+   */
+  ipcMain.handle('collab:yjs-connect', async (_event, params) => {
+    try {
+      const { documentId } = params;
+
+      if (!documentId) {
+        throw new Error('Missing required parameter: documentId');
+      }
+
+      // Get or create Y.Doc via yjs-collab-manager
+      let initialState = null;
+      try {
+        const YjsCollabManager = require('./yjs-collab-manager');
+        const { getRealtimeCollabManager } = require('./realtime-collab-manager');
+        const realtimeManager = getRealtimeCollabManager(database);
+        const yjsManager = realtimeManager?.yjsCollabManager;
+
+        if (yjsManager) {
+          // Use getDocument to get or create the Y.Doc
+          const doc = yjsManager.getDocument
+            ? yjsManager.getDocument(documentId)
+            : yjsManager.documents?.get(documentId);
+
+          if (doc) {
+            const Y = require('yjs');
+            initialState = Array.from(Y.encodeStateAsUpdate(doc));
+          }
+        }
+      } catch (e) {
+        logger.warn('[IPC] collab:yjs-connect - Could not get initial state:', e.message);
+      }
+
+      logger.info(`[IPC] Yjs connect: ${documentId}`);
+
+      return {
+        success: true,
+        data: {
+          documentId,
+          initialState,
+        },
+      };
+    } catch (error) {
+      logger.error('[IPC] collab:yjs-connect failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Receive a Y.Doc update from renderer and apply to main process doc.
+   * Persists the update to the database and broadcasts to other windows/peers.
+   * @channel collab:yjs-update
+   */
+  ipcMain.handle('collab:yjs-update', async (_event, params) => {
+    try {
+      const { documentId, update } = params;
+
+      if (!documentId || !update) {
+        throw new Error('Missing required parameters: documentId, update');
+      }
+
+      // Apply update to main process Y.Doc
+      const Y = require('yjs');
+      const updateArray = new Uint8Array(update);
+
+      try {
+        const { getRealtimeCollabManager } = require('./realtime-collab-manager');
+        const realtimeManager = getRealtimeCollabManager(database);
+        const yjsManager = realtimeManager?.yjsCollabManager;
+
+        if (yjsManager) {
+          const doc = yjsManager.getDocument
+            ? yjsManager.getDocument(documentId)
+            : yjsManager.documents?.get(documentId);
+
+          if (doc) {
+            Y.applyUpdate(doc, updateArray, 'renderer');
+          }
+        }
+      } catch (e) {
+        logger.warn('[IPC] collab:yjs-update - Could not apply to main doc:', e.message);
+      }
+
+      // Persist update to database
+      if (database) {
+        try {
+          const { v4: uuidv4 } = require('uuid');
+          const db = database.getDatabase ? database.getDatabase() : database;
+          db.prepare(
+            `INSERT INTO collab_yjs_updates (id, knowledge_id, update_data, origin, created_at)
+             VALUES (?, ?, ?, ?, datetime('now'))`
+          ).run(uuidv4(), documentId, Buffer.from(update), 'local');
+        } catch (dbErr) {
+          // Database table may not exist yet - log but do not fail
+          logger.warn('[IPC] collab:yjs-update - DB persist failed:', dbErr.message);
+        }
+      }
+
+      // Broadcast to other renderer windows (multi-window support)
+      try {
+        const { BrowserWindow } = require('electron');
+        const senderWebContentsId = _event?.sender?.id;
+
+        for (const win of BrowserWindow.getAllWindows()) {
+          // Avoid echoing back to the sender window
+          if (win.webContents.id !== senderWebContentsId) {
+            win.webContents.send('collab:yjs-remote-update', {
+              documentId,
+              update: Array.from(updateArray),
+              origin: 'peer',
+            });
+          }
+        }
+      } catch (e) {
+        logger.warn('[IPC] collab:yjs-update - Broadcast failed:', e.message);
+      }
+
+      return { success: true };
+    } catch (error) {
+      logger.error('[IPC] collab:yjs-update failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Disconnect a renderer from a document session
+   * @channel collab:yjs-disconnect
+   */
+  ipcMain.handle('collab:yjs-disconnect', async (_event, params) => {
+    try {
+      const { documentId } = params;
+
+      if (!documentId) {
+        throw new Error('Missing required parameter: documentId');
+      }
+
+      logger.info(`[IPC] Yjs disconnect: ${documentId}`);
+
+      return { success: true };
+    } catch (error) {
+      logger.error('[IPC] collab:yjs-disconnect failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  logger.info('[IPC] 实时协作IPC处理器注册完成 (21个handlers)');
 }
 
 module.exports = {

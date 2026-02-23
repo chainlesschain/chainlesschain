@@ -211,6 +211,16 @@ export interface CollabApiResult {
 }
 
 /**
+ * Yjs 活跃协作者 (CRDT real-time)
+ */
+export interface ActiveCollaborator {
+  did: string;
+  name: string;
+  color: string;
+  cursor?: any;
+}
+
+/**
  * Collab Store 状态
  */
 export interface CollabState {
@@ -240,6 +250,10 @@ export interface CollabState {
   connectionStatus: ConnectionStatus;
   // 错误状态
   error: string | null;
+  // Yjs CRDT 实时协作状态
+  yjsConnected: boolean;
+  yjsSynced: boolean;
+  activeCollaborators: ActiveCollaborator[];
 }
 
 // ==================== Store ====================
@@ -341,6 +355,19 @@ export const useCollabStore = defineStore('collab', {
     // ==========================================
 
     error: null,
+
+    // ==========================================
+    // Yjs CRDT 实时协作状态
+    // ==========================================
+
+    // Yjs IPC 连接状态
+    yjsConnected: false,
+
+    // Yjs 同步完成状态
+    yjsSynced: false,
+
+    // 当前活跃的 CRDT 协作者
+    activeCollaborators: [],
   }),
 
   getters: {
@@ -387,6 +414,20 @@ export const useCollabStore = defineStore('collab', {
      */
     isConnected(): boolean {
       return this.connectionStatus === 'connected';
+    },
+
+    /**
+     * Yjs CRDT 是否已连接并同步
+     */
+    isYjsReady(): boolean {
+      return this.yjsConnected && this.yjsSynced;
+    },
+
+    /**
+     * 活跃 CRDT 协作者数量
+     */
+    activeCollaboratorCount(): number {
+      return this.activeCollaborators.length;
     },
   },
 
@@ -835,6 +876,69 @@ export const useCollabStore = defineStore('collab', {
         console.error('[CollabStore] 导出失败:', error);
         throw error;
       }
+    },
+
+    // ==========================================
+    // Yjs CRDT 实时协作操作
+    // ==========================================
+
+    /**
+     * 连接 Yjs IPC Provider (CRDT 实时同步)
+     */
+    async connectYjs(documentId: string): Promise<void> {
+      this.loading.document = true;
+      this.error = null;
+
+      try {
+        const result = await (window as any).electronAPI?.invoke('collab:yjs-connect', {
+          documentId,
+        });
+
+        if (result?.success) {
+          this.yjsConnected = true;
+        } else {
+          this.error = result?.error || 'Failed to connect Yjs';
+        }
+      } catch (e: any) {
+        console.error('[CollabStore] Yjs 连接失败:', e);
+        this.error = e.message;
+      } finally {
+        this.loading.document = false;
+      }
+    },
+
+    /**
+     * 断开 Yjs IPC Provider 连接
+     */
+    async disconnectYjs(documentId: string): Promise<void> {
+      try {
+        await (window as any).electronAPI?.invoke('collab:yjs-disconnect', {
+          documentId,
+        });
+
+        this.yjsConnected = false;
+        this.yjsSynced = false;
+        this.activeCollaborators = [];
+      } catch (e: any) {
+        console.error('[CollabStore] Yjs 断开连接失败:', e);
+        this.error = e.message;
+      }
+    },
+
+    /**
+     * 设置 Yjs 同步状态
+     */
+    setYjsSynced(synced: boolean): void {
+      this.yjsSynced = synced;
+    },
+
+    /**
+     * 更新活跃 CRDT 协作者列表
+     */
+    updateActiveCollaborators(
+      collaborators: Array<{ did: string; name: string; color: string; cursor?: any }>
+    ): void {
+      this.activeCollaborators = collaborators;
     },
 
     // ==========================================
