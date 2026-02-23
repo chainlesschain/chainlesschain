@@ -19,6 +19,9 @@ const path = require('path');
 const { GGUFQuantizer, SUPPORTED_LEVELS } = require('./gguf-quantizer.js');
 const { GPTQQuantizer } = require('./gptq-quantizer.js');
 
+/** Testability shim – override in tests to inject mocks. */
+const _deps = { uuidv4, fs };
+
 // ============================================================
 // Constants
 // ============================================================
@@ -101,7 +104,7 @@ class QuantizationManager extends EventEmitter {
   async startGGUF(inputPath, outputPath, level, options = {}) {
     this._ensureInitialized();
 
-    const jobId = uuidv4();
+    const jobId = _deps.uuidv4();
     const now = Date.now();
 
     const job = {
@@ -145,7 +148,7 @@ class QuantizationManager extends EventEmitter {
   async startGPTQ(inputPath, outputPath, options = {}) {
     this._ensureInitialized();
 
-    const jobId = uuidv4();
+    const jobId = _deps.uuidv4();
     const now = Date.now();
 
     const job = {
@@ -313,12 +316,12 @@ class QuantizationManager extends EventEmitter {
 
     // Remove output file if it exists
     try {
-      if (job.output_path && fs.existsSync(job.output_path)) {
-        const stat = fs.statSync(job.output_path);
+      if (job.output_path && _deps.fs.existsSync(job.output_path)) {
+        const stat = _deps.fs.statSync(job.output_path);
         if (stat.isDirectory()) {
-          fs.rmSync(job.output_path, { recursive: true, force: true });
+          _deps.fs.rmSync(job.output_path, { recursive: true, force: true });
         } else {
-          fs.unlinkSync(job.output_path);
+          _deps.fs.unlinkSync(job.output_path);
         }
         logger.info('[QuantizationManager] Deleted output file', { path: job.output_path });
       }
@@ -434,8 +437,8 @@ class QuantizationManager extends EventEmitter {
         this.runningJobs.delete(job.id);
         let fileSize = 0;
         try {
-          if (fs.existsSync(job.output_path)) {
-            const stat = fs.statSync(job.output_path);
+          if (_deps.fs.existsSync(job.output_path)) {
+            const stat = _deps.fs.statSync(job.output_path);
             fileSize = stat.size;
           }
         } catch (_e) {
@@ -493,14 +496,14 @@ class QuantizationManager extends EventEmitter {
         this.runningJobs.delete(job.id);
         let fileSize = 0;
         try {
-          if (fs.existsSync(job.output_path)) {
-            const stat = fs.statSync(job.output_path);
+          if (_deps.fs.existsSync(job.output_path)) {
+            const stat = _deps.fs.statSync(job.output_path);
             if (stat.isDirectory()) {
               // Sum up all files in the output directory
-              const files = fs.readdirSync(job.output_path);
+              const files = _deps.fs.readdirSync(job.output_path);
               for (const file of files) {
                 try {
-                  const fileStat = fs.statSync(path.join(job.output_path, file));
+                  const fileStat = _deps.fs.statSync(path.join(job.output_path, file));
                   if (fileStat.isFile()) {
                     fileSize += fileStat.size;
                   }
@@ -549,4 +552,4 @@ class QuantizationManager extends EventEmitter {
   }
 }
 
-module.exports = { QuantizationManager };
+module.exports = { QuantizationManager, _deps };

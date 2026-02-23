@@ -50,6 +50,10 @@ class SocialTokenManager extends EventEmitter {
    * Initialize social token manager
    */
   async initialize() {
+    if (this.initialized) {
+      return;
+    }
+
     logger.info("[SocialToken] Initializing social token manager...");
 
     try {

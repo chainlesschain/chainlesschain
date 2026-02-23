@@ -301,7 +301,7 @@ class CallSignaling extends EventEmitter {
    */
   handleIncomingSignal(peerId, data) {
     try {
-      if (!data || !data.type) {
+      if (!data || (!data.signalType && !data.type)) {
         logger.warn(
           `[CallSignaling] Received invalid signal from ${peerId}:`,
           data,
@@ -309,7 +309,8 @@ class CallSignaling extends EventEmitter {
         return;
       }
 
-      const signalType = data.type;
+      // Accept both new `signalType` field and legacy `type` field
+      const signalType = data.signalType || data.type;
 
       switch (signalType) {
         case SignalType.OFFER:
@@ -518,11 +519,15 @@ class CallSignaling extends EventEmitter {
 
     let lastError = null;
 
+    // Separate outer envelope type from inner signal type to avoid collision
+    const { type: signalType, ...signalData } = signal;
+
     for (let attempt = 0; attempt < this.config.retryAttempts; attempt++) {
       try {
         await this.p2pManager.sendMessage(targetDid, {
           type: "call-signaling",
-          ...signal,
+          signalType,
+          ...signalData,
         });
         return;
       } catch (error) {

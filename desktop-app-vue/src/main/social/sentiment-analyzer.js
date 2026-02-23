@@ -90,6 +90,10 @@ class SentimentAnalyzer extends EventEmitter {
    * Initialize the sentiment analyzer
    */
   async initialize() {
+    if (this.initialized) {
+      return;
+    }
+
     logger.info("[SentimentAnalyzer] Initializing sentiment analyzer...");
 
     try {

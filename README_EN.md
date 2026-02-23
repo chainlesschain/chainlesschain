@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.39.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-2000%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-2500%2B-brightgreen.svg)
 
 **Decentralized · Privacy First · AI Native**
 
@@ -19,11 +19,38 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.39.0 (2026-02-22)
+## ⭐ Current Version: v1.0.0 Enterprise Edition (2026-02-23)
 
-### Latest Updates - Cowork Self-Evolution System + everything-claude-code Patterns
+### Latest Updates - Decentralized Social Platform Full Upgrade + Enterprise Infrastructure
 
-**Cowork v2.1.0 Knowledge Graph & Self-Evolution** + **Cowork v2.0.0 Cross-Device Collaboration** + **Verification Loop + Orchestrate + Instinct Learning** - Code knowledge graph, decision knowledge base, prompt optimizer, debate review, A/B comparator, P2P agent network, 92 desktop skills, 108 new IPC handlers
+**P2P Voice/Video Calls** + **Community Channels** + **Time Machine** + **Decentralized Livestreaming** + **IPFS Storage** + **Autonomous Agent Runner** + **i18n** + **Performance Auto-Tuner** + **Model Quantization** - 95 desktop skills, 46 TypeScript Stores, 310,000+ lines of code, 2500+ test cases
+
+#### v1.0.0 Enterprise Edition - Decentralized Social Platform Full Upgrade (2026-02-23)
+
+**P2P Social New Features** (7 core capabilities):
+
+- ✅ **P2P Voice/Video Calls** (`call-manager` + `call-signaling`) - WebRTC + DTLS-SRTP E2E encryption, SFU relay for 2-8 people, noise reduction, screen sharing, call recording
+- ✅ **Shared Encrypted Albums** (`shared-album-manager`) - E2E encrypted albums, EXIF privacy stripping, P2P distribution, access control, version management
+- ✅ **Communities & Channels** (`community-manager` + `channel-manager` + `governance-engine`) - Gossip protocol message distribution, role-based permissions, governance voting, community economy
+- ✅ **Time Machine** (`time-machine` + `sentiment-analyzer`) - AI-generated memory summaries, sentiment analysis, history playback, important moment extraction
+- ✅ **Decentralized Livestreaming** - IPFS video streaming, danmaku system, tipping, P2P CDN acceleration
+- ✅ **Social Tokens** (`social-token`) - ERC-20 social credits, creator economy, token issuance & circulation, governance voting
+- ✅ **Anonymous Mode** - ZKP zero-knowledge proof identity, temporary DID, revocable anonymity
+
+**Enterprise Infrastructure** (5 new modules):
+
+- ✅ **IPFS Decentralized Storage** (`ipfs-manager`) - Helia/Kubo dual-engine, content addressing, P2P CDN, auto-pinning
+- ✅ **Real-time Collaboration (CRDT/Yjs)** (`yjs-collab-manager` + `realtime-collab-manager`) - Yjs CRDT conflict resolution, P2P real-time sync, cursor sharing, document locks
+- ✅ **Analytics Dashboard** (`analytics-aggregator`) - Real-time data aggregation, multi-dimensional metrics, visualization reports
+- ✅ **Autonomous Agent Runner** (`autonomous-agent-runner`) - ReAct loop, goal decomposition, multi-step reasoning, autonomous task execution
+- ✅ **Enterprise Org Management** (`enterprise-org-manager`) - Org hierarchy, approval workflows, multi-tenancy, permission inheritance
+
+**System Enhancements** (4 improvements):
+
+- ✅ **Model Quantization** (`quantization-manager` + `gguf-quantizer` + `gptq-quantizer`) - GGUF 14 quantization levels (Q2_K~F32), AutoGPTQ Python bridge, Ollama import
+- ✅ **i18n Internationalization** - 4 languages (Chinese/English/Japanese/Korean), runtime switching
+- ✅ **Performance Auto-Tuner** - Real-time monitoring, auto parameter adjustment, memory alerts, load prediction
+- ✅ **TypeScript Stores expanded** - 46 TypeScript Stores (13 new), full type coverage
 
 #### v0.39.0 Cowork Self-Evolution + everything-claude-code (2026-02-22)
 
@@ -278,16 +305,24 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🟢 **USB Key Integration**: 100% Complete - **Cross-Platform Support (Windows/macOS/Linux)** ⭐Completed
 - 🟢 **Blockchain Bridge**: 100% Complete - **LayerZero Production-Grade Integration** ⭐Completed
 - 🟢 **Enterprise Edition (Decentralized Organizations)**: 100% Complete - **Organization Management + Invitation System** ⭐Completed
-- 🟢 **Testing Framework**: 100% Complete - **417 test files, 2000+ cases, Vitest + DI refactoring** ⭐Completed
+- 🟢 **Testing Framework**: 100% Complete - **417+ test files, 2500+ cases, Vitest + DI refactoring** ⭐v1.0.0
 - 🟢 **Blockchain Integration**: 100% Complete - **15 chains + RPC management + Event listeners + Full UI** ⭐Completed
 - 🟢 **Decentralized Identity**: 100% Complete - **DID + Org DID + VC + DHT publish + Cache** ⭐Completed
 - 🟢 **P2P Communication**: 100% Complete - **E2E Encryption + Message Queue + Multi-device** ⭐Completed
-- 🟢 **Social System**: 100% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding + Message Reactions + Voice Message Recording & Playback** ⭐Completed
+- 🟢 **Decentralized Social Platform**: 100% Complete - **P2P Voice/Video Calls + Shared Albums + Community Channels + Time Machine + Livestreaming + Social Tokens** ⭐v1.0.0
 - 🟢 **Trading System**: 100% Complete - **8 Modules + On-chain Contracts + NFT Transfers + Order Editing + Sharing + QR Codes** ⭐Completed
 - 🟢 **Browser Extension**: 100% Complete - **Testing Framework + Documentation** ⭐Completed
-- 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension + 45,000+ Lines** ⭐Completed
-- 🟢 **AI Skills System**: 100% Complete - **90 Built-in Skills (100% Handler) + 28 Android Skills + Unified Tool Registry + Agent Skills Standard** ⭐v0.37.6
+- 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension** ⭐Completed
+- 🟢 **AI Skills System**: 100% Complete - **95 Built-in Skills (100% Handler) + 28 Android Skills + Unified Tool Registry + Agent Skills Standard** ⭐v1.0.0
 - 🟢 **SIMKey Security Enhancements**: 100% Complete - **iOS eSIM + 5G Optimization + NFC Offline Signing + Multi-SIM Switch + Health Monitoring + Quantum-Resistant** ⭐v0.38.0
+- 🟢 **IPFS Decentralized Storage**: 100% Complete - **Helia/Kubo Dual-Engine + Content Addressing + P2P CDN + Auto-Pinning** ⭐v1.0.0
+- 🟢 **Real-time Collaboration (CRDT/Yjs)**: 100% Complete - **Yjs Conflict Resolution + P2P Sync + Cursor Sharing + Document Locks** ⭐v1.0.0
+- 🟢 **Autonomous Agent Runner**: 100% Complete - **ReAct Loop + Goal Decomposition + Autonomous Task Execution** ⭐v1.0.0
+- 🟢 **Model Quantization**: 100% Complete - **GGUF 14-Level Quantization + AutoGPTQ + Ollama Integration** ⭐v1.0.0
+- 🟢 **i18n Internationalization**: 100% Complete - **4 Languages (ZH/EN/JP/KO) + Runtime Switching** ⭐v1.0.0
+- 🟢 **Performance Auto-Tuner**: 100% Complete - **Real-time Monitoring + Auto Parameter Tuning + Load Prediction** ⭐v1.0.0
+- 🟢 **Enterprise Org Management**: 100% Complete - **Org Hierarchy + Approval Workflows + Multi-tenancy** ⭐v1.0.0
+- 🟢 **Analytics Dashboard**: 100% Complete - **Real-time Aggregation + Multi-dimensional Metrics + Visualization** ⭐v1.0.0
 - 🟢 **Mobile Application**: 100% Complete - **Knowledge Base + AI Chat + Trading System + Social Features + Mobile UX Optimization + P2P Sync + Android Remote Control UIs** ⭐Completed
 
 ## Core Features
@@ -302,8 +337,8 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
-- 🎨 **Skills System**: 92 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v0.39.0
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 92 skills unified management ✅ ⭐v0.39.0
+- 🎨 **Skills System**: 95 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.0.0
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 95 skills unified management ✅ ⭐v1.0.0
 - 🧬 **Instinct Learning**: Auto-extract user patterns + Confidence scoring + Context injection + Hooks observation pipeline ✅ ⭐v0.39.0
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
@@ -318,10 +353,10 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - ⛓️ **Blockchain Integration**: 6 smart contracts + HD wallet system + MetaMask/WalletConnect + LayerZero cross-chain bridge ✅
 - 🏢 **Enterprise Edition**: Multi-identity architecture + RBAC permissions + organization management + data isolation ✅
 - 🔧 **Skill & Tool System**: 115 skills + 300 tools + 10 categories + dynamic management ✅
-- 🧪 **Comprehensive Test Suite**: 2000+ test cases + 417 test files + OWASP security validation + DI test refactoring ✅ ⭐NEW
+- 🧪 **Comprehensive Test Suite**: 2500+ test cases + 417+ test files + OWASP security validation + DI test refactoring ✅ ⭐v1.0.0
 - 🎤 **Voice Recognition**: Real-time transcription + audio enhancement + multi-language detection + UI integration ✅
 - 📱 **Cross-Device Collaboration**: Git sync + mobile-PC data sync + multi-device P2P communication + offline message queue ✅
-- 🔓 **Open Source & Self-Hosted**: 250,000+ lines of code, 358 Vue components, 23 pages, fully transparent and auditable ✅
+- 🔓 **Open Source & Self-Hosted**: 310,000+ lines of code, 370 Vue components, 380+ IPC handlers, fully transparent and auditable ✅
 - ⚡ **P2 Optimization System**: Intent fusion, knowledge distillation, streaming response, 40% AI engine performance boost ✅
 - 🚀 **Deep Performance Optimization**: 18 optimization tools + 4 specialized components + Core Web Vitals monitoring + smart image loading ✅
 - 🎛️ **Advanced Features Control Panel**: Real-time monitoring, configuration management, 20+ IPC channels, native menu integration ✅
@@ -329,7 +364,7 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 💼 **Microservice Architecture**: Project Service + AI Service + Community Forum, 157 API endpoints ✅ ⭐Updated
 - 🔄 **Database Sync**: SQLite ↔ PostgreSQL bidirectional sync, soft delete + conflict resolution ✅
 - 🌐 **Browser Extension**: Web annotation + content extraction + AI assistance + automated testing ✅
-- 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 417 test files + 2000+ test cases ✅
+- 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 417+ test files + 2500+ test cases ✅
 - 💾 **Memory Leak Protection**: 4-layer protection mechanism (timer safety/event cleanup/API cancellation/message limiting) + Long-term stability guarantee ✅ ⭐NEW
 - 📱 **Android P2P UI**: 8 complete screens (device discovery/pairing/security verification/DID management/message queue/QR scan) + Full P2P experience ✅ ⭐NEW
 - 🖥️ **Workspace Management**: Full CRUD + restore + permanent delete + member management ✅ ⭐NEW
@@ -417,7 +452,7 @@ Detailed documentation: [Permanent Memory Integration](./docs/features/PERMANENT
 
 ### 6️⃣ Comprehensive Testing System (100% Complete) ✅
 
-- ✅ **2000+ test cases** - Covering all core modules (including 102 database tests after DI refactoring)
+- ✅ **2500+ test cases** - Covering all core modules (including 102 database tests after DI refactoring)
 - ✅ **417 test files + 50 script tests** - Unit/Integration/E2E/Performance/Security
 - ✅ **DI test refactoring** - Browser IPC, database modules with improved testability via DI
 - ✅ **80% OWASP Top 10 coverage** - XSS/SQL injection/path traversal protection verified
@@ -461,7 +496,7 @@ Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (92 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (95 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging

@@ -14,6 +14,9 @@
 const { spawn } = require('child_process');
 const { logger } = require('../utils/logger.js');
 
+/** Testability shim – override in tests to inject mocks. */
+const _deps = { spawn };
+
 // ============================================================
 // Supported quantization levels
 // ============================================================
@@ -80,7 +83,7 @@ class GGUFQuantizer {
         level,
       });
 
-      const child = spawn('llama-quantize', [inputPath, outputPath, level], {
+      const child = _deps.spawn('llama-quantize', [inputPath, outputPath, level], {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
@@ -195,4 +198,4 @@ class GGUFQuantizer {
   }
 }
 
-module.exports = { GGUFQuantizer, SUPPORTED_LEVELS, LEVEL_NAMES };
+module.exports = { GGUFQuantizer, SUPPORTED_LEVELS, LEVEL_NAMES, _deps };
