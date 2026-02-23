@@ -480,15 +480,15 @@ netstat -an | grep 4001
 3. ✅ 定期备份聊天记录
 4. ✅ 关闭不必要的通知
 
-## 未来功能
+## 扩展社交功能
 
-以下功能正在规划和开发中，将在后续版本陆续推出。所有功能均遵循去中心化和隐私优先的设计原则。
+以下功能已在 v1.0.0 中全部实现，所有功能均遵循去中心化和隐私优先的设计原则。
 
 ---
 
-### v0.39.0 — 语音/视频通话（P2P WebRTC）
+### 语音/视频通话（P2P WebRTC）
 
-**目标**: 实现完全去中心化的实时音视频通话，无需中心服务器中转媒体流。
+**已实现**: 完全去中心化的实时音视频通话，无需中心服务器中转媒体流。
 
 #### 架构设计
 
@@ -580,7 +580,7 @@ Mesh模式（小规模）:
 }
 ```
 
-#### 关键文件（规划）
+#### 关键文件
 
 | 文件                                              | 职责                       |
 | ------------------------------------------------- | -------------------------- |
@@ -588,14 +588,16 @@ Mesh模式（小规模）:
 | `src/main/p2p/media-engine.js`                    | 媒体引擎，音视频采集/编码  |
 | `src/main/p2p/call-signaling.js`                  | 通话信令，Offer/Answer/ICE |
 | `src/main/p2p/sfu-relay.js`                       | SFU中继节点（多人通话）    |
+| `src/main/social/call-ipc.js`                     | 通话IPC处理器              |
 | `src/renderer/components/social/CallPanel.vue`    | 通话UI面板                 |
 | `src/renderer/components/social/IncomingCall.vue` | 来电通知组件               |
+| `src/renderer/stores/call.ts`                     | 通话状态管理               |
 
 ---
 
-### v0.40.0 — 共享相册
+### 共享相册
 
-**目标**: 好友间创建共享加密相册，支持协作上传、评论和隐私分级管理。
+**已实现**: 好友间创建共享加密相册，支持协作上传、评论和隐私分级管理。
 
 #### 功能概览
 
@@ -657,7 +659,7 @@ Mesh模式（小规模）:
 | 好友共享 | P2P成员节点 | 2-3份  | 成员在线时 |
 | 公开相册 | IPFS + 本地 | 多份   | 永久       |
 
-#### 关键文件（规划）
+#### 关键文件
 
 | 文件                                             | 职责               |
 | ------------------------------------------------ | ------------------ |
@@ -665,14 +667,16 @@ Mesh模式（小规模）:
 | `src/main/social/photo-encryptor.js`             | 照片加密/解密      |
 | `src/main/social/photo-sync.js`                  | P2P照片同步引擎    |
 | `src/main/social/exif-stripper.js`               | EXIF隐私数据剥离   |
+| `src/main/social/album-ipc.js`                   | 相册IPC处理器      |
 | `src/renderer/pages/SharedAlbumsPage.vue`        | 相册浏览页         |
 | `src/renderer/components/social/PhotoViewer.vue` | 照片查看器         |
+| `src/renderer/stores/albums.ts`                  | 相册状态管理       |
 
 ---
 
-### v0.41.0 — 协作编辑文档
+### 协作编辑文档
 
-**目标**: 实现去中心化的实时协作文档编辑，支持多人同时编辑同一文档，基于CRDT实现无冲突合并。
+**已实现**: 去中心化的实时协作文档编辑，支持多人同时编辑同一文档，基于CRDT实现无冲突合并。
 
 #### 架构设计
 
@@ -732,7 +736,7 @@ Mesh模式（小规模）:
 | 白板     | Canvas     | 实时协作 | 自由绘图和便签 |
 | 思维导图 | 树形结构   | 实时协作 | 节点可独立编辑 |
 
-#### 关键文件（规划）
+#### 关键文件
 
 | 文件                                               | 职责                    |
 | -------------------------------------------------- | ----------------------- |
@@ -740,14 +744,16 @@ Mesh模式（小规模）:
 | `src/main/social/collab-sync.js`                   | P2P操作同步             |
 | `src/main/social/collab-awareness.js`              | 协作者感知（光标/选区） |
 | `src/main/social/doc-version-manager.js`           | 版本历史管理            |
+| `src/main/social/collab-social-ipc.js`             | 协作社交IPC处理器       |
 | `src/renderer/pages/CollabEditorPage.vue`          | 协作编辑器页面          |
 | `src/renderer/components/social/CursorOverlay.vue` | 远端光标显示            |
+| `src/renderer/stores/socialCollab.ts`              | 协作状态管理            |
 
 ---
 
-### v0.42.0 — 社区/频道功能
+### 社区/频道功能
 
-**目标**: 创建去中心化的主题社区和订阅频道，支持公开讨论、内容聚合和社区自治。
+**已实现**: 去中心化的主题社区和订阅频道，支持公开讨论、内容聚合和社区自治。
 
 #### 社区架构
 
@@ -839,7 +845,7 @@ Gossip协议分发:
 | 只读频道 | 仅查看       | 任意           | 资源存档 |
 | 订阅频道 | 发布者推送   | 文字/图片      | 内容订阅 |
 
-#### 关键文件（规划）
+#### 关键文件
 
 | 文件                                   | 职责               |
 | -------------------------------------- | ------------------ |
@@ -848,14 +854,16 @@ Gossip协议分发:
 | `src/main/social/governance-engine.js` | 投票、提案、仲裁   |
 | `src/main/social/gossip-protocol.js`   | Gossip消息分发     |
 | `src/main/social/content-moderator.js` | AI辅助内容审核     |
+| `src/main/social/community-ipc.js`     | 社区IPC处理器      |
 | `src/renderer/pages/CommunityPage.vue` | 社区主页           |
 | `src/renderer/pages/ChannelPage.vue`   | 频道详情页         |
+| `src/renderer/stores/community.ts`     | 社区状态管理       |
 
 ---
 
-### v0.43.0 — 朋友圈时光机
+### 朋友圈时光机
 
-**目标**: 回顾历史社交动态，AI生成社交回忆摘要，提供时间线可视化浏览。
+**已实现**: 回顾历史社交动态，AI生成社交回忆摘要，提供时间线可视化浏览。
 
 #### 功能概览
 
@@ -929,7 +937,7 @@ Gossip协议分发:
 - 回忆卡片分享时自动加密，仅接收者可查看
 - 可设置"遗忘"：永久删除某段时间的动态
 
-#### 关键文件（规划）
+#### 关键文件
 
 | 文件                                            | 职责                 |
 | ----------------------------------------------- | -------------------- |
@@ -937,14 +945,16 @@ Gossip协议分发:
 | `src/main/social/memory-generator.js`           | AI回忆生成           |
 | `src/main/social/sentiment-analyzer.js`         | 情感趋势分析         |
 | `src/main/social/social-stats.js`               | 社交统计与可视化数据 |
+| `src/main/social/time-machine-ipc.js`           | 时光机IPC处理器      |
 | `src/renderer/pages/TimeMachinePage.vue`        | 时光机主页           |
 | `src/renderer/components/social/MemoryCard.vue` | 回忆卡片组件         |
+| `src/renderer/stores/timeMachine.ts`            | 时光机状态管理       |
 
 ---
 
-### v0.44.0 — 去中心化直播
+### 去中心化直播
 
-**目标**: 基于P2P网络的实时直播功能，支持小规模社区直播和互动。
+**已实现**: 基于P2P网络的实时直播功能，支持小规模社区直播和互动。
 
 #### 核心功能
 
@@ -972,29 +982,40 @@ Gossip协议分发:
   - >100人: 多级SFU级联
 ```
 
----
+#### 关键文件
 
-### v0.45.0+ — 长期规划
-
-#### 更多计划中的功能
-
-- [x] **匿名社交模式**: 零知识证明验证身份，完全匿名发帖/评论
-- [x] **跨平台桥接**: 桥接到Mastodon/Nostr等去中心化社交网络
-- [x] **社交代币**: 社区发行治理代币，激励优质内容
-- [x] **AI社交助手**: 智能回复建议、话题推荐、社交破冰
-- [x] **去中心化存储市场**: 用代币购买社区成员的存储空间
-- [x] **离线Mesh社交**: 蓝牙/Wi-Fi Direct离线社交（无互联网场景）
+| 文件                                                | 职责                    |
+| --------------------------------------------------- | ----------------------- |
+| `src/main/social/livestream-manager.js`             | 直播管理器（推流/录制） |
+| `src/main/social/danmaku-engine.js`                 | 弹幕引擎（加密传输）    |
+| `src/main/social/livestream-ipc.js`                 | 直播IPC处理器           |
+| `src/renderer/pages/LivestreamPage.vue`             | 直播主页                |
+| `src/renderer/components/social/DanmakuOverlay.vue` | 弹幕显示层              |
+| `src/renderer/stores/livestream.ts`                 | 直播状态管理            |
 
 ---
 
-### 路线图总览
+### 高级社交特性
 
-| 版本     | 功能           | 核心技术             | 优先级     |
-| -------- | -------------- | -------------------- | ---------- |
-| v0.39.0  | 语音/视频通话  | WebRTC, SRTP, SFU    | ⭐⭐⭐⭐⭐ |
-| v0.40.0  | 共享相册       | AES-256加密, P2P存储 | ⭐⭐⭐⭐   |
-| v0.41.0  | 协作编辑文档   | Yjs CRDT, P2P同步    | ⭐⭐⭐⭐   |
-| v0.42.0  | 社区/频道      | Gossip协议, 治理投票 | ⭐⭐⭐⭐⭐ |
-| v0.43.0  | 朋友圈时光机   | 本地AI分析, 情感识别 | ⭐⭐⭐     |
-| v0.44.0  | 去中心化直播   | WebRTC SFU, 弹幕     | ⭐⭐⭐     |
-| v0.45.0+ | 匿名/桥接/代币 | ZKP, ActivityPub     | ⭐⭐       |
+**已实现**: 多种高级去中心化社交功能，全部集成于 v1.0.0。
+
+- ✅ **匿名社交模式**: 零知识证明验证身份，完全匿名发帖/评论
+- ✅ **跨平台桥接**: 桥接到 Mastodon/Nostr 等去中心化社交网络
+- ✅ **社交代币**: 社区发行治理代币（`social-token.js`），激励优质内容
+- ✅ **AI社交助手**: 智能回复建议、话题推荐、社交破冰（`ai-social-assistant.js`）
+- ✅ **去中心化存储市场**: 用代币购买社区成员的存储空间（`storage-market.js`）
+- ✅ **离线Mesh社交**: P2P Mesh 网络离线社交（`mesh-social.js`）
+
+---
+
+### 功能总览
+
+| 功能           | 核心技术             | 关键文件                                        | 状态      |
+| -------------- | -------------------- | ----------------------------------------------- | --------- |
+| 语音/视频通话  | WebRTC, SRTP, SFU    | `call-manager.js`, `media-engine.js`            | ✅ 已实现 |
+| 共享相册       | AES-256加密, P2P存储 | `shared-album-manager.js`, `photo-encryptor.js` | ✅ 已实现 |
+| 协作编辑文档   | Yjs CRDT, P2P同步    | `collab-engine.js`, `collab-sync.js`            | ✅ 已实现 |
+| 社区/频道      | Gossip协议, 治理投票 | `community-manager.js`, `governance-engine.js`  | ✅ 已实现 |
+| 朋友圈时光机   | 本地AI分析, 情感识别 | `time-machine.js`, `memory-generator.js`        | ✅ 已实现 |
+| 去中心化直播   | WebRTC SFU, 弹幕     | `livestream-manager.js`, `danmaku-engine.js`    | ✅ 已实现 |
+| 匿名/桥接/代币 | ZKP, ActivityPub     | `anonymous-mode.js`, `social-token.js`          | ✅ 已实现 |
