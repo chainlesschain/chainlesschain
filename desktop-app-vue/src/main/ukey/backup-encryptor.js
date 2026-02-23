@@ -29,7 +29,12 @@ async function deriveKey(passphrase, salt) {
         : Buffer.from(passphrase, "utf8"),
       salt,
       KEY_LEN,
-      { N: KDF_N, r: KDF_R, p: KDF_P },
+      {
+        N: KDF_N,
+        r: KDF_R,
+        p: KDF_P,
+        maxmem: 128 * KDF_N * KDF_R * (KDF_P + 2),
+      },
       (err, key) => {
         if (err) {
           reject(err);

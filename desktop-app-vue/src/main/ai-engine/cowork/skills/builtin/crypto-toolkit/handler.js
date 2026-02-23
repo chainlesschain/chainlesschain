@@ -518,6 +518,138 @@ module.exports = {
         };
       }
 
+      // ── --pq-keygen ──────────────────────────────────────────
+      if (/--pq-keygen\b/i.test(input)) {
+        let pqManager;
+        try {
+          const {
+            getPostQuantumManager,
+          } = require("../../../../../crypto/post-quantum-manager.js");
+          pqManager = getPostQuantumManager();
+        } catch {
+          /* not available */
+        }
+        if (!pqManager?.initialized) {
+          return {
+            success: false,
+            error: "PostQuantumManager not initialized",
+            message:
+              "Post-quantum module not available. Start the application first.",
+          };
+        }
+        const algo = extractFlagValue(input, "algo") || "kyber";
+        const levelStr = extractFlagValue(input, "level");
+        let result;
+        if (algo === "dilithium") {
+          const level = parseInt(levelStr, 10) || 3;
+          result = await pqManager.generateDilithiumKeyPair(level);
+          result._algo = "Dilithium";
+        } else if (algo === "sphincs") {
+          const variant = extractFlagValue(input, "variant") || "shake-256f";
+          result = await pqManager.generateSphincsPlusKeyPair(variant);
+          result._algo = "SPHINCS+";
+        } else {
+          const level = parseInt(levelStr, 10) || 768;
+          result = await pqManager.generateKyberKeyPair(level);
+          result._algo = "Kyber";
+        }
+        return {
+          success: true,
+          result,
+          message: [
+            `## Post-Quantum Key Pair Generated (${result._algo})`,
+            "",
+            `- **Key ID**: \`${result.id}\``,
+            `- **Algorithm**: ${result.algorithm}`,
+            `- **Public Key**: \`${result.publicKey.slice(0, 32)}...\``,
+          ].join("\n"),
+        };
+      }
+
+      // ── --pq-encapsulate ───────────────────────────────────
+      if (/--pq-encapsulate\b/i.test(input)) {
+        let pqManager;
+        try {
+          const {
+            getPostQuantumManager,
+          } = require("../../../../../crypto/post-quantum-manager.js");
+          pqManager = getPostQuantumManager();
+        } catch {
+          /* not available */
+        }
+        if (!pqManager?.initialized) {
+          return {
+            success: false,
+            error: "PostQuantumManager not initialized",
+            message: "Post-quantum module not available.",
+          };
+        }
+        const publicKey = extractQuotedOrNextArg(
+          input,
+          /.*--pq-encapsulate\s*/i,
+        );
+        if (!publicKey) {
+          return {
+            success: false,
+            error: "Missing public key",
+            message: "Usage: --pq-encapsulate <publicKeyHex>",
+          };
+        }
+        const result = await pqManager.encapsulate(publicKey);
+        return {
+          success: true,
+          result,
+          message: [
+            "## KEM Encapsulation",
+            "",
+            `- **Ciphertext**: \`${result.ciphertext.slice(0, 32)}...\``,
+            `- **Shared Secret**: \`${result.sharedSecret.slice(0, 32)}...\``,
+          ].join("\n"),
+        };
+      }
+
+      // ── --pq-decapsulate ───────────────────────────────────
+      if (/--pq-decapsulate\b/i.test(input)) {
+        let pqManager;
+        try {
+          const {
+            getPostQuantumManager,
+          } = require("../../../../../crypto/post-quantum-manager.js");
+          pqManager = getPostQuantumManager();
+        } catch {
+          /* not available */
+        }
+        if (!pqManager?.initialized) {
+          return {
+            success: false,
+            error: "PostQuantumManager not initialized",
+            message: "Post-quantum module not available.",
+          };
+        }
+        const ciphertext =
+          extractFlagValue(input, "ct") ||
+          extractQuotedOrNextArg(input, /.*--pq-decapsulate\s*/i);
+        const privateKey = extractFlagValue(input, "sk");
+        if (!ciphertext || !privateKey) {
+          return {
+            success: false,
+            error: "Missing arguments",
+            message:
+              "Usage: --pq-decapsulate <ciphertext> --sk <privateKeyHex>",
+          };
+        }
+        const result = await pqManager.decapsulate(ciphertext, privateKey);
+        return {
+          success: true,
+          result,
+          message: [
+            "## KEM Decapsulation",
+            "",
+            `- **Shared Secret**: \`${result.sharedSecret.slice(0, 32)}...\``,
+          ].join("\n"),
+        };
+      }
+
       // ── Unknown command ────────────────────────────────────
       return {
         success: false,
