@@ -34,6 +34,13 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
   const ipcMain = _deps.ipcMain !== undefined ? _deps.ipcMain : _electron.ipcMain;
   const BrowserWindow = _deps.BrowserWindow !== undefined ? _deps.BrowserWindow : _electron.BrowserWindow;
   const getY = () => _deps.Y !== undefined ? _deps.Y : require('yjs');
+  // Returns the yjsCollabManager instance; injectable for tests to avoid require() interop issues.
+  const getYjsManager = _deps.getYjsManager !== undefined
+    ? _deps.getYjsManager
+    : () => {
+        const { getRealtimeCollabManager } = require('./realtime-collab-manager');
+        return getRealtimeCollabManager(database)?.yjsCollabManager;
+      };
   logger.info('[IPC] 注册实时协作IPC处理器 (21个handlers)');
 
   // ========================================
@@ -522,10 +529,7 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
       // Get or create Y.Doc via yjs-collab-manager
       let initialState = null;
       try {
-        const YjsCollabManager = require('./yjs-collab-manager');
-        const { getRealtimeCollabManager } = require('./realtime-collab-manager');
-        const realtimeManager = getRealtimeCollabManager(database);
-        const yjsManager = realtimeManager?.yjsCollabManager;
+        const yjsManager = getYjsManager();
 
         if (yjsManager) {
           // Use getDocument to get or create the Y.Doc
@@ -575,9 +579,7 @@ function registerRealtimeCollabIPC(database, _deps = {}) {
       const updateArray = new Uint8Array(update);
 
       try {
-        const { getRealtimeCollabManager } = require('./realtime-collab-manager');
-        const realtimeManager = getRealtimeCollabManager(database);
-        const yjsManager = realtimeManager?.yjsCollabManager;
+        const yjsManager = getYjsManager();
 
         if (yjsManager) {
           const doc = yjsManager.getDocument
