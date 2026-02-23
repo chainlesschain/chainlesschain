@@ -39,6 +39,20 @@ const DEFAULT_CONFIG = {
 
   // 是否启用Git日志输出
   enableLogging: false,
+
+  // 托管服务提供商 (v1.3.0)
+  providers: [],
+
+  // 代理配置 (v1.3.0)
+  proxy: {
+    enabled: false,
+    type: "http", // 'http' | 'socks5'
+    host: "127.0.0.1",
+    port: 7890,
+  },
+
+  // SSH 密钥路径 (v1.3.0)
+  sshKeyPath: null,
 };
 
 /**

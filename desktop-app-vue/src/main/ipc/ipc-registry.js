@@ -2665,6 +2665,57 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 31: Git P2P Sync (v1.0.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Git P2P IPC...");
+      const { registerGitP2PIPC } = require("../git/git-p2p-ipc");
+      registerGitP2PIPC({
+        p2pGitSync: app?.p2pGitSync || null,
+        deviceDiscovery: app?.deviceDiscovery || null,
+        p2pGitTransport: app?.p2pGitTransport || null,
+        database: app?.database || null,
+      });
+      logger.info("[IPC Registry] ✓ Git P2P IPC registered (15 handlers)");
+    } catch (gitP2PError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Git P2P IPC registration failed (non-fatal):",
+        gitP2PError.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 32: Collaboration (v2.0.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Collaboration IPC...");
+      const { registerCollabIPC } = require("../collab/collab-ipc");
+      registerCollabIPC({
+        yjsEngine: app?.yjsEngine || null,
+        yjsProvider: app?.yjsProvider || null,
+        sessionManager: app?.collabSessionManager || null,
+        gitIntegration: app?.collabGitIntegration || null,
+        mainWindow: app?.mainWindow || null,
+      });
+      logger.info(
+        "[IPC Registry] ✓ Collaboration IPC registered (22 handlers)",
+      );
+    } catch (collabError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Collaboration IPC registration failed (non-fatal):",
+        collabError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 31-32 Complete: Git P2P Sync, Real-time Collaboration ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

@@ -4037,6 +4037,192 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_crypto_audit_actor ON crypto_audit_trail(actor_id);
       `);
 
+      // ============================================================
+      // Git P2P Sync tables (v1.0.0)
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS git_p2p_sync_history (
+        id TEXT PRIMARY KEY,
+        peer_did TEXT NOT NULL,
+        peer_device_name TEXT,
+        direction TEXT NOT NULL CHECK(direction IN ('push', 'pull', 'bidirectional')),
+        refs_synced TEXT DEFAULT '[]',
+        objects_transferred INTEGER DEFAULT 0,
+        bytes_transferred INTEGER DEFAULT 0,
+        duration_ms INTEGER DEFAULT 0,
+        status TEXT NOT NULL CHECK(status IN ('success', 'partial', 'failed')),
+        error_message TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_git_p2p_sync_peer ON git_p2p_sync_history(peer_did);
+      CREATE INDEX IF NOT EXISTS idx_git_p2p_sync_status ON git_p2p_sync_history(status);
+      CREATE INDEX IF NOT EXISTS idx_git_p2p_sync_created ON git_p2p_sync_history(created_at);
+
+      CREATE TABLE IF NOT EXISTS git_p2p_authorized_devices (
+        id TEXT PRIMARY KEY,
+        device_did TEXT NOT NULL UNIQUE,
+        device_name TEXT,
+        device_type TEXT DEFAULT 'unknown',
+        public_key TEXT,
+        authorized_at TEXT DEFAULT (datetime('now')),
+        authorized_by TEXT DEFAULT 'ukey',
+        last_seen TEXT,
+        is_active INTEGER DEFAULT 1
+      );
+      CREATE INDEX IF NOT EXISTS idx_git_p2p_auth_did ON git_p2p_authorized_devices(device_did);
+      CREATE INDEX IF NOT EXISTS idx_git_p2p_auth_active ON git_p2p_authorized_devices(is_active);
+      `);
+
+      // ============================================================
+      // Differential Sync tables (v1.1.0)
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS db_change_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        table_name TEXT NOT NULL,
+        row_id TEXT NOT NULL,
+        operation TEXT NOT NULL CHECK(operation IN ('INSERT', 'UPDATE', 'DELETE')),
+        changed_columns TEXT DEFAULT '[]',
+        old_values TEXT DEFAULT '{}',
+        new_values TEXT DEFAULT '{}',
+        version INTEGER DEFAULT 1,
+        compacted INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_db_change_table ON db_change_log(table_name);
+      CREATE INDEX IF NOT EXISTS idx_db_change_row ON db_change_log(row_id);
+      CREATE INDEX IF NOT EXISTS idx_db_change_version ON db_change_log(version);
+      CREATE INDEX IF NOT EXISTS idx_db_change_compacted ON db_change_log(compacted);
+
+      CREATE TABLE IF NOT EXISTS crdt_counters (
+        id TEXT PRIMARY KEY,
+        field_name TEXT NOT NULL,
+        node_id TEXT NOT NULL,
+        value INTEGER DEFAULT 0,
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(field_name, node_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_crdt_counter_field ON crdt_counters(field_name);
+
+      CREATE TABLE IF NOT EXISTS crdt_sets (
+        id TEXT PRIMARY KEY,
+        set_name TEXT NOT NULL,
+        element TEXT NOT NULL,
+        added_by TEXT,
+        removed INTEGER DEFAULT 0,
+        add_clock TEXT DEFAULT '{}',
+        remove_clock TEXT DEFAULT '{}',
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_crdt_set_name ON crdt_sets(set_name);
+      CREATE INDEX IF NOT EXISTS idx_crdt_set_removed ON crdt_sets(removed);
+      `);
+
+      // ============================================================
+      // AI Conflict Resolution tables (v1.2.0)
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS conflict_patterns (
+        id TEXT PRIMARY KEY,
+        pattern_type TEXT NOT NULL,
+        file_pattern TEXT,
+        conflict_signature TEXT,
+        resolution_strategy TEXT NOT NULL,
+        success_count INTEGER DEFAULT 0,
+        total_count INTEGER DEFAULT 0,
+        confidence REAL DEFAULT 0.5,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_conflict_pattern_type ON conflict_patterns(pattern_type);
+      CREATE INDEX IF NOT EXISTS idx_conflict_pattern_confidence ON conflict_patterns(confidence);
+
+      CREATE TABLE IF NOT EXISTS conflict_resolution_history (
+        id TEXT PRIMARY KEY,
+        file_path TEXT NOT NULL,
+        conflict_type TEXT NOT NULL,
+        resolution_level INTEGER NOT NULL CHECK(resolution_level IN (1, 2, 3)),
+        resolution_strategy TEXT NOT NULL,
+        auto_resolved INTEGER DEFAULT 0,
+        user_accepted INTEGER DEFAULT 0,
+        ai_confidence REAL,
+        base_content TEXT,
+        local_content TEXT,
+        remote_content TEXT,
+        merged_content TEXT,
+        pattern_id TEXT,
+        duration_ms INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_conflict_history_file ON conflict_resolution_history(file_path);
+      CREATE INDEX IF NOT EXISTS idx_conflict_history_type ON conflict_resolution_history(conflict_type);
+      CREATE INDEX IF NOT EXISTS idx_conflict_history_level ON conflict_resolution_history(resolution_level);
+      `);
+
+      // ============================================================
+      // Real-time Collaboration tables (v2.0.0)
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS collab_rooms (
+        id TEXT PRIMARY KEY,
+        document_id TEXT NOT NULL,
+        topic TEXT NOT NULL UNIQUE,
+        owner_did TEXT NOT NULL,
+        max_participants INTEGER DEFAULT 10,
+        permissions TEXT DEFAULT '{}',
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'closed', 'archived')),
+        created_at TEXT DEFAULT (datetime('now')),
+        closed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_collab_room_doc ON collab_rooms(document_id);
+      CREATE INDEX IF NOT EXISTS idx_collab_room_owner ON collab_rooms(owner_did);
+      CREATE INDEX IF NOT EXISTS idx_collab_room_status ON collab_rooms(status);
+
+      CREATE TABLE IF NOT EXISTS collab_participants (
+        id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL,
+        user_did TEXT NOT NULL,
+        user_name TEXT,
+        role TEXT DEFAULT 'editor' CHECK(role IN ('viewer', 'editor', 'admin')),
+        status TEXT DEFAULT 'online' CHECK(status IN ('online', 'offline', 'editing')),
+        joined_at TEXT DEFAULT (datetime('now')),
+        last_active TEXT DEFAULT (datetime('now')),
+        UNIQUE(room_id, user_did)
+      );
+      CREATE INDEX IF NOT EXISTS idx_collab_participant_room ON collab_participants(room_id);
+      CREATE INDEX IF NOT EXISTS idx_collab_participant_user ON collab_participants(user_did);
+
+      CREATE TABLE IF NOT EXISTS collab_version_snapshots (
+        id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL,
+        document_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        git_tag TEXT,
+        content_hash TEXT,
+        author_did TEXT NOT NULL,
+        message TEXT,
+        yjs_state_vector TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_collab_snapshot_room ON collab_version_snapshots(room_id);
+      CREATE INDEX IF NOT EXISTS idx_collab_snapshot_doc ON collab_version_snapshots(document_id);
+      CREATE INDEX IF NOT EXISTS idx_collab_snapshot_version ON collab_version_snapshots(version);
+
+      CREATE TABLE IF NOT EXISTS collab_offline_edits (
+        id TEXT PRIMARY KEY,
+        room_id TEXT NOT NULL,
+        document_id TEXT NOT NULL,
+        user_did TEXT NOT NULL,
+        yjs_update BLOB,
+        edit_count INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now')),
+        applied_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_collab_offline_room ON collab_offline_edits(room_id);
+      CREATE INDEX IF NOT EXISTS idx_collab_offline_applied ON collab_offline_edits(applied_at);
+      `);
+
       // 重新启用外键约束
       logger.info("[Database] 重新启用外键约束...");
       this.db.run("PRAGMA foreign_keys = ON");

@@ -221,6 +221,45 @@ export interface ActiveCollaborator {
 }
 
 /**
+ * 协作房间 (v2.0.0)
+ */
+export interface CollabRoom {
+  id: string;
+  documentId: string;
+  topic?: string;
+  ownerDid?: string;
+  status: string;
+  maxParticipants?: number;
+  participantCount: number;
+  participants?: RoomParticipant[];
+}
+
+/**
+ * 房间参与者 (v2.0.0)
+ */
+export interface RoomParticipant {
+  did: string;
+  name: string;
+  role: 'viewer' | 'editor' | 'admin';
+  status: 'online' | 'offline' | 'editing';
+  joinedAt?: number;
+}
+
+/**
+ * 版本快照 (v2.0.0)
+ */
+export interface VersionSnapshot {
+  id: string;
+  documentId: string;
+  version: number;
+  gitTag?: string;
+  contentHash?: string;
+  authorDid?: string;
+  message?: string;
+  createdAt: number;
+}
+
+/**
  * Collab Store 状态
  */
 export interface CollabState {
@@ -254,6 +293,10 @@ export interface CollabState {
   yjsConnected: boolean;
   yjsSynced: boolean;
   activeCollaborators: ActiveCollaborator[];
+  // 协作房间 (v2.0.0)
+  currentRoom: CollabRoom | null;
+  activeRooms: CollabRoom[];
+  versionSnapshots: VersionSnapshot[];
 }
 
 // ==================== Store ====================
@@ -368,6 +411,19 @@ export const useCollabStore = defineStore('collab', {
 
     // 当前活跃的 CRDT 协作者
     activeCollaborators: [],
+
+    // ==========================================
+    // 协作房间 (v2.0.0)
+    // ==========================================
+
+    // 当前协作房间
+    currentRoom: null,
+
+    // 活跃房间列表
+    activeRooms: [],
+
+    // 版本快照
+    versionSnapshots: [],
   }),
 
   getters: {
@@ -939,6 +995,240 @@ export const useCollabStore = defineStore('collab', {
       collaborators: Array<{ did: string; name: string; color: string; cursor?: any }>
     ): void {
       this.activeCollaborators = collaborators;
+    },
+
+    // ==========================================
+    // 协作房间操作 (v2.0.0)
+    // ==========================================
+
+    /**
+     * 创建协作房间
+     */
+    async createRoom(
+      documentId: string,
+      options: { maxParticipants?: number; permissions?: Record<string, any> } = {}
+    ): Promise<CollabApiResult> {
+      try {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:create-room', {
+          documentId,
+          ...options,
+        });
+
+        if (result.success && result.room) {
+          this.currentRoom = result.room as CollabRoom;
+          this.activeRooms.push(result.room as CollabRoom);
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[CollabStore] 创建房间失败:', error);
+        this.error = (error as Error).message;
+        throw error;
+      }
+    },
+
+    /**
+     * 加入协作房间
+     */
+    async joinRoom(roomId: string, documentId: string): Promise<CollabApiResult> {
+      try {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:join-room', {
+          roomId,
+          documentId,
+        });
+
+        if (result.success && result.room) {
+          this.currentRoom = result.room as CollabRoom;
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[CollabStore] 加入房间失败:', error);
+        this.error = (error as Error).message;
+        throw error;
+      }
+    },
+
+    /**
+     * 离开协作房间
+     */
+    async leaveRoom(roomId: string): Promise<CollabApiResult> {
+      try {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:leave-room', {
+          roomId,
+        });
+
+        if (result.success) {
+          this.activeRooms = this.activeRooms.filter((r) => r.id !== roomId);
+          if (this.currentRoom?.id === roomId) {
+            this.currentRoom = null;
+          }
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[CollabStore] 离开房间失败:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * 邀请用户到房间
+     */
+    async inviteUser(
+      roomId: string,
+      inviteeDid: string,
+      role: string = 'editor'
+    ): Promise<CollabApiResult> {
+      try {
+        return await (window as any).electronAPI.invoke('collab:invite-user', {
+          roomId,
+          inviteeDid,
+          role,
+        });
+      } catch (error) {
+        console.error('[CollabStore] 邀请用户失败:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * 获取活跃房间列表
+     */
+    async loadActiveRooms(): Promise<CollabApiResult> {
+      try {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-active-rooms');
+
+        if (result.success) {
+          this.activeRooms = (result.rooms || []) as CollabRoom[];
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[CollabStore] 获取活跃房间失败:', error);
+        throw error;
+      }
+    },
+
+    // ==========================================
+    // 权限操作 (v2.0.0)
+    // ==========================================
+
+    /**
+     * 设置参与者角色
+     */
+    async setParticipantRole(
+      roomId: string,
+      targetDid: string,
+      role: string
+    ): Promise<CollabApiResult> {
+      try {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:set-role', {
+          roomId,
+          targetDid,
+          role,
+        });
+
+        if (result.success && this.currentRoom?.id === roomId) {
+          const participant = this.currentRoom.participants?.find((p) => p.did === targetDid);
+          if (participant) {
+            participant.role = role as 'viewer' | 'editor' | 'admin';
+          }
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[CollabStore] 设置角色失败:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * 获取房间参与者
+     */
+    async loadParticipants(roomId: string): Promise<CollabApiResult> {
+      try {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-participants', {
+          roomId,
+        });
+
+        if (result.success && this.currentRoom?.id === roomId) {
+          this.currentRoom.participants = (result.participants || []) as RoomParticipant[];
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[CollabStore] 获取参与者失败:', error);
+        throw error;
+      }
+    },
+
+    // ==========================================
+    // Git 版本快照操作 (v2.0.0)
+    // ==========================================
+
+    /**
+     * 创建版本快照
+     */
+    async createSnapshot(
+      documentId: string,
+      message: string,
+      authorDid: string
+    ): Promise<CollabApiResult> {
+      try {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:create-snapshot', {
+          documentId,
+          message,
+          authorDid,
+        });
+
+        if (result.success && result.snapshot) {
+          this.versionSnapshots.unshift(result.snapshot as VersionSnapshot);
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[CollabStore] 创建快照失败:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * 获取版本快照列表
+     */
+    async loadSnapshots(documentId: string): Promise<CollabApiResult> {
+      try {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-snapshots', {
+          documentId,
+        });
+
+        if (result.success) {
+          this.versionSnapshots = (result.snapshots || []) as VersionSnapshot[];
+        }
+
+        return result;
+      } catch (error) {
+        console.error('[CollabStore] 获取快照失败:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * 恢复版本快照
+     */
+    async restoreSnapshot(
+      documentId: string,
+      snapshotId: string
+    ): Promise<CollabApiResult> {
+      try {
+        return await (window as any).electronAPI.invoke('collab:restore-snapshot', {
+          documentId,
+          snapshotId,
+        });
+      } catch (error) {
+        console.error('[CollabStore] 恢复快照失败:', error);
+        throw error;
+      }
     },
 
     // ==========================================
