@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.39.0 (95 Desktop Skills + Android 28 Skills + Self-Evolution & Knowledge Graph v2.1.0) - Updated 2026-02-22
+**Current Version**: v1.0.0 (Enterprise Edition - 95 Desktop Skills + Android 28 Skills + Phase 6 Enterprise Features) - Updated 2026-02-23
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -97,43 +97,50 @@ npm run lint && npm run format
 
 All features are implemented. Entry files are relative to `desktop-app-vue/src/`.
 
-| Feature                       | Entry File(s)                                                       | Docs                                                                               |
-| ----------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| MCP Integration               | `main/mcp/`                                                         | [`MCP_USER_GUIDE.md`](docs/features/MCP_USER_GUIDE.md)                             |
-| MCP SDK & Community Registry  | `main/mcp/sdk/index.js`, `main/mcp/community-registry.js`           | —                                                                                  |
-| LLM Performance Dashboard     | `main/llm/token-tracker.js`                                         | [`LLM_PERFORMANCE_DASHBOARD.md`](docs/features/LLM_PERFORMANCE_DASHBOARD.md)       |
-| SessionManager                | `main/llm/session-manager.js`                                       | [`SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)                           |
-| ErrorMonitor AI Diagnostics   | `main/monitoring/error-monitor.js`                                  | [`ERROR_MONITOR.md`](docs/features/ERROR_MONITOR.md)                               |
-| Manus Optimizations           | `main/llm/manus-optimizations.js`                                   | [`MANUS_OPTIMIZATION_GUIDE.md`](docs/MANUS_OPTIMIZATION_GUIDE.md)                  |
-| Cowork Multi-Agent            | `main/ai-engine/cowork/`                                            | [`COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md)                     |
-| Permanent Memory              | `main/llm/permanent-memory-manager.js`                              | [`PERMANENT_MEMORY_INTEGRATION.md`](docs/features/PERMANENT_MEMORY_INTEGRATION.md) |
-| Hooks System                  | `main/hooks/index.js`                                               | [`HOOKS_SYSTEM_DESIGN.md`](docs/design/HOOKS_SYSTEM_DESIGN.md)                     |
-| Hybrid Search Engine          | `main/rag/hybrid-search-engine.js`, `main/rag/bm25-search.js`       | —                                                                                  |
-| IPC Error Handler             | `main/utils/ipc-error-handler.js`                                   | [`IPC_ERROR_HANDLER_GUIDE.md`](docs/guides/IPC_ERROR_HANDLER_GUIDE.md)             |
-| Permission Engine (RBAC)      | `main/permission/permission-engine.js`                              | —                                                                                  |
-| Team Manager                  | `main/permission/team-manager.js`                                   | —                                                                                  |
-| Context Engineering           | `main/llm/context-engineering.js`                                   | —                                                                                  |
-| Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                 | —                                                                                  |
-| Skills System (92 built-in)   | `main/ai-engine/cowork/skills/index.js`, `builtin/`                 | —                                                                                  |
-| Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                           | —                                                                                  |
-| Browser Automation            | `main/browser/browser-engine.js`                                    | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
-| Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`       | [`COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)                     |
-| Enterprise Audit & Compliance | `main/audit/enterprise-audit-logger.js`                             | —                                                                                  |
-| Plugin Marketplace            | `main/marketplace/marketplace-client.js`                            | —                                                                                  |
-| Specialized Multi-Agent       | `main/ai-engine/agents/agent-coordinator.js`                        | —                                                                                  |
-| SSO & Enterprise Auth         | `main/auth/sso-manager.js`                                          | —                                                                                  |
-| Verification Loop Skill       | `main/ai-engine/cowork/skills/builtin/verification-loop/handler.js` | —                                                                                  |
-| Orchestrate Workflow Skill    | `main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`       | —                                                                                  |
-| Instinct Learning System      | `main/llm/instinct-manager.js`                                      | —                                                                                  |
-| Code Knowledge Graph          | `main/ai-engine/cowork/code-knowledge-graph.js`                     | —                                                                                  |
-| Decision Knowledge Base       | `main/ai-engine/cowork/decision-knowledge-base.js`                  | —                                                                                  |
-| Prompt Optimizer              | `main/ai-engine/cowork/prompt-optimizer.js`                         | —                                                                                  |
-| Skill Discoverer              | `main/ai-engine/cowork/skill-discoverer.js`                         | —                                                                                  |
-| Debate Review Skill           | `main/ai-engine/cowork/debate-review.js`                            | —                                                                                  |
-| A/B Comparator Skill          | `main/ai-engine/cowork/ab-comparator.js`                            | —                                                                                  |
-| Evolution IPC (35 handlers)   | `main/ai-engine/cowork/evolution-ipc.js`                            | —                                                                                  |
-| Demo Templates                | `main/templates/demo-template-loader.js`                            | —                                                                                  |
-| TypeScript Stores (32)        | `renderer/stores/*.ts`                                              | —                                                                                  |
+| Feature                       | Entry File(s)                                                            | Docs                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| MCP Integration               | `main/mcp/`                                                              | [`MCP_USER_GUIDE.md`](docs/features/MCP_USER_GUIDE.md)                             |
+| MCP SDK & Community Registry  | `main/mcp/sdk/index.js`, `main/mcp/community-registry.js`                | —                                                                                  |
+| LLM Performance Dashboard     | `main/llm/token-tracker.js`                                              | [`LLM_PERFORMANCE_DASHBOARD.md`](docs/features/LLM_PERFORMANCE_DASHBOARD.md)       |
+| SessionManager                | `main/llm/session-manager.js`                                            | [`SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)                           |
+| ErrorMonitor AI Diagnostics   | `main/monitoring/error-monitor.js`                                       | [`ERROR_MONITOR.md`](docs/features/ERROR_MONITOR.md)                               |
+| Manus Optimizations           | `main/llm/manus-optimizations.js`                                        | [`MANUS_OPTIMIZATION_GUIDE.md`](docs/MANUS_OPTIMIZATION_GUIDE.md)                  |
+| Cowork Multi-Agent            | `main/ai-engine/cowork/`                                                 | [`COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md)                     |
+| Permanent Memory              | `main/llm/permanent-memory-manager.js`                                   | [`PERMANENT_MEMORY_INTEGRATION.md`](docs/features/PERMANENT_MEMORY_INTEGRATION.md) |
+| Hooks System                  | `main/hooks/index.js`                                                    | [`HOOKS_SYSTEM_DESIGN.md`](docs/design/HOOKS_SYSTEM_DESIGN.md)                     |
+| Hybrid Search Engine          | `main/rag/hybrid-search-engine.js`, `main/rag/bm25-search.js`            | —                                                                                  |
+| IPC Error Handler             | `main/utils/ipc-error-handler.js`                                        | [`IPC_ERROR_HANDLER_GUIDE.md`](docs/guides/IPC_ERROR_HANDLER_GUIDE.md)             |
+| Permission Engine (RBAC)      | `main/permission/permission-engine.js`                                   | —                                                                                  |
+| Team Manager                  | `main/permission/team-manager.js`                                        | —                                                                                  |
+| Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
+| Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                      | —                                                                                  |
+| Skills System (92 built-in)   | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
+| Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
+| Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
+| Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`            | [`COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)                     |
+| Enterprise Audit & Compliance | `main/audit/enterprise-audit-logger.js`                                  | —                                                                                  |
+| Plugin Marketplace            | `main/marketplace/marketplace-client.js`                                 | —                                                                                  |
+| Specialized Multi-Agent       | `main/ai-engine/agents/agent-coordinator.js`                             | —                                                                                  |
+| SSO & Enterprise Auth         | `main/auth/sso-manager.js`                                               | —                                                                                  |
+| Verification Loop Skill       | `main/ai-engine/cowork/skills/builtin/verification-loop/handler.js`      | —                                                                                  |
+| Orchestrate Workflow Skill    | `main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`            | —                                                                                  |
+| Instinct Learning System      | `main/llm/instinct-manager.js`                                           | —                                                                                  |
+| Code Knowledge Graph          | `main/ai-engine/cowork/code-knowledge-graph.js`                          | —                                                                                  |
+| Decision Knowledge Base       | `main/ai-engine/cowork/decision-knowledge-base.js`                       | —                                                                                  |
+| Prompt Optimizer              | `main/ai-engine/cowork/prompt-optimizer.js`                              | —                                                                                  |
+| Skill Discoverer              | `main/ai-engine/cowork/skill-discoverer.js`                              | —                                                                                  |
+| Debate Review Skill           | `main/ai-engine/cowork/debate-review.js`                                 | —                                                                                  |
+| A/B Comparator Skill          | `main/ai-engine/cowork/ab-comparator.js`                                 | —                                                                                  |
+| Evolution IPC (35 handlers)   | `main/ai-engine/cowork/evolution-ipc.js`                                 | —                                                                                  |
+| Demo Templates                | `main/templates/demo-template-loader.js`                                 | —                                                                                  |
+| Enterprise Org Management     | `main/enterprise/enterprise-org-manager.js`                              | —                                                                                  |
+| Real-time Collab (CRDT/Yjs)   | `main/collaboration/yjs-collab-manager.js`, `realtime-collab-manager.js` | —                                                                                  |
+| IPFS Decentralized Storage    | `main/ipfs/ipfs-manager.js`                                              | —                                                                                  |
+| Analytics Dashboard           | `main/analytics/analytics-aggregator.js`                                 | —                                                                                  |
+| Autonomous Agent Runner       | `main/ai-engine/autonomous/autonomous-agent-runner.js`                   | —                                                                                  |
+| i18n Internationalization     | `main/i18n/index.js`                                                     | —                                                                                  |
+| Performance Auto-Tuner        | `main/performance/auto-tuner.js`, `performance-monitor.js`               | —                                                                                  |
+| TypeScript Stores (46)        | `renderer/stores/*.ts`                                                   | —                                                                                  |
 
 ### Skills System Details
 
@@ -220,11 +227,18 @@ desktop-app-vue/
 │   ├── audit/             # Enterprise Audit & Compliance
 │   ├── marketplace/       # Plugin Marketplace
 │   ├── auth/              # SSO Enterprise Authentication (SAML, OAuth, OIDC)
+│   ├── enterprise/        # Enterprise Org Management (hierarchy, approval)
+│   ├── collaboration/     # Real-time Collab (CRDT/Yjs, P2P sync)
+│   ├── ipfs/              # IPFS Decentralized Storage (Helia/Kubo)
+│   ├── analytics/         # Analytics Dashboard (aggregator, real-time)
+│   ├── performance/       # Performance Monitor + Auto-Tuner
+│   ├── i18n/              # Internationalization (4 locales)
 │   ├── templates/         # Demo templates (10 templates)
 │   ├── utils/             # Utility modules (ipc-error-handler)
 │   └── ai-engine/         # AI engine
 │       ├── plan-mode/     # Plan Mode (Claude Code style)
 │       ├── agents/        # Specialized Multi-Agent (8 templates)
+│       ├── autonomous/    # Autonomous Agent Runner (ReAct loop)
 │       ├── unified-tool-registry.js
 │       ├── tool-skill-mapper.js
 │       └── cowork/        # Cowork system
@@ -239,7 +253,7 @@ desktop-app-vue/
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
-    └── stores/            # Pinia state management (32 TypeScript stores)
+    └── stores/            # Pinia state management (46 TypeScript stores)
 ```
 
 ### Android Application
@@ -261,13 +275,18 @@ SQLite with SQLCipher (AES-256). Key tables:
 - **Knowledge Graph**: `code_kg_entities`, `code_kg_relationships`
 - **Self-Evolution**: `decision_records`, `prompt_executions`, `prompt_variants`, `skill_discovery_log`
 - **Collaboration**: `debate_reviews`, `ab_comparisons`
+- **Enterprise Org**: `org_teams` (departments), `approval_workflows`
+- **Real-time Collab**: `collaboration_sessions`, `collab_cursor_positions`, `collab_document_locks`, `collab_conflict_history`, `knowledge_yjs_updates`, `knowledge_comments`, `collab_stats`
+- **IPFS Storage**: `ipfs_content`
+- **Analytics**: `analytics_aggregations`
+- **Autonomous Agent**: `autonomous_goals`, `autonomous_steps`
 
 ## Technology Stack
 
 ### Desktop App
 
 - **Electron**: 39.2.6, **Vue**: 3.4, **TypeScript**: 5.9.3, **UI**: Ant Design Vue 4.1
-- **State**: Pinia 2.1.7 (28 TypeScript stores)
+- **State**: Pinia 2.1.7 (46 TypeScript stores)
 - **P2P**: libp2p 3.1.2, WebRTC (wrtc), **Crypto**: Signal Protocol
 - **Image**: Sharp, Tesseract.js, **Git**: isomorphic-git
 - **Search**: natural (BM25/TF-IDF), Qdrant (Vector)

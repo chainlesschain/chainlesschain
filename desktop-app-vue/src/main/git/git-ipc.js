@@ -592,11 +592,245 @@ function registerGitIPC({
     });
   }
 
+  // ============================================================
+  // Hosting Provider Management (v1.3.0)
+  // ============================================================
+
+  /**
+   * Get supported hosting providers
+   * Channel: 'git:hosting:get-providers'
+   */
+  ipcMain.handle("git:hosting:get-providers", async () => {
+    try {
+      const {
+        getSupportedProviders,
+      } = require("./hosting/git-hosting-provider");
+      return { success: true, providers: getSupportedProviders() };
+    } catch (error) {
+      logger.error("[Git IPC] Get hosting providers failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Test hosting connection
+   * Channel: 'git:hosting:test-connection'
+   */
+  ipcMain.handle(
+    "git:hosting:test-connection",
+    async (_event, { type, config }) => {
+      try {
+        const { createProvider } = require("./hosting/git-hosting-provider");
+        const provider = createProvider(type, config);
+        const result = await provider.testConnection();
+        return { success: true, ...result };
+      } catch (error) {
+        logger.error("[Git IPC] Test hosting connection failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * Get repository list from hosting
+   * Channel: 'git:hosting:get-repos'
+   */
+  ipcMain.handle("git:hosting:get-repos", async (_event, { type, config }) => {
+    try {
+      const { createProvider } = require("./hosting/git-hosting-provider");
+      const provider = createProvider(type, config);
+      const repos = await provider.getRepoList();
+      return { success: true, repos };
+    } catch (error) {
+      logger.error("[Git IPC] Get repos failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Create repository on hosting
+   * Channel: 'git:hosting:create-repo'
+   */
+  ipcMain.handle(
+    "git:hosting:create-repo",
+    async (_event, { type, config, repoOptions }) => {
+      try {
+        const { createProvider } = require("./hosting/git-hosting-provider");
+        const provider = createProvider(type, config);
+        const repo = await provider.createRepo(repoOptions);
+        return { success: true, repo };
+      } catch (error) {
+        logger.error("[Git IPC] Create repo failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  // ============================================================
+  // SSH Key Management (v1.3.0)
+  // ============================================================
+
+  /**
+   * Generate SSH key
+   * Channel: 'git:ssh:generate-key'
+   */
+  ipcMain.handle("git:ssh:generate-key", async (_event, { name, comment }) => {
+    try {
+      const { SSHKeyManager } = require("./hosting/ssh-key-manager");
+      const sshManager = new SSHKeyManager();
+      const result = await sshManager.generateKey(name, comment);
+      return { success: true, ...result };
+    } catch (error) {
+      logger.error("[Git IPC] Generate SSH key failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * List SSH keys
+   * Channel: 'git:ssh:list-keys'
+   */
+  ipcMain.handle("git:ssh:list-keys", async () => {
+    try {
+      const { SSHKeyManager } = require("./hosting/ssh-key-manager");
+      const sshManager = new SSHKeyManager();
+      const keys = await sshManager.listKeys();
+      return { success: true, keys };
+    } catch (error) {
+      logger.error("[Git IPC] List SSH keys failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Get SSH public key
+   * Channel: 'git:ssh:get-public-key'
+   */
+  ipcMain.handle("git:ssh:get-public-key", async (_event, { name }) => {
+    try {
+      const { SSHKeyManager } = require("./hosting/ssh-key-manager");
+      const sshManager = new SSHKeyManager();
+      const publicKey = await sshManager.getPublicKey(name);
+      return { success: true, publicKey };
+    } catch (error) {
+      logger.error("[Git IPC] Get SSH public key failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Register SSH key with hosting provider
+   * Channel: 'git:ssh:register-with-provider'
+   */
+  ipcMain.handle(
+    "git:ssh:register-with-provider",
+    async (_event, { keyName, providerType, providerConfig, title }) => {
+      try {
+        const { SSHKeyManager } = require("./hosting/ssh-key-manager");
+        const { createProvider } = require("./hosting/git-hosting-provider");
+        const sshManager = new SSHKeyManager();
+        const provider = createProvider(providerType, providerConfig);
+        const result = await sshManager.registerWithProvider(
+          keyName,
+          provider,
+          title,
+        );
+        return { success: true, ...result };
+      } catch (error) {
+        logger.error("[Git IPC] Register SSH key with provider failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  // ============================================================
+  // Multi-Repo Management (v1.3.0)
+  // ============================================================
+
+  /**
+   * Push to all mirrors
+   * Channel: 'git:mirror:push-all'
+   */
+  ipcMain.handle("git:mirror:push-all", async () => {
+    try {
+      const { MultiRepoManager } = require("./hosting/multi-repo-manager");
+      const gitConfig = getGitConfig();
+      const multiRepo = new MultiRepoManager({
+        gitManager,
+        gitConfig,
+      });
+      const results = await multiRepo.pushToAllMirrors();
+      return { success: true, results };
+    } catch (error) {
+      logger.error("[Git IPC] Push to all mirrors failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Migrate repository to new platform
+   * Channel: 'git:mirror:migrate'
+   */
+  ipcMain.handle(
+    "git:mirror:migrate",
+    async (_event, { targetType, targetConfig, repoOptions }) => {
+      try {
+        const { MultiRepoManager } = require("./hosting/multi-repo-manager");
+        const gitConfig = getGitConfig();
+        const multiRepo = new MultiRepoManager({
+          gitManager,
+          gitConfig,
+        });
+        const result = await multiRepo.migrateRepository(
+          targetType,
+          targetConfig,
+          repoOptions,
+        );
+        return { success: true, ...result };
+      } catch (error) {
+        logger.error("[Git IPC] Migrate repository failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * Set proxy configuration
+   * Channel: 'git:proxy:set-config'
+   */
+  ipcMain.handle("git:proxy:set-config", async (_event, proxyConfig) => {
+    try {
+      const gitConfig = getGitConfig();
+      gitConfig.set("proxy", proxyConfig);
+      gitConfig.save();
+      return { success: true };
+    } catch (error) {
+      logger.error("[Git IPC] Set proxy config failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Detect China CDN availability
+   * Channel: 'git:mirror:detect-china-cdn'
+   */
+  ipcMain.handle("git:mirror:detect-china-cdn", async () => {
+    try {
+      const { MultiRepoManager } = require("./hosting/multi-repo-manager");
+      const multiRepo = new MultiRepoManager({});
+      const result = await multiRepo.detectChinaCDN();
+      return { success: true, ...result };
+    } catch (error) {
+      logger.error("[Git IPC] Detect China CDN failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 标记模块为已注册
   ipcGuard.markModuleRegistered("git-ipc");
 
   logger.info(
-    "[Git IPC] ✓ All Git IPC handlers registered successfully (23 handlers)",
+    "[Git IPC] ✓ All Git IPC handlers registered successfully (35 handlers)",
   );
 }
 
