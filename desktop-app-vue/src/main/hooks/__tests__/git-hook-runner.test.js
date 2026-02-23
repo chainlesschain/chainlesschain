@@ -18,10 +18,10 @@ const { GitHookRunner } = require("../git-hook-runner");
  */
 function createMockSkillRegistry(skillMap = {}) {
   return {
-    getSkill: jest.fn((id) =>
+    getSkill: vi.fn((id) =>
       skillMap[id] ? skillMap[id].skill || { id } : null,
     ),
-    executeSkill: jest.fn(async (id, _input, _opts) => {
+    executeSkill: vi.fn(async (id, _input, _opts) => {
       if (skillMap[id]?.executeError) {
         throw skillMap[id].executeError;
       }
@@ -38,7 +38,7 @@ function createMockHookSystem() {
   return {
     registered,
     registry: {
-      register: jest.fn((hookDef) => {
+      register: vi.fn((hookDef) => {
         registered.push(hookDef);
         return `hook_${hookDef.name}`;
       }),
@@ -124,8 +124,8 @@ describe("GitHookRunner", () => {
     });
 
     it("should store provided options", () => {
-      const engine = { run: jest.fn() };
-      const reg = { getSkill: jest.fn() };
+      const engine = { run: vi.fn() };
+      const reg = { getSkill: vi.fn() };
       const hookSys = { registry: {} };
 
       const r = new GitHookRunner({
@@ -979,7 +979,7 @@ describe("GitHookRunner", () => {
 
     describe("config-updated event", () => {
       it("should emit config-updated when setConfig is called", () => {
-        const spy = jest.fn();
+        const spy = vi.fn();
         runner.on("config-updated", spy);
 
         runner.setConfig({ preCommitEnabled: false });

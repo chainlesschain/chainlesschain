@@ -65,6 +65,9 @@ vi.mock('fs', () => ({
   unlinkSync: vi.fn(),
 }));
 
+import * as fs from 'fs';
+import * as childProcess from 'child_process';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function makePrepStmt(overrides = {}) {
@@ -104,6 +107,22 @@ describe('FineTuningManager', () => {
     mockDb = createMockDb();
     manager = new FineTuningManager({ database: mockDb });
   });
+  beforeEach(() => {
+    fs.existsSync.mockImplementation(() => true);
+    fs.readFileSync.mockImplementation(() => '{"instruction":"q","input":"","output":"a"}');
+    fs.statSync.mockImplementation(() => ({ size: 1024 }));
+    // Restore spawn mock implementation (cleared by mockReset: true)
+    childProcess.spawn.mockImplementation(() => {
+      const EventEmitter = require('events');
+      const proc = new EventEmitter();
+      proc.stdout = new EventEmitter();
+      proc.stderr = new EventEmitter();
+      proc.kill = vi.fn();
+      return proc;
+    });
+  });
+
+
 
   afterEach(() => {
     manager.removeAllListeners();
@@ -282,8 +301,10 @@ describe('FineTuningManager', () => {
 
       const insertStmt = makePrepStmt();
       mockDb.prepare
-        .mockReturnValueOnce(insertStmt)  // INSERT
-        .mockReturnValueOnce(getStmt);    // SELECT for getStatus
+        .mockReturnValueOnce(insertStmt)       // INSERT in _insertJob
+        .mockReturnValueOnce(makePrepStmt())   // UPDATE status in _startOllamaTraining
+        .mockReturnValueOnce(makePrepStmt())   // UPDATE progress in _startOllamaTraining
+        .mockReturnValueOnce(getStmt);         // SELECT in getStatus
 
       const job = await manager.startTraining({
         baseModel: 'llama2',
@@ -299,8 +320,6 @@ describe('FineTuningManager', () => {
     });
 
     it('starts llama-cpp backend with child process', async () => {
-      const { spawn } = require('child_process');
-
       const getStmt = makePrepStmt({
         get: vi.fn(() => ({
           id: 'test-job-uuid',
@@ -331,7 +350,7 @@ describe('FineTuningManager', () => {
         backend: 'llama-cpp',
       });
 
-      expect(spawn).toHaveBeenCalledWith(
+      expect(childProcess.spawn).toHaveBeenCalledWith(
         'llama-finetune',
         expect.arrayContaining(['--model', 'llama2']),
         expect.objectContaining({ stdio: ['ignore', 'pipe', 'pipe'] })
@@ -366,8 +385,10 @@ describe('FineTuningManager', () => {
       });
 
       mockDb.prepare
-        .mockReturnValueOnce(insertStmt)
-        .mockReturnValueOnce(getStmt);
+        .mockReturnValueOnce(insertStmt)       // INSERT in _insertJob
+        .mockReturnValueOnce(makePrepStmt())   // UPDATE status in _startOllamaTraining
+        .mockReturnValueOnce(makePrepStmt())   // UPDATE progress in _startOllamaTraining
+        .mockReturnValueOnce(getStmt);         // SELECT in getStatus
 
       const job = await manager.startTraining({
         baseModel: 'mistral',
@@ -376,7 +397,7 @@ describe('FineTuningManager', () => {
       });
 
       // Verify the stored config includes defaults
-      const configArg = insertStmt.run.mock.calls[0][6]; // config is 7th parameter (index 6)
+      const configArg = insertStmt.run.mock.calls[0][5]; // config is 6th parameter (index 5)
       const parsed = JSON.parse(configArg);
       expect(parsed.epochs).toBe(3);
       expect(parsed.batchSize).toBe(4);
@@ -612,7 +633,6 @@ describe('FineTuningManager', () => {
     });
 
     it('skips file deletion for ollama virtual paths', () => {
-      const fs = require('fs');
       const getStmt = makePrepStmt({
         get: vi.fn(() => ({
           id: 'a2',
@@ -651,7 +671,7 @@ describe('FineTuningManager', () => {
     });
 
     it('reads and returns JSONL data', () => {
-      const fs = require('fs');
+      fs.existsSync.mockReturnValue(true);
       fs.readFileSync.mockReturnValueOnce(
         '{"instruction":"Q1","input":"","output":"A1"}\n{"instruction":"Q2","input":"","output":"A2"}'
       );
@@ -682,12 +702,8 @@ describe('FineTuningManager', () => {
     });
 
     it('reads and returns Alpaca JSON array data', () => {
-      const fs = require('fs');
-      fs.readFileSync.mockReturnValueOnce(
-        JSON.stringify([
-          { instruction: 'Q1', input: '', output: 'A1' },
-        ])
-      );
+      fs.existsSync.mockImplementation(() => true);
+      fs.readFileSync.mockImplementation(() => JSON.stringify([{ instruction: 'Q1', input: '', output: 'A1' }]));
 
       const stmt = makePrepStmt({
         get: vi.fn(() => ({

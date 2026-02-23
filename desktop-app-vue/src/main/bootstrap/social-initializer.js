@@ -260,6 +260,642 @@ function registerSocialInitializers(factory) {
   });
 
   // ========================================
+  // v0.39.0 — 通话管理器（语音/视频通话）
+  // ========================================
+  factory.register({
+    name: "callManager",
+    dependsOn: ["database", "didManager", "p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { CallManager } = require("../p2p/call-manager");
+        const callManager = new CallManager(
+          context.database,
+          context.didManager,
+          context.p2pManager,
+        );
+        await callManager.initialize();
+        logger.info("[Social] ✓ CallManager initialized");
+        return callManager;
+      } catch (error) {
+        logger.error("[Social] CallManager initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.39.0 — 通话信令
+  // ========================================
+  factory.register({
+    name: "callSignaling",
+    dependsOn: ["p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { CallSignaling } = require("../p2p/call-signaling");
+        const callSignaling = new CallSignaling(context.p2pManager);
+        await callSignaling.initialize();
+        logger.info("[Social] ✓ CallSignaling initialized");
+        return callSignaling;
+      } catch (error) {
+        logger.error("[Social] CallSignaling initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.39.0 — 媒体引擎
+  // ========================================
+  factory.register({
+    name: "mediaEngine",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const { MediaEngine } = require("../p2p/media-engine");
+        const mediaEngine = new MediaEngine();
+        logger.info("[Social] ✓ MediaEngine initialized");
+        return mediaEngine;
+      } catch (error) {
+        logger.error("[Social] MediaEngine initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.39.0 — SFU 中继
+  // ========================================
+  factory.register({
+    name: "sfuRelay",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const { SFURelay } = require("../p2p/sfu-relay");
+        const sfuRelay = new SFURelay();
+        logger.info("[Social] ✓ SFURelay initialized");
+        return sfuRelay;
+      } catch (error) {
+        logger.error("[Social] SFURelay initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.40.0 — 共享相册管理器
+  // ========================================
+  factory.register({
+    name: "sharedAlbumManager",
+    dependsOn: ["database", "didManager", "p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { SharedAlbumManager } = require("../social/shared-album-manager");
+        const sharedAlbumManager = new SharedAlbumManager(
+          context.database,
+          context.didManager,
+          context.p2pManager,
+        );
+        await sharedAlbumManager.initialize();
+        logger.info("[Social] ✓ SharedAlbumManager initialized");
+        return sharedAlbumManager;
+      } catch (error) {
+        logger.error("[Social] SharedAlbumManager initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.40.0 — 照片加密器
+  // ========================================
+  factory.register({
+    name: "photoEncryptor",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { PhotoEncryptor } = require("../social/photo-encryptor");
+        const photoEncryptor = new PhotoEncryptor(context.database);
+        await photoEncryptor.initialize();
+        logger.info("[Social] ✓ PhotoEncryptor initialized");
+        return photoEncryptor;
+      } catch (error) {
+        logger.error("[Social] PhotoEncryptor initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.40.0 — 照片同步引擎
+  // ========================================
+  factory.register({
+    name: "photoSync",
+    dependsOn: ["database", "p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { PhotoSync } = require("../social/photo-sync");
+        const photoSync = new PhotoSync(context.database, context.p2pManager);
+        await photoSync.initialize();
+        logger.info("[Social] ✓ PhotoSync initialized");
+        return photoSync;
+      } catch (error) {
+        logger.error("[Social] PhotoSync initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.40.0 — EXIF 剥离器
+  // ========================================
+  factory.register({
+    name: "exifStripper",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const { ExifStripper } = require("../social/exif-stripper");
+        const exifStripper = new ExifStripper();
+        logger.info("[Social] ✓ ExifStripper initialized");
+        return exifStripper;
+      } catch (error) {
+        logger.error("[Social] ExifStripper initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.41.0 — 社交协作编辑引擎
+  // ========================================
+  factory.register({
+    name: "collabEngine",
+    dependsOn: ["database", "didManager", "p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { CollabEngine } = require("../social/collab-engine");
+        const collabEngine = new CollabEngine(
+          context.database,
+          context.didManager,
+          context.p2pManager,
+        );
+        await collabEngine.initialize();
+        logger.info("[Social] ✓ CollabEngine initialized");
+        return collabEngine;
+      } catch (error) {
+        logger.error("[Social] CollabEngine initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.41.0 — 协作文档同步
+  // ========================================
+  factory.register({
+    name: "collabSync",
+    dependsOn: ["p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { CollabSync } = require("../social/collab-sync");
+        const collabSync = new CollabSync(context.p2pManager);
+        await collabSync.initialize();
+        logger.info("[Social] ✓ CollabSync initialized");
+        return collabSync;
+      } catch (error) {
+        logger.error("[Social] CollabSync initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.41.0 — 协作感知（光标/选区）
+  // ========================================
+  factory.register({
+    name: "collabAwareness",
+    dependsOn: ["p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { CollabAwareness } = require("../social/collab-awareness");
+        const collabAwareness = new CollabAwareness(context.p2pManager);
+        await collabAwareness.initialize();
+        logger.info("[Social] ✓ CollabAwareness initialized");
+        return collabAwareness;
+      } catch (error) {
+        logger.error("[Social] CollabAwareness initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.41.0 — 文档版本管理
+  // ========================================
+  factory.register({
+    name: "docVersionManager",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { DocVersionManager } = require("../social/doc-version-manager");
+        const docVersionManager = new DocVersionManager(context.database);
+        await docVersionManager.initialize();
+        logger.info("[Social] ✓ DocVersionManager initialized");
+        return docVersionManager;
+      } catch (error) {
+        logger.error("[Social] DocVersionManager initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.42.0 — 社区管理器
+  // ========================================
+  factory.register({
+    name: "communityManager",
+    dependsOn: ["database", "didManager", "p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { CommunityManager } = require("../social/community-manager");
+        const communityManager = new CommunityManager(
+          context.database,
+          context.didManager,
+          context.p2pManager,
+        );
+        await communityManager.initialize();
+        logger.info("[Social] ✓ CommunityManager initialized");
+        return communityManager;
+      } catch (error) {
+        logger.error("[Social] CommunityManager initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.42.0 — 频道管理器
+  // ========================================
+  factory.register({
+    name: "channelManager",
+    dependsOn: ["database", "didManager", "p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { ChannelManager } = require("../social/channel-manager");
+        const channelManager = new ChannelManager(
+          context.database,
+          context.didManager,
+          context.p2pManager,
+        );
+        await channelManager.initialize();
+        logger.info("[Social] ✓ ChannelManager initialized");
+        return channelManager;
+      } catch (error) {
+        logger.error("[Social] ChannelManager initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.42.0 — 治理引擎
+  // ========================================
+  factory.register({
+    name: "governanceEngine",
+    dependsOn: ["database", "communityManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { GovernanceEngine } = require("../social/governance-engine");
+        const governanceEngine = new GovernanceEngine(
+          context.database,
+          context.communityManager,
+        );
+        await governanceEngine.initialize();
+        logger.info("[Social] ✓ GovernanceEngine initialized");
+        return governanceEngine;
+      } catch (error) {
+        logger.error("[Social] GovernanceEngine initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.42.0 — Gossip 协议
+  // ========================================
+  factory.register({
+    name: "gossipProtocol",
+    dependsOn: ["p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { GossipProtocol } = require("../social/gossip-protocol");
+        const gossipProtocol = new GossipProtocol(context.p2pManager);
+        await gossipProtocol.initialize();
+        logger.info("[Social] ✓ GossipProtocol initialized");
+        return gossipProtocol;
+      } catch (error) {
+        logger.error("[Social] GossipProtocol initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.42.0 — 内容审核
+  // ========================================
+  factory.register({
+    name: "contentModerator",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { ContentModerator } = require("../social/content-moderator");
+        const contentModerator = new ContentModerator(context.database);
+        await contentModerator.initialize();
+        logger.info("[Social] ✓ ContentModerator initialized");
+        return contentModerator;
+      } catch (error) {
+        logger.error("[Social] ContentModerator initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.43.0 — 时光机
+  // ========================================
+  factory.register({
+    name: "timeMachine",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { TimeMachine } = require("../social/time-machine");
+        const timeMachine = new TimeMachine(context.database);
+        await timeMachine.initialize();
+        logger.info("[Social] ✓ TimeMachine initialized");
+        return timeMachine;
+      } catch (error) {
+        logger.error("[Social] TimeMachine initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.43.0 — 回忆生成器
+  // ========================================
+  factory.register({
+    name: "memoryGenerator",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { MemoryGenerator } = require("../social/memory-generator");
+        const memoryGenerator = new MemoryGenerator(context.database, null);
+        await memoryGenerator.initialize();
+        logger.info("[Social] ✓ MemoryGenerator initialized");
+        return memoryGenerator;
+      } catch (error) {
+        logger.error("[Social] MemoryGenerator initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.43.0 — 情感分析
+  // ========================================
+  factory.register({
+    name: "sentimentAnalyzer",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { SentimentAnalyzer } = require("../social/sentiment-analyzer");
+        const sentimentAnalyzer = new SentimentAnalyzer(context.database);
+        await sentimentAnalyzer.initialize();
+        logger.info("[Social] ✓ SentimentAnalyzer initialized");
+        return sentimentAnalyzer;
+      } catch (error) {
+        logger.error("[Social] SentimentAnalyzer initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.43.0 — 社交统计
+  // ========================================
+  factory.register({
+    name: "socialStats",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { SocialStats } = require("../social/social-stats");
+        const socialStats = new SocialStats(context.database);
+        await socialStats.initialize();
+        logger.info("[Social] ✓ SocialStats initialized");
+        return socialStats;
+      } catch (error) {
+        logger.error("[Social] SocialStats initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.44.0 — 直播管理器
+  // ========================================
+  factory.register({
+    name: "livestreamManager",
+    dependsOn: ["database", "didManager", "p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { LivestreamManager } = require("../social/livestream-manager");
+        const livestreamManager = new LivestreamManager(
+          context.database,
+          context.didManager,
+          context.p2pManager,
+        );
+        await livestreamManager.initialize();
+        logger.info("[Social] ✓ LivestreamManager initialized");
+        return livestreamManager;
+      } catch (error) {
+        logger.error("[Social] LivestreamManager initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.44.0 — 弹幕引擎
+  // ========================================
+  factory.register({
+    name: "danmakuEngine",
+    dependsOn: ["database", "p2pManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { DanmakuEngine } = require("../social/danmaku-engine");
+        const danmakuEngine = new DanmakuEngine(
+          context.database,
+          context.p2pManager,
+        );
+        await danmakuEngine.initialize();
+        logger.info("[Social] ✓ DanmakuEngine initialized");
+        return danmakuEngine;
+      } catch (error) {
+        logger.error("[Social] DanmakuEngine initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.45.0+ — 匿名模式
+  // ========================================
+  factory.register({
+    name: "anonymousMode",
+    dependsOn: ["database", "didManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { AnonymousMode } = require("../social/anonymous-mode");
+        const anonymousMode = new AnonymousMode(context.database, context.didManager);
+        await anonymousMode.initialize();
+        logger.info("[Social] ✓ AnonymousMode initialized");
+        return anonymousMode;
+      } catch (error) {
+        logger.error("[Social] AnonymousMode initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.45.0+ — 平台桥接
+  // ========================================
+  factory.register({
+    name: "platformBridge",
+    dependsOn: ["database", "didManager"],
+    required: false,
+    async init(context) {
+      try {
+        const { PlatformBridge } = require("../social/platform-bridge");
+        const platformBridge = new PlatformBridge(context.database, context.didManager);
+        await platformBridge.initialize();
+        logger.info("[Social] ✓ PlatformBridge initialized");
+        return platformBridge;
+      } catch (error) {
+        logger.error("[Social] PlatformBridge initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.45.0+ — 社交代币
+  // ========================================
+  factory.register({
+    name: "socialToken",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { SocialTokenManager } = require("../social/social-token");
+        const socialToken = new SocialTokenManager(context.database);
+        await socialToken.initialize();
+        logger.info("[Social] ✓ SocialTokenManager initialized");
+        return socialToken;
+      } catch (error) {
+        logger.error("[Social] SocialTokenManager initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.45.0+ — AI 社交助手
+  // ========================================
+  factory.register({
+    name: "aiSocialAssistant",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { AISocialAssistant } = require("../social/ai-social-assistant");
+        const aiSocialAssistant = new AISocialAssistant(context.database, null);
+        await aiSocialAssistant.initialize();
+        logger.info("[Social] ✓ AISocialAssistant initialized");
+        return aiSocialAssistant;
+      } catch (error) {
+        logger.error("[Social] AISocialAssistant initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.45.0+ — 存储市场
+  // ========================================
+  factory.register({
+    name: "storageMarket",
+    dependsOn: ["database"],
+    required: false,
+    async init(context) {
+      try {
+        const { StorageMarket } = require("../social/storage-market");
+        const storageMarket = new StorageMarket(context.database);
+        await storageMarket.initialize();
+        logger.info("[Social] ✓ StorageMarket initialized");
+        return storageMarket;
+      } catch (error) {
+        logger.error("[Social] StorageMarket initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
+  // v0.45.0+ — Mesh 社交
+  // ========================================
+  factory.register({
+    name: "meshSocial",
+    dependsOn: [],
+    required: false,
+    async init(_context) {
+      try {
+        const { MeshSocial } = require("../social/mesh-social");
+        const meshSocial = new MeshSocial();
+        await meshSocial.initialize();
+        logger.info("[Social] ✓ MeshSocial initialized");
+        return meshSocial;
+      } catch (error) {
+        logger.error("[Social] MeshSocial initialization failed:", error.message);
+        return null;
+      }
+    },
+  });
+
+  // ========================================
   // 远程网关（浏览器扩展服务器、远程控制）
   // ========================================
   factory.register({

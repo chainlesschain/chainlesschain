@@ -275,7 +275,7 @@ describe("DualModelManager", () => {
         expect.any(String),
         expect.any(String),
         expect.any(String),
-        expect.any(String),
+        null,
         expect.any(Number),
         expect.any(Number)
       );

@@ -22,6 +22,13 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 
 /**
+ * Internal dependency container for testability.
+ * In tests, override these before constructing WhisperClient instances.
+ * @private
+ */
+const _deps = { fs, spawn, uuidv4, getAxios: () => require("axios") };
+
+/**
  * Model definitions with metadata
  */
 const WHISPER_MODELS = {
@@ -123,7 +130,7 @@ class WhisperClient extends EventEmitter {
     const startTime = Date.now();
 
     // Validate audio file exists
-    if (!fs.existsSync(audioPath)) {
+    if (!_deps.fs.existsSync(audioPath)) {
       throw new Error(`Audio file not found: ${audioPath}`);
     }
 
@@ -179,7 +186,7 @@ class WhisperClient extends EventEmitter {
       this.modelPath || this._getModelPath(this.modelSize);
 
     // Verify model file exists
-    if (!fs.existsSync(resolvedModelPath)) {
+    if (!_deps.fs.existsSync(resolvedModelPath)) {
       throw new Error(
         `Whisper model not found at: ${resolvedModelPath}. Please download it first using downloadModel().`,
       );
@@ -211,7 +218,7 @@ class WhisperClient extends EventEmitter {
       let stdout = "";
       let stderr = "";
 
-      const proc = spawn(binaryPath, args);
+      const proc = _deps.spawn(binaryPath, args);
 
       proc.stdout.on("data", (data) => {
         stdout += data.toString();
@@ -275,7 +282,7 @@ class WhisperClient extends EventEmitter {
 
     let axios;
     try {
-      axios = require("axios");
+      axios = _deps.getAxios();
     } catch (e) {
       throw new Error(
         "axios is required for API mode. Install it with: npm install axios",
@@ -288,7 +295,7 @@ class WhisperClient extends EventEmitter {
     const responseFormat = options.responseFormat || "verbose_json";
 
     const formData = new FormData();
-    formData.append("file", fs.createReadStream(audioPath));
+    formData.append("file", _deps.fs.createReadStream(audioPath));
     formData.append("model", "whisper-1");
 
     if (language && language !== "auto") {
@@ -368,13 +375,13 @@ class WhisperClient extends EventEmitter {
       );
     }
 
-    const streamId = uuidv4();
+    const streamId = _deps.uuidv4();
     const language = options.language || this.language;
     const step = options.step || 3000;
     const resolvedModelPath =
       this.modelPath || this._getModelPath(this.modelSize);
 
-    if (!fs.existsSync(resolvedModelPath)) {
+    if (!_deps.fs.existsSync(resolvedModelPath)) {
       throw new Error(
         `Whisper model not found at: ${resolvedModelPath}. Please download it first.`,
       );
@@ -398,7 +405,7 @@ class WhisperClient extends EventEmitter {
 
     logger.info(`[WhisperClient] Starting stream ${streamId}`);
 
-    const proc = spawn(binaryPath, args);
+    const proc = _deps.spawn(binaryPath, args);
 
     let buffer = "";
 
@@ -522,7 +529,7 @@ class WhisperClient extends EventEmitter {
       let downloaded = false;
 
       try {
-        fs.accessSync(modelPath, fs.constants.F_OK);
+        _deps.fs.accessSync(modelPath, _deps.fs.constants.F_OK);
         downloaded = true;
       } catch (e) {
         downloaded = false;
@@ -559,7 +566,7 @@ class WhisperClient extends EventEmitter {
 
     let axios;
     try {
-      axios = require("axios");
+      axios = _deps.getAxios();
     } catch (e) {
       throw new Error(
         "axios is required for model download. Install it with: npm install axios",
@@ -570,13 +577,13 @@ class WhisperClient extends EventEmitter {
     const outputPath = path.join(modelsDir, modelInfo.name);
 
     // Create models directory if needed
-    if (!fs.existsSync(modelsDir)) {
-      fs.mkdirSync(modelsDir, { recursive: true });
+    if (!_deps.fs.existsSync(modelsDir)) {
+      _deps.fs.mkdirSync(modelsDir, { recursive: true });
     }
 
     // Check if already downloaded
-    if (fs.existsSync(outputPath)) {
-      const stat = fs.statSync(outputPath);
+    if (_deps.fs.existsSync(outputPath)) {
+      const stat = _deps.fs.statSync(outputPath);
       logger.info(
         `[WhisperClient] Model '${modelSize}' already exists at ${outputPath} (${stat.size} bytes)`,
       );
@@ -607,7 +614,7 @@ class WhisperClient extends EventEmitter {
         parseInt(response.headers["content-length"], 10) || modelInfo.sizeBytes;
       let downloadedSize = 0;
 
-      const writer = fs.createWriteStream(tempPath);
+      const writer = _deps.fs.createWriteStream(tempPath);
 
       return new Promise((resolve, reject) => {
         response.data.on("data", (chunk) => {
@@ -626,9 +633,9 @@ class WhisperClient extends EventEmitter {
 
         writer.on("finish", () => {
           // Rename temp file to final
-          fs.renameSync(tempPath, outputPath);
+          _deps.fs.renameSync(tempPath, outputPath);
 
-          const stat = fs.statSync(outputPath);
+          const stat = _deps.fs.statSync(outputPath);
 
           logger.info(
             `[WhisperClient] Model '${modelSize}' downloaded successfully (${stat.size} bytes)`,
@@ -646,7 +653,7 @@ class WhisperClient extends EventEmitter {
         writer.on("error", (err) => {
           // Clean up temp file on error
           try {
-            fs.unlinkSync(tempPath);
+            _deps.fs.unlinkSync(tempPath);
           } catch (cleanupErr) {
             // Ignore cleanup errors
           }
@@ -663,7 +670,7 @@ class WhisperClient extends EventEmitter {
         response.data.on("error", (err) => {
           writer.destroy();
           try {
-            fs.unlinkSync(tempPath);
+            _deps.fs.unlinkSync(tempPath);
           } catch (cleanupErr) {
             // Ignore cleanup errors
           }
@@ -680,8 +687,8 @@ class WhisperClient extends EventEmitter {
     } catch (error) {
       // Clean up temp file on error
       try {
-        if (fs.existsSync(tempPath)) {
-          fs.unlinkSync(tempPath);
+        if (_deps.fs.existsSync(tempPath)) {
+          _deps.fs.unlinkSync(tempPath);
         }
       } catch (cleanupErr) {
         // Ignore cleanup errors
@@ -712,7 +719,7 @@ class WhisperClient extends EventEmitter {
    * @returns {Promise<Object>} Voice chat result
    */
   async voiceChat(audioPath, llmManager, ttsManager, options = {}) {
-    const chatId = uuidv4();
+    const chatId = _deps.uuidv4();
 
     logger.info(`[WhisperClient] Voice chat ${chatId}: starting pipeline`);
 
@@ -1020,4 +1027,4 @@ class WhisperClient extends EventEmitter {
   }
 }
 
-module.exports = { WhisperClient };
+module.exports = { WhisperClient, _deps };

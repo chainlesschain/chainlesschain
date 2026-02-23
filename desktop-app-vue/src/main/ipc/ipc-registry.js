@@ -843,6 +843,133 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // v0.39.0 — 通话 IPC (12 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Call IPC...");
+      const { registerCallIPC } = require("../social/call-ipc");
+      registerCallIPC({
+        callManager: dependencies.callManager || null,
+        mediaEngine: dependencies.mediaEngine || null,
+        callSignaling: dependencies.callSignaling || null,
+        sfuRelay: dependencies.sfuRelay || null,
+      });
+      logger.info("[IPC Registry] ✓ Call IPC registered (12 handlers)");
+    } catch (callError) {
+      logger.error(
+        "[IPC Registry] ✗ Call IPC registration failed (non-fatal):",
+        callError.message,
+      );
+    }
+
+    // v0.40.0 — 共享相册 IPC (12 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Album IPC...");
+      const { registerAlbumIPC } = require("../social/album-ipc");
+      registerAlbumIPC({
+        sharedAlbumManager: dependencies.sharedAlbumManager || null,
+        photoEncryptor: dependencies.photoEncryptor || null,
+        photoSync: dependencies.photoSync || null,
+        exifStripper: dependencies.exifStripper || null,
+      });
+      logger.info("[IPC Registry] ✓ Album IPC registered (12 handlers)");
+    } catch (albumError) {
+      logger.error(
+        "[IPC Registry] ✗ Album IPC registration failed (non-fatal):",
+        albumError.message,
+      );
+    }
+
+    // v0.41.0 — 社交协作编辑 IPC (12 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Social Collab IPC...");
+      const { registerCollabSocialIPC } = require("../social/collab-social-ipc");
+      registerCollabSocialIPC({
+        collabEngine: dependencies.collabEngine || null,
+        collabSync: dependencies.collabSync || null,
+        collabAwareness: dependencies.collabAwareness || null,
+        docVersionManager: dependencies.docVersionManager || null,
+      });
+      logger.info("[IPC Registry] ✓ Social Collab IPC registered (12 handlers)");
+    } catch (collabError) {
+      logger.error(
+        "[IPC Registry] ✗ Social Collab IPC registration failed (non-fatal):",
+        collabError.message,
+      );
+    }
+
+    // v0.42.0 — 社区/频道 IPC (24 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Community IPC...");
+      const { registerCommunityIPC } = require("../social/community-ipc");
+      registerCommunityIPC({
+        communityManager: dependencies.communityManager || null,
+        channelManager: dependencies.channelManager || null,
+        governanceEngine: dependencies.governanceEngine || null,
+        gossipProtocol: dependencies.gossipProtocol || null,
+        contentModerator: dependencies.contentModerator || null,
+      });
+      logger.info("[IPC Registry] ✓ Community IPC registered (24 handlers)");
+    } catch (communityError) {
+      logger.error(
+        "[IPC Registry] ✗ Community IPC registration failed (non-fatal):",
+        communityError.message,
+      );
+    }
+
+    // v0.43.0 — 时光机 IPC (15 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Time Machine IPC...");
+      const { registerTimeMachineIPC } = require("../social/time-machine-ipc");
+      registerTimeMachineIPC({
+        timeMachine: dependencies.timeMachine || null,
+        memoryGenerator: dependencies.memoryGenerator || null,
+        sentimentAnalyzer: dependencies.sentimentAnalyzer || null,
+        socialStats: dependencies.socialStats || null,
+      });
+      logger.info("[IPC Registry] ✓ Time Machine IPC registered (15 handlers)");
+    } catch (tmError) {
+      logger.error(
+        "[IPC Registry] ✗ Time Machine IPC registration failed (non-fatal):",
+        tmError.message,
+      );
+    }
+
+    // v0.44.0 — 直播 IPC (12 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Livestream IPC...");
+      const { registerLivestreamIPC } = require("../social/livestream-ipc");
+      registerLivestreamIPC({
+        livestreamManager: dependencies.livestreamManager || null,
+        danmakuEngine: dependencies.danmakuEngine || null,
+      });
+      logger.info("[IPC Registry] ✓ Livestream IPC registered (12 handlers)");
+    } catch (lsError) {
+      logger.error(
+        "[IPC Registry] ✗ Livestream IPC registration failed (non-fatal):",
+        lsError.message,
+      );
+    }
+
+    // v0.45.0+ — 未来功能 IPC (38 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Future Social IPC...");
+      const { registerFutureIPC } = require("../social/future-ipc");
+      registerFutureIPC({
+        anonymousMode: dependencies.anonymousMode || null,
+        platformBridge: dependencies.platformBridge || null,
+        socialToken: dependencies.socialToken || null,
+        aiSocialAssistant: dependencies.aiSocialAssistant || null,
+        storageMarket: dependencies.storageMarket || null,
+        meshSocial: dependencies.meshSocial || null,
+      });
+      logger.info("[IPC Registry] ✓ Future Social IPC registered (38 handlers)");
+    } catch (futureError) {
+      logger.error(
+        "[IPC Registry] ✗ Future Social IPC registration failed (non-fatal):",
+        futureError.message,
+      );
+    }
+
     // ============================================================
     // 第四阶段模块 (企业版 - VC, Organization, Identity Context)
     // ============================================================

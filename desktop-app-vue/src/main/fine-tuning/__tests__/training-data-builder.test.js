@@ -10,7 +10,10 @@
  * - Edge cases: empty data, missing database, filters
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as realFs from 'fs';
+import * as realPath from 'path';
+import * as realOs from 'os';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -21,13 +24,6 @@ vi.mock('../../utils/logger.js', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   },
-}));
-
-vi.mock('fs', () => ({
-  existsSync: vi.fn(() => true),
-  mkdirSync: vi.fn(),
-  writeFileSync: vi.fn(),
-  statSync: vi.fn(() => ({ size: 512 })),
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -57,6 +53,7 @@ describe('TrainingDataBuilder', () => {
   let TrainingDataBuilder;
   let builder;
   let mockDb;
+  let tmpDir;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -64,6 +61,11 @@ describe('TrainingDataBuilder', () => {
     TrainingDataBuilder = mod.TrainingDataBuilder;
     mockDb = createMockDb();
     builder = new TrainingDataBuilder({ database: mockDb });
+    tmpDir = realFs.mkdtempSync(realPath.join(realOs.tmpdir(), 'tdb-test-'));
+  });
+
+  afterEach(() => {
+    try { realFs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
   });
 
   // ────────────────────────────────────────────────────────────────────
@@ -279,19 +281,21 @@ describe('TrainingDataBuilder', () => {
     });
 
     it('writes correct JSONL format', () => {
-      const fs = require('fs');
+      const outPath = realPath.join(tmpDir, 'train.jsonl');
       const data = [
         { instruction: 'Q1', input: '', output: 'A1' },
         { instruction: 'Q2', input: 'context', output: 'A2' },
       ];
 
-      const result = builder.formatAsJSONL(data, '/tmp/train.jsonl');
+      const result = builder.formatAsJSONL(data, outPath);
 
-      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(result.recordCount).toBe(2);
+      expect(result.sizeBytes).toBeGreaterThan(0);
+      expect(result.path).toBe(outPath);
 
-      // Verify the written content
-      const writtenContent = fs.writeFileSync.mock.calls[0][1];
-      const lines = writtenContent.trim().split('\n');
+      // Read the actual file to verify JSONL format
+      const content = realFs.readFileSync(outPath, 'utf-8');
+      const lines = content.trim().split('\n');
       expect(lines).toHaveLength(2);
 
       const first = JSON.parse(lines[0]);
@@ -301,35 +305,32 @@ describe('TrainingDataBuilder', () => {
 
       const second = JSON.parse(lines[1]);
       expect(second.input).toBe('context');
-
-      expect(result.recordCount).toBe(2);
-      expect(result.sizeBytes).toBe(512); // mocked statSync
     });
 
     it('creates directory if it does not exist', () => {
-      const fs = require('fs');
-      fs.existsSync.mockReturnValueOnce(false);
+      const nestedPath = realPath.join(tmpDir, 'subdir', 'nested', 'train.jsonl');
 
-      builder.formatAsJSONL(
+      const result = builder.formatAsJSONL(
         [{ instruction: 'Q', input: '', output: 'A' }],
-        '/new/dir/train.jsonl'
+        nestedPath
       );
 
-      expect(fs.mkdirSync).toHaveBeenCalledWith(expect.any(String), { recursive: true });
+      expect(result.recordCount).toBe(1);
+      expect(realFs.existsSync(nestedPath)).toBe(true);
     });
 
     it('throws on write error', () => {
-      const fs = require('fs');
-      fs.writeFileSync.mockImplementationOnce(() => {
-        throw new Error('Disk full');
-      });
+      // Write to a path where the parent is an existing FILE (not dir) → ENOTDIR
+      const blockerFile = realPath.join(tmpDir, 'blocker');
+      realFs.writeFileSync(blockerFile, 'x');
+      const badPath = realPath.join(blockerFile, 'train.jsonl');
 
       expect(() =>
         builder.formatAsJSONL(
           [{ instruction: 'Q', input: '', output: 'A' }],
-          '/tmp/fail.jsonl'
+          badPath
         )
-      ).toThrow('Disk full');
+      ).toThrow();
     });
   });
 
@@ -344,51 +345,51 @@ describe('TrainingDataBuilder', () => {
     });
 
     it('writes correct Alpaca JSON array format', () => {
-      const fs = require('fs');
+      const outPath = realPath.join(tmpDir, 'train.json');
       const data = [
         { instruction: 'Q1', input: '', output: 'A1' },
         { instruction: 'Q2', input: 'ctx', output: 'A2' },
       ];
 
-      const result = builder.formatAsAlpaca(data, '/tmp/train.json');
+      const result = builder.formatAsAlpaca(data, outPath);
 
-      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(result.recordCount).toBe(2);
+      expect(result.sizeBytes).toBeGreaterThan(0);
+      expect(result.path).toBe(outPath);
 
-      const writtenContent = fs.writeFileSync.mock.calls[0][1];
-      const parsed = JSON.parse(writtenContent);
+      // Read the actual file to verify Alpaca format
+      const content = realFs.readFileSync(outPath, 'utf-8');
+      const parsed = JSON.parse(content);
       expect(Array.isArray(parsed)).toBe(true);
       expect(parsed).toHaveLength(2);
       expect(parsed[0].instruction).toBe('Q1');
       expect(parsed[1].input).toBe('ctx');
-
-      expect(result.recordCount).toBe(2);
-      expect(result.sizeBytes).toBe(512);
     });
 
     it('creates directory if it does not exist', () => {
-      const fs = require('fs');
-      fs.existsSync.mockReturnValueOnce(false);
+      const nestedPath = realPath.join(tmpDir, 'a', 'b', 'c', 'data.json');
 
-      builder.formatAsAlpaca(
+      const result = builder.formatAsAlpaca(
         [{ instruction: 'Q', input: '', output: 'A' }],
-        '/new/path/data.json'
+        nestedPath
       );
 
-      expect(fs.mkdirSync).toHaveBeenCalledWith(expect.any(String), { recursive: true });
+      expect(result.recordCount).toBe(1);
+      expect(realFs.existsSync(nestedPath)).toBe(true);
     });
 
     it('throws on write error', () => {
-      const fs = require('fs');
-      fs.writeFileSync.mockImplementationOnce(() => {
-        throw new Error('Permission denied');
-      });
+      // Write to a path where the parent is an existing FILE (not dir) → ENOTDIR
+      const blockerFile = realPath.join(tmpDir, 'blocker2');
+      realFs.writeFileSync(blockerFile, 'x');
+      const badPath = realPath.join(blockerFile, 'data.json');
 
       expect(() =>
         builder.formatAsAlpaca(
           [{ instruction: 'Q', input: '', output: 'A' }],
-          '/tmp/fail.json'
+          badPath
         )
-      ).toThrow('Permission denied');
+      ).toThrow();
     });
   });
 
