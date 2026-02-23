@@ -8,7 +8,6 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -19,6 +18,8 @@ const ipcGuard = require("../ipc/ipc-guard");
  * @param {Object} [dependencies.sessionManager] - CollabSessionManager instance
  * @param {Object} [dependencies.gitIntegration] - CollabGitIntegration instance
  * @param {Object} [dependencies.mainWindow] - Electron main window
+ * @param {Object} [_deps={}] - Optional dependency overrides for testing
+ * @param {Object} [_deps.ipcMain] - ipcMain instance (injected in tests)
  */
 function registerCollabIPC({
   yjsEngine,
@@ -26,7 +27,9 @@ function registerCollabIPC({
   sessionManager,
   gitIntegration,
   mainWindow,
+  _deps = {},
 }) {
+  const ipcMain = _deps.ipcMain !== undefined ? _deps.ipcMain : require("electron").ipcMain;
   if (ipcGuard.isModuleRegistered("collab-ipc")) {
     logger.info("[Collab IPC] Handlers already registered, skipping...");
     return;
@@ -439,8 +442,8 @@ function registerCollabIPC({
     }
   });
 
-  // Register module
-  ipcGuard.registerModule("collab-ipc", 22);
+  // Mark module as registered
+  ipcGuard.markModuleRegistered("collab-ipc");
   logger.info("[Collab IPC] Registered 22 handlers");
 
   // ============================================================

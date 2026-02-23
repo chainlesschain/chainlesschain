@@ -2665,7 +2665,300 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
-    // Phase 31: Git P2P Sync (v1.0.0)
+    // Phase 31: AI Models — 8 Advanced Features (v1.1.0)
+    // ============================================================
+
+    // 🔥 Benchmark System (模型性能基准测试, 9 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Benchmark IPC...");
+      const {
+        BenchmarkManager,
+      } = require("../benchmark/benchmark-manager");
+      const {
+        registerBenchmarkIPC,
+      } = require("../benchmark/benchmark-ipc");
+
+      const benchmarkManager = new BenchmarkManager({
+        database: database || null,
+        llmManager: llmManager || null,
+      });
+      if (database) {
+        benchmarkManager
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] BenchmarkManager async init error (non-fatal):",
+              err.message,
+            ),
+          );
+      }
+      registerBenchmarkIPC({ benchmarkManager });
+      if (app) {
+        app.benchmarkManager = benchmarkManager;
+      }
+      logger.info(
+        "[IPC Registry] ✓ Benchmark IPC registered (9 handlers)",
+      );
+    } catch (benchmarkError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Benchmark IPC registration failed (non-fatal):",
+        benchmarkError.message,
+      );
+    }
+
+    // 🔥 Memory Augmented Generation (长期记忆增强, 8 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Memory Augmented IPC...");
+      const {
+        MemoryAugmentedGeneration,
+      } = require("../llm/memory-augmented-generation");
+      const {
+        UserPreferenceLearner,
+      } = require("../llm/user-preference-learner");
+      const {
+        BehaviorPatternAnalyzer,
+      } = require("../llm/behavior-pattern-analyzer");
+      const {
+        registerMemoryAugIPC,
+      } = require("../llm/memory-augmented-ipc");
+
+      const memoryAugManager = new MemoryAugmentedGeneration({
+        database: database || null,
+      });
+      const preferenceLearner = new UserPreferenceLearner({
+        database: database || null,
+      });
+      const patternAnalyzer = new BehaviorPatternAnalyzer({
+        database: database || null,
+      });
+
+      if (database) {
+        memoryAugManager
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] MemoryAugManager async init error (non-fatal):",
+              err.message,
+            ),
+          );
+        preferenceLearner
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] PreferenceLearner async init error (non-fatal):",
+              err.message,
+            ),
+          );
+        patternAnalyzer
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] PatternAnalyzer async init error (non-fatal):",
+              err.message,
+            ),
+          );
+      }
+
+      registerMemoryAugIPC({ memoryAugManager, preferenceLearner, patternAnalyzer });
+
+      if (app) {
+        app.memoryAugManager = memoryAugManager;
+        app.preferenceLearner = preferenceLearner;
+        app.patternAnalyzer = patternAnalyzer;
+      }
+      logger.info(
+        "[IPC Registry] ✓ Memory Augmented IPC registered (8 handlers)",
+      );
+    } catch (magError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Memory Augmented IPC registration failed (non-fatal):",
+        magError.message,
+      );
+    }
+
+    // 🔥 Dual-Model Collaboration (Architect+Editor双模型协作, 7 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Dual-Model IPC...");
+      const {
+        DualModelManager,
+      } = require("../ai-engine/dual-model/dual-model-manager");
+      const {
+        registerDualModelIPC,
+      } = require("../ai-engine/dual-model/dual-model-ipc");
+
+      const dualModelManager = new DualModelManager({
+        database: database || null,
+        llmManager: llmManager || null,
+      });
+      if (database) {
+        dualModelManager
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] DualModelManager async init error (non-fatal):",
+              err.message,
+            ),
+          );
+      }
+      registerDualModelIPC({ dualModelManager });
+      if (app) {
+        app.dualModelManager = dualModelManager;
+      }
+      logger.info(
+        "[IPC Registry] ✓ Dual-Model IPC registered (7 handlers)",
+      );
+    } catch (dualModelError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Dual-Model IPC registration failed (non-fatal):",
+        dualModelError.message,
+      );
+    }
+
+    // 🔥 Model Quantization (本地模型量化工具, 8 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Quantization IPC...");
+      const {
+        QuantizationManager,
+      } = require("../quantization/quantization-manager");
+      const {
+        registerQuantizationIPC,
+      } = require("../quantization/quantization-ipc");
+
+      const quantizationManager = new QuantizationManager({
+        database: database || null,
+      });
+      if (database) {
+        quantizationManager
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] QuantizationManager async init error (non-fatal):",
+              err.message,
+            ),
+          );
+      }
+      registerQuantizationIPC({ quantizationManager });
+      if (app) {
+        app.quantizationManager = quantizationManager;
+      }
+      logger.info(
+        "[IPC Registry] ✓ Quantization IPC registered (8 handlers)",
+      );
+    } catch (quantError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Quantization IPC registration failed (non-fatal):",
+        quantError.message,
+      );
+    }
+
+    // 🔥 Model Fine-tuning (LoRA/QLoRA微调, 8 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Fine-tuning IPC...");
+      const {
+        FineTuningManager,
+      } = require("../fine-tuning/fine-tuning-manager");
+      const {
+        registerFineTuningIPC,
+      } = require("../fine-tuning/fine-tuning-ipc");
+
+      const fineTuningManager = new FineTuningManager({
+        database: database || null,
+      });
+      if (database) {
+        fineTuningManager
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] FineTuningManager async init error (non-fatal):",
+              err.message,
+            ),
+          );
+      }
+      registerFineTuningIPC({ fineTuningManager });
+      if (app) {
+        app.fineTuningManager = fineTuningManager;
+      }
+      logger.info(
+        "[IPC Registry] ✓ Fine-tuning IPC registered (8 handlers)",
+      );
+    } catch (ftError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Fine-tuning IPC registration failed (non-fatal):",
+        ftError.message,
+      );
+    }
+
+    // 🔥 Whisper Voice Integration (Whisper语音识别, 6 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Whisper IPC...");
+      const { WhisperClient } = require("../speech/whisper-client");
+      const { registerWhisperIPC } = require("../speech/whisper-ipc");
+
+      const whisperClient = new WhisperClient({});
+      registerWhisperIPC({
+        whisperClient,
+        llmManager: llmManager || null,
+        ttsManager: app?.ttsManager || null,
+      });
+      if (app) {
+        app.whisperClient = whisperClient;
+      }
+      logger.info(
+        "[IPC Registry] ✓ Whisper IPC registered (6 handlers)",
+      );
+    } catch (whisperError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Whisper IPC registration failed (non-fatal):",
+        whisperError.message,
+      );
+    }
+
+    // 🔥 Federated Learning (联邦学习, 10 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Federated Learning IPC...");
+      const {
+        FederatedLearningManager,
+      } = require("../federated/federated-learning-manager");
+      const {
+        registerFederatedIPC,
+      } = require("../federated/federated-ipc");
+
+      const federatedManager = new FederatedLearningManager({
+        database: database || null,
+        p2pManager: p2pManager || null,
+      });
+      if (database) {
+        federatedManager
+          .initialize(database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] FederatedManager async init error (non-fatal):",
+              err.message,
+            ),
+          );
+      }
+      registerFederatedIPC({ federatedManager });
+      if (app) {
+        app.federatedManager = federatedManager;
+      }
+      logger.info(
+        "[IPC Registry] ✓ Federated Learning IPC registered (10 handlers)",
+      );
+    } catch (fedError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Federated Learning IPC registration failed (non-fatal):",
+        fedError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 31 Complete: AI Models 8 features (56 handlers)!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 33: Git P2P Sync (v1.0.0)
     // ============================================================
 
     try {
@@ -2686,7 +2979,7 @@ function registerAllIPC(dependencies) {
     }
 
     // ============================================================
-    // Phase 32: Collaboration (v2.0.0)
+    // Phase 34: Collaboration (v2.0.0)
     // ============================================================
 
     try {
@@ -2711,7 +3004,7 @@ function registerAllIPC(dependencies) {
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
-      "[IPC Registry] Phase 31-32 Complete: Git P2P Sync, Real-time Collaboration ready!",
+      "[IPC Registry] Phase 33-34 Complete: Git P2P Sync, Real-time Collaboration ready!",
     );
     logger.info("[IPC Registry] ========================================");
 

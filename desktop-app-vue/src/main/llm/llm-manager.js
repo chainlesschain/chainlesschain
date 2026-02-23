@@ -16,6 +16,8 @@ const EventEmitter = require("events");
 const OllamaClient = require("./ollama-client");
 const { OpenAIClient, DeepSeekClient } = require("./openai-client");
 const { AnthropicClient } = require("./anthropic-client");
+const { GeminiClient } = require("./gemini-client");
+const { MistralClient } = require("./mistral-client");
 const { getModelSelector, TaskTypes } = require("./volcengine-models");
 const { VolcengineToolsClient } = require("./volcengine-tools");
 
@@ -32,6 +34,8 @@ const LLMProviders = {
   VOLCENGINE: "volcengine",
   ANTHROPIC: "anthropic",
   CLAUDE: "claude",
+  GEMINI: "gemini",
+  MISTRAL: "mistral",
   CUSTOM: "custom",
 };
 
@@ -227,6 +231,24 @@ class LLMManager extends EventEmitter {
           model: this.config.model || "doubao-seed-1.6-lite",
           embeddingModel:
             this.config.embeddingModel || "doubao-embedding-large",
+          timeout: this.config.timeout,
+        });
+
+      case LLMProviders.GEMINI:
+        return new GeminiClient({
+          apiKey: this.config.apiKey,
+          baseURL: this.config.baseURL,
+          model: this.config.model || "gemini-1.5-pro",
+          embeddingModel: this.config.embeddingModel || "text-embedding-004",
+          timeout: this.config.timeout,
+        });
+
+      case LLMProviders.MISTRAL:
+        return new MistralClient({
+          apiKey: this.config.apiKey,
+          baseURL: this.config.baseURL,
+          model: this.config.model || "mistral-large-latest",
+          embeddingModel: this.config.embeddingModel || "mistral-embed",
           timeout: this.config.timeout,
         });
 
