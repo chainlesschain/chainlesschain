@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/project-recovery.js`
 
-**Generated**: 2026-02-23T14:46:56.725Z
+**Generated**: 2026-02-23T15:25:44.064Z
 
 ---
 

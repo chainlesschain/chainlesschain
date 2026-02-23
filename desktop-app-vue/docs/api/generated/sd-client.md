@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image-gen/sd-client.js`
 
-**Generated**: 2026-02-23T14:46:56.793Z
+**Generated**: 2026-02-23T15:25:44.124Z
 
 ---
 
