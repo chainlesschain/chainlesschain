@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/pkcs11-driver.js`
 
-**Generated**: 2026-02-23T10:36:20.495Z
+**Generated**: 2026-02-23T13:37:52.302Z
 
 ---
 

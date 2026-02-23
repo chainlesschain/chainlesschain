@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/chat-skill-bridge.js`
 
-**Generated**: 2026-02-23T10:36:20.522Z
+**Generated**: 2026-02-23T13:37:52.327Z
 
 ---
 
