@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/file-sharing-ipc.js`
 
-**Generated**: 2026-02-23T00:28:19.470Z
+**Generated**: 2026-02-23T01:40:12.160Z
 
 ---
 

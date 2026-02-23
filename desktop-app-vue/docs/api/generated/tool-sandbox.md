@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/tool-sandbox.js`
 
-**Generated**: 2026-02-23T00:28:19.503Z
+**Generated**: 2026-02-23T01:40:12.197Z
 
 ---
 

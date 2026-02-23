@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-02-23T00:28:19.597Z
+**Generated**: 2026-02-23T01:40:12.292Z
 
-**Total Components**: 484
+**Total Components**: 493
 
 ---
 
@@ -420,6 +420,14 @@
 
 ---
 
+### IPFSStoragePage
+
+**File**: `src/renderer/pages/IPFSStoragePage.vue`
+
+**Description**: Row 1: Statistics Cards
+
+---
+
 ### HomePage
 
 **File**: `src/renderer/pages/HomePage.vue`
@@ -548,6 +556,14 @@
 
 ---
 
+### AutonomousAgentPage
+
+**File**: `src/renderer/pages/AutonomousAgentPage.vue`
+
+**Description**: Page Header
+
+---
+
 ### AudioImportPage
 
 **File**: `src/renderer/pages/AudioImportPage.vue`
@@ -561,6 +577,14 @@
 **File**: `src/renderer/pages/AndroidFeaturesTestPage.vue`
 
 **Description**: LLM 功能
+
+---
+
+### AnalyticsDashboardPage
+
+**File**: `src/renderer/pages/AnalyticsDashboardPage.vue`
+
+**Description**: Page Header
 
 ---
 
@@ -853,6 +877,16 @@
 **File**: `src/renderer/pages/p2p/DeviceManagementPage.vue`
 
 **Description**: Current Device Info
+
+---
+
+## src/renderer/pages/enterprise
+
+### EnterpriseOrgPage
+
+**File**: `src/renderer/pages/enterprise/EnterpriseOrgPage.vue`
+
+**Description**: Header
 
 ---
 
@@ -3578,6 +3612,14 @@
 
 ---
 
+### CollabRichEditor
+
+**File**: `src/renderer/components/collaboration/CollabRichEditor.vue`
+
+**Description**: Toolbar
+
+---
+
 ## src/renderer/components/chat
 
 ### UserAssistantMessage
@@ -3853,6 +3895,38 @@
 **File**: `src/renderer/components/blockchain/BlockchainIntegrationPanel.vue`
 
 **Description**: 链上资产
+
+---
+
+## src/renderer/components/autonomous
+
+### GoalSubmissionForm
+
+**File**: `src/renderer/components/autonomous/GoalSubmissionForm.vue`
+
+**Description**: Description
+
+---
+
+## src/renderer/components/analytics
+
+### TopSkillsTable
+
+**File**: `src/renderer/components/analytics/TopSkillsTable.vue`
+
+**Description**: Rank Column
+
+---
+
+### SkillUsageChart
+
+**File**: `src/renderer/components/analytics/SkillUsageChart.vue`
+
+---
+
+### AIPerformanceChart
+
+**File**: `src/renderer/components/analytics/AIPerformanceChart.vue`
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/preference-manager-ipc.js`
 
-**Generated**: 2026-02-23T00:28:19.453Z
+**Generated**: 2026-02-23T01:40:12.144Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/rss-ipc.js`
 
-**Generated**: 2026-02-23T00:28:19.501Z
+**Generated**: 2026-02-23T01:40:12.194Z
 
 ---
 

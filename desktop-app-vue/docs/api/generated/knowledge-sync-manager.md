@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/knowledge-sync-manager.js`
 
-**Generated**: 2026-02-23T00:28:19.448Z
+**Generated**: 2026-02-23T01:40:12.139Z
 
 ---
 
