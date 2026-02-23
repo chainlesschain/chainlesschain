@@ -5,12 +5,12 @@
   "scripts": {
     "build": "node build.js",
     "optimize": "npm run optimize:images && npm run optimize:qr && npm run optimize:css",
-    "optimize:images": "node optimize-images-sharp.js",
-    "optimize:qr": "node generate-qr.js",
-    "optimize:css": "node build-css.js",
+    "optimize:images": "node scripts/tools/optimize-images-sharp.js",
+    "optimize:qr": "node scripts/tools/generate-qr.js",
+    "optimize:css": "node scripts/tools/build-css.js",
     "serve": "python -m http.server 8000 || npx http-server -p 8000",
-    "deploy:server": "npm run optimize && npm run build && bash deploy-to-server.sh",
-    "deploy:github": "npm run optimize && npm run build && bash deploy-to-github.sh",
+    "deploy:server": "npm run optimize && npm run build && bash scripts/deploy/deploy-to-server.sh",
+    "deploy:github": "npm run optimize && npm run build && bash scripts/deploy/deploy-to-github.sh",
     "clean": "rm -rf dist",
     "test:performance": "echo '请访问 https://pagespeed.web.dev/ 测试性能'"
   },
