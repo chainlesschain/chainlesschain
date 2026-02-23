@@ -5,6 +5,79 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.0.0] - 2026-02-23
+
+### 新增
+
+- 📞 **P2P语音/视频通话** (WebRTC + DTLS-SRTP全加密)
+  - `call-manager.js`: 通话生命周期管理（发起/接听/挂断/录制）
+  - `media-engine.js`: 音视频采集编码（VP8/VP9/H.264, Opus 48kHz）
+  - `call-signaling.js`: Offer/Answer/ICE信令（Signal协议加密通道）
+  - `sfu-relay.js`: SFU中继节点（2-4人Mesh / 5-8人SFU混合架构）
+  - Vue组件: `CallPanel.vue`, `IncomingCall.vue`；Store: `call.ts`
+
+- 🖼️ **共享加密相册**
+  - `shared-album-manager.js`: 相册CRUD与权限分级（查看/贡献/管理）
+  - `photo-encryptor.js`: AES-256相册密钥加密，P2P分布式存储
+  - `exif-stripper.js`: EXIF隐私数据剥离（GPS/设备信息移除）
+  - `photo-sync.js`: P2P增量同步引擎
+  - Vue组件: `PhotoViewer.vue`；Store: `albums.ts`
+
+- 👥 **社区/频道系统**
+  - `community-manager.js`: 社区CRUD，多级角色（创建者/管理员/版主/成员）
+  - `channel-manager.js`: 多频道管理（公告/讨论/只读/订阅）
+  - `governance-engine.js`: 去中心化治理投票（提案/公示/投票/执行）
+  - `gossip-protocol.js`: Gossip协议消息分发（3跳转发、ID去重、离线补偿）
+  - `content-moderator.js`: AI辅助内容审核
+  - Vue页面: `CommunityPage.vue`, `ChannelPage.vue`；Store: `community.ts`
+
+- 📝 **协作编辑文档（社交版）**
+  - `collab-engine.js`: Yjs CRDT协作引擎，无冲突实时合并
+  - `collab-sync.js`: P2P DataChannel操作同步
+  - `collab-awareness.js`: 协作者光标/选区实时感知
+  - `doc-version-manager.js`: 版本历史与回溯
+  - Vue组件: `CursorOverlay.vue`；Vue页面: `CollabEditorPage.vue`；Store: `socialCollab.ts`
+
+- ⏰ **朋友圈时光机**
+  - `time-machine.js`: 时间线多维浏览（年/月/日/事件视图）
+  - `memory-generator.js`: AI生成"N年前的今天"、年度社交报告、友谊里程碑
+  - `sentiment-analyzer.js`: 动态情感趋势分析（基于本地Ollama）
+  - Vue页面: `TimeMachinePage.vue`；Vue组件: `MemoryCard.vue`；Store: `timeMachine.ts`
+
+- 📺 **去中心化直播**
+  - `livestream-manager.js`: P2P推流 + SFU多级分发（<10人Mesh / 10-100人SFU / >100人级联）
+  - `danmaku-engine.js`: 实时弹幕（加密DataChannel传输，弹幕去重）
+  - Vue页面: `LivestreamPage.vue`；Vue组件: `DanmakuOverlay.vue`；Store: `livestream.ts`
+
+- 🔮 **高级社交特性**
+  - `anonymous-mode.js`: 零知识证明匿名发帖/评论
+  - `social-token.js`: 社区治理代币（发行/流通/激励）
+  - `storage-market.js`: 去中心化存储市场（代币购买节点存储）
+  - `ai-social-assistant.js`: AI智能回复建议、话题推荐、社交破冰
+  - `mesh-social.js`: P2P Mesh离线社交（无互联网场景）
+  - `platform-bridge.js`: 跨平台桥接（Mastodon/Nostr ActivityPub）
+
+- 🎓 **Cowork协作演化技能** (共95个内置技能)
+  - `/debate-review`: 3视角代码评审（性能/安全/可维护性），共识投票裁决
+  - `/ab-compare`: 多智能体方案A/B对比与基准测试
+  - `/orchestrate`: 工作流编排（feature/bugfix/refactor/security-audit模板）
+  - `/verification-loop`: 6阶段验证（Build→TypeCheck→Lint→Test→Security→DiffReview）
+  - `/stream-processor`: 流式数据逐行处理（log/csv/json）
+
+- 🔧 **基础设施**
+  - `social-initializer.js`: 社交模块启动序列编排（15个模块依序初始化）
+  - `ipc-registry.js` 新增: 全部社交/P2P IPC处理器统一注册
+  - Router `index.ts` 新增6条社交路由
+  - Pinia 新增6个TypeScript Store（albums, call, community, livestream, socialCollab, timeMachine）
+
+### 修复
+
+- 修复 `whisper-client.js` 和相关测试
+- 修复 `fine-tuning-manager.test.js` 和 `training-data-builder.test.js`
+- 修复 `git-hook-runner.test.js` 和 `dual-model-manager.test.js`
+
+---
+
 ## [0.39.0] - 2026-02-22
 
 ### 新增
