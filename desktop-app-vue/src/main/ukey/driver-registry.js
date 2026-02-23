@@ -453,6 +453,26 @@ class DriverRegistry extends EventEmitter {
       priority: DRIVER_PRIORITY.simulated,
     });
 
+    // SIMKey 扩展模块 (v0.39.0)
+    this.register("esim-ota", () => require("./esim-ota-manager"), {
+      priority: DRIVER_PRIORITY.simulated,
+    });
+    this.register("tee", () => require("./tee-integration"), {
+      priority: DRIVER_PRIORITY.simulated,
+    });
+    this.register("simkey-roaming", () => require("./simkey-roaming"), {
+      priority: DRIVER_PRIORITY.simulated,
+    });
+    this.register("simkey-zkp", () => require("./simkey-zkp"), {
+      priority: DRIVER_PRIORITY.simulated,
+    });
+    this.register("satellite-sim", () => require("./satellite-sim-driver"), {
+      priority: DRIVER_PRIORITY.simulated,
+    });
+    this.register("hsm-federation", () => require("./hsm-federation"), {
+      priority: DRIVER_PRIORITY.simulated,
+    });
+
     logger.info(`[DriverRegistry] 内置驱动已注册: ${this._drivers.size} 个`);
   }
 

@@ -630,6 +630,46 @@ class ASTMerger {
 
     return langMap[ext] || "unknown";
   }
+
+  // ─── Public API wrappers for direct testing ──────────────────────────────
+
+  /**
+   * Public: merge import statements from two JS/TS files
+   * @param {string} local - Local file content
+   * @param {string} remote - Remote file content
+   * @param {string} base - Base file content
+   * @returns {string} Merged imports as string
+   */
+  mergeImports(local, remote, base) {
+    const result = this._mergeImports(base, local, remote);
+    return result.imports ? result.imports.join("\n") + "\n" : local;
+  }
+
+  /**
+   * Public: merge markdown files by section heading
+   * @param {string} base
+   * @param {string} local
+   * @param {string} remote
+   * @returns {Object} { result, merged }
+   */
+  mergeMarkdown(base, local, remote) {
+    return this._mergeMarkdown({ base, local, remote, filePath: "doc.md" });
+  }
+
+  /**
+   * Public: merge JS function definitions
+   * @param {string} local
+   * @param {string} remote
+   * @param {string} base
+   * @returns {Object} { merged }
+   */
+  mergeFunctions(local, remote, base) {
+    const result = this._mergeFunctions(base, local, remote);
+    if (result.success) {
+      return { merged: result.content };
+    }
+    return { merged: null };
+  }
 }
 
 module.exports = {

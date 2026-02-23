@@ -217,6 +217,7 @@ class SmartConflictResolver extends EventEmitter {
       id: conflictId,
       filePath: conflict.filePath,
       conflictType,
+      result: "conflict",
       level: RESOLUTION_LEVEL.MANUAL,
       autoResolved: false,
       autoAccepted: false,
@@ -538,6 +539,7 @@ class SmartConflictResolver extends EventEmitter {
       id: conflictId,
       filePath: conflict.filePath,
       conflictType: this._classifyConflict(conflict),
+      result: "merged",
       level,
       autoResolved: true,
       merged: result.merged,
@@ -586,6 +588,15 @@ class SmartConflictResolver extends EventEmitter {
       const regex = new RegExp(pattern.replace(/\*/g, ".*"));
       return regex.test(filePath);
     });
+  }
+
+  /**
+   * Public API: classify the type of conflict (delegates to _classifyConflict)
+   * @param {Object} conflict
+   * @returns {string} CONFLICT_TYPE value
+   */
+  classifyConflict(conflict) {
+    return this._classifyConflict(conflict);
   }
 
   /**
