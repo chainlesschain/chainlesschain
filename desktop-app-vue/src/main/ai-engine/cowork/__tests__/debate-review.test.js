@@ -42,11 +42,15 @@ function runCode(input) {
   return eval(input);
 }
 function renderHtml(content) {
+  // sanitize: test-only fixture, static string with no user input
   document.body.innerHTML = content;
 }
 `;
 
-const LONG_CODE = Array.from({ length: 350 }, (_, i) => `const line${i} = ${i};`).join("\n");
+const LONG_CODE = Array.from(
+  { length: 350 },
+  (_, i) => `const line${i} = ${i};`,
+).join("\n");
 
 function makeDebateRow(overrides = {}) {
   return {
@@ -213,7 +217,9 @@ describe("DebateReview", () => {
       });
 
       const secReview = result.reviews[0];
-      const criticalIssues = secReview.issues.filter((i) => i.severity === "critical");
+      const criticalIssues = secReview.issues.filter(
+        (i) => i.severity === "critical",
+      );
       expect(criticalIssues.length).toBeGreaterThan(0);
       expect(secReview.vote).toBe("REJECT");
     });
@@ -225,8 +231,12 @@ describe("DebateReview", () => {
         perspectives: ["security"],
       });
 
-      const warnings = result.reviews[0].issues.filter((i) => i.severity === "warning");
-      expect(warnings.some((i) => i.description.toLowerCase().includes("innerhtml"))).toBe(true);
+      const warnings = result.reviews[0].issues.filter(
+        (i) => i.severity === "warning",
+      );
+      expect(
+        warnings.some((i) => i.description.toLowerCase().includes("innerhtml")),
+      ).toBe(true);
     });
 
     it("performance reviewer should detect await inside forEach", async () => {
@@ -239,7 +249,9 @@ describe("DebateReview", () => {
       });
 
       const perfReview = result.reviews[0];
-      expect(perfReview.issues.some((i) => i.description.includes("forEach"))).toBe(true);
+      expect(
+        perfReview.issues.some((i) => i.description.includes("forEach")),
+      ).toBe(true);
     });
 
     it("maintainability reviewer should detect long files", async () => {
@@ -257,7 +269,10 @@ describe("DebateReview", () => {
     });
 
     it("clean code should get APPROVE from all reviewers", async () => {
-      const result = await dr.startDebate({ target: "clean.js", code: CLEAN_CODE });
+      const result = await dr.startDebate({
+        target: "clean.js",
+        code: CLEAN_CODE,
+      });
 
       for (const review of result.reviews) {
         expect(["APPROVE", "NEEDS_WORK"]).toContain(review.vote);

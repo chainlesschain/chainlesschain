@@ -75,6 +75,8 @@ export default defineConfig({
         // Inline these modules to properly handle CommonJS/ESM interop
         inline: [
           'electron',
+          'multiformats',
+          /multiformats\/.*/,
           /src\/main\/.*/  // Inline main process modules (CommonJS)
         ]
       }

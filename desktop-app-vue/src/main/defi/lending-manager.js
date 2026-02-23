@@ -54,7 +54,9 @@ class LendingManager extends EventEmitter {
 
   async _initializeTables() {
     const db = this.database?.db;
-    if (!db) return;
+    if (!db) {
+      return;
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS lending_pools (
@@ -114,17 +116,25 @@ class LendingManager extends EventEmitter {
       minCreditLevel = 1,
     } = params;
 
-    if (!lenderId || !totalAmount || interestRate == null) {
+    if (!lenderId || totalAmount == null || interestRate == null) {
       throw new Error(
         "Missing required fields: lenderId, totalAmount, interestRate",
       );
     }
-    if (totalAmount <= 0) throw new Error("Total amount must be positive");
-    if (interestRate < 0 || interestRate > 1)
+    if (totalAmount <= 0) {
+      throw new Error("Total amount must be positive");
+    }
+    if (interestRate < 0 || interestRate > 1) {
       throw new Error("Interest rate must be between 0 and 1");
+    }
+    if (termDays <= 0) {
+      throw new Error("Term must be at least 1 day");
+    }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -159,16 +169,23 @@ class LendingManager extends EventEmitter {
     }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const pool = this.getPool(poolId);
-    if (!pool) throw new Error("Lending pool not found");
-    if (pool.status !== PoolStatus.ACTIVE)
+    if (!pool) {
+      throw new Error("Lending pool not found");
+    }
+    if (pool.status !== PoolStatus.ACTIVE) {
       throw new Error("Pool is not active");
-    if (amount > pool.available_amount)
+    }
+    if (amount > pool.available_amount) {
       throw new Error("Insufficient pool liquidity");
-    if (pool.lender_id === borrowerId)
+    }
+    if (pool.lender_id === borrowerId) {
       throw new Error("Lender cannot borrow from own pool");
+    }
 
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -202,12 +219,17 @@ class LendingManager extends EventEmitter {
 
   async approveLoan(loanId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const loan = this.getLoan(loanId);
-    if (!loan) throw new Error("Loan not found");
-    if (loan.status !== LoanStatus.PENDING)
+    if (!loan) {
+      throw new Error("Loan not found");
+    }
+    if (loan.status !== LoanStatus.PENDING) {
       throw new Error("Loan is not pending");
+    }
 
     let creditCheck = { level: 3, approved: true };
     if (this.creditScoreManager) {
@@ -247,7 +269,17 @@ class LendingManager extends EventEmitter {
 
   async rejectLoan(loanId, reason = "") {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
+
+    const loan = this.getLoan(loanId);
+    if (!loan) {
+      throw new Error("Loan not found");
+    }
+    if (loan.status !== LoanStatus.PENDING) {
+      throw new Error("Loan is not pending");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     db.prepare(
@@ -260,12 +292,20 @@ class LendingManager extends EventEmitter {
 
   async repayLoan(loanId, amount) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const loan = this.getLoan(loanId);
-    if (!loan) throw new Error("Loan not found");
-    if (loan.status !== LoanStatus.ACTIVE)
+    if (!loan) {
+      throw new Error("Loan not found");
+    }
+    if (loan.status !== LoanStatus.ACTIVE) {
       throw new Error("Loan is not active");
+    }
+    if (!amount || amount <= 0) {
+      throw new Error("Payment amount must be positive");
+    }
 
     const totalOwed =
       loan.amount * (1 + loan.interest_rate) - loan.repaid_amount;
@@ -311,12 +351,17 @@ class LendingManager extends EventEmitter {
 
   async liquidateLoan(loanId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const loan = this.getLoan(loanId);
-    if (!loan) throw new Error("Loan not found");
-    if (loan.status !== LoanStatus.ACTIVE)
+    if (!loan) {
+      throw new Error("Loan not found");
+    }
+    if (loan.status !== LoanStatus.ACTIVE) {
       throw new Error("Loan is not active");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     db.prepare(
@@ -325,11 +370,7 @@ class LendingManager extends EventEmitter {
 
     db.prepare(
       "UPDATE lending_pools SET available_amount = available_amount + ?, active_loans = MAX(0, active_loans - 1), updated_at = ? WHERE id = ?",
-    ).run(
-      Math.min(loan.collateral_amount, loan.amount),
-      now,
-      loan.pool_id,
-    );
+    ).run(Math.min(loan.collateral_amount, loan.amount), now, loan.pool_id);
 
     this.emit("loan-liquidated", {
       loanId,
@@ -340,18 +381,22 @@ class LendingManager extends EventEmitter {
 
   getPool(poolId) {
     const db = this.database?.db;
-    if (!db) return null;
-    return db
-      .prepare("SELECT * FROM lending_pools WHERE id = ?")
-      .get(poolId);
+    if (!db) {
+      return null;
+    }
+    return db.prepare("SELECT * FROM lending_pools WHERE id = ?").get(poolId);
   }
 
   getLoan(loanId) {
     const db = this.database?.db;
-    if (!db) return null;
+    if (!db) {
+      return null;
+    }
 
     const loan = db.prepare("SELECT * FROM loans WHERE id = ?").get(loanId);
-    if (!loan) return null;
+    if (!loan) {
+      return null;
+    }
 
     const payments = db
       .prepare(
@@ -364,7 +409,9 @@ class LendingManager extends EventEmitter {
 
   async listPools(filters = {}) {
     const db = this.database?.db;
-    if (!db) return { pools: [], total: 0 };
+    if (!db) {
+      return { pools: [], total: 0 };
+    }
 
     const { status, limit = 20, offset = 0 } = filters;
     let query = "SELECT * FROM lending_pools";
@@ -386,7 +433,9 @@ class LendingManager extends EventEmitter {
 
   async listLoans(userId, filters = {}) {
     const db = this.database?.db;
-    if (!db) return { loans: [], total: 0 };
+    if (!db) {
+      return { loans: [], total: 0 };
+    }
 
     const { status, role = "borrower", limit = 20, offset = 0 } = filters;
     let query, countQuery;
@@ -399,8 +448,7 @@ class LendingManager extends EventEmitter {
         "SELECT COUNT(*) as total FROM loans l JOIN lending_pools p ON l.pool_id = p.id WHERE p.lender_id = ?";
     } else {
       query = "SELECT * FROM loans WHERE borrower_id = ?";
-      countQuery =
-        "SELECT COUNT(*) as total FROM loans WHERE borrower_id = ?";
+      countQuery = "SELECT COUNT(*) as total FROM loans WHERE borrower_id = ?";
     }
     params.push(userId);
 
@@ -419,7 +467,9 @@ class LendingManager extends EventEmitter {
 
   async calculateInterest(loanId) {
     const loan = this.getLoan(loanId);
-    if (!loan) return null;
+    if (!loan) {
+      return null;
+    }
 
     const totalOwed = loan.amount * (1 + loan.interest_rate);
     const remaining = totalOwed - loan.repaid_amount;
@@ -436,7 +486,9 @@ class LendingManager extends EventEmitter {
 
   async checkLoanHealth() {
     const db = this.database?.db;
-    if (!db) return { checked: 0, unhealthy: 0 };
+    if (!db) {
+      return { checked: 0, unhealthy: 0 };
+    }
 
     const now = Math.floor(Date.now() / 1000);
     const activeLoans = db

@@ -6,7 +6,7 @@
  * 支持跨平台 PKCS#11 标准驱动
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const XinJinKeDriver = require("./xinjinke-driver");
 const FeiTianDriver = require("./feitian-driver");
 const WatchDataDriver = require("./watchdata-driver");
@@ -14,6 +14,13 @@ const HuadaDriver = require("./huada-driver");
 const TDRDriver = require("./tdr-driver");
 const SimulatedDriver = require("./simulated-driver");
 const PKCS11Driver = require("./pkcs11-driver");
+// v0.39.0 新增驱动
+const ChangChengDriver = require("./changcheng-driver");
+const MingHuaDriver = require("./minghua-driver");
+const LongMaiDriver = require("./longmai-driver");
+const FIDO2Driver = require("./fido2-driver");
+const OpenPGPDriver = require("./openpgp-driver");
+const { getDriverRegistry } = require("./driver-registry");
 const EventEmitter = require("events");
 const os = require("os");
 
@@ -28,6 +35,12 @@ const DriverTypes = {
   TDR: "tdr",
   PKCS11: "pkcs11", // 跨平台 PKCS#11 标准
   SIMULATED: "simulated",
+  // v0.39.0 新增
+  CHANGCHENG: "changcheng", // 长城信安
+  MINGHUA: "minghua", // 明华澳汉
+  LONGMAI: "longmai", // 龙脉科技
+  FIDO2: "fido2", // FIDO2/WebAuthn 标准
+  OPENPGP: "openpgp", // OpenPGP Card 协议
 };
 
 /**
@@ -115,8 +128,39 @@ class UKeyManager extends EventEmitter {
         driver = new SimulatedDriver(this.config);
         break;
 
+      // v0.39.0 新增驱动
+      case DriverTypes.CHANGCHENG:
+        driver = new ChangChengDriver(this.config);
+        break;
+
+      case DriverTypes.MINGHUA:
+        driver = new MingHuaDriver(this.config);
+        break;
+
+      case DriverTypes.LONGMAI:
+        driver = new LongMaiDriver(this.config);
+        break;
+
+      case DriverTypes.FIDO2:
+        driver = new FIDO2Driver(this.config);
+        break;
+
+      case DriverTypes.OPENPGP:
+        driver = new OpenPGPDriver(this.config);
+        break;
+
       default:
-        throw new Error(`不支持的驱动类型: ${driverType}`);
+        // 尝试从驱动注册中心创建（插件化驱动支持）
+        try {
+          const registry = getDriverRegistry();
+          if (registry.has(driverType)) {
+            driver = registry.create(driverType, this.config, false);
+          } else {
+            throw new Error(`不支持的驱动类型: ${driverType}`);
+          }
+        } catch (e) {
+          throw new Error(`不支持的驱动类型: ${driverType}`);
+        }
     }
 
     // 缓存驱动实例
@@ -164,18 +208,25 @@ class UKeyManager extends EventEmitter {
     let driverTypes;
 
     if (platform === "win32") {
-      // Windows: 国产驱动优先
+      // Windows: 国产驱动优先（v0.39.0: 新增长城、明华、龙脉、FIDO2、OpenPGP）
       driverTypes = [
         DriverTypes.XINJINKE, // 鑫金科
         DriverTypes.FEITIAN, // 飞天诚信
         DriverTypes.WATCHDATA, // 握奇（卫士通）
         DriverTypes.HUADA, // 华大
         DriverTypes.TDR, // 天地融
+        DriverTypes.CHANGCHENG, // 长城信安 (v0.39.0)
+        DriverTypes.MINGHUA, // 明华澳汉 (v0.39.0)
+        DriverTypes.LONGMAI, // 龙脉科技 (v0.39.0)
+        DriverTypes.FIDO2, // FIDO2/WebAuthn (v0.39.0)
+        DriverTypes.OPENPGP, // OpenPGP Card (v0.39.0)
         DriverTypes.PKCS11, // PKCS#11 作为后备
       ];
     } else {
-      // macOS/Linux: PKCS#11 优先（跨平台支持最好）
+      // macOS/Linux: PKCS#11 + FIDO2 + OpenPGP（跨平台支持最好）
       driverTypes = [
+        DriverTypes.FIDO2, // FIDO2 跨平台 (v0.39.0)
+        DriverTypes.OPENPGP, // OpenPGP 跨平台 (v0.39.0)
         DriverTypes.PKCS11, // PKCS#11 跨平台标准
       ];
     }
@@ -256,7 +307,10 @@ class UKeyManager extends EventEmitter {
     if (result?.success) {
       this.emit("unlocked", result);
     } else {
-      this.emit("unlock-failed", result || { success: false, reason: "no_result" });
+      this.emit(
+        "unlock-failed",
+        result || { success: false, reason: "no_result" },
+      );
     }
 
     return result || { success: false, reason: "no_result" };

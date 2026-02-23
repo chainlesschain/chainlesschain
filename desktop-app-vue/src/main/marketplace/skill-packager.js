@@ -47,6 +47,10 @@ class SkillPackager {
       // handler is optional
     }
 
+    if (!metadata) {
+      throw new Error("SKILL.md has no valid frontmatter");
+    }
+
     const pkg = {
       name: metadata.name,
       version: metadata.version,
@@ -55,7 +59,7 @@ class SkillPackager {
       author: metadata.author || "unknown",
       tags: metadata.tags || [],
       skillMd,
-      handler,
+      handlerJs: handler,
       checksum: this.calculateChecksum(skillMd + (handler || "")),
       packagedAt: new Date().toISOString(),
     };
@@ -87,9 +91,10 @@ class SkillPackager {
       errors.push("Invalid name format (lowercase alphanumeric with hyphens)");
     }
 
-    if (pkg.handler) {
+    const handlerContent = pkg.handlerJs || pkg.handler;
+    if (handlerContent) {
       for (const pattern of SECURITY_PATTERNS) {
-        if (pattern.test(pkg.handler)) {
+        if (pattern.test(handlerContent)) {
           errors.push(`Security violation: ${pattern.toString()}`);
         }
       }
@@ -104,39 +109,65 @@ class SkillPackager {
   }
 
   extractMetadata(skillMd) {
-    const metadata = {};
+    if (!skillMd) {
+      return null;
+    }
 
     const frontmatterMatch = skillMd.match(/^---\n([\s\S]*?)\n---/);
-    if (frontmatterMatch) {
-      const yamlContent = frontmatterMatch[1];
-      const lines = yamlContent.split("\n");
+    if (!frontmatterMatch) {
+      return null;
+    }
 
-      for (const line of lines) {
-        const colonIdx = line.indexOf(":");
-        if (colonIdx > 0) {
-          const key = line.substring(0, colonIdx).trim();
-          let value = line.substring(colonIdx + 1).trim();
+    const metadata = {};
+    const yamlContent = frontmatterMatch[1];
+    const lines = yamlContent.split("\n");
+    let currentListKey = null;
 
-          if (
-            (value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))
-          ) {
-            value = value.slice(1, -1);
-          }
-
-          if (value.startsWith("[") && value.endsWith("]")) {
-            value = value
-              .slice(1, -1)
-              .split(",")
-              .map((v) => v.trim().replace(/['"]/g, ""));
-          }
-
-          metadata[key] = value;
+    for (const line of lines) {
+      // Handle YAML list items: "  - value"
+      const listMatch = line.match(/^\s+- (.+)$/);
+      if (listMatch && currentListKey) {
+        const item = listMatch[1].trim().replace(/['"]/g, "");
+        if (!Array.isArray(metadata[currentListKey])) {
+          metadata[currentListKey] = [];
         }
+        metadata[currentListKey].push(item);
+        continue;
+      }
+
+      const colonIdx = line.indexOf(":");
+      if (colonIdx > 0) {
+        const key = line.substring(0, colonIdx).trim();
+        let value = line.substring(colonIdx + 1).trim();
+
+        if (value === "") {
+          // Potential multi-line list key
+          currentListKey = key;
+          metadata[key] = [];
+          continue;
+        }
+
+        currentListKey = null;
+
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.slice(1, -1);
+        }
+
+        if (value.startsWith("[") && value.endsWith("]")) {
+          value = value
+            .slice(1, -1)
+            .split(",")
+            .map((v) => v.trim().replace(/['"]/g, ""));
+        }
+
+        metadata[key] = value;
       }
     }
 
-    return metadata;
+    return Object.keys(metadata).length > 0 ? metadata : null;
   }
 
   calculateChecksum(content) {
