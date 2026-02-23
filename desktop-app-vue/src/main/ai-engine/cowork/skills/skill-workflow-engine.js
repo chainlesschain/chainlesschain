@@ -245,12 +245,43 @@ class SkillWorkflowEngine extends EventEmitter {
       name: `[Workflow] ${workflow.name}`,
     });
 
+    // Build node-to-step mapping for step events
+    const nodeIds = workflow.nodes
+      .filter((n) => n.type !== "start" && n.type !== "end")
+      .map((n) => n.id);
+
     try {
+      // Emit step-level events during execution
+      let stepIndex = 0;
+      const onStepStart = (data) => {
+        const nodeId = nodeIds[stepIndex] || data.stepName;
+        this.emit("step:started", { workflowId, nodeId, stepIndex, ...data });
+      };
+      const onStepComplete = (data) => {
+        const nodeId = nodeIds[stepIndex] || data.stepName;
+        this.emit("step:completed", { workflowId, nodeId, stepIndex, ...data });
+        stepIndex++;
+      };
+      const onStepFail = (data) => {
+        const nodeId = nodeIds[stepIndex] || data.stepName;
+        this.emit("step:failed", { workflowId, nodeId, stepIndex, ...data });
+        stepIndex++;
+      };
+
+      this.pipelineEngine.on("step:started", onStepStart);
+      this.pipelineEngine.on("step:completed", onStepComplete);
+      this.pipelineEngine.on("step:failed", onStepFail);
+
       // Execute the pipeline
       const result = await this.pipelineEngine.executePipeline(pipelineId, {
         ...workflow.variables,
         ...context,
       });
+
+      // Cleanup listeners
+      this.pipelineEngine.off("step:started", onStepStart);
+      this.pipelineEngine.off("step:completed", onStepComplete);
+      this.pipelineEngine.off("step:failed", onStepFail);
 
       workflow.executionCount++;
       workflow.lastExecutedAt = Date.now();

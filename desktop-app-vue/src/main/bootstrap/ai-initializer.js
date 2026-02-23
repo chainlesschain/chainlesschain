@@ -303,7 +303,25 @@ function registerAIInitializers(factory) {
       // 自动连接配置中的服务器
       await mcpAdapter.initializeServers(mcpConfig);
 
-      logger.info("[AI] MCP系统初始化完成");
+      // 初始化MCP发现管理器（热加载 & 动态发现）
+      const {
+        MCPDiscoveryManager,
+      } = require("../mcp/mcp-discovery-manager");
+      const {
+        registerMCPDiscoveryIPC,
+      } = require("../mcp/mcp-discovery-ipc");
+
+      const mcpDiscovery = new MCPDiscoveryManager(
+        mcpManager,
+        mcpConfigLoader,
+      );
+      mcpDiscovery.start();
+      registerMCPDiscoveryIPC({ discoveryManager: mcpDiscovery });
+
+      // Enable config file watching for hot-reload
+      mcpConfigLoader.load(true);
+
+      logger.info("[AI] MCP系统初始化完成（含发现管理器）");
 
       return {
         enabled: true,
@@ -311,6 +329,7 @@ function registerAIInitializers(factory) {
         mcpAdapter,
         mcpSecurity,
         mcpConfigLoader,
+        mcpDiscovery,
       };
     },
   });

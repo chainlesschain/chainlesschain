@@ -1,5 +1,5 @@
 <template>
-  <div class="condition-node" :class="{ selected }">
+  <div class="condition-node" :class="[{ selected }, statusClass]">
     <Handle type="target" :position="Position.Top" />
     <div class="diamond">
       <div class="diamond-content">
@@ -27,11 +27,27 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { Handle, Position } from "@vue-flow/core";
+import { useWorkflowDesignerStore } from "../../stores/workflow-designer";
 
-defineProps({
+const props = defineProps({
+  id: String,
   data: { type: Object, required: true },
   selected: { type: Boolean, default: false },
+});
+
+const store = useWorkflowDesignerStore();
+
+const executionStatus = computed(() => {
+  return store.nodeStatuses[props.id] || null;
+});
+
+const statusClass = computed(() => {
+  if (executionStatus.value === "running") return "condition-node--running";
+  if (executionStatus.value === "completed") return "condition-node--completed";
+  if (executionStatus.value === "failed") return "condition-node--failed";
+  return "";
 });
 </script>
 
@@ -64,6 +80,28 @@ defineProps({
     0 0 0 2px rgba(250, 173, 20, 0.3),
     0 2px 8px rgba(250, 173, 20, 0.25);
 }
+
+.condition-node--running .diamond {
+  animation: pulse-diamond 1.5s ease-in-out infinite;
+}
+.condition-node--completed .diamond {
+  border-color: #52c41a;
+  background: #f6ffed;
+}
+.condition-node--failed .diamond {
+  border-color: #ff4d4f;
+  background: #fff2f0;
+}
+
+@keyframes pulse-diamond {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.3), 0 2px 6px rgba(250, 173, 20, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.15), 0 2px 8px rgba(24, 144, 255, 0.2);
+  }
+}
+
 .diamond-content {
   transform: rotate(-45deg);
   text-align: center;
