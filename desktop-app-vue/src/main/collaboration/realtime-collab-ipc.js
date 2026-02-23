@@ -17,13 +17,23 @@
  * @module collaboration/realtime-collab-ipc
  */
 
-const { ipcMain } = require('electron');
 const { logger } = require('../utils/logger.js');
 
 /**
  * Register all real-time collaboration IPC handlers
+ * @param {object} database - SQLite database instance
+ * @param {object} [_deps={}] - Optional dependency overrides for testing
+ * @param {object} [_deps.ipcMain] - ipcMain instance (injected in tests)
+ * @param {object} [_deps.BrowserWindow] - BrowserWindow class (injected in tests)
  */
-function registerRealtimeCollabIPC(database) {
+function registerRealtimeCollabIPC(database, _deps = {}) {
+  // In production (Electron runtime), require('electron') returns the real APIs.
+  // In tests we inject mocks via _deps to avoid resolving the npm electron stub.
+  // yjs is ESM-only, so require('yjs') fails in CJS test environments; inject via _deps.Y.
+  const _electron = (_deps.ipcMain !== undefined) ? null : require('electron');
+  const ipcMain = _deps.ipcMain !== undefined ? _deps.ipcMain : _electron.ipcMain;
+  const BrowserWindow = _deps.BrowserWindow !== undefined ? _deps.BrowserWindow : _electron.BrowserWindow;
+  const getY = () => _deps.Y !== undefined ? _deps.Y : require('yjs');
   logger.info('[IPC] 注册实时协作IPC处理器 (21个handlers)');
 
   // ========================================
@@ -451,7 +461,6 @@ function registerRealtimeCollabIPC(database) {
       // Set up subscription that sends events to renderer
       const unsubscribe = manager.subscribeToChanges(docId, (event) => {
         // Send event to all renderer windows
-        const { BrowserWindow } = require('electron');
         for (const win of BrowserWindow.getAllWindows()) {
           win.webContents.send('collab:document-event', { docId, event });
         }
@@ -525,7 +534,7 @@ function registerRealtimeCollabIPC(database) {
             : yjsManager.documents?.get(documentId);
 
           if (doc) {
-            const Y = require('yjs');
+            const Y = getY();
             initialState = Array.from(Y.encodeStateAsUpdate(doc));
           }
         }
@@ -562,7 +571,7 @@ function registerRealtimeCollabIPC(database) {
       }
 
       // Apply update to main process Y.Doc
-      const Y = require('yjs');
+      const Y = getY();
       const updateArray = new Uint8Array(update);
 
       try {
@@ -600,7 +609,6 @@ function registerRealtimeCollabIPC(database) {
 
       // Broadcast to other renderer windows (multi-window support)
       try {
-        const { BrowserWindow } = require('electron');
         const senderWebContentsId = _event?.sender?.id;
 
         for (const win of BrowserWindow.getAllWindows()) {

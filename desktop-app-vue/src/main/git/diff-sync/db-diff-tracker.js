@@ -703,6 +703,17 @@ class DbDiffTracker extends EventEmitter {
     this.removeAllListeners();
     logger.info("[DbDiffTracker] Destroyed");
   }
+
+  /**
+   * Public: install triggers for a specific table (for testing / dynamic tracking)
+   * @param {string} tableName
+   */
+  async trackTable(tableName) {
+    if (!this.trackedTables.includes(tableName)) {
+      this.trackedTables.push(tableName);
+    }
+    await this._installTriggers(tableName);
+  }
 }
 
 module.exports = {

@@ -157,11 +157,57 @@ ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
         "mode": "hybrid",
         "signAlgorithm": "ML-DSA-65",
         "kemAlgorithm": "ML-KEM-768"
+      },
+      "otaDeployment": {
+        "enabled": true,
+        "smDpAddress": "smdp.chainlesschain.com",
+        "batchSize": 10
+      },
+      "teeIntegration": {
+        "enabled": true,
+        "trustedUI": true,
+        "sealedStorage": true,
+        "remoteAttestation": true,
+        "dualSignature": false
+      },
+      "roaming": {
+        "enabled": true,
+        "policy": "standard",
+        "maxDurationHours": 24,
+        "signLimitPerDay": 100,
+        "regionWhitelist": ["CN"]
+      },
+      "zkp": {
+        "enabled": true,
+        "defaultScheme": "plonk",
+        "proofCacheSize": 50
+      },
+      "satellite": {
+        "enabled": false,
+        "preferredSystem": "TIANTONG",
+        "autoSwitch": true,
+        "beidouEnabled": false,
+        "offlineQueueSize": 100
+      },
+      "hsmFederation": {
+        "enabled": false,
+        "cosignMode": "2of2",
+        "approvalPolicy": "auto",
+        "amountThreshold": 10000,
+        "auditEnabled": true,
+        "failoverEnabled": true
       }
     }
   }
 }
 ```
+
+- `otaDeployment`: eSIM OTA远程配置，`smDpAddress`为SM-DP+服务器地址
+- `teeIntegration`: TEE可信执行环境，`dualSignature`启用SIMKey+TEE双重签名
+- `roaming`: 跨运营商漫游，`policy`可选 full/standard/limited/verify_only
+- `zkp`: 零知识证明，`defaultScheme`可选 plonk/groth16/stark/bulletproofs/bbs_plus
+- `satellite`: 卫星通信SIM，需要天通SIM卡或双模终端
+- `hsmFederation`: HSM联合认证，`cosignMode`可选 2of2/2of3/sequential/parallel
 
 ### 自动锁定
 

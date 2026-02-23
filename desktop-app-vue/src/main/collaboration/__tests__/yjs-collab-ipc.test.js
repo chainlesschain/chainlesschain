@@ -10,15 +10,13 @@
  *
  * Architecture:
  *   - The source is a CJS module that does `const { ipcMain } = require('electron')`.
- *   - vitest.config.ts aliases `electron` to tests/__mocks__/electron.ts (ESM).
- *   - With interopDefault:true, CJS require('electron') returns the mock's default export
- *     which contains { ipcMain, BrowserWindow, ... }.
- *   - We use vi.spyOn(ipcMain, 'handle') to capture registered handlers into
- *     capturedHandlers[], then invoke them directly in each test.
- *   - BrowserWindow.getAllWindows is added as a plain spy on the mock object.
- *   - vitest.config has mockReset:true + restoreMocks:true, so all spies are reset
- *     between tests.  We re-register handlers in beforeAll once; capturedHandlers[]
- *     is populated then and survives resets because it is a plain object.
+ *   - We use vi.hoisted() to create capturedHandlers and config BEFORE any vi.mock()
+ *     factories run (vi.mock is hoisted to the top of the file by vitest).
+ *   - vi.mock('electron', ...) provides a controlled ipcMain whose handle() directly
+ *     writes into capturedHandlers, and BrowserWindow.getAllWindows() reads config.allWindows.
+ *   - This avoids the fragile vi.spyOn(electronMock.ipcMain, 'handle') pattern, which
+ *     failed due to ESM/CJS interop: the source's require('electron') did not reliably
+ *     return the same ipcMain object reference as the test's ESM import.
  */
 
 import {
@@ -32,23 +30,32 @@ import {
 } from "vitest";
 
 // ---------------------------------------------------------------------------
-// Import the alias mock's ipcMain and BrowserWindow so we can spy on them.
-// Because vitest.config.ts aliases 'electron' → tests/__mocks__/electron.ts,
-// this import resolves to that alias file — the same object that the CJS
-// source module sees via require('electron') with interopDefault:true.
-// Use named imports (not default) to avoid CJS-ESM interop issues.
+// Shared mutable state for per-test behaviour control.
+// Plain module-level const — no vi.hoisted needed since we no longer use
+// vi.mock('electron', factory).  registerRealtimeCollabIPC() now accepts
+// { ipcMain, BrowserWindow } as an injectable _deps parameter, so we pass
+// our mock implementations directly instead of relying on module-level mocking.
 // ---------------------------------------------------------------------------
-import * as electronMock from "electron";
-
 const capturedHandlers = {};
 
-// ---------------------------------------------------------------------------
-// Shared config object for controlling per-test behaviour
-// ---------------------------------------------------------------------------
 const config = {
   allWindows: [],
   docToReturn: null,
   yjsManagerActive: true,
+};
+
+// ipcMain mock: captures channel→handler pairs for direct invocation in tests.
+const mockIpcMain = {
+  handle: (channel, handler) => {
+    capturedHandlers[channel] = handler;
+  },
+};
+
+// BrowserWindow mock: getAllWindows() reads config.allWindows at call-time so
+// individual tests can control the window list (including Object.defineProperty
+// overrides for error-injection tests).
+const mockBrowserWindow = {
+  getAllWindows: () => config.allWindows,
 };
 
 let lastApplyUpdateCall = null;
@@ -73,12 +80,14 @@ vi.mock("../realtime-collab-manager.js", () => ({
   }),
 }));
 
-vi.mock("yjs", () => ({
+// yjs is ESM-only and cannot be require()'d in the CJS test environment.
+// The source now accepts _deps.Y so we pass a plain object mock directly.
+const mockY = {
   encodeStateAsUpdate: (...a) => encodeStateAsUpdateImpl(...a),
   applyUpdate: (...a) => {
     lastApplyUpdateCall = a;
   },
-}));
+};
 
 vi.mock("uuid", () => ({
   v4: () => "uuid-test",
@@ -88,10 +97,8 @@ vi.mock("../yjs-collab-manager.js", () => ({}));
 
 // ---------------------------------------------------------------------------
 // Load and register handlers once in beforeAll.
-//
-// We spy on ipcMain.handle BEFORE importing the source module so that
-// all ipcMain.handle(channel, handler) calls are intercepted.
-// The spy captures each (channel, handler) pair into capturedHandlers.
+// capturedHandlers is already populated when registerRealtimeCollabIPC() calls
+// ipcMain.handle() via the mock above.
 // ---------------------------------------------------------------------------
 function makeMockDb() {
   const stmtRun = vi.fn();
@@ -101,28 +108,13 @@ function makeMockDb() {
 
 let baseDb;
 
+const mockDeps = { ipcMain: mockIpcMain, BrowserWindow: mockBrowserWindow, Y: mockY };
+
 beforeAll(async () => {
   baseDb = makeMockDb();
-
-  // Spy on ipcMain.handle — capture channel→handler pairs.
-  // Use vi.spyOn with a custom implementation that:
-  //   a) saves the handler for test invocation
-  //   b) does NOT call the original (the alias mock's vi.fn())
-  vi.spyOn(electronMock.ipcMain, "handle").mockImplementation(
-    (channel, handler) => {
-      capturedHandlers[channel] = handler;
-    },
-  );
-
-  // Add BrowserWindow.getAllWindows as a configurable function on the mock class.
-  // The source does `const { BrowserWindow } = require('electron')` INSIDE the handler,
-  // but the alias mock exports BrowserWindow as a constructor vi.fn() with no static
-  // getAllWindows.  We add it here so handlers can call BrowserWindow.getAllWindows().
-  electronMock.BrowserWindow.getAllWindows = () => config.allWindows;
-
   const { registerRealtimeCollabIPC } =
     await import("../realtime-collab-ipc.js");
-  registerRealtimeCollabIPC(baseDb);
+  registerRealtimeCollabIPC(baseDb, mockDeps);
 });
 
 beforeEach(() => {
@@ -354,7 +346,7 @@ describe("Yjs Collab IPC Handlers", () => {
       const freshDb = makeMockDb();
       const { registerRealtimeCollabIPC } =
         await import("../realtime-collab-ipc.js");
-      registerRealtimeCollabIPC(freshDb);
+      registerRealtimeCollabIPC(freshDb, mockDeps);
 
       await capturedHandlers["collab:yjs-update"](
         { sender: { id: 1 } },
@@ -365,14 +357,14 @@ describe("Yjs Collab IPC Handlers", () => {
       expect(freshDb._stmtRun).toHaveBeenCalled();
 
       // Re-register with original db to restore state for remaining tests
-      registerRealtimeCollabIPC(baseDb);
+      registerRealtimeCollabIPC(baseDb, mockDeps);
     });
 
     it("SQL statement contains INSERT INTO collab_yjs_updates", async () => {
       const freshDb = makeMockDb();
       const { registerRealtimeCollabIPC } =
         await import("../realtime-collab-ipc.js");
-      registerRealtimeCollabIPC(freshDb);
+      registerRealtimeCollabIPC(freshDb, mockDeps);
 
       await capturedHandlers["collab:yjs-update"](
         { sender: { id: 1 } },
@@ -382,20 +374,20 @@ describe("Yjs Collab IPC Handlers", () => {
       const prepareArg = freshDb.prepare.mock.calls[0][0];
       expect(prepareArg).toMatch(/INSERT INTO collab_yjs_updates/i);
 
-      registerRealtimeCollabIPC(baseDb);
+      registerRealtimeCollabIPC(baseDb, mockDeps);
     });
 
     it("still returns success:true when database is null", async () => {
       const { registerRealtimeCollabIPC } =
         await import("../realtime-collab-ipc.js");
-      registerRealtimeCollabIPC(null);
+      registerRealtimeCollabIPC(null, mockDeps);
 
       const result = await capturedHandlers["collab:yjs-update"](
         { sender: { id: 1 } },
         { documentId: "doc-nodb", update: [1, 2] },
       );
 
-      registerRealtimeCollabIPC(baseDb);
+      registerRealtimeCollabIPC(baseDb, mockDeps);
       expect(result.success).toBe(true);
     });
   });
@@ -434,14 +426,14 @@ describe("Yjs Collab IPC Handlers", () => {
       const freshDb = makeMockDb();
       const { registerRealtimeCollabIPC } =
         await import("../realtime-collab-ipc.js");
-      registerRealtimeCollabIPC(freshDb);
+      registerRealtimeCollabIPC(freshDb, mockDeps);
 
       await capturedHandlers["collab:yjs-disconnect"](
         {},
         { documentId: "doc-clean" },
       );
 
-      registerRealtimeCollabIPC(baseDb);
+      registerRealtimeCollabIPC(baseDb, mockDeps);
       expect(freshDb.prepare).not.toHaveBeenCalled();
     });
   });
