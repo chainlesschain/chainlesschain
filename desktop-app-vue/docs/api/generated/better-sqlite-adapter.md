@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/better-sqlite-adapter.js`
 
-**Generated**: 2026-02-23T00:28:19.482Z
+**Generated**: 2026-02-23T01:40:12.174Z
 
 ---
 

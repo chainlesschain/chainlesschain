@@ -2,7 +2,7 @@
 
 **Source**: `src/main/automation/automation-ipc.js`
 
-**Generated**: 2026-02-23T00:28:19.500Z
+**Generated**: 2026-02-23T01:40:12.193Z
 
 ---
 

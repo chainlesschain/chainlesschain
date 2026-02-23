@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/voice-video-ipc.js`
 
-**Generated**: 2026-02-23T00:28:19.445Z
+**Generated**: 2026-02-23T01:40:12.136Z
 
 ---
 

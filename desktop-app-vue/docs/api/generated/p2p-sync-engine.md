@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/p2p-sync-engine.js`
 
-**Generated**: 2026-02-23T00:28:19.416Z
+**Generated**: 2026-02-23T01:40:12.104Z
 
 ---
 
