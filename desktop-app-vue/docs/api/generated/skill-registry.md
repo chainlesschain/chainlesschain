@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/skills/skill-registry.js`
 
-**Generated**: 2026-02-22T01:23:36.775Z
+**Generated**: 2026-02-23T00:28:19.518Z
 
 ---
 

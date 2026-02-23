@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-02-22T01:23:36.923Z
+**Generated**: 2026-02-23T00:28:19.658Z
 
 ---
 
@@ -8,13 +8,13 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 976 | 15.91 MB |
+| main | 980 | 15.95 MB |
 | renderer | 12 | 0.05 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 976
+**Files**: 980
 
 **Top 10 Largest Files**:
 
@@ -24,7 +24,7 @@
 4. `src/main/browser/browser-ipc.js` - 96.8 KB
 5. `src/main/remote/browser-extension-server.js` - 87.7 KB
 6. `src/main/monitoring/error-monitor.js` - 84.6 KB
-7. `src/main/ipc/ipc-registry.js` - 83.5 KB
+7. `src/main/ipc/ipc-registry.js` - 84.3 KB
 8. `src/main/skill-tool-system/additional-tools-v3-handler.js` - 78.0 KB
 9. `src/main/ai-engine/extended-tools-11.js` - 77.5 KB
 10. `src/main/llm/llm-ipc.js` - 77.3 KB
