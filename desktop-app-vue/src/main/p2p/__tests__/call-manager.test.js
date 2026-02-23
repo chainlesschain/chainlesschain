@@ -168,7 +168,7 @@ describe("CallManager", () => {
   // initialize()
   // ─────────────────────────────────────────────────────────────────────────
   describe("initialize()", () => {
-    it("should create call_rooms and call_participants tables via db.exec()", async () => {
+    it("should create call_rooms and call_participants tables on initialize", async () => {
       // recoverActiveRooms reads active rooms — return empty array
       innerDb._prep.all.mockReturnValue([]);
 
@@ -209,8 +209,8 @@ describe("CallManager", () => {
     it("should recover active rooms from the database on startup", async () => {
       // First call: active rooms list; second call: participants for that room
       innerDb._prep.all
-        .mockReturnValueOnce([makeRoomRow()])          // active rooms
-        .mockReturnValueOnce([makeParticipantRow()]);  // participants for room
+        .mockReturnValueOnce([makeRoomRow()]) // active rooms
+        .mockReturnValueOnce([makeParticipantRow()]); // participants for room
 
       await manager.initialize();
 
@@ -247,7 +247,7 @@ describe("CallManager", () => {
 
       const prepCalls = innerDb.prepare.mock.calls.map((c) => c[0]);
       const insertCall = prepCalls.find((sql) =>
-        sql.includes("INSERT INTO call_rooms")
+        sql.includes("INSERT INTO call_rooms"),
       );
       expect(insertCall).toBeTruthy();
     });
@@ -257,7 +257,7 @@ describe("CallManager", () => {
 
       const prepCalls = innerDb.prepare.mock.calls.map((c) => c[0]);
       const hostInsert = prepCalls.find(
-        (sql) => sql.includes("call_participants") && sql.includes("INSERT")
+        (sql) => sql.includes("call_participants") && sql.includes("INSERT"),
       );
       expect(hostInsert).toBeTruthy();
     });
@@ -270,7 +270,7 @@ describe("CallManager", () => {
 
       expect(spy).toHaveBeenCalledOnce();
       expect(spy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "voice", status: "active" })
+        expect.objectContaining({ type: "voice", status: "active" }),
       );
     });
 
@@ -320,9 +320,9 @@ describe("CallManager", () => {
       const roomRow = makeRoomRow();
       // room lookup, participant count, existing participant check
       innerDb._prep.get
-        .mockReturnValueOnce(roomRow)             // active room found
-        .mockReturnValueOnce({ count: 1 })        // participant count (not full)
-        .mockReturnValueOnce(null);               // not already joined
+        .mockReturnValueOnce(roomRow) // active room found
+        .mockReturnValueOnce({ count: 1 }) // participant count (not full)
+        .mockReturnValueOnce(null); // not already joined
 
       const result = await manager.joinRoom("test-uuid-1");
       expect(result.success).toBe(true);
@@ -339,7 +339,7 @@ describe("CallManager", () => {
 
       const prepCalls = innerDb.prepare.mock.calls.map((c) => c[0]);
       const insertCall = prepCalls.find(
-        (sql) => sql.includes("call_participants") && sql.includes("INSERT")
+        (sql) => sql.includes("call_participants") && sql.includes("INSERT"),
       );
       expect(insertCall).toBeTruthy();
     });
@@ -418,7 +418,7 @@ describe("CallManager", () => {
 
       const prepCalls = innerDb.prepare.mock.calls.map((c) => c[0]);
       const updateCall = prepCalls.find(
-        (sql) => sql.includes("call_participants") && sql.includes("left")
+        (sql) => sql.includes("call_participants") && sql.includes("left"),
       );
       expect(updateCall).toBeTruthy();
     });
@@ -441,7 +441,7 @@ describe("CallManager", () => {
       innerDb._prep.run.mockReturnValue({ changes: 1 });
       // _checkRoomEmpty: count = 0 → triggers endRoom
       innerDb._prep.get
-        .mockReturnValueOnce({ count: 0 })  // checkRoomEmpty
+        .mockReturnValueOnce({ count: 0 }) // checkRoomEmpty
         .mockReturnValueOnce(makeRoomRow()); // endRoom room lookup
 
       await manager.leaveRoom("test-uuid-1");
@@ -473,7 +473,7 @@ describe("CallManager", () => {
         (sql) =>
           sql.includes("call_rooms") &&
           sql.includes("ended") &&
-          sql.includes("UPDATE")
+          sql.includes("UPDATE"),
       );
       expect(updateCall).toBeTruthy();
     });
@@ -488,7 +488,7 @@ describe("CallManager", () => {
 
       expect(spy).toHaveBeenCalledOnce();
       expect(spy).toHaveBeenCalledWith(
-        expect.objectContaining({ roomId: "test-uuid-1" })
+        expect.objectContaining({ roomId: "test-uuid-1" }),
       );
     });
 
@@ -499,7 +499,7 @@ describe("CallManager", () => {
 
       const prepCalls = innerDb.prepare.mock.calls.map((c) => c[0]);
       const leftUpdate = prepCalls.find(
-        (sql) => sql.includes("call_participants") && sql.includes("left")
+        (sql) => sql.includes("call_participants") && sql.includes("left"),
       );
       expect(leftUpdate).toBeTruthy();
     });
@@ -537,8 +537,8 @@ describe("CallManager", () => {
 
     it("should return success=true with rooms array", async () => {
       innerDb._prep.all
-        .mockReturnValueOnce([makeRoomRow()])   // rooms query
-        .mockReturnValueOnce([]);               // participants for that room
+        .mockReturnValueOnce([makeRoomRow()]) // rooms query
+        .mockReturnValueOnce([]); // participants for that room
 
       const result = await manager.getActiveRooms();
       expect(result.success).toBe(true);
@@ -558,7 +558,7 @@ describe("CallManager", () => {
 
       const prepCalls = innerDb.prepare.mock.calls.map((c) => c[0]);
       const roomsQuery = prepCalls.find(
-        (sql) => sql.includes("call_rooms") && sql.includes("active")
+        (sql) => sql.includes("call_rooms") && sql.includes("active"),
       );
       expect(roomsQuery).toBeTruthy();
     });
@@ -602,9 +602,7 @@ describe("CallManager", () => {
       await manager.getParticipants("my-room-42");
 
       const prepCalls = innerDb.prepare.mock.calls.map((c) => c[0]);
-      const query = prepCalls.find((sql) =>
-        sql.includes("call_participants")
-      );
+      const query = prepCalls.find((sql) => sql.includes("call_participants"));
       expect(query).toBeTruthy();
     });
 
@@ -613,8 +611,8 @@ describe("CallManager", () => {
       await manager.getParticipants("test-uuid-1", true);
 
       const prepCalls = innerDb.prepare.mock.calls.map((c) => c[0]);
-      const query = prepCalls.find((sql) =>
-        sql.includes("call_participants") && sql.includes("left")
+      const query = prepCalls.find(
+        (sql) => sql.includes("call_participants") && sql.includes("left"),
       );
       expect(query).toBeTruthy();
     });
@@ -627,7 +625,8 @@ describe("CallManager", () => {
       // When activeOnly=false, the query should NOT contain the 'left' filter
       const queryWithLeft = prepCalls.find(
         (sql) =>
-          sql.includes("call_participants") && !sql.includes("status != 'left'")
+          sql.includes("call_participants") &&
+          !sql.includes("status != 'left'"),
       );
       expect(queryWithLeft).toBeTruthy();
     });
@@ -709,7 +708,7 @@ describe("CallManager", () => {
       manager.setupP2PListeners();
       expect(p2pManager.on).toHaveBeenCalledWith(
         "message:call-invite",
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 

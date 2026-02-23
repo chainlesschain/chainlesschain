@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Quantization Manager - Local Model Quantization Tool (F5)
@@ -11,13 +11,13 @@
  * @version 1.0.0
  */
 
-const { EventEmitter } = require('events');
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
-const path = require('path');
-const { GGUFQuantizer, SUPPORTED_LEVELS } = require('./gguf-quantizer.js');
-const { GPTQQuantizer } = require('./gptq-quantizer.js');
+const { EventEmitter } = require("events");
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
+const path = require("path");
+const { GGUFQuantizer, SUPPORTED_LEVELS } = require("./gguf-quantizer.js");
+const { GPTQQuantizer } = require("./gptq-quantizer.js");
 
 /** Testability shim – override in tests to inject mocks. */
 const _deps = { uuidv4, fs };
@@ -26,29 +26,7 @@ const _deps = { uuidv4, fs };
 // Constants
 // ============================================================
 
-const OLLAMA_API_BASE = process.env.OLLAMA_HOST || 'http://localhost:11434';
-
-const CREATE_TABLE_SQL = `
-  CREATE TABLE IF NOT EXISTS quantization_jobs (
-    id TEXT PRIMARY KEY,
-    input_path TEXT NOT NULL,
-    output_path TEXT NOT NULL,
-    quant_type TEXT NOT NULL CHECK(quant_type IN ('gguf','gptq')),
-    quant_level TEXT,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','completed','failed','cancelled')),
-    progress REAL DEFAULT 0,
-    file_size_bytes INTEGER DEFAULT 0,
-    error_message TEXT,
-    config TEXT,
-    started_at INTEGER,
-    completed_at INTEGER,
-    created_at INTEGER NOT NULL
-  );
-`;
-
-const CREATE_INDEX_SQL = `
-  CREATE INDEX IF NOT EXISTS idx_quantization_jobs_status ON quantization_jobs(status);
-`;
+const OLLAMA_API_BASE = process.env.OLLAMA_HOST || "http://localhost:11434";
 
 // ============================================================
 // QuantizationManager
@@ -78,16 +56,34 @@ class QuantizationManager extends EventEmitter {
     }
 
     if (!this.database) {
-      throw new Error('Database is required for QuantizationManager');
+      throw new Error("Database is required for QuantizationManager");
     }
 
     try {
-      this.database.exec(CREATE_TABLE_SQL);
-      this.database.exec(CREATE_INDEX_SQL);
+      this.database.exec(`
+        CREATE TABLE IF NOT EXISTS quantization_jobs (
+          id TEXT PRIMARY KEY,
+          input_path TEXT NOT NULL,
+          output_path TEXT NOT NULL,
+          quant_type TEXT NOT NULL CHECK(quant_type IN ('gguf','gptq')),
+          quant_level TEXT,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','completed','failed','cancelled')),
+          progress REAL DEFAULT 0,
+          file_size_bytes INTEGER DEFAULT 0,
+          error_message TEXT,
+          config TEXT,
+          started_at INTEGER,
+          completed_at INTEGER,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_quantization_jobs_status ON quantization_jobs(status);
+      `);
       this.initialized = true;
-      logger.info('[QuantizationManager] Initialized successfully');
+      logger.info("[QuantizationManager] Initialized successfully");
     } catch (err) {
-      logger.error('[QuantizationManager] Failed to initialize', { error: err.message });
+      logger.error("[QuantizationManager] Failed to initialize", {
+        error: err.message,
+      });
       throw err;
     }
   }
@@ -111,9 +107,9 @@ class QuantizationManager extends EventEmitter {
       id: jobId,
       input_path: inputPath,
       output_path: outputPath,
-      quant_type: 'gguf',
+      quant_type: "gguf",
       quant_level: level,
-      status: 'pending',
+      status: "pending",
       progress: 0,
       file_size_bytes: 0,
       error_message: null,
@@ -126,10 +122,28 @@ class QuantizationManager extends EventEmitter {
     this.database.run(
       `INSERT INTO quantization_jobs (id, input_path, output_path, quant_type, quant_level, status, progress, file_size_bytes, error_message, config, started_at, completed_at, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [job.id, job.input_path, job.output_path, job.quant_type, job.quant_level, job.status, job.progress, job.file_size_bytes, job.error_message, job.config, job.started_at, job.completed_at, job.created_at]
+      [
+        job.id,
+        job.input_path,
+        job.output_path,
+        job.quant_type,
+        job.quant_level,
+        job.status,
+        job.progress,
+        job.file_size_bytes,
+        job.error_message,
+        job.config,
+        job.started_at,
+        job.completed_at,
+        job.created_at,
+      ],
     );
 
-    logger.info('[QuantizationManager] Created GGUF job', { jobId, level, inputPath });
+    logger.info("[QuantizationManager] Created GGUF job", {
+      jobId,
+      level,
+      inputPath,
+    });
 
     // Start quantization asynchronously
     this._runGGUFJob(job);
@@ -155,9 +169,9 @@ class QuantizationManager extends EventEmitter {
       id: jobId,
       input_path: inputPath,
       output_path: outputPath,
-      quant_type: 'gptq',
+      quant_type: "gptq",
       quant_level: `${options.bits || 4}bit-g${options.groupSize || 128}`,
-      status: 'pending',
+      status: "pending",
       progress: 0,
       file_size_bytes: 0,
       error_message: null,
@@ -170,10 +184,24 @@ class QuantizationManager extends EventEmitter {
     this.database.run(
       `INSERT INTO quantization_jobs (id, input_path, output_path, quant_type, quant_level, status, progress, file_size_bytes, error_message, config, started_at, completed_at, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [job.id, job.input_path, job.output_path, job.quant_type, job.quant_level, job.status, job.progress, job.file_size_bytes, job.error_message, job.config, job.started_at, job.completed_at, job.created_at]
+      [
+        job.id,
+        job.input_path,
+        job.output_path,
+        job.quant_type,
+        job.quant_level,
+        job.status,
+        job.progress,
+        job.file_size_bytes,
+        job.error_message,
+        job.config,
+        job.started_at,
+        job.completed_at,
+        job.created_at,
+      ],
     );
 
-    logger.info('[QuantizationManager] Created GPTQ job', { jobId, inputPath });
+    logger.info("[QuantizationManager] Created GPTQ job", { jobId, inputPath });
 
     // Start quantization asynchronously
     this._runGPTQJob(job, options);
@@ -191,8 +219,8 @@ class QuantizationManager extends EventEmitter {
     this._ensureInitialized();
 
     const row = this.database.get(
-      'SELECT * FROM quantization_jobs WHERE id = ?',
-      [jobId]
+      "SELECT * FROM quantization_jobs WHERE id = ?",
+      [jobId],
     );
 
     if (!row) {
@@ -222,7 +250,10 @@ class QuantizationManager extends EventEmitter {
 
     const entry = this.runningJobs.get(jobId);
     if (!entry) {
-      logger.warn('[QuantizationManager] No running job found for cancellation', { jobId });
+      logger.warn(
+        "[QuantizationManager] No running job found for cancellation",
+        { jobId },
+      );
       return false;
     }
 
@@ -230,12 +261,12 @@ class QuantizationManager extends EventEmitter {
     this.runningJobs.delete(jobId);
 
     this.database.run(
-      'UPDATE quantization_jobs SET status = ?, completed_at = ? WHERE id = ?',
-      ['cancelled', Date.now(), jobId]
+      "UPDATE quantization_jobs SET status = ?, completed_at = ? WHERE id = ?",
+      ["cancelled", Date.now(), jobId],
     );
 
-    this.emit('job:cancelled', { jobId });
-    logger.info('[QuantizationManager] Job cancelled', { jobId });
+    this.emit("job:cancelled", { jobId });
+    logger.info("[QuantizationManager] Job cancelled", { jobId });
 
     return true;
   }
@@ -255,25 +286,25 @@ class QuantizationManager extends EventEmitter {
 
     const limit = options.limit || 50;
     const offset = options.offset || 0;
-    let sql = 'SELECT * FROM quantization_jobs';
+    let sql = "SELECT * FROM quantization_jobs";
     const params = [];
     const conditions = [];
 
     if (options.status) {
-      conditions.push('status = ?');
+      conditions.push("status = ?");
       params.push(options.status);
     }
 
     if (options.quantType) {
-      conditions.push('quant_type = ?');
+      conditions.push("quant_type = ?");
       params.push(options.quantType);
     }
 
     if (conditions.length > 0) {
-      sql += ' WHERE ' + conditions.join(' AND ');
+      sql += " WHERE " + conditions.join(" AND ");
     }
 
-    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
     const rows = this.database.all(sql, params);
@@ -300,12 +331,14 @@ class QuantizationManager extends EventEmitter {
     this._ensureInitialized();
 
     const job = this.database.get(
-      'SELECT * FROM quantization_jobs WHERE id = ?',
-      [jobId]
+      "SELECT * FROM quantization_jobs WHERE id = ?",
+      [jobId],
     );
 
     if (!job) {
-      logger.warn('[QuantizationManager] Job not found for deletion', { jobId });
+      logger.warn("[QuantizationManager] Job not found for deletion", {
+        jobId,
+      });
       return false;
     }
 
@@ -323,20 +356,22 @@ class QuantizationManager extends EventEmitter {
         } else {
           _deps.fs.unlinkSync(job.output_path);
         }
-        logger.info('[QuantizationManager] Deleted output file', { path: job.output_path });
+        logger.info("[QuantizationManager] Deleted output file", {
+          path: job.output_path,
+        });
       }
     } catch (err) {
-      logger.warn('[QuantizationManager] Failed to delete output file', {
+      logger.warn("[QuantizationManager] Failed to delete output file", {
         path: job.output_path,
         error: err.message,
       });
     }
 
     // Remove DB record
-    this.database.run('DELETE FROM quantization_jobs WHERE id = ?', [jobId]);
+    this.database.run("DELETE FROM quantization_jobs WHERE id = ?", [jobId]);
 
-    this.emit('job:deleted', { jobId });
-    logger.info('[QuantizationManager] Job deleted', { jobId });
+    this.emit("job:deleted", { jobId });
+    logger.info("[QuantizationManager] Job deleted", { jobId });
 
     return true;
   }
@@ -352,12 +387,12 @@ class QuantizationManager extends EventEmitter {
    */
   async importToOllama(modelPath, modelName) {
     if (!modelPath || !modelName) {
-      throw new Error('Both modelPath and modelName are required');
+      throw new Error("Both modelPath and modelName are required");
     }
 
     const modelfile = `FROM ${modelPath}`;
 
-    logger.info('[QuantizationManager] Importing model to Ollama', {
+    logger.info("[QuantizationManager] Importing model to Ollama", {
       modelPath,
       modelName,
     });
@@ -367,14 +402,14 @@ class QuantizationManager extends EventEmitter {
     // Use dynamic import for fetch (Node 18+) or fallback
     let fetchFn;
     try {
-      fetchFn = globalThis.fetch || (await import('node-fetch')).default;
+      fetchFn = globalThis.fetch || (await import("node-fetch")).default;
     } catch (_e) {
       fetchFn = globalThis.fetch;
     }
 
     const response = await fetchFn(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: modelName,
         modelfile: modelfile,
@@ -388,7 +423,7 @@ class QuantizationManager extends EventEmitter {
 
     const result = await response.json();
 
-    logger.info('[QuantizationManager] Model imported to Ollama', {
+    logger.info("[QuantizationManager] Model imported to Ollama", {
       modelName,
       status: result.status,
     });
@@ -415,7 +450,9 @@ class QuantizationManager extends EventEmitter {
    */
   _ensureInitialized() {
     if (!this.initialized) {
-      throw new Error('QuantizationManager is not initialized. Call initialize() first.');
+      throw new Error(
+        "QuantizationManager is not initialized. Call initialize() first.",
+      );
     }
   }
 
@@ -428,10 +465,10 @@ class QuantizationManager extends EventEmitter {
     const quantizer = new GGUFQuantizer({
       onProgress: (progress) => {
         this.database.run(
-          'UPDATE quantization_jobs SET progress = ? WHERE id = ?',
-          [progress, job.id]
+          "UPDATE quantization_jobs SET progress = ? WHERE id = ?",
+          [progress, job.id],
         );
-        this.emit('job:progress', { jobId: job.id, progress });
+        this.emit("job:progress", { jobId: job.id, progress });
       },
       onComplete: () => {
         this.runningJobs.delete(job.id);
@@ -445,36 +482,47 @@ class QuantizationManager extends EventEmitter {
           // Ignore stat errors
         }
         this.database.run(
-          'UPDATE quantization_jobs SET status = ?, progress = 100, file_size_bytes = ?, completed_at = ? WHERE id = ?',
-          ['completed', fileSize, Date.now(), job.id]
+          "UPDATE quantization_jobs SET status = ?, progress = 100, file_size_bytes = ?, completed_at = ? WHERE id = ?",
+          ["completed", fileSize, Date.now(), job.id],
         );
-        this.emit('job:completed', { jobId: job.id, outputPath: job.output_path, fileSize });
-        logger.info('[QuantizationManager] GGUF job completed', { jobId: job.id });
+        this.emit("job:completed", {
+          jobId: job.id,
+          outputPath: job.output_path,
+          fileSize,
+        });
+        logger.info("[QuantizationManager] GGUF job completed", {
+          jobId: job.id,
+        });
       },
       onError: (err) => {
         this.runningJobs.delete(job.id);
         this.database.run(
-          'UPDATE quantization_jobs SET status = ?, error_message = ?, completed_at = ? WHERE id = ?',
-          ['failed', err.message, Date.now(), job.id]
+          "UPDATE quantization_jobs SET status = ?, error_message = ?, completed_at = ? WHERE id = ?",
+          ["failed", err.message, Date.now(), job.id],
         );
-        this.emit('job:failed', { jobId: job.id, error: err.message });
-        logger.error('[QuantizationManager] GGUF job failed', { jobId: job.id, error: err.message });
+        this.emit("job:failed", { jobId: job.id, error: err.message });
+        logger.error("[QuantizationManager] GGUF job failed", {
+          jobId: job.id,
+          error: err.message,
+        });
       },
     });
 
     // Mark as running
     this.database.run(
-      'UPDATE quantization_jobs SET status = ?, started_at = ? WHERE id = ?',
-      ['running', Date.now(), job.id]
+      "UPDATE quantization_jobs SET status = ?, started_at = ? WHERE id = ?",
+      ["running", Date.now(), job.id],
     );
 
-    this.runningJobs.set(job.id, { quantizer, type: 'gguf' });
-    this.emit('job:started', { jobId: job.id, type: 'gguf' });
+    this.runningJobs.set(job.id, { quantizer, type: "gguf" });
+    this.emit("job:started", { jobId: job.id, type: "gguf" });
 
     // Fire and forget — the callbacks handle completion/error
-    quantizer.quantize(job.input_path, job.output_path, job.quant_level).catch(() => {
-      // Error already handled by onError callback
-    });
+    quantizer
+      .quantize(job.input_path, job.output_path, job.quant_level)
+      .catch(() => {
+        // Error already handled by onError callback
+      });
   }
 
   /**
@@ -487,10 +535,10 @@ class QuantizationManager extends EventEmitter {
     const quantizer = new GPTQQuantizer({
       onProgress: (progress) => {
         this.database.run(
-          'UPDATE quantization_jobs SET progress = ? WHERE id = ?',
-          [progress, job.id]
+          "UPDATE quantization_jobs SET progress = ? WHERE id = ?",
+          [progress, job.id],
         );
-        this.emit('job:progress', { jobId: job.id, progress });
+        this.emit("job:progress", { jobId: job.id, progress });
       },
       onComplete: () => {
         this.runningJobs.delete(job.id);
@@ -503,7 +551,9 @@ class QuantizationManager extends EventEmitter {
               const files = _deps.fs.readdirSync(job.output_path);
               for (const file of files) {
                 try {
-                  const fileStat = _deps.fs.statSync(path.join(job.output_path, file));
+                  const fileStat = _deps.fs.statSync(
+                    path.join(job.output_path, file),
+                  );
                   if (fileStat.isFile()) {
                     fileSize += fileStat.size;
                   }
@@ -519,31 +569,40 @@ class QuantizationManager extends EventEmitter {
           // Ignore stat errors
         }
         this.database.run(
-          'UPDATE quantization_jobs SET status = ?, progress = 100, file_size_bytes = ?, completed_at = ? WHERE id = ?',
-          ['completed', fileSize, Date.now(), job.id]
+          "UPDATE quantization_jobs SET status = ?, progress = 100, file_size_bytes = ?, completed_at = ? WHERE id = ?",
+          ["completed", fileSize, Date.now(), job.id],
         );
-        this.emit('job:completed', { jobId: job.id, outputPath: job.output_path, fileSize });
-        logger.info('[QuantizationManager] GPTQ job completed', { jobId: job.id });
+        this.emit("job:completed", {
+          jobId: job.id,
+          outputPath: job.output_path,
+          fileSize,
+        });
+        logger.info("[QuantizationManager] GPTQ job completed", {
+          jobId: job.id,
+        });
       },
       onError: (err) => {
         this.runningJobs.delete(job.id);
         this.database.run(
-          'UPDATE quantization_jobs SET status = ?, error_message = ?, completed_at = ? WHERE id = ?',
-          ['failed', err.message, Date.now(), job.id]
+          "UPDATE quantization_jobs SET status = ?, error_message = ?, completed_at = ? WHERE id = ?",
+          ["failed", err.message, Date.now(), job.id],
         );
-        this.emit('job:failed', { jobId: job.id, error: err.message });
-        logger.error('[QuantizationManager] GPTQ job failed', { jobId: job.id, error: err.message });
+        this.emit("job:failed", { jobId: job.id, error: err.message });
+        logger.error("[QuantizationManager] GPTQ job failed", {
+          jobId: job.id,
+          error: err.message,
+        });
       },
     });
 
     // Mark as running
     this.database.run(
-      'UPDATE quantization_jobs SET status = ?, started_at = ? WHERE id = ?',
-      ['running', Date.now(), job.id]
+      "UPDATE quantization_jobs SET status = ?, started_at = ? WHERE id = ?",
+      ["running", Date.now(), job.id],
     );
 
-    this.runningJobs.set(job.id, { quantizer, type: 'gptq' });
-    this.emit('job:started', { jobId: job.id, type: 'gptq' });
+    this.runningJobs.set(job.id, { quantizer, type: "gptq" });
+    this.emit("job:started", { jobId: job.id, type: "gptq" });
 
     // Fire and forget — the callbacks handle completion/error
     quantizer.quantize(job.input_path, job.output_path, options).catch(() => {

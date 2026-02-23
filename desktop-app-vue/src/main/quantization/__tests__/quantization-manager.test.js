@@ -142,7 +142,8 @@ describe("QuantizationManager", () => {
     it("creates DB table and index and sets initialized flag", async () => {
       await manager.initialize();
 
-      expect(mockDb.exec).toHaveBeenCalledTimes(2);
+      // Source uses a single exec call with both CREATE TABLE and CREATE INDEX statements
+      expect(mockDb.exec).toHaveBeenCalledTimes(1);
       expect(mockDb.exec).toHaveBeenCalledWith(
         expect.stringContaining("CREATE TABLE IF NOT EXISTS quantization_jobs")
       );

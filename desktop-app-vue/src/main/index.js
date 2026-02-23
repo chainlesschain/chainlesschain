@@ -574,7 +574,7 @@ class ChainlessChainApp {
       height: 800,
       minWidth: 800,
       minHeight: 600,
-      backgroundColor: "#ffffff",
+      backgroundColor: "#764ba2", // 与加载动画背景色一致，防止白屏闪烁
       show: process.env.NODE_ENV === "test",
       webPreferences: {
         nodeIntegration: false,
@@ -582,7 +582,7 @@ class ChainlessChainApp {
         preload: path.join(__dirname, "../preload/index.js"),
       },
       titleBarStyle: "hidden",
-      titleBarOverlay: { color: "#ffffff", symbolColor: "#000000" },
+      titleBarOverlay: { color: "#667eea", symbolColor: "#ffffff" },
     });
 
     // 注册所有 IPC (必须在 loadURL/loadFile 之前，确保渲染进程可以使用 IPC)
@@ -599,20 +599,18 @@ class ChainlessChainApp {
       this.mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
     }
 
+    // ready-to-show：页面首帧渲染完成（加载动画已可见）后再切换显示
+    this.mainWindow.once("ready-to-show", () => {
+      if (this.splashWindow) {
+        this.splashWindow.close();
+        this.splashWindow = null;
+      }
+      this.mainWindow?.show();
+      this.mainWindow?.focus();
+    });
+
     this.mainWindow.webContents.on("did-finish-load", () => {
       this.splashWindow?.updateProgress("加载完成", 100);
-      if (this.splashWindow) {
-        setTimeout(() => {
-          this.splashWindow?.close();
-          this.splashWindow = null;
-          this.mainWindow?.show();
-          this.mainWindow?.focus();
-        }, 300);
-      } else {
-        this.mainWindow?.show();
-        this.mainWindow?.focus();
-      }
-
       const { initLogForwarder } = require("./utils/log-forwarder");
       initLogForwarder(this.mainWindow);
     });
