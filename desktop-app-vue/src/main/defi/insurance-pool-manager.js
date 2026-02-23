@@ -50,7 +50,9 @@ class InsurancePoolManager extends EventEmitter {
 
   async _initializeTables() {
     const db = this.database?.db;
-    if (!db) return;
+    if (!db) {
+      return;
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS insurance_pools (
@@ -118,9 +120,17 @@ class InsurancePoolManager extends EventEmitter {
         "Missing required fields: name, coverageType, premiumRate, maxCoverage",
       );
     }
+    if (premiumRate < 0 || premiumRate > 1) {
+      throw new Error("Premium rate must be between 0 and 1");
+    }
+    if (maxCoverage <= 0) {
+      throw new Error("Max coverage must be positive");
+    }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -138,20 +148,29 @@ class InsurancePoolManager extends EventEmitter {
 
   async joinPool(poolId, userId, contribution) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const pool = this.getPool(poolId);
-    if (!pool) throw new Error("Insurance pool not found");
-    if (pool.status !== InsurancePoolStatus.ACTIVE)
+    if (!pool) {
+      throw new Error("Insurance pool not found");
+    }
+    if (pool.status !== InsurancePoolStatus.ACTIVE) {
       throw new Error("Pool is not active");
-    if (contribution <= 0) throw new Error("Contribution must be positive");
+    }
+    if (contribution <= 0) {
+      throw new Error("Contribution must be positive");
+    }
 
     const existing = db
       .prepare(
         "SELECT id FROM insurance_stakes WHERE pool_id = ? AND user_id = ? AND status = 'active'",
       )
       .get(poolId, userId);
-    if (existing) throw new Error("Already staked in this pool");
+    if (existing) {
+      throw new Error("Already staked in this pool");
+    }
 
     const stakeId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -177,7 +196,9 @@ class InsurancePoolManager extends EventEmitter {
 
   async leavePool(poolId, userId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const stake = db
       .prepare(
@@ -185,7 +206,9 @@ class InsurancePoolManager extends EventEmitter {
       )
       .get(poolId, userId);
 
-    if (!stake) throw new Error("No active stake found");
+    if (!stake) {
+      throw new Error("No active stake found");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     if (stake.lock_until && now < stake.lock_until) {
@@ -212,14 +235,29 @@ class InsurancePoolManager extends EventEmitter {
     }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const pool = this.getPool(poolId);
-    if (!pool) throw new Error("Insurance pool not found");
-    if (amount > pool.max_coverage)
+    if (!pool) {
+      throw new Error("Insurance pool not found");
+    }
+    if (amount > pool.max_coverage) {
       throw new Error("Claim exceeds maximum coverage");
-    if (amount > pool.total_staked)
+    }
+    if (amount > pool.total_staked) {
       throw new Error("Insufficient pool funds");
+    }
+
+    const memberStake = db
+      .prepare(
+        "SELECT id FROM insurance_stakes WHERE pool_id = ? AND user_id = ? AND status = 'active'",
+      )
+      .get(poolId, claimant);
+    if (!memberStake) {
+      throw new Error("Only pool members can submit claims");
+    }
 
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -237,38 +275,48 @@ class InsurancePoolManager extends EventEmitter {
 
   async voteClaim(claimId, voterId, approve) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const claim = db
       .prepare("SELECT * FROM insurance_claims WHERE id = ?")
       .get(claimId);
-    if (!claim) throw new Error("Claim not found");
-    if (claim.status !== ClaimStatus.VOTING)
+    if (!claim) {
+      throw new Error("Claim not found");
+    }
+    if (claim.status !== ClaimStatus.VOTING) {
       throw new Error("Claim is not in voting phase");
-    if (claim.claimant === voterId)
+    }
+    if (claim.claimant === voterId) {
       throw new Error("Claimant cannot vote on own claim");
+    }
 
     const stake = db
       .prepare(
         "SELECT id FROM insurance_stakes WHERE pool_id = ? AND user_id = ? AND status = 'active'",
       )
       .get(claim.pool_id, voterId);
-    if (!stake) throw new Error("Only pool participants can vote");
+    if (!stake) {
+      throw new Error("Only pool participants can vote");
+    }
+
+    const existingVote = db
+      .prepare(
+        "SELECT id FROM insurance_votes WHERE claim_id = ? AND voter_id = ?",
+      )
+      .get(claimId, voterId);
+    if (existingVote) {
+      throw new Error("Already voted on this claim");
+    }
 
     const voteId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
 
-    try {
-      db.prepare(
-        `INSERT INTO insurance_votes (id, claim_id, voter_id, approve, voted_at)
-         VALUES (?, ?, ?, ?, ?)`,
-      ).run(voteId, claimId, voterId, approve ? 1 : 0, now);
-    } catch (err) {
-      if (err.message.includes("UNIQUE")) {
-        throw new Error("Already voted on this claim");
-      }
-      throw err;
-    }
+    db.prepare(
+      `INSERT INTO insurance_votes (id, claim_id, voter_id, approve, voted_at)
+       VALUES (?, ?, ?, ?, ?)`,
+    ).run(voteId, claimId, voterId, approve ? 1 : 0, now);
 
     const field = approve ? "votes_for" : "votes_against";
     db.prepare(
@@ -281,14 +329,19 @@ class InsurancePoolManager extends EventEmitter {
 
   async resolveClaim(claimId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const claim = db
       .prepare("SELECT * FROM insurance_claims WHERE id = ?")
       .get(claimId);
-    if (!claim) throw new Error("Claim not found");
-    if (claim.status !== ClaimStatus.VOTING)
+    if (!claim) {
+      throw new Error("Claim not found");
+    }
+    if (claim.status !== ClaimStatus.VOTING) {
       throw new Error("Claim is not in voting phase");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     const approved = claim.votes_for > claim.votes_against;
@@ -326,12 +379,16 @@ class InsurancePoolManager extends EventEmitter {
 
   getPool(poolId) {
     const db = this.database?.db;
-    if (!db) return null;
+    if (!db) {
+      return null;
+    }
 
     const pool = db
       .prepare("SELECT * FROM insurance_pools WHERE id = ?")
       .get(poolId);
-    if (!pool) return null;
+    if (!pool) {
+      return null;
+    }
 
     const participants = db
       .prepare(
@@ -344,7 +401,9 @@ class InsurancePoolManager extends EventEmitter {
 
   async listPools(filters = {}) {
     const db = this.database?.db;
-    if (!db) return { pools: [], total: 0 };
+    if (!db) {
+      return { pools: [], total: 0 };
+    }
 
     const { status, limit = 20, offset = 0 } = filters;
     let query = "SELECT * FROM insurance_pools";
@@ -366,7 +425,9 @@ class InsurancePoolManager extends EventEmitter {
 
   async listClaims(poolId, { status, limit = 20, offset = 0 } = {}) {
     const db = this.database?.db;
-    if (!db) return { claims: [], total: 0 };
+    if (!db) {
+      return { claims: [], total: 0 };
+    }
 
     let query = "SELECT * FROM insurance_claims WHERE pool_id = ?";
     let countQuery =
@@ -388,18 +449,23 @@ class InsurancePoolManager extends EventEmitter {
 
   async getPoolYield(poolId) {
     const pool = this.getPool(poolId);
-    if (!pool) return null;
+    if (!pool) {
+      return null;
+    }
+
+    const yieldRate =
+      pool.total_staked > 0
+        ? (pool.premium_rate * pool.total_staked - pool.claims_paid) /
+          pool.total_staked
+        : 0;
 
     return {
       totalStaked: pool.total_staked,
       claimsPaid: pool.claims_paid,
       premiumRate: pool.premium_rate,
       netValue: pool.total_staked - pool.claims_paid,
-      yieldRate:
-        pool.total_staked > 0
-          ? (pool.premium_rate * pool.total_staked - pool.claims_paid) /
-            pool.total_staked
-          : 0,
+      yieldRate,
+      annualizedReturn: yieldRate * 12,
     };
   }
 }

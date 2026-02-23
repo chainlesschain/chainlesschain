@@ -47,7 +47,9 @@ class InstallmentManager extends EventEmitter {
 
   async _initializeTables() {
     const db = this.database?.db;
-    if (!db) return;
+    if (!db) {
+      return;
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS installment_plans (
@@ -98,9 +100,14 @@ class InstallmentManager extends EventEmitter {
     if (installments < 2 || installments > 24) {
       throw new Error("Installments must be between 2 and 24");
     }
+    if (interestRate < 0) {
+      throw new Error("Interest rate cannot be negative");
+    }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -150,12 +157,17 @@ class InstallmentManager extends EventEmitter {
 
   async approvePlan(planId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const plan = this.getPlan(planId);
-    if (!plan) throw new Error("Plan not found");
-    if (plan.status !== InstallmentStatus.PENDING)
+    if (!plan) {
+      throw new Error("Plan not found");
+    }
+    if (plan.status !== InstallmentStatus.PENDING) {
       throw new Error("Plan is not pending");
+    }
 
     let creditResult = { level: 3, approved: true };
     if (this.creditScoreManager) {
@@ -185,10 +197,14 @@ class InstallmentManager extends EventEmitter {
 
   async makePayment(planId, amount) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const plan = this.getPlan(planId);
-    if (!plan) throw new Error("Plan not found");
+    if (!plan) {
+      throw new Error("Plan not found");
+    }
     if (
       plan.status !== InstallmentStatus.ACTIVE &&
       plan.status !== InstallmentStatus.OVERDUE
@@ -202,7 +218,9 @@ class InstallmentManager extends EventEmitter {
       )
       .get(planId);
 
-    if (!nextPayment) throw new Error("No pending payments");
+    if (!nextPayment) {
+      throw new Error("No pending payments");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     const payAmount = amount || nextPayment.amount;
@@ -243,12 +261,16 @@ class InstallmentManager extends EventEmitter {
 
   getPlan(planId) {
     const db = this.database?.db;
-    if (!db) return null;
+    if (!db) {
+      return null;
+    }
 
     const plan = db
       .prepare("SELECT * FROM installment_plans WHERE id = ?")
       .get(planId);
-    if (!plan) return null;
+    if (!plan) {
+      return null;
+    }
 
     const payments = db
       .prepare(
@@ -267,7 +289,9 @@ class InstallmentManager extends EventEmitter {
 
   async listPlans(userId, filters = {}) {
     const db = this.database?.db;
-    if (!db) return { plans: [], total: 0 };
+    if (!db) {
+      return { plans: [], total: 0 };
+    }
 
     const { status, role = "buyer", limit = 20, offset = 0 } = filters;
     const userField = role === "seller" ? "seller_id" : "buyer_id";
@@ -291,7 +315,9 @@ class InstallmentManager extends EventEmitter {
 
   async checkOverdue() {
     const db = this.database?.db;
-    if (!db) return { checked: 0, overdue: 0 };
+    if (!db) {
+      return { checked: 0, overdue: 0 };
+    }
 
     const now = Math.floor(Date.now() / 1000);
 
@@ -315,7 +341,9 @@ class InstallmentManager extends EventEmitter {
 
   async handleDefault(planId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     db.prepare(
@@ -340,7 +368,9 @@ class InstallmentManager extends EventEmitter {
 
   getSchedule(planId) {
     const plan = this.getPlan(planId);
-    if (!plan) return null;
+    if (!plan) {
+      return null;
+    }
     return plan.payments;
   }
 

@@ -46,7 +46,9 @@ class GroupBuyingManager extends EventEmitter {
 
   async _initializeTables() {
     const db = this.database?.db;
-    if (!db) return;
+    if (!db) {
+      return;
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS group_buys (
@@ -81,7 +83,9 @@ class GroupBuyingManager extends EventEmitter {
 
   async _restoreActiveTimers() {
     const db = this.database?.db;
-    if (!db) return;
+    if (!db) {
+      return;
+    }
 
     const active = db
       .prepare("SELECT id, deadline FROM group_buys WHERE status = 'active'")
@@ -109,9 +113,20 @@ class GroupBuyingManager extends EventEmitter {
     if (targetPrice >= originalPrice) {
       throw new Error("Target price must be less than original price");
     }
+    if (minMembers < 2) {
+      throw new Error("Minimum members must be at least 2");
+    }
+    if (maxMembers !== undefined && maxMembers < minMembers) {
+      throw new Error("Max members must be >= min members");
+    }
+    if (deadline && deadline <= Date.now()) {
+      throw new Error("Deadline must be in the future");
+    }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -143,19 +158,29 @@ class GroupBuyingManager extends EventEmitter {
 
   async joinGroupBuy(groupId, userId, quantity = 1) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const group = this.getGroupBuy(groupId);
-    if (!group) throw new Error("Group buy not found");
-    if (group.status !== GroupBuyStatus.ACTIVE)
+    if (!group) {
+      throw new Error("Group buy not found");
+    }
+    if (group.status !== GroupBuyStatus.ACTIVE) {
       throw new Error("Group buy is not active");
+    }
+    if (group.creator_id === userId) {
+      throw new Error("Creator cannot join their own group buy");
+    }
 
     const existing = db
       .prepare(
         "SELECT id FROM group_buy_members WHERE group_id = ? AND user_id = ? AND status = 'active'",
       )
       .get(groupId, userId);
-    if (existing) throw new Error("Already joined this group buy");
+    if (existing) {
+      throw new Error("Already joined this group buy");
+    }
 
     if (group.max_members && group.current_members >= group.max_members) {
       throw new Error("Group buy is full");
@@ -176,10 +201,7 @@ class GroupBuyingManager extends EventEmitter {
     this.emit("member-joined", { groupId, userId, memberId });
 
     const updated = this.getGroupBuy(groupId);
-    if (
-      updated.max_members &&
-      updated.current_members >= updated.max_members
-    ) {
+    if (updated.max_members && updated.current_members >= updated.max_members) {
       await this.finalizeGroupBuy(groupId);
     }
 
@@ -188,12 +210,17 @@ class GroupBuyingManager extends EventEmitter {
 
   async leaveGroupBuy(groupId, userId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const group = this.getGroupBuy(groupId);
-    if (!group) throw new Error("Group buy not found");
-    if (group.status !== GroupBuyStatus.ACTIVE)
+    if (!group) {
+      throw new Error("Group buy not found");
+    }
+    if (group.status !== GroupBuyStatus.ACTIVE) {
       throw new Error("Group buy is not active");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     const result = db
@@ -214,12 +241,16 @@ class GroupBuyingManager extends EventEmitter {
 
   getGroupBuy(groupId) {
     const db = this.database?.db;
-    if (!db) return null;
+    if (!db) {
+      return null;
+    }
 
     const group = db
       .prepare("SELECT * FROM group_buys WHERE id = ?")
       .get(groupId);
-    if (!group) return null;
+    if (!group) {
+      return null;
+    }
 
     const members = db
       .prepare(
@@ -232,7 +263,9 @@ class GroupBuyingManager extends EventEmitter {
 
   async listGroupBuys(filters = {}) {
     const db = this.database?.db;
-    if (!db) return { groupBuys: [], total: 0 };
+    if (!db) {
+      return { groupBuys: [], total: 0 };
+    }
 
     const { status, creatorId, limit = 20, offset = 0 } = filters;
     let query = "SELECT * FROM group_buys";
@@ -264,11 +297,17 @@ class GroupBuyingManager extends EventEmitter {
 
   async finalizeGroupBuy(groupId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const group = this.getGroupBuy(groupId);
-    if (!group) throw new Error("Group buy not found");
-    if (group.status !== GroupBuyStatus.ACTIVE) return group;
+    if (!group) {
+      throw new Error("Group buy not found");
+    }
+    if (group.status !== GroupBuyStatus.ACTIVE) {
+      return group;
+    }
 
     const now = Math.floor(Date.now() / 1000);
     const newStatus =
@@ -289,10 +328,15 @@ class GroupBuyingManager extends EventEmitter {
 
   async cancelGroupBuy(groupId, userId) {
     const group = this.getGroupBuy(groupId);
-    if (!group) throw new Error("Group buy not found");
-    if (group.creator_id !== userId) throw new Error("Only creator can cancel");
-    if (group.status !== GroupBuyStatus.ACTIVE)
+    if (!group) {
+      throw new Error("Group buy not found");
+    }
+    if (group.creator_id !== userId) {
+      throw new Error("Only creator can cancel");
+    }
+    if (group.status !== GroupBuyStatus.ACTIVE) {
       throw new Error("Group buy is not active");
+    }
 
     const db = this.database?.db;
     const now = Math.floor(Date.now() / 1000);

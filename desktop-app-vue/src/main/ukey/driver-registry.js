@@ -20,86 +20,325 @@ const fs = require("fs");
 
 const VID_PID_MAP = {
   // 鑫金科 XinJinKe
-  "096e:0807": { brand: "xinjinke", model: "XK-100", driverType: "xinjinke", priority: 10 },
-  "096e:0809": { brand: "xinjinke", model: "XK-200", driverType: "xinjinke", priority: 10 },
+  "096e:0807": {
+    brand: "xinjinke",
+    model: "XK-100",
+    driverType: "xinjinke",
+    priority: 10,
+  },
+  "096e:0809": {
+    brand: "xinjinke",
+    model: "XK-200",
+    driverType: "xinjinke",
+    priority: 10,
+  },
 
   // 飞天诚信 FeiTian
-  "096e:0306": { brand: "feitian", model: "ePass1000", driverType: "feitian", priority: 10 },
-  "096e:0504": { brand: "feitian", model: "ePass2000", driverType: "feitian", priority: 10 },
-  "096e:0611": { brand: "feitian", model: "ePass3003", driverType: "feitian", priority: 10 },
-  "096e:0660": { brand: "feitian", model: "ePass NG", driverType: "feitian", priority: 10 },
-  "096e:0761": { brand: "feitian", model: "BioPass FIDO2", driverType: "fido2", priority: 9 },
-  "096e:0855": { brand: "feitian", model: "MultiPass K50 BLE", driverType: "fido2", priority: 9 },
+  "096e:0306": {
+    brand: "feitian",
+    model: "ePass1000",
+    driverType: "feitian",
+    priority: 10,
+  },
+  "096e:0504": {
+    brand: "feitian",
+    model: "ePass2000",
+    driverType: "feitian",
+    priority: 10,
+  },
+  "096e:0611": {
+    brand: "feitian",
+    model: "ePass3003",
+    driverType: "feitian",
+    priority: 10,
+  },
+  "096e:0660": {
+    brand: "feitian",
+    model: "ePass NG",
+    driverType: "feitian",
+    priority: 10,
+  },
+  "096e:0761": {
+    brand: "feitian",
+    model: "BioPass FIDO2",
+    driverType: "fido2",
+    priority: 9,
+  },
+  "096e:0855": {
+    brand: "feitian",
+    model: "MultiPass K50 BLE",
+    driverType: "fido2",
+    priority: 9,
+  },
 
   // 握奇数据 WatchData
-  "04e6:5816": { brand: "watchdata", model: "WatchKey USB", driverType: "watchdata", priority: 10 },
-  "04e6:5817": { brand: "watchdata", model: "WatchKey Pro", driverType: "watchdata", priority: 10 },
-  "04e6:6015": { brand: "watchdata", model: "WatchSafe 3000", driverType: "watchdata", priority: 10 },
+  "04e6:5816": {
+    brand: "watchdata",
+    model: "WatchKey USB",
+    driverType: "watchdata",
+    priority: 10,
+  },
+  "04e6:5817": {
+    brand: "watchdata",
+    model: "WatchKey Pro",
+    driverType: "watchdata",
+    priority: 10,
+  },
+  "04e6:6015": {
+    brand: "watchdata",
+    model: "WatchSafe 3000",
+    driverType: "watchdata",
+    priority: 10,
+  },
 
   // 华大电子 Huada
-  "2055:0200": { brand: "huada", model: "EC600", driverType: "huada", priority: 10 },
-  "2055:0201": { brand: "huada", model: "EC700", driverType: "huada", priority: 10 },
+  "2055:0200": {
+    brand: "huada",
+    model: "EC600",
+    driverType: "huada",
+    priority: 10,
+  },
+  "2055:0201": {
+    brand: "huada",
+    model: "EC700",
+    driverType: "huada",
+    priority: 10,
+  },
 
   // 天地融 TDR
-  "0529:0514": { brand: "tdr", model: "eKey 100", driverType: "tdr", priority: 10 },
-  "0529:0620": { brand: "tdr", model: "eKey 3000", driverType: "tdr", priority: 10 },
+  "0529:0514": {
+    brand: "tdr",
+    model: "eKey 100",
+    driverType: "tdr",
+    priority: 10,
+  },
+  "0529:0620": {
+    brand: "tdr",
+    model: "eKey 3000",
+    driverType: "tdr",
+    priority: 10,
+  },
 
   // 长城信安 ChangCheng
-  "1d6b:5001": { brand: "changcheng", model: "GW-USB100", driverType: "changcheng", priority: 10 },
-  "1d6b:5002": { brand: "changcheng", model: "GW-USB200", driverType: "changcheng", priority: 10 },
+  "1d6b:5001": {
+    brand: "changcheng",
+    model: "GW-USB100",
+    driverType: "changcheng",
+    priority: 10,
+  },
+  "1d6b:5002": {
+    brand: "changcheng",
+    model: "GW-USB200",
+    driverType: "changcheng",
+    priority: 10,
+  },
 
   // 明华澳汉 MingHua
-  "08e6:3438": { brand: "minghua", model: "EP801", driverType: "minghua", priority: 10 },
-  "08e6:3440": { brand: "minghua", model: "EP900", driverType: "minghua", priority: 10 },
+  "08e6:3438": {
+    brand: "minghua",
+    model: "EP801",
+    driverType: "minghua",
+    priority: 10,
+  },
+  "08e6:3440": {
+    brand: "minghua",
+    model: "EP900",
+    driverType: "minghua",
+    priority: 10,
+  },
 
   // 龙脉科技 LongMai
-  "20a0:4108": { brand: "longmai", model: "mToken K5", driverType: "longmai", priority: 10 },
-  "20a0:4109": { brand: "longmai", model: "mToken K8", driverType: "longmai", priority: 10 },
+  "20a0:4108": {
+    brand: "longmai",
+    model: "mToken K5",
+    driverType: "longmai",
+    priority: 10,
+  },
+  "20a0:4109": {
+    brand: "longmai",
+    model: "mToken K8",
+    driverType: "longmai",
+    priority: 10,
+  },
 
   // YubiKey (Yubico)
-  "1050:0010": { brand: "yubico", model: "YubiKey Gen 1", driverType: "fido2", priority: 8 },
-  "1050:0110": { brand: "yubico", model: "YubiKey NEO", driverType: "fido2", priority: 8 },
-  "1050:0407": { brand: "yubico", model: "YubiKey 4", driverType: "fido2", priority: 8 },
-  "1050:0120": { brand: "yubico", model: "YubiKey 5 NFC", driverType: "fido2", priority: 8 },
-  "1050:0402": { brand: "yubico", model: "YubiKey 5 Nano", driverType: "fido2", priority: 8 },
-  "1050:0406": { brand: "yubico", model: "YubiKey 5C", driverType: "fido2", priority: 8 },
-  "1050:0410": { brand: "yubico", model: "YubiKey 5C NFC", dravelType: "fido2", priority: 8 },
-  "1050:0413": { brand: "yubico", model: "YubiKey Bio", driverType: "fido2", priority: 8 },
+  "1050:0010": {
+    brand: "yubico",
+    model: "YubiKey Gen 1",
+    driverType: "fido2",
+    priority: 8,
+  },
+  "1050:0110": {
+    brand: "yubico",
+    model: "YubiKey NEO",
+    driverType: "fido2",
+    priority: 8,
+  },
+  "1050:0407": {
+    brand: "yubico",
+    model: "YubiKey 4",
+    driverType: "fido2",
+    priority: 8,
+  },
+  "1050:0120": {
+    brand: "yubico",
+    model: "YubiKey 5 NFC",
+    driverType: "fido2",
+    priority: 8,
+  },
+  "1050:0402": {
+    brand: "yubico",
+    model: "YubiKey 5 Nano",
+    driverType: "fido2",
+    priority: 8,
+  },
+  "1050:0406": {
+    brand: "yubico",
+    model: "YubiKey 5C",
+    driverType: "fido2",
+    priority: 8,
+  },
+  "1050:0410": {
+    brand: "yubico",
+    model: "YubiKey 5C NFC",
+    dravelType: "fido2",
+    priority: 8,
+  },
+  "1050:0413": {
+    brand: "yubico",
+    model: "YubiKey Bio",
+    driverType: "fido2",
+    priority: 8,
+  },
 
   // Google Titan Key
-  "18d1:5026": { brand: "google", model: "Titan Key BLE", driverType: "fido2", priority: 7 },
-  "18d1:5027": { brand: "google", model: "Titan Key USB-A", driverType: "fido2", priority: 7 },
-  "18d1:5c02": { brand: "google", model: "Titan Key USB-C", driverType: "fido2", priority: 7 },
+  "18d1:5026": {
+    brand: "google",
+    model: "Titan Key BLE",
+    driverType: "fido2",
+    priority: 7,
+  },
+  "18d1:5027": {
+    brand: "google",
+    model: "Titan Key USB-A",
+    driverType: "fido2",
+    priority: 7,
+  },
+  "18d1:5c02": {
+    brand: "google",
+    model: "Titan Key USB-C",
+    driverType: "fido2",
+    priority: 7,
+  },
 
   // SoloKeys
-  "0483:a2ca": { brand: "solokeys", model: "Solo V2", driverType: "fido2", priority: 8 },
-  "8086:0ab1": { brand: "solokeys", model: "Solo 1", driverType: "fido2", priority: 8 },
+  "0483:a2ca": {
+    brand: "solokeys",
+    model: "Solo V2",
+    driverType: "fido2",
+    priority: 8,
+  },
+  "8086:0ab1": {
+    brand: "solokeys",
+    model: "Solo 1",
+    driverType: "fido2",
+    priority: 8,
+  },
 
   // Nitrokey
-  "20a0:4211": { brand: "nitrokey", model: "Nitrokey 3", driverType: "openpgp", priority: 8 },
-  "20a0:4108": { brand: "nitrokey", model: "Nitrokey Start", driverType: "openpgp", priority: 8 },
-  "20a0:4109": { brand: "nitrokey", model: "Nitrokey Pro 2", driverType: "openpgp", priority: 8 },
+  "20a0:4211": {
+    brand: "nitrokey",
+    model: "Nitrokey 3",
+    driverType: "openpgp",
+    priority: 8,
+  },
+  // Note: 20a0:4108 and 20a0:4109 are shared with Longmai mToken (defined above)
 
   // Kensington VeriMark
-  "047d:8020": { brand: "kensington", model: "VeriMark Fingerprint", driverType: "fido2", priority: 7 },
+  "047d:8020": {
+    brand: "kensington",
+    model: "VeriMark Fingerprint",
+    driverType: "fido2",
+    priority: 7,
+  },
 
   // Thetis FIDO2
-  "1ea8:f025": { brand: "thetis", model: "BLE FIDO2", driverType: "fido2", priority: 7 },
+  "1ea8:f025": {
+    brand: "thetis",
+    model: "BLE FIDO2",
+    driverType: "fido2",
+    priority: 7,
+  },
 
   // Feitian MultiPass
-  "096e:0858": { brand: "feitian", model: "MultiPass FIDO", driverType: "fido2", priority: 9 },
+  "096e:0858": {
+    brand: "feitian",
+    model: "MultiPass FIDO",
+    driverType: "fido2",
+    priority: 9,
+  },
 
   // Generic PKCS#11 smart card readers
-  "04e6:5115": { brand: "scm", model: "SCR335 Smart Card Reader", driverType: "pkcs11", priority: 5 },
-  "04e6:5410": { brand: "scm", model: "SCR3310 USB Smart Card Reader", driverType: "pkcs11", priority: 5 },
-  "072f:90cc": { brand: "acs", model: "ACR38U Smart Card Reader", driverType: "pkcs11", priority: 5 },
-  "076b:3021": { brand: "omnikey", model: "OMNIKEY 3021", driverType: "pkcs11", priority: 5 },
-  "076b:1021": { brand: "omnikey", model: "OMNIKEY 1021", driverType: "pkcs11", priority: 5 },
-  "076b:5321": { brand: "omnikey", model: "OMNIKEY 5321 CL", driverType: "pkcs11", priority: 5 },
-  "0b97:7762": { brand: "o2micro", model: "OZ776 CCID Reader", driverType: "pkcs11", priority: 5 },
-  "17ef:1003": { brand: "lenovo", model: "Integrated Smart Card Reader", driverType: "pkcs11", priority: 5 },
-  "08e6:34ec": { brand: "gemalto", model: "IDBridge CT30", driverType: "pkcs11", priority: 5 },
-  "08e6:3478": { brand: "gemalto", model: "IDBridge CT700", driverType: "pkcs11", priority: 5 },
+  "04e6:5115": {
+    brand: "scm",
+    model: "SCR335 Smart Card Reader",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "04e6:5410": {
+    brand: "scm",
+    model: "SCR3310 USB Smart Card Reader",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "072f:90cc": {
+    brand: "acs",
+    model: "ACR38U Smart Card Reader",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "076b:3021": {
+    brand: "omnikey",
+    model: "OMNIKEY 3021",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "076b:1021": {
+    brand: "omnikey",
+    model: "OMNIKEY 1021",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "076b:5321": {
+    brand: "omnikey",
+    model: "OMNIKEY 5321 CL",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "0b97:7762": {
+    brand: "o2micro",
+    model: "OZ776 CCID Reader",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "17ef:1003": {
+    brand: "lenovo",
+    model: "Integrated Smart Card Reader",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "08e6:34ec": {
+    brand: "gemalto",
+    model: "IDBridge CT30",
+    driverType: "pkcs11",
+    priority: 5,
+  },
+  "08e6:3478": {
+    brand: "gemalto",
+    model: "IDBridge CT700",
+    driverType: "pkcs11",
+    priority: 5,
+  },
 };
 
 // ============================================================
@@ -170,23 +409,49 @@ class DriverRegistry extends EventEmitter {
     const base = path.resolve(__dirname);
 
     // 厂商专用驱动
-    this.register("xinjinke", () => require("./xinjinke-driver"), { priority: DRIVER_PRIORITY.xinjinke });
-    this.register("feitian", () => require("./feitian-driver"), { priority: DRIVER_PRIORITY.feitian });
-    this.register("watchdata", () => require("./watchdata-driver"), { priority: DRIVER_PRIORITY.watchdata });
-    this.register("huada", () => require("./huada-driver"), { priority: DRIVER_PRIORITY.huada });
-    this.register("tdr", () => require("./tdr-driver"), { priority: DRIVER_PRIORITY.tdr });
-    this.register("changcheng", () => require("./changcheng-driver"), { priority: DRIVER_PRIORITY.changcheng });
-    this.register("minghua", () => require("./minghua-driver"), { priority: DRIVER_PRIORITY.minghua });
-    this.register("longmai", () => require("./longmai-driver"), { priority: DRIVER_PRIORITY.longmai });
+    this.register("xinjinke", () => require("./xinjinke-driver"), {
+      priority: DRIVER_PRIORITY.xinjinke,
+    });
+    this.register("feitian", () => require("./feitian-driver"), {
+      priority: DRIVER_PRIORITY.feitian,
+    });
+    this.register("watchdata", () => require("./watchdata-driver"), {
+      priority: DRIVER_PRIORITY.watchdata,
+    });
+    this.register("huada", () => require("./huada-driver"), {
+      priority: DRIVER_PRIORITY.huada,
+    });
+    this.register("tdr", () => require("./tdr-driver"), {
+      priority: DRIVER_PRIORITY.tdr,
+    });
+    this.register("changcheng", () => require("./changcheng-driver"), {
+      priority: DRIVER_PRIORITY.changcheng,
+    });
+    this.register("minghua", () => require("./minghua-driver"), {
+      priority: DRIVER_PRIORITY.minghua,
+    });
+    this.register("longmai", () => require("./longmai-driver"), {
+      priority: DRIVER_PRIORITY.longmai,
+    });
 
     // 标准驱动
-    this.register("pkcs11", () => require("./pkcs11-driver"), { priority: DRIVER_PRIORITY.pkcs11 });
-    this.register("skf", () => require("./skf-driver"), { priority: DRIVER_PRIORITY.skf });
-    this.register("fido2", () => require("./fido2-driver"), { priority: DRIVER_PRIORITY.fido2 });
-    this.register("openpgp", () => require("./openpgp-driver"), { priority: DRIVER_PRIORITY.openpgp });
+    this.register("pkcs11", () => require("./pkcs11-driver"), {
+      priority: DRIVER_PRIORITY.pkcs11,
+    });
+    this.register("skf", () => require("./skf-driver"), {
+      priority: DRIVER_PRIORITY.skf,
+    });
+    this.register("fido2", () => require("./fido2-driver"), {
+      priority: DRIVER_PRIORITY.fido2,
+    });
+    this.register("openpgp", () => require("./openpgp-driver"), {
+      priority: DRIVER_PRIORITY.openpgp,
+    });
 
     // 模拟驱动
-    this.register("simulated", () => require("./simulated-driver"), { priority: DRIVER_PRIORITY.simulated });
+    this.register("simulated", () => require("./simulated-driver"), {
+      priority: DRIVER_PRIORITY.simulated,
+    });
 
     logger.info(`[DriverRegistry] 内置驱动已注册: ${this._drivers.size} 个`);
   }
@@ -213,7 +478,9 @@ class DriverRegistry extends EventEmitter {
         ...meta,
       },
     });
-    logger.debug(`[DriverRegistry] 注册驱动: ${name} (priority=${meta.priority || 5})`);
+    logger.debug(
+      `[DriverRegistry] 注册驱动: ${name} (priority=${meta.priority || 5})`,
+    );
     this.emit("driver-registered", { name, meta });
   }
 
@@ -268,9 +535,14 @@ class DriverRegistry extends EventEmitter {
       };
 
       this.register(driverName, () => DriverClass, meta);
-      this._loadedPlugins.set(resolvedPath, { name: driverName, loadedAt: Date.now() });
+      this._loadedPlugins.set(resolvedPath, {
+        name: driverName,
+        loadedAt: Date.now(),
+      });
 
-      logger.info(`[DriverRegistry] 热加载驱动成功: ${driverName} (${resolvedPath})`);
+      logger.info(
+        `[DriverRegistry] 热加载驱动成功: ${driverName} (${resolvedPath})`,
+      );
       this.emit("driver-hot-loaded", { name: driverName, path: resolvedPath });
 
       return { name: driverName, meta };
@@ -292,7 +564,10 @@ class DriverRegistry extends EventEmitter {
       this._loadedPlugins.delete(resolvedPath);
       delete require.cache[resolvedPath];
       logger.info(`[DriverRegistry] 热卸载驱动: ${pluginInfo.name}`);
-      this.emit("driver-hot-unloaded", { name: pluginInfo.name, path: resolvedPath });
+      this.emit("driver-hot-unloaded", {
+        name: pluginInfo.name,
+        path: resolvedPath,
+      });
     }
   }
 
@@ -311,14 +586,20 @@ class DriverRegistry extends EventEmitter {
     const entry = this._vidPidMap[key];
 
     if (entry) {
-      logger.info(`[DriverRegistry] VID/PID 匹配: ${key} → ${entry.brand} ${entry.model}`);
+      logger.info(
+        `[DriverRegistry] VID/PID 匹配: ${key} → ${entry.brand} ${entry.model}`,
+      );
       return entry;
     }
 
     // 仅 VID 匹配（品牌识别）
-    const vidOnly = Object.entries(this._vidPidMap).find(([k]) => k.startsWith(vid.toLowerCase()));
+    const vidOnly = Object.entries(this._vidPidMap).find(([k]) =>
+      k.startsWith(vid.toLowerCase()),
+    );
     if (vidOnly) {
-      logger.info(`[DriverRegistry] VID 匹配 (仅品牌): ${vid} → ${vidOnly[1].brand}`);
+      logger.info(
+        `[DriverRegistry] VID 匹配 (仅品牌): ${vid} → ${vidOnly[1].brand}`,
+      );
       return { ...vidOnly[1], model: "Unknown Model", partial: true };
     }
 
@@ -334,7 +615,9 @@ class DriverRegistry extends EventEmitter {
   addVidPid(vid, pid, info) {
     const key = `${vid.toLowerCase().padStart(4, "0")}:${pid.toLowerCase().padStart(4, "0")}`;
     this._vidPidMap[key] = { ...info };
-    logger.info(`[DriverRegistry] 添加 VID/PID 映射: ${key} → ${info.brand} ${info.model}`);
+    logger.info(
+      `[DriverRegistry] 添加 VID/PID 映射: ${key} → ${info.brand} ${info.model}`,
+    );
   }
 
   /**
@@ -361,7 +644,9 @@ class DriverRegistry extends EventEmitter {
 
     const entry = this._drivers.get(driverType);
     if (!entry) {
-      throw new Error(`未找到驱动: ${driverType}。已注册: ${[...this._drivers.keys()].join(", ")}`);
+      throw new Error(
+        `未找到驱动: ${driverType}。已注册: ${[...this._drivers.keys()].join(", ")}`,
+      );
     }
 
     try {
@@ -400,7 +685,9 @@ class DriverRegistry extends EventEmitter {
       });
 
     const best = sorted[0] || "simulated";
-    logger.info(`[DriverRegistry] 选择最佳驱动: ${best} (来自: ${availableTypes.join(", ")})`);
+    logger.info(
+      `[DriverRegistry] 选择最佳驱动: ${best} (来自: ${availableTypes.join(", ")})`,
+    );
     return best;
   }
 
@@ -461,7 +748,7 @@ class DriverRegistry extends EventEmitter {
 
       // 备选驱动
       report.compatibility.alternative_drivers = ["pkcs11", "fido2"].filter(
-        (d) => d !== driverType && this._drivers.has(d)
+        (d) => d !== driverType && this._drivers.has(d),
       );
 
       report.compatibility.notes.push(`识别为 ${lookup.brand} ${lookup.model}`);
@@ -476,12 +763,16 @@ class DriverRegistry extends EventEmitter {
 
     // Windows 平台特定提示
     if (process.platform === "win32") {
-      report.compatibility.notes.push("Windows: 优先使用厂商原生驱动以获得最佳性能");
+      report.compatibility.notes.push(
+        "Windows: 优先使用厂商原生驱动以获得最佳性能",
+      );
     } else {
       report.compatibility.notes.push("非 Windows: 建议使用 PKCS#11 + OpenSC");
     }
 
-    logger.info(`[DriverRegistry] 生成兼容性报告: ${report.compatibility.level} (score=${report.compatibility.score})`);
+    logger.info(
+      `[DriverRegistry] 生成兼容性报告: ${report.compatibility.level} (score=${report.compatibility.score})`,
+    );
     return report;
   }
 
@@ -494,10 +785,14 @@ class DriverRegistry extends EventEmitter {
    */
   _loadCustomDrivers() {
     for (const dirPath of this._customDriverPaths) {
-      if (!fs.existsSync(dirPath)) continue;
+      if (!fs.existsSync(dirPath)) {
+        continue;
+      }
 
       try {
-        const files = fs.readdirSync(dirPath).filter((f) => f.endsWith("-driver.js"));
+        const files = fs
+          .readdirSync(dirPath)
+          .filter((f) => f.endsWith("-driver.js"));
         for (const file of files) {
           try {
             this.hotLoad(path.join(dirPath, file));
@@ -507,7 +802,9 @@ class DriverRegistry extends EventEmitter {
         }
         logger.info(`[DriverRegistry] 从 ${dirPath} 加载了插件驱动`);
       } catch (e) {
-        logger.warn(`[DriverRegistry] 无法读取驱动目录 ${dirPath}: ${e.message}`);
+        logger.warn(
+          `[DriverRegistry] 无法读取驱动目录 ${dirPath}: ${e.message}`,
+        );
       }
     }
   }
@@ -522,24 +819,32 @@ class DriverRegistry extends EventEmitter {
       return;
     }
 
-    const watcher = fs.watch(dirPath, { persistent: false }, (event, filename) => {
-      if (!filename || !filename.endsWith("-driver.js")) return;
-      const fullPath = path.join(dirPath, filename);
-
-      if (event === "change" || event === "rename") {
-        if (fs.existsSync(fullPath)) {
-          logger.info(`[DriverRegistry] 检测到驱动变更: ${filename}，热加载中...`);
-          try {
-            this.hotLoad(fullPath);
-          } catch (e) {
-            logger.error(`[DriverRegistry] 热加载失败: ${e.message}`);
-          }
-        } else {
-          // 文件被删除，热卸载
-          this.hotUnload(fullPath);
+    const watcher = fs.watch(
+      dirPath,
+      { persistent: false },
+      (event, filename) => {
+        if (!filename || !filename.endsWith("-driver.js")) {
+          return;
         }
-      }
-    });
+        const fullPath = path.join(dirPath, filename);
+
+        if (event === "change" || event === "rename") {
+          if (fs.existsSync(fullPath)) {
+            logger.info(
+              `[DriverRegistry] 检测到驱动变更: ${filename}，热加载中...`,
+            );
+            try {
+              this.hotLoad(fullPath);
+            } catch (e) {
+              logger.error(`[DriverRegistry] 热加载失败: ${e.message}`);
+            }
+          } else {
+            // 文件被删除，热卸载
+            this.hotUnload(fullPath);
+          }
+        }
+      },
+    );
 
     this._watchHandles.push(watcher);
     logger.info(`[DriverRegistry] 开始监视驱动目录: ${dirPath}`);
@@ -594,7 +899,9 @@ class DriverRegistry extends EventEmitter {
     for (const watcher of this._watchHandles) {
       try {
         watcher.close();
-      } catch (e) {}
+      } catch (_e) {
+        /* ignore watcher close errors */
+      }
     }
     this._watchHandles = [];
 

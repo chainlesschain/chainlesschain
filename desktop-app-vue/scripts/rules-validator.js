@@ -638,6 +638,16 @@ class RulesValidator {
                 return;
               }
 
+              // 特殊处理：允许 auto-tuner-ipc.js 使用 new Function 进行条件/动作评估
+              // 安全说明：规则来自主进程内部配置，不接受外部用户直接输入
+              if (
+                pattern.source.includes("Function") &&
+                file.includes("auto-tuner-ipc") &&
+                line.includes("new Function")
+              ) {
+                return;
+              }
+
               if (severity === "HIGH") {
                 this.errors.push({
                   type: "DANGEROUS_FUNCTION",

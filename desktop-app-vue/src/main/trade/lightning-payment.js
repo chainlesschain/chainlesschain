@@ -50,7 +50,9 @@ class LightningPaymentManager extends EventEmitter {
 
   async _initializeTables() {
     const db = this.database?.db;
-    if (!db) return;
+    if (!db) {
+      return;
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS lightning_channels (
@@ -98,14 +100,23 @@ class LightningPaymentManager extends EventEmitter {
   async createChannel(params) {
     const { userId, peerId, capacity, pushAmount = 0 } = params;
 
-    if (!userId || !peerId || !capacity) {
+    if (!userId || !peerId) {
       throw new Error("Missing required fields: userId, peerId, capacity");
     }
-    if (capacity <= 0) throw new Error("Capacity must be positive");
-    if (pushAmount > capacity) throw new Error("Push amount exceeds capacity");
+    if (userId === peerId) {
+      throw new Error("Cannot open channel with yourself");
+    }
+    if (capacity == null || capacity <= 0) {
+      throw new Error("Capacity must be positive");
+    }
+    if (pushAmount >= capacity) {
+      throw new Error("Push amount must be less than capacity");
+    }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -113,7 +124,16 @@ class LightningPaymentManager extends EventEmitter {
     db.prepare(
       `INSERT INTO lightning_channels (id, user_a, user_b, capacity, balance_a, balance_b, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?)`,
-    ).run(id, userId, peerId, capacity, capacity - pushAmount, pushAmount, now, now);
+    ).run(
+      id,
+      userId,
+      peerId,
+      capacity,
+      capacity - pushAmount,
+      pushAmount,
+      now,
+      now,
+    );
 
     this.emit("channel-opened", { id, userId, peerId, capacity });
     logger.info(`[LightningPayment] 通道创建成功: ${id}`);
@@ -123,12 +143,17 @@ class LightningPaymentManager extends EventEmitter {
 
   async closeChannel(channelId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const channel = this.getChannel(channelId);
-    if (!channel) throw new Error("Channel not found");
-    if (channel.status !== ChannelStatus.OPEN)
+    if (!channel) {
+      throw new Error("Channel not found");
+    }
+    if (channel.status !== ChannelStatus.OPEN) {
       throw new Error("Channel is not open");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     db.prepare(
@@ -147,12 +172,17 @@ class LightningPaymentManager extends EventEmitter {
     const { channelId, senderId, amount, memo } = params;
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const channel = this.getChannel(channelId);
-    if (!channel) throw new Error("Channel not found");
-    if (channel.status !== ChannelStatus.OPEN)
+    if (!channel) {
+      throw new Error("Channel not found");
+    }
+    if (channel.status !== ChannelStatus.OPEN) {
       throw new Error("Channel is not open");
+    }
 
     let receiver, senderField, receiverField, senderBalance;
     if (senderId === channel.user_a) {
@@ -211,7 +241,9 @@ class LightningPaymentManager extends EventEmitter {
     }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const id = uuidv4();
     const now = Math.floor(Date.now() / 1000);
@@ -235,13 +267,19 @@ class LightningPaymentManager extends EventEmitter {
 
   async payInvoice(invoiceId, payerId, channelId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const invoice = db
       .prepare("SELECT * FROM lightning_invoices WHERE id = ?")
       .get(invoiceId);
-    if (!invoice) throw new Error("Invoice not found");
-    if (invoice.status !== "pending") throw new Error("Invoice already processed");
+    if (!invoice) {
+      throw new Error("Invoice not found");
+    }
+    if (invoice.status !== "pending") {
+      throw new Error("Invoice already processed");
+    }
 
     const now = Math.floor(Date.now() / 1000);
     if (now > invoice.expiry) {
@@ -268,7 +306,9 @@ class LightningPaymentManager extends EventEmitter {
 
   getChannel(channelId) {
     const db = this.database?.db;
-    if (!db) return null;
+    if (!db) {
+      return null;
+    }
     return db
       .prepare("SELECT * FROM lightning_channels WHERE id = ?")
       .get(channelId);
@@ -276,7 +316,9 @@ class LightningPaymentManager extends EventEmitter {
 
   async getChannelBalance(channelId) {
     const channel = this.getChannel(channelId);
-    if (!channel) return null;
+    if (!channel) {
+      return null;
+    }
     return {
       capacity: channel.capacity,
       balanceA: channel.balance_a,
@@ -286,7 +328,9 @@ class LightningPaymentManager extends EventEmitter {
 
   async listChannels(userId, { status, limit = 20, offset = 0 } = {}) {
     const db = this.database?.db;
-    if (!db) return { channels: [], total: 0 };
+    if (!db) {
+      return { channels: [], total: 0 };
+    }
 
     let query =
       "SELECT * FROM lightning_channels WHERE (user_a = ? OR user_b = ?)";
@@ -309,7 +353,9 @@ class LightningPaymentManager extends EventEmitter {
 
   async listPayments(userId, filters = {}) {
     const db = this.database?.db;
-    if (!db) return { payments: [], total: 0 };
+    if (!db) {
+      return { payments: [], total: 0 };
+    }
 
     const { limit = 20, offset = 0 } = filters;
 
@@ -333,7 +379,9 @@ class LightningPaymentManager extends EventEmitter {
     const { senderId, receiverId, amount } = params;
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const directChannel = db
       .prepare(
@@ -352,7 +400,7 @@ class LightningPaymentManager extends EventEmitter {
       });
     }
 
-    throw new Error("No route found to recipient");
+    return { route: null, error: "No direct route found to recipient" };
   }
 }
 

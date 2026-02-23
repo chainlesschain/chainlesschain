@@ -102,8 +102,7 @@ class AutoTuner extends EventEmitter {
    */
   initialize(dependencies = {}) {
     this.deps.database = dependencies.database || null;
-    this.deps.performanceCollector =
-      dependencies.performanceCollector || null;
+    this.deps.performanceCollector = dependencies.performanceCollector || null;
     this.deps.performanceMonitor = dependencies.performanceMonitor || null;
 
     // Load built-in rules
@@ -197,7 +196,7 @@ class AutoTuner extends EventEmitter {
           try {
             const db = self.deps.database.db || self.deps.database;
             if (typeof db.exec === "function") {
-              db.exec("VACUUM");
+              db.prepare("VACUUM").run();
             } else if (typeof db.run === "function") {
               db.run("VACUUM");
             }

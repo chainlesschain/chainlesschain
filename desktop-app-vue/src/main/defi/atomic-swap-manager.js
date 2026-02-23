@@ -46,7 +46,9 @@ class AtomicSwapManager extends EventEmitter {
 
   async _initializeTables() {
     const db = this.database?.db;
-    if (!db) return;
+    if (!db) {
+      return;
+    }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS atomic_swaps (
@@ -88,11 +90,17 @@ class AtomicSwapManager extends EventEmitter {
     ) {
       throw new Error("Missing required fields");
     }
-    if (initiator === counterparty)
+    if (initiator === counterparty) {
       throw new Error("Cannot swap with self");
+    }
+    if (sendAsset === receiveAsset) {
+      throw new Error("Cannot swap same assets");
+    }
 
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const secret = crypto.randomBytes(32).toString("hex");
     const hashLock = this._generateHTLC(secret);
@@ -138,7 +146,6 @@ class AtomicSwapManager extends EventEmitter {
       receiveAsset,
       receiveAmount,
       hashLock,
-      secret,
       timelock: timelockValue,
       status: SwapStatus.INITIATED,
     };
@@ -146,14 +153,20 @@ class AtomicSwapManager extends EventEmitter {
 
   async acceptSwap(swapId, counterpartyId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const swap = this.getSwap(swapId);
-    if (!swap) throw new Error("Swap not found");
-    if (swap.status !== SwapStatus.INITIATED)
+    if (!swap) {
+      throw new Error("Swap not found");
+    }
+    if (swap.status !== SwapStatus.INITIATED) {
       throw new Error("Swap is not in initiated state");
-    if (swap.counterparty !== counterpartyId)
+    }
+    if (swap.counterparty !== counterpartyId) {
       throw new Error("Only designated counterparty can accept");
+    }
 
     if (!this._checkTimelock(swap)) {
       throw new Error("Swap has expired");
@@ -170,14 +183,19 @@ class AtomicSwapManager extends EventEmitter {
 
   async claimSwap(swapId, secret) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const swap = db
       .prepare("SELECT * FROM atomic_swaps WHERE id = ?")
       .get(swapId);
-    if (!swap) throw new Error("Swap not found");
-    if (swap.status !== SwapStatus.ACCEPTED)
+    if (!swap) {
+      throw new Error("Swap not found");
+    }
+    if (swap.status !== SwapStatus.ACCEPTED) {
       throw new Error("Swap is not accepted");
+    }
 
     if (!this._checkTimelock(swap)) {
       throw new Error("Swap has expired");
@@ -201,16 +219,22 @@ class AtomicSwapManager extends EventEmitter {
 
   async refundSwap(swapId) {
     const db = this.database?.db;
-    if (!db) throw new Error("Database not available");
+    if (!db) {
+      throw new Error("Database not available");
+    }
 
     const swap = db
       .prepare("SELECT * FROM atomic_swaps WHERE id = ?")
       .get(swapId);
-    if (!swap) throw new Error("Swap not found");
-    if (swap.status === SwapStatus.CLAIMED)
+    if (!swap) {
+      throw new Error("Swap not found");
+    }
+    if (swap.status === SwapStatus.CLAIMED) {
       throw new Error("Swap already claimed");
-    if (swap.status === SwapStatus.REFUNDED)
+    }
+    if (swap.status === SwapStatus.REFUNDED) {
       throw new Error("Swap already refunded");
+    }
 
     if (this._checkTimelock(swap)) {
       throw new Error("Swap has not expired yet");
@@ -227,19 +251,25 @@ class AtomicSwapManager extends EventEmitter {
 
   getSwap(swapId) {
     const db = this.database?.db;
-    if (!db) return null;
+    if (!db) {
+      return null;
+    }
 
     const swap = db
       .prepare("SELECT * FROM atomic_swaps WHERE id = ?")
       .get(swapId);
-    if (!swap) return null;
+    if (!swap) {
+      return null;
+    }
 
     return { ...swap, secret: undefined };
   }
 
   async listSwaps(userId, filters = {}) {
     const db = this.database?.db;
-    if (!db) return { swaps: [], total: 0 };
+    if (!db) {
+      return { swaps: [], total: 0 };
+    }
 
     const { status, limit = 20, offset = 0 } = filters;
 
@@ -268,7 +298,9 @@ class AtomicSwapManager extends EventEmitter {
     const { sendAsset, receiveAsset, amount } = params;
 
     const db = this.database?.db;
-    if (!db) return [];
+    if (!db) {
+      return [];
+    }
 
     const matches = db
       .prepare(
@@ -289,7 +321,9 @@ class AtomicSwapManager extends EventEmitter {
 
   async getSwapRates() {
     const db = this.database?.db;
-    if (!db) return {};
+    if (!db) {
+      return {};
+    }
 
     const recentSwaps = db
       .prepare(
@@ -316,7 +350,7 @@ class AtomicSwapManager extends EventEmitter {
   }
 
   _generateHTLC(secret) {
-    return crypto.createHash("sha256").update(secret, "hex").digest("hex");
+    return crypto.createHash("sha256").update(secret).digest("hex");
   }
 
   _checkTimelock(swap) {
