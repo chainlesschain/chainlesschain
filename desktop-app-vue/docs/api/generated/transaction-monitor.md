@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/transaction-monitor.js`
 
-**Generated**: 2026-02-23T14:46:56.828Z
+**Generated**: 2026-02-23T15:25:44.155Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/ai-skill-scheduler.js`
 
-**Generated**: 2026-02-23T14:46:56.741Z
+**Generated**: 2026-02-23T15:25:44.079Z
 
 ---
 

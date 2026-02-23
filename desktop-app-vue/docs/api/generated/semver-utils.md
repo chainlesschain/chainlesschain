@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/semver-utils.js`
 
-**Generated**: 2026-02-23T14:46:56.758Z
+**Generated**: 2026-02-23T15:25:44.096Z
 
 ---
 

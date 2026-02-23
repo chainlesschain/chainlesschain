@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/auto-backup-manager.js`
 
-**Generated**: 2026-02-23T14:46:56.775Z
+**Generated**: 2026-02-23T15:25:44.110Z
 
 ---
 
