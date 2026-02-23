@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/cross-platform-adapter.js`
 
-**Generated**: 2026-02-23T09:52:53.566Z
+**Generated**: 2026-02-23T10:36:20.497Z
 
 ---
 

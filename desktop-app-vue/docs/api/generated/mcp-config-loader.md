@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-config-loader.js`
 
-**Generated**: 2026-02-23T09:52:53.596Z
+**Generated**: 2026-02-23T10:36:20.559Z
 
 ---
 

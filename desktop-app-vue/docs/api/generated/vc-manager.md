@@ -2,7 +2,7 @@
 
 **Source**: `src/main/vc/vc-manager.js`
 
-**Generated**: 2026-02-23T09:52:53.562Z
+**Generated**: 2026-02-23T10:36:20.488Z
 
 ---
 

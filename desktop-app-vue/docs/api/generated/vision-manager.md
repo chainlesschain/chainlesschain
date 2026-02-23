@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/vision-manager.js`
 
-**Generated**: 2026-02-23T09:52:53.637Z
+**Generated**: 2026-02-23T10:36:20.614Z
 
 ---
 

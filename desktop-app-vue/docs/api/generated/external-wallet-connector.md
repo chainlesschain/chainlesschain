@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/external-wallet-connector.js`
 
-**Generated**: 2026-02-23T09:52:53.633Z
+**Generated**: 2026-02-23T10:36:20.607Z
 
 ---
 
