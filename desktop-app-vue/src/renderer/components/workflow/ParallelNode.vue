@@ -1,5 +1,5 @@
 <template>
-  <div class="parallel-node" :class="{ selected }">
+  <div class="parallel-node" :class="[{ selected }, statusClass]">
     <Handle type="target" :position="Position.Top" />
     <div class="node-body">
       <span class="parallel-icon">||</span>
@@ -10,11 +10,27 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import { Handle, Position } from "@vue-flow/core";
+import { useWorkflowDesignerStore } from "../../stores/workflow-designer";
 
-defineProps({
+const props = defineProps({
+  id: String,
   data: { type: Object, required: true },
   selected: { type: Boolean, default: false },
+});
+
+const store = useWorkflowDesignerStore();
+
+const executionStatus = computed(() => {
+  return store.nodeStatuses[props.id] || null;
+});
+
+const statusClass = computed(() => {
+  if (executionStatus.value === "running") return "parallel-node--running";
+  if (executionStatus.value === "completed") return "parallel-node--completed";
+  if (executionStatus.value === "failed") return "parallel-node--failed";
+  return "";
 });
 </script>
 
@@ -42,6 +58,30 @@ defineProps({
     0 0 0 2px rgba(114, 46, 209, 0.25),
     0 2px 8px rgba(114, 46, 209, 0.2);
 }
+
+.parallel-node--running .node-body {
+  animation: pulse-parallel 1.5s ease-in-out infinite;
+}
+.parallel-node--completed .node-body {
+  border-color: #52c41a;
+  border-style: solid;
+  background: #f6ffed;
+}
+.parallel-node--failed .node-body {
+  border-color: #ff4d4f;
+  border-style: solid;
+  background: #fff2f0;
+}
+
+@keyframes pulse-parallel {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.3), 0 2px 6px rgba(114, 46, 209, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.15), 0 2px 8px rgba(24, 144, 255, 0.2);
+  }
+}
+
 .parallel-icon {
   font-size: 16px;
   font-weight: 700;

@@ -329,6 +329,33 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 跨设备技能同步 (7 handlers)
+    logger.info("[IPC Registry] Registering Skill Sync IPC...");
+    try {
+      const {
+        registerSkillSyncIPC,
+      } = require("../ai-engine/cowork/skills/skill-sync-ipc");
+      const {
+        SkillSyncManager,
+      } = require("../ai-engine/cowork/skills/skill-sync-manager");
+      const {
+        getSkillRegistry,
+      } = require("../ai-engine/cowork/skills/skill-registry");
+
+      const skillSyncManager = new SkillSyncManager({
+        skillRegistry: getSkillRegistry(),
+      });
+      registerSkillSyncIPC({ syncManager: skillSyncManager });
+      logger.info(
+        "[IPC Registry] ✓ Skill Sync IPC registered (7 handlers)",
+      );
+    } catch (skillSyncError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Skill Sync IPC registration failed (non-fatal):",
+        skillSyncError.message,
+      );
+    }
+
     // 🔥 Context Engineering 系统 (KV-Cache 优化, 17 handlers)
     logger.info("[IPC Registry] Registering Context Engineering IPC...");
     try {

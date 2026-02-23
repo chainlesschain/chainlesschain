@@ -33,8 +33,20 @@
           />
         </a-form-item>
 
+        <!-- Visual expression builder for condition nodes -->
         <a-form-item
-          v-if="node.type === 'condition' || node.type === 'transform'"
+          v-if="node.type === 'condition'"
+          label="条件表达式"
+        >
+          <ExpressionBuilder
+            :expression="node.data?.expression || ''"
+            @update:expression="(val) => onFieldChange('expression', val)"
+          />
+        </a-form-item>
+
+        <!-- Fallback textarea for transform nodes -->
+        <a-form-item
+          v-if="node.type === 'transform'"
           label="表达式"
         >
           <a-textarea
@@ -73,6 +85,7 @@
 
 <script setup>
 import { DeleteOutlined, InboxOutlined } from "@ant-design/icons-vue";
+import ExpressionBuilder from "./ExpressionBuilder.vue";
 
 const props = defineProps({
   node: { type: Object, default: null },
