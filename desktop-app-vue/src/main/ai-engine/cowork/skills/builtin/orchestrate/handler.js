@@ -157,6 +157,8 @@ const WORKFLOW_TEMPLATES = {
 };
 
 module.exports = {
+  getWorkflowTemplate,
+
   async init(_skill) {
     logger.info("[Orchestrate] Handler initialized");
   },
