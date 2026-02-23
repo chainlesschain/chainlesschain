@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-function-executor.js`
 
-**Generated**: 2026-02-23T10:36:20.559Z
+**Generated**: 2026-02-23T13:37:52.360Z
 
 ---
 
