@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/__tests__/security/ipc-security.test.js`
 
-**Generated**: 2026-02-23T01:40:12.176Z
+**Generated**: 2026-02-23T09:15:08.727Z
 
 ---
 

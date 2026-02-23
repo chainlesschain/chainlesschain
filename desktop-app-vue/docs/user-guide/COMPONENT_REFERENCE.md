@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-02-23T01:40:12.292Z
+**Generated**: 2026-02-23T09:15:08.841Z
 
-**Total Components**: 493
+**Total Components**: 502
 
 ---
 
@@ -37,6 +37,14 @@
 **File**: `src/renderer/pages/VoiceInputTestPage.vue`
 
 **Description**: 左侧：语音输入组件
+
+---
+
+### TxSignPage
+
+**File**: `src/renderer/pages/TxSignPage.vue`
+
+**Description**: 左侧：交易详情
 
 ---
 
@@ -436,6 +444,14 @@
 
 ---
 
+### HardwareWalletPage
+
+**File**: `src/renderer/pages/HardwareWalletPage.vue`
+
+**Description**: 设备管理
+
+---
+
 ### GitHooksPage
 
 **File**: `src/renderer/pages/GitHooksPage.vue`
@@ -553,6 +569,14 @@
 **File**: `src/renderer/pages/Bridge.vue`
 
 **Description**: 页面头部
+
+---
+
+### BackupDashboard
+
+**File**: `src/renderer/pages/BackupDashboard.vue`
+
+**Description**: 备份状态概览
 
 ---
 
@@ -1581,6 +1605,54 @@
 **File**: `src/renderer/components/webide/ConsolePanel.vue`
 
 **Description**: 控制台头部
+
+---
+
+## src/renderer/components/ukey
+
+### WirelessSetup
+
+**File**: `src/renderer/components/ukey/WirelessSetup.vue`
+
+**Description**: BLE 蓝牙配对
+
+---
+
+### RiskBadge
+
+**File**: `src/renderer/components/ukey/RiskBadge.vue`
+
+---
+
+### RecoveryWizard
+
+**File**: `src/renderer/components/ukey/RecoveryWizard.vue`
+
+**Description**: Step 0: 验证身份
+
+---
+
+### FingerprintSetup
+
+**File**: `src/renderer/components/ukey/FingerprintSetup.vue`
+
+**Description**: 设备不支持
+
+---
+
+### DevicePicker
+
+**File**: `src/renderer/components/ukey/DevicePicker.vue`
+
+**Description**: 扫描控制
+
+---
+
+### BiometricPrompt
+
+**File**: `src/renderer/components/ukey/BiometricPrompt.vue`
+
+**Description**: 指纹图标
 
 ---
 

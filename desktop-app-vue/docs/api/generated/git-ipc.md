@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-ipc.js`
 
-**Generated**: 2026-02-23T01:40:12.165Z
+**Generated**: 2026-02-23T09:15:08.714Z
 
 ---
 
@@ -287,6 +287,138 @@ ipcMain.handle("git:hot-reload:configure", async (_event, config) =>
 
 * 设置 Git 热重载配置
    * Channel: 'git:hot-reload:configure'
+
+---
+
+## ipcMain.handle("git:hosting:get-providers", async () =>
+
+```javascript
+ipcMain.handle("git:hosting:get-providers", async () =>
+```
+
+* Get supported hosting providers
+   * Channel: 'git:hosting:get-providers'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Test hosting connection
+   * Channel: 'git:hosting:test-connection'
+
+---
+
+## ipcMain.handle("git:hosting:get-repos", async (_event,
+
+```javascript
+ipcMain.handle("git:hosting:get-repos", async (_event,
+```
+
+* Get repository list from hosting
+   * Channel: 'git:hosting:get-repos'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Create repository on hosting
+   * Channel: 'git:hosting:create-repo'
+
+---
+
+## ipcMain.handle("git:ssh:generate-key", async (_event,
+
+```javascript
+ipcMain.handle("git:ssh:generate-key", async (_event,
+```
+
+* Generate SSH key
+   * Channel: 'git:ssh:generate-key'
+
+---
+
+## ipcMain.handle("git:ssh:list-keys", async () =>
+
+```javascript
+ipcMain.handle("git:ssh:list-keys", async () =>
+```
+
+* List SSH keys
+   * Channel: 'git:ssh:list-keys'
+
+---
+
+## ipcMain.handle("git:ssh:get-public-key", async (_event,
+
+```javascript
+ipcMain.handle("git:ssh:get-public-key", async (_event,
+```
+
+* Get SSH public key
+   * Channel: 'git:ssh:get-public-key'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Register SSH key with hosting provider
+   * Channel: 'git:ssh:register-with-provider'
+
+---
+
+## ipcMain.handle("git:mirror:push-all", async () =>
+
+```javascript
+ipcMain.handle("git:mirror:push-all", async () =>
+```
+
+* Push to all mirrors
+   * Channel: 'git:mirror:push-all'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Migrate repository to new platform
+   * Channel: 'git:mirror:migrate'
+
+---
+
+## ipcMain.handle("git:proxy:set-config", async (_event, proxyConfig) =>
+
+```javascript
+ipcMain.handle("git:proxy:set-config", async (_event, proxyConfig) =>
+```
+
+* Set proxy configuration
+   * Channel: 'git:proxy:set-config'
+
+---
+
+## ipcMain.handle("git:mirror:detect-china-cdn", async () =>
+
+```javascript
+ipcMain.handle("git:mirror:detect-china-cdn", async () =>
+```
+
+* Detect China CDN availability
+   * Channel: 'git:mirror:detect-china-cdn'
 
 ---
 

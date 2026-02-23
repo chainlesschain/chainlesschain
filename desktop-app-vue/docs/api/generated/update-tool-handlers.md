@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/update-tool-handlers.js`
 
-**Generated**: 2026-02-23T01:40:12.108Z
+**Generated**: 2026-02-23T09:15:08.662Z
 
 ---
 

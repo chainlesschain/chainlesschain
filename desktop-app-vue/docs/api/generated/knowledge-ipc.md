@@ -2,7 +2,7 @@
 
 **Source**: `src/main/knowledge/knowledge-ipc.js`
 
-**Generated**: 2026-02-23T01:40:12.159Z
+**Generated**: 2026-02-23T09:15:08.708Z
 
 ---
 

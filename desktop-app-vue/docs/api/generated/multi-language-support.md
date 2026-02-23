@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/multi-language-support.js`
 
-**Generated**: 2026-02-23T01:40:12.107Z
+**Generated**: 2026-02-23T09:15:08.661Z
 
 ---
 
