@@ -42,9 +42,7 @@ const config = {
     "logo.png",
     "logo.svg",
     "favicon.ico",
-    "style-enhancements.css",
     "mobile-optimize.css",
-    "generate-qr-code.html",
   ],
 
   // 排除的文件
@@ -133,9 +131,7 @@ function build() {
     "index.html",
     "logo.png",
     "logo.svg",
-    "style-enhancements.css",
     "mobile-optimize.css",
-    "generate-qr-code.html",
   ];
 
   let fileCount = 0;
