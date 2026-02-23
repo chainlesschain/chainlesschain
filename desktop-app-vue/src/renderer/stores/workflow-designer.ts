@@ -94,8 +94,8 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
       }
     }
 
-    const electronAPI = (window as any).electronAPI;
-    if (!electronAPI?.on) return;
+    const ipc = (window as any).electron?.ipcRenderer || (window as any).ipc;
+    if (!ipc?.on) return;
 
     const onStarted = (_e: any, data: any) => {
       if (data?.nodeId) {
@@ -113,14 +113,14 @@ export const useWorkflowDesignerStore = defineStore('workflow-designer', () => {
       }
     };
 
-    electronAPI.on('workflow:step:started', onStarted);
-    electronAPI.on('workflow:step:completed', onCompleted);
-    electronAPI.on('workflow:step:failed', onFailed);
+    ipc.on('workflow:step:started', onStarted);
+    ipc.on('workflow:step:completed', onCompleted);
+    ipc.on('workflow:step:failed', onFailed);
 
     _cleanupListeners.push(() => {
-      electronAPI.off?.('workflow:step:started', onStarted);
-      electronAPI.off?.('workflow:step:completed', onCompleted);
-      electronAPI.off?.('workflow:step:failed', onFailed);
+      ipc.removeListener?.('workflow:step:started', onStarted);
+      ipc.removeListener?.('workflow:step:completed', onCompleted);
+      ipc.removeListener?.('workflow:step:failed', onFailed);
     });
   }
 
