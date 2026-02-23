@@ -379,6 +379,55 @@ function registerAIInitializers(factory) {
   });
 
   // ========================================
+  // 多模态路由器
+  // ========================================
+  factory.register({
+    name: "multimodalRouter",
+    dependsOn: ["database", "llmManager"],
+    async init(context) {
+      const {
+        MultimodalRouter,
+      } = require("../ai-engine/multimodal-router");
+      const visionManager = context.visionManager || null;
+      const router = new MultimodalRouter({
+        visionManager,
+        llmManager: context.llmManager,
+        database: context.database,
+      });
+      await router.initialize();
+      return router;
+    },
+  });
+
+  // ========================================
+  // 技能市场客户端
+  // ========================================
+  factory.register({
+    name: "skillMarketplace",
+    dependsOn: ["database"],
+    async init(context) {
+      const {
+        SkillMarketplaceClient,
+      } = require("../marketplace/skill-marketplace-client");
+      const {
+        getSkillRegistry,
+      } = require("../ai-engine/cowork/skills/skill-registry");
+      let skillRegistry = null;
+      try {
+        skillRegistry = getSkillRegistry();
+      } catch {
+        // skill registry may not be initialized yet
+      }
+      const client = new SkillMarketplaceClient({
+        database: context.database,
+        skillRegistry,
+      });
+      await client.initialize();
+      return client;
+    },
+  });
+
+  // ========================================
   // 区块链模块（懒加载）
   // ========================================
   factory.register({

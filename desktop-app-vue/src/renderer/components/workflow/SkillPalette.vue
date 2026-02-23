@@ -147,11 +147,16 @@ onMounted(async () => {
   loadingSkills.value = true;
   try {
     const result = await window.electronAPI?.invoke("skills:list-invocable");
-    if (result?.success && Array.isArray(result.data)) {
-      liveSkills.value = result.data;
+    if (result?.success && Array.isArray(result.skills)) {
+      liveSkills.value = result.skills.map((s) => ({
+        skillId: s.id || s.skillId,
+        name: s.name,
+        category: s.category || "general",
+        description: s.description,
+      }));
       // Auto-expand first group
-      if (result.data.length > 0) {
-        const firstCat = result.data[0]?.category || "general";
+      if (liveSkills.value.length > 0) {
+        const firstCat = liveSkills.value[0]?.category || "general";
         expandedGroups[firstCat] = true;
       }
     }

@@ -335,6 +335,103 @@ export interface TimeMessages {
   tomorrow: string;
 }
 
+export interface EnterpriseMessages {
+  orgManagement: string;
+  departments: string;
+  hierarchy: string;
+  createDepartment: string;
+  moveDepartment: string;
+  bulkImport: string;
+  approvalWorkflow: string;
+  pendingApprovals: string;
+  memberJoinRequest: string;
+  dashboardStats: string;
+  orgSettings: string;
+  departmentLead: string;
+}
+
+export interface PerformanceMessages {
+  monitoring: string;
+  autoTuning: string;
+  tuningRules: string;
+  enableRule: string;
+  disableRule: string;
+  manualTune: string;
+  tuningHistory: string;
+  cpuUsage: string;
+  memoryUsage: string;
+  diskUsage: string;
+  rendererFps: string;
+  domNodes: string;
+}
+
+export interface AnalyticsMessages {
+  dashboard: string;
+  timeSeries: string;
+  kpis: string;
+  totalAICalls: string;
+  totalTokens: string;
+  tokenCost: string;
+  skillExecutions: string;
+  successRate: string;
+  errorCount: string;
+  activePeers: string;
+  uptime: string;
+  exportReport: string;
+  period: string;
+  autoRefresh: string;
+}
+
+export interface AgentMessages {
+  autonomous: string;
+  submitGoal: string;
+  activeGoals: string;
+  goalDescription: string;
+  priority: string;
+  toolPermissions: string;
+  executionTimeline: string;
+  pauseGoal: string;
+  resumeGoal: string;
+  cancelGoal: string;
+  goalHistory: string;
+  userIntervention: string;
+  queueStatus: string;
+  reasoning: string;
+  action: string;
+  observation: string;
+}
+
+export interface CollaborationMessages {
+  realTimeEditing: string;
+  collaborators: string;
+  connected: string;
+  disconnected: string;
+  synced: string;
+  syncing: string;
+  cursorPresence: string;
+  undoRedo: string;
+  richTextEditor: string;
+  toolbar: string;
+}
+
+export interface StorageMessages {
+  ipfs: string;
+  decentralized: string;
+  nodeStatus: string;
+  startNode: string;
+  stopNode: string;
+  pinnedContent: string;
+  addContent: string;
+  uploadFile: string;
+  storageQuota: string;
+  garbageCollect: string;
+  embeddedMode: string;
+  externalMode: string;
+  peerCount: string;
+  cid: string;
+  encrypted: string;
+}
+
 export interface LocaleMessages {
   [key: string]: unknown;
   common: CommonMessages;
@@ -357,9 +454,15 @@ export interface LocaleMessages {
   error: ErrorMessages;
   validation: ValidationMessages;
   time: TimeMessages;
+  enterprise: EnterpriseMessages;
+  performance: PerformanceMessages;
+  analytics: AnalyticsMessages;
+  agent: AgentMessages;
+  collaboration: CollaborationMessages;
+  storage: StorageMessages;
 }
 
-export type SupportedLocale = 'zh-CN' | 'en-US' | 'zh-TW' | 'ja-JP' | 'ko-KR';
+export type SupportedLocale = 'zh-CN' | 'en-US' | 'zh-TW' | 'ja-JP' | 'ko-KR' | 'fr-FR' | 'es-ES';
 
 export interface LocaleOption {
   value: SupportedLocale;

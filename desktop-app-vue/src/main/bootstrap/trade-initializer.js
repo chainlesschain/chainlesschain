@@ -129,6 +129,131 @@ function registerTradeInitializers(factory) {
   });
 
   // ========================================
+  // 拍卖管理器
+  // ========================================
+  factory.register({
+    name: "auctionManager",
+    dependsOn: ["database", "escrowManager", "assetManager"],
+    async init(context) {
+      const { AuctionManager } = require("../trade/auction-manager");
+      const mgr = new AuctionManager(
+        context.database,
+        context.escrowManager,
+        context.assetManager,
+      );
+      await mgr.initialize();
+      return mgr;
+    },
+  });
+
+  // ========================================
+  // 团购管理器
+  // ========================================
+  factory.register({
+    name: "groupBuyingManager",
+    dependsOn: ["database", "escrowManager", "assetManager"],
+    async init(context) {
+      const { GroupBuyingManager } = require("../trade/group-buying-manager");
+      const mgr = new GroupBuyingManager(
+        context.database,
+        context.escrowManager,
+        context.assetManager,
+      );
+      await mgr.initialize();
+      return mgr;
+    },
+  });
+
+  // ========================================
+  // 分期付款管理器
+  // ========================================
+  factory.register({
+    name: "installmentManager",
+    dependsOn: ["database", "escrowManager", "creditScoreManager"],
+    async init(context) {
+      const { InstallmentManager } = require("../trade/installment-manager");
+      const mgr = new InstallmentManager(
+        context.database,
+        context.escrowManager,
+        context.creditScoreManager,
+      );
+      await mgr.initialize();
+      return mgr;
+    },
+  });
+
+  // ========================================
+  // 闪电网络支付管理器
+  // ========================================
+  factory.register({
+    name: "lightningPaymentManager",
+    dependsOn: ["database", "assetManager"],
+    async init(context) {
+      const {
+        LightningPaymentManager,
+      } = require("../trade/lightning-payment");
+      const mgr = new LightningPaymentManager(
+        context.database,
+        context.assetManager,
+      );
+      await mgr.initialize();
+      return mgr;
+    },
+  });
+
+  // ========================================
+  // P2P借贷管理器
+  // ========================================
+  factory.register({
+    name: "lendingManager",
+    dependsOn: ["database", "creditScoreManager", "escrowManager"],
+    async init(context) {
+      const { LendingManager } = require("../defi/lending-manager");
+      const mgr = new LendingManager(
+        context.database,
+        context.creditScoreManager,
+        context.escrowManager,
+      );
+      await mgr.initialize();
+      return mgr;
+    },
+  });
+
+  // ========================================
+  // 保险池管理器
+  // ========================================
+  factory.register({
+    name: "insurancePoolManager",
+    dependsOn: ["database", "assetManager"],
+    async init(context) {
+      const {
+        InsurancePoolManager,
+      } = require("../defi/insurance-pool-manager");
+      const mgr = new InsurancePoolManager(
+        context.database,
+        context.assetManager,
+      );
+      await mgr.initialize();
+      return mgr;
+    },
+  });
+
+  // ========================================
+  // 跨链原子互换管理器
+  // ========================================
+  factory.register({
+    name: "atomicSwapManager",
+    dependsOn: ["database"],
+    async init(context) {
+      const { AtomicSwapManager } = require("../defi/atomic-swap-manager");
+      const bridgeManager = context.blockchainModules?.bridgeManager || null;
+      const mgr = new AtomicSwapManager(context.database, bridgeManager);
+      await mgr.initialize();
+      return mgr;
+    },
+  });
+
+  // ========================================
   // 项目统计收集器
   // ========================================
   factory.register({
