@@ -78,6 +78,17 @@ const socialPages = createRouteGroup('social', {
   moments: () => import(/* webpackChunkName: "social-moments" */ '../components/social/MomentsTimeline.vue'),
   forums: () => import(/* webpackChunkName: "social-forums" */ '../components/social/ForumList.vue'),
   callHistory: () => import(/* webpackChunkName: "social-call-history" */ '../pages/CallHistoryPage.vue'),
+  // v0.40.0 — 共享相册
+  sharedAlbums: () => import(/* webpackChunkName: "social-albums" */ '../pages/SharedAlbumsPage.vue'),
+  // v0.41.0 — 协作编辑
+  collabEditor: () => import(/* webpackChunkName: "social-collab" */ '../pages/CollabEditorPage.vue'),
+  // v0.42.0 — 社区/频道
+  community: () => import(/* webpackChunkName: "social-community" */ '../pages/CommunityPage.vue'),
+  channel: () => import(/* webpackChunkName: "social-channel" */ '../pages/ChannelPage.vue'),
+  // v0.43.0 — 时光机
+  timeMachine: () => import(/* webpackChunkName: "social-time-machine" */ '../pages/TimeMachinePage.vue'),
+  // v0.44.0 — 直播
+  livestream: () => import(/* webpackChunkName: "social-livestream" */ '../pages/LivestreamPage.vue'),
 });
 
 // 监控与诊断页面组（中优先级）
@@ -278,6 +289,47 @@ const routes: RouteRecordRaw[] = [
         name: 'CallHistory',
         component: socialPages.callHistory,
         meta: { title: '通话记录' },
+      },
+      // ===== v0.40.0 — 共享相册 =====
+      {
+        path: 'shared-albums',
+        name: 'SharedAlbums',
+        component: socialPages.sharedAlbums,
+        meta: { title: '共享相册' },
+      },
+      // ===== v0.41.0 — 协作编辑 =====
+      {
+        path: 'social-collab/:docId?',
+        name: 'SocialCollabEditor',
+        component: socialPages.collabEditor,
+        meta: { title: '协作编辑' },
+      },
+      // ===== v0.42.0 — 社区/频道 =====
+      {
+        path: 'community',
+        name: 'Community',
+        component: socialPages.community,
+        meta: { title: '社区' },
+      },
+      {
+        path: 'community/:communityId/channel/:channelId?',
+        name: 'Channel',
+        component: socialPages.channel,
+        meta: { title: '频道' },
+      },
+      // ===== v0.43.0 — 时光机 =====
+      {
+        path: 'time-machine',
+        name: 'TimeMachine',
+        component: socialPages.timeMachine,
+        meta: { title: '时光机' },
+      },
+      // ===== v0.44.0 — 直播 =====
+      {
+        path: 'livestream/:streamId?',
+        name: 'Livestream',
+        component: socialPages.livestream,
+        meta: { title: '直播' },
       },
       // ===== LLM 测试 =====
       {
