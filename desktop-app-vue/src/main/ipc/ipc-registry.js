@@ -346,9 +346,7 @@ function registerAllIPC(dependencies) {
         skillRegistry: getSkillRegistry(),
       });
       registerSkillSyncIPC({ syncManager: skillSyncManager });
-      logger.info(
-        "[IPC Registry] ✓ Skill Sync IPC registered (7 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ Skill Sync IPC registered (7 handlers)");
     } catch (skillSyncError) {
       logger.warn(
         "[IPC Registry] ⚠️  Skill Sync IPC registration failed (non-fatal):",
@@ -2341,9 +2339,7 @@ function registerAllIPC(dependencies) {
       const {
         getEnterpriseOrgManager,
       } = require("../enterprise/enterprise-org-manager");
-      const {
-        registerEnterpriseIPC,
-      } = require("../enterprise/enterprise-ipc");
+      const { registerEnterpriseIPC } = require("../enterprise/enterprise-ipc");
 
       const enterpriseOrgManager = getEnterpriseOrgManager();
       const teamManager = registeredModules.teamManager || null;
@@ -2382,17 +2378,19 @@ function registerAllIPC(dependencies) {
       const { registerIPFSIPC } = require("../ipfs/ipfs-ipc");
 
       const ipfsManager = getIPFSManager();
-      await ipfsManager.initialize({
-        database: dependencies.database,
-      });
+      ipfsManager
+        .initialize({
+          database: dependencies.database,
+        })
+        .catch((e) =>
+          logger.warn("[IPC Registry] IPFS init error:", e.message),
+        );
 
       registerIPFSIPC({ ipfsManager });
 
       registeredModules.ipfsManager = ipfsManager;
 
-      logger.info(
-        "[IPC Registry] ✓ IPFS Storage IPC registered (18 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ IPFS Storage IPC registered (18 handlers)");
     } catch (ipfsError) {
       logger.warn(
         "[IPC Registry] ⚠️  IPFS Storage IPC registration failed (non-fatal):",
@@ -2413,14 +2411,18 @@ function registerAllIPC(dependencies) {
       const { registerAnalyticsIPC } = require("../analytics/analytics-ipc");
 
       const analyticsAggregator = getAnalyticsAggregator();
-      await analyticsAggregator.initialize({
-        database: dependencies.database,
-        tokenTracker: registeredModules.tokenTracker || null,
-        skillMetrics: registeredModules.skillMetricsCollector || null,
-        errorMonitor: registeredModules.errorMonitor || null,
-        performanceMonitor: registeredModules.performanceMonitor || null,
-        mainWindow: dependencies.mainWindow,
-      });
+      analyticsAggregator
+        .initialize({
+          database: dependencies.database,
+          tokenTracker: registeredModules.tokenTracker || null,
+          skillMetrics: registeredModules.skillMetricsCollector || null,
+          errorMonitor: registeredModules.errorMonitor || null,
+          performanceMonitor: registeredModules.performanceMonitor || null,
+          mainWindow: dependencies.mainWindow,
+        })
+        .catch((e) =>
+          logger.warn("[IPC Registry] Analytics init error:", e.message),
+        );
 
       registerAnalyticsIPC({ analyticsAggregator });
 
@@ -2457,7 +2459,11 @@ function registerAllIPC(dependencies) {
       } = require("../ai-engine/autonomous/autonomous-ipc");
 
       const agentTaskQueue = new AgentTaskQueue();
-      await agentTaskQueue.initialize(dependencies.database);
+      agentTaskQueue
+        .initialize(dependencies.database)
+        .catch((e) =>
+          logger.warn("[IPC Registry] AgentTaskQueue init error:", e.message),
+        );
 
       const autonomousRunner = getAutonomousAgentRunner();
       autonomousRunner.initialize({
@@ -2498,15 +2504,14 @@ function registerAllIPC(dependencies) {
         getUnifiedPerformanceCollector,
       } = require("../performance/unified-performance-collector");
       const { getAutoTuner } = require("../performance/auto-tuner");
-      const {
-        registerAutoTunerIPC,
-      } = require("../performance/auto-tuner-ipc");
+      const { registerAutoTunerIPC } = require("../performance/auto-tuner-ipc");
 
       const unifiedPerformanceCollector = getUnifiedPerformanceCollector();
       unifiedPerformanceCollector.initialize({
         performanceMonitor: registeredModules.performanceMonitor || null,
         mcpPerformanceMonitor: registeredModules.mcpPerformanceMonitor || null,
-        filePerformanceMetrics: registeredModules.filePerformanceMetrics || null,
+        filePerformanceMetrics:
+          registeredModules.filePerformanceMetrics || null,
         tokenTracker: registeredModules.tokenTracker || null,
       });
       unifiedPerformanceCollector.start();
@@ -2525,9 +2530,7 @@ function registerAllIPC(dependencies) {
         unifiedPerformanceCollector;
       registeredModules.autoTuner = autoTuner;
 
-      logger.info(
-        "[IPC Registry] ✓ Auto-Tuner IPC registered (12 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ Auto-Tuner IPC registered (12 handlers)");
     } catch (autoTunerError) {
       logger.warn(
         "[IPC Registry] ⚠️  Auto-Tuner IPC registration failed (non-fatal):",
@@ -2547,14 +2550,10 @@ function registerAllIPC(dependencies) {
 
     try {
       logger.info("[IPC Registry] Registering Multimodal IPC...");
-      const {
-        registerMultimodalIPC,
-      } = require("../ai-engine/multimodal-ipc");
+      const { registerMultimodalIPC } = require("../ai-engine/multimodal-ipc");
       const multimodalRouter = app?.multimodalRouter || null;
       registerMultimodalIPC({ multimodalRouter, mainWindow });
-      logger.info(
-        "[IPC Registry] ✓ Multimodal IPC registered (12 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ Multimodal IPC registered (12 handlers)");
     } catch (multimodalError) {
       logger.warn(
         "[IPC Registry] ⚠️  Multimodal IPC registration failed (non-fatal):",
@@ -2631,6 +2630,37 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
     logger.info(
       "[IPC Registry] Phase 26-29 Complete: Multimodal, Skill Marketplace, Trading Enhancement, DeFi ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 30: Advanced Cryptography (v0.38.0 - v0.43.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Advanced Cryptography IPC...");
+      const { registerCryptoIPC } = require("../crypto/crypto-ipc");
+      registerCryptoIPC({
+        postQuantumManager: app?.postQuantumManager || null,
+        zeroKnowledgeManager: app?.zeroKnowledgeManager || null,
+        homomorphicManager: app?.homomorphicManager || null,
+        mpcManager: app?.mpcManager || null,
+        hsmManager: app?.hsmManager || null,
+        advancedCryptoManager: app?.advancedCryptoManager || null,
+      });
+      logger.info(
+        "[IPC Registry] ✓ Advanced Cryptography IPC registered (92 handlers)",
+      );
+    } catch (cryptoError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Advanced Cryptography IPC registration failed (non-fatal):",
+        cryptoError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 30 Complete: Advanced Cryptography (PQ, ZKP, HE, MPC, HSM, Advanced) ready!",
     );
     logger.info("[IPC Registry] ========================================");
 

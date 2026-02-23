@@ -3936,6 +3936,105 @@ class DatabaseManager {
       );
       CREATE INDEX IF NOT EXISTS idx_goal_logs_goal ON autonomous_goal_logs(goal_id);
       CREATE INDEX IF NOT EXISTS idx_goal_logs_level ON autonomous_goal_logs(level);
+
+      -- ============================================================
+      -- Advanced Cryptography Tables (v0.38.0 - v0.43.0)
+      -- ============================================================
+
+      -- Post-Quantum key pairs (v0.38.0)
+      CREATE TABLE IF NOT EXISTS pq_key_pairs (
+        id TEXT PRIMARY KEY,
+        algorithm TEXT NOT NULL,
+        security_level TEXT,
+        public_key TEXT NOT NULL,
+        private_key TEXT,
+        key_type TEXT DEFAULT 'pqc' CHECK(key_type IN ('pqc', 'hybrid', 'classical')),
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        expires_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_pq_keys_algo ON pq_key_pairs(algorithm);
+      CREATE INDEX IF NOT EXISTS idx_pq_keys_type ON pq_key_pairs(key_type);
+
+      -- Zero-Knowledge proofs (v0.39.0)
+      CREATE TABLE IF NOT EXISTS zk_proofs (
+        id TEXT PRIMARY KEY,
+        proof_type TEXT NOT NULL,
+        prover_id TEXT,
+        proof_data TEXT NOT NULL,
+        public_inputs TEXT DEFAULT '{}',
+        verification_key TEXT,
+        verified INTEGER DEFAULT 0,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        expires_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_zk_proofs_type ON zk_proofs(proof_type);
+      CREATE INDEX IF NOT EXISTS idx_zk_proofs_prover ON zk_proofs(prover_id);
+      CREATE INDEX IF NOT EXISTS idx_zk_proofs_verified ON zk_proofs(verified);
+
+      -- Homomorphic encryption computations (v0.40.0)
+      CREATE TABLE IF NOT EXISTS he_computations (
+        id TEXT PRIMARY KEY,
+        scheme TEXT NOT NULL CHECK(scheme IN ('paillier', 'bfv', 'ckks', 'tfhe')),
+        operation TEXT NOT NULL,
+        input_count INTEGER DEFAULT 0,
+        result_encrypted TEXT,
+        metadata TEXT DEFAULT '{}',
+        duration_ms INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_he_comp_scheme ON he_computations(scheme);
+      CREATE INDEX IF NOT EXISTS idx_he_comp_operation ON he_computations(operation);
+
+      -- MPC sessions (v0.41.0)
+      CREATE TABLE IF NOT EXISTS mpc_sessions (
+        id TEXT PRIMARY KEY,
+        session_type TEXT NOT NULL,
+        participant_count INTEGER DEFAULT 0,
+        threshold INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'completed', 'failed', 'expired')),
+        result_hash TEXT,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        completed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_mpc_sessions_type ON mpc_sessions(session_type);
+      CREATE INDEX IF NOT EXISTS idx_mpc_sessions_status ON mpc_sessions(status);
+
+      -- HSM key lifecycle (v0.42.0)
+      CREATE TABLE IF NOT EXISTS hsm_key_lifecycle (
+        id TEXT PRIMARY KEY,
+        key_alias TEXT NOT NULL,
+        backend TEXT NOT NULL,
+        algorithm TEXT NOT NULL,
+        key_type TEXT DEFAULT 'symmetric' CHECK(key_type IN ('symmetric', 'asymmetric', 'hmac')),
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'rotated', 'destroyed', 'backed_up', 'restored')),
+        version INTEGER DEFAULT 1,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        rotated_at TEXT,
+        destroyed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_hsm_keys_alias ON hsm_key_lifecycle(key_alias);
+      CREATE INDEX IF NOT EXISTS idx_hsm_keys_backend ON hsm_key_lifecycle(backend);
+      CREATE INDEX IF NOT EXISTS idx_hsm_keys_status ON hsm_key_lifecycle(status);
+
+      -- Crypto audit trail (v0.43.0)
+      CREATE TABLE IF NOT EXISTS crypto_audit_trail (
+        id TEXT PRIMARY KEY,
+        operation TEXT NOT NULL,
+        category TEXT NOT NULL CHECK(category IN ('sse', 'proxy-re', 'verifiable', 'agility', 'escrow')),
+        actor_id TEXT,
+        input_hash TEXT,
+        output_hash TEXT,
+        success INTEGER DEFAULT 1,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_crypto_audit_operation ON crypto_audit_trail(operation);
+      CREATE INDEX IF NOT EXISTS idx_crypto_audit_category ON crypto_audit_trail(category);
+      CREATE INDEX IF NOT EXISTS idx_crypto_audit_actor ON crypto_audit_trail(actor_id);
       `);
 
       // 重新启用外键约束
