@@ -31,6 +31,10 @@ const { registerSkillMetricsIPC } = require("./skill-metrics-ipc");
 const { SkillWorkflowEngine, NodeType } = require("./skill-workflow-engine");
 const { registerSkillWorkflowIPC } = require("./skill-workflow-ipc");
 
+// v1.2.0: Skill Sync
+const { SkillSyncManager } = require("./skill-sync-manager");
+const { registerSkillSyncIPC } = require("./skill-sync-ipc");
+
 module.exports = {
   // 基类
   BaseSkill,
@@ -69,4 +73,8 @@ module.exports = {
   SkillWorkflowEngine,
   NodeType,
   registerSkillWorkflowIPC,
+
+  // v1.2.0: Skill Sync
+  SkillSyncManager,
+  registerSkillSyncIPC,
 };
