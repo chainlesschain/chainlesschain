@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/call-history-manager.js`
 
-**Generated**: 2026-02-23T13:37:52.351Z
+**Generated**: 2026-02-23T14:46:56.768Z
 
 ---
 

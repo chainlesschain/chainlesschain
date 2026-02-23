@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/conversation-executor.js`
 
-**Generated**: 2026-02-23T13:37:52.420Z
+**Generated**: 2026-02-23T14:46:56.845Z
 
 ---
 

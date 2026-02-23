@@ -2,7 +2,7 @@
 
 **Source**: `src/main/prompt/prompt-template-manager.js`
 
-**Generated**: 2026-02-23T13:37:52.338Z
+**Generated**: 2026-02-23T14:46:56.754Z
 
 ---
 

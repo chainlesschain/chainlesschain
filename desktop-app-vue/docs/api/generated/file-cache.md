@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/file-cache.js`
 
-**Generated**: 2026-02-23T13:37:52.299Z
+**Generated**: 2026-02-23T14:46:56.709Z
 
 ---
 
