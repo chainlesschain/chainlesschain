@@ -93,10 +93,12 @@
 import { reactive } from 'vue';
 import { RocketOutlined } from '@ant-design/icons-vue';
 
+import type { ToolPermission } from '@/stores/autonomous-agent';
+
 interface FormState {
   description: string;
   priority: number;
-  toolPermissions: string[];
+  toolPermissions: ToolPermission[];
   context: string;
 }
 
@@ -108,7 +110,7 @@ const emit = defineEmits<{
   (e: 'submit', goalSpec: {
     description: string;
     priority: number;
-    toolPermissions: string[];
+    toolPermissions: ToolPermission[];
     context: string;
   }): void;
 }>();

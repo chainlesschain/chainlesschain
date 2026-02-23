@@ -157,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
+import { ref, shallowRef, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
@@ -217,7 +217,7 @@ const emit = defineEmits<{
 
 // ==================== Reactive State ====================
 
-const editor = ref<Editor | null>(null);
+const editor = shallowRef<Editor | null>(null);
 const ydoc = ref<Y.Doc | null>(null);
 const provider = ref<YjsIPCProvider | null>(null);
 const undoManager = ref<Y.UndoManager | null>(null);
