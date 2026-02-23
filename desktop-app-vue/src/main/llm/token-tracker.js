@@ -126,6 +126,28 @@ const PRICING_DATA = {
     "doubao-lite-32k": { input: 0.0003, output: 0.0006 },
   },
 
+  gemini: {
+    // Google Gemini 系列
+    "gemini-1.5-pro": { input: 1.25, output: 5.0 },
+    "gemini-1.5-pro-002": { input: 1.25, output: 5.0 },
+    "gemini-1.5-flash": { input: 0.075, output: 0.3 },
+    "gemini-1.5-flash-002": { input: 0.075, output: 0.3 },
+    "gemini-2.0-flash": { input: 0.1, output: 0.4 },
+    "gemini-1.0-pro": { input: 0.5, output: 1.5 },
+  },
+
+  mistral: {
+    // Mistral AI 系列
+    "mistral-large-latest": { input: 2.0, output: 6.0 },
+    "mistral-large-2411": { input: 2.0, output: 6.0 },
+    "mistral-medium-latest": { input: 2.7, output: 8.1 },
+    "mistral-small-latest": { input: 0.2, output: 0.6 },
+    "mistral-small-2409": { input: 0.2, output: 0.6 },
+    "open-mistral-nemo": { input: 0.15, output: 0.15 },
+    "codestral-latest": { input: 0.2, output: 0.6 },
+    "mistral-embed": { input: 0.1, output: 0 },
+  },
+
   ollama: {
     // Ollama 本地运行，免费
     "*": { input: 0, output: 0 },

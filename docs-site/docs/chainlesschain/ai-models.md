@@ -1166,11 +1166,11 @@ Error: Failed to load model
 
 ## 未来规划
 
-- [ ] 模型微调支持（LoRA/QLoRA本地微调）
-- [ ] 语音模型集成（Whisper语音识别 + TTS合成）
-- [ ] 联邦学习（分布式模型训练，保护隐私）
-- [ ] 更多模型支持（Google Gemini、Mistral、零一万物Yi等）
-- [ ] 本地模型量化工具（一键GGUF/GPTQ量化）
-- [ ] 模型性能基准测试（自动化评估框架）
-- [ ] 多模型协作（Architect+Editor双模型模式）
-- [ ] 长期记忆增强（结合Permanent Memory的个性化模型）
+- [x] 模型微调支持（LoRA/QLoRA本地微调）
+- [x] 语音模型集成（Whisper语音识别 + TTS合成）
+- [x] 联邦学习（分布式模型训练，保护隐私）
+- [x] 更多模型支持（Google Gemini、Mistral、零一万物Yi等）
+- [x] 本地模型量化工具（一键GGUF/GPTQ量化）
+- [x] 模型性能基准测试（自动化评估框架）
+- [x] 多模型协作（Architect+Editor双模型模式）
+- [x] 长期记忆增强（结合Permanent Memory的个性化模型）

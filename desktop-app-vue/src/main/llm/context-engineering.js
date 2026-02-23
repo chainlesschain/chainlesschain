@@ -54,6 +54,12 @@ class ContextEngineering {
     // Code Knowledge Graph（可选，通过 setCodeKnowledgeGraph 注入）
     this._codeKnowledgeGraph = null;
 
+    // Memory Augmented Generation（可选，通过 setMemoryAugManager 注入）
+    this._memoryAugManager = null;
+
+    // User Preference Learner（可选，通过 setPreferenceLearner 注入）
+    this._preferenceLearner = null;
+
     // 统计
     this.stats = {
       cacheHits: 0,
@@ -77,6 +83,22 @@ class ContextEngineering {
    */
   setCodeKnowledgeGraph(codeKnowledgeGraph) {
     this._codeKnowledgeGraph = codeKnowledgeGraph;
+  }
+
+  /**
+   * 注入 Memory Augmented Generation 管理器
+   * @param {Object} memoryAugManager - MemoryAugmentedGeneration instance
+   */
+  setMemoryAugManager(memoryAugManager) {
+    this._memoryAugManager = memoryAugManager;
+  }
+
+  /**
+   * 注入用户偏好学习器
+   * @param {Object} preferenceLearner - UserPreferenceLearner instance
+   */
+  setPreferenceLearner(preferenceLearner) {
+    this._preferenceLearner = preferenceLearner;
   }
 
   /**
@@ -195,6 +217,46 @@ class ContextEngineering {
         }
       } catch (_e) {
         // KG context is non-critical, silently skip
+      }
+    }
+
+    // 4.7 注入长期记忆和用户偏好上下文（个性化增强）
+    if (this._memoryAugManager || this._preferenceLearner) {
+      try {
+        const memoryParts = [];
+
+        // 用户偏好
+        if (this._preferenceLearner) {
+          const prefContext =
+            this._preferenceLearner.buildPreferenceContext(5);
+          if (prefContext) {
+            memoryParts.push(prefContext);
+          }
+        }
+
+        // 相关历史交互记忆
+        if (this._memoryAugManager) {
+          const contextHint =
+            taskContext?.objective ||
+            messages
+              .slice(-2)
+              .map((m) => m.content || "")
+              .join(" ");
+          const memContext =
+            this._memoryAugManager.buildMemoryContext(contextHint, 3);
+          if (memContext) {
+            memoryParts.push(memContext);
+          }
+        }
+
+        if (memoryParts.length > 0) {
+          result.messages.push({
+            role: "system",
+            content: memoryParts.join("\n\n"),
+          });
+        }
+      } catch (_e) {
+        // Memory context is non-critical, silently skip
       }
     }
 

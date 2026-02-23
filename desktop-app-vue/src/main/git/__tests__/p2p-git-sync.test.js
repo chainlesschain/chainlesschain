@@ -17,68 +17,68 @@ const {
 // ─── VectorClock ──────────────────────────────────────────────────────────────
 
 describe("VectorClock", () => {
-  it("starts at 0 for all nodes", () => {
-    const vc = new VectorClock("node1");
-    expect(vc.get("node1")).toBe(0);
-    expect(vc.get("node2")).toBe(0);
+  it("starts at 0 for all nodes (missing keys return 0)", () => {
+    const vc = new VectorClock();
+    expect(vc.clock["node1"] ?? 0).toBe(0);
+    expect(vc.clock["node2"] ?? 0).toBe(0);
   });
 
-  it("increment increases own counter", () => {
-    const vc = new VectorClock("node1");
-    vc.increment();
-    expect(vc.get("node1")).toBe(1);
-    vc.increment();
-    expect(vc.get("node1")).toBe(2);
+  it("increment increases the specified node counter", () => {
+    const vc = new VectorClock();
+    vc.increment("node1");
+    expect(vc.clock.node1).toBe(1);
+    vc.increment("node1");
+    expect(vc.clock.node1).toBe(2);
   });
 
   it("merge takes max per node", () => {
-    const vc1 = new VectorClock("n1");
+    const vc1 = new VectorClock();
     vc1.clock = { n1: 3, n2: 1 };
-    const vc2 = new VectorClock("n2");
+    const vc2 = new VectorClock();
     vc2.clock = { n1: 1, n2: 4 };
     vc1.merge(vc2);
-    expect(vc1.get("n1")).toBe(3);
-    expect(vc1.get("n2")).toBe(4);
+    expect(vc1.clock.n1).toBe(3);
+    expect(vc1.clock.n2).toBe(4);
   });
 
   it("compare: equal clocks", () => {
-    const vc1 = new VectorClock("n1");
+    const vc1 = new VectorClock();
     vc1.clock = { n1: 2, n2: 2 };
-    const vc2 = new VectorClock("n2");
+    const vc2 = new VectorClock();
     vc2.clock = { n1: 2, n2: 2 };
     expect(vc1.compare(vc2)).toBe("equal");
   });
 
   it("compare: before — vc1 < vc2", () => {
-    const vc1 = new VectorClock("n1");
+    const vc1 = new VectorClock();
     vc1.clock = { n1: 1, n2: 1 };
-    const vc2 = new VectorClock("n2");
+    const vc2 = new VectorClock();
     vc2.clock = { n1: 2, n2: 2 };
     expect(vc1.compare(vc2)).toBe("before");
   });
 
   it("compare: after — vc1 > vc2", () => {
-    const vc1 = new VectorClock("n1");
+    const vc1 = new VectorClock();
     vc1.clock = { n1: 3, n2: 2 };
-    const vc2 = new VectorClock("n2");
+    const vc2 = new VectorClock();
     vc2.clock = { n1: 1, n2: 1 };
     expect(vc1.compare(vc2)).toBe("after");
   });
 
   it("compare: concurrent — neither dominates", () => {
-    const vc1 = new VectorClock("n1");
+    const vc1 = new VectorClock();
     vc1.clock = { n1: 3, n2: 1 };
-    const vc2 = new VectorClock("n2");
+    const vc2 = new VectorClock();
     vc2.clock = { n1: 1, n2: 3 };
     expect(vc1.compare(vc2)).toBe("concurrent");
   });
 
   it("toJSON / fromJSON round-trip", () => {
-    const vc = new VectorClock("n1");
-    vc.increment();
+    const vc = new VectorClock();
+    vc.increment("n1");
     const json = vc.toJSON();
-    const vc2 = VectorClock.fromJSON("n1", json);
-    expect(vc2.get("n1")).toBe(1);
+    const vc2 = VectorClock.fromJSON(json);
+    expect(vc2.clock.n1).toBe(1);
   });
 });
 
@@ -109,12 +109,13 @@ describe("P2PGitSync", () => {
     mockDiscovery = {
       getSyncablePeers: vi.fn().mockReturnValue([]),
       getAuthorizedDevices: vi.fn().mockReturnValue([]),
+      getVerifiedPeers: vi.fn().mockReturnValue([]),
       verifyPeer: vi.fn().mockResolvedValue(true),
       on: vi.fn(),
     };
     sync = new P2PGitSync({
       gitManager: mockGitManager,
-      transport: mockTransport,
+      p2pGitTransport: mockTransport,
       deviceDiscovery: mockDiscovery,
       database: mockDb,
     });
@@ -131,7 +132,7 @@ describe("P2PGitSync", () => {
 
   it("getStatus returns current sync status", () => {
     const status = sync.getStatus();
-    expect(status).toHaveProperty("state");
+    expect(status).toHaveProperty("syncState");
     expect(status).toHaveProperty("enabled");
     expect(status).toHaveProperty("topology");
   });
@@ -163,19 +164,19 @@ describe("P2PGitSync", () => {
     expect(results.length).toBe(0);
   });
 
-  it("offline queue is processed on reconnect", () => {
+  it("offline queue stores and clears on _processOfflineQueue", () => {
     sync._offlineQueue = [{ peerId: "p1", operation: "push" }];
     expect(sync._offlineQueue.length).toBe(1);
     sync._processOfflineQueue();
-    // Queue should be cleared or reduced
-    expect(sync._offlineQueue.length).toBeLessThanOrEqual(1);
+    // Queue should be cleared (items processed)
+    expect(sync._offlineQueue.length).toBe(0);
   });
 
   it("destroy stops auto-sync timer", () => {
     sync._startAutoSync();
-    expect(sync._syncTimer).toBeDefined();
+    expect(sync._autoSyncTimer).toBeDefined();
     sync.destroy();
-    expect(sync._syncTimer).toBeNull();
+    expect(sync._autoSyncTimer).toBeNull();
   });
 });
 
@@ -250,12 +251,18 @@ describe("DeviceDiscoveryManager", () => {
     expect(devices.length).toBe(2);
   });
 
-  it("getSyncablePeers returns intersection of connected and authorized", () => {
+  it("getSyncablePeers returns intersection of verified and authorized", () => {
+    // Authorized devices in db
     mockDb.all.mockReturnValue([{ device_did: "did:key:peer1", peer_id: "peer-abc" }]);
-    mockP2P.getPeers.mockReturnValue(["peer-abc", "peer-xyz"]);
+
+    // Populate verifiedPeers directly (simulating successful DID handshake)
+    manager.verifiedPeers.set("peer-abc", { peerId: "peer-abc", did: "did:key:peer1" });
+    manager.verifiedPeers.set("peer-xyz", { peerId: "peer-xyz", did: "did:key:stranger" });
+
     const peers = manager.getSyncablePeers();
-    // Only peer-abc is authorized AND connected
-    expect(peers).toContain("peer-abc");
-    expect(peers).not.toContain("peer-xyz");
+    const peerIds = peers.map((p) => p.peerId);
+    // Only peer-abc is authorized AND verified
+    expect(peerIds).toContain("peer-abc");
+    expect(peerIds).not.toContain("peer-xyz");
   });
 });

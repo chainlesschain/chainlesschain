@@ -677,6 +677,17 @@ class P2PGitSync extends EventEmitter {
     });
   }
 
+  /**
+   * Process all items in the offline queue (trigger re-sync)
+   */
+  _processOfflineQueue() {
+    const items = [...this._offlineQueue];
+    this._offlineQueue = [];
+    for (const item of items) {
+      this._enqueueSyncWithPeer(item.peerId);
+    }
+  }
+
   // ==========================================
   // Auto-sync
   // ==========================================
@@ -744,6 +755,14 @@ class P2PGitSync extends EventEmitter {
       authorizedDevices:
         this.deviceDiscovery?.getAuthorizedDevices()?.length || 0,
     };
+  }
+
+  /**
+   * Get current configuration
+   * @returns {Object}
+   */
+  getConfig() {
+    return { ...this.config };
   }
 
   /**

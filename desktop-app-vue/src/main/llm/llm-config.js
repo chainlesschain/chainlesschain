@@ -27,7 +27,7 @@ const normalizeProvider = (provider) => {
  */
 const DEFAULT_CONFIG = {
   // 提供商
-  provider: "volcengine", // 'volcengine' | 'ollama' | 'openai' | 'deepseek' | 'custom'
+  provider: "volcengine", // 'volcengine' | 'ollama' | 'openai' | 'deepseek' | 'gemini' | 'mistral' | 'custom'
 
   // Ollama配置
   ollama: {
@@ -68,6 +68,22 @@ const DEFAULT_CONFIG = {
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
     model: "doubao-seed-1-6-251015", // 使用最新版本（注意：下划线格式，带版本号）
     embeddingModel: "doubao-embedding-text-240715", // 嵌入模型（最新版本，支持中英双语）
+  },
+
+  // Google Gemini配置
+  gemini: {
+    apiKey: "",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta",
+    model: "gemini-1.5-pro",
+    embeddingModel: "text-embedding-004",
+  },
+
+  // Mistral AI配置
+  mistral: {
+    apiKey: "",
+    baseURL: "https://api.mistral.ai/v1",
+    model: "mistral-large-latest",
+    embeddingModel: "mistral-embed",
   },
 
   // 自定义配置
@@ -347,6 +363,10 @@ class LLMConfig {
         return this.config.deepseek;
       case "volcengine":
         return this.config.volcengine;
+      case "gemini":
+        return this.config.gemini;
+      case "mistral":
+        return this.config.mistral;
       case "custom":
         return this.config.custom;
       default:
@@ -438,6 +458,18 @@ class LLMConfig {
         }
         break;
 
+      case "gemini":
+        if (!this.config.gemini.apiKey) {
+          errors.push("Google Gemini API Key未配置");
+        }
+        break;
+
+      case "mistral":
+        if (!this.config.mistral.apiKey) {
+          errors.push("Mistral AI API Key未配置");
+        }
+        break;
+
       case "custom":
         if (!this.config.custom.baseURL) {
           errors.push("自定义API URL未配置");
@@ -507,6 +539,26 @@ class LLMConfig {
           baseURL:
             providerConfig.baseURL ||
             "https://ark.cn-beijing.volces.com/api/v3",
+          model: providerConfig.model,
+          embeddingModel: providerConfig.embeddingModel,
+        };
+
+      case "gemini":
+        return {
+          ...baseConfig,
+          apiKey: providerConfig.apiKey,
+          baseURL:
+            providerConfig.baseURL ||
+            "https://generativelanguage.googleapis.com/v1beta",
+          model: providerConfig.model,
+          embeddingModel: providerConfig.embeddingModel,
+        };
+
+      case "mistral":
+        return {
+          ...baseConfig,
+          apiKey: providerConfig.apiKey,
+          baseURL: providerConfig.baseURL || "https://api.mistral.ai/v1",
           model: providerConfig.model,
           embeddingModel: providerConfig.embeddingModel,
         };

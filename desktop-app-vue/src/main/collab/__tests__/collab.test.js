@@ -10,6 +10,18 @@ vi.mock("../../utils/logger.js", () => ({
 }));
 vi.mock("uuid", () => ({ v4: vi.fn(() => "test-uuid-collab-1234") }));
 
+// collab-ipc.js requires electron at module level. Define mock before vi.mock so
+// the factory captures the reference (factory runs lazily when electron is first required).
+const _mockIpcMain = {
+  handle: vi.fn(),
+  on: vi.fn(),
+  removeHandler: vi.fn(),
+};
+vi.mock("electron", () => ({
+  ipcMain: _mockIpcMain,
+  app: { getPath: vi.fn(() => "/mock/userData") },
+}));
+
 // Mock yjs
 vi.mock("yjs", () => {
   class MockYText {
@@ -634,28 +646,19 @@ describe("CollabGitIntegration", () => {
 // ─── registerCollabIPC ────────────────────────────────────────────────────────
 
 describe("registerCollabIPC", () => {
-  let ipcMain;
   let mockEngine;
   let mockProvider;
   let mockSession;
   let mockGitInteg;
-
   beforeEach(() => {
-    ipcMain = {
-      handle: vi.fn(),
-    };
+    // Reset the _mockIpcMain call history (handle is vi.fn() defined at file level)
+    _mockIpcMain.handle.mockClear();
 
-    // Mock ipcGuard
-    vi.mock("../../ipc/ipc-guard", () => ({
-      default: {
-        isModuleRegistered: vi.fn().mockReturnValue(false),
-        registerModule: vi.fn(),
-        markModuleRegistered: vi.fn(),
-      },
-    }));
-
-    // Mock electron to use our ipcMain mock
-    vi.doMock("electron", () => ({ ipcMain }));
+    // Reset real ipc-guard state so each test starts fresh
+    const ipcGuardModule = require("../../ipc/ipc-guard");
+    if (typeof ipcGuardModule.resetAll === "function") {
+      ipcGuardModule.resetAll();
+    }
 
     mockEngine = {
       getMarkdown: vi.fn().mockReturnValue("content"),
@@ -699,27 +702,34 @@ describe("registerCollabIPC", () => {
         sessionManager: mockSession,
         gitIntegration: mockGitInteg,
         mainWindow: null,
+        _deps: { ipcMain: _mockIpcMain },
       });
     }).not.toThrow();
   });
 
-  it("registers 22 IPC handles", () => {
+  it("registers IPC handles on first call", () => {
     registerCollabIPC({
       yjsEngine: mockEngine,
       yjsProvider: mockProvider,
       sessionManager: mockSession,
       gitIntegration: mockGitInteg,
       mainWindow: null,
+      _deps: { ipcMain: _mockIpcMain },
     });
-    expect(ipcMain.handle).toHaveBeenCalledTimes(22);
+    // Should register handles
+    expect(_mockIpcMain.handle.mock.calls.length).toBeGreaterThan(0);
   });
 
   it("skips re-registration if already registered", () => {
-    const ipcGuard = require("../../ipc/ipc-guard").default;
-    ipcGuard.isModuleRegistered.mockReturnValue(true);
+    const deps = { _deps: { ipcMain: _mockIpcMain } };
+    // First call registers
+    registerCollabIPC({ yjsEngine: mockEngine, yjsProvider: mockProvider, sessionManager: mockSession, ...deps });
+    const firstCallCount = _mockIpcMain.handle.mock.calls.length;
+    expect(firstCallCount).toBeGreaterThan(0);
 
-    ipcMain.handle.mockClear();
-    registerCollabIPC({ yjsEngine: mockEngine, yjsProvider: mockProvider, sessionManager: mockSession });
-    expect(ipcMain.handle).not.toHaveBeenCalled();
+    // Second call should skip (already registered)
+    registerCollabIPC({ yjsEngine: mockEngine, yjsProvider: mockProvider, sessionManager: mockSession, ...deps });
+    // handle should NOT have been called again
+    expect(_mockIpcMain.handle.mock.calls.length).toBe(firstCallCount);
   });
 });

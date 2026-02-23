@@ -595,6 +595,14 @@ class P2PGitTransport extends EventEmitter {
   }
 
   /**
+   * Get bandwidth statistics (convenience wrapper)
+   * @returns {{ averageBandwidth, currentChunkSize, sampleCount }}
+   */
+  getBandwidthStats() {
+    return this.bandwidthTracker.getStats();
+  }
+
+  /**
    * Destroy transport and clean up
    */
   destroy() {

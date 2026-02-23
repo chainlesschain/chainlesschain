@@ -53,8 +53,8 @@ describe("createProvider", () => {
   });
 
   it("creates an AzureDevOps provider", () => {
-    const p = createProvider("azuredevops", {});
-    expect(p.type).toBe("azuredevops");
+    const p = createProvider("azure-devops", {});
+    expect(p.type).toBe("azure-devops");
   });
 
   it("creates a generic provider for unknown types", () => {
@@ -146,28 +146,15 @@ describe("GitHub provider", () => {
 
 describe("SSHKeyManager", () => {
   let manager;
-  let mockFs;
 
   beforeEach(() => {
-    mockFs = {
-      existsSync: vi.fn().mockReturnValue(false),
-      mkdirSync: vi.fn(),
-      writeFileSync: vi.fn(),
-      readFileSync: vi.fn().mockReturnValue("mock-key-content"),
-      readdirSync: vi.fn().mockReturnValue([]),
-      unlinkSync: vi.fn(),
-    };
-    // SSHKeyManager uses require('fs') internally — mock at module level
-    manager = new SSHKeyManager({ basePath: "/mock/ssh-keys" });
-    // Override fs methods via the manager's internal ref if exposed
-    if (manager._fs) {
-      Object.assign(manager._fs, mockFs);
-    }
+    // SSHKeyManager uses options.keyDir (not basePath)
+    manager = new SSHKeyManager({ keyDir: "/mock/ssh-keys" });
   });
 
-  it("creates instance with default or custom basePath", () => {
+  it("creates instance with custom keyDir", () => {
     expect(manager).toBeDefined();
-    expect(manager.basePath || manager._basePath || "/mock/ssh-keys").toBeDefined();
+    expect(manager.keyDir).toBe("/mock/ssh-keys");
   });
 
   it("generateKey resolves with key info", async () => {
@@ -265,8 +252,8 @@ describe("MultiRepoManager", () => {
     }
   });
 
-  it("getProxyConfig returns proxy settings", () => {
-    const proxy = manager.getProxyConfig();
+  it("getProxy returns proxy settings", () => {
+    const proxy = manager.getProxy();
     expect(proxy).toBeDefined();
   });
 });
