@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools.js`
 
-**Generated**: 2026-02-22T01:23:36.765Z
+**Generated**: 2026-02-23T00:28:19.508Z
 
 ---
 

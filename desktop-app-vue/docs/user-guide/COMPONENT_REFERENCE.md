@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-02-22T01:23:36.859Z
+**Generated**: 2026-02-23T00:28:19.597Z
 
-**Total Components**: 482
+**Total Components**: 484
 
 ---
 
@@ -1474,6 +1474,8 @@
 
 **File**: `src/renderer/components/workflow/SkillPalette.vue`
 
+**Description**: Default node types section
+
 ---
 
 ### SkillNode
@@ -1496,9 +1498,23 @@
 
 ---
 
+### OrchestrateTemplateLoader
+
+**File**: `src/renderer/components/workflow/OrchestrateTemplateLoader.vue`
+
+---
+
 ### NodePropertyPanel
 
 **File**: `src/renderer/components/workflow/NodePropertyPanel.vue`
+
+**Description**: Visual expression builder for condition nodes
+
+---
+
+### ExpressionBuilder
+
+**File**: `src/renderer/components/workflow/ExpressionBuilder.vue`
 
 ---
 

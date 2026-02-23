@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/volcengine-model-selector-examples.js`
 
-**Generated**: 2026-02-22T01:23:36.713Z
+**Generated**: 2026-02-23T00:28:19.459Z
 
 ---
 

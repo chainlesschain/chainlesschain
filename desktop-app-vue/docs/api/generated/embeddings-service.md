@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/embeddings-service.js`
 
-**Generated**: 2026-02-22T01:23:36.688Z
+**Generated**: 2026-02-23T00:28:19.436Z
 
 ---
 

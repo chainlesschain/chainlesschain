@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/skill-recommender.js`
 
-**Generated**: 2026-02-22T01:23:36.676Z
+**Generated**: 2026-02-23T00:28:19.424Z
 
 ---
 
