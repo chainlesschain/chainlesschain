@@ -64,27 +64,44 @@ function createStatefulMockDatabase() {
         const flat = args.flat();
 
         if (sql.includes("INSERT INTO call_rooms")) {
-          const [id, type, creatorDid, status, maxParticipants, createdAt] = flat;
-          callRooms.set(id, { id, type, creator_did: creatorDid, status, max_participants: maxParticipants, created_at: createdAt, ended_at: null });
+          // SQL: INSERT INTO call_rooms (id, type, creator_did, status, max_participants, created_at)
+          // VALUES (?, ?, ?, 'active', ?, ?)  — status is hardcoded, so 5 placeholders
+          const [id, type, creatorDid, maxParticipants, createdAt] = flat;
+          callRooms.set(id, { id, type, creator_did: creatorDid, status: "active", max_participants: maxParticipants, created_at: createdAt, ended_at: null });
           return { changes: 1 };
         }
 
         if (sql.includes("INSERT INTO call_participants")) {
-          const [id, roomId, participantDid, role, status, joinedAt] = flat;
-          callParticipants.set(id, { id, room_id: roomId, participant_did: participantDid, role, status, joined_at: joinedAt, left_at: null });
+          // SQL: VALUES (?, ?, ?, 'host'/'participant', 'connected', ?)
+          // role and status are hardcoded — 4 placeholders
+          const [id, roomId, participantDid, joinedAt] = flat;
+          const role = sql.includes("'host'") ? "host" : "participant";
+          callParticipants.set(id, { id, room_id: roomId, participant_did: participantDid, role, status: "connected", joined_at: joinedAt, left_at: null });
           return { changes: 1 };
         }
 
-        if (sql.includes("UPDATE call_participants") && sql.includes("status")) {
-          // UPDATE call_participants SET status = ?, left_at = ? WHERE room_id = ? AND participant_did = ?
-          const [newStatus, leftAt, roomId, participantDid] = flat;
-          for (const [, p] of callParticipants) {
-            if (p.room_id === roomId && p.participant_did === participantDid) {
-              p.status = newStatus;
-              if (leftAt) p.left_at = leftAt;
+        if (sql.includes("UPDATE call_participants")) {
+          if (sql.includes("status = 'left'")) {
+            // UPDATE ... SET status = 'left', left_at = ? WHERE room_id = ? AND participant_did = ? AND status != 'left'
+            const [leftAt, roomId, participantDid] = flat;
+            let changes = 0;
+            for (const [, p] of callParticipants) {
+              if (p.room_id === roomId && p.participant_did === participantDid && p.status !== "left") {
+                p.status = "left";
+                p.left_at = leftAt;
+                changes++;
+              }
             }
+            return { changes };
           }
-          return { changes: 1 };
+          if (sql.includes("status = 'connected'")) {
+            // Re-join: UPDATE ... SET status = 'connected', joined_at = ?, left_at = NULL WHERE id = ?
+            const [joinedAt, id] = flat;
+            const p = callParticipants.get(id);
+            if (p) { p.status = "connected"; p.joined_at = joinedAt; p.left_at = null; }
+            return { changes: p ? 1 : 0 };
+          }
+          return { changes: 0 };
         }
 
         if (sql.includes("UPDATE call_rooms") && sql.includes("ended")) {
@@ -105,7 +122,12 @@ function createStatefulMockDatabase() {
         const flat = args.flat();
 
         if (sql.includes("SELECT * FROM call_rooms WHERE id")) {
-          return callRooms.get(flat[0]) || null;
+          const room = callRooms.get(flat[0]) || null;
+          // Filter by status if the query requires it
+          if (room && sql.includes("status = 'active'") && room.status !== "active") {
+            return null;
+          }
+          return room;
         }
 
         if (sql.includes("SELECT * FROM call_participants WHERE room_id = ? AND participant_did")) {
@@ -247,7 +269,8 @@ describe("Social Calls Integration – Full Call Lifecycle", () => {
     const participants = await callManager.getParticipants(room.id);
     expect(participants.success).toBe(true);
     expect(participants.participants.length).toBeGreaterThanOrEqual(2);
-    const dids = participants.participants.map((p) => p.participant_did);
+    // _formatParticipant returns camelCase fields
+    const dids = participants.participants.map((p) => p.participantDid);
     expect(dids).toContain(ALICE);
     expect(dids).toContain(BOB);
   });
@@ -262,8 +285,9 @@ describe("Social Calls Integration – Full Call Lifecycle", () => {
     expect(leaveResult.success).toBe(true);
 
     const participants = await callManager.getParticipants(room.id, false);
+    // _formatParticipant returns camelCase fields
     const bobEntry = participants.participants.find(
-      (p) => p.participant_did === BOB,
+      (p) => p.participantDid === BOB,
     );
     expect(bobEntry).toBeDefined();
     expect(bobEntry.status).toBe("left");
@@ -459,9 +483,10 @@ describe("Social Calls Integration – Signaling Message Flow", () => {
     expect(p2pManager.sendMessage).toHaveBeenCalled();
 
     const sentPayload = p2pManager.sendMessage.mock.calls[0];
-    // The first argument should contain the target DID or signal data
+    // The outer envelope has type:"call-signaling"; the inner signal type is in signalType
     const signalData = sentPayload.flat().find(
-      (arg) => typeof arg === "object" && arg !== null && arg.type === "offer",
+      (arg) => typeof arg === "object" && arg !== null &&
+        (arg.signalType === "offer" || arg.type === "offer"),
     );
     expect(signalData).toBeDefined();
   });
@@ -487,7 +512,8 @@ describe("Social Calls Integration – Signaling Message Flow", () => {
 
     const sentPayload = p2pManager.sendMessage.mock.calls[0];
     const signalData = sentPayload.flat().find(
-      (arg) => typeof arg === "object" && arg !== null && arg.type === "ice-candidate",
+      (arg) => typeof arg === "object" && arg !== null &&
+        (arg.signalType === "ice-candidate" || arg.type === "ice-candidate"),
     );
     expect(signalData).toBeDefined();
   });
@@ -506,7 +532,7 @@ describe("Social Calls Integration – Signaling Message Flow", () => {
 
     expect(handler).toHaveBeenCalledOnce();
     expect(handler.mock.calls[0][0]).toMatchObject({
-      senderDid: ALICE,
+      peerId: ALICE,
       sdp: expect.objectContaining({ type: "offer" }),
     });
   });
@@ -524,7 +550,7 @@ describe("Social Calls Integration – Signaling Message Flow", () => {
 
     expect(handler).toHaveBeenCalledOnce();
     expect(handler.mock.calls[0][0]).toMatchObject({
-      senderDid: BOB,
+      peerId: BOB,
     });
   });
 });
