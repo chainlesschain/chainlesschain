@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/event-listener.js`
 
-**Generated**: 2026-02-23T09:15:08.744Z
+**Generated**: 2026-02-23T09:52:53.633Z
 
 ---
 

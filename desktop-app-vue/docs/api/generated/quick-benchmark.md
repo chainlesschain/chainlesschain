@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/__tests__/quick-benchmark.js`
 
-**Generated**: 2026-02-23T09:15:08.700Z
+**Generated**: 2026-02-23T09:52:53.601Z
 
 ---
 

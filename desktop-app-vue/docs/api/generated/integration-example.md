@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/integration-example.js`
 
-**Generated**: 2026-02-23T09:15:08.671Z
+**Generated**: 2026-02-23T09:52:53.579Z
 
 ---
 

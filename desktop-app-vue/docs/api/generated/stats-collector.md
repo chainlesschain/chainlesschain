@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/stats-collector.js`
 
-**Generated**: 2026-02-23T09:15:08.679Z
+**Generated**: 2026-02-23T09:52:53.584Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file-sync/sync-manager.js`
 
-**Generated**: 2026-02-23T09:15:08.717Z
+**Generated**: 2026-02-23T09:52:53.614Z
 
 ---
 
