@@ -2,7 +2,7 @@
 
 **Source**: `src/main/template/template-manager.js`
 
-**Generated**: 2026-02-23T09:15:08.654Z
+**Generated**: 2026-02-23T09:52:53.570Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/error-monitor-ipc.js`
 
-**Generated**: 2026-02-23T09:15:08.694Z
+**Generated**: 2026-02-23T09:52:53.593Z
 
 ---
 

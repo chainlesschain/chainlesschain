@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/context-engineering.js`
 
-**Generated**: 2026-02-23T09:15:08.706Z
+**Generated**: 2026-02-23T09:52:53.606Z
 
 ---
 
@@ -55,6 +55,28 @@ setCodeKnowledgeGraph(codeKnowledgeGraph)
 
 * Set the CodeKnowledgeGraph for architectural insight injection
    * @param {Object} codeKnowledgeGraph - CodeKnowledgeGraph instance
+
+---
+
+## setMemoryAugManager(memoryAugManager)
+
+```javascript
+setMemoryAugManager(memoryAugManager)
+```
+
+* 注入 Memory Augmented Generation 管理器
+   * @param {Object} memoryAugManager - MemoryAugmentedGeneration instance
+
+---
+
+## setPreferenceLearner(preferenceLearner)
+
+```javascript
+setPreferenceLearner(preferenceLearner)
+```
+
+* 注入用户偏好学习器
+   * @param {Object} preferenceLearner - UserPreferenceLearner instance
 
 ---
 

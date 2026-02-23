@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/pdf-engine.js`
 
-**Generated**: 2026-02-23T09:15:08.720Z
+**Generated**: 2026-02-23T09:52:53.617Z
 
 ---
 

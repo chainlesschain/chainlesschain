@@ -2,7 +2,7 @@
 
 **Source**: `src/main/bootstrap/social-initializer.js`
 
-**Generated**: 2026-02-23T09:15:08.742Z
+**Generated**: 2026-02-23T09:52:53.632Z
 
 ---
 

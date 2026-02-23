@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/slot-filler.js`
 
-**Generated**: 2026-02-23T09:15:08.752Z
+**Generated**: 2026-02-23T09:52:53.638Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/db-sync-manager.js`
 
-**Generated**: 2026-02-23T09:15:08.659Z
+**Generated**: 2026-02-23T09:52:53.572Z
 
 ---
 

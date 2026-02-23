@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/skills/office-skill.js`
 
-**Generated**: 2026-02-23T09:15:08.766Z
+**Generated**: 2026-02-23T09:52:53.649Z
 
 ---
 

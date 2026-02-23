@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/contract-templates.js`
 
-**Generated**: 2026-02-23T09:15:08.652Z
+**Generated**: 2026-02-23T09:52:53.569Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/__tests__/integration/multi-team-workflow.test.js`
 
-**Generated**: 2026-02-23T09:15:08.727Z
+**Generated**: 2026-02-23T09:52:53.623Z
 
 ---
 
