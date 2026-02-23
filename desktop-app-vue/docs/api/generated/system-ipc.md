@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/system-ipc.js`
 
-**Generated**: 2026-02-23T01:40:12.102Z
+**Generated**: 2026-02-23T09:15:08.655Z
 
 ---
 

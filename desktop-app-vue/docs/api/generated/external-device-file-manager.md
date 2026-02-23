@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/external-device-file-manager.js`
 
-**Generated**: 2026-02-23T01:40:12.168Z
+**Generated**: 2026-02-23T09:15:08.718Z
 
 ---
 
