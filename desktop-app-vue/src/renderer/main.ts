@@ -63,3 +63,10 @@ app.directive('content-visibility', createContentVisibilityDirective());
 logger.info('[App] Performance optimizations initialized');
 
 app.mount('#app');
+
+// Vue 挂载完成后淡出并移除页面加载动画
+const pageLoading = document.getElementById('page-loading');
+if (pageLoading) {
+  pageLoading.classList.add('hide');
+  setTimeout(() => pageLoading.remove(), 380);
+}
