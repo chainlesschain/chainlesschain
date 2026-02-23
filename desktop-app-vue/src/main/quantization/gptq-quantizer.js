@@ -14,6 +14,9 @@
 const { spawn } = require('child_process');
 const { logger } = require('../utils/logger.js');
 
+/** Testability shim – override in tests to inject mocks. */
+const _deps = { spawn };
+
 // ============================================================
 // Default options
 // ============================================================
@@ -90,7 +93,7 @@ class GPTQQuantizer {
         args.push('--num-samples', String(opts.numSamples));
       }
 
-      const child = spawn('python', args, {
+      const child = _deps.spawn('python', args, {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
@@ -208,4 +211,4 @@ class GPTQQuantizer {
   }
 }
 
-module.exports = { GPTQQuantizer };
+module.exports = { GPTQQuantizer, _deps };

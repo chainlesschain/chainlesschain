@@ -27,6 +27,10 @@ class TimeMachine extends EventEmitter {
    * Initialize the time machine
    */
   async initialize() {
+    if (this.initialized) {
+      return;
+    }
+
     logger.info("[TimeMachine] Initializing timeline time machine...");
 
     try {

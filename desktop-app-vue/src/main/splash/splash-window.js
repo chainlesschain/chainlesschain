@@ -22,15 +22,16 @@ class SplashWindow {
   async create() {
     try {
       this.window = new BrowserWindow({
-        width: 400,
-        height: 300,
+        width: 480,
+        height: 520,
         frame: false,
-        transparent: true,
+        transparent: false,
+        backgroundColor: "#764ba2",  // 渐变中间色，避免首帧闪白/透明
         alwaysOnTop: true,
         center: true,
         resizable: false,
         skipTaskbar: true,
-        show: false, // 先隐藏，加载完成后再显示
+        show: false, // 先隐藏，ready-to-show 后再显示
         webPreferences: {
           nodeIntegration: false,
           contextIsolation: true,
@@ -38,12 +39,16 @@ class SplashWindow {
         },
       });
 
-      // 加载 HTML 文件
+      // 加载 HTML 文件并等待首帧渲染完毕（避免显示空白透明窗口）
       const htmlPath = path.join(__dirname, "splash.html");
-      await this.window.loadFile(htmlPath);
+      await new Promise((resolve) => {
+        this.window.once("ready-to-show", () => {
+          this.window.show();
+          resolve();
+        });
+        this.window.loadFile(htmlPath);
+      });
 
-      // 显示窗口
-      this.window.show();
       this.isCreated = true;
 
       logger.info("[Splash] 启动画面已创建");

@@ -58,7 +58,7 @@
 
     <!-- 性能优化：资源预加载 -->
     <link rel="preload" href="logo.svg" as="image">
-    <link rel="preload" href="css/style.css?v=11.1" as="style">
+    <link rel="preload" href="css/style.css?v=12.0" as="style">
     <link rel="preload" href="js/main.js" as="script">
 
     <!-- 性能优化：关键CSS内联 -->
@@ -442,8 +442,8 @@
     </style>
 
     <!-- 合并压缩的 CSS - 异步加载避免阻塞渲染 -->
-    <link rel="preload" href="css/style.css?v=11.1" as="style" onload="this.onload=null;this.rel='stylesheet';setTimeout(function(){var m=document.createElement('link');m.rel='stylesheet';m.href='mobile-optimize.css?v=11.3';document.head.appendChild(m);},100);">
-    <noscript><link rel="stylesheet" href="css/style.css?v=11.1"><link rel="stylesheet" href="mobile-optimize.css?v=11.3"></noscript>
+    <link rel="preload" href="css/style.css?v=12.0" as="style" onload="this.onload=null;this.rel='stylesheet';setTimeout(function(){var m=document.createElement('link');m.rel='stylesheet';m.href='mobile-optimize.css?v=12.0';document.head.appendChild(m);},100);">
+    <noscript><link rel="stylesheet" href="css/style.css?v=12.0"><link rel="stylesheet" href="mobile-optimize.css?v=12.0"></noscript>
 
     <!-- 字体优化：使用系统字体栈，无需外部请求 -->
 
@@ -874,24 +874,24 @@
                 <!-- 更新：关键统计数据 -->
                 <div class="hero-stats">
                     <div class="stat-item">
-                        <span class="stat-number">220,000+</span>
+                        <span class="stat-number">310,000+</span>
                         <span class="stat-label">代码行数</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">165</span>
+                        <span class="stat-number">370</span>
                         <span class="stat-label">Vue组件</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">98%</span>
+                        <span class="stat-number">100%</span>
                         <span class="stat-label">整体完成度</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">19</span>
+                        <span class="stat-number">16</span>
                         <span class="stat-label">AI引擎</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">149</span>
-                        <span class="stat-label">API端点</span>
+                        <span class="stat-number">380+</span>
+                        <span class="stat-label">IPC处理器</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-number">0</span>
@@ -1130,9 +1130,13 @@
                         <li>W3C DID标准身份（Ed25519 + X25519）</li>
                         <li>Signal Protocol端到端加密</li>
                         <li>libp2p P2P网络（Kademlia DHT）</li>
-                        <li>5种可验证凭证（VC）类型</li>
-                        <li>多设备同步 + 离线消息队列</li>
-                        <li>社区论坛（63个API + Elasticsearch）</li>
+                        <li>WebRTC P2P语音/视频通话（DTLS-SRTP全加密）</li>
+                        <li>社区/频道（Gossip协议 + 去中心化治理投票）</li>
+                        <li>去中心化直播（弹幕 + SFU多级分发）</li>
+                        <li>共享加密相册（AES-256 + EXIF隐私剥离）</li>
+                        <li>协作文档（Yjs CRDT + P2P实时同步）</li>
+                        <li>朋友圈时光机（AI生成年度报告）</li>
+                        <li>匿名模式（零知识证明）+ 社交代币</li>
                     </ul>
 
                     <div class="target-users">
@@ -1567,7 +1571,7 @@
                     <div class="download-icon">💻</div>
                     <h3>Windows 桌面版</h3>
                     <p class="download-desc">支持 Windows 10/11 (64位)</p>
-                    <p class="download-version">最新版本：v0.37.6</p>
+                    <p class="download-version">最新版本：v1.0.0</p>
                     <p class="file-size">文件大小：156 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1588,7 +1592,7 @@
                     <div class="download-icon">🍎</div>
                     <h3>macOS 桌面版</h3>
                     <p class="download-desc">支持 macOS 10.15+ (Intel & Apple Silicon)</p>
-                    <p class="download-version">最新版本：v0.37.6</p>
+                    <p class="download-version">最新版本：v1.0.0</p>
                     <p class="file-size">文件大小：180 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1603,7 +1607,7 @@
                     <div class="download-icon">🐧</div>
                     <h3>Linux 桌面版</h3>
                     <p class="download-desc">支持 Ubuntu 20.04+ / Debian / Fedora</p>
-                    <p class="download-version">最新版本：v0.37.6</p>
+                    <p class="download-version">最新版本：v1.0.0</p>
                     <p class="file-size">文件大小：145 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1618,7 +1622,7 @@
                     <div class="download-icon">📱</div>
                     <h3>Android 移动版</h3>
                     <p class="download-desc">支持 Android 7.0 (API 24) 及以上</p>
-                    <p class="download-version">最新版本：v0.37.6</p>
+                    <p class="download-version">最新版本：v1.0.0</p>
                     <p class="file-size">文件大小：45 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1765,12 +1769,12 @@
             <div class="tech-stats-grid">
                 <div class="tech-stat-item">
                     <div class="stat-icon">📊</div>
-                    <div class="stat-value">220,000+</div>
+                    <div class="stat-value">310,000+</div>
                     <div class="stat-label">代码总行数</div>
                 </div>
                 <div class="tech-stat-item">
                     <div class="stat-icon">🧩</div>
-                    <div class="stat-value">243</div>
+                    <div class="stat-value">370</div>
                     <div class="stat-label">Vue组件</div>
                 </div>
                 <div class="tech-stat-item">
@@ -1780,22 +1784,22 @@
                 </div>
                 <div class="tech-stat-item">
                     <div class="stat-icon">🔌</div>
-                    <div class="stat-value">149</div>
-                    <div class="stat-label">API端点</div>
+                    <div class="stat-value">380+</div>
+                    <div class="stat-label">IPC处理器</div>
                 </div>
                 <div class="tech-stat-item">
                     <div class="stat-icon">🗄️</div>
-                    <div class="stat-value">35</div>
-                    <div class="stat-label">数据库表</div>
+                    <div class="stat-value">2500+</div>
+                    <div class="stat-label">测试用例</div>
                 </div>
                 <div class="tech-stat-item">
                     <div class="stat-icon">🛠️</div>
-                    <div class="stat-value">118</div>
-                    <div class="stat-label">技能工具</div>
+                    <div class="stat-value">95</div>
+                    <div class="stat-label">内置技能</div>
                 </div>
                 <div class="tech-stat-item">
                     <div class="stat-icon">🤖</div>
-                    <div class="stat-value">19</div>
+                    <div class="stat-value">16</div>
                     <div class="stat-label">AI引擎</div>
                 </div>
                 <div class="tech-stat-item">
@@ -1926,11 +1930,11 @@
         </div>
     </section>
 
-    <!-- 最新功能 v0.37.6 -->
+    <!-- 最新功能 v1.0.0 -->
     <section class="new-features">
         <div class="container">
             <div class="section-header">
-                <span class="version-badge">🎉 v0.37.6 新版本</span>
+                <span class="version-badge">🎉 v1.0.0 正式版</span>
                 <h2 class="section-title">最新功能亮点</h2>
                 <p class="section-subtitle">持续创新，为您带来更强大的AI能力</p>
             </div>
@@ -2061,13 +2065,13 @@
 
                 <!-- AI Skills System - v0.37.6 重点功能 -->
                 <div class="new-feature-card highlight">
-                    <div class="feature-badge">v0.37.6</div>
+                    <div class="feature-badge">v1.0.0</div>
                     <div class="feature-icon">🎨</div>
                     <h3>AI 技能系统</h3>
-                    <h4>90内置技能 + Android 28技能 + PC远程委派</h4>
-                    <p class="feature-desc">90个桌面内置技能覆盖开发/自动化/知识/安全/文档/媒体等15大类别，Android 28个技能支持远程委派到PC执行，统一工具注册表聚合60+内置工具+8 MCP服务器+90技能，Agent Skills开放标准，10个演示模板。</p>
+                    <h4>95内置技能 + Android 28技能 + PC远程委派</h4>
+                    <p class="feature-desc">95个桌面内置技能覆盖开发/自动化/知识/安全/文档/媒体等15大类别，Android 28个技能支持远程委派到PC执行，统一工具注册表聚合60+内置工具+8 MCP服务器+95技能，Agent Skills开放标准，10个演示模板。</p>
                     <div class="feature-highlights">
-                        <span class="highlight-tag">🛠️ 90桌面技能</span>
+                        <span class="highlight-tag">🛠️ 95桌面技能</span>
                         <span class="highlight-tag">📱 28 Android技能</span>
                         <span class="highlight-tag">🔗 PC远程委派</span>
                         <span class="highlight-tag">📐 Agent Skills标准</span>
@@ -2161,15 +2165,15 @@
 
                 <!-- Skills System -->
                 <div class="new-feature-card">
-                    <div class="feature-badge">v0.37.6</div>
+                    <div class="feature-badge">v1.0.0</div>
                     <div class="feature-icon">🎯</div>
                     <h3>技能系统</h3>
-                    <h4>90内置技能 + 四层加载</h4>
-                    <p class="feature-desc">四层加载机制（bundled→marketplace→managed→workspace），平台/依赖门检查，/skill命令解析，90个内置技能100% Handler覆盖。</p>
+                    <h4>95内置技能 + 四层加载</h4>
+                    <p class="feature-desc">四层加载机制（bundled→marketplace→managed→workspace），平台/依赖门检查，/skill命令解析，95个内置技能100% Handler覆盖。</p>
                     <div class="feature-highlights">
                         <span class="highlight-tag">📝 Markdown定义</span>
                         <span class="highlight-tag">🔄 四层加载</span>
-                        <span class="highlight-tag">🛠️ 90内置技能</span>
+                        <span class="highlight-tag">🛠️ 95内置技能</span>
                     </div>
                 </div>
 
@@ -2189,15 +2193,45 @@
 
                 <!-- TypeScript Migration -->
                 <div class="new-feature-card">
-                    <div class="feature-badge">v0.29.0</div>
+                    <div class="feature-badge">v1.0.0</div>
                     <div class="feature-icon">📘</div>
-                    <h3>TypeScript 迁移</h3>
-                    <h4>全面类型安全</h4>
-                    <p class="feature-desc">32个Pinia Store完全迁移至TypeScript，完整类型定义，IDE智能提示，logger.info()兼容优化。</p>
+                    <h3>TypeScript 全面升级</h3>
+                    <h4>46个 Pinia Store 类型安全</h4>
+                    <p class="feature-desc">46个Pinia Store完全迁移至TypeScript，完整类型定义，IDE智能提示，logger.info()兼容优化。</p>
                     <div class="feature-highlights">
-                        <span class="highlight-tag">📦 32 Stores</span>
+                        <span class="highlight-tag">📦 46 Stores</span>
                         <span class="highlight-tag">🔒 类型安全</span>
                         <span class="highlight-tag">💡 智能提示</span>
+                    </div>
+                </div>
+
+                <!-- 去中心化社交平台 v1.0.0 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-icon">🌐</div>
+                    <h3>去中心化社交平台</h3>
+                    <h4>P2P通话 + 直播 + 社区 + 协作</h4>
+                    <p class="feature-desc">全面升级的社交平台：WebRTC P2P语音/视频通话（DTLS-SRTP全加密）、去中心化直播（弹幕+SFU分发）、社区/频道系统（Gossip协议+治理投票）、共享加密相册（AES-256+EXIF剥离）、协作文档（Yjs CRDT）、AI社交助手、匿名模式（零知识证明）、社交代币。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📞 P2P语音/视频</span>
+                        <span class="highlight-tag">📺 去中心化直播</span>
+                        <span class="highlight-tag">👥 社区/频道</span>
+                        <span class="highlight-tag">🔮 社交代币</span>
+                    </div>
+                </div>
+
+                <!-- Cowork v2.1.0 演化技能 -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-icon">🧬</div>
+                    <h3>Cowork 演化系统 v2.1.0</h3>
+                    <h4>自我进化 + 代码知识图谱 + 决策知识库</h4>
+                    <p class="feature-desc">代码知识图谱（实体关系分析+热点检测+循环依赖）、决策知识库（多源记录+相似度搜索）、Prompt优化器（A/B变体测试）、技能自发现（任务失败触发市场检索）、体验回放（工作流提炼）。新增5个协作技能：/debate-review、/ab-compare、/orchestrate、/verification-loop、/stream-processor。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🕸️ 代码知识图谱</span>
+                        <span class="highlight-tag">🧠 决策知识库</span>
+                        <span class="highlight-tag">🔬 Prompt A/B测试</span>
+                        <span class="highlight-tag">🤖 技能自发现</span>
                     </div>
                 </div>
             </div>

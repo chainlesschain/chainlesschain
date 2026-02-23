@@ -34,19 +34,16 @@ vi.mock("../../utils/logger.js", () => ({
   },
 }));
 
-vi.mock("uuid", () => ({
-  v4: vi.fn(() => "test-job-uuid"),
-}));
-
-vi.mock("fs", () => ({
+// fs mock – injected via _deps.fs (vi.mock("fs") doesn't intercept inlined CJS requires)
+const mockFs = {
   existsSync: vi.fn(() => false),
   statSync: vi.fn(() => ({ size: 4096, isDirectory: () => false, isFile: () => true })),
   unlinkSync: vi.fn(),
   rmSync: vi.fn(),
   readdirSync: vi.fn(() => []),
-}));
+};
 
-// Mock the child_process spawn used by GGUFQuantizer and GPTQQuantizer
+// Mock child process returned by spawn – shared across GGUF and GPTQ quantizers
 const mockChildProcess = {
   stdout: {
     on: vi.fn(),
@@ -57,10 +54,6 @@ const mockChildProcess = {
   on: vi.fn(),
   kill: vi.fn(),
 };
-
-vi.mock("child_process", () => ({
-  spawn: vi.fn(() => mockChildProcess),
-}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -100,6 +93,19 @@ describe("QuantizationManager", () => {
 
     const mod = require("../quantization-manager.js");
     QuantizationManager = mod.QuantizationManager;
+
+    // Inject uuid mock via _deps shim (vi.mock("uuid") doesn't intercept CJS require)
+    mod._deps.uuidv4 = vi.fn(() => "test-job-uuid");
+
+    // Inject fs mock via _deps shim
+    mod._deps.fs = mockFs;
+
+    // Inject spawn mock into GGUF and GPTQ quantizers via their _deps shims
+    const ggufMod = require("../gguf-quantizer.js");
+    ggufMod._deps.spawn = vi.fn(() => mockChildProcess);
+
+    const gptqMod = require("../gptq-quantizer.js");
+    gptqMod._deps.spawn = vi.fn(() => mockChildProcess);
 
     mockDb = createMockDb();
     manager = new QuantizationManager({ database: mockDb });
@@ -384,9 +390,9 @@ describe("QuantizationManager", () => {
       expect(result).toBe(true);
       expect(manager.runningJobs.has("test-job-uuid")).toBe(false);
 
-      // Check DB update
+      // Check DB update (SQL uses '?' params; 'cancelled' is in the params array, not SQL string)
       const cancelCall = mockDb.run.mock.calls.find(
-        (c) => c[0].includes("UPDATE") && c[0].includes("cancelled")
+        (c) => c[0].includes("UPDATE") && Array.isArray(c[1]) && c[1].includes("cancelled")
       );
       expect(cancelCall).toBeDefined();
     });
@@ -528,9 +534,8 @@ describe("QuantizationManager", () => {
     });
 
     it("attempts to remove output file when it exists", () => {
-      const fs = require("fs");
-      fs.existsSync.mockReturnValueOnce(true);
-      fs.statSync.mockReturnValueOnce({ isDirectory: () => false, size: 100 });
+      mockFs.existsSync.mockReturnValueOnce(true);
+      mockFs.statSync.mockReturnValueOnce({ isDirectory: () => false, size: 100 });
 
       mockDb.get.mockReturnValueOnce({
         id: "job-1",
@@ -539,13 +544,12 @@ describe("QuantizationManager", () => {
       });
 
       manager.deleteModel("job-1");
-      expect(fs.unlinkSync).toHaveBeenCalledWith("/models/output.gguf");
+      expect(mockFs.unlinkSync).toHaveBeenCalledWith("/models/output.gguf");
     });
 
     it("removes directory output with rmSync for GPTQ models", () => {
-      const fs = require("fs");
-      fs.existsSync.mockReturnValueOnce(true);
-      fs.statSync.mockReturnValueOnce({ isDirectory: () => true, size: 0 });
+      mockFs.existsSync.mockReturnValueOnce(true);
+      mockFs.statSync.mockReturnValueOnce({ isDirectory: () => true, size: 0 });
 
       mockDb.get.mockReturnValueOnce({
         id: "job-1",
@@ -554,17 +558,16 @@ describe("QuantizationManager", () => {
       });
 
       manager.deleteModel("job-1");
-      expect(fs.rmSync).toHaveBeenCalledWith("/models/gptq-output", {
+      expect(mockFs.rmSync).toHaveBeenCalledWith("/models/gptq-output", {
         recursive: true,
         force: true,
       });
     });
 
     it("handles file deletion errors gracefully", () => {
-      const fs = require("fs");
-      fs.existsSync.mockReturnValueOnce(true);
-      fs.statSync.mockReturnValueOnce({ isDirectory: () => false, size: 100 });
-      fs.unlinkSync.mockImplementationOnce(() => {
+      mockFs.existsSync.mockReturnValueOnce(true);
+      mockFs.statSync.mockReturnValueOnce({ isDirectory: () => false, size: 100 });
+      mockFs.unlinkSync.mockImplementationOnce(() => {
         throw new Error("Permission denied");
       });
 
