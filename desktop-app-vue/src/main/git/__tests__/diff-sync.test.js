@@ -69,30 +69,30 @@ describe("Adler32", () => {
 
 describe("RabinChunker", () => {
   it("chunks data into variable-size pieces", () => {
-    const chunker = new RabinChunker();
     const data = Buffer.alloc(20000, 0x42); // 20KB of same byte
-    const chunks = chunker.chunk(data);
+    const chunks = RabinChunker.chunk(data);
     expect(chunks.length).toBeGreaterThan(0);
-    // Each chunk within bounds
+    // Each chunk has offset and length
     for (const chunk of chunks) {
+      expect(chunk).toHaveProperty("offset");
+      expect(chunk).toHaveProperty("length");
       expect(chunk.length).toBeGreaterThanOrEqual(1);
     }
   });
 
   it("produces consistent chunks for same input", () => {
-    const chunker = new RabinChunker();
     const data = Buffer.from("hello world this is test data for chunking");
-    const chunks1 = chunker.chunk(data);
-    const chunks2 = chunker.chunk(data);
+    const chunks1 = RabinChunker.chunk(data);
+    const chunks2 = RabinChunker.chunk(data);
     expect(chunks1.length).toBe(chunks2.length);
     chunks1.forEach((c, i) => {
-      expect(c.toString()).toBe(chunks2[i].toString());
+      expect(c.offset).toBe(chunks2[i].offset);
+      expect(c.length).toBe(chunks2[i].length);
     });
   });
 
   it("handles empty buffer", () => {
-    const chunker = new RabinChunker();
-    const chunks = chunker.chunk(Buffer.alloc(0));
+    const chunks = RabinChunker.chunk(Buffer.alloc(0));
     expect(chunks).toEqual([]);
   });
 });
@@ -106,11 +106,13 @@ describe("FileDiffEngine", () => {
     engine = new FileDiffEngine();
   });
 
-  it("generateSignature returns blocks array", () => {
+  it("generateSignature returns signature array", () => {
     const data = Buffer.from("hello world this is test content for diff engine");
     const sig = engine.generateSignature(data);
-    expect(sig).toHaveProperty("blocks");
-    expect(Array.isArray(sig.blocks)).toBe(true);
+    expect(Array.isArray(sig)).toBe(true);
+    expect(sig.length).toBeGreaterThan(0);
+    expect(sig[0]).toHaveProperty("weakHash");
+    expect(sig[0]).toHaveProperty("strongHash");
   });
 
   it("generateDelta returns delta object with instructions", () => {
@@ -141,11 +143,14 @@ describe("FileDiffEngine", () => {
 
   it("DeduplicationIndex tracks blocks across files", () => {
     const engine2 = new FileDiffEngine();
-    const data1 = Buffer.from("shared content block");
-    const data2 = Buffer.from("shared content block");
-    engine2.indexFile("file1", data1);
-    const found = engine2.findDuplicateBlocks("file2", data2);
-    expect(Array.isArray(found)).toBe(true);
+    const data1 = Buffer.from("shared content block that is long enough to be chunked properly yes");
+    const data2 = Buffer.from("shared content block that is long enough to be chunked properly yes");
+    engine2.indexForDedup("file1", data1);
+    const result = engine2.checkDedup(data2);
+    // checkDedup returns { newBlocks, existingBlocks }
+    expect(result).toHaveProperty("newBlocks");
+    expect(result).toHaveProperty("existingBlocks");
+    expect(Array.isArray(result.existingBlocks)).toBe(true);
   });
 });
 

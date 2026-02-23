@@ -69,24 +69,30 @@ vi.mock("../../utils/logger.js", () => ({
   logger: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} },
 }));
 
+// vi.mock() does not intercept require() calls from CJS server.deps.inline modules
+// in Vitest's fork pool. Both yjs and realtime-collab-manager are injected via _deps
+// instead, so these vi.mock() declarations are kept only as safety nets for any
+// ESM import paths that might be added in the future.
 vi.mock("../realtime-collab-manager.js", () => ({
   getRealtimeCollabManager: () => ({
     get yjsCollabManager() {
-      if (!config.yjsManagerActive) {
-        return null;
-      }
-      return { getDocument: () => config.docToReturn };
+      return { getDocument: () => null };
     },
   }),
 }));
 
-// yjs is ESM-only and cannot be require()'d in the CJS test environment.
-// The source now accepts _deps.Y so we pass a plain object mock directly.
+// yjs is ESM-only; injected via _deps.Y to bypass require() interop failure.
 const mockY = {
   encodeStateAsUpdate: (...a) => encodeStateAsUpdateImpl(...a),
   applyUpdate: (...a) => {
     lastApplyUpdateCall = a;
   },
+};
+
+// getYjsManager is injected via _deps to bypass require() interop failure.
+const mockGetYjsManager = () => {
+  if (!config.yjsManagerActive) return null;
+  return { getDocument: () => config.docToReturn };
 };
 
 vi.mock("uuid", () => ({
@@ -108,7 +114,12 @@ function makeMockDb() {
 
 let baseDb;
 
-const mockDeps = { ipcMain: mockIpcMain, BrowserWindow: mockBrowserWindow, Y: mockY };
+const mockDeps = {
+  ipcMain: mockIpcMain,
+  BrowserWindow: mockBrowserWindow,
+  Y: mockY,
+  getYjsManager: mockGetYjsManager,
+};
 
 beforeAll(async () => {
   baseDb = makeMockDb();
