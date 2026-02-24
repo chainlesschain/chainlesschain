@@ -75,7 +75,9 @@ describe("AgentDID", () => {
     });
 
     it("should merge custom capabilities with defaults", () => {
-      const record = agentDID.createDID({ capabilities: ["agent:code-review"] });
+      const record = agentDID.createDID({
+        capabilities: ["agent:code-review"],
+      });
       expect(record.capabilities).toContain("agent:code-review");
     });
 
@@ -170,7 +172,9 @@ describe("AgentDID", () => {
 
     it("should return false for a capability the DID lacks", () => {
       const record = agentDID.createDID({});
-      expect(agentDID.hasCapability(record.did, "agent:super-secret-power")).toBe(false);
+      expect(
+        agentDID.hasCapability(record.did, "agent:super-secret-power"),
+      ).toBe(false);
     });
   });
 
@@ -187,14 +191,22 @@ describe("AgentDID", () => {
       expect(sig.signature).toBeTruthy();
       expect(sig.publicKey).toBeTruthy();
 
-      const verified = agentDID.verifySignature(record.did, challenge, sig.signature);
+      const verified = agentDID.verifySignature(
+        record.did,
+        challenge,
+        sig.signature,
+      );
       expect(verified.valid).toBe(true);
     });
 
     it("should fail verification with wrong challenge", () => {
       const record = agentDID.createDID({});
       const sig = agentDID.signChallenge(record.did, "original-challenge");
-      const verified = agentDID.verifySignature(record.did, "wrong-challenge", sig.signature);
+      const verified = agentDID.verifySignature(
+        record.did,
+        "wrong-challenge",
+        sig.signature,
+      );
       expect(verified.valid).toBe(false);
     });
   });

@@ -238,8 +238,7 @@ async executeWithMask(toolName, params, context)
 configureStateMachine(config);
 ```
 
-- 配置状态机
-  -
+- ## 配置状态机
   - 状态机定义示例：
   - {
   - states: {

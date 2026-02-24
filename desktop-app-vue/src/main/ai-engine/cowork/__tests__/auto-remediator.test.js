@@ -7,7 +7,11 @@ vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const { AutoRemediator, REMEDIATION_STATUS, ACTION_TYPES } = require("../auto-remediator");
+const {
+  AutoRemediator,
+  REMEDIATION_STATUS,
+  ACTION_TYPES,
+} = require("../auto-remediator");
 
 function createMockDatabase() {
   const prepResult = {
@@ -121,13 +125,18 @@ describe("AutoRemediator", () => {
 
     it("should update playbook properties", () => {
       const pb = remediator.createPlaybook({ name: "original-name" });
-      const updated = remediator.updatePlaybook(pb.id, { name: "updated-name", enabled: false });
+      const updated = remediator.updatePlaybook(pb.id, {
+        name: "updated-name",
+        enabled: false,
+      });
       expect(updated.name).toBe("updated-name");
       expect(updated.enabled).toBe(false);
     });
 
     it("should throw for unknown playbook id", () => {
-      expect(() => remediator.updatePlaybook("nonexistent", { name: "x" })).toThrow();
+      expect(() =>
+        remediator.updatePlaybook("nonexistent", { name: "x" }),
+      ).toThrow();
     });
   });
 
@@ -138,7 +147,10 @@ describe("AutoRemediator", () => {
 
     it("should return SKIPPED when disabled", async () => {
       remediator.configure({ enabled: false });
-      const result = await remediator.triggerRemediation({ id: "inc-001", metricName: "error_rate" });
+      const result = await remediator.triggerRemediation({
+        id: "inc-001",
+        metricName: "error_rate",
+      });
       expect(result.status).toBe(REMEDIATION_STATUS.SKIPPED);
     });
 

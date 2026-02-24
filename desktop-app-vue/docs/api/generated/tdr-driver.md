@@ -40,8 +40,7 @@ class TDRDriver extends SKFDriver
 findDllPath();
 ```
 
-- 查找DLL路径
-  -
+- ## 查找DLL路径
   - 天地融的DLL通常命名为：
   - - TDRSKFAPI.dll
   - - TDR_CSP.dll
@@ -105,8 +104,7 @@ getDriverVersion();
 async detect()
 ```
 
-- 检测设备
-  -
+- ## 检测设备
   - 天地融特定的检测逻辑
 
 ---
@@ -137,8 +135,7 @@ async getDeviceInfo()
 async getDeviceSerial()
 ```
 
-- 天地融特定功能：读取设备序列号
-  -
+- ## 天地融特定功能：读取设备序列号
   - 注意：这需要SKF API的扩展支持
 
 ---
@@ -169,8 +166,7 @@ async checkDeviceHealth()
 async enablePaymentMode()
 ```
 
-- 天地融特定功能：支付密码器模式
-  -
+- ## 天地融特定功能：支付密码器模式
   - 天地融设备常用于支付场景，支持PIN输入保护
 
 ---
@@ -181,8 +177,7 @@ async enablePaymentMode()
 async getTransactionCounter()
 ```
 
-- 天地融特定功能：获取交易计数器
-  -
+- ## 天地融特定功能：获取交易计数器
   - 用于支付场景的交易计数
 
 ---

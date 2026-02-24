@@ -7,7 +7,11 @@ vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const { AlertManager, ALERT_CHANNELS, ALERT_STATUS } = require("../alert-manager");
+const {
+  AlertManager,
+  ALERT_CHANNELS,
+  ALERT_STATUS,
+} = require("../alert-manager");
 
 function createMockDatabase() {
   const prepResult = {
@@ -75,12 +79,20 @@ describe("AlertManager", () => {
 
     it("should return SUPPRESSED when disabled", async () => {
       manager.configure({ enabled: false });
-      const result = await manager.sendAlert({ type: "anomaly", channels: [ALERT_CHANNELS.IN_APP] });
+      const result = await manager.sendAlert({
+        type: "anomaly",
+        channels: [ALERT_CHANNELS.IN_APP],
+      });
       expect(result.status).toBe(ALERT_STATUS.SUPPRESSED);
     });
 
     it("should deduplicate identical alerts", async () => {
-      const alert = { type: "anomaly", severity: "P1", incidentId: "inc-dedup", channels: [ALERT_CHANNELS.IN_APP] };
+      const alert = {
+        type: "anomaly",
+        severity: "P1",
+        incidentId: "inc-dedup",
+        channels: [ALERT_CHANNELS.IN_APP],
+      };
       await manager.sendAlert(alert);
       const second = await manager.sendAlert({ ...alert });
       expect(second.status).toBe(ALERT_STATUS.SUPPRESSED);
@@ -117,14 +129,28 @@ describe("AlertManager", () => {
     });
 
     it("should return sent alerts in history", async () => {
-      await manager.sendAlert({ type: "incident", severity: "P0", channels: [ALERT_CHANNELS.IN_APP] });
+      await manager.sendAlert({
+        type: "incident",
+        severity: "P0",
+        channels: [ALERT_CHANNELS.IN_APP],
+      });
       const alerts = manager.getAlerts();
       expect(alerts.length).toBeGreaterThanOrEqual(1);
     });
 
     it("should filter by severity", async () => {
-      await manager.sendAlert({ type: "a", severity: "P0", incidentId: "i1", channels: [ALERT_CHANNELS.IN_APP] });
-      await manager.sendAlert({ type: "b", severity: "P3", incidentId: "i2", channels: [ALERT_CHANNELS.IN_APP] });
+      await manager.sendAlert({
+        type: "a",
+        severity: "P0",
+        incidentId: "i1",
+        channels: [ALERT_CHANNELS.IN_APP],
+      });
+      await manager.sendAlert({
+        type: "b",
+        severity: "P3",
+        incidentId: "i2",
+        channels: [ALERT_CHANNELS.IN_APP],
+      });
       const p0 = manager.getAlerts({ severity: "P0" });
       p0.forEach((a) => expect(a.severity).toBe("P0"));
     });
@@ -150,7 +176,9 @@ describe("AlertManager", () => {
 
     it("should update defaultChannels", () => {
       manager.configureAlerts({ defaultChannels: [ALERT_CHANNELS.IN_APP] });
-      expect(manager.getConfig().defaultChannels).toContain(ALERT_CHANNELS.IN_APP);
+      expect(manager.getConfig().defaultChannels).toContain(
+        ALERT_CHANNELS.IN_APP,
+      );
     });
   });
 

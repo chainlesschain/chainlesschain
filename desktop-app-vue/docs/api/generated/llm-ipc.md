@@ -87,8 +87,7 @@ ipcMain.handle("llm:query", async (_event, prompt, options =
 ipcMain.handle(
 ```
 
-- LLM 聊天对话（支持 messages 数组格式，保留完整对话历史，自动RAG增强）
-  -
+- ## LLM 聊天对话（支持 messages 数组格式，保留完整对话历史，自动RAG增强）
   - 🔥 v2.0 增强版：集成以下高级特性
   - - SessionManager: 自动会话追踪和压缩
   - - Manus Optimizations: Context Engineering + Tool Masking

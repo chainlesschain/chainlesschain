@@ -76,8 +76,7 @@ async findRemovableDrives()
 async verifyPIN(pin)
 ```
 
-- 验证PIN码
-  -
+- ## 验证PIN码
   - 根据文档：
   - - 使用增强型MD5加密
   - - 存储时增加AES 256位加密
@@ -101,8 +100,7 @@ async callNativeFunction(funcName, ...args)
 async sign(data)
 ```
 
-- 数字签名
-  -
+- ## 数字签名
   - 使用U盾存储的密钥进行签名
 
 ---
@@ -143,8 +141,7 @@ async decrypt(encryptedData)
 async readSector(sectorNumber)
 ```
 
-- 读取扇区
-  -
+- ## 读取扇区
   - 根据文档：
   - - 每个扇区512字节
   - - 扇区从0开始编号
@@ -158,8 +155,7 @@ async readSector(sectorNumber)
 async writeSector(sectorNumber, data)
 ```
 
-- 写入扇区
-  -
+- ## 写入扇区
   - 根据文档：
   - - 每个扇区512字节
   - - 函数：xjkWriteSector
@@ -172,8 +168,7 @@ async writeSector(sectorNumber, data)
 async readCluster(clusterNumber)
 ```
 
-- 读取簇
-  -
+- ## 读取簇
   - 根据文档：
   - - 每个簇4096字节（8个扇区）
   - - 函数：xjkReadCluster
@@ -196,8 +191,7 @@ async writeCluster(clusterNumber, data)
 async changePassword(oldPassword, newPassword)
 ```
 
-- 更改密码
-  -
+- ## 更改密码
   - 根据文档：
   - - 函数：xjkChangePwd
   - - 新密码长度<=200

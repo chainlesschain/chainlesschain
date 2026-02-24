@@ -41,8 +41,7 @@ class FeiTianDriver extends SKFDriver
 findDllPath();
 ```
 
-- 查找DLL路径
-  -
+- ## 查找DLL路径
   - 飞天诚信的DLL通常命名为：
   - - ft2k.dll (FeiTian 2K系列)
   - - ShuttleCsp11_3003.dll
@@ -106,8 +105,7 @@ getDriverVersion();
 async detect()
 ```
 
-- 检测设备
-  -
+- ## 检测设备
   - 飞天诚信特定的检测逻辑
 
 ---
@@ -138,8 +136,7 @@ async getDeviceInfo()
 async getDeviceSerial()
 ```
 
-- 飞天诚信特定功能：读取设备序列号
-  -
+- ## 飞天诚信特定功能：读取设备序列号
   - 注意：这需要SKF API的扩展支持
 
 ---

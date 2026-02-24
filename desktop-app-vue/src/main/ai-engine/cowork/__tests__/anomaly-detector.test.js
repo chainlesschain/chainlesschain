@@ -120,7 +120,9 @@ describe("AnomalyDetector", () => {
       ]);
 
       expect(result.updated).toBe(1);
-      expect(detector._baselines.get("memory_usage").detectionMethod).toBe("iqr");
+      expect(detector._baselines.get("memory_usage").detectionMethod).toBe(
+        "iqr",
+      );
     });
 
     it("should add an EWMA baseline", async () => {
@@ -129,7 +131,9 @@ describe("AnomalyDetector", () => {
       ]);
 
       expect(result.updated).toBe(1);
-      expect(detector._baselines.get("latency_p99").detectionMethod).toBe("ewma");
+      expect(detector._baselines.get("latency_p99").detectionMethod).toBe(
+        "ewma",
+      );
     });
 
     it("should skip invalid entries (no name)", async () => {
@@ -196,11 +200,10 @@ describe("AnomalyDetector", () => {
     // Build a large realistic buffer: 50 values tightly around 100 (std ≈ 3)
     // so an extreme spike like 200 gets detected and a near-normal 101 does not
     const NORMAL_VALUES = [
-      95, 97, 98, 99, 99, 100, 100, 100, 101, 101,
-      102, 103, 97, 98, 100, 101, 99, 100, 98, 102,
-      100, 101, 99, 100, 98, 102, 97, 103, 100, 100,
-      99, 101, 100, 100, 98, 102, 101, 99, 100, 100,
-      100, 99, 101, 100, 100, 98, 102, 97, 103, 100,
+      95, 97, 98, 99, 99, 100, 100, 100, 101, 101, 102, 103, 97, 98, 100, 101,
+      99, 100, 98, 102, 100, 101, 99, 100, 98, 102, 97, 103, 100, 100, 99, 101,
+      100, 100, 98, 102, 101, 99, 100, 100, 100, 99, 101, 100, 100, 98, 102, 97,
+      103, 100,
     ]; // 50 values, mean ≈ 100, std ≈ 1.7
 
     beforeEach(async () => {
@@ -257,9 +260,7 @@ describe("AnomalyDetector", () => {
   describe("calibrateBaseline()", () => {
     beforeEach(async () => {
       await detector.initialize(db);
-      await detector.updateBaselines([
-        { name: "latency", method: "z-score" },
-      ]);
+      await detector.updateBaselines([{ name: "latency", method: "z-score" }]);
     });
 
     it("should calibrate from buffer with sufficient data", () => {
@@ -278,7 +279,9 @@ describe("AnomalyDetector", () => {
     });
 
     it("should throw if insufficient data (< 10 samples)", () => {
-      for (let i = 0; i < 5; i++) detector.ingestMetric("latency", 100);
+      for (let i = 0; i < 5; i++) {
+        detector.ingestMetric("latency", 100);
+      }
 
       expect(() => detector.calibrateBaseline("latency")).toThrow(
         "Insufficient data",

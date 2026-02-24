@@ -30,8 +30,7 @@ const
 async queryKnowledge(params)
 ```
 
-- Query RAG for task-relevant information
-  -
+- ## Query RAG for task-relevant information
   - @param {Object} params - Query parameters
   - @param {string} params.query - Natural language query
   - @param {string} params.teamId - Team ID for context
@@ -47,8 +46,7 @@ async queryKnowledge(params)
 async findSimilarTasks(task)
 ```
 
-- Query for similar past tasks
-  -
+- ## Query for similar past tasks
   - @param {Object} task - Current task
   - @returns {Promise<Array>} Similar past tasks
 
@@ -60,8 +58,7 @@ async findSimilarTasks(task)
 async storeTaskSolution(params)
 ```
 
-- Store task solution in knowledge base
-  -
+- ## Store task solution in knowledge base
   - @param {Object} params - Storage parameters
   - @param {Object} params.task - Completed task
   - @param {Object} params.solution - Task solution
@@ -76,8 +73,7 @@ async storeTaskSolution(params)
 async queryDomainKnowledge(domain, question)
 ```
 
-- Query for domain knowledge
-  -
+- ## Query for domain knowledge
   - @param {string} domain - Domain name (e.g., "Excel formulas", "Python debugging")
   - @param {string} question - Specific question
   - @returns {Promise<Object>} Domain knowledge
@@ -90,8 +86,7 @@ async queryDomainKnowledge(domain, question)
 _buildEnhancedQuery(query, taskType);
 ```
 
-- Build enhanced query with context
-  -
+- ## Build enhanced query with context
   - @private
   - @param {string} query - Original query
   - @param {string} taskType - Task type
@@ -105,8 +100,7 @@ _buildEnhancedQuery(query, taskType);
 _processResults(results, query);
 ```
 
-- Process and rank RAG results
-  -
+- ## Process and rank RAG results
   - @private
   - @param {Array} results - Raw RAG results
   - @param {string} query - Original query
@@ -130,8 +124,7 @@ clearCache();
 getCacheStats();
 ```
 
-- Get cache statistics
-  -
+- ## Get cache statistics
   - @returns {Object} Cache stats
 
 ---

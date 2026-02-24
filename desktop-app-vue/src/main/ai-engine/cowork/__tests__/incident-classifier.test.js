@@ -224,11 +224,19 @@ describe("IncidentClassifier", () => {
 
       const now = Date.now();
       classifier.classify(
-        makeAnomalyEvent({ metricName: "disk_usage", value: 86, detectedAt: now }),
+        makeAnomalyEvent({
+          metricName: "disk_usage",
+          value: 86,
+          detectedAt: now,
+        }),
       );
       // Immediately send a second anomaly for same metric (within dedup window)
       classifier.classify(
-        makeAnomalyEvent({ metricName: "disk_usage", value: 88, detectedAt: now + 1000 }),
+        makeAnomalyEvent({
+          metricName: "disk_usage",
+          value: 88,
+          detectedAt: now + 1000,
+        }),
       );
 
       expect(updatedListener).toHaveBeenCalledTimes(1);
@@ -286,9 +294,7 @@ describe("IncidentClassifier", () => {
     });
 
     it("should throw for unknown incident id", () => {
-      expect(() =>
-        classifier.acknowledge("nonexistent-id"),
-      ).toThrow();
+      expect(() => classifier.acknowledge("nonexistent-id")).toThrow();
     });
 
     it("should throw when re-acknowledging an already-acknowledged incident", () => {
@@ -328,7 +334,9 @@ describe("IncidentClassifier", () => {
     it("should throw if already resolved", () => {
       const incident = classifier.classify(makeAnomalyEvent());
       classifier.resolve(incident.id, {});
-      expect(() => classifier.resolve(incident.id, {})).toThrow("already resolved");
+      expect(() => classifier.resolve(incident.id, {})).toThrow(
+        "already resolved",
+      );
     });
   });
 
@@ -341,16 +349,24 @@ describe("IncidentClassifier", () => {
     });
 
     it("should return all incidents when no filter", () => {
-      classifier.classify(makeAnomalyEvent({ metricName: "cpu_usage", value: 92 }));
-      classifier.classify(makeAnomalyEvent({ metricName: "error_rate", value: 25 }));
+      classifier.classify(
+        makeAnomalyEvent({ metricName: "cpu_usage", value: 92 }),
+      );
+      classifier.classify(
+        makeAnomalyEvent({ metricName: "error_rate", value: 25 }),
+      );
 
       const incidents = classifier.getIncidents();
       expect(incidents.length).toBeGreaterThanOrEqual(2);
     });
 
     it("should filter by severity", () => {
-      classifier.classify(makeAnomalyEvent({ metricName: "error_rate", value: 60 })); // P0
-      classifier.classify(makeAnomalyEvent({ metricName: "disk_usage", value: 72 })); // P3
+      classifier.classify(
+        makeAnomalyEvent({ metricName: "error_rate", value: 60 }),
+      ); // P0
+      classifier.classify(
+        makeAnomalyEvent({ metricName: "disk_usage", value: 72 }),
+      ); // P3
 
       const p0Only = classifier.getIncidents({ severity: "P0" });
       p0Only.forEach((inc) => expect(inc.severity).toBe("P0"));
@@ -413,8 +429,12 @@ describe("IncidentClassifier", () => {
     });
 
     it("should return total and by-severity counts", () => {
-      classifier.classify(makeAnomalyEvent({ metricName: "error_rate", value: 60 })); // P0
-      classifier.classify(makeAnomalyEvent({ metricName: "disk_usage", value: 72 })); // P3
+      classifier.classify(
+        makeAnomalyEvent({ metricName: "error_rate", value: 60 }),
+      ); // P0
+      classifier.classify(
+        makeAnomalyEvent({ metricName: "disk_usage", value: 72 }),
+      ); // P3
 
       const stats = classifier.getStats();
       expect(stats.totalIncidents).toBeGreaterThanOrEqual(2);

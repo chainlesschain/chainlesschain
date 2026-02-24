@@ -56,8 +56,7 @@ setupEventForwarding();
 async initialize()
 ```
 
-- 初始化
-  -
+- ## 初始化
   - v0.18.0: 添加Worker池初始化
   - v0.18.0: 添加ResumableProcessor初始化
 
@@ -216,8 +215,7 @@ async updateConfig(newConfig)
 async terminate()
 ```
 
-- 终止服务
-  -
+- ## 终止服务
   - v0.18.0: 添加Worker池终止
 
 ---
