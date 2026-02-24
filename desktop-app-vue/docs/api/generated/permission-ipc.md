@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/permission-ipc.js`
 
-**Generated**: 2026-02-24T17:58:54.493Z
+**Generated**: 2026-02-24T18:45:59.474Z
 
 ---
 

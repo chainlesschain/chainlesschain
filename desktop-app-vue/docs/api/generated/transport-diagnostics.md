@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/transport-diagnostics.js`
 
-**Generated**: 2026-02-24T17:58:54.488Z
+**Generated**: 2026-02-24T18:45:59.469Z
 
 ---
 

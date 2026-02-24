@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/integrations/rag-integration.js`
 
-**Generated**: 2026-02-24T17:58:54.530Z
+**Generated**: 2026-02-24T18:45:59.510Z
 
 ---
 
