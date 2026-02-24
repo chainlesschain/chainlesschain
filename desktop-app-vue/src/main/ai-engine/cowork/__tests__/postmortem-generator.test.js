@@ -93,11 +93,10 @@ describe("PostmortemGenerator", () => {
       );
     });
 
-    it("should throw if incident not found (no classifier)", async () => {
+    it("should return failed report when incident not found (no classifier)", async () => {
       await generator.initialize(db);
-      await expect(
-        generator.generate({ incidentId: "inc-999" }),
-      ).rejects.toThrow();
+      const report = await generator.generate({ incidentId: "inc-999" });
+      expect(report.status).toBe(REPORT_STATUS.FAILED);
     });
 
     it("should generate a report when incident is available via classifier", async () => {
@@ -123,7 +122,7 @@ describe("PostmortemGenerator", () => {
       };
       await generator.initialize(db, { incidentClassifier: mockClassifier });
       const listener = vi.fn();
-      generator.on("report:generated", listener);
+      generator.on("postmortem:generated", listener);
 
       await generator.generate({ incidentId: "inc-001" });
       expect(listener).toHaveBeenCalledTimes(1);
