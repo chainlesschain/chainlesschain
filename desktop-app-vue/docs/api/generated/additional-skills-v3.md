@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/additional-skills-v3.js`
 
-**Generated**: 2026-02-23T15:25:44.079Z
+**Generated**: 2026-02-24T17:58:54.470Z
 
 ---
 
@@ -12,8 +12,7 @@
 const additionalSkillsV3 = [
 ```
 
-* 额外技能定义 V3 - 专业领域技能
- * 支持区块链、房地产、客户成功、变革管理、审计等专业场景
+- 额外技能定义 V3 - 专业领域技能
+- 支持区块链、房地产、客户成功、变革管理、审计等专业场景
 
 ---
-

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/anthropic-client.js`
 
-**Generated**: 2026-02-23T15:25:44.119Z
+**Generated**: 2026-02-24T17:58:54.507Z
 
 ---
 
@@ -12,8 +12,7 @@
 const
 ```
 
-* Anthropic Claude API client.
- * Supports chat and streaming via the Messages API.
+- Anthropic Claude API client.
+- Supports chat and streaming via the Messages API.
 
 ---
-
