@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-config.js`
 
-**Generated**: 2026-02-24T18:45:59.497Z
+**Generated**: 2026-02-24T23:28:10.633Z
 
 ---
 
@@ -12,7 +12,7 @@
 const
 ```
 
-- Git配置管理
+* Git配置管理
 
 ---
 
@@ -22,7 +22,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-- 默认配置
+* 默认配置
 
 ---
 
@@ -32,77 +32,77 @@ const DEFAULT_CONFIG =
 class GitConfig
 ```
 
-- Git配置管理器
+* Git配置管理器
 
 ---
 
 ## getConfigPath()
 
 ```javascript
-getConfigPath();
+getConfigPath()
 ```
 
-- 获取配置文件路径
+* 获取配置文件路径
 
 ---
 
 ## load()
 
 ```javascript
-load();
+load()
 ```
 
-- 加载配置
+* 加载配置
 
 ---
 
 ## save()
 
 ```javascript
-save();
+save()
 ```
 
-- 保存配置
+* 保存配置
 
 ---
 
 ## get(key, defaultValue = null)
 
 ```javascript
-get(key, (defaultValue = null));
+get(key, defaultValue = null)
 ```
 
-- 获取配置项
+* 获取配置项
 
 ---
 
 ## set(key, value)
 
 ```javascript
-set(key, value);
+set(key, value)
 ```
 
-- 设置配置项
+* 设置配置项
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll();
+getAll()
 ```
 
-- 获取全部配置
+* 获取全部配置
 
 ---
 
 ## reset()
 
 ```javascript
-reset();
+reset()
 ```
 
-- 重置为默认配置
+* 重置为默认配置
 
 ---
 
@@ -112,7 +112,8 @@ reset();
 function gitLog(tag, ...args)
 ```
 
-- Git日志工具函数
-- 根据配置决定是否输出日志
+* Git日志工具函数
+ * 根据配置决定是否输出日志
 
 ---
+

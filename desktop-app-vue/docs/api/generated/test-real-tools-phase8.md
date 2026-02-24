@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/test-real-tools-phase8.js`
 
-**Generated**: 2026-02-24T18:45:59.445Z
+**Generated**: 2026-02-24T23:28:10.577Z
 
 ---
 
@@ -12,7 +12,8 @@
 process.env.USE_REAL_TOOLS = "true";
 ```
 
-- Phase 8 真实功能测试
-- 测试网络诊断工具和屏幕录制器配置
+* Phase 8 真实功能测试
+ * 测试网络诊断工具和屏幕录制器配置
 
 ---
+

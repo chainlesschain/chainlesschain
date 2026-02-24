@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/sync-config.js`
 
-**Generated**: 2026-02-24T18:45:59.432Z
+**Generated**: 2026-02-24T23:28:10.566Z
 
 ---
 
@@ -12,6 +12,7 @@
 module.exports =
 ```
 
-- 同步配置
+* 同步配置
 
 ---
+

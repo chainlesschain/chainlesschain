@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/__tests__/followup-intent-classifier.test.js`
 
-**Generated**: 2026-02-24T18:45:59.574Z
+**Generated**: 2026-02-24T23:28:10.717Z
 
 ---
 
@@ -12,6 +12,7 @@
 import
 ```
 
-- 后续输入意图分类器 - 单元测试
+* 后续输入意图分类器 - 单元测试
 
 ---
+

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/test-real-tools-phase7.js`
 
-**Generated**: 2026-02-24T18:45:59.445Z
+**Generated**: 2026-02-24T23:28:10.577Z
 
 ---
 
@@ -12,7 +12,8 @@
 process.env.USE_REAL_TOOLS = "true";
 ```
 
-- Phase 7 真实功能测试
-- 测试截图工具和网速测试器的真实实现
+* Phase 7 真实功能测试
+ * 测试截图工具和网速测试器的真实实现
 
 ---
+
