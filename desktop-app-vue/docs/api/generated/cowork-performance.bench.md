@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/__tests__/benchmarks/cowork-performance.bench.js`
 
-**Generated**: 2026-02-23T15:25:44.142Z
+**Generated**: 2026-02-24T17:58:54.531Z
 
 ---
 
