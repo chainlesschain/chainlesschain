@@ -2,7 +2,7 @@
 
 **Source**: `src/main/collaboration/org-knowledge-sync-manager.js`
 
-**Generated**: 2026-02-24T17:58:54.533Z
+**Generated**: 2026-02-24T18:45:59.514Z
 
 ---
 

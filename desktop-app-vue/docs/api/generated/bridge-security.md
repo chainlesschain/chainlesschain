@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/bridge-security.js`
 
-**Generated**: 2026-02-24T17:58:54.545Z
+**Generated**: 2026-02-24T18:45:59.527Z
 
 ---
 
