@@ -4223,6 +4223,256 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_collab_offline_applied ON collab_offline_edits(applied_at);
       `);
 
+      // ============================================================
+      // v3.0.0: Dev Pipeline Orchestration tables
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS dev_pipelines (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        template TEXT,
+        requirement TEXT,
+        spec_json TEXT DEFAULT '{}',
+        status TEXT DEFAULT 'created',
+        current_stage TEXT,
+        config TEXT DEFAULT '{}',
+        metrics TEXT DEFAULT '{}',
+        created_by TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        completed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_dev_pipelines_status ON dev_pipelines(status);
+      CREATE INDEX IF NOT EXISTS idx_dev_pipelines_template ON dev_pipelines(template);
+      CREATE INDEX IF NOT EXISTS idx_dev_pipelines_created ON dev_pipelines(created_at);
+
+      CREATE TABLE IF NOT EXISTS dev_pipeline_stages (
+        id TEXT PRIMARY KEY,
+        pipeline_id TEXT NOT NULL,
+        stage_name TEXT NOT NULL,
+        stage_order INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending',
+        input TEXT DEFAULT '{}',
+        output TEXT DEFAULT '{}',
+        agent_id TEXT,
+        gate_approver TEXT,
+        gate_comment TEXT,
+        started_at TEXT,
+        completed_at TEXT,
+        FOREIGN KEY (pipeline_id) REFERENCES dev_pipelines(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_dev_stages_pipeline ON dev_pipeline_stages(pipeline_id);
+      CREATE INDEX IF NOT EXISTS idx_dev_stages_status ON dev_pipeline_stages(status);
+
+      CREATE TABLE IF NOT EXISTS dev_pipeline_artifacts (
+        id TEXT PRIMARY KEY,
+        pipeline_id TEXT NOT NULL,
+        stage_id TEXT NOT NULL,
+        artifact_type TEXT NOT NULL,
+        content TEXT,
+        file_path TEXT,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (pipeline_id) REFERENCES dev_pipelines(id) ON DELETE CASCADE,
+        FOREIGN KEY (stage_id) REFERENCES dev_pipeline_stages(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_dev_artifacts_pipeline ON dev_pipeline_artifacts(pipeline_id);
+      CREATE INDEX IF NOT EXISTS idx_dev_artifacts_stage ON dev_pipeline_artifacts(stage_id);
+      CREATE INDEX IF NOT EXISTS idx_dev_artifacts_type ON dev_pipeline_artifacts(artifact_type);
+      `);
+
+      // ============================================================
+      // v3.3.0: Autonomous Ops tables
+      // ============================================================
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS ops_incidents (
+        id TEXT PRIMARY KEY,
+        severity TEXT NOT NULL,
+        status TEXT DEFAULT 'open',
+        anomaly_metric TEXT,
+        anomaly_value REAL,
+        anomaly_method TEXT,
+        baseline_value REAL,
+        playbook_id TEXT,
+        remediation_result TEXT,
+        rollback_executed INTEGER DEFAULT 0,
+        alert_channels TEXT DEFAULT '[]',
+        postmortem TEXT,
+        timeline TEXT DEFAULT '[]',
+        created_at TEXT DEFAULT (datetime('now')),
+        acknowledged_at TEXT,
+        resolved_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_ops_incidents_severity ON ops_incidents(severity);
+      CREATE INDEX IF NOT EXISTS idx_ops_incidents_status ON ops_incidents(status);
+      CREATE INDEX IF NOT EXISTS idx_ops_incidents_created ON ops_incidents(created_at);
+
+      CREATE TABLE IF NOT EXISTS ops_remediation_playbooks (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        trigger_config TEXT DEFAULT '{}',
+        steps TEXT DEFAULT '[]',
+        rollback_on_failure INTEGER DEFAULT 1,
+        notify_channels TEXT DEFAULT '[]',
+        success_count INTEGER DEFAULT 0,
+        failure_count INTEGER DEFAULT 0,
+        avg_duration_ms INTEGER DEFAULT 0,
+        active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_ops_playbooks_name ON ops_remediation_playbooks(name);
+      CREATE INDEX IF NOT EXISTS idx_ops_playbooks_active ON ops_remediation_playbooks(active);
+
+      CREATE TABLE IF NOT EXISTS ops_metrics_baseline (
+        id TEXT PRIMARY KEY,
+        metric_name TEXT NOT NULL UNIQUE,
+        detection_method TEXT NOT NULL,
+        threshold REAL,
+        window TEXT DEFAULT '5m',
+        params TEXT DEFAULT '{}',
+        baseline_values TEXT DEFAULT '[]',
+        last_calibrated TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_ops_baseline_metric ON ops_metrics_baseline(metric_name);
+      `);
+
+      // ============================================================
+      // v3.1 — 自然语言编程 (2 表)
+      // ============================================================
+      this.db.exec(`
+      -- 自然语言编程记录
+      CREATE TABLE IF NOT EXISTS nl_programs (
+        id TEXT PRIMARY KEY,
+        description TEXT NOT NULL,
+        spec_json TEXT DEFAULT '{}',
+        conventions TEXT DEFAULT '{}',
+        generated_files TEXT DEFAULT '[]',
+        status TEXT DEFAULT 'draft',
+        verification_result TEXT,
+        refine_count INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now')),
+        completed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_nl_programs_status ON nl_programs(status);
+
+      -- 项目编码约定缓存
+      CREATE TABLE IF NOT EXISTS nl_program_conventions (
+        id TEXT PRIMARY KEY,
+        project_path TEXT NOT NULL,
+        naming_conventions TEXT DEFAULT '{}',
+        architecture_patterns TEXT DEFAULT '{}',
+        testing_patterns TEXT DEFAULT '{}',
+        style_rules TEXT DEFAULT '{}',
+        source TEXT DEFAULT 'auto',
+        confidence REAL DEFAULT 0,
+        scanned_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_nl_conventions_path ON nl_program_conventions(project_path);
+      `);
+
+      // ============================================================
+      // v3.2 — 多模态协作 (2 表)
+      // ============================================================
+      this.db.exec(`
+      -- 多模态会话记录
+      CREATE TABLE IF NOT EXISTS multimodal_sessions (
+        id TEXT PRIMARY KEY,
+        modalities TEXT DEFAULT '[]',
+        fused_context TEXT,
+        status TEXT DEFAULT 'active',
+        input_count INTEGER DEFAULT 0,
+        output_format TEXT,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_mm_sessions_status ON multimodal_sessions(status);
+
+      -- 多模态制品表
+      CREATE TABLE IF NOT EXISTS multimodal_artifacts (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        artifact_type TEXT NOT NULL,
+        modality TEXT,
+        content TEXT,
+        file_path TEXT,
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (session_id) REFERENCES multimodal_sessions(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_mm_artifacts_session ON multimodal_artifacts(session_id);
+      CREATE INDEX IF NOT EXISTS idx_mm_artifacts_type ON multimodal_artifacts(artifact_type);
+      `);
+
+      // ============================================================
+      // v4.0 — 去中心化代理网络 (3 表)
+      // ============================================================
+      this.db.exec(`
+      -- Agent DID 身份记录
+      CREATE TABLE IF NOT EXISTS agent_dids (
+        id TEXT PRIMARY KEY,
+        did TEXT NOT NULL UNIQUE,
+        display_name TEXT,
+        capabilities TEXT DEFAULT '[]',
+        public_key TEXT,
+        private_key_encrypted TEXT,
+        organization TEXT,
+        status TEXT DEFAULT 'active',
+        credential_ids TEXT DEFAULT '[]',
+        metadata TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_agent_dids_did ON agent_dids(did);
+      CREATE INDEX IF NOT EXISTS idx_agent_dids_org ON agent_dids(organization);
+      CREATE INDEX IF NOT EXISTS idx_agent_dids_status ON agent_dids(status);
+
+      -- Agent 信誉评分
+      CREATE TABLE IF NOT EXISTS agent_reputation (
+        id TEXT PRIMARY KEY,
+        agent_did TEXT NOT NULL,
+        score REAL DEFAULT 0.5,
+        total_tasks INTEGER DEFAULT 0,
+        successful_tasks INTEGER DEFAULT 0,
+        failed_tasks INTEGER DEFAULT 0,
+        average_response_time_ms REAL DEFAULT 0,
+        reliability REAL DEFAULT 0.5,
+        quality REAL DEFAULT 0.5,
+        last_active TEXT,
+        history TEXT DEFAULT '[]',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (agent_did) REFERENCES agent_dids(did) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_agent_rep_did ON agent_reputation(agent_did);
+      CREATE INDEX IF NOT EXISTS idx_agent_rep_score ON agent_reputation(score);
+
+      -- 联邦任务日志
+      CREATE TABLE IF NOT EXISTS federated_task_log (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        requester_did TEXT NOT NULL,
+        executor_did TEXT,
+        task_type TEXT,
+        description TEXT,
+        status TEXT DEFAULT 'pending',
+        input_hash TEXT,
+        output_hash TEXT,
+        credential_proof TEXT,
+        duration_ms INTEGER,
+        result TEXT DEFAULT '{}',
+        created_at TEXT DEFAULT (datetime('now')),
+        completed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_fed_task_requester ON federated_task_log(requester_did);
+      CREATE INDEX IF NOT EXISTS idx_fed_task_executor ON federated_task_log(executor_did);
+      CREATE INDEX IF NOT EXISTS idx_fed_task_status ON federated_task_log(status);
+      `);
+
       // 重新启用外键约束
       logger.info("[Database] 重新启用外键约束...");
       this.db.run("PRAGMA foreign_keys = ON");

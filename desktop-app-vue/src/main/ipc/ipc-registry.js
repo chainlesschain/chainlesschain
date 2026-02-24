@@ -882,14 +882,18 @@ function registerAllIPC(dependencies) {
     // v0.41.0 — 社交协作编辑 IPC (12 handlers)
     try {
       logger.info("[IPC Registry] Registering Social Collab IPC...");
-      const { registerCollabSocialIPC } = require("../social/collab-social-ipc");
+      const {
+        registerCollabSocialIPC,
+      } = require("../social/collab-social-ipc");
       registerCollabSocialIPC({
         collabEngine: dependencies.collabEngine || null,
         collabSync: dependencies.collabSync || null,
         collabAwareness: dependencies.collabAwareness || null,
         docVersionManager: dependencies.docVersionManager || null,
       });
-      logger.info("[IPC Registry] ✓ Social Collab IPC registered (12 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Social Collab IPC registered (12 handlers)",
+      );
     } catch (collabError) {
       logger.error(
         "[IPC Registry] ✗ Social Collab IPC registration failed (non-fatal):",
@@ -962,7 +966,9 @@ function registerAllIPC(dependencies) {
         storageMarket: dependencies.storageMarket || null,
         meshSocial: dependencies.meshSocial || null,
       });
-      logger.info("[IPC Registry] ✓ Future Social IPC registered (38 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Future Social IPC registered (38 handlers)",
+      );
     } catch (futureError) {
       logger.error(
         "[IPC Registry] ✗ Future Social IPC registration failed (non-fatal):",
@@ -2798,12 +2804,8 @@ function registerAllIPC(dependencies) {
     // 🔥 Benchmark System (模型性能基准测试, 9 handlers)
     try {
       logger.info("[IPC Registry] Registering Benchmark IPC...");
-      const {
-        BenchmarkManager,
-      } = require("../benchmark/benchmark-manager");
-      const {
-        registerBenchmarkIPC,
-      } = require("../benchmark/benchmark-ipc");
+      const { BenchmarkManager } = require("../benchmark/benchmark-manager");
+      const { registerBenchmarkIPC } = require("../benchmark/benchmark-ipc");
 
       const benchmarkManager = new BenchmarkManager({
         database: database || null,
@@ -2823,9 +2825,7 @@ function registerAllIPC(dependencies) {
       if (app) {
         app.benchmarkManager = benchmarkManager;
       }
-      logger.info(
-        "[IPC Registry] ✓ Benchmark IPC registered (9 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ Benchmark IPC registered (9 handlers)");
     } catch (benchmarkError) {
       logger.warn(
         "[IPC Registry] ⚠️  Benchmark IPC registration failed (non-fatal):",
@@ -2845,9 +2845,7 @@ function registerAllIPC(dependencies) {
       const {
         BehaviorPatternAnalyzer,
       } = require("../llm/behavior-pattern-analyzer");
-      const {
-        registerMemoryAugIPC,
-      } = require("../llm/memory-augmented-ipc");
+      const { registerMemoryAugIPC } = require("../llm/memory-augmented-ipc");
 
       const memoryAugManager = new MemoryAugmentedGeneration({
         database: database || null,
@@ -2886,7 +2884,11 @@ function registerAllIPC(dependencies) {
           );
       }
 
-      registerMemoryAugIPC({ memoryAugManager, preferenceLearner, patternAnalyzer });
+      registerMemoryAugIPC({
+        memoryAugManager,
+        preferenceLearner,
+        patternAnalyzer,
+      });
 
       if (app) {
         app.memoryAugManager = memoryAugManager;
@@ -2931,9 +2933,7 @@ function registerAllIPC(dependencies) {
       if (app) {
         app.dualModelManager = dualModelManager;
       }
-      logger.info(
-        "[IPC Registry] ✓ Dual-Model IPC registered (7 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ Dual-Model IPC registered (7 handlers)");
     } catch (dualModelError) {
       logger.warn(
         "[IPC Registry] ⚠️  Dual-Model IPC registration failed (non-fatal):",
@@ -2968,9 +2968,7 @@ function registerAllIPC(dependencies) {
       if (app) {
         app.quantizationManager = quantizationManager;
       }
-      logger.info(
-        "[IPC Registry] ✓ Quantization IPC registered (8 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ Quantization IPC registered (8 handlers)");
     } catch (quantError) {
       logger.warn(
         "[IPC Registry] ⚠️  Quantization IPC registration failed (non-fatal):",
@@ -3005,9 +3003,7 @@ function registerAllIPC(dependencies) {
       if (app) {
         app.fineTuningManager = fineTuningManager;
       }
-      logger.info(
-        "[IPC Registry] ✓ Fine-tuning IPC registered (8 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ Fine-tuning IPC registered (8 handlers)");
     } catch (ftError) {
       logger.warn(
         "[IPC Registry] ⚠️  Fine-tuning IPC registration failed (non-fatal):",
@@ -3030,9 +3026,7 @@ function registerAllIPC(dependencies) {
       if (app) {
         app.whisperClient = whisperClient;
       }
-      logger.info(
-        "[IPC Registry] ✓ Whisper IPC registered (6 handlers)",
-      );
+      logger.info("[IPC Registry] ✓ Whisper IPC registered (6 handlers)");
     } catch (whisperError) {
       logger.warn(
         "[IPC Registry] ⚠️  Whisper IPC registration failed (non-fatal):",
@@ -3046,9 +3040,7 @@ function registerAllIPC(dependencies) {
       const {
         FederatedLearningManager,
       } = require("../federated/federated-learning-manager");
-      const {
-        registerFederatedIPC,
-      } = require("../federated/federated-ipc");
+      const { registerFederatedIPC } = require("../federated/federated-ipc");
 
       const federatedManager = new FederatedLearningManager({
         database: database || null,
@@ -3132,6 +3124,544 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
     logger.info(
       "[IPC Registry] Phase 33-34 Complete: Git P2P Sync, Real-time Collaboration ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 35: Dev Pipeline Orchestration (v3.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Dev Pipeline IPC...");
+
+      const {
+        getPipelineOrchestrator,
+      } = require("../ai-engine/cowork/pipeline-orchestrator");
+      const {
+        getRequirementParser,
+      } = require("../ai-engine/cowork/requirement-parser");
+      const {
+        registerPipelineIPC,
+      } = require("../ai-engine/cowork/pipeline-ipc");
+
+      const pipelineOrchestrator = getPipelineOrchestrator();
+      const requirementParser = getRequirementParser();
+
+      if (dependencies.database) {
+        requirementParser
+          .initialize(dependencies.database, {
+            codeKnowledgeGraph: registeredModules.codeKnowledgeGraph || null,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] RequirementParser init warning:",
+              err.message,
+            ),
+          );
+        pipelineOrchestrator
+          .initialize(dependencies.database, {
+            requirementParser,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] PipelineOrchestrator init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      const { handlerCount: pipelineHandlerCount } = registerPipelineIPC({
+        pipelineOrchestrator,
+        requirementParser,
+      });
+
+      registeredModules.pipelineOrchestrator = pipelineOrchestrator;
+      registeredModules.requirementParser = requirementParser;
+
+      logger.info(
+        `[IPC Registry] ✓ Dev Pipeline IPC registered (${pipelineHandlerCount} handlers)`,
+      );
+    } catch (pipelineError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Dev Pipeline IPC registration failed (non-fatal):",
+        pipelineError.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 36: Autonomous Ops — Anomaly Detection (v3.3)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Autonomous Ops IPC...");
+
+      const {
+        getAnomalyDetector,
+      } = require("../ai-engine/cowork/anomaly-detector");
+      const {
+        getIncidentClassifier,
+      } = require("../ai-engine/cowork/incident-classifier");
+      const {
+        registerAutonomousOpsIPC,
+      } = require("../ai-engine/cowork/autonomous-ops-ipc");
+      const {
+        getAutoRemediator,
+      } = require("../ai-engine/cowork/auto-remediator");
+      const {
+        getRollbackManager,
+      } = require("../ai-engine/cowork/rollback-manager");
+      const { getAlertManager } = require("../ai-engine/cowork/alert-manager");
+
+      const anomalyDetector = getAnomalyDetector();
+      const incidentClassifier = getIncidentClassifier();
+      const autoRemediator = getAutoRemediator();
+      const rollbackManager = getRollbackManager();
+      const alertManager = getAlertManager();
+
+      if (dependencies.database) {
+        anomalyDetector
+          .initialize(dependencies.database, {
+            errorMonitor: registeredModules.errorMonitor || null,
+            performanceMonitor: registeredModules.performanceMonitor || null,
+            incidentClassifier,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AnomalyDetector init warning:",
+              err.message,
+            ),
+          );
+        incidentClassifier
+          .initialize(dependencies.database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] IncidentClassifier init warning:",
+              err.message,
+            ),
+          );
+        rollbackManager
+          .initialize(dependencies.database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] RollbackManager init warning:",
+              err.message,
+            ),
+          );
+        alertManager
+          .initialize(dependencies.database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AlertManager init warning:",
+              err.message,
+            ),
+          );
+        autoRemediator
+          .initialize(dependencies.database, {
+            rollbackManager,
+            alertManager,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AutoRemediator init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      const { handlerCount: opsHandlerCount } = registerAutonomousOpsIPC({
+        anomalyDetector,
+        incidentClassifier,
+        autoRemediator,
+        rollbackManager,
+        alertManager,
+      });
+
+      registeredModules.anomalyDetector = anomalyDetector;
+      registeredModules.incidentClassifier = incidentClassifier;
+      registeredModules.autoRemediator = autoRemediator;
+      registeredModules.rollbackManager = rollbackManager;
+      registeredModules.alertManager = alertManager;
+
+      logger.info(
+        `[IPC Registry] ✓ Autonomous Ops IPC registered (${opsHandlerCount} handlers)`,
+      );
+    } catch (opsError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Autonomous Ops IPC registration failed (non-fatal):",
+        opsError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 35-36 Complete: Dev Pipeline + Autonomous Ops ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 37: NL Programming — Spec Translation (v3.1)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering NL Programming IPC...");
+
+      const {
+        getSpecTranslator,
+      } = require("../ai-engine/cowork/spec-translator");
+      const {
+        registerNLProgrammingIPC,
+      } = require("../ai-engine/cowork/nl-programming-ipc");
+
+      const specTranslator = getSpecTranslator();
+
+      if (dependencies.database) {
+        specTranslator
+          .initialize(dependencies.database, {
+            ckg: registeredModules.codeKnowledgeGraph || null,
+            llmService: registeredModules.llmService || null,
+            instinctManager: registeredModules.instinctManager || null,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] SpecTranslator init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      const { handlerCount: nlProgHandlerCount } = registerNLProgrammingIPC({
+        specTranslator,
+      });
+
+      registeredModules.specTranslator = specTranslator;
+
+      logger.info(
+        `[IPC Registry] ✓ NL Programming IPC registered (${nlProgHandlerCount} handlers)`,
+      );
+    } catch (nlProgError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  NL Programming IPC registration failed (non-fatal):",
+        nlProgError.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 38: Multimodal Collaboration (v3.2)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Multimodal Collaboration IPC...");
+
+      const {
+        getModalityFusion,
+      } = require("../ai-engine/cowork/modality-fusion");
+      const {
+        getDocumentParser,
+      } = require("../ai-engine/cowork/document-parser");
+      const {
+        getMultimodalContext,
+      } = require("../ai-engine/cowork/multimodal-context");
+      const {
+        registerMultimodalCollabIPC,
+      } = require("../ai-engine/cowork/multimodal-collab-ipc");
+
+      const documentParser = getDocumentParser();
+      const modalityFusion = getModalityFusion();
+      const multimodalContext = getMultimodalContext();
+
+      if (dependencies.database) {
+        documentParser
+          .initialize(dependencies.database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] DocumentParser init warning:",
+              err.message,
+            ),
+          );
+        modalityFusion
+          .initialize(dependencies.database, { documentParser })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ModalityFusion init warning:",
+              err.message,
+            ),
+          );
+        multimodalContext
+          .initialize({ modalityFusion })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] MultimodalContext init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      const { handlerCount: mmHandlerCount } = registerMultimodalCollabIPC({
+        modalityFusion,
+        documentParser,
+        multimodalContext,
+      });
+
+      registeredModules.documentParser = documentParser;
+      registeredModules.modalityFusion = modalityFusion;
+      registeredModules.multimodalContext = multimodalContext;
+
+      logger.info(
+        `[IPC Registry] ✓ Multimodal Collaboration IPC registered (${mmHandlerCount} handlers)`,
+      );
+    } catch (mmError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Multimodal Collaboration IPC registration failed (non-fatal):",
+        mmError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 37-38 Complete: NL Programming + Multimodal ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 39: Wire remaining deps (v3.0.C, v3.1.B, v3.2.B/C, v3.3.C)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Wiring Phase 39 dependencies...");
+
+      // v3.0.C: DeployAgent + PostDeployMonitor
+      const { getDeployAgent } = require("../ai-engine/cowork/deploy-agent");
+      const {
+        getPostDeployMonitor,
+      } = require("../ai-engine/cowork/post-deploy-monitor");
+      const deployAgent = getDeployAgent();
+      const postDeployMonitor = getPostDeployMonitor();
+
+      if (dependencies.database) {
+        deployAgent
+          .initialize(dependencies.database, {
+            rollbackManager: registeredModules.rollbackManager || null,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] DeployAgent init warning:",
+              err.message,
+            ),
+          );
+      }
+      postDeployMonitor
+        .initialize({
+          errorMonitor: registeredModules.errorMonitor || null,
+          performanceMonitor: registeredModules.performanceMonitor || null,
+          anomalyDetector: registeredModules.anomalyDetector || null,
+          rollbackManager: registeredModules.rollbackManager || null,
+        })
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] PostDeployMonitor init warning:",
+            err.message,
+          ),
+        );
+      registeredModules.deployAgent = deployAgent;
+      registeredModules.postDeployMonitor = postDeployMonitor;
+
+      // v3.1.B: ProjectStyleAnalyzer
+      const {
+        getProjectStyleAnalyzer,
+      } = require("../ai-engine/cowork/project-style-analyzer");
+      const projectStyleAnalyzer = getProjectStyleAnalyzer();
+
+      if (dependencies.database) {
+        projectStyleAnalyzer
+          .initialize(dependencies.database, {
+            ckg: registeredModules.codeKnowledgeGraph || null,
+            instinctManager: registeredModules.instinctManager || null,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ProjectStyleAnalyzer init warning:",
+              err.message,
+            ),
+          );
+      }
+      registeredModules.projectStyleAnalyzer = projectStyleAnalyzer;
+
+      // v3.2.B/C: ScreenRecorder + MultimodalOutput
+      const {
+        getScreenRecorder,
+      } = require("../ai-engine/cowork/screen-recorder");
+      const {
+        getMultimodalOutput,
+      } = require("../ai-engine/cowork/multimodal-output");
+      const screenRecorder = getScreenRecorder();
+      const multimodalOutput = getMultimodalOutput();
+
+      screenRecorder
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] ScreenRecorder init warning:",
+            err.message,
+          ),
+        );
+      multimodalOutput
+        .initialize()
+        .catch((err) =>
+          logger.warn(
+            "[IPC Registry] MultimodalOutput init warning:",
+            err.message,
+          ),
+        );
+      registeredModules.screenRecorder = screenRecorder;
+      registeredModules.multimodalOutput = multimodalOutput;
+
+      // v3.3.C: PostmortemGenerator
+      const {
+        getPostmortemGenerator,
+      } = require("../ai-engine/cowork/postmortem-generator");
+      const postmortemGenerator = getPostmortemGenerator();
+
+      if (dependencies.database) {
+        postmortemGenerator
+          .initialize(dependencies.database, {
+            llmService: registeredModules.llmService || null,
+            incidentClassifier: registeredModules.incidentClassifier || null,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] PostmortemGenerator init warning:",
+              err.message,
+            ),
+          );
+      }
+      registeredModules.postmortemGenerator = postmortemGenerator;
+
+      logger.info("[IPC Registry] ✓ Phase 39 dependencies wired");
+    } catch (phase39Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 39 wiring failed (non-fatal):",
+        phase39Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 40: Decentralized Agent Network (v4.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Decentralized Network IPC...");
+
+      const { getAgentDID } = require("../ai-engine/cowork/agent-did");
+      const {
+        getFederatedAgentRegistry,
+      } = require("../ai-engine/cowork/federated-agent-registry");
+      const {
+        getAgentCredentialManager,
+      } = require("../ai-engine/cowork/agent-credential-manager");
+      const {
+        getCrossOrgTaskRouter,
+      } = require("../ai-engine/cowork/cross-org-task-router");
+      const {
+        getAgentReputation,
+      } = require("../ai-engine/cowork/agent-reputation");
+      const {
+        getAgentAuthenticator,
+      } = require("../ai-engine/cowork/agent-authenticator");
+      const {
+        registerDecentralizedNetworkIPC,
+      } = require("../ai-engine/cowork/decentralized-network-ipc");
+
+      const agentDIDInstance = getAgentDID();
+      const federatedRegistry = getFederatedAgentRegistry();
+      const credentialManager = getAgentCredentialManager();
+      const taskRouter = getCrossOrgTaskRouter();
+      const reputationSystem = getAgentReputation();
+      const authenticator = getAgentAuthenticator();
+
+      if (dependencies.database) {
+        agentDIDInstance
+          .initialize(dependencies.database)
+          .catch((err) =>
+            logger.warn("[IPC Registry] AgentDID init warning:", err.message),
+          );
+        federatedRegistry
+          .initialize(dependencies.database, { agentDID: agentDIDInstance })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] FederatedAgentRegistry init warning:",
+              err.message,
+            ),
+          );
+        credentialManager
+          .initialize(dependencies.database, { agentDID: agentDIDInstance })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AgentCredentialManager init warning:",
+              err.message,
+            ),
+          );
+        reputationSystem
+          .initialize(dependencies.database)
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AgentReputation init warning:",
+              err.message,
+            ),
+          );
+        taskRouter
+          .initialize(dependencies.database, {
+            federatedRegistry,
+            agentReputation: reputationSystem,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] CrossOrgTaskRouter init warning:",
+              err.message,
+            ),
+          );
+        authenticator
+          .initialize(dependencies.database, {
+            agentDID: agentDIDInstance,
+            credentialManager,
+          })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AgentAuthenticator init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      const { handlerCount: decentralizedCount } =
+        registerDecentralizedNetworkIPC({
+          agentDID: agentDIDInstance,
+          federatedRegistry,
+          credentialManager,
+          taskRouter,
+          reputation: reputationSystem,
+          authenticator,
+        });
+
+      registeredModules.agentDID = agentDIDInstance;
+      registeredModules.federatedRegistry = federatedRegistry;
+      registeredModules.credentialManager = credentialManager;
+      registeredModules.taskRouter = taskRouter;
+      registeredModules.reputationSystem = reputationSystem;
+      registeredModules.authenticator = authenticator;
+
+      logger.info(
+        `[IPC Registry] ✓ Decentralized Network IPC registered (${decentralizedCount} handlers)`,
+      );
+    } catch (decentralizedError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Decentralized Network IPC registration failed (non-fatal):",
+        decentralizedError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 39-40 Complete: All v3.0-v4.0 modules ready!",
     );
     logger.info("[IPC Registry] ========================================");
 
