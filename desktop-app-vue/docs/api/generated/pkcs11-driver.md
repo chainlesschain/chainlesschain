@@ -12,32 +12,32 @@
 const
 ```
 
-* PKCS#11 U-Key Driver
- *
- * Cross-platform hardware token driver using PKCS#11 standard
- *
- * Supports:
- * - macOS: OpenSC, YubiKey, etc.
- * - Linux: OpenSC, SoftHSM, etc.
- * - Windows: OpenSC (as alternative to native drivers)
- *
- * PKCS#11 is the industry standard for cryptographic tokens
- * Supported by most hardware security tokens and smart cards
- *
- * Features:
- * - RSA and SM2 (Chinese national algorithm) support
- * - PIN retry counting and secure memory clearing
- * - Both pkcs11-js and CLI fallback modes
+- PKCS#11 U-Key Driver
+-
+- Cross-platform hardware token driver using PKCS#11 standard
+-
+- Supports:
+- - macOS: OpenSC, YubiKey, etc.
+- - Linux: OpenSC, SoftHSM, etc.
+- - Windows: OpenSC (as alternative to native drivers)
+-
+- PKCS#11 is the industry standard for cryptographic tokens
+- Supported by most hardware security tokens and smart cards
+-
+- Features:
+- - RSA and SM2 (Chinese national algorithm) support
+- - PIN retry counting and secure memory clearing
+- - Both pkcs11-js and CLI fallback modes
 
 ---
 
 ## findPKCS11Library()
 
 ```javascript
-findPKCS11Library()
+findPKCS11Library();
 ```
 
-* Find PKCS#11 library on system
+- Find PKCS#11 library on system
 
 ---
 
@@ -47,7 +47,7 @@ findPKCS11Library()
 async initialize()
 ```
 
-* Initialize driver
+- Initialize driver
 
 ---
 
@@ -57,7 +57,7 @@ async initialize()
 async loadSupportedMechanisms()
 ```
 
-* Load supported mechanisms from token
+- Load supported mechanisms from token
 
 ---
 
@@ -67,7 +67,7 @@ async loadSupportedMechanisms()
 async detect()
 ```
 
-* Detect available tokens (implements BaseUKeyDriver.detect)
+- Detect available tokens (implements BaseUKeyDriver.detect)
 
 ---
 
@@ -77,7 +77,7 @@ async detect()
 async detectWithPKCS11()
 ```
 
-* Detect using pkcs11-js
+- Detect using pkcs11-js
 
 ---
 
@@ -87,7 +87,7 @@ async detectWithPKCS11()
 async detectWithCLI()
 ```
 
-* Detect using CLI tools (fallback)
+- Detect using CLI tools (fallback)
 
 ---
 
@@ -97,7 +97,7 @@ async detectWithCLI()
 async verifyPIN(pin)
 ```
 
-* Verify PIN (implements BaseUKeyDriver.verifyPIN)
+- Verify PIN (implements BaseUKeyDriver.verifyPIN)
 
 ---
 
@@ -107,7 +107,7 @@ async verifyPIN(pin)
 async verifyPINWithPKCS11(pin)
 ```
 
-* Verify PIN using pkcs11-js
+- Verify PIN using pkcs11-js
 
 ---
 
@@ -117,7 +117,7 @@ async verifyPINWithPKCS11(pin)
 async verifyPINWithCLI(pin)
 ```
 
-* Verify PIN using CLI
+- Verify PIN using CLI
 
 ---
 
@@ -127,7 +127,7 @@ async verifyPINWithCLI(pin)
 async findKeys()
 ```
 
-* Find and cache key handles
+- Find and cache key handles
 
 ---
 
@@ -137,37 +137,37 @@ async findKeys()
 async exportPublicKey()
 ```
 
-* Export public key in PEM format
+- Export public key in PEM format
 
 ---
 
 ## rsaToPEM(modulus, exponent)
 
 ```javascript
-rsaToPEM(modulus, exponent)
+rsaToPEM(modulus, exponent);
 ```
 
-* Convert RSA modulus/exponent to PEM format
+- Convert RSA modulus/exponent to PEM format
 
 ---
 
 ## asn1Length(len)
 
 ```javascript
-asn1Length(len)
+asn1Length(len);
 ```
 
-* ASN.1 length encoding
+- ASN.1 length encoding
 
 ---
 
 ## ecToPEM(ecPoint, isSM2)
 
 ```javascript
-ecToPEM(ecPoint, isSM2)
+ecToPEM(ecPoint, isSM2);
 ```
 
-* Convert EC point to PEM format (simplified)
+- Convert EC point to PEM format (simplified)
 
 ---
 
@@ -177,7 +177,7 @@ ecToPEM(ecPoint, isSM2)
 async getPublicKey()
 ```
 
-* Get public key (implements BaseUKeyDriver.getPublicKey)
+- Get public key (implements BaseUKeyDriver.getPublicKey)
 
 ---
 
@@ -187,7 +187,7 @@ async getPublicKey()
 async getPublicKeyWithCLI()
 ```
 
-* Get public key using CLI
+- Get public key using CLI
 
 ---
 
@@ -197,17 +197,17 @@ async getPublicKeyWithCLI()
 async disconnect()
 ```
 
-* Disconnect from token
+- Disconnect from token
 
 ---
 
 ## clearSensitiveData()
 
 ```javascript
-clearSensitiveData()
+clearSensitiveData();
 ```
 
-* Clear sensitive data from memory
+- Clear sensitive data from memory
 
 ---
 
@@ -217,7 +217,7 @@ clearSensitiveData()
 async getDeviceInfo()
 ```
 
-* Get device information
+- Get device information
 
 ---
 
@@ -227,7 +227,7 @@ async getDeviceInfo()
 async sign(data)
 ```
 
-* Sign data using token (implements BaseUKeyDriver.sign)
+- Sign data using token (implements BaseUKeyDriver.sign)
 
 ---
 
@@ -237,7 +237,7 @@ async sign(data)
 async signWithPKCS11(data)
 ```
 
-* Sign using pkcs11-js
+- Sign using pkcs11-js
 
 ---
 
@@ -247,7 +247,7 @@ async signWithPKCS11(data)
 async signWithCLI(data)
 ```
 
-* Sign using CLI
+- Sign using CLI
 
 ---
 
@@ -257,7 +257,7 @@ async signWithCLI(data)
 async verifySignature(data, signature)
 ```
 
-* Verify signature (implements BaseUKeyDriver.verifySignature)
+- Verify signature (implements BaseUKeyDriver.verifySignature)
 
 ---
 
@@ -267,7 +267,7 @@ async verifySignature(data, signature)
 async verifySignatureWithPKCS11(data, signature)
 ```
 
-* Verify using pkcs11-js
+- Verify using pkcs11-js
 
 ---
 
@@ -277,7 +277,7 @@ async verifySignatureWithPKCS11(data, signature)
 async verifySignatureWithCrypto(data, signature)
 ```
 
-* Verify using Node.js crypto
+- Verify using Node.js crypto
 
 ---
 
@@ -287,7 +287,7 @@ async verifySignatureWithCrypto(data, signature)
 async encrypt(data)
 ```
 
-* Encrypt data (implements BaseUKeyDriver.encrypt)
+- Encrypt data (implements BaseUKeyDriver.encrypt)
 
 ---
 
@@ -297,7 +297,7 @@ async encrypt(data)
 async encryptWithPKCS11(data)
 ```
 
-* Encrypt using pkcs11-js
+- Encrypt using pkcs11-js
 
 ---
 
@@ -307,7 +307,7 @@ async encryptWithPKCS11(data)
 async encryptWithCLI(data)
 ```
 
-* Encrypt using CLI tools (fallback)
+- Encrypt using CLI tools (fallback)
 
 ---
 
@@ -317,7 +317,7 @@ async encryptWithCLI(data)
 async decrypt(encryptedData)
 ```
 
-* Decrypt data (implements BaseUKeyDriver.decrypt)
+- Decrypt data (implements BaseUKeyDriver.decrypt)
 
 ---
 
@@ -327,7 +327,7 @@ async decrypt(encryptedData)
 async decryptWithPKCS11(encryptedData)
 ```
 
-* Decrypt using pkcs11-js
+- Decrypt using pkcs11-js
 
 ---
 
@@ -337,7 +337,7 @@ async decryptWithPKCS11(encryptedData)
 async decryptWithCLI(encryptedData)
 ```
 
-* Decrypt using CLI tools (fallback)
+- Decrypt using CLI tools (fallback)
 
 ---
 
@@ -347,17 +347,17 @@ async decryptWithCLI(encryptedData)
 async changePin(oldPin, newPin)
 ```
 
-* Change PIN
+- Change PIN
 
 ---
 
 ## lock()
 
 ```javascript
-lock()
+lock();
 ```
 
-* Lock device (implements BaseUKeyDriver.lock)
+- Lock device (implements BaseUKeyDriver.lock)
 
 ---
 
@@ -367,37 +367,36 @@ lock()
 async close()
 ```
 
-* Close driver
+- Close driver
 
 ---
 
 ## cleanupTempFile(filePath)
 
 ```javascript
-cleanupTempFile(filePath)
+cleanupTempFile(filePath);
 ```
 
-* Cleanup temporary file
+- Cleanup temporary file
 
 ---
 
 ## getDriverName()
 
 ```javascript
-getDriverName()
+getDriverName();
 ```
 
-* Get driver name
+- Get driver name
 
 ---
 
 ## getDriverVersion()
 
 ```javascript
-getDriverVersion()
+getDriverVersion();
 ```
 
-* Get driver version
+- Get driver version
 
 ---
-

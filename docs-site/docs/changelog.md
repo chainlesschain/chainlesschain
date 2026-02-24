@@ -5,6 +5,61 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.0] - 2026-02-25
+
+### 新增
+
+- 🔩 **Cowork v3.0 - 全自动开发流水线** (5 模块, 15 IPC)
+  - `pipeline-ipc.js`: DAG 流水线编排，5 种步骤类型（串联/并行/条件/循环/转换），10 个预置模板
+  - `requirement-parser.js`: 结构化需求提取，约束/验收条件/优先级分析
+  - `deploy-agent.js`: 多环境部署编排（dev/staging/prod），蓝绿/金丝雀策略
+  - `post-deploy-monitor.js`: 部署后健康监控，KPI 基线偏差检测
+  - `rollback-manager.js`: Git Revert/Docker/Config 多策略自动回滚
+
+- 💬 **Cowork v3.1 - 自然语言编程** (3 模块, 10 IPC)
+  - `spec-translator.js`: NL→Spec 9 步翻译流水线，9 种意图分类，完整度评分，LLM 增强
+  - `project-style-analyzer.js`: 跨团队代码约定提取（命名/缩进/注释风格），自动规则生成
+  - `nl-programming-ipc.js`: 统一 NL 编程 IPC 处理器注册（10 个通道）
+
+- 🖼️ **Cowork v3.2 - 多模态协作** (6 模块, 12 IPC)
+  - `modality-fusion.js`: 音频/图像/文档/屏幕/文本五模态统一融合引擎
+  - `document-parser.js`: PDF/Word/Excel 文档解析，表格/图片提取，OCR 支持
+  - `screen-recorder.js`: Electron desktopCapturer 截屏/录制，Tesseract OCR（英/中）
+  - `multimodal-context.js`: 多模态会话上下文管理，Token 预算控制
+  - `multimodal-output.js`: 富媒体输出生成（Markdown/HTML/ECharts 图表/幻灯片）
+  - `multimodal-collab-ipc.js`: 多模态协作 IPC 注册（12 个通道）
+
+- 🚨 **Cowork v3.3 - 自主运维** (7 模块, 15 IPC)
+  - `alert-manager.js`: 多通道告警（Webhook/Email/IM/App），P0-P3 升级链，智能去重
+  - `auto-remediator.js`: Playbook 驱动自动修复，8 种动作类型，回滚集成，成功率统计
+  - `postmortem-generator.js`: 事故后分析报告自动生成，根因分析，改进建议，SLA 计算
+  - `autonomous-ops-ipc.js`: 自主运维 IPC 注册（15 个通道）
+
+- 🪪 **Cowork v4.0 - 去中心化代理网络** (7 模块, 20 IPC)
+  - `agent-did.js`: W3C DID 规范，`did:cc:agent-{uuid}` 格式，Ed25519 密钥对，能力证明
+  - `agent-credential-manager.js`: W3C Verifiable Credentials 签发/验证/吊销，3 种凭证类型
+  - `agent-authenticator.js`: DID 互认证协议（Challenge-Response / 凭证证明 / 双向 TLS）
+  - `agent-reputation.js`: 动态信誉评分（0.0-1.0），多维度加权，时间衰减，4 级声望等级
+  - `federated-agent-registry.js`: KadDHT 去中心化代理发现，跨组织技能查询，延迟感知路由
+  - `cross-org-task-router.js`: 跨组织任务委派，凭证证明，SLA 预算，全程审计日志
+  - `decentralized-network-ipc.js`: 去中心化网络 20 个 IPC 通道（DID/认证/凭证/联邦/信誉）
+
+- 🗄️ **新增数据库表** (13 张)
+  - v3.0: `pipeline_executions`, `pipeline_steps`, `deployment_records`
+  - v3.1: `nl_programs`, `style_rules`
+  - v3.2: `multimodal_sessions`, `document_cache`
+  - v3.3: `alert_records`, `remediation_logs`, `postmortem_reports`
+  - v4.0: `agent_dids`, `agent_reputation`, `federated_task_log`
+
+### 统计
+
+- IPC 处理器: 166 → **238 个** (+72)
+- 代码行数: ~28,000 → **~45,120 行** (+17,120)
+- 数据库表: 8 → **21 张** (+13)
+- 新增模块: **28 个**（v3.0: 5 / v3.1: 3 / v3.2: 6 / v3.3: 7 / v4.0: 7）
+
+---
+
 ## [1.0.0] - 2026-02-23
 
 ### 新增

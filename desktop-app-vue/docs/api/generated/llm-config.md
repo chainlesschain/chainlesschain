@@ -12,8 +12,8 @@
 const
 ```
 
-* LLM配置管理
- * 支持敏感信息（API Keys）加密存储
+- LLM配置管理
+- 支持敏感信息（API Keys）加密存储
 
 ---
 
@@ -23,7 +23,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* 默认配置
+- 默认配置
 
 ---
 
@@ -33,108 +33,107 @@ const DEFAULT_CONFIG =
 class LLMConfig
 ```
 
-* LLM配置管理器
+- LLM配置管理器
 
 ---
 
 ## getConfigPath()
 
 ```javascript
-getConfigPath()
+getConfigPath();
 ```
 
-* 获取配置文件路径
+- 获取配置文件路径
 
 ---
 
 ## load()
 
 ```javascript
-load()
+load();
 ```
 
-* 加载配置
+- 加载配置
 
 ---
 
-## _loadSensitiveFields()
+## \_loadSensitiveFields()
 
 ```javascript
-_loadSensitiveFields()
+_loadSensitiveFields();
 ```
 
-* 从安全存储加载敏感字段
-   * @private
+- 从安全存储加载敏感字段
+  - @private
 
 ---
 
 ## save()
 
 ```javascript
-save()
+save();
 ```
 
-* 保存配置
+- 保存配置
 
 ---
 
 ## get(key, defaultValue = null)
 
 ```javascript
-get(key, defaultValue = null)
+get(key, (defaultValue = null));
 ```
 
-* 获取配置项
+- 获取配置项
 
 ---
 
 ## set(key, value)
 
 ```javascript
-set(key, value)
+set(key, value);
 ```
 
-* 设置配置项
+- 设置配置项
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll()
+getAll();
 ```
 
-* 获取全部配置
+- 获取全部配置
 
 ---
 
 ## reset()
 
 ```javascript
-reset()
+reset();
 ```
 
-* 重置为默认配置
+- 重置为默认配置
 
 ---
 
 ## validate()
 
 ```javascript
-validate()
+validate();
 ```
 
-* 验证配置
+- 验证配置
 
 ---
 
 ## getManagerConfig()
 
 ```javascript
-getManagerConfig()
+getManagerConfig();
 ```
 
-* 获取管理器配置
+- 获取管理器配置
 
 ---
-

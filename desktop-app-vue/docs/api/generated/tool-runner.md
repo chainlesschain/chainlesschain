@@ -12,18 +12,18 @@
 const
 ```
 
-* 工具运行器
- * 实际执行工具的底层实现
+- 工具运行器
+- 实际执行工具的底层实现
 
 ---
 
 ## initializeToolImplementations()
 
 ```javascript
-initializeToolImplementations()
+initializeToolImplementations();
 ```
 
-* 初始化工具实现
+- 初始化工具实现
 
 ---
 
@@ -33,147 +33,146 @@ initializeToolImplementations()
 async executeTool(toolName, params, options =
 ```
 
-* 执行工具
+- 执行工具
 
 ---
 
 ## validateParams(tool, params)
 
 ```javascript
-validateParams(tool, params)
+validateParams(tool, params);
 ```
 
-* 验证参数
+- 验证参数
 
 ---
 
 ## createFileReader()
 
 ```javascript
-createFileReader()
+createFileReader();
 ```
 
-* 文件读取器
+- 文件读取器
 
 ---
 
 ## createFileWriter()
 
 ```javascript
-createFileWriter()
+createFileWriter();
 ```
 
-* 文件写入器
+- 文件写入器
 
 ---
 
 ## createFileEditor()
 
 ```javascript
-createFileEditor()
+createFileEditor();
 ```
 
-* 文件编辑器
+- 文件编辑器
 
 ---
 
 ## createHtmlGenerator()
 
 ```javascript
-createHtmlGenerator()
+createHtmlGenerator();
 ```
 
-* HTML生成器
+- HTML生成器
 
 ---
 
 ## createCssGenerator()
 
 ```javascript
-createCssGenerator()
+createCssGenerator();
 ```
 
-* CSS生成器
+- CSS生成器
 
 ---
 
 ## createJsGenerator()
 
 ```javascript
-createJsGenerator()
+createJsGenerator();
 ```
 
-* JS生成器
+- JS生成器
 
 ---
 
 ## createProjectStructureCreator()
 
 ```javascript
-createProjectStructureCreator()
+createProjectStructureCreator();
 ```
 
-* 创建项目结构
+- 创建项目结构
 
 ---
 
 ## createGitInit()
 
 ```javascript
-createGitInit()
+createGitInit();
 ```
 
-* Git初始化
+- Git初始化
 
 ---
 
 ## createGitCommit()
 
 ```javascript
-createGitCommit()
+createGitCommit();
 ```
 
-* Git提交
+- Git提交
 
 ---
 
 ## createInfoSearcher()
 
 ```javascript
-createInfoSearcher()
+createInfoSearcher();
 ```
 
-* 信息搜索器
+- 信息搜索器
 
 ---
 
 ## createFormatOutput()
 
 ```javascript
-createFormatOutput()
+createFormatOutput();
 ```
 
-* 格式化输出
+- 格式化输出
 
 ---
 
 ## createGenericHandler()
 
 ```javascript
-createGenericHandler()
+createGenericHandler();
 ```
 
-* 通用处理器
+- 通用处理器
 
 ---
 
 ## formatAsTable(data)
 
 ```javascript
-formatAsTable(data)
+formatAsTable(data);
 ```
 
-* 格式化为表格
+- 格式化为表格
 
 ---
-

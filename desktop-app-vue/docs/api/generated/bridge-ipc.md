@@ -12,8 +12,8 @@
 const
 ```
 
-* 跨链桥 IPC 处理器
- * 处理所有 bridge: 相关的 IPC 通信
+- 跨链桥 IPC 处理器
+- 处理所有 bridge: 相关的 IPC 通信
 
 ---
 
@@ -23,8 +23,7 @@ const
 function registerBridgeIPC(bridgeManager)
 ```
 
-* 注册跨链桥相关的 IPC 处理器
- * @param {Object} bridgeManager - 跨链桥管理器实例
+- 注册跨链桥相关的 IPC 处理器
+- @param {Object} bridgeManager - 跨链桥管理器实例
 
 ---
-

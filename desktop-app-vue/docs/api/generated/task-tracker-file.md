@@ -12,16 +12,16 @@
 const
 ```
 
-* 任务追踪文件系统
- *
- * 基于 Manus AI 的 todo.md 机制，实现文件系统持久化的任务追踪。
- *
- * 核心原则（来自 Manus Blog）：
- * 1. 将任务目标"重述"到上下文末尾 - 解决"丢失中间"问题
- * 2. 使用文件系统作为扩展记忆 - 支持长时间任务
- * 3. 保存中间结果 - 支持任务恢复
- *
- * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+- 任务追踪文件系统
+-
+- 基于 Manus AI 的 todo.md 机制，实现文件系统持久化的任务追踪。
+-
+- 核心原则（来自 Manus Blog）：
+- 1.  将任务目标"重述"到上下文末尾 - 解决"丢失中间"问题
+- 2.  使用文件系统作为扩展记忆 - 支持长时间任务
+- 3.  保存中间结果 - 支持任务恢复
+-
+- @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
 
 ---
 
@@ -31,29 +31,29 @@ const
 class TaskTrackerFile extends EventEmitter
 ```
 
-* 任务追踪文件管理器
+- 任务追踪文件管理器
 
 ---
 
-## _getDefaultWorkspaceDir()
+## \_getDefaultWorkspaceDir()
 
 ```javascript
-_getDefaultWorkspaceDir()
+_getDefaultWorkspaceDir();
 ```
 
-* 获取默认工作空间目录
-   * @private
+- 获取默认工作空间目录
+  - @private
 
 ---
 
-## async _initWorkspace()
+## async \_initWorkspace()
 
 ```javascript
 async _initWorkspace()
 ```
 
-* 初始化工作空间
-   * @private
+- 初始化工作空间
+  - @private
 
 ---
 
@@ -63,12 +63,12 @@ async _initWorkspace()
 async createTask(plan)
 ```
 
-* 创建新任务
-   * @param {Object} plan - 任务计划
-   * @param {string} plan.objective - 任务目标
-   * @param {Array} plan.steps - 任务步骤
-   * @param {Object} plan.metadata - 元数据
-   * @returns {Object} 创建的任务
+- 创建新任务
+  - @param {Object} plan - 任务计划
+  - @param {string} plan.objective - 任务目标
+  - @param {Array} plan.steps - 任务步骤
+  - @param {Object} plan.metadata - 元数据
+  - @returns {Object} 创建的任务
 
 ---
 
@@ -78,7 +78,7 @@ async createTask(plan)
 async startTask()
 ```
 
-* 开始任务
+- 开始任务
 
 ---
 
@@ -88,10 +88,10 @@ async startTask()
 async updateProgress(stepIndex, status, result = null)
 ```
 
-* 更新任务进度
-   * @param {number} stepIndex - 步骤索引
-   * @param {string} status - 状态 (in_progress, completed, failed, skipped)
-   * @param {Object} result - 步骤结果
+- 更新任务进度
+  - @param {number} stepIndex - 步骤索引
+  - @param {string} status - 状态 (in_progress, completed, failed, skipped)
+  - @param {Object} result - 步骤结果
 
 ---
 
@@ -101,8 +101,8 @@ async updateProgress(stepIndex, status, result = null)
 async completeCurrentStep(result = null)
 ```
 
-* 完成当前步骤并进入下一步
-   * @param {Object} result - 步骤结果
+- 完成当前步骤并进入下一步
+  - @param {Object} result - 步骤结果
 
 ---
 
@@ -112,8 +112,8 @@ async completeCurrentStep(result = null)
 async completeTask(result = null)
 ```
 
-* 完成任务
-   * @param {Object} result - 任务结果
+- 完成任务
+  - @param {Object} result - 任务结果
 
 ---
 
@@ -123,8 +123,8 @@ async completeTask(result = null)
 async cancelTask(reason = "用户取消")
 ```
 
-* 取消任务
-   * @param {string} reason - 取消原因
+- 取消任务
+  - @param {string} reason - 取消原因
 
 ---
 
@@ -134,9 +134,9 @@ async cancelTask(reason = "用户取消")
 async recordStepError(stepIndex, error)
 ```
 
-* 记录步骤错误
-   * @param {number} stepIndex - 步骤索引
-   * @param {Error} error - 错误对象
+- 记录步骤错误
+  - @param {number} stepIndex - 步骤索引
+  - @param {Error} error - 错误对象
 
 ---
 
@@ -146,31 +146,31 @@ async recordStepError(stepIndex, error)
 async updateTodoFile(status = "in_progress")
 ```
 
-* 更新 todo.md 文件
-   * Manus 策略：每次迭代更新，将目标"重述"到上下文末尾
-   * @param {string} status - 当前状态
+- 更新 todo.md 文件
+  - Manus 策略：每次迭代更新，将目标"重述"到上下文末尾
+  - @param {string} status - 当前状态
 
 ---
 
-## _generateTodoContent(status)
+## \_generateTodoContent(status)
 
 ```javascript
-_generateTodoContent(status)
+_generateTodoContent(status);
 ```
 
-* 生成 todo.md 内容
-   * @private
+- 生成 todo.md 内容
+  - @private
 
 ---
 
-## _formatDuration(ms)
+## \_formatDuration(ms)
 
 ```javascript
-_formatDuration(ms)
+_formatDuration(ms);
 ```
 
-* 格式化持续时间
-   * @private
+- 格式化持续时间
+  - @private
 
 ---
 
@@ -180,19 +180,19 @@ _formatDuration(ms)
 async getTodoContext()
 ```
 
-* 读取 todo.md 内容，用于注入到 prompt 末尾
-   * @returns {Promise<string|null>}
+- 读取 todo.md 内容，用于注入到 prompt 末尾
+  - @returns {Promise<string|null>}
 
 ---
 
 ## getTaskContextForPrompt()
 
 ```javascript
-getTaskContextForPrompt()
+getTaskContextForPrompt();
 ```
 
-* 获取当前任务的上下文摘要（用于 prompt）
-   * @returns {Object|null}
+- 获取当前任务的上下文摘要（用于 prompt）
+  - @returns {Object|null}
 
 ---
 
@@ -202,9 +202,9 @@ getTaskContextForPrompt()
 async saveIntermediateResult(stepIndex, result)
 ```
 
-* 保存中间结果到文件（可恢复）
-   * @param {number} stepIndex - 步骤索引
-   * @param {Object} result - 结果数据
+- 保存中间结果到文件（可恢复）
+  - @param {number} stepIndex - 步骤索引
+  - @param {Object} result - 结果数据
 
 ---
 
@@ -214,20 +214,20 @@ async saveIntermediateResult(stepIndex, result)
 async loadIntermediateResult(stepIndex)
 ```
 
-* 加载中间结果
-   * @param {number} stepIndex - 步骤索引
-   * @returns {Promise<Object|null>}
+- 加载中间结果
+  - @param {number} stepIndex - 步骤索引
+  - @returns {Promise<Object|null>}
 
 ---
 
-## async _saveTaskData()
+## async \_saveTaskData()
 
 ```javascript
 async _saveTaskData()
 ```
 
-* 保存任务数据
-   * @private
+- 保存任务数据
+  - @private
 
 ---
 
@@ -237,30 +237,30 @@ async _saveTaskData()
 async loadUnfinishedTask()
 ```
 
-* 加载未完成的任务（用于恢复）
-   * @returns {Promise<Object|null>}
+- 加载未完成的任务（用于恢复）
+  - @returns {Promise<Object|null>}
 
 ---
 
-## async _archiveTask()
+## async \_archiveTask()
 
 ```javascript
 async _archiveTask()
 ```
 
-* 归档已完成的任务
-   * @private
+- 归档已完成的任务
+  - @private
 
 ---
 
-## async _cleanupHistory()
+## async \_cleanupHistory()
 
 ```javascript
 async _cleanupHistory()
 ```
 
-* 清理旧历史
-   * @private
+- 清理旧历史
+  - @private
 
 ---
 
@@ -270,85 +270,85 @@ async _cleanupHistory()
 async getTaskHistory(limit = 10)
 ```
 
-* 获取任务历史
-   * @param {number} limit - 限制数量
-   * @returns {Promise<Array>}
+- 获取任务历史
+  - @param {number} limit - 限制数量
+  - @returns {Promise<Array>}
 
 ---
 
-## _startAutoSave()
+## \_startAutoSave()
 
 ```javascript
-_startAutoSave()
+_startAutoSave();
 ```
 
-* 启动自动保存
-   * @private
+- 启动自动保存
+  - @private
 
 ---
 
-## _stopAutoSave()
+## \_stopAutoSave()
 
 ```javascript
-_stopAutoSave()
+_stopAutoSave();
 ```
 
-* 停止自动保存
-   * @private
+- 停止自动保存
+  - @private
 
 ---
 
-## async _cleanupTodoFile()
+## async \_cleanupTodoFile()
 
 ```javascript
 async _cleanupTodoFile()
 ```
 
-* 清理 todo.md 文件
-   * @private
+- 清理 todo.md 文件
+  - @private
 
 ---
 
 ## getCurrentTask()
 
 ```javascript
-getCurrentTask()
+getCurrentTask();
 ```
 
-* 获取当前任务
-   * @returns {Object|null}
+- 获取当前任务
+  - @returns {Object|null}
 
 ---
 
 ## hasActiveTask()
 
 ```javascript
-hasActiveTask()
+hasActiveTask();
 ```
 
-* 检查是否有活动任务
-   * @returns {boolean}
+- 检查是否有活动任务
+  - @returns {boolean}
 
 ---
 
 ## getWorkspaceDir()
 
 ```javascript
-getWorkspaceDir()
+getWorkspaceDir();
 ```
 
-* 获取工作空间目录
-   * @returns {string}
+- 获取工作空间目录
+  - @returns {string}
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 销毁实例
+- 销毁实例
 
 ---
 
@@ -358,9 +358,9 @@ destroy()
 function getTaskTrackerFile(options =
 ```
 
-* 获取 TaskTrackerFile 单例
- * @param {Object} options - 配置选项
- * @returns {TaskTrackerFile}
+- 获取 TaskTrackerFile 单例
+- @param {Object} options - 配置选项
+- @returns {TaskTrackerFile}
 
 ---
 
@@ -370,9 +370,8 @@ function getTaskTrackerFile(options =
 function createTaskTrackerFile(options =
 ```
 
-* 创建新的 TaskTrackerFile 实例（非单例）
- * @param {Object} options - 配置选项
- * @returns {TaskTrackerFile}
+- 创建新的 TaskTrackerFile 实例（非单例）
+- @param {Object} options - 配置选项
+- @returns {TaskTrackerFile}
 
 ---
-

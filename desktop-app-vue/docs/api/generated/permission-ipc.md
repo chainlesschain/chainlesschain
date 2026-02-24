@@ -12,31 +12,31 @@
 const
 ```
 
-* Permission Management IPC Handlers
- *
- * Provides IPC endpoints for managing permissions in the enterprise version.
- *
- * Endpoints:
- * - permission:check - Check if user has specific permission
- * - permission:get-effective - Get all effective permissions for user
- * - permission:update-resource - Update permissions for a resource
- * - permission:create-override - Create permission override for user
- * - permission:delete-override - Delete permission override
- * - permission:get-audit-log - Get permission audit log
- * - permission:create-template - Create permission template
- * - permission:apply-template - Apply permission template
- * - permission:create-group - Create permission group
- * - permission:assign-group - Assign permission group to role
+- Permission Management IPC Handlers
+-
+- Provides IPC endpoints for managing permissions in the enterprise version.
+-
+- Endpoints:
+- - permission:check - Check if user has specific permission
+- - permission:get-effective - Get all effective permissions for user
+- - permission:update-resource - Update permissions for a resource
+- - permission:create-override - Create permission override for user
+- - permission:delete-override - Delete permission override
+- - permission:get-audit-log - Get permission audit log
+- - permission:create-template - Create permission template
+- - permission:apply-template - Apply permission template
+- - permission:create-group - Create permission group
+- - permission:assign-group - Assign permission group to role
 
 ---
 
 ## convertToResourcePermissions(permissions)
 
 ```javascript
-convertToResourcePermissions(permissions)
+convertToResourcePermissions(permissions);
 ```
 
-* Convert permission array to resource permissions object
+- Convert permission array to resource permissions object
 
 ---
 
@@ -46,17 +46,16 @@ convertToResourcePermissions(permissions)
 async logActivity(orgId, userDID, action, targetType, targetId, details)
 ```
 
-* Log activity
+- Log activity
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* Clean up
+- Clean up
 
 ---
-

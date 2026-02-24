@@ -12,13 +12,13 @@
 const
 ```
 
-* PC Status Handler - PC状态监控处理器
- *
- * 功能：
- * - 提供PC端系统信息
- * - 实时监控CPU、内存、磁盘使用情况
- * - 监控AI服务状态
- * - 监控数据库状态
+- PC Status Handler - PC状态监控处理器
+-
+- 功能：
+- - 提供PC端系统信息
+- - 实时监控CPU、内存、磁盘使用情况
+- - 监控AI服务状态
+- - 监控数据库状态
 
 ---
 
@@ -28,7 +28,7 @@ const
 async handleMessage(mobilePeerId, message)
 ```
 
-* 统一消息处理入口
+- 统一消息处理入口
 
 ---
 
@@ -38,7 +38,7 @@ async handleMessage(mobilePeerId, message)
 async handleGetSystemInfo(mobilePeerId, message)
 ```
 
-* 处理获取系统信息请求
+- 处理获取系统信息请求
 
 ---
 
@@ -48,7 +48,7 @@ async handleGetSystemInfo(mobilePeerId, message)
 async handleGetServices(mobilePeerId, message)
 ```
 
-* 处理获取服务状态请求
+- 处理获取服务状态请求
 
 ---
 
@@ -58,7 +58,7 @@ async handleGetServices(mobilePeerId, message)
 async handleGetRealtime(mobilePeerId, message)
 ```
 
-* 处理获取实时状态请求
+- 处理获取实时状态请求
 
 ---
 
@@ -68,7 +68,7 @@ async handleGetRealtime(mobilePeerId, message)
 async handleSubscribe(mobilePeerId, message)
 ```
 
-* 处理订阅状态更新请求
+- 处理订阅状态更新请求
 
 ---
 
@@ -78,7 +78,7 @@ async handleSubscribe(mobilePeerId, message)
 async getSystemInfo()
 ```
 
-* 获取系统信息
+- 获取系统信息
 
 ---
 
@@ -88,7 +88,7 @@ async getSystemInfo()
 async getServicesStatus()
 ```
 
-* 获取服务状态
+- 获取服务状态
 
 ---
 
@@ -98,60 +98,60 @@ async getServicesStatus()
 async getRealtimeStatus()
 ```
 
-* 获取实时状态
+- 获取实时状态
 
 ---
 
 ## startStatusUpdates()
 
 ```javascript
-startStatusUpdates()
+startStatusUpdates();
 ```
 
-* 启动定期状态更新
+- 启动定期状态更新
 
 ---
 
 ## stopStatusUpdates()
 
 ```javascript
-stopStatusUpdates()
+stopStatusUpdates();
 ```
 
-* 停止状态更新
+- 停止状态更新
 
 ---
 
 ## startSubscription(mobilePeerId, interval)
 
 ```javascript
-startSubscription(mobilePeerId, interval)
+startSubscription(mobilePeerId, interval);
 ```
 
-* 启动指定设备的订阅推送
-   * @param {string} mobilePeerId
-   * @param {number} interval
+- 启动指定设备的订阅推送
+  - @param {string} mobilePeerId
+  - @param {number} interval
 
 ---
 
 ## stopSubscription(mobilePeerId)
 
 ```javascript
-stopSubscription(mobilePeerId)
+stopSubscription(mobilePeerId);
 ```
 
-* 停止指定设备的订阅
-   * @param {string} mobilePeerId
+- 停止指定设备的订阅
+  - @param {string} mobilePeerId
 
 ---
 
 ## clearAllSubscriptions()
 
 ```javascript
-clearAllSubscriptions()
+clearAllSubscriptions();
 ```
 
-* 清理所有订阅
+- 清理所有订阅
 
 ---
 
@@ -161,7 +161,7 @@ clearAllSubscriptions()
 async sendToMobile(mobilePeerId, message)
 ```
 
-* 发送消息到移动端
+- 发送消息到移动端
 
 ---
 
@@ -171,17 +171,16 @@ async sendToMobile(mobilePeerId, message)
 async sendError(mobilePeerId, requestId, errorMessage)
 ```
 
-* 发送错误响应
+- 发送错误响应
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

@@ -12,8 +12,7 @@
 process.env.USE_REAL_TOOLS = "true";
 ```
 
-* Phase 4 真实功能测试
- * 测试日常工具的真实实现
+- Phase 4 真实功能测试
+- 测试日常工具的真实实现
 
 ---
-

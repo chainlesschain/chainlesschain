@@ -12,41 +12,40 @@
 const
 ```
 
-* 区块链集成 IPC 处理器
- *
- * 提供前端调用区块链集成功能的接口
+- 区块链集成 IPC 处理器
+-
+- 提供前端调用区块链集成功能的接口
 
 ---
 
 ## registerHandlers()
 
 ```javascript
-registerHandlers()
+registerHandlers();
 ```
 
-* 注册所有IPC处理器
+- 注册所有IPC处理器
 
 ---
 
 ## sendToRenderer(channel, data)
 
 ```javascript
-sendToRenderer(channel, data)
+sendToRenderer(channel, data);
 ```
 
-* 发送事件到渲染进程
-   * @param {string} channel - 频道名称
-   * @param {any} data - 数据
+- 发送事件到渲染进程
+  - @param {string} channel - 频道名称
+  - @param {any} data - 数据
 
 ---
 
 ## removeHandlers()
 
 ```javascript
-removeHandlers()
+removeHandlers();
 ```
 
-* 移除所有处理器
+- 移除所有处理器
 
 ---
-

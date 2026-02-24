@@ -12,8 +12,8 @@
 const
 ```
 
-* 文件监视器
- * 监视文件系统变化
+- 文件监视器
+- 监视文件系统变化
 
 ---
 
@@ -23,37 +23,37 @@ const
 watch(targetPath, options =
 ```
 
-* 监视文件或目录
+- 监视文件或目录
 
 ---
 
 ## unwatch(targetPath)
 
 ```javascript
-unwatch(targetPath)
+unwatch(targetPath);
 ```
 
-* 停止监视
+- 停止监视
 
 ---
 
 ## unwatchAll()
 
 ```javascript
-unwatchAll()
+unwatchAll();
 ```
 
-* 停止所有监视
+- 停止所有监视
 
 ---
 
 ## handleChange(targetPath, eventType, filename)
 
 ```javascript
-handleChange(targetPath, eventType, filename)
+handleChange(targetPath, eventType, filename);
 ```
 
-* 处理文件变化
+- 处理文件变化
 
 ---
 
@@ -63,47 +63,46 @@ handleChange(targetPath, eventType, filename)
 async processChange(targetPath, eventType, fullPath)
 ```
 
-* 处理变化
+- 处理变化
 
 ---
 
 ## getWatchList()
 
 ```javascript
-getWatchList()
+getWatchList();
 ```
 
-* 获取监视列表
+- 获取监视列表
 
 ---
 
 ## isWatching(targetPath)
 
 ```javascript
-isWatching(targetPath)
+isWatching(targetPath);
 ```
 
-* 检查是否正在监视
+- 检查是否正在监视
 
 ---
 
 ## getWatchCount()
 
 ```javascript
-getWatchCount()
+getWatchCount();
 ```
 
-* 获取监视数量
+- 获取监视数量
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 销毁监视器
+- 销毁监视器
 
 ---
-

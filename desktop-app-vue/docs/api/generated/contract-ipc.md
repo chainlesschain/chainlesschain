@@ -12,8 +12,8 @@
 const
 ```
 
-* 智能合约 IPC 处理器
- * 负责注册所有与智能合约相关的 IPC 通信处理器
+- 智能合约 IPC 处理器
+- 负责注册所有与智能合约相关的 IPC 通信处理器
 
 ---
 
@@ -23,9 +23,8 @@ const
 function registerContractIPC(
 ```
 
-* 注册智能合约相关的 IPC 处理器
- * @param {Object} dependencies - 依赖对象
- * @param {Object} dependencies.contractEngine - 智能合约引擎实例
+- 注册智能合约相关的 IPC 处理器
+- @param {Object} dependencies - 依赖对象
+- @param {Object} dependencies.contractEngine - 智能合约引擎实例
 
 ---
-

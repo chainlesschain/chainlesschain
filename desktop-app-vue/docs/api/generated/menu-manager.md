@@ -12,18 +12,18 @@
 const
 ```
 
-* 应用菜单管理器
- * 创建和管理Electron应用菜单
+- 应用菜单管理器
+- 创建和管理Electron应用菜单
 
 ---
 
 ## createMenu()
 
 ```javascript
-createMenu()
+createMenu();
 ```
 
-* 创建应用菜单
+- 创建应用菜单
 
 ---
 
@@ -33,7 +33,7 @@ createMenu()
 async openControlPanel()
 ```
 
-* 打开控制面板
+- 打开控制面板
 
 ---
 
@@ -43,7 +43,7 @@ async openControlPanel()
 async openControlPanelTab(tab)
 ```
 
-* 打开控制面板特定标签页
+- 打开控制面板特定标签页
 
 ---
 
@@ -53,7 +53,7 @@ async openControlPanelTab(tab)
 async checkControlPanelRunning()
 ```
 
-* 检查控制面板API是否运行
+- 检查控制面板API是否运行
 
 ---
 
@@ -63,7 +63,7 @@ async checkControlPanelRunning()
 async startControlPanelAPI()
 ```
 
-* 启动控制面板API服务
+- 启动控制面板API服务
 
 ---
 
@@ -73,77 +73,76 @@ async startControlPanelAPI()
 async waitForService(ms)
 ```
 
-* 等待服务启动
+- 等待服务启动
 
 ---
 
 ## openControlPanelGuide()
 
 ```javascript
-openControlPanelGuide()
+openControlPanelGuide();
 ```
 
-* 打开控制面板使用指南
+- 打开控制面板使用指南
 
 ---
 
 ## checkForUpdates()
 
 ```javascript
-checkForUpdates()
+checkForUpdates();
 ```
 
-* 检查更新
+- 检查更新
 
 ---
 
 ## showAbout()
 
 ```javascript
-showAbout()
+showAbout();
 ```
 
-* 显示关于对话框
+- 显示关于对话框
 
 ---
 
 ## showError(title, message)
 
 ```javascript
-showError(title, message)
+showError(title, message);
 ```
 
-* 显示错误对话框
+- 显示错误对话框
 
 ---
 
 ## sendToRenderer(channel, ...args)
 
 ```javascript
-sendToRenderer(channel, ...args)
+sendToRenderer(channel, ...args);
 ```
 
-* 发送消息到渲染进程
+- 发送消息到渲染进程
 
 ---
 
 ## stopControlPanelAPI()
 
 ```javascript
-stopControlPanelAPI()
+stopControlPanelAPI();
 ```
 
-* 停止控制面板API服务
+- 停止控制面板API服务
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

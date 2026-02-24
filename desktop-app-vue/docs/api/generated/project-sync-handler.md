@@ -12,14 +12,14 @@
 const
 ```
 
-* Project Sync Handler - 项目文件同步处理器
- *
- * 功能：
- * - 处理移动端项目查询请求
- * - 同步项目列表
- * - 同步项目文件树
- * - 同步文件内容
- * - 搜索项目文件
+- Project Sync Handler - 项目文件同步处理器
+-
+- 功能：
+- - 处理移动端项目查询请求
+- - 同步项目列表
+- - 同步项目文件树
+- - 同步文件内容
+- - 搜索项目文件
 
 ---
 
@@ -29,7 +29,7 @@ const
 async handleMessage(mobilePeerId, message)
 ```
 
-* 统一消息处理入口
+- 统一消息处理入口
 
 ---
 
@@ -39,7 +39,7 @@ async handleMessage(mobilePeerId, message)
 async handleListProjects(mobilePeerId, message)
 ```
 
-* 处理获取项目列表请求
+- 处理获取项目列表请求
 
 ---
 
@@ -49,7 +49,7 @@ async handleListProjects(mobilePeerId, message)
 async handleGetProject(mobilePeerId, message)
 ```
 
-* 处理获取项目详情请求
+- 处理获取项目详情请求
 
 ---
 
@@ -59,7 +59,7 @@ async handleGetProject(mobilePeerId, message)
 async handleGetFileTree(mobilePeerId, message)
 ```
 
-* 处理获取文件树请求
+- 处理获取文件树请求
 
 ---
 
@@ -69,7 +69,7 @@ async handleGetFileTree(mobilePeerId, message)
 async handleGetFile(mobilePeerId, message)
 ```
 
-* 处理获取文件内容请求
+- 处理获取文件内容请求
 
 ---
 
@@ -79,7 +79,7 @@ async handleGetFile(mobilePeerId, message)
 async handleSearchFiles(mobilePeerId, message)
 ```
 
-* 处理搜索文件请求
+- 处理搜索文件请求
 
 ---
 
@@ -89,7 +89,7 @@ async handleSearchFiles(mobilePeerId, message)
 async countProjectFiles(projectPath)
 ```
 
-* 统计项目文件数
+- 统计项目文件数
 
 ---
 
@@ -99,7 +99,7 @@ async countProjectFiles(projectPath)
 async getProjectStats(projectPath)
 ```
 
-* 获取项目统计信息
+- 获取项目统计信息
 
 ---
 
@@ -109,7 +109,7 @@ async getProjectStats(projectPath)
 async buildFileTree(rootPath, maxDepth, currentDepth = 0)
 ```
 
-* 构建文件树
+- 构建文件树
 
 ---
 
@@ -119,7 +119,7 @@ async buildFileTree(rootPath, maxDepth, currentDepth = 0)
 async searchFiles(rootPath, query, fileTypes = [])
 ```
 
-* 搜索文件
+- 搜索文件
 
 ---
 
@@ -129,7 +129,7 @@ async searchFiles(rootPath, query, fileTypes = [])
 async sendToMobile(mobilePeerId, message)
 ```
 
-* 发送消息到移动端
+- 发送消息到移动端
 
 ---
 
@@ -139,17 +139,16 @@ async sendToMobile(mobilePeerId, message)
 async sendError(mobilePeerId, requestId, errorMessage)
 ```
 
-* 发送错误响应
+- 发送错误响应
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
-

@@ -12,8 +12,8 @@
 class PreviewManager extends EventEmitter
 ```
 
-* 预览管理器
- * 负责项目预览功能（静态服务器、开发服务器、文件管理器）
+- 预览管理器
+- 负责项目预览功能（静态服务器、开发服务器、文件管理器）
 
 ---
 
@@ -23,11 +23,11 @@ class PreviewManager extends EventEmitter
 async startStaticServer(projectId, rootPath, options =
 ```
 
-* 启动静态文件服务器
-   * @param {string} projectId - 项目ID
-   * @param {string} rootPath - 项目根路径
-   * @param {Object} options - 选项
-   * @returns {Object} { url, port }
+- 启动静态文件服务器
+  - @param {string} projectId - 项目ID
+  - @param {string} rootPath - 项目根路径
+  - @param {Object} options - 选项
+  - @returns {Object} { url, port }
 
 ---
 
@@ -37,8 +37,8 @@ async startStaticServer(projectId, rootPath, options =
 async stopStaticServer(projectId)
 ```
 
-* 停止静态文件服务器
-   * @param {string} projectId - 项目ID
+- 停止静态文件服务器
+  - @param {string} projectId - 项目ID
 
 ---
 
@@ -48,11 +48,11 @@ async stopStaticServer(projectId)
 async startDevServer(projectId, rootPath, command = "npm run dev")
 ```
 
-* 启动开发服务器（npm run dev）
-   * @param {string} projectId - 项目ID
-   * @param {string} rootPath - 项目根路径
-   * @param {string} command - 启动命令（默认 'npm run dev'）
-   * @returns {Object} { url, port, process }
+- 启动开发服务器（npm run dev）
+  - @param {string} projectId - 项目ID
+  - @param {string} rootPath - 项目根路径
+  - @param {string} command - 启动命令（默认 'npm run dev'）
+  - @returns {Object} { url, port, process }
 
 ---
 
@@ -62,8 +62,8 @@ async startDevServer(projectId, rootPath, command = "npm run dev")
 async stopDevServer(projectId)
 ```
 
-* 停止开发服务器
-   * @param {string} projectId - 项目ID
+- 停止开发服务器
+  - @param {string} projectId - 项目ID
 
 ---
 
@@ -73,8 +73,8 @@ async stopDevServer(projectId)
 async openInExplorer(rootPath)
 ```
 
-* 在文件管理器中打开项目
-   * @param {string} rootPath - 项目根路径
+- 在文件管理器中打开项目
+  - @param {string} rootPath - 项目根路径
 
 ---
 
@@ -84,20 +84,20 @@ async openInExplorer(rootPath)
 async openInBrowser(url)
 ```
 
-* 在外部浏览器中打开URL
-   * @param {string} url - URL地址
+- 在外部浏览器中打开URL
+  - @param {string} url - URL地址
 
 ---
 
 ## getServerInfo(projectId)
 
 ```javascript
-getServerInfo(projectId)
+getServerInfo(projectId);
 ```
 
-* 获取运行中的服务器信息
-   * @param {string} projectId - 项目ID
-   * @returns {Object|null} 服务器信息
+- 获取运行中的服务器信息
+  - @param {string} projectId - 项目ID
+  - @returns {Object|null} 服务器信息
 
 ---
 
@@ -107,7 +107,6 @@ getServerInfo(projectId)
 async stopAll()
 ```
 
-* 停止所有服务器
+- 停止所有服务器
 
 ---
-

@@ -12,28 +12,28 @@
 const
 ```
 
-* Organization Knowledge Sync Manager
- *
- * Manages knowledge base synchronization across organization members using P2P network.
- * Integrates with Yjs CRDT for real-time collaboration and conflict-free merging.
- *
- * Features:
- * - P2P knowledge base synchronization
- * - Folder-based permissions
- * - Real-time knowledge updates
- * - Conflict resolution
- * - Activity tracking
- * - Offline support with sync queue
+- Organization Knowledge Sync Manager
+-
+- Manages knowledge base synchronization across organization members using P2P network.
+- Integrates with Yjs CRDT for real-time collaboration and conflict-free merging.
+-
+- Features:
+- - P2P knowledge base synchronization
+- - Folder-based permissions
+- - Real-time knowledge updates
+- - Conflict resolution
+- - Activity tracking
+- - Offline support with sync queue
 
 ---
 
-## _initializeMessageHandlers()
+## \_initializeMessageHandlers()
 
 ```javascript
-_initializeMessageHandlers()
+_initializeMessageHandlers();
 ```
 
-* Initialize message handlers for knowledge sync
+- Initialize message handlers for knowledge sync
 
 ---
 
@@ -43,7 +43,7 @@ _initializeMessageHandlers()
 async initialize(orgId)
 ```
 
-* Initialize knowledge sync for an organization
+- Initialize knowledge sync for an organization
 
 ---
 
@@ -53,7 +53,7 @@ async initialize(orgId)
 async createFolder(orgId, folderData)
 ```
 
-* Create a shared folder in the organization
+- Create a shared folder in the organization
 
 ---
 
@@ -63,7 +63,7 @@ async createFolder(orgId, folderData)
 async shareKnowledge(orgId, knowledgeId, options =
 ```
 
-* Share a knowledge item with the organization
+- Share a knowledge item with the organization
 
 ---
 
@@ -73,7 +73,7 @@ async shareKnowledge(orgId, knowledgeId, options =
 async updateKnowledge(orgId, knowledgeId, updates)
 ```
 
-* Update shared knowledge
+- Update shared knowledge
 
 ---
 
@@ -83,7 +83,7 @@ async updateKnowledge(orgId, knowledgeId, updates)
 async deleteKnowledge(orgId, knowledgeId)
 ```
 
-* Delete shared knowledge
+- Delete shared knowledge
 
 ---
 
@@ -93,7 +93,7 @@ async deleteKnowledge(orgId, knowledgeId)
 async getOrganizationKnowledge(orgId, options =
 ```
 
-* Get all shared knowledge in organization
+- Get all shared knowledge in organization
 
 ---
 
@@ -103,7 +103,7 @@ async getOrganizationKnowledge(orgId, options =
 async getOrganizationFolders(orgId, parentFolderId = null)
 ```
 
-* Get organization folders
+- Get organization folders
 
 ---
 
@@ -113,137 +113,136 @@ async getOrganizationFolders(orgId, parentFolderId = null)
 async getActivityLog(orgId, options =
 ```
 
-* Get knowledge activity log
+- Get knowledge activity log
 
 ---
 
-## async _handleKnowledgeCreate(orgId, payload, from)
+## async \_handleKnowledgeCreate(orgId, payload, from)
 
 ```javascript
 async _handleKnowledgeCreate(orgId, payload, from)
 ```
 
-* Handle incoming knowledge create message
+- Handle incoming knowledge create message
 
 ---
 
-## async _handleKnowledgeUpdate(orgId, payload, from)
+## async \_handleKnowledgeUpdate(orgId, payload, from)
 
 ```javascript
 async _handleKnowledgeUpdate(orgId, payload, from)
 ```
 
-* Handle incoming knowledge update message
+- Handle incoming knowledge update message
 
 ---
 
-## async _handleKnowledgeDelete(orgId, payload, from)
+## async \_handleKnowledgeDelete(orgId, payload, from)
 
 ```javascript
 async _handleKnowledgeDelete(orgId, payload, from)
 ```
 
-* Handle incoming knowledge delete message
+- Handle incoming knowledge delete message
 
 ---
 
-## async _handleFolderCreate(orgId, payload, from)
+## async \_handleFolderCreate(orgId, payload, from)
 
 ```javascript
 async _handleFolderCreate(orgId, payload, from)
 ```
 
-* Handle incoming folder create message
+- Handle incoming folder create message
 
 ---
 
-## async _handleYjsUpdate(orgId, payload, from)
+## async \_handleYjsUpdate(orgId, payload, from)
 
 ```javascript
 async _handleYjsUpdate(orgId, payload, from)
 ```
 
-* Handle Yjs update message
+- Handle Yjs update message
 
 ---
 
-## async _handleYjsAwareness(orgId, payload, from)
+## async \_handleYjsAwareness(orgId, payload, from)
 
 ```javascript
 async _handleYjsAwareness(orgId, payload, from)
 ```
 
-* Handle Yjs awareness message
+- Handle Yjs awareness message
 
 ---
 
-## async _requestInitialSync(orgId)
+## async \_requestInitialSync(orgId)
 
 ```javascript
 async _requestInitialSync(orgId)
 ```
 
-* Request initial sync from peers
+- Request initial sync from peers
 
 ---
 
-## async _handleSyncRequest(orgId, payload, from)
+## async \_handleSyncRequest(orgId, payload, from)
 
 ```javascript
 async _handleSyncRequest(orgId, payload, from)
 ```
 
-* Handle sync request from peer
+- Handle sync request from peer
 
 ---
 
-## async _checkPermission(orgId, knowledgeId, action)
+## async \_checkPermission(orgId, knowledgeId, action)
 
 ```javascript
 async _checkPermission(orgId, knowledgeId, action)
 ```
 
-* Check if user has permission for an action
+- Check if user has permission for an action
 
 ---
 
-## async _logActivity(orgId, knowledgeId, activityType, metadata =
+## async \_logActivity(orgId, knowledgeId, activityType, metadata =
 
 ```javascript
 async _logActivity(orgId, knowledgeId, activityType, metadata =
 ```
 
-* Log activity
+- Log activity
 
 ---
 
-## async _getUserDID()
+## async \_getUserDID()
 
 ```javascript
 async _getUserDID()
 ```
 
-* Get current user's DID
+- Get current user's DID
 
 ---
 
-## async _getUserName()
+## async \_getUserName()
 
 ```javascript
 async _getUserName()
 ```
 
-* Get current user's name
+- Get current user's name
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* Clean up resources
+- Clean up resources
 
 ---
-

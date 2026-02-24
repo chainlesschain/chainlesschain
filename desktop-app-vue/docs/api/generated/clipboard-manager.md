@@ -12,17 +12,17 @@
 const
 ```
 
-* ClipboardManager - 剪贴板管理器
- *
- * 高级剪贴板操作：
- * - 文本/图片/HTML 复制粘贴
- * - 剪贴板历史记录
- * - 跨标签页剪贴板同步
- * - 敏感内容过滤
- *
- * @module browser/actions/clipboard-manager
- * @author ChainlessChain Team
- * @since v0.33.0
+- ClipboardManager - 剪贴板管理器
+-
+- 高级剪贴板操作：
+- - 文本/图片/HTML 复制粘贴
+- - 剪贴板历史记录
+- - 跨标签页剪贴板同步
+- - 敏感内容过滤
+-
+- @module browser/actions/clipboard-manager
+- @author ChainlessChain Team
+- @since v0.33.0
 
 ---
 
@@ -32,7 +32,7 @@ const
 const ClipboardType =
 ```
 
-* 剪贴板内容类型
+- 剪贴板内容类型
 
 ---
 
@@ -42,7 +42,7 @@ const ClipboardType =
 const SENSITIVE_PATTERNS = [
 ```
 
-* 敏感内容模式
+- 敏感内容模式
 
 ---
 
@@ -52,20 +52,20 @@ const SENSITIVE_PATTERNS = [
 constructor(browserEngine = null, config =
 ```
 
-* @param {Object} browserEngine - Browser engine instance
-   * @param {Object} config - Configuration options
-   * @param {Object} [dependencies] - Optional dependency injection for testing
+- @param {Object} browserEngine - Browser engine instance
+  - @param {Object} config - Configuration options
+  - @param {Object} [dependencies] - Optional dependency injection for testing
 
 ---
 
 ## setBrowserEngine(browserEngine)
 
 ```javascript
-setBrowserEngine(browserEngine)
+setBrowserEngine(browserEngine);
 ```
 
-* 设置浏览器引擎
-   * @param {Object} browserEngine
+- 设置浏览器引擎
+  - @param {Object} browserEngine
 
 ---
 
@@ -75,35 +75,35 @@ setBrowserEngine(browserEngine)
 copyText(text, options =
 ```
 
-* 复制文本到剪贴板
-   * @param {string} text - 文本内容
-   * @param {Object} options - 选项
-   * @returns {Object}
+- 复制文本到剪贴板
+  - @param {string} text - 文本内容
+  - @param {Object} options - 选项
+  - @returns {Object}
 
 ---
 
 ## copyHTML(html, fallbackText = "")
 
 ```javascript
-copyHTML(html, fallbackText = "")
+copyHTML(html, (fallbackText = ""));
 ```
 
-* 复制 HTML 到剪贴板
-   * @param {string} html - HTML 内容
-   * @param {string} fallbackText - 纯文本回退
-   * @returns {Object}
+- 复制 HTML 到剪贴板
+  - @param {string} html - HTML 内容
+  - @param {string} fallbackText - 纯文本回退
+  - @returns {Object}
 
 ---
 
 ## copyImage(imageData)
 
 ```javascript
-copyImage(imageData)
+copyImage(imageData);
 ```
 
-* 复制图片到剪贴板
-   * @param {string|Buffer} imageData - 图片数据（base64 或 Buffer）
-   * @returns {Object}
+- 复制图片到剪贴板
+  - @param {string|Buffer} imageData - 图片数据（base64 或 Buffer）
+  - @returns {Object}
 
 ---
 
@@ -113,23 +113,23 @@ copyImage(imageData)
 async copyFromElement(targetId, selector, options =
 ```
 
-* 从页面元素复制
-   * @param {string} targetId - 标签页 ID
-   * @param {string} selector - 元素选择器
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>}
+- 从页面元素复制
+  - @param {string} targetId - 标签页 ID
+  - @param {string} selector - 元素选择器
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>}
 
 ---
 
 ## read(type = null)
 
 ```javascript
-read(type = null)
+read((type = null));
 ```
 
-* 读取剪贴板内容
-   * @param {string} type - 内容类型
-   * @returns {Object}
+- 读取剪贴板内容
+  - @param {string} type - 内容类型
+  - @returns {Object}
 
 ---
 
@@ -139,11 +139,11 @@ read(type = null)
 async pasteToElement(targetId, selector, options =
 ```
 
-* 粘贴到页面元素
-   * @param {string} targetId - 标签页 ID
-   * @param {string} selector - 元素选择器
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>}
+- 粘贴到页面元素
+  - @param {string} targetId - 标签页 ID
+  - @param {string} selector - 元素选择器
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -153,161 +153,160 @@ async pasteToElement(targetId, selector, options =
 async simulatePaste(targetId)
 ```
 
-* 模拟键盘粘贴
-   * @param {string} targetId - 标签页 ID
-   * @returns {Promise<Object>}
+- 模拟键盘粘贴
+  - @param {string} targetId - 标签页 ID
+  - @returns {Promise<Object>}
 
 ---
 
 ## clear()
 
 ```javascript
-clear()
+clear();
 ```
 
-* 清空剪贴板
-   * @returns {Object}
+- 清空剪贴板
+  - @returns {Object}
 
 ---
 
 ## getFormats()
 
 ```javascript
-getFormats()
+getFormats();
 ```
 
-* 获取可用格式
-   * @returns {Array}
+- 获取可用格式
+  - @returns {Array}
 
 ---
 
 ## getHistory(limit = 20)
 
 ```javascript
-getHistory(limit = 20)
+getHistory((limit = 20));
 ```
 
-* 获取历史记录
-   * @param {number} limit - 返回数量
-   * @returns {Array}
+- 获取历史记录
+  - @param {number} limit - 返回数量
+  - @returns {Array}
 
 ---
 
 ## restoreFromHistory(index)
 
 ```javascript
-restoreFromHistory(index)
+restoreFromHistory(index);
 ```
 
-* 从历史记录恢复
-   * @param {number} index - 历史索引
-   * @returns {Object}
+- 从历史记录恢复
+  - @param {number} index - 历史索引
+  - @returns {Object}
 
 ---
 
 ## clearHistory()
 
 ```javascript
-clearHistory()
+clearHistory();
 ```
 
-* 清除历史
+- 清除历史
 
 ---
 
-## _checkSensitive(text)
+## \_checkSensitive(text)
 
 ```javascript
-_checkSensitive(text)
+_checkSensitive(text);
 ```
 
-* 检查敏感内容
-   * @private
+- 检查敏感内容
+  - @private
 
 ---
 
-## _stripHTML(html)
+## \_stripHTML(html)
 
 ```javascript
-_stripHTML(html)
+_stripHTML(html);
 ```
 
-* 去除 HTML 标签
-   * @private
+- 去除 HTML 标签
+  - @private
 
 ---
 
-## _recordHistory(entry)
+## \_recordHistory(entry)
 
 ```javascript
-_recordHistory(entry)
+_recordHistory(entry);
 ```
 
-* 记录历史
-   * @private
+- 记录历史
+  - @private
 
 ---
 
-## _updateStats(type, action)
+## \_updateStats(type, action)
 
 ```javascript
-_updateStats(type, action)
+_updateStats(type, action);
 ```
 
-* 更新统计
-   * @private
+- 更新统计
+  - @private
 
 ---
 
-## _startSync()
+## \_startSync()
 
 ```javascript
-_startSync()
+_startSync();
 ```
 
-* 启动同步
-   * @private
+- 启动同步
+  - @private
 
 ---
 
 ## stopSync()
 
 ```javascript
-stopSync()
+stopSync();
 ```
 
-* 停止同步
+- 停止同步
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计
-   * @returns {Object}
+- 获取统计
+  - @returns {Object}
 
 ---
 
 ## resetStats()
 
 ```javascript
-resetStats()
+resetStats();
 ```
 
-* 重置统计
+- 重置统计
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理
+- 清理
 
 ---
-

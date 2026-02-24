@@ -12,14 +12,14 @@
 const
 ```
 
-* 交易监控器
- *
- * 负责监控区块链交易状态，自动更新本地数据库
- * 功能：
- * - 提交交易并监控
- * - 等待交易确认
- * - 更新数据库状态
- * - 交易重试机制
+- 交易监控器
+-
+- 负责监控区块链交易状态，自动更新本地数据库
+- 功能：
+- - 提交交易并监控
+- - 等待交易确认
+- - 更新数据库状态
+- - 交易重试机制
 
 ---
 
@@ -29,7 +29,7 @@ const
 const TransactionStatus =
 ```
 
-* 交易状态
+- 交易状态
 
 ---
 
@@ -39,7 +39,7 @@ const TransactionStatus =
 async initialize()
 ```
 
-* 初始化监控器
+- 初始化监控器
 
 ---
 
@@ -49,7 +49,7 @@ async initialize()
 async initializeTables()
 ```
 
-* 初始化数据库表
+- 初始化数据库表
 
 ---
 
@@ -59,10 +59,10 @@ async initializeTables()
 async submitAndMonitor(txResponse, options =
 ```
 
-* 提交交易并监控状态
-   * @param {object} txResponse - ethers.js 交易响应
-   * @param {object} options - 选项 {onConfirmed, onFailed, txType, localRefId}
-   * @returns {Promise<string>} 交易哈希
+- 提交交易并监控状态
+  - @param {object} txResponse - ethers.js 交易响应
+  - @param {object} options - 选项 {onConfirmed, onFailed, txType, localRefId}
+  - @returns {Promise<string>} 交易哈希
 
 ---
 
@@ -72,10 +72,10 @@ async submitAndMonitor(txResponse, options =
 async monitorTx(txHash, onConfirmed, onFailed)
 ```
 
-* 监控交易确认
-   * @param {string} txHash - 交易哈希
-   * @param {function} onConfirmed - 确认回调
-   * @param {function} onFailed - 失败回调
+- 监控交易确认
+  - @param {string} txHash - 交易哈希
+  - @param {function} onConfirmed - 确认回调
+  - @param {function} onFailed - 失败回调
 
 ---
 
@@ -85,8 +85,8 @@ async monitorTx(txHash, onConfirmed, onFailed)
 async saveTx(txData)
 ```
 
-* 保存交易到数据库
-   * @param {object} txData - 交易数据
+- 保存交易到数据库
+  - @param {object} txData - 交易数据
 
 ---
 
@@ -96,30 +96,30 @@ async saveTx(txData)
 async updateTxStatus(txHash, status, receipt = null)
 ```
 
-* 更新交易状态
-   * @param {string} txHash - 交易哈希
-   * @param {string} status - 新状态
-   * @param {object|null} receipt - 交易收据
+- 更新交易状态
+  - @param {string} txHash - 交易哈希
+  - @param {string} status - 新状态
+  - @param {object|null} receipt - 交易收据
 
 ---
 
 ## startMonitoring()
 
 ```javascript
-startMonitoring()
+startMonitoring();
 ```
 
-* 启动监控定时器
+- 启动监控定时器
 
 ---
 
 ## stopMonitoring()
 
 ```javascript
-stopMonitoring()
+stopMonitoring();
 ```
 
-* 停止监控定时器
+- 停止监控定时器
 
 ---
 
@@ -129,7 +129,7 @@ stopMonitoring()
 async checkPendingTransactions()
 ```
 
-* 检查待处理交易
+- 检查待处理交易
 
 ---
 
@@ -139,7 +139,7 @@ async checkPendingTransactions()
 async recoverPendingTransactions()
 ```
 
-* 恢复未完成的交易监控
+- 恢复未完成的交易监控
 
 ---
 
@@ -149,9 +149,9 @@ async recoverPendingTransactions()
 async getTxHistory(filters =
 ```
 
-* 获取交易历史
-   * @param {object} filters - 过滤条件 {address, chainId, limit, offset}
-   * @returns {Promise<array>} 交易列表
+- 获取交易历史
+  - @param {object} filters - 过滤条件 {address, chainId, limit, offset}
+  - @returns {Promise<array>} 交易列表
 
 ---
 
@@ -161,9 +161,9 @@ async getTxHistory(filters =
 async getTxDetail(txHash)
 ```
 
-* 获取交易详情
-   * @param {string} txHash - 交易哈希
-   * @returns {Promise<object>} 交易详情
+- 获取交易详情
+  - @param {string} txHash - 交易哈希
+  - @returns {Promise<object>} 交易详情
 
 ---
 
@@ -173,7 +173,6 @@ async getTxDetail(txHash)
 async cleanup()
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

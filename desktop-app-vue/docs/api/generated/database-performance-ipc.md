@@ -12,9 +12,9 @@
 const
 ```
 
-* 数据库性能监控 IPC 接口
- *
- * 提供前端访问数据库性能统计和优化功能的接口
+- 数据库性能监控 IPC 接口
+-
+- 提供前端访问数据库性能统计和优化功能的接口
 
 ---
 
@@ -24,8 +24,8 @@ const
 function registerDatabasePerformanceIPC(optimizer)
 ```
 
-* 注册数据库性能监控 IPC 处理器
- * @param {DatabaseOptimizer} optimizer - 数据库优化器实例
+- 注册数据库性能监控 IPC 处理器
+- @param {DatabaseOptimizer} optimizer - 数据库优化器实例
 
 ---
 
@@ -35,7 +35,7 @@ function registerDatabasePerformanceIPC(optimizer)
 ipcMain.handle("db-performance:get-stats", async () =>
 ```
 
-* 获取性能统计
+- 获取性能统计
 
 ---
 
@@ -45,7 +45,7 @@ ipcMain.handle("db-performance:get-stats", async () =>
 ipcMain.handle("db-performance:reset-stats", async () =>
 ```
 
-* 重置统计信息
+- 重置统计信息
 
 ---
 
@@ -55,7 +55,7 @@ ipcMain.handle("db-performance:reset-stats", async () =>
 ipcMain.handle(
 ```
 
-* 获取慢查询日志
+- 获取慢查询日志
 
 ---
 
@@ -65,7 +65,7 @@ ipcMain.handle(
 ipcMain.handle("db-performance:get-index-suggestions", async () =>
 ```
 
-* 获取索引建议
+- 获取索引建议
 
 ---
 
@@ -75,7 +75,7 @@ ipcMain.handle("db-performance:get-index-suggestions", async () =>
 ipcMain.handle(
 ```
 
-* 应用索引建议
+- 应用索引建议
 
 ---
 
@@ -85,7 +85,7 @@ ipcMain.handle(
 ipcMain.handle("db-performance:apply-all-index-suggestions", async () =>
 ```
 
-* 应用所有索引建议
+- 应用所有索引建议
 
 ---
 
@@ -95,7 +95,7 @@ ipcMain.handle("db-performance:apply-all-index-suggestions", async () =>
 ipcMain.handle("db-performance:analyze-table", async (event, tableName) =>
 ```
 
-* 分析表性能
+- 分析表性能
 
 ---
 
@@ -105,7 +105,7 @@ ipcMain.handle("db-performance:analyze-table", async (event, tableName) =>
 ipcMain.handle("db-performance:optimize", async () =>
 ```
 
-* 优化数据库
+- 优化数据库
 
 ---
 
@@ -115,7 +115,7 @@ ipcMain.handle("db-performance:optimize", async () =>
 ipcMain.handle("db-performance:clear-cache", async () =>
 ```
 
-* 清空查询缓存
+- 清空查询缓存
 
 ---
 
@@ -125,7 +125,6 @@ ipcMain.handle("db-performance:clear-cache", async () =>
 ipcMain.handle("db-performance:invalidate-cache", async (event, pattern) =>
 ```
 
-* 使缓存失效（支持模式匹配）
+- 使缓存失效（支持模式匹配）
 
 ---
-

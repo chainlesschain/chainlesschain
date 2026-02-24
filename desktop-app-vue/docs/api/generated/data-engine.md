@@ -12,8 +12,8 @@
 const
 ```
 
-* 数据处理引擎
- * 负责Excel/CSV数据读写、数据分析和可视化
+- 数据处理引擎
+- 负责Excel/CSV数据读写、数据分析和可视化
 
 ---
 
@@ -23,9 +23,9 @@ const
 async readCSV(filePath)
 ```
 
-* 读取CSV数据
-   * @param {string} filePath - CSV文件路径
-   * @returns {Promise<Object>} 数据对象
+- 读取CSV数据
+  - @param {string} filePath - CSV文件路径
+  - @returns {Promise<Object>} 数据对象
 
 ---
 
@@ -35,9 +35,9 @@ async readCSV(filePath)
 async readExcel(filePath)
 ```
 
-* 读取Excel数据
-   * @param {string} filePath - Excel文件路径
-   * @returns {Promise<Object>} 数据对象
+- 读取Excel数据
+  - @param {string} filePath - Excel文件路径
+  - @returns {Promise<Object>} 数据对象
 
 ---
 
@@ -47,10 +47,10 @@ async readExcel(filePath)
 async writeCSV(filePath, data)
 ```
 
-* 写入CSV数据
-   * @param {string} filePath - CSV文件路径
-   * @param {Object} data - 数据对象
-   * @returns {Promise<Object>} 写入结果
+- 写入CSV数据
+  - @param {string} filePath - CSV文件路径
+  - @param {Object} data - 数据对象
+  - @returns {Promise<Object>} 写入结果
 
 ---
 
@@ -60,10 +60,10 @@ async writeCSV(filePath, data)
 async writeExcel(filePath, data)
 ```
 
-* 写入Excel数据
-   * @param {string} filePath - Excel文件路径
-   * @param {Object} data - 数据对象
-   * @returns {Promise<Object>} 写入结果
+- 写入Excel数据
+  - @param {string} filePath - Excel文件路径
+  - @param {Object} data - 数据对象
+  - @returns {Promise<Object>} 写入结果
 
 ---
 
@@ -73,10 +73,10 @@ async writeExcel(filePath, data)
 analyzeData(data, options =
 ```
 
-* 数据分析
-   * @param {Object} data - 数据对象
-   * @param {Object} options - 分析选项
-   * @returns {Object} 分析结果
+- 数据分析
+  - @param {Object} data - 数据对象
+  - @param {Object} options - 分析选项
+  - @returns {Object} 分析结果
 
 ---
 
@@ -86,10 +86,10 @@ analyzeData(data, options =
 async generateChart(data, options =
 ```
 
-* 生成数据可视化图表
-   * @param {Object} data - 数据对象
-   * @param {Object} options - 图表选项
-   * @returns {Promise<Object>} 图表HTML
+- 生成数据可视化图表
+  - @param {Object} data - 数据对象
+  - @param {Object} options - 图表选项
+  - @returns {Promise<Object>} 图表HTML
 
 ---
 
@@ -99,98 +99,98 @@ async generateChart(data, options =
 async generateReport(analysisResults, outputPath)
 ```
 
-* 生成分析报告
-   * @param {Object} analysisResults - 分析结果
-   * @param {string} outputPath - 输出路径
-   * @returns {Promise<Object>} 报告结果
+- 生成分析报告
+  - @param {Object} analysisResults - 分析结果
+  - @param {string} outputPath - 输出路径
+  - @returns {Promise<Object>} 报告结果
 
 ---
 
 ## parseCSVLine(line)
 
 ```javascript
-parseCSVLine(line)
+parseCSVLine(line);
 ```
 
-* 解析CSV行（支持双引号转义）
-   * @private
+- 解析CSV行（支持双引号转义）
+  - @private
 
 ---
 
 ## findNumericColumns(rows)
 
 ```javascript
-findNumericColumns(rows)
+findNumericColumns(rows);
 ```
 
-* 找到数值列
-   * @private
+- 找到数值列
+  - @private
 
 ---
 
 ## sum(values)
 
 ```javascript
-sum(values)
+sum(values);
 ```
 
-* 求和
-   * @private
+- 求和
+  - @private
 
 ---
 
 ## mean(values)
 
 ```javascript
-mean(values)
+mean(values);
 ```
 
-* 平均值
-   * @private
+- 平均值
+  - @private
 
 ---
 
 ## median(values)
 
 ```javascript
-median(values)
+median(values);
 ```
 
-* 中位数
-   * @private
+- 中位数
+  - @private
 
 ---
 
 ## standardDeviation(values)
 
 ```javascript
-standardDeviation(values)
+standardDeviation(values);
 ```
 
-* 标准差（样本标准差）
-   * @private
+- 标准差（样本标准差）
+  - @private
 
 ---
 
 ## generateChartHTML(chartType, data)
 
 ```javascript
-generateChartHTML(chartType, data)
+generateChartHTML(chartType, data);
 ```
 
-* 生成图表HTML
-   * @private
+- 生成图表HTML
+  - @private
 
 ---
 
 ## generateReportMarkdown(analysisResults)
 
 ```javascript
-generateReportMarkdown(analysisResults)
+generateReportMarkdown(analysisResults);
 ```
 
-* 生成报告Markdown
-   * @private
+- 生成报告Markdown
+  - @private
 
 ---
 
@@ -200,19 +200,19 @@ generateReportMarkdown(analysisResults)
 generateNutritionReportMarkdown(analysisResults, options =
 ```
 
-* 生成营养分析报告Markdown
-   * @private
+- 生成营养分析报告Markdown
+  - @private
 
 ---
 
 ## findNutritionColumns(headers)
 
 ```javascript
-findNutritionColumns(headers)
+findNutritionColumns(headers);
 ```
 
-* 查找营养相关列
-   * @private
+- 查找营养相关列
+  - @private
 
 ---
 
@@ -222,19 +222,19 @@ findNutritionColumns(headers)
 async generateNutritionReportWithLLM(description, llmManager)
 ```
 
-* 使用LLM生成营养分析报告
-   * @private
+- 使用LLM生成营养分析报告
+  - @private
 
 ---
 
 ## generateNutritionFallbackMarkdown(description)
 
 ```javascript
-generateNutritionFallbackMarkdown(description)
+generateNutritionFallbackMarkdown(description);
 ```
 
-* 生成营养分析兜底报告
-   * @private
+- 生成营养分析兜底报告
+  - @private
 
 ---
 
@@ -244,31 +244,31 @@ generateNutritionFallbackMarkdown(description)
 async handleProjectTask(params)
 ```
 
-* 处理项目任务
-   * @param {Object} params - 任务参数
-   * @returns {Promise<Object>} 处理结果
+- 处理项目任务
+  - @param {Object} params - 任务参数
+  - @returns {Promise<Object>} 处理结果
 
 ---
 
 ## extractFileNameFromDescription(description)
 
 ```javascript
-extractFileNameFromDescription(description)
+extractFileNameFromDescription(description);
 ```
 
-* 从描述中提取文件名（带路径安全验证）
-   * @private
+- 从描述中提取文件名（带路径安全验证）
+  - @private
 
 ---
 
 ## isPathSafe(filePath)
 
 ```javascript
-isPathSafe(filePath)
+isPathSafe(filePath);
 ```
 
-* 验证路径安全性（防止路径遍历攻击）
-   * @private
+- 验证路径安全性（防止路径遍历攻击）
+  - @private
 
 ---
 
@@ -278,8 +278,7 @@ isPathSafe(filePath)
 async generateSampleDataWithLLM(description, llmManager)
 ```
 
-* 使用LLM生成示例数据
-   * @private
+- 使用LLM生成示例数据
+  - @private
 
 ---
-
