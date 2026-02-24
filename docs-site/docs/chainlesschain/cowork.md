@@ -2933,6 +2933,1171 @@ CREATE TABLE ab_comparisons (
 | **多模态协作**       | 集成语音、视觉、文档等多模态输入输出 | 支持 5+ 模态          |
 | **自主运维**         | 代理自动监控、诊断、修复生产环境问题 | MTTR < 5 分钟         |
 
+---
+
+### v3.0 — 全自动开发流水线
+
+**目标**: 从需求描述到生产部署全程 AI 代理协作，人工干预率 < 20%
+
+#### 规划模块
+
+- [ ] **Pipeline Orchestrator** — 中央流水线协调器，7 阶段生命周期（需求→设计→编码→测试→审查→部署→监控），门控审批机制（~700 行）
+- [ ] **Requirement Parser** — 自然语言需求→结构化 Spec JSON，支持用户故事、验收标准、边界条件提取（~450 行）
+- [ ] **Deploy Agent** — 自动化部署执行引擎，支持 Git 分支/PR 创建、Docker 构建、npm 发布（~500 行）
+- [ ] **Post-Deploy Monitor** — 生产环境监控桥接，集成 ErrorMonitor + AutoTuner，异常自动回滚触发（~350 行）
+- [ ] **Pipeline IPC** — 15 个 IPC handler，覆盖流水线全生命周期操作（~400 行）
+
+#### 流水线架构
+
+```
+需求输入
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    Pipeline Orchestrator                         │
+│                                                                  │
+│  ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐   │
+│  │ Stage 1 │→│ Stage 2 │→│ Stage 3 │→│ Stage 4 │→│ Stage 5 │   │
+│  │ 需求解析│  │ 架构设计│  │ 代码生成│  │ 测试验证│  │ 代码审查│   │
+│  └────┬───┘  └────┬───┘  └────┬───┘  └────┬───┘  └────┬───┘   │
+│       │           │           │           │           │         │
+│       ▼           ▼           ▼           ▼           ▼         │
+│  Requirement  Orchestrate  Cowork    Verification  Debate       │
+│  Parser       Planner      Skills    Loop          Review       │
+│                                                                  │
+│  ┌────────┐  ┌────────┐                                        │
+│  │ Stage 6 │→│ Stage 7 │  ← 门控审批（人工/自动）              │
+│  │ 自动部署│  │ 生产监控│                                        │
+│  └────┬───┘  └────┬───┘                                        │
+│       │           │                                              │
+│       ▼           ▼                                              │
+│  Deploy Agent  Post-Deploy                                      │
+│  (Git/Docker)  Monitor                                          │
+└──────────────────────────────────────────────────────────────────┘
+       │                    │
+       ▼                    ▼
+  ┌─────────┐        ┌─────────────┐
+  │ CKG     │        │ Instinct    │
+  │ 代码图谱 │        │ 经验学习     │
+  └─────────┘        └─────────────┘
+```
+
+#### 分阶段实现
+
+**Phase A — 流水线框架（Month 1-2）**:
+
+- [ ] PipelineOrchestrator 类骨架：7 阶段状态机、事件总线、门控队列
+- [ ] RequirementParser 基础：NL→Spec JSON 结构化输出（用户故事、验收标准）
+- [ ] Pipeline 数据模型：3 张数据库表、流水线模板
+- [ ] 基础 IPC 通道（8 个）：create、start、pause、resume、cancel、get-status、get-all、get-config
+
+**Phase B — 代理集成（Month 3-4）**:
+
+- [ ] 阶段 1-5 代理编排：集成 Orchestrate（设计）、Cowork Skills（编码）、Verification Loop（测试）、Debate Review（审查）
+- [ ] 门控审批机制：人工审批 + 自动审批（基于 Instinct 置信度阈值）
+- [ ] 制品管理：阶段间产物传递（Spec JSON→设计文档→代码→测试报告→审查意见）
+- [ ] 扩展 IPC 通道（+4 个）：approve-gate、reject-gate、get-artifacts、get-stage-detail
+
+**Phase C — 部署与监控（Month 5-6）**:
+
+- [ ] DeployAgent 实现：Git 分支创建、PR 生成、Docker build/push、npm publish
+- [ ] PostDeployMonitor 集成：ErrorMonitor 异常检测 + AutoTuner 性能基线比对
+- [ ] 自动回滚触发：部署后异常超阈值自动执行 rollback
+- [ ] 完善 IPC（+3 个）：get-metrics、get-templates、configure
+- [ ] 端到端集成测试
+
+#### v3.0 IPC 通道（15 个）
+
+**Pipeline Orchestrator（12 个）**:
+
+| 通道                            | 功能               |
+| ------------------------------- | ------------------ |
+| `dev-pipeline:create`           | 创建流水线实例     |
+| `dev-pipeline:start`            | 启动流水线执行     |
+| `dev-pipeline:pause`            | 暂停流水线         |
+| `dev-pipeline:resume`           | 恢复流水线         |
+| `dev-pipeline:cancel`           | 取消流水线         |
+| `dev-pipeline:get-status`       | 获取流水线状态     |
+| `dev-pipeline:get-all`          | 列出所有流水线     |
+| `dev-pipeline:get-stage-detail` | 获取指定阶段详情   |
+| `dev-pipeline:approve-gate`     | 审批通过门控       |
+| `dev-pipeline:reject-gate`      | 拒绝门控（含原因） |
+| `dev-pipeline:get-artifacts`    | 获取阶段制品       |
+| `dev-pipeline:get-metrics`      | 获取流水线执行指标 |
+
+**Pipeline Config（3 个）**:
+
+| 通道                         | 功能               |
+| ---------------------------- | ------------------ |
+| `dev-pipeline:get-templates` | 获取流水线模板列表 |
+| `dev-pipeline:configure`     | 更新流水线配置     |
+| `dev-pipeline:get-config`    | 获取当前配置       |
+
+#### 代码示例
+
+```javascript
+// 创建并启动全自动开发流水线
+const pipeline = await ipcRenderer.invoke("dev-pipeline:create", {
+  name: "用户认证模块",
+  template: "feature",
+  requirement: "实现基于 JWT 的用户认证系统，支持注册、登录、Token 刷新",
+  config: {
+    autoApprove: false, // 门控需人工审批
+    deployTarget: "staging", // 部署目标环境
+    rollbackOnError: true, // 异常自动回滚
+  },
+});
+// → { id: "pipe-abc123", status: "created", stages: [...] }
+
+// 启动流水线
+await ipcRenderer.invoke("dev-pipeline:start", { pipelineId: "pipe-abc123" });
+// → { status: "running", currentStage: "requirement-parsing" }
+
+// 门控审批
+await ipcRenderer.invoke("dev-pipeline:approve-gate", {
+  pipelineId: "pipe-abc123",
+  stageId: "code-review",
+  comment: "代码质量符合标准，批准部署",
+});
+// → { status: "approved", nextStage: "deploy" }
+
+// 查询流水线执行指标
+const metrics = await ipcRenderer.invoke("dev-pipeline:get-metrics", {
+  pipelineId: "pipe-abc123",
+});
+// → { totalTime: 1842000, stageMetrics: [...], humanInterventions: 1, autoApprovals: 4 }
+```
+
+#### 数据库 Schema（v3.0 新增 3 表）
+
+```sql
+-- 开发流水线主表
+CREATE TABLE dev_pipelines (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  template TEXT,                  -- feature, bugfix, refactor, security-audit
+  requirement TEXT,
+  spec_json TEXT DEFAULT '{}',
+  status TEXT DEFAULT 'created',  -- created, running, paused, gate-waiting, completed, failed, cancelled
+  current_stage TEXT,
+  config TEXT DEFAULT '{}',
+  metrics TEXT DEFAULT '{}',
+  created_by TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  completed_at TEXT
+);
+
+-- 流水线阶段表
+CREATE TABLE dev_pipeline_stages (
+  id TEXT PRIMARY KEY,
+  pipeline_id TEXT NOT NULL,
+  stage_name TEXT NOT NULL,       -- requirement-parsing, architecture-design, code-generation, testing, code-review, deploy, monitoring
+  stage_order INTEGER NOT NULL,
+  status TEXT DEFAULT 'pending',  -- pending, running, gate-waiting, approved, rejected, completed, failed, skipped
+  input TEXT DEFAULT '{}',
+  output TEXT DEFAULT '{}',
+  agent_id TEXT,
+  gate_approver TEXT,
+  gate_comment TEXT,
+  started_at TEXT,
+  completed_at TEXT,
+  FOREIGN KEY (pipeline_id) REFERENCES dev_pipelines(id)
+);
+
+-- 流水线制品表
+CREATE TABLE dev_pipeline_artifacts (
+  id TEXT PRIMARY KEY,
+  pipeline_id TEXT NOT NULL,
+  stage_id TEXT NOT NULL,
+  artifact_type TEXT NOT NULL,    -- spec, design-doc, code, test-report, review-report, deploy-log, monitor-snapshot
+  content TEXT,
+  file_path TEXT,
+  metadata TEXT DEFAULT '{}',
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (pipeline_id) REFERENCES dev_pipelines(id),
+  FOREIGN KEY (stage_id) REFERENCES dev_pipeline_stages(id)
+);
+```
+
+#### 关键文件
+
+| 文件                                                 | 行数 | 职责                     |
+| ---------------------------------------------------- | ---- | ------------------------ |
+| `src/main/ai-engine/cowork/pipeline-orchestrator.js` | ~700 | 中央流水线协调（7 阶段） |
+| `src/main/ai-engine/cowork/requirement-parser.js`    | ~450 | NL 需求→Spec JSON 转换   |
+| `src/main/ai-engine/cowork/deploy-agent.js`          | ~500 | 自动部署（Git/Docker）   |
+| `src/main/ai-engine/cowork/post-deploy-monitor.js`   | ~350 | 生产监控桥接             |
+| `src/main/ai-engine/cowork/pipeline-ipc.js`          | ~400 | 15 个 IPC handler        |
+
+#### KPI 度量
+
+| 指标             | 目标     | 度量方式                           |
+| ---------------- | -------- | ---------------------------------- |
+| 人工干预率       | < 20%    | 人工审批次数 / 总门控次数          |
+| 需求→部署时间    | < 2 小时 | pipeline.completed_at - created_at |
+| 流水线成功率     | > 85%    | 成功完成 / 总创建数                |
+| 自动回滚响应时间 | < 30 秒  | 异常检测→回滚完成耗时              |
+
+---
+
+### v3.1 — 自然语言编程
+
+**目标**: 用自然语言描述需求，代理团队自动实现符合项目约定的代码，需求→代码转化率 > 80%
+
+#### 规划模块
+
+- [ ] **Spec Translator** — 自然语言→结构化 Spec 翻译引擎，支持多轮对话澄清、上下文补全（~600 行）
+- [ ] **Project Style Analyzer** — 项目编码约定提取器，集成 CKG + Instinct 分析命名/架构/测试模式（~500 行）
+- [ ] **NL Programming IPC** — 10 个 IPC handler（~350 行）
+- [ ] **nl-program 内置技能** — handler.js + SKILL.md，支持 `/nl-program` 命令（~300 行）
+
+#### 自然语言编程架构
+
+```
+自然语言输入
+  │ "实现一个带分页的用户列表组件"
+  ▼
+┌──────────────────────────────────────────────────┐
+│              Spec Translator                      │
+│                                                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
+│  │ 意图识别    │→│ 上下文补全  │→│ Spec 生成   │  │
+│  │ (LLM)      │  │ (CKG+对话) │  │ (JSON)     │  │
+│  └────────────┘  └────────────┘  └────────────┘  │
+└──────────┬───────────────────────────────────────┘
+           │ Spec JSON
+           ▼
+┌──────────────────────────────────────────────────┐
+│           Project Style Analyzer                   │
+│                                                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
+│  │ CKG 分析    │  │ Instinct   │  │ 约定合并    │  │
+│  │ 代码结构    │  │ 编码模式    │  │ 风格指南    │  │
+│  └────────────┘  └────────────┘  └────────────┘  │
+└──────────┬───────────────────────────────────────┘
+           │ Spec + Conventions
+           ▼
+┌──────────────────────────────────────────────────┐
+│              Code Generator                        │
+│                                                    │
+│  Orchestrate (coder agent) + Conventions Context   │
+│  → 符合项目约定的代码                              │
+└──────────┬───────────────────────────────────────┘
+           │ Generated Code
+           ▼
+┌──────────────────────────────────────────────────┐
+│           Verification Loop                        │
+│                                                    │
+│  Build → TypeCheck → Lint → Test → Security        │
+│  → READY / NOT READY（循环精炼）                   │
+└──────────────────────────────────────────────────┘
+```
+
+#### 分阶段实现
+
+**Phase A — Spec 翻译引擎（Month 2-3）**:
+
+- [ ] SpecTranslator 类：NL 意图识别、上下文补全、结构化 Spec JSON 输出
+- [ ] 多轮对话：歧义检测 + 自动追问
+- [ ] 集成 CKG：从代码图谱中提取已有模块信息辅助上下文补全
+- [ ] 基础 IPC（5 个）：translate、validate、refine、get-history、get-config
+
+**Phase B — 约定分析与代码生成（Month 4-5）**:
+
+- [ ] ProjectStyleAnalyzer 实现：扫描项目提取命名约定、目录结构、测试模式、组件模板
+- [ ] Instinct 集成：从 CODING_PATTERN / STYLE / ARCHITECTURE 类别提取编码偏好
+- [ ] 代码生成：Orchestrate coder agent + Conventions 上下文注入
+- [ ] 扩展 IPC（+3 个）：generate、get-conventions、analyze-project
+
+**Phase C — 交互精炼（Month 6-7）**:
+
+- [ ] 验证循环集成：生成代码自动通过 Verification Loop 验证
+- [ ] 精炼循环：NOT READY 结果自动触发 LLM 修复 + 重新验证
+- [ ] nl-program 内置技能：SKILL.md + handler.js，支持 `/nl-program "描述"` 命令
+- [ ] 完善 IPC（+2 个）：get-stats、configure
+
+#### v3.1 IPC 通道（10 个）
+
+**Spec Translator（5 个）**:
+
+| 通道                  | 功能                   |
+| --------------------- | ---------------------- |
+| `nl-prog:translate`   | NL 描述→Spec JSON 翻译 |
+| `nl-prog:validate`    | 验证 Spec 完整性       |
+| `nl-prog:refine`      | 交互精炼 Spec          |
+| `nl-prog:get-history` | 获取翻译历史           |
+| `nl-prog:get-config`  | 获取配置               |
+
+**Project Style & Generation（5 个）**:
+
+| 通道                      | 功能               |
+| ------------------------- | ------------------ |
+| `nl-prog:generate`        | 基于 Spec 生成代码 |
+| `nl-prog:get-conventions` | 获取项目编码约定   |
+| `nl-prog:analyze-project` | 分析项目风格       |
+| `nl-prog:get-stats`       | 获取统计数据       |
+| `nl-prog:configure`       | 更新配置           |
+
+#### 代码示例
+
+```javascript
+// 自然语言→代码生成
+const spec = await ipcRenderer.invoke("nl-prog:translate", {
+  description:
+    "实现一个带分页和搜索功能的用户列表 Vue 组件，支持按姓名和邮箱搜索",
+  context: { directory: "src/renderer/components/user/" },
+});
+// → {
+//     intent: "create-component",
+//     spec: {
+//       type: "vue-component",
+//       name: "UserList",
+//       features: ["pagination", "search"],
+//       searchFields: ["name", "email"],
+//       dependencies: ["ant-design-vue/Table", "ant-design-vue/Input.Search"]
+//     }
+//   }
+
+// 分析项目约定
+const conventions = await ipcRenderer.invoke("nl-prog:analyze-project", {
+  directory: "src/renderer/components/",
+});
+// → {
+//     naming: { components: "PascalCase", files: "PascalCase.vue", stores: "use*Store" },
+//     patterns: { stateManagement: "pinia", uiLibrary: "ant-design-vue", composition: true },
+//     testing: { framework: "vitest", location: "__tests__/", naming: "*.test.ts" }
+//   }
+
+// 生成符合约定的代码
+const result = await ipcRenderer.invoke("nl-prog:generate", {
+  specId: spec.id,
+  conventions: conventions,
+  autoVerify: true, // 自动通过 Verification Loop
+});
+// → { files: ["UserList.vue", "useUserListStore.ts", "UserList.test.ts"], verified: true }
+```
+
+#### 数据库 Schema（v3.1 新增 2 表）
+
+```sql
+-- 自然语言编程记录
+CREATE TABLE nl_programs (
+  id TEXT PRIMARY KEY,
+  description TEXT NOT NULL,
+  spec_json TEXT DEFAULT '{}',
+  conventions TEXT DEFAULT '{}',
+  generated_files TEXT DEFAULT '[]',
+  status TEXT DEFAULT 'draft',      -- draft, translating, generating, verifying, completed, failed
+  verification_result TEXT,         -- READY, NOT_READY
+  refine_count INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  completed_at TEXT
+);
+
+-- 项目编码约定缓存
+CREATE TABLE nl_program_conventions (
+  id TEXT PRIMARY KEY,
+  project_path TEXT NOT NULL,
+  naming_conventions TEXT DEFAULT '{}',
+  architecture_patterns TEXT DEFAULT '{}',
+  testing_patterns TEXT DEFAULT '{}',
+  style_rules TEXT DEFAULT '{}',
+  source TEXT DEFAULT 'auto',       -- auto (CKG+Instinct), manual
+  confidence REAL DEFAULT 0,
+  scanned_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+```
+
+#### 关键文件
+
+| 文件                                                             | 行数 | 职责                    |
+| ---------------------------------------------------------------- | ---- | ----------------------- |
+| `src/main/ai-engine/cowork/spec-translator.js`                   | ~600 | NL→Spec 翻译引擎        |
+| `src/main/ai-engine/cowork/project-style-analyzer.js`            | ~500 | 项目约定提取            |
+| `src/main/ai-engine/cowork/nl-programming-ipc.js`                | ~350 | 10 个 IPC handler       |
+| `src/main/ai-engine/cowork/skills/builtin/nl-program/handler.js` | ~200 | nl-program 技能 handler |
+| `src/main/ai-engine/cowork/skills/builtin/nl-program/SKILL.md`   | ~100 | nl-program 技能定义     |
+
+#### KPI 度量
+
+| 指标            | 目标  | 度量方式                    |
+| --------------- | ----- | --------------------------- |
+| 需求→代码转化率 | > 80% | 成功生成 / 总翻译请求       |
+| Spec 准确率     | > 90% | 无需精炼即通过 / 总 Spec 数 |
+| 验证通过率      | > 75% | 首次 READY / 总生成数       |
+| 约定符合度      | > 95% | Lint 通过 + 命名规范符合率  |
+
+---
+
+### v3.2 — 多模态协作
+
+**目标**: 集成语音、视觉、文档等多模态输入输出，支持 5+ 模态
+
+#### 规划模块
+
+- [ ] **Modality Fusion** — 多模态输入融合引擎，5 模态统一表示（文本/图像/语音/文档/屏幕）（~600 行）
+- [ ] **Document Parser** — PDF/DOCX/XLSX/PPT 文档内容提取与结构化（~500 行）
+- [ ] **Screen Recorder** — 屏幕录制→关键帧提取→OCR 文本识别（~400 行）
+- [ ] **Multimodal Context** — 统一上下文构建器，融合多模态信息为 LLM 可理解的上下文（~450 行）
+- [ ] **Multimodal Output** — 多格式输出生成（Markdown/HTML/图表/幻灯片）（~500 行）
+- [ ] **Multimodal Collab IPC** — 12 个 IPC handler（~350 行）
+- [ ] **3 新内置技能** — whiteboard-reader、screen-explainer、voice-programmer
+
+#### 多模态协作架构
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                     多模态输入层                                │
+│                                                                │
+│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐           │
+│  │ 文本  │  │ 图像  │  │ 语音  │  │ 文档  │  │ 屏幕  │           │
+│  │ Text  │  │ Image │  │ Audio │  │ Docs  │  │ Screen│           │
+│  └──┬───┘  └──┬───┘  └──┬───┘  └──┬───┘  └──┬───┘           │
+│     │         │         │         │         │                  │
+└─────┼─────────┼─────────┼─────────┼─────────┼──────────────────┘
+      │         │         │         │         │
+      ▼         ▼         ▼         ▼         ▼
+┌────────────────────────────────────────────────────────────────┐
+│                   Modality Fusion Engine                        │
+│                                                                │
+│  ┌────────────┐  ┌────────────┐  ┌────────────────┐          │
+│  │ OCR/Vision  │  │ Whisper    │  │ Document Parser │          │
+│  │ 图像理解    │  │ 语音转录    │  │ 文档结构化      │          │
+│  └────────────┘  └────────────┘  └────────────────┘          │
+└──────────────────────┬─────────────────────────────────────────┘
+                       │ 统一表示
+                       ▼
+┌────────────────────────────────────────────────────────────────┐
+│                  Multimodal Context Builder                     │
+│                                                                │
+│  文本 + 图像描述 + 转录文本 + 文档结构 + 屏幕 OCR             │
+│  → 融合上下文 JSON → LLM Prompt                                │
+└──────────────────────┬─────────────────────────────────────────┘
+                       │
+                       ▼
+┌────────────────────────────────────────────────────────────────┐
+│                    Agent Workflow                               │
+│                                                                │
+│  Cowork Skills / Orchestrate / Pipeline                        │
+└──────────────────────┬─────────────────────────────────────────┘
+                       │
+                       ▼
+┌────────────────────────────────────────────────────────────────┐
+│                  Multimodal Output Generator                    │
+│                                                                │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+│  │ Markdown  │  │ HTML     │  │ 图表     │  │ 幻灯片   │     │
+│  │ 文档      │  │ 富文本    │  │ ECharts  │  │ Reveal.js│     │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │
+└────────────────────────────────────────────────────────────────┘
+```
+
+#### 分阶段实现
+
+**Phase A — 文档与图像融合（Month 2-3）**:
+
+- [ ] ModalityFusion 基础架构：5 模态注册、统一表示格式
+- [ ] DocumentParser 实现：PDF（pdf-parse）、DOCX（mammoth）、XLSX（xlsx）内容提取
+- [ ] 图像 OCR 集成：复用现有 Tesseract.js + Sharp
+- [ ] MultimodalContext 基础：文本 + 图像 + 文档三模态上下文构建
+- [ ] 基础 IPC（6 个）：fuse-input、parse-document、build-context、get-session、get-supported-modalities、get-config
+
+**Phase B — 语音与屏幕（Month 4-5）**:
+
+- [ ] 语音模态：Whisper API 集成，音频转录→文本
+- [ ] ScreenRecorder 实现：Electron desktopCapturer 录制 + 关键帧提取 + OCR
+- [ ] 3 内置技能：whiteboard-reader（白板 OCR→代码）、screen-explainer（屏幕内容解释）、voice-programmer（语音→代码）
+- [ ] 扩展 IPC（+3 个）：capture-screen、transcribe-audio、get-artifacts
+
+**Phase C — 富输出生成（Month 6-7）**:
+
+- [ ] MultimodalOutput 实现：Markdown、HTML 富文本、ECharts 图表、Reveal.js 幻灯片
+- [ ] 输出模板系统：可配置输出格式模板
+- [ ] 端到端流程打通：多模态输入→代理工作流→多格式输出
+- [ ] 完善 IPC（+3 个）：generate-output、get-stats、configure
+
+#### v3.2 IPC 通道（12 个）
+
+**Modality Fusion（6 个）**:
+
+| 通道                  | 功能                      |
+| --------------------- | ------------------------- |
+| `mm:fuse-input`       | 融合多模态输入            |
+| `mm:parse-document`   | 解析文档（PDF/DOCX/XLSX） |
+| `mm:capture-screen`   | 屏幕截图/录制             |
+| `mm:transcribe-audio` | 语音转录                  |
+| `mm:build-context`    | 构建统一上下文            |
+| `mm:generate-output`  | 生成多格式输出            |
+
+**Session & Config（6 个）**:
+
+| 通道                          | 功能               |
+| ----------------------------- | ------------------ |
+| `mm:get-session`              | 获取多模态会话详情 |
+| `mm:get-artifacts`            | 获取会话制品       |
+| `mm:get-supported-modalities` | 获取支持的模态列表 |
+| `mm:get-stats`                | 获取统计数据       |
+| `mm:configure`                | 更新配置           |
+| `mm:get-config`               | 获取当前配置       |
+
+#### 代码示例
+
+```javascript
+// 截图 + 文字描述→代码生成
+const context = await ipcRenderer.invoke("mm:fuse-input", {
+  modalities: [
+    { type: "image", data: screenshotBase64, label: "UI 设计稿" },
+    {
+      type: "text",
+      data: "根据这个设计稿实现 Vue 组件，使用 Ant Design Vue",
+    },
+  ],
+});
+// → { sessionId: "mm-abc123", fusedContext: { ... }, modalities: ["image", "text"] }
+
+// 构建统一上下文
+const unified = await ipcRenderer.invoke("mm:build-context", {
+  sessionId: "mm-abc123",
+});
+// → { context: "图像分析: 包含用户列表表格，顶部搜索栏...\n用户需求: 实现 Vue 组件..." }
+
+// 文档解析
+const doc = await ipcRenderer.invoke("mm:parse-document", {
+  filePath: "/path/to/api-spec.pdf",
+  extractTables: true,
+  extractImages: true,
+});
+// → { pages: 12, text: "...", tables: [...], images: [...], structure: {...} }
+
+// 语音编程
+const transcription = await ipcRenderer.invoke("mm:transcribe-audio", {
+  audioPath: "/path/to/instruction.wav",
+  language: "zh-CN",
+});
+// → { text: "创建一个用户登录表单，包含邮箱和密码字段", confidence: 0.95 }
+
+// 生成多格式输出
+const output = await ipcRenderer.invoke("mm:generate-output", {
+  sessionId: "mm-abc123",
+  format: "html",
+  template: "technical-report",
+});
+// → { format: "html", content: "<html>...", filePath: "/tmp/report.html" }
+```
+
+#### 数据库 Schema（v3.2 新增 2 表）
+
+```sql
+-- 多模态会话记录
+CREATE TABLE multimodal_sessions (
+  id TEXT PRIMARY KEY,
+  modalities TEXT DEFAULT '[]',     -- ["text", "image", "audio", "document", "screen"]
+  fused_context TEXT,
+  status TEXT DEFAULT 'active',     -- active, processing, completed, archived
+  input_count INTEGER DEFAULT 0,
+  output_format TEXT,
+  metadata TEXT DEFAULT '{}',
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 多模态制品表
+CREATE TABLE multimodal_artifacts (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  artifact_type TEXT NOT NULL,      -- input-image, input-audio, input-document, ocr-text, transcription, output-markdown, output-html, output-chart, output-slides
+  modality TEXT,
+  content TEXT,
+  file_path TEXT,
+  metadata TEXT DEFAULT '{}',
+  created_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (session_id) REFERENCES multimodal_sessions(id)
+);
+```
+
+#### 关键文件
+
+| 文件                                                          | 行数 | 职责                 |
+| ------------------------------------------------------------- | ---- | -------------------- |
+| `src/main/ai-engine/cowork/modality-fusion.js`                | ~600 | 多模态输入融合引擎   |
+| `src/main/ai-engine/cowork/document-parser.js`                | ~500 | PDF/DOCX/XLSX 解析   |
+| `src/main/ai-engine/cowork/screen-recorder.js`                | ~400 | 屏幕录制与关键帧提取 |
+| `src/main/ai-engine/cowork/multimodal-context.js`             | ~450 | 统一上下文构建       |
+| `src/main/ai-engine/cowork/multimodal-output.js`              | ~500 | 多格式输出生成       |
+| `src/main/ai-engine/cowork/multimodal-collab-ipc.js`          | ~350 | 12 个 IPC handler    |
+| `src/main/ai-engine/cowork/skills/builtin/whiteboard-reader/` | ~180 | 白板识别技能         |
+| `src/main/ai-engine/cowork/skills/builtin/screen-explainer/`  | ~180 | 屏幕内容解释技能     |
+| `src/main/ai-engine/cowork/skills/builtin/voice-programmer/`  | ~180 | 语音编程技能         |
+
+#### KPI 度量
+
+| 指标           | 目标   | 度量方式                      |
+| -------------- | ------ | ----------------------------- |
+| 支持模态数     | ≥ 5    | 已注册模态类型计数            |
+| OCR 识别准确率 | > 95%  | 正确字符 / 总字符             |
+| 语音转录准确率 | > 90%  | 正确词语 / 总词语（WER）      |
+| 文档解析成功率 | > 98%  | 成功解析 / 总请求             |
+| 上下文融合延迟 | < 3 秒 | 多模态输入→统一上下文构建耗时 |
+
+---
+
+### v3.3 — 自主运维
+
+**目标**: 代理自动监控、诊断、修复生产环境问题，MTTR < 5 分钟
+
+#### 规划模块
+
+- [ ] **Anomaly Detector** — 统计异常检测引擎（Z-score、IQR、EWMA），多维指标监控（~550 行）
+- [ ] **Incident Classifier** — 事故严重度分级 P0-P3，自动关联历史事故（~400 行）
+- [ ] **Auto Remediator** — 自动修复编排引擎 + Playbook 系统，支持条件化修复策略（~600 行）
+- [ ] **Rollback Manager** — 自动回滚执行器，支持 Git revert、Docker rollback、配置回滚（~450 行）
+- [ ] **Alert Manager** — 多通道告警（Webhook/邮件/IM），升级链（P3→P2→P1→P0）（~400 行）
+- [ ] **Postmortem Generator** — LLM 驱动的事故报告自动生成，时间线重建 + 根因分析（~350 行）
+- [ ] **Autonomous Ops IPC** — 15 个 IPC handler（~450 行）
+
+#### 自主运维架构
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      指标采集层                                   │
+│                                                                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐ │
+│  │ ErrorMonitor│  │ AutoTuner  │  │ Performance │  │ 自定义指标  │ │
+│  │ 错误监控    │  │ 性能调优    │  │ Monitor     │  │ 用户定义    │ │
+│  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘  └──────┬─────┘ │
+└─────────┼───────────────┼───────────────┼───────────────┼────────┘
+          │               │               │               │
+          └───────────────┴───────┬───────┴───────────────┘
+                                  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    Anomaly Detector                               │
+│                                                                    │
+│  ┌─────────┐    ┌─────────┐    ┌─────────┐                      │
+│  │ Z-Score  │    │  IQR    │    │  EWMA   │                      │
+│  │ 突变检测  │    │ 离群检测 │    │ 趋势检测 │                      │
+│  └─────────┘    └─────────┘    └─────────┘                      │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │ 异常事件
+                       ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                   Incident Classifier                             │
+│                                                                    │
+│  P0 (致命)  │  P1 (严重)  │  P2 (一般)  │  P3 (轻微)           │
+└──────────────────────┬───────────────────────────────────────────┘
+                       │
+              ┌────────┴────────┐
+              ▼                 ▼
+┌──────────────────┐  ┌──────────────────┐
+│  Auto Remediator  │  │  Alert Manager   │
+│                   │  │                   │
+│  Playbook 匹配    │  │  多通道告警       │
+│  条件化修复执行    │  │  升级链触发       │
+└────────┬─────────┘  └──────────────────┘
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌────────┐ ┌────────┐
+│ 修复成功│ │ 修复失败│
+│        │ │        │
+│ 记录   │ │ Rollback│
+│ Instinct│ │ Manager │
+└────────┘ └────────┘
+              │
+              ▼
+       ┌──────────────┐
+       │  Postmortem   │
+       │  Generator    │
+       │  LLM 报告生成 │
+       └──────────────┘
+```
+
+#### 分阶段实现
+
+**Phase A — 异常检测（Month 1-2）**:
+
+- [ ] AnomalyDetector 实现：Z-score 突变、IQR 离群值、EWMA 趋势检测
+- [ ] 基线管理：自动采集历史指标建立正常基线
+- [ ] IncidentClassifier 实现：P0-P3 严重度分级、历史事故关联
+- [ ] 集成 ErrorMonitor + PerformanceMonitor 作为指标源
+- [ ] 基础 IPC（6 个）：get-incidents、get-incident-detail、acknowledge、get-baseline、update-baseline、get-config
+
+**Phase B — 自动修复（Month 3-4）**:
+
+- [ ] AutoRemediator 实现：Playbook YAML 定义、条件匹配、修复步骤执行
+- [ ] RollbackManager 实现：Git revert、Docker image rollback、配置回滚
+- [ ] AlertManager 实现：Webhook/邮件/IM 多通道、P3→P0 升级链
+- [ ] 扩展 IPC（+6 个）：resolve、get-playbooks、create-playbook、update-playbook、trigger-remediation、rollback
+
+**Phase C — 自学习与报告（Month 5-6）**:
+
+- [ ] PostmortemGenerator 实现：时间线重建、根因分析、改进建议、LLM 生成报告
+- [ ] Instinct 集成：成功修复路径自动沉淀为 ERROR_FIX 类 instinct
+- [ ] 自适应基线：基线随时间自动漂移适应系统演进
+- [ ] 完善 IPC（+3 个）：configure-alerts、generate-postmortem、get-alerts
+
+#### v3.3 IPC 通道（15 个）
+
+**Incident Management（4 个）**:
+
+| 通道                      | 功能           |
+| ------------------------- | -------------- |
+| `ops:get-incidents`       | 获取事故列表   |
+| `ops:get-incident-detail` | 获取事故详情   |
+| `ops:acknowledge`         | 确认事故       |
+| `ops:resolve`             | 标记事故已解决 |
+
+**Remediation（5 个）**:
+
+| 通道                      | 功能               |
+| ------------------------- | ------------------ |
+| `ops:get-playbooks`       | 获取 Playbook 列表 |
+| `ops:create-playbook`     | 创建新 Playbook    |
+| `ops:update-playbook`     | 更新 Playbook      |
+| `ops:trigger-remediation` | 触发自动修复       |
+| `ops:rollback`            | 执行回滚           |
+
+**Monitoring & Config（6 个）**:
+
+| 通道                      | 功能         |
+| ------------------------- | ------------ |
+| `ops:get-alerts`          | 获取告警列表 |
+| `ops:configure-alerts`    | 配置告警规则 |
+| `ops:get-baseline`        | 获取指标基线 |
+| `ops:update-baseline`     | 更新指标基线 |
+| `ops:generate-postmortem` | 生成事故报告 |
+| `ops:get-config`          | 获取运维配置 |
+
+#### 代码示例
+
+```javascript
+// 配置异常检测基线
+await ipcRenderer.invoke("ops:update-baseline", {
+  metrics: [
+    { name: "error_rate", method: "z-score", threshold: 3.0, window: "5m" },
+    {
+      name: "response_time_p99",
+      method: "ewma",
+      alpha: 0.3,
+      threshold: 2000,
+    },
+    {
+      name: "memory_usage",
+      method: "iqr",
+      multiplier: 1.5,
+      window: "15m",
+    },
+  ],
+});
+
+// 创建修复 Playbook
+await ipcRenderer.invoke("ops:create-playbook", {
+  name: "high-memory-remediation",
+  trigger: {
+    metric: "memory_usage",
+    condition: "above_threshold",
+    severity: "P2",
+  },
+  steps: [
+    { action: "restart-service", target: "ai-service", timeout: 30000 },
+    { action: "clear-cache", target: "embedding-cache" },
+    {
+      action: "scale-down",
+      target: "worker-pool",
+      params: { minWorkers: 1 },
+    },
+  ],
+  rollbackOnFailure: true,
+  notifyChannels: ["webhook", "email"],
+});
+
+// 查询事故详情
+const incident = await ipcRenderer.invoke("ops:get-incident-detail", {
+  incidentId: "inc-xyz789",
+});
+// → {
+//     id: "inc-xyz789", severity: "P1", status: "remediated",
+//     anomaly: { metric: "error_rate", value: 15.2, baseline: 2.1, method: "z-score" },
+//     remediation: { playbook: "high-error-remediation", steps: [...], duration: 45000 },
+//     timeline: [...]
+//   }
+
+// 生成事故报告
+const postmortem = await ipcRenderer.invoke("ops:generate-postmortem", {
+  incidentId: "inc-xyz789",
+  includeTimeline: true,
+  includeRootCause: true,
+  includeSuggestions: true,
+});
+// → { report: "# 事故报告 inc-xyz789\n\n## 时间线\n...\n## 根因分析\n...", format: "markdown" }
+```
+
+#### 数据库 Schema（v3.3 新增 3 表）
+
+```sql
+-- 运维事故记录
+CREATE TABLE ops_incidents (
+  id TEXT PRIMARY KEY,
+  severity TEXT NOT NULL,           -- P0, P1, P2, P3
+  status TEXT DEFAULT 'open',       -- open, acknowledged, remediating, remediated, resolved, escalated
+  anomaly_metric TEXT,
+  anomaly_value REAL,
+  anomaly_method TEXT,              -- z-score, iqr, ewma
+  baseline_value REAL,
+  playbook_id TEXT,
+  remediation_result TEXT,
+  rollback_executed INTEGER DEFAULT 0,
+  alert_channels TEXT DEFAULT '[]',
+  postmortem TEXT,
+  timeline TEXT DEFAULT '[]',
+  created_at TEXT DEFAULT (datetime('now')),
+  acknowledged_at TEXT,
+  resolved_at TEXT
+);
+
+-- 修复 Playbook 定义
+CREATE TABLE ops_remediation_playbooks (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  trigger_config TEXT DEFAULT '{}',
+  steps TEXT DEFAULT '[]',
+  rollback_on_failure INTEGER DEFAULT 1,
+  notify_channels TEXT DEFAULT '[]',
+  success_count INTEGER DEFAULT 0,
+  failure_count INTEGER DEFAULT 0,
+  avg_duration_ms INTEGER DEFAULT 0,
+  active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 指标基线定义
+CREATE TABLE ops_metrics_baseline (
+  id TEXT PRIMARY KEY,
+  metric_name TEXT NOT NULL UNIQUE,
+  detection_method TEXT NOT NULL,   -- z-score, iqr, ewma
+  threshold REAL,
+  window TEXT DEFAULT '5m',
+  params TEXT DEFAULT '{}',         -- method-specific: alpha, multiplier, etc.
+  baseline_values TEXT DEFAULT '[]',
+  last_calibrated TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+```
+
+#### 关键文件
+
+| 文件                                                | 行数 | 职责                     |
+| --------------------------------------------------- | ---- | ------------------------ |
+| `src/main/ai-engine/cowork/anomaly-detector.js`     | ~550 | 统计异常检测（3 种算法） |
+| `src/main/ai-engine/cowork/incident-classifier.js`  | ~400 | 事故分级 P0-P3           |
+| `src/main/ai-engine/cowork/auto-remediator.js`      | ~600 | 自动修复编排 + Playbook  |
+| `src/main/ai-engine/cowork/rollback-manager.js`     | ~450 | 自动回滚执行             |
+| `src/main/ai-engine/cowork/alert-manager.js`        | ~400 | 多通道告警 + 升级链      |
+| `src/main/ai-engine/cowork/postmortem-generator.js` | ~350 | LLM 事故报告生成         |
+| `src/main/ai-engine/cowork/autonomous-ops-ipc.js`   | ~450 | 15 个 IPC handler        |
+
+#### KPI 度量
+
+| 指标            | 目标     | 度量方式                   |
+| --------------- | -------- | -------------------------- |
+| MTTR            | < 5 分钟 | 事故检测→解决耗时          |
+| 自动修复成功率  | > 80%    | 成功修复 / 总触发数        |
+| 误报率          | < 5%     | 误报事故 / 总检测事故      |
+| 告警响应时间    | < 30 秒  | 异常检测→告警发送耗时      |
+| Playbook 覆盖率 | > 70%    | Playbook 匹配事故 / 总事故 |
+
+---
+
+### v4.0 — 去中心化代理网络
+
+**目标**: 基于 DID 的代理身份认证和跨组织协作，支持 100+ 节点
+
+#### 规划模块
+
+- [ ] **Agent DID** — Agent DID 创建/解析/能力证明，基于现有 DID 系统扩展代理身份（~650 行）
+- [ ] **Federated Agent Registry** — KadDHT 跨组织代理发现，去中心化技能索引（~700 行）
+- [ ] **Agent Credential Manager** — 可验证凭证（Verifiable Credentials）签发与验证（~500 行）
+- [ ] **Cross-Org Task Router** — 跨组织任务路由与委派，支持权限控制和计费（~600 行）
+- [ ] **Agent Reputation** — 去中心化信誉评分系统，基于任务完成率和质量评分（~450 行）
+- [ ] **Agent Authenticator** — DID 互认证协议，跨组织信任链建立（~400 行）
+- [ ] **Decentralized Network IPC** — 20 个 IPC handler（~500 行）
+
+#### 去中心化代理网络架构
+
+```
+                        ┌─────────────────────────┐
+                        │     KadDHT Network       │
+                        │   去中心化发现协议        │
+                        └────────────┬────────────┘
+                                     │
+               ┌─────────────────────┼─────────────────────┐
+               │                     │                     │
+               ▼                     ▼                     ▼
+┌──────────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐
+│   组织 A              │ │   组织 B              │ │   组织 C              │
+│                       │ │                       │ │                       │
+│  ┌─────────────────┐ │ │  ┌─────────────────┐ │ │  ┌─────────────────┐ │
+│  │  Agent DID       │ │ │  │  Agent DID       │ │ │  │  Agent DID       │ │
+│  │  did:cc:agent-A1 │ │ │  │  did:cc:agent-B1 │ │ │  │  did:cc:agent-C1 │ │
+│  └────────┬────────┘ │ │  └────────┬────────┘ │ │  └────────┬────────┘ │
+│           │           │ │           │           │ │           │           │
+│  ┌────────┴────────┐ │ │  ┌────────┴────────┐ │ │  ┌────────┴────────┐ │
+│  │ Credential Mgr   │ │ │  │ Credential Mgr   │ │ │  │ Credential Mgr   │ │
+│  │ VC 签发/验证     │ │ │  │ VC 签发/验证     │ │ │  │ VC 签发/验证     │ │
+│  └────────┬────────┘ │ │  └────────┬────────┘ │ │  └────────┬────────┘ │
+│           │           │ │           │           │ │           │           │
+│  ┌────────┴────────┐ │ │  ┌────────┴────────┐ │ │  ┌────────┴────────┐ │
+│  │ Cowork Engine    │ │ │  │ Cowork Engine    │ │ │  │ Cowork Engine    │ │
+│  │ 95+ Skills       │ │ │  │ 95+ Skills       │ │ │  │ 95+ Skills       │ │
+│  └─────────────────┘ │ │  └─────────────────┘ │ │  └─────────────────┘ │
+└──────────────────────┘ └──────────────────────┘ └──────────────────────┘
+               │                     │                     │
+               └─────────────────────┼─────────────────────┘
+                                     │
+                        ┌────────────┴────────────┐
+                        │  Cross-Org Task Router   │
+                        │  跨组织任务路由           │
+                        │                          │
+                        │  ┌──────────────────┐   │
+                        │  │ Agent Reputation   │   │
+                        │  │ 信誉评分 + 排名    │   │
+                        │  └──────────────────┘   │
+                        └─────────────────────────┘
+```
+
+#### 分阶段实现
+
+**Phase A — Agent DID 身份（Month 7-8）**:
+
+- [ ] AgentDID 实现：基于现有 DID 系统扩展代理身份，DID Document 包含技能能力声明
+- [ ] AgentAuthenticator 实现：DID 互认证协议（Challenge-Response），跨组织信任链
+- [ ] AgentCredentialManager 基础：VC 签发（能力证明、任务完成证明）
+- [ ] 基础 IPC（8 个）：agent-did:create、agent-did:resolve、agent-did:get-all、agent-did:revoke、agent-cred:issue、agent-cred:verify、agent-cred:revoke、decentralized:get-config
+
+**Phase B — 联邦发现与路由（Month 8-9）**:
+
+- [ ] FederatedAgentRegistry 实现：KadDHT 去中心化代理发现，技能索引广播
+- [ ] CrossOrgTaskRouter 实现：跨组织任务委派、权限校验、结果回传
+- [ ] 集成现有 P2P Agent Network：复用 WebRTC DataChannel 作为传输层
+- [ ] 扩展 IPC（+7 个）：fed-registry:discover、fed-registry:register、fed-registry:query-skills、fed-registry:get-network-stats、cross-org:route-task、cross-org:get-task-status、cross-org:cancel-task
+
+**Phase C — 信誉与扩展（Month 9-12）**:
+
+- [ ] AgentReputation 实现：基于任务完成率、质量评分、响应时间的多维信誉模型
+- [ ] 信誉排名：去中心化 PageRank 式排名算法
+- [ ] 信誉激励：高信誉代理优先接收任务
+- [ ] 完善 IPC（+5 个）：cross-org:get-log、reputation:get-score、reputation:get-ranking、reputation:update、reputation:get-history
+- [ ] 100+ 节点压力测试 + 加固优化
+
+#### v4.0 IPC 通道（20 个）
+
+**Agent DID（4 个）**:
+
+| 通道                | 功能                    |
+| ------------------- | ----------------------- |
+| `agent-did:create`  | 创建 Agent DID          |
+| `agent-did:resolve` | 解析 Agent DID Document |
+| `agent-did:get-all` | 获取所有 Agent DID      |
+| `agent-did:revoke`  | 吊销 Agent DID          |
+
+**Federated Registry（4 个）**:
+
+| 通道                             | 功能               |
+| -------------------------------- | ------------------ |
+| `fed-registry:discover`          | 发现网络中的代理   |
+| `fed-registry:register`          | 注册到联邦网络     |
+| `fed-registry:query-skills`      | 查询网络技能可用性 |
+| `fed-registry:get-network-stats` | 获取网络统计       |
+
+**Agent Credentials（3 个）**:
+
+| 通道                | 功能           |
+| ------------------- | -------------- |
+| `agent-cred:issue`  | 签发可验证凭证 |
+| `agent-cred:verify` | 验证凭证有效性 |
+| `agent-cred:revoke` | 吊销凭证       |
+
+**Cross-Org Task Routing（4 个）**:
+
+| 通道                        | 功能               |
+| --------------------------- | ------------------ |
+| `cross-org:route-task`      | 跨组织任务路由     |
+| `cross-org:get-task-status` | 查询跨组织任务状态 |
+| `cross-org:cancel-task`     | 取消跨组织任务     |
+| `cross-org:get-log`         | 获取跨组织任务日志 |
+
+**Reputation & Config（5 个）**:
+
+| 通道                       | 功能                 |
+| -------------------------- | -------------------- |
+| `reputation:get-score`     | 获取代理信誉评分     |
+| `reputation:get-ranking`   | 获取信誉排名         |
+| `reputation:update`        | 更新信誉数据         |
+| `reputation:get-history`   | 获取信誉变化历史     |
+| `decentralized:get-config` | 获取去中心化网络配置 |
+
+#### 代码示例
+
+```javascript
+// 创建 Agent DID
+const agentDid = await ipcRenderer.invoke("agent-did:create", {
+  name: "code-review-specialist",
+  skills: ["code-review", "security-audit", "test-generator"],
+  organization: "org-chainlesschain",
+  capabilities: {
+    maxConcurrency: 5,
+    supportedLanguages: ["javascript", "typescript", "python"],
+    gpuAvailable: true,
+  },
+});
+// → {
+//     did: "did:cc:agent-abc123",
+//     document: { id: "did:cc:agent-abc123", skills: [...], capabilities: {...} },
+//     credentials: []
+//   }
+
+// 联邦网络技能发现
+const agents = await ipcRenderer.invoke("fed-registry:query-skills", {
+  skillId: "security-audit",
+  minReputation: 0.8,
+  maxLatency: 5000,
+});
+// → [
+//     { did: "did:cc:agent-xyz789", org: "org-securitylab", reputation: 0.95, latency: 120 },
+//     { did: "did:cc:agent-def456", org: "org-devteam", reputation: 0.87, latency: 230 }
+//   ]
+
+// 跨组织任务委派
+const task = await ipcRenderer.invoke("cross-org:route-task", {
+  targetDid: "did:cc:agent-xyz789",
+  skillId: "security-audit",
+  input: {
+    repository: "https://github.com/org/repo",
+    branch: "main",
+  },
+  credential: credentialJwt, // 能力证明
+  timeout: 300000,
+  budget: { maxTokens: 50000 },
+});
+// → { taskId: "cross-task-001", status: "delegated", estimatedCompletion: "2026-07-15T10:30:00Z" }
+
+// 查询信誉评分
+const reputation = await ipcRenderer.invoke("reputation:get-score", {
+  did: "did:cc:agent-abc123",
+});
+// → {
+//     score: 0.92,
+//     dimensions: { completionRate: 0.95, qualityScore: 0.88, responseTime: 0.93 },
+//     totalTasks: 156, rank: 12, percentile: 95
+//   }
+```
+
+#### 数据库 Schema（v4.0 新增 3 表）
+
+```sql
+-- Agent DID 注册表
+CREATE TABLE agent_dids (
+  did TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  organization TEXT,
+  skills TEXT DEFAULT '[]',
+  capabilities TEXT DEFAULT '{}',
+  did_document TEXT DEFAULT '{}',
+  credentials TEXT DEFAULT '[]',
+  status TEXT DEFAULT 'active',     -- active, suspended, revoked
+  public_key TEXT,
+  private_key_encrypted TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 代理信誉记录
+CREATE TABLE agent_reputation (
+  id TEXT PRIMARY KEY,
+  agent_did TEXT NOT NULL,
+  score REAL DEFAULT 0.5,
+  completion_rate REAL DEFAULT 0,
+  quality_score REAL DEFAULT 0,
+  response_time_score REAL DEFAULT 0,
+  total_tasks INTEGER DEFAULT 0,
+  successful_tasks INTEGER DEFAULT 0,
+  failed_tasks INTEGER DEFAULT 0,
+  feedback_history TEXT DEFAULT '[]',
+  rank INTEGER,
+  last_updated TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (agent_did) REFERENCES agent_dids(did)
+);
+
+-- 联邦任务日志
+CREATE TABLE federated_task_log (
+  id TEXT PRIMARY KEY,
+  source_did TEXT NOT NULL,
+  target_did TEXT NOT NULL,
+  source_org TEXT,
+  target_org TEXT,
+  skill_id TEXT NOT NULL,
+  input TEXT DEFAULT '{}',
+  result TEXT,
+  status TEXT DEFAULT 'pending',    -- pending, delegated, accepted, running, completed, failed, cancelled
+  credential_jwt TEXT,
+  budget TEXT DEFAULT '{}',
+  latency_ms INTEGER,
+  delegated_at TEXT DEFAULT (datetime('now')),
+  completed_at TEXT
+);
+```
+
+#### 关键文件
+
+| 文件                                                     | 行数 | 职责                         |
+| -------------------------------------------------------- | ---- | ---------------------------- |
+| `src/main/ai-engine/cowork/agent-did.js`                 | ~650 | Agent DID 创建/解析/能力证明 |
+| `src/main/ai-engine/cowork/federated-agent-registry.js`  | ~700 | KadDHT 联邦代理发现          |
+| `src/main/ai-engine/cowork/agent-credential-manager.js`  | ~500 | 可验证凭证签发与验证         |
+| `src/main/ai-engine/cowork/cross-org-task-router.js`     | ~600 | 跨组织任务路由               |
+| `src/main/ai-engine/cowork/agent-reputation.js`          | ~450 | 去中心化信誉系统             |
+| `src/main/ai-engine/cowork/agent-authenticator.js`       | ~400 | DID 互认证协议               |
+| `src/main/ai-engine/cowork/decentralized-network-ipc.js` | ~500 | 20 个 IPC handler            |
+
+#### KPI 度量
+
+| 指标             | 目标    | 度量方式                    |
+| ---------------- | ------- | --------------------------- |
+| 网络节点数       | ≥ 100   | KadDHT 活跃节点计数         |
+| 跨组织任务成功率 | > 90%   | 成功完成 / 总委派数         |
+| DID 认证延迟     | < 500ms | Challenge-Response 往返耗时 |
+| 技能发现延迟     | < 2 秒  | 查询发起→结果返回耗时       |
+| 信誉更新一致性   | > 99%   | 最终一致性收敛率            |
+
+---
+
+### 实现时间线总览
+
+```
+Month 1-2:   Phase 3.0.A (流水线框架)        + Phase 3.3.A (异常检测)
+Month 2-3:   Phase 3.1.A (Spec 翻译引擎)     + Phase 3.2.A (文档/图像融合)
+Month 3-4:   Phase 3.0.B (代理集成)           + Phase 3.3.B (自动修复)
+Month 4-5:   Phase 3.1.B (约定分析与代码生成) + Phase 3.2.B (语音/屏幕)
+Month 5-6:   Phase 3.0.C (部署与监控)         + Phase 3.3.C (自学习与报告)
+Month 6-7:   Phase 3.1.C (交互精炼)           + Phase 3.2.C (富输出生成)
+Month 7-9:   Phase 4.0.A-B (Agent DID + 联邦发现与路由)
+Month 9-12:  Phase 4.0.C (信誉与扩展) + 全系统加固优化
+```
+
+#### 新增总量预估
+
+| 方向             | 版本 | 新增模块 | 新增行数    | IPC 通道 | 数据库表 | 新技能 |
+| ---------------- | ---- | -------- | ----------- | -------- | -------- | ------ |
+| 全自动开发流水线 | v3.0 | 5        | ~2,400      | 15       | 3        | 0      |
+| 自然语言编程     | v3.1 | 4        | ~1,750      | 10       | 2        | 1      |
+| 多模态协作       | v3.2 | 9        | ~3,340      | 12       | 2        | 3      |
+| 自主运维         | v3.3 | 7        | ~3,200      | 15       | 3        | 0      |
+| 去中心化代理网络 | v4.0 | 7        | ~3,800      | 20       | 3        | 0      |
+| **合计**         | —    | **32**   | **~14,490** | **72**   | **13**   | **4**  |
+
 ### 路线图总览
 
 | 版本   | 功能                   | 核心技术                            | 状态      |
@@ -2942,6 +4107,11 @@ CREATE TABLE ab_comparisons (
 | v1.3.0 | ML 调度与 CI/CD 优化   | 线性回归、负载均衡、OpenAPI 3.0     | ✅ 已完成 |
 | v2.0.0 | 跨设备协作与分布式执行 | WebRTC P2P、REST API、Webhook       | ✅ 已完成 |
 | v2.1.0 | 自进化与知识图谱       | 知识图谱、Prompt 优化、辩论审查     | ✅ 已完成 |
+| v3.0   | 全自动开发流水线       | Pipeline 编排、需求解析、自动部署   | 🔮 规划中 |
+| v3.1   | 自然语言编程           | NL→Spec 翻译、约定分析、代码生成    | 🔮 规划中 |
+| v3.2   | 多模态协作             | 模态融合、文档/语音/屏幕解析        | 🔮 规划中 |
+| v3.3   | 自主运维               | 异常检测、自动修复、告警升级        | 🔮 规划中 |
+| v4.0   | 去中心化代理网络       | Agent DID、联邦发现、跨组织路由     | 🔮 规划中 |
 
 ## 贡献指南
 
@@ -2956,10 +4126,10 @@ MIT License - 详见 [LICENSE](https://github.com/chainlesschain/LICENSE)
 
 ---
 
-**代码行数**: ~28,000 行 (含测试和文档)
-**IPC 处理器**: 166 个 (51 核心 + 35 v1.1.0 + 11 v1.2.0 + 34 v2.0.0 + 35 v2.1.0)
-**内置技能**: 95 个 (100% Handler 覆盖, 懒加载, +12 CU Bridge 技能, +3 v2.1.0 技能)
-**数据库表**: 8 张新表 (v2.1.0: 知识图谱 2 + 决策 1 + Prompt 2 + 发现 1 + 辩论 1 + A/B 1)
+**代码行数**: ~42,000 行 (含测试和文档, 含 v3.0-v4.0 规划 ~14,490 行)
+**IPC 处理器**: 238 个 (166 已实现 + 72 规划: 15 v3.0 dev-pipeline + 10 v3.1 + 12 v3.2 + 15 v3.3 + 20 v4.0)
+**内置技能**: 99 个 (95 已实现 + 4 规划: 1 v3.1 nl-program + 3 v3.2 多模态技能)
+**数据库表**: 21 张新表 (8 已实现 + 13 规划: 3 v3.0 + 2 v3.1 + 2 v3.2 + 3 v3.3 + 3 v4.0)
 **流水线模板**: 10 个预置模板
 **跨设备支持**: Desktop + Android + iOS + Cloud (4 平台)
 **API 端点**: 20+ RESTful 端点 + SSE 实时推送
