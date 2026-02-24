@@ -119,7 +119,7 @@ describe("RequirementParser", () => {
       );
       const validation = parser.validateSpec(spec);
       expect(validation).toHaveProperty("valid");
-      expect(validation).toHaveProperty("errors");
+      expect(validation).toHaveProperty("issues");
       expect(typeof validation.valid).toBe("boolean");
     });
 
@@ -129,7 +129,7 @@ describe("RequirementParser", () => {
         type: "feature",
       });
       expect(validation.valid).toBe(false);
-      expect(Array.isArray(validation.errors)).toBe(true);
+      expect(Array.isArray(validation.issues)).toBe(true);
     });
 
     it("should include completeness score", async () => {
@@ -137,7 +137,7 @@ describe("RequirementParser", () => {
         "Add pagination to user list with 10 items per page",
       );
       const validation = parser.validateSpec(spec);
-      expect(validation).toHaveProperty("completeness");
+      expect(validation).toHaveProperty("completenessScore");
     });
   });
 
@@ -169,9 +169,8 @@ describe("RequirementParser", () => {
 
   describe("Constants", () => {
     it("REQUIREMENT_TYPES should have FEATURE and BUG_FIX", () => {
-      expect(Object.values(REQUIREMENT_TYPES)).toContain(
-        expect.stringMatching(/feature|bug/i),
-      );
+      expect(REQUIREMENT_TYPES.FEATURE).toBeTruthy();
+      expect(REQUIREMENT_TYPES.BUGFIX).toBeTruthy();
     });
 
     it("SPEC_STATUS should have PARSED", () => {

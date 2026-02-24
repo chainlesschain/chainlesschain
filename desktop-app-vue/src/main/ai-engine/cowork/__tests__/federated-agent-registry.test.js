@@ -111,8 +111,8 @@ describe("FederatedAgentRegistry", () => {
       );
     });
 
-    it("should throw for unregistered agent", () => {
-      expect(() => registry.unregister("did:chainless:nonexistent")).toThrow();
+    it("should return false for unregistered agent", () => {
+      expect(registry.unregister("did:chainless:nonexistent")).toBe(false);
     });
   });
 
@@ -128,8 +128,8 @@ describe("FederatedAgentRegistry", () => {
       ).not.toThrow();
     });
 
-    it("should throw for unregistered agent", () => {
-      expect(() => registry.heartbeat("did:chainless:ghost")).toThrow();
+    it("should return false for unregistered agent", () => {
+      expect(registry.heartbeat("did:chainless:ghost")).toBe(false);
     });
   });
 
