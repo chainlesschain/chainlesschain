@@ -12,8 +12,8 @@
 const
 ```
 
-* 生产环境集成测试
- * 测试ToolManager在主进程环境中加载Additional Tools V3
+- 生产环境集成测试
+- 测试ToolManager在主进程环境中加载Additional Tools V3
 
 ---
 
@@ -23,7 +23,7 @@ const
 async initialize()
 ```
 
-* 初始化测试环境
+- 初始化测试环境
 
 ---
 
@@ -33,7 +33,7 @@ async initialize()
 async verifyV3ToolsLoaded()
 ```
 
-* 验证V3工具是否正确加载
+- 验证V3工具是否正确加载
 
 ---
 
@@ -43,7 +43,7 @@ async verifyV3ToolsLoaded()
 async testToolExecution()
 ```
 
-* 测试工具调用
+- 测试工具调用
 
 ---
 
@@ -53,17 +53,17 @@ async testToolExecution()
 async performanceTest()
 ```
 
-* 性能测试
+- 性能测试
 
 ---
 
 ## generateReport(verifyResult, executeResult, perfResult)
 
 ```javascript
-generateReport(verifyResult, executeResult, perfResult)
+generateReport(verifyResult, executeResult, perfResult);
 ```
 
-* 生成最终报告
+- 生成最终报告
 
 ---
 
@@ -73,7 +73,7 @@ generateReport(verifyResult, executeResult, perfResult)
 async cleanup()
 ```
 
-* 清理资源
+- 清理资源
 
 ---
 
@@ -83,7 +83,6 @@ async cleanup()
 async run()
 ```
 
-* 运行完整测试流程
+- 运行完整测试流程
 
 ---
-

@@ -1,8 +1,8 @@
 # Cowork 多智能体协作系统
 
-> **版本: v2.1.0 | 状态: ✅ 生产就绪 | 166 IPC Handlers | 95 内置技能 | ~90% 测试覆盖率**
+> **版本: v4.0 | 状态: ✅ 生产就绪 | 238 IPC Handlers | 95 内置技能 | 21 数据库表 | ~90% 测试覆盖率**
 
-ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、95 内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成、Instinct 学习系统、Orchestrate 编排工作流、Verification Loop 验证流水线、**P2P 跨设备代理网络、设备能力发现、混合执行策略、Computer Use Bridge、RESTful API 服务、Webhook 事件推送**以及智能单/多代理决策引擎。
+ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、95 内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成、Instinct 学习系统、Orchestrate 编排工作流、Verification Loop 验证流水线、**P2P 跨设备代理网络、设备能力发现、混合执行策略、Computer Use Bridge、RESTful API 服务、Webhook 事件推送**、全自动开发流水线、自然语言编程（NL→Spec）、多模态协作（音视频/图像/文档融合）、自主运维（异常检测/自动修复/告警）以及**去中心化代理网络（Agent DID / 联邦发现 / 跨组织路由 / 信誉系统）**。
 
 ## 核心特性
 
@@ -34,6 +34,14 @@ ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Cla
 - 🎭 **Debate Review**: 多视角辩论式代码审查（性能/安全/可维护性），共识投票裁决
 - ⚖️ **A/B Comparator**: 多代理方案生成与基准对比，自动评分排名
 - 🔄 **Experience Replay**: 工作流模板自动提取，成功路径沉淀为 Instinct 模式
+- 🔩 **全自动开发流水线** (v3.0): DAG 流水线编排，需求→Spec→代码→部署→监控全链路自动化
+- 💬 **自然语言编程** (v3.1): NL→Spec 翻译（9 种意图分类），约定分析，代码生成，交互精炼
+- 🖼️ **多模态协作** (v3.2): 音频/图像/文档/屏幕/文本五模态融合，富输出（MD/HTML/ECharts/幻灯片）
+- 🚨 **自主运维** (v3.3): 异常检测，Playbook 自动修复，多通道告警升级（P0-P3），故障后分析报告
+- 🪪 **Agent DID 身份** (v4.0): W3C DID 规范，Ed25519 密钥对，可验证凭证（Capability/Delegation/Membership）
+- 🌐 **联邦代理发现** (v4.0): KadDHT 去中心化发现，跨组织技能查询，实时延迟感知路由
+- 🔀 **跨组织任务路由** (v4.0): 凭证证明委派，SLA 预算控制，任务状态追踪，全程审计日志
+- ⭐ **信誉系统** (v4.0): 动态评分（完成率/质量/响应时间/近期活跃），衰减机制，排名百分位
 
 ## TeammateTool — 13 核心操作
 

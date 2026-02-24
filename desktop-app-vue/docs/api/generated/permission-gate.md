@@ -12,23 +12,23 @@
 const
 ```
 
-* 权限验证器 - 基于 DID 的命令授权系统
- *
- * 功能：
- * - DID 签名验证
- * - 时间戳验证（防重放攻击）
- * - 命令权限级别检查（4 级权限体系）
- * - U-Key 二次验证（Level 4 命令）
- * - 设备权限管理
- * - 频率限制（Rate Limiting）
- *
- * 权限级别：
- * Level 1 (Public):  查询状态、读取数据
- * Level 2 (Normal):  AI 对话、文件操作
- * Level 3 (Admin):   系统控制、配置修改
- * Level 4 (Root):    核心功能、安全设置（需要 U-Key）
- *
- * @module remote/permission-gate
+- 权限验证器 - 基于 DID 的命令授权系统
+-
+- 功能：
+- - DID 签名验证
+- - 时间戳验证（防重放攻击）
+- - 命令权限级别检查（4 级权限体系）
+- - U-Key 二次验证（Level 4 命令）
+- - 设备权限管理
+- - 频率限制（Rate Limiting）
+-
+- 权限级别：
+- Level 1 (Public): 查询状态、读取数据
+- Level 2 (Normal): AI 对话、文件操作
+- Level 3 (Admin): 系统控制、配置修改
+- Level 4 (Root): 核心功能、安全设置（需要 U-Key）
+-
+- @module remote/permission-gate
 
 ---
 
@@ -38,7 +38,7 @@ const
 const PERMISSION_LEVELS =
 ```
 
-* 权限级别常量
+- 权限级别常量
 
 ---
 
@@ -48,7 +48,7 @@ const PERMISSION_LEVELS =
 const DEFAULT_COMMAND_PERMISSIONS =
 ```
 
-* 默认命令权限映射
+- 默认命令权限映射
 
 ---
 
@@ -58,7 +58,7 @@ const DEFAULT_COMMAND_PERMISSIONS =
 class PermissionGate
 ```
 
-* 权限验证器类
+- 权限验证器类
 
 ---
 
@@ -68,7 +68,7 @@ class PermissionGate
 async initialize()
 ```
 
-* 初始化权限验证器
+- 初始化权限验证器
 
 ---
 
@@ -78,7 +78,7 @@ async initialize()
 async ensureTables()
 ```
 
-* 确保数据库表存在
+- 确保数据库表存在
 
 ---
 
@@ -88,7 +88,7 @@ async ensureTables()
 async verify(auth, method)
 ```
 
-* 验证命令权限（核心方法）
+- 验证命令权限（核心方法）
 
 ---
 
@@ -98,7 +98,7 @@ async verify(auth, method)
 async verifySignature(auth, method)
 ```
 
-* 验证 DID 签名
+- 验证 DID 签名
 
 ---
 
@@ -108,17 +108,17 @@ async verifySignature(auth, method)
 async verifyUKey()
 ```
 
-* 验证 U-Key（Level 4 命令）
+- 验证 U-Key（Level 4 命令）
 
 ---
 
 ## getCommandPermissionLevel(method)
 
 ```javascript
-getCommandPermissionLevel(method)
+getCommandPermissionLevel(method);
 ```
 
-* 获取命令权限级别
+- 获取命令权限级别
 
 ---
 
@@ -128,7 +128,7 @@ getCommandPermissionLevel(method)
 async getDevicePermissionLevel(did)
 ```
 
-* 获取设备权限级别
+- 获取设备权限级别
 
 ---
 
@@ -138,7 +138,7 @@ async getDevicePermissionLevel(did)
 async setDevicePermissionLevel(did, level, options =
 ```
 
-* 设置设备权限级别
+- 设置设备权限级别
 
 ---
 
@@ -148,7 +148,7 @@ async setDevicePermissionLevel(did, level, options =
 async checkRateLimit(did, method, permissionLevel)
 ```
 
-* 检查频率限制
+- 检查频率限制
 
 ---
 
@@ -158,7 +158,7 @@ async checkRateLimit(did, method, permissionLevel)
 async loadDevicePermissions()
 ```
 
-* 加载设备权限
+- 加载设备权限
 
 ---
 
@@ -168,7 +168,7 @@ async loadDevicePermissions()
 async logAudit(did, method, permissionLevel, granted, reason)
 ```
 
-* 记录审计日志
+- 记录审计日志
 
 ---
 
@@ -178,107 +178,107 @@ async logAudit(did, method, permissionLevel, granted, reason)
 getAuditLogs(options =
 ```
 
-* 获取审计日志
+- 获取审计日志
 
 ---
 
 ## registerCommandPermission(method, level)
 
 ```javascript
-registerCommandPermission(method, level)
+registerCommandPermission(method, level);
 ```
 
-* 注册自定义命令权限
+- 注册自定义命令权限
 
 ---
 
 ## startCleanup()
 
 ```javascript
-startCleanup()
+startCleanup();
 ```
 
-* 启动定期清理
+- 启动定期清理
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理过期数据
+- 清理过期数据
 
 ---
 
 ## stopCleanup()
 
 ```javascript
-stopCleanup()
+stopCleanup();
 ```
 
-* 停止定期清理
+- 停止定期清理
 
 ---
 
 ## updateDeviceActivity(did)
 
 ```javascript
-updateDeviceActivity(did)
+updateDeviceActivity(did);
 ```
 
-* 更新设备最后活动时间
+- 更新设备最后活动时间
 
 ---
 
 ## startAutoRevokeCheck()
 
 ```javascript
-startAutoRevokeCheck()
+startAutoRevokeCheck();
 ```
 
-* 启动设备自动撤销检查
+- 启动设备自动撤销检查
 
 ---
 
 ## checkInactiveDevices()
 
 ```javascript
-checkInactiveDevices()
+checkInactiveDevices();
 ```
 
-* 检查并降级不活跃设备
+- 检查并降级不活跃设备
 
 ---
 
 ## stopAutoRevokeCheck()
 
 ```javascript
-stopAutoRevokeCheck()
+stopAutoRevokeCheck();
 ```
 
-* 停止设备自动撤销检查
+- 停止设备自动撤销检查
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## getInactiveDevices(days = 7)
 
 ```javascript
-getInactiveDevices(days = 7)
+getInactiveDevices((days = 7));
 ```
 
-* 获取不活跃设备列表
+- 获取不活跃设备列表
 
 ---
 
@@ -288,17 +288,16 @@ getInactiveDevices(days = 7)
 async revokeDevice(did, reason = "Manual revocation")
 ```
 
-* 手动撤销设备权限
+- 手动撤销设备权限
 
 ---
 
 ## shutdown()
 
 ```javascript
-shutdown()
+shutdown();
 ```
 
-* 停止所有定时器
+- 停止所有定时器
 
 ---
-

@@ -12,8 +12,8 @@
 const
 ```
 
-* 订单导出模块
- * 支持导出订单为 PDF 和图片格式
+- 订单导出模块
+- 支持导出订单为 PDF 和图片格式
 
 ---
 
@@ -23,9 +23,9 @@ const
 function generateOrderHTML(order)
 ```
 
-* 生成订单 HTML 模板
- * @param {Object} order - 订单数据
- * @returns {string} HTML 字符串
+- 生成订单 HTML 模板
+- @param {Object} order - 订单数据
+- @returns {string} HTML 字符串
 
 ---
 
@@ -35,8 +35,8 @@ function generateOrderHTML(order)
 function getTempDir()
 ```
 
-* 获取临时目录
- * @returns {string} 临时目录路径
+- 获取临时目录
+- @returns {string} 临时目录路径
 
 ---
 
@@ -46,10 +46,10 @@ function getTempDir()
 async function exportOrderToPDF(order, options =
 ```
 
-* 导出订单为 PDF
- * @param {Object} order - 订单数据
- * @param {Object} options - 导出选项
- * @returns {Promise<{success: boolean, filePath?: string, error?: string}>}
+- 导出订单为 PDF
+- @param {Object} order - 订单数据
+- @param {Object} options - 导出选项
+- @returns {Promise<{success: boolean, filePath?: string, error?: string}>}
 
 ---
 
@@ -59,10 +59,10 @@ async function exportOrderToPDF(order, options =
 async function exportOrderToImage(order, options =
 ```
 
-* 导出订单为图片
- * @param {Object} order - 订单数据
- * @param {Object} options - 导出选项
- * @returns {Promise<{success: boolean, filePath?: string, error?: string}>}
+- 导出订单为图片
+- @param {Object} order - 订单数据
+- @param {Object} options - 导出选项
+- @returns {Promise<{success: boolean, filePath?: string, error?: string}>}
 
 ---
 
@@ -72,17 +72,17 @@ async function exportOrderToImage(order, options =
 class ShareLinkManager
 ```
 
-* 分享链接管理器
+- 分享链接管理器
 
 ---
 
-## _ensureTable()
+## \_ensureTable()
 
 ```javascript
-_ensureTable()
+_ensureTable();
 ```
 
-* 确保分享链接表存在
+- 确保分享链接表存在
 
 ---
 
@@ -92,9 +92,9 @@ _ensureTable()
 async saveLink(linkData)
 ```
 
-* 保存分享链接
-   * @param {Object} linkData - 链接数据
-   * @returns {Promise<{success: boolean, id?: number, error?: string}>}
+- 保存分享链接
+  - @param {Object} linkData - 链接数据
+  - @returns {Promise<{success: boolean, id?: number, error?: string}>}
 
 ---
 
@@ -104,9 +104,9 @@ async saveLink(linkData)
 async validateLink(token)
 ```
 
-* 验证分享链接
-   * @param {string} token - 链接令牌
-   * @returns {Promise<{valid: boolean, link?: Object, error?: string}>}
+- 验证分享链接
+  - @param {string} token - 链接令牌
+  - @returns {Promise<{valid: boolean, link?: Object, error?: string}>}
 
 ---
 
@@ -116,10 +116,10 @@ async validateLink(token)
 async revokeLink(orderId, token = null)
 ```
 
-* 撤销分享链接
-   * @param {string} orderId - 订单 ID
-   * @param {string} token - 可选，指定令牌；不传则撤销该订单所有链接
-   * @returns {Promise<{success: boolean, count?: number, error?: string}>}
+- 撤销分享链接
+  - @param {string} orderId - 订单 ID
+  - @param {string} token - 可选，指定令牌；不传则撤销该订单所有链接
+  - @returns {Promise<{success: boolean, count?: number, error?: string}>}
 
 ---
 
@@ -129,9 +129,8 @@ async revokeLink(orderId, token = null)
 async getLinksForOrder(orderId)
 ```
 
-* 获取订单的所有分享链接
-   * @param {string} orderId - 订单 ID
-   * @returns {Promise<Array>}
+- 获取订单的所有分享链接
+  - @param {string} orderId - 订单 ID
+  - @returns {Promise<Array>}
 
 ---
-

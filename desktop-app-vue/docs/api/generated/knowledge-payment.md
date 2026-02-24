@@ -12,8 +12,8 @@
 class KnowledgePaymentManager extends EventEmitter
 ```
 
-* 知识付费管理器
- * 负责付费内容创建、购买、访问控制和加密保护
+- 知识付费管理器
+- 负责付费内容创建、购买、访问控制和加密保护
 
 ---
 
@@ -23,27 +23,27 @@ class KnowledgePaymentManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化知识付费管理器
+- 初始化知识付费管理器
 
 ---
 
 ## initDatabase()
 
 ```javascript
-initDatabase()
+initDatabase();
 ```
 
-* 初始化数据库表
+- 初始化数据库表
 
 ---
 
 ## setCurrentUser(did)
 
 ```javascript
-setCurrentUser(did)
+setCurrentUser(did);
 ```
 
-* 设置当前用户
+- 设置当前用户
 
 ---
 
@@ -53,7 +53,7 @@ setCurrentUser(did)
 async createPaidContent(options)
 ```
 
-* 创建付费内容
+- 创建付费内容
 
 ---
 
@@ -63,7 +63,7 @@ async createPaidContent(options)
 async purchaseContent(contentId, buyerDid)
 ```
 
-* 购买内容
+- 购买内容
 
 ---
 
@@ -73,7 +73,7 @@ async purchaseContent(contentId, buyerDid)
 async verifyAccess(contentId, userDid)
 ```
 
-* 验证访问权限
+- 验证访问权限
 
 ---
 
@@ -83,7 +83,7 @@ async verifyAccess(contentId, userDid)
 async getDecryptedContent(contentId, userDid)
 ```
 
-* 获取解密内容
+- 获取解密内容
 
 ---
 
@@ -93,7 +93,7 @@ async getDecryptedContent(contentId, userDid)
 async createSubscriptionPlan(options)
 ```
 
-* 创建订阅计划
+- 创建订阅计划
 
 ---
 
@@ -103,7 +103,7 @@ async createSubscriptionPlan(options)
 async subscribe(planId, subscriberDid, autoRenew = false)
 ```
 
-* 订阅计划
+- 订阅计划
 
 ---
 
@@ -113,7 +113,7 @@ async subscribe(planId, subscriberDid, autoRenew = false)
 async cancelSubscription(subscriptionId)
 ```
 
-* 取消订阅
+- 取消订阅
 
 ---
 
@@ -123,27 +123,27 @@ async cancelSubscription(subscriptionId)
 getMyContents(filters =
 ```
 
-* 获取我的内容列表
+- 获取我的内容列表
 
 ---
 
 ## getMyPurchases()
 
 ```javascript
-getMyPurchases()
+getMyPurchases();
 ```
 
-* 获取我的购买列表
+- 获取我的购买列表
 
 ---
 
 ## getMySubscriptions()
 
 ```javascript
-getMySubscriptions()
+getMySubscriptions();
 ```
 
-* 获取订阅列表
+- 获取订阅列表
 
 ---
 
@@ -153,37 +153,37 @@ getMySubscriptions()
 searchContents(keyword, filters =
 ```
 
-* 搜索内容
+- 搜索内容
 
 ---
 
 ## logAccess(contentId, userDid, accessType)
 
 ```javascript
-logAccess(contentId, userDid, accessType)
+logAccess(contentId, userDid, accessType);
 ```
 
-* 记录访问日志
+- 记录访问日志
 
 ---
 
 ## encryptContent(content, key)
 
 ```javascript
-encryptContent(content, key)
+encryptContent(content, key);
 ```
 
-* 加密内容
+- 加密内容
 
 ---
 
 ## decryptContent(encryptedData, key)
 
 ```javascript
-decryptContent(encryptedData, key)
+decryptContent(encryptedData, key);
 ```
 
-* 解密内容
+- 解密内容
 
 ---
 
@@ -193,23 +193,22 @@ decryptContent(encryptedData, key)
 listContents(filters =
 ```
 
-* 列出付费内容
-   * @param {Object} filters - 筛选条件
-   * @param {string} filters.contentType - 内容类型
-   * @param {string} filters.status - 状态
-   * @param {number} filters.limit - 限制数量
-   * @param {number} filters.offset - 偏移量
-   * @returns {Array} 内容列表
+- 列出付费内容
+  - @param {Object} filters - 筛选条件
+  - @param {string} filters.contentType - 内容类型
+  - @param {string} filters.status - 状态
+  - @param {number} filters.limit - 限制数量
+  - @param {number} filters.offset - 偏移量
+  - @returns {Array} 内容列表
 
 ---
 
 ## getStatistics(creatorDid)
 
 ```javascript
-getStatistics(creatorDid)
+getStatistics(creatorDid);
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
-

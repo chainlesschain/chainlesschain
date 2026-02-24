@@ -12,17 +12,17 @@
 const
 ```
 
-* FileHandler - 文件处理管理器
- *
- * 处理浏览器自动化中的文件操作：
- * - 下载跟踪和管理
- * - 上传处理
- * - 文件类型验证
- * - 下载进度监控
- *
- * @module browser/actions/file-handler
- * @author ChainlessChain Team
- * @since v0.33.0
+- FileHandler - 文件处理管理器
+-
+- 处理浏览器自动化中的文件操作：
+- - 下载跟踪和管理
+- - 上传处理
+- - 文件类型验证
+- - 下载进度监控
+-
+- @module browser/actions/file-handler
+- @author ChainlessChain Team
+- @since v0.33.0
 
 ---
 
@@ -32,7 +32,7 @@ const
 const DownloadState =
 ```
 
-* 下载状态
+- 下载状态
 
 ---
 
@@ -42,7 +42,7 @@ const DownloadState =
 const FileCategory =
 ```
 
-* 文件类型分类
+- 文件类型分类
 
 ---
 
@@ -52,7 +52,7 @@ const FileCategory =
 const FILE_TYPE_MAP =
 ```
 
-* 文件类型映射
+- 文件类型映射
 
 ---
 
@@ -62,32 +62,32 @@ const FILE_TYPE_MAP =
 constructor(browserEngine = null, config =
 ```
 
-* @param {Object} browserEngine - Browser engine instance
-   * @param {Object} config - Configuration options
-   * @param {Object} [dependencies] - Optional dependency injection for testing
+- @param {Object} browserEngine - Browser engine instance
+  - @param {Object} config - Configuration options
+  - @param {Object} [dependencies] - Optional dependency injection for testing
 
 ---
 
 ## setBrowserEngine(browserEngine)
 
 ```javascript
-setBrowserEngine(browserEngine)
+setBrowserEngine(browserEngine);
 ```
 
-* 设置浏览器引擎
-   * @param {Object} browserEngine
+- 设置浏览器引擎
+  - @param {Object} browserEngine
 
 ---
 
 ## setDownloadDir(dir)
 
 ```javascript
-setDownloadDir(dir)
+setDownloadDir(dir);
 ```
 
-* 设置下载目录
-   * @param {string} dir - 下载目录
-   * @returns {Object}
+- 设置下载目录
+  - @param {string} dir - 下载目录
+  - @returns {Object}
 
 ---
 
@@ -97,57 +97,57 @@ setDownloadDir(dir)
 async startDownload(targetId, url, options =
 ```
 
-* 开始下载
-   * @param {string} targetId - 标签页 ID
-   * @param {string} url - 下载 URL
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>}
+- 开始下载
+  - @param {string} targetId - 标签页 ID
+  - @param {string} url - 下载 URL
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>}
 
 ---
 
-## async _downloadViaPage(download, options)
+## async \_downloadViaPage(download, options)
 
 ```javascript
 async _downloadViaPage(download, options)
 ```
 
-* 通过页面下载
-   * @private
+- 通过页面下载
+  - @private
 
 ---
 
-## async _downloadViaFetch(download, options)
+## async \_downloadViaFetch(download, options)
 
 ```javascript
 async _downloadViaFetch(download, options)
 ```
 
-* 通过 fetch 下载
-   * @private
+- 通过 fetch 下载
+  - @private
 
 ---
 
 ## cancelDownload(downloadId)
 
 ```javascript
-cancelDownload(downloadId)
+cancelDownload(downloadId);
 ```
 
-* 取消下载
-   * @param {string} downloadId - 下载 ID
-   * @returns {Object}
+- 取消下载
+  - @param {string} downloadId - 下载 ID
+  - @returns {Object}
 
 ---
 
 ## getDownload(downloadId)
 
 ```javascript
-getDownload(downloadId)
+getDownload(downloadId);
 ```
 
-* 获取下载状态
-   * @param {string} downloadId - 下载 ID
-   * @returns {Object}
+- 获取下载状态
+  - @param {string} downloadId - 下载 ID
+  - @returns {Object}
 
 ---
 
@@ -157,35 +157,35 @@ getDownload(downloadId)
 listDownloads(filter =
 ```
 
-* 列出下载
-   * @param {Object} filter - 过滤条件
-   * @returns {Array}
+- 列出下载
+  - @param {Object} filter - 过滤条件
+  - @returns {Array}
 
 ---
 
 ## recordUpload(targetId, selector, files)
 
 ```javascript
-recordUpload(targetId, selector, files)
+recordUpload(targetId, selector, files);
 ```
 
-* 记录上传
-   * @param {string} targetId - 标签页 ID
-   * @param {string} selector - 上传元素选择器
-   * @param {Array} files - 文件信息列表
-   * @returns {Object}
+- 记录上传
+  - @param {string} targetId - 标签页 ID
+  - @param {string} selector - 上传元素选择器
+  - @param {Array} files - 文件信息列表
+  - @returns {Object}
 
 ---
 
 ## getUploads(limit = 20)
 
 ```javascript
-getUploads(limit = 20)
+getUploads((limit = 20));
 ```
 
-* 获取上传历史
-   * @param {number} limit - 返回数量
-   * @returns {Array}
+- 获取上传历史
+  - @param {number} limit - 返回数量
+  - @returns {Array}
 
 ---
 
@@ -195,87 +195,87 @@ getUploads(limit = 20)
 validateFile(filePath, rules =
 ```
 
-* 验证文件
-   * @param {string} filePath - 文件路径
-   * @param {Object} rules - 验证规则
-   * @returns {Object}
+- 验证文件
+  - @param {string} filePath - 文件路径
+  - @param {Object} rules - 验证规则
+  - @returns {Object}
 
 ---
 
 ## getFileInfo(filePath)
 
 ```javascript
-getFileInfo(filePath)
+getFileInfo(filePath);
 ```
 
-* 获取文件信息
-   * @param {string} filePath - 文件路径
-   * @returns {Object}
+- 获取文件信息
+  - @param {string} filePath - 文件路径
+  - @returns {Object}
 
 ---
 
-## _parseUrl(url)
+## \_parseUrl(url)
 
 ```javascript
-_parseUrl(url)
+_parseUrl(url);
 ```
 
-* 解析 URL
-   * @private
+- 解析 URL
+  - @private
 
 ---
 
-## _generateUniqueName(dir, filename)
+## \_generateUniqueName(dir, filename)
 
 ```javascript
-_generateUniqueName(dir, filename)
+_generateUniqueName(dir, filename);
 ```
 
-* 生成唯一文件名
-   * @private
+- 生成唯一文件名
+  - @private
 
 ---
 
-## _getCategory(filename)
+## \_getCategory(filename)
 
 ```javascript
-_getCategory(filename)
+_getCategory(filename);
 ```
 
-* 获取文件分类
-   * @private
+- 获取文件分类
+  - @private
 
 ---
 
-## _updateCategoryStats(category)
+## \_updateCategoryStats(category)
 
 ```javascript
-_updateCategoryStats(category)
+_updateCategoryStats(category);
 ```
 
-* 更新分类统计
-   * @private
+- 更新分类统计
+  - @private
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计
-   * @returns {Object}
+- 获取统计
+  - @returns {Object}
 
 ---
 
 ## resetStats()
 
 ```javascript
-resetStats()
+resetStats();
 ```
 
-* 重置统计
+- 重置统计
 
 ---
 
@@ -285,9 +285,8 @@ resetStats()
 cleanup(options =
 ```
 
-* 清理下载记录
-   * @param {Object} options - 清理选项
-   * @returns {Object}
+- 清理下载记录
+  - @param {Object} options - 清理选项
+  - @returns {Object}
 
 ---
-

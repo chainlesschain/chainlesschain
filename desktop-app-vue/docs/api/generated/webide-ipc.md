@@ -12,51 +12,51 @@
 const
 ```
 
-* Web IDE IPC 处理器
- * 负责处理渲染进程和主进程之间的通信
+- Web IDE IPC 处理器
+- 负责处理渲染进程和主进程之间的通信
 
 ---
 
 ## registerHandlers()
 
 ```javascript
-registerHandlers()
+registerHandlers();
 ```
 
-* 注册所有 IPC handlers
+- 注册所有 IPC handlers
 
 ---
 
 ## registerProjectHandlers()
 
 ```javascript
-registerProjectHandlers()
+registerProjectHandlers();
 ```
 
-* 注册项目管理相关的 handlers
-   * @private
+- 注册项目管理相关的 handlers
+  - @private
 
 ---
 
 ## registerPreviewHandlers()
 
 ```javascript
-registerPreviewHandlers()
+registerPreviewHandlers();
 ```
 
-* 注册预览服务器相关的 handlers
-   * @private
+- 注册预览服务器相关的 handlers
+  - @private
 
 ---
 
 ## registerExportHandlers()
 
 ```javascript
-registerExportHandlers()
+registerExportHandlers();
 ```
 
-* 注册导出功能相关的 handlers
-   * @private
+- 注册导出功能相关的 handlers
+  - @private
 
 ---
 
@@ -66,7 +66,6 @@ registerExportHandlers()
 async cleanup()
 ```
 
-* 清理所有活动的服务器
+- 清理所有活动的服务器
 
 ---
-

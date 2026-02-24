@@ -12,25 +12,25 @@
 const
 ```
 
-* MCP Performance Monitor
- *
- * Tracks and analyzes performance metrics for MCP operations.
- * Helps identify bottlenecks and measure stdio overhead.
- *
- * @module MCPPerformanceMonitor
+- MCP Performance Monitor
+-
+- Tracks and analyzes performance metrics for MCP operations.
+- Helps identify bottlenecks and measure stdio overhead.
+-
+- @module MCPPerformanceMonitor
 
 ---
 
 ## recordConnection(serverName, duration, success)
 
 ```javascript
-recordConnection(serverName, duration, success)
+recordConnection(serverName, duration, success);
 ```
 
-* Record connection attempt
-   * @param {string} serverName - Server identifier
-   * @param {number} duration - Connection time in ms
-   * @param {boolean} success - Whether connection succeeded
+- Record connection attempt
+  - @param {string} serverName - Server identifier
+  - @param {number} duration - Connection time in ms
+  - @param {boolean} success - Whether connection succeeded
 
 ---
 
@@ -40,12 +40,12 @@ recordConnection(serverName, duration, success)
 recordToolCall(serverName, toolName, duration, success, metadata =
 ```
 
-* Record tool call
-   * @param {string} serverName - Server identifier
-   * @param {string} toolName - Tool name
-   * @param {number} duration - Execution time in ms
-   * @param {boolean} success - Whether call succeeded
-   * @param {Object} metadata - Additional metadata
+- Record tool call
+  - @param {string} serverName - Server identifier
+  - @param {string} toolName - Tool name
+  - @param {number} duration - Execution time in ms
+  - @param {boolean} success - Whether call succeeded
+  - @param {Object} metadata - Additional metadata
 
 ---
 
@@ -55,119 +55,118 @@ recordToolCall(serverName, toolName, duration, success, metadata =
 recordError(type, error, context =
 ```
 
-* Record error
-   * @param {string} type - Error type (connection, tool_call, etc.)
-   * @param {Error} error - Error object
-   * @param {Object} context - Error context
+- Record error
+  - @param {string} type - Error type (connection, tool_call, etc.)
+  - @param {Error} error - Error object
+  - @param {Object} context - Error context
 
 ---
 
 ## sampleMemory()
 
 ```javascript
-sampleMemory()
+sampleMemory();
 ```
 
-* Sample memory usage
+- Sample memory usage
 
 ---
 
 ## setBaseline(type, latency)
 
 ```javascript
-setBaseline(type, latency)
+setBaseline(type, latency);
 ```
 
-* Set baseline performance (for comparison)
-   * @param {string} type - Baseline type (directCall, stdioCall)
-   * @param {number} latency - Average latency in ms
+- Set baseline performance (for comparison)
+  - @param {string} type - Baseline type (directCall, stdioCall)
+  - @param {number} latency - Average latency in ms
 
 ---
 
 ## getSummary()
 
 ```javascript
-getSummary()
+getSummary();
 ```
 
-* Get performance summary
-   * @returns {Object} Performance summary statistics
+- Get performance summary
+  - @returns {Object} Performance summary statistics
 
 ---
 
 ## generateReport()
 
 ```javascript
-generateReport()
+generateReport();
 ```
 
-* Generate performance report
-   * @returns {string} Formatted report
+- Generate performance report
+  - @returns {string} Formatted report
 
 ---
 
 ## reset()
 
 ```javascript
-reset()
+reset();
 ```
 
-* Reset all metrics
+- Reset all metrics
 
 ---
 
-## _getAllToolCallLatencies()
+## \_getAllToolCallLatencies()
 
 ```javascript
-_getAllToolCallLatencies()
+_getAllToolCallLatencies();
 ```
 
-* Get all tool call latencies combined
-   * @private
+- Get all tool call latencies combined
+  - @private
 
 ---
 
-## _getOverallToolCallLatency()
+## \_getOverallToolCallLatency()
 
 ```javascript
-_getOverallToolCallLatency()
+_getOverallToolCallLatency();
 ```
 
-* Get overall average tool call latency
-   * @private
+- Get overall average tool call latency
+  - @private
 
 ---
 
-## _getOverallToolCallMinLatency()
+## \_getOverallToolCallMinLatency()
 
 ```javascript
-_getOverallToolCallMinLatency()
+_getOverallToolCallMinLatency();
 ```
 
-* Get overall minimum tool call latency
-   * @private
+- Get overall minimum tool call latency
+  - @private
 
 ---
 
-## _getOverallToolCallMaxLatency()
+## \_getOverallToolCallMaxLatency()
 
 ```javascript
-_getOverallToolCallMaxLatency()
+_getOverallToolCallMaxLatency();
 ```
 
-* Get overall maximum tool call latency
-   * @private
+- Get overall maximum tool call latency
+  - @private
 
 ---
 
-## _getOverallToolCallP95Latency()
+## \_getOverallToolCallP95Latency()
 
 ```javascript
-_getOverallToolCallP95Latency()
+_getOverallToolCallP95Latency();
 ```
 
-* Get overall P95 tool call latency
-   * @private
+- Get overall P95 tool call latency
+  - @private
 
 ---
-

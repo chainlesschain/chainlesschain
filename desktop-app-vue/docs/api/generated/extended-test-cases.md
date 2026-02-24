@@ -12,8 +12,8 @@
 const
 ```
 
-* 扩展测试用例
- * 为27个工具提供更全面的测试覆盖
+- 扩展测试用例
+- 为27个工具提供更全面的测试覆盖
 
 ---
 
@@ -23,7 +23,7 @@ const
 class ExtendedTestRunner
 ```
 
-* 测试运行器
+- 测试运行器
 
 ---
 
@@ -33,7 +33,7 @@ class ExtendedTestRunner
 async initialize()
 ```
 
-* 初始化
+- 初始化
 
 ---
 
@@ -43,7 +43,7 @@ async initialize()
 async runTest(toolName, testCase)
 ```
 
-* 运行单个测试
+- 运行单个测试
 
 ---
 
@@ -53,7 +53,7 @@ async runTest(toolName, testCase)
 async runAllTests()
 ```
 
-* 运行所有测试
+- 运行所有测试
 
 ---
 
@@ -63,7 +63,6 @@ async runAllTests()
 async run()
 ```
 
-* 运行
+- 运行
 
 ---
-

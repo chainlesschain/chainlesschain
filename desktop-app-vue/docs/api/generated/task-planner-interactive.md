@@ -12,14 +12,14 @@
 const
 ```
 
-* 交互式任务规划器（Claude Plan模式）
- *
- * 核心功能：
- * 1. 生成任务计划后先让用户确认
- * 2. 集成模板库，推荐相关模板
- * 3. 集成技能系统，推荐可用工具
- * 4. 支持用户调整参数和需求
- * 5. 质量评估和迭代优化
+- 交互式任务规划器（Claude Plan模式）
+-
+- 核心功能：
+- 1.  生成任务计划后先让用户确认
+- 2.  集成模板库，推荐相关模板
+- 3.  集成技能系统，推荐可用工具
+- 4.  支持用户调整参数和需求
+- 5.  质量评估和迭代优化
 
 ---
 
@@ -29,10 +29,10 @@ const
 async startPlanSession(userRequest, projectContext =
 ```
 
-* 开始Plan模式对话
-   * @param {string} userRequest - 用户需求
-   * @param {Object} projectContext - 项目上下文
-   * @returns {Promise<Object>} Plan会话信息
+- 开始Plan模式对话
+  - @param {string} userRequest - 用户需求
+  - @param {Object} projectContext - 项目上下文
+  - @returns {Promise<Object>} Plan会话信息
 
 ---
 
@@ -42,7 +42,7 @@ async startPlanSession(userRequest, projectContext =
 async generateTaskPlan(userRequest, projectContext)
 ```
 
-* 生成任务计划
+- 生成任务计划
 
 ---
 
@@ -52,7 +52,7 @@ async generateTaskPlan(userRequest, projectContext)
 async recommendTemplates(userRequest, projectContext, taskPlan)
 ```
 
-* 推荐相关模板
+- 推荐相关模板
 
 ---
 
@@ -62,7 +62,7 @@ async recommendTemplates(userRequest, projectContext, taskPlan)
 async recommendSkills(userRequest, projectContext, taskPlan)
 ```
 
-* 推荐技能
+- 推荐技能
 
 ---
 
@@ -72,37 +72,37 @@ async recommendSkills(userRequest, projectContext, taskPlan)
 async recommendTools(userRequest, projectContext, taskPlan)
 ```
 
-* 推荐工具
+- 推荐工具
 
 ---
 
 ## calculateTemplateRelevance(template, userRequest, taskPlan)
 
 ```javascript
-calculateTemplateRelevance(template, userRequest, taskPlan)
+calculateTemplateRelevance(template, userRequest, taskPlan);
 ```
 
-* 计算模板相关度
+- 计算模板相关度
 
 ---
 
 ## formatPlanForUser(session)
 
 ```javascript
-formatPlanForUser(session)
+formatPlanForUser(session);
 ```
 
-* 格式化Plan供用户查看
+- 格式化Plan供用户查看
 
 ---
 
 ## extractAdjustableParameters(taskPlan)
 
 ```javascript
-extractAdjustableParameters(taskPlan)
+extractAdjustableParameters(taskPlan);
 ```
 
-* 提取可调整参数
+- 提取可调整参数
 
 ---
 
@@ -112,10 +112,10 @@ extractAdjustableParameters(taskPlan)
 async handleUserResponse(sessionId, userResponse)
 ```
 
-* 用户确认或调整Plan
-   * @param {string} sessionId - 会话ID
-   * @param {Object} userResponse - 用户响应
-   * @returns {Promise<Object>} 处理结果
+- 用户确认或调整Plan
+  - @param {string} sessionId - 会话ID
+  - @param {Object} userResponse - 用户响应
+  - @returns {Promise<Object>} 处理结果
 
 ---
 
@@ -125,7 +125,7 @@ async handleUserResponse(sessionId, userResponse)
 async executeConfirmedPlan(sessionId)
 ```
 
-* 执行已确认的Plan
+- 执行已确认的Plan
 
 ---
 
@@ -135,7 +135,7 @@ async executeConfirmedPlan(sessionId)
 async adjustPlan(sessionId, adjustments)
 ```
 
-* 调整Plan参数
+- 调整Plan参数
 
 ---
 
@@ -145,7 +145,7 @@ async adjustPlan(sessionId, adjustments)
 async applyTemplate(sessionId, templateId)
 ```
 
-* 应用模板
+- 应用模板
 
 ---
 
@@ -155,27 +155,27 @@ async applyTemplate(sessionId, templateId)
 async generatePlanFromTemplate(template, userRequest, projectContext)
 ```
 
-* 从模板生成Plan
+- 从模板生成Plan
 
 ---
 
 ## extractVariablesFromRequest(request, templateVariables)
 
 ```javascript
-extractVariablesFromRequest(request, templateVariables)
+extractVariablesFromRequest(request, templateVariables);
 ```
 
-* 从用户请求中提取变量值
+- 从用户请求中提取变量值
 
 ---
 
 ## replaceVariables(text, variables)
 
 ```javascript
-replaceVariables(text, variables)
+replaceVariables(text, variables);
 ```
 
-* 替换字符串中的变量占位符
+- 替换字符串中的变量占位符
 
 ---
 
@@ -185,7 +185,7 @@ replaceVariables(text, variables)
 async regeneratePlan(sessionId, feedback)
 ```
 
-* 重新生成Plan
+- 重新生成Plan
 
 ---
 
@@ -195,27 +195,27 @@ async regeneratePlan(sessionId, feedback)
 async evaluateQuality(session)
 ```
 
-* 评估生成质量
+- 评估生成质量
 
 ---
 
 ## parseEstimatedDuration(duration)
 
 ```javascript
-parseEstimatedDuration(duration)
+parseEstimatedDuration(duration);
 ```
 
-* 解析预估时长
+- 解析预估时长
 
 ---
 
 ## getGrade(percentage)
 
 ```javascript
-getGrade(percentage)
+getGrade(percentage);
 ```
 
-* 获取等级
+- 获取等级
 
 ---
 
@@ -225,9 +225,9 @@ getGrade(percentage)
 async submitUserFeedback(sessionId, feedback)
 ```
 
-* 收集用户反馈
-   * @param {string} sessionId - 会话ID
-   * @param {Object} feedback - 用户反馈
+- 收集用户反馈
+  - @param {string} sessionId - 会话ID
+  - @param {Object} feedback - 用户反馈
 
 ---
 
@@ -237,27 +237,26 @@ async submitUserFeedback(sessionId, feedback)
 async saveFeedbackToDatabase(sessionId, feedback)
 ```
 
-* 保存反馈到数据库
+- 保存反馈到数据库
 
 ---
 
 ## getSession(sessionId)
 
 ```javascript
-getSession(sessionId)
+getSession(sessionId);
 ```
 
-* 获取会话信息
+- 获取会话信息
 
 ---
 
-## cleanupExpiredSessions(maxAge = 24 * 60 * 60 * 1000)
+## cleanupExpiredSessions(maxAge = 24 _ 60 _ 60 \* 1000)
 
 ```javascript
-cleanupExpiredSessions(maxAge = 24 * 60 * 60 * 1000)
+cleanupExpiredSessions((maxAge = 24 * 60 * 60 * 1000));
 ```
 
-* 清理过期会话
+- 清理过期会话
 
 ---
-

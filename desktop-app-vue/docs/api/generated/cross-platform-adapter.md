@@ -12,18 +12,18 @@
 const
 ```
 
-* Cross-Platform U-Key Adapter
- *
- * Provides unified U-Key interface across Windows, macOS, and Linux
- *
- * Platform Support:
- * - Windows: Native DLL drivers (XinJinKe, FeiTian, etc.)
- * - macOS/Linux: PKCS#11 standard interface + Simulated fallback
- *
- * Architecture:
- * - Detects platform and available hardware
- * - Automatically selects best available driver
- * - Falls back to simulation mode if no hardware detected
+- Cross-Platform U-Key Adapter
+-
+- Provides unified U-Key interface across Windows, macOS, and Linux
+-
+- Platform Support:
+- - Windows: Native DLL drivers (XinJinKe, FeiTian, etc.)
+- - macOS/Linux: PKCS#11 standard interface + Simulated fallback
+-
+- Architecture:
+- - Detects platform and available hardware
+- - Automatically selects best available driver
+- - Falls back to simulation mode if no hardware detected
 
 ---
 
@@ -33,7 +33,7 @@ const
 const Platforms =
 ```
 
-* Platform types
+- Platform types
 
 ---
 
@@ -43,7 +43,7 @@ const Platforms =
 const PlatformDrivers =
 ```
 
-* Driver availability by platform
+- Driver availability by platform
 
 ---
 
@@ -53,17 +53,17 @@ const PlatformDrivers =
 class CrossPlatformAdapter extends EventEmitter
 ```
 
-* Cross-Platform U-Key Adapter
+- Cross-Platform U-Key Adapter
 
 ---
 
 ## getDefaultDriverPreference()
 
 ```javascript
-getDefaultDriverPreference()
+getDefaultDriverPreference();
 ```
 
-* Get default driver preference based on platform
+- Get default driver preference based on platform
 
 ---
 
@@ -73,7 +73,7 @@ getDefaultDriverPreference()
 async initialize()
 ```
 
-* Initialize adapter
+- Initialize adapter
 
 ---
 
@@ -83,7 +83,7 @@ async initialize()
 async detectAvailableDrivers()
 ```
 
-* Detect available drivers on current platform
+- Detect available drivers on current platform
 
 ---
 
@@ -93,27 +93,27 @@ async detectAvailableDrivers()
 async checkDriverAvailability(driverType)
 ```
 
-* Check if a specific driver is available
+- Check if a specific driver is available
 
 ---
 
 ## checkWindowsDriverDLL(driverType)
 
 ```javascript
-checkWindowsDriverDLL(driverType)
+checkWindowsDriverDLL(driverType);
 ```
 
-* Check if Windows driver DLL exists
+- Check if Windows driver DLL exists
 
 ---
 
 ## checkPKCS11Library()
 
 ```javascript
-checkPKCS11Library()
+checkPKCS11Library();
 ```
 
-* Check if PKCS#11 library is available
+- Check if PKCS#11 library is available
 
 ---
 
@@ -123,7 +123,7 @@ checkPKCS11Library()
 async selectBestDriver()
 ```
 
-* Select best available driver based on preference
+- Select best available driver based on preference
 
 ---
 
@@ -133,17 +133,17 @@ async selectBestDriver()
 async createDriver(driverType)
 ```
 
-* Create driver instance
+- Create driver instance
 
 ---
 
 ## getPlatformInfo()
 
 ```javascript
-getPlatformInfo()
+getPlatformInfo();
 ```
 
-* Get platform information
+- Get platform information
 
 ---
 
@@ -153,7 +153,7 @@ getPlatformInfo()
 async switchDriver(driverType)
 ```
 
-* Switch to different driver
+- Switch to different driver
 
 ---
 
@@ -163,7 +163,6 @@ async switchDriver(driverType)
 async connect(pin)
 ```
 
-* Proxy all driver methods to current driver
+- Proxy all driver methods to current driver
 
 ---
-

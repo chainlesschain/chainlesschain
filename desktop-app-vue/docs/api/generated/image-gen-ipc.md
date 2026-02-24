@@ -12,16 +12,16 @@
 const
 ```
 
-* Image Generation IPC Handlers
- *
- * Provides IPC interface for image generation:
- * - Text-to-image generation
- * - Image-to-image transformation
- * - Upscaling
- * - Provider management
- *
- * @module image-gen-ipc
- * @version 1.0.0
+- Image Generation IPC Handlers
+-
+- Provides IPC interface for image generation:
+- - Text-to-image generation
+- - Image-to-image transformation
+- - Upscaling
+- - Provider management
+-
+- @module image-gen-ipc
+- @version 1.0.0
 
 ---
 
@@ -31,11 +31,11 @@ const
 function registerImageGenIPC(options =
 ```
 
-* Register Image Generation IPC handlers
- * @param {Object} options - Options
- * @param {ImageGenManager} options.imageGenManager - Image generation manager instance
- * @param {Object} [options.ipcMain] - Custom IPC main (for testing)
- * @returns {Object} Handler update functions
+- Register Image Generation IPC handlers
+- @param {Object} options - Options
+- @param {ImageGenManager} options.imageGenManager - Image generation manager instance
+- @param {Object} [options.ipcMain] - Custom IPC main (for testing)
+- @returns {Object} Handler update functions
 
 ---
 
@@ -45,7 +45,7 @@ function registerImageGenIPC(options =
 ipc.handle('image-gen:check-status', async () =>
 ```
 
-* Check image generation status
+- Check image generation status
 
 ---
 
@@ -55,7 +55,7 @@ ipc.handle('image-gen:check-status', async () =>
 ipc.handle('image-gen:get-stats', async () =>
 ```
 
-* Get statistics
+- Get statistics
 
 ---
 
@@ -65,7 +65,7 @@ ipc.handle('image-gen:get-stats', async () =>
 ipc.handle('image-gen:set-dalle-key', async (event,
 ```
 
-* Set DALL-E API key
+- Set DALL-E API key
 
 ---
 
@@ -75,7 +75,7 @@ ipc.handle('image-gen:set-dalle-key', async (event,
 ipc.handle('image-gen:generate', async (event,
 ```
 
-* Generate image from text prompt
+- Generate image from text prompt
 
 ---
 
@@ -85,7 +85,7 @@ ipc.handle('image-gen:generate', async (event,
 ipc.handle('image-gen:generate-sd', async (event,
 ```
 
-* Generate with Stable Diffusion specifically
+- Generate with Stable Diffusion specifically
 
 ---
 
@@ -95,7 +95,7 @@ ipc.handle('image-gen:generate-sd', async (event,
 ipc.handle('image-gen:generate-dalle', async (event,
 ```
 
-* Generate with DALL-E specifically
+- Generate with DALL-E specifically
 
 ---
 
@@ -105,7 +105,7 @@ ipc.handle('image-gen:generate-dalle', async (event,
 ipc.handle('image-gen:img2img', async (event,
 ```
 
-* Generate image from image + prompt (img2img)
+- Generate image from image + prompt (img2img)
 
 ---
 
@@ -115,7 +115,7 @@ ipc.handle('image-gen:img2img', async (event,
 ipc.handle('image-gen:create-variations', async (event,
 ```
 
-* Create variations (DALL-E 2)
+- Create variations (DALL-E 2)
 
 ---
 
@@ -125,7 +125,7 @@ ipc.handle('image-gen:create-variations', async (event,
 ipc.handle('image-gen:upscale', async (event,
 ```
 
-* Upscale an image
+- Upscale an image
 
 ---
 
@@ -135,7 +135,7 @@ ipc.handle('image-gen:upscale', async (event,
 ipc.handle('image-gen:get-progress', async () =>
 ```
 
-* Get generation progress
+- Get generation progress
 
 ---
 
@@ -145,7 +145,7 @@ ipc.handle('image-gen:get-progress', async () =>
 ipc.handle('image-gen:interrupt', async () =>
 ```
 
-* Interrupt current generation
+- Interrupt current generation
 
 ---
 
@@ -155,7 +155,7 @@ ipc.handle('image-gen:interrupt', async () =>
 ipc.handle('image-gen:get-models', async () =>
 ```
 
-* Get available models
+- Get available models
 
 ---
 
@@ -165,7 +165,7 @@ ipc.handle('image-gen:get-models', async () =>
 ipc.handle('image-gen:switch-model', async (event,
 ```
 
-* Switch SD model
+- Switch SD model
 
 ---
 
@@ -175,7 +175,6 @@ ipc.handle('image-gen:switch-model', async (event,
 ipc.handle('image-gen:clear-cache', async () =>
 ```
 
-* Clear generation cache
+- Clear generation cache
 
 ---
-

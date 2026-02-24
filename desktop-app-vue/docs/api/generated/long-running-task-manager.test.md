@@ -12,7 +12,6 @@
 const
 ```
 
-* LongRunningTaskManager 单元测试
+- LongRunningTaskManager 单元测试
 
 ---
-

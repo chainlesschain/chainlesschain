@@ -12,8 +12,8 @@
 const
 ```
 
-* 注册Additional Tools V3到ToolManager
- * 将29个专业领域工具Handler注册到系统中
+- 注册Additional Tools V3到ToolManager
+- 将29个专业领域工具Handler注册到系统中
 
 ---
 
@@ -23,7 +23,7 @@ const
 async initialize()
 ```
 
-* 初始化
+- 初始化
 
 ---
 
@@ -33,7 +33,7 @@ async initialize()
 async registerTool(toolMeta)
 ```
 
-* 注册单个工具
+- 注册单个工具
 
 ---
 
@@ -43,7 +43,7 @@ async registerTool(toolMeta)
 async registerAllTools()
 ```
 
-* 注册所有工具
+- 注册所有工具
 
 ---
 
@@ -53,7 +53,7 @@ async registerAllTools()
 async verify()
 ```
 
-* 验证注册结果
+- 验证注册结果
 
 ---
 
@@ -63,7 +63,7 @@ async verify()
 async close()
 ```
 
-* 关闭数据库连接
+- 关闭数据库连接
 
 ---
 
@@ -73,7 +73,6 @@ async close()
 async run()
 ```
 
-* 执行完整的注册流程
+- 执行完整的注册流程
 
 ---
-

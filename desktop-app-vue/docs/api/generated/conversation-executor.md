@@ -12,8 +12,8 @@
 const
 ```
 
-* 文件操作执行器
- * 执行AI解析出的文件操作
+- 文件操作执行器
+- 执行AI解析出的文件操作
 
 ---
 
@@ -23,12 +23,12 @@ const
 async function executeOperations(operations, projectPath, database = null)
 ```
 
-* 执行文件操作列表
- *
- * @param {Array} operations - 文件操作列表
- * @param {string} projectPath - 项目根目录路径
- * @param {Object} database - 数据库实例（用于记录操作日志）
- * @returns {Promise<Array>} 执行结果列表
+- 执行文件操作列表
+-
+- @param {Array} operations - 文件操作列表
+- @param {string} projectPath - 项目根目录路径
+- @param {Object} database - 数据库实例（用于记录操作日志）
+- @returns {Promise<Array>} 执行结果列表
 
 ---
 
@@ -38,12 +38,12 @@ async function executeOperations(operations, projectPath, database = null)
 async function executeOperation(operation, projectPath, database)
 ```
 
-* 执行单个文件操作
- *
- * @param {Object} operation - 文件操作
- * @param {string} projectPath - 项目根目录
- * @param {Object} database - 数据库实例
- * @returns {Promise<Object>} 执行结果
+- 执行单个文件操作
+-
+- @param {Object} operation - 文件操作
+- @param {string} projectPath - 项目根目录
+- @param {Object} database - 数据库实例
+- @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -53,13 +53,13 @@ async function executeOperation(operation, projectPath, database)
 async function createFile(filePath, content, operation, database)
 ```
 
-* 创建文件
- *
- * @param {string} filePath - 文件绝对路径
- * @param {string} content - 文件内容
- * @param {Object} operation - 操作对象
- * @param {Object} database - 数据库实例
- * @returns {Promise<Object>} 执行结果
+- 创建文件
+-
+- @param {string} filePath - 文件绝对路径
+- @param {string} content - 文件内容
+- @param {Object} operation - 操作对象
+- @param {Object} database - 数据库实例
+- @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -69,13 +69,13 @@ async function createFile(filePath, content, operation, database)
 async function updateFile(filePath, content, operation, database)
 ```
 
-* 更新文件
- *
- * @param {string} filePath - 文件绝对路径
- * @param {string} content - 新文件内容
- * @param {Object} operation - 操作对象
- * @param {Object} database - 数据库实例
- * @returns {Promise<Object>} 执行结果
+- 更新文件
+-
+- @param {string} filePath - 文件绝对路径
+- @param {string} content - 新文件内容
+- @param {Object} operation - 操作对象
+- @param {Object} database - 数据库实例
+- @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -85,12 +85,12 @@ async function updateFile(filePath, content, operation, database)
 async function deleteFile(filePath, operation, database)
 ```
 
-* 删除文件
- *
- * @param {string} filePath - 文件绝对路径
- * @param {Object} operation - 操作对象
- * @param {Object} database - 数据库实例
- * @returns {Promise<Object>} 执行结果
+- 删除文件
+-
+- @param {string} filePath - 文件绝对路径
+- @param {Object} operation - 操作对象
+- @param {Object} database - 数据库实例
+- @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -100,12 +100,12 @@ async function deleteFile(filePath, operation, database)
 async function readFile(filePath, operation, database)
 ```
 
-* 读取文件
- *
- * @param {string} filePath - 文件绝对路径
- * @param {Object} operation - 操作对象
- * @param {Object} database - 数据库实例
- * @returns {Promise<Object>} 执行结果
+- 读取文件
+-
+- @param {string} filePath - 文件绝对路径
+- @param {Object} operation - 操作对象
+- @param {Object} database - 数据库实例
+- @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -115,10 +115,10 @@ async function readFile(filePath, operation, database)
 async function fileExists(filePath)
 ```
 
-* 检查文件是否存在
- *
- * @param {string} filePath - 文件路径
- * @returns {Promise<boolean>}
+- 检查文件是否存在
+-
+- @param {string} filePath - 文件路径
+- @returns {Promise<boolean>}
 
 ---
 
@@ -128,10 +128,10 @@ async function fileExists(filePath)
 async function backupFile(filePath)
 ```
 
-* 备份文件
- *
- * @param {string} filePath - 源文件路径
- * @returns {Promise<string>} 备份文件路径
+- 备份文件
+-
+- @param {string} filePath - 源文件路径
+- @returns {Promise<string>} 备份文件路径
 
 ---
 
@@ -141,11 +141,11 @@ async function backupFile(filePath)
 async function logOperation(database, logData)
 ```
 
-* 记录操作日志到数据库
- *
- * @param {Object} database - 数据库实例
- * @param {Object} logData - 日志数据
- * @returns {Promise<void>}
+- 记录操作日志到数据库
+-
+- @param {Object} database - 数据库实例
+- @param {Object} logData - 日志数据
+- @returns {Promise<void>}
 
 ---
 
@@ -155,10 +155,9 @@ async function logOperation(database, logData)
 async function ensureLogTable(database)
 ```
 
-* 确保日志表存在
- *
- * @param {Object} database - 数据库实例
- * @returns {Promise<void>}
+- 确保日志表存在
+-
+- @param {Object} database - 数据库实例
+- @returns {Promise<void>}
 
 ---
-

@@ -12,7 +12,6 @@
 async applyToSystem(appConfig, llmConfig, database)
 ```
 
-* 应用配置到系统各个配置管理器
+- 应用配置到系统各个配置管理器
 
 ---
-

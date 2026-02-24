@@ -12,13 +12,13 @@
 const
 ```
 
-* IPC Permission Manager
- *
- * IPC通信权限控制中间件
- * - 基于角色的访问控制 (RBAC)
- * - IP白名单/黑名单
- * - 速率限制 (Rate Limiting)
- * - 审计日志
+- IPC Permission Manager
+-
+- IPC通信权限控制中间件
+- - 基于角色的访问控制 (RBAC)
+- - IP白名单/黑名单
+- - 速率限制 (Rate Limiting)
+- - 审计日志
 
 ---
 
@@ -28,7 +28,7 @@ const
 const PermissionLevel =
 ```
 
-* 权限级别
+- 权限级别
 
 ---
 
@@ -38,8 +38,8 @@ const PermissionLevel =
 const IPC_PERMISSIONS =
 ```
 
-* IPC通道权限配置
- * 定义每个IPC通道所需的权限级别
+- IPC通道权限配置
+- 定义每个IPC通道所需的权限级别
 
 ---
 
@@ -49,7 +49,7 @@ const IPC_PERMISSIONS =
 const RATE_LIMIT_CONFIG =
 ```
 
-* 速率限制配置
+- 速率限制配置
 
 ---
 
@@ -59,127 +59,127 @@ const RATE_LIMIT_CONFIG =
 async initialize()
 ```
 
-* 初始化权限管理器
+- 初始化权限管理器
 
 ---
 
 ## setUserPermissionLevel(level)
 
 ```javascript
-setUserPermissionLevel(level)
+setUserPermissionLevel(level);
 ```
 
-* 设置用户权限级别
+- 设置用户权限级别
 
 ---
 
 ## authenticate()
 
 ```javascript
-authenticate()
+authenticate();
 ```
 
-* 用户认证通过后调用
+- 用户认证通过后调用
 
 ---
 
 ## logout()
 
 ```javascript
-logout()
+logout();
 ```
 
-* 用户登出
+- 用户登出
 
 ---
 
 ## checkPermission(channel)
 
 ```javascript
-checkPermission(channel)
+checkPermission(channel);
 ```
 
-* 检查IPC通道权限
+- 检查IPC通道权限
 
 ---
 
 ## getRequiredPermissionLevel(channel)
 
 ```javascript
-getRequiredPermissionLevel(channel)
+getRequiredPermissionLevel(channel);
 ```
 
-* 获取通道所需的权限级别
+- 获取通道所需的权限级别
 
 ---
 
 ## hasPermission(userLevel, requiredLevel)
 
 ```javascript
-hasPermission(userLevel, requiredLevel)
+hasPermission(userLevel, requiredLevel);
 ```
 
-* 检查用户是否有足够的权限
+- 检查用户是否有足够的权限
 
 ---
 
 ## checkRateLimit(channel)
 
 ```javascript
-checkRateLimit(channel)
+checkRateLimit(channel);
 ```
 
-* 速率限制检查
+- 速率限制检查
 
 ---
 
 ## sanitizeArgs(channel, args)
 
 ```javascript
-sanitizeArgs(channel, args)
+sanitizeArgs(channel, args);
 ```
 
-* 参数验证和清理
+- 参数验证和清理
 
 ---
 
 ## sanitizeObject(obj)
 
 ```javascript
-sanitizeObject(obj)
+sanitizeObject(obj);
 ```
 
-* 清理对象中的危险内容
+- 清理对象中的危险内容
 
 ---
 
 ## middleware(channel, args)
 
 ```javascript
-middleware(channel, args)
+middleware(channel, args);
 ```
 
-* IPC调用中间件 - 在主进程的ipcMain.handle之前调用
+- IPC调用中间件 - 在主进程的ipcMain.handle之前调用
 
 ---
 
 ## addAuditLog(entry)
 
 ```javascript
-addAuditLog(entry)
+addAuditLog(entry);
 ```
 
-* 添加审计日志
+- 添加审计日志
 
 ---
 
 ## getAuditLog(limit = 100)
 
 ```javascript
-getAuditLog(limit = 100)
+getAuditLog((limit = 100));
 ```
 
-* 获取审计日志
+- 获取审计日志
 
 ---
 
@@ -189,7 +189,7 @@ getAuditLog(limit = 100)
 async saveAuditLog()
 ```
 
-* 保存审计日志到文件
+- 保存审计日志到文件
 
 ---
 
@@ -199,27 +199,27 @@ async saveAuditLog()
 async loadAuditLog()
 ```
 
-* 加载审计日志
+- 加载审计日志
 
 ---
 
 ## startCleanupTask()
 
 ```javascript
-startCleanupTask()
+startCleanupTask();
 ```
 
-* 启动定期清理任务
+- 启动定期清理任务
 
 ---
 
 ## getStatistics()
 
 ```javascript
-getStatistics()
+getStatistics();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
@@ -229,7 +229,6 @@ getStatistics()
 function getIPCPermissionManager()
 ```
 
-* 获取权限管理器实例
+- 获取权限管理器实例
 
 ---
-

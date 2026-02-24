@@ -9,10 +9,9 @@
 ## import './setup.js'; // 导入测试环境设置
 
 ```javascript
-import './setup.js'; // 导入测试环境设置
+import "./setup.js"; // 导入测试环境设置
 ```
 
-* SkillManager 单元测试
+- SkillManager 单元测试
 
 ---
-

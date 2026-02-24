@@ -12,8 +12,8 @@
 const
 ```
 
-* RAG性能监控模块
- * 用于跟踪和分析RAG系统的性能指标
+- RAG性能监控模块
+- 用于跟踪和分析RAG系统的性能指标
 
 ---
 
@@ -23,7 +23,7 @@ const
 const MetricTypes =
 ```
 
-* 性能指标类型
+- 性能指标类型
 
 ---
 
@@ -33,7 +33,7 @@ const MetricTypes =
 class RAGMetrics extends EventEmitter
 ```
 
-* 性能监控类
+- 性能监控类
 
 ---
 
@@ -43,196 +43,196 @@ class RAGMetrics extends EventEmitter
 record(type, value, metadata =
 ```
 
-* 记录指标
-   * @param {string} type - 指标类型
-   * @param {number} value - 指标值（毫秒）
-   * @param {Object} metadata - 额外元数据
+- 记录指标
+  - @param {string} type - 指标类型
+  - @param {number} value - 指标值（毫秒）
+  - @param {Object} metadata - 额外元数据
 
 ---
 
 ## startTimer(type)
 
 ```javascript
-startTimer(type)
+startTimer(type);
 ```
 
-* 创建计时器
-   * @param {string} type - 指标类型
-   * @returns {Function} 停止计时函数
+- 创建计时器
+  - @param {string} type - 指标类型
+  - @returns {Function} 停止计时函数
 
 ---
 
 ## recordCacheHit()
 
 ```javascript
-recordCacheHit()
+recordCacheHit();
 ```
 
-* 记录缓存命中
+- 记录缓存命中
 
 ---
 
 ## recordCacheMiss()
 
 ```javascript
-recordCacheMiss()
+recordCacheMiss();
 ```
 
-* 记录缓存未命中
+- 记录缓存未命中
 
 ---
 
 ## recordError(type, error)
 
 ```javascript
-recordError(type, error)
+recordError(type, error);
 ```
 
-* 记录错误
-   * @param {string} type - 错误类型
-   * @param {Error} error - 错误对象
+- 记录错误
+  - @param {string} type - 错误类型
+  - @param {Error} error - 错误对象
 
 ---
 
 ## getStats(type = null)
 
 ```javascript
-getStats(type = null)
+getStats((type = null));
 ```
 
-* 获取性能统计
-   * @param {string} type - 指标类型（可选）
-   * @returns {Object} 统计信息
+- 获取性能统计
+  - @param {string} type - 指标类型（可选）
+  - @returns {Object} 统计信息
 
 ---
 
-## _calculateStats(records)
+## \_calculateStats(records)
 
 ```javascript
-_calculateStats(records)
+_calculateStats(records);
 ```
 
-* 计算统计信息
-   * @private
+- 计算统计信息
+  - @private
 
 ---
 
-## _percentile(sortedValues, percentile)
+## \_percentile(sortedValues, percentile)
 
 ```javascript
-_percentile(sortedValues, percentile)
+_percentile(sortedValues, percentile);
 ```
 
-* 计算百分位数
-   * @private
+- 计算百分位数
+  - @private
 
 ---
 
-## _calculateHitRate()
+## \_calculateHitRate()
 
 ```javascript
-_calculateHitRate()
+_calculateHitRate();
 ```
 
-* 计算缓存命中率
-   * @private
+- 计算缓存命中率
+  - @private
 
 ---
 
-## _updateStats(type, value)
+## \_updateStats(type, value)
 
 ```javascript
-_updateStats(type, value)
+_updateStats(type, value);
 ```
 
-* 更新统计
-   * @private
+- 更新统计
+  - @private
 
 ---
 
-## _getMetricKey(type)
+## \_getMetricKey(type)
 
 ```javascript
-_getMetricKey(type)
+_getMetricKey(type);
 ```
 
-* 获取指标键名
-   * @private
+- 获取指标键名
+  - @private
 
 ---
 
-## _checkAlerts(type, value)
+## \_checkAlerts(type, value)
 
 ```javascript
-_checkAlerts(type, value)
+_checkAlerts(type, value);
 ```
 
-* 检查性能告警
-   * @private
+- 检查性能告警
+  - @private
 
 ---
 
 ## getRealTimeOverview()
 
 ```javascript
-getRealTimeOverview()
+getRealTimeOverview();
 ```
 
-* 获取实时性能概览
+- 获取实时性能概览
 
 ---
 
 ## getPerformanceReport(timeRange = 3600000)
 
 ```javascript
-getPerformanceReport(timeRange = 3600000)
+getPerformanceReport((timeRange = 3600000));
 ```
 
-* 获取性能报告
-   * @param {number} timeRange - 时间范围（毫秒）
+- 获取性能报告
+  - @param {number} timeRange - 时间范围（毫秒）
 
 ---
 
 ## exportMetrics()
 
 ```javascript
-exportMetrics()
+exportMetrics();
 ```
 
-* 导出指标数据
-   * @returns {Object} 指标数据
+- 导出指标数据
+  - @returns {Object} 指标数据
 
 ---
 
 ## reset()
 
 ```javascript
-reset()
+reset();
 ```
 
-* 重置所有指标
+- 重置所有指标
 
 ---
 
 ## cleanOldMetrics(maxAge = 3600000)
 
 ```javascript
-cleanOldMetrics(maxAge = 3600000)
+cleanOldMetrics((maxAge = 3600000));
 ```
 
-* 清理旧数据
-   * @param {number} maxAge - 最大年龄（毫秒）
+- 清理旧数据
+  - @param {number} maxAge - 最大年龄（毫秒）
 
 ---
 
-## _countTotalRecords()
+## \_countTotalRecords()
 
 ```javascript
-_countTotalRecords()
+_countTotalRecords();
 ```
 
-* 统计总记录数
-   * @private
+- 统计总记录数
+  - @private
 
 ---
 
@@ -242,7 +242,6 @@ _countTotalRecords()
 function getGlobalMetrics()
 ```
 
-* 获取全局指标实例
+- 获取全局指标实例
 
 ---
-

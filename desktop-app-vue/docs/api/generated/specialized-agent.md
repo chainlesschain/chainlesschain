@@ -12,11 +12,11 @@
 const
 ```
 
-* 专用 Agent 基类
- *
- * 所有专用 Agent 的基类，定义了 Agent 的基本接口和行为。
- *
- * @see https://github.com/FoundationAgents/OpenManus
+- 专用 Agent 基类
+-
+- 所有专用 Agent 的基类，定义了 Agent 的基本接口和行为。
+-
+- @see https://github.com/FoundationAgents/OpenManus
 
 ---
 
@@ -26,7 +26,7 @@ const
 class SpecializedAgent extends EventEmitter
 ```
 
-* 专用 Agent 基类
+- 专用 Agent 基类
 
 ---
 
@@ -36,42 +36,42 @@ class SpecializedAgent extends EventEmitter
 constructor(agentId, options =
 ```
 
-* @param {string} agentId - Agent 唯一标识
-   * @param {Object} options - 配置选项
+- @param {string} agentId - Agent 唯一标识
+  - @param {Object} options - 配置选项
 
 ---
 
 ## setLLMManager(llmManager)
 
 ```javascript
-setLLMManager(llmManager)
+setLLMManager(llmManager);
 ```
 
-* 设置 LLM 管理器
-   * @param {Object} llmManager - LLM 管理器实例
+- 设置 LLM 管理器
+  - @param {Object} llmManager - LLM 管理器实例
 
 ---
 
 ## setFunctionCaller(functionCaller)
 
 ```javascript
-setFunctionCaller(functionCaller)
+setFunctionCaller(functionCaller);
 ```
 
-* 设置工具调用器
-   * @param {Object} functionCaller - FunctionCaller 实例
+- 设置工具调用器
+  - @param {Object} functionCaller - FunctionCaller 实例
 
 ---
 
 ## canHandle(task)
 
 ```javascript
-canHandle(task)
+canHandle(task);
 ```
 
-* 评估处理任务的能力
-   * @param {Object} task - 任务对象
-   * @returns {number} 0-1 的得分，0 表示无法处理
+- 评估处理任务的能力
+  - @param {Object} task - 任务对象
+  - @returns {number} 0-1 的得分，0 表示无法处理
 
 ---
 
@@ -81,9 +81,9 @@ canHandle(task)
 async execute(task)
 ```
 
-* 执行任务（子类必须实现）
-   * @param {Object} task - 任务对象
-   * @returns {Promise<any>} 执行结果
+- 执行任务（子类必须实现）
+  - @param {Object} task - 任务对象
+  - @returns {Promise<any>} 执行结果
 
 ---
 
@@ -93,9 +93,9 @@ async execute(task)
 async executeWithRetry(task)
 ```
 
-* 带重试的执行
-   * @param {Object} task - 任务对象
-   * @returns {Promise<any>} 执行结果
+- 带重试的执行
+  - @param {Object} task - 任务对象
+  - @returns {Promise<any>} 执行结果
 
 ---
 
@@ -105,10 +105,10 @@ async executeWithRetry(task)
 async receiveMessage(message, metadata =
 ```
 
-* 接收来自其他 Agent 的消息
-   * @param {Object} message - 消息内容
-   * @param {Object} metadata - 消息元数据
-   * @returns {Promise<any>} 响应
+- 接收来自其他 Agent 的消息
+  - @param {Object} message - 消息内容
+  - @param {Object} metadata - 消息元数据
+  - @returns {Promise<any>} 响应
 
 ---
 
@@ -118,9 +118,9 @@ async receiveMessage(message, metadata =
 async callLLM(options)
 ```
 
-* 调用 LLM
-   * @param {Object} options - LLM 调用选项
-   * @returns {Promise<string>} LLM 响应
+- 调用 LLM
+  - @param {Object} options - LLM 调用选项
+  - @returns {Promise<string>} LLM 响应
 
 ---
 
@@ -130,65 +130,64 @@ async callLLM(options)
 async callTool(toolName, params, context =
 ```
 
-* 调用工具
-   * @param {string} toolName - 工具名称
-   * @param {Object} params - 参数
-   * @param {Object} context - 上下文
-   * @returns {Promise<any>} 工具执行结果
+- 调用工具
+  - @param {string} toolName - 工具名称
+  - @param {Object} params - 参数
+  - @param {Object} context - 上下文
+  - @returns {Promise<any>} 工具执行结果
 
 ---
 
-## _delay(ms)
+## \_delay(ms)
 
 ```javascript
-_delay(ms)
+_delay(ms);
 ```
 
-* 延迟
-   * @private
+- 延迟
+  - @private
 
 ---
 
 ## getState()
 
 ```javascript
-getState()
+getState();
 ```
 
-* 获取 Agent 状态
-   * @returns {Object}
+- 获取 Agent 状态
+  - @returns {Object}
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
-   * @returns {Object}
+- 获取统计信息
+  - @returns {Object}
 
 ---
 
 ## getInfo()
 
 ```javascript
-getInfo()
+getInfo();
 ```
 
-* 获取 Agent 描述信息
-   * @returns {Object}
+- 获取 Agent 描述信息
+  - @returns {Object}
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* 销毁 Agent
+- 销毁 Agent
 
 ---
-

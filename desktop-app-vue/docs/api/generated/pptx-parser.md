@@ -12,8 +12,8 @@
 const
 ```
 
-* 自定义 PPTX 解析器
- * 使用 JSZip 和 xml2js 直接解析 PPTX 文件
+- 自定义 PPTX 解析器
+- 使用 JSZip 和 xml2js 直接解析 PPTX 文件
 
 ---
 
@@ -23,9 +23,9 @@ const
 async function parsePPTX(filePath)
 ```
 
-* 解析 PPTX 文件
- * @param {string} filePath - PPTX 文件路径
- * @returns {Promise<Array>} 幻灯片数组
+- 解析 PPTX 文件
+- @param {string} filePath - PPTX 文件路径
+- @returns {Promise<Array>} 幻灯片数组
 
 ---
 
@@ -35,10 +35,9 @@ async function parsePPTX(filePath)
 function extractTexts(obj, texts = [])
 ```
 
-* 从 XML 对象中递归提取所有文本
- * @param {Object} obj - XML 解析后的对象
- * @param {Array} texts - 文本数组（用于递归）
- * @returns {Array} 文本数组
+- 从 XML 对象中递归提取所有文本
+- @param {Object} obj - XML 解析后的对象
+- @param {Array} texts - 文本数组（用于递归）
+- @returns {Array} 文本数组
 
 ---
-
