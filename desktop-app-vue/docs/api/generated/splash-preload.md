@@ -2,7 +2,7 @@
 
 **Source**: `src/main/splash/splash-preload.js`
 
-**Generated**: 2026-02-24T18:45:59.434Z
+**Generated**: 2026-02-24T23:28:10.567Z
 
 ---
 
@@ -12,9 +12,10 @@
 const
 ```
 
-- Splash Window Preload Script
-- 启动画面预加载脚本
--
-- 暴露最小化的 IPC 接口用于接收进度更新
+* Splash Window Preload Script
+ * 启动画面预加载脚本
+ *
+ * 暴露最小化的 IPC 接口用于接收进度更新
 
 ---
+

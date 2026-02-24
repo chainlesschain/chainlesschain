@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/marketplace-ipc.js`
 
-**Generated**: 2026-02-24T18:45:59.526Z
+**Generated**: 2026-02-24T23:28:10.665Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- 交易市场 IPC
-- 处理订单创建、取消、匹配、交易等操作
+* 交易市场 IPC
+ * 处理订单创建、取消、匹配、交易等操作
 
 ---
+

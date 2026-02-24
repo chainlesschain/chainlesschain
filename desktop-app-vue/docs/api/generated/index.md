@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/skills/index.js`
 
-**Generated**: 2026-02-24T18:45:59.554Z
+**Generated**: 2026-02-24T23:28:10.691Z
 
 ---
 
@@ -12,8 +12,9 @@
 const
 ```
 
-- Skills 模块入口
--
-- @module ai-engine/cowork/skills
+* Skills 模块入口
+ *
+ * @module ai-engine/cowork/skills
 
 ---
+

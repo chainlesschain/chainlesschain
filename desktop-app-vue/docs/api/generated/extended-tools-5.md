@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools-5.js`
 
-**Generated**: 2026-02-24T18:45:59.541Z
+**Generated**: 2026-02-24T23:28:10.678Z
 
 ---
 
@@ -12,9 +12,9 @@
 const
 ```
 
-- 扩展工具集 - 第五批
-- 实现密码学、时间序列分析、文件监控、任务调度、数据库迁移
-- WebSocket通信、条形码二维码、地理位置、视频处理、代码分析等工具
+* 扩展工具集 - 第五批
+ * 实现密码学、时间序列分析、文件监控、任务调度、数据库迁移
+ * WebSocket通信、条形码二维码、地理位置、视频处理、代码分析等工具
 
 ---
 
@@ -24,7 +24,8 @@ const
 static registerAll(functionCaller)
 ```
 
-- 注册所有第五批扩展工具
-  - @param {FunctionCaller} functionCaller
+* 注册所有第五批扩展工具
+   * @param {FunctionCaller} functionCaller
 
 ---
+

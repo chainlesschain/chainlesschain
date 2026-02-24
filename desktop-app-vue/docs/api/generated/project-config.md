@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/project-config.js`
 
-**Generated**: 2026-02-24T18:45:59.463Z
+**Generated**: 2026-02-24T23:28:10.595Z
 
 ---
 
@@ -12,109 +12,110 @@
 class ProjectConfig
 ```
 
-- 项目配置管理器
-- 管理项目存储根路径等配置
+* 项目配置管理器
+ * 管理项目存储根路径等配置
 
 ---
 
 ## initialize()
 
 ```javascript
-initialize();
+initialize()
 ```
 
-- 初始化配置
+* 初始化配置
 
 ---
 
 ## loadConfig()
 
 ```javascript
-loadConfig();
+loadConfig()
 ```
 
-- 加载配置文件
+* 加载配置文件
 
 ---
 
 ## getDefaultConfig()
 
 ```javascript
-getDefaultConfig();
+getDefaultConfig()
 ```
 
-- 获取默认配置
+* 获取默认配置
 
 ---
 
 ## saveConfig()
 
 ```javascript
-saveConfig();
+saveConfig()
 ```
 
-- 保存配置文件
+* 保存配置文件
 
 ---
 
 ## getProjectsRootPath()
 
 ```javascript
-getProjectsRootPath();
+getProjectsRootPath()
 ```
 
-- 获取项目根路径
+* 获取项目根路径
 
 ---
 
 ## setProjectsRootPath(newPath)
 
 ```javascript
-setProjectsRootPath(newPath);
+setProjectsRootPath(newPath)
 ```
 
-- 设置项目根路径
+* 设置项目根路径
 
 ---
 
 ## resolveProjectPath(relativePath)
 
 ```javascript
-resolveProjectPath(relativePath);
+resolveProjectPath(relativePath)
 ```
 
-- 将相对路径转换为绝对路径
-  - @param {string} relativePath - 相对路径（如 /data/projects/xxx）
-  - @returns {string} 绝对路径
+* 将相对路径转换为绝对路径
+   * @param {string} relativePath - 相对路径（如 /data/projects/xxx）
+   * @returns {string} 绝对路径
 
 ---
 
 ## isLocalPath(filePath)
 
 ```javascript
-isLocalPath(filePath);
+isLocalPath(filePath)
 ```
 
-- 检查路径是否为本地路径（而非远程服务器路径）
+* 检查路径是否为本地路径（而非远程服务器路径）
 
 ---
 
 ## getAllConfig()
 
 ```javascript
-getAllConfig();
+getAllConfig()
 ```
 
-- 获取所有配置
+* 获取所有配置
 
 ---
 
 ## updateConfig(updates)
 
 ```javascript
-updateConfig(updates);
+updateConfig(updates)
 ```
 
-- 更新配置
+* 更新配置
 
 ---
+
