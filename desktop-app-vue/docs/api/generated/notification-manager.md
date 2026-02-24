@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/notification-manager.js`
 
-**Generated**: 2026-02-24T17:58:54.549Z
+**Generated**: 2026-02-24T18:45:59.531Z
 
 ---
 
