@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/hybrid-recommender.js`
 
-**Generated**: 2026-02-23T15:25:44.165Z
+**Generated**: 2026-02-24T17:58:54.555Z
 
 ---
 

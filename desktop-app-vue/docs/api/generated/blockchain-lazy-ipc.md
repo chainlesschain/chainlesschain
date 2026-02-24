@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/blockchain-lazy-ipc.js`
 
-**Generated**: 2026-02-23T15:25:44.156Z
+**Generated**: 2026-02-24T17:58:54.546Z
 
 ---
 
