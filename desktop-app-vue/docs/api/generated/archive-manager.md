@@ -2,7 +2,7 @@
 
 **Source**: `src/main/archive/archive-manager.js`
 
-**Generated**: 2026-02-23T15:25:44.159Z
+**Generated**: 2026-02-24T17:58:54.549Z
 
 ---
 

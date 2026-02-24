@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/local-tts-client.js`
 
-**Generated**: 2026-02-23T15:25:44.067Z
+**Generated**: 2026-02-24T17:58:54.458Z
 
 ---
 

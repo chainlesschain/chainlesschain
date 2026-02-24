@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/tool-index.js`
 
-**Generated**: 2026-02-23T15:25:44.074Z
+**Generated**: 2026-02-24T17:58:54.465Z
 
 ---
 

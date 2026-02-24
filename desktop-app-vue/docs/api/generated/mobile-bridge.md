@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/mobile-bridge.js`
 
-**Generated**: 2026-02-23T15:25:44.102Z
+**Generated**: 2026-02-24T17:58:54.491Z
 
 ---
 
