@@ -83,8 +83,7 @@ class MCPHttpServer extends EventEmitter
 constructor(config =
 ```
 
-- Create a new MCPHttpServer
-  -
+- ## Create a new MCPHttpServer
   - @param {Object} config - Server configuration
   - @param {string} config.name - Server name
   - @param {string} config.version - Server version
@@ -255,8 +254,7 @@ this.stats =
 async start()
 ```
 
-- Start the HTTP+SSE server
-  -
+- ## Start the HTTP+SSE server
   - @returns {Promise<void>} Resolves when server is listening
   - @throws {Error} If server fails to start
 
@@ -268,8 +266,7 @@ async start()
 async stop()
 ```
 
-- Stop the HTTP+SSE server gracefully
-  -
+- ## Stop the HTTP+SSE server gracefully
   - Closes all SSE connections and stops the HTTP server.
   -
   - @returns {Promise<void>} Resolves when server is stopped
@@ -282,8 +279,7 @@ async stop()
 handleRequest(req, res);
 ```
 
-- Handle an incoming HTTP request
-  -
+- ## Handle an incoming HTTP request
   - Routes requests to appropriate handlers based on URL path and method.
   -
   - @param {http.IncomingMessage} req - HTTP request
@@ -297,8 +293,7 @@ handleRequest(req, res);
 handleSSE(req, res);
 ```
 
-- Set up an SSE connection for real-time notifications
-  -
+- ## Set up an SSE connection for real-time notifications
   - @param {http.IncomingMessage} req - HTTP request
   - @param {http.ServerResponse} res - HTTP response
 
@@ -310,8 +305,7 @@ handleSSE(req, res);
 _handleJsonRpcRequest(req, res);
 ```
 
-- Handle an incoming JSON-RPC request
-  -
+- ## Handle an incoming JSON-RPC request
   - @private
   - @param {http.IncomingMessage} req - HTTP request
   - @param {http.ServerResponse} res - HTTP response
@@ -324,8 +318,7 @@ _handleJsonRpcRequest(req, res);
 async _routeMethod(message)
 ```
 
-- Route a JSON-RPC method to the appropriate handler
-  -
+- ## Route a JSON-RPC method to the appropriate handler
   - @private
   - @param {Object} message - JSON-RPC message
   - @returns {Promise<Object>} Method result
@@ -338,8 +331,7 @@ async _routeMethod(message)
 handleInitialize(params);
 ```
 
-- Handle the MCP initialize handshake
-  -
+- ## Handle the MCP initialize handshake
   - @param {Object} params - Initialize parameters
   - @returns {Object} Server capabilities
 
@@ -351,8 +343,7 @@ handleInitialize(params);
 handleListTools(params);
 ```
 
-- Handle tools/list request
-  -
+- ## Handle tools/list request
   - @param {Object} [params] - List parameters (pagination, etc.)
   - @returns {Object} Tool list response
 
@@ -364,8 +355,7 @@ handleListTools(params);
 async handleToolCall(toolName, params)
 ```
 
-- Execute a tool handler
-  -
+- ## Execute a tool handler
   - @param {string} toolName - Name of the tool to call
   - @param {Object} params - Tool parameters
   - @returns {Promise<Object>} Tool execution result in MCP format
@@ -378,8 +368,7 @@ async handleToolCall(toolName, params)
 handleListResources(params);
 ```
 
-- Handle resources/list request
-  -
+- ## Handle resources/list request
   - @param {Object} [params] - List parameters
   - @returns {Object} Resource list response
 
@@ -391,8 +380,7 @@ handleListResources(params);
 async handleResourceRead(uri)
 ```
 
-- Read a resource by URI
-  -
+- ## Read a resource by URI
   - @param {string} uri - Resource URI
   - @returns {Promise<Object>} Resource content
 
@@ -404,8 +392,7 @@ async handleResourceRead(uri)
 handleListPrompts(params);
 ```
 
-- Handle prompts/list request
-  -
+- ## Handle prompts/list request
   - @param {Object} [params] - List parameters
   - @returns {Object} Prompt list response
 
@@ -417,8 +404,7 @@ handleListPrompts(params);
 async handlePromptGet(promptName, params)
 ```
 
-- Get a prompt by name with parameters
-  -
+- ## Get a prompt by name with parameters
   - @param {string} promptName - Prompt name
   - @param {Object} params - Prompt parameters
   - @returns {Promise<Object>} Prompt content with messages
@@ -431,8 +417,7 @@ async handlePromptGet(promptName, params)
 _broadcastSSE(message);
 ```
 
-- Broadcast a message to all connected SSE clients
-  -
+- ## Broadcast a message to all connected SSE clients
   - @param {Object} message - Message to broadcast
 
 ---
@@ -443,8 +428,7 @@ _broadcastSSE(message);
 sendNotification(method, params);
 ```
 
-- Send a notification to all SSE clients
-  -
+- ## Send a notification to all SSE clients
   - @param {string} method - Notification method name
   - @param {Object} params - Notification parameters
 
@@ -456,8 +440,7 @@ sendNotification(method, params);
 _authenticate(req);
 ```
 
-- Authenticate an incoming request
-  -
+- ## Authenticate an incoming request
   - @private
   - @param {http.IncomingMessage} req - HTTP request
   - @returns {Object} Authentication result: { authenticated, reason? }
@@ -470,8 +453,7 @@ _authenticate(req);
 _sendJsonRpcResponse(res, id, result);
 ```
 
-- Send a JSON-RPC success response
-  -
+- ## Send a JSON-RPC success response
   - @private
   - @param {http.ServerResponse} res - HTTP response
   - @param {number|string} id - Request ID
@@ -485,8 +467,7 @@ _sendJsonRpcResponse(res, id, result);
 _sendJsonRpcError(res, id, code, message, data);
 ```
 
-- Send a JSON-RPC error response
-  -
+- ## Send a JSON-RPC error response
   - @private
   - @param {http.ServerResponse} res - HTTP response
   - @param {number|string|null} id - Request ID
@@ -502,8 +483,7 @@ _sendJsonRpcError(res, id, code, message, data);
 _sendHttpError(res, statusCode, statusMessage, detail);
 ```
 
-- Send an HTTP error response (non-JSON-RPC)
-  -
+- ## Send an HTTP error response (non-JSON-RPC)
   - @private
   - @param {http.ServerResponse} res - HTTP response
   - @param {number} statusCode - HTTP status code
@@ -518,8 +498,7 @@ _sendHttpError(res, statusCode, statusMessage, detail);
 _setCorsHeaders(res);
 ```
 
-- Set CORS headers on response
-  -
+- ## Set CORS headers on response
   - @private
   - @param {http.ServerResponse} res - HTTP response
 
@@ -531,8 +510,7 @@ _setCorsHeaders(res);
 _handleHealthCheck(req, res);
 ```
 
-- Handle health check request
-  -
+- ## Handle health check request
   - @private
   - @param {http.IncomingMessage} req - HTTP request
   - @param {http.ServerResponse} res - HTTP response
@@ -545,8 +523,7 @@ _handleHealthCheck(req, res);
 getStats();
 ```
 
-- Get server statistics
-  -
+- ## Get server statistics
   - @returns {Object} Server statistics
 
 ---
@@ -557,8 +534,7 @@ getStats();
 _formatToolResult(result);
 ```
 
-- Format a tool result into MCP content format
-  -
+- ## Format a tool result into MCP content format
   - @private
   - @param {\*} result - Raw tool result
   - @returns {Object} MCP-formatted tool result
@@ -571,8 +547,7 @@ _formatToolResult(result);
 async _runHooks(hookName, ...args)
 ```
 
-- Run lifecycle hooks
-  -
+- ## Run lifecycle hooks
   - @private
   - @param {string} hookName - Hook name (onStart, onStop, etc.)
   - @param {...\*} args - Arguments to pass to hook functions
@@ -585,8 +560,7 @@ async _runHooks(hookName, ...args)
 async _runMiddleware(message)
 ```
 
-- Run the middleware pipeline
-  -
+- ## Run the middleware pipeline
   - @private
   - @param {Object} message - JSON-RPC message
   - @returns {Promise<Object|null>} Middleware result (null if all passed)

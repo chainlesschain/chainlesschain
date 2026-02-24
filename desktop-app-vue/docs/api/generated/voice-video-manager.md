@@ -269,8 +269,7 @@ _createPeerConnection(session);
 async _getUserMedia(type, options =
 ```
 
-- 获取用户媒体
-  -
+- ## 获取用户媒体
   - 注意：在Electron主进程中无法直接访问getUserMedia
   - 实际应用中需要：
   - 1.  从renderer进程获取MediaStream

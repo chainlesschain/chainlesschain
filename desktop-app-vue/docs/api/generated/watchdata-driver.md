@@ -40,8 +40,7 @@ class WatchDataDriver extends SKFDriver
 findDllPath();
 ```
 
-- 查找DLL路径
-  -
+- ## 查找DLL路径
   - 握奇的DLL通常命名为：
   - - WDSKFAPI.dll
   - - WatchData.dll
@@ -105,8 +104,7 @@ getDriverVersion();
 async detect()
 ```
 
-- 检测设备
-  -
+- ## 检测设备
   - 握奇特定的检测逻辑
 
 ---
@@ -137,8 +135,7 @@ async getDeviceInfo()
 async getDeviceSerial()
 ```
 
-- 握奇特定功能：读取设备序列号
-  -
+- ## 握奇特定功能：读取设备序列号
   - 注意：这需要SKF API的扩展支持
 
 ---

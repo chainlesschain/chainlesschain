@@ -233,8 +233,7 @@ async fileExists(params, context)
 async createFile(params, context)
 ```
 
-- 创建文件（语义更清晰的 writeFile 别名）
-  -
+- ## 创建文件（语义更清晰的 writeFile 别名）
   - @param {Object} params - 参数
   - @param {string} params.filePath - 文件路径
   - @param {string} params.content - 文件内容
@@ -249,8 +248,7 @@ async createFile(params, context)
 async makeDirectory(params, context)
 ```
 
-- 创建目录
-  -
+- ## 创建目录
   - @param {Object} params - 参数
   - @param {string} params.dirPath - 目录路径
   - @param {boolean} params.recursive - 是否递归创建（默认 true）

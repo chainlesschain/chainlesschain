@@ -7,7 +7,11 @@ vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const { RollbackManager, ROLLBACK_TYPE, ROLLBACK_STATUS } = require("../rollback-manager");
+const {
+  RollbackManager,
+  ROLLBACK_TYPE,
+  ROLLBACK_STATUS,
+} = require("../rollback-manager");
 
 function createMockDatabase() {
   const prepResult = {
@@ -69,7 +73,10 @@ describe("RollbackManager", () => {
     });
 
     it("should add record to history after rollback", async () => {
-      await manager.rollback({ type: ROLLBACK_TYPE.CUSTOM, completedSteps: [] });
+      await manager.rollback({
+        type: ROLLBACK_TYPE.CUSTOM,
+        completedSteps: [],
+      });
       const history = manager.getHistory();
       expect(history.length).toBeGreaterThanOrEqual(1);
     });
@@ -77,7 +84,10 @@ describe("RollbackManager", () => {
     it("should emit rollback:completed event", async () => {
       const listener = vi.fn();
       manager.on("rollback:completed", listener);
-      await manager.rollback({ type: ROLLBACK_TYPE.CUSTOM, completedSteps: [] });
+      await manager.rollback({
+        type: ROLLBACK_TYPE.CUSTOM,
+        completedSteps: [],
+      });
       expect(listener).toHaveBeenCalledTimes(1);
     });
 
@@ -125,7 +135,10 @@ describe("RollbackManager", () => {
 
     it("should respect the limit parameter", async () => {
       for (let i = 0; i < 5; i++) {
-        await manager.rollback({ type: ROLLBACK_TYPE.CUSTOM, completedSteps: [] });
+        await manager.rollback({
+          type: ROLLBACK_TYPE.CUSTOM,
+          completedSteps: [],
+        });
       }
       const limited = manager.getHistory(3);
       expect(limited.length).toBe(3);
@@ -138,7 +151,10 @@ describe("RollbackManager", () => {
     });
 
     it("should return stats with successCount and failureCount", async () => {
-      await manager.rollback({ type: ROLLBACK_TYPE.CUSTOM, completedSteps: [] });
+      await manager.rollback({
+        type: ROLLBACK_TYPE.CUSTOM,
+        completedSteps: [],
+      });
       const stats = manager.getStats();
       expect(stats).toHaveProperty("successCount");
       expect(stats).toHaveProperty("failureCount");

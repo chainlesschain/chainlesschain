@@ -7,7 +7,10 @@ vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const { PostmortemGenerator, REPORT_STATUS } = require("../postmortem-generator");
+const {
+  PostmortemGenerator,
+  REPORT_STATUS,
+} = require("../postmortem-generator");
 
 function createMockDatabase() {
   const prepResult = {
@@ -31,7 +34,11 @@ function makeMockIncident(overrides = {}) {
     status: "resolved",
     timeline: [
       { event: "created", timestamp: Date.now() - 3600000 },
-      { event: "acknowledged", timestamp: Date.now() - 1800000, by: "engineer" },
+      {
+        event: "acknowledged",
+        timestamp: Date.now() - 1800000,
+        by: "engineer",
+      },
       { event: "resolved", timestamp: Date.now() - 600000 },
     ],
     remediationResult: "Restarted service",
@@ -74,17 +81,23 @@ describe("PostmortemGenerator", () => {
 
   describe("generate()", () => {
     it("should throw if not initialized", async () => {
-      await expect(generator.generate({ incidentId: "inc-001" })).rejects.toThrow("not initialized");
+      await expect(
+        generator.generate({ incidentId: "inc-001" }),
+      ).rejects.toThrow("not initialized");
     });
 
     it("should throw if incidentId is missing", async () => {
       await generator.initialize(db);
-      await expect(generator.generate({})).rejects.toThrow("incidentId is required");
+      await expect(generator.generate({})).rejects.toThrow(
+        "incidentId is required",
+      );
     });
 
     it("should throw if incident not found (no classifier)", async () => {
       await generator.initialize(db);
-      await expect(generator.generate({ incidentId: "inc-999" })).rejects.toThrow();
+      await expect(
+        generator.generate({ incidentId: "inc-999" }),
+      ).rejects.toThrow();
     });
 
     it("should generate a report when incident is available via classifier", async () => {

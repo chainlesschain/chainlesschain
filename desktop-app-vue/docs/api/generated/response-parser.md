@@ -56,19 +56,23 @@ function extractFileBlocks(text)
 - ```file:path/to/file.js
 
   ```
+
 - [content]
 - ```
 
   ```
+
 -
 - 或：
 - ```javascript:src/app.js
 
   ```
+
 - [content]
 - ```
 
   ```
+
 -
 - @param {string} text - 响应文本
 - @returns {Array} 操作列表

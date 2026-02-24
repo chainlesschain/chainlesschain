@@ -37,8 +37,7 @@ class SpeechManager extends EventEmitter
 async initialize()
 ```
 
-- 初始化管理器
-  -
+- ## 初始化管理器
   - 使用依赖注入的类来创建实例，提高可测试性
 
 ---

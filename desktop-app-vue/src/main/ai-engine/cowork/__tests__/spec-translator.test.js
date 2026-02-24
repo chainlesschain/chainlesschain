@@ -94,7 +94,9 @@ describe("SpecTranslator", () => {
     });
 
     it("should classify 'implement component' as create-component", async () => {
-      const spec = await translator.translate("implement a new user list component");
+      const spec = await translator.translate(
+        "implement a new user list component",
+      );
       expect(spec.intent).toBe(INTENT_TYPES.CREATE_COMPONENT);
     });
 
@@ -114,7 +116,9 @@ describe("SpecTranslator", () => {
     });
 
     it("should classify 'API endpoint' as add-api", async () => {
-      const spec = await translator.translate("add a REST API endpoint for user management");
+      const spec = await translator.translate(
+        "add a REST API endpoint for user management",
+      );
       expect(spec.intent).toBe(INTENT_TYPES.ADD_API);
     });
 
@@ -151,14 +155,18 @@ describe("SpecTranslator", () => {
     });
 
     it("should have completeness score between 0 and 1", async () => {
-      const spec = await translator.translate("创建一个分页用户列表组件，支持搜索和排序");
+      const spec = await translator.translate(
+        "创建一个分页用户列表组件，支持搜索和排序",
+      );
 
       expect(spec.completeness).toBeGreaterThanOrEqual(0);
       expect(spec.completeness).toBeLessThanOrEqual(1);
     });
 
     it("should detect Vue/React techStack keywords", async () => {
-      const spec = await translator.translate("create a Vue component with Pinia store");
+      const spec = await translator.translate(
+        "create a Vue component with Pinia store",
+      );
 
       expect(spec.techStack).toBeTruthy();
     });
@@ -178,9 +186,11 @@ describe("SpecTranslator", () => {
         { directory: "src/renderer/" },
       );
 
-      expect([SPEC_STATUS.VALIDATED, SPEC_STATUS.AMBIGUOUS, SPEC_STATUS.DRAFT]).toContain(
-        spec.status,
-      );
+      expect([
+        SPEC_STATUS.VALIDATED,
+        SPEC_STATUS.AMBIGUOUS,
+        SPEC_STATUS.DRAFT,
+      ]).toContain(spec.status);
     });
 
     it("should throw if not initialized", async () => {
@@ -200,19 +210,25 @@ describe("SpecTranslator", () => {
     });
 
     it("should detect Vue in description", async () => {
-      const spec = await translator.translate("create a Vue 3 component with Composition API");
+      const spec = await translator.translate(
+        "create a Vue 3 component with Composition API",
+      );
       const techStr = JSON.stringify(spec.techStack).toLowerCase();
       expect(techStr).toContain("vue");
     });
 
     it("should detect Node.js/server in description", async () => {
-      const spec = await translator.translate("implement a Node.js express server for user management");
+      const spec = await translator.translate(
+        "implement a Node.js express server for user management",
+      );
       const techStr = JSON.stringify(spec.techStack).toLowerCase();
       expect(techStr).toMatch(/node|server|express/);
     });
 
     it("should detect SQLite/database in description", async () => {
-      const spec = await translator.translate("add SQLite table for session management");
+      const spec = await translator.translate(
+        "add SQLite table for session management",
+      );
       const techStr = JSON.stringify(spec.techStack).toLowerCase();
       expect(techStr).toMatch(/sqlite|database|db/);
     });
@@ -227,7 +243,9 @@ describe("SpecTranslator", () => {
     });
 
     it("should validate a well-formed spec", async () => {
-      const spec = await translator.translate("create a user profile page with avatar upload");
+      const spec = await translator.translate(
+        "create a user profile page with avatar upload",
+      );
       const validation = translator.validateSpec(spec);
 
       expect(validation).toHaveProperty("valid");

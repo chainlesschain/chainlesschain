@@ -30,8 +30,7 @@ const
 async analyzeTask(task)
 ```
 
-- Analyze task complexity and recommend agent configuration
-  -
+- ## Analyze task complexity and recommend agent configuration
   - @param {Object} task - Task to analyze
   - @returns {Promise<Object>} Analysis and recommendations
 
@@ -43,8 +42,7 @@ async analyzeTask(task)
 async recommendAgent(params)
 ```
 
-- Recommend best agent for a task
-  -
+- ## Recommend best agent for a task
   - @param {Object} params - Recommendation parameters
   - @param {Object} params.task - Task to assign
   - @param {Array} params.availableAgents - Available agents
@@ -58,8 +56,7 @@ async recommendAgent(params)
 async decomposeTask(task)
 ```
 
-- Decompose complex task into subtasks
-  -
+- ## Decompose complex task into subtasks
   - @param {Object} task - Complex task to decompose
   - @returns {Promise<Array>} Subtasks
 
@@ -71,8 +68,7 @@ async decomposeTask(task)
 async resolveConflict(params)
 ```
 
-- Resolve conflict between agents
-  -
+- ## Resolve conflict between agents
   - @param {Object} params - Conflict parameters
   - @param {Array} params.conflictingOpinions - Different agent opinions
   - @param {Object} params.context - Conflict context
@@ -86,8 +82,7 @@ async resolveConflict(params)
 async generateStrategy(task, resources)
 ```
 
-- Generate task execution strategy
-  -
+- ## Generate task execution strategy
   - @param {Object} task - Task to execute
   - @param {Object} resources - Available resources
   - @returns {Promise<Object>} Execution strategy
@@ -100,8 +95,7 @@ async generateStrategy(task, resources)
 _buildTaskAnalysisPrompt(task);
 ```
 
-- Build task analysis prompt
-  -
+- ## Build task analysis prompt
   - @private
 
 ---
@@ -112,8 +106,7 @@ _buildTaskAnalysisPrompt(task);
 _buildAgentRecommendationPrompt(task, availableAgents);
 ```
 
-- Build agent recommendation prompt
-  -
+- ## Build agent recommendation prompt
   - @private
 
 ---
@@ -124,8 +117,7 @@ _buildAgentRecommendationPrompt(task, availableAgents);
 _buildTaskDecompositionPrompt(task);
 ```
 
-- Build task decomposition prompt
-  -
+- ## Build task decomposition prompt
   - @private
 
 ---
@@ -136,8 +128,7 @@ _buildTaskDecompositionPrompt(task);
 _buildConflictResolutionPrompt(opinions, context);
 ```
 
-- Build conflict resolution prompt
-  -
+- ## Build conflict resolution prompt
   - @private
 
 ---
@@ -148,8 +139,7 @@ _buildConflictResolutionPrompt(opinions, context);
 _buildStrategyPrompt(task, resources);
 ```
 
-- Build strategy generation prompt
-  -
+- ## Build strategy generation prompt
   - @private
 
 ---
@@ -160,8 +150,7 @@ _buildStrategyPrompt(task, resources);
 _parseTaskAnalysis(responseText);
 ```
 
-- Parse task analysis response
-  -
+- ## Parse task analysis response
   - @private
 
 ---
@@ -172,8 +161,7 @@ _parseTaskAnalysis(responseText);
 _parseAgentRecommendation(responseText, availableAgents);
 ```
 
-- Parse agent recommendation response
-  -
+- ## Parse agent recommendation response
   - @private
 
 ---
@@ -184,8 +172,7 @@ _parseAgentRecommendation(responseText, availableAgents);
 _parseSubtasks(responseText, parentTask);
 ```
 
-- Parse subtasks from response
-  -
+- ## Parse subtasks from response
   - @private
 
 ---
@@ -196,8 +183,7 @@ _parseSubtasks(responseText, parentTask);
 _parseConflictResolution(responseText);
 ```
 
-- Parse conflict resolution response
-  -
+- ## Parse conflict resolution response
   - @private
 
 ---
@@ -208,8 +194,7 @@ _parseConflictResolution(responseText);
 _parseStrategy(responseText);
 ```
 
-- Parse strategy response
-  -
+- ## Parse strategy response
   - @private
 
 ---
@@ -220,8 +205,7 @@ _parseStrategy(responseText);
 _fallbackTaskAnalysis(task =
 ```
 
-- Fallback task analysis using heuristics
-  -
+- ## Fallback task analysis using heuristics
   - @private
 
 ---
@@ -232,8 +216,7 @@ _fallbackTaskAnalysis(task =
 _fallbackAgentRecommendation(task, availableAgents);
 ```
 
-- Fallback agent recommendation
-  -
+- ## Fallback agent recommendation
   - @private
 
 ---
@@ -244,8 +227,7 @@ _fallbackAgentRecommendation(task, availableAgents);
 _fallbackConflictResolution(opinions);
 ```
 
-- Fallback conflict resolution using majority vote
-  -
+- ## Fallback conflict resolution using majority vote
   - @private
 
 ---
@@ -256,8 +238,7 @@ _fallbackConflictResolution(opinions);
 setModel(model);
 ```
 
-- Set LLM model
-  -
+- ## Set LLM model
   - @param {string} model - Model name (e.g., 'qwen2:7b', 'llama2', 'mistral')
 
 ---
@@ -268,8 +249,7 @@ setModel(model);
 setTemperature(temperature);
 ```
 
-- Set temperature
-  -
+- ## Set temperature
   - @param {number} temperature - Temperature (0.0-1.0)
 
 ---

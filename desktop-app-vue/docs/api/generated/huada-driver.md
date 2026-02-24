@@ -40,8 +40,7 @@ class HuadaDriver extends SKFDriver
 findDllPath();
 ```
 
-- 查找DLL路径
-  -
+- ## 查找DLL路径
   - 华大的DLL通常命名为：
   - - HDSKFAPI.dll
   - - ChinaHuada.dll
@@ -105,8 +104,7 @@ getDriverVersion();
 async detect()
 ```
 
-- 检测设备
-  -
+- ## 检测设备
   - 华大特定的检测逻辑
 
 ---
@@ -137,8 +135,7 @@ async getDeviceInfo()
 async getDeviceSerial()
 ```
 
-- 华大特定功能：读取设备序列号
-  -
+- ## 华大特定功能：读取设备序列号
   - 注意：这需要SKF API的扩展支持
 
 ---

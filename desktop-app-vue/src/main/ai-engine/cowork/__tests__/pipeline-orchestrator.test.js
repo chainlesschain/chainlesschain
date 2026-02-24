@@ -70,21 +70,23 @@ describe("PipelineOrchestrator", () => {
     });
 
     it("should load active pipelines from DB", async () => {
-      db._prep.all.mockReturnValueOnce([
-        {
-          id: "pipe-001",
-          name: "Feature Dev",
-          template: "feature",
-          requirement: "Add user profile",
-          status: "running",
-          config: "{}",
-          created_at: "2025-01-01",
-          started_at: "2025-01-01",
-          completed_at: null,
-          current_stage: "code-generation",
-          metadata: "{}",
-        },
-      ]).mockReturnValue([]); // subsequent calls return empty
+      db._prep.all
+        .mockReturnValueOnce([
+          {
+            id: "pipe-001",
+            name: "Feature Dev",
+            template: "feature",
+            requirement: "Add user profile",
+            status: "running",
+            config: "{}",
+            created_at: "2025-01-01",
+            started_at: "2025-01-01",
+            completed_at: null,
+            current_stage: "code-generation",
+            metadata: "{}",
+          },
+        ])
+        .mockReturnValue([]); // subsequent calls return empty
 
       await orchestrator.initialize(db);
 
@@ -159,12 +161,17 @@ describe("PipelineOrchestrator", () => {
 
     it("should throw for unknown template", async () => {
       await expect(
-        orchestrator.createPipeline({ name: "Test", template: "unknown-template" }),
+        orchestrator.createPipeline({
+          name: "Test",
+          template: "unknown-template",
+        }),
       ).rejects.toThrow();
     });
 
     it("should store pipeline in memory map", async () => {
-      const result = await orchestrator.createPipeline({ name: "Test Pipeline" });
+      const result = await orchestrator.createPipeline({
+        name: "Test Pipeline",
+      });
 
       expect(orchestrator._pipelines.has(result.id)).toBe(true);
     });
@@ -177,7 +184,9 @@ describe("PipelineOrchestrator", () => {
       });
 
       // Config is stored in the internal pipeline object
-      expect(orchestrator._pipelines.get(result.id).config.autoApprove).toBe(true);
+      expect(orchestrator._pipelines.get(result.id).config.autoApprove).toBe(
+        true,
+      );
     });
 
     it("should emit pipeline:created event", async () => {
@@ -214,12 +223,12 @@ describe("PipelineOrchestrator", () => {
     });
 
     it("should throw if pipeline is already running", async () => {
-      const result = await orchestrator.createPipeline({ name: "Already Running" });
+      const result = await orchestrator.createPipeline({
+        name: "Already Running",
+      });
       await orchestrator.startPipeline(result.id);
 
-      await expect(
-        orchestrator.startPipeline(result.id),
-      ).rejects.toThrow();
+      await expect(orchestrator.startPipeline(result.id)).rejects.toThrow();
     });
   });
 
@@ -251,14 +260,14 @@ describe("PipelineOrchestrator", () => {
     });
 
     it("should throw if pipeline not found for pause", async () => {
-      await expect(
-        async () => orchestrator.pausePipeline("nonexistent"),
+      await expect(async () =>
+        orchestrator.pausePipeline("nonexistent"),
       ).rejects.toThrow();
     });
 
     it("should throw if pipeline not found for resume", async () => {
-      await expect(
-        async () => orchestrator.resumePipeline("nonexistent"),
+      await expect(async () =>
+        orchestrator.resumePipeline("nonexistent"),
       ).rejects.toThrow();
     });
   });
@@ -273,13 +282,18 @@ describe("PipelineOrchestrator", () => {
 
     it("should cancel a created pipeline", async () => {
       const result = await orchestrator.createPipeline({ name: "Cancel Test" });
-      const cancelled = await orchestrator.cancelPipeline(result.id, "User requested");
+      const cancelled = await orchestrator.cancelPipeline(
+        result.id,
+        "User requested",
+      );
 
       expect(cancelled.status).toBe(PIPELINE_STATUS.CANCELLED);
     });
 
     it("should cancel a running pipeline", async () => {
-      const result = await orchestrator.createPipeline({ name: "Cancel Running" });
+      const result = await orchestrator.createPipeline({
+        name: "Cancel Running",
+      });
       await orchestrator.startPipeline(result.id);
       const cancelled = await orchestrator.cancelPipeline(result.id, "Timeout");
 
@@ -287,8 +301,8 @@ describe("PipelineOrchestrator", () => {
     });
 
     it("should throw if pipeline not found", async () => {
-      await expect(
-        async () => orchestrator.cancelPipeline("nonexistent"),
+      await expect(async () =>
+        orchestrator.cancelPipeline("nonexistent"),
       ).rejects.toThrow();
     });
   });
@@ -304,14 +318,14 @@ describe("PipelineOrchestrator", () => {
     it("should throw for stage not in gate-waiting state", async () => {
       const result = await orchestrator.createPipeline({ name: "Gate Test" });
 
-      await expect(
-        async () => orchestrator.approveGate(result.id, "nonexistent-stage", {}),
+      await expect(async () =>
+        orchestrator.approveGate(result.id, "nonexistent-stage", {}),
       ).rejects.toThrow();
     });
 
     it("should throw for unknown pipeline id on rejectGate", async () => {
-      await expect(
-        async () => orchestrator.rejectGate("nonexistent", "stage-id", {}),
+      await expect(async () =>
+        orchestrator.rejectGate("nonexistent", "stage-id", {}),
       ).rejects.toThrow();
     });
   });
@@ -389,7 +403,9 @@ describe("PipelineOrchestrator", () => {
     });
 
     it("should return empty array when no artifacts", async () => {
-      const result = await orchestrator.createPipeline({ name: "Artifact Test" });
+      const result = await orchestrator.createPipeline({
+        name: "Artifact Test",
+      });
       db._prep.all.mockReturnValue([]);
 
       const artifacts = orchestrator.getArtifacts(result.id);
@@ -397,7 +413,9 @@ describe("PipelineOrchestrator", () => {
     });
 
     it("should return artifacts from DB", async () => {
-      const result = await orchestrator.createPipeline({ name: "Artifact Test 2" });
+      const result = await orchestrator.createPipeline({
+        name: "Artifact Test 2",
+      });
       db._prep.all.mockReturnValue([
         {
           id: "art-001",

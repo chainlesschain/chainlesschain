@@ -7,7 +7,11 @@ vi.mock("../../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-const { RequirementParser, REQUIREMENT_TYPES, SPEC_STATUS } = require("../requirement-parser");
+const {
+  RequirementParser,
+  REQUIREMENT_TYPES,
+  SPEC_STATUS,
+} = require("../requirement-parser");
 
 function createMockDatabase() {
   const prepResult = {
@@ -42,7 +46,10 @@ describe("RequirementParser", () => {
     it("should accept optional CKG and LLM deps", async () => {
       const mockCKG = { initialized: true };
       const mockLLM = { query: vi.fn() };
-      await parser.initialize(db, { codeKnowledgeGraph: mockCKG, llmService: mockLLM });
+      await parser.initialize(db, {
+        codeKnowledgeGraph: mockCKG,
+        llmService: mockLLM,
+      });
       expect(parser.initialized).toBe(true);
     });
 
@@ -64,7 +71,9 @@ describe("RequirementParser", () => {
     });
 
     it("should parse a simple requirement and return spec", async () => {
-      const spec = await parser.parse("Implement a user login page with email and password");
+      const spec = await parser.parse(
+        "Implement a user login page with email and password",
+      );
       expect(spec).toBeTruthy();
       expect(spec.id).toBeTruthy();
       expect(spec.description).toBeTruthy();
@@ -72,7 +81,9 @@ describe("RequirementParser", () => {
     });
 
     it("should classify a feature requirement", async () => {
-      const spec = await parser.parse("Add a new feature for user profile management");
+      const spec = await parser.parse(
+        "Add a new feature for user profile management",
+      );
       expect(spec.type).toBeTruthy();
     });
 
@@ -82,12 +93,16 @@ describe("RequirementParser", () => {
     });
 
     it("should extract tech stack hints from requirement", async () => {
-      const spec = await parser.parse("Create a Vue component with REST API integration");
+      const spec = await parser.parse(
+        "Create a Vue component with REST API integration",
+      );
       expect(spec.techStack).toBeTruthy();
     });
 
     it("should include priority and complexity", async () => {
-      const spec = await parser.parse("Fix critical authentication bug immediately");
+      const spec = await parser.parse(
+        "Fix critical authentication bug immediately",
+      );
       expect(spec.priority).toBeTruthy();
       expect(spec.complexity).toBeTruthy();
     });
@@ -99,7 +114,9 @@ describe("RequirementParser", () => {
     });
 
     it("should validate a well-formed spec", async () => {
-      const spec = await parser.parse("Implement user registration with email validation");
+      const spec = await parser.parse(
+        "Implement user registration with email validation",
+      );
       const validation = parser.validateSpec(spec);
       expect(validation).toHaveProperty("valid");
       expect(validation).toHaveProperty("errors");
@@ -107,13 +124,18 @@ describe("RequirementParser", () => {
     });
 
     it("should return errors for empty spec", () => {
-      const validation = parser.validateSpec({ description: "", type: "feature" });
+      const validation = parser.validateSpec({
+        description: "",
+        type: "feature",
+      });
       expect(validation.valid).toBe(false);
       expect(Array.isArray(validation.errors)).toBe(true);
     });
 
     it("should include completeness score", async () => {
-      const spec = await parser.parse("Add pagination to user list with 10 items per page");
+      const spec = await parser.parse(
+        "Add pagination to user list with 10 items per page",
+      );
       const validation = parser.validateSpec(spec);
       expect(validation).toHaveProperty("completeness");
     });
@@ -148,7 +170,7 @@ describe("RequirementParser", () => {
   describe("Constants", () => {
     it("REQUIREMENT_TYPES should have FEATURE and BUG_FIX", () => {
       expect(Object.values(REQUIREMENT_TYPES)).toContain(
-        expect.stringMatching(/feature|bug/i)
+        expect.stringMatching(/feature|bug/i),
       );
     });
 

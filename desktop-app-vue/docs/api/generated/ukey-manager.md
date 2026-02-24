@@ -84,8 +84,7 @@ async switchDriver(driverType)
 async autoDetect()
 ```
 
-- 自动检测U盾类型
-  -
+- ## 自动检测U盾类型
   - 尝试不同的驱动，看哪个能成功检测到设备
   - Windows: 优先使用国产驱动，然后 PKCS#11
   - macOS/Linux: 优先使用 PKCS#11（跨平台支持）
@@ -238,8 +237,7 @@ async close()
 startDeviceMonitor((interval = 5000));
 ```
 
-- 监听设备变化（热插拔）
-  -
+- ## 监听设备变化（热插拔）
   - 使用轮询方式检测设备变化
 
 ---

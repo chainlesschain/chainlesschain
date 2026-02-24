@@ -80,12 +80,18 @@ describe("AgentReputation", () => {
     });
 
     it("should throw if agentDID is missing", () => {
-      expect(() => reputation.updateScore(null, { success: true })).toThrow("agentDID is required");
+      expect(() => reputation.updateScore(null, { success: true })).toThrow(
+        "agentDID is required",
+      );
     });
 
     it("should update score after successful task", () => {
       const did = "did:chainless:agent-001";
-      reputation.updateScore(did, { success: true, durationMs: 500, taskType: "code-review" });
+      reputation.updateScore(did, {
+        success: true,
+        durationMs: 500,
+        taskType: "code-review",
+      });
       const score = reputation.getScore(did);
       expect(score.totalTasks).toBe(1);
       expect(score.successfulTasks).toBe(1);
@@ -108,7 +114,11 @@ describe("AgentReputation", () => {
     it("should accumulate score over multiple tasks", () => {
       const did = "did:chainless:agent-004";
       for (let i = 0; i < 5; i++) {
-        reputation.updateScore(did, { success: true, quality: 0.8, durationMs: 200 });
+        reputation.updateScore(did, {
+          success: true,
+          quality: 0.8,
+          durationMs: 200,
+        });
       }
       const score = reputation.getScore(did);
       expect(score.totalTasks).toBe(5);

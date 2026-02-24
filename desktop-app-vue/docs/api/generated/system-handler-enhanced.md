@@ -53,8 +53,7 @@ async handle(action, params, context)
 async screenshot(params, context)
 ```
 
-- 截图
-  -
+- ## 截图
   - 支持全屏、区域截图、质量配置
 
 ---
@@ -65,8 +64,7 @@ async screenshot(params, context)
 async notify(params, context)
 ```
 
-- 发送通知
-  -
+- ## 发送通知
   - 支持标题、内容、图标、操作按钮
 
 ---
@@ -77,8 +75,7 @@ async notify(params, context)
 async getStatus(params, context)
 ```
 
-- 获取系统状态
-  -
+- ## 获取系统状态
   - CPU、内存、磁盘、网络状态
 
 ---
@@ -89,8 +86,7 @@ async getStatus(params, context)
 async getInfo(params, context)
 ```
 
-- 获取系统信息
-  -
+- ## 获取系统信息
   - OS、硬件、应用版本等
 
 ---
@@ -101,8 +97,7 @@ async getInfo(params, context)
 async execCommand(params, context)
 ```
 
-- 执行命令（需 Admin 权限）
-  -
+- ## 执行命令（需 Admin 权限）
   - 安全沙箱、超时控制、输出捕获
 
 ---

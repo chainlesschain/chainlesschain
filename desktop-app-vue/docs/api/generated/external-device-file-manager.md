@@ -49,8 +49,7 @@ registerProtocolHandlers();
 async syncDeviceFileIndex(deviceId, options =
 ```
 
-- 同步设备文件索引（支持增量同步）
-  -
+- ## 同步设备文件索引（支持增量同步）
   - 从Android设备拉取文件索引列表，支持增量同步和分批处理。
   - 默认每批处理500个文件，自动处理多批次同步。
   -
@@ -94,8 +93,7 @@ async syncDeviceFileIndex(deviceId, options =
 async sendIndexRequestAndWait(deviceId, request, retryOptions =
 ```
 
-- 发送索引请求并等待响应（带重试）
-  -
+- ## 发送索引请求并等待响应（带重试）
   - @param {string} deviceId - 设备ID
   - @param {Object} request - 请求对象
   - @param {Object} [retryOptions] - 重试选项
@@ -143,8 +141,7 @@ async updateLocalIndex(deviceId, files)
 async getDeviceFiles(deviceId, options =
 ```
 
-- 获取指定设备的文件列表
-  -
+- ## 获取指定设备的文件列表
   - 从本地索引中查询指定Android设备的文件列表，支持多种过滤、排序、
   - 搜索和分页功能。返回的文件列表会自动解析metadata和tags字段。
   -
@@ -249,8 +246,7 @@ async getDeviceFiles(deviceId, options =
 async pullFile(fileId, options =
 ```
 
-- 拉取文件到本地缓存（支持安全验证和LRU缓存管理）
-  -
+- ## 拉取文件到本地缓存（支持安全验证和LRU缓存管理）
   - 从Android设备下载文件到本地缓存目录，包含完整的安全验证、缓存管理、
   - 文件完整性校验等功能。如果文件已缓存则直接返回，否则执行拉取流程。
   -
@@ -331,8 +327,7 @@ async pullFile(fileId, options =
 async sendFilePullRequestAndWait(deviceId, request, retryOptions =
 ```
 
-- 发送文件拉取请求并等待响应（带重试）
-  -
+- ## 发送文件拉取请求并等待响应（带重试）
   - @param {string} deviceId - 设备ID
   - @param {Object} request - 请求对象
   - @param {Object} [retryOptions] - 重试选项
@@ -390,8 +385,7 @@ handleTransferError(data);
 async importToRAG(fileId, options =
 ```
 
-- 导入文件到RAG知识库系统
-  -
+- ## 导入文件到RAG知识库系统
   - 将外部设备文件导入到RAG（Retrieval-Augmented Generation）知识库，
   - 用于AI分析和语义检索。如果文件未缓存，会自动先拉取文件。
   -
@@ -462,8 +456,7 @@ async importToRAG(fileId, options =
 async importToProject(fileId, projectId, options =
 ```
 
-- 导入文件到指定项目
-  -
+- ## 导入文件到指定项目
   - 将外部设备文件复制到项目文件目录，并在数据库中创建project_files记录。
   - 如果文件未缓存，会自动先拉取文件。文件名会添加时间戳后缀以避免冲突。
   -
@@ -527,10 +520,12 @@ async importToProject(fileId, projectId, options =
   - ```
 
     ```
+
   - data/projects/{projectId}/files/{fileName}\_{timestamp}.{ext}
   - ```
 
     ```
+
   -
   - **project_files记录**:
   - - id: 新生成的UUID
@@ -555,8 +550,7 @@ async importToProject(fileId, projectId, options =
 async evictLRUCacheFiles(requiredSpace)
 ```
 
-- LRU（Least Recently Used）缓存淘汰策略
-  -
+- ## LRU（Least Recently Used）缓存淘汰策略
   - 根据LRU算法淘汰最近最少使用的缓存文件，释放指定大小的存储空间。
   - 淘汰顺序基于last_access时间戳，优先删除最久未访问的文件。
   -
@@ -717,8 +711,7 @@ async updateLastSyncTime(deviceId, timestamp)
 async searchFiles(query, options =
 ```
 
-- 搜索外部设备文件
-  -
+- ## 搜索外部设备文件
   - 根据文件名关键词搜索外部设备文件索引，支持设备过滤、分类过滤、
   - 排序和分页等高级搜索功能。
   -
@@ -884,8 +877,7 @@ resetPerformanceMetrics();
 getRetryStats();
 ```
 
-- 获取重试统计信息
-  -
+- ## 获取重试统计信息
   - @returns {Object} 重试统计数据
   - @returns {number} return.totalRetries - 总重试次数
   - @returns {number} return.successAfterRetry - 重试成功次数

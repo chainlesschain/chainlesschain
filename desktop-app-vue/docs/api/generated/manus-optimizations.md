@@ -66,8 +66,7 @@ bindUnifiedRegistry(registry);
 buildOptimizedPrompt(options);
 ```
 
-- 构建优化后的 Prompt
-  -
+- ## 构建优化后的 Prompt
   - @param {Object} options - 构建选项
   - @param {string} options.systemPrompt - 系统提示词
   - @param {Array} options.messages - 对话历史
