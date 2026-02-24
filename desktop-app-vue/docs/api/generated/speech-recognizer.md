@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/speech-recognizer.js`
 
-**Generated**: 2026-02-24T17:58:54.457Z
+**Generated**: 2026-02-24T18:45:59.435Z
 
 ---
 

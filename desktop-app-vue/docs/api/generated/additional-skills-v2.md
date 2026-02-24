@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/additional-skills-v2.js`
 
-**Generated**: 2026-02-24T17:58:54.470Z
+**Generated**: 2026-02-24T18:45:59.450Z
 
 ---
 
@@ -12,7 +12,8 @@
 const additionalSkillsV2 = [
 ```
 
-- 额外技能定义（第二批）
-- 10个新增的高价值技能
+* 额外技能定义（第二批）
+ * 10个新增的高价值技能
 
 ---
+
