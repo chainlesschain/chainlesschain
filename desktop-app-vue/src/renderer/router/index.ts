@@ -1038,6 +1038,19 @@ const routes: RouteRecordRaw[] = [
         component: enterpriseV1Pages.autonomousAgent,
         meta: { title: 'AI 自主执行代理' },
       },
+      // ===== EvoMap GEP Protocol (v1.0.0) =====
+      {
+        path: 'evomap',
+        name: 'EvoMapDashboard',
+        component: () => import(/* webpackChunkName: "evomap-dashboard" */ '../pages/evomap/EvoMapDashboard.vue'),
+        meta: { title: 'EvoMap Dashboard' },
+      },
+      {
+        path: 'evomap/browser',
+        name: 'EvoMapBrowser',
+        component: () => import(/* webpackChunkName: "evomap-browser" */ '../pages/evomap/EvoMapBrowser.vue'),
+        meta: { title: 'EvoMap Browser' },
+      },
     ],
   },
 ];

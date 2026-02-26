@@ -362,6 +362,26 @@ class UnifiedConfigManager {
         memoryDir: this.paths.memory,
         checkpointsDir: this.paths.checkpoints,
       },
+      evomap: {
+        enabled: false,
+        hubUrl: "https://evomap.ai",
+        autoPublish: false,
+        autoFetch: false,
+        publishThresholds: {
+          minInstinctConfidence: 0.7,
+          minWorkflowSuccessRate: 0.8,
+          minDecisionSuccessRate: 0.7,
+        },
+        privacyFilter: {
+          excludePatterns: [],
+          anonymize: true,
+          requireReview: true,
+        },
+        heartbeatEnabled: true,
+        fetchLimit: 20,
+        workerEnabled: false,
+        workerDomains: [],
+      },
     };
   }
 
