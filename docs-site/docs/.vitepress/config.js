@@ -117,9 +117,23 @@ export default defineConfig({
           ],
         },
         {
+          text: "v1.1.0 新功能",
+          items: [
+            { text: "流水线编排", link: "/chainlesschain/pipeline" },
+            { text: "自然语言编程", link: "/chainlesschain/nl-programming" },
+            { text: "多模态协作", link: "/chainlesschain/multimodal" },
+            { text: "自主运维", link: "/chainlesschain/autonomous-ops" },
+            { text: "代理联邦网络", link: "/chainlesschain/agent-federation" },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
+            {
+              text: "v1.1.0 实施计划",
+              link: "/chainlesschain/implementation-plan",
+            },
           ],
         },
       ],
