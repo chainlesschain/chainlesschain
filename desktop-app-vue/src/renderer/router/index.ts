@@ -1038,6 +1038,37 @@ const routes: RouteRecordRaw[] = [
         component: enterpriseV1Pages.autonomousAgent,
         meta: { title: 'AI 自主执行代理' },
       },
+      // ===== v1.1.0 新功能 =====
+      {
+        path: 'deployment-monitor',
+        name: 'DeploymentMonitor',
+        component: () => import(/* webpackChunkName: "deployment-monitor" */ '../pages/DeploymentMonitorPage.vue'),
+        meta: { title: '流水线监控' },
+      },
+      {
+        path: 'nl-programming',
+        name: 'NLProgramming',
+        component: () => import(/* webpackChunkName: "nl-programming" */ '../pages/NLProgrammingPage.vue'),
+        meta: { title: '自然语言编程' },
+      },
+      {
+        path: 'multimodal-collab',
+        name: 'MultimodalCollab',
+        component: () => import(/* webpackChunkName: "multimodal-collab" */ '../pages/MultimodalCollabPage.vue'),
+        meta: { title: '多模态协作' },
+      },
+      {
+        path: 'autonomous-ops',
+        name: 'AutonomousOps',
+        component: () => import(/* webpackChunkName: "autonomous-ops" */ '../pages/AutonomousOpsPage.vue'),
+        meta: { title: '自主运维' },
+      },
+      {
+        path: 'federated-network',
+        name: 'FederatedNetwork',
+        component: () => import(/* webpackChunkName: "federated-network" */ '../pages/FederatedNetworkPage.vue'),
+        meta: { title: '去中心化代理网络' },
+      },
       // ===== EvoMap GEP Protocol (v1.0.0) =====
       {
         path: 'evomap',

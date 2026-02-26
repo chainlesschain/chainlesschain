@@ -1,6 +1,9 @@
 const js = require("@eslint/js");
 const pluginVue = require("eslint-plugin-vue");
 const globals = require("globals");
+const tseslint = require("typescript-eslint");
+const vueParser = require("vue-eslint-parser");
+const tsParser = require("@typescript-eslint/parser");
 
 module.exports = [
   // 忽略目录
@@ -11,6 +14,7 @@ module.exports = [
       "out/**",
       "build/**",
       "*.min.js",
+      "*.config.js",
       "coverage/**",
       "browser-extension/**",
       "src/main/remote/browser-extension/**",
@@ -94,6 +98,47 @@ module.exports = [
         defineEmits: "readonly",
         defineExpose: "readonly",
         withDefaults: "readonly",
+      },
+    },
+  },
+
+  // TypeScript 推荐规则
+  ...tseslint.configs.recommended,
+
+  // TypeScript 文件配置
+  {
+    files: ["**/*.ts", "**/*.tsx", "**/*.vue"],
+    ignores: ["eslint.config.js", "*.config.js"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "module",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+
+  // Vue 文件中的 TypeScript 配置
+  {
+    files: ["**/*.vue"],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "module",
+        parser: tsParser,
+        extraFileExtensions: [".vue"],
       },
     },
   },

@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v1.0.0 (Enterprise Edition - 95 Desktop Skills + Android 28 Skills + Phase 6 Enterprise Features) - Updated 2026-02-23
+**Current Version**: v1.1.0-alpha (Enterprise Edition - 95 Desktop Skills + Android 28 Skills + Phase 6 Enterprise + v3.0-v4.0 Full-Stack) - Updated 2026-02-26
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -140,7 +140,27 @@ All features are implemented. Entry files are relative to `desktop-app-vue/src/`
 | Autonomous Agent Runner       | `main/ai-engine/autonomous/autonomous-agent-runner.js`                   | —                                                                                  |
 | i18n Internationalization     | `main/i18n/index.js`                                                     | —                                                                                  |
 | Performance Auto-Tuner        | `main/performance/auto-tuner.js`, `performance-monitor.js`               | —                                                                                  |
-| TypeScript Stores (46)        | `renderer/stores/*.ts`                                                   | —                                                                                  |
+| TypeScript Stores (51)        | `renderer/stores/*.ts`                                                   | —                                                                                  |
+| **v1.1.0 新功能 (v3.0-v4.0)** |                                                                          |                                                                                    |
+| Pipeline Orchestrator (v3.0)  | `main/ai-engine/cowork/pipeline-orchestrator.js`, `pipeline-ipc.js`      | [流水线编排](docs-site/docs/chainlesschain/pipeline.md)                            |
+| Deploy Agent (v3.0)           | `main/ai-engine/cowork/deploy-agent.js`, `post-deploy-monitor.js`        | —                                                                                  |
+| Rollback Manager (v3.0)       | `main/ai-engine/cowork/rollback-manager.js`                              | —                                                                                  |
+| Requirement Parser (v3.0)     | `main/ai-engine/cowork/requirement-parser.js`                            | —                                                                                  |
+| NL Spec Translator (v3.1)     | `main/ai-engine/cowork/spec-translator.js`, `nl-programming-ipc.js`      | [自然语言编程](docs-site/docs/chainlesschain/nl-programming.md)                    |
+| Project Style Analyzer (v3.1) | `main/ai-engine/cowork/project-style-analyzer.js`                        | —                                                                                  |
+| Modality Fusion (v3.2)        | `main/ai-engine/cowork/modality-fusion.js`, `multimodal-collab-ipc.js`   | [多模态协作](docs-site/docs/chainlesschain/multimodal.md)                          |
+| Document Parser (v3.2)        | `main/ai-engine/cowork/document-parser.js`                               | —                                                                                  |
+| Screen Recorder (v3.2)        | `main/ai-engine/cowork/screen-recorder.js`                               | —                                                                                  |
+| Multimodal Context (v3.2)     | `main/ai-engine/cowork/multimodal-context.js`, `multimodal-output.js`    | —                                                                                  |
+| Alert Manager (v3.3)          | `main/ai-engine/cowork/alert-manager.js`, `autonomous-ops-ipc.js`        | [自主运维](docs-site/docs/chainlesschain/autonomous-ops.md)                        |
+| Auto Remediator (v3.3)        | `main/ai-engine/cowork/auto-remediator.js`                               | —                                                                                  |
+| Postmortem Generator (v3.3)   | `main/ai-engine/cowork/postmortem-generator.js`                          | —                                                                                  |
+| Agent DID (v4.0)              | `main/ai-engine/cowork/agent-did.js`                                     | [代理联邦网络](docs-site/docs/chainlesschain/agent-federation.md)                  |
+| Agent Credential (v4.0)       | `main/ai-engine/cowork/agent-credential-manager.js`                      | —                                                                                  |
+| Agent Authenticator (v4.0)    | `main/ai-engine/cowork/agent-authenticator.js`                           | —                                                                                  |
+| Federated Registry (v4.0)     | `main/ai-engine/cowork/federated-agent-registry.js`                      | —                                                                                  |
+| Cross-Org Task Router (v4.0)  | `main/ai-engine/cowork/cross-org-task-router.js`                         | —                                                                                  |
+| Agent Reputation (v4.0)       | `main/ai-engine/cowork/agent-reputation.js`                              | —                                                                                  |
 
 ### Skills System Details
 
@@ -249,11 +269,36 @@ desktop-app-vue/
 │           ├── debate-review.js
 │           ├── ab-comparator.js
 │           ├── evolution-ipc.js  # 35 IPC handlers
+│           ├── pipeline-orchestrator.js  # v3.0 pipeline
+│           ├── pipeline-ipc.js           # v3.0 15 IPC
+│           ├── deploy-agent.js           # v3.0 deploy
+│           ├── post-deploy-monitor.js    # v3.0 monitor
+│           ├── rollback-manager.js       # v3.0 rollback
+│           ├── requirement-parser.js     # v3.0 NL→Spec
+│           ├── spec-translator.js        # v3.1 NL programming
+│           ├── nl-programming-ipc.js     # v3.1 10 IPC
+│           ├── project-style-analyzer.js # v3.1 conventions
+│           ├── modality-fusion.js        # v3.2 multimodal
+│           ├── multimodal-collab-ipc.js  # v3.2 12 IPC
+│           ├── document-parser.js        # v3.2 doc parse
+│           ├── multimodal-context.js     # v3.2 context
+│           ├── multimodal-output.js      # v3.2 output
+│           ├── screen-recorder.js        # v3.2 screen
+│           ├── alert-manager.js          # v3.3 alerts
+│           ├── autonomous-ops-ipc.js     # v3.3 15 IPC
+│           ├── auto-remediator.js        # v3.3 playbook
+│           ├── postmortem-generator.js   # v3.3 reports
+│           ├── agent-did.js              # v4.0 DID
+│           ├── agent-credential-manager.js # v4.0 VC
+│           ├── agent-authenticator.js    # v4.0 auth
+│           ├── federated-agent-registry.js # v4.0 discovery
+│           ├── cross-org-task-router.js  # v4.0 routing
+│           ├── agent-reputation.js       # v4.0 reputation
 │           └── skills/    # Skills system (95 built-in, 4-layer loading)
 └── src/renderer/          # Vue3 frontend
-    ├── pages/             # Page components
+    ├── pages/             # Page components (5 new v1.1.0 pages)
     ├── components/        # Reusable components
-    └── stores/            # Pinia state management (46 TypeScript stores)
+    └── stores/            # Pinia state management (51 TypeScript stores)
 ```
 
 ### Android Application
