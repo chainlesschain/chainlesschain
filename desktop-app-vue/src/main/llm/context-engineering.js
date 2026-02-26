@@ -54,6 +54,9 @@ class ContextEngineering {
     // Code Knowledge Graph（可选，通过 setCodeKnowledgeGraph 注入）
     this._codeKnowledgeGraph = null;
 
+    // EvoMap Asset Bridge（可选，通过 setEvoMapBridge 注入）
+    this._evoMapBridge = null;
+
     // Memory Augmented Generation（可选，通过 setMemoryAugManager 注入）
     this._memoryAugManager = null;
 
@@ -83,6 +86,14 @@ class ContextEngineering {
    */
   setCodeKnowledgeGraph(codeKnowledgeGraph) {
     this._codeKnowledgeGraph = codeKnowledgeGraph;
+  }
+
+  /**
+   * Set the EvoMap Asset Bridge for community knowledge injection
+   * @param {Object} evoMapBridge - EvoMapAssetBridge instance
+   */
+  setEvoMapBridge(evoMapBridge) {
+    this._evoMapBridge = evoMapBridge;
   }
 
   /**
@@ -227,8 +238,7 @@ class ContextEngineering {
 
         // 用户偏好
         if (this._preferenceLearner) {
-          const prefContext =
-            this._preferenceLearner.buildPreferenceContext(5);
+          const prefContext = this._preferenceLearner.buildPreferenceContext(5);
           if (prefContext) {
             memoryParts.push(prefContext);
           }
@@ -242,8 +252,10 @@ class ContextEngineering {
               .slice(-2)
               .map((m) => m.content || "")
               .join(" ");
-          const memContext =
-            this._memoryAugManager.buildMemoryContext(contextHint, 3);
+          const memContext = this._memoryAugManager.buildMemoryContext(
+            contextHint,
+            3,
+          );
           if (memContext) {
             memoryParts.push(memContext);
           }
@@ -257,6 +269,30 @@ class ContextEngineering {
         }
       } catch (_e) {
         // Memory context is non-critical, silently skip
+      }
+    }
+
+    // 4.8 注入 EvoMap 社区知识（全球 Agent 验证的策略）
+    if (this._evoMapBridge) {
+      try {
+        const contextHint =
+          taskContext?.objective ||
+          messages
+            .slice(-3)
+            .map((m) => m.content || "")
+            .join(" ");
+        const evoContext = this._evoMapBridge.buildEvoMapContext(
+          contextHint,
+          3,
+        );
+        if (evoContext) {
+          result.messages.push({
+            role: "system",
+            content: evoContext,
+          });
+        }
+      } catch (_e) {
+        // EvoMap context is non-critical
       }
     }
 

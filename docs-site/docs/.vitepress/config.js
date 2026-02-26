@@ -101,6 +101,7 @@ export default defineConfig({
             { text: "权限系统", link: "/chainlesschain/permissions" },
             { text: "Plan模式", link: "/chainlesschain/plan-mode" },
             { text: "Skills系统", link: "/chainlesschain/skills" },
+            { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
           ],
         },
       ],
