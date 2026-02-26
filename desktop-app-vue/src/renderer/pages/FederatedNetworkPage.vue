@@ -29,7 +29,7 @@
           <a-statistic
             title="在线节点"
             :value="store.networkStats?.onlineNodes ?? 0"
-            value-style="color: #52c41a"
+            :value-style="{ color: '#52c41a' }"
           />
         </a-card>
       </a-col>
@@ -38,7 +38,7 @@
           <a-statistic
             title="总技能数"
             :value="store.networkStats?.totalSkills ?? 0"
-            value-style="color: #1890ff"
+            :value-style="{ color: '#1890ff' }"
           />
         </a-card>
       </a-col>
@@ -48,7 +48,7 @@
             title="我的信誉"
             :value="store.myReputation"
             :precision="1"
-            value-style="color: #722ed1"
+            :value-style="{ color: '#722ed1' }"
           />
         </a-card>
       </a-col>
@@ -57,7 +57,7 @@
           <a-statistic
             title="活跃任务"
             :value="store.networkStats?.activeTasks ?? 0"
-            value-style="color: #faad14"
+            :value-style="{ color: '#faad14' }"
           />
         </a-card>
       </a-col>

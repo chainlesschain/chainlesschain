@@ -29,7 +29,7 @@
           <a-statistic
             title="运行中"
             :value="store.activePipelines.length"
-            value-style="color: #1890ff"
+            :value-style="{ color: '#1890ff' }"
           />
         </a-card>
       </a-col>
@@ -38,7 +38,7 @@
           <a-statistic
             title="成功"
             :value="successCount"
-            value-style="color: #52c41a"
+            :value-style="{ color: '#52c41a' }"
           />
         </a-card>
       </a-col>
@@ -47,7 +47,7 @@
           <a-statistic
             title="失败"
             :value="failedCount"
-            value-style="color: #ff4d4f"
+            :value-style="{ color: '#ff4d4f' }"
           />
         </a-card>
       </a-col>
@@ -56,7 +56,7 @@
           <a-statistic
             title="待审批"
             :value="store.pendingGates.length"
-            value-style="color: #faad14"
+            :value-style="{ color: '#faad14' }"
           />
         </a-card>
       </a-col>

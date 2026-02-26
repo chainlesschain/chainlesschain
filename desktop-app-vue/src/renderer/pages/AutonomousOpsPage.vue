@@ -29,7 +29,7 @@
           <a-statistic
             title="活跃事故"
             :value="store.activeIncidents.length"
-            value-style="color: #ff4d4f"
+            :value-style="{ color: '#ff4d4f' }"
           />
         </a-card>
       </a-col>
@@ -38,7 +38,7 @@
           <a-statistic
             title="待确认告警"
             :value="store.alertCount"
-            value-style="color: #faad14"
+            :value-style="{ color: '#faad14' }"
           />
         </a-card>
       </a-col>
@@ -48,7 +48,7 @@
             title="自动修复率"
             :value="autoFixRate"
             suffix="%"
-            value-style="color: #52c41a"
+            :value-style="{ color: '#52c41a' }"
           />
         </a-card>
       </a-col>
@@ -58,7 +58,7 @@
             title="平均 MTTR"
             :value="avgMTTR"
             suffix="min"
-            value-style="color: #1890ff"
+            :value-style="{ color: '#1890ff' }"
           />
         </a-card>
       </a-col>
@@ -217,10 +217,11 @@
               </a-card>
             </a-list-item>
           </template>
-          <template #empty>
-            <a-empty description="暂无事故报告" />
-          </template>
         </a-list>
+        <a-empty
+          v-if="store.postmortems.length === 0"
+          description="暂无事故报告"
+        />
       </a-tab-pane>
     </a-tabs>
 
@@ -234,7 +235,7 @@
     >
       <a-form layout="vertical">
         <a-form-item label="事故">
-          <a-input :value="remediationIncident?.title" disabled />
+          <a-input :value="(remediationIncident as any)?.title" disabled />
         </a-form-item>
         <a-form-item label="选择 Playbook">
           <a-select
@@ -436,7 +437,7 @@ async function handleTriggerRemediation() {
     return;
   }
   const result = await store.triggerRemediation(
-    remediationIncident.value.id,
+    (remediationIncident.value as any).id,
     selectedPlaybookId.value,
   );
   if (result.success) {
