@@ -70,6 +70,9 @@ export default defineConfig({
             { text: "交易辅助", link: "/chainlesschain/trading" },
             { text: "U盾集成", link: "/chainlesschain/ukey" },
             { text: "SIMKey集成", link: "/chainlesschain/simkey" },
+            { text: "SIMKey高级安全", link: "/chainlesschain/simkey-advanced" },
+            { text: "SIMKey企业版", link: "/chainlesschain/simkey-enterprise" },
+            { text: "移动端同步", link: "/chainlesschain/mobile-sync" },
           ],
         },
         {
@@ -78,6 +81,11 @@ export default defineConfig({
             { text: "AI模型配置", link: "/chainlesschain/ai-models" },
             { text: "Git同步", link: "/chainlesschain/git-sync" },
             { text: "数据加密", link: "/chainlesschain/encryption" },
+            {
+              text: "Context Engineering",
+              link: "/chainlesschain/context-engineering",
+            },
+            { text: "永久记忆系统", link: "/chainlesschain/permanent-memory" },
           ],
         },
         {
@@ -102,6 +110,10 @@ export default defineConfig({
             { text: "Plan模式", link: "/chainlesschain/plan-mode" },
             { text: "Skills系统", link: "/chainlesschain/skills" },
             { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
+            { text: "Cowork高级功能", link: "/chainlesschain/cowork-advanced" },
+            { text: "Cowork路线图", link: "/chainlesschain/cowork-roadmap" },
+            { text: "团队管理", link: "/chainlesschain/team-manager" },
+            { text: "审计日志", link: "/chainlesschain/audit" },
           ],
         },
       ],
