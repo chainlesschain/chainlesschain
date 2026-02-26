@@ -2,7 +2,7 @@
 
 **Source**: `src/main/tests/test-new-tools.js`
 
-**Generated**: 2026-02-24T18:45:59.429Z
+**Generated**: 2026-02-24T23:28:10.559Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- 测试新添加的工具功能
-- 验证 Office、数据科学和项目初始化工具
+* 测试新添加的工具功能
+ * 验证 Office、数据科学和项目初始化工具
 
 ---
+

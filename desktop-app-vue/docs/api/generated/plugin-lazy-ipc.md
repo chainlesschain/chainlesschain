@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-lazy-ipc.js`
 
-**Generated**: 2026-02-24T18:45:59.465Z
+**Generated**: 2026-02-24T23:28:10.598Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 插件系统懒加载 IPC 包装器
-- 在首次访问时才初始化插件系统，节省启动时间 2-3 秒
+* 插件系统懒加载 IPC 包装器
+ * 在首次访问时才初始化插件系统，节省启动时间 2-3 秒
 
 ---
 
@@ -23,9 +23,9 @@ const
 async function ensurePluginInitialized(app)
 ```
 
-- 确保插件系统已初始化
-- @param {Object} app - 应用实例
-- @returns {Promise<void>}
+* 确保插件系统已初始化
+ * @param {Object} app - 应用实例
+ * @returns {Promise<void>}
 
 ---
 
@@ -35,9 +35,10 @@ async function ensurePluginInitialized(app)
 function registerLazyPluginIPC(
 ```
 
-- 注册懒加载的插件 IPC 处理器
-- @param {Object} options
-- @param {Object} options.app - 应用实例
-- @param {Object} options.mainWindow - 主窗口实例
+* 注册懒加载的插件 IPC 处理器
+ * @param {Object} options
+ * @param {Object} options.app - 应用实例
+ * @param {Object} options.mainWindow - 主窗口实例
 
 ---
+

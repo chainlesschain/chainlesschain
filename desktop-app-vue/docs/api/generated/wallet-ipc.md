@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/wallet-ipc.js`
 
-**Generated**: 2026-02-24T18:45:59.526Z
+**Generated**: 2026-02-24T23:28:10.664Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- 钱包管理 IPC
-- 处理钱包创建、导入、签名等操作
+* 钱包管理 IPC
+ * 处理钱包创建、导入、签名等操作
 
 ---
+
