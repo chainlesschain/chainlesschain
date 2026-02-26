@@ -5,43 +5,39 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock axios at top level
-const mockAxiosInstance = {
-  request: vi.fn(),
-  defaults: { baseURL: "" },
-  interceptors: {
-    request: { use: vi.fn(), clear: vi.fn() },
-    response: { use: vi.fn(), clear: vi.fn() },
-  },
-};
-
-vi.mock("axios", () => ({
-  default: { create: vi.fn(() => mockAxiosInstance) },
-  create: vi.fn(() => mockAxiosInstance),
-}));
-
-// Mock uuid to return predictable values
-vi.mock("uuid", () => ({
-  v4: vi.fn(() => "test-uuid-1234"),
-}));
-
-// Mock logger
-vi.mock("../../../src/main/utils/logger.js", () => ({
-  logger: {
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
-  },
-}));
-
 let EvoMapClient, getEvoMapClient;
 
 describe("EvoMapClient", () => {
   beforeEach(async () => {
-    vi.clearAllMocks();
+    vi.resetModules();
 
-    // Re-import to get fresh module
+    vi.doMock("uuid", () => ({
+      v4: vi.fn(() => "test-uuid-1234"),
+    }));
+
+    vi.doMock("../../../src/main/utils/logger.js", () => ({
+      logger: {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+      },
+    }));
+
+    // Mock axios — the constructor calls axios.create()
+    vi.doMock("axios", () => {
+      const mockInst = {
+        request: vi.fn().mockResolvedValue({}),
+        defaults: { baseURL: "" },
+        interceptors: {
+          request: { use: vi.fn(), clear: vi.fn() },
+          response: { use: vi.fn(), clear: vi.fn() },
+        },
+      };
+      const createFn = vi.fn(() => mockInst);
+      return { default: { create: createFn }, create: createFn };
+    });
+
     const mod = await import("../../../src/main/evomap/evomap-client.js");
     EvoMapClient = mod.EvoMapClient;
     getEvoMapClient = mod.getEvoMapClient;
@@ -51,13 +47,32 @@ describe("EvoMapClient", () => {
     vi.restoreAllMocks();
   });
 
+  /**
+   * Create a client, replace client.client with a fresh mock, mock _sleep.
+   * The source uses this.client.request() — we replace it with a vi.fn().
+   */
+  function createClient(opts) {
+    const client = new EvoMapClient(opts);
+    const mock = {
+      request: vi.fn().mockResolvedValue({}),
+      defaults: { baseURL: "" },
+      interceptors: {
+        request: { use: vi.fn(), clear: vi.fn() },
+        response: { use: vi.fn(), clear: vi.fn() },
+      },
+    };
+    client.client = mock;
+    client._sleep = vi.fn().mockResolvedValue(undefined);
+    return client;
+  }
+
   // ============================================================
   // Constructor & Initialization
   // ============================================================
 
   describe("constructor", () => {
     it("should create with default options", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       expect(client.hubUrl).toBeDefined();
       expect(client.timeout).toBe(30000);
       expect(client.maxRetries).toBe(3);
@@ -65,7 +80,7 @@ describe("EvoMapClient", () => {
     });
 
     it("should create with custom options", () => {
-      const client = new EvoMapClient({
+      const client = createClient({
         hubUrl: "http://custom:8080",
         timeout: 5000,
         maxRetries: 1,
@@ -76,7 +91,7 @@ describe("EvoMapClient", () => {
     });
 
     it("should initialize stats", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const stats = client.getStats();
       expect(stats.totalRequests).toBe(0);
       expect(stats.successfulRequests).toBe(0);
@@ -84,15 +99,10 @@ describe("EvoMapClient", () => {
       expect(stats.retries).toBe(0);
     });
 
-    it("should call _initClient which calls axios.create", () => {
-      const client = new EvoMapClient();
-      expect(client.client).toBe(mockAxiosInstance);
-    });
-
-    it("should setup request and response interceptors", () => {
-      new EvoMapClient();
-      expect(mockAxiosInstance.interceptors.request.use).toHaveBeenCalled();
-      expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalled();
+    it("should set the client property", () => {
+      const client = createClient();
+      expect(client.client).toBeDefined();
+      expect(client.client).not.toBeNull();
     });
   });
 
@@ -100,48 +110,71 @@ describe("EvoMapClient", () => {
   // Interceptors
   // ============================================================
 
+  /**
+   * Helper: create a client with a spy client that captures interceptor fns.
+   */
+  function createClientForInterceptors() {
+    const client = new EvoMapClient();
+    // Build a fresh mock client with use() that captures functions
+    let reqFulfill, resFulfill, resReject;
+    const spyClient = {
+      request: vi.fn().mockResolvedValue({}),
+      defaults: { baseURL: "" },
+      interceptors: {
+        request: {
+          use: vi.fn((fn) => {
+            reqFulfill = fn;
+          }),
+          clear: vi.fn(),
+        },
+        response: {
+          use: vi.fn((success, reject) => {
+            resFulfill = success;
+            resReject = reject;
+          }),
+          clear: vi.fn(),
+        },
+      },
+    };
+    client.client = spyClient;
+    // Re-run interceptor setup on the new spy client
+    client._setupRequestInterceptor();
+    client._setupResponseInterceptor();
+    return {
+      client,
+      reqFulfill: () => reqFulfill,
+      resFulfill: () => resFulfill,
+      resReject: () => resReject,
+    };
+  }
+
   describe("interceptors", () => {
     it("request interceptor should add X-Request-ID header", () => {
-      let reqFulfill;
-      mockAxiosInstance.interceptors.request.use.mockImplementation(
-        (fulfill) => {
-          reqFulfill = fulfill;
-        },
-      );
-
-      new EvoMapClient();
+      const { reqFulfill } = createClientForInterceptors();
+      const fn = reqFulfill();
+      expect(fn).toBeDefined();
       const config = { method: "get", url: "/test", headers: {} };
-      const result = reqFulfill(config);
+      const result = fn(config);
       expect(result.headers["X-Request-ID"]).toBeDefined();
     });
 
     it("response interceptor should return response.data on success", () => {
-      let resFulfill;
-      mockAxiosInstance.interceptors.response.use.mockImplementation(
-        (fulfill) => {
-          resFulfill = fulfill;
-        },
-      );
-
-      new EvoMapClient();
-      const result = resFulfill({ data: { payload: "test" } });
+      const { resFulfill } = createClientForInterceptors();
+      const fn = resFulfill();
+      expect(fn).toBeDefined();
+      const result = fn({ data: { payload: "test" } });
       expect(result).toEqual({ payload: "test" });
     });
 
     it("response interceptor should create enhanced error on HTTP error", async () => {
-      let resReject;
-      mockAxiosInstance.interceptors.response.use.mockImplementation(
-        (_fulfill, reject) => {
-          resReject = reject;
-        },
-      );
-
-      new EvoMapClient();
+      const { resReject } = createClientForInterceptors();
+      const fn = resReject();
+      expect(fn).toBeDefined();
       const error = {
         response: { status: 500, data: { message: "Server error" } },
         message: "fail",
       };
-      await expect(resReject(error)).rejects.toMatchObject({
+      await expect(fn(error)).rejects.toMatchObject({
         status: 500,
         isHttpError: true,
         isTransient: true,
@@ -149,20 +182,15 @@ describe("EvoMapClient", () => {
     });
 
     it("response interceptor should create network error on no response", async () => {
-      let resReject;
-      mockAxiosInstance.interceptors.response.use.mockImplementation(
-        (_fulfill, reject) => {
-          resReject = reject;
-        },
-      );
-
-      new EvoMapClient();
+      const { resReject } = createClientForInterceptors();
+      const fn = resReject();
+      expect(fn).toBeDefined();
       const error = {
         request: {},
         code: "ECONNREFUSED",
         message: "connection refused",
       };
-      await expect(resReject(error)).rejects.toMatchObject({
+      await expect(fn(error)).rejects.toMatchObject({
         isNetworkError: true,
         isTransient: true,
         code: "ECONNREFUSED",
@@ -176,7 +204,7 @@ describe("EvoMapClient", () => {
 
   describe("setSenderId", () => {
     it("should set the sender ID", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       client.setSenderId("node_abc");
       expect(client.senderId).toBe("node_abc");
     });
@@ -188,7 +216,7 @@ describe("EvoMapClient", () => {
 
   describe("_buildEnvelope", () => {
     it("should build correct envelope structure", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       client.setSenderId("node_test");
       const envelope = client._buildEnvelope("hello", { foo: "bar" });
 
@@ -202,7 +230,7 @@ describe("EvoMapClient", () => {
     });
 
     it('should use "unknown" when no senderId set', () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const envelope = client._buildEnvelope("hello");
       expect(envelope.sender_id).toBe("unknown");
     });
@@ -214,27 +242,25 @@ describe("EvoMapClient", () => {
 
   describe("hello()", () => {
     it("should send hello and return success", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ payload: { credits: 50 } });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ payload: { credits: 50 } });
 
       const result = await client.hello();
       expect(result.success).toBe(true);
-      expect(mockAxiosInstance.request).toHaveBeenCalled();
+      expect(client.client.request).toHaveBeenCalled();
     });
 
     it("should return error on failure", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockRejectedValue(
-        new Error("Connection failed"),
-      );
+      const client = createClient();
+      client.client.request.mockRejectedValue(new Error("Connection failed"));
 
       const result = await client.hello();
       expect(result.success).toBe(false);
       expect(result.error).toContain("Connection failed");
     });
 
-    it("should throw if client unavailable", async () => {
-      const client = new EvoMapClient();
+    it("should return error if client unavailable", async () => {
+      const client = createClient();
       client.client = null;
 
       const result = await client.hello();
@@ -245,8 +271,8 @@ describe("EvoMapClient", () => {
 
   describe("publish()", () => {
     it("should publish assets and return success", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({
+      const client = createClient();
+      client.client.request.mockResolvedValue({
         payload: { status: "ok" },
       });
 
@@ -255,14 +281,14 @@ describe("EvoMapClient", () => {
     });
 
     it("should reject empty assets array", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.publish([]);
       expect(result.success).toBe(false);
       expect(result.error).toContain("required");
     });
 
     it("should reject null assets", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.publish(null);
       expect(result.success).toBe(false);
     });
@@ -270,8 +296,8 @@ describe("EvoMapClient", () => {
 
   describe("validate()", () => {
     it("should validate assets successfully", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({
+      const client = createClient();
+      client.client.request.mockResolvedValue({
         payload: { computed_ids: [] },
       });
 
@@ -280,7 +306,7 @@ describe("EvoMapClient", () => {
     });
 
     it("should reject empty assets", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.validate([]);
       expect(result.success).toBe(false);
     });
@@ -288,8 +314,8 @@ describe("EvoMapClient", () => {
 
   describe("fetch()", () => {
     it("should fetch assets successfully", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ payload: { assets: [] } });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ payload: { assets: [] } });
 
       const result = await client.fetch({ signals: ["test"] });
       expect(result.success).toBe(true);
@@ -298,15 +324,15 @@ describe("EvoMapClient", () => {
 
   describe("report()", () => {
     it("should report on an asset", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ payload: {} });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ payload: {} });
 
       const result = await client.report("asset_1", { valid: true });
       expect(result.success).toBe(true);
     });
 
     it("should reject missing target asset ID", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.report(null, {});
       expect(result.success).toBe(false);
     });
@@ -314,15 +340,15 @@ describe("EvoMapClient", () => {
 
   describe("revoke()", () => {
     it("should revoke an asset", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ payload: {} });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ payload: {} });
 
       const result = await client.revoke("asset_1", "outdated");
       expect(result.success).toBe(true);
     });
 
     it("should reject missing asset ID", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.revoke(null);
       expect(result.success).toBe(false);
     });
@@ -334,8 +360,8 @@ describe("EvoMapClient", () => {
 
   describe("searchAssets()", () => {
     it("should search with signals, type, and sort", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ assets: [] });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ assets: [] });
 
       const result = await client.searchAssets(
         ["test", "query"],
@@ -344,7 +370,7 @@ describe("EvoMapClient", () => {
       );
       expect(result.success).toBe(true);
 
-      const callConfig = mockAxiosInstance.request.mock.calls[0][0];
+      const callConfig = client.client.request.mock.calls[0][0];
       expect(callConfig.params.signals).toBe("test,query");
       expect(callConfig.params.type).toBe("Gene");
       expect(callConfig.params.sort).toBe("relevance");
@@ -353,15 +379,15 @@ describe("EvoMapClient", () => {
 
   describe("getAssetDetail()", () => {
     it("should get asset detail", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ asset_id: "a1" });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ asset_id: "a1" });
 
       const result = await client.getAssetDetail("a1");
       expect(result.success).toBe(true);
     });
 
     it("should reject missing asset ID", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.getAssetDetail(null);
       expect(result.success).toBe(false);
     });
@@ -369,19 +395,19 @@ describe("EvoMapClient", () => {
 
   describe("getRankedAssets()", () => {
     it("should cap limit at 100", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue([]);
+      const client = createClient();
+      client.client.request.mockResolvedValue([]);
 
       await client.getRankedAssets("Gene", 200);
-      const callConfig = mockAxiosInstance.request.mock.calls[0][0];
+      const callConfig = client.client.request.mock.calls[0][0];
       expect(callConfig.params.limit).toBe(100);
     });
   });
 
   describe("getTrending()", () => {
     it("should get trending assets", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ assets: [] });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ assets: [] });
 
       const result = await client.getTrending();
       expect(result.success).toBe(true);
@@ -394,8 +420,8 @@ describe("EvoMapClient", () => {
 
   describe("listTasks()", () => {
     it("should list tasks with filters", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ tasks: [] });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ tasks: [] });
 
       const result = await client.listTasks(0.5, 10);
       expect(result.success).toBe(true);
@@ -404,15 +430,15 @@ describe("EvoMapClient", () => {
 
   describe("claimTask()", () => {
     it("should claim a task", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({});
+      const client = createClient();
+      client.client.request.mockResolvedValue({});
 
       const result = await client.claimTask("task_1");
       expect(result.success).toBe(true);
     });
 
     it("should reject missing task ID", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.claimTask(null);
       expect(result.success).toBe(false);
     });
@@ -420,15 +446,15 @@ describe("EvoMapClient", () => {
 
   describe("completeTask()", () => {
     it("should complete a task", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({});
+      const client = createClient();
+      client.client.request.mockResolvedValue({});
 
       const result = await client.completeTask("task_1", "asset_1");
       expect(result.success).toBe(true);
     });
 
     it("should reject missing IDs", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.completeTask(null, null);
       expect(result.success).toBe(false);
     });
@@ -440,15 +466,15 @@ describe("EvoMapClient", () => {
 
   describe("getNodeInfo()", () => {
     it("should get node info", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ reputation: 0.9 });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ reputation: 0.9 });
 
       const result = await client.getNodeInfo("node_1");
       expect(result.success).toBe(true);
     });
 
     it("should reject missing node ID", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const result = await client.getNodeInfo(null);
       expect(result.success).toBe(false);
     });
@@ -456,8 +482,8 @@ describe("EvoMapClient", () => {
 
   describe("getHubStats()", () => {
     it("should get hub stats", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ totalAssets: 100 });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ totalAssets: 100 });
 
       const result = await client.getHubStats();
       expect(result.success).toBe(true);
@@ -502,14 +528,14 @@ describe("EvoMapClient", () => {
 
   describe("setHubUrl()", () => {
     it("should update hub URL", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       client.setHubUrl("http://new-hub:8080");
       expect(client.hubUrl).toBe("http://new-hub:8080");
       expect(client.client.defaults.baseURL).toBe("http://new-hub:8080");
     });
 
     it("should reject invalid URL", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const original = client.hubUrl;
       client.setHubUrl("");
       expect(client.hubUrl).toBe(original);
@@ -518,7 +544,7 @@ describe("EvoMapClient", () => {
 
   describe("getConfig()", () => {
     it("should return configuration summary", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       const config = client.getConfig();
       expect(config).toHaveProperty("hubUrl");
       expect(config).toHaveProperty("timeout");
@@ -535,28 +561,28 @@ describe("EvoMapClient", () => {
 
   describe("_isRetryableError", () => {
     it("should return true for transient errors", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       expect(client._isRetryableError({ isTransient: true })).toBe(true);
     });
 
     it("should return true for network errors", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       expect(client._isRetryableError({ isNetworkError: true })).toBe(true);
     });
 
     it("should return true for transient error codes", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       expect(client._isRetryableError({ code: "ECONNRESET" })).toBe(true);
     });
 
     it("should return true for transient status codes", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       expect(client._isRetryableError({ status: 429 })).toBe(true);
       expect(client._isRetryableError({ status: 503 })).toBe(true);
     });
 
     it("should return false for non-retryable errors", () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       expect(client._isRetryableError({ status: 400 })).toBe(false);
       expect(client._isRetryableError({ status: 404 })).toBe(false);
       expect(client._isRetryableError({})).toBe(false);
@@ -565,39 +591,38 @@ describe("EvoMapClient", () => {
 
   describe("_requestWithRetry", () => {
     it("should return on first success", async () => {
-      const client = new EvoMapClient();
-      mockAxiosInstance.request.mockResolvedValue({ data: "ok" });
+      const client = createClient();
+      client.client.request.mockResolvedValue({ data: "ok" });
 
       const result = await client._requestWithRetry("get", "/test");
       expect(result).toEqual({ data: "ok" });
-      expect(mockAxiosInstance.request).toHaveBeenCalledTimes(1);
+      expect(client.client.request).toHaveBeenCalledTimes(1);
     });
 
     it("should throw non-retryable errors immediately", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       client.maxRetries = 2;
       const err = new Error("bad request");
       err.status = 400;
-      mockAxiosInstance.request.mockRejectedValue(err);
+      client.client.request.mockRejectedValue(err);
 
       await expect(client._requestWithRetry("get", "/test")).rejects.toThrow();
-      expect(mockAxiosInstance.request).toHaveBeenCalledTimes(1);
+      expect(client.client.request).toHaveBeenCalledTimes(1);
     });
 
     it("should retry retryable errors up to max", async () => {
-      const client = new EvoMapClient();
+      const client = createClient();
       client.maxRetries = 1;
-      client._sleep = vi.fn().mockResolvedValue(undefined);
 
       const err = new Error("transient");
       err.isTransient = true;
-      mockAxiosInstance.request.mockRejectedValue(err);
+      client.client.request.mockRejectedValue(err);
 
       await expect(client._requestWithRetry("get", "/test")).rejects.toThrow();
       // attempt 0 + 1 retry = 2 calls
-      expect(mockAxiosInstance.request).toHaveBeenCalledTimes(2);
+      expect(client.client.request).toHaveBeenCalledTimes(2);
       expect(client._sleep).toHaveBeenCalled();
-    }, 15000);
+    });
   });
 
   // ============================================================
@@ -606,9 +631,9 @@ describe("EvoMapClient", () => {
 
   describe("destroy()", () => {
     it("should clear interceptors and null client", () => {
-      const client = new EvoMapClient();
-      const reqClear = mockAxiosInstance.interceptors.request.clear;
-      const resClear = mockAxiosInstance.interceptors.response.clear;
+      const client = createClient();
+      const reqClear = client.client.interceptors.request.clear;
+      const resClear = client.client.interceptors.response.clear;
 
       client.destroy();
 

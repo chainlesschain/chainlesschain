@@ -131,7 +131,7 @@ class FriendManager extends EventEmitter {
       db.exec(
         "ALTER TABLE friendships ADD COLUMN trust_score REAL DEFAULT 0.5",
       );
-    } catch (e) {
+    } catch (_e) {
       // Column already exists, ignore
     }
 
@@ -725,8 +725,6 @@ class FriendManager extends EventEmitter {
         byGroup: {},
       };
     }
-
-    const db = this.database.db;
 
     const friends = await this.getFriends();
 
