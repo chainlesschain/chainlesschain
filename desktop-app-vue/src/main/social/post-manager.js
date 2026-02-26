@@ -20,6 +20,7 @@ const PostVisibility = {
   PUBLIC: "public", // 公开
   FRIENDS: "friends", // 仅好友可见
   PRIVATE: "private", // 仅自己可见
+  TRUSTED: "trusted", // 仅高信任好友可见
 };
 
 /**
@@ -370,10 +371,13 @@ class PostManager extends EventEmitter {
           OR (visibility = 'friends' AND author_did IN (
             SELECT friend_did FROM friendships WHERE user_did = ? AND status = 'accepted'
           ))
+          OR (visibility = 'trusted' AND author_did IN (
+            SELECT friend_did FROM friendships WHERE user_did = ? AND status = 'accepted' AND trust_score >= 0.7
+          ))
         )
       `;
 
-      const params = [currentDid, currentDid];
+      const params = [currentDid, currentDid, currentDid];
 
       if (authorDid) {
         query += " AND author_did = ?";

@@ -241,7 +241,11 @@ async function handleConfigChange(key, value) {
 }
 
 async function handlePrivacyChange(key, value) {
-  const currentFilter = config.value?.privacyFilter || {};
+  const currentFilter = config.value?.privacyFilter || {
+    excludePatterns: [],
+    anonymize: true,
+    requireReview: true,
+  };
   await store.updateConfig({
     privacyFilter: { ...currentFilter, [key]: value },
   });

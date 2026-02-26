@@ -7,21 +7,23 @@
  * @module marketplace/marketplace-ipc
  */
 
-const { ipcMain } = require('electron');
-const { logger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * Register all marketplace IPC handlers.
  *
  * @param {Object} dependencies
  * @param {Object} dependencies.database - Database instance
+ * @param {Object} [dependencies.ipcMain] - Injected ipcMain (for testing)
  */
 function registerMarketplaceIPC(dependencies) {
+  const electron = require("electron");
+  const ipcMain = dependencies.ipcMain || electron.ipcMain;
   const { database } = dependencies;
 
-  let marketplaceClient = null;
-  let pluginInstaller = null;
-  let pluginUpdater = null;
+  let marketplaceClient = dependencies.marketplaceClient || null;
+  let pluginInstaller = dependencies.pluginInstaller || null;
+  let pluginUpdater = dependencies.pluginUpdater || null;
 
   /**
    * Lazy-initialize the marketplace client.
@@ -29,8 +31,10 @@ function registerMarketplaceIPC(dependencies) {
    */
   function getMarketplaceClient() {
     if (!marketplaceClient) {
-      const { MarketplaceClient } = require('./marketplace-client');
-      marketplaceClient = new MarketplaceClient({ baseURL: 'http://localhost:8090/api' });
+      const { MarketplaceClient } = require("./marketplace-client");
+      marketplaceClient = new MarketplaceClient({
+        baseURL: "http://localhost:8090/api",
+      });
     }
     return marketplaceClient;
   }
@@ -41,8 +45,11 @@ function registerMarketplaceIPC(dependencies) {
    */
   function getPluginInstaller() {
     if (!pluginInstaller) {
-      const { PluginInstaller } = require('./plugin-installer');
-      pluginInstaller = new PluginInstaller({ database, marketplaceClient: getMarketplaceClient() });
+      const { PluginInstaller } = require("./plugin-installer");
+      pluginInstaller = new PluginInstaller({
+        database,
+        marketplaceClient: getMarketplaceClient(),
+      });
     }
     return pluginInstaller;
   }
@@ -53,7 +60,7 @@ function registerMarketplaceIPC(dependencies) {
    */
   function getPluginUpdater() {
     if (!pluginUpdater) {
-      const { PluginUpdater } = require('./plugin-updater');
+      const { PluginUpdater } = require("./plugin-updater");
       pluginUpdater = new PluginUpdater({
         database,
         marketplaceClient: getMarketplaceClient(),
@@ -73,13 +80,13 @@ function registerMarketplaceIPC(dependencies) {
    * @param {Object} options - { category, sort, page, pageSize, verified }
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:list-plugins', async (event, options = {}) => {
+  ipcMain.handle("marketplace:list-plugins", async (event, options = {}) => {
     try {
       const client = getMarketplaceClient();
       const result = await client.listPlugins(options);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[IPC] marketplace:list-plugins error:', error);
+      logger.error("[IPC] marketplace:list-plugins error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -91,16 +98,19 @@ function registerMarketplaceIPC(dependencies) {
    * @param {Object} options - { category, sort, page, pageSize }
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:search-plugins', async (event, query, options = {}) => {
-    try {
-      const client = getMarketplaceClient();
-      const result = await client.searchPlugins(query, options);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[IPC] marketplace:search-plugins error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "marketplace:search-plugins",
+    async (event, query, options = {}) => {
+      try {
+        const client = getMarketplaceClient();
+        const result = await client.searchPlugins(query, options);
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[IPC] marketplace:search-plugins error:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * Get detailed information about a specific plugin.
@@ -108,13 +118,13 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} pluginId - The plugin ID
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:get-plugin-detail', async (event, pluginId) => {
+  ipcMain.handle("marketplace:get-plugin-detail", async (event, pluginId) => {
     try {
       const client = getMarketplaceClient();
       const result = await client.getPlugin(pluginId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[IPC] marketplace:get-plugin-detail error:', error);
+      logger.error("[IPC] marketplace:get-plugin-detail error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -125,13 +135,13 @@ function registerMarketplaceIPC(dependencies) {
    * @param {number} limit - Maximum number of results
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:get-featured', async (event, limit = 10) => {
+  ipcMain.handle("marketplace:get-featured", async (event, limit = 10) => {
     try {
       const client = getMarketplaceClient();
       const result = await client.getFeaturedPlugins(limit);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[IPC] marketplace:get-featured error:', error);
+      logger.error("[IPC] marketplace:get-featured error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -142,16 +152,16 @@ function registerMarketplaceIPC(dependencies) {
    * @param {Object} options - { page, pageSize }
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:get-popular', async (event, options = {}) => {
+  ipcMain.handle("marketplace:get-popular", async (event, options = {}) => {
     try {
       const client = getMarketplaceClient();
       const result = await client.listPlugins({
         ...options,
-        sort: 'popular',
+        sort: "popular",
       });
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[IPC] marketplace:get-popular error:', error);
+      logger.error("[IPC] marketplace:get-popular error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -161,13 +171,13 @@ function registerMarketplaceIPC(dependencies) {
    * @channel marketplace:get-categories
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:get-categories', async (event) => {
+  ipcMain.handle("marketplace:get-categories", async (event) => {
     try {
       const client = getMarketplaceClient();
       const result = await client.getCategories();
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[IPC] marketplace:get-categories error:', error);
+      logger.error("[IPC] marketplace:get-categories error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -183,16 +193,19 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} [version] - Specific version or 'latest'
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:install-plugin', async (event, pluginId, version = 'latest') => {
-    try {
-      const installer = getPluginInstaller();
-      const result = await installer.installPlugin(pluginId, version);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[IPC] marketplace:install-plugin error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "marketplace:install-plugin",
+    async (event, pluginId, version = "latest") => {
+      try {
+        const installer = getPluginInstaller();
+        const result = await installer.installPlugin(pluginId, version);
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[IPC] marketplace:install-plugin error:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * Uninstall an installed plugin.
@@ -200,13 +213,13 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} pluginId - The plugin ID to uninstall
    * @returns {Object} { success, error? }
    */
-  ipcMain.handle('marketplace:uninstall-plugin', async (event, pluginId) => {
+  ipcMain.handle("marketplace:uninstall-plugin", async (event, pluginId) => {
     try {
       const installer = getPluginInstaller();
       await installer.uninstallPlugin(pluginId);
       return { success: true };
     } catch (error) {
-      logger.error('[IPC] marketplace:uninstall-plugin error:', error);
+      logger.error("[IPC] marketplace:uninstall-plugin error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -218,23 +231,32 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} [version] - Target version or 'latest'
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:update-plugin', async (event, pluginId, version = 'latest') => {
-    try {
-      const installer = getPluginInstaller();
-      const result = await installer.updatePlugin(pluginId, version);
+  ipcMain.handle(
+    "marketplace:update-plugin",
+    async (event, pluginId, version = "latest") => {
+      try {
+        const installer = getPluginInstaller();
+        const result = await installer.updatePlugin(pluginId, version);
 
-      // Record in update history
-      const updater = getPluginUpdater();
-      if (result && result.fromVersion) {
-        updater._recordUpdateHistory(pluginId, result.fromVersion, version, true, null);
+        // Record in update history
+        const updater = getPluginUpdater();
+        if (result && result.fromVersion) {
+          updater._recordUpdateHistory(
+            pluginId,
+            result.fromVersion,
+            version,
+            true,
+            null,
+          );
+        }
+
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[IPC] marketplace:update-plugin error:", error);
+        return { success: false, error: error.message };
       }
-
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[IPC] marketplace:update-plugin error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   /**
    * Enable a disabled plugin.
@@ -242,17 +264,19 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} pluginId - The plugin ID to enable
    * @returns {Object} { success, error? }
    */
-  ipcMain.handle('marketplace:enable-plugin', async (event, pluginId) => {
+  ipcMain.handle("marketplace:enable-plugin", async (event, pluginId) => {
     try {
       const stmt = database.db.prepare(
-        'UPDATE installed_plugins SET enabled = 1 WHERE plugin_id = ?'
+        "UPDATE installed_plugins SET enabled = 1 WHERE plugin_id = ?",
       );
       stmt.run([pluginId]);
       stmt.free();
-      logger.info(`[IPC] marketplace:enable-plugin - Enabled plugin: ${pluginId}`);
+      logger.info(
+        `[IPC] marketplace:enable-plugin - Enabled plugin: ${pluginId}`,
+      );
       return { success: true };
     } catch (error) {
-      logger.error('[IPC] marketplace:enable-plugin error:', error);
+      logger.error("[IPC] marketplace:enable-plugin error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -263,17 +287,19 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} pluginId - The plugin ID to disable
    * @returns {Object} { success, error? }
    */
-  ipcMain.handle('marketplace:disable-plugin', async (event, pluginId) => {
+  ipcMain.handle("marketplace:disable-plugin", async (event, pluginId) => {
     try {
       const stmt = database.db.prepare(
-        'UPDATE installed_plugins SET enabled = 0 WHERE plugin_id = ?'
+        "UPDATE installed_plugins SET enabled = 0 WHERE plugin_id = ?",
       );
       stmt.run([pluginId]);
       stmt.free();
-      logger.info(`[IPC] marketplace:disable-plugin - Disabled plugin: ${pluginId}`);
+      logger.info(
+        `[IPC] marketplace:disable-plugin - Disabled plugin: ${pluginId}`,
+      );
       return { success: true };
     } catch (error) {
-      logger.error('[IPC] marketplace:disable-plugin error:', error);
+      logger.error("[IPC] marketplace:disable-plugin error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -283,13 +309,13 @@ function registerMarketplaceIPC(dependencies) {
    * @channel marketplace:check-updates
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:check-updates', async (event) => {
+  ipcMain.handle("marketplace:check-updates", async (event) => {
     try {
       const updater = getPluginUpdater();
       const result = await updater.checkUpdates();
       return result;
     } catch (error) {
-      logger.error('[IPC] marketplace:check-updates error:', error);
+      logger.error("[IPC] marketplace:check-updates error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -304,16 +330,16 @@ function registerMarketplaceIPC(dependencies) {
    * @param {Object} [options] - { enabledOnly, sort }
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:list-installed', async (event, options = {}) => {
+  ipcMain.handle("marketplace:list-installed", async (event, options = {}) => {
     try {
-      let query = 'SELECT * FROM installed_plugins';
+      let query = "SELECT * FROM installed_plugins";
       const params = [];
 
       if (options.enabledOnly) {
-        query += ' WHERE enabled = 1';
+        query += " WHERE enabled = 1";
       }
 
-      query += ' ORDER BY installed_at DESC';
+      query += " ORDER BY installed_at DESC";
 
       const stmt = database.db.prepare(query);
       const rows = stmt.all(params);
@@ -335,7 +361,7 @@ function registerMarketplaceIPC(dependencies) {
 
       return { success: true, data: plugins };
     } catch (error) {
-      logger.error('[IPC] marketplace:list-installed error:', error);
+      logger.error("[IPC] marketplace:list-installed error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -346,63 +372,66 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} pluginId - The plugin ID
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:get-installed-detail', async (event, pluginId) => {
-    try {
-      const stmt = database.db.prepare(
-        'SELECT * FROM installed_plugins WHERE plugin_id = ?'
-      );
-      const row = stmt.get([pluginId]);
-      stmt.free();
+  ipcMain.handle(
+    "marketplace:get-installed-detail",
+    async (event, pluginId) => {
+      try {
+        const stmt = database.db.prepare(
+          "SELECT * FROM installed_plugins WHERE plugin_id = ?",
+        );
+        const row = stmt.get([pluginId]);
+        stmt.free();
 
-      if (!row) {
-        return { success: false, error: `Plugin not found: ${pluginId}` };
+        if (!row) {
+          return { success: false, error: `Plugin not found: ${pluginId}` };
+        }
+
+        // Also fetch update history
+        const historyStmt = database.db.prepare(
+          "SELECT * FROM plugin_update_history WHERE plugin_id = ? ORDER BY updated_at DESC LIMIT 10",
+        );
+        const historyRows = historyStmt.all([pluginId]);
+        historyStmt.free();
+
+        const plugin = {
+          id: row.id,
+          pluginId: row.plugin_id,
+          name: row.name,
+          version: row.version,
+          author: row.author,
+          installPath: row.install_path,
+          installedAt: row.installed_at,
+          enabled: row.enabled === 1,
+          autoUpdate: row.auto_update === 1,
+          source: row.source,
+          metadata: row.metadata ? JSON.parse(row.metadata) : null,
+          updateHistory: (historyRows || []).map((h) => ({
+            id: h.id,
+            fromVersion: h.from_version,
+            toVersion: h.to_version,
+            updatedAt: h.updated_at,
+            success: h.success === 1,
+            errorMessage: h.error_message,
+          })),
+        };
+
+        return { success: true, data: plugin };
+      } catch (error) {
+        logger.error("[IPC] marketplace:get-installed-detail error:", error);
+        return { success: false, error: error.message };
       }
-
-      // Also fetch update history
-      const historyStmt = database.db.prepare(
-        'SELECT * FROM plugin_update_history WHERE plugin_id = ? ORDER BY updated_at DESC LIMIT 10'
-      );
-      const historyRows = historyStmt.all([pluginId]);
-      historyStmt.free();
-
-      const plugin = {
-        id: row.id,
-        pluginId: row.plugin_id,
-        name: row.name,
-        version: row.version,
-        author: row.author,
-        installPath: row.install_path,
-        installedAt: row.installed_at,
-        enabled: row.enabled === 1,
-        autoUpdate: row.auto_update === 1,
-        source: row.source,
-        metadata: row.metadata ? JSON.parse(row.metadata) : null,
-        updateHistory: (historyRows || []).map((h) => ({
-          id: h.id,
-          fromVersion: h.from_version,
-          toVersion: h.to_version,
-          updatedAt: h.updated_at,
-          success: h.success === 1,
-          errorMessage: h.error_message,
-        })),
-      };
-
-      return { success: true, data: plugin };
-    } catch (error) {
-      logger.error('[IPC] marketplace:get-installed-detail error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   /**
    * Export the list of installed plugins (for backup or sharing).
    * @channel marketplace:export-list
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:export-list', async (event) => {
+  ipcMain.handle("marketplace:export-list", async (event) => {
     try {
       const stmt = database.db.prepare(
-        'SELECT plugin_id, name, version, author, source FROM installed_plugins ORDER BY name ASC'
+        "SELECT plugin_id, name, version, author, source FROM installed_plugins ORDER BY name ASC",
       );
       const rows = stmt.all();
       stmt.free();
@@ -421,7 +450,7 @@ function registerMarketplaceIPC(dependencies) {
 
       return { success: true, data: exportData };
     } catch (error) {
-      logger.error('[IPC] marketplace:export-list error:', error);
+      logger.error("[IPC] marketplace:export-list error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -438,24 +467,31 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} [comment] - Optional review comment
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:rate-plugin', async (event, pluginId, rating, comment) => {
-    try {
-      if (!pluginId || !rating) {
-        return { success: false, error: 'pluginId and rating are required' };
-      }
+  ipcMain.handle(
+    "marketplace:rate-plugin",
+    async (event, pluginId, rating, comment) => {
+      try {
+        if (!pluginId || !rating) {
+          return { success: false, error: "pluginId and rating are required" };
+        }
 
-      if (rating < 1 || rating > 5) {
-        return { success: false, error: 'Rating must be between 1 and 5' };
-      }
+        if (rating < 1 || rating > 5) {
+          return { success: false, error: "Rating must be between 1 and 5" };
+        }
 
-      const client = getMarketplaceClient();
-      const result = await client.ratePlugin(pluginId, rating, comment || null);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[IPC] marketplace:rate-plugin error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        const client = getMarketplaceClient();
+        const result = await client.ratePlugin(
+          pluginId,
+          rating,
+          comment || null,
+        );
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[IPC] marketplace:rate-plugin error:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * Get ratings and reviews for a plugin.
@@ -465,20 +501,23 @@ function registerMarketplaceIPC(dependencies) {
    * @param {number} [pageSize=10] - Results per page
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:get-ratings', async (event, pluginId, page = 1, pageSize = 10) => {
-    try {
-      if (!pluginId) {
-        return { success: false, error: 'pluginId is required' };
-      }
+  ipcMain.handle(
+    "marketplace:get-ratings",
+    async (event, pluginId, page = 1, pageSize = 10) => {
+      try {
+        if (!pluginId) {
+          return { success: false, error: "pluginId is required" };
+        }
 
-      const client = getMarketplaceClient();
-      const result = await client.getPluginReviews(pluginId, page, pageSize);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[IPC] marketplace:get-ratings error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        const client = getMarketplaceClient();
+        const result = await client.getPluginReviews(pluginId, page, pageSize);
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[IPC] marketplace:get-ratings error:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * Report a plugin for policy violations or issues.
@@ -488,20 +527,27 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} description - Detailed description
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:report-plugin', async (event, pluginId, reason, description) => {
-    try {
-      if (!pluginId || !reason) {
-        return { success: false, error: 'pluginId and reason are required' };
-      }
+  ipcMain.handle(
+    "marketplace:report-plugin",
+    async (event, pluginId, reason, description) => {
+      try {
+        if (!pluginId || !reason) {
+          return { success: false, error: "pluginId and reason are required" };
+        }
 
-      const client = getMarketplaceClient();
-      const result = await client.reportPlugin(pluginId, reason, description || '');
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[IPC] marketplace:report-plugin error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        const client = getMarketplaceClient();
+        const result = await client.reportPlugin(
+          pluginId,
+          reason,
+          description || "",
+        );
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[IPC] marketplace:report-plugin error:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   // ============================================================
   // Publish - Developer plugin management (3 handlers)
@@ -514,26 +560,35 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} pluginFilePath - Path to the plugin package file
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:publish-plugin', async (event, pluginData, pluginFilePath) => {
-    try {
-      if (!pluginData || !pluginFilePath) {
-        return { success: false, error: 'pluginData and pluginFilePath are required' };
-      }
+  ipcMain.handle(
+    "marketplace:publish-plugin",
+    async (event, pluginData, pluginFilePath) => {
+      try {
+        if (!pluginData || !pluginFilePath) {
+          return {
+            success: false,
+            error: "pluginData and pluginFilePath are required",
+          };
+        }
 
-      const fs = require('fs');
-      if (!fs.existsSync(pluginFilePath)) {
-        return { success: false, error: `Plugin file not found: ${pluginFilePath}` };
-      }
+        const fs = require("fs");
+        if (!fs.existsSync(pluginFilePath)) {
+          return {
+            success: false,
+            error: `Plugin file not found: ${pluginFilePath}`,
+          };
+        }
 
-      const pluginFile = fs.readFileSync(pluginFilePath);
-      const client = getMarketplaceClient();
-      const result = await client.publishPlugin(pluginData, pluginFile);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[IPC] marketplace:publish-plugin error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        const pluginFile = fs.readFileSync(pluginFilePath);
+        const client = getMarketplaceClient();
+        const result = await client.publishPlugin(pluginData, pluginFile);
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[IPC] marketplace:publish-plugin error:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * Update the metadata of an already published plugin.
@@ -542,20 +597,31 @@ function registerMarketplaceIPC(dependencies) {
    * @param {Object} metadata - Updated metadata fields
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:update-metadata', async (event, pluginId, metadata) => {
-    try {
-      if (!pluginId || !metadata) {
-        return { success: false, error: 'pluginId and metadata are required' };
-      }
+  ipcMain.handle(
+    "marketplace:update-metadata",
+    async (event, pluginId, metadata) => {
+      try {
+        if (!pluginId || !metadata) {
+          return {
+            success: false,
+            error: "pluginId and metadata are required",
+          };
+        }
 
-      const client = getMarketplaceClient();
-      const result = await client.updatePlugin(pluginId, metadata.version, null, metadata.changelog);
-      return { success: true, data: result };
-    } catch (error) {
-      logger.error('[IPC] marketplace:update-metadata error:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        const client = getMarketplaceClient();
+        const result = await client.updatePlugin(
+          pluginId,
+          metadata.version,
+          null,
+          metadata.changelog,
+        );
+        return { success: true, data: result };
+      } catch (error) {
+        logger.error("[IPC] marketplace:update-metadata error:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * Delete / unpublish a plugin from the marketplace.
@@ -563,10 +629,10 @@ function registerMarketplaceIPC(dependencies) {
    * @param {string} pluginId - The plugin ID to remove
    * @returns {Object} { success, error? }
    */
-  ipcMain.handle('marketplace:delete-plugin', async (event, pluginId) => {
+  ipcMain.handle("marketplace:delete-plugin", async (event, pluginId) => {
     try {
       if (!pluginId) {
-        return { success: false, error: 'pluginId is required' };
+        return { success: false, error: "pluginId is required" };
       }
 
       const client = getMarketplaceClient();
@@ -574,7 +640,7 @@ function registerMarketplaceIPC(dependencies) {
       const result = await client.deletePlugin(pluginId);
       return { success: true, data: result };
     } catch (error) {
-      logger.error('[IPC] marketplace:delete-plugin error:', error);
+      logger.error("[IPC] marketplace:delete-plugin error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -588,13 +654,13 @@ function registerMarketplaceIPC(dependencies) {
    * @channel marketplace:get-settings
    * @returns {Object} { success, data/error }
    */
-  ipcMain.handle('marketplace:get-settings', async (event) => {
+  ipcMain.handle("marketplace:get-settings", async (event) => {
     try {
       const updater = getPluginUpdater();
       const result = updater.getSettings();
       return result;
     } catch (error) {
-      logger.error('[IPC] marketplace:get-settings error:', error);
+      logger.error("[IPC] marketplace:get-settings error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -605,17 +671,17 @@ function registerMarketplaceIPC(dependencies) {
    * @param {Object} settings - Settings to update
    * @returns {Object} { success, error? }
    */
-  ipcMain.handle('marketplace:update-settings', async (event, settings) => {
+  ipcMain.handle("marketplace:update-settings", async (event, settings) => {
     try {
-      if (!settings || typeof settings !== 'object') {
-        return { success: false, error: 'settings must be an object' };
+      if (!settings || typeof settings !== "object") {
+        return { success: false, error: "settings must be an object" };
       }
 
       const updater = getPluginUpdater();
       const result = updater.updateSettings(settings);
       return result;
     } catch (error) {
-      logger.error('[IPC] marketplace:update-settings error:', error);
+      logger.error("[IPC] marketplace:update-settings error:", error);
       return { success: false, error: error.message };
     }
   });
@@ -626,43 +692,49 @@ function registerMarketplaceIPC(dependencies) {
 
   const updater = getPluginUpdater();
 
-  updater.on('update-available', (updateInfo) => {
+  updater.on("update-available", (updateInfo) => {
     try {
-      const { BrowserWindow } = require('electron');
+      const { BrowserWindow } = require("electron");
       const windows = BrowserWindow.getAllWindows();
       if (windows.length > 0) {
-        windows[0].webContents.send('marketplace:update-available', updateInfo);
+        windows[0].webContents.send("marketplace:update-available", updateInfo);
       }
     } catch (err) {
-      logger.warn('[IPC] Failed to forward update-available event:', err.message);
+      logger.warn(
+        "[IPC] Failed to forward update-available event:",
+        err.message,
+      );
     }
   });
 
-  updater.on('update-completed', (info) => {
+  updater.on("update-completed", (info) => {
     try {
-      const { BrowserWindow } = require('electron');
+      const { BrowserWindow } = require("electron");
       const windows = BrowserWindow.getAllWindows();
       if (windows.length > 0) {
-        windows[0].webContents.send('marketplace:update-completed', info);
+        windows[0].webContents.send("marketplace:update-completed", info);
       }
     } catch (err) {
-      logger.warn('[IPC] Failed to forward update-completed event:', err.message);
+      logger.warn(
+        "[IPC] Failed to forward update-completed event:",
+        err.message,
+      );
     }
   });
 
-  updater.on('update-failed', (info) => {
+  updater.on("update-failed", (info) => {
     try {
-      const { BrowserWindow } = require('electron');
+      const { BrowserWindow } = require("electron");
       const windows = BrowserWindow.getAllWindows();
       if (windows.length > 0) {
-        windows[0].webContents.send('marketplace:update-failed', info);
+        windows[0].webContents.send("marketplace:update-failed", info);
       }
     } catch (err) {
-      logger.warn('[IPC] Failed to forward update-failed event:', err.message);
+      logger.warn("[IPC] Failed to forward update-failed event:", err.message);
     }
   });
 
-  logger.info('[IPC Registry] Marketplace IPC registered (22 handlers)');
+  logger.info("[IPC Registry] Marketplace IPC registered (22 handlers)");
 
   // Return cleanup function
   return () => {
