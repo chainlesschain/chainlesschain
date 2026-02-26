@@ -19,9 +19,56 @@
 
 ---
 
-## ⭐ 当前版本: v1.1.0 Enterprise Edition (2026-02-25)
+## ⭐ 当前版本: v1.2.0 Enterprise Edition (2026-02-26)
 
-### 最新更新 - Cowork去中心化Agent网络 + 自治运维 + 流水线编排 + 多模态协作 + NL编程
+### 最新更新 - EvoMap全球Agent知识共享网络 (Phase 41)
+
+**EvoMap GEP-A2A协议集成 (v1.0.0)** - 25个IPC处理器，3张新数据库表，8个新文件，全球Agent知识共享与协作生态
+
+#### v1.2.0 - EvoMap全球Agent知识共享网络 (2026-02-26)
+
+**EvoMap GEP-A2A协议集成 (v1.0.0)** (5大核心模块, 25 IPC处理器, 3张新表):
+
+- ✅ **EvoMap Client** (`evomap-client.js`) - GEP-A2A v1.0.0协议客户端，HTTP通信，协议信封封装，重试机制，Asset ID计算(SHA-256)
+- ✅ **Node Manager** (`evomap-node-manager.js`) - 节点身份管理，自动心跳(15分钟)，信用积累，DID身份映射，节点注册/发现
+- ✅ **Gene Synthesizer** (`evomap-gene-synthesizer.js`) - 本地知识→Gene+Capsule转换，隐私过滤(秘密检测/路径匿名/邮箱替换)，类别映射
+- ✅ **Asset Bridge** (`evomap-asset-bridge.js`) - 双向同步引擎，发布/获取/导入流程，用户审核门控，上下文构建，资产缓存
+- ✅ **EvoMap IPC** (`evomap-ipc.js`) - 25个IPC处理器 (节点5+发布5+发现5+导入3+任务4+配置3)
+- ✅ **Pinia Store** (`evomap.ts`) - 完整状态管理，5 Getters，20+ Actions，TypeScript类型安全
+- ✅ **前端UI** - EvoMapDashboard仪表板 + EvoMapBrowser资产浏览器，2个新路由
+
+**核心特性**:
+
+- 🧬 **知识合成**: Instinct→Gene+Capsule，Decision→Gene+Capsule，工作流→Recipe
+- 🌐 **双向同步**: 发布本地知识到Hub，获取社区验证策略到本地
+- 🔒 **隐私优先**: opt-in设计，内容匿名化，秘密检测，用户审核门控
+- 💡 **上下文注入**: 获取的社区知识自动注入LLM提示词（Context Engineering step 4.8）
+- 💰 **信用经济**: 节点注册，信用积累，心跳维持在线状态
+- 🎯 **任务悬赏**: 浏览和认领社区任务，提交结果获取信用
+- 📦 **资产导入**: Gene→Skill (SKILL.md)，Capsule→Instinct (instincts表)
+
+**数据库新增** (3张新表):
+
+- ✅ `evomap_node` - 节点身份存储 (node_id, DID映射, credits, reputation, claim_code)
+- ✅ `evomap_assets` - 资产缓存 (asset_id, type, status, direction, content JSON, gdi_score)
+- ✅ `evomap_sync_log` - 同步日志 (action, asset_id, status, details JSON)
+
+**前端集成**:
+
+- ✅ 2个新路由: `/evomap` (仪表板) + `/evomap/browser` (资产浏览器)
+- ✅ Pinia Store: `stores/evomap.ts` (~450行, 完整TypeScript类型)
+- ✅ 配置集成: `unified-config-manager.js` 新增 `evomap` 配置段
+- ✅ IPC注册: Phase 41 区块注册到 `ipc-registry.js`
+- ✅ Context Engineering: step 4.8自动注入社区知识到LLM提示词
+
+**安全与隐私**:
+
+- 🔐 默认opt-in，用户必须主动启用
+- 🔐 发布前自动隐私过滤：路径/邮箱/秘密检测
+- 🔐 用户审核门控：requireReview: true
+- 🔐 导入Instinct置信度上限0.7，避免盲目信任
+
+#### v1.1.0 - Cowork去中心化Agent网络 + 自治运维 + 流水线编排 + 多模态协作 + NL编程 (2026-02-25)
 
 **去中心化Agent网络(v4.0)** + **自治运维系统(v3.3)** + **开发流水线编排(v3.0)** + **多模态协作(v3.2)** + **自然语言编程(v3.1)** - 72个新IPC处理器，7张新数据库表，5大新Cowork子系统
 
@@ -340,6 +387,7 @@
 - 🟢 **开发流水线编排**: 100% 完成 - **流水线管理+6种部署策略+烟雾测试+审批门控+规范翻译 (15 IPC)**
 - 🟢 **多模态协作**: 100% 完成 - **多模态输入融合+文档解析+上下文管理+多模态输出+屏幕录制 (12 IPC)**
 - 🟢 **自然语言编程**: 100% 完成 - **NL→代码管道+需求解析+项目风格分析 (10 IPC)**
+- 🟢 **EvoMap全球知识共享**: 100% 完成 - **GEP-A2A协议+知识合成+双向同步+隐私过滤+上下文注入+信用经济 (25 IPC)**
 - 🟢 **移动端应用**: 100% 完成 - **完整功能+桌面同步+Android P2P UI+远程控制UI**
 
 ## 核心特性
@@ -360,6 +408,7 @@
 - 🚀 **性能自动调优**: 实时监控 + 参数自动调整 + 内存预警 + 负载预测
 - 🔄 **实时协作(CRDT/Yjs)**: Yjs冲突解决 + P2P实时同步 + 光标共享 + 文档锁
 - 📊 **分析仪表板**: 实时数据聚合 + 多维指标 + 可视化报表 + 趋势分析
+- 🧬 **EvoMap全球知识共享**: GEP-A2A协议 + Gene/Capsule合成 + 双向同步 + 隐私过滤 + 上下文注入 + 信用经济
 - 🧠 **永久记忆系统**: Daily Notes自动记录 + MEMORY.md长期萃取 + 混合搜索(Vector+BM25)
 - 🎯 **Context Engineering**: KV-Cache优化 + Token预估 + 可恢复压缩 + 任务上下文管理
 - 📋 **Plan Mode**: Claude Code风格计划模式 + 安全分析 + 审批工作流
@@ -370,7 +419,8 @@
 - 🔧 **开发流水线编排**: 流水线编排 + 6种部署策略 + 审批门控 + 制品管理 + 烟雾测试 + 自动回滚
 - 🎭 **多模态协作**: 文本/图像/音频/视频融合 + 文档解析 + 跨模态上下文 + 多格式输出 + 屏幕录制
 - 💬 **自然语言编程**: NL→代码管道 + 需求解析 + 项目风格分析 + 代码约定提取
-- 🤖 **Cowork多代理协作**: AI智能编排 + 代理池复用 + 238个IPC接口 + 文件沙箱 + 自进化
+- 🧬 **EvoMap全球知识共享**: GEP-A2A协议 + Gene/Capsule合成 + 双向同步 + 隐私过滤 + 上下文注入 + 信用经济
+- 🤖 **Cowork多代理协作**: AI智能编排 + 代理池复用 + 263个IPC接口 + 文件沙箱 + 自进化
 - ⚡ **智能工作流优化**: 17项优化(语义缓存+智能决策+关键路径+实时质量+自动化)
 - 🔌 **MCP集成**: Model Context Protocol支持,8个服务器 + 安全沙箱 + 社区注册中心
 - 🏛️ **企业审计合规**: 统一审计日志 + GDPR/SOC2合规 + 数据主体请求 + 保留策略
