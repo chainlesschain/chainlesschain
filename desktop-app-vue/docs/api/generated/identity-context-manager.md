@@ -2,7 +2,7 @@
 
 **Source**: `src/main/identity/identity-context-manager.js`
 
-**Generated**: 2026-02-24T18:45:59.494Z
+**Generated**: 2026-02-24T23:28:10.630Z
 
 ---
 
@@ -12,16 +12,16 @@
 const
 ```
 
-- 身份上下文管理器
--
-- 功能:
-- - 管理多个身份上下文(个人、多个组织)
-- - 身份切换
-- - 数据库文件隔离
-- - 上下文数据加载/卸载
--
-- @author ChainlessChain Enterprise
-- @version 1.0.0
+* 身份上下文管理器
+ *
+ * 功能:
+ * - 管理多个身份上下文(个人、多个组织)
+ * - 身份切换
+ * - 数据库文件隔离
+ * - 上下文数据加载/卸载
+ *
+ * @author ChainlessChain Enterprise
+ * @version 1.0.0
 
 ---
 
@@ -31,17 +31,17 @@ const
 async initialize()
 ```
 
-- 初始化身份上下文管理器
+* 初始化身份上下文管理器
 
 ---
 
 ## createTables()
 
 ```javascript
-createTables();
+createTables()
 ```
 
-- 创建数据表
+* 创建数据表
 
 ---
 
@@ -51,7 +51,7 @@ createTables();
 async migrateIfNeeded()
 ```
 
-- 迁移现有数据(从个人版升级到企业版)
+* 迁移现有数据(从个人版升级到企业版)
 
 ---
 
@@ -61,7 +61,7 @@ async migrateIfNeeded()
 async createPersonalContext(userDID, displayName)
 ```
 
-- 创建个人上下文
+* 创建个人上下文
 
 ---
 
@@ -71,27 +71,27 @@ async createPersonalContext(userDID, displayName)
 async createOrganizationContext(
 ```
 
-- 创建组织上下文
+* 创建组织上下文
 
 ---
 
 ## getAllContexts(userDID)
 
 ```javascript
-getAllContexts(userDID);
+getAllContexts(userDID)
 ```
 
-- 获取所有身份上下文
+* 获取所有身份上下文
 
 ---
 
 ## getActiveContext(userDID)
 
 ```javascript
-getActiveContext(userDID);
+getActiveContext(userDID)
 ```
 
-- 获取当前激活的上下文
+* 获取当前激活的上下文
 
 ---
 
@@ -101,7 +101,7 @@ getActiveContext(userDID);
 async switchContext(userDID, targetContextId)
 ```
 
-- 切换身份上下文
+* 切换身份上下文
 
 ---
 
@@ -111,7 +111,7 @@ async switchContext(userDID, targetContextId)
 async loadContext(contextId)
 ```
 
-- 加载上下文数据
+* 加载上下文数据
 
 ---
 
@@ -121,17 +121,17 @@ async loadContext(contextId)
 async unloadContext(contextId)
 ```
 
-- 卸载上下文数据
+* 卸载上下文数据
 
 ---
 
 ## getContextDatabase(contextId)
 
 ```javascript
-getContextDatabase(contextId);
+getContextDatabase(contextId)
 ```
 
-- 获取上下文数据库连接
+* 获取上下文数据库连接
 
 ---
 
@@ -141,7 +141,7 @@ getContextDatabase(contextId);
 async loadDefaultContext()
 ```
 
-- 加载默认上下文
+* 加载默认上下文
 
 ---
 
@@ -151,26 +151,27 @@ async loadDefaultContext()
 async deleteOrganizationContext(userDID, orgId)
 ```
 
-- 删除组织上下文
+* 删除组织上下文
 
 ---
 
 ## getSwitchHistory(userDID, limit = 10)
 
 ```javascript
-getSwitchHistory(userDID, (limit = 10));
+getSwitchHistory(userDID, limit = 10)
 ```
 
-- 获取切换历史
+* 获取切换历史
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup();
+cleanup()
 ```
 
-- 清理资源
+* 清理资源
 
 ---
+

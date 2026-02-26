@@ -2,7 +2,7 @@
 
 **Source**: `src/main/template/sync-templates-to-db.js`
 
-**Generated**: 2026-02-24T18:45:59.430Z
+**Generated**: 2026-02-24T23:28:10.560Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- 同步文件系统中的模板到数据库
-- 更新 required_skills, required_tools, execution_engine 字段
+* 同步文件系统中的模板到数据库
+ * 更新 required_skills, required_tools, execution_engine 字段
 
 ---
+

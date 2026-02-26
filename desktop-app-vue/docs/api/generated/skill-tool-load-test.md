@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/skill-tool-load-test.js`
 
-**Generated**: 2026-02-24T18:45:59.447Z
+**Generated**: 2026-02-24T23:28:10.579Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- 技能和工具加载测试
-- 验证所有内置技能和工具是否成功加载
+* 技能和工具加载测试
+ * 验证所有内置技能和工具是否成功加载
 
 ---
+
