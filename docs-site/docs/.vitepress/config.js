@@ -116,6 +116,12 @@ export default defineConfig({
             { text: "审计日志", link: "/chainlesschain/audit" },
           ],
         },
+        {
+          text: "产品规划",
+          items: [
+            { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
+          ],
+        },
       ],
 
       "/manufacturer/": [
