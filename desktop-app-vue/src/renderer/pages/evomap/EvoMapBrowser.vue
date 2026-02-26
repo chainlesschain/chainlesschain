@@ -39,7 +39,16 @@
     <!-- 资产列表 -->
     <div class="asset-list">
       <a-spin :spinning="store.loading">
+        <a-empty
+          v-if="displayAssets.length === 0"
+          :description="
+            viewMode === 'search'
+              ? 'Enter keywords to search community assets'
+              : 'No assets found'
+          "
+        />
         <a-list
+          v-else
           :data-source="displayAssets"
           :grid="{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 3 }"
         >
@@ -108,16 +117,6 @@
                 </template>
               </a-card>
             </a-list-item>
-          </template>
-
-          <template #empty>
-            <a-empty
-              :description="
-                viewMode === 'search'
-                  ? 'Enter keywords to search community assets'
-                  : 'No assets found'
-              "
-            />
           </template>
         </a-list>
       </a-spin>

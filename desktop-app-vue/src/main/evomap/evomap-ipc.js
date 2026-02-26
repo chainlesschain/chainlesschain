@@ -15,7 +15,6 @@
  * @version 1.0.0
  */
 
-const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
 
 const EVOMAP_CHANNELS = [
@@ -67,6 +66,8 @@ const EVOMAP_CHANNELS = [
  * @returns {{ handlerCount: number }}
  */
 function registerEvoMapIPC(deps) {
+  const electron = require("electron");
+  const ipcMain = deps.ipcMain || electron.ipcMain;
   const { nodeManager, client, bridge } = deps;
 
   // ============================================================
@@ -441,6 +442,8 @@ function registerEvoMapIPC(deps) {
  * Unregister all EvoMap IPC handlers
  */
 function unregisterEvoMapIPC() {
+  const electron = require("electron");
+  const ipcMain = electron.ipcMain;
   for (const channel of EVOMAP_CHANNELS) {
     ipcMain.removeHandler(channel);
   }

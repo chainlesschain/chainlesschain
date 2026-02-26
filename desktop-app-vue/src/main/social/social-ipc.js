@@ -7,7 +7,6 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
 
 /**
  * 注册所有 Social IPC 处理器
@@ -17,6 +16,7 @@ const { ipcMain } = require("electron");
  * @param {Object} dependencies.postManager - 动态管理器
  * @param {Object} dependencies.database - 数据库管理器（用于聊天功能）
  * @param {Object} dependencies.groupChatManager - 群聊管理器
+ * @param {Object} [dependencies.ipcMain] - Injected ipcMain (for testing)
  */
 function registerSocialIPC({
   contactManager,
@@ -24,7 +24,10 @@ function registerSocialIPC({
   postManager,
   database,
   groupChatManager,
+  ipcMain: injectedIpcMain,
 }) {
+  const electron = require("electron");
+  const ipcMain = injectedIpcMain || electron.ipcMain;
   logger.info("[Social IPC] Registering Social IPC handlers...");
 
   // ============================================================
@@ -386,6 +389,66 @@ function registerSocialIPC({
       return { total: 0, online: 0, offline: 0, byGroup: {} };
     }
   });
+
+  // ============================================================
+  // 信任评分 (Trust Scoring) - 3 handlers
+  // ============================================================
+
+  /**
+   * 获取信任分
+   * Channel: 'social:getTrustScore'
+   */
+  ipcMain.handle("social:getTrustScore", async (_event, friendDid) => {
+    try {
+      if (!friendManager) {
+        return 0.5;
+      }
+      return await friendManager.getTrustScore(friendDid);
+    } catch (error) {
+      logger.error("[Social IPC] 获取信任分失败:", error);
+      return 0.5;
+    }
+  });
+
+  /**
+   * 更新信任分
+   * Channel: 'social:updateTrustScore'
+   */
+  ipcMain.handle(
+    "social:updateTrustScore",
+    async (_event, friendDid, score) => {
+      try {
+        if (!friendManager) {
+          throw new Error("好友管理器未初始化");
+        }
+        await friendManager.updateTrustScore(friendDid, score);
+        return { success: true };
+      } catch (error) {
+        logger.error("[Social IPC] 更新信任分失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * 记录信任交互
+   * Channel: 'social:recordTrustInteraction'
+   */
+  ipcMain.handle(
+    "social:recordTrustInteraction",
+    async (_event, friendDid, type, weight) => {
+      try {
+        if (!friendManager) {
+          throw new Error("好友管理器未初始化");
+        }
+        await friendManager.recordTrustInteraction(friendDid, type, weight);
+        return { success: true };
+      } catch (error) {
+        logger.error("[Social IPC] 记录信任交互失败:", error);
+        throw error;
+      }
+    },
+  );
 
   // ============================================================
   // 动态管理 (Post/Feed Management) - 10 handlers
@@ -1804,7 +1867,7 @@ function registerSocialIPC({
   });
 
   logger.info(
-    "[Social IPC] ✓ All Social IPC handlers registered successfully (57 handlers)",
+    "[Social IPC] ✓ All Social IPC handlers registered successfully (60 handlers)",
   );
 }
 

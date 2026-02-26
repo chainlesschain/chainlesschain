@@ -28,7 +28,6 @@
 
 "use strict";
 
-const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
 
 const ANALYTICS_CHANNELS = [
@@ -56,6 +55,8 @@ const ANALYTICS_CHANNELS = [
  * @param {import('./analytics-aggregator').AnalyticsAggregator} deps.analyticsAggregator - Aggregator instance
  */
 function registerAnalyticsIPC(deps) {
+  const electron = require("electron");
+  const ipcMain = deps.ipcMain || electron.ipcMain;
   const { analyticsAggregator } = deps;
 
   if (!analyticsAggregator) {
@@ -248,10 +249,7 @@ function registerAnalyticsIPC(deps) {
       });
       return { success: true, data };
     } catch (error) {
-      logger.error(
-        "[AnalyticsIPC] analytics:export-csv error:",
-        error.message,
-      );
+      logger.error("[AnalyticsIPC] analytics:export-csv error:", error.message);
       return { success: false, error: error.message };
     }
   });
@@ -274,25 +272,22 @@ function registerAnalyticsIPC(deps) {
   });
 
   // 15. analytics:get-aggregation-history
-  ipcMain.handle(
-    "analytics:get-aggregation-history",
-    async (_event, args) => {
-      try {
-        const { limit, offset } = args || {};
-        const data = await analyticsAggregator.getAggregationHistory({
-          limit: limit || 50,
-          offset: offset || 0,
-        });
-        return { success: true, data };
-      } catch (error) {
-        logger.error(
-          "[AnalyticsIPC] analytics:get-aggregation-history error:",
-          error.message,
-        );
-        return { success: false, error: error.message };
-      }
-    },
-  );
+  ipcMain.handle("analytics:get-aggregation-history", async (_event, args) => {
+    try {
+      const { limit, offset } = args || {};
+      const data = await analyticsAggregator.getAggregationHistory({
+        limit: limit || 50,
+        offset: offset || 0,
+      });
+      return { success: true, data };
+    } catch (error) {
+      logger.error(
+        "[AnalyticsIPC] analytics:get-aggregation-history error:",
+        error.message,
+      );
+      return { success: false, error: error.message };
+    }
+  });
 
   // 16. analytics:trigger-aggregation
   ipcMain.handle("analytics:trigger-aggregation", async () => {
