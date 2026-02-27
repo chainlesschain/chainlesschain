@@ -11,6 +11,7 @@ import fs from "fs";
 import { app } from "electron";
 import electron from "electron";
 
+import path from "path";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -831,7 +832,6 @@ function registerSocialIPC({
           throw new Error("数据库未初始化");
         }
 
-        import { v4 as uuidv4 } from "uuid";
         const id = uuidv4();
         const now = Date.now();
 
@@ -1301,9 +1301,7 @@ function registerSocialIPC({
     "chat:send-file",
     async (_event, { sessionId, filePath, messageType, duration }) => {
       try {
-        // dialog imported at top
-        import path from "path";
-        // fs imported at top
+        // dialog, path, fs imported at top
 
         if (!database || !database.db) {
           throw new Error("数据库未初始化");
@@ -1517,9 +1515,7 @@ function registerSocialIPC({
     "chat:download-file",
     async (_event, { messageId, savePath }) => {
       try {
-        // dialog imported at top
-        import path from "path";
-        // fs imported at top
+        // dialog, path, fs imported at top
 
         if (!database || !database.db) {
           throw new Error("数据库未初始化");
@@ -1619,9 +1615,7 @@ function registerSocialIPC({
           // 如果是文件消息，需要复制文件
           let newFilePath = null;
           if (originalMessage.file_path) {
-            import path from "path";
-            // fs imported at top
-            // app imported at top
+            // path, fs, app imported at top
 
             const uploadsDir = path.join(
               app.getPath("userData"),
@@ -1784,8 +1778,7 @@ function registerSocialIPC({
           return { success: false, error: "P2P文件传输管理器未初始化" };
         }
 
-        // dialog imported at top
-        import path from "path";
+        // dialog, path imported at top
 
         // 如果没有提供保存路径,打开保存对话框
         if (!savePath) {
@@ -1913,7 +1906,10 @@ function registerSocialIPC({
         if (!aiSocialAssistant) {
           throw new Error("AI Social Assistant not initialized");
         }
-        return await aiSocialAssistant.suggestMultiStyleReplies(context, styles);
+        return await aiSocialAssistant.suggestMultiStyleReplies(
+          context,
+          styles,
+        );
       } catch (error) {
         logger.error("[Social IPC] Multi-style replies failed:", error);
         return { success: false, error: error.message };
@@ -1944,39 +1940,33 @@ function registerSocialIPC({
    * Get Trending Topics
    * Channel: 'social-ai:trending-topics'
    */
-  ipcMain.handle(
-    "social-ai:trending-topics",
-    async (_event, options) => {
-      try {
-        if (!topicAnalyzer) {
-          throw new Error("Topic Analyzer not initialized");
-        }
-        return await topicAnalyzer.getTrendingTopics(options);
-      } catch (error) {
-        logger.error("[Social IPC] Trending topics failed:", error);
-        return { success: false, error: error.message };
+  ipcMain.handle("social-ai:trending-topics", async (_event, options) => {
+    try {
+      if (!topicAnalyzer) {
+        throw new Error("Topic Analyzer not initialized");
       }
-    },
-  );
+      return await topicAnalyzer.getTrendingTopics(options);
+    } catch (error) {
+      logger.error("[Social IPC] Trending topics failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
 
   /**
    * Batch Sentiment Analysis
    * Channel: 'social-ai:batch-sentiment'
    */
-  ipcMain.handle(
-    "social-ai:batch-sentiment",
-    async (_event, { contents }) => {
-      try {
-        if (!topicAnalyzer) {
-          throw new Error("Topic Analyzer not initialized");
-        }
-        return await topicAnalyzer.batchSentiment(contents);
-      } catch (error) {
-        logger.error("[Social IPC] Batch sentiment failed:", error);
-        return { success: false, error: error.message };
+  ipcMain.handle("social-ai:batch-sentiment", async (_event, { contents }) => {
+    try {
+      if (!topicAnalyzer) {
+        throw new Error("Topic Analyzer not initialized");
       }
-    },
-  );
+      return await topicAnalyzer.batchSentiment(contents);
+    } catch (error) {
+      logger.error("[Social IPC] Batch sentiment failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
 
   /**
    * Record Social Interaction
@@ -1989,7 +1979,11 @@ function registerSocialIPC({
         if (!socialGraph) {
           throw new Error("Social Graph not initialized");
         }
-        return await socialGraph.recordInteraction(sourceDid, targetDid, interactionType);
+        return await socialGraph.recordInteraction(
+          sourceDid,
+          targetDid,
+          interactionType,
+        );
       } catch (error) {
         logger.error("[Social IPC] Record interaction failed:", error);
         return { success: false, error: error.message };
@@ -2020,23 +2014,20 @@ function registerSocialIPC({
    * Get Social Graph
    * Channel: 'social-ai:get-graph'
    */
-  ipcMain.handle(
-    "social-ai:get-graph",
-    async (_event, { did, options }) => {
-      try {
-        if (!socialGraph) {
-          throw new Error("Social Graph not initialized");
-        }
-        const graph = await socialGraph.getGraph(did, options);
-        const stats = await socialGraph.getStats(did);
-        const communities = await socialGraph.detectCommunities(did);
-        return { success: true, graph, stats, communities };
-      } catch (error) {
-        logger.error("[Social IPC] Get graph failed:", error);
-        return { success: false, error: error.message };
+  ipcMain.handle("social-ai:get-graph", async (_event, { did, options }) => {
+    try {
+      if (!socialGraph) {
+        throw new Error("Social Graph not initialized");
       }
-    },
-  );
+      const graph = await socialGraph.getGraph(did, options);
+      const stats = await socialGraph.getStats(did);
+      const communities = await socialGraph.detectCommunities(did);
+      return { success: true, graph, stats, communities };
+    } catch (error) {
+      logger.error("[Social IPC] Get graph failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
 
   // ============================================================
   // ActivityPub Bridge (Phase 42) - 10 handlers
@@ -2050,7 +2041,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:create-actor", async (_event, { did, profile }) => {
     try {
-      if (!activityPubBridge) {throw new Error("ActivityPub Bridge not initialized");}
+      if (!activityPubBridge) {
+        throw new Error("ActivityPub Bridge not initialized");
+      }
       return await activityPubBridge.createLocalActor(did, profile);
     } catch (error) {
       logger.error("[Social IPC] AP create actor failed:", error);
@@ -2064,7 +2057,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:get-actor", async (_event, { did }) => {
     try {
-      if (!activityPubBridge) {throw new Error("ActivityPub Bridge not initialized");}
+      if (!activityPubBridge) {
+        throw new Error("ActivityPub Bridge not initialized");
+      }
       return await activityPubBridge.buildActorDocument(did);
     } catch (error) {
       logger.error("[Social IPC] AP get actor failed:", error);
@@ -2078,7 +2073,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:publish-post", async (_event, { actorDid, post }) => {
     try {
-      if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
+      if (!apContentSync) {
+        throw new Error("AP Content Sync not initialized");
+      }
       return await apContentSync.publishPost(actorDid, post);
     } catch (error) {
       logger.error("[Social IPC] AP publish post failed:", error);
@@ -2092,7 +2089,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:publish-like", async (_event, { actorDid, objectId }) => {
     try {
-      if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
+      if (!apContentSync) {
+        throw new Error("AP Content Sync not initialized");
+      }
       return await apContentSync.publishLike(actorDid, objectId);
     } catch (error) {
       logger.error("[Social IPC] AP publish like failed:", error);
@@ -2106,7 +2105,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:publish-boost", async (_event, { actorDid, objectId }) => {
     try {
-      if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
+      if (!apContentSync) {
+        throw new Error("AP Content Sync not initialized");
+      }
       return await apContentSync.publishBoost(actorDid, objectId);
     } catch (error) {
       logger.error("[Social IPC] AP publish boost failed:", error);
@@ -2120,7 +2121,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:follow", async (_event, { actorDid, targetActorId }) => {
     try {
-      if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
+      if (!apContentSync) {
+        throw new Error("AP Content Sync not initialized");
+      }
       return await apContentSync.publishFollow(actorDid, targetActorId);
     } catch (error) {
       logger.error("[Social IPC] AP follow failed:", error);
@@ -2134,7 +2137,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:webfinger-lookup", async (_event, { address }) => {
     try {
-      if (!apWebFinger) {throw new Error("WebFinger not initialized");}
+      if (!apWebFinger) {
+        throw new Error("WebFinger not initialized");
+      }
       return await apWebFinger.lookupUser(address);
     } catch (error) {
       logger.error("[Social IPC] WebFinger lookup failed:", error);
@@ -2148,7 +2153,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:get-outbox", async (_event, { actorDid, options }) => {
     try {
-      if (!activityPubBridge) {throw new Error("ActivityPub Bridge not initialized");}
+      if (!activityPubBridge) {
+        throw new Error("ActivityPub Bridge not initialized");
+      }
       return await activityPubBridge.getOutbox(actorDid, options);
     } catch (error) {
       logger.error("[Social IPC] AP get outbox failed:", error);
@@ -2162,9 +2169,13 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:sync-status", async () => {
     try {
-      if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
+      if (!apContentSync) {
+        throw new Error("AP Content Sync not initialized");
+      }
       const syncStatus = await apContentSync.getSyncStatus();
-      const bridgeStatus = activityPubBridge ? await activityPubBridge.getStatus() : {};
+      const bridgeStatus = activityPubBridge
+        ? await activityPubBridge.getStatus()
+        : {};
       return { success: true, ...syncStatus, ...bridgeStatus };
     } catch (error) {
       logger.error("[Social IPC] AP sync status failed:", error);
@@ -2178,7 +2189,9 @@ function registerSocialIPC({
    */
   ipcMain.handle("ap:sync-now", async () => {
     try {
-      if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
+      if (!apContentSync) {
+        throw new Error("AP Content Sync not initialized");
+      }
       return await apContentSync.syncAll();
     } catch (error) {
       logger.error("[Social IPC] AP sync failed:", error);
@@ -2191,6 +2204,4 @@ function registerSocialIPC({
   );
 }
 
-module.exports = {
-  registerSocialIPC,
-};
+export { registerSocialIPC };

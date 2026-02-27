@@ -123,7 +123,9 @@ class AISocialAssistant extends EventEmitter {
 
     try {
       this.initialized = true;
-      logger.info("[AISocialAssistant] AI social assistant initialized successfully");
+      logger.info(
+        "[AISocialAssistant] AI social assistant initialized successfully",
+      );
     } catch (error) {
       logger.error("[AISocialAssistant] Initialization failed:", error);
       throw error;
@@ -170,7 +172,10 @@ class AISocialAssistant extends EventEmitter {
 
       return null;
     } catch (error) {
-      logger.warn("[AISocialAssistant] LLM chat failed, using fallback:", error.message);
+      logger.warn(
+        "[AISocialAssistant] LLM chat failed, using fallback:",
+        error.message,
+      );
       return null;
     }
   }
@@ -184,7 +189,11 @@ class AISocialAssistant extends EventEmitter {
    */
   async suggestReply(conversationContext, style = REPLY_STYLES.FRIENDLY) {
     try {
-      if (!conversationContext || !Array.isArray(conversationContext) || conversationContext.length === 0) {
+      if (
+        !conversationContext ||
+        !Array.isArray(conversationContext) ||
+        conversationContext.length === 0
+      ) {
         throw new Error("Conversation context is required");
       }
 
@@ -208,7 +217,8 @@ class AISocialAssistant extends EventEmitter {
       }
 
       // Fallback to templates
-      const templates = FALLBACK_REPLIES[style] || FALLBACK_REPLIES[REPLY_STYLES.FRIENDLY];
+      const templates =
+        FALLBACK_REPLIES[style] || FALLBACK_REPLIES[REPLY_STYLES.FRIENDLY];
       const randomIndex = Math.floor(Math.random() * templates.length);
 
       return {
@@ -264,7 +274,10 @@ class AISocialAssistant extends EventEmitter {
         source: "template",
       };
     } catch (error) {
-      logger.error("[AISocialAssistant] Failed to summarize conversation:", error);
+      logger.error(
+        "[AISocialAssistant] Failed to summarize conversation:",
+        error,
+      );
       throw error;
     }
   }
@@ -277,7 +290,11 @@ class AISocialAssistant extends EventEmitter {
    * @param {string} [length] - The desired length (short, medium, long)
    * @returns {Object} The drafted post
    */
-  async draftPost(topic, style = POST_STYLES.CONVERSATIONAL, length = POST_LENGTHS.MEDIUM) {
+  async draftPost(
+    topic,
+    style = POST_STYLES.CONVERSATIONAL,
+    length = POST_LENGTHS.MEDIUM,
+  ) {
     try {
       if (!topic || topic.trim().length === 0) {
         throw new Error("Topic is required");
@@ -370,9 +387,13 @@ class AISocialAssistant extends EventEmitter {
       // Fallback analysis
       const messageCount = context.messageCount || 0;
       let strength = "new";
-      if (messageCount > 100) {strength = "strong";}
-      else if (messageCount > 30) {strength = "growing";}
-      else if (messageCount > 5) {strength = "developing";}
+      if (messageCount > 100) {
+        strength = "strong";
+      } else if (messageCount > 30) {
+        strength = "growing";
+      } else if (messageCount > 5) {
+        strength = "developing";
+      }
 
       return {
         friendDid,
@@ -380,7 +401,10 @@ class AISocialAssistant extends EventEmitter {
         source: "template",
       };
     } catch (error) {
-      logger.error("[AISocialAssistant] Failed to analyze relationship:", error);
+      logger.error(
+        "[AISocialAssistant] Failed to analyze relationship:",
+        error,
+      );
       throw error;
     }
   }
@@ -393,7 +417,11 @@ class AISocialAssistant extends EventEmitter {
    */
   async recommendTopics(userInterests) {
     try {
-      if (!userInterests || !Array.isArray(userInterests) || userInterests.length === 0) {
+      if (
+        !userInterests ||
+        !Array.isArray(userInterests) ||
+        userInterests.length === 0
+      ) {
         throw new Error("User interests are required");
       }
 
@@ -409,7 +437,7 @@ class AISocialAssistant extends EventEmitter {
         // Parse numbered list from LLM output
         const topics = llmResult
           .split("\n")
-          .map((line) => line.replace(/^\d+[\.\)]\s*/, "").trim())
+          .map((line) => line.replace(/^\d+[.)]\s*/, "").trim())
           .filter((line) => line.length > 0);
 
         return {
@@ -487,7 +515,9 @@ class AISocialAssistant extends EventEmitter {
           ? friendProfile.interests[0]
           : "this community";
 
-      const randomIndex = Math.floor(Math.random() * FALLBACK_ICE_BREAKERS.length);
+      const randomIndex = Math.floor(
+        Math.random() * FALLBACK_ICE_BREAKERS.length,
+      );
       const template = FALLBACK_ICE_BREAKERS[randomIndex];
 
       return {
@@ -495,7 +525,10 @@ class AISocialAssistant extends EventEmitter {
         source: "template",
       };
     } catch (error) {
-      logger.error("[AISocialAssistant] Failed to generate ice-breaker:", error);
+      logger.error(
+        "[AISocialAssistant] Failed to generate ice-breaker:",
+        error,
+      );
       throw error;
     }
   }
@@ -515,10 +548,7 @@ class AISocialAssistant extends EventEmitter {
       const systemPrompt =
         "You are a hashtag generator. Generate 5-8 relevant hashtags for the given content. Return ONLY the hashtags, each prefixed with #, separated by spaces.";
 
-      const llmResult = await this._llmChat(
-        systemPrompt,
-        content.trim(),
-      );
+      const llmResult = await this._llmChat(systemPrompt, content.trim());
 
       if (llmResult) {
         const hashtags = llmResult
@@ -570,7 +600,9 @@ class AISocialAssistant extends EventEmitter {
    * @param {Array<Object>} messages - Messages to add
    */
   addToContext(messages) {
-    if (!Array.isArray(messages)) {return;}
+    if (!Array.isArray(messages)) {
+      return;
+    }
     this._contextWindow.push(...messages);
     if (this._contextWindow.length > this._maxContextSize) {
       this._contextWindow = this._contextWindow.slice(-this._maxContextSize);
@@ -600,7 +632,11 @@ class AISocialAssistant extends EventEmitter {
    */
   async suggestMultiStyleReplies(conversationContext, styles) {
     try {
-      const targetStyles = styles || [REPLY_STYLES.FORMAL, REPLY_STYLES.FRIENDLY, REPLY_STYLES.CONCISE];
+      const targetStyles = styles || [
+        REPLY_STYLES.FORMAL,
+        REPLY_STYLES.FRIENDLY,
+        REPLY_STYLES.CONCISE,
+      ];
 
       this.addToContext(conversationContext);
 
@@ -617,7 +653,10 @@ class AISocialAssistant extends EventEmitter {
         contextSize: fullContext.length,
       };
     } catch (error) {
-      logger.error("[AISocialAssistant] Failed to suggest multi-style replies:", error);
+      logger.error(
+        "[AISocialAssistant] Failed to suggest multi-style replies:",
+        error,
+      );
       throw error;
     }
   }
@@ -629,7 +668,11 @@ class AISocialAssistant extends EventEmitter {
    * @param {Object} [options] - Enhancement options
    * @returns {Object} Enhanced reply with metadata
    */
-  async enhancedReply(conversationContext, style = REPLY_STYLES.FRIENDLY, _options = {}) {
+  async enhancedReply(
+    conversationContext,
+    style = REPLY_STYLES.FRIENDLY,
+    _options = {},
+  ) {
     try {
       if (!conversationContext || conversationContext.length === 0) {
         throw new Error("Conversation context is required");
@@ -658,7 +701,12 @@ Reply with ONLY valid JSON.`;
 
       if (llmResult) {
         try {
-          const parsed = JSON.parse(llmResult.replace(/```json?\n?/g, "").replace(/```/g, "").trim());
+          const parsed = JSON.parse(
+            llmResult
+              .replace(/```json?\n?/g, "")
+              .replace(/```/g, "")
+              .trim(),
+          );
           return {
             suggestion: parsed.reply || llmResult.trim(),
             style,
@@ -667,7 +715,8 @@ Reply with ONLY valid JSON.`;
             contextSize: this._contextWindow.length,
             source: "llm",
           };
-        } catch (_) {
+        } catch {
+          // JSON parsing failed, return raw LLM output
           return {
             suggestion: llmResult.trim(),
             style,
@@ -700,9 +749,4 @@ Reply with ONLY valid JSON.`;
   }
 }
 
-module.exports = {
-  AISocialAssistant,
-  REPLY_STYLES,
-  POST_STYLES,
-  POST_LENGTHS,
-};
+export { AISocialAssistant, REPLY_STYLES, POST_STYLES, POST_LENGTHS };
