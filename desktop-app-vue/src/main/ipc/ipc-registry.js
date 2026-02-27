@@ -3793,15 +3793,30 @@ function registerAllIPC(dependencies) {
       const aiSocialAssistant = new AISocialAssistant(llmManager);
 
       if (database) {
-        topicAnalyzer.initialize().catch((err) =>
-          logger.warn("[IPC Registry] TopicAnalyzer init warning:", err.message),
-        );
-        socialGraph.initialize().catch((err) =>
-          logger.warn("[IPC Registry] SocialGraph init warning:", err.message),
-        );
-        aiSocialAssistant.initialize().catch((err) =>
-          logger.warn("[IPC Registry] AISocialAssistant init warning:", err.message),
-        );
+        topicAnalyzer
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] TopicAnalyzer init warning:",
+              err.message,
+            ),
+          );
+        socialGraph
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] SocialGraph init warning:",
+              err.message,
+            ),
+          );
+        aiSocialAssistant
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AISocialAssistant init warning:",
+              err.message,
+            ),
+          );
       }
 
       // Initialize ActivityPub modules
@@ -3810,12 +3825,22 @@ function registerAllIPC(dependencies) {
       const apWebFinger = new APWebFinger(activityPubBridge);
 
       if (database) {
-        activityPubBridge.initialize({ domain: "localhost" }).catch((err) =>
-          logger.warn("[IPC Registry] ActivityPubBridge init warning:", err.message),
-        );
-        apContentSync.initialize().catch((err) =>
-          logger.warn("[IPC Registry] APContentSync init warning:", err.message),
-        );
+        activityPubBridge
+          .initialize({ domain: "localhost" })
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ActivityPubBridge init warning:",
+              err.message,
+            ),
+          );
+        apContentSync
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] APContentSync init warning:",
+              err.message,
+            ),
+          );
       }
 
       // IPC handlers are registered via social-ipc.js which is already called earlier
@@ -3842,7 +3867,9 @@ function registerAllIPC(dependencies) {
     }
 
     logger.info("[IPC Registry] ========================================");
-    logger.info("[IPC Registry] Phase 42 Complete: Social AI + ActivityPub ready!");
+    logger.info(
+      "[IPC Registry] Phase 42 Complete: Social AI + ActivityPub ready!",
+    );
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
@@ -3850,11 +3877,15 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     try {
-      logger.info("[IPC Registry] Registering Compliance + Classification IPC...");
+      logger.info(
+        "[IPC Registry] Registering Compliance + Classification IPC...",
+      );
 
       const { SOC2Compliance } = require("../audit/soc2-compliance");
       const { DataClassifier } = require("../audit/data-classifier");
-      const { ClassificationPolicy } = require("../audit/classification-policy");
+      const {
+        ClassificationPolicy,
+      } = require("../audit/classification-policy");
       const { registerComplianceIPC } = require("../audit/compliance-ipc");
 
       const database = dependencies.database || null;
@@ -3866,15 +3897,30 @@ function registerAllIPC(dependencies) {
       const classificationPolicy = new ClassificationPolicy(database);
 
       if (database) {
-        soc2Compliance.initialize().catch((err) =>
-          logger.warn("[IPC Registry] SOC2Compliance init warning:", err.message),
-        );
-        dataClassifier.initialize().catch((err) =>
-          logger.warn("[IPC Registry] DataClassifier init warning:", err.message),
-        );
-        classificationPolicy.initialize().catch((err) =>
-          logger.warn("[IPC Registry] ClassificationPolicy init warning:", err.message),
-        );
+        soc2Compliance
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] SOC2Compliance init warning:",
+              err.message,
+            ),
+          );
+        dataClassifier
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] DataClassifier init warning:",
+              err.message,
+            ),
+          );
+        classificationPolicy
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ClassificationPolicy init warning:",
+              err.message,
+            ),
+          );
       }
 
       const { handlerCount } = registerComplianceIPC({
@@ -3889,7 +3935,9 @@ function registerAllIPC(dependencies) {
 
       // Wire into Context Engineering
       if (registeredModules.contextEngineering) {
-        registeredModules.contextEngineering.setComplianceManager(soc2Compliance);
+        registeredModules.contextEngineering.setComplianceManager(
+          soc2Compliance,
+        );
       }
 
       logger.info(
@@ -3903,7 +3951,9 @@ function registerAllIPC(dependencies) {
     }
 
     logger.info("[IPC Registry] ========================================");
-    logger.info("[IPC Registry] Phase 43 Complete: Compliance + Classification ready!");
+    logger.info(
+      "[IPC Registry] Phase 43 Complete: Compliance + Classification ready!",
+    );
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
@@ -3923,12 +3973,16 @@ function registerAllIPC(dependencies) {
       const scimSync = new SCIMSync(database, scimServer);
 
       if (database) {
-        scimServer.initialize().catch((err) =>
-          logger.warn("[IPC Registry] SCIMServer init warning:", err.message),
-        );
-        scimSync.initialize().catch((err) =>
-          logger.warn("[IPC Registry] SCIMSync init warning:", err.message),
-        );
+        scimServer
+          .initialize()
+          .catch((err) =>
+            logger.warn("[IPC Registry] SCIMServer init warning:", err.message),
+          );
+        scimSync
+          .initialize()
+          .catch((err) =>
+            logger.warn("[IPC Registry] SCIMSync init warning:", err.message),
+          );
       }
 
       const { handlerCount } = registerSCIMIPC({ scimServer, scimSync });
@@ -3966,12 +4020,22 @@ function registerAllIPC(dependencies) {
       const fido2Authenticator = new FIDO2Authenticator(database);
 
       if (database) {
-        unifiedKeyManager.initialize().catch((err) =>
-          logger.warn("[IPC Registry] UnifiedKeyManager init warning:", err.message),
-        );
-        fido2Authenticator.initialize().catch((err) =>
-          logger.warn("[IPC Registry] FIDO2Authenticator init warning:", err.message),
-        );
+        unifiedKeyManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] UnifiedKeyManager init warning:",
+              err.message,
+            ),
+          );
+        fido2Authenticator
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] FIDO2Authenticator init warning:",
+              err.message,
+            ),
+          );
       }
 
       // IPC handlers are registered via ukey-ipc.js which is called earlier
@@ -3998,9 +4062,13 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     try {
-      logger.info("[IPC Registry] Initializing Threshold Signature + Biometric modules...");
+      logger.info(
+        "[IPC Registry] Initializing Threshold Signature + Biometric modules...",
+      );
 
-      const { ThresholdSignatureManager } = require("../ukey/threshold-signature-manager");
+      const {
+        ThresholdSignatureManager,
+      } = require("../ukey/threshold-signature-manager");
       const { BiometricBinding } = require("../ukey/biometric-binding");
 
       const database = dependencies.database || null;
@@ -4009,12 +4077,22 @@ function registerAllIPC(dependencies) {
       const biometricBinding = new BiometricBinding(database);
 
       if (database) {
-        thresholdManager.initialize().catch((err) =>
-          logger.warn("[IPC Registry] ThresholdSignatureManager init warning:", err.message),
-        );
-        biometricBinding.initialize().catch((err) =>
-          logger.warn("[IPC Registry] BiometricBinding init warning:", err.message),
-        );
+        thresholdManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ThresholdSignatureManager init warning:",
+              err.message,
+            ),
+          );
+        biometricBinding
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] BiometricBinding init warning:",
+              err.message,
+            ),
+          );
       }
 
       registeredModules.thresholdManager = thresholdManager;
@@ -4031,7 +4109,9 @@ function registerAllIPC(dependencies) {
     }
 
     logger.info("[IPC Registry] ========================================");
-    logger.info("[IPC Registry] Phase 46 Complete: Threshold Signatures ready!");
+    logger.info(
+      "[IPC Registry] Phase 46 Complete: Threshold Signatures ready!",
+    );
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
@@ -4069,7 +4149,9 @@ function registerAllIPC(dependencies) {
 
       const { LocalRecommender } = require("../social/local-recommender");
       const { InterestProfiler } = require("../social/interest-profiler");
-      const { registerRecommendationIPC } = require("../social/recommendation-ipc");
+      const {
+        registerRecommendationIPC,
+      } = require("../social/recommendation-ipc");
 
       const database = dependencies.database || null;
 
@@ -4077,12 +4159,22 @@ function registerAllIPC(dependencies) {
       const interestProfiler = new InterestProfiler(database);
 
       if (database) {
-        localRecommender.initialize().catch((err) =>
-          logger.warn("[IPC Registry] LocalRecommender init warning:", err.message),
-        );
-        interestProfiler.initialize().catch((err) =>
-          logger.warn("[IPC Registry] InterestProfiler init warning:", err.message),
-        );
+        localRecommender
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] LocalRecommender init warning:",
+              err.message,
+            ),
+          );
+        interestProfiler
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] InterestProfiler init warning:",
+              err.message,
+            ),
+          );
       }
 
       localRecommender.setInterestProfiler(interestProfiler);
@@ -4103,7 +4195,9 @@ function registerAllIPC(dependencies) {
     }
 
     logger.info("[IPC Registry] ========================================");
-    logger.info("[IPC Registry] Phase 48 Complete: Content Recommendation ready!");
+    logger.info(
+      "[IPC Registry] Phase 48 Complete: Content Recommendation ready!",
+    );
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
@@ -4123,12 +4217,22 @@ function registerAllIPC(dependencies) {
       const nostrIdentity = new NostrIdentity(database);
 
       if (database) {
-        nostrBridge.initialize().catch((err) =>
-          logger.warn("[IPC Registry] NostrBridge init warning:", err.message),
-        );
-        nostrIdentity.initialize().catch((err) =>
-          logger.warn("[IPC Registry] NostrIdentity init warning:", err.message),
-        );
+        nostrBridge
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] NostrBridge init warning:",
+              err.message,
+            ),
+          );
+        nostrIdentity
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] NostrIdentity init warning:",
+              err.message,
+            ),
+          );
       }
 
       registerNostrBridgeIPC({ nostrBridge, nostrIdentity });
@@ -4167,12 +4271,19 @@ function registerAllIPC(dependencies) {
       const dlpPolicyManager = new DLPPolicyManager(database);
 
       if (database) {
-        dlpEngine.initialize().catch((err) =>
-          logger.warn("[IPC Registry] DLPEngine init warning:", err.message),
-        );
-        dlpPolicyManager.initialize().catch((err) =>
-          logger.warn("[IPC Registry] DLPPolicyManager init warning:", err.message),
-        );
+        dlpEngine
+          .initialize()
+          .catch((err) =>
+            logger.warn("[IPC Registry] DLPEngine init warning:", err.message),
+          );
+        dlpPolicyManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] DLPPolicyManager init warning:",
+              err.message,
+            ),
+          );
       }
 
       dlpEngine.setPolicyManager(dlpPolicyManager);
@@ -4182,9 +4293,7 @@ function registerAllIPC(dependencies) {
       registeredModules.dlpEngine = dlpEngine;
       registeredModules.dlpPolicyManager = dlpPolicyManager;
 
-      logger.info(
-        "[IPC Registry] ✓ DLP modules registered (8 IPC handlers)",
-      );
+      logger.info("[IPC Registry] ✓ DLP modules registered (8 IPC handlers)");
     } catch (phase50Error) {
       logger.warn(
         "[IPC Registry] ⚠️  Phase 50 registration failed (non-fatal):",
@@ -4211,18 +4320,21 @@ function registerAllIPC(dependencies) {
       const siemExporter = new SIEMExporter(database);
 
       if (database) {
-        siemExporter.initialize().catch((err) =>
-          logger.warn("[IPC Registry] SIEMExporter init warning:", err.message),
-        );
+        siemExporter
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] SIEMExporter init warning:",
+              err.message,
+            ),
+          );
       }
 
       registerSIEMIPC({ siemExporter });
 
       registeredModules.siemExporter = siemExporter;
 
-      logger.info(
-        "[IPC Registry] ✓ SIEM module registered (4 IPC handlers)",
-      );
+      logger.info("[IPC Registry] ✓ SIEM module registered (4 IPC handlers)");
     } catch (phase51Error) {
       logger.warn(
         "[IPC Registry] ⚠️  Phase 51 registration failed (non-fatal):",
@@ -4232,6 +4344,221 @@ function registerAllIPC(dependencies) {
 
     logger.info("[IPC Registry] ========================================");
     logger.info("[IPC Registry] Phase 51 Complete: SIEM Integration ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 52: PQC Migration (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering PQC Migration modules...");
+
+      const { PQCMigrationManager } = require("../ukey/pqc-migration-manager");
+      const { registerPQCIPC } = require("../ukey/pqc-ipc");
+
+      const database = dependencies.database || null;
+
+      const pqcManager = new PQCMigrationManager(database);
+
+      if (database) {
+        pqcManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] PQCMigrationManager init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerPQCIPC({ pqcManager });
+
+      registeredModules.pqcManager = pqcManager;
+
+      logger.info(
+        "[IPC Registry] ✓ PQC Migration module registered (4 IPC handlers)",
+      );
+    } catch (phase52Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 52 registration failed (non-fatal):",
+        phase52Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 52 Complete: PQC Migration ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 53: Firmware OTA (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Firmware OTA modules...");
+
+      const { FirmwareOTAManager } = require("../ukey/firmware-ota-manager");
+      const { registerFirmwareOTAIPC } = require("../ukey/firmware-ota-ipc");
+
+      const database = dependencies.database || null;
+
+      const firmwareManager = new FirmwareOTAManager(database);
+
+      if (database) {
+        firmwareManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] FirmwareOTAManager init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerFirmwareOTAIPC({ firmwareManager });
+
+      registeredModules.firmwareManager = firmwareManager;
+
+      logger.info(
+        "[IPC Registry] ✓ Firmware OTA module registered (4 IPC handlers)",
+      );
+    } catch (phase53Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 53 registration failed (non-fatal):",
+        phase53Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 53 Complete: Firmware OTA ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 54: AI Community Governance (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Governance AI modules...");
+
+      const { GovernanceAI } = require("../social/governance-ai");
+      const { registerGovernanceIPC } = require("../social/governance-ipc");
+
+      const database = dependencies.database || null;
+
+      const governanceAI = new GovernanceAI(database);
+
+      if (database) {
+        governanceAI
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] GovernanceAI init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerGovernanceIPC({ governanceAI });
+
+      registeredModules.governanceAI = governanceAI;
+
+      logger.info(
+        "[IPC Registry] ✓ Governance AI module registered (4 IPC handlers)",
+      );
+    } catch (phase54Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 54 registration failed (non-fatal):",
+        phase54Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 54 Complete: AI Governance ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 55: Matrix Integration (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Matrix Bridge modules...");
+
+      const { MatrixBridge } = require("../social/matrix-bridge");
+      const { registerMatrixIPC } = require("../social/matrix-ipc");
+
+      const database = dependencies.database || null;
+
+      const matrixBridge = new MatrixBridge(database);
+
+      if (database) {
+        matrixBridge
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] MatrixBridge init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerMatrixIPC({ matrixBridge });
+
+      registeredModules.matrixBridge = matrixBridge;
+
+      logger.info(
+        "[IPC Registry] ✓ Matrix Bridge module registered (5 IPC handlers)",
+      );
+    } catch (phase55Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 55 registration failed (non-fatal):",
+        phase55Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 55 Complete: Matrix Integration ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 56: Terraform Provider (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Terraform modules...");
+
+      const { TerraformManager } = require("../enterprise/terraform-manager");
+      const { registerTerraformIPC } = require("../enterprise/terraform-ipc");
+
+      const database = dependencies.database || null;
+
+      const terraformManager = new TerraformManager(database);
+
+      if (database) {
+        terraformManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] TerraformManager init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerTerraformIPC({ terraformManager });
+
+      registeredModules.terraformManager = terraformManager;
+
+      logger.info(
+        "[IPC Registry] ✓ Terraform module registered (4 IPC handlers)",
+      );
+    } catch (phase56Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 56 registration failed (non-fatal):",
+        phase56Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 56 Complete: Terraform Provider ready!");
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================

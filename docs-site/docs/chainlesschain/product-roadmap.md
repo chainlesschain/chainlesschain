@@ -24,12 +24,12 @@
 
 | 指标       | 数值     |
 | ---------- | -------- |
-| 总代码行数 | 343,000+ |
-| Vue 组件   | 379+     |
-| IPC 处理器 | 498+     |
+| 总代码行数 | 348,000+ |
+| Vue 组件   | 384+     |
+| IPC 处理器 | 519+     |
 | 内置技能   | 95       |
-| 数据库表   | 44+      |
-| 测试用例   | 19,700+  |
+| 数据库表   | 54+      |
+| 测试用例   | 19,900+  |
 
 ---
 
@@ -177,7 +177,7 @@
 | FIDO2 WebAuthn | SIMKey 作为 FIDO2 认证器，支持 Web 无密码登录 | P0     | ✅ 已完成 | 2026 Q2  |
 | 硬件安全聚合   | 多设备硬件安全模块聚合签名（2-of-3 阈值签名） | P1     | ✅ 已完成 | 2026 Q3  |
 | 生物特征绑定   | TEE 内生物特征模板与 SIMKey 密钥绑定          | P1     | ✅ 已完成 | 2026 Q3  |
-| 量子迁移路线   | ML-KEM/ML-DSA 全面替换 RSA/ECDSA 的迁移计划   | P2     | 📋 待开始 | 2026 Q4  |
+| 量子迁移路线   | ML-KEM/ML-DSA 全面替换 RSA/ECDSA 的迁移计划   | P2     | ✅ 已完成 | 2026 Q4  |
 
 **实施计划**:
 
@@ -187,7 +187,10 @@
   - `biometric-binding.js` — TEE 内 HMAC 生物特征模板存储/验证/解绑，过期控制
   - `ukey-ipc.js` 扩展 4 IPC（`threshold-security:setup-keys/sign`、`threshold-security:bind-biometric/verify-biometric`）
   - `thresholdSecurity.ts` Store + `ThresholdSecurityPage.vue` + 单元测试 62+24 用例
-- **Phase 3（Q4）**: 量子迁移路线 — 编写 PQC 迁移白皮书，实现 ML-KEM/ML-DSA 原型，建立混合算法过渡方案
+- **Phase 3（Q4）**: 量子迁移路线 ✅
+  - `pqc-migration-manager.js` — ML-KEM-768/1024 + ML-DSA-65/87 密钥生成，混合模式过渡（X25519-ML-KEM/Ed25519-ML-DSA）
+  - `pqc-ipc.js` — 4 IPC 处理器（`pqc:list-keys/generate-key/get-migration-status/execute-migration`）
+  - `pqcMigration.ts` Store + `PQCMigrationPage.vue` + 单元测试 27+14 用例 | [文档](/chainlesschain/pqc-migration)
 
 #### B2. U盾 v2.0 — 跨平台扩展
 
@@ -195,7 +198,7 @@
 | ---------------- | ----------------------------------- | ------ | --------- | -------- |
 | macOS/Linux 驱动 | 基于 libusb/WebUSB 的跨平台 U盾驱动 | P0     | ✅ 已完成 | 2026 Q2  |
 | 蓝牙 U盾         | BLE 协议支持，移动端无线连接        | P1     | ✅ 已完成 | 2026 Q3  |
-| U盾固件 OTA      | 安全固件远程升级通道                | P2     | 📋 待开始 | 2026 Q4  |
+| U盾固件 OTA      | 安全固件远程升级通道                | P2     | ✅ 已完成 | 2026 Q4  |
 
 **实施计划**:
 
@@ -205,7 +208,10 @@
   - `driver-registry.js` 扩展 — 注册 BLE 传输层至统一驱动注册表
   - `ukey-ipc.js` 扩展 4 IPC（`ble-ukey:scan-devices/pair-device/connect/disconnect`）
   - `bleUkey.ts` Store + `BLEDevicesPage.vue` + 单元测试 22 用例
-- **Phase 3（Q4）**: 固件 OTA — 设计安全固件升级协议（签名验证 + 断点续传 + 回滚保护）
+- **Phase 3（Q4）**: 固件 OTA ✅
+  - `firmware-ota-manager.js` — 多通道版本管理（STABLE/BETA/NIGHTLY），64KB 分块断点续传，SHA-256 校验 + 签名验证，回滚保护
+  - `firmware-ota-ipc.js` — 4 IPC 处理器（`firmware:check-updates/list-versions/start-update/get-history`）
+  - `firmwareOta.ts` Store + `FirmwareOTAPage.vue` + 单元测试 22+14 用例 | [文档](/chainlesschain/firmware-ota)
 
 ---
 
@@ -217,7 +223,7 @@
 | --------------- | -------------------------------------------------- | ------ | --------- | -------- |
 | AI 社交助手增强 | 上下文感知回复建议、话题深度分析、社交关系图谱     | P0     | ✅ 已完成 | 2026 Q2  |
 | 智能内容推荐    | 基于本地知识库和兴趣模型的去中心化推荐（无服务器） | P1     | ✅ 已完成 | 2026 Q3  |
-| AI 社区治理     | 自动提案分析、投票影响预测、治理参数优化建议       | P2     | 📋 待开始 | 2026 Q4  |
+| AI 社区治理     | 自动提案分析、投票影响预测、治理参数优化建议       | P2     | ✅ 已完成 | 2026 Q4  |
 
 **实施计划**:
 
@@ -231,9 +237,10 @@
   - `interest-profiler.js` — 用户兴趣画像提取（话题分析 + 社交图谱交互），时间衰减
   - `recommendation-ipc.js` — 6 IPC 处理器
   - `recommendation.ts` Store + `RecommendationsPage.vue` + 单元测试 49+21 用例
-- **Phase 3（Q4）**: AI 社区治理
-  - `governance-ai.js` — 提案影响分析 + 投票预测 + 参数调优建议
-  - 预计新增: 1 个后端模块 + 4 IPC
+- **Phase 3（Q4）**: AI 社区治理 ✅
+  - `governance-ai.js` — 提案 CRUD + AI 影响分析（安全/性能/兼容性）+ 情感投票预测，支持 4 种提案类型
+  - `governance-ipc.js` — 4 IPC 处理器（`governance:list-proposals/create-proposal/analyze-impact/predict-vote`）
+  - `governance.ts` Store + `GovernancePage.vue` + 单元测试 25+14 用例 | [文档](/chainlesschain/governance)
 
 #### C2. 跨平台互通
 
@@ -241,7 +248,7 @@
 | ---------------- | --------------------------------------------- | ------ | --------- | -------- |
 | ActivityPub 完善 | Mastodon/Misskey 双向互通，评论/转发/点赞同步 | P0     | ✅ 已完成 | 2026 Q2  |
 | Nostr 桥接       | Nostr 事件格式兼容，中继发现                  | P1     | ✅ 已完成 | 2026 Q3  |
-| Matrix 集成      | Matrix 协议桥接，支持加密群聊互通             | P2     | 📋 待开始 | 2026 Q4  |
+| Matrix 集成      | Matrix 协议桥接，支持加密群聊互通             | P2     | ✅ 已完成 | 2026 Q4  |
 
 **实施计划**:
 
@@ -255,9 +262,10 @@
   - `nostr-identity.js` — npub/nsec 密钥派生，DID ↔ Nostr 双向身份映射
   - `nostr-bridge-ipc.js` — 6 IPC 处理器
   - `nostrBridge.ts` Store + `NostrBridgePage.vue` + 单元测试 48+25 用例
-- **Phase 3（Q4）**: Matrix 集成
-  - `matrix-bridge.js` — Matrix CS API 客户端，E2EE 桥接（Olm/Megolm）
-  - 预计新增: 1 个后端模块 + 5 IPC
+- **Phase 3（Q4）**: Matrix 集成 ✅
+  - `matrix-bridge.js` — Matrix CS API 密码/SSO 登录，房间管理，Olm/Megolm E2EE 消息收发，DID ↔ MXID 双向映射
+  - `matrix-ipc.js` — 5 IPC 处理器（`matrix:login/list-rooms/send-message/get-messages/join-room`）
+  - `matrixBridge.ts` Store + `MatrixBridgePage.vue` + 单元测试 26+16 用例 | [文档](/chainlesschain/matrix-bridge)
 
 ---
 
@@ -292,7 +300,7 @@
 | ------------------ | ------------------------------------------------ | ------ | --------- | -------- |
 | SCIM 用户同步      | SCIM 2.0 协议，与 Azure AD/Okta 自动同步用户和组 | P0     | ✅ 已完成 | 2026 Q2  |
 | SIEM 对接          | Splunk/ELK/Sentinel 审计日志实时推送             | P1     | ✅ 已完成 | 2026 Q3  |
-| Terraform Provider | 基础设施即代码管理 ChainlessChain 配置           | P2     | 📋 待开始 | 2026 Q4  |
+| Terraform Provider | 基础设施即代码管理 ChainlessChain 配置           | P2     | ✅ 已完成 | 2026 Q4  |
 
 **实施计划**:
 
@@ -306,9 +314,10 @@
   - `siem-ipc.js` — 4 IPC 处理器
   - `enterprise-audit-logger.js` 扩展 `_siemExporter` 字段，日志事件自动推送
   - `siem.ts` Store + `SIEMIntegrationPage.vue` + 单元测试 26+22 用例
-- **Phase 3（Q4）**: Terraform Provider
-  - `terraform-provider-chainlesschain` — Go 编写的 Terraform Provider，管理配置/权限/团队
-  - 预计新增: 独立 Go 项目
+- **Phase 3（Q4）**: Terraform Provider ✅
+  - `terraform-manager.js` — 工作区 CRUD，Plan/Apply/Destroy 运行控制，状态版本管理，并发控制（最大 3 并发运行）
+  - `terraform-ipc.js` — 4 IPC 处理器（`terraform:list-workspaces/create-workspace/plan-run/list-runs`）
+  - `terraform.ts` Store + `TerraformProviderPage.vue` + 单元测试 26+14 用例 | [文档](/chainlesschain/terraform-provider)
 
 ---
 
@@ -347,16 +356,16 @@
 | 主线  | 方向               | 模块数（预估） | IPC 数（预估） | 状态      | 目标时间 |
 | ----- | ------------------ | -------------- | -------------- | --------- | -------- |
 | B1-P2 | 门限签名+生物绑定  | 2              | 4              | ✅ 已完成 | Q3       |
-| B1-P3 | 量子迁移路线       | 1              | 2              | 📋 待开始 | Q4       |
+| B1-P3 | 量子迁移路线       | 1              | 4              | ✅ 已完成 | Q4       |
 | B2-P2 | 蓝牙 U盾 BLE       | 0 (扩展)       | 4              | ✅ 已完成 | Q3       |
-| B2-P3 | 固件 OTA           | 1              | 2              | 📋 待开始 | Q4       |
+| B2-P3 | 固件 OTA           | 1              | 4              | ✅ 已完成 | Q4       |
 | C1-P2 | 智能内容推荐       | 3              | 6              | ✅ 已完成 | Q3       |
-| C1-P3 | AI 社区治理        | 1              | 4              | 📋 待开始 | Q4       |
+| C1-P3 | AI 社区治理        | 1              | 4              | ✅ 已完成 | Q4       |
 | C2-P2 | Nostr 桥接         | 3              | 6              | ✅ 已完成 | Q3       |
-| C2-P3 | Matrix 集成        | 1              | 5              | 📋 待开始 | Q4       |
+| C2-P3 | Matrix 集成        | 1              | 5              | ✅ 已完成 | Q4       |
 | D1-P2 | DLP 防泄漏         | 3              | 8              | ✅ 已完成 | Q3       |
 | D2-P2 | SIEM 对接          | 2              | 4              | ✅ 已完成 | Q3       |
-| D2-P3 | Terraform Provider | 1              | —              | 📋 待开始 | Q4       |
+| D2-P3 | Terraform Provider | 1              | 4              | ✅ 已完成 | Q4       |
 
 ---
 
@@ -447,6 +456,32 @@
 | Nostr 桥接   | `nostr-bridge.e2e.test.ts`       | 页面导航/中继管理/事件浏览/UI组件     |
 | DLP 防泄漏   | `dlp-policies.e2e.test.ts`       | 页面导航/策略管理/事件仪表板/UI组件   |
 | SIEM 集成    | `siem-integration.e2e.test.ts`   | 页面导航/目标配置/导出状态/UI组件     |
+
+#### 主线 B/C/D Phase 3 单元测试（Q4 2026）
+
+| 模块                       | 测试文件                        | 测试用例 | 覆盖范围                                  |
+| -------------------------- | ------------------------------- | -------- | ----------------------------------------- |
+| `pqc-migration-manager.js` | `pqc-migration-manager.test.js` | 27       | ML-KEM/ML-DSA 生成、混合模式、迁移执行    |
+| `firmware-ota-manager.js`  | `firmware-ota-manager.test.js`  | 22       | 更新检查、版本管理、安装流程、回滚        |
+| `governance-ai.js`         | `governance-ai.test.js`         | 25       | 提案 CRUD、AI 影响分析、投票预测          |
+| `matrix-bridge.js`         | `matrix-bridge.test.js`         | 26       | 登录、房间管理、E2EE 消息、DID 映射       |
+| `terraform-manager.js`     | `terraform-manager.test.js`     | 26       | 工作区 CRUD、Plan/Apply/Destroy、并发控制 |
+| `pqcMigration.ts` Store    | `pqcMigration.test.ts`          | 14       | 状态/Getter/Action + 密钥生成/迁移执行    |
+| `firmwareOta.ts` Store     | `firmwareOta.test.ts`           | 14       | 状态/Getter/Action + 更新检查/安装/历史   |
+| `governance.ts` Store      | `governance.test.ts`            | 14       | 状态/Getter/Action + 提案/分析/预测       |
+| `matrixBridge.ts` Store    | `matrixBridge.test.ts`          | 16       | 状态/Getter/Action + 登录/房间/消息       |
+| `terraform.ts` Store       | `terraform.test.ts`             | 14       | 状态/Getter/Action + 工作区/运行          |
+| **合计**                   |                                 | **198**  | 后端模块 + Pinia Store                    |
+
+#### 主线 B/C/D Phase 3 E2E 测试
+
+| 场景           | 测试文件                         | 覆盖范围                            |
+| -------------- | -------------------------------- | ----------------------------------- |
+| PQC 迁移       | `pqc-migration.e2e.test.ts`      | 页面导航/密钥管理/迁移计划/UI组件   |
+| 固件 OTA       | `firmware-ota.e2e.test.ts`       | 页面导航/更新检查/安装流程/UI组件   |
+| AI 治理        | `governance.e2e.test.ts`         | 页面导航/提案管理/影响分析/UI组件   |
+| Matrix 桥接    | `matrix-bridge.e2e.test.ts`      | 页面导航/登录/房间列表/UI组件       |
+| Terraform 管理 | `terraform-provider.e2e.test.ts` | 页面导航/工作区管理/运行记录/UI组件 |
 
 ---
 
@@ -807,11 +842,11 @@
          ┃              ┃ ✅ D2-P2: SIEM 对接（Splunk/ELK）(Phase 51)
          ┃              ┃ ✅ 13 后端模块 + 32 IPC + 6 前端页面 + 6 Store + ~395 单元测试
          ┃              ┃
-2026 Q4  ┃ v1.1.0-final ┃ 📋 B1-P3: 量子迁移路线
-         ┃              ┃ 📋 B2-P3: 固件 OTA
-         ┃              ┃ 📋 C1-P3: AI 社区治理
-         ┃              ┃ 📋 C2-P3: Matrix 集成
-         ┃              ┃ 📋 D2-P3: Terraform Provider
+2026 Q4  ┃ v1.1.0-final ┃ ✅ B1-P3: 量子迁移路线 (Phase 52, 4 IPC, 27 tests)
+         ┃              ┃ ✅ B2-P3: 固件 OTA (Phase 53, 4 IPC, 22 tests)
+         ┃              ┃ ✅ C1-P3: AI 社区治理 (Phase 54, 4 IPC, 25 tests)
+         ┃              ┃ ✅ C2-P3: Matrix 集成 (Phase 55, 5 IPC, 26 tests)
+         ┃              ┃ ✅ D2-P3: Terraform Provider (Phase 56, 4 IPC, 26 tests)
          ┃              ┃
 2026 H2  ┃ v2.0.0       ┃ 📋 联邦网络生产加固 + 100 节点压测
          ┃              ┃ 📋 信誉系统调优 + 跨组织 SLA
@@ -841,16 +876,16 @@
 
 ## 版本对比总表
 
-| 版本   | 主题             | 核心技术                                                | 状态                         |
-| ------ | ---------------- | ------------------------------------------------------- | ---------------------------- |
-| v1.0.0 | 企业版发布       | 95技能, P2P社交, CRDT协作, 硬件安全                     | ✅ 已发布                    |
-| v1.1.0 | 全栈智能化       | 全自动流水线, NL编程, 多模态, 自主运维, B/C/D Phase 1-2 | ✅ Phase 1-2 完成，Q4 加固中 |
-| v2.0.0 | 去中心化代理网络 | Agent DID, 联邦发现, 跨组织协作, 信誉系统               | ✅ 提前交付（含入v1.1.0）    |
-| v3.0.0 | 全自主 AI 开发者 | 自主学习, 端到端开发, 人机协作治理                      | 📋 2027 H1 规划中            |
-| v3.1.0 | 去中心化 AI 市场 | Skill-as-a-Service, 代币激励, 推理网络                  | 📋 2027 H2 规划中            |
-| v3.2.0 | 硬件安全生态     | 三位一体信任根, PQC迁移, 卫星通信                       | 📋 2028 H1 规划中            |
-| v3.3.0 | 全球去中心化社交 | 多协议融合, AI翻译, IPFS, 抗审查                        | 📋 2028 H2 规划中            |
-| v3.4.0 | 全球进化网络     | EvoMap 多Hub联邦, 基因重组, 社区DAO                     | 🔮 2029+ 远期愿景            |
+| 版本   | 主题             | 核心技术                                                | 状态                      |
+| ------ | ---------------- | ------------------------------------------------------- | ------------------------- |
+| v1.0.0 | 企业版发布       | 95技能, P2P社交, CRDT协作, 硬件安全                     | ✅ 已发布                 |
+| v1.1.0 | 全栈智能化       | 全自动流水线, NL编程, 多模态, 自主运维, B/C/D Phase 1-3 | ✅ Phase 1-3 全部完成     |
+| v2.0.0 | 去中心化代理网络 | Agent DID, 联邦发现, 跨组织协作, 信誉系统               | ✅ 提前交付（含入v1.1.0） |
+| v3.0.0 | 全自主 AI 开发者 | 自主学习, 端到端开发, 人机协作治理                      | 📋 2027 H1 规划中         |
+| v3.1.0 | 去中心化 AI 市场 | Skill-as-a-Service, 代币激励, 推理网络                  | 📋 2027 H2 规划中         |
+| v3.2.0 | 硬件安全生态     | 三位一体信任根, PQC迁移, 卫星通信                       | 📋 2028 H1 规划中         |
+| v3.3.0 | 全球去中心化社交 | 多协议融合, AI翻译, IPFS, 抗审查                        | 📋 2028 H2 规划中         |
+| v3.4.0 | 全球进化网络     | EvoMap 多Hub联邦, 基因重组, 社区DAO                     | 🔮 2029+ 远期愿景         |
 
 ---
 
@@ -861,5 +896,6 @@
 > - [Cowork 路线图（v3.0-v4.0 详细设计）](/chainlesschain/cowork-roadmap)
 > - [SIMKey 企业版](/chainlesschain/simkey-enterprise) | [门限安全](/chainlesschain/threshold-security) | [BLE U盾](/chainlesschain/ble-ukey)
 > - [智能推荐](/chainlesschain/content-recommendation) | [Nostr 桥接](/chainlesschain/nostr-bridge) | [DLP 防泄漏](/chainlesschain/dlp) | [SIEM 集成](/chainlesschain/siem)
+> - [PQC 迁移](/chainlesschain/pqc-migration) | [固件 OTA](/chainlesschain/firmware-ota) | [AI 治理](/chainlesschain/governance) | [Matrix 集成](/chainlesschain/matrix-bridge) | [Terraform](/chainlesschain/terraform-provider)
 > - [EvoMap GEP 协议](/chainlesschain/evomap)
 > - [更新日志](/changelog)

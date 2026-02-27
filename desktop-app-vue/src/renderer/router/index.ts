@@ -1158,6 +1158,52 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: 'SIEM Integration' },
       },
+      // ===== Q4 2026 Phase 52-56 (v1.1.0 Phase 3) =====
+      {
+        path: 'pqc-migration',
+        name: 'PQCMigration',
+        component: () =>
+          import(
+            /* webpackChunkName: "pqc-migration" */ '../pages/security/PQCMigrationPage.vue'
+          ),
+        meta: { title: 'PQC Migration' },
+      },
+      {
+        path: 'firmware-ota',
+        name: 'FirmwareOTA',
+        component: () =>
+          import(
+            /* webpackChunkName: "firmware-ota" */ '../pages/security/FirmwareOTAPage.vue'
+          ),
+        meta: { title: 'Firmware OTA' },
+      },
+      {
+        path: 'governance',
+        name: 'Governance',
+        component: () =>
+          import(
+            /* webpackChunkName: "governance" */ '../pages/social/GovernancePage.vue'
+          ),
+        meta: { title: 'AI Governance' },
+      },
+      {
+        path: 'matrix-bridge',
+        name: 'MatrixBridge',
+        component: () =>
+          import(
+            /* webpackChunkName: "matrix-bridge" */ '../pages/social/MatrixBridgePage.vue'
+          ),
+        meta: { title: 'Matrix Bridge' },
+      },
+      {
+        path: 'terraform-provider',
+        name: 'TerraformProvider',
+        component: () =>
+          import(
+            /* webpackChunkName: "terraform-provider" */ '../pages/enterprise/TerraformProviderPage.vue'
+          ),
+        meta: { title: 'Terraform Provider' },
+      },
     ],
   },
 ];
