@@ -9,8 +9,8 @@
  */
 
 import { logger } from "../utils/logger.js";
-import https from "https";
-import http from "http";
+import https from "node:https";
+import http from "node:http";
 
 // ============================================================
 // APWebFinger
@@ -31,7 +31,9 @@ class APWebFinger {
   async resolve(address) {
     try {
       if (!address || !address.includes("@")) {
-        throw new Error("Invalid WebFinger address format (expected user@domain)");
+        throw new Error(
+          "Invalid WebFinger address format (expected user@domain)",
+        );
       }
 
       // Remove leading @ or acct: prefix
@@ -57,7 +59,12 @@ class APWebFinger {
       try {
         response = await this._httpGet(webfingerUrl);
       } catch (fetchError) {
-        logger.warn("[APWebFinger] HTTP fetch failed for", webfingerUrl, ":", fetchError.message);
+        logger.warn(
+          "[APWebFinger] HTTP fetch failed for",
+          webfingerUrl,
+          ":",
+          fetchError.message,
+        );
         // Return simulated response for offline/dev mode
         response = this._buildSimulatedResponse(username, domain);
       }
@@ -106,13 +113,16 @@ class APWebFinger {
    * @returns {string|null} Actor URL
    */
   extractActorUrl(webfingerResponse) {
-    if (!webfingerResponse || !webfingerResponse.links) {return null;}
+    if (!webfingerResponse || !webfingerResponse.links) {
+      return null;
+    }
 
     const selfLink = webfingerResponse.links.find(
       (link) =>
         link.rel === "self" &&
         (link.type === "application/activity+json" ||
-          link.type === 'application/ld+json; profile="https://www.w3.org/ns/activitystreams"'),
+          link.type ===
+            'application/ld+json; profile="https://www.w3.org/ns/activitystreams"'),
     );
 
     return selfLink ? selfLink.href : null;
@@ -157,23 +167,36 @@ class APWebFinger {
   async _httpGet(url) {
     return new Promise((resolve, reject) => {
       const mod = url.startsWith("https") ? https : http;
-      const req = mod.get(url, { headers: { Accept: "application/jrd+json, application/json" }, timeout: 10000 }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return this._httpGet(res.headers.location).then(resolve).catch(reject);
-        }
-        if (res.statusCode !== 200) {
-          return reject(new Error(`HTTP ${res.statusCode}`));
-        }
-        let data = "";
-        res.on("data", (chunk) => (data += chunk));
-        res.on("end", () => {
-          try {
-            resolve(JSON.parse(data));
-          } catch {
-            reject(new Error("Invalid JSON response"));
+      const req = mod.get(
+        url,
+        {
+          headers: { Accept: "application/jrd+json, application/json" },
+          timeout: 10000,
+        },
+        (res) => {
+          if (
+            res.statusCode >= 300 &&
+            res.statusCode < 400 &&
+            res.headers.location
+          ) {
+            return this._httpGet(res.headers.location)
+              .then(resolve)
+              .catch(reject);
           }
-        });
-      });
+          if (res.statusCode !== 200) {
+            return reject(new Error(`HTTP ${res.statusCode}`));
+          }
+          let data = "";
+          res.on("data", (chunk) => (data += chunk));
+          res.on("end", () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch {
+              reject(new Error("Invalid JSON response"));
+            }
+          });
+        },
+      );
       req.on("error", reject);
       req.on("timeout", () => {
         req.destroy();
@@ -189,7 +212,9 @@ class APWebFinger {
 
 let _instance;
 function getAPWebFinger() {
-  if (!_instance) {_instance = new APWebFinger();}
+  if (!_instance) {
+    _instance = new APWebFinger();
+  }
   return _instance;
 }
 

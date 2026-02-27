@@ -33,7 +33,7 @@ describe("DID Invitation Mechanism", () => {
     }
 
     // 加载模块
-    DatabaseManager = require("../../../src/main/database");
+    ({ DatabaseManager } = require("../../../src/main/database"));
     DIDManager = require("../../../src/main/did/did-manager");
     OrganizationManager = require("../../../src/main/organization/organization-manager");
 

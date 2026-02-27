@@ -19,6 +19,7 @@ import { logger } from "../utils/logger.js";
 import EventEmitter from "events";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
+import { getNostrBridge } from "./nostr-bridge.js";
 
 // ============================================================
 // Constants
@@ -64,7 +65,9 @@ class PlatformBridge extends EventEmitter {
       await this.initializeTables();
 
       this.initialized = true;
-      logger.info("[PlatformBridge] Platform bridge manager initialized successfully");
+      logger.info(
+        "[PlatformBridge] Platform bridge manager initialized successfully",
+      );
     } catch (error) {
       logger.error("[PlatformBridge] Initialization failed:", error);
       throw error;
@@ -298,7 +301,10 @@ class PlatformBridge extends EventEmitter {
           }
 
           if (platform === SUPPORTED_PLATFORMS.MASTODON) {
-            const result = await this._postToMastodon(connection, content.trim());
+            const result = await this._postToMastodon(
+              connection,
+              content.trim(),
+            );
             results[platform] = { success: true, ...result };
           } else if (platform === SUPPORTED_PLATFORMS.NOSTR) {
             const result = await this._postToNostr(connection, content.trim());
@@ -321,7 +327,11 @@ class PlatformBridge extends EventEmitter {
         }
       }
 
-      logger.info("[PlatformBridge] Cross-posted to", platforms.length, "platforms");
+      logger.info(
+        "[PlatformBridge] Cross-posted to",
+        platforms.length,
+        "platforms",
+      );
 
       this.emit("post:cross-posted", { ownerDid, platforms, results });
 
@@ -347,9 +357,7 @@ class PlatformBridge extends EventEmitter {
 
       const db = this.database.db;
       const connection = db
-        .prepare(
-          "SELECT * FROM bridge_connections WHERE id = ? AND status = ?",
-        )
+        .prepare("SELECT * FROM bridge_connections WHERE id = ? AND status = ?")
         .get(connectionId, CONNECTION_STATUS.ACTIVE);
 
       if (!connection) {
@@ -420,9 +428,10 @@ class PlatformBridge extends EventEmitter {
         throw new Error("Connection is already disconnected");
       }
 
-      db.prepare(
-        "UPDATE bridge_connections SET status = ? WHERE id = ?",
-      ).run(CONNECTION_STATUS.REVOKED, connectionId);
+      db.prepare("UPDATE bridge_connections SET status = ? WHERE id = ?").run(
+        CONNECTION_STATUS.REVOKED,
+        connectionId,
+      );
 
       // Clean up in-memory state
       if (connection.platform === SUPPORTED_PLATFORMS.MASTODON) {
@@ -495,9 +504,7 @@ class PlatformBridge extends EventEmitter {
 
       const db = this.database.db;
       const connection = db
-        .prepare(
-          "SELECT * FROM bridge_connections WHERE id = ? AND status = ?",
-        )
+        .prepare("SELECT * FROM bridge_connections WHERE id = ? AND status = ?")
         .get(connectionId, CONNECTION_STATUS.ACTIVE);
 
       if (!connection) {
@@ -507,10 +514,7 @@ class PlatformBridge extends EventEmitter {
       // Import latest feed items since last sync
       const feed = await this.importFeed(connectionId, DEFAULT_IMPORT_LIMIT);
 
-      logger.info(
-        "[PlatformBridge] Synced feed for connection:",
-        connectionId,
-      );
+      logger.info("[PlatformBridge] Synced feed for connection:", connectionId);
 
       return {
         success: true,
@@ -568,7 +572,10 @@ class PlatformBridge extends EventEmitter {
    */
   async _fetchMastodonFeed(connection, _unusedLimit) {
     // In production: GET {serverUrl}/api/v1/timelines/home?limit={limit}
-    logger.info("[PlatformBridge] Fetching Mastodon feed from:", connection.server_url);
+    logger.info(
+      "[PlatformBridge] Fetching Mastodon feed from:",
+      connection.server_url,
+    );
 
     // Return empty array as simulated feed
     return [];
@@ -652,8 +659,4 @@ class PlatformBridge extends EventEmitter {
   }
 }
 
-module.exports = {
-  PlatformBridge,
-  SUPPORTED_PLATFORMS,
-  CONNECTION_STATUS,
-};
+export { PlatformBridge, SUPPORTED_PLATFORMS, CONNECTION_STATUS };

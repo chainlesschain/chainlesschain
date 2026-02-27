@@ -12,7 +12,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
-import crypto from 'crypto';
+import crypto from "crypto";
 
 /**
  * 上下文工程管理器
@@ -946,8 +946,4 @@ function getContextEngineering(options = {}) {
   return contextEngineeringInstance;
 }
 
-module.exports = {
-  ContextEngineering,
-  RecoverableCompressor,
-  getContextEngineering,
-};
+export { ContextEngineering, RecoverableCompressor, getContextEngineering };

@@ -40,7 +40,7 @@ function createMockIpcMain() {
   };
 }
 
-const { registerSocialIPC } = require("../social-ipc.js");
+const { registerSocialIPC } = await import("../social-ipc.js");
 
 // ── Mock managers ────────────────────────────────────────────────────────
 const mockEvent = {};

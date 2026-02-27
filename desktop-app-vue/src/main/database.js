@@ -8,9 +8,12 @@ import SqlSecurity from "./database/sql-security.js";
 const require = createRequire(import.meta.url);
 
 // sql.js is optional (may not be available in packaged builds)
-const initSqlJs = null;
-// Dynamic require handled in async context
-// Attempt to load sql.js on demand during initialization
+let initSqlJs = null;
+try {
+  initSqlJs = require("sql.js");
+} catch {
+  // sql.js not available, will use native adapter
+}
 
 const disableNativeDb =
   process.env.CHAINLESSCHAIN_DISABLE_NATIVE_DB === "1" ||
@@ -9425,6 +9428,4 @@ function setDatabase(instance) {
   databaseInstance = instance;
 }
 
-module.exports = DatabaseManager;
-module.exports.getDatabase = getDatabase;
-module.exports.setDatabase = setDatabase;
+export { DatabaseManager, getDatabase, setDatabase };
