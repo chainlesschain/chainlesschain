@@ -1069,6 +1069,31 @@ const routes: RouteRecordRaw[] = [
         component: () => import(/* webpackChunkName: "federated-network" */ '../pages/FederatedNetworkPage.vue'),
         meta: { title: '去中心化代理网络' },
       },
+      // ===== Social AI Insights (v1.1.0 Phase 42) =====
+      {
+        path: 'social-insights',
+        name: 'SocialInsights',
+        component: () => import(/* webpackChunkName: "social-insights" */ '../pages/social/SocialInsightsPage.vue'),
+        meta: { title: 'Social Insights' },
+      },
+      {
+        path: 'compliance-dashboard',
+        name: 'ComplianceDashboard',
+        component: () => import(/* webpackChunkName: "compliance-dashboard" */ '../pages/enterprise/ComplianceDashboardPage.vue'),
+        meta: { title: 'Compliance Dashboard' },
+      },
+      {
+        path: 'scim-integration',
+        name: 'SCIMIntegration',
+        component: () => import(/* webpackChunkName: "scim-integration" */ '../pages/enterprise/SCIMIntegrationPage.vue'),
+        meta: { title: 'SCIM Integration' },
+      },
+      {
+        path: 'activitypub-bridge',
+        name: 'ActivityPubBridge',
+        component: () => import(/* webpackChunkName: "activitypub-bridge" */ '../pages/social/ActivityPubBridgePage.vue'),
+        meta: { title: 'ActivityPub Bridge' },
+      },
       // ===== EvoMap GEP Protocol (v1.0.0) =====
       {
         path: 'evomap',

@@ -6,8 +6,11 @@
  * @description 负责注册所有模块化的 IPC 处理器，实现主进程入口文件的解耦
  */
 
-const { logger } = require("../utils/logger.js");
-const ipcGuard = require("./ipc-guard");
+import { createRequire } from "module";
+import { logger } from "../utils/logger.js";
+import ipcGuard from "./ipc-guard.js";
+
+const require = createRequire(import.meta.url);
 
 /**
  * 递归移除对象中的 undefined 值
@@ -107,6 +110,7 @@ function registerAllIPC(dependencies) {
 
   try {
     // 解构所有依赖（便于后续传递给各个模块）
+    // 注意：部分依赖在此文件中未使用，但保留用于保持兼容性
     const {
       app,
       database,
@@ -118,8 +122,8 @@ function registerAllIPC(dependencies) {
       gitHotReload,
       didManager,
       p2pManager,
-      skillManager,
-      toolManager,
+      // skillManager, // Kept in dependencies for future use
+      // toolManager, // Kept in dependencies for future use
       imageUploader,
       fileImporter,
       templateManager,
@@ -133,17 +137,17 @@ function registerAllIPC(dependencies) {
       webEngine,
       documentEngine,
       dataEngine,
-      projectStructureManager,
-      pluginManager,
-      webideManager,
-      statsCollector,
+      // projectStructureManager, // Kept for future use
+      // pluginManager, // Kept for future use
+      // webideManager, // Kept for future use
+      // statsCollector, // Kept for future use
       fileSyncManager,
-      previewManager,
+      // previewManager, // Kept for future use
       markdownExporter,
-      nativeMessagingServer,
+      // nativeMessagingServer, // Kept for future use
       gitAutoCommit,
-      skillExecutor,
-      aiScheduler,
+      // skillExecutor, // Kept for future use
+      // aiScheduler, // Kept for future use
       chatSkillBridge,
       syncManager,
       contactManager,
@@ -3766,6 +3770,230 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 42: Social AI + ActivityPub Bridge (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Social AI + ActivityPub IPC...");
+
+      const { TopicAnalyzer } = require("../social/topic-analyzer");
+      const { SocialGraph } = require("../social/social-graph");
+      const { AISocialAssistant } = require("../social/ai-social-assistant");
+      const { ActivityPubBridge } = require("../social/activitypub-bridge");
+      const { APContentSync } = require("../social/ap-content-sync");
+      const { APWebFinger } = require("../social/ap-webfinger");
+
+      const database = dependencies.database || null;
+      const llmManager = registeredModules.llmManager || null;
+      const didManager = registeredModules.didManager || null;
+
+      // Initialize Social AI modules
+      const topicAnalyzer = new TopicAnalyzer(database, llmManager);
+      const socialGraph = new SocialGraph(database);
+      const aiSocialAssistant = new AISocialAssistant(llmManager);
+
+      if (database) {
+        topicAnalyzer.initialize().catch((err) =>
+          logger.warn("[IPC Registry] TopicAnalyzer init warning:", err.message),
+        );
+        socialGraph.initialize().catch((err) =>
+          logger.warn("[IPC Registry] SocialGraph init warning:", err.message),
+        );
+        aiSocialAssistant.initialize().catch((err) =>
+          logger.warn("[IPC Registry] AISocialAssistant init warning:", err.message),
+        );
+      }
+
+      // Initialize ActivityPub modules
+      const activityPubBridge = new ActivityPubBridge(database, didManager);
+      const apContentSync = new APContentSync(database, activityPubBridge);
+      const apWebFinger = new APWebFinger(activityPubBridge);
+
+      if (database) {
+        activityPubBridge.initialize({ domain: "localhost" }).catch((err) =>
+          logger.warn("[IPC Registry] ActivityPubBridge init warning:", err.message),
+        );
+        apContentSync.initialize().catch((err) =>
+          logger.warn("[IPC Registry] APContentSync init warning:", err.message),
+        );
+      }
+
+      // IPC handlers are registered via social-ipc.js which is already called earlier
+      // Store references for later wiring
+      registeredModules.topicAnalyzer = topicAnalyzer;
+      registeredModules.socialGraph = socialGraph;
+      registeredModules.activityPubBridge = activityPubBridge;
+      registeredModules.apContentSync = apContentSync;
+      registeredModules.apWebFinger = apWebFinger;
+
+      // Wire into Context Engineering
+      if (registeredModules.contextEngineering) {
+        registeredModules.contextEngineering.setSocialGraph(socialGraph);
+      }
+
+      logger.info(
+        "[IPC Registry] ✓ Social AI + ActivityPub modules initialized (18 IPC via social-ipc.js)",
+      );
+    } catch (phase42Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 42 registration failed (non-fatal):",
+        phase42Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 42 Complete: Social AI + ActivityPub ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 43: Compliance + Data Classification (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Compliance + Classification IPC...");
+
+      const { SOC2Compliance } = require("../audit/soc2-compliance");
+      const { DataClassifier } = require("../audit/data-classifier");
+      const { ClassificationPolicy } = require("../audit/classification-policy");
+      const { registerComplianceIPC } = require("../audit/compliance-ipc");
+
+      const database = dependencies.database || null;
+      const auditLogger = registeredModules.auditLogger || null;
+      const llmManager = registeredModules.llmManager || null;
+
+      const soc2Compliance = new SOC2Compliance(database, auditLogger);
+      const dataClassifier = new DataClassifier(database, llmManager);
+      const classificationPolicy = new ClassificationPolicy(database);
+
+      if (database) {
+        soc2Compliance.initialize().catch((err) =>
+          logger.warn("[IPC Registry] SOC2Compliance init warning:", err.message),
+        );
+        dataClassifier.initialize().catch((err) =>
+          logger.warn("[IPC Registry] DataClassifier init warning:", err.message),
+        );
+        classificationPolicy.initialize().catch((err) =>
+          logger.warn("[IPC Registry] ClassificationPolicy init warning:", err.message),
+        );
+      }
+
+      const { handlerCount } = registerComplianceIPC({
+        soc2Compliance,
+        dataClassifier,
+        classificationPolicy,
+      });
+
+      registeredModules.soc2Compliance = soc2Compliance;
+      registeredModules.dataClassifier = dataClassifier;
+      registeredModules.classificationPolicy = classificationPolicy;
+
+      // Wire into Context Engineering
+      if (registeredModules.contextEngineering) {
+        registeredModules.contextEngineering.setComplianceManager(soc2Compliance);
+      }
+
+      logger.info(
+        `[IPC Registry] ✓ Compliance + Classification IPC registered (${handlerCount} handlers)`,
+      );
+    } catch (phase43Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 43 registration failed (non-fatal):",
+        phase43Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 43 Complete: Compliance + Classification ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 44: SCIM 2.0 User Sync (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering SCIM 2.0 IPC...");
+
+      const { SCIMServer } = require("../enterprise/scim-server");
+      const { SCIMSync } = require("../enterprise/scim-sync");
+      const { registerSCIMIPC } = require("../enterprise/scim-ipc");
+
+      const database = dependencies.database || null;
+
+      const scimServer = new SCIMServer(database);
+      const scimSync = new SCIMSync(database, scimServer);
+
+      if (database) {
+        scimServer.initialize().catch((err) =>
+          logger.warn("[IPC Registry] SCIMServer init warning:", err.message),
+        );
+        scimSync.initialize().catch((err) =>
+          logger.warn("[IPC Registry] SCIMSync init warning:", err.message),
+        );
+      }
+
+      const { handlerCount } = registerSCIMIPC({ scimServer, scimSync });
+
+      registeredModules.scimServer = scimServer;
+      registeredModules.scimSync = scimSync;
+
+      logger.info(
+        `[IPC Registry] ✓ SCIM 2.0 IPC registered (${handlerCount} handlers)`,
+      );
+    } catch (phase44Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 44 registration failed (non-fatal):",
+        phase44Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 44 Complete: SCIM 2.0 ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 45: Unified Key + FIDO2 + USB Transport (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Unified Key + FIDO2 modules...");
+
+      const { UnifiedKeyManager } = require("../ukey/unified-key-manager");
+      const { FIDO2Authenticator } = require("../ukey/fido2-authenticator");
+
+      const database = dependencies.database || null;
+
+      const unifiedKeyManager = new UnifiedKeyManager(database);
+      const fido2Authenticator = new FIDO2Authenticator(database);
+
+      if (database) {
+        unifiedKeyManager.initialize().catch((err) =>
+          logger.warn("[IPC Registry] UnifiedKeyManager init warning:", err.message),
+        );
+        fido2Authenticator.initialize().catch((err) =>
+          logger.warn("[IPC Registry] FIDO2Authenticator init warning:", err.message),
+        );
+      }
+
+      // IPC handlers are registered via ukey-ipc.js which is called earlier
+      // Store references for later wiring
+      registeredModules.unifiedKeyManager = unifiedKeyManager;
+      registeredModules.fido2Authenticator = fido2Authenticator;
+
+      logger.info(
+        "[IPC Registry] ✓ Unified Key + FIDO2 modules initialized (8 IPC via ukey-ipc.js)",
+      );
+    } catch (phase45Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 45 registration failed (non-fatal):",
+        phase45Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 45 Complete: Unified Key + FIDO2 ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 
@@ -3795,16 +4023,16 @@ function registerAllIPC(dependencies) {
 
 /**
  * 注销所有 IPC 处理器（用于测试和热重载）
- * @param {Object} ipcMain - Electron ipcMain 实例
+ * @param {Object} ipcMain - Electron ipcMain 实例 (not used in this implementation)
  */
-function unregisterAllIPC(ipcMain) {
+function unregisterAllIPC() {
   logger.info("[IPC Registry] Unregistering all IPC handlers...");
   // 使用IPC Guard的resetAll功能
   ipcGuard.resetAll();
   logger.info("[IPC Registry] ✓ All IPC handlers unregistered");
 }
 
-module.exports = {
+export {
   registerAllIPC,
   unregisterAllIPC,
   ipcGuard, // 导出IPC Guard供外部使用

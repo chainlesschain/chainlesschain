@@ -1,4 +1,9 @@
-const { logger } = require('../utils/logger.js');
+import { createRequire } from 'module';
+import { logger } from '../utils/logger.js';
+import { ipcMain as electronIpcMain } from 'electron';
+import ipcGuardModule from '../ipc/ipc-guard.js';
+
+const require = createRequire(import.meta.url);
 
 /**
  * U-Key 硬件 IPC 处理器
@@ -15,13 +20,12 @@ const { logger } = require('../utils/logger.js');
  * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  * @param {Object} dependencies.ipcGuard - IPC Guard模块（可选，用于测试注入）
  */
-function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard }) {
+function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard } = {}) {
   logger.info('[UKey IPC] >>> registerUKeyIPC ENTRY, ukeyManager:', !!ukeyManager);
 
   // 支持依赖注入，用于测试
-  const ipcGuard = injectedIpcGuard || require('../ipc/ipc-guard');
-  const electron = require('electron');
-  const ipcMain = injectedIpcMain || electron.ipcMain;
+  const ipcGuard = injectedIpcGuard || ipcGuardModule;
+  const ipcMain = injectedIpcMain || electronIpcMain;
 
   logger.info('[UKey IPC] >>> ipcMain available:', !!ipcMain, ', ipcMain.handle type:', typeof ipcMain?.handle);
 
@@ -40,6 +44,15 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
       ipcMain.removeHandler('ukey:lock');
       ipcMain.removeHandler('ukey:get-public-key');
       ipcMain.removeHandler('auth:verify-password');
+      // Phase 45 handlers
+      ipcMain.removeHandler('ukey:derive-key');
+      ipcMain.removeHandler('ukey:list-keys');
+      ipcMain.removeHandler('ukey:set-primary-key');
+      ipcMain.removeHandler('fido2:make-credential');
+      ipcMain.removeHandler('fido2:get-assertion');
+      ipcMain.removeHandler('fido2:list-credentials');
+      ipcMain.removeHandler('ukey:transport-status');
+      ipcMain.removeHandler('ukey:scan-usb-devices');
     } catch {
       // 忽略清理错误
     }
@@ -268,12 +281,109 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
     }
   });
 
+  // ============================================================
+  // Unified Key + FIDO2 (Phase 45) - 6 handlers
+  // ============================================================
+
+  // unifiedKeyManager and fido2Authenticator are destructured from the function params above
+
+  ipcMain.handle('ukey:derive-key', async (_event, { purpose, options }) => {
+    try {
+      if (!unifiedKeyManager) throw new Error('UnifiedKeyManager not initialized');
+      return { success: true, key: await unifiedKeyManager.deriveKey(purpose, options) };
+    } catch (error) {
+      logger.error('[UKey IPC] Derive key failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('ukey:list-keys', async () => {
+    try {
+      if (!unifiedKeyManager) throw new Error('UnifiedKeyManager not initialized');
+      return { success: true, keys: await unifiedKeyManager.listKeys() };
+    } catch (error) {
+      logger.error('[UKey IPC] List keys failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('ukey:set-primary-key', async (_event, { keyId }) => {
+    try {
+      if (!unifiedKeyManager) throw new Error('UnifiedKeyManager not initialized');
+      return await unifiedKeyManager.setPrimaryKey(keyId);
+    } catch (error) {
+      logger.error('[UKey IPC] Set primary key failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('fido2:make-credential', async (_event, options) => {
+    try {
+      if (!fido2Authenticator) throw new Error('FIDO2Authenticator not initialized');
+      return { success: true, credential: await fido2Authenticator.makeCredential(options) };
+    } catch (error) {
+      logger.error('[UKey IPC] FIDO2 makeCredential failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('fido2:get-assertion', async (_event, options) => {
+    try {
+      if (!fido2Authenticator) throw new Error('FIDO2Authenticator not initialized');
+      return { success: true, assertion: await fido2Authenticator.getAssertion(options) };
+    } catch (error) {
+      logger.error('[UKey IPC] FIDO2 getAssertion failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('fido2:list-credentials', async (_event, options) => {
+    try {
+      if (!fido2Authenticator) throw new Error('FIDO2Authenticator not initialized');
+      return { success: true, credentials: await fido2Authenticator.listCredentials(options) };
+    } catch (error) {
+      logger.error('[UKey IPC] FIDO2 listCredentials failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ============================================================
+  // Transport Status (Phase 45/WS6) - 2 handlers
+  // ============================================================
+
+  ipcMain.handle('ukey:transport-status', async () => {
+    try {
+      if (ukeyManager && ukeyManager.driverRegistry) {
+        return { success: true, ...(ukeyManager.driverRegistry.getTransportStatus()) };
+      }
+      // Fallback
+      const { getDriverRegistry } = require('./driver-registry');
+      return { success: true, ...(getDriverRegistry().getTransportStatus()) };
+    } catch (error) {
+      logger.error('[UKey IPC] Transport status failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('ukey:scan-usb-devices', async () => {
+    try {
+      const { getUSBTransport } = await import('./usb-transport.js');
+      const transport = getUSBTransport();
+      await transport.initialize();
+      const devices = await transport.scanDevices();
+      return { success: true, devices };
+    } catch (error) {
+      logger.error('[UKey IPC] USB scan failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('ukey-ipc');
 
-  logger.info('[UKey IPC] ✓ All U-Key IPC handlers registered successfully (9 handlers)');
+  logger.info('[UKey IPC] ✓ All U-Key IPC handlers registered successfully (17 handlers)');
 }
 
-module.exports = {
+export {
   registerUKeyIPC
 };

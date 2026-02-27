@@ -30,6 +30,8 @@ const REPLY_STYLES = {
   CASUAL: "casual",
   HUMOROUS: "humorous",
   EMPATHETIC: "empathetic",
+  FORMAL: "formal",
+  CONCISE: "concise",
 };
 
 const POST_STYLES = {
@@ -72,6 +74,16 @@ const FALLBACK_REPLIES = {
     "Thank you for being so open about this. Your feelings are completely valid.",
     "I hear you, and I want you to know that I'm here to support you.",
   ],
+  [REPLY_STYLES.FORMAL]: [
+    "I acknowledge your contribution and would like to offer the following perspective.",
+    "Regarding the matter at hand, I believe this warrants further consideration.",
+    "Thank you for bringing this to our attention. Allow me to elaborate.",
+  ],
+  [REPLY_STYLES.CONCISE]: [
+    "Agreed. Good point.",
+    "Interesting take. Worth exploring.",
+    "Makes sense. Let's proceed.",
+  ],
 };
 
 const FALLBACK_ICE_BREAKERS = [
@@ -99,6 +111,8 @@ class AISocialAssistant extends EventEmitter {
 
     this.llmManager = llmManager;
     this.initialized = false;
+    this._contextWindow = []; // Rolling context window for conversation history
+    this._maxContextSize = 20;
   }
 
   /**
@@ -547,6 +561,130 @@ class AISocialAssistant extends EventEmitter {
       };
     } catch (error) {
       logger.error("[AISocialAssistant] Failed to generate hashtags:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add messages to the rolling context window.
+   * @param {Array<Object>} messages - Messages to add
+   */
+  addToContext(messages) {
+    if (!Array.isArray(messages)) return;
+    this._contextWindow.push(...messages);
+    if (this._contextWindow.length > this._maxContextSize) {
+      this._contextWindow = this._contextWindow.slice(-this._maxContextSize);
+    }
+  }
+
+  /**
+   * Get the current context window.
+   * @returns {Array<Object>} Context messages
+   */
+  getContextWindow() {
+    return [...this._contextWindow];
+  }
+
+  /**
+   * Clear the context window.
+   */
+  clearContext() {
+    this._contextWindow = [];
+  }
+
+  /**
+   * Suggest multiple reply variants in different styles.
+   * @param {Array<Object>} conversationContext - Conversation messages
+   * @param {Array<string>} [styles] - Styles to generate
+   * @returns {Object} Multi-style reply suggestions
+   */
+  async suggestMultiStyleReplies(conversationContext, styles) {
+    try {
+      const targetStyles = styles || [REPLY_STYLES.FORMAL, REPLY_STYLES.FRIENDLY, REPLY_STYLES.CONCISE];
+
+      this.addToContext(conversationContext);
+
+      const fullContext = this._contextWindow;
+      const results = {};
+
+      for (const style of targetStyles) {
+        results[style] = await this.suggestReply(fullContext, style);
+      }
+
+      return {
+        replies: results,
+        styles: targetStyles,
+        contextSize: fullContext.length,
+      };
+    } catch (error) {
+      logger.error("[AISocialAssistant] Failed to suggest multi-style replies:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate a context-aware enhanced reply using conversation history.
+   * @param {Array<Object>} conversationContext - Current conversation messages
+   * @param {string} [style] - Reply style
+   * @param {Object} [options] - Enhancement options
+   * @returns {Object} Enhanced reply with metadata
+   */
+  async enhancedReply(conversationContext, style = REPLY_STYLES.FRIENDLY, options = {}) {
+    try {
+      if (!conversationContext || conversationContext.length === 0) {
+        throw new Error("Conversation context is required");
+      }
+
+      this.addToContext(conversationContext);
+
+      const systemPrompt = `You are an advanced social conversation assistant with deep contextual awareness. Generate a ${style} reply that:
+1. References earlier points in the conversation when relevant
+2. Matches the emotional tone of the conversation
+3. Adds value through insight or helpful information
+4. Feels natural and authentic
+
+Reply with a JSON object:
+{"reply": "the suggested reply", "confidence": 0.0-1.0, "reasoning": "brief explanation"}
+Reply with ONLY valid JSON.`;
+
+      const contextStr = this._contextWindow
+        .map((msg) => `${msg.role || "user"}: ${msg.content}`)
+        .join("\n");
+
+      const llmResult = await this._llmChat(
+        systemPrompt,
+        `Full conversation context:\n${contextStr}\n\nGenerate a ${style} reply:`,
+      );
+
+      if (llmResult) {
+        try {
+          const parsed = JSON.parse(llmResult.replace(/```json?\n?/g, "").replace(/```/g, "").trim());
+          return {
+            suggestion: parsed.reply || llmResult.trim(),
+            style,
+            confidence: parsed.confidence || 0.7,
+            reasoning: parsed.reasoning || "",
+            contextSize: this._contextWindow.length,
+            source: "llm",
+          };
+        } catch (_) {
+          return {
+            suggestion: llmResult.trim(),
+            style,
+            confidence: 0.5,
+            reasoning: "",
+            contextSize: this._contextWindow.length,
+            source: "llm",
+          };
+        }
+      }
+
+      // Fallback
+      const result = await this.suggestReply(conversationContext, style);
+      result.contextSize = this._contextWindow.length;
+      return result;
+    } catch (error) {
+      logger.error("[AISocialAssistant] Enhanced reply failed:", error);
       throw error;
     }
   }

@@ -24,8 +24,14 @@ function registerSocialIPC({
   postManager,
   database,
   groupChatManager,
+  aiSocialAssistant,
+  topicAnalyzer,
+  socialGraph,
+  activityPubBridge,
+  apContentSync,
+  apWebFinger,
   ipcMain: injectedIpcMain,
-}) {
+} = {}) {
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
   logger.info("[Social IPC] Registering Social IPC handlers...");
@@ -1866,8 +1872,317 @@ function registerSocialIPC({
     }
   });
 
+  // ============================================================
+  // AI Social Assistant Enhanced (Phase 42) - 8 handlers
+  // ============================================================
+
+  // aiSocialAssistant, topicAnalyzer, socialGraph are destructured from params above
+
+  /**
+   * AI Enhanced Reply
+   * Channel: 'social-ai:enhanced-reply'
+   */
+  ipcMain.handle(
+    "social-ai:enhanced-reply",
+    async (_event, { context, style, options }) => {
+      try {
+        if (!aiSocialAssistant) {
+          throw new Error("AI Social Assistant not initialized");
+        }
+        return await aiSocialAssistant.enhancedReply(context, style, options);
+      } catch (error) {
+        logger.error("[Social IPC] Enhanced reply failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * AI Multi-Style Replies
+   * Channel: 'social-ai:multi-style-replies'
+   */
+  ipcMain.handle(
+    "social-ai:multi-style-replies",
+    async (_event, { context, styles }) => {
+      try {
+        if (!aiSocialAssistant) {
+          throw new Error("AI Social Assistant not initialized");
+        }
+        return await aiSocialAssistant.suggestMultiStyleReplies(context, styles);
+      } catch (error) {
+        logger.error("[Social IPC] Multi-style replies failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * Topic Analysis
+   * Channel: 'social-ai:analyze-topics'
+   */
+  ipcMain.handle(
+    "social-ai:analyze-topics",
+    async (_event, { content, options }) => {
+      try {
+        if (!topicAnalyzer) {
+          throw new Error("Topic Analyzer not initialized");
+        }
+        return await topicAnalyzer.analyzeTopics(content, options);
+      } catch (error) {
+        logger.error("[Social IPC] Topic analysis failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * Get Trending Topics
+   * Channel: 'social-ai:trending-topics'
+   */
+  ipcMain.handle(
+    "social-ai:trending-topics",
+    async (_event, options) => {
+      try {
+        if (!topicAnalyzer) {
+          throw new Error("Topic Analyzer not initialized");
+        }
+        return await topicAnalyzer.getTrendingTopics(options);
+      } catch (error) {
+        logger.error("[Social IPC] Trending topics failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * Batch Sentiment Analysis
+   * Channel: 'social-ai:batch-sentiment'
+   */
+  ipcMain.handle(
+    "social-ai:batch-sentiment",
+    async (_event, { contents }) => {
+      try {
+        if (!topicAnalyzer) {
+          throw new Error("Topic Analyzer not initialized");
+        }
+        return await topicAnalyzer.batchSentiment(contents);
+      } catch (error) {
+        logger.error("[Social IPC] Batch sentiment failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * Record Social Interaction
+   * Channel: 'social-ai:record-interaction'
+   */
+  ipcMain.handle(
+    "social-ai:record-interaction",
+    async (_event, { sourceDid, targetDid, interactionType }) => {
+      try {
+        if (!socialGraph) {
+          throw new Error("Social Graph not initialized");
+        }
+        return await socialGraph.recordInteraction(sourceDid, targetDid, interactionType);
+      } catch (error) {
+        logger.error("[Social IPC] Record interaction failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * Get Closest Contacts
+   * Channel: 'social-ai:closest-contacts'
+   */
+  ipcMain.handle(
+    "social-ai:closest-contacts",
+    async (_event, { did, options }) => {
+      try {
+        if (!socialGraph) {
+          throw new Error("Social Graph not initialized");
+        }
+        return await socialGraph.getClosestContacts(did, options);
+      } catch (error) {
+        logger.error("[Social IPC] Closest contacts failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * Get Social Graph
+   * Channel: 'social-ai:get-graph'
+   */
+  ipcMain.handle(
+    "social-ai:get-graph",
+    async (_event, { did, options }) => {
+      try {
+        if (!socialGraph) {
+          throw new Error("Social Graph not initialized");
+        }
+        const graph = await socialGraph.getGraph(did, options);
+        const stats = await socialGraph.getStats(did);
+        const communities = await socialGraph.detectCommunities(did);
+        return { success: true, graph, stats, communities };
+      } catch (error) {
+        logger.error("[Social IPC] Get graph failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  // ============================================================
+  // ActivityPub Bridge (Phase 42) - 10 handlers
+  // ============================================================
+
+  // activityPubBridge, apContentSync, apWebFinger are destructured from params above
+
+  /**
+   * Create ActivityPub Actor
+   * Channel: 'ap:create-actor'
+   */
+  ipcMain.handle("ap:create-actor", async (_event, { did, profile }) => {
+    try {
+      if (!activityPubBridge) throw new Error("ActivityPub Bridge not initialized");
+      return await activityPubBridge.createLocalActor(did, profile);
+    } catch (error) {
+      logger.error("[Social IPC] AP create actor failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Get Actor Document
+   * Channel: 'ap:get-actor'
+   */
+  ipcMain.handle("ap:get-actor", async (_event, { did }) => {
+    try {
+      if (!activityPubBridge) throw new Error("ActivityPub Bridge not initialized");
+      return await activityPubBridge.buildActorDocument(did);
+    } catch (error) {
+      logger.error("[Social IPC] AP get actor failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Publish Post to ActivityPub
+   * Channel: 'ap:publish-post'
+   */
+  ipcMain.handle("ap:publish-post", async (_event, { actorDid, post }) => {
+    try {
+      if (!apContentSync) throw new Error("AP Content Sync not initialized");
+      return await apContentSync.publishPost(actorDid, post);
+    } catch (error) {
+      logger.error("[Social IPC] AP publish post failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Publish Like
+   * Channel: 'ap:publish-like'
+   */
+  ipcMain.handle("ap:publish-like", async (_event, { actorDid, objectId }) => {
+    try {
+      if (!apContentSync) throw new Error("AP Content Sync not initialized");
+      return await apContentSync.publishLike(actorDid, objectId);
+    } catch (error) {
+      logger.error("[Social IPC] AP publish like failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Publish Boost
+   * Channel: 'ap:publish-boost'
+   */
+  ipcMain.handle("ap:publish-boost", async (_event, { actorDid, objectId }) => {
+    try {
+      if (!apContentSync) throw new Error("AP Content Sync not initialized");
+      return await apContentSync.publishBoost(actorDid, objectId);
+    } catch (error) {
+      logger.error("[Social IPC] AP publish boost failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Follow Remote Actor
+   * Channel: 'ap:follow'
+   */
+  ipcMain.handle("ap:follow", async (_event, { actorDid, targetActorId }) => {
+    try {
+      if (!apContentSync) throw new Error("AP Content Sync not initialized");
+      return await apContentSync.publishFollow(actorDid, targetActorId);
+    } catch (error) {
+      logger.error("[Social IPC] AP follow failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * WebFinger Lookup
+   * Channel: 'ap:webfinger-lookup'
+   */
+  ipcMain.handle("ap:webfinger-lookup", async (_event, { address }) => {
+    try {
+      if (!apWebFinger) throw new Error("WebFinger not initialized");
+      return await apWebFinger.lookupUser(address);
+    } catch (error) {
+      logger.error("[Social IPC] WebFinger lookup failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Get Outbox
+   * Channel: 'ap:get-outbox'
+   */
+  ipcMain.handle("ap:get-outbox", async (_event, { actorDid, options }) => {
+    try {
+      if (!activityPubBridge) throw new Error("ActivityPub Bridge not initialized");
+      return await activityPubBridge.getOutbox(actorDid, options);
+    } catch (error) {
+      logger.error("[Social IPC] AP get outbox failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Get Sync Status
+   * Channel: 'ap:sync-status'
+   */
+  ipcMain.handle("ap:sync-status", async () => {
+    try {
+      if (!apContentSync) throw new Error("AP Content Sync not initialized");
+      const syncStatus = await apContentSync.getSyncStatus();
+      const bridgeStatus = activityPubBridge ? await activityPubBridge.getStatus() : {};
+      return { success: true, ...syncStatus, ...bridgeStatus };
+    } catch (error) {
+      logger.error("[Social IPC] AP sync status failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * Trigger Manual Sync
+   * Channel: 'ap:sync-now'
+   */
+  ipcMain.handle("ap:sync-now", async () => {
+    try {
+      if (!apContentSync) throw new Error("AP Content Sync not initialized");
+      return await apContentSync.syncAll();
+    } catch (error) {
+      logger.error("[Social IPC] AP sync failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
   logger.info(
-    "[Social IPC] ✓ All Social IPC handlers registered successfully (60 handlers)",
+    "[Social IPC] ✓ All Social IPC handlers registered successfully (78 handlers)",
   );
 }
 
