@@ -1,5 +1,8 @@
 <template>
-  <a-card class="workflow-summary" :class="summaryClass">
+  <a-card
+    class="workflow-summary"
+    :class="summaryClass"
+  >
     <template #title>
       <div class="summary-header">
         <span class="summary-icon">{{ summaryIcon }}</span>
@@ -79,10 +82,20 @@
     </div>
 
     <!-- 失败信息（如果有） -->
-    <div v-if="workflow.error" class="error-info">
-      <a-alert type="error" :message="workflow.error" show-icon>
+    <div
+      v-if="workflow.error"
+      class="error-info"
+    >
+      <a-alert
+        type="error"
+        :message="workflow.error"
+        show-icon
+      >
         <template #description>
-          <div v-if="failedStage" class="failed-stage-info">
+          <div
+            v-if="failedStage"
+            class="failed-stage-info"
+          >
             失败阶段: {{ failedStage.name }}
           </div>
           <a-button
@@ -112,7 +125,9 @@
         <DownloadOutlined />
         导出报告
       </a-button>
-      <a-button @click="$emit('close')"> 关闭 </a-button>
+      <a-button @click="$emit('close')">
+        关闭
+      </a-button>
     </div>
   </a-card>
 </template>

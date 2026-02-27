@@ -56,7 +56,7 @@ class APWebFinger {
       let response;
       try {
         response = await this._httpGet(webfingerUrl);
-      } catch (fetchError) {
+      } catch (_fetchError) {
         logger.warn("[APWebFinger] HTTP fetch failed for", webfingerUrl, ":", fetchError.message);
         // Return simulated response for offline/dev mode
         response = this._buildSimulatedResponse(username, domain);
@@ -66,7 +66,7 @@ class APWebFinger {
       this._cache.set(cacheKey, { data: response, timestamp: Date.now() });
 
       return response;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[APWebFinger] Failed to resolve:", error);
       throw error;
     }
@@ -106,7 +106,7 @@ class APWebFinger {
    * @returns {string|null} Actor URL
    */
   extractActorUrl(webfingerResponse) {
-    if (!webfingerResponse || !webfingerResponse.links) return null;
+    if (!webfingerResponse || !webfingerResponse.links) {return null;}
 
     const selfLink = webfingerResponse.links.find(
       (link) =>
@@ -134,7 +134,7 @@ class APWebFinger {
         aliases: webfinger.aliases || [],
         links: webfinger.links || [],
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[APWebFinger] User lookup failed:", error);
       throw error;
     }
@@ -169,7 +169,7 @@ class APWebFinger {
         res.on("end", () => {
           try {
             resolve(JSON.parse(data));
-          } catch (e) {
+          } catch {
             reject(new Error("Invalid JSON response"));
           }
         });
@@ -189,7 +189,7 @@ class APWebFinger {
 
 let _instance;
 function getAPWebFinger() {
-  if (!_instance) _instance = new APWebFinger();
+  if (!_instance) {_instance = new APWebFinger();}
   return _instance;
 }
 

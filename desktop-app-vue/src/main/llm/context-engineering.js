@@ -12,7 +12,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
-const crypto = require("crypto");
+import crypto from 'crypto';
 
 /**
  * 上下文工程管理器
@@ -68,6 +68,12 @@ class ContextEngineering {
 
     // User Preference Learner（可选，通过 setPreferenceLearner 注入）
     this._preferenceLearner = null;
+
+    // Threshold Signature Manager（可选，通过 setThresholdManager 注入）
+    this._thresholdManager = null;
+
+    // DLP Engine（可选，通过 setDLPEngine 注入）
+    this._dlpEngine = null;
 
     // 统计
     this.stats = {
@@ -132,6 +138,22 @@ class ContextEngineering {
    */
   setPreferenceLearner(preferenceLearner) {
     this._preferenceLearner = preferenceLearner;
+  }
+
+  /**
+   * 注入 Threshold Signature Manager
+   * @param {Object} thresholdManager - ThresholdSignatureManager instance
+   */
+  setThresholdManager(thresholdManager) {
+    this._thresholdManager = thresholdManager;
+  }
+
+  /**
+   * 注入 DLP Engine
+   * @param {Object} dlpEngine - DLPEngine instance
+   */
+  setDLPEngine(dlpEngine) {
+    this._dlpEngine = dlpEngine;
   }
 
   /**
@@ -233,7 +255,7 @@ class ContextEngineering {
             content: instinctContext,
           });
         }
-      } catch (_e) {
+      } catch {
         // Instinct context is non-critical, silently skip
       }
     }
@@ -248,7 +270,7 @@ class ContextEngineering {
             content: kgContext,
           });
         }
-      } catch (_e) {
+      } catch {
         // KG context is non-critical, silently skip
       }
     }
@@ -289,7 +311,7 @@ class ContextEngineering {
             content: memoryParts.join("\n\n"),
           });
         }
-      } catch (_e) {
+      } catch {
         // Memory context is non-critical, silently skip
       }
     }
@@ -313,7 +335,7 @@ class ContextEngineering {
             content: evoContext,
           });
         }
-      } catch (_e) {
+      } catch {
         // EvoMap context is non-critical
       }
     }

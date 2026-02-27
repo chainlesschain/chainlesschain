@@ -87,8 +87,8 @@ class SocialGraph extends EventEmitter {
    */
   async recordInteraction(sourceDid, targetDid, interactionType) {
     try {
-      if (!sourceDid || !targetDid) throw new Error("Both source and target DIDs are required");
-      if (sourceDid === targetDid) return { success: true, self: true };
+      if (!sourceDid || !targetDid) {throw new Error("Both source and target DIDs are required");}
+      if (sourceDid === targetDid) {return { success: true, self: true };}
 
       const type = interactionType || INTERACTION_TYPES.MESSAGE;
       const weight = INTERACTION_WEIGHTS[type] || 1;
@@ -153,7 +153,7 @@ class SocialGraph extends EventEmitter {
    */
   async getClosestContacts(did, options = {}) {
     try {
-      if (!this.database || !this.database.db) return [];
+      if (!this.database || !this.database.db) {return [];}
 
       const limit = options.limit || 20;
 
@@ -190,7 +190,7 @@ class SocialGraph extends EventEmitter {
    */
   async getGraph(did, options = {}) {
     try {
-      if (!this.database || !this.database.db) return { nodes: [], edges: [] };
+      if (!this.database || !this.database.db) {return { nodes: [], edges: [] };}
 
       const depth = options.depth || 1;
       const visitedDids = new Set([did]);
@@ -198,7 +198,7 @@ class SocialGraph extends EventEmitter {
       let currentLevel = [did];
 
       for (let d = 0; d < depth; d++) {
-        if (currentLevel.length === 0) break;
+        if (currentLevel.length === 0) {break;}
 
         const placeholders = currentLevel.map(() => "?").join(",");
         const edges = this.database.db
@@ -242,12 +242,12 @@ class SocialGraph extends EventEmitter {
   async detectCommunities(did) {
     try {
       const graph = await this.getGraph(did, { depth: 2 });
-      if (graph.nodes.length === 0) return [];
+      if (graph.nodes.length === 0) {return [];}
 
       // Simple clustering: group by interaction frequency
       const adjacency = {};
       for (const edge of graph.edges) {
-        if (!adjacency[edge.source_did]) adjacency[edge.source_did] = {};
+        if (!adjacency[edge.source_did]) {adjacency[edge.source_did] = {};}
         adjacency[edge.source_did][edge.target_did] = edge.closeness_score;
       }
 
@@ -280,7 +280,7 @@ class SocialGraph extends EventEmitter {
       // Group by label
       const clusters = {};
       for (const [nodeDid, label] of Object.entries(labels)) {
-        if (!clusters[label]) clusters[label] = [];
+        if (!clusters[label]) {clusters[label] = [];}
         clusters[label].push(nodeDid);
       }
 
@@ -351,7 +351,7 @@ class SocialGraph extends EventEmitter {
 
 let _instance;
 function getSocialGraph() {
-  if (!_instance) _instance = new SocialGraph();
+  if (!_instance) {_instance = new SocialGraph();}
   return _instance;
 }
 

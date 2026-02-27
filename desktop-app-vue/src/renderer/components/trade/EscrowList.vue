@@ -23,7 +23,10 @@
       <escrow-statistics style="margin-bottom: 24px" />
 
       <!-- 筛选器 -->
-      <a-row :gutter="16" style="margin-bottom: 16px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
@@ -43,11 +46,21 @@
               button-style="solid"
               size="small"
             >
-              <a-radio-button value=""> 全部 </a-radio-button>
-              <a-radio-button value="locked"> 锁定中 </a-radio-button>
-              <a-radio-button value="released"> 已释放 </a-radio-button>
-              <a-radio-button value="refunded"> 已退款 </a-radio-button>
-              <a-radio-button value="disputed"> 有争议 </a-radio-button>
+              <a-radio-button value="">
+                全部
+              </a-radio-button>
+              <a-radio-button value="locked">
+                锁定中
+              </a-radio-button>
+              <a-radio-button value="released">
+                已释放
+              </a-radio-button>
+              <a-radio-button value="refunded">
+                已退款
+              </a-radio-button>
+              <a-radio-button value="disputed">
+                有争议
+              </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -65,7 +78,10 @@
           <!-- 托管ID列 -->
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'id'">
-              <a-typography-text copyable :ellipsis="{ tooltip: record.id }">
+              <a-typography-text
+                copyable
+                :ellipsis="{ tooltip: record.id }"
+              >
                 {{ formatId(record.id) }}
               </a-typography-text>
             </template>
@@ -76,7 +92,10 @@
                 <div class="transaction-id">
                   交易: {{ formatId(record.transaction_id) }}
                 </div>
-                <div v-if="record.order_id" class="order-id">
+                <div
+                  v-if="record.order_id"
+                  class="order-id"
+                >
                   订单: {{ formatId(record.order_id) }}
                 </div>
               </div>
@@ -96,7 +115,10 @@
 
             <!-- 买家列 -->
             <template v-else-if="column.key === 'buyer'">
-              <a-space direction="vertical" size="small">
+              <a-space
+                direction="vertical"
+                size="small"
+              >
                 <a-typography-text
                   copyable
                   :ellipsis="{ tooltip: record.buyer_did }"
@@ -115,7 +137,10 @@
 
             <!-- 卖家列 -->
             <template v-else-if="column.key === 'seller'">
-              <a-space direction="vertical" size="small">
+              <a-space
+                direction="vertical"
+                size="small"
+              >
                 <a-typography-text
                   copyable
                   :ellipsis="{ tooltip: record.seller_did }"
@@ -134,7 +159,11 @@
 
             <!-- 状态列 -->
             <template v-else-if="column.key === 'status'">
-              <status-badge :status="record.status" type="escrow" show-icon />
+              <status-badge
+                :status="record.status"
+                type="escrow"
+                show-icon
+              />
             </template>
 
             <!-- 时间列 -->

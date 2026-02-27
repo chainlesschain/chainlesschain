@@ -20,48 +20,48 @@ function registerDeFiIPC({
   // ============================================================
 
   ipcMain.handle("defi:lending:create-pool", async (event, params) => {
-    if (!lendingManager) throw new Error("LendingManager not initialized");
+    if (!lendingManager) {throw new Error("LendingManager not initialized");}
     return await lendingManager.createLendingPool(params);
   });
 
   ipcMain.handle("defi:lending:request-loan", async (event, params) => {
-    if (!lendingManager) throw new Error("LendingManager not initialized");
+    if (!lendingManager) {throw new Error("LendingManager not initialized");}
     return await lendingManager.requestLoan(params);
   });
 
   ipcMain.handle("defi:lending:approve-loan", async (event, { loanId }) => {
-    if (!lendingManager) throw new Error("LendingManager not initialized");
+    if (!lendingManager) {throw new Error("LendingManager not initialized");}
     return await lendingManager.approveLoan(loanId);
   });
 
   ipcMain.handle(
     "defi:lending:repay",
     async (event, { loanId, amount }) => {
-      if (!lendingManager) throw new Error("LendingManager not initialized");
+      if (!lendingManager) {throw new Error("LendingManager not initialized");}
       return await lendingManager.repayLoan(loanId, amount);
     },
   );
 
   ipcMain.handle("defi:lending:get-pool", async (event, { poolId }) => {
-    if (!lendingManager) return null;
+    if (!lendingManager) {return null;}
     return lendingManager.getPool(poolId);
   });
 
   ipcMain.handle("defi:lending:list-pools", async (event, filters) => {
-    if (!lendingManager) return { pools: [], total: 0 };
+    if (!lendingManager) {return { pools: [], total: 0 };}
     return await lendingManager.listPools(filters);
   });
 
   ipcMain.handle(
     "defi:lending:list-loans",
     async (event, { userId, filters }) => {
-      if (!lendingManager) return { loans: [], total: 0 };
+      if (!lendingManager) {return { loans: [], total: 0 };}
       return await lendingManager.listLoans(userId, filters);
     },
   );
 
   ipcMain.handle("defi:lending:check-health", async () => {
-    if (!lendingManager) return { checked: 0, unhealthy: 0 };
+    if (!lendingManager) {return { checked: 0, unhealthy: 0 };}
     return await lendingManager.checkLoanHealth();
   });
 
@@ -71,7 +71,7 @@ function registerDeFiIPC({
 
   ipcMain.handle("defi:insurance:create-pool", async (event, params) => {
     if (!insurancePoolManager)
-      throw new Error("InsurancePoolManager not initialized");
+      {throw new Error("InsurancePoolManager not initialized");}
     return await insurancePoolManager.createPool(params);
   });
 
@@ -79,7 +79,7 @@ function registerDeFiIPC({
     "defi:insurance:join",
     async (event, { poolId, userId, contribution }) => {
       if (!insurancePoolManager)
-        throw new Error("InsurancePoolManager not initialized");
+        {throw new Error("InsurancePoolManager not initialized");}
       return await insurancePoolManager.joinPool(poolId, userId, contribution);
     },
   );
@@ -88,14 +88,14 @@ function registerDeFiIPC({
     "defi:insurance:leave",
     async (event, { poolId, userId }) => {
       if (!insurancePoolManager)
-        throw new Error("InsurancePoolManager not initialized");
+        {throw new Error("InsurancePoolManager not initialized");}
       return await insurancePoolManager.leavePool(poolId, userId);
     },
   );
 
   ipcMain.handle("defi:insurance:submit-claim", async (event, params) => {
     if (!insurancePoolManager)
-      throw new Error("InsurancePoolManager not initialized");
+      {throw new Error("InsurancePoolManager not initialized");}
     return await insurancePoolManager.submitClaim(params);
   });
 
@@ -103,7 +103,7 @@ function registerDeFiIPC({
     "defi:insurance:vote-claim",
     async (event, { claimId, voterId, approve }) => {
       if (!insurancePoolManager)
-        throw new Error("InsurancePoolManager not initialized");
+        {throw new Error("InsurancePoolManager not initialized");}
       return await insurancePoolManager.voteClaim(claimId, voterId, approve);
     },
   );
@@ -112,20 +112,20 @@ function registerDeFiIPC({
     "defi:insurance:resolve-claim",
     async (event, { claimId }) => {
       if (!insurancePoolManager)
-        throw new Error("InsurancePoolManager not initialized");
+        {throw new Error("InsurancePoolManager not initialized");}
       return await insurancePoolManager.resolveClaim(claimId);
     },
   );
 
   ipcMain.handle("defi:insurance:list-pools", async (event, filters) => {
-    if (!insurancePoolManager) return { pools: [], total: 0 };
+    if (!insurancePoolManager) {return { pools: [], total: 0 };}
     return await insurancePoolManager.listPools(filters);
   });
 
   ipcMain.handle(
     "defi:insurance:list-claims",
     async (event, { poolId, options }) => {
-      if (!insurancePoolManager) return { claims: [], total: 0 };
+      if (!insurancePoolManager) {return { claims: [], total: 0 };}
       return await insurancePoolManager.listClaims(poolId, options);
     },
   );
@@ -136,7 +136,7 @@ function registerDeFiIPC({
 
   ipcMain.handle("defi:swap:initiate", async (event, params) => {
     if (!atomicSwapManager)
-      throw new Error("AtomicSwapManager not initialized");
+      {throw new Error("AtomicSwapManager not initialized");}
     return await atomicSwapManager.initiateSwap(params);
   });
 
@@ -144,30 +144,30 @@ function registerDeFiIPC({
     "defi:swap:accept",
     async (event, { swapId, counterpartyId }) => {
       if (!atomicSwapManager)
-        throw new Error("AtomicSwapManager not initialized");
+        {throw new Error("AtomicSwapManager not initialized");}
       return await atomicSwapManager.acceptSwap(swapId, counterpartyId);
     },
   );
 
   ipcMain.handle("defi:swap:claim", async (event, { swapId, secret }) => {
     if (!atomicSwapManager)
-      throw new Error("AtomicSwapManager not initialized");
+      {throw new Error("AtomicSwapManager not initialized");}
     return await atomicSwapManager.claimSwap(swapId, secret);
   });
 
   ipcMain.handle("defi:swap:refund", async (event, { swapId }) => {
     if (!atomicSwapManager)
-      throw new Error("AtomicSwapManager not initialized");
+      {throw new Error("AtomicSwapManager not initialized");}
     return await atomicSwapManager.refundSwap(swapId);
   });
 
   ipcMain.handle("defi:swap:list", async (event, { userId, filters }) => {
-    if (!atomicSwapManager) return { swaps: [], total: 0 };
+    if (!atomicSwapManager) {return { swaps: [], total: 0 };}
     return await atomicSwapManager.listSwaps(userId, filters);
   });
 
   ipcMain.handle("defi:swap:get-rates", async () => {
-    if (!atomicSwapManager) return {};
+    if (!atomicSwapManager) {return {};}
     return await atomicSwapManager.getSwapRates();
   });
 

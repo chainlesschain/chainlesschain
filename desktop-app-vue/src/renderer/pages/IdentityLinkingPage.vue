@@ -6,7 +6,10 @@
       @back="() => $router.back()"
     >
       <template #extra>
-        <a-button type="primary" @click="handleOpenLinkModal">
+        <a-button
+          type="primary"
+          @click="handleOpenLinkModal"
+        >
           <template #icon>
             <LinkOutlined />
           </template>
@@ -17,8 +20,15 @@
 
     <div class="linking-content">
       <!-- Current DID Display -->
-      <a-card :bordered="false" class="did-card">
-        <a-descriptions title="当前 DID 身份" :column="1" size="small">
+      <a-card
+        :bordered="false"
+        class="did-card"
+      >
+        <a-descriptions
+          title="当前 DID 身份"
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="DID 标识">
             <a-typography-text copyable>
               {{ currentDID || '未设置' }}
@@ -34,7 +44,11 @@
       </a-card>
 
       <!-- Linked Identities Table -->
-      <a-card :bordered="false" class="table-card" title="已关联身份">
+      <a-card
+        :bordered="false"
+        class="table-card"
+        title="已关联身份"
+      >
         <a-table
           :columns="columns"
           :data-source="ssoStore.linkedIdentities"
@@ -62,7 +76,11 @@
             </template>
 
             <template v-else-if="column.key === 'sso_subject'">
-              <a-typography-text ellipsis :content="record.sso_subject" style="max-width: 200px" />
+              <a-typography-text
+                ellipsis
+                :content="record.sso_subject"
+                style="max-width: 200px"
+              />
             </template>
 
             <template v-else-if="column.key === 'verified'">
@@ -96,7 +114,11 @@
                   cancel-text="返回"
                   @confirm="handleUnlink(record.did, record.provider_id)"
                 >
-                  <a-button type="link" size="small" danger>
+                  <a-button
+                    type="link"
+                    size="small"
+                    danger
+                  >
                     <DisconnectOutlined /> 取消关联
                   </a-button>
                 </a-popconfirm>
@@ -122,7 +144,10 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="SSO 提供商" required>
+        <a-form-item
+          label="SSO 提供商"
+          required
+        >
           <a-select
             v-model:value="linkForm.providerId"
             placeholder="选择要关联的 SSO 提供商"
@@ -134,7 +159,10 @@
               :value="provider.id"
             >
               <a-space>
-                <a-tag :color="getProviderTypeColor(provider.provider_type)" size="small">
+                <a-tag
+                  :color="getProviderTypeColor(provider.provider_type)"
+                  size="small"
+                >
                   {{ getProviderTypeLabel(provider.provider_type) }}
                 </a-tag>
                 {{ provider.provider_name }}
@@ -154,9 +182,17 @@
       </a-form>
 
       <!-- Linking progress -->
-      <div v-if="linkingInProgress" class="linking-progress">
+      <div
+        v-if="linkingInProgress"
+        class="linking-progress"
+      >
         <a-spin tip="正在通过 SSO 验证身份..." />
-        <a-button type="link" @click="handleCancelLinking">取消</a-button>
+        <a-button
+          type="link"
+          @click="handleCancelLinking"
+        >
+          取消
+        </a-button>
       </div>
     </a-modal>
   </div>
@@ -258,7 +294,7 @@ function getProviderTypeLabel(type: string): string {
 }
 
 function formatTime(timestamp: string | number): string {
-  if (!timestamp) return '-'
+  if (!timestamp) {return '-'}
   return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
 }
 
@@ -349,7 +385,7 @@ let callbackCleanup: (() => void) | null = null
 
 function setupCallbackListener() {
   const ipcRenderer = (window as any).electron?.ipcRenderer
-  if (!ipcRenderer) return
+  if (!ipcRenderer) {return}
 
   const handler = async (_event: any, result: any) => {
     linkingInProgress.value = false

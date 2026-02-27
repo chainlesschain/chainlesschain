@@ -3,7 +3,10 @@
     <a-spin :spinning="loading">
       <div class="tab-header">
         <a-space>
-          <a-button type="primary" @click="showCreateResourceModal">
+          <a-button
+            type="primary"
+            @click="showCreateResourceModal"
+          >
             <template #icon>
               <PlusOutlined />
             </template>
@@ -15,11 +18,21 @@
             style="width: 150px"
             @change="handleFilterChange"
           >
-            <a-select-option value=""> 全部 </a-select-option>
-            <a-select-option value="knowledge"> 知识库 </a-select-option>
-            <a-select-option value="project"> 项目 </a-select-option>
-            <a-select-option value="document"> 文档 </a-select-option>
-            <a-select-option value="folder"> 文件夹 </a-select-option>
+            <a-select-option value="">
+              全部
+            </a-select-option>
+            <a-select-option value="knowledge">
+              知识库
+            </a-select-option>
+            <a-select-option value="project">
+              项目
+            </a-select-option>
+            <a-select-option value="document">
+              文档
+            </a-select-option>
+            <a-select-option value="folder">
+              文件夹
+            </a-select-option>
           </a-select>
           <a-input-search
             v-model:value="searchText"
@@ -41,7 +54,11 @@
       >
         <template #expandedRowRender="{ record }">
           <div class="resource-permissions-detail">
-            <a-descriptions title="权限详情" bordered size="small">
+            <a-descriptions
+              title="权限详情"
+              bordered
+              size="small"
+            >
               <a-descriptions-item label="资源ID">
                 {{ record.resourceId }}
               </a-descriptions-item>
@@ -81,7 +98,13 @@
                       handleRemoveACL(record.resourceId, aclRecord.subjectId)
                     "
                   >
-                    <a-button type="link" danger size="small"> 移除 </a-button>
+                    <a-button
+                      type="link"
+                      danger
+                      size="small"
+                    >
+                      移除
+                    </a-button>
                   </a-popconfirm>
                 </template>
               </template>
@@ -109,10 +132,18 @@
           </template>
 
           <template v-else-if="column.key === 'inheritedFrom'">
-            <a-tag v-if="record.inheritedFrom" color="orange">
+            <a-tag
+              v-if="record.inheritedFrom"
+              color="orange"
+            >
               继承自: {{ record.inheritedFrom }}
             </a-tag>
-            <a-tag v-else color="green"> 直接设置 </a-tag>
+            <a-tag
+              v-else
+              color="green"
+            >
+              直接设置
+            </a-tag>
           </template>
 
           <template v-else-if="column.key === 'aclCount'">
@@ -131,14 +162,24 @@
               >
                 编辑
               </a-button>
-              <a-button type="link" size="small" @click="handleViewACL(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleViewACL(record)"
+              >
                 查看ACL
               </a-button>
               <a-popconfirm
                 title="确定要删除此资源权限吗?"
                 @confirm="handleDeleteResource(record.resourceId)"
               >
-                <a-button type="link" danger size="small"> 删除 </a-button>
+                <a-button
+                  type="link"
+                  danger
+                  size="small"
+                >
+                  删除
+                </a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -158,7 +199,10 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="资源ID" required>
+        <a-form-item
+          label="资源ID"
+          required
+        >
           <a-input
             v-model:value="resourceForm.resourceId"
             placeholder="输入资源ID"
@@ -166,16 +210,30 @@
           />
         </a-form-item>
 
-        <a-form-item label="资源类型" required>
+        <a-form-item
+          label="资源类型"
+          required
+        >
           <a-select v-model:value="resourceForm.resourceType">
-            <a-select-option value="knowledge"> 知识库 </a-select-option>
-            <a-select-option value="project"> 项目 </a-select-option>
-            <a-select-option value="document"> 文档 </a-select-option>
-            <a-select-option value="folder"> 文件夹 </a-select-option>
+            <a-select-option value="knowledge">
+              知识库
+            </a-select-option>
+            <a-select-option value="project">
+              项目
+            </a-select-option>
+            <a-select-option value="document">
+              文档
+            </a-select-option>
+            <a-select-option value="folder">
+              文件夹
+            </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="资源名称" required>
+        <a-form-item
+          label="资源名称"
+          required
+        >
           <a-input
             v-model:value="resourceForm.resourceName"
             placeholder="输入资源名称"
@@ -203,41 +261,68 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="主体类型" required>
+        <a-form-item
+          label="主体类型"
+          required
+        >
           <a-radio-group v-model:value="aclForm.subjectType">
-            <a-radio value="user"> 用户 </a-radio>
-            <a-radio value="role"> 角色 </a-radio>
-            <a-radio value="group"> 权限组 </a-radio>
+            <a-radio value="user">
+              用户
+            </a-radio>
+            <a-radio value="role">
+              角色
+            </a-radio>
+            <a-radio value="group">
+              权限组
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item label="主体ID" required>
+        <a-form-item
+          label="主体ID"
+          required
+        >
           <a-input
             v-model:value="aclForm.subjectId"
             placeholder="输入用户DID/角色名/组ID"
           />
         </a-form-item>
 
-        <a-form-item label="权限列表" required>
+        <a-form-item
+          label="权限列表"
+          required
+        >
           <a-checkbox-group v-model:value="aclForm.permissions">
             <a-row>
               <a-col :span="12">
-                <a-checkbox value="read"> 读取 </a-checkbox>
+                <a-checkbox value="read">
+                  读取
+                </a-checkbox>
               </a-col>
               <a-col :span="12">
-                <a-checkbox value="write"> 写入 </a-checkbox>
+                <a-checkbox value="write">
+                  写入
+                </a-checkbox>
               </a-col>
               <a-col :span="12">
-                <a-checkbox value="delete"> 删除 </a-checkbox>
+                <a-checkbox value="delete">
+                  删除
+                </a-checkbox>
               </a-col>
               <a-col :span="12">
-                <a-checkbox value="share"> 分享 </a-checkbox>
+                <a-checkbox value="share">
+                  分享
+                </a-checkbox>
               </a-col>
               <a-col :span="12">
-                <a-checkbox value="manage"> 管理 </a-checkbox>
+                <a-checkbox value="manage">
+                  管理
+                </a-checkbox>
               </a-col>
               <a-col :span="12">
-                <a-checkbox value="*"> 所有权限 </a-checkbox>
+                <a-checkbox value="*">
+                  所有权限
+                </a-checkbox>
               </a-col>
             </a-row>
           </a-checkbox-group>

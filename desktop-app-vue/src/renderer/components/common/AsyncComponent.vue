@@ -1,14 +1,23 @@
 <template>
   <div class="async-component-wrapper">
     <!-- Loading state -->
-    <div v-if="loading" class="async-loading">
+    <div
+      v-if="loading"
+      class="async-loading"
+    >
       <slot name="loading">
         <div class="default-loading">
-          <LoadingOutlined class="loading-icon" spin />
+          <LoadingOutlined
+            class="loading-icon"
+            spin
+          />
           <div class="loading-text">
             {{ loadingText }}
           </div>
-          <div v-if="showProgress" class="loading-progress">
+          <div
+            v-if="showProgress"
+            class="loading-progress"
+          >
             <a-progress
               :percent="loadProgress"
               :show-info="false"
@@ -20,15 +29,28 @@
     </div>
 
     <!-- Error state -->
-    <div v-else-if="error" class="async-error">
-      <slot name="error" :error="error" :retry="loadComponent">
+    <div
+      v-else-if="error"
+      class="async-error"
+    >
+      <slot
+        name="error"
+        :error="error"
+        :retry="loadComponent"
+      >
         <div class="default-error">
           <WarningOutlined class="error-icon" />
-          <div class="error-title">Failed to load component</div>
+          <div class="error-title">
+            Failed to load component
+          </div>
           <div class="error-message">
             {{ error.message }}
           </div>
-          <a-button type="primary" size="small" @click="loadComponent">
+          <a-button
+            type="primary"
+            size="small"
+            @click="loadComponent"
+          >
             <ReloadOutlined /> Retry
           </a-button>
         </div>

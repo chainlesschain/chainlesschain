@@ -9,9 +9,19 @@
     >
       <div v-if="order">
         <!-- 订单基本信息 -->
-        <a-card title="基本信息" size="small" style="margin-bottom: 16px">
-          <a-descriptions :column="2" bordered>
-            <a-descriptions-item label="订单 ID" :span="2">
+        <a-card
+          title="基本信息"
+          size="small"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="2"
+            bordered
+          >
+            <a-descriptions-item
+              label="订单 ID"
+              :span="2"
+            >
               <a-typography-text copyable>
                 {{ order.id }}
               </a-typography-text>
@@ -22,9 +32,16 @@
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="订单状态">
-              <status-badge :status="order.status" type="order" show-icon />
+              <status-badge
+                :status="order.status"
+                type="order"
+                show-icon
+              />
             </a-descriptions-item>
-            <a-descriptions-item label="订单标题" :span="2">
+            <a-descriptions-item
+              label="订单标题"
+              :span="2"
+            >
               <strong>{{ order.title }}</strong>
             </a-descriptions-item>
             <a-descriptions-item
@@ -38,12 +55,22 @@
         </a-card>
 
         <!-- 交易信息 -->
-        <a-card title="交易信息" size="small" style="margin-bottom: 16px">
-          <a-descriptions :column="2" bordered>
+        <a-card
+          title="交易信息"
+          size="small"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="2"
+            bordered
+          >
             <a-descriptions-item label="创建者">
               <a-space>
                 <user-outlined />
-                <a-typography-text copyable style="font-size: 12px">
+                <a-typography-text
+                  copyable
+                  style="font-size: 12px"
+                >
                   {{ order.creator_did }}
                 </a-typography-text>
               </a-space>
@@ -61,7 +88,10 @@
                 order.price_amount
               }}</strong>
             </a-descriptions-item>
-            <a-descriptions-item label="总价" :span="2">
+            <a-descriptions-item
+              label="总价"
+              :span="2"
+            >
               <strong style="font-size: 20px; color: #ff4d4f">
                 {{
                   ((order.price_amount ?? 0) * (order.quantity ?? 0)).toFixed(2)
@@ -73,7 +103,10 @@
               label="资产 ID"
               :span="2"
             >
-              <a-typography-text copyable style="font-size: 12px">
+              <a-typography-text
+                copyable
+                style="font-size: 12px"
+              >
                 {{ order.asset_id }}
               </a-typography-text>
             </a-descriptions-item>
@@ -82,7 +115,10 @@
               label="支付资产 ID"
               :span="2"
             >
-              <a-typography-text copyable style="font-size: 12px">
+              <a-typography-text
+                copyable
+                style="font-size: 12px"
+              >
                 {{ order.price_asset_id }}
               </a-typography-text>
             </a-descriptions-item>
@@ -96,7 +132,10 @@
           size="small"
           style="margin-bottom: 16px"
         >
-          <a-descriptions :column="2" bordered>
+          <a-descriptions
+            :column="2"
+            bordered
+          >
             <a-descriptions-item
               v-if="order.metadata?.location"
               label="交易地点"
@@ -117,7 +156,10 @@
             >
               {{ order.metadata.validDays }} 天
             </a-descriptions-item>
-            <a-descriptions-item v-if="order.updated_at" label="更新时间">
+            <a-descriptions-item
+              v-if="order.updated_at"
+              label="更新时间"
+            >
               {{ formatTime(order.updated_at) }}
             </a-descriptions-item>
           </a-descriptions>
@@ -130,7 +172,10 @@
           size="small"
           style="margin-bottom: 16px"
         >
-          <a-list :data-source="transactions" size="small">
+          <a-list
+            :data-source="transactions"
+            size="small"
+          >
             <template #renderItem="{ item }">
               <a-list-item>
                 <a-list-item-meta>
@@ -181,7 +226,9 @@
             >
               <delete-outlined /> 取消订单
             </a-button>
-            <a-button @click="handleClose"> 关闭 </a-button>
+            <a-button @click="handleClose">
+              关闭
+            </a-button>
           </a-space>
         </div>
       </div>
@@ -195,7 +242,10 @@
     >
       <div v-if="order">
         <a-form layout="vertical">
-          <a-form-item label="购买数量" required>
+          <a-form-item
+            label="购买数量"
+            required
+          >
             <a-input-number
               v-model:value="purchaseQuantity"
               :min="1"
@@ -204,20 +254,21 @@
             />
           </a-form-item>
 
-          <a-alert type="info" style="margin-bottom: 16px">
+          <a-alert
+            type="info"
+            style="margin-bottom: 16px"
+          >
             <template #message>
               <div>
                 <div>单价: {{ order.price_amount }}</div>
                 <div>数量: {{ purchaseQuantity }}</div>
                 <div>
-                  <strong
-                    >总价:
+                  <strong>总价:
                     {{
                       (
                         (purchaseQuantity ?? 0) * (order.price_amount ?? 0)
                       ).toFixed(2)
-                    }}</strong
-                  >
+                    }}</strong>
                 </div>
               </div>
             </template>

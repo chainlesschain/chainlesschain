@@ -1107,6 +1107,57 @@ const routes: RouteRecordRaw[] = [
         component: () => import(/* webpackChunkName: "evomap-browser" */ '../pages/evomap/EvoMapBrowser.vue'),
         meta: { title: 'EvoMap Browser' },
       },
+      // ===== Q3 2026 Phase 46-51 (v1.1.0 Phase 2) =====
+      {
+        path: 'threshold-security',
+        name: 'ThresholdSecurity',
+        component: () =>
+          import(
+            /* webpackChunkName: "threshold-security" */ '../pages/security/ThresholdSecurityPage.vue'
+          ),
+        meta: { title: 'Threshold Security' },
+      },
+      {
+        path: 'ble-devices',
+        name: 'BLEDevices',
+        component: () =>
+          import(/* webpackChunkName: "ble-devices" */ '../pages/security/BLEDevicesPage.vue'),
+        meta: { title: 'BLE Devices' },
+      },
+      {
+        path: 'recommendations',
+        name: 'Recommendations',
+        component: () =>
+          import(
+            /* webpackChunkName: "recommendations" */ '../pages/social/RecommendationsPage.vue'
+          ),
+        meta: { title: 'Recommendations' },
+      },
+      {
+        path: 'nostr-bridge',
+        name: 'NostrBridge',
+        component: () =>
+          import(/* webpackChunkName: "nostr-bridge" */ '../pages/social/NostrBridgePage.vue'),
+        meta: { title: 'Nostr Bridge' },
+      },
+      {
+        path: 'dlp-policies',
+        name: 'DLPPolicies',
+        component: () =>
+          import(
+            /* webpackChunkName: "dlp-policies" */ '../pages/enterprise/DLPPoliciesPage.vue'
+          ),
+        meta: { title: 'DLP Policies' },
+      },
+      {
+        path: 'siem-integration',
+        name: 'SIEMIntegration',
+        component: () =>
+          import(
+            /* webpackChunkName: "siem-integration" */ '../pages/enterprise/SIEMIntegrationPage.vue'
+          ),
+        meta: { title: 'SIEM Integration' },
+      },
     ],
   },
 ];

@@ -459,9 +459,9 @@ describe("DifferentialPrivacy", () => {
 
       for (let i = 0; i < 100; i++) {
         const val = dp._laplaceNoise(1.0);
-        if (val > 0) hasPositive = true;
-        if (val < 0) hasNegative = true;
-        if (hasPositive && hasNegative) break;
+        if (val > 0) {hasPositive = true;}
+        if (val < 0) {hasNegative = true;}
+        if (hasPositive && hasNegative) {break;}
       }
 
       expect(hasPositive).toBe(true);

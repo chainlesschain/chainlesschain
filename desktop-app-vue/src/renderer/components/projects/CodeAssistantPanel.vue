@@ -3,7 +3,10 @@
     <a-card :bordered="false">
       <a-tabs v-model:active-key="activeTab">
         <!-- 代码生成 -->
-        <a-tab-pane key="generate" tab="代码生成">
+        <a-tab-pane
+          key="generate"
+          tab="代码生成"
+        >
           <a-form layout="vertical">
             <a-form-item label="功能描述">
               <a-textarea
@@ -23,19 +26,33 @@
                     <a-select-option value="typescript">
                       TypeScript
                     </a-select-option>
-                    <a-select-option value="python"> Python </a-select-option>
-                    <a-select-option value="java"> Java </a-select-option>
-                    <a-select-option value="cpp"> C++ </a-select-option>
-                    <a-select-option value="go"> Go </a-select-option>
-                    <a-select-option value="rust"> Rust </a-select-option>
-                    <a-select-option value="csharp"> C# </a-select-option>
+                    <a-select-option value="python">
+                      Python
+                    </a-select-option>
+                    <a-select-option value="java">
+                      Java
+                    </a-select-option>
+                    <a-select-option value="cpp">
+                      C++
+                    </a-select-option>
+                    <a-select-option value="go">
+                      Go
+                    </a-select-option>
+                    <a-select-option value="rust">
+                      Rust
+                    </a-select-option>
+                    <a-select-option value="csharp">
+                      C#
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
               <a-col :span="8">
                 <a-form-item label="代码风格">
                   <a-select v-model:value="generateForm.style">
-                    <a-select-option value="modern"> 现代风格 </a-select-option>
+                    <a-select-option value="modern">
+                      现代风格
+                    </a-select-option>
                     <a-select-option value="classic">
                       经典风格
                     </a-select-option>
@@ -48,8 +65,12 @@
               <a-col :span="8">
                 <a-form-item label="选项">
                   <a-checkbox-group v-model:value="generateForm.options">
-                    <a-checkbox value="tests"> 包含单元测试 </a-checkbox>
-                    <a-checkbox value="comments"> 包含注释 </a-checkbox>
+                    <a-checkbox value="tests">
+                      包含单元测试
+                    </a-checkbox>
+                    <a-checkbox value="comments">
+                      包含注释
+                    </a-checkbox>
                   </a-checkbox-group>
                 </a-form-item>
               </a-col>
@@ -65,16 +86,24 @@
                 >
                   生成代码
                 </a-button>
-                <a-button @click="resetGenerateForm"> 重置 </a-button>
+                <a-button @click="resetGenerateForm">
+                  重置
+                </a-button>
               </a-space>
             </a-form-item>
 
             <!-- 生成结果 -->
-            <div v-if="generateResult" class="result-section">
+            <div
+              v-if="generateResult"
+              class="result-section"
+            >
               <a-divider>生成结果</a-divider>
 
               <a-tabs>
-                <a-tab-pane key="code" tab="代码">
+                <a-tab-pane
+                  key="code"
+                  tab="代码"
+                >
                   <div class="code-header">
                     <a-space>
                       <a-button
@@ -119,7 +148,10 @@
         </a-tab-pane>
 
         <!-- 代码审查 -->
-        <a-tab-pane key="review" tab="代码审查">
+        <a-tab-pane
+          key="review"
+          tab="代码审查"
+        >
           <a-form layout="vertical">
             <a-form-item label="待审查代码">
               <a-textarea
@@ -140,8 +172,12 @@
                 <a-select-option value="typescript">
                   TypeScript
                 </a-select-option>
-                <a-select-option value="python"> Python </a-select-option>
-                <a-select-option value="java"> Java </a-select-option>
+                <a-select-option value="python">
+                  Python
+                </a-select-option>
+                <a-select-option value="java">
+                  Java
+                </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -157,7 +193,10 @@
             </a-form-item>
 
             <!-- 审查结果 -->
-            <div v-if="reviewResult" class="result-section">
+            <div
+              v-if="reviewResult"
+              class="result-section"
+            >
               <a-divider>审查结果</a-divider>
 
               <a-alert
@@ -174,8 +213,14 @@
               />
 
               <a-tabs>
-                <a-tab-pane key="suggestions" tab="改进建议">
-                  <a-list :data-source="reviewResult.suggestions" bordered>
+                <a-tab-pane
+                  key="suggestions"
+                  tab="改进建议"
+                >
+                  <a-list
+                    :data-source="reviewResult.suggestions"
+                    bordered
+                  >
                     <template #renderItem="{ item }">
                       <a-list-item>
                         <a-list-item-meta>
@@ -217,7 +262,10 @@
         </a-tab-pane>
 
         <!-- 代码重构 -->
-        <a-tab-pane key="refactor" tab="代码重构">
+        <a-tab-pane
+          key="refactor"
+          tab="代码重构"
+        >
           <a-form layout="vertical">
             <a-form-item label="待重构代码">
               <a-textarea
@@ -237,8 +285,12 @@
                     <a-select-option value="typescript">
                       TypeScript
                     </a-select-option>
-                    <a-select-option value="python"> Python </a-select-option>
-                    <a-select-option value="java"> Java </a-select-option>
+                    <a-select-option value="python">
+                      Python
+                    </a-select-option>
+                    <a-select-option value="java">
+                      Java
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
@@ -280,7 +332,10 @@
             </a-form-item>
 
             <!-- 重构结果 -->
-            <div v-if="refactorResult" class="result-section">
+            <div
+              v-if="refactorResult"
+              class="result-section"
+            >
               <a-divider>重构结果</a-divider>
 
               <a-alert
@@ -292,13 +347,19 @@
               />
 
               <a-tabs>
-                <a-tab-pane key="original" tab="原始代码">
+                <a-tab-pane
+                  key="original"
+                  tab="原始代码"
+                >
                   <pre
                     class="code-block"
                   ><code>{{ refactorResult.originalCode }}</code></pre>
                 </a-tab-pane>
 
-                <a-tab-pane key="refactored" tab="重构后代码">
+                <a-tab-pane
+                  key="refactored"
+                  tab="重构后代码"
+                >
                   <div class="code-header">
                     <a-button
                       size="small"
@@ -312,7 +373,10 @@
                   ><code>{{ refactorResult.refactoredCode }}</code></pre>
                 </a-tab-pane>
 
-                <a-tab-pane key="explanation" tab="重构说明">
+                <a-tab-pane
+                  key="explanation"
+                  tab="重构说明"
+                >
                   <div
                     style="
                       white-space: pre-wrap;

@@ -75,7 +75,7 @@ class AuditEntry {
    * @private
    */
   _sanitizeParams(params) {
-    if (!params) return {};
+    if (!params) {return {};}
 
     const sanitized = { ...params };
 

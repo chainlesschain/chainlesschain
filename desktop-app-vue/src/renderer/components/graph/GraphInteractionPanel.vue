@@ -1,7 +1,11 @@
 <template>
   <div class="graph-interaction-panel">
     <!-- 搜索节点 -->
-    <a-card title="搜索节点" size="small" class="panel-card">
+    <a-card
+      title="搜索节点"
+      size="small"
+      class="panel-card"
+    >
       <a-input-search
         v-model:value="searchQuery"
         placeholder="搜索笔记标题..."
@@ -14,8 +18,14 @@
       </a-input-search>
 
       <!-- 搜索结果 -->
-      <div v-if="searchResults.length > 0" class="search-results">
-        <a-list size="small" :data-source="searchResults">
+      <div
+        v-if="searchResults.length > 0"
+        class="search-results"
+      >
+        <a-list
+          size="small"
+          :data-source="searchResults"
+        >
           <template #renderItem="{ item }">
             <a-list-item @click="selectNode(item)">
               <a-list-item-meta>
@@ -37,8 +47,15 @@
     </a-card>
 
     <!-- 节点筛选 -->
-    <a-card title="节点筛选" size="small" class="panel-card">
-      <a-form layout="vertical" size="small">
+    <a-card
+      title="节点筛选"
+      size="small"
+      class="panel-card"
+    >
+      <a-form
+        layout="vertical"
+        size="small"
+      >
         <a-form-item label="节点类型">
           <a-checkbox-group
             v-model:value="selectedNodeTypes"
@@ -68,8 +85,15 @@
     </a-card>
 
     <!-- 路径查找 -->
-    <a-card title="路径查找" size="small" class="panel-card">
-      <a-form layout="vertical" size="small">
+    <a-card
+      title="路径查找"
+      size="small"
+      class="panel-card"
+    >
+      <a-form
+        layout="vertical"
+        size="small"
+      >
         <a-form-item label="起点">
           <a-select
             v-model:value="pathStart"
@@ -106,13 +130,19 @@
       </a-form>
 
       <!-- 路径结果 -->
-      <div v-if="pathResult" class="path-result">
+      <div
+        v-if="pathResult"
+        class="path-result"
+      >
         <a-alert
           :message="`找到 ${pathResult.length} 条路径`"
           type="success"
           show-icon
         />
-        <a-list size="small" :data-source="pathResult">
+        <a-list
+          size="small"
+          :data-source="pathResult"
+        >
           <template #renderItem="{ item, index }">
             <a-list-item @click="highlightPath(item)">
               <a-list-item-meta>
@@ -132,8 +162,15 @@
     </a-card>
 
     <!-- 社区检测 -->
-    <a-card title="社区检测" size="small" class="panel-card">
-      <a-space direction="vertical" style="width: 100%">
+    <a-card
+      title="社区检测"
+      size="small"
+      class="panel-card"
+    >
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
         <a-button
           type="primary"
           block
@@ -153,11 +190,16 @@
             :value-style="{ color: '#3f8600' }"
           />
 
-          <a-list size="small" :data-source="communities">
+          <a-list
+            size="small"
+            :data-source="communities"
+          >
             <template #renderItem="{ item, index }">
               <a-list-item @click="highlightCommunity(item)">
                 <a-list-item-meta>
-                  <template #title> 社区 {{ index + 1 }} </template>
+                  <template #title>
+                    社区 {{ index + 1 }}
+                  </template>
                   <template #description>
                     {{ item.nodes.length }} 个节点
                   </template>
@@ -175,8 +217,15 @@
     </a-card>
 
     <!-- 中心性分析 -->
-    <a-card title="中心性分析" size="small" class="panel-card">
-      <a-space direction="vertical" style="width: 100%">
+    <a-card
+      title="中心性分析"
+      size="small"
+      class="panel-card"
+    >
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
         <a-button
           type="primary"
           block
@@ -191,7 +240,10 @@
 
         <div v-if="centralityResults.length > 0">
           <a-tabs size="small">
-            <a-tab-pane key="degree" tab="度中心性">
+            <a-tab-pane
+              key="degree"
+              tab="度中心性"
+            >
               <a-list
                 size="small"
                 :data-source="centralityResults.slice(0, 10)"
@@ -211,7 +263,10 @@
               </a-list>
             </a-tab-pane>
 
-            <a-tab-pane key="betweenness" tab="介数中心性">
+            <a-tab-pane
+              key="betweenness"
+              tab="介数中心性"
+            >
               <a-list
                 size="small"
                 :data-source="betweennessResults.slice(0, 10)"

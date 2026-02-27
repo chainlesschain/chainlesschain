@@ -1,5 +1,8 @@
 <template>
-  <div class="chat-header" data-testid="chat-header">
+  <div
+    class="chat-header"
+    data-testid="chat-header"
+  >
     <h3 class="chat-title">
       <MessageOutlined />
       AI 助手
@@ -12,15 +15,24 @@
       data-testid="context-mode-selector"
       @update:value="$emit('update:contextMode', $event)"
     >
-      <a-radio-button value="project" data-testid="context-mode-project">
+      <a-radio-button
+        value="project"
+        data-testid="context-mode-project"
+      >
         <FolderOutlined />
         项目
       </a-radio-button>
-      <a-radio-button value="file" data-testid="context-mode-file">
+      <a-radio-button
+        value="file"
+        data-testid="context-mode-file"
+      >
         <FileTextOutlined />
         文件
       </a-radio-button>
-      <a-radio-button value="global" data-testid="context-mode-global">
+      <a-radio-button
+        value="global"
+        data-testid="context-mode-global"
+      >
         <GlobalOutlined />
         全局
       </a-radio-button>

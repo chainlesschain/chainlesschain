@@ -23,7 +23,10 @@
     <!-- 统计卡片 -->
     <div class="stats-cards">
       <a-card class="stat-card">
-        <a-statistic title="总邀请数" :value="invitations.length">
+        <a-statistic
+          title="总邀请数"
+          :value="invitations.length"
+        >
           <template #suffix>
             <MailOutlined />
           </template>
@@ -41,7 +44,10 @@
         </a-statistic>
       </a-card>
       <a-card class="stat-card">
-        <a-statistic title="已使用" :value="usedInvitations">
+        <a-statistic
+          title="已使用"
+          :value="usedInvitations"
+        >
           <template #suffix>
             <UserAddOutlined />
           </template>
@@ -57,10 +63,18 @@
         style="width: 150px"
         @change="handleFilter"
       >
-        <a-select-option value=""> 全部状态 </a-select-option>
-        <a-select-option value="active"> 有效 </a-select-option>
-        <a-select-option value="expired"> 已过期 </a-select-option>
-        <a-select-option value="used"> 已用完 </a-select-option>
+        <a-select-option value="">
+          全部状态
+        </a-select-option>
+        <a-select-option value="active">
+          有效
+        </a-select-option>
+        <a-select-option value="expired">
+          已过期
+        </a-select-option>
+        <a-select-option value="used">
+          已用完
+        </a-select-option>
       </a-select>
     </div>
 
@@ -77,7 +91,11 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'invite_code'">
           <div class="code-cell">
-            <a-typography-text code strong style="font-size: 16px">
+            <a-typography-text
+              code
+              strong
+              style="font-size: 16px"
+            >
               {{ record.invite_code }}
             </a-typography-text>
             <a-button
@@ -120,7 +138,11 @@
         <template v-else-if="column.key === 'expire_at'">
           <span v-if="record.expire_at">
             {{ formatDate(record.expire_at) }}
-            <a-tag v-if="isExpired(record)" color="red" size="small">
+            <a-tag
+              v-if="isExpired(record)"
+              color="red"
+              size="small"
+            >
               已过期
             </a-tag>
           </span>
@@ -143,7 +165,10 @@
         <template v-else-if="column.key === 'actions'">
           <a-space>
             <!-- 查看详情 -->
-            <a-button size="small" @click="showInvitationDetail(record)">
+            <a-button
+              size="small"
+              @click="showInvitationDetail(record)"
+            >
               <EyeOutlined />
               详情
             </a-button>
@@ -173,7 +198,10 @@
               title="确定要删除这个邀请吗？"
               @confirm="handleDeleteInvitation(record)"
             >
-              <a-button size="small" danger>
+              <a-button
+                size="small"
+                danger
+              >
                 <DeleteOutlined />
               </a-button>
             </a-popconfirm>
@@ -190,11 +218,18 @@
       width="600px"
       @ok="handleCreateInvitation"
     >
-      <a-form :model="createForm" layout="vertical">
+      <a-form
+        :model="createForm"
+        layout="vertical"
+      >
         <a-form-item label="邀请方式">
           <a-radio-group v-model:value="createForm.method">
-            <a-radio value="code"> 邀请码 </a-radio>
-            <a-radio value="link"> 邀请链接 </a-radio>
+            <a-radio value="code">
+              邀请码
+            </a-radio>
+            <a-radio value="link">
+              邀请链接
+            </a-radio>
             <a-radio value="did">
               <a-tooltip title="通过DID直接邀请用户，对方将收到P2P通知">
                 DID邀请
@@ -219,12 +254,18 @@
               <IdcardOutlined />
             </template>
           </a-input>
-          <div v-if="didValidationError" class="error-message">
+          <div
+            v-if="didValidationError"
+            class="error-message"
+          >
             {{ didValidationError }}
           </div>
         </a-form-item>
 
-        <a-form-item label="默认角色" required>
+        <a-form-item
+          label="默认角色"
+          required
+        >
           <a-select v-model:value="createForm.role">
             <a-select-option value="viewer">
               <SafetyOutlined /> 访客 - 只能查看
@@ -232,7 +273,10 @@
             <a-select-option value="member">
               <UserOutlined /> 成员 - 可以创建和编辑
             </a-select-option>
-            <a-select-option v-if="currentUserRole === 'owner'" value="admin">
+            <a-select-option
+              v-if="currentUserRole === 'owner'"
+              value="admin"
+            >
               <CrownOutlined /> 管理员 - 可以管理成员
             </a-select-option>
           </a-select>
@@ -252,12 +296,24 @@
           <a-col :span="12">
             <a-form-item label="过期时间">
               <a-select v-model:value="createForm.expireOption">
-                <a-select-option value="never"> 永不过期 </a-select-option>
-                <a-select-option value="1h"> 1小时 </a-select-option>
-                <a-select-option value="1day"> 1天 </a-select-option>
-                <a-select-option value="7days"> 7天 </a-select-option>
-                <a-select-option value="30days"> 30天 </a-select-option>
-                <a-select-option value="custom"> 自定义 </a-select-option>
+                <a-select-option value="never">
+                  永不过期
+                </a-select-option>
+                <a-select-option value="1h">
+                  1小时
+                </a-select-option>
+                <a-select-option value="1day">
+                  1天
+                </a-select-option>
+                <a-select-option value="7days">
+                  7天
+                </a-select-option>
+                <a-select-option value="30days">
+                  30天
+                </a-select-option>
+                <a-select-option value="custom">
+                  自定义
+                </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -293,7 +349,11 @@
             <div class="generated-invitation">
               <div class="invitation-item">
                 <span class="label">邀请码：</span>
-                <a-typography-text code strong style="font-size: 16px">
+                <a-typography-text
+                  code
+                  strong
+                  style="font-size: 16px"
+                >
                   {{ generatedInvitation.invite_code }}
                 </a-typography-text>
                 <a-button
@@ -305,7 +365,10 @@
                   复制
                 </a-button>
               </div>
-              <div v-if="createForm.method === 'link'" class="invitation-item">
+              <div
+                v-if="createForm.method === 'link'"
+                class="invitation-item"
+              >
                 <span class="label">邀请链接：</span>
                 <a-typography-text
                   :copyable="{ text: getInviteLink(generatedInvitation) }"
@@ -316,7 +379,9 @@
               </div>
             </div>
           </template>
-          <template #description> 请复制邀请码或链接分享给新成员 </template>
+          <template #description>
+            请复制邀请码或链接分享给新成员
+          </template>
         </a-alert>
       </a-form>
     </a-modal>
@@ -328,7 +393,10 @@
       :footer="null"
       width="600px"
     >
-      <div v-if="selectedInvitation" class="invitation-detail">
+      <div
+        v-if="selectedInvitation"
+        class="invitation-detail"
+      >
         <div class="detail-header">
           <MailOutlined class="detail-icon" />
           <div class="detail-title">
@@ -339,7 +407,11 @@
           </div>
         </div>
 
-        <a-descriptions :column="1" bordered style="margin-top: 24px">
+        <a-descriptions
+          :column="1"
+          bordered
+          style="margin-top: 24px"
+        >
           <a-descriptions-item label="邀请ID">
             {{ selectedInvitation.invite_id }}
           </a-descriptions-item>
@@ -415,7 +487,10 @@
             </div>
           </a-timeline-item>
           <!-- 邀请码：显示使用次数摘要 -->
-          <a-timeline-item v-else color="green">
+          <a-timeline-item
+            v-else
+            color="green"
+          >
             <template #dot>
               <CheckCircleOutlined />
             </template>

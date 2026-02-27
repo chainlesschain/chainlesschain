@@ -16,7 +16,11 @@
             {{ formatTime(post.created_at) }}
           </div>
         </div>
-        <a-tag v-if="post.visibility === 'friends'" color="blue" size="small">
+        <a-tag
+          v-if="post.visibility === 'friends'"
+          color="blue"
+          size="small"
+        >
           <team-outlined /> 仅好友
         </a-tag>
         <a-tag
@@ -32,14 +36,20 @@
     <!-- 操作菜单 -->
     <template #extra>
       <a-dropdown v-if="isAuthor">
-        <a-button type="text" size="small">
+        <a-button
+          type="text"
+          size="small"
+        >
           <template #icon>
             <ellipsis-outlined />
           </template>
         </a-button>
         <template #overlay>
           <a-menu>
-            <a-menu-item danger @click="handleDelete">
+            <a-menu-item
+              danger
+              @click="handleDelete"
+            >
               <delete-outlined /> 删除
             </a-menu-item>
           </a-menu>
@@ -53,7 +63,10 @@
     </div>
 
     <!-- 图片 -->
-    <div v-if="post.images && post.images.length > 0" class="post-images">
+    <div
+      v-if="post.images && post.images.length > 0"
+      class="post-images"
+    >
       <a-image-preview-group>
         <a-image
           v-for="(image, index) in post.images"
@@ -76,13 +89,19 @@
       <div class="link-info">
         <link-outlined class="link-icon" />
         <div class="link-text">
-          <div v-if="post.link_title" class="link-title">
+          <div
+            v-if="post.link_title"
+            class="link-title"
+          >
             {{ post.link_title }}
           </div>
           <div class="link-url">
             {{ post.link_url }}
           </div>
-          <div v-if="post.link_description" class="link-description">
+          <div
+            v-if="post.link_description"
+            class="link-description"
+          >
             {{ post.link_description }}
           </div>
         </div>
@@ -99,14 +118,21 @@
 
     <!-- 操作按钮 -->
     <div class="post-actions">
-      <a-button type="text" :class="{ liked }" @click="handleLike">
+      <a-button
+        type="text"
+        :class="{ liked }"
+        @click="handleLike"
+      >
         <template #icon>
           <like-filled v-if="liked" />
           <like-outlined v-else />
         </template>
         {{ liked ? "已赞" : "点赞" }}
       </a-button>
-      <a-button type="text" @click="toggleComments">
+      <a-button
+        type="text"
+        @click="toggleComments"
+      >
         <template #icon>
           <comment-outlined />
         </template>
@@ -115,7 +141,10 @@
     </div>
 
     <!-- 评论区域 -->
-    <div v-if="showComments" class="comments-section">
+    <div
+      v-if="showComments"
+      class="comments-section"
+    >
       <a-divider />
 
       <!-- 评论输入框 -->

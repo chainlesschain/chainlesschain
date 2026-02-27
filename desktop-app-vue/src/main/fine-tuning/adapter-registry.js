@@ -30,7 +30,7 @@ class AdapterRegistry {
    * @returns {Object|null}
    */
   _db() {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
     return this.database.db || this.database;
   }
 
@@ -131,13 +131,13 @@ class AdapterRegistry {
    */
   getAdapter(adapterId) {
     const db = this._db();
-    if (!db) return null;
+    if (!db) {return null;}
 
     try {
       const stmt = db.prepare('SELECT * FROM lora_adapters WHERE id = ?');
       const row = stmt.get(adapterId);
 
-      if (!row) return null;
+      if (!row) {return null;}
 
       return {
         id: row.id,
@@ -166,7 +166,7 @@ class AdapterRegistry {
    */
   listAdapters(options = {}) {
     const db = this._db();
-    if (!db) return [];
+    if (!db) {return [];}
 
     const { baseModel, limit = 50, offset = 0 } = options;
 
@@ -226,7 +226,7 @@ class AdapterRegistry {
 
     for (const [key, column] of Object.entries(fieldMap)) {
       if (updates[key] !== undefined) {
-        if (!allowed.includes(column)) continue;
+        if (!allowed.includes(column)) {continue;}
         setClauses.push(`${column} = ?`);
         params.push(updates[key]);
       }

@@ -20,8 +20,14 @@
         :data-plugin-id="extension.pluginId"
       >
         <!-- 调试信息（仅开发模式） -->
-        <div v-if="debug" class="plugin-slot-debug">
-          <a-tag color="purple" size="small">
+        <div
+          v-if="debug"
+          class="plugin-slot-debug"
+        >
+          <a-tag
+            color="purple"
+            size="small"
+          >
             {{ extension.pluginName || extension.pluginId }}
           </a-tag>
         </div>

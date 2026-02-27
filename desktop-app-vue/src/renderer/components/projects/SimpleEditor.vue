@@ -5,14 +5,23 @@
       <div class="header-left">
         <EditOutlined />
         <span class="file-name">{{ file?.file_name || "编辑器" }}</span>
-        <a-tag v-if="languageLabel" color="blue">
+        <a-tag
+          v-if="languageLabel"
+          color="blue"
+        >
           {{ languageLabel }}
         </a-tag>
-        <a-tag v-if="hasUnsavedChanges" color="orange">
+        <a-tag
+          v-if="hasUnsavedChanges"
+          color="orange"
+        >
           <ClockCircleOutlined />
           未保存
         </a-tag>
-        <a-tag v-else-if="file" color="green">
+        <a-tag
+          v-else-if="file"
+          color="green"
+        >
           <CheckOutlined />
           已保存
         </a-tag>
@@ -34,7 +43,10 @@
     </div>
 
     <!-- CodeMirror 编辑器容器 -->
-    <div ref="editorRef" class="editor-container" />
+    <div
+      ref="editorRef"
+      class="editor-container"
+    />
 
     <!-- 底部状态栏 -->
     <div class="editor-footer">
@@ -45,7 +57,10 @@
         <span class="status-text">{{ charCount }} 字符</span>
       </div>
       <div class="footer-right">
-        <span v-if="autoSaveEnabled" class="status-text">
+        <span
+          v-if="autoSaveEnabled"
+          class="status-text"
+        >
           <CheckCircleOutlined />
           自动保存
         </span>

@@ -34,13 +34,22 @@
     <!-- Statistics Bar -->
     <div class="stats-bar">
       <a-space :size="24">
-        <a-statistic title="Total Tools" :value="store.stats.totalTools" />
-        <a-statistic title="Total Skills" :value="store.stats.totalSkills" />
+        <a-statistic
+          title="Total Tools"
+          :value="store.stats.totalTools"
+        />
+        <a-statistic
+          title="Total Skills"
+          :value="store.stats.totalSkills"
+        />
         <a-statistic
           title="Built-in"
           :value="store.stats.bySource?.builtin || 0"
         />
-        <a-statistic title="MCP" :value="store.stats.bySource?.mcp || 0" />
+        <a-statistic
+          title="MCP"
+          :value="store.stats.bySource?.mcp || 0"
+        />
       </a-space>
     </div>
 
@@ -54,10 +63,18 @@
           size="small"
           @change="handleSourceFilter"
         >
-          <a-radio-button value=""> All </a-radio-button>
-          <a-radio-button value="builtin"> Built-in </a-radio-button>
-          <a-radio-button value="mcp"> MCP </a-radio-button>
-          <a-radio-button value="skill-handler"> Skill </a-radio-button>
+          <a-radio-button value="">
+            All
+          </a-radio-button>
+          <a-radio-button value="builtin">
+            Built-in
+          </a-radio-button>
+          <a-radio-button value="mcp">
+            MCP
+          </a-radio-button>
+          <a-radio-button value="skill-handler">
+            Skill
+          </a-radio-button>
         </a-radio-group>
 
         <a-divider type="vertical" />
@@ -80,15 +97,25 @@
           </a-select-option>
         </a-select>
 
-        <a-button v-if="hasActiveFilter" size="small" @click="clearFilters">
+        <a-button
+          v-if="hasActiveFilter"
+          size="small"
+          @click="clearFilters"
+        >
           Clear Filters
         </a-button>
       </a-space>
     </div>
 
     <!-- Loading -->
-    <div v-if="store.loading" class="loading-container">
-      <a-spin size="large" tip="Loading tools..." />
+    <div
+      v-if="store.loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="Loading tools..."
+      />
     </div>
 
     <!-- Error -->
@@ -102,8 +129,14 @@
     />
 
     <!-- Skills Grouped View -->
-    <div v-else class="skills-container">
-      <a-collapse v-model:active-key="expandedSkills" :bordered="false">
+    <div
+      v-else
+      class="skills-container"
+    >
+      <a-collapse
+        v-model:active-key="expandedSkills"
+        :bordered="false"
+      >
         <a-collapse-panel
           v-for="skill in displaySkills"
           :key="skill.name"
@@ -124,12 +157,18 @@
 
           <!-- Skill Info -->
           <div class="skill-info">
-            <p v-if="skill.description" class="skill-description">
+            <p
+              v-if="skill.description"
+              class="skill-description"
+            >
               {{ skill.description }}
             </p>
 
             <!-- Instructions -->
-            <div v-if="skill.instructions" class="skill-instructions">
+            <div
+              v-if="skill.instructions"
+              class="skill-instructions"
+            >
               <h4>Instructions</h4>
               <p>{{ skill.instructions }}</p>
             </div>
@@ -141,11 +180,17 @@
             >
               <h4>Examples</h4>
               <ul>
-                <li v-for="(ex, i) in skill.examples.slice(0, 3)" :key="i">
+                <li
+                  v-for="(ex, i) in skill.examples.slice(0, 3)"
+                  :key="i"
+                >
                   <strong>"{{ ex.input }}"</strong>
                   <span class="example-arrow"> &rarr; </span>
                   <code>{{ ex.tool }}</code>
-                  <span v-if="ex.params" class="example-params">
+                  <span
+                    v-if="ex.params"
+                    class="example-params"
+                  >
                     {{ JSON.stringify(ex.params) }}
                   </span>
                 </li>
@@ -179,7 +224,10 @@
               <p class="tool-description">
                 {{ getToolDescription(toolName) }}
               </p>
-              <div v-if="getToolTags(toolName).length > 0" class="tool-tags">
+              <div
+                v-if="getToolTags(toolName).length > 0"
+                class="tool-tags"
+              >
                 <a-tag
                   v-for="tag in getToolTags(toolName)"
                   :key="tag"
@@ -194,7 +242,10 @@
       </a-collapse>
 
       <!-- Ungrouped tools -->
-      <div v-if="ungroupedTools.length > 0" class="ungrouped-section">
+      <div
+        v-if="ungroupedTools.length > 0"
+        class="ungrouped-section"
+      >
         <h3>Other Tools ({{ ungroupedTools.length }})</h3>
         <div class="tools-grid">
           <a-card
@@ -225,8 +276,8 @@
       <a-empty
         v-if="
           displaySkills.length === 0 &&
-          ungroupedTools.length === 0 &&
-          !store.loading
+            ungroupedTools.length === 0 &&
+            !store.loading
         "
         description="No tools found"
       />

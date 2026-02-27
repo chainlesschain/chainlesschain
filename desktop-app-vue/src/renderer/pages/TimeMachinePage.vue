@@ -1,7 +1,10 @@
 <template>
   <div class="time-machine-page">
     <!-- Header with date picker -->
-    <a-card :bordered="false" class="header-card">
+    <a-card
+      :bordered="false"
+      class="header-card"
+    >
       <div class="page-header">
         <div class="header-left">
           <ClockCircleOutlined class="header-icon" />
@@ -26,12 +29,24 @@
     </a-card>
 
     <!-- Main content tabs -->
-    <a-card :bordered="false" class="content-card">
-      <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
+    <a-card
+      :bordered="false"
+      class="content-card"
+    >
+      <a-tabs
+        v-model:active-key="activeTab"
+        @change="handleTabChange"
+      >
         <!-- Timeline Tab -->
-        <a-tab-pane key="timeline" tab="Timeline">
+        <a-tab-pane
+          key="timeline"
+          tab="Timeline"
+        >
           <a-spin :spinning="store.loading">
-            <div v-if="store.hasTimelinePosts" class="timeline-list">
+            <div
+              v-if="store.hasTimelinePosts"
+              class="timeline-list"
+            >
               <a-list
                 :data-source="store.timelinePosts"
                 item-layout="vertical"
@@ -115,7 +130,10 @@
           </template>
 
           <a-spin :spinning="store.loading">
-            <div class="memories-actions" style="margin-bottom: 16px">
+            <div
+              class="memories-actions"
+              style="margin-bottom: 16px"
+            >
               <a-space>
                 <a-button @click="handleGenerateThrowback">
                   <HistoryOutlined />
@@ -128,7 +146,10 @@
               </a-space>
             </div>
 
-            <div v-if="store.memories.length > 0" class="memories-grid">
+            <div
+              v-if="store.memories.length > 0"
+              class="memories-grid"
+            >
               <MemoryCard
                 v-for="memory in store.memories"
                 :key="memory.id"
@@ -144,12 +165,18 @@
         </a-tab-pane>
 
         <!-- Stats Tab -->
-        <a-tab-pane key="stats" tab="Stats">
+        <a-tab-pane
+          key="stats"
+          tab="Stats"
+        >
           <a-spin :spinning="statsLoading">
             <a-row :gutter="[16, 16]">
               <!-- Activity Overview -->
               <a-col :span="12">
-                <a-card title="Activity Overview" size="small">
+                <a-card
+                  title="Activity Overview"
+                  size="small"
+                >
                   <template v-if="store.activityStats">
                     <a-row :gutter="16">
                       <a-col :span="12">
@@ -164,13 +191,19 @@
                           :value="store.activityStats.totalMessages"
                         />
                       </a-col>
-                      <a-col :span="12" style="margin-top: 16px">
+                      <a-col
+                        :span="12"
+                        style="margin-top: 16px"
+                      >
                         <a-statistic
                           title="Total Likes"
                           :value="store.activityStats.totalLikes"
                         />
                       </a-col>
-                      <a-col :span="12" style="margin-top: 16px">
+                      <a-col
+                        :span="12"
+                        style="margin-top: 16px"
+                      >
                         <a-statistic
                           title="Total Comments"
                           :value="store.activityStats.totalComments"
@@ -178,13 +211,19 @@
                       </a-col>
                     </a-row>
                   </template>
-                  <a-empty v-else description="No activity data" />
+                  <a-empty
+                    v-else
+                    description="No activity data"
+                  />
                 </a-card>
               </a-col>
 
               <!-- Sentiment Trend -->
               <a-col :span="12">
-                <a-card title="Sentiment Trend" size="small">
+                <a-card
+                  title="Sentiment Trend"
+                  size="small"
+                >
                   <template
                     v-if="store.sentimentTrend && store.sentimentTrend.length > 0"
                   >
@@ -208,13 +247,19 @@
                       </div>
                     </div>
                   </template>
-                  <a-empty v-else description="No sentiment data" />
+                  <a-empty
+                    v-else
+                    description="No sentiment data"
+                  />
                 </a-card>
               </a-col>
 
               <!-- Word Cloud -->
               <a-col :span="12">
-                <a-card title="Word Cloud" size="small">
+                <a-card
+                  title="Word Cloud"
+                  size="small"
+                >
                   <template
                     v-if="store.wordCloud && store.wordCloud.length > 0"
                   >
@@ -232,13 +277,19 @@
                       </a-tag>
                     </div>
                   </template>
-                  <a-empty v-else description="No word cloud data" />
+                  <a-empty
+                    v-else
+                    description="No word cloud data"
+                  />
                 </a-card>
               </a-col>
 
               <!-- Heatmap Summary -->
               <a-col :span="12">
-                <a-card title="Activity Heatmap" size="small">
+                <a-card
+                  title="Activity Heatmap"
+                  size="small"
+                >
                   <template
                     v-if="store.heatmapData && store.heatmapData.length > 0"
                   >
@@ -259,13 +310,19 @@
                       />
                     </div>
                   </template>
-                  <a-empty v-else description="No heatmap data" />
+                  <a-empty
+                    v-else
+                    description="No heatmap data"
+                  />
                 </a-card>
               </a-col>
             </a-row>
 
             <!-- Stats Period Selector -->
-            <div class="stats-controls" style="margin-top: 16px">
+            <div
+              class="stats-controls"
+              style="margin-top: 16px"
+            >
               <a-space>
                 <span>Period:</span>
                 <a-radio-group
@@ -273,9 +330,15 @@
                   button-style="solid"
                   @change="loadStatsData"
                 >
-                  <a-radio-button value="week">Week</a-radio-button>
-                  <a-radio-button value="month">Month</a-radio-button>
-                  <a-radio-button value="year">Year</a-radio-button>
+                  <a-radio-button value="week">
+                    Week
+                  </a-radio-button>
+                  <a-radio-button value="month">
+                    Month
+                  </a-radio-button>
+                  <a-radio-button value="year">
+                    Year
+                  </a-radio-button>
                 </a-radio-group>
                 <a-button @click="handleRefreshStats">
                   <ReloadOutlined />
@@ -343,7 +406,7 @@ const totalHeatmapCount = computed(() => {
 });
 
 const peakHeatmapDay = computed(() => {
-  if (store.heatmapData.length === 0) return "N/A";
+  if (store.heatmapData.length === 0) {return "N/A";}
   const peak = store.heatmapData.reduce(
     (max, d) => (d.count > max.count ? d : max),
     store.heatmapData[0],
@@ -353,7 +416,7 @@ const peakHeatmapDay = computed(() => {
 
 // Methods
 function handleDateChange(date) {
-  if (!date) return;
+  if (!date) {return;}
 
   const dateStr = date.format("YYYY-MM-DD");
   store.setCurrentDate(dateStr);
@@ -436,7 +499,7 @@ async function handleMarkRead(memoryId) {
 async function handleGenerateThrowback() {
   try {
     const ipc = window.electron?.ipcRenderer;
-    if (!ipc) return;
+    if (!ipc) {return;}
 
     const memory = await ipc.invoke("memory:generate-throwback");
     if (memory) {
@@ -464,7 +527,7 @@ async function handleGenerateAnnualReport() {
 }
 
 function formatTimestamp(ts) {
-  if (!ts) return "";
+  if (!ts) {return "";}
   const date = new Date(ts);
   return date.toLocaleString();
 }
@@ -488,9 +551,9 @@ function sentimentToPercent(score) {
 }
 
 function sentimentColor(score) {
-  if (score > 0.3) return "#52c41a";
-  if (score > 0) return "#a0d911";
-  if (score > -0.3) return "#faad14";
+  if (score > 0.3) {return "#52c41a";}
+  if (score > 0) {return "#a0d911";}
+  if (score > -0.3) {return "#faad14";}
   return "#ff4d4f";
 }
 
@@ -507,9 +570,9 @@ function getWordSize(count) {
 function getWordColor(count) {
   const maxWords = store.wordCloud.length > 0 ? store.wordCloud[0].count : 1;
   const ratio = count / maxWords;
-  if (ratio > 0.7) return "blue";
-  if (ratio > 0.4) return "geekblue";
-  if (ratio > 0.2) return "cyan";
+  if (ratio > 0.7) {return "blue";}
+  if (ratio > 0.4) {return "geekblue";}
+  if (ratio > 0.2) {return "cyan";}
   return "default";
 }
 

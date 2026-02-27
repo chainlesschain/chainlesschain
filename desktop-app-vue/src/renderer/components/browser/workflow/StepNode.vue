@@ -15,7 +15,10 @@
     </div>
 
     <!-- Step Icon -->
-    <div class="step-icon" :style="{ background: stepColor }">
+    <div
+      class="step-icon"
+      :style="{ background: stepColor }"
+    >
       <component :is="stepIcon" />
     </div>
 
@@ -23,7 +26,10 @@
     <div class="step-content">
       <div class="step-header">
         <span class="step-name">{{ stepName }}</span>
-        <a-tag v-if="step.type !== 'action'" size="small">
+        <a-tag
+          v-if="step.type !== 'action'"
+          size="small"
+        >
           {{ step.type }}
         </a-tag>
       </div>
@@ -34,18 +40,34 @@
 
     <!-- Status Indicator -->
     <div class="step-status">
-      <LoadingOutlined v-if="status === 'running'" spin />
-      <CheckCircleOutlined v-else-if="status === 'success'" class="success" />
-      <CloseCircleOutlined v-else-if="status === 'failed'" class="failed" />
+      <LoadingOutlined
+        v-if="status === 'running'"
+        spin
+      />
+      <CheckCircleOutlined
+        v-else-if="status === 'success'"
+        class="success"
+      />
+      <CloseCircleOutlined
+        v-else-if="status === 'failed'"
+        class="failed"
+      />
     </div>
 
     <!-- Delete Button -->
-    <a-button type="text" class="delete-btn" @click.stop="$emit('delete')">
+    <a-button
+      type="text"
+      class="delete-btn"
+      @click.stop="$emit('delete')"
+    >
       <DeleteOutlined />
     </a-button>
 
     <!-- Nested Steps Indicator (for control flow) -->
-    <div v-if="hasNestedSteps" class="nested-indicator">
+    <div
+      v-if="hasNestedSteps"
+      class="nested-indicator"
+    >
       <DownOutlined />
       <span>{{ nestedStepsCount }} nested step(s)</span>
     </div>

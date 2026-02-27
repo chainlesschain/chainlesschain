@@ -329,7 +329,7 @@ class AgentRegistry extends EventEmitter {
    * @returns {Object|null} Instance details or null if not found
    */
   getInstance(id) {
-    if (!id) return null;
+    if (!id) {return null;}
 
     const instance = this._activeInstances.get(id);
     if (!instance) {

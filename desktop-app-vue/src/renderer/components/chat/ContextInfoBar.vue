@@ -1,5 +1,9 @@
 <template>
-  <div v-if="contextInfo" class="context-info" data-testid="context-info">
+  <div
+    v-if="contextInfo"
+    class="context-info"
+    data-testid="context-info"
+  >
     <InfoCircleOutlined />
     <span>{{ contextInfo }}</span>
   </div>

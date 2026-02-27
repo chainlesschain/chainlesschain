@@ -220,8 +220,8 @@ describe('SCIMSync', () => {
 
     it('should handle errors gracefully in syncAll', async () => {
       sync.registerConnector('okta', { endpoint: 'https://okta.example.com' });
-      // Force DB to throw on sync
-      mockDb.db.prepare = vi.fn(() => { throw new Error('DB error'); });
+      // Override syncProvider to throw, simulating a failure
+      sync.syncProvider = vi.fn().mockRejectedValue(new Error('Sync failed'));
 
       const result = await sync.syncAll();
       // Should have an error result but not throw

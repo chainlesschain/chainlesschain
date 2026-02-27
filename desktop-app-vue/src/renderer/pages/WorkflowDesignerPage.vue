@@ -3,16 +3,30 @@
     class="workflow-designer-page"
     style="height: 100%; display: flex; flex-direction: column"
   >
-    <a-page-header title="工作流设计器" sub-title="Workflow Visual Designer">
+    <a-page-header
+      title="工作流设计器"
+      sub-title="Workflow Visual Designer"
+    >
       <template #extra>
-        <a-button @click="createNew"> 新建 </a-button>
-        <a-button type="primary" :loading="store.loading" @click="saveWorkflow">
+        <a-button @click="createNew">
+          新建
+        </a-button>
+        <a-button
+          type="primary"
+          :loading="store.loading"
+          @click="saveWorkflow"
+        >
           保存
         </a-button>
-        <a-button :loading="executing" @click="executeWorkflow">
+        <a-button
+          :loading="executing"
+          @click="executeWorkflow"
+        >
           执行
         </a-button>
-        <a-button @click="exportPipeline"> 导出为流水线 </a-button>
+        <a-button @click="exportPipeline">
+          导出为流水线
+        </a-button>
       </template>
     </a-page-header>
 
@@ -27,8 +41,14 @@
         "
       >
         <a-tabs size="small">
-          <a-tab-pane key="workflows" tab="工作流">
-            <a-list :data-source="store.workflows" size="small">
+          <a-tab-pane
+            key="workflows"
+            tab="工作流"
+          >
+            <a-list
+              :data-source="store.workflows"
+              size="small"
+            >
               <template #renderItem="{ item }">
                 <a-list-item
                   style="cursor: pointer"
@@ -43,7 +63,10 @@
               </template>
             </a-list>
           </a-tab-pane>
-          <a-tab-pane key="skills" tab="技能">
+          <a-tab-pane
+            key="skills"
+            tab="技能"
+          >
             <SkillPalette />
           </a-tab-pane>
         </a-tabs>
@@ -63,7 +86,9 @@
           "
         >
           <div>
-            <p style="font-size: 48px; margin: 0">&#128295;</p>
+            <p style="font-size: 48px; margin: 0">
+              &#128295;
+            </p>
             <p>选择或创建一个工作流开始设计</p>
           </div>
         </div>

@@ -1,12 +1,21 @@
 <template>
-  <div class="condition-node" :class="[{ selected }, statusClass]">
-    <Handle type="target" :position="Position.Top" />
+  <div
+    class="condition-node"
+    :class="[{ selected }, statusClass]"
+  >
+    <Handle
+      type="target"
+      :position="Position.Top"
+    />
     <div class="diamond">
       <div class="diamond-content">
         <div class="label">
           {{ data.label }}
         </div>
-        <div v-if="data.expression" class="expression">
+        <div
+          v-if="data.expression"
+          class="expression"
+        >
           {{ data.expression }}
         </div>
       </div>
@@ -44,9 +53,9 @@ const executionStatus = computed(() => {
 });
 
 const statusClass = computed(() => {
-  if (executionStatus.value === "running") return "condition-node--running";
-  if (executionStatus.value === "completed") return "condition-node--completed";
-  if (executionStatus.value === "failed") return "condition-node--failed";
+  if (executionStatus.value === "running") {return "condition-node--running";}
+  if (executionStatus.value === "completed") {return "condition-node--completed";}
+  if (executionStatus.value === "failed") {return "condition-node--failed";}
   return "";
 });
 </script>

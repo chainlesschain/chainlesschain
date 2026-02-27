@@ -4,9 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <h2>EvoMap Dashboard</h2>
-        <span class="subtitle"
-          >GEP-A2A Protocol — Global Agent Knowledge Network</span
-        >
+        <span class="subtitle">GEP-A2A Protocol — Global Agent Knowledge Network</span>
       </div>
       <div class="header-right">
         <a-button
@@ -17,15 +15,26 @@
         >
           Register Node
         </a-button>
-        <a-button v-else :loading="refreshing" @click="handleRefresh">
+        <a-button
+          v-else
+          :loading="refreshing"
+          @click="handleRefresh"
+        >
           Refresh
         </a-button>
       </div>
     </div>
 
     <!-- 节点状态卡片 -->
-    <a-row :gutter="[16, 16]" class="status-row">
-      <a-col :xs="24" :sm="12" :md="6">
+    <a-row
+      :gutter="[16, 16]"
+      class="status-row"
+    >
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="Node ID"
@@ -42,7 +51,11 @@
           </div>
         </a-card>
       </a-col>
-      <a-col :xs="24" :sm="12" :md="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="Credits"
@@ -50,23 +63,41 @@
             :precision="2"
           />
           <div class="stat-footer">
-            <a-button size="small" type="link" @click="handleRefreshCredits">
+            <a-button
+              size="small"
+              type="link"
+              @click="handleRefreshCredits"
+            >
               Refresh
             </a-button>
           </div>
         </a-card>
       </a-col>
-      <a-col :xs="24" :sm="12" :md="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
         <a-card class="stat-card">
-          <a-statistic title="Published" :value="store.publishedCount" />
+          <a-statistic
+            title="Published"
+            :value="store.publishedCount"
+          />
           <div class="stat-footer">
             <span class="stat-label">assets shared</span>
           </div>
         </a-card>
       </a-col>
-      <a-col :xs="24" :sm="12" :md="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
         <a-card class="stat-card">
-          <a-statistic title="Imported" :value="store.importedCount" />
+          <a-statistic
+            title="Imported"
+            :value="store.importedCount"
+          />
           <div class="stat-footer">
             <span class="stat-label">community assets</span>
           </div>
@@ -75,9 +106,18 @@
     </a-row>
 
     <!-- 快速操作 -->
-    <a-row :gutter="[16, 16]" class="action-row">
-      <a-col :xs="24" :md="12">
-        <a-card title="Quick Actions" size="small">
+    <a-row
+      :gutter="[16, 16]"
+      class="action-row"
+    >
+      <a-col
+        :xs="24"
+        :md="12"
+      >
+        <a-card
+          title="Quick Actions"
+          size="small"
+        >
           <div class="action-list">
             <a-button
               block
@@ -99,8 +139,14 @@
           </div>
         </a-card>
       </a-col>
-      <a-col :xs="24" :md="12">
-        <a-card title="Configuration" size="small">
+      <a-col
+        :xs="24"
+        :md="12"
+      >
+        <a-card
+          title="Configuration"
+          size="small"
+        >
           <div class="config-items">
             <div class="config-item">
               <span>Auto-Publish</span>
@@ -140,7 +186,11 @@
     </a-row>
 
     <!-- 同步日志 -->
-    <a-card title="Recent Sync Log" size="small" class="log-card">
+    <a-card
+      title="Recent Sync Log"
+      size="small"
+      class="log-card"
+    >
       <a-table
         :data-source="store.syncLog.slice(0, 15)"
         :columns="logColumns"

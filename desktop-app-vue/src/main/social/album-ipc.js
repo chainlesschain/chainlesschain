@@ -138,7 +138,7 @@ function registerAlbumIPC({
         throw new Error("Shared album manager not initialized");
       }
 
-      let photoOptions = { ...options };
+      const photoOptions = { ...options };
 
       // Process photo if exifStripper is available and we have a raw file path
       if (exifStripper && options.rawFilePath && !options.filePath) {

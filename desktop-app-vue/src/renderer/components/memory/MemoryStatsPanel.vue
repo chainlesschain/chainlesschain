@@ -1,7 +1,10 @@
 <template>
   <div class="memory-stats-panel">
     <!-- 概览卡片 -->
-    <a-row :gutter="16" class="stats-cards">
+    <a-row
+      :gutter="16"
+      class="stats-cards"
+    >
       <a-col :span="6">
         <a-card size="small">
           <a-statistic
@@ -46,7 +49,11 @@
       title="Embedding 缓存"
       class="section-card"
     >
-      <a-descriptions :column="3" size="small" bordered>
+      <a-descriptions
+        :column="3"
+        size="small"
+        bordered
+      >
         <a-descriptions-item label="缓存条目">
           {{ indexStats.embeddingCache.count }} /
           {{ indexStats.embeddingCache.maxSize }}
@@ -107,7 +114,11 @@
       title="文件监听器"
       class="section-card"
     >
-      <a-descriptions :column="3" size="small" bordered>
+      <a-descriptions
+        :column="3"
+        size="small"
+        bordered
+      >
         <a-descriptions-item label="状态">
           <a-tag :color="indexStats.fileWatcher.isWatching ? 'green' : 'gray'">
             {{ indexStats.fileWatcher.isWatching ? "监听中" : "已停止" }}
@@ -145,13 +156,19 @@
     <!-- 操作按钮 -->
     <div class="actions">
       <a-space>
-        <a-button :loading="loading" @click="refreshStats">
+        <a-button
+          :loading="loading"
+          @click="refreshStats"
+        >
           <template #icon>
             <ReloadOutlined />
           </template>
           刷新统计
         </a-button>
-        <a-button :loading="rebuildLoading" @click="handleRebuildIndex">
+        <a-button
+          :loading="rebuildLoading"
+          @click="handleRebuildIndex"
+        >
           <template #icon>
             <DatabaseOutlined />
           </template>

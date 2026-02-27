@@ -4,17 +4,28 @@
       <!-- Header Bar -->
       <div class="editor-header">
         <div class="header-left">
-          <a-button type="text" @click="handleBack">
+          <a-button
+            type="text"
+            @click="handleBack"
+          >
             <template #icon>
               <ArrowLeftOutlined />
             </template>
           </a-button>
           <div class="doc-title-area">
-            <h2 class="doc-title">{{ currentDoc?.title || 'Untitled Document' }}</h2>
-            <a-tag v-if="currentDoc?.contentType" color="blue">
+            <h2 class="doc-title">
+              {{ currentDoc?.title || 'Untitled Document' }}
+            </h2>
+            <a-tag
+              v-if="currentDoc?.contentType"
+              color="blue"
+            >
               {{ currentDoc.contentType }}
             </a-tag>
-            <a-tag v-if="currentDoc?.visibility" :color="visibilityColor">
+            <a-tag
+              v-if="currentDoc?.visibility"
+              :color="visibilityColor"
+            >
               {{ currentDoc.visibility }}
             </a-tag>
           </div>
@@ -45,19 +56,28 @@
         </div>
 
         <div class="header-right">
-          <a-button size="small" @click="handleSaveVersion">
+          <a-button
+            size="small"
+            @click="handleSaveVersion"
+          >
             <template #icon>
               <SaveOutlined />
             </template>
             Save Version
           </a-button>
-          <a-button size="small" @click="handleInvite">
+          <a-button
+            size="small"
+            @click="handleInvite"
+          >
             <template #icon>
               <UserAddOutlined />
             </template>
             Invite
           </a-button>
-          <a-button size="small" @click="toggleSidebar">
+          <a-button
+            size="small"
+            @click="toggleSidebar"
+          >
             <template #icon>
               <MenuOutlined />
             </template>
@@ -68,8 +88,14 @@
       <!-- Main Content Area -->
       <div class="editor-body">
         <!-- Editor Area -->
-        <div class="editor-area" :class="{ 'with-sidebar': sidebarVisible }">
-          <div class="editor-wrapper" ref="editorWrapperRef">
+        <div
+          class="editor-area"
+          :class="{ 'with-sidebar': sidebarVisible }"
+        >
+          <div
+            ref="editorWrapperRef"
+            class="editor-wrapper"
+          >
             <!-- Cursor Overlay for remote cursors -->
             <CursorOverlay
               :cursors="store.remoteCursors"
@@ -88,7 +114,7 @@
               @click="handleCursorChange"
               @focus="handleEditorFocus"
               @blur="handleEditorBlur"
-            ></div>
+            />
           </div>
 
           <!-- Editor Footer / Status Bar -->
@@ -113,12 +139,24 @@
         </div>
 
         <!-- Sidebar -->
-        <div v-if="sidebarVisible" class="editor-sidebar">
-          <a-tabs v-model:activeKey="sidebarTab" size="small">
+        <div
+          v-if="sidebarVisible"
+          class="editor-sidebar"
+        >
+          <a-tabs
+            v-model:active-key="sidebarTab"
+            size="small"
+          >
             <!-- Collaborators Tab -->
-            <a-tab-pane key="collaborators" tab="Collaborators">
+            <a-tab-pane
+              key="collaborators"
+              tab="Collaborators"
+            >
               <div class="sidebar-section">
-                <div v-if="store.collaborators.length === 0 && store.remoteCursors.length === 0" class="empty-state">
+                <div
+                  v-if="store.collaborators.length === 0 && store.remoteCursors.length === 0"
+                  class="empty-state"
+                >
                   <TeamOutlined style="font-size: 32px; color: #bfbfbf" />
                   <p>No collaborators online</p>
                 </div>
@@ -143,7 +181,10 @@
                           {{ item.name || item.did?.substring(0, 16) + '...' }}
                         </template>
                         <template #description>
-                          <a-badge status="success" text="Online" />
+                          <a-badge
+                            status="success"
+                            text="Online"
+                          />
                         </template>
                       </a-list-item-meta>
                     </a-list-item>
@@ -153,7 +194,10 @@
             </a-tab-pane>
 
             <!-- Version History Tab -->
-            <a-tab-pane key="versions" tab="Versions">
+            <a-tab-pane
+              key="versions"
+              tab="Versions"
+            >
               <div class="sidebar-section">
                 <a-button
                   type="dashed"
@@ -168,7 +212,10 @@
                   Create Snapshot
                 </a-button>
 
-                <div v-if="store.versions.length === 0" class="empty-state">
+                <div
+                  v-if="store.versions.length === 0"
+                  class="empty-state"
+                >
                   <HistoryOutlined style="font-size: 32px; color: #bfbfbf" />
                   <p>No versions yet</p>
                 </div>
@@ -210,8 +257,8 @@
     <a-modal
       v-model:open="inviteModalVisible"
       title="Invite Collaborator"
-      @ok="handleInviteSubmit"
       :confirm-loading="inviteLoading"
+      @ok="handleInviteSubmit"
     >
       <a-form layout="vertical">
         <a-form-item label="Collaborator DID">
@@ -222,9 +269,15 @@
         </a-form-item>
         <a-form-item label="Permission">
           <a-select v-model:value="inviteForm.permission">
-            <a-select-option value="editor">Editor</a-select-option>
-            <a-select-option value="commenter">Commenter</a-select-option>
-            <a-select-option value="viewer">Viewer</a-select-option>
+            <a-select-option value="editor">
+              Editor
+            </a-select-option>
+            <a-select-option value="commenter">
+              Commenter
+            </a-select-option>
+            <a-select-option value="viewer">
+              Viewer
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -234,8 +287,8 @@
     <a-modal
       v-model:open="saveVersionModalVisible"
       title="Save Version"
-      @ok="handleSaveVersionSubmit"
       :confirm-loading="saveVersionLoading"
+      @ok="handleSaveVersionSubmit"
     >
       <a-form layout="vertical">
         <a-form-item label="Description">
@@ -393,11 +446,11 @@ function handleInput() {
 
 function handleCursorChange() {
   const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return;
+  if (!sel || sel.rangeCount === 0) {return;}
 
   const range = sel.getRangeAt(0);
   const editor = editorContentRef.value;
-  if (!editor) return;
+  if (!editor) {return;}
 
   // Calculate line and column from the editor content
   const text = editor.innerText || '';
@@ -511,7 +564,7 @@ async function handleSaveVersionSubmit() {
 }
 
 async function handleRollback(version) {
-  if (!store.currentDoc) return;
+  if (!store.currentDoc) {return;}
 
   try {
     await store.rollback(store.currentDoc.id, version.versionNumber);
@@ -522,7 +575,7 @@ async function handleRollback(version) {
 }
 
 function formatTime(timestamp) {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   return date.toLocaleString();
 }

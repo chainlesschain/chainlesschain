@@ -1,9 +1,23 @@
 <template>
-  <a-card title="🔍 浏览器诊断工具" :bordered="false" class="diagnostics-panel">
-    <a-tabs v-model:active-key="activeTab" type="card">
+  <a-card
+    title="🔍 浏览器诊断工具"
+    :bordered="false"
+    class="diagnostics-panel"
+  >
+    <a-tabs
+      v-model:active-key="activeTab"
+      type="card"
+    >
       <!-- OCR 文本识别 -->
-      <a-tab-pane key="ocr" tab="OCR 文本识别">
-        <a-space direction="vertical" style="width: 100%" size="large">
+      <a-tab-pane
+        key="ocr"
+        tab="OCR 文本识别"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          size="large"
+        >
           <!-- 语言选择 -->
           <a-form layout="inline">
             <a-form-item label="识别语言">
@@ -60,11 +74,17 @@
               </template>
               开始识别
             </a-button>
-            <a-button @click="handleClearOCRResult"> 清除结果 </a-button>
+            <a-button @click="handleClearOCRResult">
+              清除结果
+            </a-button>
           </a-space>
 
           <!-- OCR 结果 -->
-          <a-card v-if="ocrResult" title="识别结果" size="small">
+          <a-card
+            v-if="ocrResult"
+            title="识别结果"
+            size="small"
+          >
             <template #extra>
               <a-space>
                 <a-statistic
@@ -92,7 +112,10 @@
             <a-divider />
 
             <a-collapse v-if="ocrResult.words && ocrResult.words.length > 0">
-              <a-collapse-panel key="words" header="详细单词信息">
+              <a-collapse-panel
+                key="words"
+                header="详细单词信息"
+              >
                 <a-table
                   :columns="ocrWordsColumns"
                   :data-source="ocrResult.words"
@@ -116,8 +139,15 @@
       </a-tab-pane>
 
       <!-- 截图比对 -->
-      <a-tab-pane key="diff" tab="截图比对">
-        <a-space direction="vertical" style="width: 100%" size="large">
+      <a-tab-pane
+        key="diff"
+        tab="截图比对"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          size="large"
+        >
           <!-- 配置 -->
           <a-form layout="inline">
             <a-form-item label="相似度阈值">
@@ -145,7 +175,10 @@
           <!-- 截图上传 -->
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-card title="基准截图" size="small">
+              <a-card
+                title="基准截图"
+                size="small"
+              >
                 <a-upload
                   :before-upload="
                     (file) => handleUploadScreenshot(file, 'baseline')
@@ -160,13 +193,22 @@
                     上传基准截图
                   </a-button>
                 </a-upload>
-                <div v-if="diffScreenshots.baseline" class="screenshot-preview">
-                  <img :src="diffScreenshots.baseline" alt="Baseline" />
+                <div
+                  v-if="diffScreenshots.baseline"
+                  class="screenshot-preview"
+                >
+                  <img
+                    :src="diffScreenshots.baseline"
+                    alt="Baseline"
+                  >
                 </div>
               </a-card>
             </a-col>
             <a-col :span="12">
-              <a-card title="当前截图" size="small">
+              <a-card
+                title="当前截图"
+                size="small"
+              >
                 <a-space>
                   <a-upload
                     :before-upload="
@@ -193,8 +235,14 @@
                     截取当前页面
                   </a-button>
                 </a-space>
-                <div v-if="diffScreenshots.current" class="screenshot-preview">
-                  <img :src="diffScreenshots.current" alt="Current" />
+                <div
+                  v-if="diffScreenshots.current"
+                  class="screenshot-preview"
+                >
+                  <img
+                    :src="diffScreenshots.current"
+                    alt="Current"
+                  >
                 </div>
               </a-card>
             </a-col>
@@ -216,7 +264,11 @@
           </a-button>
 
           <!-- 比对结果 -->
-          <a-card v-if="diffResult" title="比对结果" size="small">
+          <a-card
+            v-if="diffResult"
+            title="比对结果"
+            size="small"
+          >
             <template #extra>
               <a-space>
                 <a-badge
@@ -241,16 +293,22 @@
               </a-space>
             </template>
 
-            <a-row v-if="diffResult.diffImage" :gutter="16">
+            <a-row
+              v-if="diffResult.diffImage"
+              :gutter="16"
+            >
               <a-col :span="24">
                 <div class="diff-image-container">
                   <img
                     :src="`data:image/png;base64,${diffResult.diffImage}`"
                     alt="Diff"
-                  />
+                  >
                   <p class="diff-legend">
                     <span class="legend-item">
-                      <span class="legend-color" style="background: #ff00ff" />
+                      <span
+                        class="legend-color"
+                        style="background: #ff00ff"
+                      />
                       差异区域
                     </span>
                   </p>
@@ -290,16 +348,29 @@
       </a-tab-pane>
 
       <!-- 诊断历史 -->
-      <a-tab-pane key="history" tab="诊断历史">
-        <a-space direction="vertical" style="width: 100%" size="large">
+      <a-tab-pane
+        key="history"
+        tab="诊断历史"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          size="large"
+        >
           <a-space>
-            <a-button type="primary" @click="handleRefreshHistory">
+            <a-button
+              type="primary"
+              @click="handleRefreshHistory"
+            >
               <template #icon>
                 <ReloadOutlined />
               </template>
               刷新历史
             </a-button>
-            <a-button danger @click="handleClearHistory">
+            <a-button
+              danger
+              @click="handleClearHistory"
+            >
               清除全部历史
             </a-button>
           </a-space>

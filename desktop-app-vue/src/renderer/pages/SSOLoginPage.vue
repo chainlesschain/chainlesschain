@@ -1,21 +1,38 @@
 <template>
   <div class="sso-login-container">
     <a-card class="sso-login-card">
-      <a-space direction="vertical" :size="24" style="width: 100%">
+      <a-space
+        direction="vertical"
+        :size="24"
+        style="width: 100%"
+      >
         <!-- Header -->
         <div class="sso-login-header">
           <SafetyCertificateOutlined :style="{ fontSize: '48px', color: '#1890ff' }" />
-          <h2 class="sso-login-title">企业单点登录</h2>
-          <p class="sso-login-subtitle">选择 SSO 提供商进行身份认证</p>
+          <h2 class="sso-login-title">
+            企业单点登录
+          </h2>
+          <p class="sso-login-subtitle">
+            选择 SSO 提供商进行身份认证
+          </p>
         </div>
 
         <!-- Loading State -->
-        <div v-if="loading" class="sso-loading">
-          <a-spin size="large" tip="加载提供商列表..." />
+        <div
+          v-if="loading"
+          class="sso-loading"
+        >
+          <a-spin
+            size="large"
+            tip="加载提供商列表..."
+          />
         </div>
 
         <!-- Provider List -->
-        <div v-else-if="enabledProviders.length > 0" class="sso-provider-list">
+        <div
+          v-else-if="enabledProviders.length > 0"
+          class="sso-provider-list"
+        >
           <div
             v-for="provider in enabledProviders"
             :key="provider.id"
@@ -37,9 +54,14 @@
               />
             </div>
             <div class="provider-info">
-              <div class="provider-name">{{ provider.provider_name }}</div>
+              <div class="provider-name">
+                {{ provider.provider_name }}
+              </div>
               <div class="provider-type">
-                <a-tag :color="getProviderTypeColor(provider.provider_type)" size="small">
+                <a-tag
+                  :color="getProviderTypeColor(provider.provider_type)"
+                  size="small"
+                >
                   {{ getProviderTypeLabel(provider.provider_type) }}
                 </a-tag>
               </div>
@@ -49,7 +71,10 @@
         </div>
 
         <!-- Empty State -->
-        <a-empty v-else description="暂无可用的 SSO 提供商">
+        <a-empty
+          v-else
+          description="暂无可用的 SSO 提供商"
+        >
           <template #image>
             <DisconnectOutlined :style="{ fontSize: '48px', color: '#d9d9d9' }" />
           </template>
@@ -59,8 +84,14 @@
         </a-empty>
 
         <!-- Callback Handling Status -->
-        <div v-if="authInProgress" class="sso-auth-progress">
-          <a-alert type="info" show-icon>
+        <div
+          v-if="authInProgress"
+          class="sso-auth-progress"
+        >
+          <a-alert
+            type="info"
+            show-icon
+          >
             <template #message>
               SSO 认证进行中
             </template>
@@ -87,7 +118,10 @@
 
         <!-- Back to normal login -->
         <div class="sso-login-footer">
-          <a-button type="link" @click="handleBackToLogin">
+          <a-button
+            type="link"
+            @click="handleBackToLogin"
+          >
             <ArrowLeftOutlined /> 返回普通登录
           </a-button>
         </div>
@@ -189,7 +223,7 @@ let callbackCleanup: (() => void) | null = null
 
 function setupCallbackListener() {
   const ipcRenderer = (window as any).electron?.ipcRenderer
-  if (!ipcRenderer) return
+  if (!ipcRenderer) {return}
 
   const handler = (_event: any, result: any) => {
     authInProgress.value = false

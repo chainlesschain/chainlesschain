@@ -7,15 +7,23 @@
           <RobotOutlined />
           智能代理中心
         </h1>
-        <p class="page-description">管理代理模板、实例、任务和性能分析</p>
+        <p class="page-description">
+          管理代理模板、实例、任务和性能分析
+        </p>
       </div>
       <div class="header-right">
         <a-space>
-          <a-button :loading="store.loading" @click="handleRefresh">
+          <a-button
+            :loading="store.loading"
+            @click="handleRefresh"
+          >
             <ReloadOutlined />
             刷新
           </a-button>
-          <a-button type="primary" @click="showOrchestrateModal">
+          <a-button
+            type="primary"
+            @click="showOrchestrateModal"
+          >
             <ThunderboltOutlined />
             编排任务
           </a-button>
@@ -26,7 +34,11 @@
     <!-- 统计卡片 -->
     <div class="stats-section">
       <a-row :gutter="16">
-        <a-col :xs="24" :sm="12" :md="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="6"
+        >
           <a-card :loading="store.loading">
             <a-statistic
               title="代理模板"
@@ -36,7 +48,11 @@
             />
           </a-card>
         </a-col>
-        <a-col :xs="24" :sm="12" :md="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="6"
+        >
           <a-card :loading="store.loading">
             <a-statistic
               title="活跃实例"
@@ -46,7 +62,11 @@
             />
           </a-card>
         </a-col>
-        <a-col :xs="24" :sm="12" :md="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="6"
+        >
           <a-card :loading="store.loading">
             <a-statistic
               title="已完成任务"
@@ -56,7 +76,11 @@
             />
           </a-card>
         </a-col>
-        <a-col :xs="24" :sm="12" :md="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="6"
+        >
           <a-card :loading="store.loading">
             <a-statistic
               title="成功率"
@@ -74,8 +98,11 @@
     </div>
 
     <!-- 标签页 -->
-    <a-card :bordered="false" class="main-card">
-      <a-tabs v-model:activeKey="activeTab">
+    <a-card
+      :bordered="false"
+      class="main-card"
+    >
+      <a-tabs v-model:active-key="activeTab">
         <!-- 代理模板标签页 -->
         <a-tab-pane key="templates">
           <template #tab>
@@ -84,7 +111,10 @@
           </template>
 
           <div class="tab-content">
-            <div v-if="store.templates.length > 0" class="templates-grid">
+            <div
+              v-if="store.templates.length > 0"
+              class="templates-grid"
+            >
               <a-row :gutter="[16, 16]">
                 <a-col
                   v-for="template in store.templates"
@@ -94,7 +124,10 @@
                   :md="8"
                   :lg="6"
                 >
-                  <a-card class="template-card" hoverable>
+                  <a-card
+                    class="template-card"
+                    hoverable
+                  >
                     <div class="template-header">
                       <a-avatar
                         :style="{ backgroundColor: getTypeColor(template.type) }"
@@ -105,7 +138,9 @@
                       </a-avatar>
                       <div class="template-title">
                         <h3>{{ template.name }}</h3>
-                        <a-tag :color="getTypeColor(template.type)">{{ template.type }}</a-tag>
+                        <a-tag :color="getTypeColor(template.type)">
+                          {{ template.type }}
+                        </a-tag>
                       </div>
                     </div>
 
@@ -157,8 +192,14 @@
               style="margin-top: 60px"
             />
 
-            <div v-if="store.loading" class="loading-container">
-              <a-spin size="large" tip="加载代理模板..." />
+            <div
+              v-if="store.loading"
+              class="loading-container"
+            >
+              <a-spin
+                size="large"
+                tip="加载代理模板..."
+              />
             </div>
           </div>
         </a-tab-pane>
@@ -198,7 +239,10 @@
                   <span v-if="record.currentTask">
                     {{ truncateText(record.currentTask, 40) }}
                   </span>
-                  <span v-else style="color: #bfbfbf">--</span>
+                  <span
+                    v-else
+                    style="color: #bfbfbf"
+                  >--</span>
                 </template>
                 <template v-if="column.key === 'createdAt'">
                   {{ formatTime(record.createdAt) }}
@@ -218,7 +262,11 @@
                       cancel-text="取消"
                       @confirm="handleTerminate(record as AgentInstance)"
                     >
-                      <a-button type="link" danger size="small">
+                      <a-button
+                        type="link"
+                        danger
+                        size="small"
+                      >
                         终止
                       </a-button>
                     </a-popconfirm>
@@ -258,18 +306,32 @@
                   <span v-if="record.task_description">
                     {{ truncateText(record.task_description, 50) }}
                   </span>
-                  <span v-else style="color: #bfbfbf">--</span>
+                  <span
+                    v-else
+                    style="color: #bfbfbf"
+                  >--</span>
                 </template>
                 <template v-if="column.key === 'success'">
-                  <a-tag v-if="record.success === true" color="success">
+                  <a-tag
+                    v-if="record.success === true"
+                    color="success"
+                  >
                     <CheckCircleOutlined />
                     成功
                   </a-tag>
-                  <a-tag v-else-if="record.success === false" color="error">
+                  <a-tag
+                    v-else-if="record.success === false"
+                    color="error"
+                  >
                     <CloseCircleOutlined />
                     失败
                   </a-tag>
-                  <a-tag v-else color="default">未知</a-tag>
+                  <a-tag
+                    v-else
+                    color="default"
+                  >
+                    未知
+                  </a-tag>
                 </template>
                 <template v-if="column.key === 'duration'">
                   {{ formatDuration(record.started_at, record.completed_at) }}
@@ -278,7 +340,10 @@
                   <span v-if="record.tokens_used">
                     {{ record.tokens_used.toLocaleString() }}
                   </span>
-                  <span v-else style="color: #bfbfbf">--</span>
+                  <span
+                    v-else
+                    style="color: #bfbfbf"
+                  >--</span>
                 </template>
                 <template v-if="column.key === 'started_at'">
                   {{ formatTime(record.started_at) }}
@@ -300,7 +365,10 @@
           </template>
 
           <div class="tab-content">
-            <div v-if="store.performance.length > 0" class="performance-section">
+            <div
+              v-if="store.performance.length > 0"
+              class="performance-section"
+            >
               <!-- 性能总览表格 -->
               <a-table
                 :columns="performanceColumns"
@@ -335,17 +403,35 @@
 
               <!-- ECharts 性能图表占位 -->
               <a-row :gutter="16">
-                <a-col :xs="24" :md="12">
-                  <a-card title="任务完成趋势" :bordered="false">
-                    <div ref="taskTrendChart" class="chart-placeholder">
+                <a-col
+                  :xs="24"
+                  :md="12"
+                >
+                  <a-card
+                    title="任务完成趋势"
+                    :bordered="false"
+                  >
+                    <div
+                      ref="taskTrendChart"
+                      class="chart-placeholder"
+                    >
                       <BarChartOutlined style="font-size: 48px; color: #d9d9d9" />
                       <p>ECharts 图表区域</p>
                     </div>
                   </a-card>
                 </a-col>
-                <a-col :xs="24" :md="12">
-                  <a-card title="Token 消耗分布" :bordered="false">
-                    <div ref="tokenDistChart" class="chart-placeholder">
+                <a-col
+                  :xs="24"
+                  :md="12"
+                >
+                  <a-card
+                    title="Token 消耗分布"
+                    :bordered="false"
+                  >
+                    <div
+                      ref="tokenDistChart"
+                      class="chart-placeholder"
+                    >
                       <PieChartOutlined style="font-size: 48px; color: #d9d9d9" />
                       <p>ECharts 图表区域</p>
                     </div>
@@ -360,8 +446,14 @@
               style="margin-top: 60px"
             />
 
-            <div v-if="store.loading" class="loading-container">
-              <a-spin size="large" tip="加载性能数据..." />
+            <div
+              v-if="store.loading"
+              class="loading-container"
+            >
+              <a-spin
+                size="large"
+                tip="加载性能数据..."
+              />
             </div>
           </div>
         </a-tab-pane>
@@ -378,8 +470,14 @@
       cancel-text="取消"
       @ok="handleOrchestrate"
     >
-      <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
-        <a-form-item label="任务描述" required>
+      <a-form
+        :label-col="{ span: 4 }"
+        :wrapper-col="{ span: 20 }"
+      >
+        <a-form-item
+          label="任务描述"
+          required
+        >
           <a-textarea
             v-model:value="orchestrateForm.taskDescription"
             placeholder="请详细描述要编排的任务，系统将自动分析并分配给合适的代理..."
@@ -398,7 +496,10 @@
       </a-form>
 
       <!-- 编排结果展示 -->
-      <div v-if="orchestrationResult" class="orchestration-result">
+      <div
+        v-if="orchestrationResult"
+        class="orchestration-result"
+      >
         <a-divider>编排结果</a-divider>
         <a-timeline>
           <a-timeline-item
@@ -408,7 +509,7 @@
           >
             <strong>{{ step.agentType }}</strong>: {{ step.action }}
             <template v-if="step.dependencies && step.dependencies.length > 0">
-              <br />
+              <br>
               <span style="color: #8c8c8c; font-size: 12px">
                 依赖: {{ step.dependencies.join(', ') }}
               </span>
@@ -662,20 +763,20 @@ function getStatusLabel(status: string): string {
 }
 
 function truncateText(text: string, maxLen: number): string {
-  if (!text) return '';
+  if (!text) {return '';}
   return text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
 }
 
 function formatTime(timestamp: number | undefined): string {
-  if (!timestamp) return '--';
+  if (!timestamp) {return '--';}
   return new Date(timestamp).toLocaleString('zh-CN');
 }
 
 function formatDuration(startedAt: number | undefined, completedAt: number | undefined): string {
-  if (!startedAt || !completedAt) return '--';
+  if (!startedAt || !completedAt) {return '--';}
   const duration = completedAt - startedAt;
-  if (duration < 1000) return duration + 'ms';
-  if (duration < 60000) return (duration / 1000).toFixed(1) + 's';
+  if (duration < 1000) {return duration + 'ms';}
+  if (duration < 60000) {return (duration / 1000).toFixed(1) + 's';}
   return (duration / 60000).toFixed(1) + 'min';
 }
 

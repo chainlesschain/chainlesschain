@@ -3,26 +3,41 @@
     :class="['skill-node', { 'skill-node--selected': selected }, statusClass]"
     :style="borderStyle"
   >
-    <Handle type="target" :position="Position.Top" />
+    <Handle
+      type="target"
+      :position="Position.Top"
+    />
     <div class="skill-node__body">
       <a-avatar
         :size="28"
         :style="{ backgroundColor: statusColor, flexShrink: 0 }"
       >
-        <template v-if="executionStatus === 'completed'">&#10003;</template>
-        <template v-else-if="executionStatus === 'failed'">&#10007;</template>
-        <template v-else>S</template>
+        <template v-if="executionStatus === 'completed'">
+          &#10003;
+        </template>
+        <template v-else-if="executionStatus === 'failed'">
+          &#10007;
+        </template>
+        <template v-else>
+          S
+        </template>
       </a-avatar>
       <div class="skill-node__info">
         <div class="skill-node__label">
           {{ data.label || "Skill" }}
         </div>
-        <div v-if="data.skillId" class="skill-node__id">
+        <div
+          v-if="data.skillId"
+          class="skill-node__id"
+        >
           {{ data.skillId }}
         </div>
       </div>
     </div>
-    <Handle type="source" :position="Position.Bottom" />
+    <Handle
+      type="source"
+      :position="Position.Bottom"
+    />
   </div>
 </template>
 
@@ -59,9 +74,9 @@ const borderStyle = computed(() => ({
 }));
 
 const statusClass = computed(() => {
-  if (executionStatus.value === "running") return "skill-node--running";
-  if (executionStatus.value === "completed") return "skill-node--completed";
-  if (executionStatus.value === "failed") return "skill-node--failed";
+  if (executionStatus.value === "running") {return "skill-node--running";}
+  if (executionStatus.value === "completed") {return "skill-node--completed";}
+  if (executionStatus.value === "failed") {return "skill-node--failed";}
   return "";
 });
 </script>

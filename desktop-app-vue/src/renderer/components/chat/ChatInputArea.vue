@@ -1,5 +1,8 @@
 <template>
-  <div class="input-container" data-testid="input-container">
+  <div
+    class="input-container"
+    data-testid="input-container"
+  >
     <div class="input-wrapper">
       <MessageInput
         :value="userInput"

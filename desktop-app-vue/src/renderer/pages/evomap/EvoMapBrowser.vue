@@ -7,16 +7,28 @@
         <span class="subtitle">Discover community-validated AI strategies</span>
       </div>
       <div class="header-right">
-        <a-radio-group v-model:value="viewMode" size="small">
-          <a-radio-button value="search"> Search </a-radio-button>
-          <a-radio-button value="trending"> Trending </a-radio-button>
-          <a-radio-button value="ranked"> Top Ranked </a-radio-button>
+        <a-radio-group
+          v-model:value="viewMode"
+          size="small"
+        >
+          <a-radio-button value="search">
+            Search
+          </a-radio-button>
+          <a-radio-button value="trending">
+            Trending
+          </a-radio-button>
+          <a-radio-button value="ranked">
+            Top Ranked
+          </a-radio-button>
         </a-radio-group>
       </div>
     </div>
 
     <!-- 搜索栏 -->
-    <div v-if="viewMode === 'search'" class="search-bar">
+    <div
+      v-if="viewMode === 'search'"
+      class="search-bar"
+    >
       <a-input-search
         v-model:value="searchKeyword"
         placeholder="Search by keywords (e.g. javascript, error-fix, testing)"
@@ -31,8 +43,12 @@
         style="width: 150px; margin-left: 8px"
         allow-clear
       >
-        <a-select-option value="Gene"> Gene </a-select-option>
-        <a-select-option value="Capsule"> Capsule </a-select-option>
+        <a-select-option value="Gene">
+          Gene
+        </a-select-option>
+        <a-select-option value="Capsule">
+          Capsule
+        </a-select-option>
       </a-select>
     </div>
 
@@ -94,7 +110,10 @@
                 </p>
 
                 <div class="card-meta">
-                  <span class="asset-id" :title="item.asset_id">
+                  <span
+                    class="asset-id"
+                    :title="item.asset_id"
+                  >
                     {{ (item.asset_id || "").substring(0, 20) }}...
                   </span>
                 </div>

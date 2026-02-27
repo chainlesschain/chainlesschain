@@ -1,6 +1,9 @@
 <template>
   <div class="vc-management">
-    <a-card title="可验证凭证管理" :loading="loading">
+    <a-card
+      title="可验证凭证管理"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
           <a-button
@@ -27,7 +30,10 @@
             </template>
             模板管理
           </a-button>
-          <a-button type="primary" @click="showCreateModal = true">
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
             <template #icon>
               <plus-outlined />
             </template>
@@ -37,15 +43,27 @@
       </template>
 
       <!-- 统计信息 -->
-      <a-row :gutter="16" style="margin-bottom: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 24px"
+      >
         <a-col :span="8">
-          <a-statistic title="总凭证数" :value="stats.total" />
+          <a-statistic
+            title="总凭证数"
+            :value="stats.total"
+          />
         </a-col>
         <a-col :span="8">
-          <a-statistic title="已颁发" :value="stats.issued" />
+          <a-statistic
+            title="已颁发"
+            :value="stats.issued"
+          />
         </a-col>
         <a-col :span="8">
-          <a-statistic title="已接收" :value="stats.received" />
+          <a-statistic
+            title="已接收"
+            :value="stats.received"
+          />
         </a-col>
       </a-row>
 
@@ -58,10 +76,16 @@
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
-              <a-button type="link" @click="handleViewCredential(item)">
+              <a-button
+                type="link"
+                @click="handleViewCredential(item)"
+              >
                 查看
               </a-button>
-              <a-button type="link" @click="handleVerifyCredential(item.id)">
+              <a-button
+                type="link"
+                @click="handleVerifyCredential(item.id)"
+              >
                 验证
               </a-button>
               <a-button
@@ -74,10 +98,16 @@
               >
                 撤销
               </a-button>
-              <a-button type="link" @click="handleExportCredential(item.id)">
+              <a-button
+                type="link"
+                @click="handleExportCredential(item.id)"
+              >
                 导出
               </a-button>
-              <a-button type="link" @click="handleShareCredential(item.id)">
+              <a-button
+                type="link"
+                @click="handleShareCredential(item.id)"
+              >
                 分享
               </a-button>
             </template>
@@ -125,14 +155,21 @@
             v-model:value="createMode"
             @change="handleCreateModeChange"
           >
-            <a-radio-button value="template"> 使用模板 </a-radio-button>
-            <a-radio-button value="manual"> 手动输入 </a-radio-button>
+            <a-radio-button value="template">
+              使用模板
+            </a-radio-button>
+            <a-radio-button value="manual">
+              手动输入
+            </a-radio-button>
           </a-radio-group>
         </a-form-item>
 
         <!-- 模板选择模式 -->
         <template v-if="createMode === 'template'">
-          <a-form-item label="选择模板" required>
+          <a-form-item
+            label="选择模板"
+            required
+          >
             <a-select
               v-model:value="selectedTemplateId"
               placeholder="选择凭证模板"
@@ -233,7 +270,10 @@
 
         <!-- 手动输入模式 -->
         <template v-else>
-          <a-form-item label="凭证类型" required>
+          <a-form-item
+            label="凭证类型"
+            required
+          >
             <a-select v-model:value="createForm.type">
               <a-select-option value="SelfDeclaration">
                 自我声明
@@ -253,23 +293,33 @@
             </a-select>
           </a-form-item>
 
-          <a-form-item label="声明内容" required>
+          <a-form-item
+            label="声明内容"
+            required
+          >
             <a-textarea
               v-model:value="createForm.claimsText"
-              placeholder='输入 JSON 格式的声明，例如: {"skill": "JavaScript", "level": "Expert"}'
+              placeholder="输入 JSON 格式的声明，例如: {&quot;skill&quot;: &quot;JavaScript&quot;, &quot;level&quot;: &quot;Expert&quot;}"
               :rows="6"
             />
-            <div class="form-hint">必须是有效的 JSON 格式</div>
+            <div class="form-hint">
+              必须是有效的 JSON 格式
+            </div>
           </a-form-item>
         </template>
 
         <!-- 公共字段 -->
-        <a-form-item label="主体 DID" required>
+        <a-form-item
+          label="主体 DID"
+          required
+        >
           <a-input
             v-model:value="createForm.subjectDID"
             placeholder="did:chainlesschain:..."
           />
-          <div class="form-hint">接收此凭证的人的 DID</div>
+          <div class="form-hint">
+            接收此凭证的人的 DID
+          </div>
         </a-form-item>
 
         <a-form-item label="有效期（天）">
@@ -296,7 +346,10 @@
       :footer="null"
     >
       <div v-if="currentCredential">
-        <a-descriptions bordered :column="1">
+        <a-descriptions
+          bordered
+          :column="1"
+        >
           <a-descriptions-item label="凭证 ID">
             <a-typography-paragraph
               :copyable="{ text: currentCredential.id }"
@@ -356,7 +409,11 @@
     </a-modal>
 
     <!-- 验证结果模态框 -->
-    <a-modal v-model:open="showVerifyModal" title="凭证验证结果" :footer="null">
+    <a-modal
+      v-model:open="showVerifyModal"
+      title="凭证验证结果"
+      :footer="null"
+    >
       <a-result
         :status="verifyResult ? 'success' : 'error'"
         :title="verifyResult ? '凭证验证成功' : '凭证验证失败'"
@@ -375,7 +432,10 @@
     >
       <a-tabs v-model:active-key="templateManagerTab">
         <!-- 模板列表 -->
-        <a-tab-pane key="list" tab="模板列表">
+        <a-tab-pane
+          key="list"
+          tab="模板列表"
+        >
           <a-space style="margin-bottom: 16px">
             <a-button @click="handleImportTemplate">
               <template #icon>
@@ -438,14 +498,21 @@
         </a-tab-pane>
 
         <!-- 导入结果 -->
-        <a-tab-pane v-if="lastImportResult" key="import-result" tab="导入结果">
+        <a-tab-pane
+          v-if="lastImportResult"
+          key="import-result"
+          tab="导入结果"
+        >
           <a-result
             :status="lastImportResult.failed === 0 ? 'success' : 'warning'"
             :title="lastImportResult.failed === 0 ? '导入成功' : '部分导入成功'"
             :sub-title="`成功: ${lastImportResult.success} 个，失败: ${lastImportResult.failed} 个`"
           >
             <template #extra>
-              <a-space direction="vertical" style="width: 100%">
+              <a-space
+                direction="vertical"
+                style="width: 100%"
+              >
                 <div v-if="lastImportResult.imported.length > 0">
                   <h4>成功导入的模板:</h4>
                   <a-tag
@@ -482,7 +549,7 @@
         accept=".json"
         style="display: none"
         @change="handleFileSelected"
-      />
+      >
     </a-modal>
 
     <!-- 凭证分享模态框 -->
@@ -492,7 +559,10 @@
       :width="500"
       :footer="null"
     >
-      <div v-if="shareData" class="share-content">
+      <div
+        v-if="shareData"
+        class="share-content"
+      >
         <a-alert
           message="扫描二维码或复制链接分享凭证"
           type="info"
@@ -502,27 +572,50 @@
 
         <!-- 二维码 -->
         <div class="qrcode-container">
-          <canvas ref="qrcodeCanvas" style="display: none" />
-          <img :src="qrcodeImage" alt="QR Code" style="max-width: 100%" />
+          <canvas
+            ref="qrcodeCanvas"
+            style="display: none"
+          />
+          <img
+            :src="qrcodeImage"
+            alt="QR Code"
+            style="max-width: 100%"
+          >
         </div>
 
         <!-- 分享链接 -->
-        <a-input-group compact style="margin-top: 16px">
+        <a-input-group
+          compact
+          style="margin-top: 16px"
+        >
           <a-input
             :value="shareData.shareUrl"
             readonly
             style="width: calc(100% - 80px)"
           />
-          <a-button type="primary" @click="copyShareUrl"> 复制链接 </a-button>
+          <a-button
+            type="primary"
+            @click="copyShareUrl"
+          >
+            复制链接
+          </a-button>
         </a-input-group>
 
         <!-- JSON 数据 -->
         <a-collapse style="margin-top: 16px">
-          <a-collapse-panel key="1" header="查看 JSON 数据">
+          <a-collapse-panel
+            key="1"
+            header="查看 JSON 数据"
+          >
             <pre class="json-data">{{
               JSON.stringify(shareData.fullData, null, 2)
             }}</pre>
-            <a-button block @click="copyShareJson"> 复制 JSON </a-button>
+            <a-button
+              block
+              @click="copyShareJson"
+            >
+              复制 JSON
+            </a-button>
           </a-collapse-panel>
         </a-collapse>
       </div>
@@ -537,7 +630,10 @@
       @ok="handleImportShare"
     >
       <a-tabs v-model:active-key="importMethod">
-        <a-tab-pane key="qrcode" tab="扫描二维码">
+        <a-tab-pane
+          key="qrcode"
+          tab="扫描二维码"
+        >
           <div class="import-qrcode">
             <a-alert
               message="请将二维码对准摄像头"
@@ -545,11 +641,17 @@
               show-icon
               style="margin-bottom: 16px"
             />
-            <div ref="qrScannerContainer" class="qr-scanner" />
+            <div
+              ref="qrScannerContainer"
+              class="qr-scanner"
+            />
           </div>
         </a-tab-pane>
 
-        <a-tab-pane key="json" tab="粘贴 JSON">
+        <a-tab-pane
+          key="json"
+          tab="粘贴 JSON"
+        >
           <a-textarea
             v-model:value="importJsonText"
             placeholder="粘贴凭证 JSON 数据"

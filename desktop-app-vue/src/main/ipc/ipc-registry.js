@@ -3994,6 +3994,247 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 46: Threshold Signatures + Biometric Binding (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Initializing Threshold Signature + Biometric modules...");
+
+      const { ThresholdSignatureManager } = require("../ukey/threshold-signature-manager");
+      const { BiometricBinding } = require("../ukey/biometric-binding");
+
+      const database = dependencies.database || null;
+
+      const thresholdManager = new ThresholdSignatureManager(database);
+      const biometricBinding = new BiometricBinding(database);
+
+      if (database) {
+        thresholdManager.initialize().catch((err) =>
+          logger.warn("[IPC Registry] ThresholdSignatureManager init warning:", err.message),
+        );
+        biometricBinding.initialize().catch((err) =>
+          logger.warn("[IPC Registry] BiometricBinding init warning:", err.message),
+        );
+      }
+
+      registeredModules.thresholdManager = thresholdManager;
+      registeredModules.biometricBinding = biometricBinding;
+
+      logger.info(
+        "[IPC Registry] ✓ Threshold + Biometric modules initialized (4 IPC via ukey-ipc.js)",
+      );
+    } catch (phase46Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 46 registration failed (non-fatal):",
+        phase46Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 46 Complete: Threshold Signatures ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 47: BLE U-Key (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Initializing BLE U-Key driver...");
+
+      const { getBLEDriver } = require("../ukey/ble-driver");
+      const bleDriver = getBLEDriver();
+
+      registeredModules.bleDriver = bleDriver;
+
+      logger.info(
+        "[IPC Registry] ✓ BLE driver initialized (4 IPC via ukey-ipc.js)",
+      );
+    } catch (phase47Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 47 registration failed (non-fatal):",
+        phase47Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 47 Complete: BLE U-Key ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 48: Smart Content Recommendation (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Recommendation modules...");
+
+      const { LocalRecommender } = require("../social/local-recommender");
+      const { InterestProfiler } = require("../social/interest-profiler");
+      const { registerRecommendationIPC } = require("../social/recommendation-ipc");
+
+      const database = dependencies.database || null;
+
+      const localRecommender = new LocalRecommender(database);
+      const interestProfiler = new InterestProfiler(database);
+
+      if (database) {
+        localRecommender.initialize().catch((err) =>
+          logger.warn("[IPC Registry] LocalRecommender init warning:", err.message),
+        );
+        interestProfiler.initialize().catch((err) =>
+          logger.warn("[IPC Registry] InterestProfiler init warning:", err.message),
+        );
+      }
+
+      localRecommender.setInterestProfiler(interestProfiler);
+
+      registerRecommendationIPC({ localRecommender, interestProfiler });
+
+      registeredModules.localRecommender = localRecommender;
+      registeredModules.interestProfiler = interestProfiler;
+
+      logger.info(
+        "[IPC Registry] ✓ Recommendation modules registered (6 IPC handlers)",
+      );
+    } catch (phase48Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 48 registration failed (non-fatal):",
+        phase48Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 48 Complete: Content Recommendation ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 49: Nostr Bridge (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Nostr Bridge modules...");
+
+      const { NostrBridge } = require("../social/nostr-bridge");
+      const { NostrIdentity } = require("../social/nostr-identity");
+      const { registerNostrBridgeIPC } = require("../social/nostr-bridge-ipc");
+
+      const database = dependencies.database || null;
+
+      const nostrBridge = new NostrBridge(database);
+      const nostrIdentity = new NostrIdentity(database);
+
+      if (database) {
+        nostrBridge.initialize().catch((err) =>
+          logger.warn("[IPC Registry] NostrBridge init warning:", err.message),
+        );
+        nostrIdentity.initialize().catch((err) =>
+          logger.warn("[IPC Registry] NostrIdentity init warning:", err.message),
+        );
+      }
+
+      registerNostrBridgeIPC({ nostrBridge, nostrIdentity });
+
+      registeredModules.nostrBridge = nostrBridge;
+      registeredModules.nostrIdentity = nostrIdentity;
+
+      logger.info(
+        "[IPC Registry] ✓ Nostr Bridge modules registered (6 IPC handlers)",
+      );
+    } catch (phase49Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 49 registration failed (non-fatal):",
+        phase49Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 49 Complete: Nostr Bridge ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 50: DLP Data Loss Prevention (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering DLP modules...");
+
+      const { DLPEngine } = require("../audit/dlp-engine");
+      const { DLPPolicyManager } = require("../audit/dlp-policy");
+      const { registerDLPIPC } = require("../audit/dlp-ipc");
+
+      const database = dependencies.database || null;
+
+      const dlpEngine = new DLPEngine(database);
+      const dlpPolicyManager = new DLPPolicyManager(database);
+
+      if (database) {
+        dlpEngine.initialize().catch((err) =>
+          logger.warn("[IPC Registry] DLPEngine init warning:", err.message),
+        );
+        dlpPolicyManager.initialize().catch((err) =>
+          logger.warn("[IPC Registry] DLPPolicyManager init warning:", err.message),
+        );
+      }
+
+      dlpEngine.setPolicyManager(dlpPolicyManager);
+
+      registerDLPIPC({ dlpEngine, dlpPolicyManager });
+
+      registeredModules.dlpEngine = dlpEngine;
+      registeredModules.dlpPolicyManager = dlpPolicyManager;
+
+      logger.info(
+        "[IPC Registry] ✓ DLP modules registered (8 IPC handlers)",
+      );
+    } catch (phase50Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 50 registration failed (non-fatal):",
+        phase50Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 50 Complete: DLP ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 51: SIEM Integration (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering SIEM modules...");
+
+      const { SIEMExporter } = require("../audit/siem-exporter");
+      const { registerSIEMIPC } = require("../audit/siem-ipc");
+
+      const database = dependencies.database || null;
+
+      const siemExporter = new SIEMExporter(database);
+
+      if (database) {
+        siemExporter.initialize().catch((err) =>
+          logger.warn("[IPC Registry] SIEMExporter init warning:", err.message),
+        );
+      }
+
+      registerSIEMIPC({ siemExporter });
+
+      registeredModules.siemExporter = siemExporter;
+
+      logger.info(
+        "[IPC Registry] ✓ SIEM module registered (4 IPC handlers)",
+      );
+    } catch (phase51Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 51 registration failed (non-fatal):",
+        phase51Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 51 Complete: SIEM Integration ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

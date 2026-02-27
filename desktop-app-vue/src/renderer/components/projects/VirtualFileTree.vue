@@ -1,6 +1,9 @@
 <template>
   <div class="virtual-file-tree">
-    <a-spin :spinning="loading" tip="加载中...">
+    <a-spin
+      :spinning="loading"
+      tip="加载中..."
+    >
       <div class="tree-header">
         <div class="tree-search">
           <a-input
@@ -67,10 +70,19 @@
                 class="tree-node-switcher"
                 @click.stop="toggleExpand(item)"
               >
-                <RightOutlined v-if="!item.expanded" class="tree-icon" />
-                <DownOutlined v-else class="tree-icon" />
+                <RightOutlined
+                  v-if="!item.expanded"
+                  class="tree-icon"
+                />
+                <DownOutlined
+                  v-else
+                  class="tree-icon"
+                />
               </span>
-              <span v-else class="tree-node-switcher-placeholder" />
+              <span
+                v-else
+                class="tree-node-switcher-placeholder"
+              />
 
               <!-- 文件/文件夹图标 -->
               <component
@@ -79,7 +91,10 @@
               />
 
               <!-- 文件名 -->
-              <span class="tree-node-title" :title="item.title">
+              <span
+                class="tree-node-title"
+                :title="item.title"
+              >
                 {{ item.title }}
               </span>
 
@@ -98,11 +113,17 @@
       </div>
 
       <!-- 右键菜单 -->
-      <a-dropdown v-model:open="contextMenuVisible" :trigger="['contextmenu']">
+      <a-dropdown
+        v-model:open="contextMenuVisible"
+        :trigger="['contextmenu']"
+      >
         <div />
         <template #overlay>
           <a-menu @click="handleMenuClick">
-            <a-menu-item v-if="contextNode?.isLeaf" key="open">
+            <a-menu-item
+              v-if="contextNode?.isLeaf"
+              key="open"
+            >
               <FileOutlined />
               打开
             </a-menu-item>
@@ -119,7 +140,10 @@
               <EditOutlined />
               重命名
             </a-menu-item>
-            <a-menu-item key="delete" danger>
+            <a-menu-item
+              key="delete"
+              danger
+            >
               <DeleteOutlined />
               删除
             </a-menu-item>

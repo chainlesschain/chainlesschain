@@ -1,8 +1,19 @@
 <template>
-  <a-drawer :open="open" title="托管详情" width="720px" @close="handleClose">
-    <div v-if="escrow" class="escrow-detail-content">
+  <a-drawer
+    :open="open"
+    title="托管详情"
+    width="720px"
+    @close="handleClose"
+  >
+    <div
+      v-if="escrow"
+      class="escrow-detail-content"
+    >
       <!-- 状态卡片 -->
-      <a-card size="small" style="margin-bottom: 16px">
+      <a-card
+        size="small"
+        style="margin-bottom: 16px"
+      >
         <template #title>
           <a-space>
             <lock-outlined />
@@ -12,7 +23,11 @@
 
         <div class="status-section">
           <div class="status-badge-large">
-            <status-badge :status="escrow.status" type="escrow" show-icon />
+            <status-badge
+              :status="escrow.status"
+              type="escrow"
+              show-icon
+            />
           </div>
           <div class="status-info">
             <div class="status-title">
@@ -26,27 +41,48 @@
       </a-card>
 
       <!-- 基本信息 -->
-      <a-card size="small" title="基本信息" style="margin-bottom: 16px">
-        <a-descriptions :column="2" bordered size="small">
-          <a-descriptions-item label="托管 ID" :span="2">
+      <a-card
+        size="small"
+        title="基本信息"
+        style="margin-bottom: 16px"
+      >
+        <a-descriptions
+          :column="2"
+          bordered
+          size="small"
+        >
+          <a-descriptions-item
+            label="托管 ID"
+            :span="2"
+          >
             <a-typography-text copyable>
               {{ escrow.id }}
             </a-typography-text>
           </a-descriptions-item>
 
-          <a-descriptions-item label="交易 ID" :span="2">
+          <a-descriptions-item
+            label="交易 ID"
+            :span="2"
+          >
             <a-typography-text copyable>
               {{ escrow.transaction_id }}
             </a-typography-text>
           </a-descriptions-item>
 
-          <a-descriptions-item v-if="escrow.order_id" label="订单 ID" :span="2">
+          <a-descriptions-item
+            v-if="escrow.order_id"
+            label="订单 ID"
+            :span="2"
+          >
             <a-typography-text copyable>
               {{ escrow.order_id }}
             </a-typography-text>
           </a-descriptions-item>
 
-          <a-descriptions-item label="创建时间" :span="2">
+          <a-descriptions-item
+            label="创建时间"
+            :span="2"
+          >
             {{ formatFullTime(escrow.created_at) }}
           </a-descriptions-item>
 
@@ -61,13 +97,19 @@
       </a-card>
 
       <!-- 托管金额 -->
-      <a-card size="small" title="托管金额" style="margin-bottom: 16px">
+      <a-card
+        size="small"
+        title="托管金额"
+        style="margin-bottom: 16px"
+      >
         <div class="amount-display">
           <div class="amount-icon">
             <dollar-outlined style="font-size: 32px; color: white" />
           </div>
           <div class="amount-details">
-            <div class="amount-label">托管金额</div>
+            <div class="amount-label">
+              托管金额
+            </div>
             <div class="amount-value">
               {{ formatAmount(escrow.amount) }}
               <span class="amount-symbol">{{
@@ -75,7 +117,10 @@
               }}</span>
             </div>
             <div class="amount-description">
-              <a-tag v-if="escrow.asset_id" color="blue">
+              <a-tag
+                v-if="escrow.asset_id"
+                color="blue"
+              >
                 资产ID: {{ formatId(escrow.asset_id) }}
               </a-tag>
             </div>
@@ -84,8 +129,16 @@
       </a-card>
 
       <!-- 交易双方 -->
-      <a-card size="small" title="交易双方" style="margin-bottom: 16px">
-        <a-descriptions :column="1" bordered size="small">
+      <a-card
+        size="small"
+        title="交易双方"
+        style="margin-bottom: 16px"
+      >
+        <a-descriptions
+          :column="1"
+          bordered
+          size="small"
+        >
           <a-descriptions-item label="买家">
             <a-space>
               <user-outlined />
@@ -95,7 +148,10 @@
               >
                 {{ formatDid(escrow.buyer_did) }}
               </a-typography-text>
-              <a-tag v-if="isCurrentUser(escrow.buyer_did)" color="blue">
+              <a-tag
+                v-if="isCurrentUser(escrow.buyer_did)"
+                color="blue"
+              >
                 我
               </a-tag>
             </a-space>
@@ -110,7 +166,10 @@
               >
                 {{ formatDid(escrow.seller_did) }}
               </a-typography-text>
-              <a-tag v-if="isCurrentUser(escrow.seller_did)" color="green">
+              <a-tag
+                v-if="isCurrentUser(escrow.seller_did)"
+                color="green"
+              >
                 我
               </a-tag>
             </a-space>
@@ -131,7 +190,11 @@
       </a-card>
 
       <!-- 托管历史 -->
-      <a-card size="small" title="托管历史" style="margin-bottom: 16px">
+      <a-card
+        size="small"
+        title="托管历史"
+        style="margin-bottom: 16px"
+      >
         <transaction-timeline
           :items="history"
           mode="left"
@@ -145,17 +208,26 @@
       <!-- 操作按钮 -->
       <div class="action-buttons">
         <a-space>
-          <a-button v-if="canDispute" danger @click="handleDispute">
+          <a-button
+            v-if="canDispute"
+            danger
+            @click="handleDispute"
+          >
             <exclamation-circle-outlined />
             发起争议
           </a-button>
-          <a-button @click="handleClose"> 关闭 </a-button>
+          <a-button @click="handleClose">
+            关闭
+          </a-button>
         </a-space>
       </div>
     </div>
 
     <!-- 空状态 -->
-    <a-empty v-else description="托管信息不存在" />
+    <a-empty
+      v-else
+      description="托管信息不存在"
+    />
   </a-drawer>
 </template>
 

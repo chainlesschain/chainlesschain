@@ -70,7 +70,7 @@ class DataClassifier extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) return;
+    if (!this.database || !this.database.db) {return;}
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS data_classifications (
@@ -180,7 +180,7 @@ class DataClassifier extends EventEmitter {
    */
   async batchScan(items) {
     try {
-      if (!Array.isArray(items)) return { results: [], summary: {} };
+      if (!Array.isArray(items)) {return { results: [], summary: {} };}
 
       const results = [];
       const summary = { total: items.length, pii: 0, phi: 0, pci: 0, clean: 0 };
@@ -189,10 +189,10 @@ class DataClassifier extends EventEmitter {
         const result = await this.classify(item.content || "", { save: false });
         results.push({ id: item.id, ...result });
 
-        if (result.category === DATA_CATEGORIES.PII) summary.pii++;
-        else if (result.category === DATA_CATEGORIES.PHI) summary.phi++;
-        else if (result.category === DATA_CATEGORIES.PCI) summary.pci++;
-        else summary.clean++;
+        if (result.category === DATA_CATEGORIES.PII) {summary.pii++;}
+        else if (result.category === DATA_CATEGORIES.PHI) {summary.phi++;}
+        else if (result.category === DATA_CATEGORIES.PCI) {summary.pci++;}
+        else {summary.clean++;}
       }
 
       return { results, summary };
@@ -209,7 +209,7 @@ class DataClassifier extends EventEmitter {
    */
   async getHistory(options = {}) {
     try {
-      if (!this.database || !this.database.db) return [];
+      if (!this.database || !this.database.db) {return [];}
 
       const limit = options.limit || 50;
       const category = options.category;
@@ -232,8 +232,8 @@ class DataClassifier extends EventEmitter {
   _getPatternSeverity(patternName) {
     const criticalPatterns = ["SSN", "CREDIT_CARD", "CN_ID"];
     const highPatterns = ["EMAIL", "PHONE", "CN_PHONE"];
-    if (criticalPatterns.includes(patternName)) return SEVERITY_LEVELS.CRITICAL;
-    if (highPatterns.includes(patternName)) return SEVERITY_LEVELS.HIGH;
+    if (criticalPatterns.includes(patternName)) {return SEVERITY_LEVELS.CRITICAL;}
+    if (highPatterns.includes(patternName)) {return SEVERITY_LEVELS.HIGH;}
     return SEVERITY_LEVELS.MEDIUM;
   }
 
@@ -244,7 +244,7 @@ class DataClassifier extends EventEmitter {
 
   async _saveClassification(content, result, context) {
     try {
-      if (!this.database || !this.database.db) return;
+      if (!this.database || !this.database.db) {return;}
 
       const contentHash = crypto.createHash("sha256").update(content).digest("hex").substring(0, 16);
 
@@ -272,6 +272,27 @@ class DataClassifier extends EventEmitter {
     }
   }
 
+  /**
+   * Get DLP-specific classification output
+   * Returns classification in a format suitable for DLP policy matching
+   * @param {string} content - Content to classify
+   * @returns {Object} DLP classification with matched categories and severity
+   */
+  async getDLPClassification(content) {
+    const result = await this.classify(content);
+    return {
+      hasDetections: result.detections && result.detections.length > 0,
+      categories: [...new Set((result.detections || []).map(d => d.category))],
+      severity: result.severity || 'low',
+      detectionCount: (result.detections || []).length,
+      patterns: (result.detections || []).map(d => ({
+        type: d.type,
+        category: d.category,
+        severity: d.severity,
+      })),
+    };
+  }
+
   async close() {
     this.removeAllListeners();
     this.initialized = false;
@@ -281,7 +302,7 @@ class DataClassifier extends EventEmitter {
 
 let _instance;
 function getDataClassifier() {
-  if (!_instance) _instance = new DataClassifier();
+  if (!_instance) {_instance = new DataClassifier();}
   return _instance;
 }
 

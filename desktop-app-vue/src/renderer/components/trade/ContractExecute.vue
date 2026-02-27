@@ -10,14 +10,28 @@
     >
       <div v-if="contract">
         <!-- 合约信息 -->
-        <a-card size="small" title="合约信息" style="margin-bottom: 16px">
-          <a-descriptions :column="2" size="small" bordered>
-            <a-descriptions-item label="合约ID" :span="2">
+        <a-card
+          size="small"
+          title="合约信息"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="2"
+            size="small"
+            bordered
+          >
+            <a-descriptions-item
+              label="合约ID"
+              :span="2"
+            >
               <a-typography-text copyable>
                 {{ contract.id }}
               </a-typography-text>
             </a-descriptions-item>
-            <a-descriptions-item label="合约名称" :span="2">
+            <a-descriptions-item
+              label="合约名称"
+              :span="2"
+            >
               <strong>{{ contract.name || contract.title }}</strong>
             </a-descriptions-item>
             <a-descriptions-item label="合约类型">
@@ -36,7 +50,11 @@
         </a-card>
 
         <!-- 条件检查 -->
-        <a-card size="small" title="条件检查" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          title="条件检查"
+          style="margin-bottom: 16px"
+        >
           <a-spin :spinning="checkingConditions">
             <a-list
               v-if="conditions.length > 0"
@@ -54,7 +72,11 @@
                     </template>
                     <template #title>
                       {{ getConditionTypeName(item.type) }}
-                      <a-tag v-if="item.required" color="red" size="small">
+                      <a-tag
+                        v-if="item.required"
+                        color="red"
+                        size="small"
+                      >
                         必需
                       </a-tag>
                     </template>
@@ -70,7 +92,11 @@
               </template>
             </a-list>
 
-            <a-empty v-else description="无条件限制" :image="simpleImage" />
+            <a-empty
+              v-else
+              description="无条件限制"
+              :image="simpleImage"
+            />
 
             <a-alert
               v-if="conditionCheckResult"
@@ -98,7 +124,11 @@
         </a-card>
 
         <!-- 执行参数 -->
-        <a-card size="small" title="执行参数" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          title="执行参数"
+          style="margin-bottom: 16px"
+        >
           <a-form layout="vertical">
             <a-form-item label="执行备注">
               <a-textarea
@@ -113,7 +143,11 @@
         </a-card>
 
         <!-- 执行预警 -->
-        <a-alert type="warning" message="执行确认" style="margin-bottom: 16px">
+        <a-alert
+          type="warning"
+          message="执行确认"
+          style="margin-bottom: 16px"
+        >
           <template #description>
             <ul style="margin: 8px 0; padding-left: 20px">
               <li>执行合约将触发预定义的操作（如资金转移、资产转让等）</li>

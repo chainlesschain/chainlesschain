@@ -40,15 +40,33 @@
           style="width: 80px"
           @change="changeFontSize"
         >
-          <a-select-option :value="10"> 10 </a-select-option>
-          <a-select-option :value="12"> 12 </a-select-option>
-          <a-select-option :value="14"> 14 </a-select-option>
-          <a-select-option :value="16"> 16 </a-select-option>
-          <a-select-option :value="18"> 18 </a-select-option>
-          <a-select-option :value="20"> 20 </a-select-option>
-          <a-select-option :value="24"> 24 </a-select-option>
-          <a-select-option :value="28"> 28 </a-select-option>
-          <a-select-option :value="32"> 32 </a-select-option>
+          <a-select-option :value="10">
+            10
+          </a-select-option>
+          <a-select-option :value="12">
+            12
+          </a-select-option>
+          <a-select-option :value="14">
+            14
+          </a-select-option>
+          <a-select-option :value="16">
+            16
+          </a-select-option>
+          <a-select-option :value="18">
+            18
+          </a-select-option>
+          <a-select-option :value="20">
+            20
+          </a-select-option>
+          <a-select-option :value="24">
+            24
+          </a-select-option>
+          <a-select-option :value="28">
+            28
+          </a-select-option>
+          <a-select-option :value="32">
+            32
+          </a-select-option>
         </a-select>
       </div>
 
@@ -92,12 +110,22 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleFormat">
-              <a-menu-item key="h1"> 标题 1 </a-menu-item>
-              <a-menu-item key="h2"> 标题 2 </a-menu-item>
-              <a-menu-item key="h3"> 标题 3 </a-menu-item>
+              <a-menu-item key="h1">
+                标题 1
+              </a-menu-item>
+              <a-menu-item key="h2">
+                标题 2
+              </a-menu-item>
+              <a-menu-item key="h3">
+                标题 3
+              </a-menu-item>
               <a-menu-divider />
-              <a-menu-item key="p"> 正文 </a-menu-item>
-              <a-menu-item key="blockquote"> 引用 </a-menu-item>
+              <a-menu-item key="p">
+                正文
+              </a-menu-item>
+              <a-menu-item key="blockquote">
+                引用
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -114,10 +142,18 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleExport">
-              <a-menu-item key="word"> 导出为Word </a-menu-item>
-              <a-menu-item key="markdown"> 导出为Markdown </a-menu-item>
-              <a-menu-item key="html"> 导出为HTML </a-menu-item>
-              <a-menu-item key="pdf"> 导出为PDF </a-menu-item>
+              <a-menu-item key="word">
+                导出为Word
+              </a-menu-item>
+              <a-menu-item key="markdown">
+                导出为Markdown
+              </a-menu-item>
+              <a-menu-item key="html">
+                导出为HTML
+              </a-menu-item>
+              <a-menu-item key="pdf">
+                导出为PDF
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -126,8 +162,16 @@
       <div class="toolbar-spacer" />
 
       <div class="toolbar-group">
-        <a-tag v-if="wordCount > 0" color="blue"> {{ wordCount }} 字 </a-tag>
-        <a-tag v-if="hasUnsavedChanges" color="orange">
+        <a-tag
+          v-if="wordCount > 0"
+          color="blue"
+        >
+          {{ wordCount }} 字
+        </a-tag>
+        <a-tag
+          v-if="hasUnsavedChanges"
+          color="orange"
+        >
           <ClockCircleOutlined />
           未保存
         </a-tag>

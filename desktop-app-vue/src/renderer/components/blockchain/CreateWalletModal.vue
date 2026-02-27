@@ -19,7 +19,10 @@
     </a-steps>
 
     <!-- 步骤1: 设置密码 -->
-    <div v-if="currentStep === 0" class="step-content">
+    <div
+      v-if="currentStep === 0"
+      class="step-content"
+    >
       <a-alert
         message="重要提示"
         description="密码用于加密您的私钥。请务必牢记密码，密码丢失将无法找回！"
@@ -34,7 +37,10 @@
         :rules="formRules"
         layout="vertical"
       >
-        <a-form-item label="钱包密码" name="password">
+        <a-form-item
+          label="钱包密码"
+          name="password"
+        >
           <a-input-password
             v-model:value="formData.password"
             placeholder="请输入密码（至少8位）"
@@ -61,7 +67,10 @@
           </template>
         </a-form-item>
 
-        <a-form-item label="确认密码" name="confirmPassword">
+        <a-form-item
+          label="确认密码"
+          name="confirmPassword"
+        >
           <a-input-password
             v-model:value="formData.confirmPassword"
             placeholder="请再次输入密码"
@@ -86,7 +95,10 @@
     </div>
 
     <!-- 步骤2: 备份助记词 -->
-    <div v-if="currentStep === 1" class="step-content">
+    <div
+      v-if="currentStep === 1"
+      class="step-content"
+    >
       <a-alert
         message="请备份助记词"
         description="这是恢复钱包的唯一方式。请将助记词抄写在纸上，并妥善保管。切勿截图或通过网络传输！"
@@ -137,7 +149,10 @@
     </div>
 
     <!-- 步骤3: 确认完成 -->
-    <div v-if="currentStep === 2" class="step-content">
+    <div
+      v-if="currentStep === 2"
+      class="step-content"
+    >
       <a-result
         status="success"
         title="钱包创建成功！"
@@ -145,7 +160,11 @@
       >
         <template #extra>
           <div class="wallet-info">
-            <a-descriptions :column="1" bordered size="small">
+            <a-descriptions
+              :column="1"
+              bordered
+              size="small"
+            >
               <a-descriptions-item label="钱包地址">
                 <div class="wallet-address">
                   {{ walletAddress || "生成中..." }}
@@ -170,7 +189,10 @@
 
     <template #footer>
       <a-space>
-        <a-button v-if="currentStep > 0" @click="handlePrevStep">
+        <a-button
+          v-if="currentStep > 0"
+          @click="handlePrevStep"
+        >
           上一步
         </a-button>
         <a-button @click="handleCancel">

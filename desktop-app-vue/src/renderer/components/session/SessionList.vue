@@ -28,7 +28,11 @@
             {{ tag.tag }} ({{ tag.count }})
           </a-select-option>
         </a-select>
-        <a-button v-if="hasActiveFilters" type="link" @click="clearFilters">
+        <a-button
+          v-if="hasActiveFilters"
+          type="link"
+          @click="clearFilters"
+        >
           清空筛选
         </a-button>
       </div>
@@ -112,7 +116,10 @@
             >
               {{ tag }}
             </a-tag>
-            <a-tag v-if="(record.tags || []).length > 3" color="default">
+            <a-tag
+              v-if="(record.tags || []).length > 3"
+              color="default"
+            >
               +{{ record.tags.length - 3 }}
             </a-tag>
             <span

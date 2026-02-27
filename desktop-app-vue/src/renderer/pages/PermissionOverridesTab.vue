@@ -3,7 +3,10 @@
     <a-spin :spinning="loading">
       <div class="tab-header">
         <a-space>
-          <a-button type="primary" @click="showCreateOverrideModal">
+          <a-button
+            type="primary"
+            @click="showCreateOverrideModal"
+          >
             <template #icon>
               <PlusOutlined />
             </template>
@@ -15,10 +18,18 @@
             style="width: 150px"
             @change="handleFilterChange"
           >
-            <a-select-option value=""> 全部 </a-select-option>
-            <a-select-option value="user"> 用户覆盖 </a-select-option>
-            <a-select-option value="resource"> 资源覆盖 </a-select-option>
-            <a-select-option value="temporary"> 临时覆盖 </a-select-option>
+            <a-select-option value="">
+              全部
+            </a-select-option>
+            <a-select-option value="user">
+              用户覆盖
+            </a-select-option>
+            <a-select-option value="resource">
+              资源覆盖
+            </a-select-option>
+            <a-select-option value="temporary">
+              临时覆盖
+            </a-select-option>
           </a-select>
           <a-input-search
             v-model:value="searchText"
@@ -69,15 +80,22 @@
 
           <template v-else-if="column.key === 'expiresAt'">
             <span v-if="record.expiresAt">
-              <a-tag v-if="isExpired(record.expiresAt)" color="red"
-                >已过期</a-tag
-              >
-              <a-tag v-else-if="isExpiringSoon(record.expiresAt)" color="orange"
-                >即将过期</a-tag
-              >
+              <a-tag
+                v-if="isExpired(record.expiresAt)"
+                color="red"
+              >已过期</a-tag>
+              <a-tag
+                v-else-if="isExpiringSoon(record.expiresAt)"
+                color="orange"
+              >即将过期</a-tag>
               <span v-else>{{ record.expiresAt }}</span>
             </span>
-            <a-tag v-else color="green"> 永久 </a-tag>
+            <a-tag
+              v-else
+              color="green"
+            >
+              永久
+            </a-tag>
           </template>
 
           <template v-else-if="column.key === 'actions'">
@@ -93,7 +111,13 @@
                 title="确定要删除此覆盖规则吗?"
                 @confirm="handleDeleteOverride(record.overrideId)"
               >
-                <a-button type="link" danger size="small"> 删除 </a-button>
+                <a-button
+                  type="link"
+                  danger
+                  size="small"
+                >
+                  删除
+                </a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -113,22 +137,37 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="覆盖类型" required>
+        <a-form-item
+          label="覆盖类型"
+          required
+        >
           <a-radio-group v-model:value="overrideForm.overrideType">
-            <a-radio value="user"> 用户覆盖 </a-radio>
-            <a-radio value="resource"> 资源覆盖 </a-radio>
-            <a-radio value="temporary"> 临时覆盖 </a-radio>
+            <a-radio value="user">
+              用户覆盖
+            </a-radio>
+            <a-radio value="resource">
+              资源覆盖
+            </a-radio>
+            <a-radio value="temporary">
+              临时覆盖
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item label="目标ID" required>
+        <a-form-item
+          label="目标ID"
+          required
+        >
           <a-input
             v-model:value="overrideForm.targetId"
             placeholder="用户DID或资源ID"
           />
         </a-form-item>
 
-        <a-form-item label="权限列表" required>
+        <a-form-item
+          label="权限列表"
+          required
+        >
           <a-select
             v-model:value="overrideForm.permissions"
             mode="multiple"
@@ -136,19 +175,33 @@
             style="width: 100%"
           >
             <a-select-opt-group label="组织管理">
-              <a-select-option value="org.view"> 查看组织 </a-select-option>
-              <a-select-option value="org.edit"> 编辑组织 </a-select-option>
-              <a-select-option value="org.settings"> 组织设置 </a-select-option>
-              <a-select-option value="org.manage"> 管理组织 </a-select-option>
+              <a-select-option value="org.view">
+                查看组织
+              </a-select-option>
+              <a-select-option value="org.edit">
+                编辑组织
+              </a-select-option>
+              <a-select-option value="org.settings">
+                组织设置
+              </a-select-option>
+              <a-select-option value="org.manage">
+                管理组织
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="成员管理">
-              <a-select-option value="member.view"> 查看成员 </a-select-option>
-              <a-select-option value="member.add"> 添加成员 </a-select-option>
+              <a-select-option value="member.view">
+                查看成员
+              </a-select-option>
+              <a-select-option value="member.add">
+                添加成员
+              </a-select-option>
               <a-select-option value="member.remove">
                 移除成员
               </a-select-option>
-              <a-select-option value="member.edit"> 编辑成员 </a-select-option>
+              <a-select-option value="member.edit">
+                编辑成员
+              </a-select-option>
               <a-select-option value="member.manage">
                 管理成员
               </a-select-option>
@@ -179,11 +232,15 @@
             </a-select-opt-group>
 
             <a-select-opt-group label="项目管理">
-              <a-select-option value="project.view"> 查看项目 </a-select-option>
+              <a-select-option value="project.view">
+                查看项目
+              </a-select-option>
               <a-select-option value="project.create">
                 创建项目
               </a-select-option>
-              <a-select-option value="project.edit"> 编辑项目 </a-select-option>
+              <a-select-option value="project.edit">
+                编辑项目
+              </a-select-option>
               <a-select-option value="project.delete">
                 删除项目
               </a-select-option>
@@ -193,12 +250,17 @@
             </a-select-opt-group>
 
             <a-select-opt-group label="特殊权限">
-              <a-select-option value="*"> 所有权限 </a-select-option>
+              <a-select-option value="*">
+                所有权限
+              </a-select-option>
             </a-select-opt-group>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="优先级" required>
+        <a-form-item
+          label="优先级"
+          required
+        >
           <a-input-number
             v-model:value="overrideForm.priority"
             :min="1"

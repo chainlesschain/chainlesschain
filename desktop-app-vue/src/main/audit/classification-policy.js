@@ -100,7 +100,7 @@ class ClassificationPolicy extends EventEmitter {
     }
 
     // Override with explicit context
-    if (context.containsCreditCard) level = CLASSIFICATION_LEVELS.TOP_SECRET;
+    if (context.containsCreditCard) {level = CLASSIFICATION_LEVELS.TOP_SECRET;}
     if (context.containsMedical && LEVEL_PRIORITIES[level] < LEVEL_PRIORITIES[CLASSIFICATION_LEVELS.CONFIDENTIAL]) {
       level = CLASSIFICATION_LEVELS.CONFIDENTIAL;
     }
@@ -199,7 +199,7 @@ class ClassificationPolicy extends EventEmitter {
 
 let _instance;
 function getClassificationPolicy() {
-  if (!_instance) _instance = new ClassificationPolicy();
+  if (!_instance) {_instance = new ClassificationPolicy();}
   return _instance;
 }
 

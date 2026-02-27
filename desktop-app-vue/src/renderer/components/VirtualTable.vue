@@ -56,12 +56,18 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="dataSource.length === 0 && !loading" class="virtual-table-empty">
+    <div
+      v-if="dataSource.length === 0 && !loading"
+      class="virtual-table-empty"
+    >
       <a-empty description="暂无数据" />
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="virtual-table-loading">
+    <div
+      v-if="loading"
+      class="virtual-table-loading"
+    >
       <a-spin tip="加载中..." />
     </div>
   </div>

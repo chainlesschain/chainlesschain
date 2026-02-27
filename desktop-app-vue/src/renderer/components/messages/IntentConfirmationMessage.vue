@@ -3,12 +3,18 @@
     <!-- 头部：AI理解提示 -->
     <div class="confirmation-header">
       <div class="header-icon">
-        <CheckCircleOutlined v-if="isConfirmed" style="color: #52c41a" />
+        <CheckCircleOutlined
+          v-if="isConfirmed"
+          style="color: #52c41a"
+        />
         <ExclamationCircleOutlined
           v-else-if="isCorrected"
           style="color: #faad14"
         />
-        <BulbOutlined v-else style="color: #1890ff" />
+        <BulbOutlined
+          v-else
+          style="color: #1890ff"
+        />
       </div>
       <div class="header-text">
         <span v-if="isConfirmed">✅ 已确认</span>
@@ -20,16 +26,26 @@
     <!-- 理解内容展示 -->
     <div class="understanding-content">
       <!-- 原始输入（如果有纠错） -->
-      <div v-if="hasCorrectedInput" class="original-input">
-        <div class="label">您的原始输入：</div>
+      <div
+        v-if="hasCorrectedInput"
+        class="original-input"
+      >
+        <div class="label">
+          您的原始输入：
+        </div>
         <div class="value original-text">
           {{ originalInput }}
         </div>
       </div>
 
       <!-- 纠错后的输入 -->
-      <div v-if="hasCorrectedInput" class="corrected-input">
-        <div class="label">我理解为：</div>
+      <div
+        v-if="hasCorrectedInput"
+        class="corrected-input"
+      >
+        <div class="label">
+          我理解为：
+        </div>
         <div class="value corrected-text">
           {{ correctedInput }}
         </div>
@@ -37,25 +53,40 @@
 
       <!-- 理解的意图 -->
       <div class="intent-section">
-        <div class="label">🎯 意图：</div>
+        <div class="label">
+          🎯 意图：
+        </div>
         <div class="value">
           {{ intent }}
         </div>
       </div>
 
       <!-- 关键要点 -->
-      <div v-if="keyPoints && keyPoints.length > 0" class="key-points-section">
-        <div class="label">📝 关键要点：</div>
+      <div
+        v-if="keyPoints && keyPoints.length > 0"
+        class="key-points-section"
+      >
+        <div class="label">
+          📝 关键要点：
+        </div>
         <ul class="key-points-list">
-          <li v-for="(point, index) in keyPoints" :key="index">
+          <li
+            v-for="(point, index) in keyPoints"
+            :key="index"
+          >
             {{ point }}
           </li>
         </ul>
       </div>
 
       <!-- 用户的纠正输入（如果有） -->
-      <div v-if="correction" class="correction-section">
-        <div class="label">📝 您的修正：</div>
+      <div
+        v-if="correction"
+        class="correction-section"
+      >
+        <div class="label">
+          📝 您的修正：
+        </div>
         <div class="value correction-text">
           {{ correction }}
         </div>
@@ -63,8 +94,14 @@
     </div>
 
     <!-- 操作按钮 -->
-    <div v-if="!isConfirmed && !isCorrected" class="action-buttons">
-      <a-button type="primary" @click="handleConfirm">
+    <div
+      v-if="!isConfirmed && !isCorrected"
+      class="action-buttons"
+    >
+      <a-button
+        type="primary"
+        @click="handleConfirm"
+      >
         <CheckOutlined />
         确认
       </a-button>
@@ -75,18 +112,28 @@
     </div>
 
     <!-- 纠正输入框 -->
-    <div v-if="showCorrectionInput" class="correction-input-section">
+    <div
+      v-if="showCorrectionInput"
+      class="correction-input-section"
+    >
       <a-textarea
         v-model:value="correctionInput"
         placeholder="请输入您想要纠正的内容..."
         :auto-size="{ minRows: 2, maxRows: 6 }"
       />
       <div class="correction-actions">
-        <a-button type="primary" size="small" @click="handleSubmitCorrection">
+        <a-button
+          type="primary"
+          size="small"
+          @click="handleSubmitCorrection"
+        >
           <CheckOutlined />
           提交修正
         </a-button>
-        <a-button size="small" @click="handleCancelCorrection">
+        <a-button
+          size="small"
+          @click="handleCancelCorrection"
+        >
           <CloseOutlined />
           取消
         </a-button>

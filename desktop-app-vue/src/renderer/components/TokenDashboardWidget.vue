@@ -17,7 +17,9 @@
 
     <!-- 本周支出 -->
     <div class="main-stat">
-      <div class="stat-label">本周支出</div>
+      <div class="stat-label">
+        本周支出
+      </div>
       <div class="stat-value">
         <span class="amount">${{ safeToFixed(weekSpend, 2) }}</span>
         <span class="limit">/ ${{ safeToFixed(weekLimit, 2) }}</span>
@@ -35,13 +37,20 @@
     <a-divider style="margin: 12px 0" />
 
     <!-- 关键指标 -->
-    <a-row :gutter="8" class="metrics-row">
+    <a-row
+      :gutter="8"
+      class="metrics-row"
+    >
       <a-col :span="12">
         <div class="metric-box">
           <ThunderboltOutlined class="metric-icon cache" />
           <div class="metric-info">
-            <div class="metric-label">缓存命中</div>
-            <div class="metric-value">{{ cacheHitRate }}%</div>
+            <div class="metric-label">
+              缓存命中
+            </div>
+            <div class="metric-value">
+              {{ cacheHitRate }}%
+            </div>
           </div>
         </div>
       </a-col>
@@ -49,8 +58,12 @@
         <div class="metric-box">
           <DollarOutlined class="metric-icon cost" />
           <div class="metric-info">
-            <div class="metric-label">节省成本</div>
-            <div class="metric-value">${{ safeToFixed(savedCost, 2) }}</div>
+            <div class="metric-label">
+              节省成本
+            </div>
+            <div class="metric-value">
+              ${{ safeToFixed(savedCost, 2) }}
+            </div>
           </div>
         </div>
       </a-col>

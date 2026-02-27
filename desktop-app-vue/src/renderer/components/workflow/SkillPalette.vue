@@ -6,7 +6,9 @@
 
     <!-- Default node types section -->
     <div class="palette-section">
-      <div class="section-title">基础节点</div>
+      <div class="section-title">
+        基础节点
+      </div>
       <div class="palette-list">
         <div
           v-for="item in defaultNodes"
@@ -19,7 +21,10 @@
           <div class="palette-item__label">
             {{ item.label }}
           </div>
-          <div v-if="item.description" class="palette-item__desc">
+          <div
+            v-if="item.description"
+            class="palette-item__desc"
+          >
             {{ item.description }}
           </div>
         </div>
@@ -27,18 +32,32 @@
     </div>
 
     <!-- Live skills section -->
-    <div v-if="skillGroups.length > 0" class="palette-section">
-      <div class="section-title">技能节点</div>
-      <div v-for="group in skillGroups" :key="group.category" class="skill-group">
+    <div
+      v-if="skillGroups.length > 0"
+      class="palette-section"
+    >
+      <div class="section-title">
+        技能节点
+      </div>
+      <div
+        v-for="group in skillGroups"
+        :key="group.category"
+        class="skill-group"
+      >
         <div
           class="group-header"
           @click="toggleGroup(group.category)"
         >
           <span class="group-arrow">{{ expandedGroups[group.category] ? '&#9660;' : '&#9654;' }}</span>
           <span class="group-name">{{ group.category }}</span>
-          <a-tag size="small">{{ group.skills.length }}</a-tag>
+          <a-tag size="small">
+            {{ group.skills.length }}
+          </a-tag>
         </div>
-        <div v-if="expandedGroups[group.category]" class="group-skills">
+        <div
+          v-if="expandedGroups[group.category]"
+          class="group-skills"
+        >
           <div
             v-for="skill in group.skills"
             :key="skill.skillId"
@@ -62,7 +81,10 @@
       </div>
     </div>
 
-    <div v-if="loadingSkills" class="palette-loading">
+    <div
+      v-if="loadingSkills"
+      class="palette-loading"
+    >
       <a-spin size="small" />
       <span>加载技能...</span>
     </div>
@@ -124,7 +146,7 @@ const expandedGroups = reactive({});
 
 const skillGroups = computed(() => {
   const allSkills = liveSkills.value.length > 0 ? liveSkills.value : props.skills;
-  if (!allSkills || allSkills.length === 0) return [];
+  if (!allSkills || allSkills.length === 0) {return [];}
 
   const groups = {};
   for (const skill of allSkills) {

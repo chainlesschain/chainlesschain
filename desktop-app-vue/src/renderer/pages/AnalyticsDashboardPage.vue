@@ -17,11 +17,21 @@
           style="width: 120px; margin-right: 12px"
           @change="handlePeriodChange"
         >
-          <a-select-option value="1h">Last 1h</a-select-option>
-          <a-select-option value="6h">Last 6h</a-select-option>
-          <a-select-option value="24h">Last 24h</a-select-option>
-          <a-select-option value="7d">Last 7d</a-select-option>
-          <a-select-option value="30d">Last 30d</a-select-option>
+          <a-select-option value="1h">
+            Last 1h
+          </a-select-option>
+          <a-select-option value="6h">
+            Last 6h
+          </a-select-option>
+          <a-select-option value="24h">
+            Last 24h
+          </a-select-option>
+          <a-select-option value="7d">
+            Last 7d
+          </a-select-option>
+          <a-select-option value="30d">
+            Last 30d
+          </a-select-option>
         </a-select>
 
         <a-switch
@@ -341,8 +351,8 @@ let modelChartInstance: any = null;
 // Token formatter for display
 const formatTokens = (opts: any) => {
   const val = opts.value;
-  if (val >= 1000000) return `${(val / 1000000).toFixed(2)}M`;
-  if (val >= 1000) return `${(val / 1000).toFixed(1)}K`;
+  if (val >= 1000000) {return `${(val / 1000000).toFixed(2)}M`;}
+  if (val >= 1000) {return `${(val / 1000).toFixed(1)}K`;}
   return String(val);
 };
 
@@ -399,7 +409,7 @@ function downloadFile(content: string, filename: string, type: string) {
 // ==================== Error Trend Chart ====================
 
 function renderErrorChart() {
-  if (!errorChartRef.value || store.errorTimeSeries.length === 0) return;
+  if (!errorChartRef.value || store.errorTimeSeries.length === 0) {return;}
 
   if (!errorChartInstance) {
     errorChartInstance = init(errorChartRef.value);
@@ -458,7 +468,7 @@ function renderErrorChart() {
 // ==================== Model Cost Chart ====================
 
 function renderModelChart() {
-  if (!modelChartRef.value || store.topModels.length === 0) return;
+  if (!modelChartRef.value || store.topModels.length === 0) {return;}
 
   if (!modelChartInstance) {
     modelChartInstance = init(modelChartRef.value);
@@ -528,7 +538,7 @@ function renderModelChart() {
 let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
 function handleResize() {
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
   resizeTimer = setTimeout(() => {
     errorChartInstance?.resize();
     modelChartInstance?.resize();
@@ -571,7 +581,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
   store.stopRealtimeUpdates();
   errorChartInstance?.dispose();
   modelChartInstance?.dispose();

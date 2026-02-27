@@ -9,7 +9,12 @@
     @ok="handleSubmit"
     @cancel="handleCancel"
   >
-    <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical">
+    <a-form
+      ref="formRef"
+      :model="formState"
+      :rules="rules"
+      layout="vertical"
+    >
       <a-alert
         v-if="isFirstTime"
         message="首次使用数据库加密"
@@ -55,13 +60,19 @@
               :style="{ width: passwordStrength.width }"
             />
           </div>
-          <span class="strength-text" :class="passwordStrength.class">
+          <span
+            class="strength-text"
+            :class="passwordStrength.class"
+          >
             {{ passwordStrength.text }}
           </span>
         </div>
       </a-form-item>
 
-      <a-form-item label="确认密码" name="confirmPassword">
+      <a-form-item
+        label="确认密码"
+        name="confirmPassword"
+      >
         <a-input-password
           v-model:value="formState.confirmPassword"
           placeholder="请再次输入密码"
@@ -73,7 +84,11 @@
         </a-input-password>
       </a-form-item>
 
-      <a-form-item v-if="showOldPassword" label="当前密码" name="oldPassword">
+      <a-form-item
+        v-if="showOldPassword"
+        label="当前密码"
+        name="oldPassword"
+      >
         <a-input-password
           v-model:value="formState.oldPassword"
           placeholder="请输入当前密码"
@@ -87,10 +102,21 @@
 
       <a-divider />
 
-      <a-space direction="vertical" style="width: 100%">
-        <a-typography-title :level="5"> 密码要求 </a-typography-title>
-        <a-space direction="vertical" :size="4">
-          <div class="requirement-item" :class="{ valid: requirements.length }">
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
+        <a-typography-title :level="5">
+          密码要求
+        </a-typography-title>
+        <a-space
+          direction="vertical"
+          :size="4"
+        >
+          <div
+            class="requirement-item"
+            :class="{ valid: requirements.length }"
+          >
             <CheckCircleOutlined v-if="requirements.length" />
             <CloseCircleOutlined v-else />
             <span>至少 12 个字符</span>
@@ -111,7 +137,10 @@
             <CloseCircleOutlined v-else />
             <span>包含小写字母</span>
           </div>
-          <div class="requirement-item" :class="{ valid: requirements.number }">
+          <div
+            class="requirement-item"
+            :class="{ valid: requirements.number }"
+          >
             <CheckCircleOutlined v-if="requirements.number" />
             <CloseCircleOutlined v-else />
             <span>包含数字</span>
@@ -130,8 +159,16 @@
 
     <template #footer>
       <a-space>
-        <a-button v-if="!isRequired" @click="handleCancel"> 取消 </a-button>
-        <a-button v-if="developmentMode && canSkipPassword" @click="handleSkip">
+        <a-button
+          v-if="!isRequired"
+          @click="handleCancel"
+        >
+          取消
+        </a-button>
+        <a-button
+          v-if="developmentMode && canSkipPassword"
+          @click="handleSkip"
+        >
           跳过密码设置
         </a-button>
         <a-button

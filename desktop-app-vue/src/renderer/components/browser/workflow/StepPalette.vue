@@ -7,7 +7,10 @@
     />
 
     <div class="step-categories">
-      <a-collapse v-model:active-key="activeCategories" :bordered="false">
+      <a-collapse
+        v-model:active-key="activeCategories"
+        :bordered="false"
+      >
         <a-collapse-panel
           v-for="category in filteredCategories"
           :key="category.key"
@@ -25,7 +28,10 @@
               @dragstart="handleDragStart($event, step)"
               @click="$emit('add-step', step)"
             >
-              <div class="step-icon" :style="{ background: step.color }">
+              <div
+                class="step-icon"
+                :style="{ background: step.color }"
+              >
                 <component :is="step.icon" />
               </div>
               <div class="step-info">

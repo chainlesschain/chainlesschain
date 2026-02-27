@@ -9,7 +9,9 @@
         <LoadingOutlined spin />
         <h3>正在分析您的需求...</h3>
       </div>
-      <p class="stage-desc">AI正在理解您的需求并检查是否需要补充信息</p>
+      <p class="stage-desc">
+        AI正在理解您的需求并检查是否需要补充信息
+      </p>
     </div>
 
     <!-- 采访阶段 -->
@@ -28,12 +30,16 @@
       </p>
 
       <!-- 当前问题 -->
-      <div v-if="currentQuestion" class="current-question">
+      <div
+        v-if="currentQuestion"
+        class="current-question"
+      >
         <div class="question-text">
-          <span class="question-number"
-            >问题 {{ currentQuestionIndex + 1 }}</span
-          >
-          <span v-if="currentQuestion.required" class="required-mark">*</span>
+          <span class="question-number">问题 {{ currentQuestionIndex + 1 }}</span>
+          <span
+            v-if="currentQuestion.required"
+            class="required-mark"
+          >*</span>
           {{ currentQuestion.question }}
         </div>
 
@@ -69,7 +75,10 @@
       </div>
 
       <!-- 已回答的问题 -->
-      <div v-if="answeredQuestions.length > 0" class="answered-questions">
+      <div
+        v-if="answeredQuestions.length > 0"
+        class="answered-questions"
+      >
         <a-collapse>
           <a-collapse-panel
             v-for="(item, index) in answeredQuestions"
@@ -93,7 +102,9 @@
         <LoadingOutlined spin />
         <h3>正在生成任务计划...</h3>
       </div>
-      <p class="stage-desc">AI正在根据您提供的信息制定详细的执行计划</p>
+      <p class="stage-desc">
+        AI正在根据您提供的信息制定详细的执行计划
+      </p>
     </div>
 
     <!-- 计划确认阶段 -->
@@ -106,7 +117,10 @@
         <h3>任务计划已生成</h3>
       </div>
 
-      <div v-if="plan" class="plan-content">
+      <div
+        v-if="plan"
+        class="plan-content"
+      >
         <!-- 计划标题和摘要 -->
         <div class="plan-header">
           <h2>{{ plan.title }}</h2>
@@ -150,17 +164,26 @@
         >
           <h3>🎯 预期输出</h3>
           <ul>
-            <li v-for="(output, index) in plan.outputs" :key="index">
+            <li
+              v-for="(output, index) in plan.outputs"
+              :key="index"
+            >
               {{ output }}
             </li>
           </ul>
         </div>
 
         <!-- 注意事项 -->
-        <div v-if="plan.notes && plan.notes.length > 0" class="plan-notes">
+        <div
+          v-if="plan.notes && plan.notes.length > 0"
+          class="plan-notes"
+        >
           <h3>⚠️ 注意事项</h3>
           <ul>
-            <li v-for="(note, index) in plan.notes" :key="index">
+            <li
+              v-for="(note, index) in plan.notes"
+              :key="index"
+            >
               {{ note }}
             </li>
           </ul>
@@ -168,15 +191,25 @@
 
         <!-- 确认按钮 -->
         <div class="plan-actions">
-          <a-button size="large" @click="handleCancelPlan">
+          <a-button
+            size="large"
+            @click="handleCancelPlan"
+          >
             <CloseOutlined />
             取消
           </a-button>
-          <a-button size="large" @click="handleModifyPlan">
+          <a-button
+            size="large"
+            @click="handleModifyPlan"
+          >
             <EditOutlined />
             修改计划
           </a-button>
-          <a-button type="primary" size="large" @click="handleConfirmPlan">
+          <a-button
+            type="primary"
+            size="large"
+            @click="handleConfirmPlan"
+          >
             <CheckOutlined />
             确认执行
           </a-button>
@@ -193,9 +226,14 @@
         <LoadingOutlined spin />
         <h3>正在执行任务...</h3>
       </div>
-      <p class="stage-desc">AI正在按照计划执行任务，请稍候</p>
+      <p class="stage-desc">
+        AI正在按照计划执行任务，请稍候
+      </p>
 
-      <div v-if="executingTask" class="current-task">
+      <div
+        v-if="executingTask"
+        class="current-task"
+      >
         <a-progress
           :percent="executionProgress"
           :status="executionProgress === 100 ? 'success' : 'active'"

@@ -1,11 +1,17 @@
 <template>
-  <a-card class="stage-detail" size="small">
+  <a-card
+    class="stage-detail"
+    size="small"
+  >
     <template #title>
       <div class="stage-header">
         <div class="stage-info">
           <span class="stage-icon">{{ getStageIcon(stage.name) }}</span>
           <span class="stage-name">{{ stage.name }}</span>
-          <a-tag :color="getStatusColor(stage.status)" size="small">
+          <a-tag
+            :color="getStatusColor(stage.status)"
+            size="small"
+          >
             {{ getStatusText(stage.status) }}
           </a-tag>
         </div>
@@ -40,7 +46,10 @@
             v-else-if="step.status === 'failed'"
             class="icon-error"
           />
-          <ClockCircleOutlined v-else class="icon-pending" />
+          <ClockCircleOutlined
+            v-else
+            class="icon-pending"
+          />
         </div>
         <div class="step-content">
           <div class="step-header">
@@ -52,7 +61,10 @@
               {{ step.progress }}%
             </span>
           </div>
-          <div v-if="step.message" class="step-message">
+          <div
+            v-if="step.message"
+            class="step-message"
+          >
             {{ step.message }}
           </div>
           <!-- 展开详情 -->
@@ -62,25 +74,37 @@
             size="small"
             class="step-details-collapse"
           >
-            <a-collapse-panel key="1" header="查看详情">
+            <a-collapse-panel
+              key="1"
+              header="查看详情"
+            >
               <pre class="step-details">{{ formatDetails(step.details) }}</pre>
             </a-collapse-panel>
           </a-collapse>
         </div>
-        <div v-if="step.duration" class="step-duration">
+        <div
+          v-if="step.duration"
+          class="step-duration"
+        >
           {{ formatDuration(step.duration) }}
         </div>
       </div>
 
       <!-- 空状态 -->
-      <div v-if="!stage.steps || stage.steps.length === 0" class="empty-steps">
+      <div
+        v-if="!stage.steps || stage.steps.length === 0"
+        class="empty-steps"
+      >
         <InboxOutlined />
         <span>暂无步骤信息</span>
       </div>
     </div>
 
     <!-- 质量门禁结果 -->
-    <div v-if="qualityGate && qualityGate.checks" class="quality-gate-result">
+    <div
+      v-if="qualityGate && qualityGate.checks"
+      class="quality-gate-result"
+    >
       <a-divider>
         <SafetyCertificateOutlined />
         质量检查
@@ -95,7 +119,10 @@
             {{ check.passed ? "✅" : "❌" }}
           </span>
           <span class="check-name">{{ check.name }}</span>
-          <span class="check-score" :class="{ low: check.score < 0.7 }">
+          <span
+            class="check-score"
+            :class="{ low: check.score < 0.7 }"
+          >
             {{ (check.score * 100).toFixed(0) }}%
           </span>
         </div>

@@ -17,18 +17,31 @@
       </template>
 
       <!-- 筛选 -->
-      <a-row :gutter="[16, 16]" style="margin-bottom: 16px">
+      <a-row
+        :gutter="[16, 16]"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="8">
           <a-select
             v-model:value="filterStatus"
             style="width: 100%"
             @change="loadArbitrations"
           >
-            <a-select-option value=""> 全部状态 </a-select-option>
-            <a-select-option value="pending"> 待处理 </a-select-option>
-            <a-select-option value="investigating"> 调查中 </a-select-option>
-            <a-select-option value="resolved"> 已解决 </a-select-option>
-            <a-select-option value="rejected"> 已拒绝 </a-select-option>
+            <a-select-option value="">
+              全部状态
+            </a-select-option>
+            <a-select-option value="pending">
+              待处理
+            </a-select-option>
+            <a-select-option value="investigating">
+              调查中
+            </a-select-option>
+            <a-select-option value="resolved">
+              已解决
+            </a-select-option>
+            <a-select-option value="rejected">
+              已拒绝
+            </a-select-option>
           </a-select>
         </a-col>
       </a-row>
@@ -48,20 +61,27 @@
                     <a-tag :color="getStatusColor(item.status)">
                       {{ getStatusName(item.status) }}
                     </a-tag>
-                    <span style="font-weight: bold"
-                      >合约仲裁 #{{ item.id.substring(0, 8) }}</span
-                    >
+                    <span style="font-weight: bold">合约仲裁 #{{ item.id.substring(0, 8) }}</span>
                   </a-space>
                 </template>
                 <template #description>
-                  <a-descriptions :column="2" size="small">
+                  <a-descriptions
+                    :column="2"
+                    size="small"
+                  >
                     <a-descriptions-item label="合约ID">
-                      <a-typography-text copyable style="font-size: 12px">
+                      <a-typography-text
+                        copyable
+                        style="font-size: 12px"
+                      >
                         {{ item.contractId }}
                       </a-typography-text>
                     </a-descriptions-item>
                     <a-descriptions-item label="发起者">
-                      <a-typography-text copyable style="font-size: 12px">
+                      <a-typography-text
+                        copyable
+                        style="font-size: 12px"
+                      >
                         {{ shortenDid(item.initiatorDid) }}
                       </a-typography-text>
                     </a-descriptions-item>
@@ -85,7 +105,10 @@
               </div>
 
               <!-- 证据 -->
-              <div v-if="item.evidence" class="arbitration-evidence">
+              <div
+                v-if="item.evidence"
+                class="arbitration-evidence"
+              >
                 <h4>提交的证据</h4>
                 <a-space wrap>
                   <a-tag
@@ -99,7 +122,10 @@
               </div>
 
               <!-- 仲裁结果 -->
-              <div v-if="item.resolution" class="arbitration-resolution">
+              <div
+                v-if="item.resolution"
+                class="arbitration-resolution"
+              >
                 <a-alert
                   :type="item.status === 'resolved' ? 'success' : 'warning'"
                   show-icon
@@ -131,7 +157,10 @@
                 >
                   <solution-outlined /> 提交裁决
                 </a-button>
-                <a-button size="small" @click="viewContract(item.contractId)">
+                <a-button
+                  size="small"
+                  @click="viewContract(item.contractId)"
+                >
                   <file-text-outlined /> 查看合约
                 </a-button>
               </template>
@@ -168,17 +197,31 @@
 
         <a-form layout="vertical">
           <!-- 裁决结果 -->
-          <a-form-item label="裁决结果" required>
+          <a-form-item
+            label="裁决结果"
+            required
+          >
             <a-radio-group v-model:value="resolutionForm.decision">
-              <a-radio value="favor_initiator"> 支持发起方 </a-radio>
-              <a-radio value="favor_respondent"> 支持被诉方 </a-radio>
-              <a-radio value="compromise"> 折中方案 </a-radio>
-              <a-radio value="reject"> 驳回仲裁 </a-radio>
+              <a-radio value="favor_initiator">
+                支持发起方
+              </a-radio>
+              <a-radio value="favor_respondent">
+                支持被诉方
+              </a-radio>
+              <a-radio value="compromise">
+                折中方案
+              </a-radio>
+              <a-radio value="reject">
+                驳回仲裁
+              </a-radio>
             </a-radio-group>
           </a-form-item>
 
           <!-- 裁决说明 -->
-          <a-form-item label="裁决说明" required>
+          <a-form-item
+            label="裁决说明"
+            required
+          >
             <a-textarea
               v-model:value="resolutionForm.resolution"
               :rows="6"
@@ -196,7 +239,9 @@
               style="width: 100%"
               placeholder="输入补偿金额（可选）"
             >
-              <template #prefix> ¥ </template>
+              <template #prefix>
+                ¥
+              </template>
             </a-input-number>
           </a-form-item>
         </a-form>

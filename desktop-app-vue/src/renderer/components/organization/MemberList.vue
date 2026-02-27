@@ -1,5 +1,8 @@
 <template>
-  <a-card class="member-list-card" :loading="loading">
+  <a-card
+    class="member-list-card"
+    :loading="loading"
+  >
     <template #title>
       <div class="card-header">
         <span> <TeamOutlined /> Members ({{ members.length }}) </span>
@@ -10,15 +13,25 @@
             style="width: 200px"
             @search="handleSearch"
           />
-          <a-button v-if="canInvite" type="primary" @click="$emit('invite')">
+          <a-button
+            v-if="canInvite"
+            type="primary"
+            @click="$emit('invite')"
+          >
             <UserAddOutlined /> Invite
           </a-button>
         </a-space>
       </div>
     </template>
 
-    <a-tabs v-model:active-key="activeTab" @change="handleTabChange">
-      <a-tab-pane key="all" tab="All Members">
+    <a-tabs
+      v-model:active-key="activeTab"
+      @change="handleTabChange"
+    >
+      <a-tab-pane
+        key="all"
+        tab="All Members"
+      >
         <a-list
           :data-source="filteredMembers"
           :pagination="pagination"
@@ -43,7 +56,10 @@
                 <template #title>
                   <div class="member-title">
                     <span class="member-name">{{ item.name }}</span>
-                    <a-tag :color="getRoleColor(item.role)" size="small">
+                    <a-tag
+                      :color="getRoleColor(item.role)"
+                      size="small"
+                    >
                       {{ getRoleLabel(item.role) }}
                     </a-tag>
                     <a-tag
@@ -66,7 +82,10 @@
                       <ClockCircleOutlined />
                       <span>Joined {{ formatDate(item.joined_at) }}</span>
                     </div>
-                    <div v-if="item.last_active" class="info-item">
+                    <div
+                      v-if="item.last_active"
+                      class="info-item"
+                    >
                       <FieldTimeOutlined />
                       <span>Active {{ formatTime(item.last_active) }}</span>
                     </div>
@@ -75,8 +94,14 @@
               </a-list-item-meta>
 
               <template #actions>
-                <a-dropdown v-if="canManageMember(item)" :trigger="['click']">
-                  <a-button type="text" size="small">
+                <a-dropdown
+                  v-if="canManageMember(item)"
+                  :trigger="['click']"
+                >
+                  <a-button
+                    type="text"
+                    size="small"
+                  >
                     <MoreOutlined />
                   </a-button>
                   <template #overlay>
@@ -93,13 +118,24 @@
                         key="role"
                         title="Change Role"
                       >
-                        <a-menu-item key="role-owner" :disabled="!isOwner">
+                        <a-menu-item
+                          key="role-owner"
+                          :disabled="!isOwner"
+                        >
                           Owner
                         </a-menu-item>
-                        <a-menu-item key="role-admin"> Admin </a-menu-item>
-                        <a-menu-item key="role-editor"> Editor </a-menu-item>
-                        <a-menu-item key="role-member"> Member </a-menu-item>
-                        <a-menu-item key="role-viewer"> Viewer </a-menu-item>
+                        <a-menu-item key="role-admin">
+                          Admin
+                        </a-menu-item>
+                        <a-menu-item key="role-editor">
+                          Editor
+                        </a-menu-item>
+                        <a-menu-item key="role-member">
+                          Member
+                        </a-menu-item>
+                        <a-menu-item key="role-viewer">
+                          Viewer
+                        </a-menu-item>
                       </a-sub-menu>
                       <a-menu-divider v-if="canRemoveMember(item)" />
                       <a-menu-item
@@ -118,7 +154,10 @@
         </a-list>
       </a-tab-pane>
 
-      <a-tab-pane key="online" :tab="`Online (${onlineMembers.length})`">
+      <a-tab-pane
+        key="online"
+        :tab="`Online (${onlineMembers.length})`"
+      >
         <a-list
           :data-source="onlineMembers"
           :pagination="pagination"
@@ -129,7 +168,10 @@
             <a-list-item>
               <a-list-item-meta>
                 <template #avatar>
-                  <a-badge status="success" :offset="[-5, 35]">
+                  <a-badge
+                    status="success"
+                    :offset="[-5, 35]"
+                  >
                     <a-avatar
                       :style="{ backgroundColor: getAvatarColor(item.name) }"
                     >
@@ -140,7 +182,10 @@
                 <template #title>
                   <div class="member-title">
                     <span class="member-name">{{ item.name }}</span>
-                    <a-tag :color="getRoleColor(item.role)" size="small">
+                    <a-tag
+                      :color="getRoleColor(item.role)"
+                      size="small"
+                    >
                       {{ getRoleLabel(item.role) }}
                     </a-tag>
                   </div>
@@ -159,8 +204,14 @@
         </a-list>
       </a-tab-pane>
 
-      <a-tab-pane key="roles" tab="By Role">
-        <a-collapse v-model:active-key="activeRoles" accordion>
+      <a-tab-pane
+        key="roles"
+        tab="By Role"
+      >
+        <a-collapse
+          v-model:active-key="activeRoles"
+          accordion
+        >
           <a-collapse-panel
             v-for="role in roles"
             :key="role.key"

@@ -8,7 +8,10 @@
       @ok="handleCreate"
       @cancel="handleCancel"
     >
-      <a-steps :current="currentStep" style="margin-bottom: 24px">
+      <a-steps
+        :current="currentStep"
+        style="margin-bottom: 24px"
+      >
         <a-step title="选择模板" />
         <a-step title="填写参数" />
         <a-step title="确认创建" />
@@ -17,7 +20,11 @@
       <!-- 步骤 1: 选择模板 -->
       <div v-if="currentStep === 0">
         <a-row :gutter="[16, 16]">
-          <a-col v-for="template in templates" :key="template.id" :span="12">
+          <a-col
+            v-for="template in templates"
+            :key="template.id"
+            :span="12"
+          >
             <a-card
               hoverable
               class="template-card"
@@ -67,44 +74,65 @@
         <a-form layout="vertical">
           <!-- 简单买卖合约 -->
           <template v-if="selectedTemplate.id === 'simple_trade'">
-            <a-form-item label="买家 DID" required>
+            <a-form-item
+              label="买家 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.buyerDid"
                 placeholder="输入买家 DID"
               />
             </a-form-item>
-            <a-form-item label="卖家 DID" required>
+            <a-form-item
+              label="卖家 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.sellerDid"
                 placeholder="输入卖家 DID"
               />
             </a-form-item>
-            <a-form-item label="资产 ID" required>
+            <a-form-item
+              label="资产 ID"
+              required
+            >
               <a-input
                 v-model:value="formData.assetId"
                 placeholder="输入资产 ID"
               />
             </a-form-item>
-            <a-form-item label="资产名称" required>
+            <a-form-item
+              label="资产名称"
+              required
+            >
               <a-input
                 v-model:value="formData.assetName"
                 placeholder="输入资产名称"
               />
             </a-form-item>
-            <a-form-item label="数量" required>
+            <a-form-item
+              label="数量"
+              required
+            >
               <a-input-number
                 v-model:value="formData.quantity"
                 :min="1"
                 style="width: 100%"
               />
             </a-form-item>
-            <a-form-item label="支付资产 ID" required>
+            <a-form-item
+              label="支付资产 ID"
+              required
+            >
               <a-input
                 v-model:value="formData.paymentAssetId"
                 placeholder="输入支付资产 ID"
               />
             </a-form-item>
-            <a-form-item label="支付金额" required>
+            <a-form-item
+              label="支付金额"
+              required
+            >
               <a-input-number
                 v-model:value="formData.paymentAmount"
                 :min="0"
@@ -123,31 +151,46 @@
 
           <!-- 订阅付费合约 -->
           <template v-if="selectedTemplate.id === 'subscription'">
-            <a-form-item label="订阅者 DID" required>
+            <a-form-item
+              label="订阅者 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.subscriberDid"
                 placeholder="输入订阅者 DID"
               />
             </a-form-item>
-            <a-form-item label="创作者 DID" required>
+            <a-form-item
+              label="创作者 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.creatorDid"
                 placeholder="输入创作者 DID"
               />
             </a-form-item>
-            <a-form-item label="服务名称" required>
+            <a-form-item
+              label="服务名称"
+              required
+            >
               <a-input
                 v-model:value="formData.serviceName"
                 placeholder="输入服务名称"
               />
             </a-form-item>
-            <a-form-item label="支付资产 ID" required>
+            <a-form-item
+              label="支付资产 ID"
+              required
+            >
               <a-input
                 v-model:value="formData.paymentAssetId"
                 placeholder="输入支付资产 ID"
               />
             </a-form-item>
-            <a-form-item label="月费" required>
+            <a-form-item
+              label="月费"
+              required
+            >
               <a-input-number
                 v-model:value="formData.monthlyPrice"
                 :min="0"
@@ -169,32 +212,47 @@
 
           <!-- 任务悬赏合约 -->
           <template v-if="selectedTemplate.id === 'bounty'">
-            <a-form-item label="发布者 DID" required>
+            <a-form-item
+              label="发布者 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.publisherDid"
                 placeholder="输入发布者 DID"
               />
             </a-form-item>
-            <a-form-item label="任务标题" required>
+            <a-form-item
+              label="任务标题"
+              required
+            >
               <a-input
                 v-model:value="formData.taskTitle"
                 placeholder="输入任务标题"
               />
             </a-form-item>
-            <a-form-item label="任务描述" required>
+            <a-form-item
+              label="任务描述"
+              required
+            >
               <a-textarea
                 v-model:value="formData.taskDescription"
                 :rows="4"
                 placeholder="详细描述任务要求..."
               />
             </a-form-item>
-            <a-form-item label="支付资产 ID" required>
+            <a-form-item
+              label="支付资产 ID"
+              required
+            >
               <a-input
                 v-model:value="formData.paymentAssetId"
                 placeholder="输入支付资产 ID"
               />
             </a-form-item>
-            <a-form-item label="赏金金额" required>
+            <a-form-item
+              label="赏金金额"
+              required
+            >
               <a-input-number
                 v-model:value="formData.rewardAmount"
                 :min="0"
@@ -221,38 +279,56 @@
 
           <!-- 技能交换合约 -->
           <template v-if="selectedTemplate.id === 'skill_exchange'">
-            <a-form-item label="甲方 DID" required>
+            <a-form-item
+              label="甲方 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.party1Did"
                 placeholder="输入甲方 DID"
               />
             </a-form-item>
-            <a-form-item label="甲方技能" required>
+            <a-form-item
+              label="甲方技能"
+              required
+            >
               <a-input
                 v-model:value="formData.party1Skill"
                 placeholder="输入甲方提供的技能"
               />
             </a-form-item>
-            <a-form-item label="甲方工时" required>
+            <a-form-item
+              label="甲方工时"
+              required
+            >
               <a-input-number
                 v-model:value="formData.party1Hours"
                 :min="1"
                 style="width: 100%"
               />
             </a-form-item>
-            <a-form-item label="乙方 DID" required>
+            <a-form-item
+              label="乙方 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.party2Did"
                 placeholder="输入乙方 DID"
               />
             </a-form-item>
-            <a-form-item label="乙方技能" required>
+            <a-form-item
+              label="乙方技能"
+              required
+            >
               <a-input
                 v-model:value="formData.party2Skill"
                 placeholder="输入乙方提供的技能"
               />
             </a-form-item>
-            <a-form-item label="乙方工时" required>
+            <a-form-item
+              label="乙方工时"
+              required
+            >
               <a-input-number
                 v-model:value="formData.party2Hours"
                 :min="1"
@@ -271,34 +347,49 @@
 
           <!-- 多重签名托管 -->
           <template v-if="selectedTemplate.id === 'multisig_escrow'">
-            <a-form-item label="参与方 DIDs（每行一个）" required>
+            <a-form-item
+              label="参与方 DIDs（每行一个）"
+              required
+            >
               <a-textarea
                 v-model:value="participantsText"
                 :rows="4"
                 placeholder="输入参与方 DID，每行一个"
               />
             </a-form-item>
-            <a-form-item label="资产 ID" required>
+            <a-form-item
+              label="资产 ID"
+              required
+            >
               <a-input
                 v-model:value="formData.assetId"
                 placeholder="输入资产 ID"
               />
             </a-form-item>
-            <a-form-item label="金额" required>
+            <a-form-item
+              label="金额"
+              required
+            >
               <a-input-number
                 v-model:value="formData.amount"
                 :min="0"
                 style="width: 100%"
               />
             </a-form-item>
-            <a-form-item label="所需签名数" required>
+            <a-form-item
+              label="所需签名数"
+              required
+            >
               <a-input-number
                 v-model:value="formData.requiredSignatures"
                 :min="2"
                 style="width: 100%"
               />
             </a-form-item>
-            <a-form-item label="用途说明" required>
+            <a-form-item
+              label="用途说明"
+              required
+            >
               <a-input
                 v-model:value="formData.purpose"
                 placeholder="说明托管用途"
@@ -316,32 +407,47 @@
 
           <!-- 时间锁托管 -->
           <template v-if="selectedTemplate.id === 'timelock_escrow'">
-            <a-form-item label="发送者 DID" required>
+            <a-form-item
+              label="发送者 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.senderDid"
                 placeholder="输入发送者 DID"
               />
             </a-form-item>
-            <a-form-item label="接收者 DID" required>
+            <a-form-item
+              label="接收者 DID"
+              required
+            >
               <a-input
                 v-model:value="formData.recipientDid"
                 placeholder="输入接收者 DID"
               />
             </a-form-item>
-            <a-form-item label="资产 ID" required>
+            <a-form-item
+              label="资产 ID"
+              required
+            >
               <a-input
                 v-model:value="formData.assetId"
                 placeholder="输入资产 ID"
               />
             </a-form-item>
-            <a-form-item label="金额" required>
+            <a-form-item
+              label="金额"
+              required
+            >
               <a-input-number
                 v-model:value="formData.amount"
                 :min="0"
                 style="width: 100%"
               />
             </a-form-item>
-            <a-form-item label="解锁日期" required>
+            <a-form-item
+              label="解锁日期"
+              required
+            >
               <a-date-picker
                 v-model:value="unlockDate"
                 show-time
@@ -350,7 +456,10 @@
                 :disabled-date="disabledDate"
               />
             </a-form-item>
-            <a-form-item label="用途说明" required>
+            <a-form-item
+              label="用途说明"
+              required
+            >
               <a-input
                 v-model:value="formData.purpose"
                 placeholder="说明托管用途"
@@ -374,8 +483,12 @@
               </span>
             </template>
             <a-switch v-model:checked="formData.onChain">
-              <template #checkedChildren> 启用 </template>
-              <template #unCheckedChildren> 禁用 </template>
+              <template #checkedChildren>
+                启用
+              </template>
+              <template #unCheckedChildren>
+                禁用
+              </template>
             </a-switch>
           </a-form-item>
 
@@ -389,7 +502,10 @@
               :style="{ marginBottom: '16px' }"
             />
 
-            <a-form-item label="选择钱包" required>
+            <a-form-item
+              label="选择钱包"
+              required
+            >
               <wallet-selector
                 v-model="formData.walletId"
                 :show-balance="true"
@@ -398,7 +514,10 @@
               />
             </a-form-item>
 
-            <a-form-item label="选择网络" required>
+            <a-form-item
+              label="选择网络"
+              required
+            >
               <chain-selector
                 v-model="formData.chainId"
                 :width="'100%'"
@@ -406,7 +525,10 @@
               />
             </a-form-item>
 
-            <a-form-item label="钱包密码" required>
+            <a-form-item
+              label="钱包密码"
+              required
+            >
               <a-input-password
                 v-model:value="formData.password"
                 placeholder="用于签名交易的钱包密码"
@@ -416,11 +538,16 @@
                   <lock-outlined />
                 </template>
               </a-input-password>
-              <template #extra> 此密码用于解密私钥并签名部署交易 </template>
+              <template #extra>
+                此密码用于解密私钥并签名部署交易
+              </template>
             </a-form-item>
 
             <!-- Gas 估算 -->
-            <a-form-item v-if="estimatedGas" label="预估 Gas">
+            <a-form-item
+              v-if="estimatedGas"
+              label="预估 Gas"
+            >
               <a-statistic
                 :value="estimatedGas"
                 suffix="Gas"
@@ -429,7 +556,11 @@
               <template #extra>
                 <span class="gas-info">
                   预估费用: {{ formatGasFee(estimatedGas) }}
-                  <a-button type="link" size="small" @click="fetchGasEstimate">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="fetchGasEstimate"
+                  >
                     刷新估算
                   </a-button>
                 </span>
@@ -440,8 +571,15 @@
 
         <div style="text-align: right; margin-top: 16px">
           <a-space>
-            <a-button @click="prevStep"> 上一步 </a-button>
-            <a-button type="primary" @click="nextStep"> 下一步 </a-button>
+            <a-button @click="prevStep">
+              上一步
+            </a-button>
+            <a-button
+              type="primary"
+              @click="nextStep"
+            >
+              下一步
+            </a-button>
           </a-space>
         </div>
       </div>
@@ -456,8 +594,14 @@
           style="margin-bottom: 16px"
         />
 
-        <a-descriptions :column="2" bordered>
-          <a-descriptions-item label="合约模板" :span="2">
+        <a-descriptions
+          :column="2"
+          bordered
+        >
+          <a-descriptions-item
+            label="合约模板"
+            :span="2"
+          >
             <a-tag :color="getCategoryColor(selectedTemplate.category)">
               {{ selectedTemplate.name }}
             </a-tag>
@@ -478,8 +622,15 @@
 
         <div style="text-align: right; margin-top: 16px">
           <a-space>
-            <a-button @click="prevStep"> 上一步 </a-button>
-            <a-button type="primary" @click="handleCreate"> 创建合约 </a-button>
+            <a-button @click="prevStep">
+              上一步
+            </a-button>
+            <a-button
+              type="primary"
+              @click="handleCreate"
+            >
+              创建合约
+            </a-button>
           </a-space>
         </div>
       </div>

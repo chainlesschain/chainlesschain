@@ -167,10 +167,10 @@ class GeminiClient {
 
           for (const line of lines) {
             const trimmed = line.trim();
-            if (!trimmed || !trimmed.startsWith("data: ")) continue;
+            if (!trimmed || !trimmed.startsWith("data: ")) {continue;}
 
             const jsonStr = trimmed.slice(6);
-            if (jsonStr === "[DONE]") continue;
+            if (jsonStr === "[DONE]") {continue;}
 
             try {
               const parsed = JSON.parse(jsonStr);

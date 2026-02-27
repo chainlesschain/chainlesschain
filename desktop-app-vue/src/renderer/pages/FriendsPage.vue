@@ -1,6 +1,9 @@
 <template>
   <div class="friends-page">
-    <a-card :bordered="false" class="friends-card">
+    <a-card
+      :bordered="false"
+      class="friends-card"
+    >
       <!-- 头部操作栏 -->
       <template #title>
         <div class="page-header">
@@ -19,7 +22,10 @@
               style="width: 200px; margin-right: 12px"
               @search="handleSearch"
             />
-            <a-button type="primary" @click="showAddFriendModal = true">
+            <a-button
+              type="primary"
+              @click="showAddFriendModal = true"
+            >
               <template #icon>
                 <UserAddOutlined />
               </template>
@@ -30,8 +36,14 @@
       </template>
 
       <!-- 好友分组标签 -->
-      <a-tabs v-model:active-key="activeGroup" @change="handleGroupChange">
-        <a-tab-pane key="all" tab="全部好友">
+      <a-tabs
+        v-model:active-key="activeGroup"
+        @change="handleGroupChange"
+      >
+        <a-tab-pane
+          key="all"
+          tab="全部好友"
+        >
           <template #tab>
             <span>
               全部好友
@@ -42,7 +54,10 @@
             </span>
           </template>
         </a-tab-pane>
-        <a-tab-pane key="online" tab="在线好友">
+        <a-tab-pane
+          key="online"
+          tab="在线好友"
+        >
           <template #tab>
             <span>
               在线好友
@@ -53,7 +68,11 @@
             </span>
           </template>
         </a-tab-pane>
-        <a-tab-pane v-for="group in friendGroups" :key="group" :tab="group">
+        <a-tab-pane
+          v-for="group in friendGroups"
+          :key="group"
+          :tab="group"
+        >
           <template #tab>
             <span>
               {{ group }}
@@ -74,14 +93,20 @@
           class="friends-list"
         >
           <template #renderItem="{ item }">
-            <a-list-item class="friend-item" @click="handleFriendClick(item)">
+            <a-list-item
+              class="friend-item"
+              @click="handleFriendClick(item)"
+            >
               <a-list-item-meta>
                 <template #avatar>
                   <a-badge
                     :dot="item.onlineStatus?.status === 'online'"
                     :offset="[-5, 35]"
                   >
-                    <a-avatar :size="48" :src="item.avatar">
+                    <a-avatar
+                      :size="48"
+                      :src="item.avatar"
+                    >
                       {{ item.nickname?.charAt(0) || "U" }}
                     </a-avatar>
                   </a-badge>
@@ -105,7 +130,10 @@
                     <div class="friend-did">
                       DID: {{ formatDID(item.friend_did) }}
                     </div>
-                    <div v-if="item.notes" class="friend-notes">
+                    <div
+                      v-if="item.notes"
+                      class="friend-notes"
+                    >
                       {{ item.notes }}
                     </div>
                   </div>
@@ -115,21 +143,30 @@
               <!-- 操作按钮 -->
               <template #actions>
                 <a-tooltip title="发送消息">
-                  <a-button type="text" @click.stop="handleSendMessage(item)">
+                  <a-button
+                    type="text"
+                    @click.stop="handleSendMessage(item)"
+                  >
                     <template #icon>
                       <MessageOutlined />
                     </template>
                   </a-button>
                 </a-tooltip>
                 <a-tooltip title="语音通话">
-                  <a-button type="text" @click.stop="handleVoiceCall(item)">
+                  <a-button
+                    type="text"
+                    @click.stop="handleVoiceCall(item)"
+                  >
                     <template #icon>
                       <PhoneOutlined />
                     </template>
                   </a-button>
                 </a-tooltip>
                 <a-tooltip title="视频通话">
-                  <a-button type="text" @click.stop="handleVideoCall(item)">
+                  <a-button
+                    type="text"
+                    @click.stop="handleVideoCall(item)"
+                  >
                     <template #icon>
                       <VideoCameraOutlined />
                     </template>
@@ -152,7 +189,10 @@
                         移动分组
                       </a-menu-item>
                       <a-menu-divider />
-                      <a-menu-item key="delete" danger>
+                      <a-menu-item
+                        key="delete"
+                        danger
+                      >
                         <DeleteOutlined />
                         删除好友
                       </a-menu-item>
@@ -173,8 +213,14 @@
       @ok="handleAddFriend"
       @cancel="showAddFriendModal = false"
     >
-      <a-form :model="addFriendForm" layout="vertical">
-        <a-form-item label="好友DID" required>
+      <a-form
+        :model="addFriendForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="好友DID"
+          required
+        >
           <a-input
             v-model:value="addFriendForm.did"
             placeholder="输入好友的DID地址"
@@ -197,7 +243,10 @@
       @ok="handleSaveEdit"
       @cancel="showEditModal = false"
     >
-      <a-form :model="editForm" layout="vertical">
+      <a-form
+        :model="editForm"
+        layout="vertical"
+      >
         <a-form-item label="备注名称">
           <a-input
             v-model:value="editForm.nickname"
@@ -205,7 +254,10 @@
           />
         </a-form-item>
         <a-form-item label="分组">
-          <a-select v-model:value="editForm.groupName" placeholder="选择分组">
+          <a-select
+            v-model:value="editForm.groupName"
+            placeholder="选择分组"
+          >
             <a-select-option
               v-for="group in friendGroups"
               :key="group"
@@ -278,7 +330,9 @@
         }}</strong>
         吗？
       </p>
-      <p style="color: #ff4d4f">删除后将无法恢复聊天记录。</p>
+      <p style="color: #ff4d4f">
+        删除后将无法恢复聊天记录。
+      </p>
     </a-modal>
   </div>
 </template>

@@ -3,13 +3,19 @@
     <!-- 页面头部 -->
     <div class="manager-header">
       <h2><apartment-outlined /> 工作区管理</h2>
-      <a-button type="primary" @click="showCreateDialog">
+      <a-button
+        type="primary"
+        @click="showCreateDialog"
+      >
         <plus-outlined /> 创建工作区
       </a-button>
     </div>
 
     <!-- 统计卡片 -->
-    <a-row :gutter="[16, 16]" class="stats-cards">
+    <a-row
+      :gutter="[16, 16]"
+      class="stats-cards"
+    >
       <a-col :span="6">
         <a-card>
           <a-statistic
@@ -60,10 +66,19 @@
             placeholder="搜索工作区..."
             style="width: 200px"
           />
-          <a-radio-group v-model:value="filterType" button-style="solid">
-            <a-radio-button value="all"> 全部 </a-radio-button>
-            <a-radio-button value="active"> 活跃 </a-radio-button>
-            <a-radio-button value="archived"> 归档 </a-radio-button>
+          <a-radio-group
+            v-model:value="filterType"
+            button-style="solid"
+          >
+            <a-radio-button value="all">
+              全部
+            </a-radio-button>
+            <a-radio-button value="active">
+              活跃
+            </a-radio-button>
+            <a-radio-button value="archived">
+              归档
+            </a-radio-button>
           </a-radio-group>
         </a-space>
       </template>
@@ -88,11 +103,18 @@
               <div class="name-info">
                 <div class="name-text">
                   {{ record.name }}
-                  <a-tag v-if="record.is_default" color="blue" size="small">
+                  <a-tag
+                    v-if="record.is_default"
+                    color="blue"
+                    size="small"
+                  >
                     默认
                   </a-tag>
                 </div>
-                <div v-if="record.description" class="desc-text">
+                <div
+                  v-if="record.description"
+                  class="desc-text"
+                >
                   {{ record.description }}
                 </div>
               </div>
@@ -122,14 +144,25 @@
           <!-- 操作列 -->
           <template v-else-if="column.key === 'actions'">
             <a-space>
-              <a-button type="link" size="small" @click="handleView(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleView(record)"
+              >
                 查看
               </a-button>
-              <a-button type="link" size="small" @click="handleEdit(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleEdit(record)"
+              >
                 编辑
               </a-button>
               <a-dropdown>
-                <a-button type="link" size="small">
+                <a-button
+                  type="link"
+                  size="small"
+                >
                   更多 <down-outlined />
                 </a-button>
                 <template #overlay>
@@ -140,11 +173,17 @@
                     >
                       归档
                     </a-menu-item>
-                    <a-menu-item v-else @click="handleRestore(record)">
+                    <a-menu-item
+                      v-else
+                      @click="handleRestore(record)"
+                    >
                       恢复
                     </a-menu-item>
                     <a-menu-divider />
-                    <a-menu-item danger @click="handleDelete(record)">
+                    <a-menu-item
+                      danger
+                      @click="handleDelete(record)"
+                    >
                       删除
                     </a-menu-item>
                   </a-menu>
@@ -157,9 +196,19 @@
     </a-card>
 
     <!-- 工作区详情抽屉 -->
-    <a-drawer v-model:open="detailDrawerVisible" title="工作区详情" width="600">
-      <div v-if="selectedWorkspace" class="workspace-detail">
-        <a-descriptions :column="1" bordered>
+    <a-drawer
+      v-model:open="detailDrawerVisible"
+      title="工作区详情"
+      width="600"
+    >
+      <div
+        v-if="selectedWorkspace"
+        class="workspace-detail"
+      >
+        <a-descriptions
+          :column="1"
+          bordered
+        >
           <a-descriptions-item label="名称">
             {{ selectedWorkspace.name }}
           </a-descriptions-item>
@@ -198,7 +247,13 @@
           <template #renderItem="{ item }">
             <a-list-item>
               <template #actions>
-                <a-button type="link" size="small" danger> 移除 </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  danger
+                >
+                  移除
+                </a-button>
               </template>
               <a-list-item-meta>
                 <template #avatar>
@@ -215,7 +270,11 @@
           </template>
         </a-list>
 
-        <a-button block style="margin-top: 16px" @click="handleAddMember">
+        <a-button
+          block
+          style="margin-top: 16px"
+          @click="handleAddMember"
+        >
           <plus-outlined /> 添加成员
         </a-button>
       </div>

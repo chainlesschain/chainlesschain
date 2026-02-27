@@ -6,7 +6,10 @@
       @back="handleBack"
     >
       <template #extra>
-        <a-button type="primary" @click="handleRefresh">
+        <a-button
+          type="primary"
+          @click="handleRefresh"
+        >
           <ReloadOutlined />
           刷新
         </a-button>
@@ -15,8 +18,14 @@
 
     <div class="management-content">
       <!-- Current Device Info -->
-      <a-card title="当前设备" class="current-device-card">
-        <a-descriptions :column="2" bordered>
+      <a-card
+        title="当前设备"
+        class="current-device-card"
+      >
+        <a-descriptions
+          :column="2"
+          bordered
+        >
           <a-descriptions-item label="设备ID">
             <span class="monospace">{{ currentDevice.deviceId }}</span>
           </a-descriptions-item>
@@ -36,7 +45,10 @@
       </a-card>
 
       <!-- Paired Devices -->
-      <a-card title="已配对设备" class="paired-devices-card">
+      <a-card
+        title="已配对设备"
+        class="paired-devices-card"
+      >
         <template #extra>
           <a-space>
             <a-input-search
@@ -89,11 +101,17 @@
 
               <template v-else-if="column.key === 'actions'">
                 <a-space>
-                  <a-button size="small" @click="handleChat(record)">
+                  <a-button
+                    size="small"
+                    @click="handleChat(record)"
+                  >
                     <MessageOutlined />
                     聊天
                   </a-button>
-                  <a-button size="small" @click="handleVerify(record)">
+                  <a-button
+                    size="small"
+                    @click="handleVerify(record)"
+                  >
                     <SafetyOutlined />
                     验证
                   </a-button>
@@ -109,7 +127,10 @@
                           重命名
                         </a-menu-item>
                         <a-menu-divider />
-                        <a-menu-item danger @click="handleRemove(record)">
+                        <a-menu-item
+                          danger
+                          @click="handleRemove(record)"
+                        >
                           <DeleteOutlined />
                           移除设备
                         </a-menu-item>

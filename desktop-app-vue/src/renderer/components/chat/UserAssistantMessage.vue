@@ -5,7 +5,10 @@
       <RobotOutlined v-else />
     </div>
     <div class="message-content">
-      <div class="message-text" v-html="renderedContent" />
+      <div
+        class="message-text"
+        v-html="renderedContent"
+      />
 
       <!-- RAG上下文来源 -->
       <div
@@ -24,9 +27,7 @@
             @click="handleSourceClick(source)"
           >
             {{ source.fileName }}
-            <span class="source-score"
-              >{{ (source.score * 100).toFixed(0) }}%</span
-            >
+            <span class="source-score">{{ (source.score * 100).toFixed(0) }}%</span>
           </a-tag>
         </div>
       </div>

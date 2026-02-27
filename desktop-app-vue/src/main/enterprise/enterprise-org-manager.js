@@ -338,7 +338,7 @@ class EnterpriseOrgManager extends EventEmitter {
               message: 'Moving this department here would create a circular hierarchy',
             };
           }
-          if (visited.has(currentId)) break;
+          if (visited.has(currentId)) {break;}
           visited.add(currentId);
           const parent = db.prepare('SELECT parent_team_id FROM org_teams WHERE id = ?').get(currentId);
           currentId = parent?.parent_team_id || null;

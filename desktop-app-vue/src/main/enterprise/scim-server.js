@@ -51,7 +51,7 @@ class SCIMServer extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) return;
+    if (!this.database || !this.database.db) {return;}
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS scim_resources (
@@ -128,7 +128,7 @@ class SCIMServer extends EventEmitter {
       this.emit("user:created", { id, userName: userData.userName });
 
       return this._buildUserResponse(id, userData, now);
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMServer] Create user failed:", error);
       throw error;
     }
@@ -145,10 +145,10 @@ class SCIMServer extends EventEmitter {
         .prepare("SELECT * FROM scim_resources WHERE id = ? AND resource_type = ?")
         .get(userId, RESOURCE_TYPES.USER);
 
-      if (!row) return this._buildError(404, "User not found");
+      if (!row) {return this._buildError(404, "User not found");}
 
       return this._rowToUserResponse(row);
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMServer] Get user failed:", error);
       throw error;
     }
@@ -196,7 +196,7 @@ class SCIMServer extends EventEmitter {
         itemsPerPage: count,
         Resources: rows.map((row) => this._rowToUserResponse(row)),
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMServer] List users failed:", error);
       throw error;
     }
@@ -232,7 +232,7 @@ class SCIMServer extends EventEmitter {
       this.emit("user:updated", { id: userId });
 
       return await this.getUser(userId);
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMServer] Update user failed:", error);
       throw error;
     }
@@ -250,10 +250,10 @@ class SCIMServer extends EventEmitter {
         .prepare("SELECT * FROM scim_resources WHERE id = ? AND resource_type = ?")
         .get(userId, RESOURCE_TYPES.USER);
 
-      if (!row) return this._buildError(404, "User not found");
+      if (!row) {return this._buildError(404, "User not found");}
 
       let attrs = {};
-      try { attrs = JSON.parse(row.attributes || "{}"); } catch (_e) {
+      try { attrs = JSON.parse(row.attributes || "{}"); } catch {
         // Expected error, ignore
       }
 
@@ -276,7 +276,7 @@ class SCIMServer extends EventEmitter {
       }
 
       return await this.updateUser(userId, attrs);
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMServer] Patch user failed:", error);
       throw error;
     }
@@ -298,7 +298,7 @@ class SCIMServer extends EventEmitter {
       this.emit("user:deleted", { id: userId });
 
       return { success: true };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMServer] Delete user failed:", error);
       throw error;
     }
@@ -333,7 +333,7 @@ class SCIMServer extends EventEmitter {
       this.database.saveToFile();
       this._logOperation("create", RESOURCE_TYPES.GROUP, id);
       return { schemas: [SCIM_SCHEMAS.GROUP], id, displayName: groupData.displayName };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMServer] Create group failed:", error);
       throw error;
     }
@@ -364,7 +364,7 @@ class SCIMServer extends EventEmitter {
           members: JSON.parse(row.members || "[]"),
         })),
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMServer] List groups failed:", error);
       throw error;
     }
@@ -393,7 +393,7 @@ class SCIMServer extends EventEmitter {
 
   _rowToUserResponse(row) {
     let attrs = {};
-    try { attrs = JSON.parse(row.attributes || "{}"); } catch (_e) {
+    try { attrs = JSON.parse(row.attributes || "{}"); } catch {
       // Expected error, ignore
     }
     return {
@@ -418,13 +418,13 @@ class SCIMServer extends EventEmitter {
 
   _logOperation(operation, resourceType, resourceId, provider) {
     try {
-      if (!this.database || !this.database.db) return;
+      if (!this.database || !this.database.db) {return;}
       this.database.db
         .prepare(
           "INSERT INTO scim_sync_log (id, operation, resource_type, resource_id, provider, created_at) VALUES (?, ?, ?, ?, ?, ?)",
         )
         .run(uuidv4(), operation, resourceType, resourceId, provider || null, Date.now());
-    } catch (_e) {
+    } catch {
       // Expected error, ignore
     }
   }
@@ -438,7 +438,7 @@ class SCIMServer extends EventEmitter {
 
 let _instance;
 function getSCIMServer() {
-  if (!_instance) _instance = new SCIMServer();
+  if (!_instance) {_instance = new SCIMServer();}
   return _instance;
 }
 

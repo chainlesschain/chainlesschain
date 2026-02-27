@@ -61,6 +61,11 @@ docs/design/
 | **SSO企业认证** ⭐  | [14_SSO企业认证.md](modules/14_SSO企业认证.md)            | **v0.34.0新增**,SAML/OAuth/OIDC                        |
 | **MCP SDK** ⭐      | [15_MCP_SDK系统.md](modules/15_MCP_SDK系统.md)            | **v0.34.0新增**,Server Builder,社区                    |
 | **AI技能系统** ⭐   | [16_AI技能系统.md](modules/16_AI技能系统.md)              | **v0.37.6更新**,90技能(100% Handler),统一工具,演示模板 |
+| **EvoMap系统** ⭐   | [17_EvoMap系统.md](modules/17_EvoMap系统.md)              | **Phase 41新增**,GEP-A2A协议,Gene/Capsule,双向同步      |
+| **Social AI系统** ⭐ | [18_SocialAI系统.md](modules/18_SocialAI系统.md)        | **Phase 42新增**,主题分析,社交图谱,ActivityPub          |
+| **Compliance系统** ⭐ | [19_Compliance系统.md](modules/19_Compliance系统.md)    | **Phase 43新增**,SOC2合规,数据分类,DSR处理              |
+| **SCIM系统** ⭐     | [20_SCIM系统.md](modules/20_SCIM系统.md)                  | **Phase 44新增**,SCIM 2.0服务器,IdP同步                |
+| **Unified Key系统** ⭐ | [21_UnifiedKey系统.md](modules/21_UnifiedKey系统.md)  | **Phase 45新增**,BIP-32,FIDO2,跨平台USB                |
 
 ### 基础设施
 
@@ -95,4 +100,4 @@ docs/design/
 
 ---
 
-**最后更新**: 2026-02-22 (v0.38.0)
+**最后更新**: 2026-02-27 (v1.1.0-alpha, Phase 41-45)

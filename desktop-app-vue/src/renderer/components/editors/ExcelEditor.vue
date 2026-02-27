@@ -31,25 +31,40 @@
             </a-button>
             <template #overlay>
               <a-menu @click="handleInsert">
-                <a-menu-item key="row-before"> 在上方插入行 </a-menu-item>
-                <a-menu-item key="row-after"> 在下方插入行 </a-menu-item>
+                <a-menu-item key="row-before">
+                  在上方插入行
+                </a-menu-item>
+                <a-menu-item key="row-after">
+                  在下方插入行
+                </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="col-before"> 在左侧插入列 </a-menu-item>
-                <a-menu-item key="col-after"> 在右侧插入列 </a-menu-item>
+                <a-menu-item key="col-before">
+                  在左侧插入列
+                </a-menu-item>
+                <a-menu-item key="col-after">
+                  在右侧插入列
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
 
           <!-- 删除行/列 -->
           <a-dropdown>
-            <a-button size="small" danger>
+            <a-button
+              size="small"
+              danger
+            >
               <DeleteOutlined />
               删除
             </a-button>
             <template #overlay>
               <a-menu @click="handleDelete">
-                <a-menu-item key="row"> 删除选中行 </a-menu-item>
-                <a-menu-item key="col"> 删除选中列 </a-menu-item>
+                <a-menu-item key="row">
+                  删除选中行
+                </a-menu-item>
+                <a-menu-item key="col">
+                  删除选中列
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -71,9 +86,15 @@
                   斜体
                 </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="align-left"> 左对齐 </a-menu-item>
-                <a-menu-item key="align-center"> 居中 </a-menu-item>
-                <a-menu-item key="align-right"> 右对齐 </a-menu-item>
+                <a-menu-item key="align-left">
+                  左对齐
+                </a-menu-item>
+                <a-menu-item key="align-center">
+                  居中
+                </a-menu-item>
+                <a-menu-item key="align-right">
+                  右对齐
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -86,27 +107,46 @@
             </a-button>
             <template #overlay>
               <a-menu @click="handleDataOperation">
-                <a-menu-item key="sort-asc"> 升序排序 </a-menu-item>
-                <a-menu-item key="sort-desc"> 降序排序 </a-menu-item>
+                <a-menu-item key="sort-asc">
+                  升序排序
+                </a-menu-item>
+                <a-menu-item key="sort-desc">
+                  降序排序
+                </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="filter"> 筛选 </a-menu-item>
-                <a-menu-item key="sum"> 求和 </a-menu-item>
-                <a-menu-item key="average"> 平均值 </a-menu-item>
+                <a-menu-item key="filter">
+                  筛选
+                </a-menu-item>
+                <a-menu-item key="sum">
+                  求和
+                </a-menu-item>
+                <a-menu-item key="average">
+                  平均值
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
 
           <!-- 导出 -->
           <a-dropdown>
-            <a-button size="small" type="primary">
+            <a-button
+              size="small"
+              type="primary"
+            >
               <ExportOutlined />
               导出
             </a-button>
             <template #overlay>
               <a-menu @click="handleExport">
-                <a-menu-item key="excel"> 导出为Excel </a-menu-item>
-                <a-menu-item key="csv"> 导出为CSV </a-menu-item>
-                <a-menu-item key="json"> 导出为JSON </a-menu-item>
+                <a-menu-item key="excel">
+                  导出为Excel
+                </a-menu-item>
+                <a-menu-item key="csv">
+                  导出为CSV
+                </a-menu-item>
+                <a-menu-item key="json">
+                  导出为JSON
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -115,7 +155,10 @@
     </div>
 
     <!-- 表格编辑区 -->
-    <div ref="spreadsheetRef" class="excel-spreadsheet" />
+    <div
+      ref="spreadsheetRef"
+      class="excel-spreadsheet"
+    />
 
     <!-- 底部状态栏 -->
     <div class="excel-statusbar">
@@ -127,7 +170,10 @@
         <a-divider type="vertical" />
         <span>列: {{ currentSheet?.columns?.length || 0 }}</span>
         <a-divider type="vertical" />
-        <span v-if="hasUnsavedChanges" class="unsaved-indicator">
+        <span
+          v-if="hasUnsavedChanges"
+          class="unsaved-indicator"
+        >
           <EditOutlined />
           未保存
         </span>

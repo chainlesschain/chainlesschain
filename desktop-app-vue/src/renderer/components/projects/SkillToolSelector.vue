@@ -1,8 +1,14 @@
 <template>
   <div class="skill-tool-selector">
-    <a-collapse v-model:active-key="activeKeys" :bordered="false">
+    <a-collapse
+      v-model:active-key="activeKeys"
+      :bordered="false"
+    >
       <!-- 技能选择 -->
-      <a-collapse-panel key="skills" header="选择可用技能">
+      <a-collapse-panel
+        key="skills"
+        header="选择可用技能"
+      >
         <template #extra>
           <a-badge
             :count="selectedSkills.length"
@@ -28,7 +34,9 @@
               style="width: 200px; margin-bottom: 12px"
               allow-clear
             >
-              <a-select-option value=""> 全部分类 </a-select-option>
+              <a-select-option value="">
+                全部分类
+              </a-select-option>
               <a-select-option
                 v-for="category in skillCategories"
                 :key="category.value"
@@ -89,7 +97,10 @@
       </a-collapse-panel>
 
       <!-- 工具选择 -->
-      <a-collapse-panel key="tools" header="选择可用工具">
+      <a-collapse-panel
+        key="tools"
+        header="选择可用工具"
+      >
         <template #extra>
           <a-badge
             :count="selectedTools.length"
@@ -115,7 +126,9 @@
               style="width: 200px; margin-bottom: 12px"
               allow-clear
             >
-              <a-select-option value=""> 全部分类 </a-select-option>
+              <a-select-option value="">
+                全部分类
+              </a-select-option>
               <a-select-option
                 v-for="category in toolCategories"
                 :key="category.value"
@@ -127,9 +140,16 @@
           </div>
 
           <div class="item-list">
-            <a-checkbox-group v-model:value="selectedTools" style="width: 100%">
+            <a-checkbox-group
+              v-model:value="selectedTools"
+              style="width: 100%"
+            >
               <a-row :gutter="[12, 12]">
-                <a-col v-for="tool in filteredTools" :key="tool.id" :span="12">
+                <a-col
+                  v-for="tool in filteredTools"
+                  :key="tool.id"
+                  :span="12"
+                >
                   <div
                     class="item-card"
                     :class="{ selected: selectedTools.includes(tool.id) }"
@@ -152,7 +172,10 @@
                         <div class="item-description">
                           {{ tool.description || "暂无描述" }}
                         </div>
-                        <div v-if="tool.risk_level" class="item-meta">
+                        <div
+                          v-if="tool.risk_level"
+                          class="item-meta"
+                        >
                           <a-tag
                             :color="getRiskColor(tool.risk_level)"
                             size="small"
@@ -180,17 +203,22 @@
     <!-- 底部统计 -->
     <div class="selector-footer">
       <div class="selection-summary">
-        <span
-          >已选择技能: <strong>{{ selectedSkills.length }}</strong></span
-        >
+        <span>已选择技能: <strong>{{ selectedSkills.length }}</strong></span>
         <a-divider type="vertical" />
-        <span
-          >已选择工具: <strong>{{ selectedTools.length }}</strong></span
-        >
+        <span>已选择工具: <strong>{{ selectedTools.length }}</strong></span>
       </div>
       <a-space>
-        <a-button size="small" @click="clearAll"> 清空全部 </a-button>
-        <a-button type="primary" size="small" @click="selectRecommended">
+        <a-button
+          size="small"
+          @click="clearAll"
+        >
+          清空全部
+        </a-button>
+        <a-button
+          type="primary"
+          size="small"
+          @click="selectRecommended"
+        >
           使用推荐
         </a-button>
       </a-space>

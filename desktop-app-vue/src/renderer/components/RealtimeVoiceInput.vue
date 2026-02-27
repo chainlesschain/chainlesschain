@@ -16,7 +16,10 @@
         </template>
       </a-button>
 
-      <div v-else class="recording-controls">
+      <div
+        v-else
+        class="recording-controls"
+      >
         <!-- 录音中指示器 -->
         <div class="recording-indicator">
           <span class="pulse" />
@@ -42,28 +45,40 @@
 
         <!-- 控制按钮 -->
         <a-space>
-          <a-button v-if="!isPaused" @click="pauseRecording">
+          <a-button
+            v-if="!isPaused"
+            @click="pauseRecording"
+          >
             <template #icon>
               <PauseOutlined />
             </template>
             暂停
           </a-button>
 
-          <a-button v-else @click="resumeRecording">
+          <a-button
+            v-else
+            @click="resumeRecording"
+          >
             <template #icon>
               <PlayCircleOutlined />
             </template>
             继续
           </a-button>
 
-          <a-button type="primary" @click="stopRecording">
+          <a-button
+            type="primary"
+            @click="stopRecording"
+          >
             <template #icon>
               <CheckOutlined />
             </template>
             完成
           </a-button>
 
-          <a-button danger @click="cancelRecording">
+          <a-button
+            danger
+            @click="cancelRecording"
+          >
             <template #icon>
               <CloseOutlined />
             </template>
@@ -74,11 +89,23 @@
     </div>
 
     <!-- 转录结果 -->
-    <div v-if="transcript" class="transcript-container">
-      <a-card title="转录结果" :bordered="false">
+    <div
+      v-if="transcript"
+      class="transcript-container"
+    >
+      <a-card
+        title="转录结果"
+        :bordered="false"
+      >
         <!-- 部分结果（实时显示） -->
-        <div v-if="partialTranscript" class="partial-transcript">
-          <a-typography-text type="secondary" class="typing-effect">
+        <div
+          v-if="partialTranscript"
+          class="partial-transcript"
+        >
+          <a-typography-text
+            type="secondary"
+            class="typing-effect"
+          >
             {{ partialTranscript }}
           </a-typography-text>
         </div>
@@ -117,7 +144,10 @@
               复制文本
             </a-button>
 
-            <a-button danger @click="clearTranscript">
+            <a-button
+              danger
+              @click="clearTranscript"
+            >
               <template #icon>
                 <DeleteOutlined />
               </template>
@@ -143,7 +173,10 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'patterns'">
-            <a-tag v-for="pattern in record.patterns" :key="pattern">
+            <a-tag
+              v-for="pattern in record.patterns"
+              :key="pattern"
+            >
               {{ pattern }}
             </a-tag>
           </template>

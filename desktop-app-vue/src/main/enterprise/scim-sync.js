@@ -68,7 +68,7 @@ class SCIMSync extends EventEmitter {
    */
   registerConnector(provider, config) {
     try {
-      if (!config.endpoint) throw new Error("Connector endpoint is required");
+      if (!config.endpoint) {throw new Error("Connector endpoint is required");}
 
       this._connectors.set(provider, {
         provider,
@@ -83,7 +83,7 @@ class SCIMSync extends EventEmitter {
       this.emit("connector:registered", { provider });
       logger.info("[SCIMSync] Registered connector:", provider);
       return { success: true, provider };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMSync] Register connector failed:", error);
       throw error;
     }
@@ -111,8 +111,8 @@ class SCIMSync extends EventEmitter {
   async syncProvider(provider) {
     try {
       const connector = this._connectors.get(provider);
-      if (!connector) throw new Error(`Connector not found: ${provider}`);
-      if (!connector.enabled) throw new Error(`Connector disabled: ${provider}`);
+      if (!connector) {throw new Error(`Connector not found: ${provider}`);}
+      if (!connector.enabled) {throw new Error(`Connector disabled: ${provider}`);}
 
       this._syncStatus = SYNC_STATUS.RUNNING;
       this.emit("sync:started", { provider });
@@ -146,7 +146,7 @@ class SCIMSync extends EventEmitter {
             Date.now(),
           );
         this.database.saveToFile();
-      } catch (_e) {
+      } catch {
         // Expected error, ignore
       }
 
@@ -159,7 +159,7 @@ class SCIMSync extends EventEmitter {
       this.emit("sync:completed", result);
 
       return result;
-    } catch (error) {
+    } catch (_error) {
       this._syncStatus = SYNC_STATUS.FAILED;
       logger.error("[SCIMSync] Sync failed for provider:", provider, error);
       this.emit("sync:failed", { provider, error: error.message });
@@ -174,7 +174,7 @@ class SCIMSync extends EventEmitter {
   async syncAll() {
     const results = [];
     for (const [provider, connector] of this._connectors) {
-      if (!connector.enabled) continue;
+      if (!connector.enabled) {continue;}
       try {
         const result = await this.syncProvider(provider);
         results.push(result);
@@ -205,7 +205,7 @@ class SCIMSync extends EventEmitter {
    */
   async getSyncHistory(options = {}) {
     try {
-      if (!this.database || !this.database.db) return [];
+      if (!this.database || !this.database.db) {return [];}
 
       const limit = options.limit || 50;
       const provider = options.provider;
@@ -219,7 +219,7 @@ class SCIMSync extends EventEmitter {
       return this.database.db
         .prepare("SELECT * FROM scim_sync_log ORDER BY created_at DESC LIMIT ?")
         .all(limit);
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SCIMSync] Get sync history failed:", error);
       return [];
     }
@@ -239,7 +239,7 @@ class SCIMSync extends EventEmitter {
 
 let _instance;
 function getSCIMSync() {
-  if (!_instance) _instance = new SCIMSync();
+  if (!_instance) {_instance = new SCIMSync();}
   return _instance;
 }
 

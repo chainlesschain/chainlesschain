@@ -16,21 +16,23 @@
  *  - Error handling for each action
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
+
+// vi.hoisted runs before imports — set up electronAPI before store captures it
+const { mockInvoke } = vi.hoisted(() => {
+  const mockInvoke = vi.fn();
+  (globalThis as any).window = (globalThis as any).window || {};
+  (window as any).electronAPI = { invoke: mockInvoke };
+  return { mockInvoke };
+});
+
 import { useSocialAIStore } from '../../../src/renderer/stores/socialAI';
 
 describe('useSocialAIStore', () => {
-  let mockInvoke: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     setActivePinia(createPinia());
-    mockInvoke = vi.fn();
-    (window as any).electronAPI = { invoke: mockInvoke };
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
+    mockInvoke.mockReset();
   });
 
   // ---------------------------------------------------------------------------

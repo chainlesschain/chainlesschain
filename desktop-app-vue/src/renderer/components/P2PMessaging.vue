@@ -1,6 +1,9 @@
 <template>
   <div class="p2p-messaging">
-    <a-card title="P2P 加密消息" :loading="loading">
+    <a-card
+      title="P2P 加密消息"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
           <a-badge
@@ -49,9 +52,7 @@
       >
         <template #message>
           <a-space>
-            <span
-              ><strong>当前设备:</strong> {{ currentDevice.deviceName }}</span
-            >
+            <span><strong>当前设备:</strong> {{ currentDevice.deviceName }}</span>
             <a-tag color="blue">
               {{ currentDevice.platform }}
             </a-tag>
@@ -98,7 +99,9 @@
             "
           >
             <strong>连接的节点</strong>
-            <a-tag color="blue"> {{ peers.length }} 个节点 </a-tag>
+            <a-tag color="blue">
+              {{ peers.length }} 个节点
+            </a-tag>
           </div>
         </template>
         <template #renderItem="{ item }">
@@ -204,8 +207,14 @@
       </a-list>
 
       <!-- 连接新节点 -->
-      <a-card size="small" title="连接新节点">
-        <a-form layout="inline" @submit.prevent="handleConnect">
+      <a-card
+        size="small"
+        title="连接新节点"
+      >
+        <a-form
+          layout="inline"
+          @submit.prevent="handleConnect"
+        >
           <a-form-item label="Multiaddr">
             <a-input
               v-model:value="connectAddress"
@@ -214,7 +223,11 @@
             />
           </a-form-item>
           <a-form-item>
-            <a-button type="primary" html-type="submit" :loading="connecting">
+            <a-button
+              type="primary"
+              html-type="submit"
+              :loading="connecting"
+            >
               连接
             </a-button>
           </a-form-item>
@@ -331,7 +344,10 @@
       width="500px"
       :footer="null"
     >
-      <a-descriptions bordered :column="1">
+      <a-descriptions
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="用户总数">
           {{ deviceStats.userCount }}
         </a-descriptions-item>
@@ -362,8 +378,14 @@
       width="600px"
       :footer="null"
     >
-      <a-descriptions bordered :column="2">
-        <a-descriptions-item label="队列消息总数" :span="2">
+      <a-descriptions
+        bordered
+        :column="2"
+      >
+        <a-descriptions-item
+          label="队列消息总数"
+          :span="2"
+        >
           {{ syncStats.totalMessages }}
         </a-descriptions-item>
         <a-descriptions-item label="设备队列数">
@@ -372,7 +394,10 @@
         <a-descriptions-item label="活动同步">
           {{ syncStats.activeSyncs }}
         </a-descriptions-item>
-        <a-descriptions-item label="消息状态跟踪" :span="2">
+        <a-descriptions-item
+          label="消息状态跟踪"
+          :span="2"
+        >
           {{ syncStats.statusCount }}
         </a-descriptions-item>
       </a-descriptions>
@@ -388,8 +413,12 @@
           :key="deviceId"
         >
           <a-list-item-meta>
-            <template #title> 设备: {{ deviceId.slice(0, 12) }}... </template>
-            <template #description> 队列消息: {{ count }} 条 </template>
+            <template #title>
+              设备: {{ deviceId.slice(0, 12) }}...
+            </template>
+            <template #description>
+              队列消息: {{ count }} 条
+            </template>
           </a-list-item-meta>
           <template #actions>
             <a-button
@@ -403,7 +432,10 @@
         </a-list-item>
       </a-list>
 
-      <a-empty v-else description="暂无队列消息" />
+      <a-empty
+        v-else
+        description="暂无队列消息"
+      />
     </a-modal>
 
     <!-- 聊天对话框 -->
@@ -416,7 +448,10 @@
     >
       <div class="chat-container">
         <!-- 设备选择器 -->
-        <div v-if="currentChatDevices.length > 1" class="device-selector">
+        <div
+          v-if="currentChatDevices.length > 1"
+          class="device-selector"
+        >
           <a-select
             v-model:value="currentChatDeviceId"
             style="width: 100%; margin-bottom: 12px"
@@ -449,7 +484,10 @@
         </div>
 
         <!-- 消息列表 -->
-        <div ref="messageList" class="message-list">
+        <div
+          ref="messageList"
+          class="message-list"
+        >
           <div
             v-for="msg in chatMessages"
             :key="msg.id"
@@ -478,28 +516,32 @@
                   <span
                     v-if="msg.status === 'queued'"
                     title="消息已入队,等待发送"
-                    >⏳</span
-                  >
-                  <span v-else-if="msg.status === 'sent'" title="已发送"
-                    >✓</span
-                  >
-                  <span v-else-if="msg.status === 'delivered'" title="已送达"
-                    >✓✓</span
-                  >
+                  >⏳</span>
+                  <span
+                    v-else-if="msg.status === 'sent'"
+                    title="已发送"
+                  >✓</span>
+                  <span
+                    v-else-if="msg.status === 'delivered'"
+                    title="已送达"
+                  >✓✓</span>
                   <span
                     v-else-if="msg.status === 'read'"
                     title="已读"
                     style="color: #1890ff"
-                    >✓✓</span
-                  >
-                  <span v-else-if="msg.status === 'failed'" title="发送失败"
-                    >✗</span
-                  >
+                  >✓✓</span>
+                  <span
+                    v-else-if="msg.status === 'failed'"
+                    title="发送失败"
+                  >✗</span>
                 </span>
               </div>
             </div>
           </div>
-          <div v-if="chatMessages.length === 0" class="empty-messages">
+          <div
+            v-if="chatMessages.length === 0"
+            class="empty-messages"
+          >
             <a-empty description="暂无消息">
               <template #description>
                 <span

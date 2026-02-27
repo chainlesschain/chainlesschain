@@ -1,7 +1,10 @@
 <template>
   <div class="transaction-list">
     <!-- 过滤器 -->
-    <div v-if="showFilters" class="list-header">
+    <div
+      v-if="showFilters"
+      class="list-header"
+    >
       <a-space :size="12">
         <a-select
           v-model:value="filters.status"
@@ -10,10 +13,18 @@
           allow-clear
           @change="handleFilterChange"
         >
-          <a-select-option value=""> 全部状态 </a-select-option>
-          <a-select-option value="pending"> 待确认 </a-select-option>
-          <a-select-option value="confirmed"> 已确认 </a-select-option>
-          <a-select-option value="failed"> 失败 </a-select-option>
+          <a-select-option value="">
+            全部状态
+          </a-select-option>
+          <a-select-option value="pending">
+            待确认
+          </a-select-option>
+          <a-select-option value="confirmed">
+            已确认
+          </a-select-option>
+          <a-select-option value="failed">
+            失败
+          </a-select-option>
         </a-select>
 
         <a-select
@@ -23,13 +34,24 @@
           allow-clear
           @change="handleFilterChange"
         >
-          <a-select-option value=""> 全部类型 </a-select-option>
-          <a-select-option value="transfer"> 转账 </a-select-option>
-          <a-select-option value="mint"> 铸造 </a-select-option>
-          <a-select-option value="contract_call"> 合约调用 </a-select-option>
+          <a-select-option value="">
+            全部类型
+          </a-select-option>
+          <a-select-option value="transfer">
+            转账
+          </a-select-option>
+          <a-select-option value="mint">
+            铸造
+          </a-select-option>
+          <a-select-option value="contract_call">
+            合约调用
+          </a-select-option>
         </a-select>
 
-        <a-button :loading="loading" @click="handleRefresh">
+        <a-button
+          :loading="loading"
+          @click="handleRefresh"
+        >
           <template #icon>
             <reload-outlined />
           </template>
@@ -61,7 +83,10 @@
             <template #title>
               <div class="tx-title">
                 <span class="tx-type">{{ getTxTypeText(item.tx_type) }}</span>
-                <a-tag :color="getStatusColor(item.status)" size="small">
+                <a-tag
+                  :color="getStatusColor(item.status)"
+                  size="small"
+                >
                   {{ getStatusText(item.status) }}
                 </a-tag>
                 <span class="tx-time">{{ formatTime(item.created_at) }}</span>
@@ -102,17 +127,26 @@
 
                 <!-- 金额和 Gas -->
                 <div class="tx-details">
-                  <span v-if="item.value" class="detail-item">
+                  <span
+                    v-if="item.value"
+                    class="detail-item"
+                  >
                     <span class="label">金额:</span>
                     <span class="value amount">{{
                       formatValue(item.value)
                     }}</span>
                   </span>
-                  <span v-if="item.gas_used" class="detail-item">
+                  <span
+                    v-if="item.gas_used"
+                    class="detail-item"
+                  >
                     <span class="label">Gas:</span>
                     <span class="value">{{ item.gas_used }}</span>
                   </span>
-                  <span v-if="item.block_number" class="detail-item">
+                  <span
+                    v-if="item.block_number"
+                    class="detail-item"
+                  >
                     <span class="label">区块:</span>
                     <span class="value">{{ item.block_number }}</span>
                   </span>
@@ -123,7 +157,11 @@
 
           <!-- 操作按钮 -->
           <template #actions>
-            <a-button type="link" size="small" @click="handleViewDetails(item)">
+            <a-button
+              type="link"
+              size="small"
+              @click="handleViewDetails(item)"
+            >
               详情
             </a-button>
           </template>

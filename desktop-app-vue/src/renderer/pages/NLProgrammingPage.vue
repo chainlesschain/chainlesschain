@@ -7,7 +7,9 @@
         <span class="subtitle">Natural Language Programming</span>
       </div>
       <div class="header-right">
-        <a-button @click="handleLoadHistory"> 历史记录 </a-button>
+        <a-button @click="handleLoadHistory">
+          历史记录
+        </a-button>
       </div>
     </div>
 
@@ -39,12 +41,24 @@
     </a-card>
 
     <!-- 中部内容 -->
-    <a-row :gutter="16" class="middle-section">
+    <a-row
+      :gutter="16"
+      class="middle-section"
+    >
       <!-- Spec 预览 -->
-      <a-col :lg="12" :md="24">
-        <a-card title="Spec 结构化预览" size="small">
+      <a-col
+        :lg="12"
+        :md="24"
+      >
+        <a-card
+          title="Spec 结构化预览"
+          size="small"
+        >
           <template v-if="store.currentSpec">
-            <a-descriptions :column="1" size="small">
+            <a-descriptions
+              :column="1"
+              size="small"
+            >
               <a-descriptions-item label="意图">
                 <a-tag color="blue">
                   {{ store.currentSpec.intent }}
@@ -89,15 +103,28 @@
               />
             </div>
           </template>
-          <a-empty v-else description="输入自然语言后点击「翻译为 Spec」" />
+          <a-empty
+            v-else
+            description="输入自然语言后点击「翻译为 Spec」"
+          />
         </a-card>
       </a-col>
 
       <!-- 项目约定 -->
-      <a-col :lg="12" :md="24">
-        <a-card title="项目约定" size="small">
+      <a-col
+        :lg="12"
+        :md="24"
+      >
+        <a-card
+          title="项目约定"
+          size="small"
+        >
           <template v-if="store.conventions">
-            <a-descriptions :column="1" size="small" bordered>
+            <a-descriptions
+              :column="1"
+              size="small"
+              bordered
+            >
               <a-descriptions-item label="命名规范">
                 {{ store.conventions.naming }}
               </a-descriptions-item>
@@ -120,8 +147,13 @@
               </a-descriptions-item>
             </a-descriptions>
           </template>
-          <a-empty v-else description="暂无项目约定">
-            <a-button @click="handleAnalyzeProject"> 分析当前项目 </a-button>
+          <a-empty
+            v-else
+            description="暂无项目约定"
+          >
+            <a-button @click="handleAnalyzeProject">
+              分析当前项目
+            </a-button>
           </a-empty>
         </a-card>
       </a-col>
@@ -135,7 +167,11 @@
       class="code-section"
     >
       <template #extra>
-        <a-button type="primary" size="small" @click="handleApplyCode">
+        <a-button
+          type="primary"
+          size="small"
+          @click="handleApplyCode"
+        >
           应用到工作区
         </a-button>
       </template>
@@ -149,13 +185,16 @@
       width="700px"
       :footer="null"
     >
-      <a-list :data-source="store.history" size="small">
+      <a-list
+        :data-source="store.history"
+        size="small"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta
               :title="
                 item.input.substring(0, 60) +
-                (item.input.length > 60 ? '...' : '')
+                  (item.input.length > 60 ? '...' : '')
               "
               :description="`${item.status} | ${item.createdAt}`"
             />

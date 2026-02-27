@@ -1,13 +1,19 @@
 <template>
   <div class="remote-control-page">
-    <a-page-header title="远程控制" sub-title="管理移动设备连接和权限">
+    <a-page-header
+      title="远程控制"
+      sub-title="管理移动设备连接和权限"
+    >
       <template #extra>
         <a-space>
           <a-badge
             :count="connectedDevices.length"
             :number-style="{ backgroundColor: '#52c41a' }"
           >
-            <a-button type="primary" @click="refreshDevices">
+            <a-button
+              type="primary"
+              @click="refreshDevices"
+            >
               <template #icon>
                 <ReloadOutlined />
               </template>
@@ -26,7 +32,10 @@
 
     <div class="content">
       <!-- 设备列表 -->
-      <a-card title="已连接设备" :loading="loading">
+      <a-card
+        title="已连接设备"
+        :loading="loading"
+      >
         <template #extra>
           <a-tag color="success">
             {{ connectedDevices.length }} 台设备在线
@@ -38,7 +47,11 @@
           description="暂无设备连接"
         />
 
-        <a-list v-else :data-source="connectedDevices" item-layout="horizontal">
+        <a-list
+          v-else
+          :data-source="connectedDevices"
+          item-layout="horizontal"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
@@ -55,25 +68,35 @@
                   </a-space>
                 </template>
                 <template #description>
-                  Peer ID: {{ item.peerId }}<br />
+                  Peer ID: {{ item.peerId }}<br>
                   连接时间: {{ formatTime(item.connectedAt) }}
                 </template>
               </a-list-item-meta>
 
               <template #actions>
-                <a-button type="link" @click="sendTestCommand(item)">
+                <a-button
+                  type="link"
+                  @click="sendTestCommand(item)"
+                >
                   <template #icon>
                     <SendOutlined />
                   </template>
                   发送测试命令
                 </a-button>
-                <a-button type="link" @click="managePermission(item)">
+                <a-button
+                  type="link"
+                  @click="managePermission(item)"
+                >
                   <template #icon>
                     <SettingOutlined />
                   </template>
                   管理权限
                 </a-button>
-                <a-button type="link" danger @click="viewAuditLogs(item)">
+                <a-button
+                  type="link"
+                  danger
+                  @click="viewAuditLogs(item)"
+                >
                   <template #icon>
                     <FileTextOutlined />
                   </template>
@@ -86,7 +109,10 @@
       </a-card>
 
       <!-- 命令测试面板 -->
-      <a-card title="命令测试" style="margin-top: 16px">
+      <a-card
+        title="命令测试"
+        style="margin-top: 16px"
+      >
         <a-form layout="vertical">
           <a-row :gutter="16">
             <a-col :span="8">
@@ -117,7 +143,9 @@
                   <a-select-option value="system.notify">
                     发送通知
                   </a-select-option>
-                  <a-select-option value="ai.chat"> AI 对话 </a-select-option>
+                  <a-select-option value="ai.chat">
+                    AI 对话
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -141,12 +169,15 @@
           <a-form-item label="命令参数（JSON）">
             <a-textarea
               v-model:value="testCommand.params"
-              placeholder='{"key": "value"}'
+              placeholder="{&quot;key&quot;: &quot;value&quot;}"
               :rows="4"
             />
           </a-form-item>
 
-          <a-form-item v-if="testCommand.result" label="执行结果">
+          <a-form-item
+            v-if="testCommand.result"
+            label="执行结果"
+          >
             <a-alert
               :type="testCommand.result.success ? 'success' : 'error'"
               :message="
@@ -184,25 +215,33 @@
             <a-radio :value="1">
               <a-space>
                 Level 1 - Public
-                <a-tag color="default"> 只读权限 </a-tag>
+                <a-tag color="default">
+                  只读权限
+                </a-tag>
               </a-space>
             </a-radio>
             <a-radio :value="2">
               <a-space>
                 Level 2 - Normal
-                <a-tag color="blue"> 标准权限 </a-tag>
+                <a-tag color="blue">
+                  标准权限
+                </a-tag>
               </a-space>
             </a-radio>
             <a-radio :value="3">
               <a-space>
                 Level 3 - Admin
-                <a-tag color="orange"> 管理员权限 </a-tag>
+                <a-tag color="orange">
+                  管理员权限
+                </a-tag>
               </a-space>
             </a-radio>
             <a-radio :value="4">
               <a-space>
                 Level 4 - Root
-                <a-tag color="red"> 完全控制（需要 U-Key） </a-tag>
+                <a-tag color="red">
+                  完全控制（需要 U-Key）
+                </a-tag>
               </a-space>
             </a-radio>
           </a-radio-group>
@@ -221,13 +260,14 @@
             :min="1"
             :max="168"
           />
-          <span style="margin-left: 8px; color: #999"
-            >设置为 0 表示永不过期</span
-          >
+          <span style="margin-left: 8px; color: #999">设置为 0 表示永不过期</span>
         </a-form-item>
 
         <a-form-item label="备注">
-          <a-textarea v-model:value="permissionModal.notes" :rows="3" />
+          <a-textarea
+            v-model:value="permissionModal.notes"
+            :rows="3"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -260,8 +300,15 @@
     </a-modal>
 
     <!-- 统计信息对话框 -->
-    <a-modal v-model:open="statsModal.visible" title="统计信息" :footer="null">
-      <a-descriptions bordered :column="1">
+    <a-modal
+      v-model:open="statsModal.visible"
+      title="统计信息"
+      :footer="null"
+    >
+      <a-descriptions
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="总命令数">
           {{ stats.totalCommands }}
         </a-descriptions-item>

@@ -85,13 +85,13 @@ function createMockDatabase() {
           }
           if (sql.includes("AVG(feedback)")) {
             const withFeedback = store.filter((r) => r.feedback !== 0);
-            if (withFeedback.length === 0) return { avg_feedback: null };
+            if (withFeedback.length === 0) {return { avg_feedback: null };}
             const sum = withFeedback.reduce((s, r) => s + r.feedback, 0);
             return { avg_feedback: sum / withFeedback.length };
           }
           if (sql.includes("AVG(tokens_used)")) {
             const withTokens = store.filter((r) => r.tokens_used > 0);
-            if (withTokens.length === 0) return { avg_tokens: null, avg_latency: null };
+            if (withTokens.length === 0) {return { avg_tokens: null, avg_latency: null };}
             const sumTokens = withTokens.reduce((s, r) => s + r.tokens_used, 0);
             const sumLatency = withTokens.reduce((s, r) => s + r.latency_ms, 0);
             return {
@@ -113,7 +113,7 @@ function createMockDatabase() {
               p.substring(1, p.length - 1).toLowerCase(),
             );
 
-            let results = store.filter((row) => {
+            const results = store.filter((row) => {
               const text = `${(row.user_message || "").toLowerCase()} ${(row.assistant_response || "").toLowerCase()}`;
               return keywords.some((kw) => text.includes(kw));
             });

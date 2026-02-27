@@ -10,13 +10,18 @@
     >
       <a-form layout="vertical">
         <!-- 资产信息 -->
-        <a-alert v-if="asset" type="info" style="margin-bottom: 16px">
+        <a-alert
+          v-if="asset"
+          type="info"
+          style="margin-bottom: 16px"
+        >
           <template #message>
             <a-space>
-              <span
-                >资产: <strong>{{ asset.name }}</strong></span
+              <span>资产: <strong>{{ asset.name }}</strong></span>
+              <a-tag
+                v-if="asset.symbol"
+                color="blue"
               >
-              <a-tag v-if="asset.symbol" color="blue">
                 {{ asset.symbol }}
               </a-tag>
             </a-space>
@@ -30,7 +35,10 @@
         </a-alert>
 
         <!-- 接收者 DID -->
-        <a-form-item label="接收者 DID" required>
+        <a-form-item
+          label="接收者 DID"
+          required
+        >
           <did-selector
             v-model:value="form.toDid"
             placeholder="选择接收者 DID"
@@ -38,11 +46,16 @@
             show-quick-actions
             @create-did="handleCreateDid"
           />
-          <template #extra> 从您的身份列表或好友列表中选择接收者 </template>
+          <template #extra>
+            从您的身份列表或好友列表中选择接收者
+          </template>
         </a-form-item>
 
         <!-- 转账数量 -->
-        <a-form-item label="转账数量" required>
+        <a-form-item
+          label="转账数量"
+          required
+        >
           <a-input-number
             v-model:value="form.amount"
             :min="getMinAmount()"
@@ -53,7 +66,11 @@
             placeholder="输入转账数量"
           >
             <template #addonAfter>
-              <a-button type="link" size="small" @click="setMaxAmount">
+              <a-button
+                type="link"
+                size="small"
+                @click="setMaxAmount"
+              >
                 全部
               </a-button>
             </template>
@@ -81,12 +98,18 @@
           size="small"
           title="转账确认"
         >
-          <a-descriptions :column="1" size="small">
+          <a-descriptions
+            :column="1"
+            size="small"
+          >
             <a-descriptions-item label="资产">
               {{ asset?.name }} {{ asset?.symbol ? `(${asset.symbol})` : "" }}
             </a-descriptions-item>
             <a-descriptions-item label="接收者">
-              <a-typography-text copyable style="font-size: 12px">
+              <a-typography-text
+                copyable
+                style="font-size: 12px"
+              >
                 {{ shortenDid(form.toDid) }}
               </a-typography-text>
             </a-descriptions-item>
@@ -100,7 +123,10 @@
                 }}
               </strong>
             </a-descriptions-item>
-            <a-descriptions-item v-if="form.memo" label="备注">
+            <a-descriptions-item
+              v-if="form.memo"
+              label="备注"
+            >
               {{ form.memo }}
             </a-descriptions-item>
           </a-descriptions>

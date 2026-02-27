@@ -97,9 +97,7 @@ export default defineConfig({
       '@shared': resolve(__dirname, 'src/shared'),
       '@preload': resolve(__dirname, 'src/preload'),
       'electron': resolve(__dirname, 'tests/__mocks__/electron.ts'),
-      'usb': resolve(__dirname, 'tests/__mocks__/usb.ts'),
-      'https': resolve(__dirname, 'tests/__mocks__/https.ts'),
-      'http': resolve(__dirname, 'tests/__mocks__/http.ts')
+      'usb': resolve(__dirname, 'tests/__mocks__/usb.ts')
     }
   }
 });

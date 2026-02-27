@@ -950,8 +950,8 @@ class DriverRegistry extends EventEmitter {
    */
   getRecommendedTransport() {
     const platform = process.platform;
-    if (platform === "win32") return "koffi";
-    if (platform === "darwin" || platform === "linux") return "usb";
+    if (platform === "win32") {return "koffi";}
+    if (platform === "darwin" || platform === "linux") {return "usb";}
     return "simulated";
   }
 
@@ -971,12 +971,21 @@ class DriverRegistry extends EventEmitter {
       // usb module not available
     }
 
+    let bleAvailable = false;
+    try {
+      require("@abandonware/noble");
+      bleAvailable = true;
+    } catch {
+      // noble BLE library not available
+    }
+
     return {
       platform,
       recommended,
       usbAvailable,
       koffiAvailable: platform === "win32",
       webUsbFallback: !usbAvailable && platform !== "win32",
+      bleAvailable,
     };
   }
 }

@@ -8,8 +8,14 @@
   >
     <div class="asset-qr-modal">
       <!-- 资产信息 -->
-      <a-card :bordered="false" class="asset-info-card">
-        <a-descriptions :column="1" size="small">
+      <a-card
+        :bordered="false"
+        class="asset-info-card"
+      >
+        <a-descriptions
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="资产名称">
             <a-typography-text strong>
               {{ asset?.name }}
@@ -25,7 +31,10 @@
               {{ asset?.id }}
             </a-typography-text>
           </a-descriptions-item>
-          <a-descriptions-item v-if="asset?.contract_address" label="合约地址">
+          <a-descriptions-item
+            v-if="asset?.contract_address"
+            label="合约地址"
+          >
             <a-typography-text copyable>
               {{ formatAddress(asset.contract_address) }}
             </a-typography-text>
@@ -38,15 +47,23 @@
       <!-- 二维码显示 -->
       <div class="qr-code-container">
         <div class="qr-code-wrapper">
-          <canvas ref="qrCanvas" class="qr-canvas" />
+          <canvas
+            ref="qrCanvas"
+            class="qr-canvas"
+          />
         </div>
-        <p class="qr-hint">扫描二维码查看资产详情</p>
+        <p class="qr-hint">
+          扫描二维码查看资产详情
+        </p>
       </div>
 
       <!-- 操作按钮 -->
       <div class="action-buttons">
         <a-space :size="12">
-          <a-button type="primary" @click="handleDownloadQR">
+          <a-button
+            type="primary"
+            @click="handleDownloadQR"
+          >
             <template #icon>
               <download-outlined />
             </template>
