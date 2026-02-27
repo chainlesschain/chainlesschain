@@ -5,7 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [1.1.0] - 2026-02-25
+## [1.1.0] - 2026-02-27
+
+### 重构
+
+- 🔄 **ES6模块迁移** — 全项目迁移至ES6 import/export语法，使用Node.js协议导入（`node:fs`、`node:path`等），淘汰CommonJS require
+- 📦 **Phase 46-51测试补全** — 门限签名、BLE U-Key、内容推荐、Nostr桥接、DLP、SIEM六大模块完整单元测试+Store测试+E2E测试
 
 ### 新增
 
