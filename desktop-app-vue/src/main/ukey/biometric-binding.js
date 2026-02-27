@@ -33,14 +33,14 @@ class BiometricBinding extends EventEmitter {
   }
 
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
     this._ensureTables();
     this.initialized = true;
     logger.info('[BiometricBinding] Initialized');
   }
 
   _ensureTables() {
-    if (!this.database) return;
+    if (!this.database) {return;}
     this.database.exec(`
       CREATE TABLE IF NOT EXISTS biometric_bindings (
         id TEXT PRIMARY KEY,
@@ -72,7 +72,7 @@ class BiometricBinding extends EventEmitter {
    * @returns {Object} Binding result
    */
   async bindBiometric({ keyId, biometricType, templateData, teeAttestation, expiresInDays } = {}) {
-    if (!this.initialized) throw new Error('BiometricBinding not initialized');
+    if (!this.initialized) {throw new Error('BiometricBinding not initialized');}
     if (!keyId || !biometricType || !templateData) {
       throw new Error('keyId, biometricType, and templateData are required');
     }
@@ -127,7 +127,7 @@ class BiometricBinding extends EventEmitter {
    * @returns {Object} Verification result
    */
   async verifyBiometric({ keyId, biometricType, templateData } = {}) {
-    if (!this.initialized) throw new Error('BiometricBinding not initialized');
+    if (!this.initialized) {throw new Error('BiometricBinding not initialized');}
     if (!keyId || !biometricType || !templateData) {
       throw new Error('keyId, biometricType, and templateData are required');
     }
@@ -180,7 +180,7 @@ class BiometricBinding extends EventEmitter {
    * Unbind a biometric from a key
    */
   async unbindBiometric({ keyId, biometricType } = {}) {
-    if (!keyId || !biometricType) throw new Error('keyId and biometricType are required');
+    if (!keyId || !biometricType) {throw new Error('keyId and biometricType are required');}
 
     if (this.database) {
       this.database.prepare(
@@ -198,7 +198,7 @@ class BiometricBinding extends EventEmitter {
    * List all bindings for a key
    */
   async listBindings(keyId) {
-    if (!this.database) return [];
+    if (!this.database) {return [];}
     const query = keyId
       ? 'SELECT id, key_id, biometric_type, status, bound_at, expires_at, last_verified_at, verification_count FROM biometric_bindings WHERE key_id = ?'
       : 'SELECT id, key_id, biometric_type, status, bound_at, expires_at, last_verified_at, verification_count FROM biometric_bindings';
@@ -213,7 +213,7 @@ class BiometricBinding extends EventEmitter {
 
 let _instance;
 function getBiometricBinding() {
-  if (!_instance) _instance = new BiometricBinding();
+  if (!_instance) {_instance = new BiometricBinding();}
   return _instance;
 }
 

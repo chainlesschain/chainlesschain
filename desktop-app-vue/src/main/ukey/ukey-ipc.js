@@ -419,7 +419,7 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
 
   ipcMain.handle('ble-ukey:pair-device', async (_event, { deviceId }) => {
     try {
-      if (!deviceId) throw new Error('deviceId is required');
+      if (!deviceId) {throw new Error('deviceId is required');}
       const { getBLEDriver } = require('./ble-driver');
       return await getBLEDriver().pair(deviceId);
     } catch (error) {
@@ -430,7 +430,7 @@ function registerUKeyIPC({ ukeyManager, unifiedKeyManager, fido2Authenticator, i
 
   ipcMain.handle('ble-ukey:connect', async (_event, { deviceId }) => {
     try {
-      if (!deviceId) throw new Error('deviceId is required');
+      if (!deviceId) {throw new Error('deviceId is required');}
       const { getBLEDriver } = require('./ble-driver');
       return await getBLEDriver().connect(deviceId);
     } catch (error) {

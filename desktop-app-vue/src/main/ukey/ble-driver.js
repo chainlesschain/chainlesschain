@@ -383,7 +383,7 @@ class BLEDriver extends EventEmitter {
   }
 
   async _attemptReconnect() {
-    if (!this._autoReconnect || !this._device) return;
+    if (!this._autoReconnect || !this._device) {return;}
 
     const deviceId = this._device.id;
     const maxAttempts = 3;
@@ -420,7 +420,7 @@ class BLEDriver extends EventEmitter {
 
 let _bleInstance;
 function getBLEDriver() {
-  if (!_bleInstance) _bleInstance = new BLEDriver();
+  if (!_bleInstance) {_bleInstance = new BLEDriver();}
   return _bleInstance;
 }
 

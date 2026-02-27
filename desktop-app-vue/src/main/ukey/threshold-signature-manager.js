@@ -40,7 +40,7 @@ class ThresholdSignatureManager extends EventEmitter {
    * Initialize manager and ensure DB tables exist
    */
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
     this._ensureTables();
     // Use a large safe prime for Shamir arithmetic
     this._prime = BigInt('0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF');
@@ -50,7 +50,7 @@ class ThresholdSignatureManager extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database) return;
+    if (!this.database) {return;}
     this.database.exec(`
       CREATE TABLE IF NOT EXISTS threshold_key_shares (
         id TEXT PRIMARY KEY,
@@ -76,8 +76,8 @@ class ThresholdSignatureManager extends EventEmitter {
    * @returns {Object} Setup result with share metadata
    */
   async setupKeys({ keyId, sources } = {}) {
-    if (!this.initialized) throw new Error('ThresholdSignatureManager not initialized');
-    if (!keyId) throw new Error('keyId is required');
+    if (!this.initialized) {throw new Error('ThresholdSignatureManager not initialized');}
+    if (!keyId) {throw new Error('keyId is required');}
 
     const shareSources = sources || [SHARE_SOURCES.UKEY, SHARE_SOURCES.SIMKEY, SHARE_SOURCES.TEE];
     if (shareSources.length !== this._totalShares) {
@@ -137,8 +137,8 @@ class ThresholdSignatureManager extends EventEmitter {
    * @returns {Object} Signature result
    */
   async sign({ keyId, data, shareSources } = {}) {
-    if (!this.initialized) throw new Error('ThresholdSignatureManager not initialized');
-    if (!keyId || !data) throw new Error('keyId and data are required');
+    if (!this.initialized) {throw new Error('ThresholdSignatureManager not initialized');}
+    if (!keyId || !data) {throw new Error('keyId and data are required');}
     if (!shareSources || shareSources.length < this._threshold) {
       throw new Error(`At least ${this._threshold} shares required to sign`);
     }
@@ -153,7 +153,7 @@ class ThresholdSignatureManager extends EventEmitter {
           'SELECT * FROM threshold_key_shares WHERE key_id = ? AND source = ?'
         ).get(keyId, source);
 
-        if (!row) throw new Error(`Share not found for source: ${source}`);
+        if (!row) {throw new Error(`Share not found for source: ${source}`);}
 
         const decryptedShare = this._decryptShare(row.encrypted_share, source);
         shares.push({ index: row.share_index, value: decryptedShare });
@@ -187,7 +187,7 @@ class ThresholdSignatureManager extends EventEmitter {
    * List all key setups
    */
   async listKeys() {
-    if (!this.database) return [];
+    if (!this.database) {return [];}
     const rows = this.database.prepare(`
       SELECT key_id, public_key, COUNT(*) as share_count, MIN(created_at) as created_at
       FROM threshold_key_shares
@@ -200,7 +200,7 @@ class ThresholdSignatureManager extends EventEmitter {
    * Get shares for a specific key
    */
   async getKeyShares(keyId) {
-    if (!this.database) return [];
+    if (!this.database) {return [];}
     return this.database.prepare(
       'SELECT id, key_id, share_index, source, public_key, created_at FROM threshold_key_shares WHERE key_id = ?'
     ).all(keyId);
@@ -210,7 +210,7 @@ class ThresholdSignatureManager extends EventEmitter {
    * Delete a key and all its shares
    */
   async deleteKey(keyId) {
-    if (!this.database) return { success: false, error: 'No database' };
+    if (!this.database) {return { success: false, error: 'No database' };}
     this.database.prepare('DELETE FROM threshold_key_shares WHERE key_id = ?').run(keyId);
     this.emit('key-deleted', { keyId });
     return { success: true };
@@ -256,7 +256,7 @@ class ThresholdSignatureManager extends EventEmitter {
       let numerator = BigInt(1);
       let denominator = BigInt(1);
       for (let j = 0; j < points.length; j++) {
-        if (i === j) continue;
+        if (i === j) {continue;}
         numerator = (numerator * (p - points[j].x)) % p;
         denominator = (denominator * ((points[i].x - points[j].x + p) % p)) % p;
       }
@@ -320,7 +320,7 @@ class ThresholdSignatureManager extends EventEmitter {
 
 let _instance;
 function getThresholdSignatureManager() {
-  if (!_instance) _instance = new ThresholdSignatureManager();
+  if (!_instance) {_instance = new ThresholdSignatureManager();}
   return _instance;
 }
 

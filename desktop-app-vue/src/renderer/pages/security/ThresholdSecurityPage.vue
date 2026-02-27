@@ -1,33 +1,76 @@
 <template>
   <div class="threshold-security-page">
-    <a-page-header title="Threshold Security" sub-title="2-of-3 Shamir Threshold Signatures & Biometric Binding">
+    <a-page-header
+      title="Threshold Security"
+      sub-title="2-of-3 Shamir Threshold Signatures & Biometric Binding"
+    >
       <template #extra>
-        <a-button type="primary" @click="showSetupModal = true">
+        <a-button
+          type="primary"
+          @click="showSetupModal = true"
+        >
           Setup New Key
         </a-button>
       </template>
     </a-page-header>
 
-    <a-tabs v-model:activeKey="activeTab">
+    <a-tabs v-model:active-key="activeTab">
       <!-- Key Shares Tab -->
-      <a-tab-pane key="shares" tab="Key Shares">
+      <a-tab-pane
+        key="shares"
+        tab="Key Shares"
+      >
         <a-spin :spinning="store.loading">
-          <a-empty v-if="store.keys.length === 0" description="No threshold keys configured" />
-          <a-row :gutter="[16, 16]" v-else>
-            <a-col :span="8" v-for="key in store.keys" :key="key.key_id">
-              <a-card :title="key.key_id" size="small">
-                <a-descriptions :column="1" size="small">
-                  <a-descriptions-item label="Shares">{{ key.share_count }} / 3</a-descriptions-item>
-                  <a-descriptions-item label="Created">{{ formatDate(key.created_at) }}</a-descriptions-item>
+          <a-empty
+            v-if="store.keys.length === 0"
+            description="No threshold keys configured"
+          />
+          <a-row
+            v-else
+            :gutter="[16, 16]"
+          >
+            <a-col
+              v-for="key in store.keys"
+              :key="key.key_id"
+              :span="8"
+            >
+              <a-card
+                :title="key.key_id"
+                size="small"
+              >
+                <a-descriptions
+                  :column="1"
+                  size="small"
+                >
+                  <a-descriptions-item label="Shares">
+                    {{ key.share_count }} / 3
+                  </a-descriptions-item>
+                  <a-descriptions-item label="Created">
+                    {{ formatDate(key.created_at) }}
+                  </a-descriptions-item>
                   <a-descriptions-item label="Public Key">
-                    <a-typography-text code copyable :content="key.public_key">
+                    <a-typography-text
+                      code
+                      copyable
+                      :content="key.public_key"
+                    >
                       {{ truncate(key.public_key) }}
                     </a-typography-text>
                   </a-descriptions-item>
                 </a-descriptions>
                 <template #actions>
-                  <a-button size="small" @click="handleSign(key.key_id)">Sign</a-button>
-                  <a-button size="small" @click="handleBindBiometric(key.key_id)">Bind Biometric</a-button>
+                  <a-button
+                    size="small"
+                    @click="handleSign(key.key_id)"
+                  >
+                    Sign
+                  </a-button>
+                  <a-button
+                    size="small"
+                    @click="handleBindBiometric(key.key_id)"
+                  >
+                    Bind Biometric
+                  </a-button>
                 </template>
               </a-card>
             </a-col>
@@ -36,7 +79,10 @@
       </a-tab-pane>
 
       <!-- Biometric Bindings Tab -->
-      <a-tab-pane key="biometrics" tab="Biometric Bindings">
+      <a-tab-pane
+        key="biometrics"
+        tab="Biometric Bindings"
+      >
         <a-table
           :columns="biometricColumns"
           :data-source="store.bindings"
@@ -46,13 +92,30 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'status'">
-              <a-tag :color="record.status === 'active' ? 'green' : 'red'">{{ record.status }}</a-tag>
+              <a-tag :color="record.status === 'active' ? 'green' : 'red'">
+                {{ record.status }}
+              </a-tag>
             </template>
             <template v-if="column.key === 'actions'">
               <a-space>
-                <a-button size="small" type="link" @click="handleVerify(record)">Verify</a-button>
-                <a-popconfirm title="Unbind this biometric?" @confirm="handleUnbind(record)">
-                  <a-button size="small" type="link" danger>Unbind</a-button>
+                <a-button
+                  size="small"
+                  type="link"
+                  @click="handleVerify(record)"
+                >
+                  Verify
+                </a-button>
+                <a-popconfirm
+                  title="Unbind this biometric?"
+                  @confirm="handleUnbind(record)"
+                >
+                  <a-button
+                    size="small"
+                    type="link"
+                    danger
+                  >
+                    Unbind
+                  </a-button>
                 </a-popconfirm>
               </a-space>
             </template>
@@ -62,18 +125,36 @@
     </a-tabs>
 
     <!-- Setup Modal -->
-    <a-modal v-model:open="showSetupModal" title="Setup Threshold Key" @ok="handleSetup" :confirm-loading="store.loading">
+    <a-modal
+      v-model:open="showSetupModal"
+      title="Setup Threshold Key"
+      :confirm-loading="store.loading"
+      @ok="handleSetup"
+    >
       <a-form layout="vertical">
         <a-form-item label="Key ID">
-          <a-input v-model:value="setupForm.keyId" placeholder="Enter a unique key identifier" />
+          <a-input
+            v-model:value="setupForm.keyId"
+            placeholder="Enter a unique key identifier"
+          />
         </a-form-item>
         <a-form-item label="Share Sources">
-          <a-checkbox-group v-model:value="setupForm.sources" :options="sourceOptions" />
+          <a-checkbox-group
+            v-model:value="setupForm.sources"
+            :options="sourceOptions"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
 
-    <a-alert v-if="store.error" type="error" :message="store.error" closable @close="store.error = null" style="margin-top: 16px" />
+    <a-alert
+      v-if="store.error"
+      type="error"
+      :message="store.error"
+      closable
+      style="margin-top: 16px"
+      @close="store.error = null"
+    />
   </div>
 </template>
 
@@ -107,12 +188,12 @@ const biometricColumns = [
 ];
 
 function formatDate(ts: number) {
-  if (!ts) return '-';
+  if (!ts) {return '-';}
   return new Date(ts * 1000).toLocaleDateString();
 }
 
 function truncate(s: string) {
-  if (!s) return '';
+  if (!s) {return '';}
   return s.length > 20 ? s.slice(0, 20) + '...' : s;
 }
 
