@@ -1,8 +1,15 @@
 <template>
   <div class="recommendations-page">
-    <a-page-header title="Content Recommendations" sub-title="Personalized content feed powered by local AI">
+    <a-page-header
+      title="Content Recommendations"
+      sub-title="Personalized content feed powered by local AI"
+    >
       <template #extra>
-        <a-button type="primary" @click="handleGenerate" :loading="store.loading">
+        <a-button
+          type="primary"
+          :loading="store.loading"
+          @click="handleGenerate"
+        >
           Generate Recommendations
         </a-button>
       </template>
@@ -11,17 +18,29 @@
     <a-row :gutter="24">
       <!-- Recommendation Feed -->
       <a-col :span="16">
-        <a-tabs v-model:activeKey="activeTab">
-          <a-tab-pane key="feed" tab="Feed">
+        <a-tabs v-model:active-key="activeTab">
+          <a-tab-pane
+            key="feed"
+            tab="Feed"
+          >
             <a-spin :spinning="store.loading">
-              <a-empty v-if="store.recommendations.length === 0" description="No recommendations yet. Click Generate to start." />
-              <a-list v-else :data-source="store.recommendations" item-layout="vertical">
+              <a-empty
+                v-if="store.recommendations.length === 0"
+                description="No recommendations yet. Click Generate to start."
+              />
+              <a-list
+                v-else
+                :data-source="store.recommendations"
+                item-layout="vertical"
+              >
                 <template #renderItem="{ item }">
                   <a-list-item>
                     <a-list-item-meta>
                       <template #title>
                         <a-space>
-                          <a-tag :color="typeColor(item.content_type)">{{ item.content_type }}</a-tag>
+                          <a-tag :color="typeColor(item.content_type)">
+                            {{ item.content_type }}
+                          </a-tag>
                           <span>{{ item.content_id }}</span>
                         </a-space>
                       </template>
@@ -30,9 +49,27 @@
                       </template>
                     </a-list-item-meta>
                     <template #actions>
-                      <a-button size="small" type="link" @click="handleFeedback(item.id, 'liked')">Like</a-button>
-                      <a-button size="small" type="link" @click="handleFeedback(item.id, 'saved')">Save</a-button>
-                      <a-button size="small" type="link" @click="handleFeedback(item.id, 'dismissed')">Dismiss</a-button>
+                      <a-button
+                        size="small"
+                        type="link"
+                        @click="handleFeedback(item.id, 'liked')"
+                      >
+                        Like
+                      </a-button>
+                      <a-button
+                        size="small"
+                        type="link"
+                        @click="handleFeedback(item.id, 'saved')"
+                      >
+                        Save
+                      </a-button>
+                      <a-button
+                        size="small"
+                        type="link"
+                        @click="handleFeedback(item.id, 'dismissed')"
+                      >
+                        Dismiss
+                      </a-button>
                     </template>
                   </a-list-item>
                 </template>
@@ -40,33 +77,74 @@
             </a-spin>
           </a-tab-pane>
 
-          <a-tab-pane key="profile" tab="Interest Profile">
-            <a-card v-if="store.profile" size="small">
-              <a-descriptions :column="1" size="small" title="Your Interest Profile">
-                <a-descriptions-item label="Last Updated">{{ formatDate(store.profile.last_updated) }}</a-descriptions-item>
-                <a-descriptions-item label="Updates">{{ store.profile.update_count }}</a-descriptions-item>
+          <a-tab-pane
+            key="profile"
+            tab="Interest Profile"
+          >
+            <a-card
+              v-if="store.profile"
+              size="small"
+            >
+              <a-descriptions
+                :column="1"
+                size="small"
+                title="Your Interest Profile"
+              >
+                <a-descriptions-item label="Last Updated">
+                  {{ formatDate(store.profile.last_updated) }}
+                </a-descriptions-item>
+                <a-descriptions-item label="Updates">
+                  {{ store.profile.update_count }}
+                </a-descriptions-item>
               </a-descriptions>
               <a-divider>Topics</a-divider>
-              <div v-for="(weight, topic) in store.profile.topics" :key="String(topic)" style="margin-bottom: 8px">
+              <div
+                v-for="(weight, topic) in store.profile.topics"
+                :key="String(topic)"
+                style="margin-bottom: 8px"
+              >
                 <span>{{ topic }}</span>
-                <a-progress :percent="Math.round(Number(weight) * 100)" size="small" />
+                <a-progress
+                  :percent="Math.round(Number(weight) * 100)"
+                  size="small"
+                />
               </div>
             </a-card>
-            <a-empty v-else description="No interest profile found" />
+            <a-empty
+              v-else
+              description="No interest profile found"
+            />
           </a-tab-pane>
         </a-tabs>
       </a-col>
 
       <!-- Stats Sidebar -->
       <a-col :span="8">
-        <a-card title="Stats" size="small">
-          <a-statistic title="Total Recommendations" :value="store.recommendations.length" />
-          <a-statistic title="Unviewed" :value="store.unviewedCount" style="margin-top: 16px" />
+        <a-card
+          title="Stats"
+          size="small"
+        >
+          <a-statistic
+            title="Total Recommendations"
+            :value="store.recommendations.length"
+          />
+          <a-statistic
+            title="Unviewed"
+            :value="store.unviewedCount"
+            style="margin-top: 16px"
+          />
         </a-card>
       </a-col>
     </a-row>
 
-    <a-alert v-if="store.error" type="error" :message="store.error" closable @close="store.error = null" style="margin-top: 16px" />
+    <a-alert
+      v-if="store.error"
+      type="error"
+      :message="store.error"
+      closable
+      style="margin-top: 16px"
+      @close="store.error = null"
+    />
   </div>
 </template>
 
@@ -80,7 +158,7 @@ const activeTab = ref('feed');
 const userId = 'default-user';
 
 function formatDate(ts: number) {
-  if (!ts) return '-';
+  if (!ts) {return '-';}
   return new Date(ts * 1000).toLocaleString();
 }
 
@@ -91,8 +169,8 @@ function typeColor(type: string) {
 
 async function handleGenerate() {
   const result = await store.generate(userId);
-  if (result.success) message.success('Recommendations generated');
-  else message.error(result.error || 'Generation failed');
+  if (result.success) {message.success('Recommendations generated');}
+  else {message.error(result.error || 'Generation failed');}
 }
 
 async function handleFeedback(id: string, feedback: string) {

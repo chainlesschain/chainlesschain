@@ -1,27 +1,64 @@
 <template>
   <div class="nostr-bridge-page">
-    <a-page-header title="Nostr Bridge" sub-title="NIP-01 relay management and event browser">
+    <a-page-header
+      title="Nostr Bridge"
+      sub-title="NIP-01 relay management and event browser"
+    >
       <template #extra>
         <a-space>
-          <a-button @click="showAddRelay = true">Add Relay</a-button>
-          <a-button type="primary" @click="handleGenerateKey" :loading="store.loading">Generate Key</a-button>
+          <a-button @click="showAddRelay = true">
+            Add Relay
+          </a-button>
+          <a-button
+            type="primary"
+            :loading="store.loading"
+            @click="handleGenerateKey"
+          >
+            Generate Key
+          </a-button>
         </a-space>
       </template>
     </a-page-header>
 
-    <a-tabs v-model:activeKey="activeTab">
+    <a-tabs v-model:active-key="activeTab">
       <!-- Relays Tab -->
-      <a-tab-pane key="relays" tab="Relays">
-        <a-empty v-if="store.relays.length === 0" description="No relays configured" />
-        <a-table v-else :columns="relayColumns" :data-source="store.relays" :loading="store.loading" row-key="id" size="small">
+      <a-tab-pane
+        key="relays"
+        tab="Relays"
+      >
+        <a-empty
+          v-if="store.relays.length === 0"
+          description="No relays configured"
+        />
+        <a-table
+          v-else
+          :columns="relayColumns"
+          :data-source="store.relays"
+          :loading="store.loading"
+          row-key="id"
+          size="small"
+        >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'status'">
-              <a-badge :status="record.status === 'connected' ? 'success' : 'default'" :text="record.status" />
+              <a-badge
+                :status="record.status === 'connected' ? 'success' : 'default'"
+                :text="record.status"
+              />
             </template>
             <template v-if="column.key === 'permissions'">
               <a-space>
-                <a-tag v-if="record.read_enabled" color="blue">Read</a-tag>
-                <a-tag v-if="record.write_enabled" color="green">Write</a-tag>
+                <a-tag
+                  v-if="record.read_enabled"
+                  color="blue"
+                >
+                  Read
+                </a-tag>
+                <a-tag
+                  v-if="record.write_enabled"
+                  color="green"
+                >
+                  Write
+                </a-tag>
               </a-space>
             </template>
           </template>
@@ -29,18 +66,40 @@
       </a-tab-pane>
 
       <!-- Events Tab -->
-      <a-tab-pane key="events" tab="Events">
+      <a-tab-pane
+        key="events"
+        tab="Events"
+      >
         <a-space style="margin-bottom: 16px">
-          <a-button @click="handleFetchEvents" :loading="store.loading">Refresh</a-button>
-          <a-button type="primary" @click="showPublish = true">Publish Event</a-button>
+          <a-button
+            :loading="store.loading"
+            @click="handleFetchEvents"
+          >
+            Refresh
+          </a-button>
+          <a-button
+            type="primary"
+            @click="showPublish = true"
+          >
+            Publish Event
+          </a-button>
         </a-space>
-        <a-table :columns="eventColumns" :data-source="store.events" :loading="store.loading" row-key="id" size="small">
+        <a-table
+          :columns="eventColumns"
+          :data-source="store.events"
+          :loading="store.loading"
+          row-key="id"
+          size="small"
+        >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'kind'">
               <a-tag>{{ kindLabel(record.kind) }}</a-tag>
             </template>
             <template v-if="column.key === 'content'">
-              <a-typography-paragraph :ellipsis="{ rows: 2 }" :content="record.content" />
+              <a-typography-paragraph
+                :ellipsis="{ rows: 2 }"
+                :content="record.content"
+              />
             </template>
             <template v-if="column.key === 'created_at'">
               {{ formatDate(record.created_at) }}
@@ -50,45 +109,99 @@
       </a-tab-pane>
 
       <!-- Identity Tab -->
-      <a-tab-pane key="identity" tab="Identity">
-        <a-card v-if="store.keyPair" title="Your Nostr Identity" size="small">
-          <a-descriptions :column="1" size="small">
+      <a-tab-pane
+        key="identity"
+        tab="Identity"
+      >
+        <a-card
+          v-if="store.keyPair"
+          title="Your Nostr Identity"
+          size="small"
+        >
+          <a-descriptions
+            :column="1"
+            size="small"
+          >
             <a-descriptions-item label="npub">
-              <a-typography-text code copyable :content="store.keyPair.npub">{{ store.keyPair.npub }}</a-typography-text>
+              <a-typography-text
+                code
+                copyable
+                :content="store.keyPair.npub"
+              >
+                {{ store.keyPair.npub }}
+              </a-typography-text>
             </a-descriptions-item>
             <a-descriptions-item label="Public Key (hex)">
-              <a-typography-text code copyable :content="store.keyPair.publicKeyHex">{{ truncate(store.keyPair.publicKeyHex) }}</a-typography-text>
+              <a-typography-text
+                code
+                copyable
+                :content="store.keyPair.publicKeyHex"
+              >
+                {{ truncate(store.keyPair.publicKeyHex) }}
+              </a-typography-text>
             </a-descriptions-item>
           </a-descriptions>
         </a-card>
-        <a-empty v-else description="No key pair generated" />
+        <a-empty
+          v-else
+          description="No key pair generated"
+        />
       </a-tab-pane>
     </a-tabs>
 
     <!-- Add Relay Modal -->
-    <a-modal v-model:open="showAddRelay" title="Add Relay" @ok="handleAddRelay" :confirm-loading="store.loading">
+    <a-modal
+      v-model:open="showAddRelay"
+      title="Add Relay"
+      :confirm-loading="store.loading"
+      @ok="handleAddRelay"
+    >
       <a-form-item label="Relay URL">
-        <a-input v-model:value="newRelayUrl" placeholder="wss://relay.example.com" />
+        <a-input
+          v-model:value="newRelayUrl"
+          placeholder="wss://relay.example.com"
+        />
       </a-form-item>
     </a-modal>
 
     <!-- Publish Event Modal -->
-    <a-modal v-model:open="showPublish" title="Publish Event" @ok="handlePublish" :confirm-loading="store.loading">
+    <a-modal
+      v-model:open="showPublish"
+      title="Publish Event"
+      :confirm-loading="store.loading"
+      @ok="handlePublish"
+    >
       <a-form layout="vertical">
         <a-form-item label="Kind">
           <a-select v-model:value="publishForm.kind">
-            <a-select-option :value="1">Text Note</a-select-option>
-            <a-select-option :value="0">Set Metadata</a-select-option>
-            <a-select-option :value="3">Contacts</a-select-option>
+            <a-select-option :value="1">
+              Text Note
+            </a-select-option>
+            <a-select-option :value="0">
+              Set Metadata
+            </a-select-option>
+            <a-select-option :value="3">
+              Contacts
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="Content">
-          <a-textarea v-model:value="publishForm.content" :rows="4" />
+          <a-textarea
+            v-model:value="publishForm.content"
+            :rows="4"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
 
-    <a-alert v-if="store.error" type="error" :message="store.error" closable @close="store.error = null" style="margin-top: 16px" />
+    <a-alert
+      v-if="store.error"
+      type="error"
+      :message="store.error"
+      closable
+      style="margin-top: 16px"
+      @close="store.error = null"
+    />
   </div>
 </template>
 
@@ -124,25 +237,25 @@ function formatDate(ts: number) { return ts ? new Date(ts * 1000).toLocaleString
 function truncate(s: string) { return s && s.length > 32 ? s.slice(0, 32) + '...' : s; }
 
 async function handleAddRelay() {
-  if (!newRelayUrl.value) return;
+  if (!newRelayUrl.value) {return;}
   const result = await store.addRelay(newRelayUrl.value);
   if (result.success) { message.success('Relay added'); showAddRelay.value = false; newRelayUrl.value = ''; }
-  else message.error(result.error || 'Failed');
+  else {message.error(result.error || 'Failed');}
 }
 
 async function handleFetchEvents() { await store.fetchEvents(); }
 
 async function handlePublish() {
-  if (!publishForm.value.content) return;
+  if (!publishForm.value.content) {return;}
   const result = await store.publishEvent(publishForm.value.kind, publishForm.value.content);
   if (result.success) { message.success('Event published'); showPublish.value = false; publishForm.value.content = ''; await store.fetchEvents(); }
-  else message.error(result.error || 'Failed');
+  else {message.error(result.error || 'Failed');}
 }
 
 async function handleGenerateKey() {
   const result = await store.generateKeyPair();
-  if (result.success) message.success('Key pair generated');
-  else message.error(result.error || 'Failed');
+  if (result.success) {message.success('Key pair generated');}
+  else {message.error(result.error || 'Failed');}
 }
 
 onMounted(async () => {

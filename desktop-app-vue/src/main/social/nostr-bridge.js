@@ -104,7 +104,7 @@ class NostrBridge extends EventEmitter {
    * Load saved relays from database
    */
   async _loadSavedRelays() {
-    if (!this.database || !this.database.db) return;
+    if (!this.database || !this.database.db) {return;}
 
     try {
       const stmt = this.database.db.prepare("SELECT * FROM nostr_relays");
