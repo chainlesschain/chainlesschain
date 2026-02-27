@@ -101,6 +101,92 @@
 - ✅ 3个新Pinia Store: `socialAI.ts`, `compliance.ts`, UKey store扩展
 - ✅ IPC注册: Phase 42(18) + Phase 43(12) + Phase 44(8) + Phase 45(8) = 46个新IPC处理器
 
+#### Phase 46-51 - Q3 2026 主线 B/C/D Phase 2 扩展 (2026-02-27)
+
+**Phase 46-51 完整实现** - 门限签名+生物绑定 + 蓝牙U盾 + 智能推荐 + Nostr桥接 + DLP防泄漏 + SIEM对接，共计32个新IPC处理器，9张新数据库表，6个新前端路由
+
+**Phase 46 — Threshold Signatures + Biometric** (8个IPC处理器):
+
+- ✅ **Threshold Signature Manager** (`ukey/threshold-signature-manager.js`) - Shamir秘密共享(2-of-3门限)，主密钥分片，分布式签名重建，份额元数据(持有者/创建时间)，份额删除
+- ✅ **Biometric Binding** (`ukey/biometric-binding.js`) - TEE可信执行环境集成，生物特征模板哈希绑定，设备指纹认证，UV/UP验证，绑定生命周期管理
+- ✅ **Extended UKey IPC** (`ukey/ukey-ipc.js`) - 17→25个IPC处理器(+8新增)，门限签名操作，生物特征绑定，份额管理
+- ✅ **Pinia Store** (`stores/thresholdSecurity.ts`) - 门限安全状态管理，份额创建/查询，生物绑定流程
+- ✅ **前端UI** - ThresholdSecurityPage门限安全管理页(份额可视化/绑定配置/安全等级设置)
+
+**Phase 47 — BLE U-Key** (4个IPC处理器):
+
+- ✅ **Extended BLE Driver** (`ukey/ble-driver.js`) - GATT服务发现，自动重连机制，单例模式，RSSI信号强度监控，连接状态管理
+- ✅ **Extended Driver Registry** (`ukey/driver-registry.js`) - BLE传输层状态，设备枚举，健康检查
+- ✅ **Extended UKey IPC** - 4个新BLE相关IPC处理器（设备扫描/连接/断开/状态查询）
+- ✅ **Pinia Store** (`stores/bleUkey.ts`) - 蓝牙U盾状态管理，设备列表，连接流程
+- ✅ **前端UI** - BLEDevicesPage蓝牙设备管理页(设备扫描/配对/连接监控/信号强度显示)
+
+**Phase 48 — Content Recommendation** (6个IPC处理器):
+
+- ✅ **Local Recommender** (`social/local-recommender.js`) - 本地协同过滤算法，基于用户兴趣的内容推荐，相似度计算(余弦/Jaccard)，推荐评分(0-100)，缓存机制
+- ✅ **Interest Profiler** (`social/interest-profiler.js`) - 用户兴趣画像构建，行为分析(浏览/点赞/收藏/分享)，TF-IDF关键词提取，兴趣衰减(30天窗口)，隐私保护
+- ✅ **Recommendation IPC** (`social/recommendation-ipc.js`) - 6个IPC处理器(生成推荐/更新兴趣/查询画像/获取推荐历史/清除缓存/配置调整)
+- ✅ **Pinia Store** (`stores/recommendation.ts`) - 推荐状态管理，兴趣画像，推荐列表
+- ✅ **前端UI** - RecommendationsPage推荐页面(内容卡片/兴趣标签/推荐理由/反馈机制)
+
+**Phase 49 — Nostr Bridge** (6个IPC处理器):
+
+- ✅ **Nostr Bridge** (`social/nostr-bridge.js`) - NIP-01协议客户端，Relay连接管理，Event发布/订阅，Kind分类(0=Metadata/1=Text/3=Contacts/7=Reaction)，WebSocket重连
+- ✅ **Nostr Identity** (`social/nostr-identity.js`) - Schnorr签名(secp256k1)，npub/nsec密钥对生成，NIP-05身份验证，DID互操作，密钥导入/导出
+- ✅ **Nostr Bridge IPC** (`social/nostr-bridge-ipc.js`) - 6个IPC处理器(连接Relay/发布Event/订阅Filter/查询Contacts/同步Profile/管理密钥)
+- ✅ **Extended Platform Bridge** (`social/platform-bridge.js`) - 委托给NostrBridge，统一社交协议接口
+- ✅ **Pinia Store** (`stores/nostrBridge.ts`) - Nostr状态管理，Relay列表，Event流，身份管理
+- ✅ **前端UI** - NostrBridgePage Nostr桥接页(Relay配置/Event时间线/身份管理/联系人同步)
+
+**Phase 50 — DLP (Data Loss Prevention)** (8个IPC处理器):
+
+- ✅ **DLP Engine** (`audit/dlp-engine.js`) - 数据泄露检测引擎，6类敏感数据扫描(PII/PCI/PHI/Credentials/IP/Custom)，正则+ML双模式，实时监控，违规阻断，告警触发
+- ✅ **DLP Policy** (`audit/dlp-policy.js`) - 策略管理引擎，4种执行动作(BLOCK/WARN/LOG/ENCRYPT)，条件匹配(AND/OR逻辑)，白名单/黑名单，策略优先级排序
+- ✅ **DLP IPC** (`audit/dlp-ipc.js`) - 8个IPC处理器(扫描内容/创建策略/查询违规/更新白名单/导出报告/配置引擎/测试策略/统计仪表板)
+- ✅ **Extended Data Classifier** (`audit/data-classifier.js`) - `getDLPClassification()`方法，与DLP引擎集成
+- ✅ **Extended Audit Logger** (`audit/enterprise-audit-logger.js`) - DLP/SIEM事件类型，`setSIEMExporter()`集成
+- ✅ **Pinia Store** (`stores/dlp.ts`) - DLP状态管理，策略列表，违规事件，扫描任务
+- ✅ **前端UI** - DLPPoliciesPage DLP策略管理页(策略CRUD/违规仪表板/白名单管理/测试工具)
+
+**Phase 51 — SIEM Integration** (4个IPC处理器):
+
+- ✅ **SIEM Exporter** (`audit/siem-exporter.js`) - 3种SIEM格式导出(CEF/LEEF/JSON)，事件字段映射，批量导出(100条/批)，Syslog UDP/TCP传输，文件导出，格式验证
+- ✅ **SIEM IPC** (`audit/siem-ipc.js`) - 4个IPC处理器(配置SIEM/导出事件/测试连接/查询导出历史)
+- ✅ **Extended Audit Logger** - SIEM导出器集成，自动事件推送
+- ✅ **Pinia Store** (`stores/siem.ts`) - SIEM状态管理，导出配置，连接测试，历史记录
+- ✅ **前端UI** - SIEMIntegrationPage SIEM集成页(配置SIEM服务器/格式选择/导出任务/连接测试/日志预览)
+
+**数据库新增** (9张新表):
+
+- ✅ `threshold_key_shares` - 门限密钥份额 (share_id, key_id, threshold, holder_did, encrypted_share, created_at)
+- ✅ `biometric_bindings` - 生物特征绑定 (binding_id, key_id, template_hash, device_fingerprint, uv_required, created_at)
+- ✅ `user_interest_profiles` - 用户兴趣画像 (profile_id, did, interests JSON, behavior_weights JSON, last_updated)
+- ✅ `content_recommendations` - 内容推荐 (recommendation_id, did, content_id, score, reason, created_at)
+- ✅ `nostr_relays` - Nostr中继 (relay_url, connection_status, last_connected, event_count)
+- ✅ `nostr_events` - Nostr事件 (event_id, pubkey, kind, content, tags JSON, sig, created_at)
+- ✅ `dlp_policies` - DLP策略 (policy_id, name, data_types JSON, action, conditions JSON, priority, enabled)
+- ✅ `dlp_incidents` - DLP违规事件 (incident_id, policy_id, content_hash, severity, blocked, created_at)
+- ✅ `siem_exports` - SIEM导出记录 (export_id, format, destination, event_count, status, exported_at)
+
+**配置新增/扩展** (5个配置段):
+
+- ✅ `thresholdSecurity` - 门限签名配置(默认门限值, 份额数量, 生物验证要求)
+- ✅ `nostr` - Nostr配置(默认Relays, 重连间隔, Event缓存大小)
+- ✅ `unifiedKey` 扩展 - BLE配置(扫描超时, 连接超时, RSSI阈值)
+- ✅ `socialAI` 扩展 - 推荐配置(推荐数量, 相似度阈值, 兴趣衰减期)
+- ✅ `compliance` 扩展 - DLP+SIEM配置(扫描间隔, SIEM格式, 导出批次大小)
+
+**Context Engineering集成**:
+
+- ✅ step 4.11: 门限安全上下文注入(`setThresholdManager()`)
+- ✅ step 4.12: DLP策略上下文注入(`setDLPEngine()`)
+
+**前端集成**:
+
+- ✅ 6个新路由: `/threshold-security`, `/ble-devices`, `/recommendations`, `/nostr-bridge`, `/dlp-policies`, `/siem-integration`
+- ✅ 6个新Pinia Store: `thresholdSecurity.ts`, `bleUkey.ts`, `recommendation.ts`, `nostrBridge.ts`, `dlp.ts`, `siem.ts`
+- ✅ IPC注册: Phase 46(8) + Phase 47(4) + Phase 48(6) + Phase 49(6) + Phase 50(8) + Phase 51(4) = 36个新IPC处理器
+
 #### Phase 41 - EvoMap全球Agent知识共享网络 (2026-02-26)
 
 **EvoMap GEP-A2A协议集成 (v1.0.0)** (5大核心模块, 25 IPC处理器, 3张新表):

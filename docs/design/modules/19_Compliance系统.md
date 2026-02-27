@@ -89,6 +89,7 @@ Phase 43 引入企业级合规管理和数据分类系统,支持 SOC2、GDPR、I
 **文件**: `desktop-app-vue/src/main/audit/soc2-compliance.js`
 
 **5大信任服务原则(TSC)**:
+
 1. **CC1.0 Security** - 控制环境
 2. **CC2.0 Availability** - 系统可用性
 3. **CC3.0 Processing Integrity** - 处理完整性
@@ -96,6 +97,7 @@ Phase 43 引入企业级合规管理和数据分类系统,支持 SOC2、GDPR、I
 5. **CC5.0 Privacy** - 隐私
 
 **API**:
+
 ```javascript
 class SOC2ComplianceManager {
   async runControlCheck(controlId) // 执行单个控制点检查
@@ -111,12 +113,14 @@ class SOC2ComplianceManager {
 **文件**: `desktop-app-vue/src/main/audit/data-classifier.js`
 
 **4级分类**:
+
 - **PUBLIC**: 公开信息 (无敏感数据)
 - **INTERNAL**: 内部使用 (员工可见)
 - **CONFIDENTIAL**: 机密 (仅授权人员)
 - **RESTRICTED**: 高度敏感 (严格控制)
 
 **API**:
+
 ```javascript
 class DataClassifier {
   async classifyText(text) // ML分类器
@@ -132,12 +136,14 @@ class DataClassifier {
 **文件**: `desktop-app-vue/src/main/audit/classification-policy.js`
 
 **功能**:
+
 - 字段级分类规则 (正则表达式)
 - 自动标记触发
 - 加密策略映射 (RESTRICTED → AES-256)
 - 访问控制集成 (RBAC)
 
 **API**:
+
 ```javascript
 class ClassificationPolicyEngine {
   async createPolicy(name, rules) // 创建策略
@@ -152,12 +158,14 @@ class ClassificationPolicyEngine {
 **文件**: `desktop-app-vue/src/main/audit/data-subject-handler.js`
 
 **GDPR DSR 类型**:
+
 - **Right to Access**: 导出个人数据 (JSON/CSV)
 - **Right to Erasure**: 删除个人数据 (级联删除)
 - **Right to Rectification**: 修正个人数据
 - **Right to Data Portability**: 数据可携性
 
 **API**:
+
 ```javascript
 class DataSubjectHandler {
   async createDSR(did, requestType, details) // 创建DSR
@@ -173,12 +181,14 @@ class DataSubjectHandler {
 **文件**: `desktop-app-vue/src/main/audit/compliance-manager.js`
 
 **支持框架**:
+
 - GDPR (General Data Protection Regulation)
 - SOC2 (Service Organization Control 2)
 - ISO27001 (Information Security Management)
 - HIPAA (Health Insurance Portability and Accountability Act)
 
 **API**:
+
 ```javascript
 class ComplianceManager {
   async addFramework(frameworkName, config) // 添加合规框架
@@ -268,46 +278,46 @@ CREATE TABLE IF NOT EXISTS data_classifications (
 **文件**: `desktop-app-vue/src/renderer/stores/compliance.ts`
 
 ```typescript
-export const useComplianceStore = defineStore('compliance', {
+export const useComplianceStore = defineStore("compliance", {
   state: () => ({
     soc2Evidence: [] as SOC2Evidence[],
     classifications: [] as DataClassification[],
     dsrRequests: [] as DSRRequest[],
     complianceStatus: {} as ComplianceStatus,
-    isChecking: false
+    isChecking: false,
   }),
 
   actions: {
     async runSOC2Check() {
-      this.isChecking = true
+      this.isChecking = true;
       try {
         const result = await (window as any).electronAPI.invoke(
-          'compliance:soc2-run-check'
-        )
-        return result
+          "compliance:soc2-run-check",
+        );
+        return result;
       } finally {
-        this.isChecking = false
+        this.isChecking = false;
       }
     },
 
     async classifyDatabase() {
       const result = await (window as any).electronAPI.invoke(
-        'compliance:scan-database'
-      )
-      this.classifications = result
-      return result
+        "compliance:scan-database",
+      );
+      this.classifications = result;
+      return result;
     },
 
     async createDSR(did: string, requestType: string) {
       const result = await (window as any).electronAPI.invoke(
-        'compliance:dsr-create',
-        { did, requestType }
-      )
-      this.dsrRequests.unshift(result)
-      return result
-    }
-  }
-})
+        "compliance:dsr-create",
+        { did, requestType },
+      );
+      this.dsrRequests.unshift(result);
+      return result;
+    },
+  },
+});
 ```
 
 ### 5.2 前端页面
@@ -315,6 +325,7 @@ export const useComplianceStore = defineStore('compliance', {
 **ComplianceDashboardPage.vue** (`/compliance-dashboard`)
 
 **功能**:
+
 - SOC2 合规状态仪表板
 - 证据收集管理
 - 数据分类可视化
@@ -365,8 +376,265 @@ compliance: {
 - ✅ `classification-policy.test.js` - 策略引擎
 - ✅ `data-subject-handler.test.js` - DSR处理
 - ✅ `compliance-manager.test.js` - 合规管理
+- ✅ `dlp-engine.test.js` - DLP引擎 (Phase 50)
+- ✅ `dlp-policy.test.js` - DLP策略 (Phase 50)
+- ✅ `siem-exporter.test.js` - SIEM导出 (Phase 51)
 
 ---
 
-**文档版本**: 1.0.0
+## 九、Phase 50 — DLP (Data Loss Prevention)
+
+**新增模块** (v1.1.0-alpha Phase 50):
+
+### 9.1 DLP Engine (`dlp-engine.js`)
+
+**核心功能**:
+
+- **数据泄露检测**: 实时监控和检测敏感数据泄露
+- **6类敏感数据扫描**:
+  1. **PII** (Personally Identifiable Information): 身份证/护照/驾照
+  2. **PCI** (Payment Card Industry): 信用卡号/CVV
+  3. **PHI** (Protected Health Information): 医疗记录/病历
+  4. **Credentials**: API密钥/密码/Token
+  5. **IP** (Intellectual Property): 专利/源代码/商业机密
+  6. **Custom**: 用户自定义正则规则
+- **双模式检测**:
+  - **正则模式**: 快速检测已知模式(如信用卡号: `\d{4}-\d{4}-\d{4}-\d{4}`)
+  - **ML模式**: 机器学习识别未知敏感内容(需要预训练模型)
+- **实时监控**:
+  - 文件上传监控
+  - 剪贴板监控
+  - 网络传输监控
+- **违规处理**:
+  - **BLOCK**: 阻断操作
+  - **WARN**: 发出警告但允许(记录日志)
+  - **LOG**: 仅记录,不干预
+  - **ENCRYPT**: 自动加密后放行
+
+**数据库表** (`dlp_policies`):
+
+```sql
+CREATE TABLE dlp_policies (
+  policy_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  data_types TEXT NOT NULL, -- JSON: ["PII", "PCI"]
+  action TEXT NOT NULL, -- BLOCK / WARN / LOG / ENCRYPT
+  conditions TEXT NOT NULL, -- JSON: {operator: "AND", rules: [...]}
+  priority INTEGER DEFAULT 0,
+  enabled INTEGER DEFAULT 1
+);
+```
+
+**数据库表** (`dlp_incidents`):
+
+```sql
+CREATE TABLE dlp_incidents (
+  incident_id TEXT PRIMARY KEY,
+  policy_id TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  severity TEXT NOT NULL, -- LOW / MEDIUM / HIGH / CRITICAL
+  blocked INTEGER NOT NULL,
+  details TEXT, -- JSON
+  created_at INTEGER NOT NULL
+);
+```
+
+### 9.2 DLP Policy (`dlp-policy.js`)
+
+**核心功能**:
+
+- **策略管理引擎**: CRUD操作,优先级排序
+- **4种执行动作**: BLOCK / WARN / LOG / ENCRYPT
+- **条件匹配引擎**:
+  - AND逻辑: 所有条件都满足
+  - OR逻辑: 任一条件满足
+- **白名单/黑名单**:
+  - 白名单: 排除特定文件/路径/用户
+  - 黑名单: 强制扫描特定内容
+- **策略优先级**: 数字越大优先级越高,高优先级策略优先匹配
+
+**策略示例**:
+
+```javascript
+{
+  policy_id: 'policy-001',
+  name: '阻止信用卡号外发',
+  data_types: ['PCI'],
+  action: 'BLOCK',
+  conditions: {
+    operator: 'AND',
+    rules: [
+      { field: 'content', contains: 'credit_card' },
+      { field: 'destination', notIn: ['internal.domain.com'] }
+    ]
+  },
+  priority: 10,
+  enabled: true
+}
+```
+
+### 9.3 DLP IPC (`dlp-ipc.js`)
+
+**IPC接口** (8个):
+
+1. `dlp:scan-content` - 扫描指定内容
+2. `dlp:create-policy` - 创建策略
+3. `dlp:query-incidents` - 查询违规事件
+4. `dlp:update-whitelist` - 更新白名单
+5. `dlp:export-report` - 导出合规报告
+6. `dlp:configure-engine` - 配置引擎参数
+7. `dlp:test-policy` - 测试策略匹配
+8. `dlp:get-stats` - 获取统计仪表板数据
+
+### 9.4 Extended Data Classifier
+
+**新增方法**:
+
+- `getDLPClassification(content)`: 返回DLP分类结果
+- 与DLP引擎集成,共享敏感数据检测逻辑
+
+### 9.5 Extended Audit Logger
+
+**新增事件类型**:
+
+- `DLP_VIOLATION`: DLP违规事件
+- `DLP_BLOCK`: DLP阻断操作
+- `SIEM_EXPORT`: SIEM导出事件
+
+**新增方法**:
+
+- `setSIEMExporter(exporter)`: 设置SIEM导出器,自动推送事件
+
+### 9.6 前端集成
+
+**Pinia Store** (`stores/dlp.ts`):
+
+- State: `policies: DLPPolicy[]`, `incidents: DLPIncident[]`, `stats: DLPStats`
+- Actions: `scanContent()`, `createPolicy()`, `queryIncidents()`, `exportReport()`
+
+**UI页面** (`pages/enterprise/DLPPoliciesPage.vue`):
+
+- 策略CRUD面板(创建/编辑/删除/启用禁用)
+- 违规仪表板(实时事件流/统计图表/严重级别分布)
+- 白名单管理(文件/路径/用户排除规则)
+- 测试工具(手动输入内容测试策略匹配)
+
+---
+
+## 十、Phase 51 — SIEM Integration
+
+**新增模块** (v1.1.0-alpha Phase 51):
+
+### 10.1 SIEM Exporter (`siem-exporter.js`)
+
+**核心功能**:
+
+- **3种SIEM格式导出**:
+  1. **CEF** (Common Event Format): ArcSight标准格式
+  2. **LEEF** (Log Event Extended Format): QRadar标准格式
+  3. **JSON**: 通用JSON格式(Splunk/ELK/Graylog)
+- **事件字段映射**:
+  - 时间戳、源IP、目标IP
+  - 事件类型、严重级别
+  - 用户ID、操作描述
+- **批量导出**: 100条事件/批次,避免内存溢出
+- **传输方式**:
+  - **Syslog UDP/TCP**: 514端口
+  - **HTTP POST**: RESTful API
+  - **文件导出**: 本地日志文件
+- **格式验证**: 导出前验证格式合规性
+
+**CEF格式示例**:
+
+```
+CEF:0|ChainlessChain|Desktop|1.1.0|DLP_VIOLATION|信用卡号泄露|8|
+src=192.168.1.100 dst=8.8.8.8 suser=did:chainless:abc123 msg=Detected credit card number in file upload
+```
+
+**LEEF格式示例**:
+
+```
+LEEF:2.0|ChainlessChain|Desktop|1.1.0|DLP_VIOLATION|
+devTime=2026-02-27T10:30:00Z src=192.168.1.100 dst=8.8.8.8 usrName=did:chainless:abc123 cat=DLP sev=8
+```
+
+### 10.2 SIEM IPC (`siem-ipc.js`)
+
+**IPC接口** (4个):
+
+1. `siem:configure` - 配置SIEM服务器(IP/端口/格式/认证)
+2. `siem:export-events` - 导出指定时间范围的事件
+3. `siem:test-connection` - 测试SIEM连接
+4. `siem:query-export-history` - 查询导出历史记录
+
+### 10.3 Extended Audit Logger Integration
+
+**自动事件推送**:
+
+- 审计日志自动调用`siemExporter.exportEvent()`
+- 实时推送关键事件(DLP违规/登录失败/权限变更)
+
+**配置示例**:
+
+```javascript
+{
+  siem: {
+    enabled: true,
+    format: 'CEF', // CEF / LEEF / JSON
+    destination: {
+      type: 'syslog', // syslog / http / file
+      host: 'siem.company.com',
+      port: 514,
+      protocol: 'tcp' // tcp / udp
+    },
+    batchSize: 100,
+    retryAttempts: 3
+  }
+}
+```
+
+### 10.4 数据库表
+
+**数据库表** (`siem_exports`):
+
+```sql
+CREATE TABLE siem_exports (
+  export_id TEXT PRIMARY KEY,
+  format TEXT NOT NULL, -- CEF / LEEF / JSON
+  destination TEXT NOT NULL,
+  event_count INTEGER NOT NULL,
+  status TEXT NOT NULL, -- SUCCESS / FAILED / PARTIAL
+  error_message TEXT,
+  exported_at INTEGER NOT NULL
+);
+```
+
+### 10.5 前端集成
+
+**Pinia Store** (`stores/siem.ts`):
+
+- State: `config: SIEMConfig`, `exportHistory: SIEMExport[]`, `connectionStatus: string`
+- Actions: `configureSIEM()`, `exportEvents()`, `testConnection()`, `queryHistory()`
+
+**UI页面** (`pages/enterprise/SIEMIntegrationPage.vue`):
+
+- 配置面板(SIEM服务器IP/端口/格式选择/认证凭证)
+- 导出任务管理(手动触发/定时任务/批量导出)
+- 连接测试工具(Ping测试/发送测试事件)
+- 日志预览(CEF/LEEF/JSON格式实时预览)
+
+---
+
+## 十一、未来扩展
+
+- [x] **DLP数据泄露防护**: 6类敏感数据检测 + 4种执行动作 ✅ Phase 50
+- [x] **SIEM集成**: CEF/LEEF/JSON导出 + Syslog传输 ✅ Phase 51
+- [ ] **SOAR集成**: Security Orchestration, Automation and Response
+- [ ] **威胁情报**: 集成威胁情报源(STIX/TAXII)
+- [ ] **行为分析**: UEBA (User and Entity Behavior Analytics)
+- [ ] **自动合规报告**: 自动生成SOC2/ISO27001/GDPR报告
+
+---
+
+**文档版本**: 1.1.0
 **最后更新**: 2026-02-27

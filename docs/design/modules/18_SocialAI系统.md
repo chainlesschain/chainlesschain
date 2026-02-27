@@ -94,6 +94,7 @@ Phase 42 引入了智能社交分析和 ActivityPub 联邦宇宙集成,将 Chain
 **文件**: `desktop-app-vue/src/main/social/topic-analyzer.js`
 
 **功能**:
+
 - NLP主题提取 (TF-IDF算法)
 - 关键词抽取 (Top-K)
 - 情感倾向分析 (正面/负面/中性)
@@ -101,6 +102,7 @@ Phase 42 引入了智能社交分析和 ActivityPub 联邦宇宙集成,将 Chain
 - 相似度匹配 (余弦相似度)
 
 **API**:
+
 ```javascript
 class TopicAnalyzer {
   analyzeContent(text, options = {})
@@ -117,6 +119,7 @@ class TopicAnalyzer {
 **文件**: `desktop-app-vue/src/main/social/social-graph.js`
 
 **功能**:
+
 - 4种中心性分析:
   - 度中心性 (Degree Centrality)
   - 接近中心性 (Closeness Centrality)
@@ -127,6 +130,7 @@ class TopicAnalyzer {
 - 最短路径查找 (Dijkstra)
 
 **API**:
+
 ```javascript
 class SocialGraph {
   addEdge(sourceDID, targetDID, edgeType, weight = 1.0)
@@ -144,6 +148,7 @@ class SocialGraph {
 **文件**: `desktop-app-vue/src/main/social/activitypub-bridge.js`
 
 **功能**:
+
 - W3C ActivityPub S2S协议实现
 - Actor管理 (Person类型)
 - Inbox/Outbox端点
@@ -155,6 +160,7 @@ class SocialGraph {
 - HTTP签名验证
 
 **API**:
+
 ```javascript
 class ActivityPubBridge {
   createActor(did, displayName, summary)
@@ -173,6 +179,7 @@ class ActivityPubBridge {
 **文件**: `desktop-app-vue/src/main/social/ap-content-sync.js`
 
 **功能**:
+
 - DID → ActivityPub Actor 映射
 - 本地内容发布到 Fediverse
 - Markdown → HTML 转换
@@ -180,6 +187,7 @@ class ActivityPubBridge {
 - 同步日志记录
 
 **API**:
+
 ```javascript
 class APContentSync {
   publishLocalContent(contentId, actorURI)
@@ -195,12 +203,14 @@ class APContentSync {
 **文件**: `desktop-app-vue/src/main/social/ap-webfinger.js`
 
 **功能**:
+
 - RFC 7033 WebFinger协议
 - `acct:user@domain` URI解析
 - Actor资源定位
 - 跨域用户查找
 
 **API**:
+
 ```javascript
 class APWebFinger {
   resolveAccount(acctURI)
@@ -214,6 +224,7 @@ class APWebFinger {
 **文件**: `desktop-app-vue/src/main/social/ai-social-assistant.js`
 
 **功能**:
+
 - 3种回复风格:
   - concise (简洁): 1-2句话
   - detailed (详细): 3-5句话,包含解释
@@ -223,6 +234,7 @@ class APWebFinger {
 - 话题推荐 (基于兴趣)
 
 **API**:
+
 ```javascript
 class AISocialAssistant {
   generateReply(postContent, context, style = "concise")
@@ -364,71 +376,73 @@ CREATE TABLE IF NOT EXISTS activitypub_activities (
 **文件**: `desktop-app-vue/src/renderer/stores/socialAI.ts`
 
 ```typescript
-import { defineStore } from 'pinia'
+import { defineStore } from "pinia";
 
-export const useSocialAIStore = defineStore('socialAI', {
+export const useSocialAIStore = defineStore("socialAI", {
   state: () => ({
     topicAnalyses: [] as TopicAnalysis[],
     socialGraph: {
       nodes: [] as GraphNode[],
-      edges: [] as GraphEdge[]
+      edges: [] as GraphEdge[],
     },
     activityPubActors: [] as APActor[],
     activityPubActivities: [] as APActivity[],
     isAnalyzing: false,
-    isSyncing: false
+    isSyncing: false,
   }),
 
   getters: {
     getTopicsByCategory: (state) => (category: string) => {
-      return state.topicAnalyses.filter(t => t.category === category)
+      return state.topicAnalyses.filter((t) => t.category === category);
     },
 
-    getInfluentialUsers: (state) => (limit: number = 10) => {
-      return state.socialGraph.nodes
-        .sort((a, b) => b.influenceScore - a.influenceScore)
-        .slice(0, limit)
-    }
+    getInfluentialUsers:
+      (state) =>
+      (limit: number = 10) => {
+        return state.socialGraph.nodes
+          .sort((a, b) => b.influenceScore - a.influenceScore)
+          .slice(0, limit);
+      },
   },
 
   actions: {
     async analyzeContent(text: string) {
-      this.isAnalyzing = true
+      this.isAnalyzing = true;
       try {
         const result = await (window as any).electronAPI.invoke(
-          'social:analyze-topic',
-          { text }
-        )
-        this.topicAnalyses.unshift(result)
-        return result
+          "social:analyze-topic",
+          { text },
+        );
+        this.topicAnalyses.unshift(result);
+        return result;
       } finally {
-        this.isAnalyzing = false
+        this.isAnalyzing = false;
       }
     },
 
     async buildSocialGraph(did: string) {
       const result = await (window as any).electronAPI.invoke(
-        'social:build-graph',
-        { did }
-      )
-      this.socialGraph = result
-      return result
+        "social:build-graph",
+        { did },
+      );
+      this.socialGraph = result;
+      return result;
     },
 
     async publishToFediverse(contentId: string, actorURI: string) {
-      this.isSyncing = true
+      this.isSyncing = true;
       try {
         const result = await (window as any).electronAPI.invoke(
-          'social:ap-publish-local-content',
-          { contentId, actorURI }
-        )
-        return result
+          "social:ap-publish-local-content",
+          { contentId, actorURI },
+        );
+        return result;
       } finally {
-        this.isSyncing = false
+        this.isSyncing = false;
       }
-    }
-  }
-})
+    },
+  },
+});
 ```
 
 ### 5.2 前端页面
@@ -438,6 +452,7 @@ export const useSocialAIStore = defineStore('socialAI', {
 **路由**: `/social-insights`
 
 **功能**:
+
 - 主题分析可视化 (词云图/分类饼图)
 - 社交图谱展示 (力导向图)
 - 影响力排行榜
@@ -448,6 +463,7 @@ export const useSocialAIStore = defineStore('socialAI', {
 **路由**: `/activitypub-bridge`
 
 **功能**:
+
 - Actor管理 (创建/编辑)
 - 内容发布到Fediverse
 - Inbox/Outbox查看
@@ -490,24 +506,24 @@ socialAI: {
 
 ```javascript
 // 分析帖子主题
-const analysis = await topicAnalyzer.analyzeContent(postText)
-console.log(analysis.topics) // ['技术', 'AI', '去中心化']
-console.log(analysis.sentiment) // 'positive'
-console.log(analysis.keywords) // ['区块链', 'Web3', 'DID']
+const analysis = await topicAnalyzer.analyzeContent(postText);
+console.log(analysis.topics); // ['技术', 'AI', '去中心化']
+console.log(analysis.sentiment); // 'positive'
+console.log(analysis.keywords); // ['区块链', 'Web3', 'DID']
 ```
 
 ### 7.2 社交图谱
 
 ```javascript
 // 添加关注关系
-await socialGraph.addEdge(myDID, friendDID, 'follows', 1.0)
+await socialGraph.addEdge(myDID, friendDID, "follows", 1.0);
 
 // 计算影响力
-const influence = await socialGraph.calculateInfluenceScore(myDID)
-console.log(influence) // 0.85
+const influence = await socialGraph.calculateInfluenceScore(myDID);
+console.log(influence); // 0.85
 
 // 发现社区
-const communities = await socialGraph.detectCommunities()
+const communities = await socialGraph.detectCommunities();
 ```
 
 ### 7.3 ActivityPub 集成
@@ -517,17 +533,17 @@ const communities = await socialGraph.detectCommunities()
 const actor = await apBridge.createActor(
   myDID,
   "Alice",
-  "AI enthusiast and developer"
-)
+  "AI enthusiast and developer",
+);
 
 // 发布到 Fediverse
-await apContentSync.publishLocalContent(postId, actor.uri)
+await apContentSync.publishLocalContent(postId, actor.uri);
 
 // 关注 Mastodon 用户
 await apBridge.followRemoteActor(
   actor.uri,
-  "https://mastodon.social/users/bob"
-)
+  "https://mastodon.social/users/bob",
+);
 ```
 
 ---
@@ -552,13 +568,13 @@ await apBridge.followRemoteActor(
 
 ## 九、性能指标
 
-| 指标 | 目标 | 实际 |
-|------|------|------|
-| 主题分析延迟 | <100ms | ~80ms |
-| 图谱中心性计算 | <200ms | ~150ms |
+| 指标                | 目标   | 实际   |
+| ------------------- | ------ | ------ |
+| 主题分析延迟        | <100ms | ~80ms  |
+| 图谱中心性计算      | <200ms | ~150ms |
 | ActivityPub发布延迟 | <500ms | ~400ms |
-| WebFinger解析延迟 | <300ms | ~250ms |
-| 数据库查询延迟 | <50ms | ~30ms |
+| WebFinger解析延迟   | <300ms | ~250ms |
+| 数据库查询延迟      | <50ms  | ~30ms  |
 
 ---
 
@@ -572,15 +588,237 @@ await apBridge.followRemoteActor(
 
 ---
 
-## 十一、未来扩展
+## 十一、Phase 48 — Content Recommendation
 
+**新增模块** (v1.1.0-alpha Phase 48):
+
+### 11.1 Local Recommender (`local-recommender.js`)
+
+**核心功能**:
+
+- **本地协同过滤**: 基于用户兴趣的协同推荐算法,无需云端服务
+- **相似度计算**:
+  - 余弦相似度(Cosine Similarity): 适用于稀疏向量
+  - Jaccard相似度: 适用于集合相似性
+- **推荐评分**: 0-100分,综合考虑兴趣匹配度和时效性
+- **缓存机制**: Redis缓存推荐结果(TTL: 1小时)
+- **多维度推荐**:
+  - 基于兴趣标签
+  - 基于用户行为
+  - 基于内容相似度
+
+**推荐算法**:
+
+```javascript
+function calculateRecommendationScore(user, content) {
+  const interestMatch = cosineSimilarity(user.interests, content.tags);
+  const behaviorWeight = user.behaviors[content.type] || 0.5;
+  const recencyDecay = Math.exp(-days / 30); // 30天衰减
+  return (interestMatch * 0.6 + behaviorWeight * 0.4) * recencyDecay * 100;
+}
+```
+
+### 11.2 Interest Profiler (`interest-profiler.js`)
+
+**核心功能**:
+
+- **用户兴趣画像**: 基于行为数据自动构建兴趣模型
+- **行为分析**:
+  - 浏览(browse): 权重0.1
+  - 点赞(like): 权重0.3
+  - 收藏(favorite): 权重0.5
+  - 分享(share): 权重0.7
+- **TF-IDF关键词提取**: 从用户交互内容提取关键兴趣词
+- **兴趣衰减**: 30天滑动窗口,旧数据自动衰减
+- **隐私保护**:
+  - 本地计算,不上传原始数据
+  - 用户可随时清除画像
+
+**数据库表** (`user_interest_profiles`):
+
+```sql
+CREATE TABLE user_interest_profiles (
+  profile_id TEXT PRIMARY KEY,
+  did TEXT NOT NULL UNIQUE,
+  interests TEXT NOT NULL, -- JSON: {"tech": 0.8, "art": 0.6}
+  behavior_weights TEXT NOT NULL, -- JSON: {"browse": 0.1, "like": 0.3}
+  last_updated INTEGER NOT NULL
+);
+```
+
+**数据库表** (`content_recommendations`):
+
+```sql
+CREATE TABLE content_recommendations (
+  recommendation_id TEXT PRIMARY KEY,
+  did TEXT NOT NULL,
+  content_id TEXT NOT NULL,
+  score REAL NOT NULL,
+  reason TEXT, -- 推荐理由
+  created_at INTEGER NOT NULL
+);
+```
+
+### 11.3 Recommendation IPC (`recommendation-ipc.js`)
+
+**IPC接口** (6个):
+
+1. `recommendation:generate` - 生成推荐内容列表
+2. `recommendation:update-interests` - 更新用户兴趣画像
+3. `recommendation:get-profile` - 查询用户兴趣画像
+4. `recommendation:get-history` - 获取推荐历史
+5. `recommendation:clear-cache` - 清除推荐缓存
+6. `recommendation:configure` - 调整推荐参数
+
+### 11.4 前端集成
+
+**Pinia Store** (`stores/recommendation.ts`):
+
+- State: `recommendations: Recommendation[]`, `profile: InterestProfile | null`
+- Actions: `generateRecommendations()`, `updateInterests()`, `provideFeedback()`
+
+**UI页面** (`pages/social/RecommendationsPage.vue`):
+
+- 推荐内容卡片流(瀑布流布局)
+- 兴趣标签云可视化
+- 推荐理由显示(为什么推荐这个)
+- 反馈机制(喜欢/不喜欢/不再推荐)
+
+---
+
+## 十二、Phase 49 — Nostr Bridge
+
+**新增模块** (v1.1.0-alpha Phase 49):
+
+### 12.1 Nostr Bridge (`nostr-bridge.js`)
+
+**核心功能**:
+
+- **NIP-01协议**: Nostr Implementation Possibilities标准
+- **Relay连接管理**:
+  - 多Relay并发连接(默认3个)
+  - WebSocket自动重连(指数退避)
+  - 连接健康监控
+- **Event发布/订阅**:
+  - 发布: 签名后广播到所有Relays
+  - 订阅: Filter过滤器订阅特定类型Event
+- **Kind分类**:
+  - Kind 0: Metadata (用户资料)
+  - Kind 1: Text Note (文本消息)
+  - Kind 3: Contacts (联系人列表)
+  - Kind 7: Reaction (点赞/表情)
+- **Event缓存**: 本地SQLite缓存,减少重复获取
+
+**数据库表** (`nostr_relays`):
+
+```sql
+CREATE TABLE nostr_relays (
+  relay_url TEXT PRIMARY KEY,
+  connection_status TEXT NOT NULL, -- CONNECTED / DISCONNECTED / ERROR
+  last_connected INTEGER,
+  event_count INTEGER DEFAULT 0
+);
+```
+
+**数据库表** (`nostr_events`):
+
+```sql
+CREATE TABLE nostr_events (
+  event_id TEXT PRIMARY KEY, -- Event ID (hash)
+  pubkey TEXT NOT NULL, -- 发布者公钥
+  kind INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  tags TEXT NOT NULL, -- JSON数组
+  sig TEXT NOT NULL, -- Schnorr签名
+  created_at INTEGER NOT NULL
+);
+```
+
+### 12.2 Nostr Identity (`nostr-identity.js`)
+
+**核心功能**:
+
+- **Schnorr签名**: secp256k1曲线Schnorr签名(BIP-340)
+- **密钥对生成**:
+  - npub: 公钥(Bech32编码)
+  - nsec: 私钥(Bech32编码)
+- **NIP-05身份验证**:
+  - 验证格式: `name@domain.com`
+  - DNS查询: `https://domain.com/.well-known/nostr.json?name=name`
+- **DID互操作**:
+  - DID → Nostr pubkey映射
+  - Nostr Event → DID验证
+- **密钥导入/导出**:
+  - 导入已有nsec
+  - 导出私钥(加密存储)
+
+**Event签名流程**:
+
+```javascript
+async function signEvent(event, privateKey) {
+  const serialized = JSON.stringify([
+    0,
+    event.pubkey,
+    event.created_at,
+    event.kind,
+    event.tags,
+    event.content,
+  ]);
+  const hash = sha256(utf8ToBytes(serialized));
+  const sig = schnorr.sign(hash, privateKey);
+  return { ...event, id: bytesToHex(hash), sig: bytesToHex(sig) };
+}
+```
+
+### 12.3 Nostr Bridge IPC (`nostr-bridge-ipc.js`)
+
+**IPC接口** (6个):
+
+1. `nostr:connect-relay` - 连接Relay
+2. `nostr:publish-event` - 发布Event
+3. `nostr:subscribe-filter` - 订阅Filter
+4. `nostr:query-contacts` - 查询联系人
+5. `nostr:sync-profile` - 同步用户资料
+6. `nostr:manage-keys` - 管理密钥对
+
+### 12.4 Extended Platform Bridge (`platform-bridge.js`)
+
+**新增功能**:
+
+- 委托给NostrBridge处理Nostr相关操作
+- 统一社交协议接口:
+  - ActivityPub ↔ ChainlessChain
+  - Nostr ↔ ChainlessChain
+  - 未来可扩展: Bluesky AT Protocol, Lens Protocol
+
+### 12.5 前端集成
+
+**Pinia Store** (`stores/nostrBridge.ts`):
+
+- State: `relays: NostrRelay[]`, `events: NostrEvent[]`, `identity: NostrIdentity | null`
+- Actions: `connectRelay()`, `publishEvent()`, `subscribeFilter()`, `syncProfile()`
+
+**UI页面** (`pages/social/NostrBridgePage.vue`):
+
+- Relay配置面板(添加/删除/测试连接)
+- Event时间线(Kind 1消息流)
+- 身份管理(生成/导入密钥对, NIP-05验证)
+- 联系人同步(Kind 3导入/导出)
+
+---
+
+## 十三、未来扩展
+
+- [x] **内容推荐系统**: 本地协同过滤推荐 ✅ Phase 48
+- [x] **Nostr协议支持**: NIP-01 Bridge + Schnorr签名 ✅ Phase 49
 - [ ] **ML主题分类**: 使用深度学习提升分类准确率
 - [ ] **实时图谱更新**: WebSocket推送图谱变化
 - [ ] **多语言支持**: 支持中文/英文/日文主题分析
 - [ ] **ActivityPub C2S**: 支持客户端到服务器协议
 - [ ] **Fediverse搜索**: 跨实例内容搜索
+- [ ] **Nostr NIP扩展**: NIP-04加密DM, NIP-09删除请求, NIP-25 Reactions
 
 ---
 
-**文档版本**: 1.0.0
+**文档版本**: 1.1.0
 **最后更新**: 2026-02-27
