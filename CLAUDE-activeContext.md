@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-27 (v1.1.0 B/C/D Phase 1 实现 + 测试)
+> **最后更新**: 2026-02-27 (v1.1.0 B/C/D Phase 2 实现 + 测试)
 
 ---
 
@@ -10,21 +10,27 @@
 
 ### 活跃任务
 
+- [x] v1.1.0 主线 B/C/D Phase 2 — 全部 6 个工作流完成 ✅
+  - WS1: B1-P2 门限签名+生物绑定 — threshold-signature-manager + biometric-binding + 4 IPC (Phase 46)
+  - WS2: B2-P2 蓝牙 U盾 BLE — ble-driver 扩展 + 4 IPC (Phase 47)
+  - WS3: C1-P2 智能内容推荐 — local-recommender + interest-profiler + recommendation-ipc + 6 IPC (Phase 48)
+  - WS4: C2-P2 Nostr 桥接 — nostr-bridge + nostr-identity + nostr-bridge-ipc + 6 IPC (Phase 49)
+  - WS5: D1-P2 DLP 防泄漏 — dlp-engine + dlp-policy + dlp-ipc + 8 IPC (Phase 50)
+  - WS6: D2-P2 SIEM 对接 — siem-exporter + siem-ipc + 4 IPC (Phase 51)
+  - WS7: 集成 — ipc-registry (Phase 46-51) + router (6 routes) + context-engineering + config
+  - 合计: 13 后端模块 + 32 IPC (Phase 46-51) + 6 Vue 页面 + 6 Pinia Store + 9 DB 表
+- [x] 单元测试 + E2E 测试 — ~395 新测试用例全部通过 ✅
+  - 9 个后端测试文件 (254 tests)
+  - 6 个 Pinia Store 测试文件 (141 tests)
+  - 6 个 E2E 测试场景 (18 tests)
+  - 最终: 504 passed / 21 failed (pre-existing) / 36 skipped
+- [x] 文档更新 — 路线图 B/C/D Phase 2 状态更新 ✅
+
+### 历史任务
+
 - [x] v1.1.0 主线 B/C/D Phase 1 — 全部 7 个工作流完成 ✅
-  - WS1: C1-P1 AI 社交助手增强 — topic-analyzer + social-graph + 8 IPC
-  - WS2: C2-P1 ActivityPub 双向互通 — activitypub-bridge + ap-content-sync + ap-webfinger + 10 IPC
-  - WS3: D1-P1 SOC2 合规 + 数据分类 — soc2-compliance + data-classifier + classification-policy + 12 IPC
-  - WS4: D2-P1 SCIM 用户同步 — scim-server + scim-sync + 8 IPC
-  - WS5: B1-P1 统一密钥 + FIDO2 — unified-key-manager + fido2-authenticator + 6 IPC
-  - WS6: B2-P1 跨平台驱动 — usb-transport + webusb-fallback + 2 IPC
-  - WS7: 生产加固 — 配置/上下文/IPC 注册集成
   - 合计: 16 后端模块 + 46 IPC (Phase 42-45) + 4 Vue 页面 + 2 Pinia Store + 10 DB 表
-- [x] 单元测试 + E2E 测试 — ~400 新测试用例全部通过 ✅
-  - 17 个测试文件 (15 后端 + 2 Store)
-  - 4 个 E2E 测试场景
-  - 修复 5 个测试 bug (vi.hoisted、usb resolve alias、ESM import、mock 策略)
-  - 最终: 500 passed / 10 failed (9 pre-existing) / 36 skipped
-- [x] 文档更新 — 路线图 B/C/D Phase 1 状态更新 ✅
+  - ~400 新测试用例全部通过
 
 ### 历史任务
 
