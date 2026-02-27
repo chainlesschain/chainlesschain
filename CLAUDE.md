@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v1.1.0-alpha (Enterprise Edition - 95 Desktop Skills + Android 28 Skills + Phase 6 Enterprise + v3.0-v4.0 Full-Stack) - Updated 2026-02-26
+**Current Version**: v1.1.0-alpha (Enterprise Edition - 95 Desktop Skills + Android 28 Skills + Phase 6 Enterprise + v3.0-v4.0 Full-Stack + Q2 Phase 42-45) - Updated 2026-02-27
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -95,236 +95,50 @@ npm run lint && npm run format
 
 ## Feature Index
 
-All features are implemented. Entry files are relative to `desktop-app-vue/src/`.
+**See [`FEATURES.md`](FEATURES.md) for the complete feature list** (95+ desktop features, 28 Android skills).
 
-| Feature                       | Entry File(s)                                                            | Docs                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| MCP Integration               | `main/mcp/`                                                              | [`MCP_USER_GUIDE.md`](docs/features/MCP_USER_GUIDE.md)                             |
-| MCP SDK & Community Registry  | `main/mcp/sdk/index.js`, `main/mcp/community-registry.js`                | —                                                                                  |
-| LLM Performance Dashboard     | `main/llm/token-tracker.js`                                              | [`LLM_PERFORMANCE_DASHBOARD.md`](docs/features/LLM_PERFORMANCE_DASHBOARD.md)       |
-| SessionManager                | `main/llm/session-manager.js`                                            | [`SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)                           |
-| ErrorMonitor AI Diagnostics   | `main/monitoring/error-monitor.js`                                       | [`ERROR_MONITOR.md`](docs/features/ERROR_MONITOR.md)                               |
-| Manus Optimizations           | `main/llm/manus-optimizations.js`                                        | [`MANUS_OPTIMIZATION_GUIDE.md`](docs/MANUS_OPTIMIZATION_GUIDE.md)                  |
-| Cowork Multi-Agent            | `main/ai-engine/cowork/`                                                 | [`COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md)                     |
-| Permanent Memory              | `main/llm/permanent-memory-manager.js`                                   | [`PERMANENT_MEMORY_INTEGRATION.md`](docs/features/PERMANENT_MEMORY_INTEGRATION.md) |
-| Hooks System                  | `main/hooks/index.js`                                                    | [`HOOKS_SYSTEM_DESIGN.md`](docs/design/HOOKS_SYSTEM_DESIGN.md)                     |
-| Hybrid Search Engine          | `main/rag/hybrid-search-engine.js`, `main/rag/bm25-search.js`            | —                                                                                  |
-| IPC Error Handler             | `main/utils/ipc-error-handler.js`                                        | [`IPC_ERROR_HANDLER_GUIDE.md`](docs/guides/IPC_ERROR_HANDLER_GUIDE.md)             |
-| Permission Engine (RBAC)      | `main/permission/permission-engine.js`                                   | —                                                                                  |
-| Team Manager                  | `main/permission/team-manager.js`                                        | —                                                                                  |
-| Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
-| Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                      | —                                                                                  |
-| Skills System (92 built-in)   | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
-| Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
-| Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
-| Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`            | [`COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)                     |
-| Enterprise Audit & Compliance | `main/audit/enterprise-audit-logger.js`                                  | —                                                                                  |
-| Plugin Marketplace            | `main/marketplace/marketplace-client.js`                                 | —                                                                                  |
-| Specialized Multi-Agent       | `main/ai-engine/agents/agent-coordinator.js`                             | —                                                                                  |
-| SSO & Enterprise Auth         | `main/auth/sso-manager.js`                                               | —                                                                                  |
-| Verification Loop Skill       | `main/ai-engine/cowork/skills/builtin/verification-loop/handler.js`      | —                                                                                  |
-| Orchestrate Workflow Skill    | `main/ai-engine/cowork/skills/builtin/orchestrate/handler.js`            | —                                                                                  |
-| Instinct Learning System      | `main/llm/instinct-manager.js`                                           | —                                                                                  |
-| Code Knowledge Graph          | `main/ai-engine/cowork/code-knowledge-graph.js`                          | —                                                                                  |
-| Decision Knowledge Base       | `main/ai-engine/cowork/decision-knowledge-base.js`                       | —                                                                                  |
-| Prompt Optimizer              | `main/ai-engine/cowork/prompt-optimizer.js`                              | —                                                                                  |
-| Skill Discoverer              | `main/ai-engine/cowork/skill-discoverer.js`                              | —                                                                                  |
-| Debate Review Skill           | `main/ai-engine/cowork/debate-review.js`                                 | —                                                                                  |
-| A/B Comparator Skill          | `main/ai-engine/cowork/ab-comparator.js`                                 | —                                                                                  |
-| Evolution IPC (35 handlers)   | `main/ai-engine/cowork/evolution-ipc.js`                                 | —                                                                                  |
-| Demo Templates                | `main/templates/demo-template-loader.js`                                 | —                                                                                  |
-| Enterprise Org Management     | `main/enterprise/enterprise-org-manager.js`                              | —                                                                                  |
-| Real-time Collab (CRDT/Yjs)   | `main/collaboration/yjs-collab-manager.js`, `realtime-collab-manager.js` | —                                                                                  |
-| IPFS Decentralized Storage    | `main/ipfs/ipfs-manager.js`                                              | —                                                                                  |
-| Analytics Dashboard           | `main/analytics/analytics-aggregator.js`                                 | —                                                                                  |
-| Autonomous Agent Runner       | `main/ai-engine/autonomous/autonomous-agent-runner.js`                   | —                                                                                  |
-| i18n Internationalization     | `main/i18n/index.js`                                                     | —                                                                                  |
-| Performance Auto-Tuner        | `main/performance/auto-tuner.js`, `performance-monitor.js`               | —                                                                                  |
-| TypeScript Stores (51)        | `renderer/stores/*.ts`                                                   | —                                                                                  |
-| **v1.1.0 新功能 (v3.0-v4.0)** |                                                                          |                                                                                    |
-| Pipeline Orchestrator (v3.0)  | `main/ai-engine/cowork/pipeline-orchestrator.js`, `pipeline-ipc.js`      | [流水线编排](docs-site/docs/chainlesschain/pipeline.md)                            |
-| Deploy Agent (v3.0)           | `main/ai-engine/cowork/deploy-agent.js`, `post-deploy-monitor.js`        | —                                                                                  |
-| Rollback Manager (v3.0)       | `main/ai-engine/cowork/rollback-manager.js`                              | —                                                                                  |
-| Requirement Parser (v3.0)     | `main/ai-engine/cowork/requirement-parser.js`                            | —                                                                                  |
-| NL Spec Translator (v3.1)     | `main/ai-engine/cowork/spec-translator.js`, `nl-programming-ipc.js`      | [自然语言编程](docs-site/docs/chainlesschain/nl-programming.md)                    |
-| Project Style Analyzer (v3.1) | `main/ai-engine/cowork/project-style-analyzer.js`                        | —                                                                                  |
-| Modality Fusion (v3.2)        | `main/ai-engine/cowork/modality-fusion.js`, `multimodal-collab-ipc.js`   | [多模态协作](docs-site/docs/chainlesschain/multimodal.md)                          |
-| Document Parser (v3.2)        | `main/ai-engine/cowork/document-parser.js`                               | —                                                                                  |
-| Screen Recorder (v3.2)        | `main/ai-engine/cowork/screen-recorder.js`                               | —                                                                                  |
-| Multimodal Context (v3.2)     | `main/ai-engine/cowork/multimodal-context.js`, `multimodal-output.js`    | —                                                                                  |
-| Alert Manager (v3.3)          | `main/ai-engine/cowork/alert-manager.js`, `autonomous-ops-ipc.js`        | [自主运维](docs-site/docs/chainlesschain/autonomous-ops.md)                        |
-| Auto Remediator (v3.3)        | `main/ai-engine/cowork/auto-remediator.js`                               | —                                                                                  |
-| Postmortem Generator (v3.3)   | `main/ai-engine/cowork/postmortem-generator.js`                          | —                                                                                  |
-| Agent DID (v4.0)              | `main/ai-engine/cowork/agent-did.js`                                     | [代理联邦网络](docs-site/docs/chainlesschain/agent-federation.md)                  |
-| Agent Credential (v4.0)       | `main/ai-engine/cowork/agent-credential-manager.js`                      | —                                                                                  |
-| Agent Authenticator (v4.0)    | `main/ai-engine/cowork/agent-authenticator.js`                           | —                                                                                  |
-| Federated Registry (v4.0)     | `main/ai-engine/cowork/federated-agent-registry.js`                      | —                                                                                  |
-| Cross-Org Task Router (v4.0)  | `main/ai-engine/cowork/cross-org-task-router.js`                         | —                                                                                  |
-| Agent Reputation (v4.0)       | `main/ai-engine/cowork/agent-reputation.js`                              | —                                                                                  |
+Key highlights:
 
-### Skills System Details
-
-- 4-layer loading: bundled → marketplace → managed → workspace (higher overrides)
-- Agent Skills Open Standard: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- 95 built-in skills with handlers in `main/ai-engine/cowork/skills/builtin/`
-- `/skill` commands parsed via `skills-ipc.js`
-- Parser: `skill-md-parser.js` (YAML frontmatter + Markdown body)
-
-### Hooks System Details
-
-- 21 hook events, 4 hook types (Sync, Async, Command, Script)
-- Priority: SYSTEM(0) → HIGH(100) → NORMAL(500) → LOW(900) → MONITOR(1000)
-- Config: `.chainlesschain/hooks.json` (project), `~/.chainlesschain/hooks.json` (user)
-- Script hooks auto-load from `.chainlesschain/hooks/*.js`
-
-### Instinct Learning Details
-
-- 8 categories: CODING_PATTERN, TOOL_PREFERENCE, WORKFLOW, ERROR_FIX, STYLE, ARCHITECTURE, TESTING, GENERAL
-- Observation pipeline: PostToolUse/PreCompact hooks → buffer (50 items, 60s flush) → pattern extraction
-- Confidence dynamics: reinforce (+5% diminishing), decay (×0.9)
-- Auto-injected into LLM prompts via Context Engineering integration
-- DB tables: `instincts`, `instinct_observations`
-
-### Orchestrate Workflows
-
-- 4 templates: `feature` (planner→architect→coder→reviewer→verify), `bugfix`, `refactor`, `security-audit`
-- Usage: `/orchestrate feature "add user profile page"`
-
-### Verification Loop
-
-- 6 stages: Build → TypeCheck → Lint → Test → Security → DiffReview
-- Auto-detects project type (typescript, nodejs, python, java)
-- Verdict: READY / NOT READY
-
-### Code Knowledge Graph (v2.1.0)
-
-- Entity types: module, class, function, variable, interface, type, enum, component
-- Relationship types: imports, exports, extends, implements, calls, contains, depends_on
-- Analysis: degree centrality, hotspot detection, circular dependency detection (DFS)
-- Auto-injected into LLM prompts via Context Engineering step 4.6
-- DB tables: `code_kg_entities`, `code_kg_relationships`
-
-### Decision Knowledge Base (v2.1.0)
-
-- Sources: manual, voting (TeammateTool), orchestrate, instinct
-- Similarity search via keyword matching with success-rate boosting
-- Auto-records PostToolUse events for voteOnDecision and orchestrate results
-- DB table: `decision_records`
-
-### Self-Evolution (v2.1.0)
-
-- **Prompt Optimizer**: A/B variant testing with SHA-256 prompt hashing, success rate tracking
-- **Skill Discoverer**: Task failure keyword extraction → marketplace skill auto-discovery
-- **Experience Replay**: Extracts successful orchestrate/verification-loop patterns as workflow instincts
-- DB tables: `prompt_executions`, `prompt_variants`, `skill_discovery_log`
-
-### Advanced Collaboration Skills (v2.1.0)
-
-- **Debate Review** (`/debate-review`): Multi-perspective code review (performance, security, maintainability) with consensus voting
-- **A/B Comparator** (`/ab-compare`): Multi-agent variant generation with benchmarking via verification-loop
-- **Stream Processor** (`/stream-processor`): Per-line stream processing for log/csv/json files
-- DB tables: `debate_reviews`, `ab_comparisons`
+- **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (95 built-in)
+- **Enterprise**: RBAC, SSO, Audit & Compliance, Org Management, Real-time Collaboration
+- **Integration**: MCP, Browser Automation, Computer Use, IPFS, Analytics Dashboard
+- **v3.0-v4.0**: Pipeline Orchestrator, NL Programming, Multimodal Collaboration, Autonomous Ops, Agent Federation
 
 ## Architecture Overview
 
-### Desktop Application Structure
+### Desktop Application (Primary Focus)
 
-```
-desktop-app-vue/
-├── src/main/              # Electron main process
-│   ├── index.js           # Main entry point
-│   ├── database.js        # SQLite/SQLCipher database
-│   ├── ukey/              # U-Key hardware integration
-│   ├── llm/               # LLM service (session, memory, context-engineering, instinct)
-│   ├── rag/               # RAG retrieval (vector, BM25, hybrid search)
-│   ├── permission/        # Enterprise RBAC (engine, team, delegation, approval)
-│   ├── task/              # Task management (team reports)
-│   ├── hooks/             # Hooks system (registry, executor, middleware)
-│   ├── did/               # DID identity system
-│   ├── p2p/               # P2P network (libp2p + Signal + WebRTC)
-│   ├── browser/           # Browser automation + Computer Use actions
-│   ├── mcp/               # MCP integration + SDK + community registry
-│   ├── audit/             # Enterprise Audit & Compliance
-│   ├── marketplace/       # Plugin Marketplace
-│   ├── auth/              # SSO Enterprise Authentication (SAML, OAuth, OIDC)
-│   ├── enterprise/        # Enterprise Org Management (hierarchy, approval)
-│   ├── collaboration/     # Real-time Collab (CRDT/Yjs, P2P sync)
-│   ├── ipfs/              # IPFS Decentralized Storage (Helia/Kubo)
-│   ├── analytics/         # Analytics Dashboard (aggregator, real-time)
-│   ├── performance/       # Performance Monitor + Auto-Tuner
-│   ├── i18n/              # Internationalization (4 locales)
-│   ├── templates/         # Demo templates (10 templates)
-│   ├── utils/             # Utility modules (ipc-error-handler)
-│   └── ai-engine/         # AI engine
-│       ├── plan-mode/     # Plan Mode (Claude Code style)
-│       ├── agents/        # Specialized Multi-Agent (8 templates)
-│       ├── autonomous/    # Autonomous Agent Runner (ReAct loop)
-│       ├── unified-tool-registry.js
-│       ├── tool-skill-mapper.js
-│       └── cowork/        # Cowork system
-│           ├── code-knowledge-graph.js  # v2.1.0 KG
-│           ├── decision-knowledge-base.js
-│           ├── prompt-optimizer.js
-│           ├── skill-discoverer.js
-│           ├── debate-review.js
-│           ├── ab-comparator.js
-│           ├── evolution-ipc.js  # 35 IPC handlers
-│           ├── pipeline-orchestrator.js  # v3.0 pipeline
-│           ├── pipeline-ipc.js           # v3.0 15 IPC
-│           ├── deploy-agent.js           # v3.0 deploy
-│           ├── post-deploy-monitor.js    # v3.0 monitor
-│           ├── rollback-manager.js       # v3.0 rollback
-│           ├── requirement-parser.js     # v3.0 NL→Spec
-│           ├── spec-translator.js        # v3.1 NL programming
-│           ├── nl-programming-ipc.js     # v3.1 10 IPC
-│           ├── project-style-analyzer.js # v3.1 conventions
-│           ├── modality-fusion.js        # v3.2 multimodal
-│           ├── multimodal-collab-ipc.js  # v3.2 12 IPC
-│           ├── document-parser.js        # v3.2 doc parse
-│           ├── multimodal-context.js     # v3.2 context
-│           ├── multimodal-output.js      # v3.2 output
-│           ├── screen-recorder.js        # v3.2 screen
-│           ├── alert-manager.js          # v3.3 alerts
-│           ├── autonomous-ops-ipc.js     # v3.3 15 IPC
-│           ├── auto-remediator.js        # v3.3 playbook
-│           ├── postmortem-generator.js   # v3.3 reports
-│           ├── agent-did.js              # v4.0 DID
-│           ├── agent-credential-manager.js # v4.0 VC
-│           ├── agent-authenticator.js    # v4.0 auth
-│           ├── federated-agent-registry.js # v4.0 discovery
-│           ├── cross-org-task-router.js  # v4.0 routing
-│           ├── agent-reputation.js       # v4.0 reputation
-│           └── skills/    # Skills system (95 built-in, 4-layer loading)
-└── src/renderer/          # Vue3 frontend
-    ├── pages/             # Page components (5 new v1.1.0 pages)
-    ├── components/        # Reusable components
-    └── stores/            # Pinia state management (51 TypeScript stores)
-```
+**Structure**: `desktop-app-vue/src/`
 
-### Android Application
+**Main Process** (`main/`):
 
-28 skills in `android-app/feature-ai/.../cowork/skills/` — same SKILL.md format as desktop. 12 Kotlin handlers, 8 doc-only, 8 REMOTE skills (delegated to desktop via P2PSkillBridge). Details in `MEMORY.md`.
+- **Core**: `index.js` (entry), `database.js` (SQLite/SQLCipher), `config/`, `utils/`
+- **Security**: `ukey/` (hardware), `did/` (identity), `p2p/` (encrypted messaging)
+- **AI Engine**: `ai-engine/` (plan-mode, agents, cowork, autonomous), `llm/` (session, memory, instinct)
+- **Enterprise**: `permission/` (RBAC), `auth/` (SSO), `audit/`, `enterprise/` (org management)
+- **Integration**: `mcp/`, `browser/` (automation + computer-use), `marketplace/`, `hooks/`
+- **Advanced**: `collaboration/` (CRDT/Yjs), `ipfs/`, `rag/` (hybrid search), `analytics/`, `performance/`
+
+**Renderer Process** (`renderer/`):
+
+- **Vue3 + TypeScript**: `pages/`, `components/`, `stores/` (51 Pinia stores), `router/`
 
 ### Backend Services
 
-- **project-service** (Spring Boot 3.1.11 + Java 17): PostgreSQL, Redis, MyBatis Plus 3.5.9
-- **ai-service** (FastAPI + Python): Ollama, Qdrant, 14+ cloud LLM providers
+- **project-service**: Spring Boot 3.1.11 + Java 17 + PostgreSQL + Redis + MyBatis Plus 3.5.9
+- **ai-service**: FastAPI + Python + Ollama + Qdrant + 14+ cloud LLM providers
+
+### Android Application
+
+28 skills (12 Kotlin handlers, 8 doc-only, 8 REMOTE delegated to desktop). See `MEMORY.md` for details.
 
 ### Database Schema
 
-SQLite with SQLCipher (AES-256). Key tables:
+**SQLite + SQLCipher (AES-256)** - File: `data/chainlesschain.db`
 
-- **Core**: `notes`, `chat_conversations`, `did_identities`, `p2p_messages`, `contacts`, `social_posts`
-- **Memory**: `embedding_cache`, `memory_file_hashes`, `daily_notes_metadata`, `memory_sections`, `memory_stats`
-- **Instinct**: `instincts`, `instinct_observations`
-- **Knowledge Graph**: `code_kg_entities`, `code_kg_relationships`
-- **Self-Evolution**: `decision_records`, `prompt_executions`, `prompt_variants`, `skill_discovery_log`
-- **Collaboration**: `debate_reviews`, `ab_comparisons`
-- **Enterprise Org**: `org_teams` (departments), `approval_workflows`
-- **Real-time Collab**: `collaboration_sessions`, `collab_cursor_positions`, `collab_document_locks`, `collab_conflict_history`, `knowledge_yjs_updates`, `knowledge_comments`, `collab_stats`
-- **IPFS Storage**: `ipfs_content`
-- **Analytics**: `analytics_aggregations`
-- **Autonomous Agent**: `autonomous_goals`, `autonomous_steps`
+**Table categories**: Core (notes, conversations, DID, P2P), Memory (embeddings, metadata), AI (instincts, knowledge graph, decisions), Enterprise (RBAC, org, approval), Collaboration (CRDT, sessions), Storage (IPFS), Analytics
+
+**Schema definition**: See `desktop-app-vue/src/main/database.js` for full schema and migrations.
 
 ## Technology Stack
 
@@ -401,6 +215,145 @@ cd backend/ai-service && pytest
 Semantic commits: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
 
 Example: `feat(rag): add reranker support`
+
+## Code Quality & ESLint Best Practices
+
+### Common ESLint Errors to Avoid
+
+When writing new code, follow these guidelines to prevent common ESLint violations:
+
+#### 1. Use ES6 Imports Instead of CommonJS Require
+
+**❌ Wrong (causes @typescript-eslint/no-require-imports):**
+
+```javascript
+const axios = require("axios");
+const { ipcMain } = require("electron");
+```
+
+**✅ Correct:**
+
+```javascript
+import axios from "axios";
+import { ipcMain } from "electron";
+```
+
+**Note**: Only use `require()` in CommonJS `.js` files in the main process where necessary. All TypeScript files (`.ts`, `.tsx`) and renderer code must use ES6 imports.
+
+#### 2. Handle Unused Variables in Catch Blocks
+
+**❌ Wrong (causes @typescript-eslint/no-unused-vars + no-empty):**
+
+```javascript
+try {
+  await riskyOperation();
+} catch (err) {
+  // 'err' is unused
+  // Empty catch block
+}
+```
+
+**✅ Correct - Option A (log the error):**
+
+```javascript
+try {
+  await riskyOperation();
+} catch (err) {
+  console.error("Operation failed:", err);
+}
+```
+
+**✅ Correct - Option B (ignore with underscore + comment):**
+
+```javascript
+try {
+  await riskyOperation();
+} catch (_err) {
+  // Explicitly ignore error - operation is optional
+  // Intentionally empty - non-critical operation
+}
+```
+
+**✅ Correct - Option C (no-catch-all with specific handling):**
+
+```javascript
+try {
+  await riskyOperation();
+} catch (err) {
+  // Handle specific error scenarios
+  if (err.code === "ENOENT") {
+    return null; // File not found is expected
+  }
+  throw err; // Re-throw unexpected errors
+}
+```
+
+#### 3. Remove Unused Imports and Variables
+
+**❌ Wrong (causes @typescript-eslint/no-unused-vars):**
+
+```javascript
+import { ref, computed, onMounted } from "vue"; // onMounted not used
+
+export default {
+  setup() {
+    const count = ref(0);
+    const unusedVar = ref("test"); // Never used
+
+    return { count };
+  },
+};
+```
+
+**✅ Correct:**
+
+```javascript
+import { ref } from "vue"; // Only import what you use
+
+export default {
+  setup() {
+    const count = ref(0);
+
+    return { count };
+  },
+};
+```
+
+#### 4. File Type Specific Rules
+
+**Main Process Files (.js in `src/main/`):**
+
+- Use CommonJS (`module.exports`, `require()`) for consistency with existing code
+- Use ES6 imports only if the entire module is ES6
+
+**Renderer Files (.ts, .tsx, .vue in `src/renderer/`):**
+
+- Always use ES6 imports/exports
+- TypeScript strict mode enabled
+- Use type annotations for function parameters and return types
+
+**Test Files (.test.js, .spec.js):**
+
+- Follow the same import style as the file being tested
+- Use Vitest mocking patterns (see MEMORY.md)
+
+### Pre-commit Checklist
+
+Before committing, ensure:
+
+1. ✅ Run `npm run lint` - all ESLint errors fixed
+2. ✅ Run `npm run format` - code is properly formatted
+3. ✅ No unused imports or variables
+4. ✅ All catch blocks either handle errors or have explanatory comments
+5. ✅ ES6 imports used in all TypeScript/renderer code
+
+### ESLint Configuration
+
+Project uses:
+
+- **Main**: `@typescript-eslint/parser` + `eslint-plugin-vue`
+- **Rules**: See `desktop-app-vue/.eslintrc.js`
+- **Auto-fix**: Many issues can be auto-fixed with `npm run lint -- --fix`
 
 ## Known Limitations
 

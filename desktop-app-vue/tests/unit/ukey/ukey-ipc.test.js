@@ -1,6 +1,7 @@
 /**
  * U-Key IPC 单元测试
- * 测试9个 U-Key 相关 API 方法及备用认证
+ * 测试17个 U-Key 相关 API 方法及备用认证
+ * (9 original + 6 unified key/FIDO2 + 2 transport)
  *
  * 使用依赖注入模式测试 IPC handlers
  */
@@ -27,6 +28,8 @@ vi.mock('electron', () => ({
 describe('U-Key IPC 处理器', () => {
   let handlers = {};
   let mockUkeyManager;
+  let mockUnifiedKeyManager;
+  let mockFido2Authenticator;
   let mockIpcMain;
   let registerUKeyIPC;
 
@@ -69,6 +72,20 @@ describe('U-Key IPC 处理器', () => {
       }),
     };
 
+    // Mock unified key manager (Phase 45)
+    mockUnifiedKeyManager = {
+      deriveKey: vi.fn().mockResolvedValue({ keyId: 'k-1', publicKey: 'pub-1' }),
+      listKeys: vi.fn().mockResolvedValue([]),
+      setPrimaryKey: vi.fn().mockResolvedValue({ success: true }),
+    };
+
+    // Mock FIDO2 authenticator (Phase 45)
+    mockFido2Authenticator = {
+      makeCredential: vi.fn().mockResolvedValue({ credentialId: 'cred-1' }),
+      getAssertion: vi.fn().mockResolvedValue({ signature: 'sig-1' }),
+      listCredentials: vi.fn().mockResolvedValue([]),
+    };
+
     // 创建 mock ipcGuard (使用依赖注入)
     const mockIpcGuard = {
       isModuleRegistered: vi.fn().mockReturnValue(false),
@@ -85,76 +102,20 @@ describe('U-Key IPC 处理器', () => {
     // 注册 U-Key IPC 并注入所有 mock 对象
     registerUKeyIPC({
       ukeyManager: mockUkeyManager,
+      unifiedKeyManager: mockUnifiedKeyManager,
+      fido2Authenticator: mockFido2Authenticator,
       ipcMain: mockIpcMain,
       ipcGuard: mockIpcGuard,
     });
   });
 
   // =====================================================================
-  // 定义所有预期的IPC handlers
-  // =====================================================================
-
-  const expectedHandlers = {
-    // 设备检测类 (1个)
-    'ukey:detect': {
-      category: '设备检测',
-      params: 0, // event only
-      async: true,
-    },
-    // PIN管理类 (1个)
-    'ukey:verify-pin': {
-      category: 'PIN管理',
-      params: 2, // event, pin
-      async: true,
-    },
-    // 信息获取类 (2个)
-    'ukey:get-device-info': {
-      category: '信息获取',
-      params: 0, // event only
-      async: true,
-    },
-    'ukey:get-public-key': {
-      category: '信息获取',
-      params: 0, // event only
-      async: true,
-    },
-    // 加密操作类 (3个)
-    'ukey:sign': {
-      category: '加密操作',
-      params: 2, // event, data
-      async: true,
-    },
-    'ukey:encrypt': {
-      category: '加密操作',
-      params: 2, // event, data
-      async: true,
-    },
-    'ukey:decrypt': {
-      category: '加密操作',
-      params: 2, // event, encryptedData
-      async: true,
-    },
-    // 锁定操作类 (1个)
-    'ukey:lock': {
-      category: '锁定操作',
-      params: 0, // event only
-      async: true,
-    },
-    // 认证类 (1个)
-    'auth:verify-password': {
-      category: '认证',
-      params: 3, // event, username, password
-      async: true,
-    },
-  };
-
-  // =====================================================================
   // 基本功能测试 - 验证handler结构
   // =====================================================================
 
   describe('基本功能测试', () => {
-    it('should register exactly 9 U-Key IPC handlers', () => {
-      expect(Object.keys(handlers).length).toBe(9);
+    it('should register exactly 17 U-Key IPC handlers', () => {
+      expect(Object.keys(handlers).length).toBe(17);
     });
 
     it('should include all required handler channels', () => {
@@ -168,6 +129,16 @@ describe('U-Key IPC 处理器', () => {
         'ukey:lock',
         'ukey:get-public-key',
         'auth:verify-password',
+        // Phase 45: Unified Key + FIDO2
+        'ukey:derive-key',
+        'ukey:list-keys',
+        'ukey:set-primary-key',
+        'fido2:make-credential',
+        'fido2:get-assertion',
+        'fido2:list-credentials',
+        // Phase 45: Transport
+        'ukey:transport-status',
+        'ukey:scan-usb-devices',
       ];
 
       requiredChannels.forEach((channel) => {
@@ -283,6 +254,8 @@ describe('U-Key IPC 处理器', () => {
       };
       registerUKeyIPC({
         ukeyManager: null,
+        unifiedKeyManager: null,
+        fido2Authenticator: null,
         ipcMain: mockIpcMain2,
         ipcGuard: mockIpcGuard2,
       });
@@ -435,8 +408,8 @@ describe('U-Key IPC 处理器', () => {
   // =====================================================================
 
   describe('总体验证', () => {
-    it('should register all 9 U-Key IPC handlers', () => {
-      expect(Object.keys(handlers).length).toBe(9);
+    it('should register all 17 U-Key IPC handlers', () => {
+      expect(Object.keys(handlers).length).toBe(17);
     });
 
     it('should have all required handler channels', () => {
@@ -449,6 +422,15 @@ describe('U-Key IPC 处理器', () => {
       expect(handlers['ukey:lock']).toBeDefined();
       expect(handlers['ukey:get-public-key']).toBeDefined();
       expect(handlers['auth:verify-password']).toBeDefined();
+      // Phase 45
+      expect(handlers['ukey:derive-key']).toBeDefined();
+      expect(handlers['ukey:list-keys']).toBeDefined();
+      expect(handlers['ukey:set-primary-key']).toBeDefined();
+      expect(handlers['fido2:make-credential']).toBeDefined();
+      expect(handlers['fido2:get-assertion']).toBeDefined();
+      expect(handlers['fido2:list-credentials']).toBeDefined();
+      expect(handlers['ukey:transport-status']).toBeDefined();
+      expect(handlers['ukey:scan-usb-devices']).toBeDefined();
     });
 
     it('all handlers should be callable functions', () => {
@@ -470,10 +452,12 @@ describe('U-Key IPC 处理器', () => {
       };
       registerUKeyIPC({
         ukeyManager: mockUkeyManager,
+        unifiedKeyManager: mockUnifiedKeyManager,
+        fido2Authenticator: mockFido2Authenticator,
         ipcMain: mockIpcMain2,
         ipcGuard: mockIpcGuard2,
       });
-      expect(Object.keys(handlers2).length).toBe(9);
+      expect(Object.keys(handlers2).length).toBe(17);
     });
   });
 });

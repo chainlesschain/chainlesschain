@@ -26,6 +26,7 @@ const { v4: uuidv4 } = require("uuid");
 const SUPPORTED_PLATFORMS = {
   MASTODON: "mastodon",
   NOSTR: "nostr",
+  ACTIVITYPUB: "activitypub",
 };
 
 const CONNECTION_STATUS = {
@@ -78,7 +79,7 @@ class PlatformBridge extends EventEmitter {
     db.exec(`
       CREATE TABLE IF NOT EXISTS bridge_connections (
         id TEXT PRIMARY KEY,
-        platform TEXT NOT NULL CHECK(platform IN ('mastodon', 'nostr')),
+        platform TEXT NOT NULL CHECK(platform IN ('mastodon', 'nostr', 'activitypub')),
         owner_did TEXT NOT NULL,
         external_id TEXT,
         server_url TEXT,

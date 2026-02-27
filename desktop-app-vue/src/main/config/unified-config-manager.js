@@ -27,10 +27,10 @@
  * @updated 2026-01-18 - 使用 Electron userData 目录替代 process.cwd()
  */
 
-const { logger } = require("../utils/logger.js");
-const fs = require("fs");
-const path = require("path");
-const { app } = require("electron");
+import { logger } from "../utils/logger.js";
+import fs from "fs";
+import path from "path";
+import { app } from "electron";
 
 /**
  * 获取配置目录路径
@@ -42,7 +42,7 @@ function getConfigDir() {
     // 使用 Electron 的 userData 目录
     const userDataPath = app.getPath("userData");
     return path.join(userDataPath, ".chainlesschain");
-  } catch (error) {
+  } catch {
     // 回退到 process.cwd()（仅用于测试或非 Electron 环境）
     logger.warn(
       "[UnifiedConfigManager] Electron app not available, falling back to cwd",
@@ -52,43 +52,43 @@ function getConfigDir() {
 }
 
 // 延迟初始化的配置目录（在第一次访问时确定）
-let CONFIG_DIR = null;
+let _CONFIG_DIR = null;
 
 /**
  * 统一配置管理器类
  */
 class UnifiedConfigManager {
   constructor() {
-    // 确保 CONFIG_DIR 已初始化
-    if (!CONFIG_DIR) {
-      CONFIG_DIR = getConfigDir();
+    // 确保 _CONFIG_DIR 已初始化
+    if (!_CONFIG_DIR) {
+      _CONFIG_DIR = getConfigDir();
     }
 
-    this.configDir = CONFIG_DIR;
-    this.configPath = path.join(CONFIG_DIR, "config.json");
+    this.configDir = _CONFIG_DIR;
+    this.configPath = path.join(_CONFIG_DIR, "config.json");
     this.config = null;
 
     // 项目根目录的配置（用于迁移）
     this.projectRootConfigDir = path.join(process.cwd(), ".chainlesschain");
 
     this.paths = {
-      root: CONFIG_DIR,
-      config: path.join(CONFIG_DIR, "config.json"),
-      rules: path.join(CONFIG_DIR, "rules.md"),
-      memory: path.join(CONFIG_DIR, "memory"),
-      sessions: path.join(CONFIG_DIR, "memory", "sessions"),
-      preferences: path.join(CONFIG_DIR, "memory", "preferences"),
-      learnedPatterns: path.join(CONFIG_DIR, "memory", "learned-patterns"),
-      logs: path.join(CONFIG_DIR, "logs"),
-      cache: path.join(CONFIG_DIR, "cache"),
-      embeddings: path.join(CONFIG_DIR, "cache", "embeddings"),
-      queryResults: path.join(CONFIG_DIR, "cache", "query-results"),
-      modelOutputs: path.join(CONFIG_DIR, "cache", "model-outputs"),
-      checkpoints: path.join(CONFIG_DIR, "checkpoints"),
-      autoBackup: path.join(CONFIG_DIR, "checkpoints", "auto-backup"),
+      root: _CONFIG_DIR,
+      config: path.join(_CONFIG_DIR, "config.json"),
+      rules: path.join(_CONFIG_DIR, "rules.md"),
+      memory: path.join(_CONFIG_DIR, "memory"),
+      sessions: path.join(_CONFIG_DIR, "memory", "sessions"),
+      preferences: path.join(_CONFIG_DIR, "memory", "preferences"),
+      learnedPatterns: path.join(_CONFIG_DIR, "memory", "learned-patterns"),
+      logs: path.join(_CONFIG_DIR, "logs"),
+      cache: path.join(_CONFIG_DIR, "cache"),
+      embeddings: path.join(_CONFIG_DIR, "cache", "embeddings"),
+      queryResults: path.join(_CONFIG_DIR, "cache", "query-results"),
+      modelOutputs: path.join(_CONFIG_DIR, "cache", "model-outputs"),
+      checkpoints: path.join(_CONFIG_DIR, "checkpoints"),
+      autoBackup: path.join(_CONFIG_DIR, "checkpoints", "auto-backup"),
       // 新增：报告和备份目录
-      reports: path.join(CONFIG_DIR, "memory", "reports"),
-      backups: path.join(CONFIG_DIR, "memory", "backups"),
+      reports: path.join(_CONFIG_DIR, "memory", "reports"),
+      backups: path.join(_CONFIG_DIR, "memory", "backups"),
     };
   }
 
@@ -361,6 +361,41 @@ class UnifiedConfigManager {
         cacheDir: this.paths.cache,
         memoryDir: this.paths.memory,
         checkpointsDir: this.paths.checkpoints,
+      },
+      socialAI: {
+        enabled: true,
+        topicAnalysis: true,
+        socialGraph: true,
+        enhancedReplies: true,
+        trendingTopicsInterval: 3600000,
+      },
+      activitypub: {
+        enabled: false,
+        domain: "localhost",
+        autoSync: false,
+        syncIntervalMs: 300000,
+        httpSignatures: true,
+        webfinger: true,
+      },
+      compliance: {
+        enabled: false,
+        soc2AutoCollect: false,
+        dataClassification: true,
+        classificationPolicies: ["pii", "phi", "pci"],
+        evidenceRetentionDays: 365,
+      },
+      scim: {
+        enabled: false,
+        autoSync: false,
+        syncIntervalMs: 900000,
+        providers: [],
+      },
+      unifiedKey: {
+        enabled: true,
+        defaultSource: "software",
+        fido2Enabled: true,
+        autoDerive: true,
+        crossPlatformUSB: true,
       },
       evomap: {
         enabled: false,
@@ -768,19 +803,15 @@ function getUnifiedConfigManager() {
  * @returns {string} 配置目录路径
  */
 function getCurrentConfigDir() {
-  if (!CONFIG_DIR) {
-    CONFIG_DIR = getConfigDir();
+  if (!_CONFIG_DIR) {
+    _CONFIG_DIR = getConfigDir();
   }
-  return CONFIG_DIR;
+  return _CONFIG_DIR;
 }
 
-module.exports = {
+export {
   UnifiedConfigManager,
   getUnifiedConfigManager,
   getConfigDir,
   getCurrentConfigDir,
-  // 为了向后兼容，导出一个 getter
-  get CONFIG_DIR() {
-    return getCurrentConfigDir();
-  },
 };

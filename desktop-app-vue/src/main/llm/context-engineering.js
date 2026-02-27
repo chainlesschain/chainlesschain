@@ -57,6 +57,12 @@ class ContextEngineering {
     // EvoMap Asset Bridge（可选，通过 setEvoMapBridge 注入）
     this._evoMapBridge = null;
 
+    // Social Graph（可选，通过 setSocialGraph 注入）
+    this._socialGraph = null;
+
+    // Compliance Manager（可选，通过 setComplianceManager 注入）
+    this._complianceManager = null;
+
     // Memory Augmented Generation（可选，通过 setMemoryAugManager 注入）
     this._memoryAugManager = null;
 
@@ -94,6 +100,22 @@ class ContextEngineering {
    */
   setEvoMapBridge(evoMapBridge) {
     this._evoMapBridge = evoMapBridge;
+  }
+
+  /**
+   * Set the SocialGraph for relationship-aware context
+   * @param {Object} socialGraph - SocialGraph instance
+   */
+  setSocialGraph(socialGraph) {
+    this._socialGraph = socialGraph;
+  }
+
+  /**
+   * Set the ComplianceManager for compliance-aware context
+   * @param {Object} complianceManager - SOC2Compliance instance
+   */
+  setComplianceManager(complianceManager) {
+    this._complianceManager = complianceManager;
   }
 
   /**
