@@ -69,7 +69,7 @@ const formatNumber = (num) => {
 };
 
 const renderChart = () => {
-  if (!chartRef.value || props.data.length === 0) return;
+  if (!chartRef.value || props.data.length === 0) {return;}
 
   if (!chartInstance) {
     chartInstance = init(chartRef.value);
@@ -80,7 +80,7 @@ const renderChart = () => {
       trigger: 'axis',
       axisPointer: { type: 'cross' },
       formatter: (params) => {
-        if (!params || params.length === 0) return '';
+        if (!params || params.length === 0) {return '';}
         const point = params[0];
         return `
           <div style="font-weight: 600; margin-bottom: 4px">${point.axisValue}</div>
@@ -147,7 +147,7 @@ const renderChart = () => {
 // Debounced resize handler
 let resizeTimer = null;
 const handleResize = () => {
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
   resizeTimer = setTimeout(() => {
     chartInstance?.resize();
   }, 200);
@@ -183,7 +183,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
 
   if (resizeObserver) {
     resizeObserver.disconnect();

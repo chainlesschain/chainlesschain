@@ -7,13 +7,19 @@
         <span class="subtitle">Federated Agent Network</span>
       </div>
       <div class="header-right">
-        <a-button :loading="store.loading" @click="handleDiscover">
+        <a-button
+          :loading="store.loading"
+          @click="handleDiscover"
+        >
           <template #icon>
             <SearchOutlined />
           </template>
           发现代理
         </a-button>
-        <a-button type="primary" @click="handleRegister">
+        <a-button
+          type="primary"
+          @click="handleRegister"
+        >
           <template #icon>
             <PlusOutlined />
           </template>
@@ -23,8 +29,14 @@
     </div>
 
     <!-- 统计区域 -->
-    <a-row :gutter="[16, 16]" class="stats-section">
-      <a-col :xs="12" :sm="6">
+    <a-row
+      :gutter="[16, 16]"
+      class="stats-section"
+    >
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="在线节点"
@@ -33,7 +45,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="总技能数"
@@ -42,7 +57,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="我的信誉"
@@ -52,7 +70,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="活跃任务"
@@ -66,12 +87,24 @@
     <!-- Tab 切换 -->
     <a-tabs v-model:active-key="activeTab">
       <!-- Tab 1: 网络总览 -->
-      <a-tab-pane key="overview" tab="网络总览">
+      <a-tab-pane
+        key="overview"
+        tab="网络总览"
+      >
         <a-row :gutter="16">
-          <a-col :lg="12" :md="24">
-            <a-card title="我的 DID" size="small">
+          <a-col
+            :lg="12"
+            :md="24"
+          >
+            <a-card
+              title="我的 DID"
+              size="small"
+            >
               <template v-if="store.myDID">
-                <a-descriptions :column="1" size="small">
+                <a-descriptions
+                  :column="1"
+                  size="small"
+                >
                   <a-descriptions-item label="DID">
                     <code>{{ store.myDID.did }}</code>
                   </a-descriptions-item>
@@ -83,7 +116,10 @@
                     </a-tag>
                   </a-descriptions-item>
                   <a-descriptions-item label="技能">
-                    <a-tag v-for="skill in store.myDID.skills" :key="skill">
+                    <a-tag
+                      v-for="skill in store.myDID.skills"
+                      :key="skill"
+                    >
                       {{ skill }}
                     </a-tag>
                   </a-descriptions-item>
@@ -92,15 +128,27 @@
                   </a-descriptions-item>
                 </a-descriptions>
               </template>
-              <a-empty v-else description="尚未创建 DID">
-                <a-button type="primary" @click="handleCreateDID">
+              <a-empty
+                v-else
+                description="尚未创建 DID"
+              >
+                <a-button
+                  type="primary"
+                  @click="handleCreateDID"
+                >
                   创建 DID
                 </a-button>
               </a-empty>
             </a-card>
           </a-col>
-          <a-col :lg="12" :md="24">
-            <a-card title="网络统计" size="small">
+          <a-col
+            :lg="12"
+            :md="24"
+          >
+            <a-card
+              title="网络统计"
+              size="small"
+            >
               <a-descriptions
                 v-if="store.networkStats"
                 :column="1"
@@ -122,14 +170,20 @@
                   {{ store.networkStats.avgReputation?.toFixed(1) }}
                 </a-descriptions-item>
               </a-descriptions>
-              <a-empty v-else description="暂无网络数据" />
+              <a-empty
+                v-else
+                description="暂无网络数据"
+              />
             </a-card>
           </a-col>
         </a-row>
       </a-tab-pane>
 
       <!-- Tab 2: 代理发现 -->
-      <a-tab-pane key="discover" tab="代理发现">
+      <a-tab-pane
+        key="discover"
+        tab="代理发现"
+      >
         <div class="search-bar">
           <a-input-search
             v-model:value="skillSearch"
@@ -139,7 +193,10 @@
             @search="handleSkillSearch"
           />
         </div>
-        <a-list :data-source="store.discoveredAgents" :loading="store.loading">
+        <a-list
+          :data-source="store.discoveredAgents"
+          :loading="store.loading"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
@@ -154,16 +211,21 @@
                   >
                     在线
                   </a-tag>
-                  <a-tag v-else color="default" style="margin-left: 8px">
+                  <a-tag
+                    v-else
+                    color="default"
+                    style="margin-left: 8px"
+                  >
                     离线
                   </a-tag>
                 </template>
                 <template #description>
                   <div>
                     <span>信誉: {{ item.reputation?.toFixed(1) }}</span>
-                    <span v-if="item.organization" style="margin-left: 16px"
-                      >组织: {{ item.organization }}</span
-                    >
+                    <span
+                      v-if="item.organization"
+                      style="margin-left: 16px"
+                    >组织: {{ item.organization }}</span>
                   </div>
                   <div style="margin-top: 4px">
                     <a-tag
@@ -191,7 +253,10 @@
       </a-tab-pane>
 
       <!-- Tab 3: 跨组织任务 -->
-      <a-tab-pane key="tasks" tab="跨组织任务">
+      <a-tab-pane
+        key="tasks"
+        tab="跨组织任务"
+      >
         <a-table
           :columns="taskColumns"
           :data-source="store.remoteTasks"
@@ -235,7 +300,10 @@
       </a-tab-pane>
 
       <!-- Tab 4: 信誉排行 -->
-      <a-tab-pane key="reputation" tab="信誉排行">
+      <a-tab-pane
+        key="reputation"
+        tab="信誉排行"
+      >
         <a-table
           :columns="reputationColumns"
           :data-source="store.reputationScores"
@@ -298,9 +366,15 @@
             v-model:value="routeTaskForm.priority"
             placeholder="选择优先级"
           >
-            <a-select-option value="high"> 高 </a-select-option>
-            <a-select-option value="normal"> 普通 </a-select-option>
-            <a-select-option value="low"> 低 </a-select-option>
+            <a-select-option value="high">
+              高
+            </a-select-option>
+            <a-select-option value="normal">
+              普通
+            </a-select-option>
+            <a-select-option value="low">
+              低
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>

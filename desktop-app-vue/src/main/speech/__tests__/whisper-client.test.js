@@ -314,7 +314,7 @@ describe("WhisperClient", () => {
       const origKey = process.env.OPENAI_API_KEY;
       delete process.env.OPENAI_API_KEY;
       await expect(c.transcribe("/audio.wav")).rejects.toThrow("API key is required");
-      if (origKey) process.env.OPENAI_API_KEY = origKey;
+      if (origKey) {process.env.OPENAI_API_KEY = origKey;}
       await c.terminate();
     });
 
@@ -417,7 +417,7 @@ describe("WhisperClient", () => {
   describe("listModels", () => {
     it("should return all model sizes with download status", async () => {
       mockFs.accessSync.mockImplementation((p) => {
-        if (String(p).includes("ggml-tiny.bin") || String(p).includes("ggml-base.bin")) return;
+        if (String(p).includes("ggml-tiny.bin") || String(p).includes("ggml-base.bin")) {return;}
         throw new Error("ENOENT");
       });
       const models = await client.listModels();

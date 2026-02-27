@@ -1,5 +1,8 @@
 <template>
-  <div class="empty-state" data-testid="chat-empty-state">
+  <div
+    class="empty-state"
+    data-testid="chat-empty-state"
+  >
     <div class="empty-icon">
       <RobotOutlined />
     </div>

@@ -341,10 +341,87 @@ class BLEDriver extends EventEmitter {
     return new Promise((r) => setTimeout(r, ms));
   }
 
+  // ============================================================
+  // GATT Service Discovery (Phase 47)
+  // ============================================================
+
+  async discoverServices(deviceId) {
+    if (this._state !== BLE_STATE.CONNECTED) {
+      return { success: false, error: 'Not connected' };
+    }
+
+    logger.info(`[BLEDriver] Discovering GATT services for ${deviceId || this._device?.id}`);
+
+    // Real implementation would call peripheral.discoverServices()
+    // Return well-known FIDO2 BLE service structure
+    const services = [
+      {
+        uuid: FIDO2_SERVICE_UUID,
+        name: 'FIDO2 CTAP',
+        characteristics: [
+          { uuid: FIDO2_CONTROL_POINT_UUID, name: 'Control Point', properties: ['write'] },
+          { uuid: FIDO2_STATUS_UUID, name: 'Status', properties: ['notify'] },
+        ],
+      },
+    ];
+
+    return { success: true, services };
+  }
+
+  // ============================================================
+  // Auto-Reconnect (Phase 47)
+  // ============================================================
+
+  enableAutoReconnect(enabled = true) {
+    this._autoReconnect = enabled;
+    if (enabled) {
+      this.on('device-disconnected', () => this._attemptReconnect());
+    } else {
+      this.removeAllListeners('device-disconnected');
+    }
+    logger.info(`[BLEDriver] Auto-reconnect ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  async _attemptReconnect() {
+    if (!this._autoReconnect || !this._device) return;
+
+    const deviceId = this._device.id;
+    const maxAttempts = 3;
+
+    for (let i = 0; i < maxAttempts; i++) {
+      logger.info(`[BLEDriver] Auto-reconnect attempt ${i + 1}/${maxAttempts} for ${deviceId}`);
+      await this.sleep(2000 * (i + 1)); // Exponential backoff
+
+      try {
+        const result = await this.connect(deviceId);
+        if (result.success) {
+          logger.info(`[BLEDriver] Auto-reconnect successful for ${deviceId}`);
+          this.emit('auto-reconnected', { deviceId, attempt: i + 1 });
+          return;
+        }
+      } catch {
+        // Continue retrying
+      }
+    }
+
+    logger.warn(`[BLEDriver] Auto-reconnect failed after ${maxAttempts} attempts`);
+    this.emit('auto-reconnect-failed', { deviceId });
+  }
+
+  getState() {
+    return this._state;
+  }
+
   async close() {
     await this.disconnect();
     this._noble?.stopScanning?.();
   }
 }
 
-module.exports = { BLEDriver, BLE_STATE, FIDO2_SERVICE_UUID };
+let _bleInstance;
+function getBLEDriver() {
+  if (!_bleInstance) _bleInstance = new BLEDriver();
+  return _bleInstance;
+}
+
+module.exports = { BLEDriver, getBLEDriver, BLE_STATE, FIDO2_SERVICE_UUID };

@@ -309,7 +309,7 @@ class AgentCoordinator extends EventEmitter {
 
       for (let i = 0; i < sentences.length; i++) {
         const segment = sentences[i].trim();
-        if (!segment) continue;
+        if (!segment) {continue;}
 
         const segmentTypes = this._determineAgentTypes(segment.toLowerCase());
         const bestType = segmentTypes.length > 0 ? segmentTypes[0] : agentTypes[0];
@@ -776,7 +776,7 @@ class AgentCoordinator extends EventEmitter {
           : [];
 
         for (const template of templates) {
-          if (!template.enabled) continue;
+          if (!template.enabled) {continue;}
 
           const templateCapabilities = typeof template.capabilities === 'string'
             ? JSON.parse(template.capabilities)
@@ -813,7 +813,7 @@ class AgentCoordinator extends EventEmitter {
           : [];
 
         for (const instance of instances) {
-          if (instance.status !== 'active') continue;
+          if (instance.status !== 'active') {continue;}
 
           const instanceCapabilities = instance.capabilities || [];
           const score = this._matchCapabilities(requiredCapabilities, instanceCapabilities);
@@ -959,8 +959,8 @@ class AgentCoordinator extends EventEmitter {
           byAgent[id] = { total: 0, success: 0, failed: 0, totalTime: 0 };
         }
         byAgent[id].total++;
-        if (record.success === 1) byAgent[id].success++;
-        else byAgent[id].failed++;
+        if (record.success === 1) {byAgent[id].success++;}
+        else {byAgent[id].failed++;}
         if (record.completed_at && record.started_at) {
           byAgent[id].totalTime += record.completed_at - record.started_at;
         }
@@ -974,8 +974,8 @@ class AgentCoordinator extends EventEmitter {
           byType[type] = { total: 0, success: 0, failed: 0 };
         }
         byType[type].total++;
-        if (record.success === 1) byType[type].success++;
-        else byType[type].failed++;
+        if (record.success === 1) {byType[type].success++;}
+        else {byType[type].failed++;}
       }
 
       return {
@@ -1060,8 +1060,8 @@ class AgentCoordinator extends EventEmitter {
    * @private
    */
   _matchCapabilities(required, available) {
-    if (!required || required.length === 0) return 0;
-    if (!available || available.length === 0) return 0;
+    if (!required || required.length === 0) {return 0;}
+    if (!available || available.length === 0) {return 0;}
 
     let matchCount = 0;
     let partialMatchCount = 0;
@@ -1136,7 +1136,7 @@ class AgentCoordinator extends EventEmitter {
    * @private
    */
   _createTaskRecord(taskId, agentId, templateType, description) {
-    if (!this.database) return;
+    if (!this.database) {return;}
 
     try {
       this.database.prepare(
@@ -1156,7 +1156,7 @@ class AgentCoordinator extends EventEmitter {
    * @private
    */
   _updateTaskRecord(taskId, updates) {
-    if (!this.database) return;
+    if (!this.database) {return;}
 
     try {
       const setClauses = [];
@@ -1182,7 +1182,7 @@ class AgentCoordinator extends EventEmitter {
         values.push(updates.tokens_used);
       }
 
-      if (setClauses.length === 0) return;
+      if (setClauses.length === 0) {return;}
 
       values.push(taskId);
 
@@ -1434,7 +1434,7 @@ class AgentCoordinator extends EventEmitter {
    * @private
    */
   _canRunParallel(subtasks) {
-    if (subtasks.length <= 1) return false;
+    if (subtasks.length <= 1) {return false;}
 
     // Check if any subtask has dependencies
     const hasDependencies = subtasks.some(s =>
@@ -1459,7 +1459,7 @@ class AgentCoordinator extends EventEmitter {
 
     const visit = (subtask) => {
       const id = subtask.subtaskId;
-      if (visited.has(id)) return;
+      if (visited.has(id)) {return;}
       if (inProgress.has(id)) {
         // Circular dependency, skip
         logger.warn(`[AgentCoordinator] Circular dependency detected for subtask: ${id}`);
@@ -1471,7 +1471,7 @@ class AgentCoordinator extends EventEmitter {
       // Visit dependencies first
       for (const depId of (subtask.dependencies || [])) {
         const dep = assignments.find(a => a.subtaskId === depId);
-        if (dep) visit(dep);
+        if (dep) {visit(dep);}
       }
 
       inProgress.delete(id);
@@ -1524,20 +1524,20 @@ class AgentCoordinator extends EventEmitter {
       return options.strategy;
     }
 
-    if (assignments.length <= 1) return 'sequential';
+    if (assignments.length <= 1) {return 'sequential';}
 
     const hasDependencies = assignments.some(a =>
       a.dependencies && a.dependencies.length > 0
     );
 
-    if (!hasDependencies) return 'parallel';
+    if (!hasDependencies) {return 'parallel';}
 
     // Check if some can run in parallel
     const independentCount = assignments.filter(a =>
       !a.dependencies || a.dependencies.length === 0
     ).length;
 
-    if (independentCount > 1) return 'mixed';
+    if (independentCount > 1) {return 'mixed';}
 
     return 'sequential';
   }

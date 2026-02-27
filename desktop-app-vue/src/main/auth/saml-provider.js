@@ -862,7 +862,7 @@ class SAMLProvider {
    * @private
    */
   _escapeXml(str) {
-    if (!str) return '';
+    if (!str) {return '';}
     return String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -876,7 +876,7 @@ class SAMLProvider {
    * @private
    */
   _extractElementText(obj, elementName) {
-    if (!obj) return null;
+    if (!obj) {return null;}
 
     const prefixes = ['saml:', 'saml2:', ''];
     for (const prefix of prefixes) {
@@ -894,7 +894,7 @@ class SAMLProvider {
    * @private
    */
   _extractAttributeShortName(fullName) {
-    if (!fullName) return 'unknown';
+    if (!fullName) {return 'unknown';}
 
     // Handle URN-based names (e.g., urn:oid:0.9.2342.19200300.100.1.3)
     // Common OID to friendly name mappings
@@ -938,7 +938,7 @@ class SAMLProvider {
    * @private
    */
   _extractCertificateBase64(cert) {
-    if (!cert) return '';
+    if (!cert) {return '';}
 
     // Remove PEM headers/footers and whitespace
     return cert
@@ -952,7 +952,7 @@ class SAMLProvider {
    * @private
    */
   _normalizeCertificate(cert) {
-    if (!cert) return '';
+    if (!cert) {return '';}
 
     const base64 = this._extractCertificateBase64(cert);
 

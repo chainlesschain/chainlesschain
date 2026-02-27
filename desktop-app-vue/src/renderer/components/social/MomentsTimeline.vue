@@ -3,7 +3,10 @@
     <!-- 头部 -->
     <div class="moments-header">
       <h2>朋友圈</h2>
-      <a-button type="primary" @click="showPublishModal">
+      <a-button
+        type="primary"
+        @click="showPublishModal"
+      >
         <PlusOutlined /> 发布动态
       </a-button>
     </div>
@@ -15,7 +18,10 @@
       :confirm-loading="publishing"
       @ok="handlePublish"
     >
-      <a-form :model="publishForm" layout="vertical">
+      <a-form
+        :model="publishForm"
+        layout="vertical"
+      >
         <a-form-item label="内容">
           <a-textarea
             v-model:value="publishForm.content"
@@ -35,16 +41,27 @@
           >
             <div v-if="publishForm.images.length < 9">
               <PlusOutlined />
-              <div style="margin-top: 8px">上传</div>
+              <div style="margin-top: 8px">
+                上传
+              </div>
             </div>
           </a-upload>
         </a-form-item>
 
         <a-form-item label="可见范围">
-          <a-select v-model:value="publishForm.visibility" style="width: 100%">
-            <a-select-option value="public"> 公开 </a-select-option>
-            <a-select-option value="friends"> 仅好友 </a-select-option>
-            <a-select-option value="private"> 仅自己 </a-select-option>
+          <a-select
+            v-model:value="publishForm.visibility"
+            style="width: 100%"
+          >
+            <a-select-option value="public">
+              公开
+            </a-select-option>
+            <a-select-option value="friends">
+              仅好友
+            </a-select-option>
+            <a-select-option value="private">
+              仅自己
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -58,7 +75,11 @@
           description="暂无动态"
         />
 
-        <div v-for="moment in moments" :key="moment.id" class="moment-item">
+        <div
+          v-for="moment in moments"
+          :key="moment.id"
+          class="moment-item"
+        >
           <!-- 用户信息 -->
           <div class="moment-header">
             <a-avatar :size="48">
@@ -75,7 +96,10 @@
               </div>
             </div>
             <a-dropdown v-if="moment.author_did === currentUserDid">
-              <a-button type="text" size="small">
+              <a-button
+                type="text"
+                size="small"
+              >
                 <MoreOutlined />
               </a-button>
               <template #overlay>
@@ -83,7 +107,10 @@
                   <a-menu-item @click="handleEdit(moment)">
                     <EditOutlined /> 编辑
                   </a-menu-item>
-                  <a-menu-item danger @click="handleDelete(moment.id)">
+                  <a-menu-item
+                    danger
+                    @click="handleDelete(moment.id)"
+                  >
                     <DeleteOutlined /> 删除
                   </a-menu-item>
                 </a-menu>
@@ -123,10 +150,18 @@
               >
                 <LikeOutlined /> {{ moment.likes_count || 0 }}
               </a-button>
-              <a-button type="text" size="small" @click="handleComment(moment)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleComment(moment)"
+              >
                 <CommentOutlined /> {{ moment.comments_count || 0 }}
               </a-button>
-              <a-button type="text" size="small" @click="handleShare(moment)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleShare(moment)"
+              >
                 <ShareAltOutlined /> 分享
               </a-button>
             </a-space>
@@ -151,7 +186,10 @@
           </div>
 
           <!-- 评论输入框 -->
-          <div v-if="moment.showCommentInput" class="moment-comment-input">
+          <div
+            v-if="moment.showCommentInput"
+            class="moment-comment-input"
+          >
             <a-input
               v-model:value="moment.commentText"
               placeholder="写下你的评论..."
@@ -171,8 +209,15 @@
         </div>
 
         <!-- 加载更多 -->
-        <div v-if="hasMore" class="load-more">
-          <a-button type="link" :loading="loadingMore" @click="loadMore">
+        <div
+          v-if="hasMore"
+          class="load-more"
+        >
+          <a-button
+            type="link"
+            :loading="loadingMore"
+            @click="loadMore"
+          >
             加载更多
           </a-button>
         </div>

@@ -1,8 +1,14 @@
 <template>
   <div class="bridge-history">
-    <a-card title="跨链转移历史" :bordered="false">
+    <a-card
+      title="跨链转移历史"
+      :bordered="false"
+    >
       <!-- 过滤器 -->
-      <div v-if="showFilters" class="filters">
+      <div
+        v-if="showFilters"
+        class="filters"
+      >
         <a-space :size="12">
           <a-select
             v-model:value="filters.status"
@@ -11,11 +17,21 @@
             allow-clear
             @change="handleFilterChange"
           >
-            <a-select-option value=""> 全部状态 </a-select-option>
-            <a-select-option value="pending"> 待处理 </a-select-option>
-            <a-select-option value="locked"> 已锁定 </a-select-option>
-            <a-select-option value="completed"> 已完成 </a-select-option>
-            <a-select-option value="failed"> 失败 </a-select-option>
+            <a-select-option value="">
+              全部状态
+            </a-select-option>
+            <a-select-option value="pending">
+              待处理
+            </a-select-option>
+            <a-select-option value="locked">
+              已锁定
+            </a-select-option>
+            <a-select-option value="completed">
+              已完成
+            </a-select-option>
+            <a-select-option value="failed">
+              失败
+            </a-select-option>
           </a-select>
 
           <chain-selector
@@ -32,7 +48,10 @@
             @switched="handleFilterChange"
           />
 
-          <a-button :loading="loading" @click="handleRefresh">
+          <a-button
+            :loading="loading"
+            @click="handleRefresh"
+          >
             <template #icon>
               <reload-outlined />
             </template>
@@ -69,7 +88,10 @@
                     <arrow-right-outlined class="arrow-icon" />
                     {{ getNetworkName(item.to_chain_id) }}
                   </span>
-                  <a-tag :color="getStatusTagColor(item.status)" size="small">
+                  <a-tag
+                    :color="getStatusTagColor(item.status)"
+                    size="small"
+                  >
                     {{ getStatusText(item.status) }}
                   </a-tag>
                   <span class="bridge-time">{{
@@ -85,7 +107,10 @@
                   <div class="bridge-info-row">
                     <span class="label">资产:</span>
                     <span class="value">{{ item.asset_id }}</span>
-                    <span class="label" style="margin-left: 16px">数量:</span>
+                    <span
+                      class="label"
+                      style="margin-left: 16px"
+                    >数量:</span>
                     <span class="value amount">{{ item.amount }}</span>
                   </div>
 
@@ -95,14 +120,20 @@
                     <span class="value">{{
                       formatAddress(item.sender_address)
                     }}</span>
-                    <span class="label" style="margin-left: 16px">到:</span>
+                    <span
+                      class="label"
+                      style="margin-left: 16px"
+                    >到:</span>
                     <span class="value">{{
                       formatAddress(item.recipient_address)
                     }}</span>
                   </div>
 
                   <!-- 交易哈希 -->
-                  <div v-if="item.from_tx_hash" class="bridge-info-row">
+                  <div
+                    v-if="item.from_tx_hash"
+                    class="bridge-info-row"
+                  >
                     <span class="label">锁定交易:</span>
                     <span class="value tx-hash">
                       {{ formatAddress(item.from_tx_hash) }}
@@ -113,7 +144,10 @@
                     </span>
                   </div>
 
-                  <div v-if="item.to_tx_hash" class="bridge-info-row">
+                  <div
+                    v-if="item.to_tx_hash"
+                    class="bridge-info-row"
+                  >
                     <span class="label">铸造交易:</span>
                     <span class="value tx-hash">
                       {{ formatAddress(item.to_tx_hash) }}
@@ -125,7 +159,10 @@
                   </div>
 
                   <!-- 错误信息 -->
-                  <div v-if="item.error_message" class="bridge-info-row error">
+                  <div
+                    v-if="item.error_message"
+                    class="bridge-info-row error"
+                  >
                     <span class="label">错误:</span>
                     <span class="value">{{ item.error_message }}</span>
                   </div>

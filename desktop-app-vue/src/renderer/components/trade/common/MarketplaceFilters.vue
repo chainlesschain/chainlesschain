@@ -1,7 +1,10 @@
 <template>
   <div class="marketplace-filters">
     <!-- 基础筛选器 -->
-    <a-space style="margin-bottom: 16px" wrap>
+    <a-space
+      style="margin-bottom: 16px"
+      wrap
+    >
       <span>订单类型:</span>
       <a-radio-group
         :value="modelValue.orderType"
@@ -14,11 +17,21 @@
             })
         "
       >
-        <a-radio-button value=""> 全部 </a-radio-button>
-        <a-radio-button value="buy"> 求购 </a-radio-button>
-        <a-radio-button value="sell"> 出售 </a-radio-button>
-        <a-radio-button value="service"> 服务 </a-radio-button>
-        <a-radio-button value="barter"> 以物换物 </a-radio-button>
+        <a-radio-button value="">
+          全部
+        </a-radio-button>
+        <a-radio-button value="buy">
+          求购
+        </a-radio-button>
+        <a-radio-button value="sell">
+          出售
+        </a-radio-button>
+        <a-radio-button value="service">
+          服务
+        </a-radio-button>
+        <a-radio-button value="barter">
+          以物换物
+        </a-radio-button>
       </a-radio-group>
 
       <a-auto-complete
@@ -36,7 +49,10 @@
         <template #option="{ value: optionValue }">
           <div>{{ optionValue }}</div>
         </template>
-        <a-input-search placeholder="搜索订单..." @search="emit('search')" />
+        <a-input-search
+          placeholder="搜索订单..."
+          @search="emit('search')"
+        />
       </a-auto-complete>
 
       <a-button @click="showAdvanced = !showAdvanced">
@@ -48,7 +64,11 @@
     </a-space>
 
     <!-- 高级筛选面板 -->
-    <a-card v-if="showAdvanced" size="small" style="margin-bottom: 16px">
+    <a-card
+      v-if="showAdvanced"
+      size="small"
+      style="margin-bottom: 16px"
+    >
       <a-row :gutter="16">
         <a-col :span="6">
           <a-form-item label="价格范围">
@@ -86,9 +106,15 @@
               style="width: 100%"
               @change="(val) => updateAdvancedFilter('sortBy', val)"
             >
-              <a-select-option value="created_at"> 创建时间 </a-select-option>
-              <a-select-option value="price_amount"> 价格 </a-select-option>
-              <a-select-option value="quantity"> 数量 </a-select-option>
+              <a-select-option value="created_at">
+                创建时间
+              </a-select-option>
+              <a-select-option value="price_amount">
+                价格
+              </a-select-option>
+              <a-select-option value="quantity">
+                数量
+              </a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
@@ -98,15 +124,26 @@
               :value="advancedFilters.sortOrder"
               @change="(e) => updateAdvancedFilter('sortOrder', e.target.value)"
             >
-              <a-radio-button value="desc"> 降序 </a-radio-button>
-              <a-radio-button value="asc"> 升序 </a-radio-button>
+              <a-radio-button value="desc">
+                降序
+              </a-radio-button>
+              <a-radio-button value="asc">
+                升序
+              </a-radio-button>
             </a-radio-group>
           </a-form-item>
         </a-col>
       </a-row>
       <a-space>
-        <a-button type="primary" @click="emit('apply')"> 应用筛选 </a-button>
-        <a-button @click="emit('reset')"> 重置 </a-button>
+        <a-button
+          type="primary"
+          @click="emit('apply')"
+        >
+          应用筛选
+        </a-button>
+        <a-button @click="emit('reset')">
+          重置
+        </a-button>
       </a-space>
     </a-card>
   </div>

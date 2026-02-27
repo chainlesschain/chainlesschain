@@ -1,6 +1,9 @@
 <template>
   <div class="partner-center-page">
-    <a-page-header title="合作伙伴中心" sub-title="管理跨组织合作关系">
+    <a-page-header
+      title="合作伙伴中心"
+      sub-title="管理跨组织合作关系"
+    >
       <template #extra>
         <a-space>
           <a-button @click="showDiscovery = true">
@@ -9,7 +12,10 @@
             </template>
             发现组织
           </a-button>
-          <a-button type="primary" @click="showInvite = true">
+          <a-button
+            type="primary"
+            @click="showInvite = true"
+          >
             <template #icon>
               <UserAddOutlined />
             </template>
@@ -77,11 +83,16 @@
                       </a-button>
                     </template>
                     <template v-else-if="item.status === 'active'">
-                      <a-button type="link" @click="viewPartner(item)">
+                      <a-button
+                        type="link"
+                        @click="viewPartner(item)"
+                      >
                         查看详情
                       </a-button>
                       <a-dropdown>
-                        <a-button type="link"> 更多 </a-button>
+                        <a-button type="link">
+                          更多
+                        </a-button>
                         <template #overlay>
                           <a-menu>
                             <a-menu-item @click="showTrustSettings(item)">
@@ -130,26 +141,44 @@
               />
             </a-col>
             <a-col :span="12">
-              <a-statistic title="共享工作空间" :value="stats.workspaceCount" />
+              <a-statistic
+                title="共享工作空间"
+                :value="stats.workspaceCount"
+              />
             </a-col>
           </a-row>
         </a-card>
 
-        <a-card title="快捷操作" style="margin-top: 16px">
-          <a-space direction="vertical" style="width: 100%">
-            <a-button block @click="$router.push('/crossorg/workspaces')">
+        <a-card
+          title="快捷操作"
+          style="margin-top: 16px"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
+            <a-button
+              block
+              @click="$router.push('/crossorg/workspaces')"
+            >
               <template #icon>
                 <TeamOutlined />
               </template>
               共享工作空间
             </a-button>
-            <a-button block @click="$router.push('/crossorg/transactions')">
+            <a-button
+              block
+              @click="$router.push('/crossorg/transactions')"
+            >
               <template #icon>
                 <SwapOutlined />
               </template>
               B2B 数据交换
             </a-button>
-            <a-button block @click="$router.push('/crossorg/audit')">
+            <a-button
+              block
+              @click="$router.push('/crossorg/audit')"
+            >
               <template #icon>
                 <AuditOutlined />
               </template>
@@ -167,14 +196,23 @@
       :confirm-loading="inviting"
       @ok="handleInvite"
     >
-      <a-form :model="inviteForm" layout="vertical">
-        <a-form-item label="合作伙伴组织ID" required>
+      <a-form
+        :model="inviteForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="合作伙伴组织ID"
+          required
+        >
           <a-input
             v-model:value="inviteForm.partnerOrgId"
             placeholder="输入组织ID"
           />
         </a-form-item>
-        <a-form-item label="合作伙伴名称" required>
+        <a-form-item
+          label="合作伙伴名称"
+          required
+        >
           <a-input
             v-model:value="inviteForm.partnerOrgName"
             placeholder="输入组织名称"
@@ -182,17 +220,31 @@
         </a-form-item>
         <a-form-item label="合作类型">
           <a-select v-model:value="inviteForm.partnershipType">
-            <a-select-option value="collaboration"> 协作 </a-select-option>
-            <a-select-option value="vendor"> 供应商 </a-select-option>
-            <a-select-option value="client"> 客户 </a-select-option>
-            <a-select-option value="partner"> 合作伙伴 </a-select-option>
+            <a-select-option value="collaboration">
+              协作
+            </a-select-option>
+            <a-select-option value="vendor">
+              供应商
+            </a-select-option>
+            <a-select-option value="client">
+              客户
+            </a-select-option>
+            <a-select-option value="partner">
+              合作伙伴
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="初始信任级别">
           <a-select v-model:value="inviteForm.trustLevel">
-            <a-select-option value="minimal"> 最小 </a-select-option>
-            <a-select-option value="standard"> 标准 </a-select-option>
-            <a-select-option value="elevated"> 提升 </a-select-option>
+            <a-select-option value="minimal">
+              最小
+            </a-select-option>
+            <a-select-option value="standard">
+              标准
+            </a-select-option>
+            <a-select-option value="elevated">
+              提升
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -205,7 +257,10 @@
       :footer="null"
       width="700px"
     >
-      <a-form layout="inline" style="margin-bottom: 16px">
+      <a-form
+        layout="inline"
+        style="margin-bottom: 16px"
+      >
         <a-form-item>
           <a-input
             v-model:value="searchParams.keyword"
@@ -220,24 +275,43 @@
             allow-clear
             style="width: 120px"
           >
-            <a-select-option value="tech"> 科技 </a-select-option>
-            <a-select-option value="finance"> 金融 </a-select-option>
-            <a-select-option value="manufacturing"> 制造 </a-select-option>
+            <a-select-option value="tech">
+              科技
+            </a-select-option>
+            <a-select-option value="finance">
+              金融
+            </a-select-option>
+            <a-select-option value="manufacturing">
+              制造
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item>
-          <a-button type="primary" @click="searchOrgs"> 搜索 </a-button>
+          <a-button
+            type="primary"
+            @click="searchOrgs"
+          >
+            搜索
+          </a-button>
         </a-form-item>
       </a-form>
 
-      <a-list :data-source="discoveredOrgs" :loading="searching">
+      <a-list
+        :data-source="discoveredOrgs"
+        :loading="searching"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta
               :title="item.name"
               :description="item.description"
             />
-            <a-button type="link" @click="inviteOrg(item)"> 发起合作 </a-button>
+            <a-button
+              type="link"
+              @click="inviteOrg(item)"
+            >
+              发起合作
+            </a-button>
           </a-list-item>
         </template>
       </a-list>

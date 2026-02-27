@@ -134,8 +134,8 @@ function rankColor(rank: number): string {
 
 function successRateColor(rate: number): string {
   const percent = rate > 1 ? rate : rate * 100;
-  if (percent >= 90) return 'green';
-  if (percent >= 70) return 'orange';
+  if (percent >= 90) {return 'green';}
+  if (percent >= 70) {return 'orange';}
   return 'red';
 }
 
@@ -146,15 +146,15 @@ function formatPercent(rate: number): string {
 }
 
 function formatDuration(ms: number): string {
-  if (ms <= 0) return '-';
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms <= 0) {return '-';}
+  if (ms < 1000) {return `${Math.round(ms)}ms`;}
+  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
 function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  if (num >= 1000000) {return `${(num / 1000000).toFixed(1)}M`;}
+  if (num >= 1000) {return `${(num / 1000).toFixed(1)}K`;}
   return String(num);
 }
 </script>

@@ -1,7 +1,13 @@
 <template>
   <div class="rag-settings">
-    <a-card title="RAG 配置" class="config-card">
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+    <a-card
+      title="RAG 配置"
+      class="config-card"
+    >
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <!-- 启用 RAG -->
         <a-form-item label="启用 RAG">
           <a-switch
@@ -24,8 +30,12 @@
             :disabled="!config.enableRAG"
             @change="handleConfigChange"
           />
-          <div class="slider-value">{{ config.topK }} 个</div>
-          <div class="form-item-tip">每次检索返回的最相关知识条目数量</div>
+          <div class="slider-value">
+            {{ config.topK }} 个
+          </div>
+          <div class="form-item-tip">
+            每次检索返回的最相关知识条目数量
+          </div>
         </a-form-item>
 
         <a-form-item label="相似度阈值">
@@ -40,7 +50,9 @@
           <div class="slider-value">
             {{ config.similarityThreshold.toFixed(1) }}
           </div>
-          <div class="form-item-tip">只返回相似度高于此阈值的结果（0-1）</div>
+          <div class="form-item-tip">
+            只返回相似度高于此阈值的结果（0-1）
+          </div>
         </a-form-item>
 
         <a-form-item label="最大上下文长度">
@@ -52,8 +64,12 @@
             :disabled="!config.enableRAG"
             @change="handleConfigChange"
           />
-          <div class="slider-value">{{ config.maxContextLength }} 字符</div>
-          <div class="form-item-tip">传递给 AI 的知识库上下文最大长度</div>
+          <div class="slider-value">
+            {{ config.maxContextLength }} 字符
+          </div>
+          <div class="form-item-tip">
+            传递给 AI 的知识库上下文最大长度
+          </div>
         </a-form-item>
 
         <a-divider />
@@ -70,7 +86,10 @@
           </div>
         </a-form-item>
 
-        <a-form-item v-if="config.enableHybridSearch" label="向量搜索权重">
+        <a-form-item
+          v-if="config.enableHybridSearch"
+          label="向量搜索权重"
+        >
           <a-slider
             v-model:value="config.vectorWeight"
             :min="0"
@@ -82,10 +101,15 @@
           <div class="slider-value">
             {{ config.vectorWeight.toFixed(1) }}
           </div>
-          <div class="form-item-tip">向量搜索在混合搜索中的权重</div>
+          <div class="form-item-tip">
+            向量搜索在混合搜索中的权重
+          </div>
         </a-form-item>
 
-        <a-form-item v-if="config.enableHybridSearch" label="关键词搜索权重">
+        <a-form-item
+          v-if="config.enableHybridSearch"
+          label="关键词搜索权重"
+        >
           <a-slider
             v-model:value="config.keywordWeight"
             :min="0"
@@ -97,7 +121,9 @@
           <div class="slider-value">
             {{ config.keywordWeight.toFixed(1) }}
           </div>
-          <div class="form-item-tip">关键词搜索在混合搜索中的权重</div>
+          <div class="form-item-tip">
+            关键词搜索在混合搜索中的权重
+          </div>
         </a-form-item>
 
         <a-divider />
@@ -117,29 +143,55 @@
         <!-- 保存按钮 -->
         <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
           <a-space>
-            <a-button type="primary" :loading="saving" @click="handleSave">
+            <a-button
+              type="primary"
+              :loading="saving"
+              @click="handleSave"
+            >
               保存配置
             </a-button>
-            <a-button @click="handleReset"> 重置为默认 </a-button>
+            <a-button @click="handleReset">
+              重置为默认
+            </a-button>
           </a-space>
         </a-form-item>
       </a-form>
     </a-card>
 
     <!-- 向量存储状态 -->
-    <a-card title="向量存储" class="vector-store-card">
+    <a-card
+      title="向量存储"
+      class="vector-store-card"
+    >
       <a-spin :spinning="loadingStats">
-        <a-descriptions bordered :column="1">
+        <a-descriptions
+          bordered
+          :column="1"
+        >
           <a-descriptions-item label="存储模式">
-            <a-tag v-if="stats.storageMode === 'chromadb'" color="success">
+            <a-tag
+              v-if="stats.storageMode === 'chromadb'"
+              color="success"
+            >
               ChromaDB (持久化)
             </a-tag>
-            <a-tag v-else-if="stats.storageMode === 'memory'" color="warning">
+            <a-tag
+              v-else-if="stats.storageMode === 'memory'"
+              color="warning"
+            >
               内存模式 (临时)
             </a-tag>
-            <a-tag v-else color="default"> 未知 </a-tag>
+            <a-tag
+              v-else
+              color="default"
+            >
+              未知
+            </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item v-if="stats.chromaUrl" label="ChromaDB地址">
+          <a-descriptions-item
+            v-if="stats.chromaUrl"
+            label="ChromaDB地址"
+          >
             {{ stats.chromaUrl }}
           </a-descriptions-item>
           <a-descriptions-item label="索引文档数">
@@ -175,7 +227,10 @@
     </a-card>
 
     <!-- 索引管理 -->
-    <a-card title="索引管理" class="stats-card">
+    <a-card
+      title="索引管理"
+      class="stats-card"
+    >
       <a-spin :spinning="loadingStats">
         <div style="margin-bottom: 16px">
           <a-space>
@@ -208,43 +263,76 @@
     </a-card>
 
     <!-- RAG 工作流程说明 -->
-    <a-card title="RAG 工作流程" class="workflow-card">
+    <a-card
+      title="RAG 工作流程"
+      class="workflow-card"
+    >
       <div class="workflow-steps">
         <div class="workflow-step">
-          <div class="step-number">1</div>
+          <div class="step-number">
+            1
+          </div>
           <div class="step-content">
-            <div class="step-title">用户提问</div>
-            <div class="step-desc">用户在 AI 对话中输入问题</div>
+            <div class="step-title">
+              用户提问
+            </div>
+            <div class="step-desc">
+              用户在 AI 对话中输入问题
+            </div>
           </div>
         </div>
 
-        <div class="workflow-arrow">↓</div>
+        <div class="workflow-arrow">
+          ↓
+        </div>
 
         <div class="workflow-step">
-          <div class="step-number">2</div>
+          <div class="step-number">
+            2
+          </div>
           <div class="step-content">
-            <div class="step-title">检索相关知识</div>
-            <div class="step-desc">在知识库中搜索与问题相关的内容</div>
+            <div class="step-title">
+              检索相关知识
+            </div>
+            <div class="step-desc">
+              在知识库中搜索与问题相关的内容
+            </div>
           </div>
         </div>
 
-        <div class="workflow-arrow">↓</div>
+        <div class="workflow-arrow">
+          ↓
+        </div>
 
         <div class="workflow-step">
-          <div class="step-number">3</div>
+          <div class="step-number">
+            3
+          </div>
           <div class="step-content">
-            <div class="step-title">构建增强上下文</div>
-            <div class="step-desc">将检索到的知识与用户问题组合</div>
+            <div class="step-title">
+              构建增强上下文
+            </div>
+            <div class="step-desc">
+              将检索到的知识与用户问题组合
+            </div>
           </div>
         </div>
 
-        <div class="workflow-arrow">↓</div>
+        <div class="workflow-arrow">
+          ↓
+        </div>
 
         <div class="workflow-step">
-          <div class="step-number">4</div>
+          <div class="step-number">
+            4
+          </div>
           <div class="step-content">
-            <div class="step-title">生成回答</div>
-            <div class="step-desc">AI 基于知识库内容生成准确回答</div>
+            <div class="step-title">
+              生成回答
+            </div>
+            <div class="step-desc">
+              AI 基于知识库内容生成准确回答
+            </div>
           </div>
         </div>
       </div>

@@ -8,17 +8,28 @@
       </div>
       <div class="header-actions">
         <a-tooltip title="Zoom In">
-          <a-button size="small" :disabled="zoom >= 4" @click="zoomIn">
+          <a-button
+            size="small"
+            :disabled="zoom >= 4"
+            @click="zoomIn"
+          >
             <ZoomInOutlined />
           </a-button>
         </a-tooltip>
         <a-tooltip title="Zoom Out">
-          <a-button size="small" :disabled="zoom <= 0.25" @click="zoomOut">
+          <a-button
+            size="small"
+            :disabled="zoom <= 0.25"
+            @click="zoomOut"
+          >
             <ZoomOutOutlined />
           </a-button>
         </a-tooltip>
         <a-tooltip title="Fit to View">
-          <a-button size="small" @click="fitToView">
+          <a-button
+            size="small"
+            @click="fitToView"
+          >
             <FullscreenOutlined />
           </a-button>
         </a-tooltip>
@@ -26,9 +37,15 @@
     </div>
 
     <!-- Timeline Container -->
-    <div ref="timelineContainer" class="timeline-container">
+    <div
+      ref="timelineContainer"
+      class="timeline-container"
+    >
       <!-- Time Ruler -->
-      <div class="time-ruler" :style="{ width: timelineWidth + 'px' }">
+      <div
+        class="time-ruler"
+        :style="{ width: timelineWidth + 'px' }"
+      >
         <div
           v-for="tick in timeTicks"
           :key="tick.time"
@@ -36,12 +53,18 @@
           :class="{ major: tick.major }"
           :style="{ left: tick.position + 'px' }"
         >
-          <span v-if="tick.major" class="tick-label">{{ tick.label }}</span>
+          <span
+            v-if="tick.major"
+            class="tick-label"
+          >{{ tick.label }}</span>
         </div>
       </div>
 
       <!-- Events Track -->
-      <div class="events-track" :style="{ width: timelineWidth + 'px' }">
+      <div
+        class="events-track"
+        :style="{ width: timelineWidth + 'px' }"
+      >
         <div
           v-for="(event, index) in events"
           :key="index"
@@ -74,12 +97,19 @@
         class="activity-track"
         :style="{ width: timelineWidth + 'px' }"
       >
-        <canvas ref="activityCanvas" :width="timelineWidth" height="30" />
+        <canvas
+          ref="activityCanvas"
+          :width="timelineWidth"
+          height="30"
+        />
       </div>
     </div>
 
     <!-- Event Details Panel -->
-    <div v-if="selectedEvent" class="event-details">
+    <div
+      v-if="selectedEvent"
+      class="event-details"
+    >
       <div class="details-header">
         <a-tag :color="getEventColor(selectedEvent.type)">
           {{ selectedEvent.type }}
@@ -87,22 +117,42 @@
         <span class="event-time">{{
           formatTime(selectedEvent.timestamp)
         }}</span>
-        <a-button type="link" size="small" @click="selectedEventIndex = null">
+        <a-button
+          type="link"
+          size="small"
+          @click="selectedEventIndex = null"
+        >
           <CloseOutlined />
         </a-button>
       </div>
       <div class="details-content">
-        <a-descriptions :column="1" size="small" bordered>
-          <a-descriptions-item v-if="selectedEvent.selector" label="Selector">
+        <a-descriptions
+          :column="1"
+          size="small"
+          bordered
+        >
+          <a-descriptions-item
+            v-if="selectedEvent.selector"
+            label="Selector"
+          >
             <code>{{ selectedEvent.selector }}</code>
           </a-descriptions-item>
-          <a-descriptions-item v-if="selectedEvent.url" label="URL">
+          <a-descriptions-item
+            v-if="selectedEvent.url"
+            label="URL"
+          >
             {{ selectedEvent.url }}
           </a-descriptions-item>
-          <a-descriptions-item v-if="selectedEvent.text" label="Text">
+          <a-descriptions-item
+            v-if="selectedEvent.text"
+            label="Text"
+          >
             {{ selectedEvent.text }}
           </a-descriptions-item>
-          <a-descriptions-item v-if="selectedEvent.value" label="Value">
+          <a-descriptions-item
+            v-if="selectedEvent.value"
+            label="Value"
+          >
             {{ selectedEvent.value }}
           </a-descriptions-item>
           <a-descriptions-item
@@ -114,17 +164,27 @@
         </a-descriptions>
       </div>
       <div class="details-actions">
-        <a-button size="small" @click="playFromEvent">
+        <a-button
+          size="small"
+          @click="playFromEvent"
+        >
           <PlayCircleOutlined /> Play from here
         </a-button>
-        <a-button size="small" danger @click="deleteEvent">
+        <a-button
+          size="small"
+          danger
+          @click="deleteEvent"
+        >
           <DeleteOutlined /> Delete
         </a-button>
       </div>
     </div>
 
     <!-- Event List (Compact) -->
-    <div v-if="showEventList" class="event-list">
+    <div
+      v-if="showEventList"
+      class="event-list"
+    >
       <div class="list-header">
         <span>Events ({{ events.length }})</span>
         <a-input-search

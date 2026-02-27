@@ -23,7 +23,7 @@ class DataSubjectHandler {
   }
 
   async _ensureTable() {
-    if (this._initialized) return;
+    if (this._initialized) {return;}
     try {
       await this.db.run(`
         CREATE TABLE IF NOT EXISTS data_subject_requests (
@@ -84,12 +84,12 @@ class DataSubjectHandler {
       const conditions = [];
       const params = [];
       if (filters.status) {
-        if (!STATUSES.includes(filters.status)) return { success: false, error: `Invalid status filter: ${filters.status}` };
+        if (!STATUSES.includes(filters.status)) {return { success: false, error: `Invalid status filter: ${filters.status}` };}
         conditions.push('status = ?');
         params.push(filters.status);
       }
       if (filters.type) {
-        if (!REQUEST_TYPES.includes(filters.type)) return { success: false, error: `Invalid type filter: ${filters.type}` };
+        if (!REQUEST_TYPES.includes(filters.type)) {return { success: false, error: `Invalid type filter: ${filters.type}` };}
         conditions.push('request_type = ?');
         params.push(filters.type);
       }
@@ -121,9 +121,9 @@ class DataSubjectHandler {
   async getRequestDetail(id) {
     try {
       await this._ensureTable();
-      if (!id) return { success: false, error: 'Request ID is required' };
+      if (!id) {return { success: false, error: 'Request ID is required' };}
       const row = await this.db.get('SELECT * FROM data_subject_requests WHERE id = ?', [id]);
-      if (!row) return { success: false, error: `Request not found: ${id}` };
+      if (!row) {return { success: false, error: `Request not found: ${id}` };}
       const request = this._parseRow(row);
       const isOverdue = request.status !== 'completed' && request.status !== 'rejected' && Date.now() > request.deadline;
       return {
@@ -140,7 +140,7 @@ class DataSubjectHandler {
     try {
       await this._ensureTable();
       const existing = await this.db.get('SELECT * FROM data_subject_requests WHERE id = ?', [id]);
-      if (!existing) return { success: false, error: `Request not found: ${id}` };
+      if (!existing) {return { success: false, error: `Request not found: ${id}` };}
       if (existing.status !== 'pending') {
         return { success: false, error: `Cannot process request with status '${existing.status}'. Only 'pending' requests can be processed.` };
       }
@@ -158,7 +158,7 @@ class DataSubjectHandler {
     try {
       await this._ensureTable();
       const existing = await this.db.get('SELECT * FROM data_subject_requests WHERE id = ?', [id]);
-      if (!existing) return { success: false, error: `Request not found: ${id}` };
+      if (!existing) {return { success: false, error: `Request not found: ${id}` };}
       if (existing.status !== 'pending' && existing.status !== 'in_progress') {
         return { success: false, error: `Cannot approve request with status '${existing.status}'. Must be 'pending' or 'in_progress'.` };
       }
@@ -169,25 +169,25 @@ class DataSubjectHandler {
       switch (requestType) {
         case 'access': {
           const result = await this.exportSubjectData(subjectDid);
-          if (!result.success) return { success: false, error: `Failed to gather subject data: ${result.error}` };
+          if (!result.success) {return { success: false, error: `Failed to gather subject data: ${result.error}` };}
           actionResult = { exported_data: result.data };
           break;
         }
         case 'deletion': {
           const result = await this.deleteSubjectData(subjectDid);
-          if (!result.success) return { success: false, error: `Failed to delete subject data: ${result.error}` };
+          if (!result.success) {return { success: false, error: `Failed to delete subject data: ${result.error}` };}
           actionResult = { deletion_summary: result.data };
           break;
         }
         case 'rectification': {
           const result = await this._performRectification(subjectDid, responseData);
-          if (!result.success) return { success: false, error: `Rectification failed: ${result.error}` };
+          if (!result.success) {return { success: false, error: `Rectification failed: ${result.error}` };}
           actionResult = { rectification_summary: result.data };
           break;
         }
         case 'portability': {
           const result = await this.exportSubjectData(subjectDid);
-          if (!result.success) return { success: false, error: `Failed to export subject data: ${result.error}` };
+          if (!result.success) {return { success: false, error: `Failed to export subject data: ${result.error}` };}
           actionResult = { portable_data: result.data, format: 'application/json', exported_at: Date.now() };
           break;
         }
@@ -216,9 +216,9 @@ class DataSubjectHandler {
   async rejectRequest(id, reason) {
     try {
       await this._ensureTable();
-      if (!reason || typeof reason !== 'string') return { success: false, error: 'Rejection reason is required' };
+      if (!reason || typeof reason !== 'string') {return { success: false, error: 'Rejection reason is required' };}
       const existing = await this.db.get('SELECT * FROM data_subject_requests WHERE id = ?', [id]);
-      if (!existing) return { success: false, error: `Request not found: ${id}` };
+      if (!existing) {return { success: false, error: `Request not found: ${id}` };}
       if (existing.status === 'completed' || existing.status === 'rejected') {
         return { success: false, error: `Cannot reject request with status '${existing.status}'.` };
       }
@@ -243,7 +243,7 @@ class DataSubjectHandler {
 
   async exportSubjectData(subjectDid) {
     try {
-      if (!subjectDid) return { success: false, error: 'subject_did is required' };
+      if (!subjectDid) {return { success: false, error: 'subject_did is required' };}
       const exportData = { subject_did: subjectDid, exported_at: Date.now(), tables: {} };
       for (const table of PERSONAL_DATA_TABLES) {
         try {
@@ -278,7 +278,7 @@ class DataSubjectHandler {
 
   async deleteSubjectData(subjectDid) {
     try {
-      if (!subjectDid) return { success: false, error: 'subject_did is required' };
+      if (!subjectDid) {return { success: false, error: 'subject_did is required' };}
       const deletionSummary = { subject_did: subjectDid, deleted_at: Date.now(), tables: {}, total_deleted: 0 };
       for (const table of PERSONAL_DATA_TABLES) {
         try {
@@ -346,7 +346,7 @@ class DataSubjectHandler {
         }
         let tableUpdated = 0;
         for (const record of records) {
-          if (!record.id || !record.fields || typeof record.fields !== 'object') continue;
+          if (!record.id || !record.fields || typeof record.fields !== 'object') {continue;}
           const setClauses = [];
           const values = [];
           for (const [field, value] of Object.entries(record.fields)) {
@@ -357,7 +357,7 @@ class DataSubjectHandler {
             setClauses.push(`${field} = ?`);
             values.push(value);
           }
-          if (setClauses.length === 0) continue;
+          if (setClauses.length === 0) {continue;}
           values.push(record.id, subjectDid);
           try {
             const result = await this.db.run(
@@ -386,12 +386,12 @@ class DataSubjectHandler {
   }
 
   _parseRow(row) {
-    if (!row) return null;
+    if (!row) {return null;}
     return { ...row, request_data: this._safeJsonParse(row.request_data), response_data: this._safeJsonParse(row.response_data) };
   }
 
   _safeJsonParse(str) {
-    if (!str) return null;
+    if (!str) {return null;}
     try { return JSON.parse(str); } catch { return str; }
   }
 }

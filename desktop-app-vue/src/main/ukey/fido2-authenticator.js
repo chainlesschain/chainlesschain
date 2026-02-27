@@ -53,7 +53,7 @@ class FIDO2Authenticator extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) return;
+    if (!this.database || !this.database.db) {return;}
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS fido2_credentials (
@@ -86,8 +86,8 @@ class FIDO2Authenticator extends EventEmitter {
    */
   async makeCredential(options) {
     try {
-      if (!options.rp || !options.rp.id) throw new Error("Relying party ID required");
-      if (!options.user || !options.user.id) throw new Error("User ID required");
+      if (!options.rp || !options.rp.id) {throw new Error("Relying party ID required");}
+      if (!options.user || !options.user.id) {throw new Error("User ID required");}
 
       const id = uuidv4();
 
@@ -160,7 +160,7 @@ class FIDO2Authenticator extends EventEmitter {
    */
   async getAssertion(options) {
     try {
-      if (!options.rpId) throw new Error("Relying party ID required");
+      if (!options.rpId) {throw new Error("Relying party ID required");}
 
       let credential;
 
@@ -239,7 +239,7 @@ class FIDO2Authenticator extends EventEmitter {
    */
   async listCredentials(options = {}) {
     try {
-      if (!this.database || !this.database.db) return [];
+      if (!this.database || !this.database.db) {return [];}
 
       if (options.rpId) {
         return this.database.db
@@ -298,7 +298,7 @@ class FIDO2Authenticator extends EventEmitter {
 
 let _instance;
 function getFIDO2Authenticator() {
-  if (!_instance) _instance = new FIDO2Authenticator();
+  if (!_instance) {_instance = new FIDO2Authenticator();}
   return _instance;
 }
 

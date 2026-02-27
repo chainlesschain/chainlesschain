@@ -105,7 +105,10 @@
           />
 
           <!-- 创建任务 -->
-          <a-button type="primary" @click="showCreateTask = true">
+          <a-button
+            type="primary"
+            @click="showCreateTask = true"
+          >
             <plus-outlined /> 新建任务
           </a-button>
         </a-space>
@@ -113,12 +116,22 @@
     </div>
 
     <!-- 看板列 -->
-    <div v-loading="taskStore.loading" class="board-columns">
-      <div v-for="column in boardColumns" :key="column.id" class="board-column">
+    <div
+      v-loading="taskStore.loading"
+      class="board-columns"
+    >
+      <div
+        v-for="column in boardColumns"
+        :key="column.id"
+        class="board-column"
+      >
         <!-- 列头 -->
         <div class="column-header">
           <div class="header-title">
-            <component :is="column.icon" :style="{ color: column.color }" />
+            <component
+              :is="column.icon"
+              :style="{ color: column.color }"
+            />
             <span>{{ column.name }}</span>
             <a-badge
               :count="getColumnTaskCount(column.status)"
@@ -178,7 +191,10 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="看板名称" required>
+        <a-form-item
+          label="看板名称"
+          required
+        >
           <a-input
             v-model:value="boardFormData.name"
             placeholder="请输入看板名称"
@@ -207,7 +223,10 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="任务标题" required>
+        <a-form-item
+          label="任务标题"
+          required
+        >
           <a-input
             v-model:value="taskFormData.title"
             placeholder="请输入任务标题"
@@ -224,19 +243,35 @@
 
         <a-form-item label="状态">
           <a-select v-model:value="taskFormData.status">
-            <a-select-option value="pending"> 待处理 </a-select-option>
-            <a-select-option value="in_progress"> 进行中 </a-select-option>
-            <a-select-option value="completed"> 已完成 </a-select-option>
-            <a-select-option value="cancelled"> 已取消 </a-select-option>
+            <a-select-option value="pending">
+              待处理
+            </a-select-option>
+            <a-select-option value="in_progress">
+              进行中
+            </a-select-option>
+            <a-select-option value="completed">
+              已完成
+            </a-select-option>
+            <a-select-option value="cancelled">
+              已取消
+            </a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item label="优先级">
           <a-select v-model:value="taskFormData.priority">
-            <a-select-option value="low"> 低 </a-select-option>
-            <a-select-option value="medium"> 中 </a-select-option>
-            <a-select-option value="high"> 高 </a-select-option>
-            <a-select-option value="urgent"> 紧急 </a-select-option>
+            <a-select-option value="low">
+              低
+            </a-select-option>
+            <a-select-option value="medium">
+              中
+            </a-select-option>
+            <a-select-option value="high">
+              高
+            </a-select-option>
+            <a-select-option value="urgent">
+              紧急
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -266,7 +301,11 @@
             placeholder="添加标签"
             style="width: 100%"
           >
-            <a-select-option v-for="tag in commonTags" :key="tag" :value="tag">
+            <a-select-option
+              v-for="tag in commonTags"
+              :key="tag"
+              :value="tag"
+            >
               {{ tag }}
             </a-select-option>
           </a-select>

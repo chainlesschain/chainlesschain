@@ -1,8 +1,15 @@
 <template>
   <div class="image-upload-container">
-    <a-card title="图片上传与 OCR 识别" :bordered="false">
+    <a-card
+      title="图片上传与 OCR 识别"
+      :bordered="false"
+    >
       <!-- 上传选项 -->
-      <a-space direction="vertical" style="width: 100%" :size="16">
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+        :size="16"
+      >
         <!-- 拖拽上传区域 -->
         <a-upload-dragger
           :before-upload="handleBeforeUpload"
@@ -13,7 +20,9 @@
           <p class="ant-upload-drag-icon">
             <camera-outlined :style="{ fontSize: '48px', color: '#1890ff' }" />
           </p>
-          <p class="ant-upload-text">点击或拖拽图片到此区域上传</p>
+          <p class="ant-upload-text">
+            点击或拖拽图片到此区域上传
+          </p>
           <p class="ant-upload-hint">
             支持单张或批量上传。支持 JPG、PNG、GIF、BMP、WebP 格式
           </p>
@@ -31,7 +40,11 @@
         </div>
 
         <!-- 上传选项配置 -->
-        <a-card title="上传选项" size="small" :bordered="true">
+        <a-card
+          title="上传选项"
+          size="small"
+          :bordered="true"
+        >
           <a-form layout="vertical">
             <a-row :gutter="16">
               <a-col :span="12">
@@ -40,11 +53,21 @@
                     v-model:value="uploadOptions.type"
                     style="width: 100%"
                   >
-                    <a-select-option value="note"> 笔记 </a-select-option>
-                    <a-select-option value="article"> 文章 </a-select-option>
-                    <a-select-option value="document"> 文档 </a-select-option>
-                    <a-select-option value="book"> 书籍 </a-select-option>
-                    <a-select-option value="code"> 代码 </a-select-option>
+                    <a-select-option value="note">
+                      笔记
+                    </a-select-option>
+                    <a-select-option value="article">
+                      文章
+                    </a-select-option>
+                    <a-select-option value="document">
+                      文档
+                    </a-select-option>
+                    <a-select-option value="book">
+                      书籍
+                    </a-select-option>
+                    <a-select-option value="code">
+                      代码
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
@@ -91,7 +114,12 @@
         </a-card>
 
         <!-- 上传进度 -->
-        <a-card v-if="uploading" title="上传进度" size="small" :bordered="true">
+        <a-card
+          v-if="uploading"
+          title="上传进度"
+          size="small"
+          :bordered="true"
+        >
           <a-progress
             :percent="uploadProgress.percentage"
             :status="uploadProgress.status"
@@ -103,15 +131,24 @@
             </template>
           </a-progress>
 
-          <div v-if="currentUploading" style="margin-top: 12px">
-            <a-spin :spinning="true" size="small" />
+          <div
+            v-if="currentUploading"
+            style="margin-top: 12px"
+          >
+            <a-spin
+              :spinning="true"
+              size="small"
+            />
             <span style="margin-left: 8px">
               正在处理: {{ currentUploading }}
             </span>
           </div>
 
           <!-- OCR 进度 -->
-          <div v-if="ocrProgress.active" style="margin-top: 12px">
+          <div
+            v-if="ocrProgress.active"
+            style="margin-top: 12px"
+          >
             <a-progress
               :percent="Math.round(ocrProgress.progress * 100)"
               size="small"
@@ -180,7 +217,11 @@
             >
               <div v-if="result.success">
                 <!-- 成功结果 -->
-                <a-descriptions :column="2" size="small" bordered>
+                <a-descriptions
+                  :column="2"
+                  size="small"
+                  bordered
+                >
                   <a-descriptions-item label="文件名">
                     {{ result.filename }}
                   </a-descriptions-item>
@@ -234,10 +275,16 @@
                 <!-- 操作按钮 -->
                 <div style="margin-top: 12px">
                   <a-space>
-                    <a-button size="small" @click="viewImage(result.imageId)">
+                    <a-button
+                      size="small"
+                      @click="viewImage(result.imageId)"
+                    >
                       <eye-outlined /> 查看图片
                     </a-button>
-                    <a-button size="small" @click="copyOCRText(result.ocrText)">
+                    <a-button
+                      size="small"
+                      @click="copyOCRText(result.ocrText)"
+                    >
                       <copy-outlined /> 复制文本
                     </a-button>
                     <a-button
@@ -253,7 +300,11 @@
 
               <div v-else>
                 <!-- 失败结果 -->
-                <a-alert :message="result.error" type="error" show-icon />
+                <a-alert
+                  :message="result.error"
+                  type="error"
+                  show-icon
+                />
               </div>
             </a-collapse-panel>
           </a-collapse>
@@ -267,7 +318,11 @@
         </a-card>
 
         <!-- 图片列表 -->
-        <a-card title="已上传图片" size="small" :bordered="true">
+        <a-card
+          title="已上传图片"
+          size="small"
+          :bordered="true"
+        >
           <template #extra>
             <a-space>
               <a-input-search
@@ -289,7 +344,10 @@
           </template>
 
           <!-- 统计信息 -->
-          <a-row :gutter="16" style="margin-bottom: 16px">
+          <a-row
+            :gutter="16"
+            style="margin-bottom: 16px"
+          >
             <a-col :span="8">
               <a-statistic
                 title="图片总数"
@@ -324,7 +382,10 @@
               <a-empty description="暂无图片" />
             </div>
 
-            <a-row v-else :gutter="[16, 16]">
+            <a-row
+              v-else
+              :gutter="[16, 16]"
+            >
               <a-col
                 v-for="image in images"
                 :key="image.id"
@@ -344,7 +405,7 @@
                       :src="`file://${image.thumbnail_path}`"
                       :alt="image.original_filename"
                       style="width: 100%; height: 150px; object-fit: cover"
-                    />
+                    >
                     <div
                       v-else
                       style="
@@ -428,12 +489,16 @@
               :src="`file://${currentImage.path}`"
               :alt="currentImage.original_filename"
               style="width: 100%; border-radius: 4px"
-            />
+            >
           </a-col>
 
           <!-- 图片信息 -->
           <a-col :span="12">
-            <a-descriptions :column="1" bordered size="small">
+            <a-descriptions
+              :column="1"
+              bordered
+              size="small"
+            >
               <a-descriptions-item label="文件名">
                 {{ currentImage.original_filename }}
               </a-descriptions-item>
@@ -496,7 +561,10 @@
                 >
                   <folder-open-outlined /> 在文件夹中显示
                 </a-button>
-                <a-button danger @click="confirmDelete(currentImage.id)">
+                <a-button
+                  danger
+                  @click="confirmDelete(currentImage.id)"
+                >
                   <delete-outlined /> 删除
                 </a-button>
               </a-space>

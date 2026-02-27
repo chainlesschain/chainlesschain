@@ -9,7 +9,9 @@
       <template #breadcrumb>
         <a-breadcrumb>
           <a-breadcrumb-item>
-            <router-link to="/">Home</router-link>
+            <router-link to="/">
+              Home
+            </router-link>
           </a-breadcrumb-item>
           <a-breadcrumb-item>Enterprise</a-breadcrumb-item>
           <a-breadcrumb-item>Organization</a-breadcrumb-item>
@@ -17,13 +19,19 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showCreateDeptModal = true">
+          <a-button
+            type="primary"
+            @click="showCreateDeptModal = true"
+          >
             <PlusOutlined /> Add Department
           </a-button>
           <a-button @click="showBulkImportModal = true">
             <ImportOutlined /> Import Members
           </a-button>
-          <a-button :loading="store.loading" @click="handleRefresh">
+          <a-button
+            :loading="store.loading"
+            @click="handleRefresh"
+          >
             <ReloadOutlined /> Refresh
           </a-button>
         </a-space>
@@ -31,8 +39,15 @@
     </a-page-header>
 
     <!-- Dashboard Stats -->
-    <a-row :gutter="[16, 16]" class="stats-row">
-      <a-col :xs="24" :sm="12" :lg="6">
+    <a-row
+      :gutter="[16, 16]"
+      class="stats-row"
+    >
+      <a-col
+        :xs="24"
+        :sm="12"
+        :lg="6"
+      >
         <a-card>
           <a-statistic
             title="Total Members"
@@ -44,7 +59,11 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="24" :sm="12" :lg="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :lg="6"
+      >
         <a-card>
           <a-statistic
             title="Teams"
@@ -56,7 +75,11 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="24" :sm="12" :lg="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :lg="6"
+      >
         <a-card>
           <a-statistic
             title="Departments"
@@ -68,7 +91,11 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="24" :sm="12" :lg="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :lg="6"
+      >
         <a-card>
           <a-statistic
             title="Pending Approvals"
@@ -83,10 +110,19 @@
     </a-row>
 
     <!-- Main Content: Tree + Detail -->
-    <a-row :gutter="16" class="main-content">
+    <a-row
+      :gutter="16"
+      class="main-content"
+    >
       <!-- Left Panel: Hierarchy Tree (40%) -->
-      <a-col :xs="24" :lg="10">
-        <a-card title="Organization Hierarchy" :loading="store.loading">
+      <a-col
+        :xs="24"
+        :lg="10"
+      >
+        <a-card
+          title="Organization Hierarchy"
+          :loading="store.loading"
+        >
           <template #extra>
             <a-input-search
               v-model:value="searchQuery"
@@ -114,8 +150,16 @@
             <template #title="{ title, memberCount, teamType }">
               <span>
                 {{ title }}
-                <a-tag v-if="teamType === 'department'" color="blue" size="small">Dept</a-tag>
-                <a-tag v-else color="green" size="small">Team</a-tag>
+                <a-tag
+                  v-if="teamType === 'department'"
+                  color="blue"
+                  size="small"
+                >Dept</a-tag>
+                <a-tag
+                  v-else
+                  color="green"
+                  size="small"
+                >Team</a-tag>
                 <a-badge
                   :count="memberCount"
                   :number-style="{ backgroundColor: '#999', fontSize: '11px' }"
@@ -126,13 +170,22 @@
             </template>
           </a-tree>
 
-          <a-empty v-else description="No departments or teams found" />
+          <a-empty
+            v-else
+            description="No departments or teams found"
+          />
         </a-card>
       </a-col>
 
       <!-- Right Panel: Detail (60%) -->
-      <a-col :xs="24" :lg="14">
-        <a-card v-if="store.selectedDepartment" :loading="store.loadingMembers">
+      <a-col
+        :xs="24"
+        :lg="14"
+      >
+        <a-card
+          v-if="store.selectedDepartment"
+          :loading="store.loadingMembers"
+        >
           <template #title>
             <span>
               {{ store.selectedDepartment.name }}
@@ -146,7 +199,10 @@
           </template>
           <template #extra>
             <a-space>
-              <a-button size="small" @click="handleEditDepartment">
+              <a-button
+                size="small"
+                @click="handleEditDepartment"
+              >
                 <EditOutlined /> Edit
               </a-button>
               <a-popconfirm
@@ -155,7 +211,10 @@
                 cancel-text="No"
                 @confirm="handleDeleteDepartment"
               >
-                <a-button size="small" danger>
+                <a-button
+                  size="small"
+                  danger
+                >
                   <DeleteOutlined /> Delete
                 </a-button>
               </a-popconfirm>
@@ -163,8 +222,16 @@
           </template>
 
           <!-- Department Info -->
-          <a-descriptions :column="2" bordered size="small" class="dept-info">
-            <a-descriptions-item label="Description" :span="2">
+          <a-descriptions
+            :column="2"
+            bordered
+            size="small"
+            class="dept-info"
+          >
+            <a-descriptions-item
+              label="Description"
+              :span="2"
+            >
               {{ store.selectedDepartment.description || 'No description' }}
             </a-descriptions-item>
             <a-descriptions-item label="Lead">
@@ -182,7 +249,9 @@
           </a-descriptions>
 
           <!-- Members Table -->
-          <a-divider orientation="left">Members</a-divider>
+          <a-divider orientation="left">
+            Members
+          </a-divider>
           <a-table
             :columns="memberColumns"
             :data-source="store.departmentMembers"
@@ -218,8 +287,14 @@
       @ok="handleCreateDepartment"
       @cancel="resetCreateForm"
     >
-      <a-form :model="createForm" layout="vertical">
-        <a-form-item label="Department Name" required>
+      <a-form
+        :model="createForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="Department Name"
+          required
+        >
           <a-input
             v-model:value="createForm.name"
             placeholder="Enter department name"
@@ -264,8 +339,14 @@
       @ok="handleSaveEditDepartment"
       @cancel="showEditDeptModal = false"
     >
-      <a-form :model="editForm" layout="vertical">
-        <a-form-item label="Department Name" required>
+      <a-form
+        :model="editForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="Department Name"
+          required
+        >
           <a-input
             v-model:value="editForm.name"
             placeholder="Enter department name"
@@ -308,7 +389,10 @@
         show-icon
         class="import-alert"
       />
-      <a-form :model="bulkImportForm" layout="vertical">
+      <a-form
+        :model="bulkImportForm"
+        layout="vertical"
+      >
         <a-form-item label="Members (CSV format)">
           <a-textarea
             v-model:value="bulkImportForm.rawText"
@@ -318,15 +402,24 @@
         </a-form-item>
         <a-form-item label="Default Role">
           <a-select v-model:value="bulkImportForm.defaultRole">
-            <a-select-option value="member">Member</a-select-option>
-            <a-select-option value="admin">Admin</a-select-option>
-            <a-select-option value="lead">Lead</a-select-option>
+            <a-select-option value="member">
+              Member
+            </a-select-option>
+            <a-select-option value="admin">
+              Admin
+            </a-select-option>
+            <a-select-option value="lead">
+              Lead
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
 
       <!-- Import Results -->
-      <div v-if="bulkImportResult" class="import-results">
+      <div
+        v-if="bulkImportResult"
+        class="import-results"
+      >
         <a-divider />
         <a-row :gutter="8">
           <a-col :span="8">
@@ -432,12 +525,12 @@ const memberColumns = [
  * Convert the hierarchy into Ant Design Tree compatible format.
  */
 const treeData = computed(() => {
-  if (!store.hierarchy?.hierarchy) return [];
+  if (!store.hierarchy?.hierarchy) {return [];}
 
   const convert = (nodes: DepartmentNode[]): any[] => {
     return nodes
       .filter((node) => {
-        if (!searchQuery.value) return true;
+        if (!searchQuery.value) {return true;}
         const q = searchQuery.value.toLowerCase();
         return (
           node.name.toLowerCase().includes(q) ||
@@ -461,7 +554,7 @@ const treeData = computed(() => {
  * Parent department tree data for the create form tree-select.
  */
 const parentTreeData = computed(() => {
-  if (!store.hierarchy?.hierarchy) return [];
+  if (!store.hierarchy?.hierarchy) {return [];}
 
   const convert = (nodes: DepartmentNode[]): any[] => {
     return nodes.map((node) => ({
@@ -578,7 +671,7 @@ function resetCreateForm() {
 }
 
 function handleEditDepartment() {
-  if (!store.selectedDepartment) return;
+  if (!store.selectedDepartment) {return;}
   editForm.value = {
     name: store.selectedDepartment.name,
     description: store.selectedDepartment.description || '',
@@ -589,7 +682,7 @@ function handleEditDepartment() {
 }
 
 async function handleSaveEditDepartment() {
-  if (!store.selectedDepartment) return;
+  if (!store.selectedDepartment) {return;}
 
   if (!editForm.value.name.trim()) {
     message.warning('Department name is required');
@@ -612,7 +705,7 @@ async function handleSaveEditDepartment() {
 }
 
 async function handleDeleteDepartment() {
-  if (!store.selectedDepartment) return;
+  if (!store.selectedDepartment) {return;}
 
   const name = store.selectedDepartment.name;
   const success = await store.deleteDepartment(store.selectedDepartment.id);
@@ -672,7 +765,7 @@ function resetBulkImportForm() {
 // ==================== Utilities ====================
 
 function formatDate(timestamp: number | undefined): string {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   return new Date(timestamp).toLocaleString();
 }
 </script>

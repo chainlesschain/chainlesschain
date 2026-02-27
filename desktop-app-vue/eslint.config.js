@@ -86,6 +86,18 @@ module.exports = [
         __filename: "readonly",
       },
     },
+    rules: {
+      // 主进程使用 CommonJS，允许 require()
+      "@typescript-eslint/no-require-imports": "off",
+      // 允许使用下划线前缀忽略未使用的变量
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
+    },
   },
 
   // 渲染进程文件特殊配置
@@ -150,10 +162,21 @@ module.exports = [
       globals: {
         ...globals.jest,
         ...globals.mocha,
+        vi: "readonly",
+        describe: "readonly",
+        it: "readonly",
+        expect: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
       },
     },
     rules: {
       "no-console": "off",
+      // 测试文件允许 require()
+      "@typescript-eslint/no-require-imports": "off",
+      // 测试文件中允许未使用的变量（用于测试 mock）
+      "@typescript-eslint/no-unused-vars": "off",
+      "no-unused-vars": "off",
     },
   },
 ];

@@ -320,7 +320,7 @@ describe("E2E: CRDT Document Sync", () => {
   });
 
   it("CRDT operations are consistent after multiple edits", () => {
-    engine: engineA.getOrCreateDocument("doc2");
+    engineA.getOrCreateDocument("doc2");
     engineA.setMarkdown("doc2", "line1\nline2\nline3\n");
     engineA.applyOperation("doc2", { type: "insert", position: 0, content: "line0\n" });
     engineA.applyOperation("doc2", { type: "delete", position: 6, length: 6 }); // remove "line1\n"

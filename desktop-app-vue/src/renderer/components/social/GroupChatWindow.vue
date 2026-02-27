@@ -16,7 +16,11 @@
         </a-button>
       </div>
 
-      <a-list :data-source="groups" :loading="loading" class="group-list">
+      <a-list
+        :data-source="groups"
+        :loading="loading"
+        class="group-list"
+      >
         <template #renderItem="{ item }">
           <a-list-item
             :class="['group-item', { active: currentGroup?.id === item.id }]"
@@ -56,11 +60,17 @@
 
     <!-- 右侧：群聊区域 -->
     <div class="group-main">
-      <div v-if="!currentGroup" class="group-empty">
+      <div
+        v-if="!currentGroup"
+        class="group-empty"
+      >
         <a-empty description="选择一个群聊开始对话" />
       </div>
 
-      <div v-else class="group-container">
+      <div
+        v-else
+        class="group-container"
+      >
         <!-- 群聊头部 -->
         <div class="group-header">
           <div class="group-header-info">
@@ -85,12 +95,18 @@
 
           <div class="group-header-actions">
             <a-tooltip title="群成员">
-              <a-button type="text" @click="showMembersDrawer = true">
+              <a-button
+                type="text"
+                @click="showMembersDrawer = true"
+              >
                 <TeamOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="群设置">
-              <a-button type="text" @click="showSettingsDrawer = true">
+              <a-button
+                type="text"
+                @click="showSettingsDrawer = true"
+              >
                 <SettingOutlined />
               </a-button>
             </a-tooltip>
@@ -100,10 +116,17 @@
               </a-button>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item key="invite" @click="showInviteModal = true">
+                  <a-menu-item
+                    key="invite"
+                    @click="showInviteModal = true"
+                  >
                     <UserAddOutlined /> 邀请成员
                   </a-menu-item>
-                  <a-menu-item key="leave" danger @click="handleLeaveGroup">
+                  <a-menu-item
+                    key="leave"
+                    danger
+                    @click="handleLeaveGroup"
+                  >
                     <LogoutOutlined /> 退出群聊
                   </a-menu-item>
                   <a-menu-item
@@ -127,7 +150,10 @@
           @scroll="handleScroll"
         >
           <!-- 加载更多 -->
-          <div v-if="hasMore" class="load-more">
+          <div
+            v-if="hasMore"
+            class="load-more"
+          >
             <a-button
               type="link"
               :loading="loadingMore"
@@ -152,8 +178,14 @@
             >
               {{ message.content }}
             </div>
-            <div v-else class="message-bubble">
-              <a-avatar :size="32" class="message-avatar">
+            <div
+              v-else
+              class="message-bubble"
+            >
+              <a-avatar
+                :size="32"
+                class="message-avatar"
+              >
                 <template #icon>
                   <UserOutlined />
                 </template>
@@ -175,9 +207,15 @@
                     v-else-if="message.message_type === 'image'"
                     class="message-image"
                   >
-                    <img :src="message.file_path" alt="图片" />
+                    <img
+                      :src="message.file_path"
+                      alt="图片"
+                    >
                   </div>
-                  <div v-else class="message-file">
+                  <div
+                    v-else
+                    class="message-file"
+                  >
                     <FileOutlined /> {{ message.file_path }}
                   </div>
                 </div>
@@ -194,17 +232,28 @@
           <div class="group-input-toolbar">
             <a-space>
               <a-tooltip title="表情">
-                <a-button type="text" size="small">
+                <a-button
+                  type="text"
+                  size="small"
+                >
                   <SmileOutlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="图片">
-                <a-button type="text" size="small" @click="handleSelectImage">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleSelectImage"
+                >
                   <PictureOutlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="文件">
-                <a-button type="text" size="small" @click="handleSelectFile">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleSelectFile"
+                >
                   <FileOutlined />
                 </a-button>
               </a-tooltip>
@@ -240,8 +289,14 @@
       @ok="handleCreateGroup"
       @cancel="showCreateGroupModal = false"
     >
-      <a-form :model="createGroupForm" layout="vertical">
-        <a-form-item label="群聊名称" required>
+      <a-form
+        :model="createGroupForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="群聊名称"
+          required
+        >
           <a-input
             v-model:value="createGroupForm.name"
             placeholder="请输入群聊名称"
@@ -277,7 +332,10 @@
       placement="right"
       :width="400"
     >
-      <a-list :data-source="groupMembers" :loading="loadingMembers">
+      <a-list
+        :data-source="groupMembers"
+        :loading="loadingMembers"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
@@ -292,16 +350,29 @@
                 {{ item.nickname || shortenDid(item.member_did) }}
               </template>
               <template #description>
-                <a-tag v-if="item.role === 'owner'" color="red"> 群主 </a-tag>
-                <a-tag v-else-if="item.role === 'admin'" color="orange">
+                <a-tag
+                  v-if="item.role === 'owner'"
+                  color="red"
+                >
+                  群主
+                </a-tag>
+                <a-tag
+                  v-else-if="item.role === 'admin'"
+                  color="orange"
+                >
                   管理员
                 </a-tag>
-                <a-tag v-else> 成员 </a-tag>
+                <a-tag v-else>
+                  成员
+                </a-tag>
               </template>
             </a-list-item-meta>
             <template #actions>
               <a-dropdown v-if="canManageMembers && item.role !== 'owner'">
-                <a-button type="text" size="small">
+                <a-button
+                  type="text"
+                  size="small"
+                >
                   <MoreOutlined />
                 </a-button>
                 <template #overlay>

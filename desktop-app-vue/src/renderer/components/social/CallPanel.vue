@@ -15,7 +15,10 @@
         </div>
 
         <div class="call-quality">
-          <a-tooltip v-if="callStore.callQuality" :title="qualityTooltip">
+          <a-tooltip
+            v-if="callStore.callQuality"
+            :title="qualityTooltip"
+          >
             <span :class="['quality-dot', qualityClass]" />
             <span class="quality-text">{{ callStore.qualityLevelText }}</span>
           </a-tooltip>
@@ -231,19 +234,19 @@ const remoteParticipants = computed(() => {
 
 const gridClass = computed(() => {
   const count = callStore.participantCount;
-  if (count <= 2) return 'grid-2';
-  if (count <= 4) return 'grid-4';
-  if (count <= 6) return 'grid-6';
+  if (count <= 2) {return 'grid-2';}
+  if (count <= 4) {return 'grid-4';}
+  if (count <= 6) {return 'grid-6';}
   return 'grid-8';
 });
 
 const qualityClass = computed(() => {
-  if (!callStore.callQuality) return '';
+  if (!callStore.callQuality) {return '';}
   return `quality-${callStore.callQuality.level}`;
 });
 
 const qualityTooltip = computed(() => {
-  if (!callStore.callQuality) return '';
+  if (!callStore.callQuality) {return '';}
   const q = callStore.callQuality;
   return `RTT: ${Math.round(q.roundTripTime)}ms | Loss: ${(q.packetLossRate * 100).toFixed(1)}% | Jitter: ${Math.round(q.jitter)}ms`;
 });
@@ -258,8 +261,8 @@ const setVideoRef = (did, el) => {
 };
 
 const shortenDid = (did) => {
-  if (!did) return 'Unknown';
-  if (did.length <= 16) return did;
+  if (!did) {return 'Unknown';}
+  if (did.length <= 16) {return did;}
   return `${did.substring(0, 8)}...${did.substring(did.length - 6)}`;
 };
 

@@ -345,7 +345,7 @@ class SkillSyncManager extends EventEmitter {
    * @private
    */
   _handleP2PMessage(peerId, message) {
-    if (!message || !message.type) return;
+    if (!message || !message.type) {return;}
 
     switch (message.type) {
       case "skill-catalog-request":
@@ -477,8 +477,8 @@ class SkillSyncManager extends EventEmitter {
     const remoteVersion = remoteMeta.version || "0.0.0";
 
     const cmp = this._compareVersions(localVersion, remoteVersion);
-    if (cmp > 0) return "keep-local";
-    if (cmp < 0) return "use-remote";
+    if (cmp > 0) {return "keep-local";}
+    if (cmp < 0) {return "use-remote";}
 
     // Same version → compare timestamps
     const localTime = localSkill.updatedAt || localSkill.createdAt || 0;
@@ -497,8 +497,8 @@ class SkillSyncManager extends EventEmitter {
     for (let i = 0; i < 3; i++) {
       const va = pa[i] || 0;
       const vb = pb[i] || 0;
-      if (va > vb) return 1;
-      if (va < vb) return -1;
+      if (va > vb) {return 1;}
+      if (va < vb) {return -1;}
     }
     return 0;
   }

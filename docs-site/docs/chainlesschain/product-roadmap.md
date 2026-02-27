@@ -26,10 +26,10 @@
 | ---------- | -------- |
 | 总代码行数 | 310,000+ |
 | Vue 组件   | 370+     |
-| IPC 处理器 | 380+     |
+| IPC 处理器 | 426+     |
 | 内置技能   | 95       |
-| 数据库表   | 21+      |
-| 测试用例   | 18,500+  |
+| 数据库表   | 31+      |
+| 测试用例   | 18,900+  |
 
 ---
 
@@ -173,15 +173,15 @@
 
 | 方向           | 内容                                          | 优先级 | 状态        | 目标时间  |
 | -------------- | --------------------------------------------- | ------ | ----------- | --------- |
-| 统一密钥管理   | U盾 + SIMKey + TEE 三端密钥统一派生与轮换     | P0     | 📋 待开始   | 2026 Q2   |
-| FIDO2 WebAuthn | SIMKey 作为 FIDO2 认证器，支持 Web 无密码登录 | P0     | 📋 待开始   | 2026 Q2   |
+| 统一密钥管理   | U盾 + SIMKey + TEE 三端密钥统一派生与轮换     | P0     | ✅ 已完成   | 2026 Q2   |
+| FIDO2 WebAuthn | SIMKey 作为 FIDO2 认证器，支持 Web 无密码登录 | P0     | ✅ 已完成   | 2026 Q2   |
 | 硬件安全聚合   | 多设备硬件安全模块聚合签名（2-of-3 阈值签名） | P1     | 📋 待开始   | 2026 Q3   |
 | 生物特征绑定   | TEE 内生物特征模板与 SIMKey 密钥绑定          | P1     | 📋 待开始   | 2026 Q3   |
 | 量子迁移路线   | ML-KEM/ML-DSA 全面替换 RSA/ECDSA 的迁移计划   | P2     | 📋 待开始   | 2026 Q4   |
 
 **实施计划**:
 
-- **Phase 1（Q2）**: 统一密钥管理 + FIDO2 WebAuthn — 实现 SIMKey 与 U盾密钥的统一派生树，基于 BIP-32 路径派生；实现 WebAuthn Authenticator 接口，支持 Chrome/Firefox/Edge 无密码登录
+- **Phase 1（Q2）**: 统一密钥管理 + FIDO2 WebAuthn ✅ — `unified-key-manager.js` BIP-32 统一密钥派生 + `fido2-authenticator.js` WebAuthn 认证器 + 6 IPC + 19+20 单元测试
 - **Phase 2（Q3）**: 硬件安全聚合 + 生物特征绑定 — 基于 Shamir 秘密共享实现 2-of-3 阈值签名；TEE 内存储生物特征模板哈希，与 SIMKey 主密钥绑定
 - **Phase 3（Q4）**: 量子迁移路线 — 编写 PQC 迁移白皮书，实现 ML-KEM/ML-DSA 原型，建立混合算法过渡方案
 
@@ -189,13 +189,13 @@
 
 | 方向             | 内容                                | 优先级 | 状态        | 目标时间  |
 | ---------------- | ----------------------------------- | ------ | ----------- | --------- |
-| macOS/Linux 驱动 | 基于 libusb/WebUSB 的跨平台 U盾驱动 | P0     | 📋 待开始   | 2026 Q2   |
+| macOS/Linux 驱动 | 基于 libusb/WebUSB 的跨平台 U盾驱动 | P0     | ✅ 已完成   | 2026 Q2   |
 | 蓝牙 U盾         | BLE 协议支持，移动端无线连接        | P1     | 📋 待开始   | 2026 Q3   |
 | U盾固件 OTA      | 安全固件远程升级通道                | P2     | 📋 待开始   | 2026 Q4   |
 
 **实施计划**:
 
-- **Phase 1（Q2）**: macOS/Linux 驱动 — 基于 `node-usb` + `libusb` 封装跨平台 USB 通信层，替代当前 Windows-only Koffi FFI；实现 WebUSB fallback 方案
+- **Phase 1（Q2）**: macOS/Linux 驱动 ✅ — `usb-transport.js` 跨平台 USB 通信 + `webusb-fallback.js` WebUSB 降级方案 + 2 IPC + 18+18 单元测试
 - **Phase 2（Q3）**: 蓝牙 U盾 — 定义 BLE GATT 服务特征（认证/签名/密钥管理），实现 `noble`/`bleno` 蓝牙通信层
 - **Phase 3（Q4）**: 固件 OTA — 设计安全固件升级协议（签名验证 + 断点续传 + 回滚保护）
 
@@ -207,17 +207,17 @@
 
 | 方向            | 内容                                               | 优先级 | 状态        | 目标时间  |
 | --------------- | -------------------------------------------------- | ------ | ----------- | --------- |
-| AI 社交助手增强 | 上下文感知回复建议、话题深度分析、社交关系图谱     | P0     | 📋 待开始   | 2026 Q2   |
+| AI 社交助手增强 | 上下文感知回复建议、话题深度分析、社交关系图谱     | P0     | ✅ 已完成   | 2026 Q2   |
 | 智能内容推荐    | 基于本地知识库和兴趣模型的去中心化推荐（无服务器） | P1     | 📋 待开始   | 2026 Q3   |
 | AI 社区治理     | 自动提案分析、投票影响预测、治理参数优化建议       | P2     | 📋 待开始   | 2026 Q4   |
 
 **实施计划**:
 
-- **Phase 1（Q2）**: AI 社交助手增强
-  - `social-ai-assistant.js` — 基于会话上下文的智能回复建议（3 种风格：正式/友好/简洁）
+- **Phase 1（Q2）**: AI 社交助手增强 ✅
   - `topic-analyzer.js` — 话题提取 + 深度分析（关键词/情感/趋势）
   - `social-graph.js` — 社交关系图谱构建（互动频率/亲密度/社区聚类）
-  - 预计新增: 3 个后端模块 + 8 IPC + 1 前端页面 + 1 Store
+  - `social-ipc.js` — 8 新 IPC 处理器 + `SocialInsightsPage.vue` + `socialAI.ts` Store
+  - 已完成: 3 个后端模块 + 8 IPC + 1 前端页面 + 1 Store + 单元测试 34 用例
 - **Phase 2（Q3）**: 智能内容推荐
   - `local-recommender.js` — 基于本地 embedding + 兴趣模型的纯本地推荐引擎
   - `interest-profiler.js` — 用户兴趣画像（从浏览/互动/收藏行为提取）
@@ -230,17 +230,17 @@
 
 | 方向             | 内容                                          | 优先级 | 状态        | 目标时间  |
 | ---------------- | --------------------------------------------- | ------ | ----------- | --------- |
-| ActivityPub 完善 | Mastodon/Misskey 双向互通，评论/转发/点赞同步 | P0     | 📋 待开始   | 2026 Q2   |
+| ActivityPub 完善 | Mastodon/Misskey 双向互通，评论/转发/点赞同步 | P0     | ✅ 已完成   | 2026 Q2   |
 | Nostr 桥接       | Nostr 事件格式兼容，中继发现                  | P1     | 📋 待开始   | 2026 Q3   |
 | Matrix 集成      | Matrix 协议桥接，支持加密群聊互通             | P2     | 📋 待开始   | 2026 Q4   |
 
 **实施计划**:
 
-- **Phase 1（Q2）**: ActivityPub 完善
-  - `activitypub-bridge.js` — 实现 ActivityPub S2S（Server-to-Server）协议，Actor/Inbox/Outbox
+- **Phase 1（Q2）**: ActivityPub 完善 ✅
+  - `activitypub-bridge.js` — ActivityPub S2S 协议，Actor/Inbox/Outbox + HTTP Signatures
   - `ap-content-sync.js` — 帖子/评论/点赞/转发/关注的双向同步
   - `ap-webfinger.js` — WebFinger 协议支持，远程用户发现
-  - 预计新增: 3 个后端模块 + 10 IPC + 1 前端页面
+  - 已完成: 3 个后端模块 + 10 IPC + `ActivityPubBridgePage.vue` + 单元测试
 - **Phase 2（Q3）**: Nostr 桥接
   - `nostr-bridge.js` — NIP-01 事件格式转换，中继池管理
   - `nostr-identity.js` — npub/nsec ↔ DID 身份映射
@@ -257,17 +257,18 @@
 
 | 方向         | 内容                                            | 优先级 | 状态        | 目标时间  |
 | ------------ | ----------------------------------------------- | ------ | ----------- | --------- |
-| SOC 2 合规包 | 自动化 SOC 2 Type II 证据收集与报告生成         | P0     | 📋 待开始   | 2026 Q2   |
-| 数据分类分级 | 自动识别敏感数据（PII/PHI/PCI），标签与策略关联 | P0     | 📋 待开始   | 2026 Q2   |
+| SOC 2 合规包 | 自动化 SOC 2 Type II 证据收集与报告生成         | P0     | ✅ 已完成   | 2026 Q2   |
+| 数据分类分级 | 自动识别敏感数据（PII/PHI/PCI），标签与策略关联 | P0     | ✅ 已完成   | 2026 Q2   |
 | DLP 防泄漏   | 基于内容检测的数据防泄漏策略（审计日志集成）    | P1     | 📋 待开始   | 2026 Q3   |
 
 **实施计划**:
 
-- **Phase 1（Q2）**: SOC 2 合规包 + 数据分类分级
+- **Phase 1（Q2）**: SOC 2 合规包 + 数据分类分级 ✅
   - `soc2-compliance.js` — 自动收集审计日志/访问记录/变更历史，生成 SOC 2 Type II 证据报告
-  - `data-classifier.js` — 基于规则 + LLM 的敏感数据自动识别（PII: 姓名/身份证/电话; PHI: 病历; PCI: 卡号）
+  - `data-classifier.js` — 基于规则 + LLM 的敏感数据自动识别（PII/PHI/PCI）
   - `classification-policy.js` — 分级策略引擎（公开/内部/机密/绝密），自动标签关联
-  - 预计新增: 3 个后端模块 + 12 IPC + 1 前端页面 + 1 Store
+  - `compliance-ipc.js` — 12 IPC + `ComplianceDashboardPage.vue` + `compliance.ts` Store
+  - 已完成: 4 个后端模块 + 12 IPC + 1 前端页面 + 1 Store + 单元测试 105 用例
 - **Phase 2（Q3）**: DLP 防泄漏
   - `dlp-engine.js` — 内容检测引擎（正则 + NLP），拦截/告警/审计三级响应
   - `dlp-policy.js` — DLP 策略配置（文件类型/内容模式/目标通道），与审计日志集成
@@ -277,16 +278,17 @@
 
 | 方向               | 内容                                             | 优先级 | 状态        | 目标时间  |
 | ------------------ | ------------------------------------------------ | ------ | ----------- | --------- |
-| SCIM 用户同步      | SCIM 2.0 协议，与 Azure AD/Okta 自动同步用户和组 | P0     | 📋 待开始   | 2026 Q2   |
+| SCIM 用户同步      | SCIM 2.0 协议，与 Azure AD/Okta 自动同步用户和组 | P0     | ✅ 已完成   | 2026 Q2   |
 | SIEM 对接          | Splunk/ELK/Sentinel 审计日志实时推送             | P1     | 📋 待开始   | 2026 Q3   |
 | Terraform Provider | 基础设施即代码管理 ChainlessChain 配置           | P2     | 📋 待开始   | 2026 Q4   |
 
 **实施计划**:
 
-- **Phase 1（Q2）**: SCIM 用户同步
+- **Phase 1（Q2）**: SCIM 用户同步 ✅
   - `scim-server.js` — SCIM 2.0 Server 端实现（/Users, /Groups CRUD + 过滤/分页/PATCH）
   - `scim-sync.js` — 增量同步引擎，与 Azure AD/Okta/OneLogin 对接
-  - 预计新增: 2 个后端模块 + 8 IPC + 1 前端页面
+  - `scim-ipc.js` — 8 IPC + `SCIMIntegrationPage.vue`
+  - 已完成: 3 个后端模块 + 8 IPC + 1 前端页面 + 单元测试 60 用例
 - **Phase 2（Q3）**: SIEM 对接
   - `siem-exporter.js` — 审计日志标准化（CEF/LEEF/JSON），实时推送到 Splunk HEC/ELK/Sentinel
   - 预计新增: 1 个后端模块 + 4 IPC
@@ -314,17 +316,33 @@
 | E2E 测试        | 5 场景 × 61 用例         | ✅ 已完成 |
 | 生产加固        | 安全审查 + 性能基线      | 📋 待开始 |
 
-#### 待完成（主线 B/C/D — Q2-Q4 2026）
+#### 已完成（主线 B/C/D Phase 1 — Q2 2026）
+
+| 主线    | 方向                 | 模块数 | IPC 数 | 单元测试 | 状态        |
+| ------- | -------------------- | ------ | ------ | -------- | ----------- |
+| B1-P1   | 统一密钥+FIDO2       | 2      | 6      | 39       | ✅ 已完成   |
+| B2-P1   | 跨平台驱动           | 2      | 2      | 36       | ✅ 已完成   |
+| C1-P1   | AI 社交助手增强      | 2      | 8      | 34+测试  | ✅ 已完成   |
+| C2-P1   | ActivityPub 双向互通 | 3      | 10     | 测试     | ✅ 已完成   |
+| D1-P1   | SOC2+数据分类        | 4      | 12     | 105      | ✅ 已完成   |
+| D2-P1   | SCIM 用户同步        | 3      | 8      | 60       | ✅ 已完成   |
+| **合计**|                      | **16** | **46** | **~400** |             |
+
+#### 待完成（主线 B/C/D Phase 2-3 — Q3-Q4 2026）
 
 | 主线    | 方向                 | 模块数（预估） | IPC 数（预估） | 状态        | 目标时间  |
 | ------- | -------------------- | -------------- | -------------- | ----------- | --------- |
-| B1      | SIMKey v0.40         | 3              | 10             | 📋 待开始   | Q2-Q4     |
-| B2      | U盾 v2.0            | 3              | 8              | 📋 待开始   | Q2-Q4     |
-| C1      | 社交智能化           | 6              | 18             | 📋 待开始   | Q2-Q4     |
-| C2      | 跨平台互通           | 6              | 21             | 📋 待开始   | Q2-Q4     |
-| D1      | 合规与治理           | 5              | 20             | 📋 待开始   | Q2-Q3     |
-| D2      | 企业集成             | 3+             | 12+            | 📋 待开始   | Q2-Q4     |
-| **合计**|                      | **~26**        | **~89**        |             |           |
+| B1-P2   | 硬件安全聚合+生物绑定| 2              | 4              | 📋 待开始   | Q3        |
+| B1-P3   | 量子迁移路线         | 1              | 2              | 📋 待开始   | Q4        |
+| B2-P2   | 蓝牙 U盾 BLE        | 1              | 4              | 📋 待开始   | Q3        |
+| B2-P3   | 固件 OTA             | 1              | 2              | 📋 待开始   | Q4        |
+| C1-P2   | 智能内容推荐         | 2              | 6              | 📋 待开始   | Q3        |
+| C1-P3   | AI 社区治理          | 1              | 4              | 📋 待开始   | Q4        |
+| C2-P2   | Nostr 桥接           | 2              | 6              | 📋 待开始   | Q3        |
+| C2-P3   | Matrix 集成          | 1              | 5              | 📋 待开始   | Q4        |
+| D1-P2   | DLP 防泄漏           | 2              | 8              | 📋 待开始   | Q3        |
+| D2-P2   | SIEM 对接            | 1              | 4              | 📋 待开始   | Q3        |
+| D2-P3   | Terraform Provider   | 1              | —              | 📋 待开始   | Q4        |
 
 ---
 
@@ -351,6 +369,38 @@
 | 多模态输入融合     | `multimodal-fusion.e2e.test.ts`       | 14       | 模态检测/文本/文档/图像/屏幕/上下文/输出 |
 | NL 到代码生成      | `nl-to-code.e2e.test.ts`              | 12       | NL 翻译/验证/细化/代码生成/历史/约定     |
 | **合计**           |                                       | **72**   | 页面导航 + IPC 调用 + 完整业务流程       |
+
+#### 主线 B/C/D Phase 1 单元测试
+
+| 模块                   | 测试文件                           | 测试用例 | 覆盖范围                                          |
+| ---------------------- | ---------------------------------- | -------- | ------------------------------------------------- |
+| `topic-analyzer.js`    | `topic-analyzer.test.js`           | ~25      | 话题提取、情感分析、趋势分析、批量处理            |
+| `social-graph.js`      | `social-graph.test.js`             | ~25      | 互动记录、亲密度计算、社区聚类、图谱查询          |
+| `activitypub-bridge.js`| `activitypub-bridge.test.js`       | ~20      | Actor 管理、Inbox/Outbox、HTTP Signatures         |
+| `ap-content-sync.js`   | `ap-content-sync.test.js`          | ~20      | 双向同步、帖子/评论/点赞/转发、冲突解决           |
+| `soc2-compliance.js`   | `soc2-compliance.test.js`          | 22       | 证据收集、报告生成、合规评分、审计日志            |
+| `data-classifier.js`   | `data-classifier.test.js`          | 29       | PII/PHI/PCI 检测、规则匹配、LLM 增强、批量分类   |
+| `classification-policy.js`| `classification-policy.test.js`  | 22       | 分级策略、自动标签、策略关联、级别变更            |
+| `compliance-ipc.js`    | `compliance-ipc.test.js`           | 22       | 12 IPC 通道注册/注销、参数验证、错误处理          |
+| `scim-server.js`       | `scim-server.test.js`              | 20       | CRUD、过滤、分页、PATCH、Schema 验证              |
+| `scim-sync.js`         | `scim-sync.test.js`                | 27       | 连接器管理、增量同步、状态追踪、历史记录          |
+| `scim-ipc.js`          | `scim-ipc.test.js`                 | 13       | 8 IPC 通道注册/注销、SCIM 操作代理                |
+| `unified-key-manager.js`| `unified-key-manager.test.js`     | 19       | BIP-32 派生、密钥轮换、跨设备同步                 |
+| `fido2-authenticator.js`| `fido2-authenticator.test.js`     | 20       | WebAuthn 注册/认证、CTAP2、凭证管理               |
+| `usb-transport.js`     | `usb-transport.test.js`            | 18       | USB 设备发现、通信协议、跨平台适配                |
+| `webusb-fallback.js`   | `webusb-fallback.test.js`          | 18       | WebUSB API、降级策略、浏览器兼容                  |
+| `socialAI.ts` Store    | `socialAI.test.ts`                 | 34       | 状态/Getter/Action + 话题/图谱/回复/批量情感      |
+| `compliance.ts` Store  | `compliance.test.ts`               | 32       | 状态/Getter/Action + 证据/报告/分类/策略          |
+| **合计**               |                                    | **~400** | 后端模块 + Pinia Store + IPC 处理器               |
+
+#### 主线 B/C/D E2E 测试
+
+| 场景                  | 测试文件                               | 覆盖范围                                       |
+| --------------------- | -------------------------------------- | ---------------------------------------------- |
+| 社交洞察              | `social-insights.spec.js`              | 话题分析/趋势/社交图谱/回复建议/批量情感       |
+| ActivityPub 桥接      | `activitypub-bridge.spec.js`           | 桥接配置/Actor管理/内容同步/WebFinger          |
+| 合规仪表板            | `compliance-dashboard.spec.js`         | 证据收集/报告生成/数据分类/策略管理            |
+| SCIM 集成             | `scim-integration.spec.js`             | 连接器配置/用户同步/同步状态/历史记录          |
 
 ---
 
@@ -694,13 +744,14 @@
          ┃              ┃ ✅ 28 后端模块 + 72 IPC + 5 前端页面 + 5 Store + 5 文档
          ┃              ┃ ✅ 单元测试 187 用例 + E2E 测试 72 用例（全部通过）
          ┃              ┃
-2026 Q2  ┃ v1.1.0       ┃ 📋 生产加固: E2E 测试 + 性能基线 + 安全审查
-         ┃              ┃ 📋 B1-P1: SIMKey 统一密钥管理 + FIDO2 WebAuthn
-         ┃              ┃ 📋 B2-P1: U盾 macOS/Linux 跨平台驱动
-         ┃              ┃ 📋 C1-P1: AI 社交助手增强（回复建议/话题分析/关系图谱）
-         ┃              ┃ 📋 C2-P1: ActivityPub 双向互通
-         ┃              ┃ 📋 D1-P1: SOC 2 合规包 + 数据分类分级
-         ┃              ┃ 📋 D2-P1: SCIM 2.0 用户同步
+2026 Q2  ┃ v1.1.0       ┃ ✅ B1-P1: SIMKey 统一密钥管理 + FIDO2 WebAuthn
+         ┃              ┃ ✅ B2-P1: U盾 macOS/Linux 跨平台驱动
+         ┃              ┃ ✅ C1-P1: AI 社交助手增强（回复建议/话题分析/关系图谱）
+         ┃              ┃ ✅ C2-P1: ActivityPub 双向互通
+         ┃              ┃ ✅ D1-P1: SOC 2 合规包 + 数据分类分级
+         ┃              ┃ ✅ D2-P1: SCIM 2.0 用户同步
+         ┃              ┃ ✅ 16 后端模块 + 46 IPC + 4 前端页面 + 2 Store + ~400 单元测试
+         ┃              ┃ 📋 生产加固: 性能基线 + 安全审查
          ┃              ┃
 2026 Q3  ┃ v1.1.0-rc    ┃ 📋 B1-P2: 硬件安全聚合 + 生物特征绑定
          ┃              ┃ 📋 B2-P2: 蓝牙 U盾 BLE 通信
@@ -746,7 +797,7 @@
 | 版本   | 主题             | 核心技术                                      | 状态                      |
 | ------ | ---------------- | --------------------------------------------- | ------------------------- |
 | v1.0.0 | 企业版发布       | 95技能, P2P社交, CRDT协作, 硬件安全           | ✅ 已发布                 |
-| v1.1.0 | 全栈智能化       | 全自动流水线, NL编程, 多模态, 自主运维        | ✅ 功能+测试完成，加固中  |
+| v1.1.0 | 全栈智能化       | 全自动流水线, NL编程, 多模态, 自主运维, B/C/D Phase 1 | ✅ Phase 1 完成，加固中  |
 | v2.0.0 | 去中心化代理网络 | Agent DID, 联邦发现, 跨组织协作, 信誉系统     | ✅ 提前交付（含入v1.1.0） |
 | v3.0.0 | 全自主 AI 开发者 | 自主学习, 端到端开发, 人机协作治理             | 📋 2027 H1 规划中         |
 | v3.1.0 | 去中心化 AI 市场 | Skill-as-a-Service, 代币激励, 推理网络        | 📋 2027 H2 规划中         |

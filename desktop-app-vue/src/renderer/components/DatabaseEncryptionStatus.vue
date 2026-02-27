@@ -5,7 +5,10 @@
         <template #title>
           {{ statusTooltip }}
         </template>
-        <a-badge :status="badgeStatus" :text="statusText" />
+        <a-badge
+          :status="badgeStatus"
+          :text="statusText"
+        />
       </a-tooltip>
 
       <a-tag
@@ -19,7 +22,11 @@
         {{ encryptionInfo.method === "ukey" ? "U-Key 加密" : "AES-256" }}
       </a-tag>
 
-      <a-tag v-else color="warning" style="margin: 0">
+      <a-tag
+        v-else
+        color="warning"
+        style="margin: 0"
+      >
         <template #icon>
           <WarningOutlined />
         </template>

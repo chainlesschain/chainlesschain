@@ -14,13 +14,20 @@
       >
         <div class="template-header">
           <span class="template-name">{{ tmpl.label }}</span>
-          <a-tag color="blue">{{ tmpl.agentCount }} 步骤</a-tag>
+          <a-tag color="blue">
+            {{ tmpl.agentCount }} 步骤
+          </a-tag>
         </div>
-        <div class="template-desc">{{ templateDescriptions[tmpl.name] }}</div>
+        <div class="template-desc">
+          {{ templateDescriptions[tmpl.name] }}
+        </div>
       </div>
     </div>
 
-    <div v-if="loading" class="template-loading">
+    <div
+      v-if="loading"
+      class="template-loading"
+    >
       <a-spin />
       <span>正在导入模板...</span>
     </div>

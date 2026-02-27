@@ -33,7 +33,10 @@
                   </template>
                   在区块链浏览器查看
                 </a-button>
-                <a-button :loading="refreshing" @click="handleRefresh">
+                <a-button
+                  :loading="refreshing"
+                  @click="handleRefresh"
+                >
                   <template #icon>
                     <reload-outlined />
                   </template>
@@ -46,7 +49,11 @@
           <a-divider />
 
           <!-- 交易信息 -->
-          <a-descriptions title="基本信息" :column="2" bordered>
+          <a-descriptions
+            title="基本信息"
+            :column="2"
+            bordered
+          >
             <a-descriptions-item label="交易类型">
               <a-tag
                 :color="getTypeColor(transaction.tx_type || transaction.type)"
@@ -59,7 +66,10 @@
                 {{ getStatusText(transaction.status) }}
               </a-tag>
             </a-descriptions-item>
-            <a-descriptions-item label="发起时间" :span="2">
+            <a-descriptions-item
+              label="发起时间"
+              :span="2"
+            >
               {{
                 formatDateTime(transaction.created_at || transaction.timestamp)
               }}
@@ -88,10 +98,16 @@
             <a-descriptions-item label="链ID">
               {{ transaction.chain_id }}
             </a-descriptions-item>
-            <a-descriptions-item v-if="transaction.block_number" label="区块号">
+            <a-descriptions-item
+              v-if="transaction.block_number"
+              label="区块号"
+            >
               {{ transaction.block_number }}
             </a-descriptions-item>
-            <a-descriptions-item v-if="transaction.gas_used" label="Gas费用">
+            <a-descriptions-item
+              v-if="transaction.gas_used"
+              label="Gas费用"
+            >
               {{ formatGas(transaction.gas_used, transaction.gas_price) }}
             </a-descriptions-item>
             <a-descriptions-item
@@ -108,7 +124,11 @@
           <a-divider />
 
           <!-- 交易详情 -->
-          <a-descriptions title="交易详情" :column="1" bordered>
+          <a-descriptions
+            title="交易详情"
+            :column="1"
+            bordered
+          >
             <a-descriptions-item
               v-if="transaction.from_address || transaction.from_did"
               label="发送方"
@@ -125,7 +145,10 @@
                 {{ transaction.to_address || transaction.to_did }}
               </a-typography-text>
             </a-descriptions-item>
-            <a-descriptions-item v-if="transaction.amount" label="金额">
+            <a-descriptions-item
+              v-if="transaction.amount"
+              label="金额"
+            >
               {{ transaction.amount }} {{ transaction.asset_symbol || "" }}
             </a-descriptions-item>
             <a-descriptions-item
@@ -146,14 +169,23 @@
           />
 
           <!-- 原始数据 -->
-          <a-collapse v-if="transaction.raw_data" style="margin-top: 16px">
-            <a-collapse-panel key="raw" header="原始数据">
+          <a-collapse
+            v-if="transaction.raw_data"
+            style="margin-top: 16px"
+          >
+            <a-collapse-panel
+              key="raw"
+              header="原始数据"
+            >
               <pre class="raw-data">{{ formatJSON(transaction.raw_data) }}</pre>
             </a-collapse-panel>
           </a-collapse>
         </div>
 
-        <a-empty v-else description="暂无交易数据" />
+        <a-empty
+          v-else
+          description="暂无交易数据"
+        />
       </a-spin>
     </div>
   </a-modal>

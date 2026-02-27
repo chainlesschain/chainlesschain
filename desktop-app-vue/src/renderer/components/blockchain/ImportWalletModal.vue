@@ -20,7 +20,10 @@
 
     <a-tabs v-model:active-key="activeTab">
       <!-- 助记词导入 -->
-      <a-tab-pane key="mnemonic" tab="助记词导入">
+      <a-tab-pane
+        key="mnemonic"
+        tab="助记词导入"
+      >
         <a-form
           ref="mnemonicFormRef"
           :model="mnemonicForm"
@@ -40,7 +43,10 @@
             />
           </a-form-item>
 
-          <a-form-item label="钱包密码" name="password">
+          <a-form-item
+            label="钱包密码"
+            name="password"
+          >
             <a-input-password
               v-model:value="mnemonicForm.password"
               placeholder="请输入密码（至少8位）"
@@ -53,7 +59,10 @@
             </a-input-password>
           </a-form-item>
 
-          <a-form-item label="确认密码" name="confirmPassword">
+          <a-form-item
+            label="确认密码"
+            name="confirmPassword"
+          >
             <a-input-password
               v-model:value="mnemonicForm.confirmPassword"
               placeholder="请再次输入密码"
@@ -69,7 +78,10 @@
       </a-tab-pane>
 
       <!-- 私钥导入 -->
-      <a-tab-pane key="privateKey" tab="私钥导入">
+      <a-tab-pane
+        key="privateKey"
+        tab="私钥导入"
+      >
         <a-form
           ref="privateKeyFormRef"
           :model="privateKeyForm"
@@ -93,7 +105,10 @@
             </a-input>
           </a-form-item>
 
-          <a-form-item label="钱包密码" name="password">
+          <a-form-item
+            label="钱包密码"
+            name="password"
+          >
             <a-input-password
               v-model:value="privateKeyForm.password"
               placeholder="请输入密码（至少8位）"
@@ -106,7 +121,10 @@
             </a-input-password>
           </a-form-item>
 
-          <a-form-item label="确认密码" name="confirmPassword">
+          <a-form-item
+            label="确认密码"
+            name="confirmPassword"
+          >
             <a-input-password
               v-model:value="privateKeyForm.confirmPassword"
               placeholder="请再次输入密码"
@@ -142,7 +160,10 @@
             <span class="info-label">地址:</span>
             <span class="info-value">
               {{ formatAddress(importedWallet.address) }}
-              <copy-outlined class="copy-icon" @click="handleCopyAddress" />
+              <copy-outlined
+                class="copy-icon"
+                @click="handleCopyAddress"
+              />
             </span>
           </div>
         </div>

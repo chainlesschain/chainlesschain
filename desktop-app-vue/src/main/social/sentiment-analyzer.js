@@ -403,8 +403,8 @@ class SentimentAnalyzer extends EventEmitter {
     let negativeHits = 0;
 
     for (const word of words) {
-      if (POSITIVE_KEYWORDS.includes(word)) positiveHits++;
-      if (NEGATIVE_KEYWORDS.includes(word)) negativeHits++;
+      if (POSITIVE_KEYWORDS.includes(word)) {positiveHits++;}
+      if (NEGATIVE_KEYWORDS.includes(word)) {negativeHits++;}
     }
 
     // Calculate sentiment score (-1 to 1)

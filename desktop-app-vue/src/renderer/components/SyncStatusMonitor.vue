@@ -48,7 +48,11 @@
       </div>
 
       <!-- 最后同步时间 -->
-      <a-descriptions bordered :column="1" class="sync-info">
+      <a-descriptions
+        bordered
+        :column="1"
+        class="sync-info"
+      >
         <a-descriptions-item label="最后同步">
           {{ formatTime(stats.last_sync_time) }}
         </a-descriptions-item>

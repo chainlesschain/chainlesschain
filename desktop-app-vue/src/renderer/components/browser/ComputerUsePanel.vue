@@ -1,5 +1,9 @@
 <template>
-  <a-card title="Computer Use 控制" :bordered="false" class="computer-use-panel">
+  <a-card
+    title="Computer Use 控制"
+    :bordered="false"
+    class="computer-use-panel"
+  >
     <template #extra>
       <a-space>
         <a-tag :color="isVisionEnabled ? 'green' : 'default'">
@@ -11,40 +15,70 @@
       </a-space>
     </template>
 
-    <a-tabs v-model:activeKey="activeTab">
+    <a-tabs v-model:active-key="activeTab">
       <!-- 坐标操作 -->
-      <a-tab-pane key="coordinate" tab="坐标操作">
+      <a-tab-pane
+        key="coordinate"
+        tab="坐标操作"
+      >
         <a-form layout="vertical">
           <a-row :gutter="16">
             <a-col :span="8">
               <a-form-item label="X 坐标">
-                <a-input-number v-model:value="coordinateForm.x" :min="0" style="width: 100%" />
+                <a-input-number
+                  v-model:value="coordinateForm.x"
+                  :min="0"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
             <a-col :span="8">
               <a-form-item label="Y 坐标">
-                <a-input-number v-model:value="coordinateForm.y" :min="0" style="width: 100%" />
+                <a-input-number
+                  v-model:value="coordinateForm.y"
+                  :min="0"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
             <a-col :span="8">
               <a-form-item label="操作类型">
-                <a-select v-model:value="coordinateForm.action" style="width: 100%">
-                  <a-select-option value="click">点击</a-select-option>
-                  <a-select-option value="doubleClick">双击</a-select-option>
-                  <a-select-option value="rightClick">右键</a-select-option>
-                  <a-select-option value="move">移动</a-select-option>
+                <a-select
+                  v-model:value="coordinateForm.action"
+                  style="width: 100%"
+                >
+                  <a-select-option value="click">
+                    点击
+                  </a-select-option>
+                  <a-select-option value="doubleClick">
+                    双击
+                  </a-select-option>
+                  <a-select-option value="rightClick">
+                    右键
+                  </a-select-option>
+                  <a-select-option value="move">
+                    移动
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
           </a-row>
 
           <a-space>
-            <a-button type="primary" :loading="loading.coordinate" @click="handleCoordinateAction">
-              <template #icon><AimOutlined /></template>
+            <a-button
+              type="primary"
+              :loading="loading.coordinate"
+              @click="handleCoordinateAction"
+            >
+              <template #icon>
+                <AimOutlined />
+              </template>
               执行操作
             </a-button>
             <a-button @click="handleGetMousePosition">
-              <template #icon><CompassOutlined /></template>
+              <template #icon>
+                <CompassOutlined />
+              </template>
               获取鼠标位置
             </a-button>
           </a-space>
@@ -56,34 +90,59 @@
           <a-row :gutter="16">
             <a-col :span="6">
               <a-form-item label="起始X">
-                <a-input-number v-model:value="dragForm.fromX" :min="0" style="width: 100%" />
+                <a-input-number
+                  v-model:value="dragForm.fromX"
+                  :min="0"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
             <a-col :span="6">
               <a-form-item label="起始Y">
-                <a-input-number v-model:value="dragForm.fromY" :min="0" style="width: 100%" />
+                <a-input-number
+                  v-model:value="dragForm.fromY"
+                  :min="0"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
             <a-col :span="6">
               <a-form-item label="目标X">
-                <a-input-number v-model:value="dragForm.toX" :min="0" style="width: 100%" />
+                <a-input-number
+                  v-model:value="dragForm.toX"
+                  :min="0"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
             <a-col :span="6">
               <a-form-item label="目标Y">
-                <a-input-number v-model:value="dragForm.toY" :min="0" style="width: 100%" />
+                <a-input-number
+                  v-model:value="dragForm.toY"
+                  :min="0"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
           </a-row>
-          <a-button :loading="loading.drag" @click="handleDragAction">
-            <template #icon><DragOutlined /></template>
+          <a-button
+            :loading="loading.drag"
+            @click="handleDragAction"
+          >
+            <template #icon>
+              <DragOutlined />
+            </template>
             执行拖拽
           </a-button>
         </a-form>
       </a-tab-pane>
 
       <!-- 视觉操作 -->
-      <a-tab-pane key="vision" tab="视觉操作" :disabled="!isVisionEnabled">
+      <a-tab-pane
+        key="vision"
+        tab="视觉操作"
+        :disabled="!isVisionEnabled"
+      >
         <a-form layout="vertical">
           <a-form-item label="元素描述">
             <a-input
@@ -93,25 +152,52 @@
           </a-form-item>
 
           <a-form-item label="Vision 模型">
-            <a-select v-model:value="visionForm.model" style="width: 100%">
-              <a-select-option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</a-select-option>
-              <a-select-option value="claude-3-opus-20240229">Claude 3 Opus</a-select-option>
-              <a-select-option value="gpt-4o">GPT-4o</a-select-option>
-              <a-select-option value="llava:13b">LLaVA (本地)</a-select-option>
+            <a-select
+              v-model:value="visionForm.model"
+              style="width: 100%"
+            >
+              <a-select-option value="claude-3-5-sonnet-20241022">
+                Claude 3.5 Sonnet
+              </a-select-option>
+              <a-select-option value="claude-3-opus-20240229">
+                Claude 3 Opus
+              </a-select-option>
+              <a-select-option value="gpt-4o">
+                GPT-4o
+              </a-select-option>
+              <a-select-option value="llava:13b">
+                LLaVA (本地)
+              </a-select-option>
             </a-select>
           </a-form-item>
 
           <a-space>
-            <a-button type="primary" :loading="loading.visualClick" @click="handleVisualClick">
-              <template #icon><EyeOutlined /></template>
+            <a-button
+              type="primary"
+              :loading="loading.visualClick"
+              @click="handleVisualClick"
+            >
+              <template #icon>
+                <EyeOutlined />
+              </template>
               视觉点击
             </a-button>
-            <a-button :loading="loading.locate" @click="handleLocateElement">
-              <template #icon><SearchOutlined /></template>
+            <a-button
+              :loading="loading.locate"
+              @click="handleLocateElement"
+            >
+              <template #icon>
+                <SearchOutlined />
+              </template>
               定位元素
             </a-button>
-            <a-button :loading="loading.analyze" @click="handleAnalyzePage">
-              <template #icon><ScanOutlined /></template>
+            <a-button
+              :loading="loading.analyze"
+              @click="handleAnalyzePage"
+            >
+              <template #icon>
+                <ScanOutlined />
+              </template>
               分析页面
             </a-button>
           </a-space>
@@ -138,14 +224,26 @@
               :rows="3"
             />
           </a-form-item>
-          <a-button type="primary" :loading="loading.task" @click="handleExecuteTask">
-            <template #icon><RocketOutlined /></template>
+          <a-button
+            type="primary"
+            :loading="loading.task"
+            @click="handleExecuteTask"
+          >
+            <template #icon>
+              <RocketOutlined />
+            </template>
             执行任务
           </a-button>
 
           <!-- 任务执行结果 -->
-          <a-collapse v-if="taskResult" style="margin-top: 16px">
-            <a-collapse-panel key="1" :header="`任务结果 (${taskResult.totalSteps} 步)`">
+          <a-collapse
+            v-if="taskResult"
+            style="margin-top: 16px"
+          >
+            <a-collapse-panel
+              key="1"
+              :header="`任务结果 (${taskResult.totalSteps} 步)`"
+            >
               <a-timeline>
                 <a-timeline-item
                   v-for="(step, index) in taskResult.steps"
@@ -153,8 +251,15 @@
                   :color="step.completed || step.action === 'done' ? 'green' : 'blue'"
                 >
                   <p><strong>{{ step.action }}</strong></p>
-                  <p v-if="step.target">目标: {{ step.target }}</p>
-                  <p v-if="step.reasoning" class="text-secondary">{{ step.reasoning }}</p>
+                  <p v-if="step.target">
+                    目标: {{ step.target }}
+                  </p>
+                  <p
+                    v-if="step.reasoning"
+                    class="text-secondary"
+                  >
+                    {{ step.reasoning }}
+                  </p>
                 </a-timeline-item>
               </a-timeline>
             </a-collapse-panel>
@@ -163,7 +268,10 @@
       </a-tab-pane>
 
       <!-- 网络拦截 -->
-      <a-tab-pane key="network" tab="网络拦截">
+      <a-tab-pane
+        key="network"
+        tab="网络拦截"
+      >
         <a-form layout="vertical">
           <a-row :gutter="16">
             <a-col :span="12">
@@ -184,13 +292,27 @@
                   style="width: 100%"
                   @change="handleSetNetworkCondition"
                 >
-                  <a-select-option value="NO_THROTTLE">不限速</a-select-option>
-                  <a-select-option value="WIFI">WiFi</a-select-option>
-                  <a-select-option value="FAST_4G">4G (快)</a-select-option>
-                  <a-select-option value="SLOW_4G">4G (慢)</a-select-option>
-                  <a-select-option value="FAST_3G">3G (快)</a-select-option>
-                  <a-select-option value="SLOW_3G">3G (慢)</a-select-option>
-                  <a-select-option value="OFFLINE">离线</a-select-option>
+                  <a-select-option value="NO_THROTTLE">
+                    不限速
+                  </a-select-option>
+                  <a-select-option value="WIFI">
+                    WiFi
+                  </a-select-option>
+                  <a-select-option value="FAST_4G">
+                    4G (快)
+                  </a-select-option>
+                  <a-select-option value="SLOW_4G">
+                    4G (慢)
+                  </a-select-option>
+                  <a-select-option value="FAST_3G">
+                    3G (快)
+                  </a-select-option>
+                  <a-select-option value="SLOW_3G">
+                    3G (慢)
+                  </a-select-option>
+                  <a-select-option value="OFFLINE">
+                    离线
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -203,20 +325,37 @@
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item label="URL 模式">
-                <a-input v-model:value="mockForm.urlPattern" placeholder="**/api/users" />
+                <a-input
+                  v-model:value="mockForm.urlPattern"
+                  placeholder="**/api/users"
+                />
               </a-form-item>
             </a-col>
             <a-col :span="12">
               <a-form-item label="状态码">
-                <a-input-number v-model:value="mockForm.status" :min="100" :max="599" style="width: 100%" />
+                <a-input-number
+                  v-model:value="mockForm.status"
+                  :min="100"
+                  :max="599"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
           </a-row>
           <a-form-item label="响应体 (JSON)">
-            <a-textarea v-model:value="mockForm.body" :rows="3" placeholder='{"success": true}' />
+            <a-textarea
+              v-model:value="mockForm.body"
+              :rows="3"
+              placeholder="{&quot;success&quot;: true}"
+            />
           </a-form-item>
-          <a-button :loading="loading.mock" @click="handleAddMock">
-            <template #icon><PlusOutlined /></template>
+          <a-button
+            :loading="loading.mock"
+            @click="handleAddMock"
+          >
+            <template #icon>
+              <PlusOutlined />
+            </template>
             添加 Mock 规则
           </a-button>
 
@@ -231,7 +370,12 @@
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'action'">
-                <a-button type="link" danger size="small" @click="handleRemoveMock(record.id)">
+                <a-button
+                  type="link"
+                  danger
+                  size="small"
+                  @click="handleRemoveMock(record.id)"
+                >
                   删除
                 </a-button>
               </template>
@@ -241,18 +385,34 @@
       </a-tab-pane>
 
       <!-- 桌面控制 -->
-      <a-tab-pane key="desktop" tab="桌面控制" :disabled="!isDesktopEnabled">
+      <a-tab-pane
+        key="desktop"
+        tab="桌面控制"
+        :disabled="!isDesktopEnabled"
+      >
         <a-form layout="vertical">
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-button type="primary" block :loading="loading.desktopCapture" @click="handleDesktopCapture">
-                <template #icon><DesktopOutlined /></template>
+              <a-button
+                type="primary"
+                block
+                :loading="loading.desktopCapture"
+                @click="handleDesktopCapture"
+              >
+                <template #icon>
+                  <DesktopOutlined />
+                </template>
                 桌面截图
               </a-button>
             </a-col>
             <a-col :span="12">
-              <a-button block @click="handleGetScreenInfo">
-                <template #icon><InfoCircleOutlined /></template>
+              <a-button
+                block
+                @click="handleGetScreenInfo"
+              >
+                <template #icon>
+                  <InfoCircleOutlined />
+                </template>
                 屏幕信息
               </a-button>
             </a-col>
@@ -265,26 +425,48 @@
           <a-row :gutter="16">
             <a-col :span="8">
               <a-form-item label="X 坐标">
-                <a-input-number v-model:value="desktopForm.x" :min="0" style="width: 100%" />
+                <a-input-number
+                  v-model:value="desktopForm.x"
+                  :min="0"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
             <a-col :span="8">
               <a-form-item label="Y 坐标">
-                <a-input-number v-model:value="desktopForm.y" :min="0" style="width: 100%" />
+                <a-input-number
+                  v-model:value="desktopForm.y"
+                  :min="0"
+                  style="width: 100%"
+                />
               </a-form-item>
             </a-col>
             <a-col :span="8">
               <a-form-item label="按钮">
-                <a-select v-model:value="desktopForm.button" style="width: 100%">
-                  <a-select-option value="left">左键</a-select-option>
-                  <a-select-option value="right">右键</a-select-option>
-                  <a-select-option value="middle">中键</a-select-option>
+                <a-select
+                  v-model:value="desktopForm.button"
+                  style="width: 100%"
+                >
+                  <a-select-option value="left">
+                    左键
+                  </a-select-option>
+                  <a-select-option value="right">
+                    右键
+                  </a-select-option>
+                  <a-select-option value="middle">
+                    中键
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
           </a-row>
-          <a-button :loading="loading.desktopClick" @click="handleDesktopClick">
-            <template #icon><AimOutlined /></template>
+          <a-button
+            :loading="loading.desktopClick"
+            @click="handleDesktopClick"
+          >
+            <template #icon>
+              <AimOutlined />
+            </template>
             桌面点击
           </a-button>
 
@@ -293,15 +475,25 @@
           <!-- 桌面输入 -->
           <h4>桌面输入</h4>
           <a-form-item label="文本内容">
-            <a-input v-model:value="desktopForm.text" placeholder="要输入的文本" />
+            <a-input
+              v-model:value="desktopForm.text"
+              placeholder="要输入的文本"
+            />
           </a-form-item>
           <a-space>
-            <a-button :loading="loading.desktopType" @click="handleDesktopType">
-              <template #icon><EditOutlined /></template>
+            <a-button
+              :loading="loading.desktopType"
+              @click="handleDesktopType"
+            >
+              <template #icon>
+                <EditOutlined />
+              </template>
               输入文本
             </a-button>
             <a-button @click="handleDesktopPaste">
-              <template #icon><SnippetsOutlined /></template>
+              <template #icon>
+                <SnippetsOutlined />
+              </template>
               粘贴剪贴板
             </a-button>
           </a-space>
@@ -311,28 +503,44 @@
           <!-- 快捷键 -->
           <h4>快捷键</h4>
           <a-form-item label="快捷键">
-            <a-input v-model:value="desktopForm.shortcut" placeholder="例如: Ctrl+C, Ctrl+Shift+S" />
+            <a-input
+              v-model:value="desktopForm.shortcut"
+              placeholder="例如: Ctrl+C, Ctrl+Shift+S"
+            />
           </a-form-item>
-          <a-button :loading="loading.shortcut" @click="handleDesktopShortcut">
-            <template #icon><ThunderboltOutlined /></template>
+          <a-button
+            :loading="loading.shortcut"
+            @click="handleDesktopShortcut"
+          >
+            <template #icon>
+              <ThunderboltOutlined />
+            </template>
             执行快捷键
           </a-button>
         </a-form>
 
         <!-- 桌面截图预览 -->
-        <a-modal v-model:open="desktopScreenshot.visible" title="桌面截图" width="80%">
+        <a-modal
+          v-model:open="desktopScreenshot.visible"
+          title="桌面截图"
+          width="80%"
+        >
           <img
             v-if="desktopScreenshot.data"
             :src="desktopScreenshot.data"
             style="width: 100%"
             alt="Desktop Screenshot"
-          />
+          >
         </a-modal>
       </a-tab-pane>
     </a-tabs>
 
     <!-- 分析结果模态框 -->
-    <a-modal v-model:open="analysisModal.visible" title="页面分析结果" width="60%">
+    <a-modal
+      v-model:open="analysisModal.visible"
+      title="页面分析结果"
+      width="60%"
+    >
       <a-typography-paragraph>
         <pre style="white-space: pre-wrap">{{ analysisModal.content }}</pre>
       </a-typography-paragraph>
@@ -444,8 +652,8 @@ const analysisModal = reactive({
 })
 
 const locateResultDescription = computed(() => {
-  if (!locateResult.value) return ''
-  if (!locateResult.value.found) return '未能在页面中找到匹配的元素'
+  if (!locateResult.value) {return ''}
+  if (!locateResult.value.found) {return '未能在页面中找到匹配的元素'}
   const el = locateResult.value.element
   return `位置: (${el.x}, ${el.y}), 大小: ${el.width}x${el.height}, 置信度: ${(locateResult.value.confidence * 100).toFixed(1)}%`
 })

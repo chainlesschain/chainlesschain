@@ -5,9 +5,15 @@
       <!-- 对话内容区 -->
       <div class="conversation-content">
         <!-- 消息列表 -->
-        <div ref="messagesContainerRef" class="messages-container">
+        <div
+          ref="messagesContainerRef"
+          class="messages-container"
+        >
           <!-- 对话操作栏 -->
-          <div v-if="messages.length > 0" class="conversation-actions">
+          <div
+            v-if="messages.length > 0"
+            class="conversation-actions"
+          >
             <a-button
               type="text"
               size="small"
@@ -22,17 +28,28 @@
           </div>
 
           <!-- 欢迎消息 -->
-          <div v-if="messages.length === 0" class="welcome-message">
+          <div
+            v-if="messages.length === 0"
+            class="welcome-message"
+          >
             <div class="welcome-icon">
               <RobotOutlined />
             </div>
             <h2>你好！我是 ChainlessChain AI 助手</h2>
             <p>我可以帮你完成各种任务，比如：</p>
             <div class="welcome-features">
-              <div class="feature-tag">💻 代码编写与调试</div>
-              <div class="feature-tag">📄 文档生成与编辑</div>
-              <div class="feature-tag">📊 数据分析与可视化</div>
-              <div class="feature-tag">🌐 网页开发与设计</div>
+              <div class="feature-tag">
+                💻 代码编写与调试
+              </div>
+              <div class="feature-tag">
+                📄 文档生成与编辑
+              </div>
+              <div class="feature-tag">
+                📊 数据分析与可视化
+              </div>
+              <div class="feature-tag">
+                🌐 网页开发与设计
+              </div>
             </div>
             <p class="welcome-hint">
               输入你的需求开始对话，或使用 @ 来引用知识库和文件
@@ -51,9 +68,15 @@
             :class="`message-${message.role}`"
           >
             <!-- 用户消息 -->
-            <div v-if="message.role === 'user'" class="message-wrapper">
+            <div
+              v-if="message.role === 'user'"
+              class="message-wrapper"
+            >
               <div class="message-avatar">
-                <a-avatar :src="userAvatar" :size="36">
+                <a-avatar
+                  :src="userAvatar"
+                  :size="36"
+                >
                   <template #icon>
                     <UserOutlined />
                   </template>
@@ -97,7 +120,10 @@
                   <span class="message-time">{{
                     formatTime(message.timestamp)
                   }}</span>
-                  <a-dropdown :trigger="['click']" class="save-memory-dropdown">
+                  <a-dropdown
+                    :trigger="['click']"
+                    class="save-memory-dropdown"
+                  >
                     <a-button
                       type="text"
                       size="small"
@@ -152,7 +178,10 @@
                 </div>
 
                 <!-- 预览内容 -->
-                <div v-if="message.preview" class="message-preview">
+                <div
+                  v-if="message.preview"
+                  class="message-preview"
+                >
                   <BrowserPreview
                     :preview-type="message.preview.type"
                     :url="message.preview.url"
@@ -167,7 +196,10 @@
           </div>
 
           <!-- AI思考中 -->
-          <div v-if="isThinking" class="message-item message-assistant">
+          <div
+            v-if="isThinking"
+            class="message-item message-assistant"
+          >
             <div class="message-wrapper">
               <div class="message-avatar">
                 <a-avatar

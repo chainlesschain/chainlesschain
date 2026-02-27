@@ -1,6 +1,9 @@
 <template>
   <div class="tx-sign-page">
-    <a-page-header :title="$t('ukey.txSign.title')" @back="handleBack" />
+    <a-page-header
+      :title="$t('ukey.txSign.title')"
+      @back="handleBack"
+    />
 
     <a-row :gutter="24">
       <!-- 左侧：交易详情 -->
@@ -17,29 +20,53 @@
           </div>
 
           <!-- 合约信息 -->
-          <a-descriptions bordered size="small" class="mt-3">
-            <a-descriptions-item :label="$t('ukey.txSign.chain')" :span="3">
+          <a-descriptions
+            bordered
+            size="small"
+            class="mt-3"
+          >
+            <a-descriptions-item
+              :label="$t('ukey.txSign.chain')"
+              :span="3"
+            >
               <a-tag>{{ txInfo.chain }}</a-tag>
             </a-descriptions-item>
-            <a-descriptions-item :label="$t('ukey.txSign.contract')" :span="3">
-              <a-typography-text code copyable>
+            <a-descriptions-item
+              :label="$t('ukey.txSign.contract')"
+              :span="3"
+            >
+              <a-typography-text
+                code
+                copyable
+              >
                 {{ txInfo.to }}
               </a-typography-text>
-              <a-tag v-if="txInfo.contractName" color="blue" class="ml-2">
+              <a-tag
+                v-if="txInfo.contractName"
+                color="blue"
+                class="ml-2"
+              >
                 {{ txInfo.contractName }}
               </a-tag>
-              <a-tag v-if="isWhitelisted" color="green">
+              <a-tag
+                v-if="isWhitelisted"
+                color="green"
+              >
                 ✓ {{ $t("ukey.txSign.whitelisted") }}
               </a-tag>
             </a-descriptions-item>
-            <a-descriptions-item :label="$t('ukey.txSign.method')" :span="3">
-              <code
-                >{{ txInfo.methodName }}({{
-                  formatParams(txInfo.params)
-                }})</code
-              >
+            <a-descriptions-item
+              :label="$t('ukey.txSign.method')"
+              :span="3"
+            >
+              <code>{{ txInfo.methodName }}({{
+                formatParams(txInfo.params)
+              }})</code>
             </a-descriptions-item>
-            <a-descriptions-item :label="$t('ukey.txSign.value')" :span="3">
+            <a-descriptions-item
+              :label="$t('ukey.txSign.value')"
+              :span="3"
+            >
               {{ txInfo.value || "0" }} ETH
             </a-descriptions-item>
             <a-descriptions-item
@@ -56,7 +83,10 @@
             size="small"
             :title="$t('ukey.txSign.assetChanges')"
           >
-            <a-list :data-source="assetChanges" size="small">
+            <a-list
+              :data-source="assetChanges"
+              size="small"
+            >
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta :title="item.token" />
@@ -70,7 +100,10 @@
           </a-card>
 
           <!-- 安全警告 -->
-          <div v-if="riskReport.warnings?.length > 0" class="mt-3">
+          <div
+            v-if="riskReport.warnings?.length > 0"
+            class="mt-3"
+          >
             <a-alert
               v-for="(warn, i) in riskReport.warnings"
               :key="i"
@@ -108,7 +141,10 @@
           </div>
 
           <!-- PIN 输入 -->
-          <a-form layout="vertical" class="mt-3">
+          <a-form
+            layout="vertical"
+            class="mt-3"
+          >
             <a-form-item :label="$t('ukey.txSign.pinCode')">
               <a-input-password
                 v-model:value="pin"
@@ -122,14 +158,20 @@
               v-if="requireBiometric"
               :label="$t('ukey.txSign.biometric')"
             >
-              <a-button block @click="showBiometricPrompt = true">
+              <a-button
+                block
+                @click="showBiometricPrompt = true"
+              >
                 🖐 {{ $t("ukey.txSign.useBiometric") }}
               </a-button>
             </a-form-item>
           </a-form>
 
           <!-- 加入白名单 -->
-          <a-checkbox v-model:checked="addToWhitelist" class="mt-2">
+          <a-checkbox
+            v-model:checked="addToWhitelist"
+            class="mt-2"
+          >
             {{ $t("ukey.txSign.addToWhitelist") }}
           </a-checkbox>
 
@@ -170,7 +212,10 @@
             "
             :sub-title="signResult.txHash || signResult.error"
           >
-            <template v-if="signResult.txHash" #extra>
+            <template
+              v-if="signResult.txHash"
+              #extra
+            >
               <a-button
                 type="link"
                 :href="`https://etherscan.io/tx/${signResult.txHash}`"

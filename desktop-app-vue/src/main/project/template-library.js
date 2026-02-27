@@ -48,7 +48,7 @@ class TemplateLibraryManager {
    * 初始化模板库
    */
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
 
     try {
       // 确保配置目录存在
@@ -199,7 +199,7 @@ class TemplateLibraryManager {
 
       const customResults = Object.values(this.customTemplates)
         .filter((template) => {
-          if (!lowerQuery) return true;
+          if (!lowerQuery) {return true;}
 
           const matchName = template.name.toLowerCase().includes(lowerQuery);
           const matchDescription = template.description
@@ -646,7 +646,7 @@ class TemplateLibraryManager {
    * @private
    */
   async _scanDirectory(basePath, relativePath, directories, files, maxDepth = 10) {
-    if (maxDepth <= 0) return;
+    if (maxDepth <= 0) {return;}
 
     const currentPath = path.join(basePath, relativePath);
 

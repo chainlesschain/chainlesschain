@@ -33,7 +33,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
   // SOC 2 Evidence Collection
   ipcMain.handle("compliance:collect-audit-evidence", async (_event, options) => {
     try {
-      if (!soc2Compliance) throw new Error("SOC2 Compliance not initialized");
+      if (!soc2Compliance) {throw new Error("SOC2 Compliance not initialized");}
       return { success: true, evidence: await soc2Compliance.collectAuditLogEvidence(options) };
     } catch (error) {
       logger.error("[Compliance IPC] Collect audit evidence failed:", error);
@@ -43,7 +43,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:collect-access-evidence", async () => {
     try {
-      if (!soc2Compliance) throw new Error("SOC2 Compliance not initialized");
+      if (!soc2Compliance) {throw new Error("SOC2 Compliance not initialized");}
       return { success: true, evidence: await soc2Compliance.collectAccessControlEvidence() };
     } catch (error) {
       logger.error("[Compliance IPC] Collect access evidence failed:", error);
@@ -53,7 +53,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:collect-config-evidence", async () => {
     try {
-      if (!soc2Compliance) throw new Error("SOC2 Compliance not initialized");
+      if (!soc2Compliance) {throw new Error("SOC2 Compliance not initialized");}
       return { success: true, evidence: await soc2Compliance.collectConfigurationEvidence() };
     } catch (error) {
       logger.error("[Compliance IPC] Collect config evidence failed:", error);
@@ -63,7 +63,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:generate-report", async (_event, options) => {
     try {
-      if (!soc2Compliance) throw new Error("SOC2 Compliance not initialized");
+      if (!soc2Compliance) {throw new Error("SOC2 Compliance not initialized");}
       return { success: true, report: await soc2Compliance.generateReport(options) };
     } catch (error) {
       logger.error("[Compliance IPC] Generate report failed:", error);
@@ -73,7 +73,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:verify-evidence", async (_event, { evidenceId, verifiedBy }) => {
     try {
-      if (!soc2Compliance) throw new Error("SOC2 Compliance not initialized");
+      if (!soc2Compliance) {throw new Error("SOC2 Compliance not initialized");}
       return await soc2Compliance.verifyEvidence(evidenceId, verifiedBy);
     } catch (error) {
       logger.error("[Compliance IPC] Verify evidence failed:", error);
@@ -83,7 +83,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:get-evidence", async (_event, { criteria }) => {
     try {
-      if (!soc2Compliance) throw new Error("SOC2 Compliance not initialized");
+      if (!soc2Compliance) {throw new Error("SOC2 Compliance not initialized");}
       const evidence = await soc2Compliance.getEvidenceByCriteria(criteria);
       return { success: true, evidence };
     } catch (error) {
@@ -95,7 +95,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
   // Data Classification
   ipcMain.handle("compliance:classify-content", async (_event, { content, options }) => {
     try {
-      if (!dataClassifier) throw new Error("Data Classifier not initialized");
+      if (!dataClassifier) {throw new Error("Data Classifier not initialized");}
       return { success: true, result: await dataClassifier.classify(content, options) };
     } catch (error) {
       logger.error("[Compliance IPC] Classify content failed:", error);
@@ -105,7 +105,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:batch-scan", async (_event, { items }) => {
     try {
-      if (!dataClassifier) throw new Error("Data Classifier not initialized");
+      if (!dataClassifier) {throw new Error("Data Classifier not initialized");}
       return { success: true, ...(await dataClassifier.batchScan(items)) };
     } catch (error) {
       logger.error("[Compliance IPC] Batch scan failed:", error);
@@ -115,7 +115,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:get-classifications", async (_event, options) => {
     try {
-      if (!dataClassifier) throw new Error("Data Classifier not initialized");
+      if (!dataClassifier) {throw new Error("Data Classifier not initialized");}
       const records = await dataClassifier.getHistory(options);
       return { success: true, records };
     } catch (error) {
@@ -127,7 +127,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
   // Classification Policy
   ipcMain.handle("compliance:auto-tag", async (_event, { contentId, classificationResult }) => {
     try {
-      if (!classificationPolicy) throw new Error("Classification Policy not initialized");
+      if (!classificationPolicy) {throw new Error("Classification Policy not initialized");}
       return { success: true, tag: await classificationPolicy.autoTag(contentId, classificationResult) };
     } catch (error) {
       logger.error("[Compliance IPC] Auto-tag failed:", error);
@@ -137,7 +137,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:get-policies", async () => {
     try {
-      if (!classificationPolicy) throw new Error("Classification Policy not initialized");
+      if (!classificationPolicy) {throw new Error("Classification Policy not initialized");}
       return { success: true, policies: classificationPolicy.getPolicies() };
     } catch (error) {
       logger.error("[Compliance IPC] Get policies failed:", error);
@@ -147,7 +147,7 @@ function registerComplianceIPC({ soc2Compliance, dataClassifier, classificationP
 
   ipcMain.handle("compliance:check-access", async (_event, { requiredLevel, userClearance }) => {
     try {
-      if (!classificationPolicy) throw new Error("Classification Policy not initialized");
+      if (!classificationPolicy) {throw new Error("Classification Policy not initialized");}
       const allowed = classificationPolicy.checkAccess(requiredLevel, userClearance);
       return { success: true, allowed };
     } catch (error) {

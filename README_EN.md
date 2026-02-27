@@ -19,11 +19,130 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v1.1.0 Enterprise Edition (2026-02-25)
+## ⭐ Current Version: v1.1.0-alpha Enterprise Edition (2026-02-27)
 
-### Latest Updates - Cowork Decentralized Agent Network + Autonomous Ops + Pipeline Orchestration + Multimodal Collab + NL Programming
+### Latest Updates - Q2 2026 Full Upgrade (Phase 41-45)
 
-**Decentralized Agent Network (v4.0)** + **Autonomous Ops (v3.3)** + **Dev Pipeline Orchestration (v3.0)** + **Multimodal Collaboration (v3.2)** + **Natural Language Programming (v3.1)** - 72 new IPC handlers, 7 new DB tables, 5 major new Cowork subsystems
+**Phase 41-45 Complete Implementation** - EvoMap Global Knowledge Sharing + Social AI + Enterprise Compliance + SCIM 2.0 + Unified Key System, totaling 71 new IPC handlers, 13 new database tables, 4 new frontend routes
+
+#### Phase 42-45 - Q2 2026 Enterprise Feature Expansion (2026-02-27)
+
+**Phase 42 — Social AI + ActivityPub** (18 IPC handlers):
+
+- ✅ **Topic Analyzer** (`social/topic-analyzer.js`) - NLP topic extraction, TF-IDF keywords, sentiment analysis, 9 predefined categories, similarity matching
+- ✅ **Social Graph** (`social/social-graph.js`) - Social relationship graph, centrality analysis (degree/closeness/betweenness/eigenvector), community detection (Louvain), influence scoring, pathfinding
+- ✅ **ActivityPub Bridge** (`social/activitypub-bridge.js`) - W3C ActivityPub S2S protocol, Actor management, Activity pub/receive, Inbox/Outbox, Follow/Like/Announce
+- ✅ **AP Content Sync** (`social/ap-content-sync.js`) - Bidirectional content sync, DID→Actor mapping, Markdown→HTML conversion, media attachment handling, local content publishing to Fediverse
+- ✅ **AP WebFinger** (`social/ap-webfinger.js`) - RFC 7033 WebFinger protocol, user discovery, acct:URI parsing, Actor resource location
+- ✅ **AI Social Assistant** (`social/ai-social-assistant.js`) - 3 reply styles (concise/detailed/humorous), smart reply generation, content summarization, topic recommendations
+- ✅ **Extended Social IPC** (`social/social-ipc.js`) - 60→78 IPC handlers (+18 new), complete Social AI integration
+- ✅ **Pinia Store** (`stores/socialAI.ts`) - Social AI state management, topic analysis, graph queries, ActivityPub operations
+- ✅ **Frontend UI** - SocialInsightsPage + ActivityPubBridgePage
+
+**Phase 43 — Compliance + Data Classification** (12 IPC handlers):
+
+- ✅ **SOC2 Compliance** (`audit/soc2-compliance.js`) - SOC2 compliance framework, 5 Trust Service Criteria (TSC), control point checks, evidence collection, compliance report generation
+- ✅ **Data Classifier** (`audit/data-classifier.js`) - Data classification engine, 4 levels (PUBLIC/INTERNAL/CONFIDENTIAL/RESTRICTED), ML classifier, rules engine, sensitive data scanning
+- ✅ **Classification Policy** (`audit/classification-policy.js`) - Classification policy management, field-level rules, auto-tagging, encryption policy mapping, access control integration
+- ✅ **Data Subject Handler** (`audit/data-subject-handler.js`) - GDPR Data Subject Requests (DSR) processing, export/delete/rectify, request workflow, audit logging
+- ✅ **Compliance Manager** (`audit/compliance-manager.js`) - Unified compliance manager, multi-framework support (GDPR/SOC2/ISO27001/HIPAA), compliance check scheduling, risk scoring
+- ✅ **Compliance IPC** (`audit/compliance-ipc.js`) - 12 IPC handlers (SOC2 checks/evidence/classification/policy/DSR/compliance/reports)
+- ✅ **Pinia Store** (`stores/compliance.ts`) - Compliance state management, check execution, report generation, evidence management
+- ✅ **Frontend UI** - ComplianceDashboardPage (evidence collection/classification/DSR/report export)
+
+**Phase 44 — SCIM 2.0 Enterprise Provisioning** (8 IPC handlers):
+
+- ✅ **SCIM Server** (`enterprise/scim-server.js`) - RFC 7644 SCIM 2.0 protocol server, User/Group resource management, RESTful API (GET/POST/PUT/PATCH/DELETE), filtering/sorting/pagination, bulk operations
+- ✅ **SCIM Sync** (`enterprise/scim-sync.js`) - IdP bidirectional sync engine, incremental sync, conflict resolution (IdP-first/local-first/latest-first), change tracking, sync logging
+- ✅ **SCIM IPC** (`enterprise/scim-ipc.js`) - 8 IPC handlers (start/stop server, sync User/Group, resolve conflicts, query logs)
+- ✅ **Extended Org Manager** - Enterprise org manager extension, SCIM resource mapping, attribute transformation, Schema management
+- ✅ **Pinia Store** - SCIM state management, server control, sync operations, log monitoring
+- ✅ **Frontend UI** - SCIMIntegrationPage (IdP config/resource management/sync control/log viewer)
+
+**Phase 45 — Unified Key + FIDO2 + Cross-Platform USB** (8 IPC handlers):
+
+- ✅ **Unified Key Manager** (`ukey/unified-key-manager.js`) - BIP-32 hierarchical deterministic keys, single master key derives unlimited child keys, purpose isolation (signing/encryption/auth), export/import, key rotation
+- ✅ **FIDO2 Authenticator** (`ukey/fido2-authenticator.js`) - W3C WebAuthn standard, CTAP2 protocol, Passkey passwordless auth, challenge-response, Resident Keys, UV/UP verification
+- ✅ **USB Transport** (`ukey/usb-transport.js`) - Cross-platform USB communication, Windows (node-usb)/macOS (IOKit via Koffi)/Linux (libusb), device enumeration, bulk transfer, APDU encapsulation
+- ✅ **WebUSB Fallback** (`ukey/webusb-fallback.js`) - Browser WebUSB API fallback, device request, permission management, vendorId/productId filtering
+- ✅ **Extended UKey IPC** (`ukey/ukey-ipc.js`) - 9→17 IPC handlers (+8 new), unified key operations, FIDO2 auth, USB device management
+- ✅ **Extended Driver Registry** - Driver registry extension, 5 new driver types (FIDO2/BIP32/TPM2/TEE/Satellite)
+- ✅ **Pinia Store** - Unified key state management, FIDO2 auth flow, USB device monitoring
+
+**New Database Tables** (10 new tables):
+
+- ✅ `topic_analyses` - Topic analysis cache (content_hash, topics JSON, keywords JSON, sentiment, category)
+- ✅ `social_graph_edges` - Social graph edges (source_did, target_did, edge_type, weight, metadata JSON)
+- ✅ `activitypub_actors` - ActivityPub Actors (actor_uri, did, inbox, outbox, public_key, follower_count)
+- ✅ `activitypub_activities` - Activity objects (activity_id, type, actor, object, published, raw JSON)
+- ✅ `soc2_evidence` - SOC2 evidence (control_id, evidence_type, file_path, collected_at, metadata JSON)
+- ✅ `data_classifications` - Data classifications (table_name, column_name, classification_level, policy_id, classified_at)
+- ✅ `scim_resources` - SCIM resource mapping (scim_id, resource_type, local_id, attributes JSON, meta JSON)
+- ✅ `scim_sync_log` - SCIM sync log (sync_type, direction, status, records_synced, conflicts, details JSON)
+- ✅ `unified_keys` - Unified keys (key_id, purpose, derivation_path, public_key, encrypted_private_key, created_at)
+- ✅ `fido2_credentials` - FIDO2 credentials (credential_id, rp_id, user_handle, public_key, sign_count, aaguid, created_at)
+
+**New Configuration Sections** (5 new sections):
+
+- ✅ `socialAI` - Topic analysis/graph/ActivityPub config
+- ✅ `activitypub` - Instance name/domain/admin/description
+- ✅ `compliance` - Compliance frameworks/check intervals/evidence path
+- ✅ `scim` - SCIM server port/auth/sync strategy
+- ✅ `unifiedKey` - Key derivation/FIDO2 RP/USB config
+
+**Context Engineering Integration**:
+
+- ✅ step 4.9: Social graph context injection (`setSocialGraph()`)
+- ✅ step 4.10: Compliance policy context injection (`setComplianceManager()`)
+
+**Frontend Integration**:
+
+- ✅ 4 new routes: `/social-insights`, `/activitypub-bridge`, `/compliance-dashboard`, `/scim-integration`
+- ✅ 3 new Pinia Stores: `socialAI.ts`, `compliance.ts`, UKey store extension
+- ✅ IPC Registry: Phase 42(18) + Phase 43(12) + Phase 44(8) + Phase 45(8) = 46 new IPC handlers
+
+#### Phase 41 - EvoMap Global Agent Knowledge Sharing Network (2026-02-26)
+
+**EvoMap GEP-A2A Protocol Integration (v1.0.0)** (5 core modules, 25 IPC handlers, 3 new tables):
+
+- ✅ **EvoMap Client** (`evomap-client.js`) - GEP-A2A v1.0.0 protocol client, HTTP communication, protocol envelope encapsulation, retry mechanism, Asset ID calculation (SHA-256)
+- ✅ **Node Manager** (`evomap-node-manager.js`) - Node identity management, auto heartbeat (15min), credit accumulation, DID identity mapping, node registration/discovery
+- ✅ **Gene Synthesizer** (`evomap-gene-synthesizer.js`) - Local knowledge→Gene+Capsule conversion, privacy filtering (secret detection/path anonymization/email replacement), category mapping
+- ✅ **Asset Bridge** (`evomap-asset-bridge.js`) - Bidirectional sync engine, publish/fetch/import flow, user review gate, context building, asset cache
+- ✅ **EvoMap IPC** (`evomap-ipc.js`) - 25 IPC handlers (node 5 + publish 5 + discovery 5 + import 3 + task 4 + config 3)
+- ✅ **Pinia Store** (`evomap.ts`) - Complete state management, 5 Getters, 20+ Actions, TypeScript type safety
+- ✅ **Frontend UI** - EvoMapDashboard + EvoMapBrowser, 2 new routes
+
+**Core Features**:
+
+- 🧬 **Knowledge Synthesis**: Instinct→Gene+Capsule, Decision→Gene+Capsule, Workflow→Recipe
+- 🌐 **Bidirectional Sync**: Publish local knowledge to Hub, fetch community-validated strategies locally
+- 🔒 **Privacy First**: opt-in design, content anonymization, secret detection, user review gate
+- 💡 **Context Injection**: Fetched community knowledge auto-injected to LLM prompts (Context Engineering step 4.8)
+- 💰 **Credit Economy**: Node registration, credit accumulation, heartbeat maintains online status
+- 🎯 **Task Bounties**: Browse and claim community tasks, submit results for credits
+- 📦 **Asset Import**: Gene→Skill (SKILL.md), Capsule→Instinct (instincts table)
+
+**New Database Tables** (3 tables):
+
+- ✅ `evomap_node` - Node identity storage (node_id, DID mapping, credits, reputation, claim_code)
+- ✅ `evomap_assets` - Asset cache (asset_id, type, status, direction, content JSON, gdi_score)
+- ✅ `evomap_sync_log` - Sync log (action, asset_id, status, details JSON)
+
+**Frontend Integration**:
+
+- ✅ 2 new routes: `/evomap` (dashboard) + `/evomap/browser` (asset browser)
+- ✅ Pinia Store: `stores/evomap.ts` (~450 lines, full TypeScript types)
+- ✅ Config integration: `unified-config-manager.js` new `evomap` config section
+- ✅ IPC Registry: Phase 41 block registered in `ipc-registry.js`
+- ✅ Context Engineering: step 4.8 auto-injects community knowledge to LLM prompts
+
+**Security & Privacy**:
+
+- 🔐 Default opt-in, users must actively enable
+- 🔐 Auto privacy filtering before publishing: path/email/secret detection
+- 🔐 User review gate: requireReview: true
+- 🔐 Import Instinct confidence capped at 0.7, avoid blind trust
 
 #### v1.1.0 - Cowork Decentralized Agent Network + Autonomous Ops + Pipeline Orchestration + Multimodal Collab + NL Programming (2026-02-25)
 

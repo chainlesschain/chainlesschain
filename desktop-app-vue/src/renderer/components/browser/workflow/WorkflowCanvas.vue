@@ -1,5 +1,9 @@
 <template>
-  <div class="workflow-canvas" @dragover.prevent @drop="handleDrop">
+  <div
+    class="workflow-canvas"
+    @dragover.prevent
+    @drop="handleDrop"
+  >
     <!-- Start Node -->
     <div class="start-node">
       <div class="node-icon start">
@@ -9,7 +13,10 @@
     </div>
 
     <!-- Connection Line -->
-    <div v-if="steps.length > 0" class="connection-line" />
+    <div
+      v-if="steps.length > 0"
+      class="connection-line"
+    />
 
     <!-- Steps -->
     <draggable
@@ -30,13 +37,19 @@
             @click="$emit('select-step', element)"
             @delete="$emit('delete-step', element.id)"
           />
-          <div v-if="index < steps.length - 1" class="connection-line" />
+          <div
+            v-if="index < steps.length - 1"
+            class="connection-line"
+          />
         </div>
       </template>
     </draggable>
 
     <!-- End Node -->
-    <div v-if="steps.length > 0" class="end-node">
+    <div
+      v-if="steps.length > 0"
+      class="end-node"
+    >
       <div class="connection-line" />
       <div class="node-icon end">
         <CheckCircleOutlined />
@@ -45,13 +58,19 @@
     </div>
 
     <!-- Empty State -->
-    <div v-if="steps.length === 0" class="empty-state">
+    <div
+      v-if="steps.length === 0"
+      class="empty-state"
+    >
       <InboxOutlined />
       <p>Drag steps here or click to add</p>
     </div>
 
     <!-- Execution Progress Overlay -->
-    <div v-if="isExecuting" class="execution-overlay">
+    <div
+      v-if="isExecuting"
+      class="execution-overlay"
+    >
       <a-progress
         type="circle"
         :percent="executionProgress"

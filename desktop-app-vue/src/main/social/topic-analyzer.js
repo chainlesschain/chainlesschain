@@ -84,7 +84,7 @@ class TopicAnalyzer extends EventEmitter {
 
   async _llmChat(systemPrompt, userMessage) {
     try {
-      if (!this._isLLMAvailable()) return null;
+      if (!this._isLLMAvailable()) {return null;}
 
       const messages = [
         { role: "system", content: systemPrompt },
@@ -102,7 +102,7 @@ class TopicAnalyzer extends EventEmitter {
           : result.content.toString();
       }
       return null;
-    } catch (error) {
+    } catch (_error) {
       logger.warn("[TopicAnalyzer] LLM chat failed:", error.message);
       return null;
     }
@@ -149,7 +149,7 @@ Reply with ONLY valid JSON, no markdown.`;
           }
 
           return analysis;
-        } catch (parseError) {
+        } catch (_parseError) {
           logger.warn("[TopicAnalyzer] Failed to parse LLM JSON:", parseError.message);
         }
       }
@@ -180,7 +180,7 @@ Reply with ONLY valid JSON, no markdown.`;
       }
 
       return analysis;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[TopicAnalyzer] Failed to analyze topics:", error);
       throw error;
     }
@@ -219,7 +219,7 @@ Reply with ONLY valid JSON, no markdown.`;
               topicCounts[key] = (topicCounts[key] || 0) + 1;
             }
           }
-        } catch (_) {
+        } catch {
           // skip malformed
         }
       }
@@ -228,7 +228,7 @@ Reply with ONLY valid JSON, no markdown.`;
         .sort((a, b) => b[1] - a[1])
         .slice(0, limit)
         .map(([topic, count]) => ({ topic, count }));
-    } catch (error) {
+    } catch (_error) {
       logger.error("[TopicAnalyzer] Failed to get trending topics:", error);
       return [];
     }
@@ -264,7 +264,7 @@ Reply with ONLY valid JSON, no markdown.`;
         distribution,
         count: results.length,
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[TopicAnalyzer] Batch sentiment failed:", error);
       throw error;
     }
@@ -272,7 +272,7 @@ Reply with ONLY valid JSON, no markdown.`;
 
   async _saveAnalysis(contentId, contentType, analysis) {
     try {
-      if (!this.database || !this.database.db) return;
+      if (!this.database || !this.database.db) {return;}
 
       const id = uuidv4();
 
@@ -296,7 +296,7 @@ Reply with ONLY valid JSON, no markdown.`;
         );
 
       this.database.saveToFile();
-    } catch (error) {
+    } catch (_error) {
       logger.warn("[TopicAnalyzer] Failed to save analysis:", error.message);
     }
   }
@@ -308,14 +308,14 @@ Reply with ONLY valid JSON, no markdown.`;
    */
   async getAnalysisHistory(contentId) {
     try {
-      if (!this.database || !this.database.db) return [];
+      if (!this.database || !this.database.db) {return [];}
 
       return this.database.db
         .prepare(
           `SELECT * FROM topic_analyses WHERE content_id = ? ORDER BY created_at DESC LIMIT 10`,
         )
         .all(contentId);
-    } catch (error) {
+    } catch (_error) {
       logger.error("[TopicAnalyzer] Failed to get analysis history:", error);
       return [];
     }
@@ -330,7 +330,7 @@ Reply with ONLY valid JSON, no markdown.`;
 
 let _instance;
 function getTopicAnalyzer() {
-  if (!_instance) _instance = new TopicAnalyzer();
+  if (!_instance) {_instance = new TopicAnalyzer();}
   return _instance;
 }
 

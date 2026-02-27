@@ -29,7 +29,10 @@
         title="进行中的传输"
         class="active-transfers-card"
       >
-        <a-list :data-source="activeTransfers" :loading="loading">
+        <a-list
+          :data-source="activeTransfers"
+          :loading="loading"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <template #actions>
@@ -74,23 +77,24 @@
                   <div class="transfer-info">
                     <span>{{ formatFileSize(item.fileSize) }}</span>
                     <a-divider type="vertical" />
-                    <span
-                      >{{
-                        item.direction === "outgoing" ? "发送至" : "接收自"
-                      }}: {{ item.peerName }}</span
-                    >
+                    <span>{{
+                      item.direction === "outgoing" ? "发送至" : "接收自"
+                    }}: {{ item.peerName }}</span>
                     <a-divider type="vertical" />
                     <span>{{ formatRelativeTime(item.timestamp) }}</span>
                   </div>
                   <a-progress
                     v-if="
                       item.status === 'uploading' ||
-                      item.status === 'downloading'
+                        item.status === 'downloading'
                     "
                     :percent="item.progress"
                     :status="item.status === 'error' ? 'exception' : 'active'"
                   />
-                  <div v-if="item.speed" class="transfer-speed">
+                  <div
+                    v-if="item.speed"
+                    class="transfer-speed"
+                  >
                     速度: {{ formatSpeed(item.speed) }}
                   </div>
                 </template>
@@ -101,7 +105,10 @@
       </a-card>
 
       <!-- Transfer History -->
-      <a-card title="传输历史" class="history-card">
+      <a-card
+        title="传输历史"
+        class="history-card"
+      >
         <template #extra>
           <a-space>
             <a-select
@@ -109,11 +116,20 @@
               style="width: 120px"
               @change="handleFilterChange"
             >
-              <a-select-option value="all"> 全部 </a-select-option>
-              <a-select-option value="outgoing"> 发送的 </a-select-option>
-              <a-select-option value="incoming"> 接收的 </a-select-option>
+              <a-select-option value="all">
+                全部
+              </a-select-option>
+              <a-select-option value="outgoing">
+                发送的
+              </a-select-option>
+              <a-select-option value="incoming">
+                接收的
+              </a-select-option>
             </a-select>
-            <a-button size="small" @click="handleClearHistory">
+            <a-button
+              size="small"
+              @click="handleClearHistory"
+            >
               <DeleteOutlined />
               清空历史
             </a-button>
@@ -162,7 +178,7 @@
                 <a-button
                   v-if="
                     record.status === 'completed' &&
-                    record.direction === 'incoming'
+                      record.direction === 'incoming'
                   "
                   size="small"
                   @click="handleOpenFile(record)"
@@ -178,7 +194,11 @@
                   <RedoOutlined />
                   重新发送
                 </a-button>
-                <a-button size="small" danger @click="handleDelete(record)">
+                <a-button
+                  size="small"
+                  danger
+                  @click="handleDelete(record)"
+                >
                   <DeleteOutlined />
                   删除
                 </a-button>

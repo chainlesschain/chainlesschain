@@ -7,7 +7,10 @@
 
     <a-tabs v-model:active-key="activeTab">
       <!-- 设备管理 -->
-      <a-tab-pane key="devices" :tab="$t('ukey.hwWallet.devices')">
+      <a-tab-pane
+        key="devices"
+        :tab="$t('ukey.hwWallet.devices')"
+      >
         <a-card>
           <device-picker
             :connected-wallet="connectedWallet"
@@ -45,7 +48,10 @@
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'address'">
-                <a-typography-text code copyable>
+                <a-typography-text
+                  code
+                  copyable
+                >
                   {{ record.address }}
                 </a-typography-text>
               </template>
@@ -67,14 +73,20 @@
       </a-tab-pane>
 
       <!-- 双设备签名 -->
-      <a-tab-pane key="multisign" :tab="$t('ukey.hwWallet.multiSign')">
+      <a-tab-pane
+        key="multisign"
+        :tab="$t('ukey.hwWallet.multiSign')"
+      >
         <a-card :title="$t('ukey.hwWallet.dualSign')">
           <a-descriptions
             :title="$t('ukey.hwWallet.dualSignExplain')"
             bordered
             size="small"
           >
-            <a-descriptions-item :label="$t('ukey.hwWallet.lowRisk')" :span="3">
+            <a-descriptions-item
+              :label="$t('ukey.hwWallet.lowRisk')"
+              :span="3"
+            >
               {{ $t("ukey.hwWallet.lowRiskMethod") }}
             </a-descriptions-item>
             <a-descriptions-item
@@ -85,9 +97,15 @@
             </a-descriptions-item>
           </a-descriptions>
 
-          <a-form layout="vertical" class="mt-4">
+          <a-form
+            layout="vertical"
+            class="mt-4"
+          >
             <a-form-item :label="$t('ukey.hwWallet.ukeyStatus')">
-              <a-badge status="success" :text="$t('ukey.hwWallet.connected')" />
+              <a-badge
+                status="success"
+                :text="$t('ukey.hwWallet.connected')"
+              />
             </a-form-item>
             <a-form-item :label="$t('ukey.hwWallet.hwWalletStatus')">
               <a-badge
@@ -110,13 +128,21 @@
         :disabled="!connectedWallet"
       >
         <a-card>
-          <a-descriptions v-if="deviceInfo" bordered size="small">
+          <a-descriptions
+            v-if="deviceInfo"
+            bordered
+            size="small"
+          >
             <a-descriptions-item :label="$t('ukey.hwWallet.model')">
               {{ deviceInfo.model }}
             </a-descriptions-item>
             <a-descriptions-item :label="$t('ukey.hwWallet.firmwareVersion')">
               {{ deviceInfo.firmware }}
-              <a-tag v-if="firmwareUpdateAvailable" color="orange" class="ml-2">
+              <a-tag
+                v-if="firmwareUpdateAvailable"
+                color="orange"
+                class="ml-2"
+              >
                 {{ $t("ukey.hwWallet.updateAvailable") }}
               </a-tag>
             </a-descriptions-item>

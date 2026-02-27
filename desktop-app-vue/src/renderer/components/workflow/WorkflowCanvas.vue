@@ -1,5 +1,9 @@
 <template>
-  <div class="workflow-canvas" @drop="onDrop" @dragover.prevent>
+  <div
+    class="workflow-canvas"
+    @drop="onDrop"
+    @dragover.prevent
+  >
     <VueFlow
       :nodes="nodes"
       :edges="edges"
@@ -10,7 +14,10 @@
       @node-drag-stop="onNodeDragStop"
       @connect="onConnect"
     >
-      <Background pattern-color="#aaa" :gap="16" />
+      <Background
+        pattern-color="#aaa"
+        :gap="16"
+      />
       <Controls />
       <MiniMap />
     </VueFlow>

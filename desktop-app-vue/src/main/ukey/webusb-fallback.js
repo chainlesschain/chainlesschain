@@ -155,7 +155,7 @@ class WebUSBFallback extends EventEmitter {
 
 let _instance;
 function getWebUSBFallback() {
-  if (!_instance) _instance = new WebUSBFallback();
+  if (!_instance) {_instance = new WebUSBFallback();}
   return _instance;
 }
 

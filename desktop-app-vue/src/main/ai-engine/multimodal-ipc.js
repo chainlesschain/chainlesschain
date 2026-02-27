@@ -21,7 +21,7 @@ function registerMultimodalIPC({ multimodalRouter, mainWindow }) {
 
   // 1. 自动路由处理
   ipcMain.handle("multimodal:process", async (event, input) => {
-    if (!router) throw new Error("MultimodalRouter not initialized");
+    if (!router) {throw new Error("MultimodalRouter not initialized");}
     return await router.processInput(input);
   });
 
@@ -29,7 +29,7 @@ function registerMultimodalIPC({ multimodalRouter, mainWindow }) {
   ipcMain.handle(
     "multimodal:analyze-image",
     async (event, { imagePath, prompt }) => {
-      if (!router) throw new Error("MultimodalRouter not initialized");
+      if (!router) {throw new Error("MultimodalRouter not initialized");}
       return await router.analyzeImage(imagePath, prompt);
     },
   );
@@ -38,7 +38,7 @@ function registerMultimodalIPC({ multimodalRouter, mainWindow }) {
   ipcMain.handle(
     "multimodal:transcribe-audio",
     async (event, { audioPath, options }) => {
-      if (!router) throw new Error("MultimodalRouter not initialized");
+      if (!router) {throw new Error("MultimodalRouter not initialized");}
       return await router.transcribeAudio(audioPath, options);
     },
   );
@@ -47,38 +47,38 @@ function registerMultimodalIPC({ multimodalRouter, mainWindow }) {
   ipcMain.handle(
     "multimodal:analyze-video",
     async (event, { videoPath, prompt }) => {
-      if (!router) throw new Error("MultimodalRouter not initialized");
+      if (!router) {throw new Error("MultimodalRouter not initialized");}
       return await router.analyzeVideo(videoPath, prompt);
     },
   );
 
   // 5. 多模态对话
   ipcMain.handle("multimodal:chat", async (event, { messages }) => {
-    if (!router) throw new Error("MultimodalRouter not initialized");
+    if (!router) {throw new Error("MultimodalRouter not initialized");}
     return await router.multimodalChat(messages);
   });
 
   // 6. 获取可用能力
   ipcMain.handle("multimodal:get-capabilities", async () => {
-    if (!router) return {};
+    if (!router) {return {};}
     return router.getCapabilities();
   });
 
   // 7. 获取会话
   ipcMain.handle("multimodal:get-session", async (event, { sessionId }) => {
-    if (!router) return null;
+    if (!router) {return null;}
     return await router.getSession(sessionId);
   });
 
   // 8. 列出会话
   ipcMain.handle("multimodal:list-sessions", async (event, params) => {
-    if (!router) return { sessions: [], total: 0 };
+    if (!router) {return { sessions: [], total: 0 };}
     return await router.listSessions(params);
   });
 
   // 9. 删除会话
   ipcMain.handle("multimodal:delete-session", async (event, { sessionId }) => {
-    if (!router) return false;
+    if (!router) {return false;}
     return await router.deleteSession(sessionId);
   });
 
@@ -86,20 +86,20 @@ function registerMultimodalIPC({ multimodalRouter, mainWindow }) {
   ipcMain.handle(
     "multimodal:configure",
     async (event, { modality, settings }) => {
-      if (!router) throw new Error("MultimodalRouter not initialized");
+      if (!router) {throw new Error("MultimodalRouter not initialized");}
       return await router.configure(modality, settings);
     },
   );
 
   // 11. 健康检查
   ipcMain.handle("multimodal:check-health", async () => {
-    if (!router) return {};
+    if (!router) {return {};}
     return await router.checkHealth();
   });
 
   // 12. 使用统计
   ipcMain.handle("multimodal:get-stats", async () => {
-    if (!router) return {};
+    if (!router) {return {};}
     return await router.getStats();
   });
 

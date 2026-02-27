@@ -2,7 +2,11 @@
   <div class="compliance-dashboard">
     <a-page-header title="合规管理仪表板">
       <template #extra>
-        <a-button type="primary" :loading="auditStore.loading" @click="handleGenerateReport">
+        <a-button
+          type="primary"
+          :loading="auditStore.loading"
+          @click="handleGenerateReport"
+        >
           <FileTextOutlined /> 生成报告
         </a-button>
       </template>
@@ -10,9 +14,18 @@
 
     <div class="dashboard-content">
       <!-- Compliance Score Overview -->
-      <a-row :gutter="[16, 16]" class="score-overview">
-        <a-col :xs="24" :sm="8">
-          <a-card title="GDPR" class="score-card">
+      <a-row
+        :gutter="[16, 16]"
+        class="score-overview"
+      >
+        <a-col
+          :xs="24"
+          :sm="8"
+        >
+          <a-card
+            title="GDPR"
+            class="score-card"
+          >
             <div class="score-circle">
               <a-progress
                 type="circle"
@@ -21,11 +34,19 @@
                 :format="(p: number) => `${p}%`"
               />
             </div>
-            <div class="score-label">GDPR 合规分数</div>
+            <div class="score-label">
+              GDPR 合规分数
+            </div>
           </a-card>
         </a-col>
-        <a-col :xs="24" :sm="8">
-          <a-card title="SOC2" class="score-card">
+        <a-col
+          :xs="24"
+          :sm="8"
+        >
+          <a-card
+            title="SOC2"
+            class="score-card"
+          >
             <div class="score-circle">
               <a-progress
                 type="circle"
@@ -34,11 +55,19 @@
                 :format="(p: number) => `${p}%`"
               />
             </div>
-            <div class="score-label">SOC2 合规分数</div>
+            <div class="score-label">
+              SOC2 合规分数
+            </div>
           </a-card>
         </a-col>
-        <a-col :xs="24" :sm="8">
-          <a-card title="总体评分" class="score-card">
+        <a-col
+          :xs="24"
+          :sm="8"
+        >
+          <a-card
+            title="总体评分"
+            class="score-card"
+          >
             <div class="score-circle">
               <a-progress
                 type="circle"
@@ -47,17 +76,28 @@
                 :format="(p: number) => `${p}%`"
               />
             </div>
-            <div class="score-label">总体合规分数</div>
+            <div class="score-label">
+              总体合规分数
+            </div>
           </a-card>
         </a-col>
       </a-row>
 
       <!-- Tabs Section -->
-      <a-tabs v-model:activeKey="activeTab" class="compliance-tabs">
+      <a-tabs
+        v-model:active-key="activeTab"
+        class="compliance-tabs"
+      >
         <!-- Tab 1: Compliance Policies -->
-        <a-tab-pane key="policies" tab="合规策略">
+        <a-tab-pane
+          key="policies"
+          tab="合规策略"
+        >
           <div class="tab-toolbar">
-            <a-button type="primary" @click="openPolicyModal()">
+            <a-button
+              type="primary"
+              @click="openPolicyModal()"
+            >
               <PlusOutlined /> 新建策略
             </a-button>
           </div>
@@ -80,14 +120,20 @@
               </template>
               <template v-if="column.key === 'actions'">
                 <a-space>
-                  <a-button size="small" @click="openPolicyModal(record as CompliancePolicy)">
+                  <a-button
+                    size="small"
+                    @click="openPolicyModal(record as CompliancePolicy)"
+                  >
                     <EditOutlined /> 编辑
                   </a-button>
                   <a-popconfirm
                     title="确定要删除此策略吗?"
                     @confirm="handleDeletePolicy(record.id)"
                   >
-                    <a-button size="small" danger>
+                    <a-button
+                      size="small"
+                      danger
+                    >
                       <DeleteOutlined /> 删除
                     </a-button>
                   </a-popconfirm>
@@ -98,7 +144,10 @@
         </a-tab-pane>
 
         <!-- Tab 2: Compliance Checks -->
-        <a-tab-pane key="checks" tab="合规检查">
+        <a-tab-pane
+          key="checks"
+          tab="合规检查"
+        >
           <div class="tab-toolbar">
             <a-space>
               <a-select
@@ -107,18 +156,33 @@
                 placeholder="选择合规框架"
                 @change="handleFrameworkChange"
               >
-                <a-select-option value="GDPR">GDPR</a-select-option>
-                <a-select-option value="SOC2">SOC2</a-select-option>
-                <a-select-option value="HIPAA">HIPAA</a-select-option>
-                <a-select-option value="ISO27001">ISO27001</a-select-option>
+                <a-select-option value="GDPR">
+                  GDPR
+                </a-select-option>
+                <a-select-option value="SOC2">
+                  SOC2
+                </a-select-option>
+                <a-select-option value="HIPAA">
+                  HIPAA
+                </a-select-option>
+                <a-select-option value="ISO27001">
+                  ISO27001
+                </a-select-option>
               </a-select>
-              <a-button type="primary" :loading="auditStore.loading" @click="runComplianceCheck">
+              <a-button
+                type="primary"
+                :loading="auditStore.loading"
+                @click="runComplianceCheck"
+              >
                 <SafetyCertificateOutlined /> 运行检查
               </a-button>
             </a-space>
           </div>
 
-          <div v-if="auditStore.complianceResult" class="check-results">
+          <div
+            v-if="auditStore.complianceResult"
+            class="check-results"
+          >
             <a-row :gutter="[16, 16]">
               <a-col :span="24">
                 <a-statistic
@@ -141,17 +205,30 @@
                 <a-list-item>
                   <a-list-item-meta>
                     <template #avatar>
-                      <CheckCircleOutlined v-if="item.passed" style="color: #52c41a; font-size: 20px" />
-                      <CloseCircleOutlined v-else style="color: #ff4d4f; font-size: 20px" />
+                      <CheckCircleOutlined
+                        v-if="item.passed"
+                        style="color: #52c41a; font-size: 20px"
+                      />
+                      <CloseCircleOutlined
+                        v-else
+                        style="color: #ff4d4f; font-size: 20px"
+                      />
                     </template>
-                    <template #title>{{ item.name }}</template>
-                    <template #description>{{ item.details }}</template>
+                    <template #title>
+                      {{ item.name }}
+                    </template>
+                    <template #description>
+                      {{ item.details }}
+                    </template>
                   </a-list-item-meta>
                 </a-list-item>
               </template>
             </a-list>
 
-            <div v-if="auditStore.complianceResult.recommendations.length > 0" class="recommendations">
+            <div
+              v-if="auditStore.complianceResult.recommendations.length > 0"
+              class="recommendations"
+            >
               <a-divider>改进建议</a-divider>
               <a-alert
                 v-for="(rec, idx) in auditStore.complianceResult.recommendations"
@@ -164,13 +241,22 @@
             </div>
           </div>
 
-          <a-empty v-else description="请选择框架并运行合规检查" />
+          <a-empty
+            v-else
+            description="请选择框架并运行合规检查"
+          />
         </a-tab-pane>
 
         <!-- Tab 3: DSR Tracking -->
-        <a-tab-pane key="dsr" tab="数据主体请求">
+        <a-tab-pane
+          key="dsr"
+          tab="数据主体请求"
+        >
           <div class="tab-toolbar">
-            <a-button type="primary" @click="openDSRModal()">
+            <a-button
+              type="primary"
+              @click="openDSRModal()"
+            >
               <PlusOutlined /> 新建请求
             </a-button>
           </div>
@@ -225,26 +311,43 @@
         </a-tab-pane>
 
         <!-- Tab 4: Data Retention -->
-        <a-tab-pane key="retention" tab="数据保留">
+        <a-tab-pane
+          key="retention"
+          tab="数据保留"
+        >
           <div class="retention-section">
-            <a-space direction="vertical" :size="16" style="width: 100%">
+            <a-space
+              direction="vertical"
+              :size="16"
+              style="width: 100%"
+            >
               <a-card title="数据保留策略管理">
                 <a-space>
-                  <a-button :loading="retentionLoading" @click="handlePreviewDeletion">
+                  <a-button
+                    :loading="retentionLoading"
+                    @click="handlePreviewDeletion"
+                  >
                     <SearchOutlined /> 预览待删除数据
                   </a-button>
                   <a-popconfirm
                     title="确定要执行数据保留策略吗?此操作将删除过期数据。"
                     @confirm="handleApplyRetention"
                   >
-                    <a-button type="primary" danger :loading="retentionLoading">
+                    <a-button
+                      type="primary"
+                      danger
+                      :loading="retentionLoading"
+                    >
                       <DeleteOutlined /> 应用保留策略
                     </a-button>
                   </a-popconfirm>
                 </a-space>
               </a-card>
 
-              <a-card v-if="retentionPreview" title="预览结果">
+              <a-card
+                v-if="retentionPreview"
+                title="预览结果"
+              >
                 <a-statistic
                   title="受影响记录数"
                   :value="retentionPreview.affectedCount || 0"
@@ -252,7 +355,10 @@
                 />
                 <a-divider />
                 <div v-if="retentionPreview.details">
-                  <p v-for="(count, table) in retentionPreview.details" :key="String(table)">
+                  <p
+                    v-for="(count, table) in retentionPreview.details"
+                    :key="String(table)"
+                  >
                     <strong>{{ table }}</strong>: {{ count }} 条记录
                   </p>
                 </div>
@@ -271,29 +377,56 @@
       @ok="handleSavePolicy"
       @cancel="closePolicyModal"
     >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <a-form-item label="合规框架">
-          <a-select v-model:value="policyForm.framework" placeholder="选择合规框架">
-            <a-select-option value="GDPR">GDPR</a-select-option>
-            <a-select-option value="SOC2">SOC2</a-select-option>
-            <a-select-option value="HIPAA">HIPAA</a-select-option>
-            <a-select-option value="ISO27001">ISO27001</a-select-option>
+          <a-select
+            v-model:value="policyForm.framework"
+            placeholder="选择合规框架"
+          >
+            <a-select-option value="GDPR">
+              GDPR
+            </a-select-option>
+            <a-select-option value="SOC2">
+              SOC2
+            </a-select-option>
+            <a-select-option value="HIPAA">
+              HIPAA
+            </a-select-option>
+            <a-select-option value="ISO27001">
+              ISO27001
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="策略类型">
-          <a-select v-model:value="policyForm.policy_type" placeholder="选择策略类型">
-            <a-select-option value="data_protection">数据保护</a-select-option>
-            <a-select-option value="access_control">访问控制</a-select-option>
-            <a-select-option value="audit_logging">审计日志</a-select-option>
-            <a-select-option value="data_retention">数据保留</a-select-option>
-            <a-select-option value="encryption">加密要求</a-select-option>
+          <a-select
+            v-model:value="policyForm.policy_type"
+            placeholder="选择策略类型"
+          >
+            <a-select-option value="data_protection">
+              数据保护
+            </a-select-option>
+            <a-select-option value="access_control">
+              访问控制
+            </a-select-option>
+            <a-select-option value="audit_logging">
+              审计日志
+            </a-select-option>
+            <a-select-option value="data_retention">
+              数据保留
+            </a-select-option>
+            <a-select-option value="encryption">
+              加密要求
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="规则 (JSON)">
           <a-textarea
             v-model:value="policyForm.rules"
             :rows="6"
-            placeholder='请输入 JSON 格式的规则，例如: {"minPasswordLength": 8}'
+            placeholder="请输入 JSON 格式的规则，例如: {&quot;minPasswordLength&quot;: 8}"
           />
         </a-form-item>
         <a-form-item label="启用">
@@ -310,17 +443,34 @@
       @ok="handleCreateDSR"
       @cancel="closeDSRModal"
     >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <a-form-item label="请求类型">
-          <a-select v-model:value="dsrForm.request_type" placeholder="选择请求类型">
-            <a-select-option value="access">数据访问</a-select-option>
-            <a-select-option value="deletion">数据删除</a-select-option>
-            <a-select-option value="rectification">数据更正</a-select-option>
-            <a-select-option value="portability">数据迁移</a-select-option>
+          <a-select
+            v-model:value="dsrForm.request_type"
+            placeholder="选择请求类型"
+          >
+            <a-select-option value="access">
+              数据访问
+            </a-select-option>
+            <a-select-option value="deletion">
+              数据删除
+            </a-select-option>
+            <a-select-option value="rectification">
+              数据更正
+            </a-select-option>
+            <a-select-option value="portability">
+              数据迁移
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="主体 DID">
-          <a-input v-model:value="dsrForm.subject_did" placeholder="请输入数据主体的 DID" />
+          <a-input
+            v-model:value="dsrForm.subject_did"
+            placeholder="请输入数据主体的 DID"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -333,7 +483,10 @@
       @ok="handleApproveDSR"
       @cancel="closeApproveModal"
     >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <a-form-item label="请求类型">
           <span>{{ getDSRTypeLabel(approvingRequest?.request_type) }}</span>
         </a-form-item>
@@ -356,20 +509,50 @@
       title="请求详情"
       :footer="null"
     >
-      <a-descriptions v-if="dsrDetail" bordered :column="1" size="small">
-        <a-descriptions-item label="请求ID">{{ dsrDetail.id }}</a-descriptions-item>
-        <a-descriptions-item label="请求类型">{{ getDSRTypeLabel(dsrDetail.request_type) }}</a-descriptions-item>
-        <a-descriptions-item label="主体 DID">{{ dsrDetail.subject_did }}</a-descriptions-item>
+      <a-descriptions
+        v-if="dsrDetail"
+        bordered
+        :column="1"
+        size="small"
+      >
+        <a-descriptions-item label="请求ID">
+          {{ dsrDetail.id }}
+        </a-descriptions-item>
+        <a-descriptions-item label="请求类型">
+          {{ getDSRTypeLabel(dsrDetail.request_type) }}
+        </a-descriptions-item>
+        <a-descriptions-item label="主体 DID">
+          {{ dsrDetail.subject_did }}
+        </a-descriptions-item>
         <a-descriptions-item label="状态">
           <a-tag :color="getDSRStatusColor(dsrDetail.status)">
             {{ getDSRStatusLabel(dsrDetail.status) }}
           </a-tag>
         </a-descriptions-item>
-        <a-descriptions-item label="创建时间">{{ formatDate(dsrDetail.created_at) }}</a-descriptions-item>
-        <a-descriptions-item label="截止时间">{{ formatDate(dsrDetail.deadline) }}</a-descriptions-item>
-        <a-descriptions-item v-if="dsrDetail.completed_at" label="完成时间">{{ formatDate(dsrDetail.completed_at) }}</a-descriptions-item>
-        <a-descriptions-item v-if="dsrDetail.request_data" label="请求数据">{{ dsrDetail.request_data }}</a-descriptions-item>
-        <a-descriptions-item v-if="dsrDetail.response_data" label="响应数据">{{ dsrDetail.response_data }}</a-descriptions-item>
+        <a-descriptions-item label="创建时间">
+          {{ formatDate(dsrDetail.created_at) }}
+        </a-descriptions-item>
+        <a-descriptions-item label="截止时间">
+          {{ formatDate(dsrDetail.deadline) }}
+        </a-descriptions-item>
+        <a-descriptions-item
+          v-if="dsrDetail.completed_at"
+          label="完成时间"
+        >
+          {{ formatDate(dsrDetail.completed_at) }}
+        </a-descriptions-item>
+        <a-descriptions-item
+          v-if="dsrDetail.request_data"
+          label="请求数据"
+        >
+          {{ dsrDetail.request_data }}
+        </a-descriptions-item>
+        <a-descriptions-item
+          v-if="dsrDetail.response_data"
+          label="响应数据"
+        >
+          {{ dsrDetail.response_data }}
+        </a-descriptions-item>
       </a-descriptions>
     </a-modal>
   </div>
@@ -405,7 +588,7 @@ const soc2Score = ref(0);
 
 const overallScore = computed(() => {
   const scores = [gdprScore.value, soc2Score.value].filter((s) => s > 0);
-  if (scores.length === 0) return 0;
+  if (scores.length === 0) {return 0;}
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 });
 
@@ -511,8 +694,8 @@ async function loadComplianceScores() {
 // ==================== Score Helpers ====================
 
 function getScoreColor(score: number): string {
-  if (score > 80) return '#52c41a';
-  if (score > 60) return '#faad14';
+  if (score > 80) {return '#52c41a';}
+  if (score > 60) {return '#faad14';}
   return '#ff4d4f';
 }
 
@@ -599,11 +782,11 @@ async function handleDeletePolicy(policyId: string) {
 }
 
 function formatRulesSummary(rules: string): string {
-  if (!rules) return '-';
+  if (!rules) {return '-';}
   try {
     const parsed = JSON.parse(rules);
     const keys = Object.keys(parsed);
-    if (keys.length === 0) return '-';
+    if (keys.length === 0) {return '-';}
     return keys.slice(0, 3).join(', ') + (keys.length > 3 ? '...' : '');
   } catch {
     return rules.length > 50 ? rules.substring(0, 50) + '...' : rules;
@@ -676,7 +859,7 @@ function getDSRTypeLabel(type?: string): string {
 }
 
 function formatDate(timestamp: number): string {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   return new Date(timestamp).toLocaleString('zh-CN');
 }
 
@@ -730,7 +913,7 @@ function closeApproveModal() {
 }
 
 async function handleApproveDSR() {
-  if (!approvingRequest.value) return;
+  if (!approvingRequest.value) {return;}
 
   try {
     await auditStore.approveDSR(

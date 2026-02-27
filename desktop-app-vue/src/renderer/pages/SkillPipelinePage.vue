@@ -1,18 +1,32 @@
 <template>
   <div class="skill-pipeline-page">
-    <a-page-header title="流水线编排" sub-title="Skill Pipeline Designer">
+    <a-page-header
+      title="流水线编排"
+      sub-title="Skill Pipeline Designer"
+    >
       <template #extra>
-        <a-button type="primary" @click="showCreateModal = true">
+        <a-button
+          type="primary"
+          @click="showCreateModal = true"
+        >
           新建流水线
         </a-button>
-        <a-button @click="loadTemplates"> 加载模板 </a-button>
+        <a-button @click="loadTemplates">
+          加载模板
+        </a-button>
       </template>
     </a-page-header>
 
-    <a-row :gutter="16" style="padding: 16px">
+    <a-row
+      :gutter="16"
+      style="padding: 16px"
+    >
       <!-- Pipeline list -->
       <a-col :span="8">
-        <a-card title="流水线列表" :loading="store.loading">
+        <a-card
+          title="流水线列表"
+          :loading="store.loading"
+        >
           <a-list
             :data-source="store.pipelines"
             :locale="{ emptyText: '暂无流水线' }"
@@ -28,7 +42,9 @@
                       :count="item.stepCount"
                       :number-style="{ backgroundColor: '#1890ff' }"
                     >
-                      <a-avatar style="background-color: #722ed1"> P </a-avatar>
+                      <a-avatar style="background-color: #722ed1">
+                        P
+                      </a-avatar>
                     </a-badge>
                   </template>
                 </a-list-item-meta>
@@ -60,7 +76,10 @@
           title="预置模板"
           style="margin-top: 16px"
         >
-          <a-list :data-source="store.templates" size="small">
+          <a-list
+            :data-source="store.templates"
+            size="small"
+          >
             <template #renderItem="{ item }">
               <a-list-item>
                 <a-list-item-meta
@@ -84,7 +103,10 @@
 
       <!-- Execution status -->
       <a-col :span="16">
-        <a-card v-if="store.executionStatus" title="执行状态">
+        <a-card
+          v-if="store.executionStatus"
+          title="执行状态"
+        >
           <a-result
             :status="
               store.executionStatus.state === 'completed'
@@ -107,7 +129,10 @@
           </a-timeline>
         </a-card>
 
-        <a-empty v-else description="选择一个流水线并执行以查看结果" />
+        <a-empty
+          v-else
+          description="选择一个流水线并执行以查看结果"
+        />
       </a-col>
     </a-row>
 
@@ -133,14 +158,31 @@
           />
         </a-form-item>
         <a-form-item label="分类">
-          <a-select v-model:value="newPipeline.category" placeholder="选择分类">
-            <a-select-option value="development"> Development </a-select-option>
-            <a-select-option value="data"> Data </a-select-option>
-            <a-select-option value="security"> Security </a-select-option>
-            <a-select-option value="devops"> DevOps </a-select-option>
-            <a-select-option value="media"> Media </a-select-option>
-            <a-select-option value="knowledge"> Knowledge </a-select-option>
-            <a-select-option value="custom"> Custom </a-select-option>
+          <a-select
+            v-model:value="newPipeline.category"
+            placeholder="选择分类"
+          >
+            <a-select-option value="development">
+              Development
+            </a-select-option>
+            <a-select-option value="data">
+              Data
+            </a-select-option>
+            <a-select-option value="security">
+              Security
+            </a-select-option>
+            <a-select-option value="devops">
+              DevOps
+            </a-select-option>
+            <a-select-option value="media">
+              Media
+            </a-select-option>
+            <a-select-option value="knowledge">
+              Knowledge
+            </a-select-option>
+            <a-select-option value="custom">
+              Custom
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>

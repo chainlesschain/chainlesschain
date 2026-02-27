@@ -19,13 +19,89 @@
 
 ---
 
-## ⭐ 当前版本: v1.2.0 Enterprise Edition (2026-02-26)
+## ⭐ 当前版本: v1.1.0-alpha Enterprise Edition (2026-02-27)
 
-### 最新更新 - EvoMap全球Agent知识共享网络 (Phase 41)
+### 最新更新 - Q2 2026 全面升级 (Phase 41-45)
 
-**EvoMap GEP-A2A协议集成 (v1.0.0)** - 25个IPC处理器，3张新数据库表，8个新文件，全球Agent知识共享与协作生态
+**Phase 41-45 完整实现** - EvoMap全球知识共享 + Social AI + 企业合规 + SCIM 2.0 + 统一密钥系统,共计71个新IPC处理器，13张新数据库表，4个新前端路由
 
-#### v1.2.0 - EvoMap全球Agent知识共享网络 (2026-02-26)
+#### Phase 42-45 - Q2 2026 企业级功能扩展 (2026-02-27)
+
+**Phase 42 — Social AI + ActivityPub** (18个IPC处理器):
+
+- ✅ **Topic Analyzer** (`social/topic-analyzer.js`) - NLP主题提取，TF-IDF关键词，情感倾向分析，9个预定义分类，相似度匹配
+- ✅ **Social Graph** (`social/social-graph.js`) - 社交关系图谱，中心性分析(度/接近/中介/特征向量)，社区发现(Louvain)，影响力评分，路径查找
+- ✅ **ActivityPub Bridge** (`social/activitypub-bridge.js`) - W3C ActivityPub S2S协议，Actor管理，Activity发布/接收，Inbox/Outbox，Follow/Like/Announce
+- ✅ **AP Content Sync** (`social/ap-content-sync.js`) - 内容双向同步，DID→Actor映射，Markdown→HTML转换，媒体附件处理，本地内容发布到Fediverse
+- ✅ **AP WebFinger** (`social/ap-webfinger.js`) - RFC 7033 WebFinger协议，用户发现，acct:URI解析，Actor资源定位
+- ✅ **AI Social Assistant** (`social/ai-social-assistant.js`) - 3种回复风格(简洁/详细/幽默)，智能回复生成，内容总结，话题推荐
+- ✅ **Extended Social IPC** (`social/social-ipc.js`) - 60→78个IPC处理器(+18新增)，完整社交AI集成
+- ✅ **Pinia Store** (`stores/socialAI.ts`) - 社交AI状态管理，主题分析，图谱查询，ActivityPub操作
+- ✅ **前端UI** - SocialInsightsPage社交洞察页 + ActivityPubBridgePage联邦宇宙桥接页
+
+**Phase 43 — Compliance + Data Classification** (12个IPC处理器):
+
+- ✅ **SOC2 Compliance** (`audit/soc2-compliance.js`) - SOC2合规框架，5大信任服务原则(TSC)，控制点检查，证据收集，合规报告生成
+- ✅ **Data Classifier** (`audit/data-classifier.js`) - 数据分类引擎，4级分类(PUBLIC/INTERNAL/CONFIDENTIAL/RESTRICTED)，ML分类器，规则引擎，敏感数据扫描
+- ✅ **Classification Policy** (`audit/classification-policy.js`) - 分类策略管理，字段级分类规则，自动标记，加密策略映射，访问控制集成
+- ✅ **Data Subject Handler** (`audit/data-subject-handler.js`) - GDPR数据主体请求(DSR)处理，导出/删除/修正，请求工作流，审计日志
+- ✅ **Compliance Manager** (`audit/compliance-manager.js`) - 统一合规管理器，多框架支持(GDPR/SOC2/ISO27001/HIPAA)，合规检查调度，风险评分
+- ✅ **Compliance IPC** (`audit/compliance-ipc.js`) - 12个IPC处理器(SOC2检查/证据/分类/策略/DSR/合规检查/报告)
+- ✅ **Pinia Store** (`stores/compliance.ts`) - 合规状态管理，检查执行，报告生成，证据管理
+- ✅ **前端UI** - ComplianceDashboardPage合规仪表板(证据收集/分类管理/DSR处理/报告导出)
+
+**Phase 44 — SCIM 2.0 Enterprise Provisioning** (8个IPC处理器):
+
+- ✅ **SCIM Server** (`enterprise/scim-server.js`) - RFC 7644 SCIM 2.0协议服务器，User/Group资源管理，RESTful API(GET/POST/PUT/PATCH/DELETE)，过滤/排序/分页，批量操作
+- ✅ **SCIM Sync** (`enterprise/scim-sync.js`) - IdP双向同步引擎，增量同步，冲突解决(IdP优先/本地优先/最新优先)，变更追踪，同步日志
+- ✅ **SCIM IPC** (`enterprise/scim-ipc.js`) - 8个IPC处理器(启动/停止服务器，同步User/Group，冲突解决，日志查询)
+- ✅ **Extended Org Manager** - 企业组织管理器扩展，SCIM资源映射，属性转换，Schema管理
+- ✅ **Pinia Store** - SCIM状态管理，服务器控制，同步操作，日志监控
+- ✅ **前端UI** - SCIMIntegrationPage集成页面(IdP配置/资源管理/同步控制/日志查看)
+
+**Phase 45 — Unified Key + FIDO2 + Cross-Platform USB** (8个IPC处理器):
+
+- ✅ **Unified Key Manager** (`ukey/unified-key-manager.js`) - BIP-32分层确定性密钥，单主密钥派生无限子密钥，用途隔离(签名/加密/认证)，导出/导入，密钥轮换
+- ✅ **FIDO2 Authenticator** (`ukey/fido2-authenticator.js`) - W3C WebAuthn标准，CTAP2协议，Passkey无密码认证，挑战-响应，Resident Keys，UV/UP验证
+- ✅ **USB Transport** (`ukey/usb-transport.js`) - 跨平台USB通信，Windows(node-usb)/macOS(IOKit via Koffi)/Linux(libusb)，设备枚举，批量传输，APDU封装
+- ✅ **WebUSB Fallback** (`ukey/webusb-fallback.js`) - 浏览器WebUSB API回退，设备请求，权限管理，vendorId/productId过滤
+- ✅ **Extended UKey IPC** (`ukey/ukey-ipc.js`) - 9→17个IPC处理器(+8新增)，统一密钥操作，FIDO2认证，USB设备管理
+- ✅ **Extended Driver Registry** - 驱动注册表扩展，5个新驱动类型(FIDO2/BIP32/TPM2/TEE/Satellite)
+- ✅ **Pinia Store** - 统一密钥状态管理，FIDO2认证流程，USB设备监控
+
+**数据库新增** (10张新表):
+
+- ✅ `topic_analyses` - 主题分析缓存 (content_hash, topics JSON, keywords JSON, sentiment, category)
+- ✅ `social_graph_edges` - 社交图谱边 (source_did, target_did, edge_type, weight, metadata JSON)
+- ✅ `activitypub_actors` - ActivityPub Actor (actor_uri, did, inbox, outbox, public_key, follower_count)
+- ✅ `activitypub_activities` - Activity对象 (activity_id, type, actor, object, published, raw JSON)
+- ✅ `soc2_evidence` - SOC2证据 (control_id, evidence_type, file_path, collected_at, metadata JSON)
+- ✅ `data_classifications` - 数据分类 (table_name, column_name, classification_level, policy_id, classified_at)
+- ✅ `scim_resources` - SCIM资源映射 (scim_id, resource_type, local_id, attributes JSON, meta JSON)
+- ✅ `scim_sync_log` - SCIM同步日志 (sync_type, direction, status, records_synced, conflicts, details JSON)
+- ✅ `unified_keys` - 统一密钥 (key_id, purpose, derivation_path, public_key, encrypted_private_key, created_at)
+- ✅ `fido2_credentials` - FIDO2凭证 (credential_id, rp_id, user_handle, public_key, sign_count, aaguid, created_at)
+
+**配置新增** (5个新配置段):
+
+- ✅ `socialAI` - 主题分析/图谱/ActivityPub配置
+- ✅ `activitypub` - 实例名称/域名/管理员/描述
+- ✅ `compliance` - 合规框架/检查间隔/证据路径
+- ✅ `scim` - SCIM服务器端口/认证/同步策略
+- ✅ `unifiedKey` - 密钥派生/FIDO2 RP/USB配置
+
+**Context Engineering集成**:
+
+- ✅ step 4.9: 社交图谱上下文注入(`setSocialGraph()`)
+- ✅ step 4.10: 合规策略上下文注入(`setComplianceManager()`)
+
+**前端集成**:
+
+- ✅ 4个新路由: `/social-insights`, `/activitypub-bridge`, `/compliance-dashboard`, `/scim-integration`
+- ✅ 3个新Pinia Store: `socialAI.ts`, `compliance.ts`, UKey store扩展
+- ✅ IPC注册: Phase 42(18) + Phase 43(12) + Phase 44(8) + Phase 45(8) = 46个新IPC处理器
+
+#### Phase 41 - EvoMap全球Agent知识共享网络 (2026-02-26)
 
 **EvoMap GEP-A2A协议集成 (v1.0.0)** (5大核心模块, 25 IPC处理器, 3张新表):
 
@@ -822,6 +898,11 @@ chainlesschain/
 
 ### 已完成的优化 ✅
 
+- [x] **EvoMap全球Agent知识共享网络 (Phase 41)**: GEP-A2A协议 + Gene/Capsule合成 + 双向同步 + 隐私过滤 + 上下文注入 ✅ v1.1.0-alpha
+- [x] **Social AI + ActivityPub (Phase 42)**: 主题分析 + 社交图谱 + ActivityPub S2S + WebFinger + AI助手 + 18 IPC ✅ v1.1.0-alpha
+- [x] **Compliance + Data Classification (Phase 43)**: SOC2合规 + 数据分类 + DSR处理 + 合规管理 + 12 IPC ✅ v1.1.0-alpha
+- [x] **SCIM 2.0 Enterprise Provisioning (Phase 44)**: SCIM服务器 + IdP同步 + 冲突解决 + 8 IPC ✅ v1.1.0-alpha
+- [x] **Unified Key + FIDO2 + USB (Phase 45)**: BIP-32密钥 + WebAuthn + 跨平台USB + 8 IPC ✅ v1.1.0-alpha
 - [x] **Cowork去中心化Agent网络**: W3C DID身份 + Ed25519认证 + VC凭证 + 信誉评分 + 联邦DHT注册表 + 跨组织路由 ✅ v1.1.0
 - [x] **自治运维系统**: 异常检测 + 事件管理 + Playbook + 自动修复 + 回滚 + 部署后监控 + AI事后分析 ✅ v1.1.0
 - [x] **开发流水线编排**: 流水线管理 + 6种部署策略 + 审批门控 + 烟雾测试 + 规范翻译 ✅ v1.1.0

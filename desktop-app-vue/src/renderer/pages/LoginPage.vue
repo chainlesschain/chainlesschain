@@ -1,10 +1,23 @@
 <template>
-  <div class="login-container" data-testid="login-container">
-    <a-card class="login-card" data-testid="login-card">
+  <div
+    class="login-container"
+    data-testid="login-container"
+  >
+    <a-card
+      class="login-card"
+      data-testid="login-card"
+    >
       <!-- 设置按钮 -->
       <div class="settings-trigger">
-        <a-tooltip title="系统设置" placement="left">
-          <a-button type="text" shape="circle" @click="showSettings = true">
+        <a-tooltip
+          title="系统设置"
+          placement="left"
+        >
+          <a-button
+            type="text"
+            shape="circle"
+            @click="showSettings = true"
+          >
             <template #icon>
               <SettingOutlined />
             </template>
@@ -12,12 +25,20 @@
         </a-tooltip>
       </div>
 
-      <a-space direction="vertical" :size="24" style="width: 100%">
+      <a-space
+        direction="vertical"
+        :size="24"
+        style="width: 100%"
+      >
         <!-- Logo和标题 -->
         <div class="login-header">
           <LockOutlined :style="{ fontSize: '48px', color: '#1890ff' }" />
-          <h2 class="login-title">ChainlessChain</h2>
-          <p class="login-subtitle">个人AI知识库</p>
+          <h2 class="login-title">
+            ChainlessChain
+          </h2>
+          <p class="login-subtitle">
+            个人AI知识库
+          </p>
         </div>
 
         <!-- U盾状态 -->
@@ -37,7 +58,10 @@
                 v-if="ukeyStatus.detected"
                 :style="{ color: '#52c41a' }"
               />
-              <InfoCircleOutlined v-else :style="{ color: '#1890ff' }" />
+              <InfoCircleOutlined
+                v-else
+                :style="{ color: '#1890ff' }"
+              />
             </a-space>
           </template>
         </a-alert>
@@ -114,7 +138,10 @@
 
         <!-- 提示信息 -->
         <div class="login-hint">
-          <a-typography-text type="secondary" :style="{ fontSize: '12px' }">
+          <a-typography-text
+            type="secondary"
+            :style="{ fontSize: '12px' }"
+          >
             {{
               ukeyStatus.detected
                 ? "开发模式: 默认PIN为 123456"

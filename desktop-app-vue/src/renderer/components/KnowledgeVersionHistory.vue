@@ -7,7 +7,12 @@
         版本历史
       </h3>
       <a-space>
-        <a-button size="small" @click="emit('close')"> 关闭 </a-button>
+        <a-button
+          size="small"
+          @click="emit('close')"
+        >
+          关闭
+        </a-button>
         <a-button
           type="primary"
           size="small"
@@ -36,7 +41,10 @@
               />
             </template>
 
-            <a-card size="small" class="version-card">
+            <a-card
+              size="small"
+              class="version-card"
+            >
               <!-- 版本头部 -->
               <div class="version-header">
                 <div class="version-info">
@@ -88,11 +96,17 @@
                   <UserOutlined />
                   <span>更新者：{{ getUserName(version.updated_by) }}</span>
                 </div>
-                <div v-if="version.git_commit_hash" class="detail-item">
+                <div
+                  v-if="version.git_commit_hash"
+                  class="detail-item"
+                >
                   <BranchesOutlined />
                   <span>提交：{{ shortenHash(version.git_commit_hash) }}</span>
                 </div>
-                <div v-if="version.cid" class="detail-item">
+                <div
+                  v-if="version.cid"
+                  class="detail-item"
+                >
                   <LinkOutlined />
                   <span>CID：{{ shortenCID(version.cid) }}</span>
                   <a-tooltip title="复制CID">
@@ -142,7 +156,10 @@
           </a-timeline-item>
         </a-timeline>
 
-        <a-empty v-else description="暂无版本历史" />
+        <a-empty
+          v-else
+          description="暂无版本历史"
+        />
       </a-spin>
     </div>
 
@@ -167,8 +184,14 @@
       width="800px"
       :footer="null"
     >
-      <div v-if="viewVersion" class="version-view">
-        <a-descriptions :column="1" bordered>
+      <div
+        v-if="viewVersion"
+        class="version-view"
+      >
+        <a-descriptions
+          :column="1"
+          bordered
+        >
           <a-descriptions-item label="版本号">
             v{{ viewVersion.version }}
           </a-descriptions-item>
@@ -184,7 +207,10 @@
           >
             {{ viewVersion.git_commit_hash }}
           </a-descriptions-item>
-          <a-descriptions-item v-if="viewVersion.cid" label="CID">
+          <a-descriptions-item
+            v-if="viewVersion.cid"
+            label="CID"
+          >
             {{ viewVersion.cid }}
           </a-descriptions-item>
         </a-descriptions>

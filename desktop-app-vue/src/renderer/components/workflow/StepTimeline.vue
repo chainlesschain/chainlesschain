@@ -7,17 +7,29 @@
         :color="getTimelineColor(step)"
       >
         <template #dot>
-          <div class="timeline-dot" :class="getDotClass(step)">
+          <div
+            class="timeline-dot"
+            :class="getDotClass(step)"
+          >
             <CheckCircleFilled v-if="step.status === 'completed'" />
-            <LoadingOutlined v-else-if="step.status === 'running'" spin />
+            <LoadingOutlined
+              v-else-if="step.status === 'running'"
+              spin
+            />
             <CloseCircleFilled v-else-if="step.status === 'failed'" />
             <ClockCircleOutlined v-else />
           </div>
         </template>
 
-        <div class="timeline-content" :class="getContentClass(step)">
+        <div
+          class="timeline-content"
+          :class="getContentClass(step)"
+        >
           <div class="timeline-header">
-            <span class="timeline-type-badge" :class="step.type">
+            <span
+              class="timeline-type-badge"
+              :class="step.type"
+            >
               {{ step.type === "stage" ? "阶段" : "步骤" }}
             </span>
             <span class="timeline-name">{{ step.name }}</span>
@@ -29,16 +41,25 @@
             </span>
           </div>
 
-          <div v-if="step.message" class="timeline-message">
+          <div
+            v-if="step.message"
+            class="timeline-message"
+          >
             {{ step.message }}
           </div>
 
           <div class="timeline-meta">
-            <span v-if="step.time" class="timeline-time">
+            <span
+              v-if="step.time"
+              class="timeline-time"
+            >
               <ClockCircleOutlined />
               {{ formatTime(step.time) }}
             </span>
-            <span v-if="step.duration" class="timeline-duration">
+            <span
+              v-if="step.duration"
+              class="timeline-duration"
+            >
               耗时: {{ formatDuration(step.duration) }}
             </span>
           </div>
@@ -47,7 +68,10 @@
     </a-timeline>
 
     <!-- 空状态 -->
-    <div v-if="!steps || steps.length === 0" class="empty-state">
+    <div
+      v-if="!steps || steps.length === 0"
+      class="empty-state"
+    >
       <InboxOutlined />
       <span>暂无执行记录</span>
     </div>

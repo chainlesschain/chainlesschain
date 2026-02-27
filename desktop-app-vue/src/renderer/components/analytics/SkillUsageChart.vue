@@ -74,7 +74,7 @@ const COLORS = [
 ];
 
 const renderChart = () => {
-  if (!chartRef.value || props.data.length === 0) return;
+  if (!chartRef.value || props.data.length === 0) {return;}
 
   if (!chartInstance) {
     chartInstance = init(chartRef.value);
@@ -151,7 +151,7 @@ const renderChart = () => {
 // Debounced resize handler
 let resizeTimer = null;
 const handleResize = () => {
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
   resizeTimer = setTimeout(() => {
     chartInstance?.resize();
   }, 200);
@@ -186,7 +186,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
 
   if (resizeObserver) {
     resizeObserver.disconnect();

@@ -5,15 +5,24 @@
     :style="containerStyle"
     @scroll="handleScroll"
   >
-    <div class="virtual-list-phantom" :style="phantomStyle" />
-    <div class="virtual-list-content" :style="contentStyle">
+    <div
+      class="virtual-list-phantom"
+      :style="phantomStyle"
+    />
+    <div
+      class="virtual-list-content"
+      :style="contentStyle"
+    >
       <div
         v-for="item in visibleItems"
         :key="getItemKey(item.data)"
         class="virtual-list-item"
         :style="{ height: `${itemHeight}px` }"
       >
-        <slot :item="item.data" :index="item.index" />
+        <slot
+          :item="item.data"
+          :index="item.index"
+        />
       </div>
     </div>
   </div>

@@ -1,6 +1,9 @@
 <template>
   <div class="file-import">
-    <a-card title="文件导入" :loading="loading">
+    <a-card
+      title="文件导入"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
           <a-button
@@ -17,7 +20,10 @@
       </template>
 
       <!-- 导入进度 -->
-      <div v-if="importing" class="import-progress">
+      <div
+        v-if="importing"
+        class="import-progress"
+      >
         <a-progress
           :percent="progressPercent"
           :status="progressStatus"
@@ -56,26 +62,46 @@
               margin-top: 8px;
             "
           >
-npm install pdf-parse mammoth</pre
-          >
+npm install pdf-parse mammoth</pre>
         </template>
       </a-alert>
 
       <!-- 导入选项 -->
-      <a-collapse v-if="!importing" style="margin-bottom: 20px">
-        <a-collapse-panel key="1" header="导入选项">
-          <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-collapse
+        v-if="!importing"
+        style="margin-bottom: 20px"
+      >
+        <a-collapse-panel
+          key="1"
+          header="导入选项"
+        >
+          <a-form
+            :label-col="{ span: 6 }"
+            :wrapper-col="{ span: 18 }"
+          >
             <a-form-item label="知识类型">
               <a-select
                 v-model:value="importOptions.type"
                 placeholder="选择知识类型"
               >
-                <a-select-option value="note"> 笔记 </a-select-option>
-                <a-select-option value="article"> 文章 </a-select-option>
-                <a-select-option value="document"> 文档 </a-select-option>
-                <a-select-option value="reference"> 参考资料 </a-select-option>
-                <a-select-option value="code"> 代码片段 </a-select-option>
-                <a-select-option value="idea"> 灵感 </a-select-option>
+                <a-select-option value="note">
+                  笔记
+                </a-select-option>
+                <a-select-option value="article">
+                  文章
+                </a-select-option>
+                <a-select-option value="document">
+                  文档
+                </a-select-option>
+                <a-select-option value="reference">
+                  参考资料
+                </a-select-option>
+                <a-select-option value="code">
+                  代码片段
+                </a-select-option>
+                <a-select-option value="idea">
+                  灵感
+                </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -107,7 +133,10 @@ npm install pdf-parse mammoth</pre
       </a-collapse>
 
       <!-- 导入结果 -->
-      <div v-if="importResults.length > 0" class="import-results">
+      <div
+        v-if="importResults.length > 0"
+        class="import-results"
+      >
         <a-divider>导入结果</a-divider>
 
         <a-row :gutter="16">
@@ -117,7 +146,9 @@ npm install pdf-parse mammoth</pre
               :value="successCount"
               :value-style="{ color: '#3f8600' }"
             >
-              <template #suffix> / {{ totalCount }} </template>
+              <template #suffix>
+                / {{ totalCount }}
+              </template>
             </a-statistic>
           </a-col>
           <a-col :span="8">
@@ -126,11 +157,16 @@ npm install pdf-parse mammoth</pre
               :value="failedCount"
               :value-style="{ color: '#cf1322' }"
             >
-              <template #suffix> / {{ totalCount }} </template>
+              <template #suffix>
+                / {{ totalCount }}
+              </template>
             </a-statistic>
           </a-col>
           <a-col :span="8">
-            <a-statistic title="总计" :value="totalCount" />
+            <a-statistic
+              title="总计"
+              :value="totalCount"
+            />
           </a-col>
         </a-row>
 
@@ -159,7 +195,10 @@ npm install pdf-parse mammoth</pre
                     <a-divider type="vertical" />
                     <span>类型: {{ item.result.type }}</span>
                   </div>
-                  <div v-else style="color: #cf1322">
+                  <div
+                    v-else
+                    style="color: #cf1322"
+                  >
                     {{ item.error }}
                   </div>
                 </template>
@@ -169,7 +208,9 @@ npm install pdf-parse mammoth</pre
         </a-list>
 
         <div style="margin-top: 20px; text-align: center">
-          <a-button @click="handleReset"> 重新导入 </a-button>
+          <a-button @click="handleReset">
+            重新导入
+          </a-button>
         </div>
       </div>
 
@@ -185,8 +226,12 @@ npm install pdf-parse mammoth</pre
         <p class="drop-zone-icon">
           <cloud-upload-outlined />
         </p>
-        <p class="drop-zone-text">拖拽文件到此处</p>
-        <p class="drop-zone-hint">或点击上方"选择文件"按钮</p>
+        <p class="drop-zone-text">
+          拖拽文件到此处
+        </p>
+        <p class="drop-zone-hint">
+          或点击上方"选择文件"按钮
+        </p>
       </div>
     </a-card>
   </div>

@@ -64,7 +64,7 @@ class SOC2Compliance extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) return;
+    if (!this.database || !this.database.db) {return;}
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS soc2_evidence (
@@ -110,7 +110,7 @@ class SOC2Compliance extends EventEmitter {
             .prepare("SELECT COUNT(*) as count FROM enterprise_audit_log WHERE timestamp >= ? AND timestamp <= ?")
             .get(periodStart, periodEnd);
           auditCount = result?.count || 0;
-        } catch (_) {
+        } catch {
           // Table may not exist
         }
 
@@ -119,7 +119,7 @@ class SOC2Compliance extends EventEmitter {
             .prepare("SELECT COUNT(*) as count FROM permission_audit_log WHERE created_at >= ? AND created_at <= ?")
             .get(new Date(periodStart).toISOString(), new Date(periodEnd).toISOString());
           accessEvents = result?.count || 0;
-        } catch (_e) {
+        } catch {
           // Expected error, ignore
         }
       }
@@ -146,7 +146,7 @@ class SOC2Compliance extends EventEmitter {
       await this._saveEvidence(evidence);
       this.emit("evidence:collected", evidence);
       return evidence;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SOC2Compliance] Failed to collect audit log evidence:", error);
       throw error;
     }
@@ -165,13 +165,13 @@ class SOC2Compliance extends EventEmitter {
         try {
           const users = this.database.db.prepare("SELECT COUNT(*) as count FROM did_identities").get();
           userCount = users?.count || 0;
-        } catch (_e) {
+        } catch {
           // Expected error, ignore
         }
         try {
           const roles = this.database.db.prepare("SELECT COUNT(*) as count FROM organization_roles").get();
           roleCount = roles?.count || 0;
-        } catch (_e2) {
+        } catch {
           // Expected error, ignore
         }
       }
@@ -196,7 +196,7 @@ class SOC2Compliance extends EventEmitter {
 
       await this._saveEvidence(evidence);
       return evidence;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SOC2Compliance] Failed to collect access control evidence:", error);
       throw error;
     }
@@ -229,7 +229,7 @@ class SOC2Compliance extends EventEmitter {
 
       await this._saveEvidence(evidence);
       return evidence;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SOC2Compliance] Failed to collect config evidence:", error);
       throw error;
     }
@@ -283,7 +283,7 @@ class SOC2Compliance extends EventEmitter {
 
       this.emit("report:generated", report);
       return report;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SOC2Compliance] Failed to generate report:", error);
       throw error;
     }
@@ -320,7 +320,7 @@ class SOC2Compliance extends EventEmitter {
    */
   async verifyEvidence(evidenceId, verifiedBy) {
     try {
-      if (!this.database || !this.database.db) throw new Error("Database not initialized");
+      if (!this.database || !this.database.db) {throw new Error("Database not initialized");}
 
       this.database.db
         .prepare(
@@ -330,7 +330,7 @@ class SOC2Compliance extends EventEmitter {
 
       this.database.saveToFile();
       return { success: true, evidenceId, status: EVIDENCE_STATUS.VERIFIED };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SOC2Compliance] Failed to verify evidence:", error);
       throw error;
     }
@@ -343,18 +343,18 @@ class SOC2Compliance extends EventEmitter {
    */
   async getEvidenceByCriteria(criteria) {
     try {
-      if (!this.database || !this.database.db) return [];
+      if (!this.database || !this.database.db) {return [];}
       return this.database.db
         .prepare("SELECT * FROM soc2_evidence WHERE criteria = ? ORDER BY created_at DESC")
         .all(criteria);
-    } catch (error) {
+    } catch (_error) {
       logger.error("[SOC2Compliance] Failed to get evidence:", error);
       return [];
     }
   }
 
   async _saveEvidence(evidence) {
-    if (!this.database || !this.database.db) return;
+    if (!this.database || !this.database.db) {return;}
 
     this.database.db
       .prepare(
@@ -386,7 +386,7 @@ class SOC2Compliance extends EventEmitter {
 
 let _instance;
 function getSOC2Compliance() {
-  if (!_instance) _instance = new SOC2Compliance();
+  if (!_instance) {_instance = new SOC2Compliance();}
   return _instance;
 }
 

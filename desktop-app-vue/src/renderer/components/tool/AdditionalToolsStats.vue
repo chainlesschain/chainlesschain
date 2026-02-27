@@ -55,7 +55,11 @@
           un-checked-children="手动刷新"
           @change="handleAutoRefreshChange"
         />
-        <a-button :loading="loading" type="primary" @click="handleRefresh">
+        <a-button
+          :loading="loading"
+          type="primary"
+          @click="handleRefresh"
+        >
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -65,12 +69,23 @@
     </div>
 
     <!-- 筛选控件区 -->
-    <a-card size="small" class="filter-card">
+    <a-card
+      size="small"
+      class="filter-card"
+    >
       <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :sm="12" :md="8">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="8"
+        >
           <div class="filter-item">
             <label>时间范围</label>
-            <a-space direction="vertical" style="width: 100%" :size="4">
+            <a-space
+              direction="vertical"
+              style="width: 100%"
+              :size="4"
+            >
               <a-range-picker
                 v-model:value="dateRange"
                 style="width: 100%"
@@ -79,26 +94,45 @@
                 @change="handleFilterChange"
               />
               <a-space :size="4">
-                <a-button size="small" @click="setQuickDateRange('today')">
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('today')"
+                >
                   今天
                 </a-button>
-                <a-button size="small" @click="setQuickDateRange('week')">
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('week')"
+                >
                   本周
                 </a-button>
-                <a-button size="small" @click="setQuickDateRange('month')">
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('month')"
+                >
                   本月
                 </a-button>
-                <a-button size="small" @click="setQuickDateRange('last7days')">
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('last7days')"
+                >
                   最近7天
                 </a-button>
-                <a-button size="small" @click="setQuickDateRange('last30days')">
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('last30days')"
+                >
                   最近30天
                 </a-button>
               </a-space>
             </a-space>
           </div>
         </a-col>
-        <a-col :xs="24" :sm="12" :md="8">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="8"
+        >
           <div class="filter-item">
             <label>分类筛选</label>
             <a-select
@@ -111,7 +145,11 @@
             />
           </div>
         </a-col>
-        <a-col :xs="24" :sm="12" :md="8">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="8"
+        >
           <div class="filter-item">
             <label>搜索工具</label>
             <a-input-search
@@ -127,7 +165,10 @@
       <a-row style="margin-top: 12px">
         <a-col :span="24">
           <a-space>
-            <a-button size="small" @click="handleResetFilters">
+            <a-button
+              size="small"
+              @click="handleResetFilters"
+            >
               <template #icon>
                 <ClearOutlined />
               </template>
@@ -161,7 +202,10 @@
                       </a-button>
                     </a-menu-item>
                   </a-menu-item-group>
-                  <a-menu-item v-else disabled>
+                  <a-menu-item
+                    v-else
+                    disabled
+                  >
                     暂无保存的筛选条件
                   </a-menu-item>
                 </a-menu>
@@ -174,7 +218,10 @@
                 <DownOutlined />
               </a-button>
             </a-dropdown>
-            <a-tag v-if="hasActiveFilters" color="blue">
+            <a-tag
+              v-if="hasActiveFilters"
+              color="blue"
+            >
               已应用 {{ activeFilterCount }} 个筛选条件
             </a-tag>
           </a-space>
@@ -183,17 +230,39 @@
     </a-card>
 
     <!-- 加载状态 -->
-    <div v-if="loading && !overview.totalTools" class="loading-container">
-      <a-spin size="large" tip="加载统计数据中..." />
+    <div
+      v-if="loading && !overview.totalTools"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载统计数据中..."
+      />
     </div>
 
     <!-- 统计数据 -->
-    <div v-else class="stats-container">
-      <a-space direction="vertical" :size="24" style="width: 100%">
+    <div
+      v-else
+      class="stats-container"
+    >
+      <a-space
+        direction="vertical"
+        :size="24"
+        style="width: 100%"
+      >
         <!-- 概览卡片 -->
         <a-row :gutter="16">
-          <a-col :xs="24" :sm="12" :md="8" :lg="4" :xl="4">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="4"
+            :xl="4"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="总工具数"
                 :value="overview.totalTools"
@@ -205,8 +274,17 @@
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col :xs="24" :sm="12" :md="8" :lg="4" :xl="4">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="4"
+            :xl="4"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="已启用"
                 :value="overview.enabledTools"
@@ -218,8 +296,17 @@
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col :xs="24" :sm="12" :md="8" :lg="5" :xl="5">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="5"
+            :xl="5"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="总调用次数"
                 :value="overview.totalInvocations"
@@ -231,8 +318,17 @@
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col :xs="24" :sm="12" :md="8" :lg="5" :xl="5">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="5"
+            :xl="5"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="成功率"
                 :value="overview.successRate"
@@ -247,8 +343,17 @@
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+            :xl="6"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="平均响应时间"
                 :value="overview.avgExecutionTime"
@@ -267,15 +372,32 @@
         <!-- 图表区域 -->
         <a-row :gutter="16">
           <!-- 使用排行 Top 10 -->
-          <a-col :xs="24" :lg="12">
-            <a-card title="使用次数排行 Top 10" size="small" class="chart-card">
-              <div ref="usageChartRef" style="width: 100%; height: 350px" />
+          <a-col
+            :xs="24"
+            :lg="12"
+          >
+            <a-card
+              title="使用次数排行 Top 10"
+              size="small"
+              class="chart-card"
+            >
+              <div
+                ref="usageChartRef"
+                style="width: 100%; height: 350px"
+              />
             </a-card>
           </a-col>
 
           <!-- 成功率排行 Top 10 -->
-          <a-col :xs="24" :lg="12">
-            <a-card title="成功率排行 Top 10" size="small" class="chart-card">
+          <a-col
+            :xs="24"
+            :lg="12"
+          >
+            <a-card
+              title="成功率排行 Top 10"
+              size="small"
+              class="chart-card"
+            >
               <div
                 ref="successRateChartRef"
                 style="width: 100%; height: 350px"
@@ -287,8 +409,15 @@
         <!-- 分类统计 & 性能分布 -->
         <a-row :gutter="16">
           <!-- 分类统计 -->
-          <a-col :xs="24" :lg="14">
-            <a-card title="分类统计" size="small" class="chart-card">
+          <a-col
+            :xs="24"
+            :lg="14"
+          >
+            <a-card
+              title="分类统计"
+              size="small"
+              class="chart-card"
+            >
               <a-table
                 :columns="categoryColumns"
                 :data-source="categoryStats"
@@ -317,8 +446,15 @@
           </a-col>
 
           <!-- 性能分布 -->
-          <a-col :xs="24" :lg="10">
-            <a-card title="性能分布" size="small" class="chart-card">
+          <a-col
+            :xs="24"
+            :lg="10"
+          >
+            <a-card
+              title="性能分布"
+              size="small"
+              class="chart-card"
+            >
               <div
                 ref="performanceChartRef"
                 style="width: 100%; height: 300px"
@@ -330,8 +466,15 @@
         <!-- 7天使用趋势 -->
         <a-row :gutter="16">
           <a-col :span="24">
-            <a-card title="7天使用趋势" size="small" class="chart-card">
-              <div ref="trendChartRef" style="width: 100%; height: 300px" />
+            <a-card
+              title="7天使用趋势"
+              size="small"
+              class="chart-card"
+            >
+              <div
+                ref="trendChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
         </a-row>
@@ -339,7 +482,11 @@
         <!-- 最近使用 -->
         <a-row :gutter="16">
           <a-col :span="24">
-            <a-card title="最近使用" size="small" class="chart-card">
+            <a-card
+              title="最近使用"
+              size="small"
+              class="chart-card"
+            >
               <a-list
                 :data-source="recentTools"
                 :pagination="{ pageSize: 10, showSizeChanger: false }"

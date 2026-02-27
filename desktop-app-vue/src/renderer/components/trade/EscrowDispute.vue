@@ -26,14 +26,27 @@
               <li>启动仲裁流程</li>
               <li>可能需要提供证据材料</li>
             </ul>
-            <p style="margin-top: 8px">请确保您有充分的理由发起争议。</p>
+            <p style="margin-top: 8px">
+              请确保您有充分的理由发起争议。
+            </p>
           </template>
         </a-alert>
 
         <!-- 托管信息 -->
-        <a-card size="small" title="托管信息" style="margin-bottom: 16px">
-          <a-descriptions :column="2" size="small" bordered>
-            <a-descriptions-item label="托管ID" :span="2">
+        <a-card
+          size="small"
+          title="托管信息"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="2"
+            size="small"
+            bordered
+          >
+            <a-descriptions-item
+              label="托管ID"
+              :span="2"
+            >
               <a-typography-text copyable>
                 {{ escrow.id }}
               </a-typography-text>
@@ -47,7 +60,11 @@
             </a-descriptions-item>
 
             <a-descriptions-item label="当前状态">
-              <status-badge :status="escrow.status" type="escrow" show-icon />
+              <status-badge
+                :status="escrow.status"
+                type="escrow"
+                show-icon
+              />
             </a-descriptions-item>
           </a-descriptions>
         </a-card>
@@ -55,7 +72,10 @@
         <!-- 争议表单 -->
         <a-form layout="vertical">
           <!-- 争议原因 -->
-          <a-form-item label="争议原因" required>
+          <a-form-item
+            label="争议原因"
+            required
+          >
             <a-select
               v-model:value="form.reason"
               placeholder="请选择争议原因"
@@ -95,7 +115,10 @@
           </a-form-item>
 
           <!-- 详细描述 -->
-          <a-form-item label="详细描述" required>
+          <a-form-item
+            label="详细描述"
+            required
+          >
             <a-textarea
               v-model:value="form.description"
               placeholder="请详细描述争议情况，包括具体问题、沟通记录等..."
@@ -104,9 +127,7 @@
               show-count
             />
             <template #extra>
-              <span style="color: #8c8c8c"
-                >请提供尽可能详细的信息，有助于仲裁处理</span
-              >
+              <span style="color: #8c8c8c">请提供尽可能详细的信息，有助于仲裁处理</span>
             </template>
           </a-form-item>
 
@@ -121,7 +142,9 @@
             >
               <div>
                 <plus-outlined />
-                <div style="margin-top: 8px">上传证据</div>
+                <div style="margin-top: 8px">
+                  上传证据
+                </div>
               </div>
             </a-upload>
             <template #extra>
@@ -169,7 +192,10 @@
           style="margin-bottom: 16px"
         >
           我已阅读并同意
-          <a href="#" @click.prevent="showTerms = true">《争议仲裁条款》</a>
+          <a
+            href="#"
+            @click.prevent="showTerms = true"
+          >《争议仲裁条款》</a>
         </a-checkbox>
       </div>
     </a-modal>

@@ -17,8 +17,8 @@
  * @version 0.45.0
  */
 
-const { logger } = require("../utils/logger.js");
-const EventEmitter = require("events");
+import { logger } from "../utils/logger.js";
+import EventEmitter from "events";
 
 // ============================================================
 // Constants
@@ -124,7 +124,7 @@ class AISocialAssistant extends EventEmitter {
     try {
       this.initialized = true;
       logger.info("[AISocialAssistant] AI social assistant initialized successfully");
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Initialization failed:", error);
       throw error;
     }
@@ -169,7 +169,7 @@ class AISocialAssistant extends EventEmitter {
       }
 
       return null;
-    } catch (error) {
+    } catch (_error) {
       logger.warn("[AISocialAssistant] LLM chat failed, using fallback:", error.message);
       return null;
     }
@@ -216,7 +216,7 @@ class AISocialAssistant extends EventEmitter {
         style,
         source: "template",
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Failed to suggest reply:", error);
       throw error;
     }
@@ -263,7 +263,7 @@ class AISocialAssistant extends EventEmitter {
         messageCount: messages.length,
         source: "template",
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Failed to summarize conversation:", error);
       throw error;
     }
@@ -314,7 +314,7 @@ class AISocialAssistant extends EventEmitter {
         length,
         source: "template",
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Failed to draft post:", error);
       throw error;
     }
@@ -370,16 +370,16 @@ class AISocialAssistant extends EventEmitter {
       // Fallback analysis
       const messageCount = context.messageCount || 0;
       let strength = "new";
-      if (messageCount > 100) strength = "strong";
-      else if (messageCount > 30) strength = "growing";
-      else if (messageCount > 5) strength = "developing";
+      if (messageCount > 100) {strength = "strong";}
+      else if (messageCount > 30) {strength = "growing";}
+      else if (messageCount > 5) {strength = "developing";}
 
       return {
         friendDid,
         analysis: `Relationship strength: ${strength}. ${messageCount > 0 ? `You've exchanged ${messageCount} messages.` : "No messages exchanged yet."} ${context.commonTopics && context.commonTopics.length > 0 ? `Common interests: ${context.commonTopics.join(", ")}.` : "Try finding common topics to strengthen this connection."}`,
         source: "template",
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Failed to analyze relationship:", error);
       throw error;
     }
@@ -435,7 +435,7 @@ class AISocialAssistant extends EventEmitter {
         basedOn: userInterests,
         source: "template",
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Failed to recommend topics:", error);
       throw error;
     }
@@ -494,7 +494,7 @@ class AISocialAssistant extends EventEmitter {
         message: template.replace("%INTEREST%", interest),
         source: "template",
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Failed to generate ice-breaker:", error);
       throw error;
     }
@@ -559,7 +559,7 @@ class AISocialAssistant extends EventEmitter {
         hashtags,
         source: "template",
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Failed to generate hashtags:", error);
       throw error;
     }
@@ -570,7 +570,7 @@ class AISocialAssistant extends EventEmitter {
    * @param {Array<Object>} messages - Messages to add
    */
   addToContext(messages) {
-    if (!Array.isArray(messages)) return;
+    if (!Array.isArray(messages)) {return;}
     this._contextWindow.push(...messages);
     if (this._contextWindow.length > this._maxContextSize) {
       this._contextWindow = this._contextWindow.slice(-this._maxContextSize);
@@ -616,7 +616,7 @@ class AISocialAssistant extends EventEmitter {
         styles: targetStyles,
         contextSize: fullContext.length,
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Failed to suggest multi-style replies:", error);
       throw error;
     }
@@ -683,7 +683,7 @@ Reply with ONLY valid JSON.`;
       const result = await this.suggestReply(conversationContext, style);
       result.contextSize = this._contextWindow.length;
       return result;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[AISocialAssistant] Enhanced reply failed:", error);
       throw error;
     }

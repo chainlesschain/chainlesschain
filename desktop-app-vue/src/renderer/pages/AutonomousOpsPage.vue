@@ -13,7 +13,10 @@
           </template>
           告警配置
         </a-button>
-        <a-button :loading="store.loading" @click="handleRefresh">
+        <a-button
+          :loading="store.loading"
+          @click="handleRefresh"
+        >
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -23,8 +26,14 @@
     </div>
 
     <!-- 统计区域 -->
-    <a-row :gutter="[16, 16]" class="stats-section">
-      <a-col :xs="12" :sm="6">
+    <a-row
+      :gutter="[16, 16]"
+      class="stats-section"
+    >
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="活跃事故"
@@ -33,7 +42,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="待确认告警"
@@ -42,7 +54,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="自动修复率"
@@ -52,7 +67,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="平均 MTTR"
@@ -67,7 +85,10 @@
     <!-- Tab 切换 -->
     <a-tabs v-model:active-key="activeTab">
       <!-- Tab 1: 事故列表 -->
-      <a-tab-pane key="incidents" tab="事故列表">
+      <a-tab-pane
+        key="incidents"
+        tab="事故列表"
+      >
         <a-table
           :columns="incidentColumns"
           :data-source="store.incidents"
@@ -99,7 +120,7 @@
                 <a-button
                   v-if="
                     record.status === 'acknowledged' ||
-                    record.status === 'resolving'
+                      record.status === 'resolving'
                   "
                   type="link"
                   size="small"
@@ -130,9 +151,15 @@
       </a-tab-pane>
 
       <!-- Tab 2: Playbook 管理 -->
-      <a-tab-pane key="playbooks" tab="Playbook 管理">
+      <a-tab-pane
+        key="playbooks"
+        tab="Playbook 管理"
+      >
         <div style="margin-bottom: 16px">
-          <a-button type="primary" @click="showPlaybookModal = true">
+          <a-button
+            type="primary"
+            @click="showPlaybookModal = true"
+          >
             <template #icon>
               <PlusOutlined />
             </template>
@@ -165,8 +192,14 @@
       </a-tab-pane>
 
       <!-- Tab 3: 事故报告 -->
-      <a-tab-pane key="postmortems" tab="事故报告">
-        <a-list :data-source="store.postmortems" :loading="store.loading">
+      <a-tab-pane
+        key="postmortems"
+        tab="事故报告"
+      >
+        <a-list
+          :data-source="store.postmortems"
+          :loading="store.loading"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <a-card
@@ -174,7 +207,10 @@
                 size="small"
                 style="width: 100%"
               >
-                <a-descriptions :column="1" size="small">
+                <a-descriptions
+                  :column="1"
+                  size="small"
+                >
                   <a-descriptions-item label="根因分析">
                     {{ item.rootCause }}
                   </a-descriptions-item>
@@ -183,9 +219,7 @@
                   </a-descriptions-item>
                   <a-descriptions-item label="SLA">
                     <span>目标 MTTR: {{ item.slaMetrics?.targetMTTR }}min</span>
-                    <span style="margin-left: 16px"
-                      >实际 MTTR: {{ item.slaMetrics?.actualMTTR }}min</span
-                    >
+                    <span style="margin-left: 16px">实际 MTTR: {{ item.slaMetrics?.actualMTTR }}min</span>
                     <a-tag
                       :color="item.slaMetrics?.met ? 'green' : 'red'"
                       style="margin-left: 8px"
@@ -195,13 +229,18 @@
                   </a-descriptions-item>
                   <a-descriptions-item label="改进建议">
                     <ul style="margin: 0; padding-left: 16px">
-                      <li v-for="(imp, idx) in item.improvements" :key="idx">
+                      <li
+                        v-for="(imp, idx) in item.improvements"
+                        :key="idx"
+                      >
                         {{ imp }}
                       </li>
                     </ul>
                   </a-descriptions-item>
                 </a-descriptions>
-                <h4 style="margin-top: 12px">时间线</h4>
+                <h4 style="margin-top: 12px">
+                  时间线
+                </h4>
                 <a-timeline style="margin-top: 8px">
                   <a-timeline-item
                     v-for="(entry, idx) in item.timeline"
@@ -209,8 +248,7 @@
                   >
                     <span
                       style="color: rgba(0, 0, 0, 0.45); margin-right: 8px"
-                      >{{ entry.time }}</span
-                    >
+                    >{{ entry.time }}</span>
                     {{ entry.event }}
                   </a-timeline-item>
                 </a-timeline>
@@ -235,7 +273,10 @@
     >
       <a-form layout="vertical">
         <a-form-item label="事故">
-          <a-input :value="(remediationIncident as any)?.title" disabled />
+          <a-input
+            :value="(remediationIncident as any)?.title"
+            disabled
+          />
         </a-form-item>
         <a-form-item label="选择 Playbook">
           <a-select

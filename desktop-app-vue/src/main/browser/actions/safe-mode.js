@@ -470,7 +470,7 @@ class SafeMode extends EventEmitter {
    * @private
    */
   _sanitizeParams(params) {
-    if (!params) return {};
+    if (!params) {return {};}
 
     const sanitized = { ...params };
     const sensitiveFields = ['password', 'token', 'secret', 'apiKey', 'credential'];

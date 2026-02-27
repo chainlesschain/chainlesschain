@@ -1,9 +1,15 @@
 <template>
   <div class="git-status">
-    <a-card title="Git 同步状态" size="small">
+    <a-card
+      title="Git 同步状态"
+      size="small"
+    >
       <template v-if="!enabled">
         <a-empty description="Git同步未启用">
-          <a-button type="primary" @click="$emit('open-settings')">
+          <a-button
+            type="primary"
+            @click="$emit('open-settings')"
+          >
             前往设置
           </a-button>
         </a-empty>
@@ -12,7 +18,10 @@
       <template v-else>
         <!-- 状态概览 -->
         <div class="status-overview">
-          <a-descriptions :column="2" size="small">
+          <a-descriptions
+            :column="2"
+            size="small"
+          >
             <a-descriptions-item label="分支">
               <a-tag color="blue">
                 {{ status.branch || "main" }}
@@ -36,13 +45,18 @@
         </div>
 
         <!-- 更改列表 -->
-        <div v-if="hasChanges" class="changes-list">
+        <div
+          v-if="hasChanges"
+          class="changes-list"
+        >
           <a-divider>未提交的更改</a-divider>
 
           <div v-if="status.modified && status.modified.length > 0">
             <div class="change-group">
               <div class="change-title">
-                <a-tag color="orange"> 修改 </a-tag>
+                <a-tag color="orange">
+                  修改
+                </a-tag>
                 <span>{{ status.modified.length }} 个文件</span>
               </div>
               <div class="file-list">
@@ -54,7 +68,10 @@
                   <file-text-outlined />
                   <span>{{ file }}</span>
                 </div>
-                <div v-if="status.modified.length > 5" class="more-files">
+                <div
+                  v-if="status.modified.length > 5"
+                  class="more-files"
+                >
                   ...还有 {{ status.modified.length - 5 }} 个文件
                 </div>
               </div>
@@ -64,7 +81,9 @@
           <div v-if="status.untracked && status.untracked.length > 0">
             <div class="change-group">
               <div class="change-title">
-                <a-tag color="green"> 新增 </a-tag>
+                <a-tag color="green">
+                  新增
+                </a-tag>
                 <span>{{ status.untracked.length }} 个文件</span>
               </div>
               <div class="file-list">
@@ -76,7 +95,10 @@
                   <plus-outlined />
                   <span>{{ file }}</span>
                 </div>
-                <div v-if="status.untracked.length > 5" class="more-files">
+                <div
+                  v-if="status.untracked.length > 5"
+                  class="more-files"
+                >
                   ...还有 {{ status.untracked.length - 5 }} 个文件
                 </div>
               </div>
@@ -86,7 +108,9 @@
           <div v-if="status.deleted && status.deleted.length > 0">
             <div class="change-group">
               <div class="change-title">
-                <a-tag color="red"> 删除 </a-tag>
+                <a-tag color="red">
+                  删除
+                </a-tag>
                 <span>{{ status.deleted.length }} 个文件</span>
               </div>
               <div class="file-list">
@@ -98,7 +122,10 @@
                   <minus-outlined />
                   <span>{{ file }}</span>
                 </div>
-                <div v-if="status.deleted.length > 5" class="more-files">
+                <div
+                  v-if="status.deleted.length > 5"
+                  class="more-files"
+                >
                   ...还有 {{ status.deleted.length - 5 }} 个文件
                 </div>
               </div>
@@ -118,23 +145,35 @@
               <sync-outlined />
               同步到Git
             </a-button>
-            <a-button :loading="loading" @click="handleRefresh">
+            <a-button
+              :loading="loading"
+              @click="handleRefresh"
+            >
               <reload-outlined />
               刷新
             </a-button>
             <a-dropdown>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item key="push" @click="handlePush">
+                  <a-menu-item
+                    key="push"
+                    @click="handlePush"
+                  >
                     <upload-outlined />
                     推送
                   </a-menu-item>
-                  <a-menu-item key="pull" @click="handlePull">
+                  <a-menu-item
+                    key="pull"
+                    @click="handlePull"
+                  >
                     <download-outlined />
                     拉取
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item key="log" @click="showLog = true">
+                  <a-menu-item
+                    key="log"
+                    @click="showLog = true"
+                  >
                     <history-outlined />
                     提交历史
                   </a-menu-item>
@@ -149,8 +188,14 @@
         </div>
 
         <!-- 同步进度 -->
-        <div v-if="progress" class="progress">
-          <a-progress :percent="progress.percent" :status="progress.status" />
+        <div
+          v-if="progress"
+          class="progress"
+        >
+          <a-progress
+            :percent="progress.percent"
+            :status="progress.status"
+          />
           <div class="progress-text">
             {{ progress.text }}
           </div>

@@ -208,7 +208,7 @@ class USBTransport extends EventEmitter {
           0, // wIndex
           data,
           (error, result) => {
-            if (error) return reject(error);
+            if (error) {return reject(error);}
             resolve(result || Buffer.from([0x90, 0x00]));
           },
         );
@@ -256,7 +256,7 @@ class USBTransport extends EventEmitter {
 
   _getStringDescriptor(device, index) {
     return new Promise((resolve) => {
-      if (!index) return resolve("");
+      if (!index) {return resolve("");}
       device.getStringDescriptor(index, (error, value) => {
         resolve(error ? "" : value || "");
       });
@@ -266,7 +266,7 @@ class USBTransport extends EventEmitter {
 
 let _instance;
 function getUSBTransport() {
-  if (!_instance) _instance = new USBTransport();
+  if (!_instance) {_instance = new USBTransport();}
   return _instance;
 }
 

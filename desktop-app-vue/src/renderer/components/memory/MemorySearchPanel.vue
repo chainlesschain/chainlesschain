@@ -14,14 +14,24 @@
     </div>
 
     <!-- 搜索选项 -->
-    <a-collapse v-model:active-key="optionsPanelKey" ghost>
-      <a-collapse-panel key="options" header="搜索选项">
+    <a-collapse
+      v-model:active-key="optionsPanelKey"
+      ghost
+    >
+      <a-collapse-panel
+        key="options"
+        header="搜索选项"
+      >
         <div class="search-options">
           <div class="option-row">
             <span class="option-label">搜索范围：</span>
             <a-checkbox-group v-model:value="searchScope">
-              <a-checkbox value="daily"> Daily Notes </a-checkbox>
-              <a-checkbox value="memory"> MEMORY.md </a-checkbox>
+              <a-checkbox value="daily">
+                Daily Notes
+              </a-checkbox>
+              <a-checkbox value="memory">
+                MEMORY.md
+              </a-checkbox>
             </a-checkbox-group>
           </div>
 
@@ -29,11 +39,9 @@
             <span class="option-label">搜索权重：</span>
             <div class="weight-sliders">
               <div class="weight-item">
-                <span
-                  >语义搜索 (Vector)：{{
-                    (vectorWeight * 100).toFixed(0)
-                  }}%</span
-                >
+                <span>语义搜索 (Vector)：{{
+                  (vectorWeight * 100).toFixed(0)
+                }}%</span>
                 <a-slider
                   v-model:value="vectorWeight"
                   :min="0"
@@ -43,9 +51,7 @@
                 />
               </div>
               <div class="weight-item">
-                <span
-                  >关键词匹配 (BM25)：{{ (textWeight * 100).toFixed(0) }}%</span
-                >
+                <span>关键词匹配 (BM25)：{{ (textWeight * 100).toFixed(0) }}%</span>
                 <a-slider
                   v-model:value="textWeight"
                   :min="0"
@@ -59,7 +65,11 @@
 
           <div class="option-row">
             <span class="option-label">返回结果数：</span>
-            <a-input-number v-model:value="resultLimit" :min="1" :max="50" />
+            <a-input-number
+              v-model:value="resultLimit"
+              :min="1"
+              :max="50"
+            />
           </div>
         </div>
       </a-collapse-panel>
@@ -68,15 +78,25 @@
     <!-- 搜索结果 -->
     <div class="search-results">
       <a-spin :spinning="loading.search">
-        <div v-if="searchResults.length > 0" class="results-list">
+        <div
+          v-if="searchResults.length > 0"
+          class="results-list"
+        >
           <div class="results-header">
             <span>找到 {{ searchResults.length }} 条结果</span>
-            <a-button type="text" size="small" @click="clearSearch">
+            <a-button
+              type="text"
+              size="small"
+              @click="clearSearch"
+            >
               清除
             </a-button>
           </div>
 
-          <a-list :data-source="searchResults" item-layout="vertical">
+          <a-list
+            :data-source="searchResults"
+            item-layout="vertical"
+          >
             <template #renderItem="{ item, index }">
               <a-list-item class="result-item">
                 <template #extra>
@@ -108,10 +128,18 @@
                 </div>
 
                 <template #actions>
-                  <a-button type="link" size="small" @click="viewDetail(item)">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="viewDetail(item)"
+                  >
                     查看详情
                   </a-button>
-                  <a-button type="link" size="small" @click="copyResult(item)">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="copyResult(item)"
+                  >
                     复制
                   </a-button>
                 </template>
@@ -120,7 +148,10 @@
           </a-list>
         </div>
 
-        <div v-else-if="searchQuery && !loading.search" class="no-results">
+        <div
+          v-else-if="searchQuery && !loading.search"
+          class="no-results"
+        >
           <a-empty description="未找到匹配的记忆">
             <template #extra>
               <a-typography-text type="secondary">
@@ -130,8 +161,13 @@
           </a-empty>
         </div>
 
-        <div v-else class="search-tips">
-          <a-typography-title :level="5"> 搜索提示 </a-typography-title>
+        <div
+          v-else
+          class="search-tips"
+        >
+          <a-typography-title :level="5">
+            搜索提示
+          </a-typography-title>
           <ul>
             <li><strong>语义搜索</strong>：理解查询意图，找到语义相关的内容</li>
             <li>
@@ -142,7 +178,9 @@
             </li>
           </ul>
 
-          <a-typography-title :level="5"> 示例查询 </a-typography-title>
+          <a-typography-title :level="5">
+            示例查询
+          </a-typography-title>
           <a-space wrap>
             <a-tag
               v-for="example in exampleQueries"
@@ -165,8 +203,15 @@
       width="800px"
       :footer="null"
     >
-      <div v-if="selectedResult" class="detail-content">
-        <a-descriptions bordered :column="1" size="small">
+      <div
+        v-if="selectedResult"
+        class="detail-content"
+      >
+        <a-descriptions
+          bordered
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="来源">
             {{ getSourceLabel(selectedResult.source) }}
           </a-descriptions-item>

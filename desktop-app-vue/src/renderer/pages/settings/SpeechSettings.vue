@@ -1,7 +1,13 @@
 <template>
   <div class="speech-settings">
-    <a-card title="语音识别设置" :bordered="false">
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+    <a-card
+      title="语音识别设置"
+      :bordered="false"
+    >
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <!-- 识别引擎选择 -->
         <a-form-item label="识别引擎">
           <a-radio-group
@@ -46,15 +52,24 @@
             </a-input>
             <template #extra>
               <a-space>
-                <a-tag v-if="connectionStatus === 'success'" color="success">
+                <a-tag
+                  v-if="connectionStatus === 'success'"
+                  color="success"
+                >
                   <CheckCircleOutlined />
                   连接正常
                 </a-tag>
-                <a-tag v-else-if="connectionStatus === 'error'" color="error">
+                <a-tag
+                  v-else-if="connectionStatus === 'error'"
+                  color="error"
+                >
                   <CloseCircleOutlined />
                   连接失败
                 </a-tag>
-                <a-tag v-else color="default">
+                <a-tag
+                  v-else
+                  color="default"
+                >
                   <QuestionCircleOutlined />
                   未测试
                 </a-tag>
@@ -90,7 +105,9 @@
                 style="margin-top: 8px"
               >
                 <div v-if="modelInfo">
-                  <a-tag color="blue"> 速度: {{ modelInfo.speed }} </a-tag>
+                  <a-tag color="blue">
+                    速度: {{ modelInfo.speed }}
+                  </a-tag>
                   <a-tag color="green">
                     准确度: {{ modelInfo.accuracy }}
                   </a-tag>
@@ -107,11 +124,21 @@
               v-model:value="config.whisperLocal.defaultLanguage"
               style="width: 200px"
             >
-              <a-select-option value="zh"> 中文 </a-select-option>
-              <a-select-option value="en"> English </a-select-option>
-              <a-select-option value="ja"> 日本語 </a-select-option>
-              <a-select-option value="ko"> 한국어 </a-select-option>
-              <a-select-option value="auto"> 自动检测 </a-select-option>
+              <a-select-option value="zh">
+                中文
+              </a-select-option>
+              <a-select-option value="en">
+                English
+              </a-select-option>
+              <a-select-option value="ja">
+                日本語
+              </a-select-option>
+              <a-select-option value="ko">
+                한국어
+              </a-select-option>
+              <a-select-option value="auto">
+                自动检测
+              </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -178,12 +205,24 @@
               v-model:value="config.webSpeech.lang"
               style="width: 200px"
             >
-              <a-select-option value="zh-CN"> 中文（简体） </a-select-option>
-              <a-select-option value="zh-TW"> 中文（繁体） </a-select-option>
-              <a-select-option value="en-US"> English (US) </a-select-option>
-              <a-select-option value="en-GB"> English (UK) </a-select-option>
-              <a-select-option value="ja-JP"> 日本語 </a-select-option>
-              <a-select-option value="ko-KR"> 한국어 </a-select-option>
+              <a-select-option value="zh-CN">
+                中文（简体）
+              </a-select-option>
+              <a-select-option value="zh-TW">
+                中文（繁体）
+              </a-select-option>
+              <a-select-option value="en-US">
+                English (US)
+              </a-select-option>
+              <a-select-option value="en-GB">
+                English (UK)
+              </a-select-option>
+              <a-select-option value="ja-JP">
+                日本語
+              </a-select-option>
+              <a-select-option value="ko-KR">
+                한국어
+              </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -236,7 +275,11 @@
         <!-- 操作按钮 -->
         <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
           <a-space>
-            <a-button type="primary" :loading="saving" @click="handleSave">
+            <a-button
+              type="primary"
+              :loading="saving"
+              @click="handleSave"
+            >
               <SaveOutlined />
               保存设置
             </a-button>
@@ -260,7 +303,11 @@
       :bordered="false"
       style="margin-top: 16px"
     >
-      <a-descriptions :column="2" bordered size="small">
+      <a-descriptions
+        :column="2"
+        bordered
+        size="small"
+      >
         <a-descriptions-item label="服务地址">
           {{ config.whisperLocal.serverUrl }}
         </a-descriptions-item>
@@ -276,7 +323,10 @@
         <a-descriptions-item label="设备">
           {{ serviceInfo.device || "CPU" }}
         </a-descriptions-item>
-        <a-descriptions-item label="已加载模型" :span="2">
+        <a-descriptions-item
+          label="已加载模型"
+          :span="2"
+        >
           <a-space>
             <a-tag
               v-for="model in serviceInfo.models_loaded"
@@ -288,7 +338,7 @@
             <span
               v-if="
                 !serviceInfo.models_loaded ||
-                serviceInfo.models_loaded.length === 0
+                  serviceInfo.models_loaded.length === 0
               "
             >
               无
@@ -300,7 +350,10 @@
       <a-divider />
 
       <a-space>
-        <a-button :loading="testing" @click="testConnection">
+        <a-button
+          :loading="testing"
+          @click="testConnection"
+        >
           <ReloadOutlined />
           刷新状态
         </a-button>

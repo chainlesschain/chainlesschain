@@ -7,13 +7,19 @@
         <span class="subtitle">DevOps Pipeline Orchestration</span>
       </div>
       <div class="header-right">
-        <a-button :loading="store.loading" @click="handleRefresh">
+        <a-button
+          :loading="store.loading"
+          @click="handleRefresh"
+        >
           <template #icon>
             <ReloadOutlined />
           </template>
           刷新
         </a-button>
-        <a-button type="primary" @click="showTemplateModal = true">
+        <a-button
+          type="primary"
+          @click="showTemplateModal = true"
+        >
           <template #icon>
             <PlusOutlined />
           </template>
@@ -23,8 +29,14 @@
     </div>
 
     <!-- 统计区域 -->
-    <a-row :gutter="[16, 16]" class="stats-section">
-      <a-col :xs="12" :sm="6">
+    <a-row
+      :gutter="[16, 16]"
+      class="stats-section"
+    >
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="运行中"
@@ -33,7 +45,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="成功"
@@ -42,7 +57,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="失败"
@@ -51,7 +69,10 @@
           />
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="待审批"
@@ -63,10 +84,19 @@
     </a-row>
 
     <!-- 主内容区 -->
-    <a-row :gutter="16" class="main-content">
+    <a-row
+      :gutter="16"
+      class="main-content"
+    >
       <!-- 左侧：流水线列表 -->
-      <a-col :lg="16" :md="24">
-        <a-card title="流水线列表" size="small">
+      <a-col
+        :lg="16"
+        :md="24"
+      >
+        <a-card
+          title="流水线列表"
+          size="small"
+        >
           <a-table
             :columns="pipelineColumns"
             :data-source="store.pipelines"
@@ -140,10 +170,16 @@
             >
               <div class="timeline-item">
                 <span class="stage-name">{{ stage.name }}</span>
-                <a-tag :color="statusColor(stage.status)" size="small">
+                <a-tag
+                  :color="statusColor(stage.status)"
+                  size="small"
+                >
                   {{ stage.status }}
                 </a-tag>
-                <span v-if="stage.duration" class="stage-duration">{{
+                <span
+                  v-if="stage.duration"
+                  class="stage-duration"
+                >{{
                   formatDuration(stage.duration)
                 }}</span>
               </div>
@@ -153,9 +189,20 @@
       </a-col>
 
       <!-- 右侧：详情 -->
-      <a-col :lg="8" :md="24">
-        <a-card v-if="store.currentPipeline" title="流水线详情" size="small">
-          <a-descriptions :column="1" size="small" bordered>
+      <a-col
+        :lg="8"
+        :md="24"
+      >
+        <a-card
+          v-if="store.currentPipeline"
+          title="流水线详情"
+          size="small"
+        >
+          <a-descriptions
+            :column="1"
+            size="small"
+            bordered
+          >
             <a-descriptions-item label="名称">
               {{ store.currentPipeline.name }}
             </a-descriptions-item>
@@ -173,9 +220,15 @@
           </a-descriptions>
 
           <!-- 指标 -->
-          <div v-if="store.metrics" style="margin-top: 16px">
+          <div
+            v-if="store.metrics"
+            style="margin-top: 16px"
+          >
             <h4>KPI 指标</h4>
-            <a-descriptions :column="1" size="small">
+            <a-descriptions
+              :column="1"
+              size="small"
+            >
               <a-descriptions-item label="总运行次数">
                 {{ store.metrics.totalRuns }}
               </a-descriptions-item>
@@ -207,7 +260,10 @@
             <div class="gate-info">
               <strong>{{ gate.pipeline.name }}</strong> → {{ gate.stage.name }}
             </div>
-            <a-space size="small" style="margin-top: 8px">
+            <a-space
+              size="small"
+              style="margin-top: 8px"
+            >
               <a-button
                 type="primary"
                 size="small"
@@ -215,7 +271,11 @@
               >
                 批准
               </a-button>
-              <a-button size="small" danger @click="openRejectModal(gate)">
+              <a-button
+                size="small"
+                danger
+                @click="openRejectModal(gate)"
+              >
                 拒绝
               </a-button>
             </a-space>
@@ -232,7 +292,10 @@
       @ok="handleCreateFromTemplate"
       @cancel="showTemplateModal = false"
     >
-      <a-list :data-source="store.templates" :loading="templatesLoading">
+      <a-list
+        :data-source="store.templates"
+        :loading="templatesLoading"
+      >
         <template #renderItem="{ item }">
           <a-list-item
             :class="{ 'selected-template': selectedTemplate === item.id }"

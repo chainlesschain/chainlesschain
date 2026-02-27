@@ -1,6 +1,9 @@
 <template>
   <div class="cross-org-audit-page">
-    <a-page-header title="跨组织审计日志" sub-title="查看所有跨组织操作记录">
+    <a-page-header
+      title="跨组织审计日志"
+      sub-title="查看所有跨组织操作记录"
+    >
       <template #extra>
         <a-button @click="exportLogs">
           <template #icon>
@@ -12,7 +15,10 @@
     </a-page-header>
 
     <!-- 筛选器 -->
-    <a-card class="filter-card" size="small">
+    <a-card
+      class="filter-card"
+      size="small"
+    >
       <a-form layout="inline">
         <a-form-item label="操作类型">
           <a-select
@@ -65,8 +71,15 @@
         </a-form-item>
         <a-form-item>
           <a-space>
-            <a-button type="primary" @click="searchLogs"> 查询 </a-button>
-            <a-button @click="resetFilters"> 重置 </a-button>
+            <a-button
+              type="primary"
+              @click="searchLogs"
+            >
+              查询
+            </a-button>
+            <a-button @click="resetFilters">
+              重置
+            </a-button>
           </a-space>
         </a-form-item>
       </a-form>
@@ -89,7 +102,11 @@
             </a-tag>
           </template>
           <template v-else-if="column.key === 'details'">
-            <a-button type="link" size="small" @click="viewDetails(record)">
+            <a-button
+              type="link"
+              size="small"
+              @click="viewDetails(record)"
+            >
               查看详情
             </a-button>
           </template>
@@ -105,7 +122,10 @@
       width="600px"
     >
       <template v-if="selectedLog">
-        <a-descriptions :column="1" bordered>
+        <a-descriptions
+          :column="1"
+          bordered
+        >
           <a-descriptions-item label="操作ID">
             {{ selectedLog.id }}
           </a-descriptions-item>

@@ -7,11 +7,16 @@
           <AppstoreOutlined />
           已安装插件
         </h1>
-        <p class="page-description">管理已安装的插件，检查更新和配置</p>
+        <p class="page-description">
+          管理已安装的插件，检查更新和配置
+        </p>
       </div>
       <div class="header-right">
         <a-space>
-          <a-button :loading="checkingUpdates" @click="handleCheckUpdates">
+          <a-button
+            :loading="checkingUpdates"
+            @click="handleCheckUpdates"
+          >
             <SyncOutlined />
             检查更新
           </a-button>
@@ -24,23 +29,35 @@
     </div>
 
     <!-- 统计行 -->
-    <a-row :gutter="16" class="stats-row">
+    <a-row
+      :gutter="16"
+      class="stats-row"
+    >
       <a-col :span="8">
-        <a-statistic title="已安装总数" :value="marketplaceStore.installedCount">
+        <a-statistic
+          title="已安装总数"
+          :value="marketplaceStore.installedCount"
+        >
           <template #prefix>
             <AppstoreOutlined />
           </template>
         </a-statistic>
       </a-col>
       <a-col :span="8">
-        <a-statistic title="已启用" :value="marketplaceStore.enabledPlugins.length">
+        <a-statistic
+          title="已启用"
+          :value="marketplaceStore.enabledPlugins.length"
+        >
           <template #prefix>
             <CheckCircleOutlined style="color: #52c41a" />
           </template>
         </a-statistic>
       </a-col>
       <a-col :span="8">
-        <a-statistic title="可用更新" :value="marketplaceStore.updateCount">
+        <a-statistic
+          title="可用更新"
+          :value="marketplaceStore.updateCount"
+        >
           <template #prefix>
             <ArrowUpOutlined style="color: #faad14" />
           </template>
@@ -61,7 +78,13 @@
           <template v-if="column.key === 'name'">
             <div class="plugin-name-cell">
               <strong>{{ record.name }}</strong>
-              <a-tag v-if="hasUpdate(record as InstalledPlugin)" color="orange" size="small">有更新</a-tag>
+              <a-tag
+                v-if="hasUpdate(record as InstalledPlugin)"
+                color="orange"
+                size="small"
+              >
+                有更新
+              </a-tag>
             </div>
           </template>
 
@@ -110,7 +133,10 @@
                 cancel-text="取消"
                 @confirm="handleUninstall(record as InstalledPlugin)"
               >
-                <a-button danger size="small">
+                <a-button
+                  danger
+                  size="small"
+                >
                   <DeleteOutlined />
                   卸载
                 </a-button>
@@ -134,14 +160,25 @@
       cancel-text="取消"
       @ok="handleConfirmUpdate"
     >
-      <div v-if="updateTarget" class="update-modal-content">
+      <div
+        v-if="updateTarget"
+        class="update-modal-content"
+      >
         <h3>{{ updateTarget.name }}</h3>
-        <a-descriptions :column="1" bordered size="small">
+        <a-descriptions
+          :column="1"
+          bordered
+          size="small"
+        >
           <a-descriptions-item label="当前版本">
-            <a-tag color="default">{{ updateTarget.version }}</a-tag>
+            <a-tag color="default">
+              {{ updateTarget.version }}
+            </a-tag>
           </a-descriptions-item>
           <a-descriptions-item label="最新版本">
-            <a-tag color="green">{{ getUpdateVersion(updateTarget) }}</a-tag>
+            <a-tag color="green">
+              {{ getUpdateVersion(updateTarget) }}
+            </a-tag>
           </a-descriptions-item>
         </a-descriptions>
         <div class="update-changelog">
@@ -214,7 +251,7 @@ function getUpdateChangelog(plugin: InstalledPlugin): string {
 }
 
 function formatDate(timestamp: number | undefined): string {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   return new Date(timestamp).toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -302,7 +339,7 @@ function handleShowUpdate(plugin: InstalledPlugin) {
 }
 
 async function handleConfirmUpdate() {
-  if (!updateTarget.value) return;
+  if (!updateTarget.value) {return;}
   updating.value = true;
   try {
     const newVersion = getUpdateVersion(updateTarget.value);

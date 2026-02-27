@@ -25,9 +25,15 @@
 
       <a-spin :spinning="loading">
         <!-- 概览统计 -->
-        <a-row :gutter="[16, 16]" style="margin-bottom: 24px">
+        <a-row
+          :gutter="[16, 16]"
+          style="margin-bottom: 24px"
+        >
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="总交易数"
                 :value="statistics.totalTransactions"
@@ -40,7 +46,10 @@
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="总交易额"
                 :value="statistics.totalVolume"
@@ -54,7 +63,10 @@
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="成功率"
                 :value="statistics.successRate"
@@ -69,7 +81,10 @@
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="平均金额"
                 :value="statistics.averageAmount"
@@ -88,29 +103,53 @@
         <a-row :gutter="[16, 16]">
           <!-- 交易趋势图 -->
           <a-col :span="12">
-            <a-card title="交易趋势" size="small">
-              <div ref="trendChartRef" style="width: 100%; height: 300px" />
+            <a-card
+              title="交易趋势"
+              size="small"
+            >
+              <div
+                ref="trendChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 交易类型分布 -->
           <a-col :span="12">
-            <a-card title="交易类型分布" size="small">
-              <div ref="typeChartRef" style="width: 100%; height: 300px" />
+            <a-card
+              title="交易类型分布"
+              size="small"
+            >
+              <div
+                ref="typeChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 交易状态分布 -->
           <a-col :span="12">
-            <a-card title="交易状态分布" size="small">
-              <div ref="statusChartRef" style="width: 100%; height: 300px" />
+            <a-card
+              title="交易状态分布"
+              size="small"
+            >
+              <div
+                ref="statusChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 热门资产 -->
           <a-col :span="12">
-            <a-card title="热门交易资产 Top 10" size="small">
-              <div ref="assetsChartRef" style="width: 100%; height: 300px" />
+            <a-card
+              title="热门交易资产 Top 10"
+              size="small"
+            >
+              <div
+                ref="assetsChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
         </a-row>

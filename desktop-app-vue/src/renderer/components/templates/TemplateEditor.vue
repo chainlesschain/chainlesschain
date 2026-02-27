@@ -1,12 +1,24 @@
 <template>
   <div class="template-editor">
-    <a-form ref="formRef" :model="formData" :rules="rules" layout="vertical">
+    <a-form
+      ref="formRef"
+      :model="formData"
+      :rules="rules"
+      layout="vertical"
+    >
       <a-tabs v-model:active-key="activeTab">
         <!-- 基本信息 -->
-        <a-tab-pane key="basic" tab="基本信息">
+        <a-tab-pane
+          key="basic"
+          tab="基本信息"
+        >
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-form-item label="模板名称" name="name" required>
+              <a-form-item
+                label="模板名称"
+                name="name"
+                required
+              >
                 <a-input
                   v-model:value="formData.name"
                   placeholder="请输入模板名称（英文标识）"
@@ -14,7 +26,11 @@
               </a-form-item>
             </a-col>
             <a-col :span="12">
-              <a-form-item label="显示名称" name="display_name" required>
+              <a-form-item
+                label="显示名称"
+                name="display_name"
+                required
+              >
                 <a-input
                   v-model:value="formData.display_name"
                   placeholder="请输入显示名称（中文）"
@@ -23,7 +39,10 @@
             </a-col>
           </a-row>
 
-          <a-form-item label="描述" name="description">
+          <a-form-item
+            label="描述"
+            name="description"
+          >
             <a-textarea
               v-model:value="formData.description"
               placeholder="请输入模板描述"
@@ -33,42 +52,82 @@
 
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-form-item label="分类" name="category" required>
+              <a-form-item
+                label="分类"
+                name="category"
+                required
+              >
                 <a-select
                   v-model:value="formData.category"
                   placeholder="请选择分类"
                 >
-                  <a-select-option value="writing"> 写作 </a-select-option>
-                  <a-select-option value="ppt"> PPT演示 </a-select-option>
-                  <a-select-option value="excel"> Excel数据 </a-select-option>
-                  <a-select-option value="web"> 网页开发 </a-select-option>
-                  <a-select-option value="design"> 设计 </a-select-option>
-                  <a-select-option value="podcast"> 播客 </a-select-option>
-                  <a-select-option value="resume"> 简历 </a-select-option>
-                  <a-select-option value="research"> 研究 </a-select-option>
-                  <a-select-option value="marketing"> 营销 </a-select-option>
-                  <a-select-option value="education"> 教育 </a-select-option>
-                  <a-select-option value="lifestyle"> 生活 </a-select-option>
-                  <a-select-option value="travel"> 旅游 </a-select-option>
+                  <a-select-option value="writing">
+                    写作
+                  </a-select-option>
+                  <a-select-option value="ppt">
+                    PPT演示
+                  </a-select-option>
+                  <a-select-option value="excel">
+                    Excel数据
+                  </a-select-option>
+                  <a-select-option value="web">
+                    网页开发
+                  </a-select-option>
+                  <a-select-option value="design">
+                    设计
+                  </a-select-option>
+                  <a-select-option value="podcast">
+                    播客
+                  </a-select-option>
+                  <a-select-option value="resume">
+                    简历
+                  </a-select-option>
+                  <a-select-option value="research">
+                    研究
+                  </a-select-option>
+                  <a-select-option value="marketing">
+                    营销
+                  </a-select-option>
+                  <a-select-option value="education">
+                    教育
+                  </a-select-option>
+                  <a-select-option value="lifestyle">
+                    生活
+                  </a-select-option>
+                  <a-select-option value="travel">
+                    旅游
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
             <a-col :span="12">
-              <a-form-item label="项目类型" name="project_type" required>
+              <a-form-item
+                label="项目类型"
+                name="project_type"
+                required
+              >
                 <a-select
                   v-model:value="formData.project_type"
                   placeholder="请选择项目类型"
                 >
-                  <a-select-option value="document"> 文档 </a-select-option>
+                  <a-select-option value="document">
+                    文档
+                  </a-select-option>
                   <a-select-option value="presentation">
                     演示文稿
                   </a-select-option>
                   <a-select-option value="spreadsheet">
                     电子表格
                   </a-select-option>
-                  <a-select-option value="web"> Web应用 </a-select-option>
-                  <a-select-option value="app"> 应用程序 </a-select-option>
-                  <a-select-option value="data"> 数据分析 </a-select-option>
+                  <a-select-option value="web">
+                    Web应用
+                  </a-select-option>
+                  <a-select-option value="app">
+                    应用程序
+                  </a-select-option>
+                  <a-select-option value="data">
+                    数据分析
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -76,7 +135,10 @@
 
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-form-item label="子分类" name="subcategory">
+              <a-form-item
+                label="子分类"
+                name="subcategory"
+              >
                 <a-input
                   v-model:value="formData.subcategory"
                   placeholder="请输入子分类（可选）"
@@ -84,7 +146,10 @@
               </a-form-item>
             </a-col>
             <a-col :span="12">
-              <a-form-item label="图标" name="icon">
+              <a-form-item
+                label="图标"
+                name="icon"
+              >
                 <a-input
                   v-model:value="formData.icon"
                   placeholder="请输入图标名称（可选）"
@@ -93,7 +158,10 @@
             </a-col>
           </a-row>
 
-          <a-form-item label="标签" name="tags">
+          <a-form-item
+            label="标签"
+            name="tags"
+          >
             <a-select
               v-model:value="formData.tags"
               mode="tags"
@@ -104,7 +172,10 @@
 
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-form-item label="作者" name="author">
+              <a-form-item
+                label="作者"
+                name="author"
+              >
                 <a-input
                   v-model:value="formData.author"
                   placeholder="请输入作者名称"
@@ -112,7 +183,10 @@
               </a-form-item>
             </a-col>
             <a-col :span="12">
-              <a-form-item label="版本" name="version">
+              <a-form-item
+                label="版本"
+                name="version"
+              >
                 <a-input
                   v-model:value="formData.version"
                   placeholder="请输入版本号（如: 1.0.0）"
@@ -123,8 +197,14 @@
         </a-tab-pane>
 
         <!-- 提示词模板 -->
-        <a-tab-pane key="prompt" tab="提示词模板">
-          <a-form-item label="提示词模板" name="prompt_template">
+        <a-tab-pane
+          key="prompt"
+          tab="提示词模板"
+        >
+          <a-form-item
+            label="提示词模板"
+            name="prompt_template"
+          >
             <a-textarea
               v-model:value="formData.prompt_template"
               placeholder="请输入提示词模板，使用 {{variableName}} 作为变量占位符"
@@ -137,7 +217,11 @@
             </div>
           </a-form-item>
 
-          <a-button type="dashed" block @click="showVariableHelper = true">
+          <a-button
+            type="dashed"
+            block
+            @click="showVariableHelper = true"
+          >
             <template #icon>
               <QuestionCircleOutlined />
             </template>
@@ -146,11 +230,18 @@
         </a-tab-pane>
 
         <!-- 变量定义 -->
-        <a-tab-pane key="variables" tab="变量定义">
+        <a-tab-pane
+          key="variables"
+          tab="变量定义"
+        >
           <div class="variables-section">
             <div class="section-header">
               <span>变量列表</span>
-              <a-button type="primary" size="small" @click="addVariable">
+              <a-button
+                type="primary"
+                size="small"
+                @click="addVariable"
+              >
                 <template #icon>
                   <PlusOutlined />
                 </template>
@@ -198,21 +289,32 @@
                         v-model:value="variable.type"
                         placeholder="类型"
                       >
-                        <a-select-option value="text"> 文本 </a-select-option>
+                        <a-select-option value="text">
+                          文本
+                        </a-select-option>
                         <a-select-option value="textarea">
                           多行文本
                         </a-select-option>
-                        <a-select-option value="number"> 数字 </a-select-option>
-                        <a-select-option value="date"> 日期 </a-select-option>
+                        <a-select-option value="number">
+                          数字
+                        </a-select-option>
+                        <a-select-option value="date">
+                          日期
+                        </a-select-option>
                         <a-select-option value="select">
                           下拉选择
                         </a-select-option>
-                        <a-select-option value="array"> 数组 </a-select-option>
+                        <a-select-option value="array">
+                          数组
+                        </a-select-option>
                       </a-select>
                     </a-col>
                   </a-row>
 
-                  <a-row :gutter="12" style="margin-top: 8px">
+                  <a-row
+                    :gutter="12"
+                    style="margin-top: 8px"
+                  >
                     <a-col :span="12">
                       <a-input
                         v-model:value="variable.default"
@@ -239,7 +341,10 @@
         </a-tab-pane>
 
         <!-- 文件结构（高级） -->
-        <a-tab-pane key="files" tab="文件结构">
+        <a-tab-pane
+          key="files"
+          tab="文件结构"
+        >
           <a-alert
             message="高级功能"
             description="定义项目生成时的文件结构和默认文件内容（JSON格式）"
@@ -248,19 +353,25 @@
             style="margin-bottom: 16px"
           />
 
-          <a-form-item label="文件结构" name="file_structure">
+          <a-form-item
+            label="文件结构"
+            name="file_structure"
+          >
             <a-textarea
               v-model:value="fileStructureJson"
-              placeholder='例如: { "src": { "index.html": "", "styles": {} } }'
+              placeholder="例如: { &quot;src&quot;: { &quot;index.html&quot;: &quot;&quot;, &quot;styles&quot;: {} } }"
               :rows="8"
               class="monospace-textarea"
             />
           </a-form-item>
 
-          <a-form-item label="默认文件" name="default_files">
+          <a-form-item
+            label="默认文件"
+            name="default_files"
+          >
             <a-textarea
               v-model:value="defaultFilesJson"
-              placeholder='例如: [{ "path": "README.md", "content": "# {{title}}" }]'
+              placeholder="例如: [{ &quot;path&quot;: &quot;README.md&quot;, &quot;content&quot;: &quot;# {{title}}&quot; }]"
               :rows="8"
               class="monospace-textarea"
             />
@@ -276,25 +387,24 @@
       :footer="null"
       width="700px"
     >
-      <div v-pre class="helper-content">
+      <div
+        v-pre
+        class="helper-content"
+      >
         <h4>基本变量</h4>
         <pre>{{ variableName }}</pre>
 
         <h4>条件判断</h4>
-        <pre
-          >{{#if condition}}
+        <pre>{{#if condition}}
   显示的内容
 {{else}}
   其他内容
-{{/if}}</pre
-        >
+{{/if}}</pre>
 
         <h4>循环遍历</h4>
-        <pre
-          >{{#each items}}
+        <pre>{{#each items}}
   - {{ this.name }}
-{{/each}}</pre
-        >
+{{/each}}</pre>
 
         <h4>内置 Helpers</h4>
         <ul>

@@ -15,9 +15,10 @@
  * @version 0.45.0
  */
 
-const { logger } = require("../utils/logger.js");
-const EventEmitter = require("events");
-const { v4: uuidv4 } = require("uuid");
+import { logger } from "../utils/logger.js";
+import EventEmitter from "events";
+import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 // ============================================================
 // Constants
@@ -64,7 +65,7 @@ class PlatformBridge extends EventEmitter {
 
       this.initialized = true;
       logger.info("[PlatformBridge] Platform bridge manager initialized successfully");
-    } catch (error) {
+    } catch (_error) {
       logger.error("[PlatformBridge] Initialization failed:", error);
       throw error;
     }
@@ -170,7 +171,7 @@ class PlatformBridge extends EventEmitter {
       });
 
       return connection;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[PlatformBridge] Failed to connect Mastodon:", error);
       throw error;
     }
@@ -203,7 +204,7 @@ class PlatformBridge extends EventEmitter {
       const now = Date.now();
 
       // Derive public key from private key (simulated)
-      const crypto = require("crypto");
+      // crypto already imported at top
       const externalId = crypto
         .createHash("sha256")
         .update(privateKey)
@@ -249,7 +250,7 @@ class PlatformBridge extends EventEmitter {
       });
 
       return connection;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[PlatformBridge] Failed to connect Nostr:", error);
       throw error;
     }
@@ -308,7 +309,7 @@ class PlatformBridge extends EventEmitter {
               error: `Unsupported platform: ${platform}`,
             };
           }
-        } catch (platformError) {
+        } catch (_platformError) {
           results[platform] = {
             success: false,
             error: platformError.message,
@@ -325,7 +326,7 @@ class PlatformBridge extends EventEmitter {
       this.emit("post:cross-posted", { ownerDid, platforms, results });
 
       return results;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[PlatformBridge] Failed to cross-post:", error);
       throw error;
     }
@@ -387,7 +388,7 @@ class PlatformBridge extends EventEmitter {
         items: feed,
         syncedAt: now,
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[PlatformBridge] Failed to import feed:", error);
       throw error;
     }
@@ -443,7 +444,7 @@ class PlatformBridge extends EventEmitter {
       });
 
       return { success: true, connectionId };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[PlatformBridge] Failed to disconnect platform:", error);
       throw error;
     }
@@ -474,7 +475,7 @@ class PlatformBridge extends EventEmitter {
         // Never expose access_token or private keys in listings
         access_token: conn.access_token ? "***" : null,
       }));
-    } catch (error) {
+    } catch (_error) {
       logger.error("[PlatformBridge] Failed to get connections:", error);
       throw error;
     }
@@ -516,7 +517,7 @@ class PlatformBridge extends EventEmitter {
         connectionId,
         ...feed,
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[PlatformBridge] Failed to sync feed:", error);
       throw error;
     }
@@ -536,7 +537,7 @@ class PlatformBridge extends EventEmitter {
     logger.info("[PlatformBridge] Verifying Mastodon token for:", serverUrl);
 
     // Simulate account ID derivation
-    const crypto = require("crypto");
+    // crypto already imported at top
     return crypto
       .createHash("sha256")
       .update(`mastodon:${serverUrl}:${token}`)
@@ -548,7 +549,7 @@ class PlatformBridge extends EventEmitter {
    * Post to Mastodon (simulated).
    * @private
    */
-  async _postToMastodon(connection, content) {
+  async _postToMastodon(connection, _unusedContent) {
     // In production: POST {serverUrl}/api/v1/statuses
     // with Authorization: Bearer {access_token}, body: { status: content }
     logger.info("[PlatformBridge] Posting to Mastodon:", connection.server_url);
@@ -565,7 +566,7 @@ class PlatformBridge extends EventEmitter {
    * Fetch Mastodon home feed (simulated).
    * @private
    */
-  async _fetchMastodonFeed(connection, limit) {
+  async _fetchMastodonFeed(connection, _unusedLimit) {
     // In production: GET {serverUrl}/api/v1/timelines/home?limit={limit}
     logger.info("[PlatformBridge] Fetching Mastodon feed from:", connection.server_url);
 
@@ -582,7 +583,24 @@ class PlatformBridge extends EventEmitter {
    * @private
    */
   async _postToNostr(connection, content) {
-    // In production: create a kind-1 event, sign with private key, publish to relays
+    // Delegate to NostrBridge if available (Phase 49)
+    try {
+      const { getNostrBridge } = require("./nostr-bridge");
+      const bridge = getNostrBridge();
+      if (bridge.initialized) {
+        const result = await bridge.publishEvent({ kind: 1, content });
+        return {
+          platform: SUPPORTED_PLATFORMS.NOSTR,
+          externalPostId: result.eventId || `nostr-${Date.now()}`,
+          relayCount: result.relayCount || 0,
+          postedAt: Date.now(),
+        };
+      }
+    } catch {
+      // NostrBridge not available, use legacy path
+    }
+
+    // Legacy fallback: simulated posting
     const relayUrls = connection.relay_urls
       ? JSON.parse(connection.relay_urls)
       : [];
@@ -605,7 +623,7 @@ class PlatformBridge extends EventEmitter {
    * Fetch Nostr feed (simulated).
    * @private
    */
-  async _fetchNostrFeed(connection, limit) {
+  async _fetchNostrFeed(connection, _unusedLimit) {
     // In production: subscribe to kind-1 events from connected relays
     const relayUrls = connection.relay_urls
       ? JSON.parse(connection.relay_urls)

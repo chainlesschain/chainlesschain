@@ -17,21 +17,27 @@
               <div class="stat-value">
                 {{ store.knowledgeItems.length }}
               </div>
-              <div class="stat-label">知识条目</div>
+              <div class="stat-label">
+                知识条目
+              </div>
             </div>
             <div class="stat-divider" />
             <div class="stat-item">
               <div class="stat-value">
                 {{ todayCount }}
               </div>
-              <div class="stat-label">今日新增</div>
+              <div class="stat-label">
+                今日新增
+              </div>
             </div>
             <div class="stat-divider" />
             <div class="stat-item">
               <div class="stat-value">
                 <a-badge status="success" />
               </div>
-              <div class="stat-label">同步状态</div>
+              <div class="stat-label">
+                同步状态
+              </div>
             </div>
           </div>
         </div>
@@ -88,10 +94,16 @@
       <!-- 系统状态 -->
       <div class="system-status">
         <a-row :gutter="[16, 16]">
-          <a-col :xs="24" :md="12">
+          <a-col
+            :xs="24"
+            :md="12"
+          >
             <LLMStatus @open-settings="openSettings('llm')" />
           </a-col>
-          <a-col :xs="24" :md="12">
+          <a-col
+            :xs="24"
+            :md="12"
+          >
             <GitStatus @open-settings="openSettings('git')" />
           </a-col>
         </a-row>

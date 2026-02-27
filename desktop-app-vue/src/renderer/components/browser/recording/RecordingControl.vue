@@ -6,10 +6,16 @@
       :class="{ recording: isRecording, paused: isPaused }"
     >
       <div class="status-indicator">
-        <span v-if="isRecording && !isPaused" class="recording-dot" />
+        <span
+          v-if="isRecording && !isPaused"
+          class="recording-dot"
+        />
         <span class="status-text">{{ statusText }}</span>
       </div>
-      <div v-if="isRecording" class="recording-time">
+      <div
+        v-if="isRecording"
+        class="recording-time"
+      >
         {{ formatDuration(recordingDuration) }}
       </div>
     </div>
@@ -31,20 +37,34 @@
       </a-button>
 
       <template v-else>
-        <a-button v-if="!isPaused" size="large" @click="pauseRecording">
+        <a-button
+          v-if="!isPaused"
+          size="large"
+          @click="pauseRecording"
+        >
           <template #icon>
             <PauseOutlined />
           </template>
           Pause
         </a-button>
-        <a-button v-else type="primary" size="large" @click="resumeRecording">
+        <a-button
+          v-else
+          type="primary"
+          size="large"
+          @click="resumeRecording"
+        >
           <template #icon>
             <PlayCircleOutlined />
           </template>
           Resume
         </a-button>
 
-        <a-button type="primary" size="large" danger @click="stopRecording">
+        <a-button
+          type="primary"
+          size="large"
+          danger
+          @click="stopRecording"
+        >
           <template #icon>
             <StopOutlined />
           </template>
@@ -54,10 +74,19 @@
     </div>
 
     <!-- Recording Options -->
-    <div v-if="!isRecording" class="recording-options">
+    <div
+      v-if="!isRecording"
+      class="recording-options"
+    >
       <a-collapse :bordered="false">
-        <a-collapse-panel key="options" header="Recording Options">
-          <a-form layout="vertical" size="small">
+        <a-collapse-panel
+          key="options"
+          header="Recording Options"
+        >
+          <a-form
+            layout="vertical"
+            size="small"
+          >
             <a-form-item label="Recording Name">
               <a-input
                 v-model:value="recordingName"
@@ -66,11 +95,21 @@
             </a-form-item>
             <a-form-item label="Capture">
               <a-checkbox-group v-model:value="captureOptions">
-                <a-checkbox value="clicks"> Clicks </a-checkbox>
-                <a-checkbox value="typing"> Typing </a-checkbox>
-                <a-checkbox value="scrolls"> Scrolls </a-checkbox>
-                <a-checkbox value="navigation"> Navigation </a-checkbox>
-                <a-checkbox value="screenshots"> Auto Screenshots </a-checkbox>
+                <a-checkbox value="clicks">
+                  Clicks
+                </a-checkbox>
+                <a-checkbox value="typing">
+                  Typing
+                </a-checkbox>
+                <a-checkbox value="scrolls">
+                  Scrolls
+                </a-checkbox>
+                <a-checkbox value="navigation">
+                  Navigation
+                </a-checkbox>
+                <a-checkbox value="screenshots">
+                  Auto Screenshots
+                </a-checkbox>
               </a-checkbox-group>
             </a-form-item>
             <a-form-item label="Event Coalescing">
@@ -88,18 +127,39 @@
     </div>
 
     <!-- Live Stats -->
-    <div v-if="isRecording" class="live-stats">
-      <a-statistic title="Events" :value="eventCount" />
-      <a-statistic title="Clicks" :value="clickCount" />
-      <a-statistic title="Inputs" :value="inputCount" />
-      <a-statistic title="Navigations" :value="navigationCount" />
+    <div
+      v-if="isRecording"
+      class="live-stats"
+    >
+      <a-statistic
+        title="Events"
+        :value="eventCount"
+      />
+      <a-statistic
+        title="Clicks"
+        :value="clickCount"
+      />
+      <a-statistic
+        title="Inputs"
+        :value="inputCount"
+      />
+      <a-statistic
+        title="Navigations"
+        :value="navigationCount"
+      />
     </div>
 
     <!-- Recent Events -->
-    <div v-if="isRecording && recentEvents.length > 0" class="recent-events">
+    <div
+      v-if="isRecording && recentEvents.length > 0"
+      class="recent-events"
+    >
       <div class="events-header">
         <span>Recent Events</span>
-        <a-badge :count="eventCount" :overflow-count="999" />
+        <a-badge
+          :count="eventCount"
+          :overflow-count="999"
+        />
       </div>
       <div class="events-list">
         <div

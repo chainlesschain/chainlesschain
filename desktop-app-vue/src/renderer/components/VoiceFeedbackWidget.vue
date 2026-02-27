@@ -1,5 +1,8 @@
 <template>
-  <div class="voice-feedback-widget" :class="{ active: isActive, rtl: isRTL }">
+  <div
+    class="voice-feedback-widget"
+    :class="{ active: isActive, rtl: isRTL }"
+  >
     <!-- 主控制按钮 -->
     <a-tooltip :title="tooltipText">
       <a-button
@@ -27,16 +30,26 @@
       <div class="language-indicator">
         <GlobalOutlined />
         <span>{{ currentLanguageName }}</span>
-        <a-tag v-if="detectedLanguage" color="blue" size="small">
+        <a-tag
+          v-if="detectedLanguage"
+          color="blue"
+          size="small"
+        >
           自动检测: {{ detectedLanguage }}
         </a-tag>
       </div>
 
       <!-- 波形可视化 -->
       <div class="waveform-container">
-        <canvas ref="waveformCanvas" class="waveform-canvas" />
+        <canvas
+          ref="waveformCanvas"
+          class="waveform-canvas"
+        />
         <div class="waveform-overlay">
-          <div v-if="isRecording" class="recording-indicator">
+          <div
+            v-if="isRecording"
+            class="recording-indicator"
+          >
             <span class="pulse-dot" />
             <span class="recording-text">{{ recordingTime }}</span>
           </div>
@@ -44,7 +57,10 @@
       </div>
 
       <!-- 置信度指示器 -->
-      <div v-if="currentConfidence > 0" class="confidence-indicator">
+      <div
+        v-if="currentConfidence > 0"
+        class="confidence-indicator"
+      >
         <span class="confidence-label">识别置信度</span>
         <a-progress
           :percent="Math.round(currentConfidence * 100)"
@@ -55,12 +71,18 @@
       </div>
 
       <!-- 实时转录预览 -->
-      <div v-if="interimTranscript" class="transcription-preview">
+      <div
+        v-if="interimTranscript"
+        class="transcription-preview"
+      >
         <div class="preview-label">
           <SoundOutlined />
           <span>实时转录</span>
         </div>
-        <div class="preview-text" :class="{ rtl: isRTL }">
+        <div
+          class="preview-text"
+          :class="{ rtl: isRTL }"
+        >
           {{ interimTranscript }}
           <span class="cursor-blink">|</span>
         </div>
@@ -89,7 +111,10 @@
       </div>
 
       <!-- 状态消息 -->
-      <div v-if="statusMessage" class="status-message">
+      <div
+        v-if="statusMessage"
+        class="status-message"
+      >
         <a-alert
           :message="statusMessage"
           :type="statusType"
@@ -174,25 +199,42 @@
         <!-- 识别引擎 -->
         <a-form-item label="识别引擎">
           <a-radio-group v-model:value="selectedEngine">
-            <a-radio value="whisper-api"> Whisper API (云端) </a-radio>
-            <a-radio value="whisper-local"> Whisper Local (本地) </a-radio>
-            <a-radio value="webspeech"> Web Speech API </a-radio>
+            <a-radio value="whisper-api">
+              Whisper API (云端)
+            </a-radio>
+            <a-radio value="whisper-local">
+              Whisper Local (本地)
+            </a-radio>
+            <a-radio value="webspeech">
+              Web Speech API
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
         <!-- 显示选项 -->
         <a-form-item label="显示选项">
           <a-checkbox-group v-model:value="displayOptions">
-            <a-checkbox value="waveform"> 波形可视化 </a-checkbox>
-            <a-checkbox value="confidence"> 置信度指示器 </a-checkbox>
-            <a-checkbox value="interim"> 实时转录 </a-checkbox>
-            <a-checkbox value="commands"> 命令提示 </a-checkbox>
+            <a-checkbox value="waveform">
+              波形可视化
+            </a-checkbox>
+            <a-checkbox value="confidence">
+              置信度指示器
+            </a-checkbox>
+            <a-checkbox value="interim">
+              实时转录
+            </a-checkbox>
+            <a-checkbox value="commands">
+              命令提示
+            </a-checkbox>
           </a-checkbox-group>
         </a-form-item>
 
         <!-- 学习统计 -->
         <a-form-item label="学习统计">
-          <a-space :size="16" wrap>
+          <a-space
+            :size="16"
+            wrap
+          >
             <a-statistic
               title="总转录次数"
               :value="learningStats.totalTranscriptions"
@@ -213,20 +255,33 @@
 
         <!-- 操作按钮 -->
         <a-form-item>
-          <a-space direction="vertical" style="width: 100%">
-            <a-button block @click="exportVoiceData">
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
+            <a-button
+              block
+              @click="exportVoiceData"
+            >
               <template #icon>
                 <ExportOutlined />
               </template>
               导出语音数据
             </a-button>
-            <a-button block @click="importVoiceData">
+            <a-button
+              block
+              @click="importVoiceData"
+            >
               <template #icon>
                 <ImportOutlined />
               </template>
               导入语音数据
             </a-button>
-            <a-button block danger @click="resetVoiceData">
+            <a-button
+              block
+              danger
+              @click="resetVoiceData"
+            >
               <template #icon>
                 <DeleteOutlined />
               </template>

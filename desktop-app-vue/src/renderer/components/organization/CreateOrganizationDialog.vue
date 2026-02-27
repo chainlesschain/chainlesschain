@@ -14,7 +14,10 @@
       :label-col="{ span: 6 }"
       :wrapper-col="{ span: 18 }"
     >
-      <a-form-item label="Organization Name" name="name">
+      <a-form-item
+        label="Organization Name"
+        name="name"
+      >
         <a-input
           v-model:value="formState.name"
           placeholder="Enter organization name"
@@ -23,7 +26,10 @@
         />
       </a-form-item>
 
-      <a-form-item label="Organization Type" name="type">
+      <a-form-item
+        label="Organization Type"
+        name="type"
+      >
         <a-select
           v-model:value="formState.type"
           placeholder="Select organization type"
@@ -46,7 +52,10 @@
         </a-select>
       </a-form-item>
 
-      <a-form-item label="Description" name="description">
+      <a-form-item
+        label="Description"
+        name="description"
+      >
         <a-textarea
           v-model:value="formState.description"
           placeholder="Enter organization description"
@@ -56,7 +65,10 @@
         />
       </a-form-item>
 
-      <a-form-item label="Privacy" name="isPublic">
+      <a-form-item
+        label="Privacy"
+        name="isPublic"
+      >
         <a-radio-group v-model:value="formState.isPublic">
           <a-radio :value="true">
             <GlobalOutlined /> Public
@@ -66,12 +78,17 @@
           </a-radio>
           <a-radio :value="false">
             <LockOutlined /> Private
-            <div class="radio-description">Only invited members can join</div>
+            <div class="radio-description">
+              Only invited members can join
+            </div>
           </a-radio>
         </a-radio-group>
       </a-form-item>
 
-      <a-form-item label="Features" name="features">
+      <a-form-item
+        label="Features"
+        name="features"
+      >
         <a-checkbox-group v-model:value="formState.features">
           <a-checkbox value="knowledge">
             <FileTextOutlined /> Knowledge Base
@@ -82,11 +99,16 @@
           <a-checkbox value="collaboration">
             <TeamOutlined /> Real-time Collaboration
           </a-checkbox>
-          <a-checkbox value="p2p"> <ApiOutlined /> P2P Network </a-checkbox>
+          <a-checkbox value="p2p">
+            <ApiOutlined /> P2P Network
+          </a-checkbox>
         </a-checkbox-group>
       </a-form-item>
 
-      <a-form-item label="Storage Limit" name="storageLimit">
+      <a-form-item
+        label="Storage Limit"
+        name="storageLimit"
+      >
         <a-select
           v-model:value="formState.storageLimit"
           placeholder="Select storage limit"
@@ -109,7 +131,10 @@
         </a-select>
       </a-form-item>
 
-      <a-form-item label="Member Limit" name="memberLimit">
+      <a-form-item
+        label="Member Limit"
+        name="memberLimit"
+      >
         <a-input-number
           v-model:value="formState.memberLimit"
           :min="1"

@@ -173,7 +173,7 @@ class ActivityPubBridge extends EventEmitter {
 
       logger.info("[ActivityPubBridge] Created local actor:", actorId);
       return actor;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[ActivityPubBridge] Failed to create actor:", error);
       throw error;
     }
@@ -186,9 +186,9 @@ class ActivityPubBridge extends EventEmitter {
    */
   async getActorByDid(did) {
     try {
-      if (this._actorCache.has(did)) return this._actorCache.get(did);
+      if (this._actorCache.has(did)) {return this._actorCache.get(did);}
 
-      if (!this.database || !this.database.db) return null;
+      if (!this.database || !this.database.db) {return null;}
 
       const row = this.database.db
         .prepare("SELECT * FROM activitypub_actors WHERE did = ?")
@@ -198,7 +198,7 @@ class ActivityPubBridge extends EventEmitter {
         this._actorCache.set(did, row);
       }
       return row || null;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[ActivityPubBridge] Failed to get actor:", error);
       return null;
     }
@@ -211,7 +211,7 @@ class ActivityPubBridge extends EventEmitter {
    */
   async buildActorDocument(did) {
     const actor = await this.getActorByDid(did);
-    if (!actor) throw new Error("Actor not found for DID: " + did);
+    if (!actor) {throw new Error("Actor not found for DID: " + did);}
 
     return {
       "@context": [AP_CONTEXT, AP_SECURITY_CONTEXT],
@@ -245,7 +245,7 @@ class ActivityPubBridge extends EventEmitter {
   async createActivity(actorDid, type, object) {
     try {
       const actor = await this.getActorByDid(actorDid);
-      if (!actor) throw new Error("Actor not found");
+      if (!actor) {throw new Error("Actor not found");}
 
       const activityId = `https://${this._localDomain}/activities/${uuidv4()}`;
       const now = Date.now();
@@ -280,7 +280,7 @@ class ActivityPubBridge extends EventEmitter {
       this.emit("activity:created", activity);
 
       return activity;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[ActivityPubBridge] Failed to create activity:", error);
       throw error;
     }
@@ -348,7 +348,7 @@ class ActivityPubBridge extends EventEmitter {
       this.emit("inbox:received", { activity, result });
 
       return result;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[ActivityPubBridge] Failed to process inbox activity:", error);
       throw error;
     }
@@ -384,7 +384,7 @@ class ActivityPubBridge extends EventEmitter {
     return { accepted: true, type: "announce" };
   }
 
-  async _handleUndo(_activity) {
+  async _handleUndo(_unused_activity) {
     return { accepted: true, type: "undo" };
   }
 
@@ -427,10 +427,10 @@ class ActivityPubBridge extends EventEmitter {
         Signature: `keyId="${actor.id}#main-key",headers="(request-target) host date${digest ? " digest" : ""}",signature="${signature}"`,
       };
 
-      if (digest) headers.Digest = digest;
+      if (digest) {headers.Digest = digest;}
 
       return headers;
-    } catch (error) {
+    } catch (_error) {
       logger.error("[ActivityPubBridge] Failed to sign request:", error);
       throw error;
     }
@@ -445,7 +445,7 @@ class ActivityPubBridge extends EventEmitter {
   async getOutbox(actorDid, options = {}) {
     try {
       const actor = await this.getActorByDid(actorDid);
-      if (!actor) throw new Error("Actor not found");
+      if (!actor) {throw new Error("Actor not found");}
 
       const limit = options.limit || 20;
       const offset = options.offset || 0;
@@ -469,12 +469,12 @@ class ActivityPubBridge extends EventEmitter {
         orderedItems: activities.map((a) => {
           try {
             return JSON.parse(a.raw_json);
-          } catch (_) {
+          } catch {
             return { id: a.id, type: a.activity_type };
           }
         }),
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[ActivityPubBridge] Failed to get outbox:", error);
       throw error;
     }
@@ -504,7 +504,7 @@ class ActivityPubBridge extends EventEmitter {
         actorCount: actorCount?.count || 0,
         activityCount: activityCount?.count || 0,
       };
-    } catch (error) {
+    } catch (_error) {
       logger.error("[ActivityPubBridge] Failed to get status:", error);
       return { initialized: false, error: error.message };
     }
@@ -520,7 +520,7 @@ class ActivityPubBridge extends EventEmitter {
 
 let _instance;
 function getActivityPubBridge() {
-  if (!_instance) _instance = new ActivityPubBridge();
+  if (!_instance) {_instance = new ActivityPubBridge();}
   return _instance;
 }
 

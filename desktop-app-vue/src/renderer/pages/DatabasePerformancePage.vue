@@ -5,12 +5,17 @@
         <DatabaseOutlined />
         数据库性能监控
       </h1>
-      <p class="page-description">实时监控数据库性能，优化查询效率</p>
+      <p class="page-description">
+        实时监控数据库性能，优化查询效率
+      </p>
     </div>
 
     <div class="page-content">
       <!-- 性能概览 -->
-      <a-row :gutter="16" class="stats-row">
+      <a-row
+        :gutter="16"
+        class="stats-row"
+      >
         <a-col :span="6">
           <a-card>
             <a-statistic
@@ -61,23 +66,36 @@
       </a-row>
 
       <!-- 操作按钮 -->
-      <a-card title="数据库操作" class="operations-card">
+      <a-card
+        title="数据库操作"
+        class="operations-card"
+      >
         <a-space>
-          <a-button type="primary" :loading="loading" @click="refreshStats">
+          <a-button
+            type="primary"
+            :loading="loading"
+            @click="refreshStats"
+          >
             <template #icon>
               <ReloadOutlined />
             </template>
             刷新统计
           </a-button>
 
-          <a-button :loading="resetting" @click="resetStats">
+          <a-button
+            :loading="resetting"
+            @click="resetStats"
+          >
             <template #icon>
               <ClearOutlined />
             </template>
             重置统计
           </a-button>
 
-          <a-button :loading="clearingCache" @click="clearCache">
+          <a-button
+            :loading="clearingCache"
+            @click="clearCache"
+          >
             <template #icon>
               <DeleteOutlined />
             </template>
@@ -88,7 +106,11 @@
             title="优化数据库可能需要一些时间，确定要继续吗？"
             @confirm="optimizeDatabase"
           >
-            <a-button type="primary" danger :loading="optimizing">
+            <a-button
+              type="primary"
+              danger
+              :loading="optimizing"
+            >
               <template #icon>
                 <ToolOutlined />
               </template>
@@ -99,7 +121,10 @@
       </a-card>
 
       <!-- 慢查询日志 -->
-      <a-card title="慢查询日志" class="slow-queries-card">
+      <a-card
+        title="慢查询日志"
+        class="slow-queries-card"
+      >
         <a-table
           :columns="slowQueryColumns"
           :data-source="slowQueries"
@@ -110,9 +135,7 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'sql'">
               <a-tooltip :title="record.sql">
-                <code class="sql-preview"
-                  >{{ record.sql.substring(0, 100) }}...</code
-                >
+                <code class="sql-preview">{{ record.sql.substring(0, 100) }}...</code>
               </a-tooltip>
             </template>
             <template v-else-if="column.key === 'duration'">
@@ -128,7 +151,10 @@
       </a-card>
 
       <!-- 索引建议 -->
-      <a-card title="索引优化建议" class="index-suggestions-card">
+      <a-card
+        title="索引优化建议"
+        class="index-suggestions-card"
+      >
         <a-alert
           v-if="indexSuggestions.length === 0"
           message="暂无索引建议"
@@ -137,7 +163,11 @@
           show-icon
         />
 
-        <a-list v-else :data-source="indexSuggestions" item-layout="horizontal">
+        <a-list
+          v-else
+          :data-source="indexSuggestions"
+          item-layout="horizontal"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <template #actions>
@@ -169,7 +199,10 @@
           </template>
         </a-list>
 
-        <div v-if="indexSuggestions.length > 0" class="apply-all-btn">
+        <div
+          v-if="indexSuggestions.length > 0"
+          class="apply-all-btn"
+        >
           <a-button
             type="primary"
             :loading="applyingAllIndexes"
@@ -181,8 +214,14 @@
       </a-card>
 
       <!-- 缓存统计 -->
-      <a-card title="查询缓存统计" class="cache-stats-card">
-        <a-descriptions :column="2" bordered>
+      <a-card
+        title="查询缓存统计"
+        class="cache-stats-card"
+      >
+        <a-descriptions
+          :column="2"
+          bordered
+        >
           <a-descriptions-item label="缓存大小">
             {{ stats.cache?.size || 0 }} / {{ stats.cache?.maxSize || 0 }}
           </a-descriptions-item>

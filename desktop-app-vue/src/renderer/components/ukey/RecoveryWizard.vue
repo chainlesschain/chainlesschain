@@ -1,6 +1,10 @@
 <template>
   <div class="recovery-wizard">
-    <a-steps :current="currentStep" size="small" class="wizard-steps">
+    <a-steps
+      :current="currentStep"
+      size="small"
+      class="wizard-steps"
+    >
       <a-step :title="$t('ukey.recovery.step1')" />
       <a-step :title="$t('ukey.recovery.step2')" />
       <a-step :title="$t('ukey.recovery.step3')" />
@@ -41,8 +45,15 @@
           {{ $t("ukey.recovery.collectHint", { required: shardsRequired }) }}
         </p>
 
-        <a-space direction="vertical" class="shard-inputs">
-          <div v-for="(shard, i) in shards" :key="i" class="shard-row">
+        <a-space
+          direction="vertical"
+          class="shard-inputs"
+        >
+          <div
+            v-for="(shard, i) in shards"
+            :key="i"
+            class="shard-row"
+          >
             <a-input
               v-model:value="shards[i]"
               :placeholder="`${$t('ukey.recovery.shard')} ${i + 1}`"
@@ -57,7 +68,11 @@
               ×
             </a-button>
           </div>
-          <a-button type="dashed" block @click="addShardInput">
+          <a-button
+            type="dashed"
+            block
+            @click="addShardInput"
+          >
             + {{ $t("ukey.recovery.addShard") }}
           </a-button>
         </a-space>
@@ -98,7 +113,10 @@
           :title="$t('ukey.recovery.restoring')"
           :sub-title="restoreStatusMsg"
         />
-        <a-form v-else layout="vertical">
+        <a-form
+          v-else
+          layout="vertical"
+        >
           <a-alert
             type="info"
             :message="$t('ukey.recovery.insertNewUKey')"
@@ -126,7 +144,10 @@
         {{ $t("common.cancel") }}
       </a-button>
       <a-space>
-        <a-button v-if="currentStep > 0 && currentStep < 4" @click="prevStep">
+        <a-button
+          v-if="currentStep > 0 && currentStep < 4"
+          @click="prevStep"
+        >
           {{ $t("common.previous") }}
         </a-button>
         <a-button

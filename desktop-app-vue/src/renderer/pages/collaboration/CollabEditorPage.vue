@@ -1,9 +1,16 @@
 <template>
   <div class="collab-editor-page">
-    <a-page-header title="协作编辑器" :sub-title="documentName" @back="goBack">
+    <a-page-header
+      title="协作编辑器"
+      :sub-title="documentName"
+      @back="goBack"
+    >
       <template #extra>
         <a-space>
-          <a-badge :count="unresolvedCommentCount" :offset="[-5, 5]">
+          <a-badge
+            :count="unresolvedCommentCount"
+            :offset="[-5, 5]"
+          >
             <a-button @click="showComments = true">
               <template #icon>
                 <CommentOutlined />
@@ -33,10 +40,16 @@
     </a-page-header>
 
     <div class="editor-container">
-      <a-spin :spinning="loading" tip="加载文档中...">
+      <a-spin
+        :spinning="loading"
+        tip="加载文档中..."
+      >
         <div class="editor-content">
           <!-- 编辑器内容区域 -->
-          <div v-if="currentDocument" class="document-editor">
+          <div
+            v-if="currentDocument"
+            class="document-editor"
+          >
             <a-textarea
               v-model:value="documentContent"
               :auto-size="{ minRows: 20 }"
@@ -44,7 +57,10 @@
               @change="handleContentChange"
             />
           </div>
-          <a-empty v-else description="文档加载中..." />
+          <a-empty
+            v-else
+            description="文档加载中..."
+          />
         </div>
       </a-spin>
     </div>
@@ -56,7 +72,10 @@
       placement="right"
       :width="400"
     >
-      <a-list :data-source="comments" :loading="loadingComments">
+      <a-list
+        :data-source="comments"
+        :loading="loadingComments"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-comment
@@ -73,7 +92,12 @@
                 >
                   标记已解决
                 </a-button>
-                <a-tag v-else color="green"> 已解决 </a-tag>
+                <a-tag
+                  v-else
+                  color="green"
+                >
+                  已解决
+                </a-tag>
               </template>
             </a-comment>
           </a-list-item>
@@ -89,7 +113,10 @@
       :width="400"
     >
       <a-timeline>
-        <a-timeline-item v-for="version in versionHistory" :key="version.id">
+        <a-timeline-item
+          v-for="version in versionHistory"
+          :key="version.id"
+        >
           <p>
             <strong>{{ version.editorName }}</strong>
           </p>

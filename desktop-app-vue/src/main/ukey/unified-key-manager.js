@@ -61,7 +61,7 @@ class UnifiedKeyManager extends EventEmitter {
   }
 
   _ensureTables() {
-    if (!this.database || !this.database.db) return;
+    if (!this.database || !this.database.db) {return;}
 
     this.database.db.exec(`
       CREATE TABLE IF NOT EXISTS unified_keys (
@@ -154,7 +154,7 @@ class UnifiedKeyManager extends EventEmitter {
    */
   async getKeysByPurpose(purpose) {
     try {
-      if (!this.database || !this.database.db) return [];
+      if (!this.database || !this.database.db) {return [];}
 
       return this.database.db
         .prepare("SELECT * FROM unified_keys WHERE purpose = ? ORDER BY is_primary DESC, created_at DESC")
@@ -172,7 +172,7 @@ class UnifiedKeyManager extends EventEmitter {
    */
   async getPrimaryKey(purpose) {
     try {
-      if (!this.database || !this.database.db) return null;
+      if (!this.database || !this.database.db) {return null;}
 
       return this.database.db
         .prepare("SELECT * FROM unified_keys WHERE purpose = ? AND is_primary = 1 LIMIT 1")
@@ -194,7 +194,7 @@ class UnifiedKeyManager extends EventEmitter {
         .prepare("SELECT * FROM unified_keys WHERE id = ?")
         .get(keyId);
 
-      if (!key) throw new Error("Key not found");
+      if (!key) {throw new Error("Key not found");}
 
       // Unset current primary
       this.database.db
@@ -220,7 +220,7 @@ class UnifiedKeyManager extends EventEmitter {
    */
   async listKeys() {
     try {
-      if (!this.database || !this.database.db) return [];
+      if (!this.database || !this.database.db) {return [];}
 
       return this.database.db
         .prepare("SELECT id, purpose, source, derivation_path, key_hash, algorithm, device_id, is_primary, created_at FROM unified_keys ORDER BY created_at DESC")
@@ -261,7 +261,7 @@ class UnifiedKeyManager extends EventEmitter {
 
 let _instance;
 function getUnifiedKeyManager() {
-  if (!_instance) _instance = new UnifiedKeyManager();
+  if (!_instance) {_instance = new UnifiedKeyManager();}
   return _instance;
 }
 

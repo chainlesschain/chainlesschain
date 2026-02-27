@@ -2,7 +2,10 @@
   <div class="step-config-panel">
     <div class="panel-content">
       <!-- Common Settings -->
-      <a-form layout="vertical" size="small">
+      <a-form
+        layout="vertical"
+        size="small"
+      >
         <!-- Action-specific config -->
         <template v-if="step.type === 'action'">
           <!-- Navigate -->
@@ -23,7 +26,9 @@
                 v-model:value="localConfig.waitUntil"
                 @change="emitUpdate"
               >
-                <a-select-option value="load"> Page Load </a-select-option>
+                <a-select-option value="load">
+                  Page Load
+                </a-select-option>
                 <a-select-option value="domcontentloaded">
                   DOM Content Loaded
                 </a-select-option>
@@ -52,10 +57,19 @@
               />
             </a-form-item>
             <a-form-item label="Button">
-              <a-select v-model:value="localConfig.button" @change="emitUpdate">
-                <a-select-option value="left"> Left </a-select-option>
-                <a-select-option value="right"> Right </a-select-option>
-                <a-select-option value="middle"> Middle </a-select-option>
+              <a-select
+                v-model:value="localConfig.button"
+                @change="emitUpdate"
+              >
+                <a-select-option value="left">
+                  Left
+                </a-select-option>
+                <a-select-option value="right">
+                  Right
+                </a-select-option>
+                <a-select-option value="middle">
+                  Middle
+                </a-select-option>
               </a-select>
             </a-form-item>
           </template>
@@ -120,10 +134,18 @@
                 v-model:value="localConfig.direction"
                 @change="emitUpdate"
               >
-                <a-select-option value="up"> Up </a-select-option>
-                <a-select-option value="down"> Down </a-select-option>
-                <a-select-option value="left"> Left </a-select-option>
-                <a-select-option value="right"> Right </a-select-option>
+                <a-select-option value="up">
+                  Up
+                </a-select-option>
+                <a-select-option value="down">
+                  Down
+                </a-select-option>
+                <a-select-option value="left">
+                  Left
+                </a-select-option>
+                <a-select-option value="right">
+                  Right
+                </a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label="Distance (px)">
@@ -166,10 +188,18 @@
                 v-model:value="localConfig.modifiers"
                 @change="emitUpdate"
               >
-                <a-checkbox value="Control"> Ctrl </a-checkbox>
-                <a-checkbox value="Shift"> Shift </a-checkbox>
-                <a-checkbox value="Alt"> Alt </a-checkbox>
-                <a-checkbox value="Meta"> Meta </a-checkbox>
+                <a-checkbox value="Control">
+                  Ctrl
+                </a-checkbox>
+                <a-checkbox value="Shift">
+                  Shift
+                </a-checkbox>
+                <a-checkbox value="Alt">
+                  Alt
+                </a-checkbox>
+                <a-checkbox value="Meta">
+                  Meta
+                </a-checkbox>
               </a-checkbox-group>
             </a-form-item>
             <a-form-item label="Preset Shortcuts">
@@ -177,18 +207,24 @@
                 placeholder="Select preset"
                 @change="applyKeyboardPreset"
               >
-                <a-select-option value="copy"> Copy (Ctrl+C) </a-select-option>
+                <a-select-option value="copy">
+                  Copy (Ctrl+C)
+                </a-select-option>
                 <a-select-option value="paste">
                   Paste (Ctrl+V)
                 </a-select-option>
                 <a-select-option value="selectAll">
                   Select All (Ctrl+A)
                 </a-select-option>
-                <a-select-option value="undo"> Undo (Ctrl+Z) </a-select-option>
+                <a-select-option value="undo">
+                  Undo (Ctrl+Z)
+                </a-select-option>
                 <a-select-option value="redo">
                   Redo (Ctrl+Shift+Z)
                 </a-select-option>
-                <a-select-option value="save"> Save (Ctrl+S) </a-select-option>
+                <a-select-option value="save">
+                  Save (Ctrl+S)
+                </a-select-option>
               </a-select>
             </a-form-item>
           </template>
@@ -207,10 +243,18 @@
                 v-model:value="localConfig.extractType"
                 @change="emitUpdate"
               >
-                <a-select-option value="text"> Text Content </a-select-option>
-                <a-select-option value="html"> Inner HTML </a-select-option>
-                <a-select-option value="attribute"> Attribute </a-select-option>
-                <a-select-option value="value"> Input Value </a-select-option>
+                <a-select-option value="text">
+                  Text Content
+                </a-select-option>
+                <a-select-option value="html">
+                  Inner HTML
+                </a-select-option>
+                <a-select-option value="attribute">
+                  Attribute
+                </a-select-option>
+                <a-select-option value="value">
+                  Input Value
+                </a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item
@@ -229,7 +273,9 @@
                 placeholder="extractedValue"
                 @change="emitUpdate"
               >
-                <template #prefix> $ </template>
+                <template #prefix>
+                  $
+                </template>
               </a-input>
             </a-form-item>
           </template>
@@ -270,7 +316,9 @@
                 placeholder="result"
                 @change="emitUpdate"
               >
-                <template #prefix> $ </template>
+                <template #prefix>
+                  $
+                </template>
               </a-input>
             </a-form-item>
           </template>
@@ -279,13 +327,22 @@
         <!-- Wait -->
         <template v-else-if="step.type === 'wait'">
           <a-form-item label="Wait Type">
-            <a-select v-model:value="localConfig.waitType" @change="emitUpdate">
-              <a-select-option value="time"> Fixed Time </a-select-option>
+            <a-select
+              v-model:value="localConfig.waitType"
+              @change="emitUpdate"
+            >
+              <a-select-option value="time">
+                Fixed Time
+              </a-select-option>
               <a-select-option value="selector">
                 Element Appears
               </a-select-option>
-              <a-select-option value="hidden"> Element Hidden </a-select-option>
-              <a-select-option value="navigation"> Navigation </a-select-option>
+              <a-select-option value="hidden">
+                Element Hidden
+              </a-select-option>
+              <a-select-option value="navigation">
+                Navigation
+              </a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item
@@ -320,7 +377,9 @@
               placeholder="myVariable"
               @change="emitUpdate"
             >
-              <template #prefix> $ </template>
+              <template #prefix>
+                $
+              </template>
             </a-input>
           </a-form-item>
           <a-form-item label="Value">
@@ -346,12 +405,24 @@
                 v-model:value="localConfig.condition.operator"
                 @change="emitUpdate"
               >
-                <a-select-option value="=="> equals </a-select-option>
-                <a-select-option value="!="> not equals </a-select-option>
-                <a-select-option value=">"> greater than </a-select-option>
-                <a-select-option value="<"> less than </a-select-option>
-                <a-select-option value="contains"> contains </a-select-option>
-                <a-select-option value="matches"> matches </a-select-option>
+                <a-select-option value="==">
+                  equals
+                </a-select-option>
+                <a-select-option value="!=">
+                  not equals
+                </a-select-option>
+                <a-select-option value=">">
+                  greater than
+                </a-select-option>
+                <a-select-option value="<">
+                  less than
+                </a-select-option>
+                <a-select-option value="contains">
+                  contains
+                </a-select-option>
+                <a-select-option value="matches">
+                  matches
+                </a-select-option>
               </a-select>
               <a-input
                 v-model:value="localConfig.condition.right"
@@ -360,7 +431,10 @@
               />
             </div>
           </a-form-item>
-          <a-alert type="info" show-icon>
+          <a-alert
+            type="info"
+            show-icon
+          >
             <template #message>
               Configure nested steps in the canvas by expanding this condition
               block.
@@ -371,10 +445,19 @@
         <!-- Loop -->
         <template v-else-if="step.type === 'loop'">
           <a-form-item label="Loop Type">
-            <a-select v-model:value="localConfig.loopType" @change="emitUpdate">
-              <a-select-option value="for"> Fixed Count </a-select-option>
-              <a-select-option value="while"> While Condition </a-select-option>
-              <a-select-option value="forEach"> For Each Item </a-select-option>
+            <a-select
+              v-model:value="localConfig.loopType"
+              @change="emitUpdate"
+            >
+              <a-select-option value="for">
+                Fixed Count
+              </a-select-option>
+              <a-select-option value="while">
+                While Condition
+              </a-select-option>
+              <a-select-option value="forEach">
+                For Each Item
+              </a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item
@@ -439,7 +522,10 @@
       </a-form>
 
       <!-- Variable Hints -->
-      <div v-if="Object.keys(variables).length > 0" class="variable-hints">
+      <div
+        v-if="Object.keys(variables).length > 0"
+        class="variable-hints"
+      >
         <a-divider>Available Variables</a-divider>
         <div class="variable-list">
           <a-tag

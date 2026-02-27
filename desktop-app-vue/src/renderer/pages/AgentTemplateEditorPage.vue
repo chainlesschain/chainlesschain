@@ -13,8 +13,14 @@
       </div>
       <div class="header-right">
         <a-space>
-          <a-button @click="handleCancel">取消</a-button>
-          <a-button type="primary" :loading="saving" @click="handleSave">
+          <a-button @click="handleCancel">
+            取消
+          </a-button>
+          <a-button
+            type="primary"
+            :loading="saving"
+            @click="handleSave"
+          >
             <SaveOutlined />
             {{ isEditing ? '保存修改' : '创建模板' }}
           </a-button>
@@ -35,7 +41,10 @@
           <a-row :gutter="24">
             <!-- 左栏 -->
             <a-col :span="12">
-              <a-form-item label="模板名称" name="name">
+              <a-form-item
+                label="模板名称"
+                name="name"
+              >
                 <a-input
                   v-model:value="formState.name"
                   placeholder="请输入代理模板名称"
@@ -44,7 +53,10 @@
                 />
               </a-form-item>
 
-              <a-form-item label="代理类型" name="type">
+              <a-form-item
+                label="代理类型"
+                name="type"
+              >
                 <a-select
                   v-model:value="formState.type"
                   placeholder="请选择代理类型"
@@ -59,14 +71,20 @@
                 </a-select>
               </a-form-item>
 
-              <a-form-item label="版本号" name="version">
+              <a-form-item
+                label="版本号"
+                name="version"
+              >
                 <a-input
                   v-model:value="formState.version"
                   placeholder="例如 1.0.0"
                 />
               </a-form-item>
 
-              <a-form-item label="启用状态" name="enabled">
+              <a-form-item
+                label="启用状态"
+                name="enabled"
+              >
                 <a-switch v-model:checked="formState.enabled" />
                 <span class="switch-label">
                   {{ formState.enabled ? '已启用' : '已禁用' }}
@@ -76,7 +94,10 @@
 
             <!-- 右栏 -->
             <a-col :span="12">
-              <a-form-item label="描述" name="description">
+              <a-form-item
+                label="描述"
+                name="description"
+              >
                 <a-textarea
                   v-model:value="formState.description"
                   placeholder="简要描述该代理模板的功能和用途"
@@ -86,7 +107,10 @@
                 />
               </a-form-item>
 
-              <a-form-item label="能力标签" name="capabilities">
+              <a-form-item
+                label="能力标签"
+                name="capabilities"
+              >
                 <a-select
                   v-model:value="capabilitiesList"
                   mode="tags"
@@ -103,7 +127,10 @@
                 </a-select>
               </a-form-item>
 
-              <a-form-item label="工具列表" name="tools">
+              <a-form-item
+                label="工具列表"
+                name="tools"
+              >
                 <a-select
                   v-model:value="toolsList"
                   mode="tags"
@@ -123,7 +150,10 @@
           </a-row>
 
           <!-- 系统提示词 - 全宽 -->
-          <a-form-item label="系统提示词" name="system_prompt">
+          <a-form-item
+            label="系统提示词"
+            name="system_prompt"
+          >
             <a-textarea
               v-model:value="formState.system_prompt"
               placeholder="定义代理的系统提示词，指导其行为和回复方式..."
@@ -239,7 +269,7 @@ const formRules: Record<string, Rule[]> = {
 // ==================== 方法 ====================
 
 async function loadTemplate() {
-  if (!templateId.value) return;
+  if (!templateId.value) {return;}
 
   loadingTemplate.value = true;
   try {

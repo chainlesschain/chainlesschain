@@ -4,11 +4,19 @@
     <div class="page-header">
       <div class="header-left">
         <h1>工具管理</h1>
-        <p class="subtitle">管理和测试 AI 助手的工具库</p>
+        <p class="subtitle">
+          管理和测试 AI 助手的工具库
+        </p>
       </div>
       <div class="header-right">
-        <a-space :size="24" align="center">
-          <a-statistic :value="toolStore.totalCount" title="总工具数" />
+        <a-space
+          :size="24"
+          align="center"
+        >
+          <a-statistic
+            :value="toolStore.totalCount"
+            title="总工具数"
+          />
           <a-statistic
             :value="toolStore.enabledCount"
             title="已启用"
@@ -49,13 +57,27 @@
           style="width: 150px"
           @change="handleCategoryChange"
         >
-          <a-select-option value="all"> 全部分类 </a-select-option>
-          <a-select-option value="file"> 文件操作 </a-select-option>
-          <a-select-option value="code"> 代码生成 </a-select-option>
-          <a-select-option value="project"> 项目管理 </a-select-option>
-          <a-select-option value="system"> 系统操作 </a-select-option>
-          <a-select-option value="output"> 输出格式化 </a-select-option>
-          <a-select-option value="general"> 通用 </a-select-option>
+          <a-select-option value="all">
+            全部分类
+          </a-select-option>
+          <a-select-option value="file">
+            文件操作
+          </a-select-option>
+          <a-select-option value="code">
+            代码生成
+          </a-select-option>
+          <a-select-option value="project">
+            项目管理
+          </a-select-option>
+          <a-select-option value="system">
+            系统操作
+          </a-select-option>
+          <a-select-option value="output">
+            输出格式化
+          </a-select-option>
+          <a-select-option value="general">
+            通用
+          </a-select-option>
         </a-select>
 
         <a-select
@@ -64,12 +86,21 @@
           style="width: 120px"
           @change="handleStatusChange"
         >
-          <a-select-option value="all"> 全部状态 </a-select-option>
-          <a-select-option value="enabled"> 已启用 </a-select-option>
-          <a-select-option value="disabled"> 已禁用 </a-select-option>
+          <a-select-option value="all">
+            全部状态
+          </a-select-option>
+          <a-select-option value="enabled">
+            已启用
+          </a-select-option>
+          <a-select-option value="disabled">
+            已禁用
+          </a-select-option>
         </a-select>
 
-        <a-button :loading="toolStore.loading" @click="handleRefresh">
+        <a-button
+          :loading="toolStore.loading"
+          @click="handleRefresh"
+        >
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -78,19 +109,28 @@
       </a-space>
 
       <a-space>
-        <a-button type="primary" @click="handleCreateTool">
+        <a-button
+          type="primary"
+          @click="handleCreateTool"
+        >
           <template #icon>
             <PlusOutlined />
           </template>
           创建工具
         </a-button>
-        <a-button type="link" @click="showAnalytics">
+        <a-button
+          type="link"
+          @click="showAnalytics"
+        >
           <template #icon>
             <BarChartOutlined />
           </template>
           使用统计
         </a-button>
-        <a-button type="link" @click="showDependencyGraph">
+        <a-button
+          type="link"
+          @click="showDependencyGraph"
+        >
           <template #icon>
             <ApartmentOutlined />
           </template>
@@ -100,8 +140,13 @@
     </div>
 
     <!-- 批量操作栏 -->
-    <div v-if="selectedTools.length > 0" class="batch-action-bar">
-      <div class="selection-info">已选择 {{ selectedTools.length }} 项</div>
+    <div
+      v-if="selectedTools.length > 0"
+      class="batch-action-bar"
+    >
+      <div class="selection-info">
+        已选择 {{ selectedTools.length }} 项
+      </div>
       <a-space>
         <a-button @click="handleBatchEnable">
           <template #icon>
@@ -115,19 +160,30 @@
           </template>
           批量禁用
         </a-button>
-        <a-button danger @click="handleBatchDelete">
+        <a-button
+          danger
+          @click="handleBatchDelete"
+        >
           <template #icon>
             <DeleteOutlined />
           </template>
           批量删除
         </a-button>
-        <a-button @click="handleClearSelection"> 清空选择 </a-button>
+        <a-button @click="handleClearSelection">
+          清空选择
+        </a-button>
       </a-space>
     </div>
 
     <!-- 工具列表 -->
-    <div v-if="toolStore.loading" class="loading-container">
-      <a-spin size="large" tip="加载中..." />
+    <div
+      v-if="toolStore.loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载中..."
+      />
     </div>
 
     <div
@@ -137,7 +193,10 @@
       <a-empty description="暂无工具数据" />
     </div>
 
-    <div v-else class="tool-list">
+    <div
+      v-else
+      class="tool-list"
+    >
       <a-table
         :columns="columns"
         :data-source="toolStore.filteredTools"
@@ -182,7 +241,10 @@
           </template>
 
           <template v-if="column.key === 'usage'">
-            <a-space direction="vertical" size="small">
+            <a-space
+              direction="vertical"
+              size="small"
+            >
               <div>
                 <span style="color: #8c8c8c; font-size: 12px">调用: </span>
                 <strong>{{ record.usage_count || 0 }}</strong>
@@ -197,9 +259,21 @@
           </template>
 
           <template v-if="column.key === 'source'">
-            <a-tag v-if="record.is_builtin" color="blue"> 内置 </a-tag>
-            <a-tag v-else-if="record.plugin_id" color="purple"> 插件 </a-tag>
-            <a-tag v-else> 自定义 </a-tag>
+            <a-tag
+              v-if="record.is_builtin"
+              color="blue"
+            >
+              内置
+            </a-tag>
+            <a-tag
+              v-else-if="record.plugin_id"
+              color="purple"
+            >
+              插件
+            </a-tag>
+            <a-tag v-else>
+              自定义
+            </a-tag>
           </template>
 
           <template v-if="column.key === 'actions'">
@@ -211,7 +285,11 @@
               >
                 详情
               </a-button>
-              <a-button type="link" size="small" @click="handleViewDoc(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleViewDoc(record)"
+              >
                 文档
               </a-button>
               <a-button
@@ -251,7 +329,10 @@
       :width="800"
       placement="right"
     >
-      <MarkdownViewer v-if="currentDoc" :content="currentDoc" />
+      <MarkdownViewer
+        v-if="currentDoc"
+        :content="currentDoc"
+      />
       <a-spin v-else-if="loadingDoc" />
     </a-drawer>
 

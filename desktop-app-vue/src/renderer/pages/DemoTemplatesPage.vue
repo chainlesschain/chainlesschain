@@ -25,7 +25,10 @@
 
     <!-- Category Filter -->
     <div class="category-section">
-      <a-radio-group v-model:value="activeCategory" button-style="solid">
+      <a-radio-group
+        v-model:value="activeCategory"
+        button-style="solid"
+      >
         <a-radio-button value="all">
           <AppstoreOutlined />
           All
@@ -55,8 +58,13 @@
     <div class="filter-bar">
       <a-space>
         <span style="color: #999">Difficulty:</span>
-        <a-radio-group v-model:value="activeDifficulty" size="small">
-          <a-radio-button value="all"> All </a-radio-button>
+        <a-radio-group
+          v-model:value="activeDifficulty"
+          size="small"
+        >
+          <a-radio-button value="all">
+            All
+          </a-radio-button>
           <a-radio-button value="beginner">
             <span style="color: #52c41a">Beginner</span>
           </a-radio-button>
@@ -69,18 +77,25 @@
         </a-radio-group>
       </a-space>
 
-      <span class="template-count"
-        >{{ filteredTemplates.length }} templates</span
-      >
+      <span class="template-count">{{ filteredTemplates.length }} templates</span>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading-container">
-      <a-spin size="large" tip="Loading demo templates..." />
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="Loading demo templates..."
+      />
     </div>
 
     <!-- Template Grid -->
-    <div v-else-if="filteredTemplates.length > 0" class="template-grid">
+    <div
+      v-else-if="filteredTemplates.length > 0"
+      class="template-grid"
+    >
       <a-card
         v-for="template in filteredTemplates"
         :key="template.id"
@@ -95,7 +110,10 @@
           </div>
         </template>
         <template #extra>
-          <a-tag :color="difficultyColor(template.difficulty)" size="small">
+          <a-tag
+            :color="difficultyColor(template.difficulty)"
+            size="small"
+          >
             {{ template.difficulty || "beginner" }}
           </a-tag>
         </template>
@@ -117,7 +135,11 @@
 
         <div class="card-footer">
           <a-tag>{{ template.category }}</a-tag>
-          <a-button type="primary" size="small" @click.stop="runDemo(template)">
+          <a-button
+            type="primary"
+            size="small"
+            @click.stop="runDemo(template)"
+          >
             <PlayCircleOutlined />
             Run Demo
           </a-button>
@@ -126,7 +148,10 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <a-empty description="No demo templates found matching your filters" />
     </div>
 
@@ -137,7 +162,10 @@
       width="720px"
       :footer="null"
     >
-      <div v-if="previewTemplate" class="preview-content">
+      <div
+        v-if="previewTemplate"
+        class="preview-content"
+      >
         <div class="preview-meta">
           <a-space wrap>
             <a-tag color="purple">
@@ -203,8 +231,13 @@
         <a-divider />
 
         <div class="preview-actions">
-          <a-button @click="previewVisible = false"> Close </a-button>
-          <a-button type="primary" @click="runDemoFromPreview">
+          <a-button @click="previewVisible = false">
+            Close
+          </a-button>
+          <a-button
+            type="primary"
+            @click="runDemoFromPreview"
+          >
             <PlayCircleOutlined />
             Run Demo
           </a-button>

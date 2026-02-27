@@ -326,7 +326,7 @@ class BehaviorPatternAnalyzer {
 
     for (const interaction of interactions) {
       const timestamp = interaction.createdAt || interaction.created_at;
-      if (!timestamp) continue;
+      if (!timestamp) {continue;}
 
       const date = new Date(timestamp);
       const hour = date.getHours();
@@ -546,12 +546,12 @@ class BehaviorPatternAnalyzer {
    * @private
    */
   _getHourLabel(hour) {
-    if (hour >= 5 && hour < 9) return "early morning";
-    if (hour >= 9 && hour < 12) return "morning";
-    if (hour >= 12 && hour < 14) return "midday";
-    if (hour >= 14 && hour < 17) return "afternoon";
-    if (hour >= 17 && hour < 20) return "evening";
-    if (hour >= 20 && hour < 23) return "night";
+    if (hour >= 5 && hour < 9) {return "early morning";}
+    if (hour >= 9 && hour < 12) {return "morning";}
+    if (hour >= 12 && hour < 14) {return "midday";}
+    if (hour >= 14 && hour < 17) {return "afternoon";}
+    if (hour >= 17 && hour < 20) {return "evening";}
+    if (hour >= 20 && hour < 23) {return "night";}
     return "late night";
   }
 }

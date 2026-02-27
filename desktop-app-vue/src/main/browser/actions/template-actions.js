@@ -583,7 +583,7 @@ class TemplateActions extends EventEmitter {
    * @private
    */
   _validateParams(template, params) {
-    if (!template.parameters) return;
+    if (!template.parameters) {return;}
 
     for (const [name, spec] of Object.entries(template.parameters)) {
       if (spec.required && params[name] === undefined) {

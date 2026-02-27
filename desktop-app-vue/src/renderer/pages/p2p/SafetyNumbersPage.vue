@@ -1,6 +1,9 @@
 <template>
   <div class="safety-numbers-page">
-    <a-page-header title="安全号码验证" @back="handleBack">
+    <a-page-header
+      title="安全号码验证"
+      @back="handleBack"
+    >
       <template #subTitle>
         {{ peerName || peerId }}
       </template>
@@ -35,7 +38,10 @@
             <div class="qr-code-placeholder">
               <QrcodeOutlined style="font-size: 120px; color: #d9d9d9" />
             </div>
-            <a-button type="link" @click="showQRCode">
+            <a-button
+              type="link"
+              @click="showQRCode"
+            >
               <QrcodeOutlined />
               显示二维码
             </a-button>
@@ -59,7 +65,10 @@
                 {{ isVerified ? "已验证" : "未验证" }}
               </a-tag>
             </div>
-            <div v-if="verifiedAt" class="info-item">
+            <div
+              v-if="verifiedAt"
+              class="info-item"
+            >
               <label>验证时间:</label>
               <span>{{ formatDate(verifiedAt) }}</span>
             </div>
@@ -88,7 +97,10 @@
             重置验证状态
           </a-button>
 
-          <a-button size="large" @click="handleScanQRCode">
+          <a-button
+            size="large"
+            @click="handleScanQRCode"
+          >
             <ScanOutlined />
             扫描对方二维码
           </a-button>

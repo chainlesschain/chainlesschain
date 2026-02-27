@@ -2,13 +2,31 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-16 (v0.35.0 全量文档更新)
+> **最后更新**: 2026-02-27 (v1.1.0 B/C/D Phase 1 实现 + 测试)
 
 ---
 
 ## 当前工作焦点
 
 ### 活跃任务
+
+- [x] v1.1.0 主线 B/C/D Phase 1 — 全部 7 个工作流完成 ✅
+  - WS1: C1-P1 AI 社交助手增强 — topic-analyzer + social-graph + 8 IPC
+  - WS2: C2-P1 ActivityPub 双向互通 — activitypub-bridge + ap-content-sync + ap-webfinger + 10 IPC
+  - WS3: D1-P1 SOC2 合规 + 数据分类 — soc2-compliance + data-classifier + classification-policy + 12 IPC
+  - WS4: D2-P1 SCIM 用户同步 — scim-server + scim-sync + 8 IPC
+  - WS5: B1-P1 统一密钥 + FIDO2 — unified-key-manager + fido2-authenticator + 6 IPC
+  - WS6: B2-P1 跨平台驱动 — usb-transport + webusb-fallback + 2 IPC
+  - WS7: 生产加固 — 配置/上下文/IPC 注册集成
+  - 合计: 16 后端模块 + 46 IPC (Phase 42-45) + 4 Vue 页面 + 2 Pinia Store + 10 DB 表
+- [x] 单元测试 + E2E 测试 — ~400 新测试用例全部通过 ✅
+  - 17 个测试文件 (15 后端 + 2 Store)
+  - 4 个 E2E 测试场景
+  - 修复 5 个测试 bug (vi.hoisted、usb resolve alias、ESM import、mock 策略)
+  - 最终: 500 passed / 10 failed (9 pre-existing) / 36 skipped
+- [x] 文档更新 — 路线图 B/C/D Phase 1 状态更新 ✅
+
+### 历史任务
 
 - [x] Unified Tool Registry — 统一工具注册表 + AI 调用链打通 ✅
   - 8 步实现: Registry/MCPSkillGenerator/ToolSkillMapper/IPC/Vue 页面/Pinia store

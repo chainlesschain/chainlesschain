@@ -30,19 +30,30 @@
         size="small"
       />
 
-      <a-button v-if="!autoRefresh" size="small" @click="refreshPreview">
+      <a-button
+        v-if="!autoRefresh"
+        size="small"
+        @click="refreshPreview"
+      >
         <ReloadOutlined />
         刷新预览
       </a-button>
 
       <div class="toolbar-spacer" />
 
-      <a-button size="small" @click="fullscreenPreview">
+      <a-button
+        size="small"
+        @click="fullscreenPreview"
+      >
         <FullscreenOutlined />
         全屏预览
       </a-button>
 
-      <a-button type="primary" size="small" @click="exportProject">
+      <a-button
+        type="primary"
+        size="small"
+        @click="exportProject"
+      >
         <ExportOutlined />
         导出项目
       </a-button>
@@ -63,8 +74,13 @@
     <div class="webdev-content">
       <!-- 左侧：代码编辑器 -->
       <div class="code-section">
-        <div v-show="activeTab === 'html'" class="code-panel">
-          <div class="panel-header">HTML</div>
+        <div
+          v-show="activeTab === 'html'"
+          class="code-panel"
+        >
+          <div class="panel-header">
+            HTML
+          </div>
           <textarea
             ref="htmlEditorRef"
             v-model="htmlCode"
@@ -74,8 +90,13 @@
           />
         </div>
 
-        <div v-show="activeTab === 'css'" class="code-panel">
-          <div class="panel-header">CSS</div>
+        <div
+          v-show="activeTab === 'css'"
+          class="code-panel"
+        >
+          <div class="panel-header">
+            CSS
+          </div>
           <textarea
             ref="cssEditorRef"
             v-model="cssCode"
@@ -85,8 +106,13 @@
           />
         </div>
 
-        <div v-show="activeTab === 'js'" class="code-panel">
-          <div class="panel-header">JavaScript</div>
+        <div
+          v-show="activeTab === 'js'"
+          class="code-panel"
+        >
+          <div class="panel-header">
+            JavaScript
+          </div>
           <textarea
             ref="jsEditorRef"
             v-model="jsCode"
@@ -105,7 +131,11 @@
             实时预览
           </span>
           <div class="preview-actions">
-            <a-button type="text" size="small" @click="refreshPreview">
+            <a-button
+              type="text"
+              size="small"
+              @click="refreshPreview"
+            >
               <ReloadOutlined />
             </a-button>
           </div>
