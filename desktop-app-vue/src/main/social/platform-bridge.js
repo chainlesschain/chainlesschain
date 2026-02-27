@@ -65,7 +65,7 @@ class PlatformBridge extends EventEmitter {
 
       this.initialized = true;
       logger.info("[PlatformBridge] Platform bridge manager initialized successfully");
-    } catch (_error) {
+    } catch (error) {
       logger.error("[PlatformBridge] Initialization failed:", error);
       throw error;
     }
@@ -171,7 +171,7 @@ class PlatformBridge extends EventEmitter {
       });
 
       return connection;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[PlatformBridge] Failed to connect Mastodon:", error);
       throw error;
     }
@@ -250,7 +250,7 @@ class PlatformBridge extends EventEmitter {
       });
 
       return connection;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[PlatformBridge] Failed to connect Nostr:", error);
       throw error;
     }
@@ -309,7 +309,7 @@ class PlatformBridge extends EventEmitter {
               error: `Unsupported platform: ${platform}`,
             };
           }
-        } catch (_platformError) {
+        } catch (platformError) {
           results[platform] = {
             success: false,
             error: platformError.message,
@@ -326,7 +326,7 @@ class PlatformBridge extends EventEmitter {
       this.emit("post:cross-posted", { ownerDid, platforms, results });
 
       return results;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[PlatformBridge] Failed to cross-post:", error);
       throw error;
     }
@@ -388,7 +388,7 @@ class PlatformBridge extends EventEmitter {
         items: feed,
         syncedAt: now,
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[PlatformBridge] Failed to import feed:", error);
       throw error;
     }
@@ -444,7 +444,7 @@ class PlatformBridge extends EventEmitter {
       });
 
       return { success: true, connectionId };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[PlatformBridge] Failed to disconnect platform:", error);
       throw error;
     }
@@ -475,7 +475,7 @@ class PlatformBridge extends EventEmitter {
         // Never expose access_token or private keys in listings
         access_token: conn.access_token ? "***" : null,
       }));
-    } catch (_error) {
+    } catch (error) {
       logger.error("[PlatformBridge] Failed to get connections:", error);
       throw error;
     }
@@ -517,7 +517,7 @@ class PlatformBridge extends EventEmitter {
         connectionId,
         ...feed,
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[PlatformBridge] Failed to sync feed:", error);
       throw error;
     }
@@ -585,7 +585,7 @@ class PlatformBridge extends EventEmitter {
   async _postToNostr(connection, content) {
     // Delegate to NostrBridge if available (Phase 49)
     try {
-      const { getNostrBridge } = require("./nostr-bridge");
+      // NostrBridge imported at top
       const bridge = getNostrBridge();
       if (bridge.initialized) {
         const result = await bridge.publishEvent({ kind: 1, content });

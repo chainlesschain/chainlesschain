@@ -76,7 +76,7 @@ class APContentSync extends EventEmitter {
 
       this.emit("post:published", { post, activity });
       return activity;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APContentSync] Failed to publish post:", error);
       throw error;
     }
@@ -91,7 +91,7 @@ class APContentSync extends EventEmitter {
   async publishLike(actorDid, objectId) {
     try {
       return await this.apBridge.createActivity(actorDid, ACTIVITY_TYPES.LIKE, objectId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APContentSync] Failed to publish like:", error);
       throw error;
     }
@@ -106,7 +106,7 @@ class APContentSync extends EventEmitter {
   async publishBoost(actorDid, objectId) {
     try {
       return await this.apBridge.createActivity(actorDid, ACTIVITY_TYPES.ANNOUNCE, objectId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APContentSync] Failed to publish boost:", error);
       throw error;
     }
@@ -121,7 +121,7 @@ class APContentSync extends EventEmitter {
   async publishFollow(actorDid, targetActorId) {
     try {
       return await this.apBridge.createActivity(actorDid, ACTIVITY_TYPES.FOLLOW, targetActorId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APContentSync] Failed to publish follow:", error);
       throw error;
     }
@@ -152,7 +152,7 @@ class APContentSync extends EventEmitter {
 
       this.emit("note:imported", post);
       return { success: true, post };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APContentSync] Failed to import note:", error);
       throw error;
     }
@@ -185,7 +185,7 @@ class APContentSync extends EventEmitter {
         received: received?.count || 0,
         pending: pending?.count || 0,
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APContentSync] Failed to get sync status:", error);
       return { published: 0, received: 0, pending: 0 };
     }
@@ -211,13 +211,13 @@ class APContentSync extends EventEmitter {
           const parsed = JSON.parse(activity.raw_json);
           await this.apBridge.processInboxActivity(parsed);
           synced++;
-        } catch (_err) {
+        } catch (err) {
           logger.warn("[APContentSync] Failed to sync activity:", activity.id, err.message);
         }
       }
 
       return { synced, total: pending.length };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APContentSync] Sync failed:", error);
       return { synced: 0, error: error.message };
     }

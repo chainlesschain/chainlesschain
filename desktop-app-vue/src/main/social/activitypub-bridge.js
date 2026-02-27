@@ -173,7 +173,7 @@ class ActivityPubBridge extends EventEmitter {
 
       logger.info("[ActivityPubBridge] Created local actor:", actorId);
       return actor;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[ActivityPubBridge] Failed to create actor:", error);
       throw error;
     }
@@ -198,7 +198,7 @@ class ActivityPubBridge extends EventEmitter {
         this._actorCache.set(did, row);
       }
       return row || null;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[ActivityPubBridge] Failed to get actor:", error);
       return null;
     }
@@ -280,7 +280,7 @@ class ActivityPubBridge extends EventEmitter {
       this.emit("activity:created", activity);
 
       return activity;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[ActivityPubBridge] Failed to create activity:", error);
       throw error;
     }
@@ -348,7 +348,7 @@ class ActivityPubBridge extends EventEmitter {
       this.emit("inbox:received", { activity, result });
 
       return result;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[ActivityPubBridge] Failed to process inbox activity:", error);
       throw error;
     }
@@ -430,7 +430,7 @@ class ActivityPubBridge extends EventEmitter {
       if (digest) {headers.Digest = digest;}
 
       return headers;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[ActivityPubBridge] Failed to sign request:", error);
       throw error;
     }
@@ -474,7 +474,7 @@ class ActivityPubBridge extends EventEmitter {
           }
         }),
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[ActivityPubBridge] Failed to get outbox:", error);
       throw error;
     }
@@ -504,7 +504,7 @@ class ActivityPubBridge extends EventEmitter {
         actorCount: actorCount?.count || 0,
         activityCount: activityCount?.count || 0,
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[ActivityPubBridge] Failed to get status:", error);
       return { initialized: false, error: error.message };
     }

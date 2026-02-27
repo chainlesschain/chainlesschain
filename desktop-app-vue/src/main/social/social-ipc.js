@@ -56,7 +56,7 @@ function registerSocialIPC({
       }
 
       return await contactManager.addContact(contact);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 添加联系人失败:", error);
       throw error;
     }
@@ -73,7 +73,7 @@ function registerSocialIPC({
       }
 
       return await contactManager.addContactFromQR(qrData);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 从二维码添加联系人失败:", error);
       throw error;
     }
@@ -97,7 +97,7 @@ function registerSocialIPC({
         success: true,
         contacts: contacts || [],
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取联系人列表失败:", error);
       return {
         success: false,
@@ -118,7 +118,7 @@ function registerSocialIPC({
       }
 
       return contactManager.getContactByDID(did);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取联系人失败:", error);
       return null;
     }
@@ -135,7 +135,7 @@ function registerSocialIPC({
       }
 
       return await contactManager.updateContact(did, updates);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 更新联系人失败:", error);
       throw error;
     }
@@ -152,7 +152,7 @@ function registerSocialIPC({
       }
 
       return await contactManager.deleteContact(did);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 删除联系人失败:", error);
       throw error;
     }
@@ -169,7 +169,7 @@ function registerSocialIPC({
       }
 
       return contactManager.searchContacts(query);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 搜索联系人失败:", error);
       return [];
     }
@@ -186,7 +186,7 @@ function registerSocialIPC({
       }
 
       return contactManager.getFriends();
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取好友列表失败:", error);
       return [];
     }
@@ -210,7 +210,7 @@ function registerSocialIPC({
         success: true,
         statistics: statistics || { total: 0, friends: 0, byRelationship: {} },
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取统计信息失败:", error);
       return {
         success: false,
@@ -235,7 +235,7 @@ function registerSocialIPC({
       }
 
       return await friendManager.sendFriendRequest(targetDid, message);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 发送好友请求失败:", error);
       throw error;
     }
@@ -252,7 +252,7 @@ function registerSocialIPC({
       }
 
       return await friendManager.acceptFriendRequest(requestId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 接受好友请求失败:", error);
       throw error;
     }
@@ -269,7 +269,7 @@ function registerSocialIPC({
       }
 
       return await friendManager.rejectFriendRequest(requestId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 拒绝好友请求失败:", error);
       throw error;
     }
@@ -286,7 +286,7 @@ function registerSocialIPC({
       }
 
       return await friendManager.getPendingFriendRequests();
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取待处理好友请求失败:", error);
       return [];
     }
@@ -303,7 +303,7 @@ function registerSocialIPC({
       }
 
       return await friendManager.getFriends(groupName);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取好友列表失败:", error);
       return [];
     }
@@ -321,7 +321,7 @@ function registerSocialIPC({
 
       const friends = await friendManager.getFriends();
       return { success: true, friends: friends || [] };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取好友列表失败:", error);
       return { success: false, error: error.message, friends: [] };
     }
@@ -338,7 +338,7 @@ function registerSocialIPC({
       }
 
       return await friendManager.removeFriend(friendDid);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 删除好友失败:", error);
       throw error;
     }
@@ -357,7 +357,7 @@ function registerSocialIPC({
         }
 
         return await friendManager.updateFriendNickname(friendDid, nickname);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 更新好友备注失败:", error);
         throw error;
       }
@@ -377,7 +377,7 @@ function registerSocialIPC({
         }
 
         return await friendManager.updateFriendGroup(friendDid, groupName);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 更新好友分组失败:", error);
         throw error;
       }
@@ -395,7 +395,7 @@ function registerSocialIPC({
       }
 
       return await friendManager.getStatistics();
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取好友统计失败:", error);
       return { total: 0, online: 0, offline: 0, byGroup: {} };
     }
@@ -415,7 +415,7 @@ function registerSocialIPC({
         return 0.5;
       }
       return await friendManager.getTrustScore(friendDid);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取信任分失败:", error);
       return 0.5;
     }
@@ -434,7 +434,7 @@ function registerSocialIPC({
         }
         await friendManager.updateTrustScore(friendDid, score);
         return { success: true };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 更新信任分失败:", error);
         throw error;
       }
@@ -454,7 +454,7 @@ function registerSocialIPC({
         }
         await friendManager.recordTrustInteraction(friendDid, type, weight);
         return { success: true };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 记录信任交互失败:", error);
         throw error;
       }
@@ -476,7 +476,7 @@ function registerSocialIPC({
       }
 
       return await postManager.createPost(options);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 发布动态失败:", error);
       throw error;
     }
@@ -493,7 +493,7 @@ function registerSocialIPC({
       }
 
       return await postManager.getFeed(options);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取动态流失败:", error);
       throw error;
     }
@@ -510,7 +510,7 @@ function registerSocialIPC({
       }
 
       return await postManager.getPost(postId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取动态失败:", error);
       throw error;
     }
@@ -527,7 +527,7 @@ function registerSocialIPC({
       }
 
       return await postManager.deletePost(postId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 删除动态失败:", error);
       throw error;
     }
@@ -544,7 +544,7 @@ function registerSocialIPC({
       }
 
       return await postManager.likePost(postId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 点赞失败:", error);
       throw error;
     }
@@ -561,7 +561,7 @@ function registerSocialIPC({
       }
 
       return await postManager.unlikePost(postId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 取消点赞失败:", error);
       throw error;
     }
@@ -578,7 +578,7 @@ function registerSocialIPC({
       }
 
       return await postManager.getLikes(postId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取点赞列表失败:", error);
       return [];
     }
@@ -597,7 +597,7 @@ function registerSocialIPC({
         }
 
         return await postManager.addComment(postId, content, parentId);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 添加评论失败:", error);
         throw error;
       }
@@ -615,7 +615,7 @@ function registerSocialIPC({
       }
 
       return await postManager.getComments(postId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取评论列表失败:", error);
       return [];
     }
@@ -632,7 +632,7 @@ function registerSocialIPC({
       }
 
       return await postManager.deleteComment(commentId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 删除评论失败:", error);
       throw error;
     }
@@ -658,7 +658,7 @@ function registerSocialIPC({
       );
       const sessions = stmt.all();
       return sessions || [];
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取聊天会话列表失败:", error);
       // 返回空数组而不是抛出错误，防止前端崩溃
       return [];
@@ -682,7 +682,7 @@ function registerSocialIPC({
         );
         const messages = stmt.all(sessionId, limit, offset);
         return messages || [];
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 获取聊天消息失败:", error);
         return [];
       }
@@ -766,7 +766,7 @@ function registerSocialIPC({
 
       database.saveToFile();
       return { success: true };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 保存消息失败:", error);
       return { success: false, error: error.message };
     }
@@ -788,7 +788,7 @@ function registerSocialIPC({
           .run(status, messageId);
         database.saveToFile();
         return { success: true };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 更新消息状态失败:", error);
         throw error;
       }
@@ -809,7 +809,7 @@ function registerSocialIPC({
         .run(sessionId);
       database.saveToFile();
       return { success: true };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 标记已读失败:", error);
       throw error;
     }
@@ -846,7 +846,7 @@ function registerSocialIPC({
           success: true,
           reaction: { id, messageId, userDid, emoji, createdAt: now },
         };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 添加表情回应失败:", error);
         return { success: false, error: error.message };
       }
@@ -873,7 +873,7 @@ function registerSocialIPC({
         database.saveToFile();
 
         return { success: true };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 移除表情回应失败:", error);
         return { success: false, error: error.message };
       }
@@ -898,7 +898,7 @@ function registerSocialIPC({
       const reactions = stmt.all(messageId);
 
       return { success: true, reactions: reactions || [] };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取表情回应失败:", error);
       return { success: false, reactions: [], error: error.message };
     }
@@ -932,7 +932,7 @@ function registerSocialIPC({
       });
 
       return { success: true, stats };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取表情统计失败:", error);
       return { success: false, stats: {}, error: error.message };
     }
@@ -952,7 +952,7 @@ function registerSocialIPC({
         throw new Error("群聊管理器未初始化");
       }
       return await groupChatManager.createGroup(options);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 创建群聊失败:", error);
       throw error;
     }
@@ -968,7 +968,7 @@ function registerSocialIPC({
         return [];
       }
       return await groupChatManager.getGroups();
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取群聊列表失败:", error);
       return [];
     }
@@ -984,7 +984,7 @@ function registerSocialIPC({
         throw new Error("群聊管理器未初始化");
       }
       return await groupChatManager.getGroupDetails(groupId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取群聊详情失败:", error);
       throw error;
     }
@@ -1000,7 +1000,7 @@ function registerSocialIPC({
         throw new Error("群聊管理器未初始化");
       }
       return await groupChatManager.updateGroupInfo(groupId, updates);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 更新群信息失败:", error);
       throw error;
     }
@@ -1018,7 +1018,7 @@ function registerSocialIPC({
           throw new Error("群聊管理器未初始化");
         }
         return await groupChatManager.addGroupMember(groupId, memberDid, role);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 添加群成员失败:", error);
         throw error;
       }
@@ -1035,7 +1035,7 @@ function registerSocialIPC({
         throw new Error("群聊管理器未初始化");
       }
       return await groupChatManager.removeGroupMember(groupId, memberDid);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 移除群成员失败:", error);
       throw error;
     }
@@ -1051,7 +1051,7 @@ function registerSocialIPC({
         throw new Error("群聊管理器未初始化");
       }
       return await groupChatManager.leaveGroup(groupId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 退出群聊失败:", error);
       throw error;
     }
@@ -1067,7 +1067,7 @@ function registerSocialIPC({
         throw new Error("群聊管理器未初始化");
       }
       return await groupChatManager.dismissGroup(groupId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 解散群聊失败:", error);
       throw error;
     }
@@ -1089,7 +1089,7 @@ function registerSocialIPC({
           content,
           options,
         );
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 发送群消息失败:", error);
         throw error;
       }
@@ -1108,7 +1108,7 @@ function registerSocialIPC({
           return [];
         }
         return await groupChatManager.getGroupMessages(groupId, limit, offset);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 获取群消息失败:", error);
         return [];
       }
@@ -1127,7 +1127,7 @@ function registerSocialIPC({
           return { success: false };
         }
         return await groupChatManager.markMessageAsRead(messageId, groupId);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 标记群消息已读失败:", error);
         return { success: false };
       }
@@ -1184,7 +1184,7 @@ function registerSocialIPC({
         }
 
         return { success: true, invitationId };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 邀请成员失败:", error);
         throw error;
       }
@@ -1235,7 +1235,7 @@ function registerSocialIPC({
       database.saveToFile();
 
       return { success: true, groupId: invitation.group_id };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 接受邀请失败:", error);
       throw error;
     }
@@ -1258,7 +1258,7 @@ function registerSocialIPC({
       database.saveToFile();
 
       return { success: true };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 拒绝邀请失败:", error);
       throw error;
     }
@@ -1283,7 +1283,7 @@ function registerSocialIPC({
       `);
 
       return stmt.all(inviteeDid) || [];
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 获取邀请列表失败:", error);
       return [];
     }
@@ -1456,7 +1456,7 @@ function registerSocialIPC({
           `);
             updateTransferStmt.run(transferId, messageId);
             database.saveToFile();
-          } catch (_error) {
+          } catch (error) {
             logger.error("[Social IPC] P2P文件传输失败:", error);
             // 即使P2P传输失败，消息仍然保存在本地
           }
@@ -1477,7 +1477,7 @@ function registerSocialIPC({
             timestamp,
           },
         };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 发送文件失败:", error);
         return { success: false, error: error.message };
       }
@@ -1560,7 +1560,7 @@ function registerSocialIPC({
           success: true,
           filePath: savePath,
         };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 下载文件失败:", error);
         return { success: false, error: error.message };
       }
@@ -1700,7 +1700,7 @@ function registerSocialIPC({
           forwardedMessages,
           count: forwardedMessages.length,
         };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 转发消息失败:", error);
         return { success: false, error: error.message };
       }
@@ -1736,7 +1736,7 @@ function registerSocialIPC({
           success: true,
           progress,
         };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 获取传输进度失败:", error);
         return { success: false, error: error.message };
       }
@@ -1762,7 +1762,7 @@ function registerSocialIPC({
       );
 
       return { success: true };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 取消传输失败:", error);
       return { success: false, error: error.message };
     }
@@ -1821,7 +1821,7 @@ function registerSocialIPC({
           success: true,
           filePath,
         };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] 接受传输失败:", error);
         return { success: false, error: error.message };
       }
@@ -1871,7 +1871,7 @@ function registerSocialIPC({
         filePath: message.file_path,
         duration: message.duration || 0,
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] 播放语音消息失败:", error);
       return { success: false, error: error.message };
     }
@@ -1895,7 +1895,7 @@ function registerSocialIPC({
           throw new Error("AI Social Assistant not initialized");
         }
         return await aiSocialAssistant.enhancedReply(context, style, options);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] Enhanced reply failed:", error);
         return { success: false, error: error.message };
       }
@@ -1914,7 +1914,7 @@ function registerSocialIPC({
           throw new Error("AI Social Assistant not initialized");
         }
         return await aiSocialAssistant.suggestMultiStyleReplies(context, styles);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] Multi-style replies failed:", error);
         return { success: false, error: error.message };
       }
@@ -1933,7 +1933,7 @@ function registerSocialIPC({
           throw new Error("Topic Analyzer not initialized");
         }
         return await topicAnalyzer.analyzeTopics(content, options);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] Topic analysis failed:", error);
         return { success: false, error: error.message };
       }
@@ -1952,7 +1952,7 @@ function registerSocialIPC({
           throw new Error("Topic Analyzer not initialized");
         }
         return await topicAnalyzer.getTrendingTopics(options);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] Trending topics failed:", error);
         return { success: false, error: error.message };
       }
@@ -1971,7 +1971,7 @@ function registerSocialIPC({
           throw new Error("Topic Analyzer not initialized");
         }
         return await topicAnalyzer.batchSentiment(contents);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] Batch sentiment failed:", error);
         return { success: false, error: error.message };
       }
@@ -1990,7 +1990,7 @@ function registerSocialIPC({
           throw new Error("Social Graph not initialized");
         }
         return await socialGraph.recordInteraction(sourceDid, targetDid, interactionType);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] Record interaction failed:", error);
         return { success: false, error: error.message };
       }
@@ -2009,7 +2009,7 @@ function registerSocialIPC({
           throw new Error("Social Graph not initialized");
         }
         return await socialGraph.getClosestContacts(did, options);
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] Closest contacts failed:", error);
         return { success: false, error: error.message };
       }
@@ -2031,7 +2031,7 @@ function registerSocialIPC({
         const stats = await socialGraph.getStats(did);
         const communities = await socialGraph.detectCommunities(did);
         return { success: true, graph, stats, communities };
-      } catch (_error) {
+      } catch (error) {
         logger.error("[Social IPC] Get graph failed:", error);
         return { success: false, error: error.message };
       }
@@ -2052,7 +2052,7 @@ function registerSocialIPC({
     try {
       if (!activityPubBridge) {throw new Error("ActivityPub Bridge not initialized");}
       return await activityPubBridge.createLocalActor(did, profile);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP create actor failed:", error);
       return { success: false, error: error.message };
     }
@@ -2066,7 +2066,7 @@ function registerSocialIPC({
     try {
       if (!activityPubBridge) {throw new Error("ActivityPub Bridge not initialized");}
       return await activityPubBridge.buildActorDocument(did);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP get actor failed:", error);
       return { success: false, error: error.message };
     }
@@ -2080,7 +2080,7 @@ function registerSocialIPC({
     try {
       if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
       return await apContentSync.publishPost(actorDid, post);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP publish post failed:", error);
       return { success: false, error: error.message };
     }
@@ -2094,7 +2094,7 @@ function registerSocialIPC({
     try {
       if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
       return await apContentSync.publishLike(actorDid, objectId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP publish like failed:", error);
       return { success: false, error: error.message };
     }
@@ -2108,7 +2108,7 @@ function registerSocialIPC({
     try {
       if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
       return await apContentSync.publishBoost(actorDid, objectId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP publish boost failed:", error);
       return { success: false, error: error.message };
     }
@@ -2122,7 +2122,7 @@ function registerSocialIPC({
     try {
       if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
       return await apContentSync.publishFollow(actorDid, targetActorId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP follow failed:", error);
       return { success: false, error: error.message };
     }
@@ -2136,7 +2136,7 @@ function registerSocialIPC({
     try {
       if (!apWebFinger) {throw new Error("WebFinger not initialized");}
       return await apWebFinger.lookupUser(address);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] WebFinger lookup failed:", error);
       return { success: false, error: error.message };
     }
@@ -2150,7 +2150,7 @@ function registerSocialIPC({
     try {
       if (!activityPubBridge) {throw new Error("ActivityPub Bridge not initialized");}
       return await activityPubBridge.getOutbox(actorDid, options);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP get outbox failed:", error);
       return { success: false, error: error.message };
     }
@@ -2166,7 +2166,7 @@ function registerSocialIPC({
       const syncStatus = await apContentSync.getSyncStatus();
       const bridgeStatus = activityPubBridge ? await activityPubBridge.getStatus() : {};
       return { success: true, ...syncStatus, ...bridgeStatus };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP sync status failed:", error);
       return { success: false, error: error.message };
     }
@@ -2180,7 +2180,7 @@ function registerSocialIPC({
     try {
       if (!apContentSync) {throw new Error("AP Content Sync not initialized");}
       return await apContentSync.syncAll();
-    } catch (_error) {
+    } catch (error) {
       logger.error("[Social IPC] AP sync failed:", error);
       return { success: false, error: error.message };
     }
