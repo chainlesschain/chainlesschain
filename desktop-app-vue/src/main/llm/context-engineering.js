@@ -75,6 +75,12 @@ class ContextEngineering {
     // DLP Engine（可选，通过 setDLPEngine 注入）
     this._dlpEngine = null;
 
+    // PQC Migration Manager（可选，通过 setPQCManager 注入）[Phase 52]
+    this._pqcManager = null;
+
+    // Governance AI（可选，通过 setGovernanceAI 注入）[Phase 54]
+    this._governanceAI = null;
+
     // 统计
     this.stats = {
       cacheHits: 0,
@@ -154,6 +160,22 @@ class ContextEngineering {
    */
   setDLPEngine(dlpEngine) {
     this._dlpEngine = dlpEngine;
+  }
+
+  /**
+   * 注入 PQC Migration Manager
+   * @param {Object} pqcManager - PQCMigrationManager instance
+   */
+  setPQCManager(pqcManager) {
+    this._pqcManager = pqcManager;
+  }
+
+  /**
+   * 注入 Governance AI
+   * @param {Object} governanceAI - GovernanceAI instance
+   */
+  setGovernanceAI(governanceAI) {
+    this._governanceAI = governanceAI;
   }
 
   /**

@@ -146,6 +146,22 @@ export default defineConfig({
           ],
         },
         {
+          text: "v1.1.0 安全与企业扩展 (Phase 52-56)",
+          items: [
+            {
+              text: "后量子密码迁移",
+              link: "/chainlesschain/pqc-migration",
+            },
+            { text: "U盾固件 OTA", link: "/chainlesschain/firmware-ota" },
+            { text: "AI 社区治理", link: "/chainlesschain/governance" },
+            { text: "Matrix 集成", link: "/chainlesschain/matrix-bridge" },
+            {
+              text: "Terraform Provider",
+              link: "/chainlesschain/terraform-provider",
+            },
+          ],
+        },
+        {
           text: "v1.1.0 新功能",
           items: [
             { text: "流水线编排", link: "/chainlesschain/pipeline" },

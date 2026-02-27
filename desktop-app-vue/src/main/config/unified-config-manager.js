@@ -422,6 +422,37 @@ class UnifiedConfigManager {
         autoSync: false,
         syncIntervalMs: 300000,
       },
+      pqc: {
+        enabled: false,
+        defaultAlgorithm: "ML-KEM-768",
+        hybridMode: true,
+        autoMigrate: false,
+      },
+      firmwareOta: {
+        enabled: false,
+        autoCheck: true,
+        channel: "stable",
+        allowRollback: true,
+        chunkSizeBytes: 65536,
+      },
+      governance: {
+        enabled: false,
+        aiAnalysisEnabled: true,
+        votingDurationMs: 604800000,
+        quorumPercentage: 51,
+      },
+      matrix: {
+        enabled: false,
+        defaultHomeserver: "https://matrix.org",
+        e2eeEnabled: true,
+        syncIntervalMs: 30000,
+      },
+      terraform: {
+        enabled: false,
+        binaryPath: "",
+        defaultVersion: "1.9.0",
+        maxConcurrentRuns: 3,
+      },
       evomap: {
         enabled: false,
         hubUrl: "https://evomap.ai",

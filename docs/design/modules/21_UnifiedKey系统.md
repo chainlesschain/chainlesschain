@@ -506,16 +506,262 @@ CREATE TABLE biometric_bindings (
 
 ---
 
-## 十三、未来扩展
+## 十三、Phase 52 — 后量子密码迁移 (Post-Quantum Cryptography)
+
+**实现时间**: 2026-02-27 (Q4 2026)
+**状态**: ✅ 已实现 (v1.1.0-alpha)
+
+### 13.1 PQC Migration Manager
+
+**文件**: `desktop-app-vue/src/main/ukey/pqc-migration-manager.js`
+
+**后量子密码算法** (NIST标准):
+
+1. **ML-KEM** (Module-Lattice-Based Key-Encapsulation Mechanism)
+   - 格基密钥封装机制
+   - 3种安全级别: ML-KEM-512 / ML-KEM-768 / ML-KEM-1024
+   - 抗量子攻击安全强度: 128/192/256-bit
+
+2. **ML-DSA** (Module-Lattice-Based Digital Signature Algorithm)
+   - 格基数字签名算法
+   - 3种安全级别: ML-DSA-44 / ML-DSA-65 / ML-DSA-87
+   - 签名大小: 2420 / 3309 / 4627 bytes
+
+**混合加密模式**:
+
+- **PQC + 经典算法**: `ML-KEM-768 + ECDH-P256` 或 `ML-DSA-65 + ECDSA-P256`
+- **向后兼容**: 支持经典算法降级
+- **双重签名**: PQC签名 + 经典签名同时验证
+
+**核心功能**:
+
+```javascript
+class PQCMigrationManager {
+  async listPQCKeys() // 列出后量子密钥
+  async generatePQCKey(algorithm, securityLevel) // 生成PQC密钥
+  async getMigrationStatus() // 获取迁移状态
+  async executeMigration(plan) // 执行迁移计划
+  async createMigrationPlan() // 创建迁移计划
+  async assessRisk(keyId) // 风险评估
+  async rotateToHybrid(keyId) // 轮换为混合模式
+}
+```
+
+**迁移计划执行**:
+
+- **批量密钥轮换**: 按优先级分批迁移
+- **风险评估**: 识别高风险密钥(短密钥长度、弱算法)
+- **进度追踪**: 实时监控迁移状态(total_keys, migrated_keys, current_step)
+- **回滚支持**: 保留经典密钥备份
+
+### 13.2 数据库设计
+
+**pqc_keys表**:
+
+```sql
+CREATE TABLE pqc_keys (
+  key_id TEXT PRIMARY KEY,
+  algorithm TEXT NOT NULL, -- ML-KEM-768, ML-DSA-65
+  public_key BLOB NOT NULL,
+  encrypted_private_key BLOB NOT NULL,
+  hybrid_mode INTEGER DEFAULT 1, -- 1=hybrid, 0=pure PQC
+  created_at INTEGER NOT NULL
+)
+```
+
+**pqc_migration_status表**:
+
+```sql
+CREATE TABLE pqc_migration_status (
+  migration_id TEXT PRIMARY KEY,
+  plan TEXT NOT NULL, -- JSON: {steps, priority, schedule}
+  status TEXT DEFAULT 'pending', -- pending/in_progress/completed/failed
+  current_step INTEGER DEFAULT 0,
+  total_keys INTEGER NOT NULL,
+  migrated_keys INTEGER DEFAULT 0,
+  started_at INTEGER,
+  completed_at INTEGER
+)
+```
+
+### 13.3 IPC接口
+
+**PQC IPC** (`ukey/pqc-ipc.js`) - 4个处理器:
+
+```javascript
+ipcMain.handle('ukey:list-pqc-keys', async () => { ... })
+ipcMain.handle('ukey:generate-pqc-key', async (event, { algorithm, securityLevel }) => { ... })
+ipcMain.handle('ukey:get-migration-status', async () => { ... })
+ipcMain.handle('ukey:execute-migration', async (event, { plan }) => { ... })
+```
+
+### 13.4 前端集成
+
+**Pinia Store** (`stores/pqcMigration.ts`):
+
+```typescript
+export const usePQCMigrationStore = defineStore('pqcMigration', {
+  state: () => ({
+    keys: [] as PQCKey[],
+    migrationStatus: null as MigrationStatus | null,
+    algorithms: ['ML-KEM-768', 'ML-DSA-65'],
+  }),
+  actions: {
+    async fetchKeys() { ... },
+    async generateKey(algorithm: string) { ... },
+    async startMigration(plan: MigrationPlan) { ... },
+    async checkProgress() { ... },
+  }
+})
+```
+
+**UI页面** (`pages/security/PQCMigrationPage.vue`):
+
+- 算法对比表(ML-KEM vs RSA, ML-DSA vs ECDSA)
+- 迁移计划向导(密钥筛选、批次划分、时间表)
+- 进度监控仪表板(进度条、已迁移/总数、预计剩余时间)
+- 兼容性检查(检测依赖项、验证签名格式)
+
+---
+
+## 十四、Phase 53 — 固件空中升级 (Firmware OTA)
+
+**实现时间**: 2026-02-27 (Q4 2026)
+**状态**: ✅ 已实现 (v1.1.0-alpha)
+
+### 14.1 Firmware OTA Manager
+
+**文件**: `desktop-app-vue/src/main/ukey/firmware-ota-manager.js`
+
+**固件版本检查**:
+
+- 服务器版本查询 (HTTP GET `/api/firmware/latest`)
+- 增量更新检测 (语义版本比较: semver)
+- 强制更新标记 (critical security patches)
+
+**OTA下载**:
+
+- **分块传输**: 1MB chunk size, 断点续传
+- **进度回调**: `onProgress(bytesDownloaded, totalBytes)`
+- **校验和验证**: SHA-256文件哈希
+
+**签名验证**:
+
+- **Ed25519数字签名**: 512-bit签名
+- **公钥预置**: 固件发布者公钥内嵌于应用
+- **防篡改**: 签名不匹配拒绝安装
+
+**自动安装**:
+
+```javascript
+class FirmwareOTAManager {
+  async checkForUpdates() // 检查更新
+  async downloadFirmware(versionId, onProgress) // 下载固件
+  async verifySignature(filePath, signature) // 验证签名
+  async installFirmware(filePath) // 安装固件
+  async listVersions() // 列出版本历史
+  async rollback(versionId) // 回滚到指定版本
+  async getUpdateHistory() // 获取更新历史
+}
+```
+
+**安装流程**:
+
+1. 下载固件包 → 2. 验证签名 → 3. 备份当前版本 → 4. 刷写固件 → 5. 设备重启 → 6. 版本确认
+
+**回滚机制**:
+
+- **版本历史管理**: 保留最近3个固件版本
+- **一键回滚**: `rollback(previousVersionId)`
+- **自动恢复**: 安装失败自动回滚到上一稳定版本
+
+### 14.2 数据库设计
+
+**firmware_versions表**:
+
+```sql
+CREATE TABLE firmware_versions (
+  version_id TEXT PRIMARY KEY,
+  version_string TEXT NOT NULL, -- e.g., "2.3.1"
+  release_notes TEXT,
+  download_url TEXT NOT NULL,
+  signature TEXT NOT NULL, -- Ed25519 signature (hex)
+  file_hash TEXT NOT NULL, -- SHA-256 (hex)
+  released_at INTEGER NOT NULL
+)
+```
+
+**firmware_update_log表**:
+
+```sql
+CREATE TABLE firmware_update_log (
+  log_id TEXT PRIMARY KEY,
+  version_id TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  status TEXT DEFAULT 'pending', -- pending/downloading/verifying/installing/completed/failed
+  progress INTEGER DEFAULT 0, -- 0-100%
+  error_message TEXT,
+  started_at INTEGER,
+  completed_at INTEGER
+)
+```
+
+### 14.3 IPC接口
+
+**Firmware OTA IPC** (`ukey/firmware-ota-ipc.js`) - 4个处理器:
+
+```javascript
+ipcMain.handle('ukey:check-firmware-updates', async () => { ... })
+ipcMain.handle('ukey:list-firmware-versions', async () => { ... })
+ipcMain.handle('ukey:start-firmware-update', async (event, { versionId }) => { ... })
+ipcMain.handle('ukey:get-firmware-update-history', async () => { ... })
+```
+
+### 14.4 前端集成
+
+**Pinia Store** (`stores/firmwareOta.ts`):
+
+```typescript
+export const useFirmwareOtaStore = defineStore('firmwareOta', {
+  state: () => ({
+    versions: [] as FirmwareVersion[],
+    currentVersion: '2.2.0',
+    updateProgress: 0,
+    updateStatus: 'idle' as UpdateStatus,
+    history: [] as UpdateLog[],
+  }),
+  actions: {
+    async checkUpdates() { ... },
+    async startUpdate(versionId: string) { ... },
+    async rollbackVersion(versionId: string) { ... },
+    async fetchHistory() { ... },
+  }
+})
+```
+
+**UI页面** (`pages/security/FirmwareOTAPage.vue`):
+
+- 版本对比卡片(当前版本 vs 最新版本, 发布日期, 文件大小)
+- 更新日志查看器(Markdown渲染, 新增功能/修复/安全补丁分类)
+- 进度条组件(下载进度、验证状态、安装阶段)
+- 回滚操作按钮(版本列表, 确认对话框, 回滚进度)
+- 自动更新配置(开关、检查间隔、仅WiFi下载)
+
+---
+
+## 十五、未来扩展
 
 - [ ] **NFC传输**: 支持NFC近场通信
 - [x] **蓝牙LE**: BLE低功耗蓝牙传输 ✅ Phase 47
 - [ ] **HSM集成**: 硬件安全模块集成
 - [ ] **Multi-Device Sync**: Passkey跨设备同步
 - [x] **Biometric Authentication**: 生物识别集成 ✅ Phase 46
-- [ ] **Quantum-Resistant Upgrade**: 后量子密码学升级(ML-KEM/ML-DSA)
+- [x] **Quantum-Resistant Upgrade**: 后量子密码学升级(ML-KEM/ML-DSA) ✅ Phase 52
+- [x] **Firmware OTA**: 固件空中升级 ✅ Phase 53
+- [ ] **SLH-DSA**: Stateless Hash-Based Signatures (第三种NIST PQC算法)
+- [ ] **Secure Boot**: 固件启动签名验证
 
 ---
 
-**文档版本**: 1.1.0
+**文档版本**: 1.2.0
 **最后更新**: 2026-02-27
