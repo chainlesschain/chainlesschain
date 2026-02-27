@@ -102,7 +102,7 @@ class TopicAnalyzer extends EventEmitter {
           : result.content.toString();
       }
       return null;
-    } catch (_error) {
+    } catch (error) {
       logger.warn("[TopicAnalyzer] LLM chat failed:", error.message);
       return null;
     }
@@ -149,7 +149,7 @@ Reply with ONLY valid JSON, no markdown.`;
           }
 
           return analysis;
-        } catch (_parseError) {
+        } catch (parseError) {
           logger.warn("[TopicAnalyzer] Failed to parse LLM JSON:", parseError.message);
         }
       }
@@ -180,7 +180,7 @@ Reply with ONLY valid JSON, no markdown.`;
       }
 
       return analysis;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[TopicAnalyzer] Failed to analyze topics:", error);
       throw error;
     }
@@ -228,7 +228,7 @@ Reply with ONLY valid JSON, no markdown.`;
         .sort((a, b) => b[1] - a[1])
         .slice(0, limit)
         .map(([topic, count]) => ({ topic, count }));
-    } catch (_error) {
+    } catch (error) {
       logger.error("[TopicAnalyzer] Failed to get trending topics:", error);
       return [];
     }
@@ -264,7 +264,7 @@ Reply with ONLY valid JSON, no markdown.`;
         distribution,
         count: results.length,
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[TopicAnalyzer] Batch sentiment failed:", error);
       throw error;
     }
@@ -296,7 +296,7 @@ Reply with ONLY valid JSON, no markdown.`;
         );
 
       this.database.saveToFile();
-    } catch (_error) {
+    } catch (error) {
       logger.warn("[TopicAnalyzer] Failed to save analysis:", error.message);
     }
   }
@@ -315,7 +315,7 @@ Reply with ONLY valid JSON, no markdown.`;
           `SELECT * FROM topic_analyses WHERE content_id = ? ORDER BY created_at DESC LIMIT 10`,
         )
         .all(contentId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[TopicAnalyzer] Failed to get analysis history:", error);
       return [];
     }

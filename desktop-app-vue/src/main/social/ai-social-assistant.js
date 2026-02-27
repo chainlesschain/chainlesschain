@@ -124,7 +124,7 @@ class AISocialAssistant extends EventEmitter {
     try {
       this.initialized = true;
       logger.info("[AISocialAssistant] AI social assistant initialized successfully");
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Initialization failed:", error);
       throw error;
     }
@@ -169,7 +169,7 @@ class AISocialAssistant extends EventEmitter {
       }
 
       return null;
-    } catch (_error) {
+    } catch (error) {
       logger.warn("[AISocialAssistant] LLM chat failed, using fallback:", error.message);
       return null;
     }
@@ -216,7 +216,7 @@ class AISocialAssistant extends EventEmitter {
         style,
         source: "template",
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Failed to suggest reply:", error);
       throw error;
     }
@@ -263,7 +263,7 @@ class AISocialAssistant extends EventEmitter {
         messageCount: messages.length,
         source: "template",
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Failed to summarize conversation:", error);
       throw error;
     }
@@ -314,7 +314,7 @@ class AISocialAssistant extends EventEmitter {
         length,
         source: "template",
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Failed to draft post:", error);
       throw error;
     }
@@ -379,7 +379,7 @@ class AISocialAssistant extends EventEmitter {
         analysis: `Relationship strength: ${strength}. ${messageCount > 0 ? `You've exchanged ${messageCount} messages.` : "No messages exchanged yet."} ${context.commonTopics && context.commonTopics.length > 0 ? `Common interests: ${context.commonTopics.join(", ")}.` : "Try finding common topics to strengthen this connection."}`,
         source: "template",
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Failed to analyze relationship:", error);
       throw error;
     }
@@ -435,7 +435,7 @@ class AISocialAssistant extends EventEmitter {
         basedOn: userInterests,
         source: "template",
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Failed to recommend topics:", error);
       throw error;
     }
@@ -494,7 +494,7 @@ class AISocialAssistant extends EventEmitter {
         message: template.replace("%INTEREST%", interest),
         source: "template",
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Failed to generate ice-breaker:", error);
       throw error;
     }
@@ -559,7 +559,7 @@ class AISocialAssistant extends EventEmitter {
         hashtags,
         source: "template",
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Failed to generate hashtags:", error);
       throw error;
     }
@@ -616,7 +616,7 @@ class AISocialAssistant extends EventEmitter {
         styles: targetStyles,
         contextSize: fullContext.length,
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Failed to suggest multi-style replies:", error);
       throw error;
     }
@@ -629,7 +629,7 @@ class AISocialAssistant extends EventEmitter {
    * @param {Object} [options] - Enhancement options
    * @returns {Object} Enhanced reply with metadata
    */
-  async enhancedReply(conversationContext, style = REPLY_STYLES.FRIENDLY, options = {}) {
+  async enhancedReply(conversationContext, style = REPLY_STYLES.FRIENDLY, _options = {}) {
     try {
       if (!conversationContext || conversationContext.length === 0) {
         throw new Error("Conversation context is required");
@@ -683,7 +683,7 @@ Reply with ONLY valid JSON.`;
       const result = await this.suggestReply(conversationContext, style);
       result.contextSize = this._contextWindow.length;
       return result;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[AISocialAssistant] Enhanced reply failed:", error);
       throw error;
     }

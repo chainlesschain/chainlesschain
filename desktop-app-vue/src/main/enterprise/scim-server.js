@@ -128,7 +128,7 @@ class SCIMServer extends EventEmitter {
       this.emit("user:created", { id, userName: userData.userName });
 
       return this._buildUserResponse(id, userData, now);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMServer] Create user failed:", error);
       throw error;
     }
@@ -148,7 +148,7 @@ class SCIMServer extends EventEmitter {
       if (!row) {return this._buildError(404, "User not found");}
 
       return this._rowToUserResponse(row);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMServer] Get user failed:", error);
       throw error;
     }
@@ -196,7 +196,7 @@ class SCIMServer extends EventEmitter {
         itemsPerPage: count,
         Resources: rows.map((row) => this._rowToUserResponse(row)),
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMServer] List users failed:", error);
       throw error;
     }
@@ -232,7 +232,7 @@ class SCIMServer extends EventEmitter {
       this.emit("user:updated", { id: userId });
 
       return await this.getUser(userId);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMServer] Update user failed:", error);
       throw error;
     }
@@ -276,7 +276,7 @@ class SCIMServer extends EventEmitter {
       }
 
       return await this.updateUser(userId, attrs);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMServer] Patch user failed:", error);
       throw error;
     }
@@ -298,7 +298,7 @@ class SCIMServer extends EventEmitter {
       this.emit("user:deleted", { id: userId });
 
       return { success: true };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMServer] Delete user failed:", error);
       throw error;
     }
@@ -333,7 +333,7 @@ class SCIMServer extends EventEmitter {
       this.database.saveToFile();
       this._logOperation("create", RESOURCE_TYPES.GROUP, id);
       return { schemas: [SCIM_SCHEMAS.GROUP], id, displayName: groupData.displayName };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMServer] Create group failed:", error);
       throw error;
     }
@@ -364,7 +364,7 @@ class SCIMServer extends EventEmitter {
           members: JSON.parse(row.members || "[]"),
         })),
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMServer] List groups failed:", error);
       throw error;
     }

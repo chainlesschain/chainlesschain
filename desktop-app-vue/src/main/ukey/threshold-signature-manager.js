@@ -297,9 +297,10 @@ class ThresholdSignatureManager extends EventEmitter {
     const key = crypto.scryptSync(_source, 'threshold-salt', 32);
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    const encrypted = Buffer.concat([cipher.update(share), cipher.final()]);
+    const ciphertext = Buffer.concat([cipher.update(share), cipher.final()]);
     const tag = cipher.getAuthTag();
-    return Buffer.concat([iv, tag, encrypted]).toString('base64');
+    const encryptedData = Buffer.concat([iv, tag, ciphertext]);
+    return encryptedData.toString('base64');
   }
 
   _decryptShare(encryptedB64, _source) {

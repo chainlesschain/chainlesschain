@@ -117,6 +117,35 @@ export default defineConfig({
           ],
         },
         {
+          text: "v1.1.0 企业增强 (Phase 42-45)",
+          items: [
+            {
+              text: "Social AI + ActivityPub",
+              link: "/chainlesschain/social-ai",
+            },
+            { text: "合规与数据分类", link: "/chainlesschain/compliance" },
+            { text: "SCIM 2.0 用户配置", link: "/chainlesschain/scim" },
+            { text: "统一密钥 + FIDO2", link: "/chainlesschain/unified-key" },
+          ],
+        },
+        {
+          text: "v1.1.0 安全与社交增强 (Phase 46-51)",
+          items: [
+            {
+              text: "门限签名 + 生物特征",
+              link: "/chainlesschain/threshold-security",
+            },
+            { text: "BLE U-Key", link: "/chainlesschain/ble-ukey" },
+            {
+              text: "内容推荐",
+              link: "/chainlesschain/content-recommendation",
+            },
+            { text: "Nostr 桥接", link: "/chainlesschain/nostr-bridge" },
+            { text: "数据防泄漏 (DLP)", link: "/chainlesschain/dlp" },
+            { text: "SIEM 集成", link: "/chainlesschain/siem" },
+          ],
+        },
+        {
           text: "v1.1.0 新功能",
           items: [
             { text: "流水线编排", link: "/chainlesschain/pipeline" },

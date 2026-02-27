@@ -83,7 +83,7 @@ class SCIMSync extends EventEmitter {
       this.emit("connector:registered", { provider });
       logger.info("[SCIMSync] Registered connector:", provider);
       return { success: true, provider };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMSync] Register connector failed:", error);
       throw error;
     }
@@ -159,7 +159,7 @@ class SCIMSync extends EventEmitter {
       this.emit("sync:completed", result);
 
       return result;
-    } catch (_error) {
+    } catch (error) {
       this._syncStatus = SYNC_STATUS.FAILED;
       logger.error("[SCIMSync] Sync failed for provider:", provider, error);
       this.emit("sync:failed", { provider, error: error.message });
@@ -219,7 +219,7 @@ class SCIMSync extends EventEmitter {
       return this.database.db
         .prepare("SELECT * FROM scim_sync_log ORDER BY created_at DESC LIMIT ?")
         .all(limit);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SCIMSync] Get sync history failed:", error);
       return [];
     }

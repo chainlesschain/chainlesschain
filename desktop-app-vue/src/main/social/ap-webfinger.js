@@ -56,7 +56,7 @@ class APWebFinger {
       let response;
       try {
         response = await this._httpGet(webfingerUrl);
-      } catch (_fetchError) {
+      } catch (fetchError) {
         logger.warn("[APWebFinger] HTTP fetch failed for", webfingerUrl, ":", fetchError.message);
         // Return simulated response for offline/dev mode
         response = this._buildSimulatedResponse(username, domain);
@@ -66,7 +66,7 @@ class APWebFinger {
       this._cache.set(cacheKey, { data: response, timestamp: Date.now() });
 
       return response;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APWebFinger] Failed to resolve:", error);
       throw error;
     }
@@ -134,7 +134,7 @@ class APWebFinger {
         aliases: webfinger.aliases || [],
         links: webfinger.links || [],
       };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[APWebFinger] User lookup failed:", error);
       throw error;
     }

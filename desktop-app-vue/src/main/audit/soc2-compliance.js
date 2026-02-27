@@ -146,7 +146,7 @@ class SOC2Compliance extends EventEmitter {
       await this._saveEvidence(evidence);
       this.emit("evidence:collected", evidence);
       return evidence;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SOC2Compliance] Failed to collect audit log evidence:", error);
       throw error;
     }
@@ -196,7 +196,7 @@ class SOC2Compliance extends EventEmitter {
 
       await this._saveEvidence(evidence);
       return evidence;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SOC2Compliance] Failed to collect access control evidence:", error);
       throw error;
     }
@@ -229,7 +229,7 @@ class SOC2Compliance extends EventEmitter {
 
       await this._saveEvidence(evidence);
       return evidence;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SOC2Compliance] Failed to collect config evidence:", error);
       throw error;
     }
@@ -283,7 +283,7 @@ class SOC2Compliance extends EventEmitter {
 
       this.emit("report:generated", report);
       return report;
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SOC2Compliance] Failed to generate report:", error);
       throw error;
     }
@@ -330,7 +330,7 @@ class SOC2Compliance extends EventEmitter {
 
       this.database.saveToFile();
       return { success: true, evidenceId, status: EVIDENCE_STATUS.VERIFIED };
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SOC2Compliance] Failed to verify evidence:", error);
       throw error;
     }
@@ -347,7 +347,7 @@ class SOC2Compliance extends EventEmitter {
       return this.database.db
         .prepare("SELECT * FROM soc2_evidence WHERE criteria = ? ORDER BY created_at DESC")
         .all(criteria);
-    } catch (_error) {
+    } catch (error) {
       logger.error("[SOC2Compliance] Failed to get evidence:", error);
       return [];
     }

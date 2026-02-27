@@ -26,10 +26,10 @@
 | ---------- | -------- |
 | 总代码行数 | 310,000+ |
 | Vue 组件   | 370+     |
-| IPC 处理器 | 458+     |
+| IPC 处理器 | 490+     |
 | 内置技能   | 95       |
-| 数据库表   | 31+      |
-| 测试用例   | 19,300+  |
+| 数据库表   | 40+      |
+| 测试用例   | 19,700+  |
 
 ---
 
@@ -175,14 +175,18 @@
 | -------------- | --------------------------------------------- | ------ | --------- | -------- |
 | 统一密钥管理   | U盾 + SIMKey + TEE 三端密钥统一派生与轮换     | P0     | ✅ 已完成 | 2026 Q2  |
 | FIDO2 WebAuthn | SIMKey 作为 FIDO2 认证器，支持 Web 无密码登录 | P0     | ✅ 已完成 | 2026 Q2  |
-| 硬件安全聚合   | 多设备硬件安全模块聚合签名（2-of-3 阈值签名） | P1     | 📋 待开始 | 2026 Q3  |
-| 生物特征绑定   | TEE 内生物特征模板与 SIMKey 密钥绑定          | P1     | 📋 待开始 | 2026 Q3  |
+| 硬件安全聚合   | 多设备硬件安全模块聚合签名（2-of-3 阈值签名） | P1     | ✅ 已完成 | 2026 Q3  |
+| 生物特征绑定   | TEE 内生物特征模板与 SIMKey 密钥绑定          | P1     | ✅ 已完成 | 2026 Q3  |
 | 量子迁移路线   | ML-KEM/ML-DSA 全面替换 RSA/ECDSA 的迁移计划   | P2     | 📋 待开始 | 2026 Q4  |
 
 **实施计划**:
 
 - **Phase 1（Q2）**: 统一密钥管理 + FIDO2 WebAuthn ✅ — `unified-key-manager.js` BIP-32 统一密钥派生 + `fido2-authenticator.js` WebAuthn 认证器 + 6 IPC + 19+20 单元测试
-- **Phase 2（Q3）**: 硬件安全聚合 + 生物特征绑定 — 基于 Shamir 秘密共享实现 2-of-3 阈值签名；TEE 内存储生物特征模板哈希，与 SIMKey 主密钥绑定
+- **Phase 2（Q3）**: 硬件安全聚合 + 生物特征绑定 ✅
+  - `threshold-signature-manager.js` — Shamir 2-of-3 秘密共享，密钥分片分发至 U-Key/SIMKey/TEE，Lagrange 插值重构
+  - `biometric-binding.js` — TEE 内 HMAC 生物特征模板存储/验证/解绑，过期控制
+  - `ukey-ipc.js` 扩展 4 IPC（`threshold-security:setup-keys/sign`、`threshold-security:bind-biometric/verify-biometric`）
+  - `thresholdSecurity.ts` Store + `ThresholdSecurityPage.vue` + 单元测试 62+24 用例
 - **Phase 3（Q4）**: 量子迁移路线 — 编写 PQC 迁移白皮书，实现 ML-KEM/ML-DSA 原型，建立混合算法过渡方案
 
 #### B2. U盾 v2.0 — 跨平台扩展
@@ -190,13 +194,17 @@
 | 方向             | 内容                                | 优先级 | 状态      | 目标时间 |
 | ---------------- | ----------------------------------- | ------ | --------- | -------- |
 | macOS/Linux 驱动 | 基于 libusb/WebUSB 的跨平台 U盾驱动 | P0     | ✅ 已完成 | 2026 Q2  |
-| 蓝牙 U盾         | BLE 协议支持，移动端无线连接        | P1     | 📋 待开始 | 2026 Q3  |
+| 蓝牙 U盾         | BLE 协议支持，移动端无线连接        | P1     | ✅ 已完成 | 2026 Q3  |
 | U盾固件 OTA      | 安全固件远程升级通道                | P2     | 📋 待开始 | 2026 Q4  |
 
 **实施计划**:
 
 - **Phase 1（Q2）**: macOS/Linux 驱动 ✅ — `usb-transport.js` 跨平台 USB 通信 + `webusb-fallback.js` WebUSB 降级方案 + 2 IPC + 18+18 单元测试
-- **Phase 2（Q3）**: 蓝牙 U盾 — 定义 BLE GATT 服务特征（认证/签名/密钥管理），实现 `noble`/`bleno` 蓝牙通信层
+- **Phase 2（Q3）**: 蓝牙 U盾 ✅
+  - `ble-driver.js` 完善 — BLE GATT 扫描/配对/连接/断开，CTAP2 over BLE，自动重连
+  - `driver-registry.js` 扩展 — 注册 BLE 传输层至统一驱动注册表
+  - `ukey-ipc.js` 扩展 4 IPC（`ble-ukey:scan-devices/pair-device/connect/disconnect`）
+  - `bleUkey.ts` Store + `BLEDevicesPage.vue` + 单元测试 22 用例
 - **Phase 3（Q4）**: 固件 OTA — 设计安全固件升级协议（签名验证 + 断点续传 + 回滚保护）
 
 ---
@@ -208,7 +216,7 @@
 | 方向            | 内容                                               | 优先级 | 状态      | 目标时间 |
 | --------------- | -------------------------------------------------- | ------ | --------- | -------- |
 | AI 社交助手增强 | 上下文感知回复建议、话题深度分析、社交关系图谱     | P0     | ✅ 已完成 | 2026 Q2  |
-| 智能内容推荐    | 基于本地知识库和兴趣模型的去中心化推荐（无服务器） | P1     | 📋 待开始 | 2026 Q3  |
+| 智能内容推荐    | 基于本地知识库和兴趣模型的去中心化推荐（无服务器） | P1     | ✅ 已完成 | 2026 Q3  |
 | AI 社区治理     | 自动提案分析、投票影响预测、治理参数优化建议       | P2     | 📋 待开始 | 2026 Q4  |
 
 **实施计划**:
@@ -218,10 +226,11 @@
   - `social-graph.js` — 社交关系图谱构建（互动频率/亲密度/社区聚类）
   - `social-ipc.js` — 8 新 IPC 处理器 + `SocialInsightsPage.vue` + `socialAI.ts` Store
   - 已完成: 3 个后端模块 + 8 IPC + 1 前端页面 + 1 Store + 单元测试 34 用例
-- **Phase 2（Q3）**: 智能内容推荐
-  - `local-recommender.js` — 基于本地 embedding + 兴趣模型的纯本地推荐引擎
-  - `interest-profiler.js` — 用户兴趣画像（从浏览/互动/收藏行为提取）
-  - 预计新增: 2 个后端模块 + 6 IPC
+- **Phase 2（Q3）**: 智能内容推荐 ✅
+  - `local-recommender.js` — 本地 embedding 余弦相似度推荐引擎，协同过滤，反馈循环
+  - `interest-profiler.js` — 用户兴趣画像提取（话题分析 + 社交图谱交互），时间衰减
+  - `recommendation-ipc.js` — 6 IPC 处理器
+  - `recommendation.ts` Store + `RecommendationsPage.vue` + 单元测试 49+21 用例
 - **Phase 3（Q4）**: AI 社区治理
   - `governance-ai.js` — 提案影响分析 + 投票预测 + 参数调优建议
   - 预计新增: 1 个后端模块 + 4 IPC
@@ -231,7 +240,7 @@
 | 方向             | 内容                                          | 优先级 | 状态      | 目标时间 |
 | ---------------- | --------------------------------------------- | ------ | --------- | -------- |
 | ActivityPub 完善 | Mastodon/Misskey 双向互通，评论/转发/点赞同步 | P0     | ✅ 已完成 | 2026 Q2  |
-| Nostr 桥接       | Nostr 事件格式兼容，中继发现                  | P1     | 📋 待开始 | 2026 Q3  |
+| Nostr 桥接       | Nostr 事件格式兼容，中继发现                  | P1     | ✅ 已完成 | 2026 Q3  |
 | Matrix 集成      | Matrix 协议桥接，支持加密群聊互通             | P2     | 📋 待开始 | 2026 Q4  |
 
 **实施计划**:
@@ -241,10 +250,11 @@
   - `ap-content-sync.js` — 帖子/评论/点赞/转发/关注的双向同步
   - `ap-webfinger.js` — WebFinger 协议支持，远程用户发现
   - 已完成: 3 个后端模块 + 10 IPC + `ActivityPubBridgePage.vue` + 单元测试
-- **Phase 2（Q3）**: Nostr 桥接
-  - `nostr-bridge.js` — NIP-01 事件格式转换，中继池管理
-  - `nostr-identity.js` — npub/nsec ↔ DID 身份映射
-  - 预计新增: 2 个后端模块 + 6 IPC
+- **Phase 2（Q3）**: Nostr 桥接 ✅
+  - `nostr-bridge.js` — NIP-01 事件签名/验证，中继池 WebSocket 管理，事件发布/订阅
+  - `nostr-identity.js` — npub/nsec 密钥派生，DID ↔ Nostr 双向身份映射
+  - `nostr-bridge-ipc.js` — 6 IPC 处理器
+  - `nostrBridge.ts` Store + `NostrBridgePage.vue` + 单元测试 48+25 用例
 - **Phase 3（Q4）**: Matrix 集成
   - `matrix-bridge.js` — Matrix CS API 客户端，E2EE 桥接（Olm/Megolm）
   - 预计新增: 1 个后端模块 + 5 IPC
@@ -259,7 +269,7 @@
 | ------------ | ----------------------------------------------- | ------ | --------- | -------- |
 | SOC 2 合规包 | 自动化 SOC 2 Type II 证据收集与报告生成         | P0     | ✅ 已完成 | 2026 Q2  |
 | 数据分类分级 | 自动识别敏感数据（PII/PHI/PCI），标签与策略关联 | P0     | ✅ 已完成 | 2026 Q2  |
-| DLP 防泄漏   | 基于内容检测的数据防泄漏策略（审计日志集成）    | P1     | 📋 待开始 | 2026 Q3  |
+| DLP 防泄漏   | 基于内容检测的数据防泄漏策略（审计日志集成）    | P1     | ✅ 已完成 | 2026 Q3  |
 
 **实施计划**:
 
@@ -269,17 +279,19 @@
   - `classification-policy.js` — 分级策略引擎（公开/内部/机密/绝密），自动标签关联
   - `compliance-ipc.js` — 12 IPC + `ComplianceDashboardPage.vue` + `compliance.ts` Store
   - 已完成: 4 个后端模块 + 12 IPC + 1 前端页面 + 1 Store + 单元测试 105 用例
-- **Phase 2（Q3）**: DLP 防泄漏
-  - `dlp-engine.js` — 内容检测引擎（正则 + NLP），拦截/告警/审计三级响应
-  - `dlp-policy.js` — DLP 策略配置（文件类型/内容模式/目标通道），与审计日志集成
-  - 预计新增: 2 个后端模块 + 8 IPC
+- **Phase 2（Q3）**: DLP 防泄漏 ✅
+  - `dlp-engine.js` — 内容扫描引擎（正则 + 关键词 + NLP 指纹），策略匹配，拦截/告警/审计三级响应
+  - `dlp-policy.js` — DLP 策略 CRUD，通道规则配置，严重度阈值匹配
+  - `dlp-ipc.js` — 8 IPC 处理器
+  - `data-classifier.js` 扩展 `getDLPClassification()` + `enterprise-audit-logger.js` 扩展 DLP 事件类型
+  - `dlp.ts` Store + `DLPPoliciesPage.vue` + 单元测试 55+27 用例
 
 #### D2. 企业集成
 
 | 方向               | 内容                                             | 优先级 | 状态      | 目标时间 |
 | ------------------ | ------------------------------------------------ | ------ | --------- | -------- |
 | SCIM 用户同步      | SCIM 2.0 协议，与 Azure AD/Okta 自动同步用户和组 | P0     | ✅ 已完成 | 2026 Q2  |
-| SIEM 对接          | Splunk/ELK/Sentinel 审计日志实时推送             | P1     | 📋 待开始 | 2026 Q3  |
+| SIEM 对接          | Splunk/ELK/Sentinel 审计日志实时推送             | P1     | ✅ 已完成 | 2026 Q3  |
 | Terraform Provider | 基础设施即代码管理 ChainlessChain 配置           | P2     | 📋 待开始 | 2026 Q4  |
 
 **实施计划**:
@@ -289,9 +301,11 @@
   - `scim-sync.js` — 增量同步引擎，与 Azure AD/Okta/OneLogin 对接
   - `scim-ipc.js` — 8 IPC + `SCIMIntegrationPage.vue`
   - 已完成: 3 个后端模块 + 8 IPC + 1 前端页面 + 单元测试 60 用例
-- **Phase 2（Q3）**: SIEM 对接
-  - `siem-exporter.js` — 审计日志标准化（CEF/LEEF/JSON），实时推送到 Splunk HEC/ELK/Sentinel
-  - 预计新增: 1 个后端模块 + 4 IPC
+- **Phase 2（Q3）**: SIEM 对接 ✅
+  - `siem-exporter.js` — CEF/LEEF/JSON 格式转换，批量导出，增量同步（追踪最后导出 ID）
+  - `siem-ipc.js` — 4 IPC 处理器
+  - `enterprise-audit-logger.js` 扩展 `_siemExporter` 字段，日志事件自动推送
+  - `siem.ts` Store + `SIEMIntegrationPage.vue` + 单元测试 26+22 用例
 - **Phase 3（Q4）**: Terraform Provider
   - `terraform-provider-chainlesschain` — Go 编写的 Terraform Provider，管理配置/权限/团队
   - 预计新增: 独立 Go 项目
@@ -305,7 +319,7 @@
 | 维度            | 增量                     | 状态      |
 | --------------- | ------------------------ | --------- |
 | 后端模块        | 28 个                    | ✅ 已完成 |
-| 新增 IPC 处理器 | +72（总计 452+）         | ✅ 已完成 |
+| 新增 IPC 处理器 | +72（总计 490+）         | ✅ 已完成 |
 | 前端页面        | 5 个新页面               | ✅ 已完成 |
 | Pinia Store     | 5 个新 Store             | ✅ 已完成 |
 | 路由            | 5 条新路由               | ✅ 已完成 |
@@ -830,7 +844,7 @@
 | 版本   | 主题             | 核心技术                                              | 状态                      |
 | ------ | ---------------- | ----------------------------------------------------- | ------------------------- |
 | v1.0.0 | 企业版发布       | 95技能, P2P社交, CRDT协作, 硬件安全                   | ✅ 已发布                 |
-| v1.1.0 | 全栈智能化       | 全自动流水线, NL编程, 多模态, 自主运维, B/C/D Phase 1 | ✅ Phase 1 完成，加固中   |
+| v1.1.0 | 全栈智能化       | 全自动流水线, NL编程, 多模态, 自主运维, B/C/D Phase 1-2 | ✅ Phase 1-2 完成，Q4 加固中 |
 | v2.0.0 | 去中心化代理网络 | Agent DID, 联邦发现, 跨组织协作, 信誉系统             | ✅ 提前交付（含入v1.1.0） |
 | v3.0.0 | 全自主 AI 开发者 | 自主学习, 端到端开发, 人机协作治理                    | 📋 2027 H1 规划中         |
 | v3.1.0 | 去中心化 AI 市场 | Skill-as-a-Service, 代币激励, 推理网络                | 📋 2027 H2 规划中         |
@@ -845,6 +859,7 @@
 > - [v1.1.0 实施计划](/chainlesschain/implementation-plan)
 > - [流水线编排](/chainlesschain/pipeline) | [自然语言编程](/chainlesschain/nl-programming) | [多模态协作](/chainlesschain/multimodal) | [自主运维](/chainlesschain/autonomous-ops) | [代理联邦网络](/chainlesschain/agent-federation)
 > - [Cowork 路线图（v3.0-v4.0 详细设计）](/chainlesschain/cowork-roadmap)
-> - [SIMKey 企业版](/chainlesschain/simkey-enterprise)
+> - [SIMKey 企业版](/chainlesschain/simkey-enterprise) | [门限安全](/chainlesschain/threshold-security) | [BLE U盾](/chainlesschain/ble-ukey)
+> - [智能推荐](/chainlesschain/content-recommendation) | [Nostr 桥接](/chainlesschain/nostr-bridge) | [DLP 防泄漏](/chainlesschain/dlp) | [SIEM 集成](/chainlesschain/siem)
 > - [EvoMap GEP 协议](/chainlesschain/evomap)
 > - [更新日志](/changelog)
