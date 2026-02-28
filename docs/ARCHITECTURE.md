@@ -39,7 +39,7 @@
 │  libp2p 3.1.2  │  Signal E2E  │  Kademlia DHT                   │
 ├───────────────────────────────────────────────────────────────────┤
 │                        安全层                                       │
-│    U盾 (PC, 5品牌)        │     SIMKey (移动端, 规划中)         │
+│  U盾/BLE/FIDO2 │ PQC(ML-KEM/ML-DSA) │ DLP │ SIEM │ 门限签名   │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -77,7 +77,12 @@ desktop-app-vue/
 ├── src/
 │   ├── main/              # Electron 主进程 (360+个文件)
 │   │   ├── database.js    # SQLite/SQLCipher 数据库
-│   │   ├── ukey/          # U-Key 硬件集成 ⭐新增 PQC/Firmware OTA
+│   │   ├── ukey/          # U-Key 硬件集成 ⭐Phase 45-47,52-53
+│   │   │   ├── unified-key-manager.js    # BIP-32 统一密钥
+│   │   │   ├── fido2-authenticator.js    # FIDO2/WebAuthn
+│   │   │   ├── threshold-signature-manager.js # 门限签名
+│   │   │   ├── biometric-binding.js      # 生物识别绑定
+│   │   │   ├── ble-driver.js             # BLE蓝牙传输
 │   │   │   ├── pqc-migration-manager.js  # 量子后加密迁移
 │   │   │   ├── firmware-ota-manager.js   # 固件OTA更新
 │   │   │   └── ...
@@ -87,22 +92,31 @@ desktop-app-vue/
 │   │   ├── p2p/           # P2P 网络
 │   │   ├── blockchain/    # 区块链集成
 │   │   ├── organization/  # 企业版组织管理
-│   │   ├── social/        # 社交功能 ⭐新增 Governance/Matrix/Nostr
+│   │   ├── social/        # 社交功能 ⭐Phase 48-49,54-55
+│   │   │   ├── local-recommender.js  # 内容推荐引擎
+│   │   │   ├── interest-profiler.js  # 兴趣画像
+│   │   │   ├── nostr-bridge.js       # Nostr协议桥接
+│   │   │   ├── nostr-identity.js     # Nostr身份管理
 │   │   │   ├── governance-ai.js      # AI社区治理
 │   │   │   ├── matrix-bridge.js      # Matrix协议集成
 │   │   │   └── ...
-│   │   ├── enterprise/    # 企业功能 ⭐新增 Terraform
+│   │   ├── enterprise/    # 企业功能 ⭐Phase 44,56
+│   │   │   ├── scim-server.js        # SCIM 2.0 服务器
 │   │   │   ├── terraform-manager.js  # Terraform提供商
 │   │   │   └── ...
-│   │   └── audit/         # 审计合规
+│   │   └── audit/         # 审计合规 ⭐Phase 43,50-51
+│   │   │   ├── dlp-engine.js         # 数据防泄漏引擎
+│   │   │   ├── dlp-policy.js         # DLP策略管理
+│   │   │   ├── siem-exporter.js      # SIEM日志导出
+│   │   │   └── ...
 │   │
 │   └── renderer/          # Vue3 渲染进程 (260+个组件)
-│       ├── pages/         # 28个页面视图 ⭐新增 5个页面
-│       │   ├── security/  # PQC迁移、固件OTA
-│       │   ├── social/    # 治理、Matrix
-│       │   └── enterprise/ # Terraform
+│       ├── pages/         # 39个页面视图 ⭐新增 Phase 46-56 共11个页面
+│       │   ├── security/  # 门限签名、BLE、PQC迁移、固件OTA
+│       │   ├── social/    # 推荐、Nostr、治理、Matrix
+│       │   └── enterprise/ # 合规、SCIM、DLP、SIEM、Terraform
 │       ├── components/    # 230+个组件
-│       └── stores/        # 56个Pinia存储 ⭐新增 5个stores
+│       └── stores/        # 62个Pinia存储 ⭐新增 Phase 46-56 共11个stores
 │
 ├── contracts/             # Hardhat 智能合约
 └── tests/                 # 测试套件 (100+个文件)
@@ -199,7 +213,19 @@ desktop-app-vue/
 - blockchain_asset_mapping - 资产映射
 - bridge_transfers - 跨链桥转账
 
-**安全增强表** (10 张) ⭐新增 Phase 52-56:
+**Phase 46-51 表** (9 张) ⭐Phase 2 (Q3 2026):
+
+- `threshold_key_shares` - 门限签名密钥分片（Shamir 2-of-3）
+- `biometric_bindings` - 生物识别绑定（TEE模板哈希）
+- `user_interest_profiles` - 用户兴趣画像
+- `content_recommendations` - 内容推荐记录
+- `nostr_relays` - Nostr中继服务器
+- `nostr_events` - Nostr事件（NIP-01）
+- `dlp_policies` - 数据防泄漏策略
+- `dlp_incidents` - DLP安全事件
+- `siem_exports` - SIEM日志导出记录
+
+**Phase 52-56 表** (10 张) ⭐Phase 3 (Q4 2026):
 
 - `pqc_keys` - 量子后加密密钥（ML-KEM/ML-DSA）
 - `pqc_migration_status` - PQC迁移状态跟踪
@@ -212,7 +238,7 @@ desktop-app-vue/
 - `terraform_workspaces` - Terraform工作区
 - `terraform_runs` - Terraform运行历史
 
-**总表数**: 60+ 张（基础20+ + 企业版14 + 区块链10+ + 安全增强10 + 其他）
+**总表数**: 75+ 张（基础20+ + 企业版14 + 区块链10+ + Phase 46-51 9张 + Phase 52-56 10张 + 其他）
 
 ---
 
@@ -220,12 +246,12 @@ desktop-app-vue/
 
 ### 桌面应用
 
-| 模块     | 文件数 | 代码量     | 备注                     |
-| -------- | ------ | ---------- | ------------------------ |
-| 主进程   | 360+   | ~200,000行 | ⭐新增 Phase 52-56 模块  |
-| 渲染进程 | 260+   | ~33,000行  | ⭐新增 5个页面/5个stores |
-| 智能合约 | 6      | 2,400行    |                          |
-| 测试文件 | 100+   | ~16,000行  | ⭐新增测试用例           |
+| 模块     | 文件数 | 代码量     | 备注                       |
+| -------- | ------ | ---------- | -------------------------- |
+| 主进程   | 380+   | ~215,000行 | ⭐Phase 46-56 全部模块     |
+| 渲染进程 | 270+   | ~36,000行  | ⭐新增 11个页面/11个stores |
+| 智能合约 | 6      | 2,400行    |                            |
+| 测试文件 | 290+   | ~20,000行  | ⭐新增 Phase 46-56 测试    |
 
 ### 后端服务
 
@@ -237,12 +263,13 @@ desktop-app-vue/
 
 ### 总计
 
-- **总代码量**: 270,000+ 行 ⭐新增 10,000+ 行
-- **总文件数**: 780+ 个 ⭐新增 30+ 个文件
+- **总代码量**: 290,000+ 行 ⭐Phase 46-56 新增 ~25,000 行
+- **总文件数**: 820+ 个 ⭐新增 60+ 个文件
 - **API端点**: 149 个
-- **Vue组件**: 260+ 个 ⭐新增 17+ 个组件
-- **Pinia Stores**: 56 个 ⭐新增 5 个stores
-- **IPC处理器**: 350+ 个 ⭐新增 21 个处理器（Phase 52-56）
+- **Vue组件**: 270+ 个 ⭐新增 22+ 个组件
+- **Pinia Stores**: 62 个 ⭐新增 11 个stores（Phase 46-56）
+- **IPC处理器**: 380+ 个 ⭐新增 51 个处理器（Phase 46-56）
+- **数据库表**: 75+ 张 ⭐新增 19 张表（Phase 46-56）
 
 ---
 

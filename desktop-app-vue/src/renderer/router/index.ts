@@ -1204,6 +1204,78 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: 'Terraform Provider' },
       },
+      {
+        path: 'production-hardening',
+        name: 'ProductionHardening',
+        component: () =>
+          import(
+            /* webpackChunkName: "production-hardening" */ '../pages/enterprise/ProductionHardeningPage.vue'
+          ),
+        meta: { title: 'Production Hardening' },
+      },
+      {
+        path: 'federation-hardening',
+        name: 'FederationHardening',
+        component: () =>
+          import(
+            /* webpackChunkName: "federation-hardening" */ '../pages/ai/FederationHardeningPage.vue'
+          ),
+        meta: { title: 'Federation Hardening' },
+      },
+      {
+        path: 'stress-test',
+        name: 'StressTest',
+        component: () =>
+          import(
+            /* webpackChunkName: "stress-test" */ '../pages/ai/StressTestPage.vue'
+          ),
+        meta: { title: 'Stress Test' },
+      },
+      {
+        path: 'reputation-optimizer',
+        name: 'ReputationOptimizer',
+        component: () =>
+          import(
+            /* webpackChunkName: "reputation-optimizer" */ '../pages/ai/ReputationOptimizerPage.vue'
+          ),
+        meta: { title: 'Reputation Optimizer' },
+      },
+      {
+        path: 'sla-manager',
+        name: 'SLAManager',
+        component: () =>
+          import(
+            /* webpackChunkName: "sla-manager" */ '../pages/ai/SLAManagerPage.vue'
+          ),
+        meta: { title: 'SLA Manager' },
+      },
+      {
+        path: 'tech-learning',
+        name: 'TechLearning',
+        component: () =>
+          import(
+            /* webpackChunkName: "tech-learning" */ '../pages/ai/TechLearningPage.vue'
+          ),
+        meta: { title: 'Tech Learning' },
+      },
+      {
+        path: 'autonomous-developer',
+        name: 'AutonomousDeveloper',
+        component: () =>
+          import(
+            /* webpackChunkName: "autonomous-developer" */ '../pages/ai/AutonomousDeveloperPage.vue'
+          ),
+        meta: { title: 'Autonomous Developer' },
+      },
+      {
+        path: 'collaboration-governance',
+        name: 'CollaborationGovernance',
+        component: () =>
+          import(
+            /* webpackChunkName: "collaboration-governance" */ '../pages/ai/CollaborationGovernancePage.vue'
+          ),
+        meta: { title: 'Collaboration Governance' },
+      },
     ],
   },
 ];

@@ -14,9 +14,133 @@
 
 ### v1.1.0-alpha (2026-02-28) ⭐ 当前版本
 
-**企业版 Phase 3 (Q4 2026) - Phases 52-56** - 量子后加密、固件OTA、AI治理、Matrix集成、Terraform提供商
+**企业版 Phase 2-3 (Q3-Q4 2026) - Phases 46-56** - 门限签名、BLE、内容推荐、Nostr、DLP、SIEM、PQC、固件OTA、AI治理、Matrix、Terraform
 
-#### Phase 52 - 量子后加密迁移 (PQC Migration)
+#### Phase 46 - 门限签名 + 生物识别 (Threshold Signatures + Biometric)
+
+**核心功能**:
+
+- Shamir 秘密分享（2-of-3, 3-of-5, 5-of-7 阈值方案）
+- 密钥分片生成、分发、重组
+- TEE 生物识别模板哈希绑定（SHA-256）
+- 用户验证（UV）和用户在场（UP）标志
+
+**实现文件**:
+
+- `ukey/threshold-signature-manager.js` - 门限签名管理器
+- `ukey/biometric-binding.js` - 生物识别绑定
+- Extended `ukey-ipc.js` (17→25 handlers)
+- `stores/thresholdSecurity.ts` - Pinia状态管理
+- `pages/security/ThresholdSecurityPage.vue` - 门限安全控制台
+
+**数据库**:
+
+- `threshold_key_shares` - 密钥分片存储
+- `biometric_bindings` - 生物识别绑定记录
+
+#### Phase 47 - BLE U-Key (蓝牙U盾)
+
+**核心功能**:
+
+- BLE GATT 设备发现和连接
+- 自动重连机制
+- 跨平台蓝牙传输（Windows/macOS/Linux）
+- U-Key 多传输选择（USB/BLE）
+
+**实现文件**:
+
+- Extended `ukey/ble-driver.js` - BLE传输驱动
+- Extended `ukey/driver-registry.js` - 传输状态管理
+- `stores/bleUkey.ts` - Pinia状态管理
+- `pages/security/BLEDevicesPage.vue` - BLE设备管理
+
+#### Phase 48 - 内容推荐系统 (Content Recommendation)
+
+**核心功能**:
+
+- 本地智能推荐引擎（TF-IDF + 协同过滤）
+- 用户兴趣画像构建和衰减
+- 多维度推荐：基于内容、社交关系、热度
+- 推荐反馈循环优化
+
+**实现文件**:
+
+- `social/local-recommender.js` - 本地推荐引擎
+- `social/interest-profiler.js` - 兴趣画像管理
+- `social/recommendation-ipc.js` - 6个IPC处理器
+- `stores/recommendation.ts` - Pinia状态管理
+- `pages/social/RecommendationsPage.vue` - 推荐页面
+
+**数据库**:
+
+- `user_interest_profiles` - 用户兴趣画像
+- `content_recommendations` - 推荐记录
+
+#### Phase 49 - Nostr 协议桥接 (Nostr Bridge)
+
+**核心功能**:
+
+- Nostr NIP-01 事件发布和订阅
+- 多中继管理（连接/断开/状态监控）
+- ChainlessChain DID ↔ Nostr npub 映射
+- 签名验证（Schnorr secp256k1）
+
+**实现文件**:
+
+- `social/nostr-bridge.js` - Nostr桥接器
+- `social/nostr-identity.js` - Nostr身份管理
+- `social/nostr-bridge-ipc.js` - 6个IPC处理器
+- `stores/nostrBridge.ts` - Pinia状态管理
+- `pages/social/NostrBridgePage.vue` - Nostr控制台
+
+**数据库**:
+
+- `nostr_relays` - 中继服务器配置
+- `nostr_events` - Nostr事件存储
+
+#### Phase 50 - 数据防泄漏 (DLP)
+
+**核心功能**:
+
+- 策略驱动的数据扫描（正则 + 关键词 + 文件类型）
+- 多通道防护（邮件/聊天/文件传输/剪贴板/导出）
+- 4种响应动作：允许/告警/阻止/隔离
+- 事件记录和统计分析
+
+**实现文件**:
+
+- `audit/dlp-engine.js` - DLP扫描引擎
+- `audit/dlp-policy.js` - 策略管理器
+- `audit/dlp-ipc.js` - 8个IPC处理器
+- `stores/dlp.ts` - Pinia状态管理
+- `pages/enterprise/DLPPoliciesPage.vue` - DLP策略管理
+
+**数据库**:
+
+- `dlp_policies` - DLP策略配置
+- `dlp_incidents` - 安全事件记录
+
+#### Phase 51 - SIEM 集成 (SIEM Integration)
+
+**核心功能**:
+
+- 多格式日志导出：CEF、LEEF、JSON
+- 多目标支持：Splunk、Elasticsearch、Azure Sentinel
+- 批量导出和定时调度
+- 导出历史和统计
+
+**实现文件**:
+
+- `audit/siem-exporter.js` - SIEM导出器
+- `audit/siem-ipc.js` - 4个IPC处理器
+- `stores/siem.ts` - Pinia状态管理
+- `pages/enterprise/SIEMIntegrationPage.vue` - SIEM集成控制台
+
+**数据库**:
+
+- `siem_exports` - 导出记录
+
+#### Phase 52 - 量子后加密迁移 (PQC Migration) — Phase 3 开始
 
 **核心功能**:
 
@@ -123,8 +247,13 @@
 
 #### 配置更新
 
-新增配置节：
+新增/扩展配置节（Phase 46-56）：
 
+- `thresholdSecurity` - 门限签名参数
+- `unifiedKey` (扩展 BLE) - 蓝牙传输配置
+- `socialAI` (扩展 recommendation) - 推荐引擎参数
+- `nostr` - Nostr中继配置
+- `compliance` (扩展 DLP+SIEM) - 合规扩展
 - `pqc` - 量子后加密设置
 - `firmwareOta` - 固件OTA配置
 - `governance` - 治理AI参数
@@ -135,28 +264,46 @@
 
 新增Setter方法：
 
+- `setThresholdManager()` - 注入门限签名管理器
+- `setDLPEngine()` - 注入DLP引擎
 - `setPQCManager()` - 注入PQC迁移管理器
 - `setGovernanceAI()` - 注入治理AI引擎
 
 #### IPC注册
 
+- Phase 46: 8个门限签名+生物识别处理器（via ukey-ipc.js）
+- Phase 47: 4个BLE处理器（via ukey-ipc.js）
+- Phase 48: 6个内容推荐处理器
+- Phase 49: 6个Nostr桥接处理器
+- Phase 50: 8个DLP处理器
+- Phase 51: 4个SIEM处理器
 - Phase 52: 4个PQC IPC处理器
 - Phase 53: 4个固件OTA IPC处理器
 - Phase 54: 4个治理AI IPC处理器
 - Phase 55: 5个Matrix IPC处理器
 - Phase 56: 4个Terraform IPC处理器
 
-**总计**: 21个新IPC处理器
+**总计**: 57个新IPC处理器（Phase 46-56）
 
 #### 路由更新
 
-新增路由：
+新增路由（Phase 46-56）：
 
+- `/threshold-security` - 门限签名安全
+- `/ble-devices` - BLE设备管理
+- `/recommendations` - 内容推荐
+- `/nostr-bridge` - Nostr桥接
+- `/dlp-policies` - DLP策略
+- `/siem-integration` - SIEM集成
 - `/pqc-migration` - 量子后加密迁移
 - `/firmware-ota` - 固件OTA更新
 - `/governance` - AI社区治理
 - `/matrix-bridge` - Matrix集成
 - `/terraform-provider` - Terraform提供商
+
+#### 数据库更新
+
+新增19张表（Phase 46-56），详见 [架构文档](./ARCHITECTURE.md#数据库设计)
 
 ---
 
@@ -1497,19 +1644,15 @@
 - [x] Phase 3: 去中心化交易（100%）
 - [x] Phase 4: 区块链集成（100%）
 - [x] Phase 5: 生态完善（100%）
-
-### 进行中
-
-- [ ] Phase 6: 生产优化
-  - [ ] 性能优化
-  - [ ] 安全审计
-  - [ ] 文档完善
+- [x] Phase 6: 企业版（100%）
+- [x] Phase 41: EvoMap GEP-A2A（100%）
+- [x] Phase 42-45: Social AI + Compliance + SCIM + Unified Key（100%）
+- [x] Phase 46-51: 门限签名 + BLE + 推荐 + Nostr + DLP + SIEM（100%）
+- [x] Phase 52-56: PQC + OTA + 治理 + Matrix + Terraform（100%）
 
 ### 计划中
 
-- [ ] Phase 7: 企业版增强
-- [ ] Phase 8: 移动端完善
-- [ ] Phase 9: 生态扩展
+- [ ] Phase 57+: 下一代功能扩展
 
 ---
 

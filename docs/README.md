@@ -121,7 +121,39 @@ docs/
 
 ### v1.1.0-alpha (2026-02-28) ⭐最新
 
-**Phase 52-56 (Q4 2026) 企业版功能**:
+**Phase 46-51 (Q3 2026) 企业版 Phase 2**:
+
+- ✅ **Phase 46 - 门限签名 + 生物识别 (Threshold Signatures + Biometric)**
+  - Shamir 2-of-3/3-of-5/5-of-7 密钥分片
+  - TEE 生物识别模板哈希绑定
+  - 文档: [功能详解 - 门限签名部分](./FEATURES.md#门限签名--生物识别-threshold-signatures--biometric-新增-phase-46)
+
+- ✅ **Phase 47 - BLE U-Key (蓝牙U盾)**
+  - BLE GATT 设备发现和自动重连
+  - USB/BLE 多传输选择
+  - 文档: [功能详解 - BLE部分](./FEATURES.md#ble-u-key-蓝牙u盾-新增-phase-47)
+
+- ✅ **Phase 48 - 内容推荐系统 (Content Recommendation)**
+  - 本地 TF-IDF + 协同过滤推荐
+  - 用户兴趣画像和衰减机制
+  - 文档: [功能详解 - 推荐部分](./FEATURES.md#内容推荐系统-content-recommendation-新增-phase-48)
+
+- ✅ **Phase 49 - Nostr 协议桥接 (Nostr Bridge)**
+  - NIP-01 事件发布/订阅
+  - DID ↔ Nostr npub 映射
+  - 文档: [功能详解 - Nostr部分](./FEATURES.md#nostr-协议桥接-nostr-bridge-新增-phase-49)
+
+- ✅ **Phase 50 - 数据防泄漏 (DLP)**
+  - 策略驱动扫描，多通道防护
+  - 4种响应动作（允许/告警/阻止/隔离）
+  - 文档: [功能详解 - DLP部分](./FEATURES.md#数据防泄漏-dlp-新增-phase-50)
+
+- ✅ **Phase 51 - SIEM 集成 (SIEM Integration)**
+  - CEF/LEEF/JSON 多格式导出
+  - Splunk/Elasticsearch/Azure Sentinel 支持
+  - 文档: [功能详解 - SIEM部分](./FEATURES.md#siem-集成-siem-integration-新增-phase-51)
+
+**Phase 52-56 (Q4 2026) 企业版 Phase 3**:
 
 - ✅ **Phase 52 - 量子后加密迁移 (PQC Migration)**
   - ML-KEM/ML-DSA 后量子算法支持
@@ -154,11 +186,11 @@ docs/
 
 **代码更新**:
 
-- ⭐新增 25个主进程文件（5个manager + 5个IPC + 其他）
-- ⭐新增 5个Pinia stores（TypeScript）
-- ⭐新增 5个Vue页面（security×2, social×2, enterprise×1）
-- ⭐新增 10个数据库表
-- ⭐新增 21个IPC处理器
+- ⭐新增 50+个主进程文件（Phase 46-56 全部模块）
+- ⭐新增 11个Pinia stores（TypeScript）
+- ⭐新增 11个Vue页面（security×4, social×4, enterprise×3）
+- ⭐新增 19个数据库表
+- ⭐新增 57个IPC处理器（Phase 46-56）
 
 **文档更新**:
 

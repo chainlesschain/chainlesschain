@@ -1,0 +1,176 @@
+# 协作治理框架
+
+> **Phase 64 | v3.0.0 | 5 IPC 处理器 | 2 张新数据库表**
+
+## 概述
+
+Phase 64 实现人机协作治理框架，通过渐进式自主权机制让 AI 根据历史表现逐步获得更大的决策自主权，关键操作仍需人工审批。
+
+**核心目标**:
+
+- **决策网关**: 关键决策（架构/迁移/安全）需人工审批
+- **渐进式自主权**: 根据审批通过率自动提升 AI 自主等级
+- **置信度门控**: 高置信度 + 非关键类型可自动审批
+- **审计追踪**: 所有决策完整记录，支持事后审计
+
+---
+
+## 自主等级体系
+
+```
+NONE(0) → MINIMAL(2) → LOW(4) → MEDIUM(6) → HIGH(8) → FULL(10)
+```
+
+| 等级        | 数值 | 说明                                |
+| ----------- | ---- | ----------------------------------- |
+| **NONE**    | 0    | 所有操作需人工审批                  |
+| **MINIMAL** | 2    | 仅信息查询类操作自主                |
+| **LOW**     | 4    | 非关键配置变更可自主                |
+| **MEDIUM**  | 6    | 常规开发任务可自主                  |
+| **HIGH**    | 8    | 除安全策略外均可自主                |
+| **FULL**    | 10   | 完全自主（仍保留人工否决权）        |
+
+**自动提升条件**: 在某作用域内，当 `track_record > 0.9` 且总决策数 `≥ 10` 时，自主等级自动 +1。
+
+---
+
+## 决策类型
+
+| 类型             | 说明         | 默认需审批 |
+| ---------------- | ------------ | ---------- |
+| **ARCHITECTURE** | 架构决策     | 是         |
+| **MIGRATION**    | 数据迁移     | 是         |
+| **SECURITY**     | 安全策略     | 是         |
+| **DEPLOYMENT**   | 部署操作     | 否         |
+| **DATA**         | 数据操作     | 否         |
+| **GENERAL**      | 通用决策     | 否         |
+
+---
+
+## 核心功能
+
+### 1. 提交决策
+
+```javascript
+// AI 提交一个架构决策
+const decision = await submitDecision({
+  decisionType: 'ARCHITECTURE',
+  title: '采用事件驱动架构重构消息模块',
+  description: '当前消息模块采用同步调用，建议迁移到事件驱动以提升可扩展性',
+  confidence: 0.88,
+  context: { currentArch: 'sync-rpc', proposedArch: 'event-driven' },
+  proposedAction: 'refactor-messaging-to-events'
+});
+
+// 置信度 0.88 < 0.95 且类型为 ARCHITECTURE（需审批）→ status: 'PENDING'
+```
+
+### 2. 审批/拒绝
+
+```javascript
+// 人工审批
+await window.electronAPI.invoke('collab-governance:approve-decision', {
+  decisionId: 'gd-001',
+  reviewer: 'admin',
+  comment: '同意，但需要在 staging 环境先验证'
+});
+
+// 拒绝
+await window.electronAPI.invoke('collab-governance:reject-decision', {
+  decisionId: 'gd-002',
+  reviewer: 'admin',
+  comment: '风险太高，建议分阶段实施'
+});
+```
+
+### 3. 查看待审决策
+
+```javascript
+const pending = await window.electronAPI.invoke('collab-governance:get-pending', {
+  filter: { decisionType: 'ARCHITECTURE' }
+});
+```
+
+### 4. 自主等级管理
+
+```javascript
+// 查看某作用域的自主等级
+const level = await window.electronAPI.invoke('collab-governance:get-autonomy-level', {
+  scope: 'deployment'
+});
+// { scope: 'deployment', level: 6, trackRecord: 0.95, totalDecisions: 23, ... }
+
+// 设置自主策略
+await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
+  scope: 'deployment',
+  level: 8,
+  requireApprovalFor: ['ARCHITECTURE', 'MIGRATION', 'SECURITY']
+});
+```
+
+---
+
+## 自动审批规则
+
+决策在满足以下条件时自动审批（`AUTO_APPROVED`）：
+
+1. 置信度 ≥ 0.95
+2. 决策类型不在 `requireApprovalFor` 列表中
+3. 当前作用域自主等级 ≥ 该操作所需最低等级
+
+否则进入 `PENDING` 状态等待人工审批。
+
+---
+
+## IPC 通道
+
+| 通道                                     | 参数                                              | 返回值       |
+| ---------------------------------------- | ------------------------------------------------- | ------------ |
+| `collab-governance:get-pending`          | `{ filter? }`                                     | 待审决策列表 |
+| `collab-governance:approve-decision`     | `{ decisionId, reviewer, comment? }`              | 操作结果     |
+| `collab-governance:reject-decision`      | `{ decisionId, reviewer, comment? }`              | 操作结果     |
+| `collab-governance:get-autonomy-level`   | `{ scope }`                                       | 自主等级     |
+| `collab-governance:set-autonomy-policy`  | `{ scope, level?, requireApprovalFor? }`          | 操作结果     |
+
+---
+
+## 数据库表
+
+### governance_decisions
+
+| 字段            | 类型    | 说明                                      |
+| --------------- | ------- | ----------------------------------------- |
+| id              | TEXT PK | 决策 ID                                  |
+| decision_type   | TEXT    | ARCHITECTURE/MIGRATION/SECURITY/...       |
+| title           | TEXT    | 决策标题                                  |
+| description     | TEXT    | 详细描述                                  |
+| confidence      | REAL    | AI 置信度（0-1）                          |
+| status          | TEXT    | PENDING/APPROVED/REJECTED/AUTO_APPROVED   |
+| context         | JSON    | 决策上下文                                |
+| proposed_action | TEXT    | 建议操作                                  |
+| reviewer        | TEXT    | 审批人                                    |
+| review_comment  | TEXT    | 审批意见                                  |
+| created_at      | INTEGER | 创建时间                                  |
+| reviewed_at     | INTEGER | 审批时间                                  |
+
+### autonomy_levels
+
+| 字段               | 类型    | 说明               |
+| ------------------ | ------- | ------------------ |
+| id                 | TEXT PK | 记录 ID            |
+| scope              | TEXT    | 作用域（唯一）     |
+| level              | INTEGER | 自主等级（0-10）   |
+| total_decisions    | INTEGER | 总决策数           |
+| approved_decisions | INTEGER | 通过数             |
+| rejected_decisions | INTEGER | 拒绝数             |
+| track_record       | REAL    | 通过率             |
+| updated_at         | INTEGER | 更新时间           |
+
+---
+
+## 相关链接
+
+- [自主开发者](/chainlesschain/autonomous-developer)
+- [自主技术学习](/chainlesschain/tech-learning)
+- [自主运维](/chainlesschain/autonomous-ops)
+- [权限系统](/chainlesschain/permissions)
