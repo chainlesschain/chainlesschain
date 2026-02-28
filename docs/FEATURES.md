@@ -9,6 +9,10 @@
 - [去中心化社交](#去中心化社交)
 - [去中心化交易](#去中心化交易)
 - [企业版功能](#企业版功能)
+- [安全增强 (Phase 46-47)](#门限签名--生物识别-threshold-signatures--biometric-新增-phase-46)
+- [社交增强 (Phase 48-49)](#内容推荐系统-content-recommendation-新增-phase-48)
+- [合规安全 (Phase 50-51)](#数据防泄漏-dlp-新增-phase-50)
+- [高级功能 (Phase 52-56)](#量子后加密迁移-pqc-migration-新增-phase-52)
 - [AI模板系统](#ai模板系统)
 - [MCP集成](#mcp集成)
 - [性能优化](#性能优化)
@@ -23,14 +27,16 @@
 **数据库加密**:
 
 - SQLCipher AES-256 加密
-- 50+ 张表完整加密
+- 75+ 张表完整加密
 - 硬件级密钥保护
 
 **硬件密钥支持**:
 
 - U盾集成（Windows平台，5个品牌）
-- SIMKey支持（移动端，规划中）
-- 跨平台 PKCS#11 支持
+- BLE蓝牙U盾（Phase 47）
+- FIDO2/WebAuthn 认证（Phase 45）
+- 门限签名 Shamir 分片（Phase 46）
+- 后量子密码 ML-KEM/ML-DSA（Phase 52）
 
 **端到端加密**:
 
@@ -547,6 +553,172 @@ logger.error("Error message", error);
 - 撤销/删除操作
 - 统计分析
 - 链接复制
+
+### 门限签名 + 生物识别 (Threshold Signatures + Biometric) ⭐新增 Phase 46
+
+**核心功能**:
+
+- **Shamir 秘密分享** - 支持 2-of-3、3-of-5、5-of-7 阈值方案
+- **密钥分片管理** - 安全生成、分发、重组密钥分片
+- **TEE 生物识别绑定** - 模板哈希（SHA-256）绑定到硬件安全模块
+- **多因素验证** - 用户验证（UV）+ 用户在场（UP）标志
+
+**技术特性**:
+
+- 密钥分片加密存储，每个分片独立保护
+- 生物识别不可逆：仅存储模板哈希，原始数据不留存
+- 与 FIDO2/WebAuthn 深度集成
+- 支持远程分片托管（可选）
+
+**数据库表**:
+
+- `threshold_key_shares` - 密钥分片（分片数据、阈值、索引）
+- `biometric_bindings` - 生物识别绑定（模板哈希、设备ID）
+
+**IPC接口** (8个，通过 ukey-ipc.js):
+
+- 密钥分割、分片分发、密钥重组
+- 生物识别注册、验证、解绑
+- 阈值方案创建、状态查询
+
+### BLE U-Key (蓝牙U盾) ⭐新增 Phase 47
+
+**核心功能**:
+
+- **BLE GATT 发现** - 自动扫描和发现附近的 BLE U-Key 设备
+- **自动重连** - 断线自动重连，无需手动操作
+- **多传输选择** - 支持 USB 和 BLE 传输切换
+- **跨平台蓝牙** - Windows/macOS/Linux 蓝牙支持
+
+**技术特性**:
+
+- GATT 服务发现和特征值读写
+- 设备配对和密钥交换
+- 低功耗模式优化
+- 连接状态实时监控
+
+**IPC接口** (4个，通过 ukey-ipc.js):
+
+- BLE 设备扫描、连接、断开、状态查询
+
+### 内容推荐系统 (Content Recommendation) ⭐新增 Phase 48
+
+**核心功能**:
+
+- **本地推荐引擎** - TF-IDF 内容分析 + 协同过滤算法
+- **兴趣画像构建** - 基于浏览、搜索、互动行为自动构建
+- **多维度推荐** - 基于内容相似度、社交关系、热度综合排序
+- **反馈循环** - 用户反馈实时优化推荐质量
+
+**技术特性**:
+
+- 完全本地计算，数据不离开设备
+- 兴趣衰减机制：近期兴趣权重更高
+- 冷启动策略：新用户基于热门内容推荐
+- 多样性控制：避免信息茧房
+
+**数据库表**:
+
+- `user_interest_profiles` - 用户兴趣标签、权重、更新时间
+- `content_recommendations` - 推荐记录、得分、反馈状态
+
+**IPC接口** (6个):
+
+- `recommendation:get-recommendations` - 获取推荐列表
+- `recommendation:update-profile` - 更新兴趣画像
+- `recommendation:get-profile` - 获取用户画像
+- `recommendation:record-feedback` - 记录用户反馈
+- `recommendation:get-trending` - 获取热门内容
+- `recommendation:rebuild-index` - 重建推荐索引
+
+### Nostr 协议桥接 (Nostr Bridge) ⭐新增 Phase 49
+
+**核心功能**:
+
+- **NIP-01 事件** - 发布和订阅 Nostr 文本事件（kind:1）
+- **中继管理** - 添加/移除/监控多个中继服务器
+- **DID 映射** - ChainlessChain DID ↔ Nostr npub 双向映射
+- **签名验证** - Schnorr secp256k1 签名生成和验证
+
+**技术特性**:
+
+- 支持 NIP-01 (基础协议)、NIP-02 (联系人)、NIP-04 (加密DM)
+- WebSocket 长连接，实时事件推送
+- 中继健康检查和自动切换
+- 与 ChainlessChain P2P 网络互操作
+
+**数据库表**:
+
+- `nostr_relays` - 中继 URL、状态、延迟、最后连接时间
+- `nostr_events` - 事件 ID、类型、内容、签名、时间戳
+
+**IPC接口** (6个):
+
+- `nostr:list-relays` - 列出中继服务器
+- `nostr:add-relay` - 添加中继
+- `nostr:publish-event` - 发布事件
+- `nostr:subscribe` - 订阅事件
+- `nostr:get-profile` - 获取用户资料
+- `nostr:map-did` - DID映射
+
+### 数据防泄漏 (DLP) ⭐新增 Phase 50
+
+**核心功能**:
+
+- **策略驱动扫描** - 正则表达式 + 关键词 + 文件类型规则
+- **多通道防护** - 邮件、聊天、文件传输、剪贴板、数据导出
+- **4种响应动作** - 允许（allow）、告警（alert）、阻止（block）、隔离（quarantine）
+- **事件分析** - 事件记录、趋势分析、违规统计
+
+**技术特性**:
+
+- 内置规则：信用卡号、身份证号、手机号、邮箱等敏感数据检测
+- 自定义规则：支持用户自定义检测模式
+- 实时拦截：文件操作时即时检查
+- 误报管理：支持白名单和误报标记
+
+**数据库表**:
+
+- `dlp_policies` - 策略名称、规则、通道、动作、优先级
+- `dlp_incidents` - 事件ID、策略ID、通道、严重级别、处理状态
+
+**IPC接口** (8个):
+
+- `dlp:list-policies` - 列出DLP策略
+- `dlp:create-policy` - 创建策略
+- `dlp:update-policy` - 更新策略
+- `dlp:delete-policy` - 删除策略
+- `dlp:scan-content` - 扫描内容
+- `dlp:list-incidents` - 列出事件
+- `dlp:resolve-incident` - 处理事件
+- `dlp:get-stats` - 获取统计
+
+### SIEM 集成 (SIEM Integration) ⭐新增 Phase 51
+
+**核心功能**:
+
+- **多格式导出** - CEF（通用事件格式）、LEEF（日志扩展格式）、JSON
+- **多目标支持** - Splunk、Elasticsearch、Azure Sentinel、自定义目标
+- **批量导出** - 按时间范围批量导出安全事件
+- **定时调度** - 可配置的自动导出调度
+
+**技术特性**:
+
+- CEF 格式：符合 ArcSight 标准（RFC 5424）
+- LEEF 格式：符合 IBM QRadar 标准
+- HTTP/HTTPS 传输，支持 API Key 和 Bearer Token 认证
+- 导出重试机制：失败自动重试，指数退避
+
+**数据库表**:
+
+- `siem_exports` - 导出目标、格式、时间范围、状态、事件数
+
+**IPC接口** (4个):
+
+- `siem:list-exports` - 列出导出记录
+- `siem:create-export` - 创建导出任务
+- `siem:get-targets` - 获取目标配置
+- `siem:test-connection` - 测试目标连接
 
 ### 量子后加密迁移 (PQC Migration) ⭐新增 Phase 52
 

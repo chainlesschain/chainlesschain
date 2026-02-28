@@ -4562,6 +4562,400 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 57: Production Hardening (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Production Hardening modules...");
+
+      const {
+        PerformanceBaseline,
+      } = require("../performance/performance-baseline");
+      const { SecurityAuditor } = require("../audit/security-auditor");
+      const { registerHardeningIPC } = require("../performance/hardening-ipc");
+
+      const database = dependencies.database || null;
+
+      const performanceBaseline = new PerformanceBaseline(database);
+      const securityAuditor = new SecurityAuditor(database);
+
+      if (database) {
+        performanceBaseline
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] PerformanceBaseline init warning:",
+              err.message,
+            ),
+          );
+        securityAuditor
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] SecurityAuditor init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerHardeningIPC({ performanceBaseline, securityAuditor });
+
+      registeredModules.performanceBaseline = performanceBaseline;
+      registeredModules.securityAuditor = securityAuditor;
+
+      logger.info(
+        "[IPC Registry] ✓ Production Hardening registered (6 IPC handlers)",
+      );
+    } catch (phase57Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 57 registration failed (non-fatal):",
+        phase57Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 57 Complete: Production Hardening ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 58: Federation Hardening (v1.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Federation Hardening modules...");
+
+      const {
+        FederationHardening,
+      } = require("../ai-engine/cowork/federation-hardening");
+      const {
+        registerFederationHardeningIPC,
+      } = require("../ai-engine/cowork/federation-hardening-ipc");
+
+      const database = dependencies.database || null;
+
+      const federationHardening = new FederationHardening(database);
+
+      if (database) {
+        federationHardening
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] FederationHardening init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerFederationHardeningIPC({ federationHardening });
+
+      registeredModules.federationHardening = federationHardening;
+
+      logger.info(
+        "[IPC Registry] ✓ Federation Hardening registered (4 IPC handlers)",
+      );
+    } catch (phase58Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 58 registration failed (non-fatal):",
+        phase58Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 58 Complete: Federation Hardening ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 59: Federation Stress Test (v2.0.0)
+    // ============================================================
+
+    try {
+      logger.info(
+        "[IPC Registry] Registering Federation Stress Test modules...",
+      );
+
+      const {
+        FederationStressTester,
+      } = require("../ai-engine/cowork/federation-stress-tester");
+      const {
+        registerStressTestIPC,
+      } = require("../ai-engine/cowork/stress-test-ipc");
+
+      const database = dependencies.database || null;
+
+      const stressTester = new FederationStressTester(database);
+
+      if (database) {
+        stressTester
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] FederationStressTester init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerStressTestIPC({ stressTester });
+
+      registeredModules.stressTester = stressTester;
+
+      logger.info(
+        "[IPC Registry] ✓ Federation Stress Test registered (4 IPC handlers)",
+      );
+    } catch (phase59Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 59 registration failed (non-fatal):",
+        phase59Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 59 Complete: Federation Stress Test ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 60: Reputation Optimizer (v2.0.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Reputation Optimizer modules...");
+
+      const {
+        ReputationOptimizer,
+      } = require("../ai-engine/cowork/reputation-optimizer");
+      const {
+        registerReputationOptimizerIPC,
+      } = require("../ai-engine/cowork/reputation-optimizer-ipc");
+
+      const database = dependencies.database || null;
+
+      const reputationOptimizer = new ReputationOptimizer(database);
+
+      if (database) {
+        reputationOptimizer
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ReputationOptimizer init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerReputationOptimizerIPC({ reputationOptimizer });
+
+      registeredModules.reputationOptimizer = reputationOptimizer;
+
+      logger.info(
+        "[IPC Registry] ✓ Reputation Optimizer registered (4 IPC handlers)",
+      );
+    } catch (phase60Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 60 registration failed (non-fatal):",
+        phase60Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 60 Complete: Reputation Optimizer ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 61: Cross-Org SLA (v2.0.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Cross-Org SLA modules...");
+
+      const { SLAManager } = require("../ai-engine/cowork/sla-manager");
+      const { registerSLAIPC } = require("../ai-engine/cowork/sla-ipc");
+
+      const database = dependencies.database || null;
+
+      const slaManager = new SLAManager(database);
+
+      if (database) {
+        slaManager
+          .initialize()
+          .catch((err) =>
+            logger.warn("[IPC Registry] SLAManager init warning:", err.message),
+          );
+      }
+
+      registerSLAIPC({ slaManager });
+
+      registeredModules.slaManager = slaManager;
+
+      logger.info("[IPC Registry] ✓ Cross-Org SLA registered (5 IPC handlers)");
+    } catch (phase61Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 61 registration failed (non-fatal):",
+        phase61Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info("[IPC Registry] Phase 61 Complete: Cross-Org SLA ready!");
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 62: Tech Learning Engine (v3.0.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Tech Learning Engine modules...");
+
+      const {
+        TechLearningEngine,
+      } = require("../ai-engine/autonomous/tech-learning-engine");
+      const {
+        registerTechLearningIPC,
+      } = require("../ai-engine/autonomous/tech-learning-ipc");
+
+      const database = dependencies.database || null;
+
+      const techLearningEngine = new TechLearningEngine(database);
+
+      if (database) {
+        techLearningEngine
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] TechLearningEngine init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerTechLearningIPC({ techLearningEngine });
+
+      registeredModules.techLearningEngine = techLearningEngine;
+
+      logger.info(
+        "[IPC Registry] ✓ Tech Learning Engine registered (5 IPC handlers)",
+      );
+    } catch (phase62Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 62 registration failed (non-fatal):",
+        phase62Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 62 Complete: Tech Learning Engine ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 63: Autonomous Developer (v3.0.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Autonomous Developer modules...");
+
+      const {
+        AutonomousDeveloper,
+      } = require("../ai-engine/autonomous/autonomous-developer");
+      const {
+        registerAutonomousDevIPC,
+      } = require("../ai-engine/autonomous/autonomous-developer-ipc");
+
+      const database = dependencies.database || null;
+
+      const autonomousDeveloper = new AutonomousDeveloper(database);
+
+      if (database) {
+        autonomousDeveloper
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AutonomousDeveloper init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerAutonomousDevIPC({ autonomousDeveloper });
+
+      registeredModules.autonomousDeveloper = autonomousDeveloper;
+
+      logger.info(
+        "[IPC Registry] ✓ Autonomous Developer registered (5 IPC handlers)",
+      );
+    } catch (phase63Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 63 registration failed (non-fatal):",
+        phase63Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 63 Complete: Autonomous Developer ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 64: Collaboration Governance (v3.0.0)
+    // ============================================================
+
+    try {
+      logger.info(
+        "[IPC Registry] Registering Collaboration Governance modules...",
+      );
+
+      const {
+        CollaborationGovernance,
+      } = require("../ai-engine/autonomous/collaboration-governance");
+      const {
+        registerCollaborationGovernanceIPC,
+      } = require("../ai-engine/autonomous/collaboration-governance-ipc");
+
+      const database = dependencies.database || null;
+
+      const collaborationGovernance = new CollaborationGovernance(database);
+
+      if (database) {
+        collaborationGovernance
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] CollaborationGovernance init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerCollaborationGovernanceIPC({ collaborationGovernance });
+
+      registeredModules.collaborationGovernance = collaborationGovernance;
+
+      logger.info(
+        "[IPC Registry] ✓ Collaboration Governance registered (5 IPC handlers)",
+      );
+    } catch (phase64Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 64 registration failed (non-fatal):",
+        phase64Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 64 Complete: Collaboration Governance ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

@@ -1,0 +1,163 @@
+# 跨组织 SLA 管理
+
+> **Phase 61 | v2.0.0 | 5 IPC 处理器 | 2 张新数据库表**
+
+## 概述
+
+Phase 61 为联邦代理网络引入跨组织服务级别协议（SLA）管理能力，支持合约创建、合规检查和违约追踪，保障跨组织协作的服务质量。
+
+**核心目标**:
+
+- **合约管理**: SLA 合约 CRUD，支持保障/惩罚/奖励条款
+- **合规检查**: 自动对比实际指标与合约承诺
+- **违约追踪**: 分级记录违约事件，支持升级和解决
+- **仪表板**: 全局合约和违约状态概览
+
+---
+
+## 合约生命周期
+
+```
+DRAFT → ACTIVE → VIOLATED → TERMINATED
+                    │               │
+                    └── EXPIRED ────┘
+```
+
+| 状态           | 说明                       |
+| -------------- | -------------------------- |
+| **DRAFT**      | 草稿，双方协商中           |
+| **ACTIVE**     | 生效中                     |
+| **VIOLATED**   | 发生违约                   |
+| **EXPIRED**    | 到期失效                   |
+| **TERMINATED** | 提前终止                   |
+
+---
+
+## 核心功能
+
+### 1. 创建 SLA 合约
+
+```javascript
+const contract = await window.electronAPI.invoke('sla:create-contract', {
+  name: 'org-a-b-premium-sla',
+  orgId: 'org-a',
+  partnerOrgId: 'org-b',
+  guarantees: {
+    maxExecutionMs: 30000,    // 最大执行时间 30s
+    minAvailability: 0.99,    // 最低可用性 99%
+    minQualityScore: 0.8      // 最低质量评分 0.8
+  },
+  penalties: {
+    availability: { threshold: 0.95, action: 'CREDIT_REFUND' },
+    execution: { threshold: 60000, action: 'ESCALATE' }
+  },
+  rewards: {
+    overPerformance: { threshold: 0.999, bonus: 'REPUTATION_BOOST' }
+  },
+  validFrom: '2026-03-01',
+  validUntil: '2026-12-31'
+});
+```
+
+### 2. 合规检查
+
+```javascript
+const compliance = await window.electronAPI.invoke('sla:check-compliance', {
+  contractId: 'sla-001'
+});
+
+console.log(compliance);
+// {
+//   contractId: 'sla-001',
+//   compliant: false,
+//   checks: [
+//     { metric: 'maxExecutionMs', guaranteed: 30000, actual: 28500, passed: true },
+//     { metric: 'minAvailability', guaranteed: 0.99, actual: 0.985, passed: false },
+//     { metric: 'minQualityScore', guaranteed: 0.8, actual: 0.92, passed: true }
+//   ],
+//   violations: [{ severity: 'MAJOR', metric: 'minAvailability', ... }]
+// }
+```
+
+### 3. 违约查询
+
+```javascript
+const violations = await window.electronAPI.invoke('sla:get-violations', {
+  filter: { contractId: 'sla-001', severity: 'CRITICAL' }
+});
+```
+
+### 4. 仪表板
+
+```javascript
+const dashboard = await window.electronAPI.invoke('sla:get-dashboard');
+// {
+//   contracts: { total: 15, active: 10, violated: 2, expired: 3 },
+//   violations: { total: 8, critical: 1, major: 3, minor: 4, resolved: 5 }
+// }
+```
+
+---
+
+## 违约严重度
+
+| 严重度       | 触发条件                     | 响应动作         |
+| ------------ | ---------------------------- | ---------------- |
+| **CRITICAL** | 可用性 < 95%                 | 自动升级 + 退款  |
+| **MAJOR**    | 可用性 < 99% 或执行超时 2x  | 通知 + 记录      |
+| **MINOR**    | 质量评分轻微下降             | 记录             |
+
+---
+
+## IPC 通道
+
+| 通道                      | 参数                                                | 返回值     |
+| ------------------------- | --------------------------------------------------- | ---------- |
+| `sla:list-contracts`      | `{ filter? }`                                       | 合约列表   |
+| `sla:create-contract`     | `{ name, orgId, partnerOrgId, guarantees, ... }`    | 合约对象   |
+| `sla:get-violations`      | `{ filter? }`                                       | 违约列表   |
+| `sla:check-compliance`    | `{ contractId }`                                    | 合规结果   |
+| `sla:get-dashboard`       | 无                                                  | 仪表板数据 |
+
+---
+
+## 数据库表
+
+### sla_contracts
+
+| 字段            | 类型    | 说明                |
+| --------------- | ------- | ------------------- |
+| id              | TEXT PK | 合约 ID             |
+| name            | TEXT    | 合约名称            |
+| org_id          | TEXT    | 发起方组织 ID       |
+| partner_org_id  | TEXT    | 合作方组织 ID       |
+| status          | TEXT    | 合约状态            |
+| guarantees      | JSON    | 保障条款            |
+| penalties       | JSON    | 惩罚条款            |
+| rewards         | JSON    | 奖励条款            |
+| valid_from      | TEXT    | 生效日期            |
+| valid_until     | TEXT    | 失效日期            |
+| created_at      | INTEGER | 创建时间            |
+
+### sla_violations
+
+| 字段           | 类型    | 说明                |
+| -------------- | ------- | ------------------- |
+| id             | TEXT PK | 违约 ID             |
+| contract_id    | TEXT FK | 关联合约 ID         |
+| severity       | TEXT    | CRITICAL/MAJOR/MINOR |
+| metric         | TEXT    | 违约指标名           |
+| expected_value | REAL    | 承诺值               |
+| actual_value   | REAL    | 实际值               |
+| description    | TEXT    | 违约描述             |
+| escalated      | INTEGER | 是否已升级（0/1）    |
+| resolved       | INTEGER | 是否已解决（0/1）    |
+| created_at     | INTEGER | 创建时间             |
+
+---
+
+## 相关链接
+
+- [代理联邦网络](/chainlesschain/agent-federation)
+- [联邦网络加固](/chainlesschain/federation-hardening)
+- [信誉优化](/chainlesschain/reputation-optimizer)

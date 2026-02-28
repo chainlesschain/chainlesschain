@@ -81,6 +81,15 @@ class ContextEngineering {
     // Governance AI（可选，通过 setGovernanceAI 注入）[Phase 54]
     this._governanceAI = null;
 
+    // Tech Learning Engine（可选，通过 setTechLearningEngine 注入）[Phase 62]
+    this._techLearningEngine = null;
+
+    // Autonomous Developer（可选，通过 setAutonomousDeveloper 注入）[Phase 63]
+    this._autonomousDeveloper = null;
+
+    // Collaboration Governance（可选，通过 setCollaborationGovernance 注入）[Phase 64]
+    this._collaborationGovernance = null;
+
     // 统计
     this.stats = {
       cacheHits: 0,
@@ -176,6 +185,30 @@ class ContextEngineering {
    */
   setGovernanceAI(governanceAI) {
     this._governanceAI = governanceAI;
+  }
+
+  /**
+   * 注入 Tech Learning Engine [Phase 62]
+   * @param {Object} techLearningEngine - TechLearningEngine instance
+   */
+  setTechLearningEngine(techLearningEngine) {
+    this._techLearningEngine = techLearningEngine;
+  }
+
+  /**
+   * 注入 Autonomous Developer [Phase 63]
+   * @param {Object} autonomousDeveloper - AutonomousDeveloper instance
+   */
+  setAutonomousDeveloper(autonomousDeveloper) {
+    this._autonomousDeveloper = autonomousDeveloper;
+  }
+
+  /**
+   * 注入 Collaboration Governance [Phase 64]
+   * @param {Object} collaborationGovernance - CollaborationGovernance instance
+   */
+  setCollaborationGovernance(collaborationGovernance) {
+    this._collaborationGovernance = collaborationGovernance;
   }
 
   /**
