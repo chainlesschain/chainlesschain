@@ -1,0 +1,218 @@
+# Phase 65-66 — 技能市场与代币激励系统设计
+
+**版本**: v3.1.0
+**创建日期**: 2026-02-28
+**状态**: ✅ 已实现 (v3.1.0)
+
+---
+
+## 一、模块概述
+
+Phase 65-66 引入技能即服务(Skill-as-a-Service)和代币激励机制，实现技能发布/订阅/调用的完整市场化流程，以及基于贡献的代币奖励体系。
+
+### 1.1 核心目标
+
+1. **技能市场**: 技能发布、版本管理、调用计费
+2. **代币激励**: 贡献追踪、代币发放、信誉加权
+3. **服务协议**: 标准化技能调用协议
+4. **贡献追踪**: 多维度贡献量化
+
+### 1.2 技术架构
+
+```
+┌─────────────────────────────────────────────┐
+│              Skill Marketplace               │
+│  ┌──────────────┐  ┌───────────────────┐    │
+│  │ SkillService │  │  TokenLedger      │    │
+│  │ Protocol     │  │  ContributionTracker│   │
+│  └──────────────┘  └───────────────────┘    │
+│  ┌──────────────┐  ┌───────────────────┐    │
+│  │ SkillInvoker │  │  TokenIPC         │    │
+│  └──────────────┘  └───────────────────┘    │
+│  ┌──────────────────────────────────────┐   │
+│  │     SkillServiceIPC (5 handlers)     │   │
+│  └──────────────────────────────────────┘   │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## 二、核心模块设计
+
+### 2.1 SkillServiceProtocol (`marketplace/skill-service-protocol.js`)
+
+技能发布、版本管理和远程调用协议。
+
+**常量**:
+
+- `SERVICE_STATUS`: DRAFT, PUBLISHED, DEPRECATED, SUSPENDED
+- `INVOCATION_STATUS`: PENDING, RUNNING, SUCCESS, FAILED, TIMEOUT
+
+**核心方法**:
+
+- `initialize()` — 初始化数据库表和加载已发布服务
+- `publishService({ name, version, description, endpoint, pricing })` — 发布技能服务
+- `invokeService({ serviceId, input, callerId })` — 调用远程技能
+- `listServices(filter)` — 列出技能服务（status, limit）
+- `getInvocationHistory(filter)` — 获取调用历史
+- `buildServiceContext()` — 构建技能服务上下文（Context Engineering注入）
+
+### 2.2 SkillInvoker (`marketplace/skill-invoker.js`)
+
+技能远程调用器，处理超时和重试。
+
+### 2.3 TokenLedger (`marketplace/token-ledger.js`)
+
+代币账本，管理余额和交易记录。
+
+**核心方法**:
+
+- `initialize()` — 初始化代币账本
+- `getBalance(accountId)` — 查询余额
+- `transfer({ from, to, amount, reason })` — 转账
+- `rewardContribution({ accountId, amount, contributionType })` — 贡献奖励
+- `getTransactionHistory(filter)` — 交易历史
+
+### 2.4 ContributionTracker (`marketplace/contribution-tracker.js`)
+
+贡献追踪器，量化各类贡献并关联代币奖励。
+
+**核心方法**:
+
+- `initialize()` — 初始化贡献追踪
+- `recordContribution({ userId, type, value, metadata })` — 记录贡献
+- `getContributions(filter)` — 查询贡献记录
+- `calculateReward(contribution)` — 计算贡献奖励
+- `getLeaderboard(limit)` — 贡献排行榜
+
+---
+
+## 三、数据库设计
+
+### Phase 65 表
+
+```sql
+CREATE TABLE IF NOT EXISTS skill_services (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  version TEXT DEFAULT '1.0.0',
+  description TEXT,
+  endpoint TEXT,
+  pricing TEXT,
+  status TEXT DEFAULT 'draft',
+  invocation_count INTEGER DEFAULT 0,
+  created_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS skill_invocations (
+  id TEXT PRIMARY KEY,
+  service_id TEXT NOT NULL,
+  caller_id TEXT,
+  input TEXT,
+  output TEXT,
+  status TEXT DEFAULT 'pending',
+  duration_ms INTEGER,
+  created_at INTEGER
+);
+```
+
+### Phase 66 表
+
+```sql
+CREATE TABLE IF NOT EXISTS token_accounts (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL UNIQUE,
+  balance REAL DEFAULT 0,
+  total_earned REAL DEFAULT 0,
+  total_spent REAL DEFAULT 0,
+  created_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS token_transactions (
+  id TEXT PRIMARY KEY,
+  from_account TEXT,
+  to_account TEXT,
+  amount REAL NOT NULL,
+  reason TEXT,
+  type TEXT DEFAULT 'transfer',
+  created_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS contributions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  value REAL DEFAULT 0,
+  metadata TEXT,
+  rewarded INTEGER DEFAULT 0,
+  created_at INTEGER
+);
+```
+
+---
+
+## 四、IPC接口设计
+
+### Phase 65 — SkillServiceIPC (5 handlers)
+
+| 通道                        | 说明         |
+| --------------------------- | ------------ |
+| `skill-service:publish`     | 发布技能服务 |
+| `skill-service:invoke`      | 调用技能服务 |
+| `skill-service:list`        | 列出技能服务 |
+| `skill-service:get-history` | 获取调用历史 |
+| `skill-service:get-stats`   | 获取服务统计 |
+
+### Phase 66 — TokenIPC (5 handlers)
+
+| 通道                    | 说明         |
+| ----------------------- | ------------ |
+| `token:get-balance`     | 查询代币余额 |
+| `token:transfer`        | 代币转账     |
+| `token:reward`          | 贡献奖励     |
+| `token:get-history`     | 交易历史     |
+| `token:get-leaderboard` | 贡献排行榜   |
+
+---
+
+## 五、前端集成
+
+### Pinia Stores
+
+- `skillService.ts` — 技能服务列表、调用历史、统计
+- `tokenIncentive.ts` — 余额、交易历史、排行榜
+
+### Vue Pages
+
+- `SkillMarketplacePage.vue` — 技能浏览/发布/调用/统计
+- `TokenIncentivePage.vue` — 余额查询/转账/排行榜
+
+### Routes
+
+- `/skill-marketplace` — 技能市场
+- `/token-incentive` — 代币激励
+
+---
+
+## 六、配置选项
+
+```javascript
+skillService: {
+  enabled: false,
+  maxConcurrentInvocations: 10,
+  defaultTimeout: 30000,
+  publishRequiresApproval: true,
+},
+tokenIncentive: {
+  enabled: false,
+  initialBalance: 0,
+  rewardMultiplier: 1.0,
+  reputationWeightEnabled: true,
+},
+```
+
+---
+
+## 七、Context Engineering
+
+- step 4.9: `setSkillServiceProtocol()` — 注入技能市场上下文

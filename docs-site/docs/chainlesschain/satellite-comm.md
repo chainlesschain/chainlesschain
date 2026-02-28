@@ -1,31 +1,174 @@
-# Satellite Communication (Phase 70)
+# 卫星通信系统
 
-## Overview
+> **版本: v3.2.0 | 状态: ✅ 生产就绪 | 5 IPC Handlers | 2 数据库表 | LEO 卫星加密消息**
 
-LEO satellite messaging with encryption, compression, and emergency key revocation.
+ChainlessChain 卫星通信系统实现了基于 LEO（低地轨道）卫星的加密消息传输，支持离线签名队列、紧急密钥撤销广播和灾难恢复。当传统网络不可用时，通过卫星链路保持关键通信能力。
 
-## Features
+## 核心特性
 
-- Encrypted satellite messaging
-- Offline signature queue
-- Emergency key revocation broadcast
-- Disaster recovery support
+- 📡 **卫星加密消息**: 通过 Iridium 等 LEO 卫星发送加密消息
+- 📦 **Gzip 压缩传输**: 自动压缩消息内容，节省卫星带宽
+- 📝 **离线签名队列**: 离线环境下排队签名请求，恢复连接后自动同步
+- 🚨 **紧急密钥撤销**: 通过卫星广播紧急密钥撤销指令
+- 🔄 **灾难恢复**: 种子短语恢复方案，支持多设备恢复
 
-## IPC Channels
+## 发送卫星消息
 
-| Channel                         | Description              |
-| ------------------------------- | ------------------------ |
-| `satellite:send-message`        | Send satellite message   |
-| `satellite:get-messages`        | Get messages             |
-| `satellite:sync-signatures`     | Sync offline signatures  |
-| `satellite:emergency-revoke`    | Emergency key revocation |
-| `satellite:get-recovery-status` | Get recovery status      |
+```javascript
+const result = await window.electron.ipcRenderer.invoke(
+  "satellite:send-message",
+  {
+    senderDid: "did:example:alice",
+    recipientDid: "did:example:bob",
+    content: "紧急通知：系统安全警报",
+    provider: "iridium", // 卫星提供商
+  },
+);
+// result.message = {
+//   id: "uuid",
+//   status: "sent",
+//   compression: "gzip",
+//   satellite_provider: "iridium",
+// }
+```
 
-## Database Tables
+## 同步离线签名
 
-- `satellite_messages` — Message store
-- `offline_signature_queue` — Pending signatures
+```javascript
+const result = await window.electron.ipcRenderer.invoke(
+  "satellite:sync-signatures",
+);
+// result = { success: true, synced: 5, remaining: 0 }
+```
 
-## Version
+## 紧急密钥撤销
 
-v3.2.0
+```javascript
+const result = await window.electron.ipcRenderer.invoke(
+  "satellite:emergency-revoke",
+  "key-compromised-001",
+);
+// result = {
+//   success: true,
+//   keyId: "key-compromised-001",
+//   revoked: true,
+//   broadcastedAt: 1709123456789,
+// }
+```
+
+## 消息生命周期
+
+```
+创建 (queued) → 压缩 (gzip) → 加密 → 发送 (sent) → 接收 (received)
+                                                    ↓
+                                               失败 (failed) → 重试
+```
+
+## IPC 接口完整列表
+
+### 卫星通信操作（5 个）
+
+| 通道                            | 功能         | 说明                        |
+| ------------------------------- | ------------ | --------------------------- |
+| `satellite:send-message`        | 发送卫星消息 | 自动加密压缩，通过 LEO 发送 |
+| `satellite:get-messages`        | 查询消息列表 | 支持按状态过滤              |
+| `satellite:sync-signatures`     | 同步离线签名 | 将队列中的签名请求同步      |
+| `satellite:emergency-revoke`    | 紧急密钥撤销 | 通过卫星广播撤销指令        |
+| `satellite:get-recovery-status` | 查询恢复状态 | 离线签名同步进度            |
+
+## 数据库 Schema
+
+**2 张核心表**:
+
+| 表名                      | 用途         | 关键字段                                            |
+| ------------------------- | ------------ | --------------------------------------------------- |
+| `satellite_messages`      | 卫星消息存储 | id, sender_did, content_encrypted, status, provider |
+| `offline_signature_queue` | 离线签名队列 | id, document_hash, signer_did, signature, synced    |
+
+### satellite_messages 表
+
+```sql
+CREATE TABLE IF NOT EXISTS satellite_messages (
+  id TEXT PRIMARY KEY,
+  sender_did TEXT,
+  recipient_did TEXT,
+  content_encrypted TEXT,
+  compression TEXT DEFAULT 'gzip',
+  satellite_provider TEXT,
+  status TEXT DEFAULT 'queued',          -- queued | sent | received | failed
+  sent_at INTEGER,
+  received_at INTEGER,
+  created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+);
+CREATE INDEX IF NOT EXISTS idx_satellite_msgs_status ON satellite_messages(status);
+```
+
+### offline_signature_queue 表
+
+```sql
+CREATE TABLE IF NOT EXISTS offline_signature_queue (
+  id TEXT PRIMARY KEY,
+  document_hash TEXT NOT NULL,
+  signer_did TEXT,
+  signature TEXT,
+  status TEXT DEFAULT 'pending',
+  synced INTEGER DEFAULT 0,
+  created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+);
+CREATE INDEX IF NOT EXISTS idx_offline_sig_status ON offline_signature_queue(status);
+```
+
+## 前端集成
+
+### SatelliteCommPage 页面
+
+**功能模块**:
+
+- **统计卡片**: 消息数 / 待同步 / 离线签名数
+- **发送表单**: 输入收件人 DID 和消息内容，通过卫星发送
+- **消息列表**: 展示状态、提供商、收件人信息
+- **同步操作**: 触发离线签名同步
+
+### Pinia Store (satellite.ts)
+
+```typescript
+const useSatelliteStore = defineStore("satellite", {
+  state: () => ({
+    messages: [],
+    recoveryStatus: null,
+    loading: false,
+    error: null,
+  }),
+  actions: {
+    sendMessage, // → satellite:send-message
+    fetchMessages, // → satellite:get-messages
+    syncSignatures, // → satellite:sync-signatures
+    emergencyRevoke, // → satellite:emergency-revoke
+    fetchRecoveryStatus, // → satellite:get-recovery-status
+  },
+});
+```
+
+## 关键文件
+
+| 文件                                                | 职责               | 行数 |
+| --------------------------------------------------- | ------------------ | ---- |
+| `src/main/security/satellite-comm.js`               | 卫星通信核心引擎   | ~180 |
+| `src/main/security/disaster-recovery.js`            | 灾难恢复模块       | ~60  |
+| `src/main/security/satellite-ipc.js`                | IPC 处理器（5 个） | ~130 |
+| `src/renderer/stores/satellite.ts`                  | Pinia 状态管理     | ~90  |
+| `src/renderer/pages/security/SatelliteCommPage.vue` | 卫星通信页面       | ~86  |
+
+## 测试覆盖率
+
+```
+✅ satellite-comm.test.js                - 消息发送/查询/签名同步/撤销测试
+✅ stores/satellite.test.ts              - Store 状态管理测试
+✅ e2e/security/satellite-comm.e2e.test.ts - 端到端用户流程测试
+```
+
+## 相关文档
+
+- [反审查通信 →](/chainlesschain/anti-censorship)
+- [加密系统 →](/chainlesschain/encryption)
+- [U-Key 硬件密钥 →](/chainlesschain/ukey)
