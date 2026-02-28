@@ -1,0 +1,203 @@
+# Phase 72-73 — 协议融合与AI社交增强系统设计
+
+**版本**: v3.3.0
+**创建日期**: 2026-02-28
+**状态**: ✅ 已实现 (v3.3.0)
+
+---
+
+## 一、模块概述
+
+Phase 72-73 实现跨协议统一通信和AI驱动的社交增强：协议融合桥接DID/ActivityPub/Nostr/Matrix四大协议，AI社交增强提供实时翻译和内容质量评估。
+
+### 1.1 核心目标
+
+1. **协议融合**: DID/ActivityPub/Nostr/Matrix跨协议消息路由
+2. **身份映射**: 跨协议统一身份管理
+3. **实时翻译**: AI驱动的多语言实时翻译
+4. **内容质量**: 自动化内容质量评估和有害内容检测
+
+### 1.2 技术架构
+
+```
+┌───────────────────────────────────────────┐
+│         Protocol Fusion + AI Social        │
+│                                            │
+│  ┌──────────────────────────────────────┐  │
+│  │  ProtocolFusionBridge               │  │
+│  │  DID ↔ ActivityPub ↔ Nostr ↔ Matrix │  │
+│  └──────────────────────────────────────┘  │
+│  ┌─────────────────┐ ┌────────────────┐   │
+│  │ RealtimeTranslator│ │ContentQuality │   │
+│  │ 多语言翻译缓存    │ │ Assessor      │   │
+│  └─────────────────┘ └────────────────┘   │
+└───────────────────────────────────────────┘
+```
+
+---
+
+## 二、核心模块设计
+
+### 2.1 ProtocolFusionBridge (Phase 72) (`social/protocol-fusion-bridge.js`)
+
+四协议统一消息桥接。
+
+**常量**:
+
+- `PROTOCOL`: DID, ACTIVITYPUB, NOSTR, MATRIX
+
+**核心方法**:
+
+- `initialize()` — 初始化融合桥并加载身份映射
+- `getUnifiedFeed(filter)` — 获取统一消息流（protocol, limit）
+- `sendMessage({ sourceProtocol, targetProtocol, senderId, content })` — 跨协议消息发送
+- `mapIdentity({ didId, activitypubId, nostrPubkey, matrixId })` — 映射身份
+- `getIdentityMap(didId)` — 查询身份映射
+- `getProtocolStatus()` — 获取各协议消息和身份统计
+- `buildFusionContext()` — 构建融合上下文（Context Engineering注入）
+
+### 2.2 RealtimeTranslator (Phase 73) (`social/realtime-translator.js`)
+
+AI实时多语言翻译，带缓存。
+
+**核心方法**:
+
+- `initialize()` — 初始化翻译器
+- `translateMessage({ text, sourceLang, targetLang })` — 翻译消息（含缓存）
+- `detectLanguage(text)` — 语言检测（返回语言代码和置信度）
+- `getTranslationStats()` — 翻译统计（总数、缓存命中、缓存大小）
+
+### 2.3 ContentQualityAssessor (Phase 73) (`social/content-quality-assessor.js`)
+
+内容质量评估和有害内容检测。
+
+**常量**:
+
+- `QUALITY_LEVEL`: HIGH, MEDIUM, LOW, HARMFUL
+
+**核心方法**:
+
+- `initialize()` — 初始化评估器
+- `assessQuality({ contentId, content })` — 评估内容质量（返回分数、级别、有害标志）
+- `getQualityReport(filter)` — 质量报告（总数、各级别分布、平均分）
+
+---
+
+## 三、数据库设计
+
+```sql
+-- Phase 72: Protocol Fusion
+CREATE TABLE IF NOT EXISTS unified_messages (
+  id TEXT PRIMARY KEY,
+  source_protocol TEXT NOT NULL,
+  target_protocol TEXT,
+  sender_id TEXT,
+  content TEXT,
+  unified_format TEXT,
+  converted INTEGER DEFAULT 0,
+  routed INTEGER DEFAULT 0,
+  created_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS identity_mappings (
+  id TEXT PRIMARY KEY,
+  did_id TEXT,
+  activitypub_id TEXT,
+  nostr_pubkey TEXT,
+  matrix_id TEXT,
+  verified INTEGER DEFAULT 0,
+  created_at INTEGER
+);
+
+-- Phase 73: AI Social
+CREATE TABLE IF NOT EXISTS content_quality_scores (
+  id TEXT PRIMARY KEY,
+  content_id TEXT,
+  content_hash TEXT,
+  quality_level TEXT,
+  quality_score REAL,
+  harmful_detected INTEGER DEFAULT 0,
+  categories TEXT,
+  reviewer_count INTEGER DEFAULT 0,
+  consensus_reached INTEGER DEFAULT 0,
+  created_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS translation_cache (
+  id TEXT PRIMARY KEY,
+  source_text TEXT,
+  source_lang TEXT,
+  target_lang TEXT,
+  translated_text TEXT,
+  model_used TEXT,
+  created_at INTEGER
+);
+```
+
+---
+
+## 四、IPC接口设计
+
+### Phase 72 — ProtocolFusionIPC (5 handlers)
+
+| 通道                                  | 说明         |
+| ------------------------------------- | ------------ |
+| `protocol-fusion:get-unified-feed`    | 统一消息流   |
+| `protocol-fusion:send-message`        | 跨协议消息   |
+| `protocol-fusion:map-identity`        | 映射身份     |
+| `protocol-fusion:get-identity-map`    | 查询身份映射 |
+| `protocol-fusion:get-protocol-status` | 协议统计     |
+
+### Phase 73 — AISocialIPC (5 handlers)
+
+| 通道                              | 说明         |
+| --------------------------------- | ------------ |
+| `ai-social:translate-message`     | 翻译消息     |
+| `ai-social:detect-language`       | 语言检测     |
+| `ai-social:assess-quality`        | 内容质量评估 |
+| `ai-social:get-quality-report`    | 质量报告     |
+| `ai-social:get-translation-stats` | 翻译统计     |
+
+---
+
+## 五、前端集成
+
+### Pinia Stores
+
+- `protocolFusion.ts` — 统一消息流、身份映射、协议状态
+- `aiSocialEnhancement.ts` — 翻译结果、质量评估、统计
+
+### Vue Pages
+
+- `ProtocolFusionPage.vue` — 统一消息/身份映射/协议管理
+- `AISocialEnhancementPage.vue` — 翻译/质量评估/统计
+
+### Routes
+
+- `/protocol-fusion` — 协议融合
+- `/ai-social-enhancement` — AI社交增强
+
+---
+
+## 六、配置选项
+
+```javascript
+protocolFusion: {
+  enabled: false,
+  supportedProtocols: ['did', 'activitypub', 'nostr', 'matrix'],
+  autoSyncEnabled: false,
+  identityVerificationRequired: true,
+},
+aiSocialEnhancement: {
+  enabled: false,
+  defaultTargetLang: 'en',
+  cacheEnabled: true,
+  qualityThreshold: 0.5,
+},
+```
+
+---
+
+## 七、Context Engineering
+
+- step 4.11: `setProtocolFusionBridge()` — 注入协议融合上下文

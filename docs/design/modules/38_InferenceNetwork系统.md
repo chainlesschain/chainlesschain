@@ -1,0 +1,159 @@
+# Phase 67 — 去中心化推理网络系统设计
+
+**版本**: v3.1.0
+**创建日期**: 2026-02-28
+**状态**: ✅ 已实现 (v3.1.0)
+
+---
+
+## 一、模块概述
+
+Phase 67 引入去中心化推理网络，实现跨节点的AI推理任务调度、负载均衡和隐私保护推理。
+
+### 1.1 核心目标
+
+1. **节点注册**: 推理节点发现和能力注册
+2. **任务调度**: 智能路由推理任务到最优节点
+3. **隐私推理**: 支持标准/加密/联邦学习模式
+4. **负载均衡**: 基于GPU/内存/延迟的动态调度
+
+### 1.2 技术架构
+
+```
+┌──────────────────────────────────────┐
+│       Inference Network              │
+│  ┌────────────────────────────────┐  │
+│  │   InferenceNodeRegistry       │  │
+│  │   - 节点注册/发现/心跳        │  │
+│  └────────────────────────────────┘  │
+│  ┌────────────────────────────────┐  │
+│  │   InferenceScheduler           │  │
+│  │   - 任务调度/负载均衡/隐私     │  │
+│  └────────────────────────────────┘  │
+│  ┌────────────────────────────────┐  │
+│  │   InferenceIPC (6 handlers)    │  │
+│  └────────────────────────────────┘  │
+└──────────────────────────────────────┘
+```
+
+---
+
+## 二、核心模块设计
+
+### 2.1 InferenceNodeRegistry (`ai-engine/inference/inference-node-registry.js`)
+
+推理节点注册表，管理节点生命周期。
+
+**常量**:
+
+- `NODE_STATUS`: ONLINE, OFFLINE, BUSY, DEGRADED
+
+**核心方法**:
+
+- `initialize()` — 初始化并加载已注册节点
+- `registerNode({ nodeId, endpoint, capabilities, gpuMemory })` — 注册推理节点
+- `unregisterNode(nodeId)` — 注销节点
+- `heartbeat(nodeId)` — 节点心跳更新
+- `listNodes(filter)` — 列出节点（status, capability）
+- `getNodeStatus(nodeId)` — 获取节点状态
+
+### 2.2 InferenceScheduler (`ai-engine/inference/inference-scheduler.js`)
+
+推理任务调度器，支持多种隐私模式。
+
+**常量**:
+
+- `TASK_STATUS`: QUEUED, DISPATCHED, RUNNING, COMPLETE, FAILED
+- `PRIVACY_MODE`: STANDARD, ENCRYPTED, FEDERATED
+
+**核心方法**:
+
+- `initialize()` — 初始化调度器
+- `setNodeRegistry(registry)` — 注入节点注册表
+- `submitTask({ model, input, privacyMode, priority })` — 提交推理任务
+- `getTaskStatus(taskId)` — 查询任务状态
+- `getSchedulerStats()` — 获取调度统计（队列长度、完成数、平均延迟）
+- `buildInferenceContext()` — 构建推理网络上下文（Context Engineering注入）
+
+---
+
+## 三、数据库设计
+
+```sql
+CREATE TABLE IF NOT EXISTS inference_nodes (
+  id TEXT PRIMARY KEY,
+  node_id TEXT NOT NULL UNIQUE,
+  endpoint TEXT,
+  capabilities TEXT,
+  gpu_memory_mb INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'online',
+  last_heartbeat INTEGER,
+  task_count INTEGER DEFAULT 0,
+  created_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS inference_tasks (
+  id TEXT PRIMARY KEY,
+  model TEXT NOT NULL,
+  input TEXT,
+  output TEXT,
+  privacy_mode TEXT DEFAULT 'standard',
+  priority INTEGER DEFAULT 5,
+  assigned_node TEXT,
+  status TEXT DEFAULT 'queued',
+  duration_ms INTEGER,
+  created_at INTEGER,
+  completed_at INTEGER
+);
+```
+
+---
+
+## 四、IPC接口设计
+
+### InferenceIPC (6 handlers)
+
+| 通道                        | 说明         |
+| --------------------------- | ------------ |
+| `inference:register-node`   | 注册推理节点 |
+| `inference:unregister-node` | 注销节点     |
+| `inference:list-nodes`      | 列出节点     |
+| `inference:submit-task`     | 提交推理任务 |
+| `inference:get-task-status` | 查询任务状态 |
+| `inference:get-stats`       | 获取调度统计 |
+
+---
+
+## 五、前端集成
+
+### Pinia Store
+
+- `inferenceNetwork.ts` — 节点列表、任务队列、调度统计
+
+### Vue Page
+
+- `InferenceNetworkPage.vue` — 节点管理/任务提交/实时监控
+
+### Route
+
+- `/inference-network` — 推理网络
+
+---
+
+## 六、配置选项
+
+```javascript
+inferenceNetwork: {
+  enabled: false,
+  maxNodes: 100,
+  heartbeatIntervalMs: 30000,
+  defaultPrivacyMode: 'standard',
+  federatedLearningEnabled: false,
+},
+```
+
+---
+
+## 七、Context Engineering
+
+- step 4.10: `setInferenceScheduler()` — 注入推理网络上下文

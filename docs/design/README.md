@@ -44,7 +44,13 @@ docs/design/
 │   ├── 33_SLAManager系统.md         # ⭐Phase 61 SLA管理/违约检测
 │   ├── 34_TechLearning系统.md       # ⭐Phase 62 技术学习/最佳实践
 │   ├── 35_AutonomousDeveloper系统.md # ⭐Phase 63 自主开发/L2编码
-│   └── 36_CollaborationGovernance系统.md # ⭐Phase 64 协作治理/冲突解决
+│   ├── 36_CollaborationGovernance系统.md # ⭐Phase 64 协作治理/冲突解决
+│   ├── 37_SkillMarketplace系统.md  # ⭐Phase 65-66 技能市场/代币激励
+│   ├── 38_InferenceNetwork系统.md  # ⭐Phase 67 去中心化推理网络
+│   ├── 39_TrustSecurity系统.md     # ⭐Phase 68-71 信任根/PQC/卫星/HSM
+│   ├── 40_ProtocolFusion系统.md    # ⭐Phase 72-73 协议融合/AI社交增强
+│   ├── 41_DecentralizedInfra系统.md # ⭐Phase 74-75 去中心化存储/抗审查
+│   └── 42_EvoMapAdvanced系统.md    # ⭐Phase 76-77 EvoMap联邦/治理DAO
 ├── 安全机制设计.md                   # U盾/SIMKey安全 (含PQC/门限签名/生物识别)
 ├── 数据同步方案.md                   # Git/HTTP/P2P同步
 ├── AI模型部署方案.md                 # Ollama/云端模型
@@ -129,6 +135,32 @@ docs/design/
 | **自主开发者** ⭐   | [35_AutonomousDeveloper系统.md](modules/35_AutonomousDeveloper系统.md)         | **Phase 63**,L2自主编码,架构决策,代码审查,重构   |
 | **协作治理** ⭐     | [36_CollaborationGovernance系统.md](modules/36_CollaborationGovernance系统.md) | **Phase 64**,任务分配,冲突解决,质量评估,自主级别 |
 
+### Phase 65-67 模块 (v3.1.0 技能市场+推理网络)
+
+| 模块            | 文档                                                             | 说明                                        |
+| --------------- | ---------------------------------------------------------------- | ------------------------------------------- |
+| **技能市场** ⭐ | [37_SkillMarketplace系统.md](modules/37_SkillMarketplace系统.md) | **Phase 65-66**,技能发布/调用/计费,代币激励 |
+| **推理网络** ⭐ | [38_InferenceNetwork系统.md](modules/38_InferenceNetwork系统.md) | **Phase 67**,节点注册,任务调度,隐私推理     |
+
+### Phase 68-71 模块 (v3.2.0 信任安全)
+
+| 模块                | 文档                                                       | 说明                                          |
+| ------------------- | ---------------------------------------------------------- | --------------------------------------------- |
+| **信任安全系统** ⭐ | [39_TrustSecurity系统.md](modules/39_TrustSecurity系统.md) | **Phase 68-71**,TPM/TEE/SE信任根,PQC,卫星,HSM |
+
+### Phase 72-75 模块 (v3.3.0 协议融合+去中心化基础设施)
+
+| 模块                    | 文档                                                                 | 说明                                            |
+| ----------------------- | -------------------------------------------------------------------- | ----------------------------------------------- |
+| **协议融合** ⭐         | [40_ProtocolFusion系统.md](modules/40_ProtocolFusion系统.md)         | **Phase 72-73**,四协议桥接,实时翻译,内容质量    |
+| **去中心化基础设施** ⭐ | [41_DecentralizedInfra系统.md](modules/41_DecentralizedInfra系统.md) | **Phase 74-75**,Filecoin存储,P2P分发,抗审查通信 |
+
+### Phase 76-77 模块 (v3.4.0 EvoMap高级)
+
+| 模块              | 文档                                                         | 说明                                              |
+| ----------------- | ------------------------------------------------------------ | ------------------------------------------------- |
+| **EvoMap高级** ⭐ | [42_EvoMapAdvanced系统.md](modules/42_EvoMapAdvanced系统.md) | **Phase 76-77**,多Hub联邦,基因谱系,IP保护,治理DAO |
+
 ### 基础设施
 
 | 文档                                                   | 说明                                         |
@@ -173,4 +205,4 @@ docs/design/
 
 ---
 
-**最后更新**: 2026-02-28 (v3.0.0, Phase 41-64 完整实现)
+**最后更新**: 2026-02-28 (v3.4.0, Phase 41-77 完整实现)
