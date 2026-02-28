@@ -1276,6 +1276,123 @@ const routes: RouteRecordRaw[] = [
           ),
         meta: { title: 'Collaboration Governance' },
       },
+      {
+        path: 'skill-marketplace',
+        name: 'SkillMarketplace',
+        component: () =>
+          import(
+            /* webpackChunkName: "skill-marketplace" */ '../pages/ai/SkillMarketplacePage.vue'
+          ),
+        meta: { title: 'Skill Marketplace' },
+      },
+      {
+        path: 'token-incentive',
+        name: 'TokenIncentive',
+        component: () =>
+          import(
+            /* webpackChunkName: "token-incentive" */ '../pages/ai/TokenIncentivePage.vue'
+          ),
+        meta: { title: 'Token Incentive' },
+      },
+      {
+        path: 'inference-network',
+        name: 'InferenceNetwork',
+        component: () =>
+          import(
+            /* webpackChunkName: "inference-network" */ '../pages/ai/InferenceNetworkPage.vue'
+          ),
+        meta: { title: 'Inference Network' },
+      },
+      {
+        path: 'trust-root',
+        name: 'TrustRoot',
+        component: () =>
+          import(
+            /* webpackChunkName: "trust-root" */ '../pages/security/TrustRootPage.vue'
+          ),
+        meta: { title: 'Trinity Trust Root' },
+      },
+      {
+        path: 'pqc-ecosystem',
+        name: 'PQCEcosystem',
+        component: () =>
+          import(
+            /* webpackChunkName: "pqc-ecosystem" */ '../pages/security/PQCEcosystemPage.vue'
+          ),
+        meta: { title: 'PQC Full Migration' },
+      },
+      {
+        path: 'satellite-comm',
+        name: 'SatelliteComm',
+        component: () =>
+          import(
+            /* webpackChunkName: "satellite-comm" */ '../pages/security/SatelliteCommPage.vue'
+          ),
+        meta: { title: 'Satellite Communication' },
+      },
+      {
+        path: 'hsm-adapter',
+        name: 'HSMAdapter',
+        component: () =>
+          import(
+            /* webpackChunkName: "hsm-adapter" */ '../pages/security/HSMAdapterPage.vue'
+          ),
+        meta: { title: 'HSM Adapters' },
+      },
+      {
+        path: 'protocol-fusion',
+        name: 'ProtocolFusion',
+        component: () =>
+          import(
+            /* webpackChunkName: "protocol-fusion" */ '../pages/social/ProtocolFusionPage.vue'
+          ),
+        meta: { title: 'Protocol Fusion' },
+      },
+      {
+        path: 'ai-social-enhancement',
+        name: 'AISocialEnhancement',
+        component: () =>
+          import(
+            /* webpackChunkName: "ai-social-enhancement" */ '../pages/social/AISocialEnhancementPage.vue'
+          ),
+        meta: { title: 'AI Social Enhancement' },
+      },
+      {
+        path: 'decentralized-storage',
+        name: 'DecentralizedStorage',
+        component: () =>
+          import(
+            /* webpackChunkName: "decentralized-storage" */ '../pages/social/DecentralizedStoragePage.vue'
+          ),
+        meta: { title: 'Decentralized Storage' },
+      },
+      {
+        path: 'anti-censorship',
+        name: 'AntiCensorship',
+        component: () =>
+          import(
+            /* webpackChunkName: "anti-censorship" */ '../pages/security/AntiCensorshipPage.vue'
+          ),
+        meta: { title: 'Anti-Censorship' },
+      },
+      {
+        path: 'evomap-federation',
+        name: 'EvoMapFederation',
+        component: () =>
+          import(
+            /* webpackChunkName: "evomap-federation" */ '../pages/ai/EvoMapFederationPage.vue'
+          ),
+        meta: { title: 'EvoMap Federation' },
+      },
+      {
+        path: 'evomap-governance',
+        name: 'EvoMapGovernance',
+        component: () =>
+          import(
+            /* webpackChunkName: "evomap-governance" */ '../pages/ai/EvoMapGovernancePage.vue'
+          ),
+        meta: { title: 'EvoMap Governance' },
+      },
     ],
   },
 ];

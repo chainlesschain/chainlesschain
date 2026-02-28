@@ -542,6 +542,85 @@ class UnifiedConfigManager {
         workerEnabled: false,
         workerDomains: [],
       },
+      skillService: {
+        enabled: false,
+        maxConcurrentInvocations: 10,
+        defaultTimeout: 30000,
+        publishRequiresApproval: true,
+      },
+      tokenIncentive: {
+        enabled: false,
+        initialBalance: 0,
+        rewardMultiplier: 1.0,
+        reputationWeightEnabled: true,
+      },
+      inferenceNetwork: {
+        enabled: false,
+        maxNodes: 100,
+        heartbeatIntervalMs: 30000,
+        defaultPrivacyMode: "standard",
+        federatedLearningEnabled: false,
+      },
+      trustRoot: {
+        enabled: false,
+        attestationIntervalMs: 3600000,
+        bootVerificationEnabled: true,
+        fingerprintBindingRequired: false,
+      },
+      pqcEcosystem: {
+        fullMigrationEnabled: false,
+        hybridTransitionPeriodDays: 90,
+      },
+      satellite: {
+        enabled: false,
+        provider: "iridium",
+        compressionEnabled: true,
+        maxMessageSizeBytes: 65536,
+        revocationBroadcastTimeoutMs: 10000,
+      },
+      hsmAdapter: {
+        enabled: false,
+        supportedVendors: ["yubikey", "ledger", "trezor"],
+        complianceLevel: "FIPS-140-3",
+        autoDiscovery: true,
+      },
+      protocolFusion: {
+        enabled: false,
+        supportedProtocols: ["did", "activitypub", "nostr", "matrix"],
+        autoSyncEnabled: false,
+        identityVerificationRequired: true,
+      },
+      aiSocialEnhancement: {
+        enabled: false,
+        defaultTargetLang: "en",
+        cacheEnabled: true,
+        qualityThreshold: 0.5,
+      },
+      decentralizedStorage: {
+        enabled: false,
+        filecoinEnabled: false,
+        maxDealSizeBytes: 1073741824,
+        cacheHotContentEnabled: true,
+      },
+      antiCensorship: {
+        enabled: false,
+        torEnabled: false,
+        domainFrontingEnabled: false,
+        meshNetworkEnabled: false,
+      },
+      evoMapFederation: {
+        enabled: false,
+        maxHubs: 50,
+        syncIntervalMs: 60000,
+        evolutionPressureEnabled: true,
+        recombinationEnabled: true,
+      },
+      evoMapGovernance: {
+        enabled: false,
+        votingDurationMs: 604800000,
+        quorumPercentage: 10,
+        disputeArbitrationEnabled: true,
+      },
     };
   }
 
