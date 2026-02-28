@@ -1,0 +1,234 @@
+# Phase 48 — 智能内容推荐系统设计
+
+**版本**: v1.1.0
+**创建日期**: 2026-02-28
+**状态**: ✅ 已实现 (v1.1.0-alpha)
+
+---
+
+## 一、模块概述
+
+Phase 48 引入本地智能内容推荐系统，基于用户兴趣画像进行个性化内容推荐，无需云端依赖。
+
+### 1.1 核心目标
+
+1. **兴趣画像构建**: 基于用户交互历史自动构建兴趣画像
+2. **本地推荐引擎**: 纯本地推荐算法，保护隐私
+3. **反馈闭环**: 用户反馈驱动推荐质量持续优化
+4. **多内容类型**: 支持笔记、帖子、文章等多种内容推荐
+
+### 1.2 技术架构
+
+```
+┌──────────────────────────────────────────────────────┐
+│                   Application Layer                  │
+│  Pinia Store (recommendation.ts)                     │
+│  RecommendationsPage.vue                             │
+└───────────────────────┬──────────────────────────────┘
+                        │ IPC (6 channels)
+┌───────────────────────┼──────────────────────────────┐
+│                       ▼                              │
+│  ┌─────────────────────────────────────────────┐    │
+│  │ Local Recommender                           │    │
+│  │ - Content Scoring                           │    │
+│  │ - Recommendation Generation                 │    │
+│  │ - Feedback Processing                       │    │
+│  └───────────────┬─────────────────────────────┘    │
+│                  │                                   │
+│  ┌───────────────┼─────────────────────────────┐    │
+│  │ Interest Profiler                           │    │
+│  │ - Topic Extraction                          │    │
+│  │ - Interaction Weights                       │    │
+│  │ - Time-Decay Model (factor: 0.9)            │    │
+│  └─────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 二、核心模块设计
+
+### 2.1 Local Recommender
+
+**文件**: `desktop-app-vue/src/main/social/local-recommender.js`
+
+**功能**:
+
+- 基于兴趣画像评分内容
+- 批量生成推荐列表 (最多50条/批)
+- 推荐浏览标记与反馈收集
+- 推荐统计 (总数、已看、反馈率)
+
+**API**:
+
+```javascript
+class LocalRecommender extends EventEmitter {
+  async initialize()
+  setInterestProfiler(profiler) // 注入兴趣画像器
+  async getRecommendations({ userId, limit = 20, contentType, minScore = 0.3 })
+  async generateRecommendations({ userId, contentPool })
+  async markViewed(recommendationId)
+  async provideFeedback({ recommendationId, feedback })
+  async getStats(userId)
+  async close()
+}
+```
+
+### 2.2 Interest Profiler
+
+**文件**: `desktop-app-vue/src/main/social/interest-profiler.js`
+
+**功能**:
+
+- 用户兴趣画像 CRUD
+- 基于主题分析和社交互动构建画像
+- 时间衰减模型 (decay factor: 0.9)
+- 交互权重归一化
+
+**API**:
+
+```javascript
+class InterestProfiler extends EventEmitter {
+  async initialize()
+  async getProfile(userId) // 获取用户兴趣画像
+  async updateProfile({ userId, interactions }) // 增量更新
+  async buildProfileFromHistory({ userId, topicAnalyses, socialInteractions })
+  async close()
+}
+```
+
+---
+
+## 三、数据库设计
+
+### 3.1 content_recommendations (内容推荐)
+
+```sql
+CREATE TABLE IF NOT EXISTS content_recommendations (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  content_id TEXT,
+  content_type TEXT,
+  score REAL,
+  reason TEXT,
+  source TEXT,
+  status TEXT DEFAULT 'pending',
+  created_at INTEGER,
+  viewed_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_content_recommendations_user ON content_recommendations(user_id);
+CREATE INDEX IF NOT EXISTS idx_content_recommendations_score ON content_recommendations(score DESC);
+```
+
+### 3.2 user_interest_profiles (用户兴趣画像)
+
+```sql
+CREATE TABLE IF NOT EXISTS user_interest_profiles (
+  id TEXT PRIMARY KEY,
+  user_id TEXT UNIQUE,
+  topics BLOB,
+  interaction_weights BLOB,
+  last_updated INTEGER,
+  update_count INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_user_interest_profiles_user ON user_interest_profiles(user_id);
+```
+
+---
+
+## 四、IPC 接口设计
+
+**文件**: `desktop-app-vue/src/main/social/recommendation-ipc.js`
+
+### 4.1 推荐 IPC (4个)
+
+- `recommendation:get-recommendations` - 获取推荐列表
+- `recommendation:generate` - 从内容池生成推荐
+- `recommendation:mark-viewed` - 标记推荐为已查看
+- `recommendation:feedback` - 提供推荐反馈
+
+### 4.2 画像 IPC (2个)
+
+- `recommendation:get-profile` - 获取用户兴趣画像
+- `recommendation:update-profile` - 更新兴趣画像
+
+---
+
+## 五、前端集成
+
+### 5.1 Pinia Store (`stores/recommendation.ts`)
+
+```typescript
+interface ContentRecommendation {
+  id: string;
+  content_id: string;
+  content_type: string;
+  score: number;
+  reason: string;
+  status: string;
+  viewed_at: number | null;
+}
+
+interface InterestProfile {
+  topics: Record<string, number>;
+  interaction_weights: Record<string, number>;
+  last_updated: number;
+}
+
+const useRecommendationStore = defineStore('recommendation', {
+  state: () => ({
+    recommendations: [] as ContentRecommendation[],
+    profile: null as InterestProfile | null,
+    stats: null,
+    loading: false,
+    error: null as string | null,
+  }),
+  getters: {
+    pendingRecommendations, // 未查看推荐
+    topRecommendations,     // 高分推荐 (前10)
+  },
+  actions: {
+    fetchRecommendations(), generateRecommendations(),
+    markViewed(), provideFeedback(),
+    fetchProfile(), updateProfile(), fetchStats(),
+  }
+})
+```
+
+### 5.2 UI 页面 (`pages/social/RecommendationsPage.vue`)
+
+- 推荐内容卡片列表 (评分、来源、推荐理由)
+- 兴趣画像可视化 (主题标签云、权重分布)
+- 反馈按钮 (喜欢/不感兴趣/稍后查看)
+- 推荐统计仪表板
+
+---
+
+## 六、配置选项
+
+```javascript
+// unified-config-manager.js → socialAI.recommendation
+socialAI: {
+  recommendation: {
+    enabled: true,
+    minScore: 0.3,        // 最低推荐分数
+    maxBatchSize: 50,     // 每批最大推荐数
+    decayFactor: 0.9,     // 时间衰减因子
+    refreshInterval: 3600 // 刷新间隔 (秒)
+  }
+}
+```
+
+---
+
+## 七、测试覆盖
+
+- ✅ `local-recommender.test.js` - 推荐引擎
+- ✅ `interest-profiler.test.js` - 兴趣画像
+- ✅ `recommendation-ipc.test.js` - IPC处理器
+- ✅ `recommendation.test.ts` - Pinia Store
+
+---
+
+**文档版本**: 1.0.0
+**最后更新**: 2026-02-28

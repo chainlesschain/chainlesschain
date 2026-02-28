@@ -117,7 +117,57 @@ docs/
 └── ...                          # 其他20+个分类
 ```
 
-## 🎯 文档更新 (v0.26.2)
+## 🎯 文档更新
+
+### v1.1.0-alpha (2026-02-28) ⭐最新
+
+**Phase 52-56 (Q4 2026) 企业版功能**:
+
+- ✅ **Phase 52 - 量子后加密迁移 (PQC Migration)**
+  - ML-KEM/ML-DSA 后量子算法支持
+  - 混合模式：传统 + 后量子双重保护
+  - 自动化迁移和进度追踪
+  - 文档: [功能详解 - PQC部分](./FEATURES.md#量子后加密迁移-pqc-migration-新增-phase-52)
+
+- ✅ **Phase 53 - 固件OTA更新 (Firmware OTA)**
+  - U-Key固件自动更新
+  - 签名验证和安全安装
+  - 自动回滚机制
+  - 文档: [功能详解 - 固件OTA部分](./FEATURES.md#固件ota更新-firmware-ota-新增-phase-53)
+
+- ✅ **Phase 54 - AI社区治理 (AI Community Governance)**
+  - 提案管理和AI影响分析
+  - 投票预测和治理自动化
+  - 文档: [功能详解 - 治理部分](./FEATURES.md#ai社区治理-ai-community-governance-新增-phase-54)
+
+- ✅ **Phase 55 - Matrix协议集成 (Matrix Integration)**
+  - Matrix Client-Server API
+  - E2EE加密消息（Olm/Megolm）
+  - DID ↔ Matrix ID 桥接
+  - 文档: [功能详解 - Matrix部分](./FEATURES.md#matrix协议集成-matrix-integration-新增-phase-55)
+
+- ✅ **Phase 56 - Terraform提供商 (Terraform Provider)**
+  - IaC基础设施即代码
+  - 工作区和状态管理
+  - Plan/Apply/Destroy运行
+  - 文档: [功能详解 - Terraform部分](./FEATURES.md#terraform提供商-terraform-provider-新增-phase-56)
+
+**代码更新**:
+
+- ⭐新增 25个主进程文件（5个manager + 5个IPC + 其他）
+- ⭐新增 5个Pinia stores（TypeScript）
+- ⭐新增 5个Vue页面（security×2, social×2, enterprise×1）
+- ⭐新增 10个数据库表
+- ⭐新增 21个IPC处理器
+
+**文档更新**:
+
+- 更新 [CHANGELOG.md](./CHANGELOG.md) - v1.1.0版本记录
+- 更新 [FEATURES.md](./FEATURES.md) - 新增5个功能模块详解
+- 更新 [ARCHITECTURE.md](./ARCHITECTURE.md) - 架构图和数据库设计
+- 更新文档导航系统
+
+### v0.26.2 (历史版本)
 
 - ✅ 重组文档目录结构
 - ✅ 新增4个文档分类 (flows/implementation-reports/status-reports/test-reports)
