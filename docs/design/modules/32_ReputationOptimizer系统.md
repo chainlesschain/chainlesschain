@@ -1,0 +1,169 @@
+# Phase 60 — 信誉优化器系统设计
+
+**版本**: v2.0.0
+**创建日期**: 2026-02-28
+**状态**: ✅ 已实现 (v2.0.0)
+
+---
+
+## 一、模块概述
+
+Phase 60 引入信誉优化器，使用贝叶斯优化和异常检测技术优化信誉算法参数，提升信誉系统的准确性和抗攻击能力。
+
+### 1.1 核心功能
+
+- **贝叶斯优化**: 自动优化信誉算法参数
+- **异常检测**: 统计学 + 机器学习双重检测
+- **信誉衰减**: 时间衰减、活跃度衰减
+- **博弈论防作弊**: 串通检测、刷分防御
+
+---
+
+## 二、核心模块设计
+
+### 2.1 Reputation Optimizer
+
+**文件**: `desktop-app-vue/src/main/ai-engine/cowork/reputation-optimizer.js`
+
+**优化目标**:
+
+```javascript
+const OPTIMIZATION_OBJECTIVES = {
+  ACCURACY: "accuracy", // 准确性
+  FAIRNESS: "fairness", // 公平性
+  RESILIENCE: "resilience", // 抗攻击性
+  CONVERGENCE_SPEED: "convergence_speed", // 收敛速度
+};
+```
+
+**异常检测方法**:
+
+```javascript
+const ANOMALY_DETECTORS = {
+  IQR: "iqr", // 四分位距法
+  ISOLATION_FOREST: "isolation_forest", // 孤立森林
+  Z_SCORE: "z_score", // Z分数法
+  LOF: "lof", // 局部异常因子
+};
+```
+
+**API方法**:
+
+```javascript
+class ReputationOptimizer {
+  // 启动优化
+  async startOptimization(objective, iterations = 100) {}
+
+  // 获取优化状态
+  async getOptimizationStatus(runId) {}
+
+  // 获取分析报告
+  async getAnalytics(runId) {}
+
+  // 检测异常
+  async detectAnomalies(method = "isolation_forest") {}
+
+  // 应用优化结果
+  async applyOptimizedParams(runId) {}
+}
+```
+
+---
+
+## 三、衰减模型
+
+### 3.1 时间衰减
+
+```javascript
+// 指数衰减
+reputation_t = (reputation_0 * e) ^ -λt;
+
+// 线性衰减
+reputation_t = reputation_0 * (1 - αt);
+
+// 阶梯衰减
+reputation_t = reputation_0 * step(t, thresholds);
+```
+
+### 3.2 活跃度衰减
+
+```javascript
+// 活跃度系数
+activity_factor = days_active / total_days;
+
+// 衰减后信誉
+final_reputation = base_reputation * activity_factor;
+```
+
+---
+
+## 四、数据库设计
+
+```sql
+CREATE TABLE IF NOT EXISTS reputation_optimization_runs (
+  run_id TEXT PRIMARY KEY,
+  objective TEXT NOT NULL,
+  iterations INTEGER NOT NULL,
+  param_space TEXT NOT NULL,
+  best_params TEXT,
+  best_score REAL,
+  status TEXT DEFAULT 'running',
+  created_at INTEGER NOT NULL,
+  completed_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS reputation_analytics (
+  analytics_id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  reputation_distribution TEXT,
+  anomalies TEXT,
+  recommendations TEXT,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES reputation_optimization_runs(run_id)
+);
+```
+
+---
+
+## 五、IPC 接口 (4个)
+
+```javascript
+const CHANNELS = [
+  "reputation-optimizer:start-optimization",
+  "reputation-optimizer:get-optimization-status",
+  "reputation-optimizer:get-analytics",
+  "reputation-optimizer:get-anomalies",
+];
+```
+
+---
+
+## 六、配置管理
+
+```javascript
+reputationOptimizer: {
+  enabled: true,
+  bayesianOptimization: {
+    iterations: 100,
+    acquisitionFunction: 'ucb', // upper confidence bound
+    kappa: 2.576, // 99% confidence
+  },
+  anomalyDetection: {
+    method: 'isolation_forest',
+    contamination: 0.05, // 5%异常率
+    threshold: 0.5,
+  },
+  decayModel: {
+    type: 'exponential', // exponential/linear/step
+    lambda: 0.1, // 衰减系数
+  },
+}
+```
+
+---
+
+**相关文档**:
+
+- [Phase 59 — 压力测试系统](./31_StressTest系统.md)
+- [Phase 61 — SLA管理系统](./33_SLAManager系统.md)
+- [Cowork 信誉系统](./13_多代理系统.md#信誉系统)
