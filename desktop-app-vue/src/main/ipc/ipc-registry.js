@@ -4956,6 +4956,607 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 65: Skill-as-a-Service (v3.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Skill-as-a-Service modules...");
+
+      const {
+        SkillServiceProtocol,
+      } = require("../marketplace/skill-service-protocol");
+      const {
+        registerSkillServiceIPC,
+      } = require("../marketplace/skill-service-ipc");
+
+      const database = dependencies.database || null;
+
+      const skillServiceProtocol = new SkillServiceProtocol(database);
+
+      if (database) {
+        skillServiceProtocol
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] SkillServiceProtocol init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerSkillServiceIPC({ skillServiceProtocol });
+
+      registeredModules.skillServiceProtocol = skillServiceProtocol;
+
+      logger.info(
+        "[IPC Registry] ✓ Skill-as-a-Service registered (5 IPC handlers)",
+      );
+    } catch (phase65Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 65 registration failed (non-fatal):",
+        phase65Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 66: Token Incentive (v3.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Token Incentive modules...");
+
+      const { TokenLedger } = require("../marketplace/token-ledger");
+      const { registerTokenIPC } = require("../marketplace/token-ipc");
+
+      const database = dependencies.database || null;
+
+      const tokenLedger = new TokenLedger(database);
+
+      if (database) {
+        tokenLedger
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] TokenLedger init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerTokenIPC({ tokenLedger });
+
+      registeredModules.tokenLedger = tokenLedger;
+
+      logger.info(
+        "[IPC Registry] ✓ Token Incentive registered (5 IPC handlers)",
+      );
+    } catch (phase66Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 66 registration failed (non-fatal):",
+        phase66Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 67: Decentralized Inference Network (v3.1.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Inference Network modules...");
+
+      const {
+        InferenceNodeRegistry,
+      } = require("../ai-engine/inference/inference-node-registry");
+      const {
+        InferenceScheduler,
+      } = require("../ai-engine/inference/inference-scheduler");
+      const {
+        registerInferenceIPC,
+      } = require("../ai-engine/inference/inference-ipc");
+
+      const database = dependencies.database || null;
+
+      const inferenceNodeRegistry = new InferenceNodeRegistry(database);
+      const inferenceScheduler = new InferenceScheduler(database);
+      inferenceScheduler.setNodeRegistry(inferenceNodeRegistry);
+
+      if (database) {
+        inferenceNodeRegistry
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] InferenceNodeRegistry init warning:",
+              err.message,
+            ),
+          );
+        inferenceScheduler
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] InferenceScheduler init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerInferenceIPC({ inferenceNodeRegistry, inferenceScheduler });
+
+      registeredModules.inferenceNodeRegistry = inferenceNodeRegistry;
+      registeredModules.inferenceScheduler = inferenceScheduler;
+
+      logger.info(
+        "[IPC Registry] ✓ Inference Network registered (6 IPC handlers)",
+      );
+    } catch (phase67Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 67 registration failed (non-fatal):",
+        phase67Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] v3.1.0 Complete: Decentralized AI Market ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 68: Trinity Trust Root (v3.2.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Trinity Trust Root modules...");
+
+      const { TrustRootManager } = require("../ukey/trust-root-manager");
+      const { registerTrustRootIPC } = require("../ukey/trust-root-ipc");
+
+      const database = dependencies.database || null;
+
+      const trustRootManager = new TrustRootManager(database);
+
+      if (database) {
+        trustRootManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] TrustRootManager init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerTrustRootIPC({ trustRootManager });
+
+      registeredModules.trustRootManager = trustRootManager;
+
+      logger.info(
+        "[IPC Registry] ✓ Trinity Trust Root registered (5 IPC handlers)",
+      );
+    } catch (phase68Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 68 registration failed (non-fatal):",
+        phase68Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 69: PQC Full Migration (v3.2.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering PQC Ecosystem modules...");
+
+      const { PQCEcosystemManager } = require("../ukey/pqc-ecosystem-manager");
+      const { registerPQCEcosystemIPC } = require("../ukey/pqc-ecosystem-ipc");
+
+      const database = dependencies.database || null;
+
+      const pqcEcosystemManager = new PQCEcosystemManager(database);
+
+      if (database) {
+        pqcEcosystemManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] PQCEcosystemManager init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerPQCEcosystemIPC({ pqcEcosystemManager });
+
+      registeredModules.pqcEcosystemManager = pqcEcosystemManager;
+
+      logger.info("[IPC Registry] ✓ PQC Ecosystem registered (4 IPC handlers)");
+    } catch (phase69Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 69 registration failed (non-fatal):",
+        phase69Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 70: Satellite Communication (v3.2.0)
+    // ============================================================
+
+    try {
+      logger.info(
+        "[IPC Registry] Registering Satellite Communication modules...",
+      );
+
+      const { SatelliteComm } = require("../security/satellite-comm");
+      const { registerSatelliteIPC } = require("../security/satellite-ipc");
+
+      const database = dependencies.database || null;
+
+      const satelliteComm = new SatelliteComm(database);
+
+      if (database) {
+        satelliteComm
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] SatelliteComm init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerSatelliteIPC({ satelliteComm });
+
+      registeredModules.satelliteComm = satelliteComm;
+
+      logger.info(
+        "[IPC Registry] ✓ Satellite Communication registered (5 IPC handlers)",
+      );
+    } catch (phase70Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 70 registration failed (non-fatal):",
+        phase70Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 71: Open Hardware Standard (v3.2.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering HSM Adapter modules...");
+
+      const { HsmAdapterManager } = require("../ukey/hsm-adapter-manager");
+      const { registerHsmAdapterIPC } = require("../ukey/hsm-adapter-ipc");
+
+      const database = dependencies.database || null;
+
+      const hsmAdapterManager = new HsmAdapterManager(database);
+
+      if (database) {
+        hsmAdapterManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] HsmAdapterManager init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerHsmAdapterIPC({ hsmAdapterManager });
+
+      registeredModules.hsmAdapterManager = hsmAdapterManager;
+
+      logger.info("[IPC Registry] ✓ HSM Adapter registered (4 IPC handlers)");
+    } catch (phase71Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 71 registration failed (non-fatal):",
+        phase71Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] v3.2.0 Complete: Hardware Security Ecosystem ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 72: Protocol Fusion Bridge (v3.3.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Protocol Fusion modules...");
+
+      const {
+        ProtocolFusionBridge,
+      } = require("../social/protocol-fusion-bridge");
+      const {
+        registerProtocolFusionIPC,
+      } = require("../social/protocol-fusion-ipc");
+
+      const database = dependencies.database || null;
+
+      const protocolFusionBridge = new ProtocolFusionBridge(database);
+
+      if (database) {
+        protocolFusionBridge
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ProtocolFusionBridge init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerProtocolFusionIPC({ protocolFusionBridge });
+
+      registeredModules.protocolFusionBridge = protocolFusionBridge;
+
+      logger.info(
+        "[IPC Registry] ✓ Protocol Fusion registered (5 IPC handlers)",
+      );
+    } catch (phase72Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 72 registration failed (non-fatal):",
+        phase72Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 73: AI Social Enhancement (v3.3.0)
+    // ============================================================
+
+    try {
+      logger.info(
+        "[IPC Registry] Registering AI Social Enhancement modules...",
+      );
+
+      const { RealtimeTranslator } = require("../social/realtime-translator");
+      const {
+        ContentQualityAssessor,
+      } = require("../social/content-quality-assessor");
+      const { registerAISocialIPC } = require("../social/ai-social-ipc");
+
+      const database = dependencies.database || null;
+
+      const realtimeTranslator = new RealtimeTranslator(database);
+      const contentQualityAssessor = new ContentQualityAssessor(database);
+
+      if (database) {
+        realtimeTranslator
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] RealtimeTranslator init warning:",
+              err.message,
+            ),
+          );
+        contentQualityAssessor
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ContentQualityAssessor init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerAISocialIPC({ realtimeTranslator, contentQualityAssessor });
+
+      registeredModules.realtimeTranslator = realtimeTranslator;
+      registeredModules.contentQualityAssessor = contentQualityAssessor;
+
+      logger.info(
+        "[IPC Registry] ✓ AI Social Enhancement registered (5 IPC handlers)",
+      );
+    } catch (phase73Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 73 registration failed (non-fatal):",
+        phase73Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 74: Decentralized Content Storage (v3.3.0)
+    // ============================================================
+
+    try {
+      logger.info(
+        "[IPC Registry] Registering Decentralized Storage modules...",
+      );
+
+      const { FilecoinStorage } = require("../ipfs/filecoin-storage");
+      const { ContentDistributor } = require("../ipfs/content-distributor");
+      const {
+        registerDecentralizedStorageIPC,
+      } = require("../ipfs/decentralized-storage-ipc");
+
+      const database = dependencies.database || null;
+
+      const filecoinStorage = new FilecoinStorage(database);
+      const contentDistributor = new ContentDistributor(database);
+
+      if (database) {
+        filecoinStorage
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] FilecoinStorage init warning:",
+              err.message,
+            ),
+          );
+        contentDistributor
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ContentDistributor init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerDecentralizedStorageIPC({ filecoinStorage, contentDistributor });
+
+      registeredModules.filecoinStorage = filecoinStorage;
+      registeredModules.contentDistributor = contentDistributor;
+
+      logger.info(
+        "[IPC Registry] ✓ Decentralized Storage registered (5 IPC handlers)",
+      );
+    } catch (phase74Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 74 registration failed (non-fatal):",
+        phase74Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 75: Anti-Censorship Communication (v3.3.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Anti-Censorship modules...");
+
+      const {
+        AntiCensorshipManager,
+      } = require("../security/anti-censorship-manager");
+      const {
+        registerAntiCensorshipIPC,
+      } = require("../security/anti-censorship-ipc");
+
+      const database = dependencies.database || null;
+
+      const antiCensorshipManager = new AntiCensorshipManager(database);
+
+      if (database) {
+        antiCensorshipManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] AntiCensorshipManager init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerAntiCensorshipIPC({ antiCensorshipManager });
+
+      registeredModules.antiCensorshipManager = antiCensorshipManager;
+
+      logger.info(
+        "[IPC Registry] ✓ Anti-Censorship registered (5 IPC handlers)",
+      );
+    } catch (phase75Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 75 registration failed (non-fatal):",
+        phase75Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] v3.3.0 Complete: Global Decentralized Social ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
+    // Phase 76: Global Evolution Network (v3.4.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering EvoMap Federation modules...");
+
+      const { EvoMapFederation } = require("../evomap/evomap-federation");
+      const {
+        registerEvoMapFederationIPC,
+      } = require("../evomap/evomap-federation-ipc");
+
+      const database = dependencies.database || null;
+
+      const evoMapFederation = new EvoMapFederation(database);
+
+      if (database) {
+        evoMapFederation
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] EvoMapFederation init warning:",
+              err.message,
+            ),
+          );
+      }
+
+      registerEvoMapFederationIPC({ evoMapFederation });
+
+      registeredModules.evoMapFederation = evoMapFederation;
+
+      logger.info(
+        "[IPC Registry] ✓ EvoMap Federation registered (5 IPC handlers)",
+      );
+    } catch (phase76Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 76 registration failed (non-fatal):",
+        phase76Error.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 77: IP & Governance DAO (v3.4.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering EvoMap Governance modules...");
+
+      const { GeneIPManager } = require("../evomap/gene-ip-manager");
+      const { EvoMapDAO } = require("../evomap/evomap-dao");
+      const {
+        registerEvoMapGovernanceIPC,
+      } = require("../evomap/evomap-governance-ipc");
+
+      const database = dependencies.database || null;
+
+      const geneIPManager = new GeneIPManager(database);
+      const evoMapDAO = new EvoMapDAO(database);
+
+      if (database) {
+        geneIPManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] GeneIPManager init warning:",
+              err.message,
+            ),
+          );
+        evoMapDAO
+          .initialize()
+          .catch((err) =>
+            logger.warn("[IPC Registry] EvoMapDAO init warning:", err.message),
+          );
+      }
+
+      registerEvoMapGovernanceIPC({ geneIPManager, evoMapDAO });
+
+      registeredModules.geneIPManager = geneIPManager;
+      registeredModules.evoMapDAO = evoMapDAO;
+
+      logger.info(
+        "[IPC Registry] ✓ EvoMap Governance registered (5 IPC handlers)",
+      );
+    } catch (phase77Error) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Phase 77 registration failed (non-fatal):",
+        phase77Error.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] v3.4.0 Complete: EvoMap Global Evolution Network ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

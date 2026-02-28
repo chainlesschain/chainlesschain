@@ -90,6 +90,18 @@ class ContextEngineering {
     // Collaboration Governance（可选，通过 setCollaborationGovernance 注入）[Phase 64]
     this._collaborationGovernance = null;
 
+    // Skill Service Protocol（可选，通过 setSkillServiceProtocol 注入）[Phase 65]
+    this._skillServiceProtocol = null;
+
+    // Inference Scheduler（可选，通过 setInferenceScheduler 注入）[Phase 67]
+    this._inferenceScheduler = null;
+
+    // Protocol Fusion Bridge（可选，通过 setProtocolFusionBridge 注入）[Phase 72]
+    this._protocolFusionBridge = null;
+
+    // EvoMap Federation（可选，通过 setEvoMapFederation 注入）[Phase 76]
+    this._evoMapFederation = null;
+
     // 统计
     this.stats = {
       cacheHits: 0,
@@ -209,6 +221,38 @@ class ContextEngineering {
    */
   setCollaborationGovernance(collaborationGovernance) {
     this._collaborationGovernance = collaborationGovernance;
+  }
+
+  /**
+   * 注入 Skill Service Protocol [Phase 65]
+   * @param {Object} skillServiceProtocol - SkillServiceProtocol instance
+   */
+  setSkillServiceProtocol(skillServiceProtocol) {
+    this._skillServiceProtocol = skillServiceProtocol;
+  }
+
+  /**
+   * 注入 Inference Scheduler [Phase 67]
+   * @param {Object} inferenceScheduler - InferenceScheduler instance
+   */
+  setInferenceScheduler(inferenceScheduler) {
+    this._inferenceScheduler = inferenceScheduler;
+  }
+
+  /**
+   * 注入 Protocol Fusion Bridge [Phase 72]
+   * @param {Object} protocolFusionBridge - ProtocolFusionBridge instance
+   */
+  setProtocolFusionBridge(protocolFusionBridge) {
+    this._protocolFusionBridge = protocolFusionBridge;
+  }
+
+  /**
+   * 注入 EvoMap Federation [Phase 76]
+   * @param {Object} evoMapFederation - EvoMapFederation instance
+   */
+  setEvoMapFederation(evoMapFederation) {
+    this._evoMapFederation = evoMapFederation;
   }
 
   /**
@@ -392,6 +436,77 @@ class ContextEngineering {
         }
       } catch {
         // EvoMap context is non-critical
+      }
+    }
+
+    // 4.9 注入 Skill Service Protocol 上下文 [Phase 65]
+    if (this._skillServiceProtocol) {
+      try {
+        const skillContext =
+          this._skillServiceProtocol.buildSkillProtocolContext();
+        if (skillContext) {
+          result.messages.push({
+            role: "system",
+            content: skillContext,
+          });
+        }
+      } catch {
+        // Skill protocol context is non-critical
+      }
+    }
+
+    // 4.10 注入 Inference Scheduler 上下文 [Phase 67]
+    if (this._inferenceScheduler) {
+      try {
+        const schedulerContext =
+          this._inferenceScheduler.buildSchedulerContext();
+        if (schedulerContext) {
+          result.messages.push({
+            role: "system",
+            content: schedulerContext,
+          });
+        }
+      } catch {
+        // Inference scheduler context is non-critical
+      }
+    }
+
+    // 4.11 注入 Protocol Fusion Bridge 上下文 [Phase 72]
+    if (this._protocolFusionBridge) {
+      try {
+        const fusionContext = this._protocolFusionBridge.buildFusionContext();
+        if (fusionContext) {
+          result.messages.push({
+            role: "system",
+            content: fusionContext,
+          });
+        }
+      } catch {
+        // Protocol fusion context is non-critical
+      }
+    }
+
+    // 4.12 注入 EvoMap Federation 上下文 [Phase 76]
+    if (this._evoMapFederation) {
+      try {
+        const contextHint =
+          taskContext?.objective ||
+          messages
+            .slice(-3)
+            .map((m) => m.content || "")
+            .join(" ");
+        const federationContext = this._evoMapFederation.buildFederationContext(
+          contextHint,
+          3,
+        );
+        if (federationContext) {
+          result.messages.push({
+            role: "system",
+            content: federationContext,
+          });
+        }
+      } catch {
+        // EvoMap federation context is non-critical
       }
     }
 

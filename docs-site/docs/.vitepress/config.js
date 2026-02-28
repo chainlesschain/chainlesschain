@@ -208,6 +208,72 @@ export default defineConfig({
           ],
         },
         {
+          text: "v3.1.0 去中心化AI市场 (Phase 65-67)",
+          items: [
+            {
+              text: "Skill Marketplace",
+              link: "/chainlesschain/skill-marketplace",
+            },
+            {
+              text: "Token Incentive",
+              link: "/chainlesschain/token-incentive",
+            },
+            {
+              text: "Inference Network",
+              link: "/chainlesschain/inference-network",
+            },
+          ],
+        },
+        {
+          text: "v3.2.0 硬件安全生态 (Phase 68-71)",
+          items: [
+            { text: "Trinity Trust Root", link: "/chainlesschain/trust-root" },
+            {
+              text: "PQC Full Migration",
+              link: "/chainlesschain/pqc-ecosystem",
+            },
+            {
+              text: "Satellite Communication",
+              link: "/chainlesschain/satellite-comm",
+            },
+            { text: "HSM Adapter", link: "/chainlesschain/hsm-adapter" },
+          ],
+        },
+        {
+          text: "v3.3.0 全球去中心化社交 (Phase 72-75)",
+          items: [
+            {
+              text: "Protocol Fusion",
+              link: "/chainlesschain/protocol-fusion",
+            },
+            {
+              text: "AI Social Enhancement",
+              link: "/chainlesschain/ai-social-enhancement",
+            },
+            {
+              text: "Decentralized Storage",
+              link: "/chainlesschain/decentralized-storage",
+            },
+            {
+              text: "Anti-Censorship",
+              link: "/chainlesschain/anti-censorship",
+            },
+          ],
+        },
+        {
+          text: "v3.4.0 EvoMap全球进化 (Phase 76-77)",
+          items: [
+            {
+              text: "EvoMap Federation",
+              link: "/chainlesschain/evomap-federation",
+            },
+            {
+              text: "EvoMap Governance",
+              link: "/chainlesschain/evomap-governance",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
