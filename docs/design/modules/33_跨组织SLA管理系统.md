@@ -204,5 +204,5 @@ sla: {
 
 **相关文档**:
 
-- [Phase 60 — 信誉优化器](./32_ReputationOptimizer系统.md)
-- [Phase 62 — 技术学习引擎](./34_TechLearning系统.md)
+- [Phase 60 — 信誉优化器](./32_信誉优化系统.md)
+- [Phase 62 — 技术学习引擎](./34_技术学习引擎系统.md)
