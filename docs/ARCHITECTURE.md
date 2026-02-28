@@ -75,23 +75,37 @@ chainlesschain/
 ```
 desktop-app-vue/
 ├── src/
-│   ├── main/              # Electron 主进程 (335个文件)
+│   ├── main/              # Electron 主进程 (360+个文件)
 │   │   ├── database.js    # SQLite/SQLCipher 数据库
-│   │   ├── ukey/          # U-Key 硬件集成
+│   │   ├── ukey/          # U-Key 硬件集成 ⭐新增 PQC/Firmware OTA
+│   │   │   ├── pqc-migration-manager.js  # 量子后加密迁移
+│   │   │   ├── firmware-ota-manager.js   # 固件OTA更新
+│   │   │   └── ...
 │   │   ├── llm/           # LLM 服务集成
 │   │   ├── rag/           # RAG 检索系统
 │   │   ├── did/           # DID 身份系统
 │   │   ├── p2p/           # P2P 网络
 │   │   ├── blockchain/    # 区块链集成
-│   │   └── organization/  # 企业版组织管理
+│   │   ├── organization/  # 企业版组织管理
+│   │   ├── social/        # 社交功能 ⭐新增 Governance/Matrix/Nostr
+│   │   │   ├── governance-ai.js      # AI社区治理
+│   │   │   ├── matrix-bridge.js      # Matrix协议集成
+│   │   │   └── ...
+│   │   ├── enterprise/    # 企业功能 ⭐新增 Terraform
+│   │   │   ├── terraform-manager.js  # Terraform提供商
+│   │   │   └── ...
+│   │   └── audit/         # 审计合规
 │   │
-│   └── renderer/          # Vue3 渲染进程 (243个组件)
-│       ├── pages/         # 23个页面视图
-│       ├── components/    # 220个组件
-│       └── stores/        # Pinia 状态管理
+│   └── renderer/          # Vue3 渲染进程 (260+个组件)
+│       ├── pages/         # 28个页面视图 ⭐新增 5个页面
+│       │   ├── security/  # PQC迁移、固件OTA
+│       │   ├── social/    # 治理、Matrix
+│       │   └── enterprise/ # Terraform
+│       ├── components/    # 230+个组件
+│       └── stores/        # 56个Pinia存储 ⭐新增 5个stores
 │
 ├── contracts/             # Hardhat 智能合约
-└── tests/                 # 测试套件 (94个文件)
+└── tests/                 # 测试套件 (100+个文件)
 ```
 
 ---
@@ -185,18 +199,33 @@ desktop-app-vue/
 - blockchain_asset_mapping - 资产映射
 - bridge_transfers - 跨链桥转账
 
+**安全增强表** (10 张) ⭐新增 Phase 52-56:
+
+- `pqc_keys` - 量子后加密密钥（ML-KEM/ML-DSA）
+- `pqc_migration_status` - PQC迁移状态跟踪
+- `firmware_versions` - U-Key固件版本信息
+- `firmware_update_log` - 固件更新历史记录
+- `governance_proposals` - 社区治理提案
+- `governance_votes` - 治理投票记录
+- `matrix_rooms` - Matrix房间信息
+- `matrix_events` - Matrix消息事件
+- `terraform_workspaces` - Terraform工作区
+- `terraform_runs` - Terraform运行历史
+
+**总表数**: 60+ 张（基础20+ + 企业版14 + 区块链10+ + 安全增强10 + 其他）
+
 ---
 
 ## 代码规模统计
 
 ### 桌面应用
 
-| 模块     | 文件数 | 代码量     |
-| -------- | ------ | ---------- |
-| 主进程   | 335    | ~190,000行 |
-| 渲染进程 | 243    | ~30,000行  |
-| 智能合约 | 6      | 2,400行    |
-| 测试文件 | 94     | ~15,000行  |
+| 模块     | 文件数 | 代码量     | 备注                     |
+| -------- | ------ | ---------- | ------------------------ |
+| 主进程   | 360+   | ~200,000行 | ⭐新增 Phase 52-56 模块  |
+| 渲染进程 | 260+   | ~33,000行  | ⭐新增 5个页面/5个stores |
+| 智能合约 | 6      | 2,400行    |                          |
+| 测试文件 | 100+   | ~16,000行  | ⭐新增测试用例           |
 
 ### 后端服务
 
@@ -208,10 +237,12 @@ desktop-app-vue/
 
 ### 总计
 
-- **总代码量**: 260,000+ 行
-- **总文件数**: 747+ 个
+- **总代码量**: 270,000+ 行 ⭐新增 10,000+ 行
+- **总文件数**: 780+ 个 ⭐新增 30+ 个文件
 - **API端点**: 149 个
-- **Vue组件**: 243 个
+- **Vue组件**: 260+ 个 ⭐新增 17+ 个组件
+- **Pinia Stores**: 56 个 ⭐新增 5 个stores
+- **IPC处理器**: 350+ 个 ⭐新增 21 个处理器（Phase 52-56）
 
 ---
 
