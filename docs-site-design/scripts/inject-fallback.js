@@ -38,9 +38,11 @@ const FALLBACK_SCRIPT = `<script>
         });
       });
 
-      /* ── ② Mobile menu button ── */
+      /* ── ② Mobile menu button ──
+         stopPropagation 阻止同一点击事件冒泡到 ④，避免"开即关"的竞态 */
       if (menuBtn && !menuBtn._vei) {
-        menuBtn.addEventListener('click', function () {
+        menuBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
           var sb = document.querySelector('.VPSidebar');
           if (!sb) return;
           var open = sb.classList.toggle('open');
@@ -52,23 +54,20 @@ const FALLBACK_SCRIPT = `<script>
       /* ── ③ Back-to-top button ── */
       var outlineBtn = document.querySelector('.VPLocalNavOutlineDropdown > button');
       if (outlineBtn && !outlineBtn._vei) {
-        outlineBtn.addEventListener('click', function () {
+        outlineBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
       }
 
-      /* ── ④ Click outside sidebar to close ──
-         关键：必须排除菜单按钮本身，否则 ② 刚打开，④ 立即关闭 */
+      /* ── ④ Click outside sidebar to close ── */
       document.addEventListener('click', function (e) {
         var sb = document.querySelector('.VPSidebar');
         if (!sb || !sb.classList.contains('open')) return;
-        /* 如果点击的是菜单按钮，由 ② 处理 toggle，④ 不干预 */
-        var btn = document.querySelector('.VPLocalNav button.menu');
-        if (btn && btn.contains(e.target)) return;
-        /* 点击侧边栏内部，不关闭 */
         if (sb.contains(e.target)) return;
         sb.classList.remove('open');
         document.body.style.overflow = '';
+        var btn = document.querySelector('.VPLocalNav button.menu');
         if (btn) btn.setAttribute('aria-expanded', 'false');
       });
     }
