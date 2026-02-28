@@ -14,6 +14,54 @@ export default defineConfig({
       "meta",
       { name: "apple-mobile-web-app-status-bar-style", content: "black" },
     ],
+    [
+      "script",
+      {},
+      `;(function(){
+  function d2f(fn){ requestAnimationFrame(function(){ requestAnimationFrame(fn); }); }
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    // ① Sidebar collapsible group header
+    var hdr = t.closest && t.closest('.VPSidebarItem.collapsible > .item');
+    if (hdr && !t.closest('a')) {
+      var item = hdr.closest('.VPSidebarItem.collapsible');
+      var was = item.classList.contains('collapsed');
+      d2f(function(){
+        if (item.classList.contains('collapsed') === was) {
+          item.classList.toggle('collapsed');
+        }
+      });
+      return;
+    }
+    // ② Mobile "菜单" button
+    var menuBtn = t.closest && t.closest('.VPLocalNav button.menu');
+    if (menuBtn) {
+      var sb = document.querySelector('.VPSidebar');
+      if (!sb) return;
+      var wasOpen = sb.classList.contains('open');
+      d2f(function(){
+        if (sb.classList.contains('open') === wasOpen) {
+          sb.classList.toggle('open');
+          menuBtn.setAttribute('aria-expanded', String(!wasOpen));
+          var curtain = document.querySelector('.VPSidebarButton');
+          if (curtain) curtain.setAttribute('aria-expanded', String(!wasOpen));
+        }
+      });
+      return;
+    }
+    // ③ Back to top / outline dropdown button
+    var topBtn = t.closest && t.closest('.VPLocalNavOutlineDropdown > button');
+    if (topBtn) {
+      var dd = topBtn.parentElement;
+      d2f(function(){
+        if (!dd.classList.contains('open')) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    }
+  });
+})();`,
+    ],
   ],
 
   themeConfig: {
