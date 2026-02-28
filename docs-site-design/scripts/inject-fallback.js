@@ -16,73 +16,68 @@ const OLD_SCRIPT_RE2 =
   /<script>;?\(function\(\)\{[\s\S]*?\}\)\(\);<\/script>\n?/g;
 
 const FALLBACK_SCRIPT = `<script>
-/* VitePress interactive fallback — only activates when Vue is not hydrated */
+/* VitePress fallback: wait 50ms, if Vue didn't change state, handle ourselves */
 (function () {
-  function ready(fn) {
-    if (document.readyState !== 'loading') fn();
-    else document.addEventListener('DOMContentLoaded', fn);
+  function sbOpen(sb, btn) {
+    sb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+  }
+  function sbClose(sb, btn) {
+    sb.classList.remove('open');
+    document.body.style.overflow = '';
+    if (btn) btn.setAttribute('aria-expanded', 'false');
   }
 
-  ready(function () {
-    var WAIT = 3000, CHECK = 200, elapsed = 0;
+  document.addEventListener('click', function (e) {
+    var t = e.target;
 
-    function setupFallback() {
-      var menuBtn = document.querySelector('.VPLocalNav button.menu');
-
-      /* ── ① Sidebar collapsible groups ── */
-      document.querySelectorAll('.VPSidebarItem.collapsible > .item').forEach(function (hdr) {
-        if (hdr._vei) return;
-        hdr.addEventListener('click', function (e) {
-          if (e.target.closest('a')) return;
-          hdr.closest('.VPSidebarItem.collapsible').classList.toggle('collapsed');
-        });
-      });
-
-      /* ── ② Mobile menu button ──
-         stopPropagation 阻止同一点击事件冒泡到 ④，避免"开即关"的竞态 */
-      if (menuBtn && !menuBtn._vei) {
-        menuBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var sb = document.querySelector('.VPSidebar');
-          if (!sb) return;
-          var open = sb.classList.toggle('open');
-          menuBtn.setAttribute('aria-expanded', String(open));
-          document.body.style.overflow = open ? 'hidden' : '';
-        });
+    /* ── ② 菜单按钮 ──
+       return 阻止同一次点击到达 ④，50ms 后检查 Vue 是否已响应 */
+    var menuBtn = t.closest && t.closest('.VPLocalNav button.menu');
+    if (menuBtn) {
+      var sb2 = document.querySelector('.VPSidebar');
+      if (sb2) {
+        var was2 = sb2.classList.contains('open');
+        setTimeout(function () {
+          if (sb2.classList.contains('open') === was2) {
+            if (was2) sbClose(sb2, menuBtn); else sbOpen(sb2, menuBtn);
+          }
+        }, 50);
       }
-
-      /* ── ③ Back-to-top button ── */
-      var outlineBtn = document.querySelector('.VPLocalNavOutlineDropdown > button');
-      if (outlineBtn && !outlineBtn._vei) {
-        outlineBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-      }
-
-      /* ── ④ Click outside sidebar to close ── */
-      document.addEventListener('click', function (e) {
-        var sb = document.querySelector('.VPSidebar');
-        if (!sb || !sb.classList.contains('open')) return;
-        if (sb.contains(e.target)) return;
-        sb.classList.remove('open');
-        document.body.style.overflow = '';
-        var btn = document.querySelector('.VPLocalNav button.menu');
-        if (btn) btn.setAttribute('aria-expanded', 'false');
-      });
+      return;
     }
 
-    function poll() {
-      if (elapsed >= WAIT) { setupFallback(); return; }
-      elapsed += CHECK;
+    /* ── ① 侧边栏折叠组 ── */
+    var hdr = t.closest && t.closest('.VPSidebarItem.collapsible > .item');
+    if (hdr && !t.closest('a')) {
+      var grp = hdr.closest('.VPSidebarItem.collapsible');
+      var wasC = grp.classList.contains('collapsed');
       setTimeout(function () {
-        var item = document.querySelector('.VPSidebarItem.collapsible > .item');
-        if (item && item._vei) return; /* Vue already hydrated — skip */
-        poll();
-      }, CHECK);
+        if (grp.classList.contains('collapsed') === wasC) grp.classList.toggle('collapsed');
+      }, 50);
+      return;
     }
 
-    setTimeout(poll, CHECK);
+    /* ── ③ 回到顶部 ── */
+    var topBtn = t.closest && t.closest('.VPLocalNavOutlineDropdown > button');
+    if (topBtn) {
+      var dd = topBtn.closest('.VPLocalNavOutlineDropdown');
+      setTimeout(function () {
+        if (!dd || !dd.classList.contains('open')) window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
+      return;
+    }
+
+    /* ── ④ 点击侧边栏外部关闭 ── */
+    var sb = document.querySelector('.VPSidebar');
+    if (sb && sb.classList.contains('open') && !sb.contains(t)) {
+      setTimeout(function () {
+        if (sb.classList.contains('open')) {
+          sbClose(sb, document.querySelector('.VPLocalNav button.menu'));
+        }
+      }, 50);
+    }
   });
 })();
 </script>`;
