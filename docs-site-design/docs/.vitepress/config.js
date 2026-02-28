@@ -22,14 +22,17 @@ export default defineConfig({
         items: [
           { text: "核心模块 (01-08)", link: "/modules/01_知识库管理模块" },
           { text: "扩展模块 (09-16)", link: "/modules/09_浏览器自动化系统" },
-          { text: "EvoMap + 企业 (17-28)", link: "/modules/17_EvoMap系统" },
           {
-            text: "生产 + AI (29-36)",
-            link: "/modules/29_ProductionHardening系统",
+            text: "演化图谱与企业增强 (17-28)",
+            link: "/modules/17_EvoMap系统",
           },
           {
-            text: "市场 + 安全 (37-42)",
-            link: "/modules/37_SkillMarketplace系统",
+            text: "生产加固与AI (29-36)",
+            link: "/modules/29_生产强化系统",
+          },
+          {
+            text: "市场与安全生态 (37-42)",
+            link: "/modules/37_技能市场系统",
           },
         ],
       },
@@ -39,7 +42,7 @@ export default defineConfig({
           { text: "安全机制设计", link: "/安全机制设计" },
           { text: "数据同步方案", link: "/数据同步方案" },
           { text: "AI模型部署", link: "/AI模型部署方案" },
-          { text: "Hooks系统", link: "/HOOKS_SYSTEM_DESIGN" },
+          { text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" },
         ],
       },
       {
@@ -99,14 +102,17 @@ export default defineConfig({
           ],
         },
         {
-          text: "Phase 41-45 — EvoMap + 企业增强",
+          text: "Phase 41-45 — 演化图谱与企业增强",
           collapsed: true,
           items: [
-            { text: "17 EvoMap系统", link: "/modules/17_EvoMap系统" },
-            { text: "18 SocialAI系统", link: "/modules/18_SocialAI系统" },
-            { text: "19 Compliance系统", link: "/modules/19_Compliance系统" },
-            { text: "20 SCIM系统", link: "/modules/20_SCIM系统" },
-            { text: "21 UnifiedKey系统", link: "/modules/21_UnifiedKey系统" },
+            { text: "17 演化图谱系统", link: "/modules/17_EvoMap系统" },
+            { text: "18 社交AI系统", link: "/modules/18_社交AI系统" },
+            { text: "19 合规分类系统", link: "/modules/19_合规分类系统" },
+            {
+              text: "20 企业用户配置系统",
+              link: "/modules/20_企业用户配置系统",
+            },
+            { text: "21 统一密钥系统", link: "/modules/21_统一密钥系统" },
           ],
         },
         {
@@ -115,14 +121,20 @@ export default defineConfig({
           items: [
             {
               text: "22 内容推荐系统",
-              link: "/modules/22_ContentRecommendation系统",
+              link: "/modules/22_智能内容推荐系统",
             },
-            { text: "23 Nostr Bridge", link: "/modules/23_NostrBridge系统" },
-            { text: "24 DLP系统", link: "/modules/24_DLP系统" },
-            { text: "25 SIEM系统", link: "/modules/25_SIEM系统" },
-            { text: "26 Governance系统", link: "/modules/26_Governance系统" },
-            { text: "27 Matrix Bridge", link: "/modules/27_MatrixBridge系统" },
-            { text: "28 Terraform系统", link: "/modules/28_Terraform系统" },
+            { text: "23 去中心化桥接系统", link: "/modules/23_Nostr桥接系统" },
+            { text: "24 数据防泄漏系统", link: "/modules/24_数据防泄漏系统" },
+            {
+              text: "25 安全信息事件管理系统",
+              link: "/modules/25_安全信息事件管理系统",
+            },
+            { text: "26 社区治理系统", link: "/modules/26_社区治理系统" },
+            { text: "27 即时通讯集成系统", link: "/modules/27_Matrix集成系统" },
+            {
+              text: "28 基础设施编排系统",
+              link: "/modules/28_基础设施编排系统",
+            },
           ],
         },
         {
@@ -131,54 +143,63 @@ export default defineConfig({
           items: [
             {
               text: "29 生产强化",
-              link: "/modules/29_ProductionHardening系统",
+              link: "/modules/29_生产强化系统",
             },
             {
-              text: "30 联邦硬化",
-              link: "/modules/30_FederationHardening系统",
+              text: "30 联邦强化系统",
+              link: "/modules/30_联邦强化系统",
             },
-            { text: "31 压力测试", link: "/modules/31_StressTest系统" },
+            { text: "31 压力测试系统", link: "/modules/31_压力测试系统" },
             {
-              text: "32 信誉优化器",
-              link: "/modules/32_ReputationOptimizer系统",
-            },
-            { text: "33 SLA管理", link: "/modules/33_SLAManager系统" },
-          ],
-        },
-        {
-          text: "Phase 62-64 — v3.0 自主AI",
-          collapsed: true,
-          items: [
-            { text: "34 技术学习引擎", link: "/modules/34_TechLearning系统" },
-            {
-              text: "35 自主开发者",
-              link: "/modules/35_AutonomousDeveloper系统",
+              text: "32 信誉优化系统",
+              link: "/modules/32_信誉优化系统",
             },
             {
-              text: "36 协作治理",
-              link: "/modules/36_CollaborationGovernance系统",
+              text: "33 跨组织SLA管理系统",
+              link: "/modules/33_跨组织SLA管理系统",
             },
           ],
         },
         {
-          text: "Phase 65-71 — v3.1-v3.2 市场与安全",
+          text: "Phase 62-64 — v3.0 自主AI开发",
           collapsed: true,
           items: [
-            { text: "37 技能市场", link: "/modules/37_SkillMarketplace系统" },
-            { text: "38 推理网络", link: "/modules/38_InferenceNetwork系统" },
-            { text: "39 信任安全", link: "/modules/39_TrustSecurity系统" },
+            { text: "34 技术学习引擎", link: "/modules/34_技术学习引擎系统" },
+            {
+              text: "35 自主开发者系统",
+              link: "/modules/35_自主开发者系统",
+            },
+            {
+              text: "36 协作治理系统",
+              link: "/modules/36_协作治理系统",
+            },
           ],
         },
         {
-          text: "Phase 72-77 — v3.3-v3.4 协议融合与EvoMap",
+          text: "Phase 65-71 — v3.1-v3.2 市场与安全生态",
           collapsed: true,
           items: [
-            { text: "40 协议融合", link: "/modules/40_ProtocolFusion系统" },
+            { text: "37 技能市场系统", link: "/modules/37_技能市场系统" },
+            {
+              text: "38 去中心化推理网络",
+              link: "/modules/38_去中心化推理网络系统",
+            },
+            { text: "39 信任安全系统", link: "/modules/39_信任安全系统" },
+          ],
+        },
+        {
+          text: "Phase 72-77 — v3.3-v3.4 协议融合与演化图谱",
+          collapsed: true,
+          items: [
+            { text: "40 协议融合系统", link: "/modules/40_协议融合系统" },
             {
               text: "41 去中心化基础设施",
-              link: "/modules/41_DecentralizedInfra系统",
+              link: "/modules/41_去中心化基础设施系统",
             },
-            { text: "42 EvoMap高级", link: "/modules/42_EvoMapAdvanced系统" },
+            {
+              text: "42 演化图谱高级联邦",
+              link: "/modules/42_EvoMap高级联邦系统",
+            },
           ],
         },
         {
