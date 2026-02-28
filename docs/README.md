@@ -226,20 +226,83 @@ docs/
   - 渐进式自主级别（0-10）
   - 文档: [功能详解 - 协作治理部分](./FEATURES.md#协作治理-collaboration-governance-新增-phase-64)
 
+**Phase 65-67 (v3.1.0) 去中心化AI市场**:
+
+- ✅ **Phase 65 - 技能即服务 (Skill-as-a-Service)**
+  - 技能发布/发现/远程调用（JSON-RPC 2.0）
+  - DAG流水线编排
+  - 文档: [功能详解 - 技能即服务部分](./FEATURES.md#技能即服务-skill-as-a-service-新增-phase-65)
+
+- ✅ **Phase 66 - 代币激励 (Token Incentive)**
+  - 信用代币发行和贡献追踪
+  - 信誉加权奖励和排行榜
+  - 文档: [功能详解 - 代币激励部分](./FEATURES.md#代币激励-token-incentive-新增-phase-66)
+
+- ✅ **Phase 67 - 去中心化推理 (Decentralized Inference)**
+  - 推理节点注册和智能调度
+  - 三种隐私模式（STANDARD/ENCRYPTED/FEDERATED）
+  - 文档: [功能详解 - 推理网络部分](./FEATURES.md#去中心化推理-decentralized-inference-新增-phase-67)
+
+**Phase 68-71 (v3.2.0) 信任安全体系**:
+
+- ✅ **Phase 68 - 三位一体信任根 (Trinity Trust Root)**
+  - TPM/TEE/SE三锚硬件信任+远程证明
+  - 文档: [功能详解 - 信任根部分](./FEATURES.md#三位一体信任根-trinity-trust-root-新增-phase-68)
+
+- ✅ **Phase 69 - PQC全面迁移 (PQC Ecosystem)**
+  - 6子系统PQC兼容性检测+互操作测试
+  - 文档: [功能详解 - PQC生态部分](./FEATURES.md#pqc全面迁移-pqc-ecosystem-新增-phase-69)
+
+- ✅ **Phase 70 - 卫星通信 (Satellite Communication)**
+  - Iridium/Starlink/Beidou+密钥撤销广播
+  - 文档: [功能详解 - 卫星通信部分](./FEATURES.md#卫星通信-satellite-communication-新增-phase-70)
+
+- ✅ **Phase 71 - HSM适配器 (HSM Adapter)**
+  - YubiKey/Ledger/Trezor+FIPS-140-3合规
+  - 文档: [功能详解 - HSM适配部分](./FEATURES.md#hsm适配器-hsm-adapter-新增-phase-71)
+
+**Phase 72-75 (v3.3.0) 协议融合+去中心化基础设施**:
+
+- ✅ **Phase 72 - 协议融合 (Protocol Fusion)**
+  - DID/AP/Nostr/Matrix四协议桥接
+  - 文档: [功能详解 - 协议融合部分](./FEATURES.md#协议融合-protocol-fusion-新增-phase-72)
+
+- ✅ **Phase 73 - AI社交增强 (AI Social Enhancement)**
+  - 实时多语言翻译+内容质量评估
+  - 文档: [功能详解 - AI社交增强部分](./FEATURES.md#ai社交增强-ai-social-enhancement-新增-phase-73)
+
+- ✅ **Phase 74 - 去中心化存储 (Decentralized Storage)**
+  - Filecoin存储+P2P内容分发+IPLD版本
+  - 文档: [功能详解 - 去中心化存储部分](./FEATURES.md#去中心化存储-decentralized-storage-新增-phase-74)
+
+- ✅ **Phase 75 - 抗审查通信 (Anti-Censorship)**
+  - Tor隐藏服务+域前置+Mesh网络
+  - 文档: [功能详解 - 抗审查部分](./FEATURES.md#抗审查通信-anti-censorship-新增-phase-75)
+
+**Phase 76-77 (v3.4.0) EvoMap高级**:
+
+- ✅ **Phase 76 - EvoMap联邦 (EvoMap Federation)**
+  - 多Hub联邦同步+基因谱系+进化压力
+  - 文档: [功能详解 - EvoMap联邦部分](./FEATURES.md#evomap联邦-evomap-federation-新增-phase-76)
+
+- ✅ **Phase 77 - EvoMap治理DAO (EvoMap Governance)**
+  - DID+VC IP保护+治理DAO+投票
+  - 文档: [功能详解 - EvoMap治理部分](./FEATURES.md#evomap治理dao-evomap-governance-新增-phase-77)
+
 **代码更新**:
 
-- ⭐新增 120+个主进程文件（Phase 46-64 全部模块）
-- ⭐新增 19个Pinia stores（TypeScript）
-- ⭐新增 19个Vue页面（security×4, social×4, enterprise×3, ai×8）
-- ⭐新增 39个数据库表
-- ⭐新增 95个IPC处理器（Phase 46-64）
+- ⭐新增 240+个主进程文件（Phase 46-77 全部模块）
+- ⭐新增 32个Pinia stores（TypeScript）
+- ⭐新增 32个Vue页面（security×9, social×7, enterprise×3, ai×13）
+- ⭐新增 61个数据库表
+- ⭐新增 159个IPC处理器（Phase 46-77）
 
 **文档更新**:
 
-- 更新 [CHANGELOG.md](./CHANGELOG.md) - v1.1.0版本记录（含Phase 57-64）
-- 更新 [FEATURES.md](./FEATURES.md) - 新增8个功能模块详解
+- 更新 [CHANGELOG.md](./CHANGELOG.md) - v3.1.0-v3.4.0版本记录（Phase 65-77）
+- 更新 [FEATURES.md](./FEATURES.md) - 新增13个功能模块详解
 - 更新 [ARCHITECTURE.md](./ARCHITECTURE.md) - 架构图和数据库设计
-- 更新设计文档导航系统
+- 更新设计文档导航系统（6个新设计文档）
 
 ### v0.26.2 (历史版本)
 

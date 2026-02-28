@@ -15,6 +15,11 @@
 - [高级功能 (Phase 52-56)](#量子后加密迁移-pqc-migration-新增-phase-52)
 - [生产强化 (Phase 57-61)](#生产强化-production-hardening-新增-phase-57)
 - [自主AI系统 (Phase 62-64)](#技术学习引擎-tech-learning-engine-新增-phase-62)
+- [去中心化AI市场 (Phase 65-67)](#技能即服务-skill-as-a-service-新增-phase-65)
+- [信任安全体系 (Phase 68-71)](#三位一体信任根-trinity-trust-root-新增-phase-68)
+- [协议融合与社交增强 (Phase 72-73)](#协议融合-protocol-fusion-新增-phase-72)
+- [去中心化基础设施 (Phase 74-75)](#去中心化存储-decentralized-storage-新增-phase-74)
+- [EvoMap高级 (Phase 76-77)](#evomap联邦-evomap-federation-新增-phase-76)
 - [AI模板系统](#ai模板系统)
 - [MCP集成](#mcp集成)
 - [性能优化](#性能优化)
@@ -1165,6 +1170,327 @@ logger.error("Error message", error);
 2. **仲裁机制** - 指定仲裁者、专家评审
 3. **共识算法** - Raft共识、PBFT拜占庭容错
 4. **自动合并** - 自动化冲突解决(基于规则)
+
+---
+
+### 技能即服务 (Skill-as-a-Service) ⭐新增 Phase 65
+
+**核心功能**:
+
+- **技能发布** - 版本管理、能力声明、端点注册、Schema验证
+- **技能发现** - 按能力/标签/提供者过滤搜索
+- **远程调用** - JSON-RPC 2.0远程技能执行
+- **DAG流水线** - 技能编排为有向无环图执行
+
+**技术实现**:
+
+- SkillServiceProtocol - 技能发布/注册/版本管理
+- SkillInvoker - 远程REST/gRPC调用+重试逻辑
+
+**数据库表**:
+
+- `skill_service_registry` - 技能名称、版本、SLA、所有者DID
+- `skill_invocations` - 调用记录、延迟、状态
+- `skill_billing` - 计费记录
+
+**IPC接口** (5个):
+
+- `skill-service:list-skills` - 列出可用技能
+- `skill-service:publish-skill` - 发布新技能
+- `skill-service:invoke-remote` - 远程调用技能
+- `skill-service:get-versions` - 获取技能版本
+- `skill-service:compose-pipeline` - 创建DAG流水线
+
+**Context Engineering**:
+
+- step 4.9: 技能服务上下文注入(`setSkillServiceProtocol()`)
+
+### 代币激励 (Token Incentive) ⭐新增 Phase 66
+
+**核心功能**:
+
+- **代币账本** - 信用代币发行、转账、余额查询
+- **贡献追踪** - 知识/代码/算力/数据/审核多类型贡献
+- **信誉加权** - 基于信誉的奖励分配
+- **排行榜** - 贡献者排名
+
+**技术实现**:
+
+- TokenLedger - 代币账本管理（REWARD/PAYMENT/TRANSFER/PENALTY）
+- ContributionTracker - 贡献评分和排行
+
+**数据库表**:
+
+- `token_transactions` - 代币交易（类型、金额、信誉权重）
+- `contributions` - 贡献记录（类型、质量分、代币收益）
+
+**IPC接口** (5个):
+
+- `token:get-balance` - 查询代币余额
+- `token:get-transactions` - 获取交易历史
+- `token:submit-contribution` - 提交贡献
+- `token:get-pricing` - 计算技能价格
+- `token:get-rewards-summary` - 获取奖励统计
+
+### 去中心化推理 (Decentralized Inference) ⭐新增 Phase 67
+
+**核心功能**:
+
+- **节点注册** - GPU/CPU推理节点发现和注册
+- **任务调度** - 智能路由到最优节点
+- **隐私推理** - STANDARD/ENCRYPTED/FEDERATED三种模式
+- **联邦学习** - 跨节点联邦学习支持
+
+**技术实现**:
+
+- InferenceNodeRegistry - 节点注册/心跳/状态管理
+- InferenceScheduler - 任务调度/负载均衡/隐私模式
+
+**数据库表**:
+
+- `inference_nodes` - 节点信息（GPU型号、基准分、当前负载）
+- `inference_tasks` - 推理任务（模型、隐私模式、延迟）
+
+**IPC接口** (6个):
+
+- `inference:register-node` - 注册推理节点
+- `inference:list-nodes` - 列出节点
+- `inference:submit-task` - 提交推理任务
+- `inference:get-task-status` - 查询任务状态
+- `inference:start-federated-round` - 启动联邦学习
+- `inference:get-network-stats` - 获取网络统计
+
+**Context Engineering**:
+
+- step 4.10: 推理网络上下文注入(`setInferenceScheduler()`)
+
+---
+
+### 三位一体信任根 (Trinity Trust Root) ⭐新增 Phase 68
+
+**核心功能**:
+
+- **三锚信任根** - TPM + TEE + Secure Element硬件信任
+- **远程证明** - 挑战-响应机制验证设备完整性
+- **安全启动** - 启动链完整性验证
+- **设备指纹** - 硬件指纹绑定
+
+**数据库表**:
+
+- `trust_root_attestations` - 证明记录（设备ID、信任级别、硬件指纹）
+
+**IPC接口** (5个):
+
+- `trust-root:get-status` - 获取信任状态
+- `trust-root:verify-chain` - 验证设备证明链
+- `trust-root:sync-keys` - 跨设备密钥同步
+- `trust-root:bind-fingerprint` - 绑定硬件指纹
+- `trust-root:get-boot-status` - 获取安全启动状态
+
+### PQC全面迁移 (PQC Ecosystem) ⭐新增 Phase 69
+
+**核心功能**:
+
+- **子系统覆盖** - p2p/did/storage/messaging/auth/ukey 6大子系统
+- **兼容性检测** - ML-KEM/ML-DSA算法兼容性
+- **互操作测试** - 跨实现互操作性验证
+- **迁移计划** - 自动生成全面迁移计划
+
+**数据库表**:
+
+- `pqc_subsystem_migrations` - 子系统迁移状态和进度
+
+**IPC接口** (4个):
+
+- `pqc-ecosystem:get-coverage` - 获取迁移覆盖率
+- `pqc-ecosystem:migrate-subsystem` - 迁移子系统
+- `pqc-ecosystem:update-firmware-pqc` - 固件PQC更新
+- `pqc-ecosystem:verify-migration` - 验证迁移完成
+
+### 卫星通信 (Satellite Communication) ⭐新增 Phase 70
+
+**核心功能**:
+
+- **多提供商** - Iridium/Starlink/Beidou卫星网络
+- **密钥撤销广播** - 离线场景密钥紧急撤销
+- **离线签名** - 离线签名队列和同步
+
+**数据库表**:
+
+- `satellite_messages` - 卫星消息（加密、压缩、状态）
+- `offline_signature_queue` - 离线签名队列
+
+**IPC接口** (5个):
+
+- `satellite:send-message` - 发送卫星消息
+- `satellite:get-messages` - 获取消息列表
+- `satellite:sync-signatures` - 同步离线签名
+- `satellite:emergency-revoke` - 紧急密钥撤销
+- `satellite:get-recovery-status` - 获取恢复状态
+
+### HSM适配器 (HSM Adapter) ⭐新增 Phase 71
+
+**核心功能**:
+
+- **多厂商** - YubiKey/Ledger/Trezor统一适配
+- **FIPS合规** - FIPS-140-2/140-3/CC-EAL4合规级别
+- **设备发现** - 自动发现已连接HSM设备
+- **HSM签名** - 使用硬件安全模块签名
+
+**数据库表**:
+
+- `hsm_adapters` - HSM设备（厂商、型号、固件版本、合规级别）
+
+**IPC接口** (4个):
+
+- `hsm:list-adapters` - 列出HSM设备
+- `hsm:connect-device` - 连接设备
+- `hsm:execute-operation` - 执行HSM操作
+- `hsm:get-compliance-status` - 获取合规状态
+
+---
+
+### 协议融合 (Protocol Fusion) ⭐新增 Phase 72
+
+**核心功能**:
+
+- **四协议桥接** - DID/ActivityPub/Nostr/Matrix跨协议消息路由
+- **统一消息流** - 跨协议统一Feed
+- **身份映射** - 跨协议统一身份管理（DID ↔ AP ↔ Nostr ↔ Matrix）
+- **协议统计** - 各协议消息量和身份数统计
+
+**数据库表**:
+
+- `unified_messages` - 跨协议统一消息
+- `identity_mappings` - 身份映射（DID/AP/Nostr/Matrix）
+
+**IPC接口** (5个):
+
+- `protocol-fusion:get-unified-feed` - 获取统一消息流
+- `protocol-fusion:send-message` - 跨协议发送消息
+- `protocol-fusion:map-identity` - 映射身份
+- `protocol-fusion:get-identity-map` - 查询身份映射
+- `protocol-fusion:get-protocol-status` - 获取协议统计
+
+**Context Engineering**:
+
+- step 4.11: 协议融合上下文注入(`setProtocolFusionBridge()`)
+
+### AI社交增强 (AI Social Enhancement) ⭐新增 Phase 73
+
+**核心功能**:
+
+- **实时翻译** - AI驱动50+语言实时翻译（含缓存）
+- **语言检测** - 自动识别消息语言
+- **内容质量** - 四级质量评估（HIGH/MEDIUM/LOW/HARMFUL）
+- **有害检测** - 有害内容自动检测和标记
+
+**数据库表**:
+
+- `content_quality_scores` - 内容质量评分
+- `translation_cache` - 翻译缓存
+
+**IPC接口** (5个):
+
+- `ai-social:translate-message` - 翻译消息
+- `ai-social:detect-language` - 检测语言
+- `ai-social:assess-quality` - 评估内容质量
+- `ai-social:get-quality-report` - 获取质量报告
+- `ai-social:get-translation-stats` - 获取翻译统计
+
+---
+
+### 去中心化存储 (Decentralized Storage) ⭐新增 Phase 74
+
+**核心功能**:
+
+- **Filecoin存储** - 去中心化持久存储交易管理
+- **P2P分发** - IPLD版本化内容分发
+- **存储统计** - 交易数量、活跃数、总大小、总花费
+
+**数据库表**:
+
+- `filecoin_deals` - Filecoin存储交易
+- `content_versions` - IPLD内容版本
+
+**IPC接口** (5个):
+
+- `dstorage:store-to-filecoin` - 创建存储交易
+- `dstorage:get-deal-status` - 查询交易状态
+- `dstorage:distribute-content` - 分发内容到节点
+- `dstorage:get-version-history` - 获取版本历史
+- `dstorage:get-storage-stats` - 获取存储统计
+
+### 抗审查通信 (Anti-Censorship) ⭐新增 Phase 75
+
+**核心功能**:
+
+- **Tor隐藏服务** - .onion隐藏服务集成
+- **域前置** - CDN域前置抗审查
+- **Mesh网络** - BLE/WiFi-Direct离线Mesh通信
+- **连通性报告** - Tor/域前置/路由/延迟报告
+
+**数据库表**:
+
+- `anti_censorship_routes` - 抗审查路由（类型、端点、延迟、可靠性）
+
+**IPC接口** (5个):
+
+- `anti-censorship:start-tor` - 启动Tor隐藏服务
+- `anti-censorship:get-tor-status` - 获取Tor状态
+- `anti-censorship:enable-domain-fronting` - 启用域前置
+- `anti-censorship:start-mesh` - 启动Mesh网络
+- `anti-censorship:get-connectivity-report` - 获取连通性报告
+
+---
+
+### EvoMap联邦 (EvoMap Federation) ⭐新增 Phase 76
+
+**核心功能**:
+
+- **多Hub联邦** - 全球EvoMap Hub联邦同步网络
+- **基因重组** - 跨Hub基因重组和进化
+- **谱系追踪** - 完整基因进化谱系树
+- **进化压力** - 总基因数、平均适应度、最大世代
+
+**数据库表**:
+
+- `evomap_hub_federation` - Hub列表（URL、区域、信任分数）
+- `gene_lineage` - 基因谱系（世代、适应度、突变类型）
+
+**IPC接口** (5个):
+
+- `evomap-federation:list-hubs` - 列出Hub
+- `evomap-federation:sync-genes` - 同步基因
+- `evomap-federation:get-pressure-report` - 进化压力报告
+- `evomap-federation:recombine-genes` - 基因重组
+- `evomap-federation:get-lineage` - 获取基因谱系
+
+**Context Engineering**:
+
+- step 4.12: EvoMap联邦上下文注入(`setEvoMapFederation()`)
+
+### EvoMap治理DAO (EvoMap Governance) ⭐新增 Phase 77
+
+**核心功能**:
+
+- **知识产权** - DID+VC原创性证明、反剽窃检测
+- **贡献追踪** - 贡献者追踪和收益分配
+- **治理提案** - 提案管理（DRAFT/ACTIVE/PASSED/REJECTED/EXECUTED）
+- **投票机制** - 投票和quorum自动裁决
+
+**数据库表**:
+
+- `gene_ownership` - 基因所有权（DID+VC证明、抄袭分数）
+- `evomap_governance_proposals` - 治理提案（投票、法定人数）
+
+**IPC接口** (5个):
+
+- `evomap-gov:register-ownership` - 注册基因所有权
+- `evomap-gov:trace-contributions` - 追踪贡献者
+- `evomap-gov:create-proposal` - 创建治理提案
+- `evomap-gov:cast-vote` - 投票
+- `evomap-gov:get-governance-dashboard` - 获取治理仪表板
 
 ---
 
