@@ -82,7 +82,7 @@ export default defineConfig({
             { text: "Git同步", link: "/chainlesschain/git-sync" },
             { text: "数据加密", link: "/chainlesschain/encryption" },
             {
-              text: "Context Engineering",
+              text: "上下文工程",
               link: "/chainlesschain/context-engineering",
             },
             { text: "永久记忆系统", link: "/chainlesschain/permanent-memory" },
@@ -92,7 +92,7 @@ export default defineConfig({
           text: "自动化功能",
           items: [
             { text: "浏览器插件", link: "/chainlesschain/browser-extension" },
-            { text: "Computer Use", link: "/chainlesschain/computer-use" },
+            { text: "计算机操控", link: "/chainlesschain/computer-use" },
             {
               text: "浏览器自动化",
               link: "/chainlesschain/browser-automation",
@@ -103,15 +103,15 @@ export default defineConfig({
         {
           text: "企业版功能",
           items: [
-            { text: "Cowork多智能体协作", link: "/chainlesschain/cowork" },
-            { text: "SessionManager", link: "/chainlesschain/session-manager" },
-            { text: "Hooks系统", link: "/chainlesschain/hooks" },
+            { text: "多智能体协作", link: "/chainlesschain/cowork" },
+            { text: "会话管理器", link: "/chainlesschain/session-manager" },
+            { text: "钩子系统", link: "/chainlesschain/hooks" },
             { text: "权限系统", link: "/chainlesschain/permissions" },
-            { text: "Plan模式", link: "/chainlesschain/plan-mode" },
-            { text: "Skills系统", link: "/chainlesschain/skills" },
+            { text: "计划模式", link: "/chainlesschain/plan-mode" },
+            { text: "技能系统", link: "/chainlesschain/skills" },
             { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
-            { text: "Cowork高级功能", link: "/chainlesschain/cowork-advanced" },
-            { text: "Cowork路线图", link: "/chainlesschain/cowork-roadmap" },
+            { text: "协作高级功能", link: "/chainlesschain/cowork-advanced" },
+            { text: "协作路线图", link: "/chainlesschain/cowork-roadmap" },
             { text: "团队管理", link: "/chainlesschain/team-manager" },
             { text: "审计日志", link: "/chainlesschain/audit" },
           ],
@@ -120,7 +120,7 @@ export default defineConfig({
           text: "v1.1.0 企业增强 (Phase 42-45)",
           items: [
             {
-              text: "Social AI + ActivityPub",
+              text: "社交AI + ActivityPub",
               link: "/chainlesschain/social-ai",
             },
             { text: "合规与数据分类", link: "/chainlesschain/compliance" },
@@ -135,12 +135,12 @@ export default defineConfig({
               text: "门限签名 + 生物特征",
               link: "/chainlesschain/threshold-security",
             },
-            { text: "BLE U-Key", link: "/chainlesschain/ble-ukey" },
+            { text: "蓝牙U-Key", link: "/chainlesschain/ble-ukey" },
             {
               text: "内容推荐",
               link: "/chainlesschain/content-recommendation",
             },
-            { text: "Nostr 桥接", link: "/chainlesschain/nostr-bridge" },
+            { text: "Nostr桥接", link: "/chainlesschain/nostr-bridge" },
             { text: "数据防泄漏 (DLP)", link: "/chainlesschain/dlp" },
             { text: "SIEM 集成", link: "/chainlesschain/siem" },
           ],
@@ -154,9 +154,9 @@ export default defineConfig({
             },
             { text: "U盾固件 OTA", link: "/chainlesschain/firmware-ota" },
             { text: "AI 社区治理", link: "/chainlesschain/governance" },
-            { text: "Matrix 集成", link: "/chainlesschain/matrix-bridge" },
+            { text: "Matrix集成", link: "/chainlesschain/matrix-bridge" },
             {
-              text: "Terraform Provider",
+              text: "Terraform 提供者",
               link: "/chainlesschain/terraform-provider",
             },
           ],
@@ -211,15 +211,15 @@ export default defineConfig({
           text: "v3.1.0 去中心化AI市场 (Phase 65-67)",
           items: [
             {
-              text: "Skill Marketplace",
+              text: "技能市场",
               link: "/chainlesschain/skill-marketplace",
             },
             {
-              text: "Token Incentive",
+              text: "通证激励",
               link: "/chainlesschain/token-incentive",
             },
             {
-              text: "Inference Network",
+              text: "推理网络",
               link: "/chainlesschain/inference-network",
             },
           ],
@@ -227,35 +227,35 @@ export default defineConfig({
         {
           text: "v3.2.0 硬件安全生态 (Phase 68-71)",
           items: [
-            { text: "Trinity Trust Root", link: "/chainlesschain/trust-root" },
+            { text: "三位一体信任根", link: "/chainlesschain/trust-root" },
             {
-              text: "PQC Full Migration",
+              text: "后量子全面迁移",
               link: "/chainlesschain/pqc-ecosystem",
             },
             {
-              text: "Satellite Communication",
+              text: "卫星通信",
               link: "/chainlesschain/satellite-comm",
             },
-            { text: "HSM Adapter", link: "/chainlesschain/hsm-adapter" },
+            { text: "HSM硬件适配器", link: "/chainlesschain/hsm-adapter" },
           ],
         },
         {
           text: "v3.3.0 全球去中心化社交 (Phase 72-75)",
           items: [
             {
-              text: "Protocol Fusion",
+              text: "协议融合桥接",
               link: "/chainlesschain/protocol-fusion",
             },
             {
-              text: "AI Social Enhancement",
+              text: "AI社交增强",
               link: "/chainlesschain/ai-social-enhancement",
             },
             {
-              text: "Decentralized Storage",
+              text: "去中心化存储",
               link: "/chainlesschain/decentralized-storage",
             },
             {
-              text: "Anti-Censorship",
+              text: "抗审查网络",
               link: "/chainlesschain/anti-censorship",
             },
           ],
@@ -264,11 +264,11 @@ export default defineConfig({
           text: "v3.4.0 EvoMap全球进化 (Phase 76-77)",
           items: [
             {
-              text: "EvoMap Federation",
+              text: "EvoMap全球联邦",
               link: "/chainlesschain/evomap-federation",
             },
             {
-              text: "EvoMap Governance",
+              text: "EvoMap治理DAO",
               link: "/chainlesschain/evomap-governance",
             },
           ],
