@@ -26,31 +26,31 @@ docs/design/
 │   ├── 15_MCP_SDK系统.md            # ⭐v0.34.0新增 Server Builder
 │   ├── 16_AI技能系统.md             # ⭐v0.37.6更新 90技能+统一工具+演示模板
 │   ├── 17_EvoMap系统.md             # ⭐Phase 41 GEP-A2A/Gene/Capsule
-│   ├── 18_SocialAI系统.md           # ⭐Phase 42 主题分析/社交图谱/AP
-│   ├── 19_Compliance系统.md         # ⭐Phase 43 SOC2/数据分类
-│   ├── 20_SCIM系统.md               # ⭐Phase 44 SCIM 2.0/IdP同步
-│   ├── 21_UnifiedKey系统.md         # ⭐Phase 45-47,52-53 密钥/FIDO2/USB/BLE/PQC/OTA
-│   ├── 22_ContentRecommendation系统.md  # ⭐Phase 48 智能推荐/兴趣画像
-│   ├── 23_NostrBridge系统.md        # ⭐Phase 49 Nostr协议桥接
-│   ├── 24_DLP系统.md                # ⭐Phase 50 数据防泄漏
-│   ├── 25_SIEM系统.md               # ⭐Phase 51 SIEM集成/CEF/LEEF
-│   ├── 26_Governance系统.md         # ⭐Phase 54 AI社区治理
-│   ├── 27_MatrixBridge系统.md       # ⭐Phase 55 Matrix集成/E2EE
-│   ├── 28_Terraform系统.md          # ⭐Phase 56 Terraform/IaC
-│   ├── 29_ProductionHardening系统.md # ⭐Phase 57 生产强化/性能基线
-│   ├── 30_FederationHardening系统.md # ⭐Phase 58 联邦硬化/熔断器
-│   ├── 31_StressTest系统.md         # ⭐Phase 59 压力测试/负载模拟
-│   ├── 32_ReputationOptimizer系统.md # ⭐Phase 60 信誉优化/异常检测
-│   ├── 33_SLAManager系统.md         # ⭐Phase 61 SLA管理/违约检测
-│   ├── 34_TechLearning系统.md       # ⭐Phase 62 技术学习/最佳实践
-│   ├── 35_AutonomousDeveloper系统.md # ⭐Phase 63 自主开发/L2编码
-│   ├── 36_CollaborationGovernance系统.md # ⭐Phase 64 协作治理/冲突解决
-│   ├── 37_SkillMarketplace系统.md  # ⭐Phase 65-66 技能市场/代币激励
-│   ├── 38_InferenceNetwork系统.md  # ⭐Phase 67 去中心化推理网络
-│   ├── 39_TrustSecurity系统.md     # ⭐Phase 68-71 信任根/PQC/卫星/HSM
-│   ├── 40_ProtocolFusion系统.md    # ⭐Phase 72-73 协议融合/AI社交增强
-│   ├── 41_DecentralizedInfra系统.md # ⭐Phase 74-75 去中心化存储/抗审查
-│   └── 42_EvoMapAdvanced系统.md    # ⭐Phase 76-77 EvoMap联邦/治理DAO
+│   ├── 18_社交AI系统.md           # ⭐Phase 42 主题分析/社交图谱/AP
+│   ├── 19_合规分类系统.md         # ⭐Phase 43 SOC2/数据分类
+│   ├── 20_企业用户配置系统.md               # ⭐Phase 44 SCIM 2.0/IdP同步
+│   ├── 21_统一密钥系统.md         # ⭐Phase 45-47,52-53 密钥/FIDO2/USB/BLE/PQC/OTA
+│   ├── 22_智能内容推荐系统.md  # ⭐Phase 48 智能推荐/兴趣画像
+│   ├── 23_Nostr桥接系统.md        # ⭐Phase 49 Nostr协议桥接
+│   ├── 24_数据防泄漏系统.md                # ⭐Phase 50 数据防泄漏
+│   ├── 25_安全信息事件管理系统.md               # ⭐Phase 51 SIEM集成/CEF/LEEF
+│   ├── 26_社区治理系统.md         # ⭐Phase 54 AI社区治理
+│   ├── 27_Matrix集成系统.md       # ⭐Phase 55 Matrix集成/E2EE
+│   ├── 28_基础设施编排系统.md          # ⭐Phase 56 Terraform/IaC
+│   ├── 29_生产强化系统.md # ⭐Phase 57 生产强化/性能基线
+│   ├── 30_联邦强化系统.md # ⭐Phase 58 联邦硬化/熔断器
+│   ├── 31_压力测试系统.md         # ⭐Phase 59 压力测试/负载模拟
+│   ├── 32_信誉优化系统.md # ⭐Phase 60 信誉优化/异常检测
+│   ├── 33_跨组织SLA管理系统.md         # ⭐Phase 61 SLA管理/违约检测
+│   ├── 34_技术学习引擎系统.md       # ⭐Phase 62 技术学习/最佳实践
+│   ├── 35_自主开发者系统.md # ⭐Phase 63 自主开发/L2编码
+│   ├── 36_协作治理系统.md # ⭐Phase 64 协作治理/冲突解决
+│   ├── 37_技能市场系统.md  # ⭐Phase 65-66 技能市场/代币激励
+│   ├── 38_去中心化推理网络系统.md  # ⭐Phase 67 去中心化推理网络
+│   ├── 39_信任安全系统.md     # ⭐Phase 68-71 信任根/PQC/卫星/HSM
+│   ├── 40_协议融合系统.md    # ⭐Phase 72-73 协议融合/AI社交增强
+│   ├── 41_去中心化基础设施系统.md # ⭐Phase 74-75 去中心化存储/抗审查
+│   └── 42_EvoMap高级联邦系统.md    # ⭐Phase 76-77 EvoMap联邦/治理DAO
 ├── 安全机制设计.md                   # U盾/SIMKey安全 (含PQC/门限签名/生物识别)
 ├── 数据同步方案.md                   # Git/HTTP/P2P同步
 ├── AI模型部署方案.md                 # Ollama/云端模型
@@ -92,74 +92,74 @@ docs/design/
 
 ### Phase 41-45 模块 (v1.0.0)
 
-| 模块                   | 文档                                                 | 说明                                               |
-| ---------------------- | ---------------------------------------------------- | -------------------------------------------------- |
-| **EvoMap系统** ⭐      | [17_EvoMap系统.md](modules/17_EvoMap系统.md)         | **Phase 41**,GEP-A2A协议,Gene/Capsule,双向同步     |
-| **Social AI系统** ⭐   | [18_SocialAI系统.md](modules/18_SocialAI系统.md)     | **Phase 42**,主题分析,社交图谱,ActivityPub         |
-| **Compliance系统** ⭐  | [19_Compliance系统.md](modules/19_Compliance系统.md) | **Phase 43**,SOC2合规,数据分类,DSR处理             |
-| **SCIM系统** ⭐        | [20_SCIM系统.md](modules/20_SCIM系统.md)             | **Phase 44**,SCIM 2.0服务器,IdP同步                |
-| **Unified Key系统** ⭐ | [21_UnifiedKey系统.md](modules/21_UnifiedKey系统.md) | **Phase 45-47,52-53**,BIP-32,FIDO2,USB,BLE,PQC,OTA |
+| 模块                   | 文档                                                      | 说明                                               |
+| ---------------------- | --------------------------------------------------------- | -------------------------------------------------- |
+| **EvoMap系统** ⭐      | [17_EvoMap系统.md](modules/17_EvoMap系统.md)              | **Phase 41**,GEP-A2A协议,Gene/Capsule,双向同步     |
+| **Social AI系统** ⭐   | [18\_社交AI系统.md](modules/18_社交AI系统.md)             | **Phase 42**,主题分析,社交图谱,ActivityPub         |
+| **Compliance系统** ⭐  | [19\_合规分类系统.md](modules/19_合规分类系统.md)         | **Phase 43**,SOC2合规,数据分类,DSR处理             |
+| **SCIM系统** ⭐        | [20\_企业用户配置系统.md](modules/20_企业用户配置系统.md) | **Phase 44**,SCIM 2.0服务器,IdP同步                |
+| **Unified Key系统** ⭐ | [21\_统一密钥系统.md](modules/21_统一密钥系统.md)         | **Phase 45-47,52-53**,BIP-32,FIDO2,USB,BLE,PQC,OTA |
 
 ### Phase 48-51 模块 (v1.1.0 Phase 2)
 
-| 模块                    | 文档                                                                       | 说明                                    |
-| ----------------------- | -------------------------------------------------------------------------- | --------------------------------------- |
-| **内容推荐系统** ⭐     | [22_ContentRecommendation系统.md](modules/22_ContentRecommendation系统.md) | **Phase 48**,兴趣画像,本地推荐引擎      |
-| **Nostr Bridge** ⭐     | [23_NostrBridge系统.md](modules/23_NostrBridge系统.md)                     | **Phase 49**,Nostr协议,中继管理,DID映射 |
-| **数据防泄漏 (DLP)** ⭐ | [24_DLP系统.md](modules/24_DLP系统.md)                                     | **Phase 50**,策略驱动扫描,多通道防护    |
-| **SIEM集成** ⭐         | [25_SIEM系统.md](modules/25_SIEM系统.md)                                   | **Phase 51**,CEF/LEEF/JSON,多目标导出   |
+| 模块                    | 文档                                                              | 说明                                    |
+| ----------------------- | ----------------------------------------------------------------- | --------------------------------------- |
+| **内容推荐系统** ⭐     | [22\_智能内容推荐系统.md](modules/22_智能内容推荐系统.md)         | **Phase 48**,兴趣画像,本地推荐引擎      |
+| **Nostr Bridge** ⭐     | [23_Nostr桥接系统.md](modules/23_Nostr桥接系统.md)                | **Phase 49**,Nostr协议,中继管理,DID映射 |
+| **数据防泄漏 (DLP)** ⭐ | [24\_数据防泄漏系统.md](modules/24_数据防泄漏系统.md)             | **Phase 50**,策略驱动扫描,多通道防护    |
+| **SIEM集成** ⭐         | [25\_安全信息事件管理系统.md](modules/25_安全信息事件管理系统.md) | **Phase 51**,CEF/LEEF/JSON,多目标导出   |
 
 ### Phase 54-56 模块 (v1.1.0 Phase 3)
 
-| 模块                      | 文档                                                     | 说明                                      |
-| ------------------------- | -------------------------------------------------------- | ----------------------------------------- |
-| **AI社区治理** ⭐         | [26_Governance系统.md](modules/26_Governance系统.md)     | **Phase 54**,提案管理,AI影响分析,投票预测 |
-| **Matrix集成** ⭐         | [27_MatrixBridge系统.md](modules/27_MatrixBridge系统.md) | **Phase 55**,CS API,E2EE消息,房间管理     |
-| **Terraform Provider** ⭐ | [28_Terraform系统.md](modules/28_Terraform系统.md)       | **Phase 56**,工作空间,Plan/Apply/Destroy  |
+| 模块                      | 文档                                                      | 说明                                      |
+| ------------------------- | --------------------------------------------------------- | ----------------------------------------- |
+| **AI社区治理** ⭐         | [26\_社区治理系统.md](modules/26_社区治理系统.md)         | **Phase 54**,提案管理,AI影响分析,投票预测 |
+| **Matrix集成** ⭐         | [27_Matrix集成系统.md](modules/27_Matrix集成系统.md)      | **Phase 55**,CS API,E2EE消息,房间管理     |
+| **Terraform Provider** ⭐ | [28\_基础设施编排系统.md](modules/28_基础设施编排系统.md) | **Phase 56**,工作空间,Plan/Apply/Destroy  |
 
 ### Phase 57-61 模块 (v2.0.0 生产强化)
 
-| 模块              | 文档                                                                   | 说明                                       |
-| ----------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
-| **生产强化** ⭐   | [29_ProductionHardening系统.md](modules/29_ProductionHardening系统.md) | **Phase 57**,性能基线,安全审计,强化建议    |
-| **联邦硬化** ⭐   | [30_FederationHardening系统.md](modules/30_FederationHardening系统.md) | **Phase 58**,熔断器,健康检查,连接池        |
-| **压力测试** ⭐   | [31_StressTest系统.md](modules/31_StressTest系统.md)                   | **Phase 59**,并发测试,负载模拟,瓶颈识别    |
-| **信誉优化器** ⭐ | [32_ReputationOptimizer系统.md](modules/32_ReputationOptimizer系统.md) | **Phase 60**,贝叶斯优化,异常检测,防作弊    |
-| **跨组织SLA** ⭐  | [33_SLAManager系统.md](modules/33_SLAManager系统.md)                   | **Phase 61**,SLA合约,多级SLA,违约检测,补偿 |
+| 模块              | 文档                                                        | 说明                                       |
+| ----------------- | ----------------------------------------------------------- | ------------------------------------------ |
+| **生产强化** ⭐   | [29\_生产强化系统.md](modules/29_生产强化系统.md)           | **Phase 57**,性能基线,安全审计,强化建议    |
+| **联邦硬化** ⭐   | [30\_联邦强化系统.md](modules/30_联邦强化系统.md)           | **Phase 58**,熔断器,健康检查,连接池        |
+| **压力测试** ⭐   | [31\_压力测试系统.md](modules/31_压力测试系统.md)           | **Phase 59**,并发测试,负载模拟,瓶颈识别    |
+| **信誉优化器** ⭐ | [32\_信誉优化系统.md](modules/32_信誉优化系统.md)           | **Phase 60**,贝叶斯优化,异常检测,防作弊    |
+| **跨组织SLA** ⭐  | [33\_跨组织SLA管理系统.md](modules/33_跨组织SLA管理系统.md) | **Phase 61**,SLA合约,多级SLA,违约检测,补偿 |
 
 ### Phase 62-64 模块 (v3.0.0 自主AI)
 
-| 模块                | 文档                                                                           | 说明                                             |
-| ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------ |
-| **技术学习引擎** ⭐ | [34_TechLearning系统.md](modules/34_TechLearning系统.md)                       | **Phase 62**,技术栈分析,最佳实践,反模式检测      |
-| **自主开发者** ⭐   | [35_AutonomousDeveloper系统.md](modules/35_AutonomousDeveloper系统.md)         | **Phase 63**,L2自主编码,架构决策,代码审查,重构   |
-| **协作治理** ⭐     | [36_CollaborationGovernance系统.md](modules/36_CollaborationGovernance系统.md) | **Phase 64**,任务分配,冲突解决,质量评估,自主级别 |
+| 模块                | 文档                                                      | 说明                                             |
+| ------------------- | --------------------------------------------------------- | ------------------------------------------------ |
+| **技术学习引擎** ⭐ | [34\_技术学习引擎系统.md](modules/34_技术学习引擎系统.md) | **Phase 62**,技术栈分析,最佳实践,反模式检测      |
+| **自主开发者** ⭐   | [35\_自主开发者系统.md](modules/35_自主开发者系统.md)     | **Phase 63**,L2自主编码,架构决策,代码审查,重构   |
+| **协作治理** ⭐     | [36\_协作治理系统.md](modules/36_协作治理系统.md)         | **Phase 64**,任务分配,冲突解决,质量评估,自主级别 |
 
 ### Phase 65-67 模块 (v3.1.0 技能市场+推理网络)
 
-| 模块            | 文档                                                             | 说明                                        |
-| --------------- | ---------------------------------------------------------------- | ------------------------------------------- |
-| **技能市场** ⭐ | [37_SkillMarketplace系统.md](modules/37_SkillMarketplace系统.md) | **Phase 65-66**,技能发布/调用/计费,代币激励 |
-| **推理网络** ⭐ | [38_InferenceNetwork系统.md](modules/38_InferenceNetwork系统.md) | **Phase 67**,节点注册,任务调度,隐私推理     |
+| 模块            | 文档                                                              | 说明                                        |
+| --------------- | ----------------------------------------------------------------- | ------------------------------------------- |
+| **技能市场** ⭐ | [37\_技能市场系统.md](modules/37_技能市场系统.md)                 | **Phase 65-66**,技能发布/调用/计费,代币激励 |
+| **推理网络** ⭐ | [38\_去中心化推理网络系统.md](modules/38_去中心化推理网络系统.md) | **Phase 67**,节点注册,任务调度,隐私推理     |
 
 ### Phase 68-71 模块 (v3.2.0 信任安全)
 
-| 模块                | 文档                                                       | 说明                                          |
-| ------------------- | ---------------------------------------------------------- | --------------------------------------------- |
-| **信任安全系统** ⭐ | [39_TrustSecurity系统.md](modules/39_TrustSecurity系统.md) | **Phase 68-71**,TPM/TEE/SE信任根,PQC,卫星,HSM |
+| 模块                | 文档                                              | 说明                                          |
+| ------------------- | ------------------------------------------------- | --------------------------------------------- |
+| **信任安全系统** ⭐ | [39\_信任安全系统.md](modules/39_信任安全系统.md) | **Phase 68-71**,TPM/TEE/SE信任根,PQC,卫星,HSM |
 
 ### Phase 72-75 模块 (v3.3.0 协议融合+去中心化基础设施)
 
-| 模块                    | 文档                                                                 | 说明                                            |
-| ----------------------- | -------------------------------------------------------------------- | ----------------------------------------------- |
-| **协议融合** ⭐         | [40_ProtocolFusion系统.md](modules/40_ProtocolFusion系统.md)         | **Phase 72-73**,四协议桥接,实时翻译,内容质量    |
-| **去中心化基础设施** ⭐ | [41_DecentralizedInfra系统.md](modules/41_DecentralizedInfra系统.md) | **Phase 74-75**,Filecoin存储,P2P分发,抗审查通信 |
+| 模块                    | 文档                                                              | 说明                                            |
+| ----------------------- | ----------------------------------------------------------------- | ----------------------------------------------- |
+| **协议融合** ⭐         | [40\_协议融合系统.md](modules/40_协议融合系统.md)                 | **Phase 72-73**,四协议桥接,实时翻译,内容质量    |
+| **去中心化基础设施** ⭐ | [41\_去中心化基础设施系统.md](modules/41_去中心化基础设施系统.md) | **Phase 74-75**,Filecoin存储,P2P分发,抗审查通信 |
 
 ### Phase 76-77 模块 (v3.4.0 EvoMap高级)
 
 | 模块              | 文档                                                         | 说明                                              |
 | ----------------- | ------------------------------------------------------------ | ------------------------------------------------- |
-| **EvoMap高级** ⭐ | [42_EvoMapAdvanced系统.md](modules/42_EvoMapAdvanced系统.md) | **Phase 76-77**,多Hub联邦,基因谱系,IP保护,治理DAO |
+| **EvoMap高级** ⭐ | [42_EvoMap高级联邦系统.md](modules/42_EvoMap高级联邦系统.md) | **Phase 76-77**,多Hub联邦,基因谱系,IP保护,治理DAO |
 
 ### 基础设施
 
@@ -178,7 +178,7 @@ docs/design/
 1. [系统设计\_主文档.md](系统设计_主文档.md) - 了解整体架构
 2. [04\_项目管理模块.md](modules/04_项目管理模块.md) - 核心功能实现
 3. [安全机制设计.md](安全机制设计.md) - 安全机制
-4. [21_UnifiedKey系统.md](modules/21_UnifiedKey系统.md) - 硬件密钥管理
+4. [21\_统一密钥系统.md](modules/21_统一密钥系统.md) - 硬件密钥管理
 
 ### 产品经理
 
@@ -189,14 +189,14 @@ docs/design/
 
 1. [AI模型部署方案.md](AI模型部署方案.md) - 模型部署
 2. [数据同步方案.md](数据同步方案.md) - 同步配置
-3. [28_Terraform系统.md](modules/28_Terraform系统.md) - IaC管理
+3. [28\_基础设施编排系统.md](modules/28_基础设施编排系统.md) - IaC管理
 
 ### 安全工程师
 
 1. [安全机制设计.md](安全机制设计.md) - 密钥/加密/PQC
-2. [21_UnifiedKey系统.md](modules/21_UnifiedKey系统.md) - FIDO2/BLE/PQC
-3. [24_DLP系统.md](modules/24_DLP系统.md) - 数据防泄漏
-4. [25_SIEM系统.md](modules/25_SIEM系统.md) - SIEM集成
+2. [21\_统一密钥系统.md](modules/21_统一密钥系统.md) - FIDO2/BLE/PQC
+3. [24\_数据防泄漏系统.md](modules/24_数据防泄漏系统.md) - 数据防泄漏
+4. [25\_安全信息事件管理系统.md](modules/25_安全信息事件管理系统.md) - SIEM集成
 
 ## 归档文档
 
