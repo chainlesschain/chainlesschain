@@ -142,6 +142,31 @@ All entry files are relative to `desktop-app-vue/src/`.
 - **Stream Processor** (`/stream-processor`): Per-line stream processing for log/csv/json files
 - **Database tables**: `debate_reviews`, `ab_comparisons`
 
+### Decentralized AI Market (v3.1.0 — Phase 65-67)
+
+- **Skill-as-a-Service**: Standardized skill description (input/output/deps/SLA), EvoMap Gene format, pipeline DAG composition, remote invocation
+- **Token Incentive**: Local token accounting, reward calculation, reputation-weighted pricing, contribution tracking
+- **Inference Network**: GPU/CPU node registration, latency/cost scheduling, model shard parallel, TEE privacy, federated learning
+
+### Hardware Security Ecosystem (v3.2.0 — Phase 68-71)
+
+- **Trinity Trust Root**: U-Key+SIMKey+TEE unified trust root, attestation chain, secure boot, hardware fingerprint binding
+- **PQC Full Migration**: ML-KEM/ML-DSA full replacement, SIMKey firmware PQC, hybrid-to-pure migration
+- **Satellite Communication**: LEO satellite messaging, encryption+compression, offline signature queue, emergency key revocation
+- **Open Hardware Standard**: Unified HSM interface, Yubikey/Ledger/Trezor adapters, FIPS 140-3 compliance
+
+### Global Decentralized Social (v3.3.0 — Phase 72-75)
+
+- **Protocol Fusion Bridge**: Unified message format, lossless cross-protocol conversion, DID↔AP↔Nostr↔Matrix identity mapping
+- **AI Social Enhancement**: Local LLM translation (50+ languages), AI harmful content detection, decentralized consensus review
+- **Decentralized Storage**: Filecoin storage deals, P2P CDN, hot content caching, IPLD DAG versioning
+- **Anti-Censorship Communication**: Tor hidden service, traffic obfuscation, CDN domain fronting, BLE/WiFi Direct mesh network
+
+### EvoMap Global Evolution (v3.4.0 — Phase 76-77)
+
+- **Global Evolution Network**: Multi-Hub interconnection, Gene cross-Hub sync, evolution pressure selection, gene recombination, lineage DAG
+- **IP & Governance DAO**: DID+VC originality proof, anti-plagiarism, derivation chain, Gene quality voting, dispute arbitration
+
 ## Android Application
 
 28 skills in `android-app/feature-ai/.../cowork/skills/`:
