@@ -1,0 +1,24 @@
+{
+  "name": "chainlesschain-design-docs",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ChainlessChain 系统设计文档网站 - 面向开发者的架构与模块设计文档",
+  "scripts": {
+    "sync": "node scripts/sync-docs.js",
+    "dev": "npm run sync && vitepress dev docs",
+    "build": "npm run sync && vitepress build docs",
+    "preview": "vitepress preview docs"
+  },
+  "keywords": [
+    "chainlesschain",
+    "design-docs",
+    "architecture",
+    "developer"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.0.0",
+    "vue": "^3.3.11"
+  }
+}
