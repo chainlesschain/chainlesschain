@@ -9,7 +9,6 @@ import os from "os";
 import { createRequire } from "module";
 import {
   LOG_LEVELS,
-  LOG_LEVEL_NAMES,
   DEFAULT_CONFIG,
   formatLogMessage,
   getStackTrace,
@@ -58,8 +57,9 @@ function getApp() {
     } else {
       throw new Error("Electron app not available");
     }
-  } catch (error) {
+  } catch {
     // In test environment, provide a mock with temp directory
+    // Error intentionally ignored - fallback to mock for non-Electron environments
     const tmpDir = path.join(os.tmpdir(), "chainlesschain-test");
     app = {
       getPath: () => tmpDir,
@@ -132,7 +132,8 @@ class Logger {
         }
       }
     } catch (error) {
-      logger.error("日志轮转失败:", error);
+      // Use console.error during initialization to avoid circular dependency
+      console.error("日志轮转失败:", error);
     }
   }
 
