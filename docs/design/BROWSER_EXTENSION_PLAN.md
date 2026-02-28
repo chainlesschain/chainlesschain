@@ -1,372 +1,372 @@
-# Browser Extension API Implementation Plan
+# 浏览器扩展 API 实施规划
 
-## Overview
+## 概述
 
-This document outlines the remaining browser APIs that can be added to the ChainlessChain browser extension. The current implementation (Phase 25 complete) covers approximately 400+ operations across major browser APIs.
+本文档列出了 ChainlessChain 浏览器扩展可新增的浏览器 API 项目。当前实现（第 25 阶段已完成）覆盖主要浏览器 API 的 400+ 项操作。
 
-## Implementation Status Summary
+## 实施状态汇总
 
-### Completed Phases (1-25)
+### 已完成阶段（第 1–25 阶段）
 
-| Phase | Category            | Operations | Status      |
-| ----- | ------------------- | ---------- | ----------- |
-| 1-10  | Core APIs           | ~120       | ✅ Complete |
-| 11-15 | DOM & Events        | ~80        | ✅ Complete |
-| 16-19 | Storage & Network   | ~60        | ✅ Complete |
-| 20-21 | Web APIs & System   | ~45        | ✅ Complete |
-| 22    | WebRTC & Components | ~35        | ✅ Complete |
-| 23    | Modern Web APIs     | ~56        | ✅ Complete |
-| 24    | Hardware & Media    | ~51        | ✅ Complete |
-| 25    | Detection & Utility | ~47        | ✅ Complete |
+| 阶段  | 分类           | 操作数 | 状态      |
+| ----- | -------------- | ------ | --------- |
+| 1–10  | 核心 API       | ~120   | ✅ 已完成 |
+| 11–15 | DOM 与事件     | ~80    | ✅ 已完成 |
+| 16–19 | 存储与网络     | ~60    | ✅ 已完成 |
+| 20–21 | Web API 与系统 | ~45    | ✅ 已完成 |
+| 22    | WebRTC 与组件  | ~35    | ✅ 已完成 |
+| 23    | 现代 Web API   | ~56    | ✅ 已完成 |
+| 24    | 硬件与媒体     | ~51    | ✅ 已完成 |
+| 25    | 检测与实用工具 | ~47    | ✅ 已完成 |
 
-**Total: 400+ operations implemented**
+**合计：已实现 400+ 项操作**
 
 ---
 
-## Remaining APIs for Future Phases
+## 后续阶段待实现 API
 
-### Phase 26: Performance & Analytics APIs (Est. ~30 operations)
+### 第 26 阶段：性能与分析 API（约 30 项操作）
 
-**Performance Observer API (Extended)**
+**Performance Observer API（扩展）**
 
-- `createPerformanceObserver` - Create performance observer
-- `observePerformanceEntries` - Observe specific entry types
-- `getPerformanceMarks` - Get performance marks
-- `getPerformanceMeasures` - Get performance measures
-- `clearPerformanceMarks` - Clear marks
-- `clearPerformanceMeasures` - Clear measures
+- `createPerformanceObserver` — 创建性能观察器
+- `observePerformanceEntries` — 观察指定类型的条目
+- `getPerformanceMarks` — 获取性能标记
+- `getPerformanceMeasures` — 获取性能测量值
+- `clearPerformanceMarks` — 清除标记
+- `clearPerformanceMeasures` — 清除测量值
 
 **User Timing API**
 
-- `createPerformanceMark` - Create named mark
-- `createPerformanceMeasure` - Create measurement between marks
-- `getResourceTimings` - Get resource load timings
-- `getNavigationTiming` - Get navigation timing data
+- `createPerformanceMark` — 创建命名标记
+- `createPerformanceMeasure` — 在标记之间创建测量
+- `getResourceTimings` — 获取资源加载计时
+- `getNavigationTiming` — 获取页面导航计时数据
 
 **Long Tasks API**
 
-- `observeLongTasks` - Observe long-running tasks
-- `getLongTaskEntries` - Get long task entries
+- `observeLongTasks` — 观察长任务
+- `getLongTaskEntries` — 获取长任务条目
 
 **Element Timing API**
 
-- `observeElementTiming` - Observe element render timing
-- `markElementForTiming` - Mark element for observation
+- `observeElementTiming` — 观察元素渲染时机
+- `markElementForTiming` — 标记元素以供观察
 
-**Layout Instability API (CLS)**
+**Layout Instability API（CLS）**
 
-- `observeLayoutShifts` - Observe layout shift events
-- `getLayoutShiftScore` - Get cumulative layout shift score
+- `observeLayoutShifts` — 观察布局偏移事件
+- `getLayoutShiftScore` — 获取累积布局偏移分值
 
-**Permission Level**: NORMAL to PUBLIC
+**权限级别**：NORMAL 至 PUBLIC
 
 ---
 
-### Phase 27: Experimental & Emerging APIs (Est. ~35 operations)
+### 第 27 阶段：实验性与新兴 API（约 35 项操作）
 
 **Eyedropper API**
 
-- `openEyedropper` - Open color picker
-- `isEyedropperSupported` - Check support
+- `openEyedropper` — 打开颜色拾取器
+- `isEyedropperSupported` — 检查是否支持
 
-**Screen Capture API (Enhanced)**
+**Screen Capture API（增强）**
 
-- `getDisplayMedia` - Capture screen/window
-- `selectDisplay` - Select display to capture
-- `stopScreenCapture` - Stop capture
+- `getDisplayMedia` — 捕获屏幕/窗口
+- `selectDisplay` — 选择要捕获的显示器
+- `stopScreenCapture` — 停止捕获
 
 **File Handling API**
 
-- `registerFileHandler` - Register as file handler
-- `unregisterFileHandler` - Unregister handler
-- `getFileHandlerState` - Get registration state
+- `registerFileHandler` — 注册为文件处理程序
+- `unregisterFileHandler` — 注销处理程序
+- `getFileHandlerState` — 获取注册状态
 
 **Web Share Target API**
 
-- `registerShareTarget` - Register as share target
-- `getShareData` - Get shared data
+- `registerShareTarget` — 注册为分享目标
+- `getShareData` — 获取分享数据
 
 **Contact Picker API**
 
-- `selectContacts` - Open contact picker
-- `getContactProperties` - Get available properties
+- `selectContacts` — 打开联系人选择器
+- `getContactProperties` — 获取可用属性
 
 **Content Index API**
 
-- `addToContentIndex` - Add content to offline index
-- `removeFromContentIndex` - Remove from index
-- `getContentIndexItems` - List indexed items
+- `addToContentIndex` — 将内容添加到离线索引
+- `removeFromContentIndex` — 从索引中移除
+- `getContentIndexItems` — 列出已索引项目
 
 **Periodic Background Sync API**
 
-- `registerPeriodicSync` - Register periodic sync
-- `unregisterPeriodicSync` - Unregister sync
-- `getPeriodicSyncTags` - Get registered tags
+- `registerPeriodicSync` — 注册定期同步
+- `unregisterPeriodicSync` — 注销同步
+- `getPeriodicSyncTags` — 获取已注册的标签
 
-**App Badging API (Extended)**
+**App Badging API（扩展）**
 
-- `setAppBadge` - Set app badge
-- `clearAppBadge` - Clear badge
-- `setClientBadge` - Set client badge
+- `setAppBadge` — 设置应用角标
+- `clearAppBadge` — 清除角标
+- `setClientBadge` — 设置客户端角标
 
-**Permission Level**: NORMAL to ADMIN
+**权限级别**：NORMAL 至 ADMIN
 
 ---
 
-### Phase 28: Security & Privacy APIs (Est. ~25 operations)
+### 第 28 阶段：安全与隐私 API（约 25 项操作）
 
-**Credential Management API (Extended)**
+**Credential Management API（扩展）**
 
-- `createCredential` - Create new credential
-- `getCredentials` - Get stored credentials
-- `preventSilentAccess` - Prevent silent credential access
+- `createCredential` — 创建新凭证
+- `getCredentials` — 获取已存储凭证
+- `preventSilentAccess` — 阻止静默凭证访问
 
 **WebAuthn API**
 
-- `createPublicKeyCredential` - Create WebAuthn credential
-- `getPublicKeyCredential` - Get WebAuthn credential
-- `isUserVerifyingPlatformAuthenticatorAvailable` - Check UVPA
+- `createPublicKeyCredential` — 创建 WebAuthn 凭证
+- `getPublicKeyCredential` — 获取 WebAuthn 凭证
+- `isUserVerifyingPlatformAuthenticatorAvailable` — 检查 UVPA 可用性
 
 **Trusted Types API**
 
-- `createTrustedTypePolicy` - Create trusted type policy
-- `isTrustedTypesSupported` - Check support
-- `getTrustedTypePolicies` - Get policies
+- `createTrustedTypePolicy` — 创建受信任类型策略
+- `isTrustedTypesSupported` — 检查是否支持
+- `getTrustedTypePolicies` — 获取策略列表
 
 **Content Security Policy API**
 
-- `getSecurityPolicyViolations` - Get CSP violations
-- `observeCSPViolations` - Observe violations
+- `getSecurityPolicyViolations` — 获取 CSP 违规记录
+- `observeCSPViolations` — 观察违规事件
 
-**Subresource Integrity**
+**子资源完整性（SRI）**
 
-- `validateResourceIntegrity` - Validate SRI
-- `generateIntegrityHash` - Generate SRI hash
+- `validateResourceIntegrity` — 验证 SRI
+- `generateIntegrityHash` — 生成 SRI 哈希值
 
-**Permission Level**: ADMIN to ROOT
+**权限级别**：ADMIN 至 ROOT
 
 ---
 
-### Phase 29: Graphics & Rendering APIs (Est. ~40 operations)
+### 第 29 阶段：图形与渲染 API（约 40 项操作）
 
 **WebGPU API**
 
-- `getGPUAdapter` - Get GPU adapter
-- `requestGPUDevice` - Request GPU device
-- `createGPUBuffer` - Create GPU buffer
-- `createGPUTexture` - Create texture
-- `createGPUShaderModule` - Create shader
-- `createGPURenderPipeline` - Create render pipeline
-- `createGPUComputePipeline` - Create compute pipeline
-- `submitGPUCommands` - Submit command buffer
-- `isWebGPUSupported` - Check support
+- `getGPUAdapter` — 获取 GPU 适配器
+- `requestGPUDevice` — 请求 GPU 设备
+- `createGPUBuffer` — 创建 GPU 缓冲区
+- `createGPUTexture` — 创建纹理
+- `createGPUShaderModule` — 创建着色器模块
+- `createGPURenderPipeline` — 创建渲染管线
+- `createGPUComputePipeline` — 创建计算管线
+- `submitGPUCommands` — 提交命令缓冲区
+- `isWebGPUSupported` — 检查是否支持
 
-**WebGL2 Extensions**
+**WebGL2 扩展**
 
-- `getWebGL2Extensions` - Get WebGL2 extensions
-- `createWebGL2Context` - Create WebGL2 context
-- `compileWebGLShader` - Compile shader
-- `linkWebGLProgram` - Link program
+- `getWebGL2Extensions` — 获取 WebGL2 扩展列表
+- `createWebGL2Context` — 创建 WebGL2 上下文
+- `compileWebGLShader` — 编译着色器
+- `linkWebGLProgram` — 链接程序
 
 **OffscreenCanvas API**
 
-- `createOffscreenCanvas` - Create offscreen canvas
-- `transferToOffscreenCanvas` - Transfer to offscreen
-- `getOffscreenContext` - Get offscreen context
+- `createOffscreenCanvas` — 创建离屏画布
+- `transferToOffscreenCanvas` — 转移到离屏画布
+- `getOffscreenContext` — 获取离屏上下文
 
 **ImageBitmap API**
 
-- `createImageBitmap` - Create image bitmap
-- `transferImageBitmap` - Transfer bitmap
-- `closeImageBitmap` - Close/release bitmap
+- `createImageBitmap` — 创建图像位图
+- `transferImageBitmap` — 转移位图
+- `closeImageBitmap` — 关闭/释放位图
 
-**Permission Level**: NORMAL to ADMIN
+**权限级别**：NORMAL 至 ADMIN
 
 ---
 
-### Phase 30: Communication & Messaging APIs (Est. ~25 operations)
+### 第 30 阶段：通信与消息传递 API（约 25 项操作）
 
 **MessageChannel API**
 
-- `createMessageChannel` - Create channel
-- `postMessageToPort` - Post to port
-- `closeMessagePort` - Close port
+- `createMessageChannel` — 创建消息通道
+- `postMessageToPort` — 向端口发送消息
+- `closeMessagePort` — 关闭端口
 
 **MessagePort API**
 
-- `startMessagePort` - Start port
-- `closeMessagePort` - Close port
+- `startMessagePort` — 启动端口
+- `closeMessagePort` — 关闭端口
 
-**CompressionStream API (Extended)**
+**CompressionStream API（扩展）**
 
-- `createCompressionStream` - Create stream
-- `createDecompressionStream` - Create decompress stream
-- `pipeCompression` - Pipe data through
+- `createCompressionStream` — 创建压缩流
+- `createDecompressionStream` — 创建解压缩流
+- `pipeCompression` — 通过压缩流传输数据
 
 **TransformStream API**
 
-- `createTransformStream` - Create transform stream
-- `chainTransformStreams` - Chain multiple streams
+- `createTransformStream` — 创建转换流
+- `chainTransformStreams` — 串联多个转换流
 
-**ReadableStream API (Extended)**
+**ReadableStream API（扩展）**
 
-- `createReadableStream` - Create readable stream
-- `readFromStream` - Read from stream
-- `cancelStream` - Cancel stream
-- `pipeToWritable` - Pipe to writable
+- `createReadableStream` — 创建可读流
+- `readFromStream` — 从流中读取数据
+- `cancelStream` — 取消流
+- `pipeToWritable` — 导向可写流
 
 **WritableStream API**
 
-- `createWritableStream` - Create writable stream
-- `writeToStream` - Write to stream
-- `closeWritableStream` - Close stream
+- `createWritableStream` — 创建可写流
+- `writeToStream` — 向流写入数据
+- `closeWritableStream` — 关闭流
 
-**Permission Level**: NORMAL
+**权限级别**：NORMAL
 
 ---
 
-### Phase 31: Device & Hardware APIs (Est. ~35 operations)
+### 第 31 阶段：设备与硬件 API（约 35 项操作）
 
 **Generic Sensor API**
 
-- `getAccelerometer` - Get accelerometer data
-- `getGyroscope` - Get gyroscope data
-- `getMagnetometer` - Get magnetometer data
-- `getAmbientLightSensor` - Get light sensor data
+- `getAccelerometer` — 获取加速度计数据
+- `getGyroscope` — 获取陀螺仪数据
+- `getMagnetometer` — 获取磁力计数据
+- `getAmbientLightSensor` — 获取环境光传感器数据
 
-**Geolocation API (Enhanced)**
+**Geolocation API（增强）**
 
-- `getCurrentPosition` - Get current position
-- `watchPosition` - Watch position changes
-- `clearWatch` - Clear position watch
-- `getGeolocationPermission` - Get permission state
+- `getCurrentPosition` — 获取当前位置
+- `watchPosition` — 监听位置变化
+- `clearWatch` — 清除位置监听
+- `getGeolocationPermission` — 获取权限状态
 
 **DeviceOrientation API**
 
-- `getDeviceOrientation` - Get orientation
-- `watchDeviceOrientation` - Watch orientation
-- `getDeviceMotion` - Get motion data
+- `getDeviceOrientation` — 获取设备方向
+- `watchDeviceOrientation` — 监听方向变化
+- `getDeviceMotion` — 获取运动数据
 
-**Battery Status API (Extended)**
+**Battery Status API（扩展）**
 
-- `getBatteryManager` - Get battery manager
-- `watchBatteryStatus` - Watch battery changes
+- `getBatteryManager` — 获取电池管理器
+- `watchBatteryStatus` — 监听电池状态变化
 
-**Network Information API (Extended)**
+**Network Information API（扩展）**
 
-- `getNetworkType` - Get network type
-- `getEffectiveType` - Get effective connection type
-- `watchNetworkChanges` - Watch for changes
-- `getDownlinkMax` - Get max downlink
+- `getNetworkType` — 获取网络类型
+- `getEffectiveType` — 获取有效连接类型
+- `watchNetworkChanges` — 监听网络变化
+- `getDownlinkMax` — 获取最大下行速率
 
 **Vibration API**
 
-- `vibrate` - Trigger vibration
-- `cancelVibration` - Cancel vibration
+- `vibrate` — 触发振动
+- `cancelVibration` — 取消振动
 
-**Permission Level**: NORMAL to ADMIN
+**权限级别**：NORMAL 至 ADMIN
 
 ---
 
-### Phase 32: Accessibility & Internationalization (Est. ~20 operations)
+### 第 32 阶段：无障碍与国际化（约 20 项操作）
 
-**Selection API (Extended)**
+**Selection API（扩展）**
 
-- `getSelection` - Get text selection
-- `setSelection` - Set selection range
-- `collapseSelection` - Collapse selection
-- `extendSelection` - Extend selection
+- `getSelection` — 获取文本选区
+- `setSelection` — 设置选区范围
+- `collapseSelection` — 折叠选区
+- `extendSelection` — 扩展选区
 
 **Range API**
 
-- `createRange` - Create range
-- `setRangeStart` - Set start position
-- `setRangeEnd` - Set end position
-- `surroundContents` - Surround with element
+- `createRange` — 创建范围
+- `setRangeStart` — 设置起始位置
+- `setRangeEnd` — 设置结束位置
+- `surroundContents` — 用元素包围内容
 
 **Intl API**
 
-- `formatNumber` - Format number
-- `formatDate` - Format date
-- `formatRelativeTime` - Format relative time
-- `listFormat` - Format lists
-- `pluralRules` - Get plural rules
-- `segmentText` - Segment text
+- `formatNumber` — 格式化数字
+- `formatDate` — 格式化日期
+- `formatRelativeTime` — 格式化相对时间
+- `listFormat` — 格式化列表
+- `pluralRules` — 获取复数规则
+- `segmentText` — 文本分段
 
-**Permission Level**: PUBLIC to NORMAL
-
----
-
-## Implementation Guidelines
-
-### For Each New Phase:
-
-1. **Add to background.js**
-   - Command handlers in `handleCommand` switch
-   - Implementation functions with `chrome.scripting.executeScript`
-
-2. **Add to browser-extension-server.js**
-   - Routing cases in `ExtensionBrowserHandler.handle`
-
-3. **Add to permission-gate.js**
-   - Permission levels for each operation
-
-4. **Add Unit Tests**
-   - Test routing in browser-extension-server.test.js
-
-5. **Update Documentation**
-   - Update this plan document
-   - Update CLAUDE.md if needed
-
-### Security Considerations
-
-- **PUBLIC**: Read-only, non-sensitive operations
-- **NORMAL**: Standard browser operations
-- **ADMIN**: Sensitive data access, hardware control
-- **ROOT**: System-level operations, credential management
+**权限级别**：PUBLIC 至 NORMAL
 
 ---
 
-## Priority Recommendations
+## 实施指南
 
-### High Priority (Implement Next)
+### 每个新阶段的操作步骤
 
-1. Phase 26 - Performance APIs (useful for debugging)
-2. Phase 29 - Graphics APIs (WebGPU is emerging standard)
+1. **修改 background.js**
+   - 在 `handleCommand` switch 中添加命令处理器
+   - 使用 `chrome.scripting.executeScript` 实现功能函数
 
-### Medium Priority
+2. **修改 browser-extension-server.js**
+   - 在 `ExtensionBrowserHandler.handle` 中添加路由分支
 
-3. Phase 31 - Device APIs (mobile-first features)
-4. Phase 27 - Experimental APIs (future-proofing)
+3. **修改 permission-gate.js**
+   - 为每项操作配置相应权限级别
 
-### Lower Priority
+4. **添加单元测试**
+   - 在 browser-extension-server.test.js 中测试路由逻辑
 
-5. Phase 28 - Security APIs (specialized use cases)
-6. Phase 30 - Communication APIs (advanced patterns)
-7. Phase 32 - Accessibility/Intl (niche features)
+5. **更新文档**
+   - 更新本规划文档
+   - 如有必要更新 CLAUDE.md
 
----
+### 安全注意事项
 
-## Estimated Timeline
-
-Each phase requires approximately:
-
-- Development: 2-4 hours
-- Testing: 1-2 hours
-- Documentation: 30 minutes
-
-**Total remaining: ~210 operations across 7 phases**
+- **PUBLIC**：只读、非敏感操作
+- **NORMAL**：标准浏览器操作
+- **ADMIN**：敏感数据访问、硬件控制
+- **ROOT**：系统级操作、凭证管理
 
 ---
 
-## References
+## 优先级建议
 
-- [MDN Web APIs](https://developer.mozilla.org/en-US/docs/Web/API)
+### 高优先级（优先实施）
+
+1. 第 26 阶段 — 性能 API（调试辅助，实用性高）
+2. 第 29 阶段 — 图形 API（WebGPU 正成为新标准）
+
+### 中优先级
+
+3. 第 31 阶段 — 设备 API（移动优先特性）
+4. 第 27 阶段 — 实验性 API（面向未来）
+
+### 较低优先级
+
+5. 第 28 阶段 — 安全 API（专项用途）
+6. 第 30 阶段 — 通信 API（高级模式）
+7. 第 32 阶段 — 无障碍/国际化（细分场景）
+
+---
+
+## 工作量估算
+
+每个阶段大约需要：
+
+- 开发：2–4 小时
+- 测试：1–2 小时
+- 文档：30 分钟
+
+**剩余总量：7 个阶段约 210 项操作**
+
+---
+
+## 参考资料
+
+- [MDN Web APIs](https://developer.mozilla.org/zh-CN/docs/Web/API)
 - [Chrome Platform Status](https://chromestatus.com/)
 - [Can I Use](https://caniuse.com/)
 - [Web.dev](https://web.dev/)
 
 ---
 
-_Last Updated: 2026-02-11_
-_Current Version: Phase 25 Complete_
+_最后更新：2026-02-28_
+_当前版本：第 25 阶段已完成_
