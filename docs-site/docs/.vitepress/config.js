@@ -172,6 +172,42 @@ export default defineConfig({
           ],
         },
         {
+          text: "v2.0.0 生产加固 (Phase 57-61)",
+          items: [
+            {
+              text: "生产加固",
+              link: "/chainlesschain/production-hardening",
+            },
+            {
+              text: "联邦网络加固",
+              link: "/chainlesschain/federation-hardening",
+            },
+            { text: "联邦压力测试", link: "/chainlesschain/stress-test" },
+            {
+              text: "信誉系统优化",
+              link: "/chainlesschain/reputation-optimizer",
+            },
+            { text: "跨组织 SLA", link: "/chainlesschain/sla-manager" },
+          ],
+        },
+        {
+          text: "v3.0.0 自主AI开发 (Phase 62-64)",
+          items: [
+            {
+              text: "自主技术学习",
+              link: "/chainlesschain/tech-learning",
+            },
+            {
+              text: "自主开发者",
+              link: "/chainlesschain/autonomous-developer",
+            },
+            {
+              text: "协作治理框架",
+              link: "/chainlesschain/collaboration-governance",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },

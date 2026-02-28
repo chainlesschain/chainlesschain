@@ -899,5 +899,7 @@
 > - [SIMKey 企业版](/chainlesschain/simkey-enterprise) | [门限安全](/chainlesschain/threshold-security) | [BLE U盾](/chainlesschain/ble-ukey)
 > - [智能推荐](/chainlesschain/content-recommendation) | [Nostr 桥接](/chainlesschain/nostr-bridge) | [DLP 防泄漏](/chainlesschain/dlp) | [SIEM 集成](/chainlesschain/siem)
 > - [PQC 迁移](/chainlesschain/pqc-migration) | [固件 OTA](/chainlesschain/firmware-ota) | [AI 治理](/chainlesschain/governance) | [Matrix 集成](/chainlesschain/matrix-bridge) | [Terraform](/chainlesschain/terraform-provider)
+> - [生产加固](/chainlesschain/production-hardening) | [联邦网络加固](/chainlesschain/federation-hardening) | [压力测试](/chainlesschain/stress-test) | [信誉优化](/chainlesschain/reputation-optimizer) | [跨组织 SLA](/chainlesschain/sla-manager)
+> - [自主技术学习](/chainlesschain/tech-learning) | [自主开发者](/chainlesschain/autonomous-developer) | [协作治理](/chainlesschain/collaboration-governance)
 > - [EvoMap GEP 协议](/chainlesschain/evomap)
 > - [更新日志](/changelog)
