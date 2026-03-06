@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/data-exporter.js`
 
-**Generated**: 2026-03-06T02:31:40.110Z
+**Generated**: 2026-03-06T07:41:07.204Z
 
 ---
 

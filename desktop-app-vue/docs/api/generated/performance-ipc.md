@@ -2,7 +2,7 @@
 
 **Source**: `src/main/performance/performance-ipc.js`
 
-**Generated**: 2026-03-06T02:31:40.068Z
+**Generated**: 2026-03-06T07:41:07.167Z
 
 ---
 

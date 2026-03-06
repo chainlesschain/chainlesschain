@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-03-06T02:31:40.348Z
+**Generated**: 2026-03-06T07:41:07.436Z
 
 ---
 
@@ -8,13 +8,13 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 1396 | 21.39 MB |
+| main | 1442 | 21.69 MB |
 | renderer | 12 | 0.05 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 1396
+**Files**: 1442
 
 **Top 10 Largest Files**:
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/global-shortcut-manager.js`
 
-**Generated**: 2026-03-06T02:31:40.028Z
+**Generated**: 2026-03-06T07:41:07.130Z
 
 ---
 
