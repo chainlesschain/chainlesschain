@@ -9,8 +9,8 @@
 
 ### 新增
 
-- **v1.2.0 新增 22 个实用技能** (总计 118 个桌面内置技能, 100% Handler 覆盖)
-  - 研究 10 大外部技能标准并转化为内置技能，同时新增 12 个实用流行技能
+- **v1.2.0 新增 32 个实用技能** (总计 128 个桌面内置技能, 100% Handler 覆盖)
+  - 研究 10 大外部技能标准并转化为内置技能，新增 12 个实用流行技能，以及 10 个集成/生产力/知识技能
 
 **外部技能标准转化 (10 个)**:
 
@@ -39,6 +39,19 @@
 - `database-query`: 数据库助手，SQL 生成/优化/Schema 内省
 - `k8s-deployer`: K8s 部署，清单生成 + Helm Chart + 安全检查
 - `cursor-rules-generator`: IDE 规则生成，5 种 AI 编码助手配置
+
+**集成与生产力技能 (10 个)**:
+
+- `api-gateway`: API 网关，100+ API 统一接口/密钥管理/链式调用
+- `free-model-manager`: 免费模型管理，Ollama/HuggingFace 模型发现/下载/管理
+- `github-manager`: GitHub 管理，Issues/PR/仓库/Workflows 操作
+- `google-workspace`: Google 工作区，Gmail/Calendar/Drive 集成
+- `humanizer`: AI 文本人性化，去除 AI 写作痕迹/语气调整
+- `notion`: Notion 集成，页面创建/数据库查询/内容管理
+- `obsidian`: Obsidian 笔记库，笔记创建/搜索/标签管理/双链
+- `self-improving-agent`: 自我改进代理，错误追踪/模式分析/改进建议
+- `summarizer`: 万能摘要，URL/PDF/YouTube/文本摘要 + 关键点提取
+- `weather`: 天气查询，全球天气/预报/告警 (wttr.in 免密钥)
 
 ---
 

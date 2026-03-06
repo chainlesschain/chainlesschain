@@ -8,7 +8,7 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-2500%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-118-blue.svg)
+![Skills](https://img.shields.io/badge/skills-128-blue.svg)
 
 **去中心化 · 隐私优先 · AI原生**
 
@@ -22,9 +22,9 @@
 
 ## ⭐ 当前版本: v1.2.0 Full-Stack Edition (2026-03-06)
 
-### 最新更新 - v1.2.0 新增22个实用技能 (总计118个桌面内置技能) ⭐NEW
+### 最新更新 - v1.2.0 新增32个实用技能 (总计128个桌面内置技能) ⭐NEW
 
-研究10大外部技能标准(Tavily-search、Find-Skills、Proactive-Agent、Agent-Browser、Remotion、Cron、Planning-with-files等)并转化为内置技能，同时新增12个当前最实用的开发/运维/知识管理技能。
+研究10大外部技能标准(Tavily-search、Find-Skills、Proactive-Agent、Agent-Browser、Remotion、Cron、Planning-with-files等)并转化为内置技能，新增12个开发/运维/知识管理技能，以及10个集成/生产力/知识技能。
 
 **外部技能标准转化 (10个)**:
 
@@ -54,7 +54,20 @@
 - ✅ **k8s-deployer** - K8s部署，清单生成+Helm Chart+安全最佳实践检查
 - ✅ **cursor-rules-generator** - IDE规则生成，5种AI编码助手配置文件自动生成
 
-**技能统计**: 96 (v1.0.0) → **118 (v1.2.0)** (+22)
+**集成与生产力技能 (10个)**:
+
+- ✅ **api-gateway** - API网关，100+ API统一接口/密钥管理/链式调用
+- ✅ **free-model-manager** - 免费模型管理，Ollama/HuggingFace模型发现/下载/管理
+- ✅ **github-manager** - GitHub管理，Issues/PR/仓库/Workflows操作
+- ✅ **google-workspace** - Google工作区，Gmail/Calendar/Drive集成
+- ✅ **humanizer** - AI文本人性化，去除AI写作痕迹/语气调整/模式优化
+- ✅ **notion** - Notion集成，页面创建/数据库查询/内容管理
+- ✅ **obsidian** - Obsidian笔记库，笔记创建/搜索/标签管理/双链
+- ✅ **self-improving-agent** - 自我改进代理，错误追踪/模式分析/改进建议
+- ✅ **summarizer** - 万能摘要，URL/PDF/YouTube/文本摘要+关键点提取
+- ✅ **weather** - 天气查询，全球天气/预报/告警(wttr.in免密钥)
+
+**技能统计**: 96 (v1.0.0) → **128 (v1.2.0)** (+32)
 
 ---
 
