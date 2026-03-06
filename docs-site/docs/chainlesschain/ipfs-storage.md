@@ -1,0 +1,199 @@
+# IPFS 去中心化存储
+
+> **版本: v1.0.0+ | Helia/Kubo 双引擎 | 内容寻址存储**
+
+IPFS 去中心化存储模块提供基于内容寻址的分布式文件存储能力，支持嵌入式 Helia 节点和外部 Kubo 守护进程两种运行模式。
+
+## 系统概述
+
+### 双引擎架构
+
+```
+IPFS Manager
+├─ 嵌入式模式 (Helia)
+│   ├─ 纯 JavaScript 实现
+│   ├─ 内嵌于 Electron 主进程
+│   ├─ 自动 DHT 发现
+│   └─ 适合轻量级使用
+└─ 外部模式 (Kubo)
+    ├─ 通过 HTTP API 连接外部守护进程
+    ├─ 完整的 IPFS 协议栈
+    ├─ 支持 IPFS 网关访问
+    └─ 适合重度使用和长期存储
+```
+
+### 核心特性
+
+- **内容寻址**: 基于 CID (Content Identifier) 的去重存储
+- **AES-256-GCM 加密**: 可选的端到端加密存储
+- **Pin 管理**: 固定重要内容防止垃圾回收
+- **存储配额**: 可配置的本地存储上限（默认 1GB）
+- **元数据持久化**: SQLite 数据��追踪所有存储内容
+
+---
+
+## 配置
+
+### 默认配置
+
+```json
+{
+  "ipfs": {
+    "mode": "helia",
+    "repoPath": "data/ipfs-repo",
+    "gatewayUrl": "http://localhost:8080",
+    "externalApiUrl": "http://localhost:5001",
+    "storageQuotaBytes": 1073741824,
+    "encryptionEnabled": true
+  }
+}
+```
+
+### 配置说明
+
+| 参数                | 默认值                  | 说明                                         |
+| ------------------- | ----------------------- | -------------------------------------------- |
+| `mode`              | `"helia"`               | 引擎模式：`helia`（嵌入式）或 `kubo`（外部） |
+| `repoPath`          | `"data/ipfs-repo"`      | Helia 仓库本地路径                           |
+| `gatewayUrl`        | `http://localhost:8080` | IPFS 网关地址                                |
+| `externalApiUrl`    | `http://localhost:5001` | Kubo HTTP API 地址                           |
+| `storageQuotaBytes` | `1073741824` (1GB)      | 本地存储配额                                 |
+| `encryptionEnabled` | `true`                  | 是否启用加密存储                             |
+
+---
+
+## 使用场景
+
+### 公开内容发布
+
+将动态、文章发布到 IPFS 网络，任何人可通过 CID 访问：
+
+```
+发布流程:
+1. 用户发布公开动态
+2. 内容序列化为 JSON
+3. 上传到 IPFS 获得 CID
+4. Pin 内容确保持久化
+5. CID 记录到本地数据库
+6. 分享 CID 给好友
+```
+
+### 加密文件存储
+
+私密文件使用 AES-256-GCM 加密后存储：
+
+```
+加密存储流程:
+1. 生成随机 AES 密钥
+2. AES-256-GCM 加密文件内容
+3. 加密后数据上传到 IPFS
+4. CID + 密钥存储到本地数据库
+5. 仅持有密钥的用户可解密
+```
+
+### 共享相册存储
+
+与社交模块集成，为共享相册提供分布式存储后端：
+
+- 公开相册：直接 IPFS 存储 + Pin
+- 好友共享相册：加密后 IPFS 存储，密钥通过 P2P 分发
+- 私密相册：仅本地存储
+
+---
+
+## 存储管理
+
+### Pin 管理
+
+```
+Pin 类型:
+├─ 直接 Pin (Direct)    — 固定单个内容块
+├─ 递归 Pin (Recursive) — 固定内容及所有子块
+└─ 间接 Pin (Indirect)  — 被递归 Pin 引用的内容
+```
+
+### 配额管理
+
+当存储接近配额时：
+
+1. **警告阈值 (80%)**: 通知用户清理
+2. **软限制 (90%)**: 自���取消非重要内容的 Pin
+3. **硬限制 (100%)**: 拒绝新内容上传
+
+### 垃圾回收
+
+```
+GC 策略:
+- 定期 GC（默认每 24 小时）
+- 取消 Pin 的内容在下次 GC 时清理
+- 加密内容优先保留
+- 可配置 GC 触发条件
+```
+
+---
+
+## 数据库表
+
+### `ipfs_content`
+
+| 字段         | 类型     | 说明                    |
+| ------------ | -------- | ----------------------- |
+| `id`         | INTEGER  | 主键                    |
+| `cid`        | TEXT     | IPFS Content Identifier |
+| `name`       | TEXT     | 内容名称                |
+| `size`       | INTEGER  | 内容大小（字节）        |
+| `mime_type`  | TEXT     | MIME 类型               |
+| `encrypted`  | BOOLEAN  | 是否加密                |
+| `pinned`     | BOOLEAN  | 是否已 Pin              |
+| `created_at` | DATETIME | 创建时间                |
+| `updated_at` | DATETIME | 更新时间                |
+
+---
+
+## 与其他模块集成
+
+| 集成模块      | 用途                           |
+| ------------- | ------------------------------ |
+| 去���心化社交 | 公开动态和共享相册的持久化存储 |
+| 实时协作      | 协作文档的版本快照存储         |
+| 知识库        | 大文件附件的去中心化存储       |
+| 交易模块      | 数字资产文件的内容寻址存储     |
+
+---
+
+## 关键文件
+
+| 文件                            | 职责                      |
+| ------------------------------- | ------------------------- |
+| `src/main/ipfs/ipfs-manager.js` | IPFS 管理器核心（双引擎） |
+| `src/main/ipfs/ipfs-ipc.js`     | IPFS IPC 处理器           |
+| `src/renderer/stores/ipfs.ts`   | IPFS 状态管理             |
+
+---
+
+## 故障排查
+
+### Helia 节点启动失败
+
+- 检查 `repoPath` 是否可写
+- 确保端口未被占用
+- 清理损坏的仓库：删除 `data/ipfs-repo` 重启
+
+### Kubo 连接失败
+
+```bash
+# 检查 Kubo 守护进程是否运行
+ipfs id
+
+# 检查 API 端口
+curl http://localhost:5001/api/v0/id
+
+# 重启 Kubo
+ipfs daemon
+```
+
+### 存储配额不足
+
+```
+设置 → IPFS → 存储管理 → 清理未使用内容
+```
