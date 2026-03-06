@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/preference-manager.js`
 
-**Generated**: 2026-03-06T02:31:40.079Z
+**Generated**: 2026-03-06T07:41:07.176Z
 
 ---
 
