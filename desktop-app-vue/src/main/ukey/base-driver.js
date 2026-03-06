@@ -16,7 +16,7 @@ class BaseUKeyDriver {
    * @returns {Promise<boolean>}
    */
   async initialize() {
-    throw new Error('initialize() must be implemented by subclass');
+    throw new Error("initialize() must be implemented by subclass");
   }
 
   /**
@@ -24,53 +24,52 @@ class BaseUKeyDriver {
    * @returns {Promise<UKeyStatus>}
    */
   async detect() {
-    throw new Error('detect() must be implemented by subclass');
+    throw new Error("detect() must be implemented by subclass");
   }
 
   /**
    * 验证PIN码
-   * @param {string} pin - PIN码
    * @returns {Promise<UKeyVerifyResult>}
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async verifyPIN(pin) {
-    throw new Error('verifyPIN() must be implemented by subclass');
+    throw new Error("verifyPIN() must be implemented by subclass");
   }
 
   /**
    * 数字签名
-   * @param {string} data - 待签名数据
    * @returns {Promise<string>} 签名结果（Base64）
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async sign(data) {
-    throw new Error('sign() must be implemented by subclass');
+    throw new Error("sign() must be implemented by subclass");
   }
 
   /**
    * 验证签名
-   * @param {string} data - 原始数据
-   * @param {string} signature - 签名（Base64）
    * @returns {Promise<boolean>}
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async verifySignature(data, signature) {
-    throw new Error('verifySignature() must be implemented by subclass');
+    throw new Error("verifySignature() must be implemented by subclass");
   }
 
   /**
    * 加密数据
-   * @param {string} data - 待加密数据
    * @returns {Promise<string>} 加密结果（Base64）
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async encrypt(data) {
-    throw new Error('encrypt() must be implemented by subclass');
+    throw new Error("encrypt() must be implemented by subclass");
   }
 
   /**
    * 解密数据
-   * @param {string} encryptedData - 加密数据（Base64）
    * @returns {Promise<string>} 解密结果
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async decrypt(encryptedData) {
-    throw new Error('decrypt() must be implemented by subclass');
+    throw new Error("decrypt() must be implemented by subclass");
   }
 
   /**
@@ -78,7 +77,7 @@ class BaseUKeyDriver {
    * @returns {Promise<string>} 公钥（PEM格式）
    */
   async getPublicKey() {
-    throw new Error('getPublicKey() must be implemented by subclass');
+    throw new Error("getPublicKey() must be implemented by subclass");
   }
 
   /**
@@ -86,7 +85,7 @@ class BaseUKeyDriver {
    * @returns {Promise<UKeyDeviceInfo>}
    */
   async getDeviceInfo() {
-    throw new Error('getDeviceInfo() must be implemented by subclass');
+    throw new Error("getDeviceInfo() must be implemented by subclass");
   }
 
   /**
@@ -118,7 +117,7 @@ class BaseUKeyDriver {
    * @returns {string}
    */
   getDriverName() {
-    return 'BaseDriver';
+    return "BaseDriver";
   }
 
   /**
@@ -126,7 +125,25 @@ class BaseUKeyDriver {
    * @returns {string}
    */
   getDriverVersion() {
-    return '1.0.0';
+    return "1.0.0";
+  }
+
+  /**
+   * Derive a key at the given BIP-32 path.
+   * Subclasses should override for hardware-backed derivation.
+   * @returns {Promise<Object>} Derived key info
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async deriveKeyAtPath(path) {
+    throw new Error("deriveKeyAtPath() not supported by this driver");
+  }
+
+  /**
+   * Get the transport type used by this driver.
+   * @returns {string} Transport type (e.g., 'koffi', 'usb', 'webusb', 'simulated')
+   */
+  getTransportType() {
+    return "unknown";
   }
 
   /**
@@ -135,7 +152,7 @@ class BaseUKeyDriver {
    * @returns {Promise<void>}
    */
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/browser/workflow/workflow-ipc.js`
 
-**Generated**: 2026-02-24T18:45:59.517Z
+**Generated**: 2026-02-24T23:28:10.653Z
 
 ---
 
@@ -12,11 +12,11 @@
 const
 ```
 
-- Workflow IPC - IPC handlers for browser workflow system
--
-- @module browser/workflow/workflow-ipc
-- @author ChainlessChain Team
-- @since v0.30.0
+* Workflow IPC - IPC handlers for browser workflow system
+ *
+ * @module browser/workflow/workflow-ipc
+ * @author ChainlessChain Team
+ * @since v0.30.0
 
 ---
 
@@ -26,9 +26,9 @@ const
 function initializeWorkflowSystem(browserEngine, db)
 ```
 
-- Initialize workflow system
-- @param {Object} browserEngine - Browser engine instance
-- @param {Object} db - Database instance
+* Initialize workflow system
+ * @param {Object} browserEngine - Browser engine instance
+ * @param {Object} db - Database instance
 
 ---
 
@@ -38,8 +38,8 @@ function initializeWorkflowSystem(browserEngine, db)
 function getWorkflowEngine()
 ```
 
-- Get workflow engine instance
-- @returns {WorkflowEngine}
+* Get workflow engine instance
+ * @returns {WorkflowEngine}
 
 ---
 
@@ -49,8 +49,8 @@ function getWorkflowEngine()
 function getWorkflowStorage()
 ```
 
-- Get workflow storage instance
-- @returns {WorkflowStorage}
+* Get workflow storage instance
+ * @returns {WorkflowStorage}
 
 ---
 
@@ -60,7 +60,7 @@ function getWorkflowStorage()
 function registerWorkflowIPC()
 ```
 
-- Register all Workflow IPC handlers
+* Register all Workflow IPC handlers
 
 ---
 
@@ -70,9 +70,9 @@ function registerWorkflowIPC()
 ipcMain.handle(
 ```
 
-- Create a new workflow
-  - @param {Object} workflow - Workflow data
-  - @returns {Promise<Object>} Created workflow
+* Create a new workflow
+   * @param {Object} workflow - Workflow data
+   * @returns {Promise<Object>} Created workflow
 
 ---
 
@@ -82,9 +82,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Get workflow by ID
-  - @param {string} id - Workflow ID
-  - @returns {Promise<Object|null>} Workflow
+* Get workflow by ID
+   * @param {string} id - Workflow ID
+   * @returns {Promise<Object|null>} Workflow
 
 ---
 
@@ -94,9 +94,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- List workflows
-  - @param {Object} options - Filter options
-  - @returns {Promise<Array>} Workflow list
+* List workflows
+   * @param {Object} options - Filter options
+   * @returns {Promise<Array>} Workflow list
 
 ---
 
@@ -106,10 +106,10 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Update workflow
-  - @param {string} id - Workflow ID
-  - @param {Object} updates - Fields to update
-  - @returns {Promise<Object>} Updated workflow
+* Update workflow
+   * @param {string} id - Workflow ID
+   * @param {Object} updates - Fields to update
+   * @returns {Promise<Object>} Updated workflow
 
 ---
 
@@ -119,9 +119,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Delete workflow
-  - @param {string} id - Workflow ID
-  - @returns {Promise<boolean>} Success
+* Delete workflow
+   * @param {string} id - Workflow ID
+   * @returns {Promise<boolean>} Success
 
 ---
 
@@ -131,10 +131,10 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Duplicate workflow
-  - @param {string} id - Source workflow ID
-  - @param {string} newName - Name for the duplicate
-  - @returns {Promise<Object>} New workflow
+* Duplicate workflow
+   * @param {string} id - Source workflow ID
+   * @param {string} newName - Name for the duplicate
+   * @returns {Promise<Object>} New workflow
 
 ---
 
@@ -144,10 +144,10 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Execute a workflow
-  - @param {string} workflowId - Workflow ID
-  - @param {Object} options - Execution options
-  - @returns {Promise<Object>} Execution result
+* Execute a workflow
+   * @param {string} workflowId - Workflow ID
+   * @param {Object} options - Execution options
+   * @returns {Promise<Object>} Execution result
 
 ---
 
@@ -157,10 +157,10 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Execute workflow inline (without saving)
-  - @param {Object} workflow - Workflow definition
-  - @param {Object} options - Execution options
-  - @returns {Promise<Object>} Execution result
+* Execute workflow inline (without saving)
+   * @param {Object} workflow - Workflow definition
+   * @param {Object} options - Execution options
+   * @returns {Promise<Object>} Execution result
 
 ---
 
@@ -170,9 +170,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Pause workflow execution
-  - @param {string} executionId - Execution ID
-  - @returns {Promise<boolean>} Success
+* Pause workflow execution
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<boolean>} Success
 
 ---
 
@@ -182,9 +182,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Resume workflow execution
-  - @param {string} executionId - Execution ID
-  - @returns {Promise<boolean>} Success
+* Resume workflow execution
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<boolean>} Success
 
 ---
 
@@ -194,9 +194,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Cancel workflow execution
-  - @param {string} executionId - Execution ID
-  - @returns {Promise<boolean>} Success
+* Cancel workflow execution
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<boolean>} Success
 
 ---
 
@@ -206,9 +206,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Get workflow execution status
-  - @param {string} executionId - Execution ID
-  - @returns {Promise<Object|null>} Status
+* Get workflow execution status
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<Object|null>} Status
 
 ---
 
@@ -218,8 +218,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- List active executions
-  - @returns {Promise<Array>} Active executions
+* List active executions
+   * @returns {Promise<Array>} Active executions
 
 ---
 
@@ -229,9 +229,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Get execution by ID
-  - @param {string} executionId - Execution ID
-  - @returns {Promise<Object>} Execution record
+* Get execution by ID
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<Object>} Execution record
 
 ---
 
@@ -241,9 +241,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- List workflow executions
-  - @param {Object} options - Filter options
-  - @returns {Promise<Array>} Execution list
+* List workflow executions
+   * @param {Object} options - Filter options
+   * @returns {Promise<Array>} Execution list
 
 ---
 
@@ -253,9 +253,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Get workflow statistics
-  - @param {string} workflowId - Workflow ID
-  - @returns {Promise<Object>} Statistics
+* Get workflow statistics
+   * @param {string} workflowId - Workflow ID
+   * @returns {Promise<Object>} Statistics
 
 ---
 
@@ -265,11 +265,11 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Set workflow variable during execution
-  - @param {string} executionId - Execution ID
-  - @param {string} name - Variable name
-  - @param {any} value - Variable value
-  - @returns {Promise<boolean>} Success
+* Set workflow variable during execution
+   * @param {string} executionId - Execution ID
+   * @param {string} name - Variable name
+   * @param {any} value - Variable value
+   * @returns {Promise<boolean>} Success
 
 ---
 
@@ -279,9 +279,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Get workflow variables
-  - @param {string} executionId - Execution ID
-  - @returns {Promise<Object>} Variables
+* Get workflow variables
+   * @param {string} executionId - Execution ID
+   * @returns {Promise<Object>} Variables
 
 ---
 
@@ -291,9 +291,9 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Export workflow to JSON
-  - @param {string} id - Workflow ID
-  - @returns {Promise<Object>} Exportable data
+* Export workflow to JSON
+   * @param {string} id - Workflow ID
+   * @returns {Promise<Object>} Exportable data
 
 ---
 
@@ -303,10 +303,10 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Import workflow from JSON
-  - @param {Object} data - Imported data
-  - @param {Object} options - Import options
-  - @returns {Promise<Object>} Imported workflow
+* Import workflow from JSON
+   * @param {Object} data - Imported data
+   * @param {Object} options - Import options
+   * @returns {Promise<Object>} Imported workflow
 
 ---
 
@@ -316,11 +316,11 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-- Build workflow from steps (helper for frontend)
-  - @param {string} name - Workflow name
-  - @param {Array} steps - Step definitions
-  - @param {Object} options - Build options
-  - @returns {Promise<Object>} Built workflow
+* Build workflow from steps (helper for frontend)
+   * @param {string} name - Workflow name
+   * @param {Array} steps - Step definitions
+   * @param {Object} options - Build options
+   * @returns {Promise<Object>} Built workflow
 
 ---
 
@@ -330,6 +330,7 @@ ipcMain.handle(
 function cleanupWorkflowSystem()
 ```
 
-- Cleanup workflow system
+* Cleanup workflow system
 
 ---
+

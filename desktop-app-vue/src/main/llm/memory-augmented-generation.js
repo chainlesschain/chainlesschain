@@ -663,8 +663,8 @@ class MemoryAugmentedGeneration {
    * @private
    */
   _truncate(str, maxLen) {
-    if (!str) return "";
-    if (str.length <= maxLen) return str;
+    if (!str) {return "";}
+    if (str.length <= maxLen) {return str;}
     return str.substring(0, maxLen - 3) + "...";
   }
 }

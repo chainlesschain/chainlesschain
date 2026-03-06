@@ -1046,7 +1046,7 @@ class MultiFileRetriever {
   _extractImports(content, fileType) {
     const imports = [];
 
-    if (!content) return imports;
+    if (!content) {return imports;}
 
     // JavaScript/TypeScript imports
     if (["js", "ts", "jsx", "tsx", "vue"].includes(fileType)) {
@@ -1122,7 +1122,7 @@ class MultiFileRetriever {
         .prepare("SELECT * FROM project_files WHERE id = ?")
         .get(fileId);
 
-      if (!file) continue;
+      if (!file) {continue;}
 
       // 读取文件内容
       let content;

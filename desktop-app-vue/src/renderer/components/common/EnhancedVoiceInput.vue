@@ -31,9 +31,18 @@
       <div class="recording-modal-content">
         <!-- 录音动画 -->
         <div class="recording-animation">
-          <div class="wave-circle" :class="{ active: isRecording }" />
-          <div class="wave-circle" :class="{ active: isRecording }" />
-          <div class="wave-circle" :class="{ active: isRecording }" />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
           <AudioOutlined class="microphone-icon" />
         </div>
 
@@ -48,12 +57,18 @@
 
           <!-- 音量指示器 -->
           <div class="volume-indicator">
-            <div class="volume-bar" :style="{ width: volumeLevel + '%' }" />
+            <div
+              class="volume-bar"
+              :style="{ width: volumeLevel + '%' }"
+            />
           </div>
         </div>
 
         <!-- 实时转录文本 -->
-        <div v-if="partialText" class="partial-transcript">
+        <div
+          v-if="partialText"
+          class="partial-transcript"
+        >
           <a-typography-paragraph :ellipsis="{ rows: 3, expandable: true }">
             {{ partialText }}
           </a-typography-paragraph>
@@ -62,25 +77,38 @@
         <!-- 操作按钮 -->
         <div class="recording-actions">
           <a-space>
-            <a-button danger @click="cancelRecording">
+            <a-button
+              danger
+              @click="cancelRecording"
+            >
               <template #icon>
                 <CloseOutlined />
               </template>
               取消
             </a-button>
-            <a-button v-if="isRecording && !isPaused" @click="pauseRecording">
+            <a-button
+              v-if="isRecording && !isPaused"
+              @click="pauseRecording"
+            >
               <template #icon>
                 <PauseCircleOutlined />
               </template>
               暂停
             </a-button>
-            <a-button v-if="isPaused" type="default" @click="resumeRecording">
+            <a-button
+              v-if="isPaused"
+              type="default"
+              @click="resumeRecording"
+            >
               <template #icon>
                 <PlayCircleOutlined />
               </template>
               继续
             </a-button>
-            <a-button type="primary" @click="stopRecording">
+            <a-button
+              type="primary"
+              @click="stopRecording"
+            >
               <template #icon>
                 <CheckOutlined />
               </template>

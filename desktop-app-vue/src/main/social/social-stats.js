@@ -87,7 +87,7 @@ class SocialStats extends EventEmitter {
     try {
       // Check cache first
       const cached = this._getFromCache(StatType.ACTIVITY, period);
-      if (cached) return cached;
+      if (cached) {return cached;}
 
       const db = this.database.db;
       const startTs = this._periodToTimestamp(period);
@@ -161,7 +161,7 @@ class SocialStats extends EventEmitter {
   async getNetworkStats() {
     try {
       const cached = this._getFromCache(StatType.NETWORK, "all");
-      if (cached) return cached;
+      if (cached) {return cached;}
 
       const db = this.database.db;
 
@@ -235,7 +235,7 @@ class SocialStats extends EventEmitter {
   async getEngagementStats(period = "month") {
     try {
       const cached = this._getFromCache(StatType.ENGAGEMENT, period);
-      if (cached) return cached;
+      if (cached) {return cached;}
 
       const db = this.database.db;
       const startTs = this._periodToTimestamp(period);
@@ -309,7 +309,7 @@ class SocialStats extends EventEmitter {
     try {
       const cacheKey = `${year}`;
       const cached = this._getFromCache(StatType.HEATMAP, cacheKey);
-      if (cached) return cached;
+      if (cached) {return cached;}
 
       const db = this.database.db;
       const yearStr = String(year);
@@ -368,7 +368,7 @@ class SocialStats extends EventEmitter {
     try {
       const cacheKey = `${startDate}_${endDate}`;
       const cached = this._getFromCache(StatType.WORDCLOUD, cacheKey);
-      if (cached) return cached;
+      if (cached) {return cached;}
 
       const db = this.database.db;
       const startTs = new Date(startDate).getTime();
@@ -411,7 +411,7 @@ class SocialStats extends EventEmitter {
       const allContent = [...posts, ...snapshots];
 
       for (const row of allContent) {
-        if (!row.content) continue;
+        if (!row.content) {continue;}
 
         const words = row.content
           .toLowerCase()
@@ -619,7 +619,7 @@ class SocialStats extends EventEmitter {
         )
         .get(statType, period);
 
-      if (!row) return null;
+      if (!row) {return null;}
 
       // Check if cache is expired
       if (Date.now() - row.computed_at > this.cacheExpiry) {

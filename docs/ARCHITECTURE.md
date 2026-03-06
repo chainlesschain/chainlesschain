@@ -39,7 +39,7 @@
 │  libp2p 3.1.2  │  Signal E2E  │  Kademlia DHT                   │
 ├───────────────────────────────────────────────────────────────────┤
 │                        安全层                                       │
-│    U盾 (PC, 5品牌)        │     SIMKey (移动端, 规划中)         │
+│  U盾/BLE/FIDO2 │ PQC(ML-KEM/ML-DSA) │ DLP │ SIEM │ 门限签名   │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -75,23 +75,99 @@ chainlesschain/
 ```
 desktop-app-vue/
 ├── src/
-│   ├── main/              # Electron 主进程 (335个文件)
+│   ├── main/              # Electron 主进程 (360+个文件)
 │   │   ├── database.js    # SQLite/SQLCipher 数据库
-│   │   ├── ukey/          # U-Key 硬件集成
+│   │   ├── ukey/          # U-Key 硬件集成 ⭐Phase 45-47,52-53,68-69,71
+│   │   │   ├── unified-key-manager.js    # BIP-32 统一密钥
+│   │   │   ├── fido2-authenticator.js    # FIDO2/WebAuthn
+│   │   │   ├── threshold-signature-manager.js # 门限签名
+│   │   │   ├── biometric-binding.js      # 生物识别绑定
+│   │   │   ├── ble-driver.js             # BLE蓝牙传输
+│   │   │   ├── pqc-migration-manager.js  # 量子后加密迁移
+│   │   │   ├── firmware-ota-manager.js   # 固件OTA更新
+│   │   │   ├── trust-root-manager.js     # 三位一体信任根 ⭐Phase 68
+│   │   │   ├── pqc-ecosystem-manager.js  # PQC全面迁移生态 ⭐Phase 69
+│   │   │   ├── hsm-adapter-manager.js    # HSM多厂商适配 ⭐Phase 71
+│   │   │   └── ...
 │   │   ├── llm/           # LLM 服务集成
 │   │   ├── rag/           # RAG 检索系统
 │   │   ├── did/           # DID 身份系统
 │   │   ├── p2p/           # P2P 网络
 │   │   ├── blockchain/    # 区块链集成
-│   │   └── organization/  # 企业版组织管理
+│   │   ├── organization/  # 企业版组织管理
+│   │   ├── social/        # 社交功能 ⭐Phase 48-49,54-55,72-73
+│   │   │   ├── local-recommender.js  # 内容推荐引擎
+│   │   │   ├── interest-profiler.js  # 兴趣画像
+│   │   │   ├── nostr-bridge.js       # Nostr协议桥接
+│   │   │   ├── nostr-identity.js     # Nostr身份管理
+│   │   │   ├── governance-ai.js      # AI社区治理
+│   │   │   ├── matrix-bridge.js      # Matrix协议集成
+│   │   │   ├── protocol-fusion-bridge.js  # 四协议融合桥接 ⭐Phase 72
+│   │   │   ├── realtime-translator.js     # AI实时翻译 ⭐Phase 73
+│   │   │   ├── content-quality-assessor.js # 内容质量评估 ⭐Phase 73
+│   │   │   └── ...
+│   │   ├── enterprise/    # 企业功能 ⭐Phase 44,56
+│   │   │   ├── scim-server.js        # SCIM 2.0 服务器
+│   │   │   ├── terraform-manager.js  # Terraform提供商
+│   │   │   └── ...
+│   │   ├── audit/         # 审计合规 ⭐Phase 43,50-51,57
+│   │   │   ├── dlp-engine.js         # 数据防泄漏引擎
+│   │   │   ├── dlp-policy.js         # DLP策略管理
+│   │   │   ├── siem-exporter.js      # SIEM日志导出
+│   │   │   ├── security-auditor.js   # 安全审计
+│   │   │   └── ...
+│   │   ├── security/      # 安全通信 ⭐Phase 70,75
+│   │   │   ├── satellite-comm.js           # 卫星通信 ⭐Phase 70
+│   │   │   ├── anti-censorship-manager.js  # 抗审查管理 ⭐Phase 75
+│   │   │   ├── mesh-network-manager.js     # Mesh网络 ⭐Phase 75
+│   │   │   └── ...
+│   │   ├── ipfs/          # IPFS/去中心化存储 ⭐Phase 74
+│   │   │   ├── filecoin-storage.js    # Filecoin存储交易 ⭐Phase 74
+│   │   │   ├── content-distributor.js # P2P内容分发 ⭐Phase 74
+│   │   │   └── ...
+│   │   ├── performance/   # 性能管理 ⭐Phase 57
+│   │   │   ├── performance-baseline.js # 性能基线
+│   │   │   ├── hardening-ipc.js       # 生产强化IPC
+│   │   │   └── ...
+│   │   ├── evomap/        # EvoMap进化网络 ⭐Phase 76-77
+│   │   │   ├── evomap-federation.js   # 多Hub联邦同步 ⭐Phase 76
+│   │   │   ├── gene-ip-manager.js     # 基因IP管理 ⭐Phase 77
+│   │   │   ├── evomap-dao.js          # 治理DAO ⭐Phase 77
+│   │   │   └── ...
+│   │   └── ai-engine/     # AI引擎
+│   │       ├── skill-service/ # 技能市场 ⭐Phase 65-66
+│   │       │   ├── skill-service-protocol.js  # 技能发布/注册
+│   │       │   ├── skill-invoker.js           # 远程技能调用
+│   │       │   ├── token-ledger.js            # 代币账本
+│   │       │   ├── contribution-tracker.js    # 贡献追踪
+│   │       │   └── ...
+│   │       ├── inference/  # 推理网络 ⭐Phase 67
+│   │       │   ├── inference-node-registry.js # 节点注册表
+│   │       │   ├── inference-scheduler.js     # 任务调度器
+│   │       │   └── ...
+│   │       ├── cowork/    # 联邦协作 ⭐Phase 58-61
+│   │       │   ├── federation-hardening.js     # 联邦硬化/熔断器
+│   │       │   ├── federation-stress-tester.js # 压力测试
+│   │       │   ├── reputation-optimizer.js     # 信誉优化
+│   │       │   ├── sla-manager.js             # 跨组织SLA
+│   │       │   └── ...
+│   │       └── autonomous/ # 自主AI ⭐Phase 62-64
+│   │           ├── tech-learning-engine.js     # 技术学习
+│   │           ├── autonomous-developer.js     # 自主开发
+│   │           ├── collaboration-governance.js # 协作治理
+│   │           └── ...
 │   │
-│   └── renderer/          # Vue3 渲染进程 (243个组件)
-│       ├── pages/         # 23个页面视图
-│       ├── components/    # 220个组件
-│       └── stores/        # Pinia 状态管理
+│   └── renderer/          # Vue3 渲染进程 (315+个组件)
+│       ├── pages/         # 60个页面视图 ⭐新增 Phase 65-77 共13个页面
+│       │   ├── security/  # 门限签名、BLE、PQC迁移、固件OTA、信任根、PQC生态、卫星、HSM、抗审查
+│       │   ├── social/    # 推荐、Nostr、治理、Matrix、协议融合、AI社交增强、去中心化存储
+│       │   ├── enterprise/ # 合规、SCIM、DLP、SIEM、Terraform
+│       │   └── ai/        # 生产强化、联邦硬化、压测、信誉、SLA、技术学习、自主开发、协作治理、技能市场、代币激励、推理网络、EvoMap联邦、EvoMap治理
+│       ├── components/    # 250+个组件
+│       └── stores/        # 83个Pinia存储 ⭐新增 Phase 65-77 共13个stores
 │
 ├── contracts/             # Hardhat 智能合约
-└── tests/                 # 测试套件 (94个文件)
+└── tests/                 # 测试套件 (100+个文件)
 ```
 
 ---
@@ -185,18 +261,91 @@ desktop-app-vue/
 - blockchain_asset_mapping - 资产映射
 - bridge_transfers - 跨链桥转账
 
+**Phase 46-51 表** (9 张) ⭐Phase 2 (Q3 2026):
+
+- `threshold_key_shares` - 门限签名密钥分片（Shamir 2-of-3）
+- `biometric_bindings` - 生物识别绑定（TEE模板哈希）
+- `user_interest_profiles` - 用户兴趣画像
+- `content_recommendations` - 内容推荐记录
+- `nostr_relays` - Nostr中继服务器
+- `nostr_events` - Nostr事件（NIP-01）
+- `dlp_policies` - 数据防泄漏策略
+- `dlp_incidents` - DLP安全事件
+- `siem_exports` - SIEM日志导出记录
+
+**Phase 52-56 表** (10 张) ⭐Phase 3 (Q4 2026):
+
+- `pqc_keys` - 量子后加密密钥（ML-KEM/ML-DSA）
+- `pqc_migration_status` - PQC迁移状态跟踪
+- `firmware_versions` - U-Key固件版本信息
+- `firmware_update_log` - 固件更新历史记录
+- `governance_proposals` - 社区治理提案
+- `governance_votes` - 治理投票记录
+- `matrix_rooms` - Matrix房间信息
+- `matrix_events` - Matrix消息事件
+- `terraform_workspaces` - Terraform工作区
+- `terraform_runs` - Terraform运行历史
+
+**Phase 57-64 表** (20 张) ⭐Phase 4 (Q1 2027):
+
+- `performance_baselines` - 性能基线数据
+- `security_audit_reports` - 安全审计报告
+- `federation_circuit_breakers` - 联邦熔断器状态
+- `federation_health_checks` - 联邦健康检查记录
+- `stress_test_runs` - 压力测试运行
+- `stress_test_results` - 压力测试结果
+- `reputation_optimization_runs` - 信誉优化运行
+- `reputation_analytics` - 信誉分析记录
+- `sla_contracts` - SLA合约
+- `sla_violations` - SLA违规记录
+- `tech_stack_profiles` - 技术栈画像
+- `learned_practices` - 学习到的最佳实践
+- `dev_sessions` - 自主开发会话
+- `architecture_decisions` - 架构决策记录
+- `governance_decisions` - 协作治理决策
+- `autonomy_levels` - 自主级别配置
+
+**Phase 65-77 表** (22 张) ⭐Phase 5 (v3.1.0-v3.4.0):
+
+- `skill_service_registry` - 技能注册表（名称、版本、SLA、所有者）
+- `skill_invocations` - 技能调用记录（延迟、状态）
+- `skill_billing` - 技能计费
+- `token_transactions` - 代币交易（奖励、支付、转账）
+- `contributions` - 贡献记录（技能/基因/算力/数据）
+- `inference_nodes` - 推理节点（GPU、基准分、负载）
+- `inference_tasks` - 推理任务（隐私模式、优先级）
+- `trust_root_attestations` - 信任根证明（TPM/TEE/SE）
+- `cross_device_key_sync` - 跨设备密钥同步
+- `pqc_subsystem_migrations` - PQC子系统迁移状态
+- `satellite_messages` - 卫星消息（加密、压缩）
+- `offline_signature_queue` - 离线签名队列
+- `hsm_adapters` - HSM设备（厂商、FIPS合规）
+- `unified_messages` - 跨协议统一消息
+- `identity_mappings` - 身份映射（DID/AP/Nostr/Matrix）
+- `content_quality_scores` - 内容质量评分
+- `translation_cache` - 翻译缓存
+- `filecoin_deals` - Filecoin存储交易
+- `content_versions` - IPLD内容版本
+- `anti_censorship_routes` - 抗审查路由
+- `evomap_hub_federation` - EvoMap联邦Hub
+- `gene_lineage` - 基因谱系树
+- `gene_ownership` - 基因知识产权
+- `evomap_governance_proposals` - EvoMap治理提案
+
+**总表数**: 118+ 张（基础20+ + 企业版14 + 区块链10+ + Phase 46-51 9张 + Phase 52-56 10张 + Phase 57-64 20张 + Phase 65-77 22张 + 其他）
+
 ---
 
 ## 代码规模统计
 
 ### 桌面应用
 
-| 模块     | 文件数 | 代码量     |
-| -------- | ------ | ---------- |
-| 主进程   | 335    | ~190,000行 |
-| 渲染进程 | 243    | ~30,000行  |
-| 智能合约 | 6      | 2,400行    |
-| 测试文件 | 94     | ~15,000行  |
+| 模块     | 文件数 | 代码量     | 备注                       |
+| -------- | ------ | ---------- | -------------------------- |
+| 主进程   | 440+   | ~250,000行 | ⭐Phase 65-77 全部模块     |
+| 渲染进程 | 315+   | ~43,000行  | ⭐新增 13个页面/13个stores |
+| 智能合约 | 6      | 2,400行    |                            |
+| 测试文件 | 360+   | ~30,000行  | ⭐新增 Phase 65-77 测试    |
 
 ### 后端服务
 
@@ -208,10 +357,13 @@ desktop-app-vue/
 
 ### 总计
 
-- **总代码量**: 260,000+ 行
-- **总文件数**: 747+ 个
+- **总代码量**: 330,000+ 行 ⭐Phase 65-77 新增 ~20,000 行
+- **总文件数**: 1,000+ 个 ⭐新增 118 个文件（Phase 65-77）
 - **API端点**: 149 个
-- **Vue组件**: 243 个
+- **Vue组件**: 315+ 个 ⭐新增 13 个页面（Phase 65-77）
+- **Pinia Stores**: 83 个 ⭐新增 13 个stores（Phase 65-77）
+- **IPC处理器**: 484+ 个 ⭐新增 64 个处理器（Phase 65-77）
+- **数据库表**: 118+ 张 ⭐新增 23 张表（Phase 65-77）
 
 ---
 

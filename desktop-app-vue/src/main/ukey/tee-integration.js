@@ -72,7 +72,7 @@ class TeeIntegration extends EventEmitter {
   // ============================================================
 
   async initialize() {
-    if (this._initialized) return true;
+    if (this._initialized) {return true;}
 
     logger.info("[TEE] 初始化 TEE 集成...");
 
@@ -172,7 +172,7 @@ class TeeIntegration extends EventEmitter {
     this._requireCapability(TEE_CAPABILITY.SIGNING);
 
     const keyHandle = this._sealedKeys.get(keyId);
-    if (!keyHandle) throw new Error(`TEE 密钥不存在: ${keyId}`);
+    if (!keyHandle) {throw new Error(`TEE 密钥不存在: ${keyId}`);}
 
     logger.debug(`[TEE] TEE 内签名: ${keyId}`);
 
@@ -209,7 +209,7 @@ class TeeIntegration extends EventEmitter {
     this._requireCapability(TEE_CAPABILITY.ENCRYPTION);
 
     const keyHandle = this._sealedKeys.get(keyId);
-    if (!keyHandle) throw new Error(`TEE 密钥不存在: ${keyId}`);
+    if (!keyHandle) {throw new Error(`TEE 密钥不存在: ${keyId}`);}
 
     const iv = crypto.randomBytes(16);
     const key = crypto.createHash("sha256").update(keyId).digest();
@@ -247,8 +247,8 @@ class TeeIntegration extends EventEmitter {
       simkeySignFn(data),
     ]);
 
-    if (!teeResult.success) throw new Error("TEE 签名失败");
-    if (!simkeyResult) throw new Error("SIMKey 签名失败");
+    if (!teeResult.success) {throw new Error("TEE 签名失败");}
+    if (!simkeyResult) {throw new Error("SIMKey 签名失败");}
 
     return {
       success: true,
@@ -526,7 +526,7 @@ class TeeIntegration extends EventEmitter {
   }
 
   _ensureInitialized() {
-    if (!this._initialized) throw new Error("TEE 未初始化");
+    if (!this._initialized) {throw new Error("TEE 未初始化");}
   }
 
   _requireCapability(cap) {

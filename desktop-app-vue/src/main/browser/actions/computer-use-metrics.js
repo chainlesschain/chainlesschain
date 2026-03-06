@@ -165,7 +165,7 @@ class ComputerUseMetrics extends EventEmitter {
    * @param {Object} operation - 操作信息
    */
   recordOperation(operation) {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     const {
       type,
@@ -324,7 +324,7 @@ class ComputerUseMetrics extends EventEmitter {
    */
   _observeHistogram(name, value) {
     const histogram = this.histograms.get(name);
-    if (!histogram) return;
+    if (!histogram) {return;}
 
     histogram.sum += value;
     histogram.count++;
@@ -610,7 +610,7 @@ class ComputerUseMetrics extends EventEmitter {
    * @private
    */
   async _flushMetrics() {
-    if (!this.config.persistMetrics) return;
+    if (!this.config.persistMetrics) {return;}
 
     await fs.mkdir(this.config.metricsDir, { recursive: true });
 

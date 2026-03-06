@@ -353,7 +353,7 @@ describe("SentimentAnalyzer", () => {
       let callCount = 0;
       innerDb._prep.get.mockImplementation(() => {
         callCount++;
-        if (callCount === 2) throw new Error("DB write error");
+        if (callCount === 2) {throw new Error("DB write error");}
         return null;
       });
 
@@ -503,8 +503,8 @@ describe("SentimentAnalyzer", () => {
       let getCount = 0;
       innerDb._prep.get.mockImplementation(() => {
         getCount++;
-        if (getCount === 1) return avgRow;
-        if (getCount === 2) return emotionRow;
+        if (getCount === 1) {return avgRow;}
+        if (getCount === 2) {return emotionRow;}
         return null;
       });
     }

@@ -25,7 +25,9 @@
           <a-tag color="blue">
             {{ conflict.table }}
           </a-tag>
-          <a-tag color="geekblue"> ID: {{ conflict.id }} </a-tag>
+          <a-tag color="geekblue">
+            ID: {{ conflict.id }}
+          </a-tag>
         </div>
 
         <a-row :gutter="16">
@@ -83,7 +85,10 @@
         <a-divider v-if="index < conflicts.length - 1" />
       </div>
 
-      <div v-if="conflicts.length === 0" class="empty-state">
+      <div
+        v-if="conflicts.length === 0"
+        class="empty-state"
+      >
         <a-empty description="所有冲突已解决" />
       </div>
     </div>

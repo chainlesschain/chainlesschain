@@ -9,7 +9,10 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showCreateModal = true">
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
             <template #icon>
               <plus-outlined />
             </template>
@@ -74,7 +77,11 @@
               <a-divider />
 
               <div class="plan-stats">
-                <a-space direction="vertical" size="small" style="width: 100%">
+                <a-space
+                  direction="vertical"
+                  size="small"
+                  style="width: 100%"
+                >
                   <div class="stat-item">
                     <team-outlined />
                     <span>{{ plan.subscriberCount || 0 }} 位订阅者</span>
@@ -87,14 +94,20 @@
               </div>
 
               <template #actions>
-                <a-button type="link" @click="editPlan(plan)">
+                <a-button
+                  type="link"
+                  @click="editPlan(plan)"
+                >
                   <edit-outlined /> 编辑
                 </a-button>
                 <a-popconfirm
                   title="确定要删除这个计划吗？"
                   @confirm="deletePlan(plan.id)"
                 >
-                  <a-button type="link" danger>
+                  <a-button
+                    type="link"
+                    danger
+                  >
                     <delete-outlined /> 删除
                   </a-button>
                 </a-popconfirm>
@@ -104,8 +117,14 @@
         </a-row>
 
         <!-- 空状态 -->
-        <a-empty v-if="plans.length === 0" description="暂无订阅计划">
-          <a-button type="primary" @click="showCreateModal = true">
+        <a-empty
+          v-if="plans.length === 0"
+          description="暂无订阅计划"
+        >
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
             创建第一个计划
           </a-button>
         </a-empty>
@@ -123,7 +142,10 @@
     >
       <a-form layout="vertical">
         <!-- 计划名称 -->
-        <a-form-item label="计划名称" required>
+        <a-form-item
+          label="计划名称"
+          required
+        >
           <a-input
             v-model:value="form.name"
             placeholder="例如：基础版、专业版、企业版"
@@ -143,7 +165,10 @@
         </a-form-item>
 
         <!-- 月费 -->
-        <a-form-item label="月费（元）" required>
+        <a-form-item
+          label="月费（元）"
+          required
+        >
           <a-input-number
             v-model:value="form.monthlyPrice"
             :min="0"
@@ -151,12 +176,17 @@
             style="width: 100%"
             placeholder="设置月费价格"
           >
-            <template #prefix> ¥ </template>
+            <template #prefix>
+              ¥
+            </template>
           </a-input-number>
         </a-form-item>
 
         <!-- 计划特性 -->
-        <a-form-item label="计划特性（每行一个）" required>
+        <a-form-item
+          label="计划特性（每行一个）"
+          required
+        >
           <a-textarea
             v-model:value="featuresText"
             :rows="6"
@@ -174,8 +204,12 @@
         <!-- 状态 -->
         <a-form-item label="计划状态">
           <a-radio-group v-model:value="form.status">
-            <a-radio value="active"> 激活（用户可订阅） </a-radio>
-            <a-radio value="inactive"> 停用（暂时关闭） </a-radio>
+            <a-radio value="active">
+              激活（用户可订阅）
+            </a-radio>
+            <a-radio value="inactive">
+              停用（暂时关闭）
+            </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>

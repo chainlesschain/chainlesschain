@@ -9,7 +9,10 @@
     <a-spin :spinning="loading">
       <a-tabs v-model:active-key="activeTab">
         <!-- 屏幕标签页 -->
-        <a-tab-pane key="screen" tab="整个屏幕">
+        <a-tab-pane
+          key="screen"
+          tab="整个屏幕"
+        >
           <div class="source-grid">
             <div
               v-for="source in screenSources"
@@ -19,7 +22,10 @@
               @click="selectSource(source)"
             >
               <div class="source-thumbnail">
-                <img :src="source.thumbnail" :alt="source.name" />
+                <img
+                  :src="source.thumbnail"
+                  :alt="source.name"
+                >
               </div>
               <div class="source-name">
                 {{ source.name }}
@@ -33,7 +39,10 @@
         </a-tab-pane>
 
         <!-- 窗口标签页 -->
-        <a-tab-pane key="window" tab="应用窗口">
+        <a-tab-pane
+          key="window"
+          tab="应用窗口"
+        >
           <div class="source-grid">
             <div
               v-for="source in windowSources"
@@ -43,12 +52,15 @@
               @click="selectSource(source)"
             >
               <div class="source-thumbnail">
-                <img :src="source.thumbnail" :alt="source.name" />
+                <img
+                  :src="source.thumbnail"
+                  :alt="source.name"
+                >
                 <img
                   v-if="source.appIcon"
                   :src="source.appIcon"
                   class="app-icon"
-                />
+                >
               </div>
               <div class="source-name">
                 {{ source.name }}
@@ -64,7 +76,9 @@
 
       <div class="modal-footer">
         <a-space>
-          <a-button @click="handleCancel"> 取消 </a-button>
+          <a-button @click="handleCancel">
+            取消
+          </a-button>
           <a-button
             type="primary"
             :disabled="!selectedSource"

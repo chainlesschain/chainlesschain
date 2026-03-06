@@ -1,19 +1,39 @@
 <template>
   <div class="error-boundary">
     <slot v-if="!hasError" />
-    <div v-else class="error-fallback">
-      <a-result status="error" :title="errorTitle" :sub-title="errorSubtitle">
+    <div
+      v-else
+      class="error-fallback"
+    >
+      <a-result
+        status="error"
+        :title="errorTitle"
+        :sub-title="errorSubtitle"
+      >
         <template #extra>
           <a-space>
-            <a-button type="primary" @click="handleReset"> 重新加载 </a-button>
-            <a-button v-if="showDetails" @click="toggleDetails">
+            <a-button
+              type="primary"
+              @click="handleReset"
+            >
+              重新加载
+            </a-button>
+            <a-button
+              v-if="showDetails"
+              @click="toggleDetails"
+            >
               {{ detailsVisible ? "隐藏详情" : "查看详情" }}
             </a-button>
-            <a-button @click="handleReport"> 报告问题 </a-button>
+            <a-button @click="handleReport">
+              报告问题
+            </a-button>
           </a-space>
         </template>
 
-        <div v-if="detailsVisible && errorDetails" class="error-details">
+        <div
+          v-if="detailsVisible && errorDetails"
+          class="error-details"
+        >
           <a-typography-paragraph>
             <pre>{{ errorDetails }}</pre>
           </a-typography-paragraph>

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/database-config.js`
 
-**Generated**: 2026-02-24T18:45:59.513Z
+**Generated**: 2026-02-24T23:28:10.649Z
 
 ---
 
@@ -12,8 +12,8 @@
 const
 ```
 
-- 应用级配置管理器
-- 用于存储无法存储在数据库中的配置（如数据库路径本身）
+* 应用级配置管理器
+ * 用于存储无法存储在数据库中的配置（如数据库路径本身）
 
 ---
 
@@ -23,7 +23,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-- 默认配置
+* 默认配置
 
 ---
 
@@ -33,147 +33,147 @@ const DEFAULT_CONFIG =
 class AppConfigManager
 ```
 
-- 应用配置管理器类
+* 应用配置管理器类
 
 ---
 
 ## getConfigPath()
 
 ```javascript
-getConfigPath();
+getConfigPath()
 ```
 
-- 获取配置文件路径
+* 获取配置文件路径
 
 ---
 
 ## getDefaultDatabasePath()
 
 ```javascript
-getDefaultDatabasePath();
+getDefaultDatabasePath()
 ```
 
-- 获取默认数据库路径
+* 获取默认数据库路径
 
 ---
 
 ## getDataPath()
 
 ```javascript
-getDataPath();
+getDataPath()
 ```
 
-- 获取应用数据目录路径
+* 获取应用数据目录路径
 
 ---
 
 ## load()
 
 ```javascript
-load();
+load()
 ```
 
-- 加载配置
+* 加载配置
 
 ---
 
 ## save()
 
 ```javascript
-save();
+save()
 ```
 
-- 保存配置
+* 保存配置
 
 ---
 
 ## get(key, defaultValue = null)
 
 ```javascript
-get(key, (defaultValue = null));
+get(key, defaultValue = null)
 ```
 
-- 获取配置项
+* 获取配置项
 
 ---
 
 ## set(key, value)
 
 ```javascript
-set(key, value);
+set(key, value)
 ```
 
-- 设置配置项
+* 设置配置项
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll();
+getAll()
 ```
 
-- 获取全部配置
+* 获取全部配置
 
 ---
 
 ## reset()
 
 ```javascript
-reset();
+reset()
 ```
 
-- 重置为默认配置
+* 重置为默认配置
 
 ---
 
 ## getDatabasePath()
 
 ```javascript
-getDatabasePath();
+getDatabasePath()
 ```
 
-- 获取数据库路径
+* 获取数据库路径
 
 ---
 
 ## setDatabasePath(newPath)
 
 ```javascript
-setDatabasePath(newPath);
+setDatabasePath(newPath)
 ```
 
-- 设置数据库路径
+* 设置数据库路径
 
 ---
 
 ## getDatabaseDir()
 
 ```javascript
-getDatabaseDir();
+getDatabaseDir()
 ```
 
-- 获取数据库目录
+* 获取数据库目录
 
 ---
 
 ## ensureDatabaseDir()
 
 ```javascript
-ensureDatabaseDir();
+ensureDatabaseDir()
 ```
 
-- 确保数据库目录存在
+* 确保数据库目录存在
 
 ---
 
 ## databaseExists()
 
 ```javascript
-databaseExists();
+databaseExists()
 ```
 
-- 检查数据库文件是否存在
+* 检查数据库文件是否存在
 
 ---
 
@@ -183,63 +183,64 @@ databaseExists();
 async migrateDatabaseTo(newPath)
 ```
 
-- 迁移数据库到新位置
-  - @param {string} newPath - 新的数据库路径
-  - @returns {Promise<boolean>}
+* 迁移数据库到新位置
+   * @param {string} newPath - 新的数据库路径
+   * @returns {Promise<boolean>}
 
 ---
 
 ## createDatabaseBackup()
 
 ```javascript
-createDatabaseBackup();
+createDatabaseBackup()
 ```
 
-- 创建数据库备份
-  - @returns {string} 备份文件路径
+* 创建数据库备份
+   * @returns {string} 备份文件路径
 
 ---
 
 ## cleanupOldBackups()
 
 ```javascript
-cleanupOldBackups();
+cleanupOldBackups()
 ```
 
-- 清理旧备份
+* 清理旧备份
 
 ---
 
 ## listBackups()
 
 ```javascript
-listBackups();
+listBackups()
 ```
 
-- 列出所有备份
-  - @returns {Array}
+* 列出所有备份
+   * @returns {Array}
 
 ---
 
 ## restoreFromBackup(backupPath)
 
 ```javascript
-restoreFromBackup(backupPath);
+restoreFromBackup(backupPath)
 ```
 
-- 从备份恢复数据库
-  - @param {string} backupPath - 备份文件路径
-  - @returns {boolean}
+* 从备份恢复数据库
+   * @param {string} backupPath - 备份文件路径
+   * @returns {boolean}
 
 ---
 
 ## applyInitialSetup(initialConfig)
 
 ```javascript
-applyInitialSetup(initialConfig);
+applyInitialSetup(initialConfig)
 ```
 
-- 批量应用初始设置配置
-  - @param {Object} initialConfig - 来自 initial-setup-config.json 的配置
+* 批量应用初始设置配置
+   * @param {Object} initialConfig - 来自 initial-setup-config.json 的配置
 
 ---
+

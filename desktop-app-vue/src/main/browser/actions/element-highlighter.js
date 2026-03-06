@@ -222,7 +222,7 @@ class ElementHighlighter extends EventEmitter {
     // 获取元素边界
     const bounds = await page.evaluate((sel) => {
       const element = document.querySelector(sel);
-      if (!element) return null;
+      if (!element) {return null;}
 
       const rect = element.getBoundingClientRect();
       return {
@@ -549,11 +549,11 @@ class ElementHighlighter extends EventEmitter {
    */
   async _removePath(targetId, pathId) {
     const page = this.browserEngine.getPage(targetId);
-    if (!page) return;
+    if (!page) {return;}
 
     await page.evaluate((id) => {
       const element = document.getElementById(id);
-      if (element) element.remove();
+      if (element) {element.remove();}
     }, pathId);
   }
 
@@ -563,7 +563,7 @@ class ElementHighlighter extends EventEmitter {
    */
   async _removeAnnotation(targetId, annotationId) {
     const page = this.browserEngine.getPage(targetId);
-    if (!page) return;
+    if (!page) {return;}
 
     await page.evaluate((id) => {
       const element = document.getElementById(id);

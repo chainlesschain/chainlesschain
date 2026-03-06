@@ -37,8 +37,8 @@ function compareVersions(v1, v2) {
     const part1 = parts1[i] || 0;
     const part2 = parts2[i] || 0;
 
-    if (part1 > part2) return 1;
-    if (part1 < part2) return -1;
+    if (part1 > part2) {return 1;}
+    if (part1 < part2) {return -1;}
   }
 
   return 0;
@@ -715,7 +715,7 @@ class PluginUpdater extends EventEmitter {
       const row = stmt.get([key]);
       stmt.free();
 
-      if (!row) return null;
+      if (!row) {return null;}
 
       // Parse value based on type
       switch (row.type) {

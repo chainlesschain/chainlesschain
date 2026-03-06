@@ -15,12 +15,18 @@
           </a-tag>
         </a-tooltip>
         <a-tooltip title="旋转设备">
-          <a-button size="small" @click="handleRotate">
+          <a-button
+            size="small"
+            @click="handleRotate"
+          >
             <ReloadOutlined />
           </a-button>
         </a-tooltip>
         <a-tooltip title="重置缩放">
-          <a-button size="small" @click="handleResetZoom">
+          <a-button
+            size="small"
+            @click="handleResetZoom"
+          >
             <ZoomOutOutlined />
           </a-button>
         </a-tooltip>
@@ -28,8 +34,14 @@
     </div>
 
     <!-- 预览容器 -->
-    <div ref="previewContainerRef" class="preview-container">
-      <div class="preview-wrapper" :style="previewWrapperStyle">
+    <div
+      ref="previewContainerRef"
+      class="preview-container"
+    >
+      <div
+        class="preview-wrapper"
+        :style="previewWrapperStyle"
+      >
         <!-- srcdoc 模式 -->
         <iframe
           v-if="mode === 'srcdoc'"
@@ -52,7 +64,10 @@
         />
 
         <!-- 加载中 -->
-        <div v-else class="loading-placeholder">
+        <div
+          v-else
+          class="loading-placeholder"
+        >
           <a-spin size="large" />
           <p>等待服务器启动...</p>
         </div>

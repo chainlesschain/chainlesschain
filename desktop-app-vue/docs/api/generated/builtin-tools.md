@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/builtin-tools.js`
 
-**Generated**: 2026-02-24T18:45:59.449Z
+**Generated**: 2026-02-24T23:28:10.581Z
 
 ---
 
@@ -12,7 +12,8 @@
 const tools = [
 ```
 
-- 内置工具定义
-- 自动生成，请勿手动编辑
+* 内置工具定义
+ * 自动生成，请勿手动编辑
 
 ---
+

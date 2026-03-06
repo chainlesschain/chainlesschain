@@ -7,7 +7,10 @@
         <a-tag :color="stateColor">
           {{ stateText }}
         </a-tag>
-        <span v-if="executionState?.duration" class="debug-duration">
+        <span
+          v-if="executionState?.duration"
+          class="debug-duration"
+        >
           <ClockCircleOutlined />
           {{ formatDuration(executionState.duration) }}
         </span>
@@ -15,15 +18,30 @@
     </div>
 
     <!-- 步骤结果时间线 -->
-    <div v-if="stepResults.length" class="debug-steps">
-      <div class="section-title">步骤结果</div>
+    <div
+      v-if="stepResults.length"
+      class="debug-steps"
+    >
+      <div class="section-title">
+        步骤结果
+      </div>
       <div class="steps-list">
-        <div v-for="(step, idx) in stepResults" :key="idx" class="step-row">
-          <a-tag :color="step.success ? 'green' : 'red'" size="small">
+        <div
+          v-for="(step, idx) in stepResults"
+          :key="idx"
+          class="step-row"
+        >
+          <a-tag
+            :color="step.success ? 'green' : 'red'"
+            size="small"
+          >
             {{ step.success ? "成功" : "失败" }}
           </a-tag>
           <span class="step-name">{{ step.name || `步骤 ${idx + 1}` }}</span>
-          <span v-if="step.duration" class="step-duration">
+          <span
+            v-if="step.duration"
+            class="step-duration"
+          >
             {{ formatDuration(step.duration) }}
           </span>
         </div>
@@ -31,10 +49,19 @@
     </div>
 
     <!-- 调试日志 -->
-    <div v-if="debugLog && debugLog.length" class="debug-log-section">
-      <div class="section-title">调试日志</div>
+    <div
+      v-if="debugLog && debugLog.length"
+      class="debug-log-section"
+    >
+      <div class="section-title">
+        调试日志
+      </div>
       <div class="debug-log-output">
-        <div v-for="(line, idx) in debugLog" :key="idx" class="log-line">
+        <div
+          v-for="(line, idx) in debugLog"
+          :key="idx"
+          class="log-line"
+        >
           {{ line }}
         </div>
       </div>

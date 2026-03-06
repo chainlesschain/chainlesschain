@@ -175,10 +175,10 @@ class ComplianceManager {
 
   async updatePolicy(id, updates) {
     try {
-      if (!id) return { success: false, error: "Policy ID is required" };
+      if (!id) {return { success: false, error: "Policy ID is required" };}
 
       const existing = await this.db.get("SELECT * FROM compliance_policies WHERE id = ?", [id]);
-      if (!existing) return { success: false, error: `Policy not found: ${id}` };
+      if (!existing) {return { success: false, error: `Policy not found: ${id}` };}
       if (updates.type && !POLICY_TYPES.includes(updates.type)) {
         return { success: false, error: `Invalid policy type: ${updates.type}` };
       }
@@ -203,7 +203,7 @@ class ComplianceManager {
           }
         }
       }
-      if (fields.length === 0) return { success: false, error: "No valid fields to update" };
+      if (fields.length === 0) {return { success: false, error: "No valid fields to update" };}
 
       fields.push("updated_at = ?");
       values.push(now);
@@ -224,10 +224,10 @@ class ComplianceManager {
 
   async deletePolicy(id) {
     try {
-      if (!id) return { success: false, error: "Policy ID is required" };
+      if (!id) {return { success: false, error: "Policy ID is required" };}
 
       const existing = await this.db.get("SELECT * FROM compliance_policies WHERE id = ?", [id]);
-      if (!existing) return { success: false, error: `Policy not found: ${id}` };
+      if (!existing) {return { success: false, error: `Policy not found: ${id}` };}
 
       await this.db.run("DELETE FROM compliance_policies WHERE id = ?", [id]);
       await this.db.run("DELETE FROM compliance_check_results WHERE policy_id = ?", [id]);
@@ -244,9 +244,9 @@ class ComplianceManager {
 
   async getPolicy(id) {
     try {
-      if (!id) return { success: false, error: "Policy ID is required" };
+      if (!id) {return { success: false, error: "Policy ID is required" };}
       const policy = await this.db.get("SELECT * FROM compliance_policies WHERE id = ?", [id]);
-      if (!policy) return { success: false, error: `Policy not found: ${id}` };
+      if (!policy) {return { success: false, error: `Policy not found: ${id}` };}
       return { success: true, data: this._parsePolicy(policy) };
     } catch (error) {
       logger.error("[ComplianceManager] Failed to get policy:", error);
@@ -282,7 +282,7 @@ class ComplianceManager {
 
   async checkCompliance(framework) {
     try {
-      if (!framework) return { success: false, error: "Framework is required" };
+      if (!framework) {return { success: false, error: "Framework is required" };}
       if (!FRAMEWORKS.includes(framework)) {
         return { success: false, error: `Invalid framework: ${framework}. Must be one of: ${FRAMEWORKS.join(", ")}` };
       }
@@ -545,7 +545,7 @@ class ComplianceManager {
   // ========================================
 
   _calculateWeightedScore(checkResults) {
-    if (!checkResults || checkResults.length === 0) return 0;
+    if (!checkResults || checkResults.length === 0) {return 0;}
     let weightedSum = 0;
     let totalWeight = 0;
     for (const result of checkResults) {
@@ -558,7 +558,7 @@ class ComplianceManager {
 
   async getComplianceScore(framework) {
     try {
-      if (!framework) return { success: false, error: "Framework is required" };
+      if (!framework) {return { success: false, error: "Framework is required" };}
 
       const latest = await this.db.get(
         "SELECT * FROM compliance_score_history WHERE framework = ? ORDER BY recorded_at DESC LIMIT 1",
@@ -584,7 +584,7 @@ class ComplianceManager {
 
   async getScoreHistory(framework, days = 30) {
     try {
-      if (!framework) return { success: false, error: "Framework is required" };
+      if (!framework) {return { success: false, error: "Framework is required" };}
 
       const since = Date.now() - days * 86400000;
       const history = await this.db.all(
@@ -600,8 +600,8 @@ class ComplianceManager {
       let trend = "stable";
       if (entries.length >= 2) {
         const diff = entries[entries.length - 1].score - entries[0].score;
-        if (diff >= 5) trend = "improving";
-        else if (diff <= -5) trend = "declining";
+        if (diff >= 5) {trend = "improving";}
+        else if (diff <= -5) {trend = "declining";}
       }
 
       return { success: true, data: { framework, days, trend, entries, count: entries.length } };
@@ -617,13 +617,13 @@ class ComplianceManager {
 
   async generateReport(framework, dateRange = {}) {
     try {
-      if (!framework) return { success: false, error: "Framework is required" };
-      if (!FRAMEWORKS.includes(framework)) return { success: false, error: `Invalid framework: ${framework}` };
+      if (!framework) {return { success: false, error: "Framework is required" };}
+      if (!FRAMEWORKS.includes(framework)) {return { success: false, error: `Invalid framework: ${framework}` };}
 
       logger.info(`[ComplianceManager] Generating compliance report for: ${framework}`);
 
       const checkResult = await this.checkCompliance(framework);
-      if (!checkResult.success) return { success: false, error: `Compliance check failed: ${checkResult.error}` };
+      if (!checkResult.success) {return { success: false, error: `Compliance check failed: ${checkResult.error}` };}
 
       const checkData = checkResult.data;
       const now = Date.now();
@@ -681,11 +681,11 @@ class ComplianceManager {
 
     let summary = `${name} compliance assessment completed with an overall score of ${checkData.score}/100 (${label}). `;
     summary += `${checkData.passed} of ${checkData.totalPolicies} policies passed. `;
-    if (checkData.failed > 0) summary += `${checkData.failed} policies require attention. `;
+    if (checkData.failed > 0) {summary += `${checkData.failed} policies require attention. `;}
 
-    if (scoreHistory.trend === "improving") summary += "The compliance score trend is improving.";
-    else if (scoreHistory.trend === "declining") summary += "The compliance score trend is declining and requires immediate attention.";
-    else summary += "The compliance score has remained stable.";
+    if (scoreHistory.trend === "improving") {summary += "The compliance score trend is improving.";}
+    else if (scoreHistory.trend === "declining") {summary += "The compliance score trend is declining and requires immediate attention.";}
+    else {summary += "The compliance score has remained stable.";}
 
     return summary;
   }
@@ -710,7 +710,7 @@ class ComplianceManager {
   // ========================================
 
   _parsePolicy(row) {
-    if (!row) return null;
+    if (!row) {return null;}
     return { ...row, rules: JSON.parse(row.rules || "{}"), enabled: row.enabled === 1 };
   }
 

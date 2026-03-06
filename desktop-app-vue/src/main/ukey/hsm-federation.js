@@ -86,7 +86,7 @@ class HsmFederation extends EventEmitter {
   // ============================================================
 
   async initialize() {
-    if (this._initialized) return true;
+    if (this._initialized) {return true;}
 
     logger.info("[HSM] 初始化 HSM 联合认证...");
 
@@ -149,7 +149,7 @@ class HsmFederation extends EventEmitter {
    */
   async connectHSM(hsmId) {
     const hsm = this._hsmPool.get(hsmId);
-    if (!hsm) throw new Error(`HSM 不存在: ${hsmId}`);
+    if (!hsm) {throw new Error(`HSM 不存在: ${hsmId}`);}
 
     return this._connectHSM(hsm);
   }
@@ -159,7 +159,7 @@ class HsmFederation extends EventEmitter {
    */
   setActiveHSM(hsmId) {
     const hsm = this._hsmPool.get(hsmId);
-    if (!hsm) throw new Error(`HSM 不存在: ${hsmId}`);
+    if (!hsm) {throw new Error(`HSM 不存在: ${hsmId}`);}
     if (hsm.state !== HSM_STATE.AUTHENTICATED) {
       throw new Error("HSM 未认证，请先连接");
     }
@@ -262,7 +262,7 @@ class HsmFederation extends EventEmitter {
     this._ensureActiveHSM();
 
     const keyShare = this._keyShares.get(keyId);
-    if (!keyShare) throw new Error(`分片密钥不存在: ${keyId}`);
+    if (!keyShare) {throw new Error(`分片密钥不存在: ${keyId}`);}
 
     logger.info(`[HSM] 联合签名: ${keyId}`);
 
@@ -364,7 +364,7 @@ class HsmFederation extends EventEmitter {
    */
   async approveRequest(requestId, approverId) {
     const request = this._approvalQueue.get(requestId);
-    if (!request) throw new Error(`审批请求不存在: ${requestId}`);
+    if (!request) {throw new Error(`审批请求不存在: ${requestId}`);}
 
     request.status = "approved";
     request.approvedBy = approverId;
@@ -381,7 +381,7 @@ class HsmFederation extends EventEmitter {
    */
   async rejectRequest(requestId, approverId, reason) {
     const request = this._approvalQueue.get(requestId);
-    if (!request) throw new Error(`审批请求不存在: ${requestId}`);
+    if (!request) {throw new Error(`审批请求不存在: ${requestId}`);}
 
     request.status = "rejected";
     request.rejectedBy = approverId;
@@ -440,7 +440,7 @@ class HsmFederation extends EventEmitter {
    * 当主 HSM 不可用时，自动切换到备用 HSM
    */
   async failover() {
-    if (!this.config.failoverEnabled) return { success: false, reason: "故障转移未启用" };
+    if (!this.config.failoverEnabled) {return { success: false, reason: "故障转移未启用" };}
 
     logger.warn("[HSM] 执行故障转移...");
 
@@ -448,7 +448,7 @@ class HsmFederation extends EventEmitter {
 
     // 查找可用的备用 HSM
     for (const [id, hsm] of this._hsmPool) {
-      if (id === currentId) continue;
+      if (id === currentId) {continue;}
       if (hsm.state === HSM_STATE.AUTHENTICATED) {
         this._activeHsm = hsm;
         this._audit("failover", { from: currentId, to: id });
@@ -653,7 +653,7 @@ class HsmFederation extends EventEmitter {
   }
 
   _audit(action, details) {
-    if (!this.config.auditEnabled) return;
+    if (!this.config.auditEnabled) {return;}
 
     this._auditLog.push({
       timestamp: new Date().toISOString(),
@@ -669,11 +669,11 @@ class HsmFederation extends EventEmitter {
   }
 
   _ensureInitialized() {
-    if (!this._initialized) throw new Error("HSM 联合认证未初始化");
+    if (!this._initialized) {throw new Error("HSM 联合认证未初始化");}
   }
 
   _ensureActiveHSM() {
-    if (!this._activeHsm) throw new Error("无活跃 HSM");
+    if (!this._activeHsm) {throw new Error("无活跃 HSM");}
     if (this._activeHsm.state !== HSM_STATE.AUTHENTICATED) {
       throw new Error("HSM 未认证");
     }

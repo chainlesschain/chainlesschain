@@ -6,7 +6,10 @@
       @back="() => $router.back()"
     >
       <template #extra>
-        <a-button type="primary" @click="refreshLogs">
+        <a-button
+          type="primary"
+          @click="refreshLogs"
+        >
           <ReloadOutlined />
           刷新
         </a-button>
@@ -19,7 +22,11 @@
 
     <div class="activity-log-container">
       <!-- 筛选器 -->
-      <a-card title="筛选条件" :bordered="false" class="filter-card">
+      <a-card
+        title="筛选条件"
+        :bordered="false"
+        class="filter-card"
+      >
         <a-row :gutter="16">
           <a-col :span="6">
             <a-select
@@ -29,8 +36,12 @@
               allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value=""> 全部 </a-select-option>
-              <a-select-option value="add_member"> 添加成员 </a-select-option>
+              <a-select-option value="">
+                全部
+              </a-select-option>
+              <a-select-option value="add_member">
+                添加成员
+              </a-select-option>
               <a-select-option value="remove_member">
                 移除成员
               </a-select-option>
@@ -52,7 +63,9 @@
               <a-select-option value="update_organization">
                 更新组织
               </a-select-option>
-              <a-select-option value="create_role"> 创建角色 </a-select-option>
+              <a-select-option value="create_role">
+                创建角色
+              </a-select-option>
               <a-select-option value="invite_member">
                 邀请成员
               </a-select-option>
@@ -69,7 +82,9 @@
               :filter-option="filterMember"
               @change="handleFilterChange"
             >
-              <a-select-option value=""> 全部 </a-select-option>
+              <a-select-option value="">
+                全部
+              </a-select-option>
               <a-select-option
                 v-for="member in members"
                 :key="member.member_did"
@@ -99,7 +114,10 @@
       </a-card>
 
       <!-- 活动日志表格 -->
-      <a-card :bordered="false" class="log-table-card">
+      <a-card
+        :bordered="false"
+        class="log-table-card"
+      >
         <a-table
           :columns="columns"
           :data-source="filteredActivities"
@@ -151,7 +169,10 @@
 
             <!-- 操作列 -->
             <template v-else-if="column.key === 'operations'">
-              <a-button type="link" @click="showDetails(record)">
+              <a-button
+                type="link"
+                @click="showDetails(record)"
+              >
                 详情
               </a-button>
             </template>
@@ -167,7 +188,11 @@
       :footer="null"
       width="600px"
     >
-      <a-descriptions v-if="selectedActivity" :column="1" bordered>
+      <a-descriptions
+        v-if="selectedActivity"
+        :column="1"
+        bordered
+      >
         <a-descriptions-item label="操作者">
           <a-space>
             <a-avatar

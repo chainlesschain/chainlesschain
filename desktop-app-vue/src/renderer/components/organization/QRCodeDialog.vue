@@ -1,20 +1,35 @@
 <template>
-  <a-modal v-model:open="visible" :title="title" width="500px" :footer="null">
+  <a-modal
+    v-model:open="visible"
+    :title="title"
+    width="500px"
+    :footer="null"
+  >
     <div class="qrcode-container">
-      <div ref="qrcodeRef" class="qrcode-canvas" />
+      <div
+        ref="qrcodeRef"
+        class="qrcode-canvas"
+      />
 
       <a-space
         direction="vertical"
         style="width: 100%; margin-top: 24px"
         :size="12"
       >
-        <a-button type="primary" block @click="downloadQRCode">
+        <a-button
+          type="primary"
+          block
+          @click="downloadQRCode"
+        >
           <template #icon>
             <DownloadOutlined />
           </template>
           下载二维码
         </a-button>
-        <a-button block @click="copyLink">
+        <a-button
+          block
+          @click="copyLink"
+        >
           <template #icon>
             <CopyOutlined />
           </template>

@@ -1,5 +1,9 @@
 <template>
-  <div v-show="enabled" class="danmaku-overlay" ref="overlayRef">
+  <div
+    v-show="enabled"
+    ref="overlayRef"
+    class="danmaku-overlay"
+  >
     <!-- Scrolling (normal) danmaku -->
     <div
       v-for="item in visibleNormalMessages"
@@ -196,9 +200,9 @@ function allocateBottomTrack() {
  * @param {Object} msg - Danmaku message
  */
 function processMessage(msg) {
-  if (!msg || !msg.id) return;
-  if (activeItems.value.has(msg.id)) return;
-  if (activeItems.value.size >= MAX_VISIBLE) return;
+  if (!msg || !msg.id) {return;}
+  if (activeItems.value.has(msg.id)) {return;}
+  if (activeItems.value.size >= MAX_VISIBLE) {return;}
 
   const type = msg.message_type || 'normal';
   const now = Date.now();

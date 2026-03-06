@@ -1,0 +1,190 @@
+# Phase 74-75 — 去中心化基础设施系统设计
+
+**版本**: v3.3.0
+**创建日期**: 2026-02-28
+**状态**: ✅ 已实现 (v3.3.0)
+
+---
+
+## 一、模块概述
+
+Phase 74-75 构建去中心化存储和抗审查通信基础设施：Filecoin存储集成、P2P内容分发和多层抗审查通信。
+
+### 1.1 核心目标
+
+1. **Filecoin存储**: 去中心化持久存储，交易管理
+2. **内容分发**: IPLD版本化，P2P CDN分发
+3. **Tor匿名**: Tor隐藏服务集成
+4. **域前置**: CDN域前置抗审查
+5. **Mesh网络**: BLE/WiFi-Direct离线通信
+
+### 1.2 技术架构
+
+```
+┌──────────────────────────────────────────┐
+│        Decentralized Infrastructure       │
+│                                           │
+│  ┌──────────────┐  ┌─────────────────┐   │
+│  │ Filecoin     │  │ Content         │   │
+│  │ Storage      │  │ Distributor     │   │
+│  └──────────────┘  └─────────────────┘   │
+│  ┌──────────────┐  ┌─────────────────┐   │
+│  │ AntiCensor   │  │ MeshNetwork     │   │
+│  │ Manager      │  │ Manager         │   │
+│  └──────────────┘  └─────────────────┘   │
+└──────────────────────────────────────────┘
+```
+
+---
+
+## 二、核心模块设计
+
+### 2.1 FilecoinStorage (Phase 74) (`ipfs/filecoin-storage.js`)
+
+Filecoin存储交易管理。
+
+**核心方法**:
+
+- `initialize()` — 初始化并加载已有交易
+- `storeToFilecoin({ cid, sizeBytes, minerId, durationEpochs })` — 创建存储交易
+- `getDealStatus(dealId)` — 查询交易状态
+- `getStorageStats()` — 存储统计（总交易数、活跃数、总大小、总花费）
+
+### 2.2 ContentDistributor (Phase 74) (`ipfs/content-distributor.js`)
+
+P2P内容分发和版本管理。
+
+**核心方法**:
+
+- `initialize()` — 初始化分发器
+- `distributeContent({ cid, peerCount })` — 分发内容到节点
+- `getVersionHistory(cid)` — 获取内容版本历史
+
+### 2.3 AntiCensorshipManager (Phase 75) (`security/anti-censorship-manager.js`)
+
+多层抗审查通信管理。
+
+**核心方法**:
+
+- `initialize()` — 初始化抗审查服务
+- `startTor()` — 启动Tor隐藏服务（返回onion地址）
+- `getTorStatus()` — 获取Tor状态
+- `enableDomainFronting({ cdnProvider, frontDomain })` — 启用CDN域前置
+- `startMesh()` — 启动Mesh网络
+- `getConnectivityReport()` — 连通性报告（Tor/域前置/活跃路由/平均延迟）
+
+### 2.4 MeshNetworkManager (Phase 75) (`security/mesh-network-manager.js`)
+
+BLE/WiFi-Direct离线Mesh网络。
+
+**核心方法**:
+
+- `startMesh({ transport })` — 启动Mesh（BLE或WiFi-Direct）
+- `discoverPeers()` — 发现附近节点
+- `getStatus()` — Mesh网络状态
+
+---
+
+## 三、数据库设计
+
+```sql
+-- Phase 74: Filecoin Storage
+CREATE TABLE IF NOT EXISTS filecoin_deals (
+  id TEXT PRIMARY KEY,
+  cid TEXT NOT NULL,
+  miner_id TEXT,
+  size_bytes INTEGER,
+  price_fil REAL,
+  duration_epochs INTEGER,
+  status TEXT DEFAULT 'pending',
+  verified INTEGER DEFAULT 0,
+  renewal_count INTEGER DEFAULT 0,
+  expires_at INTEGER,
+  created_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS content_versions (
+  id TEXT PRIMARY KEY,
+  content_cid TEXT NOT NULL,
+  version INTEGER DEFAULT 1,
+  parent_cid TEXT,
+  dag_structure TEXT,
+  cached INTEGER DEFAULT 0,
+  peer_count INTEGER DEFAULT 0,
+  created_at INTEGER
+);
+
+-- Phase 75: Anti-Censorship
+CREATE TABLE IF NOT EXISTS anti_censorship_routes (
+  id TEXT PRIMARY KEY,
+  route_type TEXT NOT NULL,
+  endpoint TEXT,
+  status TEXT DEFAULT 'active',
+  latency_ms INTEGER,
+  reliability REAL DEFAULT 1.0,
+  last_used INTEGER,
+  created_at INTEGER
+);
+```
+
+---
+
+## 四、IPC接口设计
+
+### Phase 74 — DecentralizedStorageIPC (5 handlers)
+
+| 通道                           | 说明         |
+| ------------------------------ | ------------ |
+| `dstorage:store-to-filecoin`   | 创建存储交易 |
+| `dstorage:get-deal-status`     | 查询交易状态 |
+| `dstorage:distribute-content`  | 分发内容     |
+| `dstorage:get-version-history` | 版本历史     |
+| `dstorage:get-storage-stats`   | 存储统计     |
+
+### Phase 75 — AntiCensorshipIPC (5 handlers)
+
+| 通道                                      | 说明            |
+| ----------------------------------------- | --------------- |
+| `anti-censorship:start-tor`               | 启动Tor隐藏服务 |
+| `anti-censorship:get-tor-status`          | Tor状态         |
+| `anti-censorship:enable-domain-fronting`  | 启用域前置      |
+| `anti-censorship:start-mesh`              | 启动Mesh网络    |
+| `anti-censorship:get-connectivity-report` | 连通性报告      |
+
+---
+
+## 五、前端集成
+
+### Pinia Stores
+
+- `decentralizedStorage.ts` — 交易列表、版本历史、存储统计
+- `antiCensorship.ts` — Tor状态、路由列表、连通性
+
+### Vue Pages
+
+- `DecentralizedStoragePage.vue` — 存储交易/内容分发/版本管理
+- `AntiCensorshipPage.vue` — Tor/域前置/Mesh/连通性报告
+
+### Routes
+
+- `/decentralized-storage` — 去中心化存储
+- `/anti-censorship` — 抗审查通信
+
+---
+
+## 六、配置选项
+
+```javascript
+decentralizedStorage: {
+  enabled: false,
+  filecoinEnabled: false,
+  maxDealSizeBytes: 1073741824,
+  cacheHotContentEnabled: true,
+},
+antiCensorship: {
+  enabled: false,
+  torEnabled: false,
+  domainFrontingEnabled: false,
+  meshNetworkEnabled: false,
+},
+```

@@ -93,7 +93,7 @@ class SimkeyRoaming extends EventEmitter {
   // ============================================================
 
   async initialize(homeCarrierId) {
-    if (this._initialized) return true;
+    if (this._initialized) {return true;}
 
     logger.info("[Roaming] 初始化漫游协议...");
 
@@ -146,7 +146,7 @@ class SimkeyRoaming extends EventEmitter {
     const networks = [];
 
     for (const [id, carrier] of this._carrierRegistry) {
-      if (id === this._homeCarrier?.id) continue;
+      if (id === this._homeCarrier?.id) {continue;}
 
       // 检查是否在联盟内
       const isAlliance = await this._checkAllianceMembership(carrier);
@@ -306,7 +306,7 @@ class SimkeyRoaming extends EventEmitter {
    * 终止漫游会话
    */
   async endRoamingSession() {
-    if (!this._roamingSession) return;
+    if (!this._roamingSession) {return;}
 
     logger.info(
       `[Roaming] 终止漫游会话: ${this._roamingSession.sessionId}`,
@@ -346,11 +346,11 @@ class SimkeyRoaming extends EventEmitter {
   }
 
   updateRoamingPolicy(policy) {
-    if (policy.defaultSecurityLevel) this.config.roamingPolicy = policy.defaultSecurityLevel;
-    if (policy.maxDuration) this.config.maxRoamingDuration = policy.maxDuration;
-    if (policy.regionWhitelist) this.config.regionWhitelist = policy.regionWhitelist;
-    if (policy.signLimitPerDay) this.config.signLimitPerDay = policy.signLimitPerDay;
-    if (policy.autoNegotiate !== undefined) this.config.autoNegotiate = policy.autoNegotiate;
+    if (policy.defaultSecurityLevel) {this.config.roamingPolicy = policy.defaultSecurityLevel;}
+    if (policy.maxDuration) {this.config.maxRoamingDuration = policy.maxDuration;}
+    if (policy.regionWhitelist) {this.config.regionWhitelist = policy.regionWhitelist;}
+    if (policy.signLimitPerDay) {this.config.signLimitPerDay = policy.signLimitPerDay;}
+    if (policy.autoNegotiate !== undefined) {this.config.autoNegotiate = policy.autoNegotiate;}
 
     this.emit("policy-updated", this.getRoamingPolicy());
     return this.getRoamingPolicy();
@@ -396,7 +396,7 @@ class SimkeyRoaming extends EventEmitter {
   }
 
   _checkRegionPolicy(carrier) {
-    if (!carrier.mcc) return false;
+    if (!carrier.mcc) {return false;}
     // 中国运营商 MCC = 460
     const region = carrier.mcc === "460" ? "CN" : "OTHER";
     return this.config.regionWhitelist.includes(region);
@@ -466,7 +466,7 @@ class SimkeyRoaming extends EventEmitter {
   }
 
   _ensureInitialized() {
-    if (!this._initialized) throw new Error("漫游协议未初始化");
+    if (!this._initialized) {throw new Error("漫游协议未初始化");}
   }
 
   _ensureRoaming() {

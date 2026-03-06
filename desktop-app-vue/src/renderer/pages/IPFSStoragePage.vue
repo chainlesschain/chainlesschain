@@ -38,8 +38,12 @@
             style="width: 140px"
             @change="handleModeChange"
           >
-            <a-select-option value="embedded">Embedded</a-select-option>
-            <a-select-option value="external">External Kubo</a-select-option>
+            <a-select-option value="embedded">
+              Embedded
+            </a-select-option>
+            <a-select-option value="external">
+              External Kubo
+            </a-select-option>
           </a-select>
         </a-space>
       </template>
@@ -47,7 +51,10 @@
 
     <div class="ipfs-content">
       <!-- Row 1: Statistics Cards -->
-      <a-row :gutter="16" class="stats-row">
+      <a-row
+        :gutter="16"
+        class="stats-row"
+      >
         <a-col :span="6">
           <a-card :loading="statsLoading">
             <a-statistic
@@ -107,7 +114,10 @@
                 <LinkOutlined />
               </template>
             </a-statistic>
-            <div v-if="ipfsStore.nodeStatus.peerId" class="peer-id-label">
+            <div
+              v-if="ipfsStore.nodeStatus.peerId"
+              class="peer-id-label"
+            >
               <a-tooltip :title="ipfsStore.nodeStatus.peerId">
                 PeerID: {{ truncate(ipfsStore.nodeStatus.peerId, 16) }}
               </a-tooltip>
@@ -117,7 +127,11 @@
       </a-row>
 
       <!-- Row 2: Pinned Content Table -->
-      <a-card title="Pinned Content" :bordered="false" class="table-card">
+      <a-card
+        title="Pinned Content"
+        :bordered="false"
+        class="table-card"
+      >
         <template #extra>
           <a-space>
             <a-button
@@ -173,10 +187,16 @@
             </template>
 
             <template v-else-if="column.key === 'encrypted'">
-              <a-tag v-if="record.encrypted" color="blue">
+              <a-tag
+                v-if="record.encrypted"
+                color="blue"
+              >
                 <LockOutlined /> Encrypted
               </a-tag>
-              <a-tag v-else color="default">
+              <a-tag
+                v-else
+                color="default"
+              >
                 Plain
               </a-tag>
             </template>
@@ -208,7 +228,11 @@
                   @confirm="handleUnpin(record.cid)"
                 >
                   <a-tooltip title="Unpin">
-                    <a-button type="link" danger size="small">
+                    <a-button
+                      type="link"
+                      danger
+                      size="small"
+                    >
                       <DeleteOutlined />
                     </a-button>
                   </a-tooltip>
@@ -220,10 +244,16 @@
       </a-card>
 
       <!-- Row 3: Upload + Configuration -->
-      <a-row :gutter="16" class="bottom-row">
+      <a-row
+        :gutter="16"
+        class="bottom-row"
+      >
         <!-- Upload Zone -->
         <a-col :span="14">
-          <a-card title="Upload Content" :bordered="false">
+          <a-card
+            title="Upload Content"
+            :bordered="false"
+          >
             <a-upload-dragger
               :before-upload="handleBeforeUpload"
               :show-upload-list="false"
@@ -242,7 +272,10 @@
             </a-upload-dragger>
 
             <div class="upload-options">
-              <a-space align="center" style="margin-top: 12px">
+              <a-space
+                align="center"
+                style="margin-top: 12px"
+              >
                 <a-switch
                   v-model:checked="uploadEncrypt"
                   :disabled="!ipfsStore.isNodeRunning"
@@ -283,7 +316,10 @@
 
         <!-- Configuration Panel -->
         <a-col :span="10">
-          <a-card title="Configuration" :bordered="false">
+          <a-card
+            title="Configuration"
+            :bordered="false"
+          >
             <a-form layout="vertical">
               <a-form-item label="Operating Mode">
                 <a-select
@@ -306,7 +342,7 @@
                   :max="100"
                   :marks="quotaMarks"
                   :tip-formatter="(val: number) => `${val} GB`"
-                  @afterChange="handleQuotaChange"
+                  @after-change="handleQuotaChange"
                 />
               </a-form-item>
 
@@ -539,7 +575,7 @@ function handleBeforeUpload(file: File) {
 }
 
 async function handleUploadText() {
-  if (!textContent.value) return
+  if (!textContent.value) {return}
 
   textUploading.value = true
   try {
@@ -672,8 +708,8 @@ async function handleRefresh() {
 // ==================== Helpers ====================
 
 function truncate(str: string, maxLen: number): string {
-  if (!str) return '-'
-  if (str.length <= maxLen) return str
+  if (!str) {return '-'}
+  if (str.length <= maxLen) {return str}
   return str.substring(0, Math.floor(maxLen / 2)) + '...' + str.substring(str.length - Math.floor(maxLen / 2))
 }
 

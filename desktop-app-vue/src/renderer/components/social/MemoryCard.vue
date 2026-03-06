@@ -6,15 +6,21 @@
     @click="handleClick"
   >
     <!-- Cover image -->
-    <template v-if="memory.cover_image" #cover>
+    <template
+      v-if="memory.cover_image"
+      #cover
+    >
       <div class="memory-cover">
         <img
           :src="memory.cover_image"
           :alt="memory.title"
           class="cover-image"
-        />
+        >
         <div class="cover-overlay">
-          <a-tag :color="typeColor" class="memory-type-tag">
+          <a-tag
+            :color="typeColor"
+            class="memory-type-tag"
+          >
             {{ typeLabel }}
           </a-tag>
         </div>
@@ -33,7 +39,10 @@
     </template>
 
     <template #extra>
-      <a-tag :color="typeColor" size="small">
+      <a-tag
+        :color="typeColor"
+        size="small"
+      >
         {{ typeLabel }}
       </a-tag>
     </template>
@@ -59,7 +68,11 @@
           <CheckOutlined />
           Mark as read
         </a-button>
-        <a-button type="link" size="small" @click.stop="handleShare">
+        <a-button
+          type="link"
+          size="small"
+          @click.stop="handleShare"
+        >
           <ShareAltOutlined />
           Share
         </a-button>
@@ -122,7 +135,7 @@ const typeColor = computed(() => {
 });
 
 const formattedDate = computed(() => {
-  if (!props.memory.generated_at) return "";
+  if (!props.memory.generated_at) {return "";}
   const date = new Date(props.memory.generated_at);
   return date.toLocaleDateString(undefined, {
     year: "numeric",

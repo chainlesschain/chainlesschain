@@ -59,7 +59,7 @@ class SimkeyZkp extends EventEmitter {
   // ============================================================
 
   async initialize() {
-    if (this._initialized) return true;
+    if (this._initialized) {return true;}
 
     logger.info("[ZKP] 初始化零知识证明模块...");
 
@@ -428,7 +428,7 @@ class SimkeyZkp extends EventEmitter {
   }
 
   _verifyRangeProof(rangeProof) {
-    if (!rangeProof) return false;
+    if (!rangeProof) {return false;}
     return !!rangeProof.commitment && !!rangeProof.proofBytes;
   }
 
@@ -452,7 +452,7 @@ class SimkeyZkp extends EventEmitter {
   }
 
   _ensureInitialized() {
-    if (!this._initialized) throw new Error("ZKP 模块未初始化");
+    if (!this._initialized) {throw new Error("ZKP 模块未初始化");}
   }
 
   getProof(proofId) {

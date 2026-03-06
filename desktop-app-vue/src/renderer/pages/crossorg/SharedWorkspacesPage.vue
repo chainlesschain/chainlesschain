@@ -1,8 +1,14 @@
 <template>
   <div class="shared-workspaces-page">
-    <a-page-header title="共享工作空间" sub-title="跨组织协作空间管理">
+    <a-page-header
+      title="共享工作空间"
+      sub-title="跨组织协作空间管理"
+    >
       <template #extra>
-        <a-button type="primary" @click="showCreate = true">
+        <a-button
+          type="primary"
+          @click="showCreate = true"
+        >
           <template #icon>
             <PlusOutlined />
           </template>
@@ -13,7 +19,11 @@
 
     <a-spin :spinning="loading">
       <a-row :gutter="16">
-        <a-col v-for="workspace in workspaces" :key="workspace.id" :span="8">
+        <a-col
+          v-for="workspace in workspaces"
+          :key="workspace.id"
+          :span="8"
+        >
           <a-card
             hoverable
             class="workspace-card"
@@ -71,9 +81,18 @@
       :confirm-loading="creating"
       @ok="handleCreate"
     >
-      <a-form :model="newWorkspace" layout="vertical">
-        <a-form-item label="工作空间名称" required>
-          <a-input v-model:value="newWorkspace.name" placeholder="输入名称" />
+      <a-form
+        :model="newWorkspace"
+        layout="vertical"
+      >
+        <a-form-item
+          label="工作空间名称"
+          required
+        >
+          <a-input
+            v-model:value="newWorkspace.name"
+            placeholder="输入名称"
+          />
         </a-form-item>
         <a-form-item label="描述">
           <a-textarea
@@ -83,16 +102,28 @@
         </a-form-item>
         <a-form-item label="类型">
           <a-select v-model:value="newWorkspace.workspaceType">
-            <a-select-option value="project"> 项目协作 </a-select-option>
-            <a-select-option value="research"> 研究合作 </a-select-option>
-            <a-select-option value="data_sharing"> 数据共享 </a-select-option>
-            <a-select-option value="general"> 通用 </a-select-option>
+            <a-select-option value="project">
+              项目协作
+            </a-select-option>
+            <a-select-option value="research">
+              研究合作
+            </a-select-option>
+            <a-select-option value="data_sharing">
+              数据共享
+            </a-select-option>
+            <a-select-option value="general">
+              通用
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="可见性">
           <a-radio-group v-model:value="newWorkspace.visibility">
-            <a-radio value="private"> 私有（仅邀请成员可见） </a-radio>
-            <a-radio value="partners"> 合作伙伴可见 </a-radio>
+            <a-radio value="private">
+              私有（仅邀请成员可见）
+            </a-radio>
+            <a-radio value="partners">
+              合作伙伴可见
+            </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>

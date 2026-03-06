@@ -420,7 +420,7 @@ class ScreenAnalyzer extends EventEmitter {
    * @private
    */
   _viewportChanged(prev, curr) {
-    if (!prev || !curr) return true;
+    if (!prev || !curr) {return true;}
     return prev.width !== curr.width ||
            prev.height !== curr.height ||
            prev.scrollX !== curr.scrollX ||
@@ -432,7 +432,7 @@ class ScreenAnalyzer extends EventEmitter {
    * @private
    */
   _layoutChanged(prev, curr) {
-    if (!prev || !curr) return true;
+    if (!prev || !curr) {return true;}
     return JSON.stringify(prev) !== JSON.stringify(curr);
   }
 

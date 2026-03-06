@@ -3,22 +3,38 @@
     <!-- 工具栏 -->
     <div class="tree-toolbar">
       <a-tooltip title="刷新">
-        <a-button type="text" size="small" @click="handleRefresh">
+        <a-button
+          type="text"
+          size="small"
+          @click="handleRefresh"
+        >
           <ReloadOutlined />
         </a-button>
       </a-tooltip>
       <a-tooltip title="折叠全部">
-        <a-button type="text" size="small" @click="handleCollapseAll">
+        <a-button
+          type="text"
+          size="small"
+          @click="handleCollapseAll"
+        >
           <ShrinkOutlined />
         </a-button>
       </a-tooltip>
       <a-tooltip title="新建文件">
-        <a-button type="text" size="small" @click="handleNewFile">
+        <a-button
+          type="text"
+          size="small"
+          @click="handleNewFile"
+        >
           <FileAddOutlined />
         </a-button>
       </a-tooltip>
       <a-tooltip title="新建文件夹">
-        <a-button type="text" size="small" @click="handleNewFolder">
+        <a-button
+          type="text"
+          size="small"
+          @click="handleNewFolder"
+        >
           <FolderAddOutlined />
         </a-button>
       </a-tooltip>
@@ -35,7 +51,10 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="tree-loading">
+    <div
+      v-if="loading"
+      class="tree-loading"
+    >
       <a-spin size="small" />
       <span>加载中...</span>
     </div>
@@ -86,7 +105,10 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="tree-empty">
+    <div
+      v-else
+      class="tree-empty"
+    >
       <FolderOpenOutlined />
       <p>暂无文件</p>
     </div>
@@ -138,11 +160,17 @@
             <a-menu-divider />
 
             <!-- 文件操作 -->
-            <a-menu-item key="rename" :disabled="!contextNode">
+            <a-menu-item
+              key="rename"
+              :disabled="!contextNode"
+            >
               <EditOutlined />
               重命名
             </a-menu-item>
-            <a-menu-item key="delete" :disabled="!contextNode">
+            <a-menu-item
+              key="delete"
+              :disabled="!contextNode"
+            >
               <DeleteOutlined />
               删除
             </a-menu-item>
@@ -150,15 +178,24 @@
             <a-menu-divider />
 
             <!-- 复制操作 -->
-            <a-menu-item key="copy" :disabled="!contextNode">
+            <a-menu-item
+              key="copy"
+              :disabled="!contextNode"
+            >
               <CopyOutlined />
               复制
             </a-menu-item>
-            <a-menu-item key="cut" :disabled="!contextNode">
+            <a-menu-item
+              key="cut"
+              :disabled="!contextNode"
+            >
               <ScissorOutlined />
               剪切
             </a-menu-item>
-            <a-menu-item key="paste" :disabled="!clipboard">
+            <a-menu-item
+              key="paste"
+              :disabled="!clipboard"
+            >
               <SnippetsOutlined />
               粘贴{{
                 clipboard
@@ -188,11 +225,17 @@
             <a-menu-divider />
 
             <!-- 其他操作 -->
-            <a-menu-item key="copyPath" :disabled="!contextNode">
+            <a-menu-item
+              key="copyPath"
+              :disabled="!contextNode"
+            >
               <LinkOutlined />
               复制路径
             </a-menu-item>
-            <a-menu-item key="reveal" :disabled="!contextNode">
+            <a-menu-item
+              key="reveal"
+              :disabled="!contextNode"
+            >
               <FolderOpenOutlined />
               在文件管理器中显示
             </a-menu-item>
@@ -200,7 +243,10 @@
             <a-menu-divider />
 
             <!-- 导入导出操作 -->
-            <a-menu-item key="export" :disabled="!contextNode">
+            <a-menu-item
+              key="export"
+              :disabled="!contextNode"
+            >
               <ExportOutlined />
               导出到外部
             </a-menu-item>

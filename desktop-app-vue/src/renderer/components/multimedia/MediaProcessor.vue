@@ -1,17 +1,29 @@
 <template>
   <div class="media-processor">
-    <a-card title="多媒体处理控制台" :bordered="false">
+    <a-card
+      title="多媒体处理控制台"
+      :bordered="false"
+    >
       <template #extra>
         <a-space>
-          <a-badge :count="processingCount" :overflow-count="99">
+          <a-badge
+            :count="processingCount"
+            :overflow-count="99"
+          >
             <CloudUploadOutlined style="font-size: 20px" />
           </a-badge>
         </a-space>
       </template>
 
-      <a-tabs v-model:active-key="activeTab" type="card">
+      <a-tabs
+        v-model:active-key="activeTab"
+        type="card"
+      >
         <!-- 图片处理 -->
-        <a-tab-pane key="image" tab="图片处理">
+        <a-tab-pane
+          key="image"
+          tab="图片处理"
+        >
           <template #tab>
             <span><PictureOutlined /> 图片处理</span>
           </template>
@@ -28,7 +40,9 @@
               <p class="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
-              <p class="ant-upload-text">点击或拖拽图片到此区域上传</p>
+              <p class="ant-upload-text">
+                点击或拖拽图片到此区域上传
+              </p>
               <p class="ant-upload-hint">
                 支持单张或批量上传，支持 JPG、PNG、GIF、WEBP 等格式
               </p>
@@ -65,9 +79,15 @@
                       v-model:value="imageOptions.format"
                       style="width: 100%"
                     >
-                      <a-select-option value="jpeg"> JPEG </a-select-option>
-                      <a-select-option value="png"> PNG </a-select-option>
-                      <a-select-option value="webp"> WebP </a-select-option>
+                      <a-select-option value="jpeg">
+                        JPEG
+                      </a-select-option>
+                      <a-select-option value="png">
+                        PNG
+                      </a-select-option>
+                      <a-select-option value="webp">
+                        WebP
+                      </a-select-option>
                     </a-select>
                   </a-form-item>
                 </a-col>
@@ -117,7 +137,10 @@
             </a-form>
 
             <!-- 处理结果 -->
-            <div v-if="imageResults.length > 0" class="results-section">
+            <div
+              v-if="imageResults.length > 0"
+              class="results-section"
+            >
               <a-divider>处理结果</a-divider>
               <a-list
                 :data-source="imageResults"
@@ -132,7 +155,7 @@
                           :src="item.thumbnailUrl"
                           :alt="item.filename"
                           style="height: 120px; object-fit: cover"
-                        />
+                        >
                       </template>
                       <a-card-meta :title="item.filename">
                         <template #description>
@@ -156,7 +179,10 @@
         </a-tab-pane>
 
         <!-- 音频转录 -->
-        <a-tab-pane key="audio" tab="音频转录">
+        <a-tab-pane
+          key="audio"
+          tab="音频转录"
+        >
           <template #tab>
             <span><SoundOutlined /> 音频转录</span>
           </template>
@@ -173,8 +199,12 @@
               <p class="ant-upload-drag-icon">
                 <CustomerServiceOutlined />
               </p>
-              <p class="ant-upload-text">点击或拖拽音频文件到此区域上传</p>
-              <p class="ant-upload-hint">支持 MP3、WAV、M4A、OGG 等格式</p>
+              <p class="ant-upload-text">
+                点击或拖拽音频文件到此区域上传
+              </p>
+              <p class="ant-upload-hint">
+                支持 MP3、WAV、M4A、OGG 等格式
+              </p>
             </a-upload-dragger>
 
             <a-divider />
@@ -205,9 +235,15 @@
                       v-model:value="audioOptions.language"
                       style="width: 100%"
                     >
-                      <a-select-option value="zh"> 中文 </a-select-option>
-                      <a-select-option value="en"> 英文 </a-select-option>
-                      <a-select-option value="auto"> 自动检测 </a-select-option>
+                      <a-select-option value="zh">
+                        中文
+                      </a-select-option>
+                      <a-select-option value="en">
+                        英文
+                      </a-select-option>
+                      <a-select-option value="auto">
+                        自动检测
+                      </a-select-option>
                     </a-select>
                   </a-form-item>
                 </a-col>
@@ -234,9 +270,15 @@
             </a-form>
 
             <!-- 转录结果 -->
-            <div v-if="audioResults.length > 0" class="results-section">
+            <div
+              v-if="audioResults.length > 0"
+              class="results-section"
+            >
               <a-divider>转录结果</a-divider>
-              <a-list :data-source="audioResults" bordered>
+              <a-list
+                :data-source="audioResults"
+                bordered
+              >
                 <template #renderItem="{ item }">
                   <a-list-item>
                     <a-list-item-meta :title="item.filename">
@@ -252,7 +294,10 @@
                               <a-tag color="blue">
                                 时长: {{ formatDuration(item.duration) }}
                               </a-tag>
-                              <a-tag v-if="item.confidence" color="green">
+                              <a-tag
+                                v-if="item.confidence"
+                                color="green"
+                              >
                                 置信度: {{ item.confidence }}%
                               </a-tag>
                             </a-space>
@@ -268,7 +313,10 @@
         </a-tab-pane>
 
         <!-- 批量OCR -->
-        <a-tab-pane key="ocr" tab="批量OCR">
+        <a-tab-pane
+          key="ocr"
+          tab="批量OCR"
+        >
           <template #tab>
             <span><ScanOutlined /> 批量OCR</span>
           </template>
@@ -293,7 +341,9 @@
               <p class="ant-upload-drag-icon">
                 <FileImageOutlined />
               </p>
-              <p class="ant-upload-text">点击或拖拽图片到此区域进行OCR识别</p>
+              <p class="ant-upload-text">
+                点击或拖拽图片到此区域进行OCR识别
+              </p>
               <p class="ant-upload-hint">
                 支持批量上传，自动使用多Worker并发处理
               </p>
@@ -316,8 +366,12 @@
                       <a-select-option value="chi_tra">
                         繁体中文
                       </a-select-option>
-                      <a-select-option value="eng"> 英文 </a-select-option>
-                      <a-select-option value="jpn"> 日文 </a-select-option>
+                      <a-select-option value="eng">
+                        英文
+                      </a-select-option>
+                      <a-select-option value="jpn">
+                        日文
+                      </a-select-option>
                     </a-select>
                   </a-form-item>
                 </a-col>
@@ -346,7 +400,10 @@
             </a-form>
 
             <!-- OCR结果 -->
-            <div v-if="ocrResults.length > 0" class="results-section">
+            <div
+              v-if="ocrResults.length > 0"
+              class="results-section"
+            >
               <a-divider>识别结果</a-divider>
               <a-collapse>
                 <a-collapse-panel
@@ -358,10 +415,15 @@
                     {{ item.text }}
                   </a-typography-paragraph>
                   <a-space>
-                    <a-tag v-if="item.confidence" color="green">
+                    <a-tag
+                      v-if="item.confidence"
+                      color="green"
+                    >
                       置信度: {{ item.confidence.toFixed(2) }}%
                     </a-tag>
-                    <a-tag color="blue"> 耗时: {{ item.duration }}ms </a-tag>
+                    <a-tag color="blue">
+                      耗时: {{ item.duration }}ms
+                    </a-tag>
                   </a-space>
                 </a-collapse-panel>
               </a-collapse>

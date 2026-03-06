@@ -60,7 +60,7 @@ class FineTuningManager extends EventEmitter {
    * @private
    */
   _ensureTables() {
-    if (!this.database) return;
+    if (!this.database) {return;}
 
     const db = this.database.db || this.database;
 
@@ -479,13 +479,13 @@ class FineTuningManager extends EventEmitter {
    */
   getStatus(jobId) {
     const db = this._db();
-    if (!db) return null;
+    if (!db) {return null;}
 
     try {
       const stmt = db.prepare('SELECT * FROM fine_tuning_jobs WHERE id = ?');
       const row = stmt.get(jobId);
 
-      if (!row) return null;
+      if (!row) {return null;}
 
       return {
         id: row.id,
@@ -696,7 +696,7 @@ class FineTuningManager extends EventEmitter {
    * @private
    */
   _db() {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
     return this.database.db || this.database;
   }
 
@@ -706,7 +706,7 @@ class FineTuningManager extends EventEmitter {
    */
   _insertJob({ id, baseModel, adapterName, dataPath, backend, config, createdAt }) {
     const db = this._db();
-    if (!db) return;
+    if (!db) {return;}
 
     try {
       const stmt = db.prepare(`
@@ -725,7 +725,7 @@ class FineTuningManager extends EventEmitter {
    */
   _updateJobStatus(jobId, status, extras = {}) {
     const db = this._db();
-    if (!db) return;
+    if (!db) {return;}
 
     try {
       const sets = ['status = ?'];
@@ -765,7 +765,7 @@ class FineTuningManager extends EventEmitter {
    */
   _updateJobProgress(jobId, progress) {
     const db = this._db();
-    if (!db) return;
+    if (!db) {return;}
 
     try {
       const stmt = db.prepare('UPDATE fine_tuning_jobs SET progress = ? WHERE id = ?');

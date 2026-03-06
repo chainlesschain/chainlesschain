@@ -91,7 +91,7 @@ const mockY = {
 
 // getYjsManager is injected via _deps to bypass require() interop failure.
 const mockGetYjsManager = () => {
-  if (!config.yjsManagerActive) return null;
+  if (!config.yjsManagerActive) {return null;}
   return { getDocument: () => config.docToReturn };
 };
 

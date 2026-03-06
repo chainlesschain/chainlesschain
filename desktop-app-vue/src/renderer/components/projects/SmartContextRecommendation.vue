@@ -1,5 +1,8 @@
 <template>
-  <div v-if="recommendations.length > 0" class="smart-context-panel">
+  <div
+    v-if="recommendations.length > 0"
+    class="smart-context-panel"
+  >
     <div class="context-header">
       <h4 class="context-title">
         <BulbOutlined />
@@ -11,7 +14,10 @@
     </div>
 
     <div class="recommendations-list">
-      <a-collapse v-model:active-key="activeKeys" ghost>
+      <a-collapse
+        v-model:active-key="activeKeys"
+        ghost
+      >
         <!-- 相关文件推荐 -->
         <a-collapse-panel
           v-if="fileRecommendations.length > 0"
@@ -102,7 +108,12 @@
                 </div>
               </div>
               <div class="item-actions">
-                <a-button size="small" type="text"> 查看 </a-button>
+                <a-button
+                  size="small"
+                  type="text"
+                >
+                  查看
+                </a-button>
               </div>
             </div>
           </div>
@@ -138,13 +149,22 @@
                   {{ knowledge.preview }}
                 </div>
                 <div class="item-tags">
-                  <a-tag v-for="tag in knowledge.tags" :key="tag" size="small">
+                  <a-tag
+                    v-for="tag in knowledge.tags"
+                    :key="tag"
+                    size="small"
+                  >
                     {{ tag }}
                   </a-tag>
                 </div>
               </div>
               <div class="item-actions">
-                <a-button size="small" type="text"> 查看 </a-button>
+                <a-button
+                  size="small"
+                  type="text"
+                >
+                  查看
+                </a-button>
               </div>
             </div>
           </div>
@@ -153,8 +173,16 @@
     </div>
 
     <!-- 应用选择的上下文 -->
-    <div v-if="selectedFiles.length > 0" class="context-actions">
-      <a-button type="primary" size="small" block @click="applyContext">
+    <div
+      v-if="selectedFiles.length > 0"
+      class="context-actions"
+    >
+      <a-button
+        type="primary"
+        size="small"
+        block
+        @click="applyContext"
+      >
         <PlusCircleOutlined />
         添加 {{ selectedFiles.length }} 个文件到上下文
       </a-button>

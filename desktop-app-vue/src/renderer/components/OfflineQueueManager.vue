@@ -1,6 +1,9 @@
 <template>
   <div class="offline-queue-manager">
-    <a-card title="离线消息队列" :loading="loading">
+    <a-card
+      title="离线消息队列"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
           <a-badge
@@ -37,7 +40,10 @@
       </template>
 
       <!-- 队列统计 -->
-      <a-row :gutter="16" style="margin-bottom: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 24px"
+      >
         <a-col :span="6">
           <a-statistic
             title="待发送消息"
@@ -72,7 +78,10 @@
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic title="总消息数" :value="queueStats.totalMessages">
+          <a-statistic
+            title="总消息数"
+            :value="queueStats.totalMessages"
+          >
             <template #prefix>
               <InboxOutlined />
             </template>
@@ -171,7 +180,11 @@
       width="600px"
       :footer="null"
     >
-      <a-descriptions v-if="selectedMessage" bordered :column="1">
+      <a-descriptions
+        v-if="selectedMessage"
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="消息ID">
           <a-typography-text copyable>
             {{ selectedMessage.id }}

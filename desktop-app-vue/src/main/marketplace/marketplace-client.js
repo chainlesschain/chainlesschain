@@ -283,12 +283,12 @@ class MarketplaceClient {
       this._ensureClient();
 
       const params = {};
-      if (filters.category) params.category = filters.category;
-      if (filters.search) params.search = filters.search;
-      if (filters.sort) params.sort = filters.sort;
-      if (filters.page != null) params.page = filters.page;
-      if (filters.pageSize != null) params.pageSize = filters.pageSize;
-      if (filters.verified != null) params.verified = filters.verified;
+      if (filters.category) {params.category = filters.category;}
+      if (filters.search) {params.search = filters.search;}
+      if (filters.sort) {params.sort = filters.sort;}
+      if (filters.page != null) {params.page = filters.page;}
+      if (filters.pageSize != null) {params.pageSize = filters.pageSize;}
+      if (filters.verified != null) {params.verified = filters.verified;}
 
       const response = await this._requestWithRetry('get', '/plugins', { params });
 
@@ -325,11 +325,11 @@ class MarketplaceClient {
       }
 
       const params = { keyword: keyword.trim() };
-      if (filters.category) params.category = filters.category;
-      if (filters.verified != null) params.verified = filters.verified;
-      if (filters.sort) params.sort = filters.sort;
-      if (filters.page != null) params.page = filters.page;
-      if (filters.pageSize != null) params.pageSize = filters.pageSize;
+      if (filters.category) {params.category = filters.category;}
+      if (filters.verified != null) {params.verified = filters.verified;}
+      if (filters.sort) {params.sort = filters.sort;}
+      if (filters.page != null) {params.page = filters.page;}
+      if (filters.pageSize != null) {params.pageSize = filters.pageSize;}
 
       const response = await this._requestWithRetry('get', '/plugins/search', { params });
 
@@ -664,9 +664,9 @@ class MarketplaceClient {
       }
 
       const params = {};
-      if (options.page != null) params.page = options.page;
-      if (options.pageSize != null) params.pageSize = options.pageSize;
-      if (options.sort) params.sort = options.sort;
+      if (options.page != null) {params.page = options.page;}
+      if (options.pageSize != null) {params.pageSize = options.pageSize;}
+      if (options.sort) {params.sort = options.sort;}
 
       const response = await this._requestWithRetry(
         'get',

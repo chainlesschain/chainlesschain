@@ -2,7 +2,9 @@
   <div class="simple-test-page">
     <h1>Simple Test Page</h1>
     <p>This is a very simple test page with no dependencies.</p>
-    <div id="test-marker">TEST_MARKER_FOR_E2E</div>
+    <div id="test-marker">
+      TEST_MARKER_FOR_E2E
+    </div>
   </div>
 </template>
 

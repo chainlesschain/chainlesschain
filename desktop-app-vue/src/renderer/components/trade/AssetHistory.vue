@@ -8,7 +8,11 @@
   >
     <div class="asset-history">
       <!-- 资产信息卡片 -->
-      <a-card v-if="asset" size="small" style="margin-bottom: 24px">
+      <a-card
+        v-if="asset"
+        size="small"
+        style="margin-bottom: 24px"
+      >
         <a-space>
           <a-avatar
             :size="48"
@@ -22,7 +26,10 @@
             <div class="asset-name">
               {{ asset.name }}
             </div>
-            <a-tag v-if="asset.symbol" color="blue">
+            <a-tag
+              v-if="asset.symbol"
+              color="blue"
+            >
               {{ asset.symbol }}
             </a-tag>
             <a-tag :color="getTypeColor(asset.asset_type)">
@@ -33,7 +40,10 @@
       </a-card>
 
       <!-- 筛选器 -->
-      <a-card size="small" style="margin-bottom: 16px">
+      <a-card
+        size="small"
+        style="margin-bottom: 16px"
+      >
         <a-space>
           <span>类型:</span>
           <a-radio-group
@@ -42,14 +52,28 @@
             size="small"
             @change="applyFilter"
           >
-            <a-radio-button value=""> 全部 </a-radio-button>
-            <a-radio-button value="transfer"> 转账 </a-radio-button>
-            <a-radio-button value="mint"> 铸造 </a-radio-button>
-            <a-radio-button value="burn"> 销毁 </a-radio-button>
-            <a-radio-button value="trade"> 交易 </a-radio-button>
+            <a-radio-button value="">
+              全部
+            </a-radio-button>
+            <a-radio-button value="transfer">
+              转账
+            </a-radio-button>
+            <a-radio-button value="mint">
+              铸造
+            </a-radio-button>
+            <a-radio-button value="burn">
+              销毁
+            </a-radio-button>
+            <a-radio-button value="trade">
+              交易
+            </a-radio-button>
           </a-radio-group>
 
-          <a-button type="link" size="small" @click="loadHistory">
+          <a-button
+            type="link"
+            size="small"
+            @click="loadHistory"
+          >
             <reload-outlined /> 刷新
           </a-button>
         </a-space>
@@ -57,7 +81,10 @@
 
       <!-- 历史记录时间线 -->
       <a-spin :spinning="loading">
-        <a-timeline v-if="filteredHistory.length > 0" mode="left">
+        <a-timeline
+          v-if="filteredHistory.length > 0"
+          mode="left"
+        >
           <a-timeline-item
             v-for="(item, index) in filteredHistory"
             :key="index"
@@ -79,7 +106,11 @@
               </div>
             </template>
 
-            <a-card size="small" hoverable class="history-card">
+            <a-card
+              size="small"
+              hoverable
+              class="history-card"
+            >
               <div class="history-header">
                 <a-tag :color="getTransactionTypeColor(item.transaction_type)">
                   {{ getTransactionTypeName(item.transaction_type) }}
@@ -90,7 +121,11 @@
                 </span>
               </div>
 
-              <a-descriptions :column="1" size="small" style="margin-top: 12px">
+              <a-descriptions
+                :column="1"
+                size="small"
+                style="margin-top: 12px"
+              >
                 <a-descriptions-item label="发送者">
                   <a-typography-text copyable>
                     {{ formatDid(item.from_did) }}
@@ -119,7 +154,10 @@
                   </a-tag>
                 </a-descriptions-item>
 
-                <a-descriptions-item v-if="item.memo" label="备注">
+                <a-descriptions-item
+                  v-if="item.memo"
+                  label="备注"
+                >
                   <div class="memo-text">
                     {{ item.memo }}
                   </div>
@@ -140,13 +178,24 @@
 
               <!-- 交易方向指示 -->
               <div class="transaction-direction">
-                <a-tag v-if="isIncoming(item)" color="success">
+                <a-tag
+                  v-if="isIncoming(item)"
+                  color="success"
+                >
                   <arrow-down-outlined /> 收入
                 </a-tag>
-                <a-tag v-else-if="isOutgoing(item)" color="error">
+                <a-tag
+                  v-else-if="isOutgoing(item)"
+                  color="error"
+                >
                   <arrow-up-outlined /> 支出
                 </a-tag>
-                <a-tag v-else color="default"> <swap-outlined /> 其他 </a-tag>
+                <a-tag
+                  v-else
+                  color="default"
+                >
+                  <swap-outlined /> 其他
+                </a-tag>
               </div>
             </a-card>
           </a-timeline-item>
@@ -157,14 +206,26 @@
           v-else
           :description="filterType ? '没有找到匹配的历史记录' : '暂无历史记录'"
         >
-          <a-button v-if="filterType" size="small" @click="filterType = ''">
+          <a-button
+            v-if="filterType"
+            size="small"
+            @click="filterType = ''"
+          >
             清除筛选
           </a-button>
         </a-empty>
 
         <!-- 加载更多 -->
-        <div v-if="hasMore && filteredHistory.length > 0" class="load-more">
-          <a-button block @click="loadMore"> 加载更多 </a-button>
+        <div
+          v-if="hasMore && filteredHistory.length > 0"
+          class="load-more"
+        >
+          <a-button
+            block
+            @click="loadMore"
+          >
+            加载更多
+          </a-button>
         </div>
       </a-spin>
     </div>

@@ -2,7 +2,10 @@
   <a-spin :spinning="loading">
     <a-tabs v-model:active-key="activeKey">
       <!-- 我发布的订单 -->
-      <a-tab-pane key="created" tab="我发布的">
+      <a-tab-pane
+        key="created"
+        tab="我发布的"
+      >
         <a-list
           :data-source="createdOrders"
           :grid="{
@@ -17,15 +20,25 @@
         >
           <template #renderItem="{ item }">
             <a-list-item>
-              <a-card hoverable class="order-card" @click="emit('view', item)">
+              <a-card
+                hoverable
+                class="order-card"
+                @click="emit('view', item)"
+              >
                 <template #actions>
                   <a-tooltip title="查看详情">
                     <eye-outlined @click.stop="emit('view', item)" />
                   </a-tooltip>
-                  <a-tooltip v-if="item.status === 'open'" title="编辑订单">
+                  <a-tooltip
+                    v-if="item.status === 'open'"
+                    title="编辑订单"
+                  >
                     <edit-outlined @click.stop="emit('edit', item)" />
                   </a-tooltip>
-                  <a-tooltip v-if="item.status === 'open'" title="取消订单">
+                  <a-tooltip
+                    v-if="item.status === 'open'"
+                    title="取消订单"
+                  >
                     <delete-outlined @click.stop="emit('cancel', item)" />
                   </a-tooltip>
                 </template>
@@ -71,7 +84,10 @@
 
           <template #empty>
             <a-empty description="还没有发布订单">
-              <a-button type="primary" @click="emit('create')">
+              <a-button
+                type="primary"
+                @click="emit('create')"
+              >
                 发布第一个订单
               </a-button>
             </a-empty>
@@ -80,7 +96,10 @@
       </a-tab-pane>
 
       <!-- 我购买的订单 -->
-      <a-tab-pane key="purchased" tab="我购买的">
+      <a-tab-pane
+        key="purchased"
+        tab="我购买的"
+      >
         <a-list
           :data-source="purchasedOrders"
           :grid="{
@@ -95,7 +114,10 @@
         >
           <template #renderItem="{ item }">
             <a-list-item>
-              <a-card hoverable class="transaction-card">
+              <a-card
+                hoverable
+                class="transaction-card"
+              >
                 <a-tag
                   :color="getTransactionStatusColor(item.status)"
                   style="position: absolute; top: 8px; right: 8px"
@@ -103,9 +125,15 @@
                   {{ getTransactionStatusName(item.status) }}
                 </a-tag>
 
-                <a-descriptions :column="1" size="small">
+                <a-descriptions
+                  :column="1"
+                  size="small"
+                >
                   <a-descriptions-item label="交易 ID">
-                    <a-typography-text copyable style="font-size: 12px">
+                    <a-typography-text
+                      copyable
+                      style="font-size: 12px"
+                    >
                       {{ shortenId(item.id) }}
                     </a-typography-text>
                   </a-descriptions-item>

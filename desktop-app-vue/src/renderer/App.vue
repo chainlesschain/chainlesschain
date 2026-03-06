@@ -1,8 +1,14 @@
 <template>
-  <a-config-provider :locale="currentAntdLocale" :theme="themeConfig">
+  <a-config-provider
+    :locale="currentAntdLocale"
+    :theme="themeConfig"
+  >
     <!-- 离线状态横幅 -->
     <transition name="slide-down">
-      <div v-if="!networkStore.isOnline" class="offline-banner">
+      <div
+        v-if="!networkStore.isOnline"
+        class="offline-banner"
+      >
         <a-alert
           type="warning"
           :message="$t('app.offlineMessage', '您当前处于离线状态')"

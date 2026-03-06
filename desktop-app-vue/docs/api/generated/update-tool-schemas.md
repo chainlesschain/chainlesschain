@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/update-tool-schemas.js`
 
-**Generated**: 2026-02-24T18:45:59.444Z
+**Generated**: 2026-02-24T23:28:10.576Z
 
 ---
 
@@ -12,7 +12,8 @@
 const
 ```
 
-- 更新工具的JSON Schema
-- 将详细的参数和返回值Schema更新到数据库
+* 更新工具的JSON Schema
+ * 将详细的参数和返回值Schema更新到数据库
 
 ---
+

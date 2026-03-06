@@ -14,23 +14,37 @@
         class="fingerprint-icon-wrapper"
         :class="{ scanning: loading, success: succeeded, failed: failedOnce }"
       >
-        <div class="fingerprint-icon">🖐</div>
-        <div v-if="loading" class="scan-ring" />
+        <div class="fingerprint-icon">
+          🖐
+        </div>
+        <div
+          v-if="loading"
+          class="scan-ring"
+        />
       </div>
 
       <!-- 状态提示 -->
       <div class="prompt-message">
-        <a-spin v-if="loading" :tip="statusMessage" />
+        <a-spin
+          v-if="loading"
+          :tip="statusMessage"
+        />
         <a-result
           v-else-if="succeeded"
           status="success"
           :title="$t('ukey.biometric.verifySuccess')"
         />
         <template v-else>
-          <p class="status-text" :class="{ 'text-error': failedOnce }">
+          <p
+            class="status-text"
+            :class="{ 'text-error': failedOnce }"
+          >
             {{ statusMessage }}
           </p>
-          <p v-if="remainingAttempts !== null" class="remaining">
+          <p
+            v-if="remainingAttempts !== null"
+            class="remaining"
+          >
             {{
               $t("ukey.biometric.remainingAttempts", {
                 count: remainingAttempts,
@@ -42,7 +56,10 @@
 
       <!-- PIN 备用方案 -->
       <a-divider v-if="showPinFallback" />
-      <div v-if="showPinFallback" class="pin-fallback">
+      <div
+        v-if="showPinFallback"
+        class="pin-fallback"
+      >
         <p class="fallback-hint">
           {{ $t("ukey.biometric.pinFallback") }}
         </p>
@@ -63,8 +80,14 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div v-if="!succeeded" class="prompt-actions">
-        <a-button v-if="!loading" @click="handleCancel">
+      <div
+        v-if="!succeeded"
+        class="prompt-actions"
+      >
+        <a-button
+          v-if="!loading"
+          @click="handleCancel"
+        >
           {{ $t("common.cancel") }}
         </a-button>
         <a-button

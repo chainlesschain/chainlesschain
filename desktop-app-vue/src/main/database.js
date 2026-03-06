@@ -1,18 +1,19 @@
+import { createRequire } from "module";
+import { logger } from "./utils/logger.js";
+import path from "path";
+import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
+import SqlSecurity from "./database/sql-security.js";
+
+const require = createRequire(import.meta.url);
+
 // sql.js is optional (may not be available in packaged builds)
 let initSqlJs = null;
 try {
-  const sqlJsModule = require("sql.js");
-  // sql.js exports a function as default export
-  initSqlJs = sqlJsModule.default || sqlJsModule;
-} catch (_err) {
-  logger.info("[Database] sql.js not available (will use better-sqlite3)");
+  initSqlJs = require("sql.js");
+} catch {
+  // sql.js not available, will use native adapter
 }
-
-const { logger } = require("./utils/logger.js");
-const path = require("path");
-const fs = require("fs");
-const { v4: uuidv4 } = require("uuid");
-const SqlSecurity = require("./database/sql-security.js");
 
 const disableNativeDb =
   process.env.CHAINLESSCHAIN_DISABLE_NATIVE_DB === "1" ||
@@ -24,8 +25,8 @@ let createBetterSQLiteAdapter;
 try {
   const dbModule = require("./database/index");
   createDatabaseAdapter = dbModule.createDatabaseAdapter;
-} catch (_e) {
-  logger.warn("[Database] 加密模块不可用，将使用sql.js:", _e.message);
+} catch (_dbErr) {
+  logger.warn("[Database] 加密模块不可用，将使用sql.js:", _dbErr.message);
   createDatabaseAdapter = null;
 }
 
@@ -34,8 +35,8 @@ if (!disableNativeDb) {
   try {
     const betterSqliteModule = require("./database/better-sqlite-adapter");
     createBetterSQLiteAdapter = betterSqliteModule.createBetterSQLiteAdapter;
-  } catch (_e) {
-    logger.warn("[Database] Better-SQLite3 适配器不可用:", _e.message);
+  } catch (_sqliteErr) {
+    logger.warn("[Database] Better-SQLite3 适配器不可用:", _sqliteErr.message);
     createBetterSQLiteAdapter = null;
   }
 } else {
@@ -49,7 +50,7 @@ if (!disableNativeDb) {
 let app;
 try {
   app = require("electron").app;
-} catch (_e) {
+} catch {
   // In test environment, use global.app if available
   app = global.app || {
     isPackaged: false,
@@ -60,7 +61,7 @@ try {
 let getAppConfig;
 try {
   getAppConfig = require("./config/database-config").getAppConfig;
-} catch (_e) {
+} catch {
   // Fallback for testing
   getAppConfig = () => ({ enableEncryption: false });
 }
@@ -274,7 +275,8 @@ class DatabaseManager {
    * 使用数据库适配器初始化（支持加密）
    */
   async initializeWithAdapter() {
-    const _appConfig = getAppConfig();
+    // Note: getAppConfig() called but result not currently used
+    getAppConfig();
 
     // 创建数据库适配器
     this.adapter = await createDatabaseAdapter({
@@ -322,7 +324,7 @@ class DatabaseManager {
             logger.info("Found sql.js WASM via require.resolve:", resolved);
             return resolved;
           }
-        } catch (_resolveError) {
+        } catch {
           // Continue to manual path probing
         }
 
@@ -431,8 +433,8 @@ class DatabaseManager {
     }
 
     // Wrap Database.run() method for compatibility
-    const _originalDbRun = this.db.run ? this.db.run.bind(this.db) : null;
     // Store reference to manager for use in nested function
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const manager = this;
     this.db.run = function (sql, params) {
       try {
@@ -4471,6 +4473,193 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_fed_task_requester ON federated_task_log(requester_did);
       CREATE INDEX IF NOT EXISTS idx_fed_task_executor ON federated_task_log(executor_did);
       CREATE INDEX IF NOT EXISTS idx_fed_task_status ON federated_task_log(status);
+
+      -- v1.1.0 Phase 42: Social AI
+      CREATE TABLE IF NOT EXISTS topic_analyses (
+        id TEXT PRIMARY KEY,
+        content_id TEXT,
+        content_type TEXT DEFAULT 'post',
+        topics TEXT DEFAULT '[]',
+        sentiment TEXT DEFAULT 'neutral',
+        sentiment_score REAL DEFAULT 0.0,
+        category TEXT DEFAULT 'general',
+        keywords TEXT DEFAULT '[]',
+        summary TEXT,
+        language TEXT DEFAULT 'en',
+        source TEXT DEFAULT 'template',
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS idx_topic_analyses_content ON topic_analyses(content_id);
+      CREATE INDEX IF NOT EXISTS idx_topic_analyses_category ON topic_analyses(category);
+      CREATE INDEX IF NOT EXISTS idx_topic_analyses_created ON topic_analyses(created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS social_graph_edges (
+        id TEXT PRIMARY KEY,
+        source_did TEXT NOT NULL,
+        target_did TEXT NOT NULL,
+        interaction_type TEXT NOT NULL,
+        weight REAL DEFAULT 1.0,
+        interaction_count INTEGER DEFAULT 1,
+        last_interaction_at INTEGER,
+        closeness_score REAL DEFAULT 0.0,
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+        updated_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+        UNIQUE(source_did, target_did, interaction_type)
+      );
+      CREATE INDEX IF NOT EXISTS idx_social_graph_source ON social_graph_edges(source_did);
+      CREATE INDEX IF NOT EXISTS idx_social_graph_target ON social_graph_edges(target_did);
+      CREATE INDEX IF NOT EXISTS idx_social_graph_closeness ON social_graph_edges(closeness_score DESC);
+
+      -- v1.1.0 Phase 42: ActivityPub
+      CREATE TABLE IF NOT EXISTS activitypub_actors (
+        id TEXT PRIMARY KEY,
+        did TEXT,
+        preferred_username TEXT NOT NULL,
+        display_name TEXT,
+        summary TEXT,
+        inbox_url TEXT NOT NULL,
+        outbox_url TEXT NOT NULL,
+        followers_url TEXT,
+        following_url TEXT,
+        public_key_pem TEXT,
+        private_key_pem TEXT,
+        icon_url TEXT,
+        domain TEXT NOT NULL,
+        is_local INTEGER DEFAULT 0,
+        follower_count INTEGER DEFAULT 0,
+        following_count INTEGER DEFAULT 0,
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+        updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS idx_ap_actors_did ON activitypub_actors(did);
+      CREATE INDEX IF NOT EXISTS idx_ap_actors_username ON activitypub_actors(preferred_username, domain);
+
+      CREATE TABLE IF NOT EXISTS activitypub_activities (
+        id TEXT PRIMARY KEY,
+        activity_type TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        object_type TEXT,
+        object_id TEXT,
+        object_content TEXT,
+        target_id TEXT,
+        raw_json TEXT,
+        is_local INTEGER DEFAULT 0,
+        processed INTEGER DEFAULT 0,
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS idx_ap_activities_actor ON activitypub_activities(actor_id);
+      CREATE INDEX IF NOT EXISTS idx_ap_activities_type ON activitypub_activities(activity_type);
+      CREATE INDEX IF NOT EXISTS idx_ap_activities_created ON activitypub_activities(created_at DESC);
+
+      -- v1.1.0 Phase 43: Compliance + Data Classification
+      CREATE TABLE IF NOT EXISTS soc2_evidence (
+        id TEXT PRIMARY KEY,
+        criteria TEXT NOT NULL,
+        evidence_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        data TEXT DEFAULT '{}',
+        status TEXT DEFAULT 'collected',
+        collector TEXT DEFAULT 'system',
+        period_start INTEGER,
+        period_end INTEGER,
+        verified_at INTEGER,
+        verified_by TEXT,
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS idx_soc2_evidence_criteria ON soc2_evidence(criteria);
+      CREATE INDEX IF NOT EXISTS idx_soc2_evidence_type ON soc2_evidence(evidence_type);
+      CREATE INDEX IF NOT EXISTS idx_soc2_evidence_status ON soc2_evidence(status);
+
+      CREATE TABLE IF NOT EXISTS data_classifications (
+        id TEXT PRIMARY KEY,
+        content_hash TEXT,
+        content_preview TEXT,
+        category TEXT NOT NULL,
+        detections TEXT DEFAULT '[]',
+        severity TEXT DEFAULT 'low',
+        confidence REAL DEFAULT 0.0,
+        source TEXT DEFAULT 'rule',
+        context TEXT,
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS idx_data_class_category ON data_classifications(category);
+      CREATE INDEX IF NOT EXISTS idx_data_class_severity ON data_classifications(severity);
+      CREATE INDEX IF NOT EXISTS idx_data_class_hash ON data_classifications(content_hash);
+
+      -- v1.1.0 Phase 44: SCIM 2.0
+      CREATE TABLE IF NOT EXISTS scim_resources (
+        id TEXT PRIMARY KEY,
+        resource_type TEXT NOT NULL,
+        external_id TEXT,
+        display_name TEXT,
+        user_name TEXT,
+        email TEXT,
+        active INTEGER DEFAULT 1,
+        attributes TEXT DEFAULT '{}',
+        members TEXT DEFAULT '[]',
+        source TEXT DEFAULT 'scim',
+        provider TEXT,
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+        updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS idx_scim_type ON scim_resources(resource_type);
+      CREATE INDEX IF NOT EXISTS idx_scim_username ON scim_resources(user_name);
+      CREATE INDEX IF NOT EXISTS idx_scim_external ON scim_resources(external_id);
+
+      CREATE TABLE IF NOT EXISTS scim_sync_log (
+        id TEXT PRIMARY KEY,
+        operation TEXT NOT NULL,
+        resource_type TEXT NOT NULL,
+        resource_id TEXT,
+        provider TEXT,
+        status TEXT DEFAULT 'success',
+        details TEXT,
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+      );
+      CREATE INDEX IF NOT EXISTS idx_scim_sync_provider ON scim_sync_log(provider);
+      CREATE INDEX IF NOT EXISTS idx_scim_sync_created ON scim_sync_log(created_at DESC);
+
+      -- v1.1.0 Phase 45: Unified Keys + FIDO2
+      CREATE TABLE IF NOT EXISTS unified_keys (
+        id TEXT PRIMARY KEY,
+        purpose TEXT NOT NULL,
+        source TEXT NOT NULL,
+        derivation_path TEXT,
+        public_key TEXT NOT NULL,
+        key_hash TEXT NOT NULL,
+        algorithm TEXT DEFAULT 'ed25519',
+        device_id TEXT,
+        is_primary INTEGER DEFAULT 0,
+        metadata TEXT DEFAULT '{}',
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+        updated_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+        expires_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_unified_keys_purpose ON unified_keys(purpose);
+      CREATE INDEX IF NOT EXISTS idx_unified_keys_source ON unified_keys(source);
+      CREATE INDEX IF NOT EXISTS idx_unified_keys_hash ON unified_keys(key_hash);
+
+      CREATE TABLE IF NOT EXISTS fido2_credentials (
+        id TEXT PRIMARY KEY,
+        credential_id TEXT NOT NULL UNIQUE,
+        rp_id TEXT NOT NULL,
+        rp_name TEXT,
+        user_id TEXT NOT NULL,
+        user_name TEXT,
+        user_display_name TEXT,
+        public_key TEXT NOT NULL,
+        private_key TEXT,
+        sign_count INTEGER DEFAULT 0,
+        attestation_type TEXT DEFAULT 'self',
+        transports TEXT DEFAULT '["internal"]',
+        is_discoverable INTEGER DEFAULT 1,
+        created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+        last_used_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_fido2_rp ON fido2_credentials(rp_id);
+      CREATE INDEX IF NOT EXISTS idx_fido2_user ON fido2_credentials(user_id);
+      CREATE INDEX IF NOT EXISTS idx_fido2_cred_id ON fido2_credentials(credential_id);
       `);
 
       // 重新启用外键约束
@@ -5884,7 +6073,7 @@ class DatabaseManager {
       const columns = stmt.all();
       stmt.free();
       return columns.some((col) => col.name === columnName);
-    } catch (_error) {
+    } catch {
       return false;
     }
   }
@@ -6314,7 +6503,7 @@ class DatabaseManager {
         sql: sql.substring(0, 100), // First 100 chars of SQL
         paramCount: Array.isArray(params) ? params.length : 0,
       });
-    } catch (_error) {
+    } catch {
       // Silently fail if performance monitoring is not available
       // Don't let performance tracking break the database operations
     }
@@ -9087,7 +9276,7 @@ class DatabaseManager {
       case "json":
         try {
           return JSON.parse(row.value);
-        } catch (_e) {
+        } catch {
           return null;
         }
       default:
@@ -9130,7 +9319,7 @@ class DatabaseManager {
         case "json":
           try {
             value = JSON.parse(value);
-          } catch (_e) {
+          } catch {
             value = null;
           }
           break;
@@ -9239,6 +9428,4 @@ function setDatabase(instance) {
   databaseInstance = instance;
 }
 
-module.exports = DatabaseManager;
-module.exports.getDatabase = getDatabase;
-module.exports.setDatabase = setDatabase;
+export { DatabaseManager, getDatabase, setDatabase };

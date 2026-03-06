@@ -58,7 +58,7 @@ class MCPDiscoveryManager extends EventEmitter {
    * Start health monitoring and config change listening
    */
   start() {
-    if (this._running) return;
+    if (this._running) {return;}
     this._running = true;
 
     // Listen for config changes → hot-apply
@@ -97,7 +97,7 @@ class MCPDiscoveryManager extends EventEmitter {
    * Stop all monitoring and watching
    */
   stop() {
-    if (!this._running) return;
+    if (!this._running) {return;}
     this._running = false;
 
     // Stop health checks
@@ -147,10 +147,10 @@ class MCPDiscoveryManager extends EventEmitter {
 
         const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
-          if (!entry.isDirectory()) continue;
+          if (!entry.isDirectory()) {continue;}
 
           const pkgPath = path.join(dir, entry.name, "package.json");
-          if (!fs.existsSync(pkgPath)) continue;
+          if (!fs.existsSync(pkgPath)) {continue;}
 
           try {
             const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
@@ -413,7 +413,7 @@ class MCPDiscoveryManager extends EventEmitter {
 
       try {
         const watcher = fs.watch(dir, { recursive: false }, (eventType, filename) => {
-          if (!filename) return;
+          if (!filename) {return;}
           // Debounce: re-scan after changes
           setTimeout(() => {
             logger.info(

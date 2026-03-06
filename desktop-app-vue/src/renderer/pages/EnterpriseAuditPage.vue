@@ -6,7 +6,11 @@
       @back="() => $router.back()"
     >
       <template #extra>
-        <a-button type="primary" :loading="exporting" @click="handleExport">
+        <a-button
+          type="primary"
+          :loading="exporting"
+          @click="handleExport"
+        >
           <template #icon>
             <ExportOutlined />
           </template>
@@ -17,8 +21,14 @@
 
     <div class="audit-content">
       <!-- Filter Bar -->
-      <a-card :bordered="false" class="filter-card">
-        <a-row :gutter="16" align="middle">
+      <a-card
+        :bordered="false"
+        class="filter-card"
+      >
+        <a-row
+          :gutter="16"
+          align="middle"
+        >
           <a-col :span="5">
             <a-select
               v-model:value="filters.eventType"
@@ -27,15 +37,33 @@
               allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value="">全部</a-select-option>
-              <a-select-option value="login">登录</a-select-option>
-              <a-select-option value="permission_change">权限变更</a-select-option>
-              <a-select-option value="data_access">数据访问</a-select-option>
-              <a-select-option value="data_modify">数据修改</a-select-option>
-              <a-select-option value="data_delete">数据删除</a-select-option>
-              <a-select-option value="config_change">配置变更</a-select-option>
-              <a-select-option value="export">数据导出</a-select-option>
-              <a-select-option value="system">系统事件</a-select-option>
+              <a-select-option value="">
+                全部
+              </a-select-option>
+              <a-select-option value="login">
+                登录
+              </a-select-option>
+              <a-select-option value="permission_change">
+                权限变更
+              </a-select-option>
+              <a-select-option value="data_access">
+                数据访问
+              </a-select-option>
+              <a-select-option value="data_modify">
+                数据修改
+              </a-select-option>
+              <a-select-option value="data_delete">
+                数据删除
+              </a-select-option>
+              <a-select-option value="config_change">
+                配置变更
+              </a-select-option>
+              <a-select-option value="export">
+                数据导出
+              </a-select-option>
+              <a-select-option value="system">
+                系统事件
+              </a-select-option>
             </a-select>
           </a-col>
           <a-col :span="4">
@@ -46,11 +74,21 @@
               allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value="">全部</a-select-option>
-              <a-select-option value="low">低风险</a-select-option>
-              <a-select-option value="medium">中风险</a-select-option>
-              <a-select-option value="high">高风险</a-select-option>
-              <a-select-option value="critical">严重</a-select-option>
+              <a-select-option value="">
+                全部
+              </a-select-option>
+              <a-select-option value="low">
+                低风险
+              </a-select-option>
+              <a-select-option value="medium">
+                中风险
+              </a-select-option>
+              <a-select-option value="high">
+                高风险
+              </a-select-option>
+              <a-select-option value="critical">
+                严重
+              </a-select-option>
             </a-select>
           </a-col>
           <a-col :span="6">
@@ -69,7 +107,10 @@
             />
           </a-col>
           <a-col :span="4">
-            <a-button type="primary" @click="handleSearch">
+            <a-button
+              type="primary"
+              @click="handleSearch"
+            >
               <template #icon>
                 <SearchOutlined />
               </template>
@@ -80,7 +121,10 @@
       </a-card>
 
       <!-- Statistics Cards -->
-      <a-row :gutter="16" class="stats-row">
+      <a-row
+        :gutter="16"
+        class="stats-row"
+      >
         <a-col :span="6">
           <a-card :loading="statsLoading">
             <a-statistic
@@ -136,7 +180,10 @@
       </a-row>
 
       <!-- Audit Log Table -->
-      <a-card :bordered="false" class="table-card">
+      <a-card
+        :bordered="false"
+        class="table-card"
+      >
         <a-table
           :columns="columns"
           :data-source="auditStore.logs"
@@ -175,7 +222,11 @@
             </template>
 
             <template v-else-if="column.key === 'actions'">
-              <a-button type="link" size="small" @click="showDetail(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="showDetail(record)"
+              >
                 详情
               </a-button>
             </template>
@@ -185,13 +236,13 @@
         <div class="pagination-wrapper">
           <a-pagination
             v-model:current="currentPage"
-            v-model:pageSize="pageSize"
+            v-model:page-size="pageSize"
             :total="auditStore.totalLogs"
             show-size-changer
             show-quick-jumper
             :show-total="(total: number) => `共 ${total} 条`"
             @change="handlePageChange"
-            @showSizeChange="handlePageSizeChange"
+            @show-size-change="handlePageSizeChange"
           />
         </div>
       </a-card>
@@ -204,11 +255,22 @@
       width="700px"
       :footer="null"
     >
-      <a-descriptions v-if="selectedLog" :column="2" bordered size="small">
-        <a-descriptions-item label="日志ID" :span="2">
+      <a-descriptions
+        v-if="selectedLog"
+        :column="2"
+        bordered
+        size="small"
+      >
+        <a-descriptions-item
+          label="日志ID"
+          :span="2"
+        >
           {{ selectedLog.id }}
         </a-descriptions-item>
-        <a-descriptions-item label="时间戳" :span="2">
+        <a-descriptions-item
+          label="时间戳"
+          :span="2"
+        >
           {{ formatTime(selectedLog.timestamp) }}
         </a-descriptions-item>
         <a-descriptions-item label="事件类型">
@@ -221,10 +283,16 @@
             {{ getRiskLevelLabel(selectedLog.risk_level) }}
           </a-tag>
         </a-descriptions-item>
-        <a-descriptions-item label="操作者 DID" :span="2">
+        <a-descriptions-item
+          label="操作者 DID"
+          :span="2"
+        >
           {{ selectedLog.actor_did }}
         </a-descriptions-item>
-        <a-descriptions-item label="操作" :span="2">
+        <a-descriptions-item
+          label="操作"
+          :span="2"
+        >
           {{ selectedLog.operation }}
         </a-descriptions-item>
         <a-descriptions-item label="结果">
@@ -235,7 +303,10 @@
         <a-descriptions-item label="IP 地址">
           {{ selectedLog.ip_address || '-' }}
         </a-descriptions-item>
-        <a-descriptions-item label="详细信息" :span="2">
+        <a-descriptions-item
+          label="详细信息"
+          :span="2"
+        >
           <pre class="detail-json">{{ formatDetails(selectedLog.details) }}</pre>
         </a-descriptions-item>
       </a-descriptions>
@@ -430,13 +501,13 @@ function formatTime(timestamp: string | number) {
 }
 
 function truncateDid(did: string) {
-  if (!did) return '-'
-  if (did.length <= 20) return did
+  if (!did) {return '-'}
+  if (did.length <= 20) {return did}
   return did.substring(0, 10) + '...' + did.substring(did.length - 8)
 }
 
 function formatDetails(details: any) {
-  if (!details) return '-'
+  if (!details) {return '-'}
   if (typeof details === 'string') {
     try {
       return JSON.stringify(JSON.parse(details), null, 2)

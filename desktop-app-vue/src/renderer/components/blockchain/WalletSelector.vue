@@ -33,11 +33,18 @@
             <div class="wallet-info">
               <div class="wallet-name">
                 {{ formatAddress(wallet.address) }}
-                <a-tag v-if="wallet.is_default" color="blue" size="small">
+                <a-tag
+                  v-if="wallet.is_default"
+                  color="blue"
+                  size="small"
+                >
                   默认
                 </a-tag>
               </div>
-              <div v-if="showBalance" class="wallet-balance">
+              <div
+                v-if="showBalance"
+                class="wallet-balance"
+              >
                 <span class="balance-label">余额:</span>
                 <span class="balance-value">{{
                   getWalletBalance(wallet)
@@ -49,16 +56,27 @@
       </a-select-opt-group>
 
       <!-- 外部钱包选项 -->
-      <a-select-opt-group v-if="showExternalOptions" label="外部钱包">
-        <a-select-option v-if="!externalWalletConnected" value="__metamask__">
+      <a-select-opt-group
+        v-if="showExternalOptions"
+        label="外部钱包"
+      >
+        <a-select-option
+          v-if="!externalWalletConnected"
+          value="__metamask__"
+        >
           <div class="wallet-option">
             <div class="wallet-avatar">
-              <a-avatar :size="avatarSize" style="background-color: #f6851b">
+              <a-avatar
+                :size="avatarSize"
+                style="background-color: #f6851b"
+              >
                 🦊
               </a-avatar>
             </div>
             <div class="wallet-info">
-              <div class="wallet-name">连接 MetaMask</div>
+              <div class="wallet-name">
+                连接 MetaMask
+              </div>
             </div>
           </div>
         </a-select-option>
@@ -69,12 +87,17 @@
         >
           <div class="wallet-option">
             <div class="wallet-avatar">
-              <a-avatar :size="avatarSize" style="background-color: #3b99fc">
+              <a-avatar
+                :size="avatarSize"
+                style="background-color: #3b99fc"
+              >
                 🔗
               </a-avatar>
             </div>
             <div class="wallet-info">
-              <div class="wallet-name">连接 WalletConnect</div>
+              <div class="wallet-name">
+                连接 WalletConnect
+              </div>
             </div>
           </div>
         </a-select-option>
@@ -86,7 +109,10 @@
         >
           <div class="wallet-option">
             <div class="wallet-avatar">
-              <a-avatar :size="avatarSize" style="background-color: #52c41a">
+              <a-avatar
+                :size="avatarSize"
+                style="background-color: #52c41a"
+              >
                 ✓
               </a-avatar>
             </div>
@@ -97,7 +123,12 @@
                     ? "MetaMask"
                     : "WalletConnect"
                 }}
-                <a-tag color="green" size="small"> 已连接 </a-tag>
+                <a-tag
+                  color="green"
+                  size="small"
+                >
+                  已连接
+                </a-tag>
               </div>
               <div class="wallet-balance">
                 {{ formatAddress(externalWalletAddress) }}
@@ -109,8 +140,15 @@
 
       <!-- 空状态 -->
       <template #notFoundContent>
-        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无钱包">
-          <a-button type="link" size="small" @click="handleCreateWallet">
+        <a-empty
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+          description="暂无钱包"
+        >
+          <a-button
+            type="link"
+            size="small"
+            @click="handleCreateWallet"
+          >
             <plus-outlined /> 创建钱包
           </a-button>
         </a-empty>
@@ -118,11 +156,22 @@
     </a-select>
 
     <!-- 快捷操作 -->
-    <div v-if="showQuickActions" class="quick-actions">
-      <a-button type="link" size="small" @click="handleCreateWallet">
+    <div
+      v-if="showQuickActions"
+      class="quick-actions"
+    >
+      <a-button
+        type="link"
+        size="small"
+        @click="handleCreateWallet"
+      >
         <plus-outlined /> 新建
       </a-button>
-      <a-button type="link" size="small" @click="handleManageWallets">
+      <a-button
+        type="link"
+        size="small"
+        @click="handleManageWallets"
+      >
         <setting-outlined /> 管理
       </a-button>
       <a-button

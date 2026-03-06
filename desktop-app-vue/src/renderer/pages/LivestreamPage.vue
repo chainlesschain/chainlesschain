@@ -11,7 +11,10 @@
             :status="livestreamStore.isStreaming ? 'processing' : 'default'"
             :text="livestreamStore.isStreaming ? 'Streaming' : 'Offline'"
           />
-          <a-button type="primary" @click="showCreateModal = true">
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
             <template #icon>
               <VideoCameraAddOutlined />
             </template>
@@ -31,7 +34,10 @@
       <!-- Main content area -->
       <a-layout-content class="livestream-main">
         <!-- Current stream view -->
-        <div v-if="livestreamStore.currentStream" class="stream-view">
+        <div
+          v-if="livestreamStore.currentStream"
+          class="stream-view"
+        >
           <!-- Stream header -->
           <div class="stream-header">
             <div class="stream-title-row">
@@ -61,11 +67,17 @@
           <!-- Video area with danmaku overlay -->
           <div class="video-container">
             <div class="video-placeholder">
-              <div v-if="!livestreamStore.isCurrentStreamLive" class="video-offline">
+              <div
+                v-if="!livestreamStore.isCurrentStreamLive"
+                class="video-offline"
+              >
                 <VideoCameraOutlined style="font-size: 64px; color: #8c8c8c" />
                 <p>Stream is {{ livestreamStore.currentStream.status }}</p>
               </div>
-              <div v-else class="video-live-indicator">
+              <div
+                v-else
+                class="video-live-indicator"
+              >
                 <div class="live-pulse" />
                 <span>Live Stream Active</span>
               </div>
@@ -126,7 +138,10 @@
 
               <!-- Viewer controls -->
               <template v-else>
-                <a-button danger @click="handleLeaveStream">
+                <a-button
+                  danger
+                  @click="handleLeaveStream"
+                >
                   <template #icon>
                     <LogoutOutlined />
                   </template>
@@ -140,7 +155,10 @@
                 checked-children="Danmaku ON"
                 un-checked-children="Danmaku OFF"
               />
-              <a-button type="text" @click="showSettings = true">
+              <a-button
+                type="text"
+                @click="showSettings = true"
+              >
                 <template #icon>
                   <SettingOutlined />
                 </template>
@@ -165,16 +183,25 @@
             <a-descriptions-item label="Access">
               <a-tag>{{ livestreamStore.currentStream.access_type }}</a-tag>
             </a-descriptions-item>
-            <a-descriptions-item v-if="livestreamStore.currentStream.started_at" label="Started">
+            <a-descriptions-item
+              v-if="livestreamStore.currentStream.started_at"
+              label="Started"
+            >
               {{ formatTime(livestreamStore.currentStream.started_at) }}
             </a-descriptions-item>
           </a-descriptions>
         </div>
 
         <!-- No stream selected - show discovery -->
-        <div v-else class="stream-discovery">
-          <a-tabs v-model:activeKey="activeTab">
-            <a-tab-pane key="active" tab="Live Now">
+        <div
+          v-else
+          class="stream-discovery"
+        >
+          <a-tabs v-model:active-key="activeTab">
+            <a-tab-pane
+              key="active"
+              tab="Live Now"
+            >
               <a-spin :spinning="livestreamStore.loading">
                 <a-list
                   :data-source="livestreamStore.activeStreams"
@@ -191,7 +218,12 @@
                         <template #cover>
                           <div class="stream-card-cover">
                             <VideoCameraOutlined style="font-size: 48px; color: #8c8c8c" />
-                            <a-tag color="red" class="live-tag">LIVE</a-tag>
+                            <a-tag
+                              color="red"
+                              class="live-tag"
+                            >
+                              LIVE
+                            </a-tag>
                           </div>
                         </template>
                         <a-card-meta :title="item.title">
@@ -201,7 +233,9 @@
                                 <EyeOutlined />
                                 {{ item.viewer_count }} viewers
                               </span>
-                              <a-tag size="small">{{ item.access_type }}</a-tag>
+                              <a-tag size="small">
+                                {{ item.access_type }}
+                              </a-tag>
                             </div>
                           </template>
                         </a-card-meta>
@@ -212,7 +246,10 @@
               </a-spin>
             </a-tab-pane>
 
-            <a-tab-pane key="my" tab="My Streams">
+            <a-tab-pane
+              key="my"
+              tab="My Streams"
+            >
               <a-spin :spinning="livestreamStore.loading">
                 <a-list
                   :data-source="livestreamStore.myStreams"
@@ -220,7 +257,10 @@
                 >
                   <template #renderItem="{ item }">
                     <a-list-item>
-                      <a-list-item-meta :title="item.title" :description="item.description">
+                      <a-list-item-meta
+                        :title="item.title"
+                        :description="item.description"
+                      >
                         <template #avatar>
                           <a-avatar :style="{ backgroundColor: getStatusColor(item.status) }">
                             <template #icon>
@@ -273,23 +313,38 @@
         <div class="chat-panel">
           <div class="chat-panel-header">
             <h3>Live Chat</h3>
-            <a-badge :count="livestreamStore.danmakuCount" :overflow-count="99" />
+            <a-badge
+              :count="livestreamStore.danmakuCount"
+              :overflow-count="99"
+            />
           </div>
 
           <!-- Danmaku message list -->
-          <div ref="chatListRef" class="chat-message-list">
+          <div
+            ref="chatListRef"
+            class="chat-message-list"
+          >
             <div
               v-for="msg in livestreamStore.danmakuQueue"
               :key="msg.id"
               class="chat-message-item"
             >
-              <span class="chat-sender" :style="{ color: msg.color || '#1890ff' }">
+              <span
+                class="chat-sender"
+                :style="{ color: msg.color || '#1890ff' }"
+              >
                 {{ shortenDid(msg.sender_did) }}:
               </span>
               <span class="chat-content">{{ msg.content }}</span>
             </div>
-            <div v-if="livestreamStore.danmakuQueue.length === 0" class="chat-empty">
-              <a-empty description="No messages yet" :image-style="{ height: '40px' }" />
+            <div
+              v-if="livestreamStore.danmakuQueue.length === 0"
+              class="chat-empty"
+            >
+              <a-empty
+                description="No messages yet"
+                :image-style="{ height: '40px' }"
+              />
             </div>
           </div>
 
@@ -313,7 +368,10 @@
               </template>
             </a-input>
             <div class="danmaku-options">
-              <a-popover trigger="click" placement="topLeft">
+              <a-popover
+                trigger="click"
+                placement="topLeft"
+              >
                 <template #content>
                   <div class="color-picker">
                     <div
@@ -326,7 +384,10 @@
                     />
                   </div>
                 </template>
-                <a-button type="text" size="small">
+                <a-button
+                  type="text"
+                  size="small"
+                >
                   <BgColorsOutlined />
                 </a-button>
               </a-popover>
@@ -344,7 +405,10 @@
       @cancel="resetCreateForm"
     >
       <a-form layout="vertical">
-        <a-form-item label="Title" required>
+        <a-form-item
+          label="Title"
+          required
+        >
           <a-input
             v-model:value="createForm.title"
             placeholder="Enter stream title"
@@ -360,13 +424,24 @@
         </a-form-item>
         <a-form-item label="Access Type">
           <a-select v-model:value="createForm.accessType">
-            <a-select-option value="public">Public</a-select-option>
-            <a-select-option value="friends">Friends Only</a-select-option>
-            <a-select-option value="password">Password Protected</a-select-option>
-            <a-select-option value="invite">Invite Only</a-select-option>
+            <a-select-option value="public">
+              Public
+            </a-select-option>
+            <a-select-option value="friends">
+              Friends Only
+            </a-select-option>
+            <a-select-option value="password">
+              Password Protected
+            </a-select-option>
+            <a-select-option value="invite">
+              Invite Only
+            </a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item v-if="createForm.accessType === 'password'" label="Access Code">
+        <a-form-item
+          v-if="createForm.accessType === 'password'"
+          label="Access Code"
+        >
           <a-input-password
             v-model:value="createForm.accessCode"
             placeholder="Set access code"
@@ -408,10 +483,18 @@
           <a-switch v-model:checked="danmakuEnabled" />
         </a-form-item>
         <a-form-item label="Danmaku Font Size">
-          <a-slider v-model:value="danmakuFontSize" :min="12" :max="48" />
+          <a-slider
+            v-model:value="danmakuFontSize"
+            :min="12"
+            :max="48"
+          />
         </a-form-item>
         <a-form-item label="Danmaku Opacity">
-          <a-slider v-model:value="danmakuOpacity" :min="0" :max="100" />
+          <a-slider
+            v-model:value="danmakuOpacity"
+            :min="0"
+            :max="100"
+          />
         </a-form-item>
       </a-form>
     </a-drawer>
@@ -483,7 +566,7 @@ const danmakuColors = [
 // ==================== Computed ====================
 
 const isStreamer = computed(() => {
-  if (!livestreamStore.currentStream) return false;
+  if (!livestreamStore.currentStream) {return false;}
   // This would normally compare against the current user's DID
   // For now we check if we're in streaming mode
   return livestreamStore.isStreaming;
@@ -518,13 +601,13 @@ watch(
 // ==================== Methods ====================
 
 function shortenDid(did) {
-  if (!did) return 'Unknown';
-  if (did.length <= 20) return did;
+  if (!did) {return 'Unknown';}
+  if (did.length <= 20) {return did;}
   return `${did.substring(0, 10)}...${did.substring(did.length - 6)}`;
 }
 
 function formatTime(timestamp) {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   return new Date(timestamp).toLocaleString();
 }
 
@@ -653,7 +736,7 @@ function handleSelectMyStream(stream) {
 
 async function handleSendDanmaku() {
   const content = danmakuInput.value.trim();
-  if (!content) return;
+  if (!content) {return;}
 
   try {
     await livestreamStore.sendDanmaku({

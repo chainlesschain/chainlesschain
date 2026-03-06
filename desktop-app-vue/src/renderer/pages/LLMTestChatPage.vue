@@ -1,6 +1,9 @@
 <template>
   <div class="llm-test-chat-page">
-    <a-page-header title="LLM 测试聊天" @back="handleBack">
+    <a-page-header
+      title="LLM 测试聊天"
+      @back="handleBack"
+    >
       <template #extra>
         <a-select
           v-model:value="selectedProvider"
@@ -15,7 +18,10 @@
             {{ provider.label }}
           </a-select-option>
         </a-select>
-        <a-button type="default" @click="clearChat">
+        <a-button
+          type="default"
+          @click="clearChat"
+        >
           <DeleteOutlined />
           清空对话
         </a-button>
@@ -24,7 +30,10 @@
 
     <div class="chat-container">
       <div class="messages-container">
-        <div v-if="messages.length === 0" class="empty-state">
+        <div
+          v-if="messages.length === 0"
+          class="empty-state"
+        >
           <CommentOutlined
             style="font-size: 48px; color: #d9d9d9; margin-bottom: 16px"
           />
@@ -47,7 +56,10 @@
                 <UserOutlined />
               </template>
             </a-avatar>
-            <a-avatar v-else style="background-color: #52c41a">
+            <a-avatar
+              v-else
+              style="background-color: #52c41a"
+            >
               <template #icon>
                 <RobotOutlined />
               </template>
@@ -55,16 +67,28 @@
           </div>
           <div class="message-content">
             <div class="message-bubble">
-              <div v-if="message.content" class="message-text">
+              <div
+                v-if="message.content"
+                class="message-text"
+              >
                 {{ message.content }}
               </div>
-              <a-spin v-if="message.loading" size="small" />
+              <a-spin
+                v-if="message.loading"
+                size="small"
+              />
             </div>
-            <div v-if="message.timestamp" class="message-meta">
+            <div
+              v-if="message.timestamp"
+              class="message-meta"
+            >
               <span class="message-time">{{
                 formatTime(message.timestamp)
               }}</span>
-              <span v-if="message.tokens" class="message-tokens">
+              <span
+                v-if="message.tokens"
+                class="message-tokens"
+              >
                 Tokens: {{ message.tokens }}
               </span>
             </div>
@@ -80,7 +104,11 @@
           :disabled="sending"
           @press-enter="handleSend"
         />
-        <a-button type="primary" :loading="sending" @click="handleSend">
+        <a-button
+          type="primary"
+          :loading="sending"
+          @click="handleSend"
+        >
           <SendOutlined />
           发送
         </a-button>

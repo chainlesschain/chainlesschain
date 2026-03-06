@@ -1,5 +1,9 @@
 <template>
-  <a-card class="quality-gate-card" :class="cardClass" size="small">
+  <a-card
+    class="quality-gate-card"
+    :class="cardClass"
+    size="small"
+  >
     <template #title>
       <div class="gate-title">
         <span class="gate-icon">{{ gateIcon }}</span>
@@ -8,7 +12,10 @@
     </template>
 
     <template #extra>
-      <a-tag :color="statusColor" size="small">
+      <a-tag
+        :color="statusColor"
+        size="small"
+      >
         {{ statusText }}
       </a-tag>
     </template>
@@ -16,7 +23,11 @@
     <div class="gate-content">
       <!-- 检查项列表 -->
       <div class="checks-list">
-        <div v-for="check in displayChecks" :key="check" class="check-item">
+        <div
+          v-for="check in displayChecks"
+          :key="check"
+          class="check-item"
+        >
           <span class="check-status">
             {{ getCheckStatusIcon(check) }}
           </span>
@@ -38,15 +49,16 @@
         </a-progress>
         <div class="threshold-info">
           <span class="threshold-label">阈值</span>
-          <span class="threshold-value"
-            >{{ (gate.threshold || 0.8) * 100 }}%</span
-          >
+          <span class="threshold-value">{{ (gate.threshold || 0.8) * 100 }}%</span>
         </div>
       </div>
     </div>
 
     <!-- 操作按钮 -->
-    <div v-if="showOverride" class="gate-actions">
+    <div
+      v-if="showOverride"
+      class="gate-actions"
+    >
       <a-popconfirm
         title="确定要跳过此门禁吗？"
         description="跳过门禁可能影响最终输出质量"
@@ -54,7 +66,13 @@
         cancel-text="取消"
         @confirm="handleOverride"
       >
-        <a-button size="small" type="text" danger> 跳过门禁 </a-button>
+        <a-button
+          size="small"
+          type="text"
+          danger
+        >
+          跳过门禁
+        </a-button>
       </a-popconfirm>
     </div>
   </a-card>

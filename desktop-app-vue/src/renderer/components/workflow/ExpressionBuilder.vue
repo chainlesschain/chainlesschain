@@ -2,21 +2,36 @@
   <div class="expression-builder">
     <div class="builder-header">
       <span class="builder-title">条件构建器</span>
-      <a-button size="small" type="link" @click="addRule">
+      <a-button
+        size="small"
+        type="link"
+        @click="addRule"
+      >
         + 添加规则
       </a-button>
     </div>
 
-    <div v-for="(group, gi) in groups" :key="gi" class="rule-group">
-      <div v-if="gi > 0" class="group-connector">
+    <div
+      v-for="(group, gi) in groups"
+      :key="gi"
+      class="rule-group"
+    >
+      <div
+        v-if="gi > 0"
+        class="group-connector"
+      >
         <a-select
           :value="group.connector"
           size="small"
           style="width: 80px"
           @change="(val) => updateGroupConnector(gi, val)"
         >
-          <a-select-option value="AND">AND</a-select-option>
-          <a-select-option value="OR">OR</a-select-option>
+          <a-select-option value="AND">
+            AND
+          </a-select-option>
+          <a-select-option value="OR">
+            OR
+          </a-select-option>
         </a-select>
       </div>
 
@@ -39,7 +54,11 @@
           style="width: 100px"
           @change="(val) => updateRule(gi, ri, 'operator', val)"
         >
-          <a-select-option v-for="op in operators" :key="op.value" :value="op.value">
+          <a-select-option
+            v-for="op in operators"
+            :key="op.value"
+            :value="op.value"
+          >
             {{ op.label }}
           </a-select-option>
         </a-select>

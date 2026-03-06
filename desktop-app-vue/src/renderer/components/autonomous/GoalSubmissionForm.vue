@@ -23,30 +23,62 @@
 
       <a-row :gutter="16">
         <!-- Priority -->
-        <a-col :xs="24" :sm="8">
-          <a-form-item label="Priority" name="priority">
+        <a-col
+          :xs="24"
+          :sm="8"
+        >
+          <a-form-item
+            label="Priority"
+            name="priority"
+          >
             <a-select
               v-model:value="formState.priority"
               placeholder="Select priority"
               :disabled="loading"
             >
-              <a-select-option :value="1">1 - Critical</a-select-option>
-              <a-select-option :value="2">2 - Very High</a-select-option>
-              <a-select-option :value="3">3 - High</a-select-option>
-              <a-select-option :value="4">4 - Above Normal</a-select-option>
-              <a-select-option :value="5">5 - Normal</a-select-option>
-              <a-select-option :value="6">6 - Below Normal</a-select-option>
-              <a-select-option :value="7">7 - Low</a-select-option>
-              <a-select-option :value="8">8 - Very Low</a-select-option>
-              <a-select-option :value="9">9 - Minimal</a-select-option>
-              <a-select-option :value="10">10 - Background</a-select-option>
+              <a-select-option :value="1">
+                1 - Critical
+              </a-select-option>
+              <a-select-option :value="2">
+                2 - Very High
+              </a-select-option>
+              <a-select-option :value="3">
+                3 - High
+              </a-select-option>
+              <a-select-option :value="4">
+                4 - Above Normal
+              </a-select-option>
+              <a-select-option :value="5">
+                5 - Normal
+              </a-select-option>
+              <a-select-option :value="6">
+                6 - Below Normal
+              </a-select-option>
+              <a-select-option :value="7">
+                7 - Low
+              </a-select-option>
+              <a-select-option :value="8">
+                8 - Very Low
+              </a-select-option>
+              <a-select-option :value="9">
+                9 - Minimal
+              </a-select-option>
+              <a-select-option :value="10">
+                10 - Background
+              </a-select-option>
             </a-select>
           </a-form-item>
         </a-col>
 
         <!-- Tool Permissions -->
-        <a-col :xs="24" :sm="16">
-          <a-form-item label="Tool Permissions" name="toolPermissions">
+        <a-col
+          :xs="24"
+          :sm="16"
+        >
+          <a-form-item
+            label="Tool Permissions"
+            name="toolPermissions"
+          >
             <a-checkbox-group
               v-model:value="formState.toolPermissions"
               :options="permissionOptions"
@@ -57,7 +89,10 @@
       </a-row>
 
       <!-- Context -->
-      <a-form-item label="Additional Context (optional)" name="context">
+      <a-form-item
+        label="Additional Context (optional)"
+        name="context"
+      >
         <a-textarea
           v-model:value="formState.context"
           placeholder="Provide any additional context, constraints, or preferences for the agent..."
@@ -80,7 +115,10 @@
             <RocketOutlined />
             Submit Goal
           </a-button>
-          <a-button @click="handleReset" :disabled="loading">
+          <a-button
+            :disabled="loading"
+            @click="handleReset"
+          >
             Reset
           </a-button>
         </a-space>

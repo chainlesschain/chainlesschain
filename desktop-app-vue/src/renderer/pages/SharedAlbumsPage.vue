@@ -10,7 +10,10 @@
           style="width: 240px"
           allow-clear
         />
-        <a-button type="primary" @click="showCreateModal">
+        <a-button
+          type="primary"
+          @click="showCreateModal"
+        >
           <PlusOutlined /> Create Album
         </a-button>
       </a-space>
@@ -18,10 +21,19 @@
 
     <!-- Filter tabs -->
     <div class="filter-tabs">
-      <a-radio-group v-model:value="activeFilter" button-style="solid">
-        <a-radio-button value="all">All</a-radio-button>
-        <a-radio-button value="my">My Albums</a-radio-button>
-        <a-radio-button value="shared">Shared With Me</a-radio-button>
+      <a-radio-group
+        v-model:value="activeFilter"
+        button-style="solid"
+      >
+        <a-radio-button value="all">
+          All
+        </a-radio-button>
+        <a-radio-button value="my">
+          My Albums
+        </a-radio-button>
+        <a-radio-button value="shared">
+          Shared With Me
+        </a-radio-button>
       </a-radio-group>
     </div>
 
@@ -34,12 +46,18 @@
         <template #image>
           <PictureOutlined style="font-size: 64px; color: #d9d9d9" />
         </template>
-        <a-button type="primary" @click="showCreateModal">
+        <a-button
+          type="primary"
+          @click="showCreateModal"
+        >
           Create Your First Album
         </a-button>
       </a-empty>
 
-      <a-row :gutter="[16, 16]" v-if="filteredAlbums.length > 0">
+      <a-row
+        v-if="filteredAlbums.length > 0"
+        :gutter="[16, 16]"
+      >
         <a-col
           v-for="album in filteredAlbums"
           :key="album.id"
@@ -59,8 +77,11 @@
                   v-if="album.cover_url"
                   :src="album.cover_url"
                   :alt="album.name"
-                />
-                <div v-else class="album-cover-placeholder">
+                >
+                <div
+                  v-else
+                  class="album-cover-placeholder"
+                >
                   <PictureOutlined />
                 </div>
                 <div class="album-visibility-badge">
@@ -87,7 +108,10 @@
                     <UserOutlined /> {{ album.member_count || 0 }} members
                   </span>
                 </div>
-                <div class="album-description" v-if="album.description">
+                <div
+                  v-if="album.description"
+                  class="album-description"
+                >
                   {{ truncateText(album.description, 60) }}
                 </div>
                 <div class="album-time">
@@ -113,9 +137,9 @@
                       <EditOutlined /> Edit
                     </a-menu-item>
                     <a-menu-item
+                      v-if="album.member_role === 'owner'"
                       danger
                       @click="handleDeleteAlbum(album)"
-                      v-if="album.member_role === 'owner'"
                     >
                       <DeleteOutlined /> Delete
                     </a-menu-item>
@@ -136,8 +160,14 @@
       @ok="handleCreateOrUpdate"
       @cancel="resetCreateForm"
     >
-      <a-form :model="createForm" layout="vertical">
-        <a-form-item label="Album Name" required>
+      <a-form
+        :model="createForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="Album Name"
+          required
+        >
           <a-input
             v-model:value="createForm.name"
             placeholder="Enter album name"
@@ -157,7 +187,10 @@
         </a-form-item>
 
         <a-form-item label="Visibility">
-          <a-select v-model:value="createForm.visibility" style="width: 100%">
+          <a-select
+            v-model:value="createForm.visibility"
+            style="width: 100%"
+          >
             <a-select-option value="private">
               <LockOutlined /> Private - Only members
             </a-select-option>
@@ -187,18 +220,31 @@
             enter-button="Invite"
             @search="handleInviteMember"
           />
-          <div class="invite-role" style="margin-top: 8px">
+          <div
+            class="invite-role"
+            style="margin-top: 8px"
+          >
             <span>Role: </span>
-            <a-radio-group v-model:value="inviteRole" size="small">
-              <a-radio-button value="viewer">Viewer</a-radio-button>
-              <a-radio-button value="editor">Editor</a-radio-button>
+            <a-radio-group
+              v-model:value="inviteRole"
+              size="small"
+            >
+              <a-radio-button value="viewer">
+                Viewer
+              </a-radio-button>
+              <a-radio-button value="editor">
+                Editor
+              </a-radio-button>
             </a-radio-group>
           </div>
         </div>
 
         <a-divider />
 
-        <a-list :data-source="albumsStore.members" item-layout="horizontal">
+        <a-list
+          :data-source="albumsStore.members"
+          item-layout="horizontal"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
@@ -251,13 +297,16 @@
       <template #extra>
         <a-space>
           <a-upload
+            v-if="albumsStore.canEditCurrentAlbum"
             :before-upload="handleBeforeUpload"
             :show-upload-list="false"
             accept="image/*"
             :multiple="true"
-            v-if="albumsStore.canEditCurrentAlbum"
           >
-            <a-button type="primary" size="small">
+            <a-button
+              type="primary"
+              size="small"
+            >
               <UploadOutlined /> Upload Photos
             </a-button>
           </a-upload>
@@ -278,16 +327,21 @@
         description="No photos yet"
       >
         <a-upload
+          v-if="albumsStore.canEditCurrentAlbum"
           :before-upload="handleBeforeUpload"
           :show-upload-list="false"
           accept="image/*"
-          v-if="albumsStore.canEditCurrentAlbum"
         >
-          <a-button type="primary">Upload First Photo</a-button>
+          <a-button type="primary">
+            Upload First Photo
+          </a-button>
         </a-upload>
       </a-empty>
 
-      <div class="photo-grid" v-if="albumsStore.currentPhotos.length > 0">
+      <div
+        v-if="albumsStore.currentPhotos.length > 0"
+        class="photo-grid"
+      >
         <div
           v-for="(photo, index) in albumsStore.currentPhotos"
           :key="photo.id"
@@ -297,9 +351,12 @@
           <img
             :src="photo.thumbnail_path || photo.file_path"
             :alt="photo.caption || 'Photo'"
-          />
+          >
           <div class="photo-overlay">
-            <div class="photo-caption" v-if="photo.caption">
+            <div
+              v-if="photo.caption"
+              class="photo-caption"
+            >
               {{ photo.caption }}
             </div>
             <a-button

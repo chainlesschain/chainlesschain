@@ -10,8 +10,14 @@
     >
       <a-form layout="vertical">
         <!-- 订单类型 -->
-        <a-form-item label="订单类型" required>
-          <a-radio-group v-model:value="form.type" button-style="solid">
+        <a-form-item
+          label="订单类型"
+          required
+        >
+          <a-radio-group
+            v-model:value="form.type"
+            button-style="solid"
+          >
             <a-radio-button value="sell">
               <dollar-outlined /> 出售
             </a-radio-button>
@@ -28,7 +34,10 @@
         </a-form-item>
 
         <!-- 订单标题 -->
-        <a-form-item label="订单标题" required>
+        <a-form-item
+          label="订单标题"
+          required
+        >
           <a-input
             v-model:value="form.title"
             placeholder="简明扼要地描述您的订单"
@@ -38,7 +47,11 @@
         </a-form-item>
 
         <!-- 资产选择（出售订单需要） -->
-        <a-form-item v-if="form.type === 'sell'" label="出售资产" required>
+        <a-form-item
+          v-if="form.type === 'sell'"
+          label="出售资产"
+          required
+        >
           <a-select
             v-model:value="form.assetId"
             placeholder="选择要出售的资产"
@@ -54,7 +67,10 @@
             >
               <a-space>
                 <span>{{ asset.name }}</span>
-                <a-tag v-if="asset.symbol" color="blue">
+                <a-tag
+                  v-if="asset.symbol"
+                  color="blue"
+                >
                   {{ asset.symbol }}
                 </a-tag>
                 <span style="color: #999; font-size: 12px">
@@ -66,7 +82,10 @@
         </a-form-item>
 
         <!-- 数量 -->
-        <a-form-item label="数量" required>
+        <a-form-item
+          label="数量"
+          required
+        >
           <a-input-number
             v-model:value="form.quantity"
             :min="1"
@@ -74,7 +93,10 @@
             style="width: 100%"
             placeholder="订单数量"
           />
-          <template v-if="form.type === 'sell' && selectedAsset" #extra>
+          <template
+            v-if="form.type === 'sell' && selectedAsset"
+            #extra
+          >
             可用余额: {{ formatAmount(selectedAsset.total_supply || 0) }}
           </template>
         </a-form-item>
@@ -93,7 +115,10 @@
             >
               <a-space>
                 <span>{{ asset.name }}</span>
-                <a-tag v-if="asset.symbol" color="blue">
+                <a-tag
+                  v-if="asset.symbol"
+                  color="blue"
+                >
                   {{ asset.symbol }}
                 </a-tag>
               </a-space>
@@ -102,7 +127,10 @@
         </a-form-item>
 
         <!-- 单价 -->
-        <a-form-item label="单价" required>
+        <a-form-item
+          label="单价"
+          required
+        >
           <a-input-number
             v-model:value="form.priceAmount"
             :min="0"
@@ -124,10 +152,8 @@
           style="margin-bottom: 16px"
         >
           <template #message>
-            <strong
-              >总价: {{ (form.quantity * form.priceAmount).toFixed(2) }}
-              {{ selectedPriceAsset?.symbol || "单位" }}</strong
-            >
+            <strong>总价: {{ (form.quantity * form.priceAmount).toFixed(2) }}
+              {{ selectedPriceAsset?.symbol || "单位" }}</strong>
           </template>
         </a-alert>
 
@@ -144,7 +170,10 @@
 
         <!-- 高级选项 -->
         <a-collapse ghost>
-          <a-collapse-panel key="metadata" header="高级设置（可选）">
+          <a-collapse-panel
+            key="metadata"
+            header="高级设置（可选）"
+          >
             <a-form-item label="交易地点">
               <a-input
                 v-model:value="form.metadata.location"
@@ -178,7 +207,10 @@
           title="订单预览"
           style="margin-top: 16px"
         >
-          <a-descriptions :column="1" size="small">
+          <a-descriptions
+            :column="1"
+            size="small"
+          >
             <a-descriptions-item label="类型">
               <a-tag :color="getOrderTypeColor(form.type)">
                 {{ getOrderTypeName(form.type) }}

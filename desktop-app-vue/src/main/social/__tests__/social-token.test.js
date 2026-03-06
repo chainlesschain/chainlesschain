@@ -344,9 +344,9 @@ describe("SocialTokenManager", () => {
       innerDb._prep.get.mockImplementation(() => {
         getCount++;
         // 1st get: _getToken
-        if (getCount === 1) return tokenRow;
+        if (getCount === 1) {return tokenRow;}
         // 2nd get: _getBalanceValue → return balance row
-        if (getCount === 2) return currentBalance > 0 ? { balance: currentBalance } : null;
+        if (getCount === 2) {return currentBalance > 0 ? { balance: currentBalance } : null;}
         // 3rd get: _setBalance existence check → always null (insert path)
         return null;
       });
@@ -463,12 +463,12 @@ describe("SocialTokenManager", () => {
       let getCount = 0;
       innerDb._prep.get.mockImplementation(() => {
         getCount++;
-        if (getCount === 1) return tokenRow;                          // _getToken
-        if (getCount === 2) return { balance: senderBalance };        // sender balance
-        if (getCount === 3) return { id: "sender-bal" };              // sender _setBalance check → exists
-        if (getCount === 4) return recipientBalance > 0              // recipient balance
-          ? { balance: recipientBalance } : null;
-        if (getCount === 5) return null;                              // recipient _setBalance check → insert
+        if (getCount === 1) {return tokenRow;}                          // _getToken
+        if (getCount === 2) {return { balance: senderBalance };}        // sender balance
+        if (getCount === 3) {return { id: "sender-bal" };}              // sender _setBalance check → exists
+        if (getCount === 4) {return recipientBalance > 0              // recipient balance
+          ? { balance: recipientBalance } : null;}
+        if (getCount === 5) {return null;}                              // recipient _setBalance check → insert
         return null;
       });
     }
@@ -576,9 +576,9 @@ describe("SocialTokenManager", () => {
       let getCount = 0;
       innerDb._prep.get.mockImplementation(() => {
         getCount++;
-        if (getCount === 1) return tokenRow;
-        if (getCount === 2) return holderBalance > 0 ? { balance: holderBalance } : null;
-        if (getCount === 3) return balanceRowExists ? { id: "bal-row" } : null;
+        if (getCount === 1) {return tokenRow;}
+        if (getCount === 2) {return holderBalance > 0 ? { balance: holderBalance } : null;}
+        if (getCount === 3) {return balanceRowExists ? { id: "bal-row" } : null;}
         return null;
       });
     }
@@ -854,8 +854,8 @@ describe("SocialTokenManager", () => {
       let getCount = 0;
       innerDb._prep.get.mockImplementation(() => {
         getCount++;
-        if (getCount === 1) return tokenRow;
-        if (getCount === 2) return currentBalance > 0 ? { balance: currentBalance } : null;
+        if (getCount === 1) {return tokenRow;}
+        if (getCount === 2) {return currentBalance > 0 ? { balance: currentBalance } : null;}
         return null;
       });
     }

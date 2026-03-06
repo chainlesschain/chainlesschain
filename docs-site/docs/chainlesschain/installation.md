@@ -24,12 +24,14 @@
 #### 移动端要求
 
 **Android**:
+
 - 系统版本: Android 8.0 (API 26) 或更高
 - 内存: 3GB RAM 或更高
 - 存储: 5GB 可用空间
 - 处理器: 64位ARMv8
 
 **iOS**:
+
 - 系统版本: iOS 14.0 或更高
 - 设备: iPhone 8 或更新型号
 - 存储: 5GB 可用空间
@@ -60,6 +62,7 @@
 1. **下载安装包**
 
 访问 [ChainlessChain官网](https://www.chainlesschain.com/download) 下载Windows安装包：
+
 - `ChainlessChain-Setup-1.0.0.exe` (约150MB)
 
 2. **运行安装程序**
@@ -123,6 +126,7 @@ npm run build:desktop
 **问题1: 缺少Visual C++运行库**
 
 解决方法:
+
 ```bash
 # 下载并安装 Visual C++ Redistributable
 # https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
@@ -131,6 +135,7 @@ npm run build:desktop
 **问题2: 端口冲突**
 
 解决方法:
+
 ```bash
 # 检查端口占用
 netstat -ano | findstr "3000"
@@ -149,6 +154,7 @@ netstat -ano | findstr "3306"
 1. **下载DMG文件**
 
 访问官网下载macOS安装包：
+
 - `ChainlessChain-1.0.0.dmg` (约140MB)
 
 2. **安装应用**
@@ -229,7 +235,7 @@ ollama pull qwen
 
 ```bash
 # 添加ChainlessChain GPG密钥
-curl -fsSL https://www.chainlesschain.comgpg | sudo gpg --dearmor -o /usr/share/keyrings/chainlesschain.gpg
+curl -fsSL https://www.chainlesschain.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/chainlesschain.gpg
 
 # 添加软件源
 echo "deb [signed-by=/usr/share/keyrings/chainlesschain.gpg] https://repo.chainlesschain.com/apt stable main" | sudo tee /etc/apt/sources.list.d/chainlesschain.list
@@ -252,7 +258,7 @@ chainlesschain
 
 ```bash
 # 下载AppImage
-wget https://www.chainlesschain.comdownload/ChainlessChain-1.0.0.AppImage
+wget https://www.chainlesschain.com/download/ChainlessChain-1.0.0.AppImage
 
 # 添加执行权限
 chmod +x ChainlessChain-1.0.0.AppImage
@@ -335,6 +341,7 @@ sudo systemctl start chainlesschain
 1. **下载APK**
 
 访问官网下载Android安装包：
+
 - `ChainlessChain-v1.0.0.apk` (约50MB)
 
 2. **启用未知来源**
@@ -403,6 +410,7 @@ npm run dev:android
 #### 方式三: 从源码构建
 
 **要求**:
+
 - macOS系统
 - Xcode 15+
 - Apple Developer账号（用于真机调试）
@@ -496,6 +504,7 @@ docker-compose restart
 #### MySQL 8.0
 
 **Windows**:
+
 ```bash
 # 下载MySQL Installer
 # https://dev.mysql.com/downloads/installer/
@@ -506,6 +515,7 @@ CREATE DATABASE chainlesschain DEFAULT CHARACTER SET utf8mb4;
 ```
 
 **Linux**:
+
 ```bash
 sudo apt install mysql-server
 sudo mysql_secure_installation
@@ -516,12 +526,14 @@ CREATE DATABASE chainlesschain DEFAULT CHARACTER SET utf8mb4;
 #### Redis 7.0
 
 **Windows**:
+
 ```bash
 # 下载Redis for Windows
 # https://github.com/microsoftarchive/redis/releases
 ```
 
 **Linux**:
+
 ```bash
 sudo apt install redis-server
 sudo systemctl start redis
@@ -531,6 +543,7 @@ sudo systemctl enable redis
 #### Ollama
 
 **Windows/macOS/Linux**:
+
 ```bash
 # 下载并安装Ollama
 # https://ollama.com/download
@@ -568,16 +581,19 @@ curl -L https://install.meilisearch.com | sh
 2. **设备设置**
 
 **选择设备类型**:
+
 - U盾（USB Key）
 - SIMKey（SIM卡密钥）
 - 软件模拟（测试用）
 
 **插入U盾**:
+
 - 将U盾插入USB接口
 - 系统自动检测设备
 - 输入U盾PIN码（默认: 123456）
 
 **SIMKey配置**:
+
 - 插入SIMKey卡
 - 输入PIN码
 - 选择SIM卡槽
@@ -585,16 +601,19 @@ curl -L https://install.meilisearch.com | sh
 3. **创建身份**
 
 **生成DID**:
+
 ```
 did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH
 ```
 
 **设置个人信息**:
+
 - 昵称: 你的名字
 - 头像: 上传或使用默认
 - 简介: 可选
 
 **备份助记词**（重要！）:
+
 ```
 abandon ability able about above absent absorb abstract absurd abuse access accident
 ```
@@ -607,16 +626,19 @@ abandon ability able about above absent absorb abstract absurd abuse access acci
 4. **配置AI模型**
 
 **选择AI引擎**:
+
 - Ollama（推荐）
 - LLaMA.cpp
 - 无（稍后配置）
 
 **选择模型**:
+
 - LLaMA 3 8B（推荐，4GB内存）
 - Qwen 7B（中文优化，5GB内存）
 - GLM-4 9B（对话优化，6GB内存）
 
 **下载模型**:
+
 ```bash
 正在下载模型...
 [████████████████████] 100%
@@ -624,6 +646,7 @@ LLaMA 3 8B (4.7GB) - 下载完成
 ```
 
 **测试AI**:
+
 ```
 你: 介绍一下ChainlessChain
 AI: ChainlessChain是一个去中心化的个人AI管理系统...
@@ -632,11 +655,13 @@ AI: ChainlessChain是一个去中心化的个人AI管理系统...
 5. **数据同步**
 
 **配置Git仓库**:
+
 - 使用GitHub/GitLab
 - 自建Git服务器
 - 稍后配置
 
 **GitHub示例**:
+
 ```bash
 仓库URL: https://github.com/username/chainlesschain-data.git
 用户名: your-username
@@ -644,6 +669,7 @@ Token: ghp_xxxxxxxxxxxxxxxxxxxx
 ```
 
 **同步频率**:
+
 - 实时同步（推荐）
 - 每小时
 - 每天
@@ -704,9 +730,7 @@ Token: ghp_xxxxxxxxxxxxxxxxxxxx
     },
     "relay": {
       "enabled": true,
-      "servers": [
-        "/ip4/relay.chainlesschain.com/tcp/443/wss/p2p/QmRelay"
-      ]
+      "servers": ["/ip4/relay.chainlesschain.com/tcp/443/wss/p2p/QmRelay"]
     }
   },
   "ui": {
@@ -819,6 +843,7 @@ chainlesschain restore --input ~/Backups/backup.tar.gz --new-device
 **症状**: 插入设备后无响应
 
 **解决**:
+
 ```bash
 # Windows: 检查驱动
 # 设备管理器 -> 通用串行总线控制器
@@ -840,6 +865,7 @@ sudo udevadm control --reload-rules
 **症状**: "Failed to load model"
 
 **解决**:
+
 ```bash
 # 检查Ollama服务
 curl http://localhost:11434/api/tags
@@ -860,6 +886,7 @@ free -h
 **症状**: "Failed to push to remote"
 
 **解决**:
+
 ```bash
 # 检查网络连接
 ping github.com
@@ -879,6 +906,7 @@ git credential fill
 **症状**: "Database disk image is malformed"
 
 **解决**:
+
 ```bash
 # 备份数据库
 cp ~/.chainlesschain/data.db ~/.chainlesschain/data.db.backup

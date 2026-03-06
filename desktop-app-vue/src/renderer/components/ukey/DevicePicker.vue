@@ -2,14 +2,22 @@
   <div class="device-picker">
     <!-- 扫描控制 -->
     <div class="scan-header">
-      <a-button type="primary" :loading="isScanning" @click="startScan">
+      <a-button
+        type="primary"
+        :loading="isScanning"
+        @click="startScan"
+      >
         {{
           isScanning
             ? $t("ukey.hwWallet.scanning")
             : $t("ukey.hwWallet.scanDevices")
         }}
       </a-button>
-      <a-tag v-if="connectedWallet" color="green" class="ml-2">
+      <a-tag
+        v-if="connectedWallet"
+        color="green"
+        class="ml-2"
+      >
         {{ $t("ukey.hwWallet.connected") }}: {{ connectedWallet.name }}
       </a-tag>
     </div>
@@ -59,7 +67,10 @@
               </template>
               <template #description>
                 <span>{{ item.model }}</span>
-                <span v-if="item.firmwareVersion" class="ml-2 text-muted">
+                <span
+                  v-if="item.firmwareVersion"
+                  class="ml-2 text-muted"
+                >
                   fw: {{ item.firmwareVersion }}
                 </span>
               </template>
@@ -90,7 +101,10 @@
     </div>
 
     <!-- 支持的设备类型 -->
-    <a-collapse class="mt-3" ghost>
+    <a-collapse
+      class="mt-3"
+      ghost
+    >
       <a-collapse-panel
         key="supported"
         :header="$t('ukey.hwWallet.supportedDevices')"

@@ -1,204 +1,95 @@
 # 自然语言编程
 
-> **版本: v1.1.0+ | NL→代码管道 | 需求解析 | 项目风格分析 (10 IPC)**
-
-自然语言编程系统将自然语言需求描述转化为可执行代码，通过需求解析、规范翻译、风格分析实现从描述到代码的完整管道。
+> v1.1.0 新功能
 
 ## 系统概述
 
-### NL→代码管道
+自然语言编程系统（NL Programming）允许用户使用自然语言描述需求，系统自动将其翻译为结构化 Spec，并基于项目约定生成符合规范的代码。
 
-```
-自然语言需求
-     │
-     ▼
-┌─────────────────┐
-│ RequirementParser│ ← 需求分类、用户故事提取、验收标准
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ SpecTranslator   │ ← NL → 结构化 Spec JSON
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ ProjectStyle     │ ← 分析项目约定（命名、架构、风格）
-│ Analyzer         │
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ Code Generation  │ ← 按规范 + 风格生成代码
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ Verification     │ ← 构建 + 类型检查 + 测试 + 审查
-│ Loop             │
-└─────────────────┘
-```
+### 核心能力
 
----
+- **意图翻译**：自然语言 → 结构化 Spec（意图、实体、验收条件）
+- **迭代优化**：用户反馈驱动的 Spec 迭代精化
+- **项目约定**：自动分析项目代码风格、框架、命名规范
+- **代码生成**：基于 Spec + 约定生成高质量代码
+- **历史追溯**：完整的翻译和生成历史记录
 
-## 需求解析
+## IPC 通道
 
-### 需求分类
+| 通道                      | 说明                |
+| ------------------------- | ------------------- |
+| `nl-prog:translate`       | 翻译自然语言为 Spec |
+| `nl-prog:validate`        | 验证 Spec 完整性    |
+| `nl-prog:refine`          | 根据反馈优化 Spec   |
+| `nl-prog:get-history`     | 获取翻译历史        |
+| `nl-prog:generate`        | 基于 Spec 生成代码  |
+| `nl-prog:get-conventions` | 获取项目约定        |
+| `nl-prog:analyze-project` | 分析项目结构和约定  |
+| `nl-prog:get-stats`       | 获取统计数据        |
 
-| 类型            | 关键词                   | 说明       |
-| --------------- | ------------------------ | ---------- |
-| `feature`       | 添加、新增、实现、创建   | 新功能开发 |
-| `bugfix`        | 修复、��正、解���、bug   | 缺陷修复   |
-| `refactor`      | 重构、优化结构、整理     | 代码重构   |
-| `optimization`  | 优化、提升、加速、性能   | 性能优化   |
-| `security`      | 安全、漏洞、权限、认证   | 安全增强   |
-| `documentation` | 文档、注释、说明、README | 文档编写   |
+## 配置
 
-### 解析输出
+在 `.chainlesschain/config.json` 中配置：
 
 ```json
 {
-  "type": "feature",
-  "userStory": "作为用户，我希望有一个资料编辑页面，以便修改个人信息",
-  "acceptanceCriteria": [
-    "可以上传和裁剪头像",
-    "可以修改昵称（2-20字符）",
-    "保存后立即生效"
-  ],
-  "boundaryConditions": ["昵称长度校验", "图片格式限制", "并发编辑冲突"],
-  "dependencies": ["UserService", "FileUpload"],
-  "techStack": ["vue", "api", "storage"]
-}
-```
-
-### 双语支持
-
-同时支持中文和英文关键词识别：
-
-```
-中文: "添加用户资料页面"
-英文: "Add user profile page"
-→ 都能正确识别为 feature 类型
-```
-
----
-
-## 规范翻译
-
-### 翻译流程
-
-```
-NL 输入 → 意图识别 → 上下文补全 → 规范生成 → 验证
-   │          │           │            │          │
-   │          │           │            │          └─ 规范完整性检查
-   │          │           │            └─ 生成 Spec JSON
-   │          │           └─ CKG 补全依赖/接口信息
-   │          └─ 9 种意图分类
-   └─ 自然语言描述
-```
-
-### 规范验证
-
-```json
-{
-  "valid": true,
-  "errors": [],
-  "warnings": ["建议添加错误处理说明"],
-  "completeness": 0.85,
-  "suggestions": ["可以参考现有的 ProfilePage 组件"]
-}
-```
-
-### 多轮消歧
-
-当需求模糊时自动提出问题：
-
-```
-状态: draft → translating → ambiguous → validated → completed
-```
-
-- `ambiguous` 状态下自动生成澄清问题
-- 用户回答后继续翻译
-- 支持多轮对话迭代完善规范
-
----
-
-## 项目风格分析
-
-### 分析维度
-
-| 维度           | 分析内容 | 示例                                         |
-| -------------- | -------- | -------------------------------------------- |
-| `NAMING`       | 命名约定 | `camelCase` 变量，`PascalCase` 组件          |
-| `ARCHITECTURE` | 架构模式 | `src/main/` 主进程，`src/renderer/` 渲染进程 |
-| `TESTING`      | 测试约定 | Vitest, `__tests__/` 目录，`.test.js` 后缀   |
-| `STYLE`        | 代码风格 | 2空格缩进，单引号，无分号                    |
-| `IMPORTS`      | 导入规范 | Node 内置 → 第三方 → 本地模块                |
-| `COMPONENTS`   | 组件规范 | SFC 结构，Props 定义方式                     |
-
-### 风格报告
-
-```json
-{
-  "naming": {
-    "variables": "camelCase",
-    "functions": "camelCase",
-    "classes": "PascalCase",
-    "files": "kebab-case",
-    "confidence": 0.92
-  },
-  "architecture": {
-    "pattern": "electron-main-renderer",
-    "moduleSystem": "commonjs (main) / esm (renderer)",
-    "confidence": 0.95
-  },
-  "testing": {
-    "framework": "vitest",
-    "pattern": "__tests__/*.test.js",
-    "confidence": 0.88
+  "nlProgramming": {
+    "enabled": true,
+    "model": "default",
+    "maxSpecEntities": 20,
+    "autoValidate": true,
+    "conventionSources": ["package.json", ".eslintrc", "tsconfig.json"]
   }
 }
 ```
 
-### 集成
+## 使用示例
 
-- **代码知识图谱**: 提供模块依赖和结构信息
-- **Instinct 学习**: 利用历史编码行为模式
-- **缓存**: 分析结果缓存 10 分钟，避免重复扫描
-- **目录扫描**: 最大深度 5 层，最多 500 文件
+### 基本流程
 
----
+1. 在「自然语言编程」页面输入需求描述
+2. 点击「翻译为 Spec」，系统提取意图、实体、验收条件
+3. 查看完整度进度条，如不足可补充反馈优化
+4. 确认 Spec 后点击「生成代码」
+5. 在代码预览区查看生成结果，点击「应用到工作区」
 
-## 端到端示例
+### 示例输入
 
 ```
-用户: "帮我创建一个社交通知设置页面，可以开关各种通知类型"
-
-Step 1 - 需求解析:
-  类型: feature
-  用户故事: 作为用户，我希望可以管理社交通知偏好
-  验收标准: 可以单独开关每种通知类型，设置立即保存
-
-Step 2 - 规范翻译:
-  意图: create-component
-  组件: NotificationSettings
-  功能: 通知类型列表 + 开关控件
-
-Step 3 - 风格分析:
-  组件放置: src/renderer/pages/NotificationSettingsPage.vue
-  状态管理: src/renderer/stores/notificationSettings.ts
-  IPC: src/main/social/notification-settings-ipc.js
-
-Step 4 - 代码生成:
-  生成 Vue SFC + Pinia Store + IPC Handler
-
-Step 5 - 验证:
-  构建 ✓ → 类型检查 ✓ → Lint ✓ → 测试 ✓
+创建一个用户登录表单组件，使用 Vue3 + Ant Design，
+包含用户名和密码字段，支持记住密码，
+表单验证要求用户名不为空、密码至少8位
 ```
 
----
+### Spec 输出示例
 
-## 关键文件
+```json
+{
+  "intent": "create-component",
+  "entities": [
+    { "name": "LoginForm", "type": "component", "description": "用户登录表单" },
+    { "name": "username", "type": "field", "description": "用户名输入" },
+    { "name": "password", "type": "field", "description": "密码输入" }
+  ],
+  "acceptanceCriteria": [
+    "表单包含用户名和密码字段",
+    "支持记住密码复选框",
+    "用户名不为空验证",
+    "密码至少8位验证"
+  ],
+  "completeness": 85
+}
+```
 
-| 文件                                                  | 职责               |
-| ----------------------------------------------------- | ------------------ |
-| `src/main/ai-engine/cowork/requirement-parser.js`     | 需求解析器         |
-| `src/main/ai-engine/cowork/spec-translator.js`        | NL → Spec 规范翻译 |
-| `src/main/ai-engine/cowork/project-style-analyzer.js` | 项目风格分析       |
-| `src/main/ai-engine/cowork/evolution-ipc.js`          | IPC 处理器         |
+## 故障排除
+
+| 问题                   | 解决方案                           |
+| ---------------------- | ---------------------------------- |
+| Spec 完整度低          | 补充更多细节描述，使用反馈优化功能 |
+| 生成代码不符合项目风格 | 先运行「分析当前项目」更新约定     |
+| 翻译超时               | 检查 LLM 服务连接状态              |
+
+## 相关文档
+
+- [Context Engineering](/chainlesschain/context-engineering)
+- [Cowork 多智能体协作](/chainlesschain/cowork)

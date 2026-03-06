@@ -2,16 +2,17 @@
 
 **Source**: `src/main/skill-tool-system/__tests__/tool-manager.test.js`
 
-**Generated**: 2026-02-24T18:45:59.451Z
+**Generated**: 2026-02-24T23:28:10.583Z
 
 ---
 
 ## import './setup.js'; // 导入测试环境设置
 
 ```javascript
-import "./setup.js"; // 导入测试环境设置
+import './setup.js'; // 导入测试环境设置
 ```
 
-- ToolManager 单元测试
+* ToolManager 单元测试
 
 ---
+

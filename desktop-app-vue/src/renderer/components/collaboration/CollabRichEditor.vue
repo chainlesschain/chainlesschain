@@ -1,7 +1,10 @@
 <template>
   <div class="collab-rich-editor">
     <!-- Toolbar -->
-    <div class="editor-toolbar" v-if="editor">
+    <div
+      v-if="editor"
+      class="editor-toolbar"
+    >
       <a-space wrap>
         <!-- Text formatting -->
         <a-button
@@ -110,11 +113,19 @@
         <a-divider type="vertical" />
 
         <!-- Undo/Redo -->
-        <a-button size="small" @click="undo" :disabled="!canUndo">
+        <a-button
+          size="small"
+          :disabled="!canUndo"
+          @click="undo"
+        >
           <UndoOutlined />
           Undo
         </a-button>
-        <a-button size="small" @click="redo" :disabled="!canRedo">
+        <a-button
+          size="small"
+          :disabled="!canRedo"
+          @click="redo"
+        >
           <RedoOutlined />
           Redo
         </a-button>
@@ -122,8 +133,14 @@
     </div>
 
     <!-- Presence bar showing active collaborators -->
-    <div class="presence-bar" v-if="activeUsers.length > 0">
-      <a-avatar-group :max-count="5" size="small">
+    <div
+      v-if="activeUsers.length > 0"
+      class="presence-bar"
+    >
+      <a-avatar-group
+        :max-count="5"
+        size="small"
+      >
         <a-tooltip
           v-for="user in activeUsers"
           :key="user.did"
@@ -140,16 +157,28 @@
     </div>
 
     <!-- Editor content -->
-    <editor-content :editor="editor" class="editor-content" />
+    <editor-content
+      :editor="editor"
+      class="editor-content"
+    />
 
     <!-- Status bar -->
     <div class="editor-status">
       <a-tag :color="connected ? 'green' : 'red'">
         {{ connected ? 'Connected' : 'Disconnected' }}
       </a-tag>
-      <span v-if="synced" class="sync-status">Synced</span>
-      <span v-else class="sync-status syncing">Syncing...</span>
-      <span class="word-count" v-if="editor">
+      <span
+        v-if="synced"
+        class="sync-status"
+      >Synced</span>
+      <span
+        v-else
+        class="sync-status syncing"
+      >Syncing...</span>
+      <span
+        v-if="editor"
+        class="word-count"
+      >
         {{ wordCount }} words
       </span>
     </div>
@@ -251,9 +280,9 @@ const resolvedPlaceholder = computed<string>(() => {
 
 /** Word count based on editor text content */
 const wordCount = computed<number>(() => {
-  if (!editor.value) return 0;
+  if (!editor.value) {return 0;}
   const text = editor.value.getText();
-  if (!text || text.trim().length === 0) return 0;
+  if (!text || text.trim().length === 0) {return 0;}
   return text.trim().split(/\s+/).length;
 });
 
@@ -413,7 +442,7 @@ function redo(): void {
 watch(
   () => props.documentId,
   async (newId: string, oldId: string) => {
-    if (newId === oldId) return;
+    if (newId === oldId) {return;}
 
     // Clean up old editor
     cleanupEditor();

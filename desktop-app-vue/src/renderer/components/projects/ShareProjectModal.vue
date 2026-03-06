@@ -13,17 +13,25 @@
           v-model:value="shareType"
           @change="handleShareTypeChange"
         >
-          <a-radio value="private" class="share-option">
+          <a-radio
+            value="private"
+            class="share-option"
+          >
             <div class="option-content">
               <div class="option-header">
                 <LockOutlined class="option-icon" />
                 <span class="option-title">仅限自己</span>
               </div>
-              <div class="option-description">仅你已登录</div>
+              <div class="option-description">
+                仅你已登录
+              </div>
             </div>
           </a-radio>
 
-          <a-radio value="public" class="share-option">
+          <a-radio
+            value="public"
+            class="share-option"
+          >
             <div class="option-content">
               <div class="option-header">
                 <GlobalOutlined class="option-icon" />
@@ -38,7 +46,10 @@
       </div>
 
       <!-- 分享链接 (仅在公开访问时显示) -->
-      <div v-if="shareType === 'public'" class="share-link-section">
+      <div
+        v-if="shareType === 'public'"
+        class="share-link-section"
+      >
         <div class="share-link-header">
           <LinkOutlined />
           <span>分享链接</span>
@@ -51,7 +62,10 @@
             :suffix="copyStatus === 'success' ? '已复制' : ''"
           >
             <template #addonAfter>
-              <a-button type="link" @click="handleCopyLink">
+              <a-button
+                type="link"
+                @click="handleCopyLink"
+              >
                 <CopyOutlined v-if="copyStatus !== 'success'" />
                 <CheckOutlined v-else />
               </a-button>
@@ -67,8 +81,14 @@
 
       <!-- 操作按钮 -->
       <div class="share-actions">
-        <a-button @click="handleClose"> 取消 </a-button>
-        <a-button type="primary" :loading="saving" @click="handleConfirm">
+        <a-button @click="handleClose">
+          取消
+        </a-button>
+        <a-button
+          type="primary"
+          :loading="saving"
+          @click="handleConfirm"
+        >
           {{ shareType === "public" ? "复制链接" : "确定" }}
         </a-button>
       </div>

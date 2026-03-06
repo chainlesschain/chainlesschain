@@ -1,8 +1,14 @@
 <template>
   <div class="conversation-input-wrapper">
-    <div class="input-container" :class="{ 'is-focused': isFocused }">
+    <div
+      class="input-container"
+      :class="{ 'is-focused': isFocused }"
+    >
       <!-- 提及建议列表 -->
-      <div v-if="showMentionSuggestions" class="mention-suggestions">
+      <div
+        v-if="showMentionSuggestions"
+        class="mention-suggestions"
+      >
         <div
           v-for="(item, index) in mentionSuggestions"
           :key="index"
@@ -65,15 +71,21 @@
             multiple
             class="file-input"
             @change="handleFileSelect"
-          />
+          >
 
           <!-- 语音输入按钮 -->
           <div class="voice-input-wrapper">
-            <VoiceInput @result="handleVoiceResult" @error="handleVoiceError" />
+            <VoiceInput
+              @result="handleVoiceResult"
+              @error="handleVoiceError"
+            />
           </div>
 
           <!-- 已选附件展示 -->
-          <div v-if="attachments.length > 0" class="attachments-preview">
+          <div
+            v-if="attachments.length > 0"
+            class="attachments-preview"
+          >
             <a-tag
               v-for="(file, index) in attachments"
               :key="index"
@@ -106,7 +118,10 @@
     </div>
 
     <!-- 提示文本 -->
-    <div v-if="showHint" class="input-hint">
+    <div
+      v-if="showHint"
+      class="input-hint"
+    >
       <InfoCircleOutlined />
       {{ hintText }}
     </div>

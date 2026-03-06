@@ -26,30 +26,47 @@
           </template>
           Run Test
         </a-button>
-        <a-button v-if="isRunning" @click="pauseTest">
+        <a-button
+          v-if="isRunning"
+          @click="pauseTest"
+        >
           <template #icon>
             <PauseCircleOutlined />
           </template>
         </a-button>
-        <a-button v-if="isPaused" @click="resumeTest">
+        <a-button
+          v-if="isPaused"
+          @click="resumeTest"
+        >
           <template #icon>
             <PlayCircleOutlined />
           </template>
         </a-button>
-        <a-button v-if="isRunning || isPaused" danger @click="stopTest">
+        <a-button
+          v-if="isRunning || isPaused"
+          danger
+          @click="stopTest"
+        >
           <template #icon>
             <StopOutlined />
           </template>
         </a-button>
       </a-space>
       <a-space>
-        <a-checkbox v-model:checked="stepByStep"> Step by Step </a-checkbox>
-        <a-checkbox v-model:checked="slowMode"> Slow Mode </a-checkbox>
+        <a-checkbox v-model:checked="stepByStep">
+          Step by Step
+        </a-checkbox>
+        <a-checkbox v-model:checked="slowMode">
+          Slow Mode
+        </a-checkbox>
       </a-space>
     </div>
 
     <!-- Execution Log -->
-    <div ref="logContainer" class="execution-log">
+    <div
+      ref="logContainer"
+      class="execution-log"
+    >
       <div
         v-for="(entry, index) in executionLog"
         :key="index"
@@ -60,22 +77,32 @@
         <span class="log-icon">
           <CheckCircleOutlined v-if="entry.type === 'success'" />
           <CloseCircleOutlined v-if="entry.type === 'error'" />
-          <LoadingOutlined v-if="entry.type === 'running'" spin />
+          <LoadingOutlined
+            v-if="entry.type === 'running'"
+            spin
+          />
           <InfoCircleOutlined v-if="entry.type === 'info'" />
         </span>
         <span class="log-message">{{ entry.message }}</span>
-        <span v-if="entry.duration" class="log-duration"
-          >{{ entry.duration }}ms</span
-        >
+        <span
+          v-if="entry.duration"
+          class="log-duration"
+        >{{ entry.duration }}ms</span>
       </div>
-      <div v-if="executionLog.length === 0" class="empty-log">
+      <div
+        v-if="executionLog.length === 0"
+        class="empty-log"
+      >
         <ExperimentOutlined />
         <p>Run the test to see execution logs</p>
       </div>
     </div>
 
     <!-- Results Summary -->
-    <div v-if="testResult" class="results-summary">
+    <div
+      v-if="testResult"
+      class="results-summary"
+    >
       <a-result
         :status="testResult.status === 'completed' ? 'success' : 'error'"
         :title="
@@ -84,8 +111,15 @@
         :sub-title="resultSubtitle"
       >
         <template #extra>
-          <a-button @click="clearResults"> Clear </a-button>
-          <a-button type="primary" @click="runTest"> Run Again </a-button>
+          <a-button @click="clearResults">
+            Clear
+          </a-button>
+          <a-button
+            type="primary"
+            @click="runTest"
+          >
+            Run Again
+          </a-button>
         </template>
       </a-result>
     </div>

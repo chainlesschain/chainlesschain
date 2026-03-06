@@ -16,7 +16,10 @@
         :sub-title="$t('ukey.biometric.notSupportedDesc')"
       >
         <template #icon>
-          <a-icon type="exclamation-circle" style="color: #faad14" />
+          <a-icon
+            type="exclamation-circle"
+            style="color: #faad14"
+          />
         </template>
       </a-result>
 
@@ -43,7 +46,9 @@
                 >
                   <template #avatar>
                     <a-avatar :style="{ backgroundColor: '#1890ff' }">
-                      <template #icon> 🖐 </template>
+                      <template #icon>
+                        🖐
+                      </template>
                     </a-avatar>
                   </template>
                 </a-list-item-meta>
@@ -56,7 +61,11 @@
                     :title="$t('ukey.biometric.deleteConfirm')"
                     @confirm="deleteFingerprint(item.id)"
                   >
-                    <a-button type="link" danger size="small">
+                    <a-button
+                      type="link"
+                      danger
+                      size="small"
+                    >
                       {{ $t("common.delete") }}
                     </a-button>
                   </a-popconfirm>

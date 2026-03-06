@@ -7,18 +7,29 @@
     @cancel="handleCancel"
   >
     <div class="share-dialog-content">
-      <a-radio-group v-model:value="shareMode" class="share-mode-group">
-        <a-radio value="private" class="share-mode-item">
+      <a-radio-group
+        v-model:value="shareMode"
+        class="share-mode-group"
+      >
+        <a-radio
+          value="private"
+          class="share-mode-item"
+        >
           <div class="mode-content">
             <div class="mode-header">
               <lock-outlined class="mode-icon" />
               <span class="mode-title">仅限自己</span>
             </div>
-            <div class="mode-description">仅限已选用户访问</div>
+            <div class="mode-description">
+              仅限已选用户访问
+            </div>
           </div>
         </a-radio>
 
-        <a-radio value="public" class="share-mode-item">
+        <a-radio
+          value="public"
+          class="share-mode-item"
+        >
           <div class="mode-content">
             <div class="mode-header">
               <global-outlined class="mode-icon" />
@@ -31,23 +42,40 @@
         </a-radio>
       </a-radio-group>
 
-      <div v-if="shareLink" class="share-link-section">
-        <div class="share-link-label">分享链接</div>
+      <div
+        v-if="shareLink"
+        class="share-link-section"
+      >
+        <div class="share-link-label">
+          分享链接
+        </div>
         <div class="share-link-input">
-          <a-input v-model:value="shareLink" readonly>
+          <a-input
+            v-model:value="shareLink"
+            readonly
+          >
             <template #suffix>
-              <copy-outlined class="copy-icon" @click="copyShareLink" />
+              <copy-outlined
+                class="copy-icon"
+                @click="copyShareLink"
+              />
             </template>
           </a-input>
         </div>
       </div>
 
       <div class="share-actions">
-        <a-button :disabled="!shareLink" @click="shareToWechat">
+        <a-button
+          :disabled="!shareLink"
+          @click="shareToWechat"
+        >
           <wechat-outlined />
           微信分享
         </a-button>
-        <a-button :disabled="!shareLink" @click="copyShareLink">
+        <a-button
+          :disabled="!shareLink"
+          @click="copyShareLink"
+        >
           <link-outlined />
           复制链接
         </a-button>

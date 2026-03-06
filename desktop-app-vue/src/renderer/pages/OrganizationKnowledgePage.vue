@@ -24,9 +24,15 @@
               style="width: 150px"
               allow-clear
             >
-              <a-select-option value=""> 全部 </a-select-option>
-              <a-select-option value="org"> 组织共享 </a-select-option>
-              <a-select-option value="public"> 公开 </a-select-option>
+              <a-select-option value="">
+                全部
+              </a-select-option>
+              <a-select-option value="org">
+                组织共享
+              </a-select-option>
+              <a-select-option value="public">
+                公开
+              </a-select-option>
             </a-select>
             <a-button
               type="primary"
@@ -86,8 +92,14 @@
 
     <!-- 知识列表 -->
     <div class="knowledge-list">
-      <a-tabs v-model:active-key="activeTab" type="card">
-        <a-tab-pane key="all" tab="全部知识">
+      <a-tabs
+        v-model:active-key="activeTab"
+        type="card"
+      >
+        <a-tab-pane
+          key="all"
+          tab="全部知识"
+        >
           <!-- 视图切换 -->
           <div class="view-controls">
             <a-radio-group
@@ -108,10 +120,18 @@
               style="width: 150px"
               size="small"
             >
-              <a-select-option value="updated_at"> 最近更新 </a-select-option>
-              <a-select-option value="created_at"> 创建时间 </a-select-option>
-              <a-select-option value="title"> 标题 </a-select-option>
-              <a-select-option value="views"> 浏览量 </a-select-option>
+              <a-select-option value="updated_at">
+                最近更新
+              </a-select-option>
+              <a-select-option value="created_at">
+                创建时间
+              </a-select-option>
+              <a-select-option value="title">
+                标题
+              </a-select-option>
+              <a-select-option value="views">
+                浏览量
+              </a-select-option>
             </a-select>
           </div>
 
@@ -170,7 +190,10 @@
                 </a-tag>
               </template>
               <template v-else-if="column.key === 'collaborators'">
-                <a-avatar-group :max-count="3" size="small">
+                <a-avatar-group
+                  :max-count="3"
+                  size="small"
+                >
                   <a-avatar
                     v-for="user in record.active_collaborators"
                     :key="user.did"
@@ -198,7 +221,10 @@
                     协作
                   </a-button>
                   <a-dropdown>
-                    <a-button type="link" size="small">
+                    <a-button
+                      type="link"
+                      size="small"
+                    >
                       更多 <DownOutlined />
                     </a-button>
                     <template #overlay>
@@ -213,7 +239,10 @@
                           分享
                         </a-menu-item>
                         <a-menu-divider />
-                        <a-menu-item danger @click="deleteKnowledge(record)">
+                        <a-menu-item
+                          danger
+                          @click="deleteKnowledge(record)"
+                        >
                           删除
                         </a-menu-item>
                       </a-menu>
@@ -225,7 +254,10 @@
           </a-table>
         </a-tab-pane>
 
-        <a-tab-pane key="my" tab="我创建的">
+        <a-tab-pane
+          key="my"
+          tab="我创建的"
+        >
           <a-list
             :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 3, xl: 4, xxl: 4 }"
             :data-source="myKnowledgeItems"
@@ -246,7 +278,10 @@
           </a-list>
         </a-tab-pane>
 
-        <a-tab-pane key="recent" tab="最近查看">
+        <a-tab-pane
+          key="recent"
+          tab="最近查看"
+        >
           <a-list
             :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 3, xl: 4, xxl: 4 }"
             :data-source="recentKnowledgeItems"
@@ -294,7 +329,10 @@
               <span class="version-time">{{
                 formatTime(version.created_at)
               }}</span>
-              <a-tag v-if="version.id === currentVersion" color="green">
+              <a-tag
+                v-if="version.id === currentVersion"
+                color="green"
+              >
                 当前版本
               </a-tag>
             </div>
@@ -310,7 +348,10 @@
             </div>
             <div class="version-actions">
               <a-space>
-                <a-button size="small" @click="previewVersion(version)">
+                <a-button
+                  size="small"
+                  @click="previewVersion(version)"
+                >
                   预览
                 </a-button>
                 <a-button
@@ -349,23 +390,40 @@
         :label-col="{ span: 4 }"
         :wrapper-col="{ span: 20 }"
       >
-        <a-form-item label="知识标题" required>
+        <a-form-item
+          label="知识标题"
+          required
+        >
           <a-input
             v-model:value="createForm.title"
             placeholder="输入知识标题"
           />
         </a-form-item>
 
-        <a-form-item label="知识类型" required>
+        <a-form-item
+          label="知识类型"
+          required
+        >
           <a-select v-model:value="createForm.type">
-            <a-select-option value="note"> 笔记 </a-select-option>
-            <a-select-option value="document"> 文档 </a-select-option>
-            <a-select-option value="conversation"> 对话记录 </a-select-option>
-            <a-select-option value="web_clip"> 网页剪藏 </a-select-option>
+            <a-select-option value="note">
+              笔记
+            </a-select-option>
+            <a-select-option value="document">
+              文档
+            </a-select-option>
+            <a-select-option value="conversation">
+              对话记录
+            </a-select-option>
+            <a-select-option value="web_clip">
+              网页剪藏
+            </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="共享范围" required>
+        <a-form-item
+          label="共享范围"
+          required
+        >
           <knowledge-permission-selector
             v-model:value="createForm.shareScope"
             :org-id="currentOrgId"
@@ -373,7 +431,10 @@
           />
         </a-form-item>
 
-        <a-form-item label="知识内容" required>
+        <a-form-item
+          label="知识内容"
+          required
+        >
           <a-textarea
             v-model:value="createForm.content"
             placeholder="输入知识内容..."

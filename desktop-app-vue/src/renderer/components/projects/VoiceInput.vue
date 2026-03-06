@@ -24,9 +24,18 @@
     >
       <div class="recording-modal-content">
         <div class="recording-animation">
-          <div class="wave-circle" :class="{ active: isRecording }" />
-          <div class="wave-circle" :class="{ active: isRecording }" />
-          <div class="wave-circle" :class="{ active: isRecording }" />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
           <AudioOutlined class="microphone-icon" />
         </div>
 
@@ -40,8 +49,18 @@
         </div>
 
         <div class="recording-actions">
-          <a-button danger @click="cancelRecording"> 取消 </a-button>
-          <a-button type="primary" @click="stopRecording"> 完成 </a-button>
+          <a-button
+            danger
+            @click="cancelRecording"
+          >
+            取消
+          </a-button>
+          <a-button
+            type="primary"
+            @click="stopRecording"
+          >
+            完成
+          </a-button>
         </div>
       </div>
     </a-modal>

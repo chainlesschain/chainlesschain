@@ -5,7 +5,10 @@
     @contextmenu.prevent="handleContextMenu"
   >
     <!-- 头像 -->
-    <div v-if="!isSent" class="message-avatar">
+    <div
+      v-if="!isSent"
+      class="message-avatar"
+    >
       <a-avatar :size="32">
         <template #icon>
           <UserOutlined />
@@ -16,7 +19,10 @@
     <!-- 消息内容 -->
     <div class="message-wrapper">
       <!-- 发送者昵称（仅接收的消息显示） -->
-      <div v-if="!isSent && showNickname" class="message-nickname">
+      <div
+        v-if="!isSent && showNickname"
+        class="message-nickname"
+      >
         {{ senderName }}
       </div>
 
@@ -26,7 +32,10 @@
         :class="`type-${message.message_type || 'text'}`"
       >
         <!-- 转发标记 -->
-        <div v-if="message.forwarded_from_id" class="forwarded-indicator">
+        <div
+          v-if="message.forwarded_from_id"
+          class="forwarded-indicator"
+        >
           <ShareAltOutlined /> 转发的消息
         </div>
 
@@ -39,7 +48,10 @@
         </div>
 
         <!-- 图片消息 -->
-        <div v-else-if="message.message_type === 'image'" class="message-image">
+        <div
+          v-else-if="message.message_type === 'image'"
+          class="message-image"
+        >
           <a-image
             :src="message.file_path"
             :alt="message.content"
@@ -49,7 +61,10 @@
         </div>
 
         <!-- 文件消息 -->
-        <div v-else-if="message.message_type === 'file'" class="message-file">
+        <div
+          v-else-if="message.message_type === 'file'"
+          class="message-file"
+        >
           <div class="file-icon">
             <FileOutlined />
           </div>
@@ -73,10 +88,8 @@
                 size="small"
               />
               <div class="transfer-info">
-                <span
-                  >{{ formatFileSize(transferProgress.bytesTransferred) }} /
-                  {{ formatFileSize(transferProgress.totalBytes) }}</span
-                >
+                <span>{{ formatFileSize(transferProgress.bytesTransferred) }} /
+                  {{ formatFileSize(transferProgress.totalBytes) }}</span>
                 <a-button
                   v-if="transferProgress.status === 'transferring'"
                   type="link"
@@ -99,8 +112,15 @@
         </div>
 
         <!-- 语音消息 -->
-        <div v-else-if="message.message_type === 'voice'" class="message-voice">
-          <a-button type="text" size="small" @click="toggleVoicePlay">
+        <div
+          v-else-if="message.message_type === 'voice'"
+          class="message-voice"
+        >
+          <a-button
+            type="text"
+            size="small"
+            @click="toggleVoicePlay"
+          >
             <SoundOutlined v-if="!isPlaying" />
             <PauseCircleOutlined v-else />
           </a-button>
@@ -110,7 +130,10 @@
         </div>
 
         <!-- 视频消息 -->
-        <div v-else-if="message.message_type === 'video'" class="message-video">
+        <div
+          v-else-if="message.message_type === 'video'"
+          class="message-video"
+        >
           <video
             :src="message.file_path"
             controls
@@ -119,7 +142,10 @@
         </div>
 
         <!-- 未知类型 -->
-        <div v-else class="message-text">
+        <div
+          v-else
+          class="message-text"
+        >
           {{ message.content }}
         </div>
       </div>
@@ -129,7 +155,10 @@
         <span class="message-time">{{ formatTime(message.timestamp) }}</span>
 
         <!-- 发送状态（仅发送的消息显示） -->
-        <span v-if="isSent" class="message-status">
+        <span
+          v-if="isSent"
+          class="message-status"
+        >
           <CheckOutlined
             v-if="message.status === 'sent'"
             :style="{ color: '#8c8c8c' }"
@@ -175,7 +204,10 @@
       </div>
 
       <!-- 添加表情按钮（无表情时显示） -->
-      <div v-else class="add-reaction-container">
+      <div
+        v-else
+        class="add-reaction-container"
+      >
         <a-button
           type="text"
           size="small"
@@ -188,8 +220,14 @@
     </div>
 
     <!-- 头像（发送的消息） -->
-    <div v-if="isSent" class="message-avatar">
-      <a-avatar :size="32" :style="{ backgroundColor: '#1890ff' }">
+    <div
+      v-if="isSent"
+      class="message-avatar"
+    >
+      <a-avatar
+        :size="32"
+        :style="{ backgroundColor: '#1890ff' }"
+      >
         <template #icon>
           <UserOutlined />
         </template>
@@ -205,14 +243,19 @@
       <div />
       <template #overlay>
         <a-menu @click="handleMenuClick">
-          <a-menu-item key="forward"> <ShareAltOutlined /> 转发 </a-menu-item>
+          <a-menu-item key="forward">
+            <ShareAltOutlined /> 转发
+          </a-menu-item>
           <a-menu-item
             v-if="message.message_type === 'text' || !message.message_type"
             key="copy"
           >
             <CopyOutlined /> 复制
           </a-menu-item>
-          <a-menu-item key="delete" danger>
+          <a-menu-item
+            key="delete"
+            danger
+          >
             <DeleteOutlined /> 删除
           </a-menu-item>
         </a-menu>
@@ -230,7 +273,10 @@
     >
       <div class="forward-modal-content">
         <p>选择要转发到的会话：</p>
-        <a-checkbox-group v-model:value="selectedSessions" style="width: 100%">
+        <a-checkbox-group
+          v-model:value="selectedSessions"
+          style="width: 100%"
+        >
           <div
             v-for="session in availableSessions"
             :key="session.id"

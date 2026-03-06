@@ -9,7 +9,10 @@
         :style="{ borderRight: '1px solid #f0f0f0' }"
       >
         <div class="sider-header">
-          <div class="community-badge" @click="navigateToCommunity">
+          <div
+            class="community-badge"
+            @click="navigateToCommunity"
+          >
             <a-avatar
               :size="28"
               :src="store.currentCommunity?.icon_url"
@@ -36,7 +39,7 @@
           </div>
 
           <a-menu
-            v-model:selectedKeys="selectedChannelKeys"
+            v-model:selected-keys="selectedChannelKeys"
             mode="inline"
             class="channel-menu"
             @click="handleChannelSelect"
@@ -76,18 +79,29 @@
       <a-layout style="background: #fff">
         <a-layout-content class="chat-content">
           <!-- No channel selected -->
-          <div v-if="!store.currentChannel" class="empty-chat">
+          <div
+            v-if="!store.currentChannel"
+            class="empty-chat"
+          >
             <a-empty description="Select a channel to start chatting" />
           </div>
 
           <!-- Channel Content -->
-          <div v-else class="chat-area">
+          <div
+            v-else
+            class="chat-area"
+          >
             <!-- Channel Header -->
             <div class="chat-header">
               <div class="chat-header-info">
                 <span class="chat-channel-name"># {{ store.currentChannel.name }}</span>
-                <a-tag size="small">{{ store.currentChannel.type }}</a-tag>
-                <span v-if="store.currentChannel.description" class="chat-channel-desc">
+                <a-tag size="small">
+                  {{ store.currentChannel.type }}
+                </a-tag>
+                <span
+                  v-if="store.currentChannel.description"
+                  class="chat-channel-desc"
+                >
                   {{ store.currentChannel.description }}
                 </span>
               </div>
@@ -113,8 +127,15 @@
             </div>
 
             <!-- Message Area -->
-            <div ref="messageContainerRef" class="message-container" @scroll="handleScroll">
-              <a-spin v-if="store.messagesLoading" class="messages-loading" />
+            <div
+              ref="messageContainerRef"
+              class="message-container"
+              @scroll="handleScroll"
+            >
+              <a-spin
+                v-if="store.messagesLoading"
+                class="messages-loading"
+              />
 
               <div
                 v-for="msg in store.channelMessages"
@@ -126,14 +147,20 @@
                 }"
               >
                 <!-- System message -->
-                <div v-if="msg.message_type === 'system'" class="system-msg-content">
+                <div
+                  v-if="msg.message_type === 'system'"
+                  class="system-msg-content"
+                >
                   <InfoCircleOutlined />
                   {{ msg.content }}
                 </div>
 
                 <!-- Regular message -->
                 <template v-else>
-                  <a-avatar :size="36" class="message-avatar">
+                  <a-avatar
+                    :size="36"
+                    class="message-avatar"
+                  >
                     {{ (msg.sender_nickname || msg.sender_did)?.charAt(0) || "U" }}
                   </a-avatar>
                   <div class="message-body">
@@ -151,14 +178,22 @@
                     </div>
 
                     <!-- Reply reference -->
-                    <div v-if="msg.reply_to" class="message-reply-ref">
+                    <div
+                      v-if="msg.reply_to"
+                      class="message-reply-ref"
+                    >
                       <span class="reply-indicator">Replying to a message</span>
                     </div>
 
-                    <div class="message-text">{{ msg.content }}</div>
+                    <div class="message-text">
+                      {{ msg.content }}
+                    </div>
 
                     <!-- Reactions -->
-                    <div v-if="Object.keys(msg.reactions || {}).length > 0" class="message-reactions">
+                    <div
+                      v-if="Object.keys(msg.reactions || {}).length > 0"
+                      class="message-reactions"
+                    >
                       <a-button
                         v-for="(users, emoji) in msg.reactions"
                         :key="emoji"
@@ -181,7 +216,10 @@
                         <MessageOutlined />
                       </a-button>
                       <a-dropdown>
-                        <a-button type="text" size="small">
+                        <a-button
+                          type="text"
+                          size="small"
+                        >
                           <SmileOutlined />
                         </a-button>
                         <template #overlay>
@@ -206,7 +244,10 @@
                         <PushpinOutlined />
                       </a-button>
                       <a-dropdown>
-                        <a-button type="text" size="small">
+                        <a-button
+                          type="text"
+                          size="small"
+                        >
                           <EllipsisOutlined />
                         </a-button>
                         <template #overlay>
@@ -229,16 +270,26 @@
                 </template>
               </div>
 
-              <div v-if="store.channelMessages.length === 0 && !store.messagesLoading" class="no-messages">
+              <div
+                v-if="store.channelMessages.length === 0 && !store.messagesLoading"
+                class="no-messages"
+              >
                 <MessageOutlined style="font-size: 32px; color: #d9d9d9" />
                 <p>No messages yet. Start the conversation!</p>
               </div>
             </div>
 
             <!-- Reply Indicator -->
-            <div v-if="replyingTo" class="reply-bar">
+            <div
+              v-if="replyingTo"
+              class="reply-bar"
+            >
               <span>Replying to {{ replyingTo.sender_nickname || formatDID(replyingTo.sender_did) }}</span>
-              <a-button type="text" size="small" @click="replyingTo = null">
+              <a-button
+                type="text"
+                size="small"
+                @click="replyingTo = null"
+              >
                 <CloseOutlined />
               </a-button>
             </div>
@@ -250,7 +301,7 @@
                 :placeholder="inputPlaceholder"
                 :disabled="!canSendMessage"
                 size="large"
-                @pressEnter="handleSendMessage"
+                @press-enter="handleSendMessage"
               >
                 <template #suffix>
                   <a-button
@@ -276,10 +327,17 @@
         :style="{ borderLeft: '1px solid #f0f0f0' }"
       >
         <!-- Pinned Messages Panel -->
-        <div v-if="showPinnedPanel" class="right-panel">
+        <div
+          v-if="showPinnedPanel"
+          class="right-panel"
+        >
           <div class="right-panel-header">
             <span>Pinned Messages</span>
-            <a-button type="text" size="small" @click="showPinnedPanel = false">
+            <a-button
+              type="text"
+              size="small"
+              @click="showPinnedPanel = false"
+            >
               <CloseOutlined />
             </a-button>
           </div>
@@ -292,8 +350,12 @@
               <div class="pinned-sender">
                 {{ msg.sender_nickname || formatDID(msg.sender_did) }}
               </div>
-              <div class="pinned-text">{{ msg.content }}</div>
-              <div class="pinned-time">{{ formatTime(msg.created_at) }}</div>
+              <div class="pinned-text">
+                {{ msg.content }}
+              </div>
+              <div class="pinned-time">
+                {{ formatTime(msg.created_at) }}
+              </div>
             </div>
             <a-empty
               v-if="store.pinnedMessages.length === 0"
@@ -303,10 +365,17 @@
         </div>
 
         <!-- Members Panel -->
-        <div v-if="showMemberPanel && !showPinnedPanel" class="right-panel">
+        <div
+          v-if="showMemberPanel && !showPinnedPanel"
+          class="right-panel"
+        >
           <div class="right-panel-header">
             <span>Members ({{ store.members.length }})</span>
-            <a-button type="text" size="small" @click="showMemberPanel = false">
+            <a-button
+              type="text"
+              size="small"
+              @click="showMemberPanel = false"
+            >
               <CloseOutlined />
             </a-button>
           </div>
@@ -323,7 +392,10 @@
                 <span class="member-name">
                   {{ member.nickname || member.contact_nickname || formatDID(member.member_did) }}
                 </span>
-                <a-tag :color="roleColor(member.role)" size="small">
+                <a-tag
+                  :color="roleColor(member.role)"
+                  size="small"
+                >
                   {{ member.role }}
                 </a-tag>
               </div>
@@ -340,8 +412,14 @@
       @ok="handleCreateChannel"
       @cancel="showCreateChannelModal = false"
     >
-      <a-form :model="channelForm" layout="vertical">
-        <a-form-item label="Name" required>
+      <a-form
+        :model="channelForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="Name"
+          required
+        >
           <a-input
             v-model:value="channelForm.name"
             placeholder="channel-name"
@@ -356,10 +434,18 @@
         </a-form-item>
         <a-form-item label="Type">
           <a-select v-model:value="channelForm.type">
-            <a-select-option value="discussion">Discussion</a-select-option>
-            <a-select-option value="announcement">Announcement</a-select-option>
-            <a-select-option value="readonly">Read-only</a-select-option>
-            <a-select-option value="subscription">Subscription</a-select-option>
+            <a-select-option value="discussion">
+              Discussion
+            </a-select-option>
+            <a-select-option value="announcement">
+              Announcement
+            </a-select-option>
+            <a-select-option value="readonly">
+              Read-only
+            </a-select-option>
+            <a-select-option value="subscription">
+              Subscription
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -409,15 +495,15 @@ const quickEmojis = ["thumbsup", "heart", "laughing", "fire", "eyes", "100"];
 
 // Computed
 const canSendMessage = computed(() => {
-  if (!store.currentChannel) return false;
-  if (store.currentChannel.type === "readonly") return false;
-  if (store.currentChannel.type === "announcement" && !store.isModeratorOrAbove) return false;
+  if (!store.currentChannel) {return false;}
+  if (store.currentChannel.type === "readonly") {return false;}
+  if (store.currentChannel.type === "announcement" && !store.isModeratorOrAbove) {return false;}
   return true;
 });
 
 const inputPlaceholder = computed(() => {
-  if (!store.currentChannel) return "";
-  if (store.currentChannel.type === "readonly") return "This channel is read-only";
+  if (!store.currentChannel) {return "";}
+  if (store.currentChannel.type === "readonly") {return "This channel is read-only";}
   if (store.currentChannel.type === "announcement" && !store.isModeratorOrAbove) {
     return "Only admins can post in announcement channels";
   }
@@ -426,13 +512,13 @@ const inputPlaceholder = computed(() => {
 
 // Methods
 function formatDID(did) {
-  if (!did) return "";
-  if (did.length <= 20) return did;
+  if (!did) {return "";}
+  if (did.length <= 20) {return did;}
   return `${did.slice(0, 10)}...${did.slice(-10)}`;
 }
 
 function formatTime(timestamp) {
-  if (!timestamp) return "";
+  if (!timestamp) {return "";}
   const date = new Date(timestamp);
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
@@ -467,7 +553,7 @@ async function handleChannelSelect({ key }) {
 
 async function handleSendMessage() {
   const content = messageInput.value.trim();
-  if (!content || !store.currentChannel) return;
+  if (!content || !store.currentChannel) {return;}
 
   try {
     await store.sendMessage(content, "text", replyingTo.value?.id || null);
@@ -527,7 +613,7 @@ async function handleDeleteMessage(messageId) {
 }
 
 function handleReportMessage(msg) {
-  if (!store.currentCommunity) return;
+  if (!store.currentCommunity) {return;}
   store.reportContent({
     communityId: store.currentCommunity.id,
     contentId: msg.id,
@@ -546,7 +632,7 @@ async function handleCreateChannel() {
     message.warning("Please enter a channel name");
     return;
   }
-  if (!store.currentCommunity) return;
+  if (!store.currentCommunity) {return;}
   try {
     const { ipcRenderer } = window.electron || {};
     await ipcRenderer.invoke("channel:create", {

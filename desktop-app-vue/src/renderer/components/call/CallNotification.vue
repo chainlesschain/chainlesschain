@@ -1,19 +1,28 @@
 <template>
-  <div v-if="incomingCall" class="call-notification">
+  <div
+    v-if="incomingCall"
+    class="call-notification"
+  >
     <div class="call-notification-content">
       <div class="call-header">
         <PhoneOutlined
           v-if="incomingCall.type === 'audio'"
           class="call-icon audio"
         />
-        <VideoCameraOutlined v-else class="call-icon video" />
+        <VideoCameraOutlined
+          v-else
+          class="call-icon video"
+        />
         <span class="call-title">
           {{ incomingCall.type === "audio" ? "语音通话" : "视频通话" }}
         </span>
       </div>
 
       <div class="caller-info">
-        <a-avatar :size="64" :src="getCallerAvatar(incomingCall.peerId)">
+        <a-avatar
+          :size="64"
+          :src="getCallerAvatar(incomingCall.peerId)"
+        >
           <template #icon>
             <UserOutlined />
           </template>
@@ -21,7 +30,9 @@
         <div class="caller-name">
           {{ getCallerName(incomingCall.peerId) }}
         </div>
-        <div class="caller-status">来电中...</div>
+        <div class="caller-status">
+          来电中...
+        </div>
       </div>
 
       <div class="call-actions">
@@ -54,8 +65,14 @@
     </div>
 
     <!-- 铃声音频 -->
-    <audio ref="ringtone" loop>
-      <source src="@/assets/sounds/ringtone.mp3" type="audio/mpeg" />
+    <audio
+      ref="ringtone"
+      loop
+    >
+      <source
+        src="@/assets/sounds/ringtone.mp3"
+        type="audio/mpeg"
+      >
     </audio>
   </div>
 </template>

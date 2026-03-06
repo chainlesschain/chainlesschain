@@ -1,6 +1,10 @@
 <template>
   <Teleport to="body">
-    <div class="photo-viewer-overlay" @click.self="handleClose" @keydown="handleKeydown">
+    <div
+      class="photo-viewer-overlay"
+      @click.self="handleClose"
+      @keydown="handleKeydown"
+    >
       <!-- Close button -->
       <a-button
         type="text"
@@ -22,9 +26,16 @@
       </a-button>
 
       <!-- Main image area -->
-      <div class="viewer-content" @click.stop>
+      <div
+        class="viewer-content"
+        @click.stop
+      >
         <div class="viewer-image-container">
-          <a-spin v-if="imageLoading" size="large" class="viewer-spinner" />
+          <a-spin
+            v-if="imageLoading"
+            size="large"
+            class="viewer-spinner"
+          />
           <img
             v-show="!imageLoading"
             ref="imageRef"
@@ -33,7 +44,7 @@
             class="viewer-image"
             @load="onImageLoaded"
             @error="onImageError"
-          />
+          >
         </div>
 
         <!-- Photo info bar -->
@@ -42,7 +53,10 @@
             <span class="viewer-counter">
               {{ currentIndex + 1 }} / {{ photos.length }}
             </span>
-            <span v-if="currentPhoto?.caption" class="viewer-caption">
+            <span
+              v-if="currentPhoto?.caption"
+              class="viewer-caption"
+            >
               {{ currentPhoto.caption }}
             </span>
           </div>
@@ -73,30 +87,56 @@
         </div>
 
         <!-- Photo details panel -->
-        <div v-if="showDetails" class="viewer-details-panel">
-          <div class="detail-item" v-if="currentPhoto?.width && currentPhoto?.height">
+        <div
+          v-if="showDetails"
+          class="viewer-details-panel"
+        >
+          <div
+            v-if="currentPhoto?.width && currentPhoto?.height"
+            class="detail-item"
+          >
             <span class="detail-label">Dimensions:</span>
             <span>{{ currentPhoto.width }} x {{ currentPhoto.height }}</span>
           </div>
-          <div class="detail-item" v-if="currentPhoto?.file_size">
+          <div
+            v-if="currentPhoto?.file_size"
+            class="detail-item"
+          >
             <span class="detail-label">Size:</span>
             <span>{{ formatFileSize(currentPhoto.file_size) }}</span>
           </div>
-          <div class="detail-item" v-if="currentPhoto?.mime_type">
+          <div
+            v-if="currentPhoto?.mime_type"
+            class="detail-item"
+          >
             <span class="detail-label">Type:</span>
             <span>{{ currentPhoto.mime_type }}</span>
           </div>
-          <div class="detail-item" v-if="currentPhoto?.uploader_did">
+          <div
+            v-if="currentPhoto?.uploader_did"
+            class="detail-item"
+          >
             <span class="detail-label">Uploaded by:</span>
             <span>{{ shortenDid(currentPhoto.uploader_did) }}</span>
           </div>
-          <div class="detail-item" v-if="currentPhoto?.created_at">
+          <div
+            v-if="currentPhoto?.created_at"
+            class="detail-item"
+          >
             <span class="detail-label">Date:</span>
             <span>{{ formatDate(currentPhoto.created_at) }}</span>
           </div>
-          <div class="detail-item" v-if="currentPhoto?.is_encrypted">
+          <div
+            v-if="currentPhoto?.is_encrypted"
+            class="detail-item"
+          >
             <span class="detail-label">Encrypted:</span>
-            <a-tag color="green" size="small">Yes</a-tag>
+            <a-tag
+              color="green"
+              size="small"
+            >
+              Yes
+            </a-tag>
           </div>
         </div>
       </div>
@@ -128,7 +168,7 @@
           <img
             :src="photo.thumbnail_path || photo.file_path"
             :alt="photo.caption || `Photo ${index + 1}`"
-          />
+          >
         </div>
       </div>
     </div>

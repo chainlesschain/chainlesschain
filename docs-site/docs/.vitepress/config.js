@@ -70,6 +70,9 @@ export default defineConfig({
             { text: "交易辅助", link: "/chainlesschain/trading" },
             { text: "U盾集成", link: "/chainlesschain/ukey" },
             { text: "SIMKey集成", link: "/chainlesschain/simkey" },
+            { text: "SIMKey高级安全", link: "/chainlesschain/simkey-advanced" },
+            { text: "SIMKey企业版", link: "/chainlesschain/simkey-enterprise" },
+            { text: "移动端同步", link: "/chainlesschain/mobile-sync" },
           ],
         },
         {
@@ -78,13 +81,18 @@ export default defineConfig({
             { text: "AI模型配置", link: "/chainlesschain/ai-models" },
             { text: "Git同步", link: "/chainlesschain/git-sync" },
             { text: "数据加密", link: "/chainlesschain/encryption" },
+            {
+              text: "上下文工程",
+              link: "/chainlesschain/context-engineering",
+            },
+            { text: "永久记忆系统", link: "/chainlesschain/permanent-memory" },
           ],
         },
         {
           text: "自动化功能",
           items: [
             { text: "浏览器插件", link: "/chainlesschain/browser-extension" },
-            { text: "Computer Use", link: "/chainlesschain/computer-use" },
+            { text: "计算机操控", link: "/chainlesschain/computer-use" },
             {
               text: "浏览器自动化",
               link: "/chainlesschain/browser-automation",
@@ -95,57 +103,183 @@ export default defineConfig({
         {
           text: "企业版功能",
           items: [
-            { text: "Cowork多智能体协作", link: "/chainlesschain/cowork" },
-            { text: "SessionManager", link: "/chainlesschain/session-manager" },
-            { text: "Hooks系统", link: "/chainlesschain/hooks" },
+            { text: "多智能体协作", link: "/chainlesschain/cowork" },
+            { text: "会话管理器", link: "/chainlesschain/session-manager" },
+            { text: "钩子系统", link: "/chainlesschain/hooks" },
             { text: "权限系统", link: "/chainlesschain/permissions" },
-            { text: "Plan模式", link: "/chainlesschain/plan-mode" },
-            { text: "Skills系统", link: "/chainlesschain/skills" },
-            { text: "企业组织管理", link: "/chainlesschain/enterprise-org" },
+            { text: "计划模式", link: "/chainlesschain/plan-mode" },
+            { text: "技能系统", link: "/chainlesschain/skills" },
+            { text: "EvoMap GEP协议", link: "/chainlesschain/evomap" },
+            { text: "协作高级功能", link: "/chainlesschain/cowork-advanced" },
+            { text: "协作路线图", link: "/chainlesschain/cowork-roadmap" },
+            { text: "团队管理", link: "/chainlesschain/team-manager" },
+            { text: "审计日志", link: "/chainlesschain/audit" },
           ],
         },
         {
-          text: "v1.0.0 新增模块",
+          text: "v1.1.0 企业增强 (Phase 42-45)",
           items: [
             {
-              text: "IPFS去中心化存储",
-              link: "/chainlesschain/ipfs-storage",
+              text: "社交AI + ActivityPub",
+              link: "/chainlesschain/social-ai",
             },
+            { text: "合规与数据分类", link: "/chainlesschain/compliance" },
+            { text: "SCIM 2.0 用户配置", link: "/chainlesschain/scim" },
+            { text: "统一密钥 + FIDO2", link: "/chainlesschain/unified-key" },
+          ],
+        },
+        {
+          text: "v1.1.0 安全与社交增强 (Phase 46-51)",
+          items: [
             {
-              text: "实时协作系统",
-              link: "/chainlesschain/realtime-collab",
+              text: "门限签名 + 生物特征",
+              link: "/chainlesschain/threshold-security",
             },
+            { text: "蓝牙U-Key", link: "/chainlesschain/ble-ukey" },
             {
-              text: "自治Agent Runner",
-              link: "/chainlesschain/autonomous-agent",
+              text: "内容推荐",
+              link: "/chainlesschain/content-recommendation",
             },
-            { text: "模型量化系统", link: "/chainlesschain/quantization" },
-            { text: "i18n国际化", link: "/chainlesschain/i18n" },
+            { text: "Nostr桥接", link: "/chainlesschain/nostr-bridge" },
+            { text: "数据防泄漏 (DLP)", link: "/chainlesschain/dlp" },
+            { text: "SIEM 集成", link: "/chainlesschain/siem" },
+          ],
+        },
+        {
+          text: "v1.1.0 安全与企业扩展 (Phase 52-56)",
+          items: [
             {
-              text: "性能自动调优",
-              link: "/chainlesschain/performance-tuning",
+              text: "后量子密码迁移",
+              link: "/chainlesschain/pqc-migration",
+            },
+            { text: "U盾固件 OTA", link: "/chainlesschain/firmware-ota" },
+            { text: "AI 社区治理", link: "/chainlesschain/governance" },
+            { text: "Matrix集成", link: "/chainlesschain/matrix-bridge" },
+            {
+              text: "Terraform 提供者",
+              link: "/chainlesschain/terraform-provider",
             },
           ],
         },
         {
-          text: "v1.1.0 新增模块",
+          text: "v1.1.0 新功能",
           items: [
-            {
-              text: "去中心化Agent网络",
-              link: "/chainlesschain/agent-network",
-            },
-            {
-              text: "自治运维系统",
-              link: "/chainlesschain/autonomous-ops",
-            },
-            {
-              text: "开发流水线编排",
-              link: "/chainlesschain/dev-pipeline",
-            },
+            { text: "流水线编排", link: "/chainlesschain/pipeline" },
+            { text: "自然语言编程", link: "/chainlesschain/nl-programming" },
             { text: "多模态协作", link: "/chainlesschain/multimodal" },
+            { text: "自主运维", link: "/chainlesschain/autonomous-ops" },
+            { text: "代理联邦网络", link: "/chainlesschain/agent-federation" },
+          ],
+        },
+        {
+          text: "v2.0.0 生产加固 (Phase 57-61)",
+          items: [
             {
-              text: "自然语言编程",
-              link: "/chainlesschain/nl-programming",
+              text: "生产加固",
+              link: "/chainlesschain/production-hardening",
+            },
+            {
+              text: "联邦网络加固",
+              link: "/chainlesschain/federation-hardening",
+            },
+            { text: "联邦压力测试", link: "/chainlesschain/stress-test" },
+            {
+              text: "信誉系统优化",
+              link: "/chainlesschain/reputation-optimizer",
+            },
+            { text: "跨组织 SLA", link: "/chainlesschain/sla-manager" },
+          ],
+        },
+        {
+          text: "v3.0.0 自主AI开发 (Phase 62-64)",
+          items: [
+            {
+              text: "自主技术学习",
+              link: "/chainlesschain/tech-learning",
+            },
+            {
+              text: "自主开发者",
+              link: "/chainlesschain/autonomous-developer",
+            },
+            {
+              text: "协作治理框架",
+              link: "/chainlesschain/collaboration-governance",
+            },
+          ],
+        },
+        {
+          text: "v3.1.0 去中心化AI市场 (Phase 65-67)",
+          items: [
+            {
+              text: "技能市场",
+              link: "/chainlesschain/skill-marketplace",
+            },
+            {
+              text: "通证激励",
+              link: "/chainlesschain/token-incentive",
+            },
+            {
+              text: "推理网络",
+              link: "/chainlesschain/inference-network",
+            },
+          ],
+        },
+        {
+          text: "v3.2.0 硬件安全生态 (Phase 68-71)",
+          items: [
+            { text: "三位一体信任根", link: "/chainlesschain/trust-root" },
+            {
+              text: "后量子全面迁移",
+              link: "/chainlesschain/pqc-ecosystem",
+            },
+            {
+              text: "卫星通信",
+              link: "/chainlesschain/satellite-comm",
+            },
+            { text: "HSM硬件适配器", link: "/chainlesschain/hsm-adapter" },
+          ],
+        },
+        {
+          text: "v3.3.0 全球去中心化社交 (Phase 72-75)",
+          items: [
+            {
+              text: "协议融合桥接",
+              link: "/chainlesschain/protocol-fusion",
+            },
+            {
+              text: "AI社交增强",
+              link: "/chainlesschain/ai-social-enhancement",
+            },
+            {
+              text: "去中心化存储",
+              link: "/chainlesschain/decentralized-storage",
+            },
+            {
+              text: "抗审查网络",
+              link: "/chainlesschain/anti-censorship",
+            },
+          ],
+        },
+        {
+          text: "v3.4.0 EvoMap全球进化 (Phase 76-77)",
+          items: [
+            {
+              text: "EvoMap全球联邦",
+              link: "/chainlesschain/evomap-federation",
+            },
+            {
+              text: "EvoMap治理DAO",
+              link: "/chainlesschain/evomap-governance",
+            },
+          ],
+        },
+        {
+          text: "产品规划",
+          items: [
+            { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
+            {
+              text: "v1.1.0 实施计划",
+              link: "/chainlesschain/implementation-plan",
             },
           ],
         },

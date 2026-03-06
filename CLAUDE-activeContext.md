@@ -2,13 +2,38 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-16 (v0.35.0 全量文档更新)
+> **最后更新**: 2026-02-27 (v1.1.0 B/C/D Phase 2 实现 + 测试 + 路线图完善)
 
 ---
 
 ## 当前工作焦点
 
 ### 活跃任务
+
+- [x] v1.1.0 主线 B/C/D Phase 2 — 全部 6 个工作流完成 ✅
+  - WS1: B1-P2 门限签名+生物绑定 — threshold-signature-manager + biometric-binding + 4 IPC (Phase 46)
+  - WS2: B2-P2 蓝牙 U盾 BLE — ble-driver 扩展 + 4 IPC (Phase 47)
+  - WS3: C1-P2 智能内容推荐 — local-recommender + interest-profiler + recommendation-ipc + 6 IPC (Phase 48)
+  - WS4: C2-P2 Nostr 桥接 — nostr-bridge + nostr-identity + nostr-bridge-ipc + 6 IPC (Phase 49)
+  - WS5: D1-P2 DLP 防泄漏 — dlp-engine + dlp-policy + dlp-ipc + 8 IPC (Phase 50)
+  - WS6: D2-P2 SIEM 对接 — siem-exporter + siem-ipc + 4 IPC (Phase 51)
+  - WS7: 集成 — ipc-registry (Phase 46-51) + router (6 routes) + context-engineering + config
+  - 合计: 13 后端模块 + 32 IPC (Phase 46-51) + 6 Vue 页面 + 6 Pinia Store + 9 DB 表
+- [x] 单元测试 + E2E 测试 — ~395 新测试用例全部通过 ✅
+  - 9 个后端测试文件 (254 tests)
+  - 6 个 Pinia Store 测试文件 (141 tests)
+  - 6 个 E2E 测试场景 (18 tests)
+  - 最终: 504 passed / 21 failed (pre-existing) / 36 skipped
+- [x] 文档更新 — 路线图 B/C/D Phase 2 状态更新 ✅
+- [x] 路线图完善 — Phase 2 各主线实施计划详细补全，IPC/测试数据更新 ✅
+
+### 历史任务
+
+- [x] v1.1.0 主线 B/C/D Phase 1 — 全部 7 个工作流完成 ✅
+  - 合计: 16 后端模块 + 46 IPC (Phase 42-45) + 4 Vue 页面 + 2 Pinia Store + 10 DB 表
+  - ~400 新测试用例全部通过
+
+### 历史任务
 
 - [x] Unified Tool Registry — 统一工具注册表 + AI 调用链打通 ✅
   - 8 步实现: Registry/MCPSkillGenerator/ToolSkillMapper/IPC/Vue 页面/Pinia store

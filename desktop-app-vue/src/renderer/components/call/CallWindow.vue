@@ -1,10 +1,21 @@
 <template>
-  <div v-if="activeCall" class="call-window">
+  <div
+    v-if="activeCall"
+    class="call-window"
+  >
     <div class="call-container">
       <!-- 视频区域 -->
-      <div v-if="activeCall.type === 'video'" class="video-container">
+      <div
+        v-if="activeCall.type === 'video'"
+        class="video-container"
+      >
         <!-- 远程视频 -->
-        <video ref="remoteVideo" class="remote-video" autoplay playsinline />
+        <video
+          ref="remoteVideo"
+          class="remote-video"
+          autoplay
+          playsinline
+        />
 
         <!-- 本地视频（画中画） -->
         <video
@@ -17,9 +28,15 @@
       </div>
 
       <!-- 音频通话界面 -->
-      <div v-else class="audio-call-container">
+      <div
+        v-else
+        class="audio-call-container"
+      >
         <div class="audio-call-content">
-          <a-avatar :size="120" :src="getCallerAvatar()">
+          <a-avatar
+            :size="120"
+            :src="getCallerAvatar()"
+          >
             <template #icon>
               <UserOutlined />
             </template>
@@ -37,7 +54,10 @@
       </div>
 
       <!-- 通话质量指示器 -->
-      <div v-if="callQuality" class="quality-indicator">
+      <div
+        v-if="callQuality"
+        class="quality-indicator"
+      >
         <SignalFilled :class="['signal-icon', qualityClass]" />
         <span class="quality-text">{{ qualityText }}</span>
       </div>
@@ -97,7 +117,11 @@
 
         <!-- 设置按钮 -->
         <a-tooltip title="设置">
-          <a-button shape="circle" size="large" @click="showSettings = true">
+          <a-button
+            shape="circle"
+            size="large"
+            @click="showSettings = true"
+          >
             <template #icon>
               <SettingOutlined />
             </template>
@@ -143,7 +167,9 @@
           </a-select-option>
         </a-select>
 
-        <h4 v-if="activeCall.type === 'video'">视频设备</h4>
+        <h4 v-if="activeCall.type === 'video'">
+          视频设备
+        </h4>
         <a-select
           v-if="activeCall.type === 'video'"
           v-model:value="selectedVideoInput"
@@ -162,7 +188,10 @@
         <a-divider />
 
         <h4>通话统计</h4>
-        <div v-if="callStats" class="call-stats">
+        <div
+          v-if="callStats"
+          class="call-stats"
+        >
           <div class="stat-item">
             <span class="stat-label">接收:</span>
             <span class="stat-value">{{
@@ -181,9 +210,7 @@
           </div>
           <div class="stat-item">
             <span class="stat-label">延迟:</span>
-            <span class="stat-value"
-              >{{ Math.round(callStats.roundTripTime * 1000) }}ms</span
-            >
+            <span class="stat-value">{{ Math.round(callStats.roundTripTime * 1000) }}ms</span>
           </div>
         </div>
       </div>
