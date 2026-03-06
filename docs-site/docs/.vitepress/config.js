@@ -101,6 +101,52 @@ export default defineConfig({
             { text: "权限系统", link: "/chainlesschain/permissions" },
             { text: "Plan模式", link: "/chainlesschain/plan-mode" },
             { text: "Skills系统", link: "/chainlesschain/skills" },
+            { text: "企业组织管理", link: "/chainlesschain/enterprise-org" },
+          ],
+        },
+        {
+          text: "v1.0.0 新增模块",
+          items: [
+            {
+              text: "IPFS去中心化存储",
+              link: "/chainlesschain/ipfs-storage",
+            },
+            {
+              text: "实时协作系统",
+              link: "/chainlesschain/realtime-collab",
+            },
+            {
+              text: "自治Agent Runner",
+              link: "/chainlesschain/autonomous-agent",
+            },
+            { text: "模型量化系统", link: "/chainlesschain/quantization" },
+            { text: "i18n国际化", link: "/chainlesschain/i18n" },
+            {
+              text: "性能自动调优",
+              link: "/chainlesschain/performance-tuning",
+            },
+          ],
+        },
+        {
+          text: "v1.1.0 新增模块",
+          items: [
+            {
+              text: "去中心化Agent网络",
+              link: "/chainlesschain/agent-network",
+            },
+            {
+              text: "自治运维系统",
+              link: "/chainlesschain/autonomous-ops",
+            },
+            {
+              text: "开发流水线编排",
+              link: "/chainlesschain/dev-pipeline",
+            },
+            { text: "多模态协作", link: "/chainlesschain/multimodal" },
+            {
+              text: "自然语言编程",
+              link: "/chainlesschain/nl-programming",
+            },
           ],
         },
       ],
