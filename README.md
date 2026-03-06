@@ -986,7 +986,7 @@
 - 🟢 **PC端桌面应用**: 100% 完成 - **生产就绪 (v1.1.0 Enterprise Edition)**
 - 🟢 **知识库管理**: 100% 完成 - **8算法+5可视化+智能提取+6导出**
 - 🟢 **AI引擎系统**: 100% 完成 - **17项优化+16个专用引擎+智能决策系统**
-- 🟢 **Cowork多代理系统**: 100% 完成 - **118内置技能+智能编排+代理池+自进化+P2P Agent网络**
+- 🟢 **Cowork多代理系统**: 100% 完成 - **128内置技能+智能编排+代理池+自进化+P2P Agent网络**
 - 🟢 **去中心化社交平台**: 100% 完成 - **P2P语音/视频通话+共享相册+社区频道+时光机+直播+社交代币**
 - 🟢 **企业版组织管理**: 100% 完成 - **组织层级+审批工作流+多租户+企业仪表板**
 - 🟢 **实时协作系统**: 100% 完成 - **Yjs CRDT+P2P同步+光标共享+文档锁+协作历史**
@@ -1000,7 +1000,7 @@
 - 🟢 **远程控制系统**: 100% 完成 - **P2P远程网关+24+命令处理器+Chrome扩展**
 - 🟢 **企业审计与合规**: 100% 完成 - **统一审计日志+GDPR合规+DSR处理+18 IPC**
 - 🟢 **插件市场与SSO**: 100% 完成 - **插件市场22 IPC+SSO认证20 IPC+MCP SDK+多代理16 IPC**
-- 🟢 **AI技能系统**: 100% 完成 - **118内置技能(100% Handler覆盖)+统一工具注册表+10演示模板+Agent Skills标准+本能学习**
+- 🟢 **AI技能系统**: 100% 完成 - **128内置技能(100% Handler覆盖)+统一工具注册表+10演示模板+Agent Skills标准+本能学习**
 - 🟢 **SIMKey安全增强**: 100% 完成 - **iOS eSIM+5G优化+NFC离线签名+多SIM卡切换+健康监控+量子抗性**
 - 🟢 **去中心化Agent网络**: 100% 完成 - **W3C DID身份+挑战-响应认证+W3C VC凭证+信誉评分+联邦注册表+跨组织任务路由 (20 IPC)**
 - 🟢 **自治运维系统**: 100% 完成 - **异常检测+事件管理+自动修复+告警+回滚+部署后监控+事后分析 (15 IPC)**
@@ -1083,8 +1083,8 @@
 - 🛒 **插件市场**: 插件浏览/安装/评分/发布 + 自动更新 + 哈希校验安全
 - 🔑 **SSO企业认证**: SAML 2.0 + OAuth 2.0/OIDC + PKCE + DID身份关联
 - 🪝 **Hooks系统**: 21种钩子事件 + 4种钩子类型 + 优先级系统 + 脚本钩子
-- 🎨 **Skills系统**: 118个内置技能(100% Handler覆盖) + Agent Skills开放标准 + 统一工具注册表 + /skill命令
-- 🗂️ **统一工具注册表**: FunctionCaller 60+工具 + MCP 8服务器 + Skills 118技能统一管理
+- 🎨 **Skills系统**: 128个内置技能(100% Handler覆盖) + Agent Skills开放标准 + 统一工具注册表 + /skill命令
+- 🗂️ **统一工具注册表**: FunctionCaller 60+工具 + MCP 8服务器 + Skills 128技能统一管理
 - 🧬 **本能学习**: 自动提取用户模式 + 置信度评分 + 上下文注入 + Hooks观察流水线
 - 📦 **演示模板系统**: 10个演示模板 + 4大类别 + 可视化浏览 + 一键运行
 - ⛓️ **区块链集成**: 6个智能合约 + HD钱包系统 + LayerZero跨链桥
@@ -1227,14 +1227,14 @@
 - ✅ **Skills系统** - Markdown技能定义、四层加载机制(bundled→marketplace→managed→workspace)
 - ✅ **/skill命令** - 用户命令解析、自动执行
 - ✅ **门控检查** - 平台、依赖、环境变量检测
-- ✅ **118个内置技能** - 全部配备可执行handler (100%覆盖率)，覆盖18+大类别(含v1.2.0新增22个外部标准转化+实用技能)
+- ✅ **128个内置技能** - 全部配备可执行handler (100%覆盖率)，覆盖18+大类别(含v1.2.0新增22个外部标准转化+实用技能)
 - ✅ **Agent Skills开放标准** - 13个扩展字段(tools/instructions/examples/dependencies等)
 
 详细功能说明见 [Hooks系统设计](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [AI技能系统设计](./docs/design/modules/16_AI技能系统.md)
 
 ### 🔟 统一工具注册表 + 演示模板 (100% 完成) ✅
 
-- ✅ **UnifiedToolRegistry** - 聚合FunctionCaller(60+)、MCP(8服务器)、Skills(118技能)三大工具系统
+- ✅ **UnifiedToolRegistry** - 聚合FunctionCaller(60+)、MCP(8服务器)、Skills(128技能)三大工具系统
 - ✅ **ToolSkillMapper** - 自动将未覆盖工具分组到10个默认技能类别
 - ✅ **MCPSkillGenerator** - MCP服务器连接时自动生成技能清单
 - ✅ **Name Normalization** - SKILL.md命名(kebab-case) → FunctionCaller命名(snake_case)自动桥接
@@ -1383,7 +1383,7 @@ chainlesschain/
 │   │   │   │   │       ├── skills-ipc.js     # Skills IPC (17通道)
 │   │   │   │   │       ├── skill-md-parser.js # Agent Skills标准解析器
 │   │   │   │   │       ├── markdown-skill.js  # Markdown技能实现
-│   │   │   │   │       └── builtin/          # 118个内置技能 (100% Handler)
+│   │   │   │   │       └── builtin/          # 128个内置技能 (100% Handler)
 │   │   │   │   ├── plan-mode/                # Plan Mode系统 (Claude Code风格)
 │   │   │   │   │   ├── index.js              # PlanModeManager
 │   │   │   │   │   └── plan-mode-ipc.js      # Plan Mode IPC (14通道)
@@ -1429,14 +1429,14 @@ chainlesschain/
 
 - Electron 39.2.7 + Vue 3.4 + TypeScript 5.9 + Ant Design Vue 4.1
 - SQLite/SQLCipher (AES-256) + libp2p 3.1.2 + IPFS (Helia/Kubo)
-- 16个专用AI引擎 + 17项智能优化 + 118个内置技能 + 300个工具 + 后量子密码学
+- 16个专用AI引擎 + 17项智能优化 + 128个内置技能 + 300个工具 + 后量子密码学
 - 永久记忆: Daily Notes + MEMORY.md + 混合搜索(Vector+BM25)
 - Context Engineering: KV-Cache优化 + Token预估 + 可恢复压缩
 - 企业权限: RBAC引擎 + 团队管理 + 审批工作流 + 权限委托 + 企业组织管理
 - 远程控制: P2P网关 + 24+命令处理器 + Chrome扩展 + 工作流引擎
 - 浏览器控制: BrowserEngine + SnapshotEngine + DI可测性 + 18 IPC通道
 - Claude Code风格: 10子系统 + 238 IPC通道 (Hooks/Plan Mode/Skills/Evolution/去中心化Agent网络/自治运维等)
-- AI技能系统: 118内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + 10演示模板 + 本能学习
+- AI技能系统: 128内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + 10演示模板 + 本能学习
 - 实时协作: Yjs CRDT + P2P同步 + 光标共享 + 文档锁
 - 去中心化社交: P2P通话(WebRTC+DTLS-SRTP) + 社区频道(Gossip) + 时光机 + 直播 + 社交代币
 - 模型量化: GGUF 14级量化 + AutoGPTQ Python桥接 + Ollama集成
@@ -1515,7 +1515,7 @@ chainlesschain/
 - [x] **TypeScript Stores扩展**: 46个Stores完整覆盖 ✅ v1.0.0
 - [x] **SIMKey六大安全增强**: iOS eSIM + 5G优化 + NFC离线签名 + 多SIM卡切换 + 健康监控 + 量子抗性算法 ✅ v0.38.0
 - [x] **everything-claude-code模式**: Verification Loop + Orchestrate Workflow + Instinct Learning System ✅ v0.39.0
-- [x] **AI技能系统**: 118内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + Agent Skills标准 ✅ v1.2.0
+- [x] **AI技能系统**: 128内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + Agent Skills标准 ✅ v1.2.0
 - [x] **扩展MCP服务器支持**: MCP SDK (Server Builder + HTTP+SSE + Stdio) + 社区注册中心 ✅ v0.34.0
 - [x] **增强多代理协作**: 8种专业化代理模板 + 任务编排引擎 + 5个内置技能 ✅ v0.34.0
 - [x] **社区生态**: 插件市场(22 IPC) + 社区MCP服务器发现/安装 ✅ v0.34.0

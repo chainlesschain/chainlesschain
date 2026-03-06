@@ -98,6 +98,7 @@ export default defineConfig({
               link: "/chainlesschain/browser-automation",
             },
             { text: "远程控制", link: "/chainlesschain/remote-control" },
+            { text: "自治Agent", link: "/chainlesschain/autonomous-agent" },
           ],
         },
         {
@@ -114,6 +115,7 @@ export default defineConfig({
             { text: "协作路线图", link: "/chainlesschain/cowork-roadmap" },
             { text: "团队管理", link: "/chainlesschain/team-manager" },
             { text: "审计日志", link: "/chainlesschain/audit" },
+            { text: "企业组织管理", link: "/chainlesschain/enterprise-org" },
           ],
         },
         {
@@ -169,6 +171,7 @@ export default defineConfig({
             { text: "多模态协作", link: "/chainlesschain/multimodal" },
             { text: "自主运维", link: "/chainlesschain/autonomous-ops" },
             { text: "代理联邦网络", link: "/chainlesschain/agent-federation" },
+            { text: "Agent网络", link: "/chainlesschain/agent-network" },
           ],
         },
         {
