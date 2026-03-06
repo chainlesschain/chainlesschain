@@ -1,0 +1,43 @@
+{
+  "id": "tpl_demo_ultrathink_001",
+  "name": "ultrathink_reasoning",
+  "display_name": "深度推理分析",
+  "description": "演示 UltraThink 深度推理技能，通过多步骤结构化思考解决复杂问题",
+  "icon": "🧠",
+  "category": "ai-workflow",
+  "subcategory": "reasoning",
+  "tags": ["thinking", "reasoning", "analysis", "deep", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我使用深度推理分析问题：\n\n**问题描述：** {{problem}}\n**推理模式：** {{mode}}\n\n**推理步骤：**\n\n### 启动深度推理\n```\n/ultrathink {{mode}} \"{{problem}}\"\n```\n\n{{#eq mode \"analyze\"}}\n系统将按以下7步进行深度分析：\n1. 问题重述 → 2. 约束映射 → 3. 假设识别 → 4. 根因分析 → 5. 解决方案空间 → 6. 多视角检查 → 7. 最终建议\n{{/eq}}\n\n{{#eq mode \"decompose\"}}\n系统将按以下7步进行任务分解：\n1. 范围定义 → 2. 组件识别 → 3. 依赖映射 → 4. 子任务拆分 → 5. 关键路径 → 6. 风险评估 → 7. 执行计划\n{{/eq}}\n\n{{#eq mode \"evaluate\"}}\n系统将按以下7步进行方案评估：\n1. 选项枚举 → 2. 标准定义 → 3. 权重分配 → 4. 评分 → 5. 权衡矩阵 → 6. 敏感性分析 → 7. 最终裁决\n{{/eq}}\n\n### 保存推理结果\n```\n/memory-management save \"深度推理: {{problem}}\"\n```\n\n**使用的技能：** ultrathink, memory-management",
+  "variables_schema": [
+    {
+      "name": "problem",
+      "label": "问题描述",
+      "type": "string",
+      "required": true,
+      "placeholder": "描述你需要深度分析的问题"
+    },
+    {
+      "name": "mode",
+      "label": "推理模式",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "analyze", "label": "深度分析（适合复杂技术问题）" },
+        { "value": "decompose", "label": "任务分解��适合大型项目）" },
+        { "value": "evaluate", "label": "方案评估（适合技术选型）" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["ultrathink", "memory-management"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

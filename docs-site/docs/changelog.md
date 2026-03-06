@@ -5,6 +5,43 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.0] - 2026-03-06
+
+### 新增
+
+- **v1.2.0 新增 22 个实用技能** (总计 118 个桌面内置技能, 100% Handler 覆盖)
+  - 研究 10 大外部技能标准并转化为内置技能，同时新增 12 个实用流行技能
+
+**外部技能标准转化 (10 个)**:
+
+- `tavily-search`: 联网搜索，Tavily API 深度搜索/新闻/内容提取
+- `find-skills`: 技能发现，从注册表搜索/推荐/分类浏览
+- `proactive-agent`: 主动代理，4 种自主触发器(文件监控/阈值/周期/模式匹配)
+- `agent-browser`: Agent 浏览器，快照引用模式(@e1/@e2)浏览器自动化
+- `remotion-video`: 视频生成，React/Remotion 6 种模板
+- `cron-scheduler`: 定时调度，Cron 表达式 + 自然语言时间
+- `planning-with-files`: 规划工作流，Manus 3 文件模式
+- `content-publisher`: 内容发布，5 种内容类型
+- `skill-creator`: 技能创建器，元技能：创建/测试/验证/优化
+- `webapp-testing`: Web 测试，侦察-执行模式
+
+**实用流行技能 (12 个)**:
+
+- `deep-research`: 深度研究，8 阶段研究流水线
+- `git-worktree-manager`: Git Worktree 管理
+- `pr-reviewer`: PR 审查，通过 gh CLI 分析差异
+- `docker-compose-generator`: Docker Compose 生成，10 种服务模板
+- `terraform-iac`: Terraform IaC，AWS/GCP/Azure HCL 配置生成
+- `api-docs-generator`: API 文档生成，OpenAPI 3.0 规范
+- `news-monitor`: 新闻监控，HackerNews API + 趋势检测
+- `ultrathink`: 深度思考，7 步扩展推理框架
+- `youtube-summarizer`: YouTube 摘要，字幕提取 + 章节分段
+- `database-query`: 数据库助手，SQL 生成/优化/Schema 内省
+- `k8s-deployer`: K8s 部署，清单生成 + Helm Chart + 安全检查
+- `cursor-rules-generator`: IDE 规则生成，5 种 AI 编码助手配置
+
+---
+
 ## [3.4.0] - 2026-02-28
 
 ### 新增

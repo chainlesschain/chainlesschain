@@ -1,0 +1,56 @@
+{
+  "id": "tpl_demo_publish_001",
+  "name": "content_publish_pipeline",
+  "display_name": "内容发布流水线",
+  "description": "演示内容发布技能，一键将内容发布到多个平台",
+  "icon": "📤",
+  "category": "content",
+  "subcategory": "publishing",
+  "tags": ["publish", "content", "multi-platform", "social", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个内容发布流水线：\n\n**内容标题：** {{title}}\n**内容类型：** {{contentType}}\n**目标平台：** {{platforms}}\n\n**发布步骤：**\n\n### 步骤1：准备内容\n根据内容类型进行格式适配和优化。\n\n### 步骤2：平台适配\n```\n/content-publisher prepare \"{{title}}\" --type {{contentType}} --platforms {{platforms}}\n```\n\n### 步骤3：发布到各平台\n```\n/content-publisher publish \"{{title}}\" --platforms {{platforms}}\n```\n\n### 步骤4：记录发布结果\n```\n/memory-management save \"内容发布: {{title}} → {{platforms}}\"\n```\n\n**使用的技能：** content-publisher, memory-management",
+  "variables_schema": [
+    {
+      "name": "title",
+      "label": "内容标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "我的文章标题"
+    },
+    {
+      "name": "contentType",
+      "label": "内容类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "article", "label": "文章" },
+        { "value": "blog", "label": "博客" },
+        { "value": "social-post", "label": "社交动态" },
+        { "value": "newsletter", "label": "邮件通讯" }
+      ]
+    },
+    {
+      "name": "platforms",
+      "label": "目标平台",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "wechat", "label": "微信公众号" },
+        { "value": "zhihu", "label": "知乎" },
+        { "value": "juejin", "label": "掘金" },
+        { "value": "all", "label": "全平台" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["content-publisher", "memory-management"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

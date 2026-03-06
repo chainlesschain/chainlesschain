@@ -1,0 +1,63 @@
+{
+  "id": "tpl_demo_cron_001",
+  "name": "cron_task_scheduler",
+  "display_name": "定时任务调度器",
+  "description": "演示定时任务调度技能，配置和管理 Cron 定时任务",
+  "icon": "⏰",
+  "category": "devops",
+  "subcategory": "scheduling",
+  "tags": ["cron", "scheduler", "automation", "timer", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我配置一个定时任务：\n\n**任务名称：** {{taskName}}\n**执行频率：** {{frequency}}\n**任务类型：** {{taskType}}\n**任务描述：** {{taskDescription}}\n\n**配置步骤：**\n\n### 步骤1：创建定时任务\n```\n/cron-scheduler create {{taskName}} --cron \"{{frequency}}\" --type {{taskType}}\n```\n\n### 步骤2：配置任务内容\n{{taskDescription}}\n\n### 步骤3：启用任务\n```\n/cron-scheduler enable {{taskName}}\n```\n\n### 步骤4：查看任务列表\n```\n/cron-scheduler list\n```\n\n**使用的技能：** cron-scheduler, workflow-automation",
+  "variables_schema": [
+    {
+      "name": "taskName",
+      "label": "任务名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "daily-backup"
+    },
+    {
+      "name": "frequency",
+      "label": "执行频率",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "0 */1 * * *", "label": "每小时" },
+        { "value": "0 9 * * *", "label": "每天9点" },
+        { "value": "0 9 * * 1", "label": "每周一9点" },
+        { "value": "0 0 1 * *", "label": "每月1日" }
+      ]
+    },
+    {
+      "name": "taskType",
+      "label": "任务类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "backup", "label": "数据备份" },
+        { "value": "report", "label": "报告生成" },
+        { "value": "cleanup", "label": "数据清理" },
+        { "value": "sync", "label": "数据同步" }
+      ]
+    },
+    {
+      "name": "taskDescription",
+      "label": "任务描述",
+      "type": "string",
+      "required": false,
+      "placeholder": "描述任务执行的具体内容"
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["cron-scheduler", "workflow-automation"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

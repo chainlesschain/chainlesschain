@@ -24,7 +24,7 @@ docs/design/
 │   ├── 13_多代理系统.md             # ⭐v0.34.0新增 8种专业代理
 │   ├── 14_SSO企业认证.md            # ⭐v0.34.0新增 SAML/OAuth/OIDC
 │   ├── 15_MCP_SDK系统.md            # ⭐v0.34.0新增 Server Builder
-│   ├── 16_AI技能系统.md             # ⭐v0.37.6更新 90技能+统一工具+演示模板
+│   ├── 16_AI技能系统.md             # ⭐v1.2.0更新 118技能+统一工具+演示模板
 │   ├── 17_EvoMap系统.md             # ⭐Phase 41 GEP-A2A/Gene/Capsule
 │   ├── 18_社交AI系统.md           # ⭐Phase 42 主题分析/社交图谱/AP
 │   ├── 19_合规分类系统.md         # ⭐Phase 43 SOC2/数据分类
@@ -88,7 +88,7 @@ docs/design/
 | **多代理系统** ⭐   | [13\_多代理系统.md](modules/13_多代理系统.md)             | **v0.34.0新增**,专业代理,任务编排                      |
 | **SSO企业认证** ⭐  | [14_SSO企业认证.md](modules/14_SSO企业认证.md)            | **v0.34.0新增**,SAML/OAuth/OIDC                        |
 | **MCP SDK** ⭐      | [15_MCP_SDK系统.md](modules/15_MCP_SDK系统.md)            | **v0.34.0新增**,Server Builder,社区                    |
-| **AI技能系统** ⭐   | [16_AI技能系统.md](modules/16_AI技能系统.md)              | **v0.37.6更新**,90技能(100% Handler),统一工具,演示模板 |
+| **AI技能系统** ⭐   | [16_AI技能系统.md](modules/16_AI技能系统.md)              | **v1.2.0更新**,118技能(100% Handler),统一工具,演示模板 |
 
 ### Phase 41-45 模块 (v1.0.0)
 

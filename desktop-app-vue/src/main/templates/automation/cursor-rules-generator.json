@@ -1,0 +1,57 @@
+{
+  "id": "tpl_demo_cursorrules_001",
+  "name": "cursor_rules_generator",
+  "display_name": "IDE 规则文件生成器",
+  "description": "演示 Cursor Rules 生成技能，自动分析项目并生成 AI IDE 配置规则",
+  "icon": "⚙️",
+  "category": "automation",
+  "subcategory": "ide",
+  "tags": ["cursor", "rules", "ide", "config", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我生成 IDE 规则配置文件：\n\n**项目路径：** {{projectPath}}\n**规则类型：** {{ruleType}}\n**技术栈：** {{techStack}}\n\n**生成步骤：**\n\n### 步骤1：分析项目\n```\n/cursor-rules-generator analyze {{projectPath}}\n```\n\n### 步骤2：生成规则\n```\n/cursor-rules-generator generate {{projectPath}} --type {{ruleType}} --stack {{techStack}}\n```\n\n### 步骤3：验证规则\n```\n/cursor-rules-generator validate {{projectPath}}\n```\n\n**使用的技能：** cursor-rules-generator, memory-management",
+  "variables_schema": [
+    {
+      "name": "projectPath",
+      "label": "项目路径",
+      "type": "string",
+      "required": true,
+      "placeholder": "./my-project"
+    },
+    {
+      "name": "ruleType",
+      "label": "规则类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "cursor", "label": ".cursorrules" },
+        { "value": "claude", "label": "CLAUDE.md" },
+        { "value": "both", "label": "两者都生成" }
+      ]
+    },
+    {
+      "name": "techStack",
+      "label": "技术栈",
+      "type": "select",
+      "required": false,
+      "default": "auto",
+      "options": [
+        { "value": "auto", "label": "自动检测" },
+        { "value": "react", "label": "React/Next.js" },
+        { "value": "vue", "label": "Vue.js" },
+        { "value": "python", "label": "Python" },
+        { "value": "java", "label": "Java/Spring" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["cursor-rules-generator", "memory-management"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

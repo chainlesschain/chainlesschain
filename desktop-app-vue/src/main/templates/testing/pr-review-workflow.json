@@ -1,0 +1,56 @@
+{
+  "id": "tpl_demo_prreview_001",
+  "name": "pr_review_workflow",
+  "display_name": "PR 自动审查工作流",
+  "description": "演示 PR 审查技能，自动化执行代码审查、安全检查和质量分析",
+  "icon": "📋",
+  "category": "testing",
+  "subcategory": "code-review",
+  "tags": ["pr", "review", "code-review", "github", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个 PR 审查工作流：\n\n**PR 编号/URL：** {{prTarget}}\n**审查重点：** {{reviewFocus}}\n**审查严格度：** {{strictLevel}}\n\n**工作流步骤：**\n\n### 步骤1：获取 PR 信息\n```\n/pr-reviewer review {{prTarget}}\n```\n\n### 步骤2：代码质量分析\n```\n/code-review {{prTarget}}\n```\n\n{{#eq reviewFocus \"安全审查\"}}\n### 步骤3：安全漏洞扫描\n```\n/security-audit {{prTarget}}\n```\n{{/eq}}\n\n### 步骤4：生成审查报告\n综合所有检查结果，生成结构化审查报告。\n\n### 步骤5：保存审查记录\n```\n/memory-management save \"PR审查完成: {{prTarget}}\"\n```\n\n**使用的技能：** pr-reviewer, code-review, memory-management",
+  "variables_schema": [
+    {
+      "name": "prTarget",
+      "label": "PR 目标",
+      "type": "string",
+      "required": true,
+      "placeholder": "#123 或 https://github.com/org/repo/pull/123"
+    },
+    {
+      "name": "reviewFocus",
+      "label": "审查重点",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "代码质量", "label": "代码质量" },
+        { "value": "安全审查", "label": "安全审查" },
+        { "value": "性能审查", "label": "性能审查" },
+        { "value": "全面审查", "label": "全面审查" }
+      ]
+    },
+    {
+      "name": "strictLevel",
+      "label": "严格度",
+      "type": "select",
+      "required": false,
+      "default": "standard",
+      "options": [
+        { "value": "relaxed", "label": "宽松" },
+        { "value": "standard", "label": "标准" },
+        { "value": "strict", "label": "严格" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["pr-reviewer", "code-review", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}
