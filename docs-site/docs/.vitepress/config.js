@@ -172,6 +172,15 @@ export default defineConfig({
           ],
         },
         {
+          text: "v1.2.0 新增技能",
+          items: [
+            {
+              text: "22个新增实用技能",
+              link: "/chainlesschain/new-skills-v1.2",
+            },
+          ],
+        },
+        {
           text: "v2.0.0 生产加固 (Phase 57-61)",
           items: [
             {

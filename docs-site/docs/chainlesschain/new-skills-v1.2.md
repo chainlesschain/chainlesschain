@@ -1,0 +1,296 @@
+# v1.2.0 新增 22 个实用技能
+
+> **版本: v1.2.0 | 总计 118 个桌面内置技能 | 100% Handler 覆盖**
+
+v1.2.0 研究了 10 大外部技能标准并转化为内置技能，同时新增 12 个当前最实用的开发/运维/知识管理技能。
+
+---
+
+## 外部技能标准转化 (10 个)
+
+研究 Tavily-search、Find-Skills、Proactive-Agent、Agent-Browser、remotion-best-practices、cron、planning-with-files、baoyu-skills、anthropics/skills、百度官方 skills 等 10 大外部技能标准，提炼核心模式转化为 ChainlessChain 内置技能。
+
+### 联网搜索 - tavily-search
+
+```bash
+/tavily-search search "latest AI developments" --depth advanced
+/tavily-search news "OpenAI GPT-5"
+/tavily-search extract https://example.com/article
+```
+
+通过 Tavily API 实现深度网络搜索、新闻搜索和内容提取。支持搜索深度配置(basic/advanced)，结果包含可信度评分和摘要。
+
+### 技能发现 - find-skills
+
+```bash
+/find-skills search "docker deployment"
+/find-skills recommend
+/find-skills category development
+/find-skills info code-review
+```
+
+从技能注册表搜索、推荐和分类浏览技能。支持关键词匹配、上下文感知推荐和分类浏览。
+
+### 主动代理 - proactive-agent
+
+```bash
+/proactive-agent watch src/ --pattern "*.js"
+/proactive-agent threshold cpu 80
+/proactive-agent periodic "check disk space" --interval 300
+/proactive-agent pattern /var/log/app.log "ERROR|FATAL"
+```
+
+4 种自主触发器:
+- **文件监控** (file-watch): 通过 fs.watch 监控文件变更
+- **阈值监控** (threshold): 通过 os.cpus/freemem 监控系统资源
+- **周期执行** (periodic): 通过 setInterval 定期执行任务
+- **模式匹配** (pattern): 通过正则匹配日志模式
+
+### Agent 浏览器 - agent-browser
+
+```bash
+/agent-browser navigate "https://example.com"
+/agent-browser click @e1
+/agent-browser type @e3 "hello world"
+/agent-browser snapshot
+```
+
+快照引用模式 (@e1/@e2) 浏览器自动化，集成 browser-engine.js 和 computer-use-agent.js。维护浏览器会话，支持导航/点击/输入/快照操作。
+
+### 视频生成 - remotion-video
+
+```bash
+/remotion-video create intro --title "My Video" --subtitle "Welcome"
+/remotion-video create explainer --topic "How AI Works"
+/remotion-video template slideshow --images "img1.png,img2.png"
+/remotion-video render my-composition --output video.mp4
+```
+
+React/Remotion 视频创作，6 种模板: intro(标题动画)、explainer(教学视频)、slideshow(幻灯片)、social(社交媒体)、caption(字幕覆盖)、chart(数据图表)。
+
+### 定时调度 - cron-scheduler
+
+```bash
+/cron-scheduler schedule "0 9 * * 1-5" "generate daily report"
+/cron-scheduler at "tomorrow 3pm" "run backup"
+/cron-scheduler list
+/cron-scheduler cancel job_123
+```
+
+Cron 表达式 + 自然语言时间调度。支持循环任务和一次性任务，进程内 setInterval/setTimeout 实现。
+
+### 规划工作流 - planning-with-files
+
+```bash
+/planning-with-files start "build user authentication system"
+/planning-with-files update "completed database schema"
+/planning-with-files status
+/planning-with-files resume session_abc
+```
+
+Manus 3 文件模式:
+- `task_plan.md` - 任务规划和步骤
+- `findings.md` - 研究发现和笔记
+- `progress.md` - 进度追踪和状态
+
+支持会话恢复和 2-Action Rule(每次最多 2 个操作)。
+
+### 内容发布 - content-publisher
+
+```bash
+/content-publisher create infographic "AI Market Trends 2026"
+/content-publisher create slides "Quarterly Review"
+/content-publisher format twitter "New feature announcement"
+```
+
+支持 5 种内容类型: 信息图(infographic)、幻灯片(slides)、封面图(cover)、漫画(comic)、社交媒体(social)。自动适配平台格式。
+
+### 技能创建器 - skill-creator
+
+```bash
+/skill-creator create "my-awesome-skill"
+/skill-creator validate my-awesome-skill
+/skill-creator test my-awesome-skill "sample input"
+/skill-creator optimize my-awesome-skill
+```
+
+元技能：创建/测试/验证/优化其他技能。自动脚手架 SKILL.md + handler.js，验证 YAML frontmatter 结构。
+
+### Web 测试 - webapp-testing
+
+```bash
+/webapp-testing recon https://example.com
+/webapp-testing accessibility https://example.com
+/webapp-testing e2e "login flow" --url https://example.com
+/webapp-testing security https://example.com
+```
+
+侦察-执行模式的 Web 应用测试。支持可访问性检查(WCAG)、E2E 场景生成和安全扫描。
+
+---
+
+## 实用流行技能 (12 个)
+
+### 深度研究 - deep-research
+
+```bash
+/deep-research research "comparison of vector databases for RAG"
+/deep-research quick "what is RLHF"
+/deep-research analyze "microservices vs monolith tradeoffs"
+```
+
+8 阶段研究流水线: 查询分解 → 搜索策略 → 多源收集 → 可信度评分 → 交叉验证 → 综合分析 → 结论生成 → 引用格式化。
+
+### Git Worktree 管理 - git-worktree-manager
+
+```bash
+/git-worktree-manager create feature/new-ui
+/git-worktree-manager list
+/git-worktree-manager status
+/git-worktree-manager remove feature/old-branch
+/git-worktree-manager prune
+```
+
+Git 工作树管理，支持创建/列表/删除/状态查看/清理。通过 execSync 调用 git worktree 命令。
+
+### PR 审查 - pr-reviewer
+
+```bash
+/pr-reviewer review 123
+/pr-reviewer diff 123
+/pr-reviewer check 123
+/pr-reviewer summary 123
+```
+
+通过 `gh` CLI 分析 PR 差异。自动检测密钥泄露、eval() 使用、console.log 残留、TODO 标记等常见问题。
+
+### Docker Compose 生成 - docker-compose-generator
+
+```bash
+/docker-compose-generator generate "node app with postgres and redis"
+/docker-compose-generator add-service mongodb
+/docker-compose-generator template fullstack
+/docker-compose-generator validate
+```
+
+10 种服务模板: PostgreSQL、MySQL、Redis、MongoDB、Elasticsearch、RabbitMQ、Nginx、Qdrant、Ollama、MinIO。支持堆栈自动检测和 YAML 生成。
+
+### Terraform IaC - terraform-iac
+
+```bash
+/terraform-iac generate "AWS ECS with RDS and Redis"
+/terraform-iac module vpc
+/terraform-iac template aws-ecs
+/terraform-iac validate
+```
+
+AWS/GCP/Azure HCL 配置生成。8 种云模板: aws-vpc、aws-ecs、aws-rds、aws-lambda、gcp-gke、gcp-cloudsql、azure-aks、azure-cosmosdb。
+
+### API 文档生成 - api-docs-generator
+
+```bash
+/api-docs-generator scan src/routes/
+/api-docs-generator openapi src/routes/ --title "My API"
+/api-docs-generator endpoint "POST /users Create a new user"
+/api-docs-generator validate openapi.yaml
+```
+
+扫描 Express.js/FastAPI/Spring Boot 路由模式，自动生成 OpenAPI 3.0 规范。
+
+### 新闻监控 - news-monitor
+
+```bash
+/news-monitor watch AI blockchain --sources hackernews,reddit
+/news-monitor digest --period weekly --topic "machine learning"
+/news-monitor trends --category tech
+/news-monitor fetch AI
+```
+
+HackerNews API 集成 + 关键词追踪 + 词频趋势检测 + 定期摘要生成。支持自定义 RSS 源。
+
+### 深度思考 - ultrathink
+
+```bash
+/ultrathink analyze "should we migrate to microservices"
+/ultrathink decompose "redesign the authentication system"
+/ultrathink evaluate "Redis vs Memcached vs DragonflyDB"
+```
+
+7 步扩展推理框架:
+- **分析模式**: 问题重述 → 约束映射 → 假设识别 → 根因分析 → 方案探索 → 多视角检查 → 推荐综合
+- **分解模式**: 范围定义 → 组件识别 → 依赖映射 → 子任务分解 → 关键路径 → 风险评估 → 执行计划
+- **评估模式**: 选项枚举 → 标准定义 → 权重分配 → 逐项评分 → 权衡矩阵 → 敏感性分析 → 最终裁决
+
+### YouTube 摘要 - youtube-summarizer
+
+```bash
+/youtube-summarizer summarize https://youtube.com/watch?v=abc123
+/youtube-summarizer transcript https://youtu.be/abc123
+/youtube-summarizer chapters https://youtube.com/watch?v=abc123
+```
+
+YouTube 视频字幕提取 + 结构化摘要生成 + 基于时间的章节分段。支持多种 YouTube URL 格式。
+
+### 数据库助手 - database-query
+
+```bash
+/database-query generate "find users who logged in this week"
+/database-query optimize "SELECT * FROM orders WHERE status = 'pending'"
+/database-query schema notes
+/database-query migrate "add email column to users"
+```
+
+SQL 生成/优化/Schema 内省/迁移脚本。支持 SQLite(默认)、PostgreSQL、MySQL 方言。可直接内省应用数据库 Schema。
+
+### K8s 部署 - k8s-deployer
+
+```bash
+/k8s-deployer manifest "node app with 3 replicas" --port 3000
+/k8s-deployer helm my-service
+/k8s-deployer status my-app
+/k8s-deployer rollout restart my-app
+/k8s-deployer security my-app
+```
+
+K8s 清单生成(Deployment + Service + PDB)、Helm Chart 脚手架、安全最佳实践检查(非 root、只读文件系统、资源限制、网络策略)。
+
+### IDE 规则生成 - cursor-rules-generator
+
+```bash
+/cursor-rules-generator generate cursor
+/cursor-rules-generator detect src/
+/cursor-rules-generator export claude --output CLAUDE.md
+```
+
+分析项目结构和约定，自动生成 AI 编码助手配置文件。支持 5 种格式:
+- `.cursorrules` (Cursor AI)
+- `.clinerules` (Cline)
+- `CLAUDE.md` (Claude Code)
+- `.windsurfrules` (Windsurf)
+- `.github/copilot-instructions.md` (GitHub Copilot)
+
+自动检测: 包管理器、框架、语言、测试框架、代码风格、提交规范、目录结构。
+
+---
+
+## 技能统计
+
+| 版本          | 技能数 | 说明                                    |
+| ------------- | ------ | --------------------------------------- |
+| v0.36.0       | 30     | 基础技能                                |
+| v0.36.1       | 40     | +10 高级技能                            |
+| v0.36.2       | 50     | +10 AI会话/开发效率                     |
+| v0.37.3       | 60     | +10 Office/音视频                       |
+| v0.37.4       | 70     | +10 图像/数据/工具                      |
+| v0.37.5       | 80     | +10 开发效率/系统工具                   |
+| v0.37.6       | 90     | +10 系统/安全/设计                      |
+| v1.0.0        | 96     | +6 Cowork协作演化(含zkp-toolkit)        |
+| **v1.2.0**    | **118** | **+22 外部标准转化(10) + 实用技能(12)** |
+
+---
+
+## 下一步
+
+- [Skills系统](/chainlesschain/skills) - 技能系统完整文档
+- [Cowork系统](/chainlesschain/cowork) - 多智能体协作
+- [更新日志](/changelog) - 完整版本历史
