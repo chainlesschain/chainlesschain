@@ -2,24 +2,37 @@
  * Kubernetes Deployer Skill Handler
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { logger } = require("../../../../../utils/logger.js");
 const { execSync } = require("child_process");
+/* eslint-enable @typescript-eslint/no-require-imports */
+
+const _deps = { execSync };
 
 module.exports = {
-  async init(skill) { logger.info("[K8sDeployer] Initialized"); },
+  _deps,
+  async init(_skill) {
+    logger.info("[K8sDeployer] Initialized");
+  },
 
-  async execute(task, context = {}, skill) {
+  async execute(task, _context = {}, _skill) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
     try {
       switch (parsed.action) {
-        case "manifest": return handleManifest(parsed.description, parsed.options);
-        case "helm": return handleHelm(parsed.name);
-        case "status": return handleStatus(parsed.target);
-        case "rollout": return handleRollout(parsed.subAction, parsed.target);
-        case "security": return handleSecurity(parsed.target);
-        default: return { success: false, error: `Unknown action: ${parsed.action}` };
+        case "manifest":
+          return handleManifest(parsed.description, parsed.options);
+        case "helm":
+          return handleHelm(parsed.name);
+        case "status":
+          return handleStatus(parsed.target);
+        case "rollout":
+          return handleRollout(parsed.subAction, parsed.target);
+        case "security":
+          return handleSecurity(parsed.target);
+        default:
+          return { success: false, error: `Unknown action: ${parsed.action}` };
       }
     } catch (error) {
       logger.error("[K8sDeployer] Error:", error);
@@ -29,7 +42,16 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "manifest", description: "", name: "", target: "", subAction: "", options: {} };
+  if (!input || typeof input !== "string") {
+    return {
+      action: "manifest",
+      description: "",
+      name: "",
+      target: "",
+      subAction: "",
+      options: {},
+    };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "manifest").toLowerCase();
   const rest = parts.slice(1).join(" ").replace(/"/g, "");
@@ -209,20 +231,51 @@ function handleStatus(target) {
   const results = {};
   try {
     if (target) {
-      results.deployment = execSync(`kubectl get deployment ${target} -o wide 2>&1`, { encoding: "utf8", timeout: 10000 }).trim();
-      results.pods = execSync(`kubectl get pods -l app=${target} -o wide 2>&1`, { encoding: "utf8", timeout: 10000 }).trim();
+      results.deployment = _deps
+        .execSync(`kubectl get deployment ${target} -o wide 2>&1`, {
+          encoding: "utf8",
+          timeout: 10000,
+        })
+        .trim();
+      results.pods = _deps
+        .execSync(`kubectl get pods -l app=${target} -o wide 2>&1`, {
+          encoding: "utf8",
+          timeout: 10000,
+        })
+        .trim();
     } else {
-      results.deployments = execSync("kubectl get deployments -o wide 2>&1", { encoding: "utf8", timeout: 10000 }).trim();
-      results.pods = execSync("kubectl get pods -o wide 2>&1", { encoding: "utf8", timeout: 10000 }).trim();
+      results.deployments = _deps
+        .execSync("kubectl get deployments -o wide 2>&1", {
+          encoding: "utf8",
+          timeout: 10000,
+        })
+        .trim();
+      results.pods = _deps
+        .execSync("kubectl get pods -o wide 2>&1", {
+          encoding: "utf8",
+          timeout: 10000,
+        })
+        .trim();
     }
-    return { success: true, action: "status", target: target || "all", results, message: "Cluster status retrieved." };
+    return {
+      success: true,
+      action: "status",
+      target: target || "all",
+      results,
+      message: "Cluster status retrieved.",
+    };
   } catch (error) {
-    return { success: false, error: `kubectl failed: ${error.message}. Ensure kubectl is installed and configured.` };
+    return {
+      success: false,
+      error: `kubectl failed: ${error.message}. Ensure kubectl is installed and configured.`,
+    };
   }
 }
 
 function handleRollout(subAction, target) {
-  if (!target) return { success: false, error: "Specify a deployment name." };
+  if (!target) {
+    return { success: false, error: "Specify a deployment name." };
+  }
 
   const commands = {
     restart: `kubectl rollout restart deployment/${target}`,
@@ -234,23 +287,69 @@ function handleRollout(subAction, target) {
   const cmd = commands[subAction] || commands.status;
 
   try {
-    const output = execSync(`${cmd} 2>&1`, { encoding: "utf8", timeout: 30000 }).trim();
-    return { success: true, action: "rollout", subAction, target, output, command: cmd, message: `Rollout ${subAction} completed for ${target}.` };
+    const output = _deps
+      .execSync(`${cmd} 2>&1`, { encoding: "utf8", timeout: 30000 })
+      .trim();
+    return {
+      success: true,
+      action: "rollout",
+      subAction,
+      target,
+      output,
+      command: cmd,
+      message: `Rollout ${subAction} completed for ${target}.`,
+    };
   } catch (error) {
-    return { success: false, error: `Rollout failed: ${error.message}`, command: cmd };
+    return {
+      success: false,
+      error: `Rollout failed: ${error.message}`,
+      command: cmd,
+    };
   }
 }
 
 function handleSecurity(target) {
   const checks = [
-    { name: "Non-root container", description: "runAsNonRoot: true in securityContext", severity: "high" },
-    { name: "Read-only root filesystem", description: "readOnlyRootFilesystem: true", severity: "medium" },
-    { name: "Drop all capabilities", description: "capabilities.drop: [ALL]", severity: "high" },
-    { name: "No privilege escalation", description: "allowPrivilegeEscalation: false", severity: "high" },
-    { name: "Resource limits", description: "CPU and memory limits set", severity: "medium" },
-    { name: "Image tag pinning", description: "Avoid :latest tag, use digest or specific version", severity: "medium" },
-    { name: "Network policy", description: "NetworkPolicy restricting ingress/egress", severity: "medium" },
-    { name: "Pod security standards", description: "Apply restricted PodSecurityStandard", severity: "high" },
+    {
+      name: "Non-root container",
+      description: "runAsNonRoot: true in securityContext",
+      severity: "high",
+    },
+    {
+      name: "Read-only root filesystem",
+      description: "readOnlyRootFilesystem: true",
+      severity: "medium",
+    },
+    {
+      name: "Drop all capabilities",
+      description: "capabilities.drop: [ALL]",
+      severity: "high",
+    },
+    {
+      name: "No privilege escalation",
+      description: "allowPrivilegeEscalation: false",
+      severity: "high",
+    },
+    {
+      name: "Resource limits",
+      description: "CPU and memory limits set",
+      severity: "medium",
+    },
+    {
+      name: "Image tag pinning",
+      description: "Avoid :latest tag, use digest or specific version",
+      severity: "medium",
+    },
+    {
+      name: "Network policy",
+      description: "NetworkPolicy restricting ingress/egress",
+      severity: "medium",
+    },
+    {
+      name: "Pod security standards",
+      description: "Apply restricted PodSecurityStandard",
+      severity: "high",
+    },
   ];
 
   return {

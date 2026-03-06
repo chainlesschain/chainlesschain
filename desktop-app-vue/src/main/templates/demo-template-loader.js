@@ -7,14 +7,24 @@
  * @module templates/demo-template-loader
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../utils/logger.js");
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 /**
  * Demo template categories that contain skill-based templates
  */
-const DEMO_CATEGORIES = ["automation", "ai-workflow", "knowledge", "remote"];
+const DEMO_CATEGORIES = [
+  "automation",
+  "ai-workflow",
+  "knowledge",
+  "remote",
+  "devops",
+  "testing",
+  "content",
+];
 
 /**
  * DemoTemplateLoader class

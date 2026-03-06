@@ -1,0 +1,62 @@
+{
+  "id": "tpl_demo_k8s_001",
+  "name": "k8s_deployment_pipeline",
+  "display_name": "Kubernetes 部署流水线",
+  "description": "演示 K8s 部署技能，自动生成部署配置、执行滚动更新并监控状态",
+  "icon": "☸️",
+  "category": "devops",
+  "subcategory": "kubernetes",
+  "tags": ["k8s", "kubernetes", "deploy", "devops", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个 Kubernetes 部署流水线：\n\n**应用名称：** {{appName}}\n**部署环境：** {{environment}}\n**镜像地址：** {{imageUrl}}\n**副本数量：** {{replicas}}\n\n**流水线步骤：**\n\n### 步骤1：生成部署配置\n```\n/k8s-deployer generate {{appName}} --env {{environment}} --image {{imageUrl}} --replicas {{replicas}}\n```\n\n### 步骤2：验证配置\n```\n/k8s-deployer validate {{appName}}\n```\n\n### 步骤3：执行部署\n```\n/k8s-deployer deploy {{appName}} --env {{environment}}\n```\n\n### 步骤4：监控部署状态\n```\n/k8s-deployer status {{appName}}\n```\n\n### 步骤5：记录部署日志\n```\n/memory-management save \"K8s部署���成: {{appName}} → {{environment}}\"\n```\n\n**使用的技能：** k8s-deployer, memory-management",
+  "variables_schema": [
+    {
+      "name": "appName",
+      "label": "应用名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "my-web-app"
+    },
+    {
+      "name": "environment",
+      "label": "部署环境",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "dev", "label": "开发环境" },
+        { "value": "staging", "label": "预发布环境" },
+        { "value": "production", "label": "生产环境" }
+      ]
+    },
+    {
+      "name": "imageUrl",
+      "label": "镜像地址",
+      "type": "string",
+      "required": true,
+      "placeholder": "registry.example.com/app:latest"
+    },
+    {
+      "name": "replicas",
+      "label": "副本数量",
+      "type": "select",
+      "required": false,
+      "default": "3",
+      "options": [
+        { "value": "1", "label": "1（开发）" },
+        { "value": "3", "label": "3（标准）" },
+        { "value": "5", "label": "5（高可用）" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["k8s-deployer", "memory-management"],
+  "difficulty": "advanced",
+  "execution_engine": "skill"
+}

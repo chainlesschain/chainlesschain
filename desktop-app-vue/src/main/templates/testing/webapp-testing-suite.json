@@ -1,0 +1,61 @@
+{
+  "id": "tpl_demo_webtest_001",
+  "name": "webapp_testing_suite",
+  "display_name": "Web 应用测试套件",
+  "description": "演示 Web 应用测试技能，自动化执行功能测试、无障碍检查和性能分析",
+  "icon": "🧪",
+  "category": "testing",
+  "subcategory": "web",
+  "tags": [
+    "testing",
+    "webapp",
+    "accessibility",
+    "performance",
+    "demo",
+    "skill"
+  ],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个 Web 应用测试套件：\n\n**目标 URL：** {{targetUrl}}\n**测试类型：** {{testType}}\n**测试深度：** {{testDepth}}\n\n**测试步骤：**\n\n### 步骤1：基础功能测试\n```\n/webapp-testing test {{targetUrl}}\n```\n\n### 步骤2：无障碍检查\n```\n/webapp-testing accessibility {{targetUrl}}\n```\n\n{{#eq testType \"全面测试\"}}\n### 步骤3：控制台错误捕获\n```\n/webapp-testing console {{targetUrl}}\n```\n\n### 步骤4：页面截图\n```\n/webapp-testing screenshot {{targetUrl}}\n```\n\n### 步骤5：元素检查\n```\n/webapp-testing inspect {{targetUrl}}\n```\n{{/eq}}\n\n### 最终步骤：生成测试报告\n```\n/memory-management save \"Web测试报告: {{targetUrl}} - {{testType}}\"\n```\n\n**使用的技能：** webapp-testing, memory-management",
+  "variables_schema": [
+    {
+      "name": "targetUrl",
+      "label": "目标网址",
+      "type": "string",
+      "required": true,
+      "placeholder": "https://example.com"
+    },
+    {
+      "name": "testType",
+      "label": "测试类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "快速检查", "label": "快速检查（基础功能+无障碍）" },
+        { "value": "全面测试", "label": "全面测试（功能+无障碍+控制台+截图）" }
+      ]
+    },
+    {
+      "name": "testDepth",
+      "label": "测试深度",
+      "type": "select",
+      "required": false,
+      "default": "standard",
+      "options": [
+        { "value": "quick", "label": "快速（首页）" },
+        { "value": "standard", "label": "标准（主要页面）" },
+        { "value": "deep", "label": "深度（全站）" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["webapp-testing", "memory-management"],
+  "difficulty": "beginner",
+  "execution_engine": "skill"
+}

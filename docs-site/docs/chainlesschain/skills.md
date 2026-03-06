@@ -1,8 +1,8 @@
 # Skills 技能系统
 
-> **版本: v1.0.0 | 95内置技能 | Agent Skills开放标准 | 统一工具注册表**
+> **版本: v1.2.0 | 118内置技能 | Agent Skills开放标准 | 统一工具注册表**
 
-Skills 系统提供 95 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.0.0 新增 5 个协作演化技能（debate-review、ab-compare、orchestrate、verification-loop、stream-processor、zkp-toolkit），Handler 覆盖率 95/95 (100%)。
+Skills 系统提供 118 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.0 研究10大外部技能标准并转化为内置技能(10个)，同时新增12个实用流行技能，Handler 覆盖率 118/118 (100%)。
 
 ## 系统概述
 
@@ -674,4 +674,4 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 
 ---
 
-**95个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️
+**118个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️

@@ -1,0 +1,69 @@
+{
+  "id": "tpl_demo_remotion_001",
+  "name": "remotion_video_creator",
+  "display_name": "Remotion 视频生成",
+  "description": "演示 Remotion 视频技能，通过代码自动生成视频内容",
+  "icon": "🎬",
+  "category": "content",
+  "subcategory": "video",
+  "tags": ["remotion", "video", "generation", "animation", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我使用 Remotion 生成视频：\n\n**视频标题：** {{videoTitle}}\n**视频类型：** {{videoType}}\n**时长：** {{duration}}\n**输出格式：** {{outputFormat}}\n\n**生成步骤：**\n\n### 步骤1：创建视频项目\n```\n/remotion-video create \"{{videoTitle}}\" --type {{videoType}} --duration {{duration}}\n```\n\n### 步骤2：生成视频内容\n根据视频类型自动生成对应的组件和动画。\n\n### 步骤3：预览和调整\n```\n/remotion-video preview \"{{videoTitle}}\"\n```\n\n### 步骤4：渲染输出\n```\n/remotion-video render \"{{videoTitle}}\" --format {{outputFormat}}\n```\n\n**使用的技能：** remotion-video, memory-management",
+  "variables_schema": [
+    {
+      "name": "videoTitle",
+      "label": "视频标题",
+      "type": "string",
+      "required": true,
+      "placeholder": "产品介绍视频"
+    },
+    {
+      "name": "videoType",
+      "label": "视频类型",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "intro", "label": "产品介绍" },
+        { "value": "tutorial", "label": "教程演示" },
+        { "value": "data-viz", "label": "数据可视化" },
+        { "value": "social", "label": "社交媒体短视频" }
+      ]
+    },
+    {
+      "name": "duration",
+      "label": "时长（秒）",
+      "type": "select",
+      "required": false,
+      "default": "30",
+      "options": [
+        { "value": "15", "label": "15秒" },
+        { "value": "30", "label": "30秒" },
+        { "value": "60", "label": "1分钟" },
+        { "value": "180", "label": "3分钟" }
+      ]
+    },
+    {
+      "name": "outputFormat",
+      "label": "输出格式",
+      "type": "select",
+      "required": false,
+      "default": "mp4",
+      "options": [
+        { "value": "mp4", "label": "MP4" },
+        { "value": "webm", "label": "WebM" },
+        { "value": "gif", "label": "GIF" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["remotion-video", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

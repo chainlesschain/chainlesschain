@@ -2,15 +2,20 @@
  * PR Reviewer Skill Handler
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { logger } = require("../../../../../utils/logger.js");
 const { execSync } = require("child_process");
+/* eslint-enable @typescript-eslint/no-require-imports */
+
+const _deps = { execSync };
 
 module.exports = {
-  async init(skill) {
+  _deps,
+  async init(_skill) {
     logger.info("[PRReviewer] Initialized");
   },
 
-  async execute(task, context = {}, skill) {
+  async execute(task, context = {}, _skill) {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
@@ -18,9 +23,12 @@ module.exports = {
 
     try {
       switch (parsed.action) {
-        case "review": return handleReview(parsed.target, context);
-        case "summary": return handleSummary(parsed.target, context);
-        case "diff": return handleDiffReview(parsed.target, context);
+        case "review":
+          return handleReview(parsed.target, context);
+        case "summary":
+          return handleSummary(parsed.target, context);
+        case "diff":
+          return handleDiffReview(parsed.target, context);
         default:
           return { success: false, error: `Unknown action: ${parsed.action}` };
       }
@@ -32,7 +40,9 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "diff", target: "main" };
+  if (!input || typeof input !== "string") {
+    return { action: "diff", target: "main" };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "diff").toLowerCase();
   const target = parts[1] || "main";
@@ -41,7 +51,13 @@ function parseInput(input) {
 
 function exec(cmd, cwd) {
   try {
-    return execSync(cmd, { cwd: cwd || process.cwd(), encoding: "utf8", timeout: 30000 }).trim();
+    return _deps
+      .execSync(cmd, {
+        cwd: cwd || process.cwd(),
+        encoding: "utf8",
+        timeout: 30000,
+      })
+      .trim();
   } catch (e) {
     return e.stdout || e.message;
   }
@@ -52,10 +68,16 @@ function handleReview(prNumber, context) {
   let prInfo, diff;
 
   try {
-    prInfo = exec(`gh pr view ${prNumber} --json title,body,additions,deletions,files,author`, cwd);
+    prInfo = exec(
+      `gh pr view ${prNumber} --json title,body,additions,deletions,files,author`,
+      cwd,
+    );
     diff = exec(`gh pr diff ${prNumber}`, cwd);
   } catch (e) {
-    return { success: false, error: `Cannot fetch PR #${prNumber}: ${e.message}` };
+    return {
+      success: false,
+      error: `Cannot fetch PR #${prNumber}: ${e.message}`,
+    };
   }
 
   const analysis = analyzeDiff(diff);
@@ -112,7 +134,9 @@ function handleDiffReview(baseBranch, context) {
 }
 
 function analyzeDiff(diff) {
-  if (!diff) return { findings: [], filesChanged: 0, additions: 0, deletions: 0 };
+  if (!diff) {
+    return { findings: [], filesChanged: 0, additions: 0, deletions: 0 };
+  }
 
   const findings = [];
   const lines = diff.split("\n");
@@ -135,19 +159,48 @@ function analyzeDiff(diff) {
       lineNum++;
 
       // Security checks
-      if (/(?:password|secret|api_key|token)\s*[:=]\s*["'][^"']+["']/i.test(line)) {
-        findings.push({ severity: "critical", file: currentFile, line: lineNum, type: "security", message: "Potential hardcoded secret detected" });
+      if (
+        /(?:password|secret|api_key|token)\s*[:=]\s*["'][^"']+["']/i.test(line)
+      ) {
+        findings.push({
+          severity: "critical",
+          file: currentFile,
+          line: lineNum,
+          type: "security",
+          message: "Potential hardcoded secret detected",
+        });
       }
       if (/eval\s*\(/.test(line)) {
-        findings.push({ severity: "warning", file: currentFile, line: lineNum, type: "security", message: "Use of eval() detected" });
+        findings.push({
+          severity: "warning",
+          file: currentFile,
+          line: lineNum,
+          type: "security",
+          message: "Use of eval() detected",
+        });
       }
       // Console.log in production
-      if (/console\.(log|debug)\(/.test(line) && !/test|spec|debug/i.test(currentFile)) {
-        findings.push({ severity: "info", file: currentFile, line: lineNum, type: "style", message: "console.log in production code" });
+      if (
+        /console\.(log|debug)\(/.test(line) &&
+        !/test|spec|debug/i.test(currentFile)
+      ) {
+        findings.push({
+          severity: "info",
+          file: currentFile,
+          line: lineNum,
+          type: "style",
+          message: "console.log in production code",
+        });
       }
       // TODO/FIXME
       if (/\/\/\s*(TODO|FIXME|HACK|XXX)/i.test(line)) {
-        findings.push({ severity: "info", file: currentFile, line: lineNum, type: "todo", message: line.trim().substring(1) });
+        findings.push({
+          severity: "info",
+          file: currentFile,
+          line: lineNum,
+          type: "todo",
+          message: line.trim().substring(1),
+        });
       }
     } else if (line.startsWith("-") && !line.startsWith("---")) {
       deletions++;
@@ -164,5 +217,9 @@ function analyzeDiff(diff) {
 }
 
 function safeParseJSON(str) {
-  try { return JSON.parse(str); } catch { return str; }
+  try {
+    return JSON.parse(str);
+  } catch {
+    return str;
+  }
 }

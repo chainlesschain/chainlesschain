@@ -1,0 +1,57 @@
+{
+  "id": "tpl_demo_docker_001",
+  "name": "docker_compose_scaffold",
+  "display_name": "Docker Compose 项目搭建",
+  "description": "演示 Docker Compose 生成技能，自动生成多服务编排配置",
+  "icon": "🐳",
+  "category": "devops",
+  "subcategory": "docker",
+  "tags": ["docker", "compose", "container", "devops", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个 Docker Compose 项目配置：\n\n**项目名称：** {{projectName}}\n**技术栈：** {{techStack}}\n**包含服务：** {{services}}\n\n**流水线步骤：**\n\n### 步骤1：生成 Docker Compose 配置\n```\n/docker-compose-generator generate {{projectName}} --stack {{techStack}} --services {{services}}\n```\n\n### 步骤2：验证配置\n```\n/docker-compose-generator validate {{projectName}}\n```\n\n### 步骤3：生成环境变量模板\n自动生成 `.env.example` 文件，包含所有服务所需的环境变量。\n\n### 步骤4：启动服务\n```\ndocker-compose up -d\n```\n\n### 步骤5：验证健康检查\n```\n/docker-compose-generator status {{projectName}}\n```\n\n**使用的技能：** docker-compose-generator, memory-management",
+  "variables_schema": [
+    {
+      "name": "projectName",
+      "label": "项目名称",
+      "type": "string",
+      "required": true,
+      "placeholder": "my-web-stack"
+    },
+    {
+      "name": "techStack",
+      "label": "技术栈",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "node-mongo", "label": "Node.js + MongoDB" },
+        { "value": "spring-postgres", "label": "Spring Boot + PostgreSQL" },
+        { "value": "python-redis", "label": "Python + Redis" },
+        { "value": "fullstack", "label": "全栈（前后端+数据库+缓存）" }
+      ]
+    },
+    {
+      "name": "services",
+      "label": "附加服务",
+      "type": "select",
+      "required": false,
+      "default": "basic",
+      "options": [
+        { "value": "basic", "label": "基础（应用+数据库）" },
+        { "value": "with-cache", "label": "含缓存（+Redis）" },
+        { "value": "with-mq", "label": "含消息队列（+RabbitMQ）" },
+        { "value": "full", "label": "完整（缓存+MQ+监控）" }
+      ]
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["docker-compose-generator", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

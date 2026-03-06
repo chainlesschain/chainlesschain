@@ -1,0 +1,51 @@
+{
+  "id": "tpl_demo_agentbrowser_001",
+  "name": "agent_browser_testing",
+  "display_name": "智能浏览器自动测试",
+  "description": "演示 Agent Browser 技能，使用 AI 驱动的浏览器自动化执行测试场景",
+  "icon": "🤖",
+  "category": "testing",
+  "subcategory": "browser",
+  "tags": ["agent", "browser", "automation", "e2e", "demo", "skill"],
+  "project_type": "workflow",
+  "prompt_template": "请帮我创建一个 AI 驱动的浏览器测试场景：\n\n**目标网站：** {{targetUrl}}\n**测试场景：** {{scenario}}\n**期望结果：** {{expectedResult}}\n\n**执行步骤：**\n\n### 步骤1：启动智能浏览器\n```\n/agent-browser navigate {{targetUrl}}\n```\n\n### 步骤2：执行测试场景\n```\n/agent-browser {{scenario}}\n```\n\n### 步骤3：验证结果\n对比实际结果与期望结果，截图记录。\n\n### 步骤4：生成测试报告\n```\n/memory-management save \"浏览器测试: {{targetUrl}} - {{scenario}}\"\n```\n\n**使用的技能：** agent-browser, memory-management",
+  "variables_schema": [
+    {
+      "name": "targetUrl",
+      "label": "目标网站",
+      "type": "string",
+      "required": true,
+      "placeholder": "https://example.com"
+    },
+    {
+      "name": "scenario",
+      "label": "测试场景",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "login-flow", "label": "登录流程测试" },
+        { "value": "form-submit", "label": "表单提交测试" },
+        { "value": "navigation", "label": "导航测试" },
+        { "value": "custom", "label": "自定义场景" }
+      ]
+    },
+    {
+      "name": "expectedResult",
+      "label": "期望结果",
+      "type": "string",
+      "required": false,
+      "placeholder": "描述测试通过的标准"
+    }
+  ],
+  "file_structure": {},
+  "default_files": [],
+  "is_builtin": true,
+  "author": "ChainlessChain Team",
+  "version": "1.0.0",
+  "usage_count": 0,
+  "rating": 0,
+  "rating_count": 0,
+  "skills_used": ["agent-browser", "memory-management"],
+  "difficulty": "intermediate",
+  "execution_engine": "skill"
+}

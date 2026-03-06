@@ -2,12 +2,13 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-2500%2B-brightgreen.svg)
+![Skills](https://img.shields.io/badge/skills-118-blue.svg)
 
 **Decentralized · Privacy First · AI Native**
 
@@ -19,9 +20,45 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v3.4.0 Full-Stack Edition (2026-02-28)
+## ⭐ Current Version: v1.2.0 Full-Stack Edition (2026-03-06)
 
-### Latest Updates - v3.1.0~v3.4.0 Decentralized AI Marketplace + Hardware Security Ecosystem + Global Social + EvoMap Evolution Network (Phase 65-77) ⭐NEW
+### Latest Updates - v1.2.0 Added 22 Practical Skills (118 Total Desktop Built-in Skills) ⭐NEW
+
+Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent, Agent-Browser, Remotion, Cron, Planning-with-files, etc.) and converted them into built-in skills, plus added 12 most practical development/ops/knowledge management skills.
+
+**External Skill Standard Conversions (10)**:
+
+- ✅ **tavily-search** - Web search via Tavily API (deep search/news/content extraction)
+- ✅ **find-skills** - Skill discovery from registry (search/recommend/browse by category)
+- ✅ **proactive-agent** - 4 autonomous triggers (file-watch/threshold/periodic/pattern)
+- ✅ **agent-browser** - Snapshot reference mode (@e1/@e2) browser automation
+- ✅ **remotion-video** - React/Remotion video creation with 6 templates
+- ✅ **cron-scheduler** - Cron expression + natural language time scheduling
+- ✅ **planning-with-files** - Manus 3-file mode (task_plan/findings/progress)
+- ✅ **content-publisher** - 5 content types (infographic/slides/cover/comic/social)
+- ✅ **skill-creator** - Meta-skill: create/test/validate/optimize other skills
+- ✅ **webapp-testing** - Recon-execute mode (accessibility/E2E/security scanning)
+
+**Practical Popular Skills (12)**:
+
+- ✅ **deep-research** - 8-stage research pipeline (query decomposition → synthesis → citation formatting)
+- ✅ **git-worktree-manager** - Git worktree create/list/remove/prune
+- ✅ **pr-reviewer** - PR review via gh CLI, detects secret leaks/eval/console.log
+- ✅ **docker-compose-generator** - 10 service templates + auto stack detection
+- ✅ **terraform-iac** - AWS/GCP/Azure HCL generation, 8 cloud templates
+- ✅ **api-docs-generator** - Scan route patterns to generate OpenAPI 3.0 spec
+- ✅ **news-monitor** - HackerNews API + keyword tracking + trend detection
+- ✅ **ultrathink** - 7-step extended reasoning (analyze/decompose/evaluate modes)
+- ✅ **youtube-summarizer** - Transcript extraction + structured summary + chapters
+- ✅ **database-query** - SQL generation/optimization/schema introspection/migration
+- ✅ **k8s-deployer** - Manifest generation + Helm Chart + security best practices
+- ✅ **cursor-rules-generator** - Auto-generate 5 AI coding assistant config files
+
+**Skill Statistics**: 96 (v1.0.0) → **118 (v1.2.0)** (+22)
+
+---
+
+### History - v3.1.0~v3.4.0 Decentralized AI Marketplace + Hardware Security Ecosystem + Global Social + EvoMap Evolution Network (Phase 65-77)
 
 **Phase 65-77 v3.1.0~v3.4.0 Complete Implementation** - Skill-as-a-Service + Token Incentive + Inference Network + Trust Root + PQC Full Migration + Satellite Communication + Open Hardware + Protocol Fusion + AI Social Enhancement + Decentralized Storage + Anti-Censorship Communication + EvoMap Federation + IP&DAO Governance, totaling 64 new IPC handlers, 23 new database tables, 13 new frontend pages
 
@@ -958,8 +995,8 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
-- 🎨 **Skills System**: 95 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.0.0
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 95 skills unified management ✅ ⭐v1.0.0
+- 🎨 **Skills System**: 118 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.0.0
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 118 skills unified management ✅ ⭐v1.0.0
 - 🧬 **Instinct Learning**: Auto-extract user patterns + Confidence scoring + Context injection + Hooks observation pipeline ✅ ⭐v0.39.0
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
@@ -1125,7 +1162,7 @@ Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (95 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (118 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging
