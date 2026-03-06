@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/file-transfer-manager.js`
 
-**Generated**: 2026-03-06T02:31:40.073Z
+**Generated**: 2026-03-06T07:41:07.172Z
 
 ---
 

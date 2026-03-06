@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/email-ipc.js`
 
-**Generated**: 2026-03-06T02:31:40.146Z
+**Generated**: 2026-03-06T07:41:07.237Z
 
 ---
 
