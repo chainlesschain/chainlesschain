@@ -8,7 +8,7 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-2500%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-118-blue.svg)
+![Skills](https://img.shields.io/badge/skills-128-blue.svg)
 
 **Decentralized · Privacy First · AI Native**
 
@@ -22,9 +22,9 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ## ⭐ Current Version: v1.2.0 Full-Stack Edition (2026-03-06)
 
-### Latest Updates - v1.2.0 Added 22 Practical Skills (118 Total Desktop Built-in Skills) ⭐NEW
+### Latest Updates - v1.2.0 Added 32 Practical Skills (128 Total Desktop Built-in Skills) ⭐NEW
 
-Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent, Agent-Browser, Remotion, Cron, Planning-with-files, etc.) and converted them into built-in skills, plus added 12 most practical development/ops/knowledge management skills.
+Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent, Agent-Browser, Remotion, Cron, Planning-with-files, etc.) and converted them into built-in skills, added 12 development/ops/knowledge management skills, and 10 integration/productivity/knowledge skills.
 
 **External Skill Standard Conversions (10)**:
 
@@ -54,7 +54,20 @@ Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent
 - ✅ **k8s-deployer** - Manifest generation + Helm Chart + security best practices
 - ✅ **cursor-rules-generator** - Auto-generate 5 AI coding assistant config files
 
-**Skill Statistics**: 96 (v1.0.0) → **118 (v1.2.0)** (+22)
+**Integration & Productivity Skills (10)**:
+
+- ✅ **api-gateway** - Universal API gateway, 100+ APIs unified interface/key management/chain calls
+- ✅ **free-model-manager** - Free model management, Ollama/HuggingFace model discovery/download/manage
+- ✅ **github-manager** - GitHub operations, Issues/PR/repos/Workflows management
+- ✅ **google-workspace** - Google Workspace integration, Gmail/Calendar/Drive
+- ✅ **humanizer** - Remove AI writing traces, tone adjustment/pattern optimization
+- ✅ **notion** - Notion integration, page creation/database queries/content management
+- ✅ **obsidian** - Obsidian vault manager, note creation/search/tags/backlinks
+- ✅ **self-improving-agent** - Auto-learn from mistakes, error tracking/pattern analysis/suggestions
+- ✅ **summarizer** - Universal summarizer, URL/PDF/YouTube/text summaries + key points
+- ✅ **weather** - Weather queries, global weather/forecasts/alerts (wttr.in, no API key)
+
+**Skill Statistics**: 96 (v1.0.0) → **128 (v1.2.0)** (+32)
 
 ---
 
