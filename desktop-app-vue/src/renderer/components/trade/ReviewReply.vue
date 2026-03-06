@@ -10,7 +10,10 @@
     >
       <div v-if="review">
         <!-- 原评价信息 -->
-        <a-card size="small" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <template #title>
             <a-space>
               <message-outlined />
@@ -18,15 +21,25 @@
             </a-space>
           </template>
 
-          <a-descriptions :column="1" size="small">
+          <a-descriptions
+            :column="1"
+            size="small"
+          >
             <a-descriptions-item label="评分">
-              <a-rate :value="review.rating" disabled allow-half />
+              <a-rate
+                :value="review.rating"
+                disabled
+                allow-half
+              />
               <span style="margin-left: 8px">{{ review.rating }} 星</span>
             </a-descriptions-item>
             <a-descriptions-item label="评价内容">
               {{ review.content }}
             </a-descriptions-item>
-            <a-descriptions-item v-if="review.tags" label="评价标签">
+            <a-descriptions-item
+              v-if="review.tags"
+              label="评价标签"
+            >
               <a-space wrap>
                 <a-tag
                   v-for="tag in review.tags.split(',')"
@@ -38,7 +51,10 @@
               </a-space>
             </a-descriptions-item>
             <a-descriptions-item label="评价者">
-              <a-typography-text copyable style="font-size: 12px">
+              <a-typography-text
+                copyable
+                style="font-size: 12px"
+              >
                 {{
                   review.anonymous
                     ? "匿名用户"
@@ -54,7 +70,10 @@
 
         <!-- 回复表单 -->
         <a-form layout="vertical">
-          <a-form-item label="回复内容" required>
+          <a-form-item
+            label="回复内容"
+            required
+          >
             <a-textarea
               v-model:value="form.content"
               :rows="5"

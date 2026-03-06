@@ -9,10 +9,13 @@
  * - 社区驱动贡献机制（插件化驱动包）
  */
 
-const { logger } = require("../utils/logger.js");
-const EventEmitter = require("events");
-const path = require("path");
-const fs = require("fs");
+import { createRequire } from "module";
+import { logger } from "../utils/logger.js";
+import EventEmitter from "events";
+import path from "path";
+import fs from "fs";
+
+const require = createRequire(import.meta.url);
 
 // ============================================================
 // VID/PID 设备指纹库（200+ 设备）
@@ -406,7 +409,8 @@ class DriverRegistry extends EventEmitter {
   // ============================================================
 
   _registerBuiltinDrivers() {
-    const base = path.resolve(__dirname);
+    // const base = path.resolve(__dirname); // Commented out - __dirname not available in ES modules
+    // Note: Driver paths are relative requires, not using base path
 
     // 厂商专用驱动
     this.register("xinjinke", () => require("./xinjinke-driver"), {
@@ -919,7 +923,7 @@ class DriverRegistry extends EventEmitter {
     for (const watcher of this._watchHandles) {
       try {
         watcher.close();
-      } catch (_e) {
+      } catch {
         /* ignore watcher close errors */
       }
     }
@@ -939,6 +943,51 @@ class DriverRegistry extends EventEmitter {
 
     logger.info("[DriverRegistry] 驱动注册中心已关闭");
   }
+
+  /**
+   * Get the recommended transport for the current platform.
+   * @returns {string} Transport type ('koffi', 'usb', 'webusb', 'simulated')
+   */
+  getRecommendedTransport() {
+    const platform = process.platform;
+    if (platform === "win32") {return "koffi";}
+    if (platform === "darwin" || platform === "linux") {return "usb";}
+    return "simulated";
+  }
+
+  /**
+   * Get transport status including availability.
+   * @returns {Object} Transport status
+   */
+  getTransportStatus() {
+    const platform = process.platform;
+    const recommended = this.getRecommendedTransport();
+
+    let usbAvailable = false;
+    try {
+      require("usb");
+      usbAvailable = true;
+    } catch {
+      // usb module not available
+    }
+
+    let bleAvailable = false;
+    try {
+      require("@abandonware/noble");
+      bleAvailable = true;
+    } catch {
+      // noble BLE library not available
+    }
+
+    return {
+      platform,
+      recommended,
+      usbAvailable,
+      koffiAvailable: platform === "win32",
+      webUsbFallback: !usbAvailable && platform !== "win32",
+      bleAvailable,
+    };
+  }
 }
 
 // ============================================================
@@ -954,7 +1003,7 @@ function getDriverRegistry(config) {
   return _instance;
 }
 
-module.exports = {
+export {
   DriverRegistry,
   getDriverRegistry,
   VID_PID_MAP,

@@ -4,7 +4,10 @@
     <div class="ppt-toolbar">
       <div class="toolbar-left">
         <a-button-group size="small">
-          <a-button title="新建幻灯片" @click="addSlide">
+          <a-button
+            title="新建幻灯片"
+            @click="addSlide"
+          >
             <PlusOutlined />
             新建
           </a-button>
@@ -34,10 +37,18 @@
           style="width: 120px"
           @change="handleThemeChange"
         >
-          <a-select-option value="business"> 商务主题 </a-select-option>
-          <a-select-option value="academic"> 学术主题 </a-select-option>
-          <a-select-option value="creative"> 创意主题 </a-select-option>
-          <a-select-option value="dark"> 深色主题 </a-select-option>
+          <a-select-option value="business">
+            商务主题
+          </a-select-option>
+          <a-select-option value="academic">
+            学术主题
+          </a-select-option>
+          <a-select-option value="creative">
+            创意主题
+          </a-select-option>
+          <a-select-option value="dark">
+            深色主题
+          </a-select-option>
         </a-select>
 
         <a-divider type="vertical" />
@@ -78,16 +89,25 @@
       <div class="toolbar-spacer" />
 
       <div class="toolbar-right">
-        <a-tag v-if="slides.length > 0" color="blue">
+        <a-tag
+          v-if="slides.length > 0"
+          color="blue"
+        >
           {{ currentSlideIndex + 1 }} / {{ slides.length }}
         </a-tag>
 
-        <a-tag v-if="hasChanges" color="orange">
+        <a-tag
+          v-if="hasChanges"
+          color="orange"
+        >
           <ClockCircleOutlined />
           未保存
         </a-tag>
 
-        <a-button size="small" @click="exportPPT">
+        <a-button
+          size="small"
+          @click="exportPPT"
+        >
           <ExportOutlined />
           导出
         </a-button>
@@ -109,7 +129,9 @@
     <div class="ppt-content">
       <!-- 左侧：幻灯片缩略图列表 -->
       <div class="slides-panel">
-        <div class="slides-header">幻灯片</div>
+        <div class="slides-header">
+          幻灯片
+        </div>
         <div class="slides-list">
           <div
             v-for="(slide, index) in slides"
@@ -143,7 +165,11 @@
 
       <!-- 中间：幻灯片编辑区 -->
       <div class="slide-editor">
-        <div v-if="currentSlide" class="slide-canvas" :style="getThemeStyle()">
+        <div
+          v-if="currentSlide"
+          class="slide-canvas"
+          :style="getThemeStyle()"
+        >
           <!-- 幻灯片元素列表 -->
           <div
             v-for="(element, index) in currentSlide.elements"
@@ -160,8 +186,8 @@
             <template
               v-if="
                 element.type === 'text' ||
-                element.type === 'title' ||
-                element.type === 'list'
+                  element.type === 'title' ||
+                  element.type === 'list'
               "
             >
               <textarea
@@ -192,8 +218,11 @@
                 v-if="element.src"
                 :src="element.src"
                 class="element-image"
-              />
-              <div v-else class="element-placeholder">
+              >
+              <div
+                v-else
+                class="element-placeholder"
+              >
                 <PictureOutlined style="font-size: 48px; color: #ccc" />
                 <div>双击选择图片</div>
               </div>
@@ -201,11 +230,17 @@
 
             <!-- 形状元素 -->
             <template v-else-if="element.type === 'shape'">
-              <div class="element-shape" :style="getShapeStyle(element)" />
+              <div
+                class="element-shape"
+                :style="getShapeStyle(element)"
+              />
             </template>
 
             <!-- 元素控制按钮 -->
-            <div v-if="selectedElementIndex === index" class="element-controls">
+            <div
+              v-if="selectedElementIndex === index"
+              class="element-controls"
+            >
               <a-button
                 size="small"
                 type="text"
@@ -217,7 +252,10 @@
           </div>
 
           <!-- 空状态 -->
-          <div v-if="currentSlide.elements.length === 0" class="empty-slide">
+          <div
+            v-if="currentSlide.elements.length === 0"
+            class="empty-slide"
+          >
             <PlusCircleOutlined style="font-size: 64px; color: #ccc" />
             <p>点击"添加元素"开始编辑幻灯片</p>
           </div>
@@ -229,13 +267,20 @@
         v-if="selectedElementIndex >= 0 && currentSlide"
         class="properties-panel"
       >
-        <div class="panel-header">属性</div>
+        <div class="panel-header">
+          属性
+        </div>
         <div class="panel-content">
-          <a-form layout="vertical" size="small">
+          <a-form
+            layout="vertical"
+            size="small"
+          >
             <a-form-item label="类型">
-              <a-tag>{{
-                currentSlide.elements[selectedElementIndex]?.type
-              }}</a-tag>
+              <a-tag>
+                {{
+                  currentSlide.elements[selectedElementIndex]?.type
+                }}
+              </a-tag>
             </a-form-item>
 
             <a-form-item label="位置 X (%)">
@@ -296,7 +341,7 @@
                   "
                   class="color-picker"
                   @input="handleColorChange"
-                />
+                >
               </a-form-item>
 
               <a-form-item label="对齐">
@@ -306,9 +351,15 @@
                   "
                   @change="handleElementChange"
                 >
-                  <a-radio-button value="left"> 左对齐 </a-radio-button>
-                  <a-radio-button value="center"> 居中 </a-radio-button>
-                  <a-radio-button value="right"> 右对齐 </a-radio-button>
+                  <a-radio-button value="left">
+                    左对齐
+                  </a-radio-button>
+                  <a-radio-button value="center">
+                    居中
+                  </a-radio-button>
+                  <a-radio-button value="right">
+                    右对齐
+                  </a-radio-button>
                 </a-radio-group>
               </a-form-item>
 

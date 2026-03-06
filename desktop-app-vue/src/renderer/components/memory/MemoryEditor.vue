@@ -46,7 +46,11 @@
         添加记忆
       </a-button>
 
-      <a-button type="text" :loading="loading.memory" @click="refreshMemory">
+      <a-button
+        type="text"
+        :loading="loading.memory"
+        @click="refreshMemory"
+      >
         <template #icon>
           <ReloadOutlined />
         </template>
@@ -62,20 +66,35 @@
           ref="previewRef"
           class="preview-mode"
         >
-          <MarkdownViewer v-if="memoryContent" :content="memoryContent" />
-          <a-empty v-else description="MEMORY.md 暂无内容" />
+          <MarkdownViewer
+            v-if="memoryContent"
+            :content="memoryContent"
+          />
+          <a-empty
+            v-else
+            description="MEMORY.md 暂无内容"
+          />
         </div>
 
         <!-- 编辑模式 -->
-        <div v-else class="edit-mode">
+        <div
+          v-else
+          class="edit-mode"
+        >
           <a-textarea
             v-model:value="localContent"
             :rows="25"
             placeholder="编辑 MEMORY.md..."
           />
           <div class="edit-actions">
-            <a-button @click="cancelEdit"> 取消 </a-button>
-            <a-button type="primary" :loading="loading.write" @click="saveEdit">
+            <a-button @click="cancelEdit">
+              取消
+            </a-button>
+            <a-button
+              type="primary"
+              :loading="loading.write"
+              @click="saveEdit"
+            >
               保存
             </a-button>
           </div>

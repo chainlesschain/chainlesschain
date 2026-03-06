@@ -1,6 +1,9 @@
 <template>
   <div class="friends-container">
-    <a-card title="好友管理" :loading="loading">
+    <a-card
+      title="好友管理"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
           <a-badge
@@ -14,7 +17,10 @@
               好友请求
             </a-button>
           </a-badge>
-          <a-button type="primary" @click="showAddFriendModal = true">
+          <a-button
+            type="primary"
+            @click="showAddFriendModal = true"
+          >
             <template #icon>
               <user-add-outlined />
             </template>
@@ -30,9 +36,15 @@
       </template>
 
       <!-- 统计信息 -->
-      <a-row :gutter="16" style="margin-bottom: 16px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="8">
-          <a-statistic title="好友总数" :value="statistics.total">
+          <a-statistic
+            title="好友总数"
+            :value="statistics.total"
+          >
             <template #prefix>
               <user-outlined />
             </template>
@@ -50,7 +62,10 @@
           </a-statistic>
         </a-col>
         <a-col :span="8">
-          <a-statistic title="离线" :value="statistics.offline">
+          <a-statistic
+            title="离线"
+            :value="statistics.offline"
+          >
             <template #prefix>
               <minus-circle-outlined />
             </template>
@@ -66,7 +81,9 @@
           button-style="solid"
           @change="handleGroupChange"
         >
-          <a-radio-button value=""> 全部 </a-radio-button>
+          <a-radio-button value="">
+            全部
+          </a-radio-button>
           <a-radio-button
             v-for="(count, group) in statistics.byGroup"
             :key="group"
@@ -132,7 +149,10 @@
                 </a-button>
               </a-tooltip>
               <a-dropdown>
-                <a-button type="link" size="small">
+                <a-button
+                  type="link"
+                  size="small"
+                >
                   <template #icon>
                     <ellipsis-outlined />
                   </template>
@@ -146,7 +166,10 @@
                       <folder-outlined /> 修改分组
                     </a-menu-item>
                     <a-menu-divider />
-                    <a-menu-item danger @click="handleRemoveFriend(item)">
+                    <a-menu-item
+                      danger
+                      @click="handleRemoveFriend(item)"
+                    >
                       <delete-outlined /> 删除好友
                     </a-menu-item>
                   </a-menu>
@@ -156,7 +179,10 @@
 
             <a-list-item-meta>
               <template #avatar>
-                <a-badge :status="getOnlineStatus(item)" :offset="[-5, 35]">
+                <a-badge
+                  :status="getOnlineStatus(item)"
+                  :offset="[-5, 35]"
+                >
                   <a-avatar
                     :style="{
                       backgroundColor: getAvatarColor(item.friend_did),
@@ -173,13 +199,20 @@
                   <span>{{
                     item.nickname || shortenDid(item.friend_did)
                   }}</span>
-                  <a-tag v-if="item.group_name" color="blue" size="small">
+                  <a-tag
+                    v-if="item.group_name"
+                    color="blue"
+                    size="small"
+                  >
                     {{ item.group_name }}
                   </a-tag>
                 </a-space>
               </template>
               <template #description>
-                <a-space direction="vertical" size="small">
+                <a-space
+                  direction="vertical"
+                  size="small"
+                >
                   <a-typography-text
                     copyable
                     type="secondary"
@@ -198,7 +231,10 @@
 
         <template #empty>
           <a-empty description="暂无好友">
-            <a-button type="primary" @click="showAddFriendModal = true">
+            <a-button
+              type="primary"
+              @click="showAddFriendModal = true"
+            >
               添加第一个好友
             </a-button>
           </a-empty>
@@ -213,8 +249,14 @@
       :confirm-loading="adding"
       @ok="handleAddFriend"
     >
-      <a-form :model="addFriendForm" layout="vertical">
-        <a-form-item label="好友 DID" required>
+      <a-form
+        :model="addFriendForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="好友 DID"
+          required
+        >
           <a-input
             v-model:value="addFriendForm.targetDid"
             placeholder="输入好友的 DID"
@@ -239,7 +281,10 @@
       width="600px"
       :footer="null"
     >
-      <a-list :data-source="pendingRequests" :loading="loadingRequests">
+      <a-list
+        :data-source="pendingRequests"
+        :loading="loadingRequests"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
@@ -272,7 +317,10 @@
                 {{ shortenDid(item.from_did) }}
               </template>
               <template #description>
-                <a-space direction="vertical" size="small">
+                <a-space
+                  direction="vertical"
+                  size="small"
+                >
                   <a-typography-text
                     copyable
                     type="secondary"
@@ -280,7 +328,10 @@
                   >
                     {{ item.from_did }}
                   </a-typography-text>
-                  <div v-if="item.message" style="font-size: 12px">
+                  <div
+                    v-if="item.message"
+                    style="font-size: 12px"
+                  >
                     验证消息: {{ item.message }}
                   </div>
                   <div style="font-size: 12px; color: #999">

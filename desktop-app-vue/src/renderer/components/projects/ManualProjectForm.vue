@@ -59,12 +59,19 @@
               :class="{ 'selected': formData.projectType === type.type }"
               @click="selectProjectType(type.type)"
             >
-              <div class="type-icon" :style="{ backgroundColor: type.color + '20', color: type.color }">
+              <div
+                class="type-icon"
+                :style="{ backgroundColor: type.color + '20', color: type.color }"
+              >
                 <component :is="getIconComponent(type.icon)" />
               </div>
               <div class="type-info">
-                <div class="type-name">{{ type.name }}</div>
-                <div class="type-desc">{{ type.description }}</div>
+                <div class="type-name">
+                  {{ type.name }}
+                </div>
+                <div class="type-desc">
+                  {{ type.description }}
+                </div>
               </div>
             </div>
           </div>
@@ -77,10 +84,19 @@
         >
           <div class="template-section">
             <div class="template-tabs">
-              <a-radio-group v-model:value="templateFilter" size="small">
-                <a-radio-button value="all">全部</a-radio-button>
-                <a-radio-button value="recommended">推荐</a-radio-button>
-                <a-radio-button value="custom">自定义</a-radio-button>
+              <a-radio-group
+                v-model:value="templateFilter"
+                size="small"
+              >
+                <a-radio-button value="all">
+                  全部
+                </a-radio-button>
+                <a-radio-button value="recommended">
+                  推荐
+                </a-radio-button>
+                <a-radio-button value="custom">
+                  自定义
+                </a-radio-button>
               </a-radio-group>
             </div>
 
@@ -96,25 +112,51 @@
                   <component :is="getIconComponent(template.icon)" />
                 </div>
                 <div class="template-info">
-                  <div class="template-name">{{ template.name }}</div>
-                  <div class="template-desc">{{ template.description }}</div>
-                  <div class="template-tags" v-if="template.tags && template.tags.length">
-                    <a-tag v-for="tag in template.tags.slice(0, 3)" :key="tag" size="small">
+                  <div class="template-name">
+                    {{ template.name }}
+                  </div>
+                  <div class="template-desc">
+                    {{ template.description }}
+                  </div>
+                  <div
+                    v-if="template.tags && template.tags.length"
+                    class="template-tags"
+                  >
+                    <a-tag
+                      v-for="tag in template.tags.slice(0, 3)"
+                      :key="tag"
+                      size="small"
+                    >
                       {{ tag }}
                     </a-tag>
                   </div>
                 </div>
-                <div class="template-badge" v-if="template.isCustom">
-                  <a-tag color="orange" size="small">自定义</a-tag>
+                <div
+                  v-if="template.isCustom"
+                  class="template-badge"
+                >
+                  <a-tag
+                    color="orange"
+                    size="small"
+                  >
+                    自定义
+                  </a-tag>
                 </div>
               </div>
             </div>
 
             <!-- 模板预览 -->
-            <div class="template-preview" v-if="selectedTemplatePreview">
+            <div
+              v-if="selectedTemplatePreview"
+              class="template-preview"
+            >
               <div class="preview-header">
                 <span>模板预览</span>
-                <a-button type="link" size="small" @click="showFullPreview = true">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="showFullPreview = true"
+                >
                   查看详情
                 </a-button>
               </div>
@@ -199,7 +241,10 @@
       width="600px"
       :footer="null"
     >
-      <div v-if="selectedTemplatePreview" class="full-preview">
+      <div
+        v-if="selectedTemplatePreview"
+        class="full-preview"
+      >
         <div class="preview-info">
           <h3>{{ selectedTemplatePreview.name }}</h3>
           <p>{{ selectedTemplatePreview.description }}</p>

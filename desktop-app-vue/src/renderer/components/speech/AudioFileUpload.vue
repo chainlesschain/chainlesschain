@@ -12,33 +12,57 @@
       <p class="upload-icon">
         <InboxOutlined :style="{ fontSize: '48px', color: '#1890ff' }" />
       </p>
-      <p class="upload-text">点击或拖拽音频文件到此区域</p>
-      <p class="upload-hint">支持 MP3, WAV, M4A, AAC, OGG, FLAC 等格式</p>
-      <p class="upload-hint">单个文件最大 25MB</p>
+      <p class="upload-text">
+        点击或拖拽音频文件到此区域
+      </p>
+      <p class="upload-hint">
+        支持 MP3, WAV, M4A, AAC, OGG, FLAC 等格式
+      </p>
+      <p class="upload-hint">
+        单个文件最大 25MB
+      </p>
     </a-upload-dragger>
 
     <!-- 上传文件列表 -->
-    <div v-if="fileList.length > 0" class="file-list">
+    <div
+      v-if="fileList.length > 0"
+      class="file-list"
+    >
       <h4>待转录文件 ({{ fileList.length }})</h4>
-      <a-list :data-source="fileList" size="small">
+      <a-list
+        :data-source="fileList"
+        size="small"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
               <template #title>
                 <span>{{ item.name }}</span>
-                <a-tag v-if="item.status === 'uploading'" color="blue">
+                <a-tag
+                  v-if="item.status === 'uploading'"
+                  color="blue"
+                >
                   处理中
                 </a-tag>
-                <a-tag v-else-if="item.status === 'done'" color="green">
+                <a-tag
+                  v-else-if="item.status === 'done'"
+                  color="green"
+                >
                   已完成
                 </a-tag>
-                <a-tag v-else-if="item.status === 'error'" color="red">
+                <a-tag
+                  v-else-if="item.status === 'error'"
+                  color="red"
+                >
                   失败
                 </a-tag>
               </template>
               <template #description>
                 <div v-if="item.status === 'uploading' && item.progress">
-                  <a-progress :percent="item.progress" size="small" />
+                  <a-progress
+                    :percent="item.progress"
+                    size="small"
+                  />
                   <span class="progress-text">{{ item.statusText }}</span>
                 </div>
                 <div v-else-if="item.result">
@@ -72,9 +96,15 @@
     </div>
 
     <!-- 转录结果列表 -->
-    <div v-if="results.length > 0" class="results-section">
+    <div
+      v-if="results.length > 0"
+      class="results-section"
+    >
       <h4>转录结果</h4>
-      <a-list :data-source="results" :pagination="{ pageSize: 5 }">
+      <a-list
+        :data-source="results"
+        :pagination="{ pageSize: 5 }"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
@@ -110,7 +140,10 @@
       width="800px"
       :footer="null"
     >
-      <div v-if="selectedResult" class="full-text-modal">
+      <div
+        v-if="selectedResult"
+        class="full-text-modal"
+      >
         <div class="text-header">
           <h4>{{ selectedResult.fileName }}</h4>
           <div class="text-meta">

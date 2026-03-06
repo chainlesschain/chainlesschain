@@ -1,5 +1,8 @@
 <template>
-  <div class="cursor-overlay" ref="overlayRef">
+  <div
+    ref="overlayRef"
+    class="cursor-overlay"
+  >
     <div
       v-for="cursor in visibleCursors"
       :key="cursor.did"
@@ -10,7 +13,7 @@
       <div
         class="cursor-line"
         :style="{ backgroundColor: cursor.color }"
-      ></div>
+      />
 
       <!-- Cursor Label -->
       <div
@@ -28,7 +31,7 @@
         v-if="cursor.selection"
         class="cursor-selection"
         :style="getSelectionStyle(cursor)"
-      ></div>
+      />
     </div>
   </div>
 </template>
@@ -91,8 +94,8 @@ const visibleCursors = computed(() => {
   const STALE_THRESHOLD = 60000; // 60 seconds
 
   return (props.cursors || []).filter((cursor) => {
-    if (!cursor || !cursor.did) return false;
-    if (!cursor.position) return false;
+    if (!cursor || !cursor.did) {return false;}
+    if (!cursor.position) {return false;}
 
     // Filter stale cursors
     if (cursor.lastActivity && now - cursor.lastActivity > STALE_THRESHOLD) {
@@ -100,7 +103,7 @@ const visibleCursors = computed(() => {
     }
 
     // Don't show local cursor
-    if (cursor.isLocal) return false;
+    if (cursor.isLocal) {return false;}
 
     return true;
   });
@@ -197,7 +200,7 @@ function getSelectionStyle(cursor) {
  * Calculate a contrasting text color (black or white) for a background color
  */
 function getContrastColor(hexColor) {
-  if (!hexColor || hexColor.length < 7) return '#ffffff';
+  if (!hexColor || hexColor.length < 7) {return '#ffffff';}
 
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);

@@ -380,7 +380,7 @@ class ActionSuggestion extends EventEmitter {
     const seen = new Set();
     const unique = suggestions.filter(s => {
       const key = `${s.type}_${JSON.stringify(s.target)}`;
-      if (seen.has(key)) return false;
+      if (seen.has(key)) {return false;}
       seen.add(key);
       return true;
     });
@@ -389,7 +389,7 @@ class ActionSuggestion extends EventEmitter {
     return unique.sort((a, b) => {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-      if (priorityDiff !== 0) return priorityDiff;
+      if (priorityDiff !== 0) {return priorityDiff;}
       return (b.confidence || 0) - (a.confidence || 0);
     });
   }
@@ -399,7 +399,7 @@ class ActionSuggestion extends EventEmitter {
    * @private
    */
   _contextSimilarity(ctx1, ctx2) {
-    if (!ctx1 || !ctx2) return 0;
+    if (!ctx1 || !ctx2) {return 0;}
 
     let score = 0;
     let count = 0;
@@ -426,8 +426,8 @@ class ActionSuggestion extends EventEmitter {
       const u1 = new URL(url1);
       const u2 = new URL(url2);
 
-      if (u1.hostname !== u2.hostname) return 0;
-      if (u1.pathname === u2.pathname) return 1;
+      if (u1.hostname !== u2.hostname) {return 0;}
+      if (u1.pathname === u2.pathname) {return 1;}
 
       const path1 = u1.pathname.split('/').filter(Boolean);
       const path2 = u2.pathname.split('/').filter(Boolean);
@@ -447,7 +447,7 @@ class ActionSuggestion extends EventEmitter {
     const s1 = str1.toLowerCase();
     const s2 = str2.toLowerCase();
 
-    if (s1 === s2) return 1;
+    if (s1 === s2) {return 1;}
 
     const words1 = new Set(s1.split(/\s+/));
     const words2 = new Set(s2.split(/\s+/));
@@ -562,7 +562,7 @@ class ActionSuggestion extends EventEmitter {
    * @private
    */
   _learnPattern(action) {
-    if (!this.currentContext) return;
+    if (!this.currentContext) {return;}
 
     const key = this._contextKey(this.currentContext);
     const existing = this.learnedPatterns.get(key);

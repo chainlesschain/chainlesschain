@@ -10,8 +10,14 @@
     >
       <a-form layout="vertical">
         <!-- 资产类型 -->
-        <a-form-item label="资产类型" required>
-          <a-radio-group v-model:value="form.type" button-style="solid">
+        <a-form-item
+          label="资产类型"
+          required
+        >
+          <a-radio-group
+            v-model:value="form.type"
+            button-style="solid"
+          >
             <a-radio-button value="token">
               <trophy-outlined /> Token（通证）
             </a-radio-button>
@@ -37,7 +43,10 @@
         </a-form-item>
 
         <!-- 资产名称 -->
-        <a-form-item label="资产名称" required>
+        <a-form-item
+          label="资产名称"
+          required
+        >
           <a-input
             v-model:value="form.name"
             placeholder="例如：ChainCoin、音乐 NFT、编程课程等"
@@ -47,14 +56,20 @@
         </a-form-item>
 
         <!-- 资产符号（仅 Token 需要） -->
-        <a-form-item v-if="form.type === 'token'" label="资产符号" required>
+        <a-form-item
+          v-if="form.type === 'token'"
+          label="资产符号"
+          required
+        >
           <a-input
             v-model:value="form.symbol"
             placeholder="例如：CC、BTC、ETH"
             :maxlength="10"
             style="text-transform: uppercase"
           />
-          <template #extra> 通证的简称，建议 2-5 个大写字母 </template>
+          <template #extra>
+            通证的简称，建议 2-5 个大写字母
+          </template>
         </a-form-item>
 
         <!-- 描述 -->
@@ -69,7 +84,11 @@
         </a-form-item>
 
         <!-- 总供应量（Token 需要） -->
-        <a-form-item v-if="form.type === 'token'" label="初始供应量" required>
+        <a-form-item
+          v-if="form.type === 'token'"
+          label="初始供应量"
+          required
+        >
           <a-input-number
             v-model:value="form.totalSupply"
             :min="0"
@@ -77,11 +96,16 @@
             style="width: 100%"
             placeholder="资产的总发行量"
           />
-          <template #extra> 初始铸造数量，后续可以追加铸造 </template>
+          <template #extra>
+            初始铸造数量，后续可以追加铸造
+          </template>
         </a-form-item>
 
         <!-- 小数位数（Token 需要） -->
-        <a-form-item v-if="form.type === 'token'" label="小数位数">
+        <a-form-item
+          v-if="form.type === 'token'"
+          label="小数位数"
+        >
           <a-input-number
             v-model:value="form.decimals"
             :min="0"
@@ -111,8 +135,12 @@
             v-model:checked="form.onChain"
             :disabled="form.type === 'knowledge' || form.type === 'service'"
           >
-            <template #checkedChildren> 启用 </template>
-            <template #unCheckedChildren> 禁用 </template>
+            <template #checkedChildren>
+              启用
+            </template>
+            <template #unCheckedChildren>
+              禁用
+            </template>
           </a-switch>
           <div
             v-if="form.type === 'knowledge' || form.type === 'service'"
@@ -132,7 +160,10 @@
             :style="{ marginBottom: '16px' }"
           />
 
-          <a-form-item label="选择钱包" required>
+          <a-form-item
+            label="选择钱包"
+            required
+          >
             <wallet-selector
               v-model="form.walletId"
               :show-balance="true"
@@ -141,7 +172,10 @@
             />
           </a-form-item>
 
-          <a-form-item label="选择网络" required>
+          <a-form-item
+            label="选择网络"
+            required
+          >
             <chain-selector
               v-model="form.chainId"
               :width="'100%'"
@@ -149,7 +183,10 @@
             />
           </a-form-item>
 
-          <a-form-item label="钱包密码" required>
+          <a-form-item
+            label="钱包密码"
+            required
+          >
             <a-input-password
               v-model:value="form.password"
               placeholder="用于签名交易的钱包密码"
@@ -159,11 +196,16 @@
                 <lock-outlined />
               </template>
             </a-input-password>
-            <template #extra> 此密码用于解密私钥并签名部署交易 </template>
+            <template #extra>
+              此密码用于解密私钥并签名部署交易
+            </template>
           </a-form-item>
 
           <!-- Gas 估算（可选显示） -->
-          <a-form-item v-if="estimatedGas" label="预估 Gas">
+          <a-form-item
+            v-if="estimatedGas"
+            label="预估 Gas"
+          >
             <a-statistic
               :value="estimatedGas"
               suffix="Gas"
@@ -172,7 +214,11 @@
             <template #extra>
               <span class="gas-info">
                 预估费用: {{ formatGasFee(estimatedGas) }}
-                <a-button type="link" size="small" @click="fetchGasEstimate">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="fetchGasEstimate"
+                >
                   刷新估算
                 </a-button>
               </span>
@@ -182,7 +228,10 @@
 
         <!-- 元数据 -->
         <a-collapse ghost>
-          <a-collapse-panel key="metadata" header="高级设置（可选）">
+          <a-collapse-panel
+            key="metadata"
+            header="高级设置（可选）"
+          >
             <a-form-item label="资产图片 URL">
               <a-input
                 v-model:value="form.metadata.imageUrl"
@@ -197,7 +246,10 @@
               />
             </a-form-item>
 
-            <a-form-item v-if="form.type === 'nft'" label="NFT 属性">
+            <a-form-item
+              v-if="form.type === 'nft'"
+              label="NFT 属性"
+            >
               <a-button
                 size="small"
                 style="margin-bottom: 8px"
@@ -234,7 +286,7 @@
             <a-form-item label="自定义数据（JSON）">
               <a-textarea
                 v-model:value="customDataStr"
-                placeholder='{"key": "value"}'
+                placeholder="{&quot;key&quot;: &quot;value&quot;}"
                 :rows="3"
               />
             </a-form-item>

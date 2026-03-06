@@ -22,9 +22,9 @@ class LoggingManager {
     const loggerOpts = {
       enableAutoCleanup: options.enableAutoCleanup !== false
     };
-    if (options.maxLogAge != null) loggerOpts.maxLogAge = options.maxLogAge;
-    if (options.maxLogCount != null) loggerOpts.maxLogCount = options.maxLogCount;
-    if (options.autoCleanupInterval != null) loggerOpts.autoCleanupInterval = options.autoCleanupInterval;
+    if (options.maxLogAge != null) {loggerOpts.maxLogAge = options.maxLogAge;}
+    if (options.maxLogCount != null) {loggerOpts.maxLogCount = options.maxLogCount;}
+    if (options.autoCleanupInterval != null) {loggerOpts.autoCleanupInterval = options.autoCleanupInterval;}
     this.commandLogger = new CommandLogger(database, loggerOpts);
 
     // 创建 StatisticsCollector（过滤 undefined 值，避免覆盖子模块默认配置）
@@ -32,8 +32,8 @@ class LoggingManager {
       enableRealTimeStats: options.enableRealTimeStats !== false,
       enablePersistentStats: options.enablePersistentStats !== false
     };
-    if (options.statsAggregationInterval != null) statsOpts.statsAggregationInterval = options.statsAggregationInterval;
-    if (options.maxStatsAge != null) statsOpts.maxStatsAge = options.maxStatsAge;
+    if (options.statsAggregationInterval != null) {statsOpts.statsAggregationInterval = options.statsAggregationInterval;}
+    if (options.maxStatsAge != null) {statsOpts.maxStatsAge = options.maxStatsAge;}
     this.statisticsCollector = new StatisticsCollector(database, statsOpts);
 
     // 监听日志事件，自动更新统计

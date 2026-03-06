@@ -52,15 +52,15 @@ vi.mock("yjs", () => {
       this._arrays = {};
     }
     getText(name) {
-      if (!this._texts[name]) this._texts[name] = new MockYText();
+      if (!this._texts[name]) {this._texts[name] = new MockYText();}
       return this._texts[name];
     }
     getMap(name) {
-      if (!this._maps[name]) this._maps[name] = new MockYMap();
+      if (!this._maps[name]) {this._maps[name] = new MockYMap();}
       return this._maps[name];
     }
     getArray(name) {
-      if (!this._arrays[name]) this._arrays[name] = new MockYArray();
+      if (!this._arrays[name]) {this._arrays[name] = new MockYArray();}
       return this._arrays[name];
     }
     transact(fn) { fn(); this._listeners.forEach(cb => cb(new Uint8Array([1, 2, 3]), null)); }

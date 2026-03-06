@@ -19,7 +19,11 @@
 
     <!-- 阶段进度条 -->
     <div class="stages-progress">
-      <a-steps :current="currentStageIndex" :status="stepsStatus" size="small">
+      <a-steps
+        :current="currentStageIndex"
+        :status="stepsStatus"
+        size="small"
+      >
         <a-step
           v-for="(stage, index) in stages"
           :key="stage.id"
@@ -27,11 +31,20 @@
           :description="getStageDescription(stage, index)"
         >
           <template #icon>
-            <div class="step-icon" :class="getStepIconClass(stage, index)">
+            <div
+              class="step-icon"
+              :class="getStepIconClass(stage, index)"
+            >
               <CheckCircleFilled v-if="stage.status === 'completed'" />
               <CloseCircleFilled v-else-if="stage.status === 'failed'" />
-              <LoadingOutlined v-else-if="stage.status === 'running'" spin />
-              <span v-else class="step-number">{{ index + 1 }}</span>
+              <LoadingOutlined
+                v-else-if="stage.status === 'running'"
+                spin
+              />
+              <span
+                v-else
+                class="step-number"
+              >{{ index + 1 }}</span>
             </div>
           </template>
         </a-step>
@@ -67,11 +80,18 @@
           <SafetyCertificateOutlined />
           质量门禁状态
         </h3>
-        <a-button size="small" type="text" @click="toggleGatesExpand">
+        <a-button
+          size="small"
+          type="text"
+          @click="toggleGatesExpand"
+        >
           {{ gatesExpanded ? "收起" : "展开" }}
         </a-button>
       </div>
-      <div v-show="gatesExpanded" class="gates-grid">
+      <div
+        v-show="gatesExpanded"
+        class="gates-grid"
+      >
         <QualityGateCard
           v-for="(gate, gateId) in qualityGates"
           :key="gateId"
@@ -88,26 +108,45 @@
           <FileTextOutlined />
           执行详情
         </h3>
-        <a-button size="small" type="text" @click="toggleLogsExpand">
+        <a-button
+          size="small"
+          type="text"
+          @click="toggleLogsExpand"
+        >
           {{ logsExpanded ? "收起" : "展开" }}
         </a-button>
       </div>
-      <div v-show="logsExpanded" class="logs-container">
+      <div
+        v-show="logsExpanded"
+        class="logs-container"
+      >
         <StepTimeline :steps="executionSteps" />
       </div>
     </div>
 
     <!-- 操作按钮 -->
     <div class="workflow-actions">
-      <a-button v-if="canPause" type="default" @click="handlePause">
+      <a-button
+        v-if="canPause"
+        type="default"
+        @click="handlePause"
+      >
         <PauseCircleOutlined />
         暂停
       </a-button>
-      <a-button v-if="canResume" type="primary" @click="handleResume">
+      <a-button
+        v-if="canResume"
+        type="primary"
+        @click="handleResume"
+      >
         <PlayCircleOutlined />
         继续
       </a-button>
-      <a-button v-if="canRetry" type="primary" @click="handleRetry">
+      <a-button
+        v-if="canRetry"
+        type="primary"
+        @click="handleRetry"
+      >
         <ReloadOutlined />
         重试
       </a-button>

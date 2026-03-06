@@ -9,18 +9,35 @@
     >
       <div v-if="contract">
         <!-- 合约基本信息 -->
-        <a-card title="基本信息" size="small" style="margin-bottom: 16px">
+        <a-card
+          title="基本信息"
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <template #extra>
-            <status-badge :status="contract.status" type="contract" show-icon />
+            <status-badge
+              :status="contract.status"
+              type="contract"
+              show-icon
+            />
           </template>
 
-          <a-descriptions :column="2" bordered>
-            <a-descriptions-item label="合约 ID" :span="2">
+          <a-descriptions
+            :column="2"
+            bordered
+          >
+            <a-descriptions-item
+              label="合约 ID"
+              :span="2"
+            >
               <a-typography-text copyable>
                 {{ contract.id }}
               </a-typography-text>
             </a-descriptions-item>
-            <a-descriptions-item label="合约标题" :span="2">
+            <a-descriptions-item
+              label="合约标题"
+              :span="2"
+            >
               <strong>{{ contract.title }}</strong>
             </a-descriptions-item>
             <a-descriptions-item
@@ -41,7 +58,10 @@
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="创建者">
-              <a-typography-text copyable style="font-size: 12px">
+              <a-typography-text
+                copyable
+                style="font-size: 12px"
+              >
                 {{ shortenDid(contract.creator_did) }}
               </a-typography-text>
             </a-descriptions-item>
@@ -80,13 +100,23 @@
         </a-card>
 
         <!-- 参与方 -->
-        <a-card title="参与方" size="small" style="margin-bottom: 16px">
-          <a-list :data-source="contract.parties" size="small">
+        <a-card
+          title="参与方"
+          size="small"
+          style="margin-bottom: 16px"
+        >
+          <a-list
+            :data-source="contract.parties"
+            size="small"
+          >
             <template #renderItem="{ item }">
               <a-list-item>
                 <a-space>
                   <user-outlined />
-                  <a-typography-text copyable style="font-size: 12px">
+                  <a-typography-text
+                    copyable
+                    style="font-size: 12px"
+                  >
                     {{ item }}
                   </a-typography-text>
                 </a-space>
@@ -96,8 +126,16 @@
         </a-card>
 
         <!-- 合约条款 -->
-        <a-card title="合约条款" size="small" style="margin-bottom: 16px">
-          <a-descriptions :column="2" bordered size="small">
+        <a-card
+          title="合约条款"
+          size="small"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="2"
+            bordered
+            size="small"
+          >
             <a-descriptions-item
               v-for="(value, key) in contract.terms"
               :key="key"
@@ -107,7 +145,10 @@
                 {{ value ? "是" : "否" }}
               </template>
               <template v-else-if="key.includes('Did')">
-                <a-typography-text copyable style="font-size: 11px">
+                <a-typography-text
+                  copyable
+                  style="font-size: 11px"
+                >
                   {{ shortenDid(value) }}
                 </a-typography-text>
               </template>
@@ -119,15 +160,25 @@
         </a-card>
 
         <!-- 合约条件 -->
-        <a-card title="合约条件" size="small" style="margin-bottom: 16px">
+        <a-card
+          title="合约条件"
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <template #extra>
-            <a-button size="small" @click="loadConditions">
+            <a-button
+              size="small"
+              @click="loadConditions"
+            >
               <reload-outlined /> 刷新
             </a-button>
           </template>
 
           <a-spin :spinning="loadingConditions">
-            <a-list :data-source="conditions" size="small">
+            <a-list
+              :data-source="conditions"
+              size="small"
+            >
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta>
@@ -144,7 +195,11 @@
                         <span>{{
                           getConditionTypeName(item.condition_type)
                         }}</span>
-                        <a-tag v-if="item.is_required" color="red" size="small">
+                        <a-tag
+                          v-if="item.is_required"
+                          color="red"
+                          size="small"
+                        >
                           必需
                         </a-tag>
                       </a-space>
@@ -162,16 +217,26 @@
               </template>
 
               <template #empty>
-                <a-empty description="无条件要求" :image="null" />
+                <a-empty
+                  description="无条件要求"
+                  :image="null"
+                />
               </template>
             </a-list>
           </a-spin>
         </a-card>
 
         <!-- 合约事件 -->
-        <a-card title="合约事件" size="small" style="margin-bottom: 16px">
+        <a-card
+          title="合约事件"
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <template #extra>
-            <a-button size="small" @click="loadEvents">
+            <a-button
+              size="small"
+              @click="loadEvents"
+            >
               <reload-outlined /> 刷新
             </a-button>
           </template>
@@ -216,8 +281,15 @@
           size="small"
           style="margin-bottom: 16px"
         >
-          <a-descriptions :column="2" bordered size="small">
-            <a-descriptions-item label="托管 ID" :span="2">
+          <a-descriptions
+            :column="2"
+            bordered
+            size="small"
+          >
+            <a-descriptions-item
+              label="托管 ID"
+              :span="2"
+            >
               <a-typography-text copyable>
                 {{ contract.escrow_id }}
               </a-typography-text>
@@ -238,7 +310,7 @@
             <a-button
               v-if="
                 contract.status === 'draft' &&
-                contract.escrow_type === 'multisig'
+                  contract.escrow_type === 'multisig'
               "
               @click="handleSign"
             >
@@ -271,7 +343,9 @@
             >
               <warning-outlined /> 发起仲裁
             </a-button>
-            <a-button @click="handleClose"> 关闭 </a-button>
+            <a-button @click="handleClose">
+              关闭
+            </a-button>
           </a-space>
         </div>
       </div>

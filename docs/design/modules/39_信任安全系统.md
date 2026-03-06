@@ -1,0 +1,250 @@
+# Phase 68-71 — 信任安全系统设计
+
+**版本**: v3.2.0
+**创建日期**: 2026-02-28
+**状态**: ✅ 已实现 (v3.2.0)
+
+---
+
+## 一、模块概述
+
+Phase 68-71 构建完整的硬件信任安全体系：三位一体信任根、PQC全面迁移、卫星通信和HSM适配器。
+
+### 1.1 核心目标
+
+1. **信任根**: TPM/TEE/SE 三位一体硬件信任锚
+2. **PQC生态**: 全面后量子密码迁移和互操作性
+3. **卫星通信**: 离线场景下的密钥撤销广播
+4. **HSM适配**: 多厂商硬件安全模块统一接口
+
+### 1.2 技术架构
+
+```
+┌──────────────────────────────────────────┐
+│            Trust & Security Layer         │
+│                                           │
+│  ┌──────────────┐  ┌─────────────────┐   │
+│  │ TrustRoot    │  │ PQCEcosystem    │   │
+│  │ TPM/TEE/SE   │  │ ML-KEM/ML-DSA   │   │
+│  └──────────────┘  └─────────────────┘   │
+│  ┌──────────────┐  ┌─────────────────┐   │
+│  │ SatelliteComm│  │ HSMAdapter      │   │
+│  │ Iridium/LEO  │  │ YubiKey/Ledger  │   │
+│  └──────────────┘  └─────────────────┘   │
+└──────────────────────────────────────────┘
+```
+
+---
+
+## 二、核心模块设计
+
+### 2.1 TrustRootManager (Phase 68) (`ukey/trust-root-manager.js`)
+
+三位一体信任根管理：TPM + TEE + Secure Element。
+
+**常量**:
+
+- `TRUST_ANCHOR`: TPM, TEE, SECURE_ELEMENT
+- `ATTESTATION_STATUS`: VALID, EXPIRED, FAILED, PENDING
+
+**核心方法**:
+
+- `initialize()` — 初始化信任根
+- `attest({ anchor, challenge })` — 执行远程证明
+- `verifyBootChain()` — 验证安全启动链
+- `bindFingerprint({ anchor, fingerprintHash })` — 绑定设备指纹
+- `getAttestationHistory(filter)` — 获取证明历史
+
+### 2.2 PQCEcosystemManager (Phase 69) (`ukey/pqc-ecosystem-manager.js`)
+
+PQC全面迁移生态，兼容性检测和互操作性。
+
+**核心方法**:
+
+- `initialize()` — 初始化PQC生态
+- `checkCompatibility(algorithm)` — 检查算法兼容性
+- `getEcosystemStatus()` — 获取生态状态（支持的算法、迁移进度）
+- `runInteropTest({ algorithm, peer })` — 运行互操作性测试
+- `getTransitionPlan()` — 获取迁移计划
+
+### 2.3 SatelliteComm (Phase 70) (`security/satellite-comm.js`)
+
+卫星通信模块，支持离线密钥撤销广播。
+
+**常量**:
+
+- `SATELLITE_PROVIDER`: IRIDIUM, STARLINK, BEIDOU
+- `MESSAGE_STATUS`: QUEUED, SENT, CONFIRMED, FAILED
+
+**核心方法**:
+
+- `initialize()` — 初始化卫星通信
+- `sendMessage({ payload, priority, provider })` — 发送卫星消息
+- `broadcastRevocation({ keyId, reason })` — 广播密钥撤销
+- `getMessages(filter)` — 获取消息列表
+- `getConnectionStatus()` — 获取连接状态
+
+### 2.4 HsmAdapterManager (Phase 71) (`ukey/hsm-adapter-manager.js`)
+
+多厂商HSM统一适配层。
+
+**常量**:
+
+- `HSM_VENDOR`: YUBIKEY, LEDGER, TREZOR, GENERIC
+- `COMPLIANCE_LEVEL`: FIPS_140_2, FIPS_140_3, CC_EAL4
+
+**核心方法**:
+
+- `initialize()` — 初始化HSM适配器
+- `discoverDevices()` — 发现已连接HSM设备
+- `getDeviceInfo(deviceId)` — 获取设备信息
+- `signWithHSM({ deviceId, data, algorithm })` — 使用HSM签名
+
+---
+
+## 三、数据库设计
+
+```sql
+-- Phase 68: Trust Root
+CREATE TABLE IF NOT EXISTS trust_attestations (
+  id TEXT PRIMARY KEY,
+  anchor TEXT NOT NULL,
+  challenge TEXT,
+  response TEXT,
+  status TEXT DEFAULT 'pending',
+  device_fingerprint TEXT,
+  created_at INTEGER
+);
+
+-- Phase 69: PQC Ecosystem
+CREATE TABLE IF NOT EXISTS pqc_interop_tests (
+  id TEXT PRIMARY KEY,
+  algorithm TEXT NOT NULL,
+  peer TEXT,
+  result TEXT,
+  compatible INTEGER DEFAULT 0,
+  latency_ms INTEGER,
+  created_at INTEGER
+);
+
+-- Phase 70: Satellite Communication
+CREATE TABLE IF NOT EXISTS satellite_messages (
+  id TEXT PRIMARY KEY,
+  payload TEXT,
+  provider TEXT DEFAULT 'iridium',
+  priority INTEGER DEFAULT 5,
+  status TEXT DEFAULT 'queued',
+  sent_at INTEGER,
+  confirmed_at INTEGER,
+  created_at INTEGER
+);
+
+-- Phase 71: HSM Adapter
+CREATE TABLE IF NOT EXISTS hsm_devices (
+  id TEXT PRIMARY KEY,
+  vendor TEXT NOT NULL,
+  model TEXT,
+  serial_number TEXT,
+  compliance_level TEXT,
+  firmware_version TEXT,
+  last_seen INTEGER,
+  created_at INTEGER
+);
+```
+
+---
+
+## 四、IPC接口设计
+
+### Phase 68 — TrustRootIPC (5 handlers)
+
+| 通道                          | 说明         |
+| ----------------------------- | ------------ |
+| `trust-root:attest`           | 远程证明     |
+| `trust-root:verify-boot`      | 安全启动验证 |
+| `trust-root:bind-fingerprint` | 设备指纹绑定 |
+| `trust-root:get-history`      | 证明历史     |
+| `trust-root:get-status`       | 信任状态     |
+
+### Phase 69 — PQCEcosystemIPC (4 handlers)
+
+| 通道                          | 说明       |
+| ----------------------------- | ---------- |
+| `pqc-eco:check-compatibility` | 兼容性检查 |
+| `pqc-eco:get-status`          | 生态状态   |
+| `pqc-eco:run-interop-test`    | 互操作测试 |
+| `pqc-eco:get-transition-plan` | 迁移计划   |
+
+### Phase 70 — SatelliteIPC (5 handlers)
+
+| 通道                              | 说明         |
+| --------------------------------- | ------------ |
+| `satellite:send-message`          | 发送卫星消息 |
+| `satellite:broadcast-revocation`  | 广播密钥撤销 |
+| `satellite:get-messages`          | 消息列表     |
+| `satellite:get-connection-status` | 连接状态     |
+| `satellite:get-stats`             | 通信统计     |
+
+### Phase 71 — HsmAdapterIPC (4 handlers)
+
+| 通道                   | 说明     |
+| ---------------------- | -------- |
+| `hsm:discover-devices` | 发现设备 |
+| `hsm:get-device-info`  | 设备信息 |
+| `hsm:sign`             | HSM签名  |
+| `hsm:get-compliance`   | 合规状态 |
+
+---
+
+## 五、前端集成
+
+### Pinia Stores
+
+- `trustRoot.ts` — 信任锚状态、证明历史
+- `pqcEcosystem.ts` — PQC兼容性、迁移进度
+- `satellite.ts` — 卫星消息、连接状态
+- `hsmAdapter.ts` — HSM设备列表、合规状态
+
+### Vue Pages
+
+- `TrustRootPage.vue` — 信任锚管理/远程证明/启动验证
+- `PQCEcosystemPage.vue` — PQC生态/兼容性检查/互操作测试
+- `SatelliteCommPage.vue` — 卫星通信/密钥撤销/消息管理
+- `HSMAdapterPage.vue` — HSM设备/签名操作/合规报告
+
+### Routes
+
+- `/trust-root` — 三位一体信任根
+- `/pqc-ecosystem` — PQC全面迁移
+- `/satellite-comm` — 卫星通信
+- `/hsm-adapter` — HSM适配器
+
+---
+
+## 六、配置选项
+
+```javascript
+trustRoot: {
+  enabled: false,
+  attestationIntervalMs: 3600000,
+  bootVerificationEnabled: true,
+  fingerprintBindingRequired: false,
+},
+pqcEcosystem: {
+  fullMigrationEnabled: false,
+  hybridTransitionPeriodDays: 90,
+},
+satellite: {
+  enabled: false,
+  provider: 'iridium',
+  compressionEnabled: true,
+  maxMessageSizeBytes: 65536,
+  revocationBroadcastTimeoutMs: 10000,
+},
+hsmAdapter: {
+  enabled: false,
+  supportedVendors: ['yubikey', 'ledger', 'trezor'],
+  complianceLevel: 'FIPS-140-3',
+  autoDiscovery: true,
+},
+```

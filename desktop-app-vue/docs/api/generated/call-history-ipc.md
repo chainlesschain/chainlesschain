@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/call-history-ipc.js`
 
-**Generated**: 2026-02-24T18:45:59.473Z
+**Generated**: 2026-02-24T23:28:10.607Z
 
 ---
 
@@ -12,28 +12,29 @@
 let electron;
 ```
 
-- Call History IPC Handler
--
-- 处理通话历史记录相关的IPC请求
+* Call History IPC Handler
+ *
+ * 处理通话历史记录相关的IPC请求
 
 ---
 
 ## register()
 
 ```javascript
-register();
+register()
 ```
 
-- 注册IPC处理器
+* 注册IPC处理器
 
 ---
 
 ## unregister()
 
 ```javascript
-unregister();
+unregister()
 ```
 
-- 注销IPC处理器
+* 注销IPC处理器
 
 ---
+

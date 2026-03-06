@@ -8,7 +8,10 @@
         placeholder="选择日期"
         @change="handleDateChange"
       />
-      <a-button type="primary" @click="goToToday">
+      <a-button
+        type="primary"
+        @click="goToToday"
+      >
         <template #icon>
           <CalendarOutlined />
         </template>
@@ -41,7 +44,10 @@
                   {{ formatDate(note.date) }}
                 </div>
                 <div class="meta">
-                  <a-tag v-if="note.conversation_count > 0" size="small">
+                  <a-tag
+                    v-if="note.conversation_count > 0"
+                    size="small"
+                  >
                     {{ note.conversation_count }} 对话
                   </a-tag>
                   <a-tag
@@ -62,7 +68,10 @@
               </div>
             </a-timeline-item>
           </a-timeline>
-          <a-empty v-else description="暂无 Daily Notes" />
+          <a-empty
+            v-else
+            description="暂无 Daily Notes"
+          />
         </a-spin>
       </div>
 
@@ -96,14 +105,19 @@
 
         <div class="preview-content">
           <a-spin :spinning="loading.dailyNotes">
-            <div v-if="isEditing" class="edit-mode">
+            <div
+              v-if="isEditing"
+              class="edit-mode"
+            >
               <a-textarea
                 v-model:value="editingContent"
                 :rows="20"
                 placeholder="编写 Daily Note..."
               />
               <div class="edit-actions">
-                <a-button @click="cancelEdit"> 取消 </a-button>
+                <a-button @click="cancelEdit">
+                  取消
+                </a-button>
                 <a-button
                   type="primary"
                   :loading="loading.write"
@@ -113,10 +127,16 @@
                 </a-button>
               </div>
             </div>
-            <div v-else-if="currentDailyNote" class="markdown-preview">
+            <div
+              v-else-if="currentDailyNote"
+              class="markdown-preview"
+            >
               <MarkdownViewer :content="currentDailyNote" />
             </div>
-            <a-empty v-else description="选择日期查看内容" />
+            <a-empty
+              v-else
+              description="选择日期查看内容"
+            />
           </a-spin>
         </div>
       </div>
@@ -138,7 +158,9 @@
           />
         </a-form-item>
         <a-form-item>
-          <a-checkbox v-model:checked="appendMode"> 追加到今日日志 </a-checkbox>
+          <a-checkbox v-model:checked="appendMode">
+            追加到今日日志
+          </a-checkbox>
         </a-form-item>
       </a-form>
       <a-typography-text type="secondary">

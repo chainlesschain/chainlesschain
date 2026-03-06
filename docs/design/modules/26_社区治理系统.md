@@ -1,0 +1,236 @@
+# Phase 54 — AI 社区治理系统设计
+
+**版本**: v1.1.0
+**创建日期**: 2026-02-28
+**状态**: ✅ 已实现 (v1.1.0-alpha)
+
+---
+
+## 一、模块概述
+
+Phase 54 引入 AI 辅助社区治理系统，支持提案管理、AI影响分析和投票预测。
+
+### 1.1 核心目标
+
+1. **提案管理**: 创建、审查、投票治理提案
+2. **AI 影响分析**: 自动评估提案对系统各组件的影响
+3. **投票预测**: 基于历史数据预测投票结果
+4. **多提案类型**: 参数变更、功能请求、策略更新、预算分配
+
+### 1.2 技术架构
+
+```
+┌──────────────────────────────────────────────────────┐
+│                   Renderer Process                   │
+│  Pinia Store (governance.ts)                         │
+│  GovernancePage.vue                                  │
+└───────────────────────┬──────────────────────────────┘
+                        │ IPC (4 channels)
+┌───────────────────────┼──────────────────────────────┐
+│                       ▼                              │
+│  ┌─────────────────────────────────────────────┐    │
+│  │ Governance AI (governance-ai.js)            │    │
+│  │ - Proposal CRUD                             │    │
+│  │ - AI Impact Analysis                        │    │
+│  │ - Voting Prediction                         │    │
+│  │ - Context Engineering Integration           │    │
+│  └─────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 二、核心模块设计
+
+### 2.1 Governance AI
+
+**文件**: `desktop-app-vue/src/main/social/governance-ai.js` (ES6 Module)
+
+**提案状态**:
+
+```javascript
+const PROPOSAL_STATUS = {
+  DRAFT: "draft", // 草稿
+  ACTIVE: "active", // 投票中
+  PASSED: "passed", // 已通过
+  REJECTED: "rejected", // 已拒绝
+  EXPIRED: "expired", // 已过期
+};
+```
+
+**提案类型**:
+
+```javascript
+const PROPOSAL_TYPES = {
+  PARAMETER_CHANGE: "parameter_change", // 参数变更
+  FEATURE_REQUEST: "feature_request", // 功能请求
+  POLICY_UPDATE: "policy_update", // 策略更新
+  BUDGET_ALLOCATION: "budget_allocation", // 预算分配
+};
+```
+
+**影响等级**:
+
+```javascript
+const IMPACT_LEVELS = {
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+  CRITICAL: "critical",
+};
+```
+
+**API**:
+
+```javascript
+class GovernanceAI extends EventEmitter {
+  async initialize()
+  async listProposals(filter = {})   // 列出提案 (支持 status/type/limit 过滤)
+  async createProposal({ title, description, type, proposerDid })
+  async analyzeImpact({ proposalId }) // AI 影响分析
+  async predictVote({ proposalId })   // AI 投票预测
+  buildGovernanceContext(_contextHint, _limit) // 上下文工程集成
+  async close()
+}
+```
+
+### 2.2 AI 影响分析
+
+影响分析返回结构:
+
+```typescript
+interface ImpactAnalysis {
+  impact_level: string; // low/medium/high/critical
+  affected_components: string[]; // 受影响的系统组件
+  risk_score: number; // 风险评分 (0-1)
+  benefit_score: number; // 收益评分 (0-1)
+  estimated_effort: string; // 预估工作量
+  community_sentiment: string; // 社区情绪预测
+  recommendations: string[]; // AI 建议
+  analyzed_at: number; // 分析时间戳
+}
+```
+
+---
+
+## 三、数据库设计
+
+### 3.1 governance_proposals (治理提案)
+
+```sql
+CREATE TABLE IF NOT EXISTS governance_proposals (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  type TEXT DEFAULT 'feature_request',
+  proposer_did TEXT,
+  status TEXT DEFAULT 'draft',
+  impact_level TEXT,
+  impact_analysis TEXT,      -- JSON: ImpactAnalysis
+  vote_yes INTEGER DEFAULT 0,
+  vote_no INTEGER DEFAULT 0,
+  vote_abstain INTEGER DEFAULT 0,
+  voting_starts_at INTEGER,
+  voting_ends_at INTEGER,
+  metadata TEXT,
+  created_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+);
+CREATE INDEX IF NOT EXISTS idx_governance_proposals_status ON governance_proposals(status);
+CREATE INDEX IF NOT EXISTS idx_governance_proposals_type ON governance_proposals(type);
+```
+
+### 3.2 governance_votes (投票记录)
+
+```sql
+CREATE TABLE IF NOT EXISTS governance_votes (
+  id TEXT PRIMARY KEY,
+  proposal_id TEXT NOT NULL,
+  voter_did TEXT NOT NULL,
+  vote TEXT NOT NULL,         -- yes/no/abstain
+  reason TEXT,
+  weight REAL DEFAULT 1.0,   -- 投票权重
+  created_at INTEGER DEFAULT (strftime('%s','now') * 1000),
+  UNIQUE(proposal_id, voter_did)
+);
+CREATE INDEX IF NOT EXISTS idx_governance_votes_proposal ON governance_votes(proposal_id);
+```
+
+---
+
+## 四、IPC 接口设计
+
+**文件**: `desktop-app-vue/src/main/social/governance-ipc.js` (ES6 Module)
+
+4个处理器:
+
+- `governance:list-proposals` - 列出提案 (支持过滤)
+- `governance:create-proposal` - 创建提案
+- `governance:analyze-impact` - AI 影响分析
+- `governance:predict-vote` - AI 投票预测
+
+---
+
+## 五、前端集成
+
+### 5.1 Pinia Store (`stores/governance.ts`)
+
+```typescript
+const useGovernanceStore = defineStore('governance', {
+  state: () => ({
+    proposals: [] as GovernanceProposal[],
+    currentAnalysis: null as ImpactAnalysis | null,
+    loading: false, error: null,
+  }),
+  getters: {
+    activeProposals,  // 投票中的提案
+    draftProposals,   // 草稿提案
+    proposalCount,    // 提案总数
+  },
+  actions: {
+    fetchProposals(), createProposal(),
+    analyzeImpact(), predictVote(),
+  }
+})
+```
+
+### 5.2 UI 页面 (`pages/social/GovernancePage.vue`)
+
+- 提案列表 (标题、类型徽章、状态标签、投票计数)
+- 提案创建表单 (标题、描述、类型选择)
+- 影响分析面板 (风险/收益雷达图、受影响组件列表)
+- 投票预测可视化 (赞成/反对/弃权预测比例)
+
+---
+
+## 六、配置选项
+
+```javascript
+governance: {
+  enabled: true,
+  votingDuration: 604800,  // 投票持续时间 (秒, 默认7天)
+  quorumThreshold: 0.5,    // 法定人数门槛
+  passThreshold: 0.6,      // 通过门槛 (60%)
+  maxActiveProposals: 10,  // 同时活跃提案数上限
+  aiAnalysis: true         // 启用AI分析
+}
+```
+
+---
+
+## 七、上下文工程集成
+
+- Context Engineering setter: `setGovernanceAI()`
+- `buildGovernanceContext()` 注入活跃提案和投票状态到 LLM 提示词
+
+---
+
+## 八、测试覆盖
+
+- ✅ `governance-ai.test.js` - 提案管理、影响分析
+- ✅ `governance-ipc.test.js` - IPC处理器
+- ✅ `governance.test.ts` - Pinia Store
+
+---
+
+**文档版本**: 1.0.0
+**最后更新**: 2026-02-28

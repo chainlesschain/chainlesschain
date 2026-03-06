@@ -1,9 +1,19 @@
 <template>
-  <a-tooltip :title="tooltipText" placement="top">
-    <a-tag :color="tagColor" class="risk-badge" :class="`risk-${level}`">
+  <a-tooltip
+    :title="tooltipText"
+    placement="top"
+  >
+    <a-tag
+      :color="tagColor"
+      class="risk-badge"
+      :class="`risk-${level}`"
+    >
       <span class="risk-icon">{{ riskIcon }}</span>
       <span class="risk-label">{{ riskLabel }}</span>
-      <span v-if="showScore" class="risk-score">({{ score }})</span>
+      <span
+        v-if="showScore"
+        class="risk-score"
+      >({{ score }})</span>
     </a-tag>
   </a-tooltip>
 </template>

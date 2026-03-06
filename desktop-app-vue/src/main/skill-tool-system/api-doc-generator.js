@@ -487,11 +487,11 @@ ${this.generateUsageExamples(module.name, publicMethods)}
         .map((p) => {
           const doc = method.paramDocs.find((d) => d.name === p);
           if (doc) {
-            if (doc.type === "string") return `'example-${p}'`;
-            if (doc.type === "number") return "1";
-            if (doc.type === "boolean") return "true";
-            if (doc.type === "object" || doc.type.startsWith("{")) return "{}";
-            if (doc.type === "Array" || doc.type.includes("[]")) return "[]";
+            if (doc.type === "string") {return `'example-${p}'`;}
+            if (doc.type === "number") {return "1";}
+            if (doc.type === "boolean") {return "true";}
+            if (doc.type === "object" || doc.type.startsWith("{")) {return "{}";}
+            if (doc.type === "Array" || doc.type.includes("[]")) {return "[]";}
           }
           return `/* ${p} */`;
         })

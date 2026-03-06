@@ -9,7 +9,10 @@
     :footer="null"
     @cancel="handleClose"
   >
-    <a-steps :current="currentStep" style="margin-bottom: 24px">
+    <a-steps
+      :current="currentStep"
+      style="margin-bottom: 24px"
+    >
       <a-step title="欢迎" />
       <a-step title="选择加密方式" />
       <a-step title="设置密码" />
@@ -17,7 +20,10 @@
     </a-steps>
 
     <!-- 步骤 0: 欢迎 -->
-    <div v-if="currentStep === 0" class="step-content">
+    <div
+      v-if="currentStep === 0"
+      class="step-content"
+    >
       <a-alert
         v-if="developmentMode && canSkipPassword"
         message="开发模式"
@@ -27,7 +33,10 @@
         style="margin-bottom: 16px"
       />
 
-      <a-result status="info" title="欢迎使用 ChainlessChain">
+      <a-result
+        status="info"
+        title="欢迎使用 ChainlessChain"
+      >
         <template #icon>
           <SafetyOutlined style="color: #1890ff" />
         </template>
@@ -46,8 +55,13 @@
         </template>
         <template #extra>
           <a-space>
-            <a-button @click="skipEncryption"> 暂不启用 </a-button>
-            <a-button type="primary" @click="nextStep">
+            <a-button @click="skipEncryption">
+              暂不启用
+            </a-button>
+            <a-button
+              type="primary"
+              @click="nextStep"
+            >
               开始设置
               <RightOutlined />
             </a-button>
@@ -57,10 +71,20 @@
     </div>
 
     <!-- 步骤 1: 选择加密方式 -->
-    <div v-if="currentStep === 1" class="step-content">
+    <div
+      v-if="currentStep === 1"
+      class="step-content"
+    >
       <h3>选择加密方式</h3>
-      <a-radio-group v-model:value="encryptionMethod" style="width: 100%">
-        <a-space direction="vertical" style="width: 100%" :size="16">
+      <a-radio-group
+        v-model:value="encryptionMethod"
+        style="width: 100%"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          :size="16"
+        >
           <a-card
             hoverable
             :class="{ selected: encryptionMethod === 'password' }"
@@ -85,7 +109,9 @@
             @click="encryptionMethod = 'ukey'"
           >
             <template #title>
-              <a-radio value="ukey"> <UsbOutlined /> U-Key 硬件加密 </a-radio>
+              <a-radio value="ukey">
+                <UsbOutlined /> U-Key 硬件加密
+              </a-radio>
             </template>
             <p>使用 U-Key 硬件派生密钥，最高安全级别。</p>
             <ul>
@@ -99,14 +125,24 @@
 
       <div class="step-footer">
         <a-space>
-          <a-button @click="prevStep"> 上一步 </a-button>
-          <a-button type="primary" @click="nextStep"> 下一步 </a-button>
+          <a-button @click="prevStep">
+            上一步
+          </a-button>
+          <a-button
+            type="primary"
+            @click="nextStep"
+          >
+            下一步
+          </a-button>
         </a-space>
       </div>
     </div>
 
     <!-- 步骤 2: 设置密码 -->
-    <div v-if="currentStep === 2" class="step-content">
+    <div
+      v-if="currentStep === 2"
+      class="step-content"
+    >
       <h3>
         {{ encryptionMethod === "ukey" ? "设置 U-Key PIN 码" : "设置加密密码" }}
       </h3>
@@ -134,7 +170,10 @@
           style="margin-bottom: 16px"
         />
 
-        <a-form-item label="加密密码" name="password">
+        <a-form-item
+          label="加密密码"
+          name="password"
+        >
           <a-input-password
             v-model:value="formState.password"
             placeholder="请输入加密密码（至少12位）"
@@ -152,13 +191,19 @@
                 :style="{ width: passwordStrength.width }"
               />
             </div>
-            <span class="strength-text" :class="passwordStrength.class">
+            <span
+              class="strength-text"
+              :class="passwordStrength.class"
+            >
               {{ passwordStrength.text }}
             </span>
           </div>
         </a-form-item>
 
-        <a-form-item label="确认密码" name="confirmPassword">
+        <a-form-item
+          label="确认密码"
+          name="confirmPassword"
+        >
           <a-input-password
             v-model:value="formState.confirmPassword"
             placeholder="请再次输入密码"
@@ -172,9 +217,17 @@
 
         <a-divider />
 
-        <a-space direction="vertical" style="width: 100%">
-          <a-typography-title :level="5"> 密码要求 </a-typography-title>
-          <a-space direction="vertical" :size="4">
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+        >
+          <a-typography-title :level="5">
+            密码要求
+          </a-typography-title>
+          <a-space
+            direction="vertical"
+            :size="4"
+          >
             <div
               class="requirement-item"
               :class="{ valid: requirements.length }"
@@ -221,7 +274,9 @@
 
       <div class="step-footer">
         <a-space>
-          <a-button @click="prevStep"> 上一步 </a-button>
+          <a-button @click="prevStep">
+            上一步
+          </a-button>
           <a-button
             v-if="developmentMode && canSkipPassword"
             @click="handleSkipPassword"
@@ -241,7 +296,10 @@
     </div>
 
     <!-- 步骤 3: 完成 -->
-    <div v-if="currentStep === 3" class="step-content">
+    <div
+      v-if="currentStep === 3"
+      class="step-content"
+    >
       <a-result
         v-if="setupSuccess"
         status="success"
@@ -249,7 +307,12 @@
         sub-title="您的数据库已启用加密保护，所有数据将安全存储。"
       >
         <template #extra>
-          <a-button type="primary" @click="finish"> 开始使用 </a-button>
+          <a-button
+            type="primary"
+            @click="finish"
+          >
+            开始使用
+          </a-button>
         </template>
       </a-result>
 
@@ -261,8 +324,13 @@
       >
         <template #extra>
           <a-space>
-            <a-button @click="retrySetup"> 重试 </a-button>
-            <a-button type="primary" @click="skipEncryption">
+            <a-button @click="retrySetup">
+              重试
+            </a-button>
+            <a-button
+              type="primary"
+              @click="skipEncryption"
+            >
               跳过加密
             </a-button>
           </a-space>

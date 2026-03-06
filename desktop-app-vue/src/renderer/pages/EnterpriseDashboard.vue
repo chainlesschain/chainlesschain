@@ -6,8 +6,14 @@
       @back="() => $router.back()"
     >
       <template #extra>
-        <a-range-picker v-model:value="dateRange" @change="onDateRangeChange" />
-        <a-button :loading="loading" @click="refreshData">
+        <a-range-picker
+          v-model:value="dateRange"
+          @change="onDateRangeChange"
+        />
+        <a-button
+          :loading="loading"
+          @click="refreshData"
+        >
           <ReloadOutlined /> Refresh
         </a-button>
       </template>
@@ -15,8 +21,15 @@
 
     <div class="dashboard-content">
       <!-- Overview Cards -->
-      <a-row :gutter="[16, 16]" class="overview-cards">
-        <a-col :xs="24" :sm="12" :lg="6">
+      <a-row
+        :gutter="[16, 16]"
+        class="overview-cards"
+      >
+        <a-col
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <a-card>
             <a-statistic
               title="Total Members"
@@ -37,7 +50,11 @@
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :sm="12" :lg="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <a-card>
             <a-statistic
               title="Knowledge Items"
@@ -50,7 +67,11 @@
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :sm="12" :lg="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <a-card>
             <a-statistic
               title="Active Collaborations"
@@ -63,7 +84,11 @@
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :sm="12" :lg="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <a-card>
             <a-statistic
               title="Storage Used"
@@ -81,36 +106,78 @@
 
       <!-- Activity Chart -->
       <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :lg="16">
-          <a-card title="Activity Overview" :loading="loading">
-            <div ref="activityChartRef" style="height: 300px" />
+        <a-col
+          :xs="24"
+          :lg="16"
+        >
+          <a-card
+            title="Activity Overview"
+            :loading="loading"
+          >
+            <div
+              ref="activityChartRef"
+              style="height: 300px"
+            />
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :lg="8">
-          <a-card title="Activity Breakdown" :loading="loading">
-            <div ref="activityPieChartRef" style="height: 300px" />
+        <a-col
+          :xs="24"
+          :lg="8"
+        >
+          <a-card
+            title="Activity Breakdown"
+            :loading="loading"
+          >
+            <div
+              ref="activityPieChartRef"
+              style="height: 300px"
+            />
           </a-card>
         </a-col>
       </a-row>
 
       <!-- Knowledge Graph & Member Analytics -->
       <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :lg="12">
-          <a-card title="Knowledge Graph" :loading="loading">
+        <a-col
+          :xs="24"
+          :lg="12"
+        >
+          <a-card
+            title="Knowledge Graph"
+            :loading="loading"
+          >
             <a-tabs v-model:active-key="graphTab">
-              <a-tab-pane key="network" tab="Network View">
-                <div ref="knowledgeGraphRef" style="height: 400px" />
+              <a-tab-pane
+                key="network"
+                tab="Network View"
+              >
+                <div
+                  ref="knowledgeGraphRef"
+                  style="height: 400px"
+                />
               </a-tab-pane>
-              <a-tab-pane key="tree" tab="Tree View">
-                <div ref="knowledgeTreeRef" style="height: 400px" />
+              <a-tab-pane
+                key="tree"
+                tab="Tree View"
+              >
+                <div
+                  ref="knowledgeTreeRef"
+                  style="height: 400px"
+                />
               </a-tab-pane>
             </a-tabs>
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :lg="12">
-          <a-card title="Top Contributors" :loading="loading">
+        <a-col
+          :xs="24"
+          :lg="12"
+        >
+          <a-card
+            title="Top Contributors"
+            :loading="loading"
+          >
             <a-list
               :data-source="topContributors"
               :render-item="renderContributor"
@@ -130,21 +197,20 @@
                     </template>
                     <template #title>
                       {{ item.name }}
-                      <a-tag :color="getRoleColor(item.role)" size="small">
+                      <a-tag
+                        :color="getRoleColor(item.role)"
+                        size="small"
+                      >
                         {{ item.role }}
                       </a-tag>
                     </template>
                     <template #description>
                       <div class="contributor-stats">
-                        <span
-                          ><FileTextOutlined />
-                          {{ item.knowledgeCreated }} created</span
-                        >
+                        <span><FileTextOutlined />
+                          {{ item.knowledgeCreated }} created</span>
                         <span><EditOutlined /> {{ item.edits }} edits</span>
-                        <span
-                          ><CommentOutlined />
-                          {{ item.comments }} comments</span
-                        >
+                        <span><CommentOutlined />
+                          {{ item.comments }} comments</span>
                       </div>
                     </template>
                   </a-list-item-meta>
@@ -157,8 +223,14 @@
 
       <!-- Recent Activity & Resource Usage -->
       <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :lg="16">
-          <a-card title="Recent Activity" :loading="loading">
+        <a-col
+          :xs="24"
+          :lg="16"
+        >
+          <a-card
+            title="Recent Activity"
+            :loading="loading"
+          >
             <a-timeline>
               <a-timeline-item
                 v-for="activity in recentActivities"
@@ -187,15 +259,19 @@
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :lg="8">
-          <a-card title="Resource Usage" :loading="loading">
+        <a-col
+          :xs="24"
+          :lg="8"
+        >
+          <a-card
+            title="Resource Usage"
+            :loading="loading"
+          >
             <div class="resource-item">
               <div class="resource-header">
                 <span>Storage</span>
-                <span
-                  >{{ formatBytes(stats.storageUsed) }} /
-                  {{ formatBytes(stats.storageLimit) }}</span
-                >
+                <span>{{ formatBytes(stats.storageUsed) }} /
+                  {{ formatBytes(stats.storageLimit) }}</span>
               </div>
               <a-progress
                 :percent="(stats.storageUsed / stats.storageLimit) * 100"
@@ -228,10 +304,8 @@
             <div class="resource-item">
               <div class="resource-header">
                 <span>Active Connections</span>
-                <span
-                  >{{ stats.activeConnections }} /
-                  {{ stats.maxConnections }}</span
-                >
+                <span>{{ stats.activeConnections }} /
+                  {{ stats.maxConnections }}</span>
               </div>
               <a-progress
                 :percent="
@@ -245,7 +319,10 @@
 
             <div class="resource-breakdown">
               <h4>Storage Breakdown</h4>
-              <div ref="storageBreakdownRef" style="height: 200px" />
+              <div
+                ref="storageBreakdownRef"
+                style="height: 200px"
+              />
             </div>
           </a-card>
         </a-col>
@@ -254,20 +331,41 @@
       <!-- Member Analytics -->
       <a-row :gutter="[16, 16]">
         <a-col :span="24">
-          <a-card title="Member Analytics" :loading="loading">
+          <a-card
+            title="Member Analytics"
+            :loading="loading"
+          >
             <a-tabs v-model:active-key="analyticsTab">
-              <a-tab-pane key="engagement" tab="Engagement">
-                <div ref="engagementChartRef" style="height: 300px" />
+              <a-tab-pane
+                key="engagement"
+                tab="Engagement"
+              >
+                <div
+                  ref="engagementChartRef"
+                  style="height: 300px"
+                />
               </a-tab-pane>
 
-              <a-tab-pane key="activity" tab="Activity Heatmap">
-                <div ref="heatmapChartRef" style="height: 300px" />
+              <a-tab-pane
+                key="activity"
+                tab="Activity Heatmap"
+              >
+                <div
+                  ref="heatmapChartRef"
+                  style="height: 300px"
+                />
               </a-tab-pane>
 
-              <a-tab-pane key="roles" tab="Role Distribution">
+              <a-tab-pane
+                key="roles"
+                tab="Role Distribution"
+              >
                 <a-row :gutter="16">
                   <a-col :span="12">
-                    <div ref="roleDistributionRef" style="height: 300px" />
+                    <div
+                      ref="roleDistributionRef"
+                      style="height: 300px"
+                    />
                   </a-col>
                   <a-col :span="12">
                     <a-table

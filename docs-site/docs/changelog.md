@@ -5,7 +5,105 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [1.1.0] - 2026-02-25
+## [3.4.0] - 2026-02-28
+
+### 新增
+
+- 🌐 **EvoMap 全球进化网络** (Phase 76-77, 10 IPC)
+  - `evomap-federation.js`: 多 Hub 联邦互连，Gene 跨 Hub 流通，进化压力选择，基因重组
+  - `gene-ip-manager.js`: Gene 所有权证明（DID+VC），贡献溯源，衍生链追踪
+  - `evomap-dao.js`: 社区治理 DAO，Gene 质量投票，争议仲裁，标准制定
+  - `evomap-federation-ipc.js` + `evomap-governance-ipc.js`: 10 IPC 处理器
+  - `evoMapFederation.ts` + `evoMapGovernance.ts` Store
+  - `EvoMapFederationPage.vue` + `EvoMapGovernancePage.vue`
+
+- 🗄️ **新增数据库表** (4 张): `evomap_hub_federation`, `gene_lineage`, `gene_ownership`, `evomap_governance_proposals`
+
+---
+
+## [3.3.0] - 2026-02-27
+
+### 新增
+
+- 🌍 **全球去中心化社交** (Phase 72-75, 20 IPC)
+  - `protocol-fusion-bridge.js`: ActivityPub/Nostr/Matrix 多协议统一消息桥接，身份映射
+  - `realtime-translator.js`: 本地 LLM 实时多语言翻译（50+语言），上下文感知
+  - `content-quality-assessor.js`: AI 内容质量评估，去中心化共识审核
+  - `filecoin-storage.js`: Filecoin 持久化存储交易，存储证明验证
+  - `content-distributor.js`: P2P 内容分发网络，热点内容自动缓存
+  - `anti-censorship-manager.js`: Tor 隐藏服务，域前置策略，流量混淆
+  - `mesh-network-manager.js`: BLE/WiFi Direct 本地网状网络，无互联网通信
+
+- 🗄️ **新增数据库表** (5 张): `unified_messages`, `identity_mappings`, `filecoin_deals`, `content_versions`, `anti_censorship_routes`
+
+---
+
+## [3.2.0] - 2026-02-26
+
+### 新增
+
+- 🔒 **硬件安全生态** (Phase 68-71, 18 IPC)
+  - `trust-root-manager.js`: U盾+SIMKey+TEE 三位一体统一信任根，硬件认证链互验，跨设备密钥同步
+  - `pqc-ecosystem-manager.js`: ML-KEM/ML-DSA 全子系统迁移，混合模式过渡，固件 PQC 加速
+  - `satellite-comm.js`: LEO 卫星短消息通道（Iridium/Globalstar），加密+压缩
+  - `disaster-recovery.js`: 完全离线密钥恢复，紧急吊销广播
+  - `hsm-adapter-manager.js`: Yubikey/Ledger/Trezor 第三方硬件适配层，统一 HSM 接口
+
+- 🗄️ **新增数据库表** (5 张): `trust_root_attestations`, `cross_device_key_sync`, `pqc_subsystem_migrations`, `satellite_messages`, `hsm_adapters`
+
+---
+
+## [3.1.0] - 2026-02-25
+
+### 新增
+
+- 🏪 **去中心化 AI 市场** (Phase 65-67, 16 IPC)
+  - `skill-service-protocol.js`: 标准化技能描述（输入/输出/依赖/SLA），REST/gRPC 远程调用
+  - `skill-invoker.js`: 跨组织代理技能委派，版本兼容检测
+  - `token-ledger.js`: 代币账本（发行/转账/冻结），贡献奖励结算
+  - `contribution-tracker.js`: 技能/算力/数据贡献追踪，信誉加权定价
+  - `inference-node-registry.js`: GPU/CPU 推理节点自注册，算力基准测试
+  - `inference-scheduler.js`: 延迟/成本/算力智能调度，模型分片并行推理
+
+- 🗄️ **新增数据库表** (6 张): `skill_service_registry`, `skill_invocations`, `token_transactions`, `contributions`, `inference_nodes`, `inference_tasks`
+
+---
+
+## [3.0.0] - 2026-02-24
+
+### 新增
+
+- 🤖 **全自主 AI 开发者** (Phase 62-64, 15 IPC)
+  - `tech-learning-engine.js`: 自主技术栈感知，官方文档/Release Notes 变更跟踪，最佳实践提取
+  - `autonomous-developer.js`: 端到端自主开发流程（需求理解→架构决策→代码生成→测试→部署）
+  - `collaboration-governance.js`: 人机协作治理框架，决策审批网关，操作回放审计，置信度门控
+
+- 🗄️ **新增数据库表** (6 张): `tech_stack_profiles`, `learned_practices`, `dev_sessions`, `architecture_decisions`, `governance_decisions`, `autonomy_levels`
+
+---
+
+## [2.0.0] - 2026-02-23
+
+### 新增
+
+- 🏗️ **生产加固 + 联邦网络** (Phase 57-61, 23 IPC)
+  - `performance-baseline.js`: 性能基线采集，历史对比，回归检测
+  - `security-auditor.js`: OWASP Top 10 自动扫描，依赖漏洞检测，安全评分
+  - `federation-hardening.js`: 断路器模式，健康检查，连接池管理
+  - `federation-stress-tester.js`: 100 节点压力测试，延迟/吞吐量/错误率基准
+  - `reputation-optimizer.js`: 贝叶斯优化信誉权重，异常检测，信誉分析
+  - `sla-manager.js`: 跨组织 SLA 合约，违约检测，自动补偿
+
+- 🗄️ **新增数据库表** (10 张): `performance_baselines`, `security_audit_reports`, `federation_circuit_breakers`, `federation_health_checks`, `stress_test_runs`, `stress_test_results`, `reputation_optimization_runs`, `reputation_analytics`, `sla_contracts`, `sla_violations`
+
+---
+
+## [1.1.0] - 2026-02-27
+
+### 重构
+
+- 🔄 **ES6模块迁移** — 全项目迁移至ES6 import/export语法，使用Node.js协议导入（`node:fs`、`node:path`等），淘汰CommonJS require
+- 📦 **Phase 46-51测试补全** — 门限签名、BLE U-Key、内容推荐、Nostr桥接、DLP、SIEM六大模块完整单元测试+Store测试+E2E测试
 
 ### 新增
 
@@ -151,42 +249,6 @@
   - **负载均衡器**: 实时Agent指标追踪，复合负载评分，任务自动迁移 (8个IPC)
   - **ML任务调度器**: 加权线性回归复杂度预测，资源估算，在线学习 (8个IPC)
   - **IPC API文档生成器**: 递归扫描`*-ipc.js`，OpenAPI 3.0生成，Markdown文档自动生成 (6个IPC)
-
-- 🌐 **Cowork v2.0.0 - 跨设备协作**
-  - **P2P Agent网络**: WebRTC DataChannel跨设备Agent通信，15种消息协议 (12个IPC)
-  - **设备发现**: 网络设备自动发现，4级能力分层 (6个IPC)
-  - **混合执行器**: 6种执行策略(本地优先/远程优先/最佳适配/负载均衡) (5个IPC)
-  - **Computer Use桥接**: 12个AI工具映射为Cowork技能 (6个IPC)
-  - **Cowork API服务器**: RESTful API 20+端点，Bearer/API-Key认证，SSE流 (5个IPC)
-  - **Webhook管理器**: 17种事件类型，HMAC签名验证，指数退避重试 (7个IPC)
-
-- 🎯 **新增技能**: ab-compare, debate-review, stream-processor (总计92个)
-
-### 改进
-
-- 📊 8个新数据库表(知识图谱/决策/提示词/发现)
-- 🔗 Hook系统集成: DecisionKB自动捕获PostToolUse事件，SkillDiscoverer监听ToolError
-- 🧠 ContextEngineering集成: 知识图谱架构洞察注入LLM提示
-
----
-
-## [0.39.0] - 2026-02-22
-
-### 新增
-
-- 🧠 **Cowork v2.1.0 - 自进化与知识图谱系统** (7个核心模块, 35个IPC处理器)
-  - **代码知识图谱**: 工作区代码扫描，8种实体类型，7种关系类型，中心性分析，循环依赖检测，热点发现 (14个IPC)
-  - **决策知识库**: 历史决策记录，相似性搜索，最佳实践提取，9个问题类别 (6个IPC)
-  - **Prompt优化器**: 技能提示词自优化，A/B变体测试，SHA-256去重，成功率追踪 (5个IPC)
-  - **技能发现器**: 任务失败分析，关键词提取，Marketplace技能搜索推荐 (4个IPC)
-  - **辩论式代码审查**: 3视角多Agent审查(性能/安全/可维护性)，共识投票 (3个IPC)
-  - **A/B方案对比**: 5种Agent风格方案生成，3维基准评测，自动评分排名 (3个IPC)
-
-- 🔧 **Cowork支撑模块**
-  - **CI/CD优化器**: 智能测试选择，依赖图分析，Flakiness评分，增量构建编排 (10个IPC)
-  - **负载均衡器**: 实时Agent指标追踪，复合负载评分，任务自动迁移 (8个IPC)
-  - **ML任务调度器**: 加权线性回归复杂度预测，资源估算，在线学习 (8个IPC)
-  - **IPC API文档生成器**: 递归扫描，OpenAPI 3.0生成，Markdown文档自动生成 (6个IPC)
 
 - 🌐 **Cowork v2.0.0 - 跨设备协作**
   - **P2P Agent网络**: WebRTC DataChannel跨设备Agent通信，15种消息协议 (12个IPC)

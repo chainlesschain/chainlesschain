@@ -10,24 +10,45 @@
           :bordered="false"
           @blur="saveWorkflowName"
         />
-        <a-tag v-if="workflow?.is_template" color="purple"> Template </a-tag>
-        <a-tag v-if="hasUnsavedChanges" color="orange"> Unsaved </a-tag>
+        <a-tag
+          v-if="workflow?.is_template"
+          color="purple"
+        >
+          Template
+        </a-tag>
+        <a-tag
+          v-if="hasUnsavedChanges"
+          color="orange"
+        >
+          Unsaved
+        </a-tag>
       </div>
       <div class="header-actions">
         <a-button-group>
-          <a-button :loading="saving" @click="saveWorkflow">
+          <a-button
+            :loading="saving"
+            @click="saveWorkflow"
+          >
             <template #icon>
               <SaveOutlined />
             </template>
             Save
           </a-button>
-          <a-button :disabled="!canRun" :loading="running" @click="runWorkflow">
+          <a-button
+            :disabled="!canRun"
+            :loading="running"
+            @click="runWorkflow"
+          >
             <template #icon>
               <PlayCircleOutlined />
             </template>
             Run
           </a-button>
-          <a-button v-if="running" danger @click="stopWorkflow">
+          <a-button
+            v-if="running"
+            danger
+            @click="stopWorkflow"
+          >
             <template #icon>
               <StopOutlined />
             </template>
@@ -50,7 +71,10 @@
                 <ImportOutlined /> Import
               </a-menu-item>
               <a-menu-divider />
-              <a-menu-item key="delete" danger>
+              <a-menu-item
+                key="delete"
+                danger
+              >
                 <DeleteOutlined /> Delete
               </a-menu-item>
             </a-menu>
@@ -62,12 +86,21 @@
     <!-- Main Content -->
     <div class="editor-content">
       <!-- Left Panel: Step Palette -->
-      <div class="palette-panel" :class="{ collapsed: paletteCollapsed }">
-        <div class="panel-header" @click="paletteCollapsed = !paletteCollapsed">
+      <div
+        class="palette-panel"
+        :class="{ collapsed: paletteCollapsed }"
+      >
+        <div
+          class="panel-header"
+          @click="paletteCollapsed = !paletteCollapsed"
+        >
           <span v-if="!paletteCollapsed">Steps</span>
           <RightOutlined :rotate="paletteCollapsed ? 0 : 180" />
         </div>
-        <step-palette v-if="!paletteCollapsed" @add-step="addStep" />
+        <step-palette
+          v-if="!paletteCollapsed"
+          @add-step="addStep"
+        />
       </div>
 
       <!-- Center: Canvas -->
@@ -84,8 +117,14 @@
       </div>
 
       <!-- Right Panel: Config -->
-      <div class="config-panel" :class="{ collapsed: configCollapsed }">
-        <div class="panel-header" @click="configCollapsed = !configCollapsed">
+      <div
+        class="config-panel"
+        :class="{ collapsed: configCollapsed }"
+      >
+        <div
+          class="panel-header"
+          @click="configCollapsed = !configCollapsed"
+        >
           <LeftOutlined :rotate="configCollapsed ? 180 : 0" />
           <span v-if="!configCollapsed">Configuration</span>
         </div>
@@ -95,7 +134,10 @@
           :variables="variables"
           @update-step="updateStep"
         />
-        <div v-else-if="!configCollapsed && !selectedStep" class="no-selection">
+        <div
+          v-else-if="!configCollapsed && !selectedStep"
+          class="no-selection"
+        >
           <InfoCircleOutlined />
           <p>Select a step to configure</p>
         </div>
@@ -103,9 +145,15 @@
     </div>
 
     <!-- Bottom Panel: Variables & Test Runner -->
-    <div v-if="showBottomPanel" class="bottom-panel">
+    <div
+      v-if="showBottomPanel"
+      class="bottom-panel"
+    >
       <a-tabs v-model:active-key="bottomTab">
-        <a-tab-pane key="variables" tab="Variables">
+        <a-tab-pane
+          key="variables"
+          tab="Variables"
+        >
           <div class="variables-editor">
             <a-table
               :columns="variableColumns"
@@ -133,12 +181,19 @@
                 </template>
               </template>
             </a-table>
-            <a-button type="dashed" block @click="addVariable">
+            <a-button
+              type="dashed"
+              block
+              @click="addVariable"
+            >
               <PlusOutlined /> Add Variable
             </a-button>
           </div>
         </a-tab-pane>
-        <a-tab-pane key="test" tab="Test Runner">
+        <a-tab-pane
+          key="test"
+          tab="Test Runner"
+        >
           <workflow-test-runner
             :workflow-id="workflowId"
             :steps="steps"
@@ -146,7 +201,10 @@
             @execution-update="handleExecutionUpdate"
           />
         </a-tab-pane>
-        <a-tab-pane key="history" tab="History">
+        <a-tab-pane
+          key="history"
+          tab="History"
+        >
           <div class="execution-history">
             <a-list
               :data-source="executionHistory"
@@ -165,10 +223,11 @@
                       </a-space>
                     </template>
                     <template #description>
-                      <span v-if="item.duration"
-                        >Duration: {{ item.duration }}ms</span
-                      >
-                      <span v-if="item.error_message" class="error-text">{{
+                      <span v-if="item.duration">Duration: {{ item.duration }}ms</span>
+                      <span
+                        v-if="item.error_message"
+                        class="error-text"
+                      >{{
                         item.error_message
                       }}</span>
                     </template>
@@ -182,7 +241,10 @@
     </div>
 
     <!-- Toggle Bottom Panel -->
-    <div class="bottom-toggle" @click="showBottomPanel = !showBottomPanel">
+    <div
+      class="bottom-toggle"
+      @click="showBottomPanel = !showBottomPanel"
+    >
       <UpOutlined v-if="showBottomPanel" />
       <DownOutlined v-else />
     </div>

@@ -1,15 +1,27 @@
 <template>
-  <div class="transform-node" :class="[{ selected }, statusClass]">
-    <Handle type="target" :position="Position.Top" />
+  <div
+    class="transform-node"
+    :class="[{ selected }, statusClass]"
+  >
+    <Handle
+      type="target"
+      :position="Position.Top"
+    />
     <div class="node-body">
       <div class="label">
         {{ data.label }}
       </div>
-      <div v-if="data.expression" class="expression">
+      <div
+        v-if="data.expression"
+        class="expression"
+      >
         {{ data.expression }}
       </div>
     </div>
-    <Handle type="source" :position="Position.Bottom" />
+    <Handle
+      type="source"
+      :position="Position.Bottom"
+    />
   </div>
 </template>
 
@@ -31,9 +43,9 @@ const executionStatus = computed(() => {
 });
 
 const statusClass = computed(() => {
-  if (executionStatus.value === "running") return "transform-node--running";
-  if (executionStatus.value === "completed") return "transform-node--completed";
-  if (executionStatus.value === "failed") return "transform-node--failed";
+  if (executionStatus.value === "running") {return "transform-node--running";}
+  if (executionStatus.value === "completed") {return "transform-node--completed";}
+  if (executionStatus.value === "failed") {return "transform-node--failed";}
   return "";
 });
 </script>

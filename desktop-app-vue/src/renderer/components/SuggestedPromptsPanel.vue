@@ -7,7 +7,10 @@
       </h1>
 
       <!-- Suggested Prompts Pills -->
-      <div v-if="filteredSuggestions.length > 0" class="suggestions-container">
+      <div
+        v-if="filteredSuggestions.length > 0"
+        class="suggestions-container"
+      >
         <a-button
           v-for="suggestion in filteredSuggestions.slice(0, 3)"
           :key="suggestion.id"
@@ -21,20 +24,28 @@
       </div>
 
       <!-- Loading State -->
-      <div v-else-if="loading" class="loading-state">
+      <div
+        v-else-if="loading"
+        class="loading-state"
+      >
         <a-spin size="small" />
         <span>加载提示模板...</span>
       </div>
 
       <!-- Empty State -->
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <InfoCircleOutlined />
         <span>暂无可用的提示模板</span>
       </div>
 
       <!-- AI Template Badge -->
       <div class="ai-template-badge">
-        <a-tag color="blue"> AI </a-tag>
+        <a-tag color="blue">
+          AI
+        </a-tag>
         <span>使用AI模板创建项目</span>
       </div>
     </div>
@@ -51,13 +62,22 @@
 
       <div class="input-footer">
         <div class="input-actions">
-          <a-button type="text" class="action-btn">
+          <a-button
+            type="text"
+            class="action-btn"
+          >
             <UserOutlined />
           </a-button>
-          <a-button type="text" class="action-btn">
+          <a-button
+            type="text"
+            class="action-btn"
+          >
             <PaperClipOutlined />
           </a-button>
-          <a-button type="text" class="action-btn">
+          <a-button
+            type="text"
+            class="action-btn"
+          >
             <AudioOutlined />
           </a-button>
         </div>

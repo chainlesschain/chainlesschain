@@ -15,13 +15,27 @@
           style="width: 150px"
           allow-clear
         >
-          <a-select-option value=""> 全部角色 </a-select-option>
-          <a-select-option value="owner"> 所有者 </a-select-option>
-          <a-select-option value="admin"> 管理员 </a-select-option>
-          <a-select-option value="member"> 成员 </a-select-option>
-          <a-select-option value="viewer"> 访客 </a-select-option>
+          <a-select-option value="">
+            全部角色
+          </a-select-option>
+          <a-select-option value="owner">
+            所有者
+          </a-select-option>
+          <a-select-option value="admin">
+            管理员
+          </a-select-option>
+          <a-select-option value="member">
+            成员
+          </a-select-option>
+          <a-select-option value="viewer">
+            访客
+          </a-select-option>
         </a-select>
-        <a-button type="primary" :disabled="!canInvite" @click="emit('invite')">
+        <a-button
+          type="primary"
+          :disabled="!canInvite"
+          @click="emit('invite')"
+        >
           <template #icon>
             <UserAddOutlined />
           </template>
@@ -42,7 +56,10 @@
         <!-- 成员信息 -->
         <template v-if="column.key === 'member'">
           <div class="member-info">
-            <a-avatar :src="record.avatar" :size="40">
+            <a-avatar
+              :src="record.avatar"
+              :size="40"
+            >
               <template #icon>
                 <UserOutlined />
               </template>
@@ -102,12 +119,21 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="({ key }) => handleChangeRole(record, key)">
-                  <a-menu-item key="owner" :disabled="!canAssignOwner">
+                  <a-menu-item
+                    key="owner"
+                    :disabled="!canAssignOwner"
+                  >
                     所有者
                   </a-menu-item>
-                  <a-menu-item key="admin"> 管理员 </a-menu-item>
-                  <a-menu-item key="member"> 成员 </a-menu-item>
-                  <a-menu-item key="viewer"> 访客 </a-menu-item>
+                  <a-menu-item key="admin">
+                    管理员
+                  </a-menu-item>
+                  <a-menu-item key="member">
+                    成员
+                  </a-menu-item>
+                  <a-menu-item key="viewer">
+                    访客
+                  </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -120,22 +146,45 @@
               cancel-text="取消"
               @confirm="handleRemoveMember(record)"
             >
-              <a-button size="small" danger> 移除 </a-button>
+              <a-button
+                size="small"
+                danger
+              >
+                移除
+              </a-button>
             </a-popconfirm>
 
             <!-- 当前用户 -->
-            <a-tag v-if="isCurrentUser(record)" color="blue"> 当前用户 </a-tag>
+            <a-tag
+              v-if="isCurrentUser(record)"
+              color="blue"
+            >
+              当前用户
+            </a-tag>
           </a-space>
         </template>
       </template>
     </a-table>
 
     <!-- 成员详情抽屉 -->
-    <a-drawer v-model:open="showMemberDetail" title="成员详情" width="500">
-      <div v-if="selectedMember" class="member-detail">
-        <a-descriptions :column="1" bordered>
+    <a-drawer
+      v-model:open="showMemberDetail"
+      title="成员详情"
+      width="500"
+    >
+      <div
+        v-if="selectedMember"
+        class="member-detail"
+      >
+        <a-descriptions
+          :column="1"
+          bordered
+        >
           <a-descriptions-item label="头像">
-            <a-avatar :src="selectedMember.avatar" :size="64">
+            <a-avatar
+              :src="selectedMember.avatar"
+              :size="64"
+            >
               <template #icon>
                 <UserOutlined />
               </template>

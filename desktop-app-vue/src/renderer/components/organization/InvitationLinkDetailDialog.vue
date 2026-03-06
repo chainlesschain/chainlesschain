@@ -6,9 +6,16 @@
     :footer="null"
   >
     <a-spin :spinning="loading">
-      <div v-if="linkDetail" class="link-detail">
+      <div
+        v-if="linkDetail"
+        class="link-detail"
+      >
         <!-- 基本信息 -->
-        <a-descriptions title="基本信息" bordered :column="2">
+        <a-descriptions
+          title="基本信息"
+          bordered
+          :column="2"
+        >
           <a-descriptions-item label="链接ID">
             {{ linkDetail.link_id }}
           </a-descriptions-item>
@@ -54,7 +61,11 @@
         </a-descriptions>
 
         <!-- 邀请链接 -->
-        <a-card title="邀请链接" size="small" style="margin-top: 16px">
+        <a-card
+          title="邀请链接"
+          size="small"
+          style="margin-top: 16px"
+        >
           <div style="display: flex; gap: 12px; align-items: center">
             <a-input
               :value="linkDetail.invitationUrl"
@@ -77,7 +88,11 @@
         </a-card>
 
         <!-- 使用记录 -->
-        <a-card title="使用记录" size="small" style="margin-top: 16px">
+        <a-card
+          title="使用记录"
+          size="small"
+          style="margin-top: 16px"
+        >
           <a-table
             :columns="usageColumns"
             :data-source="linkDetail.usageRecords"
@@ -117,7 +132,11 @@
           size="small"
           style="margin-top: 16px"
         >
-          <a-descriptions bordered size="small" :column="1">
+          <a-descriptions
+            bordered
+            size="small"
+            :column="1"
+          >
             <a-descriptions-item
               v-for="(value, key) in linkDetail.metadata"
               :key="key"

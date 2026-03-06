@@ -20,8 +20,14 @@
         <div v-if="creditReport">
           <!-- 信用评分概览 -->
           <a-row :gutter="[24, 24]">
-            <a-col :span="24" :md="8">
-              <a-card class="score-card" :bordered="false">
+            <a-col
+              :span="24"
+              :md="8"
+            >
+              <a-card
+                class="score-card"
+                :bordered="false"
+              >
                 <div class="score-display">
                   <div
                     class="score-number"
@@ -29,7 +35,9 @@
                   >
                     {{ creditReport.creditScore }}
                   </div>
-                  <div class="score-label">信用评分</div>
+                  <div class="score-label">
+                    信用评分
+                  </div>
                   <a-progress
                     :percent="(creditReport.creditScore / 1000) * 100"
                     :show-info="false"
@@ -39,15 +47,23 @@
               </a-card>
             </a-col>
 
-            <a-col :span="24" :md="8">
-              <a-card class="level-card" :bordered="false">
+            <a-col
+              :span="24"
+              :md="8"
+            >
+              <a-card
+                class="level-card"
+                :bordered="false"
+              >
                 <div class="level-display">
                   <a-badge
                     :color="getLevelColor(creditReport.levelColor)"
                     :text="creditReport.creditLevel"
                     style="font-size: 24px; font-weight: bold"
                   />
-                  <div class="level-label">信用等级</div>
+                  <div class="level-label">
+                    信用等级
+                  </div>
                   <div class="benefits-list">
                     <div
                       v-for="(benefit, index) in creditReport.benefits"
@@ -62,8 +78,14 @@
               </a-card>
             </a-col>
 
-            <a-col :span="24" :md="8">
-              <a-card class="stats-card" :bordered="false">
+            <a-col
+              :span="24"
+              :md="8"
+            >
+              <a-card
+                class="stats-card"
+                :bordered="false"
+              >
                 <a-statistic
                   title="交易总数"
                   :value="creditReport.statistics.totalTransactions"
@@ -85,9 +107,15 @@
           </a-row>
 
           <!-- 统计详情 -->
-          <a-card title="信用统计" style="margin-top: 24px">
+          <a-card
+            title="信用统计"
+            style="margin-top: 24px"
+          >
             <a-row :gutter="[16, 16]">
-              <a-col :span="12" :md="6">
+              <a-col
+                :span="12"
+                :md="6"
+              >
                 <a-statistic
                   title="完成交易"
                   :value="creditReport.statistics.completedTransactions"
@@ -97,7 +125,10 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col :span="12" :md="6">
+              <a-col
+                :span="12"
+                :md="6"
+              >
                 <a-statistic
                   title="好评数"
                   :value="creditReport.statistics.positiveReviews"
@@ -107,7 +138,10 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col :span="12" :md="6">
+              <a-col
+                :span="12"
+                :md="6"
+              >
                 <a-statistic
                   title="好评率"
                   :value="creditReport.statistics.positiveRate"
@@ -118,7 +152,10 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col :span="12" :md="6">
+              <a-col
+                :span="12"
+                :md="6"
+              >
                 <a-statistic
                   title="交易金额"
                   :value="creditReport.statistics.totalVolume"
@@ -129,7 +166,10 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col :span="12" :md="6">
+              <a-col
+                :span="12"
+                :md="6"
+              >
                 <a-statistic
                   title="纠纷率"
                   :value="creditReport.statistics.disputeRate"
@@ -146,7 +186,10 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col :span="12" :md="6">
+              <a-col
+                :span="12"
+                :md="6"
+              >
                 <a-statistic
                   title="退款率"
                   :value="creditReport.statistics.refundRate"
@@ -163,7 +206,10 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col :span="12" :md="6">
+              <a-col
+                :span="12"
+                :md="6"
+              >
                 <a-statistic
                   title="差评数"
                   :value="creditReport.statistics.negativeReviews"
@@ -179,7 +225,10 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col :span="12" :md="6">
+              <a-col
+                :span="12"
+                :md="6"
+              >
                 <a-statistic
                   title="平均响应"
                   :value="
@@ -195,7 +244,10 @@
           </a-card>
 
           <!-- 信用等级说明 -->
-          <a-card title="信用等级体系" style="margin-top: 24px">
+          <a-card
+            title="信用等级体系"
+            style="margin-top: 24px"
+          >
             <a-table
               :columns="levelColumns"
               :data-source="creditLevels"
@@ -223,16 +275,20 @@
                       {{ benefit }}
                     </a-tag>
                   </a-space>
-                  <span v-if="record.benefits.length === 0" style="color: #999"
-                    >暂无特权</span
-                  >
+                  <span
+                    v-if="record.benefits.length === 0"
+                    style="color: #999"
+                  >暂无特权</span>
                 </template>
               </template>
             </a-table>
           </a-card>
 
           <!-- 最近信用记录 -->
-          <a-card title="最近信用记录" style="margin-top: 24px">
+          <a-card
+            title="最近信用记录"
+            style="margin-top: 24px"
+          >
             <a-timeline>
               <a-timeline-item
                 v-for="record in creditReport.recentRecords"

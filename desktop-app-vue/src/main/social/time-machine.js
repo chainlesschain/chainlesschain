@@ -356,9 +356,9 @@ class TimeMachine extends EventEmitter {
       for (const row of monthlyRows) {
         const m = row.month;
         if (months[m]) {
-          if (row.source_type === "post") months[m].posts = row.count;
-          else if (row.source_type === "message") months[m].messages = row.count;
-          else if (row.source_type === "event") months[m].events = row.count;
+          if (row.source_type === "post") {months[m].posts = row.count;}
+          else if (row.source_type === "message") {months[m].messages = row.count;}
+          else if (row.source_type === "event") {months[m].events = row.count;}
           months[m].total += row.count;
         }
       }

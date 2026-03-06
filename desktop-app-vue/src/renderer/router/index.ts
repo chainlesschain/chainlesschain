@@ -1038,6 +1038,361 @@ const routes: RouteRecordRaw[] = [
         component: enterpriseV1Pages.autonomousAgent,
         meta: { title: 'AI 自主执行代理' },
       },
+      // ===== v1.1.0 新功能 =====
+      {
+        path: 'deployment-monitor',
+        name: 'DeploymentMonitor',
+        component: () => import(/* webpackChunkName: "deployment-monitor" */ '../pages/DeploymentMonitorPage.vue'),
+        meta: { title: '流水线监控' },
+      },
+      {
+        path: 'nl-programming',
+        name: 'NLProgramming',
+        component: () => import(/* webpackChunkName: "nl-programming" */ '../pages/NLProgrammingPage.vue'),
+        meta: { title: '自然语言编程' },
+      },
+      {
+        path: 'multimodal-collab',
+        name: 'MultimodalCollab',
+        component: () => import(/* webpackChunkName: "multimodal-collab" */ '../pages/MultimodalCollabPage.vue'),
+        meta: { title: '多模态协作' },
+      },
+      {
+        path: 'autonomous-ops',
+        name: 'AutonomousOps',
+        component: () => import(/* webpackChunkName: "autonomous-ops" */ '../pages/AutonomousOpsPage.vue'),
+        meta: { title: '自主运维' },
+      },
+      {
+        path: 'federated-network',
+        name: 'FederatedNetwork',
+        component: () => import(/* webpackChunkName: "federated-network" */ '../pages/FederatedNetworkPage.vue'),
+        meta: { title: '去中心化代理网络' },
+      },
+      // ===== Social AI Insights (v1.1.0 Phase 42) =====
+      {
+        path: 'social-insights',
+        name: 'SocialInsights',
+        component: () => import(/* webpackChunkName: "social-insights" */ '../pages/social/SocialInsightsPage.vue'),
+        meta: { title: 'Social Insights' },
+      },
+      {
+        path: 'compliance-dashboard',
+        name: 'ComplianceDashboard',
+        component: () => import(/* webpackChunkName: "compliance-dashboard" */ '../pages/enterprise/ComplianceDashboardPage.vue'),
+        meta: { title: 'Compliance Dashboard' },
+      },
+      {
+        path: 'scim-integration',
+        name: 'SCIMIntegration',
+        component: () => import(/* webpackChunkName: "scim-integration" */ '../pages/enterprise/SCIMIntegrationPage.vue'),
+        meta: { title: 'SCIM Integration' },
+      },
+      {
+        path: 'activitypub-bridge',
+        name: 'ActivityPubBridge',
+        component: () => import(/* webpackChunkName: "activitypub-bridge" */ '../pages/social/ActivityPubBridgePage.vue'),
+        meta: { title: 'ActivityPub Bridge' },
+      },
+      // ===== EvoMap GEP Protocol (v1.0.0) =====
+      {
+        path: 'evomap',
+        name: 'EvoMapDashboard',
+        component: () => import(/* webpackChunkName: "evomap-dashboard" */ '../pages/evomap/EvoMapDashboard.vue'),
+        meta: { title: 'EvoMap Dashboard' },
+      },
+      {
+        path: 'evomap/browser',
+        name: 'EvoMapBrowser',
+        component: () => import(/* webpackChunkName: "evomap-browser" */ '../pages/evomap/EvoMapBrowser.vue'),
+        meta: { title: 'EvoMap Browser' },
+      },
+      // ===== Q3 2026 Phase 46-51 (v1.1.0 Phase 2) =====
+      {
+        path: 'threshold-security',
+        name: 'ThresholdSecurity',
+        component: () =>
+          import(
+            /* webpackChunkName: "threshold-security" */ '../pages/security/ThresholdSecurityPage.vue'
+          ),
+        meta: { title: 'Threshold Security' },
+      },
+      {
+        path: 'ble-devices',
+        name: 'BLEDevices',
+        component: () =>
+          import(/* webpackChunkName: "ble-devices" */ '../pages/security/BLEDevicesPage.vue'),
+        meta: { title: 'BLE Devices' },
+      },
+      {
+        path: 'recommendations',
+        name: 'Recommendations',
+        component: () =>
+          import(
+            /* webpackChunkName: "recommendations" */ '../pages/social/RecommendationsPage.vue'
+          ),
+        meta: { title: 'Recommendations' },
+      },
+      {
+        path: 'nostr-bridge',
+        name: 'NostrBridge',
+        component: () =>
+          import(/* webpackChunkName: "nostr-bridge" */ '../pages/social/NostrBridgePage.vue'),
+        meta: { title: 'Nostr Bridge' },
+      },
+      {
+        path: 'dlp-policies',
+        name: 'DLPPolicies',
+        component: () =>
+          import(
+            /* webpackChunkName: "dlp-policies" */ '../pages/enterprise/DLPPoliciesPage.vue'
+          ),
+        meta: { title: 'DLP Policies' },
+      },
+      {
+        path: 'siem-integration',
+        name: 'SIEMIntegration',
+        component: () =>
+          import(
+            /* webpackChunkName: "siem-integration" */ '../pages/enterprise/SIEMIntegrationPage.vue'
+          ),
+        meta: { title: 'SIEM Integration' },
+      },
+      // ===== Q4 2026 Phase 52-56 (v1.1.0 Phase 3) =====
+      {
+        path: 'pqc-migration',
+        name: 'PQCMigration',
+        component: () =>
+          import(
+            /* webpackChunkName: "pqc-migration" */ '../pages/security/PQCMigrationPage.vue'
+          ),
+        meta: { title: 'PQC Migration' },
+      },
+      {
+        path: 'firmware-ota',
+        name: 'FirmwareOTA',
+        component: () =>
+          import(
+            /* webpackChunkName: "firmware-ota" */ '../pages/security/FirmwareOTAPage.vue'
+          ),
+        meta: { title: 'Firmware OTA' },
+      },
+      {
+        path: 'governance',
+        name: 'Governance',
+        component: () =>
+          import(
+            /* webpackChunkName: "governance" */ '../pages/social/GovernancePage.vue'
+          ),
+        meta: { title: 'AI Governance' },
+      },
+      {
+        path: 'matrix-bridge',
+        name: 'MatrixBridge',
+        component: () =>
+          import(
+            /* webpackChunkName: "matrix-bridge" */ '../pages/social/MatrixBridgePage.vue'
+          ),
+        meta: { title: 'Matrix Bridge' },
+      },
+      {
+        path: 'terraform-provider',
+        name: 'TerraformProvider',
+        component: () =>
+          import(
+            /* webpackChunkName: "terraform-provider" */ '../pages/enterprise/TerraformProviderPage.vue'
+          ),
+        meta: { title: 'Terraform Provider' },
+      },
+      {
+        path: 'production-hardening',
+        name: 'ProductionHardening',
+        component: () =>
+          import(
+            /* webpackChunkName: "production-hardening" */ '../pages/enterprise/ProductionHardeningPage.vue'
+          ),
+        meta: { title: 'Production Hardening' },
+      },
+      {
+        path: 'federation-hardening',
+        name: 'FederationHardening',
+        component: () =>
+          import(
+            /* webpackChunkName: "federation-hardening" */ '../pages/ai/FederationHardeningPage.vue'
+          ),
+        meta: { title: 'Federation Hardening' },
+      },
+      {
+        path: 'stress-test',
+        name: 'StressTest',
+        component: () =>
+          import(
+            /* webpackChunkName: "stress-test" */ '../pages/ai/StressTestPage.vue'
+          ),
+        meta: { title: 'Stress Test' },
+      },
+      {
+        path: 'reputation-optimizer',
+        name: 'ReputationOptimizer',
+        component: () =>
+          import(
+            /* webpackChunkName: "reputation-optimizer" */ '../pages/ai/ReputationOptimizerPage.vue'
+          ),
+        meta: { title: 'Reputation Optimizer' },
+      },
+      {
+        path: 'sla-manager',
+        name: 'SLAManager',
+        component: () =>
+          import(
+            /* webpackChunkName: "sla-manager" */ '../pages/ai/SLAManagerPage.vue'
+          ),
+        meta: { title: 'SLA Manager' },
+      },
+      {
+        path: 'tech-learning',
+        name: 'TechLearning',
+        component: () =>
+          import(
+            /* webpackChunkName: "tech-learning" */ '../pages/ai/TechLearningPage.vue'
+          ),
+        meta: { title: 'Tech Learning' },
+      },
+      {
+        path: 'autonomous-developer',
+        name: 'AutonomousDeveloper',
+        component: () =>
+          import(
+            /* webpackChunkName: "autonomous-developer" */ '../pages/ai/AutonomousDeveloperPage.vue'
+          ),
+        meta: { title: 'Autonomous Developer' },
+      },
+      {
+        path: 'collaboration-governance',
+        name: 'CollaborationGovernance',
+        component: () =>
+          import(
+            /* webpackChunkName: "collaboration-governance" */ '../pages/ai/CollaborationGovernancePage.vue'
+          ),
+        meta: { title: 'Collaboration Governance' },
+      },
+      {
+        path: 'skill-marketplace',
+        name: 'SkillMarketplace',
+        component: () =>
+          import(
+            /* webpackChunkName: "skill-marketplace" */ '../pages/ai/SkillMarketplacePage.vue'
+          ),
+        meta: { title: 'Skill Marketplace' },
+      },
+      {
+        path: 'token-incentive',
+        name: 'TokenIncentive',
+        component: () =>
+          import(
+            /* webpackChunkName: "token-incentive" */ '../pages/ai/TokenIncentivePage.vue'
+          ),
+        meta: { title: 'Token Incentive' },
+      },
+      {
+        path: 'inference-network',
+        name: 'InferenceNetwork',
+        component: () =>
+          import(
+            /* webpackChunkName: "inference-network" */ '../pages/ai/InferenceNetworkPage.vue'
+          ),
+        meta: { title: 'Inference Network' },
+      },
+      {
+        path: 'trust-root',
+        name: 'TrustRoot',
+        component: () =>
+          import(
+            /* webpackChunkName: "trust-root" */ '../pages/security/TrustRootPage.vue'
+          ),
+        meta: { title: 'Trinity Trust Root' },
+      },
+      {
+        path: 'pqc-ecosystem',
+        name: 'PQCEcosystem',
+        component: () =>
+          import(
+            /* webpackChunkName: "pqc-ecosystem" */ '../pages/security/PQCEcosystemPage.vue'
+          ),
+        meta: { title: 'PQC Full Migration' },
+      },
+      {
+        path: 'satellite-comm',
+        name: 'SatelliteComm',
+        component: () =>
+          import(
+            /* webpackChunkName: "satellite-comm" */ '../pages/security/SatelliteCommPage.vue'
+          ),
+        meta: { title: 'Satellite Communication' },
+      },
+      {
+        path: 'hsm-adapter',
+        name: 'HSMAdapter',
+        component: () =>
+          import(
+            /* webpackChunkName: "hsm-adapter" */ '../pages/security/HSMAdapterPage.vue'
+          ),
+        meta: { title: 'HSM Adapters' },
+      },
+      {
+        path: 'protocol-fusion',
+        name: 'ProtocolFusion',
+        component: () =>
+          import(
+            /* webpackChunkName: "protocol-fusion" */ '../pages/social/ProtocolFusionPage.vue'
+          ),
+        meta: { title: 'Protocol Fusion' },
+      },
+      {
+        path: 'ai-social-enhancement',
+        name: 'AISocialEnhancement',
+        component: () =>
+          import(
+            /* webpackChunkName: "ai-social-enhancement" */ '../pages/social/AISocialEnhancementPage.vue'
+          ),
+        meta: { title: 'AI Social Enhancement' },
+      },
+      {
+        path: 'decentralized-storage',
+        name: 'DecentralizedStorage',
+        component: () =>
+          import(
+            /* webpackChunkName: "decentralized-storage" */ '../pages/social/DecentralizedStoragePage.vue'
+          ),
+        meta: { title: 'Decentralized Storage' },
+      },
+      {
+        path: 'anti-censorship',
+        name: 'AntiCensorship',
+        component: () =>
+          import(
+            /* webpackChunkName: "anti-censorship" */ '../pages/security/AntiCensorshipPage.vue'
+          ),
+        meta: { title: 'Anti-Censorship' },
+      },
+      {
+        path: 'evomap-federation',
+        name: 'EvoMapFederation',
+        component: () =>
+          import(
+            /* webpackChunkName: "evomap-federation" */ '../pages/ai/EvoMapFederationPage.vue'
+          ),
+        meta: { title: 'EvoMap Federation' },
+      },
+      {
+        path: 'evomap-governance',
+        name: 'EvoMapGovernance',
+        component: () =>
+          import(
+            /* webpackChunkName: "evomap-governance" */ '../pages/ai/EvoMapGovernancePage.vue'
+          ),
+        meta: { title: 'EvoMap Governance' },
+      },
     ],
   },
 ];

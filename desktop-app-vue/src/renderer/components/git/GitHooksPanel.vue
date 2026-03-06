@@ -3,7 +3,10 @@
     <div class="panel-header">
       <span class="panel-title">Git Hooks</span>
       <a-space size="small">
-        <a-button size="small" @click="loadData">
+        <a-button
+          size="small"
+          @click="loadData"
+        >
           <ReloadOutlined />
         </a-button>
       </a-space>
@@ -11,7 +14,10 @@
 
     <!-- Quick Actions -->
     <div class="panel-section">
-      <a-space size="small" wrap>
+      <a-space
+        size="small"
+        wrap
+      >
         <a-button
           size="small"
           type="primary"
@@ -20,7 +26,11 @@
         >
           Pre-commit
         </a-button>
-        <a-button size="small" :loading="hooksStore.loading" @click="runImpact">
+        <a-button
+          size="small"
+          :loading="hooksStore.loading"
+          @click="runImpact"
+        >
           影响分析
         </a-button>
         <a-button
@@ -34,7 +44,10 @@
     </div>
 
     <!-- Pre-commit Results -->
-    <div v-if="hooksStore.preCommitResults" class="panel-section">
+    <div
+      v-if="hooksStore.preCommitResults"
+      class="panel-section"
+    >
       <div class="section-label">
         <a-tag
           :color="hooksStore.preCommitResults.passed ? 'green' : 'red'"
@@ -70,8 +83,13 @@
     </div>
 
     <!-- Impact Analysis Results -->
-    <div v-if="hooksStore.impactResults" class="panel-section">
-      <div class="section-label">影响分析</div>
+    <div
+      v-if="hooksStore.impactResults"
+      class="panel-section"
+    >
+      <div class="section-label">
+        影响分析
+      </div>
       <div class="impact-score">
         <span>风险评分:</span>
         <a-tag
@@ -81,8 +99,13 @@
           {{ hooksStore.impactResults.riskScore || 0 }}
         </a-tag>
       </div>
-      <div v-if="hooksStore.impactResults.affectedFiles" class="affected-files">
-        <div class="sub-label">受影响文件</div>
+      <div
+        v-if="hooksStore.impactResults.affectedFiles"
+        class="affected-files"
+      >
+        <div class="sub-label">
+          受影响文件
+        </div>
         <div
           v-for="(file, idx) in hooksStore.impactResults.affectedFiles.slice(
             0,
@@ -103,10 +126,18 @@
     </div>
 
     <!-- Auto-fix Results -->
-    <div v-if="hooksStore.autoFixResults" class="panel-section">
-      <div class="section-label">自动修复</div>
+    <div
+      v-if="hooksStore.autoFixResults"
+      class="panel-section"
+    >
+      <div class="section-label">
+        自动修复
+      </div>
       <div class="fix-summary">
-        <a-tag color="green" size="small">
+        <a-tag
+          color="green"
+          size="small"
+        >
           {{ (hooksStore.autoFixResults.fixed || []).length }} 已修复
         </a-tag>
         <a-tag
@@ -120,7 +151,10 @@
     </div>
 
     <!-- Stats -->
-    <div v-if="hooksStore.stats" class="panel-section stats-section">
+    <div
+      v-if="hooksStore.stats"
+      class="panel-section stats-section"
+    >
       <div class="stat-item">
         <span class="stat-label">运行</span>
         <span class="stat-value">{{ hooksStore.stats.totalRuns || 0 }}</span>
@@ -131,15 +165,18 @@
       </div>
       <div class="stat-item">
         <span class="stat-label">平均耗时</span>
-        <span class="stat-value"
-          >{{ hooksStore.stats.avgDurationMs || 0 }}ms</span
-        >
+        <span class="stat-value">{{ hooksStore.stats.avgDurationMs || 0 }}ms</span>
       </div>
     </div>
 
     <!-- Recent History -->
-    <div v-if="hooksStore.history.length" class="panel-section">
-      <div class="section-label">历史</div>
+    <div
+      v-if="hooksStore.history.length"
+      class="panel-section"
+    >
+      <div class="section-label">
+        历史
+      </div>
       <div
         v-for="(entry, idx) in hooksStore.history.slice(0, 5)"
         :key="idx"

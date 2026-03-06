@@ -7,7 +7,10 @@
     @cancel="emit('update:open', false)"
   >
     <div v-if="order">
-      <a-descriptions :column="1" bordered>
+      <a-descriptions
+        :column="1"
+        bordered
+      >
         <a-descriptions-item label="订单标题">
           {{ order.title }}
         </a-descriptions-item>

@@ -72,7 +72,7 @@ class ESimOtaManager extends EventEmitter {
   // ============================================================
 
   async initialize() {
-    if (this._initialized) return true;
+    if (this._initialized) {return true;}
 
     logger.info("[ESimOTA] 初始化 eSIM OTA 管理器...");
 
@@ -168,7 +168,7 @@ class ESimOtaManager extends EventEmitter {
    */
   async enableProfile(profileId) {
     const profile = this._profiles.get(profileId);
-    if (!profile) throw new Error(`Profile 不存在: ${profileId}`);
+    if (!profile) {throw new Error(`Profile 不存在: ${profileId}`);}
 
     logger.info(`[ESimOTA] 启用 Profile: ${profileId}`);
 
@@ -189,7 +189,7 @@ class ESimOtaManager extends EventEmitter {
    */
   async disableProfile(profileId) {
     const profile = this._profiles.get(profileId);
-    if (!profile) throw new Error(`Profile 不存在: ${profileId}`);
+    if (!profile) {throw new Error(`Profile 不存在: ${profileId}`);}
 
     profile.state = PROFILE_STATE.DISABLED;
     this.emit("profile-disabled", { profileId });
@@ -201,7 +201,7 @@ class ESimOtaManager extends EventEmitter {
    */
   async deleteProfile(profileId) {
     const profile = this._profiles.get(profileId);
-    if (!profile) throw new Error(`Profile 不存在: ${profileId}`);
+    if (!profile) {throw new Error(`Profile 不存在: ${profileId}`);}
 
     if (profile.state === PROFILE_STATE.ENABLED) {
       throw new Error("不能删除活跃的 Profile，请先禁用");

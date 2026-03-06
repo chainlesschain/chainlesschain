@@ -1,5 +1,8 @@
 <template>
-  <div class="skill-card" :class="{ disabled: !skill.enabled }">
+  <div
+    class="skill-card"
+    :class="{ disabled: !skill.enabled }"
+  >
     <div class="card-header">
       <div class="title-row">
         <h3 class="skill-name">
@@ -22,8 +25,15 @@
         {{ skill.description || "暂无描述" }}
       </p>
 
-      <div v-if="parsedTags && parsedTags.length" class="tags">
-        <a-tag v-for="tag in parsedTags" :key="tag" size="small">
+      <div
+        v-if="parsedTags && parsedTags.length"
+        class="tags"
+      >
+        <a-tag
+          v-for="tag in parsedTags"
+          :key="tag"
+          size="small"
+        >
           {{ tag }}
         </a-tag>
       </div>
@@ -52,7 +62,11 @@
           </template>
           详情
         </a-button>
-        <a-button type="link" size="small" @click="$emit('view-doc', skill)">
+        <a-button
+          type="link"
+          size="small"
+          @click="$emit('view-doc', skill)"
+        >
           <template #icon>
             <FileTextOutlined />
           </template>
@@ -61,8 +75,18 @@
       </a-space>
 
       <div class="meta-info">
-        <a-tag v-if="skill.is_builtin" color="blue" size="small"> 内置 </a-tag>
-        <a-tag v-else-if="skill.plugin_id" color="purple" size="small">
+        <a-tag
+          v-if="skill.is_builtin"
+          color="blue"
+          size="small"
+        >
+          内置
+        </a-tag>
+        <a-tag
+          v-else-if="skill.plugin_id"
+          color="purple"
+          size="small"
+        >
           插件
         </a-tag>
       </div>

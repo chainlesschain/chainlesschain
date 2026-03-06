@@ -13,8 +13,14 @@
             <TeamOutlined class="title-icon" />
             <span>Communities</span>
           </div>
-          <a-button type="primary" size="small" @click="showCreateModal = true">
-            <template #icon><PlusOutlined /></template>
+          <a-button
+            type="primary"
+            size="small"
+            @click="showCreateModal = true"
+          >
+            <template #icon>
+              <PlusOutlined />
+            </template>
           </a-button>
         </div>
 
@@ -30,7 +36,7 @@
         <div class="community-list">
           <a-spin :spinning="store.loading">
             <a-menu
-              v-model:selectedKeys="selectedCommunityKeys"
+              v-model:selected-keys="selectedCommunityKeys"
               mode="inline"
               @click="handleCommunitySelect"
             >
@@ -48,7 +54,9 @@
                     {{ community.name?.charAt(0) || "C" }}
                   </a-avatar>
                   <div class="community-info">
-                    <div class="community-name">{{ community.name }}</div>
+                    <div class="community-name">
+                      {{ community.name }}
+                    </div>
                     <div class="community-meta">
                       <UserOutlined />
                       {{ community.member_count }} members
@@ -63,7 +71,11 @@
               description="No communities found"
               class="empty-state"
             >
-              <a-button type="primary" size="small" @click="showCreateModal = true">
+              <a-button
+                type="primary"
+                size="small"
+                @click="showCreateModal = true"
+              >
                 Create One
               </a-button>
             </a-empty>
@@ -71,8 +83,13 @@
         </div>
 
         <div class="sider-footer">
-          <a-button block @click="showJoinModal = true">
-            <template #icon><SearchOutlined /></template>
+          <a-button
+            block
+            @click="showJoinModal = true"
+          >
+            <template #icon>
+              <SearchOutlined />
+            </template>
             Discover Communities
           </a-button>
         </div>
@@ -81,10 +98,16 @@
       <!-- Main Content Area -->
       <a-layout-content class="community-content">
         <!-- No community selected -->
-        <div v-if="!store.currentCommunity" class="empty-content">
+        <div
+          v-if="!store.currentCommunity"
+          class="empty-content"
+        >
           <a-empty description="Select a community to get started">
             <a-space>
-              <a-button type="primary" @click="showCreateModal = true">
+              <a-button
+                type="primary"
+                @click="showCreateModal = true"
+              >
                 Create Community
               </a-button>
               <a-button @click="showJoinModal = true">
@@ -95,17 +118,27 @@
         </div>
 
         <!-- Community Detail -->
-        <div v-else class="community-detail">
+        <div
+          v-else
+          class="community-detail"
+        >
           <!-- Community Header -->
           <div class="detail-header">
             <div class="header-info">
-              <a-avatar :size="48" :src="store.currentCommunity.icon_url">
+              <a-avatar
+                :size="48"
+                :src="store.currentCommunity.icon_url"
+              >
                 {{ store.currentCommunity.name?.charAt(0) || "C" }}
               </a-avatar>
               <div class="header-text">
-                <h2 class="detail-name">{{ store.currentCommunity.name }}</h2>
+                <h2 class="detail-name">
+                  {{ store.currentCommunity.name }}
+                </h2>
                 <div class="detail-meta">
-                  <a-tag color="blue">{{ store.currentCommunity.my_role }}</a-tag>
+                  <a-tag color="blue">
+                    {{ store.currentCommunity.my_role }}
+                  </a-tag>
                   <span>
                     <UserOutlined />
                     {{ store.currentCommunity.member_count }} /
@@ -123,11 +156,15 @@
                 v-if="store.isAdminOrOwner"
                 @click="showEditModal = true"
               >
-                <template #icon><EditOutlined /></template>
+                <template #icon>
+                  <EditOutlined />
+                </template>
                 Edit
               </a-button>
               <a-button @click="navigateToChannels">
-                <template #icon><MessageOutlined /></template>
+                <template #icon>
+                  <MessageOutlined />
+                </template>
                 Channels
               </a-button>
               <a-popconfirm
@@ -138,7 +175,9 @@
                 @confirm="handleLeaveCommunity"
               >
                 <a-button danger>
-                  <template #icon><LogoutOutlined /></template>
+                  <template #icon>
+                    <LogoutOutlined />
+                  </template>
                   Leave
                 </a-button>
               </a-popconfirm>
@@ -146,16 +185,30 @@
           </div>
 
           <!-- Tabs: Description, Members, Governance -->
-          <a-tabs v-model:activeKey="activeTab" class="detail-tabs">
+          <a-tabs
+            v-model:active-key="activeTab"
+            class="detail-tabs"
+          >
             <!-- Description Tab -->
-            <a-tab-pane key="description" tab="Description">
+            <a-tab-pane
+              key="description"
+              tab="Description"
+            >
               <a-card :bordered="false">
-                <p v-if="store.currentCommunity.description" class="community-description">
+                <p
+                  v-if="store.currentCommunity.description"
+                  class="community-description"
+                >
                   {{ store.currentCommunity.description }}
                 </p>
-                <a-empty v-else description="No description available" />
+                <a-empty
+                  v-else
+                  description="No description available"
+                />
 
-                <a-divider v-if="store.currentCommunity.rules_md">Rules</a-divider>
+                <a-divider v-if="store.currentCommunity.rules_md">
+                  Rules
+                </a-divider>
                 <div
                   v-if="store.currentCommunity.rules_md"
                   class="community-rules"
@@ -165,7 +218,11 @@
               </a-card>
 
               <!-- Channels Preview -->
-              <a-card title="Channels" :bordered="false" class="section-card">
+              <a-card
+                title="Channels"
+                :bordered="false"
+                class="section-card"
+              >
                 <template #extra>
                   <a-button
                     v-if="store.isAdminOrOwner"
@@ -182,11 +239,16 @@
                   size="small"
                 >
                   <template #renderItem="{ item }">
-                    <a-list-item class="channel-preview-item" @click="navigateToChannel(item)">
+                    <a-list-item
+                      class="channel-preview-item"
+                      @click="navigateToChannel(item)"
+                    >
                       <a-list-item-meta>
                         <template #title>
                           <span class="channel-name"># {{ item.name }}</span>
-                          <a-tag size="small">{{ item.type }}</a-tag>
+                          <a-tag size="small">
+                            {{ item.type }}
+                          </a-tag>
                         </template>
                         <template #description>
                           {{ item.description || "No description" }}
@@ -240,12 +302,18 @@
                     </a-list-item-meta>
                     <template #actions>
                       <a-dropdown v-if="store.isAdminOrOwner && item.role !== 'owner'">
-                        <a-button type="text" size="small">
+                        <a-button
+                          type="text"
+                          size="small"
+                        >
                           <EllipsisOutlined />
                         </a-button>
                         <template #overlay>
                           <a-menu @click="({ key }) => handleMemberAction(key, item)">
-                            <a-menu-item v-if="item.role === 'member'" key="promote-moderator">
+                            <a-menu-item
+                              v-if="item.role === 'member'"
+                              key="promote-moderator"
+                            >
                               Promote to Moderator
                             </a-menu-item>
                             <a-menu-item
@@ -261,7 +329,10 @@
                               Demote to Member
                             </a-menu-item>
                             <a-menu-divider />
-                            <a-menu-item key="ban" danger>
+                            <a-menu-item
+                              key="ban"
+                              danger
+                            >
                               Ban Member
                             </a-menu-item>
                           </a-menu>
@@ -285,8 +356,13 @@
                 </span>
               </template>
               <div class="governance-header">
-                <a-button type="primary" @click="showCreateProposalModal = true">
-                  <template #icon><PlusOutlined /></template>
+                <a-button
+                  type="primary"
+                  @click="showCreateProposalModal = true"
+                >
+                  <template #icon>
+                    <PlusOutlined />
+                  </template>
                   New Proposal
                 </a-button>
               </div>
@@ -306,7 +382,9 @@
                         >
                           {{ item.status }}
                         </a-tag>
-                        <a-tag size="small">{{ item.proposal_type }}</a-tag>
+                        <a-tag size="small">
+                          {{ item.proposal_type }}
+                        </a-tag>
                       </template>
                       <template #description>
                         <div>{{ item.description || "No description" }}</div>
@@ -352,8 +430,14 @@
       @ok="handleCreateCommunity"
       @cancel="showCreateModal = false"
     >
-      <a-form :model="createForm" layout="vertical">
-        <a-form-item label="Name" required>
+      <a-form
+        :model="createForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="Name"
+          required
+        >
           <a-input
             v-model:value="createForm.name"
             placeholder="Community name"
@@ -412,7 +496,9 @@
                     {{ item.name?.charAt(0) || "C" }}
                   </a-avatar>
                 </template>
-                <template #title>{{ item.name }}</template>
+                <template #title>
+                  {{ item.name }}
+                </template>
                 <template #description>
                   {{ item.description || "No description" }}
                   <div>
@@ -421,7 +507,11 @@
                 </template>
               </a-list-item-meta>
               <template #actions>
-                <a-button type="primary" size="small" @click="handleJoinCommunity(item.id)">
+                <a-button
+                  type="primary"
+                  size="small"
+                  @click="handleJoinCommunity(item.id)"
+                >
                   Join
                 </a-button>
               </template>
@@ -438,15 +528,27 @@
       @ok="handleEditCommunity"
       @cancel="showEditModal = false"
     >
-      <a-form :model="editForm" layout="vertical">
+      <a-form
+        :model="editForm"
+        layout="vertical"
+      >
         <a-form-item label="Name">
-          <a-input v-model:value="editForm.name" :maxlength="100" />
+          <a-input
+            v-model:value="editForm.name"
+            :maxlength="100"
+          />
         </a-form-item>
         <a-form-item label="Description">
-          <a-textarea v-model:value="editForm.description" :rows="3" />
+          <a-textarea
+            v-model:value="editForm.description"
+            :rows="3"
+          />
         </a-form-item>
         <a-form-item label="Rules (Markdown)">
-          <a-textarea v-model:value="editForm.rulesMd" :rows="4" />
+          <a-textarea
+            v-model:value="editForm.rulesMd"
+            :rows="4"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -458,8 +560,14 @@
       @ok="handleCreateChannel"
       @cancel="showCreateChannelModal = false"
     >
-      <a-form :model="channelForm" layout="vertical">
-        <a-form-item label="Name" required>
+      <a-form
+        :model="channelForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="Name"
+          required
+        >
           <a-input
             v-model:value="channelForm.name"
             placeholder="channel-name"
@@ -474,10 +582,18 @@
         </a-form-item>
         <a-form-item label="Type">
           <a-select v-model:value="channelForm.type">
-            <a-select-option value="discussion">Discussion</a-select-option>
-            <a-select-option value="announcement">Announcement</a-select-option>
-            <a-select-option value="readonly">Read-only</a-select-option>
-            <a-select-option value="subscription">Subscription</a-select-option>
+            <a-select-option value="discussion">
+              Discussion
+            </a-select-option>
+            <a-select-option value="announcement">
+              Announcement
+            </a-select-option>
+            <a-select-option value="readonly">
+              Read-only
+            </a-select-option>
+            <a-select-option value="subscription">
+              Subscription
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -490,8 +606,14 @@
       @ok="handleCreateProposal"
       @cancel="showCreateProposalModal = false"
     >
-      <a-form :model="proposalForm" layout="vertical">
-        <a-form-item label="Title" required>
+      <a-form
+        :model="proposalForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="Title"
+          required
+        >
           <a-input
             v-model:value="proposalForm.title"
             placeholder="Proposal title"
@@ -506,11 +628,21 @@
         </a-form-item>
         <a-form-item label="Type">
           <a-select v-model:value="proposalForm.proposalType">
-            <a-select-option value="rule_change">Rule Change</a-select-option>
-            <a-select-option value="role_change">Role Change</a-select-option>
-            <a-select-option value="ban">Ban</a-select-option>
-            <a-select-option value="channel">Channel</a-select-option>
-            <a-select-option value="other">Other</a-select-option>
+            <a-select-option value="rule_change">
+              Rule Change
+            </a-select-option>
+            <a-select-option value="role_change">
+              Role Change
+            </a-select-option>
+            <a-select-option value="ban">
+              Ban
+            </a-select-option>
+            <a-select-option value="channel">
+              Channel
+            </a-select-option>
+            <a-select-option value="other">
+              Other
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -576,7 +708,7 @@ const proposalForm = ref({
 
 // Computed
 const filteredCommunities = computed(() => {
-  if (!searchKeyword.value) return store.communities;
+  if (!searchKeyword.value) {return store.communities;}
   const keyword = searchKeyword.value.toLowerCase();
   return store.communities.filter(
     (c) =>
@@ -587,13 +719,13 @@ const filteredCommunities = computed(() => {
 
 // Methods
 function formatDID(did) {
-  if (!did) return "";
-  if (did.length <= 20) return did;
+  if (!did) {return "";}
+  if (did.length <= 20) {return did;}
   return `${did.slice(0, 10)}...${did.slice(-10)}`;
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return "";
+  if (!timestamp) {return "";}
   return new Date(timestamp).toLocaleDateString();
 }
 
@@ -648,7 +780,7 @@ async function handleJoinCommunity(communityId) {
 }
 
 async function handleLeaveCommunity() {
-  if (!store.currentCommunity) return;
+  if (!store.currentCommunity) {return;}
   try {
     await store.leaveCommunity(store.currentCommunity.id);
     message.success("Left community");
@@ -659,7 +791,7 @@ async function handleLeaveCommunity() {
 }
 
 async function handleEditCommunity() {
-  if (!store.currentCommunity) return;
+  if (!store.currentCommunity) {return;}
   try {
     const { ipcRenderer } = window.electron || {};
     await ipcRenderer.invoke("community:update", store.currentCommunity.id, editForm.value);
@@ -685,7 +817,7 @@ async function handleCreateChannel() {
     message.warning("Please enter a channel name");
     return;
   }
-  if (!store.currentCommunity) return;
+  if (!store.currentCommunity) {return;}
   try {
     const { ipcRenderer } = window.electron || {};
     await ipcRenderer.invoke("channel:create", {
@@ -706,7 +838,7 @@ async function handleCreateProposal() {
     message.warning("Please enter a proposal title");
     return;
   }
-  if (!store.currentCommunity) return;
+  if (!store.currentCommunity) {return;}
   try {
     await store.createProposal({
       communityId: store.currentCommunity.id,
@@ -730,7 +862,7 @@ async function handleVote(proposalId, vote) {
 }
 
 async function handleMemberAction(action, member) {
-  if (!store.currentCommunity) return;
+  if (!store.currentCommunity) {return;}
   const { ipcRenderer } = window.electron || {};
   try {
     switch (action) {

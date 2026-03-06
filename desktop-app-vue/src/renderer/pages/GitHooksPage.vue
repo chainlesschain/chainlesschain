@@ -1,8 +1,13 @@
 <template>
   <div class="git-hooks-page">
-    <a-page-header title="Git Hooks" sub-title="AI-Powered Git Workflow">
+    <a-page-header
+      title="Git Hooks"
+      sub-title="AI-Powered Git Workflow"
+    >
       <template #extra>
-        <a-button @click="loadAll"> 刷新 </a-button>
+        <a-button @click="loadAll">
+          刷新
+        </a-button>
       </template>
     </a-page-header>
 
@@ -11,7 +16,10 @@
         <!-- Config -->
         <a-col :span="8">
           <a-card title="配置">
-            <a-form v-if="hooksStore.config" layout="vertical">
+            <a-form
+              v-if="hooksStore.config"
+              layout="vertical"
+            >
               <a-form-item label="Pre-commit 检查">
                 <a-switch
                   v-model:checked="hooksStore.config.preCommitEnabled"
@@ -32,8 +40,15 @@
               </a-form-item>
             </a-form>
 
-            <a-card title="统计" size="small" style="margin-top: 16px">
-              <a-descriptions :column="1" size="small">
+            <a-card
+              title="统计"
+              size="small"
+              style="margin-top: 16px"
+            >
+              <a-descriptions
+                :column="1"
+                size="small"
+              >
                 <a-descriptions-item label="总运行次数">
                   {{ hooksStore.stats?.totalRuns || 0 }}
                 </a-descriptions-item>
@@ -51,7 +66,10 @@
         <!-- Actions -->
         <a-col :span="8">
           <a-card title="操作">
-            <a-space direction="vertical" style="width: 100%">
+            <a-space
+              direction="vertical"
+              style="width: 100%"
+            >
               <a-button
                 type="primary"
                 block
@@ -60,10 +78,18 @@
               >
                 运行 Pre-commit 检查
               </a-button>
-              <a-button block :loading="hooksStore.loading" @click="runImpact">
+              <a-button
+                block
+                :loading="hooksStore.loading"
+                @click="runImpact"
+              >
                 运行影响分析
               </a-button>
-              <a-button block :loading="hooksStore.loading" @click="runAutoFix">
+              <a-button
+                block
+                :loading="hooksStore.loading"
+                @click="runAutoFix"
+              >
                 运行自动修复
               </a-button>
             </a-space>
@@ -114,7 +140,7 @@
                 :color="entry.result?.passed !== false ? 'green' : 'red'"
               >
                 <strong>{{ entry.type }}</strong>
-                <br />
+                <br>
                 <span style="font-size: 12px; color: #999">
                   {{ new Date(entry.timestamp).toLocaleString() }}
                   · {{ entry.result?.duration || 0 }}ms

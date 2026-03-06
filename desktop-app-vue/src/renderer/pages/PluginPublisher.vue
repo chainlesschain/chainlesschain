@@ -14,7 +14,10 @@
     </a-page-header>
 
     <div class="publisher-content">
-      <a-steps :current="currentStep" style="margin-bottom: 32px">
+      <a-steps
+        :current="currentStep"
+        style="margin-bottom: 32px"
+      >
         <a-step title="基本信息" />
         <a-step title="上传插件" />
         <a-step title="权限配置" />
@@ -22,32 +25,46 @@
       </a-steps>
 
       <!-- 步骤1: 基本信息 -->
-      <div v-show="currentStep === 0" class="step-content">
+      <div
+        v-show="currentStep === 0"
+        class="step-content"
+      >
         <a-form
           :model="pluginInfo"
           :label-col="{ span: 4 }"
           :wrapper-col="{ span: 16 }"
         >
-          <a-form-item label="插件名称" required>
+          <a-form-item
+            label="插件名称"
+            required
+          >
             <a-input
               v-model:value="pluginInfo.name"
               placeholder="输入插件名称"
             />
           </a-form-item>
 
-          <a-form-item label="插件ID" required>
+          <a-form-item
+            label="插件ID"
+            required
+          >
             <a-input
               v-model:value="pluginInfo.id"
               placeholder="例如: my-awesome-plugin"
             >
-              <template #addonBefore> chainlesschain- </template>
+              <template #addonBefore>
+                chainlesschain-
+              </template>
             </a-input>
             <div class="form-hint">
               插件ID必须唯一，只能包含小写字母、数字和连字符
             </div>
           </a-form-item>
 
-          <a-form-item label="版本号" required>
+          <a-form-item
+            label="版本号"
+            required
+          >
             <a-input
               v-model:value="pluginInfo.version"
               placeholder="例如: 1.0.0"
@@ -57,7 +74,10 @@
             </div>
           </a-form-item>
 
-          <a-form-item label="简短描述" required>
+          <a-form-item
+            label="简短描述"
+            required
+          >
             <a-textarea
               v-model:value="pluginInfo.description"
               placeholder="用一句话描述您的插件功能"
@@ -75,18 +95,29 @@
             />
           </a-form-item>
 
-          <a-form-item label="分类" required>
+          <a-form-item
+            label="分类"
+            required
+          >
             <a-select
               v-model:value="pluginInfo.category"
               placeholder="选择插件分类"
             >
-              <a-select-option value="ai"> AI增强 </a-select-option>
-              <a-select-option value="productivity"> 效率工具 </a-select-option>
-              <a-select-option value="data"> 数据处理 </a-select-option>
+              <a-select-option value="ai">
+                AI增强
+              </a-select-option>
+              <a-select-option value="productivity">
+                效率工具
+              </a-select-option>
+              <a-select-option value="data">
+                数据处理
+              </a-select-option>
               <a-select-option value="integration">
                 第三方集成
               </a-select-option>
-              <a-select-option value="ui"> 界面扩展 </a-select-option>
+              <a-select-option value="ui">
+                界面扩展
+              </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -97,7 +128,9 @@
               placeholder="添加标签，按回车确认"
               :max-tag-count="5"
             />
-            <div class="form-hint">最多5个标签，帮助用户发现您的插件</div>
+            <div class="form-hint">
+              最多5个标签，帮助用户发现您的插件
+            </div>
           </a-form-item>
 
           <a-form-item label="作者">
@@ -126,20 +159,31 @@
               v-model:value="pluginInfo.license"
               placeholder="选择开源许可证"
             >
-              <a-select-option value="MIT"> MIT </a-select-option>
-              <a-select-option value="Apache-2.0"> Apache 2.0 </a-select-option>
-              <a-select-option value="GPL-3.0"> GPL 3.0 </a-select-option>
+              <a-select-option value="MIT">
+                MIT
+              </a-select-option>
+              <a-select-option value="Apache-2.0">
+                Apache 2.0
+              </a-select-option>
+              <a-select-option value="GPL-3.0">
+                GPL 3.0
+              </a-select-option>
               <a-select-option value="BSD-3-Clause">
                 BSD 3-Clause
               </a-select-option>
-              <a-select-option value="ISC"> ISC </a-select-option>
+              <a-select-option value="ISC">
+                ISC
+              </a-select-option>
             </a-select>
           </a-form-item>
         </a-form>
       </div>
 
       <!-- 步骤2: 上传插件 -->
-      <div v-show="currentStep === 1" class="step-content">
+      <div
+        v-show="currentStep === 1"
+        class="step-content"
+      >
         <a-alert
           message="上传要求"
           description="请上传包含manifest.json的ZIP文件，文件大小不超过50MB"
@@ -159,12 +203,23 @@
           <p class="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
-          <p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
-          <p class="ant-upload-hint">支持ZIP格式的插件包，最大50MB</p>
+          <p class="ant-upload-text">
+            点击或拖拽文件到此区域上传
+          </p>
+          <p class="ant-upload-hint">
+            支持ZIP格式的插件包，最大50MB
+          </p>
         </a-upload-dragger>
 
-        <div v-if="pluginFile" class="file-info">
-          <a-descriptions title="文件信息" bordered :column="2">
+        <div
+          v-if="pluginFile"
+          class="file-info"
+        >
+          <a-descriptions
+            title="文件信息"
+            bordered
+            :column="2"
+          >
             <a-descriptions-item label="文件名">
               {{ pluginFile.name }}
             </a-descriptions-item>
@@ -174,9 +229,15 @@
           </a-descriptions>
         </div>
 
-        <div v-if="manifestData" class="manifest-preview">
+        <div
+          v-if="manifestData"
+          class="manifest-preview"
+        >
           <h3>Manifest 预览</h3>
-          <a-descriptions bordered :column="1">
+          <a-descriptions
+            bordered
+            :column="1"
+          >
             <a-descriptions-item label="插件ID">
               {{ manifestData.id }}
             </a-descriptions-item>
@@ -194,7 +255,10 @@
       </div>
 
       <!-- 步骤3: 权限配置 -->
-      <div v-show="currentStep === 2" class="step-content">
+      <div
+        v-show="currentStep === 2"
+        class="step-content"
+      >
         <a-alert
           message="权限说明"
           description="请仔细选择插件需要的权限，用户会看到这些权限要求"
@@ -213,7 +277,10 @@
               :key="perm.value"
               :span="12"
             >
-              <a-card size="small" hoverable>
+              <a-card
+                size="small"
+                hoverable
+              >
                 <a-checkbox :value="perm.value">
                   <strong>{{ perm.label }}</strong>
                 </a-checkbox>
@@ -227,14 +294,20 @@
       </div>
 
       <!-- 步骤4: 发布确认 -->
-      <div v-show="currentStep === 3" class="step-content">
+      <div
+        v-show="currentStep === 3"
+        class="step-content"
+      >
         <a-result
           status="info"
           title="准备发布"
           sub-title="请确认以下信息无误后发布插件"
         >
           <template #extra>
-            <a-descriptions bordered :column="2">
+            <a-descriptions
+              bordered
+              :column="2"
+            >
               <a-descriptions-item label="插件名称">
                 {{ pluginInfo.name }}
               </a-descriptions-item>
@@ -247,12 +320,21 @@
               <a-descriptions-item label="分类">
                 {{ getCategoryLabel(pluginInfo.category) }}
               </a-descriptions-item>
-              <a-descriptions-item label="标签" :span="2">
-                <a-tag v-for="tag in pluginInfo.tags" :key="tag">
+              <a-descriptions-item
+                label="标签"
+                :span="2"
+              >
+                <a-tag
+                  v-for="tag in pluginInfo.tags"
+                  :key="tag"
+                >
                   {{ tag }}
                 </a-tag>
               </a-descriptions-item>
-              <a-descriptions-item label="权限" :span="2">
+              <a-descriptions-item
+                label="权限"
+                :span="2"
+              >
                 <a-tag
                   v-for="perm in pluginInfo.permissions"
                   :key="perm"
@@ -277,7 +359,12 @@
       <!-- 操作按钮 -->
       <div class="step-actions">
         <a-space>
-          <a-button v-if="currentStep > 0" @click="prevStep"> 上一步 </a-button>
+          <a-button
+            v-if="currentStep > 0"
+            @click="prevStep"
+          >
+            上一步
+          </a-button>
           <a-button
             v-if="currentStep < 3"
             type="primary"

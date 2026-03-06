@@ -8,16 +8,25 @@
   >
     <div class="git-history-dialog">
       <!-- 加载状态 -->
-      <div v-if="loading" class="loading-container">
+      <div
+        v-if="loading"
+        class="loading-container"
+      >
         <a-spin tip="加载提交历史..." />
       </div>
 
       <!-- 提交历史列表 -->
-      <div v-else-if="commits && commits.length > 0" class="history-content">
+      <div
+        v-else-if="commits && commits.length > 0"
+        class="history-content"
+      >
         <!-- 工具栏 -->
         <div class="toolbar">
           <a-space>
-            <a-button size="small" @click="handleRefresh">
+            <a-button
+              size="small"
+              @click="handleRefresh"
+            >
               <ReloadOutlined />
               刷新
             </a-button>
@@ -28,8 +37,12 @@
               size="small"
               @change="handleBranchChange"
             >
-              <a-select-option value="all"> 全部分支 </a-select-option>
-              <a-select-option value="current"> 当前分支 </a-select-option>
+              <a-select-option value="all">
+                全部分支
+              </a-select-option>
+              <a-select-option value="current">
+                当前分支
+              </a-select-option>
             </a-select>
             <a-input-search
               v-model:value="searchKeyword"
@@ -58,10 +71,18 @@
                 <div class="commit-header">
                   <div class="commit-title">
                     <h4>{{ commit.message || commit.commit.message }}</h4>
-                    <a-tag v-if="commit.isHead" color="blue" size="small">
+                    <a-tag
+                      v-if="commit.isHead"
+                      color="blue"
+                      size="small"
+                    >
                       HEAD
                     </a-tag>
-                    <a-tag v-if="commit.isMerge" color="purple" size="small">
+                    <a-tag
+                      v-if="commit.isMerge"
+                      color="purple"
+                      size="small"
+                    >
                       MERGE
                     </a-tag>
                   </div>
@@ -98,7 +119,11 @@
                   v-if="expandedCommit === (commit.oid || commit.sha)"
                   class="commit-details"
                 >
-                  <a-descriptions bordered size="small" :column="1">
+                  <a-descriptions
+                    bordered
+                    size="small"
+                    :column="1"
+                  >
                     <a-descriptions-item label="提交哈希">
                       {{ commit.oid || commit.sha }}
                     </a-descriptions-item>
@@ -113,7 +138,10 @@
                         )
                       }}
                     </a-descriptions-item>
-                    <a-descriptions-item v-if="commit.parent" label="父提交">
+                    <a-descriptions-item
+                      v-if="commit.parent"
+                      label="父提交"
+                    >
                       {{ formatSha(commit.parent) }}
                     </a-descriptions-item>
                   </a-descriptions>
@@ -197,15 +225,25 @@
         </div>
 
         <!-- 加载更多 -->
-        <div v-if="hasMore" class="load-more">
-          <a-button block :loading="loadingMore" @click="handleLoadMore">
+        <div
+          v-if="hasMore"
+          class="load-more"
+        >
+          <a-button
+            block
+            :loading="loadingMore"
+            @click="handleLoadMore"
+          >
             加载更多
           </a-button>
         </div>
       </div>
 
       <!-- 空状态 -->
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <a-empty description="暂无提交历史">
           <template #image>
             <HistoryOutlined style="font-size: 64px; color: #d1d5db" />

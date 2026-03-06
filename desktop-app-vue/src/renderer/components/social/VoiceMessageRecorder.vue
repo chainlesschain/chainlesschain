@@ -1,7 +1,10 @@
 <template>
   <div class="voice-message-recorder">
     <!-- 录音按钮 -->
-    <a-tooltip v-if="!isRecording" title="语音消息">
+    <a-tooltip
+      v-if="!isRecording"
+      title="语音消息"
+    >
       <a-button
         type="text"
         size="small"

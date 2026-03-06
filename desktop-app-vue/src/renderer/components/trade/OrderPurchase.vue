@@ -10,7 +10,10 @@
     >
       <div v-if="order">
         <!-- 订单信息 -->
-        <a-card size="small" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <template #title>
             <a-space>
               <shopping-cart-outlined />
@@ -18,7 +21,11 @@
             </a-space>
           </template>
 
-          <a-descriptions :column="1" bordered size="small">
+          <a-descriptions
+            :column="1"
+            bordered
+            size="small"
+          >
             <a-descriptions-item label="订单标题">
               <strong>{{ order.asset_name || order.title }}</strong>
             </a-descriptions-item>
@@ -30,7 +37,11 @@
             </a-descriptions-item>
 
             <a-descriptions-item label="订单状态">
-              <status-badge :status="order.status" type="order" show-icon />
+              <status-badge
+                :status="order.status"
+                type="order"
+                show-icon
+              />
             </a-descriptions-item>
 
             <a-descriptions-item label="卖家">
@@ -63,7 +74,10 @@
         </a-card>
 
         <!-- 购买表单 -->
-        <a-card size="small" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <template #title>
             <a-space>
               <calculator-outlined />
@@ -73,7 +87,10 @@
 
           <a-form layout="vertical">
             <!-- 购买数量 -->
-            <a-form-item label="购买数量" required>
+            <a-form-item
+              label="购买数量"
+              required
+            >
               <a-input-number
                 v-model:value="form.quantity"
                 :min="1"
@@ -94,9 +111,7 @@
                 </template>
               </a-input-number>
               <template #extra>
-                <span style="color: #8c8c8c"
-                  >可购数量: {{ order.quantity }}</span
-                >
+                <span style="color: #8c8c8c">可购数量: {{ order.quantity }}</span>
               </template>
             </a-form-item>
 
@@ -143,7 +158,10 @@
         </a-card>
 
         <!-- 托管说明 -->
-        <a-alert type="info" style="margin-bottom: 16px">
+        <a-alert
+          type="info"
+          style="margin-bottom: 16px"
+        >
           <template #icon>
             <safety-certificate-outlined />
           </template>
@@ -161,7 +179,11 @@
         </a-alert>
 
         <!-- 订单描述 -->
-        <a-card v-if="order.description" size="small" title="订单描述">
+        <a-card
+          v-if="order.description"
+          size="small"
+          title="订单描述"
+        >
           <p style="margin: 0; color: #595959; line-height: 1.6">
             {{ order.description }}
           </p>

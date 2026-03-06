@@ -1,8 +1,14 @@
 <template>
   <div class="task-detail-panel">
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <a-spin size="large" tip="加载任务详情..." />
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载任务详情..."
+      />
     </div>
 
     <!-- 任务详情 -->
@@ -36,18 +42,30 @@
           </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="执行者">
-          <a-tag v-if="task.assignedTo" color="geekblue">
+          <a-tag
+            v-if="task.assignedTo"
+            color="geekblue"
+          >
             {{ task.assignedTo }}
           </a-tag>
-          <span v-else style="color: #8c8c8c">未分配</span>
+          <span
+            v-else
+            style="color: #8c8c8c"
+          >未分配</span>
         </a-descriptions-item>
         <a-descriptions-item label="创建时间">
           {{ formatDateTime(task.createdAt) }}
         </a-descriptions-item>
-        <a-descriptions-item v-if="task.startedAt" label="开始时间">
+        <a-descriptions-item
+          v-if="task.startedAt"
+          label="开始时间"
+        >
           {{ formatDateTime(task.startedAt) }}
         </a-descriptions-item>
-        <a-descriptions-item v-if="task.completedAt" label="完成时间">
+        <a-descriptions-item
+          v-if="task.completedAt"
+          label="完成时间"
+        >
           {{ formatDateTime(task.completedAt) }}
         </a-descriptions-item>
         <a-descriptions-item label="耗时">
@@ -67,13 +85,19 @@
             :percent="task.progress || 0"
             :status="getProgressStatus(task)"
           />
-          <div v-if="task.progressMessage" class="progress-message">
+          <div
+            v-if="task.progressMessage"
+            class="progress-message"
+          >
             {{ task.progressMessage }}
           </div>
         </div>
 
         <!-- 步骤列表（如果有） -->
-        <div v-if="task.steps && task.steps.length > 0" class="steps-container">
+        <div
+          v-if="task.steps && task.steps.length > 0"
+          class="steps-container"
+        >
           <a-steps
             :current="currentStepIndex"
             :status="getStepsStatus(task)"
@@ -113,7 +137,10 @@
                   {{ formatDateTime(checkpoint.timestamp) }}
                 </span>
               </div>
-              <div v-if="checkpoint.reason" class="checkpoint-reason">
+              <div
+                v-if="checkpoint.reason"
+                class="checkpoint-reason"
+              >
                 原因: {{ checkpoint.reason }}
               </div>
               <div
@@ -128,7 +155,10 @@
       </div>
 
       <!-- 错误信息 -->
-      <div v-if="task.error" class="info-section">
+      <div
+        v-if="task.error"
+        class="info-section"
+      >
         <h3 class="section-title">
           <ExclamationCircleOutlined style="color: #f5222d" />
           错误信息
@@ -141,8 +171,13 @@
           show-icon
         />
 
-        <div v-if="task.retryCount !== undefined" style="margin-top: 12px">
-          <a-tag color="orange"> 已重试: {{ task.retryCount }} 次 </a-tag>
+        <div
+          v-if="task.retryCount !== undefined"
+          style="margin-top: 12px"
+        >
+          <a-tag color="orange">
+            已重试: {{ task.retryCount }} 次
+          </a-tag>
         </div>
       </div>
 

@@ -17,8 +17,8 @@
  * @version 0.45.0
  */
 
-const { logger } = require("../utils/logger.js");
-const EventEmitter = require("events");
+import { logger } from "../utils/logger.js";
+import EventEmitter from "events";
 
 // ============================================================
 // Constants
@@ -30,6 +30,8 @@ const REPLY_STYLES = {
   CASUAL: "casual",
   HUMOROUS: "humorous",
   EMPATHETIC: "empathetic",
+  FORMAL: "formal",
+  CONCISE: "concise",
 };
 
 const POST_STYLES = {
@@ -72,6 +74,16 @@ const FALLBACK_REPLIES = {
     "Thank you for being so open about this. Your feelings are completely valid.",
     "I hear you, and I want you to know that I'm here to support you.",
   ],
+  [REPLY_STYLES.FORMAL]: [
+    "I acknowledge your contribution and would like to offer the following perspective.",
+    "Regarding the matter at hand, I believe this warrants further consideration.",
+    "Thank you for bringing this to our attention. Allow me to elaborate.",
+  ],
+  [REPLY_STYLES.CONCISE]: [
+    "Agreed. Good point.",
+    "Interesting take. Worth exploring.",
+    "Makes sense. Let's proceed.",
+  ],
 };
 
 const FALLBACK_ICE_BREAKERS = [
@@ -99,6 +111,8 @@ class AISocialAssistant extends EventEmitter {
 
     this.llmManager = llmManager;
     this.initialized = false;
+    this._contextWindow = []; // Rolling context window for conversation history
+    this._maxContextSize = 20;
   }
 
   /**
@@ -109,7 +123,9 @@ class AISocialAssistant extends EventEmitter {
 
     try {
       this.initialized = true;
-      logger.info("[AISocialAssistant] AI social assistant initialized successfully");
+      logger.info(
+        "[AISocialAssistant] AI social assistant initialized successfully",
+      );
     } catch (error) {
       logger.error("[AISocialAssistant] Initialization failed:", error);
       throw error;
@@ -156,7 +172,10 @@ class AISocialAssistant extends EventEmitter {
 
       return null;
     } catch (error) {
-      logger.warn("[AISocialAssistant] LLM chat failed, using fallback:", error.message);
+      logger.warn(
+        "[AISocialAssistant] LLM chat failed, using fallback:",
+        error.message,
+      );
       return null;
     }
   }
@@ -170,7 +189,11 @@ class AISocialAssistant extends EventEmitter {
    */
   async suggestReply(conversationContext, style = REPLY_STYLES.FRIENDLY) {
     try {
-      if (!conversationContext || !Array.isArray(conversationContext) || conversationContext.length === 0) {
+      if (
+        !conversationContext ||
+        !Array.isArray(conversationContext) ||
+        conversationContext.length === 0
+      ) {
         throw new Error("Conversation context is required");
       }
 
@@ -194,7 +217,8 @@ class AISocialAssistant extends EventEmitter {
       }
 
       // Fallback to templates
-      const templates = FALLBACK_REPLIES[style] || FALLBACK_REPLIES[REPLY_STYLES.FRIENDLY];
+      const templates =
+        FALLBACK_REPLIES[style] || FALLBACK_REPLIES[REPLY_STYLES.FRIENDLY];
       const randomIndex = Math.floor(Math.random() * templates.length);
 
       return {
@@ -250,7 +274,10 @@ class AISocialAssistant extends EventEmitter {
         source: "template",
       };
     } catch (error) {
-      logger.error("[AISocialAssistant] Failed to summarize conversation:", error);
+      logger.error(
+        "[AISocialAssistant] Failed to summarize conversation:",
+        error,
+      );
       throw error;
     }
   }
@@ -263,7 +290,11 @@ class AISocialAssistant extends EventEmitter {
    * @param {string} [length] - The desired length (short, medium, long)
    * @returns {Object} The drafted post
    */
-  async draftPost(topic, style = POST_STYLES.CONVERSATIONAL, length = POST_LENGTHS.MEDIUM) {
+  async draftPost(
+    topic,
+    style = POST_STYLES.CONVERSATIONAL,
+    length = POST_LENGTHS.MEDIUM,
+  ) {
     try {
       if (!topic || topic.trim().length === 0) {
         throw new Error("Topic is required");
@@ -356,9 +387,13 @@ class AISocialAssistant extends EventEmitter {
       // Fallback analysis
       const messageCount = context.messageCount || 0;
       let strength = "new";
-      if (messageCount > 100) strength = "strong";
-      else if (messageCount > 30) strength = "growing";
-      else if (messageCount > 5) strength = "developing";
+      if (messageCount > 100) {
+        strength = "strong";
+      } else if (messageCount > 30) {
+        strength = "growing";
+      } else if (messageCount > 5) {
+        strength = "developing";
+      }
 
       return {
         friendDid,
@@ -366,7 +401,10 @@ class AISocialAssistant extends EventEmitter {
         source: "template",
       };
     } catch (error) {
-      logger.error("[AISocialAssistant] Failed to analyze relationship:", error);
+      logger.error(
+        "[AISocialAssistant] Failed to analyze relationship:",
+        error,
+      );
       throw error;
     }
   }
@@ -379,7 +417,11 @@ class AISocialAssistant extends EventEmitter {
    */
   async recommendTopics(userInterests) {
     try {
-      if (!userInterests || !Array.isArray(userInterests) || userInterests.length === 0) {
+      if (
+        !userInterests ||
+        !Array.isArray(userInterests) ||
+        userInterests.length === 0
+      ) {
         throw new Error("User interests are required");
       }
 
@@ -395,7 +437,7 @@ class AISocialAssistant extends EventEmitter {
         // Parse numbered list from LLM output
         const topics = llmResult
           .split("\n")
-          .map((line) => line.replace(/^\d+[\.\)]\s*/, "").trim())
+          .map((line) => line.replace(/^\d+[.)]\s*/, "").trim())
           .filter((line) => line.length > 0);
 
         return {
@@ -473,7 +515,9 @@ class AISocialAssistant extends EventEmitter {
           ? friendProfile.interests[0]
           : "this community";
 
-      const randomIndex = Math.floor(Math.random() * FALLBACK_ICE_BREAKERS.length);
+      const randomIndex = Math.floor(
+        Math.random() * FALLBACK_ICE_BREAKERS.length,
+      );
       const template = FALLBACK_ICE_BREAKERS[randomIndex];
 
       return {
@@ -481,7 +525,10 @@ class AISocialAssistant extends EventEmitter {
         source: "template",
       };
     } catch (error) {
-      logger.error("[AISocialAssistant] Failed to generate ice-breaker:", error);
+      logger.error(
+        "[AISocialAssistant] Failed to generate ice-breaker:",
+        error,
+      );
       throw error;
     }
   }
@@ -501,10 +548,7 @@ class AISocialAssistant extends EventEmitter {
       const systemPrompt =
         "You are a hashtag generator. Generate 5-8 relevant hashtags for the given content. Return ONLY the hashtags, each prefixed with #, separated by spaces.";
 
-      const llmResult = await this._llmChat(
-        systemPrompt,
-        content.trim(),
-      );
+      const llmResult = await this._llmChat(systemPrompt, content.trim());
 
       if (llmResult) {
         const hashtags = llmResult
@@ -552,6 +596,149 @@ class AISocialAssistant extends EventEmitter {
   }
 
   /**
+   * Add messages to the rolling context window.
+   * @param {Array<Object>} messages - Messages to add
+   */
+  addToContext(messages) {
+    if (!Array.isArray(messages)) {
+      return;
+    }
+    this._contextWindow.push(...messages);
+    if (this._contextWindow.length > this._maxContextSize) {
+      this._contextWindow = this._contextWindow.slice(-this._maxContextSize);
+    }
+  }
+
+  /**
+   * Get the current context window.
+   * @returns {Array<Object>} Context messages
+   */
+  getContextWindow() {
+    return [...this._contextWindow];
+  }
+
+  /**
+   * Clear the context window.
+   */
+  clearContext() {
+    this._contextWindow = [];
+  }
+
+  /**
+   * Suggest multiple reply variants in different styles.
+   * @param {Array<Object>} conversationContext - Conversation messages
+   * @param {Array<string>} [styles] - Styles to generate
+   * @returns {Object} Multi-style reply suggestions
+   */
+  async suggestMultiStyleReplies(conversationContext, styles) {
+    try {
+      const targetStyles = styles || [
+        REPLY_STYLES.FORMAL,
+        REPLY_STYLES.FRIENDLY,
+        REPLY_STYLES.CONCISE,
+      ];
+
+      this.addToContext(conversationContext);
+
+      const fullContext = this._contextWindow;
+      const results = {};
+
+      for (const style of targetStyles) {
+        results[style] = await this.suggestReply(fullContext, style);
+      }
+
+      return {
+        replies: results,
+        styles: targetStyles,
+        contextSize: fullContext.length,
+      };
+    } catch (error) {
+      logger.error(
+        "[AISocialAssistant] Failed to suggest multi-style replies:",
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Generate a context-aware enhanced reply using conversation history.
+   * @param {Array<Object>} conversationContext - Current conversation messages
+   * @param {string} [style] - Reply style
+   * @param {Object} [options] - Enhancement options
+   * @returns {Object} Enhanced reply with metadata
+   */
+  async enhancedReply(
+    conversationContext,
+    style = REPLY_STYLES.FRIENDLY,
+    _options = {},
+  ) {
+    try {
+      if (!conversationContext || conversationContext.length === 0) {
+        throw new Error("Conversation context is required");
+      }
+
+      this.addToContext(conversationContext);
+
+      const systemPrompt = `You are an advanced social conversation assistant with deep contextual awareness. Generate a ${style} reply that:
+1. References earlier points in the conversation when relevant
+2. Matches the emotional tone of the conversation
+3. Adds value through insight or helpful information
+4. Feels natural and authentic
+
+Reply with a JSON object:
+{"reply": "the suggested reply", "confidence": 0.0-1.0, "reasoning": "brief explanation"}
+Reply with ONLY valid JSON.`;
+
+      const contextStr = this._contextWindow
+        .map((msg) => `${msg.role || "user"}: ${msg.content}`)
+        .join("\n");
+
+      const llmResult = await this._llmChat(
+        systemPrompt,
+        `Full conversation context:\n${contextStr}\n\nGenerate a ${style} reply:`,
+      );
+
+      if (llmResult) {
+        try {
+          const parsed = JSON.parse(
+            llmResult
+              .replace(/```json?\n?/g, "")
+              .replace(/```/g, "")
+              .trim(),
+          );
+          return {
+            suggestion: parsed.reply || llmResult.trim(),
+            style,
+            confidence: parsed.confidence || 0.7,
+            reasoning: parsed.reasoning || "",
+            contextSize: this._contextWindow.length,
+            source: "llm",
+          };
+        } catch {
+          // JSON parsing failed, return raw LLM output
+          return {
+            suggestion: llmResult.trim(),
+            style,
+            confidence: 0.5,
+            reasoning: "",
+            contextSize: this._contextWindow.length,
+            source: "llm",
+          };
+        }
+      }
+
+      // Fallback
+      const result = await this.suggestReply(conversationContext, style);
+      result.contextSize = this._contextWindow.length;
+      return result;
+    } catch (error) {
+      logger.error("[AISocialAssistant] Enhanced reply failed:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Close the AI social assistant
    */
   async close() {
@@ -562,9 +749,4 @@ class AISocialAssistant extends EventEmitter {
   }
 }
 
-module.exports = {
-  AISocialAssistant,
-  REPLY_STYLES,
-  POST_STYLES,
-  POST_LENGTHS,
-};
+export { AISocialAssistant, REPLY_STYLES, POST_STYLES, POST_LENGTHS };

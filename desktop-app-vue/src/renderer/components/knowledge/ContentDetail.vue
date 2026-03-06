@@ -9,8 +9,15 @@
     >
       <div v-if="content">
         <!-- 内容信息 -->
-        <a-card size="small" style="margin-bottom: 16px">
-          <a-descriptions :column="3" size="small" bordered>
+        <a-card
+          size="small"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="3"
+            size="small"
+            bordered
+          >
             <a-descriptions-item label="内容类型">
               <a-tag :color="getTypeColor(content.contentType)">
                 {{ getTypeName(content.contentType) }}
@@ -22,7 +29,10 @@
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="价格">
-              <a-tag color="orange" style="font-size: 16px">
+              <a-tag
+                color="orange"
+                style="font-size: 16px"
+              >
                 ¥{{ content.priceAmount }}
               </a-tag>
             </a-descriptions-item>
@@ -54,12 +64,21 @@
                 allow-half
                 style="font-size: 14px"
               />
-              <span v-else style="color: #999">暂无评分</span>
+              <span
+                v-else
+                style="color: #999"
+              >暂无评分</span>
             </a-descriptions-item>
-            <a-descriptions-item label="创作者" :span="3">
+            <a-descriptions-item
+              label="创作者"
+              :span="3"
+            >
               <a-space>
                 <user-outlined />
-                <a-typography-text copyable style="font-size: 12px">
+                <a-typography-text
+                  copyable
+                  style="font-size: 12px"
+                >
                   {{ content.creatorDid }}
                 </a-typography-text>
               </a-space>
@@ -99,7 +118,10 @@
             </template>
           </a-alert>
 
-          <a-card title="完整内容" size="small">
+          <a-card
+            title="完整内容"
+            size="small"
+          >
             <a-spin :spinning="loadingContent">
               <div class="content-full-text">
                 {{ contentDetail }}
@@ -126,7 +148,10 @@
           </a-alert>
 
           <!-- 购买选项 -->
-          <a-card title="购买选项" size="small">
+          <a-card
+            title="购买选项"
+            size="small"
+          >
             <a-form layout="vertical">
               <!-- 支付资产选择 -->
               <a-form-item label="支付方式">
@@ -155,7 +180,12 @@
                     </template>
                     {{ getPurchaseButtonText() }}
                   </a-button>
-                  <a-button size="large" @click="handleClose"> 取消 </a-button>
+                  <a-button
+                    size="large"
+                    @click="handleClose"
+                  >
+                    取消
+                  </a-button>
                 </a-space>
               </a-form-item>
             </a-form>

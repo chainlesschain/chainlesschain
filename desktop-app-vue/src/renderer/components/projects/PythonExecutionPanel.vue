@@ -14,7 +14,10 @@
           {{ executing ? "执行中..." : "运行代码" }}
         </a-button>
 
-        <a-button :disabled="!executing" @click="handleStop">
+        <a-button
+          :disabled="!executing"
+          @click="handleStop"
+        >
           <stop-outlined />
           停止
         </a-button>
@@ -25,14 +28,20 @@
         </a-button>
 
         <a-tooltip title="代码安全检查">
-          <a-button :loading="checking" @click="handleSafetyCheck">
+          <a-button
+            :loading="checking"
+            @click="handleSafetyCheck"
+          >
             <safety-outlined />
             安全检查
           </a-button>
         </a-tooltip>
       </a-space>
 
-      <div v-if="executionTime" class="execution-time">
+      <div
+        v-if="executionTime"
+        class="execution-time"
+      >
         执行时间: {{ executionTime }}ms
       </div>
     </div>
@@ -48,7 +57,10 @@
       <template #message>
         <div>检测到潜在危险操作:</div>
         <ul class="warning-list">
-          <li v-for="(warning, index) in safetyWarnings" :key="index">
+          <li
+            v-for="(warning, index) in safetyWarnings"
+            :key="index"
+          >
             {{ warning }}
           </li>
         </ul>
@@ -69,14 +81,23 @@
     </a-alert>
 
     <!-- 执行步骤 -->
-    <div v-if="showSteps && steps.length > 0" class="execution-steps">
-      <div class="steps-header" @click="stepsExpanded = !stepsExpanded">
+    <div
+      v-if="showSteps && steps.length > 0"
+      class="execution-steps"
+    >
+      <div
+        class="steps-header"
+        @click="stepsExpanded = !stepsExpanded"
+      >
         <right-outlined :class="{ expanded: stepsExpanded }" />
         <span class="steps-title">{{ steps.length }} 个步骤</span>
       </div>
 
       <transition name="expand">
-        <div v-show="stepsExpanded" class="steps-list">
+        <div
+          v-show="stepsExpanded"
+          class="steps-list"
+        >
           <div
             v-for="(step, index) in steps"
             :key="index"
@@ -84,14 +105,20 @@
           >
             <div class="step-icon">
               <check-circle-outlined v-if="step.status === 'completed'" />
-              <loading-outlined v-else-if="step.status === 'running'" spin />
+              <loading-outlined
+                v-else-if="step.status === 'running'"
+                spin
+              />
               <clock-circle-outlined v-else />
             </div>
             <div class="step-content">
               <div class="step-title">
                 {{ step.title }}
               </div>
-              <div v-if="step.description" class="step-description">
+              <div
+                v-if="step.description"
+                class="step-description"
+              >
                 {{ step.description }}
               </div>
             </div>
@@ -104,10 +131,19 @@
     <div class="execution-output">
       <a-tabs v-model:active-key="activeTab">
         <!-- 标准输出 -->
-        <a-tab-pane key="stdout" tab="输出">
+        <a-tab-pane
+          key="stdout"
+          tab="输出"
+        >
           <div class="output-content">
-            <pre v-if="stdout" class="output-text">{{ stdout }}</pre>
-            <div v-else class="output-empty">
+            <pre
+              v-if="stdout"
+              class="output-text"
+            >{{ stdout }}</pre>
+            <div
+              v-else
+              class="output-empty"
+            >
               <inbox-outlined />
               <span>暂无输出</span>
             </div>
@@ -128,8 +164,14 @@
             </span>
           </template>
           <div class="output-content error">
-            <pre v-if="stderr" class="output-text">{{ stderr }}</pre>
-            <div v-else class="output-empty">
+            <pre
+              v-if="stderr"
+              class="output-text"
+            >{{ stderr }}</pre>
+            <div
+              v-else
+              class="output-empty"
+            >
               <check-circle-outlined />
               <span>无错误</span>
             </div>
@@ -137,7 +179,10 @@
         </a-tab-pane>
 
         <!-- 执行信息 -->
-        <a-tab-pane key="info" tab="信息">
+        <a-tab-pane
+          key="info"
+          tab="信息"
+        >
           <div class="output-content">
             <div class="info-item">
               <span class="info-label">退出代码:</span>

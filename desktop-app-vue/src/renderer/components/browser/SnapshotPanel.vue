@@ -1,6 +1,9 @@
 <template>
   <div class="snapshot-panel">
-    <a-card title="页面快照" :bordered="false">
+    <a-card
+      title="页面快照"
+      :bordered="false"
+    >
       <!-- 快照控制栏 -->
       <div class="snapshot-controls">
         <a-space>
@@ -16,7 +19,10 @@
             获取快照
           </a-button>
 
-          <a-button :disabled="!snapshot" @click="handleClearSnapshot">
+          <a-button
+            :disabled="!snapshot"
+            @click="handleClearSnapshot"
+          >
             <template #icon>
               <ClearOutlined />
             </template>
@@ -31,7 +37,10 @@
             :value-style="{ fontSize: '14px' }"
           />
 
-          <a-tag v-if="snapshot" color="green">
+          <a-tag
+            v-if="snapshot"
+            color="green"
+          >
             {{ new Date(snapshot.timestamp).toLocaleTimeString() }}
           </a-tag>
         </a-space>
@@ -122,7 +131,10 @@
       </div>
 
       <!-- 空状态 -->
-      <a-empty v-else-if="!snapshot" description="暂无快照，点击上方按钮获取" />
+      <a-empty
+        v-else-if="!snapshot"
+        description="暂无快照，点击上方按钮获取"
+      />
     </a-card>
 
     <!-- 输入文本对话框 -->
@@ -187,7 +199,10 @@
           {{ Math.round(detailsModal.element.position.height) }}
         </a-descriptions-item>
         <a-descriptions-item label="属性">
-          <a-tag v-for="[key, value] in detailAttributes" :key="key">
+          <a-tag
+            v-for="[key, value] in detailAttributes"
+            :key="key"
+          >
             {{ key }}: {{ value }}
           </a-tag>
         </a-descriptions-item>

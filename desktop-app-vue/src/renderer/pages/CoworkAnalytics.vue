@@ -3,11 +3,16 @@
     <!-- Page Header -->
     <div class="page-header">
       <h1><BarChartOutlined /> Cowork 分析仪表板</h1>
-      <p class="subtitle">多维度数据分析与可视化</p>
+      <p class="subtitle">
+        多维度数据分析与可视化
+      </p>
     </div>
 
     <!-- Time Range Filter -->
-    <a-card class="filter-card" :bordered="false">
+    <a-card
+      class="filter-card"
+      :bordered="false"
+    >
       <a-space>
         <a-range-picker
           v-model:value="dateRange"
@@ -20,7 +25,9 @@
           style="width: 200px"
           @change="handleTeamChange"
         >
-          <a-select-option value="all"> 全部团队 </a-select-option>
+          <a-select-option value="all">
+            全部团队
+          </a-select-option>
           <a-select-option
             v-for="team in teams"
             :key="team.id"
@@ -29,15 +36,25 @@
             {{ team.name }}
           </a-select-option>
         </a-select>
-        <a-button type="primary" @click="refreshData">
+        <a-button
+          type="primary"
+          @click="refreshData"
+        >
           <ReloadOutlined /> 刷新数据
         </a-button>
       </a-space>
     </a-card>
 
     <!-- KPI Cards -->
-    <a-row :gutter="16" class="kpi-cards">
-      <a-col :xs="24" :sm="12" :md="6">
+    <a-row
+      :gutter="16"
+      class="kpi-cards"
+    >
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
         <a-card :loading="loading.stats">
           <a-statistic
             title="总任务数"
@@ -46,14 +63,24 @@
             :value-style="{ color: '#1890ff' }"
           />
           <div class="kpi-trend">
-            <ArrowUpOutlined v-if="kpis.taskTrend > 0" style="color: #52c41a" />
-            <ArrowDownOutlined v-else style="color: #ff4d4f" />
+            <ArrowUpOutlined
+              v-if="kpis.taskTrend > 0"
+              style="color: #52c41a"
+            />
+            <ArrowDownOutlined
+              v-else
+              style="color: #ff4d4f"
+            />
             <span>{{ Math.abs(kpis.taskTrend) }}% 相比上周</span>
           </div>
         </a-card>
       </a-col>
 
-      <a-col :xs="24" :sm="12" :md="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
         <a-card :loading="loading.stats">
           <a-statistic
             title="成功率"
@@ -68,7 +95,11 @@
         </a-card>
       </a-col>
 
-      <a-col :xs="24" :sm="12" :md="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
         <a-card :loading="loading.stats">
           <a-statistic
             title="活跃代理"
@@ -82,7 +113,11 @@
         </a-card>
       </a-col>
 
-      <a-col :xs="24" :sm="12" :md="6">
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
         <a-card :loading="loading.stats">
           <a-statistic
             title="平均执行时间"
@@ -99,87 +134,180 @@
     </a-row>
 
     <!-- Charts Row 1 -->
-    <a-row :gutter="16" class="charts-row">
+    <a-row
+      :gutter="16"
+      class="charts-row"
+    >
       <!-- Task Completion Trend -->
-      <a-col :xs="24" :lg="12">
-        <a-card title="任务完成趋势" :loading="loading.charts">
-          <div ref="taskTrendChart" class="chart-container" />
+      <a-col
+        :xs="24"
+        :lg="12"
+      >
+        <a-card
+          title="任务完成趋势"
+          :loading="loading.charts"
+        >
+          <div
+            ref="taskTrendChart"
+            class="chart-container"
+          />
         </a-card>
       </a-col>
 
       <!-- Task Status Distribution -->
-      <a-col :xs="24" :lg="12">
-        <a-card title="任务状态分布" :loading="loading.charts">
-          <div ref="statusPieChart" class="chart-container" />
+      <a-col
+        :xs="24"
+        :lg="12"
+      >
+        <a-card
+          title="任务状态分布"
+          :loading="loading.charts"
+        >
+          <div
+            ref="statusPieChart"
+            class="chart-container"
+          />
         </a-card>
       </a-col>
     </a-row>
 
     <!-- Charts Row 2 -->
-    <a-row :gutter="16" class="charts-row">
+    <a-row
+      :gutter="16"
+      class="charts-row"
+    >
       <!-- Agent Utilization -->
-      <a-col :xs="24" :lg="16">
-        <a-card title="代理利用率热力图" :loading="loading.charts">
-          <div ref="utilizationHeatmap" class="chart-container-large" />
+      <a-col
+        :xs="24"
+        :lg="16"
+      >
+        <a-card
+          title="代理利用率热力图"
+          :loading="loading.charts"
+        >
+          <div
+            ref="utilizationHeatmap"
+            class="chart-container-large"
+          />
         </a-card>
       </a-col>
 
       <!-- Skill Usage -->
-      <a-col :xs="24" :lg="8">
-        <a-card title="技能使用统计" :loading="loading.charts">
-          <div ref="skillBarChart" class="chart-container" />
+      <a-col
+        :xs="24"
+        :lg="8"
+      >
+        <a-card
+          title="技能使用统计"
+          :loading="loading.charts"
+        >
+          <div
+            ref="skillBarChart"
+            class="chart-container"
+          />
         </a-card>
       </a-col>
     </a-row>
 
     <!-- Charts Row 3 -->
-    <a-row :gutter="16" class="charts-row">
+    <a-row
+      :gutter="16"
+      class="charts-row"
+    >
       <!-- Task Execution Timeline -->
       <a-col :xs="24">
-        <a-card title="任务执行时间线（甘特图）" :loading="loading.charts">
-          <div ref="ganttChart" class="chart-container-xlarge" />
+        <a-card
+          title="任务执行时间线（甘特图）"
+          :loading="loading.charts"
+        >
+          <div
+            ref="ganttChart"
+            class="chart-container-xlarge"
+          />
         </a-card>
       </a-col>
     </a-row>
 
     <!-- Charts Row 4 -->
-    <a-row :gutter="16" class="charts-row">
+    <a-row
+      :gutter="16"
+      class="charts-row"
+    >
       <!-- Priority vs Duration Scatter -->
-      <a-col :xs="24" :lg="12">
-        <a-card title="优先级 vs 执行时长" :loading="loading.charts">
-          <div ref="scatterChart" class="chart-container" />
+      <a-col
+        :xs="24"
+        :lg="12"
+      >
+        <a-card
+          title="优先级 vs 执行时长"
+          :loading="loading.charts"
+        >
+          <div
+            ref="scatterChart"
+            class="chart-container"
+          />
         </a-card>
       </a-col>
 
       <!-- Team Performance Ranking -->
-      <a-col :xs="24" :lg="12">
-        <a-card title="团队绩效排名" :loading="loading.charts">
-          <div ref="performanceChart" class="chart-container" />
+      <a-col
+        :xs="24"
+        :lg="12"
+      >
+        <a-card
+          title="团队绩效排名"
+          :loading="loading.charts"
+        >
+          <div
+            ref="performanceChart"
+            class="chart-container"
+          />
         </a-card>
       </a-col>
     </a-row>
 
     <!-- Real-time Monitoring -->
-    <a-row :gutter="16" class="charts-row">
+    <a-row
+      :gutter="16"
+      class="charts-row"
+    >
       <a-col :xs="24">
         <a-card title="实时监控面板">
           <a-row :gutter="16">
-            <a-col :xs="24" :md="8">
+            <a-col
+              :xs="24"
+              :md="8"
+            >
               <div class="gauge-wrapper">
                 <h4>系统负载</h4>
-                <div ref="loadGauge" class="gauge-chart" />
+                <div
+                  ref="loadGauge"
+                  class="gauge-chart"
+                />
               </div>
             </a-col>
-            <a-col :xs="24" :md="8">
+            <a-col
+              :xs="24"
+              :md="8"
+            >
               <div class="gauge-wrapper">
                 <h4>任务队列</h4>
-                <div ref="queueGauge" class="gauge-chart" />
+                <div
+                  ref="queueGauge"
+                  class="gauge-chart"
+                />
               </div>
             </a-col>
-            <a-col :xs="24" :md="8">
+            <a-col
+              :xs="24"
+              :md="8"
+            >
               <div class="gauge-wrapper">
                 <h4>成功率</h4>
-                <div ref="successGauge" class="gauge-chart" />
+                <div
+                  ref="successGauge"
+                  class="gauge-chart"
+                />
               </div>
             </a-col>
           </a-row>

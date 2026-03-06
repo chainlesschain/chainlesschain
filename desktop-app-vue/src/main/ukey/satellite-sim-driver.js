@@ -86,7 +86,7 @@ class SatelliteSimDriver extends EventEmitter {
   // ============================================================
 
   async initialize() {
-    if (this._initialized) return true;
+    if (this._initialized) {return true;}
 
     logger.info("[SatSIM] 初始化卫星通信 SIM 驱动...");
 
@@ -209,7 +209,7 @@ class SatelliteSimDriver extends EventEmitter {
    * 当卫星链路恢复时，自动处理排队的签名请求
    */
   async processOfflineQueue() {
-    if (this._offlineQueue.length === 0) return { processed: 0 };
+    if (this._offlineQueue.length === 0) {return { processed: 0 };}
 
     logger.info(`[SatSIM] 处理离线队列: ${this._offlineQueue.length} 项`);
 
@@ -265,7 +265,7 @@ class SatelliteSimDriver extends EventEmitter {
    * 根据信号质量和延迟自动选择最优传输通道
    */
   async autoSwitch() {
-    if (!this.config.autoSwitch) return;
+    if (!this.config.autoSwitch) {return;}
 
     const terrestrialAvailable = await this._checkTerrestrialNetwork();
     const satelliteAvailable = this._linkState === SAT_LINK_STATE.CONNECTED ||
@@ -494,8 +494,8 @@ class SatelliteSimDriver extends EventEmitter {
   }
 
   _buildMerkleRoot(hashes) {
-    if (hashes.length === 0) return Buffer.alloc(32);
-    if (hashes.length === 1) return hashes[0];
+    if (hashes.length === 0) {return Buffer.alloc(32);}
+    if (hashes.length === 1) {return hashes[0];}
 
     const nextLevel = [];
     for (let i = 0; i < hashes.length; i += 2) {
@@ -546,7 +546,7 @@ class SatelliteSimDriver extends EventEmitter {
   }
 
   _ensureInitialized() {
-    if (!this._initialized) throw new Error("卫星 SIM 驱动未初始化");
+    if (!this._initialized) {throw new Error("卫星 SIM 驱动未初始化");}
   }
 
   _sleep(ms) {

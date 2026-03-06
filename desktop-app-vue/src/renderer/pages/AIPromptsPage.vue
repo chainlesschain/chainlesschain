@@ -1,6 +1,9 @@
 <template>
   <div class="ai-prompts-page">
-    <SuggestedPromptsPanel @send="handleSend" @fill-input="handleFillInput" />
+    <SuggestedPromptsPanel
+      @send="handleSend"
+      @fill-input="handleFillInput"
+    />
   </div>
 </template>
 

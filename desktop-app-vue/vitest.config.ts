@@ -96,7 +96,8 @@ export default defineConfig({
       '@main': resolve(__dirname, 'src/main'),
       '@shared': resolve(__dirname, 'src/shared'),
       '@preload': resolve(__dirname, 'src/preload'),
-      'electron': resolve(__dirname, 'tests/__mocks__/electron.ts')
+      'electron': resolve(__dirname, 'tests/__mocks__/electron.ts'),
+      'usb': resolve(__dirname, 'tests/__mocks__/usb.ts')
     }
   }
 });

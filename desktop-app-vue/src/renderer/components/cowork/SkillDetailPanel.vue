@@ -1,7 +1,12 @@
 <template>
   <div class="skill-detail-panel">
     <!-- 基本信息 -->
-    <a-descriptions title="基本信息" :column="1" bordered class="info-section">
+    <a-descriptions
+      title="基本信息"
+      :column="1"
+      bordered
+      class="info-section"
+    >
       <a-descriptions-item label="技能名称">
         {{ skill.name }}
       </a-descriptions-item>
@@ -26,7 +31,11 @@
       </h3>
 
       <div class="operations-grid">
-        <a-tag v-for="op in skill.supportedOperations" :key="op" color="blue">
+        <a-tag
+          v-for="op in skill.supportedOperations"
+          :key="op"
+          color="blue"
+        >
           {{ op }}
         </a-tag>
       </div>
@@ -64,7 +73,11 @@
       </h3>
 
       <div class="keywords-grid">
-        <a-tag v-for="keyword in skill.keywords" :key="keyword" color="green">
+        <a-tag
+          v-for="keyword in skill.keywords"
+          :key="keyword"
+          color="green"
+        >
           {{ keyword }}
         </a-tag>
       </div>
@@ -77,8 +90,13 @@
         匹配算法
       </h3>
 
-      <a-card size="small" style="background: #fafafa">
-        <p style="margin: 0; line-height: 1.8">技能匹配采用 0-100 评分系统：</p>
+      <a-card
+        size="small"
+        style="background: #fafafa"
+      >
+        <p style="margin: 0; line-height: 1.8">
+          技能匹配采用 0-100 评分系统：
+        </p>
         <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.8">
           <li><strong>任务类型匹配</strong>: +40 分</li>
           <li><strong>操作匹配</strong>: +30 分</li>

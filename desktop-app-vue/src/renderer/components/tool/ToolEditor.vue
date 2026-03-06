@@ -7,18 +7,30 @@
     @ok="handleSave"
     @cancel="handleCancel"
   >
-    <a-form :model="form" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+    <a-form
+      :model="form"
+      :label-col="{ span: 6 }"
+      :wrapper-col="{ span: 18 }"
+    >
       <a-tabs v-model:active-key="activeTab">
         <!-- 基本信息 -->
-        <a-tab-pane key="basic" tab="基本信息">
-          <a-form-item label="工具名称" required>
+        <a-tab-pane
+          key="basic"
+          tab="基本信息"
+        >
+          <a-form-item
+            label="工具名称"
+            required
+          >
             <a-input
               v-model:value="form.name"
               placeholder="工具标识,如:file_reader"
               :maxlength="50"
               :disabled="!!tool"
             />
-            <div class="form-hint">工具的唯一标识,创建后不可修改</div>
+            <div class="form-hint">
+              工具的唯一标识,创建后不可修改
+            </div>
           </a-form-item>
 
           <a-form-item label="显示名称">
@@ -39,29 +51,67 @@
             />
           </a-form-item>
 
-          <a-form-item label="工具类型" required>
-            <a-select v-model:value="form.tool_type" placeholder="选择工具类型">
-              <a-select-option value="function"> 函数 </a-select-option>
-              <a-select-option value="api"> API </a-select-option>
-              <a-select-option value="command"> 命令 </a-select-option>
-              <a-select-option value="script"> 脚本 </a-select-option>
+          <a-form-item
+            label="工具类型"
+            required
+          >
+            <a-select
+              v-model:value="form.tool_type"
+              placeholder="选择工具类型"
+            >
+              <a-select-option value="function">
+                函数
+              </a-select-option>
+              <a-select-option value="api">
+                API
+              </a-select-option>
+              <a-select-option value="command">
+                命令
+              </a-select-option>
+              <a-select-option value="script">
+                脚本
+              </a-select-option>
             </a-select>
           </a-form-item>
 
-          <a-form-item label="分类" required>
-            <a-select v-model:value="form.category" placeholder="选择分类">
-              <a-select-option value="file"> 文件操作 </a-select-option>
-              <a-select-option value="code"> 代码处理 </a-select-option>
-              <a-select-option value="data"> 数据处理 </a-select-option>
-              <a-select-option value="network"> 网络请求 </a-select-option>
-              <a-select-option value="system"> 系统操作 </a-select-option>
-              <a-select-option value="ai"> AI功能 </a-select-option>
-              <a-select-option value="format"> 格式化 </a-select-option>
+          <a-form-item
+            label="分类"
+            required
+          >
+            <a-select
+              v-model:value="form.category"
+              placeholder="选择分类"
+            >
+              <a-select-option value="file">
+                文件操作
+              </a-select-option>
+              <a-select-option value="code">
+                代码处理
+              </a-select-option>
+              <a-select-option value="data">
+                数据处理
+              </a-select-option>
+              <a-select-option value="network">
+                网络请求
+              </a-select-option>
+              <a-select-option value="system">
+                系统操作
+              </a-select-option>
+              <a-select-option value="ai">
+                AI功能
+              </a-select-option>
+              <a-select-option value="format">
+                格式化
+              </a-select-option>
               <a-select-option value="version-control">
                 版本控制
               </a-select-option>
-              <a-select-option value="web"> Web开发 </a-select-option>
-              <a-select-option value="project"> 项目管理 </a-select-option>
+              <a-select-option value="web">
+                Web开发
+              </a-select-option>
+              <a-select-option value="project">
+                项目管理
+              </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -86,8 +136,14 @@
         </a-tab-pane>
 
         <!-- 参数Schema -->
-        <a-tab-pane key="params" tab="参数Schema">
-          <a-form-item label="参数Schema" :wrapper-col="{ span: 24 }">
+        <a-tab-pane
+          key="params"
+          tab="参数Schema"
+        >
+          <a-form-item
+            label="参数Schema"
+            :wrapper-col="{ span: 24 }"
+          >
             <ToolParamEditor
               v-model:value="form.parameters_schema"
               @error="handleSchemaError"
@@ -96,7 +152,10 @@
         </a-tab-pane>
 
         <!-- 返回值和示例 -->
-        <a-tab-pane key="return" tab="返回值和示例">
+        <a-tab-pane
+          key="return"
+          tab="返回值和示例"
+        >
           <a-form-item label="返回值Schema">
             <a-textarea
               v-model:value="returnSchemaJson"
@@ -104,7 +163,10 @@
               placeholder="输入JSON Schema"
               @blur="validateReturnSchema"
             />
-            <div v-if="returnSchemaError" class="error-message">
+            <div
+              v-if="returnSchemaError"
+              class="error-message"
+            >
               {{ returnSchemaError }}
             </div>
           </a-form-item>
@@ -113,25 +175,35 @@
             <a-textarea
               v-model:value="examplesJson"
               :rows="8"
-              placeholder='输入使用示例JSON数组,如: [{"description":"示例1","params":{}}]'
+              placeholder="输入使用示例JSON数组,如: [{&quot;description&quot;:&quot;示例1&quot;,&quot;params&quot;:{}}]"
               @blur="validateExamples"
             />
-            <div v-if="examplesError" class="error-message">
+            <div
+              v-if="examplesError"
+              class="error-message"
+            >
               {{ examplesError }}
             </div>
           </a-form-item>
         </a-tab-pane>
 
         <!-- 权限和配置 -->
-        <a-tab-pane key="config" tab="权限和配置">
+        <a-tab-pane
+          key="config"
+          tab="权限和配置"
+        >
           <a-form-item label="所需权限">
             <a-select
               v-model:value="form.required_permissions"
               mode="tags"
               placeholder="输入权限标识,如:file:read"
             >
-              <a-select-option value="file:read"> file:read </a-select-option>
-              <a-select-option value="file:write"> file:write </a-select-option>
+              <a-select-option value="file:read">
+                file:read
+              </a-select-option>
+              <a-select-option value="file:write">
+                file:write
+              </a-select-option>
               <a-select-option value="network:http">
                 network:http
               </a-select-option>
@@ -144,9 +216,15 @@
               <a-select-option value="database:write">
                 database:write
               </a-select-option>
-              <a-select-option value="ai:search"> ai:search </a-select-option>
-              <a-select-option value="git:init"> git:init </a-select-option>
-              <a-select-option value="git:commit"> git:commit </a-select-option>
+              <a-select-option value="ai:search">
+                ai:search
+              </a-select-option>
+              <a-select-option value="git:init">
+                git:init
+              </a-select-option>
+              <a-select-option value="git:commit">
+                git:commit
+              </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -154,15 +232,21 @@
             <a-textarea
               v-model:value="configJson"
               :rows="6"
-              placeholder='输入JSON配置,如: {"timeout": 30000}'
+              placeholder="输入JSON配置,如: {&quot;timeout&quot;: 30000}"
               @blur="validateConfig"
             />
-            <div v-if="configError" class="error-message">
+            <div
+              v-if="configError"
+              class="error-message"
+            >
               {{ configError }}
             </div>
           </a-form-item>
 
-          <a-form-item v-if="!tool || !tool.is_builtin" label="处理函数路径">
+          <a-form-item
+            v-if="!tool || !tool.is_builtin"
+            label="处理函数路径"
+          >
             <a-input
               v-model:value="form.handler_path"
               placeholder="处理函数路径(用于动态加载)"

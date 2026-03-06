@@ -1,6 +1,9 @@
 <template>
   <div class="video-editor">
-    <a-card title="视频编辑器" :bordered="false">
+    <a-card
+      title="视频编辑器"
+      :bordered="false"
+    >
       <a-row :gutter="24">
         <!-- 左侧：视频预览和文件选择 -->
         <a-col :span="16">
@@ -12,7 +15,10 @@
               controls
               class="video-player"
             />
-            <div v-else class="empty-preview">
+            <div
+              v-else
+              class="empty-preview"
+            >
               <VideoCameraOutlined style="font-size: 64px; color: #ccc" />
               <p>请选择视频文件</p>
             </div>
@@ -25,7 +31,10 @@
             :max-count="1"
             @change="handleFileChange"
           >
-            <a-button type="primary" block>
+            <a-button
+              type="primary"
+              block
+            >
               <UploadOutlined /> 选择视频文件
             </a-button>
           </a-upload>
@@ -33,8 +42,16 @@
           <a-divider />
 
           <!-- 视频信息 -->
-          <div v-if="videoInfo" class="video-info">
-            <a-descriptions title="视频信息" :column="2" bordered size="small">
+          <div
+            v-if="videoInfo"
+            class="video-info"
+          >
+            <a-descriptions
+              title="视频信息"
+              :column="2"
+              bordered
+              size="small"
+            >
               <a-descriptions-item label="时长">
                 {{ formatDuration(videoInfo.duration) }}
               </a-descriptions-item>
@@ -53,10 +70,18 @@
 
         <!-- 右侧：编辑选项 -->
         <a-col :span="8">
-          <a-tabs v-model:active-key="activeEditTab" tab-position="right">
+          <a-tabs
+            v-model:active-key="activeEditTab"
+            tab-position="right"
+          >
             <!-- 滤镜效果 -->
-            <a-tab-pane key="filters" tab="滤镜">
-              <template #tab> <FilterOutlined /> 滤镜 </template>
+            <a-tab-pane
+              key="filters"
+              tab="滤镜"
+            >
+              <template #tab>
+                <FilterOutlined /> 滤镜
+              </template>
 
               <div class="edit-panel">
                 <h4>选择滤镜效果</h4>
@@ -64,20 +89,49 @@
                   v-model:value="filterSettings.filterType"
                   style="width: 100%"
                 >
-                  <a-space direction="vertical" style="width: 100%">
-                    <a-radio value="blur"> 模糊 </a-radio>
-                    <a-radio value="sharpen"> 锐化 </a-radio>
-                    <a-radio value="grayscale"> 黑白 </a-radio>
-                    <a-radio value="sepia"> 怀旧 </a-radio>
-                    <a-radio value="vignette"> 暗角 </a-radio>
-                    <a-radio value="brightness"> 亮度 </a-radio>
-                    <a-radio value="contrast"> 对比度 </a-radio>
-                    <a-radio value="saturation"> 饱和度 </a-radio>
-                    <a-radio value="negative"> 负片 </a-radio>
-                    <a-radio value="mirror"> 镜像 </a-radio>
-                    <a-radio value="flip"> 翻转 </a-radio>
-                    <a-radio value="vintage"> 复古 </a-radio>
-                    <a-radio value="cartoon"> 卡通 </a-radio>
+                  <a-space
+                    direction="vertical"
+                    style="width: 100%"
+                  >
+                    <a-radio value="blur">
+                      模糊
+                    </a-radio>
+                    <a-radio value="sharpen">
+                      锐化
+                    </a-radio>
+                    <a-radio value="grayscale">
+                      黑白
+                    </a-radio>
+                    <a-radio value="sepia">
+                      怀旧
+                    </a-radio>
+                    <a-radio value="vignette">
+                      暗角
+                    </a-radio>
+                    <a-radio value="brightness">
+                      亮度
+                    </a-radio>
+                    <a-radio value="contrast">
+                      对比度
+                    </a-radio>
+                    <a-radio value="saturation">
+                      饱和度
+                    </a-radio>
+                    <a-radio value="negative">
+                      负片
+                    </a-radio>
+                    <a-radio value="mirror">
+                      镜像
+                    </a-radio>
+                    <a-radio value="flip">
+                      翻转
+                    </a-radio>
+                    <a-radio value="vintage">
+                      复古
+                    </a-radio>
+                    <a-radio value="cartoon">
+                      卡通
+                    </a-radio>
                   </a-space>
                 </a-radio-group>
 
@@ -118,7 +172,10 @@
                 </a-tag>
 
                 <a-space style="width: 100%; margin-top: 8px">
-                  <a-button size="small" @click="addToChain">
+                  <a-button
+                    size="small"
+                    @click="addToChain"
+                  >
                     <PlusOutlined /> 添加到链
                   </a-button>
                   <a-button
@@ -135,14 +192,26 @@
             </a-tab-pane>
 
             <!-- 音频处理 -->
-            <a-tab-pane key="audio" tab="音频">
-              <template #tab> <SoundOutlined /> 音频 </template>
+            <a-tab-pane
+              key="audio"
+              tab="音频"
+            >
+              <template #tab>
+                <SoundOutlined /> 音频
+              </template>
 
               <div class="edit-panel">
                 <h4>音轨操作</h4>
 
-                <a-space direction="vertical" style="width: 100%">
-                  <a-button block :loading="isProcessing" @click="extractAudio">
+                <a-space
+                  direction="vertical"
+                  style="width: 100%"
+                >
+                  <a-button
+                    block
+                    :loading="isProcessing"
+                    @click="extractAudio"
+                  >
                     <ExportOutlined /> 提取音频
                   </a-button>
 
@@ -162,7 +231,9 @@
                     accept="audio/*"
                     @change="handleAudioFileChange"
                   >
-                    <a-button block> <UploadOutlined /> 选择音频文件 </a-button>
+                    <a-button block>
+                      <UploadOutlined /> 选择音频文件
+                    </a-button>
                   </a-upload>
 
                   <a-button
@@ -206,8 +277,13 @@
             </a-tab-pane>
 
             <!-- 字幕 -->
-            <a-tab-pane key="subtitles" tab="字幕">
-              <template #tab> <FontSizeOutlined /> 字幕 </template>
+            <a-tab-pane
+              key="subtitles"
+              tab="字幕"
+            >
+              <template #tab>
+                <FontSizeOutlined /> 字幕
+              </template>
 
               <div class="edit-panel">
                 <h4>字幕样式</h4>
@@ -218,15 +294,26 @@
                       v-model:value="subtitleSettings.preset"
                       style="width: 100%"
                     >
-                      <a-select-option value="default"> 默认 </a-select-option>
-                      <a-select-option value="cinema"> 影院 </a-select-option>
-                      <a-select-option value="minimal"> 简约 </a-select-option>
-                      <a-select-option value="bold"> 粗体 </a-select-option>
+                      <a-select-option value="default">
+                        默认
+                      </a-select-option>
+                      <a-select-option value="cinema">
+                        影院
+                      </a-select-option>
+                      <a-select-option value="minimal">
+                        简约
+                      </a-select-option>
+                      <a-select-option value="bold">
+                        粗体
+                      </a-select-option>
                     </a-select>
                   </a-form-item>
 
                   <a-collapse>
-                    <a-collapse-panel key="1" header="高级设置">
+                    <a-collapse-panel
+                      key="1"
+                      header="高级设置"
+                    >
                       <a-form-item label="字体">
                         <a-input v-model:value="subtitleSettings.fontName" />
                       </a-form-item>
@@ -245,7 +332,7 @@
                           v-model="subtitleSettings.fontColor"
                           type="color"
                           style="width: 100%"
-                        />
+                        >
                       </a-form-item>
 
                       <a-form-item label="描边颜色">
@@ -253,7 +340,7 @@
                           v-model="subtitleSettings.outlineColor"
                           type="color"
                           style="width: 100%"
-                        />
+                        >
                       </a-form-item>
 
                       <a-form-item label="描边宽度">
@@ -317,12 +404,24 @@
             </a-tab-pane>
 
             <!-- 基础编辑 -->
-            <a-tab-pane key="basic" tab="基础">
-              <template #tab> <ScissorOutlined /> 基础 </template>
+            <a-tab-pane
+              key="basic"
+              tab="基础"
+            >
+              <template #tab>
+                <ScissorOutlined /> 基础
+              </template>
 
               <div class="edit-panel">
-                <a-space direction="vertical" style="width: 100%">
-                  <a-button block :disabled="!videoFile" @click="showTrimModal">
+                <a-space
+                  direction="vertical"
+                  style="width: 100%"
+                >
+                  <a-button
+                    block
+                    :disabled="!videoFile"
+                    @click="showTrimModal"
+                  >
                     <ScissorOutlined /> 裁剪视频
                   </a-button>
 
@@ -364,7 +463,10 @@
       :footer="null"
       :closable="false"
     >
-      <a-progress :percent="processProgress" :status="progressStatus" />
+      <a-progress
+        :percent="processProgress"
+        :status="progressStatus"
+      />
       <p style="margin-top: 12px; color: #8c8c8c">
         {{ processMessage }}
       </p>

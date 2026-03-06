@@ -1,8 +1,14 @@
 <template>
   <div class="task-dashboard-page">
-    <a-page-header title="任务仪表板" sub-title="团队任务管理中心">
+    <a-page-header
+      title="任务仪表板"
+      sub-title="团队任务管理中心"
+    >
       <template #extra>
-        <a-button type="primary" @click="showCreateBoard = true">
+        <a-button
+          type="primary"
+          @click="showCreateBoard = true"
+        >
           <template #icon>
             <PlusOutlined />
           </template>
@@ -12,7 +18,10 @@
     </a-page-header>
 
     <!-- 统计卡片 -->
-    <a-row :gutter="16" class="stats-row">
+    <a-row
+      :gutter="16"
+      class="stats-row"
+    >
       <a-col :span="6">
         <a-card>
           <a-statistic
@@ -68,11 +77,22 @@
     </a-row>
 
     <!-- 看板列表 -->
-    <a-card title="我的看板" class="boards-card">
+    <a-card
+      title="我的看板"
+      class="boards-card"
+    >
       <a-spin :spinning="loading">
         <a-row :gutter="16">
-          <a-col v-for="board in boards" :key="board.id" :span="8">
-            <a-card hoverable class="board-card" @click="goToBoard(board.id)">
+          <a-col
+            v-for="board in boards"
+            :key="board.id"
+            :span="8"
+          >
+            <a-card
+              hoverable
+              class="board-card"
+              @click="goToBoard(board.id)"
+            >
               <template #cover>
                 <div
                   class="board-cover"
@@ -87,8 +107,12 @@
               />
               <div class="board-stats">
                 <a-tag>{{ board.taskCount || 0 }} 个任务</a-tag>
-                <a-tag v-if="board.boardType === 'scrum'"> Scrum </a-tag>
-                <a-tag v-else> Kanban </a-tag>
+                <a-tag v-if="board.boardType === 'scrum'">
+                  Scrum
+                </a-tag>
+                <a-tag v-else>
+                  Kanban
+                </a-tag>
               </div>
             </a-card>
           </a-col>
@@ -115,9 +139,18 @@
       :confirm-loading="creating"
       @ok="handleCreateBoard"
     >
-      <a-form :model="newBoard" layout="vertical">
-        <a-form-item label="看板名称" required>
-          <a-input v-model:value="newBoard.name" placeholder="输入看板名称" />
+      <a-form
+        :model="newBoard"
+        layout="vertical"
+      >
+        <a-form-item
+          label="看板名称"
+          required
+        >
+          <a-input
+            v-model:value="newBoard.name"
+            placeholder="输入看板名称"
+          />
         </a-form-item>
         <a-form-item label="描述">
           <a-textarea
@@ -127,8 +160,12 @@
         </a-form-item>
         <a-form-item label="类型">
           <a-radio-group v-model:value="newBoard.boardType">
-            <a-radio value="kanban"> Kanban </a-radio>
-            <a-radio value="scrum"> Scrum </a-radio>
+            <a-radio value="kanban">
+              Kanban
+            </a-radio>
+            <a-radio value="scrum">
+              Scrum
+            </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>

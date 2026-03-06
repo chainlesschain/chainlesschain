@@ -19,9 +19,15 @@
       </template>
 
       <a-tabs v-model:active-key="activeTab">
-        <a-tab-pane key="purchases" tab="已购内容">
+        <a-tab-pane
+          key="purchases"
+          tab="已购内容"
+        >
           <a-spin :spinning="loading">
-            <a-list :data-source="purchases" :pagination="{ pageSize: 10 }">
+            <a-list
+              :data-source="purchases"
+              :pagination="{ pageSize: 10 }"
+            >
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta>
@@ -60,12 +66,17 @@
                     </template>
                   </a-list-item-meta>
                   <template #actions>
-                    <a-button type="link" @click="viewContent(item)">
+                    <a-button
+                      type="link"
+                      @click="viewContent(item)"
+                    >
                       <eye-outlined /> 查看
                     </a-button>
                   </template>
                   <div class="purchase-info">
-                    <a-tag color="orange"> ¥{{ item.pricePaid }} </a-tag>
+                    <a-tag color="orange">
+                      ¥{{ item.pricePaid }}
+                    </a-tag>
                     <a-tag :color="getStatusColor(item.status)">
                       {{ getStatusName(item.status) }}
                     </a-tag>
@@ -75,7 +86,10 @@
 
               <template #empty>
                 <a-empty description="暂无购买记录">
-                  <a-button type="primary" @click="goToStore">
+                  <a-button
+                    type="primary"
+                    @click="goToStore"
+                  >
                     前往商店
                   </a-button>
                 </a-empty>
@@ -84,9 +98,15 @@
           </a-spin>
         </a-tab-pane>
 
-        <a-tab-pane key="subscriptions" tab="我的订阅">
+        <a-tab-pane
+          key="subscriptions"
+          tab="我的订阅"
+        >
           <a-spin :spinning="loadingSubscriptions">
-            <a-list :data-source="subscriptions" :pagination="{ pageSize: 10 }">
+            <a-list
+              :data-source="subscriptions"
+              :pagination="{ pageSize: 10 }"
+            >
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta>
@@ -126,7 +146,12 @@
                     <a-tag :color="getStatusColor(item.status)">
                       {{ getStatusName(item.status) }}
                     </a-tag>
-                    <a-tag v-if="item.autoRenew" color="blue"> 自动续订 </a-tag>
+                    <a-tag
+                      v-if="item.autoRenew"
+                      color="blue"
+                    >
+                      自动续订
+                    </a-tag>
                   </div>
                 </a-list-item>
               </template>
@@ -141,7 +166,10 @@
     </a-card>
 
     <!-- 内容详情对话框 -->
-    <content-detail v-model:open="showDetailModal" :content="selectedContent" />
+    <content-detail
+      v-model:open="showDetailModal"
+      :content="selectedContent"
+    />
   </div>
 </template>
 

@@ -5,12 +5,24 @@
       sub-title="Skill Performance Dashboard"
     >
       <template #extra>
-        <a-radio-group v-model:value="timeRange" @change="refreshData">
-          <a-radio-button value="hour"> 小时 </a-radio-button>
-          <a-radio-button value="day"> 天 </a-radio-button>
-          <a-radio-button value="week"> 周 </a-radio-button>
+        <a-radio-group
+          v-model:value="timeRange"
+          @change="refreshData"
+        >
+          <a-radio-button value="hour">
+            小时
+          </a-radio-button>
+          <a-radio-button value="day">
+            天
+          </a-radio-button>
+          <a-radio-button value="week">
+            周
+          </a-radio-button>
         </a-radio-group>
-        <a-button style="margin-left: 8px" @click="refreshData">
+        <a-button
+          style="margin-left: 8px"
+          @click="refreshData"
+        >
           刷新
         </a-button>
       </template>
@@ -18,10 +30,16 @@
 
     <div style="padding: 16px">
       <!-- Summary cards -->
-      <a-row :gutter="16" style="margin-bottom: 16px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="6">
           <a-card>
-            <a-statistic title="Top 技能执行次数" :value="topSkillExecCount" />
+            <a-statistic
+              title="Top 技能执行次数"
+              :value="topSkillExecCount"
+            />
           </a-card>
         </a-col>
         <a-col :span="6">
@@ -36,12 +54,19 @@
         </a-col>
         <a-col :span="6">
           <a-card>
-            <a-statistic title="平均耗时" :value="avgDuration" suffix="ms" />
+            <a-statistic
+              title="平均耗时"
+              :value="avgDuration"
+              suffix="ms"
+            />
           </a-card>
         </a-col>
         <a-col :span="6">
           <a-card>
-            <a-statistic title="总 Token 消耗" :value="totalTokens" />
+            <a-statistic
+              title="总 Token 消耗"
+              :value="totalTokens"
+            />
           </a-card>
         </a-col>
       </a-row>
@@ -73,8 +98,8 @@
                       {{
                         item.totalExecutions > 0
                           ? Math.round(
-                              (item.successCount / item.totalExecutions) * 100,
-                            )
+                            (item.successCount / item.totalExecutions) * 100,
+                          )
                           : 0
                       }}% · 平均 {{ item.avgDurationMs }}ms
                     </template>

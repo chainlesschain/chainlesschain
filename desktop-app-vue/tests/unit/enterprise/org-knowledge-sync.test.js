@@ -94,7 +94,7 @@ describe("OrgKnowledgeSyncManager Unit Tests", () => {
     }
 
     // 加载模块
-    DatabaseManager = require("../../../src/main/database");
+    ({ DatabaseManager } = require("../../../src/main/database"));
     DIDManager = require("../../../src/main/did/did-manager");
     OrganizationManager = require("../../../src/main/organization/organization-manager");
     OrgKnowledgeSyncManager = require("../../../src/main/collaboration/org-knowledge-sync-manager");

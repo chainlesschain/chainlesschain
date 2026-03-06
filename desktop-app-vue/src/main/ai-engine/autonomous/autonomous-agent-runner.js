@@ -1328,8 +1328,8 @@ Respond ONLY with valid JSON.`;
 
     // Count active goal statuses
     for (const [, goal] of this.activeGoals) {
-      if (goal.status === GOAL_STATUS.RUNNING) stats.runningGoals++;
-      if (goal.status === GOAL_STATUS.PAUSED) stats.pausedGoals++;
+      if (goal.status === GOAL_STATUS.RUNNING) {stats.runningGoals++;}
+      if (goal.status === GOAL_STATUS.PAUSED) {stats.pausedGoals++;}
     }
 
     // Query DB for historical stats
@@ -2026,7 +2026,7 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   _estimateTokens(text) {
-    if (!text) return 0;
+    if (!text) {return 0;}
     return Math.ceil(String(text).length / 4);
   }
 
@@ -2044,8 +2044,8 @@ Respond ONLY with valid JSON.`;
 // ============================================================
 
 function safeParseJSON(str) {
-  if (!str) return {};
-  if (typeof str === "object") return str;
+  if (!str) {return {};}
+  if (typeof str === "object") {return str;}
   try {
     return JSON.parse(str);
   } catch {

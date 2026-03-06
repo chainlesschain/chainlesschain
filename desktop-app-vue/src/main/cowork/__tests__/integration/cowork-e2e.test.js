@@ -10,7 +10,7 @@
 
 const path = require("path");
 const fs = require("fs-extra");
-const Database = require("../../../database");
+const { DatabaseManager: Database } = require("../../../database");
 const { TeammateTool } = require("../../../ai-engine/cowork/teammate-tool");
 const { FileSandbox } = require("../../../ai-engine/cowork/file-sandbox");
 const {

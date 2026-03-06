@@ -20,7 +20,10 @@
       </template>
 
       <!-- 筛选器 -->
-      <a-row :gutter="16" style="margin-bottom: 16px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
@@ -40,12 +43,24 @@
               button-style="solid"
               size="small"
             >
-              <a-radio-button value=""> 全部 </a-radio-button>
-              <a-radio-button value="pending"> 待处理 </a-radio-button>
-              <a-radio-button value="escrowed"> 托管中 </a-radio-button>
-              <a-radio-button value="completed"> 已完成 </a-radio-button>
-              <a-radio-button value="cancelled"> 已取消 </a-radio-button>
-              <a-radio-button value="disputed"> 有争议 </a-radio-button>
+              <a-radio-button value="">
+                全部
+              </a-radio-button>
+              <a-radio-button value="pending">
+                待处理
+              </a-radio-button>
+              <a-radio-button value="escrowed">
+                托管中
+              </a-radio-button>
+              <a-radio-button value="completed">
+                已完成
+              </a-radio-button>
+              <a-radio-button value="cancelled">
+                已取消
+              </a-radio-button>
+              <a-radio-button value="disputed">
+                有争议
+              </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -63,7 +78,10 @@
           <!-- 交易ID列 -->
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'id'">
-              <a-typography-text copyable :ellipsis="{ tooltip: record.id }">
+              <a-typography-text
+                copyable
+                :ellipsis="{ tooltip: record.id }"
+              >
                 {{ formatId(record.id) }}
               </a-typography-text>
             </template>
@@ -82,7 +100,10 @@
 
             <!-- 买家列 -->
             <template v-else-if="column.key === 'buyer'">
-              <a-space direction="vertical" size="small">
+              <a-space
+                direction="vertical"
+                size="small"
+              >
                 <a-typography-text copyable>
                   {{ formatDid(record.buyer_did) }}
                 </a-typography-text>
@@ -98,7 +119,10 @@
 
             <!-- 卖家列 -->
             <template v-else-if="column.key === 'seller'">
-              <a-space direction="vertical" size="small">
+              <a-space
+                direction="vertical"
+                size="small"
+              >
                 <a-typography-text copyable>
                   {{ formatDid(record.seller_did) }}
                 </a-typography-text>
@@ -118,7 +142,9 @@
                 <div class="amount">
                   {{ formatAmount(record.payment_amount) }}
                 </div>
-                <div class="quantity">x {{ record.quantity }}</div>
+                <div class="quantity">
+                  x {{ record.quantity }}
+                </div>
               </div>
             </template>
 

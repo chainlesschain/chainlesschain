@@ -5,7 +5,12 @@
       <div class="header-left">
         <LinkOutlined class="page-icon" />
         <h2>邀请链接管理</h2>
-        <a-tag color="blue" style="margin-left: 12px"> 企业版 </a-tag>
+        <a-tag
+          color="blue"
+          style="margin-left: 12px"
+        >
+          企业版
+        </a-tag>
       </div>
       <div class="header-right">
         <a-space>
@@ -30,7 +35,10 @@
     </div>
 
     <!-- 统计卡片 -->
-    <a-row :gutter="16" class="stats-section">
+    <a-row
+      :gutter="16"
+      class="stats-section"
+    >
       <a-col :span="6">
         <a-card>
           <a-statistic
@@ -95,10 +103,18 @@
           style="width: 150px"
           @change="handleFilterChange"
         >
-          <a-select-option value=""> 全部状态 </a-select-option>
-          <a-select-option value="active"> 活跃 </a-select-option>
-          <a-select-option value="expired"> 已过期 </a-select-option>
-          <a-select-option value="revoked"> 已撤销 </a-select-option>
+          <a-select-option value="">
+            全部状态
+          </a-select-option>
+          <a-select-option value="active">
+            活跃
+          </a-select-option>
+          <a-select-option value="expired">
+            已过期
+          </a-select-option>
+          <a-select-option value="revoked">
+            已撤销
+          </a-select-option>
         </a-select>
         <a-input-search
           v-model:value="searchText"
@@ -165,7 +181,10 @@
               :status="getUsageStatus(record)"
               :format="() => `${record.used_count}/${record.max_uses}`"
             />
-            <a-typography-text type="secondary" style="font-size: 12px">
+            <a-typography-text
+              type="secondary"
+              style="font-size: 12px"
+            >
               剩余 {{ record.remainingUses }} 次
             </a-typography-text>
           </div>
@@ -183,11 +202,17 @@
         <template v-else-if="column.key === 'expires_at'">
           <div v-if="record.expires_at">
             <div>{{ formatDate(record.expires_at) }}</div>
-            <a-typography-text type="secondary" style="font-size: 12px">
+            <a-typography-text
+              type="secondary"
+              style="font-size: 12px"
+            >
               {{ getTimeRemaining(record.expires_at) }}
             </a-typography-text>
           </div>
-          <a-typography-text v-else type="secondary">
+          <a-typography-text
+            v-else
+            type="secondary"
+          >
             永不过期
           </a-typography-text>
         </template>
@@ -195,7 +220,10 @@
         <!-- 操作列 -->
         <template v-else-if="column.key === 'actions'">
           <a-space>
-            <a-button size="small" @click="showLinkDetail(record)">
+            <a-button
+              size="small"
+              @click="showLinkDetail(record)"
+            >
               详情
             </a-button>
             <a-dropdown>
@@ -219,7 +247,10 @@
                   >
                     <StopOutlined /> 撤销链接
                   </a-menu-item>
-                  <a-menu-item key="delete" danger>
+                  <a-menu-item
+                    key="delete"
+                    danger
+                  >
                     <DeleteOutlined /> 删除链接
                   </a-menu-item>
                 </a-menu>

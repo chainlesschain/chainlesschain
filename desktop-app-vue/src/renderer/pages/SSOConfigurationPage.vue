@@ -6,7 +6,10 @@
       @back="() => $router.back()"
     >
       <template #extra>
-        <a-button type="primary" @click="handleAddProvider">
+        <a-button
+          type="primary"
+          @click="handleAddProvider"
+        >
           <template #icon>
             <PlusOutlined />
           </template>
@@ -43,17 +46,29 @@
 
           <template v-else-if="column.key === 'actions'">
             <a-space>
-              <a-button type="link" size="small" @click="handleEditProvider(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleEditProvider(record)"
+              >
                 <EditOutlined /> 编辑
               </a-button>
-              <a-button type="link" size="small" @click="handleTestConnection(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleTestConnection(record)"
+              >
                 <ApiOutlined /> 测试连接
               </a-button>
               <a-popconfirm
                 title="确定要删除此提供商吗?"
                 @confirm="handleDeleteProvider(record.id)"
               >
-                <a-button type="link" size="small" danger>
+                <a-button
+                  type="link"
+                  size="small"
+                  danger
+                >
                   <DeleteOutlined /> 删除
                 </a-button>
               </a-popconfirm>
@@ -77,22 +92,34 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="提供商名称" required>
+        <a-form-item
+          label="提供商名称"
+          required
+        >
           <a-input
             v-model:value="providerForm.provider_name"
             placeholder="输入提供商名称，如 Azure AD"
           />
         </a-form-item>
 
-        <a-form-item label="协议类型" required>
+        <a-form-item
+          label="协议类型"
+          required
+        >
           <a-select
             v-model:value="providerForm.provider_type"
             placeholder="选择协议类型"
             @change="handleProviderTypeChange"
           >
-            <a-select-option value="saml">SAML</a-select-option>
-            <a-select-option value="oauth">OAuth 2.0</a-select-option>
-            <a-select-option value="oidc">OIDC</a-select-option>
+            <a-select-option value="saml">
+              SAML
+            </a-select-option>
+            <a-select-option value="oauth">
+              OAuth 2.0
+            </a-select-option>
+            <a-select-option value="oidc">
+              OIDC
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -100,28 +127,40 @@
         <template v-if="providerForm.provider_type === 'oauth' || providerForm.provider_type === 'oidc'">
           <a-divider>OAuth / OIDC 配置</a-divider>
 
-          <a-form-item label="Client ID" required>
+          <a-form-item
+            label="Client ID"
+            required
+          >
             <a-input
               v-model:value="providerForm.config.clientId"
               placeholder="OAuth Client ID"
             />
           </a-form-item>
 
-          <a-form-item label="Client Secret" required>
+          <a-form-item
+            label="Client Secret"
+            required
+          >
             <a-input-password
               v-model:value="providerForm.config.clientSecret"
               placeholder="OAuth Client Secret"
             />
           </a-form-item>
 
-          <a-form-item label="Authorization URL" required>
+          <a-form-item
+            label="Authorization URL"
+            required
+          >
             <a-input
               v-model:value="providerForm.config.authorizationEndpoint"
               placeholder="https://provider.com/oauth/authorize"
             />
           </a-form-item>
 
-          <a-form-item label="Token URL" required>
+          <a-form-item
+            label="Token URL"
+            required
+          >
             <a-input
               v-model:value="providerForm.config.tokenEndpoint"
               placeholder="https://provider.com/oauth/token"
@@ -154,21 +193,30 @@
         <template v-if="providerForm.provider_type === 'saml'">
           <a-divider>SAML 配置</a-divider>
 
-          <a-form-item label="Entity ID" required>
+          <a-form-item
+            label="Entity ID"
+            required
+          >
             <a-input
               v-model:value="providerForm.config.entityId"
               placeholder="SP Entity ID"
             />
           </a-form-item>
 
-          <a-form-item label="IdP Entity ID" required>
+          <a-form-item
+            label="IdP Entity ID"
+            required
+          >
             <a-input
               v-model:value="providerForm.config.idpEntityId"
               placeholder="IdP Entity ID"
             />
           </a-form-item>
 
-          <a-form-item label="SSO URL" required>
+          <a-form-item
+            label="SSO URL"
+            required
+          >
             <a-input
               v-model:value="providerForm.config.ssoUrl"
               placeholder="https://idp.example.com/sso"
@@ -182,7 +230,10 @@
             />
           </a-form-item>
 
-          <a-form-item label="证书" required>
+          <a-form-item
+            label="证书"
+            required
+          >
             <a-textarea
               v-model:value="providerForm.config.certificate"
               placeholder="粘贴 IdP X.509 证书 (PEM 格式)"
@@ -305,7 +356,7 @@ function getProviderTypeLabel(type: string): string {
 }
 
 function formatTime(timestamp: string | number): string {
-  if (!timestamp) return '-'
+  if (!timestamp) {return '-'}
   return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
 }
 

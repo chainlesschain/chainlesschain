@@ -212,7 +212,7 @@ class SmartElementDetector extends EventEmitter {
    */
   async _detectExact(targetId, query) {
     const page = this.browserEngine.getPage(targetId);
-    if (!page) return null;
+    if (!page) {return null;}
 
     // 如果有选择器，直接使用
     if (query.selector) {
@@ -251,7 +251,7 @@ class SmartElementDetector extends EventEmitter {
    */
   async _detectByAccessibility(targetId, query) {
     const page = this.browserEngine.getPage(targetId);
-    if (!page) return null;
+    if (!page) {return null;}
 
     const result = await page.evaluate((q) => {
       const elements = [];
@@ -351,10 +351,10 @@ class SmartElementDetector extends EventEmitter {
    * @private
    */
   async _detectFuzzy(targetId, query) {
-    if (!query.text) return null;
+    if (!query.text) {return null;}
 
     const page = this.browserEngine.getPage(targetId);
-    if (!page) return null;
+    if (!page) {return null;}
 
     const result = await page.evaluate((q) => {
       // 简单的 Levenshtein 距离计算
@@ -385,7 +385,7 @@ class SmartElementDetector extends EventEmitter {
       function similarity(s1, s2) {
         const longer = s1.length > s2.length ? s1 : s2;
         const shorter = s1.length > s2.length ? s2 : s1;
-        if (longer.length === 0) return 1.0;
+        if (longer.length === 0) {return 1.0;}
         return (longer.length - levenshtein(longer, shorter)) / longer.length;
       }
 
@@ -450,7 +450,7 @@ class SmartElementDetector extends EventEmitter {
    */
   async _detectHeuristic(targetId, query) {
     const page = this.browserEngine.getPage(targetId);
-    if (!page) return null;
+    if (!page) {return null;}
 
     // 基于类型的启发式规则
     const typeSelectors = {

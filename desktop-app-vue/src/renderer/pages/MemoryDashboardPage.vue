@@ -5,9 +5,14 @@
         <DatabaseOutlined />
         Memory Bank
       </h1>
-      <p class="page-description">管理学习模式、用户偏好、使用报告和行为洞察</p>
+      <p class="page-description">
+        管理学习模式、用户偏好、使用报告和行为洞察
+      </p>
       <div class="header-actions">
-        <a-button :loading="loading" @click="refreshAll">
+        <a-button
+          :loading="loading"
+          @click="refreshAll"
+        >
           <ReloadOutlined /> 刷新
         </a-button>
         <a-dropdown>
@@ -17,10 +22,18 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleExport">
-              <a-menu-item key="all"> 导出全部数据 </a-menu-item>
-              <a-menu-item key="patterns"> 导出学习模式 </a-menu-item>
-              <a-menu-item key="preferences"> 导出用户偏好 </a-menu-item>
-              <a-menu-item key="sessions"> 导出会话摘要 </a-menu-item>
+              <a-menu-item key="all">
+                导出全部数据
+              </a-menu-item>
+              <a-menu-item key="patterns">
+                导出学习模式
+              </a-menu-item>
+              <a-menu-item key="preferences">
+                导出用户偏好
+              </a-menu-item>
+              <a-menu-item key="sessions">
+                导出会话摘要
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -28,8 +41,14 @@
     </div>
 
     <!-- Stats Overview -->
-    <a-row :gutter="[16, 16]" class="stats-row">
-      <a-col :xs="12" :sm="6">
+    <a-row
+      :gutter="[16, 16]"
+      class="stats-row"
+    >
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="学习模式"
@@ -42,7 +61,10 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="用户偏好"
@@ -55,7 +77,10 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="会话记录"
@@ -68,7 +93,10 @@
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="行为洞察"
@@ -87,12 +115,22 @@
     <a-card class="main-content">
       <a-tabs v-model:active-key="activeTab">
         <!-- Learned Patterns Tab -->
-        <a-tab-pane key="patterns" tab="学习模式">
+        <a-tab-pane
+          key="patterns"
+          tab="学习模式"
+        >
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
               <!-- Prompt Patterns -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="Prompt 模式" size="small" class="pattern-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="Prompt 模式"
+                  size="small"
+                  class="pattern-card"
+                >
                   <template #extra>
                     <a-tag color="blue">
                       {{ promptPatterns.length }}
@@ -127,8 +165,15 @@
               </a-col>
 
               <!-- Error Fix Patterns -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="错误修复模式" size="small" class="pattern-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="错误修复模式"
+                  size="small"
+                  class="pattern-card"
+                >
                   <template #extra>
                     <a-tag color="orange">
                       {{ errorFixPatterns.length }}
@@ -173,8 +218,15 @@
               </a-col>
 
               <!-- Code Snippets -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="代码片段" size="small" class="pattern-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="代码片段"
+                  size="small"
+                  class="pattern-card"
+                >
                   <template #extra>
                     <a-tag color="green">
                       {{ codeSnippets.length }}
@@ -209,8 +261,15 @@
               </a-col>
 
               <!-- Workflow Patterns -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="工作流模式" size="small" class="pattern-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="工作流模式"
+                  size="small"
+                  class="pattern-card"
+                >
                   <template #extra>
                     <a-tag color="purple">
                       {{ workflowPatterns.length }}
@@ -248,7 +307,10 @@
         </a-tab-pane>
 
         <!-- Preferences Tab -->
-        <a-tab-pane key="preferences" tab="用户偏好">
+        <a-tab-pane
+          key="preferences"
+          tab="用户偏好"
+        >
           <div class="tab-content">
             <a-table
               :columns="preferenceColumns"
@@ -275,7 +337,10 @@
         </a-tab-pane>
 
         <!-- Sessions Tab -->
-        <a-tab-pane key="sessions" tab="会话摘要">
+        <a-tab-pane
+          key="sessions"
+          tab="会话摘要"
+        >
           <div class="tab-content">
             <div class="session-actions">
               <a-button
@@ -337,12 +402,22 @@
         </a-tab-pane>
 
         <!-- Auto-Summary Tab -->
-        <a-tab-pane key="auto-summary" tab="自动摘要">
+        <a-tab-pane
+          key="auto-summary"
+          tab="自动摘要"
+        >
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
               <!-- Configuration Card -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="自动摘要配置" size="small" class="config-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="自动摘要配置"
+                  size="small"
+                  class="config-card"
+                >
                   <template #extra>
                     <a-switch
                       v-model:checked="autoSummaryConfig.enabled"
@@ -411,8 +486,15 @@
               </a-col>
 
               <!-- Statistics Card -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="摘要统计" size="small" class="stats-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="摘要统计"
+                  size="small"
+                  class="stats-card"
+                >
                   <template #extra>
                     <a-button
                       size="small"
@@ -423,7 +505,10 @@
                     </a-button>
                   </template>
 
-                  <a-descriptions :column="1" size="small">
+                  <a-descriptions
+                    :column="1"
+                    size="small"
+                  >
                     <a-descriptions-item label="总会话数">
                       {{ autoSummaryStats.totalSessions || 0 }}
                     </a-descriptions-item>
@@ -458,7 +543,10 @@
 
               <!-- Bulk Actions Card -->
               <a-col :xs="24">
-                <a-card title="批量操作" size="small">
+                <a-card
+                  title="批量操作"
+                  size="small"
+                >
                   <a-space wrap>
                     <a-button
                       type="primary"
@@ -530,12 +618,24 @@
         </a-tab-pane>
 
         <!-- Behavior Insights Tab -->
-        <a-tab-pane key="insights" tab="行为洞察">
+        <a-tab-pane
+          key="insights"
+          tab="行为洞察"
+        >
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
-              <a-col :xs="24" :lg="12">
-                <a-card title="使用习惯" size="small">
-                  <a-descriptions :column="1" size="small">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="使用习惯"
+                  size="small"
+                >
+                  <a-descriptions
+                    :column="1"
+                    size="small"
+                  >
                     <a-descriptions-item label="最常用模型">
                       {{ behaviorInsights.mostUsedModel || "-" }}
                     </a-descriptions-item>
@@ -555,20 +655,28 @@
                       >
                         {{ feature }}
                       </a-tag>
-                      <span v-if="!behaviorInsights.topFeatures?.length"
-                        >-</span
-                      >
+                      <span v-if="!behaviorInsights.topFeatures?.length">-</span>
                     </a-descriptions-item>
                   </a-descriptions>
                 </a-card>
               </a-col>
-              <a-col :xs="24" :lg="12">
-                <a-card title="优化建议" size="small">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="优化建议"
+                  size="small"
+                >
                   <a-empty
                     v-if="!recommendations.length"
                     description="暂无优化建议"
                   />
-                  <a-list v-else :data-source="recommendations" size="small">
+                  <a-list
+                    v-else
+                    :data-source="recommendations"
+                    size="small"
+                  >
                     <template #renderItem="{ item }">
                       <a-list-item>
                         <a-list-item-meta>
@@ -603,9 +711,15 @@
         </a-tab-pane>
 
         <!-- Storage Tab -->
-        <a-tab-pane key="storage" tab="存储管理">
+        <a-tab-pane
+          key="storage"
+          tab="存储管理"
+        >
           <div class="tab-content">
-            <a-descriptions :column="2" bordered>
+            <a-descriptions
+              :column="2"
+              bordered
+            >
               <a-descriptions-item label="Memory 目录">
                 {{ memoryPath }}
               </a-descriptions-item>
@@ -630,14 +744,20 @@
               <a-button @click="openMemoryFolder">
                 <FolderOpenOutlined /> 打开 Memory 目录
               </a-button>
-              <a-button :loading="creatingBackup" @click="createBackup">
+              <a-button
+                :loading="creatingBackup"
+                @click="createBackup"
+              >
                 <SaveOutlined /> 创建备份
               </a-button>
               <a-popconfirm
                 title="确定清理过期数据？此操作不可恢复。"
                 @confirm="cleanupExpired"
               >
-                <a-button danger :loading="cleaningUp">
+                <a-button
+                  danger
+                  :loading="cleaningUp"
+                >
                   <DeleteOutlined /> 清理过期数据
                 </a-button>
               </a-popconfirm>

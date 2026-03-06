@@ -144,7 +144,7 @@ class FederatedLearningManager extends EventEmitter {
    * @returns {Object|null}
    */
   _getDb() {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
     return this.database.db || this.database;
   }
 

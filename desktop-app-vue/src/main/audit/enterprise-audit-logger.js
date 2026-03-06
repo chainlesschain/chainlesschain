@@ -16,7 +16,8 @@ const { EventEmitter } = require('events');
 
 const EventType = {
   BROWSER: 'browser', PERMISSION: 'permission', FILE: 'file', DB: 'db',
-  API: 'api', COWORK: 'cowork', AUTH: 'auth', SYSTEM: 'system'
+  API: 'api', COWORK: 'cowork', AUTH: 'auth', SYSTEM: 'system',
+  DLP: 'dlp', SIEM: 'siem'
 };
 
 const RiskLevel = { LOW: 'low', MEDIUM: 'medium', HIGH: 'high', CRITICAL: 'critical' };
@@ -60,13 +61,14 @@ class EnterpriseAuditLogger extends EventEmitter {
     this.memoryBuffer = [];
     this._tableInitialized = false;
     this._statsCache = this._emptyStats();
+    this._siemExporter = null;
 
     if (this.db) {
       this._initTable().catch(err => {
         logger.error('[EnterpriseAuditLogger] Failed to initialize table:', err);
       });
     }
-    if (this.hookSystem) this._registerHookListeners();
+    if (this.hookSystem) {this._registerHookListeners();}
     logger.info('[EnterpriseAuditLogger] Initialized');
   }
 
@@ -106,7 +108,7 @@ class EnterpriseAuditLogger extends EventEmitter {
   // ─── 核心日志方法 ───
 
   async log(eventType, operation, details = {}) {
-    if (!this.enabled) return { success: false, error: 'Audit logger is disabled' };
+    if (!this.enabled) {return { success: false, error: 'Audit logger is disabled' };}
     if (!Object.values(EventType).includes(eventType)) {
       return { success: false, error: `Invalid event type: ${eventType}` };
     }
@@ -127,9 +129,9 @@ class EnterpriseAuditLogger extends EventEmitter {
         createdAt: Date.now()
       };
 
-      if (this.db && this._tableInitialized) await this._writeToDB(entry);
+      if (this.db && this._tableInitialized) {await this._writeToDB(entry);}
       this.memoryBuffer.push(entry);
-      if (this.memoryBuffer.length > this.maxMemoryEntries) this.memoryBuffer.shift();
+      if (this.memoryBuffer.length > this.maxMemoryEntries) {this.memoryBuffer.shift();}
       this._statsCache.totalLogs++;
       this._statsCache.byEventType[entry.eventType] = (this._statsCache.byEventType[entry.eventType] || 0) + 1;
       this._statsCache.byRiskLevel[entry.riskLevel] = (this._statsCache.byRiskLevel[entry.riskLevel] || 0) + 1;
@@ -162,29 +164,29 @@ class EnterpriseAuditLogger extends EventEmitter {
 
   assessRisk(eventType, operation, details = {}) {
     const op = (operation || '').toLowerCase();
-    if (CRITICAL_OPERATIONS.some(c => op.includes(c))) return RiskLevel.CRITICAL;
-    if ((HIGH_RISK_OPERATIONS[eventType] || []).some(h => op.includes(h))) return RiskLevel.HIGH;
+    if (CRITICAL_OPERATIONS.some(c => op.includes(c))) {return RiskLevel.CRITICAL;}
+    if ((HIGH_RISK_OPERATIONS[eventType] || []).some(h => op.includes(h))) {return RiskLevel.HIGH;}
 
     const patterns = [/password/i, /credential/i, /secret/i, /admin/i, /delete/i,
       /remove/i, /export/i, /import/i, /permission/i, /role/i, /encrypt/i, /decrypt/i];
     const ctx = JSON.stringify(details);
     for (const p of patterns) {
-      if (p.test(op) || p.test(ctx)) return RiskLevel.MEDIUM;
+      if (p.test(op) || p.test(ctx)) {return RiskLevel.MEDIUM;}
     }
-    if (eventType === EventType.AUTH || eventType === EventType.PERMISSION) return RiskLevel.MEDIUM;
+    if (eventType === EventType.AUTH || eventType === EventType.PERMISSION) {return RiskLevel.MEDIUM;}
     return RiskLevel.LOW;
   }
 
   // ─── 数据脱敏 ───
 
   sanitizeData(data, depth = 0) {
-    if (depth > 10) return '[MAX_DEPTH_EXCEEDED]';
-    if (data == null) return data;
+    if (depth > 10) {return '[MAX_DEPTH_EXCEEDED]';}
+    if (data == null) {return data;}
     if (typeof data === 'string') {
       return data.length > 1000 ? data.substring(0, 1000) + '...[TRUNCATED]' : data;
     }
-    if (Array.isArray(data)) return data.map(i => this.sanitizeData(i, depth + 1));
-    if (typeof data !== 'object') return data;
+    if (Array.isArray(data)) {return data.map(i => this.sanitizeData(i, depth + 1));}
+    if (typeof data !== 'object') {return data;}
 
     const out = {};
     for (const [key, value] of Object.entries(data)) {
@@ -221,14 +223,14 @@ class EnterpriseAuditLogger extends EventEmitter {
 
       // 内存查询
       let results = [...this.memoryBuffer];
-      if (filters.eventType) results = results.filter(e => e.eventType === filters.eventType);
+      if (filters.eventType) {results = results.filter(e => e.eventType === filters.eventType);}
       if (filters.operation) { const ol = filters.operation.toLowerCase(); results = results.filter(e => e.operation.toLowerCase().includes(ol)); }
-      if (filters.actor) results = results.filter(e => e.actor === filters.actor);
-      if (filters.riskLevel) results = results.filter(e => e.riskLevel === filters.riskLevel);
-      if (filters.startTime) results = results.filter(e => e.timestamp >= filters.startTime);
-      if (filters.endTime) results = results.filter(e => e.timestamp <= filters.endTime);
-      if (filters.successOnly) results = results.filter(e => e.success === true);
-      if (filters.sessionId) results = results.filter(e => e.sessionId === filters.sessionId);
+      if (filters.actor) {results = results.filter(e => e.actor === filters.actor);}
+      if (filters.riskLevel) {results = results.filter(e => e.riskLevel === filters.riskLevel);}
+      if (filters.startTime) {results = results.filter(e => e.timestamp >= filters.startTime);}
+      if (filters.endTime) {results = results.filter(e => e.timestamp <= filters.endTime);}
+      if (filters.successOnly) {results = results.filter(e => e.success === true);}
+      if (filters.sessionId) {results = results.filter(e => e.sessionId === filters.sessionId);}
       results.sort((a, b) => b.createdAt - a.createdAt);
       const total = results.length;
       return { success: true, data: { logs: results.slice(offset, offset + pageSize), pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } } };
@@ -246,7 +248,7 @@ class EnterpriseAuditLogger extends EventEmitter {
     if (filters.riskLevel) { conditions.push('risk_level = ?'); params.push(filters.riskLevel); }
     if (filters.startTime) { conditions.push('timestamp >= ?'); params.push(filters.startTime); }
     if (filters.endTime) { conditions.push('timestamp <= ?'); params.push(filters.endTime); }
-    if (filters.successOnly) conditions.push('success = 1');
+    if (filters.successOnly) {conditions.push('success = 1');}
     if (filters.sessionId) { conditions.push('session_id = ?'); params.push(filters.sessionId); }
     return { conditions, params };
   }
@@ -265,7 +267,7 @@ class EnterpriseAuditLogger extends EventEmitter {
   // ─── 单条日志详情 ───
 
   async getLogDetail(id) {
-    if (!id) return { success: false, error: 'Log ID is required' };
+    if (!id) {return { success: false, error: 'Log ID is required' };}
     try {
       if (this.db && this._tableInitialized) {
         const row = await this.db.get('SELECT * FROM enterprise_audit_log WHERE id = ?', [id]);
@@ -316,7 +318,7 @@ class EnterpriseAuditLogger extends EventEmitter {
         byET[e.eventType] = (byET[e.eventType] || 0) + 1;
         byRL[e.riskLevel] = (byRL[e.riskLevel] || 0) + 1;
         e.success ? sc++ : fc++;
-        if (RiskWeight[e.riskLevel] >= 3) hrc++;
+        if (RiskWeight[e.riskLevel] >= 3) {hrc++;}
       }
       return { success: true, data: {
         timeRange: { startTime, endTime },
@@ -338,7 +340,7 @@ class EnterpriseAuditLogger extends EventEmitter {
       let hasMore = true;
       while (hasMore) {
         const result = await this.query(batchFilters);
-        if (!result.success || !result.data.logs.length) break;
+        if (!result.success || !result.data.logs.length) {break;}
         allLogs.push(...result.data.logs);
         hasMore = allLogs.length < result.data.pagination.total;
         batchFilters.page++;
@@ -347,7 +349,7 @@ class EnterpriseAuditLogger extends EventEmitter {
       let output;
       if (format === 'csv') {
         const headers = ['id','timestamp','event_type','operation','actor','risk_level','success','error_message','duration','session_id'];
-        const esc = v => { if (v == null) return ''; const s = String(v); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+        const esc = v => { if (v == null) {return '';} const s = String(v); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s; };
         const rows = allLogs.map(l => [l.id, l.timestamp, l.eventType, l.operation, l.actor, l.riskLevel, l.success, l.errorMessage, l.duration, l.sessionId].map(esc));
         output = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
       } else {
@@ -373,7 +375,7 @@ class EnterpriseAuditLogger extends EventEmitter {
         const cutoff = new Date(Date.now() - retDays * 86400000).toISOString();
         const before = this.memoryBuffer.length;
         this.memoryBuffer = this.memoryBuffer.filter(e => {
-          if (keepHR && RiskWeight[e.riskLevel] >= 3) return true;
+          if (keepHR && RiskWeight[e.riskLevel] >= 3) {return true;}
           return e.timestamp >= cutoff;
         });
         return { success: true, data: { deletedCount: before - this.memoryBuffer.length, source: 'memory' } };
@@ -410,7 +412,7 @@ class EnterpriseAuditLogger extends EventEmitter {
   // ─── HookSystem 集成 ───
 
   _registerHookListeners() {
-    if (!this.hookSystem) return;
+    if (!this.hookSystem) {return;}
     const map = {
       PreIPCCall: 'api', PostIPCCall: 'api', IPCError: 'api',
       PreToolUse: 'system', PostToolUse: 'system', ToolError: 'system',
@@ -455,6 +457,14 @@ class EnterpriseAuditLogger extends EventEmitter {
     };
   }
 
+  /**
+   * Set SIEM exporter for automatic log forwarding
+   * @param {Object} siemExporter - SIEMExporter instance
+   */
+  setSIEMExporter(siemExporter) {
+    this._siemExporter = siemExporter;
+  }
+
   getQuickStats() {
     return { success: true, data: { ...this._statsCache, memoryBufferSize: this.memoryBuffer.length, tableInitialized: this._tableInitialized } };
   }
@@ -479,7 +489,7 @@ class EnterpriseAuditLogger extends EventEmitter {
 let instance = null;
 
 function getEnterpriseAuditLogger(options) {
-  if (!instance) instance = new EnterpriseAuditLogger(options);
+  if (!instance) {instance = new EnterpriseAuditLogger(options);}
   return instance;
 }
 

@@ -5,6 +5,44 @@ All notable changes to ChainlessChain will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-02-28
+
+### Added
+
+**v3.1.0 — Decentralized AI Market (Phase 65-67):**
+
+- Phase 65: Skill-as-a-Service — SkillServiceProtocol, SkillInvoker, 5 IPC handlers
+- Phase 66: Token Incentive — TokenLedger, ContributionTracker, 5 IPC handlers
+- Phase 67: Inference Network — InferenceNodeRegistry, InferenceScheduler, 6 IPC handlers
+
+**v3.2.0 — Hardware Security Ecosystem (Phase 68-71):**
+
+- Phase 68: Trinity Trust Root — TrustRootManager, attestation chain, 5 IPC handlers
+- Phase 69: PQC Full Migration — PQCEcosystemManager, ML-KEM/ML-DSA replacement, 4 IPC handlers
+- Phase 70: Satellite Communication — SatelliteComm, DisasterRecovery, 5 IPC handlers
+- Phase 71: Open Hardware Standard — HsmAdapterManager, FIPS 140-3, 4 IPC handlers
+
+**v3.3.0 — Global Decentralized Social (Phase 72-75):**
+
+- Phase 72: Protocol Fusion Bridge — ProtocolFusionBridge, cross-protocol conversion, 5 IPC handlers
+- Phase 73: AI Social Enhancement — RealtimeTranslator, ContentQualityAssessor, 5 IPC handlers
+- Phase 74: Decentralized Storage — FilecoinStorage, ContentDistributor, 5 IPC handlers
+- Phase 75: Anti-Censorship — AntiCensorshipManager, MeshNetworkManager, 5 IPC handlers
+
+**v3.4.0 — EvoMap Global Evolution (Phase 76-77):**
+
+- Phase 76: Global Evolution Network — EvoMapFederation, multi-Hub sync, 5 IPC handlers
+- Phase 77: IP & Governance DAO — GeneIPManager, EvoMapDAO, 5 IPC handlers
+
+**Infrastructure:**
+
+- 64 new IPC handlers across 13 phases
+- 23 new database tables
+- 13 new Pinia stores, Vue pages, and routes
+- 4 new Context Engineering setters (steps 4.9-4.12)
+- 13 new config sections
+- Comprehensive unit tests (279 tests passing) and E2E tests
+
 ## [0.21.0] - 2026-01-19
 
 ### Added
@@ -129,6 +167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
+- **3.4.0** (2026-02-28) - v3.1.0-v3.4.0 Phase 65-77: AI Market, Hardware Security, Global Social, EvoMap
 - **0.21.0** (2026-01-19) - Android Phase 5, Release automation, Test improvements
 - **0.20.0** (2026-01-15) - MCP integration, Performance dashboard, Manus optimizations
 - **0.19.0** (2026-01-10) - P2P messaging, Knowledge graph

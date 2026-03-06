@@ -2,7 +2,7 @@
 
 **Source**: `src/main/bootstrap/core-initializer.js`
 
-**Generated**: 2026-02-24T18:45:59.525Z
+**Generated**: 2026-02-24T23:28:10.664Z
 
 ---
 
@@ -12,10 +12,10 @@
 const path = require("path");
 ```
 
-- 核心模块初始化器
-- 负责数据库、LLM、RAG等核心模块的初始化
--
-- @module bootstrap/core-initializer
+* 核心模块初始化器
+ * 负责数据库、LLM、RAG等核心模块的初始化
+ *
+ * @module bootstrap/core-initializer
 
 ---
 
@@ -25,7 +25,8 @@ const path = require("path");
 function registerCoreInitializers(factory)
 ```
 
-- 注册核心模块初始化器
-- @param {import('./initializer-factory').InitializerFactory} factory - 初始化器工厂
+* 注册核心模块初始化器
+ * @param {import('./initializer-factory').InitializerFactory} factory - 初始化器工厂
 
 ---
+

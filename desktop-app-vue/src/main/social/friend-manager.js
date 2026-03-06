@@ -126,6 +126,30 @@ class FriendManager extends EventEmitter {
       )
     `);
 
+    // Add trust_score column if not exists (migration)
+    try {
+      db.exec(
+        "ALTER TABLE friendships ADD COLUMN trust_score REAL DEFAULT 0.5",
+      );
+    } catch (_e) {
+      // Column already exists, ignore
+    }
+
+    // 信任交互记录表
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS trust_interactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_did TEXT NOT NULL,
+        friend_did TEXT NOT NULL,
+        interaction_type TEXT NOT NULL,
+        weight REAL DEFAULT 1.0,
+        created_at INTEGER NOT NULL
+      )
+    `);
+    db.exec(
+      "CREATE INDEX IF NOT EXISTS idx_trust_interactions_pair ON trust_interactions(user_did, friend_did)",
+    );
+
     logger.info("[FriendManager] 数据库表初始化完成");
   }
 
@@ -702,8 +726,6 @@ class FriendManager extends EventEmitter {
       };
     }
 
-    const db = this.database.db;
-
     const friends = await this.getFriends();
 
     const stats = {
@@ -724,6 +746,117 @@ class FriendManager extends EventEmitter {
     }
 
     return stats;
+  }
+
+  /**
+   * Calculate trust score for a friend based on interactions
+   * @param {string} friendDid
+   * @returns {number} Trust score between 0 and 1
+   */
+  async calculateTrustScore(friendDid) {
+    const currentDid = this.didManager?.getCurrentIdentity()?.did;
+    if (!currentDid) {
+      return 0.5;
+    }
+
+    const db = this.database.db;
+
+    // Get interaction history
+    const interactions = db
+      .prepare(
+        "SELECT interaction_type, weight, created_at FROM trust_interactions WHERE user_did = ? AND friend_did = ? ORDER BY created_at DESC LIMIT 100",
+      )
+      .all(currentDid, friendDid);
+
+    if (interactions.length === 0) {
+      return 0.5;
+    }
+
+    const now = Date.now();
+    const DECAY_HALF_LIFE = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    for (const interaction of interactions) {
+      const age = now - interaction.created_at;
+      const decayFactor = Math.pow(0.5, age / DECAY_HALF_LIFE);
+      const w = interaction.weight * decayFactor;
+      weightedSum += w;
+      totalWeight += Math.abs(w);
+    }
+
+    // Normalize to [0, 1] range with 0.5 as baseline
+    const rawScore =
+      totalWeight > 0 ? 0.5 + weightedSum / (totalWeight * 2) : 0.5;
+    return Math.max(0, Math.min(1, rawScore));
+  }
+
+  /**
+   * Record a trust interaction
+   * @param {string} friendDid
+   * @param {string} type - 'message_sent', 'message_received', 'content_shared', 'reaction', 'call'
+   * @param {number} weight - Positive (trust-building) or negative (trust-reducing)
+   */
+  async recordTrustInteraction(friendDid, type, weight = 1.0) {
+    const currentDid = this.didManager?.getCurrentIdentity()?.did;
+    if (!currentDid) {
+      return;
+    }
+
+    const db = this.database.db;
+    const now = Date.now();
+
+    db.prepare(
+      "INSERT INTO trust_interactions (user_did, friend_did, interaction_type, weight, created_at) VALUES (?, ?, ?, ?, ?)",
+    ).run(currentDid, friendDid, type, weight, now);
+
+    // Recalculate and update trust score
+    const newScore = await this.calculateTrustScore(friendDid);
+    await this.updateTrustScore(friendDid, newScore);
+  }
+
+  /**
+   * Update trust score for a friend
+   * @param {string} friendDid
+   * @param {number} score - Trust score between 0 and 1
+   */
+  async updateTrustScore(friendDid, score) {
+    const currentDid = this.didManager?.getCurrentIdentity()?.did;
+    if (!currentDid) {
+      return;
+    }
+
+    const clampedScore = Math.max(0, Math.min(1, score));
+    const db = this.database.db;
+    const now = Date.now();
+
+    db.prepare(
+      "UPDATE friendships SET trust_score = ?, updated_at = ? WHERE user_did = ? AND friend_did = ?",
+    ).run(clampedScore, now, currentDid, friendDid);
+
+    this.emit("friend:trust-updated", { friendDid, trustScore: clampedScore });
+  }
+
+  /**
+   * Get trust score for a friend
+   * @param {string} friendDid
+   * @returns {number} Trust score
+   */
+  async getTrustScore(friendDid) {
+    const currentDid = this.didManager?.getCurrentIdentity()?.did;
+    if (!currentDid) {
+      return 0.5;
+    }
+
+    const db = this.database.db;
+    const friendship = db
+      .prepare(
+        "SELECT trust_score FROM friendships WHERE user_did = ? AND friend_did = ? AND status = ?",
+      )
+      .get(currentDid, friendDid, "accepted");
+
+    return friendship ? (friendship.trust_score ?? 0.5) : 0.5;
   }
 
   /**

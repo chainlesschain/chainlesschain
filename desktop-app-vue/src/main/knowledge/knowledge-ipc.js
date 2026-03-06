@@ -344,10 +344,60 @@ function registerKnowledgeIPC({
     }
   });
 
-  logger.info("[Knowledge IPC] ✓ 17 handlers registered");
+  // ============================================================
+  // Import/Export handlers - 3 handlers
+  // ============================================================
+
+  ipcMain.handle(
+    "knowledge:importNotion",
+    async (_event, { zipBuffer, targetFolder }) => {
+      try {
+        const { NotionImporter } = require("./notion-importer");
+        const importer = new NotionImporter(dbManager);
+        return await importer.importFromZip(
+          Buffer.from(zipBuffer),
+          targetFolder,
+        );
+      } catch (error) {
+        logger.error("[Knowledge IPC] Notion import failed:", error);
+        throw error;
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "knowledge:importEvernote",
+    async (_event, { enexContent, targetFolder }) => {
+      try {
+        const { EvernoteImporter } = require("./evernote-importer");
+        const importer = new EvernoteImporter(dbManager);
+        return await importer.importFromEnex(enexContent, targetFolder);
+      } catch (error) {
+        logger.error("[Knowledge IPC] Evernote import failed:", error);
+        throw error;
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "knowledge:exportStaticSite",
+    async (_event, { outputDir, options }) => {
+      try {
+        const { StaticSiteExporter } = require("./static-site-exporter");
+        const exporter = new StaticSiteExporter(dbManager);
+        return await exporter.exportToStaticSite(outputDir, options);
+      } catch (error) {
+        logger.error("[Knowledge IPC] Static site export failed:", error);
+        throw error;
+      }
+    },
+  );
+
+  logger.info("[Knowledge IPC] ✓ 20 handlers registered");
   logger.info("[Knowledge IPC] - 1 tag management handler");
   logger.info("[Knowledge IPC] - 3 version management handlers");
   logger.info("[Knowledge IPC] - 13 paid content handlers");
+  logger.info("[Knowledge IPC] - 3 import/export handlers");
 }
 
 module.exports = {

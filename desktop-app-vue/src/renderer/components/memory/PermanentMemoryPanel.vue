@@ -3,7 +3,10 @@
     <!-- 头部 -->
     <div class="panel-header">
       <div class="header-left">
-        <a-typography-title :level="4" class="panel-title">
+        <a-typography-title
+          :level="4"
+          class="panel-title"
+        >
           <BookOutlined /> 永久记忆
         </a-typography-title>
         <a-tag color="blue">
@@ -14,7 +17,11 @@
         </a-tag>
       </div>
       <div class="header-right">
-        <a-button type="text" :loading="loading.stats" @click="refreshStats">
+        <a-button
+          type="text"
+          :loading="loading.stats"
+          @click="refreshStats"
+        >
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -27,10 +34,16 @@
           </a-button>
           <template #overlay>
             <a-menu>
-              <a-menu-item key="rebuild" @click="handleRebuildIndex">
+              <a-menu-item
+                key="rebuild"
+                @click="handleRebuildIndex"
+              >
                 <DatabaseOutlined /> 重建索引
               </a-menu-item>
-              <a-menu-item key="clear-cache" @click="handleClearCache">
+              <a-menu-item
+                key="clear-cache"
+                @click="handleClearCache"
+              >
                 <ClearOutlined /> 清空缓存
               </a-menu-item>
             </a-menu>
@@ -40,25 +53,43 @@
     </div>
 
     <!-- 标签页 -->
-    <a-tabs v-model:active-key="activeTab" class="memory-tabs">
+    <a-tabs
+      v-model:active-key="activeTab"
+      class="memory-tabs"
+    >
       <!-- Daily Notes 标签页 -->
-      <a-tab-pane key="daily" tab="Daily Notes">
+      <a-tab-pane
+        key="daily"
+        tab="Daily Notes"
+      >
         <DailyNotesTimeline />
       </a-tab-pane>
 
       <!-- MEMORY.md 标签页 -->
-      <a-tab-pane key="memory" tab="长期记忆">
+      <a-tab-pane
+        key="memory"
+        tab="长期记忆"
+      >
         <MemoryEditor />
       </a-tab-pane>
 
       <!-- 搜索标签页 -->
-      <a-tab-pane key="search" tab="智能搜索">
+      <a-tab-pane
+        key="search"
+        tab="智能搜索"
+      >
         <MemorySearchPanel />
       </a-tab-pane>
 
       <!-- 统计标签页 -->
-      <a-tab-pane key="stats" tab="统计">
-        <MemoryStatsPanel :stats="stats" :index-stats="indexStats" />
+      <a-tab-pane
+        key="stats"
+        tab="统计"
+      >
+        <MemoryStatsPanel
+          :stats="stats"
+          :index-stats="indexStats"
+        />
       </a-tab-pane>
     </a-tabs>
 

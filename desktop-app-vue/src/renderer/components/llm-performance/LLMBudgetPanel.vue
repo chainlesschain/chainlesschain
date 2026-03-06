@@ -1,9 +1,17 @@
 <template>
-  <a-card title="预算使用情况" class="budget-panel">
+  <a-card
+    title="预算使用情况"
+    class="budget-panel"
+  >
     <template #extra>
-      <a-tag :color="statusColor"> <FundOutlined /> {{ statusText }} </a-tag>
+      <a-tag :color="statusColor">
+        <FundOutlined /> {{ statusText }}
+      </a-tag>
     </template>
-    <a-skeleton :loading="loading" active>
+    <a-skeleton
+      :loading="loading"
+      active
+    >
       <!-- Daily budget -->
       <div class="budget-item">
         <div class="budget-label">

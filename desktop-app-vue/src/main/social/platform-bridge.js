@@ -15,9 +15,11 @@
  * @version 0.45.0
  */
 
-const { logger } = require("../utils/logger.js");
-const EventEmitter = require("events");
-const { v4: uuidv4 } = require("uuid");
+import { logger } from "../utils/logger.js";
+import EventEmitter from "events";
+import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
+import { getNostrBridge } from "./nostr-bridge.js";
 
 // ============================================================
 // Constants
@@ -26,6 +28,7 @@ const { v4: uuidv4 } = require("uuid");
 const SUPPORTED_PLATFORMS = {
   MASTODON: "mastodon",
   NOSTR: "nostr",
+  ACTIVITYPUB: "activitypub",
 };
 
 const CONNECTION_STATUS = {
@@ -62,7 +65,9 @@ class PlatformBridge extends EventEmitter {
       await this.initializeTables();
 
       this.initialized = true;
-      logger.info("[PlatformBridge] Platform bridge manager initialized successfully");
+      logger.info(
+        "[PlatformBridge] Platform bridge manager initialized successfully",
+      );
     } catch (error) {
       logger.error("[PlatformBridge] Initialization failed:", error);
       throw error;
@@ -78,7 +83,7 @@ class PlatformBridge extends EventEmitter {
     db.exec(`
       CREATE TABLE IF NOT EXISTS bridge_connections (
         id TEXT PRIMARY KEY,
-        platform TEXT NOT NULL CHECK(platform IN ('mastodon', 'nostr')),
+        platform TEXT NOT NULL CHECK(platform IN ('mastodon', 'nostr', 'activitypub')),
         owner_did TEXT NOT NULL,
         external_id TEXT,
         server_url TEXT,
@@ -202,7 +207,7 @@ class PlatformBridge extends EventEmitter {
       const now = Date.now();
 
       // Derive public key from private key (simulated)
-      const crypto = require("crypto");
+      // crypto already imported at top
       const externalId = crypto
         .createHash("sha256")
         .update(privateKey)
@@ -296,7 +301,10 @@ class PlatformBridge extends EventEmitter {
           }
 
           if (platform === SUPPORTED_PLATFORMS.MASTODON) {
-            const result = await this._postToMastodon(connection, content.trim());
+            const result = await this._postToMastodon(
+              connection,
+              content.trim(),
+            );
             results[platform] = { success: true, ...result };
           } else if (platform === SUPPORTED_PLATFORMS.NOSTR) {
             const result = await this._postToNostr(connection, content.trim());
@@ -319,7 +327,11 @@ class PlatformBridge extends EventEmitter {
         }
       }
 
-      logger.info("[PlatformBridge] Cross-posted to", platforms.length, "platforms");
+      logger.info(
+        "[PlatformBridge] Cross-posted to",
+        platforms.length,
+        "platforms",
+      );
 
       this.emit("post:cross-posted", { ownerDid, platforms, results });
 
@@ -345,9 +357,7 @@ class PlatformBridge extends EventEmitter {
 
       const db = this.database.db;
       const connection = db
-        .prepare(
-          "SELECT * FROM bridge_connections WHERE id = ? AND status = ?",
-        )
+        .prepare("SELECT * FROM bridge_connections WHERE id = ? AND status = ?")
         .get(connectionId, CONNECTION_STATUS.ACTIVE);
 
       if (!connection) {
@@ -418,9 +428,10 @@ class PlatformBridge extends EventEmitter {
         throw new Error("Connection is already disconnected");
       }
 
-      db.prepare(
-        "UPDATE bridge_connections SET status = ? WHERE id = ?",
-      ).run(CONNECTION_STATUS.REVOKED, connectionId);
+      db.prepare("UPDATE bridge_connections SET status = ? WHERE id = ?").run(
+        CONNECTION_STATUS.REVOKED,
+        connectionId,
+      );
 
       // Clean up in-memory state
       if (connection.platform === SUPPORTED_PLATFORMS.MASTODON) {
@@ -493,9 +504,7 @@ class PlatformBridge extends EventEmitter {
 
       const db = this.database.db;
       const connection = db
-        .prepare(
-          "SELECT * FROM bridge_connections WHERE id = ? AND status = ?",
-        )
+        .prepare("SELECT * FROM bridge_connections WHERE id = ? AND status = ?")
         .get(connectionId, CONNECTION_STATUS.ACTIVE);
 
       if (!connection) {
@@ -505,10 +514,7 @@ class PlatformBridge extends EventEmitter {
       // Import latest feed items since last sync
       const feed = await this.importFeed(connectionId, DEFAULT_IMPORT_LIMIT);
 
-      logger.info(
-        "[PlatformBridge] Synced feed for connection:",
-        connectionId,
-      );
+      logger.info("[PlatformBridge] Synced feed for connection:", connectionId);
 
       return {
         success: true,
@@ -535,7 +541,7 @@ class PlatformBridge extends EventEmitter {
     logger.info("[PlatformBridge] Verifying Mastodon token for:", serverUrl);
 
     // Simulate account ID derivation
-    const crypto = require("crypto");
+    // crypto already imported at top
     return crypto
       .createHash("sha256")
       .update(`mastodon:${serverUrl}:${token}`)
@@ -547,7 +553,7 @@ class PlatformBridge extends EventEmitter {
    * Post to Mastodon (simulated).
    * @private
    */
-  async _postToMastodon(connection, content) {
+  async _postToMastodon(connection, _unusedContent) {
     // In production: POST {serverUrl}/api/v1/statuses
     // with Authorization: Bearer {access_token}, body: { status: content }
     logger.info("[PlatformBridge] Posting to Mastodon:", connection.server_url);
@@ -564,9 +570,12 @@ class PlatformBridge extends EventEmitter {
    * Fetch Mastodon home feed (simulated).
    * @private
    */
-  async _fetchMastodonFeed(connection, limit) {
+  async _fetchMastodonFeed(connection, _unusedLimit) {
     // In production: GET {serverUrl}/api/v1/timelines/home?limit={limit}
-    logger.info("[PlatformBridge] Fetching Mastodon feed from:", connection.server_url);
+    logger.info(
+      "[PlatformBridge] Fetching Mastodon feed from:",
+      connection.server_url,
+    );
 
     // Return empty array as simulated feed
     return [];
@@ -581,7 +590,24 @@ class PlatformBridge extends EventEmitter {
    * @private
    */
   async _postToNostr(connection, content) {
-    // In production: create a kind-1 event, sign with private key, publish to relays
+    // Delegate to NostrBridge if available (Phase 49)
+    try {
+      // NostrBridge imported at top
+      const bridge = getNostrBridge();
+      if (bridge.initialized) {
+        const result = await bridge.publishEvent({ kind: 1, content });
+        return {
+          platform: SUPPORTED_PLATFORMS.NOSTR,
+          externalPostId: result.eventId || `nostr-${Date.now()}`,
+          relayCount: result.relayCount || 0,
+          postedAt: Date.now(),
+        };
+      }
+    } catch {
+      // NostrBridge not available, use legacy path
+    }
+
+    // Legacy fallback: simulated posting
     const relayUrls = connection.relay_urls
       ? JSON.parse(connection.relay_urls)
       : [];
@@ -604,7 +630,7 @@ class PlatformBridge extends EventEmitter {
    * Fetch Nostr feed (simulated).
    * @private
    */
-  async _fetchNostrFeed(connection, limit) {
+  async _fetchNostrFeed(connection, _unusedLimit) {
     // In production: subscribe to kind-1 events from connected relays
     const relayUrls = connection.relay_urls
       ? JSON.parse(connection.relay_urls)
@@ -633,8 +659,4 @@ class PlatformBridge extends EventEmitter {
   }
 }
 
-module.exports = {
-  PlatformBridge,
-  SUPPORTED_PLATFORMS,
-  CONNECTION_STATUS,
-};
+export { PlatformBridge, SUPPORTED_PLATFORMS, CONNECTION_STATUS };

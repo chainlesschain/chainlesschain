@@ -17,14 +17,20 @@
           >
             新建规则
           </a-button>
-          <a-button :icon="h(ReloadOutlined)" @click="loadRules">
+          <a-button
+            :icon="h(ReloadOutlined)"
+            @click="loadRules"
+          >
             刷新
           </a-button>
         </a-space>
       </template>
 
       <!-- 统计信息 -->
-      <a-row :gutter="16" class="stats-row">
+      <a-row
+        :gutter="16"
+        class="stats-row"
+      >
         <a-col :span="6">
           <a-statistic
             title="总规则数"
@@ -61,7 +67,10 @@
       <a-divider />
 
       <!-- 规则列表 -->
-      <a-list :data-source="rules" :loading="loading">
+      <a-list
+        :data-source="rules"
+        :loading="loading"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
@@ -85,7 +94,11 @@
                   @confirm="handleDelete(item.id)"
                 >
                   <a-tooltip title="删除">
-                    <a-button size="small" danger :icon="h(DeleteOutlined)" />
+                    <a-button
+                      size="small"
+                      danger
+                      :icon="h(DeleteOutlined)"
+                    />
                   </a-tooltip>
                 </a-popconfirm>
               </a-space>
@@ -129,7 +142,10 @@
 
         <template #empty>
           <a-empty description="暂无自动化规则">
-            <a-button type="primary" @click="showCreateModal">
+            <a-button
+              type="primary"
+              @click="showCreateModal"
+            >
               创建第一条规则
             </a-button>
           </a-empty>
@@ -145,8 +161,14 @@
       @ok="handleSubmit"
       @cancel="handleCancel"
     >
-      <a-form :model="ruleForm" layout="vertical">
-        <a-form-item label="规则名称" required>
+      <a-form
+        :model="ruleForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="规则名称"
+          required
+        >
           <a-input
             v-model:value="ruleForm.name"
             placeholder="例如：每日报告生成"
@@ -163,69 +185,89 @@
 
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item label="触发类型" required>
+            <a-form-item
+              label="触发类型"
+              required
+            >
               <a-select v-model:value="ruleForm.triggerType">
-                <a-select-option value="schedule"> 定时任务 </a-select-option>
+                <a-select-option value="schedule">
+                  定时任务
+                </a-select-option>
                 <a-select-option value="file_change">
                   文件变化
                 </a-select-option>
                 <a-select-option value="task_complete">
                   任务完成
                 </a-select-option>
-                <a-select-option value="manual"> 手动触发 </a-select-option>
+                <a-select-option value="manual">
+                  手动触发
+                </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
 
           <a-col :span="12">
-            <a-form-item label="动作类型" required>
+            <a-form-item
+              label="动作类型"
+              required
+            >
               <a-select v-model:value="ruleForm.actionType">
-                <a-select-option value="run_task"> 执行AI任务 </a-select-option>
+                <a-select-option value="run_task">
+                  执行AI任务
+                </a-select-option>
                 <a-select-option value="generate_report">
                   生成报告
                 </a-select-option>
                 <a-select-option value="send_notification">
                   发送通知
                 </a-select-option>
-                <a-select-option value="git_commit"> Git提交 </a-select-option>
+                <a-select-option value="git_commit">
+                  Git提交
+                </a-select-option>
                 <a-select-option value="export_file">
                   导出文件
                 </a-select-option>
-                <a-select-option value="run_script"> 运行脚本 </a-select-option>
+                <a-select-option value="run_script">
+                  运行脚本
+                </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
         </a-row>
 
         <!-- 触发配置 -->
-        <a-card title="触发配置" size="small" style="margin-bottom: 16px">
+        <a-card
+          title="触发配置"
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <!-- 定时任务配置 -->
           <div v-if="ruleForm.triggerType === 'schedule'">
-            <a-form-item label="Cron表达式" required>
+            <a-form-item
+              label="Cron表达式"
+              required
+            >
               <a-input
                 v-model:value="ruleForm.triggerConfig.cron"
                 placeholder="例如：0 21 * * * (每天21:00)"
               />
               <span class="form-hint">
                 快捷设置:
-                <a @click="ruleForm.triggerConfig.cron = '0 21 * * *'"
-                  >每天21:00</a
-                >
+                <a @click="ruleForm.triggerConfig.cron = '0 21 * * *'">每天21:00</a>
                 |
-                <a @click="ruleForm.triggerConfig.cron = '0 */1 * * *'"
-                  >每小时</a
-                >
+                <a @click="ruleForm.triggerConfig.cron = '0 */1 * * *'">每小时</a>
                 |
-                <a @click="ruleForm.triggerConfig.cron = '0 9 * * 1'"
-                  >每周一9:00</a
-                >
+                <a @click="ruleForm.triggerConfig.cron = '0 9 * * 1'">每周一9:00</a>
               </span>
             </a-form-item>
           </div>
 
           <!-- 文件变化配置 -->
           <div v-if="ruleForm.triggerType === 'file_change'">
-            <a-form-item label="监听路径" required>
+            <a-form-item
+              label="监听路径"
+              required
+            >
               <a-input
                 v-model:value="ruleForm.triggerConfig.path"
                 placeholder="/path/to/watch"
@@ -241,19 +283,31 @@
 
             <a-form-item label="监听事件">
               <a-checkbox-group v-model:value="ruleForm.triggerConfig.events">
-                <a-checkbox value="add"> 新增 </a-checkbox>
-                <a-checkbox value="change"> 修改 </a-checkbox>
-                <a-checkbox value="unlink"> 删除 </a-checkbox>
+                <a-checkbox value="add">
+                  新增
+                </a-checkbox>
+                <a-checkbox value="change">
+                  修改
+                </a-checkbox>
+                <a-checkbox value="unlink">
+                  删除
+                </a-checkbox>
               </a-checkbox-group>
             </a-form-item>
           </div>
         </a-card>
 
         <!-- 动作配置 -->
-        <a-card title="动作配置" size="small">
+        <a-card
+          title="动作配置"
+          size="small"
+        >
           <!-- 执行AI任务 -->
           <div v-if="ruleForm.actionType === 'run_task'">
-            <a-form-item label="任务描述" required>
+            <a-form-item
+              label="任务描述"
+              required
+            >
               <a-textarea
                 v-model:value="ruleForm.actionConfig.taskDescription"
                 placeholder="描述要执行的AI任务"
@@ -266,9 +320,15 @@
           <div v-if="ruleForm.actionType === 'generate_report'">
             <a-form-item label="报告类型">
               <a-select v-model:value="ruleForm.actionConfig.reportType">
-                <a-select-option value="daily"> 每日报告 </a-select-option>
-                <a-select-option value="weekly"> 每周报告 </a-select-option>
-                <a-select-option value="analytics"> 数据分析 </a-select-option>
+                <a-select-option value="daily">
+                  每日报告
+                </a-select-option>
+                <a-select-option value="weekly">
+                  每周报告
+                </a-select-option>
+                <a-select-option value="analytics">
+                  数据分析
+                </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -282,11 +342,17 @@
 
           <!-- 发送通知 -->
           <div v-if="ruleForm.actionType === 'send_notification'">
-            <a-form-item label="通知标题" required>
+            <a-form-item
+              label="通知标题"
+              required
+            >
               <a-input v-model:value="ruleForm.actionConfig.title" />
             </a-form-item>
 
-            <a-form-item label="通知内容" required>
+            <a-form-item
+              label="通知内容"
+              required
+            >
               <a-textarea
                 v-model:value="ruleForm.actionConfig.message"
                 :rows="3"
@@ -295,20 +361,32 @@
 
             <a-form-item label="通知渠道">
               <a-checkbox-group v-model:value="ruleForm.actionConfig.channels">
-                <a-checkbox value="desktop"> 桌面通知 </a-checkbox>
-                <a-checkbox value="email"> 邮件 </a-checkbox>
-                <a-checkbox value="webhook"> Webhook </a-checkbox>
+                <a-checkbox value="desktop">
+                  桌面通知
+                </a-checkbox>
+                <a-checkbox value="email">
+                  邮件
+                </a-checkbox>
+                <a-checkbox value="webhook">
+                  Webhook
+                </a-checkbox>
               </a-checkbox-group>
             </a-form-item>
           </div>
 
           <!-- Git提交 -->
           <div v-if="ruleForm.actionType === 'git_commit'">
-            <a-form-item label="项目路径" required>
+            <a-form-item
+              label="项目路径"
+              required
+            >
               <a-input v-model:value="ruleForm.actionConfig.projectPath" />
             </a-form-item>
 
-            <a-form-item label="提交消息" required>
+            <a-form-item
+              label="提交消息"
+              required
+            >
               <a-input v-model:value="ruleForm.actionConfig.commitMessage" />
             </a-form-item>
 

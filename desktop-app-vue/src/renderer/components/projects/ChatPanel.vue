@@ -1,7 +1,13 @@
 <template>
-  <div class="chat-panel" data-testid="chat-panel">
+  <div
+    class="chat-panel"
+    data-testid="chat-panel"
+  >
     <!-- 头部：上下文选择器 -->
-    <div class="chat-header" data-testid="chat-header">
+    <div
+      class="chat-header"
+      data-testid="chat-header"
+    >
       <h3 class="chat-title">
         <MessageOutlined />
         AI 助手
@@ -13,15 +19,24 @@
         button-style="solid"
         data-testid="context-mode-selector"
       >
-        <a-radio-button value="project" data-testid="context-mode-project">
+        <a-radio-button
+          value="project"
+          data-testid="context-mode-project"
+        >
           <FolderOutlined />
           项目
         </a-radio-button>
-        <a-radio-button value="file" data-testid="context-mode-file">
+        <a-radio-button
+          value="file"
+          data-testid="context-mode-file"
+        >
           <FileTextOutlined />
           文件
         </a-radio-button>
-        <a-radio-button value="global" data-testid="context-mode-global">
+        <a-radio-button
+          value="global"
+          data-testid="context-mode-global"
+        >
           <GlobalOutlined />
           全局
         </a-radio-button>
@@ -66,8 +81,8 @@
           <SystemMessage
             v-if="
               message.type === MessageType.SYSTEM ||
-              message.type === MessageType.TASK_ANALYSIS ||
-              message.type === MessageType.INTENT_RECOGNITION
+                message.type === MessageType.TASK_ANALYSIS ||
+                message.type === MessageType.INTENT_RECOGNITION
             "
             :message="message"
           />
@@ -100,7 +115,10 @@
           />
 
           <!-- 普通用户/助手消息 -->
-          <div v-else :class="['message-item', message.role]">
+          <div
+            v-else
+            :class="['message-item', message.role]"
+          >
             <div class="message-avatar">
               <UserOutlined v-if="message.role === 'user'" />
               <RobotOutlined v-else />
@@ -135,7 +153,10 @@
     </div>
 
     <!-- 输入区域 -->
-    <div class="input-container" data-testid="input-container">
+    <div
+      class="input-container"
+      data-testid="input-container"
+    >
       <div class="input-wrapper">
         <a-textarea
           v-model:value="userInput"
@@ -176,7 +197,11 @@
       </div>
 
       <!-- 上下文信息提示 -->
-      <div v-if="contextInfo" class="context-info" data-testid="context-info">
+      <div
+        v-if="contextInfo"
+        class="context-info"
+        data-testid="context-info"
+      >
         <InfoCircleOutlined />
         <span>{{ contextInfo }}</span>
       </div>

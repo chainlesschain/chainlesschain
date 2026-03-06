@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/__tests__/quick-benchmark.js`
 
-**Generated**: 2026-02-24T18:45:59.482Z
+**Generated**: 2026-02-24T23:28:10.617Z
 
 ---
 
@@ -12,6 +12,7 @@
 const
 ```
 
-- Quick MCP Benchmark - Reduced iterations for faster testing
+* Quick MCP Benchmark - Reduced iterations for faster testing
 
 ---
+

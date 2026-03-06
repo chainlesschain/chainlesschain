@@ -19,7 +19,10 @@
 
         <!-- Caller Info -->
         <div class="caller-info">
-          <a-avatar :size="48" class="caller-avatar">
+          <a-avatar
+            :size="48"
+            class="caller-avatar"
+          >
             <template #icon>
               <UserOutlined />
             </template>
@@ -96,7 +99,7 @@ const ipcRenderer = getIpcBridge();
 
 // Computed
 const callTypeText = computed(() => {
-  if (!callStore.incomingCall) return '';
+  if (!callStore.incomingCall) {return '';}
   return callStore.incomingCall.type === 'voice'
     ? 'Incoming voice call...'
     : 'Incoming video call...';
@@ -104,8 +107,8 @@ const callTypeText = computed(() => {
 
 // Methods
 const shortenDid = (did) => {
-  if (!did) return 'Unknown';
-  if (did.length <= 16) return did;
+  if (!did) {return 'Unknown';}
+  if (did.length <= 16) {return did;}
   return `${did.substring(0, 8)}...${did.substring(did.length - 6)}`;
 };
 

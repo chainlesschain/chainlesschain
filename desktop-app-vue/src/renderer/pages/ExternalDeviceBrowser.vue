@@ -69,7 +69,9 @@
         button-style="solid"
         @change="handleCategoryChange"
       >
-        <a-radio-button value=""> 全部 </a-radio-button>
+        <a-radio-button value="">
+          全部
+        </a-radio-button>
         <a-radio-button value="DOCUMENT">
           <file-text-outlined />
           文档
@@ -92,7 +94,9 @@
         </a-radio-button>
       </a-radio-group>
 
-      <div class="file-count">共 {{ pagination.total }} 个文件</div>
+      <div class="file-count">
+        共 {{ pagination.total }} 个文件
+      </div>
     </div>
 
     <!-- 文件列表表格（小于100个文件时使用普通表格） -->
@@ -112,7 +116,10 @@
           <div class="file-name">
             <component :is="getFileIcon(record.category)" />
             <span class="name">{{ record.display_name }}</span>
-            <star-filled v-if="record.is_favorite" class="favorite-icon" />
+            <star-filled
+              v-if="record.is_favorite"
+              class="favorite-icon"
+            />
           </div>
         </template>
 
@@ -174,7 +181,10 @@
             </a-button>
 
             <a-dropdown>
-              <a-button type="link" size="small">
+              <a-button
+                type="link"
+                size="small"
+              >
                 <more-outlined />
               </a-button>
               <template #overlay>
@@ -200,7 +210,10 @@
     </a-table>
 
     <!-- 文件列表虚拟滚动表格（大于等于100个文件时使用） -->
-    <div v-if="shouldUseVirtualScroll" class="virtual-table-container">
+    <div
+      v-if="shouldUseVirtualScroll"
+      class="virtual-table-container"
+    >
       <VirtualTable
         :columns="columns"
         :data-source="files"
@@ -214,7 +227,10 @@
           <div class="file-name">
             <component :is="getFileIcon(record.category)" />
             <span class="name">{{ record.display_name }}</span>
-            <star-filled v-if="record.is_favorite" class="favorite-icon" />
+            <star-filled
+              v-if="record.is_favorite"
+              class="favorite-icon"
+            />
           </div>
         </template>
 
@@ -276,7 +292,10 @@
             </a-button>
 
             <a-dropdown>
-              <a-button type="link" size="small">
+              <a-button
+                type="link"
+                size="small"
+              >
                 <more-outlined />
               </a-button>
               <template #overlay>
@@ -316,8 +335,15 @@
     </div>
 
     <!-- 传输进度浮窗 -->
-    <div v-if="activeTransfers.length > 0" class="transfer-progress">
-      <a-card title="文件传输" size="small" :bordered="false">
+    <div
+      v-if="activeTransfers.length > 0"
+      class="transfer-progress"
+    >
+      <a-card
+        title="文件传输"
+        size="small"
+        :bordered="false"
+      >
         <div
           v-for="transfer in activeTransfers"
           :key="transfer.id"
@@ -355,7 +381,11 @@
       :footer="null"
       width="600px"
     >
-      <a-descriptions v-if="selectedFile" bordered :column="1">
+      <a-descriptions
+        v-if="selectedFile"
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="文件名">
           {{ selectedFile.display_name }}
         </a-descriptions-item>
@@ -384,7 +414,10 @@
             {{ selectedFile.is_cached ? "已缓存" : "未缓存" }}
           </a-tag>
         </a-descriptions-item>
-        <a-descriptions-item v-if="selectedFile.cache_path" label="缓存路径">
+        <a-descriptions-item
+          v-if="selectedFile.cache_path"
+          label="缓存路径"
+        >
           {{ selectedFile.cache_path }}
         </a-descriptions-item>
         <a-descriptions-item label="校验和">
@@ -401,7 +434,11 @@
       width="500px"
     >
       <a-spin :spinning="cacheStatsLoading">
-        <a-descriptions v-if="cacheStats" bordered :column="1">
+        <a-descriptions
+          v-if="cacheStats"
+          bordered
+          :column="1"
+        >
           <a-descriptions-item label="总文件数">
             {{ cacheStats.totalFiles }}
           </a-descriptions-item>
@@ -450,13 +487,20 @@
           style="text-align: center; padding: 40px"
         >
           <a-empty description="暂无项目">
-            <a-button type="primary" @click="createNewProject">
+            <a-button
+              type="primary"
+              @click="createNewProject"
+            >
               创建新项目
             </a-button>
           </a-empty>
         </div>
 
-        <a-list v-else :data-source="projects" item-layout="horizontal">
+        <a-list
+          v-else
+          :data-source="projects"
+          item-layout="horizontal"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <template #actions>
@@ -491,7 +535,9 @@
       </a-spin>
 
       <template #footer>
-        <a-button @click="projectSelectorVisible = false"> 取消 </a-button>
+        <a-button @click="projectSelectorVisible = false">
+          取消
+        </a-button>
         <a-button
           type="primary"
           :disabled="!selectedProjectId"

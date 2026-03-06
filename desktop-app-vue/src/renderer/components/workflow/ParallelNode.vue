@@ -1,11 +1,20 @@
 <template>
-  <div class="parallel-node" :class="[{ selected }, statusClass]">
-    <Handle type="target" :position="Position.Top" />
+  <div
+    class="parallel-node"
+    :class="[{ selected }, statusClass]"
+  >
+    <Handle
+      type="target"
+      :position="Position.Top"
+    />
     <div class="node-body">
       <span class="parallel-icon">||</span>
       <span class="label">{{ data.label }}</span>
     </div>
-    <Handle type="source" :position="Position.Bottom" />
+    <Handle
+      type="source"
+      :position="Position.Bottom"
+    />
   </div>
 </template>
 
@@ -27,9 +36,9 @@ const executionStatus = computed(() => {
 });
 
 const statusClass = computed(() => {
-  if (executionStatus.value === "running") return "parallel-node--running";
-  if (executionStatus.value === "completed") return "parallel-node--completed";
-  if (executionStatus.value === "failed") return "parallel-node--failed";
+  if (executionStatus.value === "running") {return "parallel-node--running";}
+  if (executionStatus.value === "completed") {return "parallel-node--completed";}
+  if (executionStatus.value === "failed") {return "parallel-node--failed";}
   return "";
 });
 </script>

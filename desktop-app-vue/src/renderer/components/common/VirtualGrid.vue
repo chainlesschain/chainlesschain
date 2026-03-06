@@ -1,12 +1,22 @@
 <template>
-  <div ref="containerRef" class="virtual-grid" @scroll="handleScroll">
+  <div
+    ref="containerRef"
+    class="virtual-grid"
+    @scroll="handleScroll"
+  >
     <!-- 加载状态 -->
-    <div v-if="loading && items.length === 0" class="virtual-grid-loading">
+    <div
+      v-if="loading && items.length === 0"
+      class="virtual-grid-loading"
+    >
       <a-spin size="large" />
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="!loading && items.length === 0" class="virtual-grid-empty">
+    <div
+      v-else-if="!loading && items.length === 0"
+      class="virtual-grid-empty"
+    >
       <slot name="empty">
         <a-empty :description="emptyText" />
       </slot>
@@ -30,13 +40,19 @@
             class="virtual-grid-item"
             :style="itemStyle"
           >
-            <slot :item="item" :index="startIndex + index" />
+            <slot
+              :item="item"
+              :index="startIndex + index"
+            />
           </div>
         </div>
       </div>
 
       <!-- 加载更多指示器 -->
-      <div v-if="loading && items.length > 0" class="virtual-grid-loading-more">
+      <div
+        v-if="loading && items.length > 0"
+        class="virtual-grid-loading-more"
+      >
         <a-spin size="small" />
         <span>加载中...</span>
       </div>

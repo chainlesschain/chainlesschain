@@ -14,7 +14,11 @@
             </template>
             刷新
           </a-button>
-          <a-button type="primary" :loading="saving" @click="handleSave">
+          <a-button
+            type="primary"
+            :loading="saving"
+            @click="handleSave"
+          >
             <template #icon>
               <SaveOutlined />
             </template>
@@ -24,7 +28,10 @@
       </template>
     </a-page-header>
 
-    <a-spin :spinning="loading" tip="加载中...">
+    <a-spin
+      :spinning="loading"
+      tip="加载中..."
+    >
       <div class="settings-container">
         <!-- 左侧菜单 -->
         <a-menu
@@ -43,14 +50,20 @@
               <TeamOutlined />
             </template>
             成员管理
-            <a-badge :count="memberCount" :offset="[10, 0]" />
+            <a-badge
+              :count="memberCount"
+              :offset="[10, 0]"
+            />
           </a-menu-item>
           <a-menu-item key="invitations">
             <template #icon>
               <MailOutlined />
             </template>
             邀请管理
-            <a-badge :count="activeInvitationCount" :offset="[10, 0]" />
+            <a-badge
+              :count="activeInvitationCount"
+              :offset="[10, 0]"
+            />
           </a-menu-item>
           <a-menu-item key="roles">
             <template #icon>
@@ -64,7 +77,10 @@
             </template>
             高级设置
           </a-menu-item>
-          <a-menu-item key="danger" class="danger-menu-item">
+          <a-menu-item
+            key="danger"
+            class="danger-menu-item"
+          >
             <template #icon>
               <WarningOutlined />
             </template>
@@ -75,7 +91,10 @@
         <!-- 右侧内容 -->
         <div class="settings-content">
           <!-- 基本信息 -->
-          <div v-if="selectedKeys[0] === 'basic'" class="settings-section">
+          <div
+            v-if="selectedKeys[0] === 'basic'"
+            class="settings-section"
+          >
             <h2>基本信息</h2>
             <a-form
               :model="formData"
@@ -95,9 +114,15 @@
                   v-model:value="formData.type"
                   :disabled="!canManageOrg"
                 >
-                  <a-select-option value="startup"> 创业团队 </a-select-option>
-                  <a-select-option value="company"> 公司 </a-select-option>
-                  <a-select-option value="community"> 社区 </a-select-option>
+                  <a-select-option value="startup">
+                    创业团队
+                  </a-select-option>
+                  <a-select-option value="company">
+                    公司
+                  </a-select-option>
+                  <a-select-option value="community">
+                    社区
+                  </a-select-option>
                   <a-select-option value="opensource">
                     开源项目
                   </a-select-option>
@@ -117,7 +142,10 @@
               </a-form-item>
 
               <a-form-item label="组织DID">
-                <a-input :value="orgData?.org_did" disabled>
+                <a-input
+                  :value="orgData?.org_did"
+                  disabled
+                >
                   <template #suffix>
                     <a-tooltip title="复制DID">
                       <CopyOutlined
@@ -140,7 +168,10 @@
           </div>
 
           <!-- 成员管理 -->
-          <div v-if="selectedKeys[0] === 'members'" class="settings-section">
+          <div
+            v-if="selectedKeys[0] === 'members'"
+            class="settings-section"
+          >
             <organization-members-page :org-id="orgId" />
           </div>
 
@@ -153,7 +184,10 @@
           </div>
 
           <!-- 角色权限 -->
-          <div v-if="selectedKeys[0] === 'roles'" class="settings-section">
+          <div
+            v-if="selectedKeys[0] === 'roles'"
+            class="settings-section"
+          >
             <h2>角色权限</h2>
             <a-table
               :columns="roleColumns"
@@ -182,7 +216,10 @@
                   >
                     删除
                   </a-button>
-                  <span v-else style="color: #999">内置角色</span>
+                  <span
+                    v-else
+                    style="color: #999"
+                  >内置角色</span>
                 </template>
               </template>
             </a-table>
@@ -202,16 +239,26 @@
           </div>
 
           <!-- 高级设置 -->
-          <div v-if="selectedKeys[0] === 'advanced'" class="settings-section">
+          <div
+            v-if="selectedKeys[0] === 'advanced'"
+            class="settings-section"
+          >
             <h2>高级设置</h2>
-            <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 16 }">
+            <a-form
+              :label-col="{ span: 4 }"
+              :wrapper-col="{ span: 16 }"
+            >
               <a-form-item label="可见性">
                 <a-radio-group
                   v-model:value="formData.visibility"
                   :disabled="!canManageOrg"
                 >
-                  <a-radio value="private"> 私有（仅邀请） </a-radio>
-                  <a-radio value="public"> 公开 </a-radio>
+                  <a-radio value="private">
+                    私有（仅邀请）
+                  </a-radio>
+                  <a-radio value="public">
+                    公开
+                  </a-radio>
                 </a-radio-group>
                 <div style="color: #999; margin-top: 8px">
                   {{
@@ -237,16 +284,25 @@
                   v-model:value="formData.syncMode"
                   :disabled="!canManageOrg"
                 >
-                  <a-select-option value="auto"> 自动同步 </a-select-option>
-                  <a-select-option value="manual"> 手动同步 </a-select-option>
-                  <a-select-option value="off"> 关闭同步 </a-select-option>
+                  <a-select-option value="auto">
+                    自动同步
+                  </a-select-option>
+                  <a-select-option value="manual">
+                    手动同步
+                  </a-select-option>
+                  <a-select-option value="off">
+                    关闭同步
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-form>
           </div>
 
           <!-- 危险操作 -->
-          <div v-if="selectedKeys[0] === 'danger'" class="settings-section">
+          <div
+            v-if="selectedKeys[0] === 'danger'"
+            class="settings-section"
+          >
             <h2>危险操作</h2>
             <a-alert
               message="警告"
@@ -256,17 +312,27 @@
               style="margin-bottom: 24px"
             />
 
-            <a-space direction="vertical" style="width: 100%" :size="16">
+            <a-space
+              direction="vertical"
+              style="width: 100%"
+              :size="16"
+            >
               <!-- 离开组织 -->
               <a-card title="离开组织">
                 <p>您将失去对该组织的访问权限，但组织数据将保留。</p>
-                <a-button danger @click="handleLeaveOrganization">
+                <a-button
+                  danger
+                  @click="handleLeaveOrganization"
+                >
                   离开组织
                 </a-button>
               </a-card>
 
               <!-- 删除组织 -->
-              <a-card v-if="isOwner" title="删除组织">
+              <a-card
+                v-if="isOwner"
+                title="删除组织"
+              >
                 <p style="color: #f5222d">
                   <strong>警告：</strong>
                   删除组织将永久删除所有数据，包括成员、项目、知识库等。此操作无法撤销！
@@ -292,9 +358,18 @@
       :confirm-loading="creatingRole"
       @ok="handleCreateRole"
     >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="角色名称" required>
-          <a-input v-model:value="newRole.name" placeholder="例如：编辑者" />
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item
+          label="角色名称"
+          required
+        >
+          <a-input
+            v-model:value="newRole.name"
+            placeholder="例如：编辑者"
+          />
         </a-form-item>
 
         <a-form-item label="角色描述">

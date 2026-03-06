@@ -1629,7 +1629,7 @@ class AgentTemplateManager {
    * @returns {Object} Parsed template object
    */
   _parseTemplateRow(row) {
-    if (!row) return null;
+    if (!row) {return null;}
 
     return {
       id: row.id,
@@ -1655,7 +1655,7 @@ class AgentTemplateManager {
    * @returns {*} Parsed value or default
    */
   _safeJsonParse(jsonStr, defaultValue) {
-    if (!jsonStr) return defaultValue;
+    if (!jsonStr) {return defaultValue;}
     try {
       return JSON.parse(jsonStr);
     } catch {

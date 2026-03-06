@@ -18,7 +18,10 @@
               style="width: 300px"
               @search="handleSearch"
             />
-            <a-button type="primary" size="large">
+            <a-button
+              type="primary"
+              size="large"
+            >
               <PlusOutlined />
               新建知识
             </a-button>
@@ -33,9 +36,16 @@
       <div class="list-header">
         <span>共 {{ filteredKnowledgeItems.length }} 条知识</span>
         <a-space>
-          <a-select v-model:value="sortBy" style="width: 120px">
-            <a-select-option value="time"> 按时间 </a-select-option>
-            <a-select-option value="title"> 按标题 </a-select-option>
+          <a-select
+            v-model:value="sortBy"
+            style="width: 120px"
+          >
+            <a-select-option value="time">
+              按时间
+            </a-select-option>
+            <a-select-option value="title">
+              按标题
+            </a-select-option>
           </a-select>
         </a-space>
       </div>
@@ -52,7 +62,11 @@
         class="knowledge-grid"
       >
         <template #default="{ item }">
-          <a-card hoverable class="knowledge-card" @click="viewDetail(item)">
+          <a-card
+            hoverable
+            class="knowledge-card"
+            @click="viewDetail(item)"
+          >
             <template #cover>
               <div
                 class="card-cover"
@@ -75,17 +89,25 @@
             </a-card-meta>
             <template #actions>
               <a-tooltip title="编辑">
-                <EditOutlined key="edit" @click.stop="editItem(item)" />
+                <EditOutlined
+                  key="edit"
+                  @click.stop="editItem(item)"
+                />
               </a-tooltip>
               <a-tooltip title="删除">
-                <DeleteOutlined key="delete" @click.stop="deleteItem(item)" />
+                <DeleteOutlined
+                  key="delete"
+                  @click.stop="deleteItem(item)"
+                />
               </a-tooltip>
             </template>
           </a-card>
         </template>
         <template #empty>
           <a-empty description="暂无知识条目">
-            <a-button type="primary"> <PlusOutlined /> 新建知识 </a-button>
+            <a-button type="primary">
+              <PlusOutlined /> 新建知识
+            </a-button>
           </a-empty>
         </template>
       </virtual-grid>

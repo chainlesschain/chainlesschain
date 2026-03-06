@@ -7,8 +7,15 @@
       @search="handleSearch"
     />
 
-    <a-spin :spinning="loading" tip="Loading files...">
-      <div ref="treeContainer" class="tree-container" @scroll="handleScroll">
+    <a-spin
+      :spinning="loading"
+      tip="Loading files..."
+    >
+      <div
+        ref="treeContainer"
+        class="tree-container"
+        @scroll="handleScroll"
+      >
         <a-tree
           v-if="visibleNodes.length > 0"
           :tree-data="visibleNodes"
@@ -30,8 +37,15 @@
                 <FolderOutlined v-else-if="!expandedKeys.includes(key)" />
                 <FolderOpenOutlined v-else />
               </span>
-              <span class="node-text" :title="title">{{ title }}</span>
-              <a-spin v-if="nodeLoading" size="small" class="node-loading" />
+              <span
+                class="node-text"
+                :title="title"
+              >{{ title }}</span>
+              <a-spin
+                v-if="nodeLoading"
+                size="small"
+                class="node-loading"
+              />
               <a-badge
                 v-if="!isLeaf && !loaded"
                 :count="getChildCount(key)"
@@ -43,7 +57,11 @@
         </a-tree>
 
         <!-- Virtual scroll placeholder -->
-        <div v-if="hasMore" ref="loadMoreTrigger" class="load-more-trigger">
+        <div
+          v-if="hasMore"
+          ref="loadMoreTrigger"
+          class="load-more-trigger"
+        >
           <a-spin size="small" />
           <span>Loading more...</span>
         </div>

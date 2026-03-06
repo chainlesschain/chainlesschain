@@ -468,7 +468,7 @@ class SSOManager extends EventEmitter {
    */
   async getProvider(id) {
     try {
-      if (!id) return null;
+      if (!id) {return null;}
 
       // Check cache
       if (this._providerCache.has(id)) {
@@ -480,7 +480,7 @@ class SSOManager extends EventEmitter {
         [id]
       );
 
-      if (!row) return null;
+      if (!row) {return null;}
 
       const provider = this._deserializeProvider(row);
       this._providerCache.set(id, provider);
@@ -1296,7 +1296,7 @@ class SSOManager extends EventEmitter {
    * @returns {string} Encrypted token as hex string (iv:authTag:encrypted)
    */
   _encryptToken(token) {
-    if (!token) return null;
+    if (!token) {return null;}
 
     try {
       const iv = crypto.randomBytes(IV_LENGTH);
@@ -1322,7 +1322,7 @@ class SSOManager extends EventEmitter {
    * @returns {string} Decrypted token
    */
   _decryptToken(encrypted) {
-    if (!encrypted) return null;
+    if (!encrypted) {return null;}
 
     try {
       const parts = encrypted.split(':');
@@ -1435,7 +1435,7 @@ class SSOManager extends EventEmitter {
         [sessionId]
       );
 
-      if (!row) return null;
+      if (!row) {return null;}
 
       const session = {
         id: row.id,

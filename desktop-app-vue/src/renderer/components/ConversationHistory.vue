@@ -34,7 +34,11 @@
           </a-list-item-meta>
           <template #actions>
             <a-dropdown :trigger="['click']">
-              <a-button type="text" size="small" @click.stop>
+              <a-button
+                type="text"
+                size="small"
+                @click.stop
+              >
                 <more-outlined />
               </a-button>
               <template #overlay>
@@ -43,7 +47,10 @@
                     <edit-outlined /> 重命名
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item danger @click="handleDelete(item)">
+                  <a-menu-item
+                    danger
+                    @click="handleDelete(item)"
+                  >
                     <delete-outlined /> 删除
                   </a-menu-item>
                 </a-menu>
@@ -54,8 +61,16 @@
       </template>
 
       <template #loadMore>
-        <div v-if="hasMore" style="text-align: center; margin-top: 12px">
-          <a-button size="small" @click="loadMore"> 加载更多 </a-button>
+        <div
+          v-if="hasMore"
+          style="text-align: center; margin-top: 12px"
+        >
+          <a-button
+            size="small"
+            @click="loadMore"
+          >
+            加载更多
+          </a-button>
         </div>
       </template>
     </a-list>

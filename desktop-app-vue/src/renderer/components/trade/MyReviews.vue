@@ -17,30 +17,59 @@
       </template>
 
       <!-- 统计概览 -->
-      <a-row :gutter="[16, 16]" style="margin-bottom: 24px">
-        <a-col :span="24" :md="6">
-          <a-statistic title="总评价数" :value="reviews.length">
+      <a-row
+        :gutter="[16, 16]"
+        style="margin-bottom: 24px"
+      >
+        <a-col
+          :span="24"
+          :md="6"
+        >
+          <a-statistic
+            title="总评价数"
+            :value="reviews.length"
+          >
             <template #prefix>
               <comment-outlined />
             </template>
           </a-statistic>
         </a-col>
-        <a-col :span="24" :md="6">
-          <a-statistic title="平均评分" :value="averageRating" :precision="1">
+        <a-col
+          :span="24"
+          :md="6"
+        >
+          <a-statistic
+            title="平均评分"
+            :value="averageRating"
+            :precision="1"
+          >
             <template #prefix>
               <star-outlined style="color: #faad14" />
             </template>
           </a-statistic>
         </a-col>
-        <a-col :span="24" :md="6">
-          <a-statistic title="获赞数" :value="totalHelpful">
+        <a-col
+          :span="24"
+          :md="6"
+        >
+          <a-statistic
+            title="获赞数"
+            :value="totalHelpful"
+          >
             <template #prefix>
               <like-outlined style="color: #52c41a" />
             </template>
           </a-statistic>
         </a-col>
-        <a-col :span="24" :md="6">
-          <a-statistic title="推荐率" :value="recommendRate" suffix="%">
+        <a-col
+          :span="24"
+          :md="6"
+        >
+          <a-statistic
+            title="推荐率"
+            :value="recommendRate"
+            suffix="%"
+          >
             <template #prefix>
               <heart-outlined style="color: #ff4d4f" />
             </template>
@@ -50,11 +79,17 @@
 
       <!-- 评价列表 -->
       <a-spin :spinning="loading">
-        <a-list :data-source="reviews" item-layout="vertical">
+        <a-list
+          :data-source="reviews"
+          item-layout="vertical"
+        >
           <template #renderItem="{ item }">
             <a-list-item class="review-item">
               <template #actions>
-                <a-button size="small" @click="editReview(item)">
+                <a-button
+                  size="small"
+                  @click="editReview(item)"
+                >
                   <template #icon>
                     <edit-outlined />
                   </template>
@@ -64,7 +99,10 @@
                   title="确定要删除这条评价吗？"
                   @confirm="deleteReview(item)"
                 >
-                  <a-button size="small" danger>
+                  <a-button
+                    size="small"
+                    danger
+                  >
                     <template #icon>
                       <delete-outlined />
                     </template>
@@ -84,10 +122,18 @@
                       disabled
                       style="font-size: 14px"
                     />
-                    <a-tag v-if="item.isRecommended" color="success">
+                    <a-tag
+                      v-if="item.isRecommended"
+                      color="success"
+                    >
                       推荐
                     </a-tag>
-                    <a-tag v-else color="default"> 不推荐 </a-tag>
+                    <a-tag
+                      v-else
+                      color="default"
+                    >
+                      不推荐
+                    </a-tag>
                   </a-space>
                 </template>
                 <template #description>
@@ -106,8 +152,13 @@
               </div>
 
               <!-- 商家回复 -->
-              <div v-if="item.sellerReply" class="seller-reply">
-                <a-tag color="orange"> 商家回复 </a-tag>
+              <div
+                v-if="item.sellerReply"
+                class="seller-reply"
+              >
+                <a-tag color="orange">
+                  商家回复
+                </a-tag>
                 <div class="reply-content">
                   {{ item.sellerReply.content }}
                 </div>
@@ -134,11 +185,20 @@
       @ok="handleUpdate"
     >
       <a-form layout="vertical">
-        <a-form-item label="评分" required>
-          <a-rate v-model:value="editForm.rating" allow-half />
+        <a-form-item
+          label="评分"
+          required
+        >
+          <a-rate
+            v-model:value="editForm.rating"
+            allow-half
+          />
         </a-form-item>
 
-        <a-form-item label="评价内容" required>
+        <a-form-item
+          label="评价内容"
+          required
+        >
           <a-textarea
             v-model:value="editForm.content"
             :rows="6"
@@ -148,8 +208,12 @@
 
         <a-form-item label="是否推荐">
           <a-radio-group v-model:value="editForm.isRecommended">
-            <a-radio :value="true"> 推荐 </a-radio>
-            <a-radio :value="false"> 不推荐 </a-radio>
+            <a-radio :value="true">
+              推荐
+            </a-radio>
+            <a-radio :value="false">
+              不推荐
+            </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>

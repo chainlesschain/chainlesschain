@@ -13,11 +13,17 @@
       </div>
       <div class="header-right">
         <a-space>
-          <a-button :loading="isLoading" @click="handleRefresh">
+          <a-button
+            :loading="isLoading"
+            @click="handleRefresh"
+          >
             <ReloadOutlined />
             刷新
           </a-button>
-          <a-button type="primary" @click="showTestSkillModal">
+          <a-button
+            type="primary"
+            @click="showTestSkillModal"
+          >
             <ExperimentOutlined />
             测试技能
           </a-button>
@@ -28,7 +34,10 @@
     <!-- 统计卡片 -->
     <div class="stats-section">
       <a-row :gutter="16">
-        <a-col :xs="24" :sm="8">
+        <a-col
+          :xs="24"
+          :sm="8"
+        >
           <a-card :loading="loading.skills">
             <a-statistic
               title="已注册技能"
@@ -38,7 +47,10 @@
             />
           </a-card>
         </a-col>
-        <a-col :xs="24" :sm="8">
+        <a-col
+          :xs="24"
+          :sm="8"
+        >
           <a-card :loading="loading.skills">
             <a-statistic
               title="Office 技能"
@@ -48,7 +60,10 @@
             />
           </a-card>
         </a-col>
-        <a-col :xs="24" :sm="8">
+        <a-col
+          :xs="24"
+          :sm="8"
+        >
           <a-card :loading="loading.skills">
             <a-statistic
               title="执行历史"
@@ -62,7 +77,11 @@
     </div>
 
     <!-- 技能列表 -->
-    <a-card title="技能列表" :bordered="false" class="skills-section">
+    <a-card
+      title="技能列表"
+      :bordered="false"
+      class="skills-section"
+    >
       <a-list
         :data-source="skills"
         :loading="loading.skills"
@@ -126,13 +145,27 @@
       :confirm-loading="testing"
       @ok="confirmTestSkill"
     >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <a-form-item label="任务类型">
-          <a-select v-model:value="testForm.type" placeholder="选择任务类型">
-            <a-select-option value="office"> Office 文档 </a-select-option>
-            <a-select-option value="coding"> 编程 </a-select-option>
-            <a-select-option value="data-analysis"> 数据分析 </a-select-option>
-            <a-select-option value="other"> 其他 </a-select-option>
+          <a-select
+            v-model:value="testForm.type"
+            placeholder="选择任务类型"
+          >
+            <a-select-option value="office">
+              Office 文档
+            </a-select-option>
+            <a-select-option value="coding">
+              编程
+            </a-select-option>
+            <a-select-option value="data-analysis">
+              数据分析
+            </a-select-option>
+            <a-select-option value="other">
+              其他
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -164,16 +197,27 @@
             placeholder="选择文件类型（可选）"
             allow-clear
           >
-            <a-select-option value="xlsx"> Excel (.xlsx) </a-select-option>
-            <a-select-option value="docx"> Word (.docx) </a-select-option>
-            <a-select-option value="pptx"> PowerPoint (.pptx) </a-select-option>
-            <a-select-option value="pdf"> PDF (.pdf) </a-select-option>
+            <a-select-option value="xlsx">
+              Excel (.xlsx)
+            </a-select-option>
+            <a-select-option value="docx">
+              Word (.docx)
+            </a-select-option>
+            <a-select-option value="pptx">
+              PowerPoint (.pptx)
+            </a-select-option>
+            <a-select-option value="pdf">
+              PDF (.pdf)
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
 
       <!-- 测试结果 -->
-      <div v-if="testResults.length > 0" class="test-results">
+      <div
+        v-if="testResults.length > 0"
+        class="test-results"
+      >
         <a-divider>匹配结果</a-divider>
 
         <a-table

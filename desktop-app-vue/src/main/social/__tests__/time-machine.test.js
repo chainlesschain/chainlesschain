@@ -585,15 +585,15 @@ describe("TimeMachine", () => {
 
       prepResult.get.mockImplementation(() => {
         getCallCount++;
-        if (getCallCount === 1) return { total: totalCount };
-        if (getCallCount === 2) return { count: memoriesCount };
+        if (getCallCount === 1) {return { total: totalCount };}
+        if (getCallCount === 2) {return { count: memoriesCount };}
         return null;
       });
 
       prepResult.all.mockImplementation(() => {
         allCallCount++;
-        if (allCallCount === 1) return monthlyRows;
-        if (allCallCount === 2) return sourceBreakdown;
+        if (allCallCount === 1) {return monthlyRows;}
+        if (allCallCount === 2) {return sourceBreakdown;}
         return [];
       });
     }

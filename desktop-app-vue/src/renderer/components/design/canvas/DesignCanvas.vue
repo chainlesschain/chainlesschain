@@ -1,10 +1,22 @@
 <template>
-  <div ref="containerRef" class="design-canvas-container">
-    <canvas :id="canvasId" ref="canvasRef" />
+  <div
+    ref="containerRef"
+    class="design-canvas-container"
+  >
+    <canvas
+      :id="canvasId"
+      ref="canvasRef"
+    />
 
     <!-- 加载提示 -->
-    <div v-if="loading" class="loading-overlay">
-      <a-spin size="large" tip="加载中..." />
+    <div
+      v-if="loading"
+      class="loading-overlay"
+    >
+      <a-spin
+        size="large"
+        tip="加载中..."
+      />
     </div>
   </div>
 </template>

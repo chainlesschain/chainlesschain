@@ -4,7 +4,10 @@
     <slot v-if="hasPermission" />
 
     <!-- 如果没有权限，显示提示 -->
-    <div v-else class="permission-denied">
+    <div
+      v-else
+      class="permission-denied"
+    >
       <a-empty
         v-if="showEmpty"
         :description="emptyDescription || defaultEmptyDescription"
@@ -35,12 +38,18 @@
       </a-alert>
 
       <!-- 自定义无权限内容 -->
-      <slot v-else-if="$slots.denied" name="denied" />
+      <slot
+        v-else-if="$slots.denied"
+        name="denied"
+      />
     </div>
   </div>
 
   <!-- 加载中状态 -->
-  <div v-else class="permission-loading">
+  <div
+    v-else
+    class="permission-loading"
+  >
     <a-spin tip="检查权限中..." />
   </div>
 </template>

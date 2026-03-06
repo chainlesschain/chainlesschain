@@ -12,7 +12,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
-const crypto = require("crypto");
+import crypto from "crypto";
 
 /**
  * 上下文工程管理器
@@ -54,11 +54,53 @@ class ContextEngineering {
     // Code Knowledge Graph（可选，通过 setCodeKnowledgeGraph 注入）
     this._codeKnowledgeGraph = null;
 
+    // EvoMap Asset Bridge（可选，通过 setEvoMapBridge 注入）
+    this._evoMapBridge = null;
+
+    // Social Graph（可选，通过 setSocialGraph 注入）
+    this._socialGraph = null;
+
+    // Compliance Manager（可选，通过 setComplianceManager 注入）
+    this._complianceManager = null;
+
     // Memory Augmented Generation（可选，通过 setMemoryAugManager 注入）
     this._memoryAugManager = null;
 
     // User Preference Learner（可选，通过 setPreferenceLearner 注入）
     this._preferenceLearner = null;
+
+    // Threshold Signature Manager（可选，通过 setThresholdManager 注入）
+    this._thresholdManager = null;
+
+    // DLP Engine（可选，通过 setDLPEngine 注入）
+    this._dlpEngine = null;
+
+    // PQC Migration Manager（可选，通过 setPQCManager 注入）[Phase 52]
+    this._pqcManager = null;
+
+    // Governance AI（可选，通过 setGovernanceAI 注入）[Phase 54]
+    this._governanceAI = null;
+
+    // Tech Learning Engine（可选，通过 setTechLearningEngine 注入）[Phase 62]
+    this._techLearningEngine = null;
+
+    // Autonomous Developer（可选，通过 setAutonomousDeveloper 注入）[Phase 63]
+    this._autonomousDeveloper = null;
+
+    // Collaboration Governance（可选，通过 setCollaborationGovernance 注入）[Phase 64]
+    this._collaborationGovernance = null;
+
+    // Skill Service Protocol（可选，通过 setSkillServiceProtocol 注入）[Phase 65]
+    this._skillServiceProtocol = null;
+
+    // Inference Scheduler（可选，通过 setInferenceScheduler 注入）[Phase 67]
+    this._inferenceScheduler = null;
+
+    // Protocol Fusion Bridge（可选，通过 setProtocolFusionBridge 注入）[Phase 72]
+    this._protocolFusionBridge = null;
+
+    // EvoMap Federation（可选，通过 setEvoMapFederation 注入）[Phase 76]
+    this._evoMapFederation = null;
 
     // 统计
     this.stats = {
@@ -86,6 +128,30 @@ class ContextEngineering {
   }
 
   /**
+   * Set the EvoMap Asset Bridge for community knowledge injection
+   * @param {Object} evoMapBridge - EvoMapAssetBridge instance
+   */
+  setEvoMapBridge(evoMapBridge) {
+    this._evoMapBridge = evoMapBridge;
+  }
+
+  /**
+   * Set the SocialGraph for relationship-aware context
+   * @param {Object} socialGraph - SocialGraph instance
+   */
+  setSocialGraph(socialGraph) {
+    this._socialGraph = socialGraph;
+  }
+
+  /**
+   * Set the ComplianceManager for compliance-aware context
+   * @param {Object} complianceManager - SOC2Compliance instance
+   */
+  setComplianceManager(complianceManager) {
+    this._complianceManager = complianceManager;
+  }
+
+  /**
    * 注入 Memory Augmented Generation 管理器
    * @param {Object} memoryAugManager - MemoryAugmentedGeneration instance
    */
@@ -99,6 +165,94 @@ class ContextEngineering {
    */
   setPreferenceLearner(preferenceLearner) {
     this._preferenceLearner = preferenceLearner;
+  }
+
+  /**
+   * 注入 Threshold Signature Manager
+   * @param {Object} thresholdManager - ThresholdSignatureManager instance
+   */
+  setThresholdManager(thresholdManager) {
+    this._thresholdManager = thresholdManager;
+  }
+
+  /**
+   * 注入 DLP Engine
+   * @param {Object} dlpEngine - DLPEngine instance
+   */
+  setDLPEngine(dlpEngine) {
+    this._dlpEngine = dlpEngine;
+  }
+
+  /**
+   * 注入 PQC Migration Manager
+   * @param {Object} pqcManager - PQCMigrationManager instance
+   */
+  setPQCManager(pqcManager) {
+    this._pqcManager = pqcManager;
+  }
+
+  /**
+   * 注入 Governance AI
+   * @param {Object} governanceAI - GovernanceAI instance
+   */
+  setGovernanceAI(governanceAI) {
+    this._governanceAI = governanceAI;
+  }
+
+  /**
+   * 注入 Tech Learning Engine [Phase 62]
+   * @param {Object} techLearningEngine - TechLearningEngine instance
+   */
+  setTechLearningEngine(techLearningEngine) {
+    this._techLearningEngine = techLearningEngine;
+  }
+
+  /**
+   * 注入 Autonomous Developer [Phase 63]
+   * @param {Object} autonomousDeveloper - AutonomousDeveloper instance
+   */
+  setAutonomousDeveloper(autonomousDeveloper) {
+    this._autonomousDeveloper = autonomousDeveloper;
+  }
+
+  /**
+   * 注入 Collaboration Governance [Phase 64]
+   * @param {Object} collaborationGovernance - CollaborationGovernance instance
+   */
+  setCollaborationGovernance(collaborationGovernance) {
+    this._collaborationGovernance = collaborationGovernance;
+  }
+
+  /**
+   * 注入 Skill Service Protocol [Phase 65]
+   * @param {Object} skillServiceProtocol - SkillServiceProtocol instance
+   */
+  setSkillServiceProtocol(skillServiceProtocol) {
+    this._skillServiceProtocol = skillServiceProtocol;
+  }
+
+  /**
+   * 注入 Inference Scheduler [Phase 67]
+   * @param {Object} inferenceScheduler - InferenceScheduler instance
+   */
+  setInferenceScheduler(inferenceScheduler) {
+    this._inferenceScheduler = inferenceScheduler;
+  }
+
+  /**
+   * 注入 Protocol Fusion Bridge [Phase 72]
+   * @param {Object} protocolFusionBridge - ProtocolFusionBridge instance
+   */
+  setProtocolFusionBridge(protocolFusionBridge) {
+    this._protocolFusionBridge = protocolFusionBridge;
+  }
+
+  /**
+   * 注入 EvoMap Federation [Phase 76]
+   * @param {Object} evoMapFederation - EvoMapFederation instance
+   */
+  setEvoMapFederation(evoMapFederation) {
+    this._evoMapFederation = evoMapFederation;
   }
 
   /**
@@ -200,7 +354,7 @@ class ContextEngineering {
             content: instinctContext,
           });
         }
-      } catch (_e) {
+      } catch {
         // Instinct context is non-critical, silently skip
       }
     }
@@ -215,7 +369,7 @@ class ContextEngineering {
             content: kgContext,
           });
         }
-      } catch (_e) {
+      } catch {
         // KG context is non-critical, silently skip
       }
     }
@@ -227,8 +381,7 @@ class ContextEngineering {
 
         // 用户偏好
         if (this._preferenceLearner) {
-          const prefContext =
-            this._preferenceLearner.buildPreferenceContext(5);
+          const prefContext = this._preferenceLearner.buildPreferenceContext(5);
           if (prefContext) {
             memoryParts.push(prefContext);
           }
@@ -242,8 +395,10 @@ class ContextEngineering {
               .slice(-2)
               .map((m) => m.content || "")
               .join(" ");
-          const memContext =
-            this._memoryAugManager.buildMemoryContext(contextHint, 3);
+          const memContext = this._memoryAugManager.buildMemoryContext(
+            contextHint,
+            3,
+          );
           if (memContext) {
             memoryParts.push(memContext);
           }
@@ -255,8 +410,103 @@ class ContextEngineering {
             content: memoryParts.join("\n\n"),
           });
         }
-      } catch (_e) {
+      } catch {
         // Memory context is non-critical, silently skip
+      }
+    }
+
+    // 4.8 注入 EvoMap 社区知识（全球 Agent 验证的策略）
+    if (this._evoMapBridge) {
+      try {
+        const contextHint =
+          taskContext?.objective ||
+          messages
+            .slice(-3)
+            .map((m) => m.content || "")
+            .join(" ");
+        const evoContext = this._evoMapBridge.buildEvoMapContext(
+          contextHint,
+          3,
+        );
+        if (evoContext) {
+          result.messages.push({
+            role: "system",
+            content: evoContext,
+          });
+        }
+      } catch {
+        // EvoMap context is non-critical
+      }
+    }
+
+    // 4.9 注入 Skill Service Protocol 上下文 [Phase 65]
+    if (this._skillServiceProtocol) {
+      try {
+        const skillContext =
+          this._skillServiceProtocol.buildSkillProtocolContext();
+        if (skillContext) {
+          result.messages.push({
+            role: "system",
+            content: skillContext,
+          });
+        }
+      } catch {
+        // Skill protocol context is non-critical
+      }
+    }
+
+    // 4.10 注入 Inference Scheduler 上下文 [Phase 67]
+    if (this._inferenceScheduler) {
+      try {
+        const schedulerContext =
+          this._inferenceScheduler.buildSchedulerContext();
+        if (schedulerContext) {
+          result.messages.push({
+            role: "system",
+            content: schedulerContext,
+          });
+        }
+      } catch {
+        // Inference scheduler context is non-critical
+      }
+    }
+
+    // 4.11 注入 Protocol Fusion Bridge 上下文 [Phase 72]
+    if (this._protocolFusionBridge) {
+      try {
+        const fusionContext = this._protocolFusionBridge.buildFusionContext();
+        if (fusionContext) {
+          result.messages.push({
+            role: "system",
+            content: fusionContext,
+          });
+        }
+      } catch {
+        // Protocol fusion context is non-critical
+      }
+    }
+
+    // 4.12 注入 EvoMap Federation 上下文 [Phase 76]
+    if (this._evoMapFederation) {
+      try {
+        const contextHint =
+          taskContext?.objective ||
+          messages
+            .slice(-3)
+            .map((m) => m.content || "")
+            .join(" ");
+        const federationContext = this._evoMapFederation.buildFederationContext(
+          contextHint,
+          3,
+        );
+        if (federationContext) {
+          result.messages.push({
+            role: "system",
+            content: federationContext,
+          });
+        }
+      } catch {
+        // EvoMap federation context is non-critical
       }
     }
 
@@ -866,8 +1116,4 @@ function getContextEngineering(options = {}) {
   return contextEngineeringInstance;
 }
 
-module.exports = {
-  ContextEngineering,
-  RecoverableCompressor,
-  getContextEngineering,
-};
+export { ContextEngineering, RecoverableCompressor, getContextEngineering };

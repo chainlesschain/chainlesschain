@@ -15,13 +15,22 @@
 
     <!-- 操作按钮 -->
     <template #extra>
-      <a-dropdown :trigger="['click']" @click.stop>
-        <a-button type="text" size="small">
+      <a-dropdown
+        :trigger="['click']"
+        @click.stop
+      >
+        <a-button
+          type="text"
+          size="small"
+        >
           <MoreOutlined />
         </a-button>
         <template #overlay>
           <a-menu>
-            <a-menu-item key="view" @click.stop="emit('viewDetail', team)">
+            <a-menu-item
+              key="view"
+              @click.stop="emit('viewDetail', team)"
+            >
               <EyeOutlined />
               查看详情
             </a-menu-item>
@@ -65,7 +74,10 @@
       </div>
 
       <!-- 描述 -->
-      <div v-if="team.description" class="team-description">
+      <div
+        v-if="team.description"
+        class="team-description"
+      >
         {{ team.description }}
       </div>
 

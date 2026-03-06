@@ -1,6 +1,9 @@
 <template>
   <div class="node-property-panel">
-    <div v-if="node" class="panel-content">
+    <div
+      v-if="node"
+      class="panel-content"
+    >
       <div class="panel-header">
         <h3>节点属性</h3>
         <a-tag :color="typeColorMap[node.type] || 'default'">
@@ -8,7 +11,10 @@
         </a-tag>
       </div>
 
-      <a-form layout="vertical" size="small">
+      <a-form
+        layout="vertical"
+        size="small"
+      >
         <a-form-item label="名称">
           <a-input
             :value="node.data?.label"
@@ -17,7 +23,10 @@
           />
         </a-form-item>
 
-        <a-form-item v-if="node.type === 'skill'" label="技能 ID">
+        <a-form-item
+          v-if="node.type === 'skill'"
+          label="技能 ID"
+        >
           <a-input
             :value="node.data?.skillId"
             placeholder="例如: code-review"
@@ -57,7 +66,10 @@
           />
         </a-form-item>
 
-        <a-form-item v-if="node.type === 'skill'" label="重试次数">
+        <a-form-item
+          v-if="node.type === 'skill'"
+          label="重试次数"
+        >
           <a-input-number
             :value="node.data?.retries ?? 0"
             :min="0"
@@ -69,14 +81,21 @@
       </a-form>
 
       <div class="panel-footer">
-        <a-button danger block @click="emit('remove', node)">
+        <a-button
+          danger
+          block
+          @click="emit('remove', node)"
+        >
           <DeleteOutlined />
           删除节点
         </a-button>
       </div>
     </div>
 
-    <div v-else class="panel-empty">
+    <div
+      v-else
+      class="panel-empty"
+    >
       <InboxOutlined style="font-size: 32px; color: #bfbfbf" />
       <span>选择节点以编辑属性</span>
     </div>

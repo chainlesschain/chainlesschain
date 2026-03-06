@@ -1,207 +1,76 @@
 # 多模态协作
 
-> **版本: v1.1.0+ | 多模态融合 | 文档解析 | 跨模态上下文 | 多格式输出 | 屏幕录制 (12 IPC)**
-
-多模态协作系统支持文本、图像、音频、文档、屏幕等多种模态的输入融合和多格式输出生成。
+> v1.1.0 新功能
 
 ## 系统概述
 
-### 架构
+多模态协作系统（Multimodal Collaboration）支持文本、文档、图像、屏幕截图等多种输入模态的融合，提供智能上下文构建和多格式输出生成能力。
 
-```
-多模态协作 (4 模块)
-├─ ModalityFusion        — 5 模态输入融合
-├─ DocumentParser        — 多格式文档解析
-├─ MultimodalContext     — 跨模态上下文构建
-└─ MultimodalOutput      — 多格式输出生成
-```
+### 核心能力
 
-### 数据流
+- **多模态输入融合**：文本 + 文档 + 图像 + 屏幕截图统一处理
+- **智能 Token 预算**：自动管理上下文窗口，优化 Token 使用
+- **文档解析**：支持 PDF、Word、TXT、Markdown 等格式
+- **屏幕捕获**：一键截取屏幕内容作为输入
+- **多格式输出**：Markdown、HTML、ECharts 图表、PPT 演示文稿
 
-```
-输入                      处理                      输出
-─────                    ─────                    ─────
-文本 ───┐              ┌─ OCR提取 ──┐
-图像 ───┤              │            │
-音频 ───┤→ Modality ──→│ 文档解析 ──┤→ Multimodal ──→ Multimodal ──→ Markdown
-文档 ───┤   Fusion     │            │   Context       Output        HTML
-屏幕 ───┘              └─ 转录 ────┘                               图表
-                                                                   幻灯片
-                                                                   JSON/CSV
-```
+## IPC 通道
 
----
+| 通道                          | 说明               |
+| ----------------------------- | ------------------ |
+| `mm:fuse-input`               | 融合多模态输入     |
+| `mm:parse-document`           | 解析文档           |
+| `mm:build-context`            | 构建上下文         |
+| `mm:get-session`              | 获取会话详情       |
+| `mm:get-supported-modalities` | 获取支持的模态列表 |
+| `mm:capture-screen`           | 捕获屏幕           |
+| `mm:generate-output`          | 生成指定格式输出   |
+| `mm:get-artifacts`            | 获取会话产物       |
+| `mm:get-stats`                | 获取统计数据       |
 
-## 模态融合引擎
+## 配置
 
-### 支持的模态
-
-| 模态       | 处理方式                     | 说明                   |
-| ---------- | ---------------------------- | ---------------------- |
-| `text`     | 直接输入                     | 文本消息、代码片段     |
-| `image`    | Tesseract OCR + Sharp 预处理 | 截图、照片中的文字提取 |
-| `audio`    | 语音转录（预留接口）         | 语音输入               |
-| `document` | DocumentParser 解析          | PDF/DOCX/XLSX 等       |
-| `screen`   | 屏幕截图 + OCR               | 当前屏幕内容           |
-
-### 会话管理
-
-每个多模态交互创建一个会话，支持多次输入：
+在 `.chainlesschain/config.json` 中配置：
 
 ```json
 {
-  "sessionId": "session-uuid",
-  "inputs": [
-    { "modality": "text", "content": "分析这个错误" },
-    { "modality": "image", "path": "/tmp/screenshot.png" },
-    { "modality": "document", "path": "/docs/api-spec.pdf" }
-  ],
-  "status": "processing",
-  "maxInputs": 20
-}
-```
-
-### 图像处理流程
-
-```
-原始图像 → Sharp 预处理 (灰度/锐化/缩放)
-         → Tesseract OCR 文字识别
-         → 提取文本内容
-         → 融合到上下文
-```
-
----
-
-## 文档解析
-
-### 支持格式
-
-| 格式     | 解析内容                 | 库依赖    |
-| -------- | ------------------------ | --------- |
-| PDF      | 文本、表格、图片、页结构 | pdf-parse |
-| DOCX     | 段落、标题、表格、图片   | mammoth   |
-| XLSX     | 工作表、行列、命名区域   | xlsx      |
-| TXT      | 纯文本                   | 内置      |
-| Markdown | 结构化文本               | 内置      |
-| CSV      | 结构化数据               | 内置      |
-| JSON     | 结构化数据               | 内置      |
-
-### 解析配置
-
-```json
-{
-  "documentParser": {
-    "maxFileSizeMB": 50,
-    "maxPages": 100,
-    "csvDelimiter": ",",
-    "encoding": "utf-8",
-    "extractTables": true,
-    "extractImages": false
+  "multimodal": {
+    "enabled": true,
+    "maxTokenBudget": 128000,
+    "supportedModalities": ["text", "document", "image", "screen"],
+    "documentFormats": [".pdf", ".doc", ".docx", ".txt", ".md"],
+    "imageFormats": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+    "outputFormats": ["markdown", "html", "echarts", "ppt"]
   }
 }
 ```
 
-### 解析示例
+## 使用示例
 
-```
-PDF 解析结果:
-{
-  "pages": 15,
-  "text": "...",
-  "tables": [
-    { "page": 3, "rows": [...] }
-  ],
-  "metadata": {
-    "title": "API 设计文档",
-    "author": "张三"
-  }
-}
-```
+### 基本流程
 
----
+1. 打开「多模态协作」页面
+2. 选择输入模态（文本/文档/图像/屏幕）
+3. 添加一个或多个输入项
+4. 点击「融合输入」，系统构建统一上下文
+5. 选择输出格式并点击「生成输出」
+6. 在渲染区查看生成结果
 
-## 跨模态上下文
+### 典型使用场景
 
-### 上下文构建
+- **会议纪要**：截取白板照片 + 文本笔记 → 生成 Markdown 文档
+- **代码审查**：代码截图 + 需求文档 → 生成审查报告
+- **数据分析**：CSV 数据文件 + 分析描述 → 生成 ECharts 图表
 
-将多模态输入融合为 LLM 可理解的统一上下文：
+## 故障排除
 
-```
-多模态输入                    统一上下文
-──────────                   ──────────
-[文本] "分析错误"      →     "用户请求分析错误。
-[截图] error.png       →      屏幕截图OCR内容：TypeError: xxx
-[文档] api-spec.pdf    →      参考文档：API规范第3章..."
-```
+| 问题           | 解决方案                            |
+| -------------- | ----------------------------------- |
+| Token 预算超限 | 减少输入内容或提高 `maxTokenBudget` |
+| 文档解析失败   | 检查文件格式是否在支持列表中        |
+| 屏幕捕获失败   | 确认应用有屏幕录制权限              |
 
-### Token 预算管理
+## 相关文档
 
-```json
-{
-  "contextBudget": {
-    "maxTokens": 4000,
-    "modalityWeights": {
-      "text": 1.0,
-      "document": 0.9,
-      "image": 0.8,
-      "audio": 0.7,
-      "screen": 0.6
-    }
-  }
-}
-```
-
-- 按权重分配 Token 预算
-- 高权重模态获得更多上下文空间
-- 按相关性 + 时间优先级排序
-- 上下文缓存 5 分钟 TTL
-- 每个上下文最多 15 个输入
-
----
-
-## 多格式输出
-
-### 输出格式
-
-| 格式       | 说明             | 用途           |
-| ---------- | ---------------- | -------------- |
-| `markdown` | Markdown 文本    | 技术文档、笔记 |
-| `html`     | HTML 页面        | 邮件、网页     |
-| `chart`    | ECharts 图表配置 | 数据可视化     |
-| `slides`   | Reveal.js 幻灯片 | 演示文稿       |
-| `json`     | JSON 数据        | 结构化输出     |
-| `csv`      | CSV 数据         | 表格导出       |
-
-### 内置模板
-
-| 模板               | 说明       |
-| ------------------ | ---------- |
-| `technical-report` | 技术报告   |
-| `api-docs`         | API 文档   |
-| `analysis-slides`  | 分析幻灯片 |
-| `data-dashboard`   | 数据仪表盘 |
-
-### 输出配置
-
-```json
-{
-  "output": {
-    "maxSizeBytes": 5242880,
-    "defaultFormat": "markdown",
-    "chartLibrary": "echarts",
-    "slideFramework": "revealjs"
-  }
-}
-```
-
----
-
-## 关键文件
-
-| 文件                                              | 职责             |
-| ------------------------------------------------- | ---------------- |
-| `src/main/ai-engine/cowork/modality-fusion.js`    | 5 模态输入融合   |
-| `src/main/ai-engine/cowork/document-parser.js`    | 多格式文档解析   |
-| `src/main/ai-engine/cowork/multimodal-context.js` | 跨模态上下文构建 |
-| `src/main/ai-engine/cowork/multimodal-output.js`  | 多格式输出生成   |
-| `src/main/ai-engine/cowork/evolution-ipc.js`      | IPC 处理器       |
+- [Context Engineering](/chainlesschain/context-engineering)
+- [自然语言编程](/chainlesschain/nl-programming)
