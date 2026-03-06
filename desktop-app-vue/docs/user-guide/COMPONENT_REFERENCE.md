@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-02-24T23:28:10.783Z
+**Generated**: 2026-03-06T02:31:40.269Z
 
-**Total Components**: 514
+**Total Components**: 557
 
 ---
 
@@ -358,6 +358,22 @@
 
 ---
 
+### NLProgrammingPage
+
+**File**: `src/renderer/pages/NLProgrammingPage.vue`
+
+**Description**: 页面头部
+
+---
+
+### MultimodalCollabPage
+
+**File**: `src/renderer/pages/MultimodalCollabPage.vue`
+
+**Description**: 页面头部
+
+---
+
 ### MultimediaDemo
 
 **File**: `src/renderer/pages/MultimediaDemo.vue`
@@ -492,6 +508,14 @@
 
 ---
 
+### FederatedNetworkPage
+
+**File**: `src/renderer/pages/FederatedNetworkPage.vue`
+
+**Description**: 页面头部
+
+---
+
 ### ExternalDeviceBrowser
 
 **File**: `src/renderer/pages/ExternalDeviceBrowser.vue`
@@ -521,6 +545,14 @@
 **File**: `src/renderer/pages/EnterpriseAuditPage.vue`
 
 **Description**: Filter Bar
+
+---
+
+### DeploymentMonitorPage
+
+**File**: `src/renderer/pages/DeploymentMonitorPage.vue`
+
+**Description**: 页面头部
 
 ---
 
@@ -625,6 +657,14 @@
 **File**: `src/renderer/pages/BackupDashboard.vue`
 
 **Description**: 备份状态概览
+
+---
+
+### AutonomousOpsPage
+
+**File**: `src/renderer/pages/AutonomousOpsPage.vue`
+
+**Description**: 页面头部
 
 ---
 
@@ -736,6 +776,70 @@
 
 ---
 
+## src/renderer/pages/social
+
+### SocialInsightsPage
+
+**File**: `src/renderer/pages/social/SocialInsightsPage.vue`
+
+---
+
+### RecommendationsPage
+
+**File**: `src/renderer/pages/social/RecommendationsPage.vue`
+
+**Description**: Recommendation Feed
+
+---
+
+### ProtocolFusionPage
+
+**File**: `src/renderer/pages/social/ProtocolFusionPage.vue`
+
+---
+
+### NostrBridgePage
+
+**File**: `src/renderer/pages/social/NostrBridgePage.vue`
+
+**Description**: Relays Tab
+
+---
+
+### MatrixBridgePage
+
+**File**: `src/renderer/pages/social/MatrixBridgePage.vue`
+
+**Description**: Login Modal
+
+---
+
+### GovernancePage
+
+**File**: `src/renderer/pages/social/GovernancePage.vue`
+
+**Description**: Create Proposal Modal
+
+---
+
+### DecentralizedStoragePage
+
+**File**: `src/renderer/pages/social/DecentralizedStoragePage.vue`
+
+---
+
+### ActivityPubBridgePage
+
+**File**: `src/renderer/pages/social/ActivityPubBridgePage.vue`
+
+---
+
+### AISocialEnhancementPage
+
+**File**: `src/renderer/pages/social/AISocialEnhancementPage.vue`
+
+---
+
 ## src/renderer/pages/settings
 
 ### SystemSettings
@@ -789,6 +893,68 @@
 **File**: `src/renderer/pages/settings/DatabaseSecurity.vue`
 
 **Description**: 性能监控
+
+---
+
+## src/renderer/pages/security
+
+### TrustRootPage
+
+**File**: `src/renderer/pages/security/TrustRootPage.vue`
+
+---
+
+### ThresholdSecurityPage
+
+**File**: `src/renderer/pages/security/ThresholdSecurityPage.vue`
+
+**Description**: Key Shares Tab
+
+---
+
+### SatelliteCommPage
+
+**File**: `src/renderer/pages/security/SatelliteCommPage.vue`
+
+---
+
+### PQCMigrationPage
+
+**File**: `src/renderer/pages/security/PQCMigrationPage.vue`
+
+**Description**: Generate Key Modal
+
+---
+
+### PQCEcosystemPage
+
+**File**: `src/renderer/pages/security/PQCEcosystemPage.vue`
+
+---
+
+### HSMAdapterPage
+
+**File**: `src/renderer/pages/security/HSMAdapterPage.vue`
+
+---
+
+### FirmwareOTAPage
+
+**File**: `src/renderer/pages/security/FirmwareOTAPage.vue`
+
+---
+
+### BLEDevicesPage
+
+**File**: `src/renderer/pages/security/BLEDevicesPage.vue`
+
+**Description**: Discovered Devices
+
+---
+
+### AntiCensorshipPage
+
+**File**: `src/renderer/pages/security/AntiCensorshipPage.vue`
 
 ---
 
@@ -952,13 +1118,73 @@
 
 ---
 
+## src/renderer/pages/evomap
+
+### EvoMapDashboard
+
+**File**: `src/renderer/pages/evomap/EvoMapDashboard.vue`
+
+**Description**: 页面头部
+
+---
+
+### EvoMapBrowser
+
+**File**: `src/renderer/pages/evomap/EvoMapBrowser.vue`
+
+**Description**: 页面头部
+
+---
+
 ## src/renderer/pages/enterprise
+
+### TerraformProviderPage
+
+**File**: `src/renderer/pages/enterprise/TerraformProviderPage.vue`
+
+**Description**: Create Workspace Modal
+
+---
+
+### SIEMIntegrationPage
+
+**File**: `src/renderer/pages/enterprise/SIEMIntegrationPage.vue`
+
+**Description**: Targets Tab
+
+---
+
+### SCIMIntegrationPage
+
+**File**: `src/renderer/pages/enterprise/SCIMIntegrationPage.vue`
+
+---
+
+### ProductionHardeningPage
+
+**File**: `src/renderer/pages/enterprise/ProductionHardeningPage.vue`
+
+---
 
 ### EnterpriseOrgPage
 
 **File**: `src/renderer/pages/enterprise/EnterpriseOrgPage.vue`
 
 **Description**: Header
+
+---
+
+### DLPPoliciesPage
+
+**File**: `src/renderer/pages/enterprise/DLPPoliciesPage.vue`
+
+**Description**: Policies Tab
+
+---
+
+### ComplianceDashboardPage
+
+**File**: `src/renderer/pages/enterprise/ComplianceDashboardPage.vue`
 
 ---
 
@@ -1045,6 +1271,80 @@
 **File**: `src/renderer/pages/collaboration/CollabEditorPage.vue`
 
 **Description**: 编辑器内容区域
+
+---
+
+## src/renderer/pages/ai
+
+### TokenIncentivePage
+
+**File**: `src/renderer/pages/ai/TokenIncentivePage.vue`
+
+---
+
+### TechLearningPage
+
+**File**: `src/renderer/pages/ai/TechLearningPage.vue`
+
+---
+
+### StressTestPage
+
+**File**: `src/renderer/pages/ai/StressTestPage.vue`
+
+---
+
+### SkillMarketplacePage
+
+**File**: `src/renderer/pages/ai/SkillMarketplacePage.vue`
+
+---
+
+### SLAManagerPage
+
+**File**: `src/renderer/pages/ai/SLAManagerPage.vue`
+
+---
+
+### ReputationOptimizerPage
+
+**File**: `src/renderer/pages/ai/ReputationOptimizerPage.vue`
+
+---
+
+### InferenceNetworkPage
+
+**File**: `src/renderer/pages/ai/InferenceNetworkPage.vue`
+
+---
+
+### FederationHardeningPage
+
+**File**: `src/renderer/pages/ai/FederationHardeningPage.vue`
+
+---
+
+### EvoMapGovernancePage
+
+**File**: `src/renderer/pages/ai/EvoMapGovernancePage.vue`
+
+---
+
+### EvoMapFederationPage
+
+**File**: `src/renderer/pages/ai/EvoMapFederationPage.vue`
+
+---
+
+### CollaborationGovernancePage
+
+**File**: `src/renderer/pages/ai/CollaborationGovernancePage.vue`
+
+---
+
+### AutonomousDeveloperPage
+
+**File**: `src/renderer/pages/ai/AutonomousDeveloperPage.vue`
 
 ---
 

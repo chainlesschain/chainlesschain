@@ -2,14 +2,14 @@
 
 **Source**: `src/main/llm/context-engineering.js`
 
-**Generated**: 2026-02-24T23:28:10.623Z
+**Generated**: 2026-03-06T02:31:40.094Z
 
 ---
 
-## const crypto = require("crypto");
+## import crypto from "crypto";
 
 ```javascript
-const crypto = require("crypto");
+import crypto from "crypto";
 ```
 
 * Context Engineering 模块
@@ -58,6 +58,39 @@ setCodeKnowledgeGraph(codeKnowledgeGraph)
 
 ---
 
+## setEvoMapBridge(evoMapBridge)
+
+```javascript
+setEvoMapBridge(evoMapBridge)
+```
+
+* Set the EvoMap Asset Bridge for community knowledge injection
+   * @param {Object} evoMapBridge - EvoMapAssetBridge instance
+
+---
+
+## setSocialGraph(socialGraph)
+
+```javascript
+setSocialGraph(socialGraph)
+```
+
+* Set the SocialGraph for relationship-aware context
+   * @param {Object} socialGraph - SocialGraph instance
+
+---
+
+## setComplianceManager(complianceManager)
+
+```javascript
+setComplianceManager(complianceManager)
+```
+
+* Set the ComplianceManager for compliance-aware context
+   * @param {Object} complianceManager - SOC2Compliance instance
+
+---
+
 ## setMemoryAugManager(memoryAugManager)
 
 ```javascript
@@ -77,6 +110,127 @@ setPreferenceLearner(preferenceLearner)
 
 * 注入用户偏好学习器
    * @param {Object} preferenceLearner - UserPreferenceLearner instance
+
+---
+
+## setThresholdManager(thresholdManager)
+
+```javascript
+setThresholdManager(thresholdManager)
+```
+
+* 注入 Threshold Signature Manager
+   * @param {Object} thresholdManager - ThresholdSignatureManager instance
+
+---
+
+## setDLPEngine(dlpEngine)
+
+```javascript
+setDLPEngine(dlpEngine)
+```
+
+* 注入 DLP Engine
+   * @param {Object} dlpEngine - DLPEngine instance
+
+---
+
+## setPQCManager(pqcManager)
+
+```javascript
+setPQCManager(pqcManager)
+```
+
+* 注入 PQC Migration Manager
+   * @param {Object} pqcManager - PQCMigrationManager instance
+
+---
+
+## setGovernanceAI(governanceAI)
+
+```javascript
+setGovernanceAI(governanceAI)
+```
+
+* 注入 Governance AI
+   * @param {Object} governanceAI - GovernanceAI instance
+
+---
+
+## setTechLearningEngine(techLearningEngine)
+
+```javascript
+setTechLearningEngine(techLearningEngine)
+```
+
+* 注入 Tech Learning Engine [Phase 62]
+   * @param {Object} techLearningEngine - TechLearningEngine instance
+
+---
+
+## setAutonomousDeveloper(autonomousDeveloper)
+
+```javascript
+setAutonomousDeveloper(autonomousDeveloper)
+```
+
+* 注入 Autonomous Developer [Phase 63]
+   * @param {Object} autonomousDeveloper - AutonomousDeveloper instance
+
+---
+
+## setCollaborationGovernance(collaborationGovernance)
+
+```javascript
+setCollaborationGovernance(collaborationGovernance)
+```
+
+* 注入 Collaboration Governance [Phase 64]
+   * @param {Object} collaborationGovernance - CollaborationGovernance instance
+
+---
+
+## setSkillServiceProtocol(skillServiceProtocol)
+
+```javascript
+setSkillServiceProtocol(skillServiceProtocol)
+```
+
+* 注入 Skill Service Protocol [Phase 65]
+   * @param {Object} skillServiceProtocol - SkillServiceProtocol instance
+
+---
+
+## setInferenceScheduler(inferenceScheduler)
+
+```javascript
+setInferenceScheduler(inferenceScheduler)
+```
+
+* 注入 Inference Scheduler [Phase 67]
+   * @param {Object} inferenceScheduler - InferenceScheduler instance
+
+---
+
+## setProtocolFusionBridge(protocolFusionBridge)
+
+```javascript
+setProtocolFusionBridge(protocolFusionBridge)
+```
+
+* 注入 Protocol Fusion Bridge [Phase 72]
+   * @param {Object} protocolFusionBridge - ProtocolFusionBridge instance
+
+---
+
+## setEvoMapFederation(evoMapFederation)
+
+```javascript
+setEvoMapFederation(evoMapFederation)
+```
+
+* 注入 EvoMap Federation [Phase 76]
+   * @param {Object} evoMapFederation - EvoMapFederation instance
 
 ---
 

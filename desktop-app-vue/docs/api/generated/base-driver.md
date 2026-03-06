@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/base-driver.js`
 
-**Generated**: 2026-02-24T23:28:10.555Z
+**Generated**: 2026-03-06T02:31:40.022Z
 
 ---
 
@@ -47,7 +47,6 @@ async verifyPIN(pin)
 ```
 
 * 验证PIN码
-   * @param {string} pin - PIN码
    * @returns {Promise<UKeyVerifyResult>}
 
 ---
@@ -59,7 +58,6 @@ async sign(data)
 ```
 
 * 数字签名
-   * @param {string} data - 待签名数据
    * @returns {Promise<string>} 签名结果（Base64）
 
 ---
@@ -71,8 +69,6 @@ async verifySignature(data, signature)
 ```
 
 * 验证签名
-   * @param {string} data - 原始数据
-   * @param {string} signature - 签名（Base64）
    * @returns {Promise<boolean>}
 
 ---
@@ -84,7 +80,6 @@ async encrypt(data)
 ```
 
 * 加密数据
-   * @param {string} data - 待加密数据
    * @returns {Promise<string>} 加密结果（Base64）
 
 ---
@@ -96,7 +91,6 @@ async decrypt(encryptedData)
 ```
 
 * 解密数据
-   * @param {string} encryptedData - 加密数据（Base64）
    * @returns {Promise<string>} 解密结果
 
 ---
@@ -173,6 +167,29 @@ getDriverVersion()
 
 * 获取驱动版本
    * @returns {string}
+
+---
+
+## async deriveKeyAtPath(path)
+
+```javascript
+async deriveKeyAtPath(path)
+```
+
+* Derive a key at the given BIP-32 path.
+   * Subclasses should override for hardware-backed derivation.
+   * @returns {Promise<Object>} Derived key info
+
+---
+
+## getTransportType()
+
+```javascript
+getTransportType()
+```
+
+* Get the transport type used by this driver.
+   * @returns {string} Transport type (e.g., 'koffi', 'usb', 'webusb', 'simulated')
 
 ---
 

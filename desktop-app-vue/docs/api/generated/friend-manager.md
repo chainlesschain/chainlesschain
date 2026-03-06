@@ -2,7 +2,7 @@
 
 **Source**: `src/main/social/friend-manager.js`
 
-**Generated**: 2026-02-24T23:28:10.573Z
+**Generated**: 2026-03-06T02:31:40.038Z
 
 ---
 
@@ -268,6 +268,55 @@ async getStatistics()
 ```
 
 * 获取好友统计
+
+---
+
+## async calculateTrustScore(friendDid)
+
+```javascript
+async calculateTrustScore(friendDid)
+```
+
+* Calculate trust score for a friend based on interactions
+   * @param {string} friendDid
+   * @returns {number} Trust score between 0 and 1
+
+---
+
+## async recordTrustInteraction(friendDid, type, weight = 1.0)
+
+```javascript
+async recordTrustInteraction(friendDid, type, weight = 1.0)
+```
+
+* Record a trust interaction
+   * @param {string} friendDid
+   * @param {string} type - 'message_sent', 'message_received', 'content_shared', 'reaction', 'call'
+   * @param {number} weight - Positive (trust-building) or negative (trust-reducing)
+
+---
+
+## async updateTrustScore(friendDid, score)
+
+```javascript
+async updateTrustScore(friendDid, score)
+```
+
+* Update trust score for a friend
+   * @param {string} friendDid
+   * @param {number} score - Trust score between 0 and 1
+
+---
+
+## async getTrustScore(friendDid)
+
+```javascript
+async getTrustScore(friendDid)
+```
+
+* Get trust score for a friend
+   * @param {string} friendDid
+   * @returns {number} Trust score
 
 ---
 
