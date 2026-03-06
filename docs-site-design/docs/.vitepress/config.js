@@ -18,48 +18,62 @@ export default defineConfig({
       "script",
       {},
       `;(function(){
-  function d2f(fn){ requestAnimationFrame(function(){ requestAnimationFrame(fn); }); }
+  // Use capture phase to run BEFORE VitePress Vue handlers, then stopPropagation
   document.addEventListener('click', function(e){
     var t = e.target;
+    if (!t.closest) return;
+
     // ① Sidebar collapsible group header
-    var hdr = t.closest && t.closest('.VPSidebarItem.collapsible > .item');
+    var hdr = t.closest('.VPSidebarItem.collapsible > .item');
     if (hdr && !t.closest('a')) {
+      e.stopPropagation();
+      e.preventDefault();
       var item = hdr.closest('.VPSidebarItem.collapsible');
-      var was = item.classList.contains('collapsed');
-      d2f(function(){
-        if (item.classList.contains('collapsed') === was) {
-          item.classList.toggle('collapsed');
-        }
-      });
+      item.classList.toggle('collapsed');
       return;
     }
+
     // ② Mobile "菜单" button
-    var menuBtn = t.closest && t.closest('.VPLocalNav button.menu');
+    var menuBtn = t.closest('.VPLocalNav button.menu, button.VPLocalNavButton');
     if (menuBtn) {
+      e.stopPropagation();
+      e.preventDefault();
       var sb = document.querySelector('.VPSidebar');
       if (!sb) return;
-      var wasOpen = sb.classList.contains('open');
-      d2f(function(){
-        if (sb.classList.contains('open') === wasOpen) {
-          sb.classList.toggle('open');
-          menuBtn.setAttribute('aria-expanded', String(!wasOpen));
-          var curtain = document.querySelector('.VPSidebarButton');
-          if (curtain) curtain.setAttribute('aria-expanded', String(!wasOpen));
-        }
-      });
+      var opening = !sb.classList.contains('open');
+      sb.classList.toggle('open');
+      menuBtn.setAttribute('aria-expanded', String(opening));
+      // Toggle backdrop if present
+      var backdrop = document.querySelector('.VPBackdrop');
+      if (backdrop) {
+        if (opening) { backdrop.classList.add('open'); }
+        else { backdrop.classList.remove('open'); }
+      }
       return;
     }
-    // ③ Back to top / outline dropdown button
-    var topBtn = t.closest && t.closest('.VPLocalNavOutlineDropdown > button');
+
+    // ③ Close sidebar when clicking backdrop
+    var backdrop = t.closest('.VPBackdrop');
+    if (backdrop && backdrop.classList.contains('open')) {
+      var sb2 = document.querySelector('.VPSidebar');
+      if (sb2) sb2.classList.remove('open');
+      backdrop.classList.remove('open');
+      var btn = document.querySelector('.VPLocalNav button.menu, button.VPLocalNavButton');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    // ④ Back to top
+    var topBtn = t.closest('.VPLocalNavOutlineDropdown > button');
     if (topBtn) {
       var dd = topBtn.parentElement;
-      d2f(function(){
+      setTimeout(function(){
         if (!dd.classList.contains('open')) {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-      });
+      }, 50);
     }
-  });
+  }, true);
 })();`,
     ],
   ],
@@ -152,6 +166,45 @@ export default defineConfig({
             { text: "14 SSO企业认证", link: "/modules/14_SSO企业认证" },
             { text: "15 MCP SDK系统", link: "/modules/15_MCP_SDK系统" },
             { text: "16 AI技能系统", link: "/modules/16_AI技能系统" },
+          ],
+        },
+        {
+          text: "v1.0.0 — 企业与基础增强 (17-23)",
+          collapsed: true,
+          items: [
+            {
+              text: "17 IPFS去中心化存储 ⭐",
+              link: "/modules/17_IPFS去中心化存储",
+            },
+            {
+              text: "18 P2P实时协作系统 ⭐",
+              link: "/modules/18_P2P实时协作系统",
+            },
+            {
+              text: "19 自治Agent Runner ⭐",
+              link: "/modules/19_自治Agent_Runner",
+            },
+            { text: "20 模型量化系统 ⭐", link: "/modules/20_模型量化系统" },
+            { text: "21 i18n国际化 ⭐", link: "/modules/21_i18n国际化" },
+            { text: "22 性能自动调优 ⭐", link: "/modules/22_性能自动调优" },
+            { text: "23 企业组织管理 ⭐", link: "/modules/23_企业组织管理" },
+          ],
+        },
+        {
+          text: "v1.1.0 — 全栈智能化 (24-28)",
+          collapsed: true,
+          items: [
+            {
+              text: "24 去中心化Agent网络 ⭐",
+              link: "/modules/24_去中心化Agent网络",
+            },
+            { text: "25 自治运维系统 ⭐", link: "/modules/25_自治运维系统" },
+            {
+              text: "26 开发流水线编排 ⭐",
+              link: "/modules/26_开发流水线编排",
+            },
+            { text: "27 多模态协作 ⭐", link: "/modules/27_多模态协作" },
+            { text: "28 自然语言编程 ⭐", link: "/modules/28_自然语言编程" },
           ],
         },
         {

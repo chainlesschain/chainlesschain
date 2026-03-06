@@ -234,7 +234,7 @@ Agent A                              Agent B
 4. 验证候选 Agent 的凭证
 5. 分配给最优 Agent → executing
 6. Agent 执行任务
-7. 返回结��� → completed / failed
+7. 返回结果 → completed / failed
 ```
 
 ### 任务配置
@@ -252,12 +252,12 @@ Agent A                              Agent B
 
 ## 数据库表
 
-| 表名                  | 说明                                  |
-| --------------------- | ------------------------------------- |
-| `agent_dids`          | Agent DID 身份（���私钥、能力、状态） |
-| `agent_auth_sessions` | 认证会话                              |
-| `agent_credentials`   | VC 凭证（颁发者/持有者/声明/证明）    |
-| `agent_reputation`    | 信誉评分及历史                        |
+| 表名                  | 说明                                 |
+| --------------------- | ------------------------------------ |
+| `agent_dids`          | Agent DID 身份（公私钥、能力、状态） |
+| `agent_auth_sessions` | 认证会话                             |
+| `agent_credentials`   | VC 凭证（颁发者/持有者/声明/证明）   |
+| `agent_reputation`    | 信誉评分及历史                       |
 
 ---
 
