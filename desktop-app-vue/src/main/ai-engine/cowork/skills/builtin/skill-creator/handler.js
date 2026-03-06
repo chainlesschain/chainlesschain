@@ -33,10 +33,12 @@ module.exports = {
           return handleValidate(parsed.name);
         case "list-templates":
           return handleListTemplates();
+        case "get-template":
+          return handleGetTemplate(parsed.name);
         default:
           return {
             success: false,
-            error: `Unknown action: ${parsed.action}. Use create, test, optimize, validate, or list-templates.`,
+            error: `Unknown action: ${parsed.action}. Use create, test, optimize, validate, list-templates, or get-template.`,
           };
       }
     } catch (error) {
@@ -353,18 +355,472 @@ function handleValidate(name) {
 }
 
 function handleListTemplates() {
+  const templates = Object.entries(SKILL_TEMPLATES).map(([name, t]) => ({
+    name,
+    description: t.description,
+    hasHandler: true,
+    hasSkillMd: true,
+  }));
+
   return {
     success: true,
     action: "list-templates",
-    templates: [
-      { name: "basic", description: "Simple skill with single action" },
-      { name: "multi-action", description: "Skill with multiple actions/modes" },
-      { name: "api-integration", description: "Skill that calls external APIs" },
-      { name: "file-processor", description: "Skill that processes files" },
-      { name: "code-analyzer", description: "Skill that analyzes/transforms code" },
-    ],
+    templates,
+    result: templates,
+    message: `${templates.length} template(s) available. Use "get-template <name>" to retrieve full code.`,
   };
 }
+
+function handleGetTemplate(name) {
+  if (!name) return { success: false, error: "Provide a template name. Use list-templates to see available templates." };
+
+  const template = SKILL_TEMPLATES[name.toLowerCase()];
+  if (!template) {
+    const available = Object.keys(SKILL_TEMPLATES).join(", ");
+    return { success: false, error: `Template "${name}" not found. Available: ${available}` };
+  }
+
+  return {
+    success: true,
+    action: "get-template",
+    templateName: name,
+    description: template.description,
+    files: {
+      "handler.js": template.handler,
+      "SKILL.md": template.skillMd,
+    },
+    result: { name, description: template.description, handler: template.handler, skillMd: template.skillMd },
+    message: `Template "${name}" retrieved. Contains handler.js and SKILL.md.`,
+  };
+}
+
+const SKILL_TEMPLATES = {
+  basic: {
+    description: "Simple greeter skill with a single action",
+    handler: `/**
+ * Basic Greeter Skill Handler
+ */
+const { logger } = require("../../../../../utils/logger.js");
+
+module.exports = {
+  async init(skill) {
+    logger.info("[Greeter] Initialized");
+  },
+
+  async execute(task, context = {}, skill) {
+    const input = task.input || task.args || "";
+    const name = input.trim().split(/\\s+/).slice(1).join(" ") || "World";
+
+    return {
+      success: true,
+      action: "greet",
+      result: { greeting: \`Hello, \${name}!\`, timestamp: new Date().toISOString() },
+      message: \`Hello, \${name}!\`,
+    };
+  },
+};
+`,
+    skillMd: `---
+name: greeter
+display-name: Greeter
+description: A simple greeting skill that says hello
+version: 1.0.0
+category: general
+user-invocable: true
+tags: [greeter, hello, demo]
+handler: ./handler.js
+os: [win32, darwin, linux]
+instructions: |
+  Use this skill to greet someone by name.
+examples:
+  - input: "greet Alice"
+    action: greet
+author: ChainlessChain
+license: MIT
+---
+
+# Greeter
+
+A simple skill that demonstrates the basic handler structure.
+
+## Usage
+
+\\\`\\\`\\\`
+/greeter greet <name>
+\\\`\\\`\\\`
+`,
+  },
+
+  "multi-action": {
+    description: "Task tracker with create/list/complete/stats actions",
+    handler: `/**
+ * Task Tracker Skill Handler — Multi-action template
+ */
+const { logger } = require("../../../../../utils/logger.js");
+
+let tasks = [];
+
+module.exports = {
+  _resetState() { tasks = []; },
+
+  async init(skill) {
+    logger.info("[TaskTracker] Initialized");
+  },
+
+  async execute(task, context = {}, skill) {
+    const input = task.input || task.args || "";
+    const parts = input.trim().split(/\\s+/);
+    const action = (parts[0] || "list").toLowerCase();
+    const rest = parts.slice(1).join(" ");
+
+    switch (action) {
+      case "create": {
+        if (!rest) return { success: false, error: "Provide a task name." };
+        const entry = { id: tasks.length + 1, name: rest, done: false, created: new Date().toISOString() };
+        tasks.push(entry);
+        return { success: true, action: "create", result: entry, message: \`Task #\${entry.id} created.\` };
+      }
+      case "list": {
+        const filtered = tasks.filter((t) => !t.done);
+        return { success: true, action: "list", result: { tasks: filtered, total: tasks.length }, message: \`\${filtered.length} pending task(s).\` };
+      }
+      case "complete": {
+        const id = parseInt(rest, 10);
+        const found = tasks.find((t) => t.id === id);
+        if (!found) return { success: false, error: \`Task #\${id} not found.\` };
+        found.done = true;
+        return { success: true, action: "complete", result: found, message: \`Task #\${id} completed.\` };
+      }
+      case "stats": {
+        const done = tasks.filter((t) => t.done).length;
+        return { success: true, action: "stats", result: { total: tasks.length, done, pending: tasks.length - done }, message: \`\${done}/\${tasks.length} done.\` };
+      }
+      default:
+        return { success: false, error: \`Unknown action: \${action}. Use: create, list, complete, stats\` };
+    }
+  },
+};
+`,
+    skillMd: `---
+name: task-tracker
+display-name: Task Tracker
+description: Track tasks with create, list, complete, and stats actions
+version: 1.0.0
+category: productivity
+user-invocable: true
+tags: [tasks, tracker, productivity]
+handler: ./handler.js
+os: [win32, darwin, linux]
+instructions: |
+  Use this skill to manage a simple task list.
+examples:
+  - input: "create Buy groceries"
+    action: create
+  - input: "list"
+    action: list
+  - input: "complete 1"
+    action: complete
+author: ChainlessChain
+license: MIT
+---
+
+# Task Tracker
+
+A multi-action skill template demonstrating create/list/complete/stats pattern.
+`,
+  },
+
+  "api-integration": {
+    description: "API caller with _deps pattern and env key authentication",
+    handler: `/**
+ * API Caller Skill Handler — API integration template with _deps
+ */
+const { logger } = require("../../../../../utils/logger.js");
+const https = require("https");
+
+const _deps = { https };
+
+module.exports = {
+  _deps,
+
+  async init(skill) {
+    logger.info("[APICaller] Initialized");
+  },
+
+  async execute(task, context = {}, skill) {
+    const input = task.input || task.args || "";
+    const parts = input.trim().split(/\\s+/);
+    const action = (parts[0] || "status").toLowerCase();
+    const query = parts.slice(1).join(" ");
+
+    const apiKey = process.env.MY_API_KEY || context.apiKey;
+    if (!apiKey) {
+      return { success: false, error: "MY_API_KEY environment variable not set." };
+    }
+
+    try {
+      switch (action) {
+        case "status": return await handleStatus(apiKey);
+        case "search": return await handleSearch(apiKey, query);
+        default: return { success: false, error: \`Unknown action: \${action}. Use: status, search\` };
+      }
+    } catch (error) {
+      logger.error("[APICaller] Error:", error);
+      return { success: false, error: error.message };
+    }
+  },
+};
+
+function apiRequest(hostname, path, apiKey) {
+  return new Promise((resolve, reject) => {
+    const req = _deps.https.request({ hostname, path, method: "GET",
+      headers: { Authorization: \`Bearer \${apiKey}\`, "User-Agent": "ChainlessChain/1.2.0" },
+    }, (res) => {
+      let data = "";
+      res.on("data", (c) => (data += c));
+      res.on("end", () => {
+        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
+        catch (_e) { resolve({ status: res.statusCode, data: { raw: data } }); }
+      });
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+async function handleStatus(apiKey) {
+  const res = await apiRequest("api.example.com", "/v1/status", apiKey);
+  return { success: res.status === 200, action: "status", result: res.data, message: \`API status: \${res.status}\` };
+}
+
+async function handleSearch(apiKey, query) {
+  if (!query) return { success: false, error: "Provide a search query." };
+  const res = await apiRequest("api.example.com", \`/v1/search?q=\${encodeURIComponent(query)}\`, apiKey);
+  return { success: res.status === 200, action: "search", result: res.data, message: \`Search returned status \${res.status}.\` };
+}
+`,
+    skillMd: `---
+name: api-caller
+display-name: API Caller
+description: Template for skills that call external REST APIs with auth
+version: 1.0.0
+category: automation
+user-invocable: true
+tags: [api, rest, integration]
+handler: ./handler.js
+os: [win32, darwin, linux]
+instructions: |
+  Use this skill to query an external API. Requires MY_API_KEY env var.
+examples:
+  - input: "status"
+    action: status
+  - input: "search my query"
+    action: search
+author: ChainlessChain
+license: MIT
+---
+
+# API Caller
+
+Demonstrates the _deps injection pattern for testable API calls.
+`,
+  },
+
+  "file-processor": {
+    description: "Markdown file analyzer with fs _deps injection",
+    handler: `/**
+ * File Processor Skill Handler — File processing template with _deps
+ */
+const { logger } = require("../../../../../utils/logger.js");
+const fs = require("fs");
+const path = require("path");
+
+const _deps = { fs, path };
+
+module.exports = {
+  _deps,
+
+  async init(skill) {
+    logger.info("[FileProcessor] Initialized");
+  },
+
+  async execute(task, context = {}, skill) {
+    const input = task.input || task.args || "";
+    const parts = input.trim().split(/\\s+/);
+    const action = (parts[0] || "analyze").toLowerCase();
+    const filePath = parts.slice(1).join(" ");
+
+    switch (action) {
+      case "analyze": return handleAnalyze(filePath);
+      case "stats": return handleStats(filePath);
+      default: return { success: false, error: \`Unknown action: \${action}. Use: analyze, stats\` };
+    }
+  },
+};
+
+function handleAnalyze(filePath) {
+  if (!filePath) return { success: false, error: "Provide a file path." };
+  const resolved = _deps.path.resolve(filePath);
+  if (!_deps.fs.existsSync(resolved)) return { success: false, error: \`File not found: \${resolved}\` };
+
+  const content = _deps.fs.readFileSync(resolved, "utf-8");
+  const lines = content.split("\\n");
+  const headings = lines.filter((l) => /^#{1,6}\\s/.test(l)).map((l) => l.replace(/^#+\\s*/, "").trim());
+  const wordCount = content.split(/\\s+/).filter(Boolean).length;
+  const links = content.match(/\\[([^\\]]+)\\]\\([^)]+\\)/g) || [];
+
+  return {
+    success: true,
+    action: "analyze",
+    result: { file: _deps.path.basename(resolved), lines: lines.length, words: wordCount, headings, linkCount: links.length },
+    message: \`Analyzed "\${_deps.path.basename(resolved)}": \${lines.length} lines, \${wordCount} words, \${headings.length} headings.\`,
+  };
+}
+
+function handleStats(dirPath) {
+  if (!dirPath) return { success: false, error: "Provide a directory path." };
+  const resolved = _deps.path.resolve(dirPath);
+  if (!_deps.fs.existsSync(resolved)) return { success: false, error: \`Directory not found: \${resolved}\` };
+
+  const entries = _deps.fs.readdirSync(resolved);
+  const mdFiles = entries.filter((e) => e.endsWith(".md"));
+  let totalWords = 0;
+  for (const f of mdFiles) {
+    const content = _deps.fs.readFileSync(_deps.path.join(resolved, f), "utf-8");
+    totalWords += content.split(/\\s+/).filter(Boolean).length;
+  }
+
+  return {
+    success: true,
+    action: "stats",
+    result: { directory: resolved, totalFiles: entries.length, markdownFiles: mdFiles.length, totalWords },
+    message: \`\${mdFiles.length} markdown file(s), \${totalWords} total words.\`,
+  };
+}
+`,
+    skillMd: `---
+name: file-processor
+display-name: File Processor
+description: Analyze markdown files for structure, word count, and links
+version: 1.0.0
+category: productivity
+user-invocable: true
+tags: [file, markdown, analysis]
+handler: ./handler.js
+os: [win32, darwin, linux]
+instructions: |
+  Use this skill to analyze markdown files or directories.
+examples:
+  - input: "analyze ./README.md"
+    action: analyze
+  - input: "stats ./docs"
+    action: stats
+author: ChainlessChain
+license: MIT
+---
+
+# File Processor
+
+Demonstrates the _deps injection pattern for testable file system operations.
+`,
+  },
+
+  "code-analyzer": {
+    description: "Code complexity analyzer using pure regex logic",
+    handler: `/**
+ * Code Analyzer Skill Handler — Pure regex-based code analysis
+ */
+const { logger } = require("../../../../../utils/logger.js");
+
+module.exports = {
+  async init(skill) {
+    logger.info("[CodeAnalyzer] Initialized");
+  },
+
+  async execute(task, context = {}, skill) {
+    const input = task.input || task.args || "";
+    const parts = input.trim().split(/\\s+/);
+    const action = (parts[0] || "complexity").toLowerCase();
+    const code = parts.slice(1).join(" ");
+
+    switch (action) {
+      case "complexity": return handleComplexity(code);
+      case "metrics": return handleMetrics(code);
+      default: return { success: false, error: \`Unknown action: \${action}. Use: complexity, metrics\` };
+    }
+  },
+};
+
+function handleComplexity(code) {
+  if (!code) return { success: false, error: "Provide code to analyze." };
+
+  let complexity = 1;
+  const branches = (code.match(/\\b(if|else if|else|switch|case|catch|while|for|&&|\\|\\|)\\b/g) || []);
+  complexity += branches.length;
+
+  const functions = (code.match(/\\b(function\\s|=>|async\\s+function)/g) || []);
+  const lines = code.split("\\n").length;
+  const nesting = Math.max(0, ...(code.match(/^(\\s+)/gm) || [""]).map((s) => Math.floor(s.length / 2)));
+
+  let rating;
+  if (complexity <= 5) rating = "low";
+  else if (complexity <= 10) rating = "moderate";
+  else if (complexity <= 20) rating = "high";
+  else rating = "very-high";
+
+  return {
+    success: true,
+    action: "complexity",
+    result: { complexity, rating, branches: branches.length, functions: functions.length, lines, maxNesting: nesting },
+    message: \`Cyclomatic complexity: \${complexity} (\${rating}). \${branches.length} branch(es), \${functions.length} function(s).\`,
+  };
+}
+
+function handleMetrics(code) {
+  if (!code) return { success: false, error: "Provide code to analyze." };
+
+  const lines = code.split("\\n");
+  const codeLines = lines.filter((l) => l.trim().length > 0 && !l.trim().startsWith("//")).length;
+  const commentLines = lines.filter((l) => l.trim().startsWith("//")).length;
+  const blankLines = lines.filter((l) => l.trim().length === 0).length;
+  const todoCount = (code.match(/\\/\\/\\s*(TODO|FIXME|HACK|XXX)/gi) || []).length;
+  const avgLineLength = Math.round(lines.reduce((s, l) => s + l.length, 0) / Math.max(lines.length, 1));
+
+  return {
+    success: true,
+    action: "metrics",
+    result: { totalLines: lines.length, codeLines, commentLines, blankLines, todoCount, avgLineLength },
+    message: \`\${codeLines} code lines, \${commentLines} comments, \${blankLines} blank, \${todoCount} TODOs.\`,
+  };
+}
+`,
+    skillMd: `---
+name: code-analyzer
+display-name: Code Analyzer
+description: Analyze code complexity and metrics using regex patterns
+version: 1.0.0
+category: development
+user-invocable: true
+tags: [code, analysis, complexity, metrics]
+handler: ./handler.js
+os: [win32, darwin, linux]
+instructions: |
+  Use this skill to measure code complexity and gather metrics.
+examples:
+  - input: "complexity function foo() { if (x) { return 1; } }"
+    action: complexity
+  - input: "metrics const x = 1; // TODO: fix"
+    action: metrics
+author: ChainlessChain
+license: MIT
+---
+
+# Code Analyzer
+
+Pure regex-based code analysis — no external dependencies needed.
+`,
+  },
+};
 
 function guessCategory(text) {
   const lower = text.toLowerCase();
