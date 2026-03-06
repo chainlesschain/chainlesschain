@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-manager.js`
 
-**Generated**: 2026-02-24T23:28:10.598Z
+**Generated**: 2026-03-06T02:31:40.065Z
 
 ---
 

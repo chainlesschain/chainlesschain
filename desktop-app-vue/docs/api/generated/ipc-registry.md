@@ -2,14 +2,14 @@
 
 **Source**: `src/main/ipc/ipc-registry.js`
 
-**Generated**: 2026-02-24T23:28:10.628Z
+**Generated**: 2026-03-06T02:31:40.100Z
 
 ---
 
-## const
+## import
 
 ```javascript
-const
+import
 ```
 
 * IPC 注册中心
@@ -68,14 +68,14 @@ function registerAllIPC(dependencies)
 
 ---
 
-## function unregisterAllIPC(ipcMain)
+## function unregisterAllIPC()
 
 ```javascript
-function unregisterAllIPC(ipcMain)
+function unregisterAllIPC()
 ```
 
 * 注销所有 IPC 处理器（用于测试和热重载）
- * @param {Object} ipcMain - Electron ipcMain 实例
+ * @param {Object} ipcMain - Electron ipcMain 实例 (not used in this implementation)
 
 ---
 

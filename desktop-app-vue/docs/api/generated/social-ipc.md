@@ -2,14 +2,14 @@
 
 **Source**: `src/main/social/social-ipc.js`
 
-**Generated**: 2026-02-24T23:28:10.571Z
+**Generated**: 2026-03-06T02:31:40.034Z
 
 ---
 
-## const
+## import
 
 ```javascript
-const
+import
 ```
 
 * Social IPC 处理器
@@ -33,6 +33,7 @@ function registerSocialIPC(
  * @param {Object} dependencies.postManager - 动态管理器
  * @param {Object} dependencies.database - 数据库管理器（用于聊天功能）
  * @param {Object} dependencies.groupChatManager - 群聊管理器
+ * @param {Object} [dependencies.ipcMain] - Injected ipcMain (for testing)
 
 ---
 
@@ -242,6 +243,39 @@ ipcMain.handle("friend:get-statistics", async () =>
 
 * 获取好友统计信息
    * Channel: 'friend:get-statistics'
+
+---
+
+## ipcMain.handle("social:getTrustScore", async (_event, friendDid) =>
+
+```javascript
+ipcMain.handle("social:getTrustScore", async (_event, friendDid) =>
+```
+
+* 获取信任分
+   * Channel: 'social:getTrustScore'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 更新信任分
+   * Channel: 'social:updateTrustScore'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* 记录信任交互
+   * Channel: 'social:recordTrustInteraction'
 
 ---
 
@@ -715,6 +749,204 @@ ipcMain.handle("chat:play-voice-message", async (_event,
 
 * 播放语音消息
    * Channel: 'chat:play-voice-message'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* AI Enhanced Reply
+   * Channel: 'social-ai:enhanced-reply'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* AI Multi-Style Replies
+   * Channel: 'social-ai:multi-style-replies'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Topic Analysis
+   * Channel: 'social-ai:analyze-topics'
+
+---
+
+## ipcMain.handle("social-ai:trending-topics", async (_event, options) =>
+
+```javascript
+ipcMain.handle("social-ai:trending-topics", async (_event, options) =>
+```
+
+* Get Trending Topics
+   * Channel: 'social-ai:trending-topics'
+
+---
+
+## ipcMain.handle("social-ai:batch-sentiment", async (_event,
+
+```javascript
+ipcMain.handle("social-ai:batch-sentiment", async (_event,
+```
+
+* Batch Sentiment Analysis
+   * Channel: 'social-ai:batch-sentiment'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Record Social Interaction
+   * Channel: 'social-ai:record-interaction'
+
+---
+
+## ipcMain.handle(
+
+```javascript
+ipcMain.handle(
+```
+
+* Get Closest Contacts
+   * Channel: 'social-ai:closest-contacts'
+
+---
+
+## ipcMain.handle("social-ai:get-graph", async (_event,
+
+```javascript
+ipcMain.handle("social-ai:get-graph", async (_event,
+```
+
+* Get Social Graph
+   * Channel: 'social-ai:get-graph'
+
+---
+
+## ipcMain.handle("ap:create-actor", async (_event,
+
+```javascript
+ipcMain.handle("ap:create-actor", async (_event,
+```
+
+* Create ActivityPub Actor
+   * Channel: 'ap:create-actor'
+
+---
+
+## ipcMain.handle("ap:get-actor", async (_event,
+
+```javascript
+ipcMain.handle("ap:get-actor", async (_event,
+```
+
+* Get Actor Document
+   * Channel: 'ap:get-actor'
+
+---
+
+## ipcMain.handle("ap:publish-post", async (_event,
+
+```javascript
+ipcMain.handle("ap:publish-post", async (_event,
+```
+
+* Publish Post to ActivityPub
+   * Channel: 'ap:publish-post'
+
+---
+
+## ipcMain.handle("ap:publish-like", async (_event,
+
+```javascript
+ipcMain.handle("ap:publish-like", async (_event,
+```
+
+* Publish Like
+   * Channel: 'ap:publish-like'
+
+---
+
+## ipcMain.handle("ap:publish-boost", async (_event,
+
+```javascript
+ipcMain.handle("ap:publish-boost", async (_event,
+```
+
+* Publish Boost
+   * Channel: 'ap:publish-boost'
+
+---
+
+## ipcMain.handle("ap:follow", async (_event,
+
+```javascript
+ipcMain.handle("ap:follow", async (_event,
+```
+
+* Follow Remote Actor
+   * Channel: 'ap:follow'
+
+---
+
+## ipcMain.handle("ap:webfinger-lookup", async (_event,
+
+```javascript
+ipcMain.handle("ap:webfinger-lookup", async (_event,
+```
+
+* WebFinger Lookup
+   * Channel: 'ap:webfinger-lookup'
+
+---
+
+## ipcMain.handle("ap:get-outbox", async (_event,
+
+```javascript
+ipcMain.handle("ap:get-outbox", async (_event,
+```
+
+* Get Outbox
+   * Channel: 'ap:get-outbox'
+
+---
+
+## ipcMain.handle("ap:sync-status", async () =>
+
+```javascript
+ipcMain.handle("ap:sync-status", async () =>
+```
+
+* Get Sync Status
+   * Channel: 'ap:sync-status'
+
+---
+
+## ipcMain.handle("ap:sync-now", async () =>
+
+```javascript
+ipcMain.handle("ap:sync-now", async () =>
+```
+
+* Trigger Manual Sync
+   * Channel: 'ap:sync-now'
 
 ---
 

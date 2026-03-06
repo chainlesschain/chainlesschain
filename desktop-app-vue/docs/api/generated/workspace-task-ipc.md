@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/workspace-task-ipc.js`
 
-**Generated**: 2026-02-24T23:28:10.627Z
+**Generated**: 2026-03-06T02:31:40.099Z
 
 ---
 

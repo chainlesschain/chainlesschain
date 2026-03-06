@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/ipc-guard.js`
 
-**Generated**: 2026-02-24T23:28:10.628Z
+**Generated**: 2026-03-06T02:31:40.100Z
 
 ---
 

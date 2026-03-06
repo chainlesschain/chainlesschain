@@ -2,7 +2,7 @@
 
 **Source**: `src/main/social/post-manager.js`
 
-**Generated**: 2026-02-24T23:28:10.572Z
+**Generated**: 2026-03-06T02:31:40.035Z
 
 ---
 
