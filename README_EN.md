@@ -942,7 +942,7 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🟢 **Trading System**: 100% Complete - **8 Modules + On-chain Contracts + NFT Transfers + Order Editing + Sharing + QR Codes** ⭐Completed
 - 🟢 **Browser Extension**: 100% Complete - **Testing Framework + Documentation** ⭐Completed
 - 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension** ⭐Completed
-- 🟢 **AI Skills System**: 100% Complete - **95 Built-in Skills (100% Handler) + 28 Android Skills + Unified Tool Registry + Agent Skills Standard** ⭐v1.0.0
+- 🟢 **AI Skills System**: 100% Complete - **128 Built-in Skills (100% Handler) + 28 Android Skills + Unified Tool Registry + Agent Skills Standard** ⭐v1.2.0
 - 🟢 **SIMKey Security Enhancements**: 100% Complete - **iOS eSIM + 5G Optimization + NFC Offline Signing + Multi-SIM Switch + Health Monitoring + Quantum-Resistant** ⭐v0.38.0
 - 🟢 **IPFS Decentralized Storage**: 100% Complete - **Helia/Kubo Dual-Engine + Content Addressing + P2P CDN + Auto-Pinning** ⭐v1.0.0
 - 🟢 **Real-time Collaboration (CRDT/Yjs)**: 100% Complete - **Yjs Conflict Resolution + P2P Sync + Cursor Sharing + Document Locks** ⭐v1.0.0
@@ -1008,8 +1008,8 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
-- 🎨 **Skills System**: 118 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.0.0
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 118 skills unified management ✅ ⭐v1.0.0
+- 🎨 **Skills System**: 128 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.0.0
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 128 skills unified management ✅ ⭐v1.0.0
 - 🧬 **Instinct Learning**: Auto-extract user patterns + Confidence scoring + Context injection + Hooks observation pipeline ✅ ⭐v0.39.0
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
@@ -1175,7 +1175,7 @@ Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (118 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (128 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging

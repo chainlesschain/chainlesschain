@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v3.4.0 企业版 | 军事级安全 | 完全去中心化 | AI原生 | 95技能 | 全栈智能化 | 77 Phase
+  tagline: v3.4.0 企业版 | 军事级安全 | 完全去中心化 | AI原生 | 128技能 | 全栈智能化 | 77 Phase
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -50,7 +50,7 @@ features:
 
   - icon: 🤖
     title: Cowork多智能体协作
-    details: v4.0代理联邦网络，全自动流水线，自然语言编程，多模态协作，自主运维，95内置技能
+    details: v4.0代理联邦网络，全自动流水线，自然语言编程，多模态协作，自主运维，128内置技能
 
   - icon: 🖥️
     title: Computer Use
@@ -66,7 +66,7 @@ features:
 
   - icon: 🎨
     title: AI技能系统
-    details: 95个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+95技能)，10个演示模板
+    details: 128个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+128技能)，10个演示模板
 
   - icon: ⛓️
     title: 区块链集成
@@ -128,8 +128,8 @@ start.bat
 - 🌐 完全去中心化 (P2P网络 + DHT)
 - 🧠 16个AI专用引擎 + 14+云LLM提供商
 - 📱 跨设备同步 (PC/移动端/浏览器扩展)
-- 🔌 MCP集成 + 95内置技能 + 统一工具注册表
-- 🎨 AI技能系统 (95技能 + Agent Skills标准 + 10演示模板)
+- 🔌 MCP集成 + 128内置技能 + 统一工具注册表
+- 🎨 AI技能系统 (128技能 + Agent Skills标准 + 10演示模板)
 - ⛓️ 区块链集成 (15链 + 6个智能合约)
 - 🤖 Cowork v4.0 代理联邦网络 (全自动流水线、NL编程、多模态、自主运维)
 - 🖥️ Computer Use (68+ IPC处理器，视觉AI，工作流引擎)

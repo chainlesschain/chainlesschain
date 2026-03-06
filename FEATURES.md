@@ -2,7 +2,7 @@
 
 Complete list of implemented features in the ChainlessChain project.
 
-**Last Updated**: 2026-02-27 (v1.1.0-alpha)
+**Last Updated**: 2026-03-06 (v1.2.0)
 
 ## Core Features
 
@@ -25,7 +25,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Team Manager                  | `main/permission/team-manager.js`                                        | —                                                                                  |
 | Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
 | Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                      | —                                                                                  |
-| Skills System (95 built-in)   | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
+| Skills System (128 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
 | Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
 | Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
 | Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`            | [`COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)                     |
@@ -83,7 +83,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 - **4-layer loading**: bundled → marketplace → managed → workspace (higher priority overrides)
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **95 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
+- **128 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
 - **/skill commands** parsed via `skills-ipc.js`
 - **Parser**: `skill-md-parser.js` (YAML frontmatter + Markdown body)
 
