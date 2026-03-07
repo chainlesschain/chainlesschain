@@ -119,6 +119,22 @@ export default defineConfig({
           ],
         },
         {
+          text: "v1.0.0 基础增强",
+          items: [
+            { text: "IPFS去中心化存储", link: "/chainlesschain/ipfs-storage" },
+            {
+              text: "实时协作(CRDT/Yjs)",
+              link: "/chainlesschain/realtime-collab",
+            },
+            { text: "模型量化", link: "/chainlesschain/quantization" },
+            { text: "i18n国际化", link: "/chainlesschain/i18n" },
+            {
+              text: "性能自动调优",
+              link: "/chainlesschain/performance-tuning",
+            },
+          ],
+        },
+        {
           text: "v1.1.0 企业增强 (Phase 42-45)",
           items: [
             {
@@ -167,6 +183,7 @@ export default defineConfig({
           text: "v1.1.0 新功能",
           items: [
             { text: "流水线编排", link: "/chainlesschain/pipeline" },
+            { text: "开发流水线编排", link: "/chainlesschain/dev-pipeline" },
             { text: "自然语言编程", link: "/chainlesschain/nl-programming" },
             { text: "多模态协作", link: "/chainlesschain/multimodal" },
             { text: "自主运维", link: "/chainlesschain/autonomous-ops" },
