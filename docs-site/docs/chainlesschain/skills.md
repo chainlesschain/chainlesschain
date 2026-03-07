@@ -1,8 +1,8 @@
 # Skills 技能系统
 
-> **版本: v1.2.0 | 128内置技能 | Agent Skills开放标准 | 统一工具注册表**
+> **版本: v1.2.0 | 131内置技能 | Agent Skills开放标准 | 统一工具注册表**
 
-Skills 系统提供 128 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.0 研究10大外部技能标准并转化为内置技能(10个)，新增12个实用流行技能，以及10个集成/生产力/知识技能，Handler 覆盖率 128/128 (100%)。
+Skills 系统提供 131 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.0 研究10大外部技能标准并转化为内置技能(10个)，新增12个实用流行技能，以及10个集成/生产力/知识技能，Handler 覆盖率 131/131 (100%)。
 
 ## 系统概述
 
@@ -194,6 +194,15 @@ Skills 系统提供 128 个内置技能，使用 Markdown 定义技能(SKILL.md)
 | **协作** | `/verification-loop` | ✅      | 验证循环（Build→TypeCheck→Lint→Test→Security→DiffReview） |
 | **协作** | `/stream-processor`  | ✅      | 流式数据处理（log/csv/json逐行处理）                      |
 
+### 安全/系统/示例技能 (4)
+
+| 类别     | 技能                  | Handler | 说明                                                         |
+| -------- | --------------------- | ------- | ------------------------------------------------------------ |
+| **安全** | `/zkp-toolkit`        | ✅      | 零知识证明工具（证明生成/验证/选择性披露/ZK-Rollup/基准测试）|
+| **系统** | `/handler-test-skill` | ✅      | Handler测试技能（内置开发调试/Handler契约验证用）            |
+| **示例** | `/my-custom-skill`    | ✅      | 自定义技能示例（用户自定义技能参考模板）                     |
+| **开发** | `/test-skill`         | ✅      | 测试技能（单元测试示例/技能框架测试用途）                    |
+
 ---
 
 ## 四层加载
@@ -207,7 +216,7 @@ managed/       # 用户管理的技能
     ↓
 marketplace/   # 插件市场安装的技能 (v0.34.0新增)
     ↓
-bundled/       # 内置技能（128个，100% Handler覆盖，最低优先级）
+bundled/       # 内置技能（131个，100% Handler覆盖，最低优先级）
 ```
 
 高层技能可以覆盖低层同名技能。
@@ -218,7 +227,7 @@ bundled/       # 内置技能（128个，100% Handler覆盖，最低优先级）
 .chainlesschain/skills/          # 工作区技能
 ~/.chainlesschain/skills/        # 用户技能
 <marketplace>/skills/            # 插件市场技能
-<app>/skills/builtin/            # 内置技能 (128个)
+<app>/skills/builtin/            # 内置技能 (131个)
 ```
 
 ---
@@ -716,4 +725,4 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 
 ---
 
-**128个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️
+**131个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️

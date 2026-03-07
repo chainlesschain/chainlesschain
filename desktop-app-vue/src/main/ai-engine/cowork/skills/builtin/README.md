@@ -2,7 +2,7 @@
 
 此目录包含应用内置的技能。内置技能具有最低优先级，可以被 marketplace、managed（用户全局）或 workspace（项目级）技能覆盖。
 
-## 当前内置技能 (90)
+## 当前内置技能 (131)
 
 ### 原有技能 (15)
 
@@ -134,6 +134,67 @@
 | color-picker         | design    | ✅      | 颜色工具（HEX↔RGB↔HSL/调色板/WCAG对比度/明暗调节）     |
 | performance-profiler | devops    | ✅      | 性能分析（快照/基准测试/内存分析/启动时间/报告）       |
 
+### 开发工具增强 v0.38.0 (10)
+
+| 技能                    | 类别        | Handler | 说明                                                      |
+| ----------------------- | ----------- | ------- | --------------------------------------------------------- |
+| ab-compare              | development | ✅      | A/B方案对比（多实现变体生成、基准测试、自动评分）         |
+| api-docs-generator      | development | ✅      | API文档生成（OpenAPI/Swagger/Markdown/请求响应示例）      |
+| cursor-rules-generator  | development | ✅      | IDE规则生成（.cursorrules/.clinerules/CLAUDE.md 等配置）  |
+| database-query          | development | ✅      | SQL查询助手（生成/优化/解释/Schema内省/迁移脚本）         |
+| docker-compose-generator| development | ✅      | Docker Compose生成（自动检测栈/服务依赖/卷/健康检查）     |
+| git-worktree-manager    | development | ✅      | Git Worktree管理（并行分支开发/隔离实验/CI/CD隔离）       |
+| k8s-deployer            | development | ✅      | Kubernetes部署（清单/Helm/滚动更新/集群状态/安全实践）    |
+| terraform-iac           | development | ✅      | Terraform IaC（HCL配置/模块/状态管理/AWS/GCP/Azure）     |
+| ultrathink              | development | ✅      | 超级思考模式（扩展推理/链式思考/多步分析/深度探索）       |
+| webapp-testing          | development | ✅      | Web应用测试（浏览器自动化/UI验证/E2E/截图/无障碍检查）    |
+
+### 协作/工作流/自动化 v0.38.1 (10)
+
+| 技能              | 类别        | Handler | 说明                                                         |
+| ----------------- | ----------- | ------- | ------------------------------------------------------------ |
+| github-manager    | development | ✅      | GitHub管理（Issue/PR/仓库/Workflow/GitHub API）              |
+| pr-reviewer       | development | ✅      | PR代码审查（Diff分析/Bug检测/安全/摘要生成/自动评论）        |
+| debate-review     | development | ✅      | 辩论式代码审查（性能/安全/可维护性多视角对比）               |
+| orchestrate       | automation  | ✅      | 工作流编排（多Agent预定义模板/Agent交接协议/并行任务）       |
+| verification-loop | quality     | ✅      | 验证循环（6阶段自动化验证流水线/READY/NOT READY 判定）       |
+| planning-with-files| productivity| ✅     | 文件驱动规划（持久Markdown计划/task_plan.md/上下文恢复）     |
+| proactive-agent   | automation  | ✅      | 主动智能体（文件监控/错误检测/性能阈值监控/周期检查）        |
+| cron-scheduler    | automation  | ✅      | 定时任务调度（Cron表达式/自然语言调度/跨平台计时器管理）     |
+| agent-browser     | automation  | ✅      | Agent浏览器自动化（快照-Ref交互/会话管理/结构化数据提取）    |
+| stream-processor  | data        | ✅      | 流数据处理（逐行转换/过滤/聚合/大文件流式处理）              |
+
+### 知识/研究/内容/生产力 v0.38.2 (10)
+
+| 技能              | 类别        | Handler | 说明                                                         |
+| ----------------- | ----------- | ------- | ------------------------------------------------------------ |
+| deep-research     | knowledge   | ✅      | 深度研究（多阶段Web研究/��源评分/交叉验证/综合报告）         |
+| tavily-search     | knowledge   | ✅      | Tavily实时搜索（Web搜索/页面内容提取/RAG增强）               |
+| summarizer        | knowledge   | ✅      | 内容摘要（URL/PDF/YouTube/文本→关键点与简洁摘要）            |
+| youtube-summarizer| knowledge   | ✅      | YouTube摘要（字幕提取/结构化摘要/时间戳/主题分段）           |
+| news-monitor      | knowledge   | ✅      | 新闻监控（Feed追踪/关键词检测/趋势分析/定时摘要推送）        |
+| obsidian          | knowledge   | ✅      | Obsidian Vault管理（创建笔记/搜索/标签/链接/Markdown同步）   |
+| content-publisher | productivity| ✅      | AI内容生成与发布（信息图/幻灯片/封面图/多平台格式化）        |
+| humanizer         | productivity| ✅      | 文本人性化（去除AI痕迹/自然语气调整/个性化改写）             |
+| notion            | productivity| ✅      | Notion集成（页面创建/数据库查询/Block管理/内容同步）         |
+| google-workspace  | productivity| ✅      | Google Workspace（Gmail/Calendar/Drive API集成）             |
+
+### 系统/媒体/安全/工具/示例 v0.38.3 (11)
+
+| 技能                | 类别        | Handler | 说明                                                         |
+| ------------------- | ----------- | ------- | ------------------------------------------------------------ |
+| api-gateway         | automation  | ✅      | 万能API网关（100+API统一接口/密钥管理/链式调用）             |
+| free-model-manager  | system      | ✅      | 免费模型管理（Ollama/HuggingFace/发现/下载/本地模型管理）    |
+| find-skills         | system      | ✅      | 技能发现（注册表搜索/任务匹配推荐/技能分类浏览）             |
+| skill-creator       | system      | ✅      | 技能创建（SKILL.md脚手架/handler.js生成/测试评估/优化）      |
+| self-improving-agent| system      | ✅      | 自我改进智能体（错误学习/模式分析/持续优化/自动记录修正）    |
+| remotion-video      | media       | ✅      | Remotion视频创作（React动画/合成/文字特效/转场/MP4渲染）     |
+| weather             | productivity| ✅      | 天气查询（当前天气/多日预报/天气预警/全球位置支持）          |
+| zkp-toolkit         | security    | ✅      | 零知识证明工具（证明生成/验证/选择性披露/ZK-Rollup/基准测试）|
+| handler-test-skill  | system      | ✅      | Handler测试技能（内置开发调试/Handler契约验证用）            |
+| my-custom-skill     | general     | ✅      | 自定义技能示例（用户自定义技能参考模板）                     |
+| test-skill          | development | ✅      | 测试技能（单元测试示例/技能框架测试用途）                    |
+
 ## 目录结构
 
 每个技能是一个独立的子目录，包含 `SKILL.md` 文件和 `handler.js`（100% Handler 覆盖率）：
@@ -147,7 +208,7 @@ builtin/
 ├── browser-automation/
 │   ├── SKILL.md
 │   └── handler.js
-└── ...（共90个技能目录）
+└── ...（共131个技能目录）
 ```
 
 ## SKILL.md 格式 (Agent Skills Open Standard)
