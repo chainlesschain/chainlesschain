@@ -8,7 +8,7 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-2500%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-128-blue.svg)
+![Skills](https://img.shields.io/badge/skills-131-blue.svg)
 
 **Decentralized · Privacy First · AI Native**
 
@@ -22,7 +22,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ## ⭐ Current Version: v1.2.0 Full-Stack Edition (2026-03-06)
 
-### Latest Updates - v1.2.0 Added 32 Practical Skills (128 Total Desktop Built-in Skills) ⭐NEW
+### Latest Updates - v1.2.0 Added 32 Practical Skills (131 Total Desktop Built-in Skills) ⭐NEW
 
 Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent, Agent-Browser, Remotion, Cron, Planning-with-files, etc.) and converted them into built-in skills, added 12 development/ops/knowledge management skills, and 10 integration/productivity/knowledge skills.
 
@@ -67,7 +67,7 @@ Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent
 - ✅ **summarizer** - Universal summarizer, URL/PDF/YouTube/text summaries + key points
 - ✅ **weather** - Weather queries, global weather/forecasts/alerts (wttr.in, no API key)
 
-**Skill Statistics**: 96 (v1.0.0) → **128 (v1.2.0)** (+32)
+**Skill Statistics**: 96 (v1.0.0) → **131 (v1.2.0)** (+35)
 
 ---
 
@@ -942,7 +942,7 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🟢 **Trading System**: 100% Complete - **8 Modules + On-chain Contracts + NFT Transfers + Order Editing + Sharing + QR Codes** ⭐Completed
 - 🟢 **Browser Extension**: 100% Complete - **Testing Framework + Documentation** ⭐Completed
 - 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension** ⭐Completed
-- 🟢 **AI Skills System**: 100% Complete - **128 Built-in Skills (100% Handler) + 28 Android Skills + Unified Tool Registry + Agent Skills Standard** ⭐v1.2.0
+- 🟢 **AI Skills System**: 100% Complete - **131 Built-in Skills (100% Handler) + 28 Android Skills + Unified Tool Registry + Agent Skills Standard** ⭐v1.2.0
 - 🟢 **SIMKey Security Enhancements**: 100% Complete - **iOS eSIM + 5G Optimization + NFC Offline Signing + Multi-SIM Switch + Health Monitoring + Quantum-Resistant** ⭐v0.38.0
 - 🟢 **IPFS Decentralized Storage**: 100% Complete - **Helia/Kubo Dual-Engine + Content Addressing + P2P CDN + Auto-Pinning** ⭐v1.0.0
 - 🟢 **Real-time Collaboration (CRDT/Yjs)**: 100% Complete - **Yjs Conflict Resolution + P2P Sync + Cursor Sharing + Document Locks** ⭐v1.0.0
@@ -1008,8 +1008,8 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
-- 🎨 **Skills System**: 128 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.0.0
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 128 skills unified management ✅ ⭐v1.0.0
+- 🎨 **Skills System**: 131 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.0.0
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 131 skills unified management ✅ ⭐v1.0.0
 - 🧬 **Instinct Learning**: Auto-extract user patterns + Confidence scoring + Context injection + Hooks observation pipeline ✅ ⭐v0.39.0
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
@@ -1175,7 +1175,7 @@ Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (128 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (131 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging
