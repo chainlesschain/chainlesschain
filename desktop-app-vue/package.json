@@ -180,7 +180,7 @@
     "7zip-bin": "^5.2.0",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
-    "axios": "^1.13.2",
+    "axios": "^1.13.6",
     "better-sqlite3-multiple-ciphers": "^12.5.0",
     "bip39": "^3.1.0",
     "blockstore-fs": "^2.0.0",
@@ -194,7 +194,7 @@
     "decompress": "^4.2.1",
     "docx": "^9.5.1",
     "docx-preview": "^0.3.7",
-    "dompurify": "^3.3.1",
+    "dompurify": "^3.3.2",
     "dotenv": "^16.6.1",
     "echarts": "^6.0.0",
     "echarts-gl": "^2.0.9",
@@ -226,7 +226,7 @@
     "lru-cache": "^6.0.0",
     "mailparser": "^3.7.1",
     "mammoth": "^1.11.0",
-    "markdown-it": "^14.0.0",
+    "markdown-it": "^14.1.1",
     "marked": "^14.1.4",
     "monaco-editor": "^0.55.1",
     "multiaddr": "^10.0.1",
@@ -277,7 +277,7 @@
     "@electron-forge/maker-rpm": "^7.2.0",
     "@electron-forge/maker-squirrel": "^7.2.0",
     "@electron-forge/maker-zip": "^7.2.0",
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "^8.57.1",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/hardhat-upgrades": "^3.9.1",
@@ -297,7 +297,7 @@
     "copy-webpack-plugin": "^13.0.1",
     "cross-env": "^10.1.0",
     "electron": "^39.2.7",
-    "eslint": "^9.18.0",
+    "eslint": "^8.57.1",
     "eslint-plugin-vue": "^9.32.0",
     "glob": "^13.0.1",
     "globals": "^15.15.0",
@@ -330,11 +330,11 @@
     "test": "tests"
   },
   "lint-staged": {
-    "*.{js,vue}": [
+    "*.{js,ts,tsx,vue}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md}": [
+    "*.{json,md,css,less,scss}": [
       "prettier --write"
     ]
   },

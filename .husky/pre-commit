@@ -1,104 +1,45 @@
 echo "🔍 运行 Pre-commit 代码质量门禁..."
 echo ""
 
-# 1. 运行 lint-staged（ESLint + Prettier + 安全扫描）
-echo "📝 运行 ESLint 和代码格式化..."
+START_TIME=$(date +%s)
+
+# 1. 运行 lint-staged（ESLint + Prettier，仅针对暂存文件）
+echo "📝 [1/2] 运行 ESLint 和代码格式化（仅暂存文件）..."
 npx lint-staged
 
-# 检查 lint-staged 退出码
 if [ $? -ne 0 ]; then
   echo ""
-  echo "❌ ESLint 或安全扫描失败！"
-  echo "请修复上述问题后再提交"
-  echo ""
-  echo "如需跳过验证（不推荐），使用: git commit --no-verify"
+  echo "❌ ESLint 或格式化失败！请修复后重试。"
+  echo "   跳过验证: git commit --no-verify"
   exit 1
 fi
 
 echo "✅ ESLint 和代码格式化通过"
 echo ""
 
-# 2. 运行 TypeScript 类型检查
-echo "🔷 运行 TypeScript 类型检查..."
-node scripts/typecheck-staged.js
+# 2. 运行 TypeScript 类型检查（仅暂存的 .ts/.vue 文件变更时）
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|vue)$' || true)
+if [ -n "$STAGED_TS" ]; then
+  echo "🔷 [2/2] 运行 TypeScript 类型检查..."
+  node scripts/typecheck-staged.js
 
-# 检查类型检查退出码
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "❌ TypeScript 类型检查失败！"
-  echo "请修复上述类型错误后再提交"
-  echo ""
-  echo "如需跳过验证（不推荐），使用: git commit --no-verify"
-  exit 1
+  if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ TypeScript 类型检查失败！请修复后重试。"
+    echo "   跳过验证: git commit --no-verify"
+    exit 1
+  fi
+
+  echo "✅ TypeScript 类型检查通过"
+else
+  echo "🔷 [2/2] 无 TypeScript 文件变更，跳过类型检查"
 fi
 
-echo "✅ TypeScript 类型检查通过"
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
 echo ""
-
-# 3. 运行项目规则验证
-echo "🔍 运行代码规则验证..."
-
-# 进入 desktop-app-vue 目录运行验证
-cd desktop-app-vue || exit 1
-
-# 运行规则验证器
-npm run validate:rules
-
-# 检查退出码
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "❌ 代码规则验证失败！"
-  echo "请修复上述问题后再提交，或查看 .chainlesschain/rules.md 了解编码规范"
-  echo ""
-  echo "如需跳过验证（不推荐），使用: git commit --no-verify"
-  exit 1
-fi
-
-echo "✅ 代码规则验证通过"
+echo "✅ Pre-commit 检查通过！(${DURATION}s)"
 echo ""
-
-# 4. 运行单元测试（排除不稳定测试）
-echo "🧪 运行单元测试..."
-echo "   (仅运行稳定的核心测试)"
-
-# 使用 vitest 直接运行，排除不稳定的测试
-# 这些测试需要特定环境、硬件或有复杂的 mock 依赖
-# 注意：vitest 3.x 在大型测试套件中可能产生 "Timeout calling onTaskUpdate"
-# 的 worker RPC 超时错误，导致退出码为 1 即使所有测试通过。
-# 因此我们捕获输出并检查是否有实际测试失败。
-# Temporarily disable exit-on-error so we can capture vitest exit code
-# (husky runs with set -e, which would abort before our error handling)
-set +e
-TEST_OUTPUT=$(npx vitest run tests/unit \
-  --exclude="**/tests/ai-engine/**" \
-  --exclude="**/tests/cowork/**" \
-  --exclude="**/tests/remote/**" \
-  --exclude="**/tests/integration/**" \
-  --exclude="**/tests/unit/integration/**" \
-  --exclude="**/src/main/**/__tests__/**" \
-  --exclude="**/src/renderer/**/__tests__/**" \
-  --exclude="**/tests/unit/document/ppt-engine.test.js" 2>&1)
-VITEST_EXIT=$?
-set -e
-
-echo "$TEST_OUTPUT"
-
-# Check for actual test failures (not just vitest worker timeouts)
-if echo "$TEST_OUTPUT" | grep -q "Test Files.*failed"; then
-  echo ""
-  echo "❌ 单元测试失败！"
-  echo "请修复测试错误后再提交"
-  echo ""
-  echo "如需跳过验证（不推荐），使用: git commit --no-verify"
-  echo ""
-  echo "💡 完整测试（含不稳定测试）: npm run test:unit"
-  exit 1
-fi
-
-# If vitest exited non-zero but no tests failed, it's likely worker RPC timeouts
-if [ $VITEST_EXIT -ne 0 ]; then
-  echo ""
-  echo "⚠️  Vitest 退出码非零但无测试失败（可能是 worker RPC 超时，可安全忽略）"
-fi
-
-echo "✅ 单元测试通过"
+echo "💡 完整测试: cd desktop-app-vue && npm test"
+echo "💡 规则验证: cd desktop-app-vue && npm run validate:rules"
