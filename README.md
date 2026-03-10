@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-3100%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-3200%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-137-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-100-brightgreen.svg)
 
@@ -21,11 +21,11 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.0 Evolution Edition (2026-03-10)
+## ⭐ 当前版本: v5.0.1 Evolution Edition (2026-03-10)
 
 ### 最新更新 - v5.0.0 架构重构 + AI Agent 2.0 + Web3 深化 + 企业平台 + 自进化系统 (Phase 78-100) ⭐NEW
 
-**23个新模块**，覆盖三大方向：AI Agent 2.0、Web3 深化、企业级生产力平台。新增 ~178 IPC Handlers，29 测试文件 646+ 测试用例，全部通过。
+**23个新模块**，覆盖三大方向：AI Agent 2.0、Web3 深化、企业级生产力平台。新增 ~178 IPC Handlers，37 测试文件 1238+ 测试用例，全部通过。
 
 #### Milestone 1: 架构重构基座 (Phase 78-80) — v4.0.0-alpha
 
@@ -67,9 +67,10 @@
 
 **v5.0.0 统计**:
 
-- 🆕 23个新模块 (Phase 78-100)，62个源文件，29个测试文件
-- 📊 ~178 IPC Handlers，646+ 单元测试全部通过
+- 🆕 23个新模块 (Phase 78-100)，62个源文件，37个测试文件
+- 📊 ~178 IPC Handlers，1238+ 单元测试全部通过
 - 📄 23份设计文档 (docs/design/modules/43-65)
+- 📦 2个文档网站已打包 (docs-site v5.0.0 + docs-site-design v5.0.0)
 
 ---
 

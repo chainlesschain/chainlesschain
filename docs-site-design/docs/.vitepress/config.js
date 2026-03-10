@@ -371,7 +371,7 @@ export default defineConfig({
             { text: "59 企业知识图谱", link: "/modules/59_企业知识图谱" },
             { text: "60 BI智能分析", link: "/modules/60_BI智能分析" },
             {
-              text: "61 工作流自动化引��",
+              text: "61 工作流自动化引擎",
               link: "/modules/61_工作流自动化引擎",
             },
             { text: "62 多租户SaaS引擎", link: "/modules/62_多租户SaaS引擎" },

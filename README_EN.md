@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-3100%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-3200%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-137-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-100-brightgreen.svg)
 
@@ -21,11 +21,11 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.0 Evolution Edition (2026-03-10)
+## ⭐ Current Version: v5.0.1 Evolution Edition (2026-03-10)
 
 ### Latest Updates - v5.0.0 Architecture Refactoring + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI (Phase 78-100) ⭐NEW
 
-**23 new modules** covering three major directions: AI Agent 2.0, Web3 Deepening, and Enterprise Productivity Platform. Added ~178 IPC Handlers, 29 test files with 646+ test cases, all passing.
+**23 new modules** covering three major directions: AI Agent 2.0, Web3 Deepening, and Enterprise Productivity Platform. Added ~178 IPC Handlers, 37 test files with 1238+ test cases, all passing.
 
 **Milestone 1: Architecture Foundation (Phase 78-80)** — IPC Domain Split + Lazy Loading, DI Container + Shared Cache + EventBus, Database Migration Framework
 **Milestone 2: AI Agent 2.0 (Phase 81-87)** — A2A Protocol, Agentic Workflow Engine, Hierarchical Memory, Multimodal Perception, Agent Economy, Code Agent v2, Agent Sandbox v2

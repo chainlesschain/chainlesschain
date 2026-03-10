@@ -21,8 +21,5 @@
     "vitepress": "^1.0.0",
     "vue": "^3.3.11"
   },
-  "dependencies": {
-    "@rollup/wasm-node": "^4.59.0",
-    "rollup": "^4.59.0"
-  }
+  "dependencies": {}
 }

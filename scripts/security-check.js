@@ -71,6 +71,8 @@ const ALLOWED_FILES = [
   "computer-use.md",
   "ai-models.md",
   "did-v2.md",
+  // 设计文档（包含日志脱敏示例代码）
+  "07_性能优化系统.md",
 ];
 
 function checkFileForSecrets(filePath) {
