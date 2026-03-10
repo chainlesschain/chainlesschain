@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/ai-engine-manager-p1.js`
 
-**Generated**: 2026-03-06T07:41:07.246Z
+**Generated**: 2026-03-10T01:47:03.217Z
 
 ---
 

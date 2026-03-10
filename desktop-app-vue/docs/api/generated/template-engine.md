@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/template-engine.js`
 
-**Generated**: 2026-03-06T07:41:07.208Z
+**Generated**: 2026-03-10T01:47:03.178Z
 
 ---
 

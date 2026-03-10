@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/http-client.js`
 
-**Generated**: 2026-03-06T07:41:07.163Z
+**Generated**: 2026-03-10T01:47:03.130Z
 
 ---
 
