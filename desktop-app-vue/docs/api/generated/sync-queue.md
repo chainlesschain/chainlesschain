@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/sync-queue.js`
 
-**Generated**: 2026-03-10T01:47:03.099Z
+**Generated**: 2026-03-10T02:08:39.442Z
 
 ---
 

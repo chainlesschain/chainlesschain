@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/tts-manager.js`
 
-**Generated**: 2026-03-10T01:47:03.102Z
+**Generated**: 2026-03-10T02:08:39.445Z
 
 ---
 

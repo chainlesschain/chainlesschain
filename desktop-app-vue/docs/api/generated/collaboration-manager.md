@@ -2,7 +2,7 @@
 
 **Source**: `src/main/collaboration/collaboration-manager.js`
 
-**Generated**: 2026-03-10T01:47:03.189Z
+**Generated**: 2026-03-10T02:08:39.535Z
 
 ---
 

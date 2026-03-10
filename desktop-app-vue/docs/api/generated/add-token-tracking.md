@@ -2,7 +2,7 @@
 
 **Source**: `src/main/migrations/add-token-tracking.js`
 
-**Generated**: 2026-03-10T01:47:03.146Z
+**Generated**: 2026-03-10T02:08:39.491Z
 
 ---
 

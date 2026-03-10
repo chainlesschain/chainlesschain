@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/hierarchical-task-planner.js`
 
-**Generated**: 2026-03-10T01:47:03.212Z
+**Generated**: 2026-03-10T02:08:39.559Z
 
 ---
 
