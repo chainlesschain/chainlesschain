@@ -2,13 +2,14 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v1.2.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-2500%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-3100%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-137-blue.svg)
+![Phases](https://img.shields.io/badge/phases-100-brightgreen.svg)
 
 **去中心化 · 隐私优先 · AI原生**
 
@@ -20,9 +21,59 @@
 
 ---
 
-## ⭐ 当前版本: v1.2.1 Full-Stack Edition (2026-03-10)
+## ⭐ 当前版本: v5.0.0 Evolution Edition (2026-03-10)
 
-### 最新更新 - v1.2.1 新增6个社区生态技能 (总计137个桌面内置技能) ⭐NEW
+### 最新更新 - v5.0.0 架构重构 + AI Agent 2.0 + Web3 深化 + 企业平台 + 自进化系统 (Phase 78-100) ⭐NEW
+
+**23个新模块**，覆盖三大方向：AI Agent 2.0、Web3 深化、企业级生产力平台。新增 ~178 IPC Handlers，29 测试文件 646+ 测试用例，全部通过。
+
+#### Milestone 1: 架构重构基座 (Phase 78-80) — v4.0.0-alpha
+
+- ✅ **IPC域分割 + 懒加载** (`ipc/domains/`, `ipc-middleware.js`, `lazy-phase-loader.js`) — IPC Registry 拆分为10个域，按需加载Phase，统一中间件（限流/权限/计时），3个IPC处理器
+- ✅ **共享资源层 + DI容器** (`core/service-container.js`, `shared-cache.js`, `event-bus.js`, `resource-pool.js`) — 统一DI容器（循环依赖检测），LRU+TTL缓存，跨模块EventBus，资源池管理，4个IPC处理器
+- ✅ **数据库演进框架** (`database/migration-manager.js`, `query-builder.js`, `index-optimizer.js`) — 版本化迁移(up/down)，流式SQL构建器，索引优化器（慢查询检测），4个IPC处理器
+
+#### Milestone 2: AI Agent 2.0 生态 (Phase 81-87) — v4.1.0
+
+- ✅ **A2A协议引擎** (`ai-engine/a2a/`) — Google A2A标准，Agent Card发现，Task生命周期管理，SSE+WebSocket流，8个IPC处理器
+- ✅ **自主工作流编排器** (`ai-engine/workflow/`) — DAG工作流编辑器，条件分支/循环/并行/审批门，5个内置模板，断点续执行，10个IPC处理器
+- ✅ **层次化记忆2.0** (`ai-engine/memory/`) — 4层记忆（工作→短期→长期→核心），遗忘曲线，记忆巩固，跨Agent共享，情景/语义搜索，8个IPC处理器
+- ✅ **多模态感知层** (`ai-engine/perception/`) — 实时屏幕理解，语音双向流，文档深度分析，视频理解，跨模态推理，8个IPC处理器
+- ✅ **Agent经济系统** (`blockchain/agent-economy.js`) — 微支付(State Channel)，计算资源市场，贡献度证明，Agent NFT，收益自动分配，10个IPC处理器
+- ✅ **代码生成Agent 2.0** (`ai-engine/code-agent/`) — 全栈代码生成，Git上下文感知，实时代码审查(eval/注入检测)，5框架脚手架，CI/CD自动配置，8个IPC处理器
+- ✅ **Agent安全沙箱2.0** (`security/agent-sandbox-v2.js`) — WASM隔离，细粒度权限白名单，资源配额，执行审计，行为AI监控（风险评分），6个IPC处理器
+
+#### Milestone 3: Web3 深化 + 隐私计算 (Phase 88-92) — v4.2.0
+
+- ✅ **零知识证明引擎** (`crypto/zkp-engine.js`) — zk-SNARK/zk-STARK，Groth16证明系统，Circom电路编译，身份选择性披露，6个IPC处理器
+- ✅ **跨链互操作协议** (`blockchain/cross-chain-bridge.js`) — EVM链(ETH/Polygon/BSC/Arbitrum)+Solana，HTLC原子交换，跨链消息传递，8个IPC处理器
+- ✅ **去中心化身份2.0** (`did/did-v2-manager.js`) — W3C DID v2.0，可验证展示，社交恢复，跨平台漫游，声誉可移植性，8个IPC处理器
+- ✅ **隐私计算框架** (`crypto/privacy-computing.js`) — 联邦学习，安全多方计算(MPC)，差分隐私，同态加密查询，8个IPC处理器
+- ✅ **DAO治理2.0** (`blockchain/dao-governance-v2.js`) — 二次方投票，委托投票，提案生命周期(Draft→Active→Queue→Execute)，国库管理，8个IPC处理器
+
+#### Milestone 4: 企业级生产力平台 (Phase 93-97) — v4.5.0
+
+- ✅ **低代码/无代码平台** (`enterprise/low-code/app-builder.js`) — 可视化应用构建器，15个内置组件，数据源连接器(REST/GraphQL/DB/CSV)，版本管理+回滚，10个IPC处理器
+- ✅ **企业知识图谱** (`ai-engine/knowledge/enterprise-kg.js`) — 自动实体抽取+关系发现，图查询语言，知识推理引擎，GraphRAG深度融合，8个IPC处理器
+- ✅ **BI智能分析** (`enterprise/bi/bi-engine.js`) — 自然语言→SQL，多维分析(OLAP)，智能报表(PDF/Excel/PPT)，异常检测+趋势预测，8个IPC处理器
+- ✅ **工作流自动化** (`enterprise/automation/automation-engine.js`) — 12个内置连接器(Gmail/Slack/GitHub/Jira/Notion等)，触发器系统(Webhook/Schedule/Event)，10个IPC处理器
+- ✅ **多租户SaaS引擎** (`enterprise/saas/tenant-manager.js`) — 租户隔离，用量计量，订阅计费(4套餐)，数据导入/导出，8个IPC处理器
+
+#### Milestone 5: 生态融合 + 终极形态 (Phase 98-100) — v5.0.0
+
+- ✅ **统一应用运行时** (`runtime/universal-runtime.js`) — 插件SDK 2.0，热更新机制，内置Profiler(Flame Graph)，CRDT状态同步，全平台支持，8个IPC处理器
+- ✅ **智能插件生态2.0** (`marketplace/plugin-ecosystem-v2.js`) — AI推荐，依赖解析+冲突检测，沙箱隔离，AI代码审计，收益分成，8个IPC处理器
+- ✅ **自进化AI系统** (`ai-engine/evolution/self-evolving-system.js`) — 自动架构搜索(NAS)，持续学习，自我诊断+自我修复，行为预测，能力评估+成长轨迹，8个IPC处理器
+
+**v5.0.0 统计**:
+
+- 🆕 23个新模块 (Phase 78-100)，62个源文件，29个测试文件
+- 📊 ~178 IPC Handlers，646+ 单元测试全部通过
+- 📄 23份设计文档 (docs/design/modules/43-65)
+
+---
+
+### 历史更新 - v1.2.1 新增6个社区生态技能 (总计137个桌面内置技能)
 
 研究社区技能生态(OpenClaw、awesome-skills等)，补充6个高频缺失技能：创意头脑风暴、系统调试策略、API设计、前端设计、PR创建、文档协作。
 

@@ -5,6 +5,92 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.1] - 2026-03-10
+
+### Added
+
+- MCP Community Registry remote fetch (`_fetchRemoteCatalog`, `remoteRegistryUrl`)
+- Android `RemoteSkillProvider` interface in `core-p2p` for cross-module skill delegation
+- iOS `VectorStore.list(limit:offset:)` protocol method + implementations
+- iOS `DatabaseEngine` read-only SQL query execution via DatabaseManager
+- Community registry unit tests (10 remote fetch tests)
+- Skill lazy-load unit tests (48 tests)
+- Community registry full unit tests (~28 tests)
+- Community registry lifecycle integration tests (~8 tests)
+- Skill loader supplementary unit tests (~20 tests)
+- Browser action edge-case tests (~12 tests)
+- MCP Registry E2E tests (~8 tests)
+
+### Fixed
+
+- iOS `MCPHttpSseTransport.sendRequest()` fatalError → delegates to existing `send()`
+- iOS `CollaborativeEditorView` hardcoded userId → uses `IdentityManager.shared`
+- iOS `VectorStoreView` empty placeholder → real `store.list()` integration
+- Security audit test regex patterns matching actual handler patterns
+- Vitest cowork-e2e.test.js exclusion (CJS format incompatible with Vitest collection)
+- Android `P2PSkillBridge` cross-module dependency (app→feature-ai) via interface extraction
+- CommunityRegistry `_fetchRemoteCatalog` validation inconsistency (description no longer required)
+- CommunityRegistry `_compareVersions` NaN handling for non-numeric version parts
+
+### Changed
+
+- Android `P2PSkillBridge` now depends on `RemoteSkillProvider` interface instead of `P2PClient`
+- Android `feature-ai/build.gradle.kts` adds `core-p2p` dependency
+- Android `RemoteModule` binds `P2PClient` as `RemoteSkillProvider`
+
+## [5.0.0] - 2026-03-10
+
+### 新增
+
+- **v5.0.0 Phase 78-100 全面实现 — 23 个新模块，5 个里程碑**
+
+**Milestone 1: 架构重构基座 (Phase 78-80) — v4.0.0-alpha**
+
+- `IPC 域分割 + 懒加载` (Phase 78): IPC Registry 拆分为 10 个域，LazyPhaseLoader 按需加载，IPC Middleware 统一中间件 (限流/权限/计时)，3 IPC 处理器
+- `共享资源层 + DI 容器` (Phase 79): ServiceContainer 统一 DI (循环依赖检测)，SharedCacheManager (LRU+TTL)，EventBus 跨模块通信，ResourcePool 资源池管理，4 IPC 处理器
+- `数据库演进框架` (Phase 80): MigrationManager 版本化迁移 (up/down)，QueryBuilder 流式 SQL，IndexOptimizer 索引优化器，4 IPC 处理器
+
+**Milestone 2: AI Agent 2.0 生态 (Phase 81-87) — v4.1.0**
+
+- `A2A 协议引擎` (Phase 81): Google A2A 标准，Agent Card 发现 (JSON-LD)，Task 生命周期管理，SSE+WebSocket 流，8 IPC 处理器
+- `自主工作流编排器` (Phase 82): DAG 工作流，条件分支/循环/并行/审批门，5 内置模板，断点续执行，10 IPC 处理器
+- `层次化记忆 2.0` (Phase 83): 4 层记忆 (工作→短期→长期→核心)，遗忘曲线，记忆巩固，跨 Agent 共享，8 IPC 处理器
+- `多模态感知层` (Phase 84): 屏幕理解，语音双向流，文档解析，视频分析，跨模态推理，8 IPC 处理器
+- `Agent 经济系统` (Phase 85): 微支付 (State Channel)，计算资源市场，贡献度证明，Agent NFT，收益分配，10 IPC 处理器
+- `代码生成 Agent 2.0` (Phase 86): 全栈代码生成，Git 感知，代码审查 (安全检测)，5 框架脚手架，CI/CD 自动配置，8 IPC 处理器
+- `Agent 安全沙箱 2.0` (Phase 87): WASM 隔离，权限白名单，资源配额，执行审计，行为 AI 监控，6 IPC 处理器
+
+**Milestone 3: Web3 深化 + 隐私计算 (Phase 88-92) — v4.2.0**
+
+- `零知识证明引擎` (Phase 88): zk-SNARK/zk-STARK，Groth16 证明系统，Circom 电路编译，身份选择性披露，6 IPC 处理器
+- `跨链互操作协议` (Phase 89): EVM 链 (ETH/Polygon/BSC/Arbitrum) + Solana，HTLC 原子交换，跨链消息，8 IPC 处理器
+- `去中心化身份 2.0` (Phase 90): W3C DID v2.0，可验证展示，社交恢复，跨平台漫游，声誉可移植，8 IPC 处理器
+- `隐私计算框架` (Phase 91): 联邦学习，MPC，差分隐私，同态加密查询，8 IPC 处理器
+- `DAO 治理 2.0` (Phase 92): 二次方投票，委托投票，提案生命周期，国库管理，8 IPC 处理器
+
+**Milestone 4: 企业级生产力平台 (Phase 93-97) — v4.5.0**
+
+- `低代码平台` (Phase 93): 可视化构建器，15 内置组件，数据连接器 (REST/GraphQL/DB/CSV)，版本管理+回滚，10 IPC 处理器
+- `企业知识图谱` (Phase 94): 实体抽取+关系发现，图查询，知识推理引擎，GraphRAG 融合，8 IPC 处理器
+- `BI 智能分析` (Phase 95): NL→SQL，OLAP，智能报表，异常检测+趋势预测，8 IPC 处理器
+- `工作流自动化` (Phase 96): 12 内置连接器 (Gmail/Slack/GitHub 等)，触发器系统，10 IPC 处理器
+- `多租户 SaaS` (Phase 97): 租户隔离，用量计量，订阅计费 (4 套餐)，数据导入/导出，8 IPC 处理器
+
+**Milestone 5: 生态融合 + 终极形态 (Phase 98-100) — v5.0.0**
+
+- `统一应用运行时` (Phase 98): 插件 SDK 2.0，热更新，Profiler (Flame Graph)，CRDT 同步，8 IPC 处理器
+- `智能插件生态 2.0` (Phase 99): AI 推荐，依赖解析+冲突检测，沙箱隔离，AI 代码审计，收益分成，8 IPC 处理器
+- `自进化 AI 系统` (Phase 100): NAS 架构搜索，持续学习，自我诊断+修复，行为预测，能力评估+成长轨迹，8 IPC 处理器
+
+### 统计
+
+- 🆕 23 个新模块，62 个源文件，29 个测试文件
+- 📊 ~178 IPC Handlers，646+ 单元测试全部通过
+- 📄 23 份设计文档 (docs/design/modules/43-65)
+- 📘 23 个 VitePress 文档页面
+
+---
+
 ## [1.2.1] - 2026-03-10
 
 ### 新增

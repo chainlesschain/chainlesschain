@@ -32,7 +32,7 @@ describe("SecurityAudit Handler", () => {
 
   describe("execute - secrets", () => {
     it("should scan for secrets and return findings", async () => {
-      const mockContent = 'const key = "AKIA_FAKE_TEST_KEY_0001";';
+      const mockContent = 'const key = "AKIAFAKETESTKEY00001";';
 
       handler._deps.fs = {
         existsSync: vi.fn().mockReturnValue(true),
@@ -74,7 +74,7 @@ describe("SecurityAudit Handler", () => {
         readFileSync: vi
           .fn()
           .mockReturnValue(
-            'const token = "ghp_FAKE_TEST_TOKEN_000000000000000000";',
+            'const token = "ghp_FAKETESTTOKEN000000000000000000000XX";',
           ),
       };
       handler._deps.path = {
@@ -108,9 +108,7 @@ describe("SecurityAudit Handler", () => {
           ]),
         readFileSync: vi
           .fn()
-          .mockReturnValue(
-            'const stripe = "sk_live_FAKE_TEST_KEY_00000000000000";',
-          ),
+          .mockReturnValue('const stripe = "sk_test_PLACEHOLDER_NOT_REAL";'),
       };
       handler._deps.path = {
         ...require("path"),

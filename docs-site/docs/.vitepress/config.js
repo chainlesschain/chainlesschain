@@ -303,6 +303,96 @@ export default defineConfig({
           ],
         },
         {
+          text: "v4.0.0-alpha 架构重构 (Phase 78-80)",
+          items: [
+            {
+              text: "IPC域分割与懒加载",
+              link: "/chainlesschain/ipc-domain-split",
+            },
+            {
+              text: "共享资源层与DI容器",
+              link: "/chainlesschain/di-container",
+            },
+            {
+              text: "数据库演进框架",
+              link: "/chainlesschain/database-evolution",
+            },
+          ],
+        },
+        {
+          text: "v4.1.0 AI Agent 2.0 (Phase 81-87)",
+          items: [
+            { text: "A2A协议引擎", link: "/chainlesschain/a2a-protocol" },
+            {
+              text: "自主工作流编排",
+              link: "/chainlesschain/workflow-engine",
+            },
+            {
+              text: "层次化记忆2.0",
+              link: "/chainlesschain/hierarchical-memory",
+            },
+            {
+              text: "多模态感知层",
+              link: "/chainlesschain/multimodal-perception",
+            },
+            { text: "Agent经济系统", link: "/chainlesschain/agent-economy" },
+            {
+              text: "代码生成Agent 2.0",
+              link: "/chainlesschain/code-agent-v2",
+            },
+            {
+              text: "Agent安全沙箱2.0",
+              link: "/chainlesschain/agent-sandbox-v2",
+            },
+          ],
+        },
+        {
+          text: "v4.2.0 Web3深化 (Phase 88-92)",
+          items: [
+            { text: "零知识证明引擎", link: "/chainlesschain/zkp-engine" },
+            {
+              text: "跨链互操作协议",
+              link: "/chainlesschain/cross-chain-bridge",
+            },
+            { text: "去中心化身份2.0", link: "/chainlesschain/did-v2" },
+            { text: "隐私计算框架", link: "/chainlesschain/privacy-computing" },
+            { text: "DAO治理2.0", link: "/chainlesschain/dao-governance-v2" },
+          ],
+        },
+        {
+          text: "v4.5.0 企业平台 (Phase 93-97)",
+          items: [
+            { text: "低代码平台", link: "/chainlesschain/low-code-platform" },
+            {
+              text: "企业知识图谱",
+              link: "/chainlesschain/enterprise-knowledge-graph",
+            },
+            { text: "BI智能分析", link: "/chainlesschain/bi-engine" },
+            {
+              text: "工作流自动化",
+              link: "/chainlesschain/workflow-automation",
+            },
+            {
+              text: "多租户SaaS引擎",
+              link: "/chainlesschain/multi-tenant-saas",
+            },
+          ],
+        },
+        {
+          text: "v5.0.0 生态融合 (Phase 98-100)",
+          items: [
+            {
+              text: "统一应用运行时",
+              link: "/chainlesschain/universal-runtime",
+            },
+            {
+              text: "智能插件生态2.0",
+              link: "/chainlesschain/plugin-ecosystem-v2",
+            },
+            { text: "自进化AI系统", link: "/chainlesschain/self-evolving-ai" },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },

@@ -1,10 +1,8 @@
 package com.chainlesschain.android.feature.ai.cowork.skills
 
+import com.chainlesschain.android.core.p2p.RemoteSkillProvider
 import com.chainlesschain.android.feature.ai.cowork.skills.bridge.P2PSkillBridge
-import com.chainlesschain.android.remote.p2p.ConnectionState
-import com.chainlesschain.android.remote.p2p.P2PClient
 import io.mockk.*
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
@@ -15,27 +13,25 @@ import org.junit.Test
  */
 class P2PSkillBridgeTest {
 
-    private lateinit var mockP2PClient: P2PClient
-    private lateinit var connectionState: MutableStateFlow<ConnectionState>
+    private lateinit var mockProvider: RemoteSkillProvider
 
     @Before
     fun setUp() {
-        mockP2PClient = mockk(relaxed = true)
-        connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
-        every { mockP2PClient.connectionState } returns connectionState
+        mockProvider = mockk(relaxed = true)
+        every { mockProvider.isRemoteConnected } returns false
     }
 
     @Test
     fun `isDesktopConnected returns true when connected`() {
-        connectionState.value = ConnectionState.CONNECTED
-        val bridge = P2PSkillBridge(mockP2PClient)
+        every { mockProvider.isRemoteConnected } returns true
+        val bridge = P2PSkillBridge(mockProvider)
         assertTrue(bridge.isDesktopConnected)
     }
 
     @Test
     fun `isDesktopConnected returns false when disconnected`() {
-        connectionState.value = ConnectionState.DISCONNECTED
-        val bridge = P2PSkillBridge(mockP2PClient)
+        every { mockProvider.isRemoteConnected } returns false
+        val bridge = P2PSkillBridge(mockProvider)
         assertFalse(bridge.isDesktopConnected)
     }
 
@@ -49,8 +45,8 @@ class P2PSkillBridgeTest {
 
     @Test
     fun `executeRemote returns error when not connected`() = runBlocking {
-        connectionState.value = ConnectionState.DISCONNECTED
-        val bridge = P2PSkillBridge(mockP2PClient)
+        every { mockProvider.isRemoteConnected } returns false
+        val bridge = P2PSkillBridge(mockProvider)
 
         val result = bridge.executeRemote("browser-automation", mapOf("url" to "https://example.com"))
         assertFalse(result.success)
@@ -59,8 +55,8 @@ class P2PSkillBridgeTest {
 
     @Test
     fun `executeRemote succeeds with connected desktop`() = runBlocking {
-        connectionState.value = ConnectionState.CONNECTED
-        val bridge = P2PSkillBridge(mockP2PClient)
+        every { mockProvider.isRemoteConnected } returns true
+        val bridge = P2PSkillBridge(mockProvider)
 
         val responseMap = mapOf<String, Any>(
             "success" to true,
@@ -69,7 +65,7 @@ class P2PSkillBridgeTest {
         )
 
         coEvery {
-            mockP2PClient.sendCommand<Map<String, Any>>(
+            mockProvider.sendRemoteCommand<Map<String, Any>>(
                 method = "skill.execute",
                 params = any(),
                 timeout = any()
@@ -83,11 +79,11 @@ class P2PSkillBridgeTest {
 
     @Test
     fun `executeRemote handles P2P failure`() = runBlocking {
-        connectionState.value = ConnectionState.CONNECTED
-        val bridge = P2PSkillBridge(mockP2PClient)
+        every { mockProvider.isRemoteConnected } returns true
+        val bridge = P2PSkillBridge(mockProvider)
 
         coEvery {
-            mockP2PClient.sendCommand<Map<String, Any>>(
+            mockProvider.sendRemoteCommand<Map<String, Any>>(
                 method = "skill.execute",
                 params = any(),
                 timeout = any()
@@ -101,8 +97,8 @@ class P2PSkillBridgeTest {
 
     @Test
     fun `getDesktopSkills returns empty when not connected`() = runBlocking {
-        connectionState.value = ConnectionState.DISCONNECTED
-        val bridge = P2PSkillBridge(mockP2PClient)
+        every { mockProvider.isRemoteConnected } returns false
+        val bridge = P2PSkillBridge(mockProvider)
 
         val skills = bridge.getDesktopSkills()
         assertTrue(skills.isEmpty())
@@ -110,8 +106,8 @@ class P2PSkillBridgeTest {
 
     @Test
     fun `getDesktopSkills returns skills from desktop`() = runBlocking {
-        connectionState.value = ConnectionState.CONNECTED
-        val bridge = P2PSkillBridge(mockP2PClient)
+        every { mockProvider.isRemoteConnected } returns true
+        val bridge = P2PSkillBridge(mockProvider)
 
         val responseMap = mapOf<String, Any>(
             "skills" to listOf(
@@ -121,7 +117,7 @@ class P2PSkillBridgeTest {
         )
 
         coEvery {
-            mockP2PClient.sendCommand<Map<String, Any>>(
+            mockProvider.sendRemoteCommand<Map<String, Any>>(
                 method = "skill.list",
                 params = any(),
                 timeout = any()

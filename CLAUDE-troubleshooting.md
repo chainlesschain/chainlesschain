@@ -2,8 +2,8 @@
 
 > 记录已知问题和验证过的解决方案，避免重复排查
 >
-> **版本**: v1.2.0
-> **最后更新**: 2026-02-16
+> **版本**: v1.3.0
+> **最后更新**: 2026-03-10
 
 ---
 
@@ -972,6 +972,118 @@ node -e "JSON.parse(require('fs').readFileSync('path/to/template.json'))"
 **实现位置**: `desktop-app-vue/src/main/templates/demo-template-loader.js`
 
 **状态**: 已解决 — DemoTemplateLoader 包含 try-catch 错误处理
+
+---
+
+## Vitest 测试问题
+
+### Issue: Vitest 并行执行 OOM 崩溃
+
+**症状**:
+
+```
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+```
+
+**原因**: Vitest forks pool 默认并行运行所有测试文件，大量文件同时运行耗尽 Node.js 堆内存。
+
+**解决方案**:
+
+1. **分批运行** (推荐):
+
+```bash
+# 最多同时运行 3 个文件
+npx vitest run file1.test.js file2.test.js file3.test.js
+```
+
+2. **限制并行度**:
+
+```javascript
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    pool: "forks",
+    poolOptions: { forks: { maxForks: 2 } },
+  },
+});
+```
+
+**状态**: 已解决 — 分批运行策略
+
+---
+
+### Issue: vi.mock() 对 CJS 内联模块不生效
+
+**症状**:
+
+```
+vi.mock("uuid") // 不拦截 require("uuid")
+vi.mock("fs")   // 不拦截 require("fs")
+```
+
+**原因**: Vitest `server.deps.inline` 将 `src/main/**` CJS 模块内联到测试进程中，它们使用 Node.js 原生 `require()` 而非 Vitest 的模块解析器。
+
+**解决方案**:
+
+使用 `_deps` 注入模式:
+
+```javascript
+// 源文件
+const _deps = { uuidv4: require("uuid").v4, fs: require("fs") };
+module.exports = { MyClass, _deps };
+
+// 测试文件
+const mod = require("../my-module.js");
+mod._deps.uuidv4 = vi.fn(() => "test-uuid");
+```
+
+**状态**: 已解决 — `_deps` 注入模式 (详见 CLAUDE-patterns.md)
+
+---
+
+### Issue: 测试从错误工作目录运行失败
+
+**症状**:
+
+```
+Error: Cannot find module '../../../src/main/utils/logger.js'
+```
+
+**原因**: 测试中的相对路径 `require()` 依赖于 `desktop-app-vue` 作为工作目录。从项目根目录运行会导致路径解析失败。
+
+**解决方案**:
+
+```bash
+# 必须先 cd 到 desktop-app-vue
+cd desktop-app-vue && npx vitest run tests/unit/mcp/
+```
+
+**状态**: 已解决 — 始终从 `desktop-app-vue` 目录运行
+
+---
+
+### Issue: 安全审计测试正则不匹配实际处理器
+
+**症状**:
+
+```
+Expected: "ipc-handler-registered"
+Received: undefined
+```
+
+**原因**: 测试数据中的 IPC 通道名使用了与实际处理器不匹配的字符类。例如测试用 `audit:get-logs` 但实际注册的是 `audit:getLogs`。
+
+**解决方案**:
+
+确保测试字符串与实际 IPC 处理器注册的通道名完全匹配:
+
+```javascript
+// 检查实际注册的通道名格式
+const actualChannels = Object.keys(ipcHandlers);
+// 测试数据必须使用相同的命名格式
+```
+
+**状态**: 已解决 — 更新测试数据以匹配实际正则字符类
 
 ---
 

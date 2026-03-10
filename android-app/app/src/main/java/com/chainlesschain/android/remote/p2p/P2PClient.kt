@@ -14,6 +14,7 @@ import com.chainlesschain.android.remote.data.StreamEndMessage
 import com.chainlesschain.android.remote.data.StreamStartMessage
 import com.chainlesschain.android.remote.data.fromJson
 import com.chainlesschain.android.remote.data.toJsonString
+import com.chainlesschain.android.core.p2p.RemoteSkillProvider
 import com.chainlesschain.android.remote.crypto.NonceManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -47,7 +48,7 @@ class P2PClient @Inject constructor(
     private val webRTCClient: WebRTCClient,
     private val nonceManager: NonceManager,  // Nonce 持久化管理
     private val deviceActivityManager: DeviceActivityManager  // 设备活动跟踪
-) {
+) : RemoteSkillProvider {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
     @Volatile private var heartbeatJob: Job? = null
@@ -744,6 +745,17 @@ class P2PClient @Inject constructor(
     private fun generateRequestId(): String {
         return "req-${System.currentTimeMillis()}-${Random.nextInt(100000, 999999)}"
     }
+
+    // ==================== RemoteSkillProvider implementation ====================
+
+    override val isRemoteConnected: Boolean
+        get() = _connectionState.value == ConnectionState.CONNECTED
+
+    override suspend fun <T> sendRemoteCommand(
+        method: String,
+        params: Map<String, Any>,
+        timeout: Long
+    ): Result<T> = sendCommand(method, params, timeout)
 }
 
 enum class ConnectionState {

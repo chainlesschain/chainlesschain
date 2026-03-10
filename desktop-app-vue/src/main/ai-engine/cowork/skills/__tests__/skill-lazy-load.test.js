@@ -20,7 +20,7 @@ import { MarkdownSkill } from "../markdown-skill.js";
 import { SkillRegistry } from "../skill-registry.js";
 import { SkillLoader } from "../skill-loader.js";
 
-// Mock electron app
+// Mock electron app (resolved via vitest.config.ts alias)
 vi.mock("electron", () => ({
   app: {
     getPath: vi.fn(() => path.join(os.tmpdir(), "chainlesschain-lazy-test")),

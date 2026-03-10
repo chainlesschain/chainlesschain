@@ -101,6 +101,10 @@ export default defineConfig({
             text: "市场与安全生态 (37-42)",
             link: "/modules/37_技能市场系统",
           },
+          {
+            text: "v5.0.0 架构重构与生态融合 (43-65)",
+            link: "/modules/43_IPC域分割与懒加载系统",
+          },
         ],
       },
       {
@@ -306,6 +310,80 @@ export default defineConfig({
               text: "42 演化图谱高级联邦",
               link: "/modules/42_EvoMap高级联邦系统",
             },
+          ],
+        },
+        {
+          text: "v5.0.0 Milestone 1 — 架构重构基座 (43-45)",
+          collapsed: true,
+          items: [
+            {
+              text: "43 IPC域分割与懒加载",
+              link: "/modules/43_IPC域分割与懒加载系统",
+            },
+            {
+              text: "44 共享资源层与DI容器",
+              link: "/modules/44_共享资源层与依赖注入容器",
+            },
+            {
+              text: "45 数据库演进与迁移框架",
+              link: "/modules/45_数据库演进与迁移框架",
+            },
+          ],
+        },
+        {
+          text: "v5.0.0 Milestone 2 — AI Agent 2.0 (46-52)",
+          collapsed: true,
+          items: [
+            { text: "46 A2A协议引擎", link: "/modules/46_A2A协议引擎" },
+            {
+              text: "47 自主工作流编排器",
+              link: "/modules/47_自主工作流编排器",
+            },
+            { text: "48 层次化记忆2.0", link: "/modules/48_层次化记忆系统2.0" },
+            { text: "49 多模态感知层", link: "/modules/49_多模态感知层" },
+            { text: "50 Agent经济系统", link: "/modules/50_Agent经济系统" },
+            {
+              text: "51 代码生成Agent 2.0",
+              link: "/modules/51_代码生成Agent2.0",
+            },
+            {
+              text: "52 Agent安全沙箱2.0",
+              link: "/modules/52_Agent安全沙箱2.0",
+            },
+          ],
+        },
+        {
+          text: "v5.0.0 Milestone 3 — Web3深化 (53-57)",
+          collapsed: true,
+          items: [
+            { text: "53 零知识证明引擎", link: "/modules/53_零知识证明引擎" },
+            { text: "54 跨链互操作协议", link: "/modules/54_跨链互操作协议" },
+            { text: "55 去中心化身份2.0", link: "/modules/55_去中心化身份2.0" },
+            { text: "56 隐私计算框架", link: "/modules/56_隐私计算框架" },
+            { text: "57 DAO治理2.0", link: "/modules/57_DAO治理2.0" },
+          ],
+        },
+        {
+          text: "v5.0.0 Milestone 4 — 企业级平台 (58-62)",
+          collapsed: true,
+          items: [
+            { text: "58 低代码平台", link: "/modules/58_低代码平台" },
+            { text: "59 企业知识图谱", link: "/modules/59_企业知识图谱" },
+            { text: "60 BI智能分析", link: "/modules/60_BI智能分析" },
+            {
+              text: "61 工作流自动化引��",
+              link: "/modules/61_工作流自动化引擎",
+            },
+            { text: "62 多租户SaaS引擎", link: "/modules/62_多租户SaaS引擎" },
+          ],
+        },
+        {
+          text: "v5.0.0 Milestone 5 — 生态融合 (63-65)",
+          collapsed: true,
+          items: [
+            { text: "63 统一应用运行时", link: "/modules/63_统一应用运行时" },
+            { text: "64 智能插件生态2.0", link: "/modules/64_智能插件生态2.0" },
+            { text: "65 自进化AI系统", link: "/modules/65_自进化AI系统" },
           ],
         },
         {

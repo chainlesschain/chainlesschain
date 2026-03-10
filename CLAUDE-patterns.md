@@ -2,8 +2,8 @@
 
 > 记录项目中已验证的架构模式和解决方案，供 AI 助手和开发者参考
 >
-> **版本**: v1.2.0
-> **最后更新**: 2026-02-16
+> **版本**: v1.3.0
+> **最后更新**: 2026-03-10
 
 ---
 
@@ -801,6 +801,123 @@ parse(content) {
 ```
 
 **实现位置**: `desktop-app-vue/src/main/ai-engine/cowork/skills/skill-md-parser.js`
+
+---
+
+## 测试模式
+
+### Pattern: \_deps Injection for CJS Module Testing
+
+**问题**: Vitest `vi.mock()` 无法拦截被 `server.deps.inline` 内联的 CJS 模块的 `require()` 调用，导致 mock 不生效。
+
+**解决方案**:
+
+```javascript
+// 源文件: 导出可变 _deps 对象
+const { v4: uuidv4 } = require("uuid");
+const { spawn } = require("child_process");
+const _deps = { uuidv4, spawn };
+
+class MyClass {
+  doSomething() {
+    return _deps.uuidv4(); // 使用 _deps 而非直接调用
+  }
+}
+module.exports = { MyClass, _deps };
+
+// 测试文件: beforeEach 中覆盖 _deps 属性
+const mod = require("../my-module.js");
+mod._deps.uuidv4 = vi.fn(() => "test-uuid");
+```
+
+**实现位置**: `desktop-app-vue/src/main/` 多个 CJS 模块 (quantization-manager, gguf-quantizer 等)
+
+---
+
+### Pattern: Skill Lazy Loading (parseMetadataOnly)
+
+**问题**: 137 个技能在启动时全部解析 YAML + Markdown body，导致启动延迟。
+
+**解决方案**:
+
+```javascript
+// SkillMdParser.parseMetadataOnly(content)
+// 仅解析 YAML frontmatter，跳过 Markdown body
+// 返��� stub: { ...metadata, _isStub: true, _bodyLoaded: false }
+
+// MarkdownSkill.ensureFullyLoaded()
+// 首次访问时触发完整文件读取
+async ensureFullyLoaded() {
+  if (!this.definition._bodyLoaded) {
+    const fullContent = await fs.promises.readFile(this.filePath, "utf-8");
+    this.definition = this.parser.parseContent(fullContent);
+    this.definition._bodyLoaded = true;
+  }
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/ai-engine/cowork/skills/skill-md-parser.js`, `markdown-skill.js`
+
+---
+
+### Pattern: Remote Registry Fetch with Graceful Fallback
+
+**问题**: MCP 社区注册中心需要从远程获取服务器目录，但网络不可用时不能阻塞本地目录。
+
+**解决方案**:
+
+```javascript
+async refreshCatalog() {
+  this._loadBuiltinCatalog(); // 始终加载本地目录
+
+  if (this.remoteRegistryUrl) {
+    try {
+      const remoteServers = await this._fetchRemoteCatalog();
+      for (const server of remoteServers) {
+        if (server.id && server.name) {
+          this.catalog.set(server.id, { ...server, source: "remote" });
+        }
+      }
+    } catch (remoteError) {
+      logger.warn("Remote fetch failed, using local catalog");
+      // 不抛出 — 优雅降级到本地目录
+    }
+  }
+}
+```
+
+**实现位置**: `desktop-app-vue/src/main/mcp/community-registry.js:937-990`
+
+---
+
+### Pattern: Interface Extraction for Cross-Module DI (Android)
+
+**问题**: Android `P2PClient` 在 `app` 模块中，`P2PSkillBridge` 在 `feature-ai` 模块中，跨模块直接依赖导致 Hilt/KSP 编译失败。
+
+**解决方案**:
+
+```kotlin
+// core-p2p 模块 — 定义接口
+interface RemoteSkillProvider {
+    suspend fun executeRemoteSkill(skillName: String, params: Map<String, Any>): Result<String>
+    suspend fun isDesktopConnected(): Boolean
+    suspend fun getAvailableRemoteSkills(): List<String>
+}
+
+// app 模块 — P2PClient 实现接口
+class P2PClient @Inject constructor(...) : RemoteSkillProvider { ... }
+
+// RemoteModule — Hilt 绑定
+@Binds @Singleton
+abstract fun bindRemoteSkillProvider(impl: P2PClient): RemoteSkillProvider
+
+// feature-ai 模块 — 依赖接口
+class P2PSkillBridge @Inject constructor(
+    private val remoteProvider: RemoteSkillProvider // 不依赖 P2PClient
+)
+```
+
+**实现位置**: `android-app/core-p2p/.../RemoteSkillProvider.kt`, `android-app/app/.../di/RemoteModule.kt`
 
 ---
 

@@ -10,8 +10,8 @@ import com.chainlesschain.android.feature.ai.cowork.skills.handler.*
 import com.chainlesschain.android.feature.ai.cowork.skills.loader.SkillLoader
 import com.chainlesschain.android.feature.ai.cowork.skills.loader.SkillMdParser
 import com.chainlesschain.android.feature.ai.cowork.skills.registry.SkillRegistry
+import com.chainlesschain.android.core.p2p.RemoteSkillProvider
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
-import com.chainlesschain.android.remote.p2p.P2PClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -82,9 +82,9 @@ object SkillModule {
     @Provides
     @Singleton
     fun provideP2PSkillBridge(
-        p2pClient: P2PClient
+        remoteProvider: RemoteSkillProvider
     ): P2PSkillBridge {
-        return P2PSkillBridge(p2pClient)
+        return P2PSkillBridge(remoteProvider)
     }
 
     @Provides

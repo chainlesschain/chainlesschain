@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v1.2.1 (Enterprise Edition - 137 Desktop Skills + Android 28 Skills + Phase 6 Enterprise + v3.0-v4.0 Full-Stack + Q2 Phase 42-45) - Updated 2026-03-10
+**Current Version**: v5.0.1 (Evolution Edition - 137 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-100 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI) - Updated 2026-03-10
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -103,6 +103,7 @@ Key highlights:
 - **Enterprise**: RBAC, SSO, Audit & Compliance, Org Management, Real-time Collaboration
 - **Integration**: MCP, Browser Automation, Computer Use, IPFS, Analytics Dashboard
 - **v3.0-v4.0**: Pipeline Orchestrator, NL Programming, Multimodal Collaboration, Autonomous Ops, Agent Federation
+- **v5.0.0 (Phase 78-100)**: IPC Domain Split, DI Container, A2A Protocol, Workflow Engine, Hierarchical Memory 2.0, Agent Economy, ZKP Engine, Cross-Chain Bridge, Low-Code Platform, Enterprise KG, BI Engine, Self-Evolving AI
 
 ## Architecture Overview
 
@@ -112,12 +113,17 @@ Key highlights:
 
 **Main Process** (`main/`):
 
-- **Core**: `index.js` (entry), `database.js` (SQLite/SQLCipher), `config/`, `utils/`
-- **Security**: `ukey/` (hardware), `did/` (identity), `p2p/` (encrypted messaging)
-- **AI Engine**: `ai-engine/` (plan-mode, agents, cowork, autonomous), `llm/` (session, memory, instinct)
-- **Enterprise**: `permission/` (RBAC), `auth/` (SSO), `audit/`, `enterprise/` (org management)
-- **Integration**: `mcp/`, `browser/` (automation + computer-use), `marketplace/`, `hooks/`
+- **Core**: `index.js` (entry), `database.js` (SQLite/SQLCipher), `config/`, `utils/`, `core/` (DI container, shared cache, event bus, resource pool)
+- **IPC**: `ipc/` (middleware, lazy loader, 10 domain files)
+- **Security**: `ukey/` (hardware), `did/` (identity, DID v2), `p2p/` (encrypted messaging), `security/` (sandbox v2)
+- **AI Engine**: `ai-engine/` (plan-mode, agents, cowork, autonomous, a2a, workflow, memory, perception, code-agent, knowledge, evolution), `llm/` (session, memory, instinct)
+- **Enterprise**: `permission/` (RBAC), `auth/` (SSO), `audit/`, `enterprise/` (org, low-code, bi, automation, saas)
+- **Blockchain**: `blockchain/` (agent economy, cross-chain bridge, DAO governance v2)
+- **Crypto**: `crypto/` (ZKP engine, privacy computing)
+- **Integration**: `mcp/`, `browser/` (automation + computer-use), `marketplace/` (plugin ecosystem v2), `hooks/`
+- **Runtime**: `runtime/` (universal runtime, hot update, profiler)
 - **Advanced**: `collaboration/` (CRDT/Yjs), `ipfs/`, `rag/` (hybrid search), `analytics/`, `performance/`
+- **Database**: `database/` (migration manager, query builder, index optimizer)
 
 **Renderer Process** (`renderer/`):
 

@@ -55,8 +55,7 @@ const ANALYTICS_CHANNELS = [
  * @param {import('./analytics-aggregator').AnalyticsAggregator} deps.analyticsAggregator - Aggregator instance
  */
 function registerAnalyticsIPC(deps) {
-  const electron = require("electron");
-  const ipcMain = deps.ipcMain || electron.ipcMain;
+  const ipcMain = deps.ipcMain || require("electron").ipcMain;
   const { analyticsAggregator } = deps;
 
   if (!analyticsAggregator) {

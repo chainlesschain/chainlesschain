@@ -1,5 +1,6 @@
 import Foundation
 import SQLite
+import SQLite3
 
 /// 数据库引擎
 ///
@@ -56,12 +57,53 @@ public class DatabaseEngine: BaseAIEngine {
             throw AIEngineError.invalidParameters("缺少sql参数")
         }
 
-        // TODO: 执行实际查询
-        return [
-            "result": [],
-            "rowsAffected": 0,
-            "sql": sql
-        ]
+        // Only allow SELECT queries for safety — no mutations from AI engine
+        let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard trimmed.hasPrefix("SELECT") else {
+            return [
+                "error": "Only SELECT queries are allowed through the AI engine",
+                "sql": sql,
+                "result": [] as [Any],
+                "rowsAffected": 0
+            ]
+        }
+
+        do {
+            let rows: [[String: Any]] = try DatabaseManager.shared.query(sql) { stmt in
+                var row: [String: Any] = [:]
+                let columnCount = sqlite3_column_count(stmt)
+                for i in 0..<columnCount {
+                    let name = String(cString: sqlite3_column_name(stmt, i))
+                    let type = sqlite3_column_type(stmt, i)
+                    switch type {
+                    case SQLITE_INTEGER:
+                        row[name] = sqlite3_column_int64(stmt, i)
+                    case SQLITE_FLOAT:
+                        row[name] = sqlite3_column_double(stmt, i)
+                    case SQLITE_TEXT:
+                        row[name] = String(cString: sqlite3_column_text(stmt, i))
+                    case SQLITE_NULL:
+                        row[name] = NSNull()
+                    default:
+                        row[name] = String(cString: sqlite3_column_text(stmt, i))
+                    }
+                }
+                return row
+            }
+
+            return [
+                "result": rows,
+                "rowsAffected": rows.count,
+                "sql": sql
+            ]
+        } catch {
+            return [
+                "error": error.localizedDescription,
+                "sql": sql,
+                "result": [] as [Any],
+                "rowsAffected": 0
+            ]
+        }
     }
 
     private func optimizeQuery(parameters: [String: Any]) async throws -> [String: Any] {
