@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 /**
  * 安全扫描脚本
@@ -69,6 +70,7 @@ const ALLOWED_FILES = [
   // docs-site 文档（包含示例代码）
   "computer-use.md",
   "ai-models.md",
+  "did-v2.md",
 ];
 
 function checkFileForSecrets(filePath) {
@@ -107,7 +109,7 @@ function checkFileForSecrets(filePath) {
     });
 
     return findings;
-  } catch (error) {
+  } catch (_error) {
     // 忽略无法读取的文件
     return [];
   }
@@ -119,7 +121,7 @@ function getStagedFiles() {
       encoding: "utf8",
     });
     return output.trim().split("\n").filter(Boolean);
-  } catch (error) {
+  } catch (_error) {
     console.warn(
       "Warning: Could not get staged files. Skipping security check.",
     );
