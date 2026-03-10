@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/remote-gateway.js`
 
-**Generated**: 2026-03-10T06:30:36.317Z
+**Generated**: 2026-03-10T07:19:34.536Z
 
 ---
 

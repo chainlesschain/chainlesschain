@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/enhanced-tray-manager.js`
 
-**Generated**: 2026-03-10T06:30:36.295Z
+**Generated**: 2026-03-10T07:19:34.514Z
 
 ---
 

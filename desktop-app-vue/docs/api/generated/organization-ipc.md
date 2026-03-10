@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/organization-ipc.js`
 
-**Generated**: 2026-03-10T06:30:36.342Z
+**Generated**: 2026-03-10T07:19:34.562Z
 
 ---
 

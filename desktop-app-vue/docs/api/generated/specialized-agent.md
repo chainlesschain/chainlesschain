@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/specialized-agent.js`
 
-**Generated**: 2026-03-10T06:30:36.418Z
+**Generated**: 2026-03-10T07:19:34.640Z
 
 ---
 
