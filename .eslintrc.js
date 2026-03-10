@@ -28,7 +28,7 @@ module.exports = {
     "@typescript-eslint/no-var-requires": "off", // 项目使用 CommonJS
     "@typescript-eslint/no-this-alias": "warn",
     "@typescript-eslint/ban-ts-comment": "warn",
-    "@typescript-eslint/ban-types": "warn",
+    "@typescript-eslint/no-restricted-types": "warn",
     "no-console": "off",
     "no-debugger": "warn",
     "react/react-in-jsx-scope": "off", // React 17+ 不需要
@@ -67,6 +67,7 @@ module.exports = {
     "mobile-app-uniapp/",
     "android-app/",
     "ios-app/",
+    "docs-website/", // Static website build scripts
     "examples/", // Example projects have their own tsconfig
     "**/*.vue", // Temporarily ignore Vue files (need vue-eslint-parser)
     "**/*.d.ts", // Ignore TypeScript declaration files

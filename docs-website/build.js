@@ -130,7 +130,12 @@ function build() {
   const filesToCopy = [
     "index.html",
     "logo.png",
+    "logo-32.png",
+    "logo-64.png",
+    "logo-128.png",
+    "logo-optimized.png",
     "logo.svg",
+    "logo.webp",
     "mobile-optimize.css",
   ];
 

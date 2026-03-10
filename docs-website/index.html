@@ -61,6 +61,9 @@
     <link rel="preload" href="css/style.css?v=12.0" as="style">
     <link rel="preload" href="js/main.js" as="script">
 
+    <!-- 加载动画CSS - 同步加载确保首屏动画正确显示 -->
+    <link rel="stylesheet" href="css/legacy/loading.css">
+
     <!-- 性能优化：关键CSS内联 -->
     <style>
         /* Critical CSS - 首屏关键样式 */
@@ -629,7 +632,7 @@
                 <!-- 使用优化后的小尺寸 logo -->
                 <picture>
                     <source srcset="logo.webp" type="image/webp">
-                    <img src="logo-64.png" alt="ChainlessChain Logo" class="loader-logo">
+                    <img src="logo-optimized.png" alt="ChainlessChain Logo" class="loader-logo">
                 </picture>
             </div>
 
@@ -1801,7 +1804,7 @@
                 </div>
                 <div class="tech-stat-item">
                     <div class="stat-icon">🛠️</div>
-                    <div class="stat-value">95</div>
+                    <div class="stat-value">137</div>
                     <div class="stat-label">内置技能</div>
                 </div>
                 <div class="tech-stat-item">
@@ -2074,15 +2077,15 @@
                     </div>
                 </div>
 
-                <!-- AI Skills System - v0.37.6 重点功能 -->
+                <!-- AI Skills System - v1.2.1 重点功能 -->
                 <div class="new-feature-card highlight">
-                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-badge">v1.2.1</div>
                     <div class="feature-icon">🎨</div>
                     <h3>AI 技能系统</h3>
-                    <h4>95内置技能 + Android 28技能 + PC远程委派</h4>
-                    <p class="feature-desc">95个桌面内置技能覆盖开发/自动化/知识/安全/文档/媒体等15大类别，Android 28个技能支持远程委派到PC执行，统一工具注册表聚合60+内置工具+8 MCP服务器+95技能，Agent Skills开放标准，10个演示模板。</p>
+                    <h4>137内置技能 + Android 28技能 + PC远程委派</h4>
+                    <p class="feature-desc">137个桌面内置技能覆盖开发/自动化/知识/安全/文档/媒体等15大类别，Android 28个技能支持远程委派到PC执行，统一工具注册表聚合60+内置工具+8 MCP服务器+137技能，Agent Skills开放标准，10个演示模板。</p>
                     <div class="feature-highlights">
-                        <span class="highlight-tag">🛠️ 95桌面技能</span>
+                        <span class="highlight-tag">🛠️ 137桌面技能</span>
                         <span class="highlight-tag">📱 28 Android技能</span>
                         <span class="highlight-tag">🔗 PC远程委派</span>
                         <span class="highlight-tag">📐 Agent Skills标准</span>
@@ -2176,15 +2179,15 @@
 
                 <!-- Skills System -->
                 <div class="new-feature-card">
-                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-badge">v1.2.1</div>
                     <div class="feature-icon">🎯</div>
                     <h3>技能系统</h3>
-                    <h4>95内置技能 + 四层加载</h4>
-                    <p class="feature-desc">四层加载机制（bundled→marketplace→managed→workspace），平台/依赖门检查，/skill命令解析，95个内置技能100% Handler覆盖。</p>
+                    <h4>137内置技能 + 四层加载</h4>
+                    <p class="feature-desc">四层加载机制（bundled→marketplace→managed→workspace），平台/依赖门检查，/skill命令解析，137个内置技能100% Handler覆盖。</p>
                     <div class="feature-highlights">
                         <span class="highlight-tag">📝 Markdown定义</span>
                         <span class="highlight-tag">🔄 四层加载</span>
-                        <span class="highlight-tag">🛠️ 95内置技能</span>
+                        <span class="highlight-tag">🛠️ 137内置技能</span>
                     </div>
                 </div>
 
