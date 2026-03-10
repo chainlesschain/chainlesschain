@@ -2,7 +2,7 @@
 
 **Source**: `src/main/bootstrap/initializer-factory.js`
 
-**Generated**: 2026-03-10T01:47:03.199Z
+**Generated**: 2026-03-10T02:08:39.546Z
 
 ---
 

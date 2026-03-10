@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/content-recommender.js`
 
-**Generated**: 2026-03-10T01:47:03.216Z
+**Generated**: 2026-03-10T02:08:39.563Z
 
 ---
 

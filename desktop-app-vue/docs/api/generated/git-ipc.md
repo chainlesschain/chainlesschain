@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-ipc.js`
 
-**Generated**: 2026-03-10T01:47:03.169Z
+**Generated**: 2026-03-10T02:08:39.515Z
 
 ---
 

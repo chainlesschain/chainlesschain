@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/edge-tts-client.js`
 
-**Generated**: 2026-03-10T01:47:03.103Z
+**Generated**: 2026-03-10T02:08:39.446Z
 
 ---
 

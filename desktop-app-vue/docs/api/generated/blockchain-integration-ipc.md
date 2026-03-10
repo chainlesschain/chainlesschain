@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/blockchain-integration-ipc.js`
 
-**Generated**: 2026-03-10T01:47:03.202Z
+**Generated**: 2026-03-10T02:08:39.549Z
 
 ---
 

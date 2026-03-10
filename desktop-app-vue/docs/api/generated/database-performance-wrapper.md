@@ -2,7 +2,7 @@
 
 **Source**: `src/main/performance/database-performance-wrapper.js`
 
-**Generated**: 2026-03-10T01:47:03.135Z
+**Generated**: 2026-03-10T02:08:39.482Z
 
 ---
 

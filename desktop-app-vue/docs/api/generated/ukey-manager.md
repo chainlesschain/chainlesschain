@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/ukey-manager.js`
 
-**Generated**: 2026-03-10T01:47:03.086Z
+**Generated**: 2026-03-10T02:08:39.429Z
 
 ---
 

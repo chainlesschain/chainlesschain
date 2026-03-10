@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/secure-config-storage.js`
 
-**Generated**: 2026-03-10T01:47:03.156Z
+**Generated**: 2026-03-10T02:08:39.501Z
 
 ---
 

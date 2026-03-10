@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/did-invitation-manager.js`
 
-**Generated**: 2026-03-10T01:47:03.144Z
+**Generated**: 2026-03-10T02:08:39.489Z
 
 ---
 

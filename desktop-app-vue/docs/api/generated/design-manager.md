@@ -2,7 +2,7 @@
 
 **Source**: `src/main/design/design-manager.js`
 
-**Generated**: 2026-03-10T01:47:03.181Z
+**Generated**: 2026-03-10T02:08:39.526Z
 
 ---
 
