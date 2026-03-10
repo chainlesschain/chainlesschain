@@ -7,15 +7,15 @@
 const parseFile = (content, fileType, options = {}) => {
   try {
     switch (fileType) {
-      case 'json':
+      case "json":
         return parseJSON(content, options);
-      case 'csv':
+      case "csv":
         return parseCSV(content, options);
-      case 'xml':
+      case "xml":
         return parseXML(content, options);
-      case 'markdown':
+      case "markdown":
         return parseMarkdown(content, options);
-      case 'code':
+      case "code":
         return parseCode(content, options);
       default:
         return { success: true, data: content };
@@ -30,14 +30,14 @@ const parseFile = (content, fileType, options = {}) => {
 };
 
 // JSON解析
-const parseJSON = (content, options) => {
+const parseJSON = (content, _options) => {
   try {
     const data = JSON.parse(content);
     return {
       success: true,
       data,
       metadata: {
-        type: 'json',
+        type: "json",
         size: content.length,
         keys: Object.keys(data).length,
       },
@@ -49,21 +49,21 @@ const parseJSON = (content, options) => {
 
 // CSV解析
 const parseCSV = (content, options) => {
-  const delimiter = options.delimiter || ',';
-  const lines = content.split('\n').filter(line => line.trim());
+  const delimiter = options.delimiter || ",";
+  const lines = content.split("\n").filter((line) => line.trim());
 
   if (lines.length === 0) {
     return { success: true, data: [], metadata: { rows: 0, columns: 0 } };
   }
 
-  const headers = lines[0].split(delimiter).map(h => h.trim());
+  const headers = lines[0].split(delimiter).map((h) => h.trim());
   const rows = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(delimiter).map(v => v.trim());
+    const values = lines[i].split(delimiter).map((v) => v.trim());
     const row = {};
     headers.forEach((header, index) => {
-      row[header] = values[index] || '';
+      row[header] = values[index] || "";
     });
     rows.push(row);
   }
@@ -72,7 +72,7 @@ const parseCSV = (content, options) => {
     success: true,
     data: rows,
     metadata: {
-      type: 'csv',
+      type: "csv",
       rows: rows.length,
       columns: headers.length,
       headers,
@@ -81,7 +81,7 @@ const parseCSV = (content, options) => {
 };
 
 // XML解析（简化版）
-const parseXML = (content, options) => {
+const parseXML = (content, _options) => {
   // 简单的XML标签提取
   const tagRegex = /<([a-zA-Z0-9_-]+)[^>]*>/g;
   const tags = [];
@@ -97,7 +97,7 @@ const parseXML = (content, options) => {
     success: true,
     data: content,
     metadata: {
-      type: 'xml',
+      type: "xml",
       size: content.length,
       tags: uniqueTags,
       tagCount: tags.length,
@@ -106,7 +106,7 @@ const parseXML = (content, options) => {
 };
 
 // Markdown解析
-const parseMarkdown = (content, options) => {
+const parseMarkdown = (content, _options) => {
   // 提取标题
   const headings = [];
   const headingRegex = /^(#{1,6})\s+(.+)$/gm;
@@ -136,7 +136,7 @@ const parseMarkdown = (content, options) => {
 
   while ((match = codeRegex.exec(content)) !== null) {
     codeBlocks.push({
-      language: match[1] || 'text',
+      language: match[1] || "text",
       code: match[2],
     });
   }
@@ -145,7 +145,7 @@ const parseMarkdown = (content, options) => {
     success: true,
     data: content,
     metadata: {
-      type: 'markdown',
+      type: "markdown",
       size: content.length,
       headings,
       links,
@@ -157,18 +157,23 @@ const parseMarkdown = (content, options) => {
 
 // 代码解析
 const parseCode = (content, options) => {
-  const language = options.language || 'javascript';
+  const language = options.language || "javascript";
 
   // 统计代码行数
-  const lines = content.split('\n');
-  const codeLines = lines.filter(line => line.trim() && !line.trim().startsWith('//')).length;
-  const commentLines = lines.filter(line => line.trim().startsWith('//')).length;
-  const blankLines = lines.filter(line => !line.trim()).length;
+  const lines = content.split("\n");
+  const codeLines = lines.filter(
+    (line) => line.trim() && !line.trim().startsWith("//"),
+  ).length;
+  const commentLines = lines.filter((line) =>
+    line.trim().startsWith("//"),
+  ).length;
+  const blankLines = lines.filter((line) => !line.trim()).length;
 
   // 提取函数定义（简化版，仅支持JavaScript）
   const functions = [];
-  if (language === 'javascript' || language === 'typescript') {
-    const funcRegex = /(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>)/g;
+  if (language === "javascript" || language === "typescript") {
+    const funcRegex =
+      /(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>)/g;
     let match;
 
     while ((match = funcRegex.exec(content)) !== null) {
@@ -180,7 +185,7 @@ const parseCode = (content, options) => {
     success: true,
     data: content,
     metadata: {
-      type: 'code',
+      type: "code",
       language,
       totalLines: lines.length,
       codeLines,
@@ -193,32 +198,32 @@ const parseCode = (content, options) => {
 };
 
 // 监听主线程消息
-self.addEventListener('message', (event) => {
+self.addEventListener("message", (event) => {
   const { id, type, payload } = event.data;
 
   try {
     let result;
 
     switch (type) {
-      case 'parse':
+      case "parse":
         result = parseFile(payload.content, payload.fileType, payload.options);
         break;
 
-      case 'extract-metadata':
+      case "extract-metadata":
         // 快速提取元数据，不解析完整内容
         result = {
           success: true,
           metadata: {
             size: payload.content.length,
-            lines: payload.content.split('\n').length,
+            lines: payload.content.split("\n").length,
             words: payload.content.split(/\s+/).length,
           },
         };
         break;
 
-      case 'search': {
+      case "search": {
         // 在文件内容中搜索
-        const searchRegex = new RegExp(payload.pattern, payload.flags || 'gi');
+        const searchRegex = new RegExp(payload.pattern, payload.flags || "gi");
         const matches = [];
         let searchMatch;
 
@@ -226,7 +231,8 @@ self.addEventListener('message', (event) => {
           matches.push({
             index: searchMatch.index,
             text: searchMatch[0],
-            line: payload.content.substring(0, searchMatch.index).split('\n').length,
+            line: payload.content.substring(0, searchMatch.index).split("\n")
+              .length,
           });
         }
 
@@ -266,4 +272,4 @@ self.addEventListener('message', (event) => {
 });
 
 // Worker就绪通知
-self.postMessage({ type: 'ready' });
+self.postMessage({ type: "ready" });

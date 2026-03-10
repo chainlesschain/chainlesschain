@@ -61,9 +61,13 @@ function parseInput(input) {
   const parts = trimmed.split(/\s+/);
   const action = (parts[0] || "list").toLowerCase();
 
-  if (["list", "ls"].includes(action)) return { action: "list" };
+  if (["list", "ls"].includes(action)) {
+    return { action: "list" };
+  }
 
-  if (["remove", "cancel", "delete", "pause", "resume", "status"].includes(action)) {
+  if (
+    ["remove", "cancel", "delete", "pause", "resume", "status"].includes(action)
+  ) {
     return { action, target: parts[1] || "" };
   }
 
@@ -197,8 +201,11 @@ function handleRemove(jobId) {
   }
 
   if (job._handle) {
-    if (job.type === "recurring") clearInterval(job._handle);
-    else clearTimeout(job._handle);
+    if (job.type === "recurring") {
+      clearInterval(job._handle);
+    } else {
+      clearTimeout(job._handle);
+    }
   }
   jobs.delete(jobId);
 
@@ -212,23 +219,39 @@ function handleRemove(jobId) {
 
 function handlePause(jobId) {
   const job = jobs.get(jobId);
-  if (!job) return { success: false, error: `Job "${jobId}" not found.` };
+  if (!job) {
+    return { success: false, error: `Job "${jobId}" not found.` };
+  }
 
   job.enabled = false;
-  return { success: true, action: "pause", jobId, message: `Job "${jobId}" paused.` };
+  return {
+    success: true,
+    action: "pause",
+    jobId,
+    message: `Job "${jobId}" paused.`,
+  };
 }
 
 function handleResume(jobId) {
   const job = jobs.get(jobId);
-  if (!job) return { success: false, error: `Job "${jobId}" not found.` };
+  if (!job) {
+    return { success: false, error: `Job "${jobId}" not found.` };
+  }
 
   job.enabled = true;
-  return { success: true, action: "resume", jobId, message: `Job "${jobId}" resumed.` };
+  return {
+    success: true,
+    action: "resume",
+    jobId,
+    message: `Job "${jobId}" resumed.`,
+  };
 }
 
 function handleStatus(jobId) {
   const job = jobs.get(jobId);
-  if (!job) return { success: false, error: `Job "${jobId}" not found.` };
+  if (!job) {
+    return { success: false, error: `Job "${jobId}" not found.` };
+  }
 
   const { _handle, ...info } = job;
   return { success: true, action: "status", job: info };
@@ -238,22 +261,32 @@ function naturalLanguageToCron(text) {
   const lower = text.toLowerCase().trim();
 
   // Already a cron expression
-  if (/^[*0-9/,\-]+(\s+[*0-9/,\-]+){4}$/.test(lower)) return lower;
+  if (/^[*0-9/,-]+(\s+[*0-9/,-]+){4}$/.test(lower)) {
+    return lower;
+  }
 
   // Every N minutes
   const minMatch = lower.match(/every\s+(\d+)\s+minute/);
-  if (minMatch) return `*/${minMatch[1]} * * * *`;
+  if (minMatch) {
+    return `*/${minMatch[1]} * * * *`;
+  }
 
   // Every N hours
   const hourMatch = lower.match(/every\s+(\d+)\s+hour/);
-  if (hourMatch) return `0 */${hourMatch[1]} * * *`;
+  if (hourMatch) {
+    return `0 */${hourMatch[1]} * * *`;
+  }
 
   // Every day at Xam/pm
   const dailyMatch = lower.match(/every\s+day\s+at\s+(\d{1,2})(am|pm)/);
   if (dailyMatch) {
     let hour = parseInt(dailyMatch[1], 10);
-    if (dailyMatch[2] === "pm" && hour !== 12) hour += 12;
-    if (dailyMatch[2] === "am" && hour === 12) hour = 0;
+    if (dailyMatch[2] === "pm" && hour !== 12) {
+      hour += 12;
+    }
+    if (dailyMatch[2] === "am" && hour === 12) {
+      hour = 0;
+    }
     return `0 ${hour} * * *`;
   }
 
@@ -261,23 +294,36 @@ function naturalLanguageToCron(text) {
   const weekdayMatch = lower.match(/every\s+weekday\s+at\s+(\d{1,2})(am|pm)/);
   if (weekdayMatch) {
     let hour = parseInt(weekdayMatch[1], 10);
-    if (weekdayMatch[2] === "pm" && hour !== 12) hour += 12;
-    if (weekdayMatch[2] === "am" && hour === 12) hour = 0;
+    if (weekdayMatch[2] === "pm" && hour !== 12) {
+      hour += 12;
+    }
+    if (weekdayMatch[2] === "am" && hour === 12) {
+      hour = 0;
+    }
     return `0 ${hour} * * 1-5`;
   }
 
   // Every Monday/Tuesday/etc at Xam/pm
   const dayNames = {
-    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-    thursday: 4, friday: 5, saturday: 6,
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
   };
   const dayMatch = lower.match(
     /every\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+at\s+(\d{1,2})(am|pm)/,
   );
   if (dayMatch) {
     let hour = parseInt(dayMatch[2], 10);
-    if (dayMatch[3] === "pm" && hour !== 12) hour += 12;
-    if (dayMatch[3] === "am" && hour === 12) hour = 0;
+    if (dayMatch[3] === "pm" && hour !== 12) {
+      hour += 12;
+    }
+    if (dayMatch[3] === "am" && hour === 12) {
+      hour = 0;
+    }
     return `0 ${hour} * * ${dayNames[dayMatch[1]]}`;
   }
 
@@ -287,13 +333,19 @@ function naturalLanguageToCron(text) {
 function cronToMs(cron) {
   // Simple conversion for common intervals
   const minMatch = cron.match(/^\*\/(\d+)\s/);
-  if (minMatch) return parseInt(minMatch[1], 10) * 60000;
+  if (minMatch) {
+    return parseInt(minMatch[1], 10) * 60000;
+  }
 
   const hourMatch = cron.match(/^0\s\*\/(\d+)/);
-  if (hourMatch) return parseInt(hourMatch[1], 10) * 3600000;
+  if (hourMatch) {
+    return parseInt(hourMatch[1], 10) * 3600000;
+  }
 
   // Daily
-  if (/^0\s\d+\s\*\s\*\s\*$/.test(cron)) return 86400000;
+  if (/^0\s\d+\s\*\s\*\s\*$/.test(cron)) {
+    return 86400000;
+  }
 
   return 3600000; // default 1 hour
 }
@@ -305,8 +357,12 @@ function calculateDelay(text) {
   const atMatch = lower.match(/at\s+(\d{1,2})(am|pm)/);
   if (atMatch) {
     let hour = parseInt(atMatch[1], 10);
-    if (atMatch[2] === "pm" && hour !== 12) hour += 12;
-    if (atMatch[2] === "am" && hour === 12) hour = 0;
+    if (atMatch[2] === "pm" && hour !== 12) {
+      hour += 12;
+    }
+    if (atMatch[2] === "am" && hour === 12) {
+      hour = 0;
+    }
 
     const target = new Date(now);
     target.setHours(hour, 0, 0, 0);
