@@ -95,7 +95,7 @@ npm run lint && npm run format
 
 ## Feature Index
 
-**See [`FEATURES.md`](FEATURES.md) for the complete feature list** (131 desktop features, 28 Android skills).
+**See [`FEATURES.md`](FEATURES.md) for the complete feature list** (137 desktop features, 28 Android skills).
 
 Key highlights:
 
