@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/retry-policy.js`
 
-**Generated**: 2026-03-10T07:19:34.515Z
+**Generated**: 2026-03-10T08:57:03.185Z
 
 ---
 

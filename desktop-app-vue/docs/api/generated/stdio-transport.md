@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/transports/stdio-transport.js`
 
-**Generated**: 2026-03-10T07:19:34.569Z
+**Generated**: 2026-03-10T08:57:03.238Z
 
 ---
 
