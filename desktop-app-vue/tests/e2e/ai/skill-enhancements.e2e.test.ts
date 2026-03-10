@@ -255,3 +255,132 @@ test.describe("Debugging Strategies — Systematic", () => {
     expect(summary.result?.subcommand).toBe("summary");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tavily Search (v2.0 — crawl, map, research, QNA)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test.describe("Tavily Search — v2.0 Enhancements", () => {
+  test("should show usage when no input", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "tavily-search",
+      input: "",
+    });
+    assertEnvelope(result, { expectSuccess: false });
+    expect(result.error).toContain("Usage");
+  });
+
+  test("should fail without API key (if not set)", async () => {
+    // This test validates error handling; API key may or may not be configured
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "tavily-search",
+      input: "test query",
+    });
+    assertEnvelope(result);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Self-Improving Agent (v2.0 — instincts, skill extraction)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test.describe("Self-Improving Agent — v2.0 Enhancements", () => {
+  test("should record error with fix", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "self-improving-agent",
+      input:
+        "record-error TypeError in component fix: Added null check before accessing property",
+    });
+    assertEnvelope(result, { expectSuccess: true });
+    expect(result.action || result.result?.action).toBeDefined();
+  });
+
+  test("should capture instinct", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "self-improving-agent",
+      input:
+        "capture-instinct Fix PrismaClient error trigger: Serverless deploy solution: Run prisma generate",
+    });
+    assertEnvelope(result, { expectSuccess: true });
+  });
+
+  test("should list instincts", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "self-improving-agent",
+      input: "list-instincts",
+    });
+    assertEnvelope(result, { expectSuccess: true });
+  });
+
+  test("should extract skill", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "self-improving-agent",
+      input: "extract-skill test-skill desc: A test skill for E2E",
+    });
+    assertEnvelope(result, { expectSuccess: true });
+  });
+
+  test("should export learnings", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "self-improving-agent",
+      input: "export",
+    });
+    assertEnvelope(result, { expectSuccess: true });
+    expect(result.result?.version).toBe(2);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Find Skills (v2.0 — marketplace, compare, rate)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test.describe("Find Skills — v2.0 Enhancements", () => {
+  test("should list known marketplaces", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "find-skills",
+      input: "marketplace",
+    });
+    assertEnvelope(result, { expectSuccess: true });
+    expect(result.result?.count).toBe(6);
+  });
+
+  test("should rate a skill", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "find-skills",
+      input: "rate code-review 5",
+    });
+    assertEnvelope(result, { expectSuccess: true });
+    expect(result.result?.rating).toBe(5);
+  });
+
+  test("should list popular skills", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "find-skills",
+      input: "popular",
+    });
+    assertEnvelope(result, { expectSuccess: true });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GitHub Manager (v2.0 — code search, releases, branches, PR review)
+// ─────────────────────────────────────────────────────────────────────────────
+
+test.describe("GitHub Manager — v2.0 Enhancements", () => {
+  test("should fail without token", async () => {
+    // Token may or may not be set; verify error handling
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "github-manager",
+      input: "list-issues owner/repo",
+    });
+    assertEnvelope(result);
+  });
+
+  test("should return error for unknown action", async () => {
+    const result = await callIPC(app, "skill:execute", {
+      skillName: "github-manager",
+      input: "invalid-action owner/repo",
+    });
+    assertEnvelope(result, { expectSuccess: false });
+  });
+});
