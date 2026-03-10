@@ -14,7 +14,7 @@
  * npm install pako
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 // ==================== 类型定义 ====================
 
@@ -97,11 +97,13 @@ const loadPako = async (): Promise<PakoModule | null> => {
 
   try {
     // Try dynamic import (requires bundler support)
-    const module = await import('pako');
+    const module = await import("pako");
     pako = module as unknown as PakoModule;
     return pako;
   } catch {
-    logger.warn('[DataCompression] pako library not available, compression disabled');
+    logger.warn(
+      "[DataCompression] pako library not available, compression disabled",
+    );
     return null;
   }
 };
@@ -150,7 +152,7 @@ class DataCompressor {
     this.pako = await loadPako();
 
     if (this.options.debug && this.pako) {
-      logger.info('[DataCompressor] Initialized with pako');
+      logger.info("[DataCompressor] Initialized with pako");
     }
   }
 
@@ -159,29 +161,35 @@ class DataCompressor {
    */
   async compress(
     data: string | Uint8Array,
-    options: CompressOptions = {}
+    options: CompressOptions = {},
   ): Promise<Uint8Array | string> {
     if (!this.pako) {
       await this.init();
     }
 
     if (!this.pako) {
-      logger.warn('[DataCompressor] Compression not available, returning original data');
+      logger.warn(
+        "[DataCompressor] Compression not available, returning original data",
+      );
       return data;
     }
 
-    const { level = this.options.level, base64 = this.options.useBase64 } = options;
+    const { level = this.options.level, base64 = this.options.useBase64 } =
+      options;
 
     try {
       // Convert string to Uint8Array if needed
-      const input = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+      const input =
+        typeof data === "string" ? new TextEncoder().encode(data) : data;
 
       const originalSize = input.length;
 
       // Check threshold
       if (this.options.autoCompress && originalSize < this.options.threshold) {
         if (this.options.debug) {
-          logger.info('[DataCompressor] Data below threshold, skipping compression');
+          logger.info(
+            "[DataCompressor] Data below threshold, skipping compression",
+          );
         }
         return data;
       }
@@ -201,7 +209,7 @@ class DataCompressor {
 
       if (this.options.debug) {
         logger.info(
-          `[DataCompressor] Compressed: ${originalSize} -> ${compressedSize} bytes (${ratio}% reduction)`
+          `[DataCompressor] Compressed: ${originalSize} -> ${compressedSize} bytes (${ratio}% reduction)`,
         );
       }
 
@@ -212,7 +220,7 @@ class DataCompressor {
 
       return compressed;
     } catch (error) {
-      logger.error('[DataCompressor] Compression error:', error);
+      logger.error("[DataCompressor] Compression error:", error);
       return data; // Return original data on error
     }
   }
@@ -222,14 +230,16 @@ class DataCompressor {
    */
   async decompress(
     data: Uint8Array | string,
-    options: DecompressOptions = {}
+    options: DecompressOptions = {},
   ): Promise<string | Uint8Array> {
     if (!this.pako) {
       await this.init();
     }
 
     if (!this.pako) {
-      logger.warn('[DataCompressor] Decompression not available, returning original data');
+      logger.warn(
+        "[DataCompressor] Decompression not available, returning original data",
+      );
       return data;
     }
 
@@ -237,7 +247,9 @@ class DataCompressor {
 
     try {
       // Convert from base64 if needed
-      const input = fromBase64 ? this.base64ToArrayBuffer(data as string) : (data as Uint8Array);
+      const input = fromBase64
+        ? this.base64ToArrayBuffer(data as string)
+        : (data as Uint8Array);
 
       // Decompress
       const decompressed = this.pako.inflate(input);
@@ -245,7 +257,9 @@ class DataCompressor {
       this.stats.totalDecompressed++;
 
       if (this.options.debug) {
-        logger.info(`[DataCompressor] Decompressed: ${input.length} -> ${decompressed.length} bytes`);
+        logger.info(
+          `[DataCompressor] Decompressed: ${input.length} -> ${decompressed.length} bytes`,
+        );
       }
 
       // Convert to string if requested
@@ -255,7 +269,7 @@ class DataCompressor {
 
       return decompressed;
     } catch (error) {
-      logger.error('[DataCompressor] Decompression error:', error);
+      logger.error("[DataCompressor] Decompression error:", error);
       throw error;
     }
   }
@@ -263,12 +277,15 @@ class DataCompressor {
   /**
    * Compress JSON object
    */
-  async compressJSON(obj: any, options: CompressOptions = {}): Promise<string | Uint8Array> {
+  async compressJSON(
+    obj: any,
+    options: CompressOptions = {},
+  ): Promise<string | Uint8Array> {
     try {
       const json = JSON.stringify(obj);
       return this.compress(json, options);
     } catch (error) {
-      logger.error('[DataCompressor] JSON compression error:', error);
+      logger.error("[DataCompressor] JSON compression error:", error);
       throw error;
     }
   }
@@ -276,12 +293,18 @@ class DataCompressor {
   /**
    * Decompress to JSON object
    */
-  async decompressJSON<T = any>(data: Uint8Array | string, options: DecompressOptions = {}): Promise<T> {
+  async decompressJSON<T = any>(
+    data: Uint8Array | string,
+    options: DecompressOptions = {},
+  ): Promise<T> {
     try {
-      const json = await this.decompress(data, { ...options, asString: true }) as string;
+      const json = (await this.decompress(data, {
+        ...options,
+        asString: true,
+      })) as string;
       return JSON.parse(json);
     } catch (error) {
-      logger.error('[DataCompressor] JSON decompression error:', error);
+      logger.error("[DataCompressor] JSON decompression error:", error);
       throw error;
     }
   }
@@ -289,9 +312,11 @@ class DataCompressor {
   /**
    * Stream compression (for large files)
    */
-  compressStream(stream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  compressStream(
+    stream: ReadableStream<Uint8Array>,
+  ): ReadableStream<Uint8Array> {
     if (!this.pako) {
-      logger.warn('[DataCompressor] Stream compression not available');
+      logger.warn("[DataCompressor] Stream compression not available");
       return stream;
     }
 
@@ -302,6 +327,7 @@ class DataCompressor {
         const reader = stream.getReader();
 
         try {
+          // eslint-disable-next-line no-constant-condition
           while (true) {
             const { done, value } = await reader.read();
 
@@ -334,9 +360,11 @@ class DataCompressor {
   /**
    * Stream decompression
    */
-  decompressStream(stream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  decompressStream(
+    stream: ReadableStream<Uint8Array>,
+  ): ReadableStream<Uint8Array> {
     if (!this.pako) {
-      logger.warn('[DataCompressor] Stream decompression not available');
+      logger.warn("[DataCompressor] Stream decompression not available");
       return stream;
     }
 
@@ -347,6 +375,7 @@ class DataCompressor {
         const reader = stream.getReader();
 
         try {
+          // eslint-disable-next-line no-constant-condition
           while (true) {
             const { done, value } = await reader.read();
 
@@ -381,7 +410,7 @@ class DataCompressor {
    */
   arrayBufferToBase64(buffer: Uint8Array): string {
     const bytes = new Uint8Array(buffer);
-    let binary = '';
+    let binary = "";
 
     for (let i = 0; i < bytes.length; i++) {
       binary += String.fromCharCode(bytes[i]);
@@ -417,8 +446,11 @@ class DataCompressor {
   getStats(): CompressionStatsReport {
     const avgRatio =
       this.stats.originalSize > 0
-        ? this.getCompressionRatio(this.stats.originalSize, this.stats.compressedSize)
-        : '0';
+        ? this.getCompressionRatio(
+            this.stats.originalSize,
+            this.stats.compressedSize,
+          )
+        : "0";
 
     return {
       ...this.stats,
@@ -440,7 +472,7 @@ class DataCompressor {
     };
 
     if (this.options.debug) {
-      logger.info('[DataCompressor] Statistics reset');
+      logger.info("[DataCompressor] Statistics reset");
     }
   }
 }
@@ -453,7 +485,9 @@ let compressorInstance: DataCompressor | null = null;
 /**
  * Get or create data compressor instance
  */
-export function getDataCompressor(options?: DataCompressorOptions): DataCompressor {
+export function getDataCompressor(
+  options?: DataCompressorOptions,
+): DataCompressor {
   if (!compressorInstance) {
     compressorInstance = new DataCompressor(options);
   }
@@ -467,7 +501,7 @@ export function getDataCompressor(options?: DataCompressorOptions): DataCompress
  */
 export async function compress(
   data: string | Uint8Array,
-  options?: CompressOptions
+  options?: CompressOptions,
 ): Promise<Uint8Array | string> {
   const compressor = getDataCompressor();
   return compressor.compress(data, options);
@@ -478,7 +512,7 @@ export async function compress(
  */
 export async function decompress(
   data: Uint8Array | string,
-  options?: DecompressOptions
+  options?: DecompressOptions,
 ): Promise<string | Uint8Array> {
   const compressor = getDataCompressor();
   return compressor.decompress(data, options);
@@ -489,7 +523,7 @@ export async function decompress(
  */
 export async function compressJSON(
   obj: any,
-  options?: CompressOptions
+  options?: CompressOptions,
 ): Promise<string | Uint8Array> {
   const compressor = getDataCompressor();
   return compressor.compressJSON(obj, options);
@@ -500,7 +534,7 @@ export async function compressJSON(
  */
 export async function decompressJSON<T = any>(
   data: Uint8Array | string,
-  options?: DecompressOptions
+  options?: DecompressOptions,
 ): Promise<T> {
   const compressor = getDataCompressor();
   return compressor.decompressJSON<T>(data, options);

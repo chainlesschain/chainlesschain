@@ -6,14 +6,16 @@
 // 简化的语法高亮规则
 const SYNTAX_RULES = {
   javascript: {
-    keywords: /\b(const|let|var|function|return|if|else|for|while|class|import|export|async|await|try|catch|throw|new|this|super|extends|static|get|set)\b/g,
+    keywords:
+      /\b(const|let|var|function|return|if|else|for|while|class|import|export|async|await|try|catch|throw|new|this|super|extends|static|get|set)\b/g,
     strings: /(["'`])(?:(?=(\\?))\2.)*?\1/g,
     comments: /(\/\/.*$|\/\*[\s\S]*?\*\/)/gm,
     numbers: /\b\d+\.?\d*\b/g,
     functions: /\b([a-zA-Z_$][\w$]*)\s*\(/g,
   },
   typescript: {
-    keywords: /\b(const|let|var|function|return|if|else|for|while|class|import|export|async|await|try|catch|throw|new|this|super|extends|static|get|set|interface|type|enum|namespace|declare|public|private|protected|readonly)\b/g,
+    keywords:
+      /\b(const|let|var|function|return|if|else|for|while|class|import|export|async|await|try|catch|throw|new|this|super|extends|static|get|set|interface|type|enum|namespace|declare|public|private|protected|readonly)\b/g,
     strings: /(["'`])(?:(?=(\\?))\2.)*?\1/g,
     comments: /(\/\/.*$|\/\*[\s\S]*?\*\/)/gm,
     numbers: /\b\d+\.?\d*\b/g,
@@ -21,7 +23,8 @@ const SYNTAX_RULES = {
     types: /:\s*([A-Z][a-zA-Z0-9_]*)/g,
   },
   python: {
-    keywords: /\b(def|class|if|elif|else|for|while|return|import|from|as|try|except|finally|with|lambda|yield|async|await|pass|break|continue|global|nonlocal)\b/g,
+    keywords:
+      /\b(def|class|if|elif|else|for|while|return|import|from|as|try|except|finally|with|lambda|yield|async|await|pass|break|continue|global|nonlocal)\b/g,
     strings: /(["'])(?:(?=(\\?))\2.)*?\1/g,
     comments: /#.*$/gm,
     numbers: /\b\d+\.?\d*\b/g,
@@ -56,7 +59,7 @@ const SYNTAX_RULES = {
 };
 
 // 应用语法高亮
-const applySyntaxHighlighting = (code, language, options = {}) => {
+const applySyntaxHighlighting = (code, language, _options = {}) => {
   const rules = SYNTAX_RULES[language] || SYNTAX_RULES.javascript;
   const tokens = [];
 
@@ -87,7 +90,7 @@ const applySyntaxHighlighting = (code, language, options = {}) => {
           text: match[0],
           start,
           end,
-          line: code.substring(0, start).split('\n').length,
+          line: code.substring(0, start).split("\n").length,
         });
 
         // 标记为已处理
@@ -105,7 +108,7 @@ const applySyntaxHighlighting = (code, language, options = {}) => {
     success: true,
     tokens,
     language,
-    lineCount: code.split('\n').length,
+    lineCount: code.split("\n").length,
   };
 };
 
@@ -117,18 +120,19 @@ const generateHighlightedHTML = (code, language, options = {}) => {
     return result;
   }
 
-  const lines = code.split('\n');
+  const lines = code.split("\n");
   const highlightedLines = [];
 
   lines.forEach((line, lineIndex) => {
     const lineNumber = lineIndex + 1;
-    const lineTokens = result.tokens.filter(t => t.line === lineNumber);
+    const lineTokens = result.tokens.filter((t) => t.line === lineNumber);
 
     let highlightedLine = line;
     let offset = 0;
 
-    lineTokens.forEach(token => {
-      const relativeStart = token.start - code.substring(0, code.indexOf(line)).length + offset;
+    lineTokens.forEach((token) => {
+      const relativeStart =
+        token.start - code.substring(0, code.indexOf(line)).length + offset;
       const relativeEnd = relativeStart + token.text.length;
 
       const before = highlightedLine.substring(0, relativeStart);
@@ -158,13 +162,13 @@ const generateHighlightedHTML = (code, language, options = {}) => {
 // HTML转义
 const escapeHTML = (text) => {
   const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
   };
-  return text.replace(/[&<>"']/g, m => map[m]);
+  return text.replace(/[&<>"']/g, (m) => map[m]);
 };
 
 // 提取代码结构
@@ -177,42 +181,52 @@ const extractCodeStructure = (code, language) => {
     variables: [],
   };
 
-  if (language === 'javascript' || language === 'typescript') {
+  if (language === "javascript" || language === "typescript") {
     // 提取import
-    const importRegex = /import\s+(?:{([^}]+)}|(\w+))\s+from\s+['"]([^'"]+)['"]/g;
+    const importRegex =
+      /import\s+(?:{([^}]+)}|(\w+))\s+from\s+['"]([^'"]+)['"]/g;
     let match;
 
     while ((match = importRegex.exec(code)) !== null) {
       structure.imports.push({
-        items: match[1] ? match[1].split(',').map(s => s.trim()) : [match[2]],
+        items: match[1] ? match[1].split(",").map((s) => s.trim()) : [match[2]],
         from: match[3],
       });
     }
 
     // 提取export
-    const exportRegex = /export\s+(?:default\s+)?(?:const|let|var|function|class)\s+(\w+)/g;
+    const exportRegex =
+      /export\s+(?:default\s+)?(?:const|let|var|function|class)\s+(\w+)/g;
 
     while ((match = exportRegex.exec(code)) !== null) {
       structure.exports.push(match[1]);
     }
 
     // 提取函数
-    const funcRegex = /(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)/g;
+    const funcRegex =
+      /(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)/g;
 
     while ((match = funcRegex.exec(code)) !== null) {
       structure.functions.push({
         name: match[1],
-        params: match[2].split(',').map(p => p.trim()).filter(Boolean),
+        params: match[2]
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean),
       });
     }
 
     // 提取箭头函数
-    const arrowRegex = /(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>/g;
+    const arrowRegex =
+      /(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>/g;
 
     while ((match = arrowRegex.exec(code)) !== null) {
       structure.functions.push({
         name: match[1],
-        params: match[2].split(',').map(p => p.trim()).filter(Boolean),
+        params: match[2]
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean),
         arrow: true,
       });
     }
@@ -243,26 +257,34 @@ const extractCodeStructure = (code, language) => {
 };
 
 // 监听主线程消息
-self.addEventListener('message', (event) => {
+self.addEventListener("message", (event) => {
   const { id, type, payload } = event.data;
 
   try {
     let result;
 
     switch (type) {
-      case 'highlight':
-        result = applySyntaxHighlighting(payload.code, payload.language, payload.options);
+      case "highlight":
+        result = applySyntaxHighlighting(
+          payload.code,
+          payload.language,
+          payload.options,
+        );
         break;
 
-      case 'highlight-html':
-        result = generateHighlightedHTML(payload.code, payload.language, payload.options);
+      case "highlight-html":
+        result = generateHighlightedHTML(
+          payload.code,
+          payload.language,
+          payload.options,
+        );
         break;
 
-      case 'extract-structure':
+      case "extract-structure":
         result = extractCodeStructure(payload.code, payload.language);
         break;
 
-      case 'tokenize': {
+      case "tokenize": {
         // 简单分词
         const tokens = payload.code.split(/\s+/).filter(Boolean);
         result = {
@@ -301,4 +323,4 @@ self.addEventListener('message', (event) => {
 });
 
 // Worker就绪通知
-self.postMessage({ type: 'ready' });
+self.postMessage({ type: "ready" });

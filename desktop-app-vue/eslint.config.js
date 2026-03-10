@@ -76,30 +76,6 @@ module.exports = [
     },
   },
 
-  // 主进程文件特殊配置
-  {
-    files: ["src/main/**/*.js"],
-    languageOptions: {
-      globals: {
-        ...globals.node,
-        __dirname: "readonly",
-        __filename: "readonly",
-      },
-    },
-    rules: {
-      // 主进程使用 CommonJS，允许 require()
-      "@typescript-eslint/no-require-imports": "off",
-      // 允许使用下划线前缀忽略未使用的变量
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-        },
-      ],
-    },
-  },
-
   // 渲染进程文件特殊配置
   {
     files: ["src/renderer/**/*.{js,vue}"],
@@ -138,6 +114,87 @@ module.exports = [
         },
       ],
       "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-unsafe-function-type": "warn",
+      "@typescript-eslint/no-unused-expressions": "warn",
+      "@typescript-eslint/no-this-alias": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
+    },
+  },
+
+  // 主进程文件特殊配置（在 tseslint 之后覆盖，确保优先级）
+  {
+    files: ["src/main/**/*.js"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: {
+        ...globals.node,
+        __dirname: "readonly",
+        __filename: "readonly",
+        require: "readonly",
+        module: "readonly",
+        exports: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "no-undef": "off",
+      "no-redeclare": "off",
+      "no-global-assign": "warn",
+      "no-case-declarations": "warn",
+      "no-inner-declarations": "warn",
+      "no-empty": "warn",
+      "@typescript-eslint/no-unsafe-function-type": "warn",
+      "@typescript-eslint/no-unused-expressions": "warn",
+      "@typescript-eslint/no-this-alias": "warn",
+    },
+  },
+
+  // Preload 文件特殊配置（CJS require）
+  {
+    files: ["src/preload/**/*.js"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: {
+        ...globals.node,
+        require: "readonly",
+        module: "readonly",
+        exports: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "no-undef": "off",
+    },
+  },
+
+  // Worker 文件特殊配置
+  {
+    files: ["src/renderer/workers/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
   },
 
@@ -155,28 +212,32 @@ module.exports = [
     },
   },
 
-  // 测试文件特殊配置
+  // 测试文件特殊配置（在 tseslint 之后覆盖）
   {
     files: ["tests/**/*.js", "**/*.test.js", "**/*.spec.js"],
     languageOptions: {
+      sourceType: "commonjs",
       globals: {
         ...globals.jest,
         ...globals.mocha,
+        ...globals.node,
         vi: "readonly",
         describe: "readonly",
         it: "readonly",
         expect: "readonly",
         beforeEach: "readonly",
         afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
       },
     },
     rules: {
       "no-console": "off",
-      // 测试文件允许 require()
       "@typescript-eslint/no-require-imports": "off",
-      // 测试文件中允许未使用的变量（用于测试 mock）
       "@typescript-eslint/no-unused-vars": "off",
       "no-unused-vars": "off",
+      "no-undef": "off",
+      "no-redeclare": "off",
     },
   },
 ];
