@@ -17,7 +17,9 @@ module.exports = {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
-    logger.info(`[RemotionVideo] Action: ${parsed.action}, Name: ${parsed.name}`);
+    logger.info(
+      `[RemotionVideo] Action: ${parsed.action}, Name: ${parsed.name}`,
+    );
 
     try {
       switch (parsed.action) {
@@ -56,10 +58,14 @@ function parseInput(input) {
 
   const options = {};
   const outputMatch = trimmed.match(/--output\s+(\S+)/);
-  if (outputMatch) options.output = outputMatch[1];
+  if (outputMatch) {
+    options.output = outputMatch[1];
+  }
 
   const codecMatch = trimmed.match(/--codec\s+(\S+)/);
-  if (codecMatch) options.codec = codecMatch[1];
+  if (codecMatch) {
+    options.codec = codecMatch[1];
+  }
 
   return { action, name, options };
 }

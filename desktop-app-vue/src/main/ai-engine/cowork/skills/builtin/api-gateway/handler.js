@@ -9,7 +9,10 @@ const path = require("path");
 
 const _deps = { https, http, fs, path };
 
-const CONFIG_DIR = path.join(process.env.APPDATA || process.env.HOME || ".", ".chainlesschain");
+const CONFIG_DIR = path.join(
+  process.env.APPDATA || process.env.HOME || ".",
+  ".chainlesschain",
+);
 const REGISTRY_FILE = path.join(CONFIG_DIR, "api-gateway-registry.json");
 
 let registry = {};
@@ -27,8 +30,14 @@ function loadRegistry() {
 
 function saveRegistry() {
   try {
-    if (!_deps.fs.existsSync(CONFIG_DIR)) _deps.fs.mkdirSync(CONFIG_DIR, { recursive: true });
-    _deps.fs.writeFileSync(REGISTRY_FILE, JSON.stringify(registry, null, 2), "utf-8");
+    if (!_deps.fs.existsSync(CONFIG_DIR)) {
+      _deps.fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    }
+    _deps.fs.writeFileSync(
+      REGISTRY_FILE,
+      JSON.stringify(registry, null, 2),
+      "utf-8",
+    );
   } catch (err) {
     logger.error("[APIGateway] Failed to save registry:", err.message);
   }
@@ -52,11 +61,24 @@ module.exports = {
 
     try {
       switch (parsed.action) {
-        case "call": return await handleCall(parsed.method, parsed.url, parsed.options);
-        case "register": return handleRegister(parsed.name, parsed.method, parsed.url, parsed.options);
-        case "list": return handleList(parsed.options);
-        case "chain": return await handleChain(parsed.chainSteps);
-        default: return { success: false, error: `Unknown action: ${parsed.action}. Available: call, register, list, chain` };
+        case "call":
+          return await handleCall(parsed.method, parsed.url, parsed.options);
+        case "register":
+          return handleRegister(
+            parsed.name,
+            parsed.method,
+            parsed.url,
+            parsed.options,
+          );
+        case "list":
+          return handleList(parsed.options);
+        case "chain":
+          return await handleChain(parsed.chainSteps);
+        default:
+          return {
+            success: false,
+            error: `Unknown action: ${parsed.action}. Available: call, register, list, chain`,
+          };
       }
     } catch (error) {
       logger.error("[APIGateway] Error:", error);
@@ -66,13 +88,27 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "list", method: "GET", url: "", name: "", options: {}, chainSteps: [] };
+  if (!input || typeof input !== "string") {
+    return {
+      action: "list",
+      method: "GET",
+      url: "",
+      name: "",
+      options: {},
+      chainSteps: [],
+    };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "list").toLowerCase();
 
   const headersMatch = input.match(/--headers\s+(\S+=\S+)/g);
-  const bodyMatch = input.match(/--body\s+'([^']+)'/) || input.match(/--body\s+"([^"]+)"/) || input.match(/--body\s+(\S+)/);
-  const descMatch = input.match(/--description\s+["']([^"']+)["']/) || input.match(/--description\s+(\S+)/);
+  const bodyMatch =
+    input.match(/--body\s+'([^']+)'/) ||
+    input.match(/--body\s+"([^"]+)"/) ||
+    input.match(/--body\s+(\S+)/);
+  const descMatch =
+    input.match(/--description\s+["']([^"']+)["']/) ||
+    input.match(/--description\s+(\S+)/);
   const filterMatch = input.match(/--filter\s+(\S+)/);
 
   const headers = {};
@@ -85,7 +121,11 @@ function parseInput(input) {
 
   let body = null;
   if (bodyMatch) {
-    try { body = JSON.parse(bodyMatch[1]); } catch { body = bodyMatch[1]; }
+    try {
+      body = JSON.parse(bodyMatch[1]);
+    } catch {
+      body = bodyMatch[1];
+    }
   }
 
   // Parse chain steps: step1:param=val -> step2:param=val
@@ -99,9 +139,13 @@ function parseInput(input) {
       const params = {};
       for (const pp of paramParts) {
         const [k, v] = pp.split("=");
-        if (k) params[k] = v || "";
+        if (k) {
+          params[k] = v || "";
+        }
       }
-      if (stepName) chainSteps.push({ name: stepName, params });
+      if (stepName) {
+        chainSteps.push({ name: stepName, params });
+      }
     }
   }
 
@@ -110,13 +154,23 @@ function parseInput(input) {
     method: (parts[1] || "GET").toUpperCase(),
     url: parts[2] || "",
     name: parts[1] || "",
-    options: { headers, body, description: descMatch ? descMatch[1] : null, filter: filterMatch ? filterMatch[1] : null },
+    options: {
+      headers,
+      body,
+      description: descMatch ? descMatch[1] : null,
+      filter: filterMatch ? filterMatch[1] : null,
+    },
     chainSteps,
   };
 }
 
 async function handleCall(method, url, options) {
-  if (!url) return { success: false, error: "Provide a URL. Usage: call <METHOD> <URL>" };
+  if (!url) {
+    return {
+      success: false,
+      error: "Provide a URL. Usage: call <METHOD> <URL>",
+    };
+  }
 
   // Check if url is a registered API name
   if (!url.startsWith("http") && registry[url]) {
@@ -126,17 +180,34 @@ async function handleCall(method, url, options) {
     options.headers = { ...reg.headers, ...options.headers };
   }
 
-  if (!url.startsWith("http")) return { success: false, error: `Invalid URL: ${url}. Must start with http:// or https://` };
+  if (!url.startsWith("http")) {
+    return {
+      success: false,
+      error: `Invalid URL: ${url}. Must start with http:// or https://`,
+    };
+  }
 
   const startTime = Date.now();
-  const response = await makeRequest(method, url, options.headers, options.body);
+  const response = await makeRequest(
+    method,
+    url,
+    options.headers,
+    options.body,
+  );
   const duration = Date.now() - startTime;
 
   let responseBody = response.body;
-  try { responseBody = JSON.parse(response.body); } catch { /* keep as string */ }
+  try {
+    responseBody = JSON.parse(response.body);
+  } catch {
+    /* keep as string */
+  }
 
-  const truncated = typeof responseBody === "string" && responseBody.length > 5000;
-  if (truncated) responseBody = responseBody.substring(0, 5000) + "... [truncated]";
+  const truncated =
+    typeof responseBody === "string" && responseBody.length > 5000;
+  if (truncated) {
+    responseBody = responseBody.substring(0, 5000) + "... [truncated]";
+  }
 
   return {
     success: response.statusCode >= 200 && response.statusCode < 400,
@@ -155,8 +226,18 @@ async function handleCall(method, url, options) {
 }
 
 function handleRegister(name, method, url, options) {
-  if (!name || name === "GET" || name === "POST") return { success: false, error: "Provide a name. Usage: register <name> <METHOD> <URL>" };
-  if (!url || !url.startsWith("http")) return { success: false, error: "Provide a valid URL starting with http:// or https://" };
+  if (!name || name === "GET" || name === "POST") {
+    return {
+      success: false,
+      error: "Provide a name. Usage: register <name> <METHOD> <URL>",
+    };
+  }
+  if (!url || !url.startsWith("http")) {
+    return {
+      success: false,
+      error: "Provide a valid URL starting with http:// or https://",
+    };
+  }
 
   loadRegistry();
   registry[name] = {
@@ -188,7 +269,11 @@ function handleList(options) {
 
   if (options.filter) {
     const filter = options.filter.toLowerCase();
-    entries = entries.filter((e) => e.name.toLowerCase().includes(filter) || (e.description || "").toLowerCase().includes(filter));
+    entries = entries.filter(
+      (e) =>
+        e.name.toLowerCase().includes(filter) ||
+        (e.description || "").toLowerCase().includes(filter),
+    );
   }
 
   return {
@@ -200,7 +285,13 @@ function handleList(options) {
 }
 
 async function handleChain(chainSteps) {
-  if (!chainSteps.length) return { success: false, error: "Provide chain steps. Usage: chain step1:param=val -> step2:param={field}" };
+  if (!chainSteps.length) {
+    return {
+      success: false,
+      error:
+        "Provide chain steps. Usage: chain step1:param=val -> step2:param={field}",
+    };
+  }
 
   loadRegistry();
   const results = [];
@@ -209,18 +300,30 @@ async function handleChain(chainSteps) {
   for (let i = 0; i < chainSteps.length; i++) {
     const step = chainSteps[i];
     const reg = registry[step.name];
-    if (!reg) return { success: false, error: `Step "${step.name}" is not a registered API. Register it first with: register <name> <METHOD> <URL>` };
+    if (!reg) {
+      return {
+        success: false,
+        error: `Step "${step.name}" is not a registered API. Register it first with: register <name> <METHOD> <URL>`,
+      };
+    }
 
     // Substitute params with previous results
     let url = reg.url;
     for (const [k, v] of Object.entries(step.params)) {
-      const resolvedValue = v.startsWith("{") && v.endsWith("}") ? getNestedValue(previousData, v.slice(1, -1)) || v : v;
+      const resolvedValue =
+        v.startsWith("{") && v.endsWith("}")
+          ? getNestedValue(previousData, v.slice(1, -1)) || v
+          : v;
       url = url.replace(`{${k}}`, encodeURIComponent(resolvedValue));
     }
 
     const response = await makeRequest(reg.method, url, reg.headers, null);
     let body = response.body;
-    try { body = JSON.parse(body); } catch { /* keep as string */ }
+    try {
+      body = JSON.parse(body);
+    } catch {
+      /* keep as string */
+    }
 
     results.push({
       step: i + 1,
@@ -243,7 +346,9 @@ async function handleChain(chainSteps) {
 }
 
 function getNestedValue(obj, path) {
-  return path.split(".").reduce((o, k) => (o && o[k] !== undefined ? o[k] : null), obj);
+  return path
+    .split(".")
+    .reduce((o, k) => (o && o[k] !== undefined ? o[k] : null), obj);
 }
 
 function makeRequest(method, url, headers = {}, body = null) {
@@ -258,27 +363,41 @@ function makeRequest(method, url, headers = {}, body = null) {
       method,
       headers: {
         "User-Agent": "ChainlessChain-APIGateway/1.2.0",
-        "Accept": "application/json",
+        Accept: "application/json",
         ...headers,
       },
     };
 
     if (body) {
       const bodyStr = typeof body === "string" ? body : JSON.stringify(body);
-      options.headers["Content-Type"] = options.headers["Content-Type"] || "application/json";
+      options.headers["Content-Type"] =
+        options.headers["Content-Type"] || "application/json";
       options.headers["Content-Length"] = Buffer.byteLength(bodyStr);
     }
 
     const req = transport.request(options, (res) => {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => resolve({ statusCode: res.statusCode, headers: res.headers, body: data }));
+      res.on("end", () =>
+        resolve({
+          statusCode: res.statusCode,
+          headers: res.headers,
+          body: data,
+        }),
+      );
     });
 
-    req.on("error", (err) => reject(new Error(`Request failed: ${err.message}`)));
-    req.setTimeout(30000, () => { req.destroy(); reject(new Error("Request timed out after 30s")); });
+    req.on("error", (err) =>
+      reject(new Error(`Request failed: ${err.message}`)),
+    );
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error("Request timed out after 30s"));
+    });
 
-    if (body) req.write(typeof body === "string" ? body : JSON.stringify(body));
+    if (body) {
+      req.write(typeof body === "string" ? body : JSON.stringify(body));
+    }
     req.end();
   });
 }

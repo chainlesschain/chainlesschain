@@ -19,17 +19,30 @@ module.exports = {
 
     const vaultPath = resolveVaultPath(context);
     if (!vaultPath) {
-      return { success: false, error: "Obsidian vault not found. Set OBSIDIAN_VAULT_PATH environment variable or ensure vault exists in a standard location." };
+      return {
+        success: false,
+        error:
+          "Obsidian vault not found. Set OBSIDIAN_VAULT_PATH environment variable or ensure vault exists in a standard location.",
+      };
     }
 
     try {
       switch (parsed.action) {
-        case "create-note": return handleCreateNote(vaultPath, parsed.title, parsed.options);
-        case "search": return handleSearch(vaultPath, parsed.query, parsed.options);
-        case "list-tags": return handleListTags(vaultPath, parsed.options);
-        case "link-notes": return handleLinkNotes(vaultPath, parsed.source, parsed.target);
-        case "list-recent": return handleListRecent(vaultPath, parsed.options);
-        default: return { success: false, error: `Unknown action: ${parsed.action}. Available: create-note, search, list-tags, link-notes, list-recent` };
+        case "create-note":
+          return handleCreateNote(vaultPath, parsed.title, parsed.options);
+        case "search":
+          return handleSearch(vaultPath, parsed.query, parsed.options);
+        case "list-tags":
+          return handleListTags(vaultPath, parsed.options);
+        case "link-notes":
+          return handleLinkNotes(vaultPath, parsed.source, parsed.target);
+        case "list-recent":
+          return handleListRecent(vaultPath, parsed.options);
+        default:
+          return {
+            success: false,
+            error: `Unknown action: ${parsed.action}. Available: create-note, search, list-tags, link-notes, list-recent`,
+          };
       }
     } catch (error) {
       logger.error("[Obsidian] Error:", error);
@@ -39,11 +52,22 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "list-recent", title: "", query: "", source: "", target: "", options: {} };
+  if (!input || typeof input !== "string") {
+    return {
+      action: "list-recent",
+      title: "",
+      query: "",
+      source: "",
+      target: "",
+      options: {},
+    };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "list-recent").toLowerCase();
 
-  const contentMatch = input.match(/--content\s+["']([^"']+)["']/) || input.match(/--content\s+(\S+)/);
+  const contentMatch =
+    input.match(/--content\s+["']([^"']+)["']/) ||
+    input.match(/--content\s+(\S+)/);
   const folderMatch = input.match(/--folder\s+(\S+)/);
   const tagsMatch = input.match(/--tags\s+(\S+)/);
   const limitMatch = input.match(/--limit\s+(\d+)/);
@@ -54,7 +78,9 @@ function parseInput(input) {
   const cleanTitles = quotedTitles.map((t) => t.replace(/["']/g, ""));
 
   const plainParts = parts.slice(1).filter((p) => !p.startsWith("--"));
-  const query = plainParts.filter((p) => !p.startsWith("'") && !p.startsWith('"')).join(" ");
+  const query = plainParts
+    .filter((p) => !p.startsWith("'") && !p.startsWith('"'))
+    .join(" ");
 
   return {
     action,
@@ -75,7 +101,9 @@ function parseInput(input) {
 function resolveVaultPath(context) {
   // 1. Explicit env var
   const envPath = process.env.OBSIDIAN_VAULT_PATH || context.obsidianVaultPath;
-  if (envPath && _deps.fs.existsSync(envPath)) return envPath;
+  if (envPath && _deps.fs.existsSync(envPath)) {
+    return envPath;
+  }
 
   // 2. Common locations
   const home = process.env.HOME || process.env.USERPROFILE || "";
@@ -91,52 +119,76 @@ function resolveVaultPath(context) {
   // Check for .obsidian folder (confirms it's an Obsidian vault)
   for (const candidate of candidates) {
     if (_deps.fs.existsSync(candidate)) {
-      if (_deps.fs.existsSync(_deps.path.join(candidate, ".obsidian"))) return candidate;
+      if (_deps.fs.existsSync(_deps.path.join(candidate, ".obsidian"))) {
+        return candidate;
+      }
       // Check subdirectories for .obsidian
       try {
-        const entries = _deps.fs.readdirSync(candidate, { withFileTypes: true });
+        const entries = _deps.fs.readdirSync(candidate, {
+          withFileTypes: true,
+        });
         for (const entry of entries) {
           if (entry.isDirectory()) {
             const sub = _deps.path.join(candidate, entry.name);
-            if (_deps.fs.existsSync(_deps.path.join(sub, ".obsidian"))) return sub;
+            if (_deps.fs.existsSync(_deps.path.join(sub, ".obsidian"))) {
+              return sub;
+            }
           }
         }
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
   }
 
   // 3. Fall back to any directory with .md files in common locations
   for (const candidate of candidates) {
-    if (_deps.fs.existsSync(candidate)) return candidate;
+    if (_deps.fs.existsSync(candidate)) {
+      return candidate;
+    }
   }
 
   return null;
 }
 
 function handleCreateNote(vaultPath, title, options) {
-  if (!title) return { success: false, error: "Provide a note title." };
+  if (!title) {
+    return { success: false, error: "Provide a note title." };
+  }
 
-  const folder = options.folder ? _deps.path.join(vaultPath, options.folder) : vaultPath;
-  if (!_deps.fs.existsSync(folder)) _deps.fs.mkdirSync(folder, { recursive: true });
+  const folder = options.folder
+    ? _deps.path.join(vaultPath, options.folder)
+    : vaultPath;
+  if (!_deps.fs.existsSync(folder)) {
+    _deps.fs.mkdirSync(folder, { recursive: true });
+  }
 
   const filename = sanitizeFilename(title) + ".md";
   const filePath = _deps.path.join(folder, filename);
 
   if (_deps.fs.existsSync(filePath)) {
-    return { success: false, error: `Note "${title}" already exists at ${filePath}` };
+    return {
+      success: false,
+      error: `Note "${title}" already exists at ${filePath}`,
+    };
   }
 
   // Build frontmatter
   const lines = ["---"];
   lines.push(`title: "${title}"`);
   lines.push(`created: ${new Date().toISOString()}`);
-  if (options.tags.length) lines.push(`tags: [${options.tags.join(", ")}]`);
+  if (options.tags.length) {
+    lines.push(`tags: [${options.tags.join(", ")}]`);
+  }
   lines.push("---");
   lines.push("");
   lines.push(`# ${title}`);
   lines.push("");
-  if (options.content) lines.push(options.content);
-  else lines.push("");
+  if (options.content) {
+    lines.push(options.content);
+  } else {
+    lines.push("");
+  }
 
   try {
     _deps.fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
@@ -147,20 +199,29 @@ function handleCreateNote(vaultPath, title, options) {
   return {
     success: true,
     action: "create-note",
-    result: { title, path: filePath, folder: options.folder || "/", tags: options.tags },
+    result: {
+      title,
+      path: filePath,
+      folder: options.folder || "/",
+      tags: options.tags,
+    },
     message: `Note "${title}" created at ${filePath}`,
   };
 }
 
 function handleSearch(vaultPath, query, options) {
-  if (!query) return { success: false, error: "Provide a search query." };
+  if (!query) {
+    return { success: false, error: "Provide a search query." };
+  }
 
   const limit = options.limit || 20;
   const results = [];
   const lowerQuery = query.toLowerCase();
 
   walkMarkdownFiles(vaultPath, (filePath) => {
-    if (results.length >= limit) return;
+    if (results.length >= limit) {
+      return;
+    }
 
     const relativePath = _deps.path.relative(vaultPath, filePath);
     const basename = _deps.path.basename(filePath, ".md");
@@ -183,7 +244,9 @@ function handleSearch(vaultPath, query, options) {
           break;
         }
       }
-    } catch { /* skip unreadable */ }
+    } catch {
+      /* skip unreadable */
+    }
 
     if (titleMatch || contentMatch) {
       const stat = _deps.fs.statSync(filePath);
@@ -202,8 +265,12 @@ function handleSearch(vaultPath, query, options) {
 
   // Sort: title matches first, then by modified date
   results.sort((a, b) => {
-    if (a.titleMatch && !b.titleMatch) return -1;
-    if (!a.titleMatch && b.titleMatch) return 1;
+    if (a.titleMatch && !b.titleMatch) {
+      return -1;
+    }
+    if (!a.titleMatch && b.titleMatch) {
+      return 1;
+    }
     return new Date(b.modified) - new Date(a.modified);
   });
 
@@ -229,7 +296,9 @@ function handleListTags(vaultPath, options) {
         if (tagsLine) {
           tagsLine[1].split(",").forEach((t) => {
             const tag = t.trim().replace(/["']/g, "");
-            if (tag) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+            if (tag) {
+              tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+            }
           });
         }
       }
@@ -238,14 +307,20 @@ function handleListTags(vaultPath, options) {
       const inlineTags = content.match(/#([a-zA-Z0-9_-]+)/g) || [];
       for (const tag of inlineTags) {
         const clean = tag.substring(1); // Remove #
-        if (clean.length > 1 && !clean.match(/^\d+$/)) { // Skip headings and pure numbers
+        if (clean.length > 1 && !clean.match(/^\d+$/)) {
+          // Skip headings and pure numbers
           tagCounts[clean] = (tagCounts[clean] || 0) + 1;
         }
       }
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   });
 
-  let tags = Object.entries(tagCounts).map(([tag, count]) => ({ tag, count }));
+  const tags = Object.entries(tagCounts).map(([tag, count]) => ({
+    tag,
+    count,
+  }));
 
   if (options.sort === "alpha") {
     tags.sort((a, b) => a.tag.localeCompare(b.tag));
@@ -263,14 +338,27 @@ function handleListTags(vaultPath, options) {
 
 function handleLinkNotes(vaultPath, sourceTitle, targetTitle) {
   if (!sourceTitle || !targetTitle) {
-    return { success: false, error: "Provide both source and target note titles." };
+    return {
+      success: false,
+      error: "Provide both source and target note titles.",
+    };
   }
 
   const sourceFile = findNoteByTitle(vaultPath, sourceTitle);
   const targetFile = findNoteByTitle(vaultPath, targetTitle);
 
-  if (!sourceFile) return { success: false, error: `Source note "${sourceTitle}" not found in vault.` };
-  if (!targetFile) return { success: false, error: `Target note "${targetTitle}" not found in vault.` };
+  if (!sourceFile) {
+    return {
+      success: false,
+      error: `Source note "${sourceTitle}" not found in vault.`,
+    };
+  }
+  if (!targetFile) {
+    return {
+      success: false,
+      error: `Target note "${targetTitle}" not found in vault.`,
+    };
+  }
 
   const content = _deps.fs.readFileSync(sourceFile, "utf-8");
   const wikiLink = `[[${_deps.path.basename(targetFile, ".md")}]]`;
@@ -287,7 +375,8 @@ function handleLinkNotes(vaultPath, sourceTitle, targetTitle) {
 
   // Append link at end of file
   const separator = content.endsWith("\n") ? "" : "\n";
-  const updatedContent = content + separator + `\n## Related\n\n- ${wikiLink}\n`;
+  const updatedContent =
+    content + separator + `\n## Related\n\n- ${wikiLink}\n`;
   try {
     _deps.fs.writeFileSync(sourceFile, updatedContent, "utf-8");
   } catch (err) {
@@ -297,7 +386,13 @@ function handleLinkNotes(vaultPath, sourceTitle, targetTitle) {
   return {
     success: true,
     action: "link-notes",
-    result: { source: sourceTitle, target: targetTitle, link: wikiLink, sourceFile, targetFile },
+    result: {
+      source: sourceTitle,
+      target: targetTitle,
+      link: wikiLink,
+      sourceFile,
+      targetFile,
+    },
     message: `Added link ${wikiLink} from "${sourceTitle}" to "${targetTitle}".`,
   };
 }
@@ -316,7 +411,9 @@ function handleListRecent(vaultPath, options) {
         created: stat.birthtime.toISOString(),
         size: stat.size,
       });
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   });
 
   files.sort((a, b) => new Date(b.modified) - new Date(a.modified));
@@ -331,11 +428,15 @@ function handleListRecent(vaultPath, options) {
 }
 
 function walkMarkdownFiles(dir, callback, depth = 0) {
-  if (depth > 10) return; // Prevent infinite recursion
+  if (depth > 10) {
+    return;
+  } // Prevent infinite recursion
   try {
     const entries = _deps.fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.name.startsWith(".")) continue; // Skip hidden dirs/files
+      if (entry.name.startsWith(".")) {
+        continue;
+      } // Skip hidden dirs/files
       const fullPath = _deps.path.join(dir, entry.name);
       if (entry.isDirectory()) {
         walkMarkdownFiles(fullPath, callback, depth + 1);
@@ -343,7 +444,9 @@ function walkMarkdownFiles(dir, callback, depth = 0) {
         callback(fullPath);
       }
     }
-  } catch { /* skip inaccessible dirs */ }
+  } catch {
+    /* skip inaccessible dirs */
+  }
 }
 
 function findNoteByTitle(vaultPath, title) {
@@ -351,9 +454,14 @@ function findNoteByTitle(vaultPath, title) {
   let found = null;
 
   walkMarkdownFiles(vaultPath, (filePath) => {
-    if (found) return;
+    if (found) {
+      return;
+    }
     const basename = _deps.path.basename(filePath, ".md");
-    if (basename.toLowerCase() === sanitized.toLowerCase() || basename.toLowerCase() === title.toLowerCase()) {
+    if (
+      basename.toLowerCase() === sanitized.toLowerCase() ||
+      basename.toLowerCase() === title.toLowerCase()
+    ) {
       found = filePath;
     }
   });
@@ -362,5 +470,8 @@ function findNoteByTitle(vaultPath, title) {
 }
 
 function sanitizeFilename(name) {
-  return name.replace(/[<>:"/\\|?*]/g, "-").replace(/\s+/g, " ").trim();
+  return name
+    .replace(/[<>:"/\\|?*]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
 }

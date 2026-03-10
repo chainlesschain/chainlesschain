@@ -2,7 +2,7 @@
 
 Complete list of implemented features in the ChainlessChain project.
 
-**Last Updated**: 2026-03-07 (v1.2.0)
+**Last Updated**: 2026-03-10 (v1.2.1)
 
 ## Core Features
 
@@ -25,7 +25,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Team Manager                  | `main/permission/team-manager.js`                                        | —                                                                                  |
 | Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
 | Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                      | —                                                                                  |
-| Skills System (131 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
+| Skills System (137 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
 | Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
 | Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
 | Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`            | [`COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)                     |
@@ -83,26 +83,27 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 - **4-layer loading**: bundled → marketplace → managed → workspace (higher priority overrides)
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **131 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
+- **137 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
 - **/skill commands** parsed via `skills-ipc.js`
 - **Parser**: `skill-md-parser.js` (YAML frontmatter + Markdown body)
 
-#### Built-in Skills Overview (131 total)
+#### Built-in Skills Overview (137 total)
 
-| 组别                          | 版本     | 数量 | 技能（技能名）                                                                                                       |
-| ----------------------------- | -------- | ---- | --------------------------------------------------------------------------------------------------------------------- |
-| 原有技能                      | —        | 15   | code-review, git-commit, explain-code, browser-automation, computer-use, workflow-automation, web-scraping, data-analysis, memory-management, smart-search, remote-control, security-audit, devops-automation, test-generator, performance-optimizer |
-| 开发工具扩展                  | v0.36.0  | 15   | repo-map, refactor, doc-generator, api-tester, onboard-project, lint-and-fix, test-and-fix, dependency-analyzer, db-migration, project-scaffold, env-doctor, context-loader, vulnerability-scanner, release-manager, mcp-server-generator |
-| 高级技能                      | v0.36.1  | 10   | architect-mode, bugbot, commit-splitter, diff-previewer, fault-localizer, rules-engine, impact-analyzer, research-agent, screenshot-to-code, task-decomposer |
-| AI会话增强+开发效率           | v0.36.2  | 10   | prompt-enhancer, codebase-qa, auto-context, multi-model-router, code-translator, dead-code-eliminator, changelog-generator, mock-data-generator, git-history-analyzer, i18n-manager |
-| Office文��+音视频             | v0.37.3  | 10   | pdf-toolkit, doc-converter, excel-analyzer, pptx-creator, doc-comparator, audio-transcriber, video-toolkit, subtitle-generator, tts-synthesizer, media-metadata |
-| 图像+数据+工具                | v0.37.4  | 10   | image-editor, ocr-scanner, image-generator, chart-creator, word-generator, csv-processor, template-renderer, code-runner, voice-commander, file-compressor |
-| 开发效率+系统工具             | v0.37.5  | 10   | json-yaml-toolkit, regex-playground, log-analyzer, system-monitor, http-client, markdown-enhancer, snippet-library, knowledge-graph, clipboard-manager, env-file-manager |
-| 系统+安全+设计+分析           | v0.37.6  | 10   | backup-manager, query-enhancer, memory-insights, data-exporter, crypto-toolkit, network-diagnostics, password-generator, text-transformer, color-picker, performance-profiler |
-| 开发工具增强                  | v0.38.0  | 10   | ab-compare, api-docs-generator, cursor-rules-generator, database-query, docker-compose-generator, git-worktree-manager, k8s-deployer, terraform-iac, ultrathink, webapp-testing |
-| 协作/工作流/自动化            | v0.38.1  | 10   | github-manager, pr-reviewer, debate-review, orchestrate, verification-loop, planning-with-files, proactive-agent, cron-scheduler, agent-browser, stream-processor |
-| 知识/研究/内容/生产力         | v0.38.2  | 10   | deep-research, tavily-search, summarizer, youtube-summarizer, news-monitor, obsidian, content-publisher, humanizer, notion, google-workspace |
-| 系统/媒体/安全/工具/示例      | v0.38.3  | 11   | api-gateway, free-model-manager, find-skills, skill-creator, self-improving-agent, remotion-video, weather, zkp-toolkit, handler-test-skill, my-custom-skill, test-skill |
+| 组别                     | 版本    | 数量 | 技能（技能名）                                                                                                                                                                                                                                       |
+| ------------------------ | ------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 原有技能                 | —       | 15   | code-review, git-commit, explain-code, browser-automation, computer-use, workflow-automation, web-scraping, data-analysis, memory-management, smart-search, remote-control, security-audit, devops-automation, test-generator, performance-optimizer |
+| 开发工具扩展             | v0.36.0 | 15   | repo-map, refactor, doc-generator, api-tester, onboard-project, lint-and-fix, test-and-fix, dependency-analyzer, db-migration, project-scaffold, env-doctor, context-loader, vulnerability-scanner, release-manager, mcp-server-generator            |
+| 高级技能                 | v0.36.1 | 10   | architect-mode, bugbot, commit-splitter, diff-previewer, fault-localizer, rules-engine, impact-analyzer, research-agent, screenshot-to-code, task-decomposer                                                                                         |
+| AI会话增强+开发效率      | v0.36.2 | 10   | prompt-enhancer, codebase-qa, auto-context, multi-model-router, code-translator, dead-code-eliminator, changelog-generator, mock-data-generator, git-history-analyzer, i18n-manager                                                                  |
+| Office文��+音视频        | v0.37.3 | 10   | pdf-toolkit, doc-converter, excel-analyzer, pptx-creator, doc-comparator, audio-transcriber, video-toolkit, subtitle-generator, tts-synthesizer, media-metadata                                                                                      |
+| 图像+数据+工具           | v0.37.4 | 10   | image-editor, ocr-scanner, image-generator, chart-creator, word-generator, csv-processor, template-renderer, code-runner, voice-commander, file-compressor                                                                                           |
+| 开发效率+系统工具        | v0.37.5 | 10   | json-yaml-toolkit, regex-playground, log-analyzer, system-monitor, http-client, markdown-enhancer, snippet-library, knowledge-graph, clipboard-manager, env-file-manager                                                                             |
+| 系统+安全+设计+分析      | v0.37.6 | 10   | backup-manager, query-enhancer, memory-insights, data-exporter, crypto-toolkit, network-diagnostics, password-generator, text-transformer, color-picker, performance-profiler                                                                        |
+| 开发工具增强             | v0.38.0 | 10   | ab-compare, api-docs-generator, cursor-rules-generator, database-query, docker-compose-generator, git-worktree-manager, k8s-deployer, terraform-iac, ultrathink, webapp-testing                                                                      |
+| 协作/工作流/自动化       | v0.38.1 | 10   | github-manager, pr-reviewer, debate-review, orchestrate, verification-loop, planning-with-files, proactive-agent, cron-scheduler, agent-browser, stream-processor                                                                                    |
+| 知识/研究/内容/生产力    | v0.38.2 | 10   | deep-research, tavily-search, summarizer, youtube-summarizer, news-monitor, obsidian, content-publisher, humanizer, notion, google-workspace                                                                                                         |
+| 系统/媒体/安全/工具/示例 | v0.38.3 | 11   | api-gateway, free-model-manager, find-skills, skill-creator, self-improving-agent, remotion-video, weather, zkp-toolkit, handler-test-skill, my-custom-skill, test-skill                                                                             |
+| 社区生态补充技能         | v1.2.1  | 6    | brainstorming, debugging-strategies, api-design, frontend-design, create-pr, doc-coauthoring                                                                                                                                                         |
 
 ### Hooks System
 

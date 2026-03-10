@@ -7,7 +7,9 @@ const fs = require("fs");
 const path = require("path");
 
 module.exports = {
-  async init(skill) { logger.info("[ApiDocs] Initialized"); },
+  async init(skill) {
+    logger.info("[ApiDocs] Initialized");
+  },
 
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
@@ -15,11 +17,16 @@ module.exports = {
 
     try {
       switch (parsed.action) {
-        case "scan": return handleScan(parsed.target, context);
-        case "openapi": return handleOpenAPI(parsed.target, parsed.options, context);
-        case "endpoint": return handleEndpoint(parsed.description);
-        case "validate": return handleValidate(parsed.target, context);
-        default: return { success: false, error: `Unknown action: ${parsed.action}` };
+        case "scan":
+          return handleScan(parsed.target, context);
+        case "openapi":
+          return handleOpenAPI(parsed.target, parsed.options, context);
+        case "endpoint":
+          return handleEndpoint(parsed.description);
+        case "validate":
+          return handleValidate(parsed.target, context);
+        default:
+          return { success: false, error: `Unknown action: ${parsed.action}` };
       }
     } catch (error) {
       logger.error("[ApiDocs] Error:", error);
@@ -29,12 +36,19 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "scan", target: "." };
+  if (!input || typeof input !== "string") {
+    return { action: "scan", target: "." };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "scan").toLowerCase();
   const target = parts[1] || ".";
   const titleMatch = input.match(/--title\s+"([^"]+)"/);
-  return { action, target, description: parts.slice(1).join(" "), options: { title: titleMatch ? titleMatch[1] : "API" } };
+  return {
+    action,
+    target,
+    description: parts.slice(1).join(" "),
+    options: { title: titleMatch ? titleMatch[1] : "API" },
+  };
 }
 
 function handleScan(dir, context) {
@@ -71,10 +85,12 @@ function handleOpenAPI(dir, options, context) {
 
   for (const ep of scan.endpoints) {
     const pathKey = ep.path || "/unknown";
-    if (!spec.paths[pathKey]) spec.paths[pathKey] = {};
+    if (!spec.paths[pathKey]) {
+      spec.paths[pathKey] = {};
+    }
     spec.paths[pathKey][ep.method.toLowerCase()] = {
       summary: ep.description || ep.handler || "",
-      responses: { "200": { description: "Success" } },
+      responses: { 200: { description: "Success" } },
     };
   }
 
@@ -97,7 +113,10 @@ function handleEndpoint(description) {
     method,
     path: epPath,
     description: desc,
-    request: { headers: { "Content-Type": "application/json" }, body: method !== "GET" ? { example: {} } : null },
+    request: {
+      headers: { "Content-Type": "application/json" },
+      body: method !== "GET" ? { example: {} } : null,
+    },
     response: { status: 200, body: { success: true, data: {} } },
   };
 
@@ -107,15 +126,28 @@ function handleEndpoint(description) {
 function handleValidate(target, context) {
   const cwd = context.cwd || process.cwd();
   const filePath = path.resolve(cwd, target);
-  if (!fs.existsSync(filePath)) return { success: false, error: `File not found: ${target}` };
+  if (!fs.existsSync(filePath)) {
+    return { success: false, error: `File not found: ${target}` };
+  }
 
   const content = fs.readFileSync(filePath, "utf8");
   const issues = [];
-  if (!content.includes("openapi")) issues.push("Missing 'openapi' version field");
-  if (!content.includes("info")) issues.push("Missing 'info' section");
-  if (!content.includes("paths")) issues.push("Missing 'paths' section");
+  if (!content.includes("openapi")) {
+    issues.push("Missing 'openapi' version field");
+  }
+  if (!content.includes("info")) {
+    issues.push("Missing 'info' section");
+  }
+  if (!content.includes("paths")) {
+    issues.push("Missing 'paths' section");
+  }
 
-  return { success: true, action: "validate", valid: issues.length === 0, issues };
+  return {
+    success: true,
+    action: "validate",
+    valid: issues.length === 0,
+    issues,
+  };
 }
 
 function scanFiles(dir, extensions) {
@@ -124,13 +156,22 @@ function scanFiles(dir, extensions) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
-      if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
+      if (
+        entry.isDirectory() &&
+        !entry.name.startsWith(".") &&
+        entry.name !== "node_modules"
+      ) {
         results.push(...scanFiles(full, extensions));
-      } else if (entry.isFile() && extensions.some((e) => entry.name.endsWith(e))) {
+      } else if (
+        entry.isFile() &&
+        extensions.some((e) => entry.name.endsWith(e))
+      ) {
         results.push(full);
       }
     }
-  } catch { /* skip unreadable dirs */ }
+  } catch {
+    /* skip unreadable dirs */
+  }
   return results.slice(0, 100);
 }
 
@@ -138,22 +179,40 @@ function extractEndpoints(content, file) {
   const endpoints = [];
 
   // Express: app.get/post/put/delete/patch
-  const expressRegex = /(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*["'`]([^"'`]+)["'`]/gi;
+  const expressRegex =
+    /(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*["'`]([^"'`]+)["'`]/gi;
   let match;
   while ((match = expressRegex.exec(content)) !== null) {
-    endpoints.push({ method: match[1].toUpperCase(), path: match[2], file, framework: "express" });
+    endpoints.push({
+      method: match[1].toUpperCase(),
+      path: match[2],
+      file,
+      framework: "express",
+    });
   }
 
   // FastAPI: @app.get/post
-  const fastapiRegex = /@(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*["']([^"']+)["']/gi;
+  const fastapiRegex =
+    /@(?:app|router)\.(get|post|put|delete|patch)\s*\(\s*["']([^"']+)["']/gi;
   while ((match = fastapiRegex.exec(content)) !== null) {
-    endpoints.push({ method: match[1].toUpperCase(), path: match[2], file, framework: "fastapi" });
+    endpoints.push({
+      method: match[1].toUpperCase(),
+      path: match[2],
+      file,
+      framework: "fastapi",
+    });
   }
 
   // Spring Boot: @GetMapping/@PostMapping
-  const springRegex = /@(Get|Post|Put|Delete|Patch)Mapping\s*\(\s*(?:value\s*=\s*)?["']([^"']+)["']/gi;
+  const springRegex =
+    /@(Get|Post|Put|Delete|Patch)Mapping\s*\(\s*(?:value\s*=\s*)?["']([^"']+)["']/gi;
   while ((match = springRegex.exec(content)) !== null) {
-    endpoints.push({ method: match[1].toUpperCase(), path: match[2], file, framework: "spring" });
+    endpoints.push({
+      method: match[1].toUpperCase(),
+      path: match[2],
+      file,
+      framework: "spring",
+    });
   }
 
   return endpoints;

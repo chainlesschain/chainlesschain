@@ -14,7 +14,8 @@ const path = require("path");
 const _deps = { https, http, fs, path };
 
 const SENTENCES_FOR_SUMMARY = 5;
-const YOUTUBE_REGEX = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
+const YOUTUBE_REGEX =
+  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
 
 module.exports = {
   _deps,
@@ -28,10 +29,17 @@ module.exports = {
 
     try {
       switch (parsed.action) {
-        case "summarize-url": return await handleSummarizeUrl(parsed.target);
-        case "summarize-text": return handleSummarizeText(parsed.target);
-        case "summarize-file": return handleSummarizeFile(parsed.target);
-        default: return { success: false, error: `Unknown action: ${parsed.action}. Use: summarize-url, summarize-text, summarize-file` };
+        case "summarize-url":
+          return await handleSummarizeUrl(parsed.target);
+        case "summarize-text":
+          return handleSummarizeText(parsed.target);
+        case "summarize-file":
+          return handleSummarizeFile(parsed.target);
+        default:
+          return {
+            success: false,
+            error: `Unknown action: ${parsed.action}. Use: summarize-url, summarize-text, summarize-file`,
+          };
       }
     } catch (error) {
       logger.error("[Summarizer] Error:", error);
@@ -41,12 +49,16 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "summarize-text", target: "" };
+  if (!input || typeof input !== "string") {
+    return { action: "summarize-text", target: "" };
+  }
   const trimmed = input.trim();
   const parts = trimmed.split(/\s+/);
   const firstWord = parts[0].toLowerCase();
 
-  if (["summarize-url", "summarize-text", "summarize-file"].includes(firstWord)) {
+  if (
+    ["summarize-url", "summarize-text", "summarize-file"].includes(firstWord)
+  ) {
     return { action: firstWord, target: parts.slice(1).join(" ") };
   }
 
@@ -63,7 +75,13 @@ function parseInput(input) {
 }
 
 async function handleSummarizeUrl(url) {
-  if (!url) return { success: false, action: "summarize-url", error: "URL required. Usage: summarize-url <url>" };
+  if (!url) {
+    return {
+      success: false,
+      action: "summarize-url",
+      error: "URL required. Usage: summarize-url <url>",
+    };
+  }
 
   // Check if it's a YouTube URL
   const ytMatch = url.match(YOUTUBE_REGEX);
@@ -73,13 +91,21 @@ async function handleSummarizeUrl(url) {
 
   const content = await fetchUrl(url);
   if (!content) {
-    return { success: false, action: "summarize-url", error: `Failed to fetch content from: ${url}` };
+    return {
+      success: false,
+      action: "summarize-url",
+      error: `Failed to fetch content from: ${url}`,
+    };
   }
 
   // Strip HTML tags and extract text
   const text = stripHtml(content);
   if (!text || text.length < 20) {
-    return { success: false, action: "summarize-url", error: "Could not extract meaningful text from the URL." };
+    return {
+      success: false,
+      action: "summarize-url",
+      error: "Could not extract meaningful text from the URL.",
+    };
   }
 
   const result = buildSummary(text, url);
@@ -95,7 +121,12 @@ async function handleSummarizeUrl(url) {
 
 function handleSummarizeText(text) {
   if (!text || text.length < 10) {
-    return { success: false, action: "summarize-text", error: "Please provide text content to summarize (at least 10 characters)." };
+    return {
+      success: false,
+      action: "summarize-text",
+      error:
+        "Please provide text content to summarize (at least 10 characters).",
+    };
   }
 
   const result = buildSummary(text);
@@ -109,16 +140,30 @@ function handleSummarizeText(text) {
 }
 
 function handleSummarizeFile(filePath) {
-  if (!filePath) return { success: false, action: "summarize-file", error: "File path required. Usage: summarize-file <path>" };
+  if (!filePath) {
+    return {
+      success: false,
+      action: "summarize-file",
+      error: "File path required. Usage: summarize-file <path>",
+    };
+  }
 
   const resolved = _deps.path.resolve(filePath);
   if (!_deps.fs.existsSync(resolved)) {
-    return { success: false, action: "summarize-file", error: `File not found: ${resolved}` };
+    return {
+      success: false,
+      action: "summarize-file",
+      error: `File not found: ${resolved}`,
+    };
   }
 
   const stat = _deps.fs.statSync(resolved);
   if (stat.size > 10 * 1024 * 1024) {
-    return { success: false, action: "summarize-file", error: "File too large (>10MB). Please provide a smaller file." };
+    return {
+      success: false,
+      action: "summarize-file",
+      error: "File too large (>10MB). Please provide a smaller file.",
+    };
   }
 
   let content = _deps.fs.readFileSync(resolved, "utf-8");
@@ -154,11 +199,16 @@ async function handleYouTube(videoId, originalUrl) {
 
   if (html) {
     const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-    if (titleMatch) title = titleMatch[1].replace(" - YouTube", "").trim();
+    if (titleMatch) {
+      title = titleMatch[1].replace(" - YouTube", "").trim();
+    }
 
     const descMatch = html.match(/"shortDescription":"((?:[^"\\]|\\.)*)"/);
     if (descMatch) {
-      description = descMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+      description = descMatch[1]
+        .replace(/\\n/g, "\n")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\");
     }
   }
 
@@ -189,7 +239,9 @@ function buildSummary(text, source = null) {
   const scored = scoreSentences(sentences, words);
 
   // Top N sentences for summary
-  const topSentences = scored.slice(0, SENTENCES_FOR_SUMMARY).sort((a, b) => a.index - b.index);
+  const topSentences = scored
+    .slice(0, SENTENCES_FOR_SUMMARY)
+    .sort((a, b) => a.index - b.index);
   const summary = topSentences.map((s) => s.text).join(" ");
 
   // Extract key points (top sentences reworded as bullet points)
@@ -217,7 +269,9 @@ function buildSummary(text, source = null) {
     result: { summary, key_points: keyPoints, topics },
   };
 
-  if (source) result.source = source;
+  if (source) {
+    result.source = source;
+  }
   return result;
 }
 
@@ -244,12 +298,18 @@ function scoreSentences(sentences, allWords) {
 
     for (const w of sentenceWords) {
       const clean = w.replace(/[^a-z0-9]/g, "");
-      if (freq[clean]) score += freq[clean];
+      if (freq[clean]) {
+        score += freq[clean];
+      }
     }
 
     // Position bonus: first and last sentences get higher scores
-    if (index === 0) score *= 1.5;
-    if (index === sentences.length - 1) score *= 1.2;
+    if (index === 0) {
+      score *= 1.5;
+    }
+    if (index === sentences.length - 1) {
+      score *= 1.2;
+    }
 
     // Length normalization
     score = score / Math.max(sentenceWords.length, 1);
@@ -312,35 +372,118 @@ function fetchUrl(url) {
   return new Promise((resolve) => {
     const client = url.startsWith("https") ? _deps.https : _deps.http;
 
-    const request = client.get(url, { headers: { "User-Agent": "ChainlessChain/1.2.0", Accept: "text/html,application/xhtml+xml,text/plain,*/*" }, timeout: 15000 }, (res) => {
-      // Handle redirects
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        fetchUrl(res.headers.location).then(resolve).catch(() => resolve(null));
-        return;
-      }
+    const request = client.get(
+      url,
+      {
+        headers: {
+          "User-Agent": "ChainlessChain/1.2.0",
+          Accept: "text/html,application/xhtml+xml,text/plain,*/*",
+        },
+        timeout: 15000,
+      },
+      (res) => {
+        // Handle redirects
+        if (
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location
+        ) {
+          fetchUrl(res.headers.location)
+            .then(resolve)
+            .catch(() => resolve(null));
+          return;
+        }
 
-      if (res.statusCode !== 200) {
-        resolve(null);
-        return;
-      }
+        if (res.statusCode !== 200) {
+          resolve(null);
+          return;
+        }
 
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => resolve(data));
-    });
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => resolve(data));
+      },
+    );
 
     request.on("error", () => resolve(null));
-    request.on("timeout", () => { request.destroy(); resolve(null); });
+    request.on("timeout", () => {
+      request.destroy();
+      resolve(null);
+    });
   });
 }
 
 const STOP_WORDS = new Set([
-  "the", "and", "for", "that", "this", "with", "from", "your", "have", "are",
-  "was", "were", "been", "will", "would", "could", "should", "about", "into",
-  "more", "than", "just", "also", "what", "when", "where", "which", "their",
-  "there", "them", "they", "these", "those", "some", "most", "only", "over",
-  "such", "after", "before", "between", "each", "every", "other", "being",
-  "does", "doing", "done", "here", "very", "show", "like", "make", "made",
-  "many", "much", "well", "back", "even", "still", "while", "then", "know",
-  "take", "come", "came", "said", "says", "tell", "told", "think", "thought",
+  "the",
+  "and",
+  "for",
+  "that",
+  "this",
+  "with",
+  "from",
+  "your",
+  "have",
+  "are",
+  "was",
+  "were",
+  "been",
+  "will",
+  "would",
+  "could",
+  "should",
+  "about",
+  "into",
+  "more",
+  "than",
+  "just",
+  "also",
+  "what",
+  "when",
+  "where",
+  "which",
+  "their",
+  "there",
+  "them",
+  "they",
+  "these",
+  "those",
+  "some",
+  "most",
+  "only",
+  "over",
+  "such",
+  "after",
+  "before",
+  "between",
+  "each",
+  "every",
+  "other",
+  "being",
+  "does",
+  "doing",
+  "done",
+  "here",
+  "very",
+  "show",
+  "like",
+  "make",
+  "made",
+  "many",
+  "much",
+  "well",
+  "back",
+  "even",
+  "still",
+  "while",
+  "then",
+  "know",
+  "take",
+  "come",
+  "came",
+  "said",
+  "says",
+  "tell",
+  "told",
+  "think",
+  "thought",
 ]);

@@ -19,7 +19,9 @@ function mockNotionRequest(statusCode, body) {
       res.emit("data", JSON.stringify(body));
       res.emit("end");
     });
-    if (cb) cb(res);
+    if (cb) {
+      cb(res);
+    }
     const req = new EventEmitter();
     req.end = vi.fn();
     req.write = vi.fn();
@@ -37,8 +39,11 @@ describe("notion handler", () => {
   });
 
   afterEach(() => {
-    if (originalKey) process.env.NOTION_API_KEY = originalKey;
-    else delete process.env.NOTION_API_KEY;
+    if (originalKey) {
+      process.env.NOTION_API_KEY = originalKey;
+    } else {
+      delete process.env.NOTION_API_KEY;
+    }
   });
 
   describe("execute() - no API key", () => {
@@ -55,12 +60,24 @@ describe("notion handler", () => {
       if (handler._deps) {
         handler._deps.https = {
           request: mockNotionRequest(200, {
-            results: [{ id: "page-1", object: "page", properties: { title: { title: [{ plain_text: "Test Page" }] } }, url: "https://notion.so/test", last_edited_time: "2026-01-01" }],
+            results: [
+              {
+                id: "page-1",
+                object: "page",
+                properties: { title: { title: [{ plain_text: "Test Page" }] } },
+                url: "https://notion.so/test",
+                last_edited_time: "2026-01-01",
+              },
+            ],
             has_more: false,
           }),
         };
       }
-      const result = await handler.execute({ input: "search test query" }, {}, {});
+      const result = await handler.execute(
+        { input: "search test query" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("search");
       expect(result.result.results.length).toBeGreaterThan(0);
@@ -80,16 +97,23 @@ describe("notion handler", () => {
         handler._deps.https = {
           request: vi.fn((opts, cb) => {
             callCount++;
-            const body = callCount === 1
-              ? { results: [{ id: "parent-1" }], has_more: false }
-              : { id: "new-page-1", url: "https://notion.so/new", created_time: "2026-01-01" };
+            const body =
+              callCount === 1
+                ? { results: [{ id: "parent-1" }], has_more: false }
+                : {
+                    id: "new-page-1",
+                    url: "https://notion.so/new",
+                    created_time: "2026-01-01",
+                  };
             const res = new EventEmitter();
             res.statusCode = 200;
             process.nextTick(() => {
               res.emit("data", JSON.stringify(body));
               res.emit("end");
             });
-            if (cb) cb(res);
+            if (cb) {
+              cb(res);
+            }
             const req = new EventEmitter();
             req.end = vi.fn();
             req.write = vi.fn();
@@ -98,7 +122,11 @@ describe("notion handler", () => {
           }),
         };
       }
-      const result = await handler.execute({ input: "create-page 'My New Page'" }, {}, {});
+      const result = await handler.execute(
+        { input: "create-page 'My New Page'" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("create-page");
     });
@@ -116,16 +144,36 @@ describe("notion handler", () => {
         handler._deps.https = {
           request: vi.fn((opts, cb) => {
             callCount++;
-            const body = callCount === 1
-              ? { id: "page-1", properties: { title: { title: [{ plain_text: "My Page" }] } }, url: "https://notion.so/p", created_time: "2026-01-01", last_edited_time: "2026-01-02" }
-              : { results: [{ id: "block-1", type: "paragraph", paragraph: { rich_text: [{ plain_text: "Hello" }] }, has_children: false }] };
+            const body =
+              callCount === 1
+                ? {
+                    id: "page-1",
+                    properties: {
+                      title: { title: [{ plain_text: "My Page" }] },
+                    },
+                    url: "https://notion.so/p",
+                    created_time: "2026-01-01",
+                    last_edited_time: "2026-01-02",
+                  }
+                : {
+                    results: [
+                      {
+                        id: "block-1",
+                        type: "paragraph",
+                        paragraph: { rich_text: [{ plain_text: "Hello" }] },
+                        has_children: false,
+                      },
+                    ],
+                  };
             const res = new EventEmitter();
             res.statusCode = 200;
             process.nextTick(() => {
               res.emit("data", JSON.stringify(body));
               res.emit("end");
             });
-            if (cb) cb(res);
+            if (cb) {
+              cb(res);
+            }
             const req = new EventEmitter();
             req.end = vi.fn();
             req.write = vi.fn();
@@ -134,7 +182,11 @@ describe("notion handler", () => {
           }),
         };
       }
-      const result = await handler.execute({ input: "get-page page-1" }, {}, {});
+      const result = await handler.execute(
+        { input: "get-page page-1" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("get-page");
       expect(result.result.blocks.length).toBeGreaterThan(0);
@@ -151,12 +203,25 @@ describe("notion handler", () => {
       if (handler._deps) {
         handler._deps.https = {
           request: mockNotionRequest(200, {
-            results: [{ id: "row-1", properties: { Name: { type: "title", title: [{ plain_text: "Item" }] } }, url: "https://notion.so/r", last_edited_time: "2026-01-01" }],
+            results: [
+              {
+                id: "row-1",
+                properties: {
+                  Name: { type: "title", title: [{ plain_text: "Item" }] },
+                },
+                url: "https://notion.so/r",
+                last_edited_time: "2026-01-01",
+              },
+            ],
             has_more: false,
           }),
         };
       }
-      const result = await handler.execute({ input: "query-db db-id-123" }, {}, {});
+      const result = await handler.execute(
+        { input: "query-db db-id-123" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("query-db");
       expect(result.result.rows.length).toBeGreaterThan(0);
@@ -170,7 +235,11 @@ describe("notion handler", () => {
 
   describe("execute() - unknown action", () => {
     it("should return error for unknown action", async () => {
-      const result = await handler.execute({ input: "delete-page abc" }, {}, {});
+      const result = await handler.execute(
+        { input: "delete-page abc" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Unknown action");
     });

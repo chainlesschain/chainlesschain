@@ -35,7 +35,8 @@ describe("summarizer handler", () => {
 
   describe("execute() - summarize-text", () => {
     it("should summarize text content", async () => {
-      const longText = "Artificial intelligence has transformed the technology landscape significantly. Machine learning algorithms process vast amounts of data to find patterns. Natural language processing enables computers to understand human speech. Deep learning neural networks achieve remarkable accuracy in image recognition. These advancements have led to practical applications across many industries.";
+      const longText =
+        "Artificial intelligence has transformed the technology landscape significantly. Machine learning algorithms process vast amounts of data to find patterns. Natural language processing enables computers to understand human speech. Deep learning neural networks achieve remarkable accuracy in image recognition. These advancements have led to practical applications across many industries.";
       const result = await handler.execute(
         { input: `summarize-text ${longText}` },
         {},
@@ -71,7 +72,8 @@ describe("summarizer handler", () => {
     });
 
     it("should extract topics from text", async () => {
-      const text = "JavaScript frameworks like React and Angular are popular. JavaScript developers use Node.js for backend. JavaScript testing with Jest is common. JavaScript builds with Webpack.";
+      const text =
+        "JavaScript frameworks like React and Angular are popular. JavaScript developers use Node.js for backend. JavaScript testing with Jest is common. JavaScript builds with Webpack.";
       const result = await handler.execute(
         { input: `summarize-text ${text}` },
         {},
@@ -89,9 +91,11 @@ describe("summarizer handler", () => {
       if (handler._deps) {
         handler._deps.fs.existsSync = vi.fn().mockReturnValue(true);
         handler._deps.fs.statSync = vi.fn().mockReturnValue({ size: 500 });
-        handler._deps.fs.readFileSync = vi.fn().mockReturnValue(
-          "Technology continues to evolve rapidly in the modern era. Computers process information at incredible speeds. Software development practices have improved significantly. Testing ensures code quality and reliability. Documentation helps teams collaborate effectively.",
-        );
+        handler._deps.fs.readFileSync = vi
+          .fn()
+          .mockReturnValue(
+            "Technology continues to evolve rapidly in the modern era. Computers process information at incredible speeds. Software development practices have improved significantly. Testing ensures code quality and reliability. Documentation helps teams collaborate effectively.",
+          );
         handler._deps.path.extname = vi.fn().mockReturnValue(".txt");
         handler._deps.path.resolve = vi.fn((p) => p);
         handler._deps.path.basename = vi.fn((p) => "test.txt");
@@ -123,7 +127,9 @@ describe("summarizer handler", () => {
     it("should reject files larger than 10MB", async () => {
       if (handler._deps) {
         handler._deps.fs.existsSync = vi.fn().mockReturnValue(true);
-        handler._deps.fs.statSync = vi.fn().mockReturnValue({ size: 11 * 1024 * 1024 });
+        handler._deps.fs.statSync = vi
+          .fn()
+          .mockReturnValue({ size: 11 * 1024 * 1024 });
         handler._deps.path.resolve = vi.fn((p) => p);
       }
       const result = await handler.execute(
@@ -139,9 +145,11 @@ describe("summarizer handler", () => {
       if (handler._deps) {
         handler._deps.fs.existsSync = vi.fn().mockReturnValue(true);
         handler._deps.fs.statSync = vi.fn().mockReturnValue({ size: 200 });
-        handler._deps.fs.readFileSync = vi.fn().mockReturnValue(
-          "<html><body><p>This is a paragraph about technology and innovation in software development practices.</p><p>Another paragraph about testing and quality assurance methodologies.</p></body></html>",
-        );
+        handler._deps.fs.readFileSync = vi
+          .fn()
+          .mockReturnValue(
+            "<html><body><p>This is a paragraph about technology and innovation in software development practices.</p><p>Another paragraph about testing and quality assurance methodologies.</p></body></html>",
+          );
         handler._deps.path.extname = vi.fn().mockReturnValue(".html");
         handler._deps.path.resolve = vi.fn((p) => p);
         handler._deps.path.basename = vi.fn((p) => "page.html");
@@ -155,11 +163,7 @@ describe("summarizer handler", () => {
     });
 
     it("should return error for empty file path", async () => {
-      const result = await handler.execute(
-        { input: "summarize-file" },
-        {},
-        {},
-      );
+      const result = await handler.execute({ input: "summarize-file" }, {}, {});
       expect(result.success).toBe(false);
     });
   });
@@ -171,14 +175,21 @@ describe("summarizer handler", () => {
         const { EventEmitter } = require("events");
         handler._deps.https = {
           get: vi.fn((url, opts, cb) => {
-            if (typeof opts === "function") { cb = opts; }
+            if (typeof opts === "function") {
+              cb = opts;
+            }
             const res = new EventEmitter();
             res.statusCode = 200;
             process.nextTick(() => {
-              res.emit("data", "<html><body><p>Hello world this is a test page with enough content to summarize properly for the algorithm.</p></body></html>");
+              res.emit(
+                "data",
+                "<html><body><p>Hello world this is a test page with enough content to summarize properly for the algorithm.</p></body></html>",
+              );
               res.emit("end");
             });
-            if (cb) cb(res);
+            if (cb) {
+              cb(res);
+            }
             const req = new EventEmitter();
             req.on = vi.fn().mockReturnThis();
             return req;

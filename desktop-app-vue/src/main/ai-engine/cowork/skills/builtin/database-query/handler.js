@@ -5,7 +5,9 @@
 const { logger } = require("../../../../../utils/logger.js");
 
 module.exports = {
-  async init(skill) { logger.info("[DatabaseQuery] Initialized"); },
+  async init(skill) {
+    logger.info("[DatabaseQuery] Initialized");
+  },
 
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
@@ -13,12 +15,18 @@ module.exports = {
 
     try {
       switch (parsed.action) {
-        case "generate": return handleGenerate(parsed.description, parsed.options);
-        case "optimize": return handleOptimize(parsed.query);
-        case "schema": return handleSchema(parsed.target, context);
-        case "migrate": return handleMigrate(parsed.description, parsed.options);
-        case "explain": return handleExplain(parsed.query);
-        default: return { success: false, error: `Unknown action: ${parsed.action}` };
+        case "generate":
+          return handleGenerate(parsed.description, parsed.options);
+        case "optimize":
+          return handleOptimize(parsed.query);
+        case "schema":
+          return handleSchema(parsed.target, context);
+        case "migrate":
+          return handleMigrate(parsed.description, parsed.options);
+        case "explain":
+          return handleExplain(parsed.query);
+        default:
+          return { success: false, error: `Unknown action: ${parsed.action}` };
       }
     } catch (error) {
       logger.error("[DatabaseQuery] Error:", error);
@@ -28,7 +36,15 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "schema", target: "", description: "", query: "", options: {} };
+  if (!input || typeof input !== "string") {
+    return {
+      action: "schema",
+      target: "",
+      description: "",
+      query: "",
+      options: {},
+    };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "generate").toLowerCase();
   const rest = parts.slice(1).join(" ").replace(/"/g, "");
@@ -60,7 +76,9 @@ function handleGenerate(description, options) {
   } else if (lower.includes("group") || lower.includes("aggregate")) {
     const table = extractTableName(lower);
     sql = `SELECT column_name, COUNT(*) as count\nFROM ${table}\nGROUP BY column_name\nORDER BY count DESC;`;
-    suggestions.push("Replace 'column_name' with the actual column to group by.");
+    suggestions.push(
+      "Replace 'column_name' with the actual column to group by.",
+    );
   } else if (lower.includes("insert")) {
     const table = extractTableName(lower);
     sql = `INSERT INTO ${table} (column1, column2)\nVALUES (?, ?);`;
@@ -72,7 +90,9 @@ function handleGenerate(description, options) {
   } else if (lower.includes("delete")) {
     const table = extractTableName(lower);
     sql = `DELETE FROM ${table}\nWHERE condition = ?;`;
-    suggestions.push("Always include a WHERE clause. Consider soft-delete with a 'deleted_at' column.");
+    suggestions.push(
+      "Always include a WHERE clause. Consider soft-delete with a 'deleted_at' column.",
+    );
   } else {
     const table = extractTableName(lower);
     const condition = extractCondition(lower);
@@ -80,23 +100,60 @@ function handleGenerate(description, options) {
     suggestions.push("Avoid SELECT * in production — specify needed columns.");
   }
 
-  return { success: true, action: "generate", sql, dialect, suggestions, message: `SQL generated (${dialect} dialect).` };
+  return {
+    success: true,
+    action: "generate",
+    sql,
+    dialect,
+    suggestions,
+    message: `SQL generated (${dialect} dialect).`,
+  };
 }
 
 function handleOptimize(query) {
   const suggestions = [];
   const upper = (query || "").toUpperCase();
 
-  if (upper.includes("SELECT *")) suggestions.push("Replace SELECT * with specific columns to reduce I/O.");
-  if (upper.includes("LIKE '%")) suggestions.push("Leading wildcard LIKE '%...' prevents index usage. Consider full-text search.");
-  if (!upper.includes("LIMIT") && upper.includes("SELECT")) suggestions.push("Add LIMIT to prevent unbounded result sets.");
-  if (upper.includes("ORDER BY") && !upper.includes("INDEX")) suggestions.push("Ensure ORDER BY columns have indexes.");
-  if ((upper.match(/JOIN/g) || []).length > 3) suggestions.push("Multiple JOINs detected. Consider denormalization or materialized views.");
-  if (upper.includes("DISTINCT")) suggestions.push("DISTINCT can be expensive. Check if duplicates indicate a JOIN issue.");
-  if (upper.includes("IN (SELECT")) suggestions.push("Subquery in IN clause may be slow. Consider using EXISTS or JOIN.");
-  if (upper.includes("OR ")) suggestions.push("OR conditions may prevent index usage. Consider UNION for complex OR chains.");
-  if (!upper.includes("WHERE") && upper.includes("UPDATE")) suggestions.push("CRITICAL: UPDATE without WHERE affects all rows!");
-  if (!upper.includes("WHERE") && upper.includes("DELETE")) suggestions.push("CRITICAL: DELETE without WHERE deletes all rows!");
+  if (upper.includes("SELECT *")) {
+    suggestions.push("Replace SELECT * with specific columns to reduce I/O.");
+  }
+  if (upper.includes("LIKE '%")) {
+    suggestions.push(
+      "Leading wildcard LIKE '%...' prevents index usage. Consider full-text search.",
+    );
+  }
+  if (!upper.includes("LIMIT") && upper.includes("SELECT")) {
+    suggestions.push("Add LIMIT to prevent unbounded result sets.");
+  }
+  if (upper.includes("ORDER BY") && !upper.includes("INDEX")) {
+    suggestions.push("Ensure ORDER BY columns have indexes.");
+  }
+  if ((upper.match(/JOIN/g) || []).length > 3) {
+    suggestions.push(
+      "Multiple JOINs detected. Consider denormalization or materialized views.",
+    );
+  }
+  if (upper.includes("DISTINCT")) {
+    suggestions.push(
+      "DISTINCT can be expensive. Check if duplicates indicate a JOIN issue.",
+    );
+  }
+  if (upper.includes("IN (SELECT")) {
+    suggestions.push(
+      "Subquery in IN clause may be slow. Consider using EXISTS or JOIN.",
+    );
+  }
+  if (upper.includes("OR ")) {
+    suggestions.push(
+      "OR conditions may prevent index usage. Consider UNION for complex OR chains.",
+    );
+  }
+  if (!upper.includes("WHERE") && upper.includes("UPDATE")) {
+    suggestions.push("CRITICAL: UPDATE without WHERE affects all rows!");
+  }
+  if (!upper.includes("WHERE") && upper.includes("DELETE")) {
+    suggestions.push("CRITICAL: DELETE without WHERE deletes all rows!");
+  }
 
   const indexSuggestions = extractIndexSuggestions(query);
 
@@ -116,24 +173,48 @@ function handleSchema(target, context) {
   try {
     const { getDatabase } = require("../../../../database.js");
     db = getDatabase();
-  } catch { /* no database available */ }
+  } catch {
+    /* no database available */
+  }
 
   if (db) {
     try {
       if (target && target !== "schema") {
         const info = db.prepare(`PRAGMA table_info(${target})`).all();
         const indexes = db.prepare(`PRAGMA index_list(${target})`).all();
-        return { success: true, action: "schema", table: target, columns: info, indexes, message: `Schema for "${target}": ${info.length} column(s), ${indexes.length} index(es).` };
+        return {
+          success: true,
+          action: "schema",
+          table: target,
+          columns: info,
+          indexes,
+          message: `Schema for "${target}": ${info.length} column(s), ${indexes.length} index(es).`,
+        };
       }
       // List all tables
-      const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all();
-      return { success: true, action: "schema", tables: tables.map((t) => t.name), message: `${tables.length} table(s) in database.` };
+      const tables = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+        )
+        .all();
+      return {
+        success: true,
+        action: "schema",
+        tables: tables.map((t) => t.name),
+        message: `${tables.length} table(s) in database.`,
+      };
     } catch (err) {
       return { success: false, error: `Database query failed: ${err.message}` };
     }
   }
 
-  return { success: true, action: "schema", message: "No database connection available. Provide a table name for schema template generation.", template: getSchemaTemplate(target) };
+  return {
+    success: true,
+    action: "schema",
+    message:
+      "No database connection available. Provide a table name for schema template generation.",
+    template: getSchemaTemplate(target),
+  };
 }
 
 function handleMigrate(description, options) {
@@ -144,11 +225,17 @@ function handleMigrate(description, options) {
   let up = "";
   let down = "";
 
-  if (lower.includes("add column") || lower.includes("add") && lower.includes("column")) {
+  if (
+    lower.includes("add column") ||
+    (lower.includes("add") && lower.includes("column"))
+  ) {
     const table = extractTableName(lower);
     const col = extractColumnName(lower);
     up = `ALTER TABLE ${table} ADD COLUMN ${col} TEXT;`;
-    down = dialect === "sqlite" ? `-- SQLite doesn't support DROP COLUMN before 3.35.0\n-- ALTER TABLE ${table} DROP COLUMN ${col};` : `ALTER TABLE ${table} DROP COLUMN ${col};`;
+    down =
+      dialect === "sqlite"
+        ? `-- SQLite doesn't support DROP COLUMN before 3.35.0\n-- ALTER TABLE ${table} DROP COLUMN ${col};`
+        : `ALTER TABLE ${table} DROP COLUMN ${col};`;
   } else if (lower.includes("create table") || lower.includes("new table")) {
     const table = extractTableName(lower);
     up = `CREATE TABLE IF NOT EXISTS ${table} (\n  id INTEGER PRIMARY KEY${dialect === "sqlite" ? "" : " AUTOINCREMENT"},\n  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);`;
@@ -179,12 +266,28 @@ function handleExplain(query) {
   const analysis = [];
 
   if (upper.startsWith("SELECT")) {
-    if (upper.includes("WHERE")) analysis.push("WHERE clause present — check indexed columns.");
-    if (upper.includes("JOIN")) analysis.push("JOIN detected — ensure join columns are indexed.");
-    if (upper.includes("ORDER BY")) analysis.push("ORDER BY present — can be expensive without index.");
-    if (upper.includes("GROUP BY")) analysis.push("GROUP BY present — temporary table may be created.");
-    if (upper.includes("HAVING")) analysis.push("HAVING filters after GROUP BY — consider WHERE for pre-filtering.");
-    if (upper.includes("SUBSELECT") || upper.includes("(SELECT")) analysis.push("Subquery detected — consider CTE or JOIN for better plans.");
+    if (upper.includes("WHERE")) {
+      analysis.push("WHERE clause present — check indexed columns.");
+    }
+    if (upper.includes("JOIN")) {
+      analysis.push("JOIN detected — ensure join columns are indexed.");
+    }
+    if (upper.includes("ORDER BY")) {
+      analysis.push("ORDER BY present — can be expensive without index.");
+    }
+    if (upper.includes("GROUP BY")) {
+      analysis.push("GROUP BY present — temporary table may be created.");
+    }
+    if (upper.includes("HAVING")) {
+      analysis.push(
+        "HAVING filters after GROUP BY — consider WHERE for pre-filtering.",
+      );
+    }
+    if (upper.includes("SUBSELECT") || upper.includes("(SELECT")) {
+      analysis.push(
+        "Subquery detected — consider CTE or JOIN for better plans.",
+      );
+    }
   }
 
   const explainQuery = `EXPLAIN QUERY PLAN\n${query}`;
@@ -210,11 +313,21 @@ function extractColumnName(text) {
 }
 
 function extractCondition(text) {
-  if (text.includes("this week")) return "created_at >= date('now', '-7 days')";
-  if (text.includes("today")) return "created_at >= date('now')";
-  if (text.includes("this month")) return "created_at >= date('now', 'start of month')";
-  if (text.includes("active")) return "status = 'active'";
-  if (text.includes("pending")) return "status = 'pending'";
+  if (text.includes("this week")) {
+    return "created_at >= date('now', '-7 days')";
+  }
+  if (text.includes("today")) {
+    return "created_at >= date('now')";
+  }
+  if (text.includes("this month")) {
+    return "created_at >= date('now', 'start of month')";
+  }
+  if (text.includes("active")) {
+    return "status = 'active'";
+  }
+  if (text.includes("pending")) {
+    return "status = 'pending'";
+  }
   return null;
 }
 
@@ -227,7 +340,9 @@ function extractIndexSuggestions(query) {
       for (const col of cols) {
         const name = col.replace(/\s*[=<>!].*/, "").trim();
         if (name && !["AND", "OR", "NOT"].includes(name.toUpperCase())) {
-          suggestions.push(`CREATE INDEX idx_table_${name} ON table_name(${name});`);
+          suggestions.push(
+            `CREATE INDEX idx_table_${name} ON table_name(${name});`,
+          );
         }
       }
     }

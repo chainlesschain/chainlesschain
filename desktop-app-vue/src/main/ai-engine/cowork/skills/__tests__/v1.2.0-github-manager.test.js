@@ -19,7 +19,9 @@ function mockHttpsRequest(statusCode, body) {
       res.emit("data", JSON.stringify(body));
       res.emit("end");
     });
-    if (cb) cb(res);
+    if (cb) {
+      cb(res);
+    }
     const req = new EventEmitter();
     req.end = vi.fn();
     req.write = vi.fn();
@@ -36,15 +38,22 @@ describe("github-manager handler", () => {
   });
 
   afterEach(() => {
-    if (originalEnv) process.env.GITHUB_TOKEN = originalEnv;
-    else delete process.env.GITHUB_TOKEN;
+    if (originalEnv) {
+      process.env.GITHUB_TOKEN = originalEnv;
+    } else {
+      delete process.env.GITHUB_TOKEN;
+    }
   });
 
   describe("execute() - no token", () => {
     it("should return error without token", async () => {
       delete process.env.GITHUB_TOKEN;
       delete process.env.GH_TOKEN;
-      const result = await handler.execute({ input: "list-issues owner/repo" }, {}, {});
+      const result = await handler.execute(
+        { input: "list-issues owner/repo" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("GITHUB_TOKEN");
     });
@@ -55,11 +64,25 @@ describe("github-manager handler", () => {
       if (handler._deps) {
         handler._deps.https = {
           request: mockHttpsRequest(200, [
-            { number: 1, title: "Bug", state: "open", user: { login: "user1" }, labels: [], created_at: "2026-01-01", updated_at: "2026-01-02", comments: 3, html_url: "https://github.com/o/r/issues/1" },
+            {
+              number: 1,
+              title: "Bug",
+              state: "open",
+              user: { login: "user1" },
+              labels: [],
+              created_at: "2026-01-01",
+              updated_at: "2026-01-02",
+              comments: 3,
+              html_url: "https://github.com/o/r/issues/1",
+            },
           ]),
         };
       }
-      const result = await handler.execute({ input: "list-issues owner/repo" }, {}, {});
+      const result = await handler.execute(
+        { input: "list-issues owner/repo" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("list-issues");
       expect(result.results.length).toBeGreaterThanOrEqual(0);
@@ -69,7 +92,11 @@ describe("github-manager handler", () => {
       if (handler._deps) {
         handler._deps.https = { request: mockHttpsRequest(200, []) };
       }
-      const result = await handler.execute({ input: "list-issues badrepo" }, {}, {});
+      const result = await handler.execute(
+        { input: "list-issues badrepo" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid repository format");
     });
@@ -79,16 +106,29 @@ describe("github-manager handler", () => {
     it("should create an issue", async () => {
       if (handler._deps) {
         handler._deps.https = {
-          request: mockHttpsRequest(201, { number: 42, title: "New Bug", html_url: "https://github.com/o/r/issues/42", state: "open" }),
+          request: mockHttpsRequest(201, {
+            number: 42,
+            title: "New Bug",
+            html_url: "https://github.com/o/r/issues/42",
+            state: "open",
+          }),
         };
       }
-      const result = await handler.execute({ input: "create-issue owner/repo title:'New Bug' body:'Description'" }, {}, {});
+      const result = await handler.execute(
+        { input: "create-issue owner/repo title:'New Bug' body:'Description'" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("create-issue");
     });
 
     it("should return error without title", async () => {
-      const result = await handler.execute({ input: "create-issue owner/repo" }, {}, {});
+      const result = await handler.execute(
+        { input: "create-issue owner/repo" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Title required");
     });
@@ -99,15 +139,31 @@ describe("github-manager handler", () => {
       if (handler._deps) {
         handler._deps.https = {
           request: mockHttpsRequest(200, {
-            full_name: "owner/repo", description: "A test repo", language: "JavaScript",
-            stargazers_count: 100, forks_count: 20, subscribers_count: 10, open_issues_count: 5,
-            default_branch: "main", private: false, archived: false, license: { spdx_id: "MIT" },
-            topics: ["test"], created_at: "2025-01-01", updated_at: "2026-01-01", pushed_at: "2026-01-01",
-            size: 1024, html_url: "https://github.com/owner/repo",
+            full_name: "owner/repo",
+            description: "A test repo",
+            language: "JavaScript",
+            stargazers_count: 100,
+            forks_count: 20,
+            subscribers_count: 10,
+            open_issues_count: 5,
+            default_branch: "main",
+            private: false,
+            archived: false,
+            license: { spdx_id: "MIT" },
+            topics: ["test"],
+            created_at: "2025-01-01",
+            updated_at: "2026-01-01",
+            pushed_at: "2026-01-01",
+            size: 1024,
+            html_url: "https://github.com/owner/repo",
           }),
         };
       }
-      const result = await handler.execute({ input: "repo-info owner/repo" }, {}, {});
+      const result = await handler.execute(
+        { input: "repo-info owner/repo" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("repo-info");
       expect(result.result.stars).toBe(100);
@@ -119,11 +175,27 @@ describe("github-manager handler", () => {
       if (handler._deps) {
         handler._deps.https = {
           request: mockHttpsRequest(200, [
-            { number: 10, title: "Fix bug", state: "open", user: { login: "dev1" }, head: { ref: "fix-branch" }, base: { ref: "main" }, draft: false, mergeable: true, created_at: "2026-01-01", updated_at: "2026-01-02", html_url: "https://github.com/o/r/pull/10" },
+            {
+              number: 10,
+              title: "Fix bug",
+              state: "open",
+              user: { login: "dev1" },
+              head: { ref: "fix-branch" },
+              base: { ref: "main" },
+              draft: false,
+              mergeable: true,
+              created_at: "2026-01-01",
+              updated_at: "2026-01-02",
+              html_url: "https://github.com/o/r/pull/10",
+            },
           ]),
         };
       }
-      const result = await handler.execute({ input: "list-prs owner/repo" }, {}, {});
+      const result = await handler.execute(
+        { input: "list-prs owner/repo" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("list-prs");
     });
@@ -135,12 +207,27 @@ describe("github-manager handler", () => {
         handler._deps.https = {
           request: mockHttpsRequest(200, {
             workflow_runs: [
-              { id: 1, name: "CI", status: "completed", conclusion: "success", head_branch: "main", event: "push", actor: { login: "bot" }, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:05:00Z", html_url: "https://github.com/o/r/actions/1" },
+              {
+                id: 1,
+                name: "CI",
+                status: "completed",
+                conclusion: "success",
+                head_branch: "main",
+                event: "push",
+                actor: { login: "bot" },
+                created_at: "2026-01-01T00:00:00Z",
+                updated_at: "2026-01-01T00:05:00Z",
+                html_url: "https://github.com/o/r/actions/1",
+              },
             ],
           }),
         };
       }
-      const result = await handler.execute({ input: "list-workflows owner/repo" }, {}, {});
+      const result = await handler.execute(
+        { input: "list-workflows owner/repo" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("list-workflows");
       expect(result.summary).toBeDefined();
@@ -149,7 +236,11 @@ describe("github-manager handler", () => {
 
   describe("execute() - unknown action", () => {
     it("should return error for unknown action", async () => {
-      const result = await handler.execute({ input: "foobar owner/repo" }, {}, {});
+      const result = await handler.execute(
+        { input: "foobar owner/repo" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Unknown action");
     });

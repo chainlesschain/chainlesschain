@@ -79,21 +79,25 @@ function parseInput(input) {
       part.match(/^127\.0\.0\.1/)
     ) {
       url = part;
-      if (!url.match(/^https?:\/\//)) url = "http://" + url;
+      if (!url.match(/^https?:\/\//)) {
+        url = "http://" + url;
+      }
       break;
     }
   }
 
   const options = {};
-  if (trimmed.includes("--full")) options.fullPage = true;
+  if (trimmed.includes("--full")) {
+    options.fullPage = true;
+  }
 
   const checkMatch = trimmed.match(/--check\s+(\S+)/);
-  if (checkMatch) options.check = checkMatch[1];
+  if (checkMatch) {
+    options.check = checkMatch[1];
+  }
 
   const stepsMatch = trimmed.match(/--steps\s+"([^"]+)"/);
-  const steps = stepsMatch
-    ? stepsMatch[1].split(",").map((s) => s.trim())
-    : [];
+  const steps = stepsMatch ? stepsMatch[1].split(",").map((s) => s.trim()) : [];
 
   return { action, url, options, steps };
 }
@@ -128,7 +132,9 @@ async function handleTest(url, options = {}) {
         images: document.querySelectorAll("img").length,
         buttons: document.querySelectorAll("button, [type=submit]").length,
       }));
-      if (counts) results.elements = counts;
+      if (counts) {
+        results.elements = counts;
+      }
     }
   } else {
     results.warnings.push("Browser engine not available. Using mock test.");
@@ -194,10 +200,13 @@ async function handleConsole(url) {
       if (Array.isArray(allLogs)) {
         for (const log of allLogs) {
           const level = (log.level || log.type || "info").toLowerCase();
-          if (level === "error") logs.errors.push(log.text || log.message);
-          else if (level === "warning" || level === "warn")
+          if (level === "error") {
+            logs.errors.push(log.text || log.message);
+          } else if (level === "warning" || level === "warn") {
             logs.warnings.push(log.text || log.message);
-          else logs.info.push(log.text || log.message);
+          } else {
+            logs.info.push(log.text || log.message);
+          }
         }
       }
     }
@@ -272,8 +281,11 @@ async function handleAccessibility(url) {
 
       if (Array.isArray(a11yData)) {
         for (const item of a11yData) {
-          if (item.type === "error") issues.push(item);
-          else checks.push(item);
+          if (item.type === "error") {
+            issues.push(item);
+          } else {
+            checks.push(item);
+          }
         }
       }
     }
@@ -304,7 +316,8 @@ async function handleScenario(url, steps) {
   if (!steps || steps.length === 0) {
     return {
       success: false,
-      error: 'No steps provided. Use --steps "click .btn, fill #email test@test.com"',
+      error:
+        'No steps provided. Use --steps "click .btn, fill #email test@test.com"',
     };
   }
 
@@ -332,7 +345,9 @@ async function handleScenario(url, steps) {
           await engine.fill(selector, value);
           results.push({ step, status: "ok" });
         } else if (action === "wait") {
-          await new Promise((r) => setTimeout(r, parseInt(selector, 10) || 1000));
+          await new Promise((r) =>
+            setTimeout(r, parseInt(selector, 10) || 1000),
+          );
           results.push({ step, status: "ok" });
         } else {
           results.push({ step, status: "skipped", reason: "unknown action" });
@@ -384,15 +399,19 @@ async function handleInspect(url) {
           method: f.method,
           inputs: f.querySelectorAll("input,select,textarea").length,
         })),
-        links: Array.from(document.querySelectorAll("a")).slice(0, 20).map((a) => ({
-          text: a.textContent?.trim().substring(0, 50),
-          href: a.href,
-        })),
-        buttons: Array.from(document.querySelectorAll("button,[type=submit]")).map(
-          (b) => ({ text: b.textContent?.trim(), type: b.type }),
-        ),
+        links: Array.from(document.querySelectorAll("a"))
+          .slice(0, 20)
+          .map((a) => ({
+            text: a.textContent?.trim().substring(0, 50),
+            href: a.href,
+          })),
+        buttons: Array.from(
+          document.querySelectorAll("button,[type=submit]"),
+        ).map((b) => ({ text: b.textContent?.trim(), type: b.type })),
       }));
-      if (data) Object.assign(elements, data);
+      if (data) {
+        Object.assign(elements, data);
+      }
     }
   }
 

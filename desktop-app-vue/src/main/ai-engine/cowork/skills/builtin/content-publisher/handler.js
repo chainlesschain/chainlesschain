@@ -17,7 +17,9 @@ module.exports = {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
-    logger.info(`[ContentPublisher] Action: ${parsed.action}, Topic: "${parsed.topic}"`);
+    logger.info(
+      `[ContentPublisher] Action: ${parsed.action}, Topic: "${parsed.topic}"`,
+    );
 
     try {
       switch (parsed.action) {
@@ -58,20 +60,31 @@ function parseInput(input) {
   const quotedMatch = trimmed.match(/"([^"]+)"/);
   const topic = quotedMatch
     ? quotedMatch[1]
-    : parts.slice(1).filter((p) => !p.startsWith("--")).join(" ");
+    : parts
+        .slice(1)
+        .filter((p) => !p.startsWith("--"))
+        .join(" ");
 
   const options = {};
   const countMatch = trimmed.match(/--count\s+(\d+)/);
-  if (countMatch) options.count = parseInt(countMatch[1], 10);
+  if (countMatch) {
+    options.count = parseInt(countMatch[1], 10);
+  }
 
   const aspectMatch = trimmed.match(/--aspect\s+(\S+)/);
-  if (aspectMatch) options.aspect = aspectMatch[1];
+  if (aspectMatch) {
+    options.aspect = aspectMatch[1];
+  }
 
   const platformMatch = trimmed.match(/--platform\s+(\S+)/);
-  if (platformMatch) options.platform = platformMatch[1];
+  if (platformMatch) {
+    options.platform = platformMatch[1];
+  }
 
   const panelsMatch = trimmed.match(/--panels\s+(\d+)/);
-  if (panelsMatch) options.panels = parseInt(panelsMatch[1], 10);
+  if (panelsMatch) {
+    options.panels = parseInt(panelsMatch[1], 10);
+  }
 
   return { action, topic, options };
 }
@@ -160,7 +173,13 @@ function handleSlides(topic, options = {}) {
       number: 2,
       type: "agenda",
       title: "Agenda",
-      bullets: ["Background", "Key Points", "Analysis", "Recommendations", "Q&A"],
+      bullets: [
+        "Background",
+        "Key Points",
+        "Analysis",
+        "Recommendations",
+        "Q&A",
+      ],
       notes: "Overview of what we'll cover.",
     },
   ];
@@ -217,7 +236,12 @@ function handleCover(title, options = {}) {
       ...dims,
       aspect,
       layout: {
-        title: { text: title, fontSize: 48, color: "#ffffff", position: "center" },
+        title: {
+          text: title,
+          fontSize: 48,
+          color: "#ffffff",
+          position: "center",
+        },
         background: { type: "gradient", from: "#1a1a2e", to: "#16213e" },
         overlay: { opacity: 0.3 },
       },
@@ -353,7 +377,9 @@ function splitIntoChunks(text, maxLen) {
       current += (current ? " " : "") + word;
     }
   }
-  if (current) chunks.push(current.trim());
+  if (current) {
+    chunks.push(current.trim());
+  }
 
   return chunks;
 }

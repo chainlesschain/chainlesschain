@@ -15,7 +15,9 @@ describe("self-improving-agent handler", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    if (handler._resetState) handler._resetState();
+    if (handler._resetState) {
+      handler._resetState();
+    }
 
     mockFs = {
       existsSync: vi.fn().mockReturnValue(false),
@@ -53,11 +55,7 @@ describe("self-improving-agent handler", () => {
     });
 
     it("should return error for empty description", async () => {
-      const result = await handler.execute(
-        { input: "record-error" },
-        {},
-        {},
-      );
+      const result = await handler.execute({ input: "record-error" }, {}, {});
       expect(result.success).toBe(false);
     });
 
@@ -84,9 +82,21 @@ describe("self-improving-agent handler", () => {
     });
 
     it("should find patterns after recording multiple errors", async () => {
-      await handler.execute({ input: "record-error TypeError null reference" }, {}, {});
-      await handler.execute({ input: "record-error TypeError undefined property" }, {}, {});
-      await handler.execute({ input: "record-error TypeError cannot read" }, {}, {});
+      await handler.execute(
+        { input: "record-error TypeError null reference" },
+        {},
+        {},
+      );
+      await handler.execute(
+        { input: "record-error TypeError undefined property" },
+        {},
+        {},
+      );
+      await handler.execute(
+        { input: "record-error TypeError cannot read" },
+        {},
+        {},
+      );
 
       const result = await handler.execute(
         { input: "analyze-patterns" },
@@ -111,7 +121,11 @@ describe("self-improving-agent handler", () => {
 
     it("should generate suggestions from recorded errors", async () => {
       await handler.execute({ input: "record-error TypeError null" }, {}, {});
-      await handler.execute({ input: "record-error TypeError undefined" }, {}, {});
+      await handler.execute(
+        { input: "record-error TypeError undefined" },
+        {},
+        {},
+      );
 
       const result = await handler.execute(
         { input: "suggest-improvements" },
@@ -125,11 +139,7 @@ describe("self-improving-agent handler", () => {
 
   describe("execute() - show-history", () => {
     it("should show empty history", async () => {
-      const result = await handler.execute(
-        { input: "show-history" },
-        {},
-        {},
-      );
+      const result = await handler.execute({ input: "show-history" }, {}, {});
       expect(result.success).toBe(true);
       expect(result.entries).toEqual([]);
     });
@@ -138,11 +148,7 @@ describe("self-improving-agent handler", () => {
       await handler.execute({ input: "record-error test error one" }, {}, {});
       await handler.execute({ input: "record-error test error two" }, {}, {});
 
-      const result = await handler.execute(
-        { input: "show-history" },
-        {},
-        {},
-      );
+      const result = await handler.execute({ input: "show-history" }, {}, {});
       expect(result.success).toBe(true);
       expect(result.entries.length).toBe(2);
     });

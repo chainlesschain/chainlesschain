@@ -19,7 +19,9 @@ function mockGoogleRequest(statusCode, body) {
       res.emit("data", JSON.stringify(body));
       res.emit("end");
     });
-    if (cb) cb(res);
+    if (cb) {
+      cb(res);
+    }
     const req = new EventEmitter();
     req.end = vi.fn();
     req.write = vi.fn();
@@ -47,8 +49,11 @@ describe("google-workspace handler", () => {
 
   afterEach(() => {
     for (const [key, val] of Object.entries(savedEnv)) {
-      if (val !== undefined) process.env[key] = val;
-      else delete process.env[key];
+      if (val !== undefined) {
+        process.env[key] = val;
+      } else {
+        delete process.env[key];
+      }
     }
   });
 
@@ -67,7 +72,14 @@ describe("google-workspace handler", () => {
         handler._deps.https = {
           request: mockGoogleRequest(200, {
             items: [
-              { id: "ev1", summary: "Meeting", start: { dateTime: "2026-03-06T10:00:00Z" }, end: { dateTime: "2026-03-06T11:00:00Z" }, location: "Room A", status: "confirmed" },
+              {
+                id: "ev1",
+                summary: "Meeting",
+                start: { dateTime: "2026-03-06T10:00:00Z" },
+                end: { dateTime: "2026-03-06T11:00:00Z" },
+                location: "Room A",
+                status: "confirmed",
+              },
             ],
           }),
         };
@@ -86,16 +98,28 @@ describe("google-workspace handler", () => {
         handler._deps.https = {
           request: vi.fn((opts, cb) => {
             callCount++;
-            const body = callCount === 1
-              ? { messages: [{ id: "msg1" }] }
-              : { payload: { headers: [{ name: "Subject", value: "Test Email" }, { name: "From", value: "test@test.com" }, { name: "Date", value: "2026-01-01" }] }, snippet: "Preview text" };
+            const body =
+              callCount === 1
+                ? { messages: [{ id: "msg1" }] }
+                : {
+                    payload: {
+                      headers: [
+                        { name: "Subject", value: "Test Email" },
+                        { name: "From", value: "test@test.com" },
+                        { name: "Date", value: "2026-01-01" },
+                      ],
+                    },
+                    snippet: "Preview text",
+                  };
             const res = new EventEmitter();
             res.statusCode = 200;
             process.nextTick(() => {
               res.emit("data", JSON.stringify(body));
               res.emit("end");
             });
-            if (cb) cb(res);
+            if (cb) {
+              cb(res);
+            }
             const req = new EventEmitter();
             req.end = vi.fn();
             req.write = vi.fn();
@@ -103,7 +127,11 @@ describe("google-workspace handler", () => {
           }),
         };
       }
-      const result = await handler.execute({ input: "gmail-search test query" }, {}, {});
+      const result = await handler.execute(
+        { input: "gmail-search test query" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("gmail-search");
     });
@@ -130,9 +158,15 @@ describe("google-workspace handler", () => {
       process.env.GOOGLE_CLIENT_SECRET = "secret";
       process.env.GOOGLE_REFRESH_TOKEN = "refresh";
       if (handler._deps) {
-        handler._deps.https = { request: mockGoogleRequest(200, { access_token: "tok" }) };
+        handler._deps.https = {
+          request: mockGoogleRequest(200, { access_token: "tok" }),
+        };
       }
-      const result = await handler.execute({ input: "gmail-send subject:Hello" }, {}, {});
+      const result = await handler.execute(
+        { input: "gmail-send subject:Hello" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Recipient required");
     });
@@ -143,7 +177,15 @@ describe("google-workspace handler", () => {
       if (handler._deps) {
         handler._deps.https = {
           request: mockGoogleRequest(200, {
-            files: [{ id: "f1", name: "doc.pdf", mimeType: "application/pdf", size: "1024", modifiedTime: "2026-01-01" }],
+            files: [
+              {
+                id: "f1",
+                name: "doc.pdf",
+                mimeType: "application/pdf",
+                size: "1024",
+                modifiedTime: "2026-01-01",
+              },
+            ],
           }),
         };
       }
@@ -167,7 +209,11 @@ describe("google-workspace handler", () => {
 
   describe("execute() - unknown action", () => {
     it("should return error for unknown action", async () => {
-      const result = await handler.execute({ input: "sheets-read data" }, {}, {});
+      const result = await handler.execute(
+        { input: "sheets-read data" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Unknown action");
     });

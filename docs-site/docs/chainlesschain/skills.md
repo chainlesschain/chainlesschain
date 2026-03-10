@@ -1,8 +1,8 @@
 # Skills 技能系统
 
-> **版本: v1.2.0 | 131内置技能 | Agent Skills开放标准 | 统一工具注册表**
+> **版本: v1.2.1 | 137内置技能 | Agent Skills开放标准 | 统一工具注册表**
 
-Skills 系统提供 131 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.0 研究10大外部技能标准并转化为内置技能(10个)，新增12个实用流行技能，以及10个集成/生产力/知识技能，Handler 覆盖率 131/131 (100%)。
+Skills 系统提供 137 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.1 研究社区技能生态补充6个高频技能(brainstorming/debugging-strategies/api-design/frontend-design/create-pr/doc-coauthoring)，Handler 覆盖率 137/137 (100%)。
 
 ## 系统概述
 
@@ -144,45 +144,56 @@ Skills 系统提供 131 个内置技能，使用 Markdown 定义技能(SKILL.md)
 
 ### v1.2.0 外部标准 + 实用技能 (22)
 
-| 类别       | 技能                        | Handler | 说明                                  |
-| ---------- | --------------------------- | ------- | ------------------------------------- |
-| **搜索**   | `/tavily-search`            | ✅      | Tavily API联网搜索                    |
-| **搜索**   | `/find-skills`              | ✅      | 技能注册表搜索发现                    |
-| **自动化** | `/proactive-agent`          | ✅      | 4种自主触发器                         |
-| **浏览器** | `/agent-browser`            | ✅      | 快照引用模式浏览器自动化              |
-| **媒体**   | `/remotion-video`           | ✅      | React/Remotion视频创作                |
-| **自动化** | `/cron-scheduler`           | ✅      | Cron+自然语言定时调度                 |
-| **协作**   | `/planning-with-files`      | ✅      | Manus 3文件规划工作流                 |
-| **协作**   | `/content-publisher`        | ✅      | 5种内容类型发布                       |
-| **协作**   | `/skill-creator`            | ✅      | 元技能：创建/测试/验证技能            |
-| **测试**   | `/webapp-testing`           | ✅      | 侦察-执行模式Web测试                  |
-| **知识**   | `/deep-research`            | ✅      | 8阶段深度研究流水线                   |
-| **开发**   | `/git-worktree-manager`     | ✅      | Git Worktree管理                      |
-| **代码审查** | `/pr-reviewer`            | ✅      | gh CLI PR审查分析                     |
-| **DevOps** | `/docker-compose-generator` | ✅      | 10种服务模板Docker Compose            |
-| **DevOps** | `/terraform-iac`            | ✅      | AWS/GCP/Azure HCL生成                 |
-| **文档**   | `/api-docs-generator`       | ✅      | OpenAPI 3.0自动生成                   |
-| **知识**   | `/news-monitor`             | ✅      | HackerNews API趋势检测               |
-| **知识**   | `/ultrathink`               | ✅      | 7步扩展推理框架                       |
-| **知识**   | `/youtube-summarizer`       | ✅      | YouTube字幕摘要+章节分段              |
-| **数据库** | `/database-query`           | ✅      | SQL生成/优化/Schema内省               |
-| **DevOps** | `/k8s-deployer`             | ✅      | K8s清单+Helm Chart+安全检查           |
-| **DevOps** | `/cursor-rules-generator`   | ✅      | 5种AI编码助手配置                     |
+| 类别         | 技能                        | Handler | 说明                        |
+| ------------ | --------------------------- | ------- | --------------------------- |
+| **搜索**     | `/tavily-search`            | ✅      | Tavily API联网搜索          |
+| **搜索**     | `/find-skills`              | ✅      | 技能注册表搜索发现          |
+| **自动化**   | `/proactive-agent`          | ✅      | 4种自主触发器               |
+| **浏览器**   | `/agent-browser`            | ✅      | 快照引用模式浏览器自动化    |
+| **媒体**     | `/remotion-video`           | ✅      | React/Remotion视频创作      |
+| **自动化**   | `/cron-scheduler`           | ✅      | Cron+自然语言定时调度       |
+| **协作**     | `/planning-with-files`      | ✅      | Manus 3文件规划工作流       |
+| **协作**     | `/content-publisher`        | ✅      | 5种内容类型发布             |
+| **协作**     | `/skill-creator`            | ✅      | 元技能：创建/测试/验证技能  |
+| **测试**     | `/webapp-testing`           | ✅      | 侦察-执行模式Web测试        |
+| **知识**     | `/deep-research`            | ✅      | 8阶段深度研究流水线         |
+| **开发**     | `/git-worktree-manager`     | ✅      | Git Worktree管理            |
+| **代码审查** | `/pr-reviewer`              | ✅      | gh CLI PR审查分析           |
+| **DevOps**   | `/docker-compose-generator` | ✅      | 10种服务模板Docker Compose  |
+| **DevOps**   | `/terraform-iac`            | ✅      | AWS/GCP/Azure HCL生成       |
+| **文档**     | `/api-docs-generator`       | ✅      | OpenAPI 3.0自动生成         |
+| **知识**     | `/news-monitor`             | ✅      | HackerNews API趋势检测      |
+| **知识**     | `/ultrathink`               | ✅      | 7步扩展推理框架             |
+| **知识**     | `/youtube-summarizer`       | ✅      | YouTube字幕摘要+章节分段    |
+| **数据库**   | `/database-query`           | ✅      | SQL生成/优化/Schema内省     |
+| **DevOps**   | `/k8s-deployer`             | ✅      | K8s清单+Helm Chart+安全检查 |
+| **DevOps**   | `/cursor-rules-generator`   | ✅      | 5种AI编码助手配置           |
 
 ### v1.2.0 集成与生产力技能 (10)
 
-| 类别       | 技能                       | Handler | 说明                                  |
-| ---------- | -------------------------- | ------- | ------------------------------------- |
-| **自动化** | `/api-gateway`             | ✅      | 100+ API统一接口/链式调用             |
-| **系统**   | `/free-model-manager`      | ✅      | Ollama/HuggingFace免费模型管理        |
-| **开发**   | `/github-manager`          | ✅      | Issues/PR/仓库/Workflows管理          |
-| **工具**   | `/google-workspace`        | ✅      | Gmail/Calendar/Drive集成              |
-| **工具**   | `/humanizer`               | ✅      | 去除AI写作痕迹/语气调整              |
-| **工具**   | `/notion`                  | ✅      | Notion页面/数据库/内容管理            |
-| **知识**   | `/obsidian`                | ✅      | Obsidian笔记/搜索/标签/双链           |
-| **系统**   | `/self-improving-agent`    | ✅      | 错误追踪/模式分析/自我改进            |
-| **知识**   | `/summarizer`              | ✅      | URL/PDF/YouTube/文本万能摘要          |
-| **工具**   | `/weather`                 | ✅      | 全球天气/预报/告警                    |
+| 类别       | 技能                    | Handler | 说明                           |
+| ---------- | ----------------------- | ------- | ------------------------------ |
+| **自动化** | `/api-gateway`          | ✅      | 100+ API统一接口/链式调用      |
+| **系统**   | `/free-model-manager`   | ✅      | Ollama/HuggingFace免费模型管理 |
+| **开发**   | `/github-manager`       | ✅      | Issues/PR/仓库/Workflows管理   |
+| **工具**   | `/google-workspace`     | ✅      | Gmail/Calendar/Drive集成       |
+| **工具**   | `/humanizer`            | ✅      | 去除AI写作痕迹/语气调整        |
+| **工具**   | `/notion`               | ✅      | Notion页面/数据库/内容管理     |
+| **知识**   | `/obsidian`             | ✅      | Obsidian笔记/搜索/标签/双链    |
+| **系统**   | `/self-improving-agent` | ✅      | 错误追踪/模式分析/自我改进     |
+| **知识**   | `/summarizer`           | ✅      | URL/PDF/YouTube/文本万能摘要   |
+| **工具**   | `/weather`              | ✅      | 全球天气/预报/告警             |
+
+### v1.2.1 社区生态补充技能 (6)
+
+| 类别     | 技能                    | Handler | 说明                                                           |
+| -------- | ----------------------- | ------- | -------------------------------------------------------------- |
+| **通用** | `/brainstorming`        | ✅      | 创意头脑风暴(自由思考/思维导图/SWOT/六顶帽/SCAMPER)            |
+| **开发** | `/debugging-strategies` | ✅      | 系统调试策略(诊断/二分法/追踪/假设/小黄鸭/根因/红旗/防御/会话) |
+| **开发** | `/api-design`           | ✅      | API设计(RESTful设计/审查/OpenAPI/版本策略/错误码)              |
+| **设计** | `/frontend-design`      | ✅      | 前端设计(组件/布局/响应式/无障碍/主题)                         |
+| **开发** | `/create-pr`            | ✅      | PR创建(创建/草稿/模板/Changelog)                               |
+| **文档** | `/doc-coauthoring`      | ✅      | 文档协作(初稿/扩展/审查/结构重组/术语表)                       |
 
 ### Cowork协作演化 v1.0.0 (5)
 
@@ -196,12 +207,12 @@ Skills 系统提供 131 个内置技能，使用 Markdown 定义技能(SKILL.md)
 
 ### 安全/系统/示例技能 (4)
 
-| 类别     | 技能                  | Handler | 说明                                                         |
-| -------- | --------------------- | ------- | ------------------------------------------------------------ |
-| **安全** | `/zkp-toolkit`        | ✅      | 零知识证明工具（证明生成/验证/选择性披露/ZK-Rollup/基准测试）|
-| **系统** | `/handler-test-skill` | ✅      | Handler测试技能（内置开发调试/Handler契约验证用）            |
-| **示例** | `/my-custom-skill`    | ✅      | 自定义技能示例（用户自定义技能参考模板）                     |
-| **开发** | `/test-skill`         | ✅      | 测试技能（单元测试示例/技能框架测试用途）                    |
+| 类别     | 技能                  | Handler | 说明                                                          |
+| -------- | --------------------- | ------- | ------------------------------------------------------------- |
+| **安全** | `/zkp-toolkit`        | ✅      | 零知识证明工具（证明生成/验证/选择性披露/ZK-Rollup/基准测试） |
+| **系统** | `/handler-test-skill` | ✅      | Handler测试技能（内置开发调试/Handler契约验证用）             |
+| **示例** | `/my-custom-skill`    | ✅      | 自定义技能示例（用户自定义技能参考模板）                      |
+| **开发** | `/test-skill`         | ✅      | 测试技能（单元测试示例/技能框架测试用途）                     |
 
 ---
 
@@ -216,7 +227,7 @@ managed/       # 用户管理的技能
     ↓
 marketplace/   # 插件市场安装的技能 (v0.34.0新增)
     ↓
-bundled/       # 内置技能（131个，100% Handler覆盖，最低优先级）
+bundled/       # 内置技能（137个，100% Handler覆盖，最低优先级）
 ```
 
 高层技能可以覆盖低层同名技能。
@@ -227,7 +238,7 @@ bundled/       # 内置技能（131个，100% Handler覆盖，最低优先级）
 .chainlesschain/skills/          # 工作区技能
 ~/.chainlesschain/skills/        # 用户技能
 <marketplace>/skills/            # 插件市场技能
-<app>/skills/builtin/            # 内置技能 (131个)
+<app>/skills/builtin/            # 内置技能 (137个)
 ```
 
 ---
@@ -725,4 +736,4 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 
 ---
 
-**131个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️
+**137个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️
