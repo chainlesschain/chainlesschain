@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/intent-recognizer.js`
 
-**Generated**: 2026-03-06T07:41:07.242Z
+**Generated**: 2026-03-10T01:47:03.212Z
 
 ---
 
