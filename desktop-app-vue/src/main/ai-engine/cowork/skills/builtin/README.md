@@ -168,7 +168,7 @@
 
 | 技能               | 类别         | Handler | 说明                                                       |
 | ------------------ | ------------ | ------- | ---------------------------------------------------------- |
-| deep-research      | knowledge    | ✅      | 深度研究（多阶段Web研究/��源评分/交叉验证/综合报告）       |
+| deep-research      | knowledge    | ✅      | 深度研究（多阶段Web研究/多源评分/交叉验证/综合报告）       |
 | tavily-search      | knowledge    | ✅      | Tavily实时搜索（Web搜索/页面内容提取/RAG增强）             |
 | summarizer         | knowledge    | ✅      | 内容摘要（URL/PDF/YouTube/文本→关键点与简洁摘要）          |
 | youtube-summarizer | knowledge    | ✅      | YouTube摘要（字幕提取/结构化摘要/时间戳/主题分段）         |

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v3.4.0 | 42个模块设计 | 77 Phase | 面向开发者的架构与实现文档
+  tagline: v3.4.0 | 42个模块设计 | 77 Phase | 137技能 | 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo

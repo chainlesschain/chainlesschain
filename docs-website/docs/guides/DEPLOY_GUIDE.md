@@ -2,27 +2,27 @@
 
 ## 📋 目录
 
-1. [快速开始](#快速开�?
+1. [快速开始](#快速开始)
 2. [构建打包](#构建打包)
 3. [部署方式](#部署方式)
-   - [方式1: 服务器部署](#方式1-服务器部�?
+   - [方式1: 服务器部署](#方式1-服务器部署)
    - [方式2: GitHub Pages](#方式2-github-pages)
    - [方式3: Netlify](#方式3-netlify)
    - [方式4: Vercel](#方式4-vercel)
    - [方式5: 云存储OSS](#方式5-云存储oss)
-4. [服务器配置](#服务器配�?
+4. [服务器配置](#服务器配置)
 5. [常见问题](#常见问题)
 
 ---
 
-## 🚀 快速开�?
+## 🚀 快速开始
 
 ### 前置要求
 
 - Node.js 14+ (用于构建脚本)
-- Git (用于版本控制和部�?
+- Git (用于版本控制和部署)
 
-### 一键构�?
+### 一键构建
 
 ```bash
 # 进入网站目录
@@ -32,7 +32,9 @@ cd docs-website
 node build.js
 ```
 
-## 构建完成后，所有文件将输出�?`dist/` 目录�?
+构建完成后，所有文件将输出到 `dist/` 目录。
+
+---
 
 ## 📦 构建打包
 
@@ -48,7 +50,7 @@ node build.js
 
 ```bash
 node build.js
-# �?npm run build
+# 或 npm run build
 ```
 
 ### 构建输出
@@ -58,28 +60,29 @@ dist/
 ├── index.html                  # 主页
 ├── generate-qr-code.html       # 二维码生成器
 ├── css/                        # 样式文件
-�?  └── style.css
+│   └── style.css
 ├── js/                         # JavaScript
-�?  └── main.js
+│   └── main.js
 ├── images/                     # 图片资源
-�?  ├── qr/
-�?  └── ...
+│   ├── qr/
+│   └── ...
 ├── products/                   # 产品页面
-├── technology/                 # 技术文�?├── logo.png
+├── technology/                 # 技术文档
+├── logo.png
 ├── logo.svg
 ├── favicon.ico
 ├── style-enhancements.css
 └── DEPLOY.txt                  # 部署说明
 
 总文件数: ~50
-总大�? ~2-3 MB
+总大小: ~2-3 MB
 ```
 
 ---
 
 ## 🌐 部署方式
 
-### 方式1: 服务器部�?
+### 方式1: 服务器部署
 
 #### 1.1 自动部署（推荐）
 
@@ -87,21 +90,24 @@ dist/
 
 编辑 `deploy-to-server.sh`（Linux/Mac）或 `deploy-to-server.bat`（Windows）：
 
-````bash
+```bash
 # 修改这些变量
 SERVER_USER="root"              # 服务器用户名
 SERVER_HOST="your-server.com"   # 服务器地址
-SERVER_PATH="/var/www/chainlesschain.com"  # 服务器路�?```
+SERVER_PATH="/var/www/chainlesschain.com"  # 服务器路径
+```
 
-**执行部署�?*
+**执行部署：**
 
 **Windows:**
+
 ```bash
-# 1. 先构�?node build.js
+# 1. 先构建
+node build.js
 
 # 2. 部署
 deploy-to-server.bat
-````
+```
 
 **Linux/Mac:**
 
@@ -109,7 +115,8 @@ deploy-to-server.bat
 # 1. 添加执行权限
 chmod +x deploy-to-server.sh
 
-# 2. 构建并部�?npm run build
+# 2. 构建并部署
+npm run build
 npm run deploy:server
 ```
 
@@ -129,23 +136,27 @@ rsync -avz --delete dist/ user@server:/var/www/chainlesschain.com/
 
 **使用 FTP/SFTP:**
 
-- 使用 FileZilla、WinSCP 等工�?- 连接服务�?- 上传 `dist/` 目录内容
+- 使用 FileZilla、WinSCP 等工具
+- 连接服务器
+- 上传 `dist/` 目录内容
 
-#### 1.3 服务器配�?
+#### 1.3 服务器配置
 
-\*_Nginx 配置示例�?_
+**Nginx 配置示例：**
 
-创建配置文件 `/etc/nginx/sites-available/chainlesschain.com`�?
+创建配置文件 `/etc/nginx/sites-available/chainlesschain.com`：
 
 ```nginx
-# HTTP -> HTTPS 重定�?server {
+# HTTP -> HTTPS 重定向
+server {
     listen 80;
     listen [::]:80;
     server_name www.chainlesschain.com chainlesschain.com;
     return 301 https://$server_name$request_uri;
 }
 
-# HTTPS 主配�?server {
+# HTTPS 主配置
+server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
     server_name www.chainlesschain.com chainlesschain.com;
@@ -156,7 +167,8 @@ rsync -avz --delete dist/ user@server:/var/www/chainlesschain.com/
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    # 网站根目�?    root /var/www/chainlesschain.com;
+    # 网站根目录
+    root /var/www/chainlesschain.com;
     index index.html;
 
     # Gzip 压缩
@@ -167,12 +179,14 @@ rsync -avz --delete dist/ user@server:/var/www/chainlesschain.com/
                application/x-javascript application/xml+rss
                application/json application/javascript;
 
-    # 静态文件缓�?    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+    # 静态文件缓存
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
         expires 30d;
         add_header Cache-Control "public, immutable";
     }
 
-    # HTML 文件不缓�?    location ~* \.html$ {
+    # HTML 文件不缓存
+    location ~* \.html$ {
         expires -1;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
@@ -182,16 +196,18 @@ rsync -avz --delete dist/ user@server:/var/www/chainlesschain.com/
         try_files $uri $uri/ /index.html;
     }
 
-    # 安全�?    add_header X-Frame-Options "SAMEORIGIN" always;
+    # 安全头
+    add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
 }
 ```
 
-\*_启用配置�?_
+**启用配置：**
 
 ```bash
-# 创建软链�?sudo ln -s /etc/nginx/sites-available/chainlesschain.com /etc/nginx/sites-enabled/
+# 创建软链接
+sudo ln -s /etc/nginx/sites-available/chainlesschain.com /etc/nginx/sites-enabled/
 
 # 测试配置
 sudo nginx -t
@@ -200,9 +216,9 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-\*_Apache 配置示例�?_
+**Apache 配置示例：**
 
-创建 `/etc/apache2/sites-available/chainlesschain.com.conf`�?
+创建 `/etc/apache2/sites-available/chainlesschain.com.conf`：
 
 ```apache
 <VirtualHost *:80>
@@ -244,7 +260,7 @@ sudo systemctl restart nginx
 </VirtualHost>
 ```
 
-\*_启用配置�?_
+**启用配置：**
 
 ```bash
 # 启用站点
@@ -266,9 +282,11 @@ sudo systemctl restart apache2
 sudo apt-get update
 sudo apt-get install certbot python3-certbot-nginx
 
-# 获取证书（Nginx�?sudo certbot --nginx -d chainlesschain.com -d www.chainlesschain.com
+# 获取证书（Nginx）
+sudo certbot --nginx -d chainlesschain.com -d www.chainlesschain.com
 
-# 或者（Apache�?sudo certbot --apache -d chainlesschain.com -d www.chainlesschain.com
+# 或者（Apache）
+sudo certbot --apache -d chainlesschain.com -d www.chainlesschain.com
 
 # 自动续期
 sudo certbot renew --dry-run
@@ -284,7 +302,7 @@ sudo certbot renew --dry-run
 # 1. 构建
 npm run build
 
-# 2. 部署�?GitHub Pages
+# 2. 部署到 GitHub Pages
 chmod +x deploy-to-github.sh
 npm run deploy:github
 ```
@@ -298,7 +316,7 @@ node build.js
 # 2. 进入 dist 目录
 cd dist
 
-# 3. 初始�?Git
+# 3. 初始化 Git
 git init
 git checkout -b gh-pages
 
@@ -309,30 +327,34 @@ git commit -m "Deploy to GitHub Pages"
 # 5. 添加远程仓库
 git remote add origin https://github.com/yourusername/chainlesschain.git
 
-# 6. 推�?git push -f origin gh-pages
+# 6. 推送
+git push -f origin gh-pages
 
-# 7. 返回主目�?cd ..
+# 7. 返回主目录
+cd ..
 ```
 
 #### 2.3 配置 GitHub Pages
 
-1. 访问仓库设置：`Settings` �?`Pages`
+1. 访问仓库设置：`Settings` → `Pages`
 2. Source 选择 `gh-pages` 分支
 3. 点击 `Save`
-4. 等待部署完成�?-2分钟�?5. 访问：`https://yourusername.github.io/chainlesschain`
+4. 等待部署完成（1-2分钟）
+5. 访问：`https://yourusername.github.io/chainlesschain`
 
-#### 2.4 自定义域�?
+#### 2.4 自定义域名
 
-�?`dist/` 目录添加 `CNAME` 文件�?
+在 `dist/` 目录添加 `CNAME` 文件：
 
 ```
 www.chainlesschain.com
 ```
 
-然后在域名提供商配置 DNS�?
+然后在域名提供商配置 DNS：
 
 ```
-类型    名称    �?CNAME   www     yourusername.github.io
+类型    名称    值
+CNAME   www     yourusername.github.io
 A       @       185.199.108.153
 A       @       185.199.109.153
 A       @       185.199.110.153
@@ -346,10 +368,11 @@ A       @       185.199.111.153
 #### 3.1 拖拽部署（最简单）
 
 1. 访问 https://app.netlify.com/drop
-2. 拖拽 `dist/` 目录到页�?3. 等待部署完成
-3. 获得临时域名：`random-name.netlify.app`
+2. 拖拽 `dist/` 目录到页面
+3. 等待部署完成
+4. 获得临时域名：`random-name.netlify.app`
 
-#### 3.2 命令行部�?
+#### 3.2 命令行部署
 
 ```bash
 # 1. 安装 Netlify CLI
@@ -370,13 +393,14 @@ netlify deploy --prod --dir=dist
 1. 登录 Netlify
 2. 点击 "New site from Git"
 3. 选择仓库
-4. 配置构建设置�? - Build command: `node build.js`
+4. 配置构建设置：
+   - Build command: `node build.js`
    - Publish directory: `dist`
 5. 点击 "Deploy site"
 
-#### 3.4 自定义域�?
+#### 3.4 自定义域名
 
-1. 进入 Site settings �?Domain management
+1. 进入 Site settings → Domain management
 2. 点击 "Add custom domain"
 3. 输入域名：`www.chainlesschain.com`
 4. 配置 DNS（Netlify 会提供说明）
@@ -385,7 +409,7 @@ netlify deploy --prod --dir=dist
 
 ### 方式4: Vercel
 
-#### 4.1 命令行部�?
+#### 4.1 命令行部署
 
 ```bash
 # 1. 安装 Vercel CLI
@@ -405,16 +429,17 @@ vercel --prod dist
 
 1. 访问 https://vercel.com/new
 2. 导入 Git 仓库
-3. 配置�? - Framework Preset: Other
+3. 配置：
+   - Framework Preset: Other
    - Build Command: `node build.js`
    - Output Directory: `dist`
 4. 点击 "Deploy"
 
 ---
 
-### 方式5: 云存储（OSS�?
+### 方式5: 云存储（OSS）
 
-#### 5.1 阿里�?OSS
+#### 5.1 阿里云 OSS
 
 ```bash
 # 1. 安装 ossutil
@@ -428,12 +453,13 @@ chmod 755 ossutil64
 ./ossutil64 cp -r dist/ oss://your-bucket/
 ```
 
-�?OSS 控制台：
+在 OSS 控制台：
 
-1. 开启静态网站托�?2. 设置默认首页：`index.html`
-2. 绑定自定义域�?
+1. 开启静态网站托管
+2. 设置默认首页：`index.html`
+3. 绑定自定义域名
 
-#### 5.2 腾讯�?COS
+#### 5.2 腾讯云 COS
 
 ```bash
 # 1. 安装 COSCMD
@@ -467,7 +493,7 @@ aws s3 website s3://your-bucket/ --index-document index.html
 
 ---
 
-## ⚙️ 服务器配�?
+## ⚙️ 服务器配置
 
 ### 文件权限
 
@@ -477,7 +503,7 @@ sudo chown -R www-data:www-data /var/www/chainlesschain.com
 sudo chmod -R 755 /var/www/chainlesschain.com
 ```
 
-### 防火墙配�?
+### 防火墙配置
 
 ```bash
 # UFW (Ubuntu)
@@ -493,34 +519,34 @@ sudo firewall-cmd --reload
 
 ### 性能优化
 
-**开�?HTTP/2:**
+**开启 HTTP/2:**
 
 ```nginx
 listen 443 ssl http2;
 ```
 
-**开�?Brotli 压缩:**
+**开启 Brotli 压缩:**
 
 ```nginx
 brotli on;
 brotli_types text/plain text/css application/json application/javascript;
 ```
 
-**CDN 加�?**
+**CDN 加速：**
 
 - 推荐使用 Cloudflare、阿里云 CDN、腾讯云 CDN
 - 配置 CNAME 指向 CDN 地址
-- 开�?HTTPS、Gzip、缓�?
+- 开启 HTTPS、Gzip、缓存
 
 ---
 
-## �?常见问题
+## ❓ 常见问题
 
 ### Q1: 构建失败
 
-\*_错误�?_ `node: command not found`
+**错误：** `node: command not found`
 
-\*_解决�?_
+**解决：**
 
 ```bash
 # 安装 Node.js
@@ -536,16 +562,17 @@ brew install node
 
 ### Q2: 部署失败
 
-\*_错误�?_ `Permission denied`
+**错误：** `Permission denied`
 
-\*_解决�?_
+**解决：**
 
 ```bash
-# 检�?SSH 密钥
+# 检查 SSH 密钥
 ssh-keygen -t rsa -b 4096
 ssh-copy-id user@server
 
-# 或者使用密码登�?scp -o PreferredAuthentications=password -r dist/* user@server:/path/
+# 或者使用密码登录
+scp -o PreferredAuthentications=password -r dist/* user@server:/path/
 ```
 
 ### Q3: 网站无法访问
@@ -553,20 +580,22 @@ ssh-copy-id user@server
 **检查清单：**
 
 1. DNS 是否正确解析
-2. 防火墙是否开�?80/443 端口
-3. Web 服务器是否正常运�?4. 文件权限是否正确
-4. SSL 证书是否有效
+2. 防火墙是否开放 80/443 端口
+3. Web 服务器是否正常运行
+4. 文件权限是否正确
+5. SSL 证书是否有效
 
-\*_调试命令�?_
+**调试命令：**
 
 ```bash
-# 检�?DNS
+# 检查 DNS
 nslookup chainlesschain.com
 
-# 检查端�?telnet chainlesschain.com 80
+# 检查端口
+telnet chainlesschain.com 80
 telnet chainlesschain.com 443
 
-# 检�?Nginx
+# 检查 Nginx
 sudo nginx -t
 sudo systemctl status nginx
 
@@ -576,42 +605,46 @@ sudo tail -f /var/log/nginx/error.log
 
 ### Q4: 企业微信二维码不显示
 
-\*_原因�?_ 在线 API 无法访问
+**原因：** 在线 API 无法访问
 
-\*_解决方案1�?_ 使用本地图片
+**解决方案1：** 使用本地图片
 
 ```bash
-# 使用二维码生成工�?open generate-qr-code.html
+# 使用二维码生成工具
+open generate-qr-code.html
 # 下载二维码图片到 images/qr/wechat-enterprise.png
 ```
 
-\*_解决方案2�?_ 修改 API 地址
+**解决方案2：** 修改 API 地址
 
 ```html
 <!-- 使用国内镜像 -->
 <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=..." />
 ```
 
-### Q5: 页面更新不生�?
+### Q5: 页面更新不生效
 
-**原因�?\* 浏览器缓�?
-**解决�?\*
+**原因：** 浏览器缓存
 
-1. 强制刷新：Ctrl + Shift + R（Windows�? Cmd + Shift + R（Mac�?2. 清除浏览器缓�?3. 使用隐私/无痕模式测试
+**解决：**
+
+1. 强制刷新：Ctrl + Shift + R（Windows）/ Cmd + Shift + R（Mac）
+2. 清除浏览器缓存
+3. 使用隐私/无痕模式测试
 
 ---
 
-## 📞 技术支�?
+## 📞 技术支持
 
 如遇到部署问题，请联系：
 
-- 📞 客服热线�?00-1068-687
+- 📞 客服热线：400-1068-687
 - 💬 企业微信：https://work.weixin.qq.com/ca/cawcde653996f7ecb2
 - 📧 技术支持：zhanglongfa@chainlesschain.com
 - 🐛 GitHub Issues：https://github.com/chainlesschain/chainlesschain/issues
 
 ---
 
-**更新时间�?\* 2026-01-28
-**版本�?\* v0.33.0
+**更新时间：** 2026-01-28
+**版本：** v0.33.0
 **ChainlessChain - 让数据主权回归个人，AI效率触手可及**

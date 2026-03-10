@@ -21,10 +21,26 @@
 - `create-pr`: PR 创建，4 种模式 (创建/草稿/模板/Changelog)
 - `doc-coauthoring`: 文档协作，5 种模式 (初稿/扩展/审查/结构/术语表)
 
+### 增强
+
+- **核心技能 Handler v2.0 升级 (4 个)**:
+  - `tavily-search v2.0`: 新增 crawl/map/research/qna 模式，域名过滤，内容提取
+  - `find-skills v2.0`: 新增 marketplace 浏览/技能对比/兼容性检查/热度追踪/版本检查/依赖解析，集成 6 大技能市场
+  - `github-manager v2.0`: 新增代码搜索/Issue-PR 详情/PR 审查/分支管理/Release 管理/标签管理/分支比较
+  - `self-improving-agent v2.0`: 新增本能捕获/验证/技能提取/知识导出，Claudeception 模式技能提取
+
+- **已有 Handler 增强 (5 个)**:
+  - `knowledge-graph`: 重构优化 (397 行新增)
+  - `proactive-agent`: 扩展至 604 行，增强自主触发能力
+  - `security-audit`: 新增漂移检测/完整性验证/CVE Feed
+  - `multi-search-engine`: 新增多 Provider 搜索能力
+  - `excel-analyzer`: 新增 161 行分析功能
+
 ### 测试
 
 - 新增 84 个单元测试 (6 个技能共 13+35+13+12+14+17 个测试用例)
-- 新增 20 个 E2E 测试 (IPC 可达性测试)
+- 新增 68 个 Handler 单元测试 (4 个新测试文件)
+- 新增 20 个 E2E 测试 (IPC 可达性测试) + 14 个 E2E 测试 (技能增强)
 
 ---
 
