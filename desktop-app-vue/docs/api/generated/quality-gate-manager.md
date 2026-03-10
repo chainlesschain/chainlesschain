@@ -2,7 +2,7 @@
 
 **Source**: `src/main/workflow/quality-gate-manager.js`
 
-**Generated**: 2026-03-10T02:14:56.060Z
+**Generated**: 2026-03-10T06:30:36.276Z
 
 ---
 
