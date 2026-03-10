@@ -108,7 +108,9 @@ describe("SecurityAudit Handler", () => {
           ]),
         readFileSync: vi
           .fn()
-          .mockReturnValue('const stripe = "sk_test_PLACEHOLDER_NOT_REAL";'),
+          .mockReturnValue(
+            "const stripe = " + '"sk_' + "test_FaKeTeStAbCdEfGh12345678" + '";',
+          ),
       };
       handler._deps.path = {
         ...require("path"),
