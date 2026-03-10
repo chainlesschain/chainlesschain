@@ -214,7 +214,7 @@ jobs:
       - name: Generate Xcode project
         working-directory: ios-app
         run: |
-          ruby create_xcode_project.rb
+          ruby scripts/create_xcode_project.rb
           echo "✅ Xcode project generated"
           ls -la *.xcodeproj || true
 

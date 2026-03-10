@@ -52,6 +52,7 @@ class OllamaAdapter(
                             MessageRole.SYSTEM -> "system"
                             MessageRole.USER -> "user"
                             MessageRole.ASSISTANT -> "assistant"
+                            MessageRole.TOOL -> "tool"
                         },
                         content = msg.content
                     )
@@ -115,6 +116,7 @@ class OllamaAdapter(
                         MessageRole.SYSTEM -> "system"
                         MessageRole.USER -> "user"
                         MessageRole.ASSISTANT -> "assistant"
+                        MessageRole.TOOL -> "tool"
                     },
                     content = msg.content
                 )
