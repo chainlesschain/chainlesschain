@@ -252,7 +252,7 @@ async function handleCreateTask() {
   }
 }
 
-async function handleStartTraining(task: { id: string }) {
+async function handleStartTraining(task: any) {
   try {
     await store.startTraining(task.id);
     message.success("Training started");
@@ -262,7 +262,7 @@ async function handleStartTraining(task: { id: string }) {
   }
 }
 
-function handleViewTask(task: { id: string; name: string }) {
+function handleViewTask(task: any) {
   message.info(`Viewing task: ${task.name}`);
 }
 

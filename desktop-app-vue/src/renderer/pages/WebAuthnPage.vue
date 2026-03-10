@@ -139,7 +139,7 @@ async function handleDelete(credentialId: string) {
   message.success("Passkey 已删除");
 }
 
-async function handleBindDID(record: { credentialId: string }) {
+async function handleBindDID(record: any) {
   // In a real app this would open a DID selection modal
   await store.bindDID(record.credentialId, "did:chainless:user-bound");
   message.success("DID 已绑定");
