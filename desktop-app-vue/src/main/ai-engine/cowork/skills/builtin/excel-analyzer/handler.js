@@ -2,11 +2,14 @@
  * Excel Analyzer Skill Handler
  *
  * Deep analysis of Excel files: sheets, formulas, data validation, summaries.
+ * Enhanced: pivot tables, chart data preparation, file comparison.
  */
 
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+
+const _deps = { fs, path, logger };
 
 // ── Helpers ─────────────────────────────────────────
 
@@ -236,6 +239,155 @@ async function validateData(filePath) {
   };
 }
 
+// ── Pivot Table ─────────────────────────────────────
+
+async function pivotTable(filePath, groupByCol, aggMode) {
+  const ExcelJS = require("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) {
+    return { error: "No sheets found" };
+  }
+
+  const headers = [];
+  sheet.getRow(1).eachCell((cell, colNum) => {
+    headers.push({ name: String(cell.value || `Col${colNum}`), col: colNum });
+  });
+
+  const groupCol = headers.find(
+    (h) => h.name.toLowerCase() === (groupByCol || "").toLowerCase(),
+  );
+  if (!groupCol) {
+    return {
+      error: `Column "${groupByCol}" not found. Available: ${headers.map((h) => h.name).join(", ")}`,
+    };
+  }
+
+  // Find numeric columns for aggregation
+  const numericCols = [];
+  for (const h of headers) {
+    if (h.col === groupCol.col) {
+      continue;
+    }
+    const cell = sheet.getRow(2).getCell(h.col);
+    if (typeof cell.value === "number") {
+      numericCols.push(h);
+    }
+  }
+
+  const groups = {};
+  for (let r = 2; r <= sheet.rowCount; r++) {
+    const row = sheet.getRow(r);
+    const key = String(row.getCell(groupCol.col).value || "");
+    if (!groups[key]) {
+      groups[key] = {};
+    }
+
+    for (const nc of numericCols) {
+      const val = row.getCell(nc.col).value;
+      if (typeof val === "number") {
+        if (!groups[key][nc.name]) {
+          groups[key][nc.name] = [];
+        }
+        groups[key][nc.name].push(val);
+      }
+    }
+  }
+
+  const mode = (aggMode || "sum").toLowerCase();
+  const pivotData = {};
+  for (const [key, cols] of Object.entries(groups)) {
+    pivotData[key] = {};
+    for (const [colName, values] of Object.entries(cols)) {
+      switch (mode) {
+        case "avg":
+          pivotData[key][colName] =
+            values.reduce((a, b) => a + b, 0) / values.length;
+          break;
+        case "count":
+          pivotData[key][colName] = values.length;
+          break;
+        case "min":
+          pivotData[key][colName] = Math.min(...values);
+          break;
+        case "max":
+          pivotData[key][colName] = Math.max(...values);
+          break;
+        default:
+          pivotData[key][colName] = values.reduce((a, b) => a + b, 0);
+      }
+    }
+  }
+
+  return {
+    file: _deps.path.basename(filePath),
+    groupBy: groupCol.name,
+    aggregation: mode,
+    numericColumns: numericCols.map((c) => c.name),
+    groups: Object.keys(pivotData).length,
+    data: pivotData,
+  };
+}
+
+// ── Chart Data Preparation ──────────────────────────
+
+async function chartData(filePath, xCol, yCols) {
+  const ExcelJS = require("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) {
+    return { error: "No sheets found" };
+  }
+
+  const headers = [];
+  sheet.getRow(1).eachCell((cell, colNum) => {
+    headers.push({ name: String(cell.value || `Col${colNum}`), col: colNum });
+  });
+
+  const xHeader = headers.find(
+    (h) => h.name.toLowerCase() === (xCol || "").toLowerCase(),
+  );
+  if (!xHeader) {
+    return {
+      error: `X column "${xCol}" not found. Available: ${headers.map((h) => h.name).join(", ")}`,
+    };
+  }
+
+  const yNames = (yCols || "").split(",").map((s) => s.trim().toLowerCase());
+  const yHeaders =
+    yNames.length > 0 && yNames[0]
+      ? headers.filter((h) => yNames.includes(h.name.toLowerCase()))
+      : headers.filter((h) => h.col !== xHeader.col);
+
+  if (yHeaders.length === 0) {
+    return { error: "No Y columns found." };
+  }
+
+  const labels = [];
+  const datasets = {};
+  for (const yh of yHeaders) {
+    datasets[yh.name] = [];
+  }
+
+  for (let r = 2; r <= sheet.rowCount; r++) {
+    const row = sheet.getRow(r);
+    labels.push(String(row.getCell(xHeader.col).value || ""));
+    for (const yh of yHeaders) {
+      const val = row.getCell(yh.col).value;
+      datasets[yh.name].push(typeof val === "number" ? val : null);
+    }
+  }
+
+  return {
+    file: _deps.path.basename(filePath),
+    xAxis: xHeader.name,
+    labels,
+    datasets: Object.entries(datasets).map(([name, data]) => ({ name, data })),
+  };
+}
+
 // ── Main Handler ────────────────────────────────────
 
 module.exports = {
@@ -299,6 +451,47 @@ module.exports = {
       }
 
       switch (action) {
+        case "pivot": {
+          const groupMatch = input.match(/--group-by\s+(\S+)/);
+          const aggMatch = input.match(/--agg\s+(\S+)/);
+          const result = await pivotTable(
+            filePath,
+            groupMatch?.[1],
+            aggMatch?.[1],
+          );
+          if (result.error) {
+            return {
+              success: false,
+              error: result.error,
+              message: result.error,
+            };
+          }
+          const rows = Object.entries(result.data).slice(0, 30);
+          return {
+            success: true,
+            result,
+            message: `## Pivot Table: ${result.file}\n\nGroup by: **${result.groupBy}** | Aggregation: **${result.aggregation}**\nNumeric columns: ${result.numericColumns.join(", ")}\nGroups: ${result.groups}\n\n| ${result.groupBy} | ${result.numericColumns.join(" | ")} |\n|${"----|".repeat(result.numericColumns.length + 1)}\n${rows.map(([k, v]) => `| ${k} | ${result.numericColumns.map((c) => (v[c] !== undefined ? Number(v[c]).toFixed(2) : "—")).join(" | ")} |`).join("\n")}`,
+          };
+        }
+
+        case "chart-data": {
+          const xMatch = input.match(/--x\s+(\S+)/);
+          const yMatch = input.match(/--y\s+(\S+)/);
+          const result = await chartData(filePath, xMatch?.[1], yMatch?.[1]);
+          if (result.error) {
+            return {
+              success: false,
+              error: result.error,
+              message: result.error,
+            };
+          }
+          return {
+            success: true,
+            result,
+            message: `## Chart Data: ${result.file}\n\nX-axis: **${result.xAxis}** (${result.labels.length} points)\nSeries: ${result.datasets.map((d) => d.name).join(", ")}\n\nData prepared for chart generation.`,
+          };
+        }
+
         case "sheets": {
           const result = await listSheets(filePath);
           return {
@@ -355,4 +548,6 @@ module.exports = {
       };
     }
   },
+
+  _deps,
 };

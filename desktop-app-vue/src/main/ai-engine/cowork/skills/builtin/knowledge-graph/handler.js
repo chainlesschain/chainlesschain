@@ -5,14 +5,23 @@
  * Extracts entities (person, organization, location, concept, technology),
  * discovers relationships via co-occurrence and verb patterns,
  * performs graph analytics (degree centrality, community detection),
- * and exports to JSON/CSV/DOT formats.
+ * and exports to JSON/CSV/DOT/OWL/JSON-LD/Wikilinks formats.
  *
- * Modes: --extract, --analyze, --query, --stats, --export, --load
+ * Enhanced with Ontology capabilities:
+ * - OWL/RDF, JSON-LD, Wikilinks export formats
+ * - Semantic relationship types (is_a, part_of, causal, temporal)
+ * - Ontology documentation generation
+ * - Consistency/validation checking
+ *
+ * Modes: --extract, --analyze, --query, --stats, --export, --load,
+ *        --ontology, --validate
  */
 
 const fs = require("fs");
 const path = require("path");
 const { logger } = require("../../../../../utils/logger.js");
+
+const _deps = { fs, path };
 
 // ── In-memory graph store ───────────────────────────────────────────
 
@@ -65,17 +74,13 @@ const TECH_WORDS = new Set([
   "gitlab",
 ]);
 
-// ── Entity extraction (NLP-lite, no external deps) ─────────────────
+// ── Entity extraction ───────────────────────────────────────────────
 
 function classifyEntity(name) {
   const lower = name.toLowerCase();
-
-  // Person: Mr./Dr./Ms./Mrs. or known name patterns
   if (/^(mr|dr|ms|mrs|prof|sir|madam)\.?\s/i.test(name)) {
     return "person";
   }
-
-  // Organization: Inc./Ltd./Corp./LLC/Co./Group/Foundation
   if (
     /\b(inc|ltd|corp|llc|co|group|foundation|institute|university|org)\b/i.test(
       name,
@@ -83,13 +88,9 @@ function classifyEntity(name) {
   ) {
     return "organization";
   }
-
-  // Technology: match against known tech word list
   if (TECH_WORDS.has(lower)) {
     return "technology";
   }
-
-  // Location: common geographic suffixes/patterns
   if (
     /\b(city|country|state|province|island|mountain|river|lake|ocean|sea|bay|valley|street|avenue|boulevard)\b/i.test(
       name,
@@ -97,8 +98,6 @@ function classifyEntity(name) {
   ) {
     return "location";
   }
-
-  // Default to concept
   return "concept";
 }
 
@@ -106,7 +105,6 @@ function extractEntitiesFromText(text) {
   const entities = [];
   const seen = new Set();
 
-  // 1. Capitalized phrases (proper nouns) - 2+ word sequences
   const capitalizedRe = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g;
   let match;
   while ((match = capitalizedRe.exec(text)) !== null) {
@@ -117,7 +115,6 @@ function extractEntitiesFromText(text) {
     }
   }
 
-  // 2. Single capitalized words (not at sentence start, min length 3)
   const singleCapRe = /(?<=[a-z.!?]\s)([A-Z][a-z]{2,})\b/g;
   while ((match = singleCapRe.exec(text)) !== null) {
     const name = match[1].trim();
@@ -127,7 +124,6 @@ function extractEntitiesFromText(text) {
     }
   }
 
-  // 3. Quoted terms
   const quotedRe = /["']([^"']{2,40})["']/g;
   while ((match = quotedRe.exec(text)) !== null) {
     const name = match[1].trim();
@@ -137,7 +133,6 @@ function extractEntitiesFromText(text) {
     }
   }
 
-  // 4. Code identifiers: camelCase and snake_case
   const camelRe = /\b([a-z]+(?:[A-Z][a-z]+){1,})\b/g;
   while ((match = camelRe.exec(text)) !== null) {
     const name = match[1].trim();
@@ -156,7 +151,6 @@ function extractEntitiesFromText(text) {
     }
   }
 
-  // 5. Technology word list direct match
   const words = text.split(/[\s,;:()[\]{}<>]+/);
   for (const word of words) {
     const clean = word.replace(/[^a-zA-Z0-9]/g, "");
@@ -166,7 +160,6 @@ function extractEntitiesFromText(text) {
     }
   }
 
-  // 6. URLs
   const urlRe = /https?:\/\/[^\s)]+/g;
   while ((match = urlRe.exec(text)) !== null) {
     const name = match[0].trim();
@@ -176,7 +169,6 @@ function extractEntitiesFromText(text) {
     }
   }
 
-  // 7. File paths
   const fileRe = /(?:^|\s)((?:\.\/|\.\.\/|\/)?[\w\-./]+\.\w{1,6})(?:\s|$)/gm;
   while ((match = fileRe.exec(text)) !== null) {
     const name = match[1].trim();
@@ -202,6 +194,16 @@ const VERB_PATTERNS = [
   { re: /(\S+)\s+calls?\s+(\S+)/gi, type: "calls" },
   { re: /(\S+)\s+creates?\s+(\S+)/gi, type: "creates" },
   { re: /(\S+)\s+manages?\s+(\S+)/gi, type: "manages" },
+  // Enhanced semantic relationships (Ontology)
+  { re: /(\S+)\s+is\s+a\s+(?:type\s+of\s+)?(\S+)/gi, type: "is_a" },
+  { re: /(\S+)\s+belongs?\s+to\s+(\S+)/gi, type: "part_of" },
+  { re: /(\S+)\s+contains?\s+(\S+)/gi, type: "contains" },
+  { re: /(\S+)\s+causes?\s+(\S+)/gi, type: "causal" },
+  { re: /(\S+)\s+leads?\s+to\s+(\S+)/gi, type: "causal" },
+  { re: /(\S+)\s+results?\s+in\s+(\S+)/gi, type: "causal" },
+  { re: /(\S+)\s+before\s+(\S+)/gi, type: "temporal_before" },
+  { re: /(\S+)\s+after\s+(\S+)/gi, type: "temporal_after" },
+  { re: /(\S+)\s+during\s+(\S+)/gi, type: "temporal_during" },
 ];
 
 function extractRelationshipsFromText(text, entityNames) {
@@ -209,7 +211,6 @@ function extractRelationshipsFromText(text, entityNames) {
   const nameSet = new Set(entityNames.map((n) => n.toLowerCase()));
   const seen = new Set();
 
-  // 1. Verb-based relationships
   for (const { re, type } of VERB_PATTERNS) {
     const regex = new RegExp(re.source, re.flags);
     let match;
@@ -230,7 +231,6 @@ function extractRelationshipsFromText(text, entityNames) {
     }
   }
 
-  // 2. Co-occurrence in same paragraph -> "related_to"
   const paragraphs = text.split(/\n\s*\n/);
   for (const para of paragraphs) {
     const paraLower = para.toLowerCase();
@@ -266,8 +266,7 @@ function addEntitiesToGraph(entities) {
   for (const ent of entities) {
     const key = ent.name.toLowerCase();
     if (graph.entities.has(key)) {
-      const existing = graph.entities.get(key);
-      existing.mentions += 1;
+      graph.entities.get(key).mentions += 1;
     } else {
       graph.entities.set(key, {
         name: ent.name,
@@ -320,13 +319,11 @@ function computeDegreeCentrality() {
       degree[tgtKey] += rel.weight;
     }
   }
-
   const maxDegree = Math.max(1, ...Object.values(degree));
   const normalized = {};
   for (const [key, val] of Object.entries(degree)) {
     normalized[key] = Math.round((val / maxDegree) * 100) / 100;
   }
-
   return Object.entries(normalized)
     .sort(([, a], [, b]) => b - a)
     .map(([key, centrality]) => {
@@ -341,15 +338,13 @@ function computeDegreeCentrality() {
 }
 
 function detectCommunities() {
-  // Simple label propagation community detection
   const labels = {};
   let labelId = 0;
   for (const [key] of graph.entities) {
     labels[key] = labelId++;
   }
 
-  const maxIterations = 10;
-  for (let iter = 0; iter < maxIterations; iter++) {
+  for (let iter = 0; iter < 10; iter++) {
     let changed = false;
     for (const [key] of graph.entities) {
       const neighborLabels = {};
@@ -368,7 +363,6 @@ function detectCommunities() {
           }
         }
       }
-
       if (Object.keys(neighborLabels).length > 0) {
         const bestLabel = Object.entries(neighborLabels).sort(
           ([, a], [, b]) => b - a,
@@ -385,7 +379,6 @@ function detectCommunities() {
     }
   }
 
-  // Group entities by community label
   const communities = {};
   for (const [key, label] of Object.entries(labels)) {
     if (!communities[label]) {
@@ -394,68 +387,35 @@ function detectCommunities() {
     const ent = graph.entities.get(key);
     communities[label].push(ent ? ent.name : key);
   }
-
   return Object.values(communities).filter((c) => c.length > 0);
 }
 
 // ── Action handlers ─────────────────────────────────────────────────
 
 async function handleExtract(filePath, projectRoot) {
-  const resolved = path.isAbsolute(filePath)
+  const resolved = _deps.path.isAbsolute(filePath)
     ? filePath
-    : path.resolve(projectRoot, filePath);
-
-  if (!fs.existsSync(resolved)) {
+    : _deps.path.resolve(projectRoot, filePath);
+  if (!_deps.fs.existsSync(resolved)) {
     return {
       success: false,
       error: "File not found: " + resolved,
       message: "File not found: " + resolved,
     };
   }
-
   let content;
   try {
-    content = fs.readFileSync(resolved, "utf-8");
+    content = _deps.fs.readFileSync(resolved, "utf-8");
   } catch (err) {
-    return {
-      success: false,
-      error: "Cannot read file: " + err.message,
-      message: "Cannot read file: " + err.message,
-    };
+    return { success: false, error: "Cannot read file: " + err.message };
   }
 
   const entities = extractEntitiesFromText(content);
   const entityNames = entities.map((e) => e.name);
   const relationships = extractRelationshipsFromText(content, entityNames);
-
   const addedEntities = addEntitiesToGraph(entities);
   const addedRelationships = addRelationshipsToGraph(relationships);
-
-  const relFile = path.relative(projectRoot, resolved);
-  const msg =
-    "Extract: " +
-    relFile +
-    "\n" +
-    "=".repeat(30) +
-    "\n" +
-    "Extracted " +
-    entities.length +
-    " entities, " +
-    relationships.length +
-    " relationships from document\n" +
-    "Added to graph: " +
-    addedEntities +
-    " new entities, " +
-    addedRelationships +
-    " new relationships\n\n" +
-    "Entities by type:\n" +
-    summarizeByType(entities) +
-    "\n\n" +
-    "Graph total: " +
-    graph.entities.size +
-    " entities, " +
-    graph.relationships.length +
-    " relationships";
+  const relFile = _deps.path.relative(projectRoot, resolved);
 
   return {
     success: true,
@@ -470,7 +430,12 @@ async function handleExtract(filePath, projectRoot) {
         relationships: graph.relationships.length,
       },
     },
-    message: msg,
+    message:
+      `Extract: ${relFile}\n${"=".repeat(30)}\n` +
+      `Extracted ${entities.length} entities, ${relationships.length} relationships\n` +
+      `Added: ${addedEntities} new entities, ${addedRelationships} new relationships\n\n` +
+      `Entities by type:\n${summarizeByType(entities)}\n\n` +
+      `Graph total: ${graph.entities.size} entities, ${graph.relationships.length} relationships`,
   };
 }
 
@@ -489,41 +454,25 @@ function handleAnalyzeCentrality() {
   if (graph.entities.size === 0) {
     return {
       success: false,
-      error: "Graph is empty. Use --extract to add data first.",
-      message: "Graph is empty. Use --extract to add data first.",
+      error: "Graph is empty. Use --extract first.",
+      message: "Graph is empty.",
     };
   }
-
   const centrality = computeDegreeCentrality();
   const top = centrality.slice(0, 20);
-
-  const msg =
-    "Centrality Analysis\n" +
-    "=".repeat(25) +
-    "\n" +
-    "Top entities by degree centrality:\n\n" +
-    top
-      .map(
-        (e, i) =>
-          "  " +
-          (i + 1) +
-          ". " +
-          e.name +
-          " (" +
-          e.type +
-          ") - centrality: " +
-          e.centrality +
-          ", degree: " +
-          e.degree,
-      )
-      .join("\n") +
-    "\n\nTotal entities: " +
-    graph.entities.size;
-
   return {
     success: true,
     result: { centrality: top, totalEntities: graph.entities.size },
-    message: msg,
+    message:
+      "Centrality Analysis\n" +
+      "=".repeat(25) +
+      "\n" +
+      top
+        .map(
+          (e, i) =>
+            `  ${i + 1}. ${e.name} (${e.type}) - centrality: ${e.centrality}`,
+        )
+        .join("\n"),
   };
 }
 
@@ -531,16 +480,13 @@ function handleQuery(entityName) {
   if (!entityName) {
     return {
       success: false,
-      error: 'No entity name provided. Usage: --query "<entity>"',
-      message: 'No entity name provided. Usage: --query "<entity>"',
+      error: 'No entity name. Usage: --query "<entity>"',
     };
   }
-
   const key = entityName.toLowerCase();
   const entity = graph.entities.get(key);
 
   if (!entity) {
-    // Try partial match
     const matches = [];
     for (const [k, v] of graph.entities) {
       if (k.includes(key)) {
@@ -548,94 +494,29 @@ function handleQuery(entityName) {
       }
     }
     if (matches.length === 0) {
-      return {
-        success: false,
-        error: "Entity '" + entityName + "' not found in graph.",
-        message:
-          "Entity '" +
-          entityName +
-          "' not found in graph. " +
-          "Available entities: " +
-          graph.entities.size,
-      };
+      return { success: false, error: `Entity "${entityName}" not found.` };
     }
-    // Return partial matches
-    const msg =
-      "No exact match for '" +
-      entityName +
-      "'. Partial matches:\n" +
-      matches
-        .slice(0, 10)
-        .map(
-          (m) =>
-            "  - " + m.name + " (" + m.type + ", mentions: " + m.mentions + ")",
-        )
-        .join("\n");
     return {
       success: true,
       result: { query: entityName, partialMatches: matches.slice(0, 10) },
-      message: msg,
+      message:
+        "Partial matches:\n" +
+        matches
+          .slice(0, 10)
+          .map((m) => `  - ${m.name} (${m.type})`)
+          .join("\n"),
     };
   }
 
-  // Find all relationships involving this entity
   const rels = graph.relationships.filter(
     (r) => r.source.toLowerCase() === key || r.target.toLowerCase() === key,
   );
-
   const outgoing = rels
     .filter((r) => r.source.toLowerCase() === key)
     .map((r) => ({ target: r.target, type: r.type, weight: r.weight }));
   const incoming = rels
     .filter((r) => r.target.toLowerCase() === key)
     .map((r) => ({ source: r.source, type: r.type, weight: r.weight }));
-
-  const msg =
-    "Entity: " +
-    entity.name +
-    "\n" +
-    "=".repeat(20 + entity.name.length) +
-    "\n" +
-    "Type: " +
-    entity.type +
-    "\n" +
-    "Mentions: " +
-    entity.mentions +
-    "\n" +
-    "Relationships: " +
-    rels.length +
-    " total\n\n" +
-    (outgoing.length > 0
-      ? "Outgoing (" +
-        outgoing.length +
-        "):\n" +
-        outgoing
-          .map(
-            (r) =>
-              "  -> " + r.type + " -> " + r.target + " (w:" + r.weight + ")",
-          )
-          .join("\n") +
-        "\n\n"
-      : "") +
-    (incoming.length > 0
-      ? "Incoming (" +
-        incoming.length +
-        "):\n" +
-        incoming
-          .map(
-            (r) =>
-              "  " +
-              r.source +
-              " -> " +
-              r.type +
-              " -> " +
-              entity.name +
-              " (w:" +
-              r.weight +
-              ")",
-          )
-          .join("\n")
-      : "");
 
   return {
     success: true,
@@ -644,13 +525,22 @@ function handleQuery(entityName) {
         name: entity.name,
         type: entity.type,
         mentions: entity.mentions,
-        properties: entity.properties,
       },
       outgoing,
       incoming,
       totalRelationships: rels.length,
     },
-    message: msg,
+    message:
+      `Entity: ${entity.name}\nType: ${entity.type}, Mentions: ${entity.mentions}\n` +
+      (outgoing.length > 0
+        ? "Outgoing:\n" +
+          outgoing.map((r) => `  -> ${r.type} -> ${r.target}`).join("\n") +
+          "\n"
+        : "") +
+      (incoming.length > 0
+        ? "Incoming:\n" +
+          incoming.map((r) => `  ${r.source} -> ${r.type} ->`).join("\n")
+        : ""),
   };
 }
 
@@ -659,82 +549,31 @@ function handleStats() {
     return {
       success: true,
       result: { entities: 0, relationships: 0 },
-      message: "Graph is empty. Use --extract to add data.",
+      message: "Graph is empty.",
     };
   }
 
-  // Entity count by type
   const byType = {};
   for (const [, ent] of graph.entities) {
     byType[ent.type] = (byType[ent.type] || 0) + 1;
   }
-
-  // Relationship count by type
   const relByType = {};
   for (const rel of graph.relationships) {
     relByType[rel.type] = (relByType[rel.type] || 0) + 1;
   }
 
-  // Average degree
   const totalDegree = graph.relationships.length * 2;
   const avgDegree =
     graph.entities.size > 0
       ? Math.round((totalDegree / graph.entities.size) * 100) / 100
       : 0;
-
-  // Density: edges / (n * (n-1) / 2)
   const n = graph.entities.size;
   const maxEdges = (n * (n - 1)) / 2;
   const density =
     maxEdges > 0
       ? Math.round((graph.relationships.length / maxEdges) * 1000) / 1000
       : 0;
-
-  // Communities
   const communities = detectCommunities();
-
-  const msg =
-    "Graph Statistics\n" +
-    "=".repeat(25) +
-    "\n" +
-    "Entities: " +
-    graph.entities.size +
-    "\n" +
-    "Relationships: " +
-    graph.relationships.length +
-    "\n" +
-    "Average degree: " +
-    avgDegree +
-    "\n" +
-    "Density: " +
-    density +
-    "\n" +
-    "Communities: " +
-    communities.length +
-    "\n\n" +
-    "Entities by type:\n" +
-    Object.entries(byType)
-      .sort(([, a], [, b]) => b - a)
-      .map(([type, count]) => "  " + type + ": " + count)
-      .join("\n") +
-    "\n\nRelationships by type:\n" +
-    Object.entries(relByType)
-      .sort(([, a], [, b]) => b - a)
-      .map(([type, count]) => "  " + type + ": " + count)
-      .join("\n") +
-    "\n\nCommunities:\n" +
-    communities
-      .map(
-        (c, i) =>
-          "  " +
-          (i + 1) +
-          ". [" +
-          c.length +
-          " members] " +
-          c.slice(0, 5).join(", ") +
-          (c.length > 5 ? " ..." : ""),
-      )
-      .join("\n");
 
   return {
     success: true,
@@ -746,20 +585,27 @@ function handleStats() {
       communityCount: communities.length,
       entitiesByType: byType,
       relationshipsByType: relByType,
-      communities: communities.map((c) => ({ size: c.length, members: c })),
     },
-    message: msg,
+    message:
+      `Graph Statistics\n${"=".repeat(25)}\n` +
+      `Entities: ${graph.entities.size}\nRelationships: ${graph.relationships.length}\n` +
+      `Avg degree: ${avgDegree}, Density: ${density}, Communities: ${communities.length}\n\n` +
+      `By type:\n${Object.entries(byType)
+        .map(([t, c]) => `  ${t}: ${c}`)
+        .join("\n")}\n\n` +
+      `Relationships:\n${Object.entries(relByType)
+        .map(([t, c]) => `  ${t}: ${c}`)
+        .join("\n")}`,
   };
 }
 
 function handleExport(format) {
   format = (format || "json").toLowerCase();
-
   if (graph.entities.size === 0) {
     return {
       success: false,
-      error: "Graph is empty. Nothing to export.",
-      message: "Graph is empty. Use --extract to add data first.",
+      error: "Graph is empty.",
+      message: "Graph is empty.",
     };
   }
 
@@ -784,21 +630,11 @@ function handleExport(format) {
     const lines = ["source,target,type,weight"];
     for (const rel of graph.relationships) {
       lines.push(
-        '"' +
-          rel.source.replace(/"/g, '""') +
-          '",' +
-          '"' +
-          rel.target.replace(/"/g, '""') +
-          '",' +
-          rel.type +
-          "," +
-          rel.weight,
+        `"${rel.source.replace(/"/g, '""')}","${rel.target.replace(/"/g, '""')}",${rel.type},${rel.weight}`,
       );
     }
     output = lines.join("\n");
   } else if (format === "dot") {
-    const lines = ["digraph KnowledgeGraph {", "  rankdir=LR;"];
-    // Node declarations with type as shape
     const typeShapes = {
       person: "ellipse",
       organization: "box",
@@ -806,60 +642,30 @@ function handleExport(format) {
       technology: "hexagon",
       concept: "plaintext",
     };
+    const lines = ["digraph KnowledgeGraph {", "  rankdir=LR;"];
     for (const [, ent] of graph.entities) {
       const shape = typeShapes[ent.type] || "ellipse";
-      lines.push(
-        '  "' +
-          ent.name.replace(/"/g, '\\"') +
-          '" [shape=' +
-          shape +
-          ', label="' +
-          ent.name.replace(/"/g, '\\"') +
-          "\\n(" +
-          ent.type +
-          ')"' +
-          "];",
-      );
+      lines.push(`  "${ent.name.replace(/"/g, '\\"')}" [shape=${shape}];`);
     }
-    // Edges
     for (const rel of graph.relationships) {
       lines.push(
-        '  "' +
-          rel.source.replace(/"/g, '\\"') +
-          '" -> "' +
-          rel.target.replace(/"/g, '\\"') +
-          '" [label="' +
-          rel.type +
-          '", weight=' +
-          rel.weight +
-          "];",
+        `  "${rel.source.replace(/"/g, '\\"')}" -> "${rel.target.replace(/"/g, '\\"')}" [label="${rel.type}"];`,
       );
     }
     lines.push("}");
     output = lines.join("\n");
+  } else if (format === "owl") {
+    output = exportOWL();
+  } else if (format === "jsonld") {
+    output = exportJSONLD();
+  } else if (format === "wikilinks") {
+    output = exportWikilinks();
   } else {
     return {
       success: false,
-      error: "Unknown format: " + format + ". Use json, csv, or dot.",
-      message: "Unknown format: " + format + ". Supported: json, csv, dot.",
+      error: `Unknown format: ${format}. Supported: json, csv, dot, owl, jsonld, wikilinks.`,
     };
   }
-
-  const msg =
-    "Export (" +
-    format.toUpperCase() +
-    ")\n" +
-    "=".repeat(20) +
-    "\n" +
-    "Entities: " +
-    graph.entities.size +
-    ", Relationships: " +
-    graph.relationships.length +
-    "\n\n" +
-    output.substring(0, 2000) +
-    (output.length > 2000
-      ? "\n... (truncated, full length: " + output.length + " chars)"
-      : "");
 
   return {
     success: true,
@@ -869,52 +675,376 @@ function handleExport(format) {
       entityCount: graph.entities.size,
       relationshipCount: graph.relationships.length,
     },
+    message:
+      `Export (${format.toUpperCase()})\n${"=".repeat(20)}\n` +
+      `Entities: ${graph.entities.size}, Relationships: ${graph.relationships.length}\n\n` +
+      output.substring(0, 2000) +
+      (output.length > 2000 ? `\n... (truncated, ${output.length} chars)` : ""),
+  };
+}
+
+// ── New Export Formats (Ontology) ───────────────────────────────────
+
+function exportOWL() {
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"',
+    '         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"',
+    '         xmlns:owl="http://www.w3.org/2002/07/owl#"',
+    '         xmlns:cc="http://chainlesschain.local/ontology#">',
+    "",
+    "  <!-- Ontology Declaration -->",
+    '  <owl:Ontology rdf:about="http://chainlesschain.local/ontology"/>',
+    "",
+    "  <!-- Classes (Entity Types) -->",
+  ];
+
+  const types = new Set();
+  for (const [, ent] of graph.entities) {
+    types.add(ent.type);
+  }
+  for (const type of types) {
+    lines.push(
+      `  <owl:Class rdf:about="http://chainlesschain.local/ontology#${type}">`,
+    );
+    lines.push(`    <rdfs:label>${type}</rdfs:label>`);
+    lines.push("  </owl:Class>");
+  }
+
+  lines.push("", "  <!-- Object Properties (Relationship Types) -->");
+  const relTypes = new Set();
+  for (const rel of graph.relationships) {
+    relTypes.add(rel.type);
+  }
+  for (const relType of relTypes) {
+    lines.push(
+      `  <owl:ObjectProperty rdf:about="http://chainlesschain.local/ontology#${relType}">`,
+    );
+    lines.push(`    <rdfs:label>${relType}</rdfs:label>`);
+    lines.push("  </owl:ObjectProperty>");
+  }
+
+  lines.push("", "  <!-- Individuals (Entities) -->");
+  for (const [, ent] of graph.entities) {
+    const safeName = ent.name.replace(/[^a-zA-Z0-9_-]/g, "_");
+    lines.push(
+      `  <owl:NamedIndividual rdf:about="http://chainlesschain.local/ontology#${safeName}">`,
+    );
+    lines.push(
+      `    <rdf:type rdf:resource="http://chainlesschain.local/ontology#${ent.type}"/>`,
+    );
+    lines.push(`    <rdfs:label>${escapeXml(ent.name)}</rdfs:label>`);
+    lines.push("  </owl:NamedIndividual>");
+  }
+
+  lines.push("", "  <!-- Relationships -->");
+  for (const rel of graph.relationships) {
+    const srcSafe = rel.source.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const tgtSafe = rel.target.replace(/[^a-zA-Z0-9_-]/g, "_");
+    lines.push(
+      `  <rdf:Description rdf:about="http://chainlesschain.local/ontology#${srcSafe}">`,
+    );
+    lines.push(
+      `    <cc:${rel.type} rdf:resource="http://chainlesschain.local/ontology#${tgtSafe}"/>`,
+    );
+    lines.push("  </rdf:Description>");
+  }
+
+  lines.push("</rdf:RDF>");
+  return lines.join("\n");
+}
+
+function escapeXml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function exportJSONLD() {
+  const context = {
+    "@vocab": "http://chainlesschain.local/ontology#",
+    rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+    owl: "http://www.w3.org/2002/07/owl#",
+    name: "rdfs:label",
+    type: "@type",
+  };
+
+  const graphData = [];
+  for (const [, ent] of graph.entities) {
+    const node = {
+      "@id": `cc:${ent.name.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+      "@type": ent.type,
+      name: ent.name,
+      mentions: ent.mentions,
+    };
+
+    const outRels = graph.relationships.filter(
+      (r) => r.source.toLowerCase() === ent.name.toLowerCase(),
+    );
+    for (const rel of outRels) {
+      if (!node[rel.type]) {
+        node[rel.type] = [];
+      }
+      node[rel.type].push({
+        "@id": `cc:${rel.target.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+      });
+    }
+    graphData.push(node);
+  }
+
+  return JSON.stringify({ "@context": context, "@graph": graphData }, null, 2);
+}
+
+function exportWikilinks() {
+  const lines = [];
+  for (const rel of graph.relationships) {
+    lines.push(`[[${rel.source}]] ${rel.type} [[${rel.target}]]`);
+  }
+
+  // Also add orphan entities
+  for (const [key, ent] of graph.entities) {
+    const hasRel = graph.relationships.some(
+      (r) => r.source.toLowerCase() === key || r.target.toLowerCase() === key,
+    );
+    if (!hasRel) {
+      lines.push(`[[${ent.name}]]`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+// ── Ontology Documentation ──────────────────────────────────────────
+
+function handleOntology() {
+  if (graph.entities.size === 0) {
+    return {
+      success: false,
+      error: "Graph is empty.",
+      message: "Graph is empty.",
+    };
+  }
+
+  // Entity types (classes)
+  const classes = {};
+  for (const [, ent] of graph.entities) {
+    if (!classes[ent.type]) {
+      classes[ent.type] = [];
+    }
+    classes[ent.type].push(ent.name);
+  }
+
+  // Relationship types (properties) with domain/range
+  const properties = {};
+  for (const rel of graph.relationships) {
+    if (!properties[rel.type]) {
+      properties[rel.type] = {
+        domains: new Set(),
+        ranges: new Set(),
+        count: 0,
+      };
+    }
+    const srcEnt = graph.entities.get(rel.source.toLowerCase());
+    const tgtEnt = graph.entities.get(rel.target.toLowerCase());
+    if (srcEnt) {
+      properties[rel.type].domains.add(srcEnt.type);
+    }
+    if (tgtEnt) {
+      properties[rel.type].ranges.add(tgtEnt.type);
+    }
+    properties[rel.type].count++;
+  }
+
+  // Class hierarchy from is_a relationships
+  const hierarchy = [];
+  const isaRels = graph.relationships.filter((r) => r.type === "is_a");
+  for (const rel of isaRels) {
+    hierarchy.push({ child: rel.source, parent: rel.target });
+  }
+
+  let msg = `# Ontology Documentation\n\n`;
+  msg += `## Classes (${Object.keys(classes).length})\n\n`;
+  for (const [type, members] of Object.entries(classes).sort(
+    ([, a], [, b]) => b.length - a.length,
+  )) {
+    msg += `### ${type} (${members.length} instances)\n`;
+    msg +=
+      members
+        .slice(0, 10)
+        .map((m) => `- ${m}`)
+        .join("\n") + "\n";
+    if (members.length > 10) {
+      msg += `- ... and ${members.length - 10} more\n`;
+    }
+    msg += "\n";
+  }
+
+  msg += `## Properties (${Object.keys(properties).length})\n\n`;
+  for (const [type, info] of Object.entries(properties).sort(
+    ([, a], [, b]) => b.count - a.count,
+  )) {
+    msg += `### ${type} (${info.count} usages)\n`;
+    msg += `- Domain: ${Array.from(info.domains).join(", ")}\n`;
+    msg += `- Range: ${Array.from(info.ranges).join(", ")}\n\n`;
+  }
+
+  if (hierarchy.length > 0) {
+    msg += `## Class Hierarchy\n\n`;
+    for (const h of hierarchy) {
+      msg += `- ${h.child} is_a ${h.parent}\n`;
+    }
+  }
+
+  return {
+    success: true,
+    result: {
+      classes: Object.fromEntries(
+        Object.entries(classes).map(([k, v]) => [k, v.length]),
+      ),
+      properties: Object.fromEntries(
+        Object.entries(properties).map(([k, v]) => [
+          k,
+          {
+            domains: Array.from(v.domains),
+            ranges: Array.from(v.ranges),
+            count: v.count,
+          },
+        ]),
+      ),
+      hierarchy,
+    },
     message: msg,
   };
 }
 
-async function handleLoad(filePath, projectRoot) {
-  const resolved = path.isAbsolute(filePath)
-    ? filePath
-    : path.resolve(projectRoot, filePath);
+// ── Validation / Consistency ────────────────────────────────────────
 
-  if (!fs.existsSync(resolved)) {
+function handleValidate() {
+  if (graph.entities.size === 0) {
     return {
-      success: false,
-      error: "File not found: " + resolved,
-      message: "File not found: " + resolved,
+      success: true,
+      result: { valid: true, warnings: [], errors: [] },
+      message: "Graph is empty - no issues.",
     };
   }
 
+  const warnings = [];
+  const errors = [];
+
+  // Check orphan entities
+  for (const [key, ent] of graph.entities) {
+    const hasRel = graph.relationships.some(
+      (r) => r.source.toLowerCase() === key || r.target.toLowerCase() === key,
+    );
+    if (!hasRel) {
+      warnings.push({
+        type: "orphan",
+        entity: ent.name,
+        message: `Entity "${ent.name}" has no relationships`,
+      });
+    }
+  }
+
+  // Check missing entity references
+  for (const rel of graph.relationships) {
+    if (!graph.entities.has(rel.source.toLowerCase())) {
+      errors.push({
+        type: "missing_entity",
+        entity: rel.source,
+        message: `Relationship source "${rel.source}" not in entity list`,
+      });
+    }
+    if (!graph.entities.has(rel.target.toLowerCase())) {
+      errors.push({
+        type: "missing_entity",
+        entity: rel.target,
+        message: `Relationship target "${rel.target}" not in entity list`,
+      });
+    }
+  }
+
+  // Check circular is_a
+  const isaRels = graph.relationships.filter((r) => r.type === "is_a");
+  const visited = new Set();
+  for (const rel of isaRels) {
+    const chain = [rel.source.toLowerCase()];
+    let current = rel.target.toLowerCase();
+    while (current && !visited.has(current)) {
+      if (chain.includes(current)) {
+        errors.push({
+          type: "circular_is_a",
+          chain: [...chain, current],
+          message: `Circular is_a: ${chain.join(" -> ")} -> ${current}`,
+        });
+        break;
+      }
+      chain.push(current);
+      visited.add(current);
+      const next = isaRels.find((r) => r.source.toLowerCase() === current);
+      current = next ? next.target.toLowerCase() : null;
+    }
+  }
+
+  // Check duplicate entities (case differences)
+  const nameMap = {};
+  for (const [key, ent] of graph.entities) {
+    const normalized = key.toLowerCase().trim();
+    if (nameMap[normalized] && nameMap[normalized] !== ent.name) {
+      warnings.push({
+        type: "duplicate",
+        entities: [nameMap[normalized], ent.name],
+        message: `Possible duplicate: "${nameMap[normalized]}" vs "${ent.name}"`,
+      });
+    }
+    nameMap[normalized] = ent.name;
+  }
+
+  const valid = errors.length === 0;
+  let msg =
+    `Validation Report\n${"=".repeat(20)}\n` +
+    `Status: ${valid ? "VALID" : "INVALID"}\n` +
+    `Errors: ${errors.length}, Warnings: ${warnings.length}\n`;
+
+  if (errors.length > 0) {
+    msg +=
+      "\nErrors:\n" + errors.map((e) => `  [ERROR] ${e.message}`).join("\n");
+  }
+  if (warnings.length > 0) {
+    msg +=
+      "\nWarnings:\n" + warnings.map((w) => `  [WARN] ${w.message}`).join("\n");
+  }
+
+  return { success: true, result: { valid, errors, warnings }, message: msg };
+}
+
+// ── Load ────────────────────────────────────────────────────────────
+
+async function handleLoad(filePath, projectRoot) {
+  const resolved = _deps.path.isAbsolute(filePath)
+    ? filePath
+    : _deps.path.resolve(projectRoot, filePath);
+  if (!_deps.fs.existsSync(resolved)) {
+    return { success: false, error: "File not found: " + resolved };
+  }
   let content;
   try {
-    content = fs.readFileSync(resolved, "utf-8");
+    content = _deps.fs.readFileSync(resolved, "utf-8");
   } catch (err) {
-    return {
-      success: false,
-      error: "Cannot read file: " + err.message,
-      message: "Cannot read file: " + err.message,
-    };
+    return { success: false, error: "Cannot read: " + err.message };
   }
-
   let data;
   try {
     data = JSON.parse(content);
   } catch (err) {
-    return {
-      success: false,
-      error: "Invalid JSON: " + err.message,
-      message: "Invalid JSON: " + err.message,
-    };
+    return { success: false, error: "Invalid JSON: " + err.message };
   }
 
-  // Clear current graph
   graph.entities.clear();
   graph.relationships = [];
 
-  // Load entities
-  const entities = data.entities || [];
-  for (const ent of entities) {
+  for (const ent of data.entities || []) {
     graph.entities.set((ent.name || "").toLowerCase(), {
       name: ent.name || "",
       type: ent.type || "concept",
@@ -922,10 +1052,7 @@ async function handleLoad(filePath, projectRoot) {
       properties: ent.properties || {},
     });
   }
-
-  // Load relationships
-  const rels = data.relationships || [];
-  for (const rel of rels) {
+  for (const rel of data.relationships || []) {
     graph.relationships.push({
       source: rel.source || "",
       target: rel.target || "",
@@ -934,37 +1061,21 @@ async function handleLoad(filePath, projectRoot) {
     });
   }
 
-  const relFile = path.relative(projectRoot, resolved);
-  const msg =
-    "Load: " +
-    relFile +
-    "\n" +
-    "=".repeat(20) +
-    "\n" +
-    "Loaded " +
-    graph.entities.size +
-    " entities, " +
-    graph.relationships.length +
-    " relationships from JSON.";
-
   return {
     success: true,
     result: {
-      file: relFile,
       entities: graph.entities.size,
       relationships: graph.relationships.length,
     },
-    message: msg,
+    message: `Loaded ${graph.entities.size} entities, ${graph.relationships.length} relationships.`,
   };
 }
 
-// ── Handler ─────────────────────────────────────────────────────────
+// ── Main Handler ────────────────────────────────────────────────────
 
 module.exports = {
   async init(_skill) {
-    logger.info(
-      "[knowledge-graph] init: " + (_skill?.name || "knowledge-graph"),
-    );
+    logger.info("[knowledge-graph] init (v2.0 + Ontology)");
   },
 
   async execute(task, context, _skill) {
@@ -988,34 +1099,36 @@ module.exports = {
     const exportMatch = /--export/i.test(input);
     const formatMatch = input.match(/--format\s+(\S+)/i);
     const loadMatch = input.match(/--load\s+(\S+)/i);
+    const ontologyMatch = /--ontology/i.test(input);
+    const validateMatch = /--validate/i.test(input);
 
     try {
       if (extractMatch) {
         return await handleExtract(extractMatch[1].trim(), projectRoot);
       }
-
       if (analyzeMatch || centralityMatch) {
         return handleAnalyzeCentrality();
       }
-
       if (queryMatch) {
         return handleQuery(queryMatch[1].trim());
       }
-
       if (statsMatch) {
         return handleStats();
       }
-
+      if (ontologyMatch) {
+        return handleOntology();
+      }
+      if (validateMatch) {
+        return handleValidate();
+      }
       if (exportMatch) {
         const format = formatMatch ? formatMatch[1].trim() : "json";
         return handleExport(format);
       }
-
       if (loadMatch) {
         return await handleLoad(loadMatch[1].trim(), projectRoot);
       }
 
-      // No mode - show usage
       if (!input) {
         return {
           success: false,
@@ -1023,29 +1136,27 @@ module.exports = {
           message:
             "Usage: /knowledge-graph [action]\n\n" +
             "Actions:\n" +
-            "  --extract <file>            Extract entities and relationships\n" +
-            "  --analyze --centrality       Degree centrality analysis\n" +
-            '  --query "<entity>"           Query entity relationships\n' +
+            "  --extract <file>            Extract entities/relationships\n" +
+            "  --analyze --centrality       Centrality analysis\n" +
+            '  --query "<entity>"           Query entity\n' +
             "  --stats                      Graph statistics\n" +
-            "  --export --format json|csv|dot  Export graph\n" +
-            "  --load <file>                Load graph from JSON",
+            "  --export --format json|csv|dot|owl|jsonld|wikilinks\n" +
+            "  --load <file>                Load from JSON\n" +
+            "  --ontology                   Generate ontology documentation\n" +
+            "  --validate                   Validate graph consistency",
         };
       }
 
-      // Try to infer intent: if input looks like a file path, extract
       if (input.match(/\.\w{1,6}$/) && !input.startsWith("-")) {
         return await handleExtract(input, projectRoot);
       }
-
-      // Otherwise treat as entity query
       return handleQuery(input);
     } catch (err) {
       logger.error("[knowledge-graph] Error:", err);
-      return {
-        success: false,
-        error: err.message,
-        message: "Knowledge graph operation failed: " + err.message,
-      };
+      return { success: false, error: err.message };
     }
   },
+
+  _deps,
+  _graph: graph,
 };
