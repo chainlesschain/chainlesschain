@@ -264,9 +264,16 @@ class RulesValidator {
             contextLines.includes("sync") ||
             contextLines.includes("broadcast");
 
+          // 排除测试文件（测试中的 .publish() 不是真实 P2P 调用）
+          const isTestFile =
+            file.includes("__tests__") ||
+            file.includes(".test.") ||
+            file.includes(".spec.");
+
           if (
             !hasEncryption &&
             !isInternalSync &&
+            !isTestFile &&
             !line.trim().startsWith("//")
           ) {
             this.errors.push({
@@ -582,6 +589,13 @@ class RulesValidator {
           return;
         }
 
+        // 跳过仅在字符串字面量中出现危险函数名的行（如 "Use of eval() detected"）
+        // 移除所有字符串字面量后检查是否仍匹配危险模式
+        const lineWithoutStrings = line
+          .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+          .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+          .replace(/`(?:[^`\\]|\\.)*`/g, "``");
+
         dangerousPatterns.forEach(
           ({ pattern, message, severity, exceptions }) => {
             if (pattern.test(line)) {
@@ -650,6 +664,11 @@ class RulesValidator {
                 file.includes("auto-tuner-ipc") &&
                 line.includes("new Function")
               ) {
+                return;
+              }
+
+              // 跳过仅在字符串字面量中出现的危险函数名（如 "Use of eval() detected"）
+              if (!pattern.test(lineWithoutStrings)) {
                 return;
               }
 
