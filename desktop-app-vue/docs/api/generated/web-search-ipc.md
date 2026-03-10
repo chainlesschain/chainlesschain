@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/web-search-ipc.js`
 
-**Generated**: 2026-03-10T08:57:03.166Z
+**Generated**: 2026-03-10T09:06:38.061Z
 
 ---
 
