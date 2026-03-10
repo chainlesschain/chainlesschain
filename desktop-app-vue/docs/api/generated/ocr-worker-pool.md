@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image/ocr-worker-pool.js`
 
-**Generated**: 2026-03-10T02:08:39.511Z
+**Generated**: 2026-03-10T02:14:56.144Z
 
 ---
 
