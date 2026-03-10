@@ -1,12 +1,18 @@
 # Component Reference
 
-**Generated**: 2026-03-10T02:14:56.322Z
+**Generated**: 2026-03-10T06:30:36.537Z
 
-**Total Components**: 557
+**Total Components**: 562
 
 ---
 
 ## src/renderer/pages
+
+### ZKPCredentialsPage
+
+**File**: `src/renderer/pages/ZKPCredentialsPage.vue`
+
+---
 
 ### WorkflowMonitorPage
 
@@ -21,6 +27,12 @@
 **File**: `src/renderer/pages/WorkflowDesignerPage.vue`
 
 **Description**: Left: Workflow list / Skill palette
+
+---
+
+### WebAuthnPage
+
+**File**: `src/renderer/pages/WebAuthnPage.vue`
 
 ---
 
@@ -476,6 +488,14 @@
 
 ---
 
+### IPFSClusterPage
+
+**File**: `src/renderer/pages/IPFSClusterPage.vue`
+
+**Description**: Stats Row
+
+---
+
 ### HomePage
 
 **File**: `src/renderer/pages/HomePage.vue`
@@ -489,6 +509,12 @@
 **File**: `src/renderer/pages/HardwareWalletPage.vue`
 
 **Description**: 设备管理
+
+---
+
+### GraphQLExplorerPage
+
+**File**: `src/renderer/pages/GraphQLExplorerPage.vue`
 
 ---
 
@@ -513,6 +539,14 @@
 **File**: `src/renderer/pages/FederatedNetworkPage.vue`
 
 **Description**: 页面头部
+
+---
+
+### FederatedLearningPage
+
+**File**: `src/renderer/pages/FederatedLearningPage.vue`
+
+**Description**: Page Header
 
 ---
 

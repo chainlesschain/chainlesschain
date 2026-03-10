@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/marketplace-api.js`
 
-**Generated**: 2026-03-10T02:14:56.114Z
+**Generated**: 2026-03-10T06:30:36.333Z
 
 ---
 

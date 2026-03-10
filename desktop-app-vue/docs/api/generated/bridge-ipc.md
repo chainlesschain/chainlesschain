@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/bridge-ipc.js`
 
-**Generated**: 2026-03-10T02:14:56.184Z
+**Generated**: 2026-03-10T06:30:36.400Z
 
 ---
 

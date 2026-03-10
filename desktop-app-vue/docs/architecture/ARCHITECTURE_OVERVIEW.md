@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-03-10T02:14:56.404Z
+**Generated**: 2026-03-10T06:30:36.631Z
 
 ---
 
@@ -8,20 +8,20 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 1464 | 22.01 MB |
+| main | 1486 | 22.32 MB |
 | renderer | 12 | 0.05 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 1464
+**Files**: 1486
 
 **Top 10 Largest Files**:
 
 1. `src/main/skill-tool-system/builtin-tools.js` - 580.9 KB
 2. `src/main/remote/browser-extension/background.js` - 444.4 KB
 3. `src/main/database.js` - 323.7 KB
-4. `src/main/ipc/ipc-registry.js` - 190.2 KB
+4. `src/main/ipc/ipc-registry.js` - 193.6 KB
 5. `src/main/browser/browser-ipc.js` - 96.8 KB
 6. `src/main/remote/browser-extension-server.js` - 87.7 KB
 7. `src/main/monitoring/error-monitor.js` - 84.6 KB
