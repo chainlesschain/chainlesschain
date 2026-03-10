@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/tts-ipc.js`
 
-**Generated**: 2026-03-10T02:08:39.445Z
+**Generated**: 2026-03-10T02:14:56.085Z
 
 ---
 

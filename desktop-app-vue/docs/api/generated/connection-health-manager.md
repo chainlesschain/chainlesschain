@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/connection-health-manager.js`
 
-**Generated**: 2026-03-10T02:08:39.488Z
+**Generated**: 2026-03-10T02:14:56.121Z
 
 ---
 

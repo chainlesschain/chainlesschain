@@ -2,7 +2,7 @@
 
 **Source**: `src/main/bootstrap/ai-initializer.js`
 
-**Generated**: 2026-03-10T02:08:39.546Z
+**Generated**: 2026-03-10T02:14:56.182Z
 
 ---
 
