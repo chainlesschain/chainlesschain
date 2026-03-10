@@ -159,7 +159,7 @@ async function handleRevoke(credentialId: string) {
   message.success("凭证已撤销");
 }
 
-async function handlePresent(record: { id: string }) {
+async function handlePresent(record: any) {
   try {
     await store.createPresentation(record.id);
     message.success("凭证出示成功");
