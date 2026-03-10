@@ -8,7 +8,7 @@
 *.jsx text eol=lf
 *.vue text eol=lf
 *.json text eol=lf
-*.md text eol=lf
+*.md text eol=lf encoding=utf-8
 *.yml text eol=lf
 *.yaml text eol=lf
 *.css text eol=lf
