@@ -5557,6 +5557,104 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 4 (2027 Q1): WebAuthn, ZKP, Federated Learning, IPFS Cluster, GraphQL API
+    // ============================================================
+
+    // 🔐 WebAuthn / Passkey Manager (10 handlers)
+    try {
+      logger.info("[IPC Registry] Registering WebAuthn IPC...");
+      const {
+        registerWebAuthnIPC,
+      } = require("../ai-engine/cowork/webauthn-ipc");
+      registerWebAuthnIPC({
+        database: database || null,
+        mainWindow: mainWindow || null,
+      });
+      logger.info("[IPC Registry] ✓ WebAuthn IPC registered (10 handlers)");
+    } catch (webauthnError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  WebAuthn IPC registration failed (non-fatal):",
+        webauthnError.message,
+      );
+    }
+
+    // 🔒 Zero-Knowledge Proof (14 handlers)
+    try {
+      logger.info("[IPC Registry] Registering ZKP IPC...");
+      const { registerZKPIPC } = require("../ai-engine/cowork/zkp-ipc");
+      registerZKPIPC({
+        database: database || null,
+        mainWindow: mainWindow || null,
+      });
+      logger.info("[IPC Registry] ✓ ZKP IPC registered (14 handlers)");
+    } catch (zkpError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  ZKP IPC registration failed (non-fatal):",
+        zkpError.message,
+      );
+    }
+
+    // 🧠 Federated Learning (14 handlers)
+    try {
+      logger.info("[IPC Registry] Registering Federated Learning IPC...");
+      const {
+        registerFederatedLearningIPC,
+      } = require("../ai-engine/cowork/federated-learning-ipc");
+      registerFederatedLearningIPC({
+        database: database || null,
+        mainWindow: mainWindow || null,
+      });
+      logger.info(
+        "[IPC Registry] ✓ Federated Learning IPC registered (14 handlers)",
+      );
+    } catch (flError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Federated Learning IPC registration failed (non-fatal):",
+        flError.message,
+      );
+    }
+
+    // 📦 IPFS Cluster (12 handlers)
+    try {
+      logger.info("[IPC Registry] Registering IPFS Cluster IPC...");
+      const {
+        registerIPFSClusterIPC,
+      } = require("../ai-engine/cowork/ipfs-cluster-ipc");
+      registerIPFSClusterIPC({
+        database: database || null,
+        mainWindow: mainWindow || null,
+      });
+      logger.info("[IPC Registry] ✓ IPFS Cluster IPC registered (12 handlers)");
+    } catch (ipfsClusterError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  IPFS Cluster IPC registration failed (non-fatal):",
+        ipfsClusterError.message,
+      );
+    }
+
+    // 🔗 GraphQL API (8 handlers)
+    try {
+      logger.info("[IPC Registry] Registering GraphQL API IPC...");
+      const { registerGraphQLIPC } = require("../ai-engine/cowork/graphql-ipc");
+      registerGraphQLIPC({
+        database: database || null,
+        mainWindow: mainWindow || null,
+      });
+      logger.info("[IPC Registry] ✓ GraphQL API IPC registered (8 handlers)");
+    } catch (graphqlError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  GraphQL API IPC registration failed (non-fatal):",
+        graphqlError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] 2027 Q1 Complete: WebAuthn + ZKP + FL + IPFS Cluster + GraphQL (58 handlers)!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 
