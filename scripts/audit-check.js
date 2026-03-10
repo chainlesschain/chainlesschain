@@ -5,7 +5,9 @@
  * Usage: node scripts/audit-check.js [--omit=dev] [--audit-level=critical]
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { execSync } = require("child_process");
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 // Known unfixable vulnerabilities (no upstream fix available)
 // Update this list as fixes become available
@@ -33,6 +35,7 @@ const KNOWN_UNFIXABLE_PACKAGES = [
   "parse-url", // stun depends on this, no fix available
   "elliptic", // crypto operations, no patched version
   "xlsx", // Excel processing, no patched version
+  "jspdf", // PDF generation, no patched version for critical vuln
 ];
 
 // Parse command line args
@@ -67,7 +70,6 @@ try {
   const severityLevels = ["critical", "high", "moderate", "low", "info"];
   const minLevel = severityLevels.indexOf(auditLevel);
 
-  let hasBlockingVulns = false;
   const blocking = [];
   const skipped = [];
 
@@ -91,7 +93,6 @@ try {
     if (isKnownUnfixable) {
       skipped.push({ name, severity: vuln.severity, ids: viaIds });
     } else {
-      hasBlockingVulns = true;
       blocking.push({ name, severity: vuln.severity, via: vuln.via });
     }
   }
