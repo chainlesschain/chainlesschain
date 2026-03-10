@@ -86,6 +86,7 @@ try {
     const viaPackages = (vuln.via || []).filter((v) => typeof v === "string");
 
     const isKnownUnfixable =
+      KNOWN_UNFIXABLE_PACKAGES.includes(name) ||
       (viaIds.length > 0 &&
         viaIds.every((id) => KNOWN_UNFIXABLE.includes(id))) ||
       viaPackages.some((p) => KNOWN_UNFIXABLE_PACKAGES.includes(p));
