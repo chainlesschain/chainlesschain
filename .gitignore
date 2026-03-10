@@ -12,6 +12,10 @@ doc/
 dist/
 build/
 out/
+
+# Build archives
+*.tar.gz
+*.zip
 unpackage/
 backend/standalone/
 *.app

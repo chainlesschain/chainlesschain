@@ -1,11 +1,11 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Playwright E2E测试配置
  * 用于测试Electron应用的IPC通信和UI交互
  */
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
 
   // 测试超时 (增加到60秒以适应LLM API响应时间)
   timeout: 60000,
@@ -25,35 +25,43 @@ export default defineConfig({
 
   // 报告器配置
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['list'],
+    ["html", { outputFolder: "playwright-report" }],
+    ["json", { outputFile: "test-results/results.json" }],
+    ["list"],
   ],
 
   // 全局配置
   use: {
     // 基础URL（如果有web界面）
-    baseURL: 'http://localhost:5173',
+    baseURL: "http://localhost:5173",
 
     // 截图设置
-    screenshot: 'only-on-failure',
+    screenshot: "only-on-failure",
 
     // 视频设置
-    video: 'retain-on-failure',
+    video: "retain-on-failure",
 
     // 追踪设置
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
   },
 
   // 项目配置
   projects: [
     {
-      name: 'electron-main',
+      name: "electron-main",
       testMatch: /.*\.e2e\.test\.(js|ts)/,
       use: {
-        ...devices['Desktop Chrome'],
+        ...devices["Desktop Chrome"],
       },
     },
+  ],
+
+  // 明确忽略不兼容的测试文件
+  testIgnore: [
+    // Browser extension tests (use Jest/Puppeteer)
+    "**/browser-extension/**",
+    // Desktop-app-vue tests are handled by that project's own config
+    "**/desktop-app-vue/**",
   ],
 
   // E2E测试不需要webserver（直接测试Electron应用）
