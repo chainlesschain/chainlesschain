@@ -192,10 +192,10 @@ export default defineConfig({
           ],
         },
         {
-          text: "v1.2.0 新增技能",
+          text: "v1.2.0~v1.2.1 新增技能",
           items: [
             {
-              text: "22个新增实用技能",
+              text: "28个新增实用技能(v1.2.0~v1.2.1)",
               link: "/chainlesschain/new-skills-v1.2",
             },
           ],
