@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v3.4.0 企业版 | 军事级安全 | 完全去中心化 | AI原生 | 137技能 | 全栈智能化 | 77 Phase
+  tagline: v5.0.0 进化版 | 军事级安全 | 完全去中心化 | AI原生 | 137技能 | 100 Phase | AI Agent 2.0 | Web3 深化 | 自进化AI
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -50,7 +50,7 @@ features:
 
   - icon: 🤖
     title: Cowork多智能体协作
-    details: v4.0代理联邦网络，全自动流水线，自然语言编程，多模态协作，自主运维，137内置技能
+    details: v5.0 AI Agent 2.0，A2A协议，工作流编排，层次化记忆，Agent经济，代码生成Agent，自进化AI，137内置技能
 
   - icon: 🖥️
     title: Computer Use
@@ -69,8 +69,12 @@ features:
     details: 137个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+137技能)，10个演示模板
 
   - icon: ⛓️
-    title: 区块链集成
-    details: 6个智能合约，15链支持，HD钱包系统，MetaMask/WalletConnect集成
+    title: 区块链 + Web3
+    details: 零知识证明引擎，跨链互操作(5链)，DID v2.0，DAO治理2.0，隐私计算(联邦学习/MPC/同态加密)
+
+  - icon: 🏗️
+    title: 企业级平台
+    details: 低代码应用构建，企业知识图谱(GraphRAG)，BI智能分析，工作流自动化(12连接器)，多租户SaaS引擎
 ---
 
 ## 快速开始
@@ -120,7 +124,7 @@ start.bat
 
 ### 1. ChainlessChain 个人AI管理系统
 
-完全去中心化的个人AI助手平台（v3.4.0 企业版），整合知识库管理、社交网络和交易辅助三大核心功能。
+完全去中心化的个人AI助手平台（v5.0.0 进化版），整合知识库管理、社交网络和交易辅助三大核心功能，内置AI Agent 2.0生态、Web3深化和企业级平台。
 
 **主要特性:**
 
@@ -131,11 +135,11 @@ start.bat
 - 🔌 MCP集成 + 137内置技能 + 统一工具注册表
 - 🎨 AI技能系统 (137技能 + Agent Skills标准 + 10演示模板)
 - ⛓️ 区块链集成 (15链 + 6个智能合约)
-- 🤖 Cowork v4.0 代理联邦网络 (全自动流水线、NL编程、多模态、自主运维)
+- 🤖 AI Agent 2.0 (A2A协议、工作流编排、层次化记忆、多模态感知、Agent经济)
 - 🖥️ Computer Use (68+ IPC处理器，视觉AI，工作流引擎)
-- 🌐 浏览器插件 (215个远程命令，完整浏览器自动化)
-- 🔩 全自动开发流水线 (需求→部署全链路AI协作)
-- 🪪 去中心化代理网络 (Agent DID、联邦发现、跨组织协作)
+- ⛓️ Web3深化 (ZKP引擎、跨链桥接、DID v2、隐私计算、DAO v2)
+- 🏗️ 企业平台 (低代码、知识图谱、BI分析、工作流自动化、多租户SaaS)
+- 🧬 自进化AI (持续学习、自我诊断、行为预测、能力评估)
 
 [查看详细文档 →](/chainlesschain/overview)
 
@@ -181,14 +185,14 @@ start.bat
 
 ### 统计数据
 
-- 📊 348,000+ 行代码
+- 📊 380,000+ 行代码
 - 🧩 384+ 个Vue组件
-- 🔌 557+ IPC处理器
-- 🧪 19,785+ 测试用例
+- 🔌 735+ IPC处理器 (+178 v5.0.0)
+- 🧪 20,400+ 测试用例 (+646 v5.0.0)
 - 🎨 137个内置技能 + 统一工具注册表
-- 💾 70+ 张数据库表
+- 💾 95+ 张数据库表
 - 🏗️ 64个Pinia Store
-- 🔧 77个开发阶段完成
+- 🔧 100个开发阶段完成 (Phase 1-100)
 
 ## 社区与支持
 

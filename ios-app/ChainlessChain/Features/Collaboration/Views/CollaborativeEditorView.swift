@@ -26,11 +26,13 @@ public struct CollaborativeEditorView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
 
-    // Current user info (from DID)
-    // NOTE: Using placeholder userId for UI demonstration. In production, this would be
-    // retrieved from IdentityManager.shared.currentUser.did
-    @State private var userId = "user_001"
-    @State private var userName = "Current User"
+    // Current user info (from IdentityManager)
+    private var userId: String {
+        IdentityManager.shared.currentIdentity?.did ?? "user_\(UUID().uuidString.prefix(8))"
+    }
+    private var userName: String {
+        IdentityManager.shared.currentIdentity?.displayName ?? "Current User"
+    }
 
     // MARK: - Body
 

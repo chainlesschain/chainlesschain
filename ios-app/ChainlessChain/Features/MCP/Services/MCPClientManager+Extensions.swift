@@ -485,10 +485,8 @@ public struct MCPPermissionResult {
 
 extension MCPHttpSseTransport {
 
-    /// 发送请求
+    /// 发送请求 (delegates to the existing send() method)
     func sendRequest(_ request: MCPRequest) async throws -> MCPResponse {
-        // 这个方法需要在MCPHttpSseTransport中实现
-        // 这里提供一个占位实现
-        fatalError("需要在MCPHttpSseTransport中实现sendRequest")
+        return try await send(request)
     }
 }

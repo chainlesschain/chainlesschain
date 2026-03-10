@@ -8,7 +8,7 @@ import fs from "fs";
 import os from "os";
 import { SkillLoader, LAYER_PRIORITY } from "../skill-loader.js";
 
-// Mock electron app
+// Mock electron app (resolved via vitest.config.ts alias)
 vi.mock("electron", () => ({
   app: {
     getPath: vi.fn(() => path.join(os.tmpdir(), "chainlesschain-test")),

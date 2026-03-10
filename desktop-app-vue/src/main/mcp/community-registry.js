@@ -10,6 +10,8 @@
 
 const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const https = require("https");
+const http = require("http");
 
 /**
  * Server status constants
@@ -468,8 +470,14 @@ class CommunityRegistry {
    * @param {Object} options
    * @param {Object} options.database - Database instance for persisting installed server state
    */
-  constructor({ database } = {}) {
+  constructor({ database, remoteRegistryUrl } = {}) {
     this.database = database;
+
+    /** @type {string|null} Remote registry endpoint URL */
+    this.remoteRegistryUrl = remoteRegistryUrl || null;
+
+    /** @type {number} Remote fetch timeout in milliseconds */
+    this.remoteFetchTimeout = 10000;
 
     /** @type {Map<string, Object>} Full catalog of available servers (id -> server info) */
     this.catalog = new Map();
@@ -935,11 +943,28 @@ class CommunityRegistry {
       // Reload built-in catalog (preserves any custom entries)
       this._loadBuiltinCatalog();
 
-      // TODO: In future versions, fetch from remote registry
-      // const remoteServers = await this._fetchRemoteCatalog();
-      // for (const server of remoteServers) {
-      //   this.catalog.set(server.id, server);
-      // }
+      // Fetch from remote registry if configured
+      if (this.remoteRegistryUrl) {
+        try {
+          const remoteServers = await this._fetchRemoteCatalog();
+          let remoteAdded = 0;
+          for (const server of remoteServers) {
+            if (server.id && server.name) {
+              this.catalog.set(server.id, { ...server, source: "remote" });
+              remoteAdded++;
+            }
+          }
+          logger.info(
+            "[CommunityRegistry] Fetched %d servers from remote registry",
+            remoteAdded,
+          );
+        } catch (remoteError) {
+          logger.warn(
+            "[CommunityRegistry] Remote registry fetch failed (using local catalog): %s",
+            remoteError.message,
+          );
+        }
+      }
 
       this.lastRefreshTime = Date.now();
 
@@ -1197,6 +1222,72 @@ class CommunityRegistry {
    * @param {string} versionB - Second version
    * @returns {number} Positive if A > B, negative if A < B, 0 if equal
    */
+  /**
+   * Fetch server catalog from remote registry endpoint
+   * @private
+   * @returns {Promise<Array<Object>>} Array of server entries from remote registry
+   */
+  async _fetchRemoteCatalog() {
+    if (!this.remoteRegistryUrl) {
+      return [];
+    }
+
+    return new Promise((resolve, reject) => {
+      const url = new URL(this.remoteRegistryUrl);
+      const client = url.protocol === "https:" ? https : http;
+
+      const req = client.get(
+        url,
+        { timeout: this.remoteFetchTimeout },
+        (res) => {
+          if (res.statusCode !== 200) {
+            reject(
+              new Error(`Remote registry returned status ${res.statusCode}`),
+            );
+            res.resume();
+            return;
+          }
+
+          const chunks = [];
+          res.on("data", (chunk) => chunks.push(chunk));
+          res.on("end", () => {
+            try {
+              const data = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+              const servers = Array.isArray(data)
+                ? data
+                : Array.isArray(data.servers)
+                  ? data.servers
+                  : [];
+
+              // Validate each entry has required fields (id + name required, description optional)
+              const valid = servers.filter(
+                (s) =>
+                  s && typeof s.id === "string" && typeof s.name === "string",
+              );
+
+              resolve(valid);
+            } catch (parseError) {
+              reject(
+                new Error(
+                  `Failed to parse remote registry response: ${parseError.message}`,
+                ),
+              );
+            }
+          });
+        },
+      );
+
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("Remote registry fetch timed out"));
+      });
+
+      req.on("error", (err) => {
+        reject(new Error(`Remote registry fetch error: ${err.message}`));
+      });
+    });
+  }
+
   _compareVersions(versionA, versionB) {
     const partsA = versionA.split(".").map(Number);
     const partsB = versionB.split(".").map(Number);
@@ -1204,6 +1295,9 @@ class CommunityRegistry {
     for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
       const a = partsA[i] || 0;
       const b = partsB[i] || 0;
+      if (isNaN(a) || isNaN(b)) {
+        return 0;
+      }
       if (a !== b) {
         return a - b;
       }

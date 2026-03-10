@@ -58,6 +58,9 @@ public protocol VectorStore {
 
     /// 获取向量数量
     func count() async throws -> Int
+
+    /// 列出所有向量（可选分页）
+    func list(limit: Int, offset: Int) async throws -> [Vector]
 }
 
 /// 内存向量存储（简单实现）
@@ -141,6 +144,17 @@ public class InMemoryVectorStore: VectorStore {
         }
     }
 
+    public func list(limit: Int = 100, offset: Int = 0) async throws -> [Vector] {
+        return await withCheckedContinuation { continuation in
+            queue.async {
+                let allVectors = Array(self.vectors.values)
+                let start = min(offset, allVectors.count)
+                let end = min(start + limit, allVectors.count)
+                continuation.resume(returning: Array(allVectors[start..<end]))
+            }
+        }
+    }
+
     // MARK: - Serialization Support
 
     /// 获取所有向量用于序列化
@@ -204,6 +218,10 @@ public class PersistentVectorStore: VectorStore {
 
     public func count() async throws -> Int {
         return try await storage.count()
+    }
+
+    public func list(limit: Int = 100, offset: Int = 0) async throws -> [Vector] {
+        return try await storage.list(limit: limit, offset: offset)
     }
 
     // MARK: - 持久化

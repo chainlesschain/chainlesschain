@@ -1,8 +1,7 @@
 package com.chainlesschain.android.feature.ai.cowork.skills.bridge
 
+import com.chainlesschain.android.core.p2p.RemoteSkillProvider
 import com.chainlesschain.android.feature.ai.cowork.skills.model.SkillResult
-import com.chainlesschain.android.remote.p2p.ConnectionState
-import com.chainlesschain.android.remote.p2p.P2PClient
 import timber.log.Timber
 
 /**
@@ -11,10 +10,10 @@ import timber.log.Timber
  * When a skill is not available on Android (e.g., browser automation, filesystem ops),
  * this bridge sends the execution request to a connected desktop peer and awaits the result.
  *
- * Uses P2PClient.sendCommand() with "skill.execute" and "skill.list" methods.
+ * Uses [RemoteSkillProvider.sendRemoteCommand] with "skill.execute" and "skill.list" methods.
  */
 class P2PSkillBridge(
-    private val p2pClient: P2PClient? = null
+    private val remoteProvider: RemoteSkillProvider? = null
 ) {
 
     companion object {
@@ -26,7 +25,7 @@ class P2PSkillBridge(
      * Whether a desktop peer is connected and available for skill delegation.
      */
     val isDesktopConnected: Boolean
-        get() = p2pClient?.connectionState?.value == ConnectionState.CONNECTED
+        get() = remoteProvider?.isRemoteConnected == true
 
     /**
      * Execute a skill on the connected desktop via P2P.
@@ -39,7 +38,7 @@ class P2PSkillBridge(
      * @return SkillResult from the desktop, or error if not connected
      */
     suspend fun executeRemote(skillName: String, input: Map<String, Any>): SkillResult {
-        if (p2pClient == null) {
+        if (remoteProvider == null) {
             return SkillResult(
                 success = false,
                 output = "",
@@ -57,7 +56,7 @@ class P2PSkillBridge(
 
         Timber.d("$TAG: Executing remote skill '$skillName' via P2P")
 
-        val result = p2pClient.sendCommand<Map<String, Any>>(
+        val result = remoteProvider.sendRemoteCommand<Map<String, Any>>(
             method = "skill.execute",
             params = mapOf(
                 "skillName" to skillName,
@@ -94,11 +93,11 @@ class P2PSkillBridge(
      * @return List of skill info maps, or empty list if not connected
      */
     suspend fun getDesktopSkills(): List<Map<String, Any>> {
-        if (p2pClient == null || !isDesktopConnected) {
+        if (remoteProvider == null || !isDesktopConnected) {
             return emptyList()
         }
 
-        val result = p2pClient.sendCommand<Map<String, Any>>(
+        val result = remoteProvider.sendRemoteCommand<Map<String, Any>>(
             method = "skill.list",
             params = emptyMap(),
             timeout = 10_000L

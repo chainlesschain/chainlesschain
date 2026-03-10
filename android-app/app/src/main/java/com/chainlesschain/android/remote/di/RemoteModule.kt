@@ -1,6 +1,7 @@
 ﻿package com.chainlesschain.android.remote.di
 
 import android.content.Context
+import com.chainlesschain.android.core.p2p.RemoteSkillProvider
 import com.chainlesschain.android.remote.crypto.AndroidDIDKeyStore
 import com.chainlesschain.android.remote.crypto.DIDKeyStore
 import com.chainlesschain.android.remote.crypto.NonceManager
@@ -10,6 +11,7 @@ import com.chainlesschain.android.remote.data.FileTransferDao
 import com.chainlesschain.android.remote.p2p.DeviceActivityManager
 import com.chainlesschain.android.remote.p2p.DIDManager
 import com.chainlesschain.android.remote.p2p.DIDManagerImpl
+import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.webrtc.SignalClient
 import com.chainlesschain.android.remote.webrtc.WebRTCClient
 import com.chainlesschain.android.remote.webrtc.WebSocketSignalClient
@@ -36,6 +38,10 @@ abstract class RemoteModule {
     @Binds
     @Singleton
     abstract fun bindDIDManager(impl: DIDManagerImpl): DIDManager
+
+    @Binds
+    @Singleton
+    abstract fun bindRemoteSkillProvider(impl: P2PClient): RemoteSkillProvider
 
     companion object {
         @Provides

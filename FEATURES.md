@@ -2,7 +2,7 @@
 
 Complete list of implemented features in the ChainlessChain project.
 
-**Last Updated**: 2026-03-10 (v1.2.1)
+**Last Updated**: 2026-03-10 (v5.0.1)
 
 ## Core Features
 
@@ -12,6 +12,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | ----------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | MCP Integration               | `main/mcp/`                                                              | [`MCP_USER_GUIDE.md`](docs/features/MCP_USER_GUIDE.md)                             |
 | MCP SDK & Community Registry  | `main/mcp/sdk/index.js`, `main/mcp/community-registry.js`                | —                                                                                  |
+| MCP Remote Registry Fetch     | `main/mcp/community-registry.js` (`_fetchRemoteCatalog`)                 | —                                                                                  |
 | LLM Performance Dashboard     | `main/llm/token-tracker.js`                                              | [`LLM_PERFORMANCE_DASHBOARD.md`](docs/features/LLM_PERFORMANCE_DASHBOARD.md)       |
 | SessionManager                | `main/llm/session-manager.js`                                            | [`SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)                           |
 | ErrorMonitor AI Diagnostics   | `main/monitoring/error-monitor.js`                                       | [`ERROR_MONITOR.md`](docs/features/ERROR_MONITOR.md)                               |
@@ -26,6 +27,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
 | Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                      | —                                                                                  |
 | Skills System (137 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
+| Skill Lazy Loading            | `main/ai-engine/cowork/skills/skill-loader.js` (`parseMetadataOnly`)     | —                                                                                  |
 | Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
 | Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
 | Computer Use                  | `main/browser/computer-use-agent.js`, `main/browser/actions/`            | [`COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)                     |
@@ -184,6 +186,44 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 - **Global Evolution Network**: Multi-Hub interconnection, Gene cross-Hub sync, evolution pressure selection, gene recombination, lineage DAG
 - **IP & Governance DAO**: DID+VC originality proof, anti-plagiarism, derivation chain, Gene quality voting, dispute arbitration
+
+### Architecture Foundation (v4.0.0-alpha — Phase 78-80)
+
+- **IPC Domain Split**: 10 domain files (core/ai/enterprise/social/security/p2p/evomap/infra/marketplace/autonomous), LazyPhaseLoader on-demand loading, IPC Middleware (rate limiting, permission checks, timing)
+- **DI Container & Shared Services**: ServiceContainer with circular dependency detection, SharedCacheManager (LRU+TTL), EventBus cross-module pub/sub, ResourcePool timer/connection management
+- **Database Evolution**: MigrationManager versioned up/down migrations, QueryBuilder fluent SQL, IndexOptimizer auto-analysis
+
+### AI Agent 2.0 Ecosystem (v4.1.0 — Phase 81-87)
+
+- **A2A Protocol Engine**: Google A2A standard, Agent Card discovery (JSON-LD), Task lifecycle (submitted→working→completed→failed), SSE/WebSocket streaming
+- **Agentic Workflow Engine**: DAG-based workflow editor, conditional branches, approval gates, breakpoints, 5 built-in templates, pause/resume/rollback
+- **Hierarchical Memory 2.0**: 4-layer memory (working→short-term→long-term→core), forgetting curve, memory consolidation, cross-agent sharing, episodic/semantic search
+- **Multimodal Perception**: Screen understanding, voice conversation, document intelligence, video analysis, cross-modal reasoning
+- **Agent Economy**: Micropayments via state channels, compute resource market, Proof of Contribution, Agent NFT identity, revenue distribution
+- **Code Agent 2.0**: Full-stack code generation, git-aware context, code review (eval/injection detection), scaffolding (5 frameworks), CI/CD auto-config
+- **Agent Sandbox 2.0**: WASM isolation, fine-grained permission whitelist (filesystem/network/syscalls), resource quotas, behavior AI monitoring with risk scoring
+
+### Web3 Deepening & Privacy Computing (v4.2.0 — Phase 88-92)
+
+- **ZKP Engine**: zk-SNARK/zk-STARK local generation, Groth16 proof system, Circom circuit compiler, identity proofs with selective disclosure
+- **Cross-Chain Bridge**: EVM chains (Ethereum/Polygon/BSC/Arbitrum) + Solana, HTLC atomic swaps, cross-chain messaging
+- **DID v2.0**: W3C DID v2.0 spec, Verifiable Presentations, social recovery, cross-platform roaming, reputation portability
+- **Privacy Computing**: Federated learning, secure MPC, differential privacy, homomorphic encryption queries
+- **DAO Governance v2**: Quadratic voting, delegation, proposal lifecycle (Draft→Active→Queue→Execute), treasury management
+
+### Enterprise Productivity Platform (v4.5.0 — Phase 93-97)
+
+- **Low-Code Platform**: Visual app builder (drag-and-drop), 15 built-in components, data connectors (REST/GraphQL/DB/CSV), app versioning & rollback
+- **Enterprise Knowledge Graph**: Auto entity extraction, graph query (Cypher-like), reasoning engine (graph traversal), GraphRAG deep fusion
+- **BI Intelligence**: NL→SQL auto-generation, multi-dimensional OLAP, smart report generator, anomaly detection, trend prediction
+- **Workflow Automation**: 12 built-in connectors (Gmail/Slack/GitHub/Jira/Notion/Confluence etc.), trigger system (webhook/schedule/event/condition)
+- **Multi-tenant SaaS Engine**: Tenant isolation, usage metering, subscription billing (free/starter/pro/enterprise), data import/export
+
+### Ecosystem Fusion (v5.0.0 — Phase 98-100)
+
+- **Universal App Runtime**: Plugin SDK 2.0, hot update mechanism, built-in profiler (flame graph), CRDT state sync, cross-platform support
+- **Plugin Ecosystem 2.0**: AI-driven recommendations, dependency resolution + conflict detection, sandbox isolation, AI code review, revenue sharing
+- **Self-Evolving AI**: Auto architecture search (NAS), continual learning, self-diagnosis + self-repair, behavior prediction, capability assessment + growth tracking
 
 ## Android Application
 
