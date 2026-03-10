@@ -2,15 +2,15 @@ name: Android CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'android-app/**'
-      - '.github/workflows/android-ci.yml'
+      - "android-app/**"
+      - ".github/workflows/android-ci.yml"
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'android-app/**'
-      - '.github/workflows/android-ci.yml'
+      - "android-app/**"
+      - ".github/workflows/android-ci.yml"
   # 允许手动触发
   workflow_dispatch:
 
@@ -27,8 +27,8 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -82,8 +82,8 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -152,8 +152,8 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -182,7 +182,7 @@ jobs:
 
   instrumented-test:
     name: Instrumented Tests
-    runs-on: macos-latest  # macOS provides faster emulators
+    runs-on: macos-latest # macOS provides faster emulators
     timeout-minutes: 45
     needs: [lint]
     continue-on-error: true
@@ -190,7 +190,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [26, 33]  # Test on Android 8.0 and 13
+        api-level: [26, 33] # Test on Android 8.0 and 13
 
     steps:
       - name: Checkout code
@@ -199,8 +199,8 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -230,6 +230,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
+          arch: x86_64
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
@@ -240,6 +241,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
+          arch: x86_64
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
@@ -265,8 +267,8 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
