@@ -8,7 +8,7 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-2500%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-131-blue.svg)
+![Skills](https://img.shields.io/badge/skills-137-blue.svg)
 
 **Decentralized · Privacy First · AI Native**
 
@@ -20,9 +20,26 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v1.2.0 Full-Stack Edition (2026-03-06)
+## ⭐ Current Version: v1.2.1 Full-Stack Edition (2026-03-10)
 
-### Latest Updates - v1.2.0 Added 32 Practical Skills (131 Total Desktop Built-in Skills) ⭐NEW
+### Latest Updates - v1.2.1 Added 6 Community Ecosystem Skills (137 Total Desktop Built-in Skills) ⭐NEW
+
+Researched community skill ecosystems (OpenClaw, awesome-skills, etc.) and added 6 high-frequency missing skills: creative brainstorming, systematic debugging strategies, API design, frontend design, PR creation, and document co-authoring.
+
+**Community Ecosystem Skills (6)**:
+
+- ✅ **brainstorming** - Creative brainstorming with 5 methods (ideate/mindmap/SWOT/Six Hats/SCAMPER)
+- ✅ **debugging-strategies** - Systematic debugging with 9 modes (diagnose/bisect/trace/hypothesis/rubber-duck/root-cause/red-flags/defense/session)
+- ✅ **api-design** - API design with 5 modes (design/review/OpenAPI/versioning/errors)
+- ✅ **frontend-design** - Frontend design with 5 modes (component/layout/responsive/a11y/theme)
+- ✅ **create-pr** - PR creation with 4 modes (create/draft/template/changelog)
+- ✅ **doc-coauthoring** - Document co-authoring with 5 modes (draft/expand/review/structure/glossary)
+
+**Skill Statistics**: 131 (v1.2.0) → **137 (v1.2.1)** (+6)
+
+---
+
+### History - v1.2.0 Added 32 Practical Skills (131 Total Desktop Built-in Skills)
 
 Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent, Agent-Browser, Remotion, Cron, Planning-with-files, etc.) and converted them into built-in skills, added 12 development/ops/knowledge management skills, and 10 integration/productivity/knowledge skills.
 
@@ -67,7 +84,7 @@ Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent
 - ✅ **summarizer** - Universal summarizer, URL/PDF/YouTube/text summaries + key points
 - ✅ **weather** - Weather queries, global weather/forecasts/alerts (wttr.in, no API key)
 
-**Skill Statistics**: 96 (v1.0.0) → **131 (v1.2.0)** (+35)
+**Skill Statistics**: 96 (v1.0.0) → 131 (v1.2.0) (+35)
 
 ---
 

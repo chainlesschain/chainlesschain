@@ -19,7 +19,9 @@ module.exports = {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
-    logger.info(`[SkillCreator] Action: ${parsed.action}, Name: ${parsed.name}`);
+    logger.info(
+      `[SkillCreator] Action: ${parsed.action}, Name: ${parsed.name}`,
+    );
 
     try {
       switch (parsed.action) {
@@ -263,7 +265,9 @@ function handleOptimize(name) {
     );
   }
   if (currentDesc.length > 200) {
-    suggestions.push("Description may be too long. Keep under 200 chars for metadata.");
+    suggestions.push(
+      "Description may be too long. Keep under 200 chars for metadata.",
+    );
   }
 
   return {
@@ -306,15 +310,23 @@ function handleValidate(name) {
     }
 
     // Check required fields
-    if (!/^name:/m.test(content)) issues.push("Missing 'name' field");
-    else checks.push("Has name field");
+    if (!/^name:/m.test(content)) {
+      issues.push("Missing 'name' field");
+    } else {
+      checks.push("Has name field");
+    }
 
-    if (!/^description:/m.test(content)) issues.push("Missing 'description' field");
-    else checks.push("Has description field");
+    if (!/^description:/m.test(content)) {
+      issues.push("Missing 'description' field");
+    } else {
+      checks.push("Has description field");
+    }
 
-    if (!/^handler:/m.test(content))
+    if (!/^handler:/m.test(content)) {
       issues.push("Missing 'handler' field");
-    else checks.push("Has handler field");
+    } else {
+      checks.push("Has handler field");
+    }
   }
 
   // Check handler exists
@@ -331,7 +343,9 @@ function handleValidate(name) {
         checks.push("Has execute() function");
       }
       if (typeof handler.init !== "function") {
-        issues.push("handler.js missing init() function (optional but recommended)");
+        issues.push(
+          "handler.js missing init() function (optional but recommended)",
+        );
       } else {
         checks.push("Has init() function");
       }
@@ -372,12 +386,21 @@ function handleListTemplates() {
 }
 
 function handleGetTemplate(name) {
-  if (!name) return { success: false, error: "Provide a template name. Use list-templates to see available templates." };
+  if (!name) {
+    return {
+      success: false,
+      error:
+        "Provide a template name. Use list-templates to see available templates.",
+    };
+  }
 
   const template = SKILL_TEMPLATES[name.toLowerCase()];
   if (!template) {
     const available = Object.keys(SKILL_TEMPLATES).join(", ");
-    return { success: false, error: `Template "${name}" not found. Available: ${available}` };
+    return {
+      success: false,
+      error: `Template "${name}" not found. Available: ${available}`,
+    };
   }
 
   return {
@@ -389,7 +412,12 @@ function handleGetTemplate(name) {
       "handler.js": template.handler,
       "SKILL.md": template.skillMd,
     },
-    result: { name, description: template.description, handler: template.handler, skillMd: template.skillMd },
+    result: {
+      name,
+      description: template.description,
+      handler: template.handler,
+      skillMd: template.skillMd,
+    },
     message: `Template "${name}" retrieved. Contains handler.js and SKILL.md.`,
   };
 }
@@ -824,10 +852,20 @@ Pure regex-based code analysis — no external dependencies needed.
 
 function guessCategory(text) {
   const lower = text.toLowerCase();
-  if (/search|knowledge|rag|document|research/.test(lower)) return "knowledge";
-  if (/automat|workflow|browser|schedule|cron|watch/.test(lower)) return "automation";
-  if (/code|test|lint|review|debug|refactor|deploy/.test(lower)) return "development";
-  if (/video|image|audio|media|chart/.test(lower)) return "media";
-  if (/content|publish|slide|plan|note/.test(lower)) return "productivity";
+  if (/search|knowledge|rag|document|research/.test(lower)) {
+    return "knowledge";
+  }
+  if (/automat|workflow|browser|schedule|cron|watch/.test(lower)) {
+    return "automation";
+  }
+  if (/code|test|lint|review|debug|refactor|deploy/.test(lower)) {
+    return "development";
+  }
+  if (/video|image|audio|media|chart/.test(lower)) {
+    return "media";
+  }
+  if (/content|publish|slide|plan|note/.test(lower)) {
+    return "productivity";
+  }
   return "general";
 }

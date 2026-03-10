@@ -20,20 +20,38 @@ describe("obsidian handler", () => {
     if (handler._deps) {
       handler._deps.fs = {
         existsSync: vi.fn((p) => {
-          if (p === "/mock/vault") return true;
-          if (p === "/mock/vault/.obsidian") return true;
+          if (p === "/mock/vault") {
+            return true;
+          }
+          if (p === "/mock/vault/.obsidian") {
+            return true;
+          }
           return false;
         }),
         mkdirSync: vi.fn(),
         writeFileSync: vi.fn(),
-        readFileSync: vi.fn().mockReturnValue("# Test Note\n\nSome content here\n\n#tag1 #tag2\n"),
+        readFileSync: vi
+          .fn()
+          .mockReturnValue("# Test Note\n\nSome content here\n\n#tag1 #tag2\n"),
         readdirSync: vi.fn((dir, opts) => {
           if (dir === "/mock/vault") {
             if (opts && opts.withFileTypes) {
               return [
-                { name: "note1.md", isFile: () => true, isDirectory: () => false },
-                { name: "note2.md", isFile: () => true, isDirectory: () => false },
-                { name: ".obsidian", isFile: () => false, isDirectory: () => true },
+                {
+                  name: "note1.md",
+                  isFile: () => true,
+                  isDirectory: () => false,
+                },
+                {
+                  name: "note2.md",
+                  isFile: () => true,
+                  isDirectory: () => false,
+                },
+                {
+                  name: ".obsidian",
+                  isFile: () => false,
+                  isDirectory: () => true,
+                },
               ];
             }
             return ["note1.md", "note2.md", ".obsidian"];
@@ -59,8 +77,11 @@ describe("obsidian handler", () => {
   });
 
   afterEach(() => {
-    if (originalVaultPath) process.env.OBSIDIAN_VAULT_PATH = originalVaultPath;
-    else delete process.env.OBSIDIAN_VAULT_PATH;
+    if (originalVaultPath) {
+      process.env.OBSIDIAN_VAULT_PATH = originalVaultPath;
+    } else {
+      delete process.env.OBSIDIAN_VAULT_PATH;
+    }
   });
 
   describe("execute() - no vault", () => {
@@ -109,8 +130,12 @@ describe("obsidian handler", () => {
   describe("execute() - search", () => {
     it("should search notes by query", async () => {
       if (handler._deps) {
-        handler._deps.fs.readFileSync = vi.fn().mockReturnValue("Some test content about searching");
-        handler._deps.fs.statSync = vi.fn().mockReturnValue({ mtime: new Date(), size: 100 });
+        handler._deps.fs.readFileSync = vi
+          .fn()
+          .mockReturnValue("Some test content about searching");
+        handler._deps.fs.statSync = vi
+          .fn()
+          .mockReturnValue({ mtime: new Date(), size: 100 });
       }
       const result = await handler.execute({ input: "search test" }, {}, {});
       expect(result.success).toBe(true);
@@ -126,9 +151,11 @@ describe("obsidian handler", () => {
   describe("execute() - list-tags", () => {
     it("should list tags from vault", async () => {
       if (handler._deps) {
-        handler._deps.fs.readFileSync = vi.fn().mockReturnValue(
-          "---\ntags: [javascript, testing]\n---\n\n# Note\n\n#coding #javascript\n",
-        );
+        handler._deps.fs.readFileSync = vi
+          .fn()
+          .mockReturnValue(
+            "---\ntags: [javascript, testing]\n---\n\n# Note\n\n#coding #javascript\n",
+          );
       }
       const result = await handler.execute({ input: "list-tags" }, {}, {});
       expect(result.success).toBe(true);
@@ -139,7 +166,11 @@ describe("obsidian handler", () => {
 
   describe("execute() - list-recent", () => {
     it("should list recent notes", async () => {
-      const result = await handler.execute({ input: "list-recent --limit 5" }, {}, {});
+      const result = await handler.execute(
+        { input: "list-recent --limit 5" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("list-recent");
       expect(result.result.notes).toBeDefined();
@@ -155,7 +186,9 @@ describe("obsidian handler", () => {
     it("should return error when source note not found", async () => {
       if (handler._deps) {
         handler._deps.fs.existsSync = vi.fn((p) => {
-          if (p === "/mock/vault") return true;
+          if (p === "/mock/vault") {
+            return true;
+          }
           return false;
         });
         handler._deps.fs.readdirSync = vi.fn().mockReturnValue([]);
@@ -172,7 +205,11 @@ describe("obsidian handler", () => {
 
   describe("execute() - unknown action", () => {
     it("should return error for unknown action", async () => {
-      const result = await handler.execute({ input: "delete-note test" }, {}, {});
+      const result = await handler.execute(
+        { input: "delete-note test" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain("Unknown action");
     });

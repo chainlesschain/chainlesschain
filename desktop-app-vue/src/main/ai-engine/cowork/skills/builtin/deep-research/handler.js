@@ -17,14 +17,19 @@ module.exports = {
     const input = task.input || task.args || "";
     const parsed = parseInput(input);
 
-    logger.info(`[DeepResearch] Topic: "${parsed.topic}", Depth: ${parsed.depth}`);
+    logger.info(
+      `[DeepResearch] Topic: "${parsed.topic}", Depth: ${parsed.depth}`,
+    );
 
     if (parsed.action === "status") {
       return handleStatus();
     }
 
     if (!parsed.topic) {
-      return { success: false, error: 'No topic provided. Usage: /deep-research "topic"' };
+      return {
+        success: false,
+        error: 'No topic provided. Usage: /deep-research "topic"',
+      };
     }
 
     try {
@@ -37,13 +42,21 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "status", topic: "" };
+  if (!input || typeof input !== "string") {
+    return { action: "status", topic: "" };
+  }
 
   const trimmed = input.trim();
-  if (trimmed === "status") return { action: "status" };
+  if (trimmed === "status") {
+    return { action: "status" };
+  }
 
-  const depthMatch = trimmed.match(/--depth\s+(quick|standard|deep|exhaustive)/i);
-  const focusMatch = trimmed.match(/--focus\s+(technical|market|competitive|general)/i);
+  const depthMatch = trimmed.match(
+    /--depth\s+(quick|standard|deep|exhaustive)/i,
+  );
+  const focusMatch = trimmed.match(
+    /--focus\s+(technical|market|competitive|general)/i,
+  );
 
   const topic = trimmed
     .replace(/--depth\s+\S+/gi, "")
@@ -142,17 +155,50 @@ function handleStatus() {
   for (const [id, entry] of activeResearch) {
     list.push({ id, topic: entry.report.topic, status: entry.status });
   }
-  return { success: true, action: "status", researches: list, count: list.length };
+  return {
+    success: true,
+    action: "status",
+    researches: list,
+    count: list.length,
+  };
 }
 
 function decomposeQuery(topic, focus, count) {
   const queries = [`${topic} overview`];
 
   const focusQueries = {
-    technical: ["architecture", "implementation", "performance benchmarks", "best practices", "limitations", "alternatives"],
-    market: ["market size", "growth trends", "key players", "pricing models", "adoption rate", "future outlook"],
-    competitive: ["competitors", "market share", "feature comparison", "pricing comparison", "strengths weaknesses", "user reviews"],
-    general: ["introduction", "benefits", "challenges", "use cases", "trends", "future directions"],
+    technical: [
+      "architecture",
+      "implementation",
+      "performance benchmarks",
+      "best practices",
+      "limitations",
+      "alternatives",
+    ],
+    market: [
+      "market size",
+      "growth trends",
+      "key players",
+      "pricing models",
+      "adoption rate",
+      "future outlook",
+    ],
+    competitive: [
+      "competitors",
+      "market share",
+      "feature comparison",
+      "pricing comparison",
+      "strengths weaknesses",
+      "user reviews",
+    ],
+    general: [
+      "introduction",
+      "benefits",
+      "challenges",
+      "use cases",
+      "trends",
+      "future directions",
+    ],
   };
 
   const templates = focusQueries[focus] || focusQueries.general;

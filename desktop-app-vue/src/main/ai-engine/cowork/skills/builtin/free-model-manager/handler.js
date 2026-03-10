@@ -12,26 +12,126 @@ const HF_API = "https://huggingface.co/api";
 
 // Well-known free models catalog for search enrichment
 const MODEL_CATALOG = [
-  { name: "llama3:8b", description: "Meta Llama 3 8B - general purpose", size: "4.7GB", category: "general" },
-  { name: "llama3:70b", description: "Meta Llama 3 70B - advanced reasoning", size: "39GB", category: "general" },
-  { name: "qwen2:7b", description: "Alibaba Qwen2 7B - multilingual", size: "4.4GB", category: "general" },
-  { name: "qwen2:72b", description: "Alibaba Qwen2 72B - large multilingual", size: "41GB", category: "general" },
-  { name: "codellama:7b", description: "Code Llama 7B - code generation", size: "3.8GB", category: "code" },
-  { name: "codellama:13b", description: "Code Llama 13B - code generation", size: "7.4GB", category: "code" },
-  { name: "deepseek-coder:6.7b", description: "DeepSeek Coder 6.7B - code specialist", size: "3.8GB", category: "code" },
-  { name: "deepseek-coder-v2:16b", description: "DeepSeek Coder V2 16B - advanced code", size: "8.9GB", category: "code" },
-  { name: "mistral:7b", description: "Mistral 7B - efficient general model", size: "4.1GB", category: "general" },
-  { name: "mixtral:8x7b", description: "Mixtral 8x7B MoE - high quality", size: "26GB", category: "general" },
-  { name: "phi3:mini", description: "Microsoft Phi-3 Mini - compact capable", size: "2.3GB", category: "general" },
-  { name: "phi3:medium", description: "Microsoft Phi-3 Medium 14B", size: "7.9GB", category: "general" },
-  { name: "gemma:7b", description: "Google Gemma 7B - lightweight", size: "5.0GB", category: "general" },
-  { name: "gemma2:9b", description: "Google Gemma 2 9B - improved", size: "5.4GB", category: "general" },
-  { name: "starcoder2:7b", description: "StarCoder2 7B - code generation", size: "4.0GB", category: "code" },
-  { name: "llava:7b", description: "LLaVA 7B - vision + language", size: "4.7GB", category: "multimodal" },
-  { name: "llava:13b", description: "LLaVA 13B - vision + language", size: "8.0GB", category: "multimodal" },
-  { name: "nomic-embed-text", description: "Nomic Embed Text - embeddings", size: "274MB", category: "embedding" },
-  { name: "all-minilm:l6-v2", description: "All-MiniLM-L6-v2 - sentence embeddings", size: "45MB", category: "embedding" },
-  { name: "wizard-math:7b", description: "WizardMath 7B - math reasoning", size: "4.1GB", category: "math" },
+  {
+    name: "llama3:8b",
+    description: "Meta Llama 3 8B - general purpose",
+    size: "4.7GB",
+    category: "general",
+  },
+  {
+    name: "llama3:70b",
+    description: "Meta Llama 3 70B - advanced reasoning",
+    size: "39GB",
+    category: "general",
+  },
+  {
+    name: "qwen2:7b",
+    description: "Alibaba Qwen2 7B - multilingual",
+    size: "4.4GB",
+    category: "general",
+  },
+  {
+    name: "qwen2:72b",
+    description: "Alibaba Qwen2 72B - large multilingual",
+    size: "41GB",
+    category: "general",
+  },
+  {
+    name: "codellama:7b",
+    description: "Code Llama 7B - code generation",
+    size: "3.8GB",
+    category: "code",
+  },
+  {
+    name: "codellama:13b",
+    description: "Code Llama 13B - code generation",
+    size: "7.4GB",
+    category: "code",
+  },
+  {
+    name: "deepseek-coder:6.7b",
+    description: "DeepSeek Coder 6.7B - code specialist",
+    size: "3.8GB",
+    category: "code",
+  },
+  {
+    name: "deepseek-coder-v2:16b",
+    description: "DeepSeek Coder V2 16B - advanced code",
+    size: "8.9GB",
+    category: "code",
+  },
+  {
+    name: "mistral:7b",
+    description: "Mistral 7B - efficient general model",
+    size: "4.1GB",
+    category: "general",
+  },
+  {
+    name: "mixtral:8x7b",
+    description: "Mixtral 8x7B MoE - high quality",
+    size: "26GB",
+    category: "general",
+  },
+  {
+    name: "phi3:mini",
+    description: "Microsoft Phi-3 Mini - compact capable",
+    size: "2.3GB",
+    category: "general",
+  },
+  {
+    name: "phi3:medium",
+    description: "Microsoft Phi-3 Medium 14B",
+    size: "7.9GB",
+    category: "general",
+  },
+  {
+    name: "gemma:7b",
+    description: "Google Gemma 7B - lightweight",
+    size: "5.0GB",
+    category: "general",
+  },
+  {
+    name: "gemma2:9b",
+    description: "Google Gemma 2 9B - improved",
+    size: "5.4GB",
+    category: "general",
+  },
+  {
+    name: "starcoder2:7b",
+    description: "StarCoder2 7B - code generation",
+    size: "4.0GB",
+    category: "code",
+  },
+  {
+    name: "llava:7b",
+    description: "LLaVA 7B - vision + language",
+    size: "4.7GB",
+    category: "multimodal",
+  },
+  {
+    name: "llava:13b",
+    description: "LLaVA 13B - vision + language",
+    size: "8.0GB",
+    category: "multimodal",
+  },
+  {
+    name: "nomic-embed-text",
+    description: "Nomic Embed Text - embeddings",
+    size: "274MB",
+    category: "embedding",
+  },
+  {
+    name: "all-minilm:l6-v2",
+    description: "All-MiniLM-L6-v2 - sentence embeddings",
+    size: "45MB",
+    category: "embedding",
+  },
+  {
+    name: "wizard-math:7b",
+    description: "WizardMath 7B - math reasoning",
+    size: "4.1GB",
+    category: "math",
+  },
 ];
 
 module.exports = {
@@ -46,12 +146,21 @@ module.exports = {
 
     try {
       switch (parsed.action) {
-        case "list-local": return await handleListLocal();
-        case "pull": return await handlePull(parsed.target);
-        case "search": return await handleSearch(parsed.query, parsed.options);
-        case "info": return await handleInfo(parsed.target);
-        case "remove": return await handleRemove(parsed.target);
-        default: return { success: false, error: `Unknown action: ${parsed.action}. Available: list-local, pull, search, info, remove` };
+        case "list-local":
+          return await handleListLocal();
+        case "pull":
+          return await handlePull(parsed.target);
+        case "search":
+          return await handleSearch(parsed.query, parsed.options);
+        case "info":
+          return await handleInfo(parsed.target);
+        case "remove":
+          return await handleRemove(parsed.target);
+        default:
+          return {
+            success: false,
+            error: `Unknown action: ${parsed.action}. Available: list-local, pull, search, info, remove`,
+          };
       }
     } catch (error) {
       logger.error("[FreeModelManager] Error:", error);
@@ -61,12 +170,17 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "list-local", target: "", query: "", options: {} };
+  if (!input || typeof input !== "string") {
+    return { action: "list-local", target: "", query: "", options: {} };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "list-local").toLowerCase();
 
   const sourceMatch = input.match(/--source\s+(\S+)/);
-  const query = parts.slice(1).filter((p) => !p.startsWith("--")).join(" ");
+  const query = parts
+    .slice(1)
+    .filter((p) => !p.startsWith("--"))
+    .join(" ");
 
   return {
     action,
@@ -82,7 +196,10 @@ async function handleListLocal() {
     const data = await ollamaRequest("GET", "/api/tags");
     models = data.models || [];
   } catch (err) {
-    return { success: false, error: `Cannot connect to Ollama at ${OLLAMA_HOST}. Is Ollama running? Error: ${err.message}` };
+    return {
+      success: false,
+      error: `Cannot connect to Ollama at ${OLLAMA_HOST}. Is Ollama running? Error: ${err.message}`,
+    };
   }
 
   const formatted = models.map((m) => ({
@@ -101,24 +218,41 @@ async function handleListLocal() {
   return {
     success: true,
     action: "list-local",
-    result: { models: formatted, count: formatted.length, totalSize: formatBytes(totalSize) },
+    result: {
+      models: formatted,
+      count: formatted.length,
+      totalSize: formatBytes(totalSize),
+    },
     message: `${formatted.length} model(s) installed locally (${formatBytes(totalSize)} total).`,
   };
 }
 
 async function handlePull(modelName) {
-  if (!modelName) return { success: false, error: "Provide a model name. Example: pull llama3:8b" };
+  if (!modelName) {
+    return {
+      success: false,
+      error: "Provide a model name. Example: pull llama3:8b",
+    };
+  }
 
   // Verify Ollama is accessible
   try {
     await ollamaRequest("GET", "/api/tags");
   } catch (err) {
-    return { success: false, error: `Cannot connect to Ollama at ${OLLAMA_HOST}. Is Ollama running? Error: ${err.message}` };
+    return {
+      success: false,
+      error: `Cannot connect to Ollama at ${OLLAMA_HOST}. Is Ollama running? Error: ${err.message}`,
+    };
   }
 
   // Start the pull (non-streaming to get final status)
   try {
-    const data = await ollamaRequest("POST", "/api/pull", { name: modelName, stream: false }, 600000);
+    const data = await ollamaRequest(
+      "POST",
+      "/api/pull",
+      { name: modelName, stream: false },
+      600000,
+    );
 
     return {
       success: true,
@@ -127,31 +261,48 @@ async function handlePull(modelName) {
       message: `Model "${modelName}" pulled successfully.`,
     };
   } catch (err) {
-    return { success: false, error: `Failed to pull "${modelName}": ${err.message}` };
+    return {
+      success: false,
+      error: `Failed to pull "${modelName}": ${err.message}`,
+    };
   }
 }
 
 async function handleSearch(query, options) {
-  if (!query) return { success: false, error: "Provide a search query. Example: search code generation" };
+  if (!query) {
+    return {
+      success: false,
+      error: "Provide a search query. Example: search code generation",
+    };
+  }
 
   const results = [];
   const lowerQuery = query.toLowerCase();
 
   // Search local catalog
-  const catalogMatches = MODEL_CATALOG.filter((m) =>
-    m.name.toLowerCase().includes(lowerQuery) ||
-    m.description.toLowerCase().includes(lowerQuery) ||
-    m.category.toLowerCase().includes(lowerQuery)
+  const catalogMatches = MODEL_CATALOG.filter(
+    (m) =>
+      m.name.toLowerCase().includes(lowerQuery) ||
+      m.description.toLowerCase().includes(lowerQuery) ||
+      m.category.toLowerCase().includes(lowerQuery),
   );
 
   for (const m of catalogMatches) {
-    results.push({ source: "ollama", name: m.name, description: m.description, size: m.size, category: m.category });
+    results.push({
+      source: "ollama",
+      name: m.name,
+      description: m.description,
+      size: m.size,
+      category: m.category,
+    });
   }
 
   // Search HuggingFace if requested
   if (options.source === "huggingface" || options.source === "hf") {
     try {
-      const hfResults = await fetchJSON(`${HF_API}/models?search=${encodeURIComponent(query)}&sort=likes&direction=-1&limit=15&filter=text-generation`);
+      const hfResults = await fetchJSON(
+        `${HF_API}/models?search=${encodeURIComponent(query)}&sort=likes&direction=-1&limit=15&filter=text-generation`,
+      );
       if (Array.isArray(hfResults)) {
         for (const model of hfResults) {
           results.push({
@@ -166,7 +317,11 @@ async function handleSearch(query, options) {
       }
     } catch (err) {
       logger.warn("[FreeModelManager] HuggingFace search failed:", err.message);
-      results.push({ source: "huggingface", name: "search-error", description: `HuggingFace API error: ${err.message}` });
+      results.push({
+        source: "huggingface",
+        name: "search-error",
+        description: `HuggingFace API error: ${err.message}`,
+      });
     }
   }
 
@@ -179,7 +334,12 @@ async function handleSearch(query, options) {
 }
 
 async function handleInfo(modelName) {
-  if (!modelName) return { success: false, error: "Provide a model name. Example: info llama3:8b" };
+  if (!modelName) {
+    return {
+      success: false,
+      error: "Provide a model name. Example: info llama3:8b",
+    };
+  }
 
   // Try Ollama first (local model)
   try {
@@ -203,7 +363,9 @@ async function handleInfo(modelName) {
     };
   } catch (_err) {
     // Not installed locally, check catalog
-    const catalogEntry = MODEL_CATALOG.find((m) => m.name === modelName || m.name.startsWith(modelName));
+    const catalogEntry = MODEL_CATALOG.find(
+      (m) => m.name === modelName || m.name.startsWith(modelName),
+    );
     if (catalogEntry) {
       return {
         success: true,
@@ -213,12 +375,20 @@ async function handleInfo(modelName) {
       };
     }
 
-    return { success: false, error: `Model "${modelName}" not found locally or in catalog. Try "search ${modelName}" to find it.` };
+    return {
+      success: false,
+      error: `Model "${modelName}" not found locally or in catalog. Try "search ${modelName}" to find it.`,
+    };
   }
 }
 
 async function handleRemove(modelName) {
-  if (!modelName) return { success: false, error: "Provide a model name. Example: remove llama3:8b" };
+  if (!modelName) {
+    return {
+      success: false,
+      error: "Provide a model name. Example: remove llama3:8b",
+    };
+  }
 
   try {
     await ollamaRequest("DELETE", "/api/delete", { name: modelName });
@@ -229,7 +399,10 @@ async function handleRemove(modelName) {
       message: `Model "${modelName}" removed successfully.`,
     };
   } catch (err) {
-    return { success: false, error: `Failed to remove "${modelName}": ${err.message}` };
+    return {
+      success: false,
+      error: `Failed to remove "${modelName}": ${err.message}`,
+    };
   }
 }
 
@@ -243,7 +416,10 @@ function ollamaRequest(method, path, body = null, timeout = 30000) {
       port: parsed.port || (parsed.protocol === "https:" ? 443 : 80),
       path,
       method,
-      headers: { "Content-Type": "application/json", "User-Agent": "ChainlessChain/1.2.0" },
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "ChainlessChain/1.2.0",
+      },
     };
 
     const req = transport.request(options, (res) => {
@@ -260,39 +436,64 @@ function ollamaRequest(method, path, body = null, timeout = 30000) {
             resolve(JSON.parse(data));
           }
         } catch (_parseErr) {
-          logger.warn("[FreeModelManager] Failed to parse JSON response from %s", path);
+          logger.warn(
+            "[FreeModelManager] Failed to parse JSON response from %s",
+            path,
+          );
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve({ status: "success", raw: data });
           } else {
-            reject(new Error(`Ollama returned status ${res.statusCode}: ${data.substring(0, 200)}`));
+            reject(
+              new Error(
+                `Ollama returned status ${res.statusCode}: ${data.substring(0, 200)}`,
+              ),
+            );
           }
         }
       });
     });
 
-    req.on("error", (err) => reject(new Error(`Ollama connection failed: ${err.message}`)));
-    req.setTimeout(timeout, () => { req.destroy(); reject(new Error("Ollama request timed out")); });
+    req.on("error", (err) =>
+      reject(new Error(`Ollama connection failed: ${err.message}`)),
+    );
+    req.setTimeout(timeout, () => {
+      req.destroy();
+      reject(new Error("Ollama request timed out"));
+    });
 
-    if (body) req.write(JSON.stringify(body));
+    if (body) {
+      req.write(JSON.stringify(body));
+    }
     req.end();
   });
 }
 
 function fetchJSON(url) {
   return new Promise((resolve, reject) => {
-    _deps.https.get(url, { headers: { "User-Agent": "ChainlessChain/1.2.0" } }, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try { resolve(JSON.parse(data)); }
-        catch (_err) { reject(new Error(`Failed to parse response from ${url}`)); }
-      });
-    }).on("error", (err) => reject(err));
+    _deps.https
+      .get(
+        url,
+        { headers: { "User-Agent": "ChainlessChain/1.2.0" } },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => (data += chunk));
+          res.on("end", () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch (_err) {
+              reject(new Error(`Failed to parse response from ${url}`));
+            }
+          });
+        },
+      )
+      .on("error", (err) => reject(err));
   });
 }
 
 function formatBytes(bytes) {
-  if (!bytes || bytes === 0) return "0 B";
+  if (!bytes || bytes === 0) {
+    return "0 B";
+  }
   const units = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;

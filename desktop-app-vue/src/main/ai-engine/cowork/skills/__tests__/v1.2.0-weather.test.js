@@ -41,27 +41,65 @@ describe("weather handler", () => {
       handler._deps.https = {
         request: vi.fn((opts, cb) => {
           const weatherData = {
-            current_condition: [{
-              temp_C: "22", temp_F: "72", FeelsLikeC: "20", FeelsLikeF: "68",
-              weatherDesc: [{ value: "Sunny" }], humidity: "45",
-              windspeedKmph: "15", windspeedMiles: "9", winddir16Point: "NW",
-              winddirDegree: "315", visibility: "10", cloudcover: "20",
-              pressure: "1015", uvIndex: "5", precipMM: "0",
-              observation_time: "12:00 PM",
-            }],
-            nearest_area: [{ areaName: [{ value: "London" }], country: [{ value: "UK" }], region: [{ value: "London" }] }],
-            weather: [{
-              date: "2026-03-06", maxtempC: "25", maxtempF: "77", mintempC: "15", mintempF: "59",
-              uvIndex: "5", totalSnow_cm: "0",
-              astronomy: [{ sunrise: "06:30", sunset: "18:30" }],
-              hourly: [
-                {}, {}, {}, {},
-                { weatherDesc: [{ value: "Partly cloudy" }], humidity: "50", windspeedKmph: "12", winddir16Point: "N", chanceofrain: "20", chanceofsnow: "0", uvIndex: "4" },
-              ],
-            }],
+            current_condition: [
+              {
+                temp_C: "22",
+                temp_F: "72",
+                FeelsLikeC: "20",
+                FeelsLikeF: "68",
+                weatherDesc: [{ value: "Sunny" }],
+                humidity: "45",
+                windspeedKmph: "15",
+                windspeedMiles: "9",
+                winddir16Point: "NW",
+                winddirDegree: "315",
+                visibility: "10",
+                cloudcover: "20",
+                pressure: "1015",
+                uvIndex: "5",
+                precipMM: "0",
+                observation_time: "12:00 PM",
+              },
+            ],
+            nearest_area: [
+              {
+                areaName: [{ value: "London" }],
+                country: [{ value: "UK" }],
+                region: [{ value: "London" }],
+              },
+            ],
+            weather: [
+              {
+                date: "2026-03-06",
+                maxtempC: "25",
+                maxtempF: "77",
+                mintempC: "15",
+                mintempF: "59",
+                uvIndex: "5",
+                totalSnow_cm: "0",
+                astronomy: [{ sunrise: "06:30", sunset: "18:30" }],
+                hourly: [
+                  {},
+                  {},
+                  {},
+                  {},
+                  {
+                    weatherDesc: [{ value: "Partly cloudy" }],
+                    humidity: "50",
+                    windspeedKmph: "12",
+                    winddir16Point: "N",
+                    chanceofrain: "20",
+                    chanceofsnow: "0",
+                    uvIndex: "4",
+                  },
+                ],
+              },
+            ],
           };
           const res = createMockResponse(200, weatherData);
-          if (cb) cb(res);
+          if (cb) {
+            cb(res);
+          }
           const req = createMockRequest(null);
           return req;
         }),
@@ -88,11 +126,17 @@ describe("weather handler", () => {
       if (handler._deps) {
         handler._deps.https.request = vi.fn((opts, cb) => {
           const res = createMockResponse(404, "Not Found");
-          if (cb) cb(res);
+          if (cb) {
+            cb(res);
+          }
           return createMockRequest(null);
         });
       }
-      const result = await handler.execute({ input: "current InvalidPlace" }, {}, {});
+      const result = await handler.execute(
+        { input: "current InvalidPlace" },
+        {},
+        {},
+      );
       expect(result.success).toBe(false);
     });
 
@@ -107,7 +151,11 @@ describe("weather handler", () => {
 
   describe("execute() - forecast action", () => {
     it("should fetch forecast", async () => {
-      const result = await handler.execute({ input: "forecast London --days 3" }, {}, {});
+      const result = await handler.execute(
+        { input: "forecast London --days 3" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("forecast");
       expect(result.forecast).toBeDefined();
@@ -120,7 +168,11 @@ describe("weather handler", () => {
     });
 
     it("should include sunrise/sunset in forecast", async () => {
-      const result = await handler.execute({ input: "forecast London" }, {}, {});
+      const result = await handler.execute(
+        { input: "forecast London" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       if (result.forecast && result.forecast.length > 0) {
         expect(result.forecast[0].sunrise).toBeDefined();
@@ -140,7 +192,11 @@ describe("weather handler", () => {
 
   describe("parseInput edge cases", () => {
     it("should auto-detect forecast when --days is specified", async () => {
-      const result = await handler.execute({ input: "London --days 5" }, {}, {});
+      const result = await handler.execute(
+        { input: "London --days 5" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("forecast");
     });

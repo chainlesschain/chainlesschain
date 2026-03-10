@@ -18,10 +18,15 @@ function createMockTransport(statusCode, body, headers = {}) {
       res.statusCode = statusCode;
       res.headers = headers;
       process.nextTick(() => {
-        res.emit("data", typeof body === "string" ? body : JSON.stringify(body));
+        res.emit(
+          "data",
+          typeof body === "string" ? body : JSON.stringify(body),
+        );
         res.emit("end");
       });
-      if (cb) cb(res);
+      if (cb) {
+        cb(res);
+      }
       const req = new EventEmitter();
       req.end = vi.fn();
       req.write = vi.fn();
@@ -35,7 +40,9 @@ function createMockTransport(statusCode, body, headers = {}) {
 describe("api-gateway handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    if (handler._resetState) handler._resetState();
+    if (handler._resetState) {
+      handler._resetState();
+    }
 
     if (handler._deps) {
       const mockTransport = createMockTransport(200, { message: "ok" });
@@ -85,11 +92,7 @@ describe("api-gateway handler", () => {
         {},
         {},
       );
-      const result = await handler.execute(
-        { input: "call GET myapi" },
-        {},
-        {},
-      );
+      const result = await handler.execute({ input: "call GET myapi" }, {}, {});
       expect(result.success).toBe(true);
       expect(result.result.statusCode).toBe(200);
     });

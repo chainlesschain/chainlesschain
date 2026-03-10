@@ -27,15 +27,22 @@ module.exports = {
       return {
         success: false,
         action: parsed.action,
-        error: "Location required. Usage: current <location> or forecast <location> [--days N]",
+        error:
+          "Location required. Usage: current <location> or forecast <location> [--days N]",
       };
     }
 
     try {
       switch (parsed.action) {
-        case "current": return await handleCurrent(parsed.location);
-        case "forecast": return await handleForecast(parsed.location, parsed.days);
-        default: return { success: false, error: `Unknown action: ${parsed.action}. Use: current, forecast` };
+        case "current":
+          return await handleCurrent(parsed.location);
+        case "forecast":
+          return await handleForecast(parsed.location, parsed.days);
+        default:
+          return {
+            success: false,
+            error: `Unknown action: ${parsed.action}. Use: current, forecast`,
+          };
       }
     } catch (error) {
       logger.error("[Weather] Error:", error);
@@ -45,7 +52,9 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "current", location: "", days: 3 };
+  if (!input || typeof input !== "string") {
+    return { action: "current", location: "", days: 3 };
+  }
   const trimmed = input.trim();
   const parts = trimmed.split(/\s+/);
   let action = "current";
@@ -55,7 +64,10 @@ function parseInput(input) {
   const days = daysMatch ? Math.min(parseInt(daysMatch[1], 10), 7) : 3;
 
   // Clean out flags from parts
-  const cleanParts = trimmed.replace(/--days\s+\d+/g, "").trim().split(/\s+/);
+  const cleanParts = trimmed
+    .replace(/--days\s+\d+/g, "")
+    .trim()
+    .split(/\s+/);
 
   if (["current", "forecast"].includes(cleanParts[0]?.toLowerCase())) {
     action = cleanParts[0].toLowerCase();
@@ -63,7 +75,9 @@ function parseInput(input) {
   } else {
     // No action specified; treat all as location, default to current
     locationParts = cleanParts;
-    if (daysMatch) action = "forecast";
+    if (daysMatch) {
+      action = "forecast";
+    }
   }
 
   const location = locationParts.filter((p) => p.length > 0).join(" ");
@@ -74,12 +88,22 @@ function parseInput(input) {
 async function handleCurrent(location) {
   const data = await fetchWeather(location);
   if (!data) {
-    return { success: false, action: "current", error: `Could not fetch weather for "${location}". Check the location name.`, message: `Could not fetch weather for "${location}".` };
+    return {
+      success: false,
+      action: "current",
+      error: `Could not fetch weather for "${location}". Check the location name.`,
+      message: `Could not fetch weather for "${location}".`,
+    };
   }
 
   const current = data.current_condition && data.current_condition[0];
   if (!current) {
-    return { success: false, action: "current", error: `No weather data available for "${location}".`, message: `No weather data available for "${location}".` };
+    return {
+      success: false,
+      action: "current",
+      error: `No weather data available for "${location}".`,
+      message: `No weather data available for "${location}".`,
+    };
   }
 
   const areaName = getAreaName(data);
@@ -122,12 +146,22 @@ async function handleCurrent(location) {
 async function handleForecast(location, days) {
   const data = await fetchWeather(location);
   if (!data) {
-    return { success: false, action: "forecast", error: `Could not fetch forecast for "${location}". Check the location name.`, message: `Could not fetch forecast for "${location}".` };
+    return {
+      success: false,
+      action: "forecast",
+      error: `Could not fetch forecast for "${location}". Check the location name.`,
+      message: `Could not fetch forecast for "${location}".`,
+    };
   }
 
   const weatherData = data.weather;
   if (!weatherData || !Array.isArray(weatherData)) {
-    return { success: false, action: "forecast", error: `No forecast data available for "${location}".`, message: `No forecast data available for "${location}".` };
+    return {
+      success: false,
+      action: "forecast",
+      error: `No forecast data available for "${location}".`,
+      message: `No forecast data available for "${location}".`,
+    };
   }
 
   const areaName = getAreaName(data);
@@ -136,7 +170,8 @@ async function handleForecast(location, days) {
   const forecast = weatherData.slice(0, days).map((day) => {
     const hourly = day.hourly || [];
     // Get midday conditions (index 4 = noon in wttr.in 8-hour slots)
-    const midday = hourly[4] || hourly[Math.floor(hourly.length / 2)] || hourly[0] || {};
+    const midday =
+      hourly[4] || hourly[Math.floor(hourly.length / 2)] || hourly[0] || {};
 
     return {
       date: day.date,
@@ -144,9 +179,14 @@ async function handleForecast(location, days) {
       max_temp_f: parseInt(day.maxtempF, 10),
       min_temp_c: parseInt(day.mintempC, 10),
       min_temp_f: parseInt(day.mintempF, 10),
-      avg_temp_c: Math.round((parseInt(day.maxtempC, 10) + parseInt(day.mintempC, 10)) / 2),
+      avg_temp_c: Math.round(
+        (parseInt(day.maxtempC, 10) + parseInt(day.mintempC, 10)) / 2,
+      ),
       description: midday.weatherDesc?.[0]?.value || "Unknown",
-      humidity: parseInt(midday.humidity || day.hourly?.[0]?.humidity || "0", 10),
+      humidity: parseInt(
+        midday.humidity || day.hourly?.[0]?.humidity || "0",
+        10,
+      ),
       wind_speed_kmh: parseInt(midday.windspeedKmph || "0", 10),
       wind_direction: midday.winddir16Point || "",
       chance_of_rain: parseInt(midday.chanceofrain || "0", 10),
@@ -177,13 +217,19 @@ async function handleForecast(location, days) {
 
 function getAreaName(data) {
   const nearest = data.nearest_area?.[0];
-  if (!nearest) return "Unknown";
-  return nearest.areaName?.[0]?.value || nearest.region?.[0]?.value || "Unknown";
+  if (!nearest) {
+    return "Unknown";
+  }
+  return (
+    nearest.areaName?.[0]?.value || nearest.region?.[0]?.value || "Unknown"
+  );
 }
 
 function getCountry(data) {
   const nearest = data.nearest_area?.[0];
-  if (!nearest) return "";
+  if (!nearest) {
+    return "";
+  }
   return nearest.country?.[0]?.value || "";
 }
 
@@ -208,7 +254,11 @@ function fetchWeather(location) {
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
         if (res.statusCode !== 200) {
-          logger.warn("[Weather] API returned status %d for location: %s", res.statusCode, location);
+          logger.warn(
+            "[Weather] API returned status %d for location: %s",
+            res.statusCode,
+            location,
+          );
           resolve(null);
           return;
         }
@@ -217,7 +267,11 @@ function fetchWeather(location) {
           const parsed = JSON.parse(data);
           resolve(parsed);
         } catch (err) {
-          logger.warn("[Weather] Failed to parse response for %s: %s", location, err.message);
+          logger.warn(
+            "[Weather] Failed to parse response for %s: %s",
+            location,
+            err.message,
+          );
           resolve(null);
         }
       });

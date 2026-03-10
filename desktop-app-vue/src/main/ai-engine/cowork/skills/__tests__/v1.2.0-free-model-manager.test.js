@@ -17,10 +17,15 @@ function createMockTransport(statusCode, body) {
       const res = new EventEmitter();
       res.statusCode = statusCode;
       process.nextTick(() => {
-        res.emit("data", typeof body === "string" ? body : JSON.stringify(body));
+        res.emit(
+          "data",
+          typeof body === "string" ? body : JSON.stringify(body),
+        );
         res.emit("end");
       });
-      if (cb) cb(res);
+      if (cb) {
+        cb(res);
+      }
       const req = new EventEmitter();
       req.end = vi.fn();
       req.write = vi.fn();
@@ -29,14 +34,22 @@ function createMockTransport(statusCode, body) {
       return req;
     }),
     get: vi.fn((url, opts, cb) => {
-      if (typeof opts === "function") { cb = opts; opts = {}; }
+      if (typeof opts === "function") {
+        cb = opts;
+        opts = {};
+      }
       const res = new EventEmitter();
       res.statusCode = statusCode;
       process.nextTick(() => {
-        res.emit("data", typeof body === "string" ? body : JSON.stringify(body));
+        res.emit(
+          "data",
+          typeof body === "string" ? body : JSON.stringify(body),
+        );
         res.emit("end");
       });
-      if (cb) cb(res);
+      if (cb) {
+        cb(res);
+      }
       const req = new EventEmitter();
       req.on = vi.fn().mockReturnThis();
       return req;
@@ -59,7 +72,17 @@ describe("free-model-manager handler", () => {
       if (handler._deps) {
         handler._deps.http = createMockTransport(200, {
           models: [
-            { name: "llama3:8b", size: 4700000000, modified_at: "2026-01-01", digest: "abc123def456", details: { family: "llama", parameter_size: "8B", quantization_level: "Q4_0" } },
+            {
+              name: "llama3:8b",
+              size: 4700000000,
+              modified_at: "2026-01-01",
+              digest: "abc123def456",
+              details: {
+                family: "llama",
+                parameter_size: "8B",
+                quantization_level: "Q4_0",
+              },
+            },
           ],
         });
       }
@@ -79,7 +102,9 @@ describe("free-model-manager handler", () => {
             req.write = vi.fn();
             req.destroy = vi.fn();
             req.setTimeout = vi.fn();
-            process.nextTick(() => req.emit("error", new Error("ECONNREFUSED")));
+            process.nextTick(() =>
+              req.emit("error", new Error("ECONNREFUSED")),
+            );
             return req;
           }),
         };
@@ -97,7 +122,9 @@ describe("free-model-manager handler", () => {
       expect(result.action).toBe("search");
       expect(result.result.results.length).toBeGreaterThan(0);
       // Should find code-related models in catalog
-      const codeModels = result.result.results.filter((m) => m.category === "code");
+      const codeModels = result.result.results.filter(
+        (m) => m.category === "code",
+      );
       expect(codeModels.length).toBeGreaterThan(0);
     });
 
@@ -109,7 +136,9 @@ describe("free-model-manager handler", () => {
     it("should search by model name", async () => {
       const result = await handler.execute({ input: "search llama" }, {}, {});
       expect(result.success).toBe(true);
-      expect(result.result.results.some((m) => m.name.includes("llama"))).toBe(true);
+      expect(result.result.results.some((m) => m.name.includes("llama"))).toBe(
+        true,
+      );
     });
   });
 
@@ -134,8 +163,11 @@ describe("free-model-manager handler", () => {
     it("should get model info from Ollama", async () => {
       if (handler._deps) {
         handler._deps.http = createMockTransport(200, {
-          modelfile: "FROM llama3", parameters: "num_ctx 4096", template: "{{ .Prompt }}",
-          details: { family: "llama", parameter_size: "8B" }, license: "MIT",
+          modelfile: "FROM llama3",
+          parameters: "num_ctx 4096",
+          template: "{{ .Prompt }}",
+          details: { family: "llama", parameter_size: "8B" },
+          license: "MIT",
         });
       }
       const result = await handler.execute({ input: "info llama3:8b" }, {}, {});
@@ -155,7 +187,11 @@ describe("free-model-manager handler", () => {
       if (handler._deps) {
         handler._deps.http = createMockTransport(200, { status: "success" });
       }
-      const result = await handler.execute({ input: "remove llama3:8b" }, {}, {});
+      const result = await handler.execute(
+        { input: "remove llama3:8b" },
+        {},
+        {},
+      );
       expect(result.success).toBe(true);
       expect(result.action).toBe("remove");
       expect(result.result.removed).toBe(true);

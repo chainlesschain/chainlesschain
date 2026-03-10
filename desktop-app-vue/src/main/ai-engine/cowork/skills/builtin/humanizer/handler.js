@@ -5,50 +5,178 @@ const { logger } = require("../../../../../utils/logger.js");
 
 // Common AI writing patterns with replacements
 const AI_PATTERNS = [
-  { pattern: /\bdelve(?:s|d)?\s+into\b/gi, replacement: "look at", label: "delve into" },
-  { pattern: /\btapestry\s+of\b/gi, replacement: "mix of", label: "tapestry of" },
-  { pattern: /\bit(?:'s| is) important to note that\b/gi, replacement: "", label: "it's important to note that" },
-  { pattern: /\bit(?:'s| is) worth noting that\b/gi, replacement: "", label: "it's worth noting that" },
-  { pattern: /\bin conclusion,?\s*/gi, replacement: "So, ", label: "in conclusion" },
-  { pattern: /\bfurthermore,?\s*/gi, replacement: "Also, ", label: "furthermore" },
-  { pattern: /\bmoreover,?\s*/gi, replacement: "On top of that, ", label: "moreover" },
-  { pattern: /\bnevertheless,?\s*/gi, replacement: "Still, ", label: "nevertheless" },
-  { pattern: /\bnotwithstanding\b/gi, replacement: "despite", label: "notwithstanding" },
+  {
+    pattern: /\bdelve(?:s|d)?\s+into\b/gi,
+    replacement: "look at",
+    label: "delve into",
+  },
+  {
+    pattern: /\btapestry\s+of\b/gi,
+    replacement: "mix of",
+    label: "tapestry of",
+  },
+  {
+    pattern: /\bit(?:'s| is) important to note that\b/gi,
+    replacement: "",
+    label: "it's important to note that",
+  },
+  {
+    pattern: /\bit(?:'s| is) worth noting that\b/gi,
+    replacement: "",
+    label: "it's worth noting that",
+  },
+  {
+    pattern: /\bin conclusion,?\s*/gi,
+    replacement: "So, ",
+    label: "in conclusion",
+  },
+  {
+    pattern: /\bfurthermore,?\s*/gi,
+    replacement: "Also, ",
+    label: "furthermore",
+  },
+  {
+    pattern: /\bmoreover,?\s*/gi,
+    replacement: "On top of that, ",
+    label: "moreover",
+  },
+  {
+    pattern: /\bnevertheless,?\s*/gi,
+    replacement: "Still, ",
+    label: "nevertheless",
+  },
+  {
+    pattern: /\bnotwithstanding\b/gi,
+    replacement: "despite",
+    label: "notwithstanding",
+  },
   { pattern: /\bleverage(?:s|d)?\b/gi, replacement: "use", label: "leverage" },
   { pattern: /\butilize(?:s|d)?\b/gi, replacement: "use", label: "utilize" },
-  { pattern: /\bfacilitate(?:s|d)?\b/gi, replacement: "help with", label: "facilitate" },
-  { pattern: /\bcommence(?:s|d)?\b/gi, replacement: "start", label: "commence" },
-  { pattern: /\bterminate(?:s|d)?\b/gi, replacement: "end", label: "terminate" },
-  { pattern: /\bsignificantly\b/gi, replacement: "really", label: "significantly" },
-  { pattern: /\bsubstantially\b/gi, replacement: "a lot", label: "substantially" },
-  { pattern: /\bmultifaceted\b/gi, replacement: "complex", label: "multifaceted" },
-  { pattern: /\bparadigm\s+shift\b/gi, replacement: "big change", label: "paradigm shift" },
-  { pattern: /\bholistic\s+approach\b/gi, replacement: "overall plan", label: "holistic approach" },
-  { pattern: /\bsynerg(?:y|ies|ize|izes)\b/gi, replacement: "teamwork", label: "synergy" },
-  { pattern: /\bin today(?:'s| s) (?:fast-paced|rapidly evolving|ever-changing)\b/gi, replacement: "these days in our", label: "in today's [buzzword]" },
-  { pattern: /\bplethora\s+of\b/gi, replacement: "lots of", label: "plethora of" },
+  {
+    pattern: /\bfacilitate(?:s|d)?\b/gi,
+    replacement: "help with",
+    label: "facilitate",
+  },
+  {
+    pattern: /\bcommence(?:s|d)?\b/gi,
+    replacement: "start",
+    label: "commence",
+  },
+  {
+    pattern: /\bterminate(?:s|d)?\b/gi,
+    replacement: "end",
+    label: "terminate",
+  },
+  {
+    pattern: /\bsignificantly\b/gi,
+    replacement: "really",
+    label: "significantly",
+  },
+  {
+    pattern: /\bsubstantially\b/gi,
+    replacement: "a lot",
+    label: "substantially",
+  },
+  {
+    pattern: /\bmultifaceted\b/gi,
+    replacement: "complex",
+    label: "multifaceted",
+  },
+  {
+    pattern: /\bparadigm\s+shift\b/gi,
+    replacement: "big change",
+    label: "paradigm shift",
+  },
+  {
+    pattern: /\bholistic\s+approach\b/gi,
+    replacement: "overall plan",
+    label: "holistic approach",
+  },
+  {
+    pattern: /\bsynerg(?:y|ies|ize|izes)\b/gi,
+    replacement: "teamwork",
+    label: "synergy",
+  },
+  {
+    pattern:
+      /\bin today(?:'s| s) (?:fast-paced|rapidly evolving|ever-changing)\b/gi,
+    replacement: "these days in our",
+    label: "in today's [buzzword]",
+  },
+  {
+    pattern: /\bplethora\s+of\b/gi,
+    replacement: "lots of",
+    label: "plethora of",
+  },
   { pattern: /\bmyriad\s+of\b/gi, replacement: "many", label: "myriad of" },
-  { pattern: /\bpivotal\s+role\b/gi, replacement: "key part", label: "pivotal role" },
-  { pattern: /\bseamless(?:ly)?\b/gi, replacement: "smooth", label: "seamless" },
+  {
+    pattern: /\bpivotal\s+role\b/gi,
+    replacement: "key part",
+    label: "pivotal role",
+  },
+  {
+    pattern: /\bseamless(?:ly)?\b/gi,
+    replacement: "smooth",
+    label: "seamless",
+  },
   { pattern: /\brobust\b/gi, replacement: "strong", label: "robust" },
-  { pattern: /\bcutting[\s-]edge\b/gi, replacement: "latest", label: "cutting-edge" },
-  { pattern: /\bgroundbreaking\b/gi, replacement: "new", label: "groundbreaking" },
+  {
+    pattern: /\bcutting[\s-]edge\b/gi,
+    replacement: "latest",
+    label: "cutting-edge",
+  },
+  {
+    pattern: /\bgroundbreaking\b/gi,
+    replacement: "new",
+    label: "groundbreaking",
+  },
   { pattern: /\bempowering\b/gi, replacement: "helping", label: "empowering" },
-  { pattern: /\btransformative\b/gi, replacement: "game-changing", label: "transformative" },
-  { pattern: /\bfoster(?:s|ing|ed)?\b/gi, replacement: "build", label: "foster" },
-  { pattern: /\bnecessitate(?:s|d)?\b/gi, replacement: "need", label: "necessitate" },
-  { pattern: /\bameliorate(?:s|d)?\b/gi, replacement: "improve", label: "ameliorate" },
-  { pattern: /\bascertain(?:s|ed)?\b/gi, replacement: "find out", label: "ascertain" },
+  {
+    pattern: /\btransformative\b/gi,
+    replacement: "game-changing",
+    label: "transformative",
+  },
+  {
+    pattern: /\bfoster(?:s|ing|ed)?\b/gi,
+    replacement: "build",
+    label: "foster",
+  },
+  {
+    pattern: /\bnecessitate(?:s|d)?\b/gi,
+    replacement: "need",
+    label: "necessitate",
+  },
+  {
+    pattern: /\bameliorate(?:s|d)?\b/gi,
+    replacement: "improve",
+    label: "ameliorate",
+  },
+  {
+    pattern: /\bascertain(?:s|ed)?\b/gi,
+    replacement: "find out",
+    label: "ascertain",
+  },
   { pattern: /\bexhibit(?:s|ed)?\b/gi, replacement: "show", label: "exhibit" },
-  { pattern: /\bdemonstrate(?:s|d)?\b/gi, replacement: "show", label: "demonstrate" },
+  {
+    pattern: /\bdemonstrate(?:s|d)?\b/gi,
+    replacement: "show",
+    label: "demonstrate",
+  },
   { pattern: /\bpossess(?:es|ed)?\b/gi, replacement: "have", label: "possess" },
   { pattern: /\bendeavor(?:s|ed)?\b/gi, replacement: "try", label: "endeavor" },
 ];
 
 // Hedging/padding patterns
 const HEDGING_PATTERNS = [
-  { pattern: /\bIt is (?:widely|generally) (?:acknowledged|recognized|accepted) that\b/gi, label: "padding opener" },
-  { pattern: /\bAs (?:we|one) (?:can|may) (?:see|observe|note),?\s*/gi, label: "unnecessary qualifier" },
+  {
+    pattern:
+      /\bIt is (?:widely|generally) (?:acknowledged|recognized|accepted) that\b/gi,
+    label: "padding opener",
+  },
+  {
+    pattern: /\bAs (?:we|one) (?:can|may) (?:see|observe|note),?\s*/gi,
+    label: "unnecessary qualifier",
+  },
   { pattern: /\bIn the realm of\b/gi, label: "in the realm of" },
   { pattern: /\bIn the context of\b/gi, label: "in the context of" },
   { pattern: /\bIt goes without saying\b/gi, label: "it goes without saying" },
@@ -59,9 +187,20 @@ const HEDGING_PATTERNS = [
 
 // Sentence structure patterns that feel AI-generated
 const STRUCTURE_PATTERNS = [
-  { pattern: /^(?:In order to|With that in mind|With this in mind|To that end)/gm, label: "formulaic opener" },
-  { pattern: /\. (?:This|It) (?:is|was) (?:important|crucial|essential|vital|imperative) (?:to|that)\b/g, label: "importance statement" },
-  { pattern: /\bThis (?:ensures|allows|enables|provides|offers)\b/g, label: "this [verb] pattern" },
+  {
+    pattern:
+      /^(?:In order to|With that in mind|With this in mind|To that end)/gm,
+    label: "formulaic opener",
+  },
+  {
+    pattern:
+      /\. (?:This|It) (?:is|was) (?:important|crucial|essential|vital|imperative) (?:to|that)\b/g,
+    label: "importance statement",
+  },
+  {
+    pattern: /\bThis (?:ensures|allows|enables|provides|offers)\b/g,
+    label: "this [verb] pattern",
+  },
 ];
 
 module.exports = {
@@ -75,10 +214,17 @@ module.exports = {
 
     try {
       switch (parsed.action) {
-        case "humanize": return handleHumanize(parsed.text);
-        case "analyze": return handleAnalyze(parsed.text);
-        case "adjust-tone": return handleAdjustTone(parsed.tone, parsed.text);
-        default: return { success: false, error: `Unknown action: ${parsed.action}. Available: humanize, analyze, adjust-tone` };
+        case "humanize":
+          return handleHumanize(parsed.text);
+        case "analyze":
+          return handleAnalyze(parsed.text);
+        case "adjust-tone":
+          return handleAdjustTone(parsed.tone, parsed.text);
+        default:
+          return {
+            success: false,
+            error: `Unknown action: ${parsed.action}. Available: humanize, analyze, adjust-tone`,
+          };
       }
     } catch (error) {
       logger.error("[Humanizer] Error:", error);
@@ -88,7 +234,9 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "humanize", text: "", tone: "casual" };
+  if (!input || typeof input !== "string") {
+    return { action: "humanize", text: "", tone: "casual" };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "humanize").toLowerCase();
 
@@ -102,7 +250,9 @@ function parseInput(input) {
 }
 
 function handleHumanize(text) {
-  if (!text) return { success: false, error: "Provide text to humanize." };
+  if (!text) {
+    return { success: false, error: "Provide text to humanize." };
+  }
 
   let result = text;
   const changes = [];
@@ -111,34 +261,49 @@ function handleHumanize(text) {
   for (const { pattern, replacement, label } of AI_PATTERNS) {
     const before = result;
     result = result.replace(pattern, replacement);
-    if (result !== before) changes.push({ type: "replaced", pattern: label, replacement });
+    if (result !== before) {
+      changes.push({ type: "replaced", pattern: label, replacement });
+    }
   }
 
   // Remove hedging patterns
   for (const { pattern, label } of HEDGING_PATTERNS) {
     const before = result;
     result = result.replace(pattern, "");
-    if (result !== before) changes.push({ type: "removed", pattern: label });
+    if (result !== before) {
+      changes.push({ type: "removed", pattern: label });
+    }
   }
 
   // Fix double spaces from removals
   result = result.replace(/\s{2,}/g, " ").trim();
 
   // Fix sentences starting with lowercase after removal
-  result = result.replace(/\.\s+([a-z])/g, (match, letter) => `. ${letter.toUpperCase()}`);
+  result = result.replace(
+    /\.\s+([a-z])/g,
+    (match, letter) => `. ${letter.toUpperCase()}`,
+  );
 
   // Fix sentences that now start with a comma or lowercase
   result = result.replace(/^\s*,\s*/gm, "");
-  result = result.replace(/^([a-z])/gm, (match, letter) => letter.toUpperCase());
+  result = result.replace(/^([a-z])/gm, (match, letter) =>
+    letter.toUpperCase(),
+  );
 
   // Vary sentence starters if too many start with "The" or "This"
   const sentences = result.split(/(?<=\.)\s+/);
   let theCount = 0;
   for (const s of sentences) {
-    if (/^(The|This)\s/.test(s)) theCount++;
+    if (/^(The|This)\s/.test(s)) {
+      theCount++;
+    }
   }
   if (theCount > sentences.length * 0.5 && sentences.length > 3) {
-    changes.push({ type: "note", pattern: "repetitive sentence starters", replacement: "Consider varying how sentences begin" });
+    changes.push({
+      type: "note",
+      pattern: "repetitive sentence starters",
+      replacement: "Consider varying how sentences begin",
+    });
   }
 
   // Add contractions for natural feel
@@ -151,18 +316,31 @@ function handleHumanize(text) {
   result = result.replace(/\bthey are\b/gi, "they're");
   result = result.replace(/\bwe are\b/gi, "we're");
   result = result.replace(/\byou are\b/gi, "you're");
-  if (result !== contractionsBefore) changes.push({ type: "contracted", pattern: "formal expansions", replacement: "contractions" });
+  if (result !== contractionsBefore) {
+    changes.push({
+      type: "contracted",
+      pattern: "formal expansions",
+      replacement: "contractions",
+    });
+  }
 
   return {
     success: true,
     action: "humanize",
-    result: { original: text, humanized: result, changes, changeCount: changes.length },
+    result: {
+      original: text,
+      humanized: result,
+      changes,
+      changeCount: changes.length,
+    },
     message: `Humanized text with ${changes.length} change(s) applied.`,
   };
 }
 
 function handleAnalyze(text) {
-  if (!text) return { success: false, error: "Provide text to analyze." };
+  if (!text) {
+    return { success: false, error: "Provide text to analyze." };
+  }
 
   const detections = [];
   let totalScore = 0;
@@ -171,7 +349,12 @@ function handleAnalyze(text) {
   for (const { pattern, label } of AI_PATTERNS) {
     const matches = text.match(pattern);
     if (matches) {
-      detections.push({ category: "ai-vocabulary", pattern: label, occurrences: matches.length, severity: "medium" });
+      detections.push({
+        category: "ai-vocabulary",
+        pattern: label,
+        occurrences: matches.length,
+        severity: "medium",
+      });
       totalScore += matches.length * 5;
     }
   }
@@ -180,7 +363,12 @@ function handleAnalyze(text) {
   for (const { pattern, label } of HEDGING_PATTERNS) {
     const matches = text.match(pattern);
     if (matches) {
-      detections.push({ category: "hedging", pattern: label, occurrences: matches.length, severity: "low" });
+      detections.push({
+        category: "hedging",
+        pattern: label,
+        occurrences: matches.length,
+        severity: "low",
+      });
       totalScore += matches.length * 3;
     }
   }
@@ -189,7 +377,12 @@ function handleAnalyze(text) {
   for (const { pattern, label } of STRUCTURE_PATTERNS) {
     const matches = text.match(pattern);
     if (matches) {
-      detections.push({ category: "structure", pattern: label, occurrences: matches.length, severity: "medium" });
+      detections.push({
+        category: "structure",
+        pattern: label,
+        occurrences: matches.length,
+        severity: "medium",
+      });
       totalScore += matches.length * 4;
     }
   }
@@ -199,32 +392,59 @@ function handleAnalyze(text) {
   if (sentences.length >= 3) {
     const lengths = sentences.map((s) => s.trim().split(/\s+/).length);
     const avg = lengths.reduce((a, b) => a + b, 0) / lengths.length;
-    const variance = lengths.reduce((sum, l) => sum + Math.pow(l - avg, 2), 0) / lengths.length;
+    const variance =
+      lengths.reduce((sum, l) => sum + Math.pow(l - avg, 2), 0) /
+      lengths.length;
     const stdDev = Math.sqrt(variance);
     if (stdDev < 3 && avg > 8) {
-      detections.push({ category: "structure", pattern: "uniform sentence length", occurrences: 1, severity: "high" });
+      detections.push({
+        category: "structure",
+        pattern: "uniform sentence length",
+        occurrences: 1,
+        severity: "high",
+      });
       totalScore += 10;
     }
   }
 
   // Check for excessive comma usage (AI loves commas)
-  const commaRatio = (text.match(/,/g) || []).length / (text.split(/\s+/).length || 1);
+  const commaRatio =
+    (text.match(/,/g) || []).length / (text.split(/\s+/).length || 1);
   if (commaRatio > 0.12) {
-    detections.push({ category: "punctuation", pattern: "excessive commas", occurrences: 1, severity: "low" });
+    detections.push({
+      category: "punctuation",
+      pattern: "excessive commas",
+      occurrences: 1,
+      severity: "low",
+    });
     totalScore += 5;
   }
 
   // Check for list-like structure
   const bulletPoints = (text.match(/^[\s]*[-*]\s/gm) || []).length;
   if (bulletPoints >= 3) {
-    detections.push({ category: "structure", pattern: "list-heavy formatting", occurrences: bulletPoints, severity: "low" });
+    detections.push({
+      category: "structure",
+      pattern: "list-heavy formatting",
+      occurrences: bulletPoints,
+      severity: "low",
+    });
     totalScore += 3;
   }
 
   // Check for lack of contractions
-  const formalCount = (text.match(/\b(do not|cannot|will not|it is|that is|they are|we are|you are)\b/gi) || []).length;
+  const formalCount = (
+    text.match(
+      /\b(do not|cannot|will not|it is|that is|they are|we are|you are)\b/gi,
+    ) || []
+  ).length;
   if (formalCount >= 3) {
-    detections.push({ category: "formality", pattern: "no contractions used", occurrences: formalCount, severity: "medium" });
+    detections.push({
+      category: "formality",
+      pattern: "no contractions used",
+      occurrences: formalCount,
+      severity: "medium",
+    });
     totalScore += formalCount * 2;
   }
 
@@ -233,11 +453,17 @@ function handleAnalyze(text) {
   const naturalness = Math.max(0, 100 - aiScore);
 
   let verdict;
-  if (naturalness >= 80) verdict = "Looks natural and human-written";
-  else if (naturalness >= 60) verdict = "Mostly natural with some AI patterns";
-  else if (naturalness >= 40) verdict = "Moderate AI writing patterns detected";
-  else if (naturalness >= 20) verdict = "Strong AI writing patterns detected";
-  else verdict = "Very likely AI-generated text";
+  if (naturalness >= 80) {
+    verdict = "Looks natural and human-written";
+  } else if (naturalness >= 60) {
+    verdict = "Mostly natural with some AI patterns";
+  } else if (naturalness >= 40) {
+    verdict = "Moderate AI writing patterns detected";
+  } else if (naturalness >= 20) {
+    verdict = "Strong AI writing patterns detected";
+  } else {
+    verdict = "Very likely AI-generated text";
+  }
 
   return {
     success: true,
@@ -255,11 +481,16 @@ function handleAnalyze(text) {
 }
 
 function handleAdjustTone(tone, text) {
-  if (!text) return { success: false, error: "Provide text to adjust." };
+  if (!text) {
+    return { success: false, error: "Provide text to adjust." };
+  }
 
   const validTones = ["casual", "formal", "friendly", "professional"];
   if (!validTones.includes(tone)) {
-    return { success: false, error: `Invalid tone "${tone}". Available: ${validTones.join(", ")}` };
+    return {
+      success: false,
+      error: `Invalid tone "${tone}". Available: ${validTones.join(", ")}`,
+    };
   }
 
   let result = text;

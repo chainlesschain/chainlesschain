@@ -20,10 +20,14 @@ function getCredentials() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-  let accessToken = process.env.GOOGLE_ACCESS_TOKEN || null;
+  const accessToken = process.env.GOOGLE_ACCESS_TOKEN || null;
 
-  if (apiKey) return { mode: "api-key", apiKey };
-  if (clientId && clientSecret && refreshToken) return { mode: "oauth", clientId, clientSecret, refreshToken, accessToken };
+  if (apiKey) {
+    return { mode: "api-key", apiKey };
+  }
+  if (clientId && clientSecret && refreshToken) {
+    return { mode: "oauth", clientId, clientSecret, refreshToken, accessToken };
+  }
   return null;
 }
 
@@ -33,7 +37,11 @@ function apiRequest(hostname, path, method = "GET", body = null, headers = {}) {
       hostname,
       path,
       method,
-      headers: { "User-Agent": "ChainlessChain/1.2.0", "Content-Type": "application/json", ...headers },
+      headers: {
+        "User-Agent": "ChainlessChain/1.2.0",
+        "Content-Type": "application/json",
+        ...headers,
+      },
     };
 
     if (body) {
@@ -54,14 +62,20 @@ function apiRequest(hostname, path, method = "GET", body = null, headers = {}) {
     });
 
     req.on("error", reject);
-    if (body) req.write(JSON.stringify(body));
+    if (body) {
+      req.write(JSON.stringify(body));
+    }
     req.end();
   });
 }
 
 async function getAccessToken(creds) {
-  if (creds.accessToken) return creds.accessToken;
-  if (creds.mode === "api-key") return null;
+  if (creds.accessToken) {
+    return creds.accessToken;
+  }
+  if (creds.mode === "api-key") {
+    return null;
+  }
 
   const body = {
     client_id: creds.clientId,
@@ -76,11 +90,15 @@ async function getAccessToken(creds) {
     return res.data.access_token;
   }
 
-  throw new Error(`OAuth token refresh failed: ${res.data.error || "unknown error"}`);
+  throw new Error(
+    `OAuth token refresh failed: ${res.data.error || "unknown error"}`,
+  );
 }
 
 function buildAuthQuery(creds) {
-  if (creds.mode === "api-key") return `key=${encodeURIComponent(creds.apiKey)}`;
+  if (creds.mode === "api-key") {
+    return `key=${encodeURIComponent(creds.apiKey)}`;
+  }
   return "";
 }
 
@@ -99,19 +117,30 @@ module.exports = {
       return {
         success: false,
         action: parsed.action,
-        error: "Google credentials not configured. Set GOOGLE_API_KEY or GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REFRESH_TOKEN environment variables.",
+        error:
+          "Google credentials not configured. Set GOOGLE_API_KEY or GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REFRESH_TOKEN environment variables.",
       };
     }
 
     try {
       switch (parsed.action) {
-        case "gmail-search": return await handleGmailSearch(parsed, creds);
-        case "gmail-send": return await handleGmailSend(parsed, creds);
-        case "calendar-list": return await handleCalendarList(parsed, creds);
-        case "calendar-create": return await handleCalendarCreate(parsed, creds);
-        case "drive-list": return await handleDriveList(parsed, creds);
-        case "drive-upload": return await handleDriveUpload(parsed, creds);
-        default: return { success: false, error: `Unknown action: ${parsed.action}. Use: gmail-search, gmail-send, calendar-list, calendar-create, drive-list, drive-upload` };
+        case "gmail-search":
+          return await handleGmailSearch(parsed, creds);
+        case "gmail-send":
+          return await handleGmailSend(parsed, creds);
+        case "calendar-list":
+          return await handleCalendarList(parsed, creds);
+        case "calendar-create":
+          return await handleCalendarCreate(parsed, creds);
+        case "drive-list":
+          return await handleDriveList(parsed, creds);
+        case "drive-upload":
+          return await handleDriveUpload(parsed, creds);
+        default:
+          return {
+            success: false,
+            error: `Unknown action: ${parsed.action}. Use: gmail-search, gmail-send, calendar-list, calendar-create, drive-list, drive-upload`,
+          };
       }
     } catch (error) {
       logger.error("[GoogleWorkspace] Error:", error);
@@ -121,7 +150,9 @@ module.exports = {
 };
 
 function parseInput(input) {
-  if (!input || typeof input !== "string") return { action: "calendar-list", query: "", params: {} };
+  if (!input || typeof input !== "string") {
+    return { action: "calendar-list", query: "", params: {} };
+  }
   const parts = input.trim().split(/\s+/);
   const action = (parts[0] || "").toLowerCase();
   const rest = parts.slice(1).join(" ");
@@ -137,7 +168,12 @@ function parseInput(input) {
   const bodyMatch = rest.match(/body:(.+?)(?=\s+(?:subject:|to:|$))/);
 
   // Remove flags from query
-  const query = rest.replace(/--\w+\s+\S+/g, "").replace(/to:\S+/g, "").replace(/subject:.+?(?=\s+(?:body:|to:|$))/g, "").replace(/body:.+/g, "").trim();
+  const query = rest
+    .replace(/--\w+\s+\S+/g, "")
+    .replace(/to:\S+/g, "")
+    .replace(/subject:.+?(?=\s+(?:body:|to:|$))/g, "")
+    .replace(/body:.+/g, "")
+    .trim();
 
   return {
     action: action || "calendar-list",
@@ -163,10 +199,20 @@ async function handleGmailSearch(parsed, creds) {
   const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
   const authQuery = !token ? `&${buildAuthQuery(creds)}` : "";
 
-  const res = await apiRequest(GMAIL_API, `/gmail/v1/users/me/messages?q=${query}&maxResults=${max}${authQuery}`, "GET", null, authHeader);
+  const res = await apiRequest(
+    GMAIL_API,
+    `/gmail/v1/users/me/messages?q=${query}&maxResults=${max}${authQuery}`,
+    "GET",
+    null,
+    authHeader,
+  );
 
   if (res.status !== 200) {
-    return { success: false, action: "gmail-search", error: `Gmail API error (${res.status}): ${JSON.stringify(res.data)}` };
+    return {
+      success: false,
+      action: "gmail-search",
+      error: `Gmail API error (${res.status}): ${JSON.stringify(res.data)}`,
+    };
   }
 
   const messages = res.data.messages || [];
@@ -174,12 +220,20 @@ async function handleGmailSearch(parsed, creds) {
 
   // Fetch details for each message (up to max)
   for (const msg of messages.slice(0, Math.min(max, 5))) {
-    const detail = await apiRequest(GMAIL_API, `/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date${authQuery}`, "GET", null, authHeader);
+    const detail = await apiRequest(
+      GMAIL_API,
+      `/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date${authQuery}`,
+      "GET",
+      null,
+      authHeader,
+    );
     if (detail.status === 200) {
-      const headers = (detail.data.payload && detail.data.payload.headers) || [];
+      const headers =
+        (detail.data.payload && detail.data.payload.headers) || [];
       results.push({
         id: msg.id,
-        subject: headers.find((h) => h.name === "Subject")?.value || "(no subject)",
+        subject:
+          headers.find((h) => h.name === "Subject")?.value || "(no subject)",
         from: headers.find((h) => h.name === "From")?.value || "",
         date: headers.find((h) => h.name === "Date")?.value || "",
         snippet: detail.data.snippet || "",
@@ -199,10 +253,24 @@ async function handleGmailSearch(parsed, creds) {
 
 async function handleGmailSend(parsed, creds) {
   const { to, subject, body } = parsed.params;
-  if (!to) return { success: false, action: "gmail-send", error: "Recipient required. Use: gmail-send to:<email> subject:<text> body:<text>" };
+  if (!to) {
+    return {
+      success: false,
+      action: "gmail-send",
+      error:
+        "Recipient required. Use: gmail-send to:<email> subject:<text> body:<text>",
+    };
+  }
 
   const token = await getAccessToken(creds);
-  if (!token) return { success: false, action: "gmail-send", error: "OAuth credentials required for sending email (API key is not sufficient)." };
+  if (!token) {
+    return {
+      success: false,
+      action: "gmail-send",
+      error:
+        "OAuth credentials required for sending email (API key is not sufficient).",
+    };
+  }
 
   // Build RFC 2822 message
   const rawMessage = [
@@ -213,12 +281,26 @@ async function handleGmailSend(parsed, creds) {
     body || "",
   ].join("\r\n");
 
-  const encodedMessage = Buffer.from(rawMessage).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const encodedMessage = Buffer.from(rawMessage)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 
-  const res = await apiRequest(GMAIL_API, "/gmail/v1/users/me/messages/send", "POST", { raw: encodedMessage }, { Authorization: `Bearer ${token}` });
+  const res = await apiRequest(
+    GMAIL_API,
+    "/gmail/v1/users/me/messages/send",
+    "POST",
+    { raw: encodedMessage },
+    { Authorization: `Bearer ${token}` },
+  );
 
   if (res.status !== 200) {
-    return { success: false, action: "gmail-send", error: `Failed to send email (${res.status}): ${JSON.stringify(res.data)}` };
+    return {
+      success: false,
+      action: "gmail-send",
+      error: `Failed to send email (${res.status}): ${JSON.stringify(res.data)}`,
+    };
   }
 
   return {
@@ -235,14 +317,26 @@ async function handleCalendarList(parsed, creds) {
   const authQuery = !token ? `&${buildAuthQuery(creds)}` : "";
 
   const now = new Date();
-  const future = new Date(now.getTime() + parsed.params.days * 24 * 60 * 60 * 1000);
+  const future = new Date(
+    now.getTime() + parsed.params.days * 24 * 60 * 60 * 1000,
+  );
   const timeMin = encodeURIComponent(now.toISOString());
   const timeMax = encodeURIComponent(future.toISOString());
 
-  const res = await apiRequest(CALENDAR_API, `/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&maxResults=${parsed.params.max}&singleEvents=true&orderBy=startTime${authQuery}`, "GET", null, authHeader);
+  const res = await apiRequest(
+    CALENDAR_API,
+    `/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&maxResults=${parsed.params.max}&singleEvents=true&orderBy=startTime${authQuery}`,
+    "GET",
+    null,
+    authHeader,
+  );
 
   if (res.status !== 200) {
-    return { success: false, action: "calendar-list", error: `Calendar API error (${res.status}): ${JSON.stringify(res.data)}` };
+    return {
+      success: false,
+      action: "calendar-list",
+      error: `Calendar API error (${res.status}): ${JSON.stringify(res.data)}`,
+    };
   }
 
   const events = (res.data.items || []).map((e) => ({
@@ -265,15 +359,25 @@ async function handleCalendarList(parsed, creds) {
 
 async function handleCalendarCreate(parsed, creds) {
   const token = await getAccessToken(creds);
-  if (!token) return { success: false, action: "calendar-create", error: "OAuth credentials required for creating events." };
+  if (!token) {
+    return {
+      success: false,
+      action: "calendar-create",
+      error: "OAuth credentials required for creating events.",
+    };
+  }
 
   // Parse: "title" datetime --duration N
   const titleMatch = parsed.rest.match(/['"]([^'"]+)['"]/);
   const dateMatch = parsed.rest.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/);
 
   const title = titleMatch ? titleMatch[1] : parsed.query || "New Event";
-  const startTime = dateMatch ? new Date(dateMatch[0]) : new Date(Date.now() + 3600000);
-  const endTime = new Date(startTime.getTime() + parsed.params.duration * 60000);
+  const startTime = dateMatch
+    ? new Date(dateMatch[0])
+    : new Date(Date.now() + 3600000);
+  const endTime = new Date(
+    startTime.getTime() + parsed.params.duration * 60000,
+  );
 
   const event = {
     summary: title,
@@ -281,16 +385,31 @@ async function handleCalendarCreate(parsed, creds) {
     end: { dateTime: endTime.toISOString() },
   };
 
-  const res = await apiRequest(CALENDAR_API, "/calendar/v3/calendars/primary/events", "POST", event, { Authorization: `Bearer ${token}` });
+  const res = await apiRequest(
+    CALENDAR_API,
+    "/calendar/v3/calendars/primary/events",
+    "POST",
+    event,
+    { Authorization: `Bearer ${token}` },
+  );
 
   if (res.status !== 200 && res.status !== 201) {
-    return { success: false, action: "calendar-create", error: `Failed to create event (${res.status}): ${JSON.stringify(res.data)}` };
+    return {
+      success: false,
+      action: "calendar-create",
+      error: `Failed to create event (${res.status}): ${JSON.stringify(res.data)}`,
+    };
   }
 
   return {
     success: true,
     action: "calendar-create",
-    result: { eventId: res.data.id, summary: title, start: startTime.toISOString(), end: endTime.toISOString() },
+    result: {
+      eventId: res.data.id,
+      summary: title,
+      start: startTime.toISOString(),
+      end: endTime.toISOString(),
+    },
     message: `Created event "${title}" on ${startTime.toLocaleDateString()} at ${startTime.toLocaleTimeString()}.`,
   };
 }
@@ -303,10 +422,20 @@ async function handleDriveList(parsed, creds) {
   const folder = parsed.params.folder;
   const query = encodeURIComponent(`'${folder}' in parents and trashed=false`);
 
-  const res = await apiRequest(DRIVE_API, `/drive/v3/files?q=${query}&pageSize=${parsed.params.max}&fields=files(id,name,mimeType,size,modifiedTime)${authQuery}`, "GET", null, authHeader);
+  const res = await apiRequest(
+    DRIVE_API,
+    `/drive/v3/files?q=${query}&pageSize=${parsed.params.max}&fields=files(id,name,mimeType,size,modifiedTime)${authQuery}`,
+    "GET",
+    null,
+    authHeader,
+  );
 
   if (res.status !== 200) {
-    return { success: false, action: "drive-list", error: `Drive API error (${res.status}): ${JSON.stringify(res.data)}` };
+    return {
+      success: false,
+      action: "drive-list",
+      error: `Drive API error (${res.status}): ${JSON.stringify(res.data)}`,
+    };
   }
 
   const files = (res.data.files || []).map((f) => ({
@@ -328,16 +457,33 @@ async function handleDriveList(parsed, creds) {
 
 async function handleDriveUpload(parsed, creds) {
   const token = await getAccessToken(creds);
-  if (!token) return { success: false, action: "drive-upload", error: "OAuth credentials required for uploading files." };
+  if (!token) {
+    return {
+      success: false,
+      action: "drive-upload",
+      error: "OAuth credentials required for uploading files.",
+    };
+  }
 
   const filePath = parsed.query;
-  if (!filePath) return { success: false, action: "drive-upload", error: "File path required. Usage: drive-upload <filepath> [--folder <folderId>]" };
+  if (!filePath) {
+    return {
+      success: false,
+      action: "drive-upload",
+      error:
+        "File path required. Usage: drive-upload <filepath> [--folder <folderId>]",
+    };
+  }
 
   const fs = require("fs");
   const path = require("path");
 
   if (!fs.existsSync(filePath)) {
-    return { success: false, action: "drive-upload", error: `File not found: ${filePath}` };
+    return {
+      success: false,
+      action: "drive-upload",
+      error: `File not found: ${filePath}`,
+    };
   }
 
   const fileName = path.basename(filePath);
@@ -346,19 +492,34 @@ async function handleDriveUpload(parsed, creds) {
   // Step 1: Create metadata
   const metadata = { name: fileName, parents: [parsed.params.folder] };
 
-  const metaRes = await apiRequest(DRIVE_API, "/upload/drive/v3/files?uploadType=resumable", "POST", metadata, {
-    Authorization: `Bearer ${token}`,
-    "X-Upload-Content-Length": fileSize.toString(),
-  });
+  const metaRes = await apiRequest(
+    DRIVE_API,
+    "/upload/drive/v3/files?uploadType=resumable",
+    "POST",
+    metadata,
+    {
+      Authorization: `Bearer ${token}`,
+      "X-Upload-Content-Length": fileSize.toString(),
+    },
+  );
 
   if (metaRes.status !== 200 && metaRes.status !== 201) {
-    return { success: false, action: "drive-upload", error: `Upload init failed (${metaRes.status}): ${JSON.stringify(metaRes.data)}` };
+    return {
+      success: false,
+      action: "drive-upload",
+      error: `Upload init failed (${metaRes.status}): ${JSON.stringify(metaRes.data)}`,
+    };
   }
 
   return {
     success: true,
     action: "drive-upload",
-    result: { fileName, fileSize, folder: parsed.params.folder, status: "upload-initiated" },
+    result: {
+      fileName,
+      fileSize,
+      folder: parsed.params.folder,
+      status: "upload-initiated",
+    },
     message: `Upload initiated for "${fileName}" (${(fileSize / 1024).toFixed(1)} KB) to folder "${parsed.params.folder}". Complete the upload with the resumable session.`,
   };
 }

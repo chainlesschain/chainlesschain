@@ -11,7 +11,7 @@ let computerUseAgent = null;
 
 // Session state
 const sessions = new Map();
-let currentSession = {
+const currentSession = {
   id: "default",
   url: null,
   refs: new Map(),
@@ -24,10 +24,7 @@ module.exports = {
       browserEngine = require("../../../../../browser/browser-engine.js");
       logger.info("[AgentBrowser] BrowserEngine loaded");
     } catch (error) {
-      logger.warn(
-        "[AgentBrowser] BrowserEngine not available:",
-        error.message,
-      );
+      logger.warn("[AgentBrowser] BrowserEngine not available:", error.message);
     }
 
     try {
@@ -45,7 +42,9 @@ module.exports = {
     const input = task.input || task.args || "";
     const parsed = parseCommand(input);
 
-    logger.info(`[AgentBrowser] Command: ${parsed.command}, Args: ${parsed.args}`);
+    logger.info(
+      `[AgentBrowser] Command: ${parsed.command}, Args: ${parsed.args}`,
+    );
 
     try {
       switch (parsed.command) {
@@ -187,7 +186,8 @@ async function handleSnapshot() {
       url: currentSession.url,
       elements: [],
       elementCount: 0,
-      message: "No interactive elements found. Browser engine may not be active.",
+      message:
+        "No interactive elements found. Browser engine may not be active.",
     };
   }
 
@@ -203,7 +203,10 @@ async function handleSnapshot() {
 async function handleClick(args) {
   const refMatch = args.match(/@e(\d+)/);
   if (!refMatch) {
-    return { success: false, error: "No element ref provided. Use @e1, @e2, etc." };
+    return {
+      success: false,
+      error: "No element ref provided. Use @e1, @e2, etc.",
+    };
   }
 
   const ref = `@e${refMatch[1]}`;
@@ -366,7 +369,9 @@ async function handleExtract(args) {
     command: "extract",
     text,
     url: currentSession.url,
-    message: text ? `Extracted ${text.length} characters.` : "No text extracted.",
+    message: text
+      ? `Extracted ${text.length} characters.`
+      : "No text extracted.",
   };
 }
 
@@ -377,7 +382,12 @@ async function handleWait(args) {
   if (msMatch) {
     const ms = Math.min(parseInt(msMatch[1], 10), 30000);
     await new Promise((resolve) => setTimeout(resolve, ms));
-    return { success: true, command: "wait", waited: ms, message: `Waited ${ms}ms.` };
+    return {
+      success: true,
+      command: "wait",
+      waited: ms,
+      message: `Waited ${ms}ms.`,
+    };
   }
 
   if (browserEngine && refMatch) {

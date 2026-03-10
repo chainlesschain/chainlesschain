@@ -8,7 +8,7 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-2500%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-131-blue.svg)
+![Skills](https://img.shields.io/badge/skills-137-blue.svg)
 
 **去中心化 · 隐私优先 · AI原生**
 
@@ -20,9 +20,26 @@
 
 ---
 
-## ⭐ 当前版本: v1.2.0 Full-Stack Edition (2026-03-06)
+## ⭐ 当前版本: v1.2.1 Full-Stack Edition (2026-03-10)
 
-### 最新更新 - v1.2.0 新增32个实用技能 (总计131个桌面内置技能) ⭐NEW
+### 最新更新 - v1.2.1 新增6个社区生态技能 (总计137个桌面内置技能) ⭐NEW
+
+研究社区技能生态(OpenClaw、awesome-skills等)，补充6个高频缺失技能：创意头脑风暴、系统调试策略、API设计、前端设计、PR创建、文档协作。
+
+**社区生态补充技能 (6个)**:
+
+- ✅ **brainstorming** - 创意头脑风暴，5种方法(自由思考/思维导图/SWOT/六顶帽/SCAMPER)
+- ✅ **debugging-strategies** - 系统调试策略，9种模式(诊断/二分法/追踪/假设/小黄鸭/根因分析/红旗检测/防御/会话追踪)
+- ✅ **api-design** - API设计，5种模式(设计/审查/OpenAPI/版本策略/错误码)
+- ✅ **frontend-design** - 前端设计，5种模式(组件/布局/响应式/无障碍/主题)
+- ✅ **create-pr** - PR创建，4种模式(创建/草稿/模板/Changelog)
+- ✅ **doc-coauthoring** - 文档协作，5种模式(初稿/扩展/审查/结构/术语表)
+
+**技能统计**: 131 (v1.2.0) → **137 (v1.2.1)** (+6)
+
+---
+
+### 历史更新 - v1.2.0 新增32个实用技能 (总计131个桌面内置技能)
 
 研究10大外部技能标准(Tavily-search、Find-Skills、Proactive-Agent、Agent-Browser、Remotion、Cron、Planning-with-files等)并转化为内置技能，新增12个开发/运维/知识管理技能，以及10个集成/生产力/知识技能。
 
@@ -67,7 +84,7 @@
 - ✅ **summarizer** - 万能摘要，URL/PDF/YouTube/文本摘要+关键点提取
 - ✅ **weather** - 天气查询，全球天气/预报/告警(wttr.in免密钥)
 
-**技能统计**: 96 (v1.0.0) → **131 (v1.2.0)** (+35)
+**技能统计**: 96 (v1.0.0) → 131 (v1.2.0) (+35)
 
 ---
 
