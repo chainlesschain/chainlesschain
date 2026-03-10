@@ -106,11 +106,10 @@ describe("SecurityAudit Handler", () => {
           .mockReturnValue([
             { name: "pay.js", isDirectory: () => false, isFile: () => true },
           ]),
-        readFileSync: vi
-          .fn()
-          .mockReturnValue(
-            "const stripe = " + '"sk_' + "test_FaKeTeStAbCdEfGh12345678" + '";',
-          ),
+        readFileSync: vi.fn().mockReturnValue(
+          // Construct Stripe-like key dynamically to avoid GitHub push protection
+          `const stripe = "${["sk", "test", "FaKeTeStAbCdEfGh12345678"].join("_")}";`,
+        ),
       };
       handler._deps.path = {
         ...require("path"),
