@@ -231,6 +231,7 @@
     "monaco-editor": "^0.55.1",
     "multiaddr": "^10.0.1",
     "multiformats": "^13.3.0",
+    "graphql": "^16.9.0",
     "natural": "^8.1.0",
     "node-7z": "^3.0.0",
     "node-cron": "^3.0.3",
