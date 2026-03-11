@@ -1,11 +1,16 @@
 /**
  * LLM management commands
- * chainlesschain llm list|test|models
+ * chainlesschain llm models|test|providers|add-provider|switch
  */
 
 import ora from "ora";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import {
+  BUILT_IN_PROVIDERS,
+  LLMProviderRegistry,
+} from "../lib/llm-providers.js";
 
 export function registerLlmCommand(program) {
   const llm = program.command("llm").description("LLM provider management");
@@ -44,9 +49,21 @@ export function registerLlmCommand(program) {
             }
           }
         } else {
-          spinner.fail(
-            `Model listing not supported for provider: ${options.provider}`,
-          );
+          // Show known models for non-Ollama providers
+          spinner.stop();
+          const provider = BUILT_IN_PROVIDERS[options.provider];
+          if (provider) {
+            if (options.json) {
+              console.log(JSON.stringify(provider.models, null, 2));
+            } else {
+              logger.log(chalk.bold(`${provider.displayName} Models:\n`));
+              for (const m of provider.models) {
+                logger.log(`  ${chalk.cyan(m)}`);
+              }
+            }
+          } else {
+            logger.error(`Unknown provider: ${options.provider}`);
+          }
         }
       } catch (err) {
         spinner.fail(`Failed to list models: ${err.message}`);
@@ -131,6 +148,140 @@ export function registerLlmCommand(program) {
         }
       } catch (err) {
         spinner.fail(`Test failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // llm providers - list all available providers
+  llm
+    .command("providers")
+    .description("List all available LLM providers")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          // Fall back to built-in list without DB
+          const providers = Object.values(BUILT_IN_PROVIDERS);
+          if (options.json) {
+            console.log(JSON.stringify(providers, null, 2));
+          } else {
+            logger.log(chalk.bold(`LLM Providers (${providers.length}):\n`));
+            for (const p of providers) {
+              const hasKey = p.apiKeyEnv
+                ? process.env[p.apiKeyEnv]
+                  ? chalk.green("✓")
+                  : chalk.red("✗")
+                : chalk.green("✓");
+              logger.log(
+                `  ${hasKey} ${chalk.cyan(p.name.padEnd(15))} ${p.displayName}`,
+              );
+              logger.log(`    ${chalk.gray("Models:")} ${p.models.join(", ")}`);
+            }
+          }
+          await shutdown();
+          return;
+        }
+
+        const db = ctx.db.getDatabase();
+        const registry = new LLMProviderRegistry(db);
+        const providers = registry.list();
+        const active = registry.getActive();
+
+        if (options.json) {
+          console.log(JSON.stringify({ active, providers }, null, 2));
+        } else {
+          logger.log(chalk.bold(`LLM Providers (${providers.length}):\n`));
+          for (const p of providers) {
+            const isActive = p.name === active ? chalk.green(" [active]") : "";
+            const keyStatus = p.hasApiKey
+              ? chalk.green("✓")
+              : chalk.red("✗ key missing");
+            const custom = p.custom ? chalk.yellow(" [custom]") : "";
+            logger.log(
+              `  ${keyStatus} ${chalk.cyan(p.name.padEnd(15))} ${p.displayName}${isActive}${custom}`,
+            );
+            logger.log(`    ${chalk.gray("Models:")} ${p.models.join(", ")}`);
+          }
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // llm add-provider - add a custom provider
+  llm
+    .command("add-provider")
+    .description("Add a custom LLM provider")
+    .argument("<name>", "Provider name")
+    .requiredOption("-u, --base-url <url>", "API base URL")
+    .option("-d, --display-name <name>", "Display name")
+    .option("-k, --api-key-env <var>", "Environment variable for API key")
+    .option("-m, --models <models>", "Comma-separated model names")
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+
+        const db = ctx.db.getDatabase();
+        const registry = new LLMProviderRegistry(db);
+        const provider = registry.addProvider(name, {
+          displayName: options.displayName || name,
+          baseUrl: options.baseUrl,
+          apiKeyEnv: options.apiKeyEnv,
+          models: options.models
+            ? options.models.split(",").map((m) => m.trim())
+            : [],
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify(provider, null, 2));
+        } else {
+          logger.success(`Added provider ${chalk.cyan(name)}`);
+          logger.log(`  ${chalk.gray("URL:")} ${provider.baseUrl}`);
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // llm switch - switch active provider
+  llm
+    .command("switch")
+    .description("Switch the active LLM provider")
+    .argument("<name>", "Provider name")
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+
+        const db = ctx.db.getDatabase();
+        const registry = new LLMProviderRegistry(db);
+        const provider = registry.setActive(name);
+
+        if (options.json) {
+          console.log(JSON.stringify({ active: name, provider }, null, 2));
+        } else {
+          logger.success(`Switched to ${chalk.cyan(provider.displayName)}`);
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
         process.exit(1);
       }
     });

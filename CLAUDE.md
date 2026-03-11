@@ -65,7 +65,7 @@ npm run test:ukey          # Run U-Key tests
 ```bash
 cd packages/cli
 npm install
-npm test                   # Run all tests (117 tests, 18 files)
+npm test                   # Run all tests (743 tests, 41 files)
 npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests
 npm run test:e2e           # End-to-end tests
@@ -98,6 +98,30 @@ chainlesschain llm test    # Test LLM connectivity
 chainlesschain agent       # Agentic AI session (Claude Code style)
 chainlesschain skill list  # List 138 built-in skills
 chainlesschain skill run code-review "Review this code"
+
+# Phase 1 AI Intelligence Layer
+chainlesschain search "keyword"  # BM25 hybrid search
+chainlesschain tokens show       # Token usage tracking
+chainlesschain memory add "remember this" # Persistent memory
+chainlesschain session list      # Session management
+
+# Phase 2 Knowledge & Content Management
+chainlesschain import markdown ./docs  # Import markdown files
+chainlesschain import evernote backup.enex # Import Evernote
+chainlesschain import pdf document.pdf # Import PDF
+chainlesschain export site -o ./site   # Export as static HTML
+chainlesschain git status              # Git integration
+chainlesschain git auto-commit         # Auto-commit changes
+
+# Phase 3 MCP & External Integration
+chainlesschain mcp servers             # List MCP servers
+chainlesschain mcp add fs -c npx -a "-y,@modelcontextprotocol/server-filesystem"
+chainlesschain mcp tools               # List available tools
+chainlesschain browse fetch https://example.com  # Fetch web page
+chainlesschain browse scrape <url> -s "h2"       # Scrape elements
+chainlesschain llm providers           # List 7 LLM providers
+chainlesschain llm switch anthropic    # Switch active provider
+chainlesschain instinct show           # Learned preferences
 ```
 
 ### Backend Services (Docker-based)
@@ -174,11 +198,11 @@ Key highlights:
 Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
-- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill)
-- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct)
+- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
-- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum)
-- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 tests total)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager)
+- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 625 CLI tests = 743 total)
 - **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 
 ### Backend Services

@@ -443,6 +443,27 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.1 Phase 1 AI智能层",
+          items: [
+            {
+              text: "混合搜索 (search)",
+              link: "/chainlesschain/cli-search",
+            },
+            {
+              text: "Token追踪 (tokens)",
+              link: "/chainlesschain/cli-tokens",
+            },
+            {
+              text: "持久记忆 (memory)",
+              link: "/chainlesschain/cli-memory",
+            },
+            {
+              text: "会话管理 (session)",
+              link: "/chainlesschain/cli-session",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },

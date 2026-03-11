@@ -31,6 +31,53 @@ chainlesschain agent --provider openai --api-key sk-...
 | `run_skill`    | 运行内置技能         |
 | `list_skills`  | 列出可用技能         |
 
+## Plan Mode
+
+代理模式内置 Plan Mode（规划模式），让 AI 在执行复杂任务前先制定计划并获得用户审批。
+
+### 斜杠命令
+
+| 命令             | 说明                         |
+| ---------------- | ---------------------------- |
+| `/plan`          | 进入规划模式                 |
+| `/plan show`     | 查看当前计划                 |
+| `/plan approve`  | 批准计划并开始执行           |
+| `/plan reject`   | 拒绝计划，重新规划           |
+| `/plan exit`     | 退出规划模式                 |
+
+### 规划模式工作流
+
+1. 用户输入 `/plan` 或 AI 自动判断需要规划
+2. AI 进入只读模式（仅允许 `read_file`、`search_files`、`list_dir`）
+3. AI 生成结构化计划，包含步骤、依赖和风险评估
+4. 用户审批（`/plan approve`）后 AI 开始执行
+5. 用户可随时拒绝（`/plan reject`）要求重新规划
+
+### 使用示例
+
+```
+> /plan
+
+📋 已进入规划模式。请描述您的任务。
+
+> 重构认证模块，从 session 迁移到 JWT
+
+🤖 正在分析代码库...
+[只读: read_file auth/session.js]
+[只读: search_files "authentication"]
+
+📋 计划:
+1. 创建 JWT 工具模块
+2. 修改登录接口返回 JWT token
+3. 添加 JWT 验证中间件
+4. 更新受保护路��
+5. 移除 session 依赖
+6. 添加单元测试
+
+> /plan approve
+✅ 开始执行计划...
+```
+
 ## 使用示例
 
 ```

@@ -15,6 +15,20 @@ import { registerAskCommand } from "./commands/ask.js";
 import { registerLlmCommand } from "./commands/llm.js";
 import { registerAgentCommand } from "./commands/agent.js";
 import { registerSkillCommand } from "./commands/skill.js";
+import { registerSearchCommand } from "./commands/search.js";
+import { registerTokensCommand } from "./commands/tokens.js";
+import { registerMemoryCommand } from "./commands/memory.js";
+import { registerSessionCommand } from "./commands/session.js";
+import { registerImportCommand } from "./commands/import.js";
+import { registerExportCommand } from "./commands/export.js";
+import { registerGitCommand } from "./commands/git.js";
+import { registerMcpCommand } from "./commands/mcp.js";
+import { registerBrowseCommand } from "./commands/browse.js";
+import { registerInstinctCommand } from "./commands/instinct.js";
+import { registerDidCommand } from "./commands/did.js";
+import { registerEncryptCommand } from "./commands/encrypt.js";
+import { registerAuthCommand } from "./commands/auth.js";
+import { registerAuditCommand } from "./commands/audit.js";
 
 export function createProgram() {
   const program = new Command();
@@ -38,7 +52,7 @@ export function createProgram() {
   registerUpdateCommand(program);
   registerDoctorCommand(program);
 
-  // New headless commands
+  // Headless commands
   registerDbCommand(program);
   registerNoteCommand(program);
   registerChatCommand(program);
@@ -46,6 +60,28 @@ export function createProgram() {
   registerLlmCommand(program);
   registerAgentCommand(program);
   registerSkillCommand(program);
+
+  // Phase 1: AI intelligence layer
+  registerSearchCommand(program);
+  registerTokensCommand(program);
+  registerMemoryCommand(program);
+  registerSessionCommand(program);
+
+  // Phase 2: Knowledge & content management
+  registerImportCommand(program);
+  registerExportCommand(program);
+  registerGitCommand(program);
+
+  // Phase 3: MCP & external integration
+  registerMcpCommand(program);
+  registerBrowseCommand(program);
+  registerInstinctCommand(program);
+
+  // Phase 4: Security & identity
+  registerDidCommand(program);
+  registerEncryptCommand(program);
+  registerAuthCommand(program);
+  registerAuditCommand(program);
 
   return program;
 }

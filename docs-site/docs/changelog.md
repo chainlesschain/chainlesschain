@@ -5,12 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [5.0.1] - 2026-03-10
+## [5.0.1] - 2026-03-11
 
 ### Added
 
+- **CLI Phase 1 AI 智能层**: 4 个新命令 + Agent Plan Mode，CLI 总计 19 个命令
+  - `search <query>`: BM25 混合搜索，支持 `--mode bm25`、`--top-k`、`--json` 选项
+  - `tokens show|breakdown|recent|cache`: Token 用量追踪、多 Provider 成本分析、响应缓存统计
+  - `memory show|add|search|delete|daily|file`: 持久记忆管理，数据库记忆 + 文件系统每日笔记
+  - `session list|show|resume|export|delete`: 会话持久化、恢复、Markdown 导出
+  - Agent Plan Mode: `/plan` 斜杠命令进入只读规划模式，支持 show/approve/reject/exit
+  - 6 个新 lib 模块: bm25-search.js, token-tracker.js, response-cache.js, session-manager.js, memory-manager.js, plan-mode.js
+  - CLI 测试: 380 tests, 25 files, all passing (from 117 tests / 18 files)
+
 - **CLI 分发系统** (`packages/cli/`): 轻量级 npm CLI 包（~2MB），支持 `npm install -g chainlesschain` 一键安装
-  - 15 个子命令: setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill
+  - 19 个子命令: setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session
   - 按需从 GitHub Releases 下载平台二进制文件
   - 交互式设置向导，支持 5 种 LLM 提供商配置
   - Docker 服务编排、进程管理、环境诊断
@@ -19,7 +28,7 @@
   - 7 个新 Headless 命令: `db`(init/info/backup/restore), `note`(add/list/show/search/delete), `chat`(交互式AI对话+流式输出), `ask`(单次问答), `llm`(models/test), `agent`(8工具+138技能), `skill`(list/categories/info/search/run)
   - Agent REPL (Claude Code 风格): read_file, write_file, edit_file, run_shell, search_files, list_dir, run_skill, list_skills
   - 138 个内置技能集成到 CLI，支持按分类/标签搜索和直接运行
-  - CLI 测试: 117 tests, 18 files, all passing
+  - CLI 基础测试: 117 tests, 18 files (Phase 1 扩展至 380 tests, 25 files)
 - **原生模块保护**: 所有原生/可选模块 require 添加 try-catch 守卫，确保打包后优雅降级
 - **CI/CD**: npm 自动发布工作流 (`publish-cli.yml`)
 - MCP Community Registry remote fetch (`_fetchRemoteCatalog`, `remoteRegistryUrl`)

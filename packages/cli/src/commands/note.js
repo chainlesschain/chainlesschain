@@ -6,6 +6,15 @@
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
+import {
+  ensureVersionsTable,
+  saveVersion,
+  getHistory,
+  getVersion,
+  simpleDiff,
+  formatDiff,
+  revertToVersion,
+} from "../lib/note-versioning.js";
 
 /**
  * Ensure the notes table exists in the database
@@ -296,6 +305,184 @@ export function registerNoteCommand(program) {
         await shutdown();
       } catch (err) {
         logger.error(`Failed to delete note: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // note history
+  note
+    .command("history")
+    .description("Show version history for a note")
+    .argument("<id>", "Note ID (or prefix)")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+
+        const rawDb = ctx.db.getDatabase();
+        ensureNotesTable(rawDb);
+        ensureVersionsTable(rawDb);
+
+        // Find the note
+        const noteRow = rawDb
+          .prepare(
+            "SELECT id FROM notes WHERE id LIKE ? AND deleted_at IS NULL",
+          )
+          .get(`${id}%`);
+
+        if (!noteRow) {
+          logger.error(`Note not found: ${id}`);
+          process.exit(1);
+        }
+
+        const history = getHistory(rawDb, noteRow.id);
+
+        if (options.json) {
+          console.log(JSON.stringify(history, null, 2));
+        } else if (history.length === 0) {
+          logger.info("No version history found");
+        } else {
+          logger.log(
+            chalk.bold(`Version history (${history.length} versions):\n`),
+          );
+          for (const v of history) {
+            logger.log(
+              `  ${chalk.cyan(`v${v.version}`)}  ${chalk.white(v.title)}  ${chalk.gray(v.change_type)}  ${chalk.gray(v.created_at || "")}`,
+            );
+          }
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed to get history: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // note diff
+  note
+    .command("diff")
+    .description("Show diff between two versions of a note")
+    .argument("<id>", "Note ID (or prefix)")
+    .argument("<v1>", "First version number")
+    .argument("<v2>", "Second version number")
+    .option("--json", "Output as JSON")
+    .action(async (id, v1, v2, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+
+        const rawDb = ctx.db.getDatabase();
+        ensureNotesTable(rawDb);
+        ensureVersionsTable(rawDb);
+
+        const noteRow = rawDb
+          .prepare(
+            "SELECT id FROM notes WHERE id LIKE ? AND deleted_at IS NULL",
+          )
+          .get(`${id}%`);
+
+        if (!noteRow) {
+          logger.error(`Note not found: ${id}`);
+          process.exit(1);
+        }
+
+        const ver1 = getVersion(rawDb, noteRow.id, parseInt(v1));
+        const ver2 = getVersion(rawDb, noteRow.id, parseInt(v2));
+
+        if (!ver1) {
+          logger.error(`Version ${v1} not found`);
+          process.exit(1);
+        }
+        if (!ver2) {
+          logger.error(`Version ${v2} not found`);
+          process.exit(1);
+        }
+
+        const diff = simpleDiff(ver1.content, ver2.content);
+
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              { v1: parseInt(v1), v2: parseInt(v2), diff },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.log(chalk.bold(`Diff: v${v1} → v${v2}\n`));
+          logger.log(formatDiff(diff));
+        }
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed to compute diff: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // note revert
+  note
+    .command("revert")
+    .description("Revert a note to a specific version")
+    .argument("<id>", "Note ID (or prefix)")
+    .argument("<version>", "Version number to revert to")
+    .option("--force", "Skip confirmation")
+    .action(async (id, version, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
+
+        const rawDb = ctx.db.getDatabase();
+        ensureNotesTable(rawDb);
+        ensureVersionsTable(rawDb);
+
+        const noteRow = rawDb
+          .prepare(
+            "SELECT id, title FROM notes WHERE id LIKE ? AND deleted_at IS NULL",
+          )
+          .get(`${id}%`);
+
+        if (!noteRow) {
+          logger.error(`Note not found: ${id}`);
+          process.exit(1);
+        }
+
+        if (!options.force) {
+          const { confirm } = await import("@inquirer/prompts");
+          const ok = await confirm({
+            message: `Revert note "${noteRow.title}" to version ${version}?`,
+          });
+          if (!ok) {
+            logger.info("Cancelled");
+            return;
+          }
+        }
+
+        const result = revertToVersion(rawDb, noteRow.id, parseInt(version));
+
+        if (!result) {
+          logger.error(`Version ${version} not found or note unavailable`);
+          process.exit(1);
+        }
+
+        logger.success(
+          `Note reverted to v${result.reverted_to} → new version v${result.new_version}`,
+        );
+
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed to revert: ${err.message}`);
         process.exit(1);
       }
     });
