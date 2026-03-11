@@ -9,7 +9,7 @@ const pkg = require(join(__dirname, "..", "package.json"));
 
 export const VERSION = pkg.version;
 
-export const GITHUB_OWNER = "yourname";
+export const GITHUB_OWNER = "chainlesschain";
 export const GITHUB_REPO = "chainlesschain";
 export const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
 export const GITHUB_RELEASES_URL = `${GITHUB_API_BASE}/releases`;

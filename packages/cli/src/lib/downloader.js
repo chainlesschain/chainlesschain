@@ -89,26 +89,42 @@ export async function downloadRelease(version, options = {}) {
 }
 
 async function resolveAssetUrl(version, binaryName) {
+  // Try exact version first, then fall back to latest release
   const tagName = `v${version}`;
-  const url = `${GITHUB_RELEASES_URL}/tags/${tagName}`;
+  let release = await fetchRelease(`${GITHUB_RELEASES_URL}/tags/${tagName}`);
 
-  const response = await fetch(url, {
-    headers: { Accept: "application/vnd.github.v3+json" },
-  });
+  if (!release) {
+    logger.info(`Release ${tagName} not found, fetching latest release...`);
+    release = await fetchRelease(`${GITHUB_RELEASES_URL}/latest`);
+  }
 
-  if (!response.ok) {
+  if (!release) {
+    throw new Error(`No releases found for ${GITHUB_RELEASES_URL}`);
+  }
+
+  // Re-resolve binary name with the actual release version
+  const actualVersion = release.tag_name.replace(/^v/, "");
+  const actualBinaryName = binaryName.replace(version, actualVersion);
+
+  const asset =
+    release.assets.find((a) => a.name === actualBinaryName) ||
+    release.assets.find((a) => a.name === binaryName);
+  if (!asset) {
+    const available = release.assets.map((a) => a.name).join(", ");
     throw new Error(
-      `Failed to find release ${tagName}: HTTP ${response.status}`,
+      `No matching asset in release ${release.tag_name}. Available: ${available}`,
     );
   }
 
-  const release = await response.json();
-  const asset = release.assets.find((a) => a.name === binaryName);
-  if (!asset) {
-    throw new Error(`Asset ${binaryName} not found in release ${tagName}`);
-  }
-
   return asset.browser_download_url;
+}
+
+async function fetchRelease(url) {
+  const response = await fetch(url, {
+    headers: { Accept: "application/vnd.github.v3+json" },
+  });
+  if (!response.ok) return null;
+  return response.json();
 }
 
 function formatBytes(bytes) {
