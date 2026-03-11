@@ -189,19 +189,26 @@ jobs:
       - name: Publish summary
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          echo "## Publish Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ inputs.dry-run }}" == "true" ]; then
-            echo "**Mode: DRY RUN** (no packages were actually published)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "**Mode: LIVE**" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Package | Version |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|---------|" >> $GITHUB_STEP_SUMMARY
-          echo "| @chainlesschain/core-env | $(node -p \"require('./packages/core-env/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
-          echo "| @chainlesschain/shared-logger | $(node -p \"require('./packages/shared-logger/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
-          echo "| @chainlesschain/core-config | $(node -p \"require('./packages/core-config/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
-          echo "| @chainlesschain/core-db | $(node -p \"require('./packages/core-db/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
-          echo "| @chainlesschain/core-infra | $(node -p \"require('./packages/core-infra/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
-          echo "| chainlesschain | $VERSION |" >> $GITHUB_STEP_SUMMARY
+          V_ENV=$(node -p "require('./packages/core-env/package.json').version")
+          V_LOG=$(node -p "require('./packages/shared-logger/package.json').version")
+          V_CFG=$(node -p "require('./packages/core-config/package.json').version")
+          V_DB=$(node -p "require('./packages/core-db/package.json').version")
+          V_INF=$(node -p "require('./packages/core-infra/package.json').version")
+          {
+            echo "## Publish Summary"
+            echo ""
+            if [ "${{ inputs.dry-run }}" == "true" ]; then
+              echo "**Mode: DRY RUN** (no packages were actually published)"
+            else
+              echo "**Mode: LIVE**"
+            fi
+            echo ""
+            echo "| Package | Version |"
+            echo "|---------|---------|"
+            echo "| @chainlesschain/core-env | $V_ENV |"
+            echo "| @chainlesschain/shared-logger | $V_LOG |"
+            echo "| @chainlesschain/core-config | $V_CFG |"
+            echo "| @chainlesschain/core-db | $V_DB |"
+            echo "| @chainlesschain/core-infra | $V_INF |"
+            echo "| chainlesschain | $VERSION |"
+          } >> $GITHUB_STEP_SUMMARY
