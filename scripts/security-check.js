@@ -75,6 +75,9 @@ const ALLOWED_FILES = [
   "07_性能优化系统.md",
   // 核心包测试文件（包含测试用假密码）
   "logger.test.js",
+  // CLI 命令和测试文件（包含交互式提示标签和测试假数据）
+  "encrypt.js",
+  "audit-logger.test.js",
 ];
 
 function checkFileForSecrets(filePath) {

@@ -42,6 +42,9 @@ describe("E2E: headless CLI commands", () => {
       expect(result).toContain("show");
       expect(result).toContain("search");
       expect(result).toContain("delete");
+      expect(result).toContain("history");
+      expect(result).toContain("diff");
+      expect(result).toContain("revert");
     });
 
     it("llm --help shows subcommands", () => {
@@ -109,7 +112,7 @@ describe("E2E: headless CLI commands", () => {
   });
 
   describe("main help includes all commands", () => {
-    it("--help lists all 15 commands", () => {
+    it("--help lists all 29 commands", () => {
       const result = run("--help");
       const expectedCommands = [
         "setup",
@@ -127,6 +130,24 @@ describe("E2E: headless CLI commands", () => {
         "llm",
         "agent",
         "skill",
+        // Phase 1 commands
+        "search",
+        "tokens",
+        "memory",
+        "session",
+        // Phase 2 commands
+        "import",
+        "export",
+        "git",
+        // Phase 3 commands
+        "mcp",
+        "browse",
+        "instinct",
+        // Phase 4 commands
+        "did",
+        "encrypt",
+        "auth",
+        "audit",
       ];
       for (const cmd of expectedCommands) {
         expect(result).toContain(cmd);

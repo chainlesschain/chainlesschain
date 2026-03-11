@@ -132,6 +132,9 @@ chainlesschain note list --category dev --tag important
 chainlesschain note show <id>           # Show note by ID prefix
 chainlesschain note search "keyword"    # Full-text search
 chainlesschain note delete <id>         # Soft delete
+chainlesschain note history <id>        # Version history
+chainlesschain note diff <id> <v1> <v2> # Diff between versions
+chainlesschain note revert <id> <ver>   # Revert to a version
 ```
 
 ### `chainlesschain chat`
@@ -166,6 +169,9 @@ chainlesschain llm models               # List installed Ollama models
 chainlesschain llm models --json        # JSON output
 chainlesschain llm test                 # Test Ollama connectivity
 chainlesschain llm test --provider openai --api-key sk-...
+chainlesschain llm providers            # List 7 built-in LLM providers
+chainlesschain llm add-provider <name>  # Add custom provider
+chainlesschain llm switch <name>        # Switch active provider
 ```
 
 ### `chainlesschain agent` (alias: `a`)
@@ -195,6 +201,143 @@ chainlesschain skill info code-review --json
 chainlesschain skill search "browser"   # Search by keyword
 chainlesschain skill run code-review "Review this function..."
 ```
+
+---
+
+## Phase 1: AI Intelligence Layer
+
+### `chainlesschain search <query>`
+
+BM25 hybrid keyword search across notes.
+
+```bash
+chainlesschain search "machine learning"
+chainlesschain search "API design" --mode bm25 --top-k 10
+chainlesschain search "security" --json
+```
+
+### `chainlesschain tokens <action>`
+
+Token usage tracking and cost analysis.
+
+```bash
+chainlesschain tokens show              # Current usage summary
+chainlesschain tokens breakdown         # Per-model breakdown
+chainlesschain tokens recent            # Recent usage entries
+chainlesschain tokens cache             # Cache hit/miss stats
+```
+
+### `chainlesschain memory <action>`
+
+Persistent memory management.
+
+```bash
+chainlesschain memory show              # Show all memories
+chainlesschain memory add "Always use TypeScript"
+chainlesschain memory search "coding"   # Search memories
+chainlesschain memory delete <id>       # Delete by ID prefix
+chainlesschain memory daily             # Today's daily note
+chainlesschain memory file              # Show memory file path
+```
+
+### `chainlesschain session <action>`
+
+Session persistence and management.
+
+```bash
+chainlesschain session list             # List saved sessions
+chainlesschain session show <id>        # Show session details
+chainlesschain session resume <id>      # Resume a session
+chainlesschain session export <id>      # Export as Markdown
+chainlesschain session delete <id>      # Delete a session
+```
+
+---
+
+## Phase 2: Knowledge & Content Management
+
+### `chainlesschain import <format>`
+
+Import knowledge from external sources.
+
+```bash
+chainlesschain import markdown ./docs   # Import markdown directory
+chainlesschain import evernote backup.enex  # Import Evernote ENEX
+chainlesschain import notion ./export   # Import Notion export
+chainlesschain import pdf document.pdf  # Import PDF text
+```
+
+### `chainlesschain export <format>`
+
+Export knowledge base.
+
+```bash
+chainlesschain export markdown -o ./output  # Export as Markdown files
+chainlesschain export site -o ./site        # Export as static HTML site
+```
+
+### `chainlesschain git <action>`
+
+Git integration for knowledge versioning.
+
+```bash
+chainlesschain git status               # Show git status
+chainlesschain git init                 # Initialize git repo
+chainlesschain git auto-commit          # Auto-commit all changes
+chainlesschain git hooks                # Install pre-commit hooks
+chainlesschain git history-analyze      # Analyze repo history
+```
+
+### Note Versioning
+
+```bash
+chainlesschain note history <id>        # Show version history
+chainlesschain note diff <id> <v1> <v2> # Diff between versions
+chainlesschain note revert <id> <ver>   # Revert to version
+```
+
+---
+
+## Phase 3: MCP & External Integration
+
+### `chainlesschain mcp <action>`
+
+MCP (Model Context Protocol) server management.
+
+```bash
+chainlesschain mcp servers              # List configured servers
+chainlesschain mcp add <name> -c <cmd>  # Add a server
+chainlesschain mcp remove <name>        # Remove a server
+chainlesschain mcp connect <name>       # Connect to server
+chainlesschain mcp disconnect <name>    # Disconnect
+chainlesschain mcp tools                # List available tools
+chainlesschain mcp call <server> <tool> # Call a tool
+```
+
+### `chainlesschain browse <action>`
+
+Browser automation (headless fetch-based).
+
+```bash
+chainlesschain browse fetch <url>       # Fetch page content
+chainlesschain browse scrape <url> -s "h2"  # Scrape CSS selector
+chainlesschain browse screenshot <url>  # Take screenshot (requires playwright)
+```
+
+### `chainlesschain instinct <action>`
+
+Instinct learning — tracks user preferences over time.
+
+```bash
+chainlesschain instinct show            # Show learned instincts
+chainlesschain instinct categories      # List 6 instinct categories
+chainlesschain instinct prompt          # Generate system prompt from instincts
+chainlesschain instinct delete <id>     # Delete an instinct
+chainlesschain instinct reset           # Clear all instincts
+chainlesschain instinct decay           # Decay old instincts
+```
+
+---
 
 ## Global Options
 
@@ -240,13 +383,16 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 
 ### Supported LLM Providers
 
-| Provider            | Default Model | API Key Required |
-| ------------------- | ------------- | ---------------- |
-| Ollama (Local)      | qwen2:7b      | No               |
-| OpenAI              | gpt-4o        | Yes              |
-| DashScope (Alibaba) | qwen-max      | Yes              |
-| DeepSeek            | deepseek-chat | Yes              |
-| Custom              | —             | Yes              |
+| Provider            | Default Model     | API Key Required |
+| ------------------- | ----------------- | ---------------- |
+| Ollama (Local)      | qwen2:7b          | No               |
+| OpenAI              | gpt-4o            | Yes              |
+| Anthropic           | claude-sonnet-4-6 | Yes              |
+| DashScope (Alibaba) | qwen-max          | Yes              |
+| DeepSeek            | deepseek-chat     | Yes              |
+| Gemini (Google)     | gemini-pro        | Yes              |
+| Mistral             | mistral-large     | Yes              |
+| Custom              | —                 | Yes              |
 
 ## File Structure
 
@@ -265,22 +411,23 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (117 tests across 18 files)
-npm run test:unit       # Unit tests only (10 files)
-npm run test:integration # Integration tests (3 files)
-npm run test:e2e        # End-to-end tests (5 files)
+npm test                # Run all tests (743 tests across 41 files)
+npm run test:unit       # Unit tests only
+npm run test:integration # Integration tests
+npm run test:e2e        # End-to-end tests
 ```
 
 ### Test Coverage
 
-| Category           | Files  | Tests   | Status          |
-| ------------------ | ------ | ------- | --------------- |
-| Unit — lib modules | 8      | 52      | All passing     |
-| Unit — commands    | 3      | 31      | All passing     |
-| Unit — runtime     | 1      | 6       | All passing     |
-| Integration        | 3      | 7       | All passing     |
-| E2E                | 3      | 21      | All passing     |
-| **Total**          | **18** | **117** | **All passing** |
+| Category                 | Files  | Tests   | Status          |
+| ------------------------ | ------ | ------- | --------------- |
+| Unit — lib modules       | 20     | 418     | All passing     |
+| Unit — commands          | 2      | 43      | All passing     |
+| Unit — runtime           | 1      | 6       | All passing     |
+| Integration              | 3      | 7       | All passing     |
+| E2E                      | 8      | 78      | All passing     |
+| Core packages (external) | —      | 118     | All passing     |
+| **CLI Total**            | **41** | **743** | **All passing** |
 
 ## License
 

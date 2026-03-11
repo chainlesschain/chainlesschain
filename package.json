@@ -106,11 +106,14 @@
   },
   "homepage": "https://www.chainlesschain.com",
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
+    "desktop-app-vue/**/*.{js,jsx,ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md,yml,yaml}": [
+    "desktop-app-vue/**/*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "packages/cli/**/*.{js,json,md}": [
       "prettier --write"
     ],
     "*.{js,jsx,ts,tsx,json,md}": [

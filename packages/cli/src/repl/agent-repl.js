@@ -24,6 +24,7 @@ import path from "path";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 import { logger } from "../lib/logger.js";
+import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
 
 /**
  * Tool definitions for function calling
@@ -261,9 +262,29 @@ function loadSkillList(skillsDir) {
 }
 
 /**
- * Execute a tool call
+ * Execute a tool call (with plan mode filtering)
  */
 async function executeTool(name, args) {
+  // Plan mode: check if tool is allowed
+  const planManager = getPlanModeManager();
+  if (planManager.isActive() && !planManager.isToolAllowed(name)) {
+    // In plan mode, log the blocked tool as a plan item
+    planManager.addPlanItem({
+      title: `${name}: ${formatToolArgs(name, args)}`,
+      tool: name,
+      params: args,
+      estimatedImpact:
+        name === "run_shell"
+          ? "high"
+          : name === "write_file"
+            ? "medium"
+            : "low",
+    });
+    return {
+      error: `[Plan Mode] Tool "${name}" is blocked during planning. It has been added to the plan. Use /plan approve to execute.`,
+    };
+  }
+
   switch (name) {
     case "read_file": {
       const filePath = path.resolve(args.path);
@@ -520,6 +541,9 @@ async function chatWithTools(messages, options) {
 
     const data = await response.json();
     // Normalize to Ollama-like format
+    if (!data.choices || !data.choices[0]) {
+      throw new Error("Invalid API response: no choices returned");
+    }
     const choice = data.choices[0];
     return {
       message: choice.message,
@@ -537,7 +561,11 @@ async function agentLoop(messages, options) {
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const result = await chatWithTools(messages, options);
-    const msg = result.message;
+    const msg = result?.message;
+
+    if (!msg) {
+      return "(No response from LLM)";
+    }
 
     // Check for tool calls
     const toolCalls = msg.tool_calls;
@@ -643,10 +671,22 @@ export async function startAgentRepl(options = {}) {
 
   const messages = [{ role: "system", content: SYSTEM_PROMPT }];
 
+  const getPrompt = () => {
+    const planManager = getPlanModeManager();
+    if (planManager.isActive()) {
+      const state = planManager.state;
+      if (state === PlanState.APPROVED || state === PlanState.EXECUTING) {
+        return chalk.green("[plan:exec] > ");
+      }
+      return chalk.yellow("[plan] > ");
+    }
+    return chalk.green("> ");
+  };
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: chalk.green("> "),
+    prompt: getPrompt(),
     terminal: true,
   });
 
@@ -661,12 +701,16 @@ export async function startAgentRepl(options = {}) {
   );
   logger.log(chalk.gray("Type /exit to quit, /help for commands\n"));
 
-  rl.prompt();
+  const prompt = () => {
+    rl.setPrompt(getPrompt());
+    rl.prompt();
+  };
+  prompt();
 
   rl.on("line", async (input) => {
     const trimmed = input.trim();
     if (!trimmed) {
-      rl.prompt();
+      prompt();
       return;
     }
 
@@ -686,13 +730,21 @@ export async function startAgentRepl(options = {}) {
       logger.log(`  ${chalk.cyan("/provider")}   Show/change provider`);
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
       logger.log(`  ${chalk.cyan("/compact")}    Keep only last 4 messages`);
+      logger.log(
+        `  ${chalk.cyan("/plan")}       Enter plan mode (read-only analysis first)`,
+      );
+      logger.log(`  ${chalk.cyan("/plan show")}  Show current plan`);
+      logger.log(
+        `  ${chalk.cyan("/plan approve")} Approve and execute the plan`,
+      );
+      logger.log(`  ${chalk.cyan("/plan reject")}  Reject the plan`);
       logger.log(chalk.bold("\nCapabilities:"));
       logger.log("  Read, write, and edit files");
       logger.log("  Run shell commands (git, npm, etc.)");
       logger.log("  Search codebase by filename or content");
       logger.log("  Run 138 built-in skills (code-review, summarize, etc.)");
-      logger.log("  Answer questions about code\n");
-      rl.prompt();
+      logger.log("  Plan mode: analyze first, execute after approval\n");
+      prompt();
       return;
     }
 
@@ -704,7 +756,7 @@ export async function startAgentRepl(options = {}) {
       } else {
         logger.info(`Current model: ${chalk.cyan(model)}`);
       }
-      rl.prompt();
+      prompt();
       return;
     }
 
@@ -716,14 +768,14 @@ export async function startAgentRepl(options = {}) {
       } else {
         logger.info(`Current provider: ${chalk.cyan(provider)}`);
       }
-      rl.prompt();
+      prompt();
       return;
     }
 
     if (trimmed === "/clear") {
       messages.length = 1; // Keep system prompt
       logger.info("Conversation cleared");
-      rl.prompt();
+      prompt();
       return;
     }
 
@@ -736,7 +788,85 @@ export async function startAgentRepl(options = {}) {
         messages.push(systemMsg, ...recent);
         logger.info("Conversation compacted to last 4 messages");
       }
-      rl.prompt();
+      prompt();
+      return;
+    }
+
+    // Plan mode commands
+    if (trimmed.startsWith("/plan")) {
+      const planManager = getPlanModeManager();
+      const subCmd = trimmed.slice(5).trim();
+
+      if (!subCmd || subCmd === "enter") {
+        if (planManager.isActive()) {
+          logger.info(
+            "Already in plan mode. Use /plan show, /plan approve, or /plan reject.",
+          );
+        } else {
+          planManager.enterPlanMode({ title: "Agent Plan" });
+          logger.success(
+            "Entered plan mode. Write tools are blocked until you approve the plan.",
+          );
+          logger.info(
+            "The AI can still read files and search. Blocked tools become plan items.",
+          );
+          logger.info(
+            "Use /plan show to see the plan, /plan approve to execute.",
+          );
+          // Inject plan mode context into system prompt
+          messages.push({
+            role: "system",
+            content:
+              "[PLAN MODE ACTIVE] You are now in plan mode. You can read files, search, and analyze — but write/execute tools are blocked. Any blocked tool calls will be recorded as plan items. Analyze the task thoroughly, then the user will approve your plan.",
+          });
+        }
+      } else if (subCmd === "show") {
+        if (!planManager.isActive()) {
+          logger.info("Not in plan mode. Use /plan to enter.");
+        } else {
+          logger.log("\n" + planManager.generatePlanSummary() + "\n");
+        }
+      } else if (subCmd === "approve" || subCmd === "yes") {
+        if (!planManager.isActive()) {
+          logger.info("No plan to approve.");
+        } else if (planManager.currentPlan.items.length === 0) {
+          logger.info(
+            "Plan has no items yet. Let the AI analyze the task first.",
+          );
+        } else {
+          planManager.approvePlan();
+          logger.success(
+            `Plan approved! ${planManager.currentPlan.items.length} items ready for execution.`,
+          );
+          logger.info(
+            "Write/execute tools are now unlocked. The AI can proceed.",
+          );
+          messages.push({
+            role: "system",
+            content: `[PLAN APPROVED] The user has approved your plan with ${planManager.currentPlan.items.length} items. You can now use all tools including write_file, edit_file, run_shell, and run_skill. Execute the plan items in order.`,
+          });
+        }
+      } else if (subCmd === "reject" || subCmd === "no") {
+        if (!planManager.isActive()) {
+          logger.info("No plan to reject.");
+        } else {
+          planManager.rejectPlan("User rejected");
+          logger.info("Plan rejected. Exited plan mode.");
+        }
+      } else if (subCmd === "exit") {
+        if (planManager.isActive()) {
+          planManager.exitPlanMode({ savePlan: true });
+          logger.info("Exited plan mode.");
+        } else {
+          logger.info("Not in plan mode.");
+        }
+      } else {
+        logger.info(
+          "Unknown /plan subcommand. Try: /plan, /plan show, /plan approve, /plan reject, /plan exit",
+        );
+      }
+
+      prompt();
       return;
     }
 
@@ -773,7 +903,7 @@ export async function startAgentRepl(options = {}) {
       }
     }
 
-    rl.prompt();
+    prompt();
   });
 
   rl.on("close", () => {

@@ -233,17 +233,27 @@ chainlesschain --quiet      # 静默模式
 | 命令               | 说明                                        | 详情                          |
 | ------------------ | ------------------------------------------- | ----------------------------- |
 | `db`               | 数据库初始化、信息、备份、恢复              | [数据库管理](./cli-db)        |
-| `note`             | 笔记增删改查、全文搜索                      | [笔记/知识库管理](./cli-note) |
+| `note`             | 笔记增删改查、版本控制、全文搜索            | [笔记/知识库管理](./cli-note) |
 | `chat` / `ask`     | 交互式 AI 对话 / 单次问答                   | [AI 对话](./cli-chat)         |
-| `llm`              | 模型列表、连通性测试                        | [LLM 管理](./cli-llm)         |
-| `agent` (别名 `a`) | Claude Code 风格代理会话，8 工具 + 138 技能 | [代理模式](./cli-agent)       |
+| `llm`              | 模型列表、7 Provider 管理、连通性测试       | [LLM 管理](./cli-llm)         |
+| `agent` (别名 `a`) | Claude Code 风格代理会话，8 工具 + 138 技能 + Plan Mode | [代理模式](./cli-agent)       |
 | `skill`            | 技能列表、搜索、运行                        | [技能系统](./cli-skill)       |
+| `search`           | BM25 混合搜索                               | [混合搜索](./cli-search)      |
+| `tokens`           | Token 用量追踪、成本分析                    | [Token追踪](./cli-tokens)     |
+| `memory`           | 持久记忆管理、每日笔记                      | [持久记忆](./cli-memory)      |
+| `session`          | 会话持久化、恢复、导出                      | [会话管理](./cli-session)     |
+| `import`           | 知识导入 (Markdown/Evernote/Notion/PDF)     | Phase 2                       |
+| `export`           | 知识导出 (Markdown/静态HTML站点)            | Phase 2                       |
+| `git`              | Git 集成（状态/初始化/自动提交/历史分析）   | Phase 2                       |
+| `mcp`              | MCP 服务器管理 (JSON-RPC 2.0 over stdio)    | Phase 3                       |
+| `browse`           | 浏览器自动化（页面抓取/CSS选择器/截图）     | Phase 3                       |
+| `instinct`         | 本能学习（偏好追踪/衰减/系统提示生成）      | Phase 3                       |
 
 ---
 
 ## 核心包架构
 
-Headless 命令依赖 5 个独立核心包（118 个测试全部通过）：
+Headless 命令依赖 5 个独立核心包（118 个核心包测试 + 625 个 CLI 测试 = 743 个测试全部通过）：
 
 | 包名                            | 说明                 | 模块类型 | 测试数 |
 | ------------------------------- | -------------------- | -------- | ------ |

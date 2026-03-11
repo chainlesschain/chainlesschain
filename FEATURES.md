@@ -227,27 +227,41 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 ## CLI Headless Commands (v5.0.1+)
 
-15 commands in `packages/cli/src/commands/`, 117 tests all passing:
+25 commands in `packages/cli/src/commands/`, 743 tests all passing (41 test files):
 
-| Command    | Subcommands                         | Description                                             |
-| ---------- | ----------------------------------- | ------------------------------------------------------- |
-| `setup`    | —                                   | Interactive setup wizard                                |
-| `start`    | —                                   | Launch desktop app                                      |
-| `stop`     | —                                   | Stop app                                                |
-| `status`   | —                                   | Show status                                             |
-| `services` | up, down, logs, pull                | Docker service management                               |
-| `config`   | list, get, set, edit, reset         | Configuration management                                |
-| `update`   | —                                   | Check for updates                                       |
-| `doctor`   | —                                   | Environment diagnostics                                 |
-| `db`       | init, info, backup, restore         | Database management (headless)                          |
-| `note`     | add, list, show, search, delete     | Note/knowledge CRUD (headless)                          |
-| `chat`     | —                                   | Interactive AI chat with streaming (headless)           |
-| `ask`      | —                                   | Single-shot AI query (headless)                         |
-| `llm`      | models, test                        | LLM provider management (headless)                      |
-| `agent`    | —                                   | Agentic AI session with 8 tools + 138 skills (headless) |
-| `skill`    | list, categories, info, search, run | 138 built-in skill management (headless)                |
+| Command    | Subcommands                                    | Description                                                        |
+| ---------- | ---------------------------------------------- | ------------------------------------------------------------------ |
+| `setup`    | —                                              | Interactive setup wizard                                           |
+| `start`    | —                                              | Launch desktop app                                                 |
+| `stop`     | —                                              | Stop app                                                           |
+| `status`   | —                                              | Show status                                                        |
+| `services` | up, down, logs, pull                           | Docker service management                                          |
+| `config`   | list, get, set, edit, reset                    | Configuration management                                           |
+| `update`   | —                                              | Check for updates                                                  |
+| `doctor`   | —                                              | Environment diagnostics                                            |
+| `db`       | init, info, backup, restore                    | Database management (headless)                                     |
+| `note`     | add, list, show, search, delete, history, diff, revert | Note/knowledge CRUD + versioning (headless)                |
+| `chat`     | —                                              | Interactive AI chat with streaming (headless)                      |
+| `ask`      | —                                              | Single-shot AI query (headless)                                    |
+| `llm`      | models, test, providers, add-provider, switch  | LLM provider management (headless)                                 |
+| `agent`    | —                                              | Agentic AI session with 8 tools + 138 skills + Plan Mode (headless)|
+| `skill`    | list, categories, info, search, run            | 138 built-in skill management (headless)                           |
+| `search`   | —                                              | BM25 hybrid search (Phase 1)                                      |
+| `tokens`   | show, breakdown, recent, cache                 | Token usage tracking + cost analysis (Phase 1)                     |
+| `memory`   | show, add, search, delete, daily, file         | Persistent memory + daily notes (Phase 1)                          |
+| `session`  | list, show, resume, export, delete             | Session persistence + resume + export (Phase 1)                    |
+| `import`   | markdown, evernote, notion, pdf                | Knowledge import from external sources (Phase 2)                   |
+| `export`   | markdown, site                                 | Knowledge export as Markdown or static HTML (Phase 2)              |
+| `git`      | status, init, auto-commit, hooks, history-analyze | Git integration for knowledge versioning (Phase 2)              |
+| `mcp`      | servers, add, remove, connect, disconnect, tools, call | MCP server management (Phase 3)                            |
+| `browse`   | fetch, scrape, screenshot                      | Browser automation (headless fetch) (Phase 3)                      |
+| `instinct` | show, categories, prompt, delete, reset, decay | Instinct learning management (Phase 3)                             |
 
 **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 tests total)
+**CLI lib modules**: 25 modules (10 original + 6 Phase 1 + 5 Phase 2 + 4 Phase 3)
+- Phase 1: bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode
+- Phase 2: knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser
+- Phase 3: mcp-client, llm-providers, browser-automation, instinct-manager
 
 ## Android Application
 
