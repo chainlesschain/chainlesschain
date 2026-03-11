@@ -1,0 +1,75 @@
+name: CLI CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cli/**"
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ["22.12.0"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        working-directory: packages/cli
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: packages/cli
+        run: npx vitest run __tests__/unit/
+
+      - name: Run integration tests
+        working-directory: packages/cli
+        run: npx vitest run __tests__/integration/
+
+      - name: Run E2E tests
+        working-directory: packages/cli
+        run: npx vitest run __tests__/e2e/
+
+      - name: Verify CLI --version
+        working-directory: packages/cli
+        run: node bin/chainlesschain.js --version
+
+      - name: Verify CLI --help
+        working-directory: packages/cli
+        run: node bin/chainlesschain.js --help
+
+  dry-run-publish:
+    needs: [test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        working-directory: packages/cli
+        run: npm ci
+
+      - name: Dry-run publish
+        working-directory: packages/cli
+        run: npm publish --dry-run
