@@ -103,10 +103,7 @@ describe("core-env/paths", () => {
   describe("ensureDir", () => {
     it("creates directory if not exists", async () => {
       const fs = await import("fs");
-      const testDir = path.join(
-        os.tmpdir(),
-        `core-env-test-${Date.now()}`,
-      );
+      const testDir = path.join(os.tmpdir(), `core-env-test-${Date.now()}`);
       ensureDir(testDir);
       expect(fs.existsSync(testDir)).toBe(true);
       // Cleanup

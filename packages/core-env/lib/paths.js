@@ -27,7 +27,11 @@ function getElectronApp() {
 
   try {
     const electron = require("electron");
-    if (electron && electron.app && typeof electron.app.getPath === "function") {
+    if (
+      electron &&
+      electron.app &&
+      typeof electron.app.getPath === "function"
+    ) {
       _electronApp = electron.app;
     }
   } catch {

@@ -1,0 +1,207 @@
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g., 0.37.9). Leave empty to use package.json version."
+        required: false
+        type: string
+      dry-run:
+        description: "Dry run (npm publish --dry-run)"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # Run tests before publishing
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - name: Install root dependencies (workspaces)
+        run: npm ci
+
+      - name: Run core package tests
+        run: |
+          echo "=== core-env tests ==="
+          npm test --workspace=packages/core-env || true
+
+          echo "=== shared-logger tests ==="
+          npm test --workspace=packages/shared-logger || true
+
+          echo "=== core-config tests ==="
+          npm test --workspace=packages/core-config || true
+
+          echo "=== core-db tests ==="
+          npm test --workspace=packages/core-db || true
+
+          echo "=== core-infra tests ==="
+          npm test --workspace=packages/core-infra || true
+
+      - name: Run CLI tests
+        working-directory: packages/cli
+        run: npx vitest run
+
+  # Publish all packages in dependency order
+  publish:
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install root dependencies (workspaces)
+        run: npm ci
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION=$(node -p "require('./packages/cli/package.json').version")
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Set publish command
+        id: publish-cmd
+        run: |
+          if [ "${{ inputs.dry-run }}" == "true" ]; then
+            echo "FLAGS=--dry-run" >> $GITHUB_OUTPUT
+            echo "Mode: DRY RUN"
+          else
+            echo "FLAGS=--provenance --access public" >> $GITHUB_OUTPUT
+            echo "Mode: LIVE PUBLISH"
+          fi
+
+      # Publish order respects dependency chain:
+      # 1. core-env (no deps)
+      # 2. shared-logger (-> core-env) + core-config (-> core-env)
+      # 3. core-db (-> core-env, core-config)
+      # 4. core-infra (-> shared-logger)
+      # 5. cli (-> all above)
+
+      - name: "Publish @chainlesschain/core-env"
+        working-directory: packages/core-env
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          CURRENT=$(npm view @chainlesschain/core-env version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/shared-logger"
+        working-directory: packages/shared-logger
+        run: |
+          CURRENT=$(npm view @chainlesschain/shared-logger version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/core-config"
+        working-directory: packages/core-config
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-config version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/core-db"
+        working-directory: packages/core-db
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-db version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish @chainlesschain/core-infra"
+        working-directory: packages/core-infra
+        run: |
+          CURRENT=$(npm view @chainlesschain/core-infra version 2>/dev/null || echo "0.0.0")
+          PKG_VER=$(node -p "require('./package.json').version")
+          echo "npm: $CURRENT | local: $PKG_VER"
+          if [ "$CURRENT" = "$PKG_VER" ] && [ "${{ inputs.dry-run }}" != "true" ]; then
+            echo "Already published, skipping"
+          else
+            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: "Publish chainlesschain (CLI)"
+        working-directory: packages/cli
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          CURRENT=$(npm view chainlesschain version 2>/dev/null || echo "0.0.0")
+          echo "npm: $CURRENT | target: $VERSION"
+
+          # Sync version if provided
+          if [ -n "${{ inputs.version }}" ]; then
+            npm version "$VERSION" --no-git-tag-version --allow-same-version
+          fi
+
+          npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish summary
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          echo "## Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.dry-run }}" == "true" ]; then
+            echo "**Mode: DRY RUN** (no packages were actually published)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode: LIVE**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Version |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| @chainlesschain/core-env | $(node -p \"require('./packages/core-env/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| @chainlesschain/shared-logger | $(node -p \"require('./packages/shared-logger/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| @chainlesschain/core-config | $(node -p \"require('./packages/core-config/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| @chainlesschain/core-db | $(node -p \"require('./packages/core-db/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| @chainlesschain/core-infra | $(node -p \"require('./packages/core-infra/package.json').version\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| chainlesschain | $VERSION |" >> $GITHUB_STEP_SUMMARY

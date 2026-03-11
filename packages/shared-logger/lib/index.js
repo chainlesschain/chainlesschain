@@ -227,5 +227,13 @@ export { Logger };
 export const createLogger = (module, options) => new Logger(module, options);
 
 // Re-export config utilities
-export { LOG_LEVELS, LOG_LEVEL_NAMES, DEFAULT_CONFIG } from "./logger-config.js";
-export { formatLogMessage, getStackTrace, sanitizeData } from "./logger-config.js";
+export {
+  LOG_LEVELS,
+  LOG_LEVEL_NAMES,
+  DEFAULT_CONFIG,
+} from "./logger-config.js";
+export {
+  formatLogMessage,
+  getStackTrace,
+  sanitizeData,
+} from "./logger-config.js";

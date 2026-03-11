@@ -36,9 +36,7 @@ describe("QueryBuilder", () => {
         .where("status", "active")
         .where("user_id", 1)
         .buildSQL();
-      expect(sql).toBe(
-        "SELECT * FROM notes WHERE status = ? AND user_id = ?",
-      );
+      expect(sql).toBe("SELECT * FROM notes WHERE status = ? AND user_id = ?");
       expect(params).toEqual(["active", 1]);
     });
 
@@ -50,9 +48,7 @@ describe("QueryBuilder", () => {
         .where("status", "active")
         .orWhere("status", "draft")
         .buildSQL();
-      expect(sql).toBe(
-        "SELECT * FROM notes WHERE status = ? OR status = ?",
-      );
+      expect(sql).toBe("SELECT * FROM notes WHERE status = ? OR status = ?");
     });
 
     it("builds SELECT with ORDER BY", () => {
@@ -67,7 +63,12 @@ describe("QueryBuilder", () => {
 
     it("builds SELECT with LIMIT and OFFSET", () => {
       const qb = new QueryBuilder(null);
-      const { sql } = qb.table("notes").select().limit(10).offset(20).buildSQL();
+      const { sql } = qb
+        .table("notes")
+        .select()
+        .limit(10)
+        .offset(20)
+        .buildSQL();
       expect(sql).toBe("SELECT * FROM notes LIMIT 10 OFFSET 20");
     });
 
@@ -95,11 +96,7 @@ describe("QueryBuilder", () => {
 
     it("builds SELECT with GROUP BY", () => {
       const qb = new QueryBuilder(null);
-      const { sql } = qb
-        .table("notes")
-        .select()
-        .groupBy("category")
-        .buildSQL();
+      const { sql } = qb.table("notes").select().groupBy("category").buildSQL();
       expect(sql).toBe("SELECT * FROM notes GROUP BY category");
     });
 
@@ -148,9 +145,7 @@ describe("QueryBuilder", () => {
         .table("notes")
         .insert({ title: "Test", content: "Hello" })
         .buildSQL();
-      expect(sql).toBe(
-        "INSERT INTO notes (title, content) VALUES (?, ?)",
-      );
+      expect(sql).toBe("INSERT INTO notes (title, content) VALUES (?, ?)");
       expect(params).toEqual(["Test", "Hello"]);
     });
   });

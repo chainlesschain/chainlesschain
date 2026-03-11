@@ -61,9 +61,7 @@ describe("AppConfigManager", () => {
 
     it("creates default config file on first load", () => {
       manager.load();
-      expect(
-        fs.existsSync(path.join(testDir, "app-config.json")),
-      ).toBe(true);
+      expect(fs.existsSync(path.join(testDir, "app-config.json"))).toBe(true);
     });
   });
 
