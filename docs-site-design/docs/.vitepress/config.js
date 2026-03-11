@@ -387,6 +387,11 @@ export default defineConfig({
           ],
         },
         {
+          text: "CLI 分发系统 (66)",
+          collapsed: false,
+          items: [{ text: "66 CLI分发系统", link: "/modules/66_CLI分发系统" }],
+        },
+        {
           text: "归档",
           collapsed: true,
           items: [

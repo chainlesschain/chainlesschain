@@ -9,7 +9,8 @@
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-3200%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-137-blue.svg)
-![Phases](https://img.shields.io/badge/phases-100-brightgreen.svg)
+![Phases](https://img.shields.io/badge/phases-101-brightgreen.svg)
+![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
 
@@ -21,9 +22,29 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.1 Evolution Edition (2026-03-10)
+## ⭐ 当前版本: v5.0.1 Evolution Edition (2026-03-11)
 
-### 最新更新 - v5.0.0 架构重构 + AI Agent 2.0 + Web3 深化 + 企业平台 + 自进化系统 (Phase 78-100) ⭐NEW
+### 最新更新 - CLI 分发系统 (Phase 101) ⭐NEW
+
+新增轻量级 npm CLI 工具，一条命令即可安装和管理 ChainlessChain：
+
+```bash
+npm install -g chainlesschain
+chainlesschain setup    # 交互式安装向导
+chainlesschain start    # 启动应用
+```
+
+- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，8 个命令 (setup/start/stop/status/services/config/update/doctor)
+- ✅ **交互式安装向导** — Node.js/Docker 检测 → 版本选择 → LLM 配置 → 二进制下载 → 自动配置
+- ✅ **GitHub Release 集成** — 自动下载平台二进制文件 (Win/macOS/Linux) + SHA256 校验
+- ✅ **Docker Compose 编排** — 一键管理后端服务 (`services up/down/logs/pull`)
+- ✅ **环境诊断** (`doctor`) — 12 项检查 (Node/Docker/Git/端口/磁盘/网络)
+- ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
+- ✅ **66 个测试用例** — 8 单元 + 3 集成 + 2 端到端，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+
+---
+
+### 历史更新 - v5.0.0 架构重构 + AI Agent 2.0 + Web3 深化 + 企业平台 + 自进化系统 (Phase 78-100)
 
 **23个新模块**，覆盖三大方向：AI Agent 2.0、Web3 深化、企业级生产力平台。新增 ~178 IPC Handlers，37 测试文件 1238+ 测试用例，全部通过。
 
@@ -69,8 +90,9 @@
 
 - 🆕 23个新模块 (Phase 78-100)，62个源文件，37个测试文件
 - 📊 ~178 IPC Handlers，1238+ 单元测试全部通过
-- 📄 23份设计文档 (docs/design/modules/43-65)
+- 📄 24份设计文档 (docs/design/modules/43-66)
 - 📦 2个文档网站已打包 (docs-site v5.0.0 + docs-site-design v5.0.0)
+- 🔧 1个 npm CLI 包 (packages/cli/, Phase 101)
 
 ---
 
@@ -1327,6 +1349,16 @@
 
 ## 🚀 快速开始
 
+### 一键安装 (CLI)
+
+```bash
+npm install -g chainlesschain
+chainlesschain setup
+chainlesschain start
+```
+
+CLI 提供交互式设置向导，自动下载二进制文件并配置 LLM 提供商。详见 [CLI 安装指南](./docs/guides/CLI_INSTALLATION_GUIDE.md)。
+
 ### 环境要求
 
 - **Node.js**: 22.12.0+ (推荐使用最新LTS版本)
@@ -1476,6 +1508,12 @@ chainlesschain/
 │       ├── integration/      # 集成测试 (后端集成、用户旅程)
 │       ├── performance/      # 性能测试 (负载、内存泄漏)
 │       └── security/         # 安全测试 (OWASP Top 10)
+├── packages/
+│   └── cli/                  # npm CLI 工具 (chainlesschain, 纯JS ~2MB)
+│       ├── bin/              # CLI 入口 (#!/usr/bin/env node)
+│       ├── src/commands/     # 8 个命令 (setup/start/stop/status/services/config/update/doctor)
+│       ├── src/lib/          # 10 个库模块 (platform/paths/downloader/config-manager等)
+│       └── __tests__/        # 13 个测试文件 (66 测试用例)
 ├── backend/
 │   ├── project-service/      # Spring Boot 3.1.11 (Java 17)
 │   └── ai-service/           # FastAPI + Ollama + Qdrant
@@ -1514,6 +1552,12 @@ chainlesschain/
 - 自治Agent Runner: ReAct循环 + 目标分解 + 自主任务执行
 - 分析仪表板: 实时聚合 + 多维指标 + 可视化报表
 - 测试框架: Vitest + 2500+测试用例 + 417+测试文件 + DI重构
+
+### CLI 工具
+
+- Node.js 22+ ESM + Commander 12 + chalk 5 + ora 8 + semver 7
+- 纯 JS 零原生依赖，npm 全局安装即用
+- GitHub Release 自动下载 + SHA256 校验 + Docker Compose 编排
 
 ### 后端
 
@@ -1584,6 +1628,7 @@ chainlesschain/
 - [x] **TypeScript Stores扩展**: 46个Stores完整覆盖 ✅ v1.0.0
 - [x] **SIMKey六大安全增强**: iOS eSIM + 5G优化 + NFC离线签名 + 多SIM卡切换 + 健康监控 + 量子抗性算法 ✅ v0.38.0
 - [x] **everything-claude-code模式**: Verification Loop + Orchestrate Workflow + Instinct Learning System ✅ v0.39.0
+- [x] **CLI分发系统 (Phase 101)**: npm CLI包 + 交互式安装 + GitHub Release下载 + Docker编排 + 环境诊断 + CI/CD自动发布 ✅ v5.0.1
 - [x] **AI技能系统**: 137内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + Agent Skills标准 ✅ v1.2.1
 - [x] **扩展MCP服务器支持**: MCP SDK (Server Builder + HTTP+SSE + Stdio) + 社区注册中心 ✅ v0.34.0
 - [x] **增强多代理协作**: 8种专业化代理模板 + 任务编排引擎 + 5个内置技能 ✅ v0.34.0
