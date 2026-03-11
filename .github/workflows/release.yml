@@ -55,6 +55,8 @@ jobs:
           @REM Use directory junction (mklink /J) for instant linking instead of slow copy
           @REM This is MUCH faster than robocopy for large node_modules directories
           if exist "desktop-app-vue\node_modules" rmdir /s /q "desktop-app-vue\node_modules"
+          @REM Remove workspace self-referencing symlink to prevent ELOOP during packaging
+          if exist "node_modules\chainlesschain-desktop-vue" rmdir "node_modules\chainlesschain-desktop-vue"
           mklink /J "desktop-app-vue\node_modules" "%CD%\node_modules"
           if %ERRORLEVEL% NEQ 0 (
             echo Junction failed, falling back to xcopy...
@@ -112,6 +114,8 @@ jobs:
       - name: Link hoisted modules for packaging
         run: |
           rm -rf desktop-app-vue/node_modules
+          # Remove workspace self-referencing symlink to prevent ELOOP during packaging
+          rm -f node_modules/chainlesschain-desktop-vue
           ln -s "$(pwd)/node_modules" desktop-app-vue/node_modules
           echo "Hoisted modules symlinked to desktop-app-vue"
 
@@ -171,6 +175,8 @@ jobs:
       - name: Link hoisted modules for packaging
         run: |
           rm -rf desktop-app-vue/node_modules
+          # Remove workspace self-referencing symlink to prevent ELOOP during packaging
+          rm -f node_modules/chainlesschain-desktop-vue
           ln -s "$(pwd)/node_modules" desktop-app-vue/node_modules
           echo "Hoisted modules symlinked to desktop-app-vue"
 
@@ -575,19 +581,87 @@ jobs:
             [ "${{ inputs.prerelease }}" == "true" ] && EXTRA_FLAGS="$EXTRA_FLAGS --prerelease"
           fi
 
-          # Delete existing release if any (to avoid immutable conflict)
+          # Delete existing release and its tag if any (to avoid immutable conflict)
           if gh release view "$VERSION" > /dev/null 2>&1; then
             echo "Deleting existing release ${VERSION} to recreate with artifacts..."
-            gh release delete "$VERSION" --yes || true
+            gh release delete "$VERSION" --yes --cleanup-tag || true
+            # Wait for GitHub to propagate the deletion
+            sleep 5
           fi
 
           # Create release with all uniquely-named artifacts
+          # Use --target to specify the commit since tag may have been deleted above
           echo "Creating release ${VERSION} with artifacts..."
           gh release create "$VERSION" \
             --title "ChainlessChain ${VERSION}" \
             --notes-file release-notes.md \
+            --target "${{ github.sha }}" \
             $EXTRA_FLAGS \
             release-assets/*
 
           echo "✅ Release ${VERSION} completed!"
           echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
+
+  # Publish CLI to npm
+  publish-cli:
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install CLI dependencies
+        working-directory: packages/cli
+        run: npm ci
+
+      - name: Run CLI tests
+        working-directory: packages/cli
+        run: npx vitest run
+
+      - name: Resolve version
+        id: cli-version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Resolved version: $VERSION"
+
+      - name: Check if version already published
+        id: check-published
+        working-directory: packages/cli
+        run: |
+          VERSION="${{ steps.cli-version.outputs.VERSION }}"
+          if npm view "chainlesschain@${VERSION}" version 2>/dev/null; then
+            echo "⚠️ chainlesschain@${VERSION} already published, skipping"
+            echo "ALREADY_PUBLISHED=true" >> $GITHUB_OUTPUT
+          else
+            echo "ALREADY_PUBLISHED=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Sync version from tag
+        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        working-directory: packages/cli
+        run: |
+          VERSION="${{ steps.cli-version.outputs.VERSION }}"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          echo "📦 Publishing chainlesschain@${VERSION}"
+
+      - name: Publish to npm
+        if: steps.check-published.outputs.ALREADY_PUBLISHED != 'true'
+        working-directory: packages/cli
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
