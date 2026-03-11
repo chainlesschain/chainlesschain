@@ -8,7 +8,7 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-3200%2B-brightgreen.svg)
-![Skills](https://img.shields.io/badge/skills-137-blue.svg)
+![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-101-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
@@ -56,7 +56,7 @@ chainlesschain start    # Launch application
 
 ---
 
-### Historical Updates - v1.2.1 Added 6 Community Ecosystem Skills (137 Total Desktop Built-in Skills)
+### Historical Updates - v1.2.1 Added 6 Community Ecosystem Skills (138 Total Desktop Built-in Skills)
 
 Researched community skill ecosystems (OpenClaw, awesome-skills, etc.) and added 6 high-frequency missing skills: creative brainstorming, systematic debugging strategies, API design, frontend design, PR creation, and document co-authoring.
 
@@ -69,7 +69,7 @@ Researched community skill ecosystems (OpenClaw, awesome-skills, etc.) and added
 - ✅ **create-pr** - PR creation with 4 modes (create/draft/template/changelog)
 - ✅ **doc-coauthoring** - Document co-authoring with 5 modes (draft/expand/review/structure/glossary)
 
-**Skill Statistics**: 131 (v1.2.0) → **137 (v1.2.1)** (+6)
+**Skill Statistics**: 131 (v1.2.0) → **138 (v1.2.1)** (+7)
 
 ---
 
@@ -1059,8 +1059,8 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
-- 🎨 **Skills System**: 137 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.2.1
-- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 137 skills unified management ✅ ⭐v1.0.0
+- 🎨 **Skills System**: 138 built-in skills + Agent Skills open standard + Unified tool registry + /skill commands ✅ ⭐v1.2.1
+- 🗂️ **Unified Tool Registry**: FunctionCaller 60+ tools + MCP 8 servers + Skills 138 skills unified management ✅ ⭐v1.0.0
 - 🧬 **Instinct Learning**: Auto-extract user patterns + Confidence scoring + Context injection + Hooks observation pipeline ✅ ⭐v0.39.0
 - 📦 **Demo Templates**: 10 demo templates + 4 categories + Visual browsing + One-click run ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
@@ -1226,7 +1226,7 @@ Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.
 
 ### 🔟 Unified Tool Registry + Demo Templates (100% Complete) ✅
 
-- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (137 skills) into single registry
+- ✅ **UnifiedToolRegistry** - Aggregates FunctionCaller (60+), MCP (8 servers), Skills (138 skills) into single registry
 - ✅ **ToolSkillMapper** - Auto-groups uncovered tools into 10 default skill categories
 - ✅ **MCPSkillGenerator** - Auto-generates skill manifests when MCP servers connect
 - ✅ **Name Normalization** - SKILL.md naming (kebab-case) → FunctionCaller naming (snake_case) auto-bridging

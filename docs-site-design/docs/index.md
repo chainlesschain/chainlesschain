@@ -21,7 +21,7 @@ hero:
 
 features:
   - icon: 📐
-    title: 66���模块设计
+    title: 66个模块设计
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统等全部子系统的详细设计
 
   - icon: 🏗️

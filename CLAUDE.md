@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1 (Evolution Edition - 137 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-100 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI) - Updated 2026-03-10
+**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-100 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI) - Updated 2026-03-11
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -135,11 +135,11 @@ npm run lint && npm run format
 
 ## Feature Index
 
-**See [`FEATURES.md`](FEATURES.md) for the complete feature list** (137 desktop features, 28 Android skills).
+**See [`FEATURES.md`](FEATURES.md) for the complete feature list** (138 desktop features, 28 Android skills).
 
 Key highlights:
 
-- **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (137 built-in)
+- **AI Engine**: Cowork Multi-Agent, Plan Mode, Instinct Learning, Skills System (138 built-in)
 - **Enterprise**: RBAC, SSO, Audit & Compliance, Org Management, Real-time Collaboration
 - **Integration**: MCP, Browser Automation, Computer Use, IPFS, Analytics Dashboard
 - **v3.0-v4.0**: Pipeline Orchestrator, NL Programming, Multimodal Collaboration, Autonomous Ops, Agent Federation

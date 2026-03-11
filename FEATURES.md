@@ -85,7 +85,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 - **4-layer loading**: bundled → marketplace → managed → workspace (higher priority overrides)
 - **Agent Skills Open Standard**: 13 extended fields (tools, instructions, examples, dependencies, input-schema, output-schema, model-hints, cost, author, license, homepage, repository)
-- **137 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
+- **138 built-in skills** with handlers in `main/ai-engine/cowork/skills/builtin/`
 - **/skill commands** parsed via `skills-ipc.js`
 - **Parser**: `skill-md-parser.js` (YAML frontmatter + Markdown body)
 
