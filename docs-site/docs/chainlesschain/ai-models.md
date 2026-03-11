@@ -4,6 +4,41 @@
 
 ChainlessChain 支持多种AI模型，包括本地部署和云端API，满足不同的使用需求。桌面端默认使用火山引擎豆包(VolcEngine Doubao)，支持 Ollama 本地模型自动回退，后端 AI Service 支持 14+ 云LLM提供商。
 
+## 核心特性
+
+- 🤖 **14+ 提供商**: Ollama、OpenAI、Anthropic、DeepSeek、火山引擎等全面集成
+- 🎯 **智能路由**: Multi-Model Router 按任务复杂度自动选择最优模型
+- 👁️ **多模态支持**: LLaVA 本地 + 豆包 Vision + GPT-4V 视觉理解
+- ⚡ **Context Engineering**: KV-Cache 优化，60-85% 缓存命中率
+- 🔄 **智能回退**: 云端失败自动回退 Ollama 本地模型
+- 📊 **性能监控**: Token 追踪、成本分析、LLM Performance Dashboard
+
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  AI 模型管理层                         │
+├─────────────────────────────────────────────────────┤
+│                                                       │
+│  ┌────────────┐  ┌────────────┐  ┌───────────────┐  │
+│  │ Multi-Model│  │ Context    │  │ Token         │  │
+│  │ Router     │  │ Engineering│  │ Tracker       │  │
+│  │ (智能路由)  │  │ (KV-Cache) │  │ (用量监控)    │  │
+│  └─────┬──────┘  └──────┬─────┘  └───────────────┘  │
+│        │                │                             │
+│  ┌─────▼────────────────▼──────────────────────┐     │
+│  │         LLM Provider Abstraction            │     │
+│  ├─────┬──────┬──────┬───────┬──────┬──────────┤     │
+│  │Ollama│OpenAI│Claude│DeepSeek│豆包  │Custom   │     │
+│  └─────┴──────┴──────┴───────┴──────┴──────────┘     │
+│                                                       │
+│  ┌──────────┐  ┌──────────┐  ┌─────────────────┐    │
+│  │ Embedding│  │ RAG      │  │ Vision Model    │    │
+│  │ Cache    │  │ Hybrid   │  │ (LLaVA/GPT-4V)  │    │
+│  └──────────┘  └──────────┘  └─────────────────┘    │
+└─────────────────────────────────────────────────────┘
+```
+
 ## 模型类型
 
 ### 1. LLM (大语言模型)
@@ -1174,3 +1209,21 @@ Error: Failed to load model
 - [x] 模型性能基准测试（自动化评估框架）
 - [x] 多模型协作（Architect+Editor双模型模式）
 - [x] 长期记忆增强（结合Permanent Memory的个性化模型）
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/llm/llm-session.js` | LLM 会话管理与流式输出 |
+| `desktop-app-vue/src/main/llm/llm-providers.js` | 多提供商抽象层 |
+| `desktop-app-vue/src/main/llm/context-engineering.js` | Context Engineering KV-Cache 优化 |
+| `desktop-app-vue/src/main/rag/hybrid-search-engine.js` | Vector + BM25 混合检索 |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/multi-model-router.js` | 智能模型路由技能 |
+| `desktop-app-vue/src/main/llm/volcengine-model-selector.js` | 火山引擎模型选择器 |
+
+## 相关文档
+
+- [Computer Use 视觉自动化](/chainlesschain/computer-use)
+- [Skills 技能系统](/chainlesschain/skills)
+- [Cowork 多智能体协作](/chainlesschain/cowork)
+- [RAG 检索增强生成](/chainlesschain/rag)

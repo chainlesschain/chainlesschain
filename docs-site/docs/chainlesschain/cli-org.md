@@ -1,5 +1,29 @@
 # 组织管理 (org)
 
+> Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
+
+## 核心特性
+
+- 🏢 **组织 CRUD**: 创建、查询、删除组织
+- 👥 **成员管理**: 邀请/移除成员，owner/admin/member 三级角色
+- 🧑‍🤝‍🧑 **团队管理**: 组织内创建团队，独立管理成员
+- ✅ **审批工作流**: 提交/批准/拒绝审批请求，状态流转追踪
+
+## 系统架构
+
+```
+org 命令 → org.js (Commander) → org-manager.js
+                                      │
+                 ┌────────────────────┼────────────────────┐
+                 ▼                    ▼                    ▼
+           组织 CRUD             成员/团队管理          审批工作流
+                 │                    │                    │
+                 ▼                    ▼                    ▼
+         organizations 表     org_members / teams    approval_requests
+```
+
+## 概述
+
 CLI Phase 5 — 组织、团队和审批工作流管理。
 
 ## 命令概览
@@ -56,6 +80,31 @@ chainlesschain org reject <request-id>             # 拒绝
 | `org_teams` | 团队信息 |
 | `org_team_members` | 团队成员 |
 | `approval_requests` | 审批请求 |
+
+## 安全考虑
+
+- 组织删除为级联操作，同时删除成员和团队数据
+- 审批请求支持权限控制，仅 admin/owner 可审批
+- 所有操作记录审计日志
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `create` 失败 | 确认数据库已初始化：`chainlesschain db init` |
+| `invite` 报用户不存在 | 确认用户 ID 有效 |
+| `delete` 级联失败 | 检查数据库完整性 |
+
+## 关键文件
+
+- `packages/cli/src/commands/org.js` — 命令实现
+- `packages/cli/src/lib/org-manager.js` — 组织管理库
+
+## 相关文档
+
+- [RBAC 权限](./cli-auth) — 访问权限控制
+- [审计日志](./cli-audit) — 操作审计
+- [企业组织管理](./enterprise-org) — 桌面端组织管理
 
 ## 依赖
 

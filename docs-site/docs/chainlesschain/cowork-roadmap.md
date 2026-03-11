@@ -6,6 +6,35 @@
 
 > 基础功能请参阅 [Cowork 核心文档](/chainlesschain/cowork) | 高级功能请参阅 [Cowork 高级功能](/chainlesschain/cowork-advanced)
 
+## 核心特性
+
+- 🤖 **自进化代理**: 代理自动学习、优化策略，持续提升任务执行效率
+- 🏗️ **全自动开发流水线**: 从需求解析到部署监控的 7 阶段全自动化开发
+- 💬 **自然语言编程**: NL→Spec 规范翻译，多轮消歧，自然语言驱动代码生成
+- 🎨 **多模态协作**: 文本/图像/音频/视频多模态融合，跨模态上下文理解
+- 🔧 **自主运维**: 异常检测、事件分类、自动修复、回滚管理、事后报告
+- 🌐 **去中心化代理网络**: Agent 联邦注册、DID 身份认证、跨组织任务路由
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────────────┐
+│                  Cowork Evolution                     │
+├──────────┬──────────┬──────────┬─────────────────────┤
+│ v1.2.0   │ v2.0     │ v3.0     │ v4.0                │
+│ Instinct │ Full-Auto│ NL Prog  │ Agent Federation    │
+│ Learning │ Dev      │ Multimod │ Cross-Org Routing   │
+├──────────┴──────────┴──────────┴─────────────────────┤
+│  Pipeline Orchestrator (7 阶段) + Deploy Agent       │
+├──────────────────────────────────────────────────────┤
+│  AnomalyDetector │ IncidentClassifier │ AutoRemediate│
+├──────────────────┴──────────────┬────────────────────┤
+│  ModalityFusion │ MultimodalCtx │ MultimodalOutput   │
+├─────────────────┴───────────────┴────────────────────┤
+│  AgentDID │ AgentReputation │ FederatedAgentRegistry │
+└──────────────────────────────────────────────────────┘
+```
+
 ## 未来规划
 
 ---
@@ -2061,3 +2090,25 @@ MIT License - 详见 [LICENSE](https://github.com/chainlesschain/LICENSE)
 **Webhook 事件**: 17 种事件类型
 **测试用例**: 440+ (通过率 99.6%)
 **维护者**: ChainlessChain Team
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/ai-engine/cowork/pipeline-orchestrator.js` | 流水线编排器（7 阶段） |
+| `desktop-app-vue/src/main/ai-engine/cowork/deploy-agent.js` | 部署 Agent（5 种策略） |
+| `desktop-app-vue/src/main/ai-engine/cowork/spec-translator.js` | NL→Spec 规范翻译 |
+| `desktop-app-vue/src/main/ai-engine/cowork/anomaly-detector.js` | 异常检测（Z-score/IQR） |
+| `desktop-app-vue/src/main/ai-engine/cowork/incident-classifier.js` | 事件分类器 |
+| `desktop-app-vue/src/main/ai-engine/cowork/auto-remediator.js` | 自动修复引擎 |
+| `desktop-app-vue/src/main/ai-engine/cowork/modality-fusion.js` | 多模态融合 |
+| `desktop-app-vue/src/main/ai-engine/cowork/agent-did.js` | Agent DID 身份 |
+| `desktop-app-vue/src/main/ai-engine/cowork/federated-agent-registry.js` | 联邦代理注册 |
+| `desktop-app-vue/src/main/ai-engine/cowork/cross-org-task-router.js` | 跨组织任务路由 |
+
+## 相关文档
+
+- [Cowork 核心文档](/chainlesschain/cowork) — TeammateTool、Agent Pool、FileSandbox、Skills 系统
+- [Cowork 高级功能](/chainlesschain/cowork-advanced) — Instinct、Orchestrate、Verification Loop
+- [开发流水线编排](/chainlesschain/dev-pipeline) — 7 阶段流水线详情
+- [Agent 经济系统](/chainlesschain/agent-economy) — Agent 代币激励

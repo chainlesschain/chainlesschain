@@ -2,6 +2,58 @@
 
 > **Phase 57 | v2.0.0 | 6 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 📊 **性能基线采集**: IPC 延迟 (p50/p95/p99)、内存占用、DB 查询耗时基线记录
+- 🔍 **回归检测**: 可配置阈值的性能回归自动检测与告警
+- 🛡️ **安全审计**: 配置/加密/权限/网络/依赖 5 大类别全方位安全扫描
+- ⚠️ **风险评分**: 加权风险评分体系 (0-100)，自动定级 CRITICAL/HIGH/MEDIUM/LOW/INFO
+- 📈 **历史对比**: 多版本基线对比，追踪性能趋势
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│             生产加固系统                       │
+│                                              │
+│  ┌──────────────────┐ ┌──────────────────┐   │
+│  │PerformanceBaseline│ │ SecurityAuditor  │   │
+│  │ • 基线采集        │ │ • CONFIG 审计    │   │
+│  │ • 回归对比        │ │ • CRYPTO 审计    │   │
+│  │ • 样本记录        │ │ • PERMISSION     │   │
+│  └────────┬─────────┘ │ • NETWORK        │   │
+│           │           │ • DEPENDENCY     │   │
+│           │           └────────┬─────────┘   │
+│           └──────┬─────────────┘             │
+│                  ▼                            │
+│  ┌──────────────────────────────────────┐    │
+│  │  hardening IPC (6 处理器)             │    │
+│  └──────────────────┬───────────────────┘    │
+│                     ▼                        │
+│  ┌──────────────────────────────────────┐    │
+│  │  performance_baselines /             │    │
+│  │  security_audit_reports (SQLite)    │    │
+│  └──────────────────────────────────────┘    │
+└──────────────────────────────────────────────┘
+```
+
+## 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `desktop-app-vue/src/main/performance/performance-baseline.js` | 性能基线采集与回归对比 |
+| `desktop-app-vue/src/main/security/security-auditor.js` | 5 类安全审计扫描 |
+| `desktop-app-vue/src/main/security/hardening-ipc.js` | IPC 处理器 (6 个) |
+| `desktop-app-vue/src/renderer/stores/hardening.ts` | Pinia 状态管理 |
+| `desktop-app-vue/src/renderer/pages/security/HardeningPage.vue` | 生产加固管理页面 |
+
+## 相关文档
+
+- [联邦网络加固](/chainlesschain/federation-hardening)
+- [压力测试](/chainlesschain/stress-test)
+- [审计日志](/chainlesschain/audit)
+- [数据加密](/chainlesschain/encryption)
+
 ## 概述
 
 Phase 57 为 ChainlessChain 引入生产加固能力，包含性能基线采集与回归检测、全方位安全审计，确保系统在大规模部署前达到生产标准。

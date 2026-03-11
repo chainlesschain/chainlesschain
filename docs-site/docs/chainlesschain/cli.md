@@ -1,6 +1,53 @@
 # CLI 命令行工具
 
+> **版本: v0.37.9 | 状态: ✅ 生产就绪 | 743 测试通过 | 30+ Headless 命令 | 纯 JS 无原生依赖**
+
 ChainlessChain 提供轻量级 npm CLI 工具，让开发者通过一条命令即可安装、配置和管理整个系统。
+
+## 核心特性
+
+- 📦 **纯 JS 轻量包**: 约 2MB，无原生依赖，全平台 `npm install -g` 即装即用
+- 🤖 **30+ Headless 命令**: AI 对话、笔记管理、DID 身份、加密解密等无 GUI 运行
+- 🧠 **Agent 模式**: Claude Code 风格代理会话，8 工具 + 138 技能 + Plan Mode
+- 🔧 **完整系统管理**: setup/start/stop/status/services/config/update/doctor 全链路
+- 🧪 **743 测试通过**: 118 核心包测试 + 625 CLI 测试，质量可靠
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│            CLI 命令行工具架构                   │
+│                                              │
+│  ┌──────────────────────────────────────┐    │
+│  │  bin/chainlesschain.js (入口)        │    │
+│  └──────────────────┬───────────────────┘    │
+│                     ▼                        │
+│  ┌──────────────────────────────────────┐    │
+│  │  src/index.js (Commander 注册)       │    │
+│  └──────────────────┬───────────────────┘    │
+│       ┌─────────────┼─────────────┐          │
+│       ▼             ▼             ▼          │
+│  ┌─────────┐  ┌──────────┐  ┌─────────┐    │
+│  │系统管理 │  │Headless  │  │ REPL    │    │
+│  │setup    │  │db/note   │  │chat/    │    │
+│  │start    │  │did/auth  │  │agent    │    │
+│  │services │  │encrypt   │  │(138技能)│    │
+│  └─────────┘  └────┬─────┘  └─────────┘    │
+│                     ▼                        │
+│  ┌──────────────────────────────────────┐    │
+│  │  5 个核心包 (@chainlesschain/core-*) │    │
+│  │  core-env | shared-logger | core-db │    │
+│  │  core-infra | core-config           │    │
+│  └──────────────────────────────────────┘    │
+└──────────────────────────────────────────────┘
+```
+
+## 相关文档
+
+- [CLI 分发系统](/chainlesschain/cli-distribution) — 分发架构与 CI/CD
+- [DID 身份 (CLI)](/chainlesschain/cli-did) — Ed25519 签名/验证
+- [文件加密 (CLI)](/chainlesschain/cli-encrypt) — AES-256-GCM 加密/解密
+- [RBAC 权限 (CLI)](/chainlesschain/cli-auth) — 角色与权限管理
 
 ## 快速开始
 

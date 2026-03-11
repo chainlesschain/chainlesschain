@@ -2,17 +2,38 @@
 
 > **Phase 43 | v1.1.0-alpha | 12 IPC 处理器 | 2 张新数据库表**
 
-## 概述
+## 核心特性
 
-Phase 43 为 ChainlessChain 引入企业级合规管理和数据分类系统,支持 SOC2、GDPR、ISO27001、HIPAA 等多种合规框架。
+- 📋 **SOC2 自动合规**: 5 大信任服务原则（安全/可用性/完整性/机密性/隐私）自动检查与证据收集
+- 🏷️ **4 级数据分类**: PUBLIC → INTERNAL → CONFIDENTIAL → RESTRICTED，支持 ML + 规则 + 手动三种分类方式
+- 📨 **GDPR DSR 自动化**: 一键处理数据访问权、删除权、修正权、可携权请求
+- ⚖️ **多框架统一管理**: GDPR / SOC2 / ISO27001 / HIPAA 统一检查调度和风险评分
+- 🔒 **证据加密存储**: SOC2 证据文件 AES-256 加密，合规操作全量审计
 
-**核心目标**:
-- 📋 **SOC2 合规**: 5大信任服务原则自动检查和证据收集
-- 🏷️ **数据分类**: 4级分类体系(PUBLIC → RESTRICTED)
-- 📨 **GDPR DSR**: 数据主体请求自动化处理
-- ⚖️ **合规管理**: 多框架支持,统一检查调度
+## 系统架构
 
----
+```
+┌────────────────────────────────────────────────┐
+│             企业合规管理系统                     │
+├────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │
+│  │ SOC2     │  │ GDPR     │  │ ISO27001     │ │
+│  │ 合规检查 │  │ DSR 处理 │  │ / HIPAA      │ │
+│  └────┬─────┘  └────┬─────┘  └──────┬───────┘ │
+│       └──────────────┼───────────────┘         │
+│                      ↓                         │
+│          ┌───────────────────────┐             │
+│          │  统一合规引擎          │             │
+│          │  检查调度 | 风险评分   │             │
+│          └───────────┬───────────┘             │
+│                      ↓                         │
+│  ┌──────────────────────────────────────────┐  │
+│  │  数据分类系统 (ML + 规则 + 手动标记)     │  │
+│  └──────────────────────────────────────────┘  │
+├────────────────────────────────────────────────┤
+│  DB: compliance_checks | data_classifications │
+└────────────────────────────────────────────────┘
+```
 
 ## 核心功能
 
@@ -348,6 +369,16 @@ await window.electronAPI.invoke('compliance:dsr-update-status', {
 - [权限管理](/chainlesschain/permissions)
 - [SCIM 集成](/chainlesschain/scim)
 - [产品路线图](/chainlesschain/product-roadmap)
+
+## 关键文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `desktop-app-vue/src/main/enterprise/compliance-manager.js` | 统一合规引擎核心 |
+| `desktop-app-vue/src/main/enterprise/soc2-checker.js` | SOC2 合规检查与证据收集 |
+| `desktop-app-vue/src/main/enterprise/data-classifier.js` | 数据分类系统（ML+规则） |
+| `desktop-app-vue/src/main/enterprise/gdpr-dsr-handler.js` | GDPR 数据主体请求处理 |
+| `desktop-app-vue/src/renderer/stores/compliance.ts` | 合规管理 Pinia Store |
 
 ---
 

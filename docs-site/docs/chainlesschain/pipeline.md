@@ -2,6 +2,43 @@
 
 > v1.1.0 新功能
 
+## 核心特性
+
+- 🔄 **多阶段流水线**: 构建、测试、安全扫描、部署等多阶段 DAG 编排，支持并行和串行执行
+- 🚦 **门控审批机制**: 关键阶段前设置人工审批门控，确保代码质量和安全合规
+- 📋 **模板系统**: 预置 feature/bugfix/release 流水线模板，快速创建标准化流程
+- 📊 **实时监控**: 实时跟踪流水线状态、阶段进度和耗时指标，支持事件推送
+- 📦 **产物管理**: 自动收集和管理构建产物，支持 30 天保留策略
+
+## 系统架构
+
+```
+用户/开发者
+    │
+    ▼
+┌──────────────┐    ┌──────────────┐
+│  流水线模板   │───▶│ Pipeline     │
+│  (feature/   │    │ Orchestrator │
+│   bugfix/    │    │  (DAG编排)   │
+│   release)   │    └──────┬───────┘
+└──────────────┘           │
+                    ┌──────▼───────┐
+                    │   阶段执行器  │
+                    │  Stage Runner │
+                    └──┬───┬───┬───┘
+                       │   │   │
+              ┌────────┘   │   └────────┐
+              ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐
+        │ 构建/测试 │ │ 门控审批  │ │ 部署/监控 │
+        └──────────┘ └──────────┘ └──────────┘
+                           │
+                    ┌──────▼───────┐
+                    │  产物管理器   │
+                    │  Artifacts   │
+                    └──────────────┘
+```
+
 ## 系统概述
 
 流水线编排系统（Dev Pipeline）为 ChainlessChain 提供完整的 CI/CD 流水线管理能力，支持多阶段编排、门控审批、自动化部署和指标监控。
@@ -82,6 +119,19 @@
 | 流水线卡在某阶段 | 检查阶段日志，确认是否有门控等待审批          |
 | 构建产物丢失     | 检查 `artifactRetention` 配置，默认保留 30 天 |
 | 并行流水线超限   | 调整 `parallelLimit` 配置                     |
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/ai-engine/cowork/pipeline-orchestrator.js` | DAG 流水线编排核心引擎 |
+| `src/main/ai-engine/cowork/pipeline-ipc.js` | 流水线 IPC 处理器（14 个） |
+| `src/main/ai-engine/cowork/requirement-parser.js` | NL→Spec JSON 需求解析 |
+| `src/main/ai-engine/cowork/deploy-agent.js` | 多环境部署代理 |
+| `src/main/ai-engine/cowork/post-deploy-monitor.js` | 部署后健康监控 |
+| `src/main/ai-engine/cowork/rollback-manager.js` | 多策略自动回滚 |
+| `src/renderer/pages/DeploymentMonitorPage.vue` | 流水线监控前端页面 |
+| `src/renderer/stores/deployment.ts` | Pinia 部署状态管理 |
 
 ## 相关文档
 

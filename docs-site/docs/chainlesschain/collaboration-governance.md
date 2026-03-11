@@ -2,18 +2,40 @@
 
 > **Phase 64 | v3.0.0 | 5 IPC 处理器 | 2 张新数据库表**
 
-## 概述
+## 核心特性
 
-Phase 64 实现人机协作治理框架，通过渐进式自主权机制让 AI 根据历史表现逐步获得更大的决策自主权，关键操作仍需人工审批。
+- 🤝 **渐进式自主权**: AI 根据审批通过率自动提升自主等级（0→10），逐步获得更大决策权
+- 🚦 **决策网关**: 架构、迁移、安全等关键决策强制人工审批，风险可控
+- 🎯 **置信度门控**: 高置信度（≥0.95）+ 非关键类型可自动审批，减少人工负担
+- 📋 **完整审计追踪**: 所有 AI 决策记录审批人、时间、意见，支持事后审计
+- ⚖️ **分域管理**: 不同作用域（部署/架构/数据）独立维护自主等级和历史记录
 
-**核心目标**:
+## 系统架构
 
-- **决策网关**: 关键决策（架构/迁移/安全）需人工审批
-- **渐进式自主权**: 根据审批通过率自动提升 AI 自主等级
-- **置信度门控**: 高置信度 + 非关键类型可自动审批
-- **审计追踪**: 所有决策完整记录，支持事后审计
-
----
+```
+┌─────────────────────────────────────────────────┐
+│              协作治理框架                         │
+├─────────────────────────────────────────────────┤
+│  AI Agent  →  决策提交  →  ┌──────────────┐     │
+│                            │  决策网关     │     │
+│                            │  ┌──────────┐│     │
+│                            │  │置信度检查││     │
+│                            │  │类型检查  ││     │
+│                            │  │等级检查  ││     │
+│                            │  └──────────┘│     │
+│                            └──────┬───────┘     │
+│                         ┌────────┼────────┐     │
+│                         ↓        ↓        ↓     │
+│                    自动审批   待人工审批  拒绝    │
+│                         ↓        ↓              │
+│                    ┌──────────────────┐          │
+│                    │  Track Record    │          │
+│                    │  自主等级自动提升 │          │
+│                    └──────────────────┘          │
+├─────────────────────────────────────────────────┤
+│  DB: governance_decisions | autonomy_levels     │
+└─────────────────────────────────────────────────┘
+```
 
 ## 自主等级体系
 
@@ -174,3 +196,19 @@ await window.electronAPI.invoke('collab-governance:set-autonomy-policy', {
 - [自主技术学习](/chainlesschain/tech-learning)
 - [自主运维](/chainlesschain/autonomous-ops)
 - [权限系统](/chainlesschain/permissions)
+
+## 关键文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `desktop-app-vue/src/main/ai-engine/autonomous/collaboration-governance.js` | 协作治理框架核心实现 |
+| `desktop-app-vue/src/main/ai-engine/autonomous/decision-gateway.js` | 决策网关与自动审批逻辑 |
+| `desktop-app-vue/src/main/ai-engine/autonomous/autonomy-manager.js` | 自主等级管理与自动提升 |
+| `desktop-app-vue/src/renderer/stores/collaborationGovernance.ts` | 协作治理 Pinia Store |
+
+## 相关文档
+
+- [自主开发者](/chainlesschain/autonomous-developer) - AI 自主开发能力
+- [自主运维](/chainlesschain/autonomous-ops) - AI 运维自动化
+- [权限系统](/chainlesschain/permissions) - RBAC 权限管理
+- [企业审计日志](/chainlesschain/audit) - 审计日志系统

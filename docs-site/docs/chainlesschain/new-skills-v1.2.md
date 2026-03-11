@@ -2,6 +2,55 @@
 
 > **版本: v5.0.1 | 总计 138 个桌面内置技能 | 100% Handler 覆盖**
 
+## 核心特性
+
+- 🔍 **10 大外部标准转化**: Tavily/Find-Skills/Proactive-Agent 等顶级技能标准内化为内置能力
+- 🛠️ **12 个实用流行技能**: 深度研究、Git Worktree、Docker Compose、Terraform IaC 等开发运维利器
+- 🧠 **6 个社区生态补充**: 头脑风暴、调试策略、API 设计、前端设计、PR 创建、文档协作
+- 🎯 **100% Handler 覆盖**: 所有 138 个技能均有对应的 JavaScript Handler 实现
+- ⚡ **即插即用**: 通过 `/skill-name` 命令直接调用，支持 Agent 模式自动选择
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│           技能系统 (138 Skills)                │
+│                                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │
+│  │ 外部标准 │ │ 实用技能 │ │ 社区生态     │ │
+│  │ 转化(10) │ │ (12个)   │ │ 补充(6个)    │ │
+│  └────┬─────┘ └────┬─────┘ └──────┬───────┘ │
+│       │            │              │          │
+│       ▼            ▼              ▼          │
+│  ┌──────────────────────────────────────┐    │
+│  │  Skill Registry + Skill Executor    │    │
+│  │  SKILL.md 定义 + Handler.js 实现    │    │
+│  └──────────────────┬───────────────────┘    │
+│                     ▼                        │
+│  ┌──────────────────────────────────────┐    │
+│  │  Agent REPL / Chat REPL / IPC       │    │
+│  │  /skill-name → Handler → Result     │    │
+│  └──────────────────────────────────────┘    │
+└──────────────────────────────────────────────┘
+```
+
+## 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/` | 技能 SKILL.md 定义目录 |
+| `desktop-app-vue/src/main/ai-engine/cowork/skill-handlers/` | 技能 Handler 实现目录 |
+| `desktop-app-vue/src/main/ai-engine/cowork/skill-registry.js` | 技能注册表 |
+| `desktop-app-vue/src/main/ai-engine/cowork/skill-executor.js` | 技能执行器 |
+| `packages/cli/src/repl/agent-repl.js` | CLI Agent 技能集成 |
+
+## 相关文档
+
+- [Skills 系统](/chainlesschain/skills) — 技能系统完整文档
+- [Cowork 系统](/chainlesschain/cowork) — 多智能体协作
+- [Agent 模式](/chainlesschain/cli-agent) — CLI Agent 技能使用
+- [更新日志](/changelog) — 完整版本历史
+
 v1.2.0 研究了 10 大外部技能标准并转化为内置技能，新增 12 个当前最实用的开发/运维/知识管理技能。v1.2.1 研究社区技能生态补充 6 个高频缺失技能。
 
 ---

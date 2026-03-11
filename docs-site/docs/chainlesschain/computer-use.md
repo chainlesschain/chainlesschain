@@ -4,6 +4,42 @@
 
 Computer Use 是 ChainlessChain 的核心功能模块，提供类似 Anthropic Claude Computer Use 的电脑操作能力，支持浏览器自动化和桌面级操作，让 AI 能够真正"看到"和"操作"您的电脑。
 
+## 核心特性
+
+- 🖱️ **像素级坐标操作**: 精确鼠标点击、拖拽、滚轮、手势（缩放/旋转/滑动）
+- 👁️ **Vision AI 元素定位**: 支持 Claude Vision / GPT-4V / LLaVA / Qwen-VL 多模型视觉定位
+- 🖥️ **桌面级控制**: 截图、鼠标键盘控制、窗口管理，操作任意桌面应用
+- 🔒 **安全模式**: 权限控制 + 区域限制 + 速率限制 + 操作审计，关键操作需确认
+- 🔄 **工作流引擎**: 条件分支、循环执行、并行任务、子工作流，编排复杂自动化
+- 🎬 **录制与回放**: 屏幕录制导出 GIF/MP4，操作回放支持断点调试和单步执行
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│             Computer Use 系统                 │
+├──────────────────────────────────────────────┤
+│  ┌────────────┐  ┌────────────┐  ┌────────┐ │
+│  │ Coordinate │  │ Vision     │  │Desktop │ │
+│  │ Action     │  │ Action     │  │Action  │ │
+│  │ (像素操作) │  │ (AI定位)   │  │(桌面)  │ │
+│  └─────┬──────┘  └─────┬──────┘  └───┬────┘ │
+│        └───────────────┼──────────────┘      │
+│                        ↓                     │
+│  ┌──────────────────────────────────────┐    │
+│  │  WorkflowEngine (条件/循环/并行)     │    │
+│  └──────────────┬───────────────────────┘    │
+│        ┌────────┼────────┐                   │
+│        ↓        ↓        ↓                   │
+│  ┌──────┐ ┌────────┐ ┌────────────┐         │
+│  │ Safe │ │ Audit  │ │ Screen     │         │
+│  │ Mode │ │ Logger │ │ Recorder   │         │
+│  └──────┘ └────────┘ └────────────┘         │
+├──────────────────────────────────────────────┤
+│  12 AI Tools | 68+ IPC Handlers             │
+└──────────────────────────────────────────────┘
+```
+
 ## 功能概述
 
 ### 与 Claude Computer Use 对比
@@ -894,6 +930,25 @@ workflow.run { name: "完整流程" }
 
 - [浏览器插件](/chainlesschain/browser-extension) - 浏览器扩展安装和使用
 - [AI 模型配置](/chainlesschain/ai-models) - 配置视觉 AI 模型
+- [Cowork 多智能体](/chainlesschain/cowork) - AI 代理协作执行任务
+
+## 关键文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `desktop-app-vue/src/main/browser/computer-use.js` | Computer Use 核心模块 |
+| `desktop-app-vue/src/main/browser/coordinate-action.js` | 像素级坐标操作 |
+| `desktop-app-vue/src/main/browser/vision-action.js` | Vision AI 元素定位 |
+| `desktop-app-vue/src/main/browser/desktop-action.js` | 桌面截图与鼠标键盘控制 |
+| `desktop-app-vue/src/main/browser/workflow-engine.js` | 工作流引擎（条件/循环/并行） |
+| `desktop-app-vue/src/main/browser/safe-mode.js` | 安全模式与权限控制 |
+| `desktop-app-vue/src/main/browser/screen-recorder.js` | 屏幕录制与导出 |
+| `desktop-app-vue/src/renderer/components/browser/ComputerUsePanel.vue` | 前端操作面板 |
+
+## 相关文档
+
+- [浏览器自动化](/chainlesschain/browser-automation) - Puppeteer 引擎网页自动化
+- [浏览器插件](/chainlesschain/browser-extension) - 浏览器扩展 215 个命令
 - [Cowork 多智能体](/chainlesschain/cowork) - AI 代理协作执行任务
 
 ---

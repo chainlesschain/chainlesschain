@@ -12,6 +12,34 @@ ChainlessChain Agent 安全沙箱 2.0（Agent Sandbox v2）提供基于 WebAssem
 - 📝 **审计日志**: 完整的操作审计日志，支持回溯和合规检查
 - 🤖 **AI 行为监控**: 基于 AI 的实时行为分析，异常风险评分和自动拦截
 
+## 系统架构
+
+```
+┌──────────────────────────────────────────────────┐
+│              Agent 安全沙箱 2.0                    │
+├──────────────────────────────────────────────────┤
+│                                                    │
+│  ┌──────────────────────────────────────────┐     │
+│  │          Sandbox Manager (6 IPC)         │     │
+│  └──────────────────┬──────────────────────┘     │
+│                     │                             │
+│  ┌──────────┐  ┌────▼─────┐  ┌───────────────┐  │
+│  │ WASM     │  │ Permission│  │ Resource     │  │
+│  │ Runtime  │  │ Whitelist │  │ Quota        │  │
+│  │ (隔离)   │  │ (权限)    │  │ (配额)       │  │
+│  └────┬─────┘  └──────────┘  └──────┬────────┘  │
+│       │                              │            │
+│  ┌────▼──────────────────────────────▼────────┐  │
+│  │         AI Behavior Monitor                │  │
+│  │         (行为分析 + 风险评分 + 自动拦截)     │  │
+│  └─────────────────┬─────────────────────────┘  │
+│                    │                              │
+│  ┌─────────────────▼─────────────────────────┐  │
+│  │         Audit Log (审计日志)               │  │
+│  └───────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
 ## IPC 接口
 
 ### 沙箱操作（6 个）
@@ -186,6 +214,16 @@ const report = await window.electron.ipcRenderer.invoke(
 | 资源配额超限 | 调整 quota 配置或优化 Agent 代码资源使用   |
 | 行为误报     | 调整风险阈值，添加白名单行为模式           |
 | 审计日志过大 | 减少 retentionDays，调高 logLevel          |
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/security/sandbox-v2.js` | 沙箱核心引擎 |
+| `desktop-app-vue/src/main/security/wasm-runtime.js` | WASM 隔离执行环境 |
+| `desktop-app-vue/src/main/security/permission-whitelist.js` | 细粒度权限白名单 |
+| `desktop-app-vue/src/main/security/behavior-monitor.js` | AI 行为监控与风险评分 |
+| `desktop-app-vue/src/main/security/sandbox-ipc.js` | 沙箱 IPC 处理器 |
 
 ## 相关文档
 

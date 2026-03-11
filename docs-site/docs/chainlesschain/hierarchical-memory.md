@@ -13,6 +13,26 @@ ChainlessChain 层次化记忆系统 2.0 模仿人类认知的多层记忆结构
 - 🔍 **情景记忆检索**: 基于时间线和上下文的事件回忆
 - 🧩 **语义记忆检索**: 基于向量相似度的概念联想
 
+## 系统架构
+
+```
+┌────────────┐     ┌──────────────────┐     ┌───────────────────┐
+│  Vue3 前端  │────→│  IPC 处理器       │────→│  Memory Manager   │
+│  记忆管理   │     │  memory:*         │     │  4 层记忆引擎      │
+└────────────┘     └──────────────────┘     └────────┬──────────┘
+                                                      │
+              ┌──────────┬──────────┬─────────────────┼──────────┐
+              ▼          ▼          ▼                  ▼          ▼
+        ┌──────────┐ ┌────────┐ ┌──────────┐  ┌──────────┐ ┌────────┐
+        │ 工作记忆 │ │ 短期   │ │ 长期记忆 │  │ 核心记忆 │ │ 跨Agent│
+        │ 30分钟   │ │ 7天    │ │ 90天     │  │ 永久     │ │ 共享   │
+        └────┬─────┘ └───┬────┘ └────┬─────┘  └──────────┘ └────────┘
+             │ 巩固 ↑    │ 巩固 ↑    │ 巩固 ↑
+             └───────────┘───────────┘
+                    遗忘曲线 (Ebbinghaus)
+                    retention = e^(-t/S)
+```
+
 ## 记忆层次架构
 
 ```
@@ -273,4 +293,21 @@ const concepts = await window.electron.ipcRenderer.invoke(
     }
   }
 }
+```
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/ai-engine/memory/hierarchical-memory-manager.js` | 4 层记忆核心引擎（存储/回忆/巩固/遗忘） |
+| `src/main/ai-engine/memory/hierarchical-memory-ipc.js` | IPC 处理器（8 个通道） |
+| `src/main/ai-engine/memory/forgetting-curve.js` | Ebbinghaus 遗忘曲线计算 |
+| `src/main/ai-engine/memory/memory-sharing.js` | 跨 Agent DID 认证记忆共享 |
+| `src/renderer/stores/hierarchicalMemory.ts` | Pinia 状态管理 |
+
+## 相关文档
+
+- [LLM 记忆系统 →](/chainlesschain/llm-memory)
+- [会话管理 →](/chainlesschain/session)
+- [DID 身份系统 →](/chainlesschain/did)
 ```

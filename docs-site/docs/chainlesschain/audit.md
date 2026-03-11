@@ -2,6 +2,44 @@
 
 > **版本: v0.34.0+ | 8种事件类型 | 4级风险评估 | 敏感字段自动脱敏**
 
+## 核心特性
+
+- 📋 **8 种事件类型**: browser / permission / file / db / api / cowork / auth / system 全域覆盖
+- ⚠️ **4 级风险评估**: low / medium / high / critical 自动判定与实时告警
+- 🔒 **敏感字段脱敏**: 22 类字段自动识别与递归脱敏处理
+- 🪝 **Hook 系统集成**: 自动捕获 21 种 Hook 事件映射为审计记录
+- 📊 **统计分析**: 按事件类型/风险等级/操作者/时间趋势多维分析
+- 📤 **灵活导出**: 支持 JSON / CSV 格式导出与数据保留策略
+
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────┐
+│            EnterpriseAuditLogger                  │
+├─────────────────────────────────────────────────┤
+│                                                   │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │ Risk     │  │ Sanitizer│  │ Hook System  │  │
+│  │ Assessor │  │ (脱敏)   │  │ Integration  │  │
+│  └────┬─────┘  └────┬─────┘  └──────┬────────┘  │
+│       │              │               │            │
+│  ┌────▼──────────────▼───────────────▼────────┐  │
+│  │         Unified Event Bus                  │  │
+│  │    (highRiskEvent / cleared / logged)       │  │
+│  └────────┬──────────────────┬───────────────┘  │
+│           │                  │                    │
+│  ┌────────▼──────┐  ┌───────▼──────────────┐   │
+│  │ Memory Buffer │  │ SQLite Persistence   │   │
+│  │ (max 2000)    │  │ (enterprise_audit_log)│   │
+│  └───────────────┘  └──────────────────────┘   │
+│                                                   │
+│  ┌──────────────────────────────────────────┐    │
+│  │  18 IPC Handlers (audit-ipc.js)          │    │
+│  │  审计(4) + 合规(6) + DSR(6) + 保留(2)    │    │
+│  └──────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────┘
+```
+
 ## 系统概述
 
 `EnterpriseAuditLogger` 是 ChainlessChain 桌面端的企业级统一审计日志模块，继承自 `EventEmitter`，负责聚合所有子系统（浏览器自动化、权限管理、文件操作、数据库、API 调用、多智能体协作、认证、系统运维）的审计事件，提供统一的日志记录、风险评估、敏感字段脱敏、查询导出与统计分析能力。
@@ -688,6 +726,16 @@ privateKey, private_key, authorization, cookie, pin, cvv, ssn
 ```
 
 ---
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/audit/enterprise-audit-logger.js` | 企业审计日志核心模块 |
+| `desktop-app-vue/src/main/audit/audit-ipc.js` | 审计 IPC 处理器 (18 handlers) |
+| `desktop-app-vue/src/main/audit/compliance-manager.js` | 合规策略管理 |
+| `desktop-app-vue/src/main/audit/dsr-handler.js` | 数据主体请求处理 |
+| `desktop-app-vue/src/main/hooks/index.js` | Hook 系统 (21 种事件) |
 
 ## 相关文档
 

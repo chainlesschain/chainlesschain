@@ -2,6 +2,40 @@
 
 > v5.0.1 新增
 
+## 核心特性
+
+- 📦 **纯 JS 无原生依赖**: 约 2MB 轻量包，所有平台 `npm install -g` 即可安装，无需编译工具链
+- 🔽 **按需下载二进制**: 从 GitHub Releases 按平台自动下载 Electron 预构建包
+- ⚙️ **配置兼容**: `~/.chainlesschain/config.json` 与桌面应用 `unified-config-manager.js` 完全兼容
+- 🔒 **安全机制**: SHA-256 校验和验证 + HTTPS 传输 + PID 文件防重复启动
+- 🚀 **CI/CD 自动发布**: Git tag 触发自动测试和 npm publish
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│           CLI 分发系统                         │
+│                                              │
+│  npm registry (chainlesschain ~2MB)          │
+│       │                                      │
+│       ▼                                      │
+│  ┌──────────────────────────────────────┐    │
+│  │  CLI 纯 JS 包                        │    │
+│  │  commander | inquirer | chalk | ora  │    │
+│  └──────────────────┬───────────────────┘    │
+│       ┌─────────────┼─────────────┐          │
+│       ▼             ▼             ▼          │
+│  ┌─────────┐  ┌──────────┐  ┌─────────┐    │
+│  │ setup   │  │ start/   │  │ config  │    │
+│  │ 向导    │  │ stop     │  │ doctor  │    │
+│  └────┬────┘  └──────────┘  └─────────┘    │
+│       │                                      │
+│       ▼                                      │
+│  GitHub Releases (平台二进制 100MB+)         │
+│  Win(.zip) | Mac(.dmg) | Linux(.AppImage)   │
+└──────────────────────────────────────────────┘
+```
+
 ChainlessChain CLI 分发系统是一个轻量级的 npm 包（约2MB），用于在全平台分发、安装和管理 ChainlessChain 桌面应用。
 
 ## 架构概览

@@ -13,6 +13,25 @@ ChainlessChain BI 智能分析引擎提供自然语言转 SQL（NL→SQL）、OL
 - 📈 **线性趋势预测**: 基于历史数据的线性回归预测，支持置信区间
 - 🎨 **5 种仪表盘模板**: 经营概览、销售分析、用户增长、运维监控、财务报表
 
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────┐
+│                  BI 智能分析引擎                  │
+├─────────────────────────────────────────────────┤
+│  自然语言查询  →  NL→SQL 引擎  →  SQL 执行器    │
+│       ↓               ↓              ↓          │
+│  报告生成器    ←  数据聚合层   ←  查询结果      │
+│       ↓                                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
+│  │ 异常检测 │  │ 趋势预测 │  │ 仪表盘模板库 │  │
+│  │ Z-Score  │  │ 线性回归 │  │ 5种内置模板  │  │
+│  └──────────┘  └──────────┘  └──────────────┘  │
+├─────────────────────────────────────────────────┤
+│  SQLite 数据层: bi_reports | bi_dashboards      │
+└─────────────────────────────────────────────────┘
+```
+
 ## 自然语言查询
 
 ```javascript
@@ -349,3 +368,14 @@ CREATE INDEX IF NOT EXISTS idx_bi_dash_status ON bi_dashboards(status);
 - [企业知识图谱](/chainlesschain/enterprise-knowledge-graph)
 - [低代码/无代码平台](/chainlesschain/low-code-platform)
 - [Analytics 分析](/chainlesschain/analytics)
+
+## 关键文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `desktop-app-vue/src/main/enterprise/bi-engine.js` | BI 引擎核心实现 |
+| `desktop-app-vue/src/main/enterprise/nl-to-sql.js` | NL→SQL 转换模块 |
+| `desktop-app-vue/src/main/enterprise/report-generator.js` | 报告生成器（PDF/Excel/PPT） |
+| `desktop-app-vue/src/main/enterprise/anomaly-detector.js` | Z-Score 异常检测 |
+| `desktop-app-vue/src/main/enterprise/trend-predictor.js` | 线性趋势预测 |
+| `desktop-app-vue/src/renderer/stores/biEngine.ts` | BI 引擎 Pinia Store |

@@ -4,6 +4,39 @@
 
 浏览器插件是 ChainlessChain Desktop 的重要扩展组件，提供完整的浏览器自动化和远程控制能力，支持网页操作、数据提取、调试工具等丰富功能。
 
+## 核心特性
+
+- 🔌 **215 个远程命令**: 覆盖标签管理、DOM 操作、网络拦截、调试工具、设备模拟等完整能力
+- 🌐 **Chromium 全兼容**: 支持 Chrome/Edge/Arc/Brave/Opera 等所有 Chromium 内核浏览器
+- 🔒 **本地安全通信**: WebSocket 仅监听 127.0.0.1:18790，不暴露到网络
+- 🔍 **高级调试工具**: WebSocket 监控、Service Worker 管理、内存分析、代码覆盖率追踪
+- 📱 **设备模拟**: 触摸模拟、传感器模拟、地理位置模拟、视口预设
+
+## 系统架构
+
+```
+┌───────────────────────────────────────────────┐
+│           浏览器 (Chrome/Edge/Arc)             │
+│  ┌─────────────────────────────────────────┐  │
+│  │  ChainlessChain 浏览器插件              │  │
+│  │  ┌───────┐ ┌─────┐ ┌───────┐ ┌──────┐  │  │
+│  │  │ 标签  │ │ DOM │ │ 网络  │ │ 调试 │  │  │
+│  │  │ 管理  │ │ 操作 │ │ 拦截  │ │ 工具 │  │  │
+│  │  └───┬───┘ └──┬──┘ └───┬───┘ └──┬───┘  │  │
+│  │      └────────┴────────┴────────┘       │  │
+│  │               WebSocket                  │  │
+│  └───────────────────┬─────────────────────┘  │
+└──────────────────────┼────────────────────────┘
+                       ↓ 127.0.0.1:18790
+┌──────────────────────┴────────────────────────┐
+│       ChainlessChain Desktop (Electron)       │
+│  ┌──────────┐  ┌───────────┐  ┌───────────┐  │
+│  │ 远程控制 │  │ AI 引擎   │  │ 操作审计  │  │
+│  │ 服务器   │  │ 命令解析  │  │ 日志记录  │  │
+│  └──────────┘  └───────────┘  └───────────┘  │
+└───────────────────────────────────────────────┘
+```
+
 ## 安装指南
 
 ### 系统要求
@@ -833,6 +866,22 @@ network.waitForIdle { timeout: 5000 }
 - [Computer Use 功能](/chainlesschain/computer-use) - 桌面级自动化
 - [远程控制系统](/chainlesschain/remote-control) - 完整远程控制文档
 - [AI 模型配置](/chainlesschain/ai-models) - 配置 AI 调用插件功能
+
+## 关键文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `desktop-app-vue/src/main/remote/browser-extension/manifest.json` | 插件清单配置 |
+| `desktop-app-vue/src/main/remote/browser-extension/background.js` | 插件后台脚本 |
+| `desktop-app-vue/src/main/remote/browser-extension/content.js` | 内容注入脚本 |
+| `desktop-app-vue/src/main/remote/remote-control-server.js` | WebSocket 远程控制服务 |
+| `desktop-app-vue/src/main/remote/command-handler.js` | 远程命令处理器 |
+
+## 相关文档
+
+- [Computer Use](/chainlesschain/computer-use) - 桌面级自动化操作
+- [浏览器自动化](/chainlesschain/browser-automation) - Puppeteer 引擎自动化
+- [远程控制系统](/chainlesschain/remote-control) - 完整远程控制文档
 
 ---
 

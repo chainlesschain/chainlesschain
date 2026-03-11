@@ -2,6 +2,44 @@
 
 > **Phase 59 | v2.0.0 | 4 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 🔥 **可配置负载**: 节点数、并发任务数、持续时间自由组合，最大支持 100 节点
+- 📊 **实时指标采集**: 延迟百分位（p50/p95/p99）、吞吐 TPS、内存峰值全面监控
+- 📈 **历史对比分析**: 保存每次测试运行和结果，支持跨版本性能趋势对比
+- 🛑 **安全停止**: 随时中止运行中的测试，防止资源过载
+- 🗄️ **持久化存储**: 测试运行和结果独立存表，完整的审计和回溯能力
+
+## 系统架构
+
+```
+┌──────────────┐
+│  Renderer    │
+│  (IPC调用)   │
+└──────┬───────┘
+       │ IPC (4 通道)
+       ▼
+┌──────────────────────────────┐
+│      Stress Test Engine      │
+│  ┌─────────┐  ┌───────────┐ │
+│  │ Load    │  │ Metrics   │ │
+│  │ Generator│  │ Collector │ │
+│  │ (Nodes) │  │ (p50-p99) │ │
+│  └────┬────┘  └─────┬─────┘ │
+│       │              │       │
+│  ┌────▼──────────────▼────┐  │
+│  │   Run Manager          │  │
+│  │   (Start/Stop/Query)   │  │
+│  └────────────┬───────────┘  │
+└───────────────┼──────────────┘
+                │
+       ┌────────▼────────┐
+       │  SQLite (2表)   │
+       │  stress_test_   │
+       │  runs / results │
+       └─────────────────┘
+```
+
 ## 概述
 
 Phase 59 为联邦代理网络提供 100 节点规模压力测试能力，验证系统在高并发场景下的稳定性和吞吐极限。
@@ -147,3 +185,19 @@ const results = await window.electronAPI.invoke('stress-test:get-results', {
 - [联邦网络加固](/chainlesschain/federation-hardening)
 - [信誉优化](/chainlesschain/reputation-optimizer)
 - [跨组织 SLA](/chainlesschain/sla-manager)
+
+## 关键文件
+
+| 文件 | 职责 | 行数 |
+| --- | --- | --- |
+| `src/main/enterprise/stress-test-engine.js` | 压力测试核心引擎 | ~350 |
+| `src/main/enterprise/load-generator.js` | 负载生成与节点模拟 | ~280 |
+| `src/main/enterprise/metrics-collector.js` | 指标采集与百分位计算 | ~220 |
+| `src/main/ipc/ipc-stress-test.js` | IPC 处理器注册 | ~100 |
+
+## 相关文档
+
+- [联邦网络加固](/chainlesschain/federation-hardening) - 联邦网络安全加固
+- [信誉优化](/chainlesschain/reputation-optimizer) - 代理信誉评分系统
+- [跨组织 SLA](/chainlesschain/sla-manager) - 跨组织服务级别协议管理
+- [代理联邦网络](/chainlesschain/agent-federation) - 联邦代理网络基础架构

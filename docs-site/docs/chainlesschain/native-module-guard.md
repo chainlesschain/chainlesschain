@@ -2,6 +2,59 @@
 
 > v5.0.1 新增
 
+## 核心特性
+
+- 🛡️ **安全 require 模式**: 所有原生模块引用包裹在 try-catch 中，防止启动崩溃
+- 🔄 **优雅降级**: 原生模块不可用时自动切换到降级方案，功能不中断
+- 🖥️ **跨平台兼容**: 确保 Windows/macOS/Linux 打包后均可正常启动
+- ⚠️ **智能告警**: 模块加载失败时输出警告日志，便于排查
+- 📦 **生产就绪**: 7 个关键文件已添加原生模块守卫
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│           原生模块保护系统                      │
+│                                              │
+│  ┌──────────────────────────────────────┐    │
+│  │  Electron 主进程模块加载              │    │
+│  └──────────────────┬───────────────────┘    │
+│                     ▼                        │
+│  ┌──────────────────────────────────────┐    │
+│  │  安全 require 守卫 (try-catch)       │    │
+│  └──────┬───────────────────┬───────────┘    │
+│         │                   │                │
+│    加载成功              加载失败             │
+│         │                   │                │
+│         ▼                   ▼                │
+│  ┌──────────┐        ┌──────────────┐       │
+│  │ 正常功能 │        │ 降级方案     │       │
+│  │ sharp    │        │ 跳过图像优化 │       │
+│  │ koffi    │        │ U-Key 模拟   │       │
+│  │ sqlite3  │        │ 提示重装     │       │
+│  │ chokidar │        │ 禁用监听     │       │
+│  └──────────┘        └──────────────┘       │
+└──────────────────────────────────────────────┘
+```
+
+## 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `desktop-app-vue/src/main/file-sync/sync-manager.js` | 文件同步原生模块守卫 |
+| `desktop-app-vue/src/main/git/git-hot-reload.js` | Git 热重载守卫 |
+| `desktop-app-vue/src/main/llm/memory-file-watcher.js` | 记忆文件监听守卫 |
+| `desktop-app-vue/src/main/project/automation-manager.js` | 自动化管理守卫 |
+| `desktop-app-vue/src/main/project/file-cache-manager.js` | 文件缓存守卫 |
+| `desktop-app-vue/src/main/project/project-rag.js` | 项目 RAG 守卫 |
+| `desktop-app-vue/src/main/project/stats-collector.js` | 统计收集守卫 |
+
+## 相关文档
+
+- [CLI 分发系统](/chainlesschain/cli-distribution)
+- [生产加固](/chainlesschain/production-hardening)
+- [数据加密](/chainlesschain/encryption)
+
 ## 概述
 
 v5.0.1 对桌面应用的所有原生/可选模块引用添加了安全守卫（guard），确保在打包后的生产环境中，即使某些原生模块不可用，应用也能正常启动并优雅降级。

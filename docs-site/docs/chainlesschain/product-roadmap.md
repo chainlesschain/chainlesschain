@@ -2,6 +2,54 @@
 
 > **当前版本**: v1.1.0-alpha 企业版 | **Cowork**: v3.3 + v4.0 | **SIMKey**: v0.39.0 | **最后更新**: 2026-02-27
 
+## 核心特性
+
+- 🤖 **AI 智能体主线**: Cowork 多代理 → 自然语言编程 → 多模态协作 → 自主运维 → Agent 联邦
+- 🔐 **安全硬件主线**: U-Key/SIMKey → FIDO2 → 门限签名 → 卫星 SIM → 后量子密码
+- 🌐 **去中心化社交主线**: DID 身份 → P2P 加密 → 协议融合 → DAO 治理 → 社交 AI
+- 🏢 **企业平台主线**: RBAC 权限 → SSO → 审计合规 → 低代码平台 → BI 引擎
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│         ChainlessChain 产品演进架构            │
+│                                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │
+│  │ AI 智能体│ │ 安全硬件 │ │ 去中心化社交 │ │
+│  │ Cowork   │ │ U-Key    │ │ DID/P2P      │ │
+│  │ v3.3+v4.0│ │ SIMKey   │ │ Signal       │ │
+│  └────┬─────┘ └────┬─────┘ └──────┬───────┘ │
+│       │            │              │          │
+│       ▼            ▼              ▼          │
+│  ┌──────────────────────────────────────┐    │
+│  │       统一平台层                      │    │
+│  │  Desktop | Android | iOS | Web       │    │
+│  └──────────────────┬───────────────────┘    │
+│                     ▼                        │
+│  ┌──────────────────────────────────────┐    │
+│  │       企业平台                        │    │
+│  │  RBAC | SSO | Audit | Low-Code | BI  │    │
+│  └──────────────────────────────────────┘    │
+└──────────────────────────────────────────────┘
+```
+
+## 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `desktop-app-vue/src/main/ai-engine/` | AI 智能体核心引擎 |
+| `desktop-app-vue/src/main/ukey/` | U-Key/SIMKey 硬件安全 |
+| `desktop-app-vue/src/main/p2p/` | P2P 去中心化通信 |
+| `desktop-app-vue/src/main/enterprise/` | 企业平台模块 |
+| `desktop-app-vue/src/main/blockchain/` | 区块链与 DAO 治理 |
+
+## 相关文档
+
+- [Cowork 路线图](/chainlesschain/cowork-roadmap)
+- [v1.1.0 实施计划](/chainlesschain/implementation-plan)
+- [更新日志](/changelog)
+
 本文档描述 ChainlessChain 产品的整体演进规划，涵盖 AI 智能体、安全硬件、去中心化社交、企业级平台四条主线。
 
 > 各模块详细路线图：[Cowork 路线图](/chainlesschain/cowork-roadmap) | [更新日志](/changelog)

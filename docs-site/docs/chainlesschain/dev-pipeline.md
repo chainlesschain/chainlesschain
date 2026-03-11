@@ -4,6 +4,30 @@
 
 开发流水线编排系统提供从需求到部署的全生命周期管理，支持多阶段流水线、审批门控和自动化部署。
 
+## 核心特性
+
+- 🔄 **7 阶段流水线**: 需求解析→架构设计→代码生成→测试→审查→部署→监控全自动化
+- 🚪 **审批门控**: 支持 auto/manual/condition 三种门控类型，灵活控制流水线推进
+- 📝 **规范翻译器**: 自然语言需求自动翻译为结构化技术规范，支持多轮消歧
+- 🚀 **部署 Agent**: 5 种部署策略（git-pr/docker/npm/local/staging），自动烟雾测试
+- 📊 **项目风格分析**: 命名约定、架构模式、测试策略等 6 维度自动分析
+
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────────┐
+│              Pipeline Orchestrator (15 IPC)          │
+├──────┬──────┬──────┬──────┬──────┬──────┬───────────┤
+│需求  │架构  │代码  │测试  │审查  │部署  │监控        │
+│解析  │设计  │生成  │      │      │      │            │
+├──────┴──────┴──────┴──┬───┴──────┴──┬───┴───────────┤
+│  SpecTranslator       │ DeployAgent │PostDeployMonit│
+│  (NL→Spec)           │ (5 策略)    │(烟雾测试)     │
+├───────────────────────┴─────────────┴───────────────┤
+│  RequirementParser │ ProjectStyleAnalyzer │ Gates   │
+└─────────────────────────────────────────────────────┘
+```
+
 ## 系统概述
 
 ### 7 阶段流水线
@@ -221,3 +245,9 @@ Agent: "请明确以下信息：
 | `src/main/ai-engine/cowork/project-style-analyzer.js` | 项目风格分析           |
 | `src/main/ai-engine/cowork/post-deploy-monitor.js`    | 部署后监控             |
 | `src/main/ai-engine/cowork/evolution-ipc.js`          | IPC 处理器             |
+
+## 相关文档
+
+- [Cowork 核心文档](/chainlesschain/cowork) — 多智能体协作基础
+- [Cowork 路线图](/chainlesschain/cowork-roadmap) — v3.0-v4.0 全部功能规划
+- [Cowork 高级功能](/chainlesschain/cowork-advanced) — Verification Loop、Git Hooks 集成

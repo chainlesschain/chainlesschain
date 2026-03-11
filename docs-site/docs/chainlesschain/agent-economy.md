@@ -161,6 +161,32 @@ CREATE TABLE IF NOT EXISTS agent_nfts (
 CREATE INDEX IF NOT EXISTS idx_agent_nfts_did ON agent_nfts(agent_did);
 ```
 
+## 系统架构
+
+```
+┌───────────────────────────────────────────────────┐
+│                Agent 经济系统                       │
+├───────────────────────────────────────────────────┤
+│                                                     │
+│  ┌────────────┐  ┌────────────┐  ┌─────────────┐  │
+│  │ State      │  │ Resource   │  │ Agent NFT   │  │
+│  │ Channel    │  │ Market     │  │ Identity    │  │
+│  │ (微支付)    │  │ (资源交易)  │  │ (身份铸造)  │  │
+│  └─────┬──────┘  └─────┬──────┘  └──────┬──────┘  │
+│        │               │                │          │
+│  ┌─────▼───────────────▼────────────────▼──────┐  │
+│  │          Contribution Proof Engine           │  │
+│  │          (贡献证明 + 收益分配)                 │  │
+│  └──────────────────┬──────────────────────────┘  │
+│                     │                              │
+│  ┌──────────────────▼──────────────────────────┐  │
+│  │   SQLite 持久化 (6 tables)                   │  │
+│  │   services | payments | channels | listings  │  │
+│  │   nfts | contributions                       │  │
+│  └─────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────┘
+```
+
 ## 配置
 
 在 `.chainlesschain/config.json` 中配置：
@@ -201,6 +227,16 @@ CREATE INDEX IF NOT EXISTS idx_agent_nfts_did ON agent_nfts(agent_did);
 | NFT 铸造失败     | 确认 Agent DID 有效，检查是否已存在同 DID NFT |
 | 资源交易未匹配   | 检查资源类型和价格区间设置                    |
 | 收益分配比例异常 | 确认贡献记录完整，检查分配方法配置            |
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/blockchain/agent-economy.js` | Agent 经济核心引擎 |
+| `desktop-app-vue/src/main/blockchain/state-channel.js` | State Channel 微支付通道 |
+| `desktop-app-vue/src/main/blockchain/resource-market.js` | 计算资源交易市场 |
+| `desktop-app-vue/src/main/blockchain/agent-nft.js` | Agent NFT 身份铸造 |
+| `desktop-app-vue/src/main/blockchain/contribution-proof.js` | 贡献证明与收益分配 |
 
 ## 相关文档
 

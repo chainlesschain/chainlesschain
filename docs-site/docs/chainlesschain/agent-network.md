@@ -4,6 +4,39 @@
 
 去中心化 Agent 网络为自治 Agent 提供完整的身份、认证、信誉和协作基础设施，支持跨组织的 Agent 发现、认证和任务路由。
 
+## 核心特性
+
+- 🪪 **W3C DID 身份**: Ed25519 密钥对，`did:chainless:{uuid}` 格式标识
+- 🔐 **挑战-响应认证**: DID 私钥签名验证，支持会话管理与自动挂起
+- 📜 **VC 凭证系统**: CAPABILITY / DELEGATION / MEMBERSHIP 三类凭证
+- ⭐ **信誉评分**: 成功率/响应时间/质量/活跃度四维加权评估
+- 🌐 **Kademlia DHT**: 160-bit 地址空间，支持本地/联邦/广播三种发现模式
+- 🔀 **跨组织路由**: nearest / best-reputation / round-robin / capability-match 四种策略
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────────┐
+│            去中心化 Agent 网络 (6 模块)             │
+├──────────────────────────────────────────────────┤
+│                                                    │
+│  ┌──────────┐  ┌──────────────┐  ┌────────────┐  │
+│  │ AgentDID │  │ Authenticator│  │ Credential │  │
+│  │ (身份)   │  │ (认证器)      │  │ Manager    │  │
+│  └────┬─────┘  └──────┬───────┘  └─────┬──────┘  │
+│       │                │                │          │
+│  ┌────▼────────────────▼────────────────▼──────┐  │
+│  │       Federated Agent Registry (DHT)        │  │
+│  │       本地注册表 | 联邦查询 | 广播发现        │  │
+│  └─────────────────────┬──────────────────────┘  │
+│                        │                          │
+│  ┌──────────┐  ┌───────▼──────┐  ┌────────────┐  │
+│  │Reputation│  │ CrossOrg     │  │ SQLite     │  │
+│  │ System   │←→│ TaskRouter   │  │ (4 tables) │  │
+│  └──────────┘  └──────────────┘  └────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
 ## 系统概述
 
 ### 模块架构
@@ -272,3 +305,10 @@ Agent A                              Agent B
 | `src/main/ai-engine/cowork/federated-agent-registry.js` | 联邦 DHT 注册表                 |
 | `src/main/ai-engine/cowork/cross-org-task-router.js`    | 跨组织任务路由                  |
 | `src/main/ai-engine/cowork/evolution-ipc.js`            | IPC 处理器（含 Agent 网络相关） |
+
+## 相关文档
+
+- [代理联邦网络](/chainlesschain/agent-federation)
+- [A2A 协议引擎](/chainlesschain/a2a-protocol)
+- [Agent 经济系统](/chainlesschain/agent-economy)
+- [Cowork 多智能体协作](/chainlesschain/cowork)

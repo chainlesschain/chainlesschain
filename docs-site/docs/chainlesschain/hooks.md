@@ -4,6 +4,35 @@
 
 Hooks 系统提供可扩展的钩子机制，允许在关键操作点插入自定义逻辑，灵感来源于 Claude Code 的 hooks 设计。
 
+## 核心特性
+
+- 🪝 **21 个钩子事件**: 覆盖工具执行、会话生命周期、文件操作、消息传递等关键节点
+- 🔄 **4 种钩子类型**: 同步/异步/Shell 命令/脚本（JS/Python/Bash）灵活适配各场景
+- 📦 **优先级调度**: 系统级(0) → 高优先级(100) → 普通(500) → 监控(1000)，有序执行
+- 🛡️ **安全拦截**: PreToolUse 钩子可阻止危险操作，保护敏感文件和目录
+- 🔧 **多层配置**: 项目级 + 用户级配置，项目级优先，支持内置钩子与自定义钩子
+
+## 系统架构
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  工具/IPC 调用   │────→│  Hook Dispatcher │────→│  Hook Registry  │
+│  触发钩子事件    │     │  优先级排序执行   │     │  配置加载管理    │
+└─────────────────┘     └────────┬─────────┘     └─────────────────┘
+                                 │
+                 ┌───────────────┼───────────────┐
+                 ▼               ▼               ▼
+           ┌──────────┐   ┌──────────┐   ┌──────────┐
+           │ Sync     │   │ Async    │   │ Command/ │
+           │ Handlers │   │ Handlers │   │ Script   │
+           │ 阻塞执行  │   │ 非阻塞   │   │ 外部脚本 │
+           └──────────┘   └──────────┘   └──────────┘
+
+配置来源:
+  项目级: .chainlesschain/hooks.json (优先)
+  用户级: ~/.chainlesschain/hooks.json
+```
+
 ## 系统概述
 
 ### 钩子事件
@@ -441,6 +470,24 @@ module.exports = {
 - [Plan Mode](/chainlesschain/plan-mode) - 安全规划模式
 - [Skills系统](/chainlesschain/skills) - 技能扩展
 - [权限系统](/chainlesschain/permissions) - RBAC权限控制
+
+---
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/hooks/hook-system.js` | Hooks 核心引擎（注册/触发/调度） |
+| `src/main/hooks/hook-registry.js` | 钩子注册表与配置加载 |
+| `src/main/hooks/hook-middleware.js` | IPC/Tool 中间件集成 |
+| `src/main/hooks/builtins/` | 内置钩子（权限检查/日志记录等） |
+
+## 相关文档
+
+- [Plan Mode →](/chainlesschain/plan-mode)
+- [Skills 系统 →](/chainlesschain/skills)
+- [权限系统 →](/chainlesschain/permissions)
+- [审计日志 →](/chainlesschain/audit)
 
 ---
 

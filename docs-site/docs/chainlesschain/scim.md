@@ -2,6 +2,41 @@
 
 > **Phase 44 | v1.1.0-alpha | 8 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 🔌 **RFC 7644 SCIM 2.0 服务器**: 完整实现 User/Group 资源的 CRUD 端点
+- 🔄 **IdP 双向同步**: 支持 Azure AD、Okta、OneLogin 等主流 IdP 的增量同步
+- ⚖️ **三种冲突策略**: IdP-First / Local-First / Latest-First 灵活选择
+- 📊 **属性映射管理**: 自定义 Schema 扩展和属性映射配置
+- 📜 **同步日志审计**: 完整的同步历史记录与错误分析
+
+## 系统架构
+
+```
+┌────────────────────────────────────────┐
+│   外部 IdP (Azure AD / Okta / ...)     │
+└──────────────────┬─────────────────────┘
+                   │ SCIM 2.0 协议
+                   ▼
+┌────────────────────────────────────────┐
+│         SCIM 2.0 Server                │
+│  /scim/v2/Users  /scim/v2/Groups       │
+│  Bearer Token 认证 / 速率限制           │
+└──────────┬──────────┬──────────────────┘
+           │          │
+           ▼          ▼
+┌──────────────┐  ┌────────────────┐
+│ 同步引擎      │  │ 冲突解决器      │
+│ Pull/Push/   │  │ IdP-First      │
+│ Bidirectional│  │ Local/Latest   │
+└──────┬───────┘  └───────┬────────┘
+       │                  │
+       ▼                  ▼
+┌────────────────────────��───────────────┐
+│   SQLite 用户/组存储 + 同步日志         │
+└────────────────────────────────────────┘
+```
+
 ## 概述
 
 Phase 44 引入 SCIM 2.0 (System for Cross-domain Identity Management) 企业用户自动化配置系统,支持与 Azure AD、Okta、OneLogin 等 IdP 的双向同步。
@@ -301,6 +336,19 @@ await window.electronAPI.invoke('scim:resolve-all-conflicts', {
 - [权限管理](/chainlesschain/permissions)
 - [SSO 认证](/chainlesschain/simkey-enterprise)
 - [产品路线图](/chainlesschain/product-roadmap)
+
+---
+
+## 关键文件
+
+| 文件                                              | 职责                     |
+| ------------------------------------------------- | ------------------------ |
+| `src/main/enterprise/scim-server.js`              | SCIM 2.0 协议服务器     |
+| `src/main/enterprise/scim-sync-engine.js`         | IdP 双向同步引擎        |
+| `src/main/enterprise/scim-conflict-resolver.js`   | 冲突检测与解决          |
+| `src/main/enterprise/scim-ipc.js`                 | IPC 处理器���8 个）      |
+| `src/renderer/pages/enterprise/SCIMPage.vue`      | SCIM 集成管理页面       |
+| `src/renderer/stores/scim.ts`                     | Pinia 状态管理          |
 
 ---
 

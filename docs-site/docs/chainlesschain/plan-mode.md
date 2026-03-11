@@ -4,6 +4,44 @@
 
 Plan Mode 提供类似 Claude Code 的安全规划模式，让 AI 在执行敏感操作前先制定计划并获得用户批准。
 
+## 核心特性
+
+- 📋 **安全规划模式**: AI 执行敏感操作前自动进入规划模式，生成执行计划供用户审批
+- 🔒 **工具分级限制**: 规划模式下仅允许只读工具（Read/Glob/Grep），写入工具需审批后执行
+- ✅ **灵活审批流**: 支持完整批准、部分批准、拒绝和计划修改，逐步或自动执行
+- 🪝 **Hooks 集成**: 通过 PreToolUse 钩子自动检测高风险操作，强制进入规划模式
+- ⏱️ **计划生命周期**: 支持计划过期、自动保存、历史查询和单步调试执行
+
+## 系统架构
+
+```
+用户请求
+    │
+    ▼
+┌──────────────────┐
+│  风险评估引擎     │──── 低风险 ──▶ 直接执行
+│  (PreToolUse钩子) │
+└────────┬─────────┘
+         │ 高风险
+         ▼
+┌──────────────────┐
+│  规划模式引擎     │
+│  (只读工具分析)   │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐    ┌──────────────┐
+│  执行计划生成     │───▶│  用户审批界面  │
+│  (步骤/风险/依赖) │    │ (批准/拒绝/改) │
+└──────────────────┘    └──────┬───────┘
+                               │ 批准
+                               ▼
+                        ┌──────────────┐
+                        │  计划执行器   │
+                        │ (逐步/自动)   │
+                        └──────────────┘
+```
+
 ## 工作原理
 
 ### 模式切换
@@ -414,6 +452,24 @@ const history = await planMode.getHistory({
 - [Hooks系统](/chainlesschain/hooks) - 钩子扩展
 - [Skills系统](/chainlesschain/skills) - 技能系统
 - [权限系统](/chainlesschain/permissions) - RBAC权限
+
+---
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/ai-engine/plan-mode/plan-mode-manager.js` | Plan Mode 核心引擎 |
+| `src/main/ai-engine/plan-mode/plan-mode-ipc.js` | IPC 处理器（14 个） |
+| `src/main/hooks/plan-mode-check.js` | PreToolUse 风险检测钩子 |
+| `src/renderer/stores/planMode.ts` | Pinia 规划模式状态管理 |
+
+## 相关文档
+
+- [Hooks 扩展系统](/chainlesschain/hooks) - 钩子事件与 Plan Mode 集成
+- [Skills 技能系统](/chainlesschain/skills) - 技能执行与规划模式
+- [权限系统](/chainlesschain/permissions) - RBAC 权限与操作审批
+- [Cowork 多智能体](/chainlesschain/cowork) - 多 Agent 协作中的规划
 
 ---
 

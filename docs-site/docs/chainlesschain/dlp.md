@@ -2,16 +2,34 @@
 
 > **Phase 50 | v1.1.0-alpha | 8 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 🔍 **实时内容检测**: 8 种内置检测器（信用卡/身份证/手机号/API密钥等），<50ms 扫描延迟
+- 📋 **策略引擎**: 灵活的规则定义，支持 block/mask/warn/log/encrypt 5 种动作
+- 🚨 **事件管理**: 违规事件全生命周期（open→investigating→resolved），分级响应
+- 🔗 **分类集成**: 与 Phase 43 数据分类系统联动，RESTRICTED 数据自动触发 DLP
+- 🛡️ **隐私保护**: 仅存储内容哈希，不保存原始敏感数据
+
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────┐
+│              应用层 (8 IPC Handlers)              │
+│  scan-content │ scan-file │ create-policy │ ...  │
+├──────────────┬┴───────────┴──────────────────────┤
+│   DLP Engine │    策略引擎 (Policy Engine)        │
+│   8 检测器   │    5 种动作 (block/mask/warn/...)  │
+├──────────────┴───────────────────────────────────┤
+│         数据分类集成 (Phase 43)                    │
+│  PUBLIC → INTERNAL → CONFIDENTIAL → RESTRICTED   │
+├──────────────────────────────────────────────────┤
+│  SQLite (dlp_policies, dlp_incidents)             │
+└──────────────────────────────────────────────────┘
+```
+
 ## 概述
 
 Phase 50 为 ChainlessChain 引入企业级数据防泄漏 (Data Loss Prevention) 引擎，在数据分类 (Phase 43) 基础上构建实时内容检测、策略执行和事件管理能力。
-
-**核心目标**:
-
-- 🔍 **实时内容检测**: 监控数据流动，识别敏感信息
-- 📋 **策略引擎**: 灵活的规则定义和动作执行
-- 🚨 **事件管理**: 违规事件记录、分级和响应
-- 🔗 **分类集成**: 与 Phase 43 数据分类系统联动
 
 ---
 
@@ -355,6 +373,16 @@ await window.electronAPI.invoke("dlp:create-policy", {
 | 批量扫描 (100项) | <5s   | ~3s   |
 
 ---
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/security/dlp-engine.js` | DLP 检测引擎核心（8 内置检测器） |
+| `desktop-app-vue/src/main/security/dlp-policy-manager.js` | 策略管理（CRUD + 优先级匹配） |
+| `desktop-app-vue/src/main/security/dlp-incident-manager.js` | 事件管理（记录、分级、响应） |
+| `desktop-app-vue/src/main/security/dlp-ipc.js` | DLP 8 个 IPC Handler |
+| `desktop-app-vue/src/main/security/content-detectors/` | 内置检测器目录（正则 + Luhn 校验） |
 
 ## 相关文档
 

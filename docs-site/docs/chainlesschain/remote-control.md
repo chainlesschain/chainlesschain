@@ -4,6 +4,15 @@
 
 远程控制系统允许通过浏览器插件和移动端远程控制 ChainlessChain Desktop 应用，实现跨设备的无缝操作体验。
 
+## 核心特性
+
+- 🌐 **WebSocket 本地通信**: 仅监听 127.0.0.1:18790，安全的本地双向通信
+- 📱 **多端远程控制**: 支持浏览器插件（Chrome/Edge）和移动端（Android/iOS）
+- 🤖 **AI 命令代理**: 通过远程通道调用本地 AI 进行智能分析
+- 🔐 **四级权限体系**: READ/WRITE/EXECUTE/ADMIN 分级权限控制
+- 📊 **命令审计追踪**: 所有远程命令完整记录，支持操作日志查询
+- ⚡ **速率限制保护**: 可配置的命令频率限制，防止滥用
+
 ## 系统架构
 
 ```
@@ -325,7 +334,20 @@ const ALLOWED_ORIGINS = ["127.0.0.1", "localhost"];
 
 ---
 
-## 下一步
+## 关键文件
+
+| 文件                                                  | 职责                     |
+| ----------------------------------------------------- | ------------------------ |
+| `src/main/remote/remote-control-server.js`            | WebSocket 服务器核心     |
+| `src/main/remote/remote-command-handler.js`           | 远程命令分发与执行       |
+| `src/main/remote/remote-permission-manager.js`        | 权限校验与设备白名单     |
+| `src/main/remote/remote-audit-logger.js`              | 命令审计日志记录         |
+| `src/renderer/pages/settings/RemoteControlPage.vue`   | 远程控制设置页面         |
+| `src/renderer/stores/remoteControl.ts`                | 远程控制状态管理         |
+
+---
+
+## 相关文档
 
 - [浏览器插件](/chainlesschain/browser-extension) - 安装和使用浏览器插件
 - [Computer Use](/chainlesschain/computer-use) - 桌面自动化能力
