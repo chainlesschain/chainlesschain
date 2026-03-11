@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/connection-pool.js`
 
-**Generated**: 2026-03-10T09:06:38.126Z
+**Generated**: 2026-03-11T09:43:39.320Z
 
 ---
 

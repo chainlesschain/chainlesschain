@@ -2,14 +2,14 @@
 
 **Source**: `src/main/git/git-hot-reload.js`
 
-**Generated**: 2026-03-10T09:06:38.155Z
+**Generated**: 2026-03-11T09:43:39.348Z
 
 ---
 
-## const chokidar = require('chokidar');
+## let chokidar;
 
 ```javascript
-const chokidar = require('chokidar');
+let chokidar;
 ```
 
 * Git Hot Reload Module
@@ -23,25 +23,25 @@ const chokidar = require('chokidar');
 
 ---
 
-## gitLog('GitHotReload', '初始化Git热重载模块');
+## gitLog("GitHotReload", "初始化Git热重载模块");
 
 ```javascript
-gitLog('GitHotReload', '初始化Git热重载模块');
+gitLog("GitHotReload", "初始化Git热重载模块");
 ```
 
-',
-      '*
+",
+      "*
 
 ---
 
-## gitLog('GitHotReload', '初始化Git热重载模块');
+## gitLog("GitHotReload", "初始化Git热重载模块");
 
 ```javascript
-gitLog('GitHotReload', '初始化Git热重载模块');
+gitLog("GitHotReload", "初始化Git热重载模块");
 ```
 
-',
-      '*
+",
+      "*
 
 ---
 
