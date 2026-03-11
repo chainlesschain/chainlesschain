@@ -1,0 +1,35 @@
+{
+  "name": "@chainlesschain/core-config",
+  "version": "0.1.0",
+  "description": "Configuration management - database config, app config, settings",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./database-config": "./lib/database-config.js",
+    "./settings-manager": "./lib/settings-manager.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "lib/"
+  ],
+  "keywords": [
+    "chainlesschain",
+    "config",
+    "settings"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "dependencies": {
+    "@chainlesschain/core-env": "0.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
+}

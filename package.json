@@ -7,6 +7,16 @@
     "desktop-app",
     "desktop-app-vue",
     "backend/services",
+    "packages/core-env",
+    "packages/shared-logger",
+    "packages/core-db",
+    "packages/core-config",
+    "packages/core-infra",
+    "packages/core-llm",
+    "packages/core-knowledge",
+    "packages/core-ai",
+    "packages/core-social",
+    "packages/core-blockchain",
     "packages/cli"
   ],
   "scripts": {

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v5.0.0 进化版 | 军事级安全 | 完全去中心化 | AI原生 | 137技能 | 100 Phase | AI Agent 2.0 | Web3 深化 | 自进化AI
+  tagline: v5.0.1 进化版 | 军事级安全 | 完全去中心化 | AI原生 | 138技能 | 100 Phase | AI Agent 2.0 | Web3 深化 | 自进化AI | Headless CLI
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -50,7 +50,7 @@ features:
 
   - icon: 🤖
     title: Cowork多智能体协作
-    details: v5.0 AI Agent 2.0，A2A协议，工作流编排，层次化记忆，Agent经济，代码生成Agent，自进化AI，137内置技能
+    details: v5.0 AI Agent 2.0，A2A协议，工作流编排，层次化记忆，Agent经济，代码生成Agent，自进化AI，138内置技能
 
   - icon: 🖥️
     title: Computer Use
@@ -66,7 +66,7 @@ features:
 
   - icon: 🎨
     title: AI技能系统
-    details: 137个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+137技能)，10个演示模板
+    details: 138个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+138技能)，10个演示模板
 
   - icon: ⛓️
     title: 区块链 + Web3
@@ -134,7 +134,7 @@ start.bat
 
 ### 1. ChainlessChain 个人AI管理系统
 
-完全去中心化的个人AI助手平台（v5.0.0 进化版），整合知识库管理、社交网络和交易辅助三大核心功能，内置AI Agent 2.0生态、Web3深化和企业级平台。
+完全去中心化的个人AI助手平台（v5.0.1 进化版），整合知识库管理、社交网络和交易辅助三大核心功能，内置AI Agent 2.0生态、Web3深化、企业级平台和CLI分发系统。
 
 **主要特性:**
 
@@ -142,8 +142,9 @@ start.bat
 - 🌐 完全去中心化 (P2P网络 + DHT)
 - 🧠 16个AI专用引擎 + 14+云LLM提供商
 - 📱 跨设备同步 (PC/移动端/浏览器扩展)
-- 🔌 MCP集成 + 137内置技能 + 统一工具注册表
-- 🎨 AI技能系统 (137技能 + Agent Skills标准 + 10演示模板)
+- 🔌 MCP集成 + 138内置技能 + 统一工具注册表
+- 🎨 AI技能系统 (138技能 + Agent Skills标准 + 10演示模板)
+- 💻 Headless CLI (15命令 + 5核心包 + Agent REPL + 138技能)
 - ⛓️ 区块链集成 (15链 + 6个智能合约)
 - 🤖 AI Agent 2.0 (A2A协议、工作流编排、层次化记忆、多模态感知、Agent经济)
 - 🖥️ Computer Use (68+ IPC处理器，视觉AI，工作流引擎)
@@ -197,9 +198,10 @@ start.bat
 
 - 📊 380,000+ 行代码
 - 🧩 384+ 个Vue组件
-- 🔌 735+ IPC处理器 (+178 v5.0.0)
-- 🧪 20,400+ 测试用例 (+646 v5.0.0)
-- 🎨 137个内置技能 + 统一工具注册表
+- 🔌 735+ IPC处理器 (+178 v5.0)
+- 🧪 20,400+ 测试用例 (+646 v5.0)
+- 🎨 138个内置技能 + 统一工具注册表
+- 💻 15个CLI命令 + 5核心包 (118测试)
 - 💾 95+ 张数据库表
 - 🏗️ 64个Pinia Store
 - 🔧 100个开发阶段完成 (Phase 1-100)

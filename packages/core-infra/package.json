@@ -1,0 +1,36 @@
+{
+  "name": "@chainlesschain/core-infra",
+  "version": "0.1.0",
+  "description": "DI container, event bus, and bootstrap infrastructure",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./service-container": "./lib/service-container.js",
+    "./event-bus": "./lib/event-bus.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "lib/"
+  ],
+  "keywords": [
+    "chainlesschain",
+    "di",
+    "event-bus",
+    "infrastructure"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "dependencies": {
+    "@chainlesschain/shared-logger": "0.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
+}

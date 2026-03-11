@@ -1,0 +1,32 @@
+{
+  "name": "@chainlesschain/core-env",
+  "version": "0.1.0",
+  "description": "Platform abstraction layer - paths, runtime detection, environment",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./paths": "./lib/paths.js",
+    "./runtime": "./lib/runtime.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "lib/"
+  ],
+  "keywords": [
+    "chainlesschain",
+    "environment",
+    "paths"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
+}

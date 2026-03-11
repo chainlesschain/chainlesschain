@@ -25,14 +25,14 @@ describe("E2E: cross-platform", () => {
     expect(name).toContain("1.2.3");
 
     if (currentPlatform === "win32") {
-      expect(name).toContain("win");
-      expect(name).toMatch(".exe");
+      expect(name).toContain("win32");
+      expect(name).toContain(".exe");
     } else if (currentPlatform === "darwin") {
-      expect(name).toContain("mac");
-      expect(name).toMatch(".dmg");
+      expect(name).toContain("darwin");
+      expect(name).toContain(".dmg");
     } else if (currentPlatform === "linux") {
       expect(name).toContain("linux");
-      expect(name).toMatch(".deb");
+      expect(name).toContain(".deb");
     }
   });
 

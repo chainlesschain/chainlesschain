@@ -22,3 +22,18 @@ export function isMac() {
 export function isLinux() {
   return getPlatform() === "linux";
 }
+
+export function getBinaryName(version) {
+  const p = getPlatform();
+  const a = getArch();
+  const ext = getBinaryExtension();
+  return `chainlesschain-${version}-${p}-${a}${ext}`;
+}
+
+export function getBinaryExtension() {
+  const p = getPlatform();
+  if (p === "win32") return ".exe";
+  if (p === "darwin") return ".dmg";
+  if (p === "linux") return ".deb";
+  return "";
+}

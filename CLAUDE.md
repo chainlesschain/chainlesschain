@@ -65,7 +65,7 @@ npm run test:ukey          # Run U-Key tests
 ```bash
 cd packages/cli
 npm install
-npm test                   # Run all tests (unit + integration + e2e)
+npm test                   # Run all tests (117 tests, 18 files)
 npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests
 npm run test:e2e           # End-to-end tests
@@ -74,6 +74,7 @@ npm run test:e2e           # End-to-end tests
 **CLI commands** (after `npm install -g chainlesschain`):
 
 ```bash
+# System management
 chainlesschain setup       # Interactive setup wizard
 chainlesschain start       # Launch desktop app
 chainlesschain stop        # Stop app
@@ -82,6 +83,21 @@ chainlesschain services up # Start Docker services
 chainlesschain config list # Show configuration
 chainlesschain update      # Check for updates
 chainlesschain doctor      # Diagnose environment
+
+# Headless commands (no GUI required)
+chainlesschain db init     # Initialize database
+chainlesschain db info     # Database info
+chainlesschain note add "Title" -c "Content" -t "tag1,tag2"
+chainlesschain note list   # List notes
+chainlesschain note search "keyword"
+chainlesschain chat        # Interactive AI chat (streaming)
+chainlesschain chat --agent # Agentic mode (read/write files)
+chainlesschain ask "question" # Single-shot AI query
+chainlesschain llm models  # List installed models
+chainlesschain llm test    # Test LLM connectivity
+chainlesschain agent       # Agentic AI session (Claude Code style)
+chainlesschain skill list  # List 138 built-in skills
+chainlesschain skill run code-review "Review this code"
 ```
 
 ### Backend Services (Docker-based)
@@ -158,9 +174,12 @@ Key highlights:
 Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
-- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill)
+- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills)
+- **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
 - **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum)
-- **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver (all pure JS)
+- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 tests total)
+- **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 
 ### Backend Services
 
