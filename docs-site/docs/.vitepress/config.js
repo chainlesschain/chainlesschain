@@ -418,27 +418,27 @@ export default defineConfig({
           items: [
             {
               text: "数据库管理 (db)",
-              link: "/chainlesschain/cli#数据库管理",
+              link: "/chainlesschain/cli-db",
             },
             {
               text: "笔记管理 (note)",
-              link: "/chainlesschain/cli#笔记-知识库管理",
+              link: "/chainlesschain/cli-note",
             },
             {
               text: "AI对话 (chat/ask)",
-              link: "/chainlesschain/cli#ai-对话",
+              link: "/chainlesschain/cli-chat",
             },
             {
               text: "LLM管理 (llm)",
-              link: "/chainlesschain/cli#llm-管理",
+              link: "/chainlesschain/cli-llm",
             },
             {
               text: "代理模式 (agent)",
-              link: "/chainlesschain/cli#代理模式-别名-a",
+              link: "/chainlesschain/cli-agent",
             },
             {
               text: "技能系统 (skill)",
-              link: "/chainlesschain/cli#技能管理",
+              link: "/chainlesschain/cli-skill",
             },
           ],
         },
