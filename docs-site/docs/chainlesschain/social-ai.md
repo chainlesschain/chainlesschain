@@ -2,6 +2,41 @@
 
 > **Phase 42 | v1.1.0-alpha | 18 IPC 处理器 | 4 张新数据库表**
 
+## 核心特性
+
+- 🧠 **AI 主题分析**: TF-IDF 关键词提取 + 情感分析 + 9 类自动分类
+- 🕸️ **社交图谱分析**: 4 种中心性算法 + Louvain 社区发现 + 影响力排名
+- 🌐 **ActivityPub 桥接**: W3C 标准 S2S 协议，与 Mastodon/Pleroma/Misskey 互联互通
+- 🤖 **AI 社交助手**: 智能回复生成（3 种风格）、内容总结、话题推荐
+- 🔒 **隐私与安全**: HTTP 签名验证、内容过滤、速率限制、匿名 Actor 支持
+
+## 系统架构
+
+```
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+│ Vue Frontend│     │  Mastodon    │     │  Pleroma     │
+│ Social Pages│     │  Instance    │     │  Instance    │
+└──────┬──────┘     └──────┬───────┘     └──────┬───────┘
+       │ IPC               │ ActivityPub S2S     │
+       ▼                   ▼                     ▼
+┌──────────────────────────────────────────────────────┐
+│                  Social AI Engine                     │
+│  ┌────────────┐  ┌──────────────┐  ┌──────────────┐ │
+│  │ Topic      │  │ Social Graph │  │ ActivityPub  │ │
+│  │ Analyzer   │  │ Analyzer     │  │ Bridge       │ │
+│  │ (NLP)      │  │ (Louvain)    │  │ (W3C S2S)    │ │
+│  └────────────┘  └──────────────┘  └──────────────┘ │
+│  ┌────────────┐  ┌──────────────┐                    │
+│  │ AI Social  │  │ WebFinger    │                    │
+│  │ Assistant  │  │ Discovery    │                    │
+│  └────────────┘  └──────────────┘                    │
+└──────────────────────────┬───────────────────────────┘
+                           │
+                  ┌────────▼────────┐
+                  │  SQLite (4表)   │
+                  └─────────────────┘
+```
+
 ## 概述
 
 Phase 42 为 ChainlessChain 引入了智能社交分析和 ActivityPub 联邦宇宙集成,将去中心化社交能力扩展到整个 Fediverse (Mastodon、Pleroma 等平台),同时提供 AI 驱动的社交洞察。
@@ -430,6 +465,17 @@ Signature: keyId="https://chainlesschain.local/users/alice#main-key",
 - [产品路线图](/chainlesschain/product-roadmap)
 
 ---
+
+## 关键文件
+
+| 文件 | 职责 | 行数 |
+| --- | --- | --- |
+| `src/main/p2p/social-ai-engine.js` | 社交 AI 核心引擎 | ~450 |
+| `src/main/p2p/topic-analyzer.js` | 主题提取与情感分析 | ~320 |
+| `src/main/p2p/social-graph.js` | 社交图谱与社区发现 | ~380 |
+| `src/main/p2p/activitypub-bridge.js` | ActivityPub S2S 桥接 | ~400 |
+| `src/main/p2p/ai-social-assistant.js` | AI 社交助手 | ~250 |
+| `src/renderer/stores/socialAI.ts` | Pinia 状态管理 | ~180 |
 
 **文档版本**: 1.0.0
 **最后更新**: 2026-02-27

@@ -2,6 +2,38 @@
 
 > **Phase 46 | v1.1.0-alpha | 8 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 🔐 **Shamir 密钥分割**: 2-of-3 门限方案，任意 2 份 share 可恢复完整密钥
+- 🧬 **生物特征绑定**: TEE 环境下指纹/面部/虹膜模板哈希与密钥绑定
+- 🛡️ **多因素安全**: 硬件密钥 + 生物特征 + 门限签名三重保护架构
+- 🔄 **密钥恢复**: 社交恢复 + 门限恢复双通道，抗单点故障
+- ⚡ **高性能验证**: 密钥分割 <100ms，生物特征验证 <1000ms
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│              门限安全系统                       │
+│                                              │
+│  ┌──────────────┐    ┌──────────────────┐    │
+│  │ Shamir 分割  │    │ 生物特征绑定     │    │
+│  │ (2-of-3)     │    │ (TEE 安全环境)   │    │
+│  └──────┬───────┘    └────────┬─────────┘    │
+│         │                     │              │
+│         ▼                     ▼              │
+│  ┌──────────────────────────────────────┐    │
+│  │        统一密钥管理层                  │    │
+│  │  份额1:设备 | 份额2:U-Key | 份额3:备份│    │
+│  └──────────────────┬───────────────────┘    │
+│                     ▼                        │
+│  ┌──────────────────────────────────────┐    │
+│  │  threshold_key_shares / biometric_   │    │
+│  │  bindings (SQLite 加密存储)          │    │
+│  └──────────────────────────────────────┘    │
+└──────────────────────────────────────────────┘
+```
+
 ## 概述
 
 Phase 46 为 ChainlessChain 统一密钥系统引入门限签名（Threshold Signatures）和生物特征绑定能力，实现 Shamir 2-of-3 密钥分割和 TEE 级生物认证。
@@ -339,6 +371,18 @@ const sig = await window.electronAPI.invoke("ukey:threshold-sign", {
 - [数据加密](/chainlesschain/encryption)
 - [BLE 设备管理](/chainlesschain/ble-ukey)
 - [产品路线图](/chainlesschain/product-roadmap)
+
+---
+
+## 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `desktop-app-vue/src/main/ukey/threshold-manager.js` | Shamir 密钥分割与门限签名核心 |
+| `desktop-app-vue/src/main/ukey/biometric-binding.js` | 生物特征 TEE 绑定管理 |
+| `desktop-app-vue/src/main/ukey/threshold-ipc.js` | 门限安全 IPC 处理器 (8个) |
+| `desktop-app-vue/src/renderer/stores/thresholdSecurity.ts` | Pinia 状态管理 |
+| `desktop-app-vue/src/renderer/pages/security/ThresholdSecurityPage.vue` | 门限安全管理页面 |
 
 ---
 

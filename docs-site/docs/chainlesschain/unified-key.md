@@ -2,6 +2,38 @@
 
 > **Phase 45 | v1.1.0-alpha | 8 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 🔑 **BIP-32 密钥派生**: 单一主密钥派生无限子密钥，用途隔离（签名/加密/认证）
+- 🔐 **FIDO2/WebAuthn**: W3C 标准无密码认证，抗钓鱼攻击，支持 Passkey
+- 🔌 **跨平台 USB**: Windows/macOS/Linux/Web 四平台统一 APDU 通信层
+- 🚀 **5 种新驱动**: FIDO2/BIP32/TPM2/TEE/SatelliteSIM 驱动扩展
+- 🔄 **密钥轮换**: 自动密钥轮换，无缝切换新旧密钥
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────┐
+│            统一密钥管理系统                     │
+│                                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │
+│  │ BIP-32   │ │ FIDO2    │ │ 跨平台 USB   │ │
+│  │ 密钥派生 │ │ WebAuthn │ │ APDU 通信    │ │
+│  └────┬─────┘ └────┬─────┘ └──────┬───────┘ │
+│       │            │              │          │
+│       ▼            ▼              ▼          │
+│  ┌──────────────────────────────────────┐    │
+│  │       驱动抽象层 (5 种驱动)           │    │
+│  │  FIDO2 | BIP32 | TPM2 | TEE | SIM   │    │
+│  └──────────────────┬───────────────────┘    │
+│                     ▼                        │
+│  ┌──────────────────────────────────────┐    │
+│  │     硬件安全层                        │    │
+│  │  U-Key 芯片 | YubiKey | HSM | TPM   │    │
+│  └──────────────────────────────────────┘    │
+└──────────────────────────────────────────────┘
+```
+
 ## 概述
 
 Phase 45 引入统一密钥管理系统,支持 BIP-32 分层确定性密钥派生、FIDO2/WebAuthn 无密码认证、跨平台 USB 通信。
@@ -47,7 +79,7 @@ m/44'/0'/0'/2/0  →  第1个认证密钥
 ```javascript
 // 生成主密钥
 const masterKey = await window.electronAPI.invoke('ukey:generate-master-key', {
-  password: 'strong-password-123'
+  password: userInputPassword
 })
 
 // 派生签名密钥
@@ -359,6 +391,18 @@ const key2 = await window.electronAPI.invoke('ukey:rotate-key', {
 - [SIMKey 企业版](/chainlesschain/simkey-enterprise)
 - [加密系统](/chainlesschain/encryption)
 - [产品路线图](/chainlesschain/product-roadmap)
+
+---
+
+## 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `desktop-app-vue/src/main/ukey/unified-key-manager.js` | BIP-32 密钥派生与统一管理 |
+| `desktop-app-vue/src/main/ukey/fido2-driver.js` | FIDO2/WebAuthn 认证驱动 |
+| `desktop-app-vue/src/main/ukey/usb-transport.js` | 跨平台 USB APDU 通信层 |
+| `desktop-app-vue/src/main/ukey/driver-registry.js` | 驱动注册与管理 |
+| `desktop-app-vue/src/renderer/stores/unifiedKey.ts` | Pinia 状态管理 |
 
 ---
 

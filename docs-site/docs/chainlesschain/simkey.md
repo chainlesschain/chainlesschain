@@ -4,6 +4,54 @@
 
 SIMKey利用SIM卡内置的安全芯片，为移动端提供硬件级安全保护。v0.39.0新增eSIM OTA远程配置、TEE可信执行环境深度集成、跨运营商SIMKey漫游协议、基于SIMKey的零知识证明、天通一号卫星通信SIM支持和HSM联合认证。
 
+## 核心特性
+
+- 📱 **SIM 卡硬件安全**: 利用 SIM 卡安全芯片存储密钥，私钥不可导出
+- 🔐 **OMAPI 标准接口**: 通过 Android OMAPI / iOS eSIM API 与安全芯片通信
+- 👆 **生物识别集成**: 支持指纹、面容 ID 替代 PIN 码，便捷又安全
+- 📞 **三大运营商全覆盖**: 中国移动/联通/电信 USIM 和 5G 超级 SIM 卡支持
+- 🔄 **多端备份恢复**: 助记词 / 云端加密备份 / 跨设备二维码同步
+- 🛡️ **12 大安全增强**: eSIM、NFC 离线签名、量子抗性、TEE 集成等
+
+## 系统架构
+
+```
+┌───────────────────────────────────────────┐
+│          ChainlessChain 应用层             │
+│  登录 / 签名 / 加密 / DID / 交易          │
+└──────────────────┬────────────────────────┘
+                   │ SIMKey API
+                   ▼
+┌───────────────────────────────────────────┐
+│          SIMKey 管理层                     │
+│  PIN 管理 / 生物识别 / 备份恢复 / 远程锁定 │
+└──────────┬──────────┬─────────────────────┘
+           │          │
+           ▼          ▼
+┌──────────────┐  ┌──────────────────┐
+│ Android      │  │ iOS              │
+│ OMAPI +      │  │ eSIM API +       │
+│ SIM Applet   │  │ Secure Enclave   │
+└──────┬───────┘  └───────┬──────────┘
+       │                  │
+       ▼                  ▼
+┌───────────────────────────────────────────┐
+│        SIM 卡安全芯片 (硬件层)             │
+│   密钥生成 / 签名 / 加密 / 不可导出        │
+└───────────────────────────────────────────┘
+```
+
+## 关键文件
+
+| 文件                                                | 职责                     |
+| --------------------------------------------------- | ------------------------ |
+| `src/main/security/simkey-manager.js`               | SIMKey 核心管理器        |
+| `src/main/security/simkey-applet.js`                | SIM Applet 通信接口      |
+| `src/main/security/simkey-backup.js`                | 助记词与云端备份恢复     |
+| `src/main/security/simkey-biometric.js`             | 生物识别集成             |
+| `src/renderer/pages/security/SIMKeyPage.vue`        | SIMKey 设置页面          |
+| `src/renderer/stores/simkey.ts`                     | Pinia 状态管理           |
+
 ## 什么是SIMKey?
 
 SIMKey是集成在SIM卡中的安全应用程序（Applet），利用SIM卡的安全芯片存储密钥和执行加密操作。
@@ -555,3 +603,12 @@ SIMKey耗电极低，可忽略不计
 >
 > - [SIMKey 高级安全功能（v0.38.0）](/chainlesschain/simkey-advanced) — iOS eSIM、5G优化、NFC离线签名、多SIM卡切换、健康监控、量子抗性
 > - [SIMKey 企业版功能（v0.39.0）](/chainlesschain/simkey-enterprise) — eSIM OTA、TEE集成、跨运营商漫游、零知识证明、卫星通信、HSM联合认证
+
+---
+
+## 相关文档
+
+- [U-Key 硬件密钥](/chainlesschain/ukey) - PC 端 USB 硬件安全密钥
+- [DID 身份管理](/chainlesschain/did) - 去中心化身份创建与签名
+- [加密系统](/chainlesschain/encryption) - AES-256-GCM 文件加密
+- [卫星通信](/chainlesschain/satellite-comm) - LEO 卫星加密消息传输

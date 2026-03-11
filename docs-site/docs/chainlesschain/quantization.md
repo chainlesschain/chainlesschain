@@ -4,6 +4,35 @@
 
 模型量化系统支持将大语言模型量化为更小、更快的格式，以便在本地设备上高效运行。
 
+## 核心特性
+
+- 🔧 **GGUF 14级量化**: 从 Q2_K 到 F16，覆盖全精度范围，灵活适配不同硬件
+- ⚡ **AutoGPTQ 加速**: 基于校准数据集的 4-bit/8-bit GPU 量化，推理性能优异
+- 📊 **任务队列管理**: SQLite 持久化的量化任务调度，支持进度追踪与取消
+- 🔗 **Ollama 一键集成**: 量化完成后自动生成 Modelfile 并导入 Ollama
+- 💾 **智能内存适配**: 根据设备内存自动推荐最佳量化级别
+
+## 系统架构
+
+```
+┌─────────────────────────────────────────────┐
+│            QuantizationManager              │
+│         (任务调度 / 进度追踪 / DB)           │
+└──────────┬──────────────┬───────────────────┘
+           │              │
+           ▼              ▼
+┌──────────────┐  ┌───────────────┐
+│ GGUFQuantizer│  │ GPTQQuantizer │
+│ (llama.cpp)  │  │ (AutoGPTQ)    │
+│ 14级精度     │  │ 4-bit/8-bit   │
+└──────┬───────┘  └───────┬───────┘
+       │                  │
+       ▼                  ▼
+┌──────────────────────────────────┐
+│     Ollama 模型导入 / 本地推理    │
+└──────────────────────────────────┘
+```
+
 ## 系统概述
 
 ### 量化格式
@@ -138,3 +167,11 @@ pending → running → completed
 | `src/main/quantization/quantization-manager.js` | 量化任务管理器  |
 | `src/main/quantization/gguf-quantizer.js`       | GGUF 量化执行器 |
 | `src/main/quantization/gptq-quantizer.js`       | GPTQ 量化执行器 |
+
+---
+
+## 相关文档
+
+- [AI 模型配置](/chainlesschain/ai-models) - 本地模型管理与配置
+- [Context Engineering](/chainlesschain/context-engineering) - KV-Cache 与推理优化
+- [自进化 AI](/chainlesschain/self-evolving-ai) - AI 模型自动架构搜索与升级

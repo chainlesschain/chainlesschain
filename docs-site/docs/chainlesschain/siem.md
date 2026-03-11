@@ -2,6 +2,35 @@
 
 > **Phase 51 | v1.1.0-alpha | 4 IPC 处理器 | 1 张新数据库表**
 
+## 核心特性
+
+- 📤 **三种标准格式**: 支持 CEF、LEEF、JSON 格式导出，兼容所有主流 SIEM 平台
+- 🔌 **多平台集成**: Splunk HEC、IBM QRadar、ArcSight、Elasticsearch、Azure Sentinel
+- ⏱️ **实时事件推送**: WebSocket/Syslog 实时推送，支持 TCP/UDP/TLS 传输
+- 🔗 **智能事件聚合**: 窗口化聚合重复事件，减少高达 92% 的事件量
+- 🛡️ **12 类安全事件**: 从认证到 DLP、配置变更到异常检测的全面覆盖
+
+## 系统架构
+
+```
+┌────────────────────────────────────────────┐
+│         ChainlessChain 安全事件源           │
+│  AUTH / DLP / CONFIG / KEY / ANOMALY / ... │
+└──────────────────┬─────────────────────────┘
+                   │
+                   ▼
+┌────────────────────────────────────────────┐
+│           SIEM Exporter                    │
+│  事件聚合 → 格式化(CEF/LEEF/JSON) → 推送   │
+└────��─────────┬──────────┬──────────────────┘
+     │         │          │
+     ▼         ▼          ▼
+┌────────┐ ┌────────┐ ┌──────────────┐
+│ Splunk │ │ QRadar │ │ Elasticsearch│
+│ (HEC)  │ │(Syslog)│ │ (REST API)   │
+└────────┘ └────────┘ └──────────────┘
+```
+
 ## 概述
 
 Phase 51 为 ChainlessChain 引入 SIEM (Security Information and Event Management) 集成能力，支持将安全事件导出到企业 SIEM 平台，实现统一安全监控。
@@ -351,6 +380,19 @@ await window.electronAPI.invoke("siem:configure-aggregation", {
 - [合规与数据分类](/chainlesschain/compliance)
 - [企业审计日志](/chainlesschain/audit)
 - [产品路线图](/chainlesschain/product-roadmap)
+
+---
+
+## 关键文件
+
+| 文件                                                | 职责                     |
+| --------------------------------------------------- | ------------------------ |
+| `src/main/enterprise/siem-exporter.js`              | SIEM 事件导出核心引擎    |
+| `src/main/enterprise/siem-formatter.js`             | CEF/LEEF/JSON 格式化器   |
+| `src/main/enterprise/siem-aggregator.js`            | 事件聚合与去重           |
+| `src/main/enterprise/siem-ipc.js`                   | IPC 处理器（4 个）       |
+| `src/renderer/pages/enterprise/SIEMPage.vue`        | SIEM 集成管理页面        |
+| `src/renderer/stores/siem.ts`                       | Pinia 状态管理           |
 
 ---
 

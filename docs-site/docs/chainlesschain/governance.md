@@ -2,6 +2,36 @@
 
 > **Phase 54 | v1.1.0 | 4 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 📋 **结构化提案管理**: 支持参数��更、功能请求、策略更新、预算分配四种提案类型
+- 🤖 **AI 影响分析**: 自动评估提案对安全/性能/兼容性的多维度潜在影响
+- 📊 **投票结果预测**: 基于社区情感分析预测投票走向，提供置信度与关键因素
+- 🗳️ **DID 身份投票**: 与去中心化身份绑定的投票机制，防止女巫���击与刷票
+- ⚙️ **可配置治理参数**: 投票时长、法定人数、最大活跃提案等参数均可自定义
+
+## 系统架构
+
+```
+┌────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  Vue3 前端  │────→│  IPC 处理器       │────→│  Governance Core │
+│  治理页面   │     │  governance:*     │     │  提案 + AI 分析   │
+└────────────┘     └──────────────────┘     └────────┬─────────┘
+                                                      │
+                         ┌────────────┬───────────────┼──────────┐
+                         ▼            ▼               ▼          ▼
+                   ┌──────────┐ ┌──────────┐  ┌──────────┐ ┌─────────┐
+                   │ 提案管理 │ │ AI 影响  │  │ 投票预测 │ │ DID     │
+                   │ CRUD     │ │ 分析引擎 │  │ 情感分析 │ │ 身份    │
+                   └──────────┘ └──────────┘  └──────────┘ └─────────┘
+                         │                                       │
+                         ▼                                       ▼
+                   ┌──────────────┐                  ┌───────────────┐
+                   │ governance_  │                  │ governance_    │
+                   │ proposals    │                  │ votes          │
+                   └──────────────┘                  └───────────────┘
+```
+
 ## 概述
 
 Phase 54 为 ChainlessChain 引入 AI 驱动的社区治理能力，支持提案管理、AI 影响分析和投票预测，帮助去中心化社区实现高效透明的治理决策。
@@ -292,6 +322,15 @@ console.log(governance.votePrediction);
 - [Social AI + ActivityPub](/chainlesschain/social-ai)
 - [内容推荐](/chainlesschain/content-recommendation)
 - [产品路线图](/chainlesschain/product-roadmap)
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/social/governance-manager.js` | 社区治理核心引擎（提案/投票/AI 分析） |
+| `src/main/social/governance-ipc.js` | IPC 处理器（4 个通道） |
+| `src/renderer/stores/governance.ts` | Pinia 状态管理 |
+| `src/renderer/pages/social/GovernancePage.vue` | AI 社区治理页面 |
 
 ---
 

@@ -6,6 +6,37 @@
 
 > 基础功能请参阅 [SIMKey 基础指南](/chainlesschain/simkey) | 企业版功能请参阅 [SIMKey 企业版](/chainlesschain/simkey-enterprise)
 
+## 核心特性
+
+- 📱 **iOS eSIM 支持**: 通过 Apple eSIM API + Secure Enclave 实现无物理 SIM 卡的硬件级安全
+- 🚀 **5G SIM 卡优化**: 利用 5G USIM 32-bit ARM 芯片，签名速度提升 3-5 倍，支持国密算法
+- 📡 **NFC 离线签名**: 近场通信完成离线身份验证、交易签名和文件签名
+- 🔄 **多 SIM 卡自动切换**: 双卡双待智能管理，支持网络故障切换和时间段规则
+- 🏥 **SIM 卡健康监控**: 实时监控硬件状态、Applet 性能和密钥健康，智能告警
+- 🔐 **量子抗性算法**: 支持 NIST PQC 标准（ML-KEM/ML-DSA），混合模式平滑过渡
+
+## 系统架构
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  iOS eSIM   │     │   SIMKey Core    │     │  Android SIM    │
+│  Secure     │────►│   Manager        │◄────│  OMAPI / NFC    │
+│  Enclave    │     │                  │     │  Driver          │
+└─────────────┘     └────────┬─────────┘     └─────────────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+     ┌────────▼───┐  ┌──────▼─────┐  ┌─────▼──────┐
+     │ 5G 优化    │  │ NFC 离线   │  │ 量子抗性   │
+     │ Engine     │  │ Signer     │  │ Crypto     │
+     └────────────┘  └────────────┘  └────────────┘
+              │              │              │
+     ┌────────▼───┐  ┌──────▼─────┐  ┌─────▼──────┐
+     │ 多卡切换   │  │ 健康监控   │  │ 密钥迁移   │
+     │ Switcher   │  │ Monitor    │  │ Manager    │
+     └────────────┘  └────────────┘  └────────────┘
+```
+
 ## iOS eSIM支持
 
 > **状态**: ✅ 已实现 v0.38.0 | **平台**: iOS 16+
@@ -690,3 +721,14 @@ ChainlessChain采用混合加密策略:
 - [SIMKey 企业版功能](/chainlesschain/simkey-enterprise) — eSIM OTA、TEE集成、跨运营商漫游
 - [U盾集成](/chainlesschain/ukey)
 - [数据加密](/chainlesschain/encryption)
+
+## 关键文件
+
+| 文件 | 职责 | 行数 |
+| --- | --- | --- |
+| `src/main/ukey/simkey-manager.js` | SIMKey 核心管理器 | ~450 |
+| `src/main/ukey/esim-driver.js` | iOS eSIM 驱动 | ~320 |
+| `src/main/ukey/nfc-signer.js` | NFC 离线签名模块 | ~280 |
+| `src/main/ukey/sim-health-monitor.js` | SIM 卡健康监控 | ~350 |
+| `src/main/ukey/pqc-crypto.js` | 量子抗性算法引擎 | ~260 |
+| `src/main/ukey/multi-sim-switcher.js` | 多 SIM 卡切换管理 | ~220 |

@@ -4,6 +4,47 @@
 
 SessionManager 提供智能的 AI 会话上下文管理，通过自动压缩、搜索、标签等功能，优化 Token 使用并提升对话体验。
 
+## 核心特性
+
+- 🗜️ **智能上下文压缩**: 超过 Token 阈值自动压缩，节省 30-40% Token 消耗
+- 🔍 **全文会话搜索**: 按关键词、日期、标签搜索全部历史会话
+- 🏷️ **标签分类管理**: 灵活的标签系统，支持多维度会话组织
+- 🧠 **永久记忆集成**: 自动识别重要信息写入 Permanent Memory，跨会话保留
+- 📝 **AI 自动摘要**: 智能生成会话摘要、关键决策和待办事项
+- 📦 **导出与导入**: JSON/Markdown 格式导出，支持跨设备会话迁移
+
+## 系统架构
+
+```
+┌─────────────────────────────────────────┐
+│            SessionManager               │
+│  (创建/恢复/归档/删除/搜索/标签)         │
+└──────┬──────┬──────┬──────┬────────────┘
+       │      │      │      │
+       ▼      ▼      ▼      ▼
+┌────────┐┌────────┐┌────────┐┌──────────────┐
+│ 压缩器  ││ 搜索器  ││ 标签器  ││ 摘要生成器    │
+│ Token  ││ 全文   ││ 分类   ││ AI 自动摘要  │
+│ 优化   ││ 检索   ││ 筛选   ││ 关键点提取   │
+└────────┘└────────┘└────────┘└──────────────┘
+       │                          │
+       ▼                          ▼
+┌──────────────┐          ┌──────────────────┐
+│ SQLite 持久化 │          │ Permanent Memory │
+│ 会话/消息/标签│          │ 跨会话知识保留    │
+└──────────────┘          └──────────────────┘
+```
+
+## 关键文件
+
+| 文件                                          | 职责                       |
+| --------------------------------------------- | -------------------------- |
+| `src/main/llm/session-manager.js`             | 会话管理核心逻辑           |
+| `src/main/llm/context-compressor.js`          | 智能上下文压缩             |
+| `src/main/llm/memory-manager.js`              | 永久记忆集成               |
+| `src/renderer/pages/chat/SessionListPage.vue` | 会话列表页面               |
+| `src/renderer/stores/session.ts`              | Pinia 会话状态管理         |
+
 ## 核心功能
 
 ### 功能概览
@@ -388,6 +429,15 @@ SessionManager 提供以下 IPC 处理器：
 - [Context Engineering](/chainlesschain/context-engineering) - KV-Cache优化
 - [Permanent Memory](/chainlesschain/permanent-memory) - 永久记忆系统
 - [AI 模型配置](/chainlesschain/ai-models) - 配置AI模型
+
+---
+
+## 相关文档
+
+- [Context Engineering](/chainlesschain/context-engineering) - KV-Cache 优化与上下文工程
+- [Permanent Memory](/chainlesschain/permanent-memory) - 永久记忆系统详解
+- [AI 模型配置](/chainlesschain/ai-models) - 本地 AI 模型管理
+- [Token 追踪](/chainlesschain/token-tracker) - Token 使用量统计与分析
 
 ---
 

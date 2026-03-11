@@ -2,6 +2,42 @@
 
 > **Phase 63 | v3.0.0 | 5 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 💬 **意图理解**: 多轮对话（最多 20 轮）逐步提炼业务需求，生成 PRD 文档
+- 🏗️ **架构决策**: 基于历史决策库自动选型，记录完整决策上下文与理由
+- 💻 **全栈代码生成**: 符合项目风格的端到端代码产出
+- 🔍 **四维自审**: 安全/性能/可维护性/正确性多维度代码审查
+- 📋 **会话管理**: 完整的开发会话生命周期与状态跟踪
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────────┐
+│              自主开发者 (Phase 63)                  │
+├──────────────────────────────────────────────────┤
+│                                                    │
+│  INTENT → PRD → ARCHITECTURE → GENERATING →       │
+│                          REVIEWING → COMPLETE      │
+│                                                    │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────┐   │
+│  │ Intent   │  │Architecture│ │ Code         │   │
+│  │ Refiner  │  │ Decision  │  │ Generator    │   │
+│  │ (需求细化)│  │ Engine    │  │ (全栈生成)   │   │
+│  └────┬─────┘  └────┬─────┘  └──────┬────────┘   │
+│       │              │               │             │
+│  ┌────▼──────────────▼───────────────▼─────────┐  │
+│  │          Code Review Engine                 │  │
+│  │  SECURITY | PERFORMANCE | MAINTAINABILITY   │  │
+│  │                CORRECTNESS                  │  │
+│  └─────────────────┬──────────────────────────┘  │
+│                    │                               │
+│  ┌─────────────────▼──────────────────────────┐   │
+│  │  SQLite: dev_sessions | architecture_decisions │
+│  └────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────┘
+```
+
 ## 概述
 
 Phase 63 实现端到端的自主开发流程，从用户业务意图出发，AI 自主完成需求理解、架构决策、代码生成和自我审查的完整开发循环。
@@ -162,7 +198,17 @@ const sessions = await window.electronAPI.invoke('autonomous-dev:list-sessions',
 
 ---
 
-## 相关链接
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/ai-engine/autonomous/autonomous-developer.js` | 自主开发者核心引擎 |
+| `desktop-app-vue/src/main/ai-engine/autonomous/intent-refiner.js` | 多轮意图理解与 PRD 生成 |
+| `desktop-app-vue/src/main/ai-engine/autonomous/architecture-decision.js` | 架构决策引擎 |
+| `desktop-app-vue/src/main/ai-engine/autonomous/code-reviewer.js` | 四维代码审查 |
+| `desktop-app-vue/src/main/ai-engine/autonomous/autonomous-dev-ipc.js` | 自主开发 IPC 处理器 |
+
+## 相关文档
 
 - [自主技术学习](/chainlesschain/tech-learning)
 - [协作治理](/chainlesschain/collaboration-governance)

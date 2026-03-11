@@ -2,6 +2,46 @@
 
 > **Phase 62 | v3.0.0 | 5 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 🔍 **技术栈自动检测**: 识别 8+ 种清单文件（package.json/pom.xml/Cargo.toml 等），提取语言、框架和构建工具
+- 📚 **最佳实践提取**: 从代码库、文档和社区三种来源提取可复用模式和编码约定
+- 🧪 **置信度评估**: 自动对实践进行置信度评分，高置信度（>=0.85）自动提升
+- 🛠️ **技能合成**: 将验证过的最佳实践自动转化为可执行的 Skill 技能
+- 🌐 **多语言生态**: 覆盖 JS/TS、Java、Kotlin、Python、Rust、Go、Ruby、PHP 八大生态
+
+## 系统架构
+
+```
+┌──────────────┐
+│  Project     │
+│  Codebase    │
+└──────┬───────┘
+       │ 扫描清单文件
+       ▼
+┌──────────────────────────────────┐
+│       Tech Learning Engine       │
+│  ┌────────────┐  ┌────────────┐ │
+│  │ Stack      │  │ Practice   │ │
+│  │ Detector   │  │ Extractor  │ │
+│  │ (8种清单)  │  │ (3种来源)  │ │
+│  └─────┬──────┘  └─────┬──────┘ │
+│        │               │        │
+│  ┌─────▼───────────────▼──────┐ │
+│  │    Skill Synthesizer       │ │
+│  │    (置信度 >= 0.85 → Skill)│ │
+│  └────────────┬───────────────┘ │
+└───────────────┼─────────────────┘
+                │
+       ┌────────▼────────┐
+       │  SQLite (2表)   │
+       │  tech_stack_    │
+       │  profiles /     │
+       │  learned_       │
+       │  practices      │
+       └─────────────────┘
+```
+
 ## 概述
 
 Phase 62 为 ChainlessChain 引入自主技术学习能力，AI 可自动检测项目技术栈、从最佳实践中提取模式，并将高置信度模式合成为新技能。
@@ -159,3 +199,20 @@ const allPractices = await window.electronAPI.invoke('tech-learning:get-practice
 - [协作治理](/chainlesschain/collaboration-governance)
 - [Skills 系统](/chainlesschain/skills)
 - [EvoMap GEP 协议](/chainlesschain/evomap)
+
+## 关键文件
+
+| 文件 | 职责 | 行数 |
+| --- | --- | --- |
+| `src/main/ai-engine/tech-learning-engine.js` | 自主技术学习核心引擎 | ~400 |
+| `src/main/ai-engine/stack-detector.js` | 技术栈检测器（8 种清单） | ~300 |
+| `src/main/ai-engine/practice-extractor.js` | 最佳实践提取器 | ~280 |
+| `src/main/ai-engine/skill-synthesizer.js` | 技能合成器 | ~220 |
+| `src/main/ipc/ipc-tech-learning.js` | IPC 处理器注册 | ~100 |
+
+## 相关文档
+
+- [自主开发者](/chainlesschain/autonomous-developer) - 自主开发 AI 代理
+- [协作治理](/chainlesschain/collaboration-governance) - 协作治理框架
+- [Skills 系统](/chainlesschain/skills) - 138 内置技能系统
+- [EvoMap GEP 协议](/chainlesschain/evomap) - 进化图谱基因协议

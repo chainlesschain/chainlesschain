@@ -1,5 +1,31 @@
 # 文件同步 (sync)
 
+> Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
+
+## 核心特性
+
+- 🔄 **双向同步**: push 推送和 pull 拉取本地/远程变更
+- ⚡ **冲突检测**: 自动检测版本不一致的资源
+- 🔧 **冲突解决**: 支持 local/remote/manual 三种策略
+- 📋 **操作日志**: 完整记录所有同步操作历史
+- #️⃣ **内容哈希**: SHA-256 哈希校验数据完整性
+
+## 系统架构
+
+```
+sync 命令 → sync.js (Commander) → sync-manager.js
+                                        │
+                   ┌────────────────────┼────────────────────┐
+                   ▼                    ▼                    ▼
+             资源注册/状态          push / pull           冲突管理
+                   │                    │                    │
+                   ▼                    ▼                    ▼
+           sync_state 表          sync_log 表       sync_conflicts 表
+                                  (操作记录)         (local/remote/manual)
+```
+
+## 概述
+
 CLI Phase 5 — 文件与知识同步，支持冲突检测与解决。
 
 ## 命令概览
@@ -48,6 +74,31 @@ chainlesschain sync clear              # 清除同步状态
 | `sync_state` | 资源同步状态（版本号、哈希、上次同步时间） |
 | `sync_conflicts` | 冲突记录（本地/远程内容、解决策略） |
 | `sync_log` | 操作日志（push/pull/resolve 记录） |
+
+## 安全考虑
+
+- 内容哈希使用 SHA-256 校验数据完整性
+- `clear` 操作不可恢复，建议先备份
+- 冲突解决记录完整审计日志
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `push` 报冲突 | 先 `sync conflicts` 查看冲突，使用 `resolve` 解决 |
+| `status` 全为空 | 需先注册同步资源 |
+| `clear` 后数据丢失 | `clear` 清除所有状态，无法恢复 |
+
+## 关键文件
+
+- `packages/cli/src/commands/sync.js` — 命令实现
+- `packages/cli/src/lib/sync-manager.js` — 同步管理库
+
+## 相关文档
+
+- [Git 同步](./git-sync) — 桌面端 Git 同步
+- [数据库管理](./cli-db) — 数据库备份恢复
+- [文件加密](./cli-encrypt) — 同步数据加密
 
 ## 依赖
 

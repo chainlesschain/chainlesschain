@@ -4,6 +4,15 @@
 
 权限系统提供企业级的角色访问控制（RBAC），支持资源级权限、权限继承、权限委托和团队权限管理。
 
+## 核心特性
+
+- 🔐 **RBAC 权限引擎**: 基于角色的访问控制，5 种内置角色 + 自定义角色，权限检查 <3ms
+- 🏢 **团队权限管理**: 多层级团队结构，团队成员自动继承权限，支持父子团队嵌套
+- 🔗 **权限继承链**: 组织→团队→项目→文件夹→文件，父级权限自动传播到子级
+- 🤝 **权限委托机制**: 临时授权给其他用户，支持过期时间和范围限定
+- ✅ **审批工作流**: 敏感资源访问需经审批，支持超时和多审批人
+- 📋 **完整审计日志**: 所有权限变更自动记录，支持 90 天回溯查询
+
 ## 系统架构
 
 ```
@@ -396,6 +405,25 @@ teamManager.getParentTeam(teamId);
 - [团队管理](/chainlesschain/team-manager) - 详细团队管理
 - [Cowork系统](/chainlesschain/cowork) - 多智能体协作
 - [审计日志](/chainlesschain/audit) - 完整审计功能
+
+---
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/permission/permission-engine.js` | RBAC 权限引擎核心实现 |
+| `src/main/permission/team-manager.js` | 团队管理与成员权限 |
+| `src/main/permission/delegation-manager.js` | 权限委托管理 |
+| `src/main/permission/approval-workflow.js` | 审批工作流引擎 |
+| `src/main/ipc/permission-ipc.js` | 权限系统 IPC 处理器 |
+| `src/renderer/stores/permission.ts` | Pinia 权限状态管理 |
+
+## 相关文档
+
+- [SSO 企业认证](/chainlesschain/sso) - SAML/OAuth/OIDC 身份认证
+- [审计与合规](/chainlesschain/audit) - 企业审计日志系统
+- [Cowork 多智能体](/chainlesschain/cowork) - 多智能体协作权限
 
 ---
 

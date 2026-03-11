@@ -2,6 +2,37 @@
 
 > **Phase 60 | v2.0.0 | 4 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 📈 **贝叶斯参数优化**: 自动搜索最优信誉衰减率、权重参数，提升信誉预测准确度
+- 🔍 **统计异常检测**: 基于标准差识别信誉分数偏离正常分布的异常节点
+- 📊 **信誉分析面板**: 节点信誉趋势、时间权重分析、异常标记可视化
+- 📜 **优化历史追踪**: 记录每次优化运行的参数、迭代次数和改进幅度
+- ⚙️ **灵活参数范围**: 支持自定义衰减率、成功/失败权重的���索范围
+
+## 系统架构
+
+```
+┌─────────────────────────────────────┐
+│      ReputationOptimizer            │
+│   (贝叶斯优化 / 异常检测 / 分析)    │
+└──────────┬──────────┬───────────────┘
+           │          │
+           ▼          ▼
+┌──────────────┐  ┌────────────────┐
+│ 贝叶斯优化器  │  │ 异常检测器      │
+│ 迭代搜索最优  │  │ 标准差统计分析  │
+│ 参数组合      │  │ 偏离阈值标记    │
+└──────┬───────┘  └───────┬────────┘
+       │                  │
+       ▼                  ▼
+┌──────────────────────────────────────┐
+│     SQLite 持久化                     │
+│  reputation_optimization_runs        │
+│  reputation_analytics                │
+└──────────────────────────────────────┘
+```
+
 ## 概述
 
 Phase 60 为联邦代理网络的信誉系统引入贝叶斯优化和异常检测能力，通过数据驱动的方式自动调优信誉参数，识别信誉异常节点。
@@ -132,9 +163,20 @@ const history = await window.electronAPI.invoke('reputation-optimizer:get-histor
 
 ---
 
-## 相关链接
+## 关键文件
 
-- [代理联邦网络](/chainlesschain/agent-federation)
-- [联邦网络加固](/chainlesschain/federation-hardening)
-- [压力测试](/chainlesschain/stress-test)
-- [跨组织 SLA](/chainlesschain/sla-manager)
+| 文件                                                    | 职责                     |
+| ------------------------------------------------------- | ------------------------ |
+| `src/main/ai-engine/cowork/reputation-optimizer.js`     | 信誉优化核心引擎         |
+| `src/main/ai-engine/cowork/reputation-optimizer-ipc.js` | IPC 处理器（4 个）       |
+| `src/renderer/stores/reputationOptimizer.ts`            | Pinia 状态管理           |
+| `src/renderer/pages/ai/ReputationOptimizerPage.vue`     | 信誉优化分析页面         |
+
+---
+
+## 相关文档
+
+- [代理联邦网络](/chainlesschain/agent-federation) - 联邦代理注册与发现
+- [联邦网络加固](/chainlesschain/federation-hardening) - 联邦网络安全加固
+- [压力测试](/chainlesschain/stress-test) - 联邦网络压力测试
+- [跨组织 SLA](/chainlesschain/sla-manager) - 跨组织服务等级协议

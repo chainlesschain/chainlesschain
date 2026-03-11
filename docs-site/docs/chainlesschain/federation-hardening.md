@@ -2,6 +2,36 @@
 
 > **Phase 58 | v2.0.0 | 4 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 🔌 **熔断器模式**: 自动隔离故障节点，三状态机（CLOSED/OPEN/HALF_OPEN）防止级联失败
+- 🏥 **智能健康检查**: 定期探测节点延迟与可用性，实时评估网络拓扑健康度
+- 🔗 **连接池管理**: TCP 连接复用与并发限制，提升跨组织节点通信吞吐
+- 🔄 **自动恢复机制**: HALF_OPEN 试探性恢复，无需人工干预即可恢复故障节点
+- 📊 **状态仪表板**: 综合展示熔断器分布、健康检查统计与连接池使用率
+
+## 系统架构
+
+```
+┌────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  Vue3 前端  │────→│  IPC 处理器       │────→│  Hardening Core  │
+│  状态仪表板 │     │  federation-      │     │  熔断器 + 健康检查│
+└────────────┘     │  hardening        │     └────────┬─────────┘
+                   └──────────────────┘              │
+                                          ┌──────────┼──────────┐
+                                          ▼          ▼          ▼
+                                    ┌──────────┐ ┌────────┐ ┌────────┐
+                                    │ 熔断器   │ │ 健康   │ │ 连接池 │
+                                    │ 状态机   │ │ 检查器 │ │ 管理器 │
+                                    └─────┬────┘ └───┬────┘ └────────┘
+                                          ▼          ▼
+                                    ┌──────────────────────┐
+                                    │  federation_circuit_  │
+                                    │  breakers / health_   │
+                                    │  checks (SQLite)      │
+                                    └──────────────────────┘
+```
+
 ## 概述
 
 Phase 58 为 Cowork 联邦代理网络引入生产级可靠性保障，包含熔断器模式、健康检查和连接池管理，确保跨组织节点间通信的稳定性。
@@ -135,9 +165,18 @@ const status = await window.electronAPI.invoke('federation-hardening:get-status'
 
 ---
 
-## 相关链接
+## 相关文档
 
 - [代理联邦网络](/chainlesschain/agent-federation)
 - [压力测试](/chainlesschain/stress-test)
 - [信誉优化](/chainlesschain/reputation-optimizer)
 - [跨组织 SLA](/chainlesschain/sla-manager)
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/ai-engine/cowork/federation-hardening.js` | 联邦加固核心引擎（熔断器/健康检查/连接池） |
+| `src/main/ai-engine/cowork/federation-hardening-ipc.js` | IPC 处理器（4 个通道） |
+| `src/renderer/stores/federationHardening.ts` | Pinia 状态管理 |
+| `src/renderer/pages/ai/FederationHardeningPage.vue` | 状态仪表板页面 |

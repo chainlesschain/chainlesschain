@@ -2,6 +2,40 @@
 
 > v1.1.0 新功能
 
+## 核心特性
+
+- 🚨 **事故管理**: P0-P3 四级优先级分类，状态跟踪与自动升级
+- 🔧 **Playbook 修复**: 预定义修复策略，自动触发执行修复步骤
+- 📊 **多维告警**: CPU/内存/错误率等可配置阈值告警
+- ↩️ **自动回滚**: 修复失败自动回滚到安全状态
+- 📝 **事故报告**: AI 生成根因分析、时间线与改进建议
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────────┐
+│                自主运维系统                         │
+├──────────────────────────────────────────────────┤
+│                                                    │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────┐   │
+│  │ Alert    │  │ Incident │  │ Playbook     │   │
+│  │ Engine   │  │ Manager  │  │ Executor     │   │
+│  │ (告警)   │  │ (事故)   │  │ (自动修复)    │   │
+│  └────┬─────┘  └────┬─────┘  └──────┬────────┘   │
+│       │              │               │             │
+│  ┌────▼──────────────▼───────────────▼─────────┐  │
+│  │         Remediation Engine                  │  │
+│  │   检测异常 → 匹配Playbook → 执行修复        │  │
+│  │        → 验证恢复 → 失败则回滚              │  │
+│  └─────────────────┬──────────────────────────┘  │
+│                    │                               │
+│  ┌──────────┐  ┌───▼──────┐  ┌────────────────┐  │
+│  │ Baseline │  │ Rollback │  │ Postmortem    │  │
+│  │ Manager  │  │ Engine   │  │ Generator     │  │
+│  └──────────┘  └──────────┘  └────────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
 ## 系统概述
 
 自主运维系统（Autonomous Ops）提供智能化的事故检测、自动修复、告警管理和事故报告能力，实现 AI 驱动的运维自动化。
@@ -83,6 +117,17 @@
 | 修复 Playbook 执行失败 | 检查 Playbook 步骤配置和权限   |
 | 告警过多               | 调整告警阈值，避免误报         |
 | 事故报告缺少根因       | 确保事故有足够的日志和监控数据 |
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/ai-engine/cowork/incident-classifier.js` | 事故分类与优先级判定 |
+| `desktop-app-vue/src/main/ai-engine/cowork/auto-remediator.js` | Playbook 自动修复引擎 |
+| `desktop-app-vue/src/main/ai-engine/cowork/rollback-manager.js` | 回滚管理器 |
+| `desktop-app-vue/src/main/ai-engine/cowork/alert-manager.js` | 告警规则与通知 |
+| `desktop-app-vue/src/main/ai-engine/cowork/postmortem-generator.js` | 事故报告生成 |
+| `desktop-app-vue/src/main/ai-engine/cowork/anomaly-detector.js` | 异常检测引擎 |
 
 ## 相关文档
 

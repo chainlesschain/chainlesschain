@@ -13,6 +13,43 @@ ChainlessChain 自进化 AI 系统实现了 AI 模型的自主进化能力，包
 - 📊 **能力自评估与自动升级**: 定期评估模型在各维度的能力得分，低于阈值时自动触发升级流程
 - 📈 **进化成长日志**: 完整记录 AI 每次进化的触发原因、变更内容、效果对比，支持时间线可视化
 
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────┐
+│           SelfEvolvingAIManager                 │
+│    (调度 / 配置 / 进化成长日志 / 模型导出)       │
+└───┬──────┬──────┬──────┬──────┬────────────────┘
+    │      │      │      │      │
+    ▼      ▼      ▼      ▼      ▼
+┌──────┐┌──────┐┌──────┐┌──────┐┌──────────┐
+│ NAS  ││持续  ││自诊断││行为  ││ 能力     │
+│ 架构 ││学习  ││自修复││预测  ││ 评估     │
+│ 搜索 ││(EWC) ││引擎  ││引擎  ││ + 升级   │
+└──┬───┘└──┬───┘└──┬───┘└──┬───┘└────┬─────┘
+   │       │       │       │         │
+   ▼       ▼       ▼       ▼         ▼
+┌─────────────────────────────────────────────────┐
+│  SQLite 持久化 (assessments / training_logs /    │
+│  growth_log) + ONNX/TFLite 模型导出              │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 关键文件
+
+| 文件                                                    | 职责                         |
+| ------------------------------------------------------- | ---------------------------- |
+| `src/main/ai-engine/evolution/self-evolving-manager.js` | 自进化核心管理器             |
+| `src/main/ai-engine/evolution/capability-assessor.js`   | 多维度能力评估               |
+| `src/main/ai-engine/evolution/continual-learner.js`     | EWC/蒸馏增量学习             |
+| `src/main/ai-engine/evolution/self-diagnosis.js`        | 自诊断与自修复引擎           |
+| `src/main/ai-engine/evolution/behavior-predictor.js`    | 用户行为预测与主动服务       |
+| `src/main/ai-engine/evolution/evolution-ipc.js`         | IPC 处理器（8 个）           |
+| `src/renderer/pages/ai/EvolutionDashboardPage.vue`      | 进化成长日志可视化页面       |
+| `src/renderer/stores/evolution.ts`                      | Pinia 状态管理               |
+
 ---
 
 ## 能力评估流程
@@ -423,9 +460,9 @@ const exported = await window.electron.ipcRenderer.invoke(
 
 ---
 
-## 相关链接
+## 相关文档
 
-- [智能插件生态 2.0](/chainlesschain/plugin-ecosystem-v2)
-- [统一应用运行时](/chainlesschain/universal-runtime)
-- [工作流自动化引擎](/chainlesschain/workflow-automation)
-- [多租户 SaaS 引擎](/chainlesschain/multi-tenant-saas)
+- [模型量化系统](/chainlesschain/quantization) - GGUF/GPTQ 模型量化与本地推理
+- [智能插件生态 2.0](/chainlesschain/plugin-ecosystem-v2) - 插件自动发现与升级
+- [统一应用运行时](/chainlesschain/universal-runtime) - 运行时热更新与性能监控
+- [工作流自动化引擎](/chainlesschain/workflow-automation) - AI 驱动的工作流编排

@@ -13,6 +13,28 @@ ChainlessChain 代码生成 Agent 2.0（Code Agent v2）提供全栈代码生成
 - ⚙️ **CI/CD 自动配置**: 根据项目类型自动生成 GitHub Actions/GitLab CI 配置
 - 🌐 **多语言支持**: JavaScript、TypeScript、Python、Java、Go、Rust
 
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────┐
+│            代码生成 Agent 2.0 引擎               │
+├─────────────────────────────────────────────────┤
+│  自然语言描述  →  意图解析  →  代码生成器        │
+│                      ↓                          │
+│  ┌───────────┐ ┌──────────┐ ┌────────────────┐  │
+│  │ Git 感知  │ │ 安全审查 │ │ 项目脚手架     │  │
+│  │ 上下文    │ │ 漏洞检测 │ │ 模板生成       │  │
+│  └─────┬─────┘ └────┬─────┘ └───────┬────────┘  │
+│        └─────────────┼───────────────┘           │
+│                      ↓                          │
+│  ┌──────────────────────────────────────┐       │
+│  │  CI/CD 配置生成 | 代码重构 | 代码解释 │       │
+│  └──────────────────────────────────────┘       │
+├─────────────────────────────────────────────────┤
+│  LLM 层: GPT-4 / Claude / 本地模型             │
+└─────────────────────────────────────────────────┘
+```
+
 ## IPC 接口
 
 ### 代码 Agent 操作（8 个）
@@ -173,3 +195,14 @@ Code Agent 2.0 内置以下安全检测：
 - [自主开发者](/chainlesschain/autonomous-developer)
 - [流水线编排](/chainlesschain/pipeline)
 - [Cowork 多智能体协作](/chainlesschain/cowork)
+
+## 关键文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `desktop-app-vue/src/main/ai-engine/code-agent/code-agent-v2.js` | Code Agent 2.0 核心引擎 |
+| `desktop-app-vue/src/main/ai-engine/code-agent/code-generator.js` | 多语言代码生成器 |
+| `desktop-app-vue/src/main/ai-engine/code-agent/security-reviewer.js` | 安全漏洞检测模块 |
+| `desktop-app-vue/src/main/ai-engine/code-agent/scaffold-manager.js` | 项目脚手架管理器 |
+| `desktop-app-vue/src/main/ai-engine/code-agent/cicd-configurator.js` | CI/CD 配置生成器 |
+| `desktop-app-vue/src/main/ai-engine/code-agent/git-analyzer.js` | Git 上下文分析器 |

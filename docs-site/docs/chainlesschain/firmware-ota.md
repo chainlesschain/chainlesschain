@@ -2,6 +2,36 @@
 
 > **Phase 53 | v1.1.0 | 4 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 📦 **多通道版本管理**: STABLE/BETA/NIGHTLY 三通道固件发布与版本追踪
+- 🔒 **双重安全验证**: SHA-256 完整性校验 + Ed25519 签名验证，防篡改防降级
+- ⬇️ **断点续传下载**: 64KB 分块下载，网络中断可恢复，确保大固件可靠传输
+- 🔄 **自动回滚保护**: 安装失败自动恢复上一版本，防止设备变砖
+- 📋 **完整审计追踪**: 记录所有升级历史，支持回滚操作与故障排查
+
+## 系统架构
+
+```
+┌────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  Vue3 前端  │────→│  IPC 处理器       │────→│  Firmware OTA    │
+│  OTA 管理   │     │  firmware:*       │     │  Manager         │
+└────────────┘     └──────────────────┘     └────────┬─────────┘
+                                                      │
+                         ┌────────────┬───────────────┼──────────┐
+                         ▼            ▼               ▼          ▼
+                   ┌──────────┐ ┌──────────┐  ┌──────────┐ ┌─────────┐
+                   │ 版本检查 │ │ 安全下载 │  │ 签名验证 │ │ 安装 &  │
+                   │ 通道管理 │ │ 断点续传 │  │ 完整性   │ │ 回滚    │
+                   └──────────┘ └──────────┘  └──────────┘ └─────────┘
+                         │                                       │
+                         ▼                                       ▼
+                   ┌──────────────┐                  ┌───────────────┐
+                   │ firmware_    │                  │ firmware_      │
+                   │ versions     │                  │ update_log     │
+                   └──────────────┘                  └───────────────┘
+```
+
 ## 概述
 
 Phase 53 为 ChainlessChain 引入 U盾固件远程升级 (Over-The-Air) 能力，支持安全的固件版本管理、断点续传下载、签名验证和回滚保护。
@@ -283,6 +313,15 @@ await firmware.fetchHistory();
 - [BLE U-Key](/chainlesschain/ble-ukey)
 - [统一密钥 + FIDO2](/chainlesschain/unified-key)
 - [产品路线图](/chainlesschain/product-roadmap)
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/ukey/firmware-ota-manager.js` | 固件 OTA 核心引擎（版本管理/下载/安装/回滚） |
+| `src/main/ukey/firmware-ota-ipc.js` | IPC 处理器（4 个通道） |
+| `src/renderer/stores/firmwareOta.ts` | Pinia 状态管理 |
+| `src/renderer/pages/security/FirmwareOtaPage.vue` | 固件 OTA 管理页面 |
 
 ---
 

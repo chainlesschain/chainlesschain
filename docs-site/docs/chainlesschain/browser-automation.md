@@ -4,6 +4,14 @@
 
 浏览器自动化系统提供完整的网页自动化能力，包括智能元素定位、操作录制回放、AI诊断等功能。
 
+## 核心特性
+
+- 🌐 **Puppeteer 兼容引擎**: 基于 Puppeteer API 的浏览器控制引擎，支持导航、截图、脚本执行
+- 🎯 **多策略元素定位**: 6 级定位策略（ID → 测试ID → CSS → XPath → 文本 → 视觉），95%+ 准确率
+- 📸 **截图对比诊断**: 基线截图对比和变更检测，<200ms 完成 1080p 页面对比
+- 🎬 **操作录制回放**: 录制用户操作并导出为 JS/JSON/Puppeteer 脚本，支持变速回放
+- 🔧 **AI 智能诊断**: 元素定位失败时自动诊断原因并建议新选择器，支持自动修复重试
+
 ## 系统架构
 
 ```
@@ -318,6 +326,22 @@ async function scrapeProducts(page) {
 - [Computer Use](/chainlesschain/computer-use) - 桌面级自动化
 - [浏览器插件](/chainlesschain/browser-extension) - 浏览器扩展
 - [远程控制](/chainlesschain/remote-control) - 完整远程控制
+
+## 关键文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `desktop-app-vue/src/main/browser/browser-engine.js` | 核心浏览器自动化引擎 |
+| `desktop-app-vue/src/main/browser/element-locator.js` | 多策略元素定位器 |
+| `desktop-app-vue/src/main/browser/snapshot-engine.js` | 截图对比和变更检测 |
+| `desktop-app-vue/src/main/browser/recording-engine.js` | 操作录制与回放 |
+| `desktop-app-vue/src/main/browser/smart-diagnostics.js` | AI 诊断与自动修复 |
+
+## 相关文档
+
+- [Computer Use](/chainlesschain/computer-use) - 桌面级自动化操作
+- [浏览器插件](/chainlesschain/browser-extension) - 浏览器扩展集成
+- [远程控制](/chainlesschain/remote-control) - 完整远程控制系统
 
 ---
 

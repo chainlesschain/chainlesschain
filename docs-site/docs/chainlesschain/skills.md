@@ -4,6 +4,43 @@
 
 Skills 系统提供 138 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.1 研究社区技能生态补充6个高频技能(brainstorming/debugging-strategies/api-design/frontend-design/create-pr/doc-coauthoring)，Handler 覆盖率 138/138 (100%)。
 
+## 核心特性
+
+- 🛠️ **138 内置技能**: 覆盖开发、测试、自动化、知识、安全、DevOps 等 18 个类别，100% Handler 覆盖
+- 📄 **Markdown 技能定义**: 使用 SKILL.md 格式声明提示词、工具集、参数和门控检查
+- 📦 **四层加载机制**: workspace > managed > marketplace > bundled 优先级覆盖
+- 🔌 **统一工具注册表**: 聚合 FunctionCaller (60+)、MCP (8 servers)、Skills (50) 三大工具系统
+- 🔒 **门控检查**: 平台、二进制依赖、环境变量和自定义检查，确保安全执行
+- 🧩 **Agent Skills 标准**: 13 个扩展字段，支持技能发现、组合和远程调用
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────┐
+│              Skill System                │
+│  ┌─────────┐  ┌───────────┐  ┌────────┐ │
+│  │ Loader  │  │ Executor  │  │ Parser │ │
+│  │ (4层)   │  │ (Handler) │  │ (YAML) │ │
+│  └────┬────┘  └─────┬─────┘  └───┬────┘ │
+│       │             │            │       │
+│  ┌────▼─────────────▼────────────▼────┐  │
+│  │       Skill Registry (138)         │  │
+│  └────────────────┬───────────────────┘  │
+│                   │                      │
+│  ┌────────────────▼───────────────────┐  │
+│  │     Unified Tool Registry          │  │
+│  │  FunctionCaller + MCP + Skills     │  │
+│  └────────────────┬───────────────────┘  │
+└───────────────────┼──────────────────────┘
+                    │
+       ┌────────────┼────────────┐
+       │            │            │
+  ┌────▼────┐ ┌────▼────┐ ┌────▼────┐
+  │ Gate    │ │ IPC     │ │ Agent   │
+  │ Checks  │ │ (17ch)  │ │ Skills  │
+  └─────────┘ └─────────┘ └─────────┘
+```
+
 ## 系统概述
 
 ### 技能是什么
@@ -737,3 +774,21 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 ---
 
 **138个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️
+
+## 关键文件
+
+| 文件 | 职责 | 行数 |
+| --- | --- | --- |
+| `src/main/ai-engine/cowork/skill-system.js` | 技能系统核心引擎 | ~500 |
+| `src/main/ai-engine/cowork/skill-loader.js` | 四层技能加载器 | ~320 |
+| `src/main/ai-engine/cowork/skill-executor.js` | 技能执行器 (Handler 分发) | ~380 |
+| `src/main/ai-engine/cowork/skill-md-parser.js` | SKILL.md YAML 解析器 | ~250 |
+| `src/main/ai-engine/cowork/unified-tool-registry.js` | 统一工具注册表 | ~420 |
+| `src/main/ai-engine/cowork/skill-discoverer.js` | 技能发现与搜索 | ~280 |
+
+## 相关文档
+
+- [Skill Marketplace 技能市场](/chainlesschain/skill-marketplace) - 去中心化技能即服务协议
+- [Cowork 多智能体协作](/chainlesschain/cowork) - 多智能体协作与编排
+- [Plan Mode 规划模式](/chainlesschain/plan-mode) - AI 任务规划与分解
+- [Hooks 系统](/chainlesschain/hooks) - 钩子扩展机制

@@ -12,6 +12,27 @@ ChainlessChain 跨链互操作协议（Cross-Chain Bridge）支持 EVM 兼容链
 - 📨 **跨链消息**: 类 LayerZero 的通用跨链消息传递协议
 - 📊 **多链统一视图**: 聚合多链资产余额和交易历史
 
+## 系统架构
+
+```
+┌───────────────────────────────────────────────────┐
+│                  应用层 (IPC)                       │
+│  bridge-asset │ atomic-swap │ send-message │ ...  │
+├───────────────┴──────────┬────────────────────────┤
+│         Cross-Chain Bridge Core                    │
+├──────────┬───────────────┼────────────────────────┤
+│  HTLC    │  消息中继器    │  多链余额聚合          │
+│  原子交换 │  (LayerZero式) │  (统一视图)           │
+├──────────┴───────────────┴────────────────────────┤
+│           链适配层 (Chain Adapters)                 │
+├────────┬────────┬──────┬──────────┬───────┬───────┤
+│Ethereum│Polygon │ BSC  │ Arbitrum │Solana │Cosmos │
+│ (EVM)  │ (EVM)  │(EVM) │ (EVM L2) │(SPL)  │(IBC)  │
+├────────┴────────┴──────┴──────────┴───────┴───────┤
+│  SQLite (cc_bridges, cc_swaps, cc_messages)        │
+└───────────────────────────────────────────────────┘
+```
+
 ## IPC 接口
 
 ### 跨链操作（8 个）
@@ -268,6 +289,17 @@ CREATE INDEX IF NOT EXISTS idx_cc_messages_chains ON cc_messages(source_chain, t
 | 跨链消息未送达 | 检查目标链 gas limit，确认中继器运行正常 |
 | 余额查询不全   | 确认所有链 RPC 配置正确，检查网络连通性  |
 | 费用估算偏差大 | gas 价格波动导致，建议增加 10-20% 缓冲   |
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/blockchain/cross-chain-bridge.js` | 跨链桥接核心引擎 |
+| `desktop-app-vue/src/main/blockchain/chain-adapters/evm-adapter.js` | EVM 链适配器 |
+| `desktop-app-vue/src/main/blockchain/chain-adapters/solana-adapter.js` | Solana 链适配器 |
+| `desktop-app-vue/src/main/blockchain/chain-adapters/cosmos-adapter.js` | Cosmos IBC 适配器 |
+| `desktop-app-vue/src/main/blockchain/htlc-manager.js` | HTLC 原子交换管理 |
+| `desktop-app-vue/src/main/blockchain/cross-chain-ipc.js` | 跨链 8 个 IPC Handler |
 
 ## 相关文档
 

@@ -2,18 +2,40 @@
 
 > **Phase 47 | v1.1.0-alpha | 4 IPC 处理器 | 扩展现有驱动注册**
 
-## 概述
+## 核心特性
 
-Phase 47 为 ChainlessChain U-Key 系统扩展低功耗蓝牙 (BLE) 传输通道，支持通过 BLE GATT 协议与硬件安全设备通信。
+- 📡 **BLE GATT 通信**: 通过自定义 GATT 服务发送 APDU 命令，兼容现有 USB 接口
+- 🔄 **断线自动重连**: 连接中断后自动重试，最多 5 次尝试，保持持久连接
+- 🔌 **USB/BLE 双通道**: 支持 USB 与 BLE 双传输通道，自动选择最优连接方式
+- 🔋 **设备状态监控**: 实时监控电量、信号强度（RSSI）、固件版本和通信统计
+- 🔒 **安全配对**: BLE 4.2+ Secure Connection (ECDH P-256) + AES-CCM 链路加密
+- 📱 **无线签名**: 摆脱 USB 线缆束缚，蓝牙无线完成数字签名操作
 
-**核心目标**:
+## 系统架构
 
-- 📡 **BLE GATT 发现**: 自动扫描和连接 BLE 安全设备
-- 🔄 **自动重连**: 断线自动重连，保持持久连接
-- 🔌 **多传输支持**: USB + BLE 双通道无缝切换
-- 📊 **设备状态监控**: 实时电量、信号强度、连接状态
-
----
+```
+┌──────────────────────────────────────────────┐
+│              BLE U-Key 管理系统               │
+├──────────────────────────────────────────────┤
+│  前端 (Vue3)                                 │
+│  ┌─────────────┐  ┌───────────────────────┐  │
+│  │ BLE 设备页面 │  │ Pinia bleUkey Store  │  │
+│  └──────┬──────┘  └──────────┬────────────┘  │
+│         └────────┬───────────┘               │
+│                  ↓ IPC                       │
+├──────────────────────────────────────────────┤
+│  主进程 (Electron)                           │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
+│  │ BLE 扫描 │→│ GATT 连接 │→│ APDU 通信 │  │
+│  └──────────┘  └──────────┘  └───────────┘  │
+│        ↕              ↕                      │
+│  ┌──────────────────────────────────┐        │
+│  │  统一驱动注册 (USB + BLE 双通道) │        │
+│  └──────────────────────────────────┘        │
+├──────────────────────────────────────────────┤
+│  硬件层: ChainlessKey Pro (BLE 4.2+)        │
+└──────────────────────────────────────────────┘
+```
 
 ## BLE 通信架构
 
@@ -272,6 +294,16 @@ const sig = await window.electronAPI.invoke("ukey:sign", {
 - [门限签名 + 生物特征](/chainlesschain/threshold-security)
 - [U盾/SIMKey 基础](/chainlesschain/ukey)
 - [产品路线图](/chainlesschain/product-roadmap)
+
+## 关键文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `desktop-app-vue/src/main/ukey/ble-transport.js` | BLE 传输通道实现 |
+| `desktop-app-vue/src/main/ukey/ble-scanner.js` | BLE 设备扫描与发现 |
+| `desktop-app-vue/src/main/ukey/driver-registry.js` | 统一驱动注册（USB+BLE） |
+| `desktop-app-vue/src/main/ukey/apdu-handler.js` | APDU 命令处理 |
+| `desktop-app-vue/src/renderer/stores/bleUkey.ts` | BLE U-Key Pinia Store |
 
 ---
 

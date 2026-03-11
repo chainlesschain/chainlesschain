@@ -6,6 +6,33 @@
 
 > 基础功能请参阅 [Cowork 核心文档](/chainlesschain/cowork) | 路线图请参阅 [Cowork 路线图](/chainlesschain/cowork-roadmap)
 
+## 核心特性
+
+- 🧠 **Instinct 学习系统**: 从用户会话中自动提取可复用模式，��信度驱动的上下文注入
+- 🔀 **Orchestrate 编排工作流**: 4 种预置多代理工作流模板，结构化交接协议
+- ✅ **Verification Loop 验证流水线**: 6 阶段自动化验证（Build→Test→Security→DiffReview）
+- ⚡ **技能懒加载**: metadata-only 解析，启动时间从 ~360ms 降至 ~45ms（提升 87%）
+- 🔗 **流水线引擎**: 5 种步骤类型（串联/并行/条件/循环/转换），10 个预置模板
+- 🪝 **Git Hooks 集成**: Pre-commit 智能检查、影响范围分析、CI 失败自动修复
+
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Cowork Advanced Layer                  │
+├──────────┬──────────────┬──────────────┬────────────────┤
+│ Instinct │  Orchestrate │ Verification │  Git Hooks     │
+│ Learning │  Workflow    │ Loop         │  Runner        │
+│ System   │  (4 模板)    │ (6 阶段)     │  (4 事件)      │
+├──────────┴──────┬───────┴──────────────┴────────────────┤
+│  Skill Pipeline Engine (5 步骤类型, 10 模板)             │
+├─────────────────┼───────────────────────────────────────┤
+│  SkillRegistry  │  UnifiedToolRegistry  │ AgentPool     │
+├─────────────────┴───────────────────────┴───────────────┤
+│  SQLite (instincts, observations, metrics)              │
+└─────────────────────────────────────────────────────────┘
+```
+
 ## Instinct Learning System — v1.2.0
 
 Instinct 学习系统自动从用户会话中提取可复用模式（"本能"），通过 Hooks 观察存入永久记忆，并在未来会话中注入相关 instinct 上下文。灵感源自 everything-claude-code 的 instinct learning 模式。
@@ -611,6 +638,20 @@ checkpoint.compact(currentState);
 ```
 
 ---
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `desktop-app-vue/src/main/llm/instinct-manager.js` | Instinct 学习系统核心（~1,100 行） |
+| `desktop-app-vue/src/main/llm/instinct-ipc.js` | Instinct 11 个 IPC Handler |
+| `desktop-app-vue/src/main/llm/context-engineering.js` | Instinct 上下文注入集成 |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/orchestrate/handler.js` | Orchestrate 编排引擎（~507 行） |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/verification-loop/handler.js` | 验证流水线引擎（~547 行） |
+| `desktop-app-vue/src/main/ai-engine/cowork/skill-pipeline-engine.js` | 流水线引擎（5 步骤类型） |
+| `desktop-app-vue/src/main/ai-engine/cowork/skill-metrics-collector.js` | 技能指标采集器 |
+| `desktop-app-vue/src/main/ai-engine/cowork/git-hook-runner.js` | Git Hooks 集成 |
+| `desktop-app-vue/src/main/ai-engine/cowork/workflow-designer-engine.js` | 可视化工作流引擎 |
 
 ## 相关文档
 

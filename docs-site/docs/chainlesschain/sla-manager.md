@@ -2,6 +2,45 @@
 
 > **Phase 61 | v2.0.0 | 5 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 📋 **SLA 合约管理**: 支持保障/惩罚/奖励条款的完整合约生命周期（DRAFT → ACTIVE → TERMINATED）
+- ✅ **自动合规检查**: 实时对比实际指标与合约承诺，自动检测违约
+- ⚠️ **分级违约追踪**: CRITICAL/MAJOR/MINOR 三级违约分类，支持自动升级和解决追踪
+- 📊 **全局仪表板**: 合约状态和违约事件概览，支持趋势分析
+- 🤝 **跨组织协作**: 面向联邦代理网络的多组织 SLA 管理
+
+## 系统架构
+
+```
+┌──────────────┐     ┌──────────────┐
+│  Org A       │     │  Org B       │
+│  Agent Node  │◄───►│  Agent Node  │
+└──────┬───────┘     └──────┬───────┘
+       │                    │
+       └────────┬───────────┘
+                │
+       ┌────────▼────────┐
+       │  SLA Manager    │
+       │  ┌────────────┐ │
+       │  │ Contract   │ │
+       │  │ Engine     │ │
+       │  ├────────────┤ │
+       │  │ Compliance │ │
+       │  │ Checker    │ │
+       │  ├────────────┤ │
+       │  │ Violation  │ │
+       │  │ Tracker    │ │
+       │  └────────────┘ │
+       └────────┬────────┘
+                │
+       ┌────────▼────────┐
+       │  SQLite (2表)   │
+       │  sla_contracts  │
+       │  sla_violations │
+       └─────────────────┘
+```
+
 ## 概述
 
 Phase 61 为联邦代理网络引入跨组织服务级别协议（SLA）管理能力，支持合约创建、合规检查和违约追踪，保障跨组织协作的服务质量。
@@ -161,3 +200,20 @@ const dashboard = await window.electronAPI.invoke('sla:get-dashboard');
 - [代理联邦网络](/chainlesschain/agent-federation)
 - [联邦网络加固](/chainlesschain/federation-hardening)
 - [信誉优化](/chainlesschain/reputation-optimizer)
+- [联邦压力测试](/chainlesschain/stress-test)
+
+## 关键文件
+
+| 文件 | 职责 | 行数 |
+| --- | --- | --- |
+| `src/main/enterprise/sla-manager.js` | SLA 合约管理核心引擎 | ~380 |
+| `src/main/enterprise/sla-compliance-checker.js` | 合规检查与违约检测 | ~250 |
+| `src/main/ipc/ipc-sla.js` | SLA IPC 处理器注册 | ~120 |
+| `src/renderer/stores/sla.ts` | SLA Pinia 状态管理 | ~150 |
+
+## 相关文档
+
+- [代理联邦网络](/chainlesschain/agent-federation) - 联邦代理网络基础架构
+- [联邦网络加固](/chainlesschain/federation-hardening) - 网络安全加固
+- [信誉优化](/chainlesschain/reputation-optimizer) - 代理信誉评分系统
+- [联邦压力测试](/chainlesschain/stress-test) - 100 节点规模压力测试

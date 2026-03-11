@@ -8,6 +8,51 @@
 
 系统内置混合搜索引擎（Vector + BM25），支持对记忆内容进行语义搜索和关键词匹配，结合 Embedding 缓存和文件监听功能，实现高效的自动索引和实时更新。
 
+## 核心特性
+
+- 📝 **Daily Notes 每日日志**: 自动记录每日运行日志，支持追加模式和 30 天自动清理
+- 🧠 **MEMORY.md 长期知识库**: 跨会话持久化用户偏好、架构决策、技术发现和问题解决方案
+- 🔍 **混合搜索引擎**: Vector 语义搜索(0.6权重) + BM25 关键词(0.4权重) + RRF 融合算法
+- 📊 **自动索引系统**: 文件监听(1.5s去抖) + SHA-256 变更检测 + 增量索引更新
+- 💾 **Embedding 缓存**: SQLite 缓存向量，避免重复计算，节省 70% 计算时间
+- 🤖 **智能提取**: LLM 自动从对话中提取技术发现，保存到长期知识库
+
+## 系统架构
+
+```
+用户对话 / 文件变更
+        │
+        ▼
+┌────────────────────────┐
+│  PermanentMemoryManager │
+└───┬────────────┬───────┘
+    │            │
+    ▼            ▼
+┌────────┐  ┌──────────┐
+│ Daily  │  │ MEMORY.md│
+│ Notes  │  │ 长期知识  │
+│ (日志) │  │ (5章节)  │
+└───┬────┘  └────┬─────┘
+    │            │
+    ▼            ▼
+┌────────────────────────┐
+│  MemoryFileWatcher      │
+│  (文件监听+变更检测)    │
+└───────────┬────────────┘
+            │
+            ▼
+┌────────────────────────┐
+│  HybridSearchEngine     │
+│  ┌──────┐  ┌────────┐  │
+│  │Vector│  │ BM25   │  │
+│  │ 0.6  │  │  0.4   │  │
+│  └──┬───┘  └───┬────┘  │
+│     └────┬─────┘        │
+│          ▼              │
+│     RRF 融合            │
+└────────────────────────┘
+```
+
 **参考**: [Clawdbot Memory Concepts](https://docs.openclaw.ai/concepts/memory)
 
 **源码位置**:
@@ -813,6 +858,17 @@ CREATE TABLE IF NOT EXISTS memory_stats (
 3. 检查 `EmbeddingCache` 的 `maxCacheSize` 配置
 
 ---
+
+## 关键文件
+
+| 文件 | 职责 |
+| --- | --- |
+| `src/main/llm/permanent-memory-manager.js` | 永久记忆核心管理器 |
+| `src/main/llm/permanent-memory-ipc.js` | IPC 处理器（30+ 个） |
+| `src/main/llm/memory-file-watcher.js` | 文件变更监听器 |
+| `src/main/rag/hybrid-search-engine.js` | 混合搜索引擎（Vector+BM25） |
+| `src/main/rag/embedding-cache.js` | Embedding 向量缓存 |
+| `src/main/database/migrations/009_embedding_cache.sql` | 数据库迁移（5 张表） |
 
 ## 相关文档
 

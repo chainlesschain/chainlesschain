@@ -2,6 +2,46 @@
 
 > **Phase 56 | v1.1.0 | 4 IPC 处理器 | 2 张新数据库表**
 
+## 核心特性
+
+- 📁 **工作区管理**: Terraform 工作区 CRUD，支持变量配置和 Provider 管理
+- 🔄 **运行控制**: Plan/Apply/Destroy 三种运行类型，完整状态流转
+- 📊 **状态版本管理**: 状态快照和版本追踪，资源变更可视化预览
+- ⚡ **并发控制**: 最大并发运行数限制（默认 3），自动队列管理
+- 🔒 **安全机制**: 敏感变量 AES-256 加密、运行隔离、Destroy 权限控制
+
+## 系统架构
+
+```
+┌──────────────┐
+│  Renderer    │
+│  Terraform   │
+│  管理页面    │
+└──────┬───────┘
+       │ IPC (4 通道)
+       ▼
+┌──────────────────────────────────┐
+│      Terraform Provider          │
+│  ┌────────────┐  ┌────────────┐ │
+│  │ Workspace  │  │ Run        │ │
+│  │ Manager    │  │ Controller │ │
+│  │ (CRUD)     │  │ (P/A/D)   │ │
+│  └─────┬──────┘  └─────┬──────┘ │
+│        │               │        │
+│  ┌─────▼───────────────▼──────┐ │
+│  │   Concurrency Manager      │ │
+│  │   (max 3 parallel runs)    │ │
+│  └────────────┬───────────────┘ │
+└───────────────┼─────────────────┘
+                │
+       ┌────────▼────────┐
+       │  SQLite (2表)   │
+       │  terraform_     │
+       │  workspaces /   │
+       │  terraform_runs │
+       └─────────────────┘
+```
+
 ## 概述
 
 Phase 56 为 ChainlessChain 引入 Terraform 基础设施即代码 (IaC) 管理能力，支持工作区管理、Plan/Apply/Destroy 运行控制和状态版本管理，实现 ChainlessChain 配置的代码化运维。
@@ -335,6 +375,16 @@ if (approved) {
 - [产品路线图](/chainlesschain/product-roadmap)
 
 ---
+
+## 关键文件
+
+| 文件 | 职责 | 行数 |
+| --- | --- | --- |
+| `src/main/enterprise/terraform-provider.js` | Terraform 核心引擎 | ~400 |
+| `src/main/enterprise/terraform-workspace-manager.js` | 工作区管理器 | ~280 |
+| `src/main/enterprise/terraform-run-controller.js` | 运行控制器 (Plan/Apply/Destroy) | ~320 |
+| `src/main/ipc/ipc-terraform.js` | IPC 处理器注册 | ~100 |
+| `src/renderer/stores/terraform.ts` | Pinia 状态管理 | ~150 |
 
 **文档版本**: 1.0.0
 **最后更新**: 2026-02-27
