@@ -9,10 +9,15 @@
  * - 通知前端更新UI
  */
 
-const chokidar = require('chokidar');
-const path = require('path');
-const EventEmitter = require('events');
-const { gitLog, gitWarn, gitError } = require('./git-config');
+let chokidar;
+try {
+  chokidar = require("chokidar");
+} catch (_err) {
+  // chokidar may be missing in packaged builds; file watching will be disabled
+}
+const path = require("path");
+const EventEmitter = require("events");
+const { gitLog, gitWarn, gitError } = require("./git-config");
 
 class GitHotReload extends EventEmitter {
   constructor(gitManager, options = {}) {
@@ -34,16 +39,16 @@ class GitHotReload extends EventEmitter {
 
     // 忽略的文件模式
     this.ignorePatterns = [
-      '**/.git/**',
-      '**/node_modules/**',
-      '**/.DS_Store',
-      '**/Thumbs.db',
-      '**/*.tmp',
-      '**/*.temp',
-      ...(options.ignorePatterns || [])
+      "**/.git/**",
+      "**/node_modules/**",
+      "**/.DS_Store",
+      "**/Thumbs.db",
+      "**/*.tmp",
+      "**/*.temp",
+      ...(options.ignorePatterns || []),
     ];
 
-    gitLog('GitHotReload', '初始化Git热重载模块');
+    gitLog("GitHotReload", "初始化Git热重载模块");
   }
 
   /**
@@ -51,51 +56,59 @@ class GitHotReload extends EventEmitter {
    */
   start() {
     if (!this.enabled) {
-      gitLog('GitHotReload', 'Git热重载已禁用');
+      gitLog("GitHotReload", "Git热重载已禁用");
       return;
     }
 
     if (this.watcher) {
-      gitWarn('GitHotReload', '文件监听器已在运行');
+      gitWarn("GitHotReload", "文件监听器已在运行");
       return;
     }
 
-    gitLog('GitHotReload', `开始监听仓库: ${this.repoPath}`);
+    gitLog("GitHotReload", `开始监听仓库: ${this.repoPath}`);
 
     try {
       // 创建文件监听器
+      if (!chokidar) {
+        gitWarn(
+          "GitHotReload",
+          "chokidar not available, file watching disabled",
+        );
+        return;
+      }
+
       this.watcher = chokidar.watch(this.repoPath, {
         ignored: this.ignorePatterns,
         persistent: true,
         ignoreInitial: true, // 忽略初始扫描
         awaitWriteFinish: {
           stabilityThreshold: 300, // 文件稳定300ms后才触发
-          pollInterval: 100
+          pollInterval: 100,
         },
         depth: 99, // 监听所有子目录
       });
 
       // 监听文件变化事件
       this.watcher
-        .on('add', (filePath) => this.handleFileChange('add', filePath))
-        .on('change', (filePath) => this.handleFileChange('change', filePath))
-        .on('unlink', (filePath) => this.handleFileChange('unlink', filePath))
-        .on('error', (error) => {
-          gitError('GitHotReload', '文件监听错误:', error);
-          this.emit('error', error);
+        .on("add", (filePath) => this.handleFileChange("add", filePath))
+        .on("change", (filePath) => this.handleFileChange("change", filePath))
+        .on("unlink", (filePath) => this.handleFileChange("unlink", filePath))
+        .on("error", (error) => {
+          gitError("GitHotReload", "文件监听错误:", error);
+          this.emit("error", error);
         })
-        .on('ready', () => {
-          gitLog('GitHotReload', '文件监听器就绪');
-          this.emit('ready');
+        .on("ready", () => {
+          gitLog("GitHotReload", "文件监听器就绪");
+          this.emit("ready");
         });
 
       // 监听Git管理器事件
       this.setupGitManagerListeners();
 
-      gitLog('GitHotReload', '✓ Git热重载已启动');
-      this.emit('started');
+      gitLog("GitHotReload", "✓ Git热重载已启动");
+      this.emit("started");
     } catch (error) {
-      gitError('GitHotReload', '启动失败:', error);
+      gitError("GitHotReload", "启动失败:", error);
       throw error;
     }
   }
@@ -108,7 +121,7 @@ class GitHotReload extends EventEmitter {
       return;
     }
 
-    gitLog('GitHotReload', '停止Git热重载...');
+    gitLog("GitHotReload", "停止Git热重载...");
 
     try {
       // 清除防抖定时器
@@ -121,10 +134,10 @@ class GitHotReload extends EventEmitter {
       await this.watcher.close();
       this.watcher = null;
 
-      gitLog('GitHotReload', '✓ Git热重载已停止');
-      this.emit('stopped');
+      gitLog("GitHotReload", "✓ Git热重载已停止");
+      this.emit("stopped");
     } catch (error) {
-      gitError('GitHotReload', '停止失败:', error);
+      gitError("GitHotReload", "停止失败:", error);
       throw error;
     }
   }
@@ -137,14 +150,14 @@ class GitHotReload extends EventEmitter {
   handleFileChange(eventType, filePath) {
     const relativePath = path.relative(this.repoPath, filePath);
 
-    gitLog('GitHotReload', `文件${eventType}: ${relativePath}`);
+    gitLog("GitHotReload", `文件${eventType}: ${relativePath}`);
 
     // 发出文件变化事件
-    this.emit('file-changed', {
+    this.emit("file-changed", {
       type: eventType,
       path: relativePath,
       fullPath: filePath,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // 防抖处理：延迟检查Git状态
@@ -172,7 +185,7 @@ class GitHotReload extends EventEmitter {
    */
   async checkGitStatus() {
     try {
-      gitLog('GitHotReload', '检查Git状态...');
+      gitLog("GitHotReload", "检查Git状态...");
 
       // 获取当前状态
       const currentStatus = await this.gitManager.getStatus();
@@ -181,23 +194,23 @@ class GitHotReload extends EventEmitter {
       const hasChanged = this.hasStatusChanged(this.lastStatus, currentStatus);
 
       if (hasChanged) {
-        gitLog('GitHotReload', 'Git状态已变化');
+        gitLog("GitHotReload", "Git状态已变化");
 
         // 发出状态变化事件
-        this.emit('status-changed', {
+        this.emit("status-changed", {
           previous: this.lastStatus,
           current: currentStatus,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         // 更新缓存
         this.lastStatus = currentStatus;
       } else {
-        gitLog('GitHotReload', 'Git状态无变化');
+        gitLog("GitHotReload", "Git状态无变化");
       }
     } catch (error) {
-      gitError('GitHotReload', '检查Git状态失败:', error);
-      this.emit('error', error);
+      gitError("GitHotReload", "检查Git状态失败:", error);
+      this.emit("error", error);
     }
   }
 
@@ -218,7 +231,10 @@ class GitHotReload extends EventEmitter {
     }
 
     // 比较ahead/behind
-    if (oldStatus.ahead !== newStatus.ahead || oldStatus.behind !== newStatus.behind) {
+    if (
+      oldStatus.ahead !== newStatus.ahead ||
+      oldStatus.behind !== newStatus.behind
+    ) {
       return true;
     }
 
@@ -226,13 +242,13 @@ class GitHotReload extends EventEmitter {
     const oldFiles = [
       ...(oldStatus.modified || []),
       ...(oldStatus.untracked || []),
-      ...(oldStatus.deleted || [])
+      ...(oldStatus.deleted || []),
     ].sort();
 
     const newFiles = [
       ...(newStatus.modified || []),
       ...(newStatus.untracked || []),
-      ...(newStatus.deleted || [])
+      ...(newStatus.deleted || []),
     ].sort();
 
     // 比较文件数量
@@ -255,33 +271,33 @@ class GitHotReload extends EventEmitter {
    */
   setupGitManagerListeners() {
     // 监听Git操作事件
-    this.gitManager.on('committed', () => {
-      gitLog('GitHotReload', '检测到提交事件');
+    this.gitManager.on("committed", () => {
+      gitLog("GitHotReload", "检测到提交事件");
       this.scheduleStatusCheck();
     });
 
-    this.gitManager.on('pushed', () => {
-      gitLog('GitHotReload', '检测到推送事件');
+    this.gitManager.on("pushed", () => {
+      gitLog("GitHotReload", "检测到推送事件");
       this.scheduleStatusCheck();
     });
 
-    this.gitManager.on('pulled', () => {
-      gitLog('GitHotReload', '检测到拉取事件');
+    this.gitManager.on("pulled", () => {
+      gitLog("GitHotReload", "检测到拉取事件");
       this.scheduleStatusCheck();
     });
 
-    this.gitManager.on('files-added', () => {
-      gitLog('GitHotReload', '检测到文件添加事件');
+    this.gitManager.on("files-added", () => {
+      gitLog("GitHotReload", "检测到文件添加事件");
       this.scheduleStatusCheck();
     });
 
-    this.gitManager.on('conflict-resolved', () => {
-      gitLog('GitHotReload', '检测到冲突解决事件');
+    this.gitManager.on("conflict-resolved", () => {
+      gitLog("GitHotReload", "检测到冲突解决事件");
       this.scheduleStatusCheck();
     });
 
-    this.gitManager.on('merge-completed', () => {
-      gitLog('GitHotReload', '检测到合并完成事件');
+    this.gitManager.on("merge-completed", () => {
+      gitLog("GitHotReload", "检测到合并完成事件");
       this.scheduleStatusCheck();
     });
   }
@@ -290,7 +306,7 @@ class GitHotReload extends EventEmitter {
    * 手动触发状态检查
    */
   async refresh() {
-    gitLog('GitHotReload', '手动刷新Git状态');
+    gitLog("GitHotReload", "手动刷新Git状态");
     await this.checkGitStatus();
   }
 
@@ -300,7 +316,7 @@ class GitHotReload extends EventEmitter {
    */
   setEnabled(enabled) {
     this.enabled = enabled;
-    gitLog('GitHotReload', `${enabled ? '启用' : '禁用'}Git热重载`);
+    gitLog("GitHotReload", `${enabled ? "启用" : "禁用"}Git热重载`);
 
     if (enabled && !this.watcher) {
       this.start();
@@ -315,7 +331,7 @@ class GitHotReload extends EventEmitter {
    */
   setDebounceDelay(delay) {
     this.debounceDelay = delay;
-    gitLog('GitHotReload', `设置防抖延迟: ${delay}ms`);
+    gitLog("GitHotReload", `设置防抖延迟: ${delay}ms`);
   }
 
   /**
@@ -328,7 +344,7 @@ class GitHotReload extends EventEmitter {
       watching: !!this.watcher,
       repoPath: this.repoPath,
       debounceDelay: this.debounceDelay,
-      lastStatus: this.lastStatus
+      lastStatus: this.lastStatus,
     };
   }
 }

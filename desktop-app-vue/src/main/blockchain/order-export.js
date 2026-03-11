@@ -4,7 +4,12 @@
  */
 const { logger } = require("../utils/logger.js");
 const puppeteer = require("puppeteer");
-const sharp = require("sharp");
+let sharp;
+try {
+  sharp = require("sharp");
+} catch (_err) {
+  // sharp may be unavailable in packaged builds
+}
 const path = require("path");
 const fs = require("fs");
 const { app } = require("electron");

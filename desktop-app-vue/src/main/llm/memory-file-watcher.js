@@ -15,7 +15,12 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const chokidar = require("chokidar");
+let chokidar;
+try {
+  chokidar = require("chokidar");
+} catch (_err) {
+  // chokidar may be missing in packaged builds; file watching will be disabled
+}
 const path = require("path");
 const fs = require("fs").promises;
 const crypto = require("crypto");
@@ -150,6 +155,13 @@ class MemoryFileWatcher extends EventEmitter {
       await fs.mkdir(this.memoryDir, { recursive: true });
 
       // 创建 chokidar 监听器
+      if (!chokidar) {
+        logger.warn(
+          "[MemoryFileWatcher] chokidar not available, file watching disabled",
+        );
+        return;
+      }
+
       this.watcher = chokidar.watch(this.memoryDir, {
         ignored: this.ignorePatterns,
         persistent: this.persistent,

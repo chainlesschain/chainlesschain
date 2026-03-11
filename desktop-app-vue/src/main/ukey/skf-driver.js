@@ -8,7 +8,12 @@
 
 const { logger } = require("../utils/logger.js");
 const BaseUKeyDriver = require("./base-driver");
-const koffi = require("koffi");
+let koffi;
+try {
+  koffi = require("koffi");
+} catch (_err) {
+  // koffi FFI is only available on Windows with native bindings
+}
 const path = require("path");
 const os = require("os");
 const fs = require("fs");

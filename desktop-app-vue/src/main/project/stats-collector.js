@@ -3,7 +3,12 @@
  * 功能：实时收集项目统计数据
  */
 const { logger } = require("../utils/logger.js");
-const chokidar = require("chokidar");
+let chokidar;
+try {
+  chokidar = require("chokidar");
+} catch (_err) {
+  // chokidar may be missing in packaged builds; file watching will be disabled
+}
 const fs = require("fs-extra");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
@@ -28,6 +33,13 @@ class ProjectStatsCollector {
     logger.info(
       `[StatsCollector] 开始监听项目: ${projectId} at ${projectPath}`,
     );
+
+    if (!chokidar) {
+      logger.warn(
+        "[StatsCollector] chokidar not available, file watching disabled",
+      );
+      return;
+    }
 
     const watcher = chokidar.watch(projectPath, {
       ignored: [

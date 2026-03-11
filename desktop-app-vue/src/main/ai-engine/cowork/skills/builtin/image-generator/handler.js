@@ -171,7 +171,12 @@ async function generateDALLE(prompt, size, apiKey) {
 // ── Image Enhancement ───────────────────────────────────────────────
 
 async function enhanceImage(filePath, operations, outputPath) {
-  const sharp = require("sharp");
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch (_err) {
+    // sharp may be unavailable in packaged builds
+  }
   let pipeline = sharp(filePath);
 
   for (const op of operations) {

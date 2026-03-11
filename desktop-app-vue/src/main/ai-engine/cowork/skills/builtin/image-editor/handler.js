@@ -135,7 +135,12 @@ function parseFlags(input) {
 // ── Image Operations ────────────────────────────────
 
 async function imageInfo(filePath) {
-  const sharp = require("sharp");
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch (_err) {
+    // sharp may be unavailable in packaged builds
+  }
   const meta = await sharp(filePath).metadata();
   const stat = fs.statSync(filePath);
 
@@ -154,7 +159,12 @@ async function imageInfo(filePath) {
 }
 
 async function imageResize(filePath, width, height, outputPath) {
-  const sharp = require("sharp");
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch (_err) {
+    // sharp may be unavailable in packaged builds
+  }
   const opts = {};
   if (width) {
     opts.width = width;
@@ -177,7 +187,12 @@ async function imageResize(filePath, width, height, outputPath) {
 }
 
 async function imageCompress(filePath, quality, outputPath) {
-  const sharp = require("sharp");
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch (_err) {
+    // sharp may be unavailable in packaged builds
+  }
   const meta = await sharp(filePath).metadata();
   const format = meta.format || "jpeg";
   const q = Math.max(1, Math.min(100, quality));
@@ -210,7 +225,12 @@ async function imageCompress(filePath, quality, outputPath) {
 }
 
 async function imageConvert(filePath, targetFormat, outputPath) {
-  const sharp = require("sharp");
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch (_err) {
+    // sharp may be unavailable in packaged builds
+  }
   const sharpFormat = FORMAT_MAP[targetFormat];
   if (!sharpFormat) {
     throw new Error(
@@ -230,7 +250,12 @@ async function imageConvert(filePath, targetFormat, outputPath) {
 }
 
 async function imageThumbnail(filePath, size, outputPath) {
-  const sharp = require("sharp");
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch (_err) {
+    // sharp may be unavailable in packaged builds
+  }
 
   await sharp(filePath).resize(size, size, { fit: "cover" }).toFile(outputPath);
 
@@ -244,7 +269,12 @@ async function imageThumbnail(filePath, size, outputPath) {
 }
 
 async function imageRotate(filePath, angle, outputPath) {
-  const sharp = require("sharp");
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch (_err) {
+    // sharp may be unavailable in packaged builds
+  }
 
   await sharp(filePath).rotate(angle).toFile(outputPath);
 
@@ -261,7 +291,12 @@ async function imageRotate(filePath, angle, outputPath) {
 }
 
 async function imageCrop(filePath, left, top, width, height, outputPath) {
-  const sharp = require("sharp");
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch (_err) {
+    // sharp may be unavailable in packaged builds
+  }
 
   await sharp(filePath)
     .extract({ left, top, width, height })

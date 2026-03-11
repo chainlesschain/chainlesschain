@@ -6,7 +6,12 @@
 const { logger } = require("../utils/logger.js");
 const path = require("path");
 const fs = require("fs").promises;
-const chokidar = require("chokidar");
+let chokidar;
+try {
+  chokidar = require("chokidar");
+} catch (_err) {
+  // chokidar may be missing in packaged builds; file watching will be disabled
+}
 const EventEmitter = require("events");
 
 class ProjectRAGManager extends EventEmitter {
@@ -582,6 +587,13 @@ class ProjectRAGManager extends EventEmitter {
 
     logger.info(`[ProjectRAG] 启动文件监听: ${projectPath}`);
 
+    if (!chokidar) {
+      logger.warn(
+        "[ProjectRAG] chokidar not available, file watching disabled",
+      );
+      return;
+    }
+
     const watcher = chokidar.watch(projectPath, {
       ignored: /(^|[/\\])\./, // 忽略隐藏文件
       persistent: true,
@@ -944,7 +956,11 @@ class IncrementalIndexManager {
               1,
             );
         } catch (error) {
-          errors.push({ fileId: file.id, fileName: file.file_name, error: error.message });
+          errors.push({
+            fileId: file.id,
+            fileName: file.file_name,
+            error: error.message,
+          });
         }
       }
 
@@ -984,7 +1000,11 @@ class IncrementalIndexManager {
             )
             .run(file.contentHash, Date.now(), projectId, file.id);
         } catch (error) {
-          errors.push({ fileId: file.id, fileName: file.file_name, error: error.message });
+          errors.push({
+            fileId: file.id,
+            fileName: file.file_name,
+            error: error.message,
+          });
         }
       }
 
@@ -1046,7 +1066,9 @@ class MultiFileRetriever {
   _extractImports(content, fileType) {
     const imports = [];
 
-    if (!content) {return imports;}
+    if (!content) {
+      return imports;
+    }
 
     // JavaScript/TypeScript imports
     if (["js", "ts", "jsx", "tsx", "vue"].includes(fileType)) {
@@ -1122,7 +1144,9 @@ class MultiFileRetriever {
         .prepare("SELECT * FROM project_files WHERE id = ?")
         .get(fileId);
 
-      if (!file) {continue;}
+      if (!file) {
+        continue;
+      }
 
       // 读取文件内容
       let content;
@@ -1375,7 +1399,10 @@ class MultiFileRetriever {
         );
 
         // 检查是否导入了当前文件
-        const baseName = path.basename(file.file_name, path.extname(file.file_name));
+        const baseName = path.basename(
+          file.file_name,
+          path.extname(file.file_name),
+        );
         if (
           otherImports.some(
             (imp) => imp.includes(baseName) || imp.includes(file.file_name),
@@ -1706,9 +1733,7 @@ class ProjectAwareReranker {
       return [];
     }
 
-    logger.info(
-      `[ProjectAwareReranker] 重排序 ${documents.length} 个文档`,
-    );
+    logger.info(`[ProjectAwareReranker] 重排序 ${documents.length} 个文档`);
     const startTime = Date.now();
 
     try {
