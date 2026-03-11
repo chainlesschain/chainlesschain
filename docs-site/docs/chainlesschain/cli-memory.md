@@ -2,6 +2,29 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+## 核心特性
+
+- 🧠 **跨会话记忆**: AI 在不同对话间保持上下文
+- 📝 **每日笔记**: 自动按日期组织笔记文件
+- 🔍 **记忆搜索**: 按关键词检索历史记忆
+- 📊 **重要度分级**: 1-5 级重要度标记
+- 📁 **双层存储**: 数据库 + 文件系统双持久化
+
+## 系统架构
+
+```
+memory 命令 → memory.js (Commander) → memory-manager.js
+                                           │
+                      ┌────────────────────┼────────────────────┐
+                      ▼                    ▼                    ▼
+                数据库记忆              每日笔记            MEMORY.md
+             (memory_entries)    (daily/YYYY-MM-DD.md)    (长期知识)
+                      │                    │                    │
+                      ▼                    ▼                    ▼
+               分类 + 搜索           追加 + 浏览          编辑器打开
+               重要度排序
+```
+
 ## 概述
 
 管理 AI 助手的持久化记忆系统。支持数据库记忆条目和文件系统每日笔记，让 AI 在不同会话间保持上下文。
@@ -89,6 +112,31 @@ chainlesschain memory file --edit           # 用编辑器打开
 2. **文件系统** (`~/.chainlesschain/data/memory/`)：
    - `MEMORY.md`：长期知识文件
    - `daily/YYYY-MM-DD.md`：每日笔记
+
+## 关键文件
+
+- `packages/cli/src/commands/memory.js` — 命令实现
+- `packages/cli/src/lib/memory-manager.js` — 记忆管理库
+
+## 安全考虑
+
+- 记忆数据存储在本地数据库和文件系统，不上传到外部
+- MEMORY.md 文件可能包含敏感信息，注意不要提交到公开仓库
+- `delete` 操作不可恢复，建议先备份
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `add` 失败 | 确认数据库已初始化：`chainlesschain db init` |
+| `daily` 显示为空 | 当天未添加任何笔记，使用 `--add` 添加 |
+| `file` 无法编辑 | 检查 `~/.chainlesschain/data/memory/` 目录权限 |
+
+## 相关文档
+
+- [数据库管理](./cli-db) — 数据库初始化
+- [会话管理](./cli-session) — 对话历史管理
+- [持久记忆集成](./permanent-memory) — 桌面端记忆系统
 
 ## 依赖
 

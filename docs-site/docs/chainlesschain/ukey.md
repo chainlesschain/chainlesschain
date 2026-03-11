@@ -1,6 +1,57 @@
 # U盾集成
 
+> **安全核心 | 状态: ✅ 生产就绪 | 硬件级密钥保护 | Windows: Koffi FFI | macOS/Linux: 模拟模式**
+
 U盾（USB Key）是ChainlessChain PC端的安全核心，提供硬件级的密钥保护。
+
+## 核心特性
+
+- 🔐 **私钥永不导出**: 密钥在安全芯片内生成和使用，永不离开硬件
+- 🛡️ **PIN 码保护**: 多次错误自动锁定，防暴力破解
+- ✍️ **数字签名**: 所有关键操作需要 U 盾物理确认
+- 🔒 **数据库加密**: 数据库密钥由 U 盾管理
+- 🖥️ **Koffi FFI**: Windows 平台通过 Koffi FFI 调用 SDK
+- 🎭 **模拟模式**: macOS/Linux 自动降级为软件模拟
+- 📱 **BLE/NFC**: 支持蓝牙和 NFC 无线 U 盾（v0.41.0+）
+- 🧬 **生物识别**: 指纹匹配、Match-on-Card、活体检测（v0.40.0+）
+
+## 系统架构
+
+```
+用户操作 → U-Key 管理层
+                │
+    ┌───────────┼────────────┐
+    ▼           ▼            ▼
+ Windows     macOS/Linux   BLE/NFC
+ (Koffi FFI)  (模拟模式)   (v0.41.0+)
+    │           │            │
+    ▼           ▼            ▼
+ SIMKey SDK   软件密钥      CTAP2/ISO14443
+ (DLL调用)    (Node crypto)  (蓝牙/近场)
+    │           │            │
+    └───────────┼────────────┘
+                ▼
+      ┌─────────────────┐
+      │  密钥操作接口      │
+      │  sign / verify    │
+      │  encrypt / decrypt│
+      │  generateKey      │
+      └─────────────────┘
+                │
+                ▼
+      SQLite + SQLCipher 数据库
+```
+
+## 核心模块
+
+| 模块 | 说明 | 平台 |
+|------|------|------|
+| U-Key Driver | Koffi FFI 调用 SIMKey SDK | Windows |
+| 模拟驱动 | Node.js crypto 软件模拟 | macOS/Linux |
+| BLE 适配器 | CTAP2 蓝牙通信 | 全平台 |
+| NFC 适配器 | ISO14443 近场通信 | 全平台 |
+| 生物识别 | 指纹 Match-on-Card | Windows |
+| 密钥管理 | 生成、备份、恢复、轮换 | 全平台 |
 
 ## 什么是U盾?
 
@@ -1374,3 +1425,15 @@ NFC认证流程（触碰即签名）:
 | v0.43.0  | 智能合约签名       | 多链, 交易模拟, ABI解码, 风险分析   | ⭐⭐⭐⭐   | ✅ 已完成 |
 | v0.44.0  | 硬件钱包集成       | Ledger/Trezor/OneKey, 多设备多签    | ⭐⭐⭐     | ✅ 已完成 |
 | v0.45.0+ | Passkey/后量子/TEE | FIDO2, Dilithium, TrustZone         | ⭐⭐       | ✅ 已完成 |
+
+## 关键文件
+
+- `desktop-app-vue/src/main/ukey/` — U-Key 集成模块
+- `SIMKeySDK-20220416/` — U-Key SDK（Windows）
+- `desktop-app-vue/src/main/ukey/ukey-driver.js` — Koffi FFI 驱动
+
+## 相关文档
+
+- [数据加密](./encryption) — 加密架构总览
+- [DID 身份 (CLI)](./cli-did) — 软件 DID 身份管理
+- [SIMKey](./simkey) — SIMKey 硬件详情

@@ -9,6 +9,21 @@
 
 ### Added
 
+- **CLI Phase 5 P2P与企业功能**: 5 个新命令（p2p/sync/wallet/org/plugin），CLI 总计 34 个命令
+  - `p2p`: P2P 消息系统（peer 注册/消息收发/设备配对），P2PBridge 桌面桥接
+  - `sync`: 文件与知识同步（push/pull/冲突检测与解决/操作日志）
+  - `wallet`: 数字钱包（Ed25519 密钥对 + AES-256-GCM 私钥加密，资产 CRUD，转账交易）
+  - `org`: 组织管理（CRUD/成员邀请/角色/团队管理/审批工作流）
+  - `plugin`: 插件市场（安装/启停/更新/设置管理/注册表搜索）
+  - 5 个新 lib 模块: p2p-manager.js, sync-manager.js, wallet-manager.js, org-manager.js, plugin-manager.js
+  - 160 个新单元测试 + 10 个 E2E 测试，CLI 总计 903 tests / 47 files
+- **CLI Phase 4 安全与身份**: 4 个新命令（did/encrypt/auth/audit），CLI 总计 29 个命令
+  - `did`: Ed25519 DID 身份管理（创建/签名/验证/导出），W3C DID Core 子集
+  - `encrypt`/`decrypt`: AES-256-GCM 文件加密，PBKDF2 密钥派生，自定义 CCLC01 格式
+  - `auth`: RBAC 权限引擎，4 内置角色，26 权限范围，通配符匹配，过期控制
+  - `audit`: 审计日志系统，8 事件类型，4 风险级别，自动风险评估，敏感数据脱敏
+  - 4 个新 lib 模块: did-manager.js, crypto-manager.js, permission-engine.js, audit-logger.js
+  - 130 个新单元测试 + 12 个 E2E 测试
 - **CLI Phase 1 AI 智能层**: 4 个新命令 + Agent Plan Mode，CLI 总计 19 个命令
   - `search <query>`: BM25 混合搜索，支持 `--mode bm25`、`--top-k`、`--json` 选项
   - `tokens show|breakdown|recent|cache`: Token 用量追踪、多 Provider 成本分析、响应缓存统计

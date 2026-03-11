@@ -1,6 +1,43 @@
 # ChainlessChain 安装部署
 
+> **快速开始 | 支持 Windows / macOS / Linux | Electron + Vue3 桌面端 | Docker 后端服务**
+
 本指南将帮助您在不同平台上安装和配置ChainlessChain个人AI系统。
+
+## 核心特性
+
+- 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端
+- 📱 **移动端**: Android APK 直装
+- 🐳 **Docker 服务**: 一键启动 Ollama / Qdrant / PostgreSQL / Redis
+- ⚡ **CLI 安装**: `npm install -g chainlesschain` 一行命令
+- 🔧 **交互式向导**: `chainlesschain setup` 引导完成配置
+- 🩺 **环境诊断**: `chainlesschain doctor` 自动检测问题
+
+## 系统架构
+
+```
+                   安装部署架构
+┌─────────────────────────────────────────┐
+│  npm install -g chainlesschain          │  CLI 工具
+│         │                               │
+│         ▼                               │
+│  chainlesschain setup (交互式向导)       │
+│    │         │          │               │
+│    ▼         ▼          ▼               │
+│ 选择版本  配置 LLM   下载二进制         │
+│ (个人/企业) (7 提供商) (GitHub Releases) │
+│                         │               │
+│                         ▼               │
+│  chainlesschain start ← 桌面应用 (Electron) │
+│         │                               │
+│         ▼                               │
+│  chainlesschain services up             │
+│    │      │       │       │             │
+│    ▼      ▼       ▼       ▼             │
+│  Ollama  Qdrant  Postgres  Redis        │
+│  (11434) (6333)  (5432)   (6379)        │
+└─────────────────────────────────────────┘
+```
 
 ## 系统要求
 
@@ -964,6 +1001,16 @@ ANALYZE;
 - [Git同步](/chainlesschain/git-sync) - 设置跨设备同步
 - [去中心化社交](/chainlesschain/social) - 开始P2P通讯
 
----
+## 关键文件
 
-**安装完成，开始您的去中心化AI之旅！** 🚀
+- `packages/cli/src/commands/setup.js` — CLI 安装向导
+- `packages/cli/src/commands/doctor.js` — 环境诊断
+- `desktop-app-vue/package.json` — 桌面应用依赖
+- `docker-compose.yml` — Docker 服务编排
+
+## 相关文档
+
+- [CLI 命令行工具](./cli) — CLI 完整命令参考
+- [配置说明](./configuration) — 详细配置文件说明
+- [CLI 分发系统](./cli-distribution) — 分发与安装机制
+- [AI 模型配置](./ai-models) — LLM 提供商配置

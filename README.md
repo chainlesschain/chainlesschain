@@ -34,7 +34,7 @@ chainlesschain setup    # 交互式安装向导
 chainlesschain start    # 启动应用
 ```
 
-- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，25 个命令
+- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，34 个命令
 - ✅ **交互式安装向导** — Node.js/Docker 检测 → 版本选择 → LLM 配置 → 二进制下载 → 自动配置
 - ✅ **GitHub Release 集成** — 自动下载平台二进制文件 (Win/macOS/Linux) + SHA256 校验
 - ✅ **Docker Compose 编排** — 一键管理后端服务 (`services up/down/logs/pull`)
@@ -42,8 +42,10 @@ chainlesschain start    # 启动应用
 - ✅ **Phase 1 AI 智能层** — BM25 搜索 + Token 追踪 + 持久记忆 + 会话管理 + Agent Plan Mode
 - ✅ **Phase 2 知识管理** — 知识导入 (Markdown/Evernote/Notion/PDF) + 导出 (Markdown/静态站点) + Git 集成 + 笔记版本控制
 - ✅ **Phase 3 MCP 与外部集成** — MCP 服务器管理 (JSON-RPC 2.0) + 7 LLM Provider + 浏览器自动化 + 本能学习
+- ✅ **Phase 4 安全与身份** — DID 身份管理 (Ed25519) + AES-256-GCM 文件加密 + RBAC 权限引擎 + 审计日志
+- ✅ **Phase 5 P2P与企业** — P2P 消息 + 文件同步 + 数字钱包 (Ed25519) + 组织管理 + 插件市场
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
-- ✅ **743 个测试用例** — 41 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **903 个测试用例** — 47 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
 
 ---
 
@@ -1632,7 +1634,10 @@ chainlesschain/
 - [x] **SIMKey六大安全增强**: iOS eSIM + 5G优化 + NFC离线签名 + 多SIM卡切换 + 健康监控 + 量子抗性算法 ✅ v0.38.0
 - [x] **everything-claude-code模式**: Verification Loop + Orchestrate Workflow + Instinct Learning System ✅ v0.39.0
 - [x] **CLI分发系统 (Phase 101)**: npm CLI包 + 交互式安装 + GitHub Release下载 + Docker编排 + 环境诊断 + CI/CD自动发布 ✅ v5.0.1
-- [x] **CLI Phase 1 AI智能层**: BM25搜索 + Token追踪 + 持久记忆 + 会话管理 + Agent Plan Mode (19命令, 380测试) ✅ v5.0.1
+- [x] **CLI Phase 1 AI智能层**: BM25搜索 + Token追踪 + 持久记忆 + 会话管理 + Agent Plan Mode ✅ v5.0.1
+- [x] **CLI Phase 2 知识管理**: 知识导入(Markdown/Evernote/Notion/PDF) + 导出 + Git集成 + 笔记版本控制 ✅ v5.0.1
+- [x] **CLI Phase 3 MCP与集成**: MCP客户端(JSON-RPC 2.0) + 7 LLM Provider + 浏览器自动化 + 本能学习 ✅ v5.0.1
+- [x] **CLI Phase 4 安全与身份**: DID身份管理(Ed25519) + AES-256-GCM加密 + RBAC权限引擎 + 审计日志 (29命令, 743测试) ✅ v5.0.1
 - [x] **AI技能系统**: 138内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + Agent Skills标准 ✅ v1.2.1
 - [x] **扩展MCP服务器支持**: MCP SDK (Server Builder + HTTP+SSE + Stdio) + 社区注册中心 ✅ v0.34.0
 - [x] **增强多代理协作**: 8种专业化代理模板 + 任务编排引擎 + 5个内置技能 ✅ v0.34.0

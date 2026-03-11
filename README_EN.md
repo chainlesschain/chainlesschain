@@ -34,7 +34,7 @@ chainlesschain setup    # Interactive setup wizard
 chainlesschain start    # Launch application
 ```
 
-- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 25 commands
+- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 34 commands
 - ✅ **Interactive Setup Wizard** — Node.js/Docker check → edition select → LLM config → binary download → auto-configure
 - ✅ **GitHub Release Integration** — Auto-download platform binaries (Win/macOS/Linux) + SHA256 verification
 - ✅ **Docker Compose Orchestration** — One-command backend management (`services up/down/logs/pull`)
@@ -42,8 +42,10 @@ chainlesschain start    # Launch application
 - ✅ **Phase 1 AI Intelligence Layer** — BM25 search + Token tracking + Persistent memory + Session management + Agent Plan Mode
 - ✅ **Phase 2 Knowledge Management** — Knowledge import (Markdown/Evernote/Notion/PDF) + export (Markdown/static site) + Git integration + note versioning
 - ✅ **Phase 3 MCP & External Integration** — MCP server management (JSON-RPC 2.0) + 7 LLM providers + browser automation + instinct learning
+- ✅ **Phase 4 Security & Identity** — DID identity management (Ed25519) + AES-256-GCM file encryption + RBAC permission engine + audit logging
+- ✅ **Phase 5 P2P & Enterprise** — P2P messaging + file sync + digital wallet (Ed25519) + org management + plugin marketplace
 - ✅ **CI/CD Auto-publish** — GitHub Actions `npm publish --provenance` + supply chain security
-- ✅ **743 Test Cases** — 41 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
+- ✅ **903 Test Cases** — 47 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
 
 ---
 
@@ -2853,9 +2855,9 @@ chainlesschain/
 ├── packages/
 │   └── cli/                  # npm CLI tool (chainlesschain, pure JS ~2MB)
 │       ├── bin/              # CLI entry (#!/usr/bin/env node)
-│       ├── src/commands/     # 19 commands (setup/start/stop/status/services/config/update/doctor/db/note/chat/ask/llm/agent/skill/search/tokens/memory/session)
-│       ├── src/lib/          # 16 library modules (platform/paths/downloader/config-manager/bm25-search/token-tracker/response-cache/session-manager/memory-manager/plan-mode etc.)
-│       └── __tests__/        # 25 test files (380 test cases)
+│       ├── src/commands/     # 29 commands (setup/start/.../did/encrypt/auth/audit)
+│       ├── src/lib/          # 29 library modules (platform/paths/.../did-manager/crypto-manager/permission-engine/audit-logger)
+│       └── __tests__/        # 41 test files (743 test cases)
 ├── backend/
 │   ├── project-service/      # Spring Boot 3.1.11 (Java 17)
 │   └── ai-service/           # FastAPI + Ollama + Qdrant
@@ -2882,7 +2884,7 @@ chainlesschain/
 | **community-forum/backend**  | Spring Boot 3.1 + MySQL    | 5,679 lines        | 63 APIs      | 100%       | ✅ Production Ready |
 | **community-forum/frontend** | Vue3 + Element Plus        | 10,958 lines       | -            | 100%       | ✅ Production Ready |
 | **mobile-app-uniapp**        | uni-app + Vue3             | 8,000+ lines       | -            | 100%       | ✅ Complete         |
-| **packages/cli**             | Node.js 22 ESM + Commander | 5,000+ lines       | 19 commands  | 100%       | ✅ Complete         |
+| **packages/cli**             | Node.js 22 ESM + Commander | 8,000+ lines       | 29 commands  | 100%       | ✅ Complete         |
 | **Total**                    | -                          | **250,000+ lines** | **149 APIs** | **100%**   | ✅ Production Ready |
 
 ## 🗓️ Roadmap

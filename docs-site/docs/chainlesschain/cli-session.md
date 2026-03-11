@@ -2,6 +2,28 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+## 核心特性
+
+- 💾 **自动保存**: 对话历史实时持久化到数据库
+- 🔄 **断点恢复**: 恢复之前的会话继续对话
+- 📤 **Markdown 导出**: 将对话导出为可读的 Markdown 文件
+- 📋 **元数据追踪**: 记录 Provider、模型、消息数量等信息
+- 🔍 **ID 前缀匹配**: 输入部分 ID 即可定位会话
+
+## 系统架构
+
+```
+session 命令 → session.js (Commander) → session-manager.js
+                                             │
+                    ┌────────────────────────┼────────────────────────┐
+                    ▼                        ▼                        ▼
+              session list/show        session resume           session export
+                    │                        │                        │
+                    ▼                        ▼                        ▼
+            SELECT sessions 表       加载消息历史到 REPL      生成 Markdown 文件
+            按时间排序               恢复 Provider/Model       含元数据和对话
+```
+
 ## 概述
 
 管理 AI 对话会话的持久化、恢复和导出。所有 `chat` 和 `agent` 命令的对话历史自动保存，支持跨会话恢复。
@@ -100,6 +122,31 @@ chainlesschain session delete sess-a1b2c3
 - 每次用户发送消息后自动保存
 - 会话标题根据第一条消息自动生成
 - 保存 Provider、模型、消息数量等元数据
+
+## 关键文件
+
+- `packages/cli/src/commands/session.js` — 命令实现
+- `packages/cli/src/lib/session-manager.js` — 会话管理库
+
+## 安全考虑
+
+- 会话包含完整的对话历史，可能含有敏感信息
+- `export` 导出的 Markdown 文件为明文，注意保管
+- `delete` 操作不可恢复
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `list` 为空 | 需先通过 `chat` 或 `agent` 进行对话 |
+| `resume` 失败 | 检查会话 ID 是否正确，至少 4 字符前缀 |
+| `export` 文件为空 | 确认会话有消息记录 |
+
+## 相关文档
+
+- [AI 对话](./cli-chat) — 对话命令
+- [代理模式](./cli-agent) — 代理式会话
+- [持久记忆](./cli-memory) — 跨会话记忆
 
 ## 依赖
 

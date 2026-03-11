@@ -2,6 +2,28 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+## 核心特性
+
+- 💰 **成本追踪**: 自动计算每次 API 调用的费用
+- 📊 **分类统计**: 按 Provider、模型分组展示用量
+- 💾 **响应缓存**: 缓存重复请求，节省 Token 消耗
+- 📈 **趋势分析**: 查看最近的 API 调用记录
+- 🌐 **多提供商**: 支持 7 个 LLM 提供商的费率计算
+
+## 系统架构
+
+```
+tokens 命令 → tokens.js (Commander) → token-tracker.js
+                                           │
+                      ┌────────────────────┼────────────────────┐
+                      ▼                    ▼                    ▼
+                 tokens show          tokens breakdown     tokens cache
+                      │                    │                    │
+                      ▼                    ▼                    ▼
+               汇总 token_usage      按 provider/model     response_cache
+               计算总费用            分组统计               命中率统计
+```
+
 ## 概述
 
 追踪和分析 LLM API 的 Token 用量和成本。支持多个 Provider 的费用统计、用量趋势分析和成本优化建议。
@@ -82,6 +104,32 @@ chainlesschain tokens cache
 | Anthropic | claude-3.5      | $3.00/1M       | $15.00/1M      |
 | DeepSeek  | deepseek-chat   | $0.14/1M       | $0.28/1M       |
 | DashScope | qwen-max        | $0.02/1M       | $0.06/1M       |
+
+## 关键文件
+
+- `packages/cli/src/commands/tokens.js` — 命令实现
+- `packages/cli/src/lib/token-tracker.js` — Token 追踪库
+- `packages/cli/src/lib/response-cache.js` — 响应缓存
+
+## 安全考虑
+
+- Token 用量数据仅存储在本地数据库
+- 费用为估算值，实际费用以提供商账单为准
+- 缓存命中的请求不消耗 Token
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `show` 全部为 0 | 需先通过 `chat`/`ask`/`agent` 进行对话 |
+| 费用估算不准 | 费率可能已更新，以提供商官方价格为准 |
+| `cache` 命中率低 | 缓存仅匹配完全相同的请求 |
+
+## 相关文档
+
+- [AI 对话](./cli-chat) — 对话命令（自动记录 Token）
+- [LLM 管理](./cli-llm) — 提供商管理
+- [代理模式](./cli-agent) — 代理会话（Token 消耗较高）
 
 ## 依赖
 

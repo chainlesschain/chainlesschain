@@ -248,6 +248,10 @@ chainlesschain --quiet      # 静默模式
 | `mcp`              | MCP 服务器管理 (JSON-RPC 2.0 over stdio)    | Phase 3                       |
 | `browse`           | 浏览器自动化（页面抓取/CSS选择器/截图）     | Phase 3                       |
 | `instinct`         | 本能学习（偏好追踪/衰减/系统提示生成）      | Phase 3                       |
+| `did`              | DID 身份管理 (Ed25519 签名/验证)             | [DID身份](./cli-did)          |
+| `encrypt`/`decrypt`| AES-256-GCM 文件加密/解密                    | [文件加密](./cli-encrypt)     |
+| `auth`             | RBAC 权限引擎 (4角色/26权限范围)             | [RBAC权限](./cli-auth)        |
+| `audit`            | 审计日志 (8事件类型/4风险级别)               | [审计日志](./cli-audit)       |
 
 ---
 
@@ -307,6 +311,41 @@ chainlesschain doctor
 # 查看日志
 chainlesschain services logs
 ```
+
+## 测试覆盖率
+
+CLI 包包含 743 个测试（118 核心包测试 + 625 CLI 测试），全部通过：
+
+| 测试类型 | 文件数 | 测试数 | 说明 |
+|---------|--------|--------|------|
+| 单元测试 | 30+ | 500+ | 各模块功能测试 |
+| 集成测试 | 5+ | 80+ | 模块间协作测试 |
+| E2E 测试 | 5 | 120+ | 端到端命令测试 |
+
+```bash
+cd packages/cli
+npm test                   # 运行全部 743 测试
+npm run test:unit          # 仅单元测试
+npm run test:integration   # 仅集成测试
+npm run test:e2e           # 仅端到端测试
+```
+
+## 安全考虑
+
+- API Key 存储在本地 `~/.chainlesschain/config.json`，建议设置文件权限 600
+- 数据库支持 SQLCipher AES-256 加密（`chainlesschain encrypt db`）
+- 所有操作记录审计日志，支持敏感数据自动脱敏
+- 二进制下载通过 HTTPS + SHA-256 校验和验证
+- 使用 Ollama 本地模型时数据完全离线
+
+## 关键文件
+
+- `packages/cli/bin/chainlesschain.js` — npm bin 入口
+- `packages/cli/src/index.js` — Commander 命令注册（主入口）
+- `packages/cli/src/commands/` — 所有命令实现
+- `packages/cli/src/lib/` — 共享库（30+ 模块）
+- `packages/cli/src/repl/` — 交互式 REPL（chat/agent）
+- `packages/cli/src/runtime/bootstrap.js` — 7 阶段 Headless 初始化
 
 ## 卸载
 

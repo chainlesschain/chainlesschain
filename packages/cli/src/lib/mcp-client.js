@@ -58,11 +58,11 @@ export class MCPClient extends EventEmitter {
       entry.process = proc;
 
       proc.stdout.on("data", (data) => {
-        this._handleData(name, data.toString());
+        this._handleData(name, data.toString("utf8"));
       });
 
       proc.stderr.on("data", (data) => {
-        this.emit("server-error", { name, error: data.toString() });
+        this.emit("server-error", { name, error: data.toString("utf8") });
       });
 
       proc.on("close", (code) => {

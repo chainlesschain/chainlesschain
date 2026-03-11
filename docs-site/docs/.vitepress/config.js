@@ -464,6 +464,52 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.1 Phase 4 安全与身份",
+          items: [
+            {
+              text: "DID身份管理 (did)",
+              link: "/chainlesschain/cli-did",
+            },
+            {
+              text: "文件加密 (encrypt)",
+              link: "/chainlesschain/cli-encrypt",
+            },
+            {
+              text: "RBAC权限 (auth)",
+              link: "/chainlesschain/cli-auth",
+            },
+            {
+              text: "审计日志 (audit)",
+              link: "/chainlesschain/cli-audit",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 Phase 5 P2P与企业",
+          items: [
+            {
+              text: "P2P消息 (p2p)",
+              link: "/chainlesschain/cli-p2p",
+            },
+            {
+              text: "文件同步 (sync)",
+              link: "/chainlesschain/cli-sync",
+            },
+            {
+              text: "数字钱包 (wallet)",
+              link: "/chainlesschain/cli-wallet",
+            },
+            {
+              text: "组织管理 (org)",
+              link: "/chainlesschain/cli-org",
+            },
+            {
+              text: "插件市场 (plugin)",
+              link: "/chainlesschain/cli-plugin",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },

@@ -2,6 +2,29 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+## 核心特性
+
+- 🔍 **BM25 算法**: 基于 Okapi BM25 的统计检索模型
+- 🌏 **中英文支持**: 自动识别语言并分词
+- 📊 **相关度排序**: 基于 TF-IDF 的智能排名
+- 🔢 **结果控制**: `--top-k` 限制返回数量
+- 📋 **JSON 输出**: 支持脚本集成和管道处理
+
+## 系统架构
+
+```
+search 命令 → search.js (Commander) → bm25-search.js
+                                           │
+                      ┌────────────────────┼────────────────────┐
+                      ▼                    ▼                    ▼
+                 查询分词             BM25 评分            结果排序
+                (中英文)          (TF-IDF 统计)       (top-k 截断)
+                      │                    │                    │
+                      ▼                    ▼                    ▼
+               字符级/词级分词     遍历 notes 表        格式化输出
+                                  计算相关度分数     (text/JSON)
+```
+
 ## 概述
 
 执行 BM25 关键词搜索，对笔记和知识库内容进行智能检索。支持多种搜索模式和结果重排序。
@@ -51,7 +74,31 @@ chainlesschain search "数据库优化" --top-k 3
 chainlesschain search "API" --json | jq '.results[0]'
 ```
 
+## 关键文件
+
+- `packages/cli/src/commands/search.js` — 命令实现
+- `packages/cli/src/lib/bm25-search.js` — BM25 搜索引擎
+
+## 安全考虑
+
+- 搜索仅在本地数据库执行，不调用外部 API
+- 搜索结果不包含已软删除的笔记
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| 搜索结果为空 | 确认有笔记数据：`chainlesschain note list` |
+| 中文搜索不准 | BM25 使用字符级分词，尝试更短的关键词 |
+| `--json` 输出格式错误 | 确保终端支持 UTF-8 编码 |
+
+## 相关文档
+
+- [笔记/知识库管理](./cli-note) — 笔记增删改查
+- [数据库管理](./cli-db) — 数据库初始化
+- [知识库管理](./knowledge-base) — 桌面端 RAG 搜索
+
 ## 依赖
 
 - 需要先初始化数据库：`chainlesschain db init`
-- 需要已��笔记数据：`chainlesschain note add ...`
+- 需要已有笔记数据：`chainlesschain note add ...`

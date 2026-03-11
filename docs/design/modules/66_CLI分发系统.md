@@ -31,7 +31,7 @@ packages/cli/
 ├── src/
 │   ├── index.js                   # Commander 程序，注册所有命令
 │   ├── constants.js               # Release URL、端口、版本、默认配置
-│   ├── commands/                  # 25 个命令模块
+│   ├── commands/                  # 34 个命令模块
 │   │   ├── setup.js               # 交互式安装向导
 │   │   ├── start.js               # 启动应用 (--headless)
 │   │   ├── stop.js                # 停止应用 (--services, --all)
@@ -56,13 +56,18 @@ packages/cli/
 │   │   ├── git.js                 # Git 集成 (status/init/auto-commit/hooks) (Phase 2)
 │   │   ├── mcp.js                 # MCP 服务器管理 (JSON-RPC 2.0) (Phase 3)
 │   │   ├── browse.js              # 浏览器自动化 (fetch/scrape/screenshot) (Phase 3)
-│   │   └── instinct.js            # 本能学习管理 (show/reset/decay) (Phase 3)
+│   │   ├── instinct.js            # 本能学习管理 (show/reset/decay) (Phase 3)
+│   │   ├── p2p.js                 # P2P 消息 (status/peers/send/inbox/pair) (Phase 5)
+│   │   ├── sync.js                # 文件同步 (push/pull/conflicts/resolve) (Phase 5)
+│   │   ├── wallet.js              # 数字钱包 (create/balance/asset/transfer) (Phase 5)
+│   │   ├── org.js                 # 组织管理 (create/invite/team/approval) (Phase 5)
+│   │   └── plugin.js              # 插件市场 (install/remove/enable/search) (Phase 5)
 │   ├── repl/                      # REPL 交互系统
 │   │   ├── chat-repl.js           # 流式对话 REPL (多轮会话)
 │   │   └── agent-repl.js          # Agentic REPL (8 工具 + 138 技能)
 │   ├── runtime/                   # 无头运行时
 │   │   └── bootstrap.js           # 7 阶段无头初始化引导
-│   └── lib/                       # 25 个库模块
+│   └── lib/                       # 34 个库模块
 │       ├── platform.js            # OS/arch 检测，二进制名称映射
 │       ├── paths.js               # ~/.chainlesschain/ 路径解析
 │       ├── downloader.js          # GitHub Release 下载 + SHA256 校验
@@ -87,7 +92,16 @@ packages/cli/
 │       ├── mcp-client.js          # MCP 客户端 (JSON-RPC 2.0 over stdio) (Phase 3)
 │       ├── llm-providers.js       # 7 内置 LLM Provider 注册 (Phase 3)
 │       ├── browser-automation.js  # 浏览器自动化 (fetch + CSS 选择器) (Phase 3)
-│       └── instinct-manager.js    # 本能学习 (渐近置信度增长) (Phase 3)
+│       ├── instinct-manager.js    # 本能学习 (渐近置信度增长) (Phase 3)
+│       ├── did-manager.js         # DID 身份管理 (Ed25519 密钥对) (Phase 4)
+│       ├── crypto-manager.js      # AES-256-GCM 文件加密 (Phase 4)
+│       ├── permission-engine.js   # RBAC 权限引擎 (Phase 4)
+│       ├── audit-logger.js        # 审计日志 (风险评估 + 脱敏) (Phase 4)
+│       ├── p2p-manager.js         # P2P 消息 + 设备配对 + Bridge (Phase 5)
+│       ├── sync-manager.js        # 文件同步 + 冲突检测/解决 (Phase 5)
+│       ├── wallet-manager.js      # Ed25519 钱包 + 资产管理 + 转账 (Phase 5)
+│       ├── org-manager.js         # 组织 + 团队 + 审批工作流 (Phase 5)
+│       └── plugin-manager.js      # 插件生命周期 + 注册表/市场 (Phase 5)
 ├── __tests__/
 │   ├── unit/                      # 单元测试文件
 │   ├── integration/               # 集成测试文件
@@ -143,6 +157,19 @@ bin/chainlesschain.js
        ├─ commands/browse.js ──► lib/browser-automation.js
        ├─ commands/instinct.js ► lib/instinct-manager.js
        └─ commands/llm.js ─────► lib/llm-providers.js (增强)
+       │
+       │  ── Phase 4 安全与身份 ──────────────┤
+       ├─ commands/did.js ────► lib/did-manager.js
+       ├─ commands/encrypt.js ► lib/crypto-manager.js
+       ├─ commands/auth.js ───► lib/permission-engine.js
+       └─ commands/audit.js ──► lib/audit-logger.js
+       │
+       │  ── Phase 5 P2P与企业 ──────────────┤
+       ├─ commands/p2p.js ────► lib/p2p-manager.js
+       ├─ commands/sync.js ───► lib/sync-manager.js
+       ├─ commands/wallet.js ─► lib/wallet-manager.js
+       ├─ commands/org.js ────► lib/org-manager.js
+       └─ commands/plugin.js ─► lib/plugin-manager.js
 ```
 
 **核心包依赖**（无头命令使用 monorepo 内部包）：
@@ -337,6 +364,15 @@ chainlesschain setup [--skip-download] [--skip-services]
 | `mcp`      | MCP 服务器管理  | `servers`, `add`, `remove`, `connect`, `disconnect`, `tools`, `call` |
 | `browse`   | 浏览器自动化    | `fetch`, `scrape`, `screenshot` / `--selector`                     |
 | `instinct` | 本能学习管理    | `show`, `categories`, `prompt`, `delete`, `reset`, `decay`         |
+| `did`      | DID 身份管理    | `create`, `show`, `list`, `resolve`, `sign`, `verify`, `export`, `set-default`, `delete` |
+| `encrypt`  | 文件加密/解密   | `file`, `db`, `info`, `status` + `decrypt` (`file`, `db`)         |
+| `auth`     | RBAC 权限管理   | `roles`, `create-role`, `delete-role`, `grant`, `revoke`, `grant-permission`, `revoke-permission`, `check`, `permissions`, `users`, `scopes` |
+| `audit`    | 审计日志        | `log`, `search`, `stats`, `export`, `purge`, `types`              |
+| `p2p`      | P2P 消息        | `status`, `peers`, `send`, `inbox`, `pair`, `devices`, `unpair`   |
+| `sync`     | 文件同步        | `status`, `push`, `pull`, `conflicts`, `resolve`, `log`, `clear`  |
+| `wallet`   | 数字钱包        | `create`, `list`, `balance`, `set-default`, `delete`, `asset`, `assets`, `transfer`, `history`, `summary` |
+| `org`      | 组织管理        | `create`, `list`, `show`, `delete`, `invite`, `members`, `team-create`, `teams`, `approval-submit`, `approvals`, `approve`, `reject` |
+| `plugin`   | 插件市场        | `list`, `install`, `remove`, `enable`, `disable`, `update`, `info`, `search`, `registry`, `summary` |
 
 ### 4.4 无头命令详细设计
 
@@ -500,10 +536,10 @@ publish-cli:
 
 | 层次     | 文件数 | 覆盖范围                                                                                                                       |
 | -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| 单元测试 | 22     | platform, paths, config-manager, checksum, service-manager, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, command-registration, skill |
+| 单元测试 | 31     | platform, paths, config-manager, checksum, service-manager, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, command-registration, skill |
 | 集成测试 | 3      | setup-flow, update-flow, service-lifecycle                                                                                     |
-| E2E 测试 | 8      | cross-platform, headless-commands, phase1-commands, phase2-commands, phase3-commands + 3 core                                  |
-| **合计** | **41** | **743 tests** (全部通过)                                                                                                       |
+| E2E 测试 | 13     | cross-platform, headless-commands, phase1-commands, phase2-commands, phase3-commands, phase4-commands, phase5-commands + 3 core |
+| **合计** | **47** | **903 tests** (全部通过)                                                                                                       |
 
 ### 6.2 测试工具
 
@@ -627,3 +663,210 @@ CLI 版本与主项目版本同步（当前 `0.37.9`）。Release workflow 自�
 - **置信度算法**: `newConf = conf + (1 - conf) × 0.1`（渐近逼近 1.0，永不到达）
 - **衰减机制**: 超过 N 天未触发的本能乘以 0.9 衰减因子（最低 0.1）
 - **Prompt 生成**: 将高置信度本能注入 LLM 系统提示
+
+## 11. Phase 4: 安全与身份
+
+### 11.1 DID 身份管理 (did-manager.js)
+
+基于 Ed25519 的 W3C DID 去中心化身份：
+
+- **密钥生成**: `crypto.generateKeyPairSync("ed25519")` (Node.js 内置)
+- **DID 格式**: `did:chainless:<base64url(sha256(publicKey))>`
+- **DID 文档**: W3C DID Core 子集，含 verificationMethod/authentication/assertionMethod
+- **存储**: `did_identities` 表 (did, label, public_key, private_key, did_document, is_default, created_at)
+
+**API**:
+
+- `createIdentity(label)` — 生成密钥对 + DID + 文档，存入数据库
+- `signMessage(did, message)` — Ed25519 签名 → base64 编码
+- `verifySignature(did, message, signature)` — 签名验证
+- `verifyWithDID(did, message, signature)` — 从 DID 文档解析公钥验证
+- `exportIdentity(did, includePrivate)` — 导出 DID 文档和密钥
+
+### 11.2 文件加密 (crypto-manager.js)
+
+AES-256-GCM 认证加密：
+
+**文件格式 (CCLC01)**:
+
+```
+┌──────────────────────────────┐
+│ Magic: "CCLC01" (6 bytes)   │  格式标识和版本
+├──────────────────────────────┤
+│ Salt (32 bytes)              │  PBKDF2 随机盐
+├──────────────────────────────┤
+│ IV (12 bytes)                │  初始化向量
+├──────────────────────────────┤
+│ Auth Tag (16 bytes)          │  GCM 认证标签
+├──────────────────────────────┤
+│ Ciphertext (variable)        │  加密后数据
+└──────────────────────────────┘
+```
+
+**安全参数**:
+
+| 参数           | 值          | 说明                   |
+| -------------- | ----------- | ---------------------- |
+| 加密算法       | AES-256-GCM | 认证加密（AEAD）       |
+| 密钥派生       | PBKDF2      | SHA-512, 100K 次迭代   |
+| 盐值长度       | 32 bytes    | 每次加密随机生成       |
+| IV 长度        | 12 bytes    | NIST 推荐 GCM IV 长度 |
+| Auth Tag 长度  | 16 bytes    | 128 位认证标签         |
+
+**API**:
+
+- `encryptFile(inputPath, outputPath, password)` — 文件加密
+- `decryptFile(inputPath, outputPath, password)` — 文件解密
+- `isEncryptedFile(path)` — 检测是否为 CCLC01 格式
+- `hashPassword(password)` / `verifyPassword(password, hash)` — 密码哈希（bcrypt 风格）
+
+### 11.3 RBAC 权限引擎 (permission-engine.js)
+
+基于角色的访问控制：
+
+**4 个内置角色**:
+
+| 角色     | 权限                                                          |
+| -------- | ------------------------------------------------------------- |
+| `admin`  | `*` (全部权限)                                                |
+| `editor` | note:*, session:*, llm:*, skill:*, search:*, memory:*         |
+| `viewer` | note:read, session:read, skill:read, search:read              |
+| `agent`  | note:read, note:write, skill:run, llm:chat, search:read      |
+
+**26 个权限范围**: note:read/write/delete, session:read/write/delete, llm:chat/manage/config, mcp:read/manage/connect, skill:read/run, search:read/manage, memory:read/write/delete, system:config/admin/audit, did:read/manage, encrypt:read/manage, auth:manage
+
+**数据库表**:
+
+- `roles` (id, name, description, permissions JSON, is_builtin)
+- `user_roles` (id, user_id, role_id, granted_by, expires_at)
+- `role_permissions` (id, role_id, scope, granted_by)
+
+**权限检查算法**: 聚合用户所有角色权限 → 过滤过期角色 → 通配符匹配（`*` 匹配所有，`note:*` 匹配 `note:` 前缀）
+
+### 11.4 审计日志 (audit-logger.js)
+
+操作审计与风险评估：
+
+**8 种事件类型**: auth, data_access, data_modify, system, security, export, import, admin
+
+**4 个风险级别**: low, medium, high, critical
+
+**自动风险评估规则**:
+
+| 操作特征                          | 风险级别   |
+| --------------------------------- | ---------- |
+| 包含 "delete" / "drop" / "purge" | critical   |
+| 包含 "admin" / "permission"      | high       |
+| 包含 "create" / "modify"         | medium     |
+| 默认                              | low        |
+
+**敏感数据脱敏**: password → `***`, apiKey → `sk-***...xxx` (前3后3), privateKey/secret/token → `***`
+
+**API**:
+
+- `logEvent(type, operation, details, userId, riskLevel)` — 记录事件（自动风险评估和脱敏）
+- `queryLogs(filters)` — 按类型/用户/时间范围查询
+- `getStatistics()` — 统计信息（总数/类型分布/高风险计数）
+- `exportLogs(format, filters)` — 导出 JSON/CSV
+- `purgeLogs(beforeDays)` — 清理旧日志
+
+### 11.5 设计决策 (Phase 4)
+
+| 决策                                   | 理由                                      |
+| -------------------------------------- | ----------------------------------------- |
+| Ed25519 而非 RSA                       | 更短密钥(32B)、更快签名、Node.js 内置支持 |
+| CCLC01 自定义格式而非 GPG             | 零外部依赖，格式简单，可自动检测          |
+| PBKDF2 100K 迭代而非 Argon2           | Node.js 内置，无需 native 依赖            |
+| RBAC 避免 JOIN 查询                    | 兼容 MockDatabase 测试框架                |
+| 审计日志避免 IN/OR SQL                 | MockDatabase 不支持复杂 SQL，拆分为多查询 |
+
+## 12. Phase 5: P2P、区块链与企业功能
+
+### 12.1 P2P 消息系统 (p2p-manager.js)
+
+P2P 点对点消息和设备配对：
+
+**数据库表**:
+
+- `p2p_peers` (peer_id, display_name, did, public_key, last_seen, status, device_type)
+- `p2p_messages` (id, from_peer, to_peer, content, encrypted, read, created_at)
+- `p2p_paired_devices` (device_id, device_name, device_type, pairing_code, paired_at, status)
+
+**API**:
+
+- `registerPeer(db, peerId, displayName, did, publicKey, deviceType)` — 注册/更新 peer
+- `sendMessage(db, fromPeer, toPeer, content, encrypted)` — 发送消息（验证收件人）
+- `getInbox(db, peerId, { unreadOnly, limit })` — 获取收件箱
+- `pairDevice(db, deviceName, deviceType)` — 设备配对（6 位随机码）
+- `confirmPairing(db, deviceId, code)` — 确认配对
+
+**P2PBridge 类** (extends EventEmitter):
+- HTTP 桥接到桌面应用 (`localhost:9001`)
+- `checkBridge()` — 健康检查（5s 超时）
+
+### 12.2 文件同步 (sync-manager.js)
+
+资源同步和冲突管理：
+
+**数据库表**:
+
+- `sync_state` (resource_id PK, resource_type, local_version, remote_version, content_hash, status, last_synced)
+- `sync_conflicts` (id, resource_id, local_content, remote_content, local_version, remote_version, status, strategy, resolved_at)
+- `sync_log` (id, operation, resource_id, details, status, created_at)
+
+**冲突解决策略**: `local` (保留本地) | `remote` (保留远程) | `manual` (手动合并)
+
+### 12.3 数字钱包 (wallet-manager.js)
+
+Ed25519 钱包和数字资产管理：
+
+- **密钥生成**: `crypto.generateKeyPairSync("ed25519")` (Node.js 内置)
+- **地址格式**: `0x` + SHA-256(publicKey) 前 40 位
+- **私钥加密**: AES-256-GCM + PBKDF2 (100K 迭代)
+
+**数据库表**:
+
+- `wallets` (address PK, name, wallet_type, public_key, encrypted_key, balance, is_default)
+- `digital_assets` (id, wallet_address, asset_type, name, description, metadata, amount, status)
+- `transactions` (id, from_address, to_address, asset_id, amount, tx_type, status, metadata)
+
+### 12.4 组织管理 (org-manager.js)
+
+组织、团队和审批工作流：
+
+**数据库表**:
+
+- `organizations` (id, name, description, owner_id, status, created_at)
+- `org_members` (id, org_id, user_id, role, status, invited_by, joined_at)
+- `org_teams` (id, org_id, name, description, created_at)
+- `org_team_members` (id, team_id, member_id, role, added_at)
+- `approval_requests` (id, org_id, requester_id, title, description, status, reviewer_id, reviewed_at)
+
+**审批工作流**: pending → approved / rejected
+
+### 12.5 插件市场 (plugin-manager.js)
+
+插件安装、管理和注册表：
+
+**数据库表**:
+
+- `plugins` (id, name, version, description, author, homepage, entry_point, permissions, status, enabled)
+- `plugin_settings` (id, plugin_id, key, value)
+- `plugin_registry` (name PK, latest_version, description, author, downloads, rating, tags)
+
+**API**:
+
+- `installPlugin(db, pluginInfo)` — 安装插件（记录到 DB）
+- `enablePlugin/disablePlugin(db, name)` — 启停插件
+- `setPluginSetting/getPluginSetting(db, pluginName, key, value)` — 插件配置
+- `searchRegistry(db, query)` — 注册表搜索（名��� + 描述模糊匹配）
+
+### 12.6 设计决策 (Phase 5)
+
+| 决策                                   | 理由                                      |
+| -------------------------------------- | ----------------------------------------- |
+| P2P 桥接而非内嵌 libp2p              | 避免 ~15MB 依赖，CLI 保持轻量            |
+| 钱包 Ed25519 而非 secp256k1           | 与 DID 模块复用同一密钥类型，Node.js 内置 |
+| 组织审批为本地工作流                   | 无需外部服务，可离线使用                  |
+| 插件 DB 注册而非文件系统扫描          | 启停状态持久化，设置可查询                |
+| 同步采用版本号而非时间戳              | 避免时钟偏移问题                          |

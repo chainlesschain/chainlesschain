@@ -1,6 +1,56 @@
 # 知识库管理
 
+> **核心功能 | 状态: ✅ 生产就绪 | RAG 混合搜索 | Markdown/PDF/Evernote 导入 | 静态站点导出**
+
 ChainlessChain的知识库管理功能帮助您构建个人第二大脑，统一管理笔记、文档、网页剪藏和对话历史。
+
+## 核心特性
+
+- 📝 **Markdown 笔记**: 支持富文本编辑、标签分类、全文搜索
+- 🔍 **RAG 混合搜索**: BM25 关键词 + 向量语义的双路检索
+- 📥 **多格式导入**: Markdown / PDF / Evernote ENEX / Notion 一键导入
+- 📤 **知识导出**: 静态 HTML 站点 / Markdown 批量导出
+- 🌐 **网页剪藏**: 浏览器扩展一键保存网页内容
+- 🤖 **AI 增强**: RAG 问答、自动摘要、智能标签推荐
+- 🔐 **加密存储**: SQLCipher AES-256 全库加密
+- 📊 **版本控制**: 笔记历史版本、diff 对比、一键回滚
+
+## 系统架构
+
+```
+用户操作 (桌面端/CLI)
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│              知识库管理层                    │
+│  ┌─────────┐ ┌──────────┐ ┌────────────┐ │
+│  │ 笔记 CRUD│ │ 导入/导出 │ │ 网页剪藏   │ │
+│  └────┬────┘ └────┬─────┘ └─────┬──────┘ │
+│       └───────────┼─────────────┘         │
+│                   ▼                       │
+│  ┌────────────────────────────────────┐   │
+│  │          搜索引擎                    │   │
+│  │  BM25 关键词  │  Qdrant 向量语义    │   │
+│  └────────────────────────────────────┘   │
+│                   │                       │
+│                   ▼                       │
+│  ┌────────────────────────────────────┐   │
+│  │   SQLite + SQLCipher (AES-256)      │   │
+│  │   notes / tags / embeddings 表      │   │
+│  └────────────────────────────────────┘   │
+└───────────────────────────────────────────┘
+```
+
+## 核心模块
+
+| 模块 | 说明 | 关键文件 |
+|------|------|---------|
+| 笔记管理 | CRUD、标签、分类、软删除 | `database.js` |
+| RAG 搜索 | BM25 + 向量混合检索 | `rag/` |
+| 知识导入 | Markdown/PDF/ENEX/Notion | `cli/src/lib/knowledge-importer.js` |
+| 知识导出 | Markdown 批量 / 静态站点 | `cli/src/lib/knowledge-exporter.js` |
+| 版本控制 | 笔记历史、diff、回滚 | `cli/src/lib/note-versioning.js` |
+| 网页剪藏 | 浏览器扩展剪藏 | `browser/` |
 
 ## 核心概念
 
@@ -869,3 +919,18 @@ CSS自定义样式:
 ---
 
 **构建您的第二大脑，永久保存您的知识！** 🧠
+
+## 关键文件
+
+- `desktop-app-vue/src/main/database.js` — 笔记数据库 Schema
+- `desktop-app-vue/src/main/rag/` — RAG 混合搜索引擎
+- `desktop-app-vue/src/renderer/pages/knowledge/` — 知识库前端页面
+- `packages/cli/src/commands/note.js` — CLI 笔记命令
+- `packages/cli/src/lib/bm25-search.js` — BM25 搜索引擎
+
+## 相关文档
+
+- [笔记/知识库管理 (CLI)](./cli-note) — CLI 笔记命令
+- [混合搜索 (CLI)](./cli-search) — BM25 搜索命令
+- [数据加密](./encryption) — 数据库加密保护
+- [Git 同步](./git-sync) — 知识库跨设备同步

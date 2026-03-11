@@ -1,8 +1,48 @@
 # 配置说明
 
-## 系统配置文件
+> **系统配置 | 统一配置目录 `.chainlesschain/` | 环境变量 > config.json > 默认值**
 
-ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式。
+ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式，桌面端与 CLI 共享统一配置。
+
+## 核心特性
+
+- 📁 **统一配置目录**: `.chainlesschain/` 集中管理所有配置
+- 🔄 **多优先级**: 环境变量 > config.json > 默认配置
+- 🖥️ **跨端共享**: CLI 和桌面应用读写同一份配置
+- 🔐 **敏感加密**: 支持对 API Key 等敏感字段加密存储
+- ✅ **配置验证**: JSON Schema 验证，防止无效配置
+- 📝 **交互式编辑**: `chainlesschain config edit` 打开编辑器
+
+## 系统架构
+
+```
+┌──────────────┐     ┌──────────────┐
+│   CLI 命令    │     │  桌面应用     │
+│ config set/get│     │ unified-config│
+└──────┬───────┘     └──────┬───────┘
+       │                    │
+       └────────┬───────────┘
+                ▼
+  ┌──────────────────────────────┐
+  │    配置优先级解析              │
+  │  1. 环境变量 (OLLAMA_HOST)    │
+  │  2. config.json               │
+  │  3. 默认值                     │
+  └──────────────┬───────────────┘
+                 ▼
+  ~/.chainlesschain/config.json
+```
+
+## 核心模块
+
+| 模块 | 说明 | 关键文件 |
+|------|------|---------|
+| 统一配置管理器 | 桌面端配置读写 | `config/unified-config-manager.js` |
+| CLI 配置管理 | CLI 端配置读写 | `cli/src/lib/config-manager.js` |
+| 环境变量 | 运行时覆盖配置 | `.env` / 系统环境变量 |
+| 配置验证 | JSON Schema 校验 | `config/validator.js` |
+
+## 系统配置文件
 
 ## 配置文件位置
 
@@ -689,3 +729,15 @@ Migrating configuration from v1.0 to v1.1...
   }
 }
 ```
+
+## 关键文件
+
+- `desktop-app-vue/src/main/config/unified-config-manager.js` — 统一配置管理器
+- `packages/cli/src/lib/config-manager.js` — CLI 配置读写
+- `~/.chainlesschain/config.json` — 主配置文件
+
+## 相关文档
+
+- [CLI 命令行工具](./cli) — CLI 配置命令
+- [安装部署](./installation) — 初始配置向导
+- [CLI 分发系统](./cli-distribution) — 配置兼容机制
