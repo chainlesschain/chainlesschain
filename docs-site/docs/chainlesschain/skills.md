@@ -1,8 +1,8 @@
 # Skills 技能系统
 
-> **版本: v1.2.1 | 137内置技能 | Agent Skills开放标准 | 统一工具注册表**
+> **版本: v5.0.1 | 138内置技能 | Agent Skills开放标准 | 统一工具注册表**
 
-Skills 系统提供 137 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.1 研究社区技能生态补充6个高频技能(brainstorming/debugging-strategies/api-design/frontend-design/create-pr/doc-coauthoring)，Handler 覆盖率 137/137 (100%)。
+Skills 系统提供 138 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.1 研究社区技能生态补充6个高频技能(brainstorming/debugging-strategies/api-design/frontend-design/create-pr/doc-coauthoring)，Handler 覆盖率 138/138 (100%)。
 
 ## 系统概述
 
@@ -227,7 +227,7 @@ managed/       # 用户管理的技能
     ↓
 marketplace/   # 插件市场安装的技能 (v0.34.0新增)
     ↓
-bundled/       # 内置技能（137个，100% Handler覆盖，最低优先级）
+bundled/       # 内置技能（138个，100% Handler覆盖，最低优先级）
 ```
 
 高层技能可以覆盖低层同名技能。
@@ -238,7 +238,7 @@ bundled/       # 内置技能（137个，100% Handler覆盖，最低优先级）
 .chainlesschain/skills/          # 工作区技能
 ~/.chainlesschain/skills/        # 用户技能
 <marketplace>/skills/            # 插件市场技能
-<app>/skills/builtin/            # 内置技能 (137个)
+<app>/skills/builtin/            # 内置技能 (138个)
 ```
 
 ---
@@ -736,4 +736,4 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 
 ---
 
-**137个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️
+**138个内置技能 (100% Handler覆盖) + Agent Skills标准 + 统一工具注册表** 🛠️
