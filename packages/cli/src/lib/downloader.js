@@ -1,30 +1,48 @@
-import { createWriteStream, existsSync, unlinkSync } from "node:fs";
+import {
+  createWriteStream,
+  existsSync,
+  unlinkSync,
+  readdirSync,
+  chmodSync,
+} from "node:fs";
 import { join } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
+import { execSync } from "node:child_process";
 import ora from "ora";
 import { GITHUB_RELEASES_URL } from "../constants.js";
 import { getBinDir, ensureDir } from "./paths.js";
-import { getBinaryName } from "./platform.js";
-import { verifySha256 } from "./checksum.js";
+import { getPlatform, getArch } from "./platform.js";
 import logger from "./logger.js";
 
-export async function downloadRelease(version, options = {}) {
-  const binaryName = getBinaryName(version);
-  const binDir = ensureDir(getBinDir());
-  const destPath = join(binDir, binaryName);
+// Platform-specific asset matching patterns
+const ASSET_PATTERNS = {
+  win32: { x64: /chainlesschain.*win32.*x64.*\.zip$/i },
+  darwin: {
+    x64: /chainlesschain.*darwin.*x64.*\.zip$/i,
+    arm64: /chainlesschain.*darwin.*arm64.*\.zip$/i,
+  },
+  linux: { x64: /chainlesschain.*linux.*x64.*\.zip$/i },
+};
 
-  if (existsSync(destPath) && !options.force) {
-    logger.info(`Binary already exists: ${binaryName}`);
-    return destPath;
+export async function downloadRelease(version, options = {}) {
+  const binDir = ensureDir(getBinDir());
+
+  // Check if we already have an extracted app
+  if (!options.force && hasExtractedApp(binDir)) {
+    logger.info("Application already installed");
+    return binDir;
   }
 
-  const releaseUrl =
-    options.url || (await resolveAssetUrl(version, binaryName));
-  const spinner = ora(`Downloading ${binaryName}...`).start();
+  const { url: assetUrl, name: assetName } = options.url
+    ? { url: options.url, name: "download.zip" }
+    : await resolveAssetUrl(version);
+
+  const destPath = join(binDir, assetName);
+  const spinner = ora(`Downloading ${assetName}...`).start();
 
   try {
-    const response = await fetch(releaseUrl, {
+    const response = await fetch(assetUrl, {
       headers: { Accept: "application/octet-stream" },
       redirect: "follow",
     });
@@ -52,7 +70,7 @@ export async function downloadRelease(version, options = {}) {
         downloadedBytes += value.byteLength;
         if (totalBytes > 0) {
           const pct = ((downloadedBytes / totalBytes) * 100).toFixed(1);
-          spinner.text = `Downloading ${binaryName}... ${pct}% (${formatBytes(downloadedBytes)}/${formatBytes(totalBytes)})`;
+          spinner.text = `Downloading ${assetName}... ${pct}% (${formatBytes(downloadedBytes)}/${formatBytes(totalBytes)})`;
         }
         controller.enqueue(value);
       },
@@ -62,23 +80,23 @@ export async function downloadRelease(version, options = {}) {
     await pipeline(nodeStream, createWriteStream(destPath));
 
     spinner.succeed(
-      `Downloaded ${binaryName} (${formatBytes(downloadedBytes)})`,
+      `Downloaded ${assetName} (${formatBytes(downloadedBytes)})`,
     );
 
-    if (options.checksum) {
-      const verifySpinner = ora("Verifying checksum...").start();
-      const result = await verifySha256(destPath, options.checksum);
-      if (!result.valid) {
+    // Extract zip
+    if (destPath.endsWith(".zip")) {
+      const extractSpinner = ora("Extracting...").start();
+      try {
+        extractZip(destPath, binDir);
         unlinkSync(destPath);
-        verifySpinner.fail("Checksum verification failed");
-        throw new Error(
-          `SHA256 mismatch: expected ${result.expected}, got ${result.actual}`,
-        );
+        extractSpinner.succeed("Extracted and ready");
+      } catch (err) {
+        extractSpinner.fail(`Extraction failed: ${err.message}`);
+        throw err;
       }
-      verifySpinner.succeed("Checksum verified");
     }
 
-    return destPath;
+    return binDir;
   } catch (err) {
     spinner.fail(`Download failed: ${err.message}`);
     if (existsSync(destPath)) {
@@ -88,7 +106,7 @@ export async function downloadRelease(version, options = {}) {
   }
 }
 
-async function resolveAssetUrl(version, binaryName) {
+async function resolveAssetUrl(version) {
   // Try exact version first, then fall back to latest release
   const tagName = `v${version}`;
   let release = await fetchRelease(`${GITHUB_RELEASES_URL}/tags/${tagName}`);
@@ -99,24 +117,32 @@ async function resolveAssetUrl(version, binaryName) {
   }
 
   if (!release) {
-    throw new Error(`No releases found for ${GITHUB_RELEASES_URL}`);
+    throw new Error("No releases found on GitHub");
   }
 
-  // Re-resolve binary name with the actual release version
-  const actualVersion = release.tag_name.replace(/^v/, "");
-  const actualBinaryName = binaryName.replace(version, actualVersion);
+  logger.info(`Using release ${release.tag_name}`);
 
-  const asset =
-    release.assets.find((a) => a.name === actualBinaryName) ||
-    release.assets.find((a) => a.name === binaryName);
+  // Match asset by platform/arch pattern
+  const p = getPlatform();
+  const a = getArch();
+  const patterns = ASSET_PATTERNS[p];
+  if (!patterns) {
+    throw new Error(`Unsupported platform: ${p}`);
+  }
+  const pattern = patterns[a];
+  if (!pattern) {
+    throw new Error(`Unsupported architecture: ${a} on ${p}`);
+  }
+
+  const asset = release.assets.find((ast) => pattern.test(ast.name));
   if (!asset) {
-    const available = release.assets.map((a) => a.name).join(", ");
+    const available = release.assets.map((ast) => ast.name).join(", ");
     throw new Error(
-      `No matching asset in release ${release.tag_name}. Available: ${available}`,
+      `No matching asset for ${p}/${a} in release ${release.tag_name}. Available: ${available}`,
     );
   }
 
-  return asset.browser_download_url;
+  return { url: asset.browser_download_url, name: asset.name };
 }
 
 async function fetchRelease(url) {
@@ -125,6 +151,36 @@ async function fetchRelease(url) {
   });
   if (!response.ok) return null;
   return response.json();
+}
+
+function extractZip(zipPath, destDir) {
+  const p = getPlatform();
+  if (p === "win32") {
+    // Use PowerShell on Windows
+    execSync(
+      `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`,
+      { stdio: "ignore" },
+    );
+  } else {
+    execSync(`unzip -o "${zipPath}" -d "${destDir}"`, { stdio: "ignore" });
+  }
+}
+
+function hasExtractedApp(binDir) {
+  if (!existsSync(binDir)) return false;
+  try {
+    const files = readdirSync(binDir, { recursive: true });
+    return files.some(
+      (f) =>
+        (typeof f === "string" ? f : f.toString())
+          .toLowerCase()
+          .includes("chainlesschain") &&
+        ((typeof f === "string" ? f : f.toString()).endsWith(".exe") ||
+          !(typeof f === "string" ? f : f.toString()).includes(".")),
+    );
+  } catch {
+    return false;
+  }
 }
 
 function formatBytes(bytes) {

@@ -69,14 +69,7 @@ export const EDITIONS = {
   },
 };
 
-export const BINARY_NAMES = {
-  win32: { x64: "chainlesschain-desktop-vue-{version}-win-x64.exe" },
-  darwin: {
-    x64: "chainlesschain-desktop-vue-{version}-mac-x64.dmg",
-    arm64: "chainlesschain-desktop-vue-{version}-mac-arm64.dmg",
-  },
-  linux: { x64: "chainlesschain-desktop-vue-{version}-linux-x64.deb" },
-};
+// Asset matching is now done by platform patterns in downloader.js
 
 export const CONFIG_DIR_NAME = ".chainlesschain";
 

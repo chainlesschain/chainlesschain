@@ -110,19 +110,40 @@ export function getAppPid() {
 function findExecutable(binDir, extension) {
   if (!existsSync(binDir)) return null;
   try {
-    const files = readdirSync(binDir);
-    const match = files.find((f) => {
-      const isChainless = f.toLowerCase().includes("chainlesschain");
-      if (extension) return isChainless && f.endsWith(extension);
-      return (
-        isChainless &&
-        !f.endsWith(".dmg") &&
-        !f.endsWith(".deb") &&
-        !f.endsWith(".sha256")
-      );
-    });
-    return match ? join(binDir, match) : null;
+    // Search recursively for the executable
+    const results = [];
+    searchDir(binDir, extension, results);
+    return results.length > 0 ? results[0] : null;
   } catch {
     return null;
+  }
+}
+
+function searchDir(dir, extension, results) {
+  const entries = readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      searchDir(fullPath, extension, results);
+    } else {
+      const name = entry.name.toLowerCase();
+      const isChainless = name.includes("chainlesschain");
+      if (!isChainless) continue;
+      if (extension && name.endsWith(extension)) {
+        results.push(fullPath);
+      } else if (
+        !extension &&
+        !name.endsWith(".dmg") &&
+        !name.endsWith(".deb") &&
+        !name.endsWith(".zip") &&
+        !name.endsWith(".sha256") &&
+        !name.endsWith(".dll") &&
+        !name.endsWith(".dat") &&
+        !name.endsWith(".pak") &&
+        !name.endsWith(".json")
+      ) {
+        results.push(fullPath);
+      }
+    }
   }
 }
