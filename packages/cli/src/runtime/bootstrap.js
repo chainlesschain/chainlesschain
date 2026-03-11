@@ -69,7 +69,8 @@ export async function bootstrap(options = {}) {
         configPath: `${ctx.env.userDataPath}/app-config.json`,
       });
     } catch (err) {
-      if (options.verbose) logger.verbose(`Config package not available: ${err.message}`);
+      if (options.verbose)
+        logger.verbose(`Config package not available: ${err.message}`);
       ctx.config = null;
     }
 

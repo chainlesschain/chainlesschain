@@ -23,14 +23,14 @@ describe("SqlSecurity", () => {
     });
 
     it("rejects invalid characters", () => {
-      expect(() => SqlSecurity.validateTableName("notes; DROP TABLE")).toThrow();
+      expect(() =>
+        SqlSecurity.validateTableName("notes; DROP TABLE"),
+      ).toThrow();
       expect(() => SqlSecurity.validateTableName("123start")).toThrow();
     });
 
     it("rejects tables not in whitelist", () => {
-      expect(() =>
-        SqlSecurity.validateTableName("notes", ["users"]),
-      ).toThrow();
+      expect(() => SqlSecurity.validateTableName("notes", ["users"])).toThrow();
     });
   });
 
@@ -65,9 +65,7 @@ describe("SqlSecurity", () => {
       expect(
         SqlSecurity.containsSqlInjectionPattern("'; DROP TABLE notes; --"),
       ).toBe(true);
-      expect(
-        SqlSecurity.containsSqlInjectionPattern("' OR '1'='1"),
-      ).toBe(true);
+      expect(SqlSecurity.containsSqlInjectionPattern("' OR '1'='1")).toBe(true);
       expect(
         SqlSecurity.containsSqlInjectionPattern("UNION SELECT * FROM users"),
       ).toBe(true);

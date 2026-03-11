@@ -25,6 +25,11 @@
   ],
   "author": "ChainlessChain Team",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/shared-logger"
+  },
   "dependencies": {
     "@chainlesschain/core-env": "0.1.0"
   },

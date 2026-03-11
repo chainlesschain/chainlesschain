@@ -26,6 +26,11 @@
   ],
   "author": "ChainlessChain Team",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/core-env"
+  },
   "devDependencies": {
     "vitest": "^3.1.1"
   }

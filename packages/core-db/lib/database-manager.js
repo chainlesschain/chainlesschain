@@ -231,7 +231,10 @@ class DatabaseManager {
         }
         logger.info("[DatabaseManager] Database closed");
       } catch (error) {
-        logger.error("[DatabaseManager] Error closing database:", error.message);
+        logger.error(
+          "[DatabaseManager] Error closing database:",
+          error.message,
+        );
       }
     }
     this.db = null;
