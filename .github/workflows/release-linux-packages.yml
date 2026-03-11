@@ -31,6 +31,8 @@ jobs:
       - name: Link hoisted modules for packaging
         run: |
           rm -rf desktop-app-vue/node_modules
+          # Remove workspace self-referencing symlink to prevent ELOOP during packaging
+          rm -f node_modules/chainlesschain-desktop-vue
           ln -s "$(pwd)/node_modules" desktop-app-vue/node_modules
           echo "Hoisted modules symlinked to desktop-app-vue"
 
