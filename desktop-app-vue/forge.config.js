@@ -248,9 +248,9 @@ module.exports = {
 
     // 指定需要保留的npm包（即使prune=true）
     // 如果某些包在运行时动态require，在这里列出
-    prune保留列表: [
-      // 示例：'some-dynamic-module'
-    ],
+    // pruneKeepList: [
+    //   'some-dynamic-module',
+    // ],
 
     // 忽略不需要打包的文件
     ignore: [
