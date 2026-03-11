@@ -194,8 +194,8 @@ isAppRunning() → 读 PID → process.kill(pid, 0) 探测
 
 封装 `docker compose` / `docker-compose` 命令：
 
-- `servicesUp(composePath)` — `docker compose -f <path> up -d`
-- `servicesDown(composePath)` — `docker compose -f <path> down`
+- `servicesUp(composePath)` — `docker compose -f {path} up -d`
+- `servicesDown(composePath)` — `docker compose -f {path} down`
 - `servicesLogs(composePath, opts)` — 流式日志
 - `getServiceStatus(composePath)` — JSON 格式服务状态
 

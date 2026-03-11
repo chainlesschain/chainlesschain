@@ -71,6 +71,13 @@ module.exports = {
     "examples/", // Example projects have their own tsconfig
     "**/*.vue", // Temporarily ignore Vue files (need vue-eslint-parser)
     "**/*.d.ts", // Ignore TypeScript declaration files
+    "packages/core-env/",
+    "packages/core-db/",
+    "packages/core-config/",
+    "packages/core-infra/",
+    "packages/shared-logger/",
+    "docs-site/",
+    "docs-site-design/",
   ],
   overrides: [
     {

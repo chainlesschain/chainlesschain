@@ -224,6 +224,113 @@ chainlesschain --quiet      # 静默模式
 └── cache/             # 下载缓存
 ```
 
+---
+
+## Headless 模式命令
+
+以下命令不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
+
+### db — 数据库管理
+
+```bash
+chainlesschain db init                  # 初始化数据库
+chainlesschain db init --path ./my.db   # 指定数据库路径
+chainlesschain db info                  # 查看数据库信息（驱动、表数、大小）
+chainlesschain db info --json           # JSON格式输出
+chainlesschain db backup [output]       # 创建备份
+chainlesschain db restore <backup>      # 从备份恢复
+```
+
+### note — 笔记/知识库管理
+
+```bash
+chainlesschain note add "我的笔记" -c "笔记内容" -t "标签1,标签2"
+chainlesschain note list                # 列出最近笔记
+chainlesschain note list --category dev --tag 重要
+chainlesschain note list --json         # JSON格式输出
+chainlesschain note show <id>           # 按ID前缀查看笔记
+chainlesschain note search "关键词"      # 全文搜索
+chainlesschain note delete <id>         # 软删除
+```
+
+### chat — AI 对话
+
+启动交互式 AI 对话，支持流式输出。
+
+```bash
+chainlesschain chat                     # 默认: Ollama qwen2:7b
+chainlesschain chat --model llama3      # 使用其他模型
+chainlesschain chat --provider openai --api-key sk-...
+chainlesschain chat --agent             # 代理模式（可读写文件、执行命令）
+```
+
+**对话内斜杠命令：** `/exit` `/model` `/provider` `/clear` `/history` `/help`
+
+### ask — 单次问答
+
+非交互式单次 AI 问答。
+
+```bash
+chainlesschain ask "什么是WebRTC?"
+chainlesschain ask "解释这段代码" --model gpt-4o --provider openai
+chainlesschain ask "Hello" --json       # JSON输出（含问题/回答/模型信息）
+```
+
+### llm — LLM 管理
+
+```bash
+chainlesschain llm models               # 列出已安装的Ollama模型
+chainlesschain llm models --json        # JSON格式输出
+chainlesschain llm test                 # 测试Ollama连通性
+chainlesschain llm test --provider openai --api-key sk-...
+```
+
+### agent — 代理模式（别名: `a`）
+
+启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、调用 138 个内置技能。
+
+```bash
+chainlesschain agent                    # 默认: Ollama qwen2:7b
+chainlesschain a --model llama3         # 短别名
+chainlesschain agent --provider openai --api-key sk-...
+```
+
+**内置工具：** `read_file` `write_file` `edit_file` `run_shell` `search_files` `list_dir` `run_skill` `list_skills`
+
+### skill — 技能管理
+
+管理和运行 138 个内置 AI 技能。
+
+```bash
+chainlesschain skill list               # 按分类列出所有技能
+chainlesschain skill list --category automation
+chainlesschain skill list --tag code --runnable
+chainlesschain skill list --json        # JSON格式输出
+chainlesschain skill categories         # 查看分类统计
+chainlesschain skill info code-review   # 查看技能详情+文档
+chainlesschain skill info code-review --json
+chainlesschain skill search "browser"   # 按关���词搜索
+chainlesschain skill run code-review "Review this code..."
+```
+
+**技能分类（24类）：** ai, analysis, automation, code-review, data, database, debugging, design, development (41个), devops, document, documentation, general, knowledge, learning, media, productivity, quality, remote, security, system, testing, utility, workflow
+
+---
+
+## 核心包架构
+
+Headless 命令依赖 5 个独立核心包（118 个测试全部通过）：
+
+| 包名                            | 说明                 | 模块类型 | 测试数 |
+| ------------------------------- | -------------------- | -------- | ------ |
+| `@chainlesschain/core-env`      | 平台抽象、路径解析   | ESM      | 17     |
+| `@chainlesschain/shared-logger` | 共享日志（文件轮转） | ESM      | 11     |
+| `@chainlesschain/core-infra`    | DI容器、事件总线     | CJS      | 26     |
+| `@chainlesschain/core-config`   | 配置管理             | CJS      | 16     |
+| `@chainlesschain/core-db`       | 数据库管理           | CJS      | 48     |
+
+---
+
 ## 与桌面应用的关系
 
 CLI 是一个纯 JS 的轻量编排工具（约2MB），不包含原生模块。它的职责是：

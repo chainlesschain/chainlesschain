@@ -102,7 +102,7 @@ export default defineConfig({
             link: "/modules/37_技能市场系统",
           },
           {
-            text: "v5.0.0 架构重构与生态融合 (43-65)",
+            text: "v5.0.0-v5.0.1 架构重构与生态融合 (43-66)",
             link: "/modules/43_IPC域分割与懒加载系统",
           },
         ],

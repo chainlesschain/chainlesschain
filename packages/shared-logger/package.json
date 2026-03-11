@@ -1,0 +1,34 @@
+{
+  "name": "@chainlesschain/shared-logger",
+  "version": "0.1.0",
+  "description": "Shared logging library with file output and log rotation",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./config": "./lib/logger-config.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "lib/"
+  ],
+  "keywords": [
+    "chainlesschain",
+    "logger",
+    "logging"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "dependencies": {
+    "@chainlesschain/core-env": "0.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
+}

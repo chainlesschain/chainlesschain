@@ -26,7 +26,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | Team Manager                  | `main/permission/team-manager.js`                                        | —                                                                                  |
 | Context Engineering           | `main/llm/context-engineering.js`                                        | —                                                                                  |
 | Plan Mode                     | `main/ai-engine/plan-mode/index.js`                                      | —                                                                                  |
-| Skills System (137 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
+| Skills System (138 built-in)  | `main/ai-engine/cowork/skills/index.js`, `builtin/`                      | —                                                                                  |
 | Skill Lazy Loading            | `main/ai-engine/cowork/skills/skill-loader.js` (`parseMetadataOnly`)     | —                                                                                  |
 | Unified Tool Registry         | `main/ai-engine/unified-tool-registry.js`                                | —                                                                                  |
 | Browser Automation            | `main/browser/browser-engine.js`                                         | [`09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)             |
@@ -89,7 +89,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 - **/skill commands** parsed via `skills-ipc.js`
 - **Parser**: `skill-md-parser.js` (YAML frontmatter + Markdown body)
 
-#### Built-in Skills Overview (137 total)
+#### Built-in Skills Overview (138 total)
 
 | 组别                     | 版本    | 数量 | 技能（技能名）                                                                                                                                                                                                                                       |
 | ------------------------ | ------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -224,6 +224,30 @@ All entry files are relative to `desktop-app-vue/src/`.
 - **Universal App Runtime**: Plugin SDK 2.0, hot update mechanism, built-in profiler (flame graph), CRDT state sync, cross-platform support
 - **Plugin Ecosystem 2.0**: AI-driven recommendations, dependency resolution + conflict detection, sandbox isolation, AI code review, revenue sharing
 - **Self-Evolving AI**: Auto architecture search (NAS), continual learning, self-diagnosis + self-repair, behavior prediction, capability assessment + growth tracking
+
+## CLI Headless Commands (v5.0.1+)
+
+15 commands in `packages/cli/src/commands/`, 117 tests all passing:
+
+| Command    | Subcommands                         | Description                                             |
+| ---------- | ----------------------------------- | ------------------------------------------------------- |
+| `setup`    | —                                   | Interactive setup wizard                                |
+| `start`    | —                                   | Launch desktop app                                      |
+| `stop`     | —                                   | Stop app                                                |
+| `status`   | —                                   | Show status                                             |
+| `services` | up, down, logs, pull                | Docker service management                               |
+| `config`   | list, get, set, edit, reset         | Configuration management                                |
+| `update`   | —                                   | Check for updates                                       |
+| `doctor`   | —                                   | Environment diagnostics                                 |
+| `db`       | init, info, backup, restore         | Database management (headless)                          |
+| `note`     | add, list, show, search, delete     | Note/knowledge CRUD (headless)                          |
+| `chat`     | —                                   | Interactive AI chat with streaming (headless)           |
+| `ask`      | —                                   | Single-shot AI query (headless)                         |
+| `llm`      | models, test                        | LLM provider management (headless)                      |
+| `agent`    | —                                   | Agentic AI session with 8 tools + 138 skills (headless) |
+| `skill`    | list, categories, info, search, run | 138 built-in skill management (headless)                |
+
+**Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 tests total)
 
 ## Android Application
 

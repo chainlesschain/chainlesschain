@@ -9,6 +9,19 @@
 
 ### Added
 
+- **CLI 分发系统** (`packages/cli/`): 轻量级 npm CLI 包（~2MB），支持 `npm install -g chainlesschain` 一键安装
+  - 15 个子命令: setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill
+  - 按需从 GitHub Releases 下载平台二进制文件
+  - 交互式设置向导，支持 5 种 LLM 提供商配置
+  - Docker 服务编排、进程管理、环境诊断
+- **CLI Headless Phase 0-3** — 完全独立的无头CLI，不依赖桌面端
+  - 5 个核心包提取: core-env(17测试), shared-logger(11测试), core-infra(26测试), core-config(16测试), core-db(48测试) — 共 118 个测试
+  - 7 个新 Headless 命令: `db`(init/info/backup/restore), `note`(add/list/show/search/delete), `chat`(交互式AI对话+流式输出), `ask`(单次问答), `llm`(models/test), `agent`(8��具+138技能), `skill`(list/categories/info/search/run)
+  - Agent REPL (Claude Code 风格): read_file, write_file, edit_file, run_shell, search_files, list_dir, run_skill, list_skills
+  - 138 个内置技能集成到 CLI，支持按分类/标签搜索和直接��行
+  - CLI 测试: 117 tests, 18 files, all passing
+- **原生模块保护**: 所有原生/可选模块 require 添加 try-catch 守卫，确保打包后优雅降级
+- **CI/CD**: npm 自动发布工作流 (`publish-cli.yml`)
 - MCP Community Registry remote fetch (`_fetchRemoteCatalog`, `remoteRegistryUrl`)
 - Android `RemoteSkillProvider` interface in `core-p2p` for cross-module skill delegation
 - iOS `VectorStore.list(limit:offset:)` protocol method + implementations

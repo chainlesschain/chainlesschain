@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-03-10 (v5.0.1 测试覆盖扩展 + 文档同步)
+> **最后更新**: 2026-03-11 (v5.0.1 CLI Headless Phase 0-3 + 117 tests)
 
 ---
 
@@ -10,12 +10,12 @@
 
 ### 活跃任务
 
-- [x] v5.0.1 测试覆盖扩展 — 全部完成 ✅
-  - Community Registry 全覆盖单元测试 (~28 tests)
-  - Community Registry 生命周期集成测试 (~8 tests, HTTP server)
-  - Skill Loader 补充单元测试 (~20 tests)
-  - Browser Action 边缘用例测试 (~12 tests)
-  - MCP Registry E2E 测试 (~8 tests, Playwright + Electron)
+- [x] CLI Headless Phase 0-3 — 全部完成 ✅
+  - 5 个核心包提取: core-env(17), shared-logger(11), core-infra(26), core-config(16), core-db(48)
+  - 7 个新 CLI 命令: db, note, chat, ask, llm, agent, skill
+  - Agentic REPL (Claude Code 风格): 8 个工具
+  - 138 个内置技能集成到 CLI (skill list/info/search/run)
+  - CLI 测试 117 tests, 18 files, all passing
 - [x] Bug 修复 ✅
   - CommunityRegistry `_fetchRemoteCatalog` 验证不一致 (description 不再必须)
   - CommunityRegistry `_compareVersions` NaN 处理 (非数字版本部分返回 0)
@@ -43,9 +43,11 @@
 
 ## 架构状态
 
-- **桌面端技能**: 137 个内置技能
+- **桌面端技能**: 138 个内置技能
 - **Android 技能**: 28 个 (12 Kotlin handlers + 8 doc-only + 8 REMOTE)
 - **MCP 服务器**: 8 个内置 + 远程注册中心获取支持
+- **CLI 包**: 15 个命令 (8 原有 + 7 新 headless), 117 tests all passing
+- **核心包**: 5 个独立包 (core-env, shared-logger, core-infra, core-config, core-db), 118 tests
 - **测试状态**: 全部通过 (单独运行)，分批运行避免 OOM
 - **版本**: v5.0.1
 
@@ -61,17 +63,24 @@
 ## 测试运行备忘
 
 ```bash
+# CLI 全部测试 (117 tests, 18 files)
+cd packages/cli && npx vitest run
+
+# CLI 单元测试
+cd packages/cli && npx vitest run __tests__/unit/
+
+# CLI E2E 测试
+cd packages/cli && npx vitest run __tests__/e2e/
+
+# 核心包测试
+cd packages/core-env && npx vitest run     # 17 tests
+cd packages/core-db && npx vitest run      # 48 tests
+
 # 社区注册中心测试
 cd desktop-app-vue && npx vitest run tests/unit/mcp/
 
 # 技能加载器测试
 npx vitest run src/main/ai-engine/cowork/skills/__tests__/skill-loader-unit.test.js
-
-# 浏览器动作边缘测试
-npx vitest run src/main/browser/actions/__tests__/browser-actions-edge-cases.test.js
-
-# E2E (需要构建)
-npx playwright test tests/e2e/features/mcp-registry.e2e.test.ts
 
 # 分批运行避免 OOM (最多 3 个文件)
 npx vitest run file1 file2 file3

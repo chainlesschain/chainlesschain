@@ -397,6 +397,52 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.1 CLI分发与加固",
+          items: [
+            {
+              text: "CLI命令行工具",
+              link: "/chainlesschain/cli",
+            },
+            {
+              text: "CLI分发系统",
+              link: "/chainlesschain/cli-distribution",
+            },
+            {
+              text: "原生模块保护",
+              link: "/chainlesschain/native-module-guard",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 Headless CLI",
+          items: [
+            {
+              text: "数据库管理 (db)",
+              link: "/chainlesschain/cli#数据库管理",
+            },
+            {
+              text: "笔记管理 (note)",
+              link: "/chainlesschain/cli#笔记-知识库管理",
+            },
+            {
+              text: "AI对话 (chat/ask)",
+              link: "/chainlesschain/cli#ai-对话",
+            },
+            {
+              text: "LLM管理 (llm)",
+              link: "/chainlesschain/cli#llm-管理",
+            },
+            {
+              text: "代理模式 (agent)",
+              link: "/chainlesschain/cli#代理模式-别名-a",
+            },
+            {
+              text: "技能系统 (skill)",
+              link: "/chainlesschain/cli#技能管理",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },

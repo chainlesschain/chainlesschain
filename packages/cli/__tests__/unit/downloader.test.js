@@ -17,8 +17,8 @@ describe("downloader", () => {
       "fetch",
       vi.fn().mockResolvedValue({ ok: false, status: 404 }),
     );
-    await expect(resolveAssetUrl("99.99.99", "nope.exe")).rejects.toThrow(
-      "Failed to find release",
+    await expect(resolveAssetUrl("99.99.99")).rejects.toThrow(
+      "No releases found on GitHub",
     );
     vi.unstubAllGlobals();
   });
@@ -35,9 +35,7 @@ describe("downloader", () => {
           }),
       }),
     );
-    await expect(resolveAssetUrl("1.0.0", "wanted.exe")).rejects.toThrow(
-      "Asset wanted.exe not found",
-    );
+    await expect(resolveAssetUrl("1.0.0")).rejects.toThrow("No matching asset");
     vi.unstubAllGlobals();
   });
 });

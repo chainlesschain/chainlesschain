@@ -73,6 +73,8 @@ const ALLOWED_FILES = [
   "did-v2.md",
   // 设计文档（包含日志脱敏示例代码）
   "07_性能优化系统.md",
+  // 核心包测试文件（包含测试用假密码）
+  "logger.test.js",
 ];
 
 function checkFileForSecrets(filePath) {
