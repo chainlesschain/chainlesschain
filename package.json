@@ -6,7 +6,8 @@
   "workspaces": [
     "desktop-app",
     "desktop-app-vue",
-    "backend/services"
+    "backend/services",
+    "packages/cli"
   ],
   "scripts": {
     "dev:desktop": "npm run dev --workspace=desktop-app",
