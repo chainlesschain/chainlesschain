@@ -621,7 +621,7 @@ jobs:
 
       - name: Install CLI dependencies
         working-directory: packages/cli
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run CLI tests
         working-directory: packages/cli

@@ -30,7 +30,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: packages/cli
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run unit tests
         working-directory: packages/cli
@@ -68,7 +68,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: packages/cli
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Dry-run publish
         working-directory: packages/cli
