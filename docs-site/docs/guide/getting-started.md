@@ -2,16 +2,27 @@
 
 本指南将帮助您在5分钟内快速部署和运行ChainlessChain系统。
 
+## 一键安装（推荐）
+
+使用 CLI 命令行工具，一条命令即可完成安装和配置：
+
+```bash
+npm install -g chainlesschain
+chainlesschain setup
+chainlesschain start
+```
+
+CLI 工具会自动检测环境、下载桌面应用、配置 LLM 提供商。详细用法请参考 [CLI 命令行工具](/chainlesschain/cli)。
+
 ## 前置要求
 
 在开始之前，请确保您的系统已安装以下软件：
 
 ### ChainlessChain 个人AI系统
 
-- **Git**: 版本控制工具
-- **Node.js**: 18.0+ (推荐使用LTS版本)
-- **Docker Desktop**: 用于运行后端服务 (MySQL, Redis, Ollama等)
-- **npm 或 yarn**: Node.js包管理器
+- **Node.js**: 22.12.0+ (推荐使用LTS版本)
+- **Docker Desktop**: 用于运行后端服务 (PostgreSQL, Redis, Ollama等)（可选）
+- **npm**: 10.0.0+ (Node.js 包管理器)
 
 ### U盾/SIMKey厂家管理系统
 

@@ -79,7 +79,17 @@ features:
 
 ## 快速开始
 
-### ChainlessChain 个人AI系统
+### 方式一：CLI 一键安装（推荐）
+
+```bash
+npm install -g chainlesschain
+chainlesschain setup
+chainlesschain start
+```
+
+详见 [CLI 命令行工具文档](/chainlesschain/cli)。
+
+### 方式二：源码开发
 
 ```bash
 # 克隆项目
@@ -94,7 +104,7 @@ cd backend/docker
 docker-compose up -d
 
 # 启动PC端
-npm run dev:desktop
+npm run dev:desktop-vue
 
 # 启动移动端
 npm run dev:android

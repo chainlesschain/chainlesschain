@@ -60,6 +60,30 @@ npm run test:db            # Run database tests
 npm run test:ukey          # Run U-Key tests
 ```
 
+### CLI Package
+
+```bash
+cd packages/cli
+npm install
+npm test                   # Run all tests (unit + integration + e2e)
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests
+npm run test:e2e           # End-to-end tests
+```
+
+**CLI commands** (after `npm install -g chainlesschain`):
+
+```bash
+chainlesschain setup       # Interactive setup wizard
+chainlesschain start       # Launch desktop app
+chainlesschain stop        # Stop app
+chainlesschain status      # Show status
+chainlesschain services up # Start Docker services
+chainlesschain config list # Show configuration
+chainlesschain update      # Check for updates
+chainlesschain doctor      # Diagnose environment
+```
+
 ### Backend Services (Docker-based)
 
 ```bash
@@ -128,6 +152,15 @@ Key highlights:
 **Renderer Process** (`renderer/`):
 
 - **Vue3 + TypeScript**: `pages/`, `components/`, `stores/` (51 Pinia stores), `router/`
+
+### CLI Package (`packages/cli/`)
+
+Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
+
+- **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum)
+- **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver (all pure JS)
 
 ### Backend Services
 

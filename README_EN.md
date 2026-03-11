@@ -9,7 +9,8 @@
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-3200%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-137-blue.svg)
-![Phases](https://img.shields.io/badge/phases-100-brightgreen.svg)
+![Phases](https://img.shields.io/badge/phases-101-brightgreen.svg)
+![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
 
@@ -21,9 +22,29 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.1 Evolution Edition (2026-03-10)
+## ⭐ Current Version: v5.0.1 Evolution Edition (2026-03-11)
 
-### Latest Updates - v5.0.0 Architecture Refactoring + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI (Phase 78-100) ⭐NEW
+### Latest Updates - CLI Distribution System (Phase 101) ⭐NEW
+
+New lightweight npm CLI tool — install and manage ChainlessChain with a single command:
+
+```bash
+npm install -g chainlesschain
+chainlesschain setup    # Interactive setup wizard
+chainlesschain start    # Launch application
+```
+
+- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 8 commands (setup/start/stop/status/services/config/update/doctor)
+- ✅ **Interactive Setup Wizard** — Node.js/Docker check → edition select → LLM config → binary download → auto-configure
+- ✅ **GitHub Release Integration** — Auto-download platform binaries (Win/macOS/Linux) + SHA256 verification
+- ✅ **Docker Compose Orchestration** — One-command backend management (`services up/down/logs/pull`)
+- ✅ **Environment Diagnostics** (`doctor`) — 12 checks (Node/Docker/Git/ports/disk/network)
+- ✅ **CI/CD Auto-publish** — GitHub Actions `npm publish --provenance` + supply chain security
+- ✅ **66 Test Cases** — 8 unit + 3 integration + 2 E2E, cross-platform CI matrix (Ubuntu/Windows/macOS)
+
+---
+
+### Historical Updates - v5.0.0 Architecture Refactoring + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI (Phase 78-100)
 
 **23 new modules** covering three major directions: AI Agent 2.0, Web3 Deepening, and Enterprise Productivity Platform. Added ~178 IPC Handlers, 37 test files with 1238+ test cases, all passing.
 
@@ -2683,6 +2704,16 @@ Details: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md)
 
 ## 🚀 Quick Start
 
+### One-Line Install (CLI)
+
+```bash
+npm install -g chainlesschain
+chainlesschain setup
+chainlesschain start
+```
+
+The CLI provides an interactive setup wizard that downloads binaries and configures your LLM provider. See the [CLI Installation Guide](./docs/guides/CLI_INSTALLATION_GUIDE_EN.md).
+
 ### Requirements
 
 - **Node.js**: 22.12.0+ (Latest LTS recommended)
@@ -2816,6 +2847,12 @@ chainlesschain/
 │       ├── integration/      # Integration tests (backend integration, user journey)
 │       ├── performance/      # Performance tests (load, memory leak)
 │       └── security/         # Security tests (OWASP Top 10)
+├── packages/
+│   └── cli/                  # npm CLI tool (chainlesschain, pure JS ~2MB)
+│       ├── bin/              # CLI entry (#!/usr/bin/env node)
+│       ├── src/commands/     # 8 commands (setup/start/stop/status/services/config/update/doctor)
+│       ├── src/lib/          # 10 library modules (platform/paths/downloader/config-manager etc.)
+│       └── __tests__/        # 13 test files (66 test cases)
 ├── backend/
 │   ├── project-service/      # Spring Boot 3.1.11 (Java 17)
 │   └── ai-service/           # FastAPI + Ollama + Qdrant
@@ -2832,17 +2869,18 @@ chainlesschain/
 
 ### Project Components
 
-| Project                      | Tech Stack                | Code Size          | APIs         | Completion | Status              |
-| ---------------------------- | ------------------------- | ------------------ | ------------ | ---------- | ------------------- |
-| **desktop-app-vue**          | Electron 39 + Vue3        | 220,000+ lines     | 160+ IPC     | 100%       | ✅ Production Ready |
-| **contracts**                | Hardhat + Solidity        | 2,400 lines        | -            | 100%       | ✅ Complete         |
-| **browser-extension**        | Vanilla JS                | 2,000+ lines       | -            | 100%       | ✅ Complete         |
-| **backend/project-service**  | Spring Boot 3.1 + Java 17 | 5,679 lines        | 48 APIs      | 100%       | ✅ Production Ready |
-| **backend/ai-service**       | FastAPI + Python 3.9+     | 12,417 lines       | 38 APIs      | 100%       | ✅ Production Ready |
-| **community-forum/backend**  | Spring Boot 3.1 + MySQL   | 5,679 lines        | 63 APIs      | 100%       | ✅ Production Ready |
-| **community-forum/frontend** | Vue3 + Element Plus       | 10,958 lines       | -            | 100%       | ✅ Production Ready |
-| **mobile-app-uniapp**        | uni-app + Vue3            | 8,000+ lines       | -            | 100%       | ✅ Complete         |
-| **Total**                    | -                         | **250,000+ lines** | **149 APIs** | **100%**   | ✅ Production Ready |
+| Project                      | Tech Stack                 | Code Size          | APIs         | Completion | Status              |
+| ---------------------------- | -------------------------- | ------------------ | ------------ | ---------- | ------------------- |
+| **desktop-app-vue**          | Electron 39 + Vue3         | 220,000+ lines     | 160+ IPC     | 100%       | ✅ Production Ready |
+| **contracts**                | Hardhat + Solidity         | 2,400 lines        | -            | 100%       | ✅ Complete         |
+| **browser-extension**        | Vanilla JS                 | 2,000+ lines       | -            | 100%       | ✅ Complete         |
+| **backend/project-service**  | Spring Boot 3.1 + Java 17  | 5,679 lines        | 48 APIs      | 100%       | ✅ Production Ready |
+| **backend/ai-service**       | FastAPI + Python 3.9+      | 12,417 lines       | 38 APIs      | 100%       | ✅ Production Ready |
+| **community-forum/backend**  | Spring Boot 3.1 + MySQL    | 5,679 lines        | 63 APIs      | 100%       | ✅ Production Ready |
+| **community-forum/frontend** | Vue3 + Element Plus        | 10,958 lines       | -            | 100%       | ✅ Production Ready |
+| **mobile-app-uniapp**        | uni-app + Vue3             | 8,000+ lines       | -            | 100%       | ✅ Complete         |
+| **packages/cli**             | Node.js 22 ESM + Commander | 3,500+ lines       | 8 commands   | 100%       | ✅ Complete         |
+| **Total**                    | -                          | **250,000+ lines** | **149 APIs** | **100%**   | ✅ Production Ready |
 
 ## 🗓️ Roadmap
 
@@ -2966,6 +3004,12 @@ chainlesschain/
 - **Firebase**: Push notifications + WebRTC enhancement
 - **Testing**: Vitest + 2000+ test cases + 417 test files + DI refactoring
 - **Build**: Vite 7.2.7 + Electron Builder
+
+### CLI Tool
+
+- Node.js 22+ ESM + Commander 12 + chalk 5 + ora 8 + semver 7
+- Pure JS with zero native dependencies, npm global install ready
+- GitHub Release auto-download + SHA256 verification + Docker Compose orchestration
 
 ### Backend Services
 

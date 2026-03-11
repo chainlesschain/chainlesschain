@@ -56,10 +56,14 @@ export default defineConfig({
       "/chainlesschain/": [
         {
           text: "ChainlessChain系统",
+          items: [{ text: "系统概述", link: "/chainlesschain/overview" }],
+        },
+        {
+          text: "安装与部署",
           items: [
-            { text: "系统概述", link: "/chainlesschain/overview" },
             { text: "安装部署", link: "/chainlesschain/installation" },
             { text: "配置说明", link: "/chainlesschain/configuration" },
+            { text: "CLI命令行工具", link: "/chainlesschain/cli" },
           ],
         },
         {
