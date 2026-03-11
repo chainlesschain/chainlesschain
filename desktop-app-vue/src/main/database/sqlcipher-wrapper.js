@@ -6,7 +6,12 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const defaultDatabase = require("better-sqlite3-multiple-ciphers");
+let defaultDatabase;
+try {
+  defaultDatabase = require("better-sqlite3-multiple-ciphers");
+} catch (_err) {
+  // Native module may be unavailable in some environments
+}
 const fs = require("fs");
 
 /**

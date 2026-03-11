@@ -5,7 +5,12 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const sharp = require("sharp");
+let sharp;
+try {
+  sharp = require("sharp");
+} catch (_err) {
+  // sharp may be unavailable in packaged builds
+}
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");

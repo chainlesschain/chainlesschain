@@ -6,10 +6,20 @@
 const { logger } = require("../utils/logger.js");
 const QRCode = require("qrcode");
 const jsQR = require("jsqr");
-const { createCanvas, loadImage } = require("canvas");
+let createCanvas, loadImage;
+try {
+  ({ createCanvas, loadImage } = require("canvas"));
+} catch (_err) {
+  // canvas may be unavailable in packaged builds
+}
 const archiver = require("archiver");
 const decompress = require("decompress");
-const sharp = require("sharp");
+let sharp;
+try {
+  sharp = require("sharp");
+} catch (_err) {
+  // sharp may be unavailable in packaged builds
+}
 const ffmpeg = require("fluent-ffmpeg");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffprobePath = require("@ffprobe-installer/ffprobe").path;

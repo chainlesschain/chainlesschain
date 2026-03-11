@@ -5,7 +5,12 @@
 
 const { logger } = require("../utils/logger.js");
 const cron = require("node-cron");
-const chokidar = require("chokidar");
+let chokidar;
+try {
+  chokidar = require("chokidar");
+} catch (_err) {
+  // chokidar may be missing in packaged builds; file watching will be disabled
+}
 const { EventEmitter } = require("events");
 const path = require("path");
 
@@ -281,6 +286,13 @@ class AutomationManager extends EventEmitter {
       pattern = "**/*",
       events = ["change"],
     } = triggerConfig;
+
+    if (!chokidar) {
+      logger.warn(
+        "[AutomationManager] chokidar not available, file watching disabled",
+      );
+      return;
+    }
 
     const watcher = chokidar.watch(path.join(watchPath, pattern), {
       persistent: true,

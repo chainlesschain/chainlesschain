@@ -14,7 +14,12 @@
 const { logger } = require("../utils/logger.js");
 const path = require("path");
 const fs = require("fs");
-const SQLite = require("better-sqlite3");
+let SQLite;
+try {
+  SQLite = require("better-sqlite3");
+} catch (_err) {
+  // Native module may be unavailable in some environments
+}
 const EventEmitter = require("events");
 
 class IdentityContextManager extends EventEmitter {

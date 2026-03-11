@@ -3,7 +3,12 @@ const { EventEmitter } = require("events");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const chokidar = require("chokidar");
+let chokidar;
+try {
+  chokidar = require("chokidar");
+} catch (_err) {
+  // chokidar may be missing in packaged builds; file watching will be disabled
+}
 
 /**
  * 文件同步管理器
@@ -346,6 +351,13 @@ class FileSyncManager extends EventEmitter {
     logger.info(
       `[FileSyncManager] 开始监听项目: ${projectId}, 路径: ${rootPath}`,
     );
+
+    if (!chokidar) {
+      logger.warn(
+        "[FileSyncManager] chokidar not available, file watching disabled",
+      );
+      return;
+    }
 
     const watcher = chokidar.watch(rootPath, {
       ignored: /(^|[/\\])\.|node_modules|\.git|dist|build|out/,

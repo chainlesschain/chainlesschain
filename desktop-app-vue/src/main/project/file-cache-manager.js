@@ -1,8 +1,13 @@
-const { logger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const crypto = require('crypto');
-const chokidar = require('chokidar');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const crypto = require("crypto");
+let chokidar;
+try {
+  chokidar = require("chokidar");
+} catch (_err) {
+  // chokidar may be missing in packaged builds; file watching will be disabled
+}
 
 /**
  * 文件缓存管理器
@@ -33,17 +38,17 @@ class FileCacheManager {
       limit = 100,
       fileType = null,
       parentPath = null,
-      forceRefresh = false
+      forceRefresh = false,
     } = options;
 
     try {
       // 1. 获取项目信息
       const project = this.database.db
-        .prepare('SELECT * FROM projects WHERE id = ?')
+        .prepare("SELECT * FROM projects WHERE id = ?")
         .get(projectId);
 
       if (!project) {
-        throw new Error('项目不存在');
+        throw new Error("项目不存在");
       }
 
       const rootPath = project.root_path || project.folder_path;
@@ -64,7 +69,7 @@ class FileCacheManager {
         offset,
         limit,
         fileType,
-        parentPath
+        parentPath,
       });
 
       // 5. 启动文件监听（如果尚未启动）
@@ -74,7 +79,7 @@ class FileCacheManager {
 
       return result;
     } catch (error) {
-      logger.error('[FileCacheManager] 获取文件失败:', error);
+      logger.error("[FileCacheManager] 获取文件失败:", error);
       throw error;
     }
   }
@@ -87,39 +92,40 @@ class FileCacheManager {
     const { offset, limit, fileType, parentPath } = options;
 
     // 构建查询
-    let query = 'SELECT * FROM project_files WHERE project_id = ? AND deleted = 0';
+    let query =
+      "SELECT * FROM project_files WHERE project_id = ? AND deleted = 0";
     const params = [projectId];
 
     // 文件类型过滤
     if (fileType) {
-      query += ' AND file_type = ?';
+      query += " AND file_type = ?";
       params.push(fileType);
     }
 
     // 父路径过滤（懒加载）
     if (parentPath !== null) {
-      if (parentPath === '' || parentPath === '/') {
+      if (parentPath === "" || parentPath === "/") {
         // 根目录：只返回顶层文件
-        query += ' AND (file_path NOT LIKE ? OR file_path = ?)';
-        params.push('%/%', '');
+        query += " AND (file_path NOT LIKE ? OR file_path = ?)";
+        params.push("%/%", "");
       } else {
         // 子目录：返回直接子项
-        const escapedPath = parentPath.replace(/[%_]/g, '\\$&');
-        query += ' AND file_path LIKE ? AND file_path NOT LIKE ?';
+        const escapedPath = parentPath.replace(/[%_]/g, "\\$&");
+        query += " AND file_path LIKE ? AND file_path NOT LIKE ?";
         params.push(`${escapedPath}/%`, `${escapedPath}/%/%`);
       }
     }
 
     // 排序
-    query += ' ORDER BY is_folder DESC, file_name ASC';
+    query += " ORDER BY is_folder DESC, file_name ASC";
 
     // 获取总数
-    const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countQuery = query.replace("SELECT *", "SELECT COUNT(*) as count");
     const countResult = this.database.db.prepare(countQuery).get(...params);
     const total = countResult?.count || 0;
 
     // 分页查询
-    query += ' LIMIT ? OFFSET ?';
+    query += " LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
     const stmt = this.database.db.prepare(query);
@@ -129,7 +135,7 @@ class FileCacheManager {
       files,
       total,
       hasMore: offset + limit < total,
-      fromCache: true
+      fromCache: true,
     };
   }
 
@@ -139,13 +145,15 @@ class FileCacheManager {
    */
   async getCacheStatus(projectId) {
     const result = this.database.db
-      .prepare('SELECT COUNT(*) as count FROM project_files WHERE project_id = ? AND deleted = 0')
+      .prepare(
+        "SELECT COUNT(*) as count FROM project_files WHERE project_id = ? AND deleted = 0",
+      )
       .get(projectId);
 
     return {
       isEmpty: result.count === 0,
       fileCount: result.count,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     };
   }
 
@@ -156,16 +164,17 @@ class FileCacheManager {
   scheduleBackgroundScan(projectId, rootPath) {
     // 如果已经在扫描中，跳过
     if (this.scanQueue.has(projectId)) {
-      logger.info('[FileCacheManager] 扫描已在进行中:', projectId);
+      logger.info("[FileCacheManager] 扫描已在进行中:", projectId);
       return this.scanQueue.get(projectId);
     }
 
-    logger.info('[FileCacheManager] 启动后台扫描:', projectId);
+    logger.info("[FileCacheManager] 启动后台扫描:", projectId);
 
-    const scanPromise = this.scanAndCacheFiles(projectId, rootPath)
-      .finally(() => {
+    const scanPromise = this.scanAndCacheFiles(projectId, rootPath).finally(
+      () => {
         this.scanQueue.delete(projectId);
-      });
+      },
+    );
 
     this.scanQueue.set(projectId, scanPromise);
     return scanPromise;
@@ -184,20 +193,22 @@ class FileCacheManager {
       try {
         await fs.access(rootPath);
       } catch (error) {
-        logger.error('[FileCacheManager] 项目目录不存在:', rootPath);
+        logger.error("[FileCacheManager] 项目目录不存在:", rootPath);
         return;
       }
 
       const files = [];
 
       // 递归扫描
-      async function scanDirectory(dirPath, relativePath = '') {
+      async function scanDirectory(dirPath, relativePath = "") {
         try {
           const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
           for (const entry of entries) {
             // 跳过隐藏文件和特定目录
-            if (/(^|[/\\])\.|node_modules|\.git|dist|build|out/.test(entry.name)) {
+            if (
+              /(^|[/\\])\.|node_modules|\.git|dist|build|out/.test(entry.name)
+            ) {
               continue;
             }
 
@@ -211,18 +222,18 @@ class FileCacheManager {
               const stats = await fs.stat(fullPath);
 
               const fileInfo = {
-                id: 'file_' + crypto.randomUUID(),
+                id: "file_" + crypto.randomUUID(),
                 project_id: projectId,
                 file_name: entry.name,
-                file_path: fileRelativePath.replace(/\\/g, '/'),
+                file_path: fileRelativePath.replace(/\\/g, "/"),
                 file_type: isFolder
-                  ? 'folder'
-                  : path.extname(entry.name).substring(1) || 'file',
+                  ? "folder"
+                  : path.extname(entry.name).substring(1) || "file",
                 is_folder: isFolder ? 1 : 0,
                 file_size: stats.size || 0,
                 created_at: Math.floor(stats.birthtimeMs || Date.now()),
                 updated_at: Math.floor(stats.mtimeMs || Date.now()),
-                sync_status: 'synced',
+                sync_status: "synced",
                 deleted: 0,
                 version: 1,
               };
@@ -239,11 +250,11 @@ class FileCacheManager {
                 await scanDirectory(fullPath, fileRelativePath);
               }
             } catch (statError) {
-              logger.error('[FileCacheManager] 无法读取文件状态:', statError);
+              logger.error("[FileCacheManager] 无法读取文件状态:", statError);
             }
           }
         } catch (readError) {
-          logger.error('[FileCacheManager] 无法读取目录:', readError);
+          logger.error("[FileCacheManager] 无法读取目录:", readError);
         }
       }
 
@@ -270,7 +281,7 @@ class FileCacheManager {
               file.updated_at,
               file.sync_status,
               file.deleted,
-              file.version
+              file.version,
             );
           }
         })();
@@ -286,10 +297,10 @@ class FileCacheManager {
 
       const duration = Date.now() - startTime;
       logger.info(
-        `[FileCacheManager] 扫描完成: ${scannedCount} 个文件, 耗时 ${duration}ms`
+        `[FileCacheManager] 扫描完成: ${scannedCount} 个文件, 耗时 ${duration}ms`,
       );
     } catch (error) {
-      logger.error('[FileCacheManager] 扫描失败:', error);
+      logger.error("[FileCacheManager] 扫描失败:", error);
     }
   }
 
@@ -302,7 +313,14 @@ class FileCacheManager {
       return;
     }
 
-    logger.info('[FileCacheManager] 启动文件监听:', projectId);
+    logger.info("[FileCacheManager] 启动文件监听:", projectId);
+
+    if (!chokidar) {
+      logger.warn(
+        "[FileCacheManager] chokidar not available, file watching disabled",
+      );
+      return;
+    }
 
     const watcher = chokidar.watch(rootPath, {
       ignored: /(^|[/\\])\.|node_modules|\.git|dist|build|out/,
@@ -310,32 +328,32 @@ class FileCacheManager {
       ignoreInitial: true, // 不触发初始扫描
       awaitWriteFinish: {
         stabilityThreshold: 2000,
-        pollInterval: 100
-      }
+        pollInterval: 100,
+      },
     });
 
     // 文件添加
-    watcher.on('add', async (filePath) => {
+    watcher.on("add", async (filePath) => {
       await this.handleFileAdded(projectId, rootPath, filePath);
     });
 
     // 文件修改
-    watcher.on('change', async (filePath) => {
+    watcher.on("change", async (filePath) => {
       await this.handleFileChanged(projectId, rootPath, filePath);
     });
 
     // 文件删除
-    watcher.on('unlink', async (filePath) => {
+    watcher.on("unlink", async (filePath) => {
       await this.handleFileDeleted(projectId, rootPath, filePath);
     });
 
     // 目录添加
-    watcher.on('addDir', async (dirPath) => {
+    watcher.on("addDir", async (dirPath) => {
       await this.handleDirectoryAdded(projectId, rootPath, dirPath);
     });
 
     // 目录删除
-    watcher.on('unlinkDir', async (dirPath) => {
+    watcher.on("unlinkDir", async (dirPath) => {
       await this.handleDirectoryDeleted(projectId, rootPath, dirPath);
     });
 
@@ -348,22 +366,24 @@ class FileCacheManager {
    */
   async handleFileAdded(projectId, rootPath, filePath) {
     try {
-      const relativePath = path.relative(rootPath, filePath).replace(/\\/g, '/');
+      const relativePath = path
+        .relative(rootPath, filePath)
+        .replace(/\\/g, "/");
       const stats = await fs.stat(filePath);
 
       const fileInfo = {
-        id: 'file_' + crypto.randomUUID(),
+        id: "file_" + crypto.randomUUID(),
         project_id: projectId,
         file_name: path.basename(filePath),
         file_path: relativePath,
-        file_type: path.extname(filePath).substring(1) || 'file',
+        file_type: path.extname(filePath).substring(1) || "file",
         is_folder: 0,
         file_size: stats.size,
         created_at: Math.floor(stats.birthtimeMs || Date.now()),
         updated_at: Math.floor(stats.mtimeMs || Date.now()),
-        sync_status: 'pending',
+        sync_status: "pending",
         deleted: 0,
-        version: 1
+        version: 1,
       };
 
       const stmt = this.database.db.prepare(`
@@ -385,12 +405,12 @@ class FileCacheManager {
         fileInfo.updated_at,
         fileInfo.sync_status,
         fileInfo.deleted,
-        fileInfo.version
+        fileInfo.version,
       );
 
-      logger.info('[FileCacheManager] 文件已添加到缓存:', relativePath);
+      logger.info("[FileCacheManager] 文件已添加到缓存:", relativePath);
     } catch (error) {
-      logger.error('[FileCacheManager] 处理文件添加失败:', error);
+      logger.error("[FileCacheManager] 处理文件添加失败:", error);
     }
   }
 
@@ -400,7 +420,9 @@ class FileCacheManager {
    */
   async handleFileChanged(projectId, rootPath, filePath) {
     try {
-      const relativePath = path.relative(rootPath, filePath).replace(/\\/g, '/');
+      const relativePath = path
+        .relative(rootPath, filePath)
+        .replace(/\\/g, "/");
       const stats = await fs.stat(filePath);
 
       const stmt = this.database.db.prepare(`
@@ -409,11 +431,16 @@ class FileCacheManager {
         WHERE project_id = ? AND file_path = ?
       `);
 
-      stmt.run(stats.size, Math.floor(stats.mtimeMs || Date.now()), projectId, relativePath);
+      stmt.run(
+        stats.size,
+        Math.floor(stats.mtimeMs || Date.now()),
+        projectId,
+        relativePath,
+      );
 
-      logger.info('[FileCacheManager] 文件已更新:', relativePath);
+      logger.info("[FileCacheManager] 文件已更新:", relativePath);
     } catch (error) {
-      logger.error('[FileCacheManager] 处理文件修改失败:', error);
+      logger.error("[FileCacheManager] 处理文件修改失败:", error);
     }
   }
 
@@ -423,7 +450,9 @@ class FileCacheManager {
    */
   async handleFileDeleted(projectId, rootPath, filePath) {
     try {
-      const relativePath = path.relative(rootPath, filePath).replace(/\\/g, '/');
+      const relativePath = path
+        .relative(rootPath, filePath)
+        .replace(/\\/g, "/");
 
       const stmt = this.database.db.prepare(`
         UPDATE project_files
@@ -433,9 +462,9 @@ class FileCacheManager {
 
       stmt.run(Date.now(), projectId, relativePath);
 
-      logger.info('[FileCacheManager] 文件已标记删除:', relativePath);
+      logger.info("[FileCacheManager] 文件已标记删除:", relativePath);
     } catch (error) {
-      logger.error('[FileCacheManager] 处理文件删除失败:', error);
+      logger.error("[FileCacheManager] 处理文件删除失败:", error);
     }
   }
 
@@ -445,22 +474,22 @@ class FileCacheManager {
    */
   async handleDirectoryAdded(projectId, rootPath, dirPath) {
     try {
-      const relativePath = path.relative(rootPath, dirPath).replace(/\\/g, '/');
+      const relativePath = path.relative(rootPath, dirPath).replace(/\\/g, "/");
       const stats = await fs.stat(dirPath);
 
       const fileInfo = {
-        id: 'file_' + crypto.randomUUID(),
+        id: "file_" + crypto.randomUUID(),
         project_id: projectId,
         file_name: path.basename(dirPath),
         file_path: relativePath,
-        file_type: 'folder',
+        file_type: "folder",
         is_folder: 1,
         file_size: 0,
         created_at: Math.floor(stats.birthtimeMs || Date.now()),
         updated_at: Math.floor(stats.mtimeMs || Date.now()),
-        sync_status: 'pending',
+        sync_status: "pending",
         deleted: 0,
-        version: 1
+        version: 1,
       };
 
       const stmt = this.database.db.prepare(`
@@ -482,12 +511,12 @@ class FileCacheManager {
         fileInfo.updated_at,
         fileInfo.sync_status,
         fileInfo.deleted,
-        fileInfo.version
+        fileInfo.version,
       );
 
-      logger.info('[FileCacheManager] 目录已添加到缓存:', relativePath);
+      logger.info("[FileCacheManager] 目录已添加到缓存:", relativePath);
     } catch (error) {
-      logger.error('[FileCacheManager] 处理目录添加失败:', error);
+      logger.error("[FileCacheManager] 处理目录添加失败:", error);
     }
   }
 
@@ -497,7 +526,7 @@ class FileCacheManager {
    */
   async handleDirectoryDeleted(projectId, rootPath, dirPath) {
     try {
-      const relativePath = path.relative(rootPath, dirPath).replace(/\\/g, '/');
+      const relativePath = path.relative(rootPath, dirPath).replace(/\\/g, "/");
 
       // 标记目录及其所有子文件为删除
       const stmt = this.database.db.prepare(`
@@ -508,9 +537,9 @@ class FileCacheManager {
 
       stmt.run(Date.now(), projectId, relativePath, `${relativePath}/%`);
 
-      logger.info('[FileCacheManager] 目录及子文件已标记删除:', relativePath);
+      logger.info("[FileCacheManager] 目录及子文件已标记删除:", relativePath);
     } catch (error) {
-      logger.error('[FileCacheManager] 处理目录删除失败:', error);
+      logger.error("[FileCacheManager] 处理目录删除失败:", error);
     }
   }
 
@@ -522,7 +551,7 @@ class FileCacheManager {
     if (watcher) {
       await watcher.close();
       this.watchers.delete(projectId);
-      logger.info('[FileCacheManager] 已停止文件监听:', projectId);
+      logger.info("[FileCacheManager] 已停止文件监听:", projectId);
     }
   }
 
@@ -531,10 +560,10 @@ class FileCacheManager {
    */
   async clearCache(projectId) {
     const stmt = this.database.db.prepare(
-      'DELETE FROM project_files WHERE project_id = ?'
+      "DELETE FROM project_files WHERE project_id = ?",
     );
     stmt.run(projectId);
-    logger.info('[FileCacheManager] 已清理缓存:', projectId);
+    logger.info("[FileCacheManager] 已清理缓存:", projectId);
   }
 
   /**
