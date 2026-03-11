@@ -2,6 +2,28 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+## 核心特性
+
+- 📝 **完整 CRUD**: 笔记的创建、查看、搜索、删除
+- 🏷️ **标签分类**: 支持多标签和分类管理
+- 🔍 **全文搜索**: 基于内容的关键词搜索
+- 🗑️ **软删除**: 删除可恢复，数据安全有保障
+- 📊 **JSON 输出**: 支持 `--json` 格式，便于脚本集成
+
+## 系统架构
+
+```
+note 命令 → note.js (Commander) → @chainlesschain/core-db
+                                        │
+                   ┌────────────────────┼────────────────────┐
+                   ▼                    ▼                    ▼
+              note add              note list/show       note search
+                   │                    │                    │
+                   ▼                    ▼                    ▼
+            INSERT notes 表       SELECT + 分页          LIKE 全文匹配
+                                  按分类/标签筛选
+```
+
 ## 命令参考
 
 ```bash
@@ -57,3 +79,28 @@ chainlesschain note search "关键词"
 ```bash
 chainlesschain note delete abc123
 ```
+
+## 关键文件
+
+- `packages/cli/src/commands/note.js` — 命令实现
+- `@chainlesschain/core-db` — 数据库核心包
+
+## 安全考虑
+
+- 笔记存储在本地 SQLite 数据库，支持 SQLCipher 加密
+- `delete` 为软删除（设置 `deleted_at`），数据可恢复
+- 标签和分类数据不会上传到任何外部服务
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `add` 失败 | 确认数据库已初始化：`chainlesschain db init` |
+| `search` 无结果 | 检查关键词是否匹配，尝试更短的关键词 |
+| `show` 找不到笔记 | ID 前缀需至少 4 个字符 |
+
+## 相关文档
+
+- [混合搜索](./cli-search) — BM25 高级搜索
+- [数据库管理](./cli-db) — 数据库初始化与备份
+- [知识库管理](./knowledge-base) — 桌面端知识库功能

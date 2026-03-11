@@ -5,6 +5,22 @@
  * @version 2.0.0
  * @description 从3800+ 行优化到 ~800 行 */
 
+// Ensure UTF-8 encoding on Windows to prevent Chinese character garbling (乱码)
+if (process.platform === "win32") {
+  try {
+    require("child_process").execSync("chcp 65001", { stdio: "ignore" });
+  } catch (_e) {
+    // Ignore - may fail in non-interactive environments
+  }
+  if (process.stdout.setDefaultEncoding) {
+    process.stdout.setDefaultEncoding("utf8");
+  }
+  if (process.stderr.setDefaultEncoding) {
+    process.stderr.setDefaultEncoding("utf8");
+  }
+  process.env.PYTHONIOENCODING = "utf-8";
+}
+
 // Load environment variables first (optional in production)
 try {
   require("dotenv").config();

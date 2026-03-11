@@ -227,7 +227,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 ## CLI Headless Commands (v5.0.1+)
 
-25 commands in `packages/cli/src/commands/`, 743 tests all passing (41 test files):
+34 commands in `packages/cli/src/commands/`, 903 tests all passing (47 test files):
 
 | Command    | Subcommands                                    | Description                                                        |
 | ---------- | ---------------------------------------------- | ------------------------------------------------------------------ |
@@ -256,12 +256,23 @@ All entry files are relative to `desktop-app-vue/src/`.
 | `mcp`      | servers, add, remove, connect, disconnect, tools, call | MCP server management (Phase 3)                            |
 | `browse`   | fetch, scrape, screenshot                      | Browser automation (headless fetch) (Phase 3)                      |
 | `instinct` | show, categories, prompt, delete, reset, decay | Instinct learning management (Phase 3)                             |
+| `did`      | create, show, list, resolve, sign, verify, export, set-default, delete | DID identity management (Ed25519) (Phase 4)              |
+| `encrypt`  | file, db, info, status + `decrypt` (file, db)  | AES-256-GCM file encryption + DB encryption (Phase 4)              |
+| `auth`     | roles, create-role, delete-role, grant, revoke, grant-permission, revoke-permission, check, permissions, users, scopes | RBAC permission engine (Phase 4) |
+| `audit`    | log, search, stats, export, purge, types        | Audit logging + risk assessment (Phase 4)                          |
+| `p2p`      | status, peers, send, inbox, pair, devices, unpair | P2P messaging + device pairing (Phase 5)                         |
+| `sync`     | status, push, pull, conflicts, resolve, log, clear | File & knowledge synchronization (Phase 5)                      |
+| `wallet`   | create, list, balance, set-default, delete, asset, assets, transfer, history, summary | Digital wallet + asset management (Phase 5) |
+| `org`      | create, list, show, delete, invite, members, team-create, teams, approval-submit, approvals, approve, reject | Organization management (Phase 5) |
+| `plugin`   | list, install, remove, enable, disable, update, info, search, registry, summary | Plugin marketplace (Phase 5) |
 
 **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 tests total)
-**CLI lib modules**: 25 modules (10 original + 6 Phase 1 + 5 Phase 2 + 4 Phase 3)
+**CLI lib modules**: 34 modules (10 original + 6 Phase 1 + 5 Phase 2 + 4 Phase 3 + 4 Phase 4 + 5 Phase 5)
 - Phase 1: bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode
 - Phase 2: knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser
 - Phase 3: mcp-client, llm-providers, browser-automation, instinct-manager
+- Phase 4: did-manager, crypto-manager, permission-engine, audit-logger
+- Phase 5: p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager
 
 ## Android Application
 

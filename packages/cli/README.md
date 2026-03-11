@@ -339,6 +339,149 @@ chainlesschain instinct decay           # Decay old instincts
 
 ---
 
+## Phase 4: Security & Identity
+
+### `chainlesschain did <action>`
+
+DID identity management (Ed25519).
+
+```bash
+chainlesschain did create --label "My Identity"
+chainlesschain did list
+chainlesschain did show <did>
+chainlesschain did sign <did> "message"
+chainlesschain did verify <did> "message" <signature>
+chainlesschain did export <did>
+chainlesschain did set-default <did>
+chainlesschain did delete <did>
+```
+
+### `chainlesschain encrypt / decrypt`
+
+AES-256-GCM file encryption.
+
+```bash
+chainlesschain encrypt file <input> -o <output>
+chainlesschain encrypt db
+chainlesschain encrypt info <file>
+chainlesschain encrypt status
+chainlesschain decrypt file <input> -o <output>
+chainlesschain decrypt db
+```
+
+### `chainlesschain auth <action>`
+
+RBAC permission engine.
+
+```bash
+chainlesschain auth roles                          # List roles
+chainlesschain auth create-role <name>             # Create custom role
+chainlesschain auth grant <user> <role>            # Assign role
+chainlesschain auth check <user> <scope>           # Check permission
+chainlesschain auth permissions <user>             # List user permissions
+chainlesschain auth scopes                         # List all 26 scopes
+```
+
+### `chainlesschain audit <action>`
+
+Audit logging and compliance.
+
+```bash
+chainlesschain audit log                           # Recent events
+chainlesschain audit search --type security        # Search by type
+chainlesschain audit stats                         # Statistics
+chainlesschain audit export --format json          # Export logs
+chainlesschain audit purge --before 90             # Purge old logs
+chainlesschain audit types                         # List event types
+```
+
+---
+
+## Phase 5: P2P, Blockchain & Enterprise
+
+### `chainlesschain p2p <action>`
+
+Peer-to-peer messaging and device pairing.
+
+```bash
+chainlesschain p2p status                          # P2P network status
+chainlesschain p2p peers                           # List known peers
+chainlesschain p2p send <peer-id> "message"        # Send message
+chainlesschain p2p inbox                           # View inbox
+chainlesschain p2p pair <device-name>              # Pair a device
+chainlesschain p2p devices                         # List paired devices
+chainlesschain p2p unpair <device-id>              # Unpair a device
+```
+
+### `chainlesschain sync <action>`
+
+File and knowledge synchronization.
+
+```bash
+chainlesschain sync status                         # Sync status
+chainlesschain sync push                           # Push local changes
+chainlesschain sync pull                           # Pull remote changes
+chainlesschain sync conflicts                      # List conflicts
+chainlesschain sync resolve <id> --strategy local  # Resolve conflict
+chainlesschain sync log                            # Sync history
+chainlesschain sync clear                          # Clear sync state
+```
+
+### `chainlesschain wallet <action>`
+
+Digital wallet and asset management.
+
+```bash
+chainlesschain wallet create --name "My Wallet"    # Create wallet
+chainlesschain wallet list                         # List wallets
+chainlesschain wallet balance <address>            # Check balance
+chainlesschain wallet set-default <address>        # Set default wallet
+chainlesschain wallet delete <address>             # Delete wallet
+chainlesschain wallet asset <address> <type> <name> # Create asset
+chainlesschain wallet assets [address]             # List assets
+chainlesschain wallet transfer <asset-id> <to>     # Transfer asset
+chainlesschain wallet history [address]            # Transaction history
+chainlesschain wallet summary                      # Overall summary
+```
+
+### `chainlesschain org <action>`
+
+Organization management and workflows.
+
+```bash
+chainlesschain org create <name>                   # Create organization
+chainlesschain org list                            # List organizations
+chainlesschain org show <id>                       # Organization details
+chainlesschain org delete <id>                     # Delete organization
+chainlesschain org invite <org-id> <user-id>       # Invite member
+chainlesschain org members <org-id>                # List members
+chainlesschain org team-create <org-id> <name>     # Create team
+chainlesschain org teams <org-id>                  # List teams
+chainlesschain org approval-submit <org-id> <title> # Submit approval
+chainlesschain org approvals <org-id>              # List approvals
+chainlesschain org approve <request-id>            # Approve request
+chainlesschain org reject <request-id>             # Reject request
+```
+
+### `chainlesschain plugin <action>`
+
+Plugin marketplace management.
+
+```bash
+chainlesschain plugin list                         # List installed plugins
+chainlesschain plugin install <name> --version <v> # Install plugin
+chainlesschain plugin remove <name>                # Remove plugin
+chainlesschain plugin enable <name>                # Enable plugin
+chainlesschain plugin disable <name>               # Disable plugin
+chainlesschain plugin update <name> --version <v>  # Update plugin
+chainlesschain plugin info <name>                  # Plugin details
+chainlesschain plugin search <query>               # Search registry
+chainlesschain plugin registry                     # List all registry plugins
+chainlesschain plugin summary                      # Installation summary
+```
+
+---
+
 ## Global Options
 
 ```bash
@@ -411,7 +554,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (743 tests across 41 files)
+npm test                # Run all tests (903 tests across 47 files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -421,13 +564,13 @@ npm run test:e2e        # End-to-end tests
 
 | Category                 | Files  | Tests   | Status          |
 | ------------------------ | ------ | ------- | --------------- |
-| Unit — lib modules       | 20     | 418     | All passing     |
+| Unit — lib modules       | 25     | 578     | All passing     |
 | Unit — commands          | 2      | 43      | All passing     |
 | Unit — runtime           | 1      | 6       | All passing     |
 | Integration              | 3      | 7       | All passing     |
-| E2E                      | 8      | 78      | All passing     |
+| E2E                      | 9      | 88      | All passing     |
 | Core packages (external) | —      | 118     | All passing     |
-| **CLI Total**            | **41** | **743** | **All passing** |
+| **CLI Total**            | **47** | **903** | **All passing** |
 
 ## License
 

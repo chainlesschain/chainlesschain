@@ -2,6 +2,29 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+## 核心特性
+
+- 🗄️ **SQLite 存储**: 轻量级嵌入式数据库，零配置
+- 🔐 **可选加密**: 支持 SQLCipher AES-256 全库加密
+- 💾 **备份恢复**: 一键备份和恢复完整数据库
+- 📊 **信息查看**: 查看数据库驱动、表数、文件大小等元信息
+
+## 系统架构
+
+```
+db 命令 → db.js (Commander) → @chainlesschain/core-db
+                                      │
+                     ┌────────────────┼────────────────┐
+                     ▼                ▼                ▼
+                  db init          db info          db backup/restore
+                     │                │                │
+                     ▼                ▼                ▼
+              创建表和索引       查询元信息        文件复制
+                     │
+                     ▼
+              SQLite 数据库 (~/.chainlesschain/data/)
+```
+
 ## 命令参考
 
 ```bash
@@ -42,3 +65,28 @@ chainlesschain db backup                    # 备份到默认位置
 chainlesschain db backup ./my-backup.db     # 备份到指定路径
 chainlesschain db restore ./my-backup.db    # 从备份恢复
 ```
+
+## 关键文件
+
+- `packages/cli/src/commands/db.js` — 命令实现
+- `@chainlesschain/core-db` — 数据库核心包（48 个测试）
+
+## 安全考虑
+
+- 数据库文件支持 SQLCipher AES-256 加密
+- 备份文件包含完整数据，应妥善保管
+- `restore` 操作会覆盖当前数据库，建议先备份
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `init` 失败报权限错误 | 检查数据目录写入权限 |
+| `info` 显示 0 tables | 数据库未初始化，运行 `db init` |
+| `restore` 后数据不一致 | 确认备份文件未损坏，重新备份恢复 |
+
+## 相关文档
+
+- [CLI 命令行工具](./cli) — 完整命令参考
+- [文件加密](./cli-encrypt) — 数据库加密管理
+- [配置说明](./configuration) — 数据库路径配置

@@ -29,6 +29,11 @@ import { registerDidCommand } from "./commands/did.js";
 import { registerEncryptCommand } from "./commands/encrypt.js";
 import { registerAuthCommand } from "./commands/auth.js";
 import { registerAuditCommand } from "./commands/audit.js";
+import { registerP2pCommand } from "./commands/p2p.js";
+import { registerSyncCommand } from "./commands/sync.js";
+import { registerWalletCommand } from "./commands/wallet.js";
+import { registerOrgCommand } from "./commands/org.js";
+import { registerPluginCommand } from "./commands/plugin.js";
 
 export function createProgram() {
   const program = new Command();
@@ -82,6 +87,13 @@ export function createProgram() {
   registerEncryptCommand(program);
   registerAuthCommand(program);
   registerAuditCommand(program);
+
+  // Phase 5: P2P, blockchain & enterprise
+  registerP2pCommand(program);
+  registerSyncCommand(program);
+  registerWalletCommand(program);
+  registerOrgCommand(program);
+  registerPluginCommand(program);
 
   return program;
 }

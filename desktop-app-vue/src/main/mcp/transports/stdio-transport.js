@@ -167,7 +167,7 @@ class StdioTransport extends EventEmitter {
 
       // Handle stderr (logs and errors)
       this.process.stderr.on("data", (data) => {
-        const message = data.toString().trim();
+        const message = data.toString("utf8").trim();
         if (message) {
           logger.info("[StdioTransport] Server stderr:", message);
           this.emit("server-log", { level: "error", message });

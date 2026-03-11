@@ -117,19 +117,23 @@ class BackendServiceManager {
         return;
       }
 
-      // 使用批处理脚本启动所有服务
-      const startProcess = spawn("cmd.exe", ["/c", this.startupScript], {
-        windowsHide: false,
-        detached: false,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      // 使用批处理脚本启动所有服务 (chcp 65001 确保 UTF-8 输出)
+      const startProcess = spawn(
+        "cmd.exe",
+        ["/c", "chcp 65001 >nul && " + this.startupScript],
+        {
+          windowsHide: false,
+          detached: false,
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
 
       startProcess.stdout.on("data", (data) => {
-        logger.info(`[Backend Services] ${data.toString().trim()}`);
+        logger.info(`[Backend Services] ${data.toString("utf8").trim()}`);
       });
 
       startProcess.stderr.on("data", (data) => {
-        const message = data.toString().trim();
+        const message = data.toString("utf8").trim();
         if (message) {
           logger.error(`[Backend Services Error] ${message}`);
         }

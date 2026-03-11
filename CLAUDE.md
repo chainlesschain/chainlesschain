@@ -65,7 +65,7 @@ npm run test:ukey          # Run U-Key tests
 ```bash
 cd packages/cli
 npm install
-npm test                   # Run all tests (743 tests, 41 files)
+npm test                   # Run all tests (903 tests, 47 files)
 npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests
 npm run test:e2e           # End-to-end tests
@@ -122,6 +122,34 @@ chainlesschain browse scrape <url> -s "h2"       # Scrape elements
 chainlesschain llm providers           # List 7 LLM providers
 chainlesschain llm switch anthropic    # Switch active provider
 chainlesschain instinct show           # Learned preferences
+
+# Phase 4 Security & Identity
+chainlesschain did create              # Create DID identity (Ed25519)
+chainlesschain did list                # List all identities
+chainlesschain did sign "message"      # Sign with default DID
+chainlesschain encrypt file secret.txt # AES-256-GCM file encryption
+chainlesschain decrypt file secret.txt.enc # Decrypt file
+chainlesschain auth roles              # List RBAC roles
+chainlesschain auth check user1 "note:read" # Check permission
+chainlesschain audit log               # Recent audit events
+chainlesschain audit stats             # Audit statistics
+
+# Phase 5 P2P, Blockchain & Enterprise
+chainlesschain p2p peers               # List P2P peers
+chainlesschain p2p send <peer> "msg"   # Send encrypted message
+chainlesschain p2p pair "My Phone"     # Pair device
+chainlesschain sync status             # Sync status
+chainlesschain sync push               # Push local changes
+chainlesschain sync pull               # Pull remote changes
+chainlesschain wallet create --name "Main" # Create wallet
+chainlesschain wallet assets           # List digital assets
+chainlesschain wallet transfer <id> <to> # Transfer asset
+chainlesschain org create "Acme Corp"  # Create organization
+chainlesschain org invite <org> <user> # Invite member
+chainlesschain org approve <id>        # Approve request
+chainlesschain plugin list             # List installed plugins
+chainlesschain plugin install <name>   # Install plugin
+chainlesschain plugin search <query>   # Search registry
 ```
 
 ### Backend Services (Docker-based)
@@ -198,11 +226,11 @@ Key highlights:
 Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
-- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin)
 - **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
-- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager)
-- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 625 CLI tests = 743 total)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager)
+- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 785 CLI tests = 903 total)
 - **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 
 ### Backend Services
@@ -436,6 +464,52 @@ Project uses:
 - **Main**: `@typescript-eslint/parser` + `eslint-plugin-vue`
 - **Rules**: See `desktop-app-vue/.eslintrc.js`
 - **Auto-fix**: Many issues can be auto-fixed with `npm run lint -- --fix`
+
+## Chinese Encoding (中文乱码) Prevention
+
+Windows defaults to the system codepage (CP936/GBK for Chinese Windows), which causes UTF-8 output to display as garbled text. Follow these rules to prevent encoding issues:
+
+### Entry Points Must Set UTF-8
+
+Both the CLI and Desktop entry points call `chcp 65001` at startup to switch Windows console to UTF-8. **Do NOT remove this**.
+
+- **CLI**: `packages/cli/bin/chainlesschain.js` imports `ensure-utf8.js`
+- **Desktop**: `desktop-app-vue/src/main/index.js` runs `chcp 65001` inline
+- **Utility**: `packages/cli/src/lib/ensure-utf8.js` - shared encoding helper
+
+### Rules for Child Processes
+
+```javascript
+// ✅ CORRECT - Always specify encoding for execSync/spawnSync
+execSync("some-command", { encoding: "utf-8" });
+
+// ✅ CORRECT - For cmd.exe spawn, prepend chcp 65001
+spawn("cmd.exe", ["/c", "chcp 65001 >nul && " + script], { ... });
+
+// ✅ CORRECT - Explicitly decode Buffer as utf8
+child.stdout.on("data", (data) => data.toString("utf8"));
+
+// ❌ WRONG - data.toString() uses system default (GBK on Chinese Windows)
+child.stdout.on("data", (data) => data.toString());
+
+// ❌ WRONG - No encoding specified, returns Buffer
+execSync("some-command");
+```
+
+### Rules for File I/O
+
+```javascript
+// ✅ CORRECT - Always specify utf-8
+fs.readFileSync(path, "utf-8");
+fs.writeFileSync(path, content, "utf-8");
+
+// ❌ WRONG - Returns Buffer, not string
+fs.readFileSync(path);
+```
+
+### HTML Output
+
+Always include `<meta charset="UTF-8">` in generated HTML files.
 
 ## Known Limitations
 

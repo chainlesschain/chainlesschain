@@ -231,7 +231,8 @@ class WhisperClient extends EventEmitter {
       proc.on("close", (code) => {
         if (code !== 0) {
           this.stats.errors++;
-          const errMsg = stderr.trim() || `whisper.cpp exited with code ${code}`;
+          const errMsg =
+            stderr.trim() || `whisper.cpp exited with code ${code}`;
           logger.error(`[WhisperClient] Local transcription failed: ${errMsg}`);
           reject(new Error(`Whisper transcription failed: ${errMsg}`));
           return;
@@ -256,7 +257,9 @@ class WhisperClient extends EventEmitter {
 
       proc.on("error", (err) => {
         this.stats.errors++;
-        logger.error(`[WhisperClient] Failed to spawn whisper.cpp: ${err.message}`);
+        logger.error(
+          `[WhisperClient] Failed to spawn whisper.cpp: ${err.message}`,
+        );
         reject(
           new Error(
             `Failed to start whisper.cpp (${binaryPath}): ${err.message}. Ensure whisper.cpp is installed.`,
@@ -410,7 +413,7 @@ class WhisperClient extends EventEmitter {
     let buffer = "";
 
     proc.stdout.on("data", (data) => {
-      buffer += data.toString();
+      buffer += data.toString("utf8");
 
       // Parse line-by-line for partial transcripts
       const lines = buffer.split("\n");
@@ -430,7 +433,7 @@ class WhisperClient extends EventEmitter {
     });
 
     proc.stderr.on("data", (data) => {
-      const text = data.toString().trim();
+      const text = data.toString("utf8").trim();
       if (text) {
         logger.debug(`[WhisperClient] Stream ${streamId} stderr: ${text}`);
       }
@@ -450,18 +453,14 @@ class WhisperClient extends EventEmitter {
       this.activeStreams.delete(streamId);
 
       this.emit("stream:end", { streamId, code });
-      logger.info(
-        `[WhisperClient] Stream ${streamId} ended with code ${code}`,
-      );
+      logger.info(`[WhisperClient] Stream ${streamId} ended with code ${code}`);
     });
 
     proc.on("error", (err) => {
       this.activeStreams.delete(streamId);
       this.stats.errors++;
       this.emit("stream:error", { streamId, error: err.message });
-      logger.error(
-        `[WhisperClient] Stream ${streamId} error: ${err.message}`,
-      );
+      logger.error(`[WhisperClient] Stream ${streamId} error: ${err.message}`);
     });
 
     this.activeStreams.set(streamId, {
@@ -784,7 +783,8 @@ class WhisperClient extends EventEmitter {
           : llmResponse.content || llmResponse.text || "";
 
       if (!assistantText || assistantText.trim().length === 0) {
-        assistantText = "I received your message but could not generate a response.";
+        assistantText =
+          "I received your message but could not generate a response.";
       }
 
       this.emit("voicechat:step", {
@@ -841,7 +841,9 @@ class WhisperClient extends EventEmitter {
         // TTS failure is non-fatal; we still return the text
       }
     } else {
-      logger.info("[WhisperClient] TTS manager not available, skipping synthesis");
+      logger.info(
+        "[WhisperClient] TTS manager not available, skipping synthesis",
+      );
     }
 
     const result = {

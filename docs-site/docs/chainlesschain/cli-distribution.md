@@ -126,3 +126,25 @@ chainlesschain update
 ```
 
 详细命令参考请查看 [CLI 命令行工具](/chainlesschain/cli)。
+
+## 关键文件
+
+- `packages/cli/bin/chainlesschain.js` — npm bin 入口
+- `packages/cli/src/index.js` — Commander 命令注册
+- `packages/cli/src/lib/downloader.js` — 平台二进制下载与解压
+- `packages/cli/src/lib/checksum.js` — SHA-256 完整性校验
+- `.github/workflows/publish-cli.yml` — CI/CD 发布流水线
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| `npm install -g` 权限不足 | Linux/macOS: `sudo npm install -g chainlesschain` 或使用 nvm |
+| 安装后命令找不到 | 确认 `npm config get prefix` 路径在 PATH 中 |
+| 下载二进制文件失败 | 使用代理：`HTTPS_PROXY=http://proxy:port chainlesschain setup` |
+| 校验和验证失败 | 网络传输可能损坏，删除缓存重新下载 |
+
+## 相关文档
+
+- [CLI 命令行工具](./cli) — 完整命令参考
+- [配置说明](./configuration) — 配置文件��式

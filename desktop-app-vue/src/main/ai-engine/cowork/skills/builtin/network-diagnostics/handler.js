@@ -62,7 +62,7 @@ function runCmd(cmd, timeout = 30000) {
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
   } catch (e) {
-    return e.stdout ? e.stdout.toString().trim() : null;
+    return e.stdout ? e.stdout.toString("utf8").trim() : null;
   }
 }
 

@@ -1,6 +1,30 @@
 # 数据加密
 
+> **安全功能 | 状态: ✅ 生产就绪 | AES-256-GCM | SQLCipher | Signal 协议 | 多层加密架构**
+
 ChainlessChain采用多层加密架构，确保数据在存储、传输和使用过程中的安全。
+
+## 核心特性
+
+- 🗄️ **存储加密**: SQLCipher AES-256 全库加密，文件 AES-256-GCM 加密
+- 🔗 **传输加密**: TLS 1.3 + Signal 协议端到端加密
+- 🔑 **密钥管理**: U 盾硬件 / PBKDF2 派生 / Shamir 分片备份
+- 🧮 **密码学算法**: Ed25519 签名、X25519 密钥交换、AES-256-GCM
+- 🛡️ **隐私计算**: ZKP 零知识证明 + FHE 全同态 + MPC 安全多方计算
+- 🇨🇳 **国密支持**: SM2/SM3/SM4/SM9 全系列
+- ⏱️ **时序安全**: `crypto.timingSafeEqual` 防时序攻击
+
+## 核心模块
+
+| 模块 | 技术 | 说明 |
+|------|------|------|
+| 数据库加密 | SQLCipher | AES-256 全库透明加密 |
+| 文件加密 | AES-256-GCM | PBKDF2 密钥派生，CCLC01 格式 |
+| P2P 加密 | Signal 协议 | 端到端加密消息，前向保密 |
+| 传输层 | TLS 1.3 | 所有网络通信加密 |
+| 数字签名 | Ed25519 | DID 身份签名和验证 |
+| 隐私计算 | ZKP/FHE/MPC | 零知识证明引擎 |
+| 密钥管理 | U盾/PBKDF2 | 硬件级密钥保护 |
 
 ## 加密架构
 
@@ -818,3 +842,17 @@ HSM 集成架构:
 | **密码即服务**           | 通过 MCP SDK 向第三方提供密码学能力 | API 响应 < 50ms     |
 | **自适应安全**           | 根据威胁情报自动调整加密强度和算法  | 威胁响应 < 1 分钟   |
 | **国密全覆盖**           | SM2/SM3/SM4/SM9 全系列硬件加速      | 国密合规率 100%     |
+
+## 关键文件
+
+- `desktop-app-vue/src/main/database.js` — SQLCipher 加密数据库
+- `desktop-app-vue/src/main/p2p/` — Signal 协议端到端加密
+- `packages/cli/src/lib/crypto-manager.js` — CLI AES-256-GCM 加密
+- `desktop-app-vue/src/main/crypto/` — ZKP 引擎、隐私计算
+
+## 相关文档
+
+- [文件加密 (CLI)](./cli-encrypt) — CLI 加密命令
+- [U 盾集成](./ukey) — 硬件级密钥保护
+- [DID 身份 (CLI)](./cli-did) — Ed25519 数字签名
+- [隐私计算](./privacy-computing) — ZKP/FHE/MPC
