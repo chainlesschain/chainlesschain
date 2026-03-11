@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/asset-manager.js`
 
-**Generated**: 2026-03-10T09:06:38.074Z
+**Generated**: 2026-03-11T09:43:39.271Z
 
 ---
 

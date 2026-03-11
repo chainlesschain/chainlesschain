@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/__tests__/followup-intent-classifier.test.js`
 
-**Generated**: 2026-03-10T09:06:38.257Z
+**Generated**: 2026-03-11T09:43:39.455Z
 
 ---
 
