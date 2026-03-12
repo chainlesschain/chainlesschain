@@ -286,6 +286,12 @@ module.exports = {
       /node_modules\/.*\/\.github\//,
       /node_modules\/.*\/\.vscode\//,
 
+      // Native SQLite modules — packaged app uses sql.js (pure JS/WASM) for
+      // cross-platform compatibility. Excluding .node binaries avoids ABI mismatch
+      // errors on macOS (older versions / different architectures) and reduces bundle size.
+      /node_modules\/better-sqlite3[^/]*\/build\//,
+      /node_modules\/better-sqlite3[^/]*\/prebuilds\//,
+
       // 源码映射
       /\.map$/,
 
