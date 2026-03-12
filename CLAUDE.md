@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 47 Commands/1429 Tests) - Updated 2026-03-12
+**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 47 Commands/1492 Tests + Agent Context Engineering) - Updated 2026-03-12
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -96,6 +96,7 @@ chainlesschain ask "question" # Single-shot AI query
 chainlesschain llm models  # List installed models
 chainlesschain llm test    # Test LLM connectivity
 chainlesschain agent       # Agentic AI session (Claude Code style)
+chainlesschain agent --session <id> # Resume previous agent session
 chainlesschain skill list  # List all skills (4-layer: bundled/marketplace/managed/workspace)
 chainlesschain skill run code-review "Review this code"
 chainlesschain skill add my-skill   # Create custom project skill
@@ -280,10 +281,10 @@ Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing Cha
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
 - **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode)
-- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode + /cowork)
+- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode + /cowork + Context Engineering)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
-- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder)
-- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 1311 CLI tests = 1429 total)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, cli-context-engineering, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder)
+- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 1374 CLI tests = 1492 total)
 - **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 
 ### Backend Services

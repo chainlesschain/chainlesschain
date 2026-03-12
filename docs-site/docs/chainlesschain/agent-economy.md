@@ -232,7 +232,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_nfts_did ON agent_nfts(agent_did);
 
 **现象**: 调用 `economy:pay` 或 `economy:open-channel` 返回余额不足错误。
 
-**排查��骤**:
+**排查步骤**:
 1. 调用 `economy:get-balance` 确认当前 Agent 账户余额
 2. 检查是否有未关闭的通道锁定了保证金（`state_channels` 表中 `status = 'open'` 的记录）
 3. 确认 `maxDeposit` 配置未被误设为过低值

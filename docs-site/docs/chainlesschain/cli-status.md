@@ -28,7 +28,7 @@ status 命令 → status.js (Commander) → 多维状态检查
         setupCompleted / edition / llm
 ```
 
-## 命令���考
+## 命令参考
 
 ```bash
 chainlesschain status    # 显示完整系统状态
@@ -66,7 +66,7 @@ chainlesschain status    # 显示完整系统状态
 
 ## 关键文件
 
-- `packages/cli/src/commands/status.js` — 命令实���
+- `packages/cli/src/commands/status.js` — 命令实现
 - `packages/cli/src/lib/process-manager.js` — 进程状态检测
 - `packages/cli/src/lib/service-manager.js` — Docker 服务状态查询
 - `packages/cli/src/lib/config-manager.js` — 配置信息读取

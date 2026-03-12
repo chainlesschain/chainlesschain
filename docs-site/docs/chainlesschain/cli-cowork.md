@@ -245,7 +245,7 @@ chainlesschain cowork debate src/auth/login.js --json > review-result.json
 chainlesschain cowork compare "设计一个分布式缓存系统" --variants 3 --criteria quality,performance,simplicity
 ```
 
-生成 3 种不同风格的解决方案��保守、创新、务实），按质量、性能和简洁性打分排名，辅助技术选型。
+生成 3 种不同风格的解决方案（保守、创新、务实），按质量、性能和简洁性打分排名，辅助技术选型。
 
 ### 场景 3：静态代码分析
 

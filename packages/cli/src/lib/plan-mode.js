@@ -54,6 +54,26 @@ const WRITE_TOOLS = new Set([
 /**
  * A single item in an execution plan
  */
+/**
+ * Risk weights for tool categories
+ */
+const TOOL_RISK_WEIGHTS = {
+  read_file: 1,
+  search_files: 1,
+  list_dir: 1,
+  list_skills: 1,
+  write_file: 2,
+  edit_file: 2,
+  run_skill: 2,
+  run_shell: 3,
+};
+
+const IMPACT_MULTIPLIERS = {
+  low: 1,
+  medium: 2,
+  high: 3,
+};
+
 export class PlanItem {
   constructor(data = {}) {
     this.id =
@@ -68,6 +88,16 @@ export class PlanItem {
     this.status = data.status || PlanStatus.PENDING;
     this.result = null;
     this.error = null;
+  }
+
+  /**
+   * Calculate risk score for this item.
+   * Score = tool_weight × impact_multiplier
+   */
+  get riskScore() {
+    const toolWeight = TOOL_RISK_WEIGHTS[this.tool] || 1;
+    const impactMul = IMPACT_MULTIPLIERS[this.estimatedImpact] || 1;
+    return toolWeight * impactMul;
   }
 }
 
@@ -102,6 +132,115 @@ export class ExecutionPlan {
   getItem(itemId) {
     return this.items.find((i) => i.id === itemId);
   }
+
+  /**
+   * Topological sort of items by dependencies.
+   * Returns items in execution order. Throws if cycle detected.
+   */
+  topologicalSort() {
+    const itemMap = new Map(this.items.map((i) => [i.id, i]));
+    const visited = new Set();
+    const visiting = new Set();
+    const sorted = [];
+
+    const visit = (id) => {
+      if (visited.has(id)) return;
+      if (visiting.has(id))
+        throw new Error(`Dependency cycle detected involving ${id}`);
+
+      visiting.add(id);
+      const item = itemMap.get(id);
+      if (item && item.dependencies) {
+        for (const depId of item.dependencies) {
+          if (itemMap.has(depId)) {
+            visit(depId);
+          }
+        }
+      }
+      visiting.delete(id);
+      visited.add(id);
+      if (item) sorted.push(item);
+    };
+
+    for (const item of this.items) {
+      visit(item.id);
+    }
+
+    return sorted;
+  }
+
+  /**
+   * Execute items in DAG topological order using provided executor.
+   * If a dependency fails, downstream items are marked as blocked.
+   *
+   * @param {function} executor - async (item) => result
+   * @returns {Array<{ item: PlanItem, success: boolean, result: any, error: string }>}
+   */
+  async executeInOrder(executor) {
+    const sorted = this.topologicalSort();
+    const results = [];
+    const failedIds = new Set();
+
+    for (const item of sorted) {
+      // Check if any dependency failed
+      const blocked = (item.dependencies || []).some((depId) =>
+        failedIds.has(depId),
+      );
+      if (blocked) {
+        item.status = PlanStatus.FAILED;
+        item.error = "Blocked by failed dependency";
+        failedIds.add(item.id);
+        results.push({ item, success: false, result: null, error: item.error });
+        continue;
+      }
+
+      item.status = PlanStatus.EXECUTING;
+      try {
+        const result = await executor(item);
+        item.status = PlanStatus.COMPLETED;
+        item.result = result;
+        results.push({ item, success: true, result, error: null });
+      } catch (err) {
+        item.status = PlanStatus.FAILED;
+        item.error = err.message;
+        failedIds.add(item.id);
+        results.push({
+          item,
+          success: false,
+          result: null,
+          error: err.message,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Calculate aggregate risk score for the plan.
+   */
+  getRiskAssessment() {
+    const scores = this.items.map((i) => i.riskScore);
+    const total = scores.reduce((sum, s) => sum + s, 0);
+    const max = Math.max(...scores, 0);
+    const avg = scores.length > 0 ? total / scores.length : 0;
+
+    let level = "low";
+    if (max >= 6 || avg >= 4) level = "high";
+    else if (max >= 4 || avg >= 2) level = "medium";
+
+    return {
+      level,
+      totalScore: total,
+      maxScore: max,
+      averageScore: Math.round(avg * 100) / 100,
+      itemScores: this.items.map((i) => ({
+        id: i.id,
+        title: i.title,
+        score: i.riskScore,
+      })),
+    };
+  }
 }
 
 /**
@@ -116,6 +255,14 @@ export class PlanModeManager extends EventEmitter {
     this.currentPlan = null;
     this.history = [];
     this.blockedToolLog = [];
+    this._hookDb = null;
+  }
+
+  /**
+   * Set DB reference for hook execution.
+   */
+  setHookDb(db) {
+    this._hookDb = db;
   }
 
   /**
@@ -141,6 +288,7 @@ export class PlanModeManager extends EventEmitter {
     this.blockedToolLog = [];
 
     this.emit("enter", { plan: this.currentPlan, state: this.state });
+    this._fireHook("PlanModeEnter", { planId: this.currentPlan.id });
     return { plan: this.currentPlan };
   }
 
@@ -217,6 +365,10 @@ export class PlanModeManager extends EventEmitter {
       plan: this.currentPlan,
       approvedCount: approvedItems.length,
     });
+    this._fireHook("PlanApproved", {
+      planId: this.currentPlan.id,
+      itemCount: approvedItems.length,
+    });
     return { plan: this.currentPlan, approvedCount: approvedItems.length };
   }
 
@@ -233,6 +385,7 @@ export class PlanModeManager extends EventEmitter {
     }
 
     this.state = PlanState.REJECTED;
+    this._fireHook("PlanRejected", { planId: this.currentPlan.id, reason });
     return this.exitPlanMode({ savePlan: true, reason: reason || "rejected" });
   }
 
@@ -297,6 +450,13 @@ export class PlanModeManager extends EventEmitter {
       }
     }
 
+    // Risk assessment
+    const risk = plan.getRiskAssessment();
+    lines.push("");
+    lines.push(
+      `**Risk**: ${risk.level} (total: ${risk.totalScore}, max: ${risk.maxScore}, avg: ${risk.averageScore})`,
+    );
+
     if (this.blockedToolLog.length > 0) {
       lines.push("");
       lines.push(
@@ -308,10 +468,61 @@ export class PlanModeManager extends EventEmitter {
   }
 
   /**
+   * Get risk assessment for current plan.
+   */
+  getRiskAssessment() {
+    if (!this.currentPlan) return null;
+    return this.currentPlan.getRiskAssessment();
+  }
+
+  /**
+   * Execute approved plan items in DAG order.
+   * @param {function} executor - async (item) => result
+   */
+  async executePlan(executor) {
+    if (!this.currentPlan) return { error: "No active plan" };
+    if (this.state !== PlanState.APPROVED)
+      return { error: "Plan not approved" };
+
+    this.state = PlanState.EXECUTING;
+    this.currentPlan.status = PlanState.EXECUTING;
+
+    const results = await this.currentPlan.executeInOrder(async (item) => {
+      this._fireHook("PlanItemExecute", {
+        planId: this.currentPlan.id,
+        itemId: item.id,
+        tool: item.tool,
+      });
+      return executor(item);
+    });
+
+    const allDone = results.every((r) => r.success);
+    this.state = allDone ? PlanState.COMPLETED : PlanState.COMPLETED;
+    this.currentPlan.status = allDone
+      ? PlanState.COMPLETED
+      : PlanState.COMPLETED;
+
+    return { results, success: allDone };
+  }
+
+  /**
    * Get plans history
    */
   getHistory() {
     return this.history;
+  }
+
+  /**
+   * Fire a hook event (best-effort, non-blocking).
+   */
+  _fireHook(eventName, context) {
+    if (!this._hookDb) return;
+    // Dynamic import to avoid circular deps
+    import("./hook-manager.js")
+      .then(({ executeHooks }) => {
+        executeHooks(this._hookDb, eventName, context).catch(() => {});
+      })
+      .catch(() => {});
   }
 }
 

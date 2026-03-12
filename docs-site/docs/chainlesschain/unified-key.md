@@ -374,7 +374,7 @@ const key2 = await window.electronAPI.invoke('ukey:rotate-key', {
 
 1. 确认硬件 U-Key 已插入且驱动正常（使用 `ukey:list-drivers` 检查）
 2. 检查密码是否满足最低复杂度要求
-3. 如果使用 TPM2 驱动，确认 BIOS �� TPM 已启用
+3. 如果使用 TPM2 驱动，确认 BIOS 中 TPM 已启用
 4. 查看日志中 `[UnifiedKeyManager]` 前缀的错误信息
 
 ### FIDO2 凭证注册失败

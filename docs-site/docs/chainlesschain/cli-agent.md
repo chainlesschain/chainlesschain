@@ -8,26 +8,33 @@
 - 🔧 **8 个内置工具**: 读写文件、执行命令、搜索代码库
 - 🎯 **138 个技能**: 集成全部内置技能
 - 📋 **Plan Mode**: AI 制定计划，用户审批后执行
-- 💾 **会话持久化**: 自动保存，支持断点恢复
+- 💾 **会话持久化**: 自动保存，支持 `--session` 断点恢复
+- 🧠 **Context Engineering**: 4 维上下文注入（Instinct / Memory / BM25 Notes / Task）
+- 🗜️ **智能压缩**: 基于重要性评分的对话压缩（替代硬编码截断）
 
 ## 系统架构
 
 ```
 agent 命令 → agent.js (Commander) → agent-repl.js
                                          │
-                    ┌────────────────────┼────────────────────┐
-                    ▼                    ▼                    ▼
-               工具系统              Plan Mode           会话管理
-            (8 built-in tools)    (plan-mode.js)    (session-manager)
-                    │                    │                    │
-                    ▼                    ▼                    ▼
-          read/write/edit/shell   只读→计划→审批→执行   自动保存到 SQLite
-          search/list/skill                              断点恢复
+            ┌─────────────┬──────────────┼──────────────┬─────────────┐
+            ▼             ▼              ▼              ▼             ▼
+       工具系统       Plan Mode     Context Engine   会话管理     Bootstrap
+    (8 built-in)   (plan-mode.js)  (cli-context-    (session-   (bootstrap.js)
+                                    engineering.js)  manager)        │
+            │             │              │              │      7-stage init
+            ▼             ▼              ▼              ▼        (DB/Config)
+    read/write/edit  只读→计划→      Instinct注入     自动保存
+    shell/search     审批→执行    Memory注入        到 SQLite
+    skill/list                   BM25 Notes注入     断点恢复
+                                 Task重述
+                                 Error学习
 ```
 
 ## 概述
 
 启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、调用 138 个内置技能。
+通过 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）和任务目标提醒，使 AI 保持上下文聚焦。
 
 ## 命令参考
 
@@ -35,9 +42,20 @@ agent 命令 → agent.js (Commander) → agent-repl.js
 chainlesschain agent                    # 默认: Ollama qwen2:7b
 chainlesschain a --model llama3         # 短别名
 chainlesschain agent --provider openai --api-key sk-...
+chainlesschain agent --session <id>     # 恢复历史会话
 ```
 
 > `agent` 命令的短别名为 `a`，两者完全等价。
+
+### 命令选项
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `--model <model>` | LLM 模型名称 | `qwen2:7b` |
+| `--provider <provider>` | LLM 提供商 | `ollama` |
+| `--base-url <url>` | API 基础 URL | `http://localhost:11434` |
+| `--api-key <key>` | API 密钥 | — |
+| `--session <id>` | 恢复历史会话 | — |
 
 ## 内置工具
 
@@ -54,11 +72,66 @@ chainlesschain agent --provider openai --api-key sk-...
 | `run_skill`    | 运行内置技能         |
 | `list_skills`  | 列出可用技能         |
 
-## Plan Mode
+## Context Engineering
 
-代理模式内置 Plan Mode（规划模式），让 AI 在执行复杂任务前先制定计划并获得用户审批。
+代理模式集成了轻量级 Context Engineering 适配器（`cli-context-engineering.js`），在每次 LLM 调用前自动构建优化的上下文消息。
 
-### 斜杠命令
+### 4 维上下文注入
+
+| 注入器 | 数据源 | 说明 |
+|--------|--------|------|
+| **Instinct** | `instinct-manager.js` | 从学习到的用户偏好生成提示（编码风格、工具偏好等） |
+| **Memory** | `hierarchical-memory.js` | 召回与当前查询相关的四层记忆（working→core） |
+| **BM25 Notes** | `bm25-search.js` + `notes` 表 | 搜索笔记库中的相关内容（topK: 3, threshold: 0.5） |
+| **Task Reminder** | 内置 | 重述当前任务目标和进度，保持 AI 聚焦 |
+
+### System Prompt 优化
+
+- 清理时间戳 → `[DATE]`、UUID → `[UUID]`、session ID → `[SESSION]`
+- 提升 KV-Cache 命中率，减少重复计算
+
+### 错误学习
+
+- 自动记录最近 10 条错误及解决方案
+- 注入到上下文中，避免 AI 重复犯错
+
+### 智能压缩 (`/compact`)
+
+基于重要性评分的对话压缩（替代简单的 "保留最后 4 条"）：
+- 始终保留 System Prompt
+- 评分维度：时间近、含 tool_calls、关联任务目标
+- 默认保留得分最高的 6 对消息
+
+### 优雅降级
+
+- 无 DB 时自动跳过所有注入，使用静态 System Prompt
+- 每个注入步骤独立 try/catch，单个失败不影响其他
+
+## 斜杠命令
+
+### 基础命令
+
+| 命令             | 说明                                 |
+| ---------------- | ------------------------------------ |
+| `/exit`          | 退出代理                             |
+| `/help`          | 显示所有命令帮助                     |
+| `/model <name>`  | 切换/查看模型                        |
+| `/provider <p>`  | 切换/查看提供商                      |
+| `/clear`         | 清空对话历史                         |
+| `/compact`       | 智能压缩对话（基于重要性评分）       |
+
+### Context Engineering 命令
+
+| 命令                      | 说明                                 |
+| ------------------------- | ------------------------------------ |
+| `/task <objective>`       | 设置当前任务目标                     |
+| `/task clear`             | 清除任务                             |
+| `/session`                | 显示当前 Session ID 和消息数         |
+| `/session resume <id>`    | 加载历史会话消息                     |
+| `/reindex`                | 重新索引笔记到 BM25                  |
+| `/stats`                  | 显示 Context Engine 统计信息         |
+
+### Plan Mode 命令
 
 | 命令             | 说明                         |
 | ---------------- | ---------------------------- |
@@ -67,6 +140,17 @@ chainlesschain agent --provider openai --api-key sk-...
 | `/plan approve`  | 批准计划并开始执行           |
 | `/plan reject`   | 拒绝计划，重新规划           |
 | `/plan exit`     | 退出规划模式                 |
+
+### Cowork 命令
+
+| 命令                          | 说明                         |
+| ----------------------------- | ---------------------------- |
+| `/cowork debate <file>`       | 多视角代码评审               |
+| `/cowork compare <prompt>`    | A/B 方案对比                 |
+
+## Plan Mode
+
+代理模式内置 Plan Mode（规划模式），让 AI 在执行复杂任务前先制定计划并获得用户审批。
 
 ### 规划模式工作流
 
@@ -103,6 +187,8 @@ chainlesschain agent --provider openai --api-key sk-...
 
 ## 使用示例
 
+### 基础使用
+
 ```
 > 帮我重构 src/utils/helper.js，提取公共方法
 
@@ -114,11 +200,52 @@ chainlesschain agent --provider openai --api-key sk-...
 已完成重构，提取了 3 个公共方法到 common.js。
 ```
 
+### Context Engineering 使用
+
+```
+> /task 重构认证模块
+
+✓ Task set: 重构认证模块
+
+> 查看当前进度
+
+🤖 当前任务: 重构认证模块
+[Context Engine 自动注入任务提醒 + 相关记忆 + 用户偏好]
+...
+
+> /stats
+
+DB connected: true
+Notes indexed: 42
+Error history: 0
+Active task: true
+```
+
+### 会话恢复
+
+```bash
+# 第一次会话
+chainlesschain agent
+> 帮我写一个 API 服务
+> /exit
+
+# 恢复上次会话
+chainlesschain agent --session session-17...
+Resumed session session-17... (8 messages)
+> 继续上次的工作
+```
+
 ## 关键文件
 
-- `packages/cli/src/commands/agent.js` — 命令入口
-- `packages/cli/src/repl/agent-repl.js` — 代理 REPL（8 工具 + 138 技能 + Plan Mode）
+- `packages/cli/src/commands/agent.js` — 命令入口（含 `--session` 选项）
+- `packages/cli/src/repl/agent-repl.js` — 代理 REPL（8 工具 + 138 技能 + Plan Mode + Context Engineering）
+- `packages/cli/src/lib/cli-context-engineering.js` — Context Engineering 适配器（4 维注入 + 智能压缩）
 - `packages/cli/src/lib/plan-mode.js` — Plan Mode 实现
+- `packages/cli/src/lib/instinct-manager.js` — Instinct 学习引擎
+- `packages/cli/src/lib/hierarchical-memory.js` — 四层记忆系统
+- `packages/cli/src/lib/bm25-search.js` — BM25 搜索引擎
+- `packages/cli/src/lib/session-manager.js` — 会话持久化
+- `packages/cli/src/runtime/bootstrap.js` — 7 阶段无头启动
 
 ## 安全考虑
 
@@ -126,6 +253,7 @@ chainlesschain agent --provider openai --api-key sk-...
 - `write_file` / `edit_file` 可修改文件系统，建议在 Git 仓库中使用以便回滚
 - Plan Mode 默认只读，需用户审批后才执行写操作
 - API Key 仅存储在本地，不会通过工具调用泄露
+- Context Engineering 注入的记忆/笔记仅在本地处理，不泄露到外部
 
 ## 故障排查
 
@@ -135,6 +263,9 @@ chainlesschain agent --provider openai --api-key sk-...
 | Plan Mode 不生效 | 输入 `/plan` 手动进入规划模式 |
 | 代理响应过慢 | 切换到更快的模型（如 `qwen2:7b`）或使用云端 API |
 | `run_shell` 权限不足 | 检查当前用户的 Shell 执行权限 |
+| Context 注入无效果 | 检查 DB 是否初始化（`chainlesschain db init`） |
+| `--session` 恢复失败 | 确认 Session ID 存在（`chainlesschain session list`） |
+| 记忆/笔记未注入 | 使用 `/stats` 检查 DB 连接和索引状态 |
 
 ## 相关文档
 
@@ -142,3 +273,5 @@ chainlesschain agent --provider openai --api-key sk-...
 - [Plan Mode](./plan-mode) — 桌面端 Plan Mode 详情
 - [AI 对话](./cli-chat) — 基础对话功能
 - [会话管理](./cli-session) — 代理会话持久化
+- [层次化记忆](./cli-hmemory) — 四层记忆系统
+- [Instinct 学习](./cli-instinct) — 用户偏好学习

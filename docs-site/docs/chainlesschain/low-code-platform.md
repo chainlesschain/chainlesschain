@@ -452,7 +452,7 @@ chainlesschain lowcode rollback --app-id <id> --snapshot <version>
 ### 组件配置要点
 
 - **Table 组件**: `dataSource` 需指向已添加的数据源 ID，`columns` 的 `dataIndex` 应与 API 返回字段名一致
-- **Chart 组件**: `chartType` 支持 `line`/`bar`/`pie`，`dimension` 为分组字段，`measure` 为聚���方式（count/sum/avg）
+- **Chart 组件**: `chartType` 支持 `line`/`bar`/`pie`，`dimension` 为分组字段，`measure` 为聚合方式（count/sum/avg）
 - **Form 组件**: 配置 `validation` 规则实现输入校验，`onSubmit` 可绑定数据源的 POST 操作
 
 ### 数据源连接排查

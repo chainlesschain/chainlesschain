@@ -132,8 +132,8 @@ chainlesschain browse fetch https://example.com --html > page.html
 |------|---------|
 | `Fetch failed: fetch is not defined` | Node.js 版本需 >= 18（内置 fetch API） |
 | `Screenshot failed` | 安装 Playwright：`npm install -g playwright` |
-| `No elements matching "..."` | 检查 CSS 选择器���否正确，页面可能使用动态渲染 |
-| 文本内容被截断 | 默认显示前 5000 字符，���用 `--json` 获取完整内容 |
+| `No elements matching "..."` | 检查 CSS 选择器是否正确，页面可能使用动态渲染 |
+| 文本内容被截断 | 默认显示前 5000 字符，使用 `--json` 获取完整内容 |
 | 中文乱码 | 确保终端编码为 UTF-8（Windows 运行 `chcp 65001`） |
 
 ## 相关文档

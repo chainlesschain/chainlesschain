@@ -192,10 +192,10 @@ const status = await window.electronAPI.invoke('federation-hardening:get-status'
 | 问题 | 可能原因 | 解决方案 |
 | --- | --- | --- |
 | 大量节点进入 OPEN 状态 | 网络大面积故障或配置阈值过低 | 检查网络连通性，适当调高 `failureThreshold` |
-| 健康检查全部超�� | 检查间隔过短导致资源争用 | 增大 `healthCheckInterval`（默认 60s） |
+| 健康检查全部超时 | 检查间隔过短导致资源争用 | 增大 `healthCheckInterval`（默认 60s） |
 | 熔断器无法恢复 | HALF_OPEN 试探请求持续失败 | 确认节点已修复后手动重置熔断器 |
 | 连接池耗尽 | 并发请求过多或连接泄露 | 增大 `maxPoolSize`，检查连接释放逻辑 |
-| 状态仪表板数据延迟 | 数据��查询缓慢 | 检查 SQLite 表索引，清理过期记录 |
+| 状态仪表板数据延迟 | 数据库查询缓慢 | 检查 SQLite 表索引，清理过期记录 |
 | 节点频繁在 OPEN/CLOSED 间切换 | 节点网络不稳定 | 增大 `recoveryTimeout` 避免过早试探 |
 
 ## 安全考虑

@@ -737,7 +737,7 @@ privateKey, private_key, authorization, cookie, pin, cvv, ssn
 
 ### 审计日志存储空间耗尽
 
-**现象**: 数据库文件持续增���，磁盘空间不足。
+**现象**: 数据库文件持续增长，磁盘空间不足。
 
 **排查步骤**:
 1. 配置并执行 `retention:apply-policy`，设置合理的 `retentionDays`（默认 90 天）
@@ -827,7 +827,7 @@ chainlesschain audit export-verify --file ./audit-export.csv
 ### 访问控制
 
 - 审计日志查询和导出接口受 RBAC 权限保护，仅管理员角色可访问
-- 合规报告生成和数据主体请求（DSR）需要经过审批工��流
+- 合规报告生成和数据主体请求（DSR）需要经过审批工作流
 - 数据保留策略的应用需要管理员权限，防止恶意清除日志
 
 ### 合规保障

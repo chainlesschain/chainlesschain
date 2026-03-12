@@ -665,7 +665,7 @@ chainlesschain cowork analyze src/ --type decisions
 # 输出已识别的架构决策、上下文、后果和替代方案
 ```
 
-## 故��排除
+## 故障排除
 
 ### Agent 执行超时
 

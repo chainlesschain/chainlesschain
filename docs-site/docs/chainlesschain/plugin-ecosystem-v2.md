@@ -324,7 +324,7 @@ const config = await window.electron.ipcRenderer.invoke("ecosystem:configure", {
 | AI 代码审计评分过低 | 插件代码存在安全漏洞或性能问题 | 根据 `ai-review` 返回的 `findings` 逐项修复，优先处理 `severity: "high"` 的安全问题 |
 | 插件发布审核未通过 | 代码审计评分低于 `minScore`（默认 70） | 修复审计报告中的所有高严重性问题，确保评分达标后重新提交 |
 | 收益未到账 | 未达到最低提现金额或支付周期未到 | 确认累计收益超过 `minPayoutCNY`（默认 100 元），等待月度结算周期（`payoutCycle: monthly`） |
-| 依赖解析超时 | 插件依赖树过深或存在循环依赖 | ���少嵌套依赖层级，移除不必要的间接依赖；检查 `warnings` 中的循环依赖提示 |
+| 依赖解析超时 | 插件依赖树过深或存在循环依赖 | 减少嵌套依赖层级，移除不必要的间接依赖；检查 `warnings` 中的循环依赖提示 |
 
 ## 安全考虑
 
@@ -377,7 +377,7 @@ const config = await window.electron.ipcRenderer.invoke("ecosystem:configure", {
 
 1. 在 `pluginPath` 目录准备插件代码和 `metadata`（name/version/pricing/tags）
 2. 设置 `autoReview: true` 自动触发 AI 代码审计
-3. 审计评分达标后进入人工审核队列（约 24 ���时）
+3. 审计评分达标后进入人工审核队列（约 24 小时）
 4. 发布后通过 `ecosystem:get-revenue` 跟踪下载量和收益
 
 ## 相关文档

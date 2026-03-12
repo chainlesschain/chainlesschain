@@ -415,7 +415,7 @@ console.log(`事件缩减率: ${(stats.reductionRate * 100).toFixed(0)}%`);
 
 | 问题 | 可能原因 | 解决方案 |
 | --- | --- | --- |
-| 连接测试失败 | SIEM 端口不可达或凭证错误 | 检查防火墙规则，确认 HEC Token ��� Syslog 端口配置正确 |
+| 连接测试失败 | SIEM 端口不可达或凭证错误 | 检查防火墙规则，确认 HEC Token 和 Syslog 端口配置正确 |
 | 事件发送状态为 `failed` | 网络中断或 SIEM 拒绝请求 | 查看 `siem:list-exports` 中的 `error_message`，系统会自动重试 |
 | CEF/LEEF 格式解析异常 | 事件字段包含特殊字符 | 确认事件详情中无管道符 `|` 或换行符，系统会自动转义 |
 | 聚合未生效 | 事件类型不匹配规则 | 检查 `eventType` 拼写，确认与聚合规则中的类型完全一致 |

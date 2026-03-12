@@ -49,7 +49,8 @@ chainlesschain start    # 启动应用
 - ✅ **Phase 8 区块链与企业** — Agent 经济系统 (微支付+资源市场+NFT) + 零知识证明引擎 (Groth16+选择性披露) + BI 智能分析 (NL→SQL+异常检测)
 - ✅ **Phase 9 低代码与多Agent** — 低代码平台 (15+组件+版本管理) + 多Agent协调器 + DI服务容器
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
-- ✅ **1429 个测试用例** — 67 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **Agent Context Engineering** — 4维上下文注入 (Instinct/Memory/BM25 Notes/Task) + KV-Cache优化 + 智能压缩 + 会话恢复 (`--session`)
+- ✅ **1492 个测试用例** — 69 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
 - ✅ **项目初始化** (`init`) — 4 种模板 (code-project/data-science/devops/空项目)，生成 `.chainlesschain/` 项目结构
 - ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources` 自定义技能管理
 - ✅ **多智能体协作** (`cowork`) — 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析

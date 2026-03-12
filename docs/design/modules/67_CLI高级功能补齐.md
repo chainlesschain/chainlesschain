@@ -706,4 +706,72 @@ npm test -- __tests__/unit/agent-coordinator.test.js __tests__/unit/service-cont
 
 ---
 
-> **最后更新**: 2026-03-12 (v5.0.1, Phase 102+ CLI高级功能补齐, 12模块/10命令/36表/440测试)
+## 八、Context Engineering 适配器
+
+### 8.1 概述
+
+`cli-context-engineering.js` 是桌面端 Context Engineering 系统的 CLI 轻量级移植。桌面端有 18 个注入器，
+CLI 仅保留适用的 4 个（Instinct / Memory / BM25 Notes / Task Reminder），加上 KV-Cache 友好的 System Prompt
+清理和基于重要性评分的智能压缩。
+
+### 8.2 架构
+
+```
+agent-repl.js
+    │
+    ├── bootstrap() → ctx.db
+    │
+    ├── CLIContextEngineering({ db })
+    │       │
+    │       ├── buildOptimizedMessages(rawMessages, { userQuery })
+    │       │       ├── 1. System Prompt 清理 (时间戳/UUID/session_id → 占位符)
+    │       │       ├── 2. Instinct 注入 (generateInstinctPrompt)
+    │       │       ├── 3. Memory 注入 (recallMemory, limit: 5)
+    │       │       ├── 4. BM25 Notes 注入 (topK: 3, threshold: 0.5)
+    │       │       ├── 5. 对话历史清理 (删除 metadata)
+    │       │       ├── 6. 错误上下文 (最近 5 条 + 解决方案)
+    │       │       └── 7. Task 重述 (objective + steps + progress)
+    │       │
+    │       ├── smartCompact(messages, { keepPairs: 6 })
+    │       │       评分: 时间近(5) + tool_calls(2) + 任务相关(3) + Error(1)
+    │       │
+    │       ├── recordError({ step, message, resolution })
+    │       ├── setTask(objective, steps) / clearTask()
+    │       └── getStats() / reindexNotes()
+    │
+    ├── session-manager (createSession / saveMessages / getSession)
+    └── hierarchical-memory (storeMemory / consolidateMemory)
+```
+
+### 8.3 依赖关系
+
+| 依赖 | 用途 | 降级策略 |
+|------|------|----------|
+| `bootstrap.js` | DB 初始化 | 失败则 db=null，静态 prompt |
+| `instinct-manager.js` | 偏好注入 | try/catch 跳过 |
+| `hierarchical-memory.js` | 记忆注入 + 存储 | try/catch 跳过 |
+| `bm25-search.js` | 笔记搜索 | 懒加载，失败跳过 |
+| `session-manager.js` | 会话持久化 | try/catch 跳过 |
+
+### 8.4 新增斜杠命令
+
+| 命令 | 功能 |
+|------|------|
+| `/task <objective>` | 设置任务目标 |
+| `/task clear` | 清除任务 |
+| `/session` | 显示 Session 信息 |
+| `/session resume <id>` | 恢复历史会话 |
+| `/reindex` | 重新索引笔记 |
+| `/stats` | Context Engine 统计 |
+
+### 8.5 测试
+
+| 测试文件 | 测试数 |
+|----------|--------|
+| `cli-context-engineering.test.js` (unit) | 40 |
+| `agent-repl.test.js` (unit, 含新增) | 12 |
+| `context-engineering.test.js` (e2e) | 11 |
+
+---
+
+> **最后更新**: 2026-03-12 (v5.0.1, Phase 102+ CLI高级功能补齐 + Context Engineering, 13模块/10命令/36表/503测试)

@@ -236,7 +236,7 @@ versions.forEach(v => console.log(`v${v.version} - ${v.status}`));
 | 技能发布失败 | 名称重复或 Schema 格式错误 | 检查技能名称唯一性，确认 inputSchema/outputSchema 为有效 JSON Schema |
 | 远程调用超时 | 目标节点离线或网络延迟高 | 增大 `timeout` 值，确认目标节点在线且网络可达 |
 | 流水线执行中断 | 某个步骤的技能不可用 | 检查流水线中所有 `skillId` 是否已注册且状态为 `published` |
-| 并发调用被限制 | 超过 `maxConcurrentInvocations` | 调整配置中的最大并发数（默认 10）��或等待当前调用完成 |
+| 并发调用被限制 | 超过 `maxConcurrentInvocations` | 调整配置中的最大并发数（默认 10），或等待当前调用完成 |
 | 版本查询为空 | 技能名称拼写错误 | 使用 `skill-service:list-skills` 确认已注册的技能列表 |
 | SLA 违规告警 | 技能执行延迟超过承诺值 | 优化技能实现性能，或放宽 `sla.maxLatencyMs` 约束 |
 

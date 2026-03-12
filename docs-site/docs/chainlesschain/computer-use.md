@@ -960,7 +960,7 @@ workflow.run { name: "完整流程" }
 
 ### 视觉定位不准确
 
-**��象**: `vision.findElement` 返回的坐标偏移或置信度低。
+**现象**: `vision.findElement` 返回的坐标偏移或置信度低。
 
 **排查步骤**:
 

@@ -364,7 +364,7 @@ const sig = await window.electronAPI.invoke("ukey:threshold-sign", {
 
 1. 确认提供的 2 份 share 属于同一个 `keyId` 的分割结果
 2. 检查 share 数据是否完整（未被截断或修改）
-3. 验证��确认使用的是分割时对应的原始公钥
+3. 验证并确认使用的是分割时对应的原始公钥
 4. 如果份额已刷新（`threshold-refresh-share`），确认使用的是刷新后的份额
 
 ### 生物特征注册失败

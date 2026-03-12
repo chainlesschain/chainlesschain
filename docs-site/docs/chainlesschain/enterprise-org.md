@@ -172,7 +172,7 @@
 # 创建组织
 chainlesschain org create "Acme Corp"
 
-# ��请成员
+# 邀请成员
 chainlesschain org invite org-001 did:chainlesschain:QmXXXX
 
 # 审批加入请求

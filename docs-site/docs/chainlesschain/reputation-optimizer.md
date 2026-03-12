@@ -180,7 +180,7 @@ const history = await window.electronAPI.invoke('reputation-optimizer:get-histor
 
 1. 打开「信誉优化」页面，进入「参数优化」面板
 2. 设置迭代次数（推荐 100-200 次）
-3. 调整参数搜索范���（衰减率、成功/失败权重）
+3. 调整参数搜索范围（衰减率、成功/失败权重）
 4. 点击「运行优化」，等待迭代完成
 5. 查看最优参数和收敛历史曲线
 

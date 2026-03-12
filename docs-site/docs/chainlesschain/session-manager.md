@@ -443,7 +443,7 @@ chainlesschain session list
 # 启动 AI 对话
 chainlesschain chat
 
-# 单次提���
+# 单次提问
 chainlesschain ask "如何优化数据库索引？"
 
 # 保存记忆

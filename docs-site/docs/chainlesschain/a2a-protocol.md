@@ -330,7 +330,7 @@ await window.electron.ipcRenderer.invoke("a2a:subscribe-updates", {
 - **数据传输加密**: Agent 间通信使用 TLS 加密，敏感数据支持端到端加密
 - **信任评分**: 仅与 `trustScoreThreshold` 以上的 Agent 建立连接，防止恶意节点
 - **权限最小化**: Agent Card 仅声明必要能力，避免过度暴露服务端点
-- **审计追踪**: 所有 A2A 交互记录完整审计日志，支持事后追���
+- **审计追踪**: 所有 A2A 交互记录完整审计日志，支持事后追溯
 
 ## 相关文档
 

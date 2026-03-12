@@ -304,7 +304,7 @@ const metrics = await window.electron.ipcRenderer.invoke("runtime:get-metrics");
 # IPC: runtime:load-plugin { pluginId: "analytics-dashboard", version: "2.1.1", source: "marketplace" }
 ```
 
-### ���重启热更新
+### 免重启热更新
 
 ```bash
 # 1. 推送 AI 引擎模块更新（graceful 策略等待当前请求完成）

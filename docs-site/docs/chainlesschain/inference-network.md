@@ -204,7 +204,7 @@ const useInferenceNetworkStore = defineStore("inferenceNetwork", {
 1. 打开「推理网络」页面，点击「注册节点」
 2. 填写节点 ID、GPU/CPU 信息和支持的模型列表
 3. 设置最大并发任务数和每 Token 价格（CCT）
-4. ��统自动运行硬件基准测试并评估节点能力
+4. 系统自动运行硬件基准测试并评估节点能力
 5. 注册成功后节点进入 online 状态
 
 ### 提交推理任务

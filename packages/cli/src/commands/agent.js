@@ -19,12 +19,14 @@ export function registerAgentCommand(program) {
     .option("--provider <provider>", "LLM provider (ollama, openai)", "ollama")
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
+    .option("--session <id>", "Resume a previous agent session")
     .action(async (options) => {
       await startAgentRepl({
         model: options.model,
         provider: options.provider,
         baseUrl: options.baseUrl,
         apiKey: options.apiKey,
+        sessionId: options.session,
       });
     });
 }

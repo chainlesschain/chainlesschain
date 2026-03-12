@@ -197,7 +197,7 @@ const useDecentralizedStorageStore = defineStore("decentralizedStorage", {
 
 ### 创建 Filecoin 存储交易
 
-1. ���开「去中心化存储」页面
+1. 打开「去中心化存储」页面
 2. 输入待存储内容的 CID 和文件大小
 3. 选择矿工 ID 和存储时长（建议 6 个月以上）
 4. 点击「创建交易」，系统自动协商价格并提交交易

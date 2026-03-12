@@ -252,7 +252,7 @@ const notesWithTags = new QueryBuilder("notes")
 - **加密存储**: 底层使用 SQLCipher (AES-256) 加密，迁移数据同样受保护
 - **日志脱敏**: 查询日志记录模板而非实际参数值，避免敏感数据泄漏
 
-## 使��示例
+## 使用示例
 
 ### 创建与执行迁移
 
