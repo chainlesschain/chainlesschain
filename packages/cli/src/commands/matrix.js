@@ -30,16 +30,27 @@ export function registerMatrixCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
 
-        const result = login(db, options.server, options.user, options.password);
+        const result = login(
+          db,
+          options.server,
+          options.user,
+          options.password,
+        );
         logger.success(`Logged in as ${chalk.cyan(result.userId)}`);
         logger.log(`  ${chalk.bold("Server:")} ${result.homeserver}`);
         logger.log(`  ${chalk.bold("Token:")}  ${result.accessToken}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   matrix
@@ -49,7 +60,10 @@ export function registerMatrixCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
 
@@ -60,11 +74,16 @@ export function registerMatrixCommand(program) {
           logger.info("No rooms joined.");
         } else {
           for (const r of rooms) {
-            logger.log(`  ${chalk.cyan(r.roomId)} ${r.name || ""} members=${r.memberCount} encrypted=${r.isEncrypted}`);
+            logger.log(
+              `  ${chalk.cyan(r.roomId)} ${r.name || ""} members=${r.memberCount} encrypted=${r.isEncrypted}`,
+            );
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   matrix
@@ -74,7 +93,10 @@ export function registerMatrixCommand(program) {
     .action(async (roomId, message, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
 
@@ -82,7 +104,10 @@ export function registerMatrixCommand(program) {
         logger.success(`Message sent to ${chalk.cyan(roomId)}`);
         logger.log(`  ${chalk.bold("Event:")} ${result.event.eventId}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   matrix
@@ -93,11 +118,16 @@ export function registerMatrixCommand(program) {
     .action(async (roomId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
 
-        const messages = getMessages(roomId, { limit: parseInt(options.limit) });
+        const messages = getMessages(roomId, {
+          limit: parseInt(options.limit),
+        });
         if (options.json) {
           console.log(JSON.stringify(messages, null, 2));
         } else if (messages.length === 0) {
@@ -108,7 +138,10 @@ export function registerMatrixCommand(program) {
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   matrix
@@ -117,13 +150,19 @@ export function registerMatrixCommand(program) {
     .action(async (roomId) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureMatrixTables(db);
 
         const result = joinRoom(db, roomId);
         logger.success(`Joined room ${chalk.cyan(result.room.roomId)}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 }

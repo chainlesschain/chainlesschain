@@ -19,7 +19,11 @@ const RUN_STATUS = {
 };
 
 const RUN_TYPES = { PLAN: "plan", APPLY: "apply", DESTROY: "destroy" };
-const WORKSPACE_STATUS = { ACTIVE: "active", LOCKED: "locked", ARCHIVED: "archived" };
+const WORKSPACE_STATUS = {
+  ACTIVE: "active",
+  LOCKED: "locked",
+  ARCHIVED: "archived",
+};
 
 /* ── Schema ────────────────────────────────────────────────── */
 
@@ -131,7 +135,8 @@ export function planRun(db, workspaceId, opts = {}) {
   // Simulate resource changes
   const added = Math.floor(Math.random() * 5) + 1;
   const changed = Math.floor(Math.random() * 3);
-  const destroyed = runType === RUN_TYPES.DESTROY ? Math.floor(Math.random() * 5) + 1 : 0;
+  const destroyed =
+    runType === RUN_TYPES.DESTROY ? Math.floor(Math.random() * 5) + 1 : 0;
 
   const run = {
     id,

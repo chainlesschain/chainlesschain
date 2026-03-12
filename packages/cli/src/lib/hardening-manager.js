@@ -45,7 +45,7 @@ export function ensureHardeningTables(db) {
   `);
 }
 
-/* ���─ Baseline Collection ──────────────────────────────────── */
+/* ── Baseline Collection ──────────────────────────────────── */
 
 export function collectBaseline(db, name, version) {
   if (!name) throw new Error("Baseline name is required");
@@ -54,10 +54,20 @@ export function collectBaseline(db, name, version) {
   const now = new Date().toISOString();
 
   // Collect system metrics
-  const memUsage = process.memoryUsage ? process.memoryUsage() : { rss: 0, heapUsed: 0, heapTotal: 0 };
+  const memUsage = process.memoryUsage
+    ? process.memoryUsage()
+    : { rss: 0, heapUsed: 0, heapTotal: 0 };
   const metrics = {
-    ipc: { p50: Math.random() * 10, p95: Math.random() * 50, p99: Math.random() * 100 },
-    memory: { rss: memUsage.rss, heapUsed: memUsage.heapUsed, heapTotal: memUsage.heapTotal },
+    ipc: {
+      p50: Math.random() * 10,
+      p95: Math.random() * 50,
+      p99: Math.random() * 100,
+    },
+    memory: {
+      rss: memUsage.rss,
+      heapUsed: memUsage.heapUsed,
+      heapTotal: memUsage.heapTotal,
+    },
     db: { p50: Math.random() * 5, p95: Math.random() * 20 },
   };
 
@@ -133,7 +143,8 @@ export function compareBaseline(baselineId, currentId, thresholds) {
 
   // Compare memory
   if (currentMetrics.memory && baseline.metrics.memory) {
-    const ratio = currentMetrics.memory.rss / (baseline.metrics.memory.rss || 1);
+    const ratio =
+      currentMetrics.memory.rss / (baseline.metrics.memory.rss || 1);
     if (ratio > t.memoryRss) {
       regressions.push({
         metric: "memory.rss",
@@ -190,10 +201,22 @@ export function runAudit(db, name) {
   // Simulated security checks
   const checks = [
     { name: "TLS Configuration", status: "pass", detail: "TLS 1.3 enabled" },
-    { name: "Password Policy", status: "pass", detail: "Strong passwords required" },
-    { name: "File Permissions", status: Math.random() > 0.5 ? "pass" : "fail", detail: "Checked data directory" },
+    {
+      name: "Password Policy",
+      status: "pass",
+      detail: "Strong passwords required",
+    },
+    {
+      name: "File Permissions",
+      status: Math.random() > 0.5 ? "pass" : "fail",
+      detail: "Checked data directory",
+    },
     { name: "Encryption at Rest", status: "pass", detail: "SQLCipher active" },
-    { name: "Network Exposure", status: Math.random() > 0.5 ? "pass" : "fail", detail: "Port scan check" },
+    {
+      name: "Network Exposure",
+      status: Math.random() > 0.5 ? "pass" : "fail",
+      detail: "Port scan check",
+    },
   ];
 
   const passed = checks.filter((c) => c.status === "pass").length;
@@ -220,7 +243,16 @@ export function runAudit(db, name) {
   db.prepare(
     `INSERT INTO hardening_audits (id, name, checks, passed, failed, score, recommendations, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, name, JSON.stringify(checks), passed, failed, score, JSON.stringify(recommendations), now);
+  ).run(
+    id,
+    name,
+    JSON.stringify(checks),
+    passed,
+    failed,
+    score,
+    JSON.stringify(recommendations),
+    now,
+  );
 
   return audit;
 }

@@ -33,7 +33,10 @@ export function registerScimCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
 
@@ -44,12 +47,17 @@ export function registerScimCommand(program) {
           logger.info("No SCIM users.");
         } else {
           for (const u of result.resources) {
-            logger.log(`  ${chalk.cyan(u.id.slice(0, 8))} ${u.userName} (${u.displayName}) active=${u.active}`);
+            logger.log(
+              `  ${chalk.cyan(u.id.slice(0, 8))} ${u.userName} (${u.displayName}) active=${u.active}`,
+            );
           }
           logger.log(`\n${result.totalResults} user(s) total.`);
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   users
@@ -60,7 +68,10 @@ export function registerScimCommand(program) {
     .action(async (username, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
 
@@ -70,7 +81,10 @@ export function registerScimCommand(program) {
         logger.log(`  ${chalk.bold("Username:")} ${user.userName}`);
         logger.log(`  ${chalk.bold("Name:")}     ${user.displayName}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   users
@@ -80,7 +94,10 @@ export function registerScimCommand(program) {
     .action(async (userId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
 
@@ -99,7 +116,10 @@ export function registerScimCommand(program) {
           logger.log(`  ${chalk.bold("Active:")}   ${user.active}`);
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   users
@@ -108,14 +128,20 @@ export function registerScimCommand(program) {
     .action(async (userId) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
 
         deleteUser(db, userId);
         logger.success(`User ${chalk.cyan(userId.slice(0, 8))} deleted`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // scim connectors
@@ -132,10 +158,15 @@ export function registerScimCommand(program) {
           logger.info("No SCIM connectors configured.");
         } else {
           for (const c of connectors) {
-            logger.log(`  ${chalk.cyan(c.id.slice(0, 8))} ${c.name} [${c.provider}] status=${c.status}`);
+            logger.log(
+              `  ${chalk.cyan(c.id.slice(0, 8))} ${c.name} [${c.provider}] status=${c.status}`,
+            );
           }
         }
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // scim sync
@@ -145,14 +176,20 @@ export function registerScimCommand(program) {
     .action(async (connectorId) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSCIMTables(db);
 
         const result = syncProvision(db, connectorId);
         logger.success(`Sync completed via ${chalk.cyan(result.connector)}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // scim status
@@ -169,8 +206,13 @@ export function registerScimCommand(program) {
           logger.log(`  ${chalk.bold("Users:")}      ${status.users}`);
           logger.log(`  ${chalk.bold("Connectors:")} ${status.connectors}`);
           logger.log(`  ${chalk.bold("Sync Ops:")}   ${status.syncOperations}`);
-          logger.log(`  ${chalk.bold("Last Sync:")}  ${status.lastSync || "never"}`);
+          logger.log(
+            `  ${chalk.bold("Last Sync:")}  ${status.lastSync || "never"}`,
+          );
         }
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 }

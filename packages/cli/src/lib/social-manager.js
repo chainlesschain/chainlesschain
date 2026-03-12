@@ -192,7 +192,10 @@ export function likePost(db, postId) {
 
   post.likes++;
 
-  db.prepare(`UPDATE social_posts SET likes = ? WHERE id = ?`).run(post.likes, postId);
+  db.prepare(`UPDATE social_posts SET likes = ? WHERE id = ?`).run(
+    post.likes,
+    postId,
+  );
 
   return post;
 }
@@ -243,7 +246,11 @@ export function getChatThreads() {
   const threads = new Map();
   for (const msg of _messages.values()) {
     if (!threads.has(msg.threadId)) {
-      threads.set(msg.threadId, { threadId: msg.threadId, lastMessage: msg, messageCount: 0 });
+      threads.set(msg.threadId, {
+        threadId: msg.threadId,
+        lastMessage: msg,
+        messageCount: 0,
+      });
     }
     const thread = threads.get(msg.threadId);
     thread.messageCount++;
@@ -260,7 +267,9 @@ export function getSocialStats() {
     friends: _friends.size,
     posts: _posts.size,
     messages: _messages.size,
-    pendingRequests: [..._friends.values()].filter((f) => f.status === "pending").length,
+    pendingRequests: [..._friends.values()].filter(
+      (f) => f.status === "pending",
+    ).length,
   };
 }
 

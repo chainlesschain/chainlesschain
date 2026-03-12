@@ -28,7 +28,7 @@ const EXCLUDE = new Set(["index.md", ".vitepress"]);
 // 根目录文件
 const ROOT_FILE_MAP = {
   "系统设计_主文档.md": "system-design-main.md",
-  "系统设计_个人移���AI管理系统.md": "system-design-full.md",
+  "系统设计_个人移动AI管理系统.md": "system-design-full.md",
   "安全机制设计.md": "security-design.md",
   "数据同步方案.md": "data-sync-design.md",
   "AI模型部署方案.md": "ai-model-deploy.md",
@@ -99,9 +99,9 @@ const MODULE_FILE_MAP = {
   "43_IPC域分割与懒加载系统.md": "m43-ipc-domain-split.md",
   "44_共享资源层与依赖注入容器.md": "m44-di-container.md",
   "45_数据库演进与迁移框架.md": "m45-database-migration.md",
-  "46_A2A协���引擎.md": "m46-a2a-protocol.md",
+  "46_A2A协议引擎.md": "m46-a2a-protocol.md",
   "47_自主工作流编排器.md": "m47-workflow-orchestrator.md",
-  "48_层次化记忆系���2.0.md": "m48-hierarchical-memory.md",
+  "48_层次化记忆系统2.0.md": "m48-hierarchical-memory.md",
   "49_多模态感知层.md": "m49-multimodal-perception.md",
   "50_Agent经济系统.md": "m50-agent-economy.md",
   "51_代码生成Agent2.0.md": "m51-code-agent.md",

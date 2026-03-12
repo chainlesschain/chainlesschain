@@ -57,7 +57,9 @@ export function registerSiemCommand(program) {
   // siem add-target
   siem
     .command("add-target <type> <url>")
-    .description("Add a SIEM target (splunk_hec, elasticsearch, azure_sentinel)")
+    .description(
+      "Add a SIEM target (splunk_hec, elasticsearch, azure_sentinel)",
+    )
     .option("-f, --format <fmt>", "Export format: json, cef, leef", "json")
     .action(async (type, url, options) => {
       try {
@@ -99,10 +101,16 @@ export function registerSiemCommand(program) {
 
         // Export with simulated log batch
         const result = exportLogs(db, targetId, [
-          { id: `log-${Date.now()}`, level: "info", message: "CLI export test" },
+          {
+            id: `log-${Date.now()}`,
+            level: "info",
+            message: "CLI export test",
+          },
         ]);
         logger.success(`Exported ${result.exported} log(s)`);
-        logger.log(`  ${chalk.bold("Last ID:")} ${chalk.cyan(result.lastId || "N/A")}`);
+        logger.log(
+          `  ${chalk.bold("Last ID:")} ${chalk.cyan(result.lastId || "N/A")}`,
+        );
 
         await shutdown();
       } catch (err) {

@@ -89,10 +89,18 @@ export function addRelay(db, url) {
 /* ── Event Publishing ─────────────────────────────────────── */
 
 export function publishEvent(db, kind, content, pubkey, tags) {
-  if (content === undefined || content === null) throw new Error("Content is required");
+  if (content === undefined || content === null)
+    throw new Error("Content is required");
 
   const now = new Date().toISOString();
-  const serialized = JSON.stringify([0, pubkey || "anonymous", now, kind || 1, tags || [], content]);
+  const serialized = JSON.stringify([
+    0,
+    pubkey || "anonymous",
+    now,
+    kind || 1,
+    tags || [],
+    content,
+  ]);
   const id = crypto.createHash("sha256").update(serialized).digest("hex");
   const sig = crypto.randomBytes(64).toString("hex");
 
@@ -120,7 +128,17 @@ export function publishEvent(db, kind, content, pubkey, tags) {
   db.prepare(
     `INSERT INTO nostr_events (id, pubkey, kind, content, tags, sig, created_at, relay_url, imported)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, event.pubkey, event.kind, content, JSON.stringify(tags || []), sig, now, null, 0);
+  ).run(
+    id,
+    event.pubkey,
+    event.kind,
+    content,
+    JSON.stringify(tags || []),
+    sig,
+    now,
+    null,
+    0,
+  );
 
   return { success: true, event, sentCount };
 }
@@ -140,10 +158,18 @@ export function getEvents(filter = {}) {
 
 export function generateKeypair() {
   const privateKey = crypto.randomBytes(32).toString("hex");
-  const publicKey = crypto.createHash("sha256").update(privateKey).digest("hex");
+  const publicKey = crypto
+    .createHash("sha256")
+    .update(privateKey)
+    .digest("hex");
   const id = crypto.randomUUID();
 
-  const keypair = { id, publicKey, privateKey, createdAt: new Date().toISOString() };
+  const keypair = {
+    id,
+    publicKey,
+    privateKey,
+    createdAt: new Date().toISOString(),
+  };
   _keypairs.set(id, keypair);
 
   return keypair;
