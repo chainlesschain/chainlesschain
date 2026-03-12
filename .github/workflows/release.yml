@@ -605,6 +605,7 @@ jobs:
   # Publish all packages to npm (core packages + CLI)
   publish-cli:
     needs: [create-release]
+    if: ${{ always() && needs.create-release.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
