@@ -61,7 +61,7 @@ object SkillModule {
 
     @Provides
     @Singleton
-    fun provideSkillHandlers(): Map<String, SkillHandler> {
+    fun provideSkillHandlers(): Map<String, @JvmSuppressWildcards SkillHandler> {
         val handlers = listOf(
             CodeReviewHandler(),
             ExplainCodeHandler(),
@@ -92,7 +92,7 @@ object SkillModule {
     fun provideSkillExecutor(
         registry: SkillRegistry,
         gating: SkillGating,
-        handlers: Map<String, SkillHandler>,
+        handlers: Map<String, @JvmSuppressWildcards SkillHandler>,
         llmAdapter: LLMAdapter,
         p2pBridge: P2PSkillBridge,
         @Suppress("UNUSED_PARAMETER") loader: SkillLoader  // ensures skills are loaded first
