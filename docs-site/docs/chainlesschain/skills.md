@@ -327,56 +327,234 @@ author: ChainlessChain Team
 
 ---
 
-## 内置技能
+## 内置技能 CLI 执行参考
 
-### 开发类技能
+所有 138 个内置技能均可通过命令行执行，无需启动桌面应用（Headless 模式）。少数依赖桌面功能的技能会优雅降级并返回提示信息。
 
-```bash
-/code-review src/auth/login.js          # 代码审查
-/code-review src/ --focus=security      # 安全审查
-
-/git-commit                              # 智能提交
-/explain-code src/utils/crypto.js        # 代码解释
-/test-generator src/services/user.js     # 生成测试
-/performance-optimizer src/api/          # 性能优化
-```
-
-### 自动化类技能 (可执行Handler)
+### 执行方式
 
 ```bash
-/browser-automation                      # 浏览器自动化
-  # 导航、点击、输入、表单填充、截图、数据提取
+# 方式一：通过 skill run 命令
+chainlesschain skill run <技能名> "提示文本"
 
-/computer-use                            # 桌面操作
-  # 桌面截图、坐标点击、键盘输入、视觉AI
+# 方式二：在 Agent/Chat REPL 中使用 / 前缀
+chainlesschain agent
+> /code-review src/index.js
 
-/workflow-automation                     # 工作流自动化
-  # 条件分支、循环、并行执行、子工作流
+# 方式三：AI 自动选择技能（Agent 模式）
+chainlesschain agent
+> 帮我审查 src/auth 目录的安全性   # → 自动匹配 security-audit
 ```
 
-### 知识与数据类技能 (可执行Handler)
+### 按分类执行示例
+
+#### 开发 (Development)
 
 ```bash
-/memory-management                       # 记忆管理
-  # 保存笔记、搜索知识、查看日志、提取洞察
-
-/smart-search                            # 智能混合搜索
-  # 向量60% + BM25 40% 混合搜索
-
-/web-scraping                            # 网页数据抓取
-  # 表格、链接、文本提取
-
-/remote-control                          # 远程设备控制
-  # 命令、文件传输、剪贴板同步
+chainlesschain skill run code-review "审查 src/auth/login.js 的安全性"
+chainlesschain skill run git-commit "分析当前 diff 并生成提交消息"
+chainlesschain skill run explain-code "解释 src/utils/crypto.js 的加密流程"
+chainlesschain skill run test-generator "为 src/services/user.js 生成单元测试"
+chainlesschain skill run refactor "重构 src/api/handler.js 提取公共方法"
+chainlesschain skill run performance-optimizer "分析 src/api/ 目录的性能瓶颈"
+chainlesschain skill run lint-and-fix "修复 src/ 目录的 ESLint 错误"
+chainlesschain skill run test-and-fix "运行测试并自动修复失败用例"
+chainlesschain skill run code-translator "将 src/utils.py 转换为 TypeScript"
+chainlesschain skill run dead-code-eliminator "检测 src/ 中的未使用代码"
+chainlesschain skill run changelog-generator "根据 Git 提交生成 CHANGELOG"
+chainlesschain skill run mock-data-generator "根据 User 类型生成测试数据"
+chainlesschain skill run i18n-manager "提取 src/ 中的硬编码中文字符串"
+chainlesschain skill run repo-map "生成项目代码结构映射"
+chainlesschain skill run project-scaffold "创建新的 Vue 模块脚手���"
+chainlesschain skill run onboard-project "分析项目架构，生成入门指南"
+chainlesschain skill run mcp-server-generator "生成天气查询 MCP 服务器"
+chainlesschain skill run snippet-library "保存代码片段到本地库"
+chainlesschain skill run template-renderer "使用 Handlebars 渲染邮件模板"
+chainlesschain skill run code-runner "执行 Python 脚本并捕获输出"
+chainlesschain skill run json-yaml-toolkit "将 config.yaml 转换为 JSON"
+chainlesschain skill run regex-playground "测试正则表达式匹配结果"
+chainlesschain skill run http-client "发送 GET 请求到 API 端点"
 ```
 
-### 安全与运维类技能
+#### 测试与质量 (Testing & Quality)
 
 ```bash
-/security-audit src/                     # 安全审计 (OWASP)
-/devops-automation                       # CI/CD自动化
-/data-analysis data.csv                  # 数据分析
+chainlesschain skill run bugbot "扫描 src/ 中的潜在 Bug"
+chainlesschain skill run fault-localizer "定位错误堆栈对应的代码位置"
+chainlesschain skill run api-tester "测试 IPC 处理器的健康状态"
+chainlesschain skill run webapp-testing "对 http://localhost:5173 执行 E2E 测试"
+chainlesschain skill run verification-loop "执行 Build→Lint→Test→Security 验证流水线"
 ```
+
+#### 架构与分析 (Architecture & Analysis)
+
+```bash
+chainlesschain skill run architect-mode "设计用户认证模块的架构方案"
+chainlesschain skill run task-decomposer "将'实现支付系统'分解为子任务"
+chainlesschain skill run impact-analyzer "分析修改 database.js 的影响范围"
+chainlesschain skill run dependency-analyzer "分析项目的依赖关系图"
+chainlesschain skill run git-history-analyzer "分析代码热点和贡献者统计"
+chainlesschain skill run diff-previewer "对比 main 分支和当前分支的差异"
+chainlesschain skill run commit-splitter "将大提交拆分为原子提交"
+```
+
+#### 安全 (Security)
+
+```bash
+chainlesschain skill run security-audit "审计 src/ 目录的 OWASP Top 10 漏洞"
+chainlesschain skill run vulnerability-scanner "扫描 package.json 的依赖漏洞"
+chainlesschain skill run crypto-toolkit "使用 AES-256-GCM 加密文件"
+chainlesschain skill run password-generator "生成 32 位强密码"
+chainlesschain skill run zkp-toolkit "生成零知识证明并验证"
+```
+
+#### 文档 (Documentation)
+
+```bash
+chainlesschain skill run doc-generator "为 src/main/database.js 生成 JSDoc 文档"
+chainlesschain skill run api-docs-generator "生成 OpenAPI 3.0 规范文档"
+chainlesschain skill run markdown-enhancer "为 README.md 添加目录和���接检查"
+chainlesschain skill run doc-comparator "对比两个文档的差异"
+chainlesschain skill run doc-coauthoring "扩展并审查技术文档初稿"
+chainlesschain skill run doc-converter "将 report.docx 转换为 Markdown"
+```
+
+#### Office 文档与数据 (Office & Data)
+
+```bash
+chainlesschain skill run pdf-toolkit "提取 document.pdf 的文本内容"
+chainlesschain skill run excel-analyzer "分析 sales.xlsx 的数据趋势"
+chainlesschain skill run pptx-creator "根据大纲生成 PPTX 演示文稿"
+chainlesschain skill run word-generator "将 Markdown 转换为 DOCX"
+chainlesschain skill run csv-processor "过滤 data.csv 中满足条件的行"
+chainlesschain skill run data-analysis "分析 data.json 的统计分布"
+chainlesschain skill run chart-creator "生成销售数据的柱状图"
+chainlesschain skill run data-exporter "将 JSON 数据导出为 CSV 格式"
+```
+
+#### 音视频与媒体 (Media)
+
+```bash
+chainlesschain skill run audio-transcriber "将 meeting.mp3 转为文字"
+chainlesschain skill run video-toolkit "提取视频的缩略图和元信息"
+chainlesschain skill run subtitle-generator "为视频生成 SRT 字幕"
+chainlesschain skill run tts-synthesizer "将文本转换为语音文件"
+chainlesschain skill run media-metadata "提取图片的 EXIF 元数据"
+chainlesschain skill run image-editor "将图片压缩为 WebP 格式"
+chainlesschain skill run ocr-scanner "识别图片中的文字内容"
+chainlesschain skill run image-generator "根据描述生成 AI 图像"
+chainlesschain skill run remotion-video "使用 React 创作动画视频"
+```
+
+#### 知识与搜索 (Knowledge & Search)
+
+```bash
+chainlesschain skill run smart-search "搜索项目中与认证相关的代码"
+chainlesschain skill run memory-management "保存今天的学习笔记"
+chainlesschain skill run deep-research "深入研究 WebAssembly 技术方案"
+chainlesschain skill run codebase-qa "这个项目的数据库 Schema 是怎么设计的？"
+chainlesschain skill run knowledge-graph "提取项目实体关系图"
+chainlesschain skill run memory-insights "分析知识库的健康状态"
+chainlesschain skill run query-enhancer "优化 RAG 查询效果"
+chainlesschain skill run context-loader "预加载与当前任务相关的上下文文件"
+chainlesschain skill run research-agent "对比 React vs Vue 技术选型"
+chainlesschain skill run tavily-search "搜索最新的 Node.js 安全公告"
+chainlesschain skill run summarizer "摘要 https://example.com 的内容"
+chainlesschain skill run youtube-summarizer "摘要 YouTube 视频的关键内容"
+chainlesschain skill run news-monitor "监控 HackerNews 的 AI 相关趋势"
+chainlesschain skill run obsidian "在 Obsidian Vault 中创建笔记"
+```
+
+#### 自动化与工作流 (Automation & Workflow)
+
+```bash
+chainlesschain skill run workflow-automation "创建文件备份的自动化流程"
+chainlesschain skill run orchestrate "编排 feature 开发工作流"
+chainlesschain skill run proactive-agent "监控 src/ 目录变更并自动检测错误"
+chainlesschain skill run cron-scheduler "每天 9 点自动运行测试"
+chainlesschain skill run stream-processor "逐行处理 access.log 日志文件"
+chainlesschain skill run planning-with-files "创建持久化的任务计划文件"
+chainlesschain skill run voice-commander "注册语音命令快捷方式"
+```
+
+#### DevOps 与运维 (DevOps)
+
+```bash
+chainlesschain skill run devops-automation "配置 CI/CD 流水线"
+chainlesschain skill run docker-compose-generator "自动生成 Docker Compose 配置"
+chainlesschain skill run k8s-deployer "生成 Kubernetes 部署清单"
+chainlesschain skill run terraform-iac "生成 AWS EC2 的 Terraform 配置"
+chainlesschain skill run env-doctor "诊断开发环境的运行状态"
+chainlesschain skill run release-manager "计算下一版本号并生成 Tag"
+chainlesschain skill run log-analyzer "分析 app.log 中的错误模式"
+chainlesschain skill run system-monitor "检查 CPU/内存/磁盘使用率"
+chainlesschain skill run network-diagnostics "检测端口 8080 是否可用"
+chainlesschain skill run env-file-manager "对比 .env 和 .env.example 的差异"
+chainlesschain skill run performance-profiler "执行应用启动性能基准测试"
+chainlesschain skill run backup-manager "创建项目数据的 ZIP 备份"
+chainlesschain skill run cursor-rules-generator "生成 .cursorrules 编码规则"
+```
+
+#### AI 增强 (AI Enhancement)
+
+```bash
+chainlesschain skill run prompt-enhancer "增强提示词：帮我写一个排序算法"
+chainlesschain skill run auto-context "检测当前任务所需的上下文文件"
+chainlesschain skill run multi-model-router "根据复杂度自动选择最佳 LLM 模型"
+chainlesschain skill run ultrathink "深度分析分布式系统的一致性问题"
+chainlesschain skill run self-improving-agent "分析最近的错误模式并自我优化"
+```
+
+#### 协作 (Collaboration)
+
+```bash
+chainlesschain skill run debate-review "多视角审查 src/auth/login.js"
+chainlesschain skill run ab-compare "对比两种缓存方案的优劣"
+chainlesschain skill run create-pr "为当前分支创建 Pull Request"
+chainlesschain skill run pr-reviewer "审查 PR #42 的代码变更"
+chainlesschain skill run github-manager "列出仓库的 open Issues"
+```
+
+#### 集成与工具 (Integration & Tools)
+
+```bash
+chainlesschain skill run web-scraping "提取网页中的表格数据"
+chainlesschain skill run agent-browser "使用快照模式自动化浏览网页"
+chainlesschain skill run api-gateway "通过统一接口调用外部 API"
+chainlesschain skill run notion "在 Notion 中创建新页面"
+chainlesschain skill run google-workspace "查询 Google Calendar 日程"
+chainlesschain skill run weather "查询北京今天的天气"
+chainlesschain skill run find-skills "搜索与数据处理相关的技能"
+chainlesschain skill run skill-creator "创建一个新的自定义技能"
+chainlesschain skill run free-model-manager "列出本地 Ollama 可用模型"
+chainlesschain skill run humanizer "将 AI 生成的文本改写为自然风格"
+chainlesschain skill run content-publisher "生成社交媒体帖子内容"
+chainlesschain skill run brainstorming "用六顶帽方法分析产品方案"
+chainlesschain skill run debugging-strategies "使用二分法定位 Bug"
+chainlesschain skill run api-design "设计 RESTful 用户管理 API"
+chainlesschain skill run frontend-design "设计登录页面的 UI 组件"
+chainlesschain skill run color-picker "生成蓝色系配色方案"
+chainlesschain skill run text-transformer "Base64 编码文本内容"
+chainlesschain skill run clipboard-manager "查看剪贴板历史记录"
+chainlesschain skill run file-compressor "将 dist/ 目录打包为 ZIP"
+chainlesschain skill run db-migration "生成数据库迁移脚本"
+chainlesschain skill run database-query "生成用户查询的 SQL 语句"
+chainlesschain skill run git-worktree-manager "创建并行开发的 Worktree"
+```
+
+#### 桌面专属技能 (需要桌面应用运行)
+
+以下技能依赖 Electron 桌面功能，在 CLI Headless 模式下会优雅降级并返回提示：
+
+```bash
+# 需要桌面应用的技能
+chainlesschain skill run browser-automation "自动化浏览器操作"  # → 需要 Electron 浏览器
+chainlesschain skill run computer-use "桌面截图并操作"          # → 需要 DesktopAction 模块
+chainlesschain skill run remote-control "远程控制设备"          # → 需要 P2P/WebRTC 连接
+chainlesschain skill run screenshot-to-code "截图转代码"        # → 需要桌面截图能力
+```
+
+> **注意**: 以上技能在无桌面环境时不会崩溃，而是返回 `{ success: false, error: "Desktop action module not available." }` 等友好提示。
 
 ---
 
