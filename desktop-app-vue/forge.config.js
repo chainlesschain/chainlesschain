@@ -233,6 +233,11 @@ const { extraResources, missingResources, projectServiceJar } =
   collectExtraResources();
 
 module.exports = {
+  rebuildConfig: {
+    // Skip rebuilding native DB modules — CI sets CHAINLESSCHAIN_DISABLE_NATIVE_DB=1
+    // and uses a pure-JS fallback, so node-gyp rebuild is unnecessary and fails on macOS CI.
+    onlyModules: [],
+  },
   packagerConfig: {
     name: "ChainlessChain",
     executableName: "chainlesschain",
