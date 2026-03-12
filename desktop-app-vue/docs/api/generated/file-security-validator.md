@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/file-security-validator.js`
 
-**Generated**: 2026-03-11T09:43:39.352Z
+**Generated**: 2026-03-12T02:32:47.944Z
 
 ---
 
