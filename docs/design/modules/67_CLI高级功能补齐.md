@@ -711,8 +711,8 @@ npm test -- __tests__/unit/agent-coordinator.test.js __tests__/unit/service-cont
 ### 8.1 概述
 
 `cli-context-engineering.js` 是桌面端 Context Engineering 系统的 CLI 轻量级移植。桌面端有 18 个注入器，
-CLI 仅保留适用的 4 个（Instinct / Memory / BM25 Notes / Task Reminder），加上 KV-Cache 友好的 System Prompt
-清理和基于重要性评分的智能压缩。
+CLI 保留适用的 6 个（Instinct / Memory / BM25 Notes / Task Reminder / Permanent Memory / Compaction Summary），
+加上 KV-Cache 友好的 System Prompt 清理、稳定前缀缓存和基于重要性评分的智能压缩（含可恢复摘要）。
 
 ### 8.2 架构
 
@@ -724,13 +724,15 @@ agent-repl.js
     ├── CLIContextEngineering({ db })
     │       │
     │       ├── buildOptimizedMessages(rawMessages, { userQuery })
-    │       │       ├── 1. System Prompt 清理 (时间戳/UUID/session_id → 占位符)
+    │       │       ├── 1. System Prompt 清理 (时间戳/UUID/session_id → 占位符) + 稳定前缀缓存
     │       │       ├── 2. Instinct 注入 (generateInstinctPrompt)
     │       │       ├── 3. Memory 注入 (recallMemory, limit: 5)
     │       │       ├── 4. BM25 Notes 注入 (topK: 3, threshold: 0.5)
-    │       │       ├── 5. 对话历史清理 (删除 metadata)
-    │       │       ├── 6. 错误上下文 (最近 5 条 + 解决方案)
-    │       │       └── 7. Task 重述 (objective + steps + progress)
+    │       │       ├── 5. Permanent Memory 注入 (getRelevantContext, limit: 3)
+    │       │       ├── 5b. Compaction Summary 注入 (被丢弃消息的单行摘要)
+    │       │       ├── 6. 对话历史清理 (删除 metadata)
+    │       │       ├── 7. 错误上下文 (最近 5 条 + 解决方案)
+    │       │       └── 8. Task 重述 (objective + steps + progress)
     │       │
     │       ├── smartCompact(messages, { keepPairs: 6 })
     │       │       评分: 时间近(5) + tool_calls(2) + 任务相关(3) + Error(1)
@@ -751,6 +753,7 @@ agent-repl.js
 | `instinct-manager.js` | 偏好注入 | try/catch 跳过 |
 | `hierarchical-memory.js` | 记忆注入 + 存储 | try/catch 跳过 |
 | `bm25-search.js` | 笔记搜索 | 懒加载，失败跳过 |
+| `permanent-memory.js` | 跨会话持久记忆 | try/catch 跳过 |
 | `session-manager.js` | 会话持久化 | try/catch 跳过 |
 
 ### 8.4 新增斜杠命令
@@ -763,15 +766,296 @@ agent-repl.js
 | `/session resume <id>` | 恢复历史会话 |
 | `/reindex` | 重新索引笔记 |
 | `/stats` | Context Engine 统计 |
+| `/auto <goal>` | 提交自主执行目标 |
+| `/auto status` | 查看自主目标进度 |
+| `/auto pause/resume/cancel` | 暂停/恢复/取消自主执行 |
+| `/auto list` | 列出所有目标 |
+| `/plan execute` | 按 DAG 依赖顺序执行计划 |
+| `/plan risk` | 显示风险评估报告 |
+| `/cowork graph` | ASCII 代码知识图谱 |
+| `/cowork decision` | 决策追踪知识库 |
+| `/provider <p>` | 切换提供商 (7 providers: ollama/anthropic/openai/deepseek/dashscope/mistral/gemini) |
 
 ### 8.5 测试
 
 | 测试文件 | 测试数 |
 |----------|--------|
-| `cli-context-engineering.test.js` (unit) | 40 |
+| `cli-context-engineering.test.js` (unit) | ~50 |
 | `agent-repl.test.js` (unit, 含新增) | 12 |
 | `context-engineering.test.js` (e2e) | 11 |
+| `permanent-memory.test.js` (unit) | 22 |
+| `autonomous-agent.test.js` (unit) | 28 |
+| `content-recommender.test.js` (unit) | 19 |
+| `evomap-client.test.js` (unit) | 23 |
+| `plan-mode.test.js` (unit, 含新增 DAG/风险) | ~60 |
+| `phase102-commands.test.js` (e2e) | 27 |
 
 ---
 
-> **最后更新**: 2026-03-12 (v5.0.1, Phase 102+ CLI高级功能补齐 + Context Engineering, 13模块/10命令/36表/503测试)
+## 九、Phase 102+ — CLI-Desktop 对齐 (6 Phase 实现)
+
+### 9.1 概述
+
+基于 docs-site 156 文档页面与 CLI 实际实现的对比分析，完成 9 个高优先级缺失功能的对齐。
+新增 4 个核心模块、增强 2 个现有模块、新增 1 个顶级命令（`evomap`），新增约 200 项测试。
+
+### 9.2 新增模块
+
+#### 9.2.1 Permanent Memory (`permanent-memory.js`)
+
+跨会话持久记忆，支持 Daily Notes、MEMORY.md 和 BM25 混合搜索。
+
+| 功能 | 说明 |
+|------|------|
+| Daily Notes | 每日追加笔记，自动按日期分组 |
+| MEMORY.md | 更新章节式永久记忆文件 |
+| 混合搜索 | BM25 搜索 DB 条目 + Daily Notes + MEMORY.md |
+| 自动摘要 | 会话结束自动提取关键事实存入永久记忆 |
+| 优雅降级 | 无 DB 时降级为只读 MEMORY.md |
+
+**数据库表**: `permanent_memory`
+
+**API**:
+```js
+class CLIPermanentMemory {
+  initialize()
+  appendDailyNote(content)
+  updateMemoryFile(section, content)
+  hybridSearch(query, { topK })
+  getRelevantContext(query, limit)  // 供 context engine 第 5 注入源
+  autoSummarize(sessionMessages)
+}
+```
+
+#### 9.2.2 Autonomous Agent (`autonomous-agent.js`)
+
+ReAct 自主任务循环，将 CLI agent 从被动问答升级为自主执行。
+
+| 功能 | 说明 |
+|------|------|
+| 目标分解 | LLM 自动将目标拆分为可执行子步骤 |
+| ReAct 循环 | Reason → Act → Observe 循环执行 |
+| 自我纠正 | 失败时 LLM 重新规划替代方案 |
+| 暂停/恢复 | 支持暂停、恢复、取消目标 |
+| 事件驱动 | EventEmitter 通知目标生命周期变更 |
+
+**API**:
+```js
+class CLIAutonomousAgent extends EventEmitter {
+  initialize({ llmChat, toolExecutor, hookManager })
+  submitGoal(description, { tokenBudget })
+  pauseGoal(goalId) / resumeGoal(goalId) / cancelGoal(goalId)
+  getGoalStatus(goalId) / listGoals()
+}
+```
+
+**斜杠命令**: `/auto <goal>`, `/auto status`, `/auto pause`, `/auto resume`, `/auto cancel`, `/auto list`
+
+#### 9.2.3 Content Recommender (`content-recommender.js`)
+
+TF-IDF 工具相似度计算 + 工具链频率推荐。
+
+| 功能 | 说明 |
+|------|------|
+| TF-IDF 特征 | 基于工具描述构建特征向量 |
+| 余弦相似度 | 计算工具间语义相似度 |
+| 链频率追踪 | 记录工具使用序列，检测常见链 |
+| 下一工具推荐 | 基于链频率推荐最可能的下一个工具 |
+| 技能推荐 | BM25 匹配用户查询与技能描述 |
+
+**API**:
+```js
+class CLIContentRecommender {
+  buildToolFeatures(tools)
+  calculateSimilarity(tool1, tool2)
+  recordToolUse(toolName)
+  recommendNextTool(currentTool)
+  recommendSkill(userQuery, skills)
+  getChainStats() / getSimilarityMatrix()
+}
+```
+
+#### 9.2.4 EvoMap Client + Manager (`evomap-client.js`, `evomap-manager.js`)
+
+GEP-A2A (Gene Exchange Protocol) HTTP 客户端 + 本地 gene 管理。
+
+| 功能 | 说明 |
+|------|------|
+| Hub 搜索 | 搜索远程 Hub 上的 gene 包 |
+| 下载/发布 | 下载 gene 到本地 / 发布到 Hub |
+| 本地管理 | 安装、列表、删除本地 gene |
+| 打包 | 将本地技能打包为 gene 格式 |
+| 多 Hub | 支持自定义 Hub URL |
+
+**数据库表**: `evomap_genes`
+
+**CLI 命令**: `evomap search|download|publish|list|hubs`
+
+### 9.3 增强模块
+
+#### 9.3.1 Context Engineering 增强 (`cli-context-engineering.js`)
+
+| 增强 | 说明 |
+|------|------|
+| Permanent Memory 注入 | 第 5 注入源：跨会话持久记忆 |
+| 可恢复压缩摘要 | smartCompact 被丢弃消息生成单行摘要（max 20），注入 `## Compacted Context Summary` |
+| 稳定前缀缓存 | SHA-256 hash 稳定前缀，仅重新清洗动态后缀，提升 KV-Cache 命中率 |
+| 增强统计 | `getStats()` 新增 `hasPermanentMemory`、`compactionSummaries`、`prefixCached` |
+
+#### 9.3.2 Plan Mode 增强 (`plan-mode.js`)
+
+| 增强 | 说明 |
+|------|------|
+| DAG 拓扑排序执行 | `ExecutionPlan.executeInOrder()` 按依赖排序，失败阻塞下游 |
+| 风险评分 | `PlanItem.riskScore = tool_weight × impact_multiplier` (read=1/write=2/shell=3 × low=1/medium=2/high=3) |
+| 风险评估 | `getRiskAssessment()` 返回 level/totalScore/maxScore/averageScore/itemScores |
+| Hook 集成 | PlanModeEnter/PlanApproved/PlanRejected/PlanItemExecute 事件 |
+
+**新增斜杠命令**: `/plan execute`, `/plan risk`
+
+#### 9.3.3 Agent-REPL 增强 (`agent-repl.js`)
+
+| 增强 | 说明 |
+|------|------|
+| Hook 管道 | `executeTool()` 前后触发 PreToolUse/PostToolUse/ToolError |
+| 多 Provider | 7 个 LLM 提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini) |
+| Anthropic 适配 | `_normalizeAnthropicResponse()` 转换 tool_use → tool_calls 格式 |
+| 自主模式 | `/auto` 系列命令集成 CLIAutonomousAgent |
+| Cowork 扩展 | `/cowork graph` (ASCII 知识图谱), `/cowork decision` (决策追踪) |
+
+### 9.4 新增测试
+
+| 测试文件 | 类型 | 测试数 |
+|----------|------|--------|
+| `cli-context-engineering.test.js` | unit | ~50 (含新增 14) |
+| `permanent-memory.test.js` | unit | 22 |
+| `autonomous-agent.test.js` | unit | 28 |
+| `content-recommender.test.js` | unit | 19 |
+| `evomap-client.test.js` | unit | 23 |
+| `plan-mode.test.js` | unit | ~60 (含新增 20) |
+| `phase102-commands.test.js` | e2e | 27 |
+| **新增合计** | | **~153** |
+
+### 9.5 依赖关系
+
+```
+Phase 1 (Context Engineering + Hook + Multi-Provider)
+  ├──→ Phase 2 (Permanent Memory)
+  │      └──→ Phase 5b (EvoMap)
+  ├──→ Phase 3 (Autonomous Agent)
+  │      └──→ Phase 4 (Advanced Plan Mode)
+  ├──→ Phase 5a (Content Recommender)
+  └──→ Phase 6 (补全部分实现)
+```
+
+### 9.6 核心文件
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `src/lib/permanent-memory.js` | 新建 | 跨会话持久记忆 |
+| `src/lib/autonomous-agent.js` | 新建 | ReAct 自主任务循环 |
+| `src/lib/content-recommender.js` | 新建 | TF-IDF 工具推荐 |
+| `src/lib/evomap-client.js` | 新建 | EvoMap Hub HTTP 客户端 |
+| `src/lib/evomap-manager.js` | 新建 | 本地 gene 管理 |
+| `src/commands/evomap.js` | 新建 | evomap 命令入口 |
+| `src/lib/cli-context-engineering.js` | 增强 | +Permanent Memory 注入 +可恢复压缩 +稳定前缀缓存 |
+| `src/lib/plan-mode.js` | 增强 | +DAG 执行 +风险评分 +Hook 集成 |
+| `src/repl/agent-repl.js` | 增强 | +Hook 管道 +7 Provider +/auto +/cowork graph+decision |
+
+---
+
+## 十、Phase 7-8 企业功能补齐
+
+### 10.1 概述
+
+在 Phase 102+ 基础上，进一步补齐 CLI 与桌面端的功能差距。新增 13 个库文件、11 个命令文件、
+13 个测试文件（322 项新增测试），覆盖 EvoMap 联邦治理、DAO 治理 v2、安全合规、通信桥接、
+基础设施加固和社交平台六大领域。CLI 命令总数从 48 → 59。
+
+### 10.2 新增模块
+
+| 阶段 | 领域 | 模块 | DB 表 |
+|------|------|------|-------|
+| Phase 7 | EvoMap 联邦 | evomap-federation, evomap-governance | evomap_hub_federation, gene_lineage, gene_ownership, evomap_governance_proposals |
+| Phase 7 | DAO 治理 v2 | dao-governance | dao_v2_proposals, dao_v2_votes, dao_v2_treasury, dao_v2_delegations |
+| Phase 8 | 安全合规 | compliance-manager, dlp-engine, siem-exporter, pqc-manager | compliance_evidence, compliance_reports, compliance_policies, dlp_incidents, dlp_policies, siem_exports, pqc_keys, pqc_migration_status |
+| Phase 8 | 通信桥接 | nostr-bridge, matrix-bridge, scim-manager | nostr_relays, nostr_events, matrix_rooms, matrix_events, scim_resources, scim_sync_log |
+| Phase 8 | 基础设施 | terraform-manager, hardening-manager | terraform_workspaces, terraform_runs, performance_baselines, hardening_audits |
+| Phase 8 | 社交平台 | social-manager | social_contacts, social_friends, social_posts, social_messages |
+
+### 10.3 新增命令
+
+| 命令 | 子命令 | 描述 |
+|------|--------|------|
+| `dao` | propose, vote, delegate, execute, treasury, allocate, stats, configure | DAO 治理 v2 (二次方投票+委托+国库) |
+| `compliance` | evidence, report, classify, scan, policies, check-access | 合规管理 (GDPR/SOC2/HIPAA/ISO27001) |
+| `dlp` | scan, incidents, resolve, stats, policy | 数据防泄漏 (正则+关键词+策略) |
+| `siem` | targets, add-target, export, stats | SIEM 日志导出 (Splunk/ES/Azure) |
+| `pqc` | keys, generate, migration-status, migrate | 后量子密码 (ML-KEM/ML-DSA/混合模式) |
+| `nostr` | relays, add-relay, publish, events, keygen, map-did | Nostr 桥接 (NIP-01/密钥生成/DID 映射) |
+| `matrix` | login, rooms, send, messages, join | Matrix 桥接 (E2EE/房间管理) |
+| `scim` | users, connectors, sync, status | SCIM 2.0 用户配置 |
+| `terraform` | workspaces, create, plan, runs | 基础设施编排 (工作区/Plan/Apply) |
+| `hardening` | baseline, audit | 安全加固 (性能基线+回归检测+审计) |
+| `social` | contact, friend, post, chat, stats | 社交平台 (联系人/好友/动态/即时聊天) |
+
+### 10.4 扩展命令
+
+| 命令 | 新增子命令组 | 描述 |
+|------|-------------|------|
+| `evomap federation` | list-hubs, add-hub, sync, pressure, recombine, lineage | EvoMap 联邦 (Hub 管理/基因同步/压力分析) |
+| `evomap gov` | ownership-register, ownership-trace, propose, vote, dashboard | EvoMap 治理 (基因IP/提案/投票/仪表板) |
+
+### 10.5 测试覆盖
+
+| 测试文件 | 测试数 | 覆盖模块 |
+|----------|--------|----------|
+| `evomap-federation.test.js` | 26 | EvoMap Federation |
+| `evomap-governance.test.js` | 26 | EvoMap Governance |
+| `dao-governance.test.js` | 33 | DAO Governance v2 |
+| `compliance-manager.test.js` | 30 | Compliance Manager |
+| `dlp-engine.test.js` | 25 | DLP Engine |
+| `siem-exporter.test.js` | 16 | SIEM Exporter |
+| `pqc-manager.test.js` | 19 | PQC Manager |
+| `nostr-bridge.test.js` | 22 | Nostr Bridge |
+| `matrix-bridge.test.js` | 22 | Matrix Bridge |
+| `scim-manager.test.js` | 23 | SCIM Manager |
+| `terraform-manager.test.js` | 18 | Terraform Manager |
+| `hardening-manager.test.js` | 21 | Hardening Manager |
+| `social-manager.test.js` | 41 | Social Manager |
+| **合计** | **322** | |
+
+### 10.6 核心文件
+
+| 文件 | 类型 |
+|------|------|
+| `src/lib/evomap-federation.js` | 新建 |
+| `src/lib/evomap-governance.js` | 新建 |
+| `src/lib/dao-governance.js` | 新建 |
+| `src/lib/compliance-manager.js` | 新建 |
+| `src/lib/dlp-engine.js` | 新建 |
+| `src/lib/siem-exporter.js` | 新建 |
+| `src/lib/pqc-manager.js` | 新建 |
+| `src/lib/nostr-bridge.js` | 新建 |
+| `src/lib/matrix-bridge.js` | 新建 |
+| `src/lib/scim-manager.js` | 新建 |
+| `src/lib/terraform-manager.js` | 新建 |
+| `src/lib/hardening-manager.js` | 新建 |
+| `src/lib/social-manager.js` | 新建 |
+| `src/commands/dao.js` | 新建 |
+| `src/commands/compliance.js` | 新建 |
+| `src/commands/dlp.js` | 新建 |
+| `src/commands/siem.js` | 新建 |
+| `src/commands/pqc.js` | 新建 |
+| `src/commands/nostr.js` | 新建 |
+| `src/commands/matrix.js` | 新建 |
+| `src/commands/scim.js` | 新建 |
+| `src/commands/terraform.js` | 新建 |
+| `src/commands/hardening.js` | 新建 |
+| `src/commands/social.js` | 新建 |
+| `src/commands/evomap.js` | 扩展 |
+| `src/index.js` | 扩展 |
+
+---
+
+> **最后更新**: 2026-03-12 (v5.0.1, Phase 102+ CLI高级功能补齐 + Context Engineering + CLI-Desktop 对齐 + Phase 7-8 企业功能补齐, 30模块/22命令/63表/2009测试)

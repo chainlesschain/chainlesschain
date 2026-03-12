@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 47 Commands/1492 Tests + Agent Context Engineering) - Updated 2026-03-12
+**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 59 Commands/2009 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 7 LLM Providers) - Updated 2026-03-12
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -65,7 +65,7 @@ npm run test:ukey          # Run U-Key tests
 ```bash
 cd packages/cli
 npm install
-npm test                   # Run all tests (1429 tests, 67 files)
+npm test                   # Run all tests (2009 tests, 89 files)
 npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests
 npm run test:e2e           # End-to-end tests
@@ -189,6 +189,20 @@ chainlesschain evolution assess code-generation # Assess capability
 chainlesschain evolution diagnose              # Self-diagnosis
 chainlesschain evolution learn --domain nlp    # Incremental learning
 
+# Phase 7 EvoMap Federation + DAO Governance
+chainlesschain evomap federation list-hubs     # List federated hubs
+chainlesschain evomap federation sync <hub>    # Sync genes with hub
+chainlesschain evomap federation pressure      # Pressure analytics report
+chainlesschain evomap gov propose "title"      # Governance proposal
+chainlesschain evomap gov vote <id> for        # Vote on proposal
+chainlesschain evomap gov dashboard            # Governance dashboard
+chainlesschain dao propose "title"             # Create DAO proposal
+chainlesschain dao vote <id> for               # Vote (quadratic voting)
+chainlesschain dao delegate <from> <to>        # Delegate voting power
+chainlesschain dao execute <id>                # Execute passed proposal
+chainlesschain dao treasury                    # Show treasury balance
+chainlesschain dao stats                       # Governance statistics
+
 # Phase 8 Blockchain & Enterprise
 chainlesschain economy pay <from> <to> 100     # Agent micropayment
 chainlesschain economy market list              # Browse resource market
@@ -200,10 +214,61 @@ chainlesschain bi query "show monthly revenue"  # NL→SQL query
 chainlesschain bi dashboard create --name "KPI" # Create dashboard
 chainlesschain bi anomaly --metric sales        # Z-score detection
 
+# Phase 8 Security & Compliance
+chainlesschain compliance evidence gdpr        # Collect compliance evidence
+chainlesschain compliance report soc2          # Generate compliance report
+chainlesschain compliance classify "text"      # Classify data sensitivity
+chainlesschain compliance scan hipaa           # Scan compliance posture
+chainlesschain dlp scan "content"              # DLP content scanning
+chainlesschain dlp incidents                   # List DLP incidents
+chainlesschain dlp policy create --name "rule" # Create DLP policy
+chainlesschain siem targets                    # List SIEM targets
+chainlesschain siem add-target splunk_hec <url> # Add SIEM export target
+chainlesschain siem export <target-id>         # Export logs to SIEM
+chainlesschain pqc keys                        # List PQC keys
+chainlesschain pqc generate ML-KEM-768         # Generate PQC key pair
+chainlesschain pqc migration-status            # PQC migration status
+chainlesschain pqc migrate "plan" ML-KEM-768   # Execute PQC migration
+
+# Phase 8 Communication Bridges
+chainlesschain nostr relays                    # List Nostr relays
+chainlesschain nostr publish "Hello"           # Publish Nostr event
+chainlesschain nostr keygen                    # Generate Nostr keypair
+chainlesschain nostr map-did <did> <pubkey>    # Map DID to Nostr
+chainlesschain matrix login                    # Login to Matrix
+chainlesschain matrix rooms                    # List Matrix rooms
+chainlesschain matrix send <room> "message"    # Send Matrix message
+chainlesschain scim users list                 # List SCIM users
+chainlesschain scim users create --name "user" # Create SCIM user
+chainlesschain scim sync <connector-id>        # Trigger SCIM sync
+
+# Phase 8 Infrastructure & Hardening
+chainlesschain terraform workspaces            # List Terraform workspaces
+chainlesschain terraform create "prod"         # Create workspace
+chainlesschain terraform plan <workspace-id>   # Run Terraform plan
+chainlesschain hardening baseline collect "v1" # Collect performance baseline
+chainlesschain hardening baseline compare <id> # Compare baseline (regression)
+chainlesschain hardening audit run "quarterly" # Run security audit
+
+# Phase 8 Social Platform
+chainlesschain social contact add "Alice"      # Add a contact
+chainlesschain social contact list             # List contacts
+chainlesschain social friend add <contact-id>  # Send friend request
+chainlesschain social post publish "Hello"     # Publish a post
+chainlesschain social chat send <user> "msg"   # Send chat message
+chainlesschain social stats                    # Social statistics
+
 # Phase 9 Low-Code & Multi-Agent
 chainlesschain lowcode create --name "app1"     # Create app
 chainlesschain lowcode components               # List 15+ components
 chainlesschain lowcode publish <id>             # Publish app
+
+# EvoMap Gene Exchange Protocol
+chainlesschain evomap search "tool name"        # Search genes on hub
+chainlesschain evomap download <gene-id>        # Download gene
+chainlesschain evomap publish --name "my-gene"  # Publish gene to hub
+chainlesschain evomap list                      # List local genes
+chainlesschain evomap hubs                      # List available hubs
 ```
 
 ### Backend Services (Docker-based)
@@ -280,11 +345,11 @@ Key highlights:
 Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
-- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode, dao, compliance, dlp, siem, pqc, nostr, matrix, scim, terraform, hardening, social)
 - **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode + /cowork + Context Engineering)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
-- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, cli-context-engineering, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder)
-- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 1374 CLI tests = 1492 total)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, cli-context-engineering, permanent-memory, autonomous-agent, content-recommender, evomap-client, evomap-manager, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder, evomap-federation, evomap-governance, dao-governance, compliance-manager, dlp-engine, siem-exporter, pqc-manager, nostr-bridge, matrix-bridge, scim-manager, terraform-manager, hardening-manager, social-manager)
+- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 1891 CLI tests = 2009 total)
 - **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 
 ### Backend Services

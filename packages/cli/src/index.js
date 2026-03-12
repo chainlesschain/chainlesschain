@@ -47,10 +47,31 @@ import { registerA2aCommand } from "./commands/a2a.js";
 import { registerSandboxCommand } from "./commands/sandbox.js";
 import { registerEvolutionCommand } from "./commands/evolution.js";
 
+// Phase 7: EvoMap Federation + DAO Governance
+import { registerDaoCommand } from "./commands/dao.js";
+
 // Phase 8: Blockchain & Enterprise
 import { registerEconomyCommand } from "./commands/economy.js";
 import { registerZkpCommand } from "./commands/zkp.js";
 import { registerBiCommand } from "./commands/bi.js";
+
+// Phase 8: Security & Compliance
+import { registerComplianceCommand } from "./commands/compliance.js";
+import { registerDlpCommand } from "./commands/dlp.js";
+import { registerSiemCommand } from "./commands/siem.js";
+import { registerPqcCommand } from "./commands/pqc.js";
+
+// Phase 8: Communication Bridges
+import { registerNostrCommand } from "./commands/nostr.js";
+import { registerMatrixCommand } from "./commands/matrix.js";
+import { registerScimCommand } from "./commands/scim.js";
+
+// Phase 8: Infrastructure & Hardening
+import { registerTerraformCommand } from "./commands/terraform.js";
+import { registerHardeningCommand } from "./commands/hardening.js";
+
+// Phase 8: Social Platform
+import { registerSocialCommand } from "./commands/social.js";
 
 // Phase 9: Low-Code & Multi-Agent
 import { registerLowcodeCommand } from "./commands/lowcode.js";
@@ -134,10 +155,31 @@ export function createProgram() {
   registerSandboxCommand(program);
   registerEvolutionCommand(program);
 
+  // Phase 7: EvoMap Federation + DAO Governance
+  registerDaoCommand(program);
+
   // Phase 8: Blockchain & Enterprise
   registerEconomyCommand(program);
   registerZkpCommand(program);
   registerBiCommand(program);
+
+  // Phase 8: Security & Compliance
+  registerComplianceCommand(program);
+  registerDlpCommand(program);
+  registerSiemCommand(program);
+  registerPqcCommand(program);
+
+  // Phase 8: Communication Bridges
+  registerNostrCommand(program);
+  registerMatrixCommand(program);
+  registerScimCommand(program);
+
+  // Phase 8: Infrastructure & Hardening
+  registerTerraformCommand(program);
+  registerHardeningCommand(program);
+
+  // Phase 8: Social Platform
+  registerSocialCommand(program);
 
   // Phase 9: Low-Code & Multi-Agent
   registerLowcodeCommand(program);

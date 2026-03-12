@@ -7,9 +7,9 @@
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-3600%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-3800%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
-![Phases](https://img.shields.io/badge/phases-101-brightgreen.svg)
+![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -34,7 +34,7 @@ chainlesschain setup    # 交互式安装向导
 chainlesschain start    # 启动应用
 ```
 
-- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，47 个命令
+- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，59 个命令 (含 Phase 7-8 企业功能)
 - ✅ **交互式安装向导** — Node.js/Docker 检测 → 版本选择 → LLM 配置 → 二进制下载 → 自动配置
 - ✅ **GitHub Release 集成** — 自动下载平台二进制文件 (Win/macOS/Linux) + SHA256 校验
 - ✅ **Docker Compose 编排** — 一键管理后端服务 (`services up/down/logs/pull`)
@@ -49,8 +49,19 @@ chainlesschain start    # 启动应用
 - ✅ **Phase 8 区块链与企业** — Agent 经济系统 (微支付+资源市场+NFT) + 零知识证明引擎 (Groth16+选择性披露) + BI 智能分析 (NL→SQL+异常检测)
 - ✅ **Phase 9 低代码与多Agent** — 低代码平台 (15+组件+版本管理) + 多Agent协调器 + DI服务容器
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
-- ✅ **Agent Context Engineering** — 4维上下文注入 (Instinct/Memory/BM25 Notes/Task) + KV-Cache优化 + 智能压缩 + 会话恢复 (`--session`)
-- ✅ **1492 个测试用例** — 69 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **Agent Context Engineering** — 6维上下文注入 (Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary) + KV-Cache优化 + 稳定前缀缓存 + 智能压缩 + 可恢复压缩摘要 + 会话恢复 (`--session`)
+- ✅ **Autonomous Agent** — ReAct 自主任务循环 (`/auto` 命令) + 目标分解 + 自我纠正
+- ✅ **多 Provider 支持** — 7 个 LLM 提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini)
+- ✅ **DAG 计划执行 + 风险评估** — `/plan execute` 按依赖拓扑排序 + `/plan risk` 风险评分
+- ✅ **EvoMap 基因交换** — `evomap search|download|publish|list|hubs` GEP-A2A 协议客户端 + 联邦Hub管理 + 基因治理
+- ✅ **DAO 治理 v2** — 二次方投票 + 投票委托 + 国库管理 + 提案生命周期 (`dao` 命令)
+- ✅ **安全合规 CLI** — 合规管理 (GDPR/SOC2/HIPAA/ISO27001) + 数据防泄漏 (DLP) + SIEM 日志导出 + 后量子密码 (PQC)
+- ✅ **通信桥接 CLI** — Nostr 桥接 (NIP-01) + Matrix 桥接 (E2EE) + SCIM 2.0 用户配置
+- ✅ **基础设施加固 CLI** — Terraform 编排 (工作区/Plan/Apply) + 安全加固 (性能基线/回归检测/审计)
+- ✅ **社交平台 CLI** — 联系人管理 + 好友系统 + 动态发布 + 即时聊天 + 社交统计
+- ✅ **Hook 管道** — PreToolUse/PostToolUse/ToolError 工具调用钩子集成
+- ✅ **Content Recommender** — TF-IDF 工具相似度 + 工具链频率推荐
+- ✅ **2009 个测试用例** — 89 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
 - ✅ **项目初始化** (`init`) — 4 种模板 (code-project/data-science/devops/空项目)，生成 `.chainlesschain/` 项目结构
 - ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources` 自定义技能管理
 - ✅ **多智能体协作** (`cowork`) — 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
