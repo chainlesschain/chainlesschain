@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-100 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI) - Updated 2026-03-11
+**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 47 Commands/1429 Tests) - Updated 2026-03-12
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -65,7 +65,7 @@ npm run test:ukey          # Run U-Key tests
 ```bash
 cd packages/cli
 npm install
-npm test                   # Run all tests (1009 tests, 55 files)
+npm test                   # Run all tests (1429 tests, 67 files)
 npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests
 npm run test:e2e           # End-to-end tests
@@ -164,6 +164,45 @@ chainlesschain cowork debate <file>    # Multi-perspective code review
 chainlesschain cowork compare <prompt> # A/B solution comparison
 chainlesschain cowork analyze <path>   # Code analysis (style/knowledge-graph/decisions)
 chainlesschain cowork status           # Show cowork status
+
+# Phase 6 AI Core (Hooks, Workflow, Memory, A2A)
+chainlesschain hook list               # List registered hooks
+chainlesschain hook add --event PreToolUse --type sync --command "echo check"
+chainlesschain hook run PreToolUse     # Execute hooks for event
+chainlesschain hook stats              # Hook execution statistics
+chainlesschain workflow create --name "pipeline" --stages '[...]'
+chainlesschain workflow run <id>       # Execute DAG workflow
+chainlesschain workflow templates      # List 5 built-in templates
+chainlesschain hmemory store "fact" --importance 0.8  # Store memory
+chainlesschain hmemory recall --layer long-term       # Recall memories
+chainlesschain hmemory consolidate     # Promote memories across layers
+chainlesschain a2a register --name "agent1" --capabilities '["code"]'
+chainlesschain a2a discover --capability code  # Find agents
+chainlesschain a2a submit <agent> "task"       # Submit task
+
+# Phase 7 Security & Evolution
+chainlesschain sandbox create --name "test"    # Create sandbox
+chainlesschain sandbox exec <id> "command"     # Execute in sandbox
+chainlesschain sandbox audit <id>              # View audit log
+chainlesschain evolution assess code-generation # Assess capability
+chainlesschain evolution diagnose              # Self-diagnosis
+chainlesschain evolution learn --domain nlp    # Incremental learning
+
+# Phase 8 Blockchain & Enterprise
+chainlesschain economy pay <from> <to> 100     # Agent micropayment
+chainlesschain economy market list              # Browse resource market
+chainlesschain economy nft mint <agent>         # Mint contribution NFT
+chainlesschain zkp compile --name "age-proof"   # Compile ZKP circuit
+chainlesschain zkp prove <circuit> --witness '{}' # Generate proof
+chainlesschain zkp verify <circuit> <proof>     # Verify proof
+chainlesschain bi query "show monthly revenue"  # NL→SQL query
+chainlesschain bi dashboard create --name "KPI" # Create dashboard
+chainlesschain bi anomaly --metric sales        # Z-score detection
+
+# Phase 9 Low-Code & Multi-Agent
+chainlesschain lowcode create --name "app1"     # Create app
+chainlesschain lowcode components               # List 15+ components
+chainlesschain lowcode publish <id>             # Publish app
 ```
 
 ### Backend Services (Docker-based)
@@ -240,11 +279,11 @@ Key highlights:
 Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
-- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode)
 - **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode + /cowork)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
-- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli)
-- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 891 CLI tests = 1009 total)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder)
+- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 1311 CLI tests = 1429 total)
 - **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 
 ### Backend Services

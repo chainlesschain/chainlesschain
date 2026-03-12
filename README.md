@@ -7,7 +7,7 @@
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-3200%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-3600%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-101-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -34,7 +34,7 @@ chainlesschain setup    # 交互式安装向导
 chainlesschain start    # 启动应用
 ```
 
-- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，37 个命令
+- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，47 个命令
 - ✅ **交互式安装向导** — Node.js/Docker 检测 → 版本选择 → LLM 配置 → 二进制下载 → 自动配置
 - ✅ **GitHub Release 集成** — 自动下载平台二进制文件 (Win/macOS/Linux) + SHA256 校验
 - ✅ **Docker Compose 编排** — 一键管理后端服务 (`services up/down/logs/pull`)
@@ -44,8 +44,12 @@ chainlesschain start    # 启动应用
 - ✅ **Phase 3 MCP 与外部集成** — MCP 服务器管理 (JSON-RPC 2.0) + 7 LLM Provider + 浏览器自动化 + 本能学习
 - ✅ **Phase 4 安全与身份** — DID 身份管理 (Ed25519) + AES-256-GCM 文件加密 + RBAC 权限引擎 + 审计日志
 - ✅ **Phase 5 P2P与企业** — P2P 消息 + 文件同步 + 数字钱包 (Ed25519) + 组织管理 + 插件市场
+- ✅ **Phase 6 AI核心** — Hook 生命周期管理 (28事件类型) + DAG 工作流引擎 (5内置模板) + 层次化记忆 2.0 (4层架构+遗忘曲线) + A2A Agent间协议
+- ✅ **Phase 7 安全与进化** — 安全沙箱 v2 (细粒度权限+行为监控) + 自进化系统 (能力评估+自诊断+自修复)
+- ✅ **Phase 8 区块链与企业** — Agent 经济系统 (微支付+资源市场+NFT) + 零知识证明引擎 (Groth16+选择性披露) + BI 智能分析 (NL→SQL+异常检测)
+- ✅ **Phase 9 低代码与多Agent** — 低代码平台 (15+组件+版本管理) + 多Agent协调器 + DI服务容器
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
-- ✅ **1009 个测试用例** — 55 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **1429 个测试用例** — 67 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
 - ✅ **项目初始化** (`init`) — 4 种模板 (code-project/data-science/devops/空项目)，生成 `.chainlesschain/` 项目结构
 - ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources` 自定义技能管理
 - ✅ **多智能体协作** (`cowork`) — 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析

@@ -7,7 +7,7 @@
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-3200%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-3600%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-101-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -34,7 +34,7 @@ chainlesschain setup    # Interactive setup wizard
 chainlesschain start    # Launch application
 ```
 
-- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 37 commands
+- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 47 commands
 - ✅ **Interactive Setup Wizard** — Node.js/Docker check → edition select → LLM config → binary download → auto-configure
 - ✅ **GitHub Release Integration** — Auto-download platform binaries (Win/macOS/Linux) + SHA256 verification
 - ✅ **Docker Compose Orchestration** — One-command backend management (`services up/down/logs/pull`)
@@ -44,8 +44,12 @@ chainlesschain start    # Launch application
 - ✅ **Phase 3 MCP & External Integration** — MCP server management (JSON-RPC 2.0) + 7 LLM providers + browser automation + instinct learning
 - ✅ **Phase 4 Security & Identity** — DID identity management (Ed25519) + AES-256-GCM file encryption + RBAC permission engine + audit logging
 - ✅ **Phase 5 P2P & Enterprise** — P2P messaging + file sync + digital wallet (Ed25519) + org management + plugin marketplace
+- ✅ **Phase 6 AI Core** — Hook lifecycle management (28 event types) + DAG Workflow Engine (5 built-in templates) + Hierarchical Memory 2.0 (4-layer architecture + forgetting curve) + A2A Agent-to-Agent Protocol
+- ✅ **Phase 7 Security & Evolution** — Security Sandbox v2 (fine-grained permissions + behavior monitoring) + Self-Evolving System (capability assessment + self-diagnosis + self-repair)
+- ✅ **Phase 8 Blockchain & Enterprise** — Agent Economy (micropayments + resource marketplace + NFTs) + ZKP Engine (Groth16 + selective disclosure) + BI Analytics (NL→SQL + anomaly detection)
+- ✅ **Phase 9 Low-Code & Multi-Agent** — Low-Code Platform (15+ components + versioning) + Multi-Agent Coordinator + DI Service Container
 - ✅ **CI/CD Auto-publish** — GitHub Actions `npm publish --provenance` + supply chain security
-- ✅ **1009 Test Cases** — 55 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
+- ✅ **1429 Test Cases** — 67 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
 - ✅ **Project Initialization** (`init`) — 4 templates (code-project/data-science/devops/empty), generates `.chainlesschain/` project structure
 - ✅ **Multi-layer Skill System** — 4-layer priority (bundled < marketplace < managed < workspace), custom skill management (add/remove/sources)
 - ✅ **Multi-agent Collaboration** (`cowork`) — Multi-perspective debate review + A/B solution comparison + code knowledge graph analysis

@@ -518,6 +518,51 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.1 Phase 6-9 高级功能",
+          items: [
+            {
+              text: "Hook系统 (hook)",
+              link: "/chainlesschain/cli-hook",
+            },
+            {
+              text: "工作流引擎 (workflow)",
+              link: "/chainlesschain/cli-workflow",
+            },
+            {
+              text: "层次化记忆 (hmemory)",
+              link: "/chainlesschain/cli-hmemory",
+            },
+            {
+              text: "A2A协议 (a2a)",
+              link: "/chainlesschain/cli-a2a",
+            },
+            {
+              text: "安全沙箱 (sandbox)",
+              link: "/chainlesschain/cli-sandbox",
+            },
+            {
+              text: "自进化系统 (evolution)",
+              link: "/chainlesschain/cli-evolution",
+            },
+            {
+              text: "Agent经济 (economy)",
+              link: "/chainlesschain/cli-economy",
+            },
+            {
+              text: "零知识证明 (zkp)",
+              link: "/chainlesschain/cli-zkp",
+            },
+            {
+              text: "商业智能 (bi)",
+              link: "/chainlesschain/cli-bi",
+            },
+            {
+              text: "低代码平台 (lowcode)",
+              link: "/chainlesschain/cli-lowcode",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
