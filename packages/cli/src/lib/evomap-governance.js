@@ -104,11 +104,15 @@ export function registerOwnership(db, geneId, ownerDid, opts = {}) {
 export function traceOwnership(geneId) {
   if (!geneId) throw new Error("Gene ID is required");
 
-  const entries = [..._ownerships.values()].filter(
-    (o) => o.geneId === geneId,
-  );
+  const entries = [..._ownerships.values()].filter((o) => o.geneId === geneId);
   if (entries.length === 0) {
-    return { geneId, owner: null, contributors: [], derivationChain: [], revenueSplit: {} };
+    return {
+      geneId,
+      owner: null,
+      contributors: [],
+      derivationChain: [],
+      revenueSplit: {},
+    };
   }
 
   const latest = entries[entries.length - 1];
@@ -125,7 +129,13 @@ export function traceOwnership(geneId) {
 
 /* ── Governance Proposals ─────────────────────────────────── */
 
-export function createGovernanceProposal(db, title, description, proposerDid, opts = {}) {
+export function createGovernanceProposal(
+  db,
+  title,
+  description,
+  proposerDid,
+  opts = {},
+) {
   if (!title) throw new Error("Title is required");
 
   const id = crypto.randomUUID();
@@ -200,7 +210,13 @@ export function voteOnGovernanceProposal(db, proposalId, voterDid, vote) {
 
     db.prepare(
       `UPDATE evomap_governance_proposals SET votes_for = ?, votes_against = ?, quorum_reached = ?, status = ? WHERE id = ?`,
-    ).run(proposal.votesFor, proposal.votesAgainst, 1, proposal.status, proposalId);
+    ).run(
+      proposal.votesFor,
+      proposal.votesAgainst,
+      1,
+      proposal.status,
+      proposalId,
+    );
   } else {
     db.prepare(
       `UPDATE evomap_governance_proposals SET votes_for = ?, votes_against = ? WHERE id = ?`,

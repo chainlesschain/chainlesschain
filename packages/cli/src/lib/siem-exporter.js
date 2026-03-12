@@ -47,7 +47,9 @@ export function addTarget(db, type, url, format, config) {
 
   const validTypes = Object.values(SIEM_TARGETS);
   if (!validTypes.includes(type)) {
-    throw new Error(`Invalid target type: ${type}. Valid: ${validTypes.join(", ")}`);
+    throw new Error(
+      `Invalid target type: ${type}. Valid: ${validTypes.join(", ")}`,
+    );
   }
 
   const id = crypto.randomUUID();
@@ -71,7 +73,18 @@ export function addTarget(db, type, url, format, config) {
   db.prepare(
     `INSERT INTO siem_exports (id, target_type, target_url, format, last_exported_log_id, exported_count, last_export_at, status, config, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, type, url, target.format, null, 0, null, "active", JSON.stringify(target.config), now);
+  ).run(
+    id,
+    type,
+    url,
+    target.format,
+    null,
+    0,
+    null,
+    "active",
+    JSON.stringify(target.config),
+    now,
+  );
 
   return target;
 }
@@ -89,7 +102,8 @@ export function exportLogs(db, targetId, logs) {
   target.exportedCount += exported;
   target.lastExportAt = now;
   if (items.length > 0) {
-    target.lastExportedLogId = items[items.length - 1].id || `log-${Date.now()}`;
+    target.lastExportedLogId =
+      items[items.length - 1].id || `log-${Date.now()}`;
   }
 
   _exports.push({ targetId, exported, timestamp: now });

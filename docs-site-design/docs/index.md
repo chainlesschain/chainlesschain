@@ -11,10 +11,10 @@ hero:
   actions:
     - theme: brand
       text: 系统架构总览
-      link: /系统设计_主文档
+      link: /system-design-main
     - theme: alt
       text: 模块设计文档
-      link: /modules/01_知识库管理模块
+      link: /modules/m01-knowledge-base
     - theme: alt
       text: 用户文档站
       link: https://docs.chainlesschain.com
@@ -51,13 +51,13 @@ features:
 
 | 角色              | 推荐阅读                                                                                                                                                                                                     |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **新人开发者**    | [系统设计主文档](/系统设计_主文档) → [知识库模块](/modules/01_知识库管理模块) → [社交模块](/modules/02_去中心化社交模块)                                                                                     |
-| **安全工程师**    | [安全机制设计](/安全机制设计) → [统一密钥系统](/modules/21_统一密钥系统) → [数据防泄漏系统](/modules/24_数据防泄漏系统)                                                                                      |
-| **AI工程师**      | [AI优化系统](/modules/06_AI优化系统) → [多代理系统](/modules/13_多代理系统) → [推理网络](/modules/38_去中心化推理网络系统)                                                                                   |
-| **运维工程师**    | [生产强化](/modules/29_生产强化系统) → [基础设施编排](/modules/28_基础设施编排系统) → [SIEM](/modules/25_安全信息事件管理系统)                                                                               |
-| **产品经理**      | [系统设计主文档](/系统设计_主文档) → [实施总结](/实施总结与附录)                                                                                                                                             |
-| **v5.0.0 新模块** | [IPC域分割](/modules/43_IPC域分割与懒加载系统) → [A2A协议](/modules/46_A2A协议引擎) → [零知识证明](/modules/53_零知识证明引擎) → [低代码平台](/modules/58_低代码平台) → [自进化AI](/modules/65_自进化AI系统) |
-| **v5.0.1 新模块** | [CLI分发系统](/modules/66_CLI分发系统) → [CLI高级功能](/modules/67_CLI高级功能补齐)                                                                                                                          |
+| **新人开发者**    | [系统设计主文档](/system-design-main) → [知识库模块](/modules/m01-knowledge-base) → [社交模块](/modules/m02-decentralized-social)                                                                                     |
+| **安全工程师**    | [安全机制设计](/security-design) → [统一密钥系统](/modules/m21-unified-key) → [数据防泄漏系统](/modules/m24b-dlp-prevention)                                                                                      |
+| **AI工程师**      | [AI优化系统](/modules/m06-ai-optimization) → [多代理系统](/modules/m13-multi-agent) → [推理网络](/modules/m38-decentralized-inference)                                                                                   |
+| **运维工程师**    | [生产强化](/modules/m29-production-hardening) → [基础设施编排](/modules/m28-infra-orchestration) → [SIEM](/modules/m25-siem)                                                                               |
+| **产品经理**      | [系统设计主文档](/system-design-main) → [实施总结](/implementation-summary)                                                                                                                                             |
+| **v5.0.0 新模块** | [IPC域分割](/modules/m43-ipc-domain-split) → [A2A协议](/modules/m46-a2a-protocol) → [零知识证明](/modules/m53-zkp-engine) → [低代码平台](/modules/m58-low-code) → [自进化AI](/modules/m65-self-evolving-ai) |
+| **v5.0.1 新模块** | [CLI分发系统](/modules/m66-cli-distribution) → [CLI高级功能](/modules/m67-cli-advanced)                                                                                                                          |
 
 ### 版本演进
 

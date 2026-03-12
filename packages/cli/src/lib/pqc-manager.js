@@ -83,13 +83,16 @@ export function generateKey(db, algorithm, purpose, opts = {}) {
 
   const validAlgorithms = Object.values(PQC_ALGORITHMS);
   if (!validAlgorithms.includes(algorithm)) {
-    throw new Error(`Invalid algorithm: ${algorithm}. Valid: ${validAlgorithms.join(", ")}`);
+    throw new Error(
+      `Invalid algorithm: ${algorithm}. Valid: ${validAlgorithms.join(", ")}`,
+    );
   }
 
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  const keySize = algorithm.includes("1024") || algorithm.includes("87") ? 1024 : 768;
+  const keySize =
+    algorithm.includes("1024") || algorithm.includes("87") ? 1024 : 768;
   const publicKey = crypto.randomBytes(keySize / 8).toString("hex");
   const isHybrid = algorithm.startsWith("HYBRID");
   const classicalAlgorithm = isHybrid

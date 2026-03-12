@@ -27,7 +27,10 @@ export function registerTerraformCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureTerraformTables(db);
 
@@ -44,7 +47,10 @@ export function registerTerraformCommand(program) {
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   terraform
@@ -56,7 +62,10 @@ export function registerTerraformCommand(program) {
     .action(async (name, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureTerraformTables(db);
 
@@ -70,7 +79,10 @@ export function registerTerraformCommand(program) {
         logger.log(`  ${chalk.bold("Name:")}    ${ws.name}`);
         logger.log(`  ${chalk.bold("Version:")} ${ws.terraformVersion}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   terraform
@@ -80,7 +92,10 @@ export function registerTerraformCommand(program) {
     .action(async (workspaceId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureTerraformTables(db);
 
@@ -91,7 +106,10 @@ export function registerTerraformCommand(program) {
         logger.log(`  ${chalk.bold("Changed:")}   ${run.resourcesChanged}`);
         logger.log(`  ${chalk.bold("Destroyed:")} ${run.resourcesDestroyed}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   terraform
@@ -102,7 +120,10 @@ export function registerTerraformCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureTerraformTables(db);
 
@@ -119,6 +140,9 @@ export function registerTerraformCommand(program) {
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 }

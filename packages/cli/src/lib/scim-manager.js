@@ -70,7 +70,8 @@ export function createUser(db, userName, displayName, email) {
 
   // Check for duplicate
   for (const u of _users.values()) {
-    if (u.userName === userName) throw new Error(`User already exists: ${userName}`);
+    if (u.userName === userName)
+      throw new Error(`User already exists: ${userName}`);
   }
 
   const id = crypto.randomUUID();
@@ -91,7 +92,20 @@ export function createUser(db, userName, displayName, email) {
   db.prepare(
     `INSERT INTO scim_resources (id, resource_type, external_id, display_name, user_name, email, active, attributes, source, provider, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, "User", null, user.displayName, userName, email, 1, "{}", "cli", null, now, now);
+  ).run(
+    id,
+    "User",
+    null,
+    user.displayName,
+    userName,
+    email,
+    1,
+    "{}",
+    "cli",
+    null,
+    now,
+    now,
+  );
 
   return user;
 }
@@ -184,7 +198,8 @@ export function getStatus() {
     users: _users.size,
     connectors: _connectors.size,
     syncOperations: _syncLog.length,
-    lastSync: _syncLog.length > 0 ? _syncLog[_syncLog.length - 1].createdAt : null,
+    lastSync:
+      _syncLog.length > 0 ? _syncLog[_syncLog.length - 1].createdAt : null,
   };
 }
 

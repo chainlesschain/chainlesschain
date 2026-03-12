@@ -186,7 +186,9 @@ export function execute(db, proposalId) {
   const proposal = _proposals.get(proposalId);
   if (!proposal) throw new Error(`Proposal not found: ${proposalId}`);
   if (proposal.votesFor <= proposal.votesAgainst) {
-    throw new Error("Proposal has not passed (votesFor must exceed votesAgainst)");
+    throw new Error(
+      "Proposal has not passed (votesFor must exceed votesAgainst)",
+    );
   }
 
   const now = new Date().toISOString();
@@ -203,7 +205,10 @@ export function execute(db, proposalId) {
 /* ── Treasury ──────────────────────────────────────────────── */
 
 export function getTreasury() {
-  return { balance: _treasury.balance, allocations: [..._treasury.allocations] };
+  return {
+    balance: _treasury.balance,
+    allocations: [..._treasury.allocations],
+  };
 }
 
 export function allocate(db, proposalId, amount, description) {
@@ -218,7 +223,13 @@ export function allocate(db, proposalId, amount, description) {
 
   _treasury.balance -= amount;
 
-  const allocation = { id, proposalId, amount, description: description || "", date: now };
+  const allocation = {
+    id,
+    proposalId,
+    amount,
+    description: description || "",
+    date: now,
+  };
   _treasury.allocations.push(allocation);
 
   db.prepare(
@@ -261,9 +272,11 @@ export function getStats() {
 /* ── Configuration ─────────────────────────────────────────── */
 
 export function configure(config) {
-  if (config.votingPeriod !== undefined) _config.votingPeriod = config.votingPeriod;
+  if (config.votingPeriod !== undefined)
+    _config.votingPeriod = config.votingPeriod;
   if (config.quorum !== undefined) _config.quorum = config.quorum;
-  if (config.executionDelay !== undefined) _config.executionDelay = config.executionDelay;
+  if (config.executionDelay !== undefined)
+    _config.executionDelay = config.executionDelay;
   return { ..._config };
 }
 

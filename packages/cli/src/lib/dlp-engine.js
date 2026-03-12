@@ -92,7 +92,10 @@ export function scanContent(db, content, channel, userId) {
 
     if (matched) {
       matchedPolicies.push(policy);
-      if ((actionPriority[policy.action] || 0) > (actionPriority[highestAction] || 0)) {
+      if (
+        (actionPriority[policy.action] || 0) >
+        (actionPriority[highestAction] || 0)
+      ) {
         highestAction = policy.action;
       }
     }
@@ -103,7 +106,10 @@ export function scanContent(db, content, channel, userId) {
     for (const policy of matchedPolicies) {
       const incidentId = crypto.randomUUID();
       const now = new Date().toISOString();
-      const contentHash = crypto.createHash("sha256").update(content).digest("hex");
+      const contentHash = crypto
+        .createHash("sha256")
+        .update(content)
+        .digest("hex");
 
       const incident = {
         id: incidentId,
@@ -139,7 +145,10 @@ export function scanContent(db, content, channel, userId) {
       );
     }
 
-    if (highestAction === DLP_ACTIONS.BLOCK || highestAction === DLP_ACTIONS.QUARANTINE) {
+    if (
+      highestAction === DLP_ACTIONS.BLOCK ||
+      highestAction === DLP_ACTIONS.QUARANTINE
+    ) {
       _blockCount++;
     } else if (highestAction === DLP_ACTIONS.ALERT) {
       _alertCount++;
@@ -147,7 +156,9 @@ export function scanContent(db, content, channel, userId) {
   }
 
   return {
-    allowed: highestAction === DLP_ACTIONS.ALLOW || highestAction === DLP_ACTIONS.ALERT,
+    allowed:
+      highestAction === DLP_ACTIONS.ALLOW ||
+      highestAction === DLP_ACTIONS.ALERT,
     action: highestAction,
     matchedPolicies: matchedPolicies.length,
     incidents,

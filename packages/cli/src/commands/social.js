@@ -43,15 +43,27 @@ export function registerSocialCommand(program) {
     .action(async (name, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
-        const c = addContact(db, name, options.did, options.email, options.notes);
+        const c = addContact(
+          db,
+          name,
+          options.did,
+          options.email,
+          options.notes,
+        );
         logger.success(`Contact ${chalk.cyan(c.name)} added`);
         logger.log(`  ${chalk.bold("ID:")} ${chalk.cyan(c.id)}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   contact
@@ -61,7 +73,10 @@ export function registerSocialCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -72,11 +87,16 @@ export function registerSocialCommand(program) {
           logger.info("No contacts.");
         } else {
           for (const c of contacts) {
-            logger.log(`  ${chalk.cyan(c.id.slice(0, 8))} ${c.name} ${c.email || ""} ${c.did || ""}`);
+            logger.log(
+              `  ${chalk.cyan(c.id.slice(0, 8))} ${c.name} ${c.email || ""} ${c.did || ""}`,
+            );
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   contact
@@ -85,14 +105,20 @@ export function registerSocialCommand(program) {
     .action(async (contactId) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
         deleteContact(db, contactId);
         logger.success(`Contact deleted`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   contact
@@ -102,7 +128,10 @@ export function registerSocialCommand(program) {
     .action(async (contactId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -117,7 +146,10 @@ export function registerSocialCommand(program) {
           logger.log(`  ${chalk.bold("Notes:")} ${c.notes || "N/A"}`);
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // ── Friend subcommands ──────────────────────────────────────
@@ -130,14 +162,20 @@ export function registerSocialCommand(program) {
     .action(async (contactId) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
         const f = addFriend(db, contactId);
         logger.success(`Friend request sent (${f.status})`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   friend
@@ -147,7 +185,10 @@ export function registerSocialCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -158,11 +199,16 @@ export function registerSocialCommand(program) {
           logger.info("No friends.");
         } else {
           for (const f of friends) {
-            logger.log(`  ${chalk.cyan(f.contactId.slice(0, 8))} [${f.status}]`);
+            logger.log(
+              `  ${chalk.cyan(f.contactId.slice(0, 8))} [${f.status}]`,
+            );
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   friend
@@ -171,14 +217,20 @@ export function registerSocialCommand(program) {
     .action(async (contactId) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
         removeFriend(db, contactId);
         logger.success("Friend removed");
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   friend
@@ -188,7 +240,10 @@ export function registerSocialCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -199,11 +254,16 @@ export function registerSocialCommand(program) {
           logger.info("No pending requests.");
         } else {
           for (const p of pending) {
-            logger.log(`  ${chalk.cyan(p.contactId.slice(0, 8))} [${p.status}]`);
+            logger.log(
+              `  ${chalk.cyan(p.contactId.slice(0, 8))} [${p.status}]`,
+            );
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // ── Post subcommands ────────────────────────────────────────
@@ -217,7 +277,10 @@ export function registerSocialCommand(program) {
     .action(async (content, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -225,7 +288,10 @@ export function registerSocialCommand(program) {
         logger.success("Post published");
         logger.log(`  ${chalk.bold("ID:")} ${chalk.cyan(p.id)}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   post
@@ -236,7 +302,10 @@ export function registerSocialCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -247,11 +316,16 @@ export function registerSocialCommand(program) {
           logger.info("No posts.");
         } else {
           for (const p of posts) {
-            logger.log(`  ${chalk.cyan(p.id.slice(0, 8))} by ${p.author} — "${p.content.slice(0, 60)}" ♥ ${p.likes}`);
+            logger.log(
+              `  ${chalk.cyan(p.id.slice(0, 8))} by ${p.author} — "${p.content.slice(0, 60)}" ♥ ${p.likes}`,
+            );
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   post
@@ -260,14 +334,20 @@ export function registerSocialCommand(program) {
     .action(async (postId) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
         const p = likePost(db, postId);
         logger.success(`Post liked (${p.likes} total)`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // ── Chat subcommands ────────────────────────────────────────
@@ -281,7 +361,10 @@ export function registerSocialCommand(program) {
     .action(async (recipient, message, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -289,7 +372,10 @@ export function registerSocialCommand(program) {
         logger.success(`Message sent to ${chalk.cyan(recipient)}`);
         logger.log(`  ${chalk.bold("Thread:")} ${msg.threadId}`);
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   chat
@@ -300,11 +386,16 @@ export function registerSocialCommand(program) {
     .action(async (threadId, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
-        const messages = getChatMessages(threadId, { limit: parseInt(options.limit) });
+        const messages = getChatMessages(threadId, {
+          limit: parseInt(options.limit),
+        });
         if (options.json) {
           console.log(JSON.stringify(messages, null, 2));
         } else if (messages.length === 0) {
@@ -315,7 +406,10 @@ export function registerSocialCommand(program) {
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   chat
@@ -325,7 +419,10 @@ export function registerSocialCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -336,11 +433,16 @@ export function registerSocialCommand(program) {
           logger.info("No chat threads.");
         } else {
           for (const t of threads) {
-            logger.log(`  ${chalk.cyan(t.threadId)} (${t.messageCount} messages)`);
+            logger.log(
+              `  ${chalk.cyan(t.threadId)} (${t.messageCount} messages)`,
+            );
           }
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 
   // ── Stats ───────────────────────────────────────────────────
@@ -352,7 +454,10 @@ export function registerSocialCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) { logger.error("Database not available"); process.exit(1); }
+        if (!ctx.db) {
+          logger.error("Database not available");
+          process.exit(1);
+        }
         const db = ctx.db.getDatabase();
         ensureSocialTables(db);
 
@@ -367,6 +472,9 @@ export function registerSocialCommand(program) {
           logger.log(`  ${chalk.bold("Pending:")}   ${stats.pendingRequests}`);
         }
         await shutdown();
-      } catch (err) { logger.error(`Failed: ${err.message}`); process.exit(1); }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
     });
 }

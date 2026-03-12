@@ -59,7 +59,11 @@ export function registerPqcCommand(program) {
   pqc
     .command("generate <algorithm>")
     .description("Generate a PQC key pair")
-    .option("-p, --purpose <purpose>", "Key purpose: encryption, signing, key_exchange", "encryption")
+    .option(
+      "-p, --purpose <purpose>",
+      "Key purpose: encryption, signing, key_exchange",
+      "encryption",
+    )
     .action(async (algorithm, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -144,7 +148,9 @@ export function registerPqcCommand(program) {
         logger.log(`  ${chalk.bold("Plan:")}     ${plan.planName}`);
         logger.log(`  ${chalk.bold("Source:")}   ${plan.sourceAlgorithm}`);
         logger.log(`  ${chalk.bold("Target:")}   ${plan.targetAlgorithm}`);
-        logger.log(`  ${chalk.bold("Migrated:")} ${plan.migratedKeys}/${plan.totalKeys}`);
+        logger.log(
+          `  ${chalk.bold("Migrated:")} ${plan.migratedKeys}/${plan.totalKeys}`,
+        );
         logger.log(`  ${chalk.bold("Status:")}   ${plan.status}`);
 
         await shutdown();

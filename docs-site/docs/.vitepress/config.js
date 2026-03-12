@@ -7,6 +7,7 @@ export default defineConfig({
   ignoreDeadLinks: true,
 
   head: [
+    ["meta", { charset: "utf-8" }],
     ["link", { rel: "icon", href: "/favicon.ico" }],
     ["meta", { name: "theme-color", content: "#3eaf7c" }],
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
@@ -685,7 +686,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.1 Phase 8 基础���施",
+          text: "v5.0.1 Phase 8 基础设施",
           items: [
             {
               text: "基础设施编排 (terraform)",

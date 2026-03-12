@@ -63,7 +63,9 @@ export function ensureComplianceTables(db) {
 export function collectEvidence(db, framework, type, description, source) {
   if (!framework) throw new Error("Framework is required");
   if (!FRAMEWORKS.includes(framework)) {
-    throw new Error(`Unknown framework: ${framework}. Valid: ${FRAMEWORKS.join(", ")}`);
+    throw new Error(
+      `Unknown framework: ${framework}. Valid: ${FRAMEWORKS.join(", ")}`,
+    );
   }
 
   const id = crypto.randomUUID();
@@ -84,7 +86,15 @@ export function collectEvidence(db, framework, type, description, source) {
   db.prepare(
     `INSERT INTO compliance_evidence (id, framework, type, description, source, status, collected_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, framework, evidence.type, evidence.description, evidence.source, "collected", now);
+  ).run(
+    id,
+    framework,
+    evidence.type,
+    evidence.description,
+    evidence.source,
+    "collected",
+    now,
+  );
 
   return evidence;
 }
@@ -104,7 +114,8 @@ export function generateReport(db, framework, title) {
     (p) => p.framework === framework && p.enabled,
   );
 
-  const score = policyList.length > 0 ? Math.min(100, evidenceList.length * 20) : 0;
+  const score =
+    policyList.length > 0 ? Math.min(100, evidenceList.length * 20) : 0;
 
   const report = {
     id,
@@ -121,19 +132,28 @@ export function generateReport(db, framework, title) {
   db.prepare(
     `INSERT INTO compliance_reports (id, framework, title, summary, score, content, generated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, framework, report.title, report.summary, score, JSON.stringify(report.content), now);
+  ).run(
+    id,
+    framework,
+    report.title,
+    report.summary,
+    score,
+    JSON.stringify(report.content),
+    now,
+  );
 
   return report;
 }
 
-/* ── Data Classification ─��────────────────────────────────── */
+/* ── Data Classification ────────────────────────────────────── */
 
 export function classifyData(content) {
   if (!content) throw new Error("Content is required");
 
   const patterns = {
     pii: /\b\d{3}-\d{2}-\d{4}\b|\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z]{2,}\b/i,
-    financial: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b|\baccount\s*#?\s*\d+/i,
+    financial:
+      /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b|\baccount\s*#?\s*\d+/i,
     health: /\bdiagnosis\b|\bpatient\b|\bmedical\b|\bprescription\b/i,
   };
 
@@ -147,7 +167,12 @@ export function classifyData(content) {
   return {
     hasClassifiedData: classifications.length > 0,
     classifications,
-    sensitivity: classifications.length > 1 ? "high" : classifications.length === 1 ? "medium" : "low",
+    sensitivity:
+      classifications.length > 1
+        ? "high"
+        : classifications.length === 1
+          ? "medium"
+          : "low",
   };
 }
 
@@ -196,7 +221,9 @@ export function listPolicies(db, filter = {}) {
 export function addPolicy(db, name, type, framework, rules, severity) {
   if (!name) throw new Error("Policy name is required");
   if (!POLICY_TYPES.includes(type)) {
-    throw new Error(`Invalid policy type: ${type}. Valid: ${POLICY_TYPES.join(", ")}`);
+    throw new Error(
+      `Invalid policy type: ${type}. Valid: ${POLICY_TYPES.join(", ")}`,
+    );
   }
   if (!FRAMEWORKS.includes(framework)) {
     throw new Error(`Invalid framework: ${framework}`);
@@ -221,7 +248,16 @@ export function addPolicy(db, name, type, framework, rules, severity) {
   db.prepare(
     `INSERT INTO compliance_policies (id, name, type, framework, rules, enabled, severity, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(id, name, type, framework, JSON.stringify(rules || {}), 1, policy.severity, now);
+  ).run(
+    id,
+    name,
+    type,
+    framework,
+    JSON.stringify(rules || {}),
+    1,
+    policy.severity,
+    now,
+  );
 
   return policy;
 }
