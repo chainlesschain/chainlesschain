@@ -32,7 +32,7 @@
 └──────┬───────┘  └───────┬────────┘
        │                  │
        ▼                  ▼
-┌────────────────────────��───────────────┐
+┌───────────────────────────────────────┐
 │   SQLite 用户/组存储 + 同步日志         │
 └────────────────────────────────────────┘
 ```
@@ -346,7 +346,7 @@ await window.electronAPI.invoke('scim:resolve-all-conflicts', {
 | `src/main/enterprise/scim-server.js`              | SCIM 2.0 协议服务器     |
 | `src/main/enterprise/scim-sync-engine.js`         | IdP 双向同步引擎        |
 | `src/main/enterprise/scim-conflict-resolver.js`   | 冲突检测与解决          |
-| `src/main/enterprise/scim-ipc.js`                 | IPC 处理器���8 个）      |
+| `src/main/enterprise/scim-ipc.js`                 | IPC 处理器（8 个）      |
 | `src/renderer/pages/enterprise/SCIMPage.vue`      | SCIM 集成管理页面       |
 | `src/renderer/stores/scim.ts`                     | Pinia 状态管理          |
 

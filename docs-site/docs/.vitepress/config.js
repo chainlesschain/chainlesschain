@@ -408,6 +408,14 @@ export default defineConfig({
               link: "/chainlesschain/cli-distribution",
             },
             {
+              text: "项目初始化 (init)",
+              link: "/chainlesschain/cli-init",
+            },
+            {
+              text: "多智能体协作 (cowork)",
+              link: "/chainlesschain/cli-cowork",
+            },
+            {
               text: "原生模块保护",
               link: "/chainlesschain/native-module-guard",
             },

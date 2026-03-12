@@ -82,7 +82,7 @@ describe("E2E: headless CLI commands", () => {
       const jsonStr = result.substring(result.indexOf("["));
       const skills = JSON.parse(jsonStr);
       expect(Array.isArray(skills)).toBe(true);
-      expect(skills.length).toBe(138);
+      expect(skills.length).toBeGreaterThanOrEqual(138);
     });
 
     it("skill categories shows category breakdown", () => {

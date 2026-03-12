@@ -25,7 +25,7 @@ describe("skill command", () => {
       // Strip ora spinner output before JSON
       const jsonStr = result.substring(result.indexOf("["));
       const skills = JSON.parse(jsonStr);
-      expect(skills.length).toBe(138);
+      expect(skills.length).toBeGreaterThanOrEqual(138);
     });
 
     it("each skill has required fields", () => {

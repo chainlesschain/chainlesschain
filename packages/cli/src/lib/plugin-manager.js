@@ -6,6 +6,7 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { getElectronUserDataDir } from "./paths.js";
 
 /**
  * Ensure plugin tables exist.
@@ -34,6 +35,15 @@ export function ensurePluginTables(db) {
       plugin_id TEXT NOT NULL,
       key TEXT NOT NULL,
       value TEXT
+    )
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS plugin_skills (
+      id TEXT PRIMARY KEY,
+      plugin_name TEXT NOT NULL,
+      skill_name TEXT NOT NULL,
+      skill_path TEXT NOT NULL,
+      installed_at TEXT DEFAULT (datetime('now'))
     )
   `);
   db.exec(`
@@ -309,4 +319,112 @@ export function getPluginSummary(db) {
     enabled: enabled?.c || 0,
     registryCount: registry?.c || 0,
   };
+}
+
+// ─── Plugin Skills ──────────────────────────────────────
+
+/**
+ * Get the marketplace skills directory
+ */
+function getMarketplaceSkillsDir() {
+  return path.join(getElectronUserDataDir(), "marketplace", "skills");
+}
+
+/**
+ * Install skills from a plugin manifest.
+ * Copies skill directories to the marketplace/skills/ layer.
+ *
+ * @param {object} db - Database instance
+ * @param {string} pluginName - Plugin name
+ * @param {string} pluginPath - Root path of the plugin package
+ * @param {{ name: string, path: string }[]} skills - Skills declared in manifest
+ * @returns {{ installed: string[] }} Names of installed skills
+ */
+export function installPluginSkills(db, pluginName, pluginPath, skills) {
+  ensurePluginTables(db);
+  if (!skills || skills.length === 0) return { installed: [] };
+
+  const marketplaceDir = getMarketplaceSkillsDir();
+  const installed = [];
+
+  for (const skill of skills) {
+    const srcDir = path.resolve(pluginPath, skill.path);
+    if (!fs.existsSync(srcDir)) continue;
+
+    const destDir = path.join(marketplaceDir, skill.name);
+    fs.mkdirSync(destDir, { recursive: true });
+
+    // Copy skill files
+    _copyDirSync(srcDir, destDir);
+
+    // Record in DB
+    const id = `ps-${crypto.randomBytes(6).toString("hex")}`;
+    db.prepare(
+      `INSERT OR REPLACE INTO plugin_skills (id, plugin_name, skill_name, skill_path)
+       VALUES (?, ?, ?, ?)`,
+    ).run(id, pluginName, skill.name, destDir);
+
+    installed.push(skill.name);
+  }
+
+  return { installed };
+}
+
+/**
+ * Remove all skills installed by a plugin.
+ *
+ * @param {object} db - Database instance
+ * @param {string} pluginName - Plugin name
+ * @returns {{ removed: string[] }} Names of removed skills
+ */
+export function removePluginSkills(db, pluginName) {
+  ensurePluginTables(db);
+  const rows = db
+    .prepare("SELECT * FROM plugin_skills WHERE plugin_name = ?")
+    .all(pluginName);
+
+  const removed = [];
+  for (const row of rows) {
+    // Remove the skill directory
+    if (fs.existsSync(row.skill_path)) {
+      fs.rmSync(row.skill_path, { recursive: true, force: true });
+    }
+    removed.push(row.skill_name);
+  }
+
+  db.prepare("DELETE FROM plugin_skills WHERE plugin_name = ?").run(pluginName);
+  return { removed };
+}
+
+/**
+ * List skills installed by a specific plugin.
+ *
+ * @param {object} db - Database instance
+ * @param {string} pluginName - Plugin name
+ * @returns {{ skill_name: string, skill_path: string }[]}
+ */
+export function getPluginSkills(db, pluginName) {
+  ensurePluginTables(db);
+  return db
+    .prepare(
+      "SELECT skill_name, skill_path FROM plugin_skills WHERE plugin_name = ?",
+    )
+    .all(pluginName);
+}
+
+/**
+ * Recursively copy a directory
+ */
+function _copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      _copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
 }

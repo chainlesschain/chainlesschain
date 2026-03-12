@@ -25,6 +25,7 @@ import { execSync } from "child_process";
 import { fileURLToPath } from "url";
 import { logger } from "../lib/logger.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
+import { CLISkillLoader } from "../lib/skill-loader.js";
 
 /**
  * Tool definitions for function calling
@@ -189,77 +190,9 @@ const TOOLS = [
 ];
 
 /**
- * Find and load bundled skills (shared with skill command)
+ * Shared multi-layer skill loader
  */
-const __agentDirname = path.dirname(fileURLToPath(import.meta.url));
-
-function findSkillsDir() {
-  const candidates = [
-    path.resolve(
-      __agentDirname,
-      "../../../../../desktop-app-vue/src/main/ai-engine/cowork/skills/builtin",
-    ),
-    path.resolve(
-      process.cwd(),
-      "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin",
-    ),
-  ];
-  for (const dir of candidates) {
-    if (fs.existsSync(dir)) return dir;
-  }
-  return null;
-}
-
-function loadSkillList(skillsDir) {
-  const skills = [];
-  try {
-    const dirs = fs.readdirSync(skillsDir, { withFileTypes: true });
-    for (const dir of dirs) {
-      if (!dir.isDirectory()) continue;
-      const skillMd = path.join(skillsDir, dir.name, "SKILL.md");
-      if (!fs.existsSync(skillMd)) continue;
-      try {
-        const content = fs.readFileSync(skillMd, "utf8");
-        const lines = content.split("\n");
-        if (lines[0].trim() !== "---") continue;
-        let endIndex = -1;
-        for (let i = 1; i < lines.length; i++) {
-          if (lines[i].trim() === "---") {
-            endIndex = i;
-            break;
-          }
-        }
-        if (endIndex === -1) continue;
-        const data = {};
-        for (const line of lines.slice(1, endIndex)) {
-          const ci = line.indexOf(":");
-          if (ci > 0) {
-            const key = line.slice(0, ci).trim();
-            const val = line
-              .slice(ci + 1)
-              .trim()
-              .replace(/^['"]|['"]$/g, "");
-            data[key] = val;
-          }
-        }
-        skills.push({
-          id: data.name || dir.name,
-          description: data.description || "",
-          category: data.category || "uncategorized",
-          dirName: dir.name,
-          hasHandler: fs.existsSync(
-            path.join(skillsDir, dir.name, "handler.js"),
-          ),
-        });
-      } catch {
-        // Skip malformed skill files
-      }
-    }
-  } catch {
-    // Skills dir unreadable
-  }
-  return skills;
-}
+const skillLoader = new CLISkillLoader();
 
 /**
  * Execute a tool call (with plan mode filtering)
@@ -394,50 +327,28 @@ async function executeTool(name, args) {
     }
 
     case "run_skill": {
-      const skillsDir = findSkillsDir();
-      if (!skillsDir) {
+      const allSkills = skillLoader.getResolvedSkills();
+      if (allSkills.length === 0) {
         return {
           error:
-            "Skills directory not found. Make sure you're in the ChainlessChain project root.",
+            "No skills found. Make sure you're in the ChainlessChain project root or have skills installed.",
         };
       }
-      const handlerPath = path.join(skillsDir, args.skill_name, "handler.js");
-      if (!fs.existsSync(handlerPath)) {
-        // Try fuzzy match
-        const skills = loadSkillList(skillsDir);
-        const match = skills.find(
-          (s) => s.id === args.skill_name || s.dirName === args.skill_name,
-        );
-        if (match && match.hasHandler) {
-          const matchedPath = path.join(skillsDir, match.dirName, "handler.js");
-          try {
-            const handler = (
-              await import(`file://${matchedPath.replace(/\\/g, "/")}`)
-            ).default;
-            const task = {
-              params: { input: args.input },
-              input: args.input,
-              action: args.input,
-            };
-            const context = {
-              projectRoot: process.cwd(),
-              workspacePath: process.cwd(),
-            };
-            const result = await handler.execute(task, context);
-            return result;
-          } catch (err) {
-            return { error: `Skill execution failed: ${err.message}` };
-          }
-        }
+      const match = allSkills.find(
+        (s) => s.id === args.skill_name || s.dirName === args.skill_name,
+      );
+      if (!match || !match.hasHandler) {
         return {
           error: `Skill "${args.skill_name}" not found or has no handler. Use list_skills to see available skills.`,
         };
       }
       try {
-        const handler = (
-          await import(`file://${handlerPath.replace(/\\/g, "/")}`)
-        ).default;
-        if (handler.init) await handler.init({});
+        const handlerPath = path.join(match.skillDir, "handler.js");
+        const imported = await import(
+          `file://${handlerPath.replace(/\\/g, "/")}`
+        );
+        const handler = imported.default || imported;
+        if (handler.init) await handler.init(match);
         const task = {
           params: { input: args.input },
           input: args.input,
@@ -447,7 +358,7 @@ async function executeTool(name, args) {
           projectRoot: process.cwd(),
           workspacePath: process.cwd(),
         };
-        const result = await handler.execute(task, context);
+        const result = await handler.execute(task, context, match);
         return result;
       } catch (err) {
         return { error: `Skill execution failed: ${err.message}` };
@@ -455,11 +366,10 @@ async function executeTool(name, args) {
     }
 
     case "list_skills": {
-      const skillsDir = findSkillsDir();
-      if (!skillsDir) {
-        return { error: "Skills directory not found." };
+      let skills = skillLoader.getResolvedSkills();
+      if (skills.length === 0) {
+        return { error: "No skills found." };
       }
-      let skills = loadSkillList(skillsDir);
       if (args.category) {
         skills = skills.filter(
           (s) => s.category.toLowerCase() === args.category.toLowerCase(),
@@ -479,8 +389,9 @@ async function executeTool(name, args) {
         skills: skills.map((s) => ({
           id: s.id,
           category: s.category,
+          source: s.source,
           hasHandler: s.hasHandler,
-          description: s.description.substring(0, 80),
+          description: (s.description || "").substring(0, 80),
         })),
       };
     }
@@ -654,7 +565,7 @@ Key behaviors:
 - When asked to create something, use write_file to create it
 - When asked to run/test something, use run_shell to execute it
 - When asked about files or code, use read_file and search_files to find information
-- You have 138 built-in skills (code-review, summarize, translate, refactor, etc.) — use list_skills to discover them and run_skill to execute them
+- You have multi-layer skills (built-in, marketplace, global, project-level) — use list_skills to discover them and run_skill to execute them
 - Always explain what you're doing and show results
 - Be concise but thorough
 
@@ -731,6 +642,9 @@ export async function startAgentRepl(options = {}) {
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
       logger.log(`  ${chalk.cyan("/compact")}    Keep only last 4 messages`);
       logger.log(
+        `  ${chalk.cyan("/cowork")}     Multi-agent collaboration (debate, compare)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/plan")}       Enter plan mode (read-only analysis first)`,
       );
       logger.log(`  ${chalk.cyan("/plan show")}  Show current plan`);
@@ -788,6 +702,97 @@ export async function startAgentRepl(options = {}) {
         messages.push(systemMsg, ...recent);
         logger.info("Conversation compacted to last 4 messages");
       }
+      prompt();
+      return;
+    }
+
+    // Cowork commands
+    if (trimmed.startsWith("/cowork")) {
+      const coworkArgs = trimmed.slice(7).trim();
+      const [subCmd, ...rest] = coworkArgs.split(/\s+/);
+      const coworkInput = rest.join(" ");
+
+      if (!subCmd || subCmd === "help") {
+        logger.log(chalk.bold("\nCowork Commands:"));
+        logger.log(
+          `  ${chalk.cyan("/cowork debate <file>")}     Multi-perspective code review`,
+        );
+        logger.log(
+          `  ${chalk.cyan("/cowork compare <prompt>")}  A/B solution comparison`,
+        );
+        logger.log("");
+      } else if (subCmd === "debate" && coworkInput) {
+        try {
+          const { startDebate } =
+            await import("../lib/cowork/debate-review-cli.js");
+          let code = coworkInput;
+          let targetLabel = coworkInput;
+          const resolved = path.resolve(coworkInput);
+          if (fs.existsSync(resolved)) {
+            code = fs.readFileSync(resolved, "utf-8");
+            targetLabel = resolved;
+            if (code.length > 15000) {
+              code = code.substring(0, 15000) + "\n... (truncated)";
+            }
+          }
+          process.stdout.write(chalk.gray("\n  Running debate review...\n"));
+          const result = await startDebate({
+            target: targetLabel,
+            code,
+            llmOptions: { provider, model, baseUrl, apiKey },
+          });
+          for (const review of result.reviews) {
+            const vc =
+              review.verdict === "APPROVE"
+                ? chalk.green
+                : review.verdict === "REJECT"
+                  ? chalk.red
+                  : chalk.yellow;
+            process.stdout.write(
+              `  ${chalk.bold(review.role)}: ${vc(review.verdict)}\n`,
+            );
+          }
+          process.stdout.write(
+            `\n  ${chalk.bold("Verdict:")} ${result.verdict}  Consensus: ${result.consensusScore}%\n\n`,
+          );
+          // Add summary to conversation for context
+          messages.push({
+            role: "assistant",
+            content: `[Cowork Debate Result] ${result.verdict} (consensus: ${result.consensusScore}%)\n${result.summary.substring(0, 500)}`,
+          });
+        } catch (err) {
+          logger.error(`Debate failed: ${err.message}`);
+        }
+      } else if (subCmd === "compare" && coworkInput) {
+        try {
+          const { compare } =
+            await import("../lib/cowork/ab-comparator-cli.js");
+          process.stdout.write(chalk.gray("\n  Generating variants...\n"));
+          const result = await compare({
+            prompt: coworkInput,
+            llmOptions: { provider, model, baseUrl, apiKey },
+          });
+          for (const v of result.variants) {
+            process.stdout.write(
+              `  ${chalk.cyan(v.name)}: score ${v.totalScore}\n`,
+            );
+          }
+          process.stdout.write(
+            `\n  ${chalk.bold("Winner:")} ${chalk.green(result.winner)}\n\n`,
+          );
+          messages.push({
+            role: "assistant",
+            content: `[Cowork Compare Result] Winner: ${result.winner}. ${result.reason}`,
+          });
+        } catch (err) {
+          logger.error(`Compare failed: ${err.message}`);
+        }
+      } else {
+        logger.info(
+          "Usage: /cowork debate <file-or-topic> or /cowork compare <prompt>",
+        );
+      }
+
       prompt();
       return;
     }

@@ -40,7 +40,7 @@ ChainlessChain使用Git作为核心同步机制，提供版本控制和跨设备
 
 | 模块 | 说明 |
 |------|------|
-| Git 集成 | isomorphic-git 纯 JS 实现，无需系�� Git |
+| Git 集成 | isomorphic-git 纯 JS 实现，无需系统 Git |
 | 自动提交 | 智能检测变更，生成有意义的 commit message |
 | 冲突解决 | 3-way merge + AI 辅助冲突解决 |
 | 历史分析 | 版本对比、变更统计、贡献者分析 |

@@ -65,7 +65,7 @@ npm run test:ukey          # Run U-Key tests
 ```bash
 cd packages/cli
 npm install
-npm test                   # Run all tests (903 tests, 47 files)
+npm test                   # Run all tests (1009 tests, 55 files)
 npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests
 npm run test:e2e           # End-to-end tests
@@ -96,8 +96,11 @@ chainlesschain ask "question" # Single-shot AI query
 chainlesschain llm models  # List installed models
 chainlesschain llm test    # Test LLM connectivity
 chainlesschain agent       # Agentic AI session (Claude Code style)
-chainlesschain skill list  # List 138 built-in skills
+chainlesschain skill list  # List all skills (4-layer: bundled/marketplace/managed/workspace)
 chainlesschain skill run code-review "Review this code"
+chainlesschain skill add my-skill   # Create custom project skill
+chainlesschain skill remove my-skill # Remove custom skill
+chainlesschain skill sources        # Show skill layer paths and counts
 
 # Phase 1 AI Intelligence Layer
 chainlesschain search "keyword"  # BM25 hybrid search
@@ -150,6 +153,17 @@ chainlesschain org approve <id>        # Approve request
 chainlesschain plugin list             # List installed plugins
 chainlesschain plugin install <name>   # Install plugin
 chainlesschain plugin search <query>   # Search registry
+
+# Project initialization
+chainlesschain init                    # Interactive project init
+chainlesschain init --bare             # Minimal project structure
+chainlesschain init --template code-project --yes # Use template
+
+# Multi-agent collaboration (Cowork)
+chainlesschain cowork debate <file>    # Multi-perspective code review
+chainlesschain cowork compare <prompt> # A/B solution comparison
+chainlesschain cowork analyze <path>   # Code analysis (style/knowledge-graph/decisions)
+chainlesschain cowork status           # Show cowork status
 ```
 
 ### Backend Services (Docker-based)
@@ -226,11 +240,11 @@ Key highlights:
 Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
-- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin)
-- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork)
+- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode + /cowork)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
-- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager)
-- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 785 CLI tests = 903 total)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli)
+- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 891 CLI tests = 1009 total)
 - **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 
 ### Backend Services

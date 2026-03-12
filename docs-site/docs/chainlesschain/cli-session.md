@@ -31,7 +31,7 @@ session 命令 → session.js (Commander) → session-manager.js
 ## 命令参考
 
 ```bash
-chainlesschain session list                # 列��所有会话
+chainlesschain session list                # 列出所有会话
 chainlesschain session show <id>           # 查看会话详情
 chainlesschain session resume <id>         # 恢复会话继续对话
 chainlesschain session export <id>         # 导出为 Markdown
@@ -42,7 +42,7 @@ chainlesschain session delete <id>         # 删除会话
 
 ### list — 列出会话
 
-显示所有保存的会话，按最���使用时间排序：
+显示所有保存的会话，按最近使用时间排序：
 
 ```bash
 chainlesschain session list

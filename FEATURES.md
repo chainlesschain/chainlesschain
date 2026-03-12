@@ -227,7 +227,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 ## CLI Headless Commands (v5.0.1+)
 
-34 commands in `packages/cli/src/commands/`, 903 tests all passing (47 test files):
+37 commands in `packages/cli/src/commands/`, 1009 tests all passing (55 test files):
 
 | Command    | Subcommands                                    | Description                                                        |
 | ---------- | ---------------------------------------------- | ------------------------------------------------------------------ |
@@ -265,14 +265,18 @@ All entry files are relative to `desktop-app-vue/src/`.
 | `wallet`   | create, list, balance, set-default, delete, asset, assets, transfer, history, summary | Digital wallet + asset management (Phase 5) |
 | `org`      | create, list, show, delete, invite, members, team-create, teams, approval-submit, approvals, approve, reject | Organization management (Phase 5) |
 | `plugin`   | list, install, remove, enable, disable, update, info, search, registry, summary | Plugin marketplace (Phase 5) |
+| `init`     | --template, --yes, --bare                      | Project initialization (4 templates: code-project/data-science/devops/empty) |
+| `cowork`   | debate, compare, analyze, status               | Multi-agent collaboration (debate review + A/B comparison + code analysis) |
+| `skill`    | list, run, info, search, categories, add, remove, sources | Multi-layer skill system (4 layers: bundled/marketplace/managed/workspace) |
 
 **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 tests total)
-**CLI lib modules**: 34 modules (10 original + 6 Phase 1 + 5 Phase 2 + 4 Phase 3 + 4 Phase 4 + 5 Phase 5)
+**CLI lib modules**: 42 modules (10 original + 6 Phase 1 + 5 Phase 2 + 4 Phase 3 + 4 Phase 4 + 5 Phase 5 + 8 Phase 102)
 - Phase 1: bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode
 - Phase 2: knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser
 - Phase 3: mcp-client, llm-providers, browser-automation, instinct-manager
 - Phase 4: did-manager, crypto-manager, permission-engine, audit-logger
 - Phase 5: p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager
+- Phase 102: project-detector, skill-loader, cowork-adapter, debate-review-cli, ab-comparator-cli, code-knowledge-graph-cli, decision-kb-cli, project-style-analyzer-cli
 
 ## Android Application
 

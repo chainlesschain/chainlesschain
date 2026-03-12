@@ -34,7 +34,7 @@ chainlesschain setup    # 交互式安装向导
 chainlesschain start    # 启动应用
 ```
 
-- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，34 个命令
+- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，37 个命令
 - ✅ **交互式安装向导** — Node.js/Docker 检测 → 版本选择 → LLM 配置 → 二进制下载 → 自动配置
 - ✅ **GitHub Release 集成** — 自动下载平台二进制文件 (Win/macOS/Linux) + SHA256 校验
 - ✅ **Docker Compose 编排** — 一键管理后端服务 (`services up/down/logs/pull`)
@@ -45,7 +45,11 @@ chainlesschain start    # 启动应用
 - ✅ **Phase 4 安全与身份** — DID 身份管理 (Ed25519) + AES-256-GCM 文件加密 + RBAC 权限引擎 + 审计日志
 - ✅ **Phase 5 P2P与企业** — P2P 消息 + 文件同步 + 数字钱包 (Ed25519) + 组织管理 + 插件市场
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
-- ✅ **903 个测试用例** — 47 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **1009 个测试用例** — 55 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **项目初始化** (`init`) — 4 种模板 (code-project/data-science/devops/空项目)，生成 `.chainlesschain/` 项目结构
+- ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources` 自定义技能管理
+- ✅ **多智能体协作** (`cowork`) — 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
+- ✅ **插件技能集成** — 插件可声明并安装技能到 marketplace 层
 
 ---
 
@@ -1633,7 +1637,7 @@ chainlesschain/
 - [x] **TypeScript Stores扩展**: 46个Stores完整覆盖 ✅ v1.0.0
 - [x] **SIMKey六大安全增强**: iOS eSIM + 5G优化 + NFC离线签名 + 多SIM卡切换 + 健康监控 + 量子抗性算法 ✅ v0.38.0
 - [x] **everything-claude-code模式**: Verification Loop + Orchestrate Workflow + Instinct Learning System ✅ v0.39.0
-- [x] **CLI分发系统 (Phase 101)**: npm CLI包 + 交互式安装 + GitHub Release下载 + Docker编排 + 环境诊断 + CI/CD自动发布 ✅ v5.0.1
+- [x] **CLI分发系统 (Phase 101-102)**: npm CLI包 + 交互式安装 + GitHub Release下载 + Docker编排 + 环境诊断 + CI/CD自动发布 + 项目初始化(init) + 多层技能系统(4层优先级) + 多智能体协作(cowork) + 插件技能集成 + 1009测试 ✅ v5.0.1
 - [x] **CLI Phase 1 AI智能层**: BM25搜索 + Token追踪 + 持久记忆 + 会话管理 + Agent Plan Mode ✅ v5.0.1
 - [x] **CLI Phase 2 知识管理**: 知识导入(Markdown/Evernote/Notion/PDF) + 导出 + Git集成 + 笔记版本控制 ✅ v5.0.1
 - [x] **CLI Phase 3 MCP与集成**: MCP客户端(JSON-RPC 2.0) + 7 LLM Provider + 浏览器自动化 + 本能学习 ✅ v5.0.1

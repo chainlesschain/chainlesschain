@@ -843,7 +843,7 @@ mod._deps.uuidv4 = vi.fn(() => "test-uuid");
 ```javascript
 // SkillMdParser.parseMetadataOnly(content)
 // 仅解析 YAML frontmatter，跳过 Markdown body
-// 返��� stub: { ...metadata, _isStub: true, _bodyLoaded: false }
+// 返回 stub: { ...metadata, _isStub: true, _bodyLoaded: false }
 
 // MarkdownSkill.ensureFullyLoaded()
 // 首次访问时触发完整文件读取

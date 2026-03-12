@@ -112,7 +112,7 @@ describe("BIEngine", () => {
     );
   });
 
-  // ── createDashboard ─────────────────────────────────���────────────────────
+  // ── createDashboard ──────────────────────────────────────────────────────
   it("should create a dashboard", async () => {
     await bi.initialize(db);
     const widgets = ["chart-1", "table-1"];
