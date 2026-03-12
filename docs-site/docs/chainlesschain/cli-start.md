@@ -21,7 +21,7 @@ start 命令 → start.js (Commander) → config-manager + process-manager
                                           │                      │
                                           ▼                      ▼
                                    docker-compose up -d     Electron 进程
-                                                            返��� PID
+                                                            返回 PID
 ```
 
 ## 命令参考

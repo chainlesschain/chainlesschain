@@ -281,7 +281,7 @@ CREATE INDEX IF NOT EXISTS idx_did_v2_rep_source ON did_v2_reputation(source);
 **排查步骤**:
 1. **社交恢复**: 确认收集的 `socialProofs` 数量 >= `threshold`（默认 3），且每个 trustee 签名有效
 2. 确认提供的 `trusteeDid` 均在创建时配置的 `trustees` 列表中
-3. **多因子恢复**: 检查硬件密钥是否可��，助记词是否正确匹配
+3. **多因子恢复**: 检查硬件密钥是否可用，助记词是否正确匹配
 4. 确认 `newKeyPair` 中的公钥格式和 `keyType` 与原始 DID 配置一致
 5. 检查 `recoveryTimeout`（默认 7 天），超时后需重新发起恢复流程
 

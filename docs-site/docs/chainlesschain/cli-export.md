@@ -29,7 +29,7 @@ chainlesschain export
                    exportToSite(db, outputDir, options)
                        │
                        ▼
-                   index.html + style.css + N ��页面  →  输出目录
+                   index.html + style.css + N 个页面  →  输出目录
 ```
 
 ## 子命令

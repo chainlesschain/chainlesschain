@@ -34,6 +34,7 @@ chainlesschain chat                     # 默认: Ollama qwen2:7b
 chainlesschain chat --model llama3      # 使用其他模型
 chainlesschain chat --provider openai --api-key sk-...
 chainlesschain chat --agent             # 代理模式（可读写文件、执行命令）
+chainlesschain chat --agent --session <id>  # 代理模式 + 恢复历史会话
 ```
 
 ### 对话内斜杠命令

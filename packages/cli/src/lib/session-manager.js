@@ -156,6 +156,44 @@ export function deleteSession(db, sessionId) {
 }
 
 /**
+ * Compress a session's messages using a context engineering compact function.
+ * Reduces stored message count while preserving important context.
+ *
+ * @param {object} db - Database instance
+ * @param {string} sessionId - Session to compress
+ * @param {function} compactFn - (messages, options) => compacted messages
+ * @param {object} [options] - Options passed to compactFn
+ * @returns {{ original: number, compressed: number }}
+ */
+export function compressSession(db, sessionId, compactFn, options = {}) {
+  ensureSessionsTable(db);
+
+  const session = db
+    .prepare("SELECT messages FROM llm_sessions WHERE id = ?")
+    .get(sessionId);
+
+  if (!session) throw new Error(`Session not found: ${sessionId}`);
+
+  const messages = JSON.parse(session.messages || "[]");
+  if (messages.length <= 5) {
+    return { original: messages.length, compressed: messages.length };
+  }
+
+  const compacted = compactFn(messages, options);
+
+  db.prepare(
+    `UPDATE llm_sessions SET messages = ?, message_count = ?, summary = ?, updated_at = datetime('now') WHERE id = ?`,
+  ).run(
+    JSON.stringify(compacted),
+    compacted.length,
+    `Compressed from ${messages.length} to ${compacted.length} messages`,
+    sessionId,
+  );
+
+  return { original: messages.length, compressed: compacted.length };
+}
+
+/**
  * Export session as markdown
  */
 export function exportSessionMarkdown(session) {

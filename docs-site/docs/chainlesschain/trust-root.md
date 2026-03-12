@@ -203,7 +203,7 @@ const useTrustRootStore = defineStore("trustRoot", {
 
 ## 使用示例
 
-### TPM 认��流程
+### TPM 认证流程
 
 ```bash
 # 1. 执行三步证明链验证（U-Key → SIMKey → TEE）

@@ -18,12 +18,14 @@ export function registerChatCommand(program) {
       "--agent",
       "Agentic mode - AI can read/write files and run commands (like Claude Code)",
     )
+    .option("--session <id>", "Resume a previous session (agent mode)")
     .action(async (options) => {
       const replOptions = {
         model: options.model,
         provider: options.provider,
         baseUrl: options.baseUrl,
         apiKey: options.apiKey,
+        sessionId: options.session,
       };
 
       if (options.agent) {

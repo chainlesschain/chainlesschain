@@ -970,7 +970,7 @@ chainlesschain memory gc --max-age 365d --min-importance 0.2
 ### 加密存储
 - 记忆数据库通过 **SQLCipher AES-256** 全库透明加密，数据库文件被拷贝后无法读取
 - `memory/` 目录下的 Markdown 文件为明文存储，建议敏感项目使用 **git-crypt** 或系统级磁盘加密保护
-- Embedding 向量缓存在本地 SQLite 中，不上传到外部向量数据库或云���
+- Embedding 向量缓存在本地 SQLite 中，不上传到外部向量数据库或云端
 
 ### 隐私保护
 - LLM 智能提取使用本地 Ollama 模型，对话内容不发送到云端；若使用云端 LLM，需注意对话内容可能被传输

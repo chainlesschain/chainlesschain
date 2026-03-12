@@ -218,7 +218,7 @@ Code Agent 2.0 内置以下安全检测：
 1. 确认 `outputDir` 路径存在且有写入权限
 2. 检查 `template` 值是否为支持的模板之一（react/vue/express/fastapi/spring-boot）
 3. 确认 `features` 数组中的特性名称拼写正确且彼此兼容
-4. 若涉及网络下��（npm ��模板），检查网络连接和代理配置
+4. 若涉及网络下载（npm 或模板），检查网络连接和代理配置
 
 ## 故障排查
 

@@ -567,7 +567,7 @@ ce.resetStats();
 1. 确认压缩内容类型正确（`webpage`/`file`/`dbResult`），不同类型保留不同引用信息
 2. 对于文件类型，确认 `path` 字段存在，否则无法恢复完整内容
 3. 检查恢复函数（`fetchWebpage`/`readFile`/`runQuery`）是否正确实现
-4. 对关键数据建议设置更高的压缩阈值，��免不必要的压缩
+4. 对关键数据建议设置更高的压缩阈值，避免不必要的压缩
 
 ### 敏感上下文保护
 
@@ -631,7 +631,7 @@ chainlesschain context recall --session-id <id> --depth full
 
 - System Prompt 中的动态内容（时间戳、UUID、Session ID）自动清理为占位符，防止敏感信息泄露到缓存层
 - 对话历史清理时仅移除非核心元数据，保留 `role`、`content` 等必要字段
-- 工具定���采用确定���序列化，防止参数注入和工具定义篡改
+- 工具定义采用确定性序列化，防止参数注入和工具定义篡改
 
 ### 注入安全
 

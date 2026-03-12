@@ -45,7 +45,7 @@ chainlesschain setup --skip-services    # 跳过 Docker 服务配置
 
 ### 步骤 1：Node.js 版本检查
 
-检查当前 Node.js 版本是否满足最低要��。不满足时自动退出。
+检查当前 Node.js 版本是否满足最低要求。不满足时自动退出。
 
 ### 步骤 2：Docker 环境检查
 
@@ -114,7 +114,7 @@ chainlesschain setup --skip-download --skip-services
 
 跳过下载和 Docker 服务步骤，仅完成基础配置。适用于 CI/CD 或已有二进制的环境。
 
-### 场景 3：重��配置 LLM 提供商
+### 场景 3：重新配置 LLM 提供商
 
 ```bash
 chainlesschain setup

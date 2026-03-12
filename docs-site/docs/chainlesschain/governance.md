@@ -311,7 +311,7 @@ const proposal = await window.electronAPI.invoke("governance:create-proposal", {
     proposedValue: "AES-256-GCM",
   },
 });
-// proposal.status = 'DRAFT'，需���交后进入 ACTIVE 投票阶段
+// proposal.status = 'DRAFT'，需提交后进入 ACTIVE 投票阶段
 ```
 
 ### AI 影响分析与投票预测

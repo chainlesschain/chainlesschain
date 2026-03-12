@@ -290,7 +290,7 @@ const dryRun = await window.electronAPI.invoke("pqc:execute-migration", {
 });
 console.log(`模拟结果: 将迁移 ${dryRun.migratedCount} 个密钥`);
 
-// 4. 确认无误��正式执行迁移
+// 4. 确认无误后正式执行迁移
 const result = await window.electronAPI.invoke("pqc:execute-migration", {
   scope: "SIGNING",
   strategy: "hybrid-first",

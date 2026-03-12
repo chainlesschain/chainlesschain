@@ -518,3 +518,211 @@ describe("ExecutionPlan", () => {
     expect(plan.items[0]).toBeInstanceOf(PlanItem);
   });
 });
+
+// ── PlanItem risk score ──
+
+describe("PlanItem riskScore", () => {
+  it("calculates risk for read tools", () => {
+    const item = new PlanItem({ tool: "read_file", estimatedImpact: "low" });
+    expect(item.riskScore).toBe(1); // 1 * 1
+  });
+
+  it("calculates risk for write tools", () => {
+    const item = new PlanItem({
+      tool: "write_file",
+      estimatedImpact: "medium",
+    });
+    expect(item.riskScore).toBe(4); // 2 * 2
+  });
+
+  it("calculates risk for shell with high impact", () => {
+    const item = new PlanItem({ tool: "run_shell", estimatedImpact: "high" });
+    expect(item.riskScore).toBe(9); // 3 * 3
+  });
+
+  it("defaults to 1 for unknown tool", () => {
+    const item = new PlanItem({ tool: "unknown", estimatedImpact: "low" });
+    expect(item.riskScore).toBe(1);
+  });
+});
+
+// ── ExecutionPlan DAG ──
+
+describe("ExecutionPlan DAG", () => {
+  describe("topologicalSort", () => {
+    it("sorts items by dependencies", () => {
+      const plan = new ExecutionPlan();
+      const item1 = plan.addItem({ title: "Step 1" });
+      const item2 = plan.addItem({ title: "Step 2", dependencies: [item1.id] });
+      const item3 = plan.addItem({ title: "Step 3", dependencies: [item2.id] });
+
+      const sorted = plan.topologicalSort();
+      const titles = sorted.map((i) => i.title);
+      expect(titles).toEqual(["Step 1", "Step 2", "Step 3"]);
+    });
+
+    it("handles items with no dependencies", () => {
+      const plan = new ExecutionPlan();
+      plan.addItem({ title: "A" });
+      plan.addItem({ title: "B" });
+      plan.addItem({ title: "C" });
+
+      const sorted = plan.topologicalSort();
+      expect(sorted.length).toBe(3);
+    });
+
+    it("detects dependency cycles", () => {
+      const plan = new ExecutionPlan();
+      const item1 = plan.addItem({ title: "A" });
+      const item2 = plan.addItem({ title: "B", dependencies: [item1.id] });
+      // Create cycle: A depends on B
+      item1.dependencies = [item2.id];
+
+      expect(() => plan.topologicalSort()).toThrow("cycle");
+    });
+  });
+
+  describe("executeInOrder", () => {
+    it("executes items in topological order", async () => {
+      const plan = new ExecutionPlan();
+      const item1 = plan.addItem({ title: "Read config", tool: "read_file" });
+      plan.addItem({
+        title: "Edit config",
+        tool: "edit_file",
+        dependencies: [item1.id],
+      });
+
+      const executionOrder = [];
+      const results = await plan.executeInOrder(async (item) => {
+        executionOrder.push(item.title);
+        return { success: true };
+      });
+
+      expect(executionOrder).toEqual(["Read config", "Edit config"]);
+      expect(results.length).toBe(2);
+      expect(results.every((r) => r.success)).toBe(true);
+    });
+
+    it("blocks downstream on dependency failure", async () => {
+      const plan = new ExecutionPlan();
+      const item1 = plan.addItem({ title: "Failing step", tool: "run_shell" });
+      plan.addItem({
+        title: "Dependent step",
+        tool: "write_file",
+        dependencies: [item1.id],
+      });
+
+      const results = await plan.executeInOrder(async (item) => {
+        if (item.title === "Failing step") throw new Error("exec failed");
+        return { success: true };
+      });
+
+      expect(results[0].success).toBe(false);
+      expect(results[1].success).toBe(false);
+      expect(results[1].error).toContain("Blocked by failed dependency");
+    });
+  });
+
+  describe("getRiskAssessment", () => {
+    it("returns low risk for read-only plan", () => {
+      const plan = new ExecutionPlan();
+      plan.addItem({ tool: "read_file", estimatedImpact: "low" });
+      plan.addItem({ tool: "list_dir", estimatedImpact: "low" });
+
+      const risk = plan.getRiskAssessment();
+      expect(risk.level).toBe("low");
+      expect(risk.totalScore).toBe(2);
+    });
+
+    it("returns high risk for shell commands", () => {
+      const plan = new ExecutionPlan();
+      plan.addItem({ tool: "run_shell", estimatedImpact: "high" });
+      plan.addItem({ tool: "write_file", estimatedImpact: "high" });
+
+      const risk = plan.getRiskAssessment();
+      expect(risk.level).toBe("high");
+      expect(risk.maxScore).toBeGreaterThanOrEqual(6);
+    });
+
+    it("returns item-level scores", () => {
+      const plan = new ExecutionPlan();
+      plan.addItem({ title: "A", tool: "read_file", estimatedImpact: "low" });
+      plan.addItem({ title: "B", tool: "run_shell", estimatedImpact: "high" });
+
+      const risk = plan.getRiskAssessment();
+      expect(risk.itemScores.length).toBe(2);
+      expect(risk.itemScores[1].score).toBe(9); // 3 * 3
+    });
+  });
+});
+
+// ── PlanModeManager DAG integration ──
+
+describe("PlanModeManager advanced", () => {
+  let manager;
+
+  beforeEach(() => {
+    destroyPlanModeManager();
+    manager = new PlanModeManager();
+  });
+
+  afterEach(() => {
+    manager.removeAllListeners();
+  });
+
+  it("getRiskAssessment returns null without plan", () => {
+    expect(manager.getRiskAssessment()).toBeNull();
+  });
+
+  it("getRiskAssessment returns assessment for active plan", () => {
+    manager.enterPlanMode();
+    manager.addPlanItem({ tool: "write_file", estimatedImpact: "medium" });
+    manager.addPlanItem({ tool: "run_shell", estimatedImpact: "high" });
+
+    const risk = manager.getRiskAssessment();
+    expect(risk).not.toBeNull();
+    expect(risk.level).toBeTruthy();
+    expect(risk.itemScores.length).toBe(2);
+  });
+
+  it("executePlan runs items in order", async () => {
+    manager.enterPlanMode();
+    manager.addPlanItem({ title: "Step 1", tool: "read_file" });
+    manager.addPlanItem({ title: "Step 2", tool: "edit_file" });
+    manager.approvePlan();
+
+    const { results, success } = await manager.executePlan(async (item) => {
+      return { done: true, tool: item.tool };
+    });
+
+    expect(success).toBe(true);
+    expect(results.length).toBe(2);
+  });
+
+  it("executePlan requires approval", async () => {
+    manager.enterPlanMode();
+    manager.addPlanItem({ title: "Step 1" });
+
+    const result = await manager.executePlan(async () => {});
+    expect(result.error).toBe("Plan not approved");
+  });
+
+  it("setHookDb stores db reference", () => {
+    const mockDb = {};
+    manager.setHookDb(mockDb);
+    expect(manager._hookDb).toBe(mockDb);
+  });
+
+  it("generatePlanSummary includes risk info", () => {
+    manager.enterPlanMode();
+    manager.addPlanItem({
+      title: "Shell step",
+      tool: "run_shell",
+      estimatedImpact: "high",
+    });
+
+    const summary = manager.generatePlanSummary();
+    expect(summary).toContain("Risk");
+    expect(summary).toContain("Shell step");
+  });
+});

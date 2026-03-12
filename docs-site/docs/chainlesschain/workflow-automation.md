@@ -380,9 +380,9 @@ const stats = await window.electron.ipcRenderer.invoke("automation:get-stats");
 | 连接器认证失败 | OAuth Token 过期或 API Key 无效 | 重新授权连接器，检查 Token 有效期；GitHub/Slack 等需在对应平台重新生成凭证 |
 | Pipeline 步骤报错 | Transform/Filter 中的 JavaScript 表达式语法错误 | 检查 `expression` 和 `condition` 字段的 JS 语法，确保引用的字段名与上游数据结构一致 |
 | 定时调度未触发 | Cron 表达式或时区配置错误 | 使用 crontab 校验工具验证表达式，确认 `timezone` 与系统时区一致（如 `Asia/Shanghai`） |
-| Webhook 无法接收 | 本地防火墙或端口未开放 | 确认 Webhook 端口��从外网访问，或使用 ngrok 等工具进行端口转发；检查 `secret` 签名验证是否匹配 |
+| Webhook 无法接收 | 本地防火墙或端口未开放 | 确认 Webhook 端口可从外网访问，或使用 ngrok 等工具进行端口转发；检查 `secret` 签名验证是否匹配 |
 | 执行超时 | 单步骤或总流程耗时超出配置限制 | 增大 `executionTimeout`（默认 300 秒），或优化连接器调用（减少数据量、启用分页） |
-| 模板导入失败 | 模板依赖的连接器未配置或版本不��容 | 导入前检查模板所需连接器是否已启用，升级连接器到兼容版本 |
+| 模板导入失败 | 模板依赖的连接器未配置或版本不兼容 | 导入前检查模板所需连接器是否已启用，升级连接器到兼容版本 |
 
 ## 安全考虑
 
@@ -426,7 +426,7 @@ const stats = await window.electron.ipcRenderer.invoke("automation:get-stats");
 ### 连接器配置要点
 
 - **OAuth 连接器**（Gmail/Slack/GitHub）: 需在对应平台创建 OAuth App，将 Token 配置到 `.chainlesschain/config.json`，Token 过期后系统自动刷新
-- **Webhook 连接器**: 配置 `secret` 用于签名验证，确认���收端口从外网可达（或使用 ngrok 转发）
+- **Webhook 连接器**: 配置 `secret` 用于签名验证，确认接收端口从外网可达（或使用 ngrok 转发）
 - **数据库连接器**: 使用只读账号连接，避免工作流误操作修改源数据
 
 ### 触发器设置

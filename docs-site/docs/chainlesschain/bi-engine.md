@@ -367,7 +367,7 @@ const result = await window.electron.ipcRenderer.invoke("bi:nl-query", {
 
 // 多表关联查询
 const result2 = await window.electron.ipcRenderer.invoke("bi:nl-query", {
-  question: "过去 7 天每个产���线的订单金额排行",
+  question: "过去 7 天每个产品线的订单金额排行",
   visualize: true,
   explain: true,
 });

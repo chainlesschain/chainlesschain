@@ -55,6 +55,9 @@ import { registerBiCommand } from "./commands/bi.js";
 // Phase 9: Low-Code & Multi-Agent
 import { registerLowcodeCommand } from "./commands/lowcode.js";
 
+// EvoMap: Gene Exchange Protocol
+import { registerEvoMapCommand } from "./commands/evomap.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -138,6 +141,9 @@ export function createProgram() {
 
   // Phase 9: Low-Code & Multi-Agent
   registerLowcodeCommand(program);
+
+  // EvoMap: Gene Exchange Protocol
+  registerEvoMapCommand(program);
 
   return program;
 }

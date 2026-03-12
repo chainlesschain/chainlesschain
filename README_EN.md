@@ -49,7 +49,8 @@ chainlesschain start    # Launch application
 - ✅ **Phase 8 Blockchain & Enterprise** — Agent Economy (micropayments + resource marketplace + NFTs) + ZKP Engine (Groth16 + selective disclosure) + BI Analytics (NL→SQL + anomaly detection)
 - ✅ **Phase 9 Low-Code & Multi-Agent** — Low-Code Platform (15+ components + versioning) + Multi-Agent Coordinator + DI Service Container
 - ✅ **CI/CD Auto-publish** — GitHub Actions `npm publish --provenance` + supply chain security
-- ✅ **1429 Test Cases** — 67 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
+- ✅ **Agent Context Engineering** — 4-dimension context injection (Instinct/Memory/BM25 Notes/Task) + KV-Cache optimization + smart compaction + session resume (`--session`)
+- ✅ **1492 Test Cases** — 69 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
 - ✅ **Project Initialization** (`init`) — 4 templates (code-project/data-science/devops/empty), generates `.chainlesschain/` project structure
 - ✅ **Multi-layer Skill System** — 4-layer priority (bundled < marketplace < managed < workspace), custom skill management (add/remove/sources)
 - ✅ **Multi-agent Collaboration** (`cowork`) — Multi-perspective debate review + A/B solution comparison + code knowledge graph analysis

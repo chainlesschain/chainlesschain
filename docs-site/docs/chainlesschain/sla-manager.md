@@ -230,7 +230,7 @@ const dashboard = await window.electronAPI.invoke('sla:get-dashboard');
 
 ### 查看全局仪表板
 
-1. 切换到「仪表板��标签页
+1. 切换到「仪表板」标签页
 2. 查看合约状态分布（active/violated/expired）
 3. 查看违约事件统计（critical/major/minor）
 4. 分析违约趋势，及时调整合约条款
@@ -252,7 +252,7 @@ const dashboard = await window.electronAPI.invoke('sla:get-dashboard');
 - **违约证据链**: 每次合规检查的实际指标和时间戳完整记录，作为违约证据
 - **分级响应**: CRITICAL 违约自动升级处理，确保严重问题得到及时关注
 - **跨组织隔离**: 每个组织只能查看与自身相关的合约和违约信息
-- **合规数据加密**: 指标数据存��在加密数据库中，防止数据泄露
+- **合规数据加密**: 指标数据存储在加密数据库中，防止数据泄露
 - **审计可追溯**: 所有合约操作（创建/检查/违约/终止）都有完整审计日志
 - **双方确认**: 合约从 DRAFT 到 ACTIVE 需要双方组织确认
 

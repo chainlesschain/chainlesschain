@@ -282,7 +282,7 @@ chainlesschain zkp vkey-check --circuit <name>
 ## 安全考虑
 
 ### 证明系统安全性
-- **可信设置**: Groth16 需要可信设���仪式（Trusted Setup），泄露 toxic waste 将导致伪造证明；建议使用多方参与的 Powers of Tau 仪式或切换到无需可信设置的 PLONK/STARK
+- **可信设置**: Groth16 需要可信设置仪式（Trusted Setup），泄露 toxic waste 将导致伪造证明；建议使用多方参与的 Powers of Tau 仪式或切换到无需可信设置的 PLONK/STARK
 - **电路审计**: 自定义 Circom 电路上线前务必进行形式化验证或第三方审计，约束不完整可能导致零知识性失效
 - **侧信道防护**: 证明生成过程中避免在共享环境下运行，防止计时攻击（Timing Attack）泄露 witness 信息
 
@@ -305,7 +305,7 @@ chainlesschain zkp vkey-check --circuit <name>
 3. **模板参数错误**: Circom 模板参数必须为编译时常量，不支持运行时动态值
 4. **编译器路径**: 确认 Circom 编译器已安装且在 PATH 中可访问（`circom --version`）
 
-### 证���验证错误
+### 证明验证错误
 
 | 现象 | 排查步骤 |
 |------|---------|

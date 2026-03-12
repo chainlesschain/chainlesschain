@@ -180,7 +180,7 @@ const useEvoMapFederationStore = defineStore("evoMapFederation", {
 ### 加入全球进化网络
 
 1. 打开「全球进化网络」页面
-2. 在「Hub ��表」中查看已知的联邦 Hub 节点
+2. 在「Hub 列表」中查看已知的联邦 Hub 节点
 3. 系统自动发现并连接可用的远程 Hub
 4. 查看每个 Hub 的状态、基因数量和在线状态
 
@@ -211,7 +211,7 @@ const useEvoMapFederationStore = defineStore("evoMapFederation", {
 
 ## 安全考虑
 
-- **基因传��加密**: 跨 Hub 同步使用端到端加密，防止基因数据被窃听
+- **基因传输加密**: 跨 Hub 同步使用端到端加密，防止基因数据被窃听
 - **所有权验证**: 同步前验证基因的 DID 所有权证明，防止未授权传播
 - **进化压力公平性**: 适应度评分基于客观指标，防止人为操控淘汰机制
 - **Hub 认证**: 联邦 Hub 之间使用双向 TLS 认证，防止恶意节点加入

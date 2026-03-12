@@ -238,7 +238,7 @@ describe("agent-coordinator", () => {
     });
   });
 
-  // ─── estimateComplexity ──────────────────────��───────
+  // ─── estimateComplexity ─────────────────────────────────
 
   describe("estimateComplexity", () => {
     it("returns low for null input", () => {

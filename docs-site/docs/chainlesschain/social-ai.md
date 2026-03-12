@@ -541,7 +541,7 @@ const topicSentiment = await window.electronAPI.invoke('social:analyze-topic', {
 // 返回情感分数（-1.0 到 1.0）和关键词列表
 ```
 
-### 社区��理与图谱分析
+### 社区治理与图谱分析
 
 ```javascript
 // 识别社区中的关键意见领袖（KOL）

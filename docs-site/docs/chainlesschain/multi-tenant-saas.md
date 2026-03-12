@@ -315,7 +315,7 @@ const result = await window.electron.ipcRenderer.invoke("saas:delete-tenant", {
 | 订阅升级后配额未更新 | 订阅状态变更但配额配置未同步刷新 | 调用 `saas:configure` 手动刷新配额，或重启租户隔离引擎 |
 | SSO 登录失败 | OIDC/SAML 配置的 `issuerUrl` 不可达或 `clientId` 不匹配 | 验证 SSO 提供商的 URL 可访问，确认 Client ID 和 Secret 正确 |
 | 数据导入冲突多 | 使用 `replace` 策略导致已有数据被覆盖 | 先使用 `dryRun: true` 预检，确认冲突数量可接受后再执行；优先使用 `merge` 策略 |
-| 租户删除后数据恢复 | 未启用 `retainBackup` 导致数据永久丢失 | 删除时务必设置 `retainBackup: true`，��� `retainDays` 内可从备份恢复 |
+| 租户删除后数据恢复 | 未启用 `retainBackup` 导致数据永久丢失 | 删除时务必设置 `retainBackup: true`，在 `retainDays` 内可从备份恢复 |
 
 ## 安全考虑
 

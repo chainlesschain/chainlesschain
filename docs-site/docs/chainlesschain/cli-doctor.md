@@ -143,7 +143,7 @@ chainlesschain doctor && chainlesschain start
 
 ## 故障排查
 
-| ���题 | 解决方案 |
+| 问题 | 解决方案 |
 |------|---------|
 | Node.js 版本不满足 | 使用 nvm 安装更高版本：`nvm install 20` |
 | Config dir 不存在 | 运行 `chainlesschain setup` |

@@ -235,7 +235,7 @@ const allPractices = await window.electronAPI.invoke('tech-learning:get-practice
 
 ## 故障排查
 
-| 问题 | 可能原因 | 解决��案 |
+| 问题 | 可能原因 | 解决方案 |
 | --- | --- | --- |
 | 技术栈检测失败 | 项目路径无效或无清单文件 | 确认路径存在且包含 package.json 等清单文件 |
 | 检测到的语言不准确 | 清单文件内容不完整 | 补充 dependencies/devDependencies 信息 |

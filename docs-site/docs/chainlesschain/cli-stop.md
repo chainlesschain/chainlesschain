@@ -6,7 +6,7 @@
 
 - 🔹 **停止应用**: 停止桌面 Electron 应用进程
 - 🔹 **停止服务**: 仅停止 Docker 后端服务
-- 🔹 **全部停止**: 同时停止应用和 Docker 服��
+- 🔹 **全部停止**: 同时停止应用和 Docker 服务
 - 🔹 **状态检测**: 自动检测应用运行状态，未运行时友好提示
 
 ## 系统架构
@@ -86,12 +86,12 @@ chainlesschain stop --all
 
 ## 故障排查
 
-| 问题 | ���决方案 |
+| 问题 | 解决方案 |
 |------|---------|
 | `ChainlessChain is not running` | 应用未运行，无需停止 |
 | `Docker not available` | Docker Desktop 未运行，无法停止 Docker 服务 |
 | `docker-compose.yml not found` | 在项目根目录下运行，或确认 `backend/docker` 目录存在 |
-| 停止后端口仍被占用 | 可能有其��进程占用端口，使用 `chainlesschain status` 检查 |
+| 停止后端口仍被占用 | 可能有其他进程占用端口，使用 `chainlesschain status` 检查 |
 
 ## 相关文档
 

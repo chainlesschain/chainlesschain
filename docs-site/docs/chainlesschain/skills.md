@@ -365,7 +365,7 @@ chainlesschain skill run changelog-generator "根据 Git 提交生成 CHANGELOG"
 chainlesschain skill run mock-data-generator "根据 User 类型生成测试数据"
 chainlesschain skill run i18n-manager "提取 src/ 中的硬编码中文字符串"
 chainlesschain skill run repo-map "生成项目代码结构映射"
-chainlesschain skill run project-scaffold "创建新的 Vue 模块脚手���"
+chainlesschain skill run project-scaffold "创建新的 Vue 模块脚手架"
 chainlesschain skill run onboard-project "分析项目架构，生成入门指南"
 chainlesschain skill run mcp-server-generator "生成天气查询 MCP 服务器"
 chainlesschain skill run snippet-library "保存代码片段到本地库"
@@ -413,7 +413,7 @@ chainlesschain skill run zkp-toolkit "生成零知识证明并验证"
 ```bash
 chainlesschain skill run doc-generator "为 src/main/database.js 生成 JSDoc 文档"
 chainlesschain skill run api-docs-generator "生成 OpenAPI 3.0 规范文档"
-chainlesschain skill run markdown-enhancer "为 README.md 添加目录和���接检查"
+chainlesschain skill run markdown-enhancer "为 README.md 添加目录和链接检查"
 chainlesschain skill run doc-comparator "对比两个文档的差异"
 chainlesschain skill run doc-coauthoring "扩展并审查技术文档初稿"
 chainlesschain skill run doc-converter "将 report.docx 转换为 Markdown"
@@ -1006,7 +1006,7 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 - 门控检查在技能执行前强制运行，不满足条件的技能无法启动
 - `strict` 模式下门控失败的技能会被自动禁用，防止误执行
 
-### 代���执行安全
+### 代码执行安全
 
 - `code-runner` 技能在 **隔离沙箱** 中执行用户代码，无法访问主进程资源
 - 浏览器自动化技能（`browser-automation`、`computer-use`）操作记录在审计日志中
@@ -1047,7 +1047,7 @@ chainlesschain skill run test-generator src/services/user.js
 chainlesschain skill history code-review --limit 10
 ```
 
-### 自定义技能��建
+### 自定义技能创建
 
 ```bash
 # 在工作区创建自定义技能
