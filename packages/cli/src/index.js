@@ -37,6 +37,24 @@ import { registerPluginCommand } from "./commands/plugin.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerCoworkCommand } from "./commands/cowork.js";
 
+// Phase 6: Advanced AI & Hooks
+import { registerHookCommand } from "./commands/hook.js";
+import { registerWorkflowCommand } from "./commands/workflow.js";
+import { registerHmemoryCommand } from "./commands/hmemory.js";
+import { registerA2aCommand } from "./commands/a2a.js";
+
+// Phase 7: Security & Evolution
+import { registerSandboxCommand } from "./commands/sandbox.js";
+import { registerEvolutionCommand } from "./commands/evolution.js";
+
+// Phase 8: Blockchain & Enterprise
+import { registerEconomyCommand } from "./commands/economy.js";
+import { registerZkpCommand } from "./commands/zkp.js";
+import { registerBiCommand } from "./commands/bi.js";
+
+// Phase 9: Low-Code & Multi-Agent
+import { registerLowcodeCommand } from "./commands/lowcode.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -102,6 +120,24 @@ export function createProgram() {
 
   // Multi-agent collaboration
   registerCoworkCommand(program);
+
+  // Phase 6: Advanced AI & Hooks
+  registerHookCommand(program);
+  registerWorkflowCommand(program);
+  registerHmemoryCommand(program);
+  registerA2aCommand(program);
+
+  // Phase 7: Security & Evolution
+  registerSandboxCommand(program);
+  registerEvolutionCommand(program);
+
+  // Phase 8: Blockchain & Enterprise
+  registerEconomyCommand(program);
+  registerZkpCommand(program);
+  registerBiCommand(program);
+
+  // Phase 9: Low-Code & Multi-Agent
+  registerLowcodeCommand(program);
 
   return program;
 }
