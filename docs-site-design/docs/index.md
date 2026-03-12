@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v5.0.1 | 66个模块设计 | 100 Phase | 137技能 | CLI分发系统 | 面向开发者的架构与实现文档
+  tagline: v5.0.1 | 67个模块设计 | 102 Phase | 138技能 | CLI 48命令/1638测试 | 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 📐
-    title: 66个模块设计
-    details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统等全部子系统的详细设计
+    title: 67个模块设计
+    details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能等全部子系统的详细设计
 
   - icon: 🏗️
     title: 架构设计
@@ -57,7 +57,7 @@ features:
 | **运维工程师**    | [生产强化](/modules/29_生产强化系统) → [基础设施编排](/modules/28_基础设施编排系统) → [SIEM](/modules/25_安全信息事件管理系统)                                                                               |
 | **产品经理**      | [系统设计主文档](/系统设计_主文档) → [实施总结](/实施总结与附录)                                                                                                                                             |
 | **v5.0.0 新模块** | [IPC域分割](/modules/43_IPC域分割与懒加载系统) → [A2A协议](/modules/46_A2A协议引擎) → [零知识证明](/modules/53_零知识证明引擎) → [低代码平台](/modules/58_低代码平台) → [自进化AI](/modules/65_自进化AI系统) |
-| **v5.0.1 新模块** | [CLI分发系统](/modules/66_CLI分发系统)                                                                                                                                                                       |
+| **v5.0.1 新模块** | [CLI分发系统](/modules/66_CLI分发系统) → [CLI高级功能](/modules/67_CLI高级功能补齐)                                                                                                                          |
 
 ### 版本演进
 
@@ -69,7 +69,7 @@ features:
 | v3.0.0        | 62-64  | 自主AI开发                                               |
 | v3.1.0-v3.4.0 | 65-77  | 去中心化AI市场 + 硬件安全生态 + 全球社交 + EvoMap进化    |
 | **v5.0.0**    | 78-100 | 架构重构 + AI Agent 2.0 + Web3深化 + 企业平台 + 自进化AI |
-| **v5.0.1**    | —      | CLI分发系统 + 原生模块保护 + 生产打包加固                |
+| **v5.0.1**    | 101-102 | CLI分发系统 + 6维Context Engineering + Autonomous Agent + EvoMap + 7 LLM Providers + 1638测试 |
 
 ---
 

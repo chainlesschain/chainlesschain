@@ -2,6 +2,7 @@
  * 同步设计文档到 VitePress docs 目录
  * 从 docs/design/ 复制所有 .md 文件（保持目录结构）
  * 对 markdown 中的裸 <tag> 占位符进行转义，避免 Vue 模板解析错误
+ * 中文文件名转为 ASCII，避免服务器解压乱码
  * index.md 和 .vitepress/ 不会被覆盖
  */
 import {
@@ -12,7 +13,7 @@ import {
   readdirSync,
   statSync,
 } from "fs";
-import { join, dirname, resolve } from "path";
+import { join, dirname, resolve, basename } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,10 +24,128 @@ const targetDir = resolve(projectRoot, "docs");
 // 不覆盖的文件/目录
 const EXCLUDE = new Set(["index.md", ".vitepress"]);
 
+// ── 中文文件名 → ASCII 映射 ──────────────────────────────────────
+// 根目录文件
+const ROOT_FILE_MAP = {
+  "系统设计_主文档.md": "system-design-main.md",
+  "系统设计_个人移���AI管理系统.md": "system-design-full.md",
+  "安全机制设计.md": "security-design.md",
+  "数据同步方案.md": "data-sync-design.md",
+  "AI模型部署方案.md": "ai-model-deploy.md",
+  "实施总结与附录.md": "implementation-summary.md",
+  // 英文文件保持原名
+  "HOOKS_SYSTEM_DESIGN.md": "HOOKS_SYSTEM_DESIGN.md",
+  "BROWSER_EXTENSION_PLAN.md": "BROWSER_EXTENSION_PLAN.md",
+  "README.md": "README.md",
+};
+
+// modules/ 文件：提取编号前缀作为 ASCII 名
+// 01_知识库管理模块.md → m01-knowledge-base.md
+const MODULE_FILE_MAP = {
+  "01_知识库管理模块.md": "m01-knowledge-base.md",
+  "02_去中心化社交模块.md": "m02-decentralized-social.md",
+  "03_交易辅助模块.md": "m03-trading-assistant.md",
+  "04_项目管理模块.md": "m04-project-management.md",
+  "05_企业版组织模块.md": "m05-enterprise-org.md",
+  "06_AI优化系统.md": "m06-ai-optimization.md",
+  "07_性能优化系统.md": "m07-performance-optimization.md",
+  "08_MCP与配置系统.md": "m08-mcp-config.md",
+  "09_浏览器自动化系统.md": "m09-browser-automation.md",
+  "10_远程控制系统.md": "m10-remote-control.md",
+  "11_企业审计系统.md": "m11-enterprise-audit.md",
+  "12_插件市场系统.md": "m12-plugin-marketplace.md",
+  "13_多代理系统.md": "m13-multi-agent.md",
+  "14_SSO企业认证.md": "m14-sso-enterprise-auth.md",
+  "15_MCP_SDK系统.md": "m15-mcp-sdk.md",
+  "16_AI技能系统.md": "m16-ai-skills.md",
+  "17_EvoMap系统.md": "m17-evomap.md",
+  "17_IPFS去中心化存储.md": "m17b-ipfs-storage.md",
+  "18_社交AI系统.md": "m18-social-ai.md",
+  "18_P2P实时协作系统.md": "m18b-p2p-realtime-collab.md",
+  "19_合规分类系统.md": "m19-compliance.md",
+  "19_自治Agent_Runner.md": "m19b-agent-runner.md",
+  "20_企业用户配置系统.md": "m20-enterprise-provisioning.md",
+  "20_模型量化系统.md": "m20b-model-quantization.md",
+  "21_统一密钥系统.md": "m21-unified-key.md",
+  "21_i18n国际化.md": "m21b-i18n.md",
+  "22_智能内容推荐系统.md": "m22-content-recommendation.md",
+  "22_性能自动调优.md": "m22b-performance-tuning.md",
+  "23_Nostr桥接系统.md": "m23-nostr-bridge.md",
+  "23_企业组织管理.md": "m23b-enterprise-org-mgmt.md",
+  "24_去中心化Agent网络.md": "m24-decentralized-agent-network.md",
+  "24_数据防泄漏系统.md": "m24b-dlp-prevention.md",
+  "25_安全信息事件管理系统.md": "m25-siem.md",
+  "25_自治运维系统.md": "m25b-autonomous-ops.md",
+  "26_社区治理系统.md": "m26-community-governance.md",
+  "26_开发流水线编排.md": "m26b-dev-pipeline.md",
+  "27_Matrix集成系统.md": "m27-matrix-integration.md",
+  "27_多模态协作.md": "m27b-multimodal-collab.md",
+  "28_基础设施编排系统.md": "m28-infra-orchestration.md",
+  "28_自然语言编程.md": "m28b-nl-programming.md",
+  "29_生产强化系统.md": "m29-production-hardening.md",
+  "30_联邦强化系统.md": "m30-federation-hardening.md",
+  "31_压力测试系统.md": "m31-stress-testing.md",
+  "32_信誉优化系统.md": "m32-reputation-optimizer.md",
+  "33_跨组织SLA管理系统.md": "m33-cross-org-sla.md",
+  "34_技术学习引擎系统.md": "m34-tech-learning.md",
+  "35_自主开发者系统.md": "m35-autonomous-developer.md",
+  "36_协作治理系统.md": "m36-collaboration-governance.md",
+  "37_技能市场系统.md": "m37-skill-marketplace.md",
+  "38_去中心化推理网络系统.md": "m38-decentralized-inference.md",
+  "39_信任安全系统.md": "m39-trust-security.md",
+  "40_协议融合系统.md": "m40-protocol-fusion.md",
+  "41_去中心化基础设施系统.md": "m41-decentralized-infra.md",
+  "42_EvoMap高级联邦系统.md": "m42-evomap-federation.md",
+  "43_IPC域分割与懒加载系统.md": "m43-ipc-domain-split.md",
+  "44_共享资源层与依赖注入容器.md": "m44-di-container.md",
+  "45_数据库演进与迁移框架.md": "m45-database-migration.md",
+  "46_A2A协���引擎.md": "m46-a2a-protocol.md",
+  "47_自主工作流编排器.md": "m47-workflow-orchestrator.md",
+  "48_层次化记忆系���2.0.md": "m48-hierarchical-memory.md",
+  "49_多模态感知层.md": "m49-multimodal-perception.md",
+  "50_Agent经济系统.md": "m50-agent-economy.md",
+  "51_代码生成Agent2.0.md": "m51-code-agent.md",
+  "52_Agent安全沙箱2.0.md": "m52-agent-sandbox.md",
+  "53_零知识证明引擎.md": "m53-zkp-engine.md",
+  "54_跨链互操作协议.md": "m54-cross-chain.md",
+  "55_去中心化身份2.0.md": "m55-did-v2.md",
+  "56_隐私计算框架.md": "m56-privacy-computing.md",
+  "57_DAO治理2.0.md": "m57-dao-governance.md",
+  "58_低代码平台.md": "m58-low-code.md",
+  "59_企业知识图谱.md": "m59-enterprise-kg.md",
+  "60_BI智能分析.md": "m60-bi-analytics.md",
+  "61_工作流自动化引擎.md": "m61-workflow-automation.md",
+  "62_多租户SaaS引擎.md": "m62-multi-tenant-saas.md",
+  "63_统一应用运行时.md": "m63-unified-runtime.md",
+  "64_智能插件生态2.0.md": "m64-plugin-ecosystem.md",
+  "65_自进化AI系统.md": "m65-self-evolving-ai.md",
+  "66_CLI分发系统.md": "m66-cli-distribution.md",
+  "67_CLI高级功能补齐.md": "m67-cli-advanced.md",
+};
+
+/**
+ * 获取目标文件名（中文 → ASCII）
+ * @param {string} filename 源文件名
+ * @param {boolean} isModule 是否在 modules/ 目录
+ * @returns {string} ASCII 安全的文件名
+ */
+function getTargetFilename(filename, isModule) {
+  const map = isModule ? MODULE_FILE_MAP : ROOT_FILE_MAP;
+  if (map[filename]) return map[filename];
+
+  // 未映射的文件：若已是 ASCII 则保留，否则生成 hash 名
+  if (/^[\x20-\x7e]+$/.test(filename)) return filename;
+
+  // 对未知中文文件名，提取数字前缀或用 unknown
+  const numMatch = filename.match(/^(\d+)/);
+  const prefix = numMatch ? `m${numMatch[1]}` : "unknown";
+  const ext = filename.endsWith(".md") ? ".md" : "";
+  console.warn(`  ⚠ 未映射文件: ${filename} → ${prefix}-unmapped${ext}`);
+  return `${prefix}-unmapped${ext}`;
+}
+
 /**
  * 转义 markdown 中不在代码块/行内代码中的裸 <tag> 占位符
- * 例如 <path> → `<path>`, <email> → `<email>`
- * 但不影响已在 `` 中的内容和 HTML 标签如 <div>, <table> 等
  */
 function escapeVueTags(content) {
   const lines = content.split("\n");
@@ -34,7 +153,6 @@ function escapeVueTags(content) {
   const result = [];
 
   for (const line of lines) {
-    // 检测代码块边界
     if (line.trimStart().startsWith("```")) {
       inCodeBlock = !inCodeBlock;
       result.push(line);
@@ -46,8 +164,6 @@ function escapeVueTags(content) {
       continue;
     }
 
-    // 在非代码块行中，转义裸 <word> 占位符（不在反引号内）
-    // 匹配 <word>, <word-word>, <word_word> 等（不是已知 HTML 标签）
     const htmlTags = new Set([
       "div",
       "span",
@@ -109,14 +225,11 @@ function escapeVueTags(content) {
     let escapedLine = line.replace(
       /(?<!`)(<([a-zA-Z][a-zA-Z0-9_-]*)>)(?!`)/g,
       (match, full, tag) => {
-        // 保留已知 HTML 标签和关闭标签
         if (htmlTags.has(tag.toLowerCase())) return match;
-        // 转义为行内代码
         return "`" + full + "`";
       },
     );
 
-    // 也处理 </tag> 关闭标签形式的占位符
     escapedLine = escapedLine.replace(
       /(?<!`)(<\/([a-zA-Z][a-zA-Z0-9_-]*)>)(?!`)/g,
       (match, full, tag) => {
@@ -131,7 +244,27 @@ function escapeVueTags(content) {
   return result.join("\n");
 }
 
-function syncDir(src, dest, isRoot = false) {
+/**
+ * 替换 markdown 内容中的内部链接（中文路径 → ASCII 路径）
+ */
+function rewriteInternalLinks(content) {
+  // 替换 [text](modules/中文.md) 和 [text](中文.md) 链接
+  return content.replace(
+    /\]\((modules\/)?([^)]+\.md)\)/g,
+    (match, prefix, filename) => {
+      const isModule = !!prefix;
+      const mapped = isModule
+        ? MODULE_FILE_MAP[filename]
+        : ROOT_FILE_MAP[filename];
+      if (mapped) {
+        return `](${prefix || ""}${mapped})`;
+      }
+      return match;
+    },
+  );
+}
+
+function syncDir(src, dest, isRoot = false, isModuleDir = false) {
   if (!existsSync(src)) {
     console.error(`源目录不存在: ${src}`);
     process.exit(1);
@@ -148,19 +281,27 @@ function syncDir(src, dest, isRoot = false) {
     if (isRoot && EXCLUDE.has(entry)) continue;
 
     const srcPath = join(src, entry);
-    const destPath = join(dest, entry);
     const stat = statSync(srcPath);
 
     if (stat.isDirectory()) {
-      count += syncDir(srcPath, destPath);
+      const isModule = entry === "modules";
+      const destSubdir = join(dest, entry);
+      count += syncDir(srcPath, destSubdir, false, isModule);
     } else if (entry.endsWith(".md")) {
+      const targetName = getTargetFilename(entry, isModuleDir);
+      const destPath = join(dest, targetName);
+
       if (!existsSync(dirname(destPath))) {
         mkdirSync(dirname(destPath), { recursive: true });
       }
-      // 读取、转义、写入
-      const content = readFileSync(srcPath, "utf-8");
-      const escaped = escapeVueTags(content);
-      writeFileSync(destPath, escaped, "utf-8");
+
+      let content = readFileSync(srcPath, "utf-8");
+      content = escapeVueTags(content);
+      content = rewriteInternalLinks(content);
+      writeFileSync(destPath, content, "utf-8");
+      if (entry !== targetName) {
+        console.log(`  ${entry} → ${targetName}`);
+      }
       count++;
     }
   }
@@ -169,5 +310,6 @@ function syncDir(src, dest, isRoot = false) {
 }
 
 console.log(`同步设计文档: ${sourceDir} → ${targetDir}`);
+console.log("文件名映射: 中文 → ASCII (避免服务器乱码)\n");
 const fileCount = syncDir(sourceDir, targetDir, true);
-console.log(`完成: 同步了 ${fileCount} 个文件`);
+console.log(`\n完成: 同步了 ${fileCount} 个文件`);

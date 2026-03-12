@@ -1,0 +1,148 @@
+# 后量子密码 (pqc)
+
+> Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
+
+## 核心特性
+
+- 🔑 **密钥管理**: 查看所有 PQC 密钥，按算法过滤
+- ⚡ **PQC 密钥生成**: 支持 ML-KEM、ML-DSA 等后量子算法生成密钥对
+- 📋 **迁移状态**: 查看经典密码到后量子密码的迁移进度
+- 🔄 **密钥迁移**: 执行从经典算法到 PQC 算法的密钥迁移
+
+## 概述
+
+ChainlessChain CLI 后量子密码（PQC）模块为系统提供抗量子计算攻击的密码学能力。支持 NIST 标准化的 ML-KEM（密钥封装）和 ML-DSA（数字签名）算法族。
+
+`generate` 命令生成 PQC 密钥对，支持 encryption（加密）、signing（签名）和 key_exchange（密钥交换）三种用途。系统还支持混合模式（hybrid），同时使用经典和后量子算法提供双重安全保障。`migration-status` 和 `migrate` 管理从经典密码体系到 PQC 的渐进迁移。
+
+## 命令参考
+
+### pqc keys — 查看密钥
+
+```bash
+chainlesschain pqc keys
+chainlesschain pqc keys -a ML-KEM-768
+chainlesschain pqc keys --json
+```
+
+列出所有 PQC 密钥，支持按算法过滤。
+
+### pqc generate — 生成密钥对
+
+```bash
+chainlesschain pqc generate <algorithm>
+chainlesschain pqc generate ML-KEM-768 -p encryption
+chainlesschain pqc generate ML-KEM-1024 -p key_exchange
+chainlesschain pqc generate ML-DSA-65 -p signing
+chainlesschain pqc generate ML-DSA-87 -p signing
+```
+
+生成指定算法的 PQC 密钥对。
+
+支持的算法：
+- **ML-KEM-768** / **ML-KEM-1024** — 密钥封装机制（加密、密钥交换）
+- **ML-DSA-65** / **ML-DSA-87** — 数字签名算法（签名）
+- **hybrid** 模式 — 同时生成经典 + PQC 密钥
+
+### pqc migration-status — 迁移状态
+
+```bash
+chainlesschain pqc migration-status
+chainlesschain pqc migration-status --json
+```
+
+显示所有密钥迁移计划的状态，包括源算法、目标算法、已迁移/总密钥数。
+
+### pqc migrate — 执行迁移
+
+```bash
+chainlesschain pqc migrate <plan-name> <target-algorithm>
+chainlesschain pqc migrate "升级到 ML-KEM" ML-KEM-768 -s RSA-2048
+chainlesschain pqc migrate "签名迁移" ML-DSA-65 -s Ed25519
+```
+
+执行密钥迁移计划，将指定源算法的密钥迁移到目标 PQC 算法。
+
+## 数据库表
+
+| 表名 | 说明 |
+|------|------|
+| `pqc_keys` | PQC 密钥（算法、用途、密钥大小、混合模式、经典算法、创建时间） |
+| `pqc_migration_status` | 迁移计划（计划名、源算法、目标算法、已迁移数、总数、状态） |
+
+## 系统架构
+
+```
+用户命令 → pqc.js (Commander) → pqc-manager.js
+                                       │
+                ┌──────────────────────┼──────────────────────┐
+                ▼                      ▼                      ▼
+          密钥生成                 密钥管理                迁移引擎
+    (ML-KEM/ML-DSA)          (列出/查询)          (计划/执行/状态)
+                ▼                      ▼                      ▼
+            pqc_keys              pqc_keys         pqc_migration_status
+```
+
+## 关键文件
+
+- `packages/cli/src/commands/pqc.js` — 命令实现
+- `packages/cli/src/lib/pqc-manager.js` — PQC 管理库
+
+## 测试
+
+```bash
+npx vitest run __tests__/unit/pqc-manager.test.js
+# 19 tests, all pass
+```
+
+## 使用示例
+
+### 场景 1：生成 PQC 密钥
+
+```bash
+# 生成加密密钥（ML-KEM-768）
+chainlesschain pqc generate ML-KEM-768 -p encryption
+
+# 生成签名密钥（ML-DSA-65）
+chainlesschain pqc generate ML-DSA-65 -p signing
+
+# 查看所有密钥
+chainlesschain pqc keys --json
+```
+
+### 场景 2：经典密钥迁移
+
+```bash
+# 查看当前迁移状态
+chainlesschain pqc migration-status
+
+# 执行 RSA → ML-KEM 迁移
+chainlesschain pqc migrate "RSA 升级计划" ML-KEM-1024 -s RSA-2048
+
+# 执行 Ed25519 → ML-DSA 迁移
+chainlesschain pqc migrate "签名算法升级" ML-DSA-87 -s Ed25519
+
+# 确认迁移完成
+chainlesschain pqc migration-status --json
+```
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+|------|---------|---------|
+| "No PQC keys" | 未生成密钥 | 使用 `pqc generate` 生成密钥 |
+| "No migration plans" | 未创建迁移计划 | 使用 `pqc migrate` 创建迁移 |
+| 密钥生成失败 | 不支持的算法 | 使用支持的算法：ML-KEM-768/1024、ML-DSA-65/87 |
+
+## 安全考虑
+
+- **抗量子攻击**: 采用 NIST 标准化的后量子算法，抵抗量子计算机攻击
+- **混合模式**: 支持经典 + PQC 双算法混合，确保过渡期安全
+- **渐进迁移**: 支持分批迁移密钥，不影响现有业务
+- **密钥隔离**: PQC 密钥存储在加密数据库中，独立于经典密钥
+
+## 相关文档
+
+- [DID 身份](./cli-did) — 去中心化身份
+- [加密管理](./cli-encrypt) — 文件加密
+- [ZKP 引擎](./cli-zkp) — 零知识证明

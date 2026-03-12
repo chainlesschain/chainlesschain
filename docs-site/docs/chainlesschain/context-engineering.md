@@ -8,7 +8,7 @@ Context Engineering 模块实现了 KV-Cache 友好的 Prompt 构建策略，基
 
 - ⚡ **KV-Cache 优化**: 稳定 Prompt 前缀 + 确定性工具序列化，缓存命中率 80%+
 - 📝 **只追加模式**: 对话历史 append-only，不修改已有消息，保证缓存一致性
-- 🔗 **4 级上下文注入**: Instinct / 代码知识图谱 / 长期记忆 / EvoMap 社区知识自动注入
+- 🔗 **6 维上下文注入**: Instinct / Memory / BM25 Notes / Task / Permanent Memory / Compaction Summary 自动注入
 - 🗜️ **可恢复压缩**: 长内容压缩保留 URL/路径等引用，按需恢复完整数据
 - 🎯 **任务目标重述**: 上下文末尾自动重述任务目标和进度，解决"丢失中间"问题
 - 📊 **错误学习**: 保留错误历史供模型学习，自动避免重复犯错

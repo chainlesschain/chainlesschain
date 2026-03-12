@@ -102,7 +102,7 @@ export default defineConfig({
             link: "/modules/37_技能市场系统",
           },
           {
-            text: "v5.0.0-v5.0.1 架构重构与生态融合 (43-66)",
+            text: "v5.0.0-v5.0.1 架构重构与生态融合 (43-67)",
             link: "/modules/43_IPC域分割与懒加载系统",
           },
         ],
@@ -387,9 +387,15 @@ export default defineConfig({
           ],
         },
         {
-          text: "CLI 分发系统 (66)",
+          text: "v5.0.1 CLI 分发与高级功能 (66-67)",
           collapsed: false,
-          items: [{ text: "66 CLI分发系统", link: "/modules/66_CLI分发系统" }],
+          items: [
+            { text: "66 CLI分发系统", link: "/modules/66_CLI分发系统" },
+            {
+              text: "67 CLI高级功能补齐 ⭐",
+              link: "/modules/67_CLI高级功能补齐",
+            },
+          ],
         },
         {
           text: "归档",

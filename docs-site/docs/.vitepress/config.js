@@ -638,6 +638,75 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.1 Phase 7 EvoMap联邦+DAO",
+          items: [
+            {
+              text: "DAO治理v2 (dao)",
+              link: "/chainlesschain/cli-dao",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 Phase 8 安全合规",
+          items: [
+            {
+              text: "合规管理 (compliance)",
+              link: "/chainlesschain/cli-compliance",
+            },
+            {
+              text: "数据防泄漏 (dlp)",
+              link: "/chainlesschain/cli-dlp",
+            },
+            {
+              text: "SIEM集成 (siem)",
+              link: "/chainlesschain/cli-siem",
+            },
+            {
+              text: "后量子密码 (pqc)",
+              link: "/chainlesschain/cli-pqc",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 Phase 8 通信桥接",
+          items: [
+            {
+              text: "Nostr桥接 (nostr)",
+              link: "/chainlesschain/cli-nostr",
+            },
+            {
+              text: "Matrix桥接 (matrix)",
+              link: "/chainlesschain/cli-matrix",
+            },
+            {
+              text: "SCIM用户配置 (scim)",
+              link: "/chainlesschain/cli-scim",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 Phase 8 基础���施",
+          items: [
+            {
+              text: "基础设施编排 (terraform)",
+              link: "/chainlesschain/cli-terraform",
+            },
+            {
+              text: "安全加固 (hardening)",
+              link: "/chainlesschain/cli-hardening",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 Phase 8 社交平台",
+          items: [
+            {
+              text: "社交平台 (social)",
+              link: "/chainlesschain/cli-social",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },

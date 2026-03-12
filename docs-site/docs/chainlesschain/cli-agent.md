@@ -9,32 +9,39 @@
 - 🎯 **138 个技能**: 集成全部内置技能
 - 📋 **Plan Mode**: AI 制定计划，用户审批后执行
 - 💾 **会话持久化**: 自动保存，支持 `--session` 断点恢复
-- 🧠 **Context Engineering**: 4 维上下文注入（Instinct / Memory / BM25 Notes / Task）
+- 🧠 **Context Engineering**: 6 维上下文注入（Instinct / Memory / BM25 Notes / Task / Permanent Memory / Compaction Summary）
 - 🗜️ **智能压缩**: 基于重要性评分的对话压缩（替代硬编码截断）
+- 🔗 **Hook 管道**: PreToolUse/PostToolUse/ToolError 钩子集成
+- 🤖 **自主模式**: /auto 命令提交目标，AI 自动分解执行
+- ⚠️ **DAG 执行 + 风险评估**: /plan execute 按依赖拓扑排序执行，/plan risk 显示风险评分
 
 ## 系统架构
 
 ```
 agent 命令 → agent.js (Commander) → agent-repl.js
                                          │
-            ┌─────────────┬──────────────┼──────────────┬─────────────┐
-            ▼             ▼              ▼              ▼             ▼
-       工具系统       Plan Mode     Context Engine   会话管理     Bootstrap
-    (8 built-in)   (plan-mode.js)  (cli-context-    (session-   (bootstrap.js)
-                                    engineering.js)  manager)        │
-            │             │              │              │      7-stage init
-            ▼             ▼              ▼              ▼        (DB/Config)
-    read/write/edit  只读→计划→      Instinct注入     自动保存
-    shell/search     审批→执行    Memory注入        到 SQLite
-    skill/list                   BM25 Notes注入     断点恢复
-                                 Task重述
-                                 Error学习
+     ┌──────────┬──────────┬─────────────┼──────────────┬─────────────┬──────────┐
+     ▼          ▼          ▼             ▼              ▼             ▼          ▼
+  工具系统   Plan Mode  Hook管道   Context Engine    会话管理    Autonomous  Bootstrap
+ (8 tools)  (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
+                        manager)    engineering.js)  manager)   (ReAct)        │
+     │          │          │             │              │          │      7-stage init
+     ▼          ▼          ▼             ▼              ▼          ▼        (DB/Config)
+ read/write  只读→计划→  PreToolUse   6维注入:        自动保存   /auto
+ edit/shell  审批→执行   PostToolUse  Instinct        到SQLite   目标分解
+ search      DAG执行     ToolError    Memory          断点恢复   ReAct循环
+ skill/list  风险评估                 BM25 Notes               自动纠错
+                                      Task重述
+                                      Permanent Memory
+                                      Compaction Summary
+                          Multi-Provider (7 LLM)
 ```
 
 ## 概述
 
 启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、调用 138 个内置技能。
-通过 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）和任务目标提醒，使 AI 保持上下文聚焦。
+支持 7 个 LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini）和自主模式（/auto）。
+通过 6 维 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）、任务目标提醒、跨会话持久记忆（Permanent Memory）和压缩摘要（Compaction Summary），使 AI 保持上下文聚焦。
 
 ## 命令参考
 
@@ -52,7 +59,7 @@ chainlesschain agent --session <id>     # 恢复历史会话
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
 | `--model <model>` | LLM 模型名称 | `qwen2:7b` |
-| `--provider <provider>` | LLM 提供商 | `ollama` |
+| `--provider <provider>` | LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini） | `ollama` |
 | `--base-url <url>` | API 基础 URL | `http://localhost:11434` |
 | `--api-key <key>` | API 密钥 | — |
 | `--session <id>` | 恢复历史会话 | — |
@@ -76,7 +83,7 @@ chainlesschain agent --session <id>     # 恢复历史会话
 
 代理模式集成了轻量级 Context Engineering 适配器（`cli-context-engineering.js`），在每次 LLM 调用前自动构建优化的上下文消息。
 
-### 4 维上下文注入
+### 6 维上下文注入
 
 | 注入器 | 数据源 | 说明 |
 |--------|--------|------|
@@ -84,6 +91,12 @@ chainlesschain agent --session <id>     # 恢复历史会话
 | **Memory** | `hierarchical-memory.js` | 召回与当前查询相关的四层记忆（working→core） |
 | **BM25 Notes** | `bm25-search.js` + `notes` 表 | 搜索笔记库中的相关内容（topK: 3, threshold: 0.5） |
 | **Task Reminder** | 内置 | 重述当前任务目标和进度，保持 AI 聚焦 |
+| **Permanent Memory** | `permanent-memory.js` | 跨会话持久记忆 + Daily Notes + MEMORY.md |
+| **Compaction Summary** | 内置 | 被压缩消息的单行摘要，支持上下文恢复 |
+
+### 稳定前缀缓存 (Stable Prefix Cache)
+
+Context Engineering 按固定顺序排列注入内容（System Prompt → Instinct → Memory → Notes → Task → Permanent Memory），确保 LLM 的 KV-Cache 前缀尽量稳定。当上下文内容不变时，LLM 可复用已缓存的计算结果，显著降低推理延迟。
 
 ### System Prompt 优化
 
@@ -116,7 +129,7 @@ chainlesschain agent --session <id>     # 恢复历史会话
 | `/exit`          | 退出代理                             |
 | `/help`          | 显示所有命令帮助                     |
 | `/model <name>`  | 切换/查看模型                        |
-| `/provider <p>`  | 切换/查看提供商                      |
+| `/provider <p>`  | 切换/查看提供商，支持 7 个提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini) |
 | `/clear`         | 清空对话历史                         |
 | `/compact`       | 智能压缩对话（基于重要性评分）       |
 
@@ -140,6 +153,8 @@ chainlesschain agent --session <id>     # 恢复历史会话
 | `/plan approve`  | 批准计划并开始执行           |
 | `/plan reject`   | 拒绝计划，重新规划           |
 | `/plan exit`     | 退出规划模式                 |
+| `/plan execute`  | 按 DAG 依赖顺序执行计划      |
+| `/plan risk`     | 显示风险评估报告             |
 
 ### Cowork 命令
 
@@ -147,6 +162,19 @@ chainlesschain agent --session <id>     # 恢复历史会话
 | ----------------------------- | ---------------------------- |
 | `/cowork debate <file>`       | 多视角代码评审               |
 | `/cowork compare <prompt>`    | A/B 方案对比                 |
+| `/cowork graph`               | ASCII 代码知识图谱           |
+| `/cowork decision`            | 决策追踪知识库               |
+
+### 自主模式命令
+
+| 命令                | 说明                         |
+| ------------------- | ---------------------------- |
+| `/auto <goal>`      | 提交目标，AI 自主分解执行    |
+| `/auto status`      | 查看当前自主目标进度         |
+| `/auto pause`       | 暂停自主执行                 |
+| `/auto resume`      | 恢复自主执行                 |
+| `/auto cancel`      | 取消当前目标                 |
+| `/auto list`        | 列出所有目标（含历史）       |
 
 ## Plan Mode
 
@@ -183,6 +211,55 @@ chainlesschain agent --session <id>     # 恢复历史会话
 
 > /plan approve
 ✅ 开始执行计划...
+```
+
+## 自主模式 (Autonomous Agent)
+
+代理模式内置自主模式，用户只需提交高层目标，AI 自动分解为子任务并循环执行，无需手动逐步指令。
+
+### ReAct 循环
+
+自主模式采用 ReAct（Reason → Act → Observe）循环：
+
+1. **Reason**: AI 分析当前目标和已完成的子任务，决定下一步行动
+2. **Act**: 调用工具（读写文件、执行命令、搜索等）执行子任务
+3. **Observe**: 观察工具输出，评估结果是否符合预期
+4. **重复**: 回到 Reason，直到目标完成或达到 Token 预算上限
+
+### 核心特性
+
+- **目标分解**: 自动将高层目标拆分为可执行的子任务序列
+- **自我纠错**: 工具调用失败时自动分析原因并尝试替代方案
+- **Token 预算**: 可配置的 Token 消耗上限，防止无限循环
+- **进度追踪**: `/auto status` 实时查看已完成/剩余子任务
+- **暂停/恢复**: `/auto pause` 和 `/auto resume` 控制执行节奏
+
+### 使用示例
+
+```
+> /auto 为项目添加完整的 CI/CD 配置（GitHub Actions + Docker）
+
+🤖 目标已接收，正在分解...
+  子任务 1: 分析项目结构和依赖
+  子任务 2: 创建 .github/workflows/ci.yml
+  子任务 3: 创建 Dockerfile
+  子任务 4: 创建 docker-compose.yml
+  子任务 5: 添加测试和构建步骤
+  子任务 6: 验证配置正确性
+
+[Reason] 开始分析项目结构...
+[Act] read_file: package.json
+[Observe] Node.js 项目，使用 Vitest 测试...
+[Reason] 需要创建 CI 工作流...
+[Act] write_file: .github/workflows/ci.yml
+...
+
+✅ 目标完成！已创建 4 个文件，所有配置已验证。
+
+> /auto status
+目标: 为项目添加完整的 CI/CD 配置
+状态: ✅ 已完成 (6/6 子任务)
+Token 消耗: 12,450 / 50,000
 ```
 
 ## 使用示例
@@ -239,12 +316,16 @@ Resumed session session-17... (8 messages)
 
 - `packages/cli/src/commands/agent.js` — 命令入口（含 `--session` 选项）
 - `packages/cli/src/repl/agent-repl.js` — 代理 REPL（8 工具 + 138 技能 + Plan Mode + Context Engineering）
-- `packages/cli/src/lib/cli-context-engineering.js` — Context Engineering 适配器（4 维注入 + 智能压缩）
+- `packages/cli/src/lib/cli-context-engineering.js` — Context Engineering 适配器（6 维注入 + 智能压缩）
 - `packages/cli/src/lib/plan-mode.js` — Plan Mode 实现
 - `packages/cli/src/lib/instinct-manager.js` — Instinct 学习引擎
 - `packages/cli/src/lib/hierarchical-memory.js` — 四层记忆系统
 - `packages/cli/src/lib/bm25-search.js` — BM25 搜索引擎
 - `packages/cli/src/lib/session-manager.js` — 会话持久化
+- `packages/cli/src/lib/permanent-memory.js` — 跨会话持久记忆（Daily Notes + MEMORY.md + BM25 混合搜索）
+- `packages/cli/src/lib/autonomous-agent.js` — ReAct 自主任务循环
+- `packages/cli/src/lib/content-recommender.js` — TF-IDF 工具相似度 + 工具链推荐
+- `packages/cli/src/lib/hook-manager.js` — Hook 管道（PreToolUse/PostToolUse/ToolError）
 - `packages/cli/src/runtime/bootstrap.js` — 7 阶段无头启动
 
 ## 安全考虑
@@ -266,6 +347,8 @@ Resumed session session-17... (8 messages)
 | Context 注入无效果 | 检查 DB 是否初始化（`chainlesschain db init`） |
 | `--session` 恢复失败 | 确认 Session ID 存在（`chainlesschain session list`） |
 | 记忆/笔记未注入 | 使用 `/stats` 检查 DB 连接和索引状态 |
+| `/auto` 无响应 | 检查 LLM 连接和 Token 预算 |
+| Hook 执行失败 | 使用 `chainlesschain hook stats` 检查钩子状态 |
 
 ## 相关文档
 
