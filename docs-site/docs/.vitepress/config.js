@@ -422,6 +422,43 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.1 系统管理 CLI",
+          items: [
+            {
+              text: "安装向导 (setup)",
+              link: "/chainlesschain/cli-setup",
+            },
+            {
+              text: "启动应用 (start)",
+              link: "/chainlesschain/cli-start",
+            },
+            {
+              text: "停止应用 (stop)",
+              link: "/chainlesschain/cli-stop",
+            },
+            {
+              text: "系统状态 (status)",
+              link: "/chainlesschain/cli-status",
+            },
+            {
+              text: "配置管理 (config)",
+              link: "/chainlesschain/cli-config",
+            },
+            {
+              text: "检查更新 (update)",
+              link: "/chainlesschain/cli-update",
+            },
+            {
+              text: "环境诊断 (doctor)",
+              link: "/chainlesschain/cli-doctor",
+            },
+            {
+              text: "Docker服务 (services)",
+              link: "/chainlesschain/cli-services",
+            },
+          ],
+        },
+        {
           text: "v5.0.1 Headless CLI",
           items: [
             {
@@ -433,8 +470,12 @@ export default defineConfig({
               link: "/chainlesschain/cli-note",
             },
             {
-              text: "AI对话 (chat/ask)",
+              text: "AI对话 (chat)",
               link: "/chainlesschain/cli-chat",
+            },
+            {
+              text: "单次问答 (ask)",
+              link: "/chainlesschain/cli-ask",
             },
             {
               text: "LLM管理 (llm)",
@@ -468,6 +509,40 @@ export default defineConfig({
             {
               text: "会话管理 (session)",
               link: "/chainlesschain/cli-session",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 Phase 2 知识与内容",
+          items: [
+            {
+              text: "内容导入 (import)",
+              link: "/chainlesschain/cli-import",
+            },
+            {
+              text: "内容导出 (export)",
+              link: "/chainlesschain/cli-export",
+            },
+            {
+              text: "Git集成 (git)",
+              link: "/chainlesschain/cli-git",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 Phase 3 MCP与外部集成",
+          items: [
+            {
+              text: "MCP服务器 (mcp)",
+              link: "/chainlesschain/cli-mcp",
+            },
+            {
+              text: "浏览器自动化 (browse)",
+              link: "/chainlesschain/cli-browse",
+            },
+            {
+              text: "学习偏好 (instinct)",
+              link: "/chainlesschain/cli-instinct",
             },
           ],
         },
