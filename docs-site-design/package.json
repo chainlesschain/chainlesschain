@@ -6,7 +6,8 @@
   "scripts": {
     "sync": "node scripts/sync-docs.js",
     "dev": "npm run sync && vitepress dev docs",
-    "build": "npm run sync && vitepress build docs && node scripts/postprocess-dist.js",
+    "build": "npm run sync && vitepress build docs",
+    "build:offline": "npm run sync && vitepress build docs && node scripts/postprocess-dist.js",
     "preview": "vitepress preview docs"
   },
   "keywords": [
