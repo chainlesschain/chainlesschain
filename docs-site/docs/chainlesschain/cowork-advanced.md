@@ -8,7 +8,7 @@
 
 ## 核心特性
 
-- 🧠 **Instinct 学习系统**: 从用户会话中自动提取可复用模式，��信度驱动的上下文注入
+- 🧠 **Instinct 学习系统**: 从用户会话中自动提取可复用模式，可信度驱动的上下文注入
 - 🔀 **Orchestrate 编排工作流**: 4 种预置多代理工作流模板，结构化交接协议
 - ✅ **Verification Loop 验证流水线**: 6 阶段自动化验证（Build→Test→Security→DiffReview）
 - ⚡ **技能懒加载**: metadata-only 解析，启动时间从 ~360ms 降至 ~45ms（提升 87%）

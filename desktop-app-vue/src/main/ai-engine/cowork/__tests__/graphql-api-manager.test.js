@@ -101,7 +101,7 @@ describe("GraphQLAPIManager", () => {
     });
   });
 
-  // ── executeQuery ���─
+  // ── executeQuery ──
 
   describe("executeQuery", () => {
     beforeEach(async () => {

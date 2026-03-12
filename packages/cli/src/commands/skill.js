@@ -1,179 +1,26 @@
 /**
  * Skill management and execution commands
- * chainlesschain skill list|info|run|search|categories
+ * chainlesschain skill list|info|run|search|categories|add|remove|sources
  *
- * Loads built-in skills directly from the desktop app's bundled skill definitions.
- * Most skills (110+/138) are pure JS and run headless without Electron.
+ * Uses multi-layer skill loader:
+ *   bundled < marketplace < managed (global) < workspace (project)
  */
 
 import chalk from "chalk";
 import ora from "ora";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { logger } from "../lib/logger.js";
+import { CLISkillLoader, LAYER_NAMES } from "../lib/skill-loader.js";
+import { getElectronUserDataDir } from "../lib/paths.js";
+import { findProjectRoot } from "../lib/project-detector.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-/**
- * Find the bundled skills directory
- */
-function findSkillsDir() {
-  // Walk up from CLI package to find desktop-app-vue
-  const candidates = [
-    path.resolve(
-      __dirname,
-      "../../../../desktop-app-vue/src/main/ai-engine/cowork/skills/builtin",
-    ),
-    path.resolve(
-      process.cwd(),
-      "desktop-app-vue/src/main/ai-engine/cowork/skills/builtin",
-    ),
-  ];
-
-  for (const dir of candidates) {
-    if (fs.existsSync(dir)) return dir;
-  }
-
-  return null;
-}
-
-/**
- * Simple YAML frontmatter parser (no dependencies)
- */
-function parseSkillMd(content) {
-  const lines = content.split("\n");
-  if (lines[0].trim() !== "---") return { data: {}, body: content };
-
-  let endIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === "---") {
-      endIndex = i;
-      break;
-    }
-  }
-
-  if (endIndex === -1) return { data: {}, body: content };
-
-  const yamlLines = lines.slice(1, endIndex);
-  const body = lines
-    .slice(endIndex + 1)
-    .join("\n")
-    .trim();
-  const data = {};
-
-  let currentKey = null;
-  let currentArray = null;
-
-  for (const line of yamlLines) {
-    if (!line.trim() || line.trim().startsWith("#")) continue;
-
-    const trimmed = line.trim();
-
-    if (trimmed.startsWith("- ")) {
-      const value = trimmed
-        .slice(2)
-        .trim()
-        .replace(/^['"]|['"]$/g, "");
-      if (currentArray) currentArray.push(value);
-      continue;
-    }
-
-    const colonIndex = trimmed.indexOf(":");
-    if (colonIndex > 0) {
-      const key = trimmed.slice(0, colonIndex).trim();
-      let value = trimmed.slice(colonIndex + 1).trim();
-
-      // Convert kebab-case to camelCase
-      const camelKey = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-
-      if (value === "") {
-        // Could be start of nested object or array
-        currentKey = camelKey;
-        currentArray = null;
-        continue;
-      }
-
-      // Handle inline arrays [a, b, c]
-      if (value.startsWith("[") && value.endsWith("]")) {
-        data[camelKey] = value
-          .slice(1, -1)
-          .split(",")
-          .map((v) => v.trim().replace(/^['"]|['"]$/g, ""))
-          .filter(Boolean);
-        currentArray = null;
-        currentKey = null;
-        continue;
-      }
-
-      // Handle booleans and numbers
-      if (value === "true") value = true;
-      else if (value === "false") value = false;
-      else if (value === "null") value = null;
-      else if (/^\d+(\.\d+)?$/.test(value)) value = parseFloat(value);
-      else value = value.replace(/^['"]|['"]$/g, "");
-
-      data[camelKey] = value;
-
-      // If next lines might be array items for this key
-      if (Array.isArray(data[camelKey])) {
-        currentArray = data[camelKey];
-      } else {
-        currentArray = null;
-      }
-      currentKey = camelKey;
-    }
-  }
-
-  return { data, body };
-}
-
-/**
- * Load all skill metadata from the bundled directory
- */
-function loadSkillMetadata(skillsDir) {
-  const skills = [];
-
-  try {
-    const dirs = fs.readdirSync(skillsDir, { withFileTypes: true });
-
-    for (const dir of dirs) {
-      if (!dir.isDirectory()) continue;
-
-      const skillMd = path.join(skillsDir, dir.name, "SKILL.md");
-      if (!fs.existsSync(skillMd)) continue;
-
-      try {
-        const content = fs.readFileSync(skillMd, "utf8");
-        const { data, body } = parseSkillMd(content);
-
-        skills.push({
-          id: data.name || dir.name,
-          displayName: data.displayName || dir.name,
-          description: data.description || "",
-          version: data.version || "1.0.0",
-          category: data.category || "uncategorized",
-          tags: data.tags || [],
-          userInvocable: data.userInvocable !== false,
-          handler: data.handler || null,
-          capabilities: data.capabilities || [],
-          os: data.os || [],
-          dirName: dir.name,
-          hasHandler: fs.existsSync(
-            path.join(skillsDir, dir.name, "handler.js"),
-          ),
-          body,
-        });
-      } catch {
-        // Skip malformed skill files
-      }
-    }
-  } catch (err) {
-    logger.error(`Failed to read skills directory: ${err.message}`);
-  }
-
-  return skills;
-}
+const LAYER_LABELS = {
+  bundled: chalk.blue("[bundled]"),
+  marketplace: chalk.magenta("[marketplace]"),
+  managed: chalk.yellow("[global]"),
+  workspace: chalk.green("[project]"),
+};
 
 /**
  * Check if a skill can run on current platform
@@ -183,10 +30,60 @@ function canRunOnPlatform(skill) {
   return skill.os.includes(process.platform);
 }
 
+const SKILL_TEMPLATE_MD = (name) => `---
+name: ${name}
+display-name: ${name}
+description: Custom skill — edit this description
+version: 1.0.0
+category: custom
+tags: [custom]
+user-invocable: true
+handler: handler.js
+---
+
+# ${name}
+
+Describe what this skill does and how to use it.
+
+## Usage
+
+\`\`\`
+chainlesschain skill run ${name} "your input"
+\`\`\`
+`;
+
+const SKILL_TEMPLATE_HANDLER = (name) => `/**
+ * Handler for ${name} skill
+ */
+
+const handler = {
+  async init(skill) {
+    // Optional initialization
+  },
+
+  async execute(task, context, skill) {
+    const input = task.input || task.params?.input || "";
+
+    // TODO: Implement skill logic
+    return {
+      success: true,
+      message: \`${name} executed successfully\`,
+      result: { input },
+    };
+  },
+};
+
+export default handler;
+`;
+
 export function registerSkillCommand(program) {
   const skill = program
     .command("skill")
-    .description("Manage and run built-in AI skills (138 available)");
+    .description(
+      "Manage and run AI skills (multi-layer: bundled + global + project)",
+    );
+
+  const loader = new CLISkillLoader();
 
   // skill list
   skill
@@ -195,19 +92,22 @@ export function registerSkillCommand(program) {
     .option("--category <category>", "Filter by category")
     .option("--tag <tag>", "Filter by tag")
     .option("--runnable", "Only show skills that can run headless")
+    .option(
+      "--source <layer>",
+      "Filter by source layer (bundled, marketplace, managed, workspace)",
+    )
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const skillsDir = findSkillsDir();
-      if (!skillsDir) {
+      const spinner = ora("Loading skills...").start();
+      let skills = loader.loadAll();
+      spinner.stop();
+
+      if (skills.length === 0) {
         logger.error(
-          "Skills directory not found. Make sure you're in the ChainlessChain project root.",
+          "No skills found. Make sure you're in the ChainlessChain project root or have skills installed.",
         );
         process.exit(1);
       }
-
-      const spinner = ora("Loading skills...").start();
-      let skills = loadSkillMetadata(skillsDir);
-      spinner.stop();
 
       // Filter
       if (options.category) {
@@ -225,11 +125,14 @@ export function registerSkillCommand(program) {
       if (options.runnable) {
         skills = skills.filter((s) => s.hasHandler && canRunOnPlatform(s));
       }
+      if (options.source) {
+        skills = skills.filter((s) => s.source === options.source);
+      }
 
       if (options.json) {
         console.log(
           JSON.stringify(
-            skills.map(({ body, ...rest }) => rest),
+            skills.map(({ body, skillDir, ...rest }) => rest),
             null,
             2,
           ),
@@ -252,8 +155,9 @@ export function registerSkillCommand(program) {
         for (const s of catSkills) {
           const handler = s.hasHandler ? chalk.green("●") : chalk.gray("○");
           const name = chalk.cyan(s.id.padEnd(30));
-          const desc = chalk.gray((s.description || "").substring(0, 50));
-          logger.log(`    ${handler} ${name} ${desc}`);
+          const desc = chalk.gray((s.description || "").substring(0, 40));
+          const label = LAYER_LABELS[s.source] || chalk.gray(`[${s.source}]`);
+          logger.log(`    ${handler} ${name} ${desc} ${label}`);
         }
         logger.log("");
       }
@@ -268,13 +172,12 @@ export function registerSkillCommand(program) {
     .command("categories")
     .description("List skill categories")
     .action(async () => {
-      const skillsDir = findSkillsDir();
-      if (!skillsDir) {
-        logger.error("Skills directory not found.");
+      const skills = loader.loadAll();
+      if (skills.length === 0) {
+        logger.error("No skills found.");
         process.exit(1);
       }
 
-      const skills = loadSkillMetadata(skillsDir);
       const cats = {};
       for (const s of skills) {
         const cat = s.category || "uncategorized";
@@ -295,13 +198,7 @@ export function registerSkillCommand(program) {
     .argument("<name>", "Skill name")
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
-      const skillsDir = findSkillsDir();
-      if (!skillsDir) {
-        logger.error("Skills directory not found.");
-        process.exit(1);
-      }
-
-      const skills = loadSkillMetadata(skillsDir);
+      const skills = loader.loadAll();
       const s = skills.find(
         (s) => s.id === name || s.dirName === name || s.id.includes(name),
       );
@@ -318,7 +215,7 @@ export function registerSkillCommand(program) {
       }
 
       if (options.json) {
-        const { body, ...rest } = s;
+        const { body, skillDir, ...rest } = s;
         console.log(JSON.stringify(rest, null, 2));
         return;
       }
@@ -326,6 +223,7 @@ export function registerSkillCommand(program) {
       logger.log(chalk.bold(`\n${s.displayName}`));
       logger.log(chalk.gray(`ID: ${s.id}  v${s.version}`));
       logger.log(chalk.gray(`Category: ${s.category}`));
+      logger.log(chalk.gray(`Source: ${s.source}`));
       if (s.tags.length > 0) {
         logger.log(chalk.gray(`Tags: ${s.tags.join(", ")}`));
       }
@@ -351,13 +249,7 @@ export function registerSkillCommand(program) {
     .description("Search skills by keyword")
     .argument("<query>", "Search query")
     .action(async (query) => {
-      const skillsDir = findSkillsDir();
-      if (!skillsDir) {
-        logger.error("Skills directory not found.");
-        process.exit(1);
-      }
-
-      const skills = loadSkillMetadata(skillsDir);
+      const skills = loader.loadAll();
       const q = query.toLowerCase();
       const matches = skills.filter(
         (s) =>
@@ -377,8 +269,9 @@ export function registerSkillCommand(program) {
       );
       for (const s of matches) {
         const handler = s.hasHandler ? chalk.green("●") : chalk.gray("○");
+        const label = LAYER_LABELS[s.source] || "";
         logger.log(
-          `  ${handler} ${chalk.cyan(s.id.padEnd(30))} ${chalk.gray(s.description.substring(0, 50))}`,
+          `  ${handler} ${chalk.cyan(s.id.padEnd(30))} ${chalk.gray(s.description.substring(0, 40))} ${label}`,
         );
       }
       logger.log("");
@@ -392,13 +285,7 @@ export function registerSkillCommand(program) {
     .argument("[input...]", "Input for the skill")
     .option("--json", "Output as JSON")
     .action(async (name, inputParts, options) => {
-      const skillsDir = findSkillsDir();
-      if (!skillsDir) {
-        logger.error("Skills directory not found.");
-        process.exit(1);
-      }
-
-      const skills = loadSkillMetadata(skillsDir);
+      const skills = loader.loadAll();
       const s = skills.find((sk) => sk.id === name || sk.dirName === name);
 
       if (!s) {
@@ -422,19 +309,16 @@ export function registerSkillCommand(program) {
       const input = inputParts.join(" ");
 
       try {
-        // Load the handler
-        const handlerPath = path.join(skillsDir, s.dirName, "handler.js");
+        const handlerPath = path.join(s.skillDir, "handler.js");
         const imported = await import(
           `file://${handlerPath.replace(/\\/g, "/")}`
         );
         const handler = imported.default || imported;
 
-        // Initialize if needed
         if (handler.init) {
           await handler.init(s);
         }
 
-        // Execute
         const task = {
           params: { input },
           input,
@@ -454,7 +338,6 @@ export function registerSkillCommand(program) {
         } else if (result.success) {
           logger.success(result.message || "Done");
           if (result.result && typeof result.result === "object") {
-            // Pretty print result
             for (const [key, val] of Object.entries(result.result)) {
               if (typeof val === "string" && val.length > 200) {
                 logger.log(`  ${chalk.cyan(key)}: ${val.substring(0, 200)}...`);
@@ -475,5 +358,175 @@ export function registerSkillCommand(program) {
         }
         process.exit(1);
       }
+    });
+
+  // skill add — create a custom skill scaffold
+  skill
+    .command("add")
+    .description("Create a custom skill")
+    .argument("<name>", "Skill name")
+    .option(
+      "--global",
+      "Create as a global (managed) skill instead of project-level",
+    )
+    .action(async (name, options) => {
+      let targetDir;
+
+      if (options.global) {
+        const userData = getElectronUserDataDir();
+        targetDir = path.join(userData, "skills", name);
+      } else {
+        const projectRoot = findProjectRoot();
+        if (!projectRoot) {
+          logger.error(
+            'Not inside a ChainlessChain project. Run "chainlesschain init" first, or use --global.',
+          );
+          process.exit(1);
+        }
+        targetDir = path.join(projectRoot, ".chainlesschain", "skills", name);
+      }
+
+      if (fs.existsSync(targetDir)) {
+        logger.error(`Skill already exists: ${targetDir}`);
+        process.exit(1);
+      }
+
+      try {
+        fs.mkdirSync(targetDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(targetDir, "SKILL.md"),
+          SKILL_TEMPLATE_MD(name),
+          "utf-8",
+        );
+        fs.writeFileSync(
+          path.join(targetDir, "handler.js"),
+          SKILL_TEMPLATE_HANDLER(name),
+          "utf-8",
+        );
+
+        const scope = options.global ? "global" : "project";
+        logger.success(`Created ${scope} skill: ${chalk.cyan(name)}`);
+        logger.log(`  ${chalk.gray(targetDir)}`);
+        logger.log("");
+        logger.log(chalk.bold("Files created:"));
+        logger.log(
+          `  ${chalk.gray("SKILL.md")}    — Skill metadata and documentation`,
+        );
+        logger.log(`  ${chalk.gray("handler.js")}  — Skill execution logic`);
+        logger.log("");
+        logger.log(
+          `Edit these files, then run: ${chalk.cyan(`chainlesschain skill run ${name} "test input"`)}`,
+        );
+      } catch (err) {
+        logger.error(`Failed to create skill: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // skill remove — delete a custom skill
+  skill
+    .command("remove")
+    .description("Remove a custom skill (project or global)")
+    .argument("<name>", "Skill name")
+    .option("--global", "Remove from global (managed) skills")
+    .option("--force", "Skip confirmation")
+    .action(async (name, options) => {
+      let targetDir;
+
+      if (options.global) {
+        const userData = getElectronUserDataDir();
+        targetDir = path.join(userData, "skills", name);
+      } else {
+        const projectRoot = findProjectRoot();
+        if (!projectRoot) {
+          logger.error("Not inside a ChainlessChain project.");
+          process.exit(1);
+        }
+        targetDir = path.join(projectRoot, ".chainlesschain", "skills", name);
+      }
+
+      if (!fs.existsSync(targetDir)) {
+        logger.error(`Skill not found: ${name}`);
+        process.exit(1);
+      }
+
+      if (!options.force) {
+        try {
+          const { confirm } = await import("@inquirer/prompts");
+          const ok = await confirm({
+            message: `Remove skill "${name}" from ${targetDir}?`,
+          });
+          if (!ok) {
+            logger.info("Cancelled");
+            return;
+          }
+        } catch {
+          return;
+        }
+      }
+
+      try {
+        fs.rmSync(targetDir, { recursive: true, force: true });
+        logger.success(`Removed skill: ${name}`);
+      } catch (err) {
+        logger.error(`Failed to remove skill: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // skill sources — show layer paths and counts
+  skill
+    .command("sources")
+    .description("Show skill source layers, paths, and counts")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const layers = loader.getLayerPaths();
+
+      // Count skills per layer
+      const layerCounts = {};
+      const allSkills = loader.loadAll();
+      for (const s of allSkills) {
+        layerCounts[s.source] = (layerCounts[s.source] || 0) + 1;
+      }
+
+      if (options.json) {
+        console.log(
+          JSON.stringify(
+            layers.map((l) => ({
+              ...l,
+              count: layerCounts[l.layer] || 0,
+            })),
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      logger.log(chalk.bold("\nSkill Source Layers:\n"));
+      logger.log(
+        chalk.gray(
+          "  Priority: workspace (highest) > managed > marketplace > bundled (lowest)\n",
+        ),
+      );
+
+      for (let i = layers.length - 1; i >= 0; i--) {
+        const l = layers[i];
+        const count = layerCounts[l.layer] || 0;
+        const status = l.exists
+          ? chalk.green("active")
+          : chalk.gray("not found");
+        const label = LAYER_LABELS[l.layer] || l.layer;
+        const priority = `(priority ${LAYER_NAMES.indexOf(l.layer)})`;
+
+        logger.log(`  ${label} ${chalk.gray(priority)}`);
+        logger.log(`    Path:   ${chalk.gray(l.path || "(none)")}`);
+        logger.log(`    Status: ${status}  Skills: ${count}`);
+        logger.log("");
+      }
+
+      logger.log(
+        `  ${chalk.bold("Total:")} ${allSkills.length} skills resolved\n`,
+      );
     });
 }

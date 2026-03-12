@@ -34,6 +34,8 @@ import { registerSyncCommand } from "./commands/sync.js";
 import { registerWalletCommand } from "./commands/wallet.js";
 import { registerOrgCommand } from "./commands/org.js";
 import { registerPluginCommand } from "./commands/plugin.js";
+import { registerInitCommand } from "./commands/init.js";
+import { registerCoworkCommand } from "./commands/cowork.js";
 
 export function createProgram() {
   const program = new Command();
@@ -46,6 +48,9 @@ export function createProgram() {
     .version(VERSION, "-v, --version")
     .option("--verbose", "Enable verbose output")
     .option("--quiet", "Suppress non-essential output");
+
+  // Project initialization
+  registerInitCommand(program);
 
   // Existing commands
   registerSetupCommand(program);
@@ -94,6 +99,9 @@ export function createProgram() {
   registerWalletCommand(program);
   registerOrgCommand(program);
   registerPluginCommand(program);
+
+  // Multi-agent collaboration
+  registerCoworkCommand(program);
 
   return program;
 }

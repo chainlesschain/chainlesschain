@@ -24,7 +24,7 @@
       "required": true,
       "options": [
         { "value": "analyze", "label": "深度分析（适合复杂技术问题）" },
-        { "value": "decompose", "label": "任务分解��适合大型项目）" },
+        { "value": "decompose", "label": "任务分解（适合大型项目）" },
         { "value": "evaluate", "label": "方案评估（适合技术选型）" }
       ]
     }

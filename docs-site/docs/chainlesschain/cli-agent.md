@@ -93,7 +93,7 @@ chainlesschain agent --provider openai --api-key sk-...
 1. 创建 JWT 工具模块
 2. 修改登录接口返回 JWT token
 3. 添加 JWT 验证中间件
-4. 更新受保护路��
+4. 更新受保护路径
 5. 移除 session 依赖
 6. 添加单元测试
 

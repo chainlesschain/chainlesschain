@@ -554,7 +554,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (903 tests across 47 files)
+npm test                # Run all tests (1009 tests across 55 files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -562,15 +562,15 @@ npm run test:e2e        # End-to-end tests
 
 ### Test Coverage
 
-| Category                 | Files  | Tests   | Status          |
-| ------------------------ | ------ | ------- | --------------- |
-| Unit — lib modules       | 25     | 578     | All passing     |
-| Unit — commands          | 2      | 43      | All passing     |
-| Unit — runtime           | 1      | 6       | All passing     |
-| Integration              | 3      | 7       | All passing     |
-| E2E                      | 9      | 88      | All passing     |
-| Core packages (external) | —      | 118     | All passing     |
-| **CLI Total**            | **47** | **903** | **All passing** |
+| Category                 | Files  | Tests    | Status          |
+| ------------------------ | ------ | -------- | --------------- |
+| Unit — lib modules       | 32     | 672      | All passing     |
+| Unit — commands          | 2      | 43       | All passing     |
+| Unit — runtime           | 1      | 6        | All passing     |
+| Integration              | 3      | 7        | All passing     |
+| E2E                      | 10     | 109      | All passing     |
+| Core packages (external) | —      | 118      | All passing     |
+| **CLI Total**            | **55** | **1009** | **All passing** |
 
 ## License
 

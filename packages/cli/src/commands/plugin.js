@@ -20,6 +20,9 @@ import {
   listRegistry,
   registerInMarketplace,
   getPluginSummary,
+  installPluginSkills,
+  removePluginSkills,
+  getPluginSkills,
 } from "../lib/plugin-manager.js";
 
 export function registerPluginCommand(program) {
@@ -86,6 +89,7 @@ export function registerPluginCommand(program) {
     .option("--version <version>", "Plugin version", "1.0.0")
     .option("--description <desc>", "Plugin description")
     .option("--author <author>", "Plugin author")
+    .option("--manifest <path>", "Plugin manifest file with skill declarations")
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
       try {
@@ -102,10 +106,43 @@ export function registerPluginCommand(program) {
           author: options.author,
         });
 
+        // Install plugin skills if manifest provided
+        let skillResult = { installed: [] };
+        if (options.manifest) {
+          try {
+            const fs = await import("fs");
+            const manifestContent = fs.readFileSync(options.manifest, "utf-8");
+            const manifest = JSON.parse(manifestContent);
+            if (manifest.skills && manifest.skills.length > 0) {
+              const path = await import("path");
+              const pluginPath = path.dirname(path.resolve(options.manifest));
+              skillResult = installPluginSkills(
+                db,
+                name,
+                pluginPath,
+                manifest.skills,
+              );
+            }
+          } catch (err) {
+            logger.warn(`Could not install plugin skills: ${err.message}`);
+          }
+        }
+
         if (options.json) {
-          console.log(JSON.stringify(result, null, 2));
+          console.log(
+            JSON.stringify(
+              { ...result, skills: skillResult.installed },
+              null,
+              2,
+            ),
+          );
         } else {
           logger.success(`Plugin installed: ${result.name} v${result.version}`);
+          if (skillResult.installed.length > 0) {
+            logger.info(
+              `Skills installed: ${skillResult.installed.join(", ")}`,
+            );
+          }
         }
 
         await shutdown();
@@ -140,10 +177,16 @@ export function registerPluginCommand(program) {
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
+
+        // Remove plugin skills first
+        const skillResult = removePluginSkills(db, name);
         const ok = removePlugin(db, name);
 
         if (ok) {
           logger.success(`Plugin removed: ${name}`);
+          if (skillResult.removed.length > 0) {
+            logger.info(`Skills removed: ${skillResult.removed.join(", ")}`);
+          }
         } else {
           logger.error(`Plugin not found: ${name}`);
         }
@@ -262,9 +305,10 @@ export function registerPluginCommand(program) {
         }
 
         const settings = getPluginSettings(db, name);
+        const skills = getPluginSkills(db, name);
 
         if (options.json) {
-          console.log(JSON.stringify({ ...p, settings }, null, 2));
+          console.log(JSON.stringify({ ...p, settings, skills }, null, 2));
         } else {
           logger.log(chalk.bold("Plugin Info:\n"));
           logger.log(`  ${chalk.bold("Name:")}        ${chalk.cyan(p.name)}`);
@@ -279,6 +323,15 @@ export function registerPluginCommand(program) {
             `  ${chalk.bold("Enabled:")}     ${p.enabled ? chalk.green("yes") : chalk.red("no")}`,
           );
           logger.log(`  ${chalk.bold("Installed:")}   ${p.installed_at}`);
+
+          if (skills.length > 0) {
+            logger.log(`\n  ${chalk.bold("Skills:")}`);
+            for (const sk of skills) {
+              logger.log(
+                `    ${chalk.cyan(sk.skill_name)} → ${chalk.gray(sk.skill_path)}`,
+              );
+            }
+          }
 
           if (Object.keys(settings).length > 0) {
             logger.log(`\n  ${chalk.bold("Settings:")}`);

@@ -181,4 +181,4 @@ chainlesschain update
 ## 相关文档
 
 - [CLI 命令行工具](./cli) — 完整命令参考
-- [配置说明](./configuration) — 配置文件��式
+- [配置说明](./configuration) — 配置文件格式

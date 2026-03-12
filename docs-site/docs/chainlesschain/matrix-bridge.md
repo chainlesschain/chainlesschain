@@ -6,7 +6,7 @@
 
 - 🔐 **E2EE 端到端加密**: 基于 Olm/Megolm 协议的消息加密，前向保密与密钥轮换
 - 🏠 **房间管理**: 创建/加入/搜索 Matrix 房间，成员管理与权限控制
-- 🔗 **DID 身份映射**: ChainlessChain DID 与 Matrix MXID 双向绑定，支持 WebFinger ��动发现
+- 🔗 **DID 身份映射**: ChainlessChain DID 与 Matrix MXID 双向绑定，支持 WebFinger 自动发现
 - 🌐 **多协议桥接**: 与 ActivityPub、Nostr 协议统一桥接，跨网络消息互通
 - 💬 **消息同步**: 实时消息收发与历史消息回溯，支持表情回应
 

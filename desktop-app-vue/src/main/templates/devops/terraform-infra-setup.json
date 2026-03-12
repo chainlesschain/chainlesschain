@@ -2,7 +2,7 @@
   "id": "tpl_demo_terraform_001",
   "name": "terraform_infra_setup",
   "display_name": "Terraform 基础设施编排",
-  "description": "演示 Terraform IaC ��能，自动生成基础设施配置、计划和应用变更",
+  "description": "演示 Terraform IaC 功能，自动生成基础设施配置、计划和应用变更",
   "icon": "🏗️",
   "category": "devops",
   "subcategory": "infrastructure",

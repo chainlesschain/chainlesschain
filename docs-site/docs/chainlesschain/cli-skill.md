@@ -4,42 +4,60 @@
 
 ## 核心特性
 
-- 🎯 **138 个内置技能**: 覆盖开发全流程
+- 🎯 **138+ 内置技能**: 覆盖开发全流程
 - 📂 **24 个分类**: 从代码审查到安全分析
 - 🔍 **技能搜索**: 按关键词、标签、分类查找
 - ▶️ **直接运行**: 命令行一键执行技能
 - 📊 **JSON 输出**: 支持脚本集成
+- 🏗️ **4 层优先级系统**: bundled < marketplace < managed < workspace，同名技能按优先级覆盖
+- ➕ **自定义技能**: `skill add/remove` 创建项目级或全局级技能
+- 📍 **技能来源追踪**: `skill sources` 显示各层路径和技能数量
 
 ## 系统架构
 
 ```
-skill 命令 → skill.js (Commander) → agent-repl.js
+skill 命令 → skill.js (Commander) → CLISkillLoader (4层加载)
                                          │
-                    ┌────────────────────┼────────────────────┐
-                    ▼                    ▼                    ▼
-              skill list/search     skill info          skill run
-                    │                    │                    │
-                    ▼                    ▼                    ▼
-              内置技能定义库       技能元数据+文档     LLM + 技能 Prompt
-              (138 skills.md)                         执行并返回结果
+           ┌─────────────┬──────────────┼──────────────┬─────────────┐
+           ▼             ▼              ▼              ▼             ▼
+     skill list     skill info     skill run     skill add      skill sources
+           │             │              │         /remove              │
+           ▼             ▼              ▼              ▼             ▼
+    4层技能合并    技能元数据+文档  LLM + Prompt  脚手架生成     层路径信息
+    (按优先级覆盖)                  执行并返回     SKILL.md +
+                                                  handler.js
+
+    优先级: workspace(3) > managed(2) > marketplace(1) > bundled(0)
 ```
 
 ## 概述
 
-管理和运行 138 个内置 AI 技能，涵盖代码审查、文档生成、测试、安全分析等 24 个分类。
+管理和运行 138+ 个 AI 技能，支持 4 层优先级系统和自定义技能管理。涵盖代码审查、文档生成、测试、安全分析等 24 个分类。
 
 ## 命令参考
 
 ```bash
-chainlesschain skill list               # 按分类列出所有技能
+# 查看与搜索
+chainlesschain skill list               # 按分类列出所有技能（含来源层标签）
 chainlesschain skill list --category automation
 chainlesschain skill list --tag code --runnable
-chainlesschain skill list --json        # JSON格式输出
+chainlesschain skill list --json        # JSON格式输出（含 source 字段）
+chainlesschain skill list --source bundled  # 按来源层过滤
 chainlesschain skill categories         # 查看分类统计
 chainlesschain skill info code-review   # 查看技能详情+文档
 chainlesschain skill info code-review --json
 chainlesschain skill search "browser"   # 按关键词搜索
 chainlesschain skill run code-review "Review this code..."
+
+# 自定义技能管理
+chainlesschain skill add my-skill       # 创建项目级自定义技能
+chainlesschain skill add my-skill --global  # 创建全局自定义技能
+chainlesschain skill remove my-skill    # 删除项目级技能
+chainlesschain skill remove my-skill --global --force  # 强制删除全局技能
+
+# 技能来源层
+chainlesschain skill sources            # 显示各层路径和技能数量
+chainlesschain skill sources --json     # JSON 格式输出
 ```
 
 ## 子命令说明
@@ -90,15 +108,74 @@ chainlesschain skill run code-review "Review this code..."
 chainlesschain skill run summarize "Summarize this article..."
 ```
 
+### add
+
+在项目或全局创建自定义技能脚手架。
+
+```bash
+chainlesschain skill add my-analysis          # 项目级（.chainlesschain/skills/）
+chainlesschain skill add my-global --global   # 全局级（<userData>/skills/）
+```
+
+生成目录结构：
+
+```
+.chainlesschain/skills/my-analysis/
+├── SKILL.md      # YAML 前置 + Markdown 文档
+└── handler.js    # 技能处理器
+```
+
+### remove
+
+删除自定义技能。
+
+```bash
+chainlesschain skill remove my-analysis                # 项目级
+chainlesschain skill remove my-global --global --force # 全局级（--force 跳过确认）
+```
+
+### sources
+
+显示 4 层技能来源路径和每层的技能数量。
+
+```bash
+chainlesschain skill sources          # 表格输出
+chainlesschain skill sources --json   # JSON 输出
+```
+
+输出示例：
+
+```
+  Skill Source Layers
+
+  Layer         Path                                      Exists  Count
+  bundled       .../skills/builtin/                      ✓       138
+  marketplace   ~/.chainlesschain/marketplace/skills/     ✗       0
+  managed       ~/.chainlesschain/skills/                 ✗       0
+  workspace     .chainlesschain/skills/                   ✓       2
+```
+
+## 4 层优先级系统
+
+| 层 | 优先级 | 路径 | 用途 |
+|---|--------|------|------|
+| bundled | 0 (最低) | `desktop-app-vue/.../skills/builtin/` | 138 内置技能 |
+| marketplace | 1 | `<userData>/marketplace/skills/` | 插件安装的技能 |
+| managed | 2 | `<userData>/skills/` | 用户全局自定义技能 |
+| workspace | 3 (最高) | `<projectRoot>/.chainlesschain/skills/` | 项目级自定义技能 |
+
+同名技能按优先级覆盖：workspace > managed > marketplace > bundled。
+
 ## 技能分类（24类）
 
 ai, analysis, automation, code-review, data, database, debugging, design, development (41个), devops, document, documentation, general, knowledge, learning, media, productivity, quality, remote, security, system, testing, utility, workflow
 
 ## 关键文件
 
-- `packages/cli/src/commands/skill.js` — 命令实现
-- `packages/cli/src/repl/agent-repl.js` — 技能运行引擎
-- `desktop-app-vue/src/main/ai-engine/cowork/skills/` — 138 个技能定义文件
+- `packages/cli/src/commands/skill.js` — 命令实现（含 add/remove/sources）
+- `packages/cli/src/lib/skill-loader.js` — 多层技能加载器（CLISkillLoader）
+- `packages/cli/src/repl/agent-repl.js` — 技能运行引擎（使用 CLISkillLoader）
+- `desktop-app-vue/src/main/ai-engine/cowork/skills/` — 138 个内置技能定义文件
 
 ## 安全考虑
 

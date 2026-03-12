@@ -8,7 +8,7 @@
   "subcategory": "kubernetes",
   "tags": ["k8s", "kubernetes", "deploy", "devops", "demo", "skill"],
   "project_type": "workflow",
-  "prompt_template": "请帮我创建一个 Kubernetes 部署流水线：\n\n**应用名称：** {{appName}}\n**部署环境：** {{environment}}\n**镜像地址：** {{imageUrl}}\n**副本数量：** {{replicas}}\n\n**流水线步骤：**\n\n### 步骤1：生成部署配置\n```\n/k8s-deployer generate {{appName}} --env {{environment}} --image {{imageUrl}} --replicas {{replicas}}\n```\n\n### 步骤2：验证配置\n```\n/k8s-deployer validate {{appName}}\n```\n\n### 步骤3：执行部署\n```\n/k8s-deployer deploy {{appName}} --env {{environment}}\n```\n\n### 步骤4：监控部署状态\n```\n/k8s-deployer status {{appName}}\n```\n\n### 步骤5：记录部署日志\n```\n/memory-management save \"K8s部署���成: {{appName}} → {{environment}}\"\n```\n\n**使用的技能：** k8s-deployer, memory-management",
+  "prompt_template": "请帮我创建一个 Kubernetes 部署流水线：\n\n**应用名称：** {{appName}}\n**部署环境：** {{environment}}\n**镜像地址：** {{imageUrl}}\n**副本数量：** {{replicas}}\n\n**流水线步骤：**\n\n### 步骤1：生成部署配置\n```\n/k8s-deployer generate {{appName}} --env {{environment}} --image {{imageUrl}} --replicas {{replicas}}\n```\n\n### 步骤2：验证配置\n```\n/k8s-deployer validate {{appName}}\n```\n\n### 步骤3：执行部署\n```\n/k8s-deployer deploy {{appName}} --env {{environment}}\n```\n\n### 步骤4：监控部署状态\n```\n/k8s-deployer status {{appName}}\n```\n\n### 步骤5：记录部署日志\n```\n/memory-management save \"K8s部署完成: {{appName}} → {{environment}}\"\n```\n\n**使用的技能：** k8s-deployer, memory-management",
   "variables_schema": [
     {
       "name": "appName",

@@ -23,7 +23,7 @@
 │  (6阶段管道追踪)      │
 │  ├─ intent_recognition│
 │  ├─ task_planning     │
-│  ���─ tool_execution    │
+│  ├─ tool_execution    │
 │  ├─ rag_retrieval     │
 │  ├─ llm_calls         │
 │  └─ total_pipeline    │

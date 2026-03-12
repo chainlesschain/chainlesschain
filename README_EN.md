@@ -34,7 +34,7 @@ chainlesschain setup    # Interactive setup wizard
 chainlesschain start    # Launch application
 ```
 
-- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 34 commands
+- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 37 commands
 - ✅ **Interactive Setup Wizard** — Node.js/Docker check → edition select → LLM config → binary download → auto-configure
 - ✅ **GitHub Release Integration** — Auto-download platform binaries (Win/macOS/Linux) + SHA256 verification
 - ✅ **Docker Compose Orchestration** — One-command backend management (`services up/down/logs/pull`)
@@ -45,7 +45,11 @@ chainlesschain start    # Launch application
 - ✅ **Phase 4 Security & Identity** — DID identity management (Ed25519) + AES-256-GCM file encryption + RBAC permission engine + audit logging
 - ✅ **Phase 5 P2P & Enterprise** — P2P messaging + file sync + digital wallet (Ed25519) + org management + plugin marketplace
 - ✅ **CI/CD Auto-publish** — GitHub Actions `npm publish --provenance` + supply chain security
-- ✅ **903 Test Cases** — 47 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
+- ✅ **1009 Test Cases** — 55 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
+- ✅ **Project Initialization** (`init`) — 4 templates (code-project/data-science/devops/empty), generates `.chainlesschain/` project structure
+- ✅ **Multi-layer Skill System** — 4-layer priority (bundled < marketplace < managed < workspace), custom skill management (add/remove/sources)
+- ✅ **Multi-agent Collaboration** (`cowork`) — Multi-perspective debate review + A/B solution comparison + code knowledge graph analysis
+- ✅ **Plugin Skill Integration** — Plugins can declare and install skills to marketplace layer
 
 ---
 

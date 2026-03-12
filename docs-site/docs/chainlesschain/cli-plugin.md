@@ -1,6 +1,6 @@
 # 插件市场 (plugin)
 
-> Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容���化等无桌面环境。
+> Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
 ## 核心特性
 
@@ -9,6 +9,7 @@
 - 🛒 **注册表/市场**: 搜索和浏览插件注册表
 - ⚙️ **插件设置**: 每个插件独立的键值对配置
 - 📊 **安装统计**: 已安装数、已启用数、注册表总数
+- 🎯 **技能集成**: 插件可声明技能，安装时自动部署到 marketplace 层
 
 ## 系统架构
 
@@ -68,6 +69,27 @@ chainlesschain plugin summary                      # 安装统计
 
 - `getPluginSummary` — 已安装数、已启用数、注册表总数
 
+## 插件技能集成
+
+插件可在 manifest 中声明技能，安装时自动部署到 marketplace 技能层：
+
+```bash
+chainlesschain plugin install my-plugin --manifest ./manifest.json
+```
+
+manifest.json 示例：
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "skills": [
+    { "name": "my-skill", "path": "skills/my-skill" }
+  ]
+}
+```
+
+安装时技能目录复制到 `<userData>/marketplace/skills/`，卸载时自动清理。
+
 ## 数据库表
 
 | 表名 | 说明 |
@@ -75,6 +97,7 @@ chainlesschain plugin summary                      # 安装统计
 | `plugins` | 已安装插件（名称、版本、状态、启停标记） |
 | `plugin_settings` | 插件配置键值对 |
 | `plugin_registry` | 注册表/市场目录 |
+| `plugin_skills` | 插件-技能关联（插件名、技能名、技能路径） |
 
 ## 安全考虑
 
