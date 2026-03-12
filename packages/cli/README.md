@@ -482,6 +482,162 @@ chainlesschain plugin summary                      # Installation summary
 
 ---
 
+## Project Initialization & Collaboration
+
+### `chainlesschain init`
+
+Initialize a new ChainlessChain project.
+
+```bash
+chainlesschain init                                    # Interactive project init
+chainlesschain init --bare                             # Minimal project structure
+chainlesschain init --template code-project --yes      # Use template, skip prompts
+```
+
+### `chainlesschain cowork <action>`
+
+Multi-agent collaboration for code review and analysis.
+
+```bash
+chainlesschain cowork debate <file>                    # Multi-perspective code review
+chainlesschain cowork compare <prompt>                 # A/B solution comparison
+chainlesschain cowork analyze <path>                   # Code analysis (style/knowledge-graph/decisions)
+chainlesschain cowork status                           # Show cowork status
+```
+
+---
+
+## Phase 6: AI Core (Hooks, Workflow, Memory, A2A)
+
+### `chainlesschain hook <action>`
+
+Event hook management for extensibility.
+
+```bash
+chainlesschain hook list                               # List registered hooks
+chainlesschain hook add --event PreToolUse --type sync --command "echo check"
+chainlesschain hook remove <id>                        # Remove a hook
+chainlesschain hook run PreToolUse                     # Execute hooks for event
+chainlesschain hook stats                              # Hook execution statistics
+```
+
+### `chainlesschain workflow <action>`
+
+DAG-based workflow orchestration engine.
+
+```bash
+chainlesschain workflow create --name "pipeline" --stages '[...]'
+chainlesschain workflow list                           # List workflows
+chainlesschain workflow run <id>                       # Execute workflow
+chainlesschain workflow status <id>                    # Check workflow status
+chainlesschain workflow templates                      # List 5 built-in templates
+```
+
+### `chainlesschain hmemory <action>`
+
+Hierarchical memory system (working → short-term → long-term).
+
+```bash
+chainlesschain hmemory store "fact" --importance 0.8   # Store memory
+chainlesschain hmemory recall --layer long-term        # Recall memories
+chainlesschain hmemory consolidate                     # Promote memories across layers
+chainlesschain hmemory stats                           # Memory statistics
+```
+
+### `chainlesschain a2a <action>`
+
+Agent-to-Agent protocol for multi-agent collaboration.
+
+```bash
+chainlesschain a2a register --name "agent1" --capabilities '["code"]'
+chainlesschain a2a list                                # List registered agents
+chainlesschain a2a discover --capability code          # Find agents by capability
+chainlesschain a2a submit <agent> "task"               # Submit task to agent
+chainlesschain a2a status <task-id>                    # Check task status
+```
+
+---
+
+## Phase 7: Security & Evolution
+
+### `chainlesschain sandbox <action>`
+
+Secure sandbox execution environment.
+
+```bash
+chainlesschain sandbox create --name "test"            # Create sandbox
+chainlesschain sandbox list                            # List sandboxes
+chainlesschain sandbox exec <id> "command"             # Execute in sandbox
+chainlesschain sandbox audit <id>                      # View audit log
+chainlesschain sandbox destroy <id>                    # Destroy sandbox
+```
+
+### `chainlesschain evolution <action>`
+
+Self-evolving AI capability assessment and learning.
+
+```bash
+chainlesschain evolution assess code-generation        # Assess capability
+chainlesschain evolution diagnose                      # Self-diagnosis
+chainlesschain evolution learn --domain nlp            # Incremental learning
+chainlesschain evolution status                        # Evolution status
+```
+
+---
+
+## Phase 8: Blockchain & Enterprise Analytics
+
+### `chainlesschain economy <action>`
+
+Agent economy and micropayment system.
+
+```bash
+chainlesschain economy pay <from> <to> 100             # Agent micropayment
+chainlesschain economy balance <agent>                  # Check balance
+chainlesschain economy market list                      # Browse resource market
+chainlesschain economy nft mint <agent>                 # Mint contribution NFT
+```
+
+### `chainlesschain zkp <action>`
+
+Zero-Knowledge Proof engine.
+
+```bash
+chainlesschain zkp compile --name "age-proof"          # Compile ZKP circuit
+chainlesschain zkp prove <circuit> --witness '{}'      # Generate proof
+chainlesschain zkp verify <circuit> <proof>            # Verify proof
+chainlesschain zkp list                                # List circuits
+```
+
+### `chainlesschain bi <action>`
+
+Business Intelligence with natural language queries.
+
+```bash
+chainlesschain bi query "show monthly revenue"         # NL→SQL query
+chainlesschain bi dashboard create --name "KPI"        # Create dashboard
+chainlesschain bi dashboard list                       # List dashboards
+chainlesschain bi anomaly --metric sales               # Z-score anomaly detection
+```
+
+---
+
+## Phase 9: Low-Code Platform
+
+### `chainlesschain lowcode <action>`
+
+Visual low-code application builder.
+
+```bash
+chainlesschain lowcode create --name "app1"            # Create app
+chainlesschain lowcode list                            # List apps
+chainlesschain lowcode components                      # List 15+ components
+chainlesschain lowcode preview <id>                    # Preview app
+chainlesschain lowcode publish <id>                    # Publish app
+```
+
+---
+
 ## Global Options
 
 ```bash
@@ -554,7 +710,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (1009 tests across 55 files)
+npm test                # Run all tests (1429 tests across 67 files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -564,13 +720,13 @@ npm run test:e2e        # End-to-end tests
 
 | Category                 | Files  | Tests    | Status          |
 | ------------------------ | ------ | -------- | --------------- |
-| Unit — lib modules       | 32     | 672      | All passing     |
-| Unit — commands          | 2      | 43       | All passing     |
+| Unit — lib modules       | 44     | 892      | All passing     |
+| Unit — commands          | 10     | 213      | All passing     |
 | Unit — runtime           | 1      | 6        | All passing     |
 | Integration              | 3      | 7        | All passing     |
 | E2E                      | 10     | 109      | All passing     |
 | Core packages (external) | —      | 118      | All passing     |
-| **CLI Total**            | **55** | **1009** | **All passing** |
+| **CLI Total**            | **67** | **1429** | **All passing** |
 
 ## License
 
