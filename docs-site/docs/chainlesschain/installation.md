@@ -871,6 +871,50 @@ chainlesschain restore --input ~/Backups/backup.tar.gz --new-device
 
 ---
 
+## 使用示例
+
+### 方式一：通过 npm CLI 快速安装（推荐）
+
+```bash
+# 一行命令全局安装
+npm install -g chainlesschain
+
+# 交互式设置（选择版本、LLM 提供商、下载二进制）
+chainlesschain setup
+
+# 启动桌面应用
+chainlesschain start
+
+# 环境诊断（检查 Node.js、Docker、端口等）
+chainlesschain doctor
+```
+
+### 方式二：Docker 一键部署后端服务
+
+```bash
+# 启动全部后端服务（Ollama、Qdrant、PostgreSQL、Redis）
+chainlesschain services up
+
+# 查看服务运行状态
+chainlesschain services logs -f
+
+# 停止所有服务
+chainlesschain services down
+```
+
+### 方式三：从源码构建桌面应用
+
+```bash
+git clone https://github.com/chainlesschain/chainlesschain.git
+cd chainlesschain/desktop-app-vue
+npm install
+npm run build:main    # 构建主进程
+npm run dev           # 开发模式运行
+npm run make:win      # 打包 Windows 安装包
+```
+
+---
+
 ## 故障排查
 
 ### 常见问题
@@ -1000,6 +1044,19 @@ ANALYZE;
 - [AI模型配置](/chainlesschain/ai-models) - 深入配置AI
 - [Git同步](/chainlesschain/git-sync) - 设置跨设备同步
 - [去中心化社交](/chainlesschain/social) - 开始P2P通讯
+
+## 安全考虑
+
+- **环境变量安全**: 避免将 API Key、数据库密码等敏感信息硬编码在脚本或配置文件中，使用 `chainlesschain config set` 加密存储
+- **Docker 安全**: 生产环境中为 Docker 容器配置网络隔离，避免将数据库端口暴露到公网
+- **密钥与助记词**: 首次创建身份时生成的助记词务必离线保存（纸笔），切勿截图或存储在电子设备中
+- **U-Key PIN ���**: 默认 PIN 码为 `123456`，首次使用后务必立即修改为强 PIN
+- **文件权限**: 配置目录 `~/.chainlesschain/` 建议设置权限为 700，配置文件权限为 600
+- **网络传输**: 所有远程连接（Git 同步、API 调用）强制使用 HTTPS/TLS 加密
+- **二进制校验**: CLI 下载的二进制文件通过 SHA-256 校验和验证完整性，防止中间人篡改
+- **最小权限原则**: 不要以 root/管理员身份运行 ChainlessChain，使用普通用户权限即可
+
+---
 
 ## 关键文件
 

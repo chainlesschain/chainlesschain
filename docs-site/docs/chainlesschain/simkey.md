@@ -427,6 +427,63 @@ if (isSupported) {
 }
 ```
 
+## 使用示例
+
+### 移动端完整签名流程
+
+```kotlin
+import com.chainlesschain.simkey.SIMKey
+
+// 1. 初始化 SIMKey
+val simkey = SIMKey(context)
+
+// 2. 检查 SIM 卡兼容性
+if (!simkey.isAvailable()) {
+    println("当前 SIM 卡不支持 SIMKey，请联系运营商更换 USIM 卡")
+    return
+}
+
+// 3. 验证 PIN 码（或使用生物识别）
+simkey.verifyPIN("123456")
+
+// 4. 获取公钥用于 DID 注册
+val publicKey = simkey.getPublicKey()
+println("SIMKey 公钥: $publicKey")
+
+// 5. 对交易数据签名
+val txData = "转账请求: 100 USDT".toByteArray()
+val signature = simkey.sign(txData)
+
+// 6. 验证签名结果
+val isValid = simkey.verify(txData, signature, publicKey)
+println("签名验证: ${if (isValid) "通过" else "失败"}")
+```
+
+### 跨设备密钥同步
+
+```
+场景: 从旧手机迁移 SIMKey 到新手机
+
+1. 旧手机：设置 → 安全 → SIMKey → 生成助记词
+2. 手写记录 12 个助记词并妥善保管
+3. 新手机安装 ChainlessChain 应用
+4. 选择「从助记词恢复」→ 输入 12 个助记词
+5. 设置新 PIN 码，等待密钥写入新 SIM 卡
+6. 验证新手机上的签名和加密功能正常
+7. 确认恢复成功后再擦除旧手机数据
+```
+
+## 安全考虑
+
+1. **PIN 码独立**: SIMKey PIN 应与 SIM 卡 PIN 和手机锁屏密码完全不同
+2. **生物识别推荐**: 日常使用建议启用指纹/面容 ID 替代频繁输入 PIN 码
+3. **远程锁定**: 手机丢失后应立即通过 PC 端远程锁定 SIMKey
+4. **助记词安全**: 助记词必须手写保管，禁止存入手机或云笔记
+5. **云备份加密**: 若启用云端备份，务必设置强备份密码，云服务商无法解密
+6. **SIM 卡保护**: 开启 SIM 卡 PIN 锁，防止他人将 SIM 卡移至其他设备使用
+7. **定期备份**: 每更换手机或运营商前先导出助记词或云端备份
+8. **异常监控**: 定期查看 SIMKey 登录日志，发现异常操作及时处理
+
 ## 故障排查
 
 ### SIM卡无法识别

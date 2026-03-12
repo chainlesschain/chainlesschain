@@ -419,6 +419,110 @@ teamManager.getParentTeam(teamId);
 | `src/main/ipc/permission-ipc.js` | 权限系统 IPC 处理器 |
 | `src/renderer/stores/permission.ts` | Pinia 权限状态管理 |
 
+## 使用示例
+
+### CLI 权限操作
+
+```bash
+# 查看所有角色
+chainlesschain auth roles
+
+# 检查用户权限
+chainlesschain auth check user1 "note:read"
+
+# 查看审计日志
+chainlesschain audit log
+
+# 审计统计信息
+chainlesschain audit stats
+```
+
+### 桌面端权限管理
+
+```javascript
+// 创建自定义角色
+await permissionEngine.createRole({
+  name: 'reviewer',
+  description: '代码审查员',
+  permissions: ['code:read', 'code:comment', 'pr:approve']
+});
+
+// 设置资源级权限
+await permissionEngine.setResourcePermission({
+  resourceType: 'note',
+  resourceId: 'note-123',
+  userId: 'user-456',
+  permissions: ['read', 'write']
+});
+
+// 委托临时权限
+await delegationManager.delegate({
+  fromUserId: 'user-owner',
+  toUserId: 'user-delegate',
+  permissions: ['note:write'],
+  expiresAt: new Date('2026-03-20'),
+  reason: '休假期间代理'
+});
+```
+
+---
+
+## 故障排查
+
+### 权限检查返回拒绝
+
+- **角色未分配**: 确认用户已被分配正确的角色，使用 `getUserPermissions()` 查看
+- **资源范围不匹配**: 检查权限的 `scope` 是否覆盖目标资源
+- **继承被覆盖**: 子资源可能设置了 `override: true` 覆盖了父级权限
+
+### 权限委托不生效
+
+- **已过期**: 委托权限有过期时间，检查 `expiresAt` 是否已到期
+- **已撤销**: 委托人可能已手动撤销委托，使用 `getDelegatedToMe()` 确认
+- **范围限制**: 委托权限受 `resourceScope` 限制，不能超出委托人的权限范围
+
+### 审批工作流卡住
+
+- **审批人离线**: 检查审批人是否在线，考虑添加备选审批人
+- **超时设置**: 审批流有超时配置（默认 24 小时），超时后需重新发起
+- **审批链配置错误**: 确认 `approvers` 列表中的用户 ID 有效
+
+### 团队权限不继承
+
+- **继承未启用**: 确认父资源设置了 `inherit: true`
+- **最大深度限制**: 权限继承最大深度为 5 层（可在配置中调整 `maxDepth`）
+- **子团队隔离**: 检查子团队是否设置了独立权限覆盖
+
+---
+
+## 安全考虑
+
+### 最小权限原则
+
+- 新用户默认仅获得 `read` 权限，敏感操作需要显式授权
+- 管理员权限（`admin`）建议仅授予必要人员，定期审查角色分配
+- 使用权限委托替代永久授权，到期自动失效降低安全风险
+
+### 审计追踪
+
+- 所有权限变更（授予、撤销、委托、审批）自动记录在审计日志中
+- 支持 90 天历史回溯查询，满足企业合规审计要求
+- 高风险操作（如 `grant_admin`、`revoke_all`）触发实时告警通知
+
+### 数据隔离
+
+- 多租户场景下组织间数据完全隔离，跨组织权限检查自动拒绝
+- 团队权限通过 `orgId` 限定范围，不同组织的同名团队互不影响
+- 权限数据存储在加密数据库中，防止直接数据库访问绕过权限检查
+
+### 防越权机制
+
+- 权限检查响应时间 <3ms，对每个 IPC 请求强制执行，无法绕过
+- 权限继承链深度限制防止无限递归攻击
+- 委托权限不可超出委托人自身权限范围，防止权限提升攻击
+
+---
+
 ## 相关文档
 
 - [SSO 企业认证](/chainlesschain/sso) - SAML/OAuth/OIDC 身份认证

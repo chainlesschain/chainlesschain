@@ -134,6 +134,35 @@ chainlesschain session delete sess-a1b2c3
 - `export` 导出的 Markdown 文件为明文，注意保管
 - `delete` 操作不可恢复
 
+## 使用示例
+
+### 场景 1：查看和恢复会话
+
+```bash
+chainlesschain session list
+chainlesschain session resume sess-a1b2c3
+```
+
+列出所有保存的会话，选择之前的对话继续讨论，完整上下文自动恢复。
+
+### 场景 2：导出会话为文档
+
+```bash
+chainlesschain session show sess-a1b2c3
+chainlesschain session export sess-a1b2c3 --output meeting-notes.md
+```
+
+查看会话详情确认内容后导出为 Markdown 文件，便于归档或分享给团队成员。
+
+### 场景 3：清理旧会话
+
+```bash
+chainlesschain session list --limit 50
+chainlesschain session delete sess-old123
+```
+
+查看全部会话列表，删除不再需要的旧会话以保持列表整洁。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

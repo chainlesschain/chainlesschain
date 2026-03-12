@@ -482,6 +482,64 @@ module.exports = {
 | `src/main/hooks/hook-middleware.js` | IPC/Tool 中间件集成 |
 | `src/main/hooks/builtins/` | 内置钩子（权限检查/日志记录等） |
 
+## 使用示例
+
+```javascript
+// 1. 注册一个在文件修改后自动运行 ESLint 的钩子
+// .chainlesschain/hooks.json
+{
+  "hooks": [
+    {
+      "event": "FileModified",
+      "type": "command",
+      "command": "eslint --fix ${file}",
+      "priority": 500,
+      "config": { "extensions": [".js", ".ts"] }
+    }
+  ]
+}
+
+// 2. 通过 JavaScript 脚本钩子拦截危险操作
+// .chainlesschain/hooks/block-dangerous.js
+module.exports = {
+  event: "PreToolUse",
+  priority: 50,
+  handler(context) {
+    if (context.tool === "Bash" && /rm\s+-rf/.test(context.params.command)) {
+      return { proceed: false, error: "禁止执行 rm -rf 命令" };
+    }
+    return { proceed: true };
+  }
+};
+
+// 3. 会话结束时自动保存上下文
+// .chainlesschain/hooks.json 追加
+{
+  "event": "SessionEnd",
+  "type": "async",
+  "command": "node .chainlesschain/hooks/save-context.js"
+}
+```
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 钩子未触发 | 配置文件路径错误或 `enabled: false` | 检查 `.chainlesschain/hooks.json` 位置和 enabled 字段 |
+| 同步钩子导致操作卡死 | 钩子脚本执行超时或死循环 | 使用 `async` 类型替代 `sync`，或为命令设置超时 |
+| 钩子执行顺序不对 | 优先级设置冲突 | 检查 priority 值，数字越小越先执行 |
+| Shell 命令钩子报错 | 命令路径或环境变量不可用 | 使用绝对路径，确认命令在当前 Shell 环境中可执行 |
+| 项目级配置未生效 | 用户级配置覆盖了项目级 | 项目级优先于用户级，检查两个配置文件中是否有冲突事件 |
+
+## 安全考虑
+
+- **PreToolUse 拦截**: 通过 PreToolUse 钩子阻止写入敏感路径和执行危险命令
+- **脚本白名单**: 仅允许 `.chainlesschain/hooks/` 目录下的脚本执行，防止任意代码注入
+- **权限最小化**: 钩子脚本以当前用户权限运行，不提供额外的系统权限提升
+- **参数校验**: 钩子上下文中的 `${file}` 等变量经过转义处理，防止命令注入
+- **日志审计**: 所有钩子的触发、执行结果和错误均记录日志，支持事后审查
+- **配置校验**: 加载钩子配置时校验格式和字段合法性，拒绝无效配置
+
 ## 相关文档
 
 - [Plan Mode →](/chainlesschain/plan-mode)

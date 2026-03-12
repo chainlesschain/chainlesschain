@@ -124,6 +124,38 @@ chainlesschain memory file --edit           # 用编辑器打开
 - MEMORY.md 文件可能包含敏感信息，注意不要提交到公开仓库
 - `delete` 操作不可恢复，建议先备份
 
+## 使用示例
+
+### 场景 1：添加项目偏好记忆
+
+```bash
+chainlesschain memory add "项目使用 TypeScript + Vue3 技术栈" --category work --importance 5
+chainlesschain memory add "偏好使用 Ollama 本地模型" --category preference
+chainlesschain memory show
+```
+
+记录重要的项目信息和个人偏好，AI 在后续对话中会参考这些记忆提供更准确的建议。
+
+### 场景 2：搜索历史记忆
+
+```bash
+chainlesschain memory search "数据库"
+chainlesschain memory search "React" --limit 5
+```
+
+按关键词检索相关记忆条目，快速回顾之前记录的技术决策和上下文。
+
+### 场景 3：每日笔记管理
+
+```bash
+chainlesschain memory daily --add "完成用户认证模块重构"
+chainlesschain memory daily --add "发现 P2P 连接超时问题待排查"
+chainlesschain memory daily
+chainlesschain memory daily 2026-03-11
+```
+
+每日记录工作进展，查看今日或指定日期的笔记，形成持续的工作日志。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

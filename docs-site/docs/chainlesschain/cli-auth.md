@@ -165,6 +165,37 @@ auth:manage
 - 角色授权支持过期时间（`--expires`），建议对临时权限设置过期
 - 所有权限变更自动记录审计日志
 
+## 使用示例
+
+### 场景 1：创建自定义角色并分配权限
+
+```bash
+chainlesschain auth create-role reviewer -d "代码审查员" -p "note:read,note:write,skill:read"
+chainlesschain auth grant user1 reviewer
+chainlesschain auth permissions user1
+```
+
+创建一个仅有笔记读写和技能查看权限的审查员角色，并授予给用户。
+
+### 场景 2：临时授权并设置过期
+
+```bash
+chainlesschain auth grant contractor1 editor --expires 2026-06-30
+chainlesschain auth check contractor1 "note:write"
+```
+
+为外部协作者授予编辑权限并设置过期时间，随后验证权限是否生效。
+
+### 场景 3：权限审查与调整
+
+```bash
+chainlesschain auth users --role admin
+chainlesschain auth revoke-permission editor "note:delete"
+chainlesschain auth scopes
+```
+
+列出所有管理员用户，从编辑角色移除删除权限，查看全部可用权限范围。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

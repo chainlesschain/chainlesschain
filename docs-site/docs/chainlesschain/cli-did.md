@@ -145,6 +145,37 @@ chainlesschain did delete <did>
 - Ed25519 签名使用 Node.js 内置 `crypto` 模块，零外部依赖
 - DID 标识符基于公钥 SHA-256 哈希，不可逆推出私钥
 
+## 使用示例
+
+### 场景 1：创建并管理身份
+
+```bash
+chainlesschain did create --label "个人"
+chainlesschain did create --label "工作"
+chainlesschain did list
+chainlesschain did set-default did:chainless:abc123
+```
+
+创建多个 DID 身份用于不同场景，设置常用身份为默认签名身份。
+
+### 场景 2：消息签名与验证
+
+```bash
+chainlesschain did sign "这是一条重要消息"
+chainlesschain did verify "这是一条重要消息" --signature <base64sig> --did did:chainless:abc123
+```
+
+使用默认 DID 对消息进行 Ed25519 数字签名，接收方可通过公钥验证签名真实性。
+
+### 场景 3：身份备份导出
+
+```bash
+chainlesschain did export did:chainless:abc123
+chainlesschain did export did:chainless:abc123 --include-private
+```
+
+导出 DID 文档用于共享公钥信息。`--include-private` 仅用于安全备份迁移，务必妥善保管。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

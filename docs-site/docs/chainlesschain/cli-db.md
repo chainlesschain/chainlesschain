@@ -77,6 +77,35 @@ chainlesschain db restore ./my-backup.db    # 从备份恢复
 - 备份文件包含完整数据，应妥善保管
 - `restore` 操作会覆盖当前数据库，建议先备份
 
+## 使用示例
+
+### 场景 1：首次初始化数据库
+
+```bash
+chainlesschain db init
+chainlesschain db info
+```
+
+初始化 SQLite 数据库并创建所有表和索引，随后查看数据库驱动、表数量和文件大小等信息。
+
+### 场景 2：备份与恢复
+
+```bash
+chainlesschain db backup ./backup-20260312.db
+chainlesschain db restore ./backup-20260312.db
+```
+
+在进行重大操作前创建数据库备份，出问题时可以从备份恢复。
+
+### 场景 3：CI/CD 中自动初始化
+
+```bash
+chainlesschain db init --path ./test.db
+chainlesschain db info --json
+```
+
+在测试流水线中使用指定路径初始化数据库，JSON 输出便于脚本解析验证。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

@@ -286,6 +286,78 @@ await firmware.fetchHistory();
 
 ---
 
+## 使用示例
+
+### 检查并执行固件升级
+
+```javascript
+// 1. 检查是否有可用更新
+const updates = await window.electronAPI.invoke('firmware:check-updates', {
+  channel: 'STABLE',
+  currentVersion: '2.1.0',
+  deviceType: 'ukey-v2'
+});
+
+if (updates.available) {
+  console.log(`发现新版本: ${updates.latestVersion}`);
+  console.log(`更新说明: ${updates.releaseNotes}`);
+
+  // 2. 执行固件升级（含安全验证和自动回滚）
+  const result = await window.electronAPI.invoke('firmware:start-update', {
+    versionId: `fw-v${updates.latestVersion}`,
+    options: {
+      verifyChecksum: true,
+      verifySignature: true,
+      autoRollback: true,
+      backupCurrent: true
+    }
+  });
+
+  console.log(`升级结果: ${result.status}`);
+  console.log(`${result.previousVersion} → ${result.installedVersion}`);
+}
+```
+
+### 前端 Pinia Store 集成
+
+```typescript
+import { useFirmwareOtaStore } from '@/stores/firmwareOta';
+
+const firmware = useFirmwareOtaStore();
+
+// 一键检查更新
+await firmware.checkUpdates();
+if (firmware.hasUpdate) {
+  // 展示更新信息给用户确认后执行升级
+  await firmware.startUpdate(firmware.latestVersion.id);
+  // 升级进度通过 firmware.updateProgress 实时追踪
+}
+
+// 查看历史升级记录
+await firmware.fetchHistory();
+firmware.updateHistory.forEach(log => {
+  console.log(`${log.fromVersion} → ${log.toVersion}: ${log.status}`);
+});
+```
+
+### 回滚到上一版本
+
+```javascript
+// 查看升级历史，找到可回滚的记录
+const history = await window.electronAPI.invoke('firmware:get-history', {
+  limit: 5
+});
+
+const lastUpdate = history.find(h => h.rollbackAvailable);
+if (lastUpdate) {
+  // 执行回滚操作
+  const rollback = await window.electronAPI.invoke('firmware:rollback', {
+    updateId: lastUpdate.id
+  });
+  console.log(`已回滚到版本: ${rollback.restoredVersion}`);
+}
+```
+
 ## 安全考虑
 
 1. **签名验证**: 所有固件包使用 Ed25519 签名验证
@@ -306,6 +378,26 @@ await firmware.fetchHistory();
 | 安装执行延迟     | <60s   | ~30s   |
 
 ---
+
+## 故障排查
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 更新下载失败或��断 | 网络���稳定或固件服务器不可达 | 检查网络连接，系统支持断点续传，重新调用 `firmware:start-update` 会自动从断点恢复 |
+| 校验失败（checksum 不匹配） | 下载过程中数据损坏或文件被篡改 | 删除已下载的固件缓存，重新下载；若多次失败，确认固件服务器 SHA-256 哈希值是否正确 |
+| 安装后自动回滚到旧版本 | 固件安装过程出错或新固件启动自检失败 | 查看 `firmware:get-history` 中的 `error_message` 字段定位失败原因，尝试切换到 BETA 通道测试 |
+| 连接 U 盾超时 | USB/BLE 连接不稳定或设备未就绪 | 重新插拔 U 盾或重新配对 BLE 连接，确认设备驱动正常加载，Windows 下检查设备管理器状态 |
+| 版本号不匹配（显示旧版本） | 安装完成但设备未正确重启或版本缓存未刷新 | 手动重启 U 盾设备，调用 `firmware:check-updates` 刷新本地版本缓存 |
+
+**常见修复操作**:
+
+```bash
+# 清除固件下载缓存并重新检查更新
+chainlesschain firmware clear-cache && chainlesschain firmware check --channel STABLE
+
+# 查看最近升级日志，排查失败原因
+chainlesschain firmware history --limit 5 --verbose
+```
 
 ## 相关文档
 

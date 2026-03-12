@@ -372,6 +372,72 @@ const stats = await window.electron.ipcRenderer.invoke("automation:get-stats");
 
 ---
 
+## 故障排查
+
+| 问题 | 原因分析 | 解决方案 |
+|------|---------|---------|
+| 工作流触发后未执行 | 触发器配置错误或工作流状态非 ACTIVE | 检查触发器类型和参数，确认工作流状态为 `ACTIVE`；使用 `automation:test-flow` 沙盒测试验证 |
+| 连接器认证失败 | OAuth Token 过期或 API Key 无效 | 重新授权连接器，检查 Token 有效期；GitHub/Slack 等需在对应平台重新生成凭证 |
+| Pipeline 步骤报错 | Transform/Filter 中的 JavaScript 表达式语法错误 | 检查 `expression` 和 `condition` 字段的 JS 语法，确保引用的字段名与上游数据结构一致 |
+| 定时调度未触发 | Cron 表达式或时区配置错误 | 使用 crontab 校验工具验证表达式，确认 `timezone` 与系统时区一致（如 `Asia/Shanghai`） |
+| Webhook 无法接收 | 本地防火墙或端口未开放 | 确认 Webhook 端口��从外网访问，或使用 ngrok 等工具进行端口转发；检查 `secret` 签名验证是否匹配 |
+| 执行超时 | 单步骤或总流程耗时超出配置限制 | 增大 `executionTimeout`（默认 300 秒），或优化连接器调用（减少数据量、启用分页） |
+| 模板导入失败 | 模板依赖的连接器未配置或版本不��容 | 导入前检查模板所需连接器是否已启用，升级连接器到兼容版本 |
+
+## 安全考虑
+
+### 连接器凭证安全
+- **凭证加密存储**: 所有连接器的 API Key、OAuth Token 等凭证通过 SQLCipher 加密存储，切勿在工作流定义的 `config` 中硬编码明文密码
+- **最小权限原则**: 为每个连接器配置最小必要权限（如 GitHub 仅授予 `repo:read` 而非全部权限），降低凭证泄露的影响范围
+- **Token 自动轮换**: OAuth Token 过期后系统自动使用 Refresh Token 刷新，无需人工干预
+
+### 执行安全
+- **沙盒测试**: 工作流上线前务必使用 `automation:test-flow` 在沙盒环境中测试，沙盒模式下连接器调用不会影响外部系统
+- **表达式沙箱**: Transform/Filter 步骤中的 JavaScript 表达式在受限沙箱中执行，禁止访问文件系统、网络和 Node.js 原生模块
+- **重试限制**: 失败步骤的自动重试受 `maxRetries`（默认 3 次）和指数退避策略控制，防止无限重试导致外部 API 过载
+
+### Webhook 安全
+- **签名验证**: 接收 Webhook 时验证请求签名（如 GitHub 的 `X-Hub-Signature-256`），拒绝未签名或签名不匹配的请求
+- **IP 白名单**: 建议配置 Webhook 来源 IP 白名单，仅接受可信来源的请求
+- **速率限制**: Webhook 端点设有速率限制（默认 `maxEndpoints: 50`），防止被恶意大量请求攻击
+
+### 工作流共享安全
+- **凭证脱敏**: 共享工作流到市场时自动移除所有连接器凭证和敏感配置，导入方需重新配置凭证
+- **审核机制**: 公开共享的工作流模板需通过自动化安全检查，检测是否包含可疑的外部 URL 或恶意表达式
+
+## 使用示例
+
+### 创建自动化工作流
+
+```bash
+# 完整流程：创建 → 沙盒测试 → 激活
+# 1. 创建工作流（GitHub PR → Slack 通知）
+# IPC: automation:create-flow { name: "PR通知", trigger: { type: "webhook", connector: "github", event: "pull_request.opened" }, steps: [...] }
+# → status: "DRAFT"
+
+# 2. 沙盒测试（不影响外部系统）
+# IPC: automation:test-flow { flowId: "flow-001", mockData: { pull_request: { title: "test", ... } } }
+# → success: true, 所有步骤通过
+
+# 3. 添加触发器并激活
+# IPC: automation:add-trigger { flowId: "flow-001", trigger: { type: "webhook", ... } }
+```
+
+### 连接器配置要点
+
+- **OAuth 连接器**（Gmail/Slack/GitHub）: 需在对应平台创建 OAuth App，将 Token 配置到 `.chainlesschain/config.json`，Token 过期后系统自动刷新
+- **Webhook 连接器**: 配置 `secret` 用于签名验证，确认���收端口从外网可达（或使用 ngrok 转发）
+- **数据库连接器**: 使用只读账号连接，避免工作流误操作修改源数据
+
+### 触发器设置
+
+| 触发类型 | 配置示例 | 适用场景 |
+|---------|---------|---------|
+| **Webhook** | `{ type: "webhook", connector: "github", event: "push" }` | GitHub/GitLab 事件实时响应 |
+| **定时(Cron)** | `{ type: "schedule", cron: "0 9 * * 1-5", timezone: "Asia/Shanghai" }` | 工作日早报、定期汇总 |
+| **事件驱动** | `{ type: "event", source: "ipc", channel: "note:created" }` | 笔记创建时自动归档 |
+| **条件触发** | `{ type: "condition", metric: "cpu_usage", operator: ">", threshold: 90 }` | 系统指标告警 |
+
 ## 相关链接
 
 - [智能插件生态 2.0](/chainlesschain/plugin-ecosystem-v2)

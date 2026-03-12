@@ -346,6 +346,70 @@ if (approved) {
 
 ---
 
+## 使用示例
+
+### 示例 1: 完整的 Plan → Apply 工作流
+
+```javascript
+// 1. 创建工作区
+const ws = await window.electronAPI.invoke("terraform:create-workspace", {
+  name: "staging",
+  terraformVersion: "1.9.0",
+  variables: { region: "ap-southeast-1", instance_type: "t3.small" },
+  providers: ["aws"],
+});
+
+// 2. 先执行 Plan 预览变更
+const plan = await window.electronAPI.invoke("terraform:plan-run", {
+  workspaceId: ws.id,
+  runType: "PLAN",
+  message: "检查 staging 环境变更",
+});
+console.log(`Plan 结果: +${plan.resourceChanges.add} ~${plan.resourceChanges.change} -${plan.resourceChanges.destroy}`);
+
+// 3. 确认无误后执行 Apply
+const apply = await window.electronAPI.invoke("terraform:plan-run", {
+  workspaceId: ws.id,
+  runType: "APPLY",
+  message: "部署 staging 变更",
+});
+console.log(`Apply 状态: ${apply.status}`);
+```
+
+### 示例 2: 安全销毁并查看运行历史
+
+```javascript
+// 销毁 staging 环境（需要 confirm 确认）
+const destroy = await window.electronAPI.invoke("terraform:plan-run", {
+  workspaceId: "ws-staging",
+  runType: "DESTROY",
+  message: "清理测试环境资源",
+  confirm: true,
+});
+
+// 查看该工作区所有运行历史
+const runs = await window.electronAPI.invoke("terraform:list-runs", {
+  workspaceId: "ws-staging",
+  limit: 10,
+});
+runs.forEach(r => console.log(`[${r.runType}] ${r.status} - ${r.message}`));
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| Plan 执行报错 | Terraform 版本不匹配或配置语法错误 | 检查 `terraformVersion` 是否已安装，查看 `planLog` 中的详细错误 |
+| Apply 超时 | 资源创建耗时过长或云平台响应慢 | 增大 `runTimeout` 配置（默认 3600000ms），检查云平台配额 |
+| Destroy 操作被拒绝 | 当前用户无管理员权限 | 确认操作者具有 Destroy 权限，且传入 `confirm: true` |
+| 工作区状态为 LOCKED | 有正在执行的运行未完成 | 等待当前运行完成，或检查是否有异常中断的运行需要取消 |
+| 并发运行排队 | 超过最大并发数限制 | 等待前序运行完成，或调整 `maxConcurrentRuns`（默认 3） |
+| 敏感变量泄露 | 变量未标记为敏感 | 在配置中使用 `sensitive: true` 标记，系统会自动 AES-256 加密存储 |
+
+---
+
 ## 安全考虑
 
 1. **变量加密**: 敏感变量 (API Key/Secret) 使用 AES-256 加密存储

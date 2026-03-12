@@ -1475,6 +1475,50 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 @vue-flow/core @vue-flow/background @vue-flow/controls @vue-flow/minimap
 ```
 
+## 使用示例
+
+### Debate Review 多视角代码评审
+
+```bash
+# 对指定文件发起多视角辩论式评审（性能/安全/可维护性三个视角）
+chainlesschain cowork debate src/main/database.js
+
+# 仅评审安全视角，输出详细报告
+chainlesschain cowork debate src/auth/login.js --perspectives security --verbose
+
+# 对整个目录进行批量辩论评审
+chainlesschain cowork debate src/main/ai-engine/ --recursive
+```
+
+### A/B 方案对比
+
+```bash
+# 对同一需求生成两个方案并自动对比（含基准测试）
+chainlesschain cowork compare "实现一个高性能的本地缓存模块"
+
+# 指定对比维度：性能、内存占用、代码复杂度
+chainlesschain cowork compare "用户认证方案" --criteria performance,security,complexity
+
+# 对比两个已有文件的实现方案
+chainlesschain cowork compare --file-a src/cache-v1.js --file-b src/cache-v2.js
+```
+
+### 代码知识图谱分析
+
+```bash
+# 分析项目代码结构，构建实体/关系知识图谱
+chainlesschain cowork analyze src/main/ --mode knowledge-graph
+
+# 检测循环依赖并输出依赖链
+chainlesschain cowork analyze src/main/ --mode knowledge-graph --detect-cycles
+
+# 分析项目编码风格并提取模式
+chainlesschain cowork analyze src/ --mode style
+
+# 查看 Cowork 系统运行状态（团队数/任务数/代理池）
+chainlesschain cowork status
+```
+
 ## 相关文档
 
 - [快速入门指南 →](/guide/cowork-quick-start)

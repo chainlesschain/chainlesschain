@@ -150,6 +150,34 @@ if (isInsideProject()) {
 - 生成的 `config.json` 不包含敏感信息
 - `rules.md` 仅包含项目编码规范模板
 
+## 使用示例
+
+### 场景 1：交互式初始化项目
+
+```bash
+cd my-project
+chainlesschain init
+```
+
+在项目根目录运行交互式初始化，选择模板并自动生成 `.chainlesschain/` 目录结构。
+
+### 场景 2：使用模板快速初始化
+
+```bash
+chainlesschain init --template code-project --yes
+chainlesschain skill sources
+```
+
+使用代码项目模板一键初始化，跳过确认提示。初始化后查看技能来源确认工作区层已就绪。
+
+### 场景 3：最小空白项目
+
+```bash
+chainlesschain init --bare
+```
+
+创建最小项目结构，仅包含 `config.json`、`rules.md` 和空的 `skills/` 目录，适合完全自定义的场景。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

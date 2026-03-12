@@ -1058,6 +1058,51 @@ def evaluate_generation(test_cases):
 
 ---
 
+## 使用示例
+
+### Ollama 本地模型配置与使用
+
+```bash
+# 安装并启动 Ollama
+ollama serve
+
+# 下载推荐模型
+ollama pull qwen2:7b
+
+# 通过 CLI 测试模型连通性
+chainlesschain llm test
+chainlesschain llm models   # 列出已安装模型
+```
+
+### 切换 LLM 提供商
+
+```bash
+# 切换到 DeepSeek（高性价比云端）
+chainlesschain llm switch deepseek
+chainlesschain config set llm.apiKey sk-xxx
+
+# 切换到 Ollama 本地模型
+chainlesschain llm switch ollama
+
+# 查看当前提供商状态
+chainlesschain llm providers
+```
+
+### 在对话中使用不同模型
+
+```bash
+# 单次问答（使用当前配置的模型）
+chainlesschain ask "解释量子计算的基本原理"
+
+# 交互式对话（支持流式输出）
+chainlesschain chat
+
+# Agent 模式（138 技能 + Plan Mode）
+chainlesschain agent
+```
+
+---
+
 ## 故障排查
 
 ### 本地模型加载失败
@@ -1209,6 +1254,19 @@ Error: Failed to load model
 - [x] 模型性能基准测试（自动化评估框架）
 - [x] 多模型协作（Architect+Editor双模型模式）
 - [x] 长期记忆增强（结合Permanent Memory的个性化模型）
+
+## 安全考虑
+
+- **API Key 加密存储**: 所有 API Key 使用 AES-256-GCM 加密后存储在本地 `config.json` 中，不以明文保存
+- **本地推理隐私**: 使用 Ollama 本地模型时数据完全离线，不发送到任何外部服务器
+- **传输加密**: 云端 API 调用强制使用 HTTPS/TLS 加密传输
+- **密钥轮换**: 建议定期更换云端 API Key，旧 Key 及时在提供商控制台吊销
+- **预算控制**: 启用 Token 追踪和预算告警（`tokenTracking.budgetAlert`），防止意外超支
+- **敏感数据过滤**: 发送到云端 API 的内容建议经过 DLP 引擎扫描，避免泄露敏感信息
+- **Fallback 安全**: 智能回退到 Ollama 时数据不会离开本地，保障隐私
+- **模型来源**: 仅从官方渠道（Ollama Hub、Hugging Face）下载模型，避免使用不可信来源的模型文件
+
+---
 
 ## 关键文件
 

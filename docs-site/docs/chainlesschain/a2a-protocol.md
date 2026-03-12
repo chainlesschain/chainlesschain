@@ -284,6 +284,54 @@ const result = await window.electron.ipcRenderer.invoke(
 | `desktop-app-vue/src/main/ai-engine/a2a/task-lifecycle-manager.js` | 任务生命周期管理 |
 | `desktop-app-vue/src/main/ai-engine/a2a/a2a-ipc.js` | A2A IPC 处理器 |
 
+## 使用示例
+
+```javascript
+// 1. 注册自定义 Agent Card
+const card = await window.electron.ipcRenderer.invoke("a2a:register-card", {
+  name: "数据分析Agent",
+  description: "结构化数据分析与可视化",
+  capabilities: [{ name: "data-analysis", description: "数据分析" }],
+});
+
+// 2. 发现具备特定能力的 Agent
+const agents = await window.electron.ipcRenderer.invoke("a2a:discover-agents", {
+  capability: "data-analysis",
+  maxResults: 5,
+});
+
+// 3. 提交任务并订阅状态更新
+const task = await window.electron.ipcRenderer.invoke("a2a:send-task", {
+  targetUrl: agents.discovered[0].url,
+  capability: "data-analysis",
+  input: { dataset: "sales-2026-q1", analysisType: "trend" },
+  timeout: 30000,
+});
+await window.electron.ipcRenderer.invoke("a2a:subscribe-updates", {
+  taskId: task.taskId,
+  events: ["status-change", "result"],
+});
+```
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| Agent 不可达 | 目标 Agent 离线或网络不通 | 执行 `a2a:list-peers` 确认在线状态，检查防火墙端口 9001 |
+| 任务长时间处于 working | 远端 Agent 处理超时 | 调整 `taskTimeout` 配置，或取消任务重新提交 |
+| SSE 订阅断开 | 网络抖动或 EventBus 异常 | 检查网络连接，重新调用 `a2a:subscribe-updates` |
+| Agent Card 注册失败 | capabilities 格式不合规 | 确认 inputSchema 符合 JSON Schema 规范 |
+| 能力协商无匹配 | 无 Agent 提供所需能力 | 降低 `qualityThreshold`，或扩大发现范围 |
+
+## 安全考虑
+
+- **身份认证**: 所有 Agent 交互基于 DID 认证，需先完成 `did:chainless` 身份创建
+- **任务隔离**: 每个任务在独立上下文中执行，任务间数据不可交叉访问
+- **数据传输加密**: Agent 间通信使用 TLS 加密，敏感数据支持端到端加密
+- **信任评分**: 仅与 `trustScoreThreshold` 以上的 Agent 建立连接，防止恶意节点
+- **权限最小化**: Agent Card 仅声明必要能力，避免过度暴露服务端点
+- **审计追踪**: 所有 A2A 交互记录完整审计日志，支持事后追���
+
 ## 相关文档
 
 - [Agent 联邦网络](/chainlesschain/agent-federation)

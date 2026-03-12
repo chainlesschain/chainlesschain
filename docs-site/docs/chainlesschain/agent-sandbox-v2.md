@@ -215,6 +215,89 @@ const report = await window.electron.ipcRenderer.invoke(
 | 行为误报     | 调整风险阈值，添加白名单行为模式           |
 | 审计日志过大 | 减少 retentionDays，调高 logLevel          |
 
+### 权限拒绝详细排查
+
+**现象**: 沙箱内代码访问文件或网络时返回 `Permission Denied`。
+
+**排查步骤**:
+1. 确认目标路径匹配 `filesystem.read` 或 `filesystem.write` 中的 glob 模式
+2. 检查 `deny` 列表是否包含了该路径（deny 优先级最高，始终覆盖 allow）
+3. 对于网络请求，检查 `network.allowedHosts` 和 `allowedPorts` 是否包含目标地址
+4. 使用 `sandbox:get-audit-log` 查看拒绝事件的详细信息和触发规则
+
+### 资源配额超限详细排查
+
+**现象**: 沙箱进程被自动终止，返回配额超限错误。
+
+**排查步骤**:
+1. 通过 `sandbox:monitor-behavior` 查看 `resourceUsage` 中哪项资源（CPU/内存/存储）超限
+2. 调整 `sandbox:set-quota` 增大相应配额，或优化代码减少资源消耗
+3. 检查 `timeout` 是否设置过短导致长任务被中断（默认 300000ms）
+4. 若为批量处理任务，考虑拆分为多个小任务分次在沙箱中执行
+
+### 沙箱创建失败详细排查
+
+**现象**: 调用 `sandbox:create` 返回失败，沙箱实例未创建。
+
+**排查步骤**:
+1. 确认系统是否支持指定的 `runtime` 类型（wasm 需要 WebAssembly 运行时）
+2. 检查系统可用内存和磁盘空间是否满足 `defaultQuota` 的最低要求
+3. 查看日志中是否有 WASM 模块加载或编译错误
+4. 若使用 `docker` 运行时，确认 Docker 服务已启动且有足够权限
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 权限拒绝无法执行操作 | 沙箱策略限制或 ACL 配置错误 | 检查 `sandbox-policy.json`，确认操作在白名单中 |
+| 配额超限导致任务中断 | CPU/内存/磁盘配额设置过低 | 调整 `quotas` 配置，增大对应资源限额 |
+| WASM 隔离环境启动失败 | WASM 运行时未安装或版本不兼容 | 确认 `wasmtime` 已安装，版本 >= 14.0 |
+| 沙箱内网络请求被拦截 | 网络策略默认拒绝出站请求 | 在 `networkPolicy` 中添加允许的域名白名单 |
+| 文件系统写入被拒绝 | 挂载目录为只读或路径越界 | 检查 `mountPoints` 配置，确认 `writable: true` |
+
+### 常见错误修复
+
+**错误: `PERMISSION_DENIED` 操作被沙箱拦截**
+
+```bash
+# 查看当前沙箱策略
+chainlesschain sandbox policy-show
+
+# 临时放宽权限（仅开发环境）
+chainlesschain sandbox policy-set --allow-fs-write --scope /tmp
+```
+
+**错误: `QUOTA_EXCEEDED` 资源配额超限**
+
+```bash
+# 查看当前资源使用情况
+chainlesschain sandbox stats
+
+# 调整内存配额
+chainlesschain sandbox quota-set --memory 512MB --cpu 2
+```
+
+**错误: `WASM_INIT_FAILED` 隔离环境启动异常**
+
+```bash
+# 检查 WASM 运行时状态
+chainlesschain sandbox wasm-check
+
+# 重新初始化沙箱环境
+chainlesschain sandbox reset --confirm
+```
+
+## 安全考虑
+
+- **WASM 内存隔离**: 沙箱进程运行在 WebAssembly 线性内存中，无法访问宿主内存
+- **deny 优先**: 文件系统权限中 `deny` 规则优先级最高，始终覆盖 `read`/`write` 规则
+- **最小权限原则**: 默认拒绝所有系统调用，仅白名单中的调用可执行
+- **资源硬性限制**: CPU/内存/存储配额为硬性上限，超限自动终止沙箱进程
+- **行为基线学习**: AI 行为监控持续学习正常行为模式，偏离基线自动触发告警
+- **审计不可篡改**: 沙箱内所有操作记录到独立审计日志，Agent 无权修改日志
+
 ## 关键文件
 
 | 文件 | 职责 |

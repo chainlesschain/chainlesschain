@@ -691,6 +691,56 @@ await store.getConfig();
 | `/evomap`         | EvoMapDashboard | 节点状态、配置、同步日志 |
 | `/evomap/browser` | EvoMapBrowser   | 搜索、趋势、排名、导入   |
 
+## 使用示例
+
+### 示例 1: 注册节点并发布 Instinct
+
+```javascript
+// 1. 注册到 EvoMap Hub
+const reg = await window.electronAPI.invoke("evomap:register");
+console.log(`节点: ${reg.data.nodeId}, 初始信用: ${reg.data.credits}`);
+
+// 2. 启动心跳保持在线
+await window.electronAPI.invoke("evomap:start-heartbeat");
+
+// 3. 发布高置信度 Instinct（自动合成为 Gene+Capsule）
+const pub = await window.electronAPI.invoke("evomap:publish-instinct", "instinct-001");
+if (pub.pendingReview) {
+  // 审核门控：确认后批准发布
+  await window.electronAPI.invoke("evomap:approve-publish", pub.reviewId);
+}
+```
+
+### 示例 2: 搜索社区资产并导入为本地 Skill
+
+```javascript
+// 搜索 JavaScript 错误处理相关的社区策略
+const assets = await window.electronAPI.invoke(
+  "evomap:search-assets", ["javascript", "error-handling"], "Gene", "relevance"
+);
+console.log(`找到 ${assets.length} 个相关策略`);
+
+// 导入评分最高的 Gene 为本地 Skill
+if (assets.length > 0) {
+  await window.electronAPI.invoke("evomap:import-as-skill", assets[0].asset_id);
+  console.log("已导入为本地 SKILL.md");
+}
+```
+
+---
+
+## 安全考虑
+
+1. **默认关闭**: EvoMap 功能默认 `enabled: false`，用户需主动启用（opt-in 原则）
+2. **隐私过滤**: 发布前自动移除绝对路径、邮箱地址、项目名称等可识别信息
+3. **秘密检测**: 自动拦截包含 API Key、密码、Token、私钥等敏感内容的发布请求
+4. **审核门控**: `requireReview: true` 时每次发布需用户手动确认，��止意外泄露
+5. **信任上限**: 从社区导入的 Instinct 置信度上限为 0.7，避免盲目信任外部策略
+6. **HTTPS 传输**: 与 Hub 的所有通信使用 HTTPS 加密，防止中间人攻击
+7. **匿名发布**: 默认启用匿名模式，替换可识别信息为通用占位符
+
+---
+
 ## 故障排查
 
 ### 常见问题

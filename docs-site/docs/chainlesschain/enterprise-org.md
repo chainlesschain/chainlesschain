@@ -164,6 +164,108 @@
 | `src/main/enterprise/enterprise-org-manager.js` | 企业组织管理核心    |
 | `src/main/enterprise/enterprise-org-ipc.js`     | 组织管理 IPC 处理器 |
 
+## 使用示例
+
+### CLI 组织管理
+
+```bash
+# 创建组织
+chainlesschain org create "Acme Corp"
+
+# ��请成员
+chainlesschain org invite org-001 did:chainlesschain:QmXXXX
+
+# 审批加入请求
+chainlesschain org approve request-001
+
+# 查看组织列表
+chainlesschain org list
+```
+
+### 桌面端组织操作
+
+```javascript
+// 创建部门层级
+const techDept = await orgManager.createDepartment({
+  orgId: 'org-001',
+  name: '技术部',
+  description: '负责产品研发',
+  parentId: 'root-dept-id'
+});
+
+// 批量导入成员（CSV 格式）
+await orgManager.importMembers('org-001', {
+  file: './members.csv',
+  format: 'csv'
+});
+
+// 创建审批工作流
+await orgManager.createApprovalWorkflow({
+  name: '敏感资源访问审批',
+  type: 'resource',
+  approvers: ['dept-lead', 'security-admin'],
+  timeout: 24 * 60 * 60 * 1000
+});
+```
+
+---
+
+## 故障排查
+
+### 成员加入审批超时
+
+- **审批人离线**: 检查审批链中的审批人是否在线，考虑添加备选审批人
+- **超时配置**: 默认审批超时为 24 小时，可在工作流设置中调整
+- **通知未送达**: 确认审批人的通知渠道（应用内/邮件）配置正确
+
+### 部门层级显示异常
+
+- **循环引用**: 检查 `parent_team_id` 是否存在循环引用
+- **数据不一致**: 使用组织仪表盘检查部门树完整性
+- **缓存过期**: 刷新页面或重启应用清除前端缓存
+
+### 批量导入失败
+
+- **CSV 格式**: 确认 CSV 文件包含必要字段（姓名、邮箱、部门、角色）
+- **编码问题**: CSV 文件需使用 UTF-8 编码，Excel 导出时选择 UTF-8 格式
+- **部门不存在**: 导入前确认 CSV 中引用的部门路径已在系统中创建
+
+### 多租户数据泄露
+
+- **隔离检查**: 确认所有查询都带有 `orgId` 条件过滤
+- **权限验证**: 跨组织操作会被权限引擎自动拒绝
+- **审计日志**: 检查审计日志中是否有异常的跨组织访问记录
+
+---
+
+## 安全考虑
+
+### 数据隔离
+
+- 不同组织间数据 **完全隔离**，所有数据库查询强制携带 `orgId` 过滤
+- 子组织和分公司支持独立管理，数据不与父组织共享（除非显式授权）
+- API 层强制校验请求者的组织归属，防止越权访问其他组织数据
+
+### 成员管理安全
+
+- 成员加入需经过 **审批工作流**，防止未授权人员进入组织
+- 角色分配遵循最小权限原则，普通成员仅获得基础使用权限
+- 成员离职或移除后，权限立即失效，相关会话密钥自动更新
+
+### 审批安全
+
+- 审批链支持多级审批，敏感操作需经过多人确认
+- 审批记录完整保存在审计日志中，支持事后追溯
+- 审批超时自动过期，防止长期悬挂的审批请求被滥用
+
+### 合规要求
+
+- 组织结构变更自动触发审计事件记录
+- 支持组织级别的数据保留策略和合规报告生成
+- 成员数据导出符合 GDPR 数据主体请求（DSR）要求
+
+---
+
 ## 相关文档
 
 - [权限系统 (RBAC) →](/chainlesschain/permissions)

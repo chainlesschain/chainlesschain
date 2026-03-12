@@ -432,6 +432,52 @@ git sparse-checkout init
 git sparse-checkout set knowledge/ configs/
 ```
 
+## 使用示例
+
+### 通过 CLI 进行 Git 同步操作
+
+```bash
+# 查看 Git 同步状态
+chainlesschain git status
+
+# 手动触发自动提交（检测变更并生成有意义的 commit message）
+chainlesschain git auto-commit
+
+# 推送本地变更到远程仓库
+chainlesschain sync push
+
+# 拉取远程最新变更
+chainlesschain sync pull
+
+# 查看同步状态概览
+chainlesschain sync status
+```
+
+### 桌面应用中配置 Git 同步
+
+```
+设置 → 数据同步 → Git 配置
+
+1. 选择托管平台：GitHub / GitLab / Gitea
+2. 填写仓库地址和 Token
+3. 点击"测试连接"确认可达
+4. 启用自动同步（推荐间隔 5 分钟）
+5. 首次同步会初始化并推送所有数据
+```
+
+### 多设备同步场景
+
+```bash
+# 设备 A：编辑笔记后自动同步
+# 系统自动检测变更 → auto-commit → push
+
+# 设备 B：启动时自动拉取最新数据
+# 启动应用 → 自动 pull → 合并更新
+# 如有冲突 → 弹出冲突解决 UI
+```
+
+---
+
 ## 故障排查
 
 ### 推送失败
@@ -1002,6 +1048,18 @@ git remote set-url --add --push origin git@gitlab.com:...
 | **v2.0.0** | 实时协作编辑   | Google Docs 级体验   | 2026 Q4  |
 | **v2.1.0** | 端到端加密同步 | 零知识加密           | 2027 Q1  |
 | **v2.2.0** | 智能同步策略   | AI 选择最优同步路径  | 2027 Q1  |
+
+## 安全考虑
+
+- **凭证安全存储**: Git Token 和密码通过 AES-256-GCM 加密存储在本地配置中，不以明文保存
+- **仓库权限**: 强烈建议使用私有仓库（Private），避免数据意外公开
+- **Token 最小权限**: GitHub Token 仅需 `repo` 权限，不要授予 `admin` 或 `delete_repo` 等高危权限
+- **分支保护**: 建议在 GitHub 仓库中启用分支保护规则，防止意外的 force push 覆盖历史
+- **git-crypt 加密**: 敏感数据（社交联系人、数据库备份、配置文件）默认使用 git-crypt 透明加密
+- **密钥备份**: git-crypt 密钥由 U 盾/SIMKey 管理，新设备需要通过设备授权获取密钥
+- **传输安全**: 所有 Git 操作强制使用 HTTPS 传输，支持配置 SSH 密钥
+
+---
 
 ## 关键文件
 

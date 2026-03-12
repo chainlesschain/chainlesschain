@@ -208,6 +208,49 @@ GC 策略:
 
 ---
 
+## 使用示例
+
+### 上传文件到 IPFS
+
+```javascript
+// 上传文件（可选加密）
+const result = await window.electronAPI.invoke('ipfs:upload', {
+  filePath: '/path/to/document.pdf',
+  encrypt: true,  // AES-256-GCM 加密
+  pin: true       // 固定内容防垃圾回收
+});
+
+console.log(result);
+// { cid: 'QmXxx...', size: 1024000, encrypted: true, pinned: true }
+```
+
+### 下载和解密文件
+
+```javascript
+// 通过 CID 下载文件
+const file = await window.electronAPI.invoke('ipfs:download', {
+  cid: 'QmXxx...',
+  outputPath: '/path/to/output.pdf',
+  decrypt: true   // 自动解密（需要本地持有密钥）
+});
+```
+
+### 管理 Pin 和存储配额
+
+```javascript
+// 查看已 Pin 的内容列表
+const pinned = await window.electronAPI.invoke('ipfs:list-pinned');
+
+// 取消 Pin（下次 GC 时清理）
+await window.electronAPI.invoke('ipfs:unpin', { cid: 'QmXxx...' });
+
+// 查看存储使用情况
+const quota = await window.electronAPI.invoke('ipfs:quota-status');
+// { used: 536870912, limit: 1073741824, percentage: 50 }
+```
+
+---
+
 ## 故障排查
 
 ### Helia 节点启动失败
@@ -234,6 +277,17 @@ ipfs daemon
 ```
 设置 → IPFS → 存储管理 → 清理未使用内容
 ```
+
+---
+
+## 安全考虑
+
+- **端到端加密**: 私密文件上传前使用 AES-256-GCM 加密，仅持有密钥的用户可解密，IPFS 网络中其他节���无法读取明文
+- **内容寻址安全**: CID 基于内容哈希生成，任何篡改都会改变 CID，天然具备完整性验证能力
+- **密钥管理**: 加密密钥存储在本地 SQLite 数据库中（受 SQLCipher 保护），不随文件上传到 IPFS 网络
+- **公开内容风险**: 未加密上传的内容任何知道 CID 的人都可访问，发布前确认内容不含敏感信息
+- **Pin 策略**: 重要内容务必 Pin，否则可能在垃圾回收时被清除
+- **网络隐私**: Helia 嵌入式节点的 DHT 查询可能暴露 IP 地址，敏感场景建议通过 Kubo + Tor 代理访问
 
 ---
 

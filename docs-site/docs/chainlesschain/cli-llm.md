@@ -74,6 +74,37 @@ chainlesschain llm test --provider deepseek --api-key sk-...
 - 使用 Ollama 本地模型时无需 API Key，数据不出设备
 - `test` 命令仅发送简单测试消息，不传输敏感数据
 
+## 使用示例
+
+### 场景 1：查看本地模型
+
+```bash
+chainlesschain llm models
+chainlesschain llm models --json
+```
+
+列出本地 Ollama 已安装的模型及大小信息，JSON 格式输出便于脚本处理。
+
+### 场景 2：测试不同提供商连通性
+
+```bash
+chainlesschain llm test
+chainlesschain llm test --provider openai --api-key sk-xxx
+chainlesschain llm test --provider deepseek --api-key sk-xxx
+```
+
+逐个测试各 LLM 提供商的 API 连通性，确保配置正确后再开始对话。
+
+### 场景 3：切换默认提供商
+
+```bash
+chainlesschain config set llm.provider openai
+chainlesschain config set llm.apiKey sk-xxx
+chainlesschain llm test
+```
+
+通过配置切换默认 LLM 提供商为 OpenAI，设置 API Key 后测试连通性。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

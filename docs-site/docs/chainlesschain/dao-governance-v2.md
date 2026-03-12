@@ -330,6 +330,54 @@ CREATE INDEX IF NOT EXISTS idx_dao_treasury_proposal ON dao_treasury(proposal_id
 }
 ```
 
+## 使用示例
+
+### 完整提案投票流程
+
+```javascript
+// 1. 创建提案（草案状态）
+const proposal = await window.electron.ipcRenderer.invoke("dao:create-proposal", {
+  title: "启用社区贡献者奖励计划",
+  description: "建议为活跃贡献者每月发放 500 CCT 奖励...",
+  type: "treasury",
+  actions: [{ type: "transfer", to: "did:chainless:rewards-pool", amount: 500, currency: "CCT" }],
+  votingPeriod: 604800000,
+  quorum: 0.15,
+});
+
+// 2. 提交提案进入投票（状态从 draft → active）
+// 3. 社区成员投票（二次方投票）
+await window.electron.ipcRenderer.invoke("dao:vote", {
+  proposalId: proposal.proposalId,
+  votes: 2,           // 成本 = 2² = 4 tokens
+  direction: "for",
+  reason: "支持激励社区贡献",
+});
+
+// 4. 投票通过后执行
+await window.electron.ipcRenderer.invoke("dao:execute", {
+  proposalId: proposal.proposalId,
+});
+```
+
+### 委托投票与资金库查询
+
+```javascript
+// 委托投票权给专家
+await window.electron.ipcRenderer.invoke("dao:delegate", {
+  delegateTo: "did:chainless:expert-alice",
+  scope: "category:treasury",
+  votingPower: 100,
+  revocable: true,
+});
+
+// 查看资金库状态
+const treasury = await window.electron.ipcRenderer.invoke("dao:get-treasury", {
+  includeHistory: true,
+});
+console.log(`CCT 余额: ${treasury.treasury.balance.CCT}`);
+```
+
 ## 故障排除
 
 | 问题                  | 解决方案                                          |
@@ -338,6 +386,26 @@ CREATE INDEX IF NOT EXISTS idx_dao_treasury_proposal ON dao_treasury(proposal_id
 | 提案投票未达法定人数  | 延长投票周期或降低 minQuorum 配置                 |
 | 资金库余额不足        | 检查资金库余额，等待新的存入或调整分配金额        |
 | 二次方投票 token 不足 | 当前余额不足以支付投票成本（票数²），减少投票数量 |
+
+### 投票失败详细排查
+
+**现象**: `dao:vote` 返回错误，投票未被记录。
+
+**排查步骤**:
+1. 确认提案状态为 `active` 且投票时间窗口未过期（`voting_ends_at` 未到）
+2. 检查当前 DID 是否已对该提案投过票（`UNIQUE(proposal_id, voter_did)` 约束）
+3. 计算二次方成本（票数²），确认账户 token 余额充足
+4. 若使用委托投票，确认委托关系有效且未过期
+
+### 提案状态异常
+
+**现象**: 提案状态未按预期流转（如投票通过后未进入 Queue 阶段）。
+
+**排查步骤**:
+1. 确认投票参与率是否达到 `quorum` 要求（赞成+反对+弃权 / 总投票权重）
+2. 检查 `votingPeriod` 是否已结束，投票期内提案保持 `active` 状态
+3. 通过后需等待 `executionDelay` 期满才能执行（默认 2 天缓冲期）
+4. 若提案被 Veto（否决），检查是否有管理员在缓冲期内发起了否决操作
 
 ## 关键文件
 
@@ -348,6 +416,71 @@ CREATE INDEX IF NOT EXISTS idx_dao_treasury_proposal ON dao_treasury(proposal_id
 | `desktop-app-vue/src/main/blockchain/delegation-manager.js` | 委托投票与环路检测 |
 | `desktop-app-vue/src/main/blockchain/treasury-manager.js` | 资金库管理 |
 | `desktop-app-vue/src/main/blockchain/dao-governance-ipc.js` | DAO 8 个 IPC Handler |
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 投票权重计算错误 | 快照区块高度不正确或代币委托关系未同步 | 重新获取快照 `dao snapshot-refresh`，验证委托记录 |
+| 提案状态卡住不流转 | 触发条件未满足或定时任务异常 | 检查提案条件表达式，重启调度服务 |
+| 国库余额不足执行失败 | 预算超支或多提案并发扣款 | 查看国库明细 `dao treasury-detail`，排队执行提案 |
+| 投票交易提交失败 | 签名不匹配或投票窗口已关闭 | 确认使用正确 DID 签名，检查投票截止时间 |
+| 执行交易 Gas 超限 | 提案包含过多操作或 Gas 估算偏低 | 拆分提案操作，手动设置 `gasLimit` |
+
+### 常见错误修复
+
+**错误: `VOTE_WEIGHT_MISMATCH` 投票权重不一致**
+
+```bash
+# 刷新投票权重快照
+chainlesschain dao snapshot-refresh --proposal-id <id>
+
+# 验证某地址的投票权重
+chainlesschain dao vote-weight --address <addr> --proposal-id <id>
+```
+
+**错误: `PROPOSAL_STUCK` 提案状态卡住**
+
+```bash
+# 查看提案详细状态
+chainlesschain dao proposal-detail --id <id>
+
+# 手动推进提案状态（需管理员权限）
+chainlesschain dao proposal-advance --id <id> --admin-key <key>
+```
+
+**错误: `TREASURY_INSUFFICIENT` 国库余额不足**
+
+```bash
+# 查看国库余额和待执行提案
+chainlesschain dao treasury-detail
+
+# 暂停低优先级提案执行
+chainlesschain dao proposal-pause --id <id> --reason "insufficient-funds"
+```
+
+## 安全考虑
+
+### 投票安全
+- **二次方投票防刷**: 每个 DID 在同一提案中只能投票一次（`UNIQUE(proposal_id, voter_did)`），防止通过创建多个身份绕过二次方成本
+- **投票隐私**: 投票记录存储在本地加密数据库中，投票方向（`direction`）在投票期结束前不公开，防止从众效应和投票贿赂
+- **时间锁保护**: 提案通过后有 `executionDelay`（默认 2 天）缓冲期，社区可在此期间发起否决（Veto），防止恶意提案快速执行
+
+### 委托安全
+- **环路检测**: 系统使用深度优先搜索（DFS）自动检测委托链中的环路，拒绝会导致循环的委托操作
+- **委托深度限制**: `maxChainDepth` 限制委托链最大长度（默认 5 层），防止过长的委托链导致投票权溯源困难
+- **可撤销委托**: 委托方可随时撤销委托（`revocable: true`），且委托有过期时间，避免永久性权力转移
+
+### 资金库安全
+- **多签审批**: 资金分配需要达到 `approvalThreshold`（默认 3 票）才能执行，单一管理员无法独自动用资金
+- **提案绑定**: 所有资金支出必须关联有效提案（`proposal_id`），无提案授权的转账将被拒绝
+- **审计追溯**: `dao_treasury` 表完整记录所有资金流向，支持按类别、提案、时间维度进行审计
+
+### 治理攻击防护
+- **最低法定人数**: 提案必须达到 `minQuorum`（默认 10%）参与率才能通过，防止低参与度下少数人操控结果
+- **冷却期**: 同一类型的提案在短时间内不可重复提交，防止通过反复提案消耗社区注意力
 
 ## 相关文档
 

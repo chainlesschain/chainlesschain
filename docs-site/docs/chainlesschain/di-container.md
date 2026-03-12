@@ -199,6 +199,88 @@ container.register("b", ServiceB, { dependencies: ["a"] });
 }
 ```
 
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| CircularDependencyError | 服务 A 依赖 B，B 又依赖 A | 重新设计依赖关系，引入中间服务或使用事件总线解耦 |
+| 服务解析返回 undefined | 服务未注册或名称拼写错误 | 调用 `core:service-health` 查看已注册服务列表 |
+| 缓存命中率低 | TTL 设置过短或命名空间配置不当 | 查看 `core:cache-stats` 调整 TTL 和 maxSize |
+| EventBus 死信过多 | 订阅者已销毁但未取消订阅 | 在模块 dispose 时调用 `eventBus.off()` 清理订阅 |
+| 资源池连接耗尽 | 并发请求超过 max 连接数 | 增大 `dbConnections.max`，检查是否有连接泄漏 |
+
+## 安全考虑
+
+- **服务隔离**: scoped 生命周期确保请求间服务实例独立，防止状态泄漏
+- **循环依赖检测**: 注册时即检测循环依赖并抛出错误，防止运行时死锁
+- **缓存命名空间**: 不同模块缓存通过命名空间隔离，防止数据污染
+- **资源池健康检查**: 定期检测连接健康状态，自动回收失效连接
+- **EventBus 权限**: 敏感事件支持发布者/订阅者权限校验
+- **自动释放**: `autoDispose` 确保服务销毁时释放持有的资源，防止内存泄漏
+
+## 使用示例
+
+### 服务注册与依赖注入
+
+```javascript
+const { ServiceContainer } = require('./shared/service-container');
+const container = new ServiceContainer();
+
+// 注册单例服务（全局唯一实例）
+container.register('logger', LoggerService, { lifecycle: 'singleton' });
+container.register('database', DatabaseService, {
+  lifecycle: 'singleton',
+  dependencies: ['logger']
+});
+
+// 注册作用域服务（每个请求/会话独立实例）
+container.register('noteService', NoteService, {
+  lifecycle: 'scoped',
+  dependencies: ['database', 'logger']
+});
+
+// 解析服务时自动注入所有声明的依赖
+const noteService = container.resolve('noteService');
+// noteService 已自动获得 database 和 logger 实例
+```
+
+### 生命周期管理
+
+```javascript
+// 瞬态服务：每次 resolve 创建新实例（适用于无状态工具类）
+container.register('validator', ValidatorService, { lifecycle: 'transient' });
+const v1 = container.resolve('validator');
+const v2 = container.resolve('validator');
+// v1 !== v2，每次都是新实例
+
+// 销毁时自动释放资源（需开启 autoDispose）
+// 单例服务在容器销毁时调用 dispose() 方法释放数据库连接等资源
+```
+
+### 循环依赖检测
+
+```javascript
+// 注册时即检测循环依赖，立刻抛出错误而非运行时死锁
+container.register('serviceA', ServiceA, { dependencies: ['serviceB'] });
+container.register('serviceB', ServiceB, { dependencies: ['serviceA'] });
+// 抛出: CircularDependencyError: serviceA → serviceB → serviceA
+// 解决方案：引入中间服务或使用 EventBus 解耦
+```
+
+### 标签查询与服务发现
+
+```javascript
+// 通过 IPC 查看所有已注册服务的健康状态
+const health = await window.electron.ipcRenderer.invoke('core:service-health');
+// health.services 列出每个服务的 status/uptime/memoryMB
+// health.circularDeps 为空数组表示无循环依赖
+// health.unresolvedDeps 列出尚未解析的依赖项
+
+// 查看缓存命名空间统计（辅助调优 TTL 和 maxSize）
+const cacheStats = await window.electron.ipcRenderer.invoke('core:cache-stats');
+// 关注 hitRate 低于 0.5 的命名空间，考虑增大 TTL 或 maxSize
+```
+
 ## 关键文件
 
 | 文件 | 职责 |

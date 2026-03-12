@@ -365,6 +365,104 @@ CREATE INDEX IF NOT EXISTS idx_lowcode_ds_type ON lowcode_datasources(type);
 | `src/renderer/stores/lowCode.ts` | Pinia 状态管理 |
 | `src/renderer/pages/LowCodeDesigner.vue` | 可视化拖拽设计器页面 |
 
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 组件渲染异常显示空白 | 组件版本不兼容或属性绑定错误 | 检查组件版本兼容性，验证 props 绑定表达式 |
+| 数据源连接超时 | 数据库地址配置错误或防火墙拦截 | 执行 `lowcode datasource-test`，检查网络连通性 |
+| 版本回滚失败 | 目标版本快照已过期或存储损坏 | 查看可用快照列表 `lowcode snapshot-list`，使用最近快照 |
+| 表单提交数据丢失 | 字段映射不完整或验证规则拦截 | 检查字段映射配置，查看验证错误日志 |
+| 页面发布后样式错乱 | CSS 作用域冲突或资源路径错误 | 启用 CSS 模块隔离，检查静态资源路径 |
+
+### 常见错误修复
+
+**错误: `COMPONENT_RENDER_FAILED` 组件渲染失败**
+
+```bash
+# 检查组件兼容性
+chainlesschain lowcode component-check --app-id <id>
+
+# 重新构建应用
+chainlesschain lowcode build --app-id <id> --clean
+```
+
+**错误: `DATASOURCE_TIMEOUT` 数据源连接超时**
+
+```bash
+# 测试数据源连通性
+chainlesschain lowcode datasource-test --source-id <id>
+
+# 更新数据源配置
+chainlesschain lowcode datasource-config --source-id <id> --timeout 30s
+```
+
+**错误: `ROLLBACK_FAILED` 版本回滚失败**
+
+```bash
+# 列出可用版本快照
+chainlesschain lowcode snapshot-list --app-id <id>
+
+# 回滚到指定快照版本
+chainlesschain lowcode rollback --app-id <id> --snapshot <version>
+```
+
+## 安全考虑
+
+### 数据源安全
+- **凭证加密存储**: 数据源连接配置中的密码、Token 等敏感信息通过 SQLCipher 加密存储（`encryptCredentials: true`），切勿在日志中输出连接配置
+- **最小权限连接**: 数据库数据源建议使用只读账号连接（如 `readonly` 用户），避免低代码应用意外修改或删除源数据
+- **网络访问控制**: REST/GraphQL 数据源的 URL 应限制为可信域名，防止 SSRF（服务端请求伪造）攻击
+
+### 应用访问控制
+- **发布权限**: 应用发布支持三级访问控制（`private`/`organization`/`public`），默认 `private` 仅创建者可见
+- **数据隔离**: 不同应用的数据源相互隔离，跨应用数据访问需要显式授权
+- **版本回滚审计**: 所有版本发布和回滚操作记录完整审计日志，支持追溯变更历史
+
+### 组件安全
+- **输入校验**: 表单组件应配置输入校验规则（长度限制、格式校验、XSS 过滤），防止用户提交恶意数据
+- **自定义表达式沙箱**: Pipeline 中的 JavaScript 表达式在沙箱环境中执行，禁止访问 `process`、`require` 等 Node.js API
+- **模板注入防护**: 组件模板渲染使用安全的模板引擎，自动转义 HTML 特殊字符，防止 XSS 攻击
+
+### 导出安全
+- **导出脱敏**: 导出应用时可选择 `includeData: false` 仅导出设计结构，避免敏感业务数据随导出文件泄露
+- **导入验证**: 导入外部应用模板时自动校验 JSON 结构完整性和组件类型合法性，拒绝包含未知组件的模板
+
+## 使用示例
+
+### 快速创建应用
+
+```bash
+# 1. 使用 CRM 模板创建应用
+# IPC: lowcode:create-app { name: "客户管理", template: "crm" }
+
+# 2. 配置表格组件的数据源
+# IPC: lowcode:add-datasource { appId, type: "rest", config: { url: "https://api.example.com/customers" } }
+
+# 3. 测试数据源连接是否正常
+# IPC: lowcode:test-connection { type: "rest", config: { url: "..." } }
+
+# 4. 预览应用 → 确认无误后发布
+# IPC: lowcode:preview { appId, device: "desktop" }
+# IPC: lowcode:publish { appId, version: "1.0.0", access: "organization" }
+```
+
+### 组件配置要点
+
+- **Table 组件**: `dataSource` 需指向已添加的数据源 ID，`columns` 的 `dataIndex` 应与 API 返回字段名一致
+- **Chart 组件**: `chartType` 支持 `line`/`bar`/`pie`，`dimension` 为分组字段，`measure` 为聚���方式（count/sum/avg）
+- **Form 组件**: 配置 `validation` 规则实现输入校验，`onSubmit` 可绑定数据源的 POST 操作
+
+### 数据源连接排查
+
+| 现象 | 排查步骤 |
+|------|---------|
+| 渲染失败/页面空白 | 1. 确认组件绑定的 `dataSource` ID 存在且状态为 `connected` 2. 检查 API 返回的字段名与组件 `columns` 配置是否匹配 3. 使用浏览器开发者工具查看控制台错误 |
+| 数据源连接错误 | 1. 使用 `lowcode:test-connection` 单独测试连接 2. 检查 URL、凭证、网络代理配置 3. 数据库类型确认端口和防火墙设置 |
+| REST 数据源返回空 | 确认 `pagination` 配置与 API 分页参数一致（`pageParam`/`sizeParam`），检查 `Authorization` 头是否有效 |
+
 ## 相关文档
 
 - [企业知识图谱](/chainlesschain/enterprise-knowledge-graph)

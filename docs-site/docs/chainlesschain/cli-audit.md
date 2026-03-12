@@ -136,6 +136,36 @@ CLI 命令执行 → audit-logger.js (自动拦截)
 - `export` 导出的文件可能包含操作记录，注意保管
 - 高风险和严重风险事件应定期检查
 
+## 使用示例
+
+### 场景 1：查看安全相关审计日志
+
+```bash
+chainlesschain audit log --type security -n 20
+chainlesschain audit search "login"
+```
+
+查看最近 20 条安全类事件，搜索登录相关操作记录，排查异常登录行为。
+
+### 场景 2：按时间范围导出并清理
+
+```bash
+chainlesschain audit export --format csv -o audit-2026-Q1.csv
+chainlesschain audit purge --before 90
+```
+
+先将审计日志导出为 CSV 归档，然后清理 90 天前的旧日志以释放空间。
+
+### 场景 3：统计分析高风险事件
+
+```bash
+chainlesschain audit stats
+chainlesschain audit log --type admin -n 50
+chainlesschain audit search "delete"
+```
+
+查看审计日志统计概况，重点关注管理操作和删除类高风险事件。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

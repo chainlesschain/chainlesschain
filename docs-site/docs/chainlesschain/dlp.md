@@ -374,6 +374,109 @@ await window.electronAPI.invoke("dlp:create-policy", {
 
 ---
 
+## 故障排查
+
+### 检测器误报率过高
+
+- **白名单配置**: 对已知安全的内容模式添加白名单规则，避免重复误报
+- **调整检测器**: 自定义正则表达式的灵敏度，或禁用不需要的检测器类型
+- **误报标记**: 对误报事件标记为 `dismissed`，系统会学习并减少同类误报
+
+```javascript
+// 标记误报事件
+await window.electronAPI.invoke('dlp:update-incident', {
+  incidentId: 'inc-xxx',
+  status: 'dismissed',
+  resolution: '误报，测试数据'
+});
+```
+
+### 扫描性能下降
+
+- **文件大小限制**: 检查 `maxContentSize` 配置（默认 10MB），过大的文件会增加扫描时间
+- **排除路径**: 将缓存、临时文件目录添加到 `excludePaths` 中减少不必要的扫描
+- **深度扫描**: 非必要时关闭 `deep: true`（OCR 等），仅对可疑文件启用深度扫描
+
+### 策略未生效
+
+- 确认策略的 `enabled` 字段为 `true`
+- 检查策略的 `scope` 是否包含当前操作场景（如 `chat`、`file-share`、`export`）
+- 多策略时注意 `priority` 优先级，高优先级策略的动作会覆盖低优先级
+- 检查是否有白名单规则意外匹配了应当拦截的内容
+
+---
+
+## 使用示例
+
+### DLP 策略配置
+
+```javascript
+// 创建多规则 DLP 策略（覆盖聊天、文件分享、导出三个场景）
+const policy = await window.electronAPI.invoke('dlp:create-policy', {
+  name: '企业数据外泄防护',
+  rules: [
+    { detector: 'credit-card', action: 'block', severity: 'critical', notify: true },
+    { detector: 'api-key', action: 'block', severity: 'critical', notify: true },
+    { detector: 'phone-number', action: 'mask', severity: 'medium' },
+    { detector: 'email', action: 'warn', severity: 'low' }
+  ],
+  scope: ['chat', 'file-share', 'export'],
+  enabled: true
+});
+```
+
+### 敏感数据扫描
+
+```javascript
+// 实时扫描文本内容（<50ms 延迟）
+const result = await window.electronAPI.invoke('dlp:scan-content', {
+  content: '服务器密码是 admin123，API 密钥 sk-abc123xyz',
+  context: 'chat-message'
+});
+// result.violations 列出每个检测到的敏感项及其位置和严重级别
+
+// 深度扫描文件（支持 OCR 识别图片中的文字）
+const fileScan = await window.electronAPI.invoke('dlp:scan-file', {
+  filePath: '/path/to/document.pdf',
+  deep: true
+});
+```
+
+### 数据分类与 DLP 联动
+
+```javascript
+// 先调用数据分类接口，RESTRICTED 级别自动触发 DLP 深度扫描
+const classification = await window.electronAPI.invoke('compliance:classify-text', {
+  text: someContent
+});
+if (classification.level === 'RESTRICTED') {
+  const dlpResult = await window.electronAPI.invoke('dlp:scan-content', {
+    content: someContent,
+    classificationLevel: 'RESTRICTED'
+  });
+  // RESTRICTED 数据匹配策略后执行 block 动作
+}
+```
+
+### 事件响应与处理
+
+```javascript
+// 查看高严重度事件列表
+const incidents = await window.electronAPI.invoke('dlp:list-incidents', {
+  severity: 'critical', startDate: '2026-03-01', limit: 20
+});
+
+// 将误报事件标记为已处理
+await window.electronAPI.invoke('dlp:update-incident', {
+  incidentId: 'inc-001',
+  status: 'dismissed',
+  resolution: '确认为测试数据，非真实敏感信息'
+});
+
+// 获取 DLP 拦截统计（按严重度和检测器类型汇总）
+const stats = await window.electronAPI.invoke('dlp:get-stats', { period: '30d' });
+```
+
 ## 关键文件
 
 | 文件 | 职责 |

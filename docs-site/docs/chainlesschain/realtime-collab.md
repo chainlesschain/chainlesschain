@@ -257,6 +257,68 @@ Yjs 增量更新持久化（离线恢复）。
 
 ---
 
+## 使用示例
+
+### 创建协作会话并邀请协作者
+
+```javascript
+// 创建协作会话
+const session = await window.electronAPI.invoke('collab:create-session', {
+  docId: 'note-123',
+  permissions: 'editor'  // editor / viewer
+});
+
+// 生成邀请链接分享给协作者
+const link = await window.electronAPI.invoke('collab:generate-invite', {
+  sessionId: session.id
+});
+// 协作者通过链接加入会话，P2P 连接自动建立
+```
+
+### 同步编辑与光标感知
+
+```javascript
+// 加入协作会话
+await window.electronAPI.invoke('collab:join-session', {
+  sessionId: 'session-xxx'
+});
+
+// 监听远程编辑事件
+window.electronAPI.on('collab:remote-update', (event, data) => {
+  // data 包含 CRDT 操作，编辑器自动应用
+  console.log(`${data.user.name} 正在编辑...`);
+});
+
+// 监听协作者光标位置
+window.electronAPI.on('collab:awareness-update', (event, data) => {
+  // 渲染远程光标和选区
+  console.log(`${data.user.name} 光标在位置 ${data.cursor.anchor}`);
+});
+```
+
+### 段落锁定与版本回溯
+
+```javascript
+// 锁定某个段落防止并发编辑
+await window.electronAPI.invoke('collab:lock-section', {
+  sessionId: 'session-xxx',
+  sectionId: 'paragraph-3'
+});
+
+// 查看版本历史
+const versions = await window.electronAPI.invoke('collab:list-versions', {
+  docId: 'note-123'
+});
+
+// 回溯到指定版本
+await window.electronAPI.invoke('collab:restore-version', {
+  docId: 'note-123',
+  versionId: versions[0].id
+});
+```
+
+---
+
 ## 故障排查
 
 ### 同步延迟
@@ -276,6 +338,17 @@ Yjs 增量更新持久化（离线恢复）。
 - Yjs CRDT 理论上不会合并失败
 - 检查是否有损坏的 Yjs 更新记录
 - 重新从其他节点全量同步
+
+---
+
+## 安全考虑
+
+- **端到端加密**: 协作数据通过 P2P DataChannel（DTLS 内置加密）传输，行内评论额外使用 Signal 协议加密
+- **访问控制**: 协作会话基于 DID 身份验证，仅受邀协作者可加入，支持 editor/viewer 权限分级
+- **锁定防篡改**: 段落锁定状态通过 P2P 广播确认，防止未授权用户绕��锁定编辑
+- **版本完整性**: 每个版本检查点包含内容哈希，确保历史版本不可被篡改
+- **冲突解决安全**: CRDT 合并是确定性的，所有节点结果一致，不存在被恶意操作利用的空间
+- **会话超时**: 空闲协作会话自动关闭（默认 30 分钟），防止资源泄漏
 
 ---
 

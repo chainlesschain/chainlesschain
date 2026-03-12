@@ -290,6 +290,37 @@ CREATE INDEX IF NOT EXISTS idx_cc_messages_chains ON cc_messages(source_chain, t
 | 余额查询不全   | 确认所有链 RPC 配置正确，检查网络连通性  |
 | 费用估算偏差大 | gas 价格波动导致，建议增加 10-20% 缓冲   |
 
+### 跨链交易失败详细排查
+
+**现象**: `crosschain:bridge-asset` 状态变为 `failed`，资产未到达目标链。
+
+**排查步骤**:
+1. 通过 `crosschain:get-tx-status` 查询 `sourceTx` 在源链上的确认状态
+2. 检查源链是否有足够的 gas 余额支付交易费用
+3. 确认 `recipient` 地址在目标链上有效（EVM 和 Solana 地址格式不同）
+4. 若状态为 `confirming`，等待 `confirmationBlocks` 数量达标后再查询
+5. 状态为 `failed` 且有 `refunded` 标记时，资产已退回源链账户
+
+### HTLC 原子交换超时
+
+**现象**: 交换状态变为 `expired`，资金被锁定。
+
+**排查步骤**:
+1. 确认 `timelock` 设置是否合理，网络拥堵时建议设置为 2 小时以上
+2. 检查双方是否在锁定期内完成了各自的链上操作（锁定 + 揭示 secret）
+3. `expired` 状态下可调用退款操作取回锁定资金
+4. 避免在不同网络延迟差异大时使用过短的 timelock
+
+### 目标链不可达
+
+**现象**: 跨链操作返回目标链连接失败或 RPC 超时。
+
+**排查步骤**:
+1. 检查 `crossChainBridge.rpc` 中目标链的 RPC URL 是否正确可访问
+2. 确认 RPC 服务商的 API Key 未过期或超出配额限制
+3. 尝试切换备用 RPC 节点（通过 `crosschain:configure-chain` 更新）
+4. 检查本地网络防火墙是否阻断了对目标链 RPC 端口的访问
+
 ## 关键文件
 
 | 文件 | 职责 |
@@ -300,6 +331,68 @@ CREATE INDEX IF NOT EXISTS idx_cc_messages_chains ON cc_messages(source_chain, t
 | `desktop-app-vue/src/main/blockchain/chain-adapters/cosmos-adapter.js` | Cosmos IBC 适配器 |
 | `desktop-app-vue/src/main/blockchain/htlc-manager.js` | HTLC 原子交换管理 |
 | `desktop-app-vue/src/main/blockchain/cross-chain-ipc.js` | 跨链 8 个 IPC Handler |
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| HTLC 超时交易回滚 | 时间锁设置���短或对方链确认慢 | 增大 `timeLock` 值，确认目标链出块速度 |
+| 跨链消息丢失 | 中继节点离线或消息队列溢出 | 检查中继节点状态，增大消息队列容量 |
+| 链上 Gas 不足交易失败 | 账户余额不够支付 Gas 费 | 充值 Gas，或设置 `gasLimit` 自动调整策略 |
+| 资产锚定比例异常 | 预言机喂价延迟或价格源故障 | 检查预言机状态，切换备用价格源 |
+| 跨链验证失败 | Merkle 证明不匹配或区块头过期 | 重新获取最新区块头，重建 Merkle 证明 |
+
+### 常见错误修复
+
+**错误: `HTLC_TIMEOUT` 哈希时间锁超时**
+
+```bash
+# 查看 HTLC 状态
+chainlesschain wallet cross-chain htlc-status --tx-id <id>
+
+# 手动触发退款（超时后）
+chainlesschain wallet cross-chain refund --tx-id <id>
+```
+
+**错误: `RELAY_OFFLINE` 中继节点不可用**
+
+```bash
+# 检查中继节点列表和状态
+chainlesschain wallet cross-chain relay-status
+
+# 切换到备用中继节点
+chainlesschain wallet cross-chain relay-switch --node <backup-node>
+```
+
+**错误: `INSUFFICIENT_GAS` Gas 不足**
+
+```bash
+# 查看各链账户余额
+chainlesschain wallet assets --chain all
+
+# 估算跨链交易 Gas 费用
+chainlesschain wallet cross-chain gas-estimate --from <chain-a> --to <chain-b>
+```
+
+## 安全考虑
+
+### 跨链交易安全
+- **HTLC 时间锁**: 原子交换的 `timelock` 应设置合理区间（建议 1-24 小时），过短可能因网络拥堵导致资金锁定，过长则增加对手方风险
+- **哈希锁保密**: HTLC 的 `secret`（原像）在交换完成前严禁泄露，泄露将导致对手方提前取走资金
+- **双花防护**: 桥接交易在源链需等待足够的确认数（`confirmationBlocks`），以太坊建议 12 个区块，防止链重组导致双花
+
+### RPC 节点安全
+- **节点可信性**: 仅使用可信的 RPC 节点（如 Alchemy、Infura 或自建全节点），恶意 RPC 可能返回伪造的交易状态
+- **API Key 保护**: RPC URL 中的 API Key 存储在加密配置中，切勿硬编码到代码或日志中
+- **请求频率限制**: 配置合理的请求频率，避免触发 RPC 提供商的速率限制导致交易状态查询失败
+
+### 资产安全
+- **金额上限**: 通过 `maxAmount` 配置单笔桥接最大金额，防止操作失误或攻击导致大额资金损失
+- **合约地址验证**: 添加自定义链时务必验证 `bridgeContract` 地址的正确性，错误地址将导致资金永久丢失
+- **跨链消息验证**: 目标链接收跨链消息时应验证源链签名和中继器身份，防止伪造消息注入
+- **余额聚合隐私**: 多链余额查询结果仅在本地聚合展示，不上传到任何中心化服务器
 
 ## 相关文档
 

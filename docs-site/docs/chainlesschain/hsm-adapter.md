@@ -175,6 +175,75 @@ const useHsmAdapterStore = defineStore("hsmAdapter", {
 ✅ e2e/security/hsm-adapter.e2e.test.ts - 端到端用户流程测试
 ```
 
+## 使用示例
+
+### 示例 1: 连接 YubiKey 并执行签名
+
+```javascript
+// 1. 连接 YubiKey 设备
+const adapter = await window.electron.ipcRenderer.invoke("hsm:connect-device", {
+  vendor: "yubikey",
+  model: "YubiKey 5 NFC",
+  serialNumber: "12345678",
+  firmwareVersion: "5.4.3",
+  supportedAlgorithms: ["RSA-2048", "ECDSA-P256", "ML-KEM-768"],
+});
+console.log(`设备已连接: ${adapter.adapter.id}, FIPS: ${adapter.adapter.fips_compliant}`);
+
+// 2. 使用设备执行 ECDSA 签名
+const signResult = await window.electron.ipcRenderer.invoke("hsm:execute-operation", {
+  adapterId: adapter.adapter.id,
+  operation: "sign",
+  params: { algorithm: "ECDSA-P256", data: "待签名数据摘要" },
+});
+console.log(`签名完成: ${signResult.result.executedAt}`);
+
+// 3. 查看整体合规状态
+const compliance = await window.electron.ipcRenderer.invoke("hsm:get-compliance-status");
+console.log(`合规等级: ${compliance.status.complianceLevel}, FIPS设备: ${compliance.status.fipsCompliant}/${compliance.status.totalAdapters}`);
+```
+
+### 示例 2: 列出设备并生成密钥
+
+```javascript
+// 列出所有已连接的 HSM 适配器
+const adapters = await window.electron.ipcRenderer.invoke("hsm:list-adapters");
+adapters.forEach(a => console.log(`[${a.vendor}] ${a.model} - ${a.status}`));
+
+// 在指定设备上生成新密钥对
+const keyResult = await window.electron.ipcRenderer.invoke("hsm:execute-operation", {
+  adapterId: adapters[0].id,
+  operation: "generateKey",
+  params: { algorithm: "RSA-2048" },
+});
+console.log(`密钥生成完成: ${keyResult.result.result}`);
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 设备连接���败 | USB 驱动未安装或设备未插入 | 确认设备已正确连接，安装对应厂商的驱动程序 |
+| 加密操作超时 | 设备繁忙或通信中断 | 拔插设备重新连接，检查 USB 线缆是否松动 |
+| FIPS 合规状态为 `partial` | 存在非 FIPS 认证的设备 | 替换为 FIPS 140-3 认证设备（如 YubiKey FIPS 版） |
+| 算法不支持 | 设备固件版本过低 | 升级设备固件，或选择设备 `supportedAlgorithms` 中列出的算法 |
+| PKCS#11 通用设备不识别 | 缺少 PKCS#11 中间件 | 安装设备厂商提供的 PKCS#11 库，配置库文件路径 |
+| 设备列表为空 | 未执行过连接操作 | 先调用 `hsm:connect-device` 注册设备到系统中 |
+
+---
+
+## 安全考虑
+
+1. **硬件隔离**: 私钥始终保存在 HSM 硬件内部，不会导出到主机内存
+2. **FIPS 合规**: 优先使用 FIPS 140-3 认证设备，合规状态实时监控
+3. **PIN 保护**: HSM 操作需要 PIN 验证，防止未授权的物理访问
+4. **操作审计**: 所有加密操作（签名/加密/生成密钥）均记录到审计日志
+5. **固件验证**: 连接时自动检测设备固件版本，过低版本会提示升级
+
+---
+
 ## 相关文档
 
 - [U-Key 硬件密钥 →](/chainlesschain/ukey)

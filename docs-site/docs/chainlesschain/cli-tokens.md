@@ -117,6 +117,34 @@ chainlesschain tokens cache
 - 费用为估算值，实际费用以提供商账单为准
 - 缓存命中的请求不消耗 Token
 
+## 使用示例
+
+### 场景 1：查看总用量和费用
+
+```bash
+chainlesschain tokens show
+chainlesschain tokens recent
+```
+
+查看 Token 总用量和估算费用，浏览最近的 API 调用记录了解使用趋势。
+
+### 场景 2：按提供商分析成本
+
+```bash
+chainlesschain tokens breakdown
+```
+
+按 Provider 和模型分组查看用量分布，识别哪个模型消耗最多，优化成本分配。
+
+### 场景 3：利用缓存节省开销
+
+```bash
+chainlesschain tokens cache
+chainlesschain tokens show
+```
+
+查看响应缓存命中率和节省的 Token 数量，评估缓存效果。命中率低时可考虑调整使用模式。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

@@ -314,6 +314,72 @@ const config = await window.electron.ipcRenderer.invoke("ecosystem:configure", {
 | `src/main/marketplace/revenue-engine.js` | 收益分成引擎 |
 | `src/renderer/stores/pluginEcosystem.ts` | Pinia 插件生态状态管理 |
 
+## 故障排查
+
+| 问题 | 原因分析 | 解决方案 |
+|------|---------|---------|
+| 插件安装失败 | 依赖冲突或版本不兼容 | 先使用 `ecosystem:resolve-deps` 预检依赖树，解决 `conflicts` 中列出的版本冲突后重试 |
+| 沙盒测试不通过 | 插件尝试访问未授权的系统资源 | 检查 `sandbox-test` 返回的失败项，确认插件 `permissions` 声明覆盖了所有需要的能力 |
+| AI 推荐结果不相关 | 用户行为数据不足或推荐模型未更新 | 增加使用频次积累行为数据，等待推荐模型刷新周期（`refreshInterval` 默认 24 小时）后重试 |
+| AI 代码审计评分过低 | 插件代码存在安全漏洞或性能问题 | 根据 `ai-review` 返回的 `findings` 逐项修复，优先处理 `severity: "high"` 的安全问题 |
+| 插件发布审核未通过 | 代码审计评分低于 `minScore`（默认 70） | 修复审计报告中的所有高严重性问题，确保评分达标后重新提交 |
+| 收益未到账 | 未达到最低提现金额或支付周期未到 | 确认累计收益超过 `minPayoutCNY`（默认 100 元），等待月度结算周期（`payoutCycle: monthly`） |
+| 依赖解析超时 | 插件依赖树过深或存在循环依赖 | ���少嵌套依赖层级，移除不必要的间接依赖；检查 `warnings` 中的循环依赖提示 |
+
+## 安全考虑
+
+### 沙盒隔离
+- **WASM 沙盒**: 计算密集型插件在 WASM 沙盒中运行，无直接 I/O 访问，内存限制为 `wasmMemoryLimitMB`（默认 256MB）
+- **iframe CSP**: UI 类插件在 iframe 中运行，通过 Content Security Policy 限制脚本执行和网络请求来源
+- **权限模型**: 插件的文件系统、网络、IPC 访问需在安装时显式声明和授权，运行时严格执行权限边界
+
+### 代码审计安全
+- **自动审计**: 所有发布到市场的插件必须通过 AI 代码审计（`aiReviewRequired: true`），检测 XSS、SQL 注入、数据泄漏等漏洞
+- **最低评分**: 审计评分低于 `minScore`（默认 70 分）的插件禁止上架，高严重性漏洞必须修复
+- **持续监控**: 已上架插件定期重新审计，发现新漏洞时自动下架并通知开发者和已安装用户
+
+### 依赖安全
+- **依赖树分析**: 安装前自动分析完整依赖树，检测已知漏洞库、循环依赖和版本冲突
+- **来源验证**: 仅允许从 `allowedSources`（official/verified/community）安装插件，拒绝未知来源
+- **自动更新**: 启用 `autoUpdate` 时优先推送安全补丁，确保已安装插件及时修复已知漏洞
+
+### 收益安全
+- **平台费透明**: 平台抽成比例（`platformFee: 15%`）公开透明，开发者可在收益报告中查看完整明细
+- **支付安全**: 收益结算通过第三方支付平台完成，敏感支付信息不经过插件生态系统
+
+## 使用示例
+
+### 端到端插件安装流程
+
+```bash
+# 1. 获取 AI 推荐（基于当前工作上下文）
+# IPC: ecosystem:recommend { context: { currentTask: "code-review" }, limit: 5 }
+
+# 2. 安装前预检依赖
+# IPC: ecosystem:resolve-deps { pluginId: "advanced-code-reviewer", version: "latest" }
+# → 确认 conflicts 为空、无循环依赖
+
+# 3. 安装插件并声明权限
+# IPC: ecosystem:install { pluginId: "advanced-code-reviewer", permissions: { filesystem: ["read"], network: ["api.github.com"] } }
+
+# 4. 沙盒安全测试
+# IPC: ecosystem:sandbox-test { pluginId: "advanced-code-reviewer", testSuite: "security" }
+# → 确认所有安全测试 passed
+```
+
+### AI 推荐与审计最佳实践
+
+- **推荐准确性**: AI 推荐基于使用行为积累，新用户初期推荐可能不够精准；持续使用 1-2 周后推荐质量显著提升
+- **审计评分解读**: `overallScore >= 90` 为优质插件，`70-89` 为合格，`< 70` 禁止上架；重点关注 `severity: "high"` 的安全问题
+- **沙盒测试覆盖**: 安装第三方插件后建议运行 `testSuite: "full"`（含 security + performance + compatibility 全量测试）
+
+### 开发者发布流程
+
+1. 在 `pluginPath` 目录准备插件代码和 `metadata`（name/version/pricing/tags）
+2. 设置 `autoReview: true` 自动触发 AI 代码审计
+3. 审计评分达标后进入人工审核队列（约 24 ���时）
+4. 发布后通过 `ecosystem:get-revenue` 跟踪下载量和收益
+
 ## 相关文档
 
 - [统一应用运行时](/chainlesschain/universal-runtime) - 插件运行时环境

@@ -549,6 +549,108 @@ ce.resetStats();
 
 **解决方案：** 压缩时提供结构化数据（包含 `url`、`path` 或 `query`），而非纯字符串
 
+### 上下文溢出（超出模型限制）
+
+**症状：** LLM 返回截断响应或报错 "context length exceeded"。
+
+**排查步骤**:
+1. 调低 `maxHistoryMessages`（建议 20~30），减少历史对话注入量
+2. 减少 `maxPreservedErrors` 值（默认 5），清理累积的错误历史
+3. 检查 4 级注入管道是否注入了过长的上下文（逐一禁用测试）
+4. 结合 SessionManager 的自动压缩功能，在对话过长时触发摘要压缩
+
+### 压缩后丢失关键信息
+
+**症状：** `RecoverableCompressor` 压缩后的内容缺少关键数据，恢复后与原始数据不一致。
+
+**排查步骤**:
+1. 确认压缩内容类型正确（`webpage`/`file`/`dbResult`），不同类型保留不同引用信息
+2. 对于文件类型，确认 `path` 字段存在，否则无法恢复完整内容
+3. 检查恢复函数（`fetchWebpage`/`readFile`/`runQuery`）是否正确实现
+4. 对关键数据建议设置更高的压缩阈值，��免不必要的压缩
+
+### 敏感上下文保护
+
+**症状：** 担心敏感信息通过上下文注入泄露到 LLM Prompt 中。
+
+**排查步骤**:
+1. System Prompt 中的动态内容（时间戳、UUID、Session ID）已自动清理为占位符
+2. 确认 Instinct/Memory 注入的内容不包含密码、密钥等敏感字段
+3. 工具参数 JSON 超过 500 字符会自动截断，但截断前的内容仍会暴露
+4. 对于高敏感场景，可通过不调用 `setXxx()` 方法来禁用特定注入管道
+
+---
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 上下文超长被截断丢失信息 | 输入内容超过 Token 上限 | 启用自动压缩 `context compress-enable`，设置优先级保留策略 |
+| 压缩后丢失关键信息 | 压缩算法过于激进或关键信息未标记 | 使用 `importance: high` 标记关键段落，调整压缩比 |
+| 多轮对话遗忘早期内容 | 滑动窗口过小或摘要质量低 | 增大 `windowSize`，启用长期记忆回溯 |
+| 上下文注入延迟高 | RAG 检索慢或嵌入模型负载高 | 启用嵌入缓存，优化检索索引 |
+| 上下文质量评分持续偏低 | 噪声数据过多或相关性阈值过低 | 提高 `relevanceThreshold`，清理低质量数据源 |
+
+### 常见错误修复
+
+**错误: `CONTEXT_OVERFLOW` 上下文超限被截断**
+
+```bash
+# 查看当前上下文使用量
+chainlesschain context stats
+
+# 启用自动压缩并设置目标比例
+chainlesschain context compress-enable --target-ratio 0.6
+```
+
+**错误: `COMPRESSION_QUALITY_LOW` 压缩质量不达标**
+
+```bash
+# 调整压缩策略为保守模式
+chainlesschain context compress-config --strategy conservative
+
+# 标记关键信息段落
+chainlesschain context mark-important --session-id <id> --range 1-50
+```
+
+**错误: `MEMORY_DRIFT` 多轮对话记忆漂移**
+
+```bash
+# 增大上下文窗口
+chainlesschain context config --window-size 8000
+
+# 强制触发记忆回溯
+chainlesschain context recall --session-id <id> --depth full
+```
+
+## 安全考虑
+
+### 上下文数据保护
+
+- System Prompt 中的动态内容（时间戳、UUID、Session ID）自动清理为占位符，防止敏感信息泄露到缓存层
+- 对话历史清理时仅移除非核心元数据，保留 `role`、`content` 等必要字段
+- 工具定���采用确定���序列化，防止参数注入和工具定义篡改
+
+### 注入安全
+
+- 4 级上下文注入管道中的每个注入器都是 **非关键的**，失败时静默跳过不影响主流程
+- 注入内容经过长度截断（Instructions 最多 200 字符，参数 JSON 最多 500 字符），防止上下文溢出攻击
+- 注入器实例通过显式 `setXxx()` 方法注册，无法通过外部输入动态替换
+
+### 压缩安全
+
+- `RecoverableCompressor` 压缩后的引用对象明确标记为 `compressed_ref` 类型，防止与原始数据混淆
+- 恢复函数需要由调用方显式提供，压缩器本身不执行任何网络请求或文件读取
+- 不可恢复的压缩引用（`recoverable: false`）调用 `recover()` 时明确抛出错误，防止误用
+
+### 缓存安全
+
+- KV-Cache 命中判定基于 MD5 哈希比较，静态部分变化时自动失效
+- 错误历史数量受 `maxPreservedErrors` 限制（默认 5 条），防止恶意累积
+- 统计数据仅存储在内存中，应用重启后自动清零，不持久化敏感统计信息
+
 ---
 
 ## 相关文档

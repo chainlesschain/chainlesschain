@@ -91,6 +91,36 @@ chainlesschain note delete abc123
 - `delete` 为软删除（设置 `deleted_at`），数据可恢复
 - 标签和分类数据不会上传到任何外部服务
 
+## 使用示例
+
+### 场景 1：创建带标签的笔记
+
+```bash
+chainlesschain note add "WebRTC 学习笔记" -c "ICE 候选流程：gather → trickle → complete" -t "学习,webrtc,p2p"
+chainlesschain note add "Bug 记录" -c "用户登录在 Safari 下报 CORS 错误" -t "bug,前端"
+```
+
+创建结构化笔记，通过标签分类便于后续检索和管理。
+
+### 场景 2：搜索和查看笔记
+
+```bash
+chainlesschain note search "WebRTC"
+chainlesschain note list --tag 学习
+chainlesschain note show abc123
+```
+
+通过关键词全文搜索或按标签筛选找到目标笔记，使用 ID 前缀查看详细内容。
+
+### 场景 3：脚本批量管理
+
+```bash
+chainlesschain note list --json
+chainlesschain note add "自动化记录" -c "$(date): 部署完成" -t "devops,自动化"
+```
+
+JSON 输出便于脚本处理，结合 shell 命令实现自动化笔记记录。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

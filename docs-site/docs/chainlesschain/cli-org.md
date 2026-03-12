@@ -87,6 +87,39 @@ chainlesschain org reject <request-id>             # 拒绝
 - 审批请求支持权限控制，仅 admin/owner 可审批
 - 所有操作记录审计日志
 
+## 使用示例
+
+### 场景 1：创建组织并邀请成员
+
+```bash
+chainlesschain org create "研发部"
+chainlesschain org invite <org-id> user1
+chainlesschain org invite <org-id> user2
+chainlesschain org members <org-id>
+```
+
+创建新组织后批量邀请团队成员，查看成员列表确认人员到位。
+
+### 场景 2：团队管理
+
+```bash
+chainlesschain org team-create <org-id> "前端组"
+chainlesschain org team-create <org-id> "后端组"
+chainlesschain org teams <org-id>
+```
+
+在组织内创建职能团队，独立管理团队成员和协作权限。
+
+### 场景 3：审批工作流
+
+```bash
+chainlesschain org approval-submit <org-id> "申请开通生产环境权限"
+chainlesschain org approvals <org-id>
+chainlesschain org approve <request-id>
+```
+
+提交审批请求，管理员查看待审批列表并进行审批操作，状态自动流转。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

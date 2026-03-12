@@ -495,6 +495,66 @@ db_key = ukey.derive_key(purpose='database')
 encrypted_db = encrypt_database(db_key)
 ```
 
+## 使用示例
+
+### 完整签名流程
+
+```javascript
+import { UKey } from '@chainlesschain/ukey';
+
+// 1. 初始化并连接 U 盾
+const ukey = new UKey({ type: 'feitian' });
+await ukey.connect();
+
+// 2. 验证 PIN 码
+await ukey.verifyPin('123456');
+
+// 3. 获取公钥用于身份注册
+const publicKey = await ukey.getPublicKey();
+console.log('DID 公钥:', publicKey);
+
+// 4. 签名交易数据
+const txData = Buffer.from('转账 100 USDT 到 did:cc:Qm5678');
+const signature = await ukey.sign(txData);
+
+// 5. 验证签名
+const isValid = await ukey.verify(txData, signature);
+console.log('签名验证:', isValid ? '通过' : '失败');
+```
+
+### 数据库加密密钥管理
+
+```javascript
+// 从 U 盾派生数据库加密密钥
+const dbKey = await ukey.deriveKey({ purpose: 'database' });
+
+// 使用派生密钥初始化 SQLCipher 数据库
+const db = new Database('data/chainlesschain.db');
+db.pragma(`key = '${dbKey.toString('hex')}'`);
+```
+
+### 备份 U 盾到新设备
+
+```
+1. 在旧 U 盾上：设置 → 安全 → U盾管理 → 生成助记词
+2. 抄写 24 个助记词到纸上并妥善保管
+3. 插入新 U 盾，选择「从助记词恢复」
+4. 按顺序输入 24 个助记词
+5. 设置新 PIN 码，等待密钥写入完成
+6. 验证新 U 盾签名功能正常
+```
+
+## 安全考虑
+
+1. **PIN 码强度**: 避免使用 123456 等弱密码，建议 8 位以上数字+字母组合
+2. **物理保管**: U 盾不使用时应存放在安全位置，外出时随身携带或锁入保险柜
+3. **助记词安全**: 助记词必须手写在纸上，禁止拍照、截屏或存入电子设备
+4. **定期备份**: 至少创建一个备份 U 盾或导出助记词，存放在不同物理位置
+5. **及时撤销**: U 盾丢失后应立即通过备份 U 盾登录系统，撤销丢失设备的密钥
+6. **固件更新**: 定期检查 U 盾固件更新，更新前务必先备份
+7. **USB 接口**: 优先使用 USB 3.0 接口，避免通过 USB 集线器连接以减少安全风险
+8. **健康检查**: 每月执行一次 U 盾健康检查，关注证书有效期和 PIN 剩余次数
+
 ## 故障排查
 
 ### U盾无法识别

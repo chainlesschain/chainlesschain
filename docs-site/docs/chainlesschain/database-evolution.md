@@ -233,6 +233,83 @@ const notesWithTags = new QueryBuilder("notes")
 }
 ```
 
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 迁移执行失败 | SQL 语法错误或表已存在 | 使用 `dryRun: true` 预览变更，检查迁移文件 SQL 语法 |
+| 回滚后数据丢失 | down() 方法使用了 DROP TABLE | 回滚前先备份数据库，down() 中尽量用 ALTER 而非 DROP |
+| 索引建议不准确 | 查询日志样本不足 | 确保 `minQueryCount` 阈值合理，积累足够查询日志后再分析 |
+| 慢查询未被记录 | queryLog 未启用或阈值过高 | 确认 `queryLog.enabled: true`，调低 `slowThresholdMs` |
+| 迁移版本冲突 | 多人开发时版本号重复 | 使用时间戳作为版本号前缀，合并前检查版本唯一性 |
+
+## 安全考虑
+
+- **原子执行**: 每个迁移在事务中执行，失败自动回滚，不留半成品状态
+- **校验和防篡改**: 迁移文件记录 checksum，执行前校验防止文件被篡改
+- **参数化查询**: QueryBuilder 强制使用参数化查询，从根本上防止 SQL 注入
+- **只读建议**: IndexOptimizer 默认 `autoApply: false`，需人工确认后才创建索引
+- **加密存储**: 底层使用 SQLCipher (AES-256) 加密，迁移数据同样受保护
+- **日志脱敏**: 查询日志记录模板而非实际参数值，避免敏感数据泄漏
+
+## 使��示例
+
+### 创建与执行迁移
+
+```javascript
+// 创建新迁移文件（自动生成版本号前缀）
+// 文件内容需包含 up(db) 和 down(db) 两个方法
+// migrations/006_add_user_preferences.js
+
+// 预览待执行的迁移（不实际执行）
+const preview = await window.electron.ipcRenderer.invoke('db:run-migration', {
+  direction: 'up', targetVersion: null, dryRun: true
+});
+// preview.executed 列出将要执行的迁移，确认无误后正式执行
+
+// 正式执行所有待迁移
+const result = await window.electron.ipcRenderer.invoke('db:run-migration', {
+  direction: 'up', targetVersion: null, dryRun: false
+});
+```
+
+### 回滚迁移
+
+```javascript
+// 回滚到指定版本（执行 down() 方法，按版本降序逐个回滚）
+const rollback = await window.electron.ipcRenderer.invoke('db:run-migration', {
+  direction: 'down', targetVersion: 4, dryRun: false
+});
+// 回滚前建议先备份数据库文件，down() 中使用 DROP TABLE 会导致数据丢失
+```
+
+### 索引优化与查询分析
+
+```javascript
+// 获取索引建议（基于查询日志中的慢查询自动分析）
+const suggestions = await window.electron.ipcRenderer.invoke('db:index-suggestions');
+// 每条建议包含 createSQL 字段，可直接执行
+
+// 查看查询统计，定位性能瓶颈
+const stats = await window.electron.ipcRenderer.invoke('db:query-stats');
+// topSlowest 列出平均耗时最高的查询，结合 tableStats 的读写比判断优化方向
+```
+
+### QueryBuilder 链式查询
+
+```javascript
+const { QueryBuilder } = require('./database/query-builder');
+
+// 带分页的条件查询（参数化防注入）
+const results = new QueryBuilder('notes')
+  .select('id', 'title', 'created_at')
+  .where('category', '=', 'work')
+  .where('created_at', '>', '2026-01-01')
+  .orderBy('created_at', 'DESC')
+  .limit(20).offset(40)
+  .execute(db);
+```
+
 ## 关键文件
 
 | 文件 | 职责 |

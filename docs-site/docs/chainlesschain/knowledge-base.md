@@ -928,6 +928,98 @@ CSS自定义样式:
 - `packages/cli/src/commands/note.js` — CLI 笔记命令
 - `packages/cli/src/lib/bm25-search.js` — BM25 搜索引擎
 
+## 使用示例
+
+### CLI 快速操作
+
+```bash
+# 添加笔记
+chainlesschain note add "学习笔记" -c "今天学习了RAG混合搜索" -t "学习,AI"
+
+# 搜索笔记
+chainlesschain note search "RAG搜索"
+
+# 混合搜索（BM25 + 向量语义）
+chainlesschain search "如何优化向量检索"
+
+# 导入 Markdown 文件夹
+chainlesschain import markdown ./docs --recursive
+
+# 导入 PDF 文档
+chainlesschain import pdf ./paper.pdf
+
+# 导出为静态站点
+chainlesschain export site -o ./my-site
+```
+
+### 桌面端常用操作
+
+```
+1. Ctrl/Cmd + N          → 新建笔记
+2. Ctrl/Cmd + Shift + F  → 全局搜索
+3. Ctrl/Cmd + K          → 打开 AI 助手，基于知识库问答
+4. 右键笔记 → AI 功能    → 生成摘要 / 续写 / 翻译
+5. 视图 → 知识图谱       → 查看笔记关联关系
+```
+
+---
+
+## 故障排查
+
+### 搜索结果不准确
+
+- **检查索引状态**: 确认 Qdrant 向量数据库服务运行正常（默认端口 `6333`）
+- **重建索引**: 设置 → 知识库 → 重建搜索索引
+- **调整搜索权重**: BM25 适合精确关键词，向量搜索适合语义模糊查询
+
+### 导入文件失败
+
+- **PDF 导入**: 确认 PDF 未被密码保护，OCR 功能需要 Tesseract.js 支持
+- **Evernote 导入**: 仅支持 `.enex` 格式，确认从 Evernote 正确导出
+- **编码问题**: 确保文件为 UTF-8 编码，Windows 下注意 BOM 头
+
+### 数据库加密错误
+
+- **密钥不匹配**: SQLCipher 密钥变更后需要重新解锁数据库
+- **数据库损坏**: 使用 `chainlesschain db info` 检查数据库状态
+- **迁移失败**: 运行 `chainlesschain db init` 重新初始化表结构
+
+### 知识导出空白
+
+- **检查筛选条件**: 导出时确认选择了正确的标签或日期范围
+- **权限问题**: 确认导出目录有写入权限
+- **大文件超时**: 大量笔记导出建议分批操作
+
+---
+
+## 安全考虑
+
+### 数据存储安全
+
+- 所有笔记数据使用 **SQLCipher AES-256** 全库加密，密钥由 U 盾硬件保护
+- 文件附件使用 **AES-256-GCM** 独立加密存储
+- 数据库密钥通过 HKDF 从主密钥派生，永不明文存储
+
+### 搜索隐私保护
+
+- 向量搜索完全在本地运行，查询内容不会上传到任何云端服务
+- BM25 索引存储在本地 SQLite 中，不依赖外部搜索引擎
+- AI 增强功能（摘要、问答）使用本地 Ollama 模型，保证数据不外泄
+
+### 导入导出安全
+
+- 导入文件自动进行恶意内容检测（脚本注入、XSS 攻击等）
+- 导出的静态站点默认不包含加密密钥和敏感配置
+- 分享链接支持密码保护和有效期设置，过期自动失效
+
+### 协作安全
+
+- 共享笔记本使用 Signal 协议端到端加密，中继节点无法读取内容
+- 协作编辑基于 CRDT 协议，操作日志签名验证防篡改
+- 权限变更记录在审计日志中，支持 90 天回溯查询
+
+---
+
 ## 相关文档
 
 - [笔记/知识库管理 (CLI)](./cli-note) — CLI 笔记命令

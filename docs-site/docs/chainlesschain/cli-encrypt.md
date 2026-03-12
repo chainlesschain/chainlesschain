@@ -113,6 +113,35 @@ chainlesschain encrypt status
                    CCLC01 格式文件 (Salt+IV+Tag+Ciphertext)
 ```
 
+## 使用示例
+
+### 场景 1：加密敏感文件
+
+```bash
+chainlesschain encrypt file credentials.json
+chainlesschain encrypt info credentials.json.enc
+```
+
+加密包含 API Key 的配置文件，生成 `.enc` 加密文件。随后可查看加密文件的元数据信息。
+
+### 场景 2：解密还原文件
+
+```bash
+chainlesschain decrypt file credentials.json.enc -o credentials.json
+```
+
+输入正确密码解密文件，使用 `-o` 指定输出路径还原为原始文件。
+
+### 场景 3：数据库加密保护
+
+```bash
+chainlesschain encrypt status
+chainlesschain encrypt db
+chainlesschain encrypt status
+```
+
+先检查数据库加密状态，启用加密后再次确认。加密后数据库文件使用 SQLCipher AES-256 保护。
+
 ## 故障排查
 
 | 问题 | 解决方案 |
@@ -126,6 +155,23 @@ chainlesschain encrypt status
 
 - `packages/cli/src/commands/encrypt.js` — 命令实现
 - `packages/cli/src/lib/crypto-manager.js` — 加密管理库
+
+## 安全考虑
+
+### 密钥管理
+- **密码强度**: PBKDF2 100,000 次迭代可抵御离线暴力破解，但密码本身必须足够强（建议 16 位以上，包含大小写字母、数字和特殊字符）
+- **密码不存储**: 系统不保存用户密码，每次加密/解密时通过交互式输入获取；忘记密码将无法恢复加密文件
+- **盐值唯一性**: 每次加密使用 32 字节随机盐值（`crypto.randomBytes(32)`），即使相同密码加密同一文件，生成的密文也不同
+
+### AES-256 安全性
+- **GCM 认证加密**: AES-256-GCM 同时提供机密性和完整性保护，密文被篡改时解密会失败（Auth Tag 校验不通过）
+- **IV 不重复**: 每次加密生成 12 字节随机初始化向量（IV），确保同一密钥下不会重复使用 IV（重复 IV 会导致 GCM 安全性完全崩溃）
+- **时间安全比较**: 密码验证使用 `crypto.timingSafeEqual` 进行常量时间比较，防止计时攻击（Timing Attack）推测密码
+
+### 文件完整性
+- **CCLC01 格式校验**: 解密时首先验证文件头 Magic Header（`CCLC01`），非加密文件或格式损坏的文件会被立即拒绝
+- **Auth Tag 验证**: GCM 模式的 16 字节认证标签确保密文未被篡改，任何比特级别的修改都会导致解密失败
+- **原始文件保留**: 加密操作生成新的 `.enc` 文件而非就地加密，原始文件由用户决定是否删除，避免加密过程中断导致数据丢失
 
 ## 相关文档
 

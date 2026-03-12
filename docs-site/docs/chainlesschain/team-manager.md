@@ -539,6 +539,107 @@ const addResult = await manager.addMember(
 
 ---
 
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 成员权限不同步 | 权限缓存未刷新或角色变更未传播 | 执行 `org cache-flush`，确认角色变更已保存 |
+| 任务分配冲突 | 多人同时分配同一任务或锁机制失效 | 启用任务分配锁 `team task-lock-enable`，刷新任务列表 |
+| 团队配额超限 | 成员数超出计划限制或存储配额用尽 | 查看配额使用 `org quota-status`，升级团队计划 |
+| 邀请链接失效 | 链接过期或使用次数已达上限 | 重新生成邀请链接 `org invite --regenerate` |
+| 成员离开后数据未迁移 | 数据所有权未转移 | 执行 `team data-transfer --from <user> --to <user>` |
+
+### 常见错误修复
+
+**错误: `PERMISSION_OUT_OF_SYNC` 权限不同步**
+
+```bash
+# 强制刷新权限缓存
+chainlesschain org cache-flush --scope permissions
+
+# 验证成员权限
+chainlesschain auth check <user> "team:manage"
+```
+
+**错误: `TASK_ASSIGNMENT_CONFLICT` 任务分配冲突**
+
+```bash
+# 查看任务分配状态
+chainlesschain team task-status --task-id <id>
+
+# 强制重新分配
+chainlesschain team task-assign --task-id <id> --user <user> --force
+```
+
+**错误: `TEAM_QUOTA_EXCEEDED` 团队配额超限**
+
+```bash
+# 查看配额使用详情
+chainlesschain org quota-status --team-id <id>
+
+# 清理非活跃成员释放配额
+chainlesschain team prune-inactive --days 90
+```
+
+## 安全考虑
+
+### 数据完整性
+
+- 删除团队时，子团队成员记录通过外键 `ON DELETE CASCADE` 自动级联删除
+- 团队名称在同一组织内强制唯一，防止命名混淆导致的权限错配
+- `setLead` 方法原子性地完成负责人变更和角色升降级，保证数据一致性
+
+### 权限控制
+
+- 团队操作受 RBAC 权限引擎保护，仅组织管理员和部门主管可执行管理操作
+- 成员角色分级（lead/member/guest）控制不同级别的访问权限
+- 团队权限自动继承到团队成员，成员离开团队后权限立即失效
+
+### 审计追踪
+
+- 所有团队创建、删除、成员变更操作自动记录在企业审计日志中
+- 审计日志标签 `[Team]` 记录操作详情，支持按操作者和时间范围查询
+- 负责人变更等高风险操作可配置为需要审批工作流确认
+
+### 防滥用机制
+
+- 删除保护机制阻止删除含有子团队的团队，防止误操作导致数据丢失
+- 重复添加成员返回 `ALREADY_MEMBER` 错误，避免数据冗余
+- 团队设置（`settings`）以 JSON 格式存储，应用层应校验设置内容合法性
+
+---
+
+## 故障深度排查
+
+### 成员权限异常
+
+1. **角色检查**: 使用 `team:get-team-members` 确认成员当前角色（lead/member/guest），权限与角色直接关联
+2. **权限继承**: 团队权限自动继承到成员，若上级团队权限变更需确认子团队成员权限是否同步更新
+3. **角色降级未生效**: `setLead` 变更负责人时自动降级原负责人为 `member`，若降级未生效检查 `org_team_members` 表中该成员记录
+4. **跨团队权限**: 成员同时属于多个团队时权限取并集，使用 `auth:check` 验证具体权限是否生效
+
+### 任务分配失败
+
+| 现象 | 排查步骤 |
+|------|---------|
+| 分配任务时提示无权限 | 确认当前操作者角色为 `lead` 或组织管理员；`guest` 角色无任务分配权限 |
+| 团队成员列表为空 | 检查 `orgId` 是否正确；确认 `addMember` 调用时未返回 `ALREADY_MEMBER` 错误 |
+| 子团队成员看不到父团队任务 | 团队层级不自动共享任务，需在父团队中显式添加子团队成员或配置跨团队可见性 |
+
+## 安全深度说明
+
+### 权限隔离
+- 不同团队的数据通过 `team_id` 严格隔离，跨团队数据访问需要显式授权
+- `guest` 角色仅拥有只读权限，无法修改团队数据或邀请新成员
+- 团队负责人变更（`setLead`）同时更新 `org_teams` 和 `org_team_members` 两张表，确保权限一致性
+
+### 审计追踪
+- 所有团队操作（创建/删除/成员变更/负责人变更）自动记录到企业审计日志，日志标签为 `[Team]`
+- 审计日志支持按操作者 DID、时间范围、操作类型（如 `member:add`/`member:remove`）过滤查询
+- 高风险操作（如删除团队、移除负责人）可在 `settings` 中配置为需要审批工作流确认后才执行
+
 ## 相关文档
 
 - [权限引擎](./permissions.md) - RBAC 权限管理，与团队角色联动

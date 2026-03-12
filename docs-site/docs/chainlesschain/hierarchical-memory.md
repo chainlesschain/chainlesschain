@@ -305,9 +305,54 @@ const concepts = await window.electron.ipcRenderer.invoke(
 | `src/main/ai-engine/memory/memory-sharing.js` | 跨 Agent DID 认证记忆共享 |
 | `src/renderer/stores/hierarchicalMemory.ts` | Pinia 状态管理 |
 
+## 使用示例
+
+```javascript
+// 1. 存储一条语义记忆到短期层
+const mem = await window.electron.ipcRenderer.invoke("memory:store", {
+  content: "项目使用 Vitest 替代 Jest 进行单元测试",
+  type: "semantic",
+  layer: "short-term",
+  metadata: { topic: "testing", importance: 0.7 },
+});
+
+// 2. 根据关键词检索相关记忆
+const results = await window.electron.ipcRenderer.invoke("memory:recall", {
+  query: "单元测试框架选择",
+  layers: ["short-term", "long-term", "core"],
+  maxResults: 5,
+  minRelevance: 0.6,
+});
+
+// 3. 触发记忆巩固（将高频记忆提升层级）
+const consolidated = await window.electron.ipcRenderer.invoke("memory:consolidate", {
+  sourceLayers: ["working", "short-term"],
+  strategy: "hybrid",
+  dryRun: false,
+});
+```
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 记忆存储后检索不到 | 嵌入向量未生成或层级不匹配 | 确认 embedding 服务可用，检查 `layers` 查询参数 |
+| 巩固操作无记忆提升 | 访问频率或重要性未达阈值 | 调低 `promotionThreshold` 或使用 `importance` 策略 |
+| 工作记忆容量已满 | 当前任务产生大量临时记忆 | 调用 `memory:prune` 清理低强度记忆，或增大 `maxCapacity` |
+| 跨 Agent 共享失败 | DID 认证未通过 | 确认双方 DID 有效且已互相信任 |
+| 遗忘曲线衰减过快 | `decayRate` 设置过高 | 调低 `forgettingCurve.decayRate`，增加 `reinforcementBonus` |
+
+## 安全考虑
+
+- **隐私保护**: 记忆内容默认仅本地存储，跨 Agent 共享需显式授权
+- **加密存储**: 所有记忆数据通过 SQLCipher (AES-256) 加密，密钥由 U-Key 保护
+- **访问控制**: 共享记忆支持细粒度权限（只读/读写/转授权），可设置过期时间
+- **敏感记忆标记**: 包含密码、密钥等敏感信息的记忆自动标记，禁止跨 Agent 共享
+- **审计日志**: 记忆的存储、访问、共享、删除操作均记录审计日志
+- **数据最小化**: 遗忘曲线机制自动清理过期和低价值记忆，减少数据暴露面
+
 ## 相关文档
 
 - [LLM 记忆系统 →](/chainlesschain/llm-memory)
 - [会话管理 →](/chainlesschain/session)
 - [DID 身份系统 →](/chainlesschain/did)
-```

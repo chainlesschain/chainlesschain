@@ -228,6 +228,34 @@ cowork 命令默认使用 CLI 配置中的 LLM 设置，也可通过 `--provider
 - 使用云端提供商时代码会发送到对应 API
 - API Key 存储在 `~/.chainlesschain/config.json`
 
+## 使用示例
+
+### 场景 1：多视角辩论审查代码
+
+```bash
+chainlesschain cowork debate src/auth/login.js --perspectives security,correctness,performance
+chainlesschain cowork debate src/auth/login.js --json > review-result.json
+```
+
+从安全性、正确性和性能三个角度审查登录模块，输出 JSON 便于集成到 CI 流水线。
+
+### 场景 2：A/B 方案对比
+
+```bash
+chainlesschain cowork compare "设计一个分布式缓存系统" --variants 3 --criteria quality,performance,simplicity
+```
+
+生成 3 种不同风格的解决方案��保守、创新、务实），按质量、性能和简洁性打分排名，辅助技术选型。
+
+### 场景 3：静态代码分析
+
+```bash
+chainlesschain cowork analyze ./src --type knowledge-graph
+chainlesschain cowork analyze ./src --type style --provider ollama
+```
+
+先用无需 LLM 的知识图谱分析提取代码结构和依赖关系，再用 LLM 分析项目编码风格和约定。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

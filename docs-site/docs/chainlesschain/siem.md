@@ -353,6 +353,77 @@ await window.electronAPI.invoke("siem:configure-aggregation", {
 
 ---
 
+## 使用示例
+
+### 示例 1: CEF 格式导出到 ArcSight
+
+```javascript
+// 1. 配置 Syslog/CEF 导出到 ArcSight
+await window.electronAPI.invoke("siem:configure-exporter", {
+  type: "syslog",
+  config: {
+    host: "arcsight.company.com",
+    port: 514,
+    protocol: "tls",
+    facility: "local0",
+  },
+  format: "cef",
+  enabled: true,
+});
+
+// 2. 验证连接
+const test = await window.electronAPI.invoke("siem:test-connection");
+console.log(`连接状态: ${test.success ? "成功" : "失败"}, 延迟: ${test.latency}ms`);
+
+// 3. 配置登录失败告警聚合（5 分钟内 3 次触发高严重度告警）
+await window.electronAPI.invoke("siem:configure-aggregation", {
+  rules: [{
+    eventType: "AUTH_FAILED",
+    window: 300,
+    threshold: 3,
+    aggregatedSeverity: 9,
+  }],
+});
+```
+
+### 示例 2: LEEF 格式导出到 QRadar 并手动发送事件
+
+```javascript
+// 配置 QRadar Syslog 导出
+await window.electronAPI.invoke("siem:configure-exporter", {
+  type: "syslog",
+  config: { host: "qradar.company.com", port: 514, protocol: "tcp" },
+  format: "leef",
+  enabled: true,
+});
+
+// 手动发送自定义安全事件
+await window.electronAPI.invoke("siem:send-event", {
+  eventType: "ANOMALY_DETECTED",
+  severity: 8,
+  details: { message: "异常数据访问模式", source: "dlp-module", user: "bob" },
+});
+
+// 查看聚合效果统计
+const stats = await window.electronAPI.invoke("siem:get-aggregation-stats");
+console.log(`事件缩减率: ${(stats.reductionRate * 100).toFixed(0)}%`);
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 连接测试失败 | SIEM 端口不可达或凭证错误 | 检查防火墙规则，确认 HEC Token ��� Syslog 端口配置正确 |
+| 事件发送状态为 `failed` | 网络中断或 SIEM 拒绝请求 | 查看 `siem:list-exports` 中的 `error_message`，系统会自动重试 |
+| CEF/LEEF 格式解析异常 | 事件字段包含特殊字符 | 确认事件详情中无管道符 `|` 或换行符，系统会自动转义 |
+| 聚合未生效 | 事件类型不匹配规则 | 检查 `eventType` 拼写，确认与聚合规则中的类型完全一致 |
+| 事件量过大导致积压 | 批量大小或刷新间隔不合理 | 调整 `batchSize`（默认 100）和 `flushInterval`（默认 5000ms） |
+| TLS 连接报错 | 证书链不完整或过期 | 更新 SIEM 服务端证书，或在配置中指定自签名 CA 证书路径 |
+
+---
+
 ## 安全考虑
 
 1. **传输加密**: 所有 SIEM 通信使用 TLS 加密

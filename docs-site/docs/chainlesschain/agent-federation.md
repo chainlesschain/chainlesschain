@@ -157,6 +157,91 @@
 | 任务路由失败 | 检查目标代理在线状态和 SLA 配置 |
 | 信誉分异常   | 查看信誉历史确认是否有负面事件  |
 
+### 联邦节点不可达
+
+**现象**: 调用 `fed-registry:discover` 或 `fed-registry:register` 超时或返回连接失败。
+
+**排查步骤**:
+1. 确认 `registryUrl` 配置地址正确且可访问（`curl` 或浏览器测试）
+2. 检查本地网络代理/防火墙设置是否阻断了外部请求
+3. 确认 `autoDiscover` 和 `autoRegister` 是否为 `true`
+4. 查看日志中是否有 DNS 解析或 TLS 证书校验错误
+
+### DID 认证失败（挑战-响应错误）
+
+**现象**: 跨组织调用时返回认证失败，Agent 被拒绝访问。
+
+**排查步骤**:
+1. 确认本地 Agent DID 的 Ed25519 密钥未过期或被撤销
+2. 检查双方系统时间差是否在允许范围内（时间戳验证依赖时钟同步）
+3. 确认会话 Token 未过期（默�� TTL 1 小时），过期后需重新认证
+4. 查看 `agent-did:resolve` 是否能正常解析对方 DID 文档
+
+### 跨组织任务超时
+
+**现象**: `cross-org:route-task` 长时间无响应或返回超时错误。
+
+**排查步骤**:
+1. 检查 `crossOrg.defaultTimeout` 配置是否设置过短（默认 300000ms）
+2. 确认目标 Agent 在线并有空闲处理能力（`maxConcurrentTasks` 未超限）
+3. 查看 `cross-org:get-task-status` 确认任务是否卡在某个中间状态
+4. 若目标 Agent 持续不响应，检查其心跳状态或尝试更换目标 Agent
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 节点注册失败 | DID 格式错误或注册服务不可达 | 验证 DID 格式，检查联邦注册中心网络连通性 |
+| 跨组织路由超时 | 目标组织防火墙阻断或路由表过期 | 检查网络策略，执行 `federation route-refresh` |
+| 认证令牌过期 | Token TTL 过短或时钟偏移 | 增大 `tokenTTL` 配置，同步系统时钟（NTP） |
+| Agent 心跳丢失 | 网络抖动或心跳间隔过长 | 缩短 `heartbeatInterval`，检查网络稳定性 |
+| 联邦发现服务无响应 | 发现服务未启动或端口被占用 | 重启发现服务，确认端口未冲突 |
+
+### 常见错误修复
+
+**错误: `REGISTRATION_FAILED` 节点注册被拒**
+
+```bash
+# 检查 DID 有效性
+chainlesschain did list --verbose
+
+# 重新注册节点
+chainlesschain a2a register --force --did <your-did>
+```
+
+**错误: `ROUTE_TIMEOUT` 跨组织路由超时**
+
+```bash
+# 刷新路由表
+chainlesschain a2a route-refresh
+
+# 测试目标组织连通性
+chainlesschain a2a ping --org <target-org-id>
+```
+
+**错误: `AUTH_TOKEN_EXPIRED` 认证过期**
+
+```bash
+# 重新获取认证令牌
+chainlesschain a2a auth-renew --agent-did <your-did>
+
+# 检查系统时钟同步状态
+chainlesschain doctor --check ntp
+```
+
+## 安全考虑
+
+- **DID 密钥隔离**: 每个 Agent 的 Ed25519 私钥存储在本地加密数据库，不随网络传播
+- **挑战-响应认证**: 双向 DID 认证采用随机挑战+时间戳，防止中间人和重放攻击
+- **凭证有效期**: 所有 VC 凭证设有过期时间，吊销注册表支持即时失效
+- **信誉防篡改**: 信誉评分由本地计算引擎生成，基于实际任务执行结果，不可外部注入
+- **跨组织隔离**: 不同组织的 Agent 注册表逻辑隔离，联邦查询需经认证授权
+- **任务路由鉴权**: 跨组织任务分配前验证目标 Agent 的在线状态和 SLA 合规性
+- **会话 Token 管理**: 认证会话设有 TTL（默认 1 小时），过期自动清理
+- **数据传输加密**: 所有联邦网络通信使用端到端加密，防止数据窃听
+
 ## 关键文件
 
 | 文件 | 职责 |

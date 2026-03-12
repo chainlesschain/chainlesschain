@@ -360,6 +360,66 @@ console.log(event.relaysPublished);
 
 ---
 
+## 使用示例
+
+### 示例 1: 连接 Relay 并发布消息
+
+```javascript
+// 1. 创建身份并绑定 DID
+const identity = await window.electronAPI.invoke("nostr:create-identity", {
+  did: "did:chainless:myuser",
+  label: "日常账号",
+});
+
+// 2. 连接多个 Relay
+const relays = ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.nostr.band"];
+for (const url of relays) {
+  await window.electronAPI.invoke("nostr:add-relay", { url, read: true, write: true });
+}
+
+// 3. 确认连接状态
+const status = await window.electronAPI.invoke("nostr:relay-status");
+console.log(`已连接 ${status.connected}/${status.total} 个 Relay`);
+
+// 4. 发布带标签的消息
+await window.electronAPI.invoke("nostr:publish-event", {
+  kind: 1,
+  content: "ChainlessChain + Nostr 去中心化社交体验！",
+  tags: [["t", "ChainlessChain"], ["t", "去中心化"]],
+});
+```
+
+### 示例 2: 订阅并导入 Nostr 事件
+
+```javascript
+// 订阅特定标签和作者的事件
+await window.electronAPI.invoke("nostr:subscribe", {
+  filters: [{ "#t": ["ChainlessChain"], limit: 20 }],
+});
+
+// 获取最近事件并批量导入本地
+const events = await window.electronAPI.invoke("nostr:get-events", { limit: 10 });
+for (const event of events) {
+  await window.electronAPI.invoke("nostr:import-event", { eventId: event.event_id });
+}
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| Relay 连接失败 | WebSocket 地址无效或网络不通 | 检查 Relay URL 格式（必须以 `wss://` 开头），确认网络可达 |
+| 事件发布无响应 | 未连接任何可写 Relay | 运行 `nostr:relay-status` 确认至少有一个 `write: true` 的连接 |
+| 身份创建失败 | DID 未初始化或已绑定其他 npub | 先通过 `did:create` 创建 DID，检查是否已有绑定关系 |
+| 签名验证失败 | 本地时钟偏差过大 | 同步系统时间，Nostr 事件依赖 UNIX 时间戳 |
+| 同步内容为空 | 订阅过滤条件过严 | 放宽 `filters` 条件，增大 `limit` 值 |
+| 批量同步缓慢 | Relay 响应慢或事件量过大 | 减小批量范围，尝试切换到延迟更低的 Relay |
+| 密钥导入失败 | nsec 格式错误 | 确认使用 bech32 编码的 nsec 密钥（以 `nsec1` 开头） |
+
+---
+
 ## 安全考虑
 
 1. **密钥安全**: nsec 私钥使用 AES-256 加密存储，可绑定 U-Key

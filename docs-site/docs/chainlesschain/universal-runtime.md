@@ -254,6 +254,85 @@ const metrics = await window.electron.ipcRenderer.invoke("runtime:get-metrics");
 
 ---
 
+## 故障排查
+
+| 问题 | 原因分析 | 解决方案 |
+|------|---------|---------|
+| 插件加载失败 | 插件版本不兼容或入口文件路径错误 | 检查插件 `version` 与运行时 SDK 版本兼容性，确认 `entryPoint` 路径存在且可访问 |
+| 热更新后功能异常 | 新版本模块存在兼容性问题 | 系统自动回滚（`rollbackOnError: true`），检查更新日志确认变更内容；使用 `graceful` 策略避免中断 |
+| CRDT 同步冲突 | 多设备离线编辑后同时上线 | 使用 `crdt-auto` 策略自动解决；若结果不理想，切换到 `manual` 策略手动合并 |
+| 性能分析器采样数据为空 | 采样时间过短或 `sampleRate` 设置过低 | 增大 `duration`（建议 10 秒以上）和 `sampleRate`（建议 1000Hz），确保有足够的采样数据 |
+| 平台适配层报错 | Capacitor 原生桥接未正确初始化 | 确认 Capacitor 插件已安装且配置正确，iOS/Android 端检查原生权限设置 |
+| 健康检查显示 degraded | 某个模块出现错误或资源使用异常 | 查看 `health-check` 返回的 `modules` 详情，定位异常模块并检查其日志 |
+| 同步延迟超过 100ms | 网络状况差或 peer 数量过多 | 减少 `maxPeers` 数量，优化网络环境；检查是否有大文档导致同步包过大 |
+
+## 安全考虑
+
+### 插件沙箱安全
+- **沙箱模式**: 插件默认在 `strict` 沙箱模式下运行，禁止直接访问文件系统、网络和 IPC 通道，所有能力需通过权限声明获取
+- **权限最小化**: 插件安装时用户需明确授权每项权限（`filesystem`、`network`、`ipc`），运行时严格执行权限边界
+- **插件隔离**: 不同插件之间相互隔离，一个插件崩溃不会影响主应用或其他插件的运行
+
+### 热更新安全
+- **签名验证**: 热更新包在下载和应用前进行数字签名验证，拒绝未签名或签名不匹配的更新包
+- **回滚机制**: 热更新后自动运行健康检查，异常时立即回滚到上一版本（`rollbackAvailable: true`）
+- **灰度发布**: 支持 `scheduled` 策略在低峰时段推送更新，降低更新失败对用户的影响
+
+### CRDT 同步安全
+- **端到端加密**: 设备间的 CRDT 同步数据通过端到端加密传输，中间节点无法读取同步内容
+- **设备认证**: 只有通过身份认证的设备才能加入同步网络，未授权设备的同步请求被拒绝
+- **冲突审计**: 所有自动解决的冲突记录到日志中，用户可查看冲突历史并手动修正
+
+### 性能分析隐私
+- **本地分析**: 火焰图数据在本地生成和存储，不上传到外部服务器，`retentionHours`（默认 24 小时）后自动清理
+- **采样数据脱敏**: 性能采样数据不包含用户输入内容或业务数据，仅记录函数调用栈和耗时信息
+
+## 使用示例
+
+### 插件加载与管理
+
+```bash
+# 1. 从市场加载插件
+# IPC: runtime:load-plugin { pluginId: "analytics-dashboard", version: "2.1.0", source: "marketplace" }
+# → status: "loaded", capabilities: ["ui", "data-access"]
+
+# 2. 查看运行时健康状态，确认插件加载正常
+# IPC: runtime:health-check
+# → modules: [{ name: "plugin-host", status: "healthy", loaded: 13 }]
+
+# 3. 卸载异常插件后重新加载
+# IPC: runtime:load-plugin { pluginId: "analytics-dashboard", version: "2.1.1", source: "marketplace" }
+```
+
+### ���重启热更新
+
+```bash
+# 1. 推送 AI 引擎模块更新（graceful 策略等待当前请求完成）
+# IPC: runtime:hot-update { moduleId: "ai-engine", version: "4.5.1", strategy: "graceful", rollbackOnError: true }
+# → status: "applied", restartRequired: false
+
+# 2. 若更新后功能异常，系统自动回滚
+# → rollbackAvailable: true，健康检查失败时自动触发回滚
+
+# 3. 查看热更新历史
+# IPC: runtime:get-metrics
+# → hotUpdates: { applied: 3, rolledBack: 0, pending: 1 }
+```
+
+### 火焰图性能分析
+
+```bash
+# 1. 采集 10 秒 CPU 火焰图
+# IPC: runtime:profile { type: "cpu", duration: 10000, sampleRate: 1000, includeModules: true }
+
+# 2. 分析热点函数
+# → hotspots: [{ function: "vectorSearch", module: "rag-engine", selfTime: 2300ms }]
+# → summary: { idle: 42%, userCode: 38%, systemCode: 15%, gc: 5% }
+
+# 3. 针对热点优化后重新采样对比
+# IPC: runtime:profile { type: "memory", duration: 10000 }
+```
+
 ## 相关链接
 
 - [智能插件生态 2.0](/chainlesschain/plugin-ecosystem-v2)

@@ -645,6 +645,86 @@ Batch 4: [301 ~ 350 ] ──> P2P发送 ──> 进度: 100%
 
 ---
 
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 同步冲突解决失败 | CRDT 合并策略不适用或时钟偏移 | 切换冲突策略为 `last-writer-wins`，同步设备时钟 |
+| 网络断连后恢复同步失败 | 增量日志丢失或版本号不连续 | 执行全量同步 `sync full --force`，重建增量日志 |
+| 设备配对超时 | 信令服务不可达或二维码过期 | 检查信令服务器状态，重新生成配对二维码 |
+| 同步数据不一致 | 部分数据未落盘即断电 | 执行 `sync integrity-check`，修复不一致记录 |
+| 大文件同步进度卡住 | 带宽受限或分片传输中断 | 减小分片大小 `sync config --chunk-size 256KB` |
+
+### 常见错误修复
+
+**错误: `CONFLICT_RESOLUTION_FAILED` 冲突解决失败**
+
+```bash
+# 查看冲突详情
+chainlesschain sync conflicts --verbose
+
+# 手动选择保留版本
+chainlesschain sync resolve --conflict-id <id> --keep local
+```
+
+**错误: `RECONNECT_SYNC_FAILED` 断线重连同步失败**
+
+```bash
+# 检查同步日志完整性
+chainlesschain sync integrity-check
+
+# 强制全量重新同步
+chainlesschain sync full --force --device <device-id>
+```
+
+**错误: `PAIR_TIMEOUT` 设备配对超时**
+
+```bash
+# 检查信令服务器状态
+chainlesschain p2p signal-status
+
+# 使用手动配对码配对
+chainlesschain p2p pair --manual --code <pairing-code>
+```
+
+## 安全考虑
+
+1. **传输加密**: 所有同步数据通过 P2P 加密通道传输，防止中间人窃听
+2. **设备认证**: 移动设备注册前需通过 DID 身份验证，防止未授权设备接入
+3. **数据完整性**: 同步数据附带时间戳和校验信息，确保传输过程中未被篡改
+4. **冲突策略选择**: 对重要数据��如知识库���记）建议使用 `manual` 策略，防止数据被意外覆盖
+5. **离线队列安全**: 离线队列中的变更加密存储在本地，设备丢失后他人无法读取
+6. **同步范围控制**: 通过配置项精确控制同步的数据类别，避免不必要的数据暴露
+7. **日志监控**: 定期检查 `sync:failed` 和 `conflict:detected` 事件，及时发现异常同步行为
+8. **设备注销及时性**: 设备丢失或不再使用时应立即调用 `unregisterMobileDevice` 注销
+9. **数据库加密**: 同步的目标 SQLite 数据库使用 SQLCipher 加密，数据落盘后受保护
+
+## 常见故障深度排查
+
+### 同步失败（sync:failed 事件频繁触发）
+
+1. **P2P 通道检查**: 确认 `p2pManager.sendMessage()` 能正常发送消息，使用 `p2p peers` 命令验证节点连通性
+2. **数据库锁冲突**: SQLite 并发写入可能导致 `SQLITE_BUSY`，检查是否有其他进程正在操作同一数据库文件
+3. **批量大小过大**: 若单批数据超过 P2P 消息大小限制，减小 `batchSize`（如设为 50）
+4. **日志定位**: 搜索 `[MobileSyncManager]` 前缀日志，查看具体失败的数据类别和错误堆栈
+
+### 冲突解决异常
+
+| 现象 | 排查方��� |
+|------|---------|
+| `merge` 策略合并结果不正确 | 检查两端修改的字段是否重叠；同一字段被两端修改时自动回退到 `latest-wins`，确认 `updated_at` 时间戳准确 |
+| `manual` 策略无提示 | 确认前端已监听 `conflict:detected` 事件并展示 UI 提示；检查事件 payload 中 `localData` 和 `remoteData` 是否完整 |
+| 冲突计数只增不减 | `conflictsDetected` 为累计值，属正常行为；通过 `conflictsResolved` 确认冲突已处理 |
+
+### 设备配对失败
+
+1. **peerId 一致性**: 确认移动端传入的 `peerId` 与 P2P 网络中注册的节点 ID 完全一致
+2. **DID 认证**: 设备注册前需通过 DID 身份验证，确认移动端已创建有效的 DID 身份
+3. **网络环境**: 在 NAT 防火墙环境下 WebRTC 可能无法穿透，检查 Signaling Server（端口 9001）是否可达
+4. **设备状态**: 调用 `getMobileDevices()` 确认设备未被标记为 `offline`，如有需先 `unregisterMobileDevice` 再重新注册
+
 ## 相关文档
 
 - [去中心化社交](./social.md) -- P2P 通信和群聊功能
