@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image/image-uploader.js`
 
-**Generated**: 2026-03-11T09:43:39.344Z
+**Generated**: 2026-03-12T02:32:47.938Z
 
 ---
 

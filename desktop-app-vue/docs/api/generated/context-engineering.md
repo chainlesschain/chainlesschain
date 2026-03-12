@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/context-engineering.js`
 
-**Generated**: 2026-03-11T09:43:39.336Z
+**Generated**: 2026-03-12T02:32:47.931Z
 
 ---
 
