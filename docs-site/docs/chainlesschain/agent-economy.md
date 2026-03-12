@@ -228,6 +228,89 @@ CREATE INDEX IF NOT EXISTS idx_agent_nfts_did ON agent_nfts(agent_did);
 | 资源交易未匹配   | 检查资源类型和价格区间设置                    |
 | 收益分配比例异常 | 确认贡献记录完整，检查分配方法配置            |
 
+### 余额不足导致操作失败
+
+**现象**: 调用 `economy:pay` 或 `economy:open-channel` 返回余额不足错误。
+
+**排查��骤**:
+1. 调用 `economy:get-balance` 确认当前 Agent 账户余额
+2. 检查是否有未关闭的通道锁定了保证金（`state_channels` 表中 `status = 'open'` 的记录）
+3. 确认 `maxDeposit` 配置未被误设为过低值
+4. 若通道已不再使用，调用 `economy:close-channel` 释放锁定资金
+
+### 状态通道异常（closing/disputed）
+
+**现象**: 通道状态卡在 `closing` 或进入 `disputed` 状态，无法正常结算。
+
+**排查步骤**:
+1. 检查 `state_channels` 表中对应通道的 `nonce` 是否一致
+2. 确认双方最后签名的状态是否匹配，如不一致则触发争议仲裁
+3. 检查 `settlementInterval` 配置，等待结算周期完成后重试关闭
+4. 如通道 TTL 已过期，系统将自动按最后有效状态结算
+
+### NFT 铸造失败详细排查
+
+**现象**: 调用 `economy:mint-nft` 返回失败，NFT 未生成。
+
+**排查步骤**:
+1. 确认 `agentDid` 格式正确且为有效的 DID 标识
+2. 查询 `agent_nfts` 表确认该 DID 是否已铸造过 NFT（`UNIQUE` 约束）
+3. 检查 `mintFee` 配置，确认账户余额足以支付铸造费用
+4. 检查 `metadata` 字段是否为合法 JSON，避免序列化异常
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 余额不足无法发起支付 | 账户未充值或通道保证金被锁定 | 检查可用余额，确认通道状态是否为 `open` |
+| State Channel 结算失败 | 双方签名不一致或通道已过期 | 重新协商签名，检查通道 `expiry` 时间戳 |
+| NFT 铸造返回错误 | DID 已铸造过 NFT 或 metadata 格式异常 | 查询 `agent_nfts` 表确认唯一约束，验证 JSON 格式 |
+| 贡献分配金额为零 | 贡献证明未提交或权重配置错误 | 确认 `contribution-proof` 记录存在，检查权重参数 |
+| 资源市场报价查询为空 | 市场未初始化或无卖方注册 | 运行 `economy:market-init`，检查卖方注册状态 |
+
+### 常见错误修复
+
+**错误: `INSUFFICIENT_BALANCE` 支付被拒绝**
+
+```bash
+# 查看当前账户余额
+chainlesschain economy balance --agent-did <your-did>
+
+# 充值到指定金额
+chainlesschain economy deposit --amount 1000 --agent-did <your-did>
+```
+
+**错误: `CHANNEL_SETTLEMENT_FAILED` 通道结算超时**
+
+```bash
+# 检查通道状态
+chainlesschain economy channel-status --channel-id <id>
+
+# 强制关闭并结算通道
+chainlesschain economy channel-close --channel-id <id> --force
+```
+
+**错误: `NFT_MINT_DUPLICATE` 重复铸造**
+
+```bash
+# 查询已铸造的 NFT
+chainlesschain economy nft-list --agent-did <your-did>
+
+# 如需重新铸造，先撤销旧 NFT
+chainlesschain economy nft-revoke --nft-id <id>
+```
+
+## 安全考虑
+
+- **通道签名**: State Channel 每笔交易需双方签名确认，防止单方篡改余额
+- **保证金锁定**: 开启通道时保证金锁定在链上，关闭时自动结算，防止资金挪用
+- **DID 绑定**: 所有经济操作与 Agent DID 身份绑定，不可伪造交易方
+- **交易限额**: 单笔支付和通道保证金设有上限（`maxDeposit`），防止大额损失
+- **NFT 唯一性**: 每个 Agent DID 仅可铸造一个身份 NFT，防止重复铸造
+- **审计追踪**: 支付、交易、分配记录完整存储，支持争议仲裁和合规审查
+
 ## 关键文件
 
 | 文件 | 职责 |

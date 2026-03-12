@@ -295,6 +295,107 @@ console.log(governance.votePrediction);
 
 ---
 
+## 使用示例
+
+### 创建提案并发起投票
+
+```javascript
+// 创建参数变更提案
+const proposal = await window.electronAPI.invoke("governance:create-proposal", {
+  title: "将默认加密算法升级为 AES-256-GCM",
+  type: "PARAMETER_CHANGE",
+  proposerDid: "did:chainless:my-did",
+  parameters: {
+    targetConfig: "encryption.defaultAlgorithm",
+    currentValue: "AES-128-CBC",
+    proposedValue: "AES-256-GCM",
+  },
+});
+// proposal.status = 'DRAFT'，需���交后进入 ACTIVE 投票阶段
+```
+
+### AI 影响分析与投票预测
+
+```javascript
+// 对提案执行 AI 影响分析
+const analysis = await window.electronAPI.invoke("governance:analyze-impact", {
+  proposalId: "prop-001",
+});
+// analysis.analysis.overallRecommendation = 'APPROVE_WITH_CONDITIONS'
+
+// 预测社区投票结果
+const prediction = await window.electronAPI.invoke("governance:predict-vote", {
+  proposalId: "prop-001",
+});
+// prediction.prediction.outcome = 'LIKELY_PASS', confidence = 0.78
+```
+
+## 故障排除
+
+### 投票权重异常
+
+**现象**: 投票结果统计与预期不符，某些 DID 的投票权重不正确。
+
+**排查步骤**:
+1. 确认每个 DID 仅投了一票（`UNIQUE(proposal_id, voter_did)` 约束保证唯一性）
+2. 检查是否有委托投票影响了权重计算（若与信誉系统关联）
+3. 查看 `governance_votes` 表确认所有投票记录的 `vote` 字段值正确
+4. 确认投票统计时是否正确累加了 `for`、`against`、`abstain` 三类票数
+
+### 提案冲突
+
+**现象**: 两个提案修改同一配置参数，存在冲突。
+
+**排查步骤**:
+1. 使用 `governance:list-proposals` 筛选 `ACTIVE` 状态的提案，检查是否有参数冲突
+2. 配置 `proposalCooldown`（默认 86400000ms / 24 小时）限制同类提案提交频率
+3. 若两个提案均通过，系统按执行时间顺序应用，后执行的提案覆盖先执行的
+4. 建议在提案描述中注明依赖关系，由社区通过投票决定优先级
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| AI 分析结果偏差大 | 训练数据偏斜或分析模型过时 | 更新模型版本，补充平衡数据集 |
+| 投票率低提案无法通过 | 参与门槛过高或通知未触达 | 降低 `quorumThreshold`，启用多渠道通知 |
+| 提案冲突多个提案互相矛盾 | 缺乏提案依赖检查机制 | 启用提案冲突检测 `governance conflict-check` |
+| 治理决议执行延迟 | 执行队列拥堵或审批流程卡住 | 检查执行队列 `governance queue-status`，催办审批 |
+| 权限变更未生效 | 缓存未刷新或同步延迟 | 清除权限缓存 `governance cache-flush` |
+
+### 常见错误修复
+
+**错误: `AI_ANALYSIS_BIAS` AI 分析偏差**
+
+```bash
+# 查看分析模型版本
+chainlesschain governance model-info
+
+# 重新运行分析（使用最新模型）
+chainlesschain governance analyze --proposal-id <id> --refresh-model
+```
+
+**错误: `QUORUM_NOT_REACHED` 未达法定人数**
+
+```bash
+# 查看当前投票进度
+chainlesschain governance vote-progress --proposal-id <id>
+
+# 延长投票周期
+chainlesschain governance extend-voting --proposal-id <id> --days 7
+```
+
+**错误: `PROPOSAL_CONFLICT` 提案冲突**
+
+```bash
+# 检测提案间冲突
+chainlesschain governance conflict-check --proposal-id <id>
+
+# 查看冲突详情和建议
+chainlesschain governance conflict-detail --proposal-id <id>
+```
+
 ## 安全考虑
 
 1. **DID 身份绑定**: 所有投票与 DID 绑定，防止刷票

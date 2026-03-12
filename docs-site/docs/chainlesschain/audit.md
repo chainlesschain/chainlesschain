@@ -725,6 +725,35 @@ apiKey, api_key, apikey, credential, credentials,
 privateKey, private_key, authorization, cookie, pin, cvv, ssn
 ```
 
+### 日志查询响应缓慢
+
+**现象**: `audit:query-logs` 接口响应时间超过数秒。
+
+**排查步骤**:
+1. 检查 `enterprise_audit_log` 表记录总数，超过 10 万条时建议执行 `retention:apply-policy` 清理
+2. 确认查询条件是否命中索引（`timestamp`、`event_type`、`risk_level`、`actor`、`created_at`）
+3. 减小 `pageSize` 参数（默认 50，最大 500），避免单次查询返回过多数据
+4. 定期执行 SQLite `VACUUM` 优化数据库文件碎片
+
+### 审计日志存储空间耗尽
+
+**现象**: 数据库文件持续增���，磁盘空间不足。
+
+**排查步骤**:
+1. 配置并执行 `retention:apply-policy`，设置合理的 `retentionDays`（默认 90 天）
+2. 调高 `logLevel` 从 `info` 到 `warning`，减少低风险事件的记录量
+3. 使用 `retention:preview-deletion` 预览将被清理的数据量
+4. 对于高风险日志，`highRiskRetentionDays` 默认 365 天，可视情况调整
+
+### 日志格式异常（JSON 解析失败）
+
+**现象**: 导出或查询日志时 `details` 字段 JSON 解析失败。
+
+**排查步骤**:
+1. 检查写入日志时 `details` 参数是否包含不可序列化的对象（如循环引用）
+2. 确认脱敏处理后的字段值未被截断为不完整的 JSON 字符串
+3. 对于 CSV 导出，检查 `details` 中的逗号和引号是否正确转义
+
 ---
 
 ## 关键文件
@@ -736,6 +765,78 @@ privateKey, private_key, authorization, cookie, pin, cvv, ssn
 | `desktop-app-vue/src/main/audit/compliance-manager.js` | 合规策略管理 |
 | `desktop-app-vue/src/main/audit/dsr-handler.js` | 数据主体请求处理 |
 | `desktop-app-vue/src/main/hooks/index.js` | Hook 系统 (21 种事件) |
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 日志查询超时 | 数据量过大未建立索引或查询时间范围过宽 | 缩小查询时间范围，执行 `audit index-rebuild` |
+| 存储空间满导致写入失败 | 日志轮转策略未配置或保留周期过长 | 配置 `retentionDays`，启用自动清理 |
+| 导出格式错误或文件损坏 | 导出过程中断或编码不匹配 | 指定编码 `--encoding utf-8`，检查磁盘空间 |
+| 审计事件丢失 | 高并发下写入队列溢出 | 增大 `bufferSize` 配置，启用异步批量写入 |
+| 合规报告生成失败 | 模板文件缺失或数据源连接异常 | 检查模板路径，确认数据库连接正常 |
+
+### 常见错误修复
+
+**错误: `QUERY_TIMEOUT` 日志查询超时**
+
+```bash
+# 重建审计日志索引
+chainlesschain audit index-rebuild
+
+# 使用分页查询减少单次数据量
+chainlesschain audit log --limit 100 --offset 0
+```
+
+**错误: `STORAGE_FULL` 存储空间不足**
+
+```bash
+# 查看审计日志占用空间
+chainlesschain audit stats --storage
+
+# 清理过期日志（保留最近 90 天）
+chainlesschain audit gc --retention-days 90
+```
+
+**错误: `EXPORT_FAILED` 导出异常**
+
+```bash
+# 指定格式和编码重新导出
+chainlesschain audit export --format csv --encoding utf-8 --output ./audit-export.csv
+
+# 验证导出文件完整性
+chainlesschain audit export-verify --file ./audit-export.csv
+```
+
+## 安全考虑
+
+### 日志完整性
+
+- 审计日志写入后不可修改、不可删除，保证事后追溯的可靠性
+- 禁用审计日志（`disable_audit`）被标记为 **critical** 风险操作，触发最高级别告警
+- 日志同时写入 SQLite 数据库和内存缓冲区，双写机制防止单点故障丢失记录
+
+### 敏感数据保护
+
+- 22 类敏感字段（密码、令牌、密钥、凭证等）在写入前 **自动递归脱敏**
+- 大二进制数据（截图、Base64 等）超过 5000 字符自动替换为占位符
+- 超长字符串（>1000 字符）自动截断，防止日志存储膨胀
+
+### 访问控制
+
+- 审计日志查询和导出接口受 RBAC 权限保护，仅管理员角色可访问
+- 合规报告生成和数据主体请求（DSR）需要经过审批工��流
+- 数据保留策略的应用需要管理员权限，防止恶意清除日志
+
+### 合规保障
+
+- 支持 GDPR 数据主体请求（DSR）：访问、导出、删除个人数据
+- 高风险日志默认保留 365 天（普通日志 90 天），满足法规要求
+- JSON/CSV 导出格式支持与第三方合规审计工具集成
+
+---
 
 ## 相关文档
 

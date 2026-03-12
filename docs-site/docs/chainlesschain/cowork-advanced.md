@@ -639,6 +639,108 @@ checkpoint.compact(currentState);
 
 ---
 
+## 使用示例
+
+### 辩论式代码审查
+
+```bash
+# 多角色代理辩论审查代码质量
+chainlesschain cowork debate src/main/index.js
+# 输出包含安全审查员、性能审查员、可读性审查员的多角度意见和最终裁决
+```
+
+### 代码知识图谱分析
+
+```bash
+# 生成项目代码架构的知识图谱
+chainlesschain cowork analyze src/ --type knowledge-graph
+# 输出实体(模块/类/函数)和关系(调用/依赖/继承)的结构化图谱
+```
+
+### 决策知识库查询
+
+```bash
+# 分析项目中的架构决策记录
+chainlesschain cowork analyze src/ --type decisions
+# 输出已识别的架构决策、上下文、后果和替代方案
+```
+
+## 故��排除
+
+### Agent 执行超时
+
+**现象**: Orchestrate 工作流中某个代理步骤长时间无响应。
+
+**排查步骤**:
+1. 检查 LLM 服务是否可用，Agent 执行依赖 LLM 生成响应
+2. 确认 AgentCoordinator 是否已正确初始化（不可用时回退为模拟模式）
+3. 查看 Agent Pool 状态（`agentPool.getPoolStats()`），确认目标类型池有空闲 Agent
+4. 降低任务复杂度或拆分为更小的子任务以减少单个 Agent 处理时间
+
+### 多 Agent 结果不一致
+
+**现象**: 多个代理对同一任务给出矛盾的分析结果。
+
+**排查步骤**:
+1. 这是多 Agent 辩论模式的正常现象，最终裁决会综合各方意见
+2. 检查各 Agent 的角色配置是否正确，避免角色重叠导致冗余评估
+3. 查看 Orchestrate 工作流的交接文档（handoff），确认上下文正确传递
+4. 若需一致性结果，使用 `verification-loop` 替代辩论模式
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 多 Agent 辩论超时未产出结论 | 参与 Agent 数量过多或共识阈值过高 | 减少参与者数量，降低 `consensusThreshold` |
+| 知识图谱构建缓慢 | 实体数量大或关系抽取模型负载高 | 启用增量构建，分批处理实体 |
+| 决策冲突多个 Agent 结论矛盾 | 角色分配不明确或评价标准不统一 | 明确角色 prompt，设置统一评分标准 |
+| 辩论轮次过多收敛慢 | 初始立场差异过大或调停策略不佳 | 限制最大轮次 `maxRounds`，启用调停 Agent |
+| A/B 对比结果不可复现 | 随机种子未固定或上下文差异 | 设置 `seed` 参数，确保输入上下文一致 |
+
+### 常见错误修复
+
+**错误: `DEBATE_TIMEOUT` 辩论超时**
+
+```bash
+# 查看辩论状态
+chainlesschain cowork debate-status --session-id <id>
+
+# 强制结束辩论并汇总当前结果
+chainlesschain cowork debate-conclude --session-id <id> --force
+```
+
+**错误: `KG_BUILD_SLOW` 知识图谱构建过慢**
+
+```bash
+# 切换为增量构建模式
+chainlesschain cowork analyze <path> --mode incremental
+
+# 限制单次处理文件数量
+chainlesschain cowork analyze <path> --batch-size 50
+```
+
+**错误: `DECISION_CONFLICT` Agent 决策冲突**
+
+```bash
+# 查看冲突详情
+chainlesschain cowork conflict-detail --session-id <id>
+
+# 启用调停 Agent 重新裁定
+chainlesschain cowork mediate --session-id <id>
+```
+
+## 安全考虑
+
+### 多 Agent 数据隔离
+
+- **Agent 沙箱**: 每个 Agent 在独立的上下文中执行，无法直接访问其他 Agent 的内部状态
+- **交接文档审查**: Agent 间传递的交接文档不应包含敏感凭证，仅传递任务相关上下文
+- **Agent Pool 内存**: Agent 温复用时通过 `_warmResetAgent()` 重置状态，防止跨任务信息泄露
+- **工具权限**: 每个 Agent 仅能使用其角色授权的工具子集，通过 UnifiedToolRegistry 控制
+- **执行日志**: 所有 Agent 操作记录到 Cowork 审计事件中，支持事后审查
+
 ## 关键文件
 
 | 文件 | 职责 |

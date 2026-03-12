@@ -190,6 +190,89 @@ Code Agent 2.0 内置以下安全检测：
 | Git 分析超时     | 缩小分析时间范围，排除大型二进制文件 |
 | CI/CD 配置不兼容 | 确认目标平台版本，检查部署目标配置   |
 
+### 代码生成错误或质量差
+
+**现象**: 生成的代码存在语法错误、逻辑缺陷或不符合项目规范。
+
+**排查步骤**:
+1. 在 `description` 中明确指定语言版本、框架和目标环境（如 `TypeScript 5.x + Express 4`）
+2. 降低 `generation.temperature` 配置值（建议 0.1-0.3）提高生成稳定性
+3. 开启 `includeTests: true` 让系统同时生成测试用例以验证生成质量
+4. 使用 `code-agent:review` 对生成的代码进行安全审查和质量评估
+
+### Git 冲突处理
+
+**现象**: `code-agent:analyze-git` 或代码重构操作遇到 Git 合并冲突。
+
+**排查步骤**:
+1. 确认当前分支是否有未提交的更改，建议先 commit 或 stash
+2. `code-agent:analyze-git` 为只读操作，不会修改仓库历史
+3. 代码重构前建议创建新分支，避免在主分支上直接修改
+4. 缩小 `since` 时间范围以减少分析的提交量
+
+### 脚手架生成失败
+
+**现象**: `code-agent:scaffold` 返回失败或生成的项目结构不完整。
+
+**排查步骤**:
+1. 确认 `outputDir` 路径存在且有写入权限
+2. 检查 `template` 值是否为支持的模板之一（react/vue/express/fastapi/spring-boot）
+3. 确认 `features` 数组中的特性名称拼写正确且彼此兼容
+4. 若涉及网络下��（npm ��模板），检查网络连接和代理配置
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 代码生成语法错误 | LLM 输出不规范或目标语言版本不匹配 | 启用 `syntaxValidation`，指定语言版本参数 |
+| Git 冲突导致提交失败 | 自动生成代码与已有代码冲突 | 执行 `git status` 检查冲突文件，手动合并后重试 |
+| 脚手架模板缺失 | 模板目录未初始化或模板名称拼写错误 | 运行 `agent template-list` 确认模板，执行 `template-sync` |
+| 代码审查超时 | 文件过大或审查规则过于复杂 | 拆分大文件，减少同时审查的规则数量 |
+| 测试生成覆盖率低 | 源代码复杂度高或函数缺少类型注释 | 添加 JSDoc/TypeScript 类型标注，提高可分析性 |
+
+### 常见错误修复
+
+**错误: `SYNTAX_VALIDATION_FAILED` 生成代码语法不通过**
+
+```bash
+# 重新生成并启用严格语法校验
+chainlesschain agent code-gen --file <path> --strict-syntax
+
+# 使用指定语言版本
+chainlesschain agent code-gen --file <path> --lang-version es2022
+```
+
+**错误: `GIT_CONFLICT` 自动提交冲突**
+
+```bash
+# 查看冲突文件
+chainlesschain git status
+
+# 以交互模式解决冲突
+chainlesschain git resolve --interactive
+```
+
+**错误: `TEMPLATE_NOT_FOUND` 脚手架模板不存在**
+
+```bash
+# 列出可用模板
+chainlesschain agent template-list
+
+# 同步远程模板仓库
+chainlesschain agent template-sync --source official
+```
+
+## 安全考虑
+
+- **代码审查强制化**: 生成的代码默认触发安全审查，检测注入、XSS 等 7 类漏洞
+- **沙箱执行**: 生成的代码在沙箱环境中运行测试，不直接操作宿主文件系统
+- **凭证过滤**: 代码生成器自动过滤硬编码的密钥、密码和 API Token
+- **Git 操作权限**: `analyze-git` 仅执行只读操作，不会修改仓库历史
+- **脚手架安全**: 项目模板使用固定版本依赖，避免供应链攻击风险
+- **CI/CD 配置审查**: 生成的 CI/CD 配置不包含明文凭证，敏感值使用环境变量引用
+
 ## 相关文档
 
 - [自主开发者](/chainlesschain/autonomous-developer)

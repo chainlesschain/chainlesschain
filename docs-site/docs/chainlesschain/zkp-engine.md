@@ -235,6 +235,92 @@ CREATE INDEX IF NOT EXISTS idx_zkp_proofs_status ON zkp_proofs(status);
 | 身份证明过期 | 启用 autoRenew 或手动重新生成             |
 | 内存不足     | 减小电路规模，增加系统内存                |
 
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 电路约束过多编译慢 | 电路复杂度过高或未分拆子电路 | 拆分为多个子电路，减少单电路约束数 |
+| 证明生成 OOM 内存溢出 | 电路规模超出系统内存上限 | 增加系统内存，或减小电路规模和 witness 大小 |
+| 验证密钥不匹配 | 编译电路后密钥未更新或版本混用 | 重新生成密钥对 `zkp keygen --circuit <name>` |
+| 证明验证失败返回 false | publicSignals 与生成时不一致 | 对比 publicSignals，确认输入参数完全一致 |
+| 可信设置仪式超时 | 参与方网络延迟或参与人数过多 | 减少参与方数量，或切换到无需可信设置的 PLONK |
+
+### 常见错误修复
+
+**错误: `CIRCUIT_COMPILE_SLOW` 电路编译超时**
+
+```bash
+# 查看电路约束数
+chainlesschain zkp circuit-info --name <circuit>
+
+# 启用增量编译
+chainlesschain zkp compile --circuit <name> --incremental
+```
+
+**错误: `PROOF_GEN_OOM` 证明生成内存不足**
+
+```bash
+# 查看当前内存使用
+chainlesschain zkp stats --memory
+
+# 限制证明生成内存上限
+chainlesschain zkp config --max-memory 4GB --circuit <name>
+```
+
+**错误: `VKEY_MISMATCH` 验证密钥不匹配**
+
+```bash
+# 重新生成验证密钥
+chainlesschain zkp keygen --circuit <name> --force
+
+# 验证密钥与电路的对应关系
+chainlesschain zkp vkey-check --circuit <name>
+```
+
+## 安全考虑
+
+### 证明系统安全性
+- **可信设置**: Groth16 需要可信设���仪式（Trusted Setup），泄露 toxic waste 将导致伪造证明；建议使用多方参与的 Powers of Tau 仪式或切换到无需可信设置的 PLONK/STARK
+- **电路审计**: 自定义 Circom 电路上线前务必进行形式化验证或第三方审计，约束不完整可能导致零知识性失效
+- **侧信道防护**: 证明生成过程中避免在共享环境下运行，防止计时攻击（Timing Attack）泄露 witness 信息
+
+### 密钥与证明管理
+- **验证密钥保护**: `vkey_data` 存储在 SQLite 中并由 SQLCipher 加密，切勿以明文导出或传输验证密钥
+- **证明有效期**: 所有证明默认设置过期时间（`defaultExpiry`），过期证明自动标记为 `expired` 状态，防止无限期重放
+- **证明撤销**: 支持主动撤销已签发的证明（状态置为 `revoked`），撤销后验证方将拒绝接受
+
+### 身份证明隐私
+- **最小披露原则**: 使用选择性披露时仅公开必要的身份属性，系统默认 `defaultDisclosure` 为空数组
+- **验证方身份校验**: 选择性披露操作需指定 `verifierDid`，系统记录披露对象以便事后审计
+- **证明不可关联性**: 同一身份的多次证明之间不应可被关联，避免使用固定的 `proofId` 前缀或可预测的标识符
+
+## 故障深度排查
+
+### 电路编译失败
+
+1. **Circom 语法检查**: 确认使用 `pragma circom 2.0.0;` 版本声明，信号定义使用 `signal input/output`，约束使用 `===`
+2. **约束数超限**: 检查电路约束数是否超过 `maxConstraints`（默认 100 万），复杂电路需分拆为多个子电路
+3. **模板参数错误**: Circom 模板参数必须为编译时常量，不支持运行时动态值
+4. **编译器路径**: 确认 Circom 编译器已安装且在 PATH 中可访问（`circom --version`）
+
+### 证���验证错误
+
+| 现象 | 排查步骤 |
+|------|---------|
+| `valid: false` | 确认 `publicSignals` 与生成证明时完全一致（顺序和数值），任何偏差都会导致验证失败 |
+| 验证密钥不匹配 | 检查 `circuitId` 是否正确，证明必须使用同一电路的验证密钥验证 |
+| 证明已过期 | `status: "expired"` 表示超过 `defaultExpiry`（默认 24 小时），需重新生成证明 |
+| 跨设备验证失败 | 确认导出的验证密钥（`vkey_data`）完整且未被篡改 |
+
+### 性能问题
+
+- **证明生成慢（>10s）**: 减少电路约束数是最有效的优化手段；限制 `maxConcurrentGeneration`（默认 2）避免 CPU 争抢
+- **内存不足（OOM）**: 大型电路的 witness 计算需要大量内存，建议预留 4GB+ 可用内存；减小电路规模或增加系统内存
+- **Groth16 vs PLONK**: Groth16 证明生成快、验证快但需要可信设置；PLONK 无需可信设置但证明体积较大，根据场景选择
+- **证明缓存**: 启用 `cacheEnabled: true` 避免相同输入重复生成证明
+
 ## 相关文档
 
 - [加密系统](/chainlesschain/encryption)

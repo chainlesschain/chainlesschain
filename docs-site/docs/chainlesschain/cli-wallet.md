@@ -89,6 +89,38 @@ chainlesschain wallet summary                      # 总览
 - `delete` 操作会永久删除私钥，不可恢复
 - 转账操作记录完整交易日志
 
+## 使用示例
+
+### 场景 1：创建钱包和数字资产
+
+```bash
+chainlesschain wallet create --name "主钱包"
+chainlesschain wallet asset <address> token "我的积分"
+chainlesschain wallet assets
+```
+
+创建 Ed25519 钱包后在其中创建数字资产，查看资产列表确认创建成功。
+
+### 场景 2：查看余额和交易历史
+
+```bash
+chainlesschain wallet list
+chainlesschain wallet balance <address>
+chainlesschain wallet history <address>
+chainlesschain wallet summary
+```
+
+查看所有钱包和余额，浏览指定钱包的交易流水，获取资产总览。
+
+### 场景 3：转移数字资产
+
+```bash
+chainlesschain wallet transfer <asset-id> <target-address>
+chainlesschain wallet history
+```
+
+将数字资产转移到目标地址，查看交易历史确认转账记录已生成。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

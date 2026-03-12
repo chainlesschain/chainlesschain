@@ -337,6 +337,51 @@ async function scrapeProducts(page) {
 | `desktop-app-vue/src/main/browser/recording-engine.js` | 操作录制与回放 |
 | `desktop-app-vue/src/main/browser/smart-diagnostics.js` | AI 诊断与自动修复 |
 
+## 故障排查
+
+### 浏览器启动失败
+
+**现象**: `BrowserEngine.launch()` 抛出异常或超时。
+
+**排查步骤**:
+
+1. 确认 Chromium/Chrome 已正确安装，路径可被 Puppeteer 检测到
+2. 检查端口是否被占用：`netstat -an | findstr 9222`
+3. 尝试以 `headless: true` 模式启动，排除显示驱动问题
+4. 查看日志中 `[BrowserEngine]` 前缀的错误信息
+
+### 元素定位失败
+
+**现象**: `ElementLocator.find()` 返回 null 或超时。
+
+**排查步骤**:
+
+1. 使用 `SmartDiagnostics.diagnose()` 获取失败原因和建议选择器
+2. 检查目标元素是否在 iframe 或 Shadow DOM 中
+3. 确认页面已完全加载（使用 `page.waitForSelector` 或 `page.waitForNavigation`）
+4. 尝试降低定位策略优先级，启用视觉定位作为兜底方案
+
+### 截图对比误报
+
+**现象**: `SnapshotEngine.compare()` 报告差异但页面实际未变化。
+
+**排查步骤**:
+
+1. 调高 `threshold` 参数（如 0.15）以容忍微小渲染差异
+2. 排除动态内容区域（广告、时间戳）的影响
+3. 确保截图分辨率与基线一致（`defaultViewport` 配置）
+
+## 安全考虑
+
+1. **凭据保护**: 自动化脚本中不要硬编码用户名密码，使用环境变量或加密配置文件
+2. **操作隔离**: 自动化浏览器实例使用独立的用户数据目录，避免影响日常浏览数据
+3. **Cookie 管理**: 自动化结束后及时清理 Cookie 和 Session，防止会话泄露
+4. **网站合规**: 遵守目标网站的 robots.txt 和使用条款，避免触发反爬机制
+5. **速率控制**: 合理设置操作间隔和请求频率，避免对目标服务器造成过大压力
+6. **脚本审计**: 录制导出的脚本在执行前应人工审查，确认不包含敏感操作
+7. **数据脱敏**: 截图和录制内容可能包含敏感信息，存储前进行脱敏处理
+8. **沙箱运行**: 建议在隔离环境中运行自动化任务，防止恶意网页影响主系统
+
 ## 相关文档
 
 - [Computer Use](/chainlesschain/computer-use) - 桌面级自动化操作

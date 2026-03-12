@@ -184,6 +184,83 @@ const result = await window.electron.ipcRenderer.invoke(
 | 视频分析速度慢   | 启用 GPU 加速，增大采样间隔                  |
 | 跨模态查询延迟高 | 减少融合模态数量，使用更轻量模型             |
 
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 图像 OCR 精度低 | 图片分辨率不足或文字倾斜 | 预处理图片（增强对比度、纠偏），使用高分辨率输入 |
+| 语音识别延迟高 | 音频采样率不匹配或模型过大 | 确认采样率为 16kHz，切换轻量模型 |
+| 文档解析格式错误 | PDF 含扫描页或表格嵌套复杂 | 启用 OCR 模式处理扫描页，使用 `--table-mode` |
+| 屏幕分析无输出 | 截屏权限未授予或分辨率过高 | 检查系统截屏权限，降低捕获分辨率 |
+| 多模态融合结果质量差 | 模态间对齐不准确 | 减少融合模态数量，提高单模态质量 |
+
+### 常见错误修复
+
+**错误: `OCR_LOW_CONFIDENCE` OCR 识别置信度低**
+
+```bash
+# 使用增强预处理重新识别
+chainlesschain perception ocr --file <image> --preprocess enhance
+
+# 指定语言模型提高精度
+chainlesschain perception ocr --file <image> --lang chi_sim+eng
+```
+
+**错误: `ASR_TIMEOUT` 语音识别超时**
+
+```bash
+# 检查音频格式和采样率
+chainlesschain perception audio-info --file <audio>
+
+# 使用流式识别模式
+chainlesschain perception asr --file <audio> --mode streaming
+```
+
+**错误: `DOC_PARSE_FAILED` 文档解析失败**
+
+```bash
+# 使用 OCR 模式解析扫描 PDF
+chainlesschain perception parse --file <pdf> --ocr-mode
+
+# 分页解析大文档
+chainlesschain perception parse --file <pdf> --pages 1-10
+```
+
+## 安全考虑
+
+- **屏幕隐私**: 屏幕分析仅在用户显式触发时执行，不后台持续截屏
+- **语音数据本地化**: 语音识别优先使用本地 Whisper 模型，音频数据不上传云端
+- **文档访问控制**: 文档解析遵循文件系统权限，加密文件需先解密后解析
+- **视频帧过滤**: 视频分析支持指定区域和时间段，避免采集无关隐私画面
+- **跨模态数据隔离**: 各模态感知数据独立存储，融合推理仅在内存中进行
+- **临时数据清理**: 截屏、音频录制等临时文件在分析完成后自动清理
+
+## 故障深度排查
+
+### 图像识别失败
+
+1. **VLM 模型检查**: 确认 `qwen-vl-plus` 或配置的视觉模型已下载到本地（`chainlesschain llm models` 查看）
+2. **GPU 可用性**: VLM 推理需要 GPU 加速，运行 `chainlesschain doctor` 检查 CUDA/Metal 状态；无 GPU 时切换到轻量模型
+3. **分辨率限制**: `maxResolution` 默认 1920，超大屏幕截图可能被裁剪导致识别不完整，可适当调大
+4. **截屏权限**: macOS 需在系统偏好设置中授予屏幕录制权限，Linux 需确认 X11/Wayland 截屏工具可用
+
+### 语音流断开
+
+| 现象 | 排查步骤 |
+|------|---------|
+| 实时识别中途停止 | 检查麦克风设备是否被其他应用占用；确认 `realtime: true` 已设置；查看 Whisper 进程是否因内存不足被 OOM Kill |
+| 识别结果为空 | 确认麦克风音量正常（非静音），检查 `language` 配置是否与实际语言匹配 |
+| 延迟过高(>3s) | 切换 Whisper 模型为 `base` 或 `medium`（`large-v3` 精度高但推理慢），启用 GPU 加速 |
+
+### 文档解析错误
+
+1. **格式支持**: 确认文件后缀在 `supportedFormats` 列表中（pdf/pptx/xlsx/docx），不支持 `.doc` 等旧格式
+2. **文件大小**: 超过 `maxFileSize`（默认 50MB）的文件将被拒绝，大文件建议分割后解析
+3. **OCR 回退**: 扫描版 PDF 无文本层时需 `ocrFallback: true`，确认 Tesseract 已安装（`tesseract --version`）
+4. **表格提取失败**: 复杂合并单元格可能导致表格结构错乱，尝试设置 `extractTables: false` 跳过表格提取
+
 ## 相关文档
 
 - [多模态协作](/chainlesschain/multimodal)

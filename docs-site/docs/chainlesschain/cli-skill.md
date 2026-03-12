@@ -183,6 +183,38 @@ ai, analysis, automation, code-review, data, database, debugging, design, develo
 - `run` 命令默认使用本地 Ollama，不会将代码发送到外部
 - 使用 `--provider openai` 时代码会发送到 OpenAI API
 
+## 使用示例
+
+### 场景 1：查找并运行技能
+
+```bash
+chainlesschain skill search "security"
+chainlesschain skill info security-audit
+chainlesschain skill run security-audit "检查 src/auth 目录的安全漏洞"
+```
+
+搜索安全相关技能，查看技能说明和参数后运行，AI 自动分析并返回结果。
+
+### 场景 2：创建项目自定义技能
+
+```bash
+chainlesschain init --bare
+chainlesschain skill add api-doc-gen
+chainlesschain skill sources
+```
+
+初始化项目后创建自定义技能脚手架，编辑生成的 `SKILL.md` 和 `handler.js` 实现项目专属技能。
+
+### 场景 3：按分类浏览技能
+
+```bash
+chainlesschain skill categories
+chainlesschain skill list --category code-review
+chainlesschain skill list --source bundled --json
+```
+
+查看 24 个技能分类的统计信息，按分类或来源层筛选，JSON 输出便于工具集成。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

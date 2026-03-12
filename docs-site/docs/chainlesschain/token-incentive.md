@@ -196,6 +196,73 @@ const useTokenIncentiveStore = defineStore("tokenIncentive", {
 ✅ e2e/ai/token-incentive.e2e.test.ts - 端到端用户流程测试
 ```
 
+## 使用示例
+
+### 示例 1: 提交贡献并查看奖励
+
+```javascript
+// 1. 查看当前余额
+const balance = await window.electron.ipcRenderer.invoke("token:get-balance");
+console.log(`当前余额: ${balance.balance} ${balance.currency}`);
+
+// 2. 提交一项技能贡献
+const contribution = await window.electron.ipcRenderer.invoke("token:submit-contribution", {
+  type: "skill",
+  contributorDid: "did:example:alice",
+  resourceId: "data-analysis-v2",
+  qualityScore: 0.92,
+  description: "提供高质量数据分析技能，覆盖 5 种图表类型",
+});
+console.log(`获得奖励: ${contribution.contribution.tokens_earned} CCT`);
+
+// 3. 查看奖励汇总
+const summary = await window.electron.ipcRenderer.invoke("token:get-rewards-summary");
+console.log(`总奖励: ${summary.totalRewards} CCT, 奖励次数: ${summary.rewardCount}`);
+```
+
+### 示例 2: 信誉定价查询与交易历史
+
+```javascript
+// 查询信誉折扣后的技能价格
+const pricing = await window.electron.ipcRenderer.invoke("token:get-pricing", {
+  skillId: "data-analysis",
+  callerReputation: 4.2,
+});
+console.log(`原价: ${pricing.pricing.basePrice}, 折扣: ${(pricing.pricing.reputationDiscount * 100).toFixed(0)}%, 最终: ${pricing.pricing.finalPrice} CCT`);
+
+// 查看交易历史（按奖励类型过滤）
+const txns = await window.electron.ipcRenderer.invoke("token:get-transactions", {
+  type: "reward",
+  limit: 20,
+});
+txns.forEach(tx => console.log(`[${tx.type}] +${tx.amount} CCT - ${tx.description}`));
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 余额为 0 | 未提交过贡献或奖励未结算 | 通过 `token:submit-contribution` 提交贡献后系统自动计算奖励 |
+| 奖励金额异常 | 质量评分过低导致奖励倍数低 | 提高 `qualityScore`（0-1），奖励公式为 `score × multiplier × 10` |
+| 定价查询无折扣 | 调用者信誉分为 0 | 信誉折扣 = `min(reputation × 0.1, 0.5)`，需积累信誉值 |
+| 交易记录缺失 | 过滤条件限制了返回结果 | 移除 `type` 过滤参数查看全部交易，或增大 `limit` |
+| 贡献提交失败 | DID 未初始化或类型无效 | 确认 `contributorDid` 有效，`type` 为 skill/gene/compute/data/review 之一 |
+| 余额不一致 | 并发交易导致竞态 | 重新调用 `token:get-balance` 刷新余额，系统会自动修正 |
+
+---
+
+## 安全考虑
+
+1. **本地账本**: 所有交易记录存储在本地 SQLite，不依赖外部区块链
+2. **DID 绑定**: 贡献和交易均绑定 DID 身份，确保可追溯性
+3. **质量评分**: 奖励与质量评分挂钩，防止低质量刷量行为
+4. **信誉机制**: 信誉加权定价鼓励优质服务，高信誉用户享受更低价格
+5. **防篡改**: 交易记录一旦写入不可修改，保证账本完整性
+
+---
+
 ## 相关文档
 
 - [Skill Marketplace 技能市场 →](/chainlesschain/skill-marketplace)

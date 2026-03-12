@@ -264,6 +264,70 @@ await pqc.executeMigration({ scope: "ALL", strategy: "hybrid-first" });
 
 ---
 
+## 使用示例
+
+### 示例 1: 混合模式密钥迁移
+
+```javascript
+// 1. 查看当前迁移状态
+const status = await window.electronAPI.invoke("pqc:get-migration-status");
+console.log(`迁移进度: ${(status.progress * 100).toFixed(0)}%`);
+
+// 2. 生成混合模式签名密钥
+const key = await window.electronAPI.invoke("pqc:generate-key", {
+  algorithm: "ML-DSA-65",
+  purpose: "SIGNING",
+  label: "签名迁移密钥",
+  hybridMode: true,
+  classicalAlgorithm: "Ed25519",
+});
+
+// 3. 模拟运行签名类密钥迁移（不实际执行）
+const dryRun = await window.electronAPI.invoke("pqc:execute-migration", {
+  scope: "SIGNING",
+  strategy: "hybrid-first",
+  dryRun: true,
+});
+console.log(`模拟结果: 将迁移 ${dryRun.migratedCount} 个密钥`);
+
+// 4. 确认无误��正式执行迁移
+const result = await window.electronAPI.invoke("pqc:execute-migration", {
+  scope: "SIGNING",
+  strategy: "hybrid-first",
+  dryRun: false,
+});
+console.log(`迁移完成: 成功 ${result.migratedCount}, 失败 ${result.failedCount}`);
+```
+
+### 示例 2: 按用途分批迁移加密密钥
+
+```javascript
+// 分步迁移：先加密，再密钥交换
+for (const scope of ["ENCRYPTION", "KEY_EXCHANGE"]) {
+  const result = await window.electronAPI.invoke("pqc:execute-migration", {
+    scope,
+    strategy: "hybrid-first",
+    dryRun: false,
+  });
+  console.log(`${scope}: 迁移 ${result.migratedCount} 个, 可回滚: ${result.rollbackAvailable}`);
+}
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 密钥生成失败 | 不支持的算法名称 | 确认使用标准算法名（ML-KEM-768/1024, ML-DSA-65/87） |
+| 迁移执行出错 | 目标密钥已被其他进程锁定 | 检查是否有其他迁移任务正在进行，等待完成后重试 |
+| 混合模式不生效 | 未指定经典算法 | 启用 `hybridMode` 时必须同时设置 `classicalAlgorithm` |
+| 模拟运行结果为 0 | 该用途下无经典密钥需要迁移 | 检查 `pqc:list-keys` 确认目标用途是否存在待迁移密钥 |
+| 回滚失败 | 迁移记录已过期或被清理 | 回滚仅在迁移后短期内有效，超时需手动重新生成经典密钥 |
+| 性能下降明显 | PQC 算法密钥尺寸较大 | ML-KEM/ML-DSA 密钥比经典算法大，属于正常现象，可优化缓存策略 |
+
+---
+
 ## 安全考虑
 
 1. **算法标准**: 基于 NIST FIPS 203/204 标准实现

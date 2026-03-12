@@ -432,6 +432,100 @@ SessionManager 提供以下 IPC 处理器：
 
 ---
 
+## 使用示例
+
+### CLI 会话操作
+
+```bash
+# 查看会话列表
+chainlesschain session list
+
+# 启动 AI 对话
+chainlesschain chat
+
+# 单次提���
+chainlesschain ask "如何优化数据库索引？"
+
+# 保存记忆
+chainlesschain memory add "项目使用 Vue3 + TypeScript 技术栈"
+```
+
+### 桌面端会话管理
+
+```javascript
+// 创建新会话
+const session = await sessionManager.create({
+  title: '架构讨论',
+  tags: ['技术', '架构'],
+  context: { project: 'chainlesschain' }
+});
+
+// 搜索历史会话
+const results = await sessionManager.search({
+  query: '数据库优化',
+  filters: { tags: ['技术'] },
+  limit: 10
+});
+
+// 导出会话为 Markdown
+await sessionManager.export('session-123', {
+  format: 'markdown',
+  path: '/exports/session.md'
+});
+```
+
+---
+
+## 故障排查
+
+### 会话上下文丢失
+
+- **Token 超限**: 当对话过长时触发自动压缩，可调整 `threshold` 值延迟压缩
+- **会话未保存**: 确认 `autoSave` 已启用（默认 30 秒间隔自动保存）
+- **数据库异常**: 使用 `chainlesschain db info` 检查 SQLite 数据库状态
+
+### 自动压缩效果差
+
+- **关键信息丢失**: 调整 `preserveRecent` 值保留更多最近对话轮次
+- **代码块被压缩**: 确认 `preserveImportant: true` 已启用，代码块默认完整保留
+- **压缩比过高**: 将 `targetRatio` 从 0.6 调整为 0.7-0.8 保留更多内容
+
+### 搜索结果不全
+
+- **索引未更新**: 旧会话可能未被索引，尝试重建会话索引
+- **日期范围过窄**: 扩大 `dateRange` 搜索范围确认会话存在
+- **标签不匹配**: 检查标签拼写是否一致，标签匹配区分大小写
+
+### 永久记忆未生效
+
+- **集成未启用**: 确认 `permanentMemory.enabled` 和 `autoSave` 均为 `true`
+- **相关性不足**: 调低 `relevanceThreshold`（默认 0.7）提高记忆匹配灵敏度
+- **LLM 不可用**: 智能提取依赖本地 LLM，确认 Ollama 服务正常运行
+
+---
+
+## 安全考虑
+
+### 会话数据保护
+
+- 所有会话数据存储在 **SQLCipher 加密数据库** 中，AES-256 全库加密
+- 会话内容在内存中处理时使用安全缓冲，退出后自动清理
+- 会话导出文件默认不包含系统提示词和内部元数据
+
+### 隐私保护
+
+- AI 对话完全在本地运行（使用 Ollama 本地模型），不上传到任何云端
+- 自动压缩和摘要生成均在设备端完成，对话内容不外泄
+- 永久记忆提取的内容仅存储在本地 `memory/` 目录中
+
+### Token 安全
+
+- Token 使用量追踪帮助识别异常消耗，防止 Token 滥用
+- 会话上下文大小受 `maxHistoryMessages` 限制，防止内存溢出攻击
+- 导入会话数据时自动验证格式，防止恶意数据注入
+
+---
+
 ## 相关文档
 
 - [Context Engineering](/chainlesschain/context-engineering) - KV-Cache 优化与上下文工程

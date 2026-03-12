@@ -330,6 +330,41 @@ await window.electronAPI.invoke('scim:resolve-all-conflicts', {
 
 ---
 
+## 故障排查
+
+### IdP 同步失败
+
+- **认证错误**: 检查 Bearer Token 是否正确且未过期，Azure AD 的 Token 有有效期限制
+- **网络连接**: 确认 SCIM 服务器端口（默认 9100）可从 IdP 访问，检查防火墙规则
+- **Schema 不匹配**: 确认 IdP 端的属性映射与 SCIM 服务器 Schema 一致
+
+```javascript
+// 检查同步日志定位错误原因
+const logs = await window.electronAPI.invoke('scim:get-sync-log', {
+  limit: 20,
+  status: 'error'
+});
+```
+
+### 冲突解决不符合预期
+
+- 确认 `conflictStrategy` 配置正确（`idp-first` / `local-first` / `latest-first`）
+- 检查冲突记录中的 `lastModified` 时间戳是否准确（时区问题可能导致 `latest-first` 判断错误）
+- 对高危冲突建议使用手动解决而非自动策略
+
+### SCIM 服务器启动失败
+
+- **端口占用**: 检查 9100 端口是否被其他服务占用，尝试更换端口
+- **权限不足**: 确认当前用户有 SCIM 管理员权限（RBAC `admin` 角色）
+- **数据库锁**: 重启应用释放 SQLite 数据库锁
+
+### 用户同步后权限异常
+
+- SCIM 同步仅处理用户和组的基本属性，RBAC 角色需要在本地单独配置
+- 确认组成员关系同步正确，用户的权限继承自所属组的角色
+
+---
+
 ## 相关文档
 
 - [企业合规](/chainlesschain/compliance)

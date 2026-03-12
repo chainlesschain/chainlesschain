@@ -460,6 +460,80 @@ const exported = await window.electron.ipcRenderer.invoke(
 
 ---
 
+## 故障排查
+
+| 问题 | 原因分析 | 解决方案 |
+|------|---------|---------|
+| 能力评估耗时过长 | `sampleSize` 设置过大或评测集过于复杂 | 减小 `sampleSize`（建议 50-100），使用 `standard-v2` 轻量评测集 |
+| 增量训练后其他维度退化严重 | `maxDegradation` 阈值过高或训练数据质量差 | 降低 `maxDegradation`（建议 0.02），检查训练数据质量；切换到 `distillation` 策略 |
+| 自诊断误报频繁 | 基线指标过于严格或系统负载波动 | 重新校准基线指标，增加诊断采样次数；在系统低负载时段进行诊断 |
+| 自修复失败 | 修复策略不适用或回滚目标版本不存在 | 检查可用的修复策略列表，确认历史版本存在；使用 `dryRun: true` 先模拟修复 |
+| 行为预测准确率低 | 用户行为数据不足或模式变化 | 增大 `contextWindow`（建议 20-50），积累更多历史行为数据后预测准确率会提升 |
+| NAS 搜索未找到更优架构 | 搜索预算不足或搜索空间过小 | 增大 `searchBudgetHours`，扩展模型搜索空间参数；确认目标设备配置正确 |
+| 模型导出格式不支持 | 目标格式缺少对应的转换器 | 确认 `format` 在支持列表中（onnx/tflite/coreml/openvino），检查导出依赖是否已安装 |
+
+## 安全考虑
+
+### 训练数据安全
+- **数据不出域**: 所有增量训练在本地设备上完成，训练数据不上传到外部服务器，保护用户隐私
+- **数据来源验证**: `curated` 数据经过人工审核，`user-feedback` 数据经过去标识化处理，`synthetic` 数据由本地模型生成
+- **训练沙箱**: 增量训练在隔离环境中执行，训练过程无法访问非训练相关的系统资源
+
+### 模型安全
+- **版本回滚**: 每次进化保留完整的前后版本，自修复失败时可立即回滚到最后已知的稳定版本
+- **A/B 验证**: 进化后的模型上线前通过 A/B 测试验证，避免有缺陷的模型直接进入生产环境
+- **退化检测**: 自动监控所有维度的能力得分，任何维度退化超过 `maxDegradation` 阈值立即告警
+
+### 自修复安全
+- **审批控制**: 通过 `requireApproval` 配置是否需要用户确认才能执行自修复操作，防止自动修复引入新问题
+- **修复范围限制**: 自修复仅允许执行预定义的策略（quantize/rollback/retrain/degrade-gracefully），不执行任意代码
+- **修复审计**: 每次自修复操作完整记录到 `evolution_growth_log`，包含触发原因、执行动作和效果对比
+
+### 行为预测隐私
+- **本地推理**: 行为预测模型在本地运行，用户行为序列不上传到外部服务，所有预测在设备端完成
+- **数据最小化**: 仅收集必要的行为类型和时间戳用于预测，不记录具体的用户输入内容
+- **用户控制**: 用户可随时通过 `evolution:configure` 关闭行为预测功能（`behaviorPrediction.enabled: false`）
+
+## 使用示例
+
+### NAS 架构搜索（边缘设备优化）
+
+```bash
+# 1. 启用 NAS 搜索更优的 Edge 模型架构
+# IPC: evolution:configure { nas: { enabled: true, targetDevice: "edge", searchBudgetHours: 4 } }
+
+# 2. 搜索完成后导出为轻量模型
+# IPC: evolution:export-model { modelVersion: "chainless-ai-v4.5.1", format: "tflite", quantization: "int8", targetDevice: "mobile" }
+# → sizeMB: 125, accuracy: 0.86, 推理速度提升 25%
+```
+
+### 持续学习流程
+
+```bash
+# 1. 评估当前能力，发现翻译维度低于阈值
+# IPC: evolution:assess-capability { dimensions: ["translation", "qa"], benchmarkSuite: "standard-v2" }
+# → translation: 0.82 (threshold: 0.85, status: "below")
+
+# 2. 触发 EWC 增量训练（保护其他维度不退化）
+# IPC: evolution:train-incremental { targetDimensions: ["translation"], strategy: "ewc", constraints: { maxDegradation: 0.02 } }
+# → translation: 0.82 → 0.88, reasoning 退化仅 -0.01（在允许范围内）
+```
+
+### 自我修复流程
+
+```bash
+# 1. 自诊断发现幻觉率异常升高
+# IPC: evolution:self-diagnose { checks: ["hallucination-rate", "latency"] }
+# → hallucination-rate: critical (0.08 vs baseline 0.03)
+
+# 2. 先模拟修复确认安全
+# IPC: evolution:self-repair { issues: ["hallucination-rate"], strategy: "auto", dryRun: true }
+
+# 3. 确认无误后执行修复（自动回滚到稳定版本）
+# IPC: evolution:self-repair { issues: ["hallucination-rate"], strategy: "auto", dryRun: false }
+# → 回滚至 v4.5.0，幻觉率恢复至 0.03
+```
+
 ## 相关文档
 
 - [模型量化系统](/chainlesschain/quantization) - GGUF/GPTQ 模型量化与本地推理

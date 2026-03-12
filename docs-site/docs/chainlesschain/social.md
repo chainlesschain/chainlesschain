@@ -1055,6 +1055,70 @@ Gossip协议分发:
 | 去中心化直播   | WebRTC SFU, 弹幕     | `livestream-manager.js`, `danmaku-engine.js`    | ✅ 已实现 |
 | 匿名/桥接/代币 | ZKP, ActivityPub     | `anonymous-mode.js`, `social-token.js`          | ✅ 已实现 |
 
+## 使用示例
+
+### CLI 社交操作
+
+```bash
+# 创建 DID 身份
+chainlesschain did create
+
+# 查看已有 DID
+chainlesschain did list
+
+# 使用 DID 签名消息
+chainlesschain did sign "Hello, this is my signed message"
+
+# 查看 P2P 对等节点
+chainlesschain p2p peers
+
+# 发送加密消息
+chainlesschain p2p send did:chainlesschain:QmXXXX "你好，收到请回复"
+
+# 配对新设备
+chainlesschain p2p pair "My Android Phone"
+```
+
+### 桌面端常用操作
+
+```
+1. 社交模块 → 添加好友 → 扫描二维码或输入 DID
+2. 好友列表 → 点击头像 → 进入加密聊天
+3. 发布动态 → 选择可见性（公开/好友/私密）
+4. 社区 → 加入/创建 → 多频道讨论
+5. 时光机 → 查看历史动态和 AI 回忆摘要
+```
+
+---
+
+## 安全考虑
+
+### 身份安全
+
+- DID 私钥由 U 盾/SIMKey 硬件保护，永不导出到软件层
+- DID 文档使用 Ed25519 签名，支持离线验证，防伪造
+- 撤销的 DID 通过链上声明永久标记，无法被重新激活
+
+### 通信安全
+
+- 所有私密消息使用 **Signal 协议** 端到端加密，具备前向安全和未来安全
+- P2P 连接通过 **Noise Protocol** 建立加密通道，中继节点无法读取内容
+- 群组消息使用对称密钥加密，成员退出后自动更新群密钥
+
+### 数据隐私
+
+- 本地 AI 推荐算法完全在设备上运行，不上传任何行为数据
+- 动态发布支持三级可见性控制，私密动态仅存储在本地
+- 社交数据随时可导出，支持 JSON/CSV/Markdown 格式完整备份
+
+### 防滥用机制
+
+- 社区治理基于 DAO 投票，恶意用户可被全网屏蔽
+- 匿名社交使用零知识证明验证身份，防止匿名滥用
+- 内容审核结合 AI 辅助检测和人工仲裁双重机制
+
+---
+
 ## 关键文件
 
 - `desktop-app-vue/src/main/p2p/` — P2P 通信核心

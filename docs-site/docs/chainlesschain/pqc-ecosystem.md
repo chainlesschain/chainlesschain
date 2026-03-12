@@ -193,6 +193,68 @@ const usePQCEcosystemStore = defineStore("pqcEcosystem", {
 ✅ e2e/security/pqc-ecosystem.e2e.test.ts - 端到端用户流程测试
 ```
 
+## 使用示例
+
+### 示例 1: 逐子系统迁移到 PQC
+
+```javascript
+// 1. 查看全系统迁移覆盖率
+const coverage = await window.electron.ipcRenderer.invoke("pqc-ecosystem:get-coverage");
+Object.entries(coverage.coverage).forEach(([sub, info]) => {
+  console.log(`${sub}: ${info.percentage}% (${info.completed}/${info.total})`);
+});
+
+// 2. 按优先级逐子系统迁移
+const subsystems = ["did", "auth", "p2p", "messaging", "storage", "ukey"];
+for (const sub of subsystems) {
+  const alg = ["did", "auth"].includes(sub) ? "ML-DSA-65" : "ML-KEM-768";
+  const result = await window.electron.ipcRenderer.invoke("pqc-ecosystem:migrate-subsystem", {
+    subsystem: sub,
+    algorithm: alg,
+  });
+  console.log(`${sub}: ${result.migration.status}, 密钥迁移 ${result.migration.keys_migrated}/${result.migration.keys_total}`);
+}
+
+// 3. 验证全系统迁移完整性
+const verify = await window.electron.ipcRenderer.invoke("pqc-ecosystem:verify-migration");
+console.log(`验证结果: ${verify.verified ? "全部通过" : "存在未迁移子系统"}`);
+```
+
+### 示例 2: SIMKey 固件 PQC 升级
+
+```javascript
+// 升级硬件密钥固件到支持 PQC 的版本
+const firmware = await window.electron.ipcRenderer.invoke(
+  "pqc-ecosystem:update-firmware-pqc", "2.0.0"
+);
+console.log(`固件版本: ${firmware.result.firmwareVersion}, PQC: ${firmware.result.pqcEnabled}`);
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 子系统迁移失败 | 该子系统存在正在使用的活跃连接 | 先停止相关服务（如 P2P 连接），再执行迁移 |
+| 覆盖率显示 0% | 子系统未初始化密钥 | 先确保对应子系统已启用并生成了初始密钥 |
+| 固件升级失败 | U-Key 未连接或固件版本不兼容 | 检查 U-Key 连接状态，确认目标固件版本存在 |
+| 验证未通过 | 部分子系统迁移未完成 | 查看 `coverage` 详情，补充迁移未完成的子系统 |
+| 迁移后签名验证失败 | 对端尚未升级到 PQC | 确保通信双方均已完成 PQC 迁移，过渡期使用混合模式 |
+| 迁移进度卡住 | 数据库锁或并发冲突 | 重启应用后重新执行迁移，检查数据库表锁状态 |
+
+---
+
+## 安全考虑
+
+1. **渐进迁移**: 建议按子系统逐步迁移，避免一次性全系统切换带来的风险
+2. **混合过渡**: 迁移期间保持混合模式（经典+PQC），确保向后兼容
+3. **固件验证**: SIMKey 固件升级前自动校验签名，防止恶意固件注入
+4. **密钥隔离**: 每个子系统的 PQC 密钥独立管理，互不影响
+5. **回滚保障**: 迁移失败时支持回退到经典算法，保证服务连续性
+
+---
+
 ## 相关文档
 
 - [PQC Migration 后量子迁移 →](/chainlesschain/pqc-migration)

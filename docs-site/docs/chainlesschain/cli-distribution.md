@@ -169,6 +169,37 @@ chainlesschain update
 - `packages/cli/src/lib/checksum.js` — SHA-256 完整性校验
 - `.github/workflows/publish-cli.yml` — CI/CD 发布流水线
 
+## 使用示例
+
+### 场景 1：全新安装 CLI
+
+```bash
+npm install -g chainlesschain
+chainlesschain --version
+chainlesschain doctor
+```
+
+全局安装 CLI 后检查版本，运行环境诊断确认 Node.js、npm 等依赖是否满足要求。
+
+### 场景 2：首次设置桌面应用
+
+```bash
+chainlesschain setup
+chainlesschain start
+chainlesschain status
+```
+
+运行交互式设置向导下载平台二进制文件，启动桌面应用并检查运行状态。
+
+### 场景 3：检查更新与代理下载
+
+```bash
+chainlesschain update
+HTTPS_PROXY=http://proxy:8080 chainlesschain setup
+```
+
+检查 CLI 和桌面应用是否有新版本。在公司网络环境下通过代理下载二进制文件。
+
 ## 故障排查
 
 | 问题 | 解决方案 |
@@ -177,6 +208,23 @@ chainlesschain update
 | 安装后命令找不到 | 确认 `npm config get prefix` 路径在 PATH 中 |
 | 下载二进制文件失败 | 使用代理：`HTTPS_PROXY=http://proxy:port chainlesschain setup` |
 | 校验和验证失败 | 网络传输可能损坏，删除缓存重新下载 |
+
+## 安全考虑
+
+### 二进制校验
+- **SHA-256 校验和**: 从 GitHub Releases 下载的二进制文件通过 `checksum.js` 进行 SHA-256 完整性校验，校验失败时自动拒绝安装并提示用户重新下载
+- **HTTPS 传输**: 所有下载通过 HTTPS 加密通道进行，防止中间人篡改二进制文件
+- **校验失败处理**: 若校验和不匹配，删除本地缓存文件后重试；持续失败可能表示 CDN 缓存污染或网络劫持，建议切换网络环境
+
+### 供应链安全
+- **纯 JS 无原生依赖**: CLI 包不包含任何原生 Node.js 模块（无 `.node` 文件），消除了原生依赖中可能隐藏的恶意代码风险
+- **依赖最小化**: 仅依赖 5 个经过广泛审计的纯 JS 包（commander/inquirer/chalk/ora/semver），减少供应链攻击面
+- **锁文件固定**: `package-lock.json` 锁定所有依赖的精确版本和完整性哈希，防止依赖被替换
+
+### npm Provenance
+- **CI/CD 来源证明**: 发布流水线（`.github/workflows/publish-cli.yml`）在 GitHub Actions 中执行，支持 npm provenance 签名，用户可验证包确实从官方仓库构建发布
+- **Tag 触发发布**: 仅 `v*` 格式的 Git Tag 触发自动发布，非授权人员无法触发 npm publish
+- **PID 文件防冲突**: 进程管理使用 PID 文件防止重复启动，避免多实例运行导致的安全隐患
 
 ## 相关文档
 

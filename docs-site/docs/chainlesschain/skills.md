@@ -786,6 +786,136 @@ description: 优化 JavaScript/TypeScript 文件的 import 语句，移除未使
 | `src/main/ai-engine/cowork/unified-tool-registry.js` | 统一工具注册表 | ~420 |
 | `src/main/ai-engine/cowork/skill-discoverer.js` | 技能发现与搜索 | ~280 |
 
+## 故障排查
+
+### 技能加载失败
+
+- **YAML 解析错误**: 检查 SKILL.md 文件头部的 YAML frontmatter 格式是否正确
+- **文件路径错误**: 确认技能文件在正确的目录下（workspace/managed/marketplace/bundled）
+- **编码问题**: 技能文件必须使用 UTF-8 编码，Windows 下注意 BOM 头
+
+### 技能执行超时
+
+- **默认超时**: 技能执行默认 60 秒超时，可在配置中调整 `execution.timeout`
+- **外部依赖**: 依赖网络请求的技能（如 `web-scraping`）可能因网络问题超时
+- **并发限制**: 最大并发执行数为 3，超出后技能会排队等待
+
+### 门控检查失败
+
+- **平台不支持**: 检查技能的 `platform` 门控是否包含当前操作系统
+- **二进制缺失**: 技能依赖的二进制工具（如 `git`、`node`）未安装或不在 PATH 中
+- **环境变量缺失**: 必需的环境变量未设置，可选变量标记为 `(optional)` 不会阻止执行
+
+### 自定义技能不显示
+
+- **目录错误**: workspace 技能应放在 `.chainlesschain/skills/` 目录下
+- **名称冲突**: 同名技能按层级优先级覆盖（workspace > managed > marketplace > bundled）
+- **重新加载**: 修改技能文件后需要触发 `skills:reload` 或重启应用
+
+### Handler 执行异常
+
+- **参数格式**: 确认传入参数符合技能定义中的 `input-schema` 要求
+- **工具权限**: 技能仅能使用 `tools` 字段中声明的工具，未声明的工具调用会被拒绝
+- **日志排查**: 查看应用日志中 `[SkillExecutor]` 标签的错误信息
+
+---
+
+## 安全考虑
+
+### 技能沙箱
+
+- 每个技能仅能访问其 `tools` 字段中声明的工具，遵循 **最小权限原则**
+- 门控检查在技能执行前强制运行，不满足条件的技能无法启动
+- `strict` 模式下门控失败的技能会被自动禁用，防止误执行
+
+### 代���执行安全
+
+- `code-runner` 技能在 **隔离沙箱** 中执行用户代码，无法访问主进程资源
+- 浏览器自动化技能（`browser-automation`、`computer-use`）操作记录在审计日志中
+- Bash 命令执行通过 Plan Mode 集成，高风险命令需人工审批
+
+### 技能来源验证
+
+- 内置技能（bundled）由 ChainlessChain 官方维护，经过安全审查
+- 插件市场技能安装前显示来源、版本和权限要求，用户确认后安装
+- 自定义技能（workspace/managed）由用户自行管理，建议审查后使用
+
+### 数据安全
+
+- 技能执行过程中处理的数据不会自动上传到外部服务
+- 需要网络访问的技能（如 `tavily-search`）明确标注外部 API 依赖
+- 技能执行历史记录在本地数据库中，支持审计追溯
+
+---
+
+## 使用示例
+
+### 技能发现与执行
+
+```bash
+# 列出所有可用技能（按类别分组显示）
+chainlesschain skill list
+
+# 搜索与代码审查相关的技能
+chainlesschain skill search "code review"
+
+# 执行代码审查技能，指定文件和审查重点
+chainlesschain skill run code-review src/main/database.js --focus=security
+
+# 执行测试生成技能，自动为指定文件生成单元测试
+chainlesschain skill run test-generator src/services/user.js
+
+# 查看技能的执行历史和性能指标
+chainlesschain skill history code-review --limit 10
+```
+
+### 自定义技能��建
+
+```bash
+# 在工作区创建自定义技能
+chainlesschain skill add my-analyzer
+
+# 编辑技能定义（SKILL.md 格式，包含 YAML 元数据 + 提示词 + 工具声明）
+# 文件位于 .chainlesschain/skills/my-analyzer.md
+
+# 验证技能定义格式是否正确
+chainlesschain skill validate .chainlesschain/skills/my-analyzer.md
+
+# 重新加载技能注册表（修改后立即生效）
+chainlesschain skill reload
+
+# 删除自定义技能
+chainlesschain skill remove my-analyzer
+```
+
+### 技能层级浏览
+
+```bash
+# 查看四层技能来源路径和各层技能数量
+chainlesschain skill sources
+# 输出: workspace(2) > managed(5) > marketplace(12) > bundled(138)
+
+# 仅列出工作区层技能（最高优先级）
+chainlesschain skill list --source workspace
+
+# 仅列出内置技能中的安全类别
+chainlesschain skill list --source bundled --category security
+```
+
+### Agent 模式下技能自动选择
+
+```bash
+# 进入 Agent 模式，AI 根据用户意图自动匹配并执行最佳技能
+chainlesschain agent
+# 输入 "审查 src/auth 目录的安全性" → 自动调用 /security-audit 技能
+# 输入 "生成这个项目的 API 文档" → 自动调用 /api-docs-generator 技能
+
+# 在 chat 中使用 /skill 前缀手动触发技能
+chainlesschain chat
+> /code-review src/index.js
+> /explain-code src/utils/crypto.js
+```
+
 ## 相关文档
 
 - [Skill Marketplace 技能市场](/chainlesschain/skill-marketplace) - 去中心化技能即服务协议

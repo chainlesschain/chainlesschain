@@ -736,6 +736,91 @@ Migrating configuration from v1.0 to v1.1...
 - `packages/cli/src/lib/config-manager.js` — CLI 配置读写
 - `~/.chainlesschain/config.json` — 主配置文件
 
+## 使用示例
+
+### 通过 CLI 管理配置
+
+```bash
+# 查看所有当前配置
+chainlesschain config list
+
+# 设置 LLM 提供商和 API Key
+chainlesschain config set llm.provider deepseek
+chainlesschain config set llm.apiKey sk-xxx
+
+# 导出配置备份
+chainlesschain config export > config-backup.json
+
+# 从备份恢复配置
+chainlesschain config import config-backup.json
+
+# 验证配置文件是否合法
+chainlesschain config validate
+```
+
+### 通过环境变量覆盖配置
+
+```bash
+# 临时切换 LLM 提供商（不修改配置文件）
+CHAINLESSCHAIN_LLM_PROVIDER=openai chainlesschain chat
+
+# 设置自定义数据目录
+export CHAINLESSCHAIN_DATA_DIR=/mnt/data/chainlesschain
+
+# 开启调试日志
+CHAINLESSCHAIN_LOG_LEVEL=debug chainlesschain start
+```
+
+---
+
+## 故障排查
+
+### 配置文件损坏或无法读取
+
+系统启动时自动检测配置文件完整性。如果 JSON 解析失败，会备份损坏文件并使用默认配置：
+
+```bash
+# 查看是否有损坏备份
+ls ~/.chainlesschain/config.json.corrupted.*
+
+# 手动重置为默认配置
+chainlesschain config reset
+```
+
+### 环境变量未生效
+
+确认环境变量名称正确（以 `CHAINLESSCHAIN_` 为前缀），且优先级高于配置文件：
+
+```bash
+# 检查当前生效的配置（含来源标记）
+chainlesschain config list
+
+# 注意：命令行参数 > 环境变量 > config.json > 默认值
+```
+
+### 多设备配置不同步
+
+配置文件可通过 Git 同步，但敏感字段（Token、API Key）会自动加密：
+
+```bash
+# 确认同步配置开启
+chainlesschain config get sync.syncConfig
+# 敏感字段加密存储，不同设备需要各自配置 API Key
+```
+
+---
+
+## 安全考虑
+
+- **敏感字段加密**: API Key、Token 等敏感配置使用 AES-256 加密存储在 `config.json` 中
+- **文件权限**: 建议设置 `~/.chainlesschain/config.json` 权限为 600（仅所有者读写）
+- **环境变量安全**: 避免在共享环境中通过环境变量传递 API Key，优先使用加密的配置文件
+- **配置备份**: 导出的配置备份包含加密后的敏感字段，妥善保管备份文件
+- **版本控制排除**: `.chainlesschain/config.json` 已在 `.gitignore` 中，避免意外提交到仓库
+- **多租户隔离**: 企业版支持租户级配置隔离，不同租户的配置互不可见
+
+---
+
 ## 相关文档
 
 - [CLI 命令行工具](./cli) — CLI 配置命令

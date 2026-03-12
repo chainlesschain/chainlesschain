@@ -183,6 +183,75 @@ const useSkillServiceStore = defineStore("skillService", {
 ✅ e2e/ai/skill-marketplace.e2e.test.ts - 端到端用户流程测试
 ```
 
+## 使用示例
+
+### 示例 1: 发布技能并远程调用
+
+```javascript
+// 1. 发布数据分析技能
+const skill = await window.electron.ipcRenderer.invoke("skill-service:publish-skill", {
+  name: "data-analysis",
+  description: "智能数据分析与趋势预测",
+  version: "1.0.0",
+  inputSchema: { type: "object", properties: { filePath: { type: "string" } } },
+  outputSchema: { type: "object", properties: { report: { type: "string" } } },
+  sla: { maxLatencyMs: 30000, availability: 0.99 },
+});
+console.log(`技能已发布: ${skill.skill.id}, 状态: ${skill.skill.status}`);
+
+// 2. 远程调用该技能
+const result = await window.electron.ipcRenderer.invoke("skill-service:invoke-remote", {
+  skillId: skill.skill.id,
+  input: { filePath: "/data/monthly-sales.csv" },
+  timeout: 30000,
+});
+console.log(`执行耗时: ${result.duration}ms`);
+```
+
+### 示例 2: 组合技能为 DAG 流水线
+
+```javascript
+// 将数据加载、分析、图表生成三个技能串联
+const pipeline = await window.electron.ipcRenderer.invoke("skill-service:compose-pipeline", {
+  steps: [
+    { skillId: "data-loader", input: { path: "/data" } },
+    { skillId: "data-analysis", input: { mode: "trend" } },
+    { skillId: "chart-creator", input: { type: "bar", title: "月度销售趋势" } },
+  ],
+});
+
+// 查看技能版本历史
+const versions = await window.electron.ipcRenderer.invoke("skill-service:get-versions", {
+  skillName: "data-analysis",
+});
+versions.forEach(v => console.log(`v${v.version} - ${v.status}`));
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 技能发布失败 | 名称重复或 Schema 格式错误 | 检查技能名称唯一性，确认 inputSchema/outputSchema 为有效 JSON Schema |
+| 远程调用超时 | 目标节点离线或网络延迟高 | 增大 `timeout` 值，确认目标节点在线且网络可达 |
+| 流水线执行中断 | 某个步骤的技能不可用 | 检查流水线中所有 `skillId` 是否已注册且状态为 `published` |
+| 并发调用被限制 | 超过 `maxConcurrentInvocations` | 调整配置中的最大并发数（默认 10）��或等待当前调用完成 |
+| 版本查询为空 | 技能名称拼写错误 | 使用 `skill-service:list-skills` 确认已注册的技能列表 |
+| SLA 违规告警 | 技能执行延迟超过承诺值 | 优化技能实现性能，或放宽 `sla.maxLatencyMs` 约束 |
+
+---
+
+## 安全考虑
+
+1. **发布审批**: `publishRequiresApproval: true` 时技能发布需管理员审批，防止恶意技能上架
+2. **输入校验**: 远程调用自动根据 `inputSchema` 校验输入参数，拒绝非法请求
+3. **调用隔离**: 每次远程调用在独立上下文中执行，防止技能间状态污染
+4. **DID 认证**: 技能发布和调用均绑定 DID 身份，可追溯操作者
+5. **超时保护**: 所有远程调用强制超时限制，防止资源耗尽
+
+---
+
 ## 相关文档
 
 - [Cowork 多智能体协作 →](/chainlesschain/cowork)

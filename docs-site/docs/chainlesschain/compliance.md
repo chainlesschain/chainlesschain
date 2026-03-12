@@ -353,6 +353,82 @@ await window.electronAPI.invoke('compliance:dsr-update-status', {
 
 ---
 
+## 故障排除
+
+### 合规检查执行失败
+
+**现象**: `compliance:run-check` 返回错误或长时间无响应。
+
+**排查步骤**:
+1. 确认 `compliance.enabled` 为 `true` 且目标框架已在 `frameworks` 列表中
+2. 检查数据库连接是否正常，合规检查需要读取 `compliance_checks` 表
+3. 对于 SOC2 检查，确认证据目录 `evidencePath` 存在且有读写权限
+4. 减少单次检查的控制点范围，分批执行以避免超时
+
+### 数据分类结果不准确
+
+**现象**: `compliance:classify-text` 将敏感数据错误分类为低等级。
+
+**排查步骤**:
+1. 确认 `dataClassification.autoTagging` 为 `true`，规则引擎处于启用状态
+2. 检查规则引擎的正则表达式是否覆盖了目标敏感数据格式
+3. 若 `mlEnabled` 为 `false`，分类仅依赖规则匹配，可能遗漏非标准格式
+4. 对误分类字段使用 `compliance:classify-field` 手动指定正确分类等级
+
+### DSR 请求处理超时
+
+**现象**: `compliance:dsr-export-data` 或 `compliance:dsr-delete-data` 长时间未完成。
+
+**排查步骤**:
+1. 检查目标 DID 关联的数据量，大量数据导出/删除需要较长时间
+2. 对于删除操作，确认 `cascadeDelete` 级联删除是否涉及大量关联表
+3. 查看 `dsr:get-request-detail` 确认请求当前处理阶段
+4. 考虑分批处理，先导出部分数据确认格式后再执行全量操作
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 合规规则匹配失败 | 规则表达式语法错误或版本过旧 | 检查规则语法，执行 `compliance rule-validate` |
+| 数据分类精度低 | 训练样本不足或分类器配置不当 | 增加标注样本，调整分类器阈值和特征权重 |
+| DSR（数据主体请求）处理超时 | 数据量大或跨系统查询慢 | 启用并行查询，增大 `dsrTimeout` 配置 |
+| 合规报告字段缺失 | 数据源映射不完整 | 检查字段映射配置 `compliance mapping-check` |
+| 证据收集失败 | 目标系统访问权限不足 | 确认服务账号具备读取权限，检查 API 密钥有效性 |
+
+### 常见错误修复
+
+**错误: `RULE_MATCH_FAILED` 合规规则匹配异常**
+
+```bash
+# 验证规则语法
+chainlesschain compliance rule-validate --rule-id <id>
+
+# 重新加载规则集
+chainlesschain compliance rule-reload --source default
+```
+
+**错误: `CLASSIFICATION_LOW_ACCURACY` 数据分类精度不达标**
+
+```bash
+# 查看分类器状态和精度指标
+chainlesschain compliance classifier-stats
+
+# 重新训练分类器
+chainlesschain compliance classifier-retrain --samples ./training-data/
+```
+
+**错误: `DSR_TIMEOUT` 数据主体请求处理超时**
+
+```bash
+# 查看 DSR 处理队列
+chainlesschain compliance dsr-queue --status pending
+
+# 增大超时并重试
+chainlesschain compliance dsr-retry --request-id <id> --timeout 300s
+```
+
 ## 安全考虑
 
 1. **证据加密**: SOC2证据文件使用AES-256加密存储
@@ -362,6 +438,56 @@ await window.electronAPI.invoke('compliance:dsr-update-status', {
 5. **级联删除**: DSR删除确保完整性(外键约束)
 
 ---
+
+## 使用示例
+
+### 合规规则检查
+
+```bash
+# 执行 SOC2 全量合规检查
+chainlesschain compliance run-check --framework soc2
+
+# 仅检查安全类控制点（TSC CC1.0）
+chainlesschain compliance run-check --framework soc2 --category security
+
+# 验证单条合规规则语法
+chainlesschain compliance rule-validate --rule-id CC1.2
+
+# 查看合规检查历史记录
+chainlesschain compliance check-history --limit 10
+```
+
+### 数据分类扫描
+
+```bash
+# 扫描整个数据库，自动分类所有字段
+chainlesschain compliance scan-database
+
+# 对指定表进行数据分类
+chainlesschain compliance classify-table --table users
+
+# 查看分类统计（按 PUBLIC/INTERNAL/CONFIDENTIAL/RESTRICTED 汇总）
+chainlesschain compliance classifier-stats
+
+# 重新训练分类器（提供标注样本目录）
+chainlesschain compliance classifier-retrain --samples ./training-data/
+```
+
+### DSR 请求处理
+
+```bash
+# 创建数据导出请求（GDPR 访问权）
+chainlesschain compliance dsr-create --did did:chainless:abc123 --type export
+
+# 查看待处理 DSR 队列
+chainlesschain compliance dsr-queue --status pending
+
+# 执行数据删除（GDPR 删除权，级联删除关联数据）
+chainlesschain compliance dsr-delete --did did:chainless:abc123 --cascade
+
+# 重试超时的 DSR 请求
+chainlesschain compliance dsr-retry --request-id <id> --timeout 300s
+```
 
 ## 相关文档
 

@@ -267,6 +267,95 @@ const sig = await window.electronAPI.invoke("ukey:sign", {
 
 ---
 
+## 使用示例
+
+### BLE 扫描并连接签名
+
+```javascript
+// 1. 扫描附近 BLE U-Key 设备
+const devices = await window.electronAPI.invoke('ukey:ble-scan', {
+  duration: 5000
+});
+console.log('发现设备:', devices.map(d => d.name));
+
+// 2. 连接信号最强的设备
+const best = devices.sort((a, b) => b.rssi - a.rssi)[0];
+await window.electronAPI.invoke('ukey:ble-connect', {
+  deviceId: best.id,
+  autoReconnect: true
+});
+
+// 3. 通过 BLE 执行数字签名
+const signature = await window.electronAPI.invoke('ukey:sign', {
+  keyId: 'signing-key-001',
+  data: '待签名的交易数据',
+  transport: 'ble'
+});
+console.log('签名结果:', signature);
+
+// 4. 查看设备电量
+const status = await window.electronAPI.invoke('ukey:ble-status', {
+  deviceId: best.id
+});
+console.log('电量:', status.batteryLevel + '%');
+```
+
+### 前端 Pinia Store 集成
+
+```typescript
+import { useBLEUkeyStore } from '@/stores/bleUkey';
+
+const ble = useBLEUkeyStore();
+
+// 扫描设备列表
+await ble.scanDevices();
+
+// 选择并连接设备
+await ble.connectDevice(ble.discoveredDevices[0].id);
+
+// 实时监控连接状态和电量
+watch(() => ble.connectionStatus, (status) => {
+  if (status === 'disconnected') {
+    console.warn('BLE 连接断开，正在自动重连...');
+  }
+});
+```
+
+## 故障排查
+
+### BLE 扫描无法发现设备
+
+**现象**: 扫描超时后返回空设备列表。
+
+**排查步骤**:
+
+1. 确认 U-Key 设备已开机且处于 BLE 广播状态（通常需长按设备按钮激活）
+2. 检查电脑蓝牙是否已开启（设置 → 蓝牙 → 开启）
+3. 确认 U-Key 电量充足（低电量时 BLE 广播可能关闭）
+4. 增大 `scanDuration` 参数至 15000ms，某些设备广播间隔较长
+
+### BLE 连接不稳定或频繁断开
+
+**现象**: 连接建立后很快断开，自动重连反复失败。
+
+**排查步骤**:
+
+1. 检查 U-Key 与电脑的距离，建议保持在 3 米以内
+2. 排除 WiFi 和其他蓝牙设备的 2.4GHz 频段干扰
+3. 确认 U-Key 固件版本为最新（旧固件可能有 BLE 稳定性问题）
+4. 尝试重启蓝牙适配器或重新配对设备
+
+### BLE APDU 通信超时
+
+**现象**: 发送 APDU 命令后长时间无响应。
+
+**排查步骤**:
+
+1. 检查 RSSI 信号强度，低于 -80dBm 时通信可能不稳定
+2. 确认 MTU 协商成功（默认 512 字节，部分设备可能不支持）
+3. 检查 U-Key 是否正在执行耗时操作（如密钥生成），等待完成后重试
+4. 尝试断开并重新连接设备
+
 ## 安全考虑
 
 1. **BLE 配对**: 使用 BLE 4.2+ Secure Connection (ECDH P-256)

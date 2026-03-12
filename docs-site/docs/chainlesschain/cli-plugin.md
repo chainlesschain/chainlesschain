@@ -105,6 +105,37 @@ manifest.json 示例：
 - 卸载时级联清理插件设置数据
 - 注册表搜索仅匹配名称和描述，不执行代码
 
+## 使用示例
+
+### 场景 1：搜索并安装插件
+
+```bash
+chainlesschain plugin search "markdown"
+chainlesschain plugin install markdown-plus --version 1.0.0
+chainlesschain plugin list
+```
+
+在注册表中搜索 Markdown 相关插件，安装指定版本后确认已成功安装。
+
+### 场景 2：管理插件状态
+
+```bash
+chainlesschain plugin disable markdown-plus
+chainlesschain plugin enable markdown-plus
+chainlesschain plugin summary
+```
+
+临时禁用不需要的插件以减少资源占用，需要时重新启用。查看安装统计概览。
+
+### 场景 3：卸载并清理插件
+
+```bash
+chainlesschain plugin info markdown-plus
+chainlesschain plugin remove markdown-plus
+```
+
+查看插件详情确认后卸载，卸载时自动清理插件配置和关联的技能文件。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

@@ -170,6 +170,74 @@ pending → running → completed
 
 ---
 
+## 使用示例
+
+### GGUF 量化并导入 Ollama
+
+```bash
+# 在桌面应用中通过 IPC 发起量化任务
+# 选择模型 → 选择量化级别 → 开始量化
+
+# 量化完成后自动生成 Modelfile 并导入 Ollama
+# 在 AI 对话中即可选择量化后的模型
+```
+
+```javascript
+// 通过 IPC 创建量化任务
+const job = await window.electronAPI.invoke('quantization:create-job', {
+  modelPath: '/path/to/original-model',
+  format: 'gguf',
+  level: 'Q4_K_M'  // 推荐：质量与大小的最佳平衡
+});
+
+// 查询量化进度
+const status = await window.electronAPI.invoke('quantization:get-status', {
+  jobId: job.id
+});
+// { status: 'running', progress: 65.2 }
+```
+
+### 根据设备内存选择量化级别
+
+```bash
+# 8GB 内存设备 → 使用 Q3_K_M 或 Q4_0
+# 16GB 内存设备 → 使用 Q4_K_M（推荐）
+# 32GB+ 内存设备 → 使用 Q6_K 或 Q8_0
+```
+
+---
+
+## 故障排查
+
+### 量化任务失败
+
+- **磁盘空间不足**: 量化过程需要约 2 倍原始模型大小的临时空间，确保有足够的磁盘空间
+- **模型文件损坏**: 重新下载原始模型后再尝试量化
+- **llama.cpp 不可用**: 确认 llama.cpp 的 `quantize` 工具已安装并在 PATH 中
+
+### GPTQ 量化报错
+
+- **GPU 内存不足**: GPTQ 量化需要 GPU，确保 NVIDIA 显卡内存 >= 8GB
+- **校准数据集缺失**: 确认指定了有效的校准数据集路径（128-256 条样本）
+- **CUDA 版本不匹配**: 检查 PyTorch 和 CUDA 版本兼容性
+
+### 量化后模型质量下降明显
+
+- 尝试使用更高的量化级别（如从 Q3_K_M 升级到 Q4_K_M）
+- 对比量化前后的困惑度（perplexity），差异 >5% 建议换用更高精度
+
+---
+
+## 安全考虑
+
+- **模型来源验证**: 仅从可信来源（Hugging Face、Ollama ��方库）下载原始模型，避免使用来路不明的模型文件
+- **量化输出保护**: 量化后的模型文件存储在本地，不自动上传到任何外部服务
+- **任务隔离**: 量化任务在独立子进程中运行，不影响主应用稳定性
+- **资源限制**: 量化过程受系统资源限制保护，防止耗尽 CPU/内存导致系统不可用
+- **完整性校验**: 量化完成后自动验证输出文件的完整性，确保模型可正常加载
+
+---
+
 ## 相关文档
 
 - [AI 模型配置](/chainlesschain/ai-models) - 本地模型管理与配置

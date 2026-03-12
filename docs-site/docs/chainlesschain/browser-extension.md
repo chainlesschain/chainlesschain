@@ -861,6 +861,19 @@ network.waitForIdle { timeout: 5000 }
 
 ---
 
+## 安全考虑
+
+1. **本地回环通信**: WebSocket 仅监听 `127.0.0.1:18790`，外部网络无法访问，杜绝远程攻击
+2. **权限最小化**: 插件仅申请必要的 Chrome 权限，`scripting` 和 `debugger` 权限用于自动化场景
+3. **操作审计**: 所有远程命令执行均被记录，可在 Desktop「设置 → 远程控制 → 操作日志」中追溯
+4. **页面隔离**: 无法操作 `chrome://`、`edge://` 等浏览器内部页面，防止系统级误操作
+5. **脚本执行风险**: `page.executeScript` 可执行任意 JS 代码，仅限本地 AI 自动化使用，不暴露到网络
+6. **Cookie 保护**: Cookie 读写操作受浏览器安全策略限制，HttpOnly Cookie 无法通过 JS 直接读取
+7. **连接认证**: 插件与 Desktop 之间的 WebSocket 连接需要用户主动安装并点击连接，无自动信任机制
+8. **敏感数据**: 网络拦截和 Mock 功能仅用于调试/测试，生产环境建议关闭网络拦截能力
+
+---
+
 ## 下一步
 
 - [Computer Use 功能](/chainlesschain/computer-use) - 桌面级自动化

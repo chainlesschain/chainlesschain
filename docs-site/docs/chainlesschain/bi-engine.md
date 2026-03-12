@@ -353,6 +353,53 @@ CREATE INDEX IF NOT EXISTS idx_bi_dash_status ON bi_dashboards(status);
 }
 ```
 
+## 使用示例
+
+### 自然语言查询示例
+
+```javascript
+// 简单统计查询
+const result = await window.electron.ipcRenderer.invoke("bi:nl-query", {
+  question: "本月活跃用户有多少？",
+  database: "analytics",
+  returnSql: true,
+});
+
+// 多表关联查询
+const result2 = await window.electron.ipcRenderer.invoke("bi:nl-query", {
+  question: "过去 7 天每个产���线的订单金额排行",
+  visualize: true,
+  explain: true,
+});
+```
+
+### 快速创建仪表盘
+
+```javascript
+// 使用内置模板一键创建
+const dashboard = await window.electron.ipcRenderer.invoke("bi:create-dashboard", {
+  name: "销售实时看板",
+  template: "sales",
+  autoRefresh: true,
+  refreshInterval: 30000,
+});
+// 在 /bi/dashboard/{dashboardId} 路径访问
+```
+
+### 异常检测与告警
+
+```javascript
+// 检测 API 响应时间异常
+const anomalies = await window.electron.ipcRenderer.invoke("bi:detect-anomaly", {
+  metric: "api_response_time",
+  timeRange: { start: Date.now() - 86400000, end: Date.now() },
+  method: "zscore",
+  threshold: 3.0,
+  granularity: "hour",
+});
+// anomalies.anomalies 包含所有异常点及可能原因
+```
+
 ## 故障排除
 
 | 问题                    | 解决方案                                            |
@@ -362,6 +409,79 @@ CREATE INDEX IF NOT EXISTS idx_bi_dash_status ON bi_dashboards(status);
 | 异常检测误报过多        | 调高 Z-Score threshold 或增大 minDataPoints         |
 | 趋势预测 R² 值偏低      | 数据波动大时尝试 seasonal 方法，或增加历史数据量    |
 | 仪表盘加载缓慢          | 减少 widget 数量或增大 refreshInterval              |
+
+### SQL 生成错误详细排查
+
+**现象**: NL→SQL 引擎生成的 SQL 语法错误或查询结果与预期不符。
+
+**排查步骤**:
+1. 设置 `returnSql: true` 和 `explain: true` 查看生成的 SQL 和解释
+2. 检查 `allowedTables` 配置是否包含目标表，遗漏的表不会被 NL→SQL 引擎使用
+3. 尝试使用更具体的自然语言描述，明确指定表名、字段名和时间范围
+4. 确认 `validateSql: true` 已开启，系统会在执行前校验 SQL 语法合法性
+
+### 报表生成结果为空
+
+**现象**: 调用 `bi:generate-report` 成功但报告中无数据内容。
+
+**排查步骤**:
+1. 分别对每个 section 的 `query` 执行 `bi:nl-query` 确认是否有数据返回
+2. 检查时间范围设置，确认 `type`（daily/weekly/monthly）对应的时间窗口内有数据
+3. 确认数据库中目标表是否已导入数据且非空
+4. 查看报告的 `status` 字段，若为 `failed` 则检查日志中的生成错误信息
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| NL→SQL 语义错误生成错误查询 | 自然语言歧义或表结构未注册 | 补充表/列注释元数据，使用 `bi schema-sync` 同步 |
+| 报表渲染失败显示空白 | 数据源连接超时或图表类型不支持 | 检查数据源连通性，切换为兼容的图表类型 |
+| 异常检测误报频繁 | 检测阈值过低或历史基线数据不足 | 调高 `anomalyThreshold`，积累更多历史数据 |
+| 仪表盘加载缓慢 | 查询未命中缓存或数据量过大 | 启用查询缓存 `bi cache-enable`，添加数据聚合层 |
+| 定时报告未发送 | 调度任务异常或邮件服务配置错误 | 检查调度日志 `bi schedule-log`，验证 SMTP 配置 |
+
+### 常见错误修复
+
+**错误: `NL_SQL_PARSE_FAILED` 自然语言转换失败**
+
+```bash
+# 同步数据库 schema 元数据
+chainlesschain bi schema-sync --source default
+
+# 测试 NL→SQL 转换
+chainlesschain bi nl-test "最近7天的活跃用户数"
+```
+
+**错误: `REPORT_RENDER_FAILED` 报表渲染异常**
+
+```bash
+# 检查数据源连接状态
+chainlesschain bi datasource-check --all
+
+# 重新生成报表（使用缓存数据）
+chainlesschain bi report-regenerate --report-id <id> --use-cache
+```
+
+**错误: `ANOMALY_FALSE_POSITIVE` 异常检测误报**
+
+```bash
+# 调整异常检测灵敏度
+chainlesschain bi anomaly-config --threshold 3.0 --min-samples 100
+
+# 标记误报并反馈训练
+chainlesschain bi anomaly-feedback --id <anomaly-id> --label false-positive
+```
+
+## 安全考虑
+
+- **只读查询**: NL→SQL 引擎默认 `readOnly: true`，禁止生成 INSERT/UPDATE/DELETE 语句
+- **表白名单**: `allowedTables` 限制可查询的表范围，防止访问敏感系统表
+- **SQL 验证**: 生成的 SQL 经过语法和安全性双重验证后才执行
+- **报告权限**: 报告生成和导出受 RBAC 权限控制，仅授权角色可访问
+- **数据脱敏**: 报告中的敏感字段（如手机号、身份证）支持自动脱敏处理
+- **定时任务审计**: 所有定时报告的创建、执行、发送操作记录完整审计日志
 
 ## 相关文档
 

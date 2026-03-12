@@ -201,6 +201,114 @@ const useTrustRootStore = defineStore("trustRoot", {
 ✅ e2e/security/trust-root.e2e.test.ts - 端到端用户流程测试
 ```
 
+## 使用示例
+
+### TPM 认��流程
+
+```bash
+# 1. 执行三步证明链验证（U-Key → SIMKey → TEE）
+# IPC: trust-root:verify-chain "device-001"
+# → attestation_chain: [ukey_check: passed, simkey_verify: passed, tee_attest: passed]
+# → trust_level: "verified"
+
+# 2. 绑定设备硬件指纹，防止密钥迁移攻击
+# IPC: trust-root:bind-fingerprint { deviceId: "device-001", fingerprint: "hw_fp_abc123" }
+```
+
+### TEE 验证与安全启动
+
+```bash
+# 1. 查询所有设备的安全启动状态
+# IPC: trust-root:get-boot-status
+# → verified: 3, unverified: 1
+
+# 2. 跨设备同步密钥（仅在双方均为 verified 时允许）
+# IPC: trust-root:sync-keys { sourceDevice: "device-001", targetDevice: "device-002", keyType: "master" }
+# → sync_status: "completed", verified: 1
+```
+
+### 信任状态监控
+
+```bash
+# 查看信任根整体状态
+# IPC: trust-root:get-status
+# → totalDevices: 4, verified: 3, unverified: 1, lastVerifiedAt: 1710000000
+```
+
+## 故障深度排查
+
+### 硬件不可用
+
+1. **U-Key 未检测到**: 确认 U-Key 硬件已插入 USB 端口；Windows 检查设备管理器中是否出现 SIMKey 设备；macOS/Linux 仅支持模拟模式
+2. **SIMKey 状态 inactive**: 检查 SIM 卡是否正确插入 U-Key 设备，默认 PIN 为 `123456`；多次输错 PIN 会锁定，需联系发卡方解锁
+3. **TEE 不支持**: 运行 `trust-root:get-boot-status` 确认设备是否支持 Intel SGX 或 ARM TrustZone；BIOS 中需启用 SGX 选项
+4. **驱动问题**: Windows 需安装 SIMKeySDK 驱动（`SIMKeySDK-20220416/`），SGX 需安装 Intel SGX PSW 运行时
+
+### 认证链断裂
+
+| 现象 | 排查步骤 |
+|------|---------|
+| `ukey_check: failed` | U-Key 未连接或 SDK 未初始化；检查 Koffi FFI 加载是否成功 |
+| `simkey_verify: failed` | SIM 卡认证失败，确认 PIN 正确且未锁定；检查 SIM 卡有效期 |
+| `tee_attest: failed` | TEE 远程证明失败，检查 SGX 驱动版本（需 2.x+）和 BIOS 中 SGX 设置；确认 EPID 或 DCAP attestation 服务可达 |
+| `trust_level: compromised` | 检测到安全威胁，立即隔离该设备；检查固件是否被篡改，重新执行安全启动验证 |
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| TPM 不可用或初始化失败 | 硬件未启用或驱动未安装 | 在 BIOS 中启用 TPM，安装对应驱动程序 |
+| TEE 验证失败 | 远程证明服务不可达或证书过期 | 检查证明服务连通性，更新 TEE 证书 |
+| 安全启动链断裂 | 固件签名不匹配或中间证书缺失 | 重新签名固件，补全证书链 |
+| 信任度评分骤降 | 检测到异常行为或硬件篡改告警 | 执行安全审计 `trust audit`，排除误报后重置评分 |
+| 密钥封装/解封失败 | PCR 值变更或 TPM 状态异常 | 确认 PCR 策略匹配当前状态，重新封装密钥 |
+
+### 常见错误修复
+
+**错误: `TPM_UNAVAILABLE` TPM 设备不可用**
+
+```bash
+# 检查 TPM 硬件状态
+chainlesschain trust tpm-status
+
+# 尝试重新初始化 TPM 连接
+chainlesschain trust tpm-init --retry
+```
+
+**错误: `TEE_ATTESTATION_FAILED` TEE 远程证明失败**
+
+```bash
+# 检查证明服务连接
+chainlesschain trust tee-check
+
+# 更新 TEE 证书并重试验证
+chainlesschain trust tee-renew --cert-update
+```
+
+**错误: `SECURE_BOOT_CHAIN_BROKEN` 安全启动链断裂**
+
+```bash
+# 验证启动链完整性
+chainlesschain trust boot-verify --verbose
+
+# 查看断裂位置详情
+chainlesschain trust boot-chain --diagnose
+```
+
+## 安全考虑
+
+### 信任根保护
+- **三位一体验证**: U-Key + SIMKey + TEE 三步验证确保从硬件到软件的完整信任链，任一环节失败即标记为 `unverified`
+- **硬件指纹绑定**: 密钥与设备硬件指纹绑定后，即使密钥文件被拷贝到其他设备也无法使用，防止密钥迁移攻击
+- **跨设备同步限制**: 密钥同步仅允许在双方均为 `verified` 状态的设备之间进行，加密传输密钥数据
+
+### 固件验证
+- **安全启动校验**: 系统启动时验证固件链完整性，检测 Bootloader 和 OS 是否被篡改
+- **TEE 远程证明**: 定期执行 TEE 远程证明（Intel EPID/DCAP），验证可信执行环境未被破坏
+- **信任等级降级**: 若检测到固件异常或 TEE 被攻破，设备信任等级自动降为 `compromised`，阻止该设备参与敏感操作
+
 ## 相关文档
 
 - [U-Key 硬件密钥 →](/chainlesschain/ukey)

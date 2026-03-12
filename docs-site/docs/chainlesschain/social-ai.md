@@ -457,6 +457,112 @@ Signature: keyId="https://chainlesschain.local/users/alice#main-key",
 
 ---
 
+## 故障排查
+
+### 主题分析结果不准确
+
+- **中文分词问题**: 确认 NLP 引擎正确加载了中文分词器，短文本（<50 字）分析精度较低
+- **自定义分类**: 默认 9 个分类可能不覆盖所有领域，可通过配置 `topicAnalysis.customCategories` 扩展
+- **情感分析偏差**: 反讽、双关等复杂语义可能导致情感判断错误，AI 辅助模式可提升准确率
+
+### 社交图谱计算超时
+
+- **数据量过大**: 节点数 >10000 时 Louvain 社区发现可能较慢，调整 `maxHops` 减少计算范围
+- **内存不足**: 大规模图谱计算需要较多内存，确保可用内存 >= 2GB
+- **增量更新**: 避免每次全量重建图谱，使用增量更新 API 添加新的边和节点
+
+### ActivityPub 发布失败
+
+- **HTTP 签名错误**: 确认本地 Actor 的公私钥对完整且未过期
+- **远程实例不可达**: 检查目标 Mastodon/Pleroma 实例是否在线，确认网络连通性
+- **内容格式不兼容**: ActivityPub 要求 JSON-LD 格式，确认发布内容符合 W3C ActivityStreams 规范
+
+### AI 社交助手回复质量差
+
+- **LLM 模型不可用**: 确认 Ollama 服务运行且已下载模型（`chainlesschain llm test`）
+- **上下文不足**: 提供更多对话上下文（`context` 参数）可显著提升回复质量
+- **风格选择**: 根据场景选择合适的回复风格（`concise` / `detailed` / `humorous`）
+
+---
+
+## 使用示例
+
+### AI 增强社交功能
+
+```javascript
+// 发布内容时自动分析主题和情感，附加 AI 标签
+const post = await window.electronAPI.invoke('social:create-post', {
+  content: '刚完成去中心化身份认证模块的重构，性能提升了 3 倍！'
+});
+const analysis = await window.electronAPI.invoke('social:analyze-topic', {
+  text: post.content
+});
+// analysis: { topics: ['技术', '去中心化'], sentiment: 'positive', category: '技术' }
+
+// AI 辅助生成回复（根据对话上下文和风格偏好）
+const reply = await window.electronAPI.invoke('social:ai-generate-reply', {
+  postContent: '有人了解 WebRTC 在去中心化场景下的最佳实践吗？',
+  context: '技术问答讨论',
+  style: 'detailed'
+});
+```
+
+### 内容审核与过滤
+
+```javascript
+// 对社交内容进行自动审核（垃圾信息/恶意内容检测）
+const moderation = await window.electronAPI.invoke('social:moderate-content', {
+  text: userSubmittedContent,
+  rules: ['spam', 'offensive', 'phishing']
+});
+// moderation: { safe: false, violations: ['phishing'], action: 'block' }
+
+// 配置自定义过滤规则（关键词黑名单 + 正则匹配）
+await window.electronAPI.invoke('social:update-filter-rules', {
+  keywords: ['广告', '免费领取'],
+  patterns: ['https?://bit\\.ly/\\S+']  // 短链接可疑 URL
+});
+```
+
+### 情感分析与趋势洞察
+
+```javascript
+// 批量分析社区近 7 天内容的情感趋势
+const stats = await window.electronAPI.invoke('social:get-topic-stats', {
+  timeRange: '7d'
+});
+// stats.sentimentTrend: 正面/负面/中性内容比例变化曲线
+// stats.topTopics: 热门话题排行（按提及次数降序）
+
+// 对特定话题进行深度情感分析
+const topicSentiment = await window.electronAPI.invoke('social:analyze-topic', {
+  text: '关于最新隐私政策更新的讨论合集...',
+});
+// 返回情感分数（-1.0 到 1.0）和关键词列表
+```
+
+### 社区��理与图谱分析
+
+```javascript
+// 识别社区中的关键意见领袖（KOL）
+const influencers = await window.electronAPI.invoke('social:calculate-influence', {
+  did: 'did:chainless:abc123'
+});
+// { score: 0.85, rank: 15, community: 'tech-enthusiasts' }
+
+// 自动检测社区结构（Louvain 算法发现子社区）
+const communities = await window.electronAPI.invoke('social:detect-communities', {
+  minSize: 3
+});
+// 返回社区列表，每个社区包含成员 DID 和主题特征
+
+// AI 生成社区周报摘要
+const summary = await window.electronAPI.invoke('social:ai-summarize-content', {
+  text: weeklyPostsText,
+  maxLength: 500
+});
+```
+
 ## 相关文档
 
 - [去中心化社交基础](/chainlesschain/social)

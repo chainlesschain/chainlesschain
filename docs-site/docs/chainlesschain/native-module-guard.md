@@ -49,6 +49,82 @@
 | `desktop-app-vue/src/main/project/project-rag.js` | 项目 RAG 守卫 |
 | `desktop-app-vue/src/main/project/stats-collector.js` | 统计收集守卫 |
 
+## 使用示例
+
+### 在新模块中添加原生模块守卫
+
+```javascript
+// 正确写法：安全 require 模式
+let sharp = null;
+try {
+  sharp = require('sharp');
+} catch (_err) {
+  console.warn('sharp 模块不可用，图像处理将使用降级方案');
+}
+
+// 使用时检查是否可用
+async function processImage(imagePath) {
+  if (sharp) {
+    return await sharp(imagePath).resize(800, 600).toBuffer();
+  }
+  // 降级方案：返回原始图片
+  return require('fs').readFileSync(imagePath);
+}
+```
+
+### 检查守卫覆盖状态
+
+```bash
+# 在开发模式下，所有原生模块正常加载
+npm run dev
+
+# 在生产打包后，查看日志确认降级情况
+# 日志中出现 "not available, using fallback" 表示守卫生效
+```
+
+### 已保护模块清单
+
+受保护的 7 个关键文件涵盖文件同步、Git 热重载、记忆文件监听、自动化管理、文件缓存、项目 RAG 和统计收集模块。
+
+---
+
+## 故障排查
+
+### 打包后应用启动崩溃
+
+如果生产打包后应用无法启动，可能是新增了未受保护的原生模块引用：
+
+```bash
+# 搜索未保护的 require 调用
+grep -r "require('sharp')\|require('koffi')\|require('better-sqlite3')" src/main/
+# 将找到的引用包裹在 try-catch 中
+```
+
+### 降级方案导致功能异常
+
+某些功能在降级模式下行为不同，检查日志中的 `warn` 信息确认哪些模块处于降级状态：
+
+```bash
+# 开发模式下不受影响，仅生产打包后可能出现降级
+# 解决：确保 electron-forge 打包配置正确包含 .node 文件
+```
+
+### macOS/Linux 上 koffi 模块不可用
+
+`koffi` 模块仅用于 Windows U-Key FFI 调用，在 macOS/Linux 上自动降级为 U-Key 模拟模式，这是预期行为。
+
+---
+
+## 安全考虑
+
+- **降级模式安全性**: U-Key 降级为模拟模式后安全级别降低，生产环境建议确保原生模块正常加载
+- **数据库降级风险**: `better-sqlite3` 不可用时无法提供 SQLCipher 加密，数据库将无加密保护
+- **日志脱敏**: 降级警告日志不包含敏感信息（模块路径、系统架构等除外）
+- **启动完整性**: 即使关键模块降级，应用仍能启动，但建议用户通过 `chainlesschain doctor` 检查环境完整性
+- **自动恢复**: 重新安装依赖（`npm install`）后原生模块通常可恢复正常
+
+---
+
 ## 相关文档
 
 - [CLI 分发系统](/chainlesschain/cli-distribution)

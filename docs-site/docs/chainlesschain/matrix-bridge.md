@@ -346,6 +346,70 @@ console.log(matrix.currentMessages);
 
 ---
 
+## 使用示例
+
+### 示例 1: E2EE 加密消息收发
+
+```javascript
+// 1. 登录 Matrix Homeserver
+const login = await window.electronAPI.invoke("matrix:login", {
+  homeserver: "https://matrix.org",
+  username: "alice",
+  credential: "secure-password",
+  method: "password",
+});
+console.log(`登录成功: ${login.userId}, 设备: ${login.deviceId}`);
+
+// 2. 加入加密房间
+const room = await window.electronAPI.invoke("matrix:join-room", {
+  roomIdOrAlias: "#chainlesschain-dev:matrix.org",
+});
+
+// 3. 发送 E2EE 加密消息
+await window.electronAPI.invoke("matrix:send-message", {
+  roomId: room.roomId,
+  body: "这条消息使用端到端加密传输",
+  msgtype: "m.text",
+  encrypted: true,
+});
+```
+
+### 示例 2: 房间管理与消息历史
+
+```javascript
+// 获取已加入的所有房间
+const rooms = await window.electronAPI.invoke("matrix:list-rooms");
+console.log(`已加入 ${rooms.length} 个房间`);
+
+// 查看指定房间的历史消息
+const history = await window.electronAPI.invoke("matrix:get-messages", {
+  roomId: rooms[0].roomId,
+  limit: 30,
+  direction: "backward",
+});
+
+// 遍历消息，显示加密状态
+history.messages.forEach(msg => {
+  console.log(`[${msg.encrypted ? "加密" : "明文"}] ${msg.sender}: ${msg.body}`);
+});
+```
+
+---
+
+## 故障排查
+
+| 问题 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 登录失败 | Homeserver 地址错误或凭证无效 | 检查 homeserver URL（含 `https://`），确认用户名密码正确 |
+| E2EE 解密失败 | 密钥未同步或设备未验证 | 在 Matrix 客户端中验证设备，确保密钥备份已导入 |
+| 房间列表为空 | 未完成初始同步 | 等待 `syncInterval` 周期完成首次同步（默认 30 秒） |
+| 消息发送超时 | 网络中断或 Homeserver 不可达 | 检查网络连接，确认 Homeserver 服务正常运行 |
+| DID 映射失败 | WebFinger 服务未配置 | 手动在设置中绑定 DID 和 MXID，或配置 `.well-known` 文件 |
+| SSO 登录报错 | Token 过期或 SSO Provider 异常 | 重新获取 SSO Token，检查企业 IdP 服务状态 |
+| 加入房间被拒 | 房间设置为邀请制 | 联系房间管理员获取邀请，或搜索公开房间加入 |
+
+---
+
 ## 安全考虑
 
 1. **E2EE 默认**: 所有房间默认启用端到端加密

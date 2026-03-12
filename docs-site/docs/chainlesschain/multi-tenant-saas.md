@@ -305,6 +305,74 @@ const result = await window.electron.ipcRenderer.invoke("saas:delete-tenant", {
 | `src/main/enterprise/subscription-manager.js` | 订阅计划管理与计费集成 |
 | `src/renderer/stores/saas.ts` | Pinia 状态管理 |
 
+## 故障排查
+
+| 问题 | 原因分析 | 解决方案 |
+|------|---------|---------|
+| 租户创建失败 | `slug` 重复或管理员邮箱格式错误 | 检查 `slug` 唯一性（`TEXT UQ` 约束），确认邮箱格式正确 |
+| 数据隔离泄漏 | 行级隔离模式下中间件拦截未生效 | 切换到 `database` 或 `schema` 隔离模式；检查查询是否绑定 `tenant_id` 过滤条件 |
+| 用量统计不准确 | 计量引擎采集周期未对齐或数据库写入延迟 | 确认 `period` 参数格式为 `YYYY-MM`，等待当前采集周期结束后重新查询 |
+| 订阅升级后配额未更新 | 订阅状态变更但配额配置未同步刷新 | 调用 `saas:configure` 手动刷新配额，或重启租户隔离引擎 |
+| SSO 登录失败 | OIDC/SAML 配置的 `issuerUrl` 不可达或 `clientId` 不匹配 | 验证 SSO 提供商的 URL 可访问，确认 Client ID 和 Secret 正确 |
+| 数据导入冲突多 | 使用 `replace` 策略导致已有数据被覆盖 | 先使用 `dryRun: true` 预检，确认冲突数量可接受后再执行；优先使用 `merge` 策略 |
+| 租户删除后数据恢复 | 未启用 `retainBackup` 导致数据永久丢失 | 删除时务必设置 `retainBackup: true`，��� `retainDays` 内可从备份恢复 |
+
+## 安全考虑
+
+### 租户隔离
+- **数据库级隔离**: 企业版建议使用 `database` 隔离模式，每个租户独立数据库实例，物理隔离杜绝跨租户数据泄漏
+- **行级策略**: 使用 `row` 隔离模式时，所有数据库查询自动注入 `tenant_id` 过滤条件，中间件层进行二次校验
+- **跨租户访问禁止**: 系统严格禁止跨租户数据访问，即使管理员也需要通过专用管理接口操作
+
+### 认证与授权
+- **租户级 RBAC**: 每个租户拥有独立的角色权限体系，角色定义和权限分配互不影响
+- **SSO 安全**: OIDC/SAML SSO 集成使用标准安全协议，Token 验证在服务端完成，不在前端暴露敏感信息
+- **管理员权限**: 租户管理员仅能管理本租户资源，平台超级管理员操作记录完整审计日志
+
+### 计费安全
+- **计量防篡改**: 用量计量数据由服务端引擎自动采集，租户无法修改自身用量记录
+- **支付安全**: 计费集成 Stripe/支付宝等第三方支付平台，敏感支付信息不经过本系统，`webhookSecret` 加密存储
+- **超额保护**: 达到配额上限时系统自动限流（而非直接停服），给予租户缓冲时间升级或优化用量
+
+### 数据安全
+- **导出加密**: 数据导出支持 `encryption: true`，使用 AES-256 加密导出文件，防止传输过程中数据泄露
+- **删除保留**: 租户删除后数据保留 `retainDays`（默认 30 天）后永久删除，满足合规要求
+- **备份隔离**: 租户备份数据独立存储，不同租户的备份文件相互隔离
+
+## 使用示例
+
+### 完整租户生命周期
+
+```bash
+# 1. 创建租户（Pro 计划，数据库级隔离）
+# IPC: saas:create-tenant { name: "Acme Corp", slug: "acme", plan: "pro", isolation: "database" }
+
+# 2. 查询当月用量
+# IPC: saas:get-usage { tenantId: "tenant-001", period: "2026-03" }
+# → apiCalls: 45200/100000, storage: 3.2GB/10GB, users: 28/50
+
+# 3. 用量接近上限时升级订阅
+# IPC: saas:manage-subscription { tenantId: "tenant-001", action: "upgrade", newPlan: "enterprise" }
+
+# 4. 导出租户数据用于审计
+# IPC: saas:export-data { tenantId: "tenant-001", format: "json", encryption: true }
+```
+
+### 用量计量与计费要点
+
+- **用量周期**: `period` 格式为 `YYYY-MM`，每月 1 日自动重置 API 调用计数
+- **超额处理**: 达到配额上限时系统自动限流（非停服），`overage` 字段显示超额费用
+- **计费触发**: 订阅升级立即生效，降级在当前计费周期结束后生效，避免重复收费
+- **Webhook 通知**: 用量达到 80%/90%/100% 时系统通过 Webhook 通知租户管理员
+
+### 租户配置最佳实践
+
+| 场景 | 推荐配置 |
+|------|---------|
+| 小团队试用 | `plan: "free"`, `isolation: "row"`, 功能按需开启 |
+| 中型企业 | `plan: "pro"`, `isolation: "schema"`, 启用 SSO |
+| 大型企业/合规要求 | `plan: "enterprise"`, `isolation: "database"`, 启用全部审计 |
+
 ## 相关文档
 
 - [工作流自动化引擎](/chainlesschain/workflow-automation)

@@ -81,6 +81,37 @@ chainlesschain sync clear              # 清除同步状态
 - `clear` 操作不可恢复，建议先备份
 - 冲突解决记录完整审计日志
 
+## 使用示例
+
+### 场景 1：查看同步状态并推送
+
+```bash
+chainlesschain sync status
+chainlesschain sync push
+chainlesschain sync log
+```
+
+检查本地资源同步状态，推送变更到远程，查看同步操作历史确认成功。
+
+### 场景 2：拉取远程变更
+
+```bash
+chainlesschain sync pull
+chainlesschain sync conflicts
+```
+
+拉取远程最新变更到本地，检查是否存在版本冲突需要解决。
+
+### 场景 3：解决同步冲突
+
+```bash
+chainlesschain sync conflicts
+chainlesschain sync resolve <conflict-id> --strategy local
+chainlesschain sync resolve <conflict-id> --strategy remote
+```
+
+列出所有冲突，根据实际情况选择保留本地或远程内容来解决冲突。
+
 ## 故障排查
 
 | 问题 | 解决方案 |

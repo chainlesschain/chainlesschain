@@ -381,6 +381,101 @@ npm run test:integration   # 仅集成测试
 npm run test:e2e           # 仅端到端测试
 ```
 
+## 使用示例
+
+### 全新安装与首次配置
+
+```bash
+# 安装 CLI 工具
+npm install -g chainlesschain
+
+# 运行交互式设置向导（选择版本、LLM 提供商、下载二进制）
+chainlesschain setup
+
+# 启动桌面应用
+chainlesschain start
+
+# 检查所有服务状态
+chainlesschain status
+```
+
+### 日常系统诊断
+
+```bash
+# 全面环境检查（Node.js、Docker、端口、磁盘等）
+chainlesschain doctor
+
+# 查看服务日志排查问题
+chainlesschain services logs -f
+
+# 更新到最新版本
+chainlesschain update
+```
+
+### Headless 模式（无 GUI 服务器场景）
+
+```bash
+# 初始化数据库
+chainlesschain db init
+
+# 添加笔记并搜索
+chainlesschain note add "会议纪要" -c "讨论内容..." -t "工作,会议"
+chainlesschain note search "会议"
+
+# AI 对话
+chainlesschain chat --agent
+```
+
+---
+
+## 故障排查
+
+### 安装后命令找不到
+
+确保 npm 全局 bin 目录在系统 PATH 中：
+
+```bash
+npm config get prefix
+# 将输出路径下的 bin/ 目录添加到 PATH 环境变量
+# Windows: 添加到系统环境变量 Path
+# Linux/macOS: export PATH="$(npm config get prefix)/bin:$PATH"
+```
+
+### 命令执行权限不足
+
+```bash
+# Linux/macOS 权限问题
+sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}
+
+# Windows 以管理员身份运行终端
+```
+
+### 下载二进制文件失败
+
+```bash
+# 使用代理下载
+HTTPS_PROXY=http://proxy:port chainlesschain setup
+
+# 或手动下载后放到配置目录
+# 从 GitHub Releases 下载对应平台的二进制文件
+# 放到 ~/.chainlesschain/bin/ 目录下
+```
+
+### Docker 服务无法启动
+
+```bash
+# 检查 Docker 是否运行
+docker info
+
+# 检查端口占用
+chainlesschain doctor
+
+# 查看容器日志定位错误
+chainlesschain services logs
+```
+
+---
+
 ## 安全考虑
 
 - API Key 存储在本地 `~/.chainlesschain/config.json`，建议设置文件权限 600

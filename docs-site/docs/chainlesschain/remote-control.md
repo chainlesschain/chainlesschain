@@ -267,6 +267,69 @@ const ALLOWED_ORIGINS = ["127.0.0.1", "localhost"];
 
 ---
 
+## 使用示例
+
+### 从浏览器插件远程控制
+
+```javascript
+// 1. 插件自动连接 Desktop WebSocket
+const ws = new WebSocket("ws://127.0.0.1:18790");
+
+// 2. 注册插件设备
+ws.send(JSON.stringify({
+  type: "register",
+  client: { type: "browser-extension", version: "1.0.0" }
+}));
+
+// 3. 发送 AI 分析命令
+ws.send(JSON.stringify({
+  type: "ai",
+  command: "analyze",
+  params: { content: "帮我总结这篇文章的要点" }
+}));
+
+// 4. 接收 AI 响应
+ws.onmessage = (event) => {
+  const response = JSON.parse(event.data);
+  if (response.type === "ai-response") {
+    console.log("AI 分析结果:", response.result);
+  }
+};
+```
+
+### 从移动端查看笔记
+
+```javascript
+// 移动端发送命令获取笔记列表
+{
+  "type": "system",
+  "command": "listNotes",
+  "params": { "limit": 10, "orderBy": "updated_at" }
+}
+
+// Desktop 返回笔记数据
+{
+  "type": "system-response",
+  "result": {
+    "notes": [
+      { "id": "note-001", "title": "会议纪要", "updatedAt": "2026-03-10" },
+      { "id": "note-002", "title": "项目计划", "updatedAt": "2026-03-09" }
+    ]
+  }
+}
+```
+
+## 安全考虑
+
+1. **仅本地通信**: WebSocket 严格监听 127.0.0.1，不暴露到局域网或公网
+2. **设备白名单**: 仅允许已授权的客户端类型连接，拒绝未知设备
+3. **权限分级**: 不同客户端分配不同权限级别，移动端默认 READ/WRITE，不给 ADMIN
+4. **速率限制**: 配置每秒/每分钟最大命令数，防止恶意客户端滥用
+5. **敏感操作确认**: 删除文件、修改系统设置等操作需用户在 Desktop 端手动确认
+6. **命令审计**: 所有远程命令完整记录时间、来源、参数和结果，支持事后审查
+7. **超时断连**: 空闲连接超时自动断开，减少攻击面
+8. **数据脱敏**: 审计日志中密码等敏感参数自动脱敏
+
 ## 故障排查
 
 ### 连接失败

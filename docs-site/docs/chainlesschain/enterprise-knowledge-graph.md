@@ -343,6 +343,61 @@ CREATE INDEX IF NOT EXISTS idx_kg_rel_type ON kg_relations(type);
 | GNN 推理结果置信度低    | 增加训练数据量，确保图谱中有足够的标注关系        |
 | GraphRAG 检索结果不相关 | 调整 graphDepth 和 contextTokenLimit 参数         |
 
+### 实体抽取结果为空
+
+**现象**: `kg:import` 或 `kg:add-entity`（`autoExtract: true`）未抽取到任何实体。
+
+**排查步骤**:
+1. 确认输入文档内容为非空文本，且语言为 NER 模型支持的语言
+2. 检查 `ner.minConfidence` 配置是否设置过高（默认 0.6），过高会过滤掉低置信度实体
+3. 确认 `ner.entityTypes` 列表包含目标实体类型（如 Person、Technology）
+4. 对于短文本或专业术语密集的内容，NER 效果有限，建议配合手动添加
+
+### 图查询超时
+
+**现象**: `kg:query` 执行时间过长或返回超时错误。
+
+**排查步骤**:
+1. 检查查询是否包含未限制的全图遍历（添加 `LIMIT` 子句限制结果数量）
+2. 确认 `kg_entities` 和 `kg_relations` 表上的索引完整（`source_id`、`target_id`、`type`）
+3. 对于包含大量关系的实体，使用 `filters` 限制查询的关系类型范围
+4. 通过 `kg:get-stats` 查看图谱规模，节点/边过多时考虑分域查询
+
+## 使用示例
+
+### 从文档自动抽取实体与关系
+
+```javascript
+// 批量导入文档并自动抽取
+const result = await window.electron.ipcRenderer.invoke("kg:import", {
+  source: "documents",
+  config: { path: "./docs/", recursive: true, deduplication: true },
+});
+// result.imported = { entities: 342, relations: 578 }
+
+// 对单个实体开启自动关系抽取
+await window.electron.ipcRenderer.invoke("kg:add-entity", {
+  entity: { name: "Vue3", type: "Technology", properties: { description: "渐进式JavaScript框架..." } },
+  autoExtract: true,
+});
+```
+
+### 图查询与推理
+
+```javascript
+// 查询某技术的所有使用者
+const users = await window.electron.ipcRenderer.invoke("kg:query", {
+  cypher: "MATCH (o)-[:USES_TECHNOLOGY]->(t) WHERE t.name = 'Electron' RETURN o.name, o.type",
+});
+
+// 推理潜在关系
+const inferred = await window.electron.ipcRenderer.invoke("kg:reason", {
+  mode: "hybrid",
+  query: { startEntity: "ent-001", targetRelation: "RELATED_TO" },
+});
+// inferred.inferences 包含规则和 GNN 推理出的新关系
+```
+
 ## 关键文件
 
 | 文件 | 职责 |
@@ -353,6 +408,71 @@ CREATE INDEX IF NOT EXISTS idx_kg_rel_type ON kg_relations(type);
 | `desktop-app-vue/src/main/enterprise/reasoning-engine.js` | 推理引擎（Rules + GNN） |
 | `desktop-app-vue/src/main/enterprise/graphrag-search.js` | GraphRAG 知识增强检索 |
 | `desktop-app-vue/src/main/enterprise/kg-ipc.js` | 知识图谱 8 个 IPC Handler |
+
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 实体抽取结果为空 | 输入文本格式不支持或 NER 模型未加载 | 确认输入为纯文本/Markdown，检查模型状态 `kg model-status` |
+| 关系重复导致图谱膨胀 | 去重策略未启用或实体归一化不完整 | 启用 `deduplication`，执行 `kg entity-merge` |
+| 图查询超时 | 查询复杂度高或索引缺失 | 简化查询路径深度，执行 `kg index-rebuild` |
+| 知识图谱导入失败 | 数据格式不符合 schema 或文件过大 | 验证导入文件格式，分批导入大文件 |
+| 实体关系链断裂 | 中间实体被删除或合并不当 | 执行 `kg integrity-check` 修复断裂关系 |
+
+### 常见错误修复
+
+**错误: `ENTITY_EXTRACTION_EMPTY` 实体抽取为空**
+
+```bash
+# 检查 NER 模型状态
+chainlesschain kg model-status
+
+# 使用调试模式查看抽取过程
+chainlesschain kg extract --input <file> --debug
+```
+
+**错误: `DUPLICATE_RELATIONS` 关系重复**
+
+```bash
+# 执行实体合并去重
+chainlesschain kg entity-merge --threshold 0.85
+
+# 查看重复关系统计
+chainlesschain kg stats --duplicates
+```
+
+**错误: `QUERY_TIMEOUT` 图查询超时**
+
+```bash
+# 重建图索引
+chainlesschain kg index-rebuild
+
+# 限制查询深度重试
+chainlesschain kg query "<query>" --max-depth 3
+```
+
+## 安全考虑
+
+### 数据访问控制
+- **实体级权限**: 敏感实体（如人物、组织内部信息）应设置访问权限标签，图查询时根据用户角色过滤不可见实体
+- **查询审计**: 所有 Cypher 查询操作记录到审计日志中，包含查询内容、执行者和返回结果数量，支持安全审计
+- **导出脱敏**: 导出知识图谱时支持按实体类型过滤（`filters.entityTypes`），避免将内部敏感实体导出到外部
+
+### NER 与推理安全
+- **置信度阈值**: NER 自动抽取的实体设置最低置信度（`minConfidence: 0.6`），低于阈值的实体标记为待审核状态，防止错误实体污染图谱
+- **推理结果标注**: GNN 和规则推理产生的关系标记 `inferred: 1` 和 `inference_method`，与人工标注的显式关系区分，避免推理错误被当作事实
+- **推理数量限制**: `maxInferences` 限制单次推理最大结果数（默认 100），防止规则链爆炸导致性能问题和大量噪声关系
+
+### GraphRAG 安全
+- **上下文长度控制**: `contextTokenLimit` 限制注入 LLM 的图谱上下文大小（默认 5000 tokens），防止过大上下文导致 prompt injection 风险
+- **来源可追溯**: GraphRAG 搜索结果包含 `sources` 字段，标注每个信息片段的来源实体和相关度，确保生成内容可溯源
+- **数据不出域**: 知识图谱数据存储在本地 SQLite 中，GraphRAG 查询在本地完成，图谱数据不上传到外部 LLM 服务
+
+### 导入安全
+- **去重校验**: 批量导入时启用 `deduplication: true`，通过 `(name, type)` 唯一索引防止重复实体，保持图谱一致性
+- **格式验证**: 导入 RDF/JSON/CSV 文件时自动校验数据格式和必填字段，拒绝格式不合规的数据
 
 ## 相关文档
 

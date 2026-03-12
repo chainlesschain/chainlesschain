@@ -870,6 +870,113 @@ CREATE TABLE IF NOT EXISTS memory_stats (
 | `src/main/rag/embedding-cache.js` | Embedding 向量缓存 |
 | `src/main/database/migrations/009_embedding_cache.sql` | 数据库迁移（5 张表） |
 
+## 故障排查
+
+### 常见问题
+
+| 症状 | 可能原因 | 解决方案 |
+| --- | --- | --- |
+| 记忆检索响应慢 | 向量索引未优化或嵌入缓存失效 | 执行 `memory index-optimize`，启用嵌入缓存 |
+| 向量索引损坏查询报错 | 索引文件异常写入或磁盘故障 | 重建向量索引 `memory index-rebuild` |
+| 存储空间不足 | 记忆数据量超出磁盘限额 | 清理过期记忆 `memory gc`，迁移到更大存储 |
+| 记忆去重失败出现重复 | 相似度阈值过高或嵌入模型变更 | 降低去重阈值 `deduplicationThreshold`，重新嵌入 |
+| 记忆导入后查询不到 | 导入数据未生成嵌入向量 | 执行 `memory embed-pending` 补充缺失嵌入 |
+
+### 常见错误修复
+
+**错误: `RETRIEVAL_SLOW` 记忆检索超时**
+
+```bash
+# 优化向量索引
+chainlesschain memory index-optimize
+
+# 查看索引状态和大小
+chainlesschain memory index-stats
+```
+
+**错误: `INDEX_CORRUPTED` 向量索引损坏**
+
+```bash
+# 重建向量索引（保留原始数据）
+chainlesschain memory index-rebuild --preserve-data
+
+# 验证索引完整性
+chainlesschain memory index-verify
+```
+
+**错误: `STORAGE_FULL` 记忆存储空间不足**
+
+```bash
+# 查看存储使用情况
+chainlesschain memory stats --storage
+
+# 清理过期和低重要性记忆
+chainlesschain memory gc --max-age 365d --min-importance 0.2
+```
+
+## 安全考虑
+
+### 数据存储安全
+
+- 记忆数据存储在 **SQLCipher 加密数据库** 中，AES-256 全库透明加密
+- `memory/` 目录下的 Markdown 文件建议通过 git-crypt 加密保护
+- Embedding 向量缓存存储在本地 SQLite 中，不上传到外部向量数据库
+
+### 隐私保护
+
+- 所有记忆搜索（Vector + BM25）完全在本地运行，查询内容不外泄
+- LLM 智能提取使用本地 Ollama 模型，对话内容不发送到云端
+- 文件监听仅监控 `memory/` 目录，不会扫描其他敏感目录
+
+### 数据生命周期
+
+- Daily Notes 支持自动清理（默认 30 天），过期文件安全删除
+- Embedding 缓存支持自动清理（默认 30 天过期），释放存储空间
+- MEMORY.md 长期知识库由用户手动管理，重要内容建议定期备份
+
+### 记忆内容安全
+
+- 自动提取的技术发现在保存前不包含敏感数据（密码、密钥等）
+- 搜索结果按分数排序返回，不暴露底层索引结构和完整数据集
+- IPC 接口受权限系统保护，未授权的渲染进程无法访问记忆数据
+
+---
+
+## 故障深度排查
+
+### 记忆丢失
+
+1. **文件路径检查**: 确认 `memoryDir` 指向正确目录，`memory/MEMORY.md` 和 `memory/daily/` 文件是否存在
+2. **写入权限**: 检查目录写入权限（Windows 上特别注意 UAC 限制），日志搜索 `EACCES` 或 `EPERM` 错误
+3. **自动清理误删**: `maxDailyNotesRetention` 默认 30 天，超期文件被自动删除属正常行为；重要内容应保存到 MEMORY.md 长期知识库
+4. **数据库回退**: 若 `daily_notes_metadata` 表数据丢失，可从 `memory/daily/` 目录下的 Markdown 文件手动恢复
+
+### 检索缓慢
+
+| 现象 | 解决方案 |
+|------|---------|
+| 首次搜索慢（>5s） | Embedding 缓存为空，首次需计算向量；后续搜索会命中缓存，延迟降至 <500ms |
+| 所有搜索均慢 | 检查 Qdrant 服务是否运行（端口 6333），若不可用则回退到简单搜索 |
+| 索引重建耗时长 | 文件数量多时 `rebuildIndex()` 耗时正常；可分批索引或在后台执行 |
+
+### 存储满
+
+- 通过 `memory:get-stats` 查看 `cachedEmbeddingsCount`，超过 10 万条时调用 `memory:clear-embedding-cache` 清理
+- 减小 `maxDailyNotesRetention`（如设为 14 天）以减少磁盘占用
+- 检查 `embedding_cache` 表大小，可通过 `maxCacheSize` 配置限制上限
+
+## 安全深度说明
+
+### 加密存储
+- 记忆数据库通过 **SQLCipher AES-256** 全库透明加密，数据库文件被拷贝后无法读取
+- `memory/` 目录下的 Markdown 文件为明文存储，建议敏感项目使用 **git-crypt** 或系统级磁盘加密保护
+- Embedding 向量缓存在本地 SQLite 中，不上传到外部向量数据库或云���
+
+### 隐私保护
+- LLM 智能提取使用本地 Ollama 模型，对话内容不发送到云端；若使用云端 LLM，需注意对话内容可能被传输
+- 搜索查询仅在本地执行，不记录搜索历史到外部服务
+- `extractFromConversation` 提取的技术发现不包含密码、密钥等敏感数据，提取逻辑由 LLM prompt 控制
+
 ## 相关文档
 
 - [知识库管理](./knowledge-base.md) - 知识库系统的使用和管理
