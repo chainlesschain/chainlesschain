@@ -69,8 +69,17 @@ const FALLBACK_SCRIPT = `<script>
       return;
     }
 
-    /* ── ④ 点击侧边栏外部关闭 ── */
+    /* ── ⑤ 点击侧边栏内的导航链接 → 关闭侧边栏 ── */
     var sb = document.querySelector('.VPSidebar');
+    var sidebarLink = t.closest && t.closest('.VPSidebar a.link');
+    if (sidebarLink && sb && sb.classList.contains('open')) {
+      setTimeout(function () {
+        sbClose(sb, document.querySelector('.VPLocalNav button.menu'));
+      }, 150);
+      return;
+    }
+
+    /* ── ④ 点击侧边栏外部关闭 ── */
     if (sb && sb.classList.contains('open') && !sb.contains(t)) {
       setTimeout(function () {
         if (sb.classList.contains('open')) {

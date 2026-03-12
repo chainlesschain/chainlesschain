@@ -14,62 +14,6 @@ export default defineConfig({
       "meta",
       { name: "apple-mobile-web-app-status-bar-style", content: "black" },
     ],
-    [
-      "script",
-      {},
-      `;(function(){
-  document.addEventListener('click', function(e){
-    var t = e.target;
-    if (!t.closest) return;
-
-    var hdr = t.closest('.VPSidebarItem.collapsible > .item');
-    if (hdr && !t.closest('a')) {
-      e.stopPropagation();
-      e.preventDefault();
-      var item = hdr.closest('.VPSidebarItem.collapsible');
-      item.classList.toggle('collapsed');
-      return;
-    }
-
-    var menuBtn = t.closest('.VPLocalNav button.menu, button.VPLocalNavButton');
-    if (menuBtn) {
-      e.stopPropagation();
-      e.preventDefault();
-      var sb = document.querySelector('.VPSidebar');
-      if (!sb) return;
-      var opening = !sb.classList.contains('open');
-      sb.classList.toggle('open');
-      menuBtn.setAttribute('aria-expanded', String(opening));
-      var backdrop = document.querySelector('.VPBackdrop');
-      if (backdrop) {
-        if (opening) { backdrop.classList.add('open'); }
-        else { backdrop.classList.remove('open'); }
-      }
-      return;
-    }
-
-    var backdrop = t.closest('.VPBackdrop');
-    if (backdrop && backdrop.classList.contains('open')) {
-      var sb2 = document.querySelector('.VPSidebar');
-      if (sb2) sb2.classList.remove('open');
-      backdrop.classList.remove('open');
-      var btn = document.querySelector('.VPLocalNav button.menu, button.VPLocalNavButton');
-      if (btn) btn.setAttribute('aria-expanded', 'false');
-      return;
-    }
-
-    var topBtn = t.closest('.VPLocalNavOutlineDropdown > button');
-    if (topBtn) {
-      var dd = topBtn.parentElement;
-      setTimeout(function(){
-        if (!dd.classList.contains('open')) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }, 50);
-    }
-  }, true);
-})();`,
-    ],
   ],
 
   themeConfig: {
