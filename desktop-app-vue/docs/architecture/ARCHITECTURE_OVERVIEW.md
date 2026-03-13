@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-03-12T02:32:48.190Z
+**Generated**: 2026-03-13T10:34:33.356Z
 
 ---
 
@@ -8,26 +8,26 @@
 
 | Module | Files | Total Size |
 |--------|-------|------------|
-| main | 1579 | 22.88 MB |
+| main | 1587 | 22.89 MB |
 | renderer | 12 | 0.05 MB |
 | shared | 0 | 0.00 MB |
 
 ## main Module
 
-**Files**: 1579
+**Files**: 1587
 
 **Top 10 Largest Files**:
 
-1. `src/main/skill-tool-system/builtin-tools.js` - 580.9 KB
-2. `src/main/remote/browser-extension/background.js` - 444.4 KB
-3. `src/main/database.js` - 323.7 KB
-4. `src/main/ipc/ipc-registry.js` - 193.6 KB
-5. `src/main/browser/browser-ipc.js` - 96.8 KB
-6. `src/main/remote/browser-extension-server.js` - 87.7 KB
-7. `src/main/monitoring/error-monitor.js` - 84.6 KB
-8. `src/main/skill-tool-system/additional-tools-v3-handler.js` - 78.0 KB
-9. `src/main/ai-engine/extended-tools-11.js` - 77.5 KB
-10. `src/main/llm/llm-ipc.js` - 77.3 KB
+1. `src/main/remote/browser-extension/background.js` - 444.4 KB
+2. `src/main/database.js` - 323.7 KB
+3. `src/main/ipc/ipc-registry.js` - 193.6 KB
+4. `src/main/skill-tool-system/tools/system-tools.js` - 132.1 KB
+5. `src/main/skill-tool-system/tools/ai-tools.js` - 128.6 KB
+6. `src/main/skill-tool-system/tools/data-tools.js` - 104.3 KB
+7. `src/main/browser/browser-ipc.js` - 96.8 KB
+8. `src/main/remote/browser-extension-server.js` - 87.7 KB
+9. `src/main/monitoring/error-monitor.js` - 84.6 KB
+10. `src/main/skill-tool-system/additional-tools-v3-handler.js` - 78.0 KB
 
 ## renderer Module
 

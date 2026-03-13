@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/webrtc-data-channel.js`
 
-**Generated**: 2026-03-12T02:32:47.907Z
+**Generated**: 2026-03-13T10:34:33.062Z
 
 ---
 

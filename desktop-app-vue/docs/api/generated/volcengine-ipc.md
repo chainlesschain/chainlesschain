@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/volcengine-ipc.js`
 
-**Generated**: 2026-03-12T02:32:47.927Z
+**Generated**: 2026-03-13T10:34:33.081Z
 
 ---
 
