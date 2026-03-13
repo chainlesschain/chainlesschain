@@ -7,7 +7,7 @@
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-3800%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4200%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -61,7 +61,8 @@ chainlesschain start    # 启动应用
 - ✅ **社交平台 CLI** — 联系人管理 + 好友系统 + 动态发布 + 即时聊天 + 社交统计
 - ✅ **Hook 管道** — PreToolUse/PostToolUse/ToolError 工具调用钩子集成
 - ✅ **Content Recommender** — TF-IDF 工具相似度 + 工具链频率推荐
-- ✅ **2009 个测试用例** — 89 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **2009+ 个测试用例** — 89+ 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **系统质量改进** — 12 个 Pinia Store 测试文件 (431 测试)，CI 管道修复 (`continue-on-error` 移除)，`builtin-tools.js` (25K行) 拆分为 8 个模块，空 catch 块清理，硬编码凭证移除
 - ✅ **项目初始化** (`init`) — 4 种模板 (code-project/data-science/devops/空项目)，生成 `.chainlesschain/` 项目结构
 - ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources` 自定义技能管理
 - ✅ **多智能体协作** (`cowork`) — 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析

@@ -233,13 +233,13 @@ docs/design/
 | **统一运行时** ⭐       | [63\_统一应用运行时.md](modules/63_统一应用运行时.md)         | **Phase 98**,插件SDK 2.0,热更新,Profiler,CRDT同步 |
 | **插件生态2.0** ⭐      | [64\_智能插件生态2.0.md](modules/64_智能插件生态2.0.md)       | **Phase 99**,AI推荐,依赖解析,沙箱,代码审计        |
 | **自进化AI** ⭐         | [65\_自进化AI系统.md](modules/65_自进化AI系统.md)             | **Phase 100**,NAS,持续学习,自我修复,行为预测      |
-| **CLI分发系统** ⭐      | [66_CLI分发系统.md](modules/66_CLI分发系统.md)                | **Phase 101-102**,npm全局CLI,预构建二进制,1638测试(48命令),Context Engineering,Autonomous Agent,EvoMap     |
+| **CLI分发系统** ⭐      | [66_CLI分发系统.md](modules/66_CLI分发系统.md)                | **Phase 101-102**,npm全局CLI,预构建二进制,2009测试(59命令),Context Engineering,Autonomous Agent,EvoMap     |
 
 ### Phase 102+ 模块 (v5.0.1 CLI高级功能)
 
 | 模块                    | 文档                                                          | 说明                                              |
 | ----------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
-| **CLI高级功能** ⭐      | [67_CLI高级功能补齐.md](modules/67_CLI高级功能补齐.md)        | **Phase 102+**,17模块,11命令,1638测试,6维Context Engineering+Autonomous Agent+EvoMap              |
+| **CLI高级功能** ⭐      | [67_CLI高级功能补齐.md](modules/67_CLI高级功能补齐.md)        | **Phase 102+**,17模块,11命令,2009测试,6维Context Engineering+Autonomous Agent+EvoMap              |
 
 ### 基础设施
 

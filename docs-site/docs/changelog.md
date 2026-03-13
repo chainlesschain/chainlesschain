@@ -9,26 +9,26 @@
 
 ### Added
 
-- **CLI Phase 102 功能补齐**: 3 个新命令（init/cowork + skill 子命令增强），CLI 总计 37 个命令
+- **CLI Phase 102 功能补齐**: 3 个新命令（init/cowork + skill 子命令增强），CLI 总计 59 个命令
   - `init`: 项目初始化命令，4 种模板（code-project/data-science/devops/空项目），生成 `.chainlesschain/` 项目结构
   - `cowork`: 多智能体协作（debate 多视角辩论审查 + compare A/B 方案对比 + analyze 代码分析）
   - `skill add/remove/sources`: 自定义技能管理，4 层优先级系统（bundled < marketplace < managed < workspace）
   - 10 个新源文件: project-detector.js, skill-loader.js, cowork-adapter.js, cowork/debate-review-cli.js, cowork/ab-comparator-cli.js, cowork/code-knowledge-graph-cli.js, cowork/decision-kb-cli.js, cowork/project-style-analyzer-cli.js, commands/init.js, commands/cowork.js
-  - 8 个新测试文件（106 个新测试），CLI 总计 1009 tests / 55 files
+  - 8 个新测试文件（106 个新测试），CLI 总计 2009 tests / 89 files
   - 插件技能集成: plugin_skills 数据库表，插件 manifest 声明技能自动安装到 marketplace 层
 
 ## [5.0.1] - 2026-03-11
 
 ### Added
 
-- **CLI Phase 5 P2P与企业功能**: 5 个新命令（p2p/sync/wallet/org/plugin），CLI 总计 37 个命令
+- **CLI Phase 5 P2P与企业功能**: 5 个新命令（p2p/sync/wallet/org/plugin），CLI 总计 59 个命令
   - `p2p`: P2P 消息系统（peer 注册/消息收发/设备配对），P2PBridge 桌面桥接
   - `sync`: 文件与知识同步（push/pull/冲突检测与解决/操作日志）
   - `wallet`: 数字钱包（Ed25519 密钥对 + AES-256-GCM 私钥加密，资产 CRUD，转账交易）
   - `org`: 组织管理（CRUD/成员邀请/角色/团队管理/审批工作流）
   - `plugin`: 插件市场（安装/启停/更新/设置管理/注册表搜索）
   - 5 个新 lib 模块: p2p-manager.js, sync-manager.js, wallet-manager.js, org-manager.js, plugin-manager.js
-  - 160 个新单元测试 + 10 个 E2E 测试，CLI 总计 1009 tests / 55 files
+  - 160 个新单元测试 + 10 个 E2E 测试，CLI 总计 2009 tests / 89 files
 - **CLI Phase 4 安全与身份**: 4 个新命令（did/encrypt/auth/audit），CLI 总计 29 个命令
   - `did`: Ed25519 DID 身份管理（创建/签名/验证/导出），W3C DID Core 子集
   - `encrypt`/`decrypt`: AES-256-GCM 文件加密，PBKDF2 密钥派生，自定义 CCLC01 格式

@@ -63,7 +63,6 @@ jobs:
         if: steps.test-selector.outcome == 'failure'
         working-directory: ./desktop-app-vue
         shell: bash
-        continue-on-error: true
         run: |
           echo "⚠️  Intelligent test selection failed, running stable test suite..."
           npx vitest run tests/unit \
@@ -72,7 +71,6 @@ jobs:
             --exclude="**/p2p/**" \
             --exclude="**/ukey/**" \
             --exclude="**/blockchain/**" \
-            --exclude="**/components/**" \
             --exclude="**/import/**" \
             --exclude="**/extended-tools*.test.js" \
             --exclude="**/*-ipc.test.js" \
@@ -86,24 +84,30 @@ jobs:
             --exclude="**/core/ipc-guard.test.js" \
             --exclude="**/security/permission-system.test.js" \
             --exclude="**/api/**" \
-            --exclude="**/pages/**" \
-            --exclude="**/stores/**" \
             --exclude="**/sync/**" \
             --exclude="**/ai/builtin-tools.test.js" \
             --exclude="**/document/pdf-engine.test.js" \
             --exclude="**/document/ppt-engine.test.js" \
             --exclude="**/integration/p2p-sync-engine.test.js" \
-            --exclude="**/components/planning-components.test.js" \
-            --exclude="**/pages/PlanningView.test.js" \
             --exclude="**/core/function-caller.test.js" \
             --exclude="**/core/response-parser.test.js" \
             --exclude="**/media/speech-recognizer.test.js" \
             --exclude="**/planning/task-planner*.test.js" \
             --exclude="**/planning/taskPlanner.test.js" \
             --exclude="**/src/main/**/__tests__/**" \
-            --exclude="**/src/renderer/**/__tests__/**" \
             --exclude="**/tests/integration/**" \
             --exclude="**/database/key-manager.test.js"
+
+      - name: Test Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Unit Tests (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.test-selector.outcome }}" == "success" ]; then
+            echo "✅ Intelligent test selection passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Fell back to stable test suite" >> $GITHUB_STEP_SUMMARY
+          fi
 
   # 代码质量检查
   lint:
@@ -137,7 +141,6 @@ jobs:
       - name: Run ESLint
         working-directory: ./desktop-app-vue
         run: npm run lint --if-present
-        continue-on-error: true
 
       - name: Run rules validator
         working-directory: ./desktop-app-vue
@@ -226,7 +229,6 @@ jobs:
       - name: Run database tests
         working-directory: ./desktop-app-vue
         run: npm run test:db
-        continue-on-error: true
 
   # 完整测试（可选，手动触发或定时运行）
   full-tests:

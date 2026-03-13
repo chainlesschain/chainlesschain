@@ -117,7 +117,9 @@ class OCRService {
         console.log('[OCRService] 检测到Tesseract.js')
         return 'tesseract'
       }
-    } catch (e) {}
+    } catch (_e) {
+      // Intentionally ignored — feature detection fallback
+    }
     // #endif
 
     // 检测后端API
@@ -133,7 +135,9 @@ class OCRService {
           console.log('[OCRService] 检测到后端API')
           return 'api'
         }
-      } catch (e) {}
+      } catch (_e) {
+      // Intentionally ignored — feature detection fallback
+    }
     }
 
     // 检测百度OCR

@@ -375,7 +375,7 @@ function withMultiValidation(schemas, options = {}) {
  * @returns {Object} 格式化后的错误信息
  */
 function formatZodError(error) {
-  const errors = error.errors.map((e) => {
+  const errors = error.issues.map((e) => {
     const path = e.path.join(".");
     const message = e.message;
     return path ? `${path}: ${message}` : message;

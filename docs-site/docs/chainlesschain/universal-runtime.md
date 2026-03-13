@@ -1,6 +1,6 @@
 # 统一应用运行时
 
-> **Phase 98 | v5.0.0 | 状态: ✅ 生产就绪 | 8 IPC Handlers**
+> **Phase 98 | v5.0.1 | 状态: ✅ 生产就绪 | 8 IPC Handlers**
 
 ChainlessChain 统一应用运行时实现了 Desktop / Web / Mobile 三端统一代码库架构，基于 Electron + Capacitor + Web 三合一方案。内置 Plugin SDK 2.0（TypeScript SDK + CLI 脚手架）、无重启热更新、火焰图性能分析器和 CRDT 增强同步引擎，为跨平台一致性体验提供基础设施。
 

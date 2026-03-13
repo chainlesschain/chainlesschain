@@ -47,7 +47,8 @@ function createMockRequest(statusCode, responseData) {
 
 describe("GitHubManager Handler", () => {
   beforeEach(() => {
-    process.env.GITHUB_TOKEN = "ghp_test_token_12345";
+    process.env.GITHUB_TOKEN =
+      process.env.TEST_GITHUB_TOKEN || "test-token-placeholder";
   });
 
   afterEach(() => {

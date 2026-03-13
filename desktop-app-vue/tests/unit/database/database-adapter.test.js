@@ -281,7 +281,7 @@ describe("DatabaseAdapter", () => {
       delete process.env.DEV_DB_PASSWORD;
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
-      expect(adapter.getDevDefaultPassword()).toBe("dev_password_2024");
+      expect(adapter.getDevDefaultPassword()).toBe("changeme");
     });
   });
 
@@ -556,7 +556,7 @@ describe("DatabaseAdapter", () => {
 
       expect(mockKeyManagerInstance.getOrCreateKey).toHaveBeenCalledWith(
         expect.objectContaining({
-          password: "dev_password_2024",
+          password: "changeme",
         }),
       );
     });

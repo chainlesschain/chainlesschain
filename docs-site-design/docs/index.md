@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v5.0.1 | 67个模块设计 | 102 Phase | 138技能 | CLI 48命令/1638测试 | 面向开发者的架构与实现文档
+  tagline: v5.0.1 | 67个模块设计 | 102 Phase | 138技能 | CLI 59命令/2009测试 | 4200+总测试 | 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -69,7 +69,7 @@ features:
 | v3.0.0        | 62-64  | 自主AI开发                                               |
 | v3.1.0-v3.4.0 | 65-77  | 去中心化AI市场 + 硬件安全生态 + 全球社交 + EvoMap进化    |
 | **v5.0.0**    | 78-100 | 架构重构 + AI Agent 2.0 + Web3深化 + 企业平台 + 自进化AI |
-| **v5.0.1**    | 101-102 | CLI分发系统 + 6维Context Engineering + Autonomous Agent + EvoMap + 7 LLM Providers + 1638测试 |
+| **v5.0.1**    | 101-102 | CLI分发系统 + 6维Context Engineering + Autonomous Agent + EvoMap + 7 LLM Providers + 2009测试 |
 
 ---
 
