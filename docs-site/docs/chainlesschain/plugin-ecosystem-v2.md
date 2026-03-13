@@ -1,6 +1,6 @@
 # 智能插件生态 2.0
 
-> **Phase 99 | v5.0.0 | 状态: ✅ 生产就绪 | 8 IPC Handlers**
+> **Phase 99 | v5.0.1 | 状态: ✅ 生产就绪 | 8 IPC Handlers**
 
 ChainlessChain 智能插件生态 2.0 引入 AI 驱动的插件推荐、依赖解析与冲突检测、WASM + iframe 沙盒隔离、AI 自动代码审计和插件收益分成体系，构建安全、智能、可持续的插件生态系统。
 

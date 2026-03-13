@@ -2,7 +2,7 @@
 
 Complete list of implemented features in the ChainlessChain project.
 
-**Last Updated**: 2026-03-10 (v5.0.1)
+**Last Updated**: 2026-03-13 (v5.0.1)
 
 ## Core Features
 
@@ -287,3 +287,37 @@ All entry files are relative to `desktop-app-vue/src/`.
 - **8 REMOTE skills**: Delegated to desktop via P2PSkillBridge
 
 Uses same SKILL.md format as desktop. Details in `MEMORY.md`.
+
+## System Quality & Testing (Phase 102+)
+
+### Unit Tests — Pinia Store Coverage
+
+12 store test files with 431 tests covering the top Pinia stores:
+
+| Store | Tests | Coverage |
+|-------|-------|----------|
+| `app.ts` | 33 | Auth, knowledge CRUD, tabs, favorites, storage |
+| `session.ts` | 33 | Session CRUD, pagination, tags, stats, selection |
+| `conversation.ts` | 32 | Messages, auto-create, token tracking, export |
+| `permission.ts` | 27 | RBAC, workflows, approvals, teams, delegations |
+| `skill.ts` | 29 | Skill CRUD, search, enable/disable, config |
+| `enterprise-org.ts` | 20 | Enterprise org management |
+| `llm.ts` | ~30 | LLM models, providers, connection testing |
+| `project.ts` | ~30 | Project CRUD, search, filters |
+| `audit.ts` | 34 | Audit logs, compliance, DSR, policies |
+| `task.ts` | ~35 | Task boards, CRUD, comments, filters |
+| `file.ts` | ~25 | File operations, upload, preview |
+| `performance-monitor.ts` | ~20 | Performance metrics |
+
+### CI Pipeline Improvements
+
+- Removed improper `continue-on-error: true` from unit-tests, lint, and database-tests jobs
+- Re-enabled store, component, and renderer `__tests__` in CI exclude list
+- Added test summary step to GitHub Actions workflow
+
+### Code Quality
+
+- **`builtin-tools.js` split**: 25,386-line monolith split into 8 domain modules (file, web, data, ai, dev, system, blockchain, misc)
+- **Empty catch blocks**: Cleaned across `mobile-app-uniapp/` and `packages/cli/`
+- **Hardcoded credentials**: Removed test tokens and dev passwords, replaced with env vars
+- **Bug fix**: `formatZodError()` in `ipc-validator.js` — was accessing `error.errors` instead of `error.issues`

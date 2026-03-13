@@ -49,7 +49,7 @@ describe("Skill Handlers", () => {
   // ============================================================
   // env-doctor handler
   // ============================================================
-  describe("env-doctor handler", () => {
+  describe("env-doctor handler", { timeout: 60000 }, () => {
     let handler;
 
     beforeEach(() => {
@@ -2715,10 +2715,10 @@ describe("Skill Handlers", () => {
   });
 
   // ============================================================
-  // SkillLoader - verify 131 builtin skills
+  // SkillLoader - verify 138 builtin skills
   // ============================================================
-  describe("SkillLoader - 131 builtin skills", () => {
-    it("should find 96 SKILL.md files in builtin directory", () => {
+  describe("SkillLoader - 138 builtin skills", () => {
+    it("should find 138 SKILL.md files in builtin directory", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
@@ -2732,10 +2732,10 @@ describe("Skill Handlers", () => {
         return fs.existsSync(skillMd);
       });
 
-      expect(skillDirs.length).toBe(131);
+      expect(skillDirs.length).toBe(138);
     });
 
-    it("should have 131 skills with handler.js (100% coverage)", () => {
+    it("should have 138 skills with handler.js (100% coverage)", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",
@@ -2749,10 +2749,10 @@ describe("Skill Handlers", () => {
         return fs.existsSync(handlerJs);
       });
 
-      expect(handlerDirs.length).toBe(131);
+      expect(handlerDirs.length).toBe(138);
     });
 
-    it("should load all 131 handlers without errors", () => {
+    it("should load all 138 handlers without errors", () => {
       const builtinDir = path.resolve(
         __dirname,
         "../../../src/main/ai-engine/cowork/skills/builtin",

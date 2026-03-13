@@ -536,10 +536,10 @@ publish-cli:
 
 | 层次     | 文件数 | 覆盖范围                                                                                                                       |
 | -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| 单元测试 | 38     | platform, paths, config-manager, checksum, service-manager, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, command-registration, skill, project-detector, skill-loader, cowork-adapter, debate-review-cli, ab-comparator-cli, code-knowledge-graph-cli, plugin-skills |
-| 集成测试 | 3      | setup-flow, update-flow, service-lifecycle                                                                                     |
-| E2E 测试 | 14     | cross-platform, headless-commands, init-and-cowork-commands, phase1-commands, phase2-commands, phase3-commands, phase4-commands, phase5-commands + 3 core |
-| **合计** | **55** | **1009 tests** (全部通过)                                                                                                      |
+| 单元测试 | 55+    | platform, paths, config-manager, checksum, service-manager, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, command-registration, skill, project-detector, skill-loader, cowork-adapter, debate-review-cli, ab-comparator-cli, code-knowledge-graph-cli, plugin-skills, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine 等 |
+| 集成测试 | 8      | setup-flow, update-flow, service-lifecycle, phase6-8 integrations                                                              |
+| E2E 测试 | 26     | cross-platform, headless-commands, init-and-cowork-commands, phase1-8-commands + core                                          |
+| **合计** | **89** | **2009 tests** (全部通过)                                                                                                      |
 
 ### 6.2 测试工具
 

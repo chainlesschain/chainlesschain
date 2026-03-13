@@ -55,7 +55,7 @@ class DatabaseAdapter {
    * 获取开发模式默认密码
    */
   getDevDefaultPassword() {
-    return process.env.DEV_DB_PASSWORD || "dev_password_2024";
+    return process.env.DEV_DB_PASSWORD || "changeme";
   }
 
   /**

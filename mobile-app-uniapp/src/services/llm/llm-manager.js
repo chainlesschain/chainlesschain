@@ -129,7 +129,9 @@ class LLMManager {
         console.log('[LLMManager] 检测到WebGPU支持，使用Web LLM')
         return 'webllm'
       }
-    } catch (e) {}
+    } catch (_e) {
+      // Intentionally ignored — feature detection fallback
+    }
     // #endif
 
     // 检测OpenAI API
@@ -157,7 +159,9 @@ class LLMManager {
           console.log('[LLMManager] 使用后端API')
           return 'api'
         }
-      } catch (e) {}
+      } catch (_e) {
+      // Intentionally ignored — feature detection fallback
+    }
     }
 
     // 默认使用API模式

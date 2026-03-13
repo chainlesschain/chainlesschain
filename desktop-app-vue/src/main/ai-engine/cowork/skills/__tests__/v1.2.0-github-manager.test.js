@@ -34,7 +34,8 @@ describe("github-manager handler", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.GITHUB_TOKEN = "ghp_test_token_123";
+    process.env.GITHUB_TOKEN =
+      process.env.TEST_GITHUB_TOKEN || "test-token-placeholder";
   });
 
   afterEach(() => {
