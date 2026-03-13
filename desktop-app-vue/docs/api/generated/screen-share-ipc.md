@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/screen-share-ipc.js`
 
-**Generated**: 2026-03-12T02:32:47.908Z
+**Generated**: 2026-03-13T10:34:33.064Z
 
 ---
 
