@@ -169,7 +169,7 @@ chainlesschain llm models               # List installed Ollama models
 chainlesschain llm models --json        # JSON output
 chainlesschain llm test                 # Test Ollama connectivity
 chainlesschain llm test --provider openai --api-key sk-...
-chainlesschain llm providers            # List 7 built-in LLM providers
+chainlesschain llm providers            # List 8 built-in LLM providers
 chainlesschain llm add-provider <name>  # Add custom provider
 chainlesschain llm switch <name>        # Switch active provider
 ```
@@ -638,6 +638,198 @@ chainlesschain lowcode publish <id>                    # Publish app
 
 ---
 
+## EvoMap Gene Exchange Protocol
+
+### `chainlesschain evomap <action>`
+
+Gene exchange protocol for sharing AI capabilities across instances.
+
+```bash
+chainlesschain evomap search "tool name"               # Search genes on hub
+chainlesschain evomap download <gene-id>                # Download gene
+chainlesschain evomap publish --name "my-gene"          # Publish gene to hub
+chainlesschain evomap list                              # List local genes
+chainlesschain evomap hubs                              # List available hubs
+chainlesschain evomap federation list-hubs              # List federated hubs
+chainlesschain evomap federation sync <hub>             # Sync genes with hub
+chainlesschain evomap federation pressure               # Pressure analytics report
+chainlesschain evomap gov propose "title"               # Governance proposal
+chainlesschain evomap gov vote <id> for                 # Vote on proposal
+chainlesschain evomap gov dashboard                     # Governance dashboard
+```
+
+---
+
+## DAO Governance
+
+### `chainlesschain dao <action>`
+
+Decentralized governance with quadratic voting.
+
+```bash
+chainlesschain dao propose "title"                      # Create DAO proposal
+chainlesschain dao vote <id> for                        # Vote (quadratic voting)
+chainlesschain dao delegate <from> <to>                 # Delegate voting power
+chainlesschain dao execute <id>                         # Execute passed proposal
+chainlesschain dao treasury                             # Show treasury balance
+chainlesschain dao stats                                # Governance statistics
+```
+
+---
+
+## Phase 8: Security & Compliance
+
+### `chainlesschain compliance <action>`
+
+Compliance evidence collection and reporting (GDPR, SOC2, HIPAA).
+
+```bash
+chainlesschain compliance evidence gdpr                 # Collect compliance evidence
+chainlesschain compliance report soc2                   # Generate compliance report
+chainlesschain compliance classify "text"               # Classify data sensitivity
+chainlesschain compliance scan hipaa                    # Scan compliance posture
+```
+
+### `chainlesschain dlp <action>`
+
+Data Loss Prevention (DLP) content scanning and policy management.
+
+```bash
+chainlesschain dlp scan "content"                       # DLP content scanning
+chainlesschain dlp incidents                            # List DLP incidents
+chainlesschain dlp policy create --name "rule"          # Create DLP policy
+```
+
+### `chainlesschain siem <action>`
+
+Security Information and Event Management (SIEM) integration.
+
+```bash
+chainlesschain siem targets                             # List SIEM targets
+chainlesschain siem add-target splunk_hec <url>         # Add SIEM export target
+chainlesschain siem export <target-id>                  # Export logs to SIEM
+```
+
+### `chainlesschain pqc <action>`
+
+Post-Quantum Cryptography key management and migration.
+
+```bash
+chainlesschain pqc keys                                 # List PQC keys
+chainlesschain pqc generate ML-KEM-768                  # Generate PQC key pair
+chainlesschain pqc migration-status                     # PQC migration status
+chainlesschain pqc migrate "plan" ML-KEM-768            # Execute PQC migration
+```
+
+---
+
+## Phase 8: Communication Bridges
+
+### `chainlesschain nostr <action>`
+
+Nostr protocol bridge for decentralized social messaging.
+
+```bash
+chainlesschain nostr relays                             # List Nostr relays
+chainlesschain nostr publish "Hello"                    # Publish Nostr event
+chainlesschain nostr keygen                             # Generate Nostr keypair
+chainlesschain nostr map-did <did> <pubkey>             # Map DID to Nostr
+```
+
+### `chainlesschain matrix <action>`
+
+Matrix protocol bridge for federated messaging.
+
+```bash
+chainlesschain matrix login                             # Login to Matrix
+chainlesschain matrix rooms                             # List Matrix rooms
+chainlesschain matrix send <room> "message"             # Send Matrix message
+```
+
+### `chainlesschain scim <action>`
+
+SCIM protocol for enterprise user provisioning.
+
+```bash
+chainlesschain scim users list                          # List SCIM users
+chainlesschain scim users create --name "user"          # Create SCIM user
+chainlesschain scim sync <connector-id>                 # Trigger SCIM sync
+```
+
+---
+
+## Phase 8: Infrastructure & Hardening
+
+### `chainlesschain terraform <action>`
+
+Infrastructure-as-Code workspace management.
+
+```bash
+chainlesschain terraform workspaces                     # List Terraform workspaces
+chainlesschain terraform create "prod"                  # Create workspace
+chainlesschain terraform plan <workspace-id>            # Run Terraform plan
+```
+
+### `chainlesschain hardening <action>`
+
+Security hardening and performance baseline management.
+
+```bash
+chainlesschain hardening baseline collect "v1"          # Collect performance baseline
+chainlesschain hardening baseline compare <id>          # Compare baseline (regression)
+chainlesschain hardening audit run "quarterly"          # Run security audit
+```
+
+---
+
+## Phase 8: Social Platform
+
+### `chainlesschain social <action>`
+
+Decentralized social networking features.
+
+```bash
+chainlesschain social contact add "Alice"               # Add a contact
+chainlesschain social contact list                      # List contacts
+chainlesschain social friend add <contact-id>           # Send friend request
+chainlesschain social post publish "Hello"              # Publish a post
+chainlesschain social chat send <user> "msg"            # Send chat message
+chainlesschain social stats                             # Social statistics
+```
+
+---
+
+## CLI-Anything: Agent-Native Software Integration
+
+### `chainlesschain cli-anything <action>`
+
+Discover and register external CLI tools as ChainlessChain skills.
+
+```bash
+chainlesschain cli-anything doctor                      # Check Python + CLI-Anything environment
+chainlesschain cli-anything scan                        # Scan PATH for cli-anything-* tools
+chainlesschain cli-anything register <name>             # Register tool as ChainlessChain skill
+chainlesschain cli-anything list                        # List registered tools
+chainlesschain cli-anything remove <name>               # Remove registered tool
+```
+
+---
+
+## WebSocket Server Interface
+
+### `chainlesschain serve`
+
+Start a WebSocket server for external tool integration, enabling real-time bidirectional communication with the CLI engine.
+
+```bash
+chainlesschain serve                                    # Start WebSocket server (port 18800)
+chainlesschain serve --port 9000                        # Custom port
+chainlesschain serve --token <secret>                   # Enable token auth
+chainlesschain serve --allow-remote --token <secret>    # Allow remote + auth
+```
+
+---
+
 ## Global Options
 
 ```bash
@@ -682,16 +874,17 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 
 ### Supported LLM Providers
 
-| Provider            | Default Model     | API Key Required |
-| ------------------- | ----------------- | ---------------- |
-| Ollama (Local)      | qwen2:7b          | No               |
-| OpenAI              | gpt-4o            | Yes              |
-| Anthropic           | claude-sonnet-4-6 | Yes              |
-| DashScope (Alibaba) | qwen-max          | Yes              |
-| DeepSeek            | deepseek-chat     | Yes              |
-| Gemini (Google)     | gemini-pro        | Yes              |
-| Mistral             | mistral-large     | Yes              |
-| Custom              | —                 | Yes              |
+| Provider               | Default Model     | API Key Required |
+| ---------------------- | ----------------- | ---------------- |
+| Ollama (Local)         | qwen2:7b          | No               |
+| OpenAI                 | gpt-4o            | Yes              |
+| Anthropic              | claude-sonnet-4-6 | Yes              |
+| DashScope (Alibaba)    | qwen-max          | Yes              |
+| DeepSeek               | deepseek-chat     | Yes              |
+| Gemini (Google)        | gemini-pro        | Yes              |
+| Mistral                | mistral-large     | Yes              |
+| Volcengine (ByteDance) | doubao-1.5-pro    | Yes              |
+| Custom                 | —                 | Yes              |
 
 ## File Structure
 
@@ -710,7 +903,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (1429 tests across 67 files)
+npm test                # Run all tests (2063 tests across 99 files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -720,13 +913,13 @@ npm run test:e2e        # End-to-end tests
 
 | Category                 | Files  | Tests    | Status          |
 | ------------------------ | ------ | -------- | --------------- |
-| Unit — lib modules       | 44     | 892      | All passing     |
-| Unit — commands          | 10     | 213      | All passing     |
+| Unit — lib modules       | 56     | 1200+    | All passing     |
+| Unit — commands          | 15     | 350+     | All passing     |
 | Unit — runtime           | 1      | 6        | All passing     |
-| Integration              | 3      | 7        | All passing     |
-| E2E                      | 10     | 109      | All passing     |
+| Integration              | 5      | 30+      | All passing     |
+| E2E                      | 14     | 150+     | All passing     |
 | Core packages (external) | —      | 118      | All passing     |
-| **CLI Total**            | **67** | **1429** | **All passing** |
+| **CLI Total**            | **99** | **2063** | **All passing** |
 
 ## License
 
