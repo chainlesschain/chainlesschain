@@ -1,6 +1,6 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.1 进化版 | 138桌面技能 + 28 Android技能 | 102 Phase | AI Agent 2.0 + Web3深化 + 企业平台 + 自进化AI + CLI 59命令/2009测试 + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + Phase 7-8 企业CLI**
+> **当前版本: v5.0.1 进化版 | 138桌面技能 + 28 Android技能 | 102 Phase | AI Agent 2.0 + Web3深化 + 企业平台 + 自进化AI + CLI 60命令/2009测试 + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + CLI-Anything Integration + Phase 7-8 企业CLI**
 
 ChainlessChain是一个完全去中心化的个人AI管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能，通过U盾/SIMKey硬件加密和本地AI模型，为用户提供军事级隐私保护的个人数据管理平台。
 
@@ -1626,6 +1626,7 @@ npm run dev:desktop
 - [抗审查](/chainlesschain/anti-censorship) - Tor/域前置/网状网络 (v3.3.0)
 - [EvoMap联邦](/chainlesschain/evomap-federation) - 全球进化网络 (v3.4.0)
 - [EvoMap治理](/chainlesschain/evomap-governance) - 知识产权DAO (v3.4.0)
+- [CLI-Anything集成](/chainlesschain/cli-cli-anything) - 外部软件Agent化 (v5.0.1)
 - [产品路线图](/chainlesschain/product-roadmap) - 产品演进规划
 
 ---

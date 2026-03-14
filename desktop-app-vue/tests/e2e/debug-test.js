@@ -48,13 +48,13 @@ try {
   if (error.stdout) {
     console.log("");
     console.log("标准输出:");
-    console.log(error.stdout.toString());
+    console.log(error.stdout.toString("utf-8"));
   }
 
   if (error.stderr) {
     console.log("");
     console.log("标准错误:");
-    console.log(error.stderr.toString());
+    console.log(error.stderr.toString("utf-8"));
   }
 
   process.exit(1);

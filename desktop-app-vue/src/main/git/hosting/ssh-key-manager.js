@@ -91,8 +91,14 @@ class SSHKeyManager {
       );
 
       // Write keys to files
-      fs.writeFileSync(privateKeyPath, sshPrivateKey, { mode: 0o600 });
-      fs.writeFileSync(publicKeyPath, sshPublicKey, { mode: 0o644 });
+      fs.writeFileSync(privateKeyPath, sshPrivateKey, {
+        encoding: "utf-8",
+        mode: 0o600,
+      });
+      fs.writeFileSync(publicKeyPath, sshPublicKey, {
+        encoding: "utf-8",
+        mode: 0o644,
+      });
 
       logger.info(`[SSHKeyManager] Generated Ed25519 key: ${keyName}`);
 
