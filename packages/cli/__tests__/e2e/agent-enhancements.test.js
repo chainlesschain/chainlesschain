@@ -1,5 +1,5 @@
 /**
- * E2E tests for CLI Agent v0.40.3 enhancements:
+ * E2E tests for CLI Agent v0.41.0 enhancements:
  * - run_code tool in TOOLS definition
  * - Upgraded default models (qwen2.5:7b)
  * - Enhanced system prompt
@@ -27,7 +27,7 @@ function run(args, options = {}) {
   });
 }
 
-describe("E2E: Agent v0.40.3 Enhancements", () => {
+describe("E2E: Agent v0.41.0 Enhancements", () => {
   // ─── agent --help validation ──────────────────────────────
 
   describe("agent --help", () => {
@@ -267,9 +267,9 @@ describe("E2E: Agent v0.40.3 Enhancements", () => {
   // ─── version bump ─────────────────────────────────────────
 
   describe("version bump", () => {
-    it("CLI version should be 0.40.3", () => {
+    it("CLI version should be 0.41.0", () => {
       const result = run("--version");
-      expect(result.trim()).toBe("0.40.3");
+      expect(result.trim()).toBe("0.41.0");
     });
   });
 });
