@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/contract-ipc.js`
 
-**Generated**: 2026-03-13T10:34:33.130Z
+**Generated**: 2026-03-14T05:04:59.410Z
 
 ---
 

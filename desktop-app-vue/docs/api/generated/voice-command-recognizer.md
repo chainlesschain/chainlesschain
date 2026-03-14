@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/voice-command-recognizer.js`
 
-**Generated**: 2026-03-13T10:34:33.028Z
+**Generated**: 2026-03-14T05:04:59.298Z
 
 ---
 

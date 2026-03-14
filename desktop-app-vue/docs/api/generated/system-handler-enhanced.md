@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/handlers/system-handler-enhanced.js`
 
-**Generated**: 2026-03-13T10:34:33.049Z
+**Generated**: 2026-03-14T05:04:59.323Z
 
 ---
 

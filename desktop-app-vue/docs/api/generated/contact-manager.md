@@ -2,7 +2,7 @@
 
 **Source**: `src/main/contacts/contact-manager.js`
 
-**Generated**: 2026-03-13T10:34:33.114Z
+**Generated**: 2026-03-14T05:04:59.394Z
 
 ---
 

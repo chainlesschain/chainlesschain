@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/permission-gate.js`
 
-**Generated**: 2026-03-13T10:34:33.046Z
+**Generated**: 2026-03-14T05:04:59.321Z
 
 ---
 

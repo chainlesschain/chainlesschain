@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/pc-status-handler.js`
 
-**Generated**: 2026-03-13T10:34:33.064Z
+**Generated**: 2026-03-14T05:04:59.343Z
 
 ---
 
