@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/memory-sync-ipc.js`
 
-**Generated**: 2026-03-14T16:21:44.309Z
+**Generated**: 2026-03-14T17:43:59.897Z
 
 ---
 

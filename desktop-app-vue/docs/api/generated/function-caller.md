@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/function-caller.js`
 
-**Generated**: 2026-03-14T16:21:44.372Z
+**Generated**: 2026-03-14T17:43:59.970Z
 
 ---
 
@@ -431,6 +431,42 @@ addCacheableTool(toolName)
 ```
 
 * 手动添加可缓存工具
+
+---
+
+## static AGENT_CHAT_TOOL_NAMES = new Set([
+
+```javascript
+static AGENT_CHAT_TOOL_NAMES = new Set([
+```
+
+* Agent chat tool names — essential tools for autonomous code generation.
+   * @private
+
+---
+
+## getAgentChatTools()
+
+```javascript
+getAgentChatTools()
+```
+
+* Get a curated subset of tools suitable for agent chat mode.
+   * Returns OpenAI-compatible function definitions.
+   * @returns {Array<Object>} tool definitions in OpenAI format
+
+---
+
+## async executeAgentTool(toolName, params)
+
+```javascript
+async executeAgentTool(toolName, params)
+```
+
+* Execute a tool by name (thin wrapper around call() for agent-chat).
+   * @param {string} toolName
+   * @param {Object} params
+   * @returns {Promise<any>}
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/security/ipc-integration-example.js`
 
-**Generated**: 2026-03-14T16:21:44.283Z
+**Generated**: 2026-03-14T17:43:59.866Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/sdk/http-server.js`
 
-**Generated**: 2026-03-14T16:21:44.312Z
+**Generated**: 2026-03-14T17:43:59.901Z
 
 ---
 
@@ -31,10 +31,10 @@ const
 
 ---
 
-## const MCP_PROTOCOL_VERSION = '2024-11-05';
+## const MCP_PROTOCOL_VERSION = "2024-11-05";
 
 ```javascript
-const MCP_PROTOCOL_VERSION = '2024-11-05';
+const MCP_PROTOCOL_VERSION = "2024-11-05";
 ```
 
 * MCP protocol version supported by this server
@@ -99,30 +99,30 @@ constructor(config =
 
 ---
 
-## this.name = config.name || 'mcp-http-server';
+## this.name = config.name || "mcp-http-server";
 
 ```javascript
-this.name = config.name || 'mcp-http-server';
+this.name = config.name || "mcp-http-server";
 ```
 
 @type {string} Server name
 
 ---
 
-## this.version = config.version || '1.0.0';
+## this.version = config.version || "1.0.0";
 
 ```javascript
-this.version = config.version || '1.0.0';
+this.version = config.version || "1.0.0";
 ```
 
 @type {string} Server version
 
 ---
 
-## this.description = config.description || '';
+## this.description = config.description || "";
 
 ```javascript
-this.description = config.description || '';
+this.description = config.description || "";
 ```
 
 @type {string} Server description
