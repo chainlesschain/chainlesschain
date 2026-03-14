@@ -201,7 +201,7 @@ start.bat
 - 🔌 735+ IPC处理器 (+178 v5.0)
 - 🧪 20,400+ 测试用例 (+646 v5.0)
 - 🎨 138个内置技能 + 统一工具注册表
-- 💻 59个CLI命令 + 5核心包 (2009测试) + 6维Context Engineering + Autonomous Agent + EvoMap + 7 LLM Providers + Phase 7-8 企业CLI
+- 💻 59个CLI命令 + 5核心包 (2009测试) + 6维Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + Phase 7-8 企业CLI
 - 💾 95+ 张数据库表
 - 🏗️ 64个Pinia Store
 - 🔧 102个开发阶段完成 (Phase 1-102)

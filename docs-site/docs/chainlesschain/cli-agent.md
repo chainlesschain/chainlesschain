@@ -34,13 +34,14 @@ agent 命令 → agent.js (Commander) → agent-repl.js
                                       Task重述
                                       Permanent Memory
                                       Compaction Summary
-                          Multi-Provider (7 LLM)
+                          Multi-Provider (8 LLM)
+                          Task Model Selector
 ```
 
 ## 概述
 
 启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、调用 138 个内置技能。
-支持 7 个 LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini）和自主模式（/auto）。
+支持 8 个 LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine）和自主模式（/auto）。Agent 模式下自动根据任务类型智能选择最佳模型。
 通过 6 维 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）、任务目标提醒、跨会话持久记忆（Permanent Memory）和压缩摘要（Compaction Summary），使 AI 保持上下文聚焦。
 
 ## 命令参考
@@ -59,7 +60,7 @@ chainlesschain agent --session <id>     # 恢复历史会话
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
 | `--model <model>` | LLM 模型名称 | `qwen2:7b` |
-| `--provider <provider>` | LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini） | `ollama` |
+| `--provider <provider>` | LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine） | `ollama` |
 | `--base-url <url>` | API 基础 URL | `http://localhost:11434` |
 | `--api-key <key>` | API 密钥 | — |
 | `--session <id>` | 恢复历史会话 | — |
@@ -129,7 +130,7 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 | `/exit`          | 退出代理                             |
 | `/help`          | 显示所有命令帮助                     |
 | `/model <name>`  | 切换/查看模型                        |
-| `/provider <p>`  | 切换/查看提供商，支持 7 个提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini) |
+| `/provider <p>`  | 切换/查看提供商，支持 8 个提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) |
 | `/clear`         | 清空对话历史                         |
 | `/compact`       | 智能压缩对话（基于重要性评分）       |
 
@@ -277,6 +278,78 @@ Token 消耗: 12,450 / 50,000
 已完成重构，提取了 3 个公共方法到 common.js。
 ```
 
+### 使用火山引擎（豆包）Agent 模式
+
+```bash
+# 设置环境变量
+export VOLCENGINE_API_KEY=ark-xxxxxxxxxxxx
+
+# 启动 Agent（默认旗舰模型 doubao-seed-1-6-251015）
+chainlesschain agent --provider volcengine
+
+# 指定代码模型
+chainlesschain agent --provider volcengine --model doubao-seed-code
+```
+
+Agent 模式下会自动根据任务类型智能选择最佳模型���
+
+```
+you> 写一个 Python 快速排序函数
+[auto] 代码任务 → doubao-seed-code
+ai>  def quicksort(arr): ...
+
+you> 分析 TCP 三次握手的过程
+[auto] 复杂推理 → doubao-seed-1-6-251015
+ai>  TCP三次握手过程如下：...
+
+you> 今天天气怎么样？
+ai>  (使用默认 flash 模型，快速响应)
+```
+
+### 使用 OpenAI / DeepSeek Agent 模式
+
+```bash
+# OpenAI
+export OPENAI_API_KEY=sk-xxxxxxxxxxxx
+chainlesschain agent --provider openai --model gpt-4o
+
+# DeepSeek
+export DEEPSEEK_API_KEY=sk-xxxxxxxxxxxx
+chainlesschain agent --provider deepseek --model deepseek-chat
+```
+
+### 通过中转站使用 Agent 模式（无需科学上网）
+
+```bash
+# 通过 API2D 中转站使用 GPT-4o
+chainlesschain agent \
+  --provider openai \
+  --base-url https://oa.api2d.net/v1 \
+  --api-key fk-xxxxxx \
+  --model gpt-4o
+
+# 通过 One-API 网关
+chainlesschain agent \
+  --provider openai \
+  --base-url http://localhost:3000/v1 \
+  --api-key sk-oneapi-xxxxxx \
+  --model gpt-4o
+
+# 火山引擎通过代理
+chainlesschain agent \
+  --provider volcengine \
+  --base-url https://your-proxy.com/volcengine/v3 \
+  --model doubao-seed-1-6-251015
+
+# 企业 Nginx 反向代理
+chainlesschain agent \
+  --provider openai \
+  --base-url https://ai-gateway.company.com/v1 \
+  --model gpt-4o
+```
+
+> **提示**: `--base-url` 覆盖提供商默认地址，但保留 OpenAI 兼容的 API 格式。所有支持 `/chat/completions` 接口的中转站和代理均可使用。
+
 ### Context Engineering 使用
 
 ```
@@ -286,7 +359,7 @@ Token 消耗: 12,450 / 50,000
 
 > 查看当前进度
 
-🤖 当前任务: 重构认证模块
+🤖 当前���务: 重构认证模块
 [Context Engine 自动注入任务提醒 + 相关记忆 + 用户偏好]
 ...
 
@@ -352,6 +425,7 @@ Resumed session session-17... (8 messages)
 
 ## 相关文档
 
+- [LLM 中转站与自定义接入](./cli-llm-proxy) — 中转站、代理、自建网关完整指南
 - [技能系统](./cli-skill) — 138 个内置技能
 - [Plan Mode](./plan-mode) — 桌面端 Plan Mode 详情
 - [AI 对话](./cli-chat) — 基础对话功能

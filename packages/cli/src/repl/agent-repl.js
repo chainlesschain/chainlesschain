@@ -35,6 +35,10 @@ import {
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
 import { createChatFn } from "../lib/cowork-adapter.js";
+import {
+  detectTaskType,
+  selectModelForTask,
+} from "../lib/task-model-selector.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
 import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
@@ -565,6 +569,7 @@ async function chatWithTools(rawMessages, options) {
     dashscope: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     mistral: "https://api.mistral.ai/v1",
     gemini: "https://generativelanguage.googleapis.com/v1beta/openai",
+    volcengine: "https://ark.cn-beijing.volces.com/api/v3",
   };
 
   const providerApiKeyEnvs = {
@@ -573,6 +578,7 @@ async function chatWithTools(rawMessages, options) {
     dashscope: "DASHSCOPE_API_KEY",
     mistral: "MISTRAL_API_KEY",
     gemini: "GEMINI_API_KEY",
+    volcengine: "VOLCENGINE_API_KEY",
   };
 
   const url =
@@ -582,7 +588,7 @@ async function chatWithTools(rawMessages, options) {
 
   if (!url) {
     throw new Error(
-      `Unsupported provider: ${provider}. Supported: ollama, anthropic, openai, deepseek, dashscope, mistral, gemini`,
+      `Unsupported provider: ${provider}. Supported: ollama, anthropic, openai, deepseek, dashscope, mistral, gemini, volcengine`,
     );
   }
 
@@ -596,6 +602,7 @@ async function chatWithTools(rawMessages, options) {
     dashscope: "qwen-turbo",
     mistral: "mistral-large-latest",
     gemini: "gemini-2.0-flash",
+    volcengine: "doubao-seed-1-6-251015",
   };
 
   const response = await fetch(`${url}/chat/completions`, {
@@ -769,7 +776,7 @@ export async function startAgentRepl(options = {}) {
   let model = options.model || "qwen2:7b";
   let provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
-  const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
+  const apiKey = options.apiKey || null;
 
   // Bootstrap runtime (best-effort, DB not required)
   let db = null;
@@ -974,6 +981,7 @@ export async function startAgentRepl(options = {}) {
           "dashscope",
           "mistral",
           "gemini",
+          "volcengine",
         ];
         if (supported.includes(arg)) {
           provider = arg;
@@ -987,7 +995,7 @@ export async function startAgentRepl(options = {}) {
         logger.info(`Current provider: ${chalk.cyan(provider)}`);
         logger.info(
           chalk.gray(
-            "Available: ollama, anthropic, openai, deepseek, dashscope, mistral, gemini",
+            "Available: ollama, anthropic, openai, deepseek, dashscope, mistral, gemini, volcengine",
           ),
         );
       }
@@ -1556,11 +1564,24 @@ export async function startAgentRepl(options = {}) {
     // Add user message
     messages.push({ role: "user", content: trimmed });
 
+    // Auto-select best model based on task type
+    let activeModel = model;
+    const taskDetection = detectTaskType(trimmed);
+    if (taskDetection.confidence > 0.3) {
+      const recommended = selectModelForTask(provider, taskDetection.taskType);
+      if (recommended && recommended !== activeModel) {
+        activeModel = recommended;
+        logger.info(
+          chalk.gray(`[auto] ${taskDetection.name} → ${activeModel}`),
+        );
+      }
+    }
+
     try {
       process.stdout.write("\n");
       const response = await agentLoop(messages, {
         provider,
-        model,
+        model: activeModel,
         baseUrl,
         apiKey,
         contextEngine,

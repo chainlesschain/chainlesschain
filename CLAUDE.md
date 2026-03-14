@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 59 Commands/2009 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 7 LLM Providers + 4200+ Tests + 12 Store Test Files) - Updated 2026-03-13
+**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 59 Commands/2009 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + 4200+ Tests + 12 Store Test Files) - Updated 2026-03-14
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -123,7 +123,7 @@ chainlesschain mcp add fs -c npx -a "-y,@modelcontextprotocol/server-filesystem"
 chainlesschain mcp tools               # List available tools
 chainlesschain browse fetch https://example.com  # Fetch web page
 chainlesschain browse scrape <url> -s "h2"       # Scrape elements
-chainlesschain llm providers           # List 7 LLM providers
+chainlesschain llm providers           # List 8 LLM providers
 chainlesschain llm switch anthropic    # Switch active provider
 chainlesschain instinct show           # Learned preferences
 

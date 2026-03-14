@@ -774,7 +774,7 @@ agent-repl.js
 | `/plan risk` | 显示风险评估报告 |
 | `/cowork graph` | ASCII 代码知识图谱 |
 | `/cowork decision` | 决策追踪知识库 |
-| `/provider <p>` | 切换提供商 (7 providers: ollama/anthropic/openai/deepseek/dashscope/mistral/gemini) |
+| `/provider <p>` | 切换提供商 (8 providers: ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) |
 
 ### 8.5 测试
 
@@ -918,7 +918,7 @@ GEP-A2A (Gene Exchange Protocol) HTTP 客户端 + 本地 gene 管理。
 | 增强 | 说明 |
 |------|------|
 | Hook 管道 | `executeTool()` 前后触发 PreToolUse/PostToolUse/ToolError |
-| 多 Provider | 7 个 LLM 提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini) |
+| 多 Provider | 8 个 LLM 提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) + 任务智能模型选择 |
 | Anthropic 适配 | `_normalizeAnthropicResponse()` 转换 tool_use → tool_calls 格式 |
 | 自主模式 | `/auto` 系列命令集成 CLIAutonomousAgent |
 | Cowork 扩展 | `/cowork graph` (ASCII 知识图谱), `/cowork decision` (决策追踪) |

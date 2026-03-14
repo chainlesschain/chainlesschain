@@ -70,6 +70,19 @@ export const BUILT_IN_PROVIDERS = {
     ],
     free: false,
   },
+  volcengine: {
+    name: "volcengine",
+    displayName: "Volcengine (豆包)",
+    baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+    apiKeyEnv: "VOLCENGINE_API_KEY",
+    models: [
+      "doubao-seed-1-6-251015",
+      "doubao-seed-1-6-flash-250828",
+      "doubao-seed-1-6-lite-251015",
+      "doubao-seed-code",
+    ],
+    free: false,
+  },
 };
 
 /**
@@ -302,7 +315,7 @@ export class LLMProviderRegistry {
       return { ok: true, elapsed: Date.now() - start, response: text.trim() };
     }
 
-    // OpenAI-compatible (openai, deepseek, dashscope, mistral)
+    // OpenAI-compatible (openai, deepseek, dashscope, mistral, volcengine)
     const key = this.getApiKey(name);
     if (!key) throw new Error(`${provider.apiKeyEnv} not set`);
     const res = await fetch(`${provider.baseUrl}/chat/completions`, {

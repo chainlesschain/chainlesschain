@@ -11,6 +11,7 @@
 import readline from "readline";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
 
 const SLASH_COMMANDS = {
   "/exit": "Exit the chat",
@@ -128,7 +129,7 @@ export async function startChatRepl(options = {}) {
   let model = options.model || "qwen2:7b";
   let provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
-  const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
+  const apiKey = options.apiKey || null;
 
   const messages = [];
 
@@ -236,14 +237,21 @@ export async function startChatRepl(options = {}) {
 
       if (provider === "ollama") {
         response = await streamOllama(messages, model, baseUrl, onToken);
-      } else if (provider === "openai") {
+      } else {
+        // OpenAI-compatible providers (openai, volcengine, deepseek, dashscope, mistral, gemini, anthropic-proxy)
+        const providerDef = BUILT_IN_PROVIDERS[provider];
         const url =
           baseUrl !== "http://localhost:11434"
             ? baseUrl
-            : "https://api.openai.com/v1";
-        response = await streamOpenAI(messages, model, url, apiKey, onToken);
-      } else {
-        throw new Error(`Unsupported provider: ${provider}`);
+            : providerDef?.baseUrl || "https://api.openai.com/v1";
+        const key =
+          apiKey ||
+          (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
+        if (!key)
+          throw new Error(
+            `API key required for ${provider} (set ${providerDef?.apiKeyEnv || "API key"})`,
+          );
+        response = await streamOpenAI(messages, model, url, key, onToken);
       }
 
       process.stdout.write("\n\n");
