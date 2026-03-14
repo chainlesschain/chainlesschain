@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/sqlcipher-wrapper.js`
 
-**Generated**: 2026-03-13T10:34:33.109Z
+**Generated**: 2026-03-14T05:04:59.387Z
 
 ---
 
