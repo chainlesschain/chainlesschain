@@ -207,10 +207,10 @@ describe("Task Model Selector", () => {
 
     it("should return correct volcengine models for all task types", () => {
       expect(selectModelForTask("volcengine", TaskType.CHAT)).toBe(
-        "doubao-seed-1-6-flash-250828",
+        "doubao-seed-1-6-251015",
       );
       expect(selectModelForTask("volcengine", TaskType.CODE)).toBe(
-        "doubao-seed-code",
+        "doubao-seed-1-6-251015",
       );
       expect(selectModelForTask("volcengine", TaskType.REASONING)).toBe(
         "doubao-seed-1-6-251015",
@@ -277,10 +277,13 @@ describe("Task Model Selector", () => {
       expect(selectModelForTask("volcengine", "nonexistent")).toBeNull();
     });
 
-    it("should return different models for code vs chat on volcengine", () => {
-      const codeModel = selectModelForTask("volcengine", TaskType.CODE);
-      const chatModel = selectModelForTask("volcengine", TaskType.CHAT);
-      expect(codeModel).not.toBe(chatModel);
+    it("should return different models for fast vs reasoning on volcengine", () => {
+      const fastModel = selectModelForTask("volcengine", TaskType.FAST);
+      const reasoningModel = selectModelForTask(
+        "volcengine",
+        TaskType.REASONING,
+      );
+      expect(fastModel).not.toBe(reasoningModel);
     });
   });
 

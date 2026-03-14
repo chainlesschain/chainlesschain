@@ -526,12 +526,100 @@ await sessionManager.export('session-123', {
 
 ---
 
+## WebSocket 会话管理 (v0.41.0)
+
+> 通过 WebSocket 服务器管理有状态的 agent/chat 会话，支持远程创建、恢复和交互。
+
+### WSSessionManager
+
+CLI WebSocket 服务器使用独立的 `WSSessionManager` 管理 WebSocket 会话，与桌面端 `SessionManager` 共享底层 SQLite 持久化。
+
+```
+┌─────────────────────────────────────────┐
+│        WSSessionManager                 │
+│  (创建/恢复/关闭/列出/持久化)           │
+└──────┬──────┬──────┬──────────────────┘
+       │      │      │
+       ▼      ▼      ▼
+┌──────────┐┌──────────────┐┌───────────────────┐
+│ Agent    ││ Chat         ││ Interaction       │
+│ Handler  ││ Handler      ││ Adapter           │
+│ (工具+   ││ (流式对话)   ││ (Terminal/WS)     │
+│  agentLoop)│             ││                   │
+└──────────┘└──────────────┘└───────────────────┘
+       │                          │
+       ▼                          ▼
+┌──────────────┐          ┌──────────────────┐
+│ SQLite 持久化 │          │ Per-Session 隔离  │
+│ (session-    │          │ ContextEngine    │
+│  manager.js) │          │ PermanentMemory  │
+└──────────────┘          │ PlanModeManager  │
+                          └──────────────────┘
+```
+
+### Per-Session 隔离
+
+每个 WebSocket 会话拥有独立的上下文实例，避免多会话间状态污染：
+
+| 组件 | 隔离级别 | 说明 |
+|------|----------|------|
+| `messages[]` | per-session | 完整对话历史 |
+| `CLIContextEngineering` | per-session | 上下文注入引擎 |
+| `CLIPermanentMemory` | per-session | 永久记忆 |
+| `PlanModeManager` | per-session | 规划模式（非单例） |
+| `WebSocketInteractionAdapter` | per-session | 交互抽象 |
+
+### 创建 WebSocket 会话
+
+```javascript
+// 通过 WebSocket 创建 agent 会话
+ws.send(JSON.stringify({
+  id: '1',
+  type: 'session-create',
+  sessionType: 'agent',
+  provider: 'ollama',
+  model: 'qwen2.5:7b',
+  projectRoot: '/path/to/project'
+}));
+
+// 响应
+// {"id":"1","type":"session-created","sessionId":"session-abc123","sessionType":"agent"}
+```
+
+### 恢复 WebSocket 会话
+
+```javascript
+// 从 DB 恢复之前的会话
+ws.send(JSON.stringify({
+  id: '2',
+  type: 'session-resume',
+  sessionId: 'session-abc123'
+}));
+
+// 响应包含历史消息（已过滤 system 消息）
+// {"id":"2","type":"session-resumed","sessionId":"session-abc123","history":[...]}
+```
+
+### 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `packages/cli/src/lib/ws-session-manager.js` | WS 会话注册表与生命周期管理 |
+| `packages/cli/src/lib/ws-agent-handler.js` | Agent 会话处理器 |
+| `packages/cli/src/lib/ws-chat-handler.js` | Chat 会话处理器 |
+| `packages/cli/src/lib/interaction-adapter.js` | 交互抽象层（Terminal/WebSocket） |
+
+详见 [WebSocket 服务器](/chainlesschain/cli-serve) 文档。
+
+---
+
 ## 相关文档
 
 - [Context Engineering](/chainlesschain/context-engineering) - KV-Cache 优化与上下文工程
 - [Permanent Memory](/chainlesschain/permanent-memory) - 永久记忆系统详解
 - [AI 模型配置](/chainlesschain/ai-models) - 本地 AI 模型管理
 - [Token 追踪](/chainlesschain/token-tracker) - Token 使用量统计与分析
+- [WebSocket 服务器](/chainlesschain/cli-serve) - WebSocket 会话协议详解
 
 ---
 

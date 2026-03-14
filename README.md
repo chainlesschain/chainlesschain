@@ -56,6 +56,7 @@ chainlesschain start    # 启动应用
 - ✅ **EvoMap 基因交换** — `evomap search|download|publish|list|hubs` GEP-A2A 协议客户端 + 联邦Hub管理 + 基因治理
 - ✅ **CLI-Anything 集成** — `cli-anything doctor|scan|register|list|remove` 将任意软件 Agent 化，自动注册为 managed 层技能
 - ✅ **WebSocket 服务器** — `serve` 命令通过 WebSocket 暴露全部 CLI 命令，支持 execute/stream/cancel + Token 认证 + 心跳检测 + 命令注入防护
+- ✅ **WebSocket 有状态会话** — 通过 WS 创建/恢复/管理 agent/chat 会话，支持项目上下文绑定、SlotFiller 参数填充、InteractivePlanner 交互式规划 (2432 测试/109 文件)
 - ✅ **DAO 治理 v2** — 二次方投票 + 投票委托 + 国库管理 + 提案生命周期 (`dao` 命令)
 - ✅ **安全合规 CLI** — 合规管理 (GDPR/SOC2/HIPAA/ISO27001) + 数据防泄漏 (DLP) + SIEM 日志导出 + 后量子密码 (PQC)
 - ✅ **通信桥接 CLI** — Nostr 桥接 (NIP-01) + Matrix 桥接 (E2EE) + SCIM 2.0 用户配置

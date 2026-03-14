@@ -8,54 +8,58 @@
  * @version 1.0.0
  */
 
-const EventEmitter = require('events');
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs').promises;
-const os = require('os');
-const { logger } = require('../utils/logger.js');
+const EventEmitter = require("events");
+const { spawn } = require("child_process");
+const path = require("path");
+const fs = require("fs").promises;
+const os = require("os");
+const { logger } = require("../utils/logger.js");
 
 /**
  * Available Edge TTS voices (commonly used)
  */
 const EDGE_VOICES = {
   // Chinese
-  'zh-CN-XiaoxiaoNeural': { language: 'zh-CN', gender: 'Female', name: 'Xiaoxiao' },
-  'zh-CN-YunxiNeural': { language: 'zh-CN', gender: 'Male', name: 'Yunxi' },
-  'zh-CN-YunyangNeural': { language: 'zh-CN', gender: 'Male', name: 'Yunyang' },
-  'zh-CN-XiaoyiNeural': { language: 'zh-CN', gender: 'Female', name: 'Xiaoyi' },
+  "zh-CN-XiaoxiaoNeural": {
+    language: "zh-CN",
+    gender: "Female",
+    name: "Xiaoxiao",
+  },
+  "zh-CN-YunxiNeural": { language: "zh-CN", gender: "Male", name: "Yunxi" },
+  "zh-CN-YunyangNeural": { language: "zh-CN", gender: "Male", name: "Yunyang" },
+  "zh-CN-XiaoyiNeural": { language: "zh-CN", gender: "Female", name: "Xiaoyi" },
 
   // English US
-  'en-US-JennyNeural': { language: 'en-US', gender: 'Female', name: 'Jenny' },
-  'en-US-GuyNeural': { language: 'en-US', gender: 'Male', name: 'Guy' },
-  'en-US-AriaNeural': { language: 'en-US', gender: 'Female', name: 'Aria' },
-  'en-US-DavisNeural': { language: 'en-US', gender: 'Male', name: 'Davis' },
+  "en-US-JennyNeural": { language: "en-US", gender: "Female", name: "Jenny" },
+  "en-US-GuyNeural": { language: "en-US", gender: "Male", name: "Guy" },
+  "en-US-AriaNeural": { language: "en-US", gender: "Female", name: "Aria" },
+  "en-US-DavisNeural": { language: "en-US", gender: "Male", name: "Davis" },
 
   // English UK
-  'en-GB-SoniaNeural': { language: 'en-GB', gender: 'Female', name: 'Sonia' },
-  'en-GB-RyanNeural': { language: 'en-GB', gender: 'Male', name: 'Ryan' },
+  "en-GB-SoniaNeural": { language: "en-GB", gender: "Female", name: "Sonia" },
+  "en-GB-RyanNeural": { language: "en-GB", gender: "Male", name: "Ryan" },
 
   // Japanese
-  'ja-JP-NanamiNeural': { language: 'ja-JP', gender: 'Female', name: 'Nanami' },
-  'ja-JP-KeitaNeural': { language: 'ja-JP', gender: 'Male', name: 'Keita' },
+  "ja-JP-NanamiNeural": { language: "ja-JP", gender: "Female", name: "Nanami" },
+  "ja-JP-KeitaNeural": { language: "ja-JP", gender: "Male", name: "Keita" },
 
   // Korean
-  'ko-KR-SunHiNeural': { language: 'ko-KR', gender: 'Female', name: 'SunHi' },
-  'ko-KR-InJoonNeural': { language: 'ko-KR', gender: 'Male', name: 'InJoon' },
+  "ko-KR-SunHiNeural": { language: "ko-KR", gender: "Female", name: "SunHi" },
+  "ko-KR-InJoonNeural": { language: "ko-KR", gender: "Male", name: "InJoon" },
 };
 
 /**
  * Default configuration
  */
 const DEFAULT_CONFIG = {
-  defaultVoice: 'zh-CN-XiaoxiaoNeural',
-  rate: '+0%',
-  volume: '+0%',
-  pitch: '+0Hz',
-  outputFormat: 'audio-24khz-48kbitrate-mono-mp3',
+  defaultVoice: "zh-CN-XiaoxiaoNeural",
+  rate: "+0%",
+  volume: "+0%",
+  pitch: "+0Hz",
+  outputFormat: "audio-24khz-48kbitrate-mono-mp3",
   cacheEnabled: true,
   cacheDir: null, // Set during initialization
-  pythonPath: 'python',
+  pythonPath: "python",
 };
 
 /**
@@ -76,7 +80,7 @@ class EdgeTTSClient extends EventEmitter {
     // Cache for generated audio
     this.cache = new Map();
 
-    logger.info('[EdgeTTSClient] Initialized');
+    logger.info("[EdgeTTSClient] Initialized");
   }
 
   /**
@@ -99,12 +103,12 @@ class EdgeTTSClient extends EventEmitter {
    */
   async checkStatus() {
     try {
-      await this._runCommand(['--version']);
+      await this._runCommand(["--version"]);
       this.available = true;
 
       // Try to get voice list
       try {
-        const voicesOutput = await this._runCommand(['--list-voices']);
+        const voicesOutput = await this._runCommand(["--list-voices"]);
         this._parseVoiceList(voicesOutput);
       } catch (e) {
         // Use default voice list
@@ -117,11 +121,11 @@ class EdgeTTSClient extends EventEmitter {
       };
     } catch (error) {
       this.available = false;
-      logger.warn('[EdgeTTSClient] Not available:', error.message);
+      logger.warn("[EdgeTTSClient] Not available:", error.message);
       return {
         available: false,
         error: error.message,
-        installHint: 'Install edge-tts: pip install edge-tts',
+        installHint: "Install edge-tts: pip install edge-tts",
       };
     }
   }
@@ -136,12 +140,14 @@ class EdgeTTSClient extends EventEmitter {
     if (!this.available) {
       const status = await this.checkStatus();
       if (!status.available) {
-        throw new Error('Edge TTS is not available. ' + (status.installHint || ''));
+        throw new Error(
+          "Edge TTS is not available. " + (status.installHint || ""),
+        );
       }
     }
 
-    if (!text || typeof text !== 'string') {
-      throw new Error('Please provide text to synthesize');
+    if (!text || typeof text !== "string") {
+      throw new Error("Please provide text to synthesize");
     }
 
     const voice = options.voice || this.config.defaultVoice;
@@ -160,7 +166,7 @@ class EdgeTTSClient extends EventEmitter {
       };
     }
 
-    this.emit('synthesis-start', { text: text.slice(0, 50), voice });
+    this.emit("synthesis-start", { text: text.slice(0, 50), voice });
 
     try {
       const startTime = Date.now();
@@ -168,24 +174,30 @@ class EdgeTTSClient extends EventEmitter {
       // Create temp output file
       const tempFile = path.join(
         this.config.cacheDir || os.tmpdir(),
-        `edge_tts_${Date.now()}.mp3`
+        `edge_tts_${Date.now()}.mp3`,
       );
 
       // Build command arguments
       const args = [
-        '--text', text,
-        '--voice', voice,
-        '--rate', rate,
-        '--volume', volume,
-        '--pitch', pitch,
-        '--write-media', tempFile,
+        "--text",
+        text,
+        "--voice",
+        voice,
+        "--rate",
+        rate,
+        "--volume",
+        volume,
+        "--pitch",
+        pitch,
+        "--write-media",
+        tempFile,
       ];
 
       await this._runCommand(args);
 
       // Read the generated file
       const audioData = await fs.readFile(tempFile);
-      const base64Audio = audioData.toString('base64');
+      const base64Audio = audioData.toString("base64");
 
       // Clean up temp file if not caching
       if (!this.config.cacheEnabled) {
@@ -199,20 +211,20 @@ class EdgeTTSClient extends EventEmitter {
         this.cache.set(cacheKey, base64Audio);
       }
 
-      this.emit('synthesis-complete', { duration, voice });
+      this.emit("synthesis-complete", { duration, voice });
 
       return {
         success: true,
         audio: base64Audio,
-        format: 'mp3',
-        mimeType: 'audio/mpeg',
+        format: "mp3",
+        mimeType: "audio/mpeg",
         voice,
         duration,
         textLength: text.length,
         filePath: this.config.cacheEnabled ? tempFile : null,
       };
     } catch (error) {
-      this.emit('synthesis-error', { error: error.message, voice });
+      this.emit("synthesis-error", { error: error.message, voice });
       throw new Error(`Synthesis failed: ${error.message}`);
     }
   }
@@ -226,7 +238,7 @@ class EdgeTTSClient extends EventEmitter {
    */
   async synthesizeToFile(text, outputPath, options = {}) {
     if (!this.available) {
-      throw new Error('Edge TTS is not available');
+      throw new Error("Edge TTS is not available");
     }
 
     const voice = options.voice || this.config.defaultVoice;
@@ -235,17 +247,23 @@ class EdgeTTSClient extends EventEmitter {
     const pitch = options.pitch || this.config.pitch;
 
     const args = [
-      '--text', text,
-      '--voice', voice,
-      '--rate', rate,
-      '--volume', volume,
-      '--pitch', pitch,
-      '--write-media', outputPath,
+      "--text",
+      text,
+      "--voice",
+      voice,
+      "--rate",
+      rate,
+      "--volume",
+      volume,
+      "--pitch",
+      pitch,
+      "--write-media",
+      outputPath,
     ];
 
     if (options.includeSubtitles) {
-      const subtitlePath = outputPath.replace(/\.[^.]+$/, '.vtt');
-      args.push('--write-subtitles', subtitlePath);
+      const subtitlePath = outputPath.replace(/\.[^.]+$/, ".vtt");
+      args.push("--write-subtitles", subtitlePath);
     }
 
     await this._runCommand(args);
@@ -291,22 +309,22 @@ class EdgeTTSClient extends EventEmitter {
    */
   _runCommand(args) {
     return new Promise((resolve, reject) => {
-      const proc = spawn(this.config.pythonPath, ['-m', 'edge_tts', ...args], {
+      const proc = spawn(this.config.pythonPath, ["-m", "edge_tts", ...args], {
         windowsHide: true,
       });
 
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
 
-      proc.stdout.on('data', (data) => {
-        stdout += data.toString();
+      proc.stdout.on("data", (data) => {
+        stdout += data.toString("utf8");
       });
 
-      proc.stderr.on('data', (data) => {
-        stderr += data.toString();
+      proc.stderr.on("data", (data) => {
+        stderr += data.toString("utf8");
       });
 
-      proc.on('close', (code) => {
+      proc.on("close", (code) => {
         if (code === 0) {
           resolve(stdout);
         } else {
@@ -314,7 +332,7 @@ class EdgeTTSClient extends EventEmitter {
         }
       });
 
-      proc.on('error', (error) => {
+      proc.on("error", (error) => {
         reject(error);
       });
     });
@@ -326,22 +344,22 @@ class EdgeTTSClient extends EventEmitter {
    */
   _parseVoiceList(output) {
     try {
-      const lines = output.split('\n');
+      const lines = output.split("\n");
       for (const line of lines) {
         // Format: "Name: zh-CN-XiaoxiaoNeural, Gender: Female"
         const match = line.match(/Name:\s*(\S+),\s*Gender:\s*(\S+)/);
         if (match) {
           const [, name, gender] = match;
-          const lang = name.split('-').slice(0, 2).join('-');
+          const lang = name.split("-").slice(0, 2).join("-");
           this.voices[name] = {
             language: lang,
             gender,
-            name: name.split('-').pop().replace('Neural', ''),
+            name: name.split("-").pop().replace("Neural", ""),
           };
         }
       }
     } catch (error) {
-      logger.warn('[EdgeTTSClient] Failed to parse voice list');
+      logger.warn("[EdgeTTSClient] Failed to parse voice list");
     }
   }
 

@@ -374,7 +374,7 @@ class UserBrowserHandler extends EventEmitter {
 
     this.cdpConnection.on("message", (data) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message = JSON.parse(data.toString("utf8"));
         this.handleCDPMessage(message);
       } catch (error) {
         logger.error("[UserBrowserHandler] 解析 CDP 消息失败:", error);
@@ -1208,7 +1208,7 @@ class CDPSession {
   setupMessageHandler() {
     this.ws.on("message", (data) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message = JSON.parse(data.toString("utf8"));
         if (message.id !== undefined && this.pendingRequests.has(message.id)) {
           const { resolve, reject } = this.pendingRequests.get(message.id);
           this.pendingRequests.delete(message.id);

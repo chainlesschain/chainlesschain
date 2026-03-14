@@ -5,11 +5,14 @@
  * 浏览器扩展通过 Native Messaging 与桌面应用通信的桥梁
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // 日志文件路径
-const LOG_FILE = path.join(process.env.APPDATA || process.env.HOME, 'chainlesschain-native-host.log');
+const LOG_FILE = path.join(
+  process.env.APPDATA || process.env.HOME,
+  "chainlesschain-native-host.log",
+);
 
 /**
  * 写日志
@@ -58,7 +61,7 @@ function readMessage() {
 
           if (bytesRead === length) {
             try {
-              const message = JSON.parse(messageBuffer.toString('utf8'));
+              const message = JSON.parse(messageBuffer.toString("utf8"));
               resolve(message);
             } catch (error) {
               reject(error);
@@ -69,7 +72,7 @@ function readMessage() {
           }
         } else {
           // 等待更多数据
-          process.stdin.once('readable', readChunk);
+          process.stdin.once("readable", readChunk);
         }
       }
 
@@ -83,7 +86,7 @@ function readMessage() {
  */
 function sendMessage(message) {
   const json = JSON.stringify(message);
-  const buffer = Buffer.from(json, 'utf8');
+  const buffer = Buffer.from(json, "utf8");
 
   // 写入长度
   const lengthBuffer = Buffer.alloc(4);
@@ -103,15 +106,15 @@ async function handleMessage(message) {
   try {
     const { action, data } = message;
 
-    if (action === 'ping') {
+    if (action === "ping") {
       // 心跳检测
       return {
         success: true,
-        type: 'pong',
+        type: "pong",
       };
     }
 
-    if (action === 'clipPage') {
+    if (action === "clipPage") {
       // 剪藏页面
       // 这里需要与 Electron 主进程通信
       // 可以通过 IPC Socket 或 HTTP 请求实现
@@ -121,16 +124,15 @@ async function handleMessage(message) {
 
       return {
         success: true,
-        type: 'clipResult',
+        type: "clipResult",
         data: result,
       };
     }
 
     return {
       success: false,
-      error: '未知操作',
+      error: "未知操作",
     };
-
   } catch (error) {
     log(`处理消息失败: ${error.message}`);
     return {
@@ -150,23 +152,27 @@ async function clipPageToApp(data) {
   // 方案3: 通过文件系统（写入临时文件，主进程监听文件变化）
 
   // 这里使用方案1：HTTP 请求
-  const axios = require('axios');
+  const axios = require("axios");
 
   try {
-    const response = await axios.post('http://localhost:23456/api/clip', {
-      title: data.title,
-      type: data.type || 'web_clip',
-      content: data.content,
-      url: data.url,
-      tags: data.tags || [],
-      excerpt: data.excerpt || '',
-      author: data.author || '',
-      date: data.date || new Date().toISOString(),
-      domain: data.domain || '',
-      autoIndex: data.autoIndex !== false,
-    }, {
-      timeout: 10000,
-    });
+    const response = await axios.post(
+      "http://localhost:23456/api/clip",
+      {
+        title: data.title,
+        type: data.type || "web_clip",
+        content: data.content,
+        url: data.url,
+        tags: data.tags || [],
+        excerpt: data.excerpt || "",
+        author: data.author || "",
+        date: data.date || new Date().toISOString(),
+        domain: data.domain || "",
+        autoIndex: data.autoIndex !== false,
+      },
+      {
+        timeout: 10000,
+      },
+    );
 
     if (response.data && response.data.success) {
       return {
@@ -174,15 +180,14 @@ async function clipPageToApp(data) {
         title: response.data.data.title,
       };
     } else {
-      throw new Error(response.data?.error || '剪藏失败');
+      throw new Error(response.data?.error || "剪藏失败");
     }
-
   } catch (error) {
     log(`剪藏失败: ${error.message}`);
 
     // 如果 HTTP 请求失败，可能是桌面应用未运行
-    if (error.code === 'ECONNREFUSED') {
-      throw new Error('无法连接到 ChainlessChain，请确保桌面应用正在运行');
+    if (error.code === "ECONNREFUSED") {
+      throw new Error("无法连接到 ChainlessChain，请确保桌面应用正在运行");
     }
 
     throw error;
@@ -193,15 +198,15 @@ async function clipPageToApp(data) {
  * 主函数
  */
 async function main() {
-  log('Native Messaging Host 启动');
+  log("Native Messaging Host 启动");
 
   // 设置为二进制模式
-  if (process.platform === 'win32') {
-    require('child_process').execSync('chcp 65001'); // UTF-8
+  if (process.platform === "win32") {
+    require("child_process").execSync("chcp 65001", { stdio: "ignore" }); // UTF-8
   }
 
-  process.stdin.setEncoding('utf8');
-  process.stdout.setEncoding('utf8');
+  process.stdin.setEncoding("utf8");
+  process.stdout.setEncoding("utf8");
 
   try {
     while (true) {
@@ -210,7 +215,7 @@ async function main() {
 
       if (message === null) {
         // EOF，退出
-        log('收到 EOF，退出');
+        log("收到 EOF，退出");
         break;
       }
 
@@ -220,13 +225,12 @@ async function main() {
       // 发送响应
       sendMessage(response);
     }
-
   } catch (error) {
     log(`错误: ${error.message}`);
     log(error.stack);
   }
 
-  log('Native Messaging Host 退出');
+  log("Native Messaging Host 退出");
   process.exit(0);
 }
 

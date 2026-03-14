@@ -300,20 +300,120 @@ ws.onmessage = (event) => {
 └─────────────────────────────────────────────┘
 ```
 
+## 有状态会话（Session）
+
+> v0.41.0 新增
+
+除了无状态 RPC 命令执行，WebSocket 服务器还支持有状态的 agent/chat 会话，提供类似 Claude Code 的远程控制体验。
+
+### 会话协议
+
+#### Client → Server
+
+| type | 说明 | 额外字段 |
+|------|------|----------|
+| `session-create` | 创建 agent/chat 会话 | `sessionType` ("agent"\|"chat"), `provider`, `model`, `apiKey`, `baseUrl`, `projectRoot` |
+| `session-resume` | 从 DB 恢复历史会话 | `sessionId` |
+| `session-message` | 发送用户消息到会话 | `sessionId`, `content` |
+| `session-list` | 列出所有会话 | — |
+| `session-close` | 关闭会话 | `sessionId` |
+| `slash-command` | 发送 slash 命令 | `sessionId`, `command` |
+| `session-answer` | 回答 AI 的提问 | `sessionId`, `requestId`, `answer` |
+
+#### Server → Client
+
+| type | 说明 |
+|------|------|
+| `session-created` | 会话已创建，含 `sessionId`, `sessionType` |
+| `session-resumed` | 会话已恢复，含 `sessionId`, `history[]` |
+| `tool-executing` | 正在执行工具 |
+| `tool-result` | 工具执行结果 |
+| `response-token` | 流式 token |
+| `response-complete` | 完整响应 |
+| `question` | AI 向用户提问（参数确认） |
+| `session-list-result` | 会话列表 |
+
+### 会话示例
+
+```bash
+# 使用 wscat 创建 agent 会话
+wscat -c ws://127.0.0.1:18800
+
+> {"id":"1","type":"session-create","sessionType":"agent","provider":"ollama","model":"qwen2.5:7b"}
+< {"id":"1","type":"session-created","sessionId":"session-abc123","sessionType":"agent"}
+
+> {"id":"2","type":"session-message","sessionId":"session-abc123","content":"list files in current directory"}
+< {"id":"2","type":"tool-executing","tool":"list_dir","args":{"path":"."}}
+< {"id":"2","type":"tool-result","tool":"list_dir","result":{...}}
+< {"id":"2","type":"response-complete","content":"Here are the files..."}
+
+> {"id":"3","type":"slash-command","sessionId":"session-abc123","command":"/plan enter"}
+< {"id":"3","type":"command-response","result":"Entered plan mode."}
+
+> {"id":"4","type":"session-close","sessionId":"session-abc123"}
+< {"id":"4","type":"result","success":true,"sessionId":"session-abc123"}
+```
+
+### 项目上下文绑定
+
+创建会话时指定 `projectRoot`，服务器自动加载项目上下文：
+
+```json
+{
+  "id": "1",
+  "type": "session-create",
+  "sessionType": "agent",
+  "projectRoot": "/path/to/my/project"
+}
+```
+
+加载内容：
+- `{projectRoot}/.chainlesschain/rules.md` → 注入 system prompt
+- `{projectRoot}/.chainlesschain/skills/` → workspace 层 skills
+- `{projectRoot}/.chainlesschain/config.json` → 项目配置
+
+### 会话错误码
+
+| 错误码 | 说明 |
+|--------|------|
+| `NO_SESSION_SUPPORT` | 服务器未配置会话管理器 |
+| `SESSION_NOT_FOUND` | 找不到指定会话 |
+| `SESSION_CREATE_FAILED` | 会话创建失败 |
+| `MESSAGE_FAILED` | 消息处理失败 |
+
 ## 文件清单
 
 | 文件 | 说明 |
 |---|---|
 | `packages/cli/src/lib/ws-server.js` | WebSocket 服务器核心类 |
 | `packages/cli/src/commands/serve.js` | serve 命令注册 |
+| `packages/cli/src/lib/ws-session-manager.js` | 会话注册表与生命周期管理 |
+| `packages/cli/src/lib/ws-agent-handler.js` | Agent 会话处理器 |
+| `packages/cli/src/lib/ws-chat-handler.js` | Chat 会话处理器 |
+| `packages/cli/src/lib/interaction-adapter.js` | 用户交互抽象层 |
+| `packages/cli/src/lib/agent-core.js` | Agent 核心业务逻辑 |
+| `packages/cli/src/lib/chat-core.js` | Chat 流式核心逻辑 |
+| `packages/cli/src/lib/slot-filler.js` | 参数槽填充引擎 |
+| `packages/cli/src/lib/interactive-planner.js` | 交互式计划生成器 |
 
 ## 测试
 
 ```bash
 cd packages/cli
-npx vitest run __tests__/unit/ws-server.test.js        # 39 个单元测试
+
+# RPC 测试
+npx vitest run __tests__/unit/ws-server.test.js                 # 39 个单元测试
 npx vitest run __tests__/integration/ws-server-workflow.test.js  # 7 个集成测试
-npx vitest run __tests__/e2e/serve-command.test.js       # 8 个 E2E 测试
+npx vitest run __tests__/e2e/serve-command.test.js               # 8 个 E2E 测试
+
+# 会话测试
+npx vitest run __tests__/unit/ws-session-manager.test.js         # 20 个单元测试
+npx vitest run __tests__/unit/ws-agent-handler.test.js           # 18 个单元测试
+npx vitest run __tests__/unit/ws-chat-handler.test.js            # 8 个单元测试
+npx vitest run __tests__/unit/interaction-adapter.test.js        # 15 个单元测试
+npx vitest run __tests__/unit/slot-filler.test.js                # 22 个单元测试
+npx vitest run __tests__/unit/interactive-planner.test.js        # 20 个单元测试
+npx vitest run __tests__/integration/ws-session-workflow.test.js # 12 个集成测试
 ```
 
-共 54 个测试，覆盖 tokenizer、连接管理、认证、缓冲/流式执行、取消、超时、心跳、阻止命令等全部功能。
+共 204 个 WebSocket 相关测试，覆盖 RPC 命令执行、有状态会话、交互式规划等全部功能。

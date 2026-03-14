@@ -317,7 +317,7 @@ class VoiceVideoManager extends EventEmitter {
           }
 
           const data = Buffer.concat(chunks);
-          const message = JSON.parse(data.toString());
+          const message = JSON.parse(data.toString("utf8"));
 
           await this._handleCallSignaling(peerId, message);
         } catch (error) {

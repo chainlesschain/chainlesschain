@@ -5,6 +5,42 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.1.4] - 2026-03-15
+
+### Added
+
+- **WebSocket 有状态会话**: `chainlesschain serve` 新增 Agent/Chat 有状态会话支持
+  - `session-create`: 创建 agent/chat 会话，支持绑定项目上下文 (`projectRoot`)
+  - `session-resume`: 从数据库恢复历史会话
+  - `session-message`: 发送消息到会话，支持流式响应
+  - `session-list` / `session-close`: 会话列表与关闭
+  - `slash-command`: 在会话中执行 /plan、/model 等斜杠命令
+  - `session-answer`: 回答 SlotFiller/InteractivePlanner 的交互式提问
+  - `serve --project <path>`: 指定默认项目根目录
+  - 新增 ws-session-manager.js、ws-agent-handler.js、ws-chat-handler.js
+- **交互抽象层 (InteractionAdapter)**: 统一终端 REPL 和 WebSocket 两种用户交互模式
+  - `TerminalInteractionAdapter`: 封装 prompts.js 的终端交互
+  - `WebSocketInteractionAdapter`: 通过 WebSocket 发送 question 消息等待回答
+- **Agent/Chat 核心提取**: 从 REPL 模块提取可复用的业务逻辑
+  - `agent-core.js`: 异步生成器 `agentLoop`，yield 工具执行/响应事件
+  - `chat-core.js`: 异步生成器 `chatStream`，yield 流式 token 事件
+- **SlotFiller (��数槽填充)**: 从桌面版移植，适配 CLI
+  - 自动检测缺失参数、规则推断、LLM 推断、交互式提问
+  - 支持 6 种意图类型的必需参数定义
+  - 通过 InteractionAdapter 实现终端/WebSocket 双模式交互
+- **InteractivePlanner (交互式规划)**: 从桌面版移植，适配 CLI
+  - LLM ���动的计划生成 + 技能推荐
+  - 用户确认/调整/重新生成/取消工作流
+  - 与 PlanModeManager 深度集成
+- **新增 204 个 WebSocket 会话相关测试**，CLI 总计 4500+ 测试
+
+### Fixed
+
+- **全面修复中文编码 (乱码) 问题**: 修复 22 个文件共 49 处编码违规
+  - `data.toString()` → `data.toString("utf8")`: 40 处修复
+  - `execSync`/`spawnSync` 缺少 `encoding: "utf-8"`: 9 处修复
+  - 涉及文件：fine-tuning-manager、code-executor、python-sandbox、preview-manager、plugin-loader、python-bridge、automation-manager、gptq-quantizer、gguf-quantizer、whisper-client、local-tts-client、edge-tts-client、extended-tools-datascience、advanced-features-ipc、code-runner handler、did-manager、browser-extension-server、voice-video-manager、signaling-server、mobile-bridge、user-browser-handler、backend-service-manager 等
+
 ## [5.0.1.3] - 2026-03-14
 
 ### Added

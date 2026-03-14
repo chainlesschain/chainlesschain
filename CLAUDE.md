@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 61 Commands/2063 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + CLI-Anything Integration + WebSocket Server + 4200+ Tests + 12 Store Test Files) - Updated 2026-03-14
+**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 61 Commands/2432 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + 4500+ Tests + 12 Store Test Files) - Updated 2026-03-14
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -65,7 +65,7 @@ npm run test:ukey          # Run U-Key tests
 ```bash
 cd packages/cli
 npm install
-npm test                   # Run all tests (2009 tests, 89 files)
+npm test                   # Run all tests (2432 tests, 109 files)
 npm run test:unit          # Unit tests only
 npm run test:integration   # Integration tests
 npm run test:e2e           # End-to-end tests
@@ -282,6 +282,7 @@ chainlesschain serve                            # Start WebSocket server (port 1
 chainlesschain serve --port 9000                # Custom port
 chainlesschain serve --token <secret>           # Enable token auth
 chainlesschain serve --allow-remote --token <s> # Allow remote + auth
+chainlesschain serve --project /path/to/project # Default project root for sessions
 ```
 
 ### Backend Services (Docker-based)
@@ -359,10 +360,10 @@ Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing Cha
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
 - **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode, dao, compliance, dlp, siem, pqc, nostr, matrix, scim, terraform, hardening, social, cli-anything)
-- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode + /cowork + Context Engineering)
+- **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 9 tools + 138 skills + Plan Mode + /cowork + Context Engineering)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
-- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, cli-context-engineering, permanent-memory, autonomous-agent, content-recommender, evomap-client, evomap-manager, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder, evomap-federation, evomap-governance, dao-governance, compliance-manager, dlp-engine, siem-exporter, pqc-manager, nostr-bridge, matrix-bridge, scim-manager, terraform-manager, hardening-manager, social-manager, cli-anything-bridge)
-- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 1891 CLI tests = 2009 total)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, cli-context-engineering, permanent-memory, autonomous-agent, content-recommender, evomap-client, evomap-manager, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder, evomap-federation, evomap-governance, dao-governance, compliance-manager, dlp-engine, siem-exporter, pqc-manager, nostr-bridge, matrix-bridge, scim-manager, terraform-manager, hardening-manager, social-manager, cli-anything-bridge, ws-server, ws-session-manager, ws-agent-handler, ws-chat-handler, interaction-adapter, agent-core, chat-core, slot-filler, interactive-planner)
+- **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 2314 CLI tests = 2432 total)
 - **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 
 ### Backend Services

@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * GGUF Quantizer - llama.cpp based model quantization
@@ -11,8 +11,8 @@
  * @version 1.0.0
  */
 
-const { spawn } = require('child_process');
-const { logger } = require('../utils/logger.js');
+const { spawn } = require("child_process");
+const { logger } = require("../utils/logger.js");
 
 /** Testability shim – override in tests to inject mocks. */
 const _deps = { spawn };
@@ -22,20 +22,44 @@ const _deps = { spawn };
 // ============================================================
 
 const SUPPORTED_LEVELS = [
-  { level: 'Q2_K', bits: 2, description: 'Smallest, lowest quality. ~2.5 bpw.' },
-  { level: 'Q3_K_S', bits: 3, description: 'Very small, low quality.' },
-  { level: 'Q3_K_M', bits: 3, description: 'Small, medium quality.' },
-  { level: 'Q3_K_L', bits: 3, description: 'Small, higher quality than Q3_K_M.' },
-  { level: 'Q4_0', bits: 4, description: 'Legacy 4-bit quantization.' },
-  { level: 'Q4_K_S', bits: 4, description: 'Small, good quality. Recommended minimum.' },
-  { level: 'Q4_K_M', bits: 4, description: 'Medium, good balance of size and quality.' },
-  { level: 'Q5_0', bits: 5, description: 'Legacy 5-bit quantization.' },
-  { level: 'Q5_K_S', bits: 5, description: 'Small, very good quality.' },
-  { level: 'Q5_K_M', bits: 5, description: 'Medium, excellent quality.' },
-  { level: 'Q6_K', bits: 6, description: 'Large, near-lossless quality.' },
-  { level: 'Q8_0', bits: 8, description: 'Very large, nearly lossless.' },
-  { level: 'F16', bits: 16, description: 'Half precision float. No quantization loss.' },
-  { level: 'F32', bits: 32, description: 'Full precision float. Largest size.' },
+  {
+    level: "Q2_K",
+    bits: 2,
+    description: "Smallest, lowest quality. ~2.5 bpw.",
+  },
+  { level: "Q3_K_S", bits: 3, description: "Very small, low quality." },
+  { level: "Q3_K_M", bits: 3, description: "Small, medium quality." },
+  {
+    level: "Q3_K_L",
+    bits: 3,
+    description: "Small, higher quality than Q3_K_M.",
+  },
+  { level: "Q4_0", bits: 4, description: "Legacy 4-bit quantization." },
+  {
+    level: "Q4_K_S",
+    bits: 4,
+    description: "Small, good quality. Recommended minimum.",
+  },
+  {
+    level: "Q4_K_M",
+    bits: 4,
+    description: "Medium, good balance of size and quality.",
+  },
+  { level: "Q5_0", bits: 5, description: "Legacy 5-bit quantization." },
+  { level: "Q5_K_S", bits: 5, description: "Small, very good quality." },
+  { level: "Q5_K_M", bits: 5, description: "Medium, excellent quality." },
+  { level: "Q6_K", bits: 6, description: "Large, near-lossless quality." },
+  { level: "Q8_0", bits: 8, description: "Very large, nearly lossless." },
+  {
+    level: "F16",
+    bits: 16,
+    description: "Half precision float. No quantization loss.",
+  },
+  {
+    level: "F32",
+    bits: 32,
+    description: "Full precision float. Largest size.",
+  },
 ];
 
 const LEVEL_NAMES = SUPPORTED_LEVELS.map((l) => l.level);
@@ -70,69 +94,81 @@ class GGUFQuantizer {
   quantize(inputPath, outputPath, level) {
     return new Promise((resolve, reject) => {
       if (!LEVEL_NAMES.includes(level)) {
-        const err = new Error(`Unsupported quantization level: ${level}. Supported: ${LEVEL_NAMES.join(', ')}`);
+        const err = new Error(
+          `Unsupported quantization level: ${level}. Supported: ${LEVEL_NAMES.join(", ")}`,
+        );
         this.onError(err);
         return reject(err);
       }
 
       this.cancelled = false;
 
-      logger.info('[GGUFQuantizer] Starting quantization', {
+      logger.info("[GGUFQuantizer] Starting quantization", {
         inputPath,
         outputPath,
         level,
       });
 
-      const child = _deps.spawn('llama-quantize', [inputPath, outputPath, level], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
+      const child = _deps.spawn(
+        "llama-quantize",
+        [inputPath, outputPath, level],
+        {
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
 
       this.childProcess = child;
 
-      let stderrBuffer = '';
+      let stderrBuffer = "";
 
-      child.stdout.on('data', (data) => {
-        const text = data.toString();
+      child.stdout.on("data", (data) => {
+        const text = data.toString("utf8");
         const progress = this._parseProgress(text);
         if (progress !== null) {
           this.onProgress(progress);
         }
       });
 
-      child.stderr.on('data', (data) => {
-        stderrBuffer += data.toString();
+      child.stderr.on("data", (data) => {
+        stderrBuffer += data.toString("utf8");
         // llama.cpp may also emit progress info on stderr
-        const progress = this._parseProgress(data.toString());
+        const progress = this._parseProgress(data.toString("utf8"));
         if (progress !== null) {
           this.onProgress(progress);
         }
       });
 
-      child.on('error', (err) => {
-        logger.error('[GGUFQuantizer] Process spawn error', { error: err.message });
+      child.on("error", (err) => {
+        logger.error("[GGUFQuantizer] Process spawn error", {
+          error: err.message,
+        });
         this.childProcess = null;
         this.onError(err);
         reject(err);
       });
 
-      child.on('close', (code) => {
+      child.on("close", (code) => {
         this.childProcess = null;
 
         if (this.cancelled) {
-          const err = new Error('Quantization cancelled by user');
+          const err = new Error("Quantization cancelled by user");
           this.onError(err);
           return reject(err);
         }
 
         if (code === 0) {
-          logger.info('[GGUFQuantizer] Quantization completed successfully');
+          logger.info("[GGUFQuantizer] Quantization completed successfully");
           this.onProgress(100);
           this.onComplete();
           resolve();
         } else {
-          const errMsg = stderrBuffer.trim() || `llama-quantize exited with code ${code}`;
+          const errMsg =
+            stderrBuffer.trim() || `llama-quantize exited with code ${code}`;
           const err = new Error(errMsg);
-          logger.error('[GGUFQuantizer] Quantization failed', { code, stderr: stderrBuffer });
+          logger.error("[GGUFQuantizer] Quantization failed", {
+            code,
+            stderr: stderrBuffer,
+          });
           this.onError(err);
           reject(err);
         }
@@ -146,8 +182,8 @@ class GGUFQuantizer {
   cancel() {
     if (this.childProcess) {
       this.cancelled = true;
-      this.childProcess.kill('SIGTERM');
-      logger.info('[GGUFQuantizer] Cancellation requested');
+      this.childProcess.kill("SIGTERM");
+      logger.info("[GGUFQuantizer] Cancellation requested");
     }
   }
 

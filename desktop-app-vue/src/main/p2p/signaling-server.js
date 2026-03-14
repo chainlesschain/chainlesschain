@@ -205,7 +205,7 @@ class SignalingServer extends EventEmitter {
     // Handle messages
     socket.on("message", (data) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message = JSON.parse(data.toString("utf8"));
         this.handleMessage(socket, message);
       } catch (error) {
         logger.error(

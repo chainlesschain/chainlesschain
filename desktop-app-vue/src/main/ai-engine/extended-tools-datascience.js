@@ -34,11 +34,11 @@ class DataScienceToolsHandler {
           let stderr = "";
 
           python.stdout.on("data", (data) => {
-            stdout += data.toString();
+            stdout += data.toString("utf8");
           });
 
           python.stderr.on("data", (data) => {
-            stderr += data.toString();
+            stderr += data.toString("utf8");
           });
 
           python.on("close", (code) => {

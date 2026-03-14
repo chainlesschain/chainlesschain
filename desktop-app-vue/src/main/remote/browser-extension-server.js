@@ -175,7 +175,7 @@ class BrowserExtensionServer extends EventEmitter {
     this.stats.messagesReceived++;
 
     try {
-      const message = JSON.parse(data.toString());
+      const message = JSON.parse(data.toString("utf8"));
 
       // 处理注册消息
       if (message.type === "register") {

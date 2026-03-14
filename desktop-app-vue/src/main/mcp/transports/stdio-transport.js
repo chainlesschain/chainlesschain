@@ -428,6 +428,7 @@ class StdioTransport extends EventEmitter {
           spawnSync("taskkill", ["/PID", pid, "/T", "/F"], {
             stdio: "ignore",
             windowsHide: true,
+            encoding: "utf-8",
           });
         } catch (e) {
           // Process may already be dead

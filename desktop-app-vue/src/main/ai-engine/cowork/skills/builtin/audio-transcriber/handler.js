@@ -92,7 +92,7 @@ function detectProviders() {
   // Check for local whisper
   try {
     const { execSync } = require("child_process");
-    execSync("whisper --help", { stdio: "pipe" });
+    execSync("whisper --help", { stdio: "pipe", encoding: "utf-8" });
     providers.push({
       name: "local-whisper",
       available: true,

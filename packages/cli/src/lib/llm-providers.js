@@ -11,7 +11,15 @@ export const BUILT_IN_PROVIDERS = {
     displayName: "Ollama (Local)",
     baseUrl: "http://localhost:11434",
     apiKeyEnv: null,
-    models: ["qwen2:7b", "llama3:8b", "mistral:7b", "codellama:7b"],
+    models: [
+      "qwen2.5:7b",
+      "qwen2.5:14b",
+      "qwen2.5-coder:14b",
+      "qwen2:7b",
+      "llama3:8b",
+      "mistral:7b",
+      "codellama:7b",
+    ],
     free: true,
   },
   openai: {

@@ -8,50 +8,50 @@
  * @version 1.0.0
  */
 
-const EventEmitter = require('events');
-const { spawn, execFile } = require('child_process');
-const path = require('path');
-const fs = require('fs').promises;
-const os = require('os');
-const { logger } = require('../utils/logger.js');
+const EventEmitter = require("events");
+const { spawn, execFile } = require("child_process");
+const path = require("path");
+const fs = require("fs").promises;
+const os = require("os");
+const { logger } = require("../utils/logger.js");
 
 /**
  * Piper voice models
  */
 const PIPER_MODELS = {
   // English
-  'en_US-lessac-medium': {
-    language: 'en-US',
-    name: 'Lessac',
-    quality: 'medium',
+  "en_US-lessac-medium": {
+    language: "en-US",
+    name: "Lessac",
+    quality: "medium",
     sampleRate: 22050,
   },
-  'en_US-amy-medium': {
-    language: 'en-US',
-    name: 'Amy',
-    quality: 'medium',
+  "en_US-amy-medium": {
+    language: "en-US",
+    name: "Amy",
+    quality: "medium",
     sampleRate: 22050,
   },
-  'en_GB-alba-medium': {
-    language: 'en-GB',
-    name: 'Alba',
-    quality: 'medium',
+  "en_GB-alba-medium": {
+    language: "en-GB",
+    name: "Alba",
+    quality: "medium",
     sampleRate: 22050,
   },
 
   // Chinese
-  'zh_CN-huayan-medium': {
-    language: 'zh-CN',
-    name: 'Huayan',
-    quality: 'medium',
+  "zh_CN-huayan-medium": {
+    language: "zh-CN",
+    name: "Huayan",
+    quality: "medium",
     sampleRate: 22050,
   },
 
   // Japanese
-  'ja_JP-kokoro-medium': {
-    language: 'ja-JP',
-    name: 'Kokoro',
-    quality: 'medium',
+  "ja_JP-kokoro-medium": {
+    language: "ja-JP",
+    name: "Kokoro",
+    quality: "medium",
     sampleRate: 22050,
   },
 };
@@ -62,8 +62,8 @@ const PIPER_MODELS = {
 const DEFAULT_CONFIG = {
   piperPath: null, // Path to piper executable
   modelsDir: null, // Directory containing voice models
-  defaultModel: 'en_US-lessac-medium',
-  outputFormat: 'wav',
+  defaultModel: "en_US-lessac-medium",
+  outputFormat: "wav",
   speakerId: 0,
   lengthScale: 1.0, // Speed adjustment (lower = faster)
   noiseScale: 0.667,
@@ -92,7 +92,7 @@ class LocalTTSClient extends EventEmitter {
     // Cache
     this.cache = new Map();
 
-    logger.info('[LocalTTSClient] Initialized');
+    logger.info("[LocalTTSClient] Initialized");
   }
 
   /**
@@ -133,8 +133,8 @@ class LocalTTSClient extends EventEmitter {
       this.available = false;
       return {
         available: false,
-        error: 'Piper path not configured',
-        downloadUrl: 'https://github.com/rhasspy/piper/releases',
+        error: "Piper path not configured",
+        downloadUrl: "https://github.com/rhasspy/piper/releases",
       };
     }
 
@@ -143,8 +143,8 @@ class LocalTTSClient extends EventEmitter {
       await fs.access(this.config.piperPath);
 
       // Try to run with --help
-      const version = await this._runCommand(['--help'], 5000);
-      this.available = version.includes('piper') || true;
+      const version = await this._runCommand(["--help"], 5000);
+      this.available = version.includes("piper") || true;
 
       return {
         available: this.available,
@@ -154,7 +154,7 @@ class LocalTTSClient extends EventEmitter {
       };
     } catch (error) {
       this.available = false;
-      logger.warn('[LocalTTSClient] Not available:', error.message);
+      logger.warn("[LocalTTSClient] Not available:", error.message);
       return {
         available: false,
         error: error.message,
@@ -172,12 +172,12 @@ class LocalTTSClient extends EventEmitter {
     if (!this.available) {
       const status = await this.checkStatus();
       if (!status.available) {
-        throw new Error('Piper is not available');
+        throw new Error("Piper is not available");
       }
     }
 
-    if (!text || typeof text !== 'string') {
-      throw new Error('Please provide text to synthesize');
+    if (!text || typeof text !== "string") {
+      throw new Error("Please provide text to synthesize");
     }
 
     const model = options.model || this.config.defaultModel;
@@ -200,7 +200,7 @@ class LocalTTSClient extends EventEmitter {
       };
     }
 
-    this.emit('synthesis-start', { text: text.slice(0, 50), model });
+    this.emit("synthesis-start", { text: text.slice(0, 50), model });
 
     try {
       const startTime = Date.now();
@@ -208,21 +208,27 @@ class LocalTTSClient extends EventEmitter {
       // Create temp output file
       const tempFile = path.join(
         this.config.cacheDir || os.tmpdir(),
-        `piper_tts_${Date.now()}.wav`
+        `piper_tts_${Date.now()}.wav`,
       );
 
       // Build command arguments
       const args = [
-        '--model', modelInfo.path,
-        '--output_file', tempFile,
-        '--length_scale', String(lengthScale),
-        '--noise_scale', String(this.config.noiseScale),
-        '--noise_w', String(this.config.noiseW),
-        '--sentence_silence', String(this.config.sentenceSilence),
+        "--model",
+        modelInfo.path,
+        "--output_file",
+        tempFile,
+        "--length_scale",
+        String(lengthScale),
+        "--noise_scale",
+        String(this.config.noiseScale),
+        "--noise_w",
+        String(this.config.noiseW),
+        "--sentence_silence",
+        String(this.config.sentenceSilence),
       ];
 
       if (options.speakerId !== undefined) {
-        args.push('--speaker', String(options.speakerId));
+        args.push("--speaker", String(options.speakerId));
       }
 
       // Run piper with text input via stdin
@@ -230,7 +236,7 @@ class LocalTTSClient extends EventEmitter {
 
       // Read the generated file
       const audioData = await fs.readFile(tempFile);
-      const base64Audio = audioData.toString('base64');
+      const base64Audio = audioData.toString("base64");
 
       // Clean up temp file if not caching
       if (!this.config.cacheEnabled) {
@@ -244,13 +250,13 @@ class LocalTTSClient extends EventEmitter {
         this.cache.set(cacheKey, base64Audio);
       }
 
-      this.emit('synthesis-complete', { duration, model });
+      this.emit("synthesis-complete", { duration, model });
 
       return {
         success: true,
         audio: base64Audio,
-        format: 'wav',
-        mimeType: 'audio/wav',
+        format: "wav",
+        mimeType: "audio/wav",
         model,
         duration,
         textLength: text.length,
@@ -258,7 +264,7 @@ class LocalTTSClient extends EventEmitter {
         filePath: this.config.cacheEnabled ? tempFile : null,
       };
     } catch (error) {
-      this.emit('synthesis-error', { error: error.message, model });
+      this.emit("synthesis-error", { error: error.message, model });
       throw new Error(`Synthesis failed: ${error.message}`);
     }
   }
@@ -279,7 +285,9 @@ class LocalTTSClient extends EventEmitter {
   async downloadModel(modelId) {
     // Model download would typically be handled by a separate utility
     // This is a placeholder for the API
-    throw new Error('Model download not implemented. Please download models manually from https://github.com/rhasspy/piper/releases');
+    throw new Error(
+      "Model download not implemented. Please download models manually from https://github.com/rhasspy/piper/releases",
+    );
   }
 
   /**
@@ -298,12 +306,17 @@ class LocalTTSClient extends EventEmitter {
   async _detectPiperPath() {
     const possiblePaths = [
       // Windows
-      path.join(process.env.LOCALAPPDATA || '', 'Programs', 'piper', 'piper.exe'),
-      path.join(process.cwd(), 'piper', 'piper.exe'),
+      path.join(
+        process.env.LOCALAPPDATA || "",
+        "Programs",
+        "piper",
+        "piper.exe",
+      ),
+      path.join(process.cwd(), "piper", "piper.exe"),
       // Linux/macOS
-      '/usr/local/bin/piper',
-      '/usr/bin/piper',
-      path.join(os.homedir(), '.local', 'bin', 'piper'),
+      "/usr/local/bin/piper",
+      "/usr/bin/piper",
+      path.join(os.homedir(), ".local", "bin", "piper"),
     ];
 
     for (const p of possiblePaths) {
@@ -326,8 +339,8 @@ class LocalTTSClient extends EventEmitter {
     if (!this.config.modelsDir) {
       // Use default locations
       const defaultDirs = [
-        path.join(process.cwd(), 'piper-models'),
-        path.join(os.homedir(), '.local', 'share', 'piper', 'voices'),
+        path.join(process.cwd(), "piper-models"),
+        path.join(os.homedir(), ".local", "share", "piper", "voices"),
       ];
 
       for (const dir of defaultDirs) {
@@ -349,15 +362,18 @@ class LocalTTSClient extends EventEmitter {
       const files = await fs.readdir(this.config.modelsDir);
 
       for (const file of files) {
-        if (file.endsWith('.onnx')) {
-          const modelName = file.replace('.onnx', '');
+        if (file.endsWith(".onnx")) {
+          const modelName = file.replace(".onnx", "");
           const modelPath = path.join(this.config.modelsDir, file);
-          const configPath = path.join(this.config.modelsDir, `${modelName}.onnx.json`);
+          const configPath = path.join(
+            this.config.modelsDir,
+            `${modelName}.onnx.json`,
+          );
 
           // Check if config exists
           let config = {};
           try {
-            const configData = await fs.readFile(configPath, 'utf-8');
+            const configData = await fs.readFile(configPath, "utf-8");
             config = JSON.parse(configData);
           } catch {
             // Use defaults
@@ -366,17 +382,19 @@ class LocalTTSClient extends EventEmitter {
           this.models[modelName] = {
             path: modelPath,
             configPath,
-            language: config.language || 'en-US',
+            language: config.language || "en-US",
             name: modelName,
-            quality: config.quality || 'medium',
+            quality: config.quality || "medium",
             sampleRate: config.audio?.sample_rate || 22050,
           };
         }
       }
 
-      logger.info(`[LocalTTSClient] Found ${Object.keys(this.models).length} models`);
+      logger.info(
+        `[LocalTTSClient] Found ${Object.keys(this.models).length} models`,
+      );
     } catch (error) {
-      logger.warn('[LocalTTSClient] Failed to scan models:', error.message);
+      logger.warn("[LocalTTSClient] Failed to scan models:", error.message);
     }
   }
 
@@ -386,16 +404,21 @@ class LocalTTSClient extends EventEmitter {
    */
   _runCommand(args, timeout = 30000) {
     return new Promise((resolve, reject) => {
-      const proc = execFile(this.config.piperPath, args, {
-        timeout,
-        windowsHide: true,
-      }, (error, stdout, stderr) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(stdout);
-        }
-      });
+      const proc = execFile(
+        this.config.piperPath,
+        args,
+        {
+          timeout,
+          windowsHide: true,
+        },
+        (error, stdout, stderr) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(stdout);
+          }
+        },
+      );
     });
   }
 
@@ -409,27 +432,27 @@ class LocalTTSClient extends EventEmitter {
         windowsHide: true,
       });
 
-      let stderr = '';
+      let stderr = "";
 
-      proc.stderr.on('data', (data) => {
-        stderr += data.toString();
+      proc.stderr.on("data", (data) => {
+        stderr += data.toString("utf8");
       });
 
-      proc.on('close', async (code) => {
+      proc.on("close", async (code) => {
         if (code === 0) {
           // Verify output file exists
           try {
             await fs.access(outputFile);
             resolve();
           } catch {
-            reject(new Error('Output file not created'));
+            reject(new Error("Output file not created"));
           }
         } else {
           reject(new Error(stderr || `Process exited with code ${code}`));
         }
       });
 
-      proc.on('error', (error) => {
+      proc.on("error", (error) => {
         reject(error);
       });
 

@@ -10,9 +10,9 @@
  *  - run_shell: Execute a shell command
  *  - search_files: Search for files by name/content
  *  - list_dir: List directory contents
- *  - db_query: Query the ChainlessChain database
- *  - note_add: Add a note
- *  - note_search: Search notes
+ *  - run_skill: Run a built-in skill
+ *  - list_skills: List available skills
+ *  - run_code: Write and execute code (Python/Node.js/Bash)
  *
  * The AI decides which tools to call based on user intent.
  */
@@ -22,6 +22,7 @@ import chalk from "chalk";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
+import os from "os";
 import { fileURLToPath } from "url";
 import { logger } from "../lib/logger.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
@@ -203,6 +204,30 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "run_code",
+      description:
+        "Write and execute code in Python, Node.js, or Bash. Use this when the user needs data processing, calculations, file batch operations, API calls, or any task best solved with a script. The code is saved to a temp file and executed.",
+      parameters: {
+        type: "object",
+        properties: {
+          language: {
+            type: "string",
+            enum: ["python", "node", "bash"],
+            description: "Programming language",
+          },
+          code: { type: "string", description: "Code to execute" },
+          timeout: {
+            type: "number",
+            description: "Execution timeout in seconds (default: 60, max: 300)",
+          },
+        },
+        required: ["language", "code"],
+      },
+    },
+  },
 ];
 
 /**
@@ -228,7 +253,7 @@ async function executeTool(name, args) {
       tool: name,
       params: args,
       estimatedImpact:
-        name === "run_shell"
+        name === "run_shell" || name === "run_code"
           ? "high"
           : name === "write_file"
             ? "medium"
@@ -340,16 +365,79 @@ async function _executeToolInner(name, args) {
         const output = execSync(args.command, {
           cwd: args.cwd || process.cwd(),
           encoding: "utf8",
-          timeout: 30000,
+          timeout: 60000,
           maxBuffer: 1024 * 1024,
         });
-        return { stdout: output.substring(0, 10000) };
+        return { stdout: output.substring(0, 30000) };
       } catch (err) {
         return {
           error: err.message.substring(0, 2000),
           stderr: (err.stderr || "").substring(0, 2000),
           exitCode: err.status,
         };
+      }
+    }
+
+    case "run_code": {
+      const lang = args.language;
+      const code = args.code;
+      const timeoutSec = Math.min(Math.max(args.timeout || 60, 1), 300);
+
+      const extMap = { python: ".py", node: ".js", bash: ".sh" };
+      const ext = extMap[lang];
+      if (!ext) {
+        return {
+          error: `Unsupported language: ${lang}. Use python, node, or bash.`,
+        };
+      }
+
+      const tmpFile = path.join(os.tmpdir(), `cc-agent-${Date.now()}${ext}`);
+
+      try {
+        fs.writeFileSync(tmpFile, code, "utf8");
+
+        let interpreter;
+        if (lang === "python") {
+          try {
+            execSync("python3 --version", { encoding: "utf8", timeout: 5000 });
+            interpreter = "python3";
+          } catch {
+            interpreter = "python";
+          }
+        } else if (lang === "node") {
+          interpreter = "node";
+        } else {
+          interpreter = "bash";
+        }
+
+        const start = Date.now();
+        const output = execSync(`${interpreter} "${tmpFile}"`, {
+          cwd: process.cwd(),
+          encoding: "utf8",
+          timeout: timeoutSec * 1000,
+          maxBuffer: 5 * 1024 * 1024,
+        });
+        const duration = Date.now() - start;
+
+        return {
+          success: true,
+          output: output.substring(0, 50000),
+          language: lang,
+          duration: `${duration}ms`,
+        };
+      } catch (err) {
+        return {
+          error: (err.stderr || err.message || "").substring(0, 5000),
+          stderr: (err.stderr || "").substring(0, 5000),
+          exitCode: err.status,
+          language: lang,
+        };
+      } finally {
+        try {
+          fs.unlinkSync(tmpFile);
+        } catch {
+          // Cleanup best-effort
+        }
       }
     }
 
@@ -530,7 +618,7 @@ async function chatWithTools(rawMessages, options) {
 
     const body = {
       model: model || "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: otherMsgs,
       tools: anthropicTools,
     };
@@ -597,7 +685,7 @@ async function chatWithTools(rawMessages, options) {
   if (!key) throw new Error(`${envKey} required for provider ${provider}`);
 
   const defaultModels = {
-    openai: "gpt-4o-mini",
+    openai: "gpt-4o",
     deepseek: "deepseek-chat",
     dashscope: "qwen-turbo",
     mistral: "mistral-large-latest",
@@ -664,7 +752,7 @@ function _normalizeAnthropicResponse(data) {
  * Agentic loop - keeps calling tools until the AI gives a final text response
  */
 async function agentLoop(messages, options) {
-  const MAX_ITERATIONS = 10;
+  const MAX_ITERATIONS = 15;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const result = await chatWithTools(messages, options);
@@ -747,6 +835,8 @@ function formatToolArgs(name, args) {
       return `${args.skill_name}: ${(args.input || "").substring(0, 50)}`;
     case "list_skills":
       return args.category || args.query || "all";
+    case "run_code":
+      return `${args.language} (${(args.code || "").length} chars)`;
     default:
       return JSON.stringify(args).substring(0, 60);
   }
@@ -766,6 +856,14 @@ Key behaviors:
 - Always explain what you're doing and show results
 - Be concise but thorough
 
+When the user's problem involves data processing, calculations, file operations, text parsing, API calls, web scraping, or any task that can be solved programmatically:
+- Proactively write and execute code using run_code tool
+- Choose the best language: Python for data/math/scraping, Node.js for JSON/API, Bash for system tasks
+- Show the results and explain them clearly
+- If the first attempt fails, debug and retry with a different approach
+
+You are not just a chatbot — you are a capable coding agent. Think step by step, write code when needed, and deliver real results.
+
 Current working directory: ${process.cwd()}`;
 }
 
@@ -773,7 +871,7 @@ Current working directory: ${process.cwd()}`;
  * Start the agentic REPL
  */
 export async function startAgentRepl(options = {}) {
-  let model = options.model || "qwen2:7b";
+  let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
@@ -1551,9 +1649,59 @@ export async function startAgentRepl(options = {}) {
         } else {
           logger.info("Not in plan mode.");
         }
+      } else if (subCmd.startsWith("interactive")) {
+        // Interactive planning with LLM-generated plan + skill recommendations
+        const planRequest =
+          subCmd.slice(11).trim() || "Help me with the current task";
+        try {
+          const { CLIInteractivePlanner } =
+            await import("../lib/interactive-planner.js");
+          const { TerminalInteractionAdapter } =
+            await import("../lib/interaction-adapter.js");
+          const chatFn = createChatFn({ provider, model, baseUrl, apiKey });
+          const planner = new CLIInteractivePlanner({
+            llmChat: chatFn,
+            db,
+            interaction: new TerminalInteractionAdapter(),
+          });
+
+          logger.info("Generating interactive plan...");
+          const result = await planner.startPlanSession(planRequest, {
+            cwd: process.cwd(),
+          });
+
+          if (result.plan) {
+            logger.log(
+              chalk.bold(
+                `\n  Plan: ${result.plan.overview?.title || "Untitled"}`,
+              ),
+            );
+            logger.log(
+              chalk.gray(`  ${result.plan.overview?.description || ""}\n`),
+            );
+            for (const step of result.plan.steps || []) {
+              const toolStr = step.tool ? chalk.cyan(` [${step.tool}]`) : "";
+              logger.log(`  ${step.step}. ${step.title}${toolStr}`);
+            }
+            if (result.plan.recommendations?.skills?.length > 0) {
+              logger.log(chalk.bold("\n  Recommended skills:"));
+              for (const s of result.plan.recommendations.skills) {
+                logger.log(`    - ${chalk.cyan(s.id)}: ${s.description}`);
+              }
+            }
+            logger.log("");
+            logger.info(
+              "Use /plan interactive:confirm, /plan interactive:cancel, or /plan interactive:regenerate",
+            );
+          } else {
+            logger.info(result.message || "Failed to generate plan");
+          }
+        } catch (err) {
+          logger.error(`Interactive plan failed: ${err.message}`);
+        }
       } else {
         logger.info(
-          "Unknown /plan subcommand. Try: /plan, /plan show, /plan approve, /plan reject, /plan exit",
+          "Unknown /plan subcommand. Try: /plan, /plan show, /plan approve, /plan reject, /plan exit, /plan interactive <request>",
         );
       }
 

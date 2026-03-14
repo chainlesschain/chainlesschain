@@ -870,7 +870,7 @@ class DIDManager extends EventEmitter {
       }
 
       // 解析数据
-      const publishData = JSON.parse(data.toString());
+      const publishData = JSON.parse(data.toString("utf8"));
 
       // 验证 DID 文档签名
       const isValid = this.verifyDIDDocument(publishData.didDocument);

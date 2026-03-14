@@ -44,7 +44,7 @@ describe("LLM Provider Workflow (integration)", () => {
       expect(taskResult.taskType).toBe(TaskType.CODE);
 
       const model = selectModelForTask("volcengine", taskResult.taskType);
-      expect(model).toBe("doubao-seed-code");
+      expect(model).toBe("doubao-seed-1-6-251015");
       expect(provider.models).toContain(model);
     });
 
@@ -223,6 +223,75 @@ describe("LLM Provider Workflow (integration)", () => {
         vi.unstubAllGlobals();
       });
     }
+  });
+
+  // ─── Upgraded model mappings ───────────────────────────────
+
+  describe("Upgraded model mappings (v0.40.3)", () => {
+    let db;
+    let registry;
+
+    beforeEach(() => {
+      db = new MockDatabase();
+      registry = new LLMProviderRegistry(db);
+    });
+
+    it("ollama CODE model should be qwen2.5-coder:14b", () => {
+      const model = selectModelForTask("ollama", TaskType.CODE);
+      expect(model).toBe("qwen2.5-coder:14b");
+      // Verify it's in the provider's model list
+      const ollama = registry.get("ollama");
+      expect(ollama.models).toContain(model);
+    });
+
+    it("ollama REASONING model should be qwen2.5:14b", () => {
+      const model = selectModelForTask("ollama", TaskType.REASONING);
+      expect(model).toBe("qwen2.5:14b");
+      const ollama = registry.get("ollama");
+      expect(ollama.models).toContain(model);
+    });
+
+    it("ollama CHAT model should be qwen2.5:7b", () => {
+      const model = selectModelForTask("ollama", TaskType.CHAT);
+      expect(model).toBe("qwen2.5:7b");
+      const ollama = registry.get("ollama");
+      expect(ollama.models).toContain(model);
+    });
+
+    it("volcengine CODE model should be doubao-seed-1-6-251015", () => {
+      const model = selectModelForTask("volcengine", TaskType.CODE);
+      expect(model).toBe("doubao-seed-1-6-251015");
+    });
+
+    it("volcengine CHAT model should be doubao-seed-1-6-251015", () => {
+      const model = selectModelForTask("volcengine", TaskType.CHAT);
+      expect(model).toBe("doubao-seed-1-6-251015");
+    });
+
+    it("ollama provider should list qwen2.5 models", () => {
+      const ollama = registry.get("ollama");
+      expect(ollama.models).toContain("qwen2.5:7b");
+      expect(ollama.models).toContain("qwen2.5:14b");
+      expect(ollama.models).toContain("qwen2.5-coder:14b");
+      // Legacy models should still be present
+      expect(ollama.models).toContain("qwen2:7b");
+      expect(ollama.models).toContain("llama3:8b");
+    });
+
+    it("all task types should have valid models for all providers", () => {
+      const taskTypes = Object.values(TaskType);
+      const providers = registry.list().filter((p) => !p.custom);
+
+      for (const provider of providers) {
+        for (const taskType of taskTypes) {
+          const model = selectModelForTask(provider.name, taskType);
+          expect(
+            model,
+            `Missing model for ${provider.name}/${taskType}`,
+          ).toBeTruthy();
+        }
+      }
+    });
   });
 
   // ─── testProvider simulation ────────────────────────────────
