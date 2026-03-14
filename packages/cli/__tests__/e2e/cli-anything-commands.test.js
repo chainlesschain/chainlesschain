@@ -130,7 +130,20 @@ describe("E2E: CLI-Anything Commands", () => {
     it("list --json outputs valid JSON when DB available", () => {
       const { stdout, exitCode } = tryRun("cli-anything list --json");
       if (exitCode === 0) {
-        const json = JSON.parse(stdout.trim());
+        // Filter out log lines like [AppConfig] that may pollute stdout
+        const jsonLine = stdout
+          .split("\n")
+          .filter((l) => l.trim().startsWith("["))
+          .find((l) => {
+            try {
+              JSON.parse(l.trim());
+              return true;
+            } catch {
+              return false;
+            }
+          });
+        const raw = jsonLine || stdout.trim();
+        const json = JSON.parse(raw);
         expect(Array.isArray(json)).toBe(true);
       }
     });
