@@ -302,8 +302,8 @@ class SystemCommandHandler {
       return {
         success: true,
         command,
-        stdout: stdout.toString(),
-        stderr: stderr.toString(),
+        stdout: stdout.toString("utf-8"),
+        stderr: stderr.toString("utf-8"),
         exitCode: 0,
         timestamp: Date.now(),
       };
