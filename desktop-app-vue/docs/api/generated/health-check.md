@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/health-check.js`
 
-**Generated**: 2026-03-14T05:04:59.348Z
+**Generated**: 2026-03-14T16:21:44.308Z
 
 ---
 

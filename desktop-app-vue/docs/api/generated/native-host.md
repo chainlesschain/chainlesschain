@@ -2,14 +2,14 @@
 
 **Source**: `src/main/native-messaging/native-host.js`
 
-**Generated**: 2026-03-14T05:04:59.348Z
+**Generated**: 2026-03-14T16:21:44.308Z
 
 ---
 
-## const fs = require('fs');
+## const fs = require("fs");
 
 ```javascript
-const fs = require('fs');
+const fs = require("fs");
 ```
 
 * ChainlessChain Native Messaging Host

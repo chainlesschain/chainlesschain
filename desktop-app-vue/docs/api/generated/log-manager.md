@@ -2,7 +2,7 @@
 
 **Source**: `src/main/logging/log-manager.js`
 
-**Generated**: 2026-03-14T05:04:59.357Z
+**Generated**: 2026-03-14T16:21:44.314Z
 
 ---
 

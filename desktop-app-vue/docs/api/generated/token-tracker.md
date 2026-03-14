@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/token-tracker.js`
 
-**Generated**: 2026-03-14T05:04:59.358Z
+**Generated**: 2026-03-14T16:21:44.315Z
 
 ---
 

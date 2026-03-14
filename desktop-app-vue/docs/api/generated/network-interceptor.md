@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/network-interceptor.js`
 
-**Generated**: 2026-03-14T05:04:59.416Z
+**Generated**: 2026-03-14T16:21:44.368Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/social/social-ipc.js`
 
-**Generated**: 2026-03-14T05:04:59.302Z
+**Generated**: 2026-03-14T16:21:44.268Z
 
 ---
 

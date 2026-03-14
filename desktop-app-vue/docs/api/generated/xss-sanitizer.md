@@ -2,7 +2,7 @@
 
 **Source**: `src/main/security/xss-sanitizer.js`
 
-**Generated**: 2026-03-14T05:04:59.318Z
+**Generated**: 2026-03-14T16:21:44.282Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/skill-tool-ipc.js`
 
-**Generated**: 2026-03-14T05:04:59.313Z
+**Generated**: 2026-03-14T16:21:44.278Z
 
 ---
 
