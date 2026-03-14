@@ -82,6 +82,9 @@ import { registerEvoMapCommand } from "./commands/evomap.js";
 // CLI-Anything: Agent-Native Software Integration
 import { registerCliAnythingCommand } from "./commands/cli-anything.js";
 
+// WebSocket Server Interface
+import { registerServeCommand } from "./commands/serve.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -192,6 +195,9 @@ export function createProgram() {
 
   // CLI-Anything: Agent-Native Software Integration
   registerCliAnythingCommand(program);
+
+  // WebSocket Server Interface
+  registerServeCommand(program);
 
   return program;
 }

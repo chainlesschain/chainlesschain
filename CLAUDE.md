@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 60 Commands/2009 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + CLI-Anything Integration + 4200+ Tests + 12 Store Test Files) - Updated 2026-03-14
+**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 61 Commands/2063 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + CLI-Anything Integration + WebSocket Server + 4200+ Tests + 12 Store Test Files) - Updated 2026-03-14
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -276,6 +276,12 @@ chainlesschain cli-anything scan                # Scan PATH for cli-anything-* t
 chainlesschain cli-anything register <name>     # Register tool as ChainlessChain skill
 chainlesschain cli-anything list                # List registered tools
 chainlesschain cli-anything remove <name>       # Remove registered tool
+
+# WebSocket Server Interface
+chainlesschain serve                            # Start WebSocket server (port 18800)
+chainlesschain serve --port 9000                # Custom port
+chainlesschain serve --token <secret>           # Enable token auth
+chainlesschain serve --allow-remote --token <s> # Allow remote + auth
 ```
 
 ### Backend Services (Docker-based)
