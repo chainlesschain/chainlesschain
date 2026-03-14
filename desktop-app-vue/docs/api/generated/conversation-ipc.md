@@ -2,7 +2,7 @@
 
 **Source**: `src/main/conversation/conversation-ipc.js`
 
-**Generated**: 2026-03-14T16:21:44.350Z
+**Generated**: 2026-03-14T17:43:59.942Z
 
 ---
 
@@ -331,6 +331,24 @@ ipcMain.handle("conversation:stream-manager-stats", async (_event) =>
    * Channel: 'conversation:stream-manager-stats'
    *
    * @returns {Promise<Object>} { success: boolean, stats?: Object, error?: string }
+
+---
+
+## ipcMain.handle("conversation:agent-chat", async (_event, chatData) =>
+
+```javascript
+ipcMain.handle("conversation:agent-chat", async (_event, chatData) =>
+```
+
+* conversation:agent-chat
+   *
+   * Autonomous agent mode: LLM picks tools, executes them, iterates
+   * until it produces a final text answer.
+   *
+   * Sends events to renderer:
+   *  - conversation:agent-tool-start  { tool, args }
+   *  - conversation:agent-tool-result { tool, result, error }
+   *  - conversation:agent-response    { content }
 
 ---
 

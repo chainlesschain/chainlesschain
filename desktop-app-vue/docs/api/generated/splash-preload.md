@@ -2,7 +2,7 @@
 
 **Source**: `src/main/splash/splash-preload.js`
 
-**Generated**: 2026-03-14T16:21:44.264Z
+**Generated**: 2026-03-14T17:43:59.846Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/share-manager.js`
 
-**Generated**: 2026-03-14T16:21:44.296Z
+**Generated**: 2026-03-14T17:43:59.879Z
 
 ---
 

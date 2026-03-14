@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/database-optimizer.js`
 
-**Generated**: 2026-03-14T16:21:44.343Z
+**Generated**: 2026-03-14T17:43:59.936Z
 
 ---
 
