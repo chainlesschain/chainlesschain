@@ -325,4 +325,85 @@ describe("CLISlotFiller", () => {
     expect(intents).toContain("test");
     expect(intents.length).toBeGreaterThanOrEqual(8);
   });
+
+  // ─── detectIntent ──────────────────────────────────────────────────
+
+  describe("detectIntent", () => {
+    it("detects create_file intent", () => {
+      const result = CLISlotFiller.detectIntent("create a file for the API");
+      expect(result).not.toBeNull();
+      expect(result.type).toBe("create_file");
+    });
+
+    it("detects deploy intent", () => {
+      const result = CLISlotFiller.detectIntent("deploy this to production");
+      expect(result).not.toBeNull();
+      expect(result.type).toBe("deploy");
+    });
+
+    it("detects refactor intent", () => {
+      const result = CLISlotFiller.detectIntent("refactor the user module");
+      expect(result).not.toBeNull();
+      expect(result.type).toBe("refactor");
+    });
+
+    it("detects test intent", () => {
+      const result = CLISlotFiller.detectIntent("write tests for auth");
+      expect(result).not.toBeNull();
+      expect(result.type).toBe("test");
+    });
+
+    it("detects analyze intent", () => {
+      const result = CLISlotFiller.detectIntent("analyze the codebase");
+      expect(result).not.toBeNull();
+      expect(result.type).toBe("analyze");
+    });
+
+    it("detects search intent", () => {
+      const result = CLISlotFiller.detectIntent("search for all TODO comments");
+      expect(result).not.toBeNull();
+      expect(result.type).toBe("search");
+    });
+
+    it("detects install intent", () => {
+      const result = CLISlotFiller.detectIntent("install lodash");
+      expect(result).not.toBeNull();
+      expect(result.type).toBe("install");
+      expect(result.entities.package).toBe("lodash");
+    });
+
+    it("detects generate intent", () => {
+      const result = CLISlotFiller.detectIntent("generate a new component");
+      expect(result).not.toBeNull();
+      expect(result.type).toBe("generate");
+    });
+
+    it("returns null for unrecognized intent", () => {
+      const result = CLISlotFiller.detectIntent("help me understand this code");
+      expect(result).toBeNull();
+    });
+
+    it("returns null for empty input", () => {
+      expect(CLISlotFiller.detectIntent("")).toBeNull();
+      expect(CLISlotFiller.detectIntent(null)).toBeNull();
+      expect(CLISlotFiller.detectIntent(undefined)).toBeNull();
+    });
+
+    it("extracts platform entity for deploy", () => {
+      const result = CLISlotFiller.detectIntent("deploy to docker");
+      expect(result.entities.platform).toBe("docker");
+    });
+
+    it("extracts file type entity for create_file", () => {
+      const result = CLISlotFiller.detectIntent("create a file at src/main.ts");
+      expect(result.entities.fileType).toBe("ts");
+    });
+
+    it("extracts path entity for create_file", () => {
+      const result = CLISlotFiller.detectIntent(
+        "create a file at src/index.js",
+      );
+      expect(result.entities.path).toBe("src/index.js");
+    });
+  });
 });

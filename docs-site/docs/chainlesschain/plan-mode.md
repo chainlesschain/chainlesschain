@@ -601,7 +601,7 @@ REQUIRED_SLOTS = {
 chainlesschain agent
 
 > /plan interactive 重构用户认证模块
-# SlotFiller 检测缺少���数，自动提问：
+# SlotFiller 检测缺少参数，自动提问：
 # ? 重构范围是什么？ (全部/登录模块/注册模块)
 # ? 使用什么认证方案？ (JWT/Session/OAuth)
 ```

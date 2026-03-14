@@ -868,7 +868,7 @@ ${description}
         let buffer = "";
 
         res.on("data", (chunk) => {
-          buffer += chunk.toString();
+          buffer += chunk.toString("utf8");
 
           // 处理SSE流
           const lines = buffer.split("\n");

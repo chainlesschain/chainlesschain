@@ -244,6 +244,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("conversation:delete-message", messageId),
     clearMessages: (conversationId) =>
       ipcRenderer.invoke("conversation:clear-messages", conversationId),
+    agentChat: (chatData) =>
+      ipcRenderer.invoke("conversation:agent-chat", chatData),
   },
 
   // 系统配置管理

@@ -447,6 +447,139 @@ Keep values concise (single words or short strings).`;
   }
 
   /**
+   * Detect intent type from a user message using keyword/regex matching.
+   *
+   * @param {string} userMessage
+   * @returns {{ type: string, entities: object } | null} Detected intent or null
+   */
+  static detectIntent(userMessage) {
+    if (!userMessage || typeof userMessage !== "string") return null;
+
+    const msg = userMessage.toLowerCase().trim();
+
+    // Intent detection patterns — ordered by specificity
+    const patterns = [
+      {
+        type: "create_file",
+        keywords: [
+          /\bcreate\s+(a\s+)?file\b/,
+          /\bnew\s+file\b/,
+          /\bscaffold\b/,
+          /\bgenerate\s+(a\s+)?file\b/,
+        ],
+      },
+      {
+        type: "deploy",
+        keywords: [/\bdeploy\b/, /\bship\s+(it|this)\b/, /\bpush\s+to\s+prod/],
+      },
+      {
+        type: "refactor",
+        keywords: [/\brefactor\b/, /\brestructure\b/, /\breorganize\b/],
+      },
+      {
+        type: "test",
+        keywords: [
+          /\bwrite\s+tests?\b/,
+          /\badd\s+tests?\b/,
+          /\btest\s+(this|it|the)\b/,
+          /\bunit\s+test\b/,
+        ],
+      },
+      {
+        type: "analyze",
+        keywords: [/\banalyze\b/, /\baudit\b/, /\breview\s+(the\s+)?code\b/],
+      },
+      {
+        type: "search",
+        keywords: [
+          /\bsearch\s+for\b/,
+          /\bfind\s+(all|the|every)\b/,
+          /\bgrep\b/,
+          /\blook\s+for\b/,
+        ],
+      },
+      {
+        type: "install",
+        keywords: [
+          /\binstall\b/,
+          /\badd\s+(a\s+)?package\b/,
+          /\badd\s+(a\s+)?dependency\b/,
+        ],
+      },
+      {
+        type: "generate",
+        keywords: [
+          /\bgenerate\b/,
+          /\bcreate\s+(a\s+)?(component|test|api|config)\b/,
+        ],
+      },
+      {
+        type: "edit_file",
+        keywords: [
+          /\bedit\s+(the\s+)?file\b/,
+          /\bmodify\s+(the\s+)?file\b/,
+          /\bchange\s+(the\s+)?file\b/,
+        ],
+      },
+    ];
+
+    for (const { type, keywords } of patterns) {
+      for (const re of keywords) {
+        if (re.test(msg)) {
+          // Try to extract entities from the message
+          const entities = CLISlotFiller._extractEntities(type, msg);
+          return { type, entities };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract entities from a matched message.
+   * @private
+   */
+  static _extractEntities(intentType, msg) {
+    const entities = {};
+
+    // Try to extract file path references
+    const pathMatch = msg.match(
+      /(?:in|at|to|from)\s+["`']?([./\w-]+\.\w+)["`']?/,
+    );
+    if (pathMatch) {
+      if (intentType === "create_file") {
+        entities.path = pathMatch[1];
+      } else {
+        entities.target = pathMatch[1];
+      }
+    }
+
+    // Try to extract file type from extension mentions
+    const extMatch = msg.match(/\.(js|ts|py|json|md|html|css|vue|yaml|yml)\b/);
+    if (extMatch && intentType === "create_file") {
+      entities.fileType = EXT_TO_FILE_TYPE[`.${extMatch[1]}`] || extMatch[1];
+    }
+
+    // Try to extract platform for deploy
+    if (intentType === "deploy") {
+      if (msg.includes("docker")) entities.platform = "docker";
+      else if (msg.includes("vercel")) entities.platform = "vercel";
+      else if (msg.includes("aws")) entities.platform = "aws";
+    }
+
+    // Try to extract package name for install
+    if (intentType === "install") {
+      const pkgMatch = msg.match(/install\s+(\S+)/);
+      if (pkgMatch && !["a", "the", "this", "it"].includes(pkgMatch[1])) {
+        entities.package = pkgMatch[1];
+      }
+    }
+
+    return entities;
+  }
+
+  /**
    * Get slot definitions for an intent type.
    */
   static getSlotDefinitions(intentType) {

@@ -422,7 +422,7 @@ class RSSFetcher extends EventEmitter {
             }
 
             let data = "";
-            res.on("data", (chunk) => (data += chunk));
+            res.on("data", (chunk) => (data += chunk.toString("utf8")));
             res.on("end", () => resolve(data));
           },
         )

@@ -201,7 +201,10 @@ function registerConversationIPC({
             .all(limit);
         }
       } catch (tableError) {
-        logger.error("[Conversation IPC] 查询最近对话失败:", tableError.message);
+        logger.error(
+          "[Conversation IPC] 查询最近对话失败:",
+          tableError.message,
+        );
         conversations = [];
       }
 
@@ -1624,11 +1627,176 @@ function registerConversationIPC({
     }
   });
 
+  // ============================================================
+  // 🤖 Agent Chat — non-streaming tool-use loop
+  // ============================================================
+
+  /**
+   * conversation:agent-chat
+   *
+   * Autonomous agent mode: LLM picks tools, executes them, iterates
+   * until it produces a final text answer.
+   *
+   * Sends events to renderer:
+   *  - conversation:agent-tool-start  { tool, args }
+   *  - conversation:agent-tool-result { tool, result, error }
+   *  - conversation:agent-response    { content }
+   */
+  ipcMain.handle("conversation:agent-chat", async (_event, chatData) => {
+    try {
+      if (!llmManager) {
+        return { success: false, error: "LLM管理器未初始化" };
+      }
+
+      const webContents =
+        mainWindow && !mainWindow.isDestroyed()
+          ? mainWindow.webContents
+          : _event.sender;
+
+      const {
+        conversationId,
+        userMessage,
+        conversationHistory = [],
+        options = {},
+      } = chatData;
+
+      if (!conversationId || !userMessage) {
+        return {
+          success: false,
+          error: "conversationId and userMessage are required",
+        };
+      }
+
+      logger.info("[Agent Chat] Starting agent loop for:", conversationId);
+
+      // Build messages array
+      const messages = [
+        {
+          role: "system",
+          content:
+            "You are ChainlessChain AI Assistant with access to tools. " +
+            "When the user asks you to do something, use the available tools to actually do it. " +
+            "Think step by step, call tools as needed, and deliver real results.",
+        },
+        ...conversationHistory.slice(-20),
+        { role: "user", content: userMessage },
+      ];
+
+      // Get function caller instance (lazy require to avoid circular deps)
+      let functionCaller;
+      try {
+        const FunctionCaller = require("../ai-engine/function-caller");
+        functionCaller = new FunctionCaller({ enableToolMasking: false });
+      } catch (err) {
+        logger.warn("[Agent Chat] FunctionCaller not available:", err.message);
+        // Fall back to regular chat
+        const result = await llmManager.chat(messages, options);
+        return {
+          success: true,
+          content: result.content || result.text || "",
+          agentMode: false,
+        };
+      }
+
+      const tools = functionCaller.getAgentChatTools();
+      const MAX_ITERATIONS = 10;
+      let finalContent = "";
+
+      for (let i = 0; i < MAX_ITERATIONS; i++) {
+        // Call LLM with tools
+        let result;
+        try {
+          result = await llmManager.chat(messages, { ...options, tools });
+        } catch (err) {
+          // If tools not supported by provider, fall back to no-tools
+          logger.warn(
+            "[Agent Chat] Tool-calling failed, falling back:",
+            err.message,
+          );
+          result = await llmManager.chat(messages, options);
+        }
+
+        const msg = result.message || {
+          role: "assistant",
+          content: result.content || result.text || "",
+        };
+        const toolCalls = msg.tool_calls;
+
+        // No tool calls — final answer
+        if (!toolCalls || toolCalls.length === 0) {
+          finalContent = msg.content || "";
+          webContents.send("conversation:agent-response", {
+            conversationId,
+            content: finalContent,
+          });
+          break;
+        }
+
+        // Process tool calls
+        messages.push(msg);
+
+        for (const call of toolCalls) {
+          const fn = call.function;
+          const toolName = fn.name;
+          let toolArgs;
+          try {
+            toolArgs =
+              typeof fn.arguments === "string"
+                ? JSON.parse(fn.arguments)
+                : fn.arguments || {};
+          } catch {
+            toolArgs = {};
+          }
+
+          webContents.send("conversation:agent-tool-start", {
+            conversationId,
+            tool: toolName,
+            args: toolArgs,
+          });
+
+          let toolResult;
+          let toolError = null;
+          try {
+            toolResult = await functionCaller.executeAgentTool(
+              toolName,
+              toolArgs,
+            );
+          } catch (err) {
+            toolResult = { error: err.message };
+            toolError = err.message;
+          }
+
+          webContents.send("conversation:agent-tool-result", {
+            conversationId,
+            tool: toolName,
+            result: toolResult,
+            error: toolError,
+          });
+
+          messages.push({
+            role: "tool",
+            content: JSON.stringify(toolResult).substring(0, 5000),
+            tool_call_id: call.id,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        content: finalContent,
+        agentMode: true,
+      };
+    } catch (error) {
+      logger.error("[Agent Chat] Error:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 标记模块为已注册
   ipcGuard.markModuleRegistered("conversation-ipc");
 
   logger.info(
-    "[Conversation IPC] ✅ Successfully registered 18 conversation handlers",
+    "[Conversation IPC] ✅ Successfully registered 19 conversation handlers",
   );
   logger.info("[Conversation IPC] - conversation:get-by-project");
   logger.info("[Conversation IPC] - conversation:get-recent");
@@ -1648,6 +1816,7 @@ function registerConversationIPC({
   logger.info("[Conversation IPC] - conversation:stream-list");
   logger.info("[Conversation IPC] - conversation:stream-cleanup");
   logger.info("[Conversation IPC] - conversation:stream-manager-stats");
+  logger.info("[Conversation IPC] - conversation:agent-chat");
 
   // Verify handler is actually registered
   try {

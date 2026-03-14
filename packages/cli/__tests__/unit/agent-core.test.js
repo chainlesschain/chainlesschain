@@ -352,6 +352,94 @@ describe("chatWithTools", () => {
     globalThis.fetch = originalFetch;
   });
 
+  it("Ollama provider: fetch URL contains /api/chat with tools", async () => {
+    let capturedUrl, capturedBody;
+    globalThis.fetch = vi.fn().mockImplementation(async (url, opts) => {
+      capturedUrl = url;
+      capturedBody = JSON.parse(opts.body);
+      return {
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "Hi from Ollama" },
+        }),
+      };
+    });
+
+    await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "ollama",
+      model: "qwen2.5:7b",
+      baseUrl: "http://localhost:11434",
+    });
+
+    expect(capturedUrl).toContain("/api/chat");
+    expect(capturedBody.tools).toBeDefined();
+    expect(capturedBody.tools.length).toBe(9);
+    expect(capturedBody.model).toBe("qwen2.5:7b");
+  });
+
+  it("Anthropic provider: includes x-api-key and anthropic-version headers", async () => {
+    let capturedHeaders;
+    globalThis.fetch = vi.fn().mockImplementation(async (url, opts) => {
+      capturedHeaders = opts.headers;
+      return {
+        ok: true,
+        json: async () => ({
+          content: [{ type: "text", text: "Hi from Claude" }],
+        }),
+      };
+    });
+
+    await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514",
+      apiKey: "test-key-123",
+    });
+
+    expect(capturedHeaders["x-api-key"]).toBe("test-key-123");
+    expect(capturedHeaders["anthropic-version"]).toBe("2023-06-01");
+  });
+
+  it("OpenAI provider: includes Authorization Bearer header", async () => {
+    let capturedHeaders;
+    globalThis.fetch = vi.fn().mockImplementation(async (url, opts) => {
+      capturedHeaders = opts.headers;
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [
+            { message: { role: "assistant", content: "Hi from OpenAI" } },
+          ],
+        }),
+      };
+    });
+
+    await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "openai",
+      model: "gpt-4o",
+      apiKey: "sk-test-key",
+    });
+
+    expect(capturedHeaders["Authorization"]).toBe("Bearer sk-test-key");
+  });
+
+  it("Missing API key throws appropriate error", async () => {
+    // Save and clear env vars
+    const savedKey = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+
+    try {
+      await expect(
+        chatWithTools([{ role: "user", content: "test" }], {
+          provider: "anthropic",
+          model: "test",
+          apiKey: null,
+        }),
+      ).rejects.toThrow("ANTHROPIC_API_KEY required");
+    } finally {
+      if (savedKey) process.env.ANTHROPIC_API_KEY = savedKey;
+    }
+  });
+
   it("throws on unsupported provider", async () => {
     await expect(
       chatWithTools([{ role: "user", content: "hi" }], {
@@ -501,5 +589,240 @@ describe("agentLoop", () => {
       (e) => e.type === "tool-executing",
     ).length;
     expect(executingCount).toBe(15);
+  });
+
+  it("yields slot-filling events when slotFiller detects missing slots", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: {
+          role: "assistant",
+          content: "I'll deploy that for you.",
+        },
+      }),
+    });
+
+    const mockInteraction = {
+      askSelect: vi.fn().mockResolvedValue("docker"),
+      askInput: vi.fn().mockResolvedValue("test-value"),
+      emit: vi.fn(),
+    };
+
+    const { CLISlotFiller } = await import("../../src/lib/slot-filler.js");
+    const slotFiller = new CLISlotFiller({ interaction: mockInteraction });
+
+    const messages = [{ role: "user", content: "deploy this" }];
+    const events = [];
+
+    for await (const event of agentLoop(messages, {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+      slotFiller,
+      interaction: mockInteraction,
+    })) {
+      events.push(event);
+    }
+
+    // Should have slot-filling event before response-complete
+    const slotEvents = events.filter((e) => e.type === "slot-filling");
+    expect(slotEvents.length).toBeGreaterThan(0);
+    expect(slotEvents[0].slot).toBe("platform");
+
+    // User message should have been augmented with context
+    expect(messages[0].content).toContain("[Context");
+    expect(messages[0].content).toContain("platform");
+  });
+
+  it("skips slot-filling when no intent detected", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: {
+          role: "assistant",
+          content: "Here's how it works...",
+        },
+      }),
+    });
+
+    const mockInteraction = {
+      askSelect: vi.fn(),
+      askInput: vi.fn(),
+      emit: vi.fn(),
+    };
+
+    const { CLISlotFiller } = await import("../../src/lib/slot-filler.js");
+    const slotFiller = new CLISlotFiller({ interaction: mockInteraction });
+
+    const messages = [
+      { role: "user", content: "help me understand this code" },
+    ];
+    const events = [];
+
+    for await (const event of agentLoop(messages, {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+      slotFiller,
+      interaction: mockInteraction,
+    })) {
+      events.push(event);
+    }
+
+    // No slot-filling events
+    const slotEvents = events.filter((e) => e.type === "slot-filling");
+    expect(slotEvents).toHaveLength(0);
+
+    // Interaction should not have been asked anything
+    expect(mockInteraction.askSelect).not.toHaveBeenCalled();
+    expect(mockInteraction.askInput).not.toHaveBeenCalled();
+  });
+
+  it("yields tool-executing and tool-result for run_code call", async () => {
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return {
+          ok: true,
+          json: async () => ({
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [
+                {
+                  id: "call-rc",
+                  type: "function",
+                  function: {
+                    name: "run_code",
+                    arguments: JSON.stringify({
+                      language: "node",
+                      code: 'console.log("from-agent-loop")',
+                    }),
+                  },
+                },
+              ],
+            },
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "Code executed." },
+        }),
+      };
+    });
+
+    const messages = [{ role: "user", content: "Run some code" }];
+    const events = [];
+
+    for await (const event of agentLoop(messages, {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+    })) {
+      events.push(event);
+    }
+
+    const execEvent = events.find((e) => e.type === "tool-executing");
+    expect(execEvent.tool).toBe("run_code");
+    expect(execEvent.args.language).toBe("node");
+
+    const resultEvent = events.find((e) => e.type === "tool-result");
+    expect(resultEvent.tool).toBe("run_code");
+    expect(resultEvent.result.success).toBe(true);
+    expect(resultEvent.result.output).toContain("from-agent-loop");
+
+    expect(events[events.length - 1].type).toBe("response-complete");
+  });
+
+  it("handles multiple tool calls in sequence", async () => {
+    let callCount = 0;
+    globalThis.fetch = vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return {
+          ok: true,
+          json: async () => ({
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [
+                {
+                  id: "call-a",
+                  type: "function",
+                  function: {
+                    name: "list_dir",
+                    arguments: JSON.stringify({ path: "." }),
+                  },
+                },
+                {
+                  id: "call-b",
+                  type: "function",
+                  function: {
+                    name: "list_skills",
+                    arguments: JSON.stringify({}),
+                  },
+                },
+              ],
+            },
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "Both done." },
+        }),
+      };
+    });
+
+    const messages = [{ role: "user", content: "List dir and skills" }];
+    const events = [];
+
+    for await (const event of agentLoop(messages, {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+    })) {
+      events.push(event);
+    }
+
+    const execEvents = events.filter((e) => e.type === "tool-executing");
+    expect(execEvents).toHaveLength(2);
+    expect(execEvents[0].tool).toBe("list_dir");
+    expect(execEvents[1].tool).toBe("list_skills");
+
+    const resultEvents = events.filter((e) => e.type === "tool-result");
+    expect(resultEvents).toHaveLength(2);
+  });
+
+  it("skips slot-filling when no slotFiller provided", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: {
+          role: "assistant",
+          content: "Done.",
+        },
+      }),
+    });
+
+    const messages = [{ role: "user", content: "deploy this" }];
+    const events = [];
+
+    for await (const event of agentLoop(messages, {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+    })) {
+      events.push(event);
+    }
+
+    // No slot-filling events, just response-complete
+    const slotEvents = events.filter((e) => e.type === "slot-filling");
+    expect(slotEvents).toHaveLength(0);
+    expect(events[events.length - 1].type).toBe("response-complete");
   });
 });

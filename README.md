@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.1.6-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4200%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4500%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,7 +22,7 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.1 Evolution Edition (2026-03-11)
+## ⭐ 当前版本: v5.0.1.6 Evolution Edition (2026-03-15)
 
 ### 最新更新 - CLI 分发系统 (Phase 101) ⭐NEW
 
@@ -48,6 +48,7 @@ chainlesschain start    # 启动应用
 - ✅ **Phase 7 安全与进化** — 安全沙箱 v2 (细粒度权限+行为监控) + 自进化系统 (能力评估+自诊断+自修复)
 - ✅ **Phase 8 区块链与企业** — Agent 经济系统 (微支付+资源市场+NFT) + 零知识证明引擎 (Groth16+选择性披露) + BI 智能分析 (NL→SQL+异常检测)
 - ✅ **Phase 9 低代码与多Agent** — 低代码平台 (15+组件+版本管理) + 多Agent协调器 + DI服务容器
+- ✅ **Agent 智能增强** — auto pip-install + 脚本持久化 + 错误分类(5类) + 环境检测 + agent-core 提取去重 + Desktop agent 模式
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
 - ✅ **Agent Context Engineering** — 6维上下文注入 (Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary) + KV-Cache优化 + 稳定前缀缓存 + 智能压缩 + 可恢复压缩摘要 + 会话恢复 (`--session`)
 - ✅ **Autonomous Agent** — ReAct 自主任务循环 (`/auto` 命令) + 目标分解 + 自我纠正
@@ -56,7 +57,7 @@ chainlesschain start    # 启动应用
 - ✅ **EvoMap 基因交换** — `evomap search|download|publish|list|hubs` GEP-A2A 协议客户端 + 联邦Hub管理 + 基因治理
 - ✅ **CLI-Anything 集成** — `cli-anything doctor|scan|register|list|remove` 将任意软件 Agent 化，自动注册为 managed 层技能
 - ✅ **WebSocket 服务器** — `serve` 命令通过 WebSocket 暴露全部 CLI 命令，支持 execute/stream/cancel + Token 认证 + 心跳检测 + 命令注入防护
-- ✅ **WebSocket 有状态会话** — 通过 WS 创建/恢复/管理 agent/chat 会话，支持项目上下文绑定、SlotFiller 参数填充、InteractivePlanner 交互式规划 (2432 测试/109 文件)
+- ✅ **WebSocket 有状态会话** — 通过 WS 创建/恢复/管理 agent/chat 会话，支持项目上下文绑定、SlotFiller 参数填充（9 种意图自动检测）、InteractivePlanner 交互式规划 (2450 测试/109 文件)
 - ✅ **DAO 治理 v2** — 二次方投票 + 投票委托 + 国库管理 + 提案生命周期 (`dao` 命令)
 - ✅ **安全合规 CLI** — 合规管理 (GDPR/SOC2/HIPAA/ISO27001) + 数据防泄漏 (DLP) + SIEM 日志导出 + 后量子密码 (PQC)
 - ✅ **通信桥接 CLI** — Nostr 桥接 (NIP-01) + Matrix 桥接 (E2EE) + SCIM 2.0 用户配置
@@ -1210,7 +1211,7 @@ chainlesschain start    # 启动应用
 - ⛓️ **区块链集成**: 6个智能合约 + HD钱包系统 + LayerZero跨链桥
 - 🏢 **企业版**: 多租户组织层级 + RBAC权限 + 知识库协作 + DID邀请链接
 - 📱 **跨设备协作**: Git同步 + 桌面-移动端双向同步 + 多设备P2P通信
-- 🧪 **全面测试体系**: 2500+测试用例 + 417测试文件 + OWASP安全验证 + DI测试重构
+- 🧪 **全面测试体系**: 2503+测试用例 + 417测试文件 + OWASP安全验证 + DI测试重构
 - 🌐 **浏览器自动化**: BrowserEngine + SnapshotEngine + 智能元素定位 + 18个IPC通道
 - 📝 **TypeScript支持**: 46个TypeScript Stores + 类型安全 + IDE增强
 - 🔓 **开源自主**: 310,000+行代码,370个Vue组件,完全透明可审计
@@ -1532,7 +1533,7 @@ chainlesschain/
 │   │   │   └── monitoring/   # 监控和日志
 │   │   └── renderer/         # 渲染进程 (Vue3 + TypeScript, 46 Pinia Stores)
 │   ├── contracts/            # 智能合约 (Hardhat + Solidity)
-│   └── tests/                # 测试套件 (2500+测试用例, 417+测试文件)
+│   └── tests/                # 测试套件 (2503+测试用例, 417+测试文件)
 │       ├── unit/             # 单元测试 (IPC处理器、数据库、Git、浏览器、AI引擎)
 │       ├── integration/      # 集成测试 (后端集成、用户旅程)
 │       ├── performance/      # 性能测试 (负载、内存泄漏)
@@ -1580,7 +1581,7 @@ chainlesschain/
 - 性能自动调优: 实时监控 + 参数自动调整 + 负载预测
 - 自治Agent Runner: ReAct循环 + 目标分解 + 自主任务执行
 - 分析仪表板: 实时聚合 + 多维指标 + 可视化报表
-- 测试框架: Vitest + 2500+测试用例 + 417+测试文件 + DI重构
+- 测试框架: Vitest + 2503+测试用例 + 417+测试文件 + DI重构
 
 ### CLI 工具
 

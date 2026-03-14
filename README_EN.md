@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.1.6-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4200%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4500%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -56,7 +56,8 @@ chainlesschain start    # Launch application
 - ✅ **EvoMap Gene Exchange** — `evomap search|download|publish|list|hubs` GEP-A2A protocol client + Federation Hub management + Gene governance
 - ✅ **CLI-Anything Integration** — `cli-anything doctor|scan|register|list|remove` Agent-native software integration, auto-register as managed-layer skills
 - ✅ **WebSocket Server** — `serve` command exposes all CLI commands over WebSocket, supports execute/stream/cancel + token auth + heartbeat + injection protection
-- ✅ **WebSocket Stateful Sessions** — Create/resume/manage agent/chat sessions over WS, with project context binding, SlotFiller parameter filling, InteractivePlanner interactive planning (2432 tests/109 files)
+- ✅ **WebSocket Stateful Sessions** — Create/resume/manage agent/chat sessions over WS, with project context binding, SlotFiller parameter filling (9 intent types auto-detected), InteractivePlanner interactive planning (2503 tests/113 files)
+- ✅ **Agent Intelligence** — Auto pip-install for Python packages + script persistence + error classification (5 types) + environment detection + agent-core extraction
 - ✅ **DAO Governance v2** — Quadratic voting + vote delegation + treasury management + proposal lifecycle (`dao` command)
 - ✅ **Security & Compliance CLI** — Compliance management (GDPR/SOC2/HIPAA/ISO27001) + DLP + SIEM log export + Post-Quantum Cryptography (PQC)
 - ✅ **Communication Bridges CLI** — Nostr bridge (NIP-01) + Matrix bridge (E2EE) + SCIM 2.0 user provisioning

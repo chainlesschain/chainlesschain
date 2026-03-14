@@ -1,11 +1,13 @@
 /**
  * serve command — start a WebSocket server for remote CLI access
- * chainlesschain serve [--port] [--host] [--token] [--max-connections] [--timeout] [--allow-remote]
+ * chainlesschain serve [--port] [--host] [--token] [--max-connections] [--timeout] [--allow-remote] [--project]
  */
 
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { ChainlessChainWSServer } from "../lib/ws-server.js";
+import { WSSessionManager } from "../lib/ws-session-manager.js";
+import { bootstrap } from "../runtime/bootstrap.js";
 
 export function registerServeCommand(program) {
   program
@@ -27,6 +29,7 @@ export function registerServeCommand(program) {
       "--allow-remote",
       "Allow non-localhost connections (requires --token)",
     )
+    .option("--project <path>", "Default project root for sessions")
     .action(async (opts) => {
       const port = parseInt(opts.port, 10);
       const maxConnections = parseInt(opts.maxConnections, 10);
@@ -47,12 +50,32 @@ export function registerServeCommand(program) {
         host = "0.0.0.0";
       }
 
+      // Bootstrap headless runtime for DB access
+      let db = null;
+      try {
+        const ctx = await bootstrap({ skipDb: false });
+        db = ctx.db?.getDb?.() || null;
+      } catch (_err) {
+        logger.log(
+          chalk.yellow(
+            "  Warning: Database not available, sessions will be in-memory only",
+          ),
+        );
+      }
+
+      // Create session manager
+      const sessionManager = new WSSessionManager({
+        db,
+        defaultProjectRoot: opts.project || process.cwd(),
+      });
+
       const server = new ChainlessChainWSServer({
         port,
         host,
         token: opts.token || null,
         maxConnections,
         timeout,
+        sessionManager,
       });
 
       // Event logging
@@ -76,6 +99,14 @@ export function registerServeCommand(program) {
         logger.log(color(`  < [${id}] exit ${exitCode}`));
       });
 
+      server.on("session:create", ({ sessionId, type }) => {
+        logger.log(chalk.green(`  + Session created: ${sessionId} (${type})`));
+      });
+
+      server.on("session:close", ({ sessionId }) => {
+        logger.log(chalk.yellow(`  - Session closed: ${sessionId}`));
+      });
+
       // Graceful shutdown
       const shutdown = async () => {
         logger.log("\n" + chalk.yellow("Shutting down WebSocket server..."));
@@ -96,6 +127,8 @@ export function registerServeCommand(program) {
         logger.log(
           `  Auth:     ${opts.token ? chalk.green("enabled") : chalk.yellow("disabled")}`,
         );
+        logger.log(`  Sessions: ${chalk.green("enabled")}`);
+        logger.log(`  Project:  ${opts.project || process.cwd()}`);
         logger.log(`  Max conn: ${maxConnections}`);
         logger.log(`  Timeout:  ${timeout}ms`);
         logger.log("");

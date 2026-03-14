@@ -52,7 +52,10 @@ const { getImageGenTools } = require("./extended-tools-imagegen");
 const { getTTSTools } = require("./extended-tools-tts");
 
 // 新增：Computer Use 工具 (v0.33.0)
-const { getComputerUseTools, registerComputerUseTools } = require("./extended-tools-computeruse");
+const {
+  getComputerUseTools,
+  registerComputerUseTools,
+} = require("./extended-tools-computeruse");
 
 class FunctionCaller {
   constructor(options = {}) {
@@ -1327,6 +1330,75 @@ function initializeInteractions() {
   addCacheableTool(toolName) {
     this.CACHEABLE_TOOLS.add(toolName);
     logger.info(`[FunctionCaller] 工具 ${toolName} 已添加到缓存白名单`);
+  }
+
+  // ==========================================
+  // Agent Chat — curated tool subset
+  // ==========================================
+
+  /**
+   * Agent chat tool names — essential tools for autonomous code generation.
+   * @private
+   */
+  static AGENT_CHAT_TOOL_NAMES = new Set([
+    "file_reader",
+    "file_writer",
+    "code_executor",
+    "shell_executor",
+    "file_search",
+    "content_search",
+    "data_analyzer",
+    "project_analyzer",
+    "code_formatter",
+    "git_manager",
+  ]);
+
+  /**
+   * Get a curated subset of tools suitable for agent chat mode.
+   * Returns OpenAI-compatible function definitions.
+   * @returns {Array<Object>} tool definitions in OpenAI format
+   */
+  getAgentChatTools() {
+    const tools = [];
+    for (const [name, tool] of this.tools) {
+      if (FunctionCaller.AGENT_CHAT_TOOL_NAMES.has(name)) {
+        tools.push({
+          type: "function",
+          function: {
+            name: tool.name,
+            description: tool.schema?.description || tool.description || "",
+            parameters: tool.schema?.parameters || tool.parameters || {},
+          },
+        });
+      }
+    }
+
+    // If registered tools don't match curated names (e.g. different naming),
+    // fall back to returning all available tools (limited to first 15).
+    if (tools.length === 0) {
+      return this.getAvailableTools()
+        .slice(0, 15)
+        .map((t) => ({
+          type: "function",
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters,
+          },
+        }));
+    }
+
+    return tools;
+  }
+
+  /**
+   * Execute a tool by name (thin wrapper around call() for agent-chat).
+   * @param {string} toolName
+   * @param {Object} params
+   * @returns {Promise<any>}
+   */
+  async executeAgentTool(toolName, params) {
+    return this.call(toolName, params, { source: "agent-chat" });
   }
 }
 

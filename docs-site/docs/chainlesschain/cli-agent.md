@@ -14,6 +14,7 @@
 - 🔗 **Hook 管道**: PreToolUse/PostToolUse/ToolError 钩子集成
 - 🤖 **自主模式**: /auto 命令提交目标，AI 自动分解执行
 - ⚠️ **DAG 执行 + 风险评估**: /plan execute 按依赖拓扑排序执行，/plan risk 显示风险评分
+- 🎯 **SlotFiller 意图检测**: 自动检测用户消息中的缺失参数，交互式补全后再调用 LLM
 
 ## 系统架构
 
@@ -115,6 +116,135 @@ chainlesschain agent --session <id>     # 恢复历史会话
   .md: 15
   .test.js: 23
 共 88 个文件
+```
+
+## Auto Pip-Install (自动安装 Python 包)
+
+> v0.40.3+ 新增
+
+当 `run_code` 工具执行 Python 代码遇到 `ModuleNotFoundError` 时，会自动尝试 `pip install` 安装缺失的包，然后重新执行脚本。
+
+### 工作流程
+
+1. 执行 Python 脚本 → 捕获 `ModuleNotFoundError: No module named 'pandas'`
+2. 从错误消息中提取包名（取顶层名称：`foo.bar` → `foo`）
+3. 通过 `isValidPackageName()` 验证包名安全性（拒绝 Shell 元字符）
+4. 执行 `python3 -m pip install pandas`（超时 120s）
+5. 重新执行脚本，返回结果
+
+### 返回示例
+
+```json
+{
+  "success": true,
+  "output": "DataFrame shape: (100, 5)\n...",
+  "language": "python",
+  "duration": "1523ms",
+  "autoInstalled": ["pandas"],
+  "scriptPath": ".chainlesschain/agent-scripts/2026-03-15-10-30-45-python.py"
+}
+```
+
+### 安全防护
+
+`isValidPackageName()` 使用正则 `/^[a-zA-Z0-9_][a-zA-Z0-9._-]*$/` 验证包名：
+- ✅ 合法：`pandas`, `scikit-learn`, `python_dotenv`, `Flask`
+- ❌ 拒绝：`foo; rm -rf /`, `$(whoami)`, `foo|bar`, 空字符串, 超过 100 字符
+
+## Script Persistence (脚本持久化)
+
+> v0.40.3+ 新增
+
+`run_code` 工具默认将脚本保存到项目目录下，方便后续查看和复用。
+
+### 持久化模式（默认）
+
+```
+.chainlesschain/agent-scripts/
+├── 2026-03-15-10-30-45-python.py
+├── 2026-03-15-10-31-02-node.js
+└── 2026-03-15-10-32-18-bash.sh
+```
+
+- 文件名格式：`YYYY-MM-DD-HH-MM-SS-{language}.{ext}`
+- 自动创建 `.chainlesschain/agent-scripts/` 目录
+- 返回结果中 `scriptPath` 字段指向保存路径
+
+### 临时模式（`persist: false`）
+
+- 脚本写入 `os.tmpdir()`
+- 执行完毕后自动清理（`finally` 块中 `unlinkSync`）
+- 返回结果中 `scriptPath` 为 `undefined`
+
+## Error Classification (错误分类)
+
+> v0.40.3+ 新增
+
+`run_code` 执行失败时，`classifyError()` 函数将错误分为 5 种类型，每种附带 `hint` 字段提供可操作的修复建议。
+
+| errorType | 匹配模式 | hint 示例 |
+|-----------|---------|-----------|
+| `import_error` | `ModuleNotFoundError`, `ImportError` | `Missing Python module "pandas". Will attempt auto-install.` |
+| `syntax_error` | `SyntaxError`, `IndentationError` | `Syntax error on line 15. Check for typos.` |
+| `timeout` | `ETIMEDOUT`, `timed out`, exitCode=null | `Script timed out. Consider increasing timeout.` |
+| `permission_error` | `EACCES`, `Permission denied` | `Permission denied. Try a different directory.` |
+| `runtime_error` | 其他所有错误 | `Runtime error near line 42. Check traceback.` |
+
+### 返回示例（错误）
+
+```json
+{
+  "error": "ModuleNotFoundError: No module named 'pandas'",
+  "stderr": "...",
+  "exitCode": 1,
+  "language": "python",
+  "errorType": "import_error",
+  "hint": "Missing Python module \"pandas\". Will attempt auto-install.",
+  "scriptPath": ".chainlesschain/agent-scripts/2026-03-15-10-30-45-python.py"
+}
+```
+
+## Environment Detection (环境检测)
+
+> v0.40.3+ 新增
+
+`getEnvironmentInfo()` 在进程启动时检测运行环境信息，缓存后注入到 System Prompt 中，帮助 LLM 感知宿主环境。
+
+### 检测项
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `os` | 操作系统 | `win32`, `linux`, `darwin` |
+| `arch` | 架构 | `x64`, `arm64` |
+| `python` | Python 解释器 | `python3 (3.11.0)` 或 `null` |
+| `pip` | pip 是否可用 | `true` / `false` |
+| `node` | Node.js 版本 | `v22.12.0` |
+| `git` | Git 是否可用 | `true` / `false` |
+
+### System Prompt 注入
+
+```
+## Environment
+OS: win32 (x64)
+Python: python3 (3.11.0) + pip
+Node.js: v22.12.0
+Git: available
+```
+
+### 架构图
+
+```
+agent-core.js （中心模块）
+    │
+    ├── AGENT_TOOLS (9 工具定义)
+    ├── getBaseSystemPrompt() ← getEnvironmentInfo()
+    ├── executeTool() → executeToolInner() → _executeRunCode()
+    │                                           ├── classifyError()
+    │                                           ├── isValidPackageName()
+    │                                           └── getCachedPython()
+    ├── chatWithTools() → 8 LLM providers
+    ├── agentLoop() → 异步生成器 (slot-filling + tool loop)
+    └── formatToolArgs()
 ```
 
 ## Context Engineering
@@ -300,6 +430,55 @@ Context Engineering 按固定顺序排列注入内容（System Prompt → Instin
 Token 消耗: 12,450 / 50,000
 ```
 
+## SlotFiller 意图检测
+
+> v0.41.1 新增
+
+Agent 模式集成了 SlotFiller 参数槽填充引擎，在调用 LLM 之前自动检测用户消息中的已知意图，补全缺失的必需参数。
+
+### 支持的意图类型
+
+| 意图类型 | 触发关键词 | 必需参数 |
+|----------|-----------|---------|
+| `create_file` | create a file, new file, scaffold | fileType, path |
+| `deploy` | deploy, ship it, push to prod | platform |
+| `refactor` | refactor, restructure | target |
+| `test` | write tests, add test, unit test | target |
+| `analyze` | analyze, audit, review code | — |
+| `search` | search for, find all, grep | query |
+| `install` | install, add package | package |
+| `generate` | generate, create component | — |
+| `edit_file` | edit file, modify file | target |
+
+### 工作流程
+
+1. 用户输入消息（如 "deploy this"）
+2. `CLISlotFiller.detectIntent()` 检测到 `deploy` 意图
+3. 检查必需参数 `platform` 缺失
+4. 通过 InteractionAdapter 向用户提问 "Which platform?"
+5. 用户回答 "docker"
+6. 补全结果注入到用户消息末尾：`[Context — user provided: platform: docker]`
+7. 带有完整上下文的消息发送给 LLM
+
+### 使用示例
+
+```
+> deploy this
+
+? Which platform do you want to deploy to?
+  > docker
+  > vercel
+  > aws
+  > heroku
+
+[SlotFiller] platform = "docker"
+
+🤖 好的，我来帮你部署到 Docker...
+[run_shell: docker build -t myapp .]
+```
+
+未识别的意图（如 "help me understand this code"）不会触发 SlotFiller，直接传给 LLM 处理。
+
 ## 使用示例
 
 ### 基础使用
@@ -328,7 +507,7 @@ chainlesschain agent --provider volcengine
 chainlesschain agent --provider volcengine --model doubao-seed-1-6-251015
 ```
 
-Agent 模式下会自动根据任务类型智能选择最佳模型���
+Agent 模式下会自动根据任务类型智能选择最佳模型：
 
 ```
 you> 写一个 Python 快速排序函数
@@ -396,7 +575,7 @@ chainlesschain agent \
 
 > 查看当前进度
 
-🤖 当前���务: 重构认证模块
+🤖 当前任务: 重构认证模块
 [Context Engine 自动注入任务提醒 + 相关记忆 + 用户偏好]
 ...
 
@@ -436,6 +615,8 @@ Resumed session session-17... (8 messages)
 - `packages/cli/src/lib/autonomous-agent.js` — ReAct 自主任务循环
 - `packages/cli/src/lib/content-recommender.js` — TF-IDF 工具相似度 + 工具链推荐
 - `packages/cli/src/lib/hook-manager.js` — Hook 管道（PreToolUse/PostToolUse/ToolError）
+- `packages/cli/src/lib/slot-filler.js` — SlotFiller 参数槽填充（意图检测 + 交互式补全）
+- `packages/cli/src/lib/agent-core.js` — Agent 核心业务逻辑（agentLoop 异步生成器）
 - `packages/cli/src/runtime/bootstrap.js` — 7 阶段无头启动
 
 ## 安全考虑
