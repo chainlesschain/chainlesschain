@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/multi-agent-ipc.js`
 
-**Generated**: 2026-03-14T05:04:59.430Z
+**Generated**: 2026-03-14T16:21:44.377Z
 
 ---
 

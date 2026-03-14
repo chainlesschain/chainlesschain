@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/cowork-ipc.js`
 
-**Generated**: 2026-03-14T05:04:59.438Z
+**Generated**: 2026-03-14T16:21:44.383Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/speech-ipc.js`
 
-**Generated**: 2026-03-14T05:04:59.299Z
+**Generated**: 2026-03-14T16:21:44.265Z
 
 ---
 

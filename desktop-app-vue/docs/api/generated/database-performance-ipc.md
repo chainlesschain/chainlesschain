@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/database-performance-ipc.js`
 
-**Generated**: 2026-03-14T05:04:59.388Z
+**Generated**: 2026-03-14T16:21:44.343Z
 
 ---
 

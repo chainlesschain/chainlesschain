@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/auto-backup-manager-ipc.js`
 
-**Generated**: 2026-03-14T05:04:59.352Z
+**Generated**: 2026-03-14T16:21:44.311Z
 
 ---
 
