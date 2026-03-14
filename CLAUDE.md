@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 59 Commands/2009 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + 4200+ Tests + 12 Store Test Files) - Updated 2026-03-14
+**Current Version**: v5.0.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 60 Commands/2009 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + CLI-Anything Integration + 4200+ Tests + 12 Store Test Files) - Updated 2026-03-14
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -269,6 +269,13 @@ chainlesschain evomap download <gene-id>        # Download gene
 chainlesschain evomap publish --name "my-gene"  # Publish gene to hub
 chainlesschain evomap list                      # List local genes
 chainlesschain evomap hubs                      # List available hubs
+
+# CLI-Anything: Agent-Native Software Integration
+chainlesschain cli-anything doctor              # Check Python + CLI-Anything environment
+chainlesschain cli-anything scan                # Scan PATH for cli-anything-* tools
+chainlesschain cli-anything register <name>     # Register tool as ChainlessChain skill
+chainlesschain cli-anything list                # List registered tools
+chainlesschain cli-anything remove <name>       # Remove registered tool
 ```
 
 ### Backend Services (Docker-based)
@@ -345,10 +352,10 @@ Key highlights:
 Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
-- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode, dao, compliance, dlp, siem, pqc, nostr, matrix, scim, terraform, hardening, social)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode, dao, compliance, dlp, siem, pqc, nostr, matrix, scim, terraform, hardening, social, cli-anything)
 - **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 8 tools + 138 skills + Plan Mode + /cowork + Context Engineering)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
-- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, cli-context-engineering, permanent-memory, autonomous-agent, content-recommender, evomap-client, evomap-manager, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder, evomap-federation, evomap-governance, dao-governance, compliance-manager, dlp-engine, siem-exporter, pqc-manager, nostr-bridge, matrix-bridge, scim-manager, terraform-manager, hardening-manager, social-manager)
+- **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, cli-context-engineering, permanent-memory, autonomous-agent, content-recommender, evomap-client, evomap-manager, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder, evomap-federation, evomap-governance, dao-governance, compliance-manager, dlp-engine, siem-exporter, pqc-manager, nostr-bridge, matrix-bridge, scim-manager, terraform-manager, hardening-manager, social-manager, cli-anything-bridge)
 - **Core packages**: core-env, shared-logger, core-infra, core-config, core-db (118 core tests + 1891 CLI tests = 2009 total)
 - **Dependencies**: commander, @inquirer/prompts, chalk, ora, semver + @chainlesschain/core-\* packages
 

@@ -79,6 +79,9 @@ import { registerLowcodeCommand } from "./commands/lowcode.js";
 // EvoMap: Gene Exchange Protocol
 import { registerEvoMapCommand } from "./commands/evomap.js";
 
+// CLI-Anything: Agent-Native Software Integration
+import { registerCliAnythingCommand } from "./commands/cli-anything.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -186,6 +189,9 @@ export function createProgram() {
 
   // EvoMap: Gene Exchange Protocol
   registerEvoMapCommand(program);
+
+  // CLI-Anything: Agent-Native Software Integration
+  registerCliAnythingCommand(program);
 
   return program;
 }

@@ -24,7 +24,7 @@ export function gitExec(args, cwd) {
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
   } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString().trim() : "";
+    const stderr = err.stderr ? err.stderr.toString("utf-8").trim() : "";
     throw new Error(stderr || err.message);
   }
 }
