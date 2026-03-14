@@ -8,7 +8,7 @@
 docs/design/
 ├── README.md                              # 本索引文件
 ├── 系统设计_主文档.md                      # 主文档 (概述+技术栈+路线图+总结)
-├── modules/                               # 核心模块设计 (67个文档)
+├── modules/                               # 核心模块设计 (69个文档)
 │   ├── 01_知识库管理模块.md               # 知识库/RAG/向量存储
 │   ├── 02_去中心化社交模块.md             # DID/P2P/Signal加密
 │   ├── 03_交易辅助模块.md                 # 智能合约/信用评分
@@ -75,7 +75,9 @@ docs/design/
 │   ├── 64_智能插件生态2.0.md              # ⭐Phase 99 AI推荐/沙箱/代码审计
 │   ├── 65_自进化AI系统.md                 # ⭐Phase 100 NAS/持续学习/自我修复
 │   ├── 66_CLI分发系统.md                  # ⭐Phase 101 npm CLI/预构建二进制
-│   └── 67_CLI高级功能补齐.md                 # ⭐Phase 102+ CLI高级功能/30模块/1960测试
+│   ├── 67_CLI高级功能补齐.md              # ⭐Phase 102+ CLI高级功能/17模块/440测试
+│   ├── 68_CLI-Anything集成.md             # ⭐v5.0.1 CLI-Anything桥接/外部软件Agent化
+│   └── 69_WebSocket服务器接口.md          # ⭐v5.0.1 WebSocket远程CLI/流式执行/Token认证
 ├── 安全机制设计.md                         # U盾/SIMKey安全 (含PQC/门限签名/生物识别)
 ├── 数据同步方案.md                         # Git/HTTP/P2P同步
 ├── AI模型部署方案.md                       # Ollama/云端模型
@@ -233,13 +235,15 @@ docs/design/
 | **统一运行时** ⭐       | [63\_统一应用运行时.md](modules/63_统一应用运行时.md)         | **Phase 98**,插件SDK 2.0,热更新,Profiler,CRDT同步 |
 | **插件生态2.0** ⭐      | [64\_智能插件生态2.0.md](modules/64_智能插件生态2.0.md)       | **Phase 99**,AI推荐,依赖解析,沙箱,代码审计        |
 | **自进化AI** ⭐         | [65\_自进化AI系统.md](modules/65_自进化AI系统.md)             | **Phase 100**,NAS,持续学习,自我修复,行为预测      |
-| **CLI分发系统** ⭐      | [66_CLI分发系统.md](modules/66_CLI分发系统.md)                | **Phase 101-102**,npm全局CLI,预构建二进制,2009测试(59命令),Context Engineering,Autonomous Agent,EvoMap     |
+| **CLI分发系统** ⭐      | [66_CLI分发系统.md](modules/66_CLI分发系统.md)                | **Phase 101-102**,npm全局CLI,预构建二进制,2063测试(61命令),Context Engineering,Autonomous Agent,EvoMap     |
 
 ### Phase 102+ 模块 (v5.0.1 CLI高级功能)
 
 | 模块                    | 文档                                                          | 说明                                              |
 | ----------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
 | **CLI高级功能** ⭐      | [67_CLI高级功能补齐.md](modules/67_CLI高级功能补齐.md)        | **Phase 102+**,17模块,11命令,2009测试,6维Context Engineering+Autonomous Agent+EvoMap              |
+| **CLI-Anything集成** ⭐ | [68_CLI-Anything集成.md](modules/68_CLI-Anything集成.md)      | **v5.0.1新增**,CLI-Anything桥接,外部软件Agent化,managed层技能注册 (5子命令,56测试)               |
+| **WebSocket服务器接口** ⭐ | [69_WebSocket服务器接口.md](modules/69_WebSocket服务器接口.md) | **v5.0.1新增**,WebSocket远程CLI调用,流式执行,Token认证,心跳检测 (61命令,54测试)                |
 
 ### 基础设施
 
@@ -291,4 +295,4 @@ docs/design/
 
 ---
 
-**最后更新**: 2026-03-12 (v5.0.1, 138技能 + Phase 1-102+ 全部完成 + CLI高级功能补齐: 12模块/10命令/440测试)
+**最后更新**: 2026-03-14 (v5.0.1, 138技能 + Phase 1-102+ 全部完成 + CLI 61命令/2063测试 + CLI-Anything集成 + WebSocket Server)

@@ -23,6 +23,7 @@ export const DEFAULT_PORTS = {
   redis: 6379,
   projectService: 9090,
   aiService: 8001,
+  wsServer: 18800,
 };
 
 export const LLM_PROVIDERS = {

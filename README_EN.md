@@ -34,7 +34,7 @@ chainlesschain setup    # Interactive setup wizard
 chainlesschain start    # Launch application
 ```
 
-- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 59 commands (incl. Phase 7-8 enterprise features)
+- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 61 commands (incl. Phase 7-8 enterprise features + WebSocket Server)
 - ✅ **Interactive Setup Wizard** — Node.js/Docker check → edition select → LLM config → binary download → auto-configure
 - ✅ **GitHub Release Integration** — Auto-download platform binaries (Win/macOS/Linux) + SHA256 verification
 - ✅ **Docker Compose Orchestration** — One-command backend management (`services up/down/logs/pull`)
@@ -55,6 +55,7 @@ chainlesschain start    # Launch application
 - ✅ **DAG Plan Execution + Risk Assessment** — `/plan execute` topological sort + `/plan risk` risk scoring
 - ✅ **EvoMap Gene Exchange** — `evomap search|download|publish|list|hubs` GEP-A2A protocol client + Federation Hub management + Gene governance
 - ✅ **CLI-Anything Integration** — `cli-anything doctor|scan|register|list|remove` Agent-native software integration, auto-register as managed-layer skills
+- ✅ **WebSocket Server** — `serve` command exposes all CLI commands over WebSocket, supports execute/stream/cancel + token auth + heartbeat + injection protection
 - ✅ **DAO Governance v2** — Quadratic voting + vote delegation + treasury management + proposal lifecycle (`dao` command)
 - ✅ **Security & Compliance CLI** — Compliance management (GDPR/SOC2/HIPAA/ISO27001) + DLP + SIEM log export + Post-Quantum Cryptography (PQC)
 - ✅ **Communication Bridges CLI** — Nostr bridge (NIP-01) + Matrix bridge (E2EE) + SCIM 2.0 user provisioning
@@ -62,7 +63,7 @@ chainlesschain start    # Launch application
 - ✅ **Social Platform CLI** — Contacts + friend system + posts + instant chat + social stats
 - ✅ **Hook Pipeline** — PreToolUse/PostToolUse/ToolError tool call hooks integration
 - ✅ **Content Recommender** — TF-IDF tool similarity + tool chain frequency recommendation
-- ✅ **2009 Test Cases** — 89 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
+- ✅ **2063 Test Cases** — 92 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
 - ✅ **Project Initialization** (`init`) — 4 templates (code-project/data-science/devops/empty), generates `.chainlesschain/` project structure
 - ✅ **Multi-layer Skill System** — 4-layer priority (bundled < marketplace < managed < workspace), custom skill management (add/remove/sources)
 - ✅ **Multi-agent Collaboration** (`cowork`) — Multi-perspective debate review + A/B solution comparison + code knowledge graph analysis

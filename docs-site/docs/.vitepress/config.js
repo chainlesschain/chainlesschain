@@ -718,6 +718,10 @@ export default defineConfig({
               text: "CLI-Anything集成 (cli-anything)",
               link: "/chainlesschain/cli-cli-anything",
             },
+            {
+              text: "WebSocket服务器 (serve)",
+              link: "/chainlesschain/cli-serve",
+            },
           ],
         },
         {

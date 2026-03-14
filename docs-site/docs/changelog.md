@@ -5,6 +5,44 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.1.3] - 2026-03-14
+
+### Added
+
+- **WebSocket 服务器接口**: `chainlesschain serve` 命令，通过 WebSocket 暴露全部 CLI 命令供外部工具远程调用
+  - `serve --port <port>`: 指定监听端口（默认 18800）
+  - `serve --token <token>`: 启用 Token 认证
+  - `serve --allow-remote`: 允许非本地连接（需配合 `--token`）
+  - 支持 `execute`（缓冲模式）和 `stream`（流式模式）两种执行方式
+  - 支持 `cancel` 取消运行中的命令
+  - 30s ping/pong 心跳检测死连接
+  - 安全防护：阻止递归调用 `serve`、阻止交互式命令（chat/agent/setup）
+  - Shell-safe tokenizer 防止命令注入（无 `shell: true`）
+  - 最大连接数限制 + 命令超时控制
+  - 新增 ws-server.js 库 + serve.js 命令 + 3 个测试文件（54 个测试）
+  - CLI 总计 61 个命令
+
+## [5.0.1.2] - 2026-03-14
+
+### Added
+
+- **CLI-Anything 集成**: Agent 原生软件 CLI 桥接，将 [CLI-Anything](https://github.com/HKUDS/CLI-Anything) 生成的工具自动注册为 ChainlessChain 技能
+  - `cli-anything doctor`: 检测 Python + CLI-Anything 环境
+  - `cli-anything scan`: 扫描 PATH 中已生成的 `cli-anything-*` 工具
+  - `cli-anything register <name>`: 注册工具为 managed 层技能（SKILL.md + handler.js）
+  - `cli-anything list`: 列出已注册工具
+  - `cli-anything remove <name>`: 移除已注册工具
+  - 新增 cli-anything-bridge.js 库 + cli-anything.js 命令 + 3 个测试文件
+  - CLI 总计 60 个命令
+- **火山引擎 (Volcengine) LLM Provider**: 新增第 8 个 LLM 提供商，支持豆包系列模型
+- **任务模型选择器 (Task Model Selector)**: 根据任务类型自动选择最优 LLM 模型
+- **LLM 代理 (Proxy) 支持**: 通过 `chainlesschain llm proxy` 配置 HTTP/SOCKS 代理
+
+### Fixed
+
+- **中文编码修复**: 修复 system-handler.js 中 `.toString()` 缺少 `utf-8` 参数导致的乱码问题
+- **全局编码规范**: 修复多个文件中 child_process 输出缺少 `encoding: 'utf-8'` 的问题
+
 ## [5.0.1.1] - 2026-03-12
 
 ### Added

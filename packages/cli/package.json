@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.39.0",
+  "version": "0.40.0",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
@@ -50,7 +50,8 @@
     "@chainlesschain/shared-logger": "0.1.0",
     "@chainlesschain/core-db": "0.1.0",
     "@chainlesschain/core-config": "0.1.0",
-    "@chainlesschain/core-infra": "0.1.0"
+    "@chainlesschain/core-infra": "0.1.0",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "vitest": "^3.1.1"
