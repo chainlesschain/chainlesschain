@@ -181,3 +181,9 @@
 
 # ============== ML Kit ==============
 -dontwarn com.google.mlkit.**
+
+# ============== SnakeYAML ==============
+# SnakeYAML references java.beans.* which is not available on Android
+-dontwarn java.beans.**
+-dontwarn org.yaml.snakeyaml.**
+-keep class org.yaml.snakeyaml.** { *; }
