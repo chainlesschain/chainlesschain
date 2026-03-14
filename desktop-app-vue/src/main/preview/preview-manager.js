@@ -139,7 +139,7 @@ class PreviewManager extends EventEmitter {
 
       // 监听输出，尝试解析端口和URL
       proc.stdout.on("data", (data) => {
-        const output = data.toString();
+        const output = data.toString("utf8");
         logger.info(`[DevServer] ${output}`);
 
         // 尝试匹配常见的开发服务器输出格式
@@ -174,7 +174,7 @@ class PreviewManager extends EventEmitter {
       });
 
       proc.stderr.on("data", (data) => {
-        logger.error(`[DevServer Error] ${data.toString()}`);
+        logger.error(`[DevServer Error] ${data.toString("utf8")}`);
       });
 
       proc.on("close", (code) => {

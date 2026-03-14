@@ -2,6 +2,8 @@
 
 本目录包含 ChainlessChain 系统的设计和架构文档。
 
+> **最新变更 (2026-03-15)**: WebSocket 服务器接口新增 Phase 2 有状态会话架构（agent-core, chat-core, InteractionAdapter, WSSessionManager, SlotFiller, InteractivePlanner），测试从 54 增至 250。桌面应用 26 个文件修复 UTF-8 编码（乱码防护）。
+
 ## 文档结构
 
 ```
@@ -243,7 +245,7 @@ docs/design/
 | ----------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
 | **CLI高级功能** ⭐      | [67_CLI高级功能补齐.md](modules/67_CLI高级功能补齐.md)        | **Phase 102+**,17模块,11命令,2009测试,6维Context Engineering+Autonomous Agent+EvoMap              |
 | **CLI-Anything集成** ⭐ | [68_CLI-Anything集成.md](modules/68_CLI-Anything集成.md)      | **v5.0.1新增**,CLI-Anything桥接,外部软件Agent化,managed层技能注册 (5子命令,56测试)               |
-| **WebSocket服务器接口** ⭐ | [69_WebSocket服务器接口.md](modules/69_WebSocket服务器接口.md) | **v5.0.1新增**,WebSocket远程CLI调用,流式执行,Token认证,心跳检测 (61命令,54测试)                |
+| **WebSocket服务器接口** ⭐ | [69_WebSocket服务器接口.md](modules/69_WebSocket服务器接口.md) | **v5.0.1新增**,WebSocket远程CLI调用,流式执行,Token认证,有状态Agent/Chat会话,SlotFiller,InteractivePlanner (250测试) |
 
 ### 基础设施
 
@@ -295,4 +297,4 @@ docs/design/
 
 ---
 
-**最后更新**: 2026-03-14 (v5.0.1, 138技能 + Phase 1-102+ 全部完成 + CLI 61命令/2063测试 + CLI-Anything集成 + WebSocket Server)
+**最后更新**: 2026-03-15 (v5.0.1, 138技能 + Phase 1-102+ 全部完成 + CLI 61命令/4500+测试 + CLI-Anything集成 + WebSocket Server Phase 2 有状态会话)

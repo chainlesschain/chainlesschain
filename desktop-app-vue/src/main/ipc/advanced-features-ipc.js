@@ -159,11 +159,11 @@ class AdvancedFeaturesIPC {
       let errorOutput = "";
 
       child.stdout.on("data", (data) => {
-        output += data.toString();
+        output += data.toString("utf8");
       });
 
       child.stderr.on("data", (data) => {
-        errorOutput += data.toString();
+        errorOutput += data.toString("utf8");
       });
 
       child.on("close", (code) => {

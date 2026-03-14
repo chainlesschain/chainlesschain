@@ -291,7 +291,7 @@ class PCStatusHandler extends EventEmitter {
       if (process.platform === "darwin" || process.platform === "linux") {
         // 在Unix系统上可以读取
         const { execSync } = require("child_process");
-        const dfOutput = execSync("df -k /").toString();
+        const dfOutput = execSync("df -k /", { encoding: "utf-8" });
         const lines = dfOutput.split("\n");
         if (lines.length > 1) {
           const parts = lines[1].split(/\s+/);

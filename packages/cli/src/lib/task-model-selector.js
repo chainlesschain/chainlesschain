@@ -24,24 +24,24 @@ export const TaskType = {
  */
 const TASK_MODEL_MAP = {
   [TaskType.CHAT]: {
-    volcengine: "doubao-seed-1-6-flash-250828",
+    volcengine: "doubao-seed-1-6-251015",
     openai: "gpt-4o-mini",
     anthropic: "claude-sonnet-4-6",
     deepseek: "deepseek-chat",
     dashscope: "qwen-plus",
     gemini: "gemini-2.0-flash",
     mistral: "mistral-medium-latest",
-    ollama: "qwen2:7b",
+    ollama: "qwen2.5:7b",
   },
   [TaskType.CODE]: {
-    volcengine: "doubao-seed-code",
+    volcengine: "doubao-seed-1-6-251015",
     openai: "gpt-4o",
     anthropic: "claude-sonnet-4-6",
     deepseek: "deepseek-coder",
     dashscope: "qwen-max",
     gemini: "gemini-2.0-pro",
     mistral: "mistral-large-latest",
-    ollama: "codellama:7b",
+    ollama: "qwen2.5-coder:14b",
   },
   [TaskType.REASONING]: {
     volcengine: "doubao-seed-1-6-251015",
@@ -51,7 +51,7 @@ const TASK_MODEL_MAP = {
     dashscope: "qwen-max",
     gemini: "gemini-2.0-pro",
     mistral: "mistral-large-latest",
-    ollama: "qwen2:7b",
+    ollama: "qwen2.5:14b",
   },
   [TaskType.FAST]: {
     volcengine: "doubao-seed-1-6-lite-251015",

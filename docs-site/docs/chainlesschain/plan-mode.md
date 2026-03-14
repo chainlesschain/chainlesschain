@@ -560,12 +560,119 @@ await planMode.executeStep(planId, 'step-1');
 
 ---
 
+## CLI SlotFiller 集成 (v0.41.0)
+
+> 从桌面版 `slot-filler.js` 移植到 CLI，支持终端和 WebSocket 两种交互模式。
+
+### SlotFiller 概述
+
+当 AI 检测到用户意图但缺少关键参数时，SlotFiller 自动向用户提问收集缺失信息：
+
+```
+用户: "创建一个 API 文件"
+    ↓
+SlotFiller 检测: create_file 意图缺少 fileType, path
+    ↓
+尝试上下文推断: 项目是 Node.js → fileType = "javascript"
+    ↓
+仍缺 path → 通过 InteractionAdapter 向用户提问
+    ↓
+终端模式: readline 提问
+WebSocket模式: 发送 question 消息，等待 session-answer
+```
+
+### 槽位定义
+
+```javascript
+REQUIRED_SLOTS = {
+  create_file: ['fileType', 'path'],
+  edit_file: ['target'],
+  deploy: ['platform'],
+  refactor: ['scope'],
+  test: ['target'],
+  analyze: ['target'],
+}
+```
+
+### 使用方式
+
+```bash
+# 在 Agent REPL 中，SlotFiller 自动工作
+chainlesschain agent
+
+> /plan interactive 重构用户认证模块
+# SlotFiller 检测缺少���数，自动提问：
+# ? 重构范围是什么？ (全部/登录模块/注册模块)
+# ? 使用什么认证方案？ (JWT/Session/OAuth)
+```
+
+### 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `packages/cli/src/lib/slot-filler.js` | SlotFiller 核心引擎 |
+| `packages/cli/src/lib/interaction-adapter.js` | 交互抽象层（终端/WebSocket） |
+
+---
+
+## CLI InteractivePlanner (v0.41.0)
+
+> 从桌面版 `task-planner-interactive.js` 简化移植，支持 LLM 驱动的计划生成。
+
+### 交互式规划流程
+
+```
+用户请求 → LLM 分析 → 生成计划 → 推荐技能 → 用户确认
+    ↓           ↓           ↓           ↓          ↓
+ /plan       分析上下文    步骤列表    匹配Skills   confirm/
+interactive   + 代码库    + 风险评估   + 解释原因   adjust/
+                                                  regenerate/
+                                                  cancel
+```
+
+### CLI 命令
+
+```bash
+chainlesschain agent
+
+# 进入交互式规划
+> /plan interactive 添加用户头像上传功能
+
+# 系统生成计划：
+#   Plan: 用户头像上传功能
+#   需要图片压缩、存储和 CDN 分发
+#
+#   1. 安装 sharp 依赖 [run_shell]
+#   2. 创建 upload 中间件 [write_file]
+#   3. 添加图片压缩逻辑 [write_file]
+#   4. 更新路由 [edit_file]
+#   5. 编写测试 [write_file]
+#
+#   Recommended skills:
+#     - code-review: 代码审查
+#     - unit-test: 单元测试生成
+
+> /plan interactive:confirm    # 确认执行
+> /plan interactive:cancel     # 取消
+> /plan interactive:regenerate # 重新生成
+```
+
+### 关键文件
+
+| 文件 | 职责 |
+|------|------|
+| `packages/cli/src/lib/interactive-planner.js` | 交互式计划生成器 |
+| `packages/cli/src/lib/slot-filler.js` | 参数槽填充（计划前信息收集） |
+
+---
+
 ## 相关文档
 
 - [Hooks 扩展系统](/chainlesschain/hooks) - 钩子事件与 Plan Mode 集成
 - [Skills 技能系统](/chainlesschain/skills) - 技能执行与规划模式
 - [权限系统](/chainlesschain/permissions) - RBAC 权限与操作审批
 - [Cowork 多智能体](/chainlesschain/cowork) - 多 Agent 协作中的规划
+- [WebSocket 服务器](/chainlesschain/cli-serve) - WebSocket 会话中的规划模式
 
 ---
 

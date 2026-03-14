@@ -732,11 +732,11 @@ class AutomationManager extends EventEmitter {
       let stderr = "";
 
       process.stdout.on("data", (data) => {
-        stdout += data.toString();
+        stdout += data.toString("utf8");
       });
 
       process.stderr.on("data", (data) => {
-        stderr += data.toString();
+        stderr += data.toString("utf8");
       });
 
       process.on("close", (code) => {

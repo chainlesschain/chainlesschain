@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Fine-Tuning Manager - LoRA/QLoRA model fine-tuning orchestration
@@ -11,17 +11,17 @@
  * @version 1.0.0
  */
 
-const { EventEmitter } = require('events');
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const { TrainingDataBuilder } = require('./training-data-builder.js');
-const { AdapterRegistry } = require('./adapter-registry.js');
+const { EventEmitter } = require("events");
+const { spawn } = require("child_process");
+const path = require("path");
+const fs = require("fs");
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const { TrainingDataBuilder } = require("./training-data-builder.js");
+const { AdapterRegistry } = require("./adapter-registry.js");
 
 // Ollama default base URL
-const OLLAMA_DEFAULT_URL = 'http://localhost:11434';
+const OLLAMA_DEFAULT_URL = "http://localhost:11434";
 
 class FineTuningManager extends EventEmitter {
   /**
@@ -52,7 +52,7 @@ class FineTuningManager extends EventEmitter {
 
     this._ensureTables();
     this.initialized = true;
-    logger.info('[FineTuning] Manager initialized');
+    logger.info("[FineTuning] Manager initialized");
   }
 
   /**
@@ -60,7 +60,9 @@ class FineTuningManager extends EventEmitter {
    * @private
    */
   _ensureTables() {
-    if (!this.database) {return;}
+    if (!this.database) {
+      return;
+    }
 
     const db = this.database.db || this.database;
 
@@ -105,9 +107,9 @@ class FineTuningManager extends EventEmitter {
         CREATE INDEX IF NOT EXISTS idx_lora_adapters_base_model ON lora_adapters(base_model)
       `);
 
-      logger.info('[FineTuning] Database tables ensured');
+      logger.info("[FineTuning] Database tables ensured");
     } catch (error) {
-      logger.error('[FineTuning] Failed to create tables:', error.message);
+      logger.error("[FineTuning] Failed to create tables:", error.message);
     }
   }
 
@@ -126,33 +128,30 @@ class FineTuningManager extends EventEmitter {
    * @returns {Promise<{recordCount: number, outputPath: string, format: string}>}
    */
   async prepareData(options) {
-    const {
-      source,
-      format = 'jsonl',
-      outputPath,
-      filters = {},
-    } = options;
+    const { source, format = "jsonl", outputPath, filters = {} } = options;
 
     if (!source || !outputPath) {
-      throw new Error('source and outputPath are required');
+      throw new Error("source and outputPath are required");
     }
 
-    logger.info(`[FineTuning] Preparing data from "${source}" in ${format} format`);
+    logger.info(
+      `[FineTuning] Preparing data from "${source}" in ${format} format`,
+    );
 
     let data = [];
 
     switch (source) {
-      case 'conversations':
+      case "conversations":
         data = this.dataBuilder.extractFromConversations(filters);
         break;
-      case 'notes':
+      case "notes":
         data = this.dataBuilder.extractFromNotes(filters);
         break;
-      case 'custom':
+      case "custom":
         if (filters.data && Array.isArray(filters.data)) {
           data = filters.data;
         } else {
-          throw new Error('Custom source requires filters.data array');
+          throw new Error("Custom source requires filters.data array");
         }
         break;
       default:
@@ -160,12 +159,12 @@ class FineTuningManager extends EventEmitter {
     }
 
     if (data.length === 0) {
-      logger.warn('[FineTuning] No data extracted from source');
+      logger.warn("[FineTuning] No data extracted from source");
       return { recordCount: 0, outputPath, format };
     }
 
     let result;
-    if (format === 'alpaca') {
+    if (format === "alpaca") {
       result = this.dataBuilder.formatAsAlpaca(data, outputPath);
     } else {
       result = this.dataBuilder.formatAsJSONL(data, outputPath);
@@ -203,7 +202,7 @@ class FineTuningManager extends EventEmitter {
       baseModel,
       adapterName,
       dataPath,
-      backend = 'ollama',
+      backend = "ollama",
       epochs = 3,
       batchSize = 4,
       learningRate = 0.0002,
@@ -213,7 +212,7 @@ class FineTuningManager extends EventEmitter {
     } = config;
 
     if (!baseModel || !adapterName || !dataPath) {
-      throw new Error('baseModel, adapterName, and dataPath are required');
+      throw new Error("baseModel, adapterName, and dataPath are required");
     }
 
     const jobId = uuidv4();
@@ -243,15 +242,19 @@ class FineTuningManager extends EventEmitter {
       createdAt: now,
     });
 
-    logger.info(`[FineTuning] Created job ${jobId} (${backend}) for model ${baseModel}`);
+    logger.info(
+      `[FineTuning] Created job ${jobId} (${backend}) for model ${baseModel}`,
+    );
 
     // Launch the actual training asynchronously
-    if (backend === 'ollama') {
+    if (backend === "ollama") {
       this._startOllamaTraining(jobId, jobConfig);
-    } else if (backend === 'llama-cpp') {
+    } else if (backend === "llama-cpp") {
       this._startLlamaCppTraining(jobId, jobConfig);
     } else {
-      this._updateJobStatus(jobId, 'failed', { errorMessage: `Unsupported backend: ${backend}` });
+      this._updateJobStatus(jobId, "failed", {
+        errorMessage: `Unsupported backend: ${backend}`,
+      });
     }
 
     return this.getStatus(jobId);
@@ -269,8 +272,8 @@ class FineTuningManager extends EventEmitter {
    */
   async _startOllamaTraining(jobId, config) {
     try {
-      this._updateJobStatus(jobId, 'running', { startedAt: Date.now() });
-      this.emit('progress', { jobId, status: 'running', progress: 0 });
+      this._updateJobStatus(jobId, "running", { startedAt: Date.now() });
+      this.emit("progress", { jobId, status: "running", progress: 0 });
 
       // Build the Modelfile content
       const modelfileLines = [
@@ -287,31 +290,35 @@ class FineTuningManager extends EventEmitter {
         modelfileLines.push(`PARAMETER quantization ${config.quantization}`);
       }
 
-      const modelfile = modelfileLines.join('\n');
+      const modelfile = modelfileLines.join("\n");
 
       logger.info(`[FineTuning] Ollama Modelfile:\n${modelfile}`);
 
       // Simulate incremental progress (Ollama /api/create is blocking)
       this._updateJobProgress(jobId, 10);
-      this.emit('progress', { jobId, status: 'running', progress: 10 });
+      this.emit("progress", { jobId, status: "running", progress: 10 });
 
       // Call Ollama API to create the model
-      const axios = require('axios');
-      const response = await axios.post(`${this.ollamaBaseUrl}/api/create`, {
-        name: config.adapterName,
-        modelfile: modelfile,
-        stream: false,
-      }, {
-        timeout: 600000, // 10 min timeout for model creation
-      });
+      const axios = require("axios");
+      const response = await axios.post(
+        `${this.ollamaBaseUrl}/api/create`,
+        {
+          name: config.adapterName,
+          modelfile: modelfile,
+          stream: false,
+        },
+        {
+          timeout: 600000, // 10 min timeout for model creation
+        },
+      );
 
       if (response.status === 200) {
         this._updateJobProgress(jobId, 100);
-        this._updateJobStatus(jobId, 'completed', {
+        this._updateJobStatus(jobId, "completed", {
           completedAt: Date.now(),
-          metrics: { backend: 'ollama', modelName: config.adapterName },
+          metrics: { backend: "ollama", modelName: config.adapterName },
         });
-        this.emit('progress', { jobId, status: 'completed', progress: 100 });
+        this.emit("progress", { jobId, status: "completed", progress: 100 });
 
         // Register the adapter
         const adapterPath = `ollama://${config.adapterName}`;
@@ -330,8 +337,13 @@ class FineTuningManager extends EventEmitter {
       }
     } catch (error) {
       logger.error(`[FineTuning] Ollama job ${jobId} failed:`, error.message);
-      this._updateJobStatus(jobId, 'failed', { errorMessage: error.message });
-      this.emit('progress', { jobId, status: 'failed', progress: 0, error: error.message });
+      this._updateJobStatus(jobId, "failed", { errorMessage: error.message });
+      this.emit("progress", {
+        jobId,
+        status: "failed",
+        progress: 0,
+        error: error.message,
+      });
     }
   }
 
@@ -347,62 +359,74 @@ class FineTuningManager extends EventEmitter {
    */
   _startLlamaCppTraining(jobId, config) {
     try {
-      this._updateJobStatus(jobId, 'running', { startedAt: Date.now() });
-      this.emit('progress', { jobId, status: 'running', progress: 0 });
+      this._updateJobStatus(jobId, "running", { startedAt: Date.now() });
+      this.emit("progress", { jobId, status: "running", progress: 0 });
 
       const args = [
-        '--model', config.baseModel,
-        '--lora-out', config.adapterName,
-        '--train-data', config.dataPath,
-        '--epochs', String(config.epochs),
-        '--batch', String(config.batchSize),
-        '--learning-rate', String(config.learningRate),
-        '--lora-r', String(config.loraRank),
-        '--lora-alpha', String(config.loraAlpha),
+        "--model",
+        config.baseModel,
+        "--lora-out",
+        config.adapterName,
+        "--train-data",
+        config.dataPath,
+        "--epochs",
+        String(config.epochs),
+        "--batch",
+        String(config.batchSize),
+        "--learning-rate",
+        String(config.learningRate),
+        "--lora-r",
+        String(config.loraRank),
+        "--lora-alpha",
+        String(config.loraAlpha),
       ];
 
       if (config.quantization) {
-        args.push('--quantize', config.quantization);
+        args.push("--quantize", config.quantization);
       }
 
-      logger.info(`[FineTuning] Spawning llama-finetune with args: ${args.join(' ')}`);
+      logger.info(
+        `[FineTuning] Spawning llama-finetune with args: ${args.join(" ")}`,
+      );
 
-      const child = spawn('llama-finetune', args, {
-        stdio: ['ignore', 'pipe', 'pipe'],
+      const child = spawn("llama-finetune", args, {
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
       this.runningProcesses.set(jobId, child);
 
-      let stderrBuffer = '';
+      let stderrBuffer = "";
 
-      child.stdout.on('data', (data) => {
-        const text = data.toString();
+      child.stdout.on("data", (data) => {
+        const text = data.toString("utf8");
         const progress = this._parseLlamaCppProgress(text);
         if (progress !== null) {
           this._updateJobProgress(jobId, progress);
-          this.emit('progress', { jobId, status: 'running', progress });
+          this.emit("progress", { jobId, status: "running", progress });
         }
       });
 
-      child.stderr.on('data', (data) => {
-        stderrBuffer += data.toString();
+      child.stderr.on("data", (data) => {
+        stderrBuffer += data.toString("utf8");
       });
 
-      child.on('close', (code) => {
+      child.on("close", (code) => {
         this.runningProcesses.delete(jobId);
 
         if (code === 0) {
           this._updateJobProgress(jobId, 100);
-          this._updateJobStatus(jobId, 'completed', {
+          this._updateJobStatus(jobId, "completed", {
             completedAt: Date.now(),
-            metrics: { backend: 'llama-cpp', exitCode: 0 },
+            metrics: { backend: "llama-cpp", exitCode: 0 },
           });
-          this.emit('progress', { jobId, status: 'completed', progress: 100 });
+          this.emit("progress", { jobId, status: "completed", progress: 100 });
 
           // Register the adapter if the output file exists
           const adapterPath = config.adapterName;
           try {
-            const sizeBytes = fs.existsSync(adapterPath) ? fs.statSync(adapterPath).size : 0;
+            const sizeBytes = fs.existsSync(adapterPath)
+              ? fs.statSync(adapterPath).size
+              : 0;
             this.adapterRegistry.register({
               name: path.basename(adapterPath, path.extname(adapterPath)),
               baseModel: config.baseModel,
@@ -412,28 +436,56 @@ class FineTuningManager extends EventEmitter {
               description: `Fine-tuned from ${config.baseModel} via llama.cpp`,
             });
           } catch (regError) {
-            logger.warn(`[FineTuning] Adapter registration after llama-cpp job failed: ${regError.message}`);
+            logger.warn(
+              `[FineTuning] Adapter registration after llama-cpp job failed: ${regError.message}`,
+            );
           }
 
-          logger.info(`[FineTuning] llama-cpp job ${jobId} completed successfully`);
+          logger.info(
+            `[FineTuning] llama-cpp job ${jobId} completed successfully`,
+          );
         } else {
-          const errorMsg = stderrBuffer.trim() || `llama-finetune exited with code ${code}`;
-          this._updateJobStatus(jobId, 'failed', { errorMessage: errorMsg });
-          this.emit('progress', { jobId, status: 'failed', progress: 0, error: errorMsg });
-          logger.error(`[FineTuning] llama-cpp job ${jobId} failed: ${errorMsg}`);
+          const errorMsg =
+            stderrBuffer.trim() || `llama-finetune exited with code ${code}`;
+          this._updateJobStatus(jobId, "failed", { errorMessage: errorMsg });
+          this.emit("progress", {
+            jobId,
+            status: "failed",
+            progress: 0,
+            error: errorMsg,
+          });
+          logger.error(
+            `[FineTuning] llama-cpp job ${jobId} failed: ${errorMsg}`,
+          );
         }
       });
 
-      child.on('error', (err) => {
+      child.on("error", (err) => {
         this.runningProcesses.delete(jobId);
-        this._updateJobStatus(jobId, 'failed', { errorMessage: err.message });
-        this.emit('progress', { jobId, status: 'failed', progress: 0, error: err.message });
-        logger.error(`[FineTuning] llama-cpp process error for job ${jobId}:`, err.message);
+        this._updateJobStatus(jobId, "failed", { errorMessage: err.message });
+        this.emit("progress", {
+          jobId,
+          status: "failed",
+          progress: 0,
+          error: err.message,
+        });
+        logger.error(
+          `[FineTuning] llama-cpp process error for job ${jobId}:`,
+          err.message,
+        );
       });
     } catch (error) {
-      logger.error(`[FineTuning] Failed to start llama-cpp job ${jobId}:`, error.message);
-      this._updateJobStatus(jobId, 'failed', { errorMessage: error.message });
-      this.emit('progress', { jobId, status: 'failed', progress: 0, error: error.message });
+      logger.error(
+        `[FineTuning] Failed to start llama-cpp job ${jobId}:`,
+        error.message,
+      );
+      this._updateJobStatus(jobId, "failed", { errorMessage: error.message });
+      this.emit("progress", {
+        jobId,
+        status: "failed",
+        progress: 0,
+        error: error.message,
+      });
     }
   }
 
@@ -479,13 +531,17 @@ class FineTuningManager extends EventEmitter {
    */
   getStatus(jobId) {
     const db = this._db();
-    if (!db) {return null;}
+    if (!db) {
+      return null;
+    }
 
     try {
-      const stmt = db.prepare('SELECT * FROM fine_tuning_jobs WHERE id = ?');
+      const stmt = db.prepare("SELECT * FROM fine_tuning_jobs WHERE id = ?");
       const row = stmt.get(jobId);
 
-      if (!row) {return null;}
+      if (!row) {
+        return null;
+      }
 
       return {
         id: row.id,
@@ -503,7 +559,7 @@ class FineTuningManager extends EventEmitter {
         createdAt: row.created_at,
       };
     } catch (error) {
-      logger.error('[FineTuning] Failed to get job status:', error.message);
+      logger.error("[FineTuning] Failed to get job status:", error.message);
       return null;
     }
   }
@@ -520,29 +576,39 @@ class FineTuningManager extends EventEmitter {
   cancelJob(jobId) {
     const job = this.getStatus(jobId);
     if (!job) {
-      return { success: false, message: 'Job not found' };
+      return { success: false, message: "Job not found" };
     }
 
-    if (job.status !== 'running' && job.status !== 'pending') {
-      return { success: false, message: `Job is not cancellable (status: ${job.status})` };
+    if (job.status !== "running" && job.status !== "pending") {
+      return {
+        success: false,
+        message: `Job is not cancellable (status: ${job.status})`,
+      };
     }
 
     // Kill the child process if one is tracked
     const childProcess = this.runningProcesses.get(jobId);
     if (childProcess) {
       try {
-        childProcess.kill('SIGTERM');
+        childProcess.kill("SIGTERM");
       } catch (killErr) {
-        logger.warn(`[FineTuning] Error killing process for job ${jobId}:`, killErr.message);
+        logger.warn(
+          `[FineTuning] Error killing process for job ${jobId}:`,
+          killErr.message,
+        );
       }
       this.runningProcesses.delete(jobId);
     }
 
-    this._updateJobStatus(jobId, 'cancelled', { completedAt: Date.now() });
-    this.emit('progress', { jobId, status: 'cancelled', progress: job.progress });
+    this._updateJobStatus(jobId, "cancelled", { completedAt: Date.now() });
+    this.emit("progress", {
+      jobId,
+      status: "cancelled",
+      progress: job.progress,
+    });
 
     logger.info(`[FineTuning] Job ${jobId} cancelled`);
-    return { success: true, message: 'Job cancelled' };
+    return { success: true, message: "Job cancelled" };
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -568,28 +634,35 @@ class FineTuningManager extends EventEmitter {
   deleteAdapter(adapterId) {
     const adapter = this.adapterRegistry.getAdapter(adapterId);
     if (!adapter) {
-      return { success: false, message: 'Adapter not found' };
+      return { success: false, message: "Adapter not found" };
     }
 
     // Try to remove the file from disk (ignore errors for virtual paths)
-    if (adapter.adapterPath && !adapter.adapterPath.startsWith('ollama://')) {
+    if (adapter.adapterPath && !adapter.adapterPath.startsWith("ollama://")) {
       try {
         if (fs.existsSync(adapter.adapterPath)) {
           fs.unlinkSync(adapter.adapterPath);
-          logger.info(`[FineTuning] Deleted adapter file: ${adapter.adapterPath}`);
+          logger.info(
+            `[FineTuning] Deleted adapter file: ${adapter.adapterPath}`,
+          );
         }
       } catch (fsErr) {
-        logger.warn(`[FineTuning] Could not delete adapter file: ${fsErr.message}`);
+        logger.warn(
+          `[FineTuning] Could not delete adapter file: ${fsErr.message}`,
+        );
       }
     }
 
     const deleted = this.adapterRegistry.unregister(adapterId);
     if (deleted) {
       logger.info(`[FineTuning] Adapter ${adapterId} deleted`);
-      return { success: true, message: 'Adapter deleted' };
+      return { success: true, message: "Adapter deleted" };
     }
 
-    return { success: false, message: 'Failed to delete adapter from database' };
+    return {
+      success: false,
+      message: "Failed to delete adapter from database",
+    };
   }
 
   /**
@@ -605,31 +678,39 @@ class FineTuningManager extends EventEmitter {
   async loadAdapter(adapterId, targetModel) {
     const adapter = this.adapterRegistry.getAdapter(adapterId);
     if (!adapter) {
-      throw new Error('Adapter not found');
+      throw new Error("Adapter not found");
     }
 
     const modelName = `${targetModel}-${adapter.name}`;
 
-    logger.info(`[FineTuning] Loading adapter ${adapter.name} onto ${targetModel} as ${modelName}`);
+    logger.info(
+      `[FineTuning] Loading adapter ${adapter.name} onto ${targetModel} as ${modelName}`,
+    );
 
     // Build the Modelfile
     const modelfile = [
       `FROM ${targetModel}`,
       `ADAPTER ${adapter.adapterPath}`,
-    ].join('\n');
+    ].join("\n");
 
     try {
-      const axios = require('axios');
-      const response = await axios.post(`${this.ollamaBaseUrl}/api/create`, {
-        name: modelName,
-        modelfile: modelfile,
-        stream: false,
-      }, {
-        timeout: 300000,
-      });
+      const axios = require("axios");
+      const response = await axios.post(
+        `${this.ollamaBaseUrl}/api/create`,
+        {
+          name: modelName,
+          modelfile: modelfile,
+          stream: false,
+        },
+        {
+          timeout: 300000,
+        },
+      );
 
       if (response.status === 200) {
-        logger.info(`[FineTuning] Model ${modelName} created with adapter ${adapter.name}`);
+        logger.info(
+          `[FineTuning] Model ${modelName} created with adapter ${adapter.name}`,
+        );
         return { success: true, modelName };
       }
 
@@ -650,31 +731,33 @@ class FineTuningManager extends EventEmitter {
    * @param {string} [format='jsonl'] - Desired export format
    * @returns {{ data: Array, format: string, recordCount: number }}
    */
-  exportData(jobId, format = 'jsonl') {
+  exportData(jobId, format = "jsonl") {
     const job = this.getStatus(jobId);
     if (!job) {
-      throw new Error('Job not found');
+      throw new Error("Job not found");
     }
 
     if (!job.dataPath || !fs.existsSync(job.dataPath)) {
-      throw new Error('Training data file not found');
+      throw new Error("Training data file not found");
     }
 
     try {
-      const raw = fs.readFileSync(job.dataPath, 'utf-8').trim();
+      const raw = fs.readFileSync(job.dataPath, "utf-8").trim();
       let data;
 
       // Detect if the file is JSONL or JSON array
-      if (raw.startsWith('[')) {
+      if (raw.startsWith("[")) {
         data = JSON.parse(raw);
       } else {
         data = raw
-          .split('\n')
+          .split("\n")
           .filter((line) => line.trim().length > 0)
           .map((line) => JSON.parse(line));
       }
 
-      logger.info(`[FineTuning] Exported ${data.length} records for job ${jobId}`);
+      logger.info(
+        `[FineTuning] Exported ${data.length} records for job ${jobId}`,
+      );
 
       return {
         data,
@@ -682,7 +765,10 @@ class FineTuningManager extends EventEmitter {
         recordCount: data.length,
       };
     } catch (error) {
-      logger.error(`[FineTuning] Failed to export data for job ${jobId}:`, error.message);
+      logger.error(
+        `[FineTuning] Failed to export data for job ${jobId}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -696,7 +782,9 @@ class FineTuningManager extends EventEmitter {
    * @private
    */
   _db() {
-    if (!this.database) {return null;}
+    if (!this.database) {
+      return null;
+    }
     return this.database.db || this.database;
   }
 
@@ -704,18 +792,36 @@ class FineTuningManager extends EventEmitter {
    * Insert a new job record into the database.
    * @private
    */
-  _insertJob({ id, baseModel, adapterName, dataPath, backend, config, createdAt }) {
+  _insertJob({
+    id,
+    baseModel,
+    adapterName,
+    dataPath,
+    backend,
+    config,
+    createdAt,
+  }) {
     const db = this._db();
-    if (!db) {return;}
+    if (!db) {
+      return;
+    }
 
     try {
       const stmt = db.prepare(`
         INSERT INTO fine_tuning_jobs (id, base_model, adapter_name, data_path, backend, status, progress, config, created_at)
         VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
       `);
-      stmt.run(id, baseModel, adapterName, dataPath, backend, JSON.stringify(config), createdAt);
+      stmt.run(
+        id,
+        baseModel,
+        adapterName,
+        dataPath,
+        backend,
+        JSON.stringify(config),
+        createdAt,
+      );
     } catch (error) {
-      logger.error('[FineTuning] Failed to insert job:', error.message);
+      logger.error("[FineTuning] Failed to insert job:", error.message);
     }
   }
 
@@ -725,37 +831,39 @@ class FineTuningManager extends EventEmitter {
    */
   _updateJobStatus(jobId, status, extras = {}) {
     const db = this._db();
-    if (!db) {return;}
+    if (!db) {
+      return;
+    }
 
     try {
-      const sets = ['status = ?'];
+      const sets = ["status = ?"];
       const params = [status];
 
       if (extras.startedAt !== undefined) {
-        sets.push('started_at = ?');
+        sets.push("started_at = ?");
         params.push(extras.startedAt);
       }
       if (extras.completedAt !== undefined) {
-        sets.push('completed_at = ?');
+        sets.push("completed_at = ?");
         params.push(extras.completedAt);
       }
       if (extras.errorMessage !== undefined) {
-        sets.push('error_message = ?');
+        sets.push("error_message = ?");
         params.push(extras.errorMessage);
       }
       if (extras.metrics !== undefined) {
-        sets.push('metrics = ?');
+        sets.push("metrics = ?");
         params.push(JSON.stringify(extras.metrics));
       }
 
       params.push(jobId);
 
       const stmt = db.prepare(
-        `UPDATE fine_tuning_jobs SET ${sets.join(', ')} WHERE id = ?`
+        `UPDATE fine_tuning_jobs SET ${sets.join(", ")} WHERE id = ?`,
       );
       stmt.run(...params);
     } catch (error) {
-      logger.error('[FineTuning] Failed to update job status:', error.message);
+      logger.error("[FineTuning] Failed to update job status:", error.message);
     }
   }
 
@@ -765,13 +873,20 @@ class FineTuningManager extends EventEmitter {
    */
   _updateJobProgress(jobId, progress) {
     const db = this._db();
-    if (!db) {return;}
+    if (!db) {
+      return;
+    }
 
     try {
-      const stmt = db.prepare('UPDATE fine_tuning_jobs SET progress = ? WHERE id = ?');
+      const stmt = db.prepare(
+        "UPDATE fine_tuning_jobs SET progress = ? WHERE id = ?",
+      );
       stmt.run(progress, jobId);
     } catch (error) {
-      logger.error('[FineTuning] Failed to update job progress:', error.message);
+      logger.error(
+        "[FineTuning] Failed to update job progress:",
+        error.message,
+      );
     }
   }
 }

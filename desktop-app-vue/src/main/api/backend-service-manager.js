@@ -250,6 +250,7 @@ class BackendServiceManager {
         spawnSync("cmd", ["/c", normalizedPath], {
           windowsHide: true,
           timeout: 10000,
+          encoding: "utf-8",
         });
         logger.info("[Backend Services] All services stopped successfully");
       } else {
@@ -285,6 +286,7 @@ class BackendServiceManager {
         spawnSync("taskkill", ["/F", "/IM", processName, "/T"], {
           windowsHide: true,
           timeout: 3000,
+          encoding: "utf-8",
         });
         logger.info(`[Backend Services] Killed ${processName}`);
       } catch (error) {

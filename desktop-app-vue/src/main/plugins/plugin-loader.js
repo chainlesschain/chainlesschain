@@ -356,11 +356,11 @@ class PluginLoader {
       let output = "";
 
       child.stdout.on("data", (data) => {
-        output += data.toString();
+        output += data.toString("utf8");
       });
 
       child.stderr.on("data", (data) => {
-        output += data.toString();
+        output += data.toString("utf8");
       });
 
       child.on("close", (code) => {
@@ -392,11 +392,11 @@ class PluginLoader {
       let stderr = "";
 
       child.stdout.on("data", (data) => {
-        stdout += data.toString();
+        stdout += data.toString("utf8");
       });
 
       child.stderr.on("data", (data) => {
-        stderr += data.toString();
+        stderr += data.toString("utf8");
       });
 
       child.on("close", (code) => {

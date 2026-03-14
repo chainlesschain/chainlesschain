@@ -5,7 +5,7 @@
 ## 核心特性
 
 - 🤖 **Claude Code 风格**: 代理式 AI 会话，自主完成任务
-- 🔧 **8 个内置工具**: 读写文件、执行命令、搜索代码库
+- 🔧 **9 个内置工具**: 读写文件、执行命令、搜索代码库、代码执行
 - 🎯 **138 个技能**: 集成全部内置技能
 - 📋 **Plan Mode**: AI 制定计划，用户审批后执行
 - 💾 **会话持久化**: 自动保存，支持 `--session` 断点恢复
@@ -23,13 +23,13 @@ agent 命令 → agent.js (Commander) → agent-repl.js
      ┌──────────┬──────────┬─────────────┼──────────────┬─────────────┬──────────┐
      ▼          ▼          ▼             ▼              ▼             ▼          ▼
   工具系统   Plan Mode  Hook管道   Context Engine    会话管理    Autonomous  Bootstrap
- (8 tools)  (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
+ (9 tools)  (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
                         manager)    engineering.js)  manager)   (ReAct)        │
      │          │          │             │              │          │      7-stage init
      ▼          ▼          ▼             ▼              ▼          ▼        (DB/Config)
  read/write  只读→计划→  PreToolUse   6维注入:        自动保存   /auto
  edit/shell  审批→执行   PostToolUse  Instinct        到SQLite   目标分解
- search      DAG执行     ToolError    Memory          断点恢复   ReAct循环
+ search/code DAG执行     ToolError    Memory          断点恢复   ReAct循环
  skill/list  风险评估                 BM25 Notes               自动纠错
                                       Task重述
                                       Permanent Memory
@@ -40,14 +40,14 @@ agent 命令 → agent.js (Commander) → agent-repl.js
 
 ## 概述
 
-启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、调用 138 个内置技能。
+启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、运行代码脚本（Python/Node.js/Bash）、调用 138 个内置技能。
 支持 8 个 LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine）和自主模式（/auto）。Agent 模式下自动根据任务类型智能选择最佳模型。
 通过 6 维 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）、任务目标提醒、跨会话持久记忆（Permanent Memory）和压缩摘要（Compaction Summary），使 AI 保持上下文聚焦。
 
 ## 命令参考
 
 ```bash
-chainlesschain agent                    # 默认: Ollama qwen2:7b
+chainlesschain agent                    # 默认: Ollama qwen2.5:7b
 chainlesschain a --model llama3         # 短别名
 chainlesschain agent --provider openai --api-key sk-...
 chainlesschain agent --session <id>     # 恢复历史会话
@@ -59,7 +59,7 @@ chainlesschain agent --session <id>     # 恢复历史会话
 
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
-| `--model <model>` | LLM 模型名称 | `qwen2:7b` |
+| `--model <model>` | LLM 模型名称 | `qwen2.5:7b` |
 | `--provider <provider>` | LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine） | `ollama` |
 | `--base-url <url>` | API 基础 URL | `http://localhost:11434` |
 | `--api-key <key>` | API 密钥 | — |
@@ -67,18 +67,55 @@ chainlesschain agent --session <id>     # 恢复历史会话
 
 ## 内置工具
 
-代理模式提供 8 个内置工具：
+代理模式提供 9 个内置工具：
 
 | 工具           | 说明                 |
 | -------------- | -------------------- |
 | `read_file`    | 读取文件内容         |
 | `write_file`   | 写入文件             |
 | `edit_file`    | 编辑文件（查找替换） |
-| `run_shell`    | 执行 Shell 命令      |
+| `run_shell`    | 执行 Shell 命令（超时 60s，输出截断 30KB） |
 | `search_files` | 搜索文件内容         |
 | `list_dir`     | 列出目录内容         |
 | `run_skill`    | 运行内置技能         |
 | `list_skills`  | 列出可用技能         |
+| `run_code`     | 编写并执行代码（Python/Node.js/Bash），超时 1-300s，输出截断 50KB |
+
+### run_code 工具详情
+
+`run_code` 是 v0.40.3 新增的代码执行工具，让 AI 能主动编写脚本解决用户问题。
+
+**参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `language` | string | 是 | 编程语言：`python`、`node`、`bash` |
+| `code` | string | 是 | 要执行的代码 |
+| `timeout` | number | 否 | 超时时间（秒），默认 60，最大 300 |
+
+**执行流程**：
+1. 代码写入临时文件（`os.tmpdir()` + 时间戳）
+2. 根据语言选择解释器（`python3`/`python`、`node`、`bash`）
+3. 执行并捕获输出（最大 50KB）
+4. 返回 `{ success, output, language, duration }` 或错误信息
+5. 清理临时文件
+
+**语言选择建议**：
+- **Python**: 数据处理、数学计算、Web 抓取、文件批量操作
+- **Node.js**: JSON 处理、API 调用、npm 生态相关
+- **Bash**: 系统管理、文件操作、管道命令
+
+**使用示例**：
+```
+> 帮我统计当前目录下每种文件类型的数量
+
+🤖 好的，我来写个脚本统计：
+[run_code: node (156 chars)]
+  .js: 42
+  .json: 8
+  .md: 15
+  .test.js: 23
+共 88 个文件
+```
 
 ## Context Engineering
 
@@ -288,14 +325,14 @@ export VOLCENGINE_API_KEY=ark-xxxxxxxxxxxx
 chainlesschain agent --provider volcengine
 
 # 指定代码模型
-chainlesschain agent --provider volcengine --model doubao-seed-code
+chainlesschain agent --provider volcengine --model doubao-seed-1-6-251015
 ```
 
 Agent 模式下会自动根据任务类型智能选择最佳模型���
 
 ```
 you> 写一个 Python 快速排序函数
-[auto] 代码任务 → doubao-seed-code
+[auto] 代码任务 → doubao-seed-1-6-251015
 ai>  def quicksort(arr): ...
 
 you> 分析 TCP 三次握手的过程
@@ -303,7 +340,7 @@ you> 分析 TCP 三次握手的过程
 ai>  TCP三次握手过程如下：...
 
 you> 今天天气怎么样？
-ai>  (使用默认 flash 模型，快速响应)
+ai>  (使用默认模型，快速响应)
 ```
 
 ### 使用 OpenAI / DeepSeek Agent 模式
@@ -388,7 +425,7 @@ Resumed session session-17... (8 messages)
 ## 关键文件
 
 - `packages/cli/src/commands/agent.js` — 命令入口（含 `--session` 选项）
-- `packages/cli/src/repl/agent-repl.js` — 代理 REPL（8 工具 + 138 技能 + Plan Mode + Context Engineering）
+- `packages/cli/src/repl/agent-repl.js` — 代理 REPL（9 工具 + 138 技能 + Plan Mode + Context Engineering）
 - `packages/cli/src/lib/cli-context-engineering.js` — Context Engineering 适配器（6 维注入 + 智能压缩）
 - `packages/cli/src/lib/plan-mode.js` — Plan Mode 实现
 - `packages/cli/src/lib/instinct-manager.js` — Instinct 学习引擎
@@ -404,6 +441,7 @@ Resumed session session-17... (8 messages)
 ## 安全考虑
 
 - `run_shell` 工具可执行任意 Shell 命令，请在可信环境中使用
+- `run_code` 工具可执行 Python/Node.js/Bash 脚本，代码在临时文件中执行并自动清理
 - `write_file` / `edit_file` 可修改文件系统，建议在 Git 仓库中使用以便回滚
 - Plan Mode 默认只读，需用户审批后才执行写操作
 - API Key 仅存储在本地，不会通过工具调用泄露
@@ -415,7 +453,7 @@ Resumed session session-17... (8 messages)
 |------|---------|
 | 工具调用失败 | 检查当前目录的文件权限 |
 | Plan Mode 不生效 | 输入 `/plan` 手动进入规划模式 |
-| 代理响应过慢 | 切换到更快的模型（如 `qwen2:7b`）或使用云端 API |
+| 代理响应过慢 | 切换到更快的模型（如 `qwen2.5:7b`）或使用云端 API |
 | `run_shell` 权限不足 | 检查当前用户的 Shell 执行权限 |
 | Context 注入无效果 | 检查 DB 是否初始化（`chainlesschain db init`） |
 | `--session` 恢复失败 | 确认 Session ID 存在（`chainlesschain session list`） |

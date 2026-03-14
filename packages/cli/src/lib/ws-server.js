@@ -94,6 +94,12 @@ export class ChainlessChainWSServer extends EventEmitter {
     /** Running child processes: requestId → ChildProcess */
     this.processes = new Map();
 
+    /** Session manager for stateful agent/chat sessions */
+    this.sessionManager = options.sessionManager || null;
+
+    /** Session handlers: sessionId → WSAgentHandler | WSChatHandler */
+    this.sessionHandlers = new Map();
+
     this._heartbeatTimer = null;
     this._clientCounter = 0;
   }
@@ -127,6 +133,21 @@ export class ChainlessChainWSServer extends EventEmitter {
       clearInterval(this._heartbeatTimer);
       this._heartbeatTimer = null;
     }
+
+    // Close all session handlers
+    for (const [sessionId, handler] of this.sessionHandlers) {
+      if (handler && handler.destroy) {
+        handler.destroy();
+      }
+      if (this.sessionManager) {
+        try {
+          this.sessionManager.closeSession(sessionId);
+        } catch (_err) {
+          // Non-critical
+        }
+      }
+    }
+    this.sessionHandlers.clear();
 
     // Kill all running child processes
     for (const [id, child] of this.processes) {
@@ -205,7 +226,7 @@ export class ChainlessChainWSServer extends EventEmitter {
   }
 
   /** @private */
-  _handleMessage(clientId, ws, message) {
+  async _handleMessage(clientId, ws, message) {
     const { id, type } = message;
 
     if (!id) {
@@ -244,6 +265,27 @@ export class ChainlessChainWSServer extends EventEmitter {
         break;
       case "cancel":
         this._cancelRequest(id, ws);
+        break;
+      case "session-create":
+        await this._handleSessionCreate(id, ws, message);
+        break;
+      case "session-resume":
+        this._handleSessionResume(id, ws, message);
+        break;
+      case "session-message":
+        this._handleSessionMessage(id, ws, message);
+        break;
+      case "session-list":
+        this._handleSessionList(id, ws);
+        break;
+      case "session-close":
+        this._handleSessionClose(id, ws, message);
+        break;
+      case "slash-command":
+        this._handleSlashCommand(id, ws, message);
+        break;
+      case "session-answer":
+        this._handleSessionAnswer(id, ws, message);
         break;
       default:
         this._send(ws, {
@@ -439,6 +481,243 @@ export class ChainlessChainWSServer extends EventEmitter {
         message: `No running command with id "${id}"`,
       });
     }
+  }
+
+  // ─── Session handlers ─────────────────────────────────────────────
+
+  /** @private */
+  async _handleSessionCreate(id, ws, message) {
+    if (!this.sessionManager) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "NO_SESSION_SUPPORT",
+        message: "Session support not configured on this server",
+      });
+      return;
+    }
+
+    const { sessionType, provider, model, apiKey, baseUrl, projectRoot } =
+      message;
+
+    try {
+      const { sessionId } = this.sessionManager.createSession({
+        type: sessionType || "agent",
+        provider,
+        model,
+        apiKey,
+        baseUrl,
+        projectRoot,
+      });
+
+      const session = this.sessionManager.getSession(sessionId);
+
+      // Lazy-load handler modules to avoid circular deps
+      try {
+        const { WebSocketInteractionAdapter } =
+          await import("./interaction-adapter.js");
+        session.interaction = new WebSocketInteractionAdapter(ws, sessionId);
+
+        let handler;
+        if ((sessionType || "agent") === "chat") {
+          const { WSChatHandler } = await import("./ws-chat-handler.js");
+          handler = new WSChatHandler({
+            session,
+            interaction: session.interaction,
+          });
+        } else {
+          const { WSAgentHandler } = await import("./ws-agent-handler.js");
+          handler = new WSAgentHandler({
+            session,
+            interaction: session.interaction,
+            db: this.sessionManager.db,
+          });
+        }
+        this.sessionHandlers.set(sessionId, handler);
+      } catch (_err) {
+        // Handler creation failed — session still created, handler can be set later
+      }
+
+      this.emit("session:create", { sessionId, type: sessionType || "agent" });
+
+      this._send(ws, {
+        id,
+        type: "session-created",
+        sessionId,
+        sessionType: sessionType || "agent",
+      });
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "SESSION_CREATE_FAILED",
+        message: err.message,
+      });
+    }
+  }
+
+  /** @private */
+  _handleSessionResume(id, ws, message) {
+    if (!this.sessionManager) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "NO_SESSION_SUPPORT",
+        message: "Session support not configured",
+      });
+      return;
+    }
+
+    const { sessionId } = message;
+    const session = this.sessionManager.resumeSession(sessionId);
+
+    if (!session) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "SESSION_NOT_FOUND",
+        message: `Session not found: ${sessionId}`,
+      });
+      return;
+    }
+
+    // Filter out system messages for history
+    const history = (session.messages || []).filter((m) => m.role !== "system");
+
+    this._send(ws, {
+      id,
+      type: "session-resumed",
+      sessionId: session.id,
+      history,
+    });
+  }
+
+  /** @private */
+  _handleSessionMessage(id, ws, message) {
+    const { sessionId, content } = message;
+    const handler = this.sessionHandlers.get(sessionId);
+
+    if (!handler) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "SESSION_NOT_FOUND",
+        message: `No active session handler for: ${sessionId}`,
+      });
+      return;
+    }
+
+    // Fire and forget — handler emits events via interaction adapter
+    handler
+      .handleMessage(content, id)
+      .then(() => {
+        // Persist messages after each turn
+        if (this.sessionManager) {
+          try {
+            this.sessionManager.persistMessages(sessionId);
+          } catch (_err) {
+            // Non-critical
+          }
+        }
+      })
+      .catch((err) => {
+        this._send(ws, {
+          id,
+          type: "error",
+          code: "MESSAGE_FAILED",
+          message: err.message,
+        });
+      });
+  }
+
+  /** @private */
+  _handleSessionList(id, ws) {
+    if (!this.sessionManager) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "NO_SESSION_SUPPORT",
+        message: "Session support not configured",
+      });
+      return;
+    }
+
+    const sessions = this.sessionManager.listSessions();
+    this._send(ws, {
+      id,
+      type: "session-list-result",
+      sessions,
+    });
+  }
+
+  /** @private */
+  _handleSessionClose(id, ws, message) {
+    const { sessionId } = message;
+
+    // Remove handler
+    const handler = this.sessionHandlers.get(sessionId);
+    if (handler && handler.destroy) {
+      handler.destroy();
+    }
+    this.sessionHandlers.delete(sessionId);
+
+    // Close session in manager
+    if (this.sessionManager) {
+      try {
+        this.sessionManager.closeSession(sessionId);
+      } catch (_err) {
+        // Non-critical
+      }
+    }
+
+    this.emit("session:close", { sessionId });
+
+    this._send(ws, {
+      id,
+      type: "result",
+      success: true,
+      sessionId,
+    });
+  }
+
+  /** @private */
+  _handleSlashCommand(id, ws, message) {
+    const { sessionId, command } = message;
+    const handler = this.sessionHandlers.get(sessionId);
+
+    if (!handler) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "SESSION_NOT_FOUND",
+        message: `No active session handler for: ${sessionId}`,
+      });
+      return;
+    }
+
+    handler.handleSlashCommand(command, id);
+  }
+
+  /** @private */
+  _handleSessionAnswer(id, ws, message) {
+    const { sessionId, requestId, answer } = message;
+
+    if (!this.sessionManager) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "NO_SESSION_SUPPORT",
+        message: "Session support not configured",
+      });
+      return;
+    }
+
+    const session = this.sessionManager.getSession(sessionId);
+    if (session && session.interaction && session.interaction.resolveAnswer) {
+      session.interaction.resolveAnswer(requestId, answer);
+    }
+
+    this._send(ws, { id, type: "result", success: true });
   }
 
   /** @private — ping/pong heartbeat to detect dead connections */

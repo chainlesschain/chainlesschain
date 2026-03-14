@@ -221,11 +221,11 @@ class WhisperClient extends EventEmitter {
       const proc = _deps.spawn(binaryPath, args);
 
       proc.stdout.on("data", (data) => {
-        stdout += data.toString();
+        stdout += data.toString("utf8");
       });
 
       proc.stderr.on("data", (data) => {
-        stderr += data.toString();
+        stderr += data.toString("utf8");
       });
 
       proc.on("close", (code) => {

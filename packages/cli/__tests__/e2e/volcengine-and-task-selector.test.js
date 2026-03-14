@@ -150,7 +150,7 @@ describe("E2E: Volcengine Provider & Task Model Selector", () => {
       expect(task.taskType).toBe(TaskType.CODE);
 
       const model = selectModelForTask("volcengine", task.taskType);
-      expect(model).toBe("doubao-seed-code");
+      expect(model).toBe("doubao-seed-1-6-251015");
     });
   });
 });

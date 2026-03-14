@@ -99,7 +99,7 @@ class PythonBridge {
 
       // 收集标准输出
       python.stdout.on("data", (data) => {
-        const chunk = data.toString();
+        const chunk = data.toString("utf8");
         stdout += chunk;
 
         // 实时输出（用于调试）
@@ -110,7 +110,7 @@ class PythonBridge {
 
       // 收集标准错误
       python.stderr.on("data", (data) => {
-        const chunk = data.toString();
+        const chunk = data.toString("utf8");
         stderr += chunk;
 
         // Python的print()默认输出到stderr，这里也收集

@@ -124,7 +124,7 @@ class MobileBridge extends EventEmitter {
 
         this.signalingSocket.on("message", (data) => {
           try {
-            const message = JSON.parse(data.toString());
+            const message = JSON.parse(data.toString("utf8"));
             this.handleSignalingMessage(message);
           } catch (error) {
             logger.error("[MobileBridge] 信令消息解析失败:", error);
@@ -413,7 +413,7 @@ class MobileBridge extends EventEmitter {
               : event.data instanceof ArrayBuffer
                 ? new TextDecoder().decode(event.data)
                 : event.data?.toString
-                  ? event.data.toString()
+                  ? event.data.toString("utf8")
                   : JSON.stringify(event.data);
           logger.info("[MobileBridge] 消息内容:", msgData.slice(0, 200));
           logger.info(

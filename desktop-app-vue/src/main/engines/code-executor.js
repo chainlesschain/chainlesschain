@@ -92,11 +92,11 @@ class CodeExecutor {
       let output = "";
 
       proc.stdout.on("data", (data) => {
-        output += data.toString();
+        output += data.toString("utf8");
       });
 
       proc.stderr.on("data", (data) => {
-        output += data.toString();
+        output += data.toString("utf8");
       });
 
       proc.on("close", (code) => {
@@ -266,11 +266,11 @@ class CodeExecutor {
       }
 
       proc.stdout.on("data", (data) => {
-        stdout += data.toString();
+        stdout += data.toString("utf8");
       });
 
       proc.stderr.on("data", (data) => {
-        stderr += data.toString();
+        stderr += data.toString("utf8");
       });
 
       proc.on("error", (error) => {

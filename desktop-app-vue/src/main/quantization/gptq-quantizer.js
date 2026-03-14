@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * GPTQ Quantizer - AutoGPTQ based model quantization
@@ -11,8 +11,8 @@
  * @version 1.0.0
  */
 
-const { spawn } = require('child_process');
-const { logger } = require('../utils/logger.js');
+const { spawn } = require("child_process");
+const { logger } = require("../utils/logger.js");
 
 /** Testability shim – override in tests to inject mocks. */
 const _deps = { spawn };
@@ -22,10 +22,10 @@ const _deps = { spawn };
 // ============================================================
 
 const DEFAULT_OPTIONS = {
-  bits: '4',
-  groupSize: '128',
+  bits: "4",
+  groupSize: "128",
   descAct: false,
-  dataset: 'c4',
+  dataset: "c4",
   numSamples: 128,
 };
 
@@ -66,7 +66,7 @@ class GPTQQuantizer {
       const opts = { ...DEFAULT_OPTIONS, ...options };
       this.cancelled = false;
 
-      logger.info('[GPTQQuantizer] Starting GPTQ quantization', {
+      logger.info("[GPTQQuantizer] Starting GPTQ quantization", {
         inputPath,
         outputPath,
         bits: opts.bits,
@@ -74,43 +74,48 @@ class GPTQQuantizer {
       });
 
       const args = [
-        '-m', 'auto_gptq.quantize',
-        '--model', inputPath,
-        '--output', outputPath,
-        '--bits', String(opts.bits),
-        '--group-size', String(opts.groupSize),
+        "-m",
+        "auto_gptq.quantize",
+        "--model",
+        inputPath,
+        "--output",
+        outputPath,
+        "--bits",
+        String(opts.bits),
+        "--group-size",
+        String(opts.groupSize),
       ];
 
       if (opts.descAct) {
-        args.push('--desc-act');
+        args.push("--desc-act");
       }
 
       if (opts.dataset) {
-        args.push('--dataset', String(opts.dataset));
+        args.push("--dataset", String(opts.dataset));
       }
 
       if (opts.numSamples) {
-        args.push('--num-samples', String(opts.numSamples));
+        args.push("--num-samples", String(opts.numSamples));
       }
 
-      const child = _deps.spawn('python', args, {
-        stdio: ['ignore', 'pipe', 'pipe'],
+      const child = _deps.spawn("python", args, {
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
       this.childProcess = child;
 
-      let stderrBuffer = '';
+      let stderrBuffer = "";
 
-      child.stdout.on('data', (data) => {
-        const text = data.toString();
+      child.stdout.on("data", (data) => {
+        const text = data.toString("utf8");
         const progress = this._parseProgress(text);
         if (progress !== null) {
           this.onProgress(progress);
         }
       });
 
-      child.stderr.on('data', (data) => {
-        const text = data.toString();
+      child.stderr.on("data", (data) => {
+        const text = data.toString("utf8");
         stderrBuffer += text;
         // Python tqdm and AutoGPTQ may print progress to stderr
         const progress = this._parseProgress(text);
@@ -119,31 +124,39 @@ class GPTQQuantizer {
         }
       });
 
-      child.on('error', (err) => {
-        logger.error('[GPTQQuantizer] Process spawn error', { error: err.message });
+      child.on("error", (err) => {
+        logger.error("[GPTQQuantizer] Process spawn error", {
+          error: err.message,
+        });
         this.childProcess = null;
         this.onError(err);
         reject(err);
       });
 
-      child.on('close', (code) => {
+      child.on("close", (code) => {
         this.childProcess = null;
 
         if (this.cancelled) {
-          const err = new Error('GPTQ quantization cancelled by user');
+          const err = new Error("GPTQ quantization cancelled by user");
           this.onError(err);
           return reject(err);
         }
 
         if (code === 0) {
-          logger.info('[GPTQQuantizer] GPTQ quantization completed successfully');
+          logger.info(
+            "[GPTQQuantizer] GPTQ quantization completed successfully",
+          );
           this.onProgress(100);
           this.onComplete();
           resolve();
         } else {
-          const errMsg = stderrBuffer.trim() || `python auto_gptq exited with code ${code}`;
+          const errMsg =
+            stderrBuffer.trim() || `python auto_gptq exited with code ${code}`;
           const err = new Error(errMsg);
-          logger.error('[GPTQQuantizer] GPTQ quantization failed', { code, stderr: stderrBuffer });
+          logger.error("[GPTQQuantizer] GPTQ quantization failed", {
+            code,
+            stderr: stderrBuffer,
+          });
           this.onError(err);
           reject(err);
         }
@@ -157,8 +170,8 @@ class GPTQQuantizer {
   cancel() {
     if (this.childProcess) {
       this.cancelled = true;
-      this.childProcess.kill('SIGTERM');
-      logger.info('[GPTQQuantizer] Cancellation requested');
+      this.childProcess.kill("SIGTERM");
+      logger.info("[GPTQQuantizer] Cancellation requested");
     }
   }
 
@@ -198,7 +211,9 @@ class GPTQQuantizer {
     }
 
     // Pattern: "Step X of Y" or "Processing X/Y"
-    const stepMatch = text.match(/(?:step|processing)\s+(\d+)\s*(?:of|\/)\s*(\d+)/i);
+    const stepMatch = text.match(
+      /(?:step|processing)\s+(\d+)\s*(?:of|\/)\s*(\d+)/i,
+    );
     if (stepMatch) {
       const current = parseInt(stepMatch[1], 10);
       const total = parseInt(stepMatch[2], 10);

@@ -285,14 +285,14 @@ class PythonSandbox extends EventEmitter {
 
       // 收集输出
       docker.stdout.on("data", (data) => {
-        const chunk = data.toString();
+        const chunk = data.toString("utf8");
         if (stdout.length + chunk.length <= this.config.maxOutputSize) {
           stdout += chunk;
         }
       });
 
       docker.stderr.on("data", (data) => {
-        const chunk = data.toString();
+        const chunk = data.toString("utf8");
         if (stderr.length + chunk.length <= this.config.maxOutputSize) {
           stderr += chunk;
         }
@@ -328,7 +328,10 @@ class PythonSandbox extends EventEmitter {
   async _killContainer(containerName) {
     try {
       const { spawnSync } = require("child_process");
-      spawnSync("docker", ["kill", containerName], { stdio: "ignore" });
+      spawnSync("docker", ["kill", containerName], {
+        stdio: "ignore",
+        encoding: "utf-8",
+      });
       logger.info(`[PythonSandbox] 容器已终止: ${containerName}`);
     } catch (error) {
       // 容器可能已经停止
@@ -357,7 +360,10 @@ class PythonSandbox extends EventEmitter {
   async _checkDocker() {
     try {
       const { spawnSync } = require("child_process");
-      const result = spawnSync("docker", ["--version"], { stdio: "ignore" });
+      const result = spawnSync("docker", ["--version"], {
+        stdio: "ignore",
+        encoding: "utf-8",
+      });
       return result.status === 0;
     } catch (error) {
       return false;
@@ -374,7 +380,7 @@ class PythonSandbox extends EventEmitter {
       const result = spawnSync(
         "docker",
         ["image", "inspect", this.config.dockerImage],
-        { stdio: "ignore" },
+        { stdio: "ignore", encoding: "utf-8" },
       );
       return result.status === 0;
     } catch (error) {

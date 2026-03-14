@@ -142,7 +142,7 @@ chainlesschain note revert <id> <ver>   # Revert to a version
 Start an interactive AI chat session with streaming output.
 
 ```bash
-chainlesschain chat                     # Default: Ollama qwen2:7b
+chainlesschain chat                     # Default: Ollama qwen2.5:7b
 chainlesschain chat --model llama3      # Use different model
 chainlesschain chat --provider openai --api-key sk-...
 chainlesschain chat --agent             # Agentic mode (can read/write files)
@@ -179,12 +179,14 @@ chainlesschain llm switch <name>        # Switch active provider
 Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, and invoke 138 built-in skills.
 
 ```bash
-chainlesschain agent                    # Default: Ollama qwen2:7b
+chainlesschain agent                    # Default: Ollama qwen2.5:7b
 chainlesschain a --model llama3         # Short alias
 chainlesschain agent --provider openai --api-key sk-...
 ```
 
-Built-in tools: `read_file`, `write_file`, `edit_file`, `run_shell`, `search_files`, `list_dir`, `run_skill`, `list_skills`
+Built-in tools: `read_file`, `write_file`, `edit_file`, `run_shell`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`
+
+Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-driven planning with skill recommendations), `/model`, `/provider`, `/clear`, `/compact`, `/task`, `/session`, `/stats`, `/auto` (autonomous agent), `/cowork` (multi-agent collaboration)
 
 ### `chainlesschain skill <action>`
 
@@ -826,7 +828,10 @@ chainlesschain serve                                    # Start WebSocket server
 chainlesschain serve --port 9000                        # Custom port
 chainlesschain serve --token <secret>                   # Enable token auth
 chainlesschain serve --allow-remote --token <secret>    # Allow remote + auth
+chainlesschain serve --project /path/to/project         # Default project root for sessions
 ```
+
+**Session Protocol** (v0.41.0): WebSocket clients can create stateful agent/chat sessions via `session-create`, send messages via `session-message`, resume previous sessions via `session-resume`, and manage sessions via `session-list`/`session-close`. Supports `slash-command` for in-session commands and `session-answer` for interactive Q&A (SlotFiller/Planner).
 
 ---
 
@@ -854,7 +859,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
     "provider": "ollama",
     "apiKey": null,
     "baseUrl": "http://localhost:11434",
-    "model": "qwen2:7b"
+    "model": "qwen2.5:7b"
   },
   "enterprise": {
     "serverUrl": null,
@@ -876,7 +881,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 
 | Provider               | Default Model     | API Key Required |
 | ---------------------- | ----------------- | ---------------- |
-| Ollama (Local)         | qwen2:7b          | No               |
+| Ollama (Local)         | qwen2.5:7b        | No               |
 | OpenAI                 | gpt-4o            | Yes              |
 | Anthropic              | claude-sonnet-4-6 | Yes              |
 | DashScope (Alibaba)    | qwen-max          | Yes              |
@@ -903,7 +908,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (2063 tests across 99 files)
+npm test                # Run all tests (2432 tests across 109 files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -911,15 +916,17 @@ npm run test:e2e        # End-to-end tests
 
 ### Test Coverage
 
-| Category                 | Files  | Tests    | Status          |
-| ------------------------ | ------ | -------- | --------------- |
-| Unit — lib modules       | 56     | 1200+    | All passing     |
-| Unit — commands          | 15     | 350+     | All passing     |
-| Unit — runtime           | 1      | 6        | All passing     |
-| Integration              | 5      | 30+      | All passing     |
-| E2E                      | 14     | 150+     | All passing     |
-| Core packages (external) | —      | 118      | All passing     |
-| **CLI Total**            | **99** | **2063** | **All passing** |
+| Category                 | Files   | Tests    | Status          |
+| ------------------------ | ------- | -------- | --------------- |
+| Unit — lib modules       | 56      | 1200+    | All passing     |
+| Unit — commands          | 15      | 350+     | All passing     |
+| Unit — runtime           | 1       | 6        | All passing     |
+| Integration              | 5       | 30+      | All passing     |
+| E2E                      | 14      | 150+     | All passing     |
+| Core packages (external) | —       | 118      | All passing     |
+| Unit — WS sessions       | 9       | 156      | All passing     |
+| Integration — WS session | 1       | 12       | All passing     |
+| **CLI Total**            | **109** | **2432** | **All passing** |
 
 ## License
 
