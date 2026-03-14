@@ -78,6 +78,9 @@ const ALLOWED_FILES = [
   // CLI 命令和测试文件（包含交互式提示标签和测试假数据）
   "encrypt.js",
   "audit-logger.test.js",
+  // CLI LLM provider integration tests (contain fake test API keys)
+  "llm-provider-workflow.test.js",
+  "proxy-base-url-override.test.js",
 ];
 
 function checkFileForSecrets(filePath) {

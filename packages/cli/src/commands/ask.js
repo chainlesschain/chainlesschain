@@ -6,6 +6,7 @@
 import ora from "ora";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
+import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
 
 /**
  * Send a single question to an LLM provider
@@ -37,12 +38,24 @@ async function queryLLM(question, options = {}) {
 
     const data = await response.json();
     return data.response;
-  } else if (provider === "openai") {
-    const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-    if (!apiKey)
-      throw new Error("OpenAI API key required (--api-key or OPENAI_API_KEY)");
+  } else {
+    // OpenAI-compatible providers (openai, volcengine, deepseek, dashscope, mistral, gemini)
+    const providerDef = BUILT_IN_PROVIDERS[provider];
+    if (!providerDef) {
+      throw new Error(
+        `Unsupported provider: ${provider}. Supported: ollama, openai, volcengine, deepseek, dashscope, gemini, mistral, anthropic`,
+      );
+    }
 
-    const apiBase = options.baseUrl || "https://api.openai.com/v1";
+    const apiKey =
+      options.apiKey ||
+      (providerDef.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
+    if (!apiKey)
+      throw new Error(
+        `API key required for ${provider} (--api-key or ${providerDef.apiKeyEnv})`,
+      );
+
+    const apiBase = options.baseUrl || providerDef.baseUrl;
     const response = await fetch(`${apiBase}/chat/completions`, {
       method: "POST",
       headers: {
@@ -50,22 +63,20 @@ async function queryLLM(question, options = {}) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: model || "gpt-4o-mini",
+        model: model || providerDef.models[0],
         messages: [{ role: "user", content: question }],
       }),
     });
 
     if (!response.ok) {
       throw new Error(
-        `OpenAI error: ${response.status} ${response.statusText}`,
+        `${provider} error: ${response.status} ${response.statusText}`,
       );
     }
 
     const data = await response.json();
     return data.choices[0].message.content;
   }
-
-  throw new Error(`Unsupported provider: ${provider}`);
 }
 
 export function registerAskCommand(program) {
@@ -74,7 +85,11 @@ export function registerAskCommand(program) {
     .description("Ask a question to the AI (single-shot)")
     .argument("<question>", "The question to ask")
     .option("--model <model>", "Model name", "qwen2:7b")
-    .option("--provider <provider>", "LLM provider (ollama, openai)", "ollama")
+    .option(
+      "--provider <provider>",
+      "LLM provider (ollama, openai, volcengine, deepseek, ...)",
+      "ollama",
+    )
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option("--json", "Output as JSON")

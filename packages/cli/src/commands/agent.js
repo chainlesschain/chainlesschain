@@ -16,7 +16,11 @@ export function registerAgentCommand(program) {
       "Start an agentic AI session (reads/writes files, runs commands)",
     )
     .option("--model <model>", "Model name", "qwen2:7b")
-    .option("--provider <provider>", "LLM provider (ollama, openai)", "ollama")
+    .option(
+      "--provider <provider>",
+      "LLM provider (ollama, openai, volcengine, deepseek, ...)",
+      "ollama",
+    )
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option("--session <id>", "Resume a previous agent session")

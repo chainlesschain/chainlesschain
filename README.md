@@ -41,7 +41,7 @@ chainlesschain start    # 启动应用
 - ✅ **环境诊断** (`doctor`) — 12 项检查 (Node/Docker/Git/端口/磁盘/网络)
 - ✅ **Phase 1 AI 智能层** — BM25 搜索 + Token 追踪 + 持久记忆 + 会话管理 + Agent Plan Mode
 - ✅ **Phase 2 知识管理** — 知识导入 (Markdown/Evernote/Notion/PDF) + 导出 (Markdown/静态站点) + Git 集成 + 笔记版本控制
-- ✅ **Phase 3 MCP 与外部集成** — MCP 服务器管理 (JSON-RPC 2.0) + 7 LLM Provider + 浏览器自动化 + 本能学习
+- ✅ **Phase 3 MCP 与外部集成** — MCP 服务器管理 (JSON-RPC 2.0) + 8 LLM Provider + 浏览器自动化 + 本能学习
 - ✅ **Phase 4 安全与身份** — DID 身份管理 (Ed25519) + AES-256-GCM 文件加密 + RBAC 权限引擎 + 审计日志
 - ✅ **Phase 5 P2P与企业** — P2P 消息 + 文件同步 + 数字钱包 (Ed25519) + 组织管理 + 插件市场
 - ✅ **Phase 6 AI核心** — Hook 生命周期管理 (28事件类型) + DAG 工作流引擎 (5内置模板) + 层次化记忆 2.0 (4层架构+遗忘曲线) + A2A Agent间协议
@@ -51,9 +51,10 @@ chainlesschain start    # 启动应用
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
 - ✅ **Agent Context Engineering** — 6维上下文注入 (Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary) + KV-Cache优化 + 稳定前缀缓存 + 智能压缩 + 可恢复压缩摘要 + 会话恢复 (`--session`)
 - ✅ **Autonomous Agent** — ReAct 自主任务循环 (`/auto` 命令) + 目标分解 + 自我纠正
-- ✅ **多 Provider 支持** — 7 个 LLM 提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini)
+- ✅ **多 Provider 支持** — 8 个 LLM 提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) + 任务智能模型选择
 - ✅ **DAG 计划执行 + 风险评估** — `/plan execute` 按依赖拓扑排序 + `/plan risk` 风险评分
 - ✅ **EvoMap 基因交换** — `evomap search|download|publish|list|hubs` GEP-A2A 协议客户端 + 联邦Hub管理 + 基因治理
+- ✅ **CLI-Anything 集成** — `cli-anything doctor|scan|register|list|remove` 将任意软件 Agent 化，自动注册为 managed 层技能
 - ✅ **DAO 治理 v2** — 二次方投票 + 投票委托 + 国库管理 + 提案生命周期 (`dao` 命令)
 - ✅ **安全合规 CLI** — 合规管理 (GDPR/SOC2/HIPAA/ISO27001) + 数据防泄漏 (DLP) + SIEM 日志导出 + 后量子密码 (PQC)
 - ✅ **通信桥接 CLI** — Nostr 桥接 (NIP-01) + Matrix 桥接 (E2EE) + SCIM 2.0 用户配置
@@ -1657,7 +1658,7 @@ chainlesschain/
 - [x] **CLI分发系统 (Phase 101-102)**: npm CLI包 + 交互式安装 + GitHub Release下载 + Docker编排 + 环境诊断 + CI/CD自动发布 + 项目初始化(init) + 多层技能系统(4层优先级) + 多智能体协作(cowork) + 插件技能集成 + 1009测试 ✅ v5.0.1
 - [x] **CLI Phase 1 AI智能层**: BM25搜索 + Token追踪 + 持久记忆 + 会话管理 + Agent Plan Mode ✅ v5.0.1
 - [x] **CLI Phase 2 知识管理**: 知识导入(Markdown/Evernote/Notion/PDF) + 导出 + Git集成 + 笔记版本控制 ✅ v5.0.1
-- [x] **CLI Phase 3 MCP与集成**: MCP客户端(JSON-RPC 2.0) + 7 LLM Provider + 浏览器自动化 + 本能学习 ✅ v5.0.1
+- [x] **CLI Phase 3 MCP与集成**: MCP客户端(JSON-RPC 2.0) + 8 LLM Provider + 浏览器自动化 + 本能学习 + 任务智能模型选择 ✅ v5.0.1
 - [x] **CLI Phase 4 安全与身份**: DID身份管理(Ed25519) + AES-256-GCM加密 + RBAC权限引擎 + 审计日志 (29命令, 743测试) ✅ v5.0.1
 - [x] **AI技能系统**: 138内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + Agent Skills标准 ✅ v1.2.1
 - [x] **扩展MCP服务器支持**: MCP SDK (Server Builder + HTTP+SSE + Stdio) + 社区注册中心 ✅ v0.34.0

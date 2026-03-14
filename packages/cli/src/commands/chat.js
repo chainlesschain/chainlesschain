@@ -11,7 +11,11 @@ export function registerChatCommand(program) {
     .command("chat")
     .description("Start an interactive AI chat session")
     .option("--model <model>", "Model name", "qwen2:7b")
-    .option("--provider <provider>", "LLM provider (ollama, openai)", "ollama")
+    .option(
+      "--provider <provider>",
+      "LLM provider (ollama, openai, volcengine, deepseek, ...)",
+      "ollama",
+    )
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option(

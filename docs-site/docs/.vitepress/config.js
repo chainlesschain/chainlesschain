@@ -483,6 +483,10 @@ export default defineConfig({
               link: "/chainlesschain/cli-llm",
             },
             {
+              text: "LLM中转站与自定义接入",
+              link: "/chainlesschain/cli-llm-proxy",
+            },
+            {
               text: "代理模式 (agent)",
               link: "/chainlesschain/cli-agent",
             },
@@ -704,6 +708,15 @@ export default defineConfig({
             {
               text: "社交平台 (social)",
               link: "/chainlesschain/cli-social",
+            },
+          ],
+        },
+        {
+          text: "v5.0.1 外部集成",
+          items: [
+            {
+              text: "CLI-Anything集成 (cli-anything)",
+              link: "/chainlesschain/cli-cli-anything",
             },
           ],
         },

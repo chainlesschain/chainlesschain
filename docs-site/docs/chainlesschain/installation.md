@@ -25,7 +25,7 @@
 │    │         │          │               │
 │    ▼         ▼          ▼               │
 │ 选择版本  配置 LLM   下载二进制         │
-│ (个人/企业) (7 提供商) (GitHub Releases) │
+│ (个人/企业) (8 提供商) (GitHub Releases) │
 │                         │               │
 │                         ▼               │
 │  chainlesschain start ← 桌面应用 (Electron) │

@@ -9,8 +9,8 @@ describe("LLM Providers", () => {
   // ─── BUILT_IN_PROVIDERS ───────────────────────────────────────
 
   describe("BUILT_IN_PROVIDERS", () => {
-    it("should have 7 built-in providers", () => {
-      expect(Object.keys(BUILT_IN_PROVIDERS)).toHaveLength(7);
+    it("should have 8 built-in providers", () => {
+      expect(Object.keys(BUILT_IN_PROVIDERS)).toHaveLength(8);
     });
 
     it("should include expected providers", () => {
@@ -21,6 +21,7 @@ describe("LLM Providers", () => {
       expect(BUILT_IN_PROVIDERS.dashscope).toBeDefined();
       expect(BUILT_IN_PROVIDERS.gemini).toBeDefined();
       expect(BUILT_IN_PROVIDERS.mistral).toBeDefined();
+      expect(BUILT_IN_PROVIDERS.volcengine).toBeDefined();
     });
 
     it("should have correct Ollama config", () => {
@@ -41,6 +42,17 @@ describe("LLM Providers", () => {
       const openai = BUILT_IN_PROVIDERS.openai;
       expect(openai.apiKeyEnv).toBe("OPENAI_API_KEY");
       expect(openai.models).toContain("gpt-4o");
+    });
+
+    it("should have correct Volcengine config", () => {
+      const volcengine = BUILT_IN_PROVIDERS.volcengine;
+      expect(volcengine.apiKeyEnv).toBe("VOLCENGINE_API_KEY");
+      expect(volcengine.baseUrl).toBe(
+        "https://ark.cn-beijing.volces.com/api/v3",
+      );
+      expect(volcengine.models).toContain("doubao-seed-1-6-251015");
+      expect(volcengine.models).toContain("doubao-seed-code");
+      expect(volcengine.free).toBe(false);
     });
 
     it("all providers should have name, displayName, baseUrl, models", () => {
@@ -69,9 +81,9 @@ describe("LLM Providers", () => {
       expect(db.tables.has("llm_providers")).toBe(true);
     });
 
-    it("should have all built-in providers loaded", () => {
+    it("should have all 8 built-in providers loaded", () => {
       const providers = registry.list();
-      expect(providers.length).toBeGreaterThanOrEqual(7);
+      expect(providers.length).toBeGreaterThanOrEqual(8);
     });
 
     it("should get a specific provider", () => {
@@ -158,6 +170,42 @@ describe("LLM Providers", () => {
       const providers = registry.list();
       const custom = providers.find((p) => p.name === "my-api");
       expect(custom.custom).toBe(true);
+    });
+
+    it("should get volcengine provider with correct config", () => {
+      const volcengine = registry.get("volcengine");
+      expect(volcengine).toBeTruthy();
+      expect(volcengine.name).toBe("volcengine");
+      expect(volcengine.displayName).toBe("Volcengine (豆包)");
+      expect(volcengine.baseUrl).toContain("ark.cn-beijing.volces.com");
+      expect(volcengine.apiKeyEnv).toBe("VOLCENGINE_API_KEY");
+      expect(volcengine.models).toContain("doubao-seed-code");
+      expect(volcengine.custom).toBe(false);
+    });
+
+    it("should switch active provider to volcengine", () => {
+      const provider = registry.setActive("volcengine");
+      expect(provider.name).toBe("volcengine");
+      expect(registry.getActive()).toBe("volcengine");
+    });
+
+    it("should list volcengine in providers list", () => {
+      const providers = registry.list();
+      const volcengine = providers.find((p) => p.name === "volcengine");
+      expect(volcengine).toBeTruthy();
+      expect(volcengine.displayName).toBe("Volcengine (豆包)");
+      expect(volcengine.free).toBe(false);
+    });
+
+    it("should return null for volcengine API key when not set", () => {
+      // VOLCENGINE_API_KEY is not set in test environment
+      expect(registry.getApiKey("volcengine")).toBeNull();
+    });
+
+    it("should not allow removing volcengine (built-in)", () => {
+      expect(() => registry.removeProvider("volcengine")).toThrow(
+        "Cannot remove built-in",
+      );
     });
   });
 });

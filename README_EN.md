@@ -41,7 +41,7 @@ chainlesschain start    # Launch application
 - ✅ **Environment Diagnostics** (`doctor`) — 12 checks (Node/Docker/Git/ports/disk/network)
 - ✅ **Phase 1 AI Intelligence Layer** — BM25 search + Token tracking + Persistent memory + Session management + Agent Plan Mode
 - ✅ **Phase 2 Knowledge Management** — Knowledge import (Markdown/Evernote/Notion/PDF) + export (Markdown/static site) + Git integration + note versioning
-- ✅ **Phase 3 MCP & External Integration** — MCP server management (JSON-RPC 2.0) + 7 LLM providers + browser automation + instinct learning
+- ✅ **Phase 3 MCP & External Integration** — MCP server management (JSON-RPC 2.0) + 8 LLM providers + browser automation + instinct learning
 - ✅ **Phase 4 Security & Identity** — DID identity management (Ed25519) + AES-256-GCM file encryption + RBAC permission engine + audit logging
 - ✅ **Phase 5 P2P & Enterprise** — P2P messaging + file sync + digital wallet (Ed25519) + org management + plugin marketplace
 - ✅ **Phase 6 AI Core** — Hook lifecycle management (28 event types) + DAG Workflow Engine (5 built-in templates) + Hierarchical Memory 2.0 (4-layer architecture + forgetting curve) + A2A Agent-to-Agent Protocol
@@ -51,9 +51,10 @@ chainlesschain start    # Launch application
 - ✅ **CI/CD Auto-publish** — GitHub Actions `npm publish --provenance` + supply chain security
 - ✅ **Agent Context Engineering** — 6-dimension context injection (Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary) + KV-Cache optimization + stable prefix caching + smart compaction + resumable summaries + session resume (`--session`)
 - ✅ **Autonomous Agent** — ReAct autonomous task loop (`/auto` command) + goal decomposition + self-correction
-- ✅ **Multi-Provider Support** — 7 LLM providers (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini)
+- ✅ **Multi-Provider Support** — 8 LLM providers (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) + task-based intelligent model selection
 - ✅ **DAG Plan Execution + Risk Assessment** — `/plan execute` topological sort + `/plan risk` risk scoring
 - ✅ **EvoMap Gene Exchange** — `evomap search|download|publish|list|hubs` GEP-A2A protocol client + Federation Hub management + Gene governance
+- ✅ **CLI-Anything Integration** — `cli-anything doctor|scan|register|list|remove` Agent-native software integration, auto-register as managed-layer skills
 - ✅ **DAO Governance v2** — Quadratic voting + vote delegation + treasury management + proposal lifecycle (`dao` command)
 - ✅ **Security & Compliance CLI** — Compliance management (GDPR/SOC2/HIPAA/ISO27001) + DLP + SIEM log export + Post-Quantum Cryptography (PQC)
 - ✅ **Communication Bridges CLI** — Nostr bridge (NIP-01) + Matrix bridge (E2EE) + SCIM 2.0 user provisioning
