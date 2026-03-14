@@ -9,6 +9,7 @@
 import { agentLoop, formatToolArgs } from "./agent-core.js";
 import { detectTaskType, selectModelForTask } from "./task-model-selector.js";
 import { PlanState } from "./plan-mode.js";
+import { CLISlotFiller } from "./slot-filler.js";
 
 export class WSAgentHandler {
   /**
@@ -67,6 +68,12 @@ export class WSAgentHandler {
         }
       }
 
+      // Create slot filler for interactive parameter collection
+      const slotFiller = new CLISlotFiller({
+        interaction: this.interaction,
+        db: this.db,
+      });
+
       // Run agent loop
       const loopOptions = {
         provider: session.provider,
@@ -76,10 +83,20 @@ export class WSAgentHandler {
         contextEngine: session.contextEngine,
         hookDb: this.db,
         cwd: session.projectRoot,
+        slotFiller,
+        interaction: this.interaction,
       };
 
       for await (const event of agentLoop(session.messages, loopOptions)) {
         switch (event.type) {
+          case "slot-filling":
+            this.interaction.emit("slot-filling", {
+              requestId,
+              slot: event.slot,
+              question: event.question,
+            });
+            break;
+
           case "tool-executing":
             this.interaction.emit("tool-executing", {
               requestId,

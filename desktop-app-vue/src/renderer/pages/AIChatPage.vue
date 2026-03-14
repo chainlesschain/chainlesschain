@@ -5,15 +5,9 @@
       <!-- 对话内容区 -->
       <div class="conversation-content">
         <!-- 消息列表 -->
-        <div
-          ref="messagesContainerRef"
-          class="messages-container"
-        >
+        <div ref="messagesContainerRef" class="messages-container">
           <!-- 对话操作栏 -->
-          <div
-            v-if="messages.length > 0"
-            class="conversation-actions"
-          >
+          <div v-if="messages.length > 0" class="conversation-actions">
             <a-button
               type="text"
               size="small"
@@ -28,28 +22,17 @@
           </div>
 
           <!-- 欢迎消息 -->
-          <div
-            v-if="messages.length === 0"
-            class="welcome-message"
-          >
+          <div v-if="messages.length === 0" class="welcome-message">
             <div class="welcome-icon">
               <RobotOutlined />
             </div>
             <h2>你好！我是 ChainlessChain AI 助手</h2>
             <p>我可以帮你完成各种任务，比如：</p>
             <div class="welcome-features">
-              <div class="feature-tag">
-                💻 代码编写与调试
-              </div>
-              <div class="feature-tag">
-                📄 文档生成与编辑
-              </div>
-              <div class="feature-tag">
-                📊 数据分析与可视化
-              </div>
-              <div class="feature-tag">
-                🌐 网页开发与设计
-              </div>
+              <div class="feature-tag">💻 代码编写与调试</div>
+              <div class="feature-tag">📄 文档生成与编辑</div>
+              <div class="feature-tag">📊 数据分析与可视化</div>
+              <div class="feature-tag">🌐 网页开发与设计</div>
             </div>
             <p class="welcome-hint">
               输入你的需求开始对话，或使用 @ 来引用知识库和文件
@@ -68,15 +51,9 @@
             :class="`message-${message.role}`"
           >
             <!-- 用户消息 -->
-            <div
-              v-if="message.role === 'user'"
-              class="message-wrapper"
-            >
+            <div v-if="message.role === 'user'" class="message-wrapper">
               <div class="message-avatar">
-                <a-avatar
-                  :src="userAvatar"
-                  :size="36"
-                >
+                <a-avatar :src="userAvatar" :size="36">
                   <template #icon>
                     <UserOutlined />
                   </template>
@@ -120,10 +97,7 @@
                   <span class="message-time">{{
                     formatTime(message.timestamp)
                   }}</span>
-                  <a-dropdown
-                    :trigger="['click']"
-                    class="save-memory-dropdown"
-                  >
+                  <a-dropdown :trigger="['click']" class="save-memory-dropdown">
                     <a-button
                       type="text"
                       size="small"
@@ -178,10 +152,7 @@
                 </div>
 
                 <!-- 预览内容 -->
-                <div
-                  v-if="message.preview"
-                  class="message-preview"
-                >
+                <div v-if="message.preview" class="message-preview">
                   <BrowserPreview
                     :preview-type="message.preview.type"
                     :url="message.preview.url"
@@ -196,10 +167,7 @@
           </div>
 
           <!-- AI思考中 -->
-          <div
-            v-if="isThinking"
-            class="message-item message-assistant"
-          >
+          <div v-if="isThinking" class="message-item message-assistant">
             <div class="message-wrapper">
               <div class="message-avatar">
                 <a-avatar
@@ -230,6 +198,26 @@
 
         <!-- 底部：输入框 -->
         <div class="input-container">
+          <div class="input-toolbar">
+            <a-tooltip
+              :title="
+                agentMode
+                  ? 'Agent Mode ON — AI can use tools autonomously'
+                  : 'Agent Mode OFF — regular chat'
+              "
+            >
+              <a-button
+                :type="agentMode ? 'primary' : 'default'"
+                size="small"
+                @click="toggleAgentMode"
+              >
+                <template #icon>
+                  <RobotOutlined />
+                </template>
+                Agent
+              </a-button>
+            </a-tooltip>
+          </div>
           <ConversationInput
             ref="inputRef"
             :placeholder="inputPlaceholder"
@@ -287,6 +275,16 @@ const isThinking = ref(false);
 const messagesContainerRef = ref(null);
 const inputRef = ref(null);
 const savingConversation = ref(false);
+
+// Agent mode state
+const agentMode = ref(false);
+
+const toggleAgentMode = () => {
+  agentMode.value = !agentMode.value;
+  antMessage.info(
+    agentMode.value ? "Agent Mode ON — AI can use tools" : "Agent Mode OFF",
+  );
+};
 
 // 重命名对话相关状态
 const renameModalVisible = ref(false);
@@ -524,12 +522,33 @@ const handleSubmitMessage = async ({ text, attachments }) => {
   isThinking.value = true;
 
   try {
-    // 调用LLM API
-    const response = await window.electronAPI.llm.chat({
-      conversationId: activeConversationId.value,
-      message: text,
-      attachments: attachments,
-    });
+    let response;
+
+    if (agentMode.value && window.electronAPI?.conversation?.agentChat) {
+      // Agent mode — tool-use loop via conversation:agent-chat
+      const conversationHistory = messages.value
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .slice(-20)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      response = await window.electronAPI.conversation.agentChat({
+        conversationId: activeConversationId.value,
+        userMessage: text,
+        conversationHistory,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || "Agent chat failed");
+      }
+      response = { content: response.content, steps: [], preview: null };
+    } else {
+      // Regular chat
+      response = await window.electronAPI.llm.chat({
+        conversationId: activeConversationId.value,
+        message: text,
+        attachments: attachments,
+      });
+    }
 
     // 添加AI响应
     const assistantMessage = {
@@ -1433,5 +1452,12 @@ defineExpose({
   padding: 16px 24px;
   border-top: 1px solid #e5e7eb;
   background: #ffffff;
+}
+
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 </style>

@@ -21,6 +21,7 @@ import os from "os";
 import { getPlanModeManager } from "./plan-mode.js";
 import { CLISkillLoader } from "./skill-loader.js";
 import { executeHooks, HookEvents } from "./hook-manager.js";
+import { detectPython } from "./cli-anything-bridge.js";
 
 // ─── Tool definitions ────────────────────────────────────────────────────
 
@@ -186,7 +187,7 @@ export const AGENT_TOOLS = [
     function: {
       name: "run_code",
       description:
-        "Write and execute code in Python, Node.js, or Bash. Use this when the user needs data processing, calculations, file batch operations, API calls, or any task best solved with a script. The code is saved to a temp file and executed.",
+        "Write and execute code in Python, Node.js, or Bash. Use this when the user needs data processing, calculations, file batch operations, API calls, or any task best solved with a script. Scripts are saved for reference. Missing Python packages are auto-installed.",
       parameters: {
         type: "object",
         properties: {
@@ -200,6 +201,11 @@ export const AGENT_TOOLS = [
             type: "number",
             description: "Execution timeout in seconds (default: 60, max: 300)",
           },
+          persist: {
+            type: "boolean",
+            description:
+              "If true (default), save script in .chainlesschain/agent-scripts/. If false, use temp file and clean up.",
+          },
         },
         required: ["language", "code"],
       },
@@ -211,9 +217,91 @@ export const AGENT_TOOLS = [
 
 const _defaultSkillLoader = new CLISkillLoader();
 
+// ─── Cached environment detection ────────────────────────────────────────
+
+let _cachedPython = null;
+let _cachedEnvInfo = null;
+
+/**
+ * Get cached Python interpreter info (reuses cli-anything-bridge detection).
+ * @returns {{ found: boolean, command?: string, version?: string }}
+ */
+export function getCachedPython() {
+  if (!_cachedPython) {
+    _cachedPython = detectPython();
+  }
+  return _cachedPython;
+}
+
+/**
+ * Gather environment info (cached once per process).
+ * @returns {{ os: string, arch: string, python: string|null, pip: boolean, node: string|null, git: boolean }}
+ */
+export function getEnvironmentInfo() {
+  if (_cachedEnvInfo) return _cachedEnvInfo;
+
+  const py = getCachedPython();
+
+  let pipAvailable = false;
+  if (py.found) {
+    try {
+      execSync(`${py.command} -m pip --version`, {
+        encoding: "utf-8",
+        timeout: 10000,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      pipAvailable = true;
+    } catch {
+      // pip not available
+    }
+  }
+
+  let nodeVersion = null;
+  try {
+    nodeVersion = execSync("node --version", {
+      encoding: "utf-8",
+      timeout: 5000,
+    }).trim();
+  } catch {
+    // Node not available (unlikely since we're running in Node)
+  }
+
+  let gitAvailable = false;
+  try {
+    execSync("git --version", {
+      encoding: "utf-8",
+      timeout: 5000,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    gitAvailable = true;
+  } catch {
+    // git not available
+  }
+
+  _cachedEnvInfo = {
+    os: process.platform,
+    arch: process.arch,
+    python: py.found ? `${py.command} (${py.version})` : null,
+    pip: pipAvailable,
+    node: nodeVersion,
+    git: gitAvailable,
+  };
+  return _cachedEnvInfo;
+}
+
 // ─── System prompt ────────────────────────────────────────────────────────
 
 export function getBaseSystemPrompt(cwd) {
+  const env = getEnvironmentInfo();
+  const envLines = [
+    `OS: ${env.os} (${env.arch})`,
+    env.python
+      ? `Python: ${env.python}${env.pip ? " + pip" : ""}`
+      : "Python: not found",
+    env.node ? `Node.js: ${env.node}` : "Node.js: not found",
+    `Git: ${env.git ? "available" : "not found"}`,
+  ];
+
   return `You are ChainlessChain AI Assistant, a powerful agentic coding assistant running in the terminal.
 
 You have access to tools that let you read files, write files, edit files, run shell commands, and search the codebase. When the user asks you to do something, USE THE TOOLS to actually do it — don't just describe what should be done.
@@ -230,10 +318,15 @@ Key behaviors:
 When the user's problem involves data processing, calculations, file operations, text parsing, API calls, web scraping, or any task that can be solved programmatically:
 - Proactively write and execute code using run_code tool
 - Choose the best language: Python for data/math/scraping, Node.js for JSON/API, Bash for system tasks
+- Missing Python packages are auto-installed via pip when import errors are detected
+- Scripts are persisted in .chainlesschain/agent-scripts/ for reference
 - Show the results and explain them clearly
 - If the first attempt fails, debug and retry with a different approach
 
 You are not just a chatbot — you are a capable coding agent. Think step by step, write code when needed, and deliver real results.
+
+## Environment
+${envLines.join("\n")}
 
 Current working directory: ${cwd || process.cwd()}`;
 }
@@ -388,66 +481,7 @@ async function executeToolInner(name, args, { skillLoader, cwd }) {
     }
 
     case "run_code": {
-      const lang = args.language;
-      const code = args.code;
-      const timeoutSec = Math.min(Math.max(args.timeout || 60, 1), 300);
-
-      const extMap = { python: ".py", node: ".js", bash: ".sh" };
-      const ext = extMap[lang];
-      if (!ext) {
-        return {
-          error: `Unsupported language: ${lang}. Use python, node, or bash.`,
-        };
-      }
-
-      const tmpFile = path.join(os.tmpdir(), `cc-agent-${Date.now()}${ext}`);
-
-      try {
-        fs.writeFileSync(tmpFile, code, "utf8");
-
-        let interpreter;
-        if (lang === "python") {
-          try {
-            execSync("python3 --version", { encoding: "utf8", timeout: 5000 });
-            interpreter = "python3";
-          } catch {
-            interpreter = "python";
-          }
-        } else if (lang === "node") {
-          interpreter = "node";
-        } else {
-          interpreter = "bash";
-        }
-
-        const start = Date.now();
-        const output = execSync(`${interpreter} "${tmpFile}"`, {
-          cwd,
-          encoding: "utf8",
-          timeout: timeoutSec * 1000,
-          maxBuffer: 5 * 1024 * 1024,
-        });
-        const duration = Date.now() - start;
-
-        return {
-          success: true,
-          output: output.substring(0, 50000),
-          language: lang,
-          duration: `${duration}ms`,
-        };
-      } catch (err) {
-        return {
-          error: (err.stderr || err.message || "").substring(0, 5000),
-          stderr: (err.stderr || "").substring(0, 5000),
-          exitCode: err.status,
-          language: lang,
-        };
-      } finally {
-        try {
-          fs.unlinkSync(tmpFile);
-        } catch {
-          // Cleanup best-effort
-        }
-      }
+      return _executeRunCode(args, cwd);
     }
 
     case "search_files": {
@@ -569,6 +603,224 @@ async function executeToolInner(name, args, { skillLoader, cwd }) {
 
     default:
       return { error: `Unknown tool: ${name}` };
+  }
+}
+
+// ─── run_code implementation ──────────────────────────────────────────────
+
+/**
+ * Classify an error from code execution into a structured type with hints.
+ * @param {string} stderr - stderr output
+ * @param {string} message - error message
+ * @param {number|null} exitCode - process exit code
+ * @param {string} lang - language (python, node, bash)
+ * @returns {{ errorType: string, hint: string }}
+ */
+export function classifyError(stderr, message, exitCode, lang) {
+  const text = stderr || message || "";
+
+  // Import / module errors
+  if (/ModuleNotFoundError|ImportError|No module named/i.test(text)) {
+    const modMatch = text.match(/No module named ['"]([^'"]+)['"]/);
+    return {
+      errorType: "import_error",
+      hint: modMatch
+        ? `Missing Python module "${modMatch[1]}". Will attempt auto-install.`
+        : "Missing module. Check your imports.",
+    };
+  }
+
+  // Syntax errors
+  if (/SyntaxError|IndentationError|TabError/i.test(text)) {
+    const lineMatch = text.match(/line (\d+)/i);
+    return {
+      errorType: "syntax_error",
+      hint: lineMatch
+        ? `Syntax error on line ${lineMatch[1]}. Check for typos, missing colons, or indentation.`
+        : "Syntax error in code. Check for typos or missing brackets.",
+    };
+  }
+
+  // Timeout
+  if (/ETIMEDOUT|timed?\s*out/i.test(text) || exitCode === null) {
+    return {
+      errorType: "timeout",
+      hint: "Script timed out. Consider increasing timeout or optimizing the code.",
+    };
+  }
+
+  // Permission errors
+  if (/EACCES|Permission denied|PermissionError/i.test(text)) {
+    return {
+      errorType: "permission_error",
+      hint: "Permission denied. Try a different directory or run with appropriate permissions.",
+    };
+  }
+
+  // Generic runtime error
+  const lineMatch = text.match(/(?:line |:)(\d+)/);
+  return {
+    errorType: "runtime_error",
+    hint: lineMatch
+      ? `Runtime error near line ${lineMatch[1]}. Check the traceback above.`
+      : "Runtime error. Check stderr for details.",
+  };
+}
+
+/**
+ * Validate a package name for pip install (reject shell metacharacters).
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isValidPackageName(name) {
+  return /^[a-zA-Z0-9_][a-zA-Z0-9._-]*$/.test(name) && name.length <= 100;
+}
+
+/**
+ * Execute code with auto pip-install, script persistence, and error classification.
+ */
+async function _executeRunCode(args, cwd) {
+  const lang = args.language;
+  const code = args.code;
+  const timeoutSec = Math.min(Math.max(args.timeout || 60, 1), 300);
+  const persist = args.persist !== false; // default true
+
+  const extMap = { python: ".py", node: ".js", bash: ".sh" };
+  const ext = extMap[lang];
+  if (!ext) {
+    return {
+      error: `Unsupported language: ${lang}. Use python, node, or bash.`,
+    };
+  }
+
+  // Determine script path
+  let scriptPath;
+  if (persist) {
+    const scriptsDir = path.join(cwd, ".chainlesschain", "agent-scripts");
+    if (!fs.existsSync(scriptsDir)) {
+      fs.mkdirSync(scriptsDir, { recursive: true });
+    }
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[T:]/g, "-")
+      .replace(/\.\d+Z$/, "");
+    scriptPath = path.join(scriptsDir, `${timestamp}-${lang}${ext}`);
+  } else {
+    scriptPath = path.join(os.tmpdir(), `cc-agent-${Date.now()}${ext}`);
+  }
+
+  try {
+    fs.writeFileSync(scriptPath, code, "utf8");
+
+    // Determine interpreter
+    let interpreter;
+    if (lang === "python") {
+      const py = getCachedPython();
+      interpreter = py.found ? py.command : "python";
+    } else if (lang === "node") {
+      interpreter = "node";
+    } else {
+      interpreter = "bash";
+    }
+
+    const start = Date.now();
+    let output;
+    try {
+      output = execSync(`${interpreter} "${scriptPath}"`, {
+        cwd,
+        encoding: "utf8",
+        timeout: timeoutSec * 1000,
+        maxBuffer: 5 * 1024 * 1024,
+      });
+    } catch (err) {
+      const stderr = (err.stderr || "").toString();
+      const message = err.message || "";
+      const classified = classifyError(stderr, message, err.status, lang);
+
+      // Auto-install missing Python packages
+      if (lang === "python" && classified.errorType === "import_error") {
+        const modMatch = stderr.match(/No module named ['"]([^'"]+)['"]/);
+        if (modMatch) {
+          // Use top-level package name (e.g. "foo.bar" → "foo")
+          const packageName = modMatch[1].split(".")[0];
+
+          if (!isValidPackageName(packageName)) {
+            return {
+              error: `Invalid package name: "${packageName}"`,
+              ...classified,
+              language: lang,
+              scriptPath: persist ? scriptPath : undefined,
+            };
+          }
+
+          // Attempt pip install
+          try {
+            execSync(`${interpreter} -m pip install ${packageName}`, {
+              encoding: "utf-8",
+              timeout: 120000,
+              maxBuffer: 2 * 1024 * 1024,
+              stdio: ["pipe", "pipe", "pipe"],
+            });
+
+            // Retry execution
+            const retryStart = Date.now();
+            const retryOutput = execSync(`${interpreter} "${scriptPath}"`, {
+              cwd,
+              encoding: "utf8",
+              timeout: timeoutSec * 1000,
+              maxBuffer: 5 * 1024 * 1024,
+            });
+            const retryDuration = Date.now() - retryStart;
+
+            return {
+              success: true,
+              output: retryOutput.substring(0, 50000),
+              language: lang,
+              duration: `${retryDuration}ms`,
+              autoInstalled: [packageName],
+              scriptPath: persist ? scriptPath : undefined,
+            };
+          } catch (pipErr) {
+            return {
+              error: (stderr || message).substring(0, 5000),
+              stderr: stderr.substring(0, 5000),
+              exitCode: err.status,
+              language: lang,
+              ...classified,
+              hint: `Failed to auto-install "${packageName}". ${(pipErr.stderr || pipErr.message || "").substring(0, 500)}`,
+              scriptPath: persist ? scriptPath : undefined,
+            };
+          }
+        }
+      }
+
+      return {
+        error: (stderr || message).substring(0, 5000),
+        stderr: stderr.substring(0, 5000),
+        exitCode: err.status,
+        language: lang,
+        ...classified,
+        scriptPath: persist ? scriptPath : undefined,
+      };
+    }
+
+    const duration = Date.now() - start;
+    return {
+      success: true,
+      output: output.substring(0, 50000),
+      language: lang,
+      duration: `${duration}ms`,
+      scriptPath: persist ? scriptPath : undefined,
+    };
+  } finally {
+    // Only clean up if not persisting
+    if (!persist) {
+      try {
+        fs.unlinkSync(scriptPath);
+      } catch {
+        // Cleanup best-effort
+      }
+    }
   }
 }
 
@@ -753,12 +1005,13 @@ function _normalizeAnthropicResponse(data) {
  * Async generator that drives the agentic tool-use loop.
  *
  * Yields events:
+ *   { type: "slot-filling", slot, question }  — when asking user for missing info
  *   { type: "tool-executing", tool, args }
  *   { type: "tool-result", tool, result, error }
  *   { type: "response-complete", content }
  *
  * @param {Array} messages - mutable messages array (will be appended to)
- * @param {object} options - provider, model, baseUrl, apiKey, contextEngine, hookDb, skillLoader, cwd
+ * @param {object} options - provider, model, baseUrl, apiKey, contextEngine, hookDb, skillLoader, cwd, slotFiller, interaction
  */
 export async function* agentLoop(messages, options) {
   const MAX_ITERATIONS = 15;
@@ -767,6 +1020,52 @@ export async function* agentLoop(messages, options) {
     skillLoader: options.skillLoader || _defaultSkillLoader,
     cwd: options.cwd || process.cwd(),
   };
+
+  // ── Slot-filling phase ──────────────────────────────────────────────
+  // Before calling the LLM, check if the user's message matches a known
+  // intent with missing required parameters. If so, interactively fill them
+  // and append the gathered context to the user message.
+  if (options.slotFiller && options.interaction) {
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUserMsg) {
+      try {
+        const { CLISlotFiller } = await import("./slot-filler.js");
+        const intent = CLISlotFiller.detectIntent(lastUserMsg.content);
+
+        if (intent) {
+          const requiredSlots = CLISlotFiller.getSlotDefinitions(
+            intent.type,
+          ).required;
+          const missingSlots = requiredSlots.filter((s) => !intent.entities[s]);
+
+          if (missingSlots.length > 0) {
+            const result = await options.slotFiller.fillSlots(intent, {
+              cwd: options.cwd || process.cwd(),
+            });
+
+            // Yield slot-filling events for each filled slot
+            for (const slot of result.filledSlots) {
+              yield {
+                type: "slot-filling",
+                slot,
+                question: `Filled "${slot}" = "${result.entities[slot]}"`,
+              };
+            }
+
+            // Append gathered context to the user message so the LLM has full info
+            if (result.filledSlots.length > 0) {
+              const contextParts = Object.entries(result.entities)
+                .filter(([, v]) => v)
+                .map(([k, v]) => `${k}: ${v}`);
+              lastUserMsg.content += `\n\n[Context — user provided: ${contextParts.join(", ")}]`;
+            }
+          }
+        }
+      } catch (_err) {
+        // Slot-filling failure is non-critical — proceed to LLM
+      }
+    }
+  }
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const result = await chatWithTools(messages, options);

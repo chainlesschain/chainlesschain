@@ -2,7 +2,7 @@
 
 本目录包含 ChainlessChain 系统的设计和架构文档。
 
-> **最新变更 (2026-03-15)**: WebSocket 服务器接口新增 Phase 2 有状态会话架构（agent-core, chat-core, InteractionAdapter, WSSessionManager, SlotFiller, InteractivePlanner），测试从 54 增至 250。桌面应用 26 个文件修复 UTF-8 编码（乱码防护）。
+> **最新变更 (2026-03-15)**: Agent 智能增强 — auto pip-install、脚本持久化、错误分类、环境检测。agent-core.js 提取去重。Desktop agent 模式。2503 测试全部通过。
 
 ## 文档结构
 
@@ -10,7 +10,7 @@
 docs/design/
 ├── README.md                              # 本索引文件
 ├── 系统设计_主文档.md                      # 主文档 (概述+技术栈+路线图+总结)
-├── modules/                               # 核心模块设计 (69个文档)
+├── modules/                               # 核心模块设计 (70个文档)
 │   ├── 01_知识库管理模块.md               # 知识库/RAG/向量存储
 │   ├── 02_去中心化社交模块.md             # DID/P2P/Signal加密
 │   ├── 03_交易辅助模块.md                 # 智能合约/信用评分
@@ -79,7 +79,8 @@ docs/design/
 │   ├── 66_CLI分发系统.md                  # ⭐Phase 101 npm CLI/预构建二进制
 │   ├── 67_CLI高级功能补齐.md              # ⭐Phase 102+ CLI高级功能/17模块/440测试
 │   ├── 68_CLI-Anything集成.md             # ⭐v5.0.1 CLI-Anything桥接/外部软件Agent化
-│   └── 69_WebSocket服务器接口.md          # ⭐v5.0.1 WebSocket远程CLI/流式执行/Token认证
+│   ├── 69_WebSocket服务器接口.md          # ⭐v5.0.1 WebSocket远程CLI/流式执行/Token认证
+│   └── 70_Agent智能增强系统.md            # ⭐v5.0.1 agent-core提取/auto pip-install/错误分类/环境检测
 ├── 安全机制设计.md                         # U盾/SIMKey安全 (含PQC/门限签名/生物识别)
 ├── 数据同步方案.md                         # Git/HTTP/P2P同步
 ├── AI模型部署方案.md                       # Ollama/云端模型
@@ -246,6 +247,7 @@ docs/design/
 | **CLI高级功能** ⭐      | [67_CLI高级功能补齐.md](modules/67_CLI高级功能补齐.md)        | **Phase 102+**,17模块,11命令,2009测试,6维Context Engineering+Autonomous Agent+EvoMap              |
 | **CLI-Anything集成** ⭐ | [68_CLI-Anything集成.md](modules/68_CLI-Anything集成.md)      | **v5.0.1新增**,CLI-Anything桥接,外部软件Agent化,managed层技能注册 (5子命令,56测试)               |
 | **WebSocket服务器接口** ⭐ | [69_WebSocket服务器接口.md](modules/69_WebSocket服务器接口.md) | **v5.0.1新增**,WebSocket远程CLI调用,流式执行,Token认证,有状态Agent/Chat会话,SlotFiller,InteractivePlanner (250测试) |
+| **Agent智能增强** ⭐ | [70_Agent智能增强系统.md](modules/70_Agent智能增强系统.md) | **v5.0.1新增**,agent-core提取去重,auto pip-install,脚本持久化,错误分类(5种),环境检测,Desktop agent模式 (132测试) |
 
 ### 基础设施
 

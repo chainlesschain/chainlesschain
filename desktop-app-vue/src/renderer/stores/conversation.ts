@@ -2,8 +2,8 @@
  * Conversation Store - 对话管理
  */
 
-import { logger } from '@/utils/logger';
-import { defineStore } from 'pinia';
+import { logger } from "@/utils/logger";
+import { defineStore } from "pinia";
 
 // ==================== 类型定义 ====================
 
@@ -22,7 +22,7 @@ export interface MessageMetadata {
  */
 export interface ConversationMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: number;
   tokens?: number;
@@ -90,11 +90,13 @@ export interface ConversationState {
   batchSaveTimer: NodeJS.Timeout | null;
   batchSaveThreshold: number;
   batchSaveInterval: number;
+  /** When true, chat uses conversation:agent-chat (tool-use loop) instead of chat-stream */
+  agentMode: boolean;
 }
 
 // ==================== Store ====================
 
-export const useConversationStore = defineStore('conversation', {
+export const useConversationStore = defineStore("conversation", {
   state: (): ConversationState => ({
     // 对话列表
     conversations: [],
@@ -117,6 +119,9 @@ export const useConversationStore = defineStore('conversation', {
     batchSaveTimer: null, // 批量保存定时器
     batchSaveThreshold: 5, // 批量保存阈值（消息数）
     batchSaveInterval: 10000, // 批量保存间隔（毫秒）
+
+    // Agent mode — autonomous tool-use
+    agentMode: false,
   }),
 
   getters: {
@@ -132,7 +137,7 @@ export const useConversationStore = defineStore('conversation', {
 
     // 当前对话标题
     currentConversationTitle(): string {
-      return this.currentConversation?.title || '新对话';
+      return this.currentConversation?.title || "新对话";
     },
 
     // 是否有当前对话
@@ -153,13 +158,13 @@ export const useConversationStore = defineStore('conversation', {
     createNewConversation(): Conversation {
       const newConversation: Conversation = {
         id: `conv_${Date.now()}`,
-        title: `对话 ${new Date().toLocaleString('zh-CN')}`,
+        title: `对话 ${new Date().toLocaleString("zh-CN")}`,
         messages: [],
         created_at: Date.now(),
         updated_at: Date.now(),
         metadata: {
-          model: '',
-          provider: '',
+          model: "",
+          provider: "",
           totalTokens: 0,
         },
       };
@@ -173,12 +178,18 @@ export const useConversationStore = defineStore('conversation', {
     /**
      * 加载对话列表
      */
-    async loadConversations(offset: number = 0, limit: number = 50): Promise<void> {
+    async loadConversations(
+      offset: number = 0,
+      limit: number = 50,
+    ): Promise<void> {
       this.loading = true;
 
       try {
         // 从数据库加载对话
-        const result = await (window as any).electronAPI.db.getConversations?.(offset, limit);
+        const result = await (window as any).electronAPI.db.getConversations?.(
+          offset,
+          limit,
+        );
 
         if (result && result.conversations) {
           if (offset === 0) {
@@ -200,8 +211,8 @@ export const useConversationStore = defineStore('conversation', {
         }
       } catch (error) {
         // IPC 未就绪时静默处理
-        if (!(error as Error).message?.includes('No handler registered')) {
-          logger.error('[Conversation Store] 加载对话列表失败:', error as any);
+        if (!(error as Error).message?.includes("No handler registered")) {
+          logger.error("[Conversation Store] 加载对话列表失败:", error as any);
         }
         // 如果加载失败，使用内存中的对话
         if (offset === 0) {
@@ -215,14 +226,20 @@ export const useConversationStore = defineStore('conversation', {
     /**
      * 加载指定对话
      */
-    async loadConversation(conversationId: string): Promise<Conversation | null> {
+    async loadConversation(
+      conversationId: string,
+    ): Promise<Conversation | null> {
       try {
         // 先从内存中查找
-        let conversation = this.conversations.find((c) => c.id === conversationId);
+        let conversation = this.conversations.find(
+          (c) => c.id === conversationId,
+        );
 
         if (!conversation) {
           // 从数据库加载
-          conversation = await (window as any).electronAPI.db.getConversation?.(conversationId);
+          conversation = await (window as any).electronAPI.db.getConversation?.(
+            conversationId,
+          );
         }
 
         if (conversation) {
@@ -231,7 +248,7 @@ export const useConversationStore = defineStore('conversation', {
 
         return conversation || null;
       } catch (error) {
-        logger.error('加载对话失败:', error as any);
+        logger.error("加载对话失败:", error as any);
         throw error;
       }
     },
@@ -259,7 +276,9 @@ export const useConversationStore = defineStore('conversation', {
         }
 
         // 更新列表中的对话
-        const index = this.conversations.findIndex((c) => c.id === this.currentConversation!.id);
+        const index = this.conversations.findIndex(
+          (c) => c.id === this.currentConversation!.id,
+        );
 
         if (index !== -1) {
           this.conversations[index] = { ...this.currentConversation };
@@ -267,7 +286,7 @@ export const useConversationStore = defineStore('conversation', {
           this.conversations.unshift({ ...this.currentConversation });
         }
       } catch (error) {
-        logger.error('保存对话失败:', error as any);
+        logger.error("保存对话失败:", error as any);
         throw error;
       }
     },
@@ -284,7 +303,7 @@ export const useConversationStore = defineStore('conversation', {
         try {
           await this.flushPendingMessages();
         } catch (error) {
-          logger.error('[ConversationStore] 批量保存定时器错误:', error as any);
+          logger.error("[ConversationStore] 批量保存定时器错误:", error as any);
         }
       }, this.batchSaveInterval);
     },
@@ -317,13 +336,15 @@ export const useConversationStore = defineStore('conversation', {
             await (window as any).electronAPI.db.saveConversation(conv);
           }
 
-          logger.info(`[ConversationStore] 批量保存完成: ${conversationMap.size} 个对话`);
+          logger.info(
+            `[ConversationStore] 批量保存完成: ${conversationMap.size} 个对话`,
+          );
         }
 
         // 清空队列
         this.pendingMessages = [];
       } catch (error) {
-        logger.error('批量保存对话失败:', error as any);
+        logger.error("批量保存对话失败:", error as any);
         // 保留队列，下次重试
       }
     },
@@ -343,8 +364,8 @@ export const useConversationStore = defineStore('conversation', {
 
       const newMessage: ConversationMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        role: message.role || 'user',
-        content: message.content || '',
+        role: message.role || "user",
+        content: message.content || "",
         timestamp: message.timestamp || Date.now(),
         ...message,
       };
@@ -362,11 +383,13 @@ export const useConversationStore = defineStore('conversation', {
 
       // 自动生成标题（基于第一条用户消息）
       if (
-        message.role === 'user' &&
-        this.currentConversation!.messages.filter((m) => m.role === 'user').length === 1
+        message.role === "user" &&
+        this.currentConversation!.messages.filter((m) => m.role === "user")
+          .length === 1
       ) {
         const title = newMessage.content.slice(0, 30);
-        this.currentConversation!.title = title + (newMessage.content.length > 30 ? '...' : '');
+        this.currentConversation!.title =
+          title + (newMessage.content.length > 30 ? "..." : "");
       }
 
       return newMessage;
@@ -375,7 +398,10 @@ export const useConversationStore = defineStore('conversation', {
     /**
      * 更新消息
      */
-    updateMessage(messageId: string, updates: Partial<ConversationMessage>): void {
+    updateMessage(
+      messageId: string,
+      updates: Partial<ConversationMessage>,
+    ): void {
       if (!this.currentConversation) {
         return;
       }
@@ -385,7 +411,9 @@ export const useConversationStore = defineStore('conversation', {
         return;
       }
 
-      const index = this.currentConversation.messages.findIndex((m) => m.id === messageId);
+      const index = this.currentConversation.messages.findIndex(
+        (m) => m.id === messageId,
+      );
 
       if (index !== -1) {
         this.currentConversation.messages[index] = {
@@ -409,7 +437,9 @@ export const useConversationStore = defineStore('conversation', {
         return;
       }
 
-      const index = this.currentConversation.messages.findIndex((m) => m.id === messageId);
+      const index = this.currentConversation.messages.findIndex(
+        (m) => m.id === messageId,
+      );
 
       if (index !== -1) {
         this.currentConversation.messages.splice(index, 1);
@@ -433,11 +463,13 @@ export const useConversationStore = defineStore('conversation', {
      */
     async updateConversation(
       conversationId: string,
-      updates: Partial<Conversation>
+      updates: Partial<Conversation>,
     ): Promise<void> {
       try {
         // 更新内存中的对话
-        const index = this.conversations.findIndex((c) => c.id === conversationId);
+        const index = this.conversations.findIndex(
+          (c) => c.id === conversationId,
+        );
 
         if (index !== -1) {
           this.conversations[index] = {
@@ -459,12 +491,12 @@ export const useConversationStore = defineStore('conversation', {
           if ((window as any).electronAPI.db.updateConversation) {
             await (window as any).electronAPI.db.updateConversation(
               conversationId,
-              this.conversations[index]
+              this.conversations[index],
             );
           }
         }
       } catch (error) {
-        logger.error('更新对话失败:', error as any);
+        logger.error("更新对话失败:", error as any);
         throw error;
       }
     },
@@ -476,11 +508,15 @@ export const useConversationStore = defineStore('conversation', {
       try {
         // 从数据库删除
         if ((window as any).electronAPI.db.deleteConversation) {
-          await (window as any).electronAPI.db.deleteConversation(conversationId);
+          await (window as any).electronAPI.db.deleteConversation(
+            conversationId,
+          );
         }
 
         // 从列表中删除
-        const index = this.conversations.findIndex((c) => c.id === conversationId);
+        const index = this.conversations.findIndex(
+          (c) => c.id === conversationId,
+        );
         if (index !== -1) {
           this.conversations.splice(index, 1);
         }
@@ -495,7 +531,7 @@ export const useConversationStore = defineStore('conversation', {
           }
         }
       } catch (error) {
-        logger.error('删除对话失败:', error as any);
+        logger.error("删除对话失败:", error as any);
         throw error;
       }
     },
@@ -513,7 +549,9 @@ export const useConversationStore = defineStore('conversation', {
       return this.conversations.filter(
         (conv) =>
           conv.title.toLowerCase().includes(lowerQuery) ||
-          conv.messages.some((msg) => msg.content.toLowerCase().includes(lowerQuery))
+          conv.messages.some((msg) =>
+            msg.content.toLowerCase().includes(lowerQuery),
+          ),
       );
     },
 
@@ -521,7 +559,9 @@ export const useConversationStore = defineStore('conversation', {
      * 导出对话
      */
     exportConversation(conversationId: string): ExportedConversation | null {
-      const conversation = this.conversations.find((c) => c.id === conversationId);
+      const conversation = this.conversations.find(
+        (c) => c.id === conversationId,
+      );
 
       if (!conversation) {
         return null;
@@ -543,17 +583,19 @@ export const useConversationStore = defineStore('conversation', {
     /**
      * 导入对话
      */
-    async importConversation(data: ImportConversationData): Promise<Conversation> {
+    async importConversation(
+      data: ImportConversationData,
+    ): Promise<Conversation> {
       try {
         const newConversation: Conversation = {
           id: `conv_${Date.now()}`,
-          title: data.title || '导入的对话',
+          title: data.title || "导入的对话",
           messages: data.messages || [],
           created_at: data.created_at || Date.now(),
           updated_at: Date.now(),
           metadata: data.metadata || {
-            model: '',
-            provider: '',
+            model: "",
+            provider: "",
             totalTokens: 0,
           },
           ...data,
@@ -563,14 +605,26 @@ export const useConversationStore = defineStore('conversation', {
 
         // 保存到数据库
         if ((window as any).electronAPI.db.saveConversation) {
-          await (window as any).electronAPI.db.saveConversation(newConversation);
+          await (window as any).electronAPI.db.saveConversation(
+            newConversation,
+          );
         }
 
         return newConversation;
       } catch (error) {
-        logger.error('导入对话失败:', error as any);
+        logger.error("导入对话失败:", error as any);
         throw error;
       }
+    },
+
+    /**
+     * Toggle agent mode (autonomous tool-use loop vs. regular streaming).
+     */
+    toggleAgentMode(): void {
+      this.agentMode = !this.agentMode;
+      logger.info(
+        `[Conversation] Agent mode: ${this.agentMode ? "ON" : "OFF"}`,
+      );
     },
 
     /**
@@ -589,6 +643,7 @@ export const useConversationStore = defineStore('conversation', {
         total: 0,
       };
       this.pendingMessages = [];
+      this.agentMode = false;
       if (this.batchSaveTimer) {
         clearTimeout(this.batchSaveTimer);
         this.batchSaveTimer = null;

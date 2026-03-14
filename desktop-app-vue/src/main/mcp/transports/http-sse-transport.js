@@ -216,7 +216,7 @@ class HttpSseTransport extends EventEmitter {
         let buffer = "";
 
         res.on("data", (chunk) => {
-          buffer += chunk.toString();
+          buffer += chunk.toString("utf8");
 
           // Process complete SSE messages
           const lines = buffer.split("\n\n");
@@ -408,7 +408,7 @@ class HttpSseTransport extends EventEmitter {
         let responseData = "";
 
         res.on("data", (chunk) => {
-          responseData += chunk.toString();
+          responseData += chunk.toString("utf8");
         });
 
         res.on("end", () => {

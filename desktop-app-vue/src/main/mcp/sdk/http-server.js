@@ -17,16 +17,16 @@
  * @module mcp/sdk/http-server
  */
 
-const { logger } = require('../../utils/logger.js');
-const http = require('http');
-const { v4: uuidv4 } = require('uuid');
-const { EventEmitter } = require('events');
+const { logger } = require("../../utils/logger.js");
+const http = require("http");
+const { v4: uuidv4 } = require("uuid");
+const { EventEmitter } = require("events");
 
 /**
  * MCP protocol version supported by this server
  * @constant
  */
-const MCP_PROTOCOL_VERSION = '2024-11-05';
+const MCP_PROTOCOL_VERSION = "2024-11-05";
 
 /**
  * JSON-RPC 2.0 error codes
@@ -45,11 +45,11 @@ const JSON_RPC_ERRORS = {
  * @constant
  */
 const ServerState = {
-  STOPPED: 'stopped',
-  STARTING: 'starting',
-  RUNNING: 'running',
-  STOPPING: 'stopping',
-  ERROR: 'error',
+  STOPPED: "stopped",
+  STARTING: "starting",
+  RUNNING: "running",
+  STOPPING: "stopping",
+  ERROR: "error",
 };
 
 /**
@@ -78,13 +78,13 @@ class MCPHttpServer extends EventEmitter {
     super();
 
     /** @type {string} Server name */
-    this.name = config.name || 'mcp-http-server';
+    this.name = config.name || "mcp-http-server";
 
     /** @type {string} Server version */
-    this.version = config.version || '1.0.0';
+    this.version = config.version || "1.0.0";
 
     /** @type {string} Server description */
-    this.description = config.description || '';
+    this.description = config.description || "";
 
     /** @type {Map<string, Object>} Registered tools */
     this.tools = config.tools || new Map();
@@ -141,7 +141,7 @@ class MCPHttpServer extends EventEmitter {
     };
 
     logger.info(
-      `[MCPHttpServer] Created server "${this.name}" v${this.version} on port ${this.port}`
+      `[MCPHttpServer] Created server "${this.name}" v${this.version} on port ${this.port}`,
     );
   }
 
@@ -157,7 +157,7 @@ class MCPHttpServer extends EventEmitter {
    */
   async start() {
     if (this.state === ServerState.RUNNING) {
-      logger.warn('[MCPHttpServer] Server is already running');
+      logger.warn("[MCPHttpServer] Server is already running");
       return;
     }
 
@@ -167,7 +167,7 @@ class MCPHttpServer extends EventEmitter {
       logger.info(`[MCPHttpServer] Starting server on port ${this.port}...`);
 
       // Run onStart hooks
-      await this._runHooks('onStart');
+      await this._runHooks("onStart");
 
       // Create HTTP server
       this.server = http.createServer((req, res) => {
@@ -175,16 +175,16 @@ class MCPHttpServer extends EventEmitter {
       });
 
       // Handle server errors
-      this.server.on('error', (error) => {
-        logger.error('[MCPHttpServer] Server error:', error);
+      this.server.on("error", (error) => {
+        logger.error("[MCPHttpServer] Server error:", error);
         this.state = ServerState.ERROR;
         this.stats.lastError = {
           message: error.message,
           code: error.code,
           timestamp: new Date().toISOString(),
         };
-        this._runHooks('onError', error);
-        this.emit('error', error);
+        this._runHooks("onError", error);
+        this.emit("error", error);
       });
 
       // Start listening
@@ -193,7 +193,7 @@ class MCPHttpServer extends EventEmitter {
           resolve();
         });
 
-        this.server.once('error', (error) => {
+        this.server.once("error", (error) => {
           reject(error);
         });
       });
@@ -202,17 +202,17 @@ class MCPHttpServer extends EventEmitter {
       this.stats.startedAt = new Date().toISOString();
 
       logger.info(
-        `[MCPHttpServer] Server "${this.name}" v${this.version} listening on port ${this.port}`
+        `[MCPHttpServer] Server "${this.name}" v${this.version} listening on port ${this.port}`,
       );
       logger.info(
         `[MCPHttpServer] Capabilities: ${this.tools.size} tools, ` +
-          `${this.resources.size} resources, ${this.prompts.size} prompts`
+          `${this.resources.size} resources, ${this.prompts.size} prompts`,
       );
 
-      this.emit('started', { port: this.port });
+      this.emit("started", { port: this.port });
     } catch (error) {
       this.state = ServerState.ERROR;
-      logger.error('[MCPHttpServer] Failed to start:', error);
+      logger.error("[MCPHttpServer] Failed to start:", error);
       throw error;
     }
   }
@@ -226,16 +226,16 @@ class MCPHttpServer extends EventEmitter {
    */
   async stop() {
     if (this.state === ServerState.STOPPED) {
-      logger.warn('[MCPHttpServer] Server is already stopped');
+      logger.warn("[MCPHttpServer] Server is already stopped");
       return;
     }
 
     this.state = ServerState.STOPPING;
-    logger.info('[MCPHttpServer] Stopping server...');
+    logger.info("[MCPHttpServer] Stopping server...");
 
     try {
       // Run onStop hooks
-      await this._runHooks('onStop');
+      await this._runHooks("onStop");
 
       // Close all SSE connections
       for (const [clientId, client] of this.sseClients) {
@@ -245,7 +245,7 @@ class MCPHttpServer extends EventEmitter {
         } catch (error) {
           logger.warn(
             `[MCPHttpServer] Error closing SSE connection ${clientId}:`,
-            error.message
+            error.message,
           );
         }
       }
@@ -264,11 +264,11 @@ class MCPHttpServer extends EventEmitter {
 
       this.state = ServerState.STOPPED;
 
-      logger.info('[MCPHttpServer] Server stopped');
-      this.emit('stopped');
+      logger.info("[MCPHttpServer] Server stopped");
+      this.emit("stopped");
     } catch (error) {
       this.state = ServerState.ERROR;
-      logger.error('[MCPHttpServer] Error stopping server:', error);
+      logger.error("[MCPHttpServer] Error stopping server:", error);
       throw error;
     }
   }
@@ -290,7 +290,7 @@ class MCPHttpServer extends EventEmitter {
     this._setCorsHeaders(res);
 
     // Handle preflight OPTIONS requests
-    if (req.method === 'OPTIONS') {
+    if (req.method === "OPTIONS") {
       res.writeHead(204);
       res.end();
       return;
@@ -305,10 +305,10 @@ class MCPHttpServer extends EventEmitter {
     logger.info(`[MCPHttpServer] ${req.method} ${pathname}`);
 
     // Authenticate request (skip for SSE endpoint initial connection and health checks)
-    if (pathname !== '/health') {
+    if (pathname !== "/health") {
       const authResult = this._authenticate(req);
       if (!authResult.authenticated) {
-        this._sendHttpError(res, 401, 'Unauthorized', authResult.reason);
+        this._sendHttpError(res, 401, "Unauthorized", authResult.reason);
         return;
       }
     }
@@ -316,34 +316,39 @@ class MCPHttpServer extends EventEmitter {
     // Route request
     try {
       switch (pathname) {
-        case '/sse':
-          if (req.method === 'GET') {
+        case "/sse":
+          if (req.method === "GET") {
             this.handleSSE(req, res);
           } else {
-            this._sendHttpError(res, 405, 'Method Not Allowed');
+            this._sendHttpError(res, 405, "Method Not Allowed");
           }
           break;
 
-        case '/rpc':
-        case '/message':
-          if (req.method === 'POST') {
+        case "/rpc":
+        case "/message":
+          if (req.method === "POST") {
             this._handleJsonRpcRequest(req, res);
           } else {
-            this._sendHttpError(res, 405, 'Method Not Allowed');
+            this._sendHttpError(res, 405, "Method Not Allowed");
           }
           break;
 
-        case '/health':
+        case "/health":
           this._handleHealthCheck(req, res);
           break;
 
         default:
-          this._sendHttpError(res, 404, 'Not Found', `Unknown endpoint: ${pathname}`);
+          this._sendHttpError(
+            res,
+            404,
+            "Not Found",
+            `Unknown endpoint: ${pathname}`,
+          );
           break;
       }
     } catch (error) {
-      logger.error('[MCPHttpServer] Request handling error:', error);
-      this._sendHttpError(res, 500, 'Internal Server Error', error.message);
+      logger.error("[MCPHttpServer] Request handling error:", error);
+      this._sendHttpError(res, 500, "Internal Server Error", error.message);
       this.stats.requestsFailed++;
     }
   }
@@ -361,14 +366,14 @@ class MCPHttpServer extends EventEmitter {
 
     // Set SSE headers
     res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'X-Client-Id': clientId,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Client-Id": clientId,
     });
 
     // Send initial connection event
-    res.write(`data: ${JSON.stringify({ type: 'connected', clientId })}\n\n`);
+    res.write(`data: ${JSON.stringify({ type: "connected", clientId })}\n\n`);
 
     // Store client connection
     this.sseClients.set(clientId, {
@@ -380,11 +385,11 @@ class MCPHttpServer extends EventEmitter {
     this.stats.activeSSEConnections = this.sseClients.size;
 
     // Handle client disconnect
-    req.on('close', () => {
+    req.on("close", () => {
       logger.info(`[MCPHttpServer] SSE connection closed: ${clientId}`);
       this.sseClients.delete(clientId);
       this.stats.activeSSEConnections = this.sseClients.size;
-      this.emit('sse-disconnect', { clientId });
+      this.emit("sse-disconnect", { clientId });
     });
 
     // Send heartbeat every 30 seconds to keep connection alive
@@ -393,7 +398,10 @@ class MCPHttpServer extends EventEmitter {
         try {
           res.write(`: heartbeat\n\n`);
         } catch (error) {
-          logger.warn(`[MCPHttpServer] Heartbeat failed for ${clientId}:`, error.message);
+          logger.warn(
+            `[MCPHttpServer] Heartbeat failed for ${clientId}:`,
+            error.message,
+          );
           clearInterval(heartbeatInterval);
           this.sseClients.delete(clientId);
           this.stats.activeSSEConnections = this.sseClients.size;
@@ -403,7 +411,7 @@ class MCPHttpServer extends EventEmitter {
       }
     }, 30000);
 
-    this.emit('sse-connect', { clientId });
+    this.emit("sse-connect", { clientId });
   }
 
   // ===================================
@@ -418,36 +426,41 @@ class MCPHttpServer extends EventEmitter {
    * @param {http.ServerResponse} res - HTTP response
    */
   _handleJsonRpcRequest(req, res) {
-    let body = '';
+    let body = "";
 
-    req.on('data', (chunk) => {
-      body += chunk.toString();
+    req.on("data", (chunk) => {
+      body += chunk.toString("utf8");
 
       // Limit body size to 10MB
       if (body.length > 10 * 1024 * 1024) {
-        this._sendHttpError(res, 413, 'Payload Too Large');
+        this._sendHttpError(res, 413, "Payload Too Large");
         req.destroy();
       }
     });
 
-    req.on('end', async () => {
+    req.on("end", async () => {
       try {
         // Parse JSON
         let message;
         try {
           message = JSON.parse(body);
         } catch (parseError) {
-          this._sendJsonRpcError(res, null, JSON_RPC_ERRORS.PARSE_ERROR, 'Parse error');
+          this._sendJsonRpcError(
+            res,
+            null,
+            JSON_RPC_ERRORS.PARSE_ERROR,
+            "Parse error",
+          );
           return;
         }
 
         // Validate JSON-RPC format
-        if (!message.jsonrpc || message.jsonrpc !== '2.0') {
+        if (!message.jsonrpc || message.jsonrpc !== "2.0") {
           this._sendJsonRpcError(
             res,
             message.id,
             JSON_RPC_ERRORS.INVALID_REQUEST,
-            'Invalid JSON-RPC version. Must be "2.0".'
+            'Invalid JSON-RPC version. Must be "2.0".',
           );
           return;
         }
@@ -459,7 +472,7 @@ class MCPHttpServer extends EventEmitter {
             res,
             message.id,
             JSON_RPC_ERRORS.INTERNAL_ERROR,
-            middlewareResult.reason || 'Request blocked by middleware'
+            middlewareResult.reason || "Request blocked by middleware",
           );
           return;
         }
@@ -475,7 +488,7 @@ class MCPHttpServer extends EventEmitter {
 
           // Also broadcast via SSE
           this._broadcastSSE({
-            jsonrpc: '2.0',
+            jsonrpc: "2.0",
             id: message.id,
             result,
           });
@@ -485,7 +498,7 @@ class MCPHttpServer extends EventEmitter {
           res.end();
         }
       } catch (error) {
-        logger.error('[MCPHttpServer] JSON-RPC handling error:', error);
+        logger.error("[MCPHttpServer] JSON-RPC handling error:", error);
         this.stats.requestsFailed++;
         this.stats.lastError = {
           message: error.message,
@@ -496,10 +509,10 @@ class MCPHttpServer extends EventEmitter {
           res,
           null,
           JSON_RPC_ERRORS.INTERNAL_ERROR,
-          error.message
+          error.message,
         );
 
-        this._runHooks('onError', error);
+        this._runHooks("onError", error);
       }
     });
   }
@@ -517,39 +530,38 @@ class MCPHttpServer extends EventEmitter {
     logger.info(`[MCPHttpServer] Routing method: ${method}`);
 
     switch (method) {
-      case 'initialize':
+      case "initialize":
         return this.handleInitialize(params);
 
-      case 'notifications/initialized':
+      case "notifications/initialized":
         // Client acknowledgment - no response needed
         return { acknowledged: true };
 
-      case 'tools/list':
+      case "tools/list":
         return this.handleListTools(params);
 
-      case 'tools/call':
+      case "tools/call":
         return this.handleToolCall(params.name, params.arguments || {});
 
-      case 'resources/list':
+      case "resources/list":
         return this.handleListResources(params);
 
-      case 'resources/read':
+      case "resources/read":
         return this.handleResourceRead(params.uri);
 
-      case 'prompts/list':
+      case "prompts/list":
         return this.handleListPrompts(params);
 
-      case 'prompts/get':
+      case "prompts/get":
         return this.handlePromptGet(params.name, params.arguments || {});
 
-      case 'ping':
-        return { status: 'pong', timestamp: Date.now() };
+      case "ping":
+        return { status: "pong", timestamp: Date.now() };
 
       default:
-        throw Object.assign(
-          new Error(`Method not found: ${method}`),
-          { code: JSON_RPC_ERRORS.METHOD_NOT_FOUND }
-        );
+        throw Object.assign(new Error(`Method not found: ${method}`), {
+          code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+        });
     }
   }
 
@@ -565,8 +577,8 @@ class MCPHttpServer extends EventEmitter {
    */
   handleInitialize(params) {
     logger.info(
-      `[MCPHttpServer] Initialize from client: ${params?.clientInfo?.name || 'unknown'} ` +
-        `v${params?.clientInfo?.version || 'unknown'}`
+      `[MCPHttpServer] Initialize from client: ${params?.clientInfo?.name || "unknown"} ` +
+        `v${params?.clientInfo?.version || "unknown"}`,
     );
 
     return {
@@ -618,16 +630,15 @@ class MCPHttpServer extends EventEmitter {
 
     const toolDef = this.tools.get(toolName);
     if (!toolDef) {
-      throw Object.assign(
-        new Error(`Unknown tool: ${toolName}`),
-        { code: JSON_RPC_ERRORS.METHOD_NOT_FOUND }
-      );
+      throw Object.assign(new Error(`Unknown tool: ${toolName}`), {
+        code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+      });
     }
 
     this.stats.toolCalls++;
 
     // Run onToolCall hooks
-    await this._runHooks('onToolCall', { toolName, params });
+    await this._runHooks("onToolCall", { toolName, params });
 
     try {
       const startTime = Date.now();
@@ -637,21 +648,23 @@ class MCPHttpServer extends EventEmitter {
 
       const latency = Date.now() - startTime;
 
-      logger.info(`[MCPHttpServer] Tool "${toolName}" completed in ${latency}ms`);
+      logger.info(
+        `[MCPHttpServer] Tool "${toolName}" completed in ${latency}ms`,
+      );
 
-      this.emit('tool-called', { toolName, params, result, latency });
+      this.emit("tool-called", { toolName, params, result, latency });
 
       // Format result in MCP content format
       return this._formatToolResult(result);
     } catch (error) {
       logger.error(`[MCPHttpServer] Tool "${toolName}" failed:`, error);
 
-      this.emit('tool-error', { toolName, params, error });
+      this.emit("tool-error", { toolName, params, error });
 
       return {
         content: [
           {
-            type: 'text',
+            type: "text",
             text: `Error executing tool "${toolName}": ${error.message}`,
           },
         ],
@@ -694,29 +707,28 @@ class MCPHttpServer extends EventEmitter {
 
     const resourceDef = this.resources.get(uri);
     if (!resourceDef) {
-      throw Object.assign(
-        new Error(`Unknown resource: ${uri}`),
-        { code: JSON_RPC_ERRORS.METHOD_NOT_FOUND }
-      );
+      throw Object.assign(new Error(`Unknown resource: ${uri}`), {
+        code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+      });
     }
 
     this.stats.resourceReads++;
 
     // Run onResourceRead hooks
-    await this._runHooks('onResourceRead', { uri });
+    await this._runHooks("onResourceRead", { uri });
 
     try {
       const result = await resourceDef.handler();
 
-      this.emit('resource-read', { uri, result });
+      this.emit("resource-read", { uri, result });
 
       // Format result in MCP resource content format
       return {
         contents: [
           {
             uri,
-            mimeType: resourceDef.mimeType || 'application/json',
-            text: typeof result === 'string' ? result : JSON.stringify(result),
+            mimeType: resourceDef.mimeType || "application/json",
+            text: typeof result === "string" ? result : JSON.stringify(result),
           },
         ],
       };
@@ -760,21 +772,20 @@ class MCPHttpServer extends EventEmitter {
 
     const promptDef = this.prompts.get(promptName);
     if (!promptDef) {
-      throw Object.assign(
-        new Error(`Unknown prompt: ${promptName}`),
-        { code: JSON_RPC_ERRORS.METHOD_NOT_FOUND }
-      );
+      throw Object.assign(new Error(`Unknown prompt: ${promptName}`), {
+        code: JSON_RPC_ERRORS.METHOD_NOT_FOUND,
+      });
     }
 
     this.stats.promptGets++;
 
     // Run onPromptGet hooks
-    await this._runHooks('onPromptGet', { promptName, params });
+    await this._runHooks("onPromptGet", { promptName, params });
 
     try {
       const result = await promptDef.handler(params);
 
-      this.emit('prompt-get', { promptName, params, result });
+      this.emit("prompt-get", { promptName, params, result });
 
       return {
         description: promptDef.description,
@@ -805,7 +816,7 @@ class MCPHttpServer extends EventEmitter {
       } catch (error) {
         logger.warn(
           `[MCPHttpServer] Failed to send SSE to ${clientId}:`,
-          error.message
+          error.message,
         );
         this.sseClients.delete(clientId);
         this.stats.activeSSEConnections = this.sseClients.size;
@@ -821,7 +832,7 @@ class MCPHttpServer extends EventEmitter {
    */
   sendNotification(method, params) {
     this._broadcastSSE({
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       method,
       params,
     });
@@ -846,62 +857,78 @@ class MCPHttpServer extends EventEmitter {
 
     try {
       switch (this.authConfig.type) {
-        case 'bearer': {
-          const authHeader = req.headers['authorization'];
-          if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return { authenticated: false, reason: 'Missing or invalid Bearer token' };
+        case "bearer": {
+          const authHeader = req.headers["authorization"];
+          if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return {
+              authenticated: false,
+              reason: "Missing or invalid Bearer token",
+            };
           }
           const token = authHeader.substring(7);
           if (token !== this.authConfig.token) {
-            return { authenticated: false, reason: 'Invalid Bearer token' };
+            return { authenticated: false, reason: "Invalid Bearer token" };
           }
           return { authenticated: true };
         }
 
-        case 'api-key': {
+        case "api-key": {
           const apiKey =
-            req.headers['x-api-key'] ||
-            req.headers['authorization'];
+            req.headers["x-api-key"] || req.headers["authorization"];
           if (!apiKey) {
-            return { authenticated: false, reason: 'Missing API key' };
+            return { authenticated: false, reason: "Missing API key" };
           }
-          const keyValue = apiKey.startsWith('Bearer ') ? apiKey.substring(7) : apiKey;
+          const keyValue = apiKey.startsWith("Bearer ")
+            ? apiKey.substring(7)
+            : apiKey;
           if (keyValue !== this.authConfig.apiKey) {
-            return { authenticated: false, reason: 'Invalid API key' };
+            return { authenticated: false, reason: "Invalid API key" };
           }
           return { authenticated: true };
         }
 
-        case 'basic': {
-          const authHeader = req.headers['authorization'];
-          if (!authHeader || !authHeader.startsWith('Basic ')) {
-            return { authenticated: false, reason: 'Missing Basic auth credentials' };
+        case "basic": {
+          const authHeader = req.headers["authorization"];
+          if (!authHeader || !authHeader.startsWith("Basic ")) {
+            return {
+              authenticated: false,
+              reason: "Missing Basic auth credentials",
+            };
           }
-          const decoded = Buffer.from(authHeader.substring(6), 'base64').toString();
-          const [username, password] = decoded.split(':');
+          const decoded = Buffer.from(
+            authHeader.substring(6),
+            "base64",
+          ).toString();
+          const [username, password] = decoded.split(":");
           if (
             username !== this.authConfig.username ||
             password !== this.authConfig.password
           ) {
-            return { authenticated: false, reason: 'Invalid credentials' };
+            return { authenticated: false, reason: "Invalid credentials" };
           }
           return { authenticated: true };
         }
 
-        case 'custom': {
+        case "custom": {
           const isValid = this.authConfig.validate(req);
           if (!isValid) {
-            return { authenticated: false, reason: 'Custom authentication failed' };
+            return {
+              authenticated: false,
+              reason: "Custom authentication failed",
+            };
           }
           return { authenticated: true };
         }
 
         default:
-          return { authenticated: false, reason: `Unknown auth type: ${this.authConfig.type}` };
+          return {
+            authenticated: false,
+            reason: `Unknown auth type: ${this.authConfig.type}`,
+          };
       }
     } catch (error) {
-      logger.error('[MCPHttpServer] Authentication error:', error);
-      return { authenticated: false, reason: 'Authentication error' };
+      logger.error("[MCPHttpServer] Authentication error:", error);
+      return { authenticated: false, reason: "Authentication error" };
     }
   }
 
@@ -919,7 +946,7 @@ class MCPHttpServer extends EventEmitter {
    */
   _sendJsonRpcResponse(res, id, result) {
     const response = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
       result,
     };
@@ -927,8 +954,8 @@ class MCPHttpServer extends EventEmitter {
     const body = JSON.stringify(response);
 
     res.writeHead(200, {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body),
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(body),
     });
     res.end(body);
   }
@@ -945,7 +972,7 @@ class MCPHttpServer extends EventEmitter {
    */
   _sendJsonRpcError(res, id, code, message, data) {
     const response = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
       error: {
         code,
@@ -957,8 +984,8 @@ class MCPHttpServer extends EventEmitter {
     const body = JSON.stringify(response);
 
     res.writeHead(200, {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body),
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(body),
     });
     res.end(body);
   }
@@ -980,8 +1007,8 @@ class MCPHttpServer extends EventEmitter {
     });
 
     res.writeHead(statusCode, {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body),
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(body),
     });
     res.end(body);
   }
@@ -993,13 +1020,13 @@ class MCPHttpServer extends EventEmitter {
    * @param {http.ServerResponse} res - HTTP response
    */
   _setCorsHeaders(res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader(
-      'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, X-Api-Key, X-Client-Id'
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Api-Key, X-Client-Id",
     );
-    res.setHeader('Access-Control-Max-Age', '86400');
+    res.setHeader("Access-Control-Max-Age", "86400");
   }
 
   // ===================================
@@ -1015,7 +1042,7 @@ class MCPHttpServer extends EventEmitter {
    */
   _handleHealthCheck(req, res) {
     const health = {
-      status: this.state === ServerState.RUNNING ? 'healthy' : 'unhealthy',
+      status: this.state === ServerState.RUNNING ? "healthy" : "unhealthy",
       server: {
         name: this.name,
         version: this.version,
@@ -1039,8 +1066,8 @@ class MCPHttpServer extends EventEmitter {
 
     const body = JSON.stringify(health);
     res.writeHead(200, {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(body),
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(body),
     });
     res.end(body);
   }
@@ -1086,10 +1113,10 @@ class MCPHttpServer extends EventEmitter {
     // Convert to MCP content format
     let textContent;
 
-    if (typeof result === 'string') {
+    if (typeof result === "string") {
       textContent = result;
     } else if (result === null || result === undefined) {
-      textContent = 'null';
+      textContent = "null";
     } else {
       try {
         textContent = JSON.stringify(result, null, 2);
@@ -1101,7 +1128,7 @@ class MCPHttpServer extends EventEmitter {
     return {
       content: [
         {
-          type: 'text',
+          type: "text",
           text: textContent,
         },
       ],
@@ -1143,7 +1170,7 @@ class MCPHttpServer extends EventEmitter {
           return result;
         }
       } catch (error) {
-        logger.error('[MCPHttpServer] Middleware error:', error);
+        logger.error("[MCPHttpServer] Middleware error:", error);
         return { blocked: true, reason: error.message };
       }
     }

@@ -395,7 +395,7 @@ class NativeMessagingHTTPServer {
       let body = "";
 
       req.on("data", (chunk) => {
-        body += chunk.toString();
+        body += chunk.toString("utf8");
       });
 
       req.on("end", () => {

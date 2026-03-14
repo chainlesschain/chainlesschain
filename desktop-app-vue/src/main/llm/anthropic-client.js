@@ -253,7 +253,7 @@ class AnthropicClient extends EventEmitter {
         };
 
         response.data.on("data", (chunk) => {
-          buffer += chunk.toString();
+          buffer += chunk.toString("utf8");
           processBuffer();
         });
 

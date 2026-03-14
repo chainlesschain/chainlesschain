@@ -42,25 +42,33 @@ describe("E2E: Agent v0.40.3 Enhancements", () => {
 
   // ─── Source code validations ──────────────────────────────
 
-  describe("agent-repl source validations", () => {
+  describe("agent source validations (agent-core + agent-repl)", () => {
+    const agentCorePath = join(cliRoot, "src", "lib", "agent-core.js");
     const agentReplPath = join(cliRoot, "src", "repl", "agent-repl.js");
-    let content;
+    let coreContent;
+    let replContent;
 
-    it("should be readable", () => {
-      content = readFileSync(agentReplPath, "utf8");
-      expect(content.length).toBeGreaterThan(1000);
+    it("agent-core should be readable", () => {
+      coreContent = readFileSync(agentCorePath, "utf8");
+      expect(coreContent.length).toBeGreaterThan(1000);
     });
 
-    it("should define run_code tool with python/node/bash", () => {
-      content = content || readFileSync(agentReplPath, "utf8");
-      expect(content).toContain('name: "run_code"');
-      expect(content).toContain('"python"');
-      expect(content).toContain('"node"');
-      expect(content).toContain('"bash"');
+    it("agent-repl should be readable and import from agent-core", () => {
+      replContent = readFileSync(agentReplPath, "utf8");
+      expect(replContent.length).toBeGreaterThan(500);
+      expect(replContent).toContain('from "../lib/agent-core.js"');
     });
 
-    it("should have 9 tools total (8 original + run_code)", () => {
-      content = content || readFileSync(agentReplPath, "utf8");
+    it("should define run_code tool with python/node/bash in agent-core", () => {
+      coreContent = coreContent || readFileSync(agentCorePath, "utf8");
+      expect(coreContent).toContain('"run_code"');
+      expect(coreContent).toContain('"python"');
+      expect(coreContent).toContain('"node"');
+      expect(coreContent).toContain('"bash"');
+    });
+
+    it("should have 9 tools total (8 original + run_code) in agent-core", () => {
+      coreContent = coreContent || readFileSync(agentCorePath, "utf8");
       const toolNames = [
         "read_file",
         "write_file",
@@ -73,37 +81,37 @@ describe("E2E: Agent v0.40.3 Enhancements", () => {
         "run_code",
       ];
       for (const name of toolNames) {
-        expect(content).toContain(`name: "${name}"`);
+        expect(coreContent).toContain(`"${name}"`);
       }
     });
 
-    it("should import os module for tmpdir", () => {
-      content = content || readFileSync(agentReplPath, "utf8");
-      expect(content).toContain('import os from "os"');
+    it("agent-core should import os module", () => {
+      coreContent = coreContent || readFileSync(agentCorePath, "utf8");
+      expect(coreContent).toContain('import os from "os"');
     });
 
-    it("should use qwen2.5:7b as default model", () => {
-      content = content || readFileSync(agentReplPath, "utf8");
-      expect(content).toContain('options.model || "qwen2.5:7b"');
+    it("should use qwen2.5:7b as default model in agent-repl", () => {
+      replContent = replContent || readFileSync(agentReplPath, "utf8");
+      expect(replContent).toContain('options.model || "qwen2.5:7b"');
     });
 
-    it("should have MAX_ITERATIONS = 15", () => {
-      content = content || readFileSync(agentReplPath, "utf8");
-      expect(content).toContain("MAX_ITERATIONS = 15");
+    it("should have MAX_ITERATIONS = 15 in agent-core", () => {
+      coreContent = coreContent || readFileSync(agentCorePath, "utf8");
+      expect(coreContent).toContain("MAX_ITERATIONS = 15");
     });
 
-    it("should have enhanced system prompt with run_code guidance", () => {
-      content = content || readFileSync(agentReplPath, "utf8");
-      expect(content).toContain("run_code tool");
-      expect(content).toContain("capable coding agent");
-      expect(content).toContain(
+    it("should have enhanced system prompt with run_code guidance in agent-core", () => {
+      coreContent = coreContent || readFileSync(agentCorePath, "utf8");
+      expect(coreContent).toContain("run_code tool");
+      expect(coreContent).toContain("capable coding agent");
+      expect(coreContent).toContain(
         "Proactively write and execute code using run_code tool",
       );
     });
 
-    it("should have max_tokens: 8192 for Anthropic", () => {
-      content = content || readFileSync(agentReplPath, "utf8");
-      expect(content).toContain("max_tokens: 8192");
+    it("should have max_tokens: 8192 for Anthropic in agent-core", () => {
+      coreContent = coreContent || readFileSync(agentCorePath, "utf8");
+      expect(coreContent).toContain("max_tokens: 8192");
     });
   });
 
@@ -163,6 +171,57 @@ describe("E2E: Agent v0.40.3 Enhancements", () => {
       } finally {
         if (existsSync(tmpFile)) unlinkSync(tmpFile);
       }
+    });
+  });
+
+  // ─── agent-core export validations ─────────────────────────
+
+  describe("agent-core exports", () => {
+    it("classifyError is importable and callable from agent-core.js", async () => {
+      const { classifyError } = await import("../../src/lib/agent-core.js");
+      expect(typeof classifyError).toBe("function");
+
+      const result = classifyError(
+        "ModuleNotFoundError: No module named 'foo'",
+        "",
+        1,
+        "python",
+      );
+      expect(result.errorType).toBe("import_error");
+      expect(result.hint).toContain("foo");
+    });
+
+    it("isValidPackageName is importable and callable", async () => {
+      const { isValidPackageName } =
+        await import("../../src/lib/agent-core.js");
+      expect(typeof isValidPackageName).toBe("function");
+
+      expect(isValidPackageName("numpy")).toBe(true);
+      expect(isValidPackageName("foo; rm -rf /")).toBe(false);
+    });
+
+    it("getEnvironmentInfo() returns expected fields", async () => {
+      const { getEnvironmentInfo } =
+        await import("../../src/lib/agent-core.js");
+      const info = getEnvironmentInfo();
+      expect(info).toHaveProperty("os");
+      expect(info).toHaveProperty("arch");
+      expect(info).toHaveProperty("python");
+      expect(info).toHaveProperty("node");
+      expect(info).toHaveProperty("git");
+      expect(info.os).toBe(process.platform);
+      expect(info.arch).toBe(process.arch);
+    });
+
+    it("agent-core source includes auto-install and agent-scripts references", () => {
+      const agentCorePath = join(cliRoot, "src", "lib", "agent-core.js");
+      const content = readFileSync(agentCorePath, "utf8");
+      expect(content).toContain("auto-install");
+      expect(content).toContain("agent-scripts");
+      expect(content).toContain("isValidPackageName");
+      expect(content).toContain("classifyError");
+      expect(content).toContain("getEnvironmentInfo");
+      expect(content).toContain("getCachedPython");
     });
   });
 

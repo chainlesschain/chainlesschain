@@ -270,7 +270,7 @@ export class ChainlessChainWSServer extends EventEmitter {
         await this._handleSessionCreate(id, ws, message);
         break;
       case "session-resume":
-        this._handleSessionResume(id, ws, message);
+        await this._handleSessionResume(id, ws, message);
         break;
       case "session-message":
         this._handleSessionMessage(id, ws, message);
@@ -557,7 +557,7 @@ export class ChainlessChainWSServer extends EventEmitter {
   }
 
   /** @private */
-  _handleSessionResume(id, ws, message) {
+  async _handleSessionResume(id, ws, message) {
     if (!this.sessionManager) {
       this._send(ws, {
         id,
@@ -579,6 +579,34 @@ export class ChainlessChainWSServer extends EventEmitter {
         message: `Session not found: ${sessionId}`,
       });
       return;
+    }
+
+    // Rebuild interaction adapter and handler for the resumed session
+    if (!this.sessionHandlers.has(sessionId)) {
+      try {
+        const { WebSocketInteractionAdapter } =
+          await import("./interaction-adapter.js");
+        session.interaction = new WebSocketInteractionAdapter(ws, sessionId);
+
+        let handler;
+        if (session.type === "chat") {
+          const { WSChatHandler } = await import("./ws-chat-handler.js");
+          handler = new WSChatHandler({
+            session,
+            interaction: session.interaction,
+          });
+        } else {
+          const { WSAgentHandler } = await import("./ws-agent-handler.js");
+          handler = new WSAgentHandler({
+            session,
+            interaction: session.interaction,
+            db: this.sessionManager.db,
+          });
+        }
+        this.sessionHandlers.set(sessionId, handler);
+      } catch (_err) {
+        // Handler creation failed — session resumed without handler
+      }
     }
 
     // Filter out system messages for history

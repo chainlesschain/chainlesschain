@@ -176,7 +176,7 @@ chainlesschain llm switch <name>        # Switch active provider
 
 ### `chainlesschain agent` (alias: `a`)
 
-Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, and invoke 138 built-in skills.
+Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, execute code (Python/Node.js/Bash with auto pip-install), and invoke 138 built-in skills.
 
 ```bash
 chainlesschain agent                    # Default: Ollama qwen2.5:7b
@@ -908,7 +908,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (2432 tests across 109 files)
+npm test                # Run all tests (2503 tests across 113 files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -926,7 +926,7 @@ npm run test:e2e        # End-to-end tests
 | Core packages (external) | —       | 118      | All passing     |
 | Unit — WS sessions       | 9       | 156      | All passing     |
 | Integration — WS session | 1       | 12       | All passing     |
-| **CLI Total**            | **109** | **2432** | **All passing** |
+| **CLI Total**            | **113** | **2503** | **All passing** |
 
 ## License
 

@@ -374,62 +374,37 @@ console.log("done");
   });
 });
 
-describe("agent-repl upgraded execution limits", () => {
-  it("MAX_ITERATIONS should be 15", async () => {
-    // Verify by reading the source file
-    const agentReplPath = join(
-      __dirname,
-      "..",
-      "..",
-      "src",
-      "repl",
-      "agent-repl.js",
-    );
-    const content = readFileSync(agentReplPath, "utf8");
+describe("agent-core execution limits (used by agent-repl)", () => {
+  const agentCorePath = join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "lib",
+    "agent-core.js",
+  );
+
+  it("MAX_ITERATIONS should be 15", () => {
+    const content = readFileSync(agentCorePath, "utf8");
     expect(content).toContain("MAX_ITERATIONS = 15");
   });
 
-  it("run_shell timeout should be 60000ms", async () => {
-    const agentReplPath = join(
-      __dirname,
-      "..",
-      "..",
-      "src",
-      "repl",
-      "agent-repl.js",
-    );
-    const content = readFileSync(agentReplPath, "utf8");
-    // The run_shell case should have timeout: 60000
+  it("run_shell timeout should be 60000ms", () => {
+    const content = readFileSync(agentCorePath, "utf8");
     expect(content).toMatch(/case "run_shell"[\s\S]*?timeout:\s*60000/);
   });
 
-  it("run_shell output truncation should be 30000 chars", async () => {
-    const agentReplPath = join(
-      __dirname,
-      "..",
-      "..",
-      "src",
-      "repl",
-      "agent-repl.js",
-    );
-    const content = readFileSync(agentReplPath, "utf8");
+  it("run_shell output truncation should be 30000 chars", () => {
+    const content = readFileSync(agentCorePath, "utf8");
     expect(content).toMatch(/case "run_shell"[\s\S]*?substring\(0,\s*30000\)/);
   });
 
-  it("Anthropic max_tokens should be 8192", async () => {
-    const agentReplPath = join(
-      __dirname,
-      "..",
-      "..",
-      "src",
-      "repl",
-      "agent-repl.js",
-    );
-    const content = readFileSync(agentReplPath, "utf8");
+  it("Anthropic max_tokens should be 8192", () => {
+    const content = readFileSync(agentCorePath, "utf8");
     expect(content).toContain("max_tokens: 8192");
   });
 
-  it("default ollama model should be qwen2.5:7b", async () => {
+  it("default ollama model should be qwen2.5:7b", () => {
     const agentReplPath = join(
       __dirname,
       "..",
@@ -443,51 +418,41 @@ describe("agent-repl upgraded execution limits", () => {
   });
 });
 
-describe("agent-repl TOOLS includes run_code", () => {
-  it("run_code tool is defined in TOOLS array", async () => {
-    const agentReplPath = join(
-      __dirname,
-      "..",
-      "..",
-      "src",
-      "repl",
-      "agent-repl.js",
-    );
-    const content = readFileSync(agentReplPath, "utf8");
+describe("agent-core TOOLS includes run_code (used by agent-repl)", () => {
+  const agentCorePath = join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "lib",
+    "agent-core.js",
+  );
+
+  it("run_code tool is defined in AGENT_TOOLS array", () => {
+    const content = readFileSync(agentCorePath, "utf8");
     expect(content).toContain('"run_code"');
     expect(content).toContain('"python"');
     expect(content).toContain('"node"');
     expect(content).toContain('"bash"');
   });
 
-  it("system prompt includes proactive coding guidance", async () => {
-    const agentReplPath = join(
-      __dirname,
-      "..",
-      "..",
-      "src",
-      "repl",
-      "agent-repl.js",
-    );
-    const content = readFileSync(agentReplPath, "utf8");
+  it("system prompt includes proactive coding guidance", () => {
+    const content = readFileSync(agentCorePath, "utf8");
     expect(content).toContain("run_code tool");
     expect(content).toContain("capable coding agent");
   });
 
-  it("formatToolArgs handles run_code", async () => {
-    const agentReplPath = join(
-      __dirname,
-      "..",
-      "..",
-      "src",
-      "repl",
-      "agent-repl.js",
-    );
-    const content = readFileSync(agentReplPath, "utf8");
+  it("formatToolArgs handles run_code", () => {
+    const content = readFileSync(agentCorePath, "utf8");
     expect(content).toContain('case "run_code"');
   });
 
-  it("plan mode treats run_code as high impact", async () => {
+  it("plan mode treats run_code as high impact", () => {
+    const content = readFileSync(agentCorePath, "utf8");
+    expect(content).toContain('name === "run_code"');
+  });
+
+  it("agent-repl imports from agent-core (deduplication)", () => {
     const agentReplPath = join(
       __dirname,
       "..",
@@ -497,7 +462,50 @@ describe("agent-repl TOOLS includes run_code", () => {
       "agent-repl.js",
     );
     const content = readFileSync(agentReplPath, "utf8");
-    expect(content).toContain('name === "run_code"');
+    expect(content).toContain('from "../lib/agent-core.js"');
+    expect(content).toContain("AGENT_TOOLS");
+    expect(content).toContain("formatToolArgs");
+    expect(content).toContain("coreExecuteTool");
+    expect(content).toContain("coreAgentLoop");
+  });
+});
+
+describe("agent-repl thin wrapper contracts", () => {
+  const agentReplPath = join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "repl",
+    "agent-repl.js",
+  );
+
+  it("executeTool wrapper passes hookDb and cwd to coreExecuteTool", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    // executeTool should delegate to coreExecuteTool with hookDb and cwd
+    expect(content).toContain(
+      "coreExecuteTool(name, args, { hookDb: _hookDb, cwd: process.cwd() })",
+    );
+  });
+
+  it("agentLoop wrapper iterates coreAgentLoop and handles tool-executing events", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    // agentLoop should call coreAgentLoop and handle events
+    expect(content).toContain("coreAgentLoop(messages, options)");
+    expect(content).toContain('event.type === "tool-executing"');
+  });
+
+  it("agentLoop wrapper handles tool-result events (error and success)", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    expect(content).toContain('event.type === "tool-result"');
+    expect(content).toContain("event.error || event.result?.error");
+    expect(content).toContain("event.result?.success");
+  });
+
+  it("agentLoop wrapper returns event.content on response-complete", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    expect(content).toContain('event.type === "response-complete"');
+    expect(content).toContain("return event.content");
   });
 });
 

@@ -167,7 +167,7 @@ export function tokenizeCommand(input) {
 
 ---
 
-## ��、安全机制
+## 四、安全机制
 
 ### 4.1 网络隔离
 
@@ -199,7 +199,7 @@ spawn(node, [bin, "note", "add", "hello; rm -rf /"])
 - 参数直接传入 `spawn` 的 `args` 数组
 - 分号、管道、重定向等 shell 元字符作为普通字符传递
 
-### 4.4 阻止的���令
+### 4.4 阻止的命令
 
 | 命令     | 原因                            | Phase 2 变更 |
 | -------- | ------------------------------- | ------------ |
@@ -443,7 +443,7 @@ WSSessionManager {
 ```
 
 每个 session 包含：
-- `messages[]` — 完整对��历史
+- `messages[]` — 完整对话历史
 - `contextEngine` — CLIContextEngineering 实例（per-session 隔离）
 - `permanentMemory` — CLIPermanentMemory 实例
 - `planManager` — PlanModeManager 新实例（非单例）
@@ -491,7 +491,7 @@ CLIInteractivePlanner extends EventEmitter {
   async startPlanSession(userRequest, projectContext)   // 生成计划
   async handleUserResponse(sessionId, response)         // confirm/adjust/regenerate/cancel
   recommendSkills(userRequest, taskPlan)                // 技能推荐
-  evaluateQuality(session)                              // ��量评分
+  evaluateQuality(session)                              // 质量评分
   formatPlanForUser(session)                            // 格式化展示
 }
 ```
@@ -538,7 +538,7 @@ CLIInteractivePlanner extends EventEmitter {
 
 `session-create` 支持 `projectRoot` 参数，创建会话时自动加载项目上下文：
 
-1. `{projectRoot}/.chainlesschain/rules.md` → ���入 system prompt
+1. `{projectRoot}/.chainlesschain/rules.md` → 注入 system prompt
 2. `{projectRoot}/.chainlesschain/skills/` → workspace 层 skills
 3. `{projectRoot}/.chainlesschain/config.json` → 项目配置
 
@@ -567,8 +567,10 @@ Options:
   --max-connections <n>    最大连接数 (默认: 10)
   --timeout <ms>           命令超时毫秒 (默认: 30000)
   --allow-remote           允许非本地连接 (需配合 --token)
-  --project <path>         默认项目根目录（会话创建时的 fallback）  ← 新增
+  --project <path>         默认项目根目录（会话创建时的 fallback）  ← Phase 2 新增
 ```
+
+> **v0.41.1 更新**: `serve.js` 已调用 `bootstrap()` 初始化 DB 并自动创建 `WSSessionManager` 注入到服务器。会话功能现已默认启用。
 
 ### 10.7 测试覆盖更新
 
@@ -595,6 +597,9 @@ Options:
 2. **InteractionAdapter 抽象**：统一终端和 WebSocket 两种交互模式。SlotFiller/InteractivePlanner 通过抽象层提问，不关心底层传输方式
 3. **懒加载 handler 模块**：`_handleSessionCreate` 使用 `await import()` 动态加载 ws-agent-handler.js / ws-chat-handler.js / interaction-adapter.js，避免 ws-server.js 的静态依赖树膨胀和循环依赖
 4. **async _handleMessage**：会话创建涉及 `await import()`，因此 `_handleMessage` 改为 async。非会话消息（ping/execute/stream 等）不受影响
-5. **Fire-and-forget 消息处理**：`session-message` 触发 agent loop 后不阻塞 `_handleMessage`，通过 interaction adapter 异步推���事件流��客户端
+5. **Fire-and-forget 消息处理**：`session-message` 触发 agent loop 后不阻塞 `_handleMessage`，通过 interaction adapter 异步推送事件流到客户端
 6. **从 agent-repl.js 提取 agent-core.js**：将工具定义、系统提示词、工具执行、LLM 调用、agent loop 等核心逻辑提取为传输无关的模块。REPL 和 WebSocket handler 都消费同一套逻辑
 7. **SlotFiller 通过 interaction adapter 提问**：终端模式用 readline，WebSocket 模式发 `question` 消息并等待 `session-answer` 回复，统一提问体验
+8. **SlotFiller 集成到 agentLoop**（v0.41.1）：在 agentLoop 调用 LLM 前增加 slot-filling 阶段。`detectIntent()` 使用正则匹配 9 种意图类型，`_extractEntities()` 提取实体。终端 REPL、WebSocket handler 均传入 `slotFiller` + `interaction` 选项
+9. **serve.js 接入 WSSessionManager**（v0.41.1）：调用 `bootstrap()` 获取 DB 实例，创建 `WSSessionManager({ db, defaultProjectRoot })` 注入到服务器构造函数。会话功能默认启用
+10. **session-resume 重建 handler**（v0.41.1）：`_handleSessionResume` 现在在恢复会话后自动创建 `WebSocketInteractionAdapter` 和 `WSAgentHandler`/`WSChatHandler`，确保后续 `session-message` 可正常处理

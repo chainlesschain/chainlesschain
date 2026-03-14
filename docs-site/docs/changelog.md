@@ -5,6 +5,49 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.1.6] - 2026-03-15
+
+### Added
+
+- **Agent 智能增强**: `run_code` 工具新增 auto pip-install、脚本持久化、错误分类、环境检测
+  - `classifyError()`: 5 种错误类型 (import_error/syntax_error/timeout/permission_error/runtime_error)，每种附带 `hint` 字段
+  - `isValidPackageName()`: 正则验证包名安全性，拒绝 Shell 元字符（防注入）
+  - `getEnvironmentInfo()`: 检测 OS/Python/Node.js/Git 环境信息，缓存后注入 System Prompt
+  - `getCachedPython()`: 缓存 Python 解释器检测结果，复用 cli-anything-bridge 的检测逻辑
+  - 脚本默认保存到 `.chainlesschain/agent-scripts/`（`persist: false` 时使用临时文件自动清理）
+  - Python 执行遇到 `ModuleNotFoundError` 时自动 `pip install` 并重试
+- **agent-core 提取去重**: 从 agent-repl.js 提取 AGENT_TOOLS、executeTool、chatWithTools、agentLoop 到 agent-core.js
+  - agent-repl.js 变为薄包装层，仅添加 REPL 显示逻辑
+  - ws-agent-handler.js 复用同一 agentLoop 异步生成器
+- **Desktop agent 模式**: conversation:agent-chat IPC handler + FunctionCaller 9 工具 + UI 侧边栏切换
+- **测试覆盖增强**: 新增 ~26 个测试
+  - `agent-core-pip-install.test.js` (4 tests): pip auto-install 流程
+  - `agent-core-python-cache.test.js` (3 tests): Python 缓存和环境检测
+  - `agent-core-integration.test.js` (3 tests): SlotFiller + agentLoop 集成
+  - agent-core.test.js 扩展 (6 tests): chatWithTools provider + agentLoop run_code
+  - agent-repl.test.js 扩展 (4 tests): 薄包装层契约测试
+  - ws-session-workflow.test.js 扩展 (2 tests): run_code 工具和事件转发
+  - agent-enhancements.test.js 扩展 (4 tests): E2E 导出验证
+  - CLI 总计 2503 测试 (113 文件)，全部通过
+
+## [5.0.1.5] - 2026-03-15
+
+### Added
+
+- **SlotFiller 集成到 Agent 主循环**: 在 agentLoop() 调用 LLM 前自动检测用户意图中的缺失参数
+  - `CLISlotFiller.detectIntent(userMessage)`: 正则匹配 9 种意图类型 (create_file/deploy/refactor/test/analyze/search/install/generate/edit_file)
+  - `CLISlotFiller._extractEntities()`: 自动提取文件路径、文件类型、平台、包名等实体
+  - agent-core.js `agentLoop()` 新增 `slotFiller` + `interaction` 选项，新增 `slot-filling` yield 事件
+  - 终端 Agent REPL (agent-repl.js) 和 WebSocket Agent Handler (ws-agent-handler.js) 均集成 SlotFiller
+- **serve 命令接入 WSSessionManager**: `chainlesschain serve` 现在自动启用有状态会话支持
+  - 调用 `bootstrap()` 初始化 DB，创建 `WSSessionManager` 并注入到 `ChainlessChainWSServer`
+  - 启动信息显示 "Sessions: enabled" 和项目路径
+  - 新增 session:create / session:close 事件日志
+
+### Fixed
+
+- **session-resume 后无法发送消息**: 修复 `_handleSessionResume` 中恢复会话后未创建 handler 的问题，现在 resume 会重建 WebSocketInteractionAdapter 和 WSAgentHandler/WSChatHandler
+
 ## [5.0.1.4] - 2026-03-15
 
 ### Added
@@ -24,12 +67,12 @@
 - **Agent/Chat 核心提取**: 从 REPL 模块提取可复用的业务逻辑
   - `agent-core.js`: 异步生成器 `agentLoop`，yield 工具执行/响应事件
   - `chat-core.js`: 异步生成器 `chatStream`，yield 流式 token 事件
-- **SlotFiller (��数槽填充)**: 从桌面版移植，适配 CLI
+- **SlotFiller (参数槽填充)**: 从桌面版移植，适配 CLI
   - 自动检测缺失参数、规则推断、LLM 推断、交互式提问
   - 支持 6 种意图类型的必需参数定义
   - 通过 InteractionAdapter 实现终端/WebSocket 双模式交互
 - **InteractivePlanner (交互式规划)**: 从桌面版移植，适配 CLI
-  - LLM ���动的计划生成 + 技能推荐
+  - LLM 驱动的计划生成 + 技能推荐
   - 用户确认/调整/重新生成/取消工作流
   - 与 PlanModeManager 深度集成
 - **新增 204 个 WebSocket 会话相关测试**，CLI 总计 4500+ 测试

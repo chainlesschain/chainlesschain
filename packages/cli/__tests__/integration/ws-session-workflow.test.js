@@ -204,11 +204,11 @@ describe("Integration: WebSocket Session Workflow", () => {
 
   // ─── session-resume ────────────────────────────────────────────────
 
-  it("session-resume loads from memory", () => {
+  it("session-resume loads from memory", async () => {
     const sm = mockSessionManager();
     setupServer(sm);
 
-    server._handleMessage("client-1", ws, {
+    await server._handleMessage("client-1", ws, {
       id: "req-resume",
       type: "session-resume",
       sessionId: "test-session-1",
@@ -371,5 +371,222 @@ describe("Integration: WebSocket Session Workflow", () => {
     const resp = lastSent(ws);
     expect(resp.type).toBe("error");
     expect(resp.code).toBe("NO_SESSION_SUPPORT");
+  });
+
+  // ─── session-resume creates handler ──────────────────────────────
+
+  it("session-resume creates handler for resumed session", async () => {
+    const sm = mockSessionManager({
+      resumeSession: vi.fn().mockReturnValue({
+        id: "resumed-session-1",
+        type: "agent",
+        messages: [
+          { role: "system", content: "System prompt" },
+          { role: "user", content: "Previous message" },
+          { role: "assistant", content: "Previous reply" },
+        ],
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        projectRoot: "/tmp/project",
+        interaction: null,
+      }),
+    });
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-resume",
+      type: "session-resume",
+      sessionId: "resumed-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("session-resumed");
+    expect(resp.sessionId).toBe("resumed-session-1");
+    // System messages should be filtered from history
+    expect(resp.history.some((m) => m.role === "system")).toBe(false);
+    expect(resp.history.length).toBe(2);
+    // Handler should have been created for the resumed session
+    expect(server.sessionHandlers.has("resumed-session-1")).toBe(true);
+  });
+
+  // ─── agent session handles run_code tool call ─────────────────────
+
+  it("agent session routes run_code tool call via session-message", async () => {
+    const sm = mockSessionManager();
+    setupServer(sm);
+
+    // Create a session
+    await server._handleMessage("client-1", ws, {
+      id: "req-create-rc",
+      type: "session-create",
+      sessionType: "agent",
+    });
+
+    // Override handler with mock that simulates run_code
+    const mockHandler = {
+      handleMessage: vi.fn().mockImplementation(async (content, reqId) => {
+        // Simulate handler sending back tool events
+        const response = JSON.stringify({
+          id: reqId,
+          type: "session-event",
+          sessionId: "test-session-1",
+          event: "tool-executing",
+          tool: "run_code",
+          args: { language: "python", code: "print('hi')" },
+        });
+        ws.send(response);
+      }),
+      handleSlashCommand: vi.fn(),
+    };
+    server.sessionHandlers.set("test-session-1", mockHandler);
+
+    // Send message that should trigger run_code
+    server._handleMessage("client-1", ws, {
+      id: "req-rc",
+      type: "session-message",
+      sessionId: "test-session-1",
+      content: "run some python code",
+    });
+
+    expect(mockHandler.handleMessage).toHaveBeenCalledWith(
+      "run some python code",
+      "req-rc",
+    );
+
+    // Verify the handler sent a tool-executing event
+    const sentCalls = ws.send.mock.calls;
+    const toolEvent = sentCalls
+      .map((c) => JSON.parse(c[0]))
+      .find((m) => m.event === "tool-executing");
+    expect(toolEvent).toBeDefined();
+    expect(toolEvent.tool).toBe("run_code");
+  });
+
+  // ─── agent session forwards tool-executing events ────────────────
+
+  it("agent session forwards tool-executing events to WebSocket client", async () => {
+    const sm = mockSessionManager();
+    setupServer(sm);
+
+    // Create session
+    await server._handleMessage("client-1", ws, {
+      id: "req-create-te",
+      type: "session-create",
+      sessionType: "agent",
+    });
+
+    // Override handler to simulate tool-executing and tool-result
+    const mockHandler = {
+      handleMessage: vi.fn().mockImplementation(async (content, reqId) => {
+        // Simulate forwarding multiple events
+        ws.send(
+          JSON.stringify({
+            id: reqId,
+            type: "session-event",
+            sessionId: "test-session-1",
+            event: "tool-executing",
+            tool: "read_file",
+            args: { path: "README.md" },
+          }),
+        );
+        ws.send(
+          JSON.stringify({
+            id: reqId,
+            type: "session-event",
+            sessionId: "test-session-1",
+            event: "tool-result",
+            tool: "read_file",
+            result: { content: "# Hello" },
+          }),
+        );
+        ws.send(
+          JSON.stringify({
+            id: reqId,
+            type: "session-event",
+            sessionId: "test-session-1",
+            event: "response-complete",
+            content: "File read successfully.",
+          }),
+        );
+      }),
+      handleSlashCommand: vi.fn(),
+    };
+    server.sessionHandlers.set("test-session-1", mockHandler);
+
+    server._handleMessage("client-1", ws, {
+      id: "req-te",
+      type: "session-message",
+      sessionId: "test-session-1",
+      content: "read README.md",
+    });
+
+    // Parse all sent messages
+    const sentMessages = ws.send.mock.calls.map((c) => JSON.parse(c[0]));
+
+    // Filter to session events (exclude session-created from setup)
+    const sessionEvents = sentMessages.filter(
+      (m) => m.type === "session-event",
+    );
+
+    expect(sessionEvents.length).toBeGreaterThanOrEqual(3);
+
+    const toolExec = sessionEvents.find((e) => e.event === "tool-executing");
+    expect(toolExec).toBeDefined();
+    expect(toolExec.tool).toBe("read_file");
+
+    const toolResult = sessionEvents.find((e) => e.event === "tool-result");
+    expect(toolResult).toBeDefined();
+    expect(toolResult.result.content).toBe("# Hello");
+
+    const responseComplete = sessionEvents.find(
+      (e) => e.event === "response-complete",
+    );
+    expect(responseComplete).toBeDefined();
+    expect(responseComplete.content).toContain("File read successfully");
+  });
+
+  // ─── full create → message → close workflow ────────────────────────
+
+  it("full session lifecycle: create → message → close", async () => {
+    const sm = mockSessionManager();
+    setupServer(sm);
+
+    // Step 1: Create session
+    await server._handleMessage("client-1", ws, {
+      id: "req-create",
+      type: "session-create",
+      sessionType: "agent",
+    });
+    expect(lastSent(ws).type).toBe("session-created");
+
+    // Step 2: Register a mock handler
+    const mockHandler = {
+      handleMessage: vi.fn().mockResolvedValue(undefined),
+      handleSlashCommand: vi.fn(),
+      destroy: vi.fn(),
+    };
+    server.sessionHandlers.set("test-session-1", mockHandler);
+
+    // Step 3: Send message
+    server._handleMessage("client-1", ws, {
+      id: "req-msg",
+      type: "session-message",
+      sessionId: "test-session-1",
+      content: "Hello world",
+    });
+    expect(mockHandler.handleMessage).toHaveBeenCalledWith(
+      "Hello world",
+      "req-msg",
+    );
+
+    // Step 4: Close session
+    server._handleMessage("client-1", ws, {
+      id: "req-close",
+      type: "session-close",
+      sessionId: "test-session-1",
+    });
+    expect(sm.closeSession).toHaveBeenCalledWith("test-session-1");
+    expect(mockHandler.destroy).toHaveBeenCalled();
+    expect(server.sessionHandlers.has("test-session-1")).toBe(false);
   });
 });

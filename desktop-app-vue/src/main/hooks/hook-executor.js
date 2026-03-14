@@ -308,11 +308,11 @@ class HookExecutor extends EventEmitter {
       let stderr = "";
 
       child.stdout.on("data", (chunk) => {
-        stdout += chunk.toString();
+        stdout += chunk.toString("utf8");
       });
 
       child.stderr.on("data", (chunk) => {
-        stderr += chunk.toString();
+        stderr += chunk.toString("utf8");
       });
 
       const abortHandler = () => {

@@ -1401,7 +1401,7 @@ ${description}
         let buffer = "";
 
         res.on("data", (chunk) => {
-          buffer += chunk.toString();
+          buffer += chunk.toString("utf8");
 
           // 按行处理SSE
           const lines = buffer.split("\n");

@@ -228,7 +228,7 @@ class ProjectHTTPClient {
       };
 
       response.data.on("data", (chunk) => {
-        buffer += chunk.toString();
+        buffer += chunk.toString("utf8");
         const lines = buffer.split("\n");
         buffer = lines.pop(); // 保留不完整的行
 
