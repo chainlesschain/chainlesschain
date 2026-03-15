@@ -457,7 +457,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.1 CLI 分发与高级功能 (66-67)",
+          text: "v5.0.1 CLI 分发与高级功能 (66-70)",
           collapsed: false,
           items: [
             {
@@ -467,6 +467,18 @@ export default defineConfig({
             {
               text: "67 CLI高级功能补齐 ⭐",
               link: "/modules/m67-cli-advanced",
+            },
+            {
+              text: "68 CLI-Anything集成 ⭐",
+              link: "/modules/m68-cli-anything",
+            },
+            {
+              text: "69 WebSocket服务器接口 ⭐",
+              link: "/modules/m69-websocket-server",
+            },
+            {
+              text: "70 Agent智能增强系统 ⭐",
+              link: "/modules/m70-agent-intelligence",
             },
           ],
         },
