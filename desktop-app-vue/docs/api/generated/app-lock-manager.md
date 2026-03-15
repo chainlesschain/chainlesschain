@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/app-lock-manager.js`
 
-**Generated**: 2026-03-15T02:03:03.877Z
+**Generated**: 2026-03-15T02:43:22.981Z
 
 ---
 
