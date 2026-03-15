@@ -33,7 +33,7 @@ describe("config-manager", () => {
     const config = loadConfig();
     expect(config.setupCompleted).toBe(false);
     expect(config.edition).toBe("personal");
-    expect(config.llm.provider).toBe("ollama");
+    expect(config.llm.provider).toBe("volcengine");
   });
 
   it("saveConfig writes JSON file", async () => {
