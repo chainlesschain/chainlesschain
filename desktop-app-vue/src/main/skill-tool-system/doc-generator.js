@@ -542,6 +542,9 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
    * @returns {string} 规范化后的内容
    */
   _normalizeDocContent(content) {
+    if (!content) {
+      return "";
+    }
     return (
       content
         // 统一换行符为 LF
@@ -615,11 +618,15 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
 
       return normalizedExisting !== normalizedNew;
     } catch (error) {
-      if (error.code === "ENOENT") {
+      if (error.code === "ENOENT" || error.message?.includes("ENOENT")) {
         // 文件不存在，需要创建
         return true;
       }
-      throw error;
+      // 其他读取错误（权限等），也视为需要更新
+      _deps.logger.warn(
+        `[DocGenerator] 读取文档失败，将重新生成: ${error.message}`,
+      );
+      return true;
     }
   }
 
