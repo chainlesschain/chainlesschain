@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/rpc-manager.js`
 
-**Generated**: 2026-03-15T02:03:03.977Z
+**Generated**: 2026-03-15T02:43:23.084Z
 
 ---
 

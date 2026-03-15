@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/config.js`
 
-**Generated**: 2026-03-15T02:03:03.868Z
+**Generated**: 2026-03-15T02:43:22.973Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/logger-ipc.js`
 
-**Generated**: 2026-03-15T02:03:03.944Z
+**Generated**: 2026-03-15T02:43:23.045Z
 
 ---
 
