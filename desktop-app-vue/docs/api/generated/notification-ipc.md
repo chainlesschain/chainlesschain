@@ -2,7 +2,7 @@
 
 **Source**: `src/main/notification/notification-ipc.js`
 
-**Generated**: 2026-03-14T17:43:59.894Z
+**Generated**: 2026-03-15T02:03:03.925Z
 
 ---
 
