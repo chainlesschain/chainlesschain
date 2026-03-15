@@ -26,7 +26,7 @@ Agent 智能增强系统将 Agent 模式的核心业务逻辑从 `agent-repl.js`
   agent-core.js (核心模块)             ← 新增
     ├── AGENT_TOOLS[] (9 工具定义)
     ├── executeTool()
-    ├── chatWithTools() → 8 LLM providers
+    ├── chatWithTools() → 10 LLM providers
     ├── agentLoop() → 异步生成器
     ├── classifyError()                ← 新增
     ├── isValidPackageName()           ← 新增

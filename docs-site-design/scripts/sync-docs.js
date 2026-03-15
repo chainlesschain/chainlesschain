@@ -121,6 +121,9 @@ const MODULE_FILE_MAP = {
   "65_自进化AI系统.md": "m65-self-evolving-ai.md",
   "66_CLI分发系统.md": "m66-cli-distribution.md",
   "67_CLI高级功能补齐.md": "m67-cli-advanced.md",
+  "68_CLI-Anything集成.md": "m68-cli-anything.md",
+  "69_WebSocket服务器接口.md": "m69-websocket-server.md",
+  "70_Agent智能增强系统.md": "m70-agent-intelligence.md",
 };
 
 /**

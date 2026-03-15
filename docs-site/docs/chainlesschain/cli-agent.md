@@ -36,7 +36,7 @@ agent 命令 → agent.js (Commander) → agent-repl.js
                                       Task重述
                                       Permanent Memory
                                       Compaction Summary
-                          Multi-Provider (8 LLM)
+                          Multi-Provider (10 LLM)
                           Task Model Selector
 ```
 
@@ -245,7 +245,7 @@ agent-core.js （中心模块）
     │                                           ├── classifyError()
     │                                           ├── isValidPackageName()
     │                                           └── getCachedPython()
-    ├── chatWithTools() → 8 LLM providers
+    ├── chatWithTools() → 10 LLM providers
     ├── agentLoop() → 异步生成器 (slot-filling + tool loop)
     └── formatToolArgs()
 ```
