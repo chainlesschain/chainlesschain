@@ -30,8 +30,8 @@
 
 ```bash
 npm install -g chainlesschain
-chainlesschain setup    # 交互式安装向导
-chainlesschain start    # 启动应用
+chainlesschain setup    # 交互式安装向导（或 cc setup / clc setup / clchain setup）
+chainlesschain start    # 启动应用（或 cc start / clc start / clchain start）
 ```
 
 - ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，62 个命令 (含 Phase 7-8 企业功能 + WebSocket Server + Persona)
@@ -1387,6 +1387,8 @@ npm install -g chainlesschain
 chainlesschain setup
 chainlesschain start
 ```
+
+> **提示**: 安装后可使用短命令 `cc`、`clc` 或 `clchain` 代替 `chainlesschain`，例如 `cc setup`、`clchain start`。
 
 CLI 提供交互式设置向导，自动下载二进制文件并配置 LLM 提供商。详见 [CLI 安装指南](./docs/guides/CLI_INSTALLATION_GUIDE.md)。
 

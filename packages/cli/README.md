@@ -9,6 +9,20 @@ npm install -g chainlesschain
 chainlesschain setup
 ```
 
+After installation, three equivalent commands are available:
+
+| Command          | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `chainlesschain` | Full name                                                         |
+| `cc`             | Shortest alias, recommended for daily use                         |
+| `clc`            | ChainLessChain abbreviation, avoids `cc` conflict with C compiler |
+| `clchain`        | chainlesschain abbreviation, easy to recognize                    |
+
+```bash
+cc setup       # equivalent to: chainlesschain setup
+clchain start  # equivalent to: chainlesschain start
+```
+
 ## Requirements
 
 - **Node.js** >= 22.12.0

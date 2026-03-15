@@ -8,7 +8,7 @@ import logger from "../lib/logger.js";
 
 async function selfUpdateCli(targetVersion) {
   if (VERSION === targetVersion) {
-    return; // Already at the target version
+    return true; // Already at the target version
   }
 
   try {
@@ -17,12 +17,31 @@ async function selfUpdateCli(targetVersion) {
       encoding: "utf-8",
       stdio: "pipe",
     });
-    logger.success(`CLI updated to v${targetVersion}`);
+    // Verify the update actually took effect
+    try {
+      const newVersion = execSync("chainlesschain --version", {
+        encoding: "utf-8",
+        stdio: "pipe",
+      }).trim();
+      if (newVersion === targetVersion) {
+        logger.success(`CLI updated to v${targetVersion}`);
+        return true;
+      }
+      logger.warn(
+        `CLI update ran but version is still ${newVersion}. Please run manually:\n  npm install -g chainlesschain@${targetVersion}`,
+      );
+      return false;
+    } catch (_verifyErr) {
+      // Cannot verify, assume success
+      logger.success(`CLI updated to v${targetVersion}`);
+      return true;
+    }
   } catch (_err) {
     // npm global install may fail due to permissions; guide the user
     logger.warn(
       `CLI self-update failed. Please run manually:\n  npm install -g chainlesschain@${targetVersion}`,
     );
+    return false;
   }
 }
 
@@ -85,11 +104,21 @@ export function registerUpdateCommand(program) {
         }
 
         await downloadRelease(result.latestVersion, { force: options.force });
+        logger.success("Application already installed");
 
         // Self-update the CLI npm package
-        await selfUpdateCli(result.latestVersion);
+        const cliUpdated = await selfUpdateCli(result.latestVersion);
 
-        logger.success(`Updated to v${result.latestVersion}`);
+        if (cliUpdated) {
+          logger.success(`Updated to v${result.latestVersion}`);
+        } else {
+          logger.warn(
+            `Application binary updated, but CLI version remains at ${VERSION}.`,
+          );
+          logger.info(
+            `To complete the update, run:\n  npm install -g chainlesschain@${result.latestVersion}`,
+          );
+        }
         logger.info("Restart ChainlessChain to use the new version.");
       } catch (err) {
         if (err.name === "ExitPromptError") {

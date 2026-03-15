@@ -30,8 +30,8 @@ New lightweight npm CLI tool — install and manage ChainlessChain with a single
 
 ```bash
 npm install -g chainlesschain
-chainlesschain setup    # Interactive setup wizard
-chainlesschain start    # Launch application
+chainlesschain setup    # Interactive setup wizard (or: cc setup / clc setup / clchain setup)
+chainlesschain start    # Launch application (or: cc start / clc start / clchain start)
 ```
 
 - ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 62 commands (incl. Phase 7-8 enterprise features + WebSocket Server + Persona)
@@ -2741,6 +2741,8 @@ npm install -g chainlesschain
 chainlesschain setup
 chainlesschain start
 ```
+
+> **Tip**: After installation, you can use the short aliases `cc`, `clc`, or `clchain` instead of `chainlesschain`, e.g. `cc setup`, `clchain start`.
 
 The CLI provides an interactive setup wizard that downloads binaries and configures your LLM provider. See the [CLI Installation Guide](./docs/guides/CLI_INSTALLATION_GUIDE_EN.md).
 

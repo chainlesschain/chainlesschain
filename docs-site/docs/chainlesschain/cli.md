@@ -73,6 +73,8 @@ chainlesschain setup
 chainlesschain start
 ```
 
+> **短命令别名**: 安装后可使用 `cc`、`clc` 或 `clchain` 代替 `chainlesschain`，例如 `cc setup`、`clchain start`。四个命令完全等价。
+
 ## 系统要求
 
 - **Node.js** >= 22.12.0
@@ -86,11 +88,20 @@ chainlesschain start
 npm install -g chainlesschain
 ```
 
+安装后提供 3 个等价命令：
+
+| 命令             | 说明                                  |
+| ---------------- | ------------------------------------- |
+| `chainlesschain` | 完整名称                              |
+| `cc`             | 最短别名，日常使用推荐                |
+| `clc`            | ChainLessChain 缩写，避免与 C 编译器冲突 |
+| `clchain`        | chainlesschain 缩写，较易辨识         |
+
 ### 验证安装
 
 ```bash
-chainlesschain --version
-chainlesschain doctor
+chainlesschain --version   # 或 cc --version / clc --version / clchain --version
+chainlesschain doctor      # 或 cc doctor
 ```
 
 ## 命令参考
@@ -510,7 +521,7 @@ chainlesschain services logs
 
 ## 关键文件
 
-- `packages/cli/bin/chainlesschain.js` — npm bin 入口
+- `packages/cli/bin/chainlesschain.js` — npm bin 入口（`chainlesschain`、`cc`、`clc`、`clchain` 四个命令共享此入口）
 - `packages/cli/src/index.js` — Commander 命令注册（主入口）
 - `packages/cli/src/commands/` — 所有命令实现（61 个命令文件）
 - `packages/cli/src/lib/` — 共享库（68 个模块）
@@ -521,6 +532,6 @@ chainlesschain services logs
 ## 卸载
 
 ```bash
-npm uninstall -g chainlesschain
+npm uninstall -g chainlesschain   # 同时移除 cc、clc、clchain 别名
 rm -rf ~/.chainlesschain
 ```

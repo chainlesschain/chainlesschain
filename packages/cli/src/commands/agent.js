@@ -7,6 +7,7 @@
  */
 
 import { startAgentRepl } from "../repl/agent-repl.js";
+import { loadConfig } from "../lib/config-manager.js";
 
 export function registerAgentCommand(program) {
   program
@@ -15,21 +16,21 @@ export function registerAgentCommand(program) {
     .description(
       "Start an agentic AI session (reads/writes files, runs commands)",
     )
-    .option("--model <model>", "Model name", "qwen2:7b")
+    .option("--model <model>", "Model name")
     .option(
       "--provider <provider>",
       "LLM provider (ollama, openai, volcengine, deepseek, ...)",
-      "ollama",
     )
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option("--session <id>", "Resume a previous agent session")
     .action(async (options) => {
+      const config = loadConfig();
       await startAgentRepl({
-        model: options.model,
-        provider: options.provider,
-        baseUrl: options.baseUrl,
-        apiKey: options.apiKey,
+        model: options.model || config.llm?.model || "qwen2:7b",
+        provider: options.provider || config.llm?.provider || "ollama",
+        baseUrl: options.baseUrl || config.llm?.baseUrl,
+        apiKey: options.apiKey || config.llm?.apiKey,
         sessionId: options.session,
       });
     });
