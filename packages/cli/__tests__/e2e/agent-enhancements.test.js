@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const cliRoot = join(__dirname, "..", "..");
+const pkg = JSON.parse(readFileSync(join(cliRoot, "package.json"), "utf-8"));
 const bin = join(cliRoot, "bin", "chainlesschain.js");
 
 function run(args, options = {}) {
@@ -287,9 +288,9 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
   // ─── version bump ─────────────────────────────────────────
 
   describe("version bump", () => {
-    it("CLI version should be 0.42.0", () => {
+    it("CLI version should match package.json", () => {
       const result = run("--version");
-      expect(result.trim()).toBe("0.42.0");
+      expect(result.trim()).toBe(pkg.version);
     });
   });
 });
