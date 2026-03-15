@@ -7,6 +7,9 @@ const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 
+// Dependency injection for testability (Vitest CJS inline workaround)
+const _deps = { fs, path, logger };
+
 class DocGenerator {
   constructor() {
     // 文档目录路径 - 兼容Electron和Node.js环境
@@ -14,7 +17,7 @@ class DocGenerator {
     try {
       const { app } = require("electron");
       basePath = app.getPath("userData");
-    } catch (error) {
+    } catch (_error) {
       // 非Electron环境，使用项目根目录
       basePath = path.join(process.cwd(), "..");
     }
@@ -30,9 +33,9 @@ class DocGenerator {
   async initialize() {
     try {
       // 创建文档目录
-      await fs.mkdir(this.docsPath, { recursive: true });
-      await fs.mkdir(this.skillsDocsPath, { recursive: true });
-      await fs.mkdir(this.toolsDocsPath, { recursive: true });
+      await _deps.fs.mkdir(this.docsPath, { recursive: true });
+      await _deps.fs.mkdir(this.skillsDocsPath, { recursive: true });
+      await _deps.fs.mkdir(this.toolsDocsPath, { recursive: true });
 
       logger.info("[DocGenerator] 文档目录初始化完成");
     } catch (error) {
@@ -55,7 +58,7 @@ class DocGenerator {
 
       // 只在内容实际变化时才写入（忽略时间戳比较）
       if (await this._shouldUpdateDoc(filePath, markdown)) {
-        await fs.writeFile(filePath, markdown, "utf-8");
+        await _deps.fs.writeFile(filePath, markdown, "utf-8");
         logger.info(`[DocGenerator] 技能文档已生成: ${fileName}`);
       } else {
         logger.info(`[DocGenerator] 技能文档无变化，跳过: ${fileName}`);
@@ -81,7 +84,7 @@ class DocGenerator {
 
       // 只在内容实际变化时才写入（忽略时间戳比较）
       if (await this._shouldUpdateDoc(filePath, markdown)) {
-        await fs.writeFile(filePath, markdown, "utf-8");
+        await _deps.fs.writeFile(filePath, markdown, "utf-8");
         logger.info(`[DocGenerator] 工具文档已生成: ${fileName}`);
       } else {
         logger.info(`[DocGenerator] 工具文档无变化，跳过: ${fileName}`);
@@ -604,7 +607,7 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
    */
   async _shouldUpdateDoc(filePath, newContent) {
     try {
-      const existingContent = await fs.readFile(filePath, "utf-8");
+      const existingContent = await _deps.fs.readFile(filePath, "utf-8");
 
       // 规范化内容进行比较（忽略格式差异）
       const normalizedExisting = this._normalizeDocContent(existingContent);
@@ -628,7 +631,7 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
   async readSkillDoc(skillId) {
     try {
       const filePath = path.join(this.skillsDocsPath, `${skillId}.md`);
-      const content = await fs.readFile(filePath, "utf-8");
+      const content = await _deps.fs.readFile(filePath, "utf-8");
       return content;
     } catch (error) {
       if (error.code === "ENOENT") {
@@ -646,7 +649,7 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
   async readToolDoc(toolName) {
     try {
       const filePath = path.join(this.toolsDocsPath, `${toolName}.md`);
-      const content = await fs.readFile(filePath, "utf-8");
+      const content = await _deps.fs.readFile(filePath, "utf-8");
       return content;
     } catch (error) {
       if (error.code === "ENOENT") {
@@ -689,3 +692,4 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
 }
 
 module.exports = DocGenerator;
+module.exports._deps = _deps;

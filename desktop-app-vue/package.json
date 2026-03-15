@@ -13,7 +13,7 @@
     "build:main": "node scripts/build-main.js",
     "build:renderer": "vite build",
     "type-check": "vue-tsc --noEmit",
-    "lint": "eslint src --ext .js,.vue",
+    "lint": "eslint src",
     "lint:fix": "eslint src --ext .js,.vue --fix",
     "lint:strict": "eslint src --ext .js,.vue --max-warnings 0",
     "test": "vitest run",
