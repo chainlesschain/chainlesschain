@@ -414,6 +414,10 @@ export default defineConfig({
               link: "/chainlesschain/cli-init",
             },
             {
+              text: "Persona管理 (persona)",
+              link: "/chainlesschain/cli-persona",
+            },
+            {
               text: "多智能体协作 (cowork)",
               link: "/chainlesschain/cli-cowork",
             },

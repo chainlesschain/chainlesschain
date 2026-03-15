@@ -18,7 +18,7 @@ import {
   getSession as dbGetSession,
   listSessions as dbListSessions,
 } from "./session-manager.js";
-import { getBaseSystemPrompt } from "./agent-core.js";
+import { buildSystemPrompt } from "./agent-core.js";
 
 /**
  * @typedef {object} Session
@@ -88,16 +88,7 @@ export class WSSessionManager {
       options.model || (provider === "ollama" ? "qwen2.5:7b" : null);
     const baseUrl = options.baseUrl || "http://localhost:11434";
 
-    // Load project context
-    let rulesContent = null;
-    try {
-      const rulesPath = path.join(projectRoot, ".chainlesschain", "rules.md");
-      if (fs.existsSync(rulesPath)) {
-        rulesContent = fs.readFileSync(rulesPath, "utf8");
-      }
-    } catch (_err) {
-      // Non-critical
-    }
+    // Project context (rules.md, persona) is now loaded by buildSystemPrompt()
 
     // Create plan manager (non-singleton, per-session)
     const planManager = new PlanModeManager();
@@ -125,11 +116,8 @@ export class WSSessionManager {
       // Non-critical
     }
 
-    // Build initial system prompt
-    let systemPrompt = getBaseSystemPrompt(projectRoot);
-    if (rulesContent) {
-      systemPrompt += `\n\n## Project Rules\n${rulesContent}`;
-    }
+    // Build initial system prompt (includes persona + rules.md)
+    const systemPrompt = buildSystemPrompt(projectRoot);
 
     const messages = [{ role: "system", content: systemPrompt }];
 
@@ -158,7 +146,7 @@ export class WSSessionManager {
       apiKey: options.apiKey || null,
       baseUrl,
       projectRoot,
-      rulesContent,
+      rulesContent: null,
       planManager,
       contextEngine,
       permanentMemory,

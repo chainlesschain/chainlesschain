@@ -80,7 +80,7 @@ export const BUILT_IN_PROVIDERS = {
   },
   volcengine: {
     name: "volcengine",
-    displayName: "Volcengine (豆包)",
+    displayName: "Volcengine (火山引擎/豆包)",
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
     apiKeyEnv: "VOLCENGINE_API_KEY",
     models: [
@@ -89,6 +89,27 @@ export const BUILT_IN_PROVIDERS = {
       "doubao-seed-1-6-lite-251015",
       "doubao-seed-code",
     ],
+    free: false,
+  },
+  kimi: {
+    name: "kimi",
+    displayName: "Kimi (月之暗面)",
+    baseUrl: "https://api.moonshot.cn/v1",
+    apiKeyEnv: "MOONSHOT_API_KEY",
+    models: [
+      "moonshot-v1-auto",
+      "moonshot-v1-8k",
+      "moonshot-v1-32k",
+      "moonshot-v1-128k",
+    ],
+    free: false,
+  },
+  minimax: {
+    name: "minimax",
+    displayName: "MiniMax (海螺AI)",
+    baseUrl: "https://api.minimax.chat/v1",
+    apiKeyEnv: "MINIMAX_API_KEY",
+    models: ["MiniMax-Text-01", "abab6.5s-chat", "abab5.5-chat"],
     free: false,
   },
 };
@@ -323,7 +344,7 @@ export class LLMProviderRegistry {
       return { ok: true, elapsed: Date.now() - start, response: text.trim() };
     }
 
-    // OpenAI-compatible (openai, deepseek, dashscope, mistral, volcengine)
+    // OpenAI-compatible (openai, deepseek, dashscope, mistral, volcengine, kimi, minimax)
     const key = this.getApiKey(name);
     if (!key) throw new Error(`${provider.apiKeyEnv} not set`);
     const res = await fetch(`${provider.baseUrl}/chat/completions`, {

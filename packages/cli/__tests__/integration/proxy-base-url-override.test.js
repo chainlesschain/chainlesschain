@@ -278,6 +278,8 @@ describe("Proxy / Base-URL Override (中转站)", () => {
         mistral: "https://api.mistral.ai/v1",
         gemini: "https://generativelanguage.googleapis.com/v1beta/openai",
         volcengine: "https://ark.cn-beijing.volces.com/api/v3",
+        kimi: "https://api.moonshot.cn/v1",
+        minimax: "https://api.minimax.chat/v1",
       };
 
       return baseUrl && baseUrl !== "http://localhost:11434"
@@ -294,6 +296,8 @@ describe("Proxy / Base-URL Override (中转站)", () => {
         mistral: "MISTRAL_API_KEY",
         gemini: "GEMINI_API_KEY",
         volcengine: "VOLCENGINE_API_KEY",
+        kimi: "MOONSHOT_API_KEY",
+        minimax: "MINIMAX_API_KEY",
       };
       const envKey = envKeys[provider] || "OPENAI_API_KEY";
       return process.env[envKey] || null;
@@ -306,6 +310,8 @@ describe("Proxy / Base-URL Override (中转站)", () => {
         "dashscope",
         "mistral",
         "volcengine",
+        "kimi",
+        "minimax",
       ];
       const proxyUrl = "https://my-one-api-gateway.com/v1";
 
@@ -417,6 +423,114 @@ describe("Proxy / Base-URL Override (中转站)", () => {
       } finally {
         delete process.env.RELAY_KEY;
       }
+    });
+  });
+
+  // ─── Kimi and MiniMax proxy support ────────────────────────
+
+  describe("Kimi and MiniMax proxy base-url override", () => {
+    it("should use proxy URL for kimi via relay site", async () => {
+      await fetch("https://my-proxy.com/moonshot/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer proxy-kimi-key",
+        },
+        body: JSON.stringify({
+          model: "moonshot-v1-auto",
+          messages: [{ role: "user", content: "hello" }],
+        }),
+      });
+
+      expect(capturedUrl).toBe(
+        "https://my-proxy.com/moonshot/v1/chat/completions",
+      );
+      expect(capturedHeaders.Authorization).toBe("Bearer proxy-kimi-key");
+      expect(capturedBody.model).toBe("moonshot-v1-auto");
+    });
+
+    it("should use proxy URL for minimax via relay site", async () => {
+      await fetch("https://my-proxy.com/minimax/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer proxy-minimax-key",
+        },
+        body: JSON.stringify({
+          model: "MiniMax-Text-01",
+          messages: [{ role: "user", content: "hello" }],
+        }),
+      });
+
+      expect(capturedUrl).toBe(
+        "https://my-proxy.com/minimax/v1/chat/completions",
+      );
+      expect(capturedBody.model).toBe("MiniMax-Text-01");
+    });
+
+    it("should fall back to kimi default URL when no proxy", () => {
+      const kimi = BUILT_IN_PROVIDERS.kimi;
+      expect(kimi.baseUrl).toBe("https://api.moonshot.cn/v1");
+    });
+
+    it("should fall back to minimax default URL when no proxy", () => {
+      const minimax = BUILT_IN_PROVIDERS.minimax;
+      expect(minimax.baseUrl).toBe("https://api.minimax.chat/v1");
+    });
+  });
+
+  // ─── Anthropic and Gemini proxy (中转站) ──────────────────
+
+  describe("Anthropic and Gemini proxy (中转站) support", () => {
+    it("should route anthropic-proxy through relay site with OpenAI format", async () => {
+      const proxyUrl = "https://claude-relay.example.com/v1";
+      await fetch(`${proxyUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer relay-claude-key",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          messages: [{ role: "user", content: "test" }],
+        }),
+      });
+
+      expect(capturedUrl).toBe(
+        "https://claude-relay.example.com/v1/chat/completions",
+      );
+      expect(capturedHeaders.Authorization).toBe("Bearer relay-claude-key");
+      expect(capturedBody.model).toBe("claude-sonnet-4-6");
+    });
+
+    it("should route gemini-proxy through relay site with OpenAI format", async () => {
+      const proxyUrl = "https://gemini-relay.example.com/v1";
+      await fetch(`${proxyUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer relay-gemini-key",
+        },
+        body: JSON.stringify({
+          model: "gemini-2.0-flash",
+          messages: [{ role: "user", content: "test" }],
+        }),
+      });
+
+      expect(capturedUrl).toBe(
+        "https://gemini-relay.example.com/v1/chat/completions",
+      );
+      expect(capturedBody.model).toBe("gemini-2.0-flash");
+    });
+
+    it("anthropic-proxy and gemini-proxy should use user-provided base URL", () => {
+      // These providers don't have a built-in entry — they're setup-wizard-only
+      // The proxy URL is fully provided by the user during setup
+      const { LLM_PROVIDERS } = require("../../src/constants.js");
+      expect(LLM_PROVIDERS["anthropic-proxy"].isProxy).toBe(true);
+      expect(LLM_PROVIDERS["anthropic-proxy"].defaultBaseUrl).toBe("");
+      expect(LLM_PROVIDERS["gemini-proxy"].isProxy).toBe(true);
+      expect(LLM_PROVIDERS["gemini-proxy"].defaultBaseUrl).toBe("");
     });
   });
 

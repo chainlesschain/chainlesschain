@@ -66,9 +66,9 @@ describe("LLM Provider Workflow (integration)", () => {
       expect(model).toBe("doubao-seed-1-6-lite-251015");
     });
 
-    it("should work for all 8 built-in providers with code task", () => {
+    it("should work for all 10 built-in providers with code task", () => {
       const providers = registry.list();
-      expect(providers.length).toBeGreaterThanOrEqual(8);
+      expect(providers.length).toBeGreaterThanOrEqual(10);
 
       for (const provider of providers) {
         if (provider.custom) continue;
@@ -183,6 +183,8 @@ describe("LLM Provider Workflow (integration)", () => {
       "dashscope",
       "mistral",
       "volcengine",
+      "kimi",
+      "minimax",
     ];
 
     for (const providerName of openAICompatible) {
@@ -334,6 +336,165 @@ describe("LLM Provider Workflow (integration)", () => {
       const registry = new LLMProviderRegistry(db);
       await expect(registry.testProvider("volcengine")).rejects.toThrow(
         "VOLCENGINE_API_KEY not set",
+      );
+    });
+  });
+
+  // ─── testProvider for kimi and minimax ────────────────────
+
+  describe("testProvider for kimi and minimax", () => {
+    it("should test kimi via OpenAI-compatible path", async () => {
+      let capturedUrl;
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url) => {
+          capturedUrl = url;
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                choices: [{ message: { role: "assistant", content: "OK" } }],
+              }),
+          });
+        }),
+      );
+
+      process.env.MOONSHOT_API_KEY = "test-kimi-key";
+      try {
+        const db = new MockDatabase();
+        const registry = new LLMProviderRegistry(db);
+        const result = await registry.testProvider("kimi");
+        expect(result.ok).toBe(true);
+        expect(capturedUrl).toContain("api.moonshot.cn");
+        expect(capturedUrl).toContain("/chat/completions");
+      } finally {
+        delete process.env.MOONSHOT_API_KEY;
+      }
+    });
+
+    it("should throw when MOONSHOT_API_KEY is not set", async () => {
+      const db = new MockDatabase();
+      const registry = new LLMProviderRegistry(db);
+      await expect(registry.testProvider("kimi")).rejects.toThrow(
+        "MOONSHOT_API_KEY not set",
+      );
+    });
+
+    it("should test minimax via OpenAI-compatible path", async () => {
+      let capturedUrl;
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url) => {
+          capturedUrl = url;
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                choices: [{ message: { role: "assistant", content: "OK" } }],
+              }),
+          });
+        }),
+      );
+
+      process.env.MINIMAX_API_KEY = "test-minimax-key";
+      try {
+        const db = new MockDatabase();
+        const registry = new LLMProviderRegistry(db);
+        const result = await registry.testProvider("minimax");
+        expect(result.ok).toBe(true);
+        expect(capturedUrl).toContain("api.minimax.chat");
+        expect(capturedUrl).toContain("/chat/completions");
+      } finally {
+        delete process.env.MINIMAX_API_KEY;
+      }
+    });
+
+    it("should throw when MINIMAX_API_KEY is not set", async () => {
+      const db = new MockDatabase();
+      const registry = new LLMProviderRegistry(db);
+      await expect(registry.testProvider("minimax")).rejects.toThrow(
+        "MINIMAX_API_KEY not set",
+      );
+    });
+  });
+
+  // ─── Proxy provider setup flow simulation ─────────────────
+
+  describe("Proxy provider setup flow", () => {
+    it("should work with anthropic-proxy using OpenAI-compatible format", async () => {
+      let capturedUrl, capturedHeaders;
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url, options) => {
+          capturedUrl = url;
+          capturedHeaders = options?.headers || {};
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                choices: [{ message: { role: "assistant", content: "OK" } }],
+              }),
+          });
+        }),
+      );
+
+      // Simulates an anthropic-proxy setup where user provides a proxy URL
+      const proxyUrl = "https://claude-proxy.example.com/v1";
+      const proxyKey = "proxy-claude-key";
+
+      await fetch(`${proxyUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${proxyKey}`,
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          messages: [{ role: "user", content: "test" }],
+        }),
+      });
+
+      expect(capturedUrl).toBe(
+        "https://claude-proxy.example.com/v1/chat/completions",
+      );
+      expect(capturedHeaders.Authorization).toBe("Bearer proxy-claude-key");
+    });
+
+    it("should work with gemini-proxy using OpenAI-compatible format", async () => {
+      let capturedUrl;
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url) => {
+          capturedUrl = url;
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                choices: [{ message: { role: "assistant", content: "OK" } }],
+              }),
+          });
+        }),
+      );
+
+      const proxyUrl = "https://gemini-relay.example.com/v1";
+      await fetch(`${proxyUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer gemini-proxy-key",
+        },
+        body: JSON.stringify({
+          model: "gemini-2.0-flash",
+          messages: [{ role: "user", content: "test" }],
+        }),
+      });
+
+      expect(capturedUrl).toBe(
+        "https://gemini-relay.example.com/v1/chat/completions",
       );
     });
   });

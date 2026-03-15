@@ -35,6 +35,7 @@ import { registerWalletCommand } from "./commands/wallet.js";
 import { registerOrgCommand } from "./commands/org.js";
 import { registerPluginCommand } from "./commands/plugin.js";
 import { registerInitCommand } from "./commands/init.js";
+import { registerPersonaCommand } from "./commands/persona.js";
 import { registerCoworkCommand } from "./commands/cowork.js";
 
 // Phase 6: Advanced AI & Hooks
@@ -97,8 +98,9 @@ export function createProgram() {
     .option("--verbose", "Enable verbose output")
     .option("--quiet", "Suppress non-essential output");
 
-  // Project initialization
+  // Project initialization & persona
   registerInitCommand(program);
+  registerPersonaCommand(program);
 
   // Existing commands
   registerSetupCommand(program);

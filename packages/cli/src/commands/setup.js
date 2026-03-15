@@ -104,9 +104,15 @@ async function runSetup(options) {
     apiKey = await askPassword(`Enter ${providerInfo.name} API key:`);
   }
 
-  if (provider === "custom") {
-    baseUrl = await askInput("Enter API base URL:");
-    model = await askInput("Enter model name:");
+  if (provider === "custom" || providerInfo.isProxy) {
+    baseUrl = await askInput(
+      "Enter API base URL:",
+      providerInfo.defaultBaseUrl || "",
+    );
+    model = await askInput(
+      "Enter model name:",
+      providerInfo.defaultModel || "",
+    );
   } else {
     const customizeModel = await askConfirm(
       `Use default model (${model})?`,

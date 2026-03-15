@@ -22,6 +22,7 @@ import { getPlanModeManager } from "./plan-mode.js";
 import { CLISkillLoader } from "./skill-loader.js";
 import { executeHooks, HookEvents } from "./hook-manager.js";
 import { detectPython } from "./cli-anything-bridge.js";
+import { findProjectRoot, loadProjectConfig } from "./project-detector.js";
 
 // ─── Tool definitions ────────────────────────────────────────────────────
 
@@ -331,6 +332,126 @@ ${envLines.join("\n")}
 Current working directory: ${cwd || process.cwd()}`;
 }
 
+// ─── Persona support ─────────────────────────────────────────────────────
+
+/**
+ * Load persona configuration from project config.json
+ * @param {string} cwd - working directory
+ * @returns {object|null} persona object or null
+ */
+function _loadProjectPersona(cwd) {
+  try {
+    const projectRoot = findProjectRoot(cwd || process.cwd());
+    if (!projectRoot) return null;
+    const config = loadProjectConfig(projectRoot);
+    return config?.persona || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build a persona-specific system prompt
+ * @param {object} persona - persona configuration
+ * @param {string[]} envLines - environment info lines
+ * @param {string} cwd - working directory
+ * @returns {string}
+ */
+function _buildPersonaPrompt(persona, envLines, cwd) {
+  const lines = [];
+  lines.push(`You are ${persona.name || "AI Assistant"}.`);
+  if (persona.role) {
+    lines.push("");
+    lines.push(persona.role);
+  }
+  if (persona.behaviors?.length > 0) {
+    lines.push("");
+    lines.push("Key behaviors:");
+    for (const b of persona.behaviors) {
+      lines.push(`- ${b}`);
+    }
+  }
+  lines.push("");
+  lines.push(
+    "You have access to tools that let you read files, write files, edit files, run shell commands, and search the codebase. When the user asks you to do something, USE THE TOOLS to actually do it.",
+  );
+  if (persona.toolsPriority?.length > 0) {
+    lines.push(`\nPreferred tools: ${persona.toolsPriority.join(", ")}`);
+  }
+  lines.push(`\n## Environment\n${envLines.join("\n")}`);
+  lines.push(`\nCurrent working directory: ${cwd || process.cwd()}`);
+  return lines.join("\n");
+}
+
+/**
+ * Build the full system prompt with persona, rules.md, and auto-activated persona skills.
+ * Single entry point used by both agent-repl and ws-session-manager.
+ *
+ * Priority order:
+ *  1. config.json persona → replaces base system prompt
+ *  2. Auto-activated persona skills → appended
+ *  3. rules.md → appended
+ *  4. Default hardcoded prompt → fallback when no persona
+ *
+ * @param {string} [cwd] - working directory
+ * @returns {string} complete system prompt
+ */
+export function buildSystemPrompt(cwd) {
+  const dir = cwd || process.cwd();
+
+  // Check for project persona
+  const persona = _loadProjectPersona(dir);
+  let prompt;
+  if (persona) {
+    const env = getEnvironmentInfo();
+    const envLines = [
+      `OS: ${env.os} (${env.arch})`,
+      env.python
+        ? `Python: ${env.python}${env.pip ? " + pip" : ""}`
+        : "Python: not found",
+      env.node ? `Node.js: ${env.node}` : "Node.js: not found",
+      `Git: ${env.git ? "available" : "not found"}`,
+    ];
+    prompt = _buildPersonaPrompt(persona, envLines, dir);
+  } else {
+    prompt = getBaseSystemPrompt(dir);
+  }
+
+  // Append auto-activated persona skills
+  try {
+    const loader = new CLISkillLoader();
+    const allSkills = loader.getResolvedSkills();
+    const personaSkills = allSkills.filter(
+      (s) => s.category === "persona" && s.activation === "auto",
+    );
+    for (const p of personaSkills) {
+      if (p.body?.trim()) {
+        prompt += `\n\n## Persona: ${p.displayName}\n${p.body}`;
+      }
+    }
+  } catch {
+    // Non-critical — skill loader may not be available
+  }
+
+  // Append rules.md
+  try {
+    const projectRoot = findProjectRoot(dir);
+    if (projectRoot) {
+      const rulesPath = path.join(projectRoot, ".chainlesschain", "rules.md");
+      if (fs.existsSync(rulesPath)) {
+        const content = fs.readFileSync(rulesPath, "utf-8");
+        if (content.trim()) {
+          prompt += `\n\n## Project Rules\n${content}`;
+        }
+      }
+    }
+  } catch {
+    // Non-critical
+  }
+
+  return prompt;
+}
+
 // ─── Tool execution ──────────────────────────────────────────────────────
 
 /**
@@ -348,6 +469,14 @@ export async function executeTool(name, args, context = {}) {
   const hookDb = context.hookDb || null;
   const skillLoader = context.skillLoader || _defaultSkillLoader;
   const cwd = context.cwd || process.cwd();
+
+  // Persona toolsDisabled guard
+  const persona = _loadProjectPersona(cwd);
+  if (persona?.toolsDisabled?.includes(name)) {
+    return {
+      error: `Tool "${name}" is disabled by project persona configuration.`,
+    };
+  }
 
   // Plan mode: check if tool is allowed
   const planManager = getPlanModeManager();
@@ -837,6 +966,15 @@ async function _executeRunCode(args, cwd) {
 export async function chatWithTools(rawMessages, options) {
   const { provider, model, baseUrl, apiKey, contextEngine: ce } = options;
 
+  // Filter tools based on persona.toolsDisabled
+  let tools = AGENT_TOOLS;
+  const persona = _loadProjectPersona(options.cwd);
+  if (persona?.toolsDisabled?.length > 0) {
+    tools = AGENT_TOOLS.filter(
+      (t) => !persona.toolsDisabled.includes(t.function.name),
+    );
+  }
+
   const lastUserMsg = [...rawMessages].reverse().find((m) => m.role === "user");
   const messages = ce
     ? ce.buildOptimizedMessages(rawMessages, {
@@ -851,7 +989,7 @@ export async function chatWithTools(rawMessages, options) {
       body: JSON.stringify({
         model,
         messages,
-        tools: AGENT_TOOLS,
+        tools,
         stream: false,
       }),
     });
@@ -868,7 +1006,7 @@ export async function chatWithTools(rawMessages, options) {
     const systemMsgs = messages.filter((m) => m.role === "system");
     const otherMsgs = messages.filter((m) => m.role !== "system");
 
-    const anthropicTools = AGENT_TOOLS.map((t) => ({
+    const anthropicTools = tools.map((t) => ({
       name: t.function.name,
       description: t.function.description,
       input_schema: t.function.parameters,
@@ -959,7 +1097,7 @@ export async function chatWithTools(rawMessages, options) {
     body: JSON.stringify({
       model: model || defaultModels[provider] || "gpt-4o-mini",
       messages,
-      tools: AGENT_TOOLS,
+      tools,
     }),
   });
 

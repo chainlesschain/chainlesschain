@@ -34,14 +34,14 @@ chainlesschain setup    # 交互式安装向导
 chainlesschain start    # 启动应用
 ```
 
-- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，61 个命令 (含 Phase 7-8 企业功能 + WebSocket Server)
+- ✅ **npm CLI 包** (`packages/cli/`) — 纯 JS 薄编排层 (~2MB)，62 个命令 (含 Phase 7-8 企业功能 + WebSocket Server + Persona)
 - ✅ **交互式安装向导** — Node.js/Docker 检测 → 版本选择 → LLM 配置 → 二进制下载 → 自动配置
 - ✅ **GitHub Release 集成** — 自动下载平台二进制文件 (Win/macOS/Linux) + SHA256 校验
 - ✅ **Docker Compose 编排** — 一键管理后端服务 (`services up/down/logs/pull`)
 - ✅ **环境诊断** (`doctor`) — 12 项检查 (Node/Docker/Git/端口/磁盘/网络)
 - ✅ **Phase 1 AI 智能层** — BM25 搜索 + Token 追踪 + 持久记忆 + 会话管理 + Agent Plan Mode
 - ✅ **Phase 2 知识管理** — 知识导入 (Markdown/Evernote/Notion/PDF) + 导出 (Markdown/静态站点) + Git 集成 + 笔记版本控制
-- ✅ **Phase 3 MCP 与外部集成** — MCP 服务器管理 (JSON-RPC 2.0) + 8 LLM Provider + 浏览器自动化 + 本能学习
+- ✅ **Phase 3 MCP 与外部集成** — MCP 服务器管理 (JSON-RPC 2.0) + 10 LLM Provider + 3中转站 + 浏览器自动化 + 本能学习
 - ✅ **Phase 4 安全与身份** — DID 身份管理 (Ed25519) + AES-256-GCM 文件加密 + RBAC 权限引擎 + 审计日志
 - ✅ **Phase 5 P2P与企业** — P2P 消息 + 文件同步 + 数字钱包 (Ed25519) + 组织管理 + 插件市场
 - ✅ **Phase 6 AI核心** — Hook 生命周期管理 (28事件类型) + DAG 工作流引擎 (5内置模板) + 层次化记忆 2.0 (4层架构+遗忘曲线) + A2A Agent间协议
@@ -52,7 +52,7 @@ chainlesschain start    # 启动应用
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
 - ✅ **Agent Context Engineering** — 6维上下文注入 (Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary) + KV-Cache优化 + 稳定前缀缓存 + 智能压缩 + 可恢复压缩摘要 + 会话恢复 (`--session`)
 - ✅ **Autonomous Agent** — ReAct 自主任务循环 (`/auto` 命令) + 目标分解 + 自我纠正
-- ✅ **多 Provider 支持** — 8 个 LLM 提供商 (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) + 任务智能模型选择
+- ✅ **多 Provider 支持** — 10 个 LLM 提供商 (volcengine/openai/anthropic/deepseek/dashscope/gemini/kimi/minimax/mistral/ollama) + 3种中转站 (OpenAI/Anthropic/Gemini) + 任务智能模型选择
 - ✅ **DAG 计划执行 + 风险评估** — `/plan execute` 按依赖拓扑排序 + `/plan risk` 风险评分
 - ✅ **EvoMap 基因交换** — `evomap search|download|publish|list|hubs` GEP-A2A 协议客户端 + 联邦Hub管理 + 基因治理
 - ✅ **CLI-Anything 集成** — `cli-anything doctor|scan|register|list|remove` 将任意软件 Agent 化，自动注册为 managed 层技能
@@ -67,7 +67,8 @@ chainlesschain start    # 启动应用
 - ✅ **Content Recommender** — TF-IDF 工具相似度 + 工具链频率推荐
 - ✅ **2063+ 个测试用例** — 92+ 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
 - ✅ **系统质量改进** — 12 个 Pinia Store 测试文件 (431 测试)，CI 管道修复 (`continue-on-error` 移除)，`builtin-tools.js` (25K行) 拆分为 8 个模块，空 catch 块清理，硬编码凭证移除
-- ✅ **项目初始化** (`init`) — 4 种模板 (code-project/data-science/devops/空项目)，生成 `.chainlesschain/` 项目结构
+- ✅ **项目初始化** (`init`) — 7 种模板 (code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/空项目)，生成 `.chainlesschain/` 项目结构
+- ✅ **Persona 系统** — 项目级 AI 角色配置 (`persona show/set/reset`)，自动替换默认编码助手，工具权限控制，自动激活 Persona Skill
 - ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources` 自定义技能管理
 - ✅ **多智能体协作** (`cowork`) — 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
 - ✅ **插件技能集成** — 插件可声明并安装技能到 marketplace 层
@@ -1661,7 +1662,7 @@ chainlesschain/
 - [x] **CLI分发系统 (Phase 101-102)**: npm CLI包 + 交互式安装 + GitHub Release下载 + Docker编排 + 环境诊断 + CI/CD自动发布 + 项目初始化(init) + 多层技能系统(4层优先级) + 多智能体协作(cowork) + 插件技能集成 + 1009测试 ✅ v5.0.1
 - [x] **CLI Phase 1 AI智能层**: BM25搜索 + Token追踪 + 持久记忆 + 会话管理 + Agent Plan Mode ✅ v5.0.1
 - [x] **CLI Phase 2 知识管理**: 知识导入(Markdown/Evernote/Notion/PDF) + 导出 + Git集成 + 笔记版本控制 ✅ v5.0.1
-- [x] **CLI Phase 3 MCP与集成**: MCP客户端(JSON-RPC 2.0) + 8 LLM Provider + 浏览器自动化 + 本能学习 + 任务智能模型选择 ✅ v5.0.1
+- [x] **CLI Phase 3 MCP与集成**: MCP客户端(JSON-RPC 2.0) + 10 LLM Provider + 3中转站 + 浏览器自动化 + 本能学习 + 任务智能模型选择 ✅ v5.0.1
 - [x] **CLI Phase 4 安全与身份**: DID身份管理(Ed25519) + AES-256-GCM加密 + RBAC权限引擎 + 审计日志 (29命令, 743测试) ✅ v5.0.1
 - [x] **AI技能系统**: 138内置技能(100% Handler) + 28 Android技能 + 统一工具注册表 + Agent Skills标准 ✅ v1.2.1
 - [x] **扩展MCP服务器支持**: MCP SDK (Server Builder + HTTP+SSE + Stdio) + 社区注册中心 ✅ v0.34.0

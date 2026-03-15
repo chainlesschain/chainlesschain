@@ -346,14 +346,16 @@ chainlesschain ask "你好" \
 
 | 提供商             | 环境变量                | 默认 Base URL                                              |
 | ------------------ | ----------------------- | ---------------------------------------------------------- |
-| Ollama (本地)      | —                       | `http://localhost:11434`                                   |
+| Volcengine (豆包)  | `VOLCENGINE_API_KEY`    | `https://ark.cn-beijing.volces.com/api/v3`                 |
 | OpenAI             | `OPENAI_API_KEY`        | `https://api.openai.com/v1`                                |
-| Anthropic          | `ANTHROPIC_API_KEY`     | `https://api.anthropic.com/v1`                             |
+| Anthropic (Claude) | `ANTHROPIC_API_KEY`     | `https://api.anthropic.com/v1`                             |
 | DeepSeek           | `DEEPSEEK_API_KEY`      | `https://api.deepseek.com/v1`                              |
 | DashScope (阿里)   | `DASHSCOPE_API_KEY`     | `https://dashscope.aliyuncs.com/compatible-mode/v1`        |
 | Google Gemini      | `GEMINI_API_KEY`        | `https://generativelanguage.googleapis.com/v1beta`         |
+| Kimi (月之暗面)    | `MOONSHOT_API_KEY`      | `https://api.moonshot.cn/v1`                               |
+| MiniMax (海螺AI)   | `MINIMAX_API_KEY`       | `https://api.minimax.chat/v1`                              |
 | Mistral AI         | `MISTRAL_API_KEY`       | `https://api.mistral.ai/v1`                                |
-| Volcengine (豆包)  | `VOLCENGINE_API_KEY`    | `https://ark.cn-beijing.volces.com/api/v3`                 |
+| Ollama (本地)      | —                       | `http://localhost:11434`                                   |
 
 ### 优先级规则
 
@@ -367,7 +369,10 @@ chainlesschain ask "你好" \
 # ~/.bashrc 或 ~/.zshrc 中添加常用配置
 export VOLCENGINE_API_KEY=ark-xxxxxxxxxxxx
 export OPENAI_API_KEY=sk-xxxxxxxxxxxx
+export ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxx
 export DEEPSEEK_API_KEY=sk-xxxxxxxxxxxx
+export MOONSHOT_API_KEY=sk-xxxxxxxxxxxx
+export MINIMAX_API_KEY=xxxxxxxxxxxx
 ```
 
 ---

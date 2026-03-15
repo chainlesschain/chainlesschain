@@ -302,6 +302,132 @@ description: Docs only
         const skills = loader._loadFromDir(tempDir, "workspace");
         expect(skills[0].hasHandler).toBe(false);
       });
+
+      it("_loadFromDir reads activation field", () => {
+        const skillDir = join(tempDir, "auto-skill");
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(
+          join(skillDir, "SKILL.md"),
+          `---
+name: auto-skill
+category: persona
+activation: auto
+user-invocable: false
+---
+Auto persona body`,
+          "utf-8",
+        );
+
+        const loader = new CLISkillLoader();
+        const skills = loader._loadFromDir(tempDir, "workspace");
+        expect(skills[0].activation).toBe("auto");
+        expect(skills[0].category).toBe("persona");
+      });
+
+      it("_loadFromDir defaults activation to manual", () => {
+        const skillDir = join(tempDir, "manual-skill");
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(
+          join(skillDir, "SKILL.md"),
+          `---
+name: manual-skill
+category: development
+---
+Manual skill body`,
+          "utf-8",
+        );
+
+        const loader = new CLISkillLoader();
+        const skills = loader._loadFromDir(tempDir, "workspace");
+        expect(skills[0].activation).toBe("manual");
+      });
+    });
+
+    describe("getAutoActivatedPersonas", () => {
+      let tempDir;
+
+      beforeEach(() => {
+        tempDir = mkdtempSync(join(tmpdir(), "cc-persona-skill-test-"));
+      });
+
+      afterEach(() => {
+        rmSync(tempDir, { recursive: true, force: true });
+      });
+
+      it("returns only persona skills with activation auto", () => {
+        // Create persona auto skill
+        const personaDir = join(tempDir, "my-persona");
+        mkdirSync(personaDir, { recursive: true });
+        writeFileSync(
+          join(personaDir, "SKILL.md"),
+          `---
+name: my-persona
+category: persona
+activation: auto
+---
+Persona instructions`,
+          "utf-8",
+        );
+
+        // Create regular skill
+        const regularDir = join(tempDir, "regular");
+        mkdirSync(regularDir, { recursive: true });
+        writeFileSync(
+          join(regularDir, "SKILL.md"),
+          `---
+name: regular
+category: development
+---
+Regular skill`,
+          "utf-8",
+        );
+
+        // Create manual persona skill
+        const manualDir = join(tempDir, "manual-persona");
+        mkdirSync(manualDir, { recursive: true });
+        writeFileSync(
+          join(manualDir, "SKILL.md"),
+          `---
+name: manual-persona
+category: persona
+activation: manual
+---
+Manual persona`,
+          "utf-8",
+        );
+
+        const loader = new CLISkillLoader();
+        // Load from temp dir only
+        const skills = loader._loadFromDir(tempDir, "workspace");
+        // Manually set cache
+        loader._cache = skills;
+
+        const personas = loader.getAutoActivatedPersonas();
+        expect(personas).toHaveLength(1);
+        expect(personas[0].id).toBe("my-persona");
+        expect(personas[0].category).toBe("persona");
+        expect(personas[0].activation).toBe("auto");
+      });
+
+      it("returns empty array when no persona skills exist", () => {
+        const skillDir = join(tempDir, "dev-skill");
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(
+          join(skillDir, "SKILL.md"),
+          `---
+name: dev-skill
+category: development
+---
+Dev skill`,
+          "utf-8",
+        );
+
+        const loader = new CLISkillLoader();
+        loader._cache = loader._loadFromDir(tempDir, "workspace");
+
+        const personas = loader.getAutoActivatedPersonas();
+        expect(personas).toHaveLength(0);
+      });
     });
   });
 });

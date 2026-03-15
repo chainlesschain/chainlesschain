@@ -127,6 +127,169 @@ describe("E2E: init command", () => {
       }).toThrow();
     });
   });
+
+  // ─── persona templates ───────────────────────────
+
+  describe("init --template persona templates", () => {
+    it("creates medical-triage template with persona in config", () => {
+      run("init --template medical-triage --yes", { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      expect(config.template).toBe("medical-triage");
+      expect(config.persona).toBeDefined();
+      expect(typeof config.persona.name).toBe("string");
+      expect(config.persona.name.length).toBeGreaterThan(0);
+      expect(typeof config.persona.role).toBe("string");
+      expect(config.persona.role.length).toBeGreaterThan(0);
+      expect(config.persona.behaviors).toBeInstanceOf(Array);
+      expect(config.persona.behaviors.length).toBeGreaterThan(0);
+      expect(config.persona.toolsPriority).toBeInstanceOf(Array);
+      expect(config.persona.toolsDisabled).toBeInstanceOf(Array);
+    });
+
+    it("creates agriculture-expert template with persona", () => {
+      run("init --template agriculture-expert --yes", { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      expect(config.template).toBe("agriculture-expert");
+      expect(config.persona).toBeDefined();
+      expect(config.persona.name.length).toBeGreaterThan(0);
+      expect(config.persona.role.length).toBeGreaterThan(0);
+    });
+
+    it("creates general-assistant template with persona", () => {
+      run("init --template general-assistant --yes", { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      expect(config.template).toBe("general-assistant");
+      expect(config.persona).toBeDefined();
+      expect(config.persona.name.length).toBeGreaterThan(0);
+      expect(config.persona.role.length).toBeGreaterThan(0);
+    });
+
+    it("persona template creates auto-activated persona skill", () => {
+      run("init --template medical-triage --yes", { cwd: tempDir });
+
+      const skillDir = join(
+        tempDir,
+        ".chainlesschain",
+        "skills",
+        "medical-triage-persona",
+      );
+      expect(existsSync(skillDir)).toBe(true);
+      expect(existsSync(join(skillDir, "SKILL.md"))).toBe(true);
+
+      const skillMd = readFileSync(join(skillDir, "SKILL.md"), "utf-8");
+      expect(skillMd).toContain("category: persona");
+      expect(skillMd).toContain("activation: auto");
+      expect(skillMd).toContain("user-invocable: false");
+      expect(skillMd).toContain("智能分诊助手");
+    });
+
+    it("empty template does NOT create persona", () => {
+      run("init --bare", { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      expect(config.persona).toBeUndefined();
+    });
+
+    it("code-project template does NOT create persona", () => {
+      run("init --template code-project --yes", { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      expect(config.persona).toBeUndefined();
+    });
+  });
+});
+
+// ──��� persona command ────────────────────────────────
+
+describe("E2E: persona command", () => {
+  let tempDir;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cc-persona-e2e-"));
+    // Init a project first
+    run("init --bare", { cwd: tempDir });
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  describe("persona --help", () => {
+    it("shows persona command help", () => {
+      const result = run("persona --help");
+      expect(result).toContain("Manage project AI persona");
+      expect(result).toContain("show");
+      expect(result).toContain("set");
+      expect(result).toContain("reset");
+    });
+  });
+
+  describe("persona show", () => {
+    it("shows no persona for bare project", () => {
+      const result = run("persona show", { cwd: tempDir });
+      expect(result).toContain("No persona configured");
+    });
+
+    it("shows persona after set", () => {
+      run('persona set --name "Test Bot" --role "You are a test helper"', {
+        cwd: tempDir,
+      });
+      const result = run("persona show", { cwd: tempDir });
+      expect(result).toContain("Test Bot");
+      expect(result).toContain("You are a test helper");
+    });
+  });
+
+  describe("persona set", () => {
+    it("creates persona in config.json", () => {
+      run('persona set --name "My Bot" --role "Helper"', { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      expect(config.persona.name).toBe("My Bot");
+      expect(config.persona.role).toBe("Helper");
+    });
+
+    it("sets toolsDisabled", () => {
+      run("persona set --tools-disabled run_shell,run_code", { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      expect(config.persona.toolsDisabled).toEqual(["run_shell", "run_code"]);
+    });
+  });
+
+  describe("persona reset", () => {
+    it("removes persona from config", () => {
+      run('persona set --name "Temp Bot"', { cwd: tempDir });
+      run("persona reset", { cwd: tempDir });
+
+      const config = JSON.parse(
+        readFileSync(join(tempDir, ".chainlesschain", "config.json"), "utf-8"),
+      );
+      expect(config.persona).toBeUndefined();
+    });
+
+    it("reports nothing to reset on bare project", () => {
+      const result = run("persona reset", { cwd: tempDir });
+      expect(result).toContain("Nothing to reset");
+    });
+  });
 });
 
 // ─── skill new subcommands ──────────────────────────────

@@ -4,7 +4,7 @@
 
 ## 核心特性
 
-- 🔌 **8 个提供商**: Ollama、OpenAI、Anthropic、DeepSeek、DashScope、Gemini、Mistral、Volcengine(豆包)
+- 🔌 **10 个提供商**: Volcengine(豆包)、OpenAI、Anthropic、DeepSeek、DashScope、Gemini、Kimi(月之暗面)、MiniMax(海螺AI)、Mistral、Ollama + 3 种中转站
 - 🧪 **连通性测试**: 一键验证 API 可用性
 - 📋 **模型列表**: 查看本地已安装的 Ollama 模型
 - 🔄 **动态切换**: 运行时切换提供商和模型
@@ -78,14 +78,16 @@ chainlesschain llm providers --json     # JSON 格式
 
 | 提供商             | 默认模型                  | 需要 API Key | API 格式           |
 | ------------------ | ------------------------- | ------------ | ------------------ |
-| Ollama (本地)      | qwen2:7b                  | 否           | Ollama 原生        |
+| Volcengine (豆包)  | doubao-seed-1-6-251015    | 是           | OpenAI 兼容        |
 | OpenAI             | gpt-4o                    | 是           | OpenAI             |
-| Anthropic          | claude-opus-4-6           | 是           | Anthropic Messages |
+| Anthropic (Claude) | claude-sonnet-4-6         | 是           | Anthropic Messages |
 | DeepSeek           | deepseek-chat             | 是           | OpenAI 兼容        |
 | DashScope (阿里)   | qwen-max                  | 是           | OpenAI 兼容        |
 | Google Gemini      | gemini-2.0-flash          | 是           | Gemini 原生        |
+| Kimi (月之暗面)    | moonshot-v1-auto          | 是           | OpenAI 兼容        |
+| MiniMax (海螺AI)   | MiniMax-Text-01           | 是           | OpenAI 兼容        |
 | Mistral AI         | mistral-large-latest      | 是           | OpenAI 兼容        |
-| Volcengine (豆包)  | doubao-seed-1-6-251015    | 是           | OpenAI 兼容        |
+| Ollama (本地)      | qwen2:7b                  | 否           | Ollama 原生        |
 
 ### Volcengine (豆包) 模型列表
 
@@ -119,7 +121,7 @@ ai>  def bubble_sort(arr): ...
 ## 关键文件
 
 - `packages/cli/src/commands/llm.js` — 命令实现
-- `packages/cli/src/lib/llm-providers.js` — 8 个 LLM 提供商适配层
+- `packages/cli/src/lib/llm-providers.js` — 10 个 LLM 提供商适配层
 - `packages/cli/src/lib/task-model-selector.js` — 任务智能模型选择器
 - `packages/cli/src/repl/chat-repl.js` — 流式聊天 REPL
 - `packages/cli/src/repl/agent-repl.js` — Agent 模式 REPL
@@ -128,13 +130,15 @@ ai>  def bubble_sort(arr): ...
 
 | 变量名              | 提供商           | 说明          |
 | ------------------- | ---------------- | ------------- |
+| `VOLCENGINE_API_KEY`| Volcengine (豆包) | 火山引擎 API Key |
 | `OPENAI_API_KEY`    | OpenAI           | OpenAI API Key |
 | `ANTHROPIC_API_KEY` | Anthropic        | Anthropic API Key |
 | `DEEPSEEK_API_KEY`  | DeepSeek         | DeepSeek API Key |
 | `DASHSCOPE_API_KEY` | DashScope        | 阿里 DashScope API Key |
 | `GEMINI_API_KEY`    | Google Gemini    | Gemini API Key |
+| `MOONSHOT_API_KEY`  | Kimi (月之暗面)  | Moonshot API Key |
+| `MINIMAX_API_KEY`   | MiniMax (海螺AI) | MiniMax API Key |
 | `MISTRAL_API_KEY`   | Mistral AI       | Mistral API Key |
-| `VOLCENGINE_API_KEY`| Volcengine (豆包) | 火山引擎 API Key |
 
 ## 安全考虑
 
