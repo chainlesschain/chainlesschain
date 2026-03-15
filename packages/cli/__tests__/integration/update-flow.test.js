@@ -110,7 +110,7 @@ describe("update flow (integration)", () => {
 
       // Simulate what selfUpdateCli does
       const targetVersion = "0.42.0";
-      const VERSION = "0.42.0";
+      const VERSION = "0.41.0";
       if (VERSION !== targetVersion) {
         execSync(`npm install -g chainlesschain@${targetVersion}`, {
           encoding: "utf-8",
