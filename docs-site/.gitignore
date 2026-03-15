@@ -1,1 +1,9 @@
+node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 *.tar.gz
+
+# 同步产物（源文件在 docs/design/）
+docs/design/*.md
+!docs/design/index.md
+docs/design/modules/
