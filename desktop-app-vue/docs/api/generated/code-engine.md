@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/code-engine.js`
 
-**Generated**: 2026-03-14T17:43:59.932Z
+**Generated**: 2026-03-15T02:03:03.960Z
 
 ---
 

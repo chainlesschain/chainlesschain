@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/audio-storage.js`
 
-**Generated**: 2026-03-14T17:43:59.848Z
+**Generated**: 2026-03-15T02:03:03.881Z
 
 ---
 

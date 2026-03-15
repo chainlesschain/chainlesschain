@@ -2,7 +2,7 @@
 
 **Source**: `src/main/api/rss-fetcher.js`
 
-**Generated**: 2026-03-14T17:43:59.963Z
+**Generated**: 2026-03-15T02:03:03.984Z
 
 ---
 
