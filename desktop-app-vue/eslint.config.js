@@ -18,6 +18,7 @@ module.exports = [
       "coverage/**",
       "browser-extension/**",
       "src/main/remote/browser-extension/**",
+      "scripts/**",
     ],
   },
 

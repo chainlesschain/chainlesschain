@@ -9,17 +9,6 @@ import path from "path";
 
 // ===================== MOCK SETUP =====================
 
-// Mock fs.promises
-const mockFs = {
-  mkdir: vi.fn().mockResolvedValue(undefined),
-  writeFile: vi.fn().mockResolvedValue(undefined),
-  readFile: vi.fn().mockResolvedValue("# Mock Document"),
-};
-
-vi.mock("fs", () => ({
-  promises: mockFs,
-}));
-
 // Mock Electron (让它抛出错误，使用非Electron环境)
 vi.mock("electron", () => {
   throw new Error("Not in Electron environment");
@@ -27,6 +16,14 @@ vi.mock("electron", () => {
 
 // Import after mocks
 const DocGenerator = require("../../../src/main/skill-tool-system/doc-generator");
+
+// Mock fs via _deps injection (Vitest CJS inline workaround)
+const mockFs = {
+  mkdir: vi.fn().mockResolvedValue(undefined),
+  writeFile: vi.fn().mockResolvedValue(undefined),
+  readFile: vi.fn().mockResolvedValue("# Mock Document"),
+};
+DocGenerator._deps.fs = mockFs;
 
 // ===================== MOCK DATA =====================
 

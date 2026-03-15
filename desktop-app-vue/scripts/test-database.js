@@ -40,7 +40,8 @@ require.cache[require.resolve("electron")] = {
 // Set global app for backward compatibility
 global.app = mockApp;
 
-const DatabaseManager = require("../src/main/database");
+const dbModule = require("../src/main/database");
+const DatabaseManager = dbModule.DatabaseManager || dbModule.default || dbModule;
 
 async function testDatabase() {
   console.log("=== 开始数据库测试 ===\n");
