@@ -1,9 +1,30 @@
 import chalk from "chalk";
+import { execSync } from "node:child_process";
 import { checkForUpdates } from "../lib/version-checker.js";
 import { downloadRelease } from "../lib/downloader.js";
 import { VERSION } from "../constants.js";
 import { askConfirm } from "../lib/prompts.js";
 import logger from "../lib/logger.js";
+
+async function selfUpdateCli(targetVersion) {
+  if (VERSION === targetVersion) {
+    return; // Already at the target version
+  }
+
+  try {
+    logger.info("Updating CLI package...");
+    execSync(`npm install -g chainlesschain@${targetVersion}`, {
+      encoding: "utf-8",
+      stdio: "pipe",
+    });
+    logger.success(`CLI updated to v${targetVersion}`);
+  } catch (_err) {
+    // npm global install may fail due to permissions; guide the user
+    logger.warn(
+      `CLI self-update failed. Please run manually:\n  npm install -g chainlesschain@${targetVersion}`,
+    );
+  }
+}
 
 export function registerUpdateCommand(program) {
   program
@@ -64,6 +85,10 @@ export function registerUpdateCommand(program) {
         }
 
         await downloadRelease(result.latestVersion, { force: options.force });
+
+        // Self-update the CLI npm package
+        await selfUpdateCli(result.latestVersion);
+
         logger.success(`Updated to v${result.latestVersion}`);
         logger.info("Restart ChainlessChain to use the new version.");
       } catch (err) {

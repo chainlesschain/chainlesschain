@@ -40,7 +40,7 @@ import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
 import {
   AGENT_TOOLS,
-  getBaseSystemPrompt,
+  buildSystemPrompt,
   executeTool as coreExecuteTool,
   agentLoop as coreAgentLoop,
   formatToolArgs,
@@ -150,7 +150,7 @@ export async function startAgentRepl(options = {}) {
   }
 
   const messages = [
-    { role: "system", content: getBaseSystemPrompt(process.cwd()) },
+    { role: "system", content: buildSystemPrompt(process.cwd()) },
   ];
 
   // Load resumed session messages

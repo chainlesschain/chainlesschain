@@ -35,6 +35,7 @@ vi.mock("../../src/lib/session-manager.js", () => ({
 
 vi.mock("../../src/lib/agent-core.js", () => ({
   getBaseSystemPrompt: vi.fn(() => "You are a helpful assistant."),
+  buildSystemPrompt: vi.fn(() => "You are a helpful assistant."),
 }));
 
 vi.mock("fs", () => ({
@@ -114,16 +115,13 @@ describe("WSSessionManager", () => {
       expect(session.projectRoot).toBe("/my/project");
     });
 
-    it("loads rules.md if exists", () => {
-      fs.existsSync.mockReturnValue(true);
-      fs.readFileSync.mockReturnValue("# My Rules\nDo good things.");
+    it("rules.md is now loaded by buildSystemPrompt (session.rulesContent is null)", () => {
       const { sessionId } = manager.createSession({
         projectRoot: "/proj",
       });
       const session = manager.getSession(sessionId);
-      expect(session.rulesContent).toBe("# My Rules\nDo good things.");
-      expect(fs.existsSync).toHaveBeenCalled();
-      expect(fs.readFileSync).toHaveBeenCalled();
+      // rules.md loading moved to buildSystemPrompt in agent-core.js
+      expect(session.rulesContent).toBeNull();
     });
 
     it("creates plan manager per session", () => {

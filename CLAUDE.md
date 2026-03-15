@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1.6 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 61 Commands/2503 Tests + Agent Context Engineering + Autonomous Agent + EvoMap + 8 LLM Providers + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + 4500+ Tests + 12 Store Test Files) - Updated 2026-03-15
+**Current Version**: v5.0.1.6 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 62 Commands/2595 Tests + Persona System + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + 4500+ Tests + 12 Store Test Files) - Updated 2026-03-15
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -123,7 +123,7 @@ chainlesschain mcp add fs -c npx -a "-y,@modelcontextprotocol/server-filesystem"
 chainlesschain mcp tools               # List available tools
 chainlesschain browse fetch https://example.com  # Fetch web page
 chainlesschain browse scrape <url> -s "h2"       # Scrape elements
-chainlesschain llm providers           # List 8 LLM providers
+chainlesschain llm providers           # List 10 LLM providers
 chainlesschain llm switch anthropic    # Switch active provider
 chainlesschain instinct show           # Learned preferences
 
@@ -159,6 +159,16 @@ chainlesschain plugin search <query>   # Search registry
 chainlesschain init                    # Interactive project init
 chainlesschain init --bare             # Minimal project structure
 chainlesschain init --template code-project --yes # Use template
+chainlesschain init --template medical-triage --yes  # Medical triage (with Persona)
+chainlesschain init --template agriculture-expert --yes # Agriculture expert (with Persona)
+chainlesschain init --template general-assistant --yes  # General assistant (with Persona)
+
+# Persona management
+chainlesschain persona show                # Show current project persona
+chainlesschain persona set --name "Bot" --role "Helper"  # Set persona
+chainlesschain persona set -b "Be polite"  # Add behavior constraint
+chainlesschain persona set --tools-disabled run_shell    # Disable tools
+chainlesschain persona reset               # Remove persona, restore default
 
 # Multi-agent collaboration (Cowork)
 chainlesschain cowork debate <file>    # Multi-perspective code review
@@ -359,7 +369,7 @@ Key highlights:
 Lightweight npm CLI (~2MB pure JS) for installing, configuring, and managing ChainlessChain. Downloads pre-built binaries on demand.
 
 - **Entry**: `bin/chainlesschain.js` → `src/index.js` (Commander)
-- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode, dao, compliance, dlp, siem, pqc, nostr, matrix, scim, terraform, hardening, social, cli-anything)
+- **Commands**: `src/commands/` (setup, start, stop, status, services, config, update, doctor, db, note, chat, ask, llm, agent, skill, search, tokens, memory, session, import, export, git, mcp, browse, instinct, did, encrypt, auth, audit, p2p, sync, wallet, org, plugin, init, persona, cowork, hook, workflow, hmemory, a2a, sandbox, evolution, economy, zkp, bi, lowcode, dao, compliance, dlp, siem, pqc, nostr, matrix, scim, terraform, hardening, social, cli-anything)
 - **REPL**: `src/repl/` (chat-repl.js — streaming chat, agent-repl.js — agentic with 9 tools + 138 skills + Plan Mode + /cowork + Context Engineering)
 - **Runtime**: `src/runtime/` (bootstrap.js — 7-stage headless init)
 - **Libraries**: `src/lib/` (platform, paths, downloader, process-manager, service-manager, config-manager, version-checker, logger, prompts, checksum, bm25-search, token-tracker, response-cache, session-manager, memory-manager, plan-mode, cli-context-engineering, permanent-memory, autonomous-agent, content-recommender, evomap-client, evomap-manager, knowledge-importer, knowledge-exporter, note-versioning, git-integration, pdf-parser, mcp-client, llm-providers, browser-automation, instinct-manager, did-manager, crypto-manager, permission-engine, audit-logger, p2p-manager, sync-manager, wallet-manager, org-manager, plugin-manager, project-detector, skill-loader, cowork-adapter, cowork/debate-review-cli, cowork/ab-comparator-cli, cowork/code-knowledge-graph-cli, cowork/decision-kb-cli, cowork/project-style-analyzer-cli, hook-manager, workflow-engine, hierarchical-memory, a2a-protocol, sandbox-v2, evolution-system, agent-economy, zkp-engine, bi-engine, agent-coordinator, service-container, app-builder, evomap-federation, evomap-governance, dao-governance, compliance-manager, dlp-engine, siem-exporter, pqc-manager, nostr-bridge, matrix-bridge, scim-manager, terraform-manager, hardening-manager, social-manager, cli-anything-bridge, ws-server, ws-session-manager, ws-agent-handler, ws-chat-handler, interaction-adapter, agent-core, chat-core, slot-filler, interactive-planner)

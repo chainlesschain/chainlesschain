@@ -34,14 +34,14 @@ chainlesschain setup    # Interactive setup wizard
 chainlesschain start    # Launch application
 ```
 
-- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 61 commands (incl. Phase 7-8 enterprise features + WebSocket Server)
+- ✅ **npm CLI Package** (`packages/cli/`) — Pure JS thin orchestrator (~2MB), 62 commands (incl. Phase 7-8 enterprise features + WebSocket Server + Persona)
 - ✅ **Interactive Setup Wizard** — Node.js/Docker check → edition select → LLM config → binary download → auto-configure
 - ✅ **GitHub Release Integration** — Auto-download platform binaries (Win/macOS/Linux) + SHA256 verification
 - ✅ **Docker Compose Orchestration** — One-command backend management (`services up/down/logs/pull`)
 - ✅ **Environment Diagnostics** (`doctor`) — 12 checks (Node/Docker/Git/ports/disk/network)
 - ✅ **Phase 1 AI Intelligence Layer** — BM25 search + Token tracking + Persistent memory + Session management + Agent Plan Mode
 - ✅ **Phase 2 Knowledge Management** — Knowledge import (Markdown/Evernote/Notion/PDF) + export (Markdown/static site) + Git integration + note versioning
-- ✅ **Phase 3 MCP & External Integration** — MCP server management (JSON-RPC 2.0) + 8 LLM providers + browser automation + instinct learning
+- ✅ **Phase 3 MCP & External Integration** — MCP server management (JSON-RPC 2.0) + 10 LLM providers + 3 proxy relays + browser automation + instinct learning
 - ✅ **Phase 4 Security & Identity** — DID identity management (Ed25519) + AES-256-GCM file encryption + RBAC permission engine + audit logging
 - ✅ **Phase 5 P2P & Enterprise** — P2P messaging + file sync + digital wallet (Ed25519) + org management + plugin marketplace
 - ✅ **Phase 6 AI Core** — Hook lifecycle management (28 event types) + DAG Workflow Engine (5 built-in templates) + Hierarchical Memory 2.0 (4-layer architecture + forgetting curve) + A2A Agent-to-Agent Protocol
@@ -51,7 +51,7 @@ chainlesschain start    # Launch application
 - ✅ **CI/CD Auto-publish** — GitHub Actions `npm publish --provenance` + supply chain security
 - ✅ **Agent Context Engineering** — 6-dimension context injection (Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary) + KV-Cache optimization + stable prefix caching + smart compaction + resumable summaries + session resume (`--session`)
 - ✅ **Autonomous Agent** — ReAct autonomous task loop (`/auto` command) + goal decomposition + self-correction
-- ✅ **Multi-Provider Support** — 8 LLM providers (ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine) + task-based intelligent model selection
+- ✅ **Multi-Provider Support** — 10 LLM providers (volcengine/openai/anthropic/deepseek/dashscope/gemini/kimi/minimax/mistral/ollama) + 3 proxy relays (OpenAI/Anthropic/Gemini) + task-based intelligent model selection
 - ✅ **DAG Plan Execution + Risk Assessment** — `/plan execute` topological sort + `/plan risk` risk scoring
 - ✅ **EvoMap Gene Exchange** — `evomap search|download|publish|list|hubs` GEP-A2A protocol client + Federation Hub management + Gene governance
 - ✅ **CLI-Anything Integration** — `cli-anything doctor|scan|register|list|remove` Agent-native software integration, auto-register as managed-layer skills
@@ -66,7 +66,8 @@ chainlesschain start    # Launch application
 - ✅ **Hook Pipeline** — PreToolUse/PostToolUse/ToolError tool call hooks integration
 - ✅ **Content Recommender** — TF-IDF tool similarity + tool chain frequency recommendation
 - ✅ **2063 Test Cases** — 92 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
-- ✅ **Project Initialization** (`init`) — 4 templates (code-project/data-science/devops/empty), generates `.chainlesschain/` project structure
+- ✅ **Project Initialization** (`init`) — 7 templates (code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/empty), generates `.chainlesschain/` project structure
+- ✅ **Persona System** — Project-level AI persona configuration (`persona show/set/reset`), replaces default coding assistant, tool permission control, auto-activated Persona Skills
 - ✅ **Multi-layer Skill System** — 4-layer priority (bundled < marketplace < managed < workspace), custom skill management (add/remove/sources)
 - ✅ **Multi-agent Collaboration** (`cowork`) — Multi-perspective debate review + A/B solution comparison + code knowledge graph analysis
 - ✅ **Plugin Skill Integration** — Plugins can declare and install skills to marketplace layer

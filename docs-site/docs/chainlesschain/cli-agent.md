@@ -15,6 +15,7 @@
 - 🤖 **自主模式**: /auto 命令提交目标，AI 自动分解执行
 - ⚠️ **DAG 执行 + 风险评估**: /plan execute 按依赖拓扑排序执行，/plan risk 显示风险评分
 - 🎯 **SlotFiller 意图检测**: 自动检测用户消息中的缺失参数，交互式补全后再调用 LLM
+- 🎭 **Persona 系统**: 项目级 AI 角色配置，自动替换默认编码助手，支持工具权限控制
 
 ## 系统架构
 
@@ -44,6 +45,8 @@ agent 命令 → agent.js (Commander) → agent-repl.js
 启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、运行代码脚本（Python/Node.js/Bash）、调用 138 个内置技能。
 支持 8 个 LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine）和自主模式（/auto）。Agent 模式下自动根据任务类型智能选择最佳模型。
 通过 6 维 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）、任务目标提醒、跨会话持久记忆（Permanent Memory）和压缩摘要（Compaction Summary），使 AI 保持上下文聚焦。
+
+**Persona 支持**: 当项目配置了 Persona（通过 `init --template medical-triage` 或 `persona set`），Agent 自动使用自定义角色替代默认编码助手，并按 `toolsDisabled` 过滤可用工具。详见 [Persona 命令](./cli-persona)。
 
 ## 命令参考
 

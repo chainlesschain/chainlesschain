@@ -63,6 +63,93 @@ const TEMPLATES = {
 `,
     skills: ["debug", "summarize", "code-review"],
   },
+  "medical-triage": {
+    description:
+      "Medical triage assistant with symptom assessment and ESI classification",
+    rules: `# Project Rules
+
+## Medical Guidelines
+- Always ask for patient symptoms before providing guidance
+- Use standard ESI (Emergency Severity Index) levels 1-5
+- Never provide definitive diagnoses — recommend professional evaluation
+- Document all triage decisions with reasoning
+
+## AI Assistant Guidelines
+- Prioritize patient safety in all responses
+- Use clear, non-technical language when possible
+- Flag emergency symptoms immediately
+`,
+    skills: ["summarize"],
+    persona: {
+      name: "智能分诊助手",
+      role: "你是一个医疗分诊AI助手，帮助诊所工作人员根据症状和紧急��度对患者进行优先级分类。",
+      behaviors: [
+        "始终先询问患者症状再给出建议",
+        "使用标准分诊分类 (ESI 1-5)",
+        "绝不提供确定性诊断，建议专业评估",
+        "记录所有分诊决策及其理由",
+      ],
+      toolsPriority: ["read_file", "search_files"],
+      toolsDisabled: [],
+    },
+  },
+  "agriculture-expert": {
+    description:
+      "Agriculture expert assistant for crop management and farming advice",
+    rules: `# Project Rules
+
+## Agriculture Guidelines
+- Consider local climate and soil conditions
+- Recommend sustainable farming practices
+- Provide seasonal planting calendars when relevant
+- Reference pest management best practices
+
+## AI Assistant Guidelines
+- Ask about specific crops and region before advising
+- Use data-driven recommendations when possible
+- Warn about pesticide safety and environmental impact
+`,
+    skills: ["summarize"],
+    persona: {
+      name: "农业专家助手",
+      role: "你是一个农业技术AI助手，帮助农户进行作物管理、病虫害防治和产量优化。",
+      behaviors: [
+        "根据当地气候和土壤条件提供建议",
+        "推荐可持续的农业实践方法",
+        "提供季节性种植日历和管理建议",
+        "使用数据驱动的决策支持",
+      ],
+      toolsPriority: ["read_file", "search_files", "run_code"],
+      toolsDisabled: [],
+    },
+  },
+  "general-assistant": {
+    description: "General-purpose assistant without coding bias",
+    rules: `# Project Rules
+
+## General Guidelines
+- Focus on the user's domain and questions
+- Provide clear, well-structured responses
+- Use tools to manage files and information as needed
+
+## AI Assistant Guidelines
+- Adapt your communication style to the user's needs
+- Ask clarifying questions when requirements are ambiguous
+- Organize information in a logical, easy-to-follow manner
+`,
+    skills: ["summarize"],
+    persona: {
+      name: "通用AI助手",
+      role: "你是一个通用AI助手，根据用户的具体需求和项目上下文提供帮助。你不局限于编码任务，而是全面地协助用户完成各种工作。",
+      behaviors: [
+        "根据用户的领域调整回答风格",
+        "在需求不明确时主动询问",
+        "用清晰、结构化的方式组织信息",
+      ],
+      toolsPriority: ["read_file", "write_file", "search_files"],
+      toolsDisabled: [],
+    },
+  },
   empty: {
     description: "Bare project with minimal configuration",
     rules: `# Project Rules
@@ -82,7 +169,7 @@ export function registerInitCommand(program) {
     )
     .option(
       "-t, --template <name>",
-      "Project template (code-project, data-science, devops, empty)",
+      "Project template (code-project, data-science, devops, medical-triage, agriculture-expert, general-assistant, empty)",
       "empty",
     )
     .option("-y, --yes", "Skip prompts, use defaults")
@@ -147,6 +234,9 @@ export function registerInitCommand(program) {
             workspace: "./skills",
           },
         };
+        if (tmpl.persona) {
+          config.persona = tmpl.persona;
+        }
         fs.writeFileSync(
           path.join(ccDir, "config.json"),
           JSON.stringify(config, null, 2),
@@ -155,6 +245,36 @@ export function registerInitCommand(program) {
 
         // rules.md
         fs.writeFileSync(path.join(ccDir, "rules.md"), tmpl.rules, "utf-8");
+
+        // Create auto-activated persona skill if template has persona
+        if (tmpl.persona) {
+          const personaSkillDir = path.join(
+            ccDir,
+            "skills",
+            `${template}-persona`,
+          );
+          fs.mkdirSync(personaSkillDir, { recursive: true });
+          const skillMd = `---
+name: ${template}-persona
+display-name: ${tmpl.persona.name || template} Persona
+category: persona
+activation: auto
+user-invocable: false
+description: Auto-activated persona for ${template} projects
+---
+
+# ${tmpl.persona.name || template}
+
+${tmpl.persona.role || ""}
+
+${tmpl.persona.behaviors?.map((b) => `- ${b}`).join("\n") || ""}
+`;
+          fs.writeFileSync(
+            path.join(personaSkillDir, "SKILL.md"),
+            skillMd,
+            "utf-8",
+          );
+        }
 
         logger.success(
           `Initialized ChainlessChain project in ${chalk.cyan(cwd)}`,

@@ -4,13 +4,14 @@ import {
   BUILT_IN_PROVIDERS,
   LLMProviderRegistry,
 } from "../../src/lib/llm-providers.js";
+import { LLM_PROVIDERS } from "../../src/constants.js";
 
 describe("LLM Providers", () => {
   // ─── BUILT_IN_PROVIDERS ───────────────────────────────────────
 
   describe("BUILT_IN_PROVIDERS", () => {
-    it("should have 8 built-in providers", () => {
-      expect(Object.keys(BUILT_IN_PROVIDERS)).toHaveLength(8);
+    it("should have 10 built-in providers", () => {
+      expect(Object.keys(BUILT_IN_PROVIDERS)).toHaveLength(10);
     });
 
     it("should include expected providers", () => {
@@ -22,6 +23,8 @@ describe("LLM Providers", () => {
       expect(BUILT_IN_PROVIDERS.gemini).toBeDefined();
       expect(BUILT_IN_PROVIDERS.mistral).toBeDefined();
       expect(BUILT_IN_PROVIDERS.volcengine).toBeDefined();
+      expect(BUILT_IN_PROVIDERS.kimi).toBeDefined();
+      expect(BUILT_IN_PROVIDERS.minimax).toBeDefined();
     });
 
     it("should have correct Ollama config", () => {
@@ -55,6 +58,22 @@ describe("LLM Providers", () => {
       expect(volcengine.free).toBe(false);
     });
 
+    it("should have correct Kimi config", () => {
+      const kimi = BUILT_IN_PROVIDERS.kimi;
+      expect(kimi.apiKeyEnv).toBe("MOONSHOT_API_KEY");
+      expect(kimi.baseUrl).toBe("https://api.moonshot.cn/v1");
+      expect(kimi.models).toContain("moonshot-v1-auto");
+      expect(kimi.free).toBe(false);
+    });
+
+    it("should have correct MiniMax config", () => {
+      const minimax = BUILT_IN_PROVIDERS.minimax;
+      expect(minimax.apiKeyEnv).toBe("MINIMAX_API_KEY");
+      expect(minimax.baseUrl).toBe("https://api.minimax.chat/v1");
+      expect(minimax.models).toContain("MiniMax-Text-01");
+      expect(minimax.free).toBe(false);
+    });
+
     it("all providers should have name, displayName, baseUrl, models", () => {
       for (const [key, provider] of Object.entries(BUILT_IN_PROVIDERS)) {
         expect(provider.name).toBe(key);
@@ -81,9 +100,9 @@ describe("LLM Providers", () => {
       expect(db.tables.has("llm_providers")).toBe(true);
     });
 
-    it("should have all 8 built-in providers loaded", () => {
+    it("should have all 10 built-in providers loaded", () => {
       const providers = registry.list();
-      expect(providers.length).toBeGreaterThanOrEqual(8);
+      expect(providers.length).toBeGreaterThanOrEqual(10);
     });
 
     it("should get a specific provider", () => {
@@ -176,7 +195,7 @@ describe("LLM Providers", () => {
       const volcengine = registry.get("volcengine");
       expect(volcengine).toBeTruthy();
       expect(volcengine.name).toBe("volcengine");
-      expect(volcengine.displayName).toBe("Volcengine (豆包)");
+      expect(volcengine.displayName).toBe("Volcengine (火山引擎/豆包)");
       expect(volcengine.baseUrl).toContain("ark.cn-beijing.volces.com");
       expect(volcengine.apiKeyEnv).toBe("VOLCENGINE_API_KEY");
       expect(volcengine.models).toContain("doubao-seed-code");
@@ -193,7 +212,7 @@ describe("LLM Providers", () => {
       const providers = registry.list();
       const volcengine = providers.find((p) => p.name === "volcengine");
       expect(volcengine).toBeTruthy();
-      expect(volcengine.displayName).toBe("Volcengine (豆包)");
+      expect(volcengine.displayName).toBe("Volcengine (火山引擎/豆包)");
       expect(volcengine.free).toBe(false);
     });
 
@@ -206,6 +225,105 @@ describe("LLM Providers", () => {
       expect(() => registry.removeProvider("volcengine")).toThrow(
         "Cannot remove built-in",
       );
+    });
+
+    it("should get kimi provider with correct config", () => {
+      const kimi = registry.get("kimi");
+      expect(kimi).toBeTruthy();
+      expect(kimi.name).toBe("kimi");
+      expect(kimi.displayName).toBe("Kimi (月之暗面)");
+      expect(kimi.baseUrl).toBe("https://api.moonshot.cn/v1");
+      expect(kimi.apiKeyEnv).toBe("MOONSHOT_API_KEY");
+      expect(kimi.models).toContain("moonshot-v1-auto");
+      expect(kimi.custom).toBe(false);
+    });
+
+    it("should switch active provider to kimi", () => {
+      const provider = registry.setActive("kimi");
+      expect(provider.name).toBe("kimi");
+      expect(registry.getActive()).toBe("kimi");
+    });
+
+    it("should not allow removing kimi (built-in)", () => {
+      expect(() => registry.removeProvider("kimi")).toThrow(
+        "Cannot remove built-in",
+      );
+    });
+
+    it("should get minimax provider with correct config", () => {
+      const minimax = registry.get("minimax");
+      expect(minimax).toBeTruthy();
+      expect(minimax.name).toBe("minimax");
+      expect(minimax.displayName).toBe("MiniMax (海螺AI)");
+      expect(minimax.baseUrl).toBe("https://api.minimax.chat/v1");
+      expect(minimax.apiKeyEnv).toBe("MINIMAX_API_KEY");
+      expect(minimax.models).toContain("MiniMax-Text-01");
+      expect(minimax.custom).toBe(false);
+    });
+
+    it("should switch active provider to minimax", () => {
+      const provider = registry.setActive("minimax");
+      expect(provider.name).toBe("minimax");
+      expect(registry.getActive()).toBe("minimax");
+    });
+
+    it("should not allow removing minimax (built-in)", () => {
+      expect(() => registry.removeProvider("minimax")).toThrow(
+        "Cannot remove built-in",
+      );
+    });
+  });
+
+  // ─── LLM_PROVIDERS (constants.js - setup wizard) ─────────────
+
+  describe("LLM_PROVIDERS (constants.js - setup wizard)", () => {
+    it("should have 14 provider entries", () => {
+      expect(Object.keys(LLM_PROVIDERS)).toHaveLength(14);
+    });
+
+    it("should have volcengine as first provider", () => {
+      const keys = Object.keys(LLM_PROVIDERS);
+      expect(keys[0]).toBe("volcengine");
+    });
+
+    it("should have proxy entries with isProxy flag", () => {
+      expect(LLM_PROVIDERS["openai-proxy"].isProxy).toBe(true);
+      expect(LLM_PROVIDERS["anthropic-proxy"].isProxy).toBe(true);
+      expect(LLM_PROVIDERS["gemini-proxy"].isProxy).toBe(true);
+    });
+
+    it("should have correct default config for volcengine", () => {
+      expect(LLM_PROVIDERS.volcengine.defaultBaseUrl).toBe(
+        "https://ark.cn-beijing.volces.com/api/v3",
+      );
+      expect(LLM_PROVIDERS.volcengine.defaultModel).toBe(
+        "doubao-seed-1-6-251015",
+      );
+      expect(LLM_PROVIDERS.volcengine.requiresApiKey).toBe(true);
+    });
+
+    it("should include kimi and minimax", () => {
+      expect(LLM_PROVIDERS.kimi).toBeDefined();
+      expect(LLM_PROVIDERS.kimi.name).toBe("Kimi (月之暗面)");
+      expect(LLM_PROVIDERS.minimax).toBeDefined();
+      expect(LLM_PROVIDERS.minimax.name).toBe("MiniMax (海螺AI)");
+    });
+
+    it("proxy entries should have empty defaultBaseUrl", () => {
+      expect(LLM_PROVIDERS["openai-proxy"].defaultBaseUrl).toBe("");
+      expect(LLM_PROVIDERS["anthropic-proxy"].defaultBaseUrl).toBe("");
+      expect(LLM_PROVIDERS["gemini-proxy"].defaultBaseUrl).toBe("");
+    });
+
+    it("custom entry should have empty defaults", () => {
+      expect(LLM_PROVIDERS.custom.defaultBaseUrl).toBe("");
+      expect(LLM_PROVIDERS.custom.defaultModel).toBe("");
+    });
+
+    it("should have volcengine as default in DEFAULT_CONFIG", async () => {
+      const { DEFAULT_CONFIG } = await import("../../src/constants.js");
+      expect(DEFAULT_CONFIG.llm.provider).toBe("volcengine");
+      expect(DEFAULT_CONFIG.llm.baseUrl).toContain("ark.cn-beijing.volces.com");
     });
   });
 });

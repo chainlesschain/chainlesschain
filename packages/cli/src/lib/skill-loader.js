@@ -212,6 +212,7 @@ export class CLISkillLoader {
             description: data.description || "",
             version: data.version || "1.0.0",
             category: data.category || "uncategorized",
+            activation: data.activation || "manual",
             tags: data.tags || [],
             userInvocable: data.userInvocable !== false,
             handler: data.handler || null,
@@ -263,6 +264,16 @@ export class CLISkillLoader {
   getResolvedSkills() {
     if (this._cache) return this._cache;
     return this.loadAll();
+  }
+
+  /**
+   * Get auto-activated persona skills
+   * @returns {object[]} skills with category "persona" and activation "auto"
+   */
+  getAutoActivatedPersonas() {
+    return this.getResolvedSkills().filter(
+      (s) => s.category === "persona" && s.activation === "auto",
+    );
   }
 
   /**

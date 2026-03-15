@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-// Mock plan-mode, skill-loader, hook-manager before importing agent-core
+// Mock plan-mode, skill-loader, hook-manager, project-detector before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => ({
   getPlanModeManager: vi.fn(() => ({
     isActive: () => false,
@@ -14,29 +14,42 @@ vi.mock("../../src/lib/plan-mode.js", () => ({
   })),
 }));
 
+const _mockSkills = [
+  {
+    id: "code-review",
+    dirName: "code-review",
+    category: "development",
+    activation: "manual",
+    source: "bundled",
+    hasHandler: true,
+    description: "Review code for quality",
+    skillDir: "/fake/skills/code-review",
+  },
+  {
+    id: "summarize",
+    dirName: "summarize",
+    category: "productivity",
+    activation: "manual",
+    source: "bundled",
+    hasHandler: false,
+    description: "Summarize text",
+    skillDir: "/fake/skills/summarize",
+  },
+];
+
 vi.mock("../../src/lib/skill-loader.js", () => ({
   CLISkillLoader: vi.fn().mockImplementation(() => ({
-    getResolvedSkills: vi.fn(() => [
-      {
-        id: "code-review",
-        dirName: "code-review",
-        category: "development",
-        source: "bundled",
-        hasHandler: true,
-        description: "Review code for quality",
-        skillDir: "/fake/skills/code-review",
-      },
-      {
-        id: "summarize",
-        dirName: "summarize",
-        category: "productivity",
-        source: "bundled",
-        hasHandler: false,
-        description: "Summarize text",
-        skillDir: "/fake/skills/summarize",
-      },
-    ]),
+    getResolvedSkills: vi.fn(() => _mockSkills),
   })),
+}));
+
+let _mockProjectRoot = null;
+let _mockProjectConfig = null;
+
+vi.mock("../../src/lib/project-detector.js", () => ({
+  findProjectRoot: vi.fn(() => _mockProjectRoot),
+  loadProjectConfig: vi.fn(() => _mockProjectConfig),
+  isInsideProject: vi.fn(() => _mockProjectRoot !== null),
 }));
 
 vi.mock("../../src/lib/hook-manager.js", () => ({
@@ -51,6 +64,7 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
 const {
   AGENT_TOOLS,
   getBaseSystemPrompt,
+  buildSystemPrompt,
   formatToolArgs,
   executeTool,
   chatWithTools,
@@ -97,6 +111,136 @@ describe("getBaseSystemPrompt", () => {
     const prompt = getBaseSystemPrompt();
     expect(prompt).toContain("Current working directory:");
     expect(prompt).toContain(process.cwd());
+  });
+
+  it("always returns default coding prompt (persona handled by buildSystemPrompt)", () => {
+    const prompt = getBaseSystemPrompt("/any/path");
+    expect(prompt).toContain("ChainlessChain AI Assistant");
+    expect(prompt).toContain("agentic coding assistant");
+  });
+});
+
+describe("buildSystemPrompt", () => {
+  let tempDir;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cc-persona-test-"));
+    _mockProjectRoot = null;
+    _mockProjectConfig = null;
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+    _mockProjectRoot = null;
+    _mockProjectConfig = null;
+  });
+
+  it("returns default prompt when no project root", () => {
+    const prompt = buildSystemPrompt(tempDir);
+    expect(prompt).toContain("ChainlessChain AI Assistant");
+  });
+
+  it("appends rules.md when present", () => {
+    _mockProjectRoot = tempDir;
+    _mockProjectConfig = { name: "test" };
+    const ccDir = join(tempDir, ".chainlesschain");
+    fs.mkdirSync(ccDir, { recursive: true });
+    fs.writeFileSync(join(ccDir, "rules.md"), "Always use TDD", "utf-8");
+
+    const prompt = buildSystemPrompt(tempDir);
+    expect(prompt).toContain("## Project Rules");
+    expect(prompt).toContain("Always use TDD");
+  });
+
+  it("returns persona prompt when config has persona", () => {
+    _mockProjectRoot = tempDir;
+    _mockProjectConfig = {
+      name: "clinic",
+      persona: {
+        name: "医疗助手",
+        role: "你是医疗分诊AI",
+        behaviors: ["询问症状"],
+      },
+    };
+
+    const prompt = buildSystemPrompt(tempDir);
+    expect(prompt).toContain("医疗助手");
+    expect(prompt).toContain("你是医疗分诊AI");
+    expect(prompt).not.toContain("agentic coding assistant");
+  });
+
+  it("appends auto-activated persona skills", () => {
+    _mockSkills.push({
+      id: "test-persona",
+      displayName: "Test Persona",
+      category: "persona",
+      activation: "auto",
+      body: "You are a test persona with special powers.",
+      source: "workspace",
+    });
+
+    const prompt = buildSystemPrompt(tempDir);
+    expect(prompt).toContain("## Persona: Test Persona");
+    expect(prompt).toContain("You are a test persona with special powers.");
+
+    // Clean up mock skills
+    _mockSkills.pop();
+  });
+
+  it("does not include manual persona skills", () => {
+    _mockSkills.push({
+      id: "manual-persona",
+      displayName: "Manual Persona",
+      category: "persona",
+      activation: "manual",
+      body: "Should not appear.",
+      source: "workspace",
+    });
+
+    const prompt = buildSystemPrompt(tempDir);
+    expect(prompt).not.toContain("Manual Persona");
+    expect(prompt).not.toContain("Should not appear.");
+
+    _mockSkills.pop();
+  });
+
+  it("gracefully handles missing rules.md", () => {
+    _mockProjectRoot = tempDir;
+    _mockProjectConfig = { name: "test" };
+    // No .chainlesschain/rules.md created
+    const prompt = buildSystemPrompt(tempDir);
+    expect(prompt).not.toContain("## Project Rules");
+  });
+
+  it("combines persona config + persona skill + rules.md", () => {
+    _mockProjectRoot = tempDir;
+    _mockProjectConfig = {
+      name: "clinic",
+      persona: {
+        name: "医疗助手",
+        role: "你是医疗分诊AI",
+      },
+    };
+    const ccDir = join(tempDir, ".chainlesschain");
+    fs.mkdirSync(ccDir, { recursive: true });
+    fs.writeFileSync(join(ccDir, "rules.md"), "Safety first", "utf-8");
+
+    _mockSkills.push({
+      id: "extra-persona",
+      displayName: "Extra Guidelines",
+      category: "persona",
+      activation: "auto",
+      body: "Additional persona instructions.",
+      source: "workspace",
+    });
+
+    const prompt = buildSystemPrompt(tempDir);
+    expect(prompt).toContain("医疗助手");
+    expect(prompt).toContain("## Persona: Extra Guidelines");
+    expect(prompt).toContain("## Project Rules");
+    expect(prompt).toContain("Safety first");
+
+    _mockSkills.pop();
   });
 });
 
@@ -343,6 +487,26 @@ describe("executeTool", () => {
     expect(result.error).toContain("Plan Mode");
     expect(result.error).toContain("blocked");
   });
+
+  it("blocks tool when persona.toolsDisabled includes it", async () => {
+    _mockProjectRoot = tempDir;
+    _mockProjectConfig = {
+      persona: {
+        name: "Restricted",
+        toolsDisabled: ["run_shell"],
+      },
+    };
+
+    const result = await executeTool(
+      "run_shell",
+      { command: "echo hi" },
+      { cwd: tempDir },
+    );
+    expect(result.error).toContain("disabled by project persona");
+
+    _mockProjectRoot = null;
+    _mockProjectConfig = null;
+  });
 });
 
 describe("chatWithTools", () => {
@@ -350,6 +514,42 @@ describe("chatWithTools", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    _mockProjectRoot = null;
+    _mockProjectConfig = null;
+  });
+
+  it("filters tools when persona.toolsDisabled is set", async () => {
+    _mockProjectRoot = "/fake/project";
+    _mockProjectConfig = {
+      persona: {
+        name: "Restricted",
+        toolsDisabled: ["run_shell", "run_code"],
+      },
+    };
+
+    let capturedBody;
+    globalThis.fetch = vi.fn().mockImplementation(async (url, opts) => {
+      capturedBody = JSON.parse(opts.body);
+      return {
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "filtered" },
+        }),
+      };
+    });
+
+    await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+      cwd: "/fake/project",
+    });
+
+    const toolNames = capturedBody.tools.map((t) => t.function.name);
+    expect(toolNames).not.toContain("run_shell");
+    expect(toolNames).not.toContain("run_code");
+    expect(toolNames).toContain("read_file");
+    expect(capturedBody.tools.length).toBe(7); // 9 - 2 disabled
   });
 
   it("Ollama provider: fetch URL contains /api/chat with tools", async () => {

@@ -1,10 +1,11 @@
 /**
- * E2E tests for volcengine provider + task-model-selector CLI integration.
+ * E2E tests for LLM providers + task-model-selector CLI integration.
  *
  * Verifies that:
- * - CLI help output includes volcengine references
- * - llm providers command lists volcengine
- * - ask command accepts volcengine as a provider option
+ * - CLI help output includes provider references
+ * - llm providers command lists all 10 built-in providers (incl. kimi, minimax)
+ * - ask/chat/agent commands accept provider options
+ * - task-model-selector works for all providers
  */
 
 import { describe, it, expect } from "vitest";
@@ -52,8 +53,8 @@ function extractJsonArray(output) {
   return JSON.parse(output.substring(idx));
 }
 
-describe("E2E: Volcengine Provider & Task Model Selector", () => {
-  // ─── LLM command: volcengine visibility ─────────────────────
+describe("E2E: LLM Providers & Task Model Selector", () => {
+  // ─── LLM command: provider visibility ─────────────────────
 
   describe("llm command", () => {
     it("llm --help lists providers subcommand", () => {
@@ -65,14 +66,12 @@ describe("E2E: Volcengine Provider & Task Model Selector", () => {
 
     it("llm providers --json includes volcengine", () => {
       const { stdout } = tryRun("llm providers --json");
-      // Output may have log lines; extract JSON array
       if (!stdout.includes("[{")) {
-        // DB may fail to init in CI — skip gracefully
         return;
       }
       const providers = extractJsonArray(stdout);
       expect(Array.isArray(providers)).toBe(true);
-      expect(providers.length).toBeGreaterThanOrEqual(8);
+      expect(providers.length).toBeGreaterThanOrEqual(10);
 
       const volcengine = providers.find((p) => p.name === "volcengine");
       expect(volcengine).toBeTruthy();
@@ -82,7 +81,27 @@ describe("E2E: Volcengine Provider & Task Model Selector", () => {
       expect(volcengine.models).toContain("doubao-seed-code");
     });
 
-    it("llm providers lists all 8 built-in providers", () => {
+    it("llm providers --json includes kimi and minimax", () => {
+      const { stdout } = tryRun("llm providers --json");
+      if (!stdout.includes("[{")) {
+        return;
+      }
+      const providers = extractJsonArray(stdout);
+
+      const kimi = providers.find((p) => p.name === "kimi");
+      expect(kimi).toBeTruthy();
+      expect(kimi.displayName).toContain("Kimi");
+      expect(kimi.baseUrl).toContain("api.moonshot.cn");
+      expect(kimi.models).toContain("moonshot-v1-auto");
+
+      const minimax = providers.find((p) => p.name === "minimax");
+      expect(minimax).toBeTruthy();
+      expect(minimax.displayName).toContain("MiniMax");
+      expect(minimax.baseUrl).toContain("api.minimax.chat");
+      expect(minimax.models).toContain("MiniMax-Text-01");
+    });
+
+    it("llm providers lists all 10 built-in providers", () => {
       const { stdout } = tryRun("llm providers --json");
       if (!stdout.includes("[{")) {
         return;
@@ -99,10 +118,12 @@ describe("E2E: Volcengine Provider & Task Model Selector", () => {
       expect(builtinNames).toContain("gemini");
       expect(builtinNames).toContain("mistral");
       expect(builtinNames).toContain("volcengine");
+      expect(builtinNames).toContain("kimi");
+      expect(builtinNames).toContain("minimax");
     });
   });
 
-  // ─── ask command: volcengine option ─────────────────────────
+  // ─── ask command: provider options ──────────────────────────
 
   describe("ask command", () => {
     it("ask --help shows volcengine in provider description", () => {
@@ -115,13 +136,12 @@ describe("E2E: Volcengine Provider & Task Model Selector", () => {
       const { stderr, exitCode } = tryRun(
         'ask "hello" --provider volcengine --model doubao-seed-1-6-251015',
       );
-      // Should fail with API key error, not crash
       expect(exitCode).not.toBe(0);
       expect(stderr || "").toMatch(/API key|VOLCENGINE_API_KEY|Failed/i);
     });
   });
 
-  // ─── chat command: volcengine option ────────────────────────
+  // ─── chat command ─────────────────────────────────────────
 
   describe("chat command", () => {
     it("chat --help shows provider option", () => {
@@ -130,7 +150,7 @@ describe("E2E: Volcengine Provider & Task Model Selector", () => {
     });
   });
 
-  // ─── agent command: volcengine option ───────────────────────
+  // ─── agent command ────────────────────────────────────────
 
   describe("agent command", () => {
     it("agent --help shows provider option", () => {
@@ -139,10 +159,10 @@ describe("E2E: Volcengine Provider & Task Model Selector", () => {
     });
   });
 
-  // ─── Task Model Selector module import ──────────────────────
+  // ─── Task Model Selector module ───────────────────────────
 
   describe("task-model-selector module", () => {
-    it("should be importable and functional", async () => {
+    it("should select correct model for volcengine code task", async () => {
       const { detectTaskType, selectModelForTask, TaskType } =
         await import("../../src/lib/task-model-selector.js");
 
@@ -151,6 +171,72 @@ describe("E2E: Volcengine Provider & Task Model Selector", () => {
 
       const model = selectModelForTask("volcengine", task.taskType);
       expect(model).toBe("doubao-seed-1-6-251015");
+    });
+
+    it("should select correct model for kimi and minimax", async () => {
+      const { selectModelForTask, TaskType } =
+        await import("../../src/lib/task-model-selector.js");
+
+      expect(selectModelForTask("kimi", TaskType.CHAT)).toBe(
+        "moonshot-v1-auto",
+      );
+      expect(selectModelForTask("kimi", TaskType.FAST)).toBe("moonshot-v1-8k");
+      expect(selectModelForTask("minimax", TaskType.CHAT)).toBe(
+        "MiniMax-Text-01",
+      );
+      expect(selectModelForTask("minimax", TaskType.FAST)).toBe(
+        "abab6.5s-chat",
+      );
+    });
+
+    it("should return model for all 10 providers across all task types", async () => {
+      const { selectModelForTask, TaskType } =
+        await import("../../src/lib/task-model-selector.js");
+
+      const providers = [
+        "volcengine",
+        "openai",
+        "anthropic",
+        "deepseek",
+        "dashscope",
+        "gemini",
+        "kimi",
+        "minimax",
+        "mistral",
+        "ollama",
+      ];
+      const taskTypes = Object.values(TaskType);
+
+      for (const provider of providers) {
+        for (const taskType of taskTypes) {
+          const model = selectModelForTask(provider, taskType);
+          expect(
+            model,
+            `Missing model for ${provider}/${taskType}`,
+          ).toBeTruthy();
+        }
+      }
+    });
+  });
+
+  // ─── Constants: LLM_PROVIDERS setup wizard entries ─────────
+
+  describe("constants LLM_PROVIDERS", () => {
+    it("should have volcengine as first provider and include proxy entries", async () => {
+      const { LLM_PROVIDERS } = await import("../../src/constants.js");
+      const keys = Object.keys(LLM_PROVIDERS);
+      expect(keys[0]).toBe("volcengine");
+      expect(keys).toContain("openai-proxy");
+      expect(keys).toContain("anthropic-proxy");
+      expect(keys).toContain("gemini-proxy");
+      expect(keys).toContain("kimi");
+      expect(keys).toContain("minimax");
+      expect(keys).toContain("custom");
+    });
+
+    it("should have volcengine as default provider in DEFAULT_CONFIG", async () => {
+      const { DEFAULT_CONFIG } = await import("../../src/constants.js");
+      expect(DEFAULT_CONFIG.llm.provider).toBe("volcengine");
     });
   });
 });

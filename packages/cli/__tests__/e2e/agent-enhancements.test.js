@@ -1,5 +1,5 @@
 /**
- * E2E tests for CLI Agent v0.41.1 enhancements:
+ * E2E tests for CLI Agent v0.42.0 enhancements:
  * - run_code tool in TOOLS definition
  * - Upgraded default models (qwen2.5:7b)
  * - Enhanced system prompt
@@ -27,7 +27,7 @@ function run(args, options = {}) {
   });
 }
 
-describe("E2E: Agent v0.41.1 Enhancements", () => {
+describe("E2E: Agent v0.42.0 Enhancements", () => {
   // ─── agent --help validation ──────────────────────────────
 
   describe("agent --help", () => {
@@ -223,6 +223,26 @@ describe("E2E: Agent v0.41.1 Enhancements", () => {
       expect(content).toContain("getEnvironmentInfo");
       expect(content).toContain("getCachedPython");
     });
+
+    it("agent-core exports buildSystemPrompt for persona support", () => {
+      const agentCorePath = join(cliRoot, "src", "lib", "agent-core.js");
+      const content = readFileSync(agentCorePath, "utf8");
+      expect(content).toContain("export function buildSystemPrompt");
+      expect(content).toContain("_loadProjectPersona");
+      expect(content).toContain("_buildPersonaPrompt");
+      expect(content).toContain("toolsDisabled");
+      expect(content).toContain("findProjectRoot");
+      expect(content).toContain("loadProjectConfig");
+    });
+
+    it("agent-repl uses buildSystemPrompt instead of getBaseSystemPrompt", () => {
+      const replContent = readFileSync(
+        join(cliRoot, "src", "repl", "agent-repl.js"),
+        "utf8",
+      );
+      expect(replContent).toContain("buildSystemPrompt");
+      expect(replContent).not.toContain("getBaseSystemPrompt");
+    });
   });
 
   // ─── task-model-selector upgraded mappings ────────────────
@@ -267,9 +287,9 @@ describe("E2E: Agent v0.41.1 Enhancements", () => {
   // ─── version bump ─────────────────────────────────────────
 
   describe("version bump", () => {
-    it("CLI version should be 0.41.1", () => {
+    it("CLI version should be 0.42.0", () => {
       const result = run("--version");
-      expect(result.trim()).toBe("0.41.1");
+      expect(result.trim()).toBe("0.42.0");
     });
   });
 });
