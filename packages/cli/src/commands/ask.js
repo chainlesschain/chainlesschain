@@ -1,12 +1,13 @@
 /**
  * Single-shot AI question command
- * chainlesschain ask "What is..." [--model qwen2:7b] [--provider ollama] [--json]
+ * chainlesschain ask "What is..." [--model] [--provider] [--json]
  */
 
 import ora from "ora";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import { loadConfig } from "../lib/config-manager.js";
 
 /**
  * Send a single question to an LLM provider
@@ -84,24 +85,25 @@ export function registerAskCommand(program) {
     .command("ask")
     .description("Ask a question to the AI (single-shot)")
     .argument("<question>", "The question to ask")
-    .option("--model <model>", "Model name", "qwen2:7b")
+    .option("--model <model>", "Model name")
     .option(
       "--provider <provider>",
       "LLM provider (ollama, openai, volcengine, deepseek, ...)",
-      "ollama",
     )
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option("--json", "Output as JSON")
     .action(async (question, options) => {
+      const config = loadConfig();
+      const resolvedOptions = {
+        model: options.model || config.llm?.model || "qwen2:7b",
+        provider: options.provider || config.llm?.provider || "ollama",
+        baseUrl: options.baseUrl || config.llm?.baseUrl,
+        apiKey: options.apiKey || config.llm?.apiKey,
+      };
       const spinner = ora("Thinking...").start();
       try {
-        const answer = await queryLLM(question, {
-          model: options.model,
-          provider: options.provider,
-          baseUrl: options.baseUrl,
-          apiKey: options.apiKey,
-        });
+        const answer = await queryLLM(question, resolvedOptions);
 
         spinner.stop();
 

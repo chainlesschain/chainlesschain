@@ -9,9 +9,9 @@
 - 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端
 - 📱 **移动端**: Android APK 直装
 - 🐳 **Docker 服务**: 一键启动 Ollama / Qdrant / PostgreSQL / Redis
-- ⚡ **CLI 安装**: `npm install -g chainlesschain` 一行命令
-- 🔧 **交互式向导**: `chainlesschain setup` 引导完成配置
-- 🩺 **环境诊断**: `chainlesschain doctor` 自动检测问题
+- ⚡ **CLI 安装**: `npm install -g chainlesschain` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
+- 🔧 **交互式向导**: `chainlesschain setup`（或 `cc setup`）引导完成配置
+- 🩺 **环境诊断**: `chainlesschain doctor`（或 `cc doctor`）自动检测问题
 
 ## 系统架构
 

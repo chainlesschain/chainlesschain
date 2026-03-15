@@ -71,7 +71,7 @@ npm run test:integration   # Integration tests
 npm run test:e2e           # End-to-end tests
 ```
 
-**CLI commands** (after `npm install -g chainlesschain`):
+**CLI commands** (after `npm install -g chainlesschain`; also available as `cc`, `clc`, or `clchain`):
 
 ```bash
 # System management

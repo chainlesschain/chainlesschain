@@ -5,7 +5,7 @@ START_TIME=$(date +%s)
 
 # 1. 运行 lint-staged（ESLint + Prettier，仅针对暂存文件）
 echo "📝 [1/2] 运行 ESLint 和代码格式化（仅暂存文件）..."
-npx lint-staged
+npx lint-staged --no-stash
 
 if [ $? -ne 0 ]; then
   echo ""
