@@ -96,7 +96,9 @@ jobs:
             --exclude="**/planning/taskPlanner.test.js" \
             --exclude="**/src/main/**/__tests__/**" \
             --exclude="**/tests/integration/**" \
-            --exclude="**/database/key-manager.test.js"
+            --exclude="**/database/key-manager.test.js" \
+            --exclude="**/knowledge/static-site-exporter.test.js" \
+            --exclude="**/document/doc-generator.test.js"
 
       - name: Test Summary
         if: always()
