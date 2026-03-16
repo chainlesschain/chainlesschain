@@ -15,8 +15,12 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const fs = require("fs").promises;
+const _fsPromises = require("fs").promises;
 const path = require("path");
+
+// _deps allows tests to inject mocks for CJS interop (vi.mock('fs') doesn't
+// intercept require() in Vitest's forks pool for inlined CJS modules)
+const _deps = { fs: _fsPromises };
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
 const { PromptCompressor } = require("./prompt-compressor");
@@ -106,7 +110,7 @@ class SessionManager extends EventEmitter {
    */
   async initialize() {
     try {
-      await fs.mkdir(this.sessionsDir, { recursive: true });
+      await _deps.fs.mkdir(this.sessionsDir, { recursive: true });
       logger.info("[SessionManager] 会话目录已创建:", this.sessionsDir);
 
       // 启动后台摘要生成器
@@ -247,7 +251,10 @@ class SessionManager extends EventEmitter {
         title: row.title,
         messages: JSON.parse(row.messages || "[]"),
         compressedHistory: row.compressed_history,
-        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
+        metadata:
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata || "{}")
+            : row.metadata || {},
       };
 
       // 缓存
@@ -742,7 +749,11 @@ ${conversationText}
   async saveSessionToFile(session) {
     try {
       const filePath = path.join(this.sessionsDir, `${session.id}.json`);
-      await fs.writeFile(filePath, JSON.stringify(session, null, 2), "utf-8");
+      await _deps.fs.writeFile(
+        filePath,
+        JSON.stringify(session, null, 2),
+        "utf-8",
+      );
     } catch (error) {
       logger.error("[SessionManager] 保存文件失败:", error);
       throw error;
@@ -757,7 +768,7 @@ ${conversationText}
   async loadSessionFromFile(sessionId) {
     try {
       const filePath = path.join(this.sessionsDir, `${sessionId}.json`);
-      const content = await fs.readFile(filePath, "utf-8");
+      const content = await _deps.fs.readFile(filePath, "utf-8");
       return JSON.parse(content);
     } catch (error) {
       logger.error("[SessionManager] 从文件加载失败:", error);
@@ -811,7 +822,7 @@ ${conversationText}
       // 从文件系统删除
       const filePath = path.join(this.sessionsDir, `${sessionId}.json`);
       try {
-        await fs.unlink(filePath);
+        await _deps.fs.unlink(filePath);
       } catch (fileError) {
         logger.warn(
           "[SessionManager] 删除文件失败（可能不存在）:",
@@ -860,7 +871,10 @@ ${conversationText}
         id: row.id,
         conversationId: row.conversation_id,
         title: row.title,
-        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
+        metadata:
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata || "{}")
+            : row.metadata || {},
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -1046,7 +1060,10 @@ ${conversationText}
       id: row.id,
       conversationId: row.conversation_id,
       title: row.title,
-      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
+      metadata:
+        typeof row.metadata === "string"
+          ? JSON.parse(row.metadata || "{}")
+          : row.metadata || {},
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -1129,7 +1146,10 @@ ${conversationText}
 
       const tagCount = new Map();
       for (const row of rows) {
-        const metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {});
+        const metadata =
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata || "{}")
+            : row.metadata || {};
         const tags = metadata.tags || [];
         for (const tag of tags) {
           tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
@@ -1776,7 +1796,10 @@ ${conversationText}
         description: row.description,
         category: row.category,
         sourceSessionId: row.source_session_id,
-        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
+        metadata:
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata || "{}")
+            : row.metadata || {},
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -2408,7 +2431,10 @@ ${conversationText}
         id: row.id,
         conversationId: row.conversation_id,
         title: row.title,
-        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
+        metadata:
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata || "{}")
+            : row.metadata || {},
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -2580,4 +2606,5 @@ ${conversationText}
 
 module.exports = {
   SessionManager,
+  _deps,
 };

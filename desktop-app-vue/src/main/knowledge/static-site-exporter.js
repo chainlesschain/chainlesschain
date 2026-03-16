@@ -5,7 +5,11 @@
 
 const { logger } = require("../utils/logger.js");
 const path = require("path");
-const fs = require("fs");
+const _fsSync = require("fs");
+
+// _deps allows tests to inject mocks for CJS interop (vi.mock('fs') doesn't
+// intercept require() in Vitest's forks pool for inlined CJS modules)
+const _deps = { fs: _fsSync };
 
 class StaticSiteExporter {
   constructor(database) {
@@ -38,20 +42,24 @@ class StaticSiteExporter {
     }
 
     // Create output directory
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
+    if (!_deps.fs.existsSync(outputDir)) {
+      _deps.fs.mkdirSync(outputDir, { recursive: true });
     }
 
     // Generate index page
     const indexHtml = this._generateIndexPage(title, notes, theme);
-    fs.writeFileSync(path.join(outputDir, "index.html"), indexHtml, "utf8");
+    _deps.fs.writeFileSync(
+      path.join(outputDir, "index.html"),
+      indexHtml,
+      "utf8",
+    );
 
     // Generate individual note pages
     for (const note of notes) {
       try {
         const noteHtml = this._generateNotePage(title, note, theme);
         const slug = this._slugify(note.title || note.id);
-        fs.writeFileSync(
+        _deps.fs.writeFileSync(
           path.join(outputDir, `${slug}.html`),
           noteHtml,
           "utf8",
@@ -64,7 +72,7 @@ class StaticSiteExporter {
 
     // Generate CSS
     const css = this._generateCSS(theme);
-    fs.writeFileSync(path.join(outputDir, "style.css"), css, "utf8");
+    _deps.fs.writeFileSync(path.join(outputDir, "style.css"), css, "utf8");
 
     logger.info(
       `[StaticSiteExporter] Export complete: ${result.exported} notes exported to ${outputDir}`,
@@ -227,4 +235,4 @@ footer { margin-top: 3rem; text-align: center; color: #888; font-size: 0.85rem; 
   }
 }
 
-module.exports = { StaticSiteExporter };
+module.exports = { StaticSiteExporter, _deps };
