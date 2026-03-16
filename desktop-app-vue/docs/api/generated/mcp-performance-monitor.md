@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-performance-monitor.js`
 
-**Generated**: 2026-03-16T02:33:26.806Z
+**Generated**: 2026-03-16T05:44:52.447Z
 
 ---
 

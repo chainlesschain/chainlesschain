@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/__tests__/benchmark-mcp-performance.js`
 
-**Generated**: 2026-03-16T02:33:26.807Z
+**Generated**: 2026-03-16T05:44:52.449Z
 
 ---
 
