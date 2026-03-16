@@ -12,16 +12,13 @@ vi.mock("../../utils/logger.js", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-// Mock fs — the source uses require('fs') (CJS). Due to known vitest CJS interop
-// issues, we also mock 'node:fs' and provide both named + default exports.
-const mockFs = vi.hoisted(() => ({
+// Mock fs via _deps injection (vi.mock('fs') doesn't intercept require() in
+// Vitest's forks pool for inlined CJS modules — use _deps pattern instead)
+const mockFs = {
   existsSync: vi.fn().mockReturnValue(false),
   mkdirSync: vi.fn(),
   writeFileSync: vi.fn(),
-}));
-
-vi.mock("fs", () => ({ ...mockFs, default: mockFs }));
-vi.mock("node:fs", () => ({ ...mockFs, default: mockFs }));
+};
 
 function createMockDatabase(notes = []) {
   const prepResult = {
@@ -38,7 +35,10 @@ function createMockDatabase(notes = []) {
   };
 }
 
-import { StaticSiteExporter } from "../static-site-exporter.js";
+const {
+  StaticSiteExporter,
+  _deps: exporterDeps,
+} = require("../static-site-exporter.js");
 
 describe("StaticSiteExporter", () => {
   let exporter;
@@ -66,7 +66,8 @@ describe("StaticSiteExporter", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
+    // Inject fs mock via _deps (CJS interop workaround)
+    exporterDeps.fs = mockFs;
     mockFs.existsSync.mockReturnValue(false);
     mockDb = createMockDatabase(sampleNotes);
     exporter = new StaticSiteExporter(mockDb);
