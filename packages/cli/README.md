@@ -833,6 +833,62 @@ chainlesschain cli-anything remove <name>               # Remove registered tool
 
 ---
 
+## Sub-Agent Isolation v2
+
+Introduced in v0.43.0: complex agent tasks are automatically decomposed into isolated **sub-agents**, each running in its own sandboxed context — namespaced memory, scoped context engineering, and full lifecycle tracking.
+
+### Architecture
+
+| Component                  | Description                                                              |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `SubAgentRegistry`         | Singleton registry tracking active/completed sub-agents with stats       |
+| `NamespacedMemory`         | Per-sub-agent memory namespace, isolated from main session               |
+| `ScopedContextEngineering` | Context window scoped to each sub-agent's task                           |
+| `SubAgentContext`          | Execution context carrying role, task, iteration count, and token budget |
+
+### Agent Slash Commands
+
+Inside a `chainlesschain agent` session:
+
+```
+/sub-agents     Show active sub-agents, completed history, token usage, and avg duration
+```
+
+### How It Works
+
+When the agent encounters a complex multi-step task, it spawns one or more sub-agents:
+
+```
+Main Agent
+├── SubAgent [analyzer]  — reads codebase, writes findings to namespaced memory
+├── SubAgent [planner]   — reads findings, proposes implementation plan
+└── SubAgent [executor]  — implements plan with isolated context
+```
+
+Each sub-agent:
+
+- Has its own memory namespace (no cross-contamination with other sub-agents)
+- Carries a scoped context slice (not the full conversation history)
+- Is registered with `SubAgentRegistry` for observability
+- Reports back to the main agent upon completion
+
+### Example Output of `/sub-agents`
+
+```
+Sub-Agent Registry:
+  Active: 1  Completed: 3  Tokens: 4821  Avg Duration: 1243ms
+
+  Active Sub-Agents:
+    sa-7f3a [executor] Implement the authentication module (iter: 2)
+
+  Recent History (last 10):
+    ✓ sa-1a2b [analyzer] Analyzed 12 files, found 3 issues
+    ✓ sa-3c4d [planner] Generated 5-step implementation plan
+    ✗ sa-5e6f [executor] Failed: missing dependency crypto-utils
+```
+
+---
+
 ## WebSocket Server Interface
 
 ### `chainlesschain serve`
