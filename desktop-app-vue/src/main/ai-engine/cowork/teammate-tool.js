@@ -25,6 +25,7 @@ const path = require("path");
 const fs = require("fs").promises;
 const EventEmitter = require("events");
 const { AgentPool } = require("./agent-pool.js");
+const { SubAgentContext } = require("../agents/sub-agent-context.js");
 
 /**
  * 团队状态
@@ -504,6 +505,62 @@ class TeammateTool extends EventEmitter {
       agentId,
       task: taskObj,
     };
+  }
+
+  /**
+   * Assign a task using an isolated sub-agent context.
+   * The sub-agent has independent message history and only returns a summary.
+   *
+   * @param {string} teamId - Team ID
+   * @param {object} task - Task object with description, type, etc.
+   * @param {object} [options] - Options
+   * @param {string} [options.inheritedContext] - Context from parent
+   * @param {string[]} [options.allowedTools] - Tool whitelist
+   * @returns {Promise<object>} Task result with summary
+   */
+  async assignTaskIsolated(teamId, task, options = {}) {
+    const team = this.teams.get(teamId);
+    if (!team) {
+      throw new Error(`团队不存在: ${teamId}`);
+    }
+
+    const taskId = task.id || `task_${Date.now()}_${uuidv4().slice(0, 8)}`;
+
+    const subCtx = new SubAgentContext({
+      role: task.type || "general",
+      task: task.description || "",
+      parentId: teamId,
+      inheritedContext: options.inheritedContext || null,
+      allowedTools: options.allowedTools || null,
+      database: this.db,
+      llmManager: this.llmManager || null,
+    });
+
+    this._log(`任务 ${taskId} 通过隔离子代理执行 [${subCtx.id}]`);
+    this.emit("task-isolated", { teamId, taskId, subAgentId: subCtx.id });
+
+    try {
+      const result = await subCtx.run(task.description || "");
+
+      const taskObj = {
+        id: taskId,
+        teamId,
+        description: task.description || "",
+        type: task.type || "general",
+        status: "completed",
+        result: result.summary,
+        subAgentId: subCtx.id,
+        createdAt: Date.now(),
+        completedAt: Date.now(),
+      };
+
+      team.tasks.push(taskObj);
+      this.emit("task-completed", { teamId, taskId, result: result.summary });
+      return taskObj;
+    } catch (err) {
+      subCtx.forceComplete(err.message);
+      throw err;
+    }
   }
 
   /**
@@ -1210,11 +1267,11 @@ class TeammateTool extends EventEmitter {
     }
 
     // 根据任务类型和代理能力进行智能匹配
-    const taskType = task.type || 'general';
-    const taskDescription = (task.description || '').toLowerCase();
+    const taskType = task.type || "general";
+    const taskDescription = (task.description || "").toLowerCase();
 
     // 计算每个代理的匹配分数
-    const scoredAgents = idleAgents.map(agent => {
+    const scoredAgents = idleAgents.map((agent) => {
       let score = 0;
       const capabilities = agent.capabilities || [];
 
@@ -1225,15 +1282,17 @@ class TeammateTool extends EventEmitter {
 
       // 2. 关键词匹配
       const keywordMatches = {
-        'code': ['coding', 'programming', 'development', 'code-review'],
-        'test': ['testing', 'qa', 'quality-assurance'],
-        'doc': ['documentation', 'writing', 'docs'],
-        'design': ['design', 'ui', 'ux'],
-        'analysis': ['analysis', 'research', 'data'],
-        'review': ['review', 'code-review', 'audit']
+        code: ["coding", "programming", "development", "code-review"],
+        test: ["testing", "qa", "quality-assurance"],
+        doc: ["documentation", "writing", "docs"],
+        design: ["design", "ui", "ux"],
+        analysis: ["analysis", "research", "data"],
+        review: ["review", "code-review", "audit"],
       };
 
-      for (const [keyword, relatedCapabilities] of Object.entries(keywordMatches)) {
+      for (const [keyword, relatedCapabilities] of Object.entries(
+        keywordMatches,
+      )) {
         if (taskDescription.includes(keyword)) {
           for (const cap of relatedCapabilities) {
             if (capabilities.includes(cap)) {
@@ -1244,7 +1303,7 @@ class TeammateTool extends EventEmitter {
       }
 
       // 3. 通用能力加分
-      if (capabilities.includes('general') || capabilities.includes('all')) {
+      if (capabilities.includes("general") || capabilities.includes("all")) {
         score += 2;
       }
 

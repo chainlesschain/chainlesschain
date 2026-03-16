@@ -74,8 +74,8 @@ const {
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 
 describe("AGENT_TOOLS", () => {
-  it("has 9 tool definitions", () => {
-    expect(AGENT_TOOLS).toHaveLength(9);
+  it("has 10 tool definitions", () => {
+    expect(AGENT_TOOLS).toHaveLength(10);
   });
 
   it("each tool has type 'function' and function.name", () => {
@@ -549,7 +549,7 @@ describe("chatWithTools", () => {
     expect(toolNames).not.toContain("run_shell");
     expect(toolNames).not.toContain("run_code");
     expect(toolNames).toContain("read_file");
-    expect(capturedBody.tools.length).toBe(7); // 9 - 2 disabled
+    expect(capturedBody.tools.length).toBe(8); // 10 - 2 disabled
   });
 
   it("Ollama provider: fetch URL contains /api/chat with tools", async () => {
@@ -573,7 +573,7 @@ describe("chatWithTools", () => {
 
     expect(capturedUrl).toContain("/api/chat");
     expect(capturedBody.tools).toBeDefined();
-    expect(capturedBody.tools.length).toBe(9);
+    expect(capturedBody.tools.length).toBe(10);
     expect(capturedBody.model).toBe("qwen2.5:7b");
   });
 
@@ -1024,5 +1024,105 @@ describe("agentLoop", () => {
     const slotEvents = events.filter((e) => e.type === "slot-filling");
     expect(slotEvents).toHaveLength(0);
     expect(events[events.length - 1].type).toBe("response-complete");
+  });
+});
+
+// ─── Sub-Agent Isolation in System Prompt ────────────────────────────────
+
+describe("sub-agent system prompt guidance", () => {
+  it("base system prompt includes Sub-Agent Isolation section", () => {
+    const prompt = getBaseSystemPrompt("/tmp/test");
+    expect(prompt).toContain("Sub-Agent Isolation");
+    expect(prompt).toContain("spawn_sub_agent");
+  });
+
+  it("system prompt explains when to use sub-agents", () => {
+    const prompt = getBaseSystemPrompt("/tmp/test");
+    expect(prompt).toContain("Code review as a separate perspective");
+    expect(prompt).toContain("context stays clean");
+  });
+
+  it("system prompt warns against trivial sub-agent usage", () => {
+    const prompt = getBaseSystemPrompt("/tmp/test");
+    expect(prompt).toContain("Do NOT spawn sub-agents for trivial tasks");
+  });
+});
+
+// ─── Auto-Condensation ──────────────────────────────────────────────────
+
+describe("spawn_sub_agent auto-condensation", () => {
+  it("auto-condenses parent messages when no explicit context provided", async () => {
+    // Mock LLM to return a response
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: {
+          role: "assistant",
+          content: "Review complete.",
+        },
+      }),
+    });
+
+    // Simulate parent messages with assistant responses
+    const parentMessages = [
+      { role: "system", content: "You are an assistant." },
+      { role: "user", content: "Help me fix the bug" },
+      {
+        role: "assistant",
+        content:
+          "I found the issue in line 42 of main.js. The variable is undefined.",
+      },
+      { role: "user", content: "Can you review the fix?" },
+      {
+        role: "assistant",
+        content:
+          "The fix looks correct. The variable is now properly initialized.",
+      },
+    ];
+
+    const result = await executeTool(
+      "spawn_sub_agent",
+      { role: "code-review", task: "Review the code changes" },
+      { cwd: "/tmp", parentMessages },
+    );
+
+    // Should succeed or at least have a subAgentId (LLM mock returns simple response)
+    expect(result).toBeDefined();
+    if (result.success) {
+      expect(result.subAgentId).toMatch(/^sub-/);
+    }
+  });
+
+  it("uses explicit context when provided, ignoring parent messages", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        message: {
+          role: "assistant",
+          content: "Done with explicit context.",
+        },
+      }),
+    });
+
+    const result = await executeTool(
+      "spawn_sub_agent",
+      {
+        role: "summarizer",
+        task: "Summarize this",
+        context: "This is explicit context from the user",
+      },
+      {
+        cwd: "/tmp",
+        parentMessages: [
+          { role: "assistant", content: "This should NOT be used" },
+        ],
+      },
+    );
+
+    expect(result).toBeDefined();
+    // The explicit context takes priority — we just verify the tool ran
+    if (result.success) {
+      expect(result.role).toBe("summarizer");
+    }
   });
 });

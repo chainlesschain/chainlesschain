@@ -124,6 +124,7 @@ const MODULE_FILE_MAP = {
   "68_CLI-Anything集成.md": "68-cli-anything.md",
   "69_WebSocket服务器接口.md": "69-websocket-server.md",
   "70_Agent智能增强系统.md": "70-agent-intelligence.md",
+  "71_子代理隔离系统.md": "71-sub-agent-isolation.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）
@@ -148,7 +149,7 @@ function getTargetFilename(filename, isModule) {
 }
 
 /**
- * 转义 markdown 中不在代码块/��内代码中的裸 <tag> 占位符
+ * 转义 markdown 中不在代码块/行内代码中的裸 <tag> 占位符
  */
 function escapeVueTags(content) {
   const lines = content.split("\n");

@@ -17,6 +17,7 @@
 const { EventEmitter } = require("events");
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
+const { SubAgentContext } = require("../agents/sub-agent-context.js");
 
 // ============================================================
 // Constants
@@ -194,16 +195,16 @@ class AutonomousAgentRunner extends EventEmitter {
 
     // Check concurrent goal limit
     const runningCount = Array.from(this.activeGoals.values()).filter(
-      (g) => g.status === GOAL_STATUS.RUNNING
+      (g) => g.status === GOAL_STATUS.RUNNING,
     ).length;
     if (runningCount >= this.config.maxConcurrentGoals) {
       logger.info(
-        `[AutonomousAgent] Max concurrent goals reached (${runningCount}/${this.config.maxConcurrentGoals}), queuing goal ${goalId}`
+        `[AutonomousAgent] Max concurrent goals reached (${runningCount}/${this.config.maxConcurrentGoals}), queuing goal ${goalId}`,
       );
     }
 
     logger.info(
-      `[AutonomousAgent] Submitting goal ${goalId}: "${description.substring(0, 80)}..." (priority: ${priority})`
+      `[AutonomousAgent] Submitting goal ${goalId}: "${description.substring(0, 80)}..." (priority: ${priority})`,
     );
 
     // Decompose goal into plan
@@ -213,7 +214,7 @@ class AutonomousAgentRunner extends EventEmitter {
     } catch (e) {
       logger.warn(
         `[AutonomousAgent] Goal decomposition failed for ${goalId}:`,
-        e.message
+        e.message,
       );
       plan = {
         steps: [{ description: description, estimatedComplexity: "unknown" }],
@@ -261,13 +262,17 @@ class AutonomousAgentRunner extends EventEmitter {
       });
     }
 
-    await this._logStep(goalId, "goal-submitted", `Goal submitted: ${description}`);
+    await this._logStep(
+      goalId,
+      "goal-submitted",
+      `Goal submitted: ${description}`,
+    );
 
     // Start execution (non-blocking)
     this._executeGoal(goalId).catch((err) => {
       logger.error(
         `[AutonomousAgent] Unhandled error in goal ${goalId}:`,
-        err.message
+        err.message,
       );
     });
 
@@ -317,7 +322,9 @@ class AutonomousAgentRunner extends EventEmitter {
 
       // Handle pause state
       if (goal.paused) {
-        logger.info(`[AutonomousAgent] Goal ${goalId} paused, waiting for resume`);
+        logger.info(
+          `[AutonomousAgent] Goal ${goalId} paused, waiting for resume`,
+        );
         await this._waitForResume(goalId);
         if (goal._abortController.signal.aborted) {
           break;
@@ -327,9 +334,7 @@ class AutonomousAgentRunner extends EventEmitter {
 
       // Handle waiting for user input
       if (goal.waitingForInput) {
-        logger.info(
-          `[AutonomousAgent] Goal ${goalId} waiting for user input`
-        );
+        logger.info(`[AutonomousAgent] Goal ${goalId} waiting for user input`);
         await this._waitForInput(goalId);
         if (goal._abortController.signal.aborted) {
           break;
@@ -340,7 +345,7 @@ class AutonomousAgentRunner extends EventEmitter {
       // Token budget check
       if (goal.tokensUsed >= this.config.tokenBudgetPerGoal) {
         logger.warn(
-          `[AutonomousAgent] Goal ${goalId} exceeded token budget (${goal.tokensUsed}/${this.config.tokenBudgetPerGoal})`
+          `[AutonomousAgent] Goal ${goalId} exceeded token budget (${goal.tokensUsed}/${this.config.tokenBudgetPerGoal})`,
         );
         await this._failGoal(goalId, "Token budget exceeded");
         break;
@@ -384,7 +389,7 @@ class AutonomousAgentRunner extends EventEmitter {
       } catch (error) {
         logger.error(
           `[AutonomousAgent] Step error in goal ${goalId}:`,
-          error.message
+          error.message,
         );
 
         // Try self-correction
@@ -397,7 +402,7 @@ class AutonomousAgentRunner extends EventEmitter {
         await this._logStep(
           goalId,
           "self-correction",
-          `Recovered from error: ${error.message}`
+          `Recovered from error: ${error.message}`,
         );
       }
     }
@@ -409,7 +414,7 @@ class AutonomousAgentRunner extends EventEmitter {
     ) {
       await this._failGoal(
         goalId,
-        `Maximum step limit reached (${this.config.maxStepsPerGoal})`
+        `Maximum step limit reached (${this.config.maxStepsPerGoal})`,
       );
     }
   }
@@ -502,7 +507,7 @@ Respond ONLY with valid JSON.`;
       } catch (e) {
         logger.warn(
           `[AutonomousAgent] LLM query failed for goal ${goalId}:`,
-          e.message
+          e.message,
         );
         // Fallback: try to execute plan steps sequentially
         return this._fallbackReason(goal);
@@ -525,7 +530,7 @@ Respond ONLY with valid JSON.`;
     } catch (e) {
       logger.warn(
         `[AutonomousAgent] Failed to parse LLM response for goal ${goalId}:`,
-        e.message
+        e.message,
       );
       return {
         thought: `Failed to parse LLM response: ${String(response).substring(0, 200)}`,
@@ -598,14 +603,14 @@ Respond ONLY with valid JSON.`;
     await this._logStep(
       goalId,
       "action",
-      `Executing ${actionType}: ${actionName} with params: ${JSON.stringify(actionParams).substring(0, 300)}`
+      `Executing ${actionType}: ${actionName} with params: ${JSON.stringify(actionParams).substring(0, 300)}`,
     );
 
     // Set up timeout
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(
         () => reject(new Error("Step execution timed out")),
-        this.config.stepTimeoutMs
+        this.config.stepTimeoutMs,
       );
     });
 
@@ -633,7 +638,7 @@ Respond ONLY with valid JSON.`;
           executionPromise = this._executeAskUser(
             goalId,
             actionParams.question,
-            actionParams.options
+            actionParams.options,
           );
           break;
 
@@ -764,7 +769,10 @@ Keep it practical (3-10 steps). Respond ONLY with valid JSON.`;
           strategy: parsed.strategy || "sequential-execution",
         };
       } catch (e) {
-        logger.warn("[AutonomousAgent] Goal decomposition LLM error:", e.message);
+        logger.warn(
+          "[AutonomousAgent] Goal decomposition LLM error:",
+          e.message,
+        );
       }
     }
 
@@ -796,13 +804,13 @@ Keep it practical (3-10 steps). Respond ONLY with valid JSON.`;
 
     if (goal.replanAttempts > this.config.maxReplanAttempts) {
       logger.warn(
-        `[AutonomousAgent] Max replan attempts reached for goal ${goalId}`
+        `[AutonomousAgent] Max replan attempts reached for goal ${goalId}`,
       );
       return false;
     }
 
     logger.info(
-      `[AutonomousAgent] Attempting replan for goal ${goalId} (attempt ${goal.replanAttempts}/${this.config.maxReplanAttempts})`
+      `[AutonomousAgent] Attempting replan for goal ${goalId} (attempt ${goal.replanAttempts}/${this.config.maxReplanAttempts})`,
     );
 
     const errorContext = goal.stepHistory
@@ -852,14 +860,14 @@ Respond ONLY with valid JSON.`;
           await this._logStep(
             goalId,
             "replan",
-            `Replanned with ${parsed.alternativeSteps.length} alternative steps: ${parsed.strategy || "recovery"}`
+            `Replanned with ${parsed.alternativeSteps.length} alternative steps: ${parsed.strategy || "recovery"}`,
           );
           return true;
         }
       } catch (e) {
         logger.warn(
           `[AutonomousAgent] Replan LLM error for goal ${goalId}:`,
-          e.message
+          e.message,
         );
       }
     }
@@ -869,7 +877,7 @@ Respond ONLY with valid JSON.`;
       await this._logStep(
         goalId,
         "replan",
-        `Simple retry after error: ${error.message}`
+        `Simple retry after error: ${error.message}`,
       );
       return true;
     }
@@ -891,7 +899,10 @@ Respond ONLY with valid JSON.`;
       return { success: false, error: "Goal not found" };
     }
     if (goal.status !== GOAL_STATUS.RUNNING) {
-      return { success: false, error: `Cannot pause goal in status: ${goal.status}` };
+      return {
+        success: false,
+        error: `Cannot pause goal in status: ${goal.status}`,
+      };
     }
 
     goal.paused = true;
@@ -981,7 +992,7 @@ Respond ONLY with valid JSON.`;
     await this._logStep(
       goalId,
       "cancelled",
-      `Goal cancelled (was: ${previousStatus})`
+      `Goal cancelled (was: ${previousStatus})`,
     );
 
     this.activeGoals.delete(goalId);
@@ -1020,7 +1031,7 @@ Respond ONLY with valid JSON.`;
     this.emit("input-requested", { goalId, question, options });
 
     logger.info(
-      `[AutonomousAgent] Goal ${goalId} requesting user input: "${question}"`
+      `[AutonomousAgent] Goal ${goalId} requesting user input: "${question}"`,
     );
   }
 
@@ -1107,7 +1118,7 @@ Respond ONLY with valid JSON.`;
       } catch (e) {
         logger.error(
           `[AutonomousAgent] getGoalStatus DB error for ${goalId}:`,
-          e.message
+          e.message,
         );
       }
     }
@@ -1153,7 +1164,7 @@ Respond ONLY with valid JSON.`;
     try {
       const rows = this.database
         .prepare(
-          "SELECT * FROM autonomous_goals ORDER BY created_at DESC LIMIT ? OFFSET ?"
+          "SELECT * FROM autonomous_goals ORDER BY created_at DESC LIMIT ? OFFSET ?",
         )
         .all(limit, offset);
 
@@ -1196,7 +1207,7 @@ Respond ONLY with valid JSON.`;
     try {
       const rows = this.database
         .prepare(
-          "SELECT * FROM autonomous_goal_steps WHERE goal_id = ? ORDER BY step_number ASC"
+          "SELECT * FROM autonomous_goal_steps WHERE goal_id = ? ORDER BY step_number ASC",
         )
         .all(goalId);
 
@@ -1237,7 +1248,7 @@ Respond ONLY with valid JSON.`;
     try {
       const rows = this.database
         .prepare(
-          "SELECT * FROM autonomous_goal_logs WHERE goal_id = ? ORDER BY created_at DESC LIMIT ?"
+          "SELECT * FROM autonomous_goal_logs WHERE goal_id = ? ORDER BY created_at DESC LIMIT ?",
         )
         .all(goalId, limit);
 
@@ -1268,31 +1279,46 @@ Respond ONLY with valid JSON.`;
    */
   updateConfig(config) {
     if (config.maxStepsPerGoal !== undefined) {
-      this.config.maxStepsPerGoal = Math.max(1, Math.min(500, config.maxStepsPerGoal));
+      this.config.maxStepsPerGoal = Math.max(
+        1,
+        Math.min(500, config.maxStepsPerGoal),
+      );
     }
     if (config.stepTimeoutMs !== undefined) {
-      this.config.stepTimeoutMs = Math.max(5000, Math.min(600000, config.stepTimeoutMs));
+      this.config.stepTimeoutMs = Math.max(
+        5000,
+        Math.min(600000, config.stepTimeoutMs),
+      );
     }
     if (config.maxConcurrentGoals !== undefined) {
-      this.config.maxConcurrentGoals = Math.max(1, Math.min(10, config.maxConcurrentGoals));
+      this.config.maxConcurrentGoals = Math.max(
+        1,
+        Math.min(10, config.maxConcurrentGoals),
+      );
     }
     if (config.tokenBudgetPerGoal !== undefined) {
       this.config.tokenBudgetPerGoal = Math.max(
         1000,
-        Math.min(500000, config.tokenBudgetPerGoal)
+        Math.min(500000, config.tokenBudgetPerGoal),
       );
     }
     if (config.evaluationIntervalMs !== undefined) {
       this.config.evaluationIntervalMs = Math.max(
         100,
-        Math.min(10000, config.evaluationIntervalMs)
+        Math.min(10000, config.evaluationIntervalMs),
       );
     }
     if (config.maxRetriesPerStep !== undefined) {
-      this.config.maxRetriesPerStep = Math.max(0, Math.min(10, config.maxRetriesPerStep));
+      this.config.maxRetriesPerStep = Math.max(
+        0,
+        Math.min(10, config.maxRetriesPerStep),
+      );
     }
     if (config.maxReplanAttempts !== undefined) {
-      this.config.maxReplanAttempts = Math.max(0, Math.min(10, config.maxReplanAttempts));
+      this.config.maxReplanAttempts = Math.max(
+        0,
+        Math.min(10, config.maxReplanAttempts),
+      );
     }
 
     logger.info("[AutonomousAgent] Config updated:", this.config);
@@ -1328,8 +1354,12 @@ Respond ONLY with valid JSON.`;
 
     // Count active goal statuses
     for (const [, goal] of this.activeGoals) {
-      if (goal.status === GOAL_STATUS.RUNNING) {stats.runningGoals++;}
-      if (goal.status === GOAL_STATUS.PAUSED) {stats.pausedGoals++;}
+      if (goal.status === GOAL_STATUS.RUNNING) {
+        stats.runningGoals++;
+      }
+      if (goal.status === GOAL_STATUS.PAUSED) {
+        stats.pausedGoals++;
+      }
     }
 
     // Query DB for historical stats
@@ -1342,21 +1372,21 @@ Respond ONLY with valid JSON.`;
 
         const completedRow = this.database
           .prepare(
-            "SELECT COUNT(*) as count FROM autonomous_goals WHERE status = ?"
+            "SELECT COUNT(*) as count FROM autonomous_goals WHERE status = ?",
           )
           .get(GOAL_STATUS.COMPLETED);
         stats.completedGoals = completedRow?.count || 0;
 
         const failedRow = this.database
           .prepare(
-            "SELECT COUNT(*) as count FROM autonomous_goals WHERE status = ?"
+            "SELECT COUNT(*) as count FROM autonomous_goals WHERE status = ?",
           )
           .get(GOAL_STATUS.FAILED);
         stats.failedGoals = failedRow?.count || 0;
 
         const cancelledRow = this.database
           .prepare(
-            "SELECT COUNT(*) as count FROM autonomous_goals WHERE status = ?"
+            "SELECT COUNT(*) as count FROM autonomous_goals WHERE status = ?",
           )
           .get(GOAL_STATUS.CANCELLED);
         stats.cancelledGoals = cancelledRow?.count || 0;
@@ -1368,14 +1398,14 @@ Respond ONLY with valid JSON.`;
 
         const tokensRow = this.database
           .prepare(
-            "SELECT COALESCE(SUM(tokens_used), 0) as total FROM autonomous_goals"
+            "SELECT COALESCE(SUM(tokens_used), 0) as total FROM autonomous_goals",
           )
           .get();
         stats.totalTokensUsed = tokensRow?.total || 0;
 
         if (stats.totalGoals > 0) {
           stats.avgStepsPerGoal = Math.round(
-            stats.totalSteps / stats.totalGoals
+            stats.totalSteps / stats.totalGoals,
           );
           const finishedGoals = stats.completedGoals + stats.failedGoals;
           stats.successRate =
@@ -1402,24 +1432,40 @@ Respond ONLY with valid JSON.`;
     }
 
     try {
-      const cutoff = before || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const cutoff =
+        before || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
       // Delete logs first (foreign key)
       const logsResult = this.database.run(
         "DELETE FROM autonomous_goal_logs WHERE goal_id IN (SELECT id FROM autonomous_goals WHERE created_at < ? AND status IN (?, ?, ?))",
-        [cutoff, GOAL_STATUS.COMPLETED, GOAL_STATUS.FAILED, GOAL_STATUS.CANCELLED]
+        [
+          cutoff,
+          GOAL_STATUS.COMPLETED,
+          GOAL_STATUS.FAILED,
+          GOAL_STATUS.CANCELLED,
+        ],
       );
 
       // Delete steps
       const stepsResult = this.database.run(
         "DELETE FROM autonomous_goal_steps WHERE goal_id IN (SELECT id FROM autonomous_goals WHERE created_at < ? AND status IN (?, ?, ?))",
-        [cutoff, GOAL_STATUS.COMPLETED, GOAL_STATUS.FAILED, GOAL_STATUS.CANCELLED]
+        [
+          cutoff,
+          GOAL_STATUS.COMPLETED,
+          GOAL_STATUS.FAILED,
+          GOAL_STATUS.CANCELLED,
+        ],
       );
 
       // Delete goals
       const goalsResult = this.database.run(
         "DELETE FROM autonomous_goals WHERE created_at < ? AND status IN (?, ?, ?)",
-        [cutoff, GOAL_STATUS.COMPLETED, GOAL_STATUS.FAILED, GOAL_STATUS.CANCELLED]
+        [
+          cutoff,
+          GOAL_STATUS.COMPLETED,
+          GOAL_STATUS.FAILED,
+          GOAL_STATUS.CANCELLED,
+        ],
       );
 
       if (this.database.saveToFile) {
@@ -1428,7 +1474,7 @@ Respond ONLY with valid JSON.`;
 
       const deleted = goalsResult?.changes || 0;
       logger.info(
-        `[AutonomousAgent] Cleared ${deleted} historical goals before ${cutoff}`
+        `[AutonomousAgent] Cleared ${deleted} historical goals before ${cutoff}`,
       );
 
       return {
@@ -1462,13 +1508,13 @@ Respond ONLY with valid JSON.`;
 
       const steps = this.database
         .prepare(
-          "SELECT * FROM autonomous_goal_steps WHERE goal_id = ? ORDER BY step_number ASC"
+          "SELECT * FROM autonomous_goal_steps WHERE goal_id = ? ORDER BY step_number ASC",
         )
         .all(goalId);
 
       const logs = this.database
         .prepare(
-          "SELECT * FROM autonomous_goal_logs WHERE goal_id = ? ORDER BY created_at ASC"
+          "SELECT * FROM autonomous_goal_logs WHERE goal_id = ? ORDER BY created_at ASC",
         )
         .all(goalId);
 
@@ -1522,7 +1568,10 @@ Respond ONLY with valid JSON.`;
         return { success: false, error: "Goal not found" };
       }
 
-      if (goalRow.status !== GOAL_STATUS.FAILED && goalRow.status !== GOAL_STATUS.CANCELLED) {
+      if (
+        goalRow.status !== GOAL_STATUS.FAILED &&
+        goalRow.status !== GOAL_STATUS.CANCELLED
+      ) {
         return {
           success: false,
           error: `Cannot retry goal in status: ${goalRow.status}`,
@@ -1555,7 +1604,10 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _executeSkill(skillName, params) {
-    if (this.skillExecutor && typeof this.skillExecutor.execute === "function") {
+    if (
+      this.skillExecutor &&
+      typeof this.skillExecutor.execute === "function"
+    ) {
       try {
         const result = await this.skillExecutor.execute(skillName, params);
         return {
@@ -1584,7 +1636,8 @@ Respond ONLY with valid JSON.`;
           const result = await tool.execute(params);
           return {
             success: true,
-            output: typeof result === "string" ? result : JSON.stringify(result),
+            output:
+              typeof result === "string" ? result : JSON.stringify(result),
           };
         }
       } catch (e) {
@@ -1615,7 +1668,8 @@ Respond ONLY with valid JSON.`;
           const result = await searchTool.execute({ query });
           return {
             success: true,
-            output: typeof result === "string" ? result : JSON.stringify(result),
+            output:
+              typeof result === "string" ? result : JSON.stringify(result),
           };
         }
       } catch (e) {
@@ -1647,7 +1701,8 @@ Respond ONLY with valid JSON.`;
           const result = await tool.execute(params);
           return {
             success: true,
-            output: typeof result === "string" ? result : JSON.stringify(result),
+            output:
+              typeof result === "string" ? result : JSON.stringify(result),
           };
         }
       } catch (e) {
@@ -1666,7 +1721,11 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   async _executeAskUser(goalId, question, options) {
-    await this.requestUserInput(goalId, question || "Please provide input", options);
+    await this.requestUserInput(
+      goalId,
+      question || "Please provide input",
+      options,
+    );
 
     // The loop will pause at _waitForInput, then continue after provideUserInput
     return {
@@ -1687,7 +1746,10 @@ Respond ONLY with valid JSON.`;
     const permissions = goal.toolPermissions || [];
 
     // ask_user and complete are always allowed
-    if (actionType === ACTION_TYPES.ASK_USER || actionType === ACTION_TYPES.COMPLETE) {
+    if (
+      actionType === ACTION_TYPES.ASK_USER ||
+      actionType === ACTION_TYPES.COMPLETE
+    ) {
       return true;
     }
 
@@ -1755,7 +1817,10 @@ Respond ONLY with valid JSON.`;
         updated_at: new Date().toISOString(),
       });
     } catch (e) {
-      logger.warn(`[AutonomousAgent] Checkpoint error for goal ${goalId}:`, e.message);
+      logger.warn(
+        `[AutonomousAgent] Checkpoint error for goal ${goalId}:`,
+        e.message,
+      );
     }
   }
 
@@ -1786,7 +1851,7 @@ Respond ONLY with valid JSON.`;
     await this._logStep(
       goalId,
       "completed",
-      `Goal completed after ${goal.stepCount} steps. Result: ${String(result).substring(0, 500)}`
+      `Goal completed after ${goal.stepCount} steps. Result: ${String(result).substring(0, 500)}`,
     );
 
     this.activeGoals.delete(goalId);
@@ -1799,7 +1864,7 @@ Respond ONLY with valid JSON.`;
     });
 
     logger.info(
-      `[AutonomousAgent] Goal ${goalId} completed (${goal.stepCount} steps, ${goal.tokensUsed} tokens)`
+      `[AutonomousAgent] Goal ${goalId} completed (${goal.stepCount} steps, ${goal.tokensUsed} tokens)`,
     );
   }
 
@@ -1837,7 +1902,7 @@ Respond ONLY with valid JSON.`;
     });
 
     logger.error(
-      `[AutonomousAgent] Goal ${goalId} failed: ${reason} (${goal.stepCount} steps)`
+      `[AutonomousAgent] Goal ${goalId} failed: ${reason} (${goal.stepCount} steps)`,
     );
   }
 
@@ -1853,7 +1918,7 @@ Respond ONLY with valid JSON.`;
     try {
       this.database.run(
         "INSERT INTO autonomous_goal_logs (goal_id, level, type, content) VALUES (?, ?, ?, ?)",
-        [goalId, "info", type, content]
+        [goalId, "info", type, content],
       );
     } catch (e) {
       // Silently ignore log errors to avoid breaking the main flow
@@ -1888,7 +1953,7 @@ Respond ONLY with valid JSON.`;
           goalState.createdBy,
           goalState.createdAt,
           goalState.createdAt,
-        ]
+        ],
       );
       if (this.database.saveToFile) {
         this.database.saveToFile();
@@ -1920,7 +1985,7 @@ Respond ONLY with valid JSON.`;
 
       this.database.run(
         `UPDATE autonomous_goals SET ${setClauses.join(", ")} WHERE id = ?`,
-        values
+        values,
       );
       if (this.database.saveToFile) {
         this.database.saveToFile();
@@ -1955,7 +2020,7 @@ Respond ONLY with valid JSON.`;
           step.success ? 1 : 0,
           step.tokensUsed || 0,
           step.durationMs || 0,
-        ]
+        ],
       );
     } catch (e) {
       logger.error("[AutonomousAgent] Save step error:", e.message);
@@ -2026,7 +2091,9 @@ Respond ONLY with valid JSON.`;
    * @private
    */
   _estimateTokens(text) {
-    if (!text) {return 0;}
+    if (!text) {
+      return 0;
+    }
     return Math.ceil(String(text).length / 4);
   }
 
@@ -2044,8 +2111,12 @@ Respond ONLY with valid JSON.`;
 // ============================================================
 
 function safeParseJSON(str) {
-  if (!str) {return {};}
-  if (typeof str === "object") {return str;}
+  if (!str) {
+    return {};
+  }
+  if (typeof str === "object") {
+    return str;
+  }
   try {
     return JSON.parse(str);
   } catch {
@@ -2062,6 +2133,75 @@ function getAutonomousAgentRunner() {
   }
   return instance;
 }
+
+/**
+ * Add delegateToSubAgent to the prototype.
+ * Used when a goal step requires a different role (e.g. code-review in a coding goal).
+ *
+ * @param {string} goalId - Parent goal ID
+ * @param {object} delegation - { role, task, allowedTools?, inheritedContext? }
+ * @returns {Promise<{ success: boolean, summary: string }>}
+ */
+AutonomousAgentRunner.prototype.delegateToSubAgent = async function (
+  goalId,
+  delegation,
+) {
+  const goal = this.activeGoals.get(goalId);
+  if (!goal) {
+    return { success: false, summary: `Goal ${goalId} not found` };
+  }
+
+  const subCtx = new SubAgentContext({
+    role: delegation.role || "delegated",
+    task: delegation.task || "",
+    parentId: goalId,
+    inheritedContext: delegation.inheritedContext || null,
+    allowedTools: delegation.allowedTools || null,
+    tokenBudget: delegation.tokenBudget || null,
+    database: this.db || null,
+    llmManager: this.llmManager || null,
+  });
+
+  // Track sub-agent in goal's sub-agent list
+  if (!goal.subAgents) {
+    goal.subAgents = [];
+  }
+  goal.subAgents.push({
+    id: subCtx.id,
+    role: delegation.role || "delegated",
+    status: "active",
+    createdAt: subCtx.createdAt,
+  });
+
+  logger.info(
+    `[AutonomousAgent] Goal ${goalId} delegating to sub-agent ${subCtx.id} [${delegation.role}]`,
+  );
+  this.emit("goal:delegated", {
+    goalId,
+    subAgentId: subCtx.id,
+    role: delegation.role,
+  });
+
+  try {
+    const result = await subCtx.run(delegation.task);
+    // Update tracker
+    const tracker = goal.subAgents.find((s) => s.id === subCtx.id);
+    if (tracker) {
+      tracker.status = "completed";
+      tracker.completedAt = subCtx.completedAt;
+      tracker.summary = result.summary;
+    }
+    return { success: true, summary: result.summary };
+  } catch (err) {
+    subCtx.forceComplete(err.message);
+    const tracker = goal.subAgents.find((s) => s.id === subCtx.id);
+    if (tracker) {
+      tracker.status = "failed";
+      tracker.error = err.message;
+    }
+    return { success: false, summary: `Delegation failed: ${err.message}` };
+  }
+};
 
 module.exports = {
   AutonomousAgentRunner,

@@ -2,12 +2,14 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   AGENT_TYPE_KEYWORDS,
+  ROLE_TOOL_WHITELIST,
   decomposeTask,
   selectAgent,
   assignSubtask,
   aggregateResults,
   getAgentTypes,
   estimateComplexity,
+  executeDecomposedTask,
 } from "../../src/lib/agent-coordinator.js";
 
 describe("agent-coordinator", () => {
@@ -274,6 +276,70 @@ describe("agent-coordinator", () => {
       expect(long.estimatedSubtasks).toBeGreaterThanOrEqual(
         short.estimatedSubtasks,
       );
+    });
+  });
+
+  // ─── ROLE_TOOL_WHITELIST ──────────────────────────────
+
+  describe("ROLE_TOOL_WHITELIST", () => {
+    it("code-review has read-only tools", () => {
+      expect(ROLE_TOOL_WHITELIST["code-review"]).toEqual([
+        "read_file",
+        "search_files",
+        "list_dir",
+      ]);
+      expect(ROLE_TOOL_WHITELIST["code-review"]).not.toContain("write_file");
+      expect(ROLE_TOOL_WHITELIST["code-review"]).not.toContain("run_shell");
+    });
+
+    it("code-generation has write tools", () => {
+      expect(ROLE_TOOL_WHITELIST["code-generation"]).toContain("write_file");
+      expect(ROLE_TOOL_WHITELIST["code-generation"]).toContain("edit_file");
+      expect(ROLE_TOOL_WHITELIST["code-generation"]).toContain("run_shell");
+    });
+
+    it("testing has run_code", () => {
+      expect(ROLE_TOOL_WHITELIST["testing"]).toContain("run_code");
+      expect(ROLE_TOOL_WHITELIST["testing"]).toContain("run_shell");
+    });
+
+    it("document role cannot run code or shell", () => {
+      expect(ROLE_TOOL_WHITELIST["document"]).not.toContain("run_code");
+      expect(ROLE_TOOL_WHITELIST["document"]).not.toContain("run_shell");
+    });
+
+    it("general role has null (all tools)", () => {
+      expect(ROLE_TOOL_WHITELIST["general"]).toBeNull();
+    });
+  });
+
+  // ─── executeDecomposedTask ────────────────────────────
+
+  describe("executeDecomposedTask", () => {
+    it("returns empty status for no subtasks", async () => {
+      const result = await executeDecomposedTask({
+        taskId: "t-1",
+        subtasks: [],
+      });
+      expect(result.status).toBe("empty");
+      expect(result.results).toEqual([]);
+    });
+
+    it("returns empty status for null subtasks", async () => {
+      const result = await executeDecomposedTask({
+        taskId: "t-2",
+        subtasks: null,
+      });
+      expect(result.status).toBe("empty");
+    });
+
+    it("accepts maxConcurrency option", async () => {
+      // With empty subtasks, maxConcurrency doesn't matter but option should be accepted
+      const result = await executeDecomposedTask(
+        { taskId: "t-3", subtasks: [] },
+        { maxConcurrency: 5 },
+      );
+      expect(result.status).toBe("empty");
     });
   });
 });

@@ -23,6 +23,7 @@ import { CLISkillLoader } from "./skill-loader.js";
 import { executeHooks, HookEvents } from "./hook-manager.js";
 import { detectPython } from "./cli-anything-bridge.js";
 import { findProjectRoot, loadProjectConfig } from "./project-detector.js";
+import { SubAgentContext } from "./sub-agent-context.js";
 
 // ─── Tool definitions ────────────────────────────────────────────────────
 
@@ -212,6 +213,40 @@ export const AGENT_TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "spawn_sub_agent",
+      description:
+        "Spawn an isolated sub-agent to handle a subtask. The sub-agent has its own context and message history, and only returns a summary result. Use this for tasks that benefit from focused, independent execution (e.g. code review, summarization, translation).",
+      parameters: {
+        type: "object",
+        properties: {
+          role: {
+            type: "string",
+            description:
+              "Sub-agent role (e.g. code-review, summarizer, translator, debugger)",
+          },
+          task: {
+            type: "string",
+            description: "Task description for the sub-agent",
+          },
+          context: {
+            type: "string",
+            description:
+              "Optional condensed context from the parent agent to pass to the sub-agent",
+          },
+          tools: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              'Optional tool whitelist for the sub-agent (e.g. ["read_file", "search_files"]). If omitted, all tools are available.',
+          },
+        },
+        required: ["role", "task"],
+      },
+    },
+  },
 ];
 
 // ─── Shared skill loader ──────────────────────────────────────────────────
@@ -325,6 +360,16 @@ When the user's problem involves data processing, calculations, file operations,
 - If the first attempt fails, debug and retry with a different approach
 
 You are not just a chatbot — you are a capable coding agent. Think step by step, write code when needed, and deliver real results.
+
+## Sub-Agent Isolation
+When a task involves multiple distinct roles (e.g. code review + code generation), or when you need
+focused analysis without polluting your current context, use the spawn_sub_agent tool. Examples:
+- Code review as a separate perspective while you're implementing
+- Summarizing a large file before incorporating it into your response
+- Running a focused analysis (security, performance) on specific code
+- Translating or reformatting content independently
+The sub-agent has its own message history and only returns a summary — your context stays clean.
+Do NOT spawn sub-agents for trivial tasks that you can handle directly.
 
 ## Environment
 ${envLines.join("\n")}
@@ -512,7 +557,11 @@ export async function executeTool(name, args, context = {}) {
 
   let toolResult;
   try {
-    toolResult = await executeToolInner(name, args, { skillLoader, cwd });
+    toolResult = await executeToolInner(name, args, {
+      skillLoader,
+      cwd,
+      parentMessages: context.parentMessages,
+    });
   } catch (err) {
     if (hookDb) {
       try {
@@ -550,7 +599,11 @@ export async function executeTool(name, args, context = {}) {
 /**
  * Inner tool execution — no hooks, no plan-mode checks.
  */
-async function executeToolInner(name, args, { skillLoader, cwd }) {
+async function executeToolInner(
+  name,
+  args,
+  { skillLoader, cwd, parentMessages },
+) {
   switch (name) {
     case "read_file": {
       const filePath = path.resolve(cwd, args.path);
@@ -611,6 +664,10 @@ async function executeToolInner(name, args, { skillLoader, cwd }) {
 
     case "run_code": {
       return _executeRunCode(args, cwd);
+    }
+
+    case "spawn_sub_agent": {
+      return _executeSpawnSubAgent(args, { skillLoader, cwd, parentMessages });
     }
 
     case "search_files": {
@@ -676,6 +733,31 @@ async function executeToolInner(name, args, { skillLoader, cwd }) {
           error: `Skill "${args.skill_name}" not found or has no handler. Use list_skills to see available skills.`,
         };
       }
+
+      // Check if skill requests isolation (via SKILL.md frontmatter)
+      const skillIsolation = match.isolation === true;
+      if (skillIsolation) {
+        // Run skill through isolated sub-agent context
+        const subCtx = SubAgentContext.create({
+          role: `skill-${args.skill_name}`,
+          task: `Execute the "${args.skill_name}" skill with input: ${(args.input || "").substring(0, 200)}`,
+          allowedTools: ["read_file", "search_files", "list_dir"],
+          cwd,
+        });
+        try {
+          const result = await subCtx.run(args.input);
+          return {
+            success: true,
+            isolated: true,
+            skill: args.skill_name,
+            summary: result.summary,
+            toolsUsed: result.toolsUsed,
+          };
+        } catch (err) {
+          return { error: `Isolated skill execution failed: ${err.message}` };
+        }
+      }
+
       try {
         const handlerPath = path.join(match.skillDir, "handler.js");
         const imported = await import(
@@ -953,6 +1035,86 @@ async function _executeRunCode(args, cwd) {
   }
 }
 
+// ─── spawn_sub_agent implementation ──────────────────────────────────────
+
+/**
+ * Execute a spawn_sub_agent tool call.
+ * Creates an isolated SubAgentContext, runs it, and returns only the summary.
+ *
+ * @param {object} args - { role, task, context?, tools? }
+ * @param {object} ctx - { skillLoader, cwd }
+ * @returns {Promise<object>}
+ */
+async function _executeSpawnSubAgent(args, ctx) {
+  const { role, task, context: inheritedContext, tools: allowedTools } = args;
+
+  if (!role || !task) {
+    return { error: "Both 'role' and 'task' are required for spawn_sub_agent" };
+  }
+
+  // Auto-condense parent context if caller didn't provide explicit context
+  let resolvedContext = inheritedContext || null;
+  if (!resolvedContext && Array.isArray(ctx.parentMessages)) {
+    const recentMsgs = ctx.parentMessages
+      .filter((m) => m.role === "assistant" && typeof m.content === "string")
+      .slice(-3)
+      .map((m) => m.content.substring(0, 200));
+    if (recentMsgs.length > 0) {
+      resolvedContext = recentMsgs.join("\n---\n");
+    }
+  }
+
+  const subCtx = SubAgentContext.create({
+    role,
+    task,
+    inheritedContext: resolvedContext,
+    allowedTools: allowedTools || null,
+    cwd: ctx.cwd,
+  });
+
+  try {
+    // Notify registry if available
+    const { SubAgentRegistry } = await import("./sub-agent-registry.js").catch(
+      () => ({ SubAgentRegistry: null }),
+    );
+    if (SubAgentRegistry) {
+      try {
+        SubAgentRegistry.getInstance().register(subCtx);
+      } catch (_err) {
+        // Registry not available — non-critical
+      }
+    }
+
+    const result = await subCtx.run(task);
+
+    // Complete in registry
+    if (SubAgentRegistry) {
+      try {
+        SubAgentRegistry.getInstance().complete(subCtx.id, result);
+      } catch (_err) {
+        // Non-critical
+      }
+    }
+
+    return {
+      success: true,
+      subAgentId: subCtx.id,
+      role: subCtx.role,
+      summary: result.summary,
+      toolsUsed: result.toolsUsed,
+      iterationCount: result.iterationCount,
+      artifactCount: result.artifacts.length,
+    };
+  } catch (err) {
+    subCtx.forceComplete(err.message);
+    return {
+      error: `Sub-agent failed: ${err.message}`,
+      subAgentId: subCtx.id,
+      role: subCtx.role,
+    };
+  }
+}
+
 // ─── LLM chat with tools ─────────────────────────────────────────────────
 
 /**
@@ -1157,6 +1319,7 @@ export async function* agentLoop(messages, options) {
     hookDb: options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
     cwd: options.cwd || process.cwd(),
+    parentMessages: messages, // pass parent messages for sub-agent auto-condensation
   };
 
   // ── Slot-filling phase ──────────────────────────────────────────────
@@ -1292,6 +1455,8 @@ export function formatToolArgs(name, args) {
       return args.category || args.query || "all";
     case "run_code":
       return `${args.language} (${(args.code || "").length} chars)`;
+    case "spawn_sub_agent":
+      return `[${args.role}] ${(args.task || "").substring(0, 60)}`;
     default:
       return JSON.stringify(args).substring(0, 60);
   }

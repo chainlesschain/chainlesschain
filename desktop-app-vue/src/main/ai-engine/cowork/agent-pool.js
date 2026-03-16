@@ -16,6 +16,7 @@
 const { logger } = require("../../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
+const { SubAgentContext } = require("../agents/sub-agent-context.js");
 
 /**
  * 代理状态
@@ -659,6 +660,44 @@ class AgentPool extends EventEmitter {
         rss: memUsage.rss,
       },
     };
+  }
+
+  /**
+   * Acquire a pooled agent wrapped in an isolated SubAgentContext.
+   * The agent's task execution uses independent message history.
+   *
+   * @param {object} options
+   * @param {string} options.role - Sub-agent role
+   * @param {string} options.task - Task description
+   * @param {object} [options.capabilities] - Required capabilities
+   * @param {string[]} [options.allowedTools] - Tool whitelist
+   * @param {object} [options.database] - Database instance
+   * @param {object} [options.llmManager] - LLM manager
+   * @returns {Promise<{ agent: object, subContext: SubAgentContext }>}
+   */
+  async acquireIsolatedAgent(options = {}) {
+    const agent = await this.acquireAgent(options.capabilities || {});
+
+    const subCtx = new SubAgentContext({
+      role: options.role || "pooled-agent",
+      task: options.task || "",
+      parentId: agent.id,
+      inheritedContext: options.inheritedContext || null,
+      allowedTools: options.allowedTools || null,
+      tokenBudget: options.tokenBudget || null,
+      database: options.database || null,
+      llmManager: options.llmManager || null,
+    });
+
+    this._log(
+      `代理 ${agent.id} 获得隔离子上下文 ${subCtx.id} [${options.role || "general"}]`,
+    );
+    this.emit("agent-isolated", {
+      agentId: agent.id,
+      subAgentId: subCtx.id,
+    });
+
+    return { agent, subContext: subCtx };
   }
 
   /**

@@ -91,6 +91,16 @@ export async function startDebate({
   }
 
   // Phase 2: Moderator synthesizes final verdict
+  // Summarize each reviewer's output to reduce context pollution for the moderator
+  const REVIEW_SUMMARY_MAX = 300;
+  const reviewSummaries = reviews.map((r) => {
+    const summarized =
+      r.review.length <= REVIEW_SUMMARY_MAX
+        ? r.review
+        : r.review.substring(0, REVIEW_SUMMARY_MAX) + "... [truncated]";
+    return { ...r, reviewSummary: summarized };
+  });
+
   const moderatorMessages = [
     {
       role: "system",
@@ -99,8 +109,8 @@ export async function startDebate({
     },
     {
       role: "user",
-      content: `Multiple reviewers analyzed this code. Synthesize their findings into a final verdict.\n\nTarget: ${target}\n\n${reviews
-        .map((r) => `### ${r.role} (${r.verdict})\n${r.review}`)
+      content: `Multiple reviewers analyzed this code. Synthesize their findings into a final verdict.\n\nTarget: ${target}\n\n${reviewSummaries
+        .map((r) => `### ${r.role} (${r.verdict})\n${r.reviewSummary}`)
         .join(
           "\n\n---\n\n",
         )}\n\nProvide:\n1. Final Verdict: APPROVE / NEEDS_WORK / REJECT\n2. Consensus Score: 0-100 (how much the reviewers agree)\n3. Summary of key findings across all perspectives\n4. Priority action items (if any)`,

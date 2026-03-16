@@ -4,6 +4,7 @@
  */
 const EventEmitter = require("events");
 const { logger } = require("../../utils/logger.js");
+const { SubAgentContext } = require("../agents/sub-agent-context.js");
 
 class A2AProtocolEngine extends EventEmitter {
   constructor() {
@@ -185,6 +186,77 @@ class A2AProtocolEngine extends EventEmitter {
     }
 
     return { taskId, status: task.status };
+  }
+
+  /**
+   * Send a task with isolated sub-agent context.
+   * The task runs in its own message history and returns only a summary.
+   *
+   * @param {string} agentId - Target agent ID
+   * @param {string} input - Task input
+   * @param {object} [options]
+   * @param {string} [options.role] - Sub-agent role
+   * @param {string[]} [options.allowedTools] - Tool whitelist
+   * @param {object} [options.llmManager] - LLM manager
+   * @returns {Promise<{ taskId: string, status: string, subAgentId: string }>}
+   */
+  async sendTaskIsolated(agentId, input, options = {}) {
+    const agent = this._agentCards.get(agentId);
+    if (!agent) {
+      throw new Error(`Agent '${agentId}' not found`);
+    }
+
+    const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const subCtx = new SubAgentContext({
+      role: options.role || agent.name || "a2a-agent",
+      task: input,
+      parentId: agentId,
+      allowedTools: options.allowedTools || null,
+      database: this.db,
+      llmManager: options.llmManager || null,
+    });
+
+    const task = {
+      id: taskId,
+      agentId,
+      status: "submitted",
+      input,
+      output: null,
+      artifacts: [],
+      subAgentId: subCtx.id,
+      history: [{ status: "submitted", timestamp: Date.now() }],
+      createdAt: Date.now(),
+    };
+
+    this._tasks.set(taskId, task);
+    this._persistTask(task);
+    this.emit("task:submitted", { taskId, agentId, isolated: true });
+
+    // Execute in isolated context
+    try {
+      task.status = "working";
+      task.history.push({ status: "working", timestamp: Date.now() });
+      this.emit("task:working", { taskId });
+
+      const result = await subCtx.run(input);
+
+      task.status = "completed";
+      task.output = result.summary;
+      task.artifacts = result.artifacts;
+      task.history.push({ status: "completed", timestamp: Date.now() });
+      this._persistTask(task);
+      this.emit("task:completed", { taskId, output: result.summary });
+      this._notifySubscribers(task);
+    } catch (err) {
+      subCtx.forceComplete(err.message);
+      task.status = "failed";
+      task.output = err.message;
+      task.history.push({ status: "failed", timestamp: Date.now() });
+      this.emit("task:failed", { taskId, error: err.message });
+    }
+
+    return { taskId, status: task.status, subAgentId: subCtx.id };
   }
 
   async _processTask(taskId) {

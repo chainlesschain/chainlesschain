@@ -19,6 +19,7 @@ import {
   listSessions as dbListSessions,
 } from "./session-manager.js";
 import { buildSystemPrompt } from "./agent-core.js";
+import { SubAgentRegistry } from "./sub-agent-registry.js";
 
 /**
  * @typedef {object} Session
@@ -264,6 +265,13 @@ export class WSSessionManager {
       } catch (_err) {
         // Non-critical
       }
+    }
+
+    // Force-complete any active sub-agents for this session
+    try {
+      SubAgentRegistry.getInstance().forceCompleteAll(sessionId);
+    } catch (_err) {
+      // Non-critical
     }
 
     // Clean up plan manager listeners

@@ -212,7 +212,7 @@ describe("E2E: init command", () => {
   });
 });
 
-// ──��� persona command ────────────────────────────────
+// ─── persona command ────────────────────────────────
 
 describe("E2E: persona command", () => {
   let tempDir;

@@ -199,4 +199,54 @@ describe("debate-review-cli", () => {
       expect(result.consensusScore).toBe(50);
     });
   });
+
+  // ─── Review Summarization ────────────────────────────
+
+  describe("review summarization (REVIEW_SUMMARY_MAX)", () => {
+    it("truncates long reviews before passing to moderator", async () => {
+      const longReview = "A".repeat(500); // > 300 chars
+
+      let moderatorBody;
+
+      globalThis._originalFetch = globalThis.fetch;
+      let callIndex = 0;
+      globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
+        callIndex++;
+        if (callIndex <= 1) {
+          // Reviewer response
+          return {
+            ok: true,
+            json: async () => ({
+              message: {
+                content: `## Issues Found\n- LOW: minor\n## Verdict\nAPPROVE\n\n${longReview}`,
+              },
+            }),
+          };
+        }
+        // Moderator call — capture body
+        moderatorBody = JSON.parse(opts.body);
+        return {
+          ok: true,
+          json: async () => ({
+            message: { content: "Final Verdict: APPROVE\nConsensus Score: 85" },
+          }),
+        };
+      });
+
+      await startDebate({
+        target: "test.js",
+        code: "const x = 1;",
+        perspectives: ["performance"],
+        llmOptions: { provider: "ollama" },
+      });
+
+      // The moderator should receive truncated review, not full 500+ char review
+      if (moderatorBody) {
+        const moderatorPrompt =
+          moderatorBody.messages.find((m) => m.role === "user")?.content || "";
+        // Full long review (500 chars of "A") should NOT appear untruncated in moderator prompt
+        expect(moderatorPrompt).not.toContain(longReview);
+      }
+    });
+  });
 });

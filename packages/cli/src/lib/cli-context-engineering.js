@@ -40,10 +40,15 @@ export class CLIContextEngineering {
    * @param {object} options
    * @param {object|null} options.db - Database instance (null for graceful degradation)
    * @param {object|null} options.permanentMemory - CLIPermanentMemory instance (optional)
+   * @param {object|null} options.scope - Scoping options for sub-agent isolation
+   * @param {string} [options.scope.taskId] - Task/sub-agent ID
+   * @param {string} [options.scope.role] - Sub-agent role
+   * @param {string} [options.scope.parentObjective] - Parent task objective
    */
-  constructor({ db, permanentMemory } = {}) {
+  constructor({ db, permanentMemory, scope } = {}) {
     this.db = db || null;
     this.permanentMemory = permanentMemory || null;
+    this.scope = scope || null;
     this.errorHistory = [];
     this.taskContext = null;
     this._bm25 = null;
@@ -52,6 +57,15 @@ export class CLIContextEngineering {
     this._compactionSummaries = [];
     // Stable prefix cache: { hash, cleanedPrefix }
     this._prefixCache = null;
+
+    // When scoped, auto-set task context from scope
+    if (this.scope && this.scope.parentObjective) {
+      this.taskContext = {
+        objective: this.scope.parentObjective,
+        steps: [],
+        currentStep: 0,
+      };
+    }
   }
 
   /**
@@ -91,31 +105,46 @@ export class CLIContextEngineering {
       }
     }
 
-    // 3. Memory injection
+    // 3. Memory injection (scoped: higher threshold, namespace-aware)
     if (this.db && userQuery) {
       try {
-        const memories = _deps.recallMemory(this.db, userQuery, { limit: 5 });
+        const memoryQuery = this.scope
+          ? `[${this.scope.role}] ${userQuery}`
+          : userQuery;
+        const memoryOpts = { limit: 5 };
+        if (this.scope) {
+          memoryOpts.namespace = this.scope.taskId;
+        }
+        const memories = _deps.recallMemory(this.db, memoryQuery, memoryOpts);
         if (memories && memories.length > 0) {
-          const lines = memories.map(
-            (m) =>
-              `- [${m.layer}] ${m.content} (retention: ${(m.retention * 100).toFixed(0)}%)`,
-          );
-          result.push({
-            role: "system",
-            content: `## Relevant Memories\n${lines.join("\n")}`,
-          });
+          // When scoped, apply higher relevance threshold to reduce noise
+          const threshold = this.scope ? 0.6 : 0.3;
+          const filtered = memories.filter((m) => m.retention >= threshold);
+          if (filtered.length > 0) {
+            const lines = filtered.map(
+              (m) =>
+                `- [${m.layer}] ${m.content} (retention: ${(m.retention * 100).toFixed(0)}%)`,
+            );
+            result.push({
+              role: "system",
+              content: `## Relevant Memories\n${lines.join("\n")}`,
+            });
+          }
         }
       } catch (_err) {
         // Memory injection failed — skip silently
       }
     }
 
-    // 4. Notes injection (BM25 search)
+    // 4. Notes injection (BM25 search — scoped: role-prefixed query)
     if (this.db && userQuery) {
       try {
         this._ensureNotesIndex();
         if (this._bm25 && this._bm25.totalDocs > 0) {
-          const hits = this._bm25.search(userQuery, {
+          const notesQuery = this.scope
+            ? `[${this.scope.role}] ${userQuery}`
+            : userQuery;
+          const hits = this._bm25.search(notesQuery, {
             topK: 3,
             threshold: 0.5,
           });
@@ -135,10 +164,14 @@ export class CLIContextEngineering {
       }
     }
 
-    // 5. Permanent memory injection
+    // 5. Permanent memory injection (scoped: reduced results)
     if (this.permanentMemory && userQuery) {
       try {
-        const pmResults = this.permanentMemory.getRelevantContext(userQuery, 3);
+        const pmLimit = this.scope ? 2 : 3;
+        const pmResults = this.permanentMemory.getRelevantContext(
+          userQuery,
+          pmLimit,
+        );
         if (pmResults && pmResults.length > 0) {
           const lines = pmResults.map(
             (r) => `- [${r.source || "memory"}] ${r.content}`,

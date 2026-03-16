@@ -46,7 +46,7 @@ export default defineConfig({
             link: "/modules/m37-skill-marketplace",
           },
           {
-            text: "v5.0.0-v5.0.1 架构重构与生态融合 (43-67)",
+            text: "v5.0.0-v5.0.1 架构重构与生态融合 (43-71)",
             link: "/modules/m43-ipc-domain-split",
           },
         ],
@@ -457,7 +457,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.1 CLI 分发与高级功能 (66-70)",
+          text: "v5.0.1 CLI 分发与高级功能 (66-71)",
           collapsed: false,
           items: [
             {
@@ -479,6 +479,10 @@ export default defineConfig({
             {
               text: "70 Agent智能增强系统 ⭐",
               link: "/modules/m70-agent-intelligence",
+            },
+            {
+              text: "71 子代理隔离系统 ⭐",
+              link: "/modules/m71-sub-agent-isolation",
             },
           ],
         },

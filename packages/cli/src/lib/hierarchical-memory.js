@@ -15,9 +15,83 @@ export const MEMORY_CONFIG = {
 };
 
 // ─── In-memory layers ────────────────────────────────────────────
-// Map<id, { id, content, type, importance, accessCount, createdAt, lastAccessed }>
-export const _working = new Map();
-export const _shortTerm = new Map();
+// Internal storage: Map<namespace, Map<id, entry>>
+// Default namespace "global" preserves backward compatibility.
+const _workingNS = new Map();
+const _shortTermNS = new Map();
+const DEFAULT_NS = "global";
+
+function _getWorkingNS(namespace) {
+  const ns = namespace || DEFAULT_NS;
+  if (!_workingNS.has(ns)) _workingNS.set(ns, new Map());
+  return _workingNS.get(ns);
+}
+
+function _getShortTermNS(namespace) {
+  const ns = namespace || DEFAULT_NS;
+  if (!_shortTermNS.has(ns)) _shortTermNS.set(ns, new Map());
+  return _shortTermNS.get(ns);
+}
+
+// ─── Backward-compatible proxy ──────────────────────────────────
+// Existing code (and tests) access _working/_shortTerm as flat Maps:
+//   _working.size, _working.get(id), _working.clear(), _working.delete(id)
+// We proxy these to the default namespace while exposing namespaced internals.
+function _createCompatProxy(nsMap, getNS) {
+  return {
+    // Flat access — routes to default namespace
+    get size() {
+      const ns = getNS(DEFAULT_NS);
+      return ns.size;
+    },
+    get(key) {
+      const ns = getNS(DEFAULT_NS);
+      return ns.get(key);
+    },
+    set(key, value) {
+      const ns = getNS(DEFAULT_NS);
+      return ns.set(key, value);
+    },
+    has(key) {
+      const ns = getNS(DEFAULT_NS);
+      return ns.has(key);
+    },
+    delete(key) {
+      const ns = getNS(DEFAULT_NS);
+      return ns.delete(key);
+    },
+    values() {
+      const ns = getNS(DEFAULT_NS);
+      return ns.values();
+    },
+    entries() {
+      const ns = getNS(DEFAULT_NS);
+      return ns.entries();
+    },
+    keys() {
+      const ns = getNS(DEFAULT_NS);
+      return ns.keys();
+    },
+    forEach(callback) {
+      const ns = getNS(DEFAULT_NS);
+      return ns.forEach(callback);
+    },
+    [Symbol.iterator]() {
+      const ns = getNS(DEFAULT_NS);
+      return ns[Symbol.iterator]();
+    },
+    // Clear ALL namespaces (for test cleanup)
+    clear() {
+      nsMap.clear();
+    },
+    // ─── Namespace-aware internals (used by this module) ──────
+    _nsMap: nsMap,
+    _getNS: getNS,
+  };
+}
+
+export const _working = _createCompatProxy(_workingNS, _getWorkingNS);
+export const _shortTerm = _createCompatProxy(_shortTermNS, _getShortTermNS);
 
 // ─── Helpers ─────────────────────────────────────────────────────
 function generateId() {
@@ -91,6 +165,17 @@ export function ensureMemoryTables(db) {
  * Store a memory at the appropriate layer based on importance.
  * core >= 0.9, long-term >= 0.6, short-term >= 0.3, working < 0.3
  */
+/**
+ * Store a memory at the appropriate layer based on importance.
+ * core >= 0.9, long-term >= 0.6, short-term >= 0.3, working < 0.3
+ *
+ * @param {object} db - Database instance
+ * @param {string} content - Memory content
+ * @param {object} [options]
+ * @param {number} [options.importance=0.5]
+ * @param {string} [options.type="episodic"]
+ * @param {string} [options.namespace] - Namespace for in-memory isolation (default: "global")
+ */
 export function storeMemory(db, content, options = {}) {
   if (!content || !content.trim()) {
     throw new Error("Memory content cannot be empty");
@@ -101,6 +186,7 @@ export function storeMemory(db, content, options = {}) {
     Math.min(1, parseFloat(options.importance) || 0.5),
   );
   const type = options.type || "episodic";
+  const namespace = options.namespace || DEFAULT_NS;
   const id = generateId();
   const now = nowISO();
 
@@ -119,14 +205,15 @@ export function storeMemory(db, content, options = {}) {
     ).run(id, content, type, importance, "long-term", now, now);
   } else if (importance >= 0.3) {
     layer = "short-term";
-    if (_shortTerm.size >= MEMORY_CONFIG.shortTermCapacity) {
+    const nsMap = _getShortTermNS(namespace);
+    if (nsMap.size >= MEMORY_CONFIG.shortTermCapacity) {
       // Evict oldest
-      const oldest = [..._shortTerm.entries()].sort(
+      const oldest = [...nsMap.entries()].sort(
         (a, b) => new Date(a[1].lastAccessed) - new Date(b[1].lastAccessed),
       )[0];
-      if (oldest) _shortTerm.delete(oldest[0]);
+      if (oldest) nsMap.delete(oldest[0]);
     }
-    _shortTerm.set(id, {
+    nsMap.set(id, {
       id,
       content,
       type,
@@ -137,13 +224,14 @@ export function storeMemory(db, content, options = {}) {
     });
   } else {
     layer = "working";
-    if (_working.size >= MEMORY_CONFIG.workingCapacity) {
-      const oldest = [..._working.entries()].sort(
+    const nsMap = _getWorkingNS(namespace);
+    if (nsMap.size >= MEMORY_CONFIG.workingCapacity) {
+      const oldest = [...nsMap.entries()].sort(
         (a, b) => new Date(a[1].lastAccessed) - new Date(b[1].lastAccessed),
       )[0];
-      if (oldest) _working.delete(oldest[0]);
+      if (oldest) nsMap.delete(oldest[0]);
     }
-    _working.set(id, {
+    nsMap.set(id, {
       id,
       content,
       type,
@@ -162,16 +250,22 @@ export function storeMemory(db, content, options = {}) {
 /**
  * Search all memory layers with Ebbinghaus forgetting curve.
  * Strengthens recalled memories (spacing effect).
+ *
+ * When options.namespace is set, searches that namespace's in-memory maps
+ * plus the shared long-term/core DB layers. Without namespace, searches
+ * the default "global" namespace (backward compatible).
  */
 export function recallMemory(db, query, options = {}) {
   if (!query || !query.trim()) return [];
 
   const limit = Math.max(1, parseInt(options.limit) || 20);
   const pattern = query.toLowerCase();
+  const namespace = options.namespace || DEFAULT_NS;
   const results = [];
 
-  // Search working memory
-  for (const mem of _working.values()) {
+  // Search working memory (namespace-scoped)
+  const workingNS = _getWorkingNS(namespace);
+  for (const mem of workingNS.values()) {
     if (mem.content.toLowerCase().includes(pattern)) {
       const retention = calcRetention(mem.lastAccessed);
       if (retention >= MEMORY_CONFIG.recallThreshold) {
@@ -182,8 +276,9 @@ export function recallMemory(db, query, options = {}) {
     }
   }
 
-  // Search short-term memory
-  for (const mem of _shortTerm.values()) {
+  // Search short-term memory (namespace-scoped)
+  const shortTermNS = _getShortTermNS(namespace);
+  for (const mem of shortTermNS.values()) {
     if (mem.content.toLowerCase().includes(pattern)) {
       const retention = calcRetention(mem.lastAccessed);
       if (retention >= MEMORY_CONFIG.recallThreshold) {
@@ -260,41 +355,46 @@ export function consolidateMemory(db) {
   let promoted = 0;
   let forgotten = 0;
 
-  // Promote working → short-term
-  for (const [id, mem] of _working) {
-    const retention = calcRetention(mem.lastAccessed);
-    if (retention < MEMORY_CONFIG.recallThreshold) {
-      _working.delete(id);
-      forgotten++;
-    } else if (mem.accessCount >= 3) {
-      _working.delete(id);
-      _shortTerm.set(id, { ...mem, lastAccessed: nowISO() });
-      promoted++;
+  // Promote working → short-term (across all namespaces)
+  for (const [ns, nsMap] of _workingNS) {
+    const shortTermNS = _getShortTermNS(ns);
+    for (const [id, mem] of nsMap) {
+      const retention = calcRetention(mem.lastAccessed);
+      if (retention < MEMORY_CONFIG.recallThreshold) {
+        nsMap.delete(id);
+        forgotten++;
+      } else if (mem.accessCount >= 3) {
+        nsMap.delete(id);
+        shortTermNS.set(id, { ...mem, lastAccessed: nowISO() });
+        promoted++;
+      }
     }
   }
 
-  // Promote short-term → long-term
-  for (const [id, mem] of _shortTerm) {
-    const retention = calcRetention(mem.lastAccessed);
-    if (retention < MEMORY_CONFIG.recallThreshold) {
-      _shortTerm.delete(id);
-      forgotten++;
-    } else if (mem.accessCount >= 5) {
-      _shortTerm.delete(id);
-      const now = nowISO();
-      db.prepare(
-        `INSERT INTO memory_long_term (id, content, type, importance, access_count, layer, created_at, last_accessed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(
-        id,
-        mem.content,
-        mem.type,
-        mem.importance,
-        mem.accessCount,
-        "long-term",
-        mem.createdAt,
-        now,
-      );
-      promoted++;
+  // Promote short-term → long-term (across all namespaces)
+  for (const [, nsMap] of _shortTermNS) {
+    for (const [id, mem] of nsMap) {
+      const retention = calcRetention(mem.lastAccessed);
+      if (retention < MEMORY_CONFIG.recallThreshold) {
+        nsMap.delete(id);
+        forgotten++;
+      } else if (mem.accessCount >= 5) {
+        nsMap.delete(id);
+        const now = nowISO();
+        db.prepare(
+          `INSERT INTO memory_long_term (id, content, type, importance, access_count, layer, created_at, last_accessed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).run(
+          id,
+          mem.content,
+          mem.type,
+          mem.importance,
+          mem.accessCount,
+          "long-term",
+          mem.createdAt,
+          now,
+        );
+        promoted++;
+      }
     }
   }
 
@@ -324,15 +424,19 @@ function _searchByType(db, query, type, options = {}) {
   const pattern = query.toLowerCase();
   const results = [];
 
-  // In-memory layers
-  for (const mem of _working.values()) {
-    if (mem.type === type && mem.content.toLowerCase().includes(pattern)) {
-      results.push({ ...mem, layer: "working" });
+  // In-memory layers (search all namespaces)
+  for (const [, nsMap] of _workingNS) {
+    for (const mem of nsMap.values()) {
+      if (mem.type === type && mem.content.toLowerCase().includes(pattern)) {
+        results.push({ ...mem, layer: "working" });
+      }
     }
   }
-  for (const mem of _shortTerm.values()) {
-    if (mem.type === type && mem.content.toLowerCase().includes(pattern)) {
-      results.push({ ...mem, layer: "short-term" });
+  for (const [, nsMap] of _shortTermNS) {
+    for (const mem of nsMap.values()) {
+      if (mem.type === type && mem.content.toLowerCase().includes(pattern)) {
+        results.push({ ...mem, layer: "short-term" });
+      }
     }
   }
 
@@ -412,19 +516,23 @@ export function pruneMemory(db, options = {}) {
   const maxAgeHours = parseFloat(options.maxAge) || 720; // 30 days default
   let pruned = 0;
 
-  // Prune in-memory layers by retention
-  for (const [id, mem] of _working) {
-    const retention = calcRetention(mem.lastAccessed);
-    if (retention < MEMORY_CONFIG.recallThreshold) {
-      _working.delete(id);
-      pruned++;
+  // Prune in-memory layers by retention (across all namespaces)
+  for (const [, nsMap] of _workingNS) {
+    for (const [id, mem] of nsMap) {
+      const retention = calcRetention(mem.lastAccessed);
+      if (retention < MEMORY_CONFIG.recallThreshold) {
+        nsMap.delete(id);
+        pruned++;
+      }
     }
   }
-  for (const [id, mem] of _shortTerm) {
-    const retention = calcRetention(mem.lastAccessed);
-    if (retention < MEMORY_CONFIG.recallThreshold) {
-      _shortTerm.delete(id);
-      pruned++;
+  for (const [, nsMap] of _shortTermNS) {
+    for (const [id, mem] of nsMap) {
+      const retention = calcRetention(mem.lastAccessed);
+      if (retention < MEMORY_CONFIG.recallThreshold) {
+        nsMap.delete(id);
+        pruned++;
+      }
     }
   }
 
@@ -460,12 +568,22 @@ export function getMemoryStats(db) {
     .prepare(`SELECT COUNT(*) as count FROM memory_sharing`)
     .get();
 
+  // Sum across all namespaces
+  let workingTotal = 0;
+  for (const [, nsMap] of _workingNS) workingTotal += nsMap.size;
+  let shortTermTotal = 0;
+  for (const [, nsMap] of _shortTermNS) shortTermTotal += nsMap.size;
+
   return {
-    working: _working.size,
-    shortTerm: _shortTerm.size,
+    working: workingTotal,
+    shortTerm: shortTermTotal,
     longTerm: ltCount.count,
     core: coreCount.count,
     shared: shareCount.count,
-    total: _working.size + _shortTerm.size + ltCount.count + coreCount.count,
+    namespaces: {
+      working: [..._workingNS.keys()],
+      shortTerm: [..._shortTermNS.keys()],
+    },
+    total: workingTotal + shortTermTotal + ltCount.count + coreCount.count,
   };
 }
