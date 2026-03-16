@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v5.0.1.6 进化版 | 军事级安全 | 完全去中心化 | AI原生 | 138技能 | 102 Phase | AI Agent 2.0 | Web3 深化 | 自进化AI | Headless CLI | WebSocket Server | Agent智能增强
+  tagline: v5.0.1.8 进化版 | 军事级安全 | 完全去中心化 | AI原生 | 138技能 | 102 Phase | AI Agent 2.0 | Web3 深化 | 自进化AI | Headless CLI | WebSocket Server | Sub-Agent Isolation v2 | 4600+ Tests
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -144,7 +144,7 @@ start.bat
 - 📱 跨设备同步 (PC/移动端/浏览器扩展)
 - 🔌 MCP集成 + 138内置技能 + 统一工具注册表
 - 🎨 AI技能系统 (138技能 + Agent Skills标准 + 10演示模板)
-- 💻 Headless CLI (61命令 + 5核心包 + Agent REPL + 138技能 + Plan Mode + WebSocket Server + Agent智能增强)
+- 💻 Headless CLI (62命令 + 5核心包 + Agent REPL + 138技能 + Plan Mode + WebSocket Server + Sub-Agent Isolation v2)
 - ⛓️ 区块链集成 (15链 + 6个智能合约)
 - 🤖 AI Agent 2.0 (A2A协议、工作流编排、层次化记忆、多模态感知、Agent经济)
 - 🖥️ Computer Use (68+ IPC处理器，视觉AI，工作流引擎)
@@ -201,7 +201,7 @@ start.bat
 - 🔌 735+ IPC处理器 (+178 v5.0)
 - 🧪 20,400+ 测试用例 (+646 v5.0)
 - 🎨 138个内置技能 + 统一工具注册表
-- 💻 61个CLI命令 + 5核心包 (2503测试) + 6维Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything集成 + WebSocket Server + Agent智能增强
+- 💻 62个CLI命令 + 5核心包 (4600+测试) + 6维Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything集成 + WebSocket Server + Sub-Agent Isolation v2
 - 💾 95+ 张数据库表
 - 🏗️ 64个Pinia Store
 - 🔧 102个开发阶段完成 (Phase 1-102)
