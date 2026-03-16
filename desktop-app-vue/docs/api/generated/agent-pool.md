@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/agent-pool.js`
 
-**Generated**: 2026-03-15T02:43:23.109Z
+**Generated**: 2026-03-16T02:33:26.859Z
 
 ---
 
@@ -284,6 +284,26 @@ getPoolStats()
 
 * 获取池状态（v1.1.0 能力池统计）
    * @returns {Object}
+
+---
+
+## async acquireIsolatedAgent(options =
+
+```javascript
+async acquireIsolatedAgent(options =
+```
+
+* Acquire a pooled agent wrapped in an isolated SubAgentContext.
+   * The agent's task execution uses independent message history.
+   *
+   * @param {object} options
+   * @param {string} options.role - Sub-agent role
+   * @param {string} options.task - Task description
+   * @param {object} [options.capabilities] - Required capabilities
+   * @param {string[]} [options.allowedTools] - Tool whitelist
+   * @param {object} [options.database] - Database instance
+   * @param {object} [options.llmManager] - LLM manager
+   * @returns {Promise<{ agent: object, subContext: SubAgentContext }>}
 
 ---
 
