@@ -200,7 +200,9 @@ chainlesschain agent --provider openai --api-key sk-...
 
 Built-in tools: `read_file`, `write_file`, `edit_file`, `run_shell`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`
 
-Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-driven planning with skill recommendations), `/model`, `/provider`, `/clear`, `/compact`, `/task`, `/session`, `/stats`, `/auto` (autonomous agent), `/cowork` (multi-agent collaboration)
+Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-driven planning with skill recommendations), `/model`, `/provider`, `/clear`, `/compact`, `/task`, `/session`, `/stats`, `/auto` (autonomous agent), `/cowork` (multi-agent collaboration), `/sub-agents` (show active/completed sub-agents)
+
+**Sub-Agent Isolation v2** (v0.43.0): Complex tasks are automatically decomposed into isolated sub-agents, each with its own namespaced memory, scoped context, and lifecycle tracking. Use `/sub-agents` inside an agent session to inspect active and completed sub-agents, token usage, and average durations.
 
 ### `chainlesschain skill <action>`
 
@@ -845,7 +847,7 @@ chainlesschain serve --allow-remote --token <secret>    # Allow remote + auth
 chainlesschain serve --project /path/to/project         # Default project root for sessions
 ```
 
-**Session Protocol** (v0.41.0): WebSocket clients can create stateful agent/chat sessions via `session-create`, send messages via `session-message`, resume previous sessions via `session-resume`, and manage sessions via `session-list`/`session-close`. Supports `slash-command` for in-session commands and `session-answer` for interactive Q&A (SlotFiller/Planner).
+**Session Protocol** (v0.43.0): WebSocket clients can create stateful agent/chat sessions via `session-create`, send messages via `session-message`, resume previous sessions via `session-resume`, and manage sessions via `session-list`/`session-close`. Supports `slash-command` for in-session commands and `session-answer` for interactive Q&A (SlotFiller/Planner).
 
 ---
 
@@ -922,7 +924,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (2503 tests across 113 files)
+npm test                # Run all tests (2748 tests across 124 files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -932,15 +934,15 @@ npm run test:e2e        # End-to-end tests
 
 | Category                 | Files   | Tests    | Status          |
 | ------------------------ | ------- | -------- | --------------- |
-| Unit — lib modules       | 56      | 1200+    | All passing     |
+| Unit — lib modules       | 63      | 1380+    | All passing     |
 | Unit — commands          | 15      | 350+     | All passing     |
 | Unit — runtime           | 1       | 6        | All passing     |
-| Integration              | 5       | 30+      | All passing     |
-| E2E                      | 14      | 150+     | All passing     |
+| Integration              | 6       | 40+      | All passing     |
+| E2E                      | 15      | 160+     | All passing     |
 | Core packages (external) | —       | 118      | All passing     |
 | Unit — WS sessions       | 9       | 156      | All passing     |
 | Integration — WS session | 1       | 12       | All passing     |
-| **CLI Total**            | **113** | **2503** | **All passing** |
+| **CLI Total**            | **124** | **2748** | **All passing** |
 
 ## License
 
