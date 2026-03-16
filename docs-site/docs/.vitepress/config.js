@@ -730,7 +730,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.1.7 子代理隔离",
+          text: "v5.0.1.8 子代理隔离 v2",
           items: [
             {
               text: "子代理隔离系统",

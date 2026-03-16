@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.1.6-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.1.8-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4500%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4600%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,7 +22,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.1 Evolution Edition (2026-03-11)
+## ⭐ Current Version: v5.0.1.8 Evolution Edition (2026-03-16)
 
 ### Latest Updates - CLI Distribution System (Phase 101) ⭐NEW
 
@@ -58,7 +58,7 @@ chainlesschain start    # Launch application (or: cc start / clc start / clchain
 - ✅ **WebSocket Server** — `serve` command exposes all CLI commands over WebSocket, supports execute/stream/cancel + token auth + heartbeat + injection protection
 - ✅ **WebSocket Stateful Sessions** — Create/resume/manage agent/chat sessions over WS, with project context binding, SlotFiller parameter filling (9 intent types auto-detected), InteractivePlanner interactive planning (2503 tests/113 files)
 - ✅ **Agent Intelligence** — Auto pip-install for Python packages + script persistence + error classification (5 types) + environment detection + agent-core extraction
-- ✅ **Sub-Agent Isolation** — SubAgentContext isolated execution + spawn_sub_agent tool + namespaced memory + scoped context engineering + role-based tool whitelist + 3-level summarization + lifecycle registry
+- ✅ **Sub-Agent Isolation v2** — SubAgentContext isolated execution + spawn_sub_agent tool + namespaced memory + scoped context engineering + role-based tool whitelist + 3-level summarization + lifecycle registry + sandboxed execution environment + resource limits + parent-child communication protocol
 - ✅ **DAO Governance v2** — Quadratic voting + vote delegation + treasury management + proposal lifecycle (`dao` command)
 - ✅ **Security & Compliance CLI** — Compliance management (GDPR/SOC2/HIPAA/ISO27001) + DLP + SIEM log export + Post-Quantum Cryptography (PQC)
 - ✅ **Communication Bridges CLI** — Nostr bridge (NIP-01) + Matrix bridge (E2EE) + SCIM 2.0 user provisioning
@@ -66,7 +66,7 @@ chainlesschain start    # Launch application (or: cc start / clc start / clchain
 - ✅ **Social Platform CLI** — Contacts + friend system + posts + instant chat + social stats
 - ✅ **Hook Pipeline** — PreToolUse/PostToolUse/ToolError tool call hooks integration
 - ✅ **Content Recommender** — TF-IDF tool similarity + tool chain frequency recommendation
-- ✅ **2063 Test Cases** — 92 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
+- ✅ **2700+ Test Cases** — 113 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
 - ✅ **Project Initialization** (`init`) — 7 templates (code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/empty), generates `.chainlesschain/` project structure
 - ✅ **Persona System** — Project-level AI persona configuration (`persona show/set/reset`), replaces default coding assistant, tool permission control, auto-activated Persona Skills
 - ✅ **Multi-layer Skill System** — 4-layer priority (bundled < marketplace < managed < workspace), custom skill management (add/remove/sources)

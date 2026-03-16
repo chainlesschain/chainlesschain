@@ -5,6 +5,46 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.1.8] - 2026-03-16
+
+### Added
+
+- **子代理隔离 v2 (Sub-Agent Isolation v2)**: 全面升级子代理隔离系统
+  - `SubAgentContext`: 独立消息历史 + 命名空间化记忆 + 作用域上下文引擎
+  - `spawn_sub_agent` 工具: 父代理可生成子代理执行特定任务
+  - 角色工具白名单: 按角色限制子代理可用工具集
+  - 三级摘要策略: brief/detailed/full 三种结果返回模式
+  - 生命周期注册表 (`SubAgentRegistry`): 追踪子代理创建/运行/完成全流程
+  - 沙箱化执行环境 + 资源限制 + 父子通信协议
+  - 新增 `sub-agent-context.js`、`sub-agent-registry.js` 模块
+- **Agent 智能增强 v2**: 增强 agent-core 智能能力
+  - `classifyError()` 5 种错误类型增加更精准的 `hint` 匹配
+  - `getEnvironmentInfo()` 缓存优化，减少重复检测
+  - `agent-core.js` 提取公共逻辑后代码量减少 40%
+- **CLI 短别名**: `cc`/`clc`/`clchain` 均可替代 `chainlesschain` 命令
+- **CLI v0.43.2**: 修复 config 加载、lint-staged stash bug
+
+### Fixed
+
+- **Windows CI EACCES 权限错误**: 修复 fs mock 测试在 Windows CI 中��权限问题
+- **config 加载顺序**: 修复 `.chainlesschain/config.json` 在特定场景下未正确加载的问题
+- **lint-staged stash 冲突**: 修复 lint-staged 在有 stash 时的错误行为
+
+## [5.0.1.7] - 2026-03-15
+
+### Added
+
+- **子代理隔离系统 (Sub-Agent Isolation)**: 新增子代理上下文隔离框架
+  - `SubAgentContext` 隔离原语: 独立消息历史 + 工具白名单
+  - `spawn_sub_agent` 工具注册到 agent-core
+  - 命名空间化记忆: hierarchical-memory 按 namespace 隔离
+  - 作用域上下文引擎: CLIContextEngineering 支持 scope 参数
+  - 三级摘要策略 (brief/detailed/full)
+  - 生命周期注册表 (`SubAgentRegistry`)
+- **Agent 智能增强**: auto pip-install + 脚本持久化 + 错误分类(5类) + 环境检测
+- **agent-core 提取**: 从 agent-repl.js 提取 AGENT_TOOLS/executeTool/chatWithTools/agentLoop
+- **Desktop agent 模式**: conversation:agent-chat IPC handler + FunctionCaller 9 工具
+
 ## [5.0.1.6] - 2026-03-15
 
 ### Added

@@ -1,6 +1,6 @@
-# 子代理隔离系统 (Sub-Agent Isolation)
+# 子代理隔离系统 (Sub-Agent Isolation v2)
 
-> v5.0.1.7+ — 子代理上下文隔离与协作管理
+> v5.0.1.7 — v5.0.1.8 | CLI v0.43.0+ — 子代理上下文隔离与协作管理
 
 ## 概述
 
@@ -182,8 +182,16 @@ const REVIEW_SUMMARY_MAX = 300;
 | `packages/cli/src/lib/cowork/debate-review-cli.js` | Debate 摘要化 |
 | `desktop-app-vue/src/main/ai-engine/agents/sub-agent-context.js` | Desktop 等价实现 |
 
+## v5.0.1.8 增强 (Sub-Agent Isolation v2)
+
+- **自动上下文凝缩**: 未提供 context 时，自动从父代理最近3条消息提取前200字符作为继承上下文
+- **Token 预算执行**: 基于字符长度估算 (~4字符/token)，达到 `tokenBudget` 时自动 `forceComplete`
+- **并行子代理**: `executeDecomposedTask()` 支持批次并行执行 (`maxConcurrency` 默认 3)
+- **系统提示词引导**: `getBaseSystemPrompt()` 包含 Sub-Agent Isolation 使用指南
+- **Desktop 集成**: `agent-pool.js` 支持 `inheritedContext`/`tokenBudget`，`autonomous-agent-runner.js` 支持子代理追踪
+
 ## 测试覆盖
 
-- **单元测试**: sub-agent-context, sub-agent-registry, scoped-context-engineering, namespaced-memory
-- **集成测试**: sub-agent-isolation (spawn_sub_agent + 命名空间隔离)
-- **E2E 测试**: 模块导入验证, 工具定义验证
+- **单元测试**: sub-agent-context (38), sub-agent-registry (12), scoped-context-engineering (8), namespaced-memory (9)
+- **集成测试**: sub-agent-isolation (33) — spawn_sub_agent + 命名空间隔离 + token预算
+- **E2E 测试**: sub-agent-isolation (8) — 模块导入验证, 工具定义验证
