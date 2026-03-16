@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/subtitle-generator.js`
 
-**Generated**: 2026-03-16T02:33:26.772Z
+**Generated**: 2026-03-16T05:44:52.396Z
 
 ---
 

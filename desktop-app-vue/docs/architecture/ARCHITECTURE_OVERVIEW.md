@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-03-16T02:33:27.044Z
+**Generated**: 2026-03-16T05:44:52.722Z
 
 ---
 

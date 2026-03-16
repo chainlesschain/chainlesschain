@@ -2,7 +2,7 @@
 
 **Source**: `src/main/browser/actions/file-handler.js`
 
-**Generated**: 2026-03-16T02:33:26.838Z
+**Generated**: 2026-03-16T05:44:52.496Z
 
 ---
 
