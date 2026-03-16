@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/teammate-tool.js`
 
-**Generated**: 2026-03-15T02:43:23.102Z
+**Generated**: 2026-03-16T02:33:26.855Z
 
 ---
 
@@ -135,6 +135,24 @@ async assignTask(teamId, agentIdOrTask, task)
    * @param {string} agentId - 代理 ID（可选，自动选择）
    * @param {Object} task - 任务对象
    * @returns {Promise<Object>} 分配结果
+
+---
+
+## async assignTaskIsolated(teamId, task, options =
+
+```javascript
+async assignTaskIsolated(teamId, task, options =
+```
+
+* Assign a task using an isolated sub-agent context.
+   * The sub-agent has independent message history and only returns a summary.
+   *
+   * @param {string} teamId - Team ID
+   * @param {object} task - Task object with description, type, etc.
+   * @param {object} [options] - Options
+   * @param {string} [options.inheritedContext] - Context from parent
+   * @param {string[]} [options.allowedTools] - Tool whitelist
+   * @returns {Promise<object>} Task result with summary
 
 ---
 
