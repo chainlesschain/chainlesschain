@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.1.6-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.1.8-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4500%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4600%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,7 +22,7 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.1.6 Evolution Edition (2026-03-15)
+## ⭐ 当前版本: v5.0.1.8 Evolution Edition (2026-03-16)
 
 ### 最新更新 - CLI 分发系统 (Phase 101) ⭐NEW
 
@@ -49,7 +49,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **Phase 8 区块链与企业** — Agent 经济系统 (微支付+资源市场+NFT) + 零知识证明引擎 (Groth16+选择性披露) + BI 智能分析 (NL→SQL+异常检测)
 - ✅ **Phase 9 低代码与多Agent** — 低代码平台 (15+组件+版本管理) + 多Agent协调器 + DI服务容器
 - ✅ **Agent 智能增强** — auto pip-install + 脚本持久化 + 错误分类(5类) + 环境检测 + agent-core 提取去重 + Desktop agent 模式
-- ✅ **子代理隔离系统** — SubAgentContext 上下文隔离 + spawn_sub_agent 工具 + 命名空间化记忆 + 作用域上下文引擎 + 角色工具白名单 + 三级摘要策略 + 生命周期注册表
+- ✅ **子代理隔离系统 v2** — SubAgentContext 上下文隔离 + spawn_sub_agent 工具 + 命名空间化记忆 + 作用域上下文引擎 + 角色工具白名单 + 三级摘要策略 + 生命周期注册表 + 沙箱化执行环境 + 资源限制 + 父子通信协议
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
 - ✅ **Agent Context Engineering** — 6维上下文注入 (Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary) + KV-Cache优化 + 稳定前缀缓存 + 智能压缩 + 可恢复压缩摘要 + 会话恢复 (`--session`)
 - ✅ **Autonomous Agent** — ReAct 自主任务循环 (`/auto` 命令) + 目标分解 + 自我纠正
@@ -58,7 +58,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **EvoMap 基因交换** — `evomap search|download|publish|list|hubs` GEP-A2A 协议客户端 + 联邦Hub管理 + 基因治理
 - ✅ **CLI-Anything 集成** — `cli-anything doctor|scan|register|list|remove` 将任意软件 Agent 化，自动注册为 managed 层技能
 - ✅ **WebSocket 服务器** — `serve` 命令通过 WebSocket 暴露全部 CLI 命令，支持 execute/stream/cancel + Token 认证 + 心跳检测 + 命令注入防护
-- ✅ **WebSocket 有状态会话** — 通过 WS 创建/恢复/管理 agent/chat 会话，支持项目上下文绑定、SlotFiller 参数填充（9 种意图自动检测）、InteractivePlanner 交互式规划 (2450 测试/109 文件)
+- ✅ **WebSocket 有状态会话** — 通过 WS 创建/恢复/管理 agent/chat 会话，支持项目上下文绑定、SlotFiller 参数填充（9 种意图自动检测）、InteractivePlanner 交互式规划 (2700+ 测试/113 文件)
 - ✅ **DAO 治理 v2** — 二次方投票 + 投票委托 + 国库管理 + 提案生命周期 (`dao` 命令)
 - ✅ **安全合规 CLI** — 合规管理 (GDPR/SOC2/HIPAA/ISO27001) + 数据防泄漏 (DLP) + SIEM 日志导出 + 后量子密码 (PQC)
 - ✅ **通信桥接 CLI** — Nostr 桥接 (NIP-01) + Matrix 桥接 (E2EE) + SCIM 2.0 用户配置
@@ -66,7 +66,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **社交平台 CLI** — 联系人管理 + 好友系统 + 动态发布 + 即时聊天 + 社交统计
 - ✅ **Hook 管道** — PreToolUse/PostToolUse/ToolError 工具调用钩子集成
 - ✅ **Content Recommender** — TF-IDF 工具相似度 + 工具链频率推荐
-- ✅ **2063+ 个测试用例** — 92+ 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **2700+ 个测试用例** — 113+ 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
 - ✅ **系统质量改进** — 12 个 Pinia Store 测试文件 (431 测试)，CI 管道修复 (`continue-on-error` 移除)，`builtin-tools.js` (25K行) 拆分为 8 个模块，空 catch 块清理，硬编码凭证移除
 - ✅ **项目初始化** (`init`) — 7 种模板 (code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/空项目)，生成 `.chainlesschain/` 项目结构
 - ✅ **Persona 系统** — 项目级 AI 角色配置 (`persona show/set/reset`)，自动替换默认编码助手，工具权限控制，自动激活 Persona Skill
