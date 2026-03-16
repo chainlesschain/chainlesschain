@@ -124,6 +124,7 @@ const MODULE_FILE_MAP = {
   "68_CLI-Anything集成.md": "m68-cli-anything.md",
   "69_WebSocket服务器接口.md": "m69-websocket-server.md",
   "70_Agent智能增强系统.md": "m70-agent-intelligence.md",
+  "71_子代理隔离系统.md": "m71-sub-agent-isolation.md",
 };
 
 /**

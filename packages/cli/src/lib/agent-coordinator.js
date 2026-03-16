@@ -6,6 +6,7 @@
  */
 
 import crypto from "crypto";
+import { SubAgentContext } from "./sub-agent-context.js";
 
 /**
  * Keyword map for agent type detection.
@@ -269,5 +270,115 @@ export function estimateComplexity(task) {
   return {
     complexity,
     estimatedSubtasks: Math.max(1, matchedTypes),
+  };
+}
+
+// ─── Role-based tool whitelist ──────────────────────────────────────────
+
+export const ROLE_TOOL_WHITELIST = {
+  "code-review": ["read_file", "search_files", "list_dir"],
+  "code-generation": [
+    "read_file",
+    "write_file",
+    "edit_file",
+    "run_shell",
+    "search_files",
+    "list_dir",
+  ],
+  "data-analysis": [
+    "read_file",
+    "search_files",
+    "list_dir",
+    "run_code",
+    "run_shell",
+  ],
+  document: ["read_file", "write_file", "search_files", "list_dir"],
+  testing: [
+    "read_file",
+    "write_file",
+    "edit_file",
+    "run_shell",
+    "search_files",
+    "list_dir",
+    "run_code",
+  ],
+  general: null, // all tools
+};
+
+/**
+ * Execute a decomposed task using isolated sub-agent contexts.
+ * Each subtask gets its own SubAgentContext with role-appropriate tool whitelist.
+ *
+ * @param {{ taskId: string, subtasks: Array }} decomposition - From decomposeTask()
+ * @param {object} [options]
+ * @param {string} [options.cwd] - Working directory
+ * @param {object} [options.db] - Database instance
+ * @param {object} [options.llmOptions] - LLM provider options
+ * @param {string} [options.parentContext] - Condensed context from parent
+ * @returns {Promise<{ taskId: string, status: string, results: Array, summary: string }>}
+ */
+export async function executeDecomposedTask(decomposition, options = {}) {
+  const { subtasks } = decomposition;
+  if (!subtasks || subtasks.length === 0) {
+    return {
+      taskId: decomposition.taskId,
+      status: "empty",
+      results: [],
+      summary: "No subtasks to execute",
+    };
+  }
+
+  const maxConcurrency = options.maxConcurrency || 3;
+
+  // Run subtasks in parallel batches with concurrency limit
+  const results = [];
+  for (let i = 0; i < subtasks.length; i += maxConcurrency) {
+    const batch = subtasks.slice(i, i + maxConcurrency);
+    const batchPromises = batch.map(async (subtask) => {
+      const allowedTools = ROLE_TOOL_WHITELIST[subtask.agentType] || null;
+
+      const subCtx = SubAgentContext.create({
+        role: subtask.agentType,
+        task: subtask.description,
+        inheritedContext: options.parentContext || null,
+        allowedTools,
+        cwd: options.cwd || process.cwd(),
+        db: options.db || null,
+        llmOptions: options.llmOptions || {},
+      });
+
+      try {
+        const result = await subCtx.run(subtask.description);
+        subtask.status = "completed";
+        subtask.result = result.summary;
+        return {
+          id: subtask.id,
+          agentType: subtask.agentType,
+          status: "completed",
+          summary: result.summary,
+          toolsUsed: result.toolsUsed,
+        };
+      } catch (err) {
+        subtask.status = "failed";
+        subtask.result = err.message;
+        return {
+          id: subtask.id,
+          agentType: subtask.agentType,
+          status: "failed",
+          error: err.message,
+        };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+  }
+
+  const aggregated = aggregateResults(subtasks);
+  return {
+    taskId: decomposition.taskId,
+    status: aggregated.status,
+    results,
+    summary: aggregated.summary,
   };
 }

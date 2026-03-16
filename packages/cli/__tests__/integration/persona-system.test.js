@@ -342,7 +342,7 @@ This should NOT be auto-activated.`,
       expect(toolNames).not.toContain("write_file");
       expect(toolNames).toContain("read_file");
       expect(toolNames).toContain("search_files");
-      expect(capturedBody.tools.length).toBe(7); // 9 - 2 disabled
+      expect(capturedBody.tools.length).toBe(8); // 10 - 2 disabled
     });
 
     it("no filtering when no persona configured", async () => {
@@ -368,7 +368,7 @@ This should NOT be auto-activated.`,
           cwd: noProjectDir,
         });
 
-        expect(capturedBody.tools.length).toBe(9); // All tools
+        expect(capturedBody.tools.length).toBe(10); // All tools
       } finally {
         rmSync(noProjectDir, { recursive: true, force: true });
       }

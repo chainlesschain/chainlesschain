@@ -225,6 +225,17 @@ All entry files are relative to `desktop-app-vue/src/`.
 - **Plugin Ecosystem 2.0**: AI-driven recommendations, dependency resolution + conflict detection, sandbox isolation, AI code review, revenue sharing
 - **Self-Evolving AI**: Auto architecture search (NAS), continual learning, self-diagnosis + self-repair, behavior prediction, capability assessment + growth tracking
 
+### Sub-Agent Isolation (v5.0.1.7 — Phase 71)
+
+- **SubAgentContext**: Isolated execution context with independent messages, context engine, tool whitelisting, 3-level summarization (direct/section-extraction/truncate)
+- **spawn_sub_agent tool**: LLM-callable tool for creating isolated child agents, returns summary only to parent
+- **Namespaced Memory**: hierarchical-memory `_working`/`_shortTerm` isolated by namespace, backward-compatible proxy for default "global" namespace
+- **Scoped Context Engineering**: Role-prefixed BM25 queries, higher retention thresholds (0.6 vs 0.3), namespace-aware memory recall
+- **Role Tool Whitelist**: Per-role tool restrictions (code-review: read-only, code-generation: write, testing: full, etc.)
+- **SubAgentRegistry**: Singleton lifecycle tracker with RingBuffer(100) completion history, session cleanup integration
+- **Cowork Debate Summarization**: Reviewer output truncated to 300 chars before passing to moderator
+- **Agent Coordinator Integration**: `executeDecomposedTask()` creates SubAgentContext per subtask with role-appropriate tools
+
 ## CLI Headless Commands (v5.0.1+)
 
 37 commands in `packages/cli/src/commands/`, 1009 tests all passing (55 test files):
@@ -244,7 +255,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | `chat`     | —                                              | Interactive AI chat with streaming (headless)                      |
 | `ask`      | —                                              | Single-shot AI query (headless)                                    |
 | `llm`      | models, test, providers, add-provider, switch  | LLM provider management (headless)                                 |
-| `agent`    | —                                              | Agentic AI session with 8 tools + 138 skills + Plan Mode (headless)|
+| `agent`    | —                                              | Agentic AI session with 10 tools + 138 skills + Plan Mode + Sub-Agent Isolation (headless)|
 | `skill`    | list, categories, info, search, run            | 138 built-in skill management (headless)                           |
 | `search`   | —                                              | BM25 hybrid search (Phase 1)                                      |
 | `tokens`   | show, breakdown, recent, cache                 | Token usage tracking + cost analysis (Phase 1)                     |

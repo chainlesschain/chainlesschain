@@ -33,7 +33,7 @@ packages/cli/
 │   ├── commands/cli-anything.js    # Commander 命令（5 子命令）
 │   └── lib/cli-anything-bridge.js  # 核心桥接库
 ├── __tests__/
-│   ├── unit/cli-anything-bridge.test.js        # 32 单��测试
+│   ├── unit/cli-anything-bridge.test.js        # 32 单元测试
 │   ├── integration/cli-anything-workflow.test.js # 11 集成测试
 │   └── e2e/cli-anything-commands.test.js        # 13 端到端测试
 ```

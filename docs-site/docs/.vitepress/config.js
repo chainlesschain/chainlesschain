@@ -730,6 +730,15 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.1.7 子代理隔离",
+          items: [
+            {
+              text: "子代理隔离系统",
+              link: "/chainlesschain/sub-agent-isolation",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
@@ -844,7 +853,7 @@ export default defineConfig({
             { text: "47 工作流编排", link: "/design/modules/47-workflow" },
             { text: "48 层次化记忆2.0", link: "/design/modules/48-hierarchical-memory" },
             { text: "49 多模态感知", link: "/design/modules/49-multimodal-perception" },
-            { text: "50 Agent经���", link: "/design/modules/50-agent-economy" },
+            { text: "50 Agent经济", link: "/design/modules/50-agent-economy" },
             { text: "51 代码生成Agent", link: "/design/modules/51-code-agent" },
             { text: "52 安全沙箱2.0", link: "/design/modules/52-sandbox" },
             { text: "53 零知识证明", link: "/design/modules/53-zkp" },
@@ -877,6 +886,7 @@ export default defineConfig({
             { text: "68 CLI-Anything集成", link: "/design/modules/68-cli-anything" },
             { text: "69 WebSocket服务器", link: "/design/modules/69-websocket-server" },
             { text: "70 Agent智能增强", link: "/design/modules/70-agent-intelligence" },
+            { text: "71 子代理隔离", link: "/design/modules/71-sub-agent-isolation" },
           ],
         },
       ],

@@ -49,7 +49,7 @@ describe("Task Model Selector", () => {
       expect(detectTaskType("写一个Python函数").taskType).toBe(TaskType.CODE);
       expect(detectTaskType("帮我调试这段代码").taskType).toBe(TaskType.CODE);
       expect(detectTaskType("重构这个方法").taskType).toBe(TaskType.CODE);
-      expect(detectTaskType("实现一个排序算���").taskType).toBe(TaskType.CODE);
+      expect(detectTaskType("实现一个排序算法").taskType).toBe(TaskType.CODE);
     });
 
     it("should detect code tasks from language keywords", () => {

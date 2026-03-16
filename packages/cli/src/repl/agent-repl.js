@@ -262,6 +262,9 @@ export async function startAgentRepl(options = {}) {
         `  ${chalk.cyan("/plan approve")} Approve and execute the plan`,
       );
       logger.log(`  ${chalk.cyan("/plan reject")}  Reject the plan`);
+      logger.log(
+        `  ${chalk.cyan("/sub-agents")}  Show active/completed sub-agents`,
+      );
       logger.log(chalk.bold("\nCapabilities:"));
       logger.log("  Read, write, and edit files");
       logger.log("  Run shell commands (git, npm, etc.)");
@@ -271,6 +274,48 @@ export async function startAgentRepl(options = {}) {
       logger.log(
         "  Context engineering: instinct + memory + notes injection\n",
       );
+      prompt();
+      return;
+    }
+
+    if (trimmed === "/sub-agents" || trimmed === "/subagents") {
+      try {
+        const { SubAgentRegistry } =
+          await import("../lib/sub-agent-registry.js");
+        const registry = SubAgentRegistry.getInstance();
+        const active = registry.getActive();
+        const history = registry.getHistory();
+        const stats = registry.getStats();
+
+        logger.log(chalk.bold("\nSub-Agent Registry:"));
+        logger.log(
+          `  Active: ${chalk.yellow(active.length)}  Completed: ${chalk.green(stats.completed)}  Tokens: ${stats.totalTokens}  Avg Duration: ${stats.avgDurationMs}ms`,
+        );
+
+        if (active.length > 0) {
+          logger.log(chalk.bold("\n  Active Sub-Agents:"));
+          for (const a of active) {
+            logger.log(
+              `    ${chalk.cyan(a.id)} [${a.role}] ${a.task.substring(0, 50)} (iter: ${a.iterationCount})`,
+            );
+          }
+        }
+
+        if (history.length > 0) {
+          logger.log(chalk.bold("\n  Recent History (last 10):"));
+          for (const h of history.slice(-10)) {
+            const status =
+              h.status === "completed" ? chalk.green("✓") : chalk.red("✗");
+            logger.log(
+              `    ${status} ${chalk.dim(h.id)} [${h.role}] ${(h.summary || "").substring(0, 60)}`,
+            );
+          }
+        }
+
+        logger.log("");
+      } catch (_err) {
+        logger.log(chalk.dim("Sub-agent registry not available."));
+      }
       prompt();
       return;
     }
