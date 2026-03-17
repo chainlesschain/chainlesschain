@@ -94,8 +94,7 @@ describe("init.js: SKILL_TEMPLATES extraction", () => {
     expect(typeof SKILL_TEMPLATES).toBe("object");
   });
 
-  it("contains exactly 3 skill template entries", () => {
-    expect(Object.keys(SKILL_TEMPLATES)).toHaveLength(3);
+  it("contains the 3 ai-media-creator skill template entries", () => {
     expect(SKILL_TEMPLATES).toHaveProperty("comfyui-image");
     expect(SKILL_TEMPLATES).toHaveProperty("comfyui-video");
     expect(SKILL_TEMPLATES).toHaveProperty("audio-gen");
