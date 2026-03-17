@@ -49,6 +49,10 @@ export default defineConfig({
             text: "v5.0.0-v5.0.1 架构重构与生态融合 (43-71)",
             link: "/modules/m43-ipc-domain-split",
           },
+          {
+            text: "v5.0.2 CLI技能包与AI模板 (60b, 71b, 72)",
+            link: "/modules/m60b-cli-skill-packs",
+          },
         ],
       },
       {
@@ -483,6 +487,24 @@ export default defineConfig({
             {
               text: "71 子代理隔离系统 ⭐",
               link: "/modules/m71-sub-agent-isolation",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2 CLI技能包与AI模板 (60b, 71b, 72)",
+          collapsed: false,
+          items: [
+            {
+              text: "60b CLI指令技能包系统 ⭐",
+              link: "/modules/m60b-cli-skill-packs",
+            },
+            {
+              text: "71b AI音视频创作模板 ⭐",
+              link: "/modules/m71b-ai-media-creator",
+            },
+            {
+              text: "72 AI文档创作模板 ⭐",
+              link: "/modules/m72-ai-doc-creator",
             },
           ],
         },

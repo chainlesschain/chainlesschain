@@ -206,7 +206,7 @@ async function pollUntilDone(promptId) {
   return { success: false, error: "Timeout waiting for image generation" };
 }
 
-module.exports = async function comfyuiImageHandler(params) {
+async function comfyuiImageHandler(params) {
   const { prompt, negative_prompt, width, height, steps, workflow } = params;
 
   if (!prompt) {
@@ -278,7 +278,16 @@ module.exports = async function comfyuiImageHandler(params) {
     message: \`Generated \${result.images.length} image(s). Open URLs to download:\`,
     urls: result.images.map((i) => i.url),
   };
+}
+
+comfyuiImageHandler.execute = async (task, _ctx, _skill) => {
+  const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
+  let p = {};
+  try { p = input.trim().startsWith("{") ? JSON.parse(input) : { prompt: input }; }
+  catch { p = { prompt: input }; }
+  return comfyuiImageHandler(p);
 };
+module.exports = comfyuiImageHandler;
 `,
   },
   "comfyui-video": {
@@ -429,7 +438,7 @@ async function pollUntilDone(promptId) {
   return { success: false, error: "Timeout waiting for video generation" };
 }
 
-module.exports = async function comfyuiVideoHandler(params) {
+async function comfyuiVideoHandler(params) {
   const { prompt, frames, fps, workflow } = params;
 
   if (!prompt) {
@@ -510,7 +519,16 @@ module.exports = async function comfyuiVideoHandler(params) {
     message: \`Generated \${result.outputs.length} output(s). URLs:\`,
     urls: result.outputs.map((o) => o.url),
   };
+}
+
+comfyuiVideoHandler.execute = async (task, _ctx, _skill) => {
+  const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
+  let p = {};
+  try { p = input.trim().startsWith("{") ? JSON.parse(input) : { prompt: input }; }
+  catch { p = { prompt: input }; }
+  return comfyuiVideoHandler(p);
 };
+module.exports = comfyuiVideoHandler;
 `,
   },
   "audio-gen": {
@@ -680,7 +698,7 @@ function callOpenAITTS(text, voice, outputPath, apiKey) {
   });
 }
 
-module.exports = async function audioGenHandler(params) {
+async function audioGenHandler(params) {
   const { text, voice, type, output } = params;
 
   if (!text) {
@@ -780,6 +798,15 @@ async function checkPythonModule(moduleName) {
     return false;
   }
 }
+
+audioGenHandler.execute = async (task, _ctx, _skill) => {
+  const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
+  let p = {};
+  try { p = input.trim().startsWith("{") ? JSON.parse(input) : { text: input }; }
+  catch { p = { text: input }; }
+  return audioGenHandler(p);
+};
+module.exports = audioGenHandler;
 `,
   },
 };
@@ -1097,7 +1124,7 @@ function generateContent(topic, style, outline) {
 
 // ─── Main handler ─────────────────────────────────────────────────
 
-module.exports = async function docGenerateHandler(params) {
+async function docGenerateHandler(params) {
   const { topic, format, outline, style, output } = params;
 
   if (!topic) {
@@ -1206,7 +1233,16 @@ module.exports = async function docGenerateHandler(params) {
   }
 
   return { error: \`Unsupported format: \${fmt}\`, hint: "Supported formats: md, html, docx, pdf" };
+}
+
+docGenerateHandler.execute = async (task, _ctx, _skill) => {
+  const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
+  let p = {};
+  try { p = input.trim().startsWith("{") ? JSON.parse(input) : { topic: input }; }
+  catch { p = { topic: input }; }
+  return docGenerateHandler(p);
 };
+module.exports = docGenerateHandler;
 `,
   },
 
@@ -1337,7 +1373,7 @@ function findSoffice() {
   return null;
 }
 
-module.exports = async function libreConvertHandler(params) {
+async function libreConvertHandler(params) {
   const { input_file, format, outdir } = params;
 
   if (!input_file) {
@@ -1442,7 +1478,16 @@ module.exports = async function libreConvertHandler(params) {
     format: targetFormat,
     message: \`Converted to \${targetFormat}: \${outputFile}\`,
   };
+}
+
+libreConvertHandler.execute = async (task, _ctx, _skill) => {
+  const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
+  let p = {};
+  try { p = input.trim().startsWith("{") ? JSON.parse(input) : { input_file: input }; }
+  catch { p = { input_file: input }; }
+  return libreConvertHandler(p);
 };
+module.exports = libreConvertHandler;
 `,
   },
 });
@@ -1948,7 +1993,7 @@ prs.save(r"""\${outputFile}""")
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-module.exports = async function docEdit(params) {
+async function docEdit(params) {
   const { input_file, instruction, action = "edit", section, output_dir } = params || {};
 
   if (!input_file) {
@@ -1986,7 +2031,16 @@ module.exports = async function docEdit(params) {
     error: \`不支持的格式: \${ext}\`,
     hint: "支持的格式: md, txt, html, docx, xlsx, pptx",
   };
+}
+
+docEdit.execute = async (task, _ctx, _skill) => {
+  const input = typeof task === "string" ? task : (task.input || task.params?.input || "");
+  let p = {};
+  try { p = input.trim().startsWith("{") ? JSON.parse(input) : { input_file: input }; }
+  catch { p = { input_file: input }; }
+  return docEdit(p);
 };
+module.exports = docEdit;
 `,
   },
 });

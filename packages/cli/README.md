@@ -206,11 +206,12 @@ Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-dr
 
 ### `chainlesschain skill <action>`
 
-Manage and run 138 built-in AI skills.
+Manage and run 138 built-in AI skills across a 4-layer system: bundled < marketplace < managed (global) < workspace (project).
 
 ```bash
 chainlesschain skill list               # List all skills grouped by category
 chainlesschain skill list --category automation
+chainlesschain skill list --category cli-direct   # CLI command skill packs
 chainlesschain skill list --tag code --runnable
 chainlesschain skill list --json        # JSON output
 chainlesschain skill categories         # Show category breakdown
@@ -218,7 +219,45 @@ chainlesschain skill info code-review   # Detailed skill info + docs
 chainlesschain skill info code-review --json
 chainlesschain skill search "browser"   # Search by keyword
 chainlesschain skill run code-review "Review this function..."
+chainlesschain skill add my-skill       # Create custom project skill
+chainlesschain skill remove my-skill    # Remove custom skill
+chainlesschain skill sources            # Show skill layer paths and counts
 ```
+
+#### CLI Command Skill Packs
+
+Automatically wraps 62 CLI commands into 9 Agent-callable domain skill packs:
+
+```bash
+chainlesschain skill sync-cli              # Generate/update all 9 CLI skill packs
+chainlesschain skill sync-cli --force      # Force regenerate all packs
+chainlesschain skill sync-cli --dry-run    # Preview changes without writing
+chainlesschain skill sync-cli --remove     # Remove all CLI packs
+chainlesschain skill sync-cli --json       # JSON output
+
+# Run CLI commands via skill packs (Agent can call these directly)
+chainlesschain skill run cli-knowledge-pack "note list"
+chainlesschain skill run cli-identity-pack "did create"
+chainlesschain skill run cli-infra-pack "services up"
+chainlesschain skill run cli-ai-query-pack "ask what is RAG"
+chainlesschain skill run cli-agent-mode-pack "agent"
+chainlesschain skill run cli-web3-pack "wallet assets"
+chainlesschain skill run cli-security-pack "encrypt file secret.txt"
+chainlesschain skill run cli-enterprise-pack "org list"
+chainlesschain skill run cli-integration-pack "mcp servers"
+```
+
+| Pack                   | Mode      | Commands                                                 |
+| ---------------------- | --------- | -------------------------------------------------------- |
+| `cli-knowledge-pack`   | direct    | note, search, memory, session, import, export            |
+| `cli-identity-pack`    | direct    | did, auth, audit                                         |
+| `cli-infra-pack`       | direct    | setup, start, stop, status, services, config, doctor, db |
+| `cli-ai-query-pack`    | llm-query | ask, llm, instinct, tokens                               |
+| `cli-agent-mode-pack`  | agent     | agent, chat, cowork                                      |
+| `cli-web3-pack`        | direct    | wallet, p2p, sync, did                                   |
+| `cli-security-pack`    | direct    | encrypt, decrypt, audit, pqc                             |
+| `cli-enterprise-pack`  | direct    | org, plugin, lowcode, compliance                         |
+| `cli-integration-pack` | hybrid    | mcp, browse, cli-anything, serve                         |
 
 ---
 
@@ -504,12 +543,73 @@ chainlesschain plugin summary                      # Installation summary
 
 ### `chainlesschain init`
 
-Initialize a new ChainlessChain project.
+Initialize a new ChainlessChain project with a `.chainlesschain/` directory, workspace skills, and an optional AI persona.
 
 ```bash
-chainlesschain init                                    # Interactive project init
-chainlesschain init --bare                             # Minimal project structure
-chainlesschain init --template code-project --yes      # Use template, skip prompts
+chainlesschain init                                         # Interactive template selection
+chainlesschain init --bare                                  # Minimal project structure
+chainlesschain init --template code-project --yes           # Software project (code-review, refactor, unit-test)
+chainlesschain init --template data-science --yes           # Data science / ML project
+chainlesschain init --template devops --yes                 # DevOps / infrastructure project
+chainlesschain init --template medical-triage --yes         # Medical triage assistant (with Persona)
+chainlesschain init --template agriculture-expert --yes     # Agriculture expert (with Persona)
+chainlesschain init --template general-assistant --yes      # General-purpose assistant (with Persona)
+chainlesschain init --template ai-media-creator --yes       # AI media creator (ComfyUI/AnimateDiff/TTS)
+chainlesschain init --template ai-doc-creator --yes         # AI doc creator (LibreOffice/pandoc/doc-edit)
+chainlesschain init --template empty --yes                  # Bare project
+```
+
+#### AI Media Creator Template (`ai-media-creator`)
+
+Generates 3 workspace skills for AI image/video/audio creation:
+
+```bash
+chainlesschain skill run comfyui-image "a sunset over mountains, oil painting style"
+chainlesschain skill run comfyui-video '{"prompt":"a cat walking","workflow":"workflows/animatediff.json"}'
+chainlesschain skill run audio-gen "你好，欢迎使用 ChainlessChain"
+```
+
+| Skill           | Description                                                           |
+| --------------- | --------------------------------------------------------------------- |
+| `comfyui-image` | ComfyUI REST API image generation (txt2img/img2img, custom workflows) |
+| `comfyui-video` | ComfyUI + AnimateDiff video generation (requires workflow JSON)       |
+| `audio-gen`     | AI TTS: auto-selects edge-tts → piper-tts → ElevenLabs → OpenAI       |
+
+Also creates a `workflows/` directory with README for saving ComfyUI workflow JSON files.
+
+#### AI Doc Creator Template (`ai-doc-creator`)
+
+Generates 3 workspace skills for AI document creation and editing:
+
+```bash
+chainlesschain skill run doc-generate "2026年技术趋势分析报告"
+chainlesschain skill run doc-generate '{"topic":"项目方案","format":"docx","style":"proposal"}'
+chainlesschain skill run libre-convert "report.docx"
+chainlesschain skill run libre-convert '{"input_file":"slides.pptx","format":"pdf"}'
+chainlesschain skill run doc-edit '{"input_file":"report.md","instruction":"优化摘要部分"}'
+chainlesschain skill run doc-edit '{"input_file":"data.xlsx","instruction":"首字母大写"}'
+```
+
+| Skill           | Description                                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `doc-generate`  | AI-generated structured documents: md/html/docx/pdf, 4 styles (report/proposal/manual/readme)                                                     |
+| `libre-convert` | LibreOffice headless conversion: docx/pdf/html/odt/pptx/xlsx/png                                                                                  |
+| `doc-edit`      | AI edit existing docs: md/txt/html (direct LLM), docx (pandoc/soffice), xlsx (openpyxl, formulas preserved), pptx (python-pptx, charts preserved) |
+
+Requirements: `winget install pandoc` (for docx), `winget install LibreOffice.LibreOffice` (for PDF/format conversion).
+
+Also creates a `templates/` directory with README for document templates.
+
+### `chainlesschain persona <action>`
+
+Manage the AI persona for the current project (set by `init` templates or manually).
+
+```bash
+chainlesschain persona show                              # Show current project persona
+chainlesschain persona set --name "Bot" --role "Helper" # Set persona name and role
+chainlesschain persona set -b "Always respond in English" # Add behavior constraint
+chainlesschain persona set --tools-disabled run_shell   # Disable specific tools
+chainlesschain persona reset                             # Remove persona, restore default
 ```
 
 ### `chainlesschain cowork <action>`
@@ -980,7 +1080,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (2748 tests across 124 files)
+npm test                # Run all tests (3050+ tests across 130+ files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -988,17 +1088,22 @@ npm run test:e2e        # End-to-end tests
 
 ### Test Coverage
 
-| Category                 | Files   | Tests    | Status          |
-| ------------------------ | ------- | -------- | --------------- |
-| Unit — lib modules       | 63      | 1380+    | All passing     |
-| Unit — commands          | 15      | 350+     | All passing     |
-| Unit — runtime           | 1       | 6        | All passing     |
-| Integration              | 6       | 40+      | All passing     |
-| E2E                      | 15      | 160+     | All passing     |
-| Core packages (external) | —       | 118      | All passing     |
-| Unit — WS sessions       | 9       | 156      | All passing     |
-| Integration — WS session | 1       | 12       | All passing     |
-| **CLI Total**            | **124** | **2748** | **All passing** |
+| Category                  | Files   | Tests    | Status          |
+| ------------------------- | ------- | -------- | --------------- |
+| Unit — lib modules        | 70      | 1700+    | All passing     |
+| Unit — commands           | 17      | 400+     | All passing     |
+| Unit — runtime            | 1       | 6        | All passing     |
+| Unit — WS sessions        | 9       | 156      | All passing     |
+| Unit — Skill Packs        | 2       | 57+      | All passing     |
+| Unit — AI Templates       | 2       | 130+     | All passing     |
+| Integration               | 13      | 230+     | All passing     |
+| Integration — WS session  | 1       | 12       | All passing     |
+| Integration — AI Handlers | 2       | 100+     | All passing     |
+| E2E                       | 15      | 260+     | All passing     |
+| E2E — Skill Packs         | 1       | 23+      | All passing     |
+| E2E — AI Templates        | 4       | 65+      | All passing     |
+| Core packages (external)  | —       | 118      | All passing     |
+| **CLI Total**             | **132** | **3056** | **All passing** |
 
 ## License
 
