@@ -20,6 +20,9 @@
   - `cli-init.md` 更新 ai-doc-creator 模板说明（3 个文档技能）
   - `72-ai-doc-creator.md` 设计文档升至 v1.1.0，新增 doc-edit 技能说明、格式路由表
   - 新增 v5.0.2.0/v5.0.2.1 侧边栏导航项
+  - 新增 `ai-media-creator.md` 用户文档：AI 音视频创作模板独立用户指南（技能使用/TTS 后端/cli-anything 边界/故障排查）
+  - 新增 `ai-doc-creator.md` 用户文档：AI 文档创作模板独立用户指南（doc-generate/libre-convert/doc-edit 使用示例/依赖安装/故障排查）
+  - 侧边栏产品文档区不再直接链接设计文档，改为链接对应用户文档
 
 ## [5.0.2.0] - 2026-03-17
 

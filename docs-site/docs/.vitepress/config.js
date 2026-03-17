@@ -754,14 +754,18 @@ export default defineConfig({
               text: "项目初始化 (init)",
               link: "/chainlesschain/cli-init",
             },
+            {
+              text: "AI 音视频创作模板",
+              link: "/chainlesschain/ai-media-creator",
+            },
           ],
         },
         {
           text: "v5.0.2.1 AI 文档修改 (doc-edit) ⭐NEW",
           items: [
             {
-              text: "AI 文档创作模板设计",
-              link: "/design/modules/72-ai-doc-creator",
+              text: "AI 文档创作模板",
+              link: "/chainlesschain/ai-doc-creator",
             },
           ],
         },
