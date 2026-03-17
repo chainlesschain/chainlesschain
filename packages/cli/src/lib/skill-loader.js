@@ -218,6 +218,10 @@ export class CLISkillLoader {
             handler: data.handler || null,
             capabilities: data.capabilities || [],
             os: data.os || [],
+            // CLI pack extended fields
+            executionMode: data.executionMode || null,
+            cliDomain: data.cliDomain || null,
+            cliVersionHash: data.cliVersionHash || null,
             dirName: entry.name,
             hasHandler: fs.existsSync(path.join(dir, entry.name, "handler.js")),
             body,

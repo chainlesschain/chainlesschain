@@ -14,6 +14,12 @@ import { logger } from "../lib/logger.js";
 import { CLISkillLoader, LAYER_NAMES } from "../lib/skill-loader.js";
 import { getElectronUserDataDir } from "../lib/paths.js";
 import { findProjectRoot } from "../lib/project-detector.js";
+import {
+  generateCliPacks,
+  checkForUpdates,
+  removeCliPacks,
+} from "../lib/skill-packs/generator.js";
+import { CLI_PACK_DOMAINS } from "../lib/skill-packs/schema.js";
 
 const LAYER_LABELS = {
   bundled: chalk.blue("[bundled]"),
@@ -470,6 +476,166 @@ export function registerSkillCommand(program) {
         logger.success(`Removed skill: ${name}`);
       } catch (err) {
         logger.error(`Failed to remove skill: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // skill sync-cli — generate / update CLI command skill packs
+  skill
+    .command("sync-cli")
+    .description(
+      "Generate or update CLI command skill packs (9 domain packs wrapping all 62 CLI commands)",
+    )
+    .option("--force", "Force regenerate all packs even if unchanged")
+    .option("--dry-run", "Preview changes without writing files")
+    .option("--remove", "Remove all generated CLI packs")
+    .option(
+      "--output <dir>",
+      "Custom output directory (default: managed skills layer)",
+    )
+    .option("--json", "Output result as JSON")
+    .action(async (options) => {
+      // Remove mode
+      if (options.remove) {
+        const spinner = ora("Removing CLI pack skills...").start();
+        try {
+          const removed = removeCliPacks(options.output);
+          spinner.stop();
+          if (removed.length === 0) {
+            logger.info("No CLI packs found to remove.");
+          } else {
+            logger.success(`Removed ${removed.length} CLI pack(s):`);
+            for (const d of removed) {
+              logger.log(`  ${chalk.gray("✗")} ${d}`);
+            }
+          }
+          loader.clearCache();
+        } catch (err) {
+          spinner.fail(`Failed to remove packs: ${err.message}`);
+          process.exit(1);
+        }
+        return;
+      }
+
+      // Dry-run: preview what would change
+      if (options.dryRun) {
+        const updates = checkForUpdates(options.output);
+        const totalDomains = Object.keys(CLI_PACK_DOMAINS).length;
+        const upToDate = totalDomains - updates.length;
+
+        logger.log(chalk.bold("\nCLI Pack Sync Preview (dry-run):\n"));
+        logger.log(
+          chalk.gray(
+            `  Total domains: ${totalDomains}  |  Up-to-date: ${upToDate}  |  Need update: ${updates.length}\n`,
+          ),
+        );
+
+        if (updates.length === 0) {
+          logger.success("All CLI packs are up-to-date. Nothing to generate.");
+          return;
+        }
+
+        for (const u of updates) {
+          const icon = u.exists ? chalk.yellow("↻") : chalk.green("+");
+          const reason = u.changeReason === "new" ? "new" : "hash changed";
+          logger.log(
+            `  ${icon} ${chalk.cyan(u.domain.padEnd(28))} ${chalk.gray(reason)} — ${u.displayName}`,
+          );
+        }
+        logger.log(
+          chalk.gray(
+            `\nRun without --dry-run to generate ${updates.length} pack(s).\n`,
+          ),
+        );
+        return;
+      }
+
+      // Generate packs
+      const spinner = ora(
+        options.force
+          ? "Regenerating all CLI packs (--force)..."
+          : "Syncing CLI command skill packs...",
+      ).start();
+
+      try {
+        const result = await generateCliPacks({
+          force: options.force || false,
+          dryRun: false,
+          outputDir: options.output,
+        });
+
+        spinner.stop();
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
+        const totalDomains = Object.keys(CLI_PACK_DOMAINS).length;
+
+        logger.log(chalk.bold("\nCLI Pack Sync Result:\n"));
+        logger.log(
+          chalk.gray(
+            `  CLI version: ${result.cliVersion}  |  Output: ${result.outputDir}\n`,
+          ),
+        );
+
+        if (result.generated.length > 0) {
+          logger.log(
+            chalk.green(`  Generated / Updated (${result.generated.length}):`),
+          );
+          for (const g of result.generated) {
+            const icon =
+              g.changeReason === "new" ? chalk.green("+") : chalk.yellow("↻");
+            const mode = chalk.gray(`[${g.executionMode || "direct"}]`);
+            const cmds = chalk.gray(`${g.commandCount || 0} commands`);
+            logger.log(
+              `    ${icon} ${chalk.cyan((g.domain || g).padEnd(28))} ${mode} ${cmds}`,
+            );
+          }
+          logger.log("");
+        }
+
+        if (result.skipped.length > 0) {
+          logger.log(chalk.gray(`  Skipped (${result.skipped.length}):`));
+          for (const s of result.skipped) {
+            logger.log(
+              `    ${chalk.gray("–")} ${chalk.gray((s.domain || s).padEnd(28))} up-to-date`,
+            );
+          }
+          logger.log("");
+        }
+
+        if (result.errors.length > 0) {
+          logger.log(chalk.red(`  Errors (${result.errors.length}):`));
+          for (const e of result.errors) {
+            logger.log(`    ${chalk.red("✗")} ${e.domain}: ${e.error}`);
+          }
+          logger.log("");
+          process.exit(1);
+        }
+
+        const summary =
+          result.generated.length > 0
+            ? `${result.generated.length} pack(s) generated, ${result.skipped.length} skipped`
+            : "All packs up-to-date";
+
+        logger.success(
+          `${summary} (${totalDomains} total domains, outputDir: ${result.outputDir})`,
+        );
+        logger.log(
+          chalk.gray(
+            `\nRun ${chalk.cyan("chainlesschain skill list --category cli-direct")} to see the packs.\n`,
+          ),
+        );
+
+        // Invalidate loader cache so new packs are visible immediately
+        loader.clearCache();
+      } catch (err) {
+        spinner.fail(`Sync failed: ${err.message}`);
+        if (program.opts().verbose) {
+          console.error(err.stack);
+        }
         process.exit(1);
       }
     });

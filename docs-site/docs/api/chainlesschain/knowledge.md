@@ -121,7 +121,7 @@ Authorization: Bearer <token>
 
 ---
 
-## ���取笔记详情
+## 获取笔记详情
 
 获取单条笔记的完整内容。
 

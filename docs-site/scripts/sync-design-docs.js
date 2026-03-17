@@ -114,6 +114,7 @@ const MODULE_FILE_MAP = {
   "58_低代码平台.md": "58-low-code.md",
   "59_企业知识图谱.md": "59-knowledge-graph.md",
   "60_BI智能分析.md": "60-bi-engine.md",
+  "60_CLI指令技能包系统.md": "60b-cli-skill-packs.md",
   "61_工作流自动化引擎.md": "61-workflow-automation.md",
   "62_多租户SaaS引擎.md": "62-saas.md",
   "63_统一应用运行时.md": "63-unified-runtime.md",
@@ -125,6 +126,8 @@ const MODULE_FILE_MAP = {
   "69_WebSocket服务器接口.md": "69-websocket-server.md",
   "70_Agent智能增强系统.md": "70-agent-intelligence.md",
   "71_子代理隔离系统.md": "71-sub-agent-isolation.md",
+  "71_AI音视频创作模板.md": "71b-ai-media-creator.md",
+  "72_AI文档创作模板.md": "72-ai-doc-creator.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）
