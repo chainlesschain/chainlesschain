@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.1.8 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 62 Commands/2700+ Tests + Persona System + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + Sub-Agent Isolation v2 + 4600+ Tests + 12 Store Test Files) - Updated 2026-03-16
+**Current Version**: v5.0.2.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 62 Commands/2700+ Tests + Persona System + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + Sub-Agent Isolation v2 + CLI Command Skill Packs (9 Packs/101 Tests) + AI Media Creator Template (ComfyUI/AnimateDiff/TTS) + AI Doc Creator Template (LibreOffice/pandoc/doc-generate/libre-convert/doc-edit) + 4899+ Tests + 12 Store Test Files) - Updated 2026-03-17
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -98,10 +98,18 @@ chainlesschain llm test    # Test LLM connectivity
 chainlesschain agent       # Agentic AI session (Claude Code style)
 chainlesschain agent --session <id> # Resume previous agent session
 chainlesschain skill list  # List all skills (4-layer: bundled/marketplace/managed/workspace)
+chainlesschain skill list --category cli-direct  # List CLI command skill packs
 chainlesschain skill run code-review "Review this code"
+chainlesschain skill run cli-knowledge-pack "note list"  # Run CLI command via skill pack
+chainlesschain skill run cli-identity-pack "did create"  # Run DID via skill pack
 chainlesschain skill add my-skill   # Create custom project skill
 chainlesschain skill remove my-skill # Remove custom skill
 chainlesschain skill sources        # Show skill layer paths and counts
+chainlesschain skill sync-cli              # Generate/update 9 CLI command skill packs
+chainlesschain skill sync-cli --force      # Force regenerate all packs
+chainlesschain skill sync-cli --dry-run    # Preview changes without writing
+chainlesschain skill sync-cli --remove     # Remove all CLI packs
+chainlesschain skill sync-cli --json       # JSON output
 
 # Phase 1 AI Intelligence Layer
 chainlesschain search "keyword"  # BM25 hybrid search
@@ -162,6 +170,8 @@ chainlesschain init --template code-project --yes # Use template
 chainlesschain init --template medical-triage --yes  # Medical triage (with Persona)
 chainlesschain init --template agriculture-expert --yes # Agriculture expert (with Persona)
 chainlesschain init --template general-assistant --yes  # General assistant (with Persona)
+chainlesschain init --template ai-media-creator --yes   # AI media creator (ComfyUI/AnimateDiff/TTS + 3 workspace skills)
+chainlesschain init --template ai-doc-creator --yes     # AI doc creator (LibreOffice/pandoc + doc-generate/libre-convert/doc-edit skills)
 
 # Persona management
 chainlesschain persona show                # Show current project persona

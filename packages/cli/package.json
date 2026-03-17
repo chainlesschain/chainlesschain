@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.43.2",
+  "version": "0.43.3",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
@@ -17,7 +17,9 @@
     "test:e2e": "vitest run __tests__/e2e/",
     "test:watch": "vitest watch",
     "lint": "eslint src/ bin/ --ext .js",
-    "format": "prettier --write \"src/**/*.js\" \"bin/**/*.js\" \"__tests__/**/*.js\""
+    "format": "prettier --write \"src/**/*.js\" \"bin/**/*.js\" \"__tests__/**/*.js\"",
+    "sync-skill-packs": "node --input-type=module -e \"import { generateCliPacks } from './src/lib/skill-packs/generator.js'; const r = await generateCliPacks({ force: false }); console.log('Skill packs synced:', r.generated.length, 'generated,', r.skipped.length, 'skipped');\"",
+    "postinstall": "node --input-type=module -e \"import { generateCliPacks } from './src/lib/skill-packs/generator.js'; generateCliPacks({ force: false }).catch(() => {});\" 2>/dev/null || true"
   },
   "engines": {
     "node": ">=22.12.0"

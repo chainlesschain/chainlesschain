@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.1.8-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4600%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4899%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,61 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.1.8 Evolution Edition (2026-03-16)
+## ⭐ Current Version: v5.0.2.1 Evolution Edition (2026-03-17)
 
-### Latest Updates - CLI Distribution System (Phase 101) ⭐NEW
+### Latest Updates - AI Document Creator Template ⭐NEW
+
+`cc init --template ai-doc-creator` sets up a complete AI document creation workspace in one command, auto-generating 3 document skills:
+
+- ✅ **AI Document Generation** (`doc-generate`) — AI-generated structured documents (reports/proposals/manuals/READMEs), 4 styles, supports md/html/docx/pdf output, dual-path conversion via pandoc or LibreOffice
+- ✅ **LibreOffice Format Conversion** (`libre-convert`) — Headless format conversion (docx/pdf/html/odt/pptx, etc.), auto-detects PATH and Windows default install paths
+- ✅ **AI Document Editing** (`doc-edit`) — AI-powered editing of existing documents, preserving formulas/charts/styles, three operation modes (edit/summarize/translate), outputs `_edited` file without overwriting original
+- ✅ **Persona Configuration** — "AI Document Assistant" role, expert in document structure planning, batch generation, and format conversion workflows
+- ✅ **cli-anything Integration Boundary** — `rules.md` clarifies: LibreOffice works both as workspace skill (daily use) and `cli-anything register soffice` (advanced macros/templates)
+- ✅ **168 New Tests** — 70 unit + 47 integration + 51 E2E, all passing
+
+```bash
+chainlesschain init --template ai-doc-creator --yes
+winget install pandoc                                                 # DOCX output (optional)
+chainlesschain skill run doc-generate "2026 AI Technology Trends"     # Generate report
+chainlesschain skill run doc-generate "Product Plan" --args '{"format":"docx","style":"proposal"}'
+chainlesschain skill run libre-convert "report.docx"                  # Convert to PDF
+chainlesschain skill run doc-edit --args '{"input_file":"report.md","instruction":"polish abstract"}'
+chainlesschain cli-anything register soffice                          # Register LibreOffice advanced
+```
+
+---
+
+### History - AI Media Creator Template
+
+`cc init --template ai-media-creator` sets up a complete AI media creation workspace in one command, auto-generating 3 media skills:
+
+- ✅ **ComfyUI Image Generation** (`comfyui-image`) — Direct ComfyUI REST API calls (text-to-image / image-to-image), built-in default SD workflow, supports custom workflow JSON files
+- ✅ **ComfyUI Video Generation** (`comfyui-video`) — AnimateDiff animation video generation, loads user-saved workflow files from `workflows/` directory
+- ✅ **AI Speech Synthesis** (`audio-gen`) — 4-backend auto-fallback chain: edge-tts (free) → piper-tts (offline) → ElevenLabs API → OpenAI TTS
+- ✅ **Persona Configuration** — "AI Media Creator" role, expert in Stable Diffusion prompt engineering and AnimateDiff parameter tuning
+- ✅ **cli-anything Integration Boundary** — `rules.md` explicitly clarifies: ComfyUI (REST API) uses workspace skills; FFmpeg/yt-dlp (CLI tools) use `cli-anything register`
+- ✅ **114 New Tests** — 40 unit + 33 integration + 41 E2E, all passing
+
+---
+
+### History - CLI Command Skill Pack System
+
+Automatically wraps 62 CLI commands into **9 Agent-callable skill packs**:
+
+- ✅ **9 Domain Skill Packs** — knowledge/identity/infra/ai-query/agent-mode/web3/security/enterprise/integration
+- ✅ **Execution Mode Classification** — `direct` / `agent` / `hybrid` / `llm-query` — Agent no longer blindly calls commands
+- ✅ **Auto-Sync** — SHA-256 hash-based change detection, `skill sync-cli` / `postinstall` auto-trigger
+- ✅ **101 Tests** — 57 unit + 21 integration + 23 E2E, all passing
+
+```bash
+chainlesschain skill sync-cli              # Detect changes and sync
+chainlesschain skill run cli-knowledge-pack "note list"  # Agent calls note mgmt
+```
+
+---
+
+### History - CLI Distribution System (Phase 101)
 
 New lightweight npm CLI tool — install and manage ChainlessChain with a single command:
 
@@ -66,8 +118,8 @@ chainlesschain start    # Launch application (or: cc start / clc start / clchain
 - ✅ **Social Platform CLI** — Contacts + friend system + posts + instant chat + social stats
 - ✅ **Hook Pipeline** — PreToolUse/PostToolUse/ToolError tool call hooks integration
 - ✅ **Content Recommender** — TF-IDF tool similarity + tool chain frequency recommendation
-- ✅ **2700+ Test Cases** — 113 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
-- ✅ **Project Initialization** (`init`) — 7 templates (code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/empty), generates `.chainlesschain/` project structure
+- ✅ **4741+ Test Cases** — 116 test files (unit + integration + E2E), cross-platform CI matrix (Ubuntu/Windows/macOS)
+- ✅ **Project Initialization** (`init`) — 9 templates (code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/ai-media-creator/**ai-doc-creator**/empty), generates `.chainlesschain/` project structure; ai-media-creator auto-generates ComfyUI/TTS skills; ai-doc-creator auto-generates doc-generate/libre-convert/doc-edit skills
 - ✅ **Persona System** — Project-level AI persona configuration (`persona show/set/reset`), replaces default coding assistant, tool permission control, auto-activated Persona Skills
 - ✅ **Multi-layer Skill System** — 4-layer priority (bundled < marketplace < managed < workspace), custom skill management (add/remove/sources)
 - ✅ **Multi-agent Collaboration** (`cowork`) — Multi-perspective debate review + A/B solution comparison + code knowledge graph analysis

@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.1.8-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4600%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4899%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,61 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.1.8 Evolution Edition (2026-03-16)
+## ⭐ 当前版本: v5.0.2.1 Evolution Edition (2026-03-17)
 
-### 最新更新 - CLI 分发系统 (Phase 101) ⭐NEW
+### 最新更新 - AI 文档创作模板 ⭐NEW
+
+`cc init --template ai-doc-creator` 一条命令配置完整的 AI 文档创作工作区，自动生成 3 个文档技能：
+
+- ✅ **AI 文档生成** (`doc-generate`) — AI 生成结构化文档（报告/方案/说明书/README），4 种风格，支持 md/html/docx/pdf 多格式输出，pandoc/LibreOffice 双路径转换
+- ✅ **LibreOffice 格式转换** (`libre-convert`) — 无头模式格式转换（docx/pdf/html/odt/pptx 等），自动检测 PATH 和 Windows 默认安装路径
+- ✅ **AI 文档修改** (`doc-edit`) — AI修改现有文档，保留公式/图表/样式，三种操作模式（edit/summarize/translate），输出 `_edited` 文件不覆盖原文件
+- ✅ **Persona 配置** — "AI文档助手"角色，擅长规划文档结构、批量生成和格式转换工作流
+- ✅ **cli-anything 集成边界** — `rules.md` 明确说明：LibreOffice 同时适合 workspace 技能（日常转换）和 `cli-anything register soffice`（高级宏/模板功能）
+- ✅ **168 个新增测试** — 70 单元 + 47 集成 + 51 E2E，全部通过
+
+```bash
+chainlesschain init --template ai-doc-creator --yes
+winget install pandoc                                             # DOCX 输出（可选）
+chainlesschain skill run doc-generate "2026年AI技术趋势分析报告"  # 生成报告
+chainlesschain skill run doc-generate "产品方案" --args '{"format":"docx","style":"proposal"}'
+chainlesschain skill run libre-convert "report.docx"              # 转换为 PDF
+chainlesschain skill run doc-edit --args '{"input_file":"report.md","instruction":"优化摘要"}'
+chainlesschain cli-anything register soffice                      # 注册 LibreOffice 高级功能
+```
+
+---
+
+### 历史更新 - AI 音视频创作模板
+
+`cc init --template ai-media-creator` 一条命令配置完整的 AI 音视频创作工作区，自动生成 3 个媒体技能：
+
+- ✅ **ComfyUI 图像生成** (`comfyui-image`) — 直接调用本地 ComfyUI REST API，支持文生图/图生图，内置默认 SD 工作流，支持自定义 workflow JSON
+- ✅ **ComfyUI 视频生成** (`comfyui-video`) — 通过 AnimateDiff 节点生成动画视频，支持加载用户保存的工作流文件
+- ✅ **AI 语音合成** (`audio-gen`) — 4 后端自动降级链：edge-tts（免费）→ piper-tts（离线）→ ElevenLabs API → OpenAI TTS
+- ✅ **Persona 配置** — "AI创作助手"角色，熟悉 Stable Diffusion 提示词工程和 AnimateDiff 参数调优
+- ✅ **cli-anything 集成边界** — `rules.md` 明确说明：ComfyUI（REST API）用 workspace 技能，FFmpeg/yt-dlp（CLI）用 `cli-anything register`
+- ✅ **114 个新增测试** — 40 单元 + 33 集成 + 41 E2E，全部通过
+
+---
+
+### 历史更新 - CLI 指令技能包系统
+
+将 62 个 CLI 指令自动封装为 **9 个 Agent 可直接调用的技能包**：
+
+- ✅ **9 个域技能包** — 知识管理/身份安全/基础设施/AI查询/Agent模式/Web3/安全合规/企业级/集成扩展
+- ✅ **执行模式区分** — `direct` / `agent` / `hybrid` / `llm-query` 四种模式明确标注
+- ✅ **自动同步** — SHA-256 哈希检测变化，`skill sync-cli` / `postinstall` 自动触发
+- ✅ **101 个测试** — 57 单元 + 21 集成 + 23 E2E，全部通过
+
+```bash
+chainlesschain skill sync-cli              # 检测变化并同步
+chainlesschain skill run cli-knowledge-pack "note list"  # Agent调用笔记管理
+```
+
+---
+
+### 历史更新 - CLI 分发系统 (Phase 101)
 
 新增轻量级 npm CLI 工具，一条命令即可安装和管理 ChainlessChain：
 
@@ -66,11 +118,11 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **社交平台 CLI** — 联系人管理 + 好友系统 + 动态发布 + 即时聊天 + 社交统计
 - ✅ **Hook 管道** — PreToolUse/PostToolUse/ToolError 工具调用钩子集成
 - ✅ **Content Recommender** — TF-IDF 工具相似度 + 工具链频率推荐
-- ✅ **2700+ 个测试用例** — 113+ 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
+- ✅ **4741+ 个测试用例** — 116+ 测试文件 (单元 + 集成 + 端到端)，跨平台 CI 矩阵 (Ubuntu/Windows/macOS)
 - ✅ **系统质量改进** — 12 个 Pinia Store 测试文件 (431 测试)，CI 管道修复 (`continue-on-error` 移除)，`builtin-tools.js` (25K行) 拆分为 8 个模块，空 catch 块清理，硬编码凭证移除
-- ✅ **项目初始化** (`init`) — 7 种模板 (code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/空项目)，生成 `.chainlesschain/` 项目结构
+- ✅ **项目初始化** (`init`) — 9 种模板 (code-project/data-science/devops/medical-triage/agriculture-expert/general-assistant/ai-media-creator/**ai-doc-creator**/空项目)，生成 `.chainlesschain/` 项目结构；ai-media-creator 自动生成 ComfyUI/TTS 技能，ai-doc-creator 自动生成 doc-generate/libre-convert/doc-edit 技能
 - ✅ **Persona 系统** — 项目级 AI 角色配置 (`persona show/set/reset`)，自动替换默认编码助手，工具权限控制，自动激活 Persona Skill
-- ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources` 自定义技能管理
+- ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources/sync-cli` 自定义技能管理；**9 个 CLI 指令技能包**自动封装 62 条指令
 - ✅ **多智能体协作** (`cowork`) — 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
 - ✅ **插件技能集成** — 插件可声明并安装技能到 marketplace 层
 

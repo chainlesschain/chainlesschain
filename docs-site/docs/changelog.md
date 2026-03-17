@@ -5,6 +5,62 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.2.1] - 2026-03-17
+
+### Added
+
+- **doc-edit 技能 (ai-doc-creator 扩展)**: `doc-edit` workspace 技能支持对现有文档进行 AI 辅助修改
+  - 支持格式: md/txt/html（直接文本）、docx（pandoc 优先/soffice 回退）、xlsx（Python + openpyxl，公式完整保留）、pptx（Python + python-pptx，图表/图片/动画不碰）
+  - 3 种操作模式: `edit`（全文修改）、`append`（追加章节）、`rewrite-section`（重写指定标题）
+  - 输出命名: `{原文件名}_edited.{扩展名}`，永不覆盖原文件
+  - xlsx 使用 `data_only=False` 保留所有公式字符串；pptx 仅修改 text run，跳过图表/SmartArt shape
+  - 无 Python 或缺少模块时返回结构化错误 + pip install 提示
+  - 新增 41 个测试（20 单元 + 14 集成 + 7 E2E），ai-doc-creator 累计 168 个测试（70+47+51），总计 4899+ 测试
+- **文档站点更新**:
+  - `cli-init.md` 更新 ai-doc-creator 模板说明（3 个文档技能）
+  - `72-ai-doc-creator.md` 设计文档升至 v1.1.0，新增 doc-edit 技能说明、格式路由表
+  - 新增 v5.0.2.0/v5.0.2.1 侧边栏导航项
+
+## [5.0.2.0] - 2026-03-17
+
+### Added
+
+- **AI 文档创作模板 (ai-doc-creator)**: `init --template ai-doc-creator` 新增第 9 种项目模板
+  - 2 个 workspace 层技能自动生成: `doc-generate` / `libre-convert`
+  - `doc-generate`: AI 生成结构化文档（报告/方案/说明书/README），4 种风格，md/html/docx/pdf 输出
+  - `libre-convert`: LibreOffice 无头模式格式转换，自动检测 PATH 和 Windows 默认安装路径
+  - Persona 系统集成: 自动设置"AI文档助手"人格 + `rules.md` + `templates/` 示例目录
+  - `cli-anything` 边界明确: LibreOffice 同时适合 workspace 技能（日常转换）和 `cli-anything register soffice`（高级功能）
+  - 127 个测试通过（46 单元 + 33 集成 + 48 E2E）
+- **新设计文档**: `docs/design/modules/72_AI文档创作模板.md`
+- **AI 音视频创作模板 (ai-media-creator)**: `init --template ai-media-creator` 新增第 8 种项目模板
+  - 3 个 workspace 层技能自动生成: `comfyui-image` / `comfyui-video` / `audio-gen`
+  - ComfyUI REST API 直接集成 (http://localhost:8188)
+  - 4 后端 TTS 降级链: edge-tts → piper-tts → ElevenLabs API → OpenAI TTS
+  - Persona 系统集成: 自动设置"AI创作助手"人格 + `rules.md` + `workflows/` 示例目录
+  - `cli-anything` 边界明确: REST-first 工具（ComfyUI）vs CLI 工具（FFmpeg、yt-dlp）
+  - 114 个测试通过（40 单元 + 33 集成 + 41 E2E）
+- **新设计文档**: `docs/design/modules/71_AI音视频创作模板.md`
+- **文档站点**: 版本升至 v5.0.2.0（Evolution Edition Phase 1-102 完整 + 4868+ 测试）
+
+## [5.0.1.9] - 2026-03-17
+
+### Added
+
+- **CLI 指令技能包系统**: 将 62 个 CLI 指令自动封装为 9 个 Agent 可调用技能包
+  - 9 个域技能包: `cli-knowledge-pack` / `cli-identity-pack` / `cli-infra-pack` / `cli-ai-query-pack` / `cli-agent-mode-pack` / `cli-web3-pack` / `cli-security-pack` / `cli-enterprise-pack` / `cli-integration-pack`
+  - 4 种执行模式明确标注: `direct`（spawnSync直接执行）/ `agent`（需终端，返回使用说明）/ `hybrid`（混合路由）/ `llm-query`（单次LLM查询）
+  - `skill sync-cli` 新子命令: 支持 `--force` / `--dry-run` / `--remove` / `--json` / `--output`
+  - SHA-256 哈希检测：指令集或 CLI 版本变化时自动识别需更新的包
+  - `postinstall` 自动同步：`npm install -g chainlesschain` 后即可直接使用技能包
+  - 三种 Handler 模板自动生成：DirectHandler / AgentHandler / HybridHandler
+  - 101 个新增测试（57单元 + 21集成 + 23E2E），全部通过
+- **新设计文档**: `docs/design/modules/60_CLI指令技能包系统.md`
+
+### Fixed
+
+- **编码安全**: 修复 generator.js 中 `技能包` 在 hybrid handler 模板字符串中的 UTF-8 编码损坏问题
+
 ## [5.0.1.8] - 2026-03-16
 
 ### Added
@@ -26,7 +82,7 @@
 
 ### Fixed
 
-- **Windows CI EACCES 权限错误**: 修复 fs mock 测试在 Windows CI 中��权限问题
+- **Windows CI EACCES 权限错误**: 修复 fs mock 测试在 Windows CI 中的权限问题
 - **config 加载顺序**: 修复 `.chainlesschain/config.json` 在特定场景下未正确加载的问题
 - **lint-staged stash 冲突**: 修复 lint-staged 在有 stash 时的错误行为
 

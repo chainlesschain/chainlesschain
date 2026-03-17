@@ -739,6 +739,33 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.1.9 CLI 指令技能包系统",
+          items: [
+            {
+              text: "CLI 指令技能包",
+              link: "/chainlesschain/cli-skill-packs",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.0 AI 创作模板",
+          items: [
+            {
+              text: "项目初始化 (init)",
+              link: "/chainlesschain/cli-init",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.1 AI 文档修改 (doc-edit) ⭐NEW",
+          items: [
+            {
+              text: "AI 文档创作模板设计",
+              link: "/design/modules/72-ai-doc-creator",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
@@ -878,7 +905,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "CLI系统 (Phase 66-70) ⭐",
+          text: "CLI系统与扩展 (Phase 66-71) ⭐",
           collapsed: false,
           items: [
             { text: "66 CLI分发系统", link: "/design/modules/66-cli-distribution" },
@@ -887,6 +914,9 @@ export default defineConfig({
             { text: "69 WebSocket服务器", link: "/design/modules/69-websocket-server" },
             { text: "70 Agent智能增强", link: "/design/modules/70-agent-intelligence" },
             { text: "71 子代理隔离", link: "/design/modules/71-sub-agent-isolation" },
+            { text: "71b AI音视频创作模板 ⭐", link: "/design/modules/71b-ai-media-creator" },
+            { text: "72 AI文档创作模板 ⭐", link: "/design/modules/72-ai-doc-creator" },
+            { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },
       ],

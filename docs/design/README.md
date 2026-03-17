@@ -2,7 +2,7 @@
 
 本目录包含 ChainlessChain 系统的设计和架构文档。
 
-> **最新变更 (2026-03-15)**: Agent 智能增强 — auto pip-install、脚本持久化、错误分类、环境检测。agent-core.js 提取去重。Desktop agent 模式。2503 测试全部通过。
+> **最新变更 (2026-03-17)**: AI 文档创作模板 (`cc init --template ai-doc-creator`) — 自动生成 doc-generate（AI文档生成）+ libre-convert（LibreOffice格式转换）2个技能，明确 LibreOffice 同时适合 workspace 技能与 cli-anything 注册，127个新增测试全部通过。前次更新：AI 音视频创作模板 (`cc init --template ai-media-creator`) — 自动生成 ComfyUI图像/视频技能 + 4后端TTS音频合成技能，114个新增测试全部通过。
 
 ## 文档结构
 
@@ -10,7 +10,7 @@
 docs/design/
 ├── README.md                              # 本索引文件
 ├── 系统设计_主文档.md                      # 主文档 (概述+技术栈+路线图+总结)
-├── modules/                               # 核心模块设计 (70个文档)
+├── modules/                               # 核心模块设计 (72个文档)
 │   ├── 01_知识库管理模块.md               # 知识库/RAG/向量存储
 │   ├── 02_去中心化社交模块.md             # DID/P2P/Signal加密
 │   ├── 03_交易辅助模块.md                 # 智能合约/信用评分
@@ -80,7 +80,10 @@ docs/design/
 │   ├── 67_CLI高级功能补齐.md              # ⭐Phase 102+ CLI高级功能/17模块/440测试
 │   ├── 68_CLI-Anything集成.md             # ⭐v5.0.1 CLI-Anything桥接/外部软件Agent化
 │   ├── 69_WebSocket服务器接口.md          # ⭐v5.0.1 WebSocket远程CLI/流式执行/Token认证
-│   └── 70_Agent智能增强系统.md            # ⭐v5.0.1 agent-core提取/auto pip-install/错误分类/环境检测
+│   ├── 70_Agent智能增强系统.md            # ⭐v5.0.1 agent-core提取/auto pip-install/错误分类/环境检测
+│   ├── 60_CLI指令技能包系统.md           # ⭐v5.0.1.9 9个技能包/执行模式区分/sync-cli自动同步/101测试
+│   ├── 71_AI音视频创作模板.md            # ⭐v5.0.2.0 ai-media-creator init模板/ComfyUI/TTS/114测试
+│   └── 72_AI文档创作模板.md             # ⭐v5.0.2.0 ai-doc-creator init模板/LibreOffice/pandoc/127测试
 ├── 安全机制设计.md                         # U盾/SIMKey安全 (含PQC/门限签名/生物识别)
 ├── 数据同步方案.md                         # Git/HTTP/P2P同步
 ├── AI模型部署方案.md                       # Ollama/云端模型
@@ -248,6 +251,8 @@ docs/design/
 | **CLI-Anything集成** ⭐ | [68_CLI-Anything集成.md](modules/68_CLI-Anything集成.md)      | **v5.0.1新增**,CLI-Anything桥接,外部软件Agent化,managed层技能注册 (5子命令,56测试)               |
 | **WebSocket服务器接口** ⭐ | [69_WebSocket服务器接口.md](modules/69_WebSocket服务器接口.md) | **v5.0.1新增**,WebSocket远程CLI调用,流式执行,Token认证,有状态Agent/Chat会话,SlotFiller,InteractivePlanner (250测试) |
 | **Agent智能增强** ⭐ | [70_Agent智能增强系统.md](modules/70_Agent智能增强系统.md) | **v5.0.1新增**,agent-core提取去重,auto pip-install,脚本持久化,错误分类(5种),环境检测,Desktop agent模式 (132测试) |
+| **CLI 指令技能包** ⭐ | [60_CLI指令技能包系统.md](modules/60_CLI指令技能包系统.md) | **v5.0.1.9新增**,62指令→9域技能包,direct/agent/hybrid执行模式,sync-cli哈希同步,101测试 |
+| **AI 音视频创作模板** ⭐ | [71_AI音视频创作模板.md](modules/71_AI音视频创作模板.md) | **v5.0.2.0新增**,ai-media-creator init模板,ComfyUI REST API,AnimateDiff,4后端TTS降级链,cli-anything边界设计,114测试 |
 
 ### 基础设施
 
