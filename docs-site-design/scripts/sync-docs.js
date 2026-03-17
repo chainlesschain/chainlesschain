@@ -125,6 +125,9 @@ const MODULE_FILE_MAP = {
   "69_WebSocket服务器接口.md": "m69-websocket-server.md",
   "70_Agent智能增强系统.md": "m70-agent-intelligence.md",
   "71_子代理隔离系统.md": "m71-sub-agent-isolation.md",
+  "60_CLI指令技能包系统.md": "m60b-cli-skill-packs.md",
+  "71_AI音视频创作模板.md": "m71b-ai-media-creator.md",
+  "72_AI文档创作模板.md": "m72-ai-doc-creator.md",
 };
 
 /**

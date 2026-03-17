@@ -143,6 +143,14 @@ desktop-app-vue/test-data-output/
 desktop-app-vue/test-output/
 desktop-app-vue/src/test-output/
 desktop-app-vue/playwright-report/
+# CLI test-generated doc artifacts (doc-generate/doc-edit handler outputs)
+packages/cli/*.md
+packages/cli/*.html
+packages/cli/*.docx
+packages/cli/*.pdf
+packages/cli/*.xlsx
+packages/cli/*.pptx
+!packages/cli/README.md
 
 # Cache
 .cache/
