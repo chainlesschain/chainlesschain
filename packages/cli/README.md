@@ -226,7 +226,7 @@ chainlesschain skill sources            # Show skill layer paths and counts
 
 #### CLI Command Skill Packs
 
-Automatically wraps 62 CLI commands into 9 Agent-callable domain skill packs:
+Automatically wraps 63 CLI commands into 9 Agent-callable domain skill packs:
 
 ```bash
 chainlesschain skill sync-cli              # Generate/update all 9 CLI skill packs
@@ -257,7 +257,7 @@ chainlesschain skill run cli-integration-pack "mcp servers"
 | `cli-web3-pack`        | direct    | wallet, p2p, sync, did                                   |
 | `cli-security-pack`    | direct    | encrypt, decrypt, audit, pqc                             |
 | `cli-enterprise-pack`  | direct    | org, plugin, lowcode, compliance                         |
-| `cli-integration-pack` | hybrid    | mcp, browse, cli-anything, serve                         |
+| `cli-integration-pack` | hybrid    | mcp, browse, cli-anything, serve, ui                     |
 
 ---
 
@@ -1004,6 +1004,36 @@ chainlesschain serve --project /path/to/project         # Default project root f
 ```
 
 **Session Protocol** (v0.43.0): WebSocket clients can create stateful agent/chat sessions via `session-create`, send messages via `session-message`, resume previous sessions via `session-resume`, and manage sessions via `session-list`/`session-close`. Supports `slash-command` for in-session commands and `session-answer` for interactive Q&A (SlotFiller/Planner).
+
+---
+
+## Web Management Interface (v0.45.0)
+
+### `chainlesschain ui`
+
+Open a browser-based Web management interface — no extra software required.
+
+```bash
+chainlesschain ui                       # Auto-detect mode, open browser
+chainlesschain ui --port 18810          # Custom HTTP port
+chainlesschain ui --ws-port 18800       # Custom WebSocket port
+chainlesschain ui --no-open             # Start server without opening browser
+chainlesschain ui --token <secret>      # Enable WebSocket auth token
+chainlesschain ui --host 0.0.0.0        # Bind to all interfaces (remote access)
+```
+
+**Two modes** (auto-detected based on current directory):
+
+| Mode             | Trigger                                      | Description                                                    |
+| ---------------- | -------------------------------------------- | -------------------------------------------------------------- |
+| **Project mode** | Run from a directory with `.chainlesschain/` | AI automatically loads project context (rules, skills, config) |
+| **Global mode**  | Run from any non-project directory           | General-purpose AI management panel                            |
+
+**Features**: streaming Markdown output, session management (new/switch/history), Agent/Chat mode toggle, slot-filling interactive dialogs, auto-reconnect (3s), Token auth.
+
+**Ports**: HTTP 18810 (Web UI page), WebSocket 18800 (reuses `chainlesschain serve` infrastructure).
+
+**Security**: JSON config embedded with XSS-safe Unicode escaping (`\u003c`/`\u003e`); Token auth via `--token`.
 
 ---
 
