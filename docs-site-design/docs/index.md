@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: v5.0.1 | 67个模块设计 | 102 Phase | 138技能 | CLI 59命令/2009测试 | 4200+总测试 | 面向开发者的架构与实现文档
+  tagline: v5.0.2.2 | 73个模块设计 | 102 Phase | 138技能 | CLI 63命令/2503测试 | 5130+总测试 | 面向开发者的架构与实现文档
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 📐
-    title: 67个模块设计
-    details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能等全部子系统的详细设计
+    title: 73个模块设计
+    details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面等全部子系统的详细设计
 
   - icon: 🏗️
     title: 架构设计
@@ -70,6 +70,8 @@ features:
 | v3.1.0-v3.4.0 | 65-77  | 去中心化AI市场 + 硬件安全生态 + 全球社交 + EvoMap进化    |
 | **v5.0.0**    | 78-100 | 架构重构 + AI Agent 2.0 + Web3深化 + 企业平台 + 自进化AI |
 | **v5.0.1**    | 101-102 | CLI分发系统 + 6维Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + 2009测试 |
+| **v5.0.2**    | —      | CLI技能包系统(9包) + AI音视频创作模板 + AI文档创作模板 + 5030+测试 |
+| **v5.0.2.2**  | —      | Web管理界面(chainlesschain ui) + 浏览器端项目/全局AI对话 + 5130+测试 |
 
 ---
 

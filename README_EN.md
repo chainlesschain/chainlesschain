@@ -7,7 +7,7 @@
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4899%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4998%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,33 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.1 Evolution Edition (2026-03-17)
+## ⭐ Current Version: v5.0.2.2 Evolution Edition (2026-03-18)
 
-### Latest Updates - AI Document Creator Template ⭐NEW
+### Latest Updates - Web Management UI ⭐NEW
+
+`chainlesschain ui` launches a local web management page in one command, supporting both project-scoped and global management modes:
+
+- ✅ **Project Mode** — Run from a directory with `.chainlesschain/`, AI automatically includes project context
+- ✅ **Global Mode** — Run from any directory, opens a global management panel
+- ✅ **Streaming Markdown Output** — AI replies with real-time token streaming, code blocks with syntax highlighting (highlight.js)
+- ✅ **Session Management** — Sidebar session list with create/switch/history support
+- ✅ **Interactive Q&A** — Agent slot-filling questions shown in a dialog overlay
+- ✅ **WebSocket Reuse** — Auto-starts built-in WS server, browser connects directly, token auth supported
+- ✅ **99 New Tests** — 46 unit + 29 integration + 24 E2E, all passing
+
+```bash
+cd /your/project && chainlesschain ui         # Project mode (auto-detected)
+chainlesschain ui                              # Global mode (non-project directory)
+chainlesschain ui --port 9000 --ws-port 9001  # Custom ports
+chainlesschain ui --token mysecret            # Enable authentication
+chainlesschain ui --no-open                   # Start server without opening browser
+```
+
+Open `http://127.0.0.1:18810` to start chatting.
+
+---
+
+### History - AI Document Creator Template ⭐
 
 `cc init --template ai-doc-creator` sets up a complete AI document creation workspace in one command, auto-generating 3 document skills:
 

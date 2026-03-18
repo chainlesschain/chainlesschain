@@ -5,6 +5,33 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.2.2] - 2026-03-18
+
+### Added
+
+- **Web 管理界面 (`chainlesschain ui`)**: 一条命令启动本地 Web 管理页面，支持项目专属模式和全局管理模式
+  - **项目模式**：从含 `.chainlesschain/` 的目录运行，AI 自动携带项目上下文（`projectRoot`）
+  - **全局模式**：从任意非项目目录运行，打开通用 AI 管理面板
+  - **流式 Markdown 渲染**：AI 回复实时 token 流式显示，代码块语法高亮（highlight.js 50+ 语言）
+  - **会话管理**：侧边栏会话列表，支持新建/切换/历史记录，会话数据持久化到 SQLite
+  - **Agent/Chat 模式切换**：Tab 选择会话类型，Agent 支持完整工具调用
+  - **交互式问答弹窗**：Agent slot-filling 提问时弹出选择/填空对话框
+  - **WebSocket 复用**：自动启动 `ChainlessChainWSServer`（端口 18800），HTTP 服务器（端口 18810）
+  - **安全加固**：JSON 配置注入使用 Unicode 转义（`\u003c`/`\u003e`/`\u0026`）防止 XSS；`Cache-Control: no-store`；`X-Content-Type-Options: nosniff`
+  - **自动重连**：WebSocket 断线后 3 秒自动重连
+  - **跨平台浏览器打开**：Windows（`start`）/ macOS（`open`）/ Linux（`xdg-open`）
+  - 新增 **99 个测试**（46 单元 + 29 集成 + 24 E2E），总计 **4998+ 测试**
+- **新增文档**:
+  - `docs/chainlesschain/cli-ui.md` — `chainlesschain ui` 用户指南（模式说明/选项/安全/FAQ）
+  - `docs/design/modules/73-web-ui.md` — 模块 73 设计文档（架构/协议/测试覆盖）
+  - 侧边栏新增 "v5.0.2.2 Web 管理界面" 导航项
+
+### Fixed
+
+- **`ui.js` 关闭逻辑**：`httpServer.close()` 改为 `await Promise.all([httpClose, wsStop])` 确保两个服务器并行等待关闭后再 `process.exit(0)`
+- **`server.listen` 回调**：修复回调函数不正确使用 `err` 参数（该回调无参数，错误通过 `error` 事件传递）
+- **URL 路由**：`req.url.split("?")[0]` 正确剥离 query string 后再比较路径，避免带参数的 URL 返回 404
+
 ## [5.0.2.1] - 2026-03-17
 
 ### Added

@@ -303,6 +303,13 @@ chainlesschain serve --port 9000                # Custom port
 chainlesschain serve --token <secret>           # Enable token auth
 chainlesschain serve --allow-remote --token <s> # Allow remote + auth
 chainlesschain serve --project /path/to/project # Default project root for sessions
+
+# Web UI (browser-based management interface)
+chainlesschain ui                               # Open web UI (project or global mode)
+chainlesschain ui --port 18810                  # Custom HTTP port
+chainlesschain ui --ws-port 18800               # Custom WebSocket port
+chainlesschain ui --no-open                     # Start server without opening browser
+chainlesschain ui --token <secret>              # Enable auth token
 ```
 
 ### Backend Services (Docker-based)

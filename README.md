@@ -7,7 +7,7 @@
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4899%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-4998%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,33 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.1 Evolution Edition (2026-03-17)
+## ⭐ 当前版本: v5.0.2.2 Evolution Edition (2026-03-18)
 
-### 最新更新 - AI 文档创作模板 ⭐NEW
+### 最新更新 - Web 管理界面 ⭐NEW
+
+`chainlesschain ui` 一条命令启动本地 Web 管理页面，支持项目专属模式和全局管理模式：
+
+- ✅ **项目模式** — 从含 `.chainlesschain/` 的目录运行，AI 自动携带项目上下文
+- ✅ **全局模式** — 从任意目录运行，打开全局管理面板
+- ✅ **流式 Markdown 输出** — AI 回复实时 token 流式渲染，代码块语法高亮（highlight.js）
+- ✅ **会话管理** — 侧边栏会话列表，支持新建/切换/历史记录
+- ✅ **交互式问答** — Agent slot-filling 提问时弹出对话框
+- ✅ **WebSocket 复用** — 自动启动内置 WS 服务器，浏览器直连，支持 token 认证
+- ✅ **99 个新增测试** — 46 单元 + 29 集成 + 24 E2E，全部通过
+
+```bash
+cd /your/project && chainlesschain ui         # 项目模式（自动检测）
+chainlesschain ui                              # 全局模式（非项目目录）
+chainlesschain ui --port 9000 --ws-port 9001  # 自定义端口
+chainlesschain ui --token mysecret            # 启用认证
+chainlesschain ui --no-open                   # 仅启动服务器
+```
+
+访问 `http://127.0.0.1:18810` 即可开始对话。
+
+---
+
+### 历史更新 - AI 文档创作模板 ⭐
 
 `cc init --template ai-doc-creator` 一条命令配置完整的 AI 文档创作工作区，自动生成 3 个文档技能：
 

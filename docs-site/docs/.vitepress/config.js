@@ -761,11 +761,20 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.1 AI 文档修改 (doc-edit) ⭐NEW",
+          text: "v5.0.2.1 AI 文档修改 (doc-edit)",
           items: [
             {
               text: "AI 文档创作模板",
               link: "/chainlesschain/ai-doc-creator",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.2 Web 管理界面 ⭐NEW",
+          items: [
+            {
+              text: "Web 管理界面 (ui)",
+              link: "/chainlesschain/cli-ui",
             },
           ],
         },
@@ -920,6 +929,7 @@ export default defineConfig({
             { text: "71 子代理隔离", link: "/design/modules/71-sub-agent-isolation" },
             { text: "71b AI音视频创作模板 ⭐", link: "/design/modules/71b-ai-media-creator" },
             { text: "72 AI文档创作模板 ⭐", link: "/design/modules/72-ai-doc-creator" },
+            { text: "73 Web管理界面 ⭐", link: "/design/modules/73-web-ui" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },
