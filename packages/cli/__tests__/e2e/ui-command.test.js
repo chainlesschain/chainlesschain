@@ -316,8 +316,8 @@ describe("chainlesschain ui – server startup (project mode)", () => {
     const res = await httpGet(HTTP_PORT, "/");
     const match = res.body.match(/window\.__CC_CONFIG__\s*=\s*({[\s\S]*?});/);
     const cfg = JSON.parse(match[1]);
-    // Resolve both paths for cross-platform comparison
-    expect(path.resolve(cfg.projectRoot)).toBe(path.resolve(projectDir));
+    // Resolve symlinks for cross-platform comparison (macOS /var → /private/var)
+    expect(fs.realpathSync(cfg.projectRoot)).toBe(fs.realpathSync(projectDir));
   });
 
   it("config projectName is the project folder name", async () => {
