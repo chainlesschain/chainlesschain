@@ -1,0 +1,1114 @@
+/**
+ * web-ui-server.js
+ * Creates a lightweight HTTP server that serves the ChainlessChain Web UI.
+ * The UI is a self-contained single-page app with an embedded WebSocket client.
+ *
+ * Usage:
+ *   const server = createWebUIServer({ wsPort, wsToken, wsHost, projectRoot, projectName, mode });
+ *   server.listen(18810, '127.0.0.1');
+ */
+
+import http from "http";
+
+/**
+ * Build the full HTML page with runtime config injected.
+ *
+ * @param {object} cfg
+ * @param {number}  cfg.wsPort       - WebSocket server port
+ * @param {string|null} cfg.wsToken  - Optional auth token
+ * @param {string}  cfg.wsHost       - WebSocket server host (for browser)
+ * @param {string|null} cfg.projectRoot  - Absolute project root path (null = global mode)
+ * @param {string|null} cfg.projectName  - Human-readable project name
+ * @param {"project"|"global"} cfg.mode  - UI mode
+ * @returns {string} Full HTML document
+ */
+function buildHtml({
+  wsPort,
+  wsToken,
+  wsHost,
+  projectRoot,
+  projectName,
+  mode,
+}) {
+  // Escape <, > and & so the JSON is safe to embed directly inside a <script> tag.
+  const cfg = JSON.stringify({
+    wsPort,
+    wsToken,
+    wsHost,
+    projectRoot,
+    projectName,
+    mode,
+  })
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+  const title =
+    mode === "project"
+      ? `${projectName || "Project"} — ChainlessChain`
+      : "ChainlessChain — Global";
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)}</title>
+  <script>window.__CC_CONFIG__ = ${cfg};</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-base:    #0f1117;
+      --bg-sidebar: #161b22;
+      --bg-panel:   #1c2128;
+      --bg-input:   #21262d;
+      --bg-bubble-user: #1f4e79;
+      --bg-bubble-ai:   #1c2128;
+      --border:     #30363d;
+      --text:       #e6edf3;
+      --text-dim:   #8b949e;
+      --text-muted: #484f58;
+      --accent:     #58a6ff;
+      --accent-dim: #1f3a5f;
+      --green:      #3fb950;
+      --red:        #f85149;
+      --yellow:     #d29922;
+      --radius:     8px;
+      --sidebar-w:  260px;
+    }
+
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: var(--bg-base); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+    /* ── Layout ─────────────────────────────────────────────────────── */
+    #app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ────────────────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    #sidebar-logo .icon {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+
+    #sidebar-logo .brand { font-weight: 600; font-size: 15px; }
+
+    #project-badge {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    #project-badge .proj-name { font-weight: 600; font-size: 13px; display: block; }
+    #project-badge .proj-path { color: var(--text-dim); font-size: 11px; display: block; margin-top: 2px; word-break: break-all; }
+
+    #global-badge {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    #btn-new-session {
+      margin: 12px 16px 8px;
+      width: calc(100% - 32px);
+      padding: 8px 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px; justify-content: center;
+      transition: opacity 0.15s;
+    }
+    #btn-new-session:hover { opacity: 0.85; }
+
+    #session-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 8px 8px;
+    }
+
+    #session-list::-webkit-scrollbar { width: 4px; }
+    #session-list::-webkit-scrollbar-track { background: transparent; }
+    #session-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .session-item {
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 2px;
+      transition: background 0.1s;
+    }
+    .session-item:hover { background: var(--bg-panel); }
+    .session-item.active { background: var(--accent-dim); }
+
+    .session-item .s-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .session-item .s-info { min-width: 0; }
+    .session-item .s-title { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .session-item .s-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+    #sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #conn-status { display: flex; align-items: center; gap: 5px; }
+    #conn-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+    #conn-dot.connected { background: var(--green); }
+    #conn-dot.error { background: var(--red); }
+
+    /* ── Main area ──────────────────────────────────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-base);
+    }
+
+    #chat-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-panel);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #chat-title { font-size: 15px; font-weight: 600; }
+    #chat-subtitle { font-size: 12px; color: var(--text-dim); margin-left: auto; }
+
+    #session-type-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      padding: 4px 12px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .tab-btn:hover { background: var(--bg-input); color: var(--text); }
+    .tab-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+    /* ── Messages ───────────────────────────────────────────────────── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #messages::-webkit-scrollbar { width: 6px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .message { display: flex; gap: 10px; align-items: flex-start; max-width: 100%; }
+    .message.user { flex-direction: row-reverse; }
+
+    .msg-avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .message.user .msg-avatar { background: var(--accent); color: #fff; }
+    .message.ai .msg-avatar { background: var(--bg-panel); border: 1px solid var(--border); }
+    .message.system .msg-avatar { background: var(--bg-panel); border: 1px solid var(--border); font-size: 12px; }
+
+    .msg-bubble {
+      max-width: calc(100% - 80px);
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .message.user .msg-bubble {
+      background: var(--bg-bubble-user);
+      border-radius: 12px 4px 12px 12px;
+    }
+    .message.ai .msg-bubble {
+      background: var(--bg-bubble-ai);
+      border: 1px solid var(--border);
+      border-radius: 4px 12px 12px 12px;
+    }
+    .message.system .msg-bubble {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--text-dim);
+      font-size: 12px;
+      border-radius: var(--radius);
+    }
+
+    /* Markdown inside AI bubbles */
+    .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 { margin: 12px 0 6px; font-size: 1em; }
+    .msg-bubble p { margin-bottom: 8px; }
+    .msg-bubble p:last-child { margin-bottom: 0; }
+    .msg-bubble ul, .msg-bubble ol { padding-left: 20px; margin-bottom: 8px; }
+    .msg-bubble li { margin-bottom: 3px; }
+    .msg-bubble pre { margin: 8px 0; border-radius: 6px; overflow: auto; }
+    .msg-bubble pre code { font-size: 12px; }
+    .msg-bubble code:not(pre code) { background: var(--bg-input); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .msg-bubble blockquote { border-left: 3px solid var(--border); padding-left: 10px; color: var(--text-dim); margin: 8px 0; }
+    .msg-bubble table { border-collapse: collapse; margin: 8px 0; width: 100%; }
+    .msg-bubble th, .msg-bubble td { border: 1px solid var(--border); padding: 5px 10px; }
+    .msg-bubble th { background: var(--bg-input); }
+    .msg-bubble a { color: var(--accent); text-decoration: none; }
+    .msg-bubble a:hover { text-decoration: underline; }
+
+    .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+    .typing-indicator span {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim);
+      animation: blink 1.2s infinite;
+    }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+    /* ── Input area ─────────────────────────────────────────────────── */
+    #input-area {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+
+    #input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    #msg-input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      max-height: 150px;
+      min-height: 42px;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.5;
+    }
+    #msg-input:focus { border-color: var(--accent); }
+    #msg-input::placeholder { color: var(--text-muted); }
+
+    #btn-send {
+      padding: 10px 18px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+      height: 42px;
+    }
+    #btn-send:hover:not(:disabled) { opacity: 0.85; }
+    #btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #input-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+    /* ── Empty state ────────────────────────────────────────────────── */
+    #empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--text-dim);
+      padding: 40px;
+      text-align: center;
+    }
+    #empty-state .es-icon { font-size: 48px; opacity: 0.5; }
+    #empty-state h2 { font-size: 20px; color: var(--text); }
+    #empty-state p { font-size: 14px; max-width: 320px; }
+
+    /* ── Question dialog (slot-filling) ─────────────────────────────── */
+    #question-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #question-overlay.active { display: flex; }
+
+    #question-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      width: 400px;
+      max-width: 90vw;
+    }
+    #question-box h3 { font-size: 15px; margin-bottom: 12px; }
+    #question-text { font-size: 14px; color: var(--text-dim); margin-bottom: 16px; }
+    #question-options { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    #question-input-wrap { margin-bottom: 16px; }
+    #question-input-wrap input {
+      width: 100%; padding: 8px 12px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-size: 14px; outline: none;
+    }
+    #question-input-wrap input:focus { border-color: var(--accent); }
+    .q-option {
+      padding: 8px 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      text-align: left;
+      transition: border-color 0.1s;
+    }
+    .q-option:hover { border-color: var(--accent); }
+    #btn-question-submit {
+      width: 100%; padding: 9px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius);
+      font-size: 14px; cursor: pointer;
+    }
+    #btn-question-submit:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div id="sidebar-header">
+      <div id="sidebar-logo">
+        <div class="icon">C</div>
+        <span class="brand">ChainlessChain</span>
+      </div>
+      <div id="mode-badge"></div>
+    </div>
+
+    <button id="btn-new-session">
+      <span>＋</span> 新建会话
+    </button>
+
+    <div id="session-list"></div>
+
+    <div id="sidebar-footer">
+      <div id="conn-status">
+        <div id="conn-dot"></div>
+        <span id="conn-label">未连接</span>
+      </div>
+      <span id="version-label">v5.0.2.1</span>
+    </div>
+  </nav>
+
+  <!-- Main chat area -->
+  <main id="main">
+    <div id="chat-header">
+      <span id="chat-title">欢迎</span>
+      <div id="session-type-tabs">
+        <button class="tab-btn active" data-type="agent">Agent</button>
+        <button class="tab-btn" data-type="chat">Chat</button>
+      </div>
+      <span id="chat-subtitle"></span>
+    </div>
+
+    <div id="empty-state">
+      <div class="es-icon">🤖</div>
+      <h2>开始对话</h2>
+      <p id="empty-desc"></p>
+    </div>
+
+    <div id="messages" style="display:none"></div>
+
+    <div id="input-area">
+      <div id="input-row">
+        <textarea id="msg-input" rows="1" placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"></textarea>
+        <button id="btn-send" disabled>发送</button>
+      </div>
+      <div id="input-hint">使用 /help 查看可用命令</div>
+    </div>
+  </main>
+</div>
+
+<!-- Question dialog -->
+<div id="question-overlay">
+  <div id="question-box">
+    <h3>⚙️ 需要您输入</h3>
+    <div id="question-text"></div>
+    <div id="question-options"></div>
+    <div id="question-input-wrap" style="display:none">
+      <input id="question-input" type="text" placeholder="请输入...">
+    </div>
+    <button id="btn-question-submit">确认</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Config ──────────────────────────────────────────────────────────────
+  const CFG = window.__CC_CONFIG__;
+  const WS_URL = 'ws://' + CFG.wsHost + ':' + CFG.wsPort;
+
+  // ── State ────────────────────────────────────────────────────────────────
+  let ws = null;
+  let wsReady = false;
+  let currentSessionId = null;
+  let streamingMsgId = null;
+  let streamBuffer = '';
+  let selectedSessionType = 'agent';
+  let pendingQuestionResolve = null;
+  const sessions = new Map(); // id → { id, title, type, createdAt }
+
+  // ── DOM refs ─────────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const modeBadge = $('mode-badge');
+  const sessionList = $('session-list');
+  const btnNewSession = $('btn-new-session');
+  const messages = $('messages');
+  const emptyState = $('empty-state');
+  const emptyDesc = $('empty-desc');
+  const msgInput = $('msg-input');
+  const btnSend = $('btn-send');
+  const chatTitle = $('chat-title');
+  const chatSubtitle = $('chat-subtitle');
+  const connDot = $('conn-dot');
+  const connLabel = $('conn-label');
+  const questionOverlay = $('question-overlay');
+  const questionText = $('question-text');
+  const questionOptions = $('question-options');
+  const questionInputWrap = $('question-input-wrap');
+  const questionInputEl = $('question-input');
+  const btnQuestionSubmit = $('btn-question-submit');
+  const tabBtns = document.querySelectorAll('.tab-btn');
+
+  // ── Init mode badge ─────────────────────────────────────────────────��────
+  if (CFG.mode === 'project') {
+    modeBadge.innerHTML =
+      '<div id="project-badge">' +
+        '<span class="proj-name">' + esc(CFG.projectName || 'Project') + '</span>' +
+        '<span class="proj-path">' + esc(CFG.projectRoot || '') + '</span>' +
+      '</div>';
+    emptyDesc.textContent = '当前已绑定项目 ' + (CFG.projectName || '') + '，AI 将结合项目上下文回答。';
+  } else {
+    modeBadge.innerHTML = '<div id="global-badge">🌐 全局模式</div>';
+    emptyDesc.textContent = '全局模式：未绑定项目，可直接对话或管理项目。';
+  }
+
+  // ── marked.js config ────────────────────────────────────────────────────
+  if (window.marked) {
+    marked.setOptions({
+      highlight: (code, lang) => {
+        if (window.hljs && lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        return window.hljs ? hljs.highlightAuto(code).value : code;
+      },
+      breaks: true,
+      gfm: true,
+    });
+  }
+
+  // ── WebSocket ────────────────────────────────────────────────────────────
+  function connect() {
+    setConnStatus('connecting');
+    try {
+      ws = new WebSocket(WS_URL);
+    } catch (e) {
+      setConnStatus('error');
+      return;
+    }
+
+    ws.onopen = () => {
+      if (CFG.wsToken) {
+        send({ type: 'auth', token: CFG.wsToken });
+      } else {
+        onAuthenticated();
+      }
+    };
+
+    ws.onmessage = ev => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch { return; }
+      handleMessage(msg);
+    };
+
+    ws.onclose = () => {
+      wsReady = false;
+      setConnStatus('disconnected');
+      btnSend.disabled = true;
+      setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => {
+      setConnStatus('error');
+    };
+  }
+
+  function send(obj) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(obj));
+    }
+  }
+
+  function onAuthenticated() {
+    wsReady = true;
+    setConnStatus('connected');
+    btnSend.disabled = false;
+    // Load session list
+    send({ type: 'session-list' });
+  }
+
+  function handleMessage(msg) {
+    switch (msg.type) {
+      case 'auth-ok':
+        onAuthenticated();
+        break;
+
+      case 'auth-error':
+        setConnStatus('error');
+        addSystemMsg('认证失败：' + (msg.error || '无效的 token'));
+        break;
+
+      case 'pong':
+        break;
+
+      case 'session-created':
+        if (msg.session) {
+          sessions.set(msg.session.id, {
+            id: msg.session.id,
+            title: msg.session.title || '新会话',
+            type: msg.session.type || 'agent',
+            createdAt: msg.session.createdAt || Date.now(),
+          });
+          renderSessionList();
+          if (currentSessionId === msg.session.id) {
+            updateChatHeader();
+          }
+        }
+        break;
+
+      case 'session-list':
+        if (Array.isArray(msg.sessions)) {
+          msg.sessions.forEach(s => {
+            sessions.set(s.id, {
+              id: s.id,
+              title: s.title || '会话',
+              type: s.type || 'agent',
+              createdAt: s.createdAt || 0,
+            });
+          });
+          renderSessionList();
+        }
+        break;
+
+      case 'session-message':
+        // Non-streaming response
+        if (msg.sessionId === currentSessionId && msg.content) {
+          hideTyping();
+          appendAiMsg(msg.content);
+        }
+        break;
+
+      case 'stream-start':
+        if (msg.sessionId === currentSessionId) {
+          hideTyping();
+          streamBuffer = '';
+          streamingMsgId = 'stream-' + Date.now();
+          appendAiMsgStreaming(streamingMsgId);
+        }
+        break;
+
+      case 'stream-data':
+        if (msg.sessionId === currentSessionId && streamingMsgId) {
+          streamBuffer += (msg.data || '');
+          updateStreamingMsg(streamingMsgId, streamBuffer);
+        }
+        break;
+
+      case 'stream-end':
+        if (msg.sessionId === currentSessionId) {
+          finalizeStreamingMsg(streamingMsgId, streamBuffer);
+          streamingMsgId = null;
+          streamBuffer = '';
+          // Update session title from first user message
+          maybeUpdateSessionTitle(currentSessionId);
+        }
+        break;
+
+      case 'error':
+        hideTyping();
+        if (msg.sessionId === currentSessionId || !msg.sessionId) {
+          addSystemMsg('错误：' + (msg.message || msg.error || '未知错误'));
+        }
+        break;
+
+      case 'question':
+        // Interactive question from slot-filler or agent
+        if (msg.sessionId === currentSessionId) {
+          showQuestion(msg);
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  // ── Session management ───────────────────────────────────────────────────
+  function createSession() {
+    const tempId = 'pending-' + Date.now();
+    currentSessionId = tempId;
+
+    // Optimistically add to sidebar
+    sessions.set(tempId, {
+      id: tempId,
+      title: selectedSessionType === 'agent' ? 'Agent 会话' : 'Chat 会话',
+      type: selectedSessionType,
+      createdAt: Date.now(),
+      pending: true,
+    });
+    renderSessionList();
+    showMessagesArea();
+    updateChatHeader();
+
+    send({
+      type: 'session-create',
+      sessionType: selectedSessionType,
+      projectRoot: CFG.projectRoot || undefined,
+    });
+
+    // Listen for real session ID
+    const origHandler = ws.onmessage;
+    ws.onmessage = ev => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch { return; }
+      if (msg.type === 'session-created' && msg.session) {
+        // Replace temp id
+        sessions.delete(tempId);
+        const realId = msg.session.id;
+        sessions.set(realId, {
+          id: realId,
+          title: msg.session.title || (selectedSessionType === 'agent' ? 'Agent 会话' : 'Chat 会话'),
+          type: msg.session.type || selectedSessionType,
+          createdAt: msg.session.createdAt || Date.now(),
+        });
+        if (currentSessionId === tempId) {
+          currentSessionId = realId;
+          updateChatHeader();
+        }
+        renderSessionList();
+        ws.onmessage = origHandler;
+        return;
+      }
+      // Pass through all other messages
+      handleMessage(msg);
+    };
+
+    addSystemMsg(
+      selectedSessionType === 'agent'
+        ? '已创建 Agent 会话，可以开始对话。输入 /help 查看可用命令。'
+        : '已创建 Chat 会话。'
+    );
+  }
+
+  function switchSession(id) {
+    if (currentSessionId === id) return;
+    currentSessionId = id;
+    renderSessionList();
+    updateChatHeader();
+    clearMessages();
+    showMessagesArea();
+    addSystemMsg('已切换到会话 ' + (sessions.get(id)?.title || id));
+    // Reload session history
+    send({ type: 'session-resume', sessionId: id });
+  }
+
+  function maybeUpdateSessionTitle(sessionId) {
+    // Use first 30 chars of first user message as title (client-side only)
+    const userMsgs = document.querySelectorAll('.message.user .msg-bubble');
+    if (userMsgs.length > 0) {
+      const raw = userMsgs[0].textContent.slice(0, 30).trim();
+      const s = sessions.get(sessionId);
+      if (s && (s.title === 'Agent 会话' || s.title === 'Chat 会话' || s.title === '新会话')) {
+        s.title = raw + (raw.length >= 30 ? '…' : '');
+        renderSessionList();
+      }
+    }
+  }
+
+  // ── UI helpers ───────────────────────────────────────────────────────────
+  function renderSessionList() {
+    const sorted = [...sessions.values()].sort((a, b) => b.createdAt - a.createdAt);
+    sessionList.innerHTML = sorted.map(s => {
+      const icon = s.type === 'agent' ? '🤖' : '💬';
+      const active = s.id === currentSessionId ? ' active' : '';
+      return '<div class="session-item' + active + '" data-id="' + esc(s.id) + '">' +
+        '<span class="s-icon">' + icon + '</span>' +
+        '<div class="s-info">' +
+          '<div class="s-title">' + esc(s.title) + '</div>' +
+          '<div class="s-meta">' + s.type + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    sessionList.querySelectorAll('.session-item').forEach(el => {
+      el.addEventListener('click', () => switchSession(el.dataset.id));
+    });
+  }
+
+  function updateChatHeader() {
+    const s = sessions.get(currentSessionId);
+    if (s) {
+      chatTitle.textContent = s.title;
+      chatSubtitle.textContent = s.type === 'agent' ? 'Agent 模式' : 'Chat 模式';
+    } else {
+      chatTitle.textContent = '新会话';
+      chatSubtitle.textContent = '';
+    }
+  }
+
+  function setConnStatus(state) {
+    connDot.className = '';
+    if (state === 'connected') {
+      connDot.classList.add('connected');
+      connLabel.textContent = '已连接';
+    } else if (state === 'error') {
+      connDot.classList.add('error');
+      connLabel.textContent = '连接错误';
+    } else if (state === 'connecting') {
+      connLabel.textContent = '连接中...';
+    } else {
+      connLabel.textContent = '未连接';
+    }
+  }
+
+  function showMessagesArea() {
+    emptyState.style.display = 'none';
+    messages.style.display = 'flex';
+  }
+
+  function clearMessages() {
+    messages.innerHTML = '';
+  }
+
+  function scrollToBottom() {
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  // ── Message rendering ────────────────────────────────────────────────────
+  function appendUserMsg(text) {
+    const el = document.createElement('div');
+    el.className = 'message user';
+    el.innerHTML =
+      '<div class="msg-avatar">U</div>' +
+      '<div class="msg-bubble">' + esc(text).replace(/\n/g, '<br>') + '</div>';
+    messages.appendChild(el);
+    scrollToBottom();
+  }
+
+  function appendAiMsg(text) {
+    const el = document.createElement('div');
+    el.className = 'message ai';
+    el.innerHTML =
+      '<div class="msg-avatar">🤖</div>' +
+      '<div class="msg-bubble">' + renderMd(text) + '</div>';
+    messages.appendChild(el);
+    if (window.hljs) {
+      el.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+    }
+    scrollToBottom();
+  }
+
+  function appendAiMsgStreaming(id) {
+    const el = document.createElement('div');
+    el.className = 'message ai';
+    el.id = id;
+    el.innerHTML =
+      '<div class="msg-avatar">🤖</div>' +
+      '<div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+    messages.appendChild(el);
+    scrollToBottom();
+  }
+
+  function updateStreamingMsg(id, text) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.querySelector('.msg-bubble').innerHTML = renderMd(text);
+      scrollToBottom();
+    }
+  }
+
+  function finalizeStreamingMsg(id, text) {
+    const el = document.getElementById(id);
+    if (el) {
+      const bubble = el.querySelector('.msg-bubble');
+      bubble.innerHTML = renderMd(text);
+      if (window.hljs) {
+        bubble.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+      }
+      scrollToBottom();
+    }
+  }
+
+  function addSystemMsg(text) {
+    const el = document.createElement('div');
+    el.className = 'message system';
+    el.innerHTML =
+      '<div class="msg-avatar">ℹ</div>' +
+      '<div class="msg-bubble">' + esc(text) + '</div>';
+    messages.appendChild(el);
+    scrollToBottom();
+  }
+
+  function showTyping() {
+    if (document.getElementById('typing-bubble')) return;
+    const el = document.createElement('div');
+    el.className = 'message ai';
+    el.id = 'typing-bubble';
+    el.innerHTML =
+      '<div class="msg-avatar">🤖</div>' +
+      '<div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+    messages.appendChild(el);
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    const el = document.getElementById('typing-bubble');
+    if (el) el.remove();
+  }
+
+  // ── Sending messages ─────────────────────────────────────────────────────
+  function sendMessage() {
+    const text = msgInput.value.trim();
+    if (!text || !wsReady) return;
+    if (!currentSessionId) { createSession(); }
+
+    msgInput.value = '';
+    msgInput.style.height = 'auto';
+    btnSend.disabled = true;
+
+    appendUserMsg(text);
+    showMessagesArea();
+    showTyping();
+
+    send({
+      type: 'session-message',
+      sessionId: currentSessionId,
+      content: text,
+    });
+
+    // Re-enable after brief delay (server will stream back)
+    setTimeout(() => { btnSend.disabled = false; }, 500);
+  }
+
+  // ── Question dialog ──────────────────────────────────────────────────────
+  function showQuestion(msg) {
+    questionText.textContent = msg.message || msg.question || '请输入：';
+    questionOptions.innerHTML = '';
+    questionInputEl.value = '';
+
+    if (Array.isArray(msg.choices) && msg.choices.length > 0) {
+      questionInputWrap.style.display = 'none';
+      msg.choices.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'q-option';
+        btn.textContent = c;
+        btn.addEventListener('click', () => submitQuestion(c, msg.requestId));
+        questionOptions.appendChild(btn);
+      });
+    } else {
+      questionInputWrap.style.display = 'block';
+    }
+
+    pendingQuestionResolve = { requestId: msg.requestId };
+    questionOverlay.classList.add('active');
+    questionInputEl.focus();
+  }
+
+  function submitQuestion(value, requestId) {
+    questionOverlay.classList.remove('active');
+    pendingQuestionResolve = null;
+    send({
+      type: 'session-answer',
+      sessionId: currentSessionId,
+      requestId: requestId,
+      answer: value,
+    });
+  }
+
+  // ── Event listeners ──────────────────────────────────────────────────────
+  btnNewSession.addEventListener('click', () => {
+    clearMessages();
+    currentSessionId = null;
+    createSession();
+  });
+
+  btnSend.addEventListener('click', sendMessage);
+
+  msgInput.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+      ev.preventDefault();
+      sendMessage();
+    }
+  });
+
+  msgInput.addEventListener('input', () => {
+    msgInput.style.height = 'auto';
+    msgInput.style.height = Math.min(msgInput.scrollHeight, 150) + 'px';
+  });
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedSessionType = btn.dataset.type;
+    });
+  });
+
+  btnQuestionSubmit.addEventListener('click', () => {
+    if (pendingQuestionResolve) {
+      submitQuestion(questionInputEl.value, pendingQuestionResolve.requestId);
+    }
+  });
+
+  questionInputEl.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' && pendingQuestionResolve) {
+      submitQuestion(questionInputEl.value, pendingQuestionResolve.requestId);
+    }
+  });
+
+  // ── Utility ──────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderMd(text) {
+    if (window.marked) {
+      try { return marked.parse(text); } catch (_) { /* fall through */ }
+    }
+    return esc(text).replace(/\n/g, '<br>');
+  }
+
+  // ── Start ────────────────────────────────────────────────────────────────
+  connect();
+})();
+</script>
+</body>
+</html>`;
+}
+
+/**
+ * Escape HTML special characters (server-side, for injecting into attributes/text).
+ */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Create and return a Node.js HTTP server that serves the Web UI.
+ *
+ * @param {object} opts
+ * @param {number}  opts.wsPort
+ * @param {string|null} opts.wsToken
+ * @param {string}  opts.wsHost
+ * @param {string|null} opts.projectRoot
+ * @param {string|null} opts.projectName
+ * @param {"project"|"global"} opts.mode
+ * @returns {import("http").Server}
+ */
+export function createWebUIServer(opts) {
+  const html = buildHtml(opts);
+
+  return http.createServer((req, res) => {
+    // Only serve GET / and GET /index.html (strip query string for comparison)
+    const urlPath = req.url.split("?")[0];
+    if (
+      req.method !== "GET" ||
+      (urlPath !== "/" && urlPath !== "/index.html")
+    ) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("Not Found");
+      return;
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    res.end(html, "utf-8");
+  });
+}

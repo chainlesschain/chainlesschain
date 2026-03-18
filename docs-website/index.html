@@ -881,7 +881,7 @@
             <div class="section-header" style="margin-bottom: 48px;">
                 <span style="display: inline-block; background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: white; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 16px;">npm install -g chainlesschain</span>
                 <h2 class="section-title" style="color: white;">CLI 命令行工具</h2>
-                <p class="section-subtitle" style="color: rgba(255,255,255,0.8);">开发者友好的终端体验，62个命令覆盖全场景 · 4600+测试保障质量 · Claude Code 风格 Agent REPL</p>
+                <p class="section-subtitle" style="color: rgba(255,255,255,0.8);">开发者友好的终端体验，63个命令覆盖全场景 · 5130+测试保障质量 · Claude Code 风格 Agent REPL</p>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;">
@@ -907,6 +907,9 @@
                         <div style="margin-top: 12px;"><span style="color: #27c93f;">$</span> <span style="color: #3a7bd5;">cc</span> serve --port 18800</div>
                         <div style="color: #888;">🌐 WebSocket server listening on ws://localhost:18800</div>
                         <div style="color: #888;">🔑 Token auth: enabled</div>
+                        <div style="margin-top: 12px;"><span style="color: #27c93f;">$</span> <span style="color: #3a7bd5;">cc</span> ui</div>
+                        <div style="color: #888;">🌐 Web UI listening on http://127.0.0.1:18810</div>
+                        <div style="color: #27c93f;">✓ Opening browser...</div>
                         <div style="margin-top: 12px;"><span style="color: #27c93f;">$</span> <span style="color: #3a7bd5;">cc</span> skill list</div>
                         <div style="color: #888;">📦 138 skills (bundled: 138, workspace: 0)</div>
                         <div style="color: #888;">  code-review, explain-code, refactor...</div>
@@ -917,7 +920,7 @@
                 <div>
                     <div style="display: grid; gap: 20px;">
                         <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.1);">
-                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #00d2ff;">⌨️ 62个命令 · 全场景覆盖</h3>
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #00d2ff;">⌨️ 63个命令 · 全场景覆盖</h3>
                             <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">系统管理、AI对话、知识库、安全加密、P2P通信、企业管理、区块链、DAO治理、合规审计等。短别名 <code style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">cc</code> / <code style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">clc</code> / <code style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">clchain</code></p>
                         </div>
                         <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.1);">
@@ -925,12 +928,12 @@
                             <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">10个内置工具 + 138技能 + Plan Mode + Context Engineering + Sub-Agent隔离v2 + Persona系统 + SlotFiller + InteractivePlanner</p>
                         </div>
                         <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.1);">
-                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #ffbd2e;">🌐 WebSocket 服务器</h3>
-                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">端口18800，支持远程Agent会话、Token认证、Session管理。可作为后端服务对接前端/移动端。</p>
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #ffbd2e;">🌐 WebSocket + Web 管理界面</h3>
+                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">WebSocket服务器（端口18800）支持远程Agent会话；<code style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">cc ui</code> 一键启动浏览器端Web管理界面（端口18810），支持项目模式/全局模式。</p>
                         </div>
                         <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; border: 1px solid rgba(255,255,255,0.1);">
-                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #f093fb;">✅ 4600+ 测试 · 生产级质量</h3>
-                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">118核心包测试 + 2385 CLI测试 + 12 Store测试文件。Vitest测试框架，CI/CD全自动验证。</p>
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #f093fb;">✅ 5130+ 测试 · 生产级质量</h3>
+                            <p style="margin: 0; color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">118核心包测试 + 2503 CLI测试 + 168 AI模板测试 + 99 Web UI测试。Vitest测试框架，CI/CD全自动验证。</p>
                         </div>
                     </div>
                     <div style="margin-top: 24px; text-align: center;">
@@ -1610,7 +1613,7 @@
                     <div class="download-icon">💻</div>
                     <h3>Windows 桌面版</h3>
                     <p class="download-desc">支持 Windows 10/11 (64位)</p>
-                    <p class="download-version">最新版本：v5.0.1.8</p>
+                    <p class="download-version">最新版本：v5.0.2.2</p>
                     <p class="file-size">文件大小：156 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1631,7 +1634,7 @@
                     <div class="download-icon">🍎</div>
                     <h3>macOS 桌面版</h3>
                     <p class="download-desc">支持 macOS 10.15+ (Intel & Apple Silicon)</p>
-                    <p class="download-version">最新版本：v5.0.1.8</p>
+                    <p class="download-version">最新版本：v5.0.2.2</p>
                     <p class="file-size">文件大小：180 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1646,7 +1649,7 @@
                     <div class="download-icon">🐧</div>
                     <h3>Linux 桌面版</h3>
                     <p class="download-desc">支持 Ubuntu 20.04+ / Debian / Fedora</p>
-                    <p class="download-version">最新版本：v5.0.1.8</p>
+                    <p class="download-version">最新版本：v5.0.2.2</p>
                     <p class="file-size">文件大小：145 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1661,7 +1664,7 @@
                     <div class="download-icon">📱</div>
                     <h3>Android 移动版</h3>
                     <p class="download-desc">支持 Android 7.0 (API 24) 及以上</p>
-                    <p class="download-version">最新版本：v5.0.1.8</p>
+                    <p class="download-version">最新版本：v5.0.2.2</p>
                     <p class="file-size">文件大小：45 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1824,7 +1827,7 @@
                 </div>
                 <div class="tech-stat-item">
                     <div class="stat-icon">🗄️</div>
-                    <div class="stat-value">4600+</div>
+                    <div class="stat-value">5130+</div>
                     <div class="stat-label">测试用例</div>
                 </div>
                 <div class="tech-stat-item">
@@ -1973,9 +1976,9 @@
     <section class="new-features">
         <div class="container">
             <div class="section-header">
-                <span class="version-badge">🎉 v5.0.1.8 Evolution Edition · Phase 1-102 全部完成</span>
+                <span class="version-badge">🎉 v5.0.2.2 Evolution Edition · Phase 1-102 全部完成</span>
                 <h2 class="section-title">最新功能亮点</h2>
-                <p class="section-subtitle">持续创新，为您带来更强大的AI能力 · 138桌面技能 + 28 Android技能 + CLI 62命令/4600+测试 + MCP远程注册表 + AI Agent 2.0 + Web3深化 + 企业平台 + 自进化AI</p>
+                <p class="section-subtitle">持续创新，为您带来更强大的AI能力 · 138桌面技能 + 28 Android技能 + CLI 63命令/5130+测试 + CLI技能包 + AI媒体/文档创作模板 + Web管理界面</p>
             </div>
             <div class="new-features-grid">
                 <!-- MCP Integration -->
@@ -2439,14 +2442,14 @@
 
                 <!-- v5.0.1.8 CLI 62 Commands -->
                 <div class="new-feature-card highlight">
-                    <div class="feature-badge">v5.0.1.8 最新</div>
+                    <div class="feature-badge">v5.0.1.8</div>
                     <div class="feature-icon">⌨️</div>
                     <h3>CLI 命令行工具</h3>
-                    <h4>62命令 + 4600+测试 + WebSocket服务器</h4>
-                    <p class="feature-desc">完整命令行工具包，62个命令覆盖系统管理/AI交互/知识库/安全/P2P/企业/区块链全场景。4600+测试用例保障质量，支持短别名（cc/clc/clchain），WebSocket服务器（端口18800）实现远程Agent会话。</p>
+                    <h4>63命令 + 5130+测试 + WebSocket服务器 + Web管理界面</h4>
+                    <p class="feature-desc">完整命令行工具包，63个命令覆盖系统管理/AI交互/知识库/安全/P2P/企业/区块链全场景。5130+测试用例保障质量，支持短别名（cc/clc/clchain），WebSocket服务器（端口18800）实现远程Agent会话，Web管理界面（端口18810）提供浏览器端AI对话。</p>
                     <div class="feature-highlights">
-                        <span class="highlight-tag">⌨️ 62个命令</span>
-                        <span class="highlight-tag">✅ 4600+测试</span>
+                        <span class="highlight-tag">⌨️ 63个命令</span>
+                        <span class="highlight-tag">✅ 5130+测试</span>
                         <span class="highlight-tag">🌐 WebSocket服务</span>
                         <span class="highlight-tag">📦 npm全球安装</span>
                     </div>
@@ -2454,7 +2457,7 @@
 
                 <!-- v5.0.1.8 Sub-Agent Isolation v2 -->
                 <div class="new-feature-card highlight">
-                    <div class="feature-badge">v5.0.1.8 最新</div>
+                    <div class="feature-badge">v5.0.1.8</div>
                     <div class="feature-icon">🛡️</div>
                     <h3>Sub-Agent 隔离 v2</h3>
                     <h4>安全沙箱 + 智能Agent增强</h4>
@@ -2469,7 +2472,7 @@
 
                 <!-- v5.0.1.8 EvoMap + Task Model Selector -->
                 <div class="new-feature-card">
-                    <div class="feature-badge">v5.0.1.8 最新</div>
+                    <div class="feature-badge">v5.0.1.8</div>
                     <div class="feature-icon">🗺️</div>
                     <h3>EvoMap + 智能选模</h3>
                     <h4>基因交换协议 + 10个LLM提供商 + 3个代理中继</h4>
@@ -2479,6 +2482,54 @@
                         <span class="highlight-tag">🤖 10个LLM</span>
                         <span class="highlight-tag">🔀 智能选模</span>
                         <span class="highlight-tag">🔗 CLI-Anything</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- v5.0.2 新增功能 -->
+            <div class="new-features-grid" style="margin-top: 32px;">
+                <!-- v5.0.2 CLI技能包系统 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.2 最新</div>
+                    <div class="feature-icon">📦</div>
+                    <h3>CLI 技能包系统</h3>
+                    <h4>9个域技能包 · 101个测试 · Agent原生集成</h4>
+                    <p class="feature-desc">自动生成9个CLI命令域技能包（知识库/身份/AI查询/Agent/Web3/安全/企业/集成/基础设施），直接在Agent会话中通过自然语言调用任意CLI命令，npm install后自动同步。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📦 9个技能包</span>
+                        <span class="highlight-tag">🤖 Agent原生</span>
+                        <span class="highlight-tag">🔄 自动同步</span>
+                        <span class="highlight-tag">✅ 101个测试</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.2.1 AI创作模板 -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v5.0.2.1 最新</div>
+                    <div class="feature-icon">🎬</div>
+                    <h3>AI 创作模板</h3>
+                    <h4>AI音视频创作 + AI文档创作</h4>
+                    <p class="feature-desc">cc init --template ai-media-creator 集成ComfyUI/AnimateDiff/TTS；cc init --template ai-doc-creator 集成LibreOffice/pandoc，支持doc/xlsx/pptx智能编辑。168个测试覆盖全流程。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🎥 AI音视频</span>
+                        <span class="highlight-tag">📄 AI文档创作</span>
+                        <span class="highlight-tag">🔧 LibreOffice集成</span>
+                        <span class="highlight-tag">✅ 168个测试</span>
+                    </div>
+                </div>
+
+                <!-- v5.0.2.2 Web管理界面 -->
+                <div class="new-feature-card highlight" style="border: 2px solid #00d2ff; box-shadow: 0 0 20px rgba(0,210,255,0.15);">
+                    <div class="feature-badge" style="background: linear-gradient(135deg, #00d2ff, #3a7bd5);">v5.0.2.2 ⭐最新</div>
+                    <div class="feature-icon">🖥️</div>
+                    <h3>Web 管理界面</h3>
+                    <h4>一键浏览器端 AI 对话 · 项目/全局双模式</h4>
+                    <p class="feature-desc">cc ui 一条命令在浏览器中打开完整Web管理界面。项目目录下自动加载项目上下文（AI感知代码库）；任意目录打开全局AI管理面板。支持Markdown渲染、流式输出、会话管理、Agent slot-filling。99个测试全部通过。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🌐 浏览器端UI</span>
+                        <span class="highlight-tag">📁 项目感知</span>
+                        <span class="highlight-tag">⚡ 流式输出</span>
+                        <span class="highlight-tag">✅ 99个测试</span>
                     </div>
                 </div>
             </div>

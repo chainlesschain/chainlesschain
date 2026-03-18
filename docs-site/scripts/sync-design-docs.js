@@ -128,6 +128,7 @@ const MODULE_FILE_MAP = {
   "71_子代理隔离系统.md": "71-sub-agent-isolation.md",
   "71_AI音视频创作模板.md": "71b-ai-media-creator.md",
   "72_AI文档创作模板.md": "72-ai-doc-creator.md",
+  "73_Web管理界面.md": "73-web-ui.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）

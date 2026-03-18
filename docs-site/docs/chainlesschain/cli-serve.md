@@ -8,7 +8,7 @@
 
 **核心优势：**
 
-- 所有 61 个 CLI 命令立即可用（子进程执行策略，零修改）
+- 所有 63 个 CLI 命令立即可用（子进程执行策略，零修改）
 - 流式输出支持（`ask`、`search` 等命令逐块返回）
 - Token 认证 + localhost 默认绑定
 - Shell 注入防护（自实现 tokenizer，无 `shell: true`）

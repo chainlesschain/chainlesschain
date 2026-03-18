@@ -86,6 +86,9 @@ import { registerCliAnythingCommand } from "./commands/cli-anything.js";
 // WebSocket Server Interface
 import { registerServeCommand } from "./commands/serve.js";
 
+// Web UI
+import { registerUiCommand } from "./commands/ui.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -200,6 +203,9 @@ export function createProgram() {
 
   // WebSocket Server Interface
   registerServeCommand(program);
+
+  // Web UI
+  registerUiCommand(program);
 
   return program;
 }

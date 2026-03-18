@@ -53,6 +53,10 @@ export default defineConfig({
             text: "v5.0.2 CLI技能包与AI模板 (60b, 71b, 72)",
             link: "/modules/m60b-cli-skill-packs",
           },
+          {
+            text: "v5.0.2.2 Web管理界面 (73) ⭐NEW",
+            link: "/modules/m73-web-ui",
+          },
         ],
       },
       {
@@ -505,6 +509,16 @@ export default defineConfig({
             {
               text: "72 AI文档创作模板 ⭐",
               link: "/modules/m72-ai-doc-creator",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.2 Web管理界面 (73) ⭐NEW",
+          collapsed: false,
+          items: [
+            {
+              text: "73 Web管理界面 ⭐NEW",
+              link: "/modules/m73-web-ui",
             },
           ],
         },

@@ -1,13 +1,13 @@
 # CLI 命令行工具
 
-> **版本: v5.0.1 | 状态: ✅ 生产就绪 | 2063 测试通过 | 61 命令 | 纯 JS 无原生依赖**
+> **版本: v5.0.2.2 | 状态: ✅ 生产就绪 | 2063 测试通过 | 63 命令 | 纯 JS 无原生依赖**
 
 ChainlessChain 提供轻量级 npm CLI 工具，让开发者通过一条命令即可安装、配置和管理整个系统。
 
 ## 核心特性
 
 - 📦 **纯 JS 轻量包**: 约 2MB，无原生依赖，全平台 `npm install -g` 即装即用
-- 🤖 **61 个命令**: AI 对话、笔记管理、DID 身份、加密解密、项目初始化、多智能体协作、EvoMap基因交换、DAO治理、安全合规、通信桥接、社交平台、CLI-Anything集成、WebSocket Server等
+- 🤖 **63 个命令**: AI 对话、笔记管理、DID 身份、加密解密、项目初始化、多智能体协作、EvoMap基因交换、DAO治理、安全合规、通信桥接、社交平台、CLI-Anything集成、WebSocket Server、Web管理界面等
 - 🧠 **Agent 模式**: Claude Code 风格代理会话，8 工具 + 138 技能 + Plan Mode + /cowork
 - 🎯 **多层技能系统**: 4 层优先级（bundled < marketplace < managed < workspace），自定义技能管理
 - 🤝 **多智能体协作**: 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
@@ -338,6 +338,7 @@ chainlesschain --quiet      # 静默模式
 | `hardening`        | 安全加固 (性能基线/回归检测/审计)            | [安全加固](./cli-hardening)  |
 | `social`           | 社交平台 (联系人/好友/动态/即时聊天)         | [社交平台](./cli-social)     |
 | `serve`            | WebSocket 服务器 (远程CLI调用/流式/认证)     | [WebSocket服务器](./cli-serve) |
+| `ui`               | Web 管理界面 (浏览器端/项目&全局模式)        | [Web管理界面](./cli-ui)       |
 
 ---
 
@@ -523,7 +524,7 @@ chainlesschain services logs
 
 - `packages/cli/bin/chainlesschain.js` — npm bin 入口（`chainlesschain`、`cc`、`clc`、`clchain` 四个命令共享此入口）
 - `packages/cli/src/index.js` — Commander 命令注册（主入口）
-- `packages/cli/src/commands/` — 所有命令实现（61 个命令文件）
+- `packages/cli/src/commands/` — 所有命令实现（63 个命令文件）
 - `packages/cli/src/lib/` — 共享库（68 个模块）
 - `packages/cli/src/lib/cowork/` — 多智能体协作模块（5 个）
 - `packages/cli/src/repl/` — 交互式 REPL（chat/agent + /cowork）
