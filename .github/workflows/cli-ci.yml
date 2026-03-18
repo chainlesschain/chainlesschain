@@ -42,7 +42,7 @@ jobs:
 
       - name: Run E2E tests
         working-directory: packages/cli
-        run: npx vitest run __tests__/e2e/
+        run: npx vitest run --config vitest.e2e.config.js __tests__/e2e/
 
       - name: Verify CLI --version
         working-directory: packages/cli
