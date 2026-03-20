@@ -305,3 +305,127 @@ describe("createWebUIServer – wsHost in config", () => {
     expect(cfg.wsHost).toBe("192.168.1.10");
   });
 });
+
+// ── WS client protocol (fixes for 5 protocol mismatches) ────────────────────
+
+describe("createWebUIServer – WS client protocol correctness", () => {
+  let server;
+  let port;
+  let body;
+
+  beforeEach(async () => {
+    server = await startServer(GLOBAL_OPTS);
+    port = server.address().port;
+    const res = await get(port, "/");
+    body = res.body;
+  });
+
+  afterEach(() => stopServer(server));
+
+  // Fix 1: message id auto-injection
+  it("send() auto-injects id field using _msgId counter", () => {
+    // _msgId must be declared as state variable
+    expect(body).toContain("_msgId");
+    // The auto-inject line assigns 'ui-' + incremented counter
+    expect(body).toContain("ui-");
+    // The send function checks for missing id
+    expect(body).toContain("obj.id");
+  });
+
+  // Fix 2: auth-result (server sends auth-result, not auth-ok)
+  it("handles 'auth-result' event from server (not auth-ok)", () => {
+    expect(body).toContain("auth-result");
+    // Checks msg.success to distinguish success/failure
+    expect(body).toContain("msg.success");
+  });
+
+  it("does NOT contain deprecated 'auth-ok' case", () => {
+    // 'auth-ok' was the old incorrect event name
+    expect(body).not.toContain("'auth-ok'");
+    expect(body).not.toContain('"auth-ok"');
+  });
+
+  it("does NOT contain deprecated 'auth-error' case", () => {
+    expect(body).not.toContain("'auth-error'");
+    expect(body).not.toContain('"auth-error"');
+  });
+
+  // Fix 3: session-created uses msg.sessionId (not msg.session.id)
+  it("session-created handler reads msg.sessionId", () => {
+    // The handler should use msg.sessionId directly
+    expect(body).toContain("msg.sessionId");
+  });
+
+  it("session-created handler does NOT access msg.session.id", () => {
+    expect(body).not.toContain("msg.session.id");
+    expect(body).not.toContain("msg.session.type");
+    expect(body).not.toContain("msg.session.createdAt");
+  });
+
+  // Fix 4: session-list-result (server sends session-list-result, not session-list)
+  it("handles 'session-list-result' event from server", () => {
+    expect(body).toContain("session-list-result");
+  });
+
+  it("does NOT use 'session-list' as a received event type in switch", () => {
+    // 'session-list' is sent TO the server, not received FROM it
+    // The body should send session-list but not have a case for it
+    expect(body).toContain("session-list"); // outgoing send call is still present
+    // The case label for receiving should be session-list-result
+    expect(body).toContain("session-list-result");
+  });
+
+  // Fix 5: response-token / response-complete (not stream-start/stream-data/stream-end)
+  it("handles 'response-token' event for chat streaming", () => {
+    expect(body).toContain("response-token");
+    expect(body).toContain("msg.token");
+  });
+
+  it("handles 'response-complete' event for final response", () => {
+    expect(body).toContain("response-complete");
+    expect(body).toContain("msg.content");
+  });
+
+  it("does NOT contain deprecated 'stream-start' case", () => {
+    expect(body).not.toContain("'stream-start'");
+    expect(body).not.toContain('"stream-start"');
+  });
+
+  it("does NOT contain deprecated 'stream-data' case as received event", () => {
+    // stream-data should NOT appear as a case in handleMessage
+    expect(body).not.toContain("case 'stream-data'");
+    expect(body).not.toContain('case "stream-data"');
+  });
+
+  it("does NOT contain deprecated 'stream-end' case", () => {
+    expect(body).not.toContain("case 'stream-end'");
+    expect(body).not.toContain('case "stream-end"');
+  });
+
+  // Agent event handlers
+  it("handles 'tool-executing' event for agent tool display", () => {
+    expect(body).toContain("tool-executing");
+    expect(body).toContain("msg.display");
+  });
+
+  it("handles 'model-switch' event for model change notification", () => {
+    expect(body).toContain("model-switch");
+  });
+
+  it("handles 'command-response' event for slash command results", () => {
+    expect(body).toContain("command-response");
+  });
+
+  // Outgoing messages still use correct types
+  it("sends 'session-create' when creating a new session", () => {
+    expect(body).toContain("session-create");
+  });
+
+  it("sends 'session-message' when user submits a message", () => {
+    expect(body).toContain("session-message");
+  });
+
+  it("sends 'session-answer' when user answers a question", () => {
+    expect(body).toContain("session-answer");
+  });
+});

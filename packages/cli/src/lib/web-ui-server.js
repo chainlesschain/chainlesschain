@@ -460,7 +460,7 @@ function buildHtml({
         <div id="conn-dot"></div>
         <span id="conn-label">未连接</span>
       </div>
-      <span id="version-label">v5.0.2.1</span>
+      <span id="version-label">v5.0.2.3</span>
     </div>
   </nav>
 
@@ -522,6 +522,7 @@ function buildHtml({
   let streamBuffer = '';
   let selectedSessionType = 'agent';
   let pendingQuestionResolve = null;
+  let _msgId = 0;
   const sessions = new Map(); // id → { id, title, type, createdAt }
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
@@ -611,6 +612,7 @@ function buildHtml({
 
   function send(obj) {
     if (ws && ws.readyState === WebSocket.OPEN) {
+      if (!obj.id) { obj = Object.assign({ id: 'ui-' + (++_msgId) }, obj); }
       ws.send(JSON.stringify(obj));
     }
   }
@@ -625,34 +627,35 @@ function buildHtml({
 
   function handleMessage(msg) {
     switch (msg.type) {
-      case 'auth-ok':
-        onAuthenticated();
-        break;
-
-      case 'auth-error':
-        setConnStatus('error');
-        addSystemMsg('认证失败：' + (msg.error || '无效的 token'));
+      case 'auth-result':
+        if (msg.success) {
+          onAuthenticated();
+        } else {
+          setConnStatus('error');
+          addSystemMsg('认证失败：' + (msg.message || '无效的 token'));
+        }
         break;
 
       case 'pong':
         break;
 
       case 'session-created':
-        if (msg.session) {
-          sessions.set(msg.session.id, {
-            id: msg.session.id,
-            title: msg.session.title || '新会话',
-            type: msg.session.type || 'agent',
-            createdAt: msg.session.createdAt || Date.now(),
+        // Server sends { sessionId, sessionType }
+        if (msg.sessionId) {
+          sessions.set(msg.sessionId, {
+            id: msg.sessionId,
+            title: (msg.sessionType || 'agent') === 'agent' ? 'Agent 会话' : 'Chat 会话',
+            type: msg.sessionType || 'agent',
+            createdAt: Date.now(),
           });
           renderSessionList();
-          if (currentSessionId === msg.session.id) {
+          if (currentSessionId === msg.sessionId) {
             updateChatHeader();
           }
         }
         break;
 
-      case 'session-list':
+      case 'session-list-result':
         if (Array.isArray(msg.sessions)) {
           msg.sessions.forEach(s => {
             sessions.set(s.id, {
@@ -666,37 +669,56 @@ function buildHtml({
         }
         break;
 
-      case 'session-message':
-        // Non-streaming response
-        if (msg.sessionId === currentSessionId && msg.content) {
-          hideTyping();
-          appendAiMsg(msg.content);
-        }
-        break;
-
-      case 'stream-start':
+      // Streaming: chat handler emits response-token per token
+      case 'response-token':
         if (msg.sessionId === currentSessionId) {
-          hideTyping();
-          streamBuffer = '';
-          streamingMsgId = 'stream-' + Date.now();
-          appendAiMsgStreaming(streamingMsgId);
-        }
-        break;
-
-      case 'stream-data':
-        if (msg.sessionId === currentSessionId && streamingMsgId) {
-          streamBuffer += (msg.data || '');
+          if (!streamingMsgId) {
+            hideTyping();
+            streamBuffer = '';
+            streamingMsgId = 'stream-' + Date.now();
+            appendAiMsgStreaming(streamingMsgId);
+          }
+          streamBuffer += (msg.token || '');
           updateStreamingMsg(streamingMsgId, streamBuffer);
         }
         break;
 
-      case 'stream-end':
+      // Final response: both agent and chat handlers emit response-complete
+      case 'response-complete':
         if (msg.sessionId === currentSessionId) {
-          finalizeStreamingMsg(streamingMsgId, streamBuffer);
-          streamingMsgId = null;
-          streamBuffer = '';
-          // Update session title from first user message
+          if (streamingMsgId) {
+            finalizeStreamingMsg(streamingMsgId, streamBuffer || msg.content || '');
+            streamingMsgId = null;
+            streamBuffer = '';
+          } else {
+            // Agent mode: no token stream, show full response at once
+            hideTyping();
+            if (msg.content) appendAiMsg(msg.content);
+          }
           maybeUpdateSessionTitle(currentSessionId);
+        }
+        break;
+
+      // Agent tool events — show as system info
+      case 'tool-executing':
+        if (msg.sessionId === currentSessionId) {
+          addSystemMsg('🔧 ' + (msg.display || msg.tool || '工具调用中...'));
+        }
+        break;
+
+      case 'tool-result':
+        // Silently consumed — agent will emit response-complete after
+        break;
+
+      case 'model-switch':
+        if (msg.sessionId === currentSessionId) {
+          addSystemMsg('🔄 模型切换: ' + msg.from + ' → ' + msg.to + ' (' + msg.reason + ')');
+        }
+        break;
+
+      case 'command-response':
+        if (msg.sessionId === currentSessionId) {
+          addSystemMsg('✅ ' + JSON.stringify(msg.result || {}));
         }
         break;
 
@@ -747,15 +769,15 @@ function buildHtml({
     ws.onmessage = ev => {
       let msg;
       try { msg = JSON.parse(ev.data); } catch { return; }
-      if (msg.type === 'session-created' && msg.session) {
+      if (msg.type === 'session-created' && msg.sessionId) {
         // Replace temp id
         sessions.delete(tempId);
-        const realId = msg.session.id;
+        const realId = msg.sessionId;
         sessions.set(realId, {
           id: realId,
-          title: msg.session.title || (selectedSessionType === 'agent' ? 'Agent 会话' : 'Chat 会话'),
-          type: msg.session.type || selectedSessionType,
-          createdAt: msg.session.createdAt || Date.now(),
+          title: selectedSessionType === 'agent' ? 'Agent 会话' : 'Chat 会话',
+          type: msg.sessionType || selectedSessionType,
+          createdAt: Date.now(),
         });
         if (currentSessionId === tempId) {
           currentSessionId = realId;

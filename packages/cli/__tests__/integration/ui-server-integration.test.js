@@ -316,16 +316,33 @@ describe("ui HTTP server – embedded WebSocket client", () => {
     expect(body).toContain("session-message");
   });
 
-  it("contains stream-data handler", () => {
-    expect(body).toContain("stream-data");
+  // Protocol v2: streaming uses response-token / response-complete
+  it("contains response-token handler", () => {
+    expect(body).toContain("response-token");
   });
 
-  it("contains stream-end handler", () => {
-    expect(body).toContain("stream-end");
+  it("contains response-complete handler", () => {
+    expect(body).toContain("response-complete");
+  });
+
+  // Auth: server sends auth-result (not auth-ok)
+  it("contains auth-result handler", () => {
+    expect(body).toContain("auth-result");
+  });
+
+  // Session list: server sends session-list-result (not session-list)
+  it("contains session-list-result handler", () => {
+    expect(body).toContain("session-list-result");
   });
 
   it("contains reconnection logic", () => {
     expect(body).toContain("setTimeout");
     expect(body).toContain("connect");
+  });
+
+  // Auto-inject message id
+  it("contains id auto-injection in send function", () => {
+    expect(body).toContain("ui-");
+    expect(body).toContain("_msgId");
   });
 });

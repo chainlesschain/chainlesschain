@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.3-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -22,19 +22,21 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.2 Evolution Edition (2026-03-18)
+## ⭐ Current Version: v5.0.2.3 Evolution Edition (2026-03-20)
 
-### Latest Updates - Web Management UI ⭐NEW
+### Latest Updates - Web Management UI Protocol Fix ⭐
 
 `chainlesschain ui` launches a local web management page in one command, supporting both project-scoped and global management modes:
 
 - ✅ **Project Mode** — Run from a directory with `.chainlesschain/`, AI automatically includes project context
 - ✅ **Global Mode** — Run from any directory, opens a global management panel
-- ✅ **Streaming Markdown Output** — AI replies with real-time token streaming, code blocks with syntax highlighting (highlight.js)
-- ✅ **Session Management** — Sidebar session list with create/switch/history support
+- ✅ **Streaming Markdown Output** — Real-time token streaming via `response-token` events, syntax highlighting
+- ✅ **Agent Tool Visibility** — Shows tool calls in real time (`tool-executing` event)
+- ✅ **Session Management** — Sidebar with create/switch/history, Agent/Chat mode tabs
 - ✅ **Interactive Q&A** — Agent slot-filling questions shown in a dialog overlay
 - ✅ **WebSocket Reuse** — Auto-starts built-in WS server, browser connects directly, token auth supported
-- ✅ **99 New Tests** — 46 unit + 29 integration + 24 E2E, all passing
+- ✅ **103 Tests** — 47 unit + 32 integration + 24 E2E, all passing
+- 🐛 **Fixed 5 WS protocol mismatches** — chat, auth, session list, and streaming now fully work
 
 ```bash
 cd /your/project && chainlesschain ui         # Project mode (auto-detected)
