@@ -166,6 +166,23 @@ chainlesschain ui --host 0.0.0.0 --token my-token
 
 Web 页面通过 `window.__CC_CONFIG__` 获取运行时配置（wsPort、wsToken、projectRoot、mode 等），配置值经过 HTML-safe JSON 转义，防止 XSS 攻击。
 
+### WebSocket 协议要点（v5.0.2.3 修复后）
+
+前端发送的每条消息都会自动注入 `id: "ui-N"` 字段（服务端强制要求）。关键事件类型：
+
+| 事件 | 方向 | 说明 |
+|------|------|------|
+| `auth` | →服务端 | 发送 token 认证 |
+| `auth-result` | ←服务端 | 认证结果（含 `success` 字段） |
+| `session-list` | →服务端 | 请求会话列表 |
+| `session-list-result` | ←服务端 | 返回会话列表 |
+| `create-session` | →服务端 | 创建新会话 |
+| `session-created` | ←服务端 | 返回 `sessionId`/`sessionType` |
+| `chat` | →服务端 | 发送消息 |
+| `response-token` | ←服务端 | 流式 token（Chat 模式） |
+| `response-complete` | ←服务端 | 流式结束 |
+| `tool-executing` | ←服务端 | Agent 工具调用（显示为系统消息） |
+
 ## 与 `serve` 命令的区别
 
 | 特性 | `chainlesschain ui` | `chainlesschain serve` |
