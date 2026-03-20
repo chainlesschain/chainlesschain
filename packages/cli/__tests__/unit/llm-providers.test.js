@@ -217,8 +217,14 @@ describe("LLM Providers", () => {
     });
 
     it("should return null for volcengine API key when not set", () => {
-      // VOLCENGINE_API_KEY is not set in test environment
-      expect(registry.getApiKey("volcengine")).toBeNull();
+      // Temporarily clear the env var in case it is set in this environment
+      const saved = process.env.VOLCENGINE_API_KEY;
+      delete process.env.VOLCENGINE_API_KEY;
+      try {
+        expect(registry.getApiKey("volcengine")).toBeNull();
+      } finally {
+        if (saved !== undefined) process.env.VOLCENGINE_API_KEY = saved;
+      }
     });
 
     it("should not allow removing volcengine (built-in)", () => {

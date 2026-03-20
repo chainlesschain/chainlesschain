@@ -132,12 +132,29 @@ describe("E2E: LLM Providers & Task Model Selector", () => {
       expect(result).toContain("--provider");
     });
 
-    it("ask with volcengine provider fails gracefully without API key", () => {
-      const { stderr, exitCode } = tryRun(
-        'ask "hello" --provider volcengine --model doubao-seed-1-6-251015',
-      );
+    it("ask with volcengine provider and explicit invalid API key fails gracefully", () => {
+      // Pass a deliberately invalid API key to force a non-zero exit.
+      // Deleting the env var is insufficient when the local config.json already
+      // contains a valid key — so we override with an explicit bad value.
+      const { stderr, stdout, exitCode } = (() => {
+        try {
+          const out = run(
+            'ask "hello" --provider volcengine --api-key invalid-test-key-000 --model doubao-seed-1-6-251015',
+          );
+          return { stdout: out, stderr: "", exitCode: 0 };
+        } catch (err) {
+          return {
+            stdout: err.stdout || "",
+            stderr: err.stderr || "",
+            exitCode: err.status,
+          };
+        }
+      })();
+      // Should fail: bad key → HTTP 401/403 from volcengine → process.exit(1)
       expect(exitCode).not.toBe(0);
-      expect(stderr || "").toMatch(/API key|VOLCENGINE_API_KEY|Failed/i);
+      expect((stderr + stdout).toLowerCase()).toMatch(
+        /failed|error|unauthorized|401|403|invalid/i,
+      );
     });
   });
 

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.3-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -22,19 +22,21 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.2 Evolution Edition (2026-03-18)
+## ⭐ 当前版本: v5.0.2.3 Evolution Edition (2026-03-20)
 
-### 最新更新 - Web 管理界面 ⭐NEW
+### 最新更新 - Web 管理界面协议修复 ⭐
 
 `chainlesschain ui` 一条命令启动本地 Web 管理页面，支持项目专属模式和全局管理模式：
 
 - ✅ **项目模式** — 从含 `.chainlesschain/` 的目录运行，AI 自动携带项目上下文
 - ✅ **全局模式** — 从任意目录运行，打开全局管理面板
-- ✅ **流式 Markdown 输出** — AI 回复实时 token 流式渲染，代码块语法高亮（highlight.js）
-- ✅ **会话管理** — 侧边栏会话列表，支持新建/切换/历史记录
+- ✅ **流式 Markdown 输出** — AI 回复实时 token 流式渲染（`response-token`），代码块语法高亮
+- ✅ **Agent 工具可见性** — Agent 调用工具时实时显示工具名和参数（`tool-executing` 事件）
+- ✅ **会话管理** — 侧边栏会话列表，支持新建/切换/历史记录，Agent/Chat 模式 Tab 切换
 - ✅ **交互式问答** — Agent slot-filling 提问时弹出对话框
 - ✅ **WebSocket 复用** — 自动启动内置 WS 服务器，浏览器直连，支持 token 认证
-- ✅ **99 个新增测试** — 46 单元 + 29 集成 + 24 E2E，全部通过
+- ✅ **103 个测试** — 47 单元 + 32 集成 + 24 E2E，全部通过
+- 🐛 **修复 5 处 WS 协议不匹配** — 对话/认证/会话列表/流式输出均可正���工作
 
 ```bash
 cd /your/project && chainlesschain ui         # 项目模式（自动检测）
