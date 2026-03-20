@@ -21,7 +21,7 @@ ChainlessChain CLI 此前只提供终端交互（`chainlesschain chat`、`chainl
 
 ### 1.2 设计原则
 
-- **零构建步��**：Web UI 作为单页 HTML 内嵌在 HTTP 响应中，无需 webpack/vite 构建
+- **零构建步骤**：Web UI 作为单页 HTML 内嵌在 HTTP 响应中，无需 webpack/vite 构建
 - **复用现有基础设施**：直接复用 `ChainlessChainWSServer` + `WSSessionManager`
 - **项目感知**：自动检测 `.chainlesschain/config.json`，无需手动配置
 - **安全优先**：JSON 配置注入使用 Unicode 转义防止 XSS

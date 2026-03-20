@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.2.3] - 2026-03-20
+
+### Fixed
+
+- **Web UI WS 协议 5 处不匹配修复**：前端与 `ChainlessChainWSServer` 之间存在 5 个协议不一致，导致所有聊天/会话功能无法使用：
+  - **消息缺少 `id` 字段**：服务端会以 `MISSING_ID` 拒绝每条消息；修复：`send()` 自动注入 `id: 'ui-N'`
+  - **`auth-ok` vs `auth-result`**：认证响应类型不匹配导致 WS 始终处于未认证状态；修复：处理 `auth-result` + `msg.success`
+  - **`msg.session.id` vs `msg.sessionId`**：会话创建响应 payload 格式不一致导致丢失会话 ID；修复：读取 `msg.sessionId`/`msg.sessionType`
+  - **`session-list` vs `session-list-result`**：侧边栏会话列表从不刷新；修复：重命名 case 为 `session-list-result`
+  - **`stream-data`/`stream-end` vs `response-token`/`response-complete`**：AI 回复从不显示；修复：处理 `response-token`（流式）和 `response-complete`（完成），以及 `tool-executing`/`model-switch` 事件
+- **Agent 工具可见性**：工具执行事件（`tool-executing`）以系统消息形式展示
+- **新增 21 个单元协议回归测试 + 6 个集成测试**（总计 103 个 Web UI 测试），总测试数 **5030+**
+- **设计文档更新**：`73-web-ui.md` 补充 v1→v2 协议对照表，标注 5 处修复点
+- **源文件乱码修复**：`73_Web管理界面.md` 中 `零构建步骤` 的 `骤` 字被 U+FFFD 替换字符覆盖，已还原
+
 ## [5.0.2.2] - 2026-03-18
 
 ### Added

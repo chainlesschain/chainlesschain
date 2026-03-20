@@ -770,7 +770,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.2 Web 管理界面 ⭐NEW",
+          text: "v5.0.2.3 Web 管理界面 (协议修复) ⭐NEW",
           items: [
             {
               text: "Web 管理界面 (ui)",
