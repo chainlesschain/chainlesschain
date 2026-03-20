@@ -97,6 +97,85 @@ describe("version-checker", () => {
       await import("../../src/lib/version-checker.js");
     const result = await checkForUpdates({ currentVersion: "0.1.0" });
     expect(result.updateAvailable).toBe(false);
-    expect(result.error).toContain("Network error");
+    // Both GitHub and npm fail → combined error message
+    expect(result.error).toContain("unavailable");
+  });
+
+  it("checkForUpdates falls back to npm when GitHub returns empty releases", async () => {
+    let callCount = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // First call: GitHub releases → empty array
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          });
+        }
+        // Second call: npm registry
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ version: "99.0.0" }),
+        });
+      }),
+    );
+
+    const { checkForUpdates } =
+      await import("../../src/lib/version-checker.js");
+    const result = await checkForUpdates({ currentVersion: "0.1.0" });
+    expect(result.updateAvailable).toBe(true);
+    expect(result.latestVersion).toBe("99.0.0");
+    expect(result.source).toBe("npm");
+  });
+
+  it("checkForUpdates falls back to npm when GitHub API fails", async () => {
+    let callCount = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // First call: GitHub releases → HTTP error
+          return Promise.resolve({ ok: false, status: 403 });
+        }
+        // Second call: npm registry
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ version: "0.45.2" }),
+        });
+      }),
+    );
+
+    const { checkForUpdates } =
+      await import("../../src/lib/version-checker.js");
+    const result = await checkForUpdates({ currentVersion: "0.45.1" });
+    expect(result.updateAvailable).toBe(true);
+    expect(result.latestVersion).toBe("0.45.2");
+    expect(result.source).toBe("npm");
+  });
+
+  it("checkForUpdates returns no update when npm has same version as current", async () => {
+    let callCount = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ version: "0.45.1" }),
+        });
+      }),
+    );
+
+    const { checkForUpdates } =
+      await import("../../src/lib/version-checker.js");
+    const result = await checkForUpdates({ currentVersion: "0.45.1" });
+    expect(result.updateAvailable).toBe(false);
+    expect(result.source).toBe("npm");
   });
 });

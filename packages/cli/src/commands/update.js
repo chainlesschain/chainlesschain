@@ -94,6 +94,37 @@ export function registerUpdateCommand(program) {
           return;
         }
 
+        // When update source is npm-only (GitHub Release CI still building),
+        // skip desktop app download and only update the CLI package
+        if (result.source === "npm") {
+          logger.info(
+            `GitHub Release for v${result.latestVersion} is not yet available (CI may still be building).`,
+          );
+          logger.info(`Updating CLI package from npm...`);
+
+          const doUpdate = await askConfirm(
+            `Update CLI to v${result.latestVersion} via npm?`,
+            true,
+          );
+          if (!doUpdate) {
+            logger.info("Update cancelled");
+            return;
+          }
+
+          const cliUpdated = await selfUpdateCli(result.latestVersion);
+          if (cliUpdated) {
+            logger.success(`CLI updated to v${result.latestVersion}`);
+            logger.info(
+              `Desktop app update will be available once GitHub Release CI completes.`,
+            );
+          } else {
+            logger.warn(
+              `CLI self-update failed. Please run manually:\n  npm install -g chainlesschain@${result.latestVersion}`,
+            );
+          }
+          return;
+        }
+
         const doUpdate = await askConfirm(
           `Download v${result.latestVersion}?`,
           true,
