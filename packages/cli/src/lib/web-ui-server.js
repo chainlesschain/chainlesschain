@@ -55,8 +55,8 @@ function buildHtml({
   <title>${escapeHtml(title)}</title>
   <script>window.__CC_CONFIG__ = ${cfg};</script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -460,7 +460,7 @@ function buildHtml({
         <div id="conn-dot"></div>
         <span id="conn-label">未连接</span>
       </div>
-      <span id="version-label">v5.0.2.3</span>
+      <span id="version-label">v5.0.2.4</span>
     </div>
   </nav>
 
@@ -560,18 +560,24 @@ function buildHtml({
     emptyDesc.textContent = '全局模式：未绑定项目，可直接对话或管理项目。';
   }
 
-  // ── marked.js config ────────────────────────────────────────────────────
-  if (window.marked) {
-    marked.setOptions({
-      highlight: (code, lang) => {
-        if (window.hljs && lang && hljs.getLanguage(lang)) {
-          return hljs.highlight(code, { language: lang }).value;
-        }
-        return window.hljs ? hljs.highlightAuto(code).value : code;
-      },
-      breaks: true,
-      gfm: true,
-    });
+  // ── marked.js config (deferred — called after defer scripts load) ────────
+  function initMarked() {
+    if (window.marked) {
+      try {
+        marked.setOptions({
+          highlight: (code, lang) => {
+            if (window.hljs && lang && hljs.getLanguage(lang)) {
+              return hljs.highlight(code, { language: lang }).value;
+            }
+            return window.hljs ? hljs.highlightAuto(code).value : code;
+          },
+          breaks: true,
+          gfm: true,
+        });
+      } catch (_) {
+        // marked v10+ removed highlight option — ignore, fallback renderer handles it
+      }
+    }
   }
 
   // ── WebSocket ────────────────────────────────────────────────────────────
@@ -888,7 +894,7 @@ function buildHtml({
     el.className = 'message user';
     el.innerHTML =
       '<div class="msg-avatar">U</div>' +
-      '<div class="msg-bubble">' + esc(text).replace(/\n/g, '<br>') + '</div>';
+      '<div class="msg-bubble">' + esc(text).split('\\n').join('<br>') + '</div>';
     messages.appendChild(el);
     scrollToBottom();
   }
@@ -1077,11 +1083,14 @@ function buildHtml({
     if (window.marked) {
       try { return marked.parse(text); } catch (_) { /* fall through */ }
     }
-    return esc(text).replace(/\n/g, '<br>');
+    return esc(text).split('\\n').join('<br>');
   }
 
   // ── Start ────────────────────────────────────────────────────────────────
+  // Connect immediately — do NOT wait for defer scripts (marked/hljs)
   connect();
+  // Init marked after defer scripts finish loading
+  window.addEventListener('load', initMarked);
 })();
 </script>
 </body>
