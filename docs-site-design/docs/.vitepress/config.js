@@ -54,8 +54,12 @@ export default defineConfig({
             link: "/modules/m60b-cli-skill-packs",
           },
           {
-            text: "v5.0.2.2 Web管理界面 (73) ⭐NEW",
+            text: "v5.0.2.2 Web管理界面 (73)",
             link: "/modules/m73-web-ui",
+          },
+          {
+            text: "v5.0.2.4 AI编排层 (74) ⭐NEW",
+            link: "/modules/m74-orchestration-layer",
           },
         ],
       },
@@ -513,12 +517,22 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.2 Web管理界面 (73) ⭐NEW",
+          text: "v5.0.2.2 Web管理界面 (73)",
           collapsed: false,
           items: [
             {
-              text: "73 Web管理界面 ⭐NEW",
+              text: "73 Web管理界面",
               link: "/modules/m73-web-ui",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.4 AI编排层 (74) ⭐NEW",
+          collapsed: false,
+          items: [
+            {
+              text: "74 AI编排层系统 ⭐NEW",
+              link: "/modules/m74-orchestration-layer",
             },
           ],
         },

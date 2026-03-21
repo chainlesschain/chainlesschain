@@ -129,6 +129,7 @@ const MODULE_FILE_MAP = {
   "71_AI音视频创作模板.md": "m71b-ai-media-creator.md",
   "72_AI文档创作模板.md": "m72-ai-doc-creator.md",
   "73_Web管理界面.md": "m73-web-ui.md",
+  "74_AI编排层系统.md": "m74-orchestration-layer.md",
 };
 
 /**
