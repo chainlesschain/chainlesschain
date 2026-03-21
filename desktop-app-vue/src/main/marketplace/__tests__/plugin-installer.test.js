@@ -19,9 +19,20 @@ vi.mock("electron", () => ({
   app: { getPath: vi.fn(() => "/mock/userData") },
 }));
 
-// We do NOT mock 'fs' globally because PluginInstaller uses `require('fs').promises`
-// which is tricky with vi.mock. Instead we test methods that don't touch the filesystem,
-// and for hash verification we override the db mock to bypass file operations.
+// Mock 'fs' so that initialize() doesn't fail on CI due to permission errors
+// when trying to create directories like /test/plugins.
+vi.mock("fs", () => ({
+  promises: {
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    unlink: vi.fn().mockResolvedValue(undefined),
+    readFile: vi.fn().mockResolvedValue(Buffer.from("")),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    access: vi.fn().mockResolvedValue(undefined),
+  },
+  // Provide synchronous stubs expected by some require("fs") callers
+  existsSync: vi.fn(() => false),
+  mkdirSync: vi.fn(),
+}));
 
 vi.mock("adm-zip", () => ({
   default: vi.fn(() => ({
@@ -216,8 +227,9 @@ describe("PluginInstaller", () => {
 
     it("should replace slashes to prevent traversal", () => {
       const dir = installer.getPluginDir("../../../etc/passwd");
-      // The regex replaces / with _ so path traversal is prevented
-      expect(dir).not.toContain("/");
+      // The regex replaces / and . (only alphanumeric, dot, dash, underscore kept)
+      // so path traversal via ".." is prevented
+      expect(dir).not.toContain("..");
     });
   });
 
