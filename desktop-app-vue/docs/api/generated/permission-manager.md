@@ -2,7 +2,7 @@
 
 **Source**: `src/main/collaboration/permission-manager.js`
 
-**Generated**: 2026-03-21T08:59:14.979Z
+**Generated**: 2026-03-21T09:40:13.205Z
 
 ---
 

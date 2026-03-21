@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-lazy-ipc.js`
 
-**Generated**: 2026-03-21T08:59:14.921Z
+**Generated**: 2026-03-21T09:40:13.147Z
 
 ---
 
