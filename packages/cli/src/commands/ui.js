@@ -15,6 +15,7 @@ import { WSSessionManager } from "../lib/ws-session-manager.js";
 import { createWebUIServer } from "../lib/web-ui-server.js";
 import { bootstrap } from "../runtime/bootstrap.js";
 import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
+import { loadConfig } from "../lib/config-manager.js";
 
 /**
  * Open a URL in the system default browser (cross-platform).
@@ -82,9 +83,11 @@ export function registerUiCommand(program) {
       }
 
       // ── Start WebSocket server ────────────────────────────────────────────
+      const appConfig = loadConfig();
       const sessionManager = new WSSessionManager({
         db,
         defaultProjectRoot: projectRoot || process.cwd(),
+        config: appConfig,
       });
 
       const wsServer = new ChainlessChainWSServer({

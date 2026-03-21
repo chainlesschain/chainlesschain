@@ -84,10 +84,15 @@ export class WSSessionManager {
     const sessionId = this._generateId();
     const type = options.type || "agent";
     const projectRoot = options.projectRoot || this.defaultProjectRoot;
-    const provider = options.provider || "ollama";
+    const cfgLlm = this.config?.llm || {};
+    const provider = options.provider || cfgLlm.provider || "ollama";
     const model =
-      options.model || (provider === "ollama" ? "qwen2.5:7b" : null);
-    const baseUrl = options.baseUrl || "http://localhost:11434";
+      options.model ||
+      cfgLlm.model ||
+      (provider === "ollama" ? "qwen2.5:7b" : null);
+    const baseUrl =
+      options.baseUrl || cfgLlm.baseUrl || "http://localhost:11434";
+    const apiKey = options.apiKey || cfgLlm.apiKey || null;
 
     // Project context (rules.md, persona) is now loaded by buildSystemPrompt()
 
@@ -144,7 +149,7 @@ export class WSSessionManager {
       messages,
       provider,
       model,
-      apiKey: options.apiKey || null,
+      apiKey,
       baseUrl,
       projectRoot,
       rulesContent: null,

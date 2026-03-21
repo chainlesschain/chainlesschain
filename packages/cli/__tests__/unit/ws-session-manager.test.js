@@ -155,6 +155,48 @@ describe("WSSessionManager", () => {
       expect(dbCreateSession).not.toHaveBeenCalled();
     });
 
+    it("uses config.llm as defaults for provider/model/baseUrl/apiKey", () => {
+      const m = new WSSessionManager({
+        config: {
+          llm: {
+            provider: "volcengine",
+            model: "doubao-seed-1-6",
+            baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
+            apiKey: "test-key",
+          },
+        },
+      });
+      const { sessionId } = m.createSession();
+      const session = m.getSession(sessionId);
+      expect(session.provider).toBe("volcengine");
+      expect(session.model).toBe("doubao-seed-1-6");
+      expect(session.baseUrl).toBe("https://ark.cn-beijing.volces.com/api/v3");
+      expect(session.apiKey).toBe("test-key");
+    });
+
+    it("options override config.llm defaults", () => {
+      const m = new WSSessionManager({
+        config: {
+          llm: { provider: "volcengine", model: "doubao-seed-1-6" },
+        },
+      });
+      const { sessionId } = m.createSession({
+        provider: "anthropic",
+        model: "claude-3-5-haiku",
+      });
+      const session = m.getSession(sessionId);
+      expect(session.provider).toBe("anthropic");
+      expect(session.model).toBe("claude-3-5-haiku");
+    });
+
+    it("falls back to ollama when no config.llm set", () => {
+      const m = new WSSessionManager({ config: {} });
+      const { sessionId } = m.createSession();
+      const session = m.getSession(sessionId);
+      expect(session.provider).toBe("ollama");
+      expect(session.model).toBe("qwen2.5:7b");
+    });
+
     it("sets session status to active", () => {
       const { sessionId } = manager.createSession();
       const session = manager.getSession(sessionId);

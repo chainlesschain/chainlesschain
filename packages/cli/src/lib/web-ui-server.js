@@ -460,7 +460,7 @@ function buildHtml({
         <div id="conn-dot"></div>
         <span id="conn-label">未连接</span>
       </div>
-      <span id="version-label">v5.0.2.4</span>
+      <span id="version-label">v5.0.2.5</span>
     </div>
   </nav>
 
@@ -523,6 +523,7 @@ function buildHtml({
   let selectedSessionType = 'agent';
   let pendingQuestionResolve = null;
   let _msgId = 0;
+  let _pendingMsgs = []; // buffered while session pending
   const sessions = new Map(); // id → { id, title, type, createdAt }
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
@@ -791,6 +792,11 @@ function buildHtml({
         }
         renderSessionList();
         ws.onmessage = origHandler;
+        // Flush buffered messages sent while session was pending
+        for (const pending of _pendingMsgs) {
+          send({ type: 'session-message', sessionId: realId, content: pending });
+        }
+        _pendingMsgs = [];
         return;
       }
       // Pass through all other messages
@@ -983,6 +989,13 @@ function buildHtml({
     appendUserMsg(text);
     showMessagesArea();
     showTyping();
+
+    // If session is still pending (not yet confirmed by server), buffer
+    if (currentSessionId && currentSessionId.startsWith('pending-')) {
+      _pendingMsgs.push(text);
+      setTimeout(() => { btnSend.disabled = false; }, 500);
+      return;
+    }
 
     send({
       type: 'session-message',
