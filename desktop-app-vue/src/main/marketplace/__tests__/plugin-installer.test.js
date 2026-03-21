@@ -7,7 +7,10 @@
  * batchInstall, batchUninstall, _parsePluginRow, destroy, setAutoUpdate.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import os from "os";
+import path from "path";
+import { promises as fsPromises } from "fs";
 
 vi.mock("../../utils/logger.js", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -17,21 +20,6 @@ vi.mock("uuid", () => ({ v4: vi.fn(() => "test-uuid-installer") }));
 
 vi.mock("electron", () => ({
   app: { getPath: vi.fn(() => "/mock/userData") },
-}));
-
-// Mock 'fs' so that initialize() doesn't fail on CI due to permission errors
-// when trying to create directories like /test/plugins.
-vi.mock("fs", () => ({
-  promises: {
-    mkdir: vi.fn().mockResolvedValue(undefined),
-    unlink: vi.fn().mockResolvedValue(undefined),
-    readFile: vi.fn().mockResolvedValue(Buffer.from("")),
-    writeFile: vi.fn().mockResolvedValue(undefined),
-    access: vi.fn().mockResolvedValue(undefined),
-  },
-  // Provide synchronous stubs expected by some require("fs") callers
-  existsSync: vi.fn(() => false),
-  mkdirSync: vi.fn(),
 }));
 
 vi.mock("adm-zip", () => ({
@@ -79,16 +67,31 @@ describe("PluginInstaller", () => {
   let installer;
   let mockDb;
   let mockClient;
+  let tmpPluginsDir;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Use a real writable temp directory so initialize() can create dirs on all platforms
+    tmpPluginsDir = path.join(
+      os.tmpdir(),
+      `plugin-installer-test-${Date.now()}`,
+    );
     mockDb = createMockDb();
     mockClient = createMockClient();
     installer = new PluginInstaller({
       database: mockDb,
       marketplaceClient: mockClient,
-      pluginsDir: "/test/plugins",
+      pluginsDir: tmpPluginsDir,
     });
+  });
+
+  afterEach(async () => {
+    // Clean up temp directories created by initialize()
+    try {
+      await fsPromises.rm(tmpPluginsDir, { recursive: true, force: true });
+    } catch (_e) {
+      // ignore cleanup errors
+    }
   });
 
   // ── Constructor ────────────────────────────────────────────────────────
@@ -107,7 +110,7 @@ describe("PluginInstaller", () => {
     });
 
     it("should set pluginsDir from options", () => {
-      expect(installer.pluginsDir).toBe("/test/plugins");
+      expect(installer.pluginsDir).toBe(tmpPluginsDir);
     });
 
     it("should initialize with empty activeInstalls map", () => {
@@ -227,9 +230,8 @@ describe("PluginInstaller", () => {
 
     it("should replace slashes to prevent traversal", () => {
       const dir = installer.getPluginDir("../../../etc/passwd");
-      // The regex replaces / and . (only alphanumeric, dot, dash, underscore kept)
-      // so path traversal via ".." is prevented
-      expect(dir).not.toContain("..");
+      // Path must stay within pluginsDir — no escaping via traversal
+      expect(dir.startsWith(installer.pluginsDir)).toBe(true);
     });
   });
 
