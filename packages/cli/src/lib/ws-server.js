@@ -287,6 +287,9 @@ export class ChainlessChainWSServer extends EventEmitter {
       case "session-answer":
         this._handleSessionAnswer(id, ws, message);
         break;
+      case "orchestrate":
+        this._handleOrchestrate(id, ws, message);
+        break;
       default:
         this._send(ws, {
           id,
@@ -294,6 +297,90 @@ export class ChainlessChainWSServer extends EventEmitter {
           code: "UNKNOWN_TYPE",
           message: `Unknown message type: ${type}`,
         });
+    }
+  }
+
+  /**
+   * Handle an orchestrate message — runs ChainlessChain orchestration with
+   * real-time progress pushed back over this WebSocket connection.
+   *
+   * Message format:
+   *   { type: "orchestrate", id: "req-1", task: "Fix bug X",
+   *     cwd: "/path", agents: 3, ci: "npm test", notify: false }
+   *
+   * Events emitted back:
+   *   { type: "orchestrate:event", event: "start|agent:output|ci:pass|ci:fail|task:status", ... }
+   *   { type: "orchestrate:done", id, taskId, status }
+   *   { type: "error", code: "ORCHESTRATE_FAILED", ... }
+   */
+  async _handleOrchestrate(id, ws, message) {
+    const {
+      task,
+      cwd,
+      agents = 3,
+      ci = "npm test",
+      noCi = false,
+      strategy,
+    } = message;
+
+    if (!task || typeof task !== "string") {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "INVALID_TASK",
+        message: "task field required",
+      });
+      return;
+    }
+
+    try {
+      const { Orchestrator, TASK_SOURCE } = await import("./orchestrator.js");
+
+      const orch = new Orchestrator({
+        cwd: cwd || this.projectRoot || process.cwd(),
+        maxParallel: Math.min(parseInt(agents, 10) || 3, 10),
+        ciCommand: ci,
+        agents: strategy ? { strategy } : undefined,
+        verbose: false,
+      });
+
+      // Add WebSocket as a notification channel — all events go back to this client
+      const wsNotifier = orch.notifier.addWebSocketChannel({
+        send: (data) => this._send(ws, data),
+        requestId: id,
+      });
+
+      // Forward real-time agent output
+      orch.on("agent:output", (ev) => wsNotifier.sendAgentOutput(ev));
+
+      // Forward task status changes
+      orch.on("task:added", (t) => wsNotifier.sendStatus(t));
+      orch.on("task:decomposing", (t) => wsNotifier.sendStatus(t));
+      orch.on("ci:checking", ({ task: t }) => wsNotifier.sendStatus(t));
+      orch.on("task:retrying", ({ task: t }) => wsNotifier.sendStatus(t));
+
+      const result = await orch.addTask(task, {
+        source: TASK_SOURCE.CLI,
+        cwd: cwd || this.projectRoot || process.cwd(),
+        runCI: !noCi,
+        notify: true,
+      });
+
+      this._send(ws, {
+        id,
+        type: "orchestrate:done",
+        taskId: result.id,
+        status: result.status,
+        retries: result.retries,
+        subtasks: result.subtasks?.length || 0,
+      });
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "ORCHESTRATE_FAILED",
+        message: err.message,
+      });
     }
   }
 

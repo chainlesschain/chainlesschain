@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.3-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.4-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4998%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5104%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,32 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.3 Evolution Edition (2026-03-20)
+## ⭐ Current Version: v5.0.2.4 Evolution Edition (2026-03-21)
 
-### Latest Updates - Web Management UI Protocol Fix ⭐
+### Latest Updates - AI Orchestration Layer ⭐
+
+`cc orchestrate` turns ChainlessChain into an orchestration layer with Claude Code / Codex as parallel execution agents:
+
+- ✅ **LLM Task Decomposition** — A single high-level task automatically split into parallel subtasks
+- ✅ **Multi-path Agent Routing** — Supports claude/codex/gemini/openai/ollama backends with 5 routing strategies (round-robin / primary / parallel-all / by-type / weighted)
+- ✅ **Automatic CI/CD Verification** — Runs CI after agents complete; retries with error context on failure
+- ✅ **Multi-channel Notifications** — Telegram, WeCom, DingTalk, Feishu, WebSocket simultaneously
+- ✅ **Receive IM Commands** — `--webhook` mode accepts incoming commands from WeCom/DingTalk/Feishu
+- ✅ **WebSocket Integration** — WS-triggered tasks push real-time events back to the same WS client
+- ✅ **106 Tests** — 72 unit + 15 integration + 19 E2E, all passing
+
+```bash
+cc orchestrate "Fix the auth bug in login.ts"                      # Auto-detect AI tool and run
+cc orchestrate "Refactor payment" --backends claude,gemini --strategy parallel-all
+cc orchestrate "Add tests" --ci "npm run test:unit" --retries 5   # Custom CI + retries
+cc orchestrate --status --json                                     # View status (JSON)
+cc orchestrate detect                                               # Detect installed AI CLIs
+cc orchestrate --webhook --webhook-port 18820                      # Start IM command receiver
+```
+
+---
+
+### History - Web Management UI Protocol Fix ⭐
 
 `chainlesschain ui` launches a local web management page in one command, supporting both project-scoped and global management modes:
 

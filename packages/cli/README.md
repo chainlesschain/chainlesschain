@@ -1037,6 +1037,60 @@ chainlesschain ui --host 0.0.0.0        # Bind to all interfaces (remote access)
 
 ---
 
+## AI Orchestration Layer (v0.45.4)
+
+### `chainlesschain orchestrate`
+
+Use ChainlessChain as an orchestration layer — automatically decompose tasks, dispatch to parallel AI coding agents (Claude Code / Codex / Gemini / OpenAI / Ollama), verify with CI/CD, and notify via Telegram / WeCom / DingTalk / Feishu.
+
+```bash
+chainlesschain orchestrate "Fix the auth bug"              # Auto-detect AI tool and run
+chainlesschain orchestrate "Refactor payments" \
+  --backends claude,gemini --strategy parallel-all         # Multi-backend, parallel
+chainlesschain orchestrate "Add tests" \
+  --ci "npm run test:unit" --retries 5                     # Custom CI + retries
+chainlesschain orchestrate "task" --no-ci                  # Skip CI verification
+chainlesschain orchestrate "task" --json                   # JSON output (for scripts)
+chainlesschain orchestrate detect                          # Detect installed AI CLIs
+chainlesschain orchestrate --status                        # Show orchestrator status
+chainlesschain orchestrate --status --json                 # JSON status with backends list
+chainlesschain orchestrate --webhook                       # Start IM webhook server (port 18820)
+chainlesschain orchestrate --webhook --webhook-port 9090   # Custom port
+```
+
+**Routing strategies** (`--strategy`):
+
+| Strategy       | Description                                                    |
+| -------------- | -------------------------------------------------------------- |
+| `round-robin`  | Weighted round-robin across all backends (default)             |
+| `primary`      | Use first backend, auto-fallback on failure                    |
+| `parallel-all` | Run all backends simultaneously, pick best result              |
+| `by-type`      | Route by task type (`code-generation` / `analysis` / `review`) |
+
+**Auto-detected backends**: `claude` (CLI), `codex` (CLI), `gemini` / `openai` / `anthropic` (API key env vars), `ollama` (always included as local fallback).
+
+**Notification channels** (configured via env vars):
+
+```bash
+TELEGRAM_BOT_TOKEN=...  TELEGRAM_CHAT_ID=...    # Telegram
+WECOM_WEBHOOK_URL=...                            # WeCom (企业微信)
+DINGTALK_WEBHOOK_URL=...  DINGTALK_SECRET=...   # DingTalk (钉钉)
+FEISHU_WEBHOOK_URL=...    FEISHU_SECRET=...     # Feishu (飞书)
+```
+
+**Incoming webhooks** — receive task commands from IM platforms:
+
+```bash
+chainlesschain orchestrate --webhook --webhook-port 18820
+# POST /wecom    (WeCom XML)
+# POST /dingtalk (DingTalk JSON)
+# POST /feishu   (Feishu JSON + challenge verification)
+```
+
+**WebSocket integration** — trigger via `{ "type": "orchestrate", "task": "...", "cwd": "..." }`, receive real-time `orchestrate:event` progress events and final `orchestrate:done`.
+
+---
+
 ## Global Options
 
 ```bash
