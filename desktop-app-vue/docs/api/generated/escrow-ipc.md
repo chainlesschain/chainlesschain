@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/escrow-ipc.js`
 
-**Generated**: 2026-03-16T05:44:52.501Z
+**Generated**: 2026-03-21T08:59:14.992Z
 
 ---
 

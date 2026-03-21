@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/logging/command-logger.js`
 
-**Generated**: 2026-03-16T05:44:52.418Z
+**Generated**: 2026-03-21T08:59:14.905Z
 
 ---
 
