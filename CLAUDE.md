@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.2.1 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 62 Commands/3050+ Tests + Persona System + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + Sub-Agent Isolation v2 + CLI Command Skill Packs (9 Packs/101 Tests) + AI Media Creator Template (ComfyUI/AnimateDiff/TTS) + AI Doc Creator Template (LibreOffice/pandoc/doc-generate/libre-convert/doc-edit) + 5030+ Tests + 12 Store Test Files) - Updated 2026-03-17
+**Current Version**: v5.0.2.4 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 64 Commands/5104+ Tests + Persona System + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + Sub-Agent Isolation v2 + CLI Command Skill Packs (9 Packs/101 Tests) + AI Media Creator Template (ComfyUI/AnimateDiff/TTS) + AI Doc Creator Template (LibreOffice/pandoc/doc-generate/libre-convert/doc-edit) + AI Orchestration Layer (Claude Code/Codex/Multi-Agent/CI/Notifications/Webhooks) + 5136+ Tests + 12 Store Test Files) - Updated 2026-03-21
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -310,6 +310,16 @@ chainlesschain ui --port 18810                  # Custom HTTP port
 chainlesschain ui --ws-port 18800               # Custom WebSocket port
 chainlesschain ui --no-open                     # Start server without opening browser
 chainlesschain ui --token <secret>              # Enable auth token
+
+# AI Orchestration Layer (Claude Code/Codex as execution agents)
+chainlesschain orchestrate "Fix the auth bug"   # Run task via auto-detected AI agent
+chainlesschain orchestrate "task" --backends claude,gemini --strategy parallel-all
+chainlesschain orchestrate "task" --ci "npm test" --retries 5  # Custom CI + retries
+chainlesschain orchestrate detect               # Detect installed AI CLI tools
+chainlesschain orchestrate --status             # Show orchestrator status
+chainlesschain orchestrate --status --json      # JSON status (includes backends list)
+chainlesschain orchestrate --webhook            # Start HTTP webhook server (port 18820)
+chainlesschain orchestrate --webhook --webhook-port 9090  # Custom port
 ```
 
 ### Backend Services (Docker-based)

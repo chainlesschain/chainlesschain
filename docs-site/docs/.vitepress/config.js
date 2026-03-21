@@ -770,11 +770,20 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.3 Web 管理界面 (协议修复) ⭐NEW",
+          text: "v5.0.2.3 Web 管理界面 (协议修复)",
           items: [
             {
               text: "Web 管理界面 (ui)",
               link: "/chainlesschain/cli-ui",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.4 AI 编排层 ⭐NEW",
+          items: [
+            {
+              text: "AI 编排层 (orchestrate)",
+              link: "/chainlesschain/cli-orchestrate",
             },
           ],
         },
@@ -930,6 +939,7 @@ export default defineConfig({
             { text: "71b AI音视频创作模板 ⭐", link: "/design/modules/71b-ai-media-creator" },
             { text: "72 AI文档创作模板 ⭐", link: "/design/modules/72-ai-doc-creator" },
             { text: "73 Web管理界面 ⭐", link: "/design/modules/73-web-ui" },
+            { text: "74 AI编排层系统 ⭐", link: "/design/modules/74-orchestration-layer" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

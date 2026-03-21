@@ -89,6 +89,9 @@ import { registerServeCommand } from "./commands/serve.js";
 // Web UI
 import { registerUiCommand } from "./commands/ui.js";
 
+// Orchestration Layer: ChainlessChain → Claude Code/Codex agents → CI → Notify
+import { registerOrchestrateCommand } from "./commands/orchestrate.js";
+
 export function createProgram() {
   const program = new Command();
 
@@ -206,6 +209,9 @@ export function createProgram() {
 
   // Web UI
   registerUiCommand(program);
+
+  // Orchestration Layer
+  registerOrchestrateCommand(program);
 
   return program;
 }

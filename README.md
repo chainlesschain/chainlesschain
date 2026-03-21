@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.3-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.4-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-4998%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5104%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,32 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.3 Evolution Edition (2026-03-20)
+## ⭐ 当前版本: v5.0.2.4 Evolution Edition (2026-03-21)
 
-### 最新更新 - Web 管理界面协议修复 ⭐
+### 最新更新 - AI 编排层系统 ⭐
+
+`cc orchestrate` 让 ChainlessChain 成为编排层，Claude Code / Codex 作为并行执行代理：
+
+- ✅ **LLM 任务分解** — 一个高级任务自动拆分为多个并行子任务
+- ✅ **多路 Agent 路由** — 同时支持 claude/codex/gemini/openai/ollama 后端，5 种路由策略（round-robin / primary / parallel-all / by-type / 加权轮询）
+- ✅ **CI/CD 自动验证** — Agent 执行完成后自动运行 CI，失败则携带错误上下文重试
+- ✅ **多渠道通知** — Telegram、企业微信、钉钉、飞书、WebSocket 同时推送任务进度
+- ✅ **接收 IM 指令** — 通过 `--webhook` 模式从企业微信/钉钉/飞书接收指令触发编排
+- ✅ **WebSocket 集成** — 通过 WS 触发任务，进度事件实时推送回同一 WS 客户端
+- ✅ **106 个测试** — 72 单元 + 15 集成 + 19 E2E，全部通过
+
+```bash
+cc orchestrate "Fix the auth bug in login.ts"                      # 自动检测 AI 工具并执行
+cc orchestrate "Refactor payment" --backends claude,gemini --strategy parallel-all
+cc orchestrate "Add tests" --ci "npm run test:unit" --retries 5   # 自定义 CI + 重试
+cc orchestrate --status --json                                     # 查看状态（JSON）
+cc orchestrate detect                                               # 检测已安装的 AI CLI
+cc orchestrate --webhook --webhook-port 18820                      # 启动 IM 指令接收服务器
+```
+
+---
+
+### 历史更新 - Web 管理界面协议修复 ⭐
 
 `chainlesschain ui` 一条命令启动本地 Web 管理页面，支持项目专属模式和全局管理模式：
 
@@ -36,7 +59,7 @@
 - ✅ **交互式问答** — Agent slot-filling 提问时弹出对话框
 - ✅ **WebSocket 复用** — 自动启动内置 WS 服务器，浏览器直连，支持 token 认证
 - ✅ **103 个测试** — 47 单元 + 32 集成 + 24 E2E，全部通过
-- 🐛 **修复 5 处 WS 协议不匹配** — 对话/认证/会话列表/流式输出均可正���工作
+- 🐛 **修复 5 处 WS 协议不匹配** — 对话/认证/会话列表/流式输出均可正常工作
 
 ```bash
 cd /your/project && chainlesschain ui         # 项目模式（自动检测）
