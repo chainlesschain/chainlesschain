@@ -2,7 +2,7 @@
 
 **Source**: `src/main/workflow/workflow-stage.js`
 
-**Generated**: 2026-03-21T08:59:14.861Z
+**Generated**: 2026-03-21T09:40:13.089Z
 
 ---
 
