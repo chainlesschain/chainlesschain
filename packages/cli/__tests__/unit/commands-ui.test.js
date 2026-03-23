@@ -169,3 +169,34 @@ describe("registerUiCommand – option parsing", () => {
     expect(opts.token).toBe("mysecret");
   });
 });
+
+// ── --web-panel-dir option (v5.0.2.5) ────────────────────────────────────────
+
+describe("registerUiCommand – --web-panel-dir option", () => {
+  it("has --web-panel-dir option", () => {
+    const program = buildProgram();
+    const cmd = findCommand(program, "ui");
+    expect(findOption(cmd, "--web-panel-dir")).not.toBeNull();
+  });
+
+  it("--web-panel-dir has no default value (auto-detect by default)", () => {
+    const program = buildProgram();
+    const cmd = findCommand(program, "ui");
+    const opt = findOption(cmd, "--web-panel-dir");
+    expect(opt.defaultValue).toBeUndefined();
+  });
+
+  it("parses --web-panel-dir /custom/dist correctly", () => {
+    const program = buildProgram();
+    const cmd = findCommand(program, "ui");
+    cmd.parseOptions(["--web-panel-dir", "/custom/dist", "--no-open"]);
+    expect(cmd.opts().webPanelDir).toBe("/custom/dist");
+  });
+
+  it("webPanelDir is undefined when not passed", () => {
+    const program = buildProgram();
+    const cmd = findCommand(program, "ui");
+    cmd.parseOptions(["--no-open"]);
+    expect(cmd.opts().webPanelDir).toBeUndefined();
+  });
+});

@@ -779,11 +779,20 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.4 AI 编排层 ⭐NEW",
+          text: "v5.0.2.4 AI 编排层",
           items: [
             {
               text: "AI 编排层 (orchestrate)",
               link: "/chainlesschain/cli-orchestrate",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.5 Vue3 Web 管理面板 ⭐NEW",
+          items: [
+            {
+              text: "Web 管理面板 (ui)",
+              link: "/chainlesschain/cli-web-panel",
             },
           ],
         },
@@ -940,6 +949,7 @@ export default defineConfig({
             { text: "72 AI文档创作模板 ⭐", link: "/design/modules/72-ai-doc-creator" },
             { text: "73 Web管理界面 ⭐", link: "/design/modules/73-web-ui" },
             { text: "74 AI编排层系统 ⭐", link: "/design/modules/74-orchestration-layer" },
+            { text: "75 Vue3 Web管理面板 ⭐", link: "/design/modules/75-web-panel" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

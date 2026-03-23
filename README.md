@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.4-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.5-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5104%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5232%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,44 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.4 Evolution Edition (2026-03-21)
+## ⭐ 当前版本: v5.0.2.5 Evolution Edition (2026-03-23)
 
-### 最新更新 - AI 编排层系统 ⭐
+### 最新更新 - Vue3 Web 管理面板 ⭐
+
+`chainlesschain ui` 现已升级为完整的 Vue3 管理面板（参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计），包含 4 个功能模块：
+
+- ✅ **仪表板** — 服务状态卡片（WebSocket / 活跃 LLM / 技能数量 / 会话数）
+- ✅ **AI 对话** — Chat/Agent 双模式，流式 Markdown 渲染，工具调用可视化，交互式问答
+- ✅ **技能管理** — 138+ 技能分类浏览、搜索过滤、一键运行
+- ✅ **LLM 配置** — 10 个 Provider 管理，一键切换，连接测试，Ollama 本地模型列表
+- ✅ **项目/全局双模式区分** — 项目级会话绑定项目路径，视觉上清晰区分（蓝色 vs 紫色横幅）
+- ✅ **自动降级** — dist/ 不存在时自动回退到内嵌经典 HTML
+- ✅ **96 个新增测试** — 37 单元 + 31 集成 + 24 E2E，全部通过
+
+```bash
+# 首次构建前端
+npm run build:web-panel
+
+# 项目级面板（在含 .chainlesschain/ 的目录下运行）
+cd /your/project && chainlesschain ui
+
+# 全局面板
+chainlesschain ui
+
+# 自定义选项
+chainlesschain ui --port 9000 --ws-port 9001
+chainlesschain ui --token mysecret
+chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
+
+# 热更新开发模式
+npm run dev:web-panel
+```
+
+访问 `http://127.0.0.1:18810` 打开管理面板。
+
+---
+
+### 历史更新 - AI 编排层系统 ⭐
 
 `cc orchestrate` 让 ChainlessChain 成为编排层，Claude Code / Codex 作为并行执行代理：
 
