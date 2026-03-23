@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.4-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.5-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5104%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5232%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,42 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.4 Evolution Edition (2026-03-21)
+## ⭐ Current Version: v5.0.2.5 Evolution Edition (2026-03-23)
 
-### Latest Updates - AI Orchestration Layer ⭐
+### Latest Updates - Vue3 Web Management Panel ⭐
+
+`chainlesschain ui` now launches a full Vue3 management panel (inspired by [ClawPanel](https://github.com/qingchencloud/clawpanel)) with 4 functional modules:
+
+- ✅ **Dashboard** — Service status cards (WebSocket / active LLM / skills count / sessions)
+- ✅ **AI Chat** — Chat / Agent dual modes, streaming Markdown, tool call visualization, interactive Q&A
+- ✅ **Skills Manager** — Browse 138+ skills by category, search, one-click run
+- ✅ **LLM Providers** — 10 provider management, one-click switch, connection test, Ollama model list
+- ✅ **Project vs Global Mode** — Project mode scopes sessions to project; clear visual distinction (blue banner vs purple)
+- ✅ **Auto-detect dist/** — Falls back gracefully to classic embedded HTML if dist/ not built
+- ✅ **96 New Tests** — 37 unit + 31 integration + 24 E2E (+ 4 option tests), all passing
+
+```bash
+# Build the panel first
+npm run build:web-panel
+
+# Project-scoped panel (run from a project with .chainlesschain/)
+cd /your/project && chainlesschain ui
+
+# Global panel
+chainlesschain ui
+
+# Custom options
+chainlesschain ui --port 9000 --ws-port 9001
+chainlesschain ui --token mysecret
+chainlesschain ui --web-panel-dir /custom/dist   # Custom dist directory
+
+# Hot-reload dev mode
+npm run dev:web-panel
+```
+
+---
+
+### History - AI Orchestration Layer ⭐
 
 `cc orchestrate` turns ChainlessChain into an orchestration layer with Claude Code / Codex as parallel execution agents:
 

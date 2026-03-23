@@ -47,6 +47,10 @@ export function registerUiCommand(program) {
       "--token <token>",
       "Authentication token for WebSocket (recommended for security)",
     )
+    .option(
+      "--web-panel-dir <dir>",
+      "Path to built web-panel dist/ directory (auto-detected by default)",
+    )
     .action(async (opts) => {
       const httpPort = parseInt(opts.port, 10);
       const wsPort = parseInt(opts.wsPort, 10);
@@ -114,6 +118,7 @@ export function registerUiCommand(program) {
         projectRoot,
         projectName,
         mode,
+        staticDir: opts.webPanelDir || null,
       });
 
       try {
@@ -130,7 +135,7 @@ export function registerUiCommand(program) {
       const uiUrl = `http://${host === "0.0.0.0" ? "127.0.0.1" : host}:${httpPort}`;
 
       logger.log("");
-      logger.log(chalk.bold("  ChainlessChain Web UI"));
+      logger.log(chalk.bold("  ChainlessChain 管理面板"));
       logger.log("");
       if (mode === "project") {
         logger.log(

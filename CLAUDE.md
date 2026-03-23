@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v5.0.2.4 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 64 Commands/5104+ Tests + Persona System + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + Sub-Agent Isolation v2 + CLI Command Skill Packs (9 Packs/101 Tests) + AI Media Creator Template (ComfyUI/AnimateDiff/TTS) + AI Doc Creator Template (LibreOffice/pandoc/doc-generate/libre-convert/doc-edit) + AI Orchestration Layer (Claude Code/Codex/Multi-Agent/CI/Notifications/Webhooks) + 5136+ Tests + 12 Store Test Files) - Updated 2026-03-21
+**Current Version**: v5.0.2.5 (Evolution Edition - 138 Desktop Skills + Android 28 Skills + MCP Remote Registry + Phase 1-102 Complete + AI Agent 2.0 + Web3 Deepening + Enterprise Platform + Self-Evolving AI + CLI 64 Commands/5200+ Tests + Persona System + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + WebSocket Sessions + SlotFiller + InteractivePlanner + Agent Intelligence + Sub-Agent Isolation v2 + CLI Command Skill Packs (9 Packs/101 Tests) + AI Media Creator Template (ComfyUI/AnimateDiff/TTS) + AI Doc Creator Template (LibreOffice/pandoc/doc-generate/libre-convert/doc-edit) + AI Orchestration Layer (Claude Code/Codex/Multi-Agent/CI/Notifications/Webhooks) + Vue3 Web Panel (Dashboard/Chat/Skills/Providers) + 5232+ Tests + 12 Store Test Files) - Updated 2026-03-23
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -304,12 +304,14 @@ chainlesschain serve --token <secret>           # Enable token auth
 chainlesschain serve --allow-remote --token <s> # Allow remote + auth
 chainlesschain serve --project /path/to/project # Default project root for sessions
 
-# Web UI (browser-based management interface)
-chainlesschain ui                               # Open web UI (project or global mode)
+# Web Panel (Vue3 management panel – Dashboard/Chat/Skills/Providers)
+# Build first: npm run build:web-panel
+chainlesschain ui                               # Open web panel (project or global mode)
 chainlesschain ui --port 18810                  # Custom HTTP port
 chainlesschain ui --ws-port 18800               # Custom WebSocket port
 chainlesschain ui --no-open                     # Start server without opening browser
 chainlesschain ui --token <secret>              # Enable auth token
+chainlesschain ui --web-panel-dir <dir>         # Custom dist/ directory (auto-detected by default)
 
 # AI Orchestration Layer (Claude Code/Codex as execution agents)
 chainlesschain orchestrate "Fix the auth bug"   # Run task via auto-detected AI agent

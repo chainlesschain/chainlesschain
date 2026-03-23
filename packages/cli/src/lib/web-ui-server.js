@@ -9,6 +9,28 @@
  */
 
 import http from "http";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// MIME type map for static file serving
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".map": "application/json",
+};
 
 /**
  * Build the full HTML page with runtime config injected.
@@ -1122,7 +1144,43 @@ function escapeHtml(str) {
 }
 
 /**
+ * Build the runtime config JSON string, safe for embedding in a <script> tag.
+ */
+function buildConfigJson(opts) {
+  return JSON.stringify({
+    wsPort: opts.wsPort,
+    wsToken: opts.wsToken,
+    wsHost: opts.wsHost,
+    projectRoot: opts.projectRoot,
+    projectName: opts.projectName,
+    mode: opts.mode,
+  })
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
+/**
+ * Try to locate the built web-panel dist directory.
+ * Returns the absolute path if found, or null.
+ */
+function findWebPanelDist(staticDir) {
+  if (staticDir) {
+    return fs.existsSync(path.join(staticDir, "index.html")) ? staticDir : null;
+  }
+  // Default: packages/web-panel/dist/ relative to this file's location
+  const defaultDist = path.resolve(__dirname, "../../web-panel/dist");
+  return fs.existsSync(path.join(defaultDist, "index.html"))
+    ? defaultDist
+    : null;
+}
+
+/**
  * Create and return a Node.js HTTP server that serves the Web UI.
+ *
+ * When packages/web-panel/dist/ is present (built Vue3 app), it is served as
+ * a SPA with the runtime config injected into index.html.
+ * Otherwise falls back to the embedded single-page HTML.
  *
  * @param {object} opts
  * @param {number}  opts.wsPort
@@ -1131,13 +1189,71 @@ function escapeHtml(str) {
  * @param {string|null} opts.projectRoot
  * @param {string|null} opts.projectName
  * @param {"project"|"global"} opts.mode
+ * @param {string|null} [opts.staticDir]   - Optional override for dist directory
  * @returns {import("http").Server}
  */
 export function createWebUIServer(opts) {
-  const html = buildHtml(opts);
+  const distDir = findWebPanelDist(opts.staticDir || null);
+  const configJson = buildConfigJson(opts);
 
+  if (distDir) {
+    // ── Serve built Vue3 web panel ──────────────────────────────────────────
+    return http.createServer((req, res) => {
+      if (req.method !== "GET") {
+        res.writeHead(405, { "Content-Type": "text/plain" });
+        res.end("Method Not Allowed");
+        return;
+      }
+
+      const urlPath = req.url.split("?")[0];
+
+      // Resolve requested file path (prevent path traversal)
+      const safePath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, "");
+      const filePath = path.join(distDir, safePath);
+
+      // Serve static assets (js, css, fonts, etc.)
+      if (urlPath !== "/" && urlPath !== "/index.html") {
+        try {
+          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+            const ext = path.extname(filePath).toLowerCase();
+            const mime = MIME_TYPES[ext] || "application/octet-stream";
+            const isAsset = urlPath.startsWith("/assets/");
+            res.writeHead(200, {
+              "Content-Type": mime,
+              "Cache-Control": isAsset
+                ? "public, max-age=31536000, immutable"
+                : "no-store",
+              "X-Content-Type-Options": "nosniff",
+            });
+            res.end(fs.readFileSync(filePath));
+            return;
+          }
+        } catch (_) {
+          // Fall through to SPA index
+        }
+      }
+
+      // SPA fallback: serve index.html with injected config
+      try {
+        let html = fs.readFileSync(path.join(distDir, "index.html"), "utf-8");
+        // Replace the placeholder with actual runtime config
+        html = html.replace("__CC_CONFIG_PLACEHOLDER__", configJson);
+        res.writeHead(200, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+        });
+        res.end(html, "utf-8");
+      } catch (err) {
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end(`Failed to read index.html: ${err.message}`);
+      }
+    });
+  }
+
+  // ── Fallback: embedded classic single-page HTML ─────────────────────────
+  const html = buildHtml(opts);
   return http.createServer((req, res) => {
-    // Only serve GET / and GET /index.html (strip query string for comparison)
     const urlPath = req.url.split("?")[0];
     if (
       req.method !== "GET" ||
@@ -1147,7 +1263,6 @@ export function createWebUIServer(opts) {
       res.end("Not Found");
       return;
     }
-
     res.writeHead(200, {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store",
