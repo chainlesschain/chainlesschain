@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/progress-emitter.js`
 
-**Generated**: 2026-03-21T09:40:13.093Z
+**Generated**: 2026-03-25T06:25:43.637Z
 
 ---
 
