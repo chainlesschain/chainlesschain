@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.5-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.7-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -22,22 +22,58 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.5 Evolution Edition (2026-03-23)
+## ⭐ 当前版本: v5.0.2.7 Evolution Edition (2026-03-24)
 
-### 最新更新 - Vue3 Web 管理面板 ⭐
+### 最新更新 - Skill Creator v1.2.0：LLM 驱动描述优化循环 ⭐
 
-`chainlesschain ui` 现已升级为完整的 Vue3 管理面板（参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计），包含 4 个功能模块：
+v5.0.2.7 升级内置 `skill-creator` 至 v1.2.0，新增 LLM 驱动的技能描述优化功能：
 
+**`optimize-description` 动作**：
+- LLM 自动生成 20 条 eval 查询（10 个应触发 / 10 个不应触发）
+- 60/40 train/test 分割，防止描述过拟合
+- 迭代优化：评估训练集失败项 → LLM 改写描述 → 测试集评分 → 取最优
+- 自动写回 `SKILL.md`（仅在有改进时），并保存完整结果到 `.opt-workspace/results.json`
+- LLM 不可用时优雅降级，返回带提示信息的错误响应
+
+```bash
+# LLM 驱动优化（需要 chainlesschain ask 可用）
+chainlesschain skill run skill-creator "optimize-description code-review"
+chainlesschain skill run skill-creator "optimize-description code-review --iterations 3"
+
+# 等效的 --advanced 标志
+chainlesschain skill run skill-creator "optimize code-review --advanced"
+```
+
+**测试覆盖**：76 个测试（50 单元 + 12 集成 + 14 E2E），全部通过。
+
+**v5.0.2.6 更新**（Vue3 管理面板 npm 打包 + Bug 修复）：
+
+v5.0.2.6 对 Web 管理面板进行了两项关键改进：
+
+**1. npm 安装用户无需手动构建**
+- `prepublishOnly` 钩子在发布前自动构建并打包 Vue3 面板到 `src/assets/web-panel/`
+- `findWebPanelDist()` 三路查找：自定义目录 → 源码树 dist/ → npm 包内置
+- **npm 安装用户直接运行 `chainlesschain ui`，无需执行任何构建命令**
+
+**2. `$` 特殊字符 Bug 修复**
+- `projectRoot="/path/$HOME"` 等含 `$&`/`$'`/`$$` 的路径不再损坏注入的 config JSON
+- 根因：`String.prototype.replace(str, replacement)` 将 `$&` 解释为"匹配的字符串"；改用函数形式 `replace(str, () => val)` 修复
+
+**v5.0.2.5 新增功能**（Vue3 管理面板首发）：
 - ✅ **仪表板** — 服务状态卡片（WebSocket / 活跃 LLM / 技能数量 / 会话数）
 - ✅ **AI 对话** — Chat/Agent 双模式，流式 Markdown 渲染，工具调用可视化，交互式问答
 - ✅ **技能管理** — 138+ 技能分类浏览、搜索过滤、一键运行
 - ✅ **LLM 配置** — 10 个 Provider 管理，一键切换，连接测试，Ollama 本地模型列表
 - ✅ **项目/全局双模式区分** — 项目级会话绑定项目路径，视觉上清晰区分（蓝色 vs 紫色横幅）
 - ✅ **自动降级** — dist/ 不存在时自动回退到内嵌经典 HTML
-- ✅ **96 个新增测试** — 37 单元 + 31 集成 + 24 E2E，全部通过
+- ✅ **147 个测试** — 66 单元 + 51 集成 + 30 E2E，全部通过
 
 ```bash
-# 首次构建前端
+# npm 安装用户（无需构建，开箱即用）
+npm install -g chainlesschain
+chainlesschain ui   # 直接使用内置 Vue3 面板
+
+# 源码用户（首次使用或代码更新后）
 npm run build:web-panel
 
 # 项目级面板（在含 .chainlesschain/ 的目录下运行）
@@ -295,7 +331,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **cron-scheduler** - 定时调度，Cron表达式+自然语言时间调度
 - ✅ **planning-with-files** - 规划工作流，Manus 3文件模式(task_plan/findings/progress)
 - ✅ **content-publisher** - 内容发布，5种内容类型(信息图/幻灯片/封面/漫画/社交)
-- ✅ **skill-creator** - 技能创建器，元技能：创建/测试/验证/优化其他技能
+- ✅ **skill-creator** (v1.2.0) - 技能创建器，元技能：create/test/validate/optimize + LLM驱动描述优化循环(optimize-description，60/40分割+迭代改写+自动写回)
 - ✅ **webapp-testing** - Web测试，侦察-执行模式(可访问性/E2E/安全扫描)
 
 **实用流行技能 (12个)**:

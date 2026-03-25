@@ -2,16 +2,29 @@
 name: skill-creator
 display-name: Skill Creator
 description: Create, modify, test, and improve skills - scaffold new SKILL.md files with proper frontmatter, generate handler.js implementations, run test evaluations, and optimize skill descriptions for better triggering
-version: 1.0.0
+version: 1.2.0
 category: system
 user-invocable: true
-tags: [skill, creator, scaffold, meta, generator, template, test, improve]
+tags:
+  [
+    skill,
+    creator,
+    scaffold,
+    meta,
+    generator,
+    template,
+    test,
+    improve,
+    optimize,
+    eval,
+  ]
 capabilities:
   [
     skill-scaffolding,
     handler-generation,
     skill-testing,
     description-optimization,
+    description-optimization-loop,
     template-management,
   ]
 handler: ./handler.js
@@ -22,7 +35,8 @@ instructions: |
   skill, test a skill with sample inputs, or optimize skill triggering. Follows
   the Agent Skills open standard with YAML frontmatter + Markdown body. Generates
   both SKILL.md and handler.js with proper structure. Makes descriptions slightly
-  "pushy" for better triggering accuracy.
+  "pushy" for better triggering accuracy. Use optimize-description for LLM-driven
+  eval loop that auto-improves and writes back the best description.
 examples:
   - input: "create a skill for data validation"
     action: create
@@ -46,6 +60,8 @@ Create, test, and improve skills for the Agent Skills system.
 /skill-creator create <name> "<description>"
 /skill-creator test <skill-name> "<test input>"
 /skill-creator optimize <skill-name>
+/skill-creator optimize <skill-name> --advanced [--iterations N]
+/skill-creator optimize-description <skill-name> [--iterations N]
 /skill-creator validate <skill-path>
 /skill-creator list-templates
 ```
@@ -62,11 +78,11 @@ skill-name/
 
 ```yaml
 ---
-name: my-skill              # Unique identifier (lowercase, hyphens)
-display-name: My Skill      # Human-readable name
-description: What + When    # CRITICAL: include what it does AND when to use it
+name: my-skill # Unique identifier (lowercase, hyphens)
+display-name: My Skill # Human-readable name
+description: What + When # CRITICAL: include what it does AND when to use it
 version: 1.0.0
-category: development       # knowledge|automation|development|system|media|productivity
+category: development # knowledge|automation|development|system|media|productivity
 user-invocable: true
 tags: [relevant, keywords]
 capabilities: [what-it-can-do]
@@ -79,7 +95,6 @@ examples:
   - input: "example command"
     action: action-name
 ---
-
 # Skill Title
 
 ## Usage
@@ -91,7 +106,9 @@ examples:
 
 ```javascript
 module.exports = {
-  async init(skill) { /* load dependencies */ },
+  async init(skill) {
+    /* load dependencies */
+  },
   async execute(task, context = {}, skill) {
     const input = task.input || task.args || "";
     // Parse input, execute action, return result
@@ -110,9 +127,10 @@ module.exports = {
 
 ## Actions
 
-| Action | Description |
-| --- | --- |
-| `create` | Scaffold SKILL.md + handler.js from name/description |
-| `test` | Run skill with sample input and verify output |
-| `optimize` | Improve description for better triggering accuracy |
-| `validate` | Check SKILL.md format and required fields |
+| Action                 | Description                                                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `create`               | Scaffold SKILL.md + handler.js from name/description                                                                 |
+| `test`                 | Run skill with sample input and verify output                                                                        |
+| `optimize`             | Quick heuristic check on description (length, keywords)                                                              |
+| `optimize-description` | LLM-driven eval loop: generate 20 queries → 60/40 split → iterate up to 5× → write best description back to SKILL.md |
+| `validate`             | Check SKILL.md format and required fields                                                                            |

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.5-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.7-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -22,9 +22,27 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.5 Evolution Edition (2026-03-23)
+## ⭐ Current Version: v5.0.2.7 Evolution Edition (2026-03-24)
 
-### Latest Updates - Vue3 Web Management Panel ⭐
+### Latest Update - Skill Creator v1.2.0: LLM-Driven Description Optimization ⭐
+
+v5.0.2.7 upgrades the built-in `skill-creator` to v1.2.0, adding a full LLM-driven description optimization loop:
+
+- **`optimize-description`** action: LLM generates 20 eval queries (10 should/shouldn't trigger), 60/40 train/test split, iteratively rewrites description, auto-updates `SKILL.md`
+- **`--advanced` flag** on `optimize`: same as `optimize-description`
+- **`--iterations N`** flag: control max iteration count (default 5)
+- Graceful degradation when LLM unavailable (non-CLI context or timeout)
+- **76 new tests**: 50 unit + 12 integration + 14 E2E, all passing
+
+```bash
+chainlesschain skill run skill-creator "optimize-description code-review"
+chainlesschain skill run skill-creator "optimize-description code-review --iterations 3"
+chainlesschain skill run skill-creator "optimize code-review --advanced"
+```
+
+**v5.0.2.6**: Vue3 Web Panel npm packaging + `$` character bug fix.
+
+### v5.0.2.5 - Vue3 Web Management Panel ⭐
 
 `chainlesschain ui` now launches a full Vue3 management panel (inspired by [ClawPanel](https://github.com/qingchencloud/clawpanel)) with 4 functional modules:
 
@@ -252,7 +270,7 @@ Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent
 - ✅ **cron-scheduler** - Cron expression + natural language time scheduling
 - ✅ **planning-with-files** - Manus 3-file mode (task_plan/findings/progress)
 - ✅ **content-publisher** - 5 content types (infographic/slides/cover/comic/social)
-- ✅ **skill-creator** - Meta-skill: create/test/validate/optimize other skills
+- ✅ **skill-creator** (v1.2.0) - Meta-skill: create/test/validate/optimize + LLM-driven `optimize-description` loop (60/40 split, iterative rewriting, auto-writes back to SKILL.md)
 - ✅ **webapp-testing** - Recon-execute mode (accessibility/E2E/security scanning)
 
 **Practical Popular Skills (12)**:
