@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/config-manager.js`
 
-**Generated**: 2026-03-21T09:40:13.198Z
+**Generated**: 2026-03-25T06:25:43.745Z
 
 ---
 
