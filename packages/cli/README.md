@@ -1007,11 +1007,11 @@ chainlesschain serve --project /path/to/project         # Default project root f
 
 ---
 
-## Web Management Interface (v0.45.0)
+## Web Management Interface (v0.45.8)
 
 ### `chainlesschain ui`
 
-Open a browser-based Web management interface — no extra software required.
+Open a browser-based Web management interface — no extra software required. When a built Vue3 panel (`dist/`) is present it is served as static files; otherwise an embedded single-page app is used as fallback.
 
 ```bash
 chainlesschain ui                       # Auto-detect mode, open browser
@@ -1020,7 +1020,11 @@ chainlesschain ui --ws-port 18800       # Custom WebSocket port
 chainlesschain ui --no-open             # Start server without opening browser
 chainlesschain ui --token <secret>      # Enable WebSocket auth token
 chainlesschain ui --host 0.0.0.0        # Bind to all interfaces (remote access)
+chainlesschain ui --web-panel-dir <dir> # Custom dist/ directory (auto-detected by default)
 ```
+
+> **npm users**: the Vue3 panel is bundled automatically (via `prepublishOnly`) — no build step needed.
+> **Source users**: run `npm run build:web-panel` once (from repo root) to build `packages/web-panel/dist/`.
 
 **Two modes** (auto-detected based on current directory):
 
@@ -1029,9 +1033,9 @@ chainlesschain ui --host 0.0.0.0        # Bind to all interfaces (remote access)
 | **Project mode** | Run from a directory with `.chainlesschain/` | AI automatically loads project context (rules, skills, config) |
 | **Global mode**  | Run from any non-project directory           | General-purpose AI management panel                            |
 
-**Features**: streaming Markdown output, session management (new/switch/history), Agent/Chat mode toggle, slot-filling interactive dialogs, auto-reconnect (3s), Token auth.
+**Features**: Vue3 + Ant Design Vue panel (Dashboard / Chat / Skills / Providers), streaming Markdown output, session management (new/switch/history), Agent/Chat mode toggle, slot-filling interactive dialogs, auto-reconnect (3s), Token auth.
 
-**Ports**: HTTP 18810 (Web UI page), WebSocket 18800 (reuses `chainlesschain serve` infrastructure).
+**Ports**: HTTP 18810 (Web UI page + static assets), WebSocket 18800 (reuses `chainlesschain serve` infrastructure).
 
 **Security**: JSON config embedded with XSS-safe Unicode escaping (`\u003c`/`\u003e`); Token auth via `--token`.
 
@@ -1164,7 +1168,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (3050+ tests across 130+ files)
+npm test                # Run all tests (5200+ tests across 133+ files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -1174,20 +1178,23 @@ npm run test:e2e        # End-to-end tests
 
 | Category                  | Files   | Tests    | Status          |
 | ------------------------- | ------- | -------- | --------------- |
-| Unit — lib modules        | 70      | 1700+    | All passing     |
+| Unit — lib modules        | 71      | 1750+    | All passing     |
 | Unit — commands           | 17      | 400+     | All passing     |
 | Unit — runtime            | 1       | 6        | All passing     |
 | Unit — WS sessions        | 9       | 156      | All passing     |
 | Unit — Skill Packs        | 2       | 57+      | All passing     |
 | Unit — AI Templates       | 2       | 130+     | All passing     |
+| Unit — Web UI             | 1       | 46       | All passing     |
 | Integration               | 13      | 230+     | All passing     |
 | Integration — WS session  | 1       | 12       | All passing     |
 | Integration — AI Handlers | 2       | 100+     | All passing     |
+| Integration — Web UI      | 1       | 29       | All passing     |
 | E2E                       | 15      | 260+     | All passing     |
 | E2E — Skill Packs         | 1       | 23+      | All passing     |
 | E2E — AI Templates        | 4       | 65+      | All passing     |
+| E2E — Web UI              | 1       | 24       | All passing     |
 | Core packages (external)  | —       | 118      | All passing     |
-| **CLI Total**             | **132** | **3056** | **All passing** |
+| **CLI Total**             | **133** | **3155** | **All passing** |
 
 ## License
 
