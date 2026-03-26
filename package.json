@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.37.6",
+  "version": "0.37.7",
   "description": "基于U盾和SIMKey的个人移动AI管理系统",
   "private": true,
   "workspaces": [
@@ -24,7 +24,7 @@
     "dev:desktop-vue": "npm run dev --workspace=desktop-app-vue",
     "build:desktop": "npm run build --workspace=desktop-app",
     "build:desktop-vue": "npm run build --workspace=desktop-app-vue",
-    "build:web-panel": "cd packages/web-panel && npm install --legacy-peer-deps && npm run build",
+    "build:web-panel": "cd packages/web-panel && npm install --legacy-peer-deps && npm run build && node --input-type=module -e \"import fs from 'fs'; import path from 'path'; const src=path.resolve(process.cwd(),'dist'),dst=path.resolve(process.cwd(),'../cli/src/assets/web-panel'); fs.rmSync(dst,{recursive:true,force:true}); fs.cpSync(src,dst,{recursive:true}); console.log('Web panel bundled →',dst);\"",
     "dev:web-panel": "cd packages/web-panel && npm install --legacy-peer-deps && npm run dev",
     "signaling:start": "cd signaling-server && npm start",
     "signaling:dev": "cd signaling-server && npm run dev",

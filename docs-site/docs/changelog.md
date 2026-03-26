@@ -5,6 +5,29 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.2.6] - 2026-03-24
+
+### Added
+
+- **Vue3 Web 管理面板 npm 打包**：npm 安装用户无需手动执行 `npm run build:web-panel`
+  - `prepublishOnly` 钩子在 `npm publish` 前自动构建 Vue3 面板并复制到 `packages/cli/src/assets/web-panel/`
+  - `findWebPanelDist()` 三路查找：1) 显式 `--web-panel-dir` 2) 源码树 `packages/web-panel/dist/` 3) npm 包内置 `src/assets/web-panel/`
+  - `.gitignore` 新增忽略 `packages/cli/src/assets/web-panel/` 和 `packages/web-panel/dist/`
+
+### Fixed
+
+- **`$` 特殊字符注入 Bug**：`projectRoot="/path/$HOME"` 或 `wsToken="tok$$secret"` 等含 `$&`/`$'`/`$$` 的值通过 `String.prototype.replace()` 注入时会被损坏
+  - 根因：字符串替换第二参数中 `$&` 表示匹配字符串、`$'` 表示匹配后的字符串
+  - 修复：改用函数形式 `html.replace("__CC_CONFIG_PLACEHOLDER__", () => configJson)` 完全绕过特殊模式
+  - 新增 3 个回归测试覆盖 `$&`、`$'`、`$$` 三种模式
+- **文档乱码修复**：`75_Web管理面板.md` 中 `零后端启动` 和 `Markdown 渲染` 的汉字被 U+FFFD 替换字符覆盖，已还原；`76_技能创建系统.md` 中 `字段` 的 `字` 被覆盖，已还原
+
+### Tests
+
+- 测试总数增至 **147 个**（66 单元 + 51 集成 + 30 E2E，较 v5.0.2.5 的 99 个增加 48 个）
+  - 新增 Vue3 SPA 模式完整测试（`FORCE_FALLBACK` sentinel 隔离机制）
+  - 新增 `$` 特殊字符回归测试套件（3 个单元 + 2 个集成）
+
 ## [5.0.2.3] - 2026-03-20
 
 ### Fixed

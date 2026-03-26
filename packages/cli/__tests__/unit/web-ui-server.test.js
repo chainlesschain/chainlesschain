@@ -7,7 +7,56 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import http from "node:http";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { createWebUIServer } from "../../src/lib/web-ui-server.js";
+
+// ── fake Vue3 dist helper ─────────────────────────────────────────────────────
+
+/**
+ * Create a minimal fake Vite dist directory for testing Vue3 SPA serving mode.
+ * Returns the dist directory path.
+ */
+function makeFakeDist(baseDir) {
+  const distDir = path.join(baseDir, "dist");
+  const assetsDir = path.join(distDir, "assets");
+  fs.mkdirSync(assetsDir, { recursive: true });
+
+  // index.html with the placeholder (mirrors real packages/web-panel/index.html)
+  fs.writeFileSync(
+    path.join(distDir, "index.html"),
+    `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>ChainlessChain 管理面板</title>
+  <script>window.__CC_CONFIG__ = __CC_CONFIG_PLACEHOLDER__;</script>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="./assets/app.js"></script>
+</body>
+</html>`,
+    "utf-8",
+  );
+
+  // Fake JS asset
+  fs.writeFileSync(
+    path.join(assetsDir, "app.abc123.js"),
+    "console.log('fake-vue3-bundle');",
+    "utf-8",
+  );
+
+  // Fake CSS asset
+  fs.writeFileSync(
+    path.join(assetsDir, "style.abc123.css"),
+    "body { margin: 0; }",
+    "utf-8",
+  );
+
+  return distDir;
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +108,14 @@ const PROJECT_OPTS = {
   mode: "project",
 };
 
+// Force embedded fallback HTML by pointing staticDir to a guaranteed non-existent path.
+// This isolates fallback-mode tests from whether packages/web-panel/dist/ is present.
+const FORCE_FALLBACK = {
+  staticDir: path.join(os.tmpdir(), ".cc-test-no-dist-sentinel-xzq9"),
+};
+const FALLBACK_GLOBAL = { ...GLOBAL_OPTS, ...FORCE_FALLBACK };
+const FALLBACK_PROJECT = { ...PROJECT_OPTS, ...FORCE_FALLBACK };
+
 // ── createWebUIServer() return value ─────────────────────────────────────────
 
 describe("createWebUIServer – return type", () => {
@@ -71,12 +128,12 @@ describe("createWebUIServer – return type", () => {
 
 // ── HTTP behaviour ───────────────────────────────────────────────────────────
 
-describe("createWebUIServer – HTTP responses", () => {
+describe("createWebUIServer – HTTP responses (fallback embedded mode)", () => {
   let server;
   let port;
 
   beforeEach(async () => {
-    server = await startServer(GLOBAL_OPTS);
+    server = await startServer(FALLBACK_GLOBAL);
     port = server.address().port;
   });
 
@@ -219,12 +276,12 @@ describe("createWebUIServer – config injection (project mode)", () => {
 
 // ── HTML content ─────────────────────────────────────────────────────────────
 
-describe("createWebUIServer – HTML content", () => {
+describe("createWebUIServer – HTML content (fallback embedded mode)", () => {
   let server;
   let port;
 
   beforeEach(async () => {
-    server = await startServer(GLOBAL_OPTS);
+    server = await startServer(FALLBACK_GLOBAL);
     port = server.address().port;
   });
 
@@ -264,10 +321,10 @@ describe("createWebUIServer – HTML content", () => {
 
 // ── HTML title escaping ───────────────────────────────────────────────────────
 
-describe("createWebUIServer – HTML title escaping", () => {
+describe("createWebUIServer – HTML title escaping (fallback embedded mode)", () => {
   it("escapes < > in project name in the title", async () => {
     const server = await startServer({
-      ...PROJECT_OPTS,
+      ...FALLBACK_PROJECT,
       projectName: "<script>xss</script>",
     });
     const port = server.address().port;
@@ -279,7 +336,7 @@ describe("createWebUIServer – HTML title escaping", () => {
 
   it("escapes & in project name in the title", async () => {
     const server = await startServer({
-      ...PROJECT_OPTS,
+      ...FALLBACK_PROJECT,
       projectName: "Acme & Co",
     });
     const port = server.address().port;
@@ -308,13 +365,13 @@ describe("createWebUIServer – wsHost in config", () => {
 
 // ── WS client protocol (fixes for 5 protocol mismatches) ────────────────────
 
-describe("createWebUIServer – WS client protocol correctness", () => {
+describe("createWebUIServer – WS client protocol correctness (fallback embedded mode)", () => {
   let server;
   let port;
   let body;
 
   beforeEach(async () => {
-    server = await startServer(GLOBAL_OPTS);
+    server = await startServer(FALLBACK_GLOBAL);
     port = server.address().port;
     const res = await get(port, "/");
     body = res.body;
@@ -427,5 +484,234 @@ describe("createWebUIServer – WS client protocol correctness", () => {
 
   it("sends 'session-answer' when user answers a question", () => {
     expect(body).toContain("session-answer");
+  });
+});
+
+// ── Vue3 SPA mode (staticDir) ─────────────────────────────────────────────────
+
+describe("createWebUIServer – Vue3 SPA mode via staticDir", () => {
+  let tmpDir;
+  let distDir;
+  let server;
+  let port;
+
+  beforeEach(async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-unit-spa-"));
+    distDir = makeFakeDist(tmpDir);
+    server = await startServer({ ...GLOBAL_OPTS, staticDir: distDir });
+    port = server.address().port;
+  });
+
+  afterEach(async () => {
+    await stopServer(server);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("GET / returns 200", async () => {
+    const res = await get(port, "/");
+    expect(res.status).toBe(200);
+  });
+
+  it("GET /index.html returns 200", async () => {
+    const res = await get(port, "/index.html");
+    expect(res.status).toBe(200);
+  });
+
+  it("response Content-Type is text/html with utf-8", async () => {
+    const res = await get(port, "/");
+    expect(res.headers["content-type"]).toContain("text/html");
+    expect(res.headers["content-type"]).toContain("utf-8");
+  });
+
+  it("__CC_CONFIG_PLACEHOLDER__ is replaced (not left in response)", async () => {
+    const res = await get(port, "/");
+    expect(res.body).not.toContain("__CC_CONFIG_PLACEHOLDER__");
+  });
+
+  it("window.__CC_CONFIG__ is injected into Vue3 index.html", async () => {
+    const res = await get(port, "/");
+    expect(res.body).toContain("window.__CC_CONFIG__");
+  });
+
+  it("injected config contains correct wsPort", async () => {
+    const res = await get(port, "/");
+    const match = res.body.match(/window\.__CC_CONFIG__\s*=\s*({[^;]+});/);
+    expect(match).toBeTruthy();
+    const cfg = JSON.parse(match[1]);
+    expect(cfg.wsPort).toBe(GLOBAL_OPTS.wsPort);
+  });
+
+  it("injected config contains correct mode", async () => {
+    const res = await get(port, "/");
+    const match = res.body.match(/window\.__CC_CONFIG__\s*=\s*({[^;]+});/);
+    const cfg = JSON.parse(match[1]);
+    expect(cfg.mode).toBe("global");
+  });
+
+  it("GET /assets/app.abc123.js returns 200 with JS MIME", async () => {
+    const res = await get(port, "/assets/app.abc123.js");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("javascript");
+  });
+
+  it("GET /assets/style.abc123.css returns 200 with CSS MIME", async () => {
+    const res = await get(port, "/assets/style.abc123.css");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/css");
+  });
+
+  it("assets under /assets/ have immutable cache headers", async () => {
+    const res = await get(port, "/assets/app.abc123.js");
+    expect(res.headers["cache-control"]).toContain("immutable");
+  });
+
+  it("GET /unknown-route returns SPA fallback (200 with index.html content)", async () => {
+    const res = await get(port, "/unknown-route");
+    expect(res.status).toBe(200);
+    expect(res.body).toContain('<div id="app">');
+  });
+
+  it("GET /dashboard returns SPA fallback", async () => {
+    const res = await get(port, "/dashboard");
+    expect(res.status).toBe(200);
+    expect(res.body).toContain("window.__CC_CONFIG__");
+  });
+
+  it("POST / returns 405 Method Not Allowed", async () => {
+    const res = await new Promise((resolve, reject) => {
+      const chunks = [];
+      const req = http.request(
+        { hostname: "127.0.0.1", port, path: "/", method: "POST" },
+        (res) => {
+          res.on("data", (c) => chunks.push(c));
+          res.on("end", () =>
+            resolve({
+              status: res.statusCode,
+              body: Buffer.concat(chunks).toString("utf8"),
+            }),
+          );
+        },
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    expect(res.status).toBe(405);
+  });
+
+  it("path traversal attempt is safe (stays within distDir)", async () => {
+    // Attempt to traverse outside distDir — should not expose filesystem
+    const res = await get(port, "/../../etc/passwd");
+    // Either 404 (not found within dist) or 200 (SPA fallback) — never a system file
+    expect([200, 404]).toContain(res.status);
+    if (res.status === 200) {
+      // SPA fallback response should be the index.html content
+      expect(res.body).toContain("window.__CC_CONFIG__");
+    }
+  });
+});
+
+describe("createWebUIServer – Vue3 SPA mode with project options", () => {
+  let tmpDir;
+  let distDir;
+  let server;
+  let port;
+
+  beforeEach(async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-unit-spa-proj-"));
+    distDir = makeFakeDist(tmpDir);
+    server = await startServer({ ...PROJECT_OPTS, staticDir: distDir });
+    port = server.address().port;
+  });
+
+  afterEach(async () => {
+    await stopServer(server);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("project mode config is injected into Vue3 index.html", async () => {
+    const res = await get(port, "/");
+    const match = res.body.match(/window\.__CC_CONFIG__\s*=\s*({[^;]+});/);
+    const cfg = JSON.parse(match[1]);
+    expect(cfg.mode).toBe("project");
+    expect(cfg.projectRoot).toBe(PROJECT_OPTS.projectRoot);
+    expect(cfg.projectName).toBe(PROJECT_OPTS.projectName);
+    expect(cfg.wsToken).toBe(PROJECT_OPTS.wsToken);
+  });
+});
+
+describe("createWebUIServer – $ character in config values (bug fix)", () => {
+  let tmpDir;
+  let distDir;
+  let server;
+  let port;
+
+  beforeEach(async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-unit-dollar-"));
+    distDir = makeFakeDist(tmpDir);
+  });
+
+  afterEach(async () => {
+    if (server) await stopServer(server);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("projectRoot with $ character is injected correctly", async () => {
+    server = await startServer({
+      ...PROJECT_OPTS,
+      projectRoot: "/home/user/$MY_PROJECT",
+      projectName: "$project",
+      staticDir: distDir,
+    });
+    port = server.address().port;
+    const res = await get(port, "/");
+    const match = res.body.match(/window\.__CC_CONFIG__\s*=\s*({[^;]+});/);
+    expect(match).toBeTruthy();
+    const cfg = JSON.parse(match[1]);
+    expect(cfg.projectRoot).toBe("/home/user/$MY_PROJECT");
+    expect(cfg.projectName).toBe("$project");
+  });
+
+  it("wsToken with $& pattern is injected correctly", async () => {
+    server = await startServer({
+      ...GLOBAL_OPTS,
+      wsToken: "token$&secret",
+      staticDir: distDir,
+    });
+    port = server.address().port;
+    const res = await get(port, "/");
+    const match = res.body.match(/window\.__CC_CONFIG__\s*=\s*({[^;]+});/);
+    expect(match).toBeTruthy();
+    const cfg = JSON.parse(match[1]);
+    expect(cfg.wsToken).toBe("token$&secret");
+  });
+
+  it("wsToken with $' pattern is injected correctly", async () => {
+    server = await startServer({
+      ...GLOBAL_OPTS,
+      wsToken: "tok$'en",
+      staticDir: distDir,
+    });
+    port = server.address().port;
+    const res = await get(port, "/");
+    const match = res.body.match(/window\.__CC_CONFIG__\s*=\s*({[^;]+});/);
+    expect(match).toBeTruthy();
+    const cfg = JSON.parse(match[1]);
+    expect(cfg.wsToken).toBe("tok$'en");
+  });
+});
+
+describe("createWebUIServer – staticDir nonexistent falls back to embedded HTML", () => {
+  it("nonexistent staticDir triggers fallback embedded HTML", async () => {
+    const server = await startServer({
+      ...GLOBAL_OPTS,
+      staticDir: "/nonexistent/path/to/dist",
+    });
+    const port = server.address().port;
+    const res = await get(port, "/");
+    await stopServer(server);
+    // Fallback HTML always contains these elements
+    expect(res.status).toBe(200);
+    expect(res.body).toContain("<!DOCTYPE html>");
+    expect(res.body).toContain("window.__CC_CONFIG__");
   });
 });
