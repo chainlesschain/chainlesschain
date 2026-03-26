@@ -1163,16 +1163,27 @@ function buildConfigJson(opts) {
 /**
  * Try to locate the built web-panel dist directory.
  * Returns the absolute path if found, or null.
+ *
+ * Search order:
+ *   1. Explicit --web-panel-dir override
+ *   2. packages/web-panel/dist/ (source tree / local dev)
+ *   3. src/assets/web-panel/ inside the CLI package itself (bundled for npm users)
  */
 function findWebPanelDist(staticDir) {
   if (staticDir) {
     return fs.existsSync(path.join(staticDir, "index.html")) ? staticDir : null;
   }
-  // Default: packages/web-panel/dist/ relative to this file's location
-  const defaultDist = path.resolve(__dirname, "../../web-panel/dist");
-  return fs.existsSync(path.join(defaultDist, "index.html"))
-    ? defaultDist
-    : null;
+  // 1. Source tree: packages/web-panel/dist/
+  const sourceDist = path.resolve(__dirname, "../../web-panel/dist");
+  if (fs.existsSync(path.join(sourceDist, "index.html"))) {
+    return sourceDist;
+  }
+  // 2. Bundled inside CLI npm package: src/assets/web-panel/
+  const bundledDist = path.resolve(__dirname, "../assets/web-panel");
+  if (fs.existsSync(path.join(bundledDist, "index.html"))) {
+    return bundledDist;
+  }
+  return null;
 }
 
 /**
@@ -1236,8 +1247,10 @@ export function createWebUIServer(opts) {
       // SPA fallback: serve index.html with injected config
       try {
         let html = fs.readFileSync(path.join(distDir, "index.html"), "utf-8");
-        // Replace the placeholder with actual runtime config
-        html = html.replace("__CC_CONFIG_PLACEHOLDER__", configJson);
+        // Use a function replacement to avoid String.prototype.replace() treating
+        // '$&', '$`', "$'" etc. in configJson as special replacement patterns
+        // (e.g. projectRoot="/path/$HOME" would corrupt the JSON otherwise).
+        html = html.replace("__CC_CONFIG_PLACEHOLDER__", () => configJson);
         res.writeHead(200, {
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-store",

@@ -950,6 +950,7 @@ export default defineConfig({
             { text: "73 Web管理界面 ⭐", link: "/design/modules/73-web-ui" },
             { text: "74 AI编排层系统 ⭐", link: "/design/modules/74-orchestration-layer" },
             { text: "75 Vue3 Web管理面板 ⭐", link: "/design/modules/75-web-panel" },
+            { text: "76 Skill Creator系统 ⭐", link: "/design/modules/76-skill-creator" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },
