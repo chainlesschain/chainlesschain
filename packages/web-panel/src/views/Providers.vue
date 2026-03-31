@@ -2,8 +2,8 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 style="margin: 0; color: #fff; font-size: 20px;">LLM 配置</h2>
-        <p style="margin: 4px 0 0; color: #666; font-size: 13px;">管理 AI 服务提供商</p>
+        <h2 class="page-title">LLM 配置</h2>
+        <p class="page-sub">管理 AI 服务提供商</p>
       </div>
       <a-button type="primary" ghost :loading="providersStore.loading" @click="providersStore.loadProviders()">
         <template #icon><ReloadOutlined /></template>
@@ -15,7 +15,7 @@
     <a-alert
       v-if="providersStore.activeProvider"
       type="success"
-      style="margin-bottom: 20px; background: #162312; border-color: #274916;"
+      style="margin-bottom: 20px; background: rgba(41,162,112,.08); border-color: rgba(41,162,112,.3);"
       show-icon
     >
       <template #message>
@@ -26,7 +26,7 @@
     <!-- Loading -->
     <div v-if="providersStore.loading" style="text-align: center; padding: 60px;">
       <a-spin size="large" />
-      <div style="color: #555; margin-top: 12px;">加载 LLM 信息中...</div>
+      <div style="color: var(--text-muted); margin-top: 12px;">加载 LLM 信息中...</div>
     </div>
 
     <!-- Providers Grid -->
@@ -37,14 +37,14 @@
           :key="provider.name"
           class="provider-card"
           :class="{ active: provider.active }"
-          style="background: #1f1f1f;"
+          style="background: var(--bg-card);"
           size="small"
         >
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
             <span style="font-size: 24px;">{{ provider.icon }}</span>
             <div style="flex: 1;">
               <div style="color: #e0e0e0; font-weight: 500;">{{ provider.label }}</div>
-              <div style="color: #888; font-size: 11px; font-family: monospace;">{{ provider.name }}</div>
+              <div style="color: var(--text-secondary); font-size: 11px; font-family: monospace;">{{ provider.name }}</div>
             </div>
             <div>
               <a-tag v-if="provider.active" color="green">活跃</a-tag>
@@ -56,7 +56,7 @@
           <div style="display: flex; gap: 8px; justify-content: flex-end;">
             <a-button
               size="small"
-              style="background: #252525; border-color: #3d3d3d;"
+              style="background: var(--bg-card-hover); border-color: var(--border-color);"
               :loading="providersStore.testing === provider.name"
               @click="test(provider.name)"
             >
@@ -84,7 +84,7 @@
         <a-list
           :data-source="providersStore.localModels"
           size="small"
-          style="background: #1f1f1f; border-radius: 8px; border: 1px solid #303030;"
+          style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);"
         >
           <template #renderItem="{ item }">
             <a-list-item style="padding: 10px 16px; border-color: #252525;">
@@ -138,14 +138,14 @@ onMounted(() => {
   gap: 12px;
 }
 .provider-card {
-  border: 1px solid #303030 !important;
+  border: 1px solid var(--border-color) !important;
   transition: border-color 0.2s;
 }
 .provider-card:hover {
-  border-color: #444 !important;
+  border-color: var(--text-muted) !important;
 }
 .provider-card.active {
   border-color: #52c41a !important;
-  background: #162312 !important;
+  background: rgba(41,162,112,.08) !important;
 }
 </style>

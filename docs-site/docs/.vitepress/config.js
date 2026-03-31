@@ -788,11 +788,20 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.5 Vue3 Web 管理面板 ⭐NEW",
+          text: "v5.0.2.8 Web 管理面板 10模块+4主题 ⭐NEW",
           items: [
             {
               text: "Web 管理面板 (ui)",
               link: "/chainlesschain/cli-web-panel",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.7 Skill Creator v1.2.0",
+          items: [
+            {
+              text: "Skill Creator 使用指南",
+              link: "/chainlesschain/skill-creator",
             },
           ],
         },
@@ -949,7 +958,7 @@ export default defineConfig({
             { text: "72 AI文档创作模板 ⭐", link: "/design/modules/72-ai-doc-creator" },
             { text: "73 Web管理界面 ⭐", link: "/design/modules/73-web-ui" },
             { text: "74 AI编排层系统 ⭐", link: "/design/modules/74-orchestration-layer" },
-            { text: "75 Vue3 Web管理面板 ⭐", link: "/design/modules/75-web-panel" },
+            { text: "75 Vue3 Web管理面板 10模块+4主题 ⭐", link: "/design/modules/75-web-panel" },
             { text: "76 Skill Creator系统 ⭐", link: "/design/modules/76-skill-creator" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],

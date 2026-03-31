@@ -26,14 +26,14 @@ const rendered = computed(() => {
 
 <style scoped>
 .markdown-content :deep(pre) {
-  background: #1a1a1a;
+  background: var(--bg-base);
   border-radius: 6px;
   padding: 12px;
   overflow-x: auto;
   font-size: 12px;
 }
 .markdown-content :deep(code:not(pre code)) {
-  background: #2a2a2a;
+  background: var(--bg-card-hover);
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 12px;
@@ -51,5 +51,5 @@ const rendered = computed(() => {
   border: 1px solid #333;
   padding: 6px 12px;
 }
-.markdown-content :deep(th) { background: #222; }
+.markdown-content :deep(th) { background: var(--bg-card-hover); }
 </style>

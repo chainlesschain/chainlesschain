@@ -2,8 +2,8 @@
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <div>
-        <h2 style="margin: 0; color: #fff; font-size: 20px;">技能管理</h2>
-        <p style="margin: 4px 0 0; color: #666; font-size: 13px;">{{ skillsStore.allSkills.length }} 个可用技能</p>
+        <h2 class="page-title">技能管理</h2>
+        <p class="page-sub">{{ skillsStore.allSkills.length }} 个可用技能</p>
       </div>
       <a-button type="primary" ghost :loading="skillsStore.loading" @click="skillsStore.loadSkills()">
         <template #icon><ReloadOutlined /></template>
@@ -30,7 +30,7 @@
     <!-- Loading State -->
     <div v-if="skillsStore.loading" style="text-align: center; padding: 60px;">
       <a-spin size="large" />
-      <div style="color: #555; margin-top: 12px;">加载技能中...</div>
+      <div style="color: var(--text-muted); margin-top: 12px;">加载技能中...</div>
     </div>
 
     <!-- Skills Grid -->
@@ -41,14 +41,14 @@
         class="skill-card"
         size="small"
         hoverable
-        style="background: #1f1f1f; border-color: #303030; cursor: default;"
+        style="background: var(--bg-card); border-color: var(--border-color); cursor: default;"
       >
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div style="flex: 1; min-width: 0;">
             <div style="font-weight: 500; color: #e0e0e0; font-size: 14px; margin-bottom: 4px; font-family: monospace;">
               {{ skill.name }}
             </div>
-            <div style="color: #888; font-size: 12px; line-height: 1.5;">
+            <div style="color: var(--text-secondary); font-size: 12px; line-height: 1.5;">
               {{ skill.description || '暂无描述' }}
             </div>
           </div>
@@ -68,7 +68,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else style="text-align: center; padding: 60px; color: #555;">
+    <div v-else style="text-align: center; padding: 60px; color: var(--text-muted);">
       <AppstoreOutlined style="font-size: 48px; margin-bottom: 16px; display: block;" />
       <div>{{ skillsStore.allSkills.length ? '没有匹配的技能' : '点击刷新加载技能列表' }}</div>
     </div>

@@ -1,102 +1,129 @@
 <template>
-  <a-layout style="min-height: 100vh; background: #141414">
-    <!-- Sidebar -->
+  <a-layout class="app-root">
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
     <a-layout-sider
       v-model:collapsed="collapsed"
       collapsible
-      :collapsed-width="64"
-      :width="220"
-      style="background: #1c1c1c; border-right: 1px solid #303030;"
+      :collapsed-width="56"
+      :width="216"
+      class="sidebar"
     >
-      <!-- Logo + Mode Banner -->
+      <!-- Logo -->
       <div class="logo" :class="{ collapsed }">
         <span class="logo-icon">⛓</span>
         <span v-if="!collapsed" class="logo-text">ChainlessChain</span>
       </div>
 
-      <!-- Project Mode Banner (shown when in project mode) -->
-      <div v-if="isProject && !collapsed" class="project-banner">
-        <FolderOutlined style="color: #1677ff; font-size: 12px;" />
-        <div class="project-info">
-          <div class="project-name">{{ cfg.projectName || '项目' }}</div>
-          <div class="project-scope">项目级面板</div>
+      <!-- Mode banner -->
+      <template v-if="!collapsed">
+        <div v-if="isProject" class="mode-banner project">
+          <FolderOutlined class="banner-icon" />
+          <div class="banner-info">
+            <div class="banner-name">{{ cfg.projectName || '项目' }}</div>
+            <div class="banner-sub">项目级面板</div>
+          </div>
         </div>
-      </div>
-      <div v-else-if="!isProject && !collapsed" class="global-banner">
-        <GlobalOutlined style="color: #722ed1; font-size: 12px;" />
-        <span class="global-label">全局模式</span>
-      </div>
-      <!-- Collapsed mode icon -->
-      <div v-else-if="collapsed" class="mode-icon-collapsed" :title="isProject ? cfg.projectName : '全局模式'">
+        <div v-else class="mode-banner global">
+          <GlobalOutlined class="banner-icon" />
+          <span class="banner-name">全局模式</span>
+        </div>
+      </template>
+      <div v-else class="mode-icon-sm" :title="isProject ? cfg.projectName : '全局模式'">
         <FolderOutlined v-if="isProject" style="color: #1677ff;" />
         <GlobalOutlined v-else style="color: #722ed1;" />
       </div>
 
-      <!-- Navigation Menu -->
+      <!-- Navigation -->
       <a-menu
         v-model:selectedKeys="selectedKeys"
-        theme="dark"
+        :theme="menuTheme"
         mode="inline"
         :inline-collapsed="collapsed"
-        style="background: #1c1c1c; border: none; margin-top: 4px;"
+        class="side-menu"
         @click="onMenuClick"
       >
-        <a-menu-item key="dashboard">
-          <template #icon><DashboardOutlined /></template>
-          <span>仪表板</span>
-        </a-menu-item>
-        <a-menu-item key="chat">
-          <template #icon><MessageOutlined /></template>
-          <span>AI 对话</span>
-        </a-menu-item>
-        <a-menu-item key="skills">
-          <template #icon><AppstoreOutlined /></template>
-          <span>技能管理</span>
-        </a-menu-item>
-        <a-menu-item key="providers">
-          <template #icon><ApiOutlined /></template>
-          <span>LLM 配置</span>
-        </a-menu-item>
+        <template v-if="!collapsed">
+          <a-menu-item-group>
+            <template #title><span class="group-label">概 览</span></template>
+            <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template>仪表板</a-menu-item>
+            <a-menu-item key="chat"><template #icon><MessageOutlined /></template>AI 对话</a-menu-item>
+            <a-menu-item key="services"><template #icon><ControlOutlined /></template>服务管理</a-menu-item>
+            <a-menu-item key="logs"><template #icon><FileTextOutlined /></template>日志查看</a-menu-item>
+          </a-menu-item-group>
+          <a-menu-item-group>
+            <template #title><span class="group-label">配 置</span></template>
+            <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template>技能管理</a-menu-item>
+            <a-menu-item key="providers"><template #icon><ApiOutlined /></template>LLM 配置</a-menu-item>
+            <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template>MCP 工具</a-menu-item>
+          </a-menu-item-group>
+          <a-menu-item-group>
+            <template #title><span class="group-label">数 据</span></template>
+            <a-menu-item key="notes"><template #icon><BookOutlined /></template>笔记管理</a-menu-item>
+            <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>记忆文件</a-menu-item>
+            <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>定时任务</a-menu-item>
+          </a-menu-item-group>
+        </template>
+        <template v-else>
+          <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template></a-menu-item>
+          <a-menu-item key="chat"><template #icon><MessageOutlined /></template></a-menu-item>
+          <a-menu-item key="services"><template #icon><ControlOutlined /></template></a-menu-item>
+          <a-menu-item key="logs"><template #icon><FileTextOutlined /></template></a-menu-item>
+          <a-menu-divider class="divider-sm" />
+          <a-menu-item key="skills"><template #icon><AppstoreOutlined /></template></a-menu-item>
+          <a-menu-item key="providers"><template #icon><ApiOutlined /></template></a-menu-item>
+          <a-menu-item key="mcp"><template #icon><CloudServerOutlined /></template></a-menu-item>
+          <a-menu-divider class="divider-sm" />
+          <a-menu-item key="notes"><template #icon><BookOutlined /></template></a-menu-item>
+          <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
+          <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template></a-menu-item>
+        </template>
       </a-menu>
 
-      <!-- Connection Status at Bottom -->
+      <!-- Connection status -->
       <div class="sidebar-footer" :class="{ collapsed }">
         <a-badge :status="statusBadge" />
-        <span v-if="!collapsed" class="status-text">{{ statusText }}</span>
+        <span v-if="!collapsed" class="footer-text">{{ statusText }}</span>
       </div>
     </a-layout-sider>
 
-    <!-- Main Content -->
-    <a-layout style="background: #141414">
+    <!-- ── Main area ───────────────────────────────────────────────── -->
+    <a-layout class="main-area">
       <!-- Header -->
       <a-layout-header class="app-header">
         <div class="header-left">
-          <!-- Breadcrumb / scope indicator -->
-          <div v-if="isProject" class="scope-tag project">
-            <FolderOutlined />
-            <span>{{ cfg.projectName || '项目' }}</span>
-            <a-tooltip v-if="cfg.projectRoot" :title="cfg.projectRoot">
-              <InfoCircleOutlined style="opacity: 0.5; cursor: help;" />
+          <div :class="['scope-tag', isProject ? 'project' : 'global']">
+            <component :is="isProject ? FolderOutlined : GlobalOutlined" />
+            <span>{{ isProject ? (cfg.projectName || '项目') : '全局模式' }}</span>
+            <a-tooltip v-if="isProject && cfg.projectRoot" :title="cfg.projectRoot">
+              <InfoCircleOutlined class="info-icon" />
             </a-tooltip>
           </div>
-          <div v-else class="scope-tag global">
-            <GlobalOutlined />
-            <span>全局模式</span>
-          </div>
         </div>
+
         <div class="header-right">
-          <span style="color: #444; font-size: 11px;">v5.0.2.5</span>
+          <!-- Theme switcher -->
+          <div class="theme-switcher">
+            <a-tooltip v-for="(t, key) in THEMES" :key="key" :title="t.label">
+              <button
+                :class="['theme-btn', { active: currentTheme === key }]"
+                :data-theme-key="key"
+                @click="setTheme(key)"
+              >{{ t.icon }}</button>
+            </a-tooltip>
+          </div>
+
+          <span class="version-tag">v5.0.2.7</span>
           <a-tag
             :color="wsStatus === 'connected' ? 'green' : wsStatus === 'connecting' ? 'orange' : 'red'"
-            style="margin: 0;"
+            class="ws-tag"
           >
             {{ wsStatus === 'connected' ? '已连接' : wsStatus === 'connecting' ? '连接中' : '断开' }}
           </a-tag>
         </div>
       </a-layout-header>
 
-      <!-- Page Content -->
-      <a-layout-content style="padding: 24px; overflow: auto;">
+      <!-- Content -->
+      <a-layout-content class="page-content">
         <router-view />
       </a-layout-content>
     </a-layout>
@@ -108,132 +135,191 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   DashboardOutlined, MessageOutlined, AppstoreOutlined, ApiOutlined,
-  FolderOutlined, GlobalOutlined, InfoCircleOutlined
+  FolderOutlined, GlobalOutlined, InfoCircleOutlined,
+  ControlOutlined, FileTextOutlined, CloudServerOutlined,
+  BookOutlined, BranchesOutlined, ClockCircleOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
+import { useThemeStore, THEMES } from '../stores/theme.js'
 
-const router = useRouter()
-const route = useRoute()
-const ws = useWsStore()
+const router  = useRouter()
+const route   = useRoute()
+const ws      = useWsStore()
+const themeStore = useThemeStore()
 
 const collapsed = ref(false)
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
 
+const currentTheme = computed(() => themeStore.current)
+const menuTheme    = computed(() => themeStore.config.vars['--menu-mode'])
+
 const selectedKeys = computed(() => {
   const name = route.name?.toLowerCase() || 'dashboard'
-  return [name]
+  return [{ mcptools: 'mcp' }[name] || name]
 })
 
-const wsStatus = computed(() => ws.status)
-const statusBadge = computed(() => ({
-  connected: 'success', connecting: 'processing', error: 'error', disconnected: 'default'
-})[ws.status] || 'default')
-const statusText = computed(() => ({
-  connected: '已连接', connecting: '连接中...', error: '连接错误', disconnected: '未连接'
-})[ws.status] || '未知')
+const wsStatus   = computed(() => ws.status)
+const statusBadge = computed(() => ({ connected:'success', connecting:'processing', error:'error', disconnected:'default' })[ws.status] || 'default')
+const statusText  = computed(() => ({ connected:'已连接', connecting:'连接中...', error:'连接错误', disconnected:'未连接' })[ws.status] || '未知')
 
+function setTheme(key) { themeStore.setTheme(key) }
 function onMenuClick({ key }) {
-  router.push(`/${key}`)
+  router.push({ mcp: '/mcp' }[key] || `/${key}`)
 }
-
-onMounted(() => { ws.connect() })
+onMounted(() => ws.connect())
 </script>
 
 <style scoped>
+/* ── Layout shell ─────────────────────────────────────────────────────── */
+.app-root {
+  min-height: 100vh;
+  background: var(--bg-base);
+}
+.sidebar {
+  background: var(--bg-sidebar) !important;
+  border-right: 1px solid var(--border-color);
+  transition: background 0.25s;
+}
+.main-area { background: var(--bg-base); }
+
+/* ── Logo ─────────────────────────────────────────────────────────────── */
 .logo {
   height: 52px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 18px;
   gap: 10px;
-  border-bottom: 1px solid #262626;
+  border-bottom: 1px solid var(--border-color);
   overflow: hidden;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .logo.collapsed { padding: 0; justify-content: center; }
-.logo-icon { font-size: 22px; flex-shrink: 0; }
-.logo-text { color: #fff; font-weight: 600; font-size: 15px; }
+.logo-icon  { font-size: 20px; flex-shrink: 0; }
+.logo-text  { color: var(--logo-text); font-weight: 700; font-size: 14px; letter-spacing: 0.01em; }
 
-/* Project mode banner */
-.project-banner {
+/* ── Mode banner ──────────────────────────────────────────────────────── */
+.mode-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  margin: 6px 8px;
-  background: #0d1b2e;
-  border: 1px solid #1677ff30;
-  border-radius: 6px;
+  padding: 7px 10px;
+  margin: 8px 8px 4px;
+  border-radius: 7px;
   overflow: hidden;
 }
-.project-info { flex: 1; min-width: 0; }
-.project-name {
-  color: #91caff;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.project-scope { color: #1677ff; font-size: 10px; margin-top: 1px; }
+.mode-banner.project { background: rgba(22,119,255,.1); border: 1px solid rgba(22,119,255,.2); }
+.mode-banner.global  { background: rgba(114,46,209,.1); border: 1px solid rgba(114,46,209,.2); }
+.banner-icon   { font-size: 13px; flex-shrink: 0; color: #1677ff; }
+.mode-banner.global .banner-icon { color: #722ed1; }
+.banner-info   { flex: 1; min-width: 0; }
+.banner-name   { font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.banner-sub    { font-size: 10px; color: #1677ff; margin-top: 1px; }
+.mode-banner.global .banner-name { color: #c084fc; }
 
-/* Global mode banner */
-.global-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 16px;
-  margin: 6px 8px;
-  background: #1a0d2e;
-  border: 1px solid #722ed130;
-  border-radius: 6px;
-}
-.global-label { color: #c084fc; font-size: 12px; }
+.mode-icon-sm { display: flex; justify-content: center; padding: 8px 0; font-size: 14px; }
 
-/* Collapsed mode icon */
-.mode-icon-collapsed {
-  display: flex;
-  justify-content: center;
-  padding: 8px 0;
-  font-size: 14px;
+/* ── Menu ─────────────────────────────────────────────────────────────── */
+.side-menu {
+  border: none !important;
+  margin-top: 2px;
+  user-select: none;
+  background: transparent !important;
 }
+.group-label {
+  color: var(--group-title);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding-left: 6px;
+}
+:deep(.ant-menu-item-group-title) { padding: 8px 16px 2px !important; }
+:deep(.ant-menu-item) {
+  height: 38px !important;
+  line-height: 38px !important;
+  margin: 1px 4px !important;
+  border-radius: 6px !important;
+}
+.divider-sm { margin: 4px 0 !important; }
 
+/* ── Sidebar footer ───────────────────────────────────────────────────── */
 .sidebar-footer {
   position: absolute;
   bottom: 48px;
   left: 0; right: 0;
-  padding: 10px 20px;
+  padding: 8px 18px;
   display: flex;
   align-items: center;
   gap: 8px;
-  border-top: 1px solid #222;
+  border-top: 1px solid var(--border-color);
 }
-.sidebar-footer.collapsed { justify-content: center; padding: 10px 0; }
-.status-text { color: #666; font-size: 11px; }
+.sidebar-footer.collapsed { justify-content: center; padding: 8px 0; }
+.footer-text { color: var(--text-secondary); font-size: 11px; }
 
+/* ── Header ───────────────────────────────────────────────────────────── */
 .app-header {
-  background: #1c1c1c;
-  padding: 0 20px;
-  border-bottom: 1px solid #262626;
-  height: 52px;
-  line-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  background: var(--bg-header) !important;
+  padding: 0 20px !important;
+  border-bottom: 1px solid var(--border-color);
+  height: 50px !important;
+  line-height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
 }
-.header-left { display: flex; align-items: center; }
-.header-right { display: flex; align-items: center; gap: 12px; }
+.header-left, .header-right { display: flex; align-items: center; gap: 10px; }
 
 .scope-tag {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   padding: 3px 10px;
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 12px;
   font-weight: 500;
 }
-.scope-tag.project { background: #0d1b2e; color: #91caff; border: 1px solid #1677ff25; }
-.scope-tag.global { background: #1a0d2e; color: #c084fc; border: 1px solid #722ed125; }
+.scope-tag.project { background: rgba(22,119,255,.1); color: #1677ff; border: 1px solid rgba(22,119,255,.2); }
+.scope-tag.global  { background: rgba(114,46,209,.1); color: #722ed1; border: 1px solid rgba(114,46,209,.2); }
+.info-icon { opacity: 0.45; cursor: help; margin-left: 2px; }
+
+/* ── Theme switcher ───────────────────────────────────────────────────── */
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 3px 6px;
+}
+.theme-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.15s;
+  opacity: 0.55;
+}
+.theme-btn:hover  { opacity: 0.9;  transform: scale(1.15); background: var(--bg-card-hover); }
+.theme-btn.active { opacity: 1.0;  transform: scale(1.1);  background: var(--bg-card-hover); outline: 2px solid var(--text-secondary); }
+
+.version-tag { color: var(--text-muted); font-size: 11px; }
+.ws-tag { margin: 0 !important; font-size: 11px; }
+
+/* ── Content ──────────────────────────────────────────────────────────── */
+.page-content {
+  padding: 24px;
+  overflow: auto;
+  background: var(--bg-base);
+  min-height: calc(100vh - 50px);
+}
 </style>

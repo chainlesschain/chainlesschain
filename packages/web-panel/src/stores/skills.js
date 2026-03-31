@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useWsStore } from './ws.js'
+import { parseSkillOutput } from '../utils/parsers.js'
 
 export const useSkillsStore = defineStore('skills', () => {
   const loading = ref(false)
@@ -46,44 +47,6 @@ export const useSkillsStore = defineStore('skills', () => {
     } finally {
       loading.value = false
     }
-  }
-
-  function parseSkillOutput(output) {
-    // Parse skill list output - format varies but usually "name - description"
-    const lines = output.split('\n')
-    const skills = []
-    let currentCategory = 'built-in'
-
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('─') || trimmed.startsWith('=')) continue
-
-      // Category header detection
-      if (trimmed.match(/^[📦🔧⚡💡🌐🔒🏢🔗]+\s/)) {
-        currentCategory = trimmed.replace(/^[^\s]+\s/, '').toLowerCase().replace(/[()]/g, '').trim()
-        continue
-      }
-
-      // Skill entry: usually "  name - description" or "  name  description"
-      const skillMatch = trimmed.match(/^([a-z][a-z0-9-]+)\s+[-–]\s+(.+)/)
-        || trimmed.match(/^([a-z][a-z0-9-]+)\s{2,}(.+)/)
-
-      if (skillMatch) {
-        skills.push({
-          name: skillMatch[1],
-          description: skillMatch[2],
-          category: currentCategory,
-          executionMode: currentCategory.includes('agent') ? 'agent'
-            : currentCategory.includes('llm') ? 'llm-query'
-            : currentCategory.includes('cli') ? 'cli-direct'
-            : 'built-in'
-        })
-      } else if (trimmed.match(/^[a-z][a-z0-9-]+$/)) {
-        skills.push({ name: trimmed, description: '', category: currentCategory, executionMode: 'built-in' })
-      }
-    }
-
-    return skills
   }
 
   return {

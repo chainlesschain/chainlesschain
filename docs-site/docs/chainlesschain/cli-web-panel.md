@@ -1,14 +1,16 @@
-# Vue3 Web 管理面板 (ui – v5.0.2.5)
+# Vue3 Web 管理面板 (ui – v5.0.2.8)
 
-> **版本**: v5.0.2.5 | 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
+> **版本**: v5.0.2.8 | 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
 
-`chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **仪表板、AI 对话、技能管理、LLM 配置** 四个功能模块，并清晰区分项目级和全局两种工作模式。
+> **v5.0.2.6 起**：通过 `npm install -g chainlesschain` 安装的用户**无需手动构建**，面板已内置于包中，直接运行 `chainlesschain ui` 即可。
+
+`chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **10 个功能模块**，支持 **4 种颜色主题**，并清晰区分项目级和全局两种工作模式。
 
 ## 快速开始
 
 ```bash
-# 首次使用前构建前端
-npm run build:web-panel
+# npm 安装用户：直接启动，无需构建
+chainlesschain ui
 
 # 项目级面板（在含 .chainlesschain/ 的目录下运行）
 cd /your/project
@@ -21,18 +23,17 @@ chainlesschain ui
 chainlesschain ui --port 9000 --ws-port 9001
 chainlesschain ui --token mysecret
 chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
-
-# 热更新开发模式
-npm run dev:web-panel
 ```
 
 启动后访问：`http://127.0.0.1:18810`
 
-## 四个功能模���
+## 十个功能模块
+
+侧边栏分三组：**概览**（仪表板）、**配置**（对话/技能/LLM 配置/服务/日志）、**数据**（笔记/MCP 工具/记忆/定时任务）。
 
 ### 🏠 仪表板 (Dashboard)
 
-- **4 个状态卡片**：WebSocket 连接、活跃 LLM、技能数量、AI 会话数
+- **4 个状态卡片**：WebSocket 连��、活跃 LLM、技能数量、AI 会话数
 - **项目/全局差异化展示**：项目模式显示蓝色项目信息卡片，全局模式显示紫色引导提示
 - 快速操作按钮（新建对话、浏览技能、LLM 配置）
 - 运行信息表格（端口、认证状态、版本）
@@ -55,11 +56,60 @@ npm run dev:web-panel
 
 ### 🔌 LLM 配置 (Providers)
 
-- 10 个 Provider 可视化（Anthropic、OpenAI、Ollama、Gemini 等）
+- **10 个 Provider 可视化**（Anthropic、OpenAI、Ollama、DeepSeek、Gemini、火山引擎、通义千问、Kimi、MiniMax、Mistral）
 - 活跃 Provider 绿色高亮边框 + "活跃"标签
-- ��键切换活跃 Provider
+- 一键切换活跃 Provider
 - 连接测试
 - Ollama 本地模型列表
+
+### 🐳 服务状态 (Services)
+
+- Docker 服务启停操作
+- 端口状态一览（Vite、Signaling、WS Server 等）
+- 服务健康状态实时显示
+
+### 📋 运行日志 (Logs)
+
+- 多颜色行分类（错误红、成功绿、警告黄、缩进灰）
+- 实时刷新
+- 关键字过滤
+
+### 📝 笔记管理 (Notes)
+
+- 笔记列表浏览（标题、标签、预览）
+- 搜索与过滤
+- 新建、查看、删除笔记
+
+### 🔧 MCP 工具 (MCP Tools)
+
+- MCP 服务器列表（名称、命令、描述）
+- 每台服务器的工具列表
+- 工具搜索
+
+### 🧠 记忆系统 (Memory)
+
+- 三层记忆统计（短期 / 长期 / 核心）
+- 记忆条目列表浏览
+- 记忆层切换
+
+### ⏰ 定时任务 (Cron)
+
+- 定时任务列表（名称、Cron 表达式、启用状态）
+- 启用/禁用切换
+- 手动执行
+
+## 颜色主题
+
+面板支持 4 种颜色主题，可在顶部导航栏右上角切换：
+
+| 主题 | ���标 | 特点 |
+|------|------|------|
+| 深色 (Dark) | 🌑 | 默认主题，深灰背景 |
+| 浅色 (Light) | ☀️ | 白色背景，适合日间使用 |
+| 海蓝 (Blue) | 🌊 | 深蓝背景，科技感强 |
+| 绿野 (Green) | 🌿 | 深绿背景，护眼模式 |
+
+主题偏好自动持久化到 `localStorage`（key: `cc_theme`），重新打开面板时恢复上次选择。所有颜色通过 CSS 自定义属性（`--bg-base`、`--bg-card`、`--text-primary` 等）驱动，Ant Design 组件使用对应的深色/浅色算法。
 
 ## 项目级 vs 全局模式
 
@@ -89,7 +139,9 @@ Options:
 
 ## 构建说明
 
-Vue3 面板是一个独立前端项目（`packages/web-panel/`），需要单独构建：
+**npm 安装用户**（`npm install -g chainlesschain`）：**无需任何构建**，面板已在发布时通过 `prepublishOnly` 自动内置到包中。
+
+**源码用户**（从 GitHub 克隆仓库）：需手动构建一次：
 
 ```bash
 # 从项目根目录构建（推荐）
@@ -103,20 +155,20 @@ npm run build
 
 > **注意**：安装时需加 `--legacy-peer-deps`，因为 `@vitejs/plugin-vue@5.x` 与 Vite 7 存在 peer dep 声明不匹配问题。
 
-构建产物在 `packages/web-panel/dist/`，`web-ui-server.js` 启动时自动检测此目录：
-- **存在** → 服务 Vue3 面板
-- **不存在** → 自动回退到内嵌经典 HTML（兼容旧行为）
-
 ## 技术架构
 
 ```
 packages/web-panel/           Vue3 + Vite + Ant Design Vue
-├── src/stores/ws.js          WebSocket 连接管理（指数退避重连）
+├── src/stores/ws.js          WebSocket 连接管理（指数退避重连 + waitConnected）
+├── src/stores/theme.js       主题状态管理（4 主题 + localStorage 持久化）
 ├── src/stores/chat.js        会话与消息状态
 ├── src/stores/skills.js      技能列表与过滤
 ├── src/stores/providers.js   LLM Provider 管理
+├── src/utils/parsers.js      纯函数解析层（技能/状态/笔记/MCP/记忆/Cron）
+├── src/style.css             全局 CSS 变量驱动主题系统
 └── src/components/
-    └── AppLayout.vue         侧边栏布局（含项目/全局模式标识）
+    ├── AppLayout.vue         分组侧边栏 + 主题切换器
+    └── MarkdownRenderer.vue  Markdown 渲染（主题感知）
 ```
 
 **运行时配置注入**：
@@ -141,40 +193,62 @@ packages/web-panel/           Vue3 + Vite + Ant Design Vue
 
 配置值经过 Unicode 转义（`<` → `\u003c`），防止 XSS 攻击。
 
-## 自动降级
+## 自动检测与降级
 
-当 `packages/web-panel/dist/` 不存在时，服务器自动回退到经典内嵌 HTML 模式：
+`chainlesschain ui` 启动时按以下优先级自动查找面板（三路检测）：
 
 ```
-dist/ 存在 → Vue3 管理面板（完整 Dashboard/Chat/Skills/Providers）
-dist/ 不存在 → 经典 HTML（AI 对话基础功能）
+1. --web-panel-dir <dir>          显式指定目录
+2. packages/web-panel/dist/       源码用户本地构建产物
+3. <npm包>/src/assets/web-panel/  npm 安装内置产物（v5.0.2.6+）
+↓ 三路均未找到
+经典 HTML（AI 对话基础功能，自动回退）
 ```
+
+## 关键 Bug 修复（v5.0.2.8）
+
+### 技能列表始终显示 0
+
+**根因**：WebSocket 服务端发送 `{ stdout, stderr, exitCode }` 字段，但客户端的 `execute()` 方法读取 `result.output`（始终为 `undefined`），导致所有 CLI 命令输出为空。
+
+**修复**（`ws.js`）：
+
+```js
+const output = result.output ?? result.stdout ?? ''   // 兼容新旧服务端
+const stderr = result.stderr ?? ''
+return { output: output || stderr, exitCode: result.exitCode ?? 0 }
+```
+
+### Provider 列表不含国产模型
+
+**根因**：旧版使用 `qianwen`、`moonshot`、`baidu` 等非 CLI 键名，活跃/配置状态永远无法匹配。
+
+**修复**：按 CLI `llm-providers.js` 实际键名重写为 `volcengine`、`dashscope`、`kimi`、`minimax`、`mistral` 等 10 个 Provider。
 
 ## 与旧版对比
 
-| 特性 | v5.0.2.3 经典 HTML | v5.0.2.5 Vue3 面板 |
-|------|-------------------|-------------------|
-| 构建 | 无需构建，内嵌 | 需 `npm run build:web-panel` |
-| 功能 | 仅 AI 对话 | 4 个模块（仪表板/对话/技能/LLM）|
-| 技能管理 | ❌ | ✅ 138+ 技能可视化浏览与运行 |
-| LLM 配置 | ❌ | ✅ 10 个 Provider 切换 |
-| 仪表板 | ❌ | ✅ 服务状态卡片 |
-| 项目/全局区分 | ✅ | ✅ 更清晰的视觉区分 |
-| 工具调用可视化 | ✅ | ✅ 折叠卡片 |
+| 特性 | v5.0.2.6 | v5.0.2.8 |
+|------|-----------|-----------|
+| 功能模块数 | 4 | **10**（新增服务/日志/笔记/MCP/记忆/Cron）|
+| 颜色主题 | 仅深色 | **4 种**（深色/浅色/海蓝/绿野）|
+| Provider 列表 | 不含国产模型 | **10 个**含火山引擎/通义千问/Kimi/MiniMax |
+| 技能数量显示 | ❌ 始终为 0 | ✅ 正确显示 138+ |
+| 浅色主题适配 | ❌ 部分组件仍显黑色 | ✅ 全量 CSS 变量适配 |
+| 中文乱码 | 5 处 U+FFFD | ✅ 已全部修复 |
 
 ## 测试覆盖
 
 | 文件 | 类型 | 测试数 |
 |------|------|--------|
-| `web-panel-server.test.js` | 单元 | 37 |
-| `commands-ui.test.js`（新增） | 单元 | +4 |
-| `web-panel-server-integration.test.js` | 集成 | 31 |
-| `web-panel-e2e.test.js` | E2E | 24 |
-| **合计新增** | | **96** |
+| `parsers.test.js` | 单元 | 85 |
+| `theme.test.js` | 单元 | 17 |
+| `ws-store.test.js` | 单元 | 12 |
+| `web-ui-server.test.js`（集成） | 集成 | 23 |
+| `panel.test.js` | E2E | 20 |
+| **Web Panel 合计** | | **157** |
 
 ## 相关文档
 
-- [Web 管理界面 v5.0.2.3](./cli-ui) — 经典 HTML 版本说明
 - [设计文档 — 模块 75](../design/modules/75-web-panel) — 完整技术架构文档
 - [WebSocket 服务器 (serve)](./cli-serve) — 程序化 API 接口
 - [技能系统 (skill)](./cli-skill) — 技能管理详情

@@ -1,10 +1,10 @@
 # 模块 75: Web 管理面板 (chainlesschain ui – Web Panel)
 
-> **版本**: v5.0.2.6
+> **版本**: v5.0.2.8
 > **状态**: ✅ 完成
-> **测试**: 147 个测试（66 单元 + 51 集成 + 30 E2E）
+> **测试**: 157 个测试（114 单元 + 23 集成 + 20 E2E）
 > **新增文件**:
->   - `packages/web-panel/` (Vue3 管理面板，17 个源文件)
+>   - `packages/web-panel/` (Vue3 管理面板，26 个源文件)
 >   - `packages/web-panel/package.json`
 >   - `packages/web-panel/vite.config.js`
 >   - `packages/web-panel/index.html`
@@ -20,6 +20,15 @@
 >   - `packages/web-panel/src/views/Chat.vue`
 >   - `packages/web-panel/src/views/Skills.vue`
 >   - `packages/web-panel/src/views/Providers.vue`
+>   - `packages/web-panel/src/views/Services.vue`
+>   - `packages/web-panel/src/views/Logs.vue`
+>   - `packages/web-panel/src/views/Notes.vue`
+>   - `packages/web-panel/src/views/McpTools.vue`
+>   - `packages/web-panel/src/views/Memory.vue`
+>   - `packages/web-panel/src/views/Cron.vue`
+>   - `packages/web-panel/src/stores/theme.js`
+>   - `packages/web-panel/src/utils/parsers.js`
+>   - `packages/web-panel/src/style.css`
 >   - `packages/web-panel/src/components/AppLayout.vue`
 >   - `packages/web-panel/src/components/MarkdownRenderer.vue`
 > **修改文件** (v5.0.2.5):
@@ -31,10 +40,20 @@
 >   - `packages/cli/package.json` — 新增 `build:web-panel`、`prepublishOnly` 脚本
 >   - `package.json` (根目录) — 更新 `build:web-panel`（构建 + 复制到 CLI 包）
 >   - `.gitignore` — 忽略 `packages/cli/src/assets/web-panel/`、`packages/web-panel/dist/`
+> **修改文件** (v5.0.2.8 – 10 模块 + 4 主题 + Bug 修复):
+>   - `packages/web-panel/src/stores/ws.js` — `waitConnected()` + `execute()` stdout/output 兼容
+>   - `packages/web-panel/src/utils/parsers.js` — KNOWN_PROVIDERS 修正 + 7 个新解析函数
+>   - 所有视图文件 — 硬编码暗色值替换为 CSS 变量
+>   - 5 处中文 U+FFFD 乱码修复
 > **测试文件**:
 >   - `packages/cli/__tests__/unit/web-ui-server.test.js` (v5.0.2.5: 46 → v5.0.2.6: 66)
 >   - `packages/cli/__tests__/integration/ui-server-integration.test.js` (29 → 51)
 >   - `packages/cli/__tests__/e2e/ui-command.test.js` (24 → 30)
+>   - `packages/web-panel/__tests__/unit/parsers.test.js` (85 个)
+>   - `packages/web-panel/__tests__/unit/theme.test.js` (17 个，v5.0.2.8 新增)
+>   - `packages/web-panel/__tests__/unit/ws-store.test.js` (12 个，v5.0.2.8 新增)
+>   - `packages/web-panel/__tests__/integration/web-ui-server.test.js` (23 个)
+>   - `packages/web-panel/__tests__/e2e/panel.test.js` (20 个)
 
 ---
 
