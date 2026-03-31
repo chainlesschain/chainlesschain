@@ -58,8 +58,16 @@ export default defineConfig({
             link: "/modules/m73-web-ui",
           },
           {
-            text: "v5.0.2.4 AI编排层 (74) ⭐NEW",
+            text: "v5.0.2.4 AI编排层 (74)",
             link: "/modules/m74-orchestration-layer",
+          },
+          {
+            text: "v5.0.2.8 Web管理面板 10模块+4主题 (75) ⭐NEW",
+            link: "/modules/m75-web-panel",
+          },
+          {
+            text: "v5.0.2.7 Skill Creator (76)",
+            link: "/modules/m76-skill-creator",
           },
         ],
       },
@@ -527,12 +535,32 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.4 AI编排层 (74) ⭐NEW",
+          text: "v5.0.2.4 AI编排层 (74)",
           collapsed: false,
           items: [
             {
-              text: "74 AI编排层系统 ⭐NEW",
+              text: "74 AI编排层系统",
               link: "/modules/m74-orchestration-layer",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.8 Web管理面板 10模块+4主题 (75) ⭐NEW",
+          collapsed: false,
+          items: [
+            {
+              text: "75 Vue3 Web管理面板 10模块+4主题 ⭐NEW",
+              link: "/modules/m75-web-panel",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.7 Skill Creator (76)",
+          collapsed: false,
+          items: [
+            {
+              text: "76 Skill Creator系统",
+              link: "/modules/m76-skill-creator",
             },
           ],
         },

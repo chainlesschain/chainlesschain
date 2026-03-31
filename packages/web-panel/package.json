@@ -7,7 +7,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:unit": "vitest run __tests__/unit",
+    "test:integration": "vitest run __tests__/integration",
+    "test:e2e": "vitest run __tests__/e2e",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "ant-design-vue": "^4.2.6",
@@ -20,6 +26,10 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.2",
-    "vite": "^7.2.7"
+    "vite": "^7.2.7",
+    "vitest": "^3.1.1",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^14.12.3",
+    "@pinia/testing": "^0.1.6"
   }
 }

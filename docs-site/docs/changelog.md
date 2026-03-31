@@ -5,6 +5,45 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.0.2.8] - 2026-03-31
+
+### Added
+
+- **Web 管理面板 10 模块 + 4 主题（v5.0.2.8）**：
+  - 新增 6 个侧边栏页面：服务状态 (Services)、运行日志 (Logs)、笔记管理 (Notes)、MCP 工具 (McpTools)、记忆系统 (Memory)、定时任务 (Cron)
+  - 侧边栏分三组导航：概览 / 配置 / 数据
+  - 主题切换系统：4 种主题（深色/浅色/海蓝/绿野），CSS 自定义属性驱动，Ant Design 深色/浅色算法切换，`localStorage` 持久化
+  - `src/stores/theme.js`：Pinia 主题 store，`setTheme()`、`isDark`、`antdTheme` 计算属性、`init()` 启动应用
+  - `src/style.css`：全局 CSS 变量 + Ant Design 组件主题覆盖（表格、模态框、输入框、选择器等）
+  - `src/utils/parsers.js`：纯函数解析层新增 `parseNoteList`、`parseMcpServers`、`parseMcpTools`、`parseMemoryStats`、`parseMemories`、`parseCronTasks`、`classifyLogLine`
+  - `KNOWN_PROVIDERS` 按 CLI 实际键名重写为 10 个 Provider（含 `volcengine`、`dashscope`、`kimi`、`minimax`、`mistral`）
+
+### Fixed
+
+- **技能列表始终显示 0**：根因为 WS 服务端发 `stdout` 字段，客户端读 `result.output`（undefined）；修复 `ws.js` `execute()` 为 `result.output ?? result.stdout ?? ''`，同时新增 `waitConnected(8000ms)` 避免组件 `onMounted` 时 WS 尚未就绪的竞态问题
+- **5 处中文字符 U+FFFD 乱码**：`parsers.js`（本地）、`Chat.vue`（发送）、`Cron.vue`（任务名称/启用）、`Notes.vue`（标题）
+- **浅色主题组件不匹配**：全量替换 10 个视图文件中的硬编码暗色值（`#1f1f1f`、`#303030`、`color: #fff` 等）为 CSS 变量
+- **DeepSeek 图标乱码**：`providers.js` 中 `icon: '🔍'` 被 3 个 U+FFFD 替换字符覆盖，已还原
+
+### Tests
+
+- 新增 **29 个 Web Panel 单元测试**：
+  - `__tests__/unit/theme.test.js`（17 个）：THEMES 定义完整性、CSS 变量覆盖、算法类型、localStorage 持久化、isDark 计算属性
+  - `__tests__/unit/ws-store.test.js`（12 个）：`execute()` stdout 字段映射、stderr fallback、legacy output 兼容、`waitConnected()` 超时/错误、socket 关闭拒绝 pending、error 消息类型路由
+- Web Panel 测试总数达 **157 个**（114 单元 + 23 集成 + 20 E2E）
+
+## [5.0.2.7] - 2026-03-25
+
+### Added
+
+- **Skill Creator v1.2.0 — LLM 驱动描述优化循环**：
+  - 新增 `optimize-description` 动作：自动生成 20 条 eval 查询（10 应触发 / 10 不应触发），60/40 分割为训练集与测试集，迭代最多 N 次（默认 5）改写技能描述，写回最优版本至 `SKILL.md`
+  - 新增 `--advanced` 标志（`optimize` 别名）和 `--iterations N` 标志
+  - LLM 调用通过 `spawnSync(chainlesschain ask)` 桥接，60s 超时，LLM 不可用时优雅降级
+  - `_deps` 注入 `spawnSync` 实现全量可测试性，集成测试 mock `_deps.fs.writeFileSync` 防止修改真实 SKILL.md
+  - 新增 **76 个测试**（50 单元 + 12 集成 + 14 E2E），`.opt-workspace/` 已加入 `.gitignore`
+- **设计文档**：`docs/design/modules/76_技能创建系统.md`，同步至文档站点 `76-skill-creator.md`
+
 ## [5.0.2.6] - 2026-03-24
 
 ### Added

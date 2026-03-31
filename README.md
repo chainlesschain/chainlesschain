@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.7-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.8-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -22,9 +22,42 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.7 Evolution Edition (2026-03-24)
+## ⭐ 当前版本: v5.0.2.8 Evolution Edition (2026-03-31)
 
-### 最新更新 - Skill Creator v1.2.0：LLM 驱动描述优化循环 ⭐
+### 最新更新 - Web 管理面板 10 模块 + 4 主题 ⭐
+
+v5.0.2.8 对 Vue3 Web 管理面板进行全面扩展，新增 6 个功能模块并引入 4 种颜色主题：
+
+**新增 6 个功能页面**：
+- 🐳 **服务状态 (Services)** — Docker 服务启停、端口状态监控
+- 📋 **运行日志 (Logs)** — 多色行分类实时日志，支持关键字过滤
+- 📝 **笔记管理 (Notes)** — 笔记列表、搜索、新建、删除
+- 🔧 **MCP 工具 (McpTools)** — MCP 服务器与工具列表
+- 🧠 **记忆系统 (Memory)** — 三层记忆统计与条目浏览
+- ⏰ **定时任务 (Cron)** — 定时任务列表与启用/禁用控制
+
+**4 种颜色主题**（顶栏右上角一键切换，`localStorage` 持久化）：
+
+| 🌑 深色 (默认) | ☀️ 浅色 | 🌊 海蓝 | 🌿 绿野 |
+|---|---|---|---|
+| 深灰背景 | 白色背景 | 深蓝背景 | 深绿背景 |
+
+**关键 Bug 修复**：
+- 技能列表始终显示 0：WS 服务端发 `stdout` 字段，客户端读 `output`（undefined）→ 已修复
+- Provider 列表不含火山引擎等国产模型 → 按 CLI 实际键名重写为 10 个 Provider
+- 5 处中文字符 U+FFFD 乱码 → 全部修复
+
+**测试**：新增 29 个 Web Panel 单元测试（`theme.test.js` 17 个 + `ws-store.test.js` 12 个），Web Panel 测试总数达 157 个。
+
+```bash
+chainlesschain ui                              # 启动面板（内置，无需构建）
+chainlesschain ui --port 9000 --ws-port 9001  # 自定义端口
+chainlesschain ui --web-panel-dir /custom/dist # 指定 dist 目录
+```
+
+**v5.0.2.7 更新**（Skill Creator v1.2.0）：[查看详情](#历史更新---skill-creator-v120lll-驱动描述优化循环)
+
+### 历史更新 - Skill Creator v1.2.0：LLM 驱动描述优化循环
 
 v5.0.2.7 升级内置 `skill-creator` 至 v1.2.0，新增 LLM 驱动的技能描述优化功能：
 

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.7-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.8-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -22,9 +22,40 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v5.0.2.7 Evolution Edition (2026-03-24)
+## ⭐ Current Version: v5.0.2.8 Evolution Edition (2026-03-31)
 
-### Latest Update - Skill Creator v1.2.0: LLM-Driven Description Optimization ⭐
+### Latest Update - Web Panel: 10 Modules + 4 Themes ⭐
+
+v5.0.2.8 expands the Vue3 Web Management Panel with 6 new pages and a 4-theme color system:
+
+**6 New Pages** (sidebar now has 10 total):
+- 🐳 **Services** — Docker service control, port health monitoring
+- 📋 **Logs** — Color-coded log viewer with keyword filtering
+- 📝 **Notes** — Note list, search, create, delete
+- 🔧 **MCP Tools** — MCP server and tool browser
+- 🧠 **Memory** — 3-layer memory statistics and item browser
+- ⏰ **Cron** — Scheduled task list with enable/disable toggle
+
+**4 Color Themes** (top-right switcher, persisted to `localStorage`):
+
+| 🌑 Dark (default) | ☀️ Light | 🌊 Blue | 🌿 Green |
+|---|---|---|---|
+| Dark gray | White | Deep blue | Deep green |
+
+**Key Bug Fixes**:
+- Skills always showing 0: WS server sends `stdout`, client read `output` (undefined) — fixed
+- Provider list missing Chinese models: rewritten to match CLI's actual 10 provider keys
+- 5 Chinese character U+FFFD corruption instances — all fixed
+
+**Tests**: +29 new Web Panel unit tests, total 157 Web Panel tests.
+
+```bash
+chainlesschain ui                              # Launch panel (bundled, no build needed)
+chainlesschain ui --port 9000 --ws-port 9001  # Custom ports
+chainlesschain ui --web-panel-dir /custom/dist # Custom dist directory
+```
+
+### History - Skill Creator v1.2.0: LLM-Driven Description Optimization
 
 v5.0.2.7 upgrades the built-in `skill-creator` to v1.2.0, adding a full LLM-driven description optimization loop:
 
@@ -40,37 +71,24 @@ chainlesschain skill run skill-creator "optimize-description code-review --itera
 chainlesschain skill run skill-creator "optimize code-review --advanced"
 ```
 
-**v5.0.2.6**: Vue3 Web Panel npm packaging + `$` character bug fix.
+**v5.0.2.6**: Vue3 Web Panel npm packaging + `$` character bug fix. npm users get panel bundled — no build step needed.
 
-### v5.0.2.5 - Vue3 Web Management Panel ⭐
+### v5.0.2.5 - Vue3 Web Management Panel
 
-`chainlesschain ui` now launches a full Vue3 management panel (inspired by [ClawPanel](https://github.com/qingchencloud/clawpanel)) with 4 functional modules:
+`chainlesschain ui` launches a full Vue3 management panel (inspired by [ClawPanel](https://github.com/qingchencloud/clawpanel)):
 
 - ✅ **Dashboard** — Service status cards (WebSocket / active LLM / skills count / sessions)
 - ✅ **AI Chat** — Chat / Agent dual modes, streaming Markdown, tool call visualization, interactive Q&A
 - ✅ **Skills Manager** — Browse 138+ skills by category, search, one-click run
 - ✅ **LLM Providers** — 10 provider management, one-click switch, connection test, Ollama model list
-- ✅ **Project vs Global Mode** — Project mode scopes sessions to project; clear visual distinction (blue banner vs purple)
-- ✅ **Auto-detect dist/** — Falls back gracefully to classic embedded HTML if dist/ not built
-- ✅ **96 New Tests** — 37 unit + 31 integration + 24 E2E (+ 4 option tests), all passing
+- ✅ **Project vs Global Mode** — Project mode scopes sessions to project; clear visual distinction
 
 ```bash
-# Build the panel first
-npm run build:web-panel
-
-# Project-scoped panel (run from a project with .chainlesschain/)
-cd /your/project && chainlesschain ui
-
-# Global panel
+# npm install users: no build needed
 chainlesschain ui
 
-# Custom options
-chainlesschain ui --port 9000 --ws-port 9001
-chainlesschain ui --token mysecret
-chainlesschain ui --web-panel-dir /custom/dist   # Custom dist directory
-
-# Hot-reload dev mode
-npm run dev:web-panel
+# Source users
+npm run build:web-panel && chainlesschain ui
 ```
 
 ---

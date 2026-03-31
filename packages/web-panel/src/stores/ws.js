@@ -140,10 +140,32 @@ export const useWsStore = defineStore('ws', () => {
     })
   }
 
+  // Wait until WS is connected (or timeout)
+  function waitConnected(timeoutMs = 8000) {
+    if (status.value === 'connected') return Promise.resolve()
+    return new Promise((resolve, reject) => {
+      const deadline = Date.now() + timeoutMs
+      const tick = () => {
+        if (status.value === 'connected') return resolve()
+        if (status.value === 'error' || Date.now() >= deadline) {
+          return reject(new Error(`WS not ready: ${status.value}`))
+        }
+        setTimeout(tick, 150)
+      }
+      // Trigger connect if not already started
+      if (status.value === 'disconnected') connect()
+      tick()
+    })
+  }
+
   // Execute a CLI command and return { output, exitCode }
+  // Server sends { stdout, stderr } — output = stdout + stderr combined
   async function execute(command, timeoutMs = 30000) {
+    await waitConnected(8000)
     const result = await sendRaw({ type: 'execute', command }, timeoutMs)
-    return { output: result.output || '', exitCode: result.exitCode ?? 0 }
+    const output = result.output ?? result.stdout ?? ''
+    const stderr = result.stderr ?? ''
+    return { output: output || stderr, exitCode: result.exitCode ?? 0 }
   }
 
   // Parse JSON output from execute
@@ -162,6 +184,7 @@ export const useWsStore = defineStore('ws', () => {
 
   // Create a chat/agent session
   async function createSession(sessionType = 'chat', projectRoot = null) {
+    await waitConnected(8000)
     const id = genId()
     const result = await sendRaw({ type: 'session-create', id, sessionType, projectRoot: projectRoot || cfg.projectRoot || null })
     return result.sessionId
@@ -192,6 +215,7 @@ export const useWsStore = defineStore('ws', () => {
 
   // List sessions
   async function listSessions() {
+    await waitConnected(8000)
     const result = await sendRaw({ type: 'session-list' }, 10000)
     return result.sessions || []
   }
@@ -205,7 +229,7 @@ export const useWsStore = defineStore('ws', () => {
 
   return {
     status, error, wsUrl,
-    connect, disconnect,
+    connect, disconnect, waitConnected,
     onMessage, onSession,
     execute, executeJson,
     createSession, sendSessionMessage, answerQuestion, listSessions, closeSession

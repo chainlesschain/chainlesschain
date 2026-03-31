@@ -6,7 +6,7 @@ export LC_ALL=zh_CN.UTF-8
 
 echo ""
 echo "========================================"
-echo "  文档网站打包脚本 v5.0.2.6"
+echo "  文档网站打包脚本 v5.0.2.8"
 echo "========================================"
 echo ""
 
@@ -58,7 +58,7 @@ echo "✅ 构建成功"
 echo ""
 echo "[5/5] 打包文件..."
 DIST_DIR="docs/.vitepress/dist"
-PACKAGE_NAME="chainlesschain-docs-v5.0.2.6-$(date +%Y%m%d).tar.gz"
+PACKAGE_NAME="chainlesschain-docs-v5.0.2.8-$(date +%Y%m%d).tar.gz"
 
 if [ -f "$PACKAGE_NAME" ]; then
     rm "$PACKAGE_NAME"

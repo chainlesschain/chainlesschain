@@ -130,6 +130,8 @@ const MODULE_FILE_MAP = {
   "72_AI文档创作模板.md": "m72-ai-doc-creator.md",
   "73_Web管理界面.md": "m73-web-ui.md",
   "74_AI编排层系统.md": "m74-orchestration-layer.md",
+  "75_Web管理面板.md": "m75-web-panel.md",
+  "76_技能创建系统.md": "m76-skill-creator.md",
 };
 
 /**

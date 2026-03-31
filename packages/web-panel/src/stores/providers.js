@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useWsStore } from './ws.js'
+import { parseProviders, parseModels } from '../utils/parsers.js'
 
 export const useProvidersStore = defineStore('providers', () => {
   const loading = ref(false)
@@ -28,53 +29,6 @@ export const useProvidersStore = defineStore('providers', () => {
     }
   }
 
-  function parseProviders(output) {
-    const knownProviders = [
-      { name: 'anthropic', label: 'Anthropic (Claude)', icon: '🤖' },
-      { name: 'openai', label: 'OpenAI (GPT)', icon: '🧠' },
-      { name: 'ollama', label: 'Ollama (本地)', icon: '🦙' },
-      { name: 'gemini', label: 'Google Gemini', icon: '✨' },
-      { name: 'deepseek', label: 'DeepSeek', icon: '���' },
-      { name: 'qianwen', label: '通义千问', icon: '🌊' },
-      { name: 'zhipu', label: '智谱 GLM', icon: '📐' },
-      { name: 'moonshot', label: 'Moonshot Kimi', icon: '🌙' },
-      { name: 'baidu', label: '百度文心', icon: '🌸' },
-      { name: 'groq', label: 'Groq', icon: '⚡' },
-    ]
-
-    const result = []
-    for (const p of knownProviders) {
-      const configured = output.toLowerCase().includes(p.name)
-      const active = output.match(new RegExp(`\\*?\\s*${p.name}`, 'i')) && output.includes('*')
-        ? output.indexOf('*') < output.toLowerCase().indexOf(p.name) + 20
-        : false
-      result.push({
-        ...p,
-        configured: configured || output.includes('active') && output.toLowerCase().includes(p.name),
-        active: output.match(new RegExp(`\\*\\s*${p.name}`, 'i')) !== null,
-        status: 'unknown'
-      })
-    }
-
-    // Mark first as active if none found
-    if (!result.find(p => p.active) && result.length > 0) {
-      const activeMatch = output.match(/active[:\s]+(\w+)/i)
-      if (activeMatch) {
-        const p = result.find(r => r.name === activeMatch[1].toLowerCase())
-        if (p) p.active = true
-      }
-    }
-
-    return result
-  }
-
-  function parseModels(output) {
-    return output.split('\n')
-      .map(l => l.trim())
-      .filter(l => l && !l.startsWith('#') && !l.startsWith('─') && l.includes(':'))
-      .map(l => ({ name: l, size: '' }))
-      .slice(0, 20)
-  }
 
   async function switchProvider(name) {
     const ws = useWsStore()
