@@ -8,6 +8,7 @@ import {
 } from "../lib/config-manager.js";
 import { getConfigPath } from "../lib/paths.js";
 import logger from "../lib/logger.js";
+import { listFeatures, setFeature, getFlagInfo } from "../lib/feature-flags.js";
 
 export function registerConfigCommand(program) {
   const cmd = program
@@ -68,6 +69,49 @@ export function registerConfigCommand(program) {
         logger.info(`Config file is at: ${configPath}`);
       }
     });
+
+  // ── Feature Flags ──────────────────────────────────────────────────
+
+  const featuresCmd = cmd
+    .command("features")
+    .description("Manage feature flags");
+
+  featuresCmd
+    .command("list")
+    .alias("ls")
+    .description("Show all feature flags and their status")
+    .action(() => {
+      const flags = listFeatures();
+      logger.log(chalk.bold("\n  Feature Flags\n"));
+      for (const f of flags) {
+        const status = f.enabled ? chalk.green("● ON ") : chalk.gray("○ OFF");
+        const src = chalk.gray(`[${f.source}]`);
+        logger.log(`  ${status} ${chalk.cyan(f.name)} ${src}`);
+        logger.log(`         ${chalk.gray(f.description)}`);
+      }
+      logger.newline();
+    });
+
+  featuresCmd
+    .command("enable")
+    .description("Enable a feature flag")
+    .argument("<name>", "Flag name (e.g. CONTEXT_SNIP)")
+    .action((name) => {
+      setFeature(name, true);
+      const info = getFlagInfo(name);
+      logger.success(`Enabled ${name}${info ? ` — ${info.description}` : ""}`);
+    });
+
+  featuresCmd
+    .command("disable")
+    .description("Disable a feature flag")
+    .argument("<name>", "Flag name (e.g. CONTEXT_SNIP)")
+    .action((name) => {
+      setFeature(name, false);
+      logger.success(`Disabled ${name}`);
+    });
+
+  // ── Reset ──────────────────────────────────────────────────────────
 
   cmd
     .command("reset")

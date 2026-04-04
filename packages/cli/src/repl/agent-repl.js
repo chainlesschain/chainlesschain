@@ -38,6 +38,8 @@ import {
 } from "../lib/task-model-selector.js";
 import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
+import { PromptCompressor } from "../lib/prompt-compressor.js";
+import { feature } from "../lib/feature-flags.js";
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
@@ -50,6 +52,7 @@ import {
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
  */
 let _hookDb = null;
+let _compressor = null;
 
 /**
  * Execute a tool call — delegates to agent-core with REPL's hookDb and cwd.
@@ -103,6 +106,11 @@ export async function startAgentRepl(options = {}) {
     db = ctx.db || null;
   } catch (_err) {
     // Continue without DB — static prompt fallback
+  }
+
+  // Initialize prompt compressor
+  if (feature("PROMPT_COMPRESSOR")) {
+    _compressor = new PromptCompressor({ maxMessages: 20, maxTokens: 8000 });
   }
 
   // Initialize permanent memory
@@ -373,7 +381,15 @@ export async function startAgentRepl(options = {}) {
     }
 
     if (trimmed === "/compact") {
-      if (contextEngine && messages.length > 5) {
+      if (_compressor && messages.length > 3) {
+        const { messages: compacted, stats } =
+          await _compressor.compress(messages);
+        messages.length = 0;
+        messages.push(...compacted);
+        logger.info(
+          `Compacted: ${stats.originalMessages} → ${stats.compressedMessages} messages, saved ${stats.saved} tokens (${stats.strategy})`,
+        );
+      } else if (contextEngine && messages.length > 5) {
         const compacted = contextEngine.smartCompact(messages);
         messages.length = 0;
         messages.push(...compacted);
@@ -381,7 +397,6 @@ export async function startAgentRepl(options = {}) {
           `Compacted to ${messages.length} messages (importance-based)`,
         );
       } else if (messages.length > 5) {
-        // Fallback: original logic
         const systemMsg = messages[0];
         const recent = messages.slice(-4);
         messages.length = 0;
@@ -1044,6 +1059,27 @@ export async function startAgentRepl(options = {}) {
           // Non-critical
         }
       }
+      // Auto-compact when context grows too large
+      if (
+        feature("PROMPT_COMPRESSOR") &&
+        _compressor &&
+        _compressor.shouldAutoCompact(messages)
+      ) {
+        try {
+          const { messages: compacted, stats } =
+            await _compressor.compress(messages);
+          messages.length = 0;
+          messages.push(...compacted);
+          if (stats.saved > 0) {
+            logger.verbose(
+              `Auto-compacted: ${stats.strategy} (saved ${stats.saved} tokens)`,
+            );
+          }
+        } catch (_e) {
+          // Non-critical — continue with uncompacted messages
+        }
+      }
+
       // Store as episodic memory
       if (db) {
         try {
