@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.8-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.9-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5232%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5438%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -22,9 +22,33 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.8 Evolution Edition (2026-03-31)
+## ⭐ 当前版本: v5.0.2.9 Evolution Edition (2026-04-04)
 
-### 最新更新 - Web 管理面板 10 模块 + 4 主题 ⭐
+### 最新更新 - Agent 架构优化 (5 模块 + 132 测试) ⭐
+
+v5.0.2.9 借鉴 Claude Code 12 层渐进式 harness 架构，为 CLI Agent 新增 5 个核心优化模块：
+
+**5 个新模块**：
+- **Feature Flags** (`feature-flags.js`) — 6 个特性标志位，env > config > default 三级优先级，百分比灰度 A/B 分流
+- **Prompt Compressor** (`prompt-compressor.js`) — 5 策略上下文压缩流水线（去重/截断/摘要/SnipCompact/ContextCollapse），CJK token 估算
+- **JSONL Session Store** (`jsonl-session-store.js`) — 追加式会话持久化，崩溃恢复，会话分叉，compact 快照重建
+- **Background Task Manager** (`background-task-manager.js`) — 子进程 fork + IPC 心跳监控，并发限制，任务持久化
+- **Worktree Isolator** (`worktree-isolator.js`) — Git Worktree 隔离执行，agent/* 分支自动管理，崩溃后清理
+
+**新 CLI 命令**：
+```bash
+chainlesschain config features list              # 列出 6 个 Feature Flag 状态
+chainlesschain config features enable CONTEXT_SNIP  # 启用特性
+chainlesschain config features disable CONTEXT_SNIP # 禁用特性
+```
+
+**CLAUDE.md 优化**：从 32KB/724 行精简至 4.3KB/117 行，提取 6 个 path-scoped `.claude/rules/` 规则文件 + `@include` 指令。
+
+**Bug 修复**：`PromptCompressor.compress(null)` 崩溃 → 安全返回空数组。
+
+**测试覆盖**：206 个新测试（160 单元 + 23 集成 + 23 E2E），全部通过。
+
+### 历史更新 - Web 管理面板 10 模块 + 4 主题
 
 v5.0.2.8 对 Vue3 Web 管理面板进行全面扩展，新增 6 个功能模块并引入 4 种颜色主题：
 

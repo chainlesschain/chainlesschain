@@ -135,6 +135,7 @@ export const DEFAULT_CONFIG = {
   setupCompleted: false,
   completedAt: null,
   edition: "personal",
+  features: {},
   paths: {
     projectRoot: null,
     database: null,

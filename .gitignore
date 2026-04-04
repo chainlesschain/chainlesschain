@@ -5,7 +5,11 @@ bower_components/
 wlsimkey/
 SIMKeySDK-20220416/
 doc/
-.claude/
+# Claude Code local settings (keep .claude/rules/ tracked)
+.claude/*
+!.claude/rules/
+CLAUDE.local.md
+CLAUDE-activeContext.md
 参考资料/
 
 # Build outputs
