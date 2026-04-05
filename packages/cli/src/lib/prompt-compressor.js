@@ -60,6 +60,105 @@ function getContent(msg) {
     : JSON.stringify(msg.content || "");
 }
 
+// ── Provider context window registry ───────────────────────────────────
+
+/**
+ * Known context window sizes (in tokens) per model/provider.
+ * Used by adaptive compression to auto-tune maxTokens.
+ */
+export const CONTEXT_WINDOWS = {
+  // Ollama local models
+  "qwen2.5:7b": 32768,
+  "qwen2.5:14b": 32768,
+  "qwen2.5-coder:14b": 32768,
+  "qwen2:7b": 32768,
+  "llama3:8b": 8192,
+  "mistral:7b": 32768,
+  "codellama:7b": 16384,
+  // OpenAI
+  "gpt-4o": 128000,
+  "gpt-4o-mini": 128000,
+  "gpt-4-turbo": 128000,
+  "gpt-3.5-turbo": 16385,
+  o1: 200000,
+  // Anthropic
+  "claude-opus-4-6": 200000,
+  "claude-sonnet-4-6": 200000,
+  "claude-haiku-4-5-20251001": 200000,
+  // DeepSeek
+  "deepseek-chat": 64000,
+  "deepseek-coder": 64000,
+  "deepseek-reasoner": 64000,
+  // DashScope
+  "qwen-turbo": 131072,
+  "qwen-plus": 131072,
+  "qwen-max": 32768,
+  // Gemini
+  "gemini-2.0-flash": 1048576,
+  "gemini-2.0-pro": 1048576,
+  "gemini-1.5-flash": 1048576,
+  // Kimi
+  "moonshot-v1-auto": 131072,
+  "moonshot-v1-8k": 8192,
+  "moonshot-v1-32k": 32768,
+  "moonshot-v1-128k": 131072,
+  // Volcengine
+  "doubao-seed-1-6-251015": 32768,
+  // Provider-level defaults (fallback when model not listed)
+  _provider_defaults: {
+    ollama: 32768,
+    openai: 128000,
+    anthropic: 200000,
+    deepseek: 64000,
+    dashscope: 131072,
+    gemini: 1048576,
+    kimi: 131072,
+    volcengine: 32768,
+    minimax: 32768,
+    mistral: 32768,
+  },
+};
+
+/**
+ * Get context window size for a model/provider combination.
+ * @param {string} [model] — Model name
+ * @param {string} [provider] — Provider name
+ * @returns {number} Context window in tokens
+ */
+export function getContextWindow(model, provider) {
+  if (model && CONTEXT_WINDOWS[model]) {
+    return CONTEXT_WINDOWS[model];
+  }
+  if (provider && CONTEXT_WINDOWS._provider_defaults[provider]) {
+    return CONTEXT_WINDOWS._provider_defaults[provider];
+  }
+  return 32768; // Conservative default
+}
+
+/**
+ * Calculate adaptive compression thresholds based on context window.
+ *
+ * Strategy:
+ * - maxTokens = 60% of context window (reserve 40% for system prompt + response)
+ * - maxMessages scales with context: small ctx → 15, large ctx → 50
+ * - For very large contexts (>128k), enable less aggressive compression
+ *
+ * @param {number} contextWindow — Context window in tokens
+ * @returns {{ maxMessages: number, maxTokens: number, aggressive: boolean }}
+ */
+export function adaptiveThresholds(contextWindow) {
+  const maxTokens = Math.floor(contextWindow * 0.6);
+  // Scale messages: 15 for 8k, 20 for 32k, 30 for 128k, 50 for 200k+
+  const maxMessages = Math.min(
+    50,
+    Math.max(15, Math.floor(10 + Math.log2(contextWindow / 1024) * 5)),
+  );
+  // Aggressive compression only for small context windows
+  const aggressive = contextWindow < 32768;
+
+  return { maxMessages, maxTokens, aggressive };
+}
+
 // ── PromptCompressor class ──────────────────────────────────────────────
 
 export class PromptCompressor {
@@ -69,12 +168,43 @@ export class PromptCompressor {
    * @param {number} [options.maxTokens=8000] — Token threshold for auto-compact
    * @param {number} [options.similarityThreshold=0.9] — Dedup similarity threshold
    * @param {Function} [options.llmQuery] — async (prompt) => string, for summarization
+   * @param {string} [options.model] — Model name (for adaptive thresholds)
+   * @param {string} [options.provider] — Provider name (for adaptive thresholds)
    */
   constructor(options = {}) {
-    this.maxMessages = options.maxMessages || 20;
-    this.maxTokens = options.maxTokens || 8000;
+    // If model/provider supplied and no explicit maxMessages/maxTokens, auto-adapt
+    if (
+      (options.model || options.provider) &&
+      !options.maxMessages &&
+      !options.maxTokens
+    ) {
+      const ctxWindow = getContextWindow(options.model, options.provider);
+      const adaptive = adaptiveThresholds(ctxWindow);
+      this.maxMessages = adaptive.maxMessages;
+      this.maxTokens = adaptive.maxTokens;
+      this._adaptive = true;
+      this._contextWindow = ctxWindow;
+    } else {
+      this.maxMessages = options.maxMessages || 20;
+      this.maxTokens = options.maxTokens || 8000;
+      this._adaptive = false;
+      this._contextWindow = null;
+    }
     this.similarityThreshold = options.similarityThreshold || 0.9;
     this.llmQuery = options.llmQuery || null;
+  }
+
+  /**
+   * Reconfigure thresholds for a new model/provider (e.g. after model switch).
+   * Only updates if no explicit overrides were set in constructor.
+   */
+  adaptToModel(model, provider) {
+    const ctxWindow = getContextWindow(model, provider);
+    const adaptive = adaptiveThresholds(ctxWindow);
+    this.maxMessages = adaptive.maxMessages;
+    this.maxTokens = adaptive.maxTokens;
+    this._adaptive = true;
+    this._contextWindow = ctxWindow;
   }
 
   /**

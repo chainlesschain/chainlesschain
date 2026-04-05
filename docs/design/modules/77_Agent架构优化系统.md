@@ -219,11 +219,11 @@ chainlesschain config features disable CONTEXT_SNIP
 
 ```
          ╱╲
-        ╱E2E╲        23 tests — CLI 命令级验证
+        ╱E2E╲        37 tests — CLI 命令级验证
        ╱──────╲
-      ╱ 集成   ╲     23 tests — 跨模块交互
+      ╱ 集成   ╲     42 tests — 跨模块交互
      ╱──────────╲
-    ╱   单元     ╲   160 tests — 模块内部逻辑
+    ╱   单元     ╲   255 tests — 模块内部逻辑
    ╱──────────────╲
 ```
 
@@ -237,12 +237,24 @@ chainlesschain config features disable CONTEXT_SNIP
 | `background-task-manager.test.js` | 单元 | 20 |
 | `worktree-isolator.test.js` | 单元 | 12 |
 | `agent-optimization-extended.test.js` | 单元 | 56 |
+| `v5029-features.test.js` | 单元 | 33 |
+| `v5029-extended.test.js` | 单元 | 62 |
 | `agent-optimization-workflow.test.js` | 集成 | 23 |
+| `v5029-workflow.test.js` | 集成 | 19 |
 | `agent-optimization-commands.test.js` | E2E | 23 |
+| `v5029-commands.test.js` | E2E | 14 |
+| **合计** | | **334** |
 
-## 10. 后续规划
+## 10. 已完成的增强 (v5.0.2.9)
 
-1. **JSONL_SESSION 全面替换**: 当前 session-manager.js 仍使用 JSON 覆写，待 JSONL_SESSION flag 稳定后全面切换
-2. **Background Tasks UI**: Web Panel 中增加任务监控面板
-3. **Worktree + Sub-Agent**: 将 Sub-Agent Isolation v2 与 Worktree Isolator 集成
-4. **Context Compression 自适应**: 根据 LLM provider 的 context window 大小自动调整压缩策略
+1. ~~**JSONL_SESSION 全面替换**~~: ✅ `agent-repl.js` 和 `session.js` 完整集成 — 创建/保存/恢复/列表均支持 JSONL 模式
+2. ~~**Background Tasks UI**~~: ✅ Web Panel 新增「后台任务」监控页面（Pinia store + Vue3 组件 + WS 协议）
+3. ~~**Worktree + Sub-Agent**~~: ✅ `SubAgentContext` 集成 `isolateTask()` — 子 Agent 自动在隔离 worktree 中执行
+4. ~~**Context Compression 自适应**~~: ✅ 30+ 模型 context window 注册表 + `adaptiveThresholds()` + `adaptToModel()` 动态切换
+
+## 11. 后续规划
+
+1. **JSONL_SESSION 默认启用**: 经充分验证后将 `JSONL_SESSION` 默认值改为 `true`
+2. **Background Task Notifications**: 任务完成后通过 WebSocket 推送实时通知到 Web Panel
+3. **Worktree 合并助手**: 子 Agent 在 worktree 中完成工作后，提供 diff 预览和一键合并到主分支
+4. **压缩策略 A/B 测试**: 利用 `featureVariant()` 对比不同压缩阈值的效果

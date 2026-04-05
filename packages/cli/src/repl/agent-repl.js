@@ -29,6 +29,14 @@ import {
   saveMessages,
   getSession,
 } from "../lib/session-manager.js";
+import {
+  startSession as jsonlStartSession,
+  appendUserMessage,
+  appendAssistantMessage,
+  appendCompactEvent,
+  rebuildMessages,
+  sessionExists,
+} from "../lib/jsonl-session-store.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
 import { createChatFn } from "../lib/cowork-adapter.js";
@@ -108,9 +116,9 @@ export async function startAgentRepl(options = {}) {
     // Continue without DB — static prompt fallback
   }
 
-  // Initialize prompt compressor
+  // Initialize prompt compressor (adaptive to model's context window)
   if (feature("PROMPT_COMPRESSOR")) {
-    _compressor = new PromptCompressor({ maxMessages: 20, maxTokens: 8000 });
+    _compressor = new PromptCompressor({ model, provider });
   }
 
   // Initialize permanent memory
@@ -133,7 +141,18 @@ export async function startAgentRepl(options = {}) {
   _hookDb = db;
 
   // Resume existing session or create new one
-  if (db && options.sessionId) {
+  const useJsonl = feature("JSONL_SESSION");
+
+  if (useJsonl && options.sessionId) {
+    // JSONL resume: check if session file exists
+    try {
+      if (sessionExists(options.sessionId)) {
+        sessionId = options.sessionId;
+      }
+    } catch (_err) {
+      // Non-critical
+    }
+  } else if (db && options.sessionId) {
     try {
       const existing = getSession(db, options.sessionId);
       if (existing && existing.messages) {
@@ -144,16 +163,25 @@ export async function startAgentRepl(options = {}) {
     }
   }
 
-  if (db && !sessionId) {
-    try {
-      const session = createSession(db, {
-        title: `Agent ${new Date().toISOString().slice(0, 10)}`,
-        provider,
-        model,
-      });
-      sessionId = session.id;
-    } catch (_err) {
-      // Non-critical
+  if (!sessionId) {
+    const meta = {
+      title: `Agent ${new Date().toISOString().slice(0, 10)}`,
+      provider,
+      model,
+    };
+    if (useJsonl) {
+      try {
+        sessionId = jsonlStartSession(null, meta);
+      } catch (_err) {
+        // Non-critical
+      }
+    } else if (db) {
+      try {
+        const session = createSession(db, meta);
+        sessionId = session.id;
+      } catch (_err) {
+        // Non-critical
+      }
     }
   }
 
@@ -162,16 +190,28 @@ export async function startAgentRepl(options = {}) {
   ];
 
   // Load resumed session messages
-  if (db && options.sessionId && sessionId) {
+  if (options.sessionId && sessionId) {
     try {
-      const existing = getSession(db, sessionId);
-      if (existing && existing.messages) {
-        const parsed =
-          typeof existing.messages === "string"
-            ? JSON.parse(existing.messages)
-            : existing.messages;
-        messages.push(...parsed.filter((m) => m.role !== "system"));
-        logger.info(`Resumed session ${sessionId} (${parsed.length} messages)`);
+      if (useJsonl) {
+        const rebuilt = rebuildMessages(sessionId);
+        if (rebuilt.length > 0) {
+          messages.push(...rebuilt.filter((m) => m.role !== "system"));
+          logger.info(
+            `Resumed JSONL session ${sessionId} (${rebuilt.length} messages)`,
+          );
+        }
+      } else if (db) {
+        const existing = getSession(db, sessionId);
+        if (existing && existing.messages) {
+          const parsed =
+            typeof existing.messages === "string"
+              ? JSON.parse(existing.messages)
+              : existing.messages;
+          messages.push(...parsed.filter((m) => m.role !== "system"));
+          logger.info(
+            `Resumed session ${sessionId} (${parsed.length} messages)`,
+          );
+        }
       }
     } catch (_err) {
       // Non-critical
@@ -434,10 +474,16 @@ export async function startAgentRepl(options = {}) {
       const sessionArg = trimmed.slice(8).trim();
       if (sessionArg.startsWith("resume ")) {
         const resumeId = sessionArg.slice(7).trim();
-        if (!db) {
-          logger.info("No database available for session resume");
-        } else {
-          try {
+        try {
+          if (useJsonl && sessionExists(resumeId)) {
+            const rebuilt = rebuildMessages(resumeId);
+            messages.length = 1; // keep system prompt
+            messages.push(...rebuilt.filter((m) => m.role !== "system"));
+            sessionId = resumeId;
+            logger.info(
+              `Resumed JSONL session ${sessionId} (${rebuilt.length} messages)`,
+            );
+          } else if (db) {
             const existing = getSession(db, resumeId);
             if (existing && existing.messages) {
               const parsed =
@@ -453,9 +499,11 @@ export async function startAgentRepl(options = {}) {
             } else {
               logger.info(`Session not found: ${resumeId}`);
             }
-          } catch (err) {
-            logger.error(`Resume failed: ${err.message}`);
+          } else {
+            logger.info("No session store available");
           }
+        } catch (err) {
+          logger.error(`Resume failed: ${err.message}`);
         }
       } else {
         logger.info(`Session ID: ${sessionId || "none"}`);
@@ -1052,9 +1100,17 @@ export async function startAgentRepl(options = {}) {
       }
 
       // Auto-save session
-      if (db && sessionId) {
+      if (sessionId) {
         try {
-          saveMessages(db, sessionId, messages);
+          if (useJsonl) {
+            // Append incremental events (user + assistant)
+            appendUserMessage(sessionId, trimmed);
+            if (response) {
+              appendAssistantMessage(sessionId, response);
+            }
+          } else if (db) {
+            saveMessages(db, sessionId, messages);
+          }
         } catch (_e) {
           // Non-critical
         }
@@ -1074,6 +1130,13 @@ export async function startAgentRepl(options = {}) {
             logger.verbose(
               `Auto-compacted: ${stats.strategy} (saved ${stats.saved} tokens)`,
             );
+            // Write compact checkpoint to JSONL for crash recovery
+            if (useJsonl && sessionId) {
+              appendCompactEvent(sessionId, {
+                ...stats,
+                messages: compacted,
+              });
+            }
           }
         } catch (_e) {
           // Non-critical — continue with uncompacted messages
@@ -1116,9 +1179,17 @@ export async function startAgentRepl(options = {}) {
 
   rl.on("close", async () => {
     // Save session on exit
-    if (db && sessionId) {
+    if (sessionId) {
       try {
-        saveMessages(db, sessionId, messages);
+        if (useJsonl) {
+          // JSONL: write final compact snapshot for fast rebuild
+          appendCompactEvent(sessionId, {
+            strategy: "session-end",
+            messages,
+          });
+        } else if (db) {
+          saveMessages(db, sessionId, messages);
+        }
       } catch (_e) {
         // Non-critical
       }

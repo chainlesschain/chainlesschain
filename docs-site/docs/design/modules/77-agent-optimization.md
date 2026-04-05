@@ -1,212 +1,260 @@
-# Agent 架构优化系统 (Agent Architecture Optimization)
+# 77. Agent 架构优化系统
 
-## 概述
+## 1. 模块概述
 
-Agent 架构优化系统是 ChainlessChain CLI 的 5 个核心模块，借鉴 Claude Code 的 12 层渐进式 harness 架构，为 CLI Agent 提供特性门控、上下文压缩、会话持久化、后台任务管理和 Git Worktree 隔离能力。
+### 1.1 目标
 
-## 版本历史
+借鉴 Claude Code 的 12 层渐进式 harness 架构，为 ChainlessChain CLI Agent 实现 5 个核心优化模块：
 
-| 版本 | 变更 |
-|------|------|
-| v5.0.2.9 | 初始实现：5 个优化模块 + 206 测试（160 单元 + 23 集成 + 23 E2E），修复 compress(null) 崩溃 |
+1. **Feature Flags** — 特性门控，支持渐进式发布
+2. **Prompt Compressor** — 上下文压缩，5 策略流水线
+3. **JSONL Session Store** — 追加式会话持久化，崩溃恢复
+4. **Background Task Manager** — 后台任务队列，IPC 通信
+5. **Worktree Isolator** — Git Worktree 隔离执行
 
-## 模块架构
+### 1.2 设计原则
+
+- **渐进式启用**: 所有新功能通过 Feature Flags 门控，默认关闭（除 PROMPT_COMPRESSOR）
+- **零依赖**: 不引入新的 npm 依赖，利用 Node.js 内置模块
+- **崩溃安全**: JSONL 同步写入 + append-only 设计
+- **资源隔离**: Git Worktree 共享对象库，避免完整克隆开销
+
+## 2. 架构设计
+
+### 2.1 模块关系图
 
 ```
-packages/cli/src/lib/
-  feature-flags.js          ← 特性门控（6 个标志位）
-  prompt-compressor.js      ← 上下文压缩（5 策略）
-  jsonl-session-store.js    ← JSONL 追加式会话持久化
-  background-task-manager.js ← 后台任务队列 + IPC
-  background-task-worker.js ← 子进程执行器
-  worktree-isolator.js      ← Git Worktree 隔离
+                    ┌─────────────────────┐
+                    │    Feature Flags     │
+                    │   (6 registered)     │
+                    └──────┬──────┬───────┘
+                    gates  │      │  gates
+              ┌────────────┘      └────────────┐
+              ▼                                 ▼
+    ┌──────────────────┐            ┌───────────────────┐
+    │ Prompt Compressor │            │ Background Tasks   │
+    │ (5 strategies)    │            │ (fork + IPC)       │
+    └────────┬─────────┘            └─────────┬─────────┘
+             │ compact events                  │ uses
+             ▼                                 ▼
+    ┌──────────────────┐            ┌───────────────────┐
+    │ JSONL Session     │            │ Worktree Isolator  │
+    │ Store (append)    │            │ (git worktree)     │
+    └──────────────────┘            └───────────────────┘
 ```
 
-## 模块详解
+### 2.2 文件清单
 
-### 1. Feature Flags（特性门控）
+| 文件 | 行数 | 职责 |
+|------|------|------|
+| `src/lib/feature-flags.js` | ~90 | 特性标志注册、查询、A/B 分流 |
+| `src/lib/prompt-compressor.js` | ~200 | 5 策略压缩器 + token 估算 |
+| `src/lib/jsonl-session-store.js` | ~250 | JSONL 追加式会话管理 |
+| `src/lib/background-task-manager.js` | ~200 | 任务生命周期 + 子进程管理 |
+| `src/lib/background-task-worker.js` | ~50 | 子进程执行器 |
+| `src/lib/worktree-isolator.js` | ~225 | Git Worktree CRUD + 隔离执行 |
+| `src/commands/config.js` | 扩展 | `features list/enable/disable` 子命令 |
 
-**文件**: `feature-flags.js`
+## 3. Feature Flags 详细设计
 
-提供渐进式发布能力，支持按环境变量、配置文件、默认值三级优先级控制功能开关。
+### 3.1 标志位注册表
 
-**6 个注册标志位**:
+```javascript
+const FLAG_REGISTRY = {
+  BACKGROUND_TASKS:    { default: false, description: "Enable background task queue" },
+  WORKTREE_ISOLATION:  { default: false, description: "Enable git worktree isolation" },
+  CONTEXT_SNIP:        { default: false, description: "Enable snipCompact strategy" },
+  CONTEXT_COLLAPSE:    { default: false, description: "Enable contextCollapse strategy" },
+  JSONL_SESSION:       { default: false, description: "Use JSONL session format" },
+  PROMPT_COMPRESSOR:   { default: true,  description: "Enable prompt compressor" },
+};
+```
 
-| 标志名 | 默认值 | 说明 |
-|--------|--------|------|
-| `BACKGROUND_TASKS` | false | 启用后台任务队列 |
-| `WORKTREE_ISOLATION` | false | 启用 Git Worktree 隔离 |
-| `CONTEXT_SNIP` | false | 启用 snipCompact 压缩策略 |
-| `CONTEXT_COLLAPSE` | false | 启用 contextCollapse 折叠策略 |
-| `JSONL_SESSION` | false | 使用 JSONL 追加格式持久化 |
-| `PROMPT_COMPRESSOR` | true | 启用 CLI 提示压缩器 |
+### 3.2 优先级链
 
-**优先级**: `CC_FLAG_<NAME>` 环境变量 > `config.features.<NAME>` 配置 > 默认值
+```
+CC_FLAG_<NAME> 环境变量 (string "true"/"false")
+        ↓ (未设置时)
+config.features.<NAME> (boolean)
+        ↓ (未设置时)
+FLAG_REGISTRY[name].default
+```
 
-**百分比灰度**: `featureVariant(name)` 基于确定性哈希实现 A/B 分流
+### 3.3 百分比灰度
 
-**CLI 命令**:
+`featureVariant(name)` 使用 `name + machineId` 的 hash 值取模实现确定性分流，同一机器始终返回相同变体。
+
+## 4. Prompt Compressor 详细设计
+
+### 4.1 策略流水线
+
+```
+输入消息 → Deduplicate → Truncate → Summarize → SnipCompact → ContextCollapse → 输出
+              (始终)       (始终)     (可选LLM)    (CONTEXT_SNIP)  (CONTEXT_COLLAPSE)
+```
+
+### 4.2 Token 估算算法
+
+```javascript
+function estimateTokens(text) {
+  let tokens = 0;
+  for (const char of text) {
+    if (char.charCodeAt(0) > 0x4E00) tokens += 1.5;  // CJK
+    else tokens += 0.25;  // ASCII/Latin
+  }
+  return Math.ceil(tokens);
+}
+```
+
+### 4.3 自动压缩触发
+
+当消息总 token 数超过 `maxTokens * 0.8` 时，`shouldAutoCompact()` 返回 true，由 `agent-repl.js` 自动触发压缩流程。
+
+## 5. JSONL Session Store 详细设计
+
+### 5.1 事件格式
+
+```jsonl
+{"type":"session_start","sessionId":"abc","data":{"title":"Chat","provider":"ollama"},"ts":1711000000000}
+{"type":"user_message","sessionId":"abc","data":{"role":"user","content":"hello"},"ts":1711000001000}
+{"type":"assistant_message","sessionId":"abc","data":{"role":"assistant","content":"hi"},"ts":1711000002000}
+{"type":"compact","sessionId":"abc","data":{"messages":[...],"stats":{...}},"ts":1711000003000}
+```
+
+### 5.2 崩溃恢复机制
+
+- `user_message` 使用 `writeFileSync`（同步写入）确保不丢失
+- `assistant_message` 使用 `appendFileSync`（仍然同步但语义上是追加）
+- `rebuildMessages()` 从最后一个 `compact` 事件开始重建，避免重放全部历史
+
+### 5.3 会话分叉
+
+`forkSession(sourceId)` 复制源会话所有事件到新文件，末尾追加 `fork` 标记事件。
+
+## 6. Background Task Manager 详细设计
+
+### 6.1 任务状态机
+
+```
+PENDING ──start()──→ RUNNING ──success──→ COMPLETED
+                        │
+                        ├──failure──→ FAILED
+                        │
+                        └──timeout──→ TIMEOUT
+```
+
+### 6.2 子进程通信（IPC）
+
+```
+父进程                        子进程 (background-task-worker.js)
+  │                              │
+  │──fork()──────────────────→│  │
+  │                              │──execSync(command)
+  │  ←──{ type: "heartbeat" }──│  │  (每 5 秒)
+  │  ←──{ type: "heartbeat" }──│  │
+  │  ←──{ type: "result", data }─│  (成功)
+  │  或 { type: "error", error }─│  (失败)
+```
+
+### 6.3 持久化
+
+任务元数据追加写入 `~/.chainlesschain/tasks/queue.jsonl`，支持进程重启后恢复未完成任务。
+
+## 7. Worktree Isolator 详细设计
+
+### 7.1 目录结构
+
+```
+repo/
+├── .worktrees/
+│   ├── agent-task-123/     ← worktree for agent/task-123 branch
+│   └── agent-task-456/     ← worktree for agent/task-456 branch
+├── src/
+└── ...
+```
+
+### 7.2 isolateTask 流程
+
+```
+1. createWorktree(repoDir, "agent/{taskId}")
+   → git worktree add .worktrees/agent-{taskId} -b agent/{taskId} HEAD
+2. fn(worktreePath)
+   → 在隔离目录中执行任务
+3. finally: removeWorktree()
+   → git worktree remove + (无新 commit 时) git branch -D
+```
+
+### 7.3 清理策略
+
+- `isolateTask` 的 finally 块自动清理
+- `cleanupAgentWorktrees()` 清理所有 `agent/*` 分支的 worktree
+- `pruneWorktrees()` 清理目录已不存在的陈旧 worktree
+
+## 8. CLI 集成
+
+### 8.1 config features 命令
 
 ```bash
-chainlesschain config features list       # 列出所有标志位及状态
-chainlesschain config features enable CONTEXT_SNIP   # 启用
-chainlesschain config features disable CONTEXT_SNIP  # 禁用
+# 列出所有标志位
+chainlesschain config features list
+# 输出:
+#   ● ON  PROMPT_COMPRESSOR [default]
+#   ○ OFF BACKGROUND_TASKS [default]
+#   ...
+
+# 启用/禁用
+chainlesschain config features enable CONTEXT_SNIP
+chainlesschain config features disable CONTEXT_SNIP
 ```
 
-### 2. Prompt Compressor（上下文压缩）
+### 8.2 agent-repl.js 集成
 
-**文件**: `prompt-compressor.js`
+- `PROMPT_COMPRESSOR` 标志启用时，创建 `PromptCompressor` 实例
+- 每轮对话后检查 `shouldAutoCompact()`，自动触发压缩
+- `/compact` 命令优先使用 Prompt Compressor
 
-借鉴 Claude Code 的 3 层压缩策略（autoCompact / snipCompact / contextCollapse），扩展为 5 策略流水线：
+## 9. 测试策略
 
-| 策略 | 说明 | 门控标志 |
-|------|------|----------|
-| Deduplicate | Jaccard 相似度去重（阈值 0.7） | 始终启用 |
-| Truncate | 保留最近 N 条消息 | 始终启用 |
-| Summarize | LLM 摘要压缩（可选） | 始终启用 |
-| SnipCompact | 移除 `[PROCESSED]` 等陈旧标记 | `CONTEXT_SNIP` |
-| ContextCollapse | 折叠连续 tool 调用序列 | `CONTEXT_COLLAPSE` |
-
-**Token 估算**: 中文 1.5 字符/token，英文 4 字符/token
-
-**自动触发**: `shouldAutoCompact(messages)` 在消息超过阈值时返回 true，集成于 `agent-repl.js`
-
-### 3. JSONL Session Store（追加式会话持久化）
-
-**文件**: `jsonl-session-store.js`
-
-替代全量 JSON 覆写，采用 JSONL 追加式写入实现崩溃恢复：
-
-**事件类型**:
-- `session_start` — 会话元数据
-- `user_message` / `assistant_message` — 对话消息（user 同步写入）
-- `tool_call` / `tool_result` — 工具调用
-- `compact` — 压缩快照（包含压缩后的消息数组）
-- `fork` — 会话分叉标记
-
-**核心 API**:
-
-```javascript
-startSession(id, meta)       // 创建会话
-appendUserMessage(id, content) // 同步追加用户消息
-appendAssistantMessage(id, content) // 异步追加助手消息
-appendCompactEvent(id, stats)  // 写入压缩快照
-readEvents(id)                // 读取所有事件
-rebuildMessages(id)           // 从最后一个 compact 事件重建消息
-forkSession(sourceId)         // 分叉会话（复制事件 + fork 标记）
-listJsonlSessions(options)    // 列出所有会话（按更新时间排序）
-```
-
-**崩溃恢复**: 用户消息使用 `writeFileSync` 同步写入，助手消息使用 `appendFileSync`，确保断电后数据不丢失。
-
-### 4. Background Task Manager（后台任务管理）
-
-**文件**: `background-task-manager.js` + `background-task-worker.js`
-
-基于 EventEmitter 的后台任务队列，支持 `child_process.fork()` 子进程执行：
-
-**任务生命周期**: `PENDING → RUNNING → COMPLETED / FAILED / TIMEOUT`
-
-**特性**:
-- 最大并发数限制（`maxConcurrent`）
-- 心跳超时检测（`heartbeatTimeout`，默认 30s）
-- 任务持久化到 `queue.jsonl`
-- IPC 消息通信（heartbeat / result / error）
-- 事件驱动（`task:complete` 事件）
-- 清理过期任务（`cleanup(maxAge)`）
-
-**API**:
-
-```javascript
-const manager = new BackgroundTaskManager({ maxConcurrent: 5 });
-const task = manager.create({ command: "npm test", description: "Run tests" });
-manager.start(task.id);       // fork 子进程执行
-manager.stop(task.id);        // SIGTERM 停止
-manager.cleanup(3600000);     // 清理 1 小时前的已完成任务
-manager.destroy();            // 销毁所有任务和定时器
-```
-
-### 5. Worktree Isolator（Git Worktree 隔离）
-
-**文件**: `worktree-isolator.js`
-
-利用 `git worktree` 为并行 Agent 任务创建隔离工作目录，避免文件操作干扰主工作树：
-
-**低级 API**:
-
-```javascript
-createWorktree(repoDir, branchName, baseBranch)  // 创建 worktree + 新分支
-removeWorktree(repoDir, path, { deleteBranch })   // 移除 worktree（可选删分支）
-listWorktrees(repoDir)                             // 列出所有 worktree
-pruneWorktrees(repoDir)                            // 清理陈旧 worktree
-```
-
-**高级 API**:
-
-```javascript
-// 在隔离 worktree 中执行任务，自动清理
-const { result, branch } = await isolateTask(repoDir, "task-123", async (wtPath) => {
-  // wtPath 是隔离的工作目录，分支名为 agent/task-123
-  return doWork(wtPath);
-});
-
-// 崩溃恢复：清理所有 agent/* worktree
-cleanupAgentWorktrees(repoDir);
-```
-
-**分支命名规则**: `agent/{taskId}`，保存在 `.worktrees/` 目录下
-
-## 模块交互关系
+### 9.1 测试金字塔
 
 ```
-┌─────────────────┐    gates    ┌──────────────────┐
-│  Feature Flags  │───────────→│ Prompt Compressor │
-│  (门控层)       │            │ (压缩层)          │
-└────────┬────────┘            └────────┬──────────┘
-         │ gates                        │ compacts
-         ▼                              ▼
-┌──────────────────┐  stores   ┌──────────────────┐
-│ Background Tasks │           │ JSONL Session     │
-│ (执行层)         │           │ Store (持久化层)  │
-└────────┬─────────┘           └──────────────────┘
-         │ uses
-         ▼
-┌──────────────────┐
-│ Worktree Isolator│
-│ (隔离层)         │
-└──────────────────┘
+         ╱╲
+        ╱E2E╲        37 tests — CLI 命令级验证
+       ╱──────╲
+      ╱ 集成   ╲     42 tests — 跨模块交互
+     ╱──────────╲
+    ╱   单元     ╲   255 tests — 模块内部逻辑
+   ╱──────────────╲
 ```
 
-## 测试覆盖
+### 9.2 测试文件
 
-| 测试类型 | 文件 | 测试数 |
-|----------|------|--------|
-| 单元测试 | `feature-flags.test.js` | 27 |
-| 单元测试 | `prompt-compressor.test.js` | 24 |
-| 单元测试 | `jsonl-session-store.test.js` | 21 |
-| 单元测试 | `background-task-manager.test.js` | 20 |
-| 单元测试 | `worktree-isolator.test.js` | 12 |
-| 单元测试 | `agent-optimization-extended.test.js` | 56 |
-| 集成测试 | `agent-optimization-workflow.test.js` | 23 |
-| E2E 测试 | `agent-optimization-commands.test.js` | 23 |
-| **总计** | | **206** |
+| 文件 | 类型 | 测试数 |
+|------|------|--------|
+| `feature-flags.test.js` | 单元 | 27 |
+| `prompt-compressor.test.js` | 单元 | 24 |
+| `jsonl-session-store.test.js` | 单元 | 21 |
+| `background-task-manager.test.js` | 单元 | 20 |
+| `worktree-isolator.test.js` | 单元 | 12 |
+| `agent-optimization-extended.test.js` | 单元 | 56 |
+| `v5029-features.test.js` | 单元 | 33 |
+| `v5029-extended.test.js` | 单元 | 62 |
+| `agent-optimization-workflow.test.js` | 集成 | 23 |
+| `v5029-workflow.test.js` | 集成 | 19 |
+| `agent-optimization-commands.test.js` | E2E | 23 |
+| `v5029-commands.test.js` | E2E | 14 |
+| **合计** | | **334** |
 
-## 设计决策
+## 10. 已完成的增强 (v5.0.2.9)
 
-### 为什么用 JSONL 而不是 SQLite？
+1. ~~**JSONL_SESSION 全面替换**~~: ✅ `agent-repl.js` 和 `session.js` 完整集成 — 创建/保存/恢复/列表均支持 JSONL 模式
+2. ~~**Background Tasks UI**~~: ✅ Web Panel 新增「后台任务」监控页面（Pinia store + Vue3 组件 + WS 协议）
+3. ~~**Worktree + Sub-Agent**~~: ✅ `SubAgentContext` 集成 `isolateTask()` — 子 Agent 自动在隔离 worktree 中执行
+4. ~~**Context Compression 自适应**~~: ✅ 30+ 模型 context window 注册表 + `adaptiveThresholds()` + `adaptToModel()` 动态切换
 
-- 追加式写入天然支持崩溃恢复（无事务开销）
-- 会话数据是顺序的，JSONL 格式自然契合
-- 避免引入 SQLite 依赖（CLI 包保持轻量 ~2MB）
+## 11. 后续规划
 
-### 为什么用 Feature Flags？
-
-- 新功能可渐进式发布，降低风险
-- 环境变量覆盖机制方便 CI/CD 和调试
-- 百分比灰度支持 A/B 测试
-
-### 为什么用 Git Worktree 而不是 tmpdir？
-
-- Worktree 共享 `.git` 对象库，无需完整克隆
-- 天然支持分支管理，任务结果可通过 PR 合并
-- `git worktree prune` 提供内置清理机制
+1. **JSONL_SESSION 默认启用**: 经充分验证后将 `JSONL_SESSION` 默认值改为 `true`
+2. **Background Task Notifications**: 任务完成后通过 WebSocket 推送实时通知到 Web Panel
+3. **Worktree 合并助手**: 子 Agent 在 worktree 中完成工作后，提供 diff 预览和一键合并到主分支
+4. **压缩策略 A/B 测试**: 利用 `featureVariant()` 对比不同压缩阈值的效果

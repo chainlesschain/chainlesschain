@@ -7,7 +7,7 @@
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5438%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5517%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -24,9 +24,9 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ## ⭐ Current Version: v5.0.2.9 Evolution Edition (2026-04-04)
 
-### Latest Update - Agent Architecture Optimization (5 Modules + 132 Tests) ⭐
+### Latest Update - Agent Architecture Optimization (5 Modules + 4 Enhancements + 334 Tests) ⭐
 
-v5.0.2.9 implements 5 core optimization modules inspired by Claude Code's 12-layer progressive harness architecture:
+v5.0.2.9 implements 5 core optimization modules + 4 enhancement integrations inspired by Claude Code's 12-layer progressive harness architecture:
 
 **5 New Modules**:
 - **Feature Flags** (`feature-flags.js`) — 6 registered flags, env > config > default priority, percentage-based A/B rollout
@@ -34,6 +34,12 @@ v5.0.2.9 implements 5 core optimization modules inspired by Claude Code's 12-lay
 - **JSONL Session Store** (`jsonl-session-store.js`) — Append-only session persistence, crash recovery, session forking, compact snapshot rebuild
 - **Background Task Manager** (`background-task-manager.js`) — Child process fork + IPC heartbeat monitoring, concurrency limits, task persistence
 - **Worktree Isolator** (`worktree-isolator.js`) — Git worktree isolation for parallel agent tasks, agent/* branch management, crash cleanup
+
+**4 Enhancement Integrations (v5.0.2.9)**:
+- **JSONL_SESSION Full Replacement** — `agent-repl.js` and `session.js` fully integrated with JSONL mode for create/save/resume/list
+- **Background Tasks UI** — Web Panel new "Background Tasks" monitoring page (Pinia store + Vue3 component + WS protocol)
+- **Worktree + Sub-Agent** — `SubAgentContext` integrated with `isolateTask()`, sub-agents auto-run in isolated worktrees
+- **Adaptive Context Compression** — 30+ model context window registry + `adaptiveThresholds()` + `adaptToModel()` dynamic switching
 
 **New CLI Commands**:
 ```bash
@@ -46,7 +52,7 @@ chainlesschain config features disable CONTEXT_SNIP # Disable feature
 
 **Bug Fix**: `PromptCompressor.compress(null)` crash → now safely returns empty array.
 
-**Test Coverage**: 206 new tests (160 unit + 23 integration + 23 E2E), all passing.
+**Test Coverage**: 334 tests (255 unit + 42 integration + 37 E2E), 12 test files, all passing.
 
 ### History - Web Panel: 10 Modules + 4 Themes
 

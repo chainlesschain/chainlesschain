@@ -13,6 +13,13 @@ import {
   deleteSession,
   exportSessionMarkdown,
 } from "../lib/session-manager.js";
+import {
+  listJsonlSessions,
+  rebuildMessages,
+  sessionExists,
+  readEvents,
+} from "../lib/jsonl-session-store.js";
+import { feature } from "../lib/feature-flags.js";
 
 export function registerSessionCommand(program) {
   const session = program
@@ -28,14 +35,39 @@ export function registerSessionCommand(program) {
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
-          logger.error("Database not available");
-          process.exit(1);
+        const limit = Math.max(1, parseInt(options.limit) || 20);
+        let sessions = [];
+
+        // Merge DB sessions + JSONL sessions
+        if (ctx.db) {
+          const db = ctx.db.getDatabase();
+          sessions.push(
+            ...listSessions(db, { limit }).map((s) => ({
+              ...s,
+              _store: "db",
+            })),
+          );
         }
-        const db = ctx.db.getDatabase();
-        const sessions = listSessions(db, {
-          limit: Math.max(1, parseInt(options.limit) || 20),
-        });
+
+        if (feature("JSONL_SESSION")) {
+          sessions.push(
+            ...listJsonlSessions({ limit }).map((s) => ({
+              ...s,
+              _store: "jsonl",
+            })),
+          );
+        }
+
+        // Deduplicate by id (JSONL takes precedence), sort by updated_at
+        const seen = new Set();
+        sessions = sessions
+          .sort((a, b) => (b.updated_at > a.updated_at ? 1 : -1))
+          .filter((s) => {
+            if (seen.has(s.id)) return false;
+            seen.add(s.id);
+            return true;
+          })
+          .slice(0, limit);
 
         if (options.json) {
           console.log(JSON.stringify(sessions, null, 2));
@@ -46,8 +78,10 @@ export function registerSessionCommand(program) {
         } else {
           logger.log(chalk.bold(`Sessions (${sessions.length}):\n`));
           for (const s of sessions) {
+            const storeTag =
+              s._store === "jsonl" ? chalk.yellow("[JSONL]") : "";
             logger.log(
-              `  ${chalk.gray(s.id.slice(0, 16))}  ${chalk.white(s.title)}  ${chalk.cyan(s.message_count + " msgs")}  ${chalk.gray(s.updated_at)}`,
+              `  ${chalk.gray(s.id.slice(0, 16))}  ${chalk.white(s.title)}  ${chalk.cyan(s.message_count + " msgs")}  ${chalk.gray(s.updated_at)} ${storeTag}`,
             );
             if (s.summary) {
               logger.log(`    ${chalk.gray(s.summary.substring(0, 100))}`);
@@ -72,12 +106,29 @@ export function registerSessionCommand(program) {
     .action(async (id, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
-          logger.error("Database not available");
-          process.exit(1);
+        let sess = null;
+
+        // Try JSONL first if enabled
+        if (feature("JSONL_SESSION") && sessionExists(id)) {
+          const events = readEvents(id);
+          const startEvent = events.find((e) => e.type === "session_start");
+          const msgs = rebuildMessages(id);
+          sess = {
+            id,
+            title: startEvent?.data?.title || "Untitled",
+            provider: startEvent?.data?.provider || "",
+            model: startEvent?.data?.model || "",
+            message_count: msgs.length,
+            messages: msgs,
+            _store: "jsonl",
+          };
         }
-        const db = ctx.db.getDatabase();
-        const sess = getSession(db, id);
+
+        // Fallback to DB
+        if (!sess && ctx.db) {
+          const db = ctx.db.getDatabase();
+          sess = getSession(db, id);
+        }
 
         if (!sess) {
           logger.error(`Session not found: ${id}`);
@@ -127,12 +178,27 @@ export function registerSessionCommand(program) {
     .action(async (id, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
-          logger.error("Database not available");
-          process.exit(1);
+        let sess = null;
+
+        // Try JSONL first
+        if (feature("JSONL_SESSION") && sessionExists(id)) {
+          const events = readEvents(id);
+          const startEvent = events.find((e) => e.type === "session_start");
+          sess = {
+            id,
+            title: startEvent?.data?.title || "Untitled",
+            provider: startEvent?.data?.provider || "",
+            model: startEvent?.data?.model || "",
+            messages: rebuildMessages(id),
+          };
+          sess.message_count = sess.messages.length;
         }
-        const db = ctx.db.getDatabase();
-        const sess = getSession(db, id);
+
+        // Fallback to DB
+        if (!sess && ctx.db) {
+          const db = ctx.db.getDatabase();
+          sess = getSession(db, id);
+        }
 
         if (!sess) {
           logger.error(`Session not found: ${id}`);
