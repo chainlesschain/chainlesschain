@@ -16,6 +16,7 @@ const routes = [
       { path: 'notes',      name: 'Notes',       component: () => import('../views/Notes.vue') },
       { path: 'memory',     name: 'Memory',      component: () => import('../views/Memory.vue') },
       { path: 'cron',       name: 'Cron',        component: () => import('../views/Cron.vue') },
+      { path: 'tasks',      name: 'Tasks',       component: () => import('../views/Tasks.vue') },
     ]
   }
 ]

@@ -61,6 +61,7 @@
             <a-menu-item key="notes"><template #icon><BookOutlined /></template>笔记管理</a-menu-item>
             <a-menu-item key="memory"><template #icon><BranchesOutlined /></template>记忆文件</a-menu-item>
             <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>定时任务</a-menu-item>
+            <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>后台任务</a-menu-item>
           </a-menu-item-group>
         </template>
         <template v-else>
@@ -76,6 +77,7 @@
           <a-menu-item key="notes"><template #icon><BookOutlined /></template></a-menu-item>
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
           <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template></a-menu-item>
+          <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
         </template>
       </a-menu>
 
@@ -112,7 +114,7 @@
             </a-tooltip>
           </div>
 
-          <span class="version-tag">v5.0.2.7</span>
+          <span class="version-tag">v5.0.2.9</span>
           <a-tag
             :color="wsStatus === 'connected' ? 'green' : wsStatus === 'connecting' ? 'orange' : 'red'"
             class="ws-tag"
@@ -137,7 +139,7 @@ import {
   DashboardOutlined, MessageOutlined, AppstoreOutlined, ApiOutlined,
   FolderOutlined, GlobalOutlined, InfoCircleOutlined,
   ControlOutlined, FileTextOutlined, CloudServerOutlined,
-  BookOutlined, BranchesOutlined, ClockCircleOutlined,
+  BookOutlined, BranchesOutlined, ClockCircleOutlined, ThunderboltOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

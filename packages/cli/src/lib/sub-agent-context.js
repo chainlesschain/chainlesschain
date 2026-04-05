@@ -11,6 +11,13 @@
 import crypto from "crypto";
 import { CLIContextEngineering } from "./cli-context-engineering.js";
 import { agentLoop, buildSystemPrompt, AGENT_TOOLS } from "./agent-core.js";
+import { feature } from "./feature-flags.js";
+import {
+  createWorktree,
+  removeWorktree,
+  isolateTask,
+} from "./worktree-isolator.js";
+import { isGitRepo } from "./git-integration.js";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -38,6 +45,7 @@ export class SubAgentContext {
    * @param {object} [options.permanentMemory] - Permanent memory instance
    * @param {object} [options.llmOptions] - LLM provider/model/key options
    * @param {string} [options.cwd] - Working directory
+   * @param {boolean} [options.useWorktree] - Force worktree isolation (overrides flag)
    * @returns {SubAgentContext}
    */
   static create(options = {}) {
@@ -58,6 +66,12 @@ export class SubAgentContext {
     this.result = null;
     this.createdAt = new Date().toISOString();
     this.completedAt = null;
+
+    // Worktree isolation state
+    this._useWorktree = options.useWorktree ?? feature("WORKTREE_ISOLATION");
+    this._worktreePath = null;
+    this._worktreeBranch = null;
+    this._repoDir = this.cwd;
 
     // ── Isolated state ──────────────────────────────────────────────
     // Independent message history — never shared with parent
@@ -110,6 +124,60 @@ export class SubAgentContext {
       );
     }
 
+    // If worktree isolation is enabled, wrap execution in isolated worktree
+    if (this._useWorktree && isGitRepo(this._repoDir)) {
+      return this._runInWorktree(userPrompt, loopOptions);
+    }
+
+    return this._runCore(userPrompt, loopOptions);
+  }
+
+  /**
+   * Run in an isolated git worktree. Creates worktree → runs → cleans up.
+   */
+  async _runInWorktree(userPrompt, loopOptions = {}) {
+    const taskId = `${this.role}-${this.id.slice(4)}`;
+    try {
+      const { result, branch, worktreePath, hasChanges } = await isolateTask(
+        this._repoDir,
+        taskId,
+        async (wtPath) => {
+          this._worktreePath = wtPath;
+          this._worktreeBranch = `agent/${taskId}`;
+          // Override cwd to worktree for tool execution
+          this.cwd = wtPath;
+          return this._runCore(userPrompt, loopOptions);
+        },
+      );
+
+      // Annotate result with worktree info
+      if (result) {
+        result.worktree = {
+          branch,
+          path: worktreePath,
+          hasChanges,
+        };
+      }
+      return result;
+    } catch (err) {
+      // If worktree creation fails (e.g. not a git repo), fall back to direct
+      this.status = "failed";
+      this.completedAt = new Date().toISOString();
+      this.result = {
+        summary: `Worktree isolation failed: ${err.message}`,
+        artifacts: [],
+        tokenCount: this._tokenCount,
+        toolsUsed: [...new Set(this._toolsUsed)],
+        iterationCount: this._iterationCount,
+      };
+      return this.result;
+    }
+  }
+
+  /**
+   * Core agent loop execution (shared by direct and worktree paths).
+   */
+  async _runCore(userPrompt, loopOptions = {}) {
     // Add user message
     this.messages.push({ role: "user", content: userPrompt });
 
@@ -291,6 +359,9 @@ export class SubAgentContext {
       iterationCount: this._iterationCount,
       createdAt: this.createdAt,
       completedAt: this.completedAt,
+      worktree: this._worktreePath
+        ? { path: this._worktreePath, branch: this._worktreeBranch }
+        : null,
     };
   }
 }

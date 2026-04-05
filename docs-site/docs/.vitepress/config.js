@@ -806,6 +806,15 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.2.9 Agent 架构优化 ⭐NEW",
+          items: [
+            {
+              text: "Agent 架构优化系统",
+              link: "/chainlesschain/agent-optimization",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
@@ -960,6 +969,7 @@ export default defineConfig({
             { text: "74 AI编排层系统 ⭐", link: "/design/modules/74-orchestration-layer" },
             { text: "75 Vue3 Web管理面板 10模块+4主题 ⭐", link: "/design/modules/75-web-panel" },
             { text: "76 Skill Creator系统 ⭐", link: "/design/modules/76-skill-creator" },
+            { text: "77 Agent架构优化 ⭐", link: "/design/modules/77-agent-optimization" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

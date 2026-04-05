@@ -290,6 +290,12 @@ export class ChainlessChainWSServer extends EventEmitter {
       case "orchestrate":
         this._handleOrchestrate(id, ws, message);
         break;
+      case "tasks-list":
+        this._handleTasksList(id, ws);
+        break;
+      case "tasks-stop":
+        this._handleTasksStop(id, ws, message);
+        break;
       default:
         this._send(ws, {
           id,
@@ -379,6 +385,45 @@ export class ChainlessChainWSServer extends EventEmitter {
         id,
         type: "error",
         code: "ORCHESTRATE_FAILED",
+        message: err.message,
+      });
+    }
+  }
+
+  /** @private — list background tasks */
+  _handleTasksList(id, ws) {
+    try {
+      const { BackgroundTaskManager } = require("./background-task-manager.js");
+      // Reuse singleton or create lightweight instance for listing
+      if (!this._taskManager) {
+        this._taskManager = new BackgroundTaskManager();
+      }
+      const tasks = this._taskManager.list();
+      this._send(ws, { id, type: "tasks-list", tasks });
+    } catch (err) {
+      this._send(ws, { id, type: "tasks-list", tasks: [] });
+    }
+  }
+
+  /** @private — stop a background task */
+  _handleTasksStop(id, ws, message) {
+    try {
+      if (this._taskManager && message.taskId) {
+        this._taskManager.stop(message.taskId);
+        this._send(ws, { id, type: "tasks-stopped", taskId: message.taskId });
+      } else {
+        this._send(ws, {
+          id,
+          type: "error",
+          code: "NO_TASK",
+          message: "taskId required or no task manager",
+        });
+      }
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "TASKS_STOP_FAILED",
         message: err.message,
       });
     }

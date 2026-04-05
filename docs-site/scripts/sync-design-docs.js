@@ -132,6 +132,7 @@ const MODULE_FILE_MAP = {
   "74_AI编排层系统.md": "74-orchestration-layer.md",
   "75_Web管理面板.md": "75-web-panel.md",
   "76_技能创建系统.md": "76-skill-creator.md",
+  "77_Agent架构优化系统.md": "77-agent-optimization.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）
