@@ -11,14 +11,22 @@
 
 本轮定向验证结果：
 
-- CLI 定向单元测试：`125/125`
-- CLI 定向集成测试：`18/18`
+- CLI 定向单元测试：`130/130`
+- CLI 定向集成测试：`19/19`
 - Web Panel 定向单元测试：`12/12`
 - Web Panel E2E：`29/29`
+- Web Panel 构建：通过
+
+另外确认以下 4 项能力已经正式完成并与代码一致：
+
+- `JSONL_SESSION` 默认启用
+- 后台任务完成后通过 `task:notification` 实时通知 Web Panel
+- Worktree 合并助手支持 diff 预览和一键合并协议
+- 压缩策略 A/B 测试已通过 `featureVariant()` 接入
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.9-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.10-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -38,7 +46,7 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.9 Evolution Edition (2026-04-04)
+## ⭐ 当前版本: v5.0.2.10 Evolution Edition (2026-04-06)
 
 ### 最新更新 - Agent 架构优化 (5 模块 + 4 增强 + 334 测试) ⭐
 

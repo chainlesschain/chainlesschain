@@ -1,6 +1,8 @@
 ---
 layout: home
 
+<!-- 一致性更新：JSONL_SESSION 默认启用、task:notification 实时通知、Worktree 合并助手、COMPRESSION_AB A/B 测试均已完成。 -->
+
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台

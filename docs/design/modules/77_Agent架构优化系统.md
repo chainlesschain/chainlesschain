@@ -1,5 +1,9 @@
 # 77. Agent 架构优化系统
 
+> 一致性更新（2026-04-06）：
+> `JSONL_SESSION` 默认启用、后台任务实时通知、Worktree 合并助手、
+> 压缩策略 A/B 测试这 4 项能力均已完成并在代码中生效。
+
 ## 1. 模块概述
 
 ### 1.1 目标
@@ -65,7 +69,8 @@ const FLAG_REGISTRY = {
   WORKTREE_ISOLATION:  { default: false, description: "Enable git worktree isolation" },
   CONTEXT_SNIP:        { default: false, description: "Enable snipCompact strategy" },
   CONTEXT_COLLAPSE:    { default: false, description: "Enable contextCollapse strategy" },
-  JSONL_SESSION:       { default: false, description: "Use JSONL session format" },
+  JSONL_SESSION:       { default: true, description: "Use JSONL session format" },
+  COMPRESSION_AB:      { default: { enabled: false, variant: "balanced" }, description: "Compression A/B testing" },
   PROMPT_COMPRESSOR:   { default: true,  description: "Enable prompt compressor" },
 };
 ```
@@ -245,11 +250,15 @@ chainlesschain config features disable CONTEXT_SNIP
 | `v5029-commands.test.js` | E2E | 14 |
 | **合计** | | **334** |
 
-## 10. 已完成的增强 (v5.0.2.9)
+## 10. 已完成的增强 (v5.0.2.10)
 
 1. ~~**JSONL_SESSION 全面替换**~~: ✅ `agent-repl.js` 和 `session.js` 完整集成 — 创建/保存/恢复/列表均支持 JSONL 模式
 2. ~~**Background Tasks UI**~~: ✅ Web Panel 新增「后台任务」监控页面（Pinia store + Vue3 组件 + WS 协议）
 3. ~~**Worktree + Sub-Agent**~~: ✅ `SubAgentContext` 集成 `isolateTask()` — 子 Agent 自动在隔离 worktree 中执行
+4. ~~**JSONL_SESSION 默认启用**~~: ✅ `feature-flags.js` 中 `JSONL_SESSION.default = true`，新会话默认走 JSONL 持久化
+5. ~~**Background Task Notifications**~~: ✅ 任务完成或失败后通过 `task:notification` 实时推送到 Web Panel
+6. ~~**Worktree 合并助手**~~: ✅ 支持 `worktree-diff` 预览、文件级冲突摘要、自动化解决候选项与 `worktree-merge` 一键合并
+7. ~~**压缩策略 A/B 测试**~~: ✅ `COMPRESSION_AB` 已接入 `featureVariant()`，并可在 Dashboard 按时间窗口 / provider / model 观察效果
 4. ~~**Context Compression 自适应**~~: ✅ 30+ 模型 context window 注册表 + `adaptiveThresholds()` + `adaptToModel()` 动态切换
 
 ## 11. 2026-04-06 补充增强
@@ -289,14 +298,12 @@ chainlesschain config features disable CONTEXT_SNIP
 
 ### 11.5 补充测试结论
 
-- CLI 定向单元测试：`125/125`
-- CLI 定向集成测试：`18/18`
+- CLI 定向单元测试：`130/130`
+- CLI 定向集成测试：`19/19`
 - Web Panel 定向单元测试：`12/12`
 - Web Panel E2E：`29/29`
+- Web Panel 构建：通过
 
 ## 12. 后续规划
 
-1. **JSONL_SESSION 默认启用**: 经充分验证后将 `JSONL_SESSION` 默认值改为 `true`
-2. **Background Task Notifications**: 任务完成后通过 WebSocket 推送实时通知到 Web Panel
-3. **Worktree 合并助手**: 子 Agent 在 worktree 中完成工作后，提供 diff 预览和一键合并到主分支
-4. **压缩策略 A/B 测试**: 利用 `featureVariant()` 对比不同压缩阈值的效果
+说明：以下规划只保留尚未完成的后续增强项；`JSONL_SESSION 默认启用 / Background Task Notifications / Worktree 合并助手 / 压缩策略 A/B 测试` 已在第 10 节归档为已完成能力。
