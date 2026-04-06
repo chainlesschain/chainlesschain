@@ -1,471 +1,356 @@
-# WebSocket 服务器 (serve)
+# WebSocket 服务（serve）
 
-> 通过 WebSocket 暴露全部 CLI 命令，供 IDE 插件、Web 前端、自动化脚本等远程调用。
+> `chainlesschain serve` 用于把 CLI 能力通过 WebSocket 暴露给浏览器端、IDE 插件、自动化脚本和其他前端。当前文档已对齐 Runtime / Gateway 重构、统一 runtime event、session record、后台任务、Worktree 和压缩观测的最新实现。
 
-## 概述
+## 适用场景
 
-`chainlesschain serve` 启动一个 WebSocket 服务器，外部工具通过标准 WebSocket 协议连接后即可执行任意 CLI 命令。支持缓冲模式和流式模式两种执行方式。
+`chainlesschain serve` 适合以下几类接入：
 
-**核心优势：**
+- Web Panel 作为前端界面，复用本地 CLI 的会话、任务和观测能力。
+- IDE 或编辑器插件通过 WS 驱动 Agent / Chat 会话。
+- 自动化脚本、CI/CD、远程控制流程通过统一协议调度 CLI。
+- 需要把命令执行、流式输出和有状态会话放到同一个本地服务里。
 
-- 所有 63 个 CLI 命令立即可用（子进程执行策略，零修改）
-- 流式输出支持（`ask`、`search` 等命令逐块返回）
-- Token 认证 + localhost 默认绑定
-- Shell 注入防护（自实现 tokenizer，无 `shell: true`）
-- 心跳检测 + 连接限制 + 命令超时
+它的定位不是单纯的“命令执行器”，而是 CLI Runtime 的 WS Gateway。
 
-## 快速开始
+## 默认行为
+
+- 默认监听 `127.0.0.1`
+- 支持 token 认证
+- 支持缓冲模式与流式模式命令执行
+- 支持 Agent / Chat 有状态 session
+- 支持后台任务查询、任务历史和实时通知
+- 支持 Worktree diff 预览与一键合并协议
+- 支持压缩观测统计
+
+## 启动方式
 
 ```bash
-# 启动服务器（默认端口 18800，仅本地访问）
 chainlesschain serve
-
-# 指定端口
 chainlesschain serve --port 9000
-
-# 带认证
 chainlesschain serve --token my-secret-token
-
-# 允许远程连接（必须配合 --token）
 chainlesschain serve --allow-remote --token my-secret-token
 ```
 
-### 连接测试
+建议：
 
-```bash
-# 使用 wscat 测试
-npm install -g wscat
-wscat -c ws://127.0.0.1:18800
+- 仅本机联调时直接使用默认配置。
+- 允许远程访问时始终配合 `--token`。
+- 与 `chainlesschain ui` 搭配时，通常无需手工启动，它会自动带起内置 WS 服务。
 
-> {"id":"1","type":"ping"}
-< {"id":"1","type":"pong","serverTime":1710400000000}
+## 协议总览
 
-> {"id":"2","type":"execute","command":"note list --json"}
-< {"id":"2","type":"result","success":true,"exitCode":0,"stdout":"[...]","stderr":""}
-```
+当前协议可以理解为 4 层：
 
-## 命令选项
+1. 基础控制协议
+2. Session 协议
+3. 后台任务协议
+4. Worktree / Compression 协议
 
-```
-chainlesschain serve [options]
-
-Options:
-  -p, --port <port>        端口号 (默认: 18800)
-  -H, --host <host>        绑定地址 (默认: 127.0.0.1)
-  --token <token>          认证 Token（启用后客户端必须先发送 auth 消息）
-  --max-connections <n>    最大连接数 (默认: 10)
-  --timeout <ms>           命令执行超时，单位毫秒 (默认: 30000)
-  --allow-remote           允许非本地连接（需配合 --token）
-  --project <path>         默认项目根目录（会话创建时的 fallback）
-```
-
-## WebSocket 协议
-
-所有消息为 JSON 格式，必须包含 `id`（请求标识）和 `type`（消息类型）字段。
+## 1. 基础控制协议
 
 ### Client → Server
 
-#### 认证 (`auth`)
-
-若服务器启用了 `--token`，客户端连接后必须先发送认证消息：
-
-```json
-{ "id": "1", "type": "auth", "token": "your-secret-token" }
-```
-
-响应：
-
-```json
-{ "id": "1", "type": "auth-result", "success": true }
-```
-
-认证失败时连接将被断开（close code 4001）。
-
-#### 心跳 (`ping`)
-
-```json
-{ "id": "2", "type": "ping" }
-```
-
-响应：
-
-```json
-{ "id": "2", "type": "pong", "serverTime": 1710400000000 }
-```
-
-#### 执行命令 — 缓冲模式 (`execute`)
-
-等待命令完成后一次性返回全部输出：
-
-```json
-{ "id": "3", "type": "execute", "command": "note list --json" }
-```
-
-响应：
-
-```json
-{
-  "id": "3",
-  "type": "result",
-  "success": true,
-  "exitCode": 0,
-  "stdout": "[{\"id\":1,\"title\":\"My Note\"}]",
-  "stderr": ""
-}
-```
-
-#### 执行命令 — 流式模式 (`stream`)
-
-逐块推送输出数据，适合 `ask`、`search` 等需要实时显示的命令：
-
-```json
-{ "id": "4", "type": "stream", "command": "ask \"hello\"" }
-```
-
-服务器逐块推送：
-
-```json
-{ "id": "4", "type": "stream-data", "channel": "stdout", "data": "Hello! " }
-{ "id": "4", "type": "stream-data", "channel": "stdout", "data": "How can I help?" }
-{ "id": "4", "type": "stream-end", "exitCode": 0 }
-```
-
-#### 取消命令 (`cancel`)
-
-取消正在执行的命令（通过 id 匹配）：
-
-```json
-{ "id": "4", "type": "cancel" }
-```
-
-### 错误码
-
-| 错误码 | 说明 |
-|---|---|
-| `INVALID_JSON` | 消息不是有效 JSON |
-| `MISSING_ID` | 缺少 `id` 字段 |
-| `UNKNOWN_TYPE` | 未知消息类型 |
-| `AUTH_REQUIRED` | 需要先认证 |
-| `COMMAND_BLOCKED` | 命令被阻止（交互式或递归） |
-| `INVALID_COMMAND` | 无效命令（空或非字符串） |
-| `COMMAND_TIMEOUT` | 命令超时（被自动终止） |
-| `SPAWN_ERROR` | 子进程启动失败 |
-| `NOT_FOUND` | 找不到指定请求 ID |
-
-## 安全机制
-
-### 默认 localhost
-
-服务器默认绑定 `127.0.0.1`，仅允许本地连接。远程工具需通过 SSH 隧道或 `--allow-remote` 访问。
-
-### Token 认证
-
-启用 `--token` 后，客户端连接后的第一条消息必须是认证。未认证的请求返回 `AUTH_REQUIRED` 错误。认证失败后连接立即断开。
-
-### 命令注入防护
-
-命令字符串通过自实现的 shell-safe tokenizer 解析（支持双引号、单引号、转义），参数直接传入 `spawn()` 的 `args` 数组，**不使用 `shell: true`**，从根本上防止 shell 注入攻击。
-
-### 阻止的命令
-
-以下命令无法通过 WebSocket 执行：
-
-| 命令 | 原因 |
-|---|---|
-| `serve` | 防止递归启动服务器 |
-| `chat` | 需要交互式 TTY |
-| `agent` | 需要交互式 TTY |
-| `setup` | 需要交互式 TTY |
-
-执行这些命令会收到 `COMMAND_BLOCKED` 错误。
-
-### 资源保护
-
-- **连接限制**: `--max-connections` 防止资源耗尽（默认 10）
-- **命令超时**: `--timeout` 超时自动终止子进程（默认 30s）
-- **心跳检测**: 30 秒 ping/pong 自动检测并清理死连接
-
-## 集成示例
-
-### JavaScript / Node.js
-
-```javascript
-import WebSocket from 'ws';
-
-const ws = new WebSocket('ws://127.0.0.1:18800');
-
-ws.on('open', () => {
-  // 如果启用了 token 认证，先认证
-  ws.send(JSON.stringify({
-    id: 'auth',
-    type: 'auth',
-    token: 'my-secret'
-  }));
-});
-
-ws.on('message', (data) => {
-  const msg = JSON.parse(data.toString());
-
-  if (msg.type === 'auth-result' && msg.success) {
-    // 认证成功，执行命令
-    ws.send(JSON.stringify({
-      id: 'cmd1',
-      type: 'execute',
-      command: 'note list --json'
-    }));
-  }
-
-  if (msg.type === 'result') {
-    console.log('Output:', msg.stdout);
-    const notes = JSON.parse(msg.stdout);
-    console.log(`Found ${notes.length} notes`);
-  }
-});
-```
-
-### Python
-
-```python
-import asyncio
-import json
-import websockets
-
-async def main():
-    async with websockets.connect('ws://127.0.0.1:18800') as ws:
-        # 执行命令
-        await ws.send(json.dumps({
-            'id': '1',
-            'type': 'execute',
-            'command': 'note list --json'
-        }))
-
-        response = json.loads(await ws.recv())
-        if response['success']:
-            notes = json.loads(response['stdout'])
-            print(f"Found {len(notes)} notes")
-
-asyncio.run(main())
-```
-
-### 浏览器 (Web 前端)
-
-```javascript
-const ws = new WebSocket('ws://127.0.0.1:18800');
-
-ws.onopen = () => {
-  ws.send(JSON.stringify({
-    id: '1',
-    type: 'stream',
-    command: 'ask "介绍下ChainlessChain"'
-  }));
-};
-
-ws.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
-  if (msg.type === 'stream-data') {
-    document.getElementById('output').textContent += msg.data;
-  }
-  if (msg.type === 'stream-end') {
-    console.log('Done, exit code:', msg.exitCode);
-  }
-};
-```
-
-## 架构
-
-```
-┌─────────────────────────────────────────────┐
-│          外部工具 / IDE / Web 前端            │
-└──────────────────┬──────────────────────────┘
-                   │ WebSocket (ws://...)
-┌──────────────────▼──────────────────────────┐
-│         ChainlessChainWSServer              │
-│                                             │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐   │
-│  │连接管理   │ │Token认证  │ │心跳检测   │   │
-│  └────┬─────┘ └──────────┘ └──────────┘   │
-│       │                                     │
-│  ┌────▼─────────────────────────────────┐   │
-│  │  命令 Tokenizer (shell-safe 分词)    │   │
-│  └────┬─────────────────────────────────┘   │
-│       │                                     │
-│  ┌────▼─────────────────────────────────┐   │
-│  │  spawn(node, [chainlesschain, ...])  │   │
-│  │  FORCE_COLOR=0  NO_SPINNER=1         │   │
-│  └────┬─────────────────────────────────┘   │
-│       │                                     │
-│  ┌────▼────┐  ┌────────────┐                │
-│  │ stdout  │  │ stderr     │                │
-│  │ 缓冲/流 │  │ 缓冲/流    │                │
-│  └─────────┘  └────────────┘                │
-└─────────────────────────────────────────────┘
-```
-
-## 有状态会话（Session）
-
-> v0.41.0 新增
-
-除了无状态 RPC 命令执行，WebSocket 服务器还支持有状态的 agent/chat 会话，提供类似 Claude Code 的远程控制体验。
-
-### 会话协议
-
-#### Client → Server
-
 | type | 说明 | 额外字段 |
 |------|------|----------|
-| `session-create` | 创建 agent/chat 会话 | `sessionType` ("agent"\|"chat"), `provider`, `model`, `apiKey`, `baseUrl`, `projectRoot` |
-| `session-resume` | 从 DB 恢复历史会话 | `sessionId` |
-| `session-message` | 发送用户消息到会话 | `sessionId`, `content` |
-| `session-list` | 列出所有会话 | — |
-| `session-close` | 关闭会话 | `sessionId` |
-| `slash-command` | 发送 slash 命令 | `sessionId`, `command` |
-| `session-answer` | 回答 AI 的提问 | `sessionId`, `requestId`, `answer` |
+| `auth` | 认证 | `token` |
+| `ping` | 心跳 | — |
+| `execute` | 缓冲模式执行命令 | `command` |
+| `stream` | 流式模式执行命令 | `command` |
+| `cancel` | 取消请求 | `id` |
 
-#### Server → Client
+### Server → Client
 
 | type | 说明 |
 |------|------|
-| `session-created` | 会话已创建，含 `sessionId`, `sessionType` |
-| `session-resumed` | 会话已恢复，含 `sessionId`, `history[]` |
-| `tool-executing` | 正在执行工具 |
-| `tool-result` | 工具执行结果 |
-| `response-token` | 流式 token |
-| `response-complete` | 完整响应 |
-| `question` | AI 向用户提问（参数确认） |
-| `session-list-result` | 会话列表 |
+| `auth-result` | 认证结果 |
+| `pong` | 心跳响应 |
+| `result` | 命令执行结果 |
+| `stream-data` | 流式输出片段 |
+| `stream-end` | 流结束 |
+| `error` | 错误响应 |
 
-### 会话示例
+## 2. Session 协议
 
-```bash
-# 使用 wscat 创建 agent 会话
-wscat -c ws://127.0.0.1:18800
+### 常用消息
 
-> {"id":"1","type":"session-create","sessionType":"agent","provider":"ollama","model":"qwen2.5:7b"}
-< {"id":"1","type":"session-created","sessionId":"session-abc123","sessionType":"agent"}
+| type | 说明 | 额外字段 |
+|------|------|----------|
+| `session-create` | 创建 agent/chat 会话 | `sessionType`, `provider`, `model`, `apiKey`, `baseUrl`, `projectRoot` |
+| `session-resume` | 恢复会话 | `sessionId` |
+| `session-message` | 发送消息 | `sessionId`, `content` |
+| `session-list` | 列出会话 | — |
+| `session-close` | 关闭会话 | `sessionId` |
+| `slash-command` | 发送 slash 命令 | `sessionId`, `command` |
+| `session-answer` | 回答交互式问题 | `sessionId`, `requestId`, `answer` |
 
-> {"id":"2","type":"session-message","sessionId":"session-abc123","content":"list files in current directory"}
-< {"id":"2","type":"tool-executing","tool":"list_dir","args":{"path":"."}}
-< {"id":"2","type":"tool-result","tool":"list_dir","result":{...}}
-< {"id":"2","type":"response-complete","content":"Here are the files..."}
+### 创建会话示例
 
-> {"id":"3","type":"slash-command","sessionId":"session-abc123","command":"/plan enter"}
-< {"id":"3","type":"command-response","result":"Entered plan mode."}
-
-> {"id":"4","type":"session-close","sessionId":"session-abc123"}
-< {"id":"4","type":"result","success":true,"sessionId":"session-abc123"}
-```
-
-### 会话事件详情
-
-#### `slot-filling` 事件
-
-当 SlotFiller 检测到缺失参数并补全时发送：
-
-```json
-{
-  "id": "req-1",
-  "type": "session-event",
-  "sessionId": "session-abc123",
-  "event": "slot-filling",
-  "slot": "platform",
-  "question": "Filled \"platform\" = \"docker\""
-}
-```
-
-#### `tool-executing` 事件（run_code 示例）
-
-```json
-{
-  "id": "req-2",
-  "type": "tool-executing",
-  "tool": "run_code",
-  "args": {
-    "language": "python",
-    "code": "import pandas as pd\ndf = pd.read_csv('data.csv')\nprint(df.shape)"
-  }
-}
-```
-
-#### `tool-result` 事件（含 autoInstalled）
-
-当 `run_code` 自动安装了缺失的 Python 包时，`result` 中包含 `autoInstalled` 字段：
-
-```json
-{
-  "id": "req-2",
-  "type": "tool-result",
-  "tool": "run_code",
-  "result": {
-    "success": true,
-    "output": "(100, 5)",
-    "language": "python",
-    "duration": "1523ms",
-    "autoInstalled": ["pandas"],
-    "scriptPath": ".chainlesschain/agent-scripts/2026-03-15-10-30-45-python.py"
-  }
-}
-```
-
-### 项目上下文绑定
-
-创建会话时指定 `projectRoot`，服务器自动加载项目上下文：
+请求：
 
 ```json
 {
   "id": "1",
   "type": "session-create",
   "sessionType": "agent",
-  "projectRoot": "/path/to/my/project"
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "projectRoot": "C:/code/demo"
 }
 ```
 
-加载内容：
-- `{projectRoot}/.chainlesschain/rules.md` → 注入 system prompt
-- `{projectRoot}/.chainlesschain/skills/` → workspace 层 skills
-- `{projectRoot}/.chainlesschain/config.json` → 项目配置
+响应：
 
-### 会话错误码
-
-| 错误码 | 说明 |
-|--------|------|
-| `NO_SESSION_SUPPORT` | 服务器未配置会话管理器 |
-| `SESSION_NOT_FOUND` | 找不到指定会话 |
-| `SESSION_CREATE_FAILED` | 会话创建失败 |
-| `MESSAGE_FAILED` | 消息处理失败 |
-
-## 文件清单
-
-| 文件 | 说明 |
-|---|---|
-| `packages/cli/src/lib/ws-server.js` | WebSocket 服务器核心类 |
-| `packages/cli/src/commands/serve.js` | serve 命令注册 |
-| `packages/cli/src/lib/ws-session-manager.js` | 会话注册表与生命周期管理 |
-| `packages/cli/src/lib/ws-agent-handler.js` | Agent 会话处理器 |
-| `packages/cli/src/lib/ws-chat-handler.js` | Chat 会话处理器 |
-| `packages/cli/src/lib/interaction-adapter.js` | 用户交互抽象层 |
-| `packages/cli/src/lib/agent-core.js` | Agent 核心业务逻辑 |
-| `packages/cli/src/lib/chat-core.js` | Chat 流式核心逻辑 |
-| `packages/cli/src/lib/slot-filler.js` | 参数槽填充引擎 |
-| `packages/cli/src/lib/interactive-planner.js` | 交互式计划生成器 |
-
-## 测试
-
-```bash
-cd packages/cli
-
-# RPC 测试
-npx vitest run __tests__/unit/ws-server.test.js                 # 39 个单元测试
-npx vitest run __tests__/integration/ws-server-workflow.test.js  # 7 个集成测试
-npx vitest run __tests__/e2e/serve-command.test.js               # 8 个 E2E 测试
-
-# 会话测试
-npx vitest run __tests__/unit/ws-session-manager.test.js         # 20 个单元测试
-npx vitest run __tests__/unit/ws-agent-handler.test.js           # 18 个单元测试
-npx vitest run __tests__/unit/ws-chat-handler.test.js            # 8 个单元测试
-npx vitest run __tests__/unit/interaction-adapter.test.js        # 15 个单元测试
-npx vitest run __tests__/unit/slot-filler.test.js                # 35 个单元测试
-npx vitest run __tests__/unit/interactive-planner.test.js        # 20 个单元测试
-npx vitest run __tests__/integration/ws-session-workflow.test.js # 16 个集成测试
+```json
+{
+  "id": "1",
+  "type": "session-created",
+  "sessionId": "session-123",
+  "sessionType": "agent",
+  "record": {
+    "id": "session-123",
+    "type": "agent",
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "projectRoot": "C:/code/demo",
+    "messageCount": 0,
+    "history": [],
+    "status": "created"
+  }
+}
 ```
 
-共 220+ 个 WebSocket 相关测试，覆盖 RPC 命令执行、有状态会话、SlotFiller 意图检测、交互式规划等全部功能。
+### 恢复会话示例
+
+请求：
+
+```json
+{
+  "id": "2",
+  "type": "session-resume",
+  "sessionId": "session-123"
+}
+```
+
+响应：
+
+```json
+{
+  "id": "2",
+  "type": "session-resumed",
+  "sessionId": "session-123",
+  "history": [
+    { "role": "user", "content": "hello" }
+  ],
+  "record": {
+    "id": "session-123",
+    "type": "agent",
+    "messageCount": 1,
+    "history": [
+      { "role": "user", "content": "hello" }
+    ],
+    "status": "resumed"
+  }
+}
+```
+
+### 列出会话示例
+
+请求：
+
+```json
+{
+  "id": "3",
+  "type": "session-list"
+}
+```
+
+响应中的 `sessions[]` 现在每项都会带 `record`，用于让前端和 WS 层共享统一的会话摘要结构。
+
+### Session 流式事件
+
+运行过程中常见的服务端消息包括：
+
+- `tool-executing`
+- `tool-result`
+- `response-token`
+- `response-complete`
+- `question`
+
+## Session Record
+
+当前标准 session summary 结构如下：
+
+```json
+{
+  "id": "session-123",
+  "type": "agent",
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "projectRoot": "C:/code/demo",
+  "messageCount": 3,
+  "history": [
+    { "role": "user", "content": "hello" }
+  ],
+  "status": "resumed"
+}
+```
+
+这个结构当前已经贯通：
+
+- `session-created`
+- `session-resumed`
+- `session-list-result`
+
+## 3. 后台任务协议
+
+| type | 说明 |
+|------|------|
+| `tasks-list` | 返回任务列表 |
+| `tasks-detail` | 返回任务详情，含 `outputSummary` |
+| `tasks-history` | 返回任务历史，支持 `offset` / `limit` |
+| `tasks-stop` | 停止任务 |
+| `task:notification` | 任务完成或失败时的实时通知 |
+
+这部分能力已不只是“列任务”，还承担：
+
+- 重启恢复后的任务可见性
+- 历史分页检索
+- 输出摘要查询
+- 前端实时通知
+
+## 4. Worktree 协议
+
+| type | 说明 |
+|------|------|
+| `worktree-list` | 列出 worktree |
+| `worktree-diff` | 返回 diff 预览与 `record` |
+| `worktree-merge` | 返回 merge 结果、冲突摘要和预览入口 |
+
+当前 worktree 返回值已开始统一带：
+
+- `record`
+- `previewEntrypoints`
+- `automationCandidates`
+
+也就是说，前端不再只能收到一个“成功/失败”字符串，而是能拿到更细粒度的文件级摘要和建议操作。
+
+## 5. 压缩观测协议
+
+| type | 说明 |
+|------|------|
+| `compression-stats` | 返回压缩摘要，支持 `windowMs`、`provider`、`model` |
+
+当前可观测数据包括：
+
+- 压缩命中率
+- 节省 token
+- 净节省率
+- 策略分布
+- 变体分布
+- 按 `provider` / `model` 维度切片
+
+## 统一 Runtime Event
+
+WS 协议层已经开始同步发出标准 runtime event，主要包括：
+
+- `session:start`
+- `session:resume`
+- `session:end`
+- `session:message`
+- `task:notification`
+- `worktree:diff:ready`
+- `worktree:merge:completed`
+- `compression:summary`
+
+Web Panel 现在会通过 `onRuntimeEvent()` 统一消费这套事件，而不是每个页面都直接理解所有原始协议消息。
+
+## 三类消息的区别
+
+为了避免联调时把不同类型的消息混在一起，当前建议按下面三类理解：
+
+### 1. 协议响应
+
+这类消息回答的是“某次请求返回了什么”，通常和请求 `id` 对应。
+
+典型包括：
+
+- `session-created`
+- `session-resumed`
+- `session-list-result`
+- `tasks-list`
+- `tasks-detail`
+- `tasks-history`
+- `worktree-diff`
+- `worktree-merged`
+- `compression-stats`
+
+### 2. Runtime Event
+
+这类消息回答的是“系统状态发生了什么变化”，由前端统一通过 `onRuntimeEvent()` 消费。
+
+典型包括：
+
+- `session:start`
+- `session:resume`
+- `session:end`
+- `task:notification`
+- `worktree:diff:ready`
+- `worktree:merge:completed`
+- `compression:summary`
+
+### 3. Session Stream
+
+这类消息回答的是“当前会话正在流式输出什么”，主要属于会话专用通道。
+
+典型包括：
+
+- `response-token`
+- `response-complete`
+- `tool-executing`
+- `tool-result`
+- `question`
+
+当前口径是：
+
+- `ws.js` 负责把协议响应归一化为 runtime event
+- `chat.js` 继续直接消费 session stream
+- 不要求所有流式消息都迁到统一事件模型
+
+## 与 `ui` 的关系
+
+- `serve` 是 WS Gateway，本身不负责页面展示。
+- `ui` 会自动启动 HTTP 服务和内置 WS 服务。
+- 如果你只是想用浏览器面板，优先使用 `chainlesschain ui`。
+- 如果你要把 CLI 接到外部前端或插件，优先使用 `chainlesschain serve`。
+
+## 调试建议
+
+联调 WS 时，优先检查下面几项：
+
+- 是否开启了 token，但客户端没有先发 `auth`
+- 当前消息是“协议响应”还是“runtime event”
+- 会话类消息是否已经带上 `record`
+- `session-list-result.sessions[]` 是否已被前端归一化
+- `tasks-history` 是否传了分页参数
+- `compression-stats` 是否传了 `windowMs` / `provider` / `model`
+
+## 当前验证
+
+- `ws-runtime-events.test.js`：`2/2`
+- `ws-session-workflow.test.js`：`16/16`
+- `ws-server.test.js`：相关回归已通过
+
+## 安全说明
+
+- 默认仅监听 `127.0.0.1`
+- 开启远程访问时应始终配合 `--token`
+- `serve` 内部不使用 `shell: true`
+- 命令执行仍保留超时、最大连接数和心跳保护
+
+## 关联文档
+
+- [Web 管理界面（ui）](/chainlesschain/cli-ui)
+- [Agent 架构优化](/chainlesschain/agent-optimization)
+- [设计文档索引](/design/)
+- [设计模块：WebSocket 服务器接口](/design/modules/69-websocket-server)

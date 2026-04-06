@@ -11,6 +11,31 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { WebSocketServer } from "ws";
+import { createTaskRecord } from "../runtime/contracts/task-record.js";
+import { RUNTIME_EVENTS, createRuntimeEvent } from "../runtime/runtime-events.js";
+import { createWsMessageDispatcher } from "../gateways/ws/message-dispatcher.js";
+import {
+  handleTaskDetail,
+  handleTaskHistory,
+} from "../gateways/ws/task-protocol.js";
+import {
+  handleSessionCreate,
+  handleSessionResume,
+  handleSessionMessage,
+  handleSessionList,
+  handleSessionClose,
+  handleSessionAnswer,
+} from "../gateways/ws/session-protocol.js";
+import {
+  handleSlashCommand,
+  handleOrchestrate,
+} from "../gateways/ws/action-protocol.js";
+import {
+  handleWorktreeDiff,
+  handleWorktreeMerge,
+  handleWorktreeList,
+  handleCompressionStats,
+} from "../gateways/ws/worktree-protocol.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -99,6 +124,7 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     /** Session handlers: sessionId → WSAgentHandler | WSChatHandler */
     this.sessionHandlers = new Map();
+    this._dispatcher = createWsMessageDispatcher(this);
 
     this._heartbeatTimer = null;
     this._clientCounter = 0;
@@ -227,101 +253,7 @@ export class ChainlessChainWSServer extends EventEmitter {
 
   /** @private */
   async _handleMessage(clientId, ws, message) {
-    const { id, type } = message;
-
-    if (!id) {
-      this._send(ws, {
-        type: "error",
-        code: "MISSING_ID",
-        message: 'Message must include an "id" field',
-      });
-      return;
-    }
-
-    // Check authentication
-    const client = this.clients.get(clientId);
-    if (this.token && !client.authenticated && type !== "auth") {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "AUTH_REQUIRED",
-        message: "Authentication required. Send an auth message first.",
-      });
-      return;
-    }
-
-    switch (type) {
-      case "auth":
-        this._handleAuth(clientId, ws, message);
-        break;
-      case "ping":
-        this._send(ws, { id, type: "pong", serverTime: Date.now() });
-        break;
-      case "execute":
-        this._executeCommand(id, ws, message.command, false);
-        break;
-      case "stream":
-        this._executeCommand(id, ws, message.command, true);
-        break;
-      case "cancel":
-        this._cancelRequest(id, ws);
-        break;
-      case "session-create":
-        await this._handleSessionCreate(id, ws, message);
-        break;
-      case "session-resume":
-        await this._handleSessionResume(id, ws, message);
-        break;
-      case "session-message":
-        this._handleSessionMessage(id, ws, message);
-        break;
-      case "session-list":
-        this._handleSessionList(id, ws);
-        break;
-      case "session-close":
-        this._handleSessionClose(id, ws, message);
-        break;
-      case "slash-command":
-        this._handleSlashCommand(id, ws, message);
-        break;
-      case "session-answer":
-        this._handleSessionAnswer(id, ws, message);
-        break;
-      case "orchestrate":
-        this._handleOrchestrate(id, ws, message);
-        break;
-      case "tasks-list":
-        this._handleTasksList(id, ws);
-        break;
-      case "tasks-stop":
-        this._handleTasksStop(id, ws, message);
-        break;
-      case "tasks-detail":
-        this._handleTaskDetail(id, ws, message);
-        break;
-      case "tasks-history":
-        this._handleTaskHistory(id, ws, message);
-        break;
-      case "worktree-diff":
-        this._handleWorktreeDiff(id, ws, message);
-        break;
-      case "worktree-merge":
-        this._handleWorktreeMerge(id, ws, message);
-        break;
-      case "worktree-list":
-        this._handleWorktreeList(id, ws);
-        break;
-      case "compression-stats":
-        this._handleCompressionStats(id, ws, message);
-        break;
-      default:
-        this._send(ws, {
-          id,
-          type: "error",
-          code: "UNKNOWN_TYPE",
-          message: `Unknown message type: ${type}`,
-        });
-    }
+    return this._dispatcher.dispatch(clientId, ws, message);
   }
 
   /**
@@ -338,74 +270,7 @@ export class ChainlessChainWSServer extends EventEmitter {
    *   { type: "error", code: "ORCHESTRATE_FAILED", ... }
    */
   async _handleOrchestrate(id, ws, message) {
-    const {
-      task,
-      cwd,
-      agents = 3,
-      ci = "npm test",
-      noCi = false,
-      strategy,
-    } = message;
-
-    if (!task || typeof task !== "string") {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "INVALID_TASK",
-        message: "task field required",
-      });
-      return;
-    }
-
-    try {
-      const { Orchestrator, TASK_SOURCE } = await import("./orchestrator.js");
-
-      const orch = new Orchestrator({
-        cwd: cwd || this.projectRoot || process.cwd(),
-        maxParallel: Math.min(parseInt(agents, 10) || 3, 10),
-        ciCommand: ci,
-        agents: strategy ? { strategy } : undefined,
-        verbose: false,
-      });
-
-      // Add WebSocket as a notification channel — all events go back to this client
-      const wsNotifier = orch.notifier.addWebSocketChannel({
-        send: (data) => this._send(ws, data),
-        requestId: id,
-      });
-
-      // Forward real-time agent output
-      orch.on("agent:output", (ev) => wsNotifier.sendAgentOutput(ev));
-
-      // Forward task status changes
-      orch.on("task:added", (t) => wsNotifier.sendStatus(t));
-      orch.on("task:decomposing", (t) => wsNotifier.sendStatus(t));
-      orch.on("ci:checking", ({ task: t }) => wsNotifier.sendStatus(t));
-      orch.on("task:retrying", ({ task: t }) => wsNotifier.sendStatus(t));
-
-      const result = await orch.addTask(task, {
-        source: TASK_SOURCE.CLI,
-        cwd: cwd || this.projectRoot || process.cwd(),
-        runCI: !noCi,
-        notify: true,
-      });
-
-      this._send(ws, {
-        id,
-        type: "orchestrate:done",
-        taskId: result.id,
-        status: result.status,
-        retries: result.retries,
-        subtasks: result.subtasks?.length || 0,
-      });
-    } catch (err) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "ORCHESTRATE_FAILED",
-        message: err.message,
-      });
-    }
+    return handleOrchestrate(this, id, ws, message);
   }
 
   /** @private – list background tasks */
@@ -425,16 +290,20 @@ export class ChainlessChainWSServer extends EventEmitter {
     this._taskNotificationsSubscribed = true;
 
     this._taskManager.on("task:complete", (task) => {
+      const record = createTaskRecord(task, {
+        source: "background-task-manager",
+      });
+      this.emit(
+        RUNTIME_EVENTS.TASK_NOTIFICATION,
+        createRuntimeEvent(
+          RUNTIME_EVENTS.TASK_NOTIFICATION,
+          { task: record },
+          { kind: "server" },
+        ),
+      );
       this._broadcast({
         type: "task:notification",
-        task: {
-          id: task.id,
-          status: task.status,
-          description: task.description,
-          completedAt: task.completedAt,
-          result: task.result,
-          error: task.error,
-        },
+        task: record,
       });
     });
   }
@@ -467,161 +336,32 @@ export class ChainlessChainWSServer extends EventEmitter {
 
   /** @private */
   async _handleTaskDetail(id, ws, message) {
-    try {
-      await this._ensureTaskManager();
-      if (!message.taskId) {
-        this._send(ws, {
-          id,
-          type: "error",
-          code: "NO_TASK",
-          message: "taskId required",
-        });
-        return;
-      }
-      const task = this._taskManager.getDetails(message.taskId);
-      this._send(ws, { id, type: "tasks-detail", task });
-    } catch (err) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "TASK_DETAIL_FAILED",
-        message: err.message,
-      });
-    }
+    return handleTaskDetail(this, id, ws, message);
   }
 
   /** @private */
   async _handleTaskHistory(id, ws, message) {
-    try {
-      await this._ensureTaskManager();
-      if (!message.taskId) {
-        this._send(ws, {
-          id,
-          type: "error",
-          code: "NO_TASK",
-          message: "taskId required",
-        });
-        return;
-      }
-      const history = this._taskManager.getHistory(message.taskId, {
-        limit: message.limit,
-        offset: message.offset,
-      });
-      this._send(ws, {
-        id,
-        type: "tasks-history",
-        taskId: message.taskId,
-        history,
-      });
-    } catch (err) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "TASK_HISTORY_FAILED",
-        message: err.message,
-      });
-    }
+    return handleTaskHistory(this, id, ws, message);
   }
 
   /** @private — diff preview for agent worktree branch */
   async _handleWorktreeDiff(id, ws, message) {
-    try {
-      const { diffWorktree } = await import("./worktree-isolator.js");
-      const { branch, baseBranch } = message;
-      if (!branch) {
-        this._send(ws, {
-          id,
-          type: "error",
-          code: "NO_BRANCH",
-          message: "branch required",
-        });
-        return;
-      }
-      const result = diffWorktree(process.cwd(), branch, { baseBranch });
-      this._send(ws, {
-        id,
-        type: "worktree-diff",
-        files: result.files,
-        summary: result.summary,
-      });
-    } catch (err) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "WORKTREE_DIFF_FAILED",
-        message: err.message,
-      });
-    }
+    return handleWorktreeDiff(this, id, ws, message);
   }
 
   /** @private — one-click merge of agent worktree branch */
   async _handleWorktreeMerge(id, ws, message) {
-    try {
-      const { mergeWorktree } = await import("./worktree-isolator.js");
-      const { branch, strategy, commitMessage } = message;
-      if (!branch) {
-        this._send(ws, {
-          id,
-          type: "error",
-          code: "NO_BRANCH",
-          message: "branch required",
-        });
-        return;
-      }
-      const result = mergeWorktree(process.cwd(), branch, {
-        strategy: strategy || "merge",
-        message: commitMessage,
-      });
-      this._send(ws, { id, type: "worktree-merged", ...result });
-    } catch (err) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "WORKTREE_MERGE_FAILED",
-        message: err.message,
-      });
-    }
+    return handleWorktreeMerge(this, id, ws, message);
   }
 
   /** @private — list agent worktrees */
   async _handleWorktreeList(id, ws) {
-    try {
-      const { listWorktrees } = await import("./worktree-isolator.js");
-      const worktrees = listWorktrees(process.cwd()).filter(
-        (wt) => wt.branch && wt.branch.startsWith("agent/"),
-      );
-      this._send(ws, { id, type: "worktree-list", worktrees });
-    } catch (err) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "WORKTREE_LIST_FAILED",
-        message: err.message,
-      });
-    }
+    return handleWorktreeList(this, id, ws);
   }
 
   /** @private */
   async _handleCompressionStats(id, ws, message) {
-    try {
-      const { getCompressionTelemetrySummary } = await import(
-        "./compression-telemetry.js"
-      );
-      const summary = getCompressionTelemetrySummary({
-        limit: message.limit,
-        windowMs: message.windowMs,
-        provider: message.provider,
-        model: message.model,
-      });
-      this._send(ws, { id, type: "compression-stats", summary });
-    } catch (err) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "COMPRESSION_STATS_FAILED",
-        message: err.message,
-      });
-    }
+    return handleCompressionStats(this, id, ws, message);
   }
 
   /** @private */
@@ -814,265 +554,37 @@ export class ChainlessChainWSServer extends EventEmitter {
 
   /** @private */
   async _handleSessionCreate(id, ws, message) {
-    if (!this.sessionManager) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "NO_SESSION_SUPPORT",
-        message: "Session support not configured on this server",
-      });
-      return;
-    }
-
-    const { sessionType, provider, model, apiKey, baseUrl, projectRoot } =
-      message;
-
-    try {
-      const { sessionId } = this.sessionManager.createSession({
-        type: sessionType || "agent",
-        provider,
-        model,
-        apiKey,
-        baseUrl,
-        projectRoot,
-      });
-
-      const session = this.sessionManager.getSession(sessionId);
-
-      // Lazy-load handler modules to avoid circular deps
-      try {
-        const { WebSocketInteractionAdapter } =
-          await import("./interaction-adapter.js");
-        session.interaction = new WebSocketInteractionAdapter(ws, sessionId);
-
-        let handler;
-        if ((sessionType || "agent") === "chat") {
-          const { WSChatHandler } = await import("./ws-chat-handler.js");
-          handler = new WSChatHandler({
-            session,
-            interaction: session.interaction,
-          });
-        } else {
-          const { WSAgentHandler } = await import("./ws-agent-handler.js");
-          handler = new WSAgentHandler({
-            session,
-            interaction: session.interaction,
-            db: this.sessionManager.db,
-          });
-        }
-        this.sessionHandlers.set(sessionId, handler);
-      } catch (_err) {
-        // Handler creation failed — session still created, handler can be set later
-      }
-
-      this.emit("session:create", { sessionId, type: sessionType || "agent" });
-
-      this._send(ws, {
-        id,
-        type: "session-created",
-        sessionId,
-        sessionType: sessionType || "agent",
-      });
-    } catch (err) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "SESSION_CREATE_FAILED",
-        message: err.message,
-      });
-    }
+    return handleSessionCreate(this, id, ws, message);
   }
 
   /** @private */
   async _handleSessionResume(id, ws, message) {
-    if (!this.sessionManager) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "NO_SESSION_SUPPORT",
-        message: "Session support not configured",
-      });
-      return;
-    }
-
-    const { sessionId } = message;
-    const session = this.sessionManager.resumeSession(sessionId);
-
-    if (!session) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "SESSION_NOT_FOUND",
-        message: `Session not found: ${sessionId}`,
-      });
-      return;
-    }
-
-    // Rebuild interaction adapter and handler for the resumed session
-    if (!this.sessionHandlers.has(sessionId)) {
-      try {
-        const { WebSocketInteractionAdapter } =
-          await import("./interaction-adapter.js");
-        session.interaction = new WebSocketInteractionAdapter(ws, sessionId);
-
-        let handler;
-        if (session.type === "chat") {
-          const { WSChatHandler } = await import("./ws-chat-handler.js");
-          handler = new WSChatHandler({
-            session,
-            interaction: session.interaction,
-          });
-        } else {
-          const { WSAgentHandler } = await import("./ws-agent-handler.js");
-          handler = new WSAgentHandler({
-            session,
-            interaction: session.interaction,
-            db: this.sessionManager.db,
-          });
-        }
-        this.sessionHandlers.set(sessionId, handler);
-      } catch (_err) {
-        // Handler creation failed — session resumed without handler
-      }
-    }
-
-    // Filter out system messages for history
-    const history = (session.messages || []).filter((m) => m.role !== "system");
-
-    this._send(ws, {
-      id,
-      type: "session-resumed",
-      sessionId: session.id,
-      history,
-    });
+    return handleSessionResume(this, id, ws, message);
   }
 
   /** @private */
   _handleSessionMessage(id, ws, message) {
-    const { sessionId, content } = message;
-    const handler = this.sessionHandlers.get(sessionId);
-
-    if (!handler) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "SESSION_NOT_FOUND",
-        message: `No active session handler for: ${sessionId}`,
-      });
-      return;
-    }
-
-    // Fire and forget — handler emits events via interaction adapter
-    handler
-      .handleMessage(content, id)
-      .then(() => {
-        // Persist messages after each turn
-        if (this.sessionManager) {
-          try {
-            this.sessionManager.persistMessages(sessionId);
-          } catch (_err) {
-            // Non-critical
-          }
-        }
-      })
-      .catch((err) => {
-        this._send(ws, {
-          id,
-          type: "error",
-          code: "MESSAGE_FAILED",
-          message: err.message,
-        });
-      });
+    return handleSessionMessage(this, id, ws, message);
   }
 
   /** @private */
   _handleSessionList(id, ws) {
-    if (!this.sessionManager) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "NO_SESSION_SUPPORT",
-        message: "Session support not configured",
-      });
-      return;
-    }
-
-    const sessions = this.sessionManager.listSessions();
-    this._send(ws, {
-      id,
-      type: "session-list-result",
-      sessions,
-    });
+    return handleSessionList(this, id, ws);
   }
 
   /** @private */
   _handleSessionClose(id, ws, message) {
-    const { sessionId } = message;
-
-    // Remove handler
-    const handler = this.sessionHandlers.get(sessionId);
-    if (handler && handler.destroy) {
-      handler.destroy();
-    }
-    this.sessionHandlers.delete(sessionId);
-
-    // Close session in manager
-    if (this.sessionManager) {
-      try {
-        this.sessionManager.closeSession(sessionId);
-      } catch (_err) {
-        // Non-critical
-      }
-    }
-
-    this.emit("session:close", { sessionId });
-
-    this._send(ws, {
-      id,
-      type: "result",
-      success: true,
-      sessionId,
-    });
+    return handleSessionClose(this, id, ws, message);
   }
 
   /** @private */
   _handleSlashCommand(id, ws, message) {
-    const { sessionId, command } = message;
-    const handler = this.sessionHandlers.get(sessionId);
-
-    if (!handler) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "SESSION_NOT_FOUND",
-        message: `No active session handler for: ${sessionId}`,
-      });
-      return;
-    }
-
-    handler.handleSlashCommand(command, id);
+    return handleSlashCommand(this, id, ws, message);
   }
 
   /** @private */
   _handleSessionAnswer(id, ws, message) {
-    const { sessionId, requestId, answer } = message;
-
-    if (!this.sessionManager) {
-      this._send(ws, {
-        id,
-        type: "error",
-        code: "NO_SESSION_SUPPORT",
-        message: "Session support not configured",
-      });
-      return;
-    }
-
-    const session = this.sessionManager.getSession(sessionId);
-    if (session && session.interaction && session.interaction.resolveAnswer) {
-      session.interaction.resolveAnswer(requestId, answer);
-    }
-
-    this._send(ws, { id, type: "result", success: true });
+    return handleSessionAnswer(this, id, ws, message);
   }
 
   /** @private — ping/pong heartbeat to detect dead connections */

@@ -133,6 +133,7 @@ const MODULE_FILE_MAP = {
   "75_Web管理面板.md": "75-web-panel.md",
   "76_技能创建系统.md": "76-skill-creator.md",
   "77_Agent架构优化系统.md": "77-agent-optimization.md",
+  "78_CLI_Agent_Runtime重构实施计划.md": "78-cli-agent-runtime.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）

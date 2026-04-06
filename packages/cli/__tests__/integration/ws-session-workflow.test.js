@@ -239,6 +239,14 @@ describe("Integration: WebSocket Session Workflow", () => {
     expect(resp.sessions).toBeInstanceOf(Array);
     expect(resp.sessions.length).toBe(1);
     expect(resp.sessions[0].id).toBe("test-session-1");
+    expect(resp.sessions[0].record).toEqual(
+      expect.objectContaining({
+        id: "test-session-1",
+        type: "agent",
+        status: "active",
+        messageCount: 0,
+      }),
+    );
   });
 
   // ─── session-close ─────────────────────────────────────────────────

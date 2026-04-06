@@ -4,6 +4,7 @@ import path from "node:path";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { getRuntimeToolDescriptor } from "../../src/tools/legacy-agent-tools.js";
 
 // Mock plan-mode, skill-loader, hook-manager, project-detector before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -63,7 +64,10 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
 
 const {
   AGENT_TOOLS,
+  AGENT_TOOL_REGISTRY,
   getBaseSystemPrompt,
+  getAgentToolDefinitions,
+  getAgentToolDescriptors,
   buildSystemPrompt,
   formatToolArgs,
   executeTool,
@@ -97,6 +101,72 @@ describe("AGENT_TOOLS", () => {
     expect(names).toContain("run_skill");
     expect(names).toContain("list_skills");
     expect(names).toContain("run_code");
+  });
+});
+
+describe("agent tool registry compatibility", () => {
+  it("exposes a registry view for legacy agent tools", () => {
+    expect(AGENT_TOOL_REGISTRY).toBeDefined();
+    expect(AGENT_TOOL_REGISTRY.get("run_shell")).toMatchObject({
+      name: "run_shell",
+      kind: "shell",
+      source: "agent-core",
+    });
+  });
+
+  it("filters tool definitions by disabledTools", () => {
+    const filtered = getAgentToolDefinitions({
+      disabledTools: ["run_shell", "run_code"],
+    });
+    const names = filtered.map((tool) => tool.function.name);
+
+    expect(names).not.toContain("run_shell");
+    expect(names).not.toContain("run_code");
+    expect(names).toContain("read_file");
+  });
+
+  it("returns matching descriptors for filtered tool definitions", () => {
+    const descriptors = getAgentToolDescriptors({
+      names: ["read_file", "list_dir"],
+    });
+
+    expect(descriptors).toHaveLength(2);
+    expect(descriptors.map((descriptor) => descriptor.name)).toEqual([
+      "read_file",
+      "list_dir",
+    ]);
+  });
+
+  it("maps run_shell to the shell runtime descriptor", () => {
+    const descriptor = getRuntimeToolDescriptor("run_shell");
+    expect(descriptor?.name).toBe("shell");
+  });
+});
+
+describe("executeTool runtime metadata", () => {
+  it("attaches runtime descriptor info when running shell commands", async () => {
+    const result = await executeTool("run_shell", { command: "echo hello" });
+    expect(result.toolDescriptor?.name).toBe("shell");
+    expect(result.stdout).toBeDefined();
+  });
+
+  it("attaches a telemetry record for run_shell", async () => {
+    const result = await executeTool("run_shell", { command: "echo hi" });
+    expect(result.toolTelemetryRecord).toBeDefined();
+    expect(result.toolTelemetryRecord?.toolName).toBe("shell");
+    expect(["completed", "error"]).toContain(result.toolTelemetryRecord?.status);
+  });
+
+  it("maps git commands to the git descriptor", async () => {
+    const result = await executeTool("run_shell", { command: "git status" });
+    expect(result.toolDescriptor?.name).toBe("git");
+  });
+
+  it("maps MCP commands to the mcp descriptor", async () => {
+    const result = await executeTool("run_shell", {
+      command: "chainlesschain mcp call tools list",
+    });
+    expect(result.toolDescriptor?.name).toBe("mcp");
   });
 });
 

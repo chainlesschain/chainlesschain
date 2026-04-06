@@ -2,27 +2,50 @@
 
 ## 2026-04-06 增量更新
 
-本次在保留原有 README 主体内容的基础上，补充了 Agent 架构优化系统的最新落地能力：
+这轮不是只做版本号和测试数字同步，而是把前面几次落地的 Agent Runtime、Web Panel、协议与文档重新收束成一致状态，并补回被压短的入口说明。
 
-- 后台任务支持分页历史检索、任务输出摘要、重启恢复和多节点恢复策略基础能力。
+本次已经完成并在代码中可用的能力包括：
+
+- 后台任务支持分页历史检索、任务详情摘要、重启恢复和多节点恢复策略基础能力。
 - Worktree 冲突处理支持文件级摘要、自动化解决候选项和 diff 预览入口。
-- 压缩观测支持时间窗口筛选，以及按 provider / model 维度切片统计。
+- 压缩观测支持时间窗口筛选，以及按 `provider` / `model` 维度切片统计。
 - 会话迁移支持目录级 dry-run 报告、迁移后抽样校验和失败重试。
+- `JSONL_SESSION` 已默认启用。
+- 后台任务完成后会通过 `task:notification` 实时通知 Web Panel。
+- Worktree 合并助手已支持 diff 预览和一键合并协议。
+- 压缩策略 A/B 测试已通过 `featureVariant()` 接入。
 
-本轮定向验证结果：
+本轮与当前代码对齐的验证结果：
 
 - CLI 定向单元测试：`130/130`
 - CLI 定向集成测试：`19/19`
-- Web Panel 定向单元测试：`12/12`
+- CLI `ws-session-workflow` 集成：`16/16`
+- Web Panel 定向单元测试：`23/23`
 - Web Panel E2E：`29/29`
 - Web Panel 构建：通过
+- Docs Site 构建：通过
 
-另外确认以下 4 项能力已经正式完成并与代码一致：
+如果你是第一次进入仓库，建议按这个顺序阅读：
 
-- `JSONL_SESSION` 默认启用
-- 后台任务完成后通过 `task:notification` 实时通知 Web Panel
-- Worktree 合并助手支持 diff 预览和一键合并协议
-- 压缩策略 A/B 测试已通过 `featureVariant()` 接入
+1. 根 README 当前页，先了解整体能力、安装方式和版本演进。
+2. [docs/design/README.md](./docs/design/README.md)，看设计区入口和当前重构重点。
+3. [docs/design/modules/77_Agent架构优化系统.md](./docs/design/modules/77_Agent架构优化系统.md)，看这轮能力扩展本身。
+4. [docs/design/modules/78_CLI_Agent_Runtime重构实施计划.md](./docs/design/modules/78_CLI_Agent_Runtime重构实施计划.md)，看 CLI Agent Runtime 分层重构进度。
+5. [docs-site/docs/index.md](./docs-site/docs/index.md)，看面向用户的文档站入口。
+
+如果你关心这轮最核心的实现主线，建议再重点看这 4 份：
+
+- [docs/design/modules/69_WebSocket服务器接口.md](./docs/design/modules/69_WebSocket服务器接口.md)
+- [docs/design/modules/73_Web管理界面.md](./docs/design/modules/73_Web管理界面.md)
+- [docs/design/modules/75_Web管理面板.md](./docs/design/modules/75_Web管理面板.md)
+- [docs/design/modules/78_CLI_Agent_Runtime重构实施计划.md](./docs/design/modules/78_CLI_Agent_Runtime重构实施计划.md)
+
+这 4 份文档现在分别覆盖：
+
+- WS Gateway 与协议边界
+- `chainlesschain ui` 的启动链路与运行模式
+- Web Panel 的页面能力、store 和统一事件模型
+- CLI Agent Runtime 的阶段性重构计划、退出条件与风险控制
 
 <div align="center">
 

@@ -1,227 +1,326 @@
-# Web 管理界面 (ui)
+# Web 管理界面（ui）
 
-> 一条命令在浏览器中打开完整的 Web 管理界面，支持项目专属模式和全局管理模式。
+> `chainlesschain ui` 会启动本地 Web 管理面板，并自动连接内置 WebSocket 服务。当前文档已对齐统一 runtime event、session record、后台任务增强、Worktree 合并助手和压缩观测的最新实现。
 
-## 概述
+## 这是什么
 
-`chainlesschain ui` 启动一个本地 Web 管理页面。根据当前工作目录自动检测运行模式：
+`chainlesschain ui` 是 ChainlessChain 的本地浏览器管理界面。它的目标不是替代 CLI，而是把 CLI 已有能力以更适合观察、切换和联调的方式呈现出来。
 
-- **项目模式**：从含 `.chainlesschain/` 目录的项目路径运行，AI 自动携带项目上下文
-- **全局模式**：从任意非项目目录运行，打开通用 AI 管理面板
+它适合以下场景：
 
-**核心优势：**
+- 用浏览器管理 Agent / Chat 会话
+- 查看后台任务、任务历史和完成通知
+- 查看压缩策略观测与会话运行状态
+- 在项目模式下，把对话绑定到某个项目根目录
+- 作为 `chainlesschain serve` 的内置前端使用
 
-- 完全内置，无需额外安装，一条命令即可启动
-- 流式 Markdown 渲染（marked.js + highlight.js 代码高亮）
-- 会话管理：新建/切换/历史记录
-- 支持 Agent 和 Chat 两种会话模式
-- 交互式问答弹窗（Agent slot-filling 支持）
-- 断线自动重连
-- Token 认证保护
+## 启动后会发生什么
 
-## 快速开始
+执行：
 
 ```bash
-# 项目模式（从含 .chainlesschain/ 的目录运行）
-cd /your/project
 chainlesschain ui
+```
 
-# 全局模式（从任意目录运行）
+会同时启动两类服务：
+
+- HTTP 服务，默认端口 `18810`
+- WebSocket 服务，默认端口 `18800`
+
+浏览器页面负责展示界面，真正的会话、任务和运行状态仍然由本地 CLI 侧的 Runtime / WS Gateway 负责。
+
+## 常用命令
+
+```bash
 chainlesschain ui
-
-# 自定义端口
 chainlesschain ui --port 9000 --ws-port 9001
-
-# 启用认证
-chainlesschain ui --token mysecret
-
-# 仅启动服务器，不自动打开浏览器
+chainlesschain ui --token my-secret-token
 chainlesschain ui --no-open
+chainlesschain ui --web-panel-dir /custom/dist
 ```
 
-启动后访问：`http://127.0.0.1:18810`
+常见用法：
 
-## 命令选项
+- 本机直接使用：`chainlesschain ui`
+- 联调其它前端或保留浏览器手动打开：`chainlesschain ui --no-open`
+- 需要认证：`chainlesschain ui --token my-secret-token`
+- 使用自定义构建产物：`chainlesschain ui --web-panel-dir /custom/dist`
 
-```
-Usage: chainlesschain ui [options]
-
-Options:
-  -p, --port <port>      HTTP 服务器端口 (默认: 18810)
-  --ws-port <port>       WebSocket 服务器端口 (默认: 18800)
-  -H, --host <host>      绑定地址 (默认: 127.0.0.1)
-  --no-open              不自动打开浏览器
-  --token <token>        WebSocket 认证 token
-  -h, --help             显示帮助信息
-```
-
-## 两种工作模式
+## 运行模式
 
 ### 项目模式
 
-从含 `.chainlesschain/config.json` 的目录（或其子目录）运行时自动激活项目模式：
+从包含 `.chainlesschain/` 的目录启动时，UI 会自动进入项目模式，并把 `projectRoot` 注入会话上下文。
 
-```bash
-cd /workspace/my-project    # 该目录含 .chainlesschain/config.json
-chainlesschain ui
-```
+适合：
 
-**特点：**
-- 侧边栏顶部显示项目名称和路径
-- Agent 会话自动携带 `projectRoot` 上下文，AI 能感知项目结构
-- 适合与特定项目的代码库进行对话、分析、重构等操作
+- 面向单个项目持续对话
+- 让 Agent 工具调用更明确地绑定项目目录
+- 区分项目级会话和全局会话
 
 ### 全局模式
 
-从不含 `.chainlesschain/` 的目录运行时自动激活全局模式：
+从普通目录启动时，UI 作为全局管理面板运行。
 
-```bash
-cd ~
-chainlesschain ui
-```
+适合：
 
-**特点：**
-- 显示"全局管理面板"标识
-- 适合通用 AI 对话、跨项目任务、系统级操作
+- 通用 AI 对话
+- 查看全局会话
+- 调试 Provider、技能和系统能力
 
-## 界面功能说明
+## 页面能力概览
 
-### 侧边栏
+当前 Web Panel 主要覆盖以下几类能力：
 
-| 元素 | 功能 |
+- Dashboard
+- Chat / Agent 会话
+- 后台任务
+- 压缩策略观测
+- 技能与 Provider 管理
+
+### Dashboard
+
+Dashboard 负责展示全局摘要，而不是完整业务细节。当前已经能看到：
+
+- 会话数量
+- 压缩观测摘要
+- 时间窗口筛选后的统计
+- 按 `provider` / `model` 切片的观测结果
+
+### Chat / Agent 会话
+
+会话区域支持：
+
+- 新建 Agent / Chat 会话
+- 切换历史会话
+- 恢复会话 history
+- 流式 token 输出
+- 工具执行过程可视化
+- 交互式问题回答
+
+### 后台任务
+
+任务区域已对齐当前任务协议能力，支持：
+
+- 查询任务列表
+- 查询任务详情
+- 查询任务历史分页
+- 接收 `task:notification`
+- 查看任务输出摘要
+
+### 压缩观测
+
+压缩观测现在不是只显示一个总数字，而是支持：
+
+- `windowMs` 时间窗口筛选
+- `provider` / `model` 维度切片
+- 命中率
+- 节省 token
+- 净节省率
+- 策略分布
+- 变体分布
+
+## 当前前端事件模型
+
+Web Panel 已开始统一通过 `onRuntimeEvent()` 消费后端事件，而不是每个页面都直接监听原始 WS 消息。
+
+已归一化的消息包括：
+
+| 协议消息 | 统一事件 |
 |------|------|
-| **新建会话** | 创建新的 Agent 或 Chat 会话 |
-| **会话列表** | 点击切换历史会话 |
-| **连接状态** | 显示 WebSocket 连接状态（绿色=已连接）|
-| **模式标识** | 显示当前项目名称或全局模式标识 |
+| `task:notification` | `task:notification` |
+| `session-created` | `session:start` |
+| `session-resumed` | `session:resume` |
+| `worktree-diff` | `worktree:diff:ready` |
+| `worktree-merged` | `worktree:merge:completed` |
+| `compression-stats` | `compression:summary` |
 
-### 会话类型
+当前已接入统一事件入口的前端模块：
 
-| 类型 | 说明 |
-|------|------|
-| **Agent** | 具备工具使用能力，支持文件读写、命令执行等（对应 `chainlesschain agent`）|
-| **Chat** | 纯对话模式，适合快速问答（对应 `chainlesschain chat`）|
+- `ws.js`
+- `tasks.js`
+- `chat.js`
+- `dashboard.js`
 
-切换 Tab 选择会话类型，点击"新建会话"时生效。
+这一步的意义是：
 
-### 消息区域
+- 前端主干页面开始共享一套标准事件流
+- 协议字段扩展时，不需要每个页面都重写一遍适配逻辑
+- Runtime / WS / Panel 三层开始真正共享同一模型
 
-- **流式输出**：AI 回复实时 token 逐字显示
-- **Markdown 渲染**：标题、列表、表格、代码块等完整支持
-- **代码高亮**：自动识别 50+ 编程语言（highlight.js）
-- 输入框支持 `Enter` 发送，`Shift+Enter` 换行
+## 三类消息在前端的分工
 
-### 交互式问答
+当前前端实际同时接触三类消息：
 
-Agent 执行过程中若需要用户输入（参数填充），会弹出对话框：
-- **选择题**：点击选项直接回答
-- **填空题**：文本框输入后按 Enter 或点击确认
+### 1. 协议响应
 
-## 端口说明
+用于回答某次主动请求的返回值。
 
-`chainlesschain ui` 同时启动两个服务器：
+典型包括：
 
-| 服务 | 默认端口 | 说明 |
-|------|---------|------|
-| HTTP（Web 页面） | 18810 | 浏览器访问入口 |
-| WebSocket（AI 通信）| 18800 | 与 `chainlesschain serve` 共享默认端口 |
+- `session-list-result`
+- `tasks-list`
+- `tasks-detail`
+- `tasks-history`
+- `worktree-diff`
+- `worktree-merged`
+- `compression-stats`
 
-> **注意**：若已运行 `chainlesschain serve` 占用了 18800，请通过 `--ws-port` 使用不同端口：
-> ```bash
-> chainlesschain ui --ws-port 18801
-> ```
+### 2. Runtime Event
 
-## 安全说明
+用于描述“系统状态发生了什么”，由 `ws.js` 归一化后通过 `onRuntimeEvent()` 广播。
 
-### 默认本地访问
+典型包括：
 
-默认绑定 `127.0.0.1`，仅本机可访问，不对外暴露。
+- `session:start`
+- `session:resume`
+- `session:end`
+- `task:notification`
+- `worktree:diff:ready`
+- `worktree:merge:completed`
+- `compression:summary`
 
-### Token 认证
+### 3. Session Stream
 
-启用认证后，浏览器端会在建立 WebSocket 连接时自动发送 token：
+用于描述当前会话的流式输出过程，主要由 `chat.js` 直接消费。
 
-```bash
-chainlesschain ui --token my-secure-token
-```
+典型包括：
 
-Web 页面会读取启动时注入的 token 并在连接时自动认证，无需手动输入。
+- `response-token`
+- `response-complete`
+- `tool-executing`
+- `tool-result`
+- `question`
 
-### 远程访问
+当前口径是：
 
-如需从其他设备访问（如手机、局域网内的另一台电脑），请使用 `serve` 命令配合 `--allow-remote`，然后单独访问 Web 页面，或通过 `--host 0.0.0.0` 绑定所有网卡：
+- `ws.js` 负责协议响应 → runtime event 的归一化
+- `chat.js` 继续直接消费 session stream
+- 不要求把所有流式 token 消息都迁进 `onRuntimeEvent()`
 
-```bash
-# 绑定所有网卡（局域网可访问）
-chainlesschain ui --host 0.0.0.0 --token my-token
-# 访问：http://<本机IP>:18810
-```
+## Session Record
 
-## 技术实现
+会话相关数据现在统一附带 `record`，用于让前后端对齐会话摘要结构。
 
-`chainlesschain ui` 内置两个服务：
+标准字段包括：
 
-1. **HTTP 服务器**（端口 18810）：提供单页 HTML 应用，包含完整的 CSS、JavaScript 和 CDN 资源引用
-2. **WebSocket 服务器**（端口 18800）：复用 `ChainlessChainWSServer`，支持完整的会话和流式协议
+- `id`
+- `type`
+- `provider`
+- `model`
+- `projectRoot`
+- `messageCount`
+- `history`
+- `status`
 
-Web 页面通过 `window.__CC_CONFIG__` 获取运行时配置（wsPort、wsToken、projectRoot、mode 等），配置值经过 HTML-safe JSON 转义，防止 XSS 攻击。
+当前会返回 `record` 的消息：
 
-### WebSocket 协议要点（v5.0.2.3 修复后）
+- `session-created`
+- `session-resumed`
+- `session-list-result`
 
-前端发送的每条消息都会自动注入 `id: "ui-N"` 字段（服务端强制要求）。关键事件类型：
+这意味着无论是：
+
+- 被动收到会话创建/恢复响应
+- 主动拉取会话列表
+
+前端拿到的都是同一套 session summary 结构。
+
+## 会话流转
+
+一个典型会话流程如下：
+
+1. UI 建立 WebSocket 连接
+2. 如果配置了 token，先发送 `auth`
+3. 拉取 `session-list`
+4. 创建新会话，或恢复已有会话
+5. 发送 `session-message`
+6. 接收：
+   - `response-token`
+   - `tool-executing`
+   - `tool-result`
+   - `question`
+   - `response-complete`
+
+当前还有两个重要细节：
+
+- 会话关闭后，前端会本地补发 synthetic `session:end`，保持统一事件流连续。
+- 当本地没有缓存消息时，切换会话会自动调用 `session-resume` 拉回 history。
+
+## WebSocket 协议要点
 
 | 事件 | 方向 | 说明 |
 |------|------|------|
 | `auth` | →服务端 | 发送 token 认证 |
-| `auth-result` | ←服务端 | 认证结果（含 `success` 字段） |
+| `auth-result` | ←服务端 | 返回认证结果 |
 | `session-list` | →服务端 | 请求会话列表 |
-| `session-list-result` | ←服务端 | 返回会话列表 |
-| `create-session` | →服务端 | 创建新会话 |
-| `session-created` | ←服务端 | 返回 `sessionId`/`sessionType` |
-| `chat` | →服务端 | 发送消息 |
-| `response-token` | ←服务端 | 流式 token（Chat 模式） |
-| `response-complete` | ←服务端 | 流式结束 |
-| `tool-executing` | ←服务端 | Agent 工具调用（显示为系统消息） |
+| `session-list-result` | ←服务端 | 返回会话列表，`sessions[]` 每项带 `record` |
+| `session-create` | →服务端 | 创建新会话 |
+| `session-created` | ←服务端 | 返回 `sessionId`、`sessionType`、`record` |
+| `session-resume` | →服务端 | 恢复历史会话 |
+| `session-resumed` | ←服务端 | 返回 `history[]` 与 `record` |
+| `session-close` | →服务端 | 关闭会话 |
+| `tasks-list` | →服务端 | 查询后台任务 |
+| `tasks-history` | →服务端 | 查询任务历史分页 |
+| `tasks-detail` | →服务端 | 查询任务详情 |
+| `compression-stats` | →服务端 | 查询压缩观测摘要 |
+| `worktree-diff` | →服务端 | 查询 diff 预览 |
+| `worktree-merge` | →服务端 | 执行一键合并 |
 
-## 与 `serve` 命令的区别
+## 与 `serve` 的关系
 
-| 特性 | `chainlesschain ui` | `chainlesschain serve` |
-|------|---------------------|------------------------|
-| 用途 | 浏览器 Web 交互界面 | 供程序调用的 WebSocket API |
-| 启动服务 | HTTP + WebSocket | 仅 WebSocket |
-| 默认端口 | HTTP:18810, WS:18800 | WS:18800 |
-| 自动打开浏览器 | ✅ | ❌ |
-| 项目感知 | ✅ 自动检测 | 需 `--project` 手动指定 |
-| 适用场景 | 日常人工交互 | IDE 插件、脚本、自动化集成 |
+- `ui` 面向浏览器用户，是完整管理界面入口。
+- `serve` 面向外部接入，是 WS Gateway 入口。
+- 二者不是两套完全独立系统，而是前后配合：
+  - `ui` 负责页面
+  - `serve` / 内置 WS 服务负责协议与 Runtime 暴露
 
-## 常见问题
+如果你只是想打开浏览器管理界面，优先使用 `chainlesschain ui`。如果你要把 CLI 接到 IDE、插件或自定义前端，优先使用 `chainlesschain serve`。
 
-**Q: 启动后浏览器没有自动打开？**
+## 常见联调点
 
-使用 `--no-open` 时不会自动打开。未使用该选项但没有打开时，请手动访问 `http://127.0.0.1:18810`。
+### 1. 页面有了，但状态不更新
 
-**Q: 连接状态显示"连接错误"？**
+优先检查：
 
-WebSocket 端口可能被占用。尝试：
-```bash
-chainlesschain ui --ws-port 18801
-```
+- 是否已经通过 `onRuntimeEvent()` 订阅
+- 当前消息是协议响应还是统一事件
+- `sendRaw()` 的 pending resolve 之后，事件是否仍然继续广播
 
-**Q: 如何在已有 `serve` 服务运行时使用 `ui`？**
+### 2. 会话列表和会话详情字段不一致
 
-使用不同的 WS 端口：
-```bash
-# 已有 serve 在 18800
-chainlesschain ui --ws-port 18801
-```
+优先检查：
 
-**Q: 会话历史保存在哪里？**
+- `session-list-result.sessions[]` 是否带 `record`
+- `session-created` / `session-resumed` 是否带 `record`
+- 前端 `listSessions()` 是否做了统一归一化
 
-会话数据保存在本地 SQLite 数据库（`data/chainlesschain.db`）。下次启动同样可通过侧边栏切换历史会话。
+### 3. 任务页没有收到完成通知
 
-## 相关文档
+优先检查：
 
-- [WebSocket 服务器 (serve)](./cli-serve) — 程序化 WebSocket API 接口
-- [Agent 模式](./cli-agent) — 命令行 Agent 会话
-- [项目初始化 (init)](./cli-init) — 创建 `.chainlesschain/` 项目目录
-- [设计文档 — 模块 73](../design/modules/73-web-ui) — 技术架构与实现细节
+- 是否有 `task:notification`
+- 任务页是否在消费 `onRuntimeEvent()`
+- 后台任务是否已经完成持久化与恢复初始化
+
+### 4. Dashboard 统计不对
+
+优先检查：
+
+- `compression-stats` 是否带了 `windowMs`
+- `provider` / `model` 筛选参数是否透传
+- 统计是否来自统一 runtime event，而不是旧的局部手动赋值
+
+## 当前验证
+
+- Web Panel 定向单测：`23/23`
+- Web Panel E2E：`29/29`
+- Web Panel 构建：通过
+
+## 关联文档
+
+- [WebSocket 服务（serve）](/chainlesschain/cli-serve)
+- [Agent 架构优化](/chainlesschain/agent-optimization)
+- [设计文档索引](/design/)
+- [设计模块：Web 管理界面](/design/modules/73-web-ui)
+- [设计模块：Web 管理面板](/design/modules/75-web-panel)

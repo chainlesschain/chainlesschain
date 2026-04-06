@@ -3,9 +3,7 @@
  * chainlesschain chat [--model] [--provider] [--agent]
  */
 
-import { startChatRepl } from "../repl/chat-repl.js";
-import { startAgentRepl } from "../repl/agent-repl.js";
-import { loadConfig } from "../lib/config-manager.js";
+import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 
 export function registerChatCommand(program) {
   program
@@ -24,19 +22,19 @@ export function registerChatCommand(program) {
     )
     .option("--session <id>", "Resume a previous session (agent mode)")
     .action(async (options) => {
-      const config = loadConfig();
-      const replOptions = {
-        model: options.model || config.llm?.model || "qwen2:7b",
-        provider: options.provider || config.llm?.provider || "ollama",
-        baseUrl: options.baseUrl || config.llm?.baseUrl,
-        apiKey: options.apiKey || config.llm?.apiKey,
+      const factory = createAgentRuntimeFactory();
+      const runtimeOptions = {
+        model: options.model,
+        provider: options.provider,
+        baseUrl: options.baseUrl,
+        apiKey: options.apiKey,
         sessionId: options.session,
       };
 
       if (options.agent) {
-        await startAgentRepl(replOptions);
+        await factory.createAgentRuntime(runtimeOptions).startAgentSession();
       } else {
-        await startChatRepl(replOptions);
+        await factory.createChatRuntime(runtimeOptions).startChatSession();
       }
     });
 }

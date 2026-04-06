@@ -3,6 +3,129 @@ import { ref, computed } from 'vue'
 
 let msgCounter = 0
 const genId = () => `wp-${++msgCounter}`
+const runtimeHandlers = new Set()
+
+function createRuntimeEvent(type, payload = {}, context = {}) {
+  return {
+    type,
+    kind: context.kind || 'server',
+    sessionId: context.sessionId || payload.sessionId || null,
+    timestamp: context.timestamp || Date.now(),
+    payload,
+  }
+}
+
+function normalizeRuntimeEvent(msg) {
+  switch (msg?.type) {
+    case 'task:notification':
+      return createRuntimeEvent('task:notification', { task: msg.task }, { kind: 'server' })
+    case 'session-created':
+      return createRuntimeEvent(
+        'session:start',
+        {
+          sessionId: msg.sessionId,
+          sessionType: msg.sessionType || null,
+          record:
+            msg.record || {
+              id: msg.sessionId,
+              type: msg.sessionType || null,
+              status: 'created',
+              history: [],
+              messageCount: 0,
+            },
+        },
+        { kind: 'server', sessionId: msg.sessionId },
+      )
+    case 'session-resumed':
+      return createRuntimeEvent(
+        'session:resume',
+        {
+          sessionId: msg.sessionId,
+          history: msg.history || [],
+          historyCount: Array.isArray(msg.history) ? msg.history.length : 0,
+          record:
+            msg.record || {
+              id: msg.sessionId,
+              type: null,
+              status: 'resumed',
+              history: msg.history || [],
+              messageCount: Array.isArray(msg.history) ? msg.history.length : 0,
+            },
+        },
+        { kind: 'server', sessionId: msg.sessionId },
+      )
+    case 'worktree-diff':
+      return createRuntimeEvent(
+        'worktree:diff:ready',
+        {
+          requestId: msg.id || null,
+          record:
+            msg.record || {
+              branch: msg.branch || null,
+              summary: msg.summary || null,
+              previewEntrypoints: [{ type: 'worktree-diff', branch: msg.branch || null }],
+            },
+        },
+        { kind: 'server' },
+      )
+    case 'worktree-merged':
+      return createRuntimeEvent(
+        'worktree:merge:completed',
+        {
+          requestId: msg.id || null,
+          record:
+            msg.record || {
+              branch: msg.branch || null,
+              summary: msg.summary || null,
+              conflicts: msg.conflicts || [],
+              previewEntrypoints: msg.previewEntrypoints || [],
+            },
+        },
+        { kind: 'server' },
+      )
+    case 'compression-stats':
+      return createRuntimeEvent(
+        'compression:summary',
+        {
+          requestId: msg.id || null,
+          summary: msg.summary || {},
+        },
+        { kind: 'server' },
+      )
+    default:
+      return null
+  }
+}
+
+function emitRuntimeEvent(runtimeEvent, rawMessage = null) {
+  runtimeHandlers.forEach(h => h(runtimeEvent, rawMessage || runtimeEvent))
+}
+
+function normalizeSessionSummary(session) {
+  if (!session) return null
+  const record = session.record || {
+    id: session.id || null,
+    type: session.type || null,
+    provider: session.provider || null,
+    model: session.model || null,
+    projectRoot: session.projectRoot || null,
+    messageCount: session.messageCount ?? 0,
+    history: session.history || [],
+    status: session.status || null,
+  }
+
+  return {
+    ...session,
+    id: session.id || record.id,
+    type: session.type || record.type,
+    provider: session.provider || record.provider,
+    model: session.model || record.model,
+    projectRoot: session.projectRoot || record.projectRoot,
+    messageCount: session.messageCount ?? record.messageCount ?? 0,
+    status: session.status || record.status || null,
+    record,
+  }
+}
 
 export const useWsStore = defineStore('ws', () => {
   const socket = ref(null)
@@ -79,18 +202,19 @@ export const useWsStore = defineStore('ws', () => {
 
   function handleMessage(msg) {
     const { type, id } = msg
+    let wasPending = false
 
     // Resolve pending one-shot requests
     if (id && pending.has(id)) {
       const { resolve, reject, timeout } = pending.get(id)
       clearTimeout(timeout)
       pending.delete(id)
+      wasPending = true
       if (type === 'error') {
         reject(new Error(msg.message || 'Unknown error'))
       } else {
         resolve(msg)
       }
-      return
     }
 
     // Streaming session events
@@ -102,6 +226,13 @@ export const useWsStore = defineStore('ws', () => {
 
     // Global event bus (for listeners registered via onMessage)
     globalHandlers.forEach(h => h(msg))
+
+    const runtimeEvent = normalizeRuntimeEvent(msg)
+    if (runtimeEvent) {
+      emitRuntimeEvent(runtimeEvent, msg)
+    }
+
+    return wasPending
   }
 
   const globalHandlers = new Set()
@@ -109,6 +240,11 @@ export const useWsStore = defineStore('ws', () => {
   function onMessage(handler) {
     globalHandlers.add(handler)
     return () => globalHandlers.delete(handler)
+  }
+
+  function onRuntimeEvent(handler) {
+    runtimeHandlers.add(handler)
+    return () => runtimeHandlers.delete(handler)
   }
 
   function onSession(sessionId, handler) {
@@ -217,22 +353,36 @@ export const useWsStore = defineStore('ws', () => {
   async function listSessions() {
     await waitConnected(8000)
     const result = await sendRaw({ type: 'session-list' }, 10000)
-    return result.sessions || []
+    return (result.sessions || []).map(normalizeSessionSummary).filter(Boolean)
   }
 
   // Close session
   async function closeSession(sessionId) {
     try {
       await sendRaw({ type: 'session-close', sessionId }, 5000)
+      emitRuntimeEvent(
+        createRuntimeEvent(
+          'session:end',
+          { sessionId },
+          { kind: 'server', sessionId },
+        ),
+        { type: 'result', sessionId, success: true },
+      )
     } catch (_) { /* ignore */ }
+  }
+
+  async function resumeSession(sessionId) {
+    await waitConnected(8000)
+    const result = await sendRaw({ type: 'session-resume', sessionId }, 10000)
+    return result
   }
 
   return {
     status, error, wsUrl,
     connect, disconnect, waitConnected,
-    onMessage, onSession,
+    onMessage, onRuntimeEvent, onSession,
     sendRaw,
     execute, executeJson,
-    createSession, sendSessionMessage, answerQuestion, listSessions, closeSession
+    createSession, resumeSession, sendSessionMessage, answerQuestion, listSessions, closeSession
   }
 })

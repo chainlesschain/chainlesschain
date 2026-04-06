@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 const onMessageHandlers = new Set()
+const onRuntimeEventHandlers = new Set()
 const sendRaw = vi.fn()
 
 vi.mock('../../src/stores/ws.js', () => ({
@@ -10,6 +11,10 @@ vi.mock('../../src/stores/ws.js', () => ({
     onMessage: (handler) => {
       onMessageHandlers.add(handler)
       return () => onMessageHandlers.delete(handler)
+    },
+    onRuntimeEvent: (handler) => {
+      onRuntimeEventHandlers.add(handler)
+      return () => onRuntimeEventHandlers.delete(handler)
     },
   }),
 }))
@@ -21,6 +26,7 @@ describe('tasks store', () => {
     setActivePinia(createPinia())
     sendRaw.mockReset()
     onMessageHandlers.clear()
+    onRuntimeEventHandlers.clear()
     vi.useFakeTimers()
   })
 
@@ -63,13 +69,13 @@ describe('tasks store', () => {
     const store = useTasksStore()
     store.startPolling(5000)
 
-    expect(onMessageHandlers.size).toBe(1)
+    expect(onRuntimeEventHandlers.size).toBe(1)
 
     store.startPolling(5000)
-    expect(onMessageHandlers.size).toBe(1)
+    expect(onRuntimeEventHandlers.size).toBe(1)
 
     store.stopPolling()
-    expect(onMessageHandlers.size).toBe(0)
+    expect(onRuntimeEventHandlers.size).toBe(0)
   })
 
   it('notification updates lastNotification and triggers refresh', async () => {
@@ -83,10 +89,12 @@ describe('tasks store', () => {
     const store = useTasksStore()
     store.startPolling(5000)
 
-    const [handler] = [...onMessageHandlers]
+    const [handler] = [...onRuntimeEventHandlers]
     handler({
       type: 'task:notification',
-      task: { id: 'task-2', status: 'completed', result: 'ok' },
+      payload: {
+        task: { id: 'task-2', status: 'completed', result: 'ok' },
+      },
     })
     await Promise.resolve()
 

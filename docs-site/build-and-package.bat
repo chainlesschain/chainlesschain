@@ -1,102 +1,71 @@
 @echo off
+setlocal
 chcp 65001 >nul
+
 echo.
 echo ========================================
-echo   文档网站打包脚本 v5.0.2.8
+echo   Docs Site Packager v5.0.2.10
 echo ========================================
 echo.
 
-:: 检查 Node.js
-echo [1/5] 检查环境...
+echo [1/5] Check environment...
 node --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo ❌ 错误: 未检测到 Node.js
-    pause
+    echo ERROR: Node.js not found
     exit /b 1
 )
-echo ✅ Node.js 已安装
+echo OK: Node.js detected
 
-:: 检查依赖
 echo.
-echo [2/5] 检查依赖...
+echo [2/5] Check dependencies...
 if not exist "node_modules" (
-    echo 📦 安装依赖...
+    echo Installing dependencies...
     call npm install
     if %errorlevel% neq 0 (
-        echo ❌ 依赖安装失败
-        pause
+        echo ERROR: npm install failed
         exit /b 1
     )
 ) else (
-    echo ✅ 依赖已存在
+    echo OK: dependencies already installed
 )
 
-:: 清理旧构建
 echo.
-echo [3/5] 清理旧构建...
-if exist "docs\.vitepress\dist" (
-    rmdir /s /q "docs\.vitepress\dist"
-    echo ✅ 已清理旧构建
-)
-if exist "docs\.vitepress\cache" (
-    rmdir /s /q "docs\.vitepress\cache"
-    echo ✅ 已清理缓存
-)
+echo [3/5] Clean previous build...
+if exist "docs\.vitepress\dist" rmdir /s /q "docs\.vitepress\dist"
+if exist "docs\.vitepress\cache" rmdir /s /q "docs\.vitepress\cache"
+echo OK: previous build cleaned
 
-:: 构建
 echo.
-echo [4/5] 构建生产版本...
+echo [4/5] Build production site...
 call npm run build
 if %errorlevel% neq 0 (
-    echo ❌ 构建失败
-    pause
+    echo ERROR: site build failed
     exit /b 1
 )
-echo ✅ 构建成功
+echo OK: site build succeeded
 
-:: 打包
 echo.
-echo [5/5] 打包文件...
-set DIST_DIR=docs\.vitepress\dist
-set PACKAGE_NAME=chainlesschain-docs-v5.0.2.8-%date:~0,4%%date:~5,2%%date:~8,2%.zip
+echo [5/5] Package site...
+set "DIST_DIR=docs\.vitepress\dist"
+set "PACKAGE_NAME=chainlesschain-docs-v5.0.2.10-%date:~0,4%%date:~5,2%%date:~8,2%.zip"
+if exist "%PACKAGE_NAME%" del "%PACKAGE_NAME%"
 
-if exist "%PACKAGE_NAME%" (
-    del "%PACKAGE_NAME%"
-)
-
-:: 使用 PowerShell 压缩
-powershell -command "Compress-Archive -Path '%DIST_DIR%\*' -DestinationPath '%PACKAGE_NAME%' -Force"
-
-if exist "%PACKAGE_NAME%" (
-    echo ✅ 打包成功
-    echo.
-    echo ========================================
-    echo   打包完成！
-    echo ========================================
-    echo.
-    echo 📦 文件: %PACKAGE_NAME%
-
-    :: 获取文件大小
-    for %%A in ("%PACKAGE_NAME%") do (
-        set size=%%~zA
-    )
-    echo 📊 大小: %size% 字节
-
-    echo 📁 位置: %cd%\%PACKAGE_NAME%
-    echo.
-    echo 📄 构建目录: %DIST_DIR%
-    dir /s "%DIST_DIR%" | findstr "个文件"
-    echo.
-    echo 下一步:
-    echo   1. 解压 %PACKAGE_NAME%
-    echo   2. 上传到服务器
-    echo   3. 或运行 'npm run preview' 本地预览
-    echo.
-) else (
-    echo ❌ 打包失败
-    pause
+powershell -Command "Compress-Archive -Path 'docs/.vitepress/dist/*' -DestinationPath '%PACKAGE_NAME%' -Force"
+if %errorlevel% neq 0 (
+    echo ERROR: archive packaging failed
     exit /b 1
 )
 
-echo 按任意键退出...
-pause >nul
+if not exist "%PACKAGE_NAME%" (
+    echo ERROR: package file not created
+    exit /b 1
+)
+
+echo OK: package created
+echo.
+echo Package: %PACKAGE_NAME%
+echo Build dir: %CD%\%DIST_DIR%
+echo Output: %CD%\%PACKAGE_NAME%
+echo.
+echo Run "npm run preview" to inspect the site locally.
+exit /b 0
