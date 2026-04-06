@@ -14,7 +14,6 @@ import {
   mkdirSync,
   appendFileSync,
   readFileSync,
-  writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -41,6 +40,8 @@ export const TaskStatus = {
   TIMEOUT: "timeout",
 };
 
+const RECOVERABLE_TASK_STATUSES = new Set([TaskStatus.PENDING, TaskStatus.RUNNING]);
+
 // ── BackgroundTaskManager ───────────────────────────────────────────────
 
 export class BackgroundTaskManager extends EventEmitter {
@@ -53,9 +54,15 @@ export class BackgroundTaskManager extends EventEmitter {
     super();
     this.maxConcurrent = options.maxConcurrent || 3;
     this.heartbeatTimeout = options.heartbeatTimeout || 60000;
+    this.historyLimit = options.historyLimit || 50;
     this.tasks = new Map(); // id -> task object
     this.processes = new Map(); // id -> child process
     this._checkInterval = null;
+    if (options.recoverOnStart) {
+      this._loadPersistedTasks({
+        recoverPending: options.recoverPending !== false,
+      });
+    }
   }
 
   /**
@@ -89,10 +96,17 @@ export class BackgroundTaskManager extends EventEmitter {
       lastHeartbeat: null,
       result: null,
       error: null,
+      history: [],
+      recoveredFromRestart: false,
+      recoverySourceStatus: null,
     };
 
+    this._recordHistory(task, "created", {
+      status: task.status,
+      description: task.description,
+    });
     this.tasks.set(id, task);
-    this._persistTask(task);
+    this._persistTask(task, "created");
     return task;
   }
 
@@ -108,6 +122,9 @@ export class BackgroundTaskManager extends EventEmitter {
     task.status = TaskStatus.RUNNING;
     task.startedAt = Date.now();
     task.lastHeartbeat = Date.now();
+    task.recoveredFromRestart = false;
+    task.recoverySourceStatus = null;
+    this._recordHistory(task, "started", { status: task.status });
 
     // Create a wrapper script that executes the command
     const child = fork(
@@ -158,7 +175,7 @@ export class BackgroundTaskManager extends EventEmitter {
       this.processes.delete(taskId);
     });
 
-    this._persistTask(task);
+    this._persistTask(task, "started");
     this._ensureHeartbeatChecker();
     return task;
   }
@@ -177,6 +194,20 @@ export class BackgroundTaskManager extends EventEmitter {
    */
   get(taskId) {
     return this.tasks.get(taskId) || null;
+  }
+
+  /**
+   * Get full task details including recovery metadata and history.
+   */
+  getDetails(taskId) {
+    return this.get(taskId);
+  }
+
+  /**
+   * Get a task's persisted history.
+   */
+  getHistory(taskId) {
+    return this.get(taskId)?.history || [];
   }
 
   /**
@@ -201,6 +232,10 @@ export class BackgroundTaskManager extends EventEmitter {
         if (child.exitCode === null) child.kill("SIGKILL");
       }, 2000);
     }
+    const task = this.tasks.get(taskId);
+    if (task) {
+      this._recordHistory(task, "stop-requested", { requestedBy: "user" });
+    }
     this._complete(taskId, TaskStatus.FAILED, null, "Stopped by user");
   }
 
@@ -220,6 +255,7 @@ export class BackgroundTaskManager extends EventEmitter {
         task.completedAt < cutoff
       ) {
         this.tasks.delete(id);
+        this._persistTask(task, "cleaned-up", { removedAt: Date.now() });
         removed++;
       }
     }
@@ -251,8 +287,8 @@ export class BackgroundTaskManager extends EventEmitter {
     task.completedAt = Date.now();
     task.result = result;
     task.error = error;
-
-    this._persistTask(task);
+    this._recordHistory(task, "completed", { status, result, error });
+    this._persistTask(task, "completed");
     this.emit("task:complete", task);
   }
 
@@ -264,12 +300,108 @@ export class BackgroundTaskManager extends EventEmitter {
     return count;
   }
 
-  _persistTask(task) {
+  _persistTask(task, eventType = "snapshot", meta = {}) {
     try {
-      const line = JSON.stringify(task) + "\n";
+      const line =
+        JSON.stringify({
+          kind: "task_snapshot",
+          eventType,
+          persistedAt: Date.now(),
+          meta,
+          task,
+        }) + "\n";
       appendFileSync(queuePath(), line, "utf-8");
     } catch (_e) {
       // Non-critical
+    }
+  }
+
+  _recordHistory(task, event, meta = {}) {
+    if (!Array.isArray(task.history)) {
+      task.history = [];
+    }
+    task.history.push({
+      event,
+      timestamp: Date.now(),
+      ...meta,
+    });
+    if (task.history.length > this.historyLimit) {
+      task.history = task.history.slice(-this.historyLimit);
+    }
+  }
+
+  _loadPersistedTasks(options = {}) {
+    const filePath = queuePath();
+    if (!existsSync(filePath)) return;
+
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      for (const line of content.split("\n")) {
+        if (!line.trim()) continue;
+        let parsed;
+        try {
+          parsed = JSON.parse(line);
+        } catch {
+          continue;
+        }
+
+        const task = this._normalizePersistedTask(parsed);
+        if (!task?.id) continue;
+        this.tasks.set(task.id, task);
+      }
+
+      if (options.recoverPending !== false) {
+        this._recoverInterruptedTasks();
+      }
+    } catch (_err) {
+      // Non-critical
+    }
+  }
+
+  _normalizePersistedTask(entry) {
+    const task =
+      entry?.kind === "task_snapshot" && entry.task ? entry.task : entry;
+
+    if (!task || typeof task !== "object") {
+      return null;
+    }
+
+    const normalized = {
+      ...task,
+      history: Array.isArray(task.history) ? [...task.history] : [],
+      recoveredFromRestart: Boolean(task.recoveredFromRestart),
+      recoverySourceStatus: task.recoverySourceStatus || null,
+    };
+
+    if (normalized.history.length === 0) {
+      normalized.history.push({
+        event: "loaded",
+        timestamp: normalized.completedAt || normalized.startedAt || normalized.createdAt || Date.now(),
+        status: normalized.status,
+      });
+    }
+
+    return normalized;
+  }
+
+  _recoverInterruptedTasks() {
+    for (const task of this.tasks.values()) {
+      if (!RECOVERABLE_TASK_STATUSES.has(task.status)) continue;
+      const previousStatus = task.status;
+      task.status = TaskStatus.PENDING;
+      task.startedAt = null;
+      task.lastHeartbeat = null;
+      task.completedAt = null;
+      task.result = null;
+      task.error = null;
+      task.recoveredFromRestart = true;
+      task.recoverySourceStatus = previousStatus;
+      task.recoveredAt = Date.now();
+      this._recordHistory(task, "recovered", {
+        fromStatus: previousStatus,
+        status: task.status,
+      });
+      this._persistTask(task, "recovered", { fromStatus: previousStatus });
     }
   }
 

@@ -18,6 +18,9 @@ import {
   rebuildMessages,
   sessionExists,
   readEvents,
+  migrateLegacySessions,
+  validateJsonlSession,
+  validateAllJsonlSessions,
 } from "../lib/jsonl-session-store.js";
 import { feature } from "../lib/feature-flags.js";
 
@@ -296,6 +299,81 @@ export function registerSessionCommand(program) {
         }
 
         await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  session
+    .command("migrate")
+    .description("Migrate legacy JSON session files to JSONL")
+    .argument("[source]", "Directory containing legacy .json session files")
+    .option("--dry-run", "Show what would migrate without writing files")
+    .option("--force", "Overwrite existing JSONL sessions")
+    .option("--no-archive", "Do not keep .migrated.json backups")
+    .option("--json", "Output as JSON")
+    .action(async (source, options) => {
+      try {
+        const results = migrateLegacySessions(source, {
+          dryRun: options.dryRun,
+          force: options.force,
+          archive: options.archive,
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify(results, null, 2));
+          return;
+        }
+
+        if (results.length === 0) {
+          logger.info("No legacy JSON session files found.");
+          return;
+        }
+
+        for (const result of results) {
+          if (result.skipped) {
+            logger.log(
+              `${chalk.yellow("skip")} ${result.file} -> ${result.sessionId} (${result.reason})`,
+            );
+            continue;
+          }
+          logger.log(
+            `${chalk.green(options.dryRun ? "plan" : "migrated")} ${result.file} -> ${result.sessionId} (${result.messageCount} messages)`,
+          );
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  session
+    .command("validate")
+    .description("Validate JSONL session files")
+    .argument("[id]", "Session ID to validate")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const result = id
+          ? validateJsonlSession(id)
+          : validateAllJsonlSessions();
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+
+        const results = Array.isArray(result) ? result : [result];
+        for (const item of results) {
+          const label = item.valid ? chalk.green("valid") : chalk.red("invalid");
+          logger.log(
+            `${label} ${item.sessionId} (${item.eventCount} events, ${item.messageCount || 0} messages, malformed: ${item.malformedLines})`,
+          );
+          if (!item.valid && item.reason) {
+            logger.log(`  ${chalk.gray(item.reason)}`);
+          }
+        }
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);

@@ -22,6 +22,16 @@ vi.mock("../../src/lib/background-task-manager.js", () => ({
   },
 }));
 
+vi.mock("../../src/lib/compression-telemetry.js", () => ({
+  getCompressionTelemetrySummary: vi.fn(() => ({
+    samples: 3,
+    hitRate: 0.66,
+    totalSavedTokens: 120,
+    variantDistribution: { balanced: 2, aggressive: 1 },
+    strategyDistribution: [{ strategy: "truncate", hits: 2, hitRate: 0.66 }],
+  })),
+}));
+
 // ---------------------------------------------------------------------------
 // tokenizeCommand — pure function tests (no I/O)
 // ---------------------------------------------------------------------------
@@ -692,6 +702,62 @@ describe("ChainlessChainWSServer", () => {
         taskId: "task-9",
       });
       expect(stop).toHaveBeenCalledWith("task-9");
+      ws.close();
+    });
+
+    it("returns task details and history from the background task manager", async () => {
+      const on = vi.fn();
+      mockTaskManagerFactory.mockReturnValueOnce({
+        list: vi.fn(() => []),
+        on,
+        getDetails: vi.fn(() => ({ id: "task-5", recoveredFromRestart: true })),
+        getHistory: vi.fn(() => [{ event: "recovered" }]),
+      });
+
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port });
+      await server.start();
+
+      const ws = await connect(port);
+      const detailResp = await rpc(ws, {
+        id: "tasks-3",
+        type: "tasks-detail",
+        taskId: "task-5",
+      });
+      const historyResp = await rpc(ws, {
+        id: "tasks-4",
+        type: "tasks-history",
+        taskId: "task-5",
+      });
+
+      expect(detailResp).toEqual({
+        id: "tasks-3",
+        type: "tasks-detail",
+        task: { id: "task-5", recoveredFromRestart: true },
+      });
+      expect(historyResp).toEqual({
+        id: "tasks-4",
+        type: "tasks-history",
+        taskId: "task-5",
+        history: [{ event: "recovered" }],
+      });
+      ws.close();
+    });
+
+    it("returns compression telemetry summary", async () => {
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port });
+      await server.start();
+
+      const ws = await connect(port);
+      const resp = await rpc(ws, {
+        id: "compression-1",
+        type: "compression-stats",
+      });
+
+      expect(resp.type).toBe("compression-stats");
+      expect(resp.summary.totalSavedTokens).toBe(120);
+      expect(resp.summary.variantDistribution.balanced).toBe(2);
       ws.close();
     });
   });

@@ -296,6 +296,12 @@ export class ChainlessChainWSServer extends EventEmitter {
       case "tasks-stop":
         this._handleTasksStop(id, ws, message);
         break;
+      case "tasks-detail":
+        this._handleTaskDetail(id, ws, message);
+        break;
+      case "tasks-history":
+        this._handleTaskHistory(id, ws, message);
+        break;
       case "worktree-diff":
         this._handleWorktreeDiff(id, ws, message);
         break;
@@ -304,6 +310,9 @@ export class ChainlessChainWSServer extends EventEmitter {
         break;
       case "worktree-list":
         this._handleWorktreeList(id, ws);
+        break;
+      case "compression-stats":
+        this._handleCompressionStats(id, ws, message);
         break;
       default:
         this._send(ws, {
@@ -402,13 +411,7 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private – list background tasks */
   async _handleTasksList(id, ws) {
     try {
-      const { BackgroundTaskManager } =
-        await import("./background-task-manager.js");
-      // Reuse singleton or create lightweight instance for listing
-      if (!this._taskManager) {
-        this._taskManager = new BackgroundTaskManager();
-        this._subscribeTaskNotifications();
-      }
+      await this._ensureTaskManager();
       const tasks = this._taskManager.list();
       this._send(ws, { id, type: "tasks-list", tasks });
     } catch (err) {
@@ -439,12 +442,7 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private – stop a background task */
   async _handleTasksStop(id, ws, message) {
     try {
-      if (!this._taskManager) {
-        const { BackgroundTaskManager } =
-          await import("./background-task-manager.js");
-        this._taskManager = new BackgroundTaskManager();
-        this._subscribeTaskNotifications();
-      }
+      await this._ensureTaskManager();
 
       if (this._taskManager && message.taskId) {
         this._taskManager.stop(message.taskId);
@@ -462,6 +460,61 @@ export class ChainlessChainWSServer extends EventEmitter {
         id,
         type: "error",
         code: "TASKS_STOP_FAILED",
+        message: err.message,
+      });
+    }
+  }
+
+  /** @private */
+  async _handleTaskDetail(id, ws, message) {
+    try {
+      await this._ensureTaskManager();
+      if (!message.taskId) {
+        this._send(ws, {
+          id,
+          type: "error",
+          code: "NO_TASK",
+          message: "taskId required",
+        });
+        return;
+      }
+      const task = this._taskManager.getDetails(message.taskId);
+      this._send(ws, { id, type: "tasks-detail", task });
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "TASK_DETAIL_FAILED",
+        message: err.message,
+      });
+    }
+  }
+
+  /** @private */
+  async _handleTaskHistory(id, ws, message) {
+    try {
+      await this._ensureTaskManager();
+      if (!message.taskId) {
+        this._send(ws, {
+          id,
+          type: "error",
+          code: "NO_TASK",
+          message: "taskId required",
+        });
+        return;
+      }
+      const history = this._taskManager.getHistory(message.taskId);
+      this._send(ws, {
+        id,
+        type: "tasks-history",
+        taskId: message.taskId,
+        history,
+      });
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "TASK_HISTORY_FAILED",
         message: err.message,
       });
     }
@@ -540,6 +593,26 @@ export class ChainlessChainWSServer extends EventEmitter {
         id,
         type: "error",
         code: "WORKTREE_LIST_FAILED",
+        message: err.message,
+      });
+    }
+  }
+
+  /** @private */
+  async _handleCompressionStats(id, ws, message) {
+    try {
+      const { getCompressionTelemetrySummary } = await import(
+        "./compression-telemetry.js"
+      );
+      const summary = getCompressionTelemetrySummary({
+        limit: message.limit,
+      });
+      this._send(ws, { id, type: "compression-stats", summary });
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "COMPRESSION_STATS_FAILED",
         message: err.message,
       });
     }
@@ -997,6 +1070,14 @@ export class ChainlessChainWSServer extends EventEmitter {
   }
 
   /** @private — ping/pong heartbeat to detect dead connections */
+  async _ensureTaskManager() {
+    if (this._taskManager) return this._taskManager;
+    const { BackgroundTaskManager } = await import("./background-task-manager.js");
+    this._taskManager = new BackgroundTaskManager({ recoverOnStart: true });
+    this._subscribeTaskNotifications();
+    return this._taskManager;
+  }
+
   _startHeartbeat() {
     this._heartbeatTimer = setInterval(() => {
       for (const [clientId, client] of this.clients) {

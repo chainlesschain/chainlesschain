@@ -30,6 +30,7 @@ const {
   pruneWorktrees,
   isolateTask,
   cleanupAgentWorktrees,
+  mergeWorktree,
 } = await import("../../src/lib/worktree-isolator.js");
 
 describe("worktree-isolator", () => {
@@ -190,6 +191,30 @@ describe("worktree-isolator", () => {
       expect(
         worktrees.some((w) => w.branch && w.branch.startsWith("agent/")),
       ).toBe(false);
+    });
+  });
+
+  describe("mergeWorktree", () => {
+    it("returns file-level conflict summaries and suggestions", () => {
+      const worktree = createWorktree(repoDir, "agent/conflict-branch");
+
+      writeFileSync(join(repoDir, "README.md"), "# main change\n", "utf-8");
+      execSync("git add README.md", { cwd: repoDir });
+      execSync('git commit -m "main change"', { cwd: repoDir });
+
+      writeFileSync(join(worktree.path, "README.md"), "# branch change\n", "utf-8");
+      execSync("git add README.md", { cwd: worktree.path });
+      execSync('git commit -m "branch change"', { cwd: worktree.path });
+
+      const result = mergeWorktree(repoDir, "agent/conflict-branch", {
+        deleteBranch: false,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.summary.conflictedFiles).toBe(1);
+      expect(result.conflicts[0].path).toBe("README.md");
+      expect(result.conflicts[0].suggestion).toContain("README.md");
+      expect(result.suggestions.length).toBeGreaterThan(0);
     });
   });
 });

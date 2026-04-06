@@ -185,6 +185,63 @@
       </a-col>
     </a-row>
 
+    <a-card
+      title="压缩策略观测"
+      style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;"
+      :loading="loading"
+    >
+      <a-row :gutter="[12, 12]">
+        <a-col :xs="24" :sm="8">
+          <div class="telemetry-card">
+            <div class="telemetry-label">压缩命中率</div>
+            <div class="telemetry-value">{{ formatPercent(compression.hitRate) }}</div>
+            <div class="telemetry-sub">{{ compression.compressedSamples }} / {{ compression.samples }} 次压缩产生了有效节省</div>
+          </div>
+        </a-col>
+        <a-col :xs="24" :sm="8">
+          <div class="telemetry-card">
+            <div class="telemetry-label">累计节省 Token</div>
+            <div class="telemetry-value">{{ compression.totalSavedTokens }}</div>
+            <div class="telemetry-sub">平均每次 {{ compression.averageSavedTokens }} Token</div>
+          </div>
+        </a-col>
+        <a-col :xs="24" :sm="8">
+          <div class="telemetry-card">
+            <div class="telemetry-label">净节省率</div>
+            <div class="telemetry-value">{{ formatPercent(compression.netSavingsRate) }}</div>
+            <div class="telemetry-sub">原始 {{ compression.totalOriginalTokens }} → 压缩后 {{ compression.totalCompressedTokens }}</div>
+          </div>
+        </a-col>
+      </a-row>
+
+      <a-row :gutter="[16, 16]" style="margin-top: 12px;">
+        <a-col :xs="24" :lg="12">
+          <div class="telemetry-section">
+            <div class="telemetry-section-title">策略命中分布</div>
+            <div v-if="compression.strategyDistribution.length === 0" class="telemetry-empty">暂无压缩样本</div>
+            <div v-else class="telemetry-list">
+              <div v-for="item in compression.strategyDistribution.slice(0, 6)" :key="item.strategy" class="telemetry-row">
+                <span>{{ item.strategy }}</span>
+                <span>{{ item.hits }} 次 · {{ formatPercent(item.hitRate) }}</span>
+              </div>
+            </div>
+          </div>
+        </a-col>
+        <a-col :xs="24" :lg="12">
+          <div class="telemetry-section">
+            <div class="telemetry-section-title">变体分布</div>
+            <div v-if="variantEntries.length === 0" class="telemetry-empty">暂无变体数据</div>
+            <div v-else class="telemetry-list">
+              <div v-for="[variant, count] in variantEntries" :key="variant" class="telemetry-row">
+                <span>{{ variant }}</span>
+                <span>{{ count }} 次</span>
+              </div>
+            </div>
+          </div>
+        </a-col>
+      </a-row>
+    </a-card>
+
     <!-- System Info -->
     <a-card title="运行信息" style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;">
       <a-descriptions :column="{ xs: 1, sm: 2, lg: 3 }" size="small">
@@ -232,9 +289,22 @@ const chatStore = useChatStore()
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
 const wsStatus = computed(() => ws.status)
+const variantEntries = computed(() => Object.entries(compression.value.variantDistribution || {}))
 
 const loading = ref(false)
 const statusLog = ref('')
+const compression = ref({
+  samples: 0,
+  compressedSamples: 0,
+  hitRate: 0,
+  totalSavedTokens: 0,
+  averageSavedTokens: 0,
+  totalOriginalTokens: 0,
+  totalCompressedTokens: 0,
+  netSavingsRate: 0,
+  variantDistribution: {},
+  strategyDistribution: [],
+})
 const stats = ref({
   activeLlm: null, activeModel: null,
   skillCount: 0, sessionCount: 0,
@@ -285,6 +355,10 @@ async function refresh() {
       stats.value.mcpCount = count
     }).catch(() => { stats.value.mcpCount = 0 })
 
+    ws.sendRaw({ type: 'compression-stats' }, 10000).then((result) => {
+      compression.value = { ...compression.value, ...(result.summary || {}) }
+    }).catch(() => {})
+
   } catch (_) {
     // Best-effort
   } finally {
@@ -303,6 +377,10 @@ function parseStatus(out) {
     const l2 = out.match(/LLM:\s+(\S+)/i)
     if (l2) stats.value.activeLlm = l2[1]
   }
+}
+
+function formatPercent(value) {
+  return `${((value || 0) * 100).toFixed(1)}%`
 }
 
 async function newAgentSession() {
@@ -338,5 +416,56 @@ onMounted(() => setTimeout(refresh, 300))
   white-space: pre-wrap;
   margin: 0;
   line-height: 1.6;
+}
+.telemetry-card {
+  background: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  height: 100%;
+}
+.telemetry-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.telemetry-value {
+  color: #91caff;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.telemetry-sub {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-top: 4px;
+}
+.telemetry-section {
+  background: var(--bg-base);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  min-height: 140px;
+}
+.telemetry-section-title {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.telemetry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.telemetry-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.telemetry-empty {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 </style>

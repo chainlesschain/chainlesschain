@@ -191,8 +191,8 @@ describe('chainlesschain ui — project mode from project directory', () => {
     ;({ proc } = await startUiServer({ httpPort: HTTP_PORT, wsPort: WS_PORT, cwd: projectDir }))
   }, 30000)
 
-  afterAll(() => {
-    killProc(proc)
+  afterAll(async () => {
+    await killProc(proc)
     if (projectDir) fs.rmSync(projectDir, { recursive: true, force: true })
   })
 
@@ -239,8 +239,8 @@ describe('chainlesschain ui — --web-panel-dir option', () => {
     }))
   }, 30000)
 
-  afterAll(() => {
-    killProc(proc)
+  afterAll(async () => {
+    await killProc(proc)
     if (tmpBase) fs.rmSync(tmpBase, { recursive: true, force: true })
   })
 

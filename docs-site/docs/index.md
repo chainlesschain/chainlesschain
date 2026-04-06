@@ -1,6 +1,8 @@
 ---
 layout: home
 
+<!-- 2026-04-06 补充增强：任务恢复/冲突摘要/压缩观测/会话迁移，已完成 CLI 单元、CLI 集成、Web Panel 单元与 E2E 回归 -->
+
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
@@ -233,3 +235,4 @@ start.bat
   <p style="font-size: 18px; font-weight: bold;">用技术捍卫隐私，用AI赋能个人</p>
   <p style="color: #666;">Made with ❤️ by ChainlessChain Team</p>
 </div>
+> 2026-04-06 补充增强：任务恢复、冲突摘要、压缩观测和会话迁移工具已落地，并完成 CLI 单元/集成与 Web Panel 单元/E2E 回归。

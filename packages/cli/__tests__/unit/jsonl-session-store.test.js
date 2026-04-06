@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdirSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -25,6 +25,8 @@ const {
   forkSession,
   sessionExists,
   getLastSessionId,
+  migrateLegacySessionFile,
+  validateJsonlSession,
 } = await import("../../src/lib/jsonl-session-store.js");
 
 describe("jsonl-session-store", () => {
@@ -257,6 +259,41 @@ describe("jsonl-session-store", () => {
       rmSync(sessionsDir, { recursive: true, force: true });
       mkdirSync(sessionsDir, { recursive: true });
       expect(getLastSessionId()).toBeNull();
+    });
+  });
+
+  describe("migration and validation", () => {
+    it("migrates a legacy JSON session file to JSONL", () => {
+      const legacyPath = join(sessionsDir, "legacy.json");
+      writeFileSync(
+        legacyPath,
+        JSON.stringify({
+          id: "legacy-session",
+          title: "Legacy Chat",
+          provider: "ollama",
+          model: "qwen",
+          messages: [
+            { role: "user", content: "hello" },
+            { role: "assistant", content: "hi" },
+          ],
+        }),
+        "utf-8",
+      );
+
+      const result = migrateLegacySessionFile(legacyPath);
+      expect(result.migrated).toBe(true);
+      expect(sessionExists("legacy-session")).toBe(true);
+      expect(rebuildMessages("legacy-session")).toHaveLength(2);
+    });
+
+    it("validates JSONL session structure", () => {
+      const id = startSession("validate-me");
+      appendUserMessage(id, "hello");
+
+      const result = validateJsonlSession(id);
+      expect(result.valid).toBe(true);
+      expect(result.eventCount).toBe(2);
+      expect(result.messageCount).toBe(1);
     });
   });
 });

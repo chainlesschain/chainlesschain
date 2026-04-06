@@ -258,10 +258,21 @@ chainlesschain config features disable CONTEXT_SNIP
 6. ~~**Background Task Notifications**~~: ✅ Web Panel 已接入 `task:notification` 实时通知，并在任务完成后自动刷新列表
 7. ~~**Worktree 合并助手**~~: ✅ `ws-server` 已支持 `worktree-diff` / `worktree-merge` / `worktree-list`
 8. ~~**压缩策略 A/B 测试**~~: ✅ `COMPRESSION_AB` 标志位、`featureVariant()`、压缩统计与定向测试已落地
+9. ~~**任务历史持久化增强**~~: ✅ 后台任务支持重启恢复、详情查询、历史事件持久化与 `tasks-detail` / `tasks-history`
+10. ~~**Worktree 冲突处理优化**~~: ✅ 冲突返回文件级摘要、冲突类型统计与建议动作
+11. ~~**压缩策略观测面板**~~: ✅ Web Panel Dashboard 已展示压缩命中率、节省 token、净节省率与变体分布
+12. ~~**会话存储迁移工具**~~: ✅ `session migrate` / `session validate` 已支持旧 JSON 到 JSONL 的批量迁移与校验
 
-## 11. 后续规划
+## 11. 测试与验证补充
 
-1. **任务历史持久化增强**: 为后台任务增加重启恢复与任务详情历史查询
-2. **Worktree 冲突处理优化**: 合并冲突时返回更细粒度的文件级摘要与建议操作
-3. **压缩策略观测面板**: 在 Web Panel 中展示不同压缩策略的命中率、节省 token 与变体分布
-4. **会话存储迁移工具**: 提供旧 JSON 会话到 JSONL 会话的批量迁移与校验命令
+- CLI 定向单元测试：`125/125`
+- CLI 定向集成测试：`18/18`
+- Web Panel 定向单元测试：`12/12`
+- Web Panel E2E：`29/29`
+
+## 12. 后续规划
+
+1. **任务历史下一步**: 增加分页历史检索、任务输出摘要与多节点任务恢复策略
+2. **Worktree 下一步**: 为冲突建议补充更明确的自动化解决候选项和 diff 预览入口
+3. **压缩观测下一步**: 增加时间窗口筛选、按 provider/model 维度切片统计
+4. **会话迁移下一步**: 增加目录级 dry-run 报告、迁移后抽样校验与失败重试机制

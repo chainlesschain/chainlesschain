@@ -275,7 +275,7 @@ export function diffWorktree(repoDir, branchName, options = {}) {
  * @param {string} [options.strategy="merge"] — "merge" or "squash"
  * @param {string} [options.message] — Custom commit message (for squash)
  * @param {boolean} [options.deleteBranch=true] — Delete branch after merge
- * @returns {{ success: boolean, strategy: string, message: string, conflicts?: string[] }}
+ * @returns {{ success: boolean, strategy: string, message: string, conflicts?: Array<object>, summary?: object, suggestions?: string[] }}
  */
 export function mergeWorktree(repoDir, branchName, options = {}) {
   const strategy = options.strategy || "merge";
@@ -315,20 +315,19 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
     // Check for merge conflicts
     const errMsg = err.message || String(err);
     if (errMsg.includes("CONFLICT") || errMsg.includes("conflict")) {
-      // Abort the failed merge
+      const conflictPaths = _collectConflictFiles(repoDir);
+      if (conflictPaths.length === 0) {
+        conflictPaths.push(..._extractConflictPathsFromMessage(errMsg));
+      }
+      const conflicts = [...new Set(conflictPaths)].map((filePath) =>
+        _buildConflictSummary(repoDir, filePath),
+      );
+      const suggestions = _buildConflictSuggestions(conflicts);
+
       try {
         gitExec("merge --abort", repoDir);
       } catch (_e) {
         // Best effort
-      }
-
-      // List conflicting files
-      const conflicts = [];
-      const conflictMatch = errMsg.match(/CONFLICT[^:]*:\s*([^\n]+)/g);
-      if (conflictMatch) {
-        for (const c of conflictMatch) {
-          conflicts.push(c.replace(/^CONFLICT[^:]*:\s*/, "").trim());
-        }
       }
 
       return {
@@ -336,6 +335,17 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
         strategy,
         message: `Merge conflicts detected — manual resolution required`,
         conflicts,
+        summary: {
+          conflictedFiles: conflicts.length,
+          bothModified: conflicts.filter((item) => item.type === "both_modified")
+            .length,
+          bothAdded: conflicts.filter((item) => item.type === "both_added")
+            .length,
+          deleteModify: conflicts.filter((item) =>
+            item.type === "deleted_by_us" || item.type === "deleted_by_them",
+          ).length,
+        },
+        suggestions,
       };
     }
 
@@ -424,4 +434,115 @@ function _hasBranchCommits(repoDir, branchName) {
   } catch (_e) {
     return false;
   }
+}
+
+function _collectConflictFiles(repoDir) {
+  try {
+    const output = gitExec("diff --name-only --diff-filter=U", repoDir);
+    return output
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (_e) {
+    return [];
+  }
+}
+
+function _extractConflictPathsFromMessage(errMsg) {
+  const paths = [];
+  const matches = String(errMsg).matchAll(/(?:Merge conflict in|CONFLICT [^:]+:\s*)([^\n]+)/g);
+  for (const match of matches) {
+    const value = match[1]?.trim();
+    if (!value) continue;
+    const normalized = value.replace(/^in\s+/, "").trim();
+    paths.push(normalized);
+  }
+  return paths;
+}
+
+function _buildConflictSummary(repoDir, filePath) {
+  const statusCode = _conflictStatusCode(repoDir, filePath);
+  const type = _mapConflictType(statusCode);
+
+  return {
+    path: filePath,
+    statusCode,
+    type,
+    suggestion: _suggestAction(type, filePath),
+  };
+}
+
+function _conflictStatusCode(repoDir, filePath) {
+  try {
+    const output = gitExec(`status --porcelain -- "${filePath}"`, repoDir);
+    const firstLine = output.split("\n").find((line) => line.trim());
+    return firstLine ? firstLine.slice(0, 2) : "UU";
+  } catch (_e) {
+    return "UU";
+  }
+}
+
+function _mapConflictType(statusCode) {
+  switch (statusCode) {
+    case "UU":
+      return "both_modified";
+    case "AA":
+      return "both_added";
+    case "DU":
+      return "deleted_by_us";
+    case "UD":
+      return "deleted_by_them";
+    case "AU":
+      return "added_by_us";
+    case "UA":
+      return "added_by_them";
+    default:
+      return "unmerged";
+  }
+}
+
+function _suggestAction(type, filePath) {
+  switch (type) {
+    case "both_modified":
+      return `Review both sides in ${filePath} and resolve conflict markers manually.`;
+    case "both_added":
+      return `Compare the two added versions of ${filePath} and keep one or merge their contents.`;
+    case "deleted_by_us":
+      return `Decide whether ${filePath} should stay deleted locally or be restored from the agent branch.`;
+    case "deleted_by_them":
+      return `Decide whether ${filePath} should stay deleted in the agent branch or be kept from the current branch.`;
+    case "added_by_us":
+    case "added_by_them":
+      return `Review the newly added ${filePath} and confirm whether it should coexist or replace the other side.`;
+    default:
+      return `Inspect ${filePath} and resolve the unmerged state before retrying the merge.`;
+  }
+}
+
+function _buildConflictSuggestions(conflicts) {
+  if (conflicts.length === 0) {
+    return ["Run git status to inspect the merge state before retrying."];
+  }
+
+  const suggestions = [
+    `Resolve ${conflicts.length} conflicted file(s), then rerun the merge.`,
+  ];
+
+  if (conflicts.some((item) => item.type === "both_modified")) {
+    suggestions.push(
+      "Start with files marked both_modified; they usually need direct hunk reconciliation.",
+    );
+  }
+  if (
+    conflicts.some(
+      (item) =>
+        item.type === "deleted_by_us" || item.type === "deleted_by_them",
+    )
+  ) {
+    suggestions.push(
+      "For delete/modify conflicts, decide whether the file should exist at all before resolving content.",
+    );
+  }
+
+  return suggestions;
 }
