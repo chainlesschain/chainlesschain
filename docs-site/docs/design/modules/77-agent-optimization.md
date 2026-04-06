@@ -1,260 +1,366 @@
 # 77. Agent 架构优化系统
 
-## 1. 模块概述
+**版本**: v5.0.2.10  
+**创建日期**: 2026-04-04  
+**最近更新**: 2026-04-06  
+**状态**: 已实现，并已与 Runtime / WS / Web Panel 主链对齐
 
-### 1.1 目标
+---
 
-借鉴 Claude Code 的 12 层渐进式 harness 架构，为 ChainlessChain CLI Agent 实现 5 个核心优化模块：
+## 1. 模块定位
 
-1. **Feature Flags** — 特性门控，支持渐进式发布
-2. **Prompt Compressor** — 上下文压缩，5 策略流水线
-3. **JSONL Session Store** — 追加式会话持久化，崩溃恢复
-4. **Background Task Manager** — 后台任务队列，IPC 通信
-5. **Worktree Isolator** — Git Worktree 隔离执行
+模块 77 关注的不是单一功能，而是一组围绕 CLI Agent 生产可用性建设的增强能力。它回答的问题是：
 
-### 1.2 设计原则
+- CLI Agent 如何具备渐进式能力开关？
+- 会话如何从“脆弱的本地状态”变成可恢复的持久化状态？
+- 长任务如何脱离当前前台请求继续运行？
+- 子 Agent 如何在隔离环境里工作并安全回收？
+- 压缩和实验结果如何进入可观测面？
 
-- **渐进式启用**: 所有新功能通过 Feature Flags 门控，默认关闭（除 PROMPT_COMPRESSOR）
-- **零依赖**: 不引入新的 npm 依赖，利用 Node.js 内置模块
-- **崩溃安全**: JSONL 同步写入 + append-only 设计
-- **资源隔离**: Git Worktree 共享对象库，避免完整克隆开销
+如果模块 78 关注的是“CLI Agent Runtime 如何重构”，那么模块 77 关注的是“在当前架构下，哪些核心 harness 能力已经落地并进入主链”。
 
-## 2. 架构设计
+---
 
-### 2.1 模块关系图
+## 2. 目标
 
-```
-                    ┌─────────────────────┐
-                    │    Feature Flags     │
-                    │   (6 registered)     │
-                    └──────┬──────┬───────┘
-                    gates  │      │  gates
-              ┌────────────┘      └────────────┐
-              ▼                                 ▼
-    ┌──────────────────┐            ┌───────────────────┐
-    │ Prompt Compressor │            │ Background Tasks   │
-    │ (5 strategies)    │            │ (fork + IPC)       │
-    └────────┬─────────┘            └─────────┬─────────┘
-             │ compact events                  │ uses
-             ▼                                 ▼
-    ┌──────────────────┐            ┌───────────────────┐
-    │ JSONL Session     │            │ Worktree Isolator  │
-    │ Store (append)    │            │ (git worktree)     │
-    └──────────────────┘            └───────────────────┘
-```
+本模块的总体目标，是借鉴渐进式 harness 思路，为 ChainlessChain CLI Agent 补齐一组真正影响可用性、恢复性和可观测性的能力。
 
-### 2.2 文件清单
+本轮已经稳定落地的五个核心模块为：
 
-| 文件 | 行数 | 职责 |
-|------|------|------|
-| `src/lib/feature-flags.js` | ~90 | 特性标志注册、查询、A/B 分流 |
-| `src/lib/prompt-compressor.js` | ~200 | 5 策略压缩器 + token 估算 |
-| `src/lib/jsonl-session-store.js` | ~250 | JSONL 追加式会话管理 |
-| `src/lib/background-task-manager.js` | ~200 | 任务生命周期 + 子进程管理 |
-| `src/lib/background-task-worker.js` | ~50 | 子进程执行器 |
-| `src/lib/worktree-isolator.js` | ~225 | Git Worktree CRUD + 隔离执行 |
-| `src/commands/config.js` | 扩展 | `features list/enable/disable` 子命令 |
+1. `Feature Flags`
+2. `Prompt Compressor`
+3. `JSONL Session Store`
+4. `Background Task Manager`
+5. `Worktree Isolator`
 
-## 3. Feature Flags 详细设计
+除此之外，还完成了一批围绕它们的增强集成：
 
-### 3.1 标志位注册表
+- `JSONL_SESSION` 默认启用
+- 后台任务实时通知 Web Panel
+- Worktree 合并助手
+- 压缩策略 A/B 测试
+- 压缩观测面板
+- 会话迁移工具
 
-```javascript
-const FLAG_REGISTRY = {
-  BACKGROUND_TASKS:    { default: false, description: "Enable background task queue" },
-  WORKTREE_ISOLATION:  { default: false, description: "Enable git worktree isolation" },
-  CONTEXT_SNIP:        { default: false, description: "Enable snipCompact strategy" },
-  CONTEXT_COLLAPSE:    { default: false, description: "Enable contextCollapse strategy" },
-  JSONL_SESSION:       { default: false, description: "Use JSONL session format" },
-  PROMPT_COMPRESSOR:   { default: true,  description: "Enable prompt compressor" },
-};
-```
+---
 
-### 3.2 优先级链
+## 3. 设计原则
 
-```
-CC_FLAG_<NAME> 环境变量 (string "true"/"false")
-        ↓ (未设置时)
-config.features.<NAME> (boolean)
-        ↓ (未设置时)
-FLAG_REGISTRY[name].default
-```
+### 3.1 先能力稳定，再逐步默认化
 
-### 3.3 百分比灰度
+例如 `JSONL_SESSION` 先完成实现、验证、迁移工具，再默认启用。
 
-`featureVariant(name)` 使用 `name + machineId` 的 hash 值取模实现确定性分流，同一机器始终返回相同变体。
+### 3.2 能力必须可观察
 
-## 4. Prompt Compressor 详细设计
+不是只把功能做出来，而是要能看见：
 
-### 4.1 策略流水线
+- 是否命中
+- 触发了什么变体
+- 节省了多少 token
+- 任务现在处于什么状态
 
-```
-输入消息 → Deduplicate → Truncate → Summarize → SnipCompact → ContextCollapse → 输出
-              (始终)       (始终)     (可选LLM)    (CONTEXT_SNIP)  (CONTEXT_COLLAPSE)
-```
+### 3.3 尽量通过兼容式演进接入主链
 
-### 4.2 Token 估算算法
+这批能力不是平行世界里的新系统，而是要逐步接到：
 
-```javascript
-function estimateTokens(text) {
-  let tokens = 0;
-  for (const char of text) {
-    if (char.charCodeAt(0) > 0x4E00) tokens += 1.5;  // CJK
-    else tokens += 0.25;  // ASCII/Latin
-  }
-  return Math.ceil(tokens);
-}
-```
+- CLI Runtime
+- WS 协议
+- Web Panel
+- 文档站
 
-### 4.3 自动压缩触发
+### 3.4 不把“后续计划”混写成“已完成”
 
-当消息总 token 数超过 `maxTokens * 0.8` 时，`shouldAutoCompact()` 返回 true，由 `agent-repl.js` 自动触发压缩流程。
+模块 77 只记录已经真正落地的能力与当前状态。
 
-## 5. JSONL Session Store 详细设计
+---
 
-### 5.1 事件格式
+## 4. 五个核心优化模块
 
-```jsonl
-{"type":"session_start","sessionId":"abc","data":{"title":"Chat","provider":"ollama"},"ts":1711000000000}
-{"type":"user_message","sessionId":"abc","data":{"role":"user","content":"hello"},"ts":1711000001000}
-{"type":"assistant_message","sessionId":"abc","data":{"role":"assistant","content":"hi"},"ts":1711000002000}
-{"type":"compact","sessionId":"abc","data":{"messages":[...],"stats":{...}},"ts":1711000003000}
-```
+### 4.1 Feature Flags
 
-### 5.2 崩溃恢复机制
+职责：
 
-- `user_message` 使用 `writeFileSync`（同步写入）确保不丢失
-- `assistant_message` 使用 `appendFileSync`（仍然同步但语义上是追加）
-- `rebuildMessages()` 从最后一个 `compact` 事件开始重建，避免重放全部历史
+- 注册与查询特性开关
+- 支持环境变量、配置文件、默认值三层优先级
+- 支持百分比分流与实验变体
 
-### 5.3 会话分叉
+当前关键标志包括：
 
-`forkSession(sourceId)` 复制源会话所有事件到新文件，末尾追加 `fork` 标记事件。
+| 标志 | 默认值 | 说明 |
+|------|--------|------|
+| `BACKGROUND_TASKS` | false | 后台任务队列 |
+| `WORKTREE_ISOLATION` | false | Git Worktree 隔离 |
+| `CONTEXT_SNIP` | false | snipCompact 压缩 |
+| `CONTEXT_COLLAPSE` | false | contextCollapse 折叠 |
+| `JSONL_SESSION` | true | JSONL 追加式会话持久化 |
+| `COMPRESSION_AB` | `{ enabled: false, variant: "balanced" }` | 压缩策略 A/B 测试 |
+| `PROMPT_COMPRESSOR` | true | 提示压缩器 |
 
-## 6. Background Task Manager 详细设计
+### 4.2 Prompt Compressor
 
-### 6.1 任务状态机
+职责：
 
-```
-PENDING ──start()──→ RUNNING ──success──→ COMPLETED
-                        │
-                        ├──failure──→ FAILED
-                        │
-                        └──timeout──→ TIMEOUT
-```
+- 对上下文做多阶段压缩
+- 在 token 逼近阈值时自动触发
+- 记录压缩遥测
 
-### 6.2 子进程通信（IPC）
+当前支持的主要策略包括：
 
-```
-父进程                        子进程 (background-task-worker.js)
-  │                              │
-  │──fork()──────────────────→│  │
-  │                              │──execSync(command)
-  │  ←──{ type: "heartbeat" }──│  │  (每 5 秒)
-  │  ←──{ type: "heartbeat" }──│  │
-  │  ←──{ type: "result", data }─│  (成功)
-  │  或 { type: "error", error }─│  (失败)
-```
+- 去重
+- 截断
+- 摘要
+- SnipCompact
+- ContextCollapse
 
-### 6.3 持久化
+### 4.3 JSONL Session Store
 
-任务元数据追加写入 `~/.chainlesschain/tasks/queue.jsonl`，支持进程重启后恢复未完成任务。
+职责：
 
-## 7. Worktree Isolator 详细设计
+- 追加式会话写入
+- compact 检查点
+- 崩溃恢复
+- 会话迁移与校验
 
-### 7.1 目录结构
+当前已不是实验特性，而是默认持久化路径的一部分。
 
-```
-repo/
-├── .worktrees/
-│   ├── agent-task-123/     ← worktree for agent/task-123 branch
-│   └── agent-task-456/     ← worktree for agent/task-456 branch
-├── src/
-└── ...
-```
+### 4.4 Background Task Manager
 
-### 7.2 isolateTask 流程
+职责：
 
-```
-1. createWorktree(repoDir, "agent/{taskId}")
-   → git worktree add .worktrees/agent-{taskId} -b agent/{taskId} HEAD
-2. fn(worktreePath)
-   → 在隔离目录中执行任务
-3. finally: removeWorktree()
-   → git worktree remove + (无新 commit 时) git branch -D
-```
+- 长任务后台执行
+- 任务状态机管理
+- 任务历史持久化
+- 重启恢复
+- 前端实时通知
 
-### 7.3 清理策略
+### 4.5 Worktree Isolator
 
-- `isolateTask` 的 finally 块自动清理
-- `cleanupAgentWorktrees()` 清理所有 `agent/*` 分支的 worktree
-- `pruneWorktrees()` 清理目录已不存在的陈旧 worktree
+职责：
 
-## 8. CLI 集成
+- 子任务隔离执行
+- Git Worktree 生命周期管理
+- diff 预览
+- merge 辅助
+- 冲突摘要与自动化候选项
 
-### 8.1 config features 命令
+---
 
-```bash
-# 列出所有标志位
-chainlesschain config features list
-# 输出:
-#   ● ON  PROMPT_COMPRESSOR [default]
-#   ○ OFF BACKGROUND_TASKS [default]
-#   ...
+## 5. 当前已完成的增强集成
 
-# 启用/禁用
-chainlesschain config features enable CONTEXT_SNIP
-chainlesschain config features disable CONTEXT_SNIP
-```
+### 5.1 JSONL_SESSION 默认启用
 
-### 8.2 agent-repl.js 集成
+这项能力已经从“可选实验”变成默认行为：
 
-- `PROMPT_COMPRESSOR` 标志启用时，创建 `PromptCompressor` 实例
-- 每轮对话后检查 `shouldAutoCompact()`，自动触发压缩
-- `/compact` 命令优先使用 Prompt Compressor
+- `feature-flags.js` 中默认值已为 `true`
+- `agent-repl.js`、`session.js` 已按 JSONL 方案工作
+- 会话迁移工具已可用于旧 JSON → JSONL 迁移
 
-## 9. 测试策略
+### 5.2 Background Task Notifications
 
-### 9.1 测试金字塔
+后台任务不再只能靠轮询查询，任务完成或失败后会通过 `task:notification` 推送到 Web Panel。
 
-```
-         ╱╲
-        ╱E2E╲        37 tests — CLI 命令级验证
-       ╱──────╲
-      ╱ 集成   ╲     42 tests — 跨模块交互
-     ╱──────────╲
-    ╱   单元     ╲   255 tests — 模块内部逻辑
-   ╱──────────────╲
-```
+当前这条链已经贯通：
 
-### 9.2 测试文件
+- 后台任务管理器
+- WS 协议
+- `tasks.js`
+- Web Panel 页面
 
-| 文件 | 类型 | 测试数 |
-|------|------|--------|
-| `feature-flags.test.js` | 单元 | 27 |
-| `prompt-compressor.test.js` | 单元 | 24 |
-| `jsonl-session-store.test.js` | 单元 | 21 |
-| `background-task-manager.test.js` | 单元 | 20 |
-| `worktree-isolator.test.js` | 单元 | 12 |
-| `agent-optimization-extended.test.js` | 单元 | 56 |
-| `v5029-features.test.js` | 单元 | 33 |
-| `v5029-extended.test.js` | 单元 | 62 |
-| `agent-optimization-workflow.test.js` | 集成 | 23 |
-| `v5029-workflow.test.js` | 集成 | 19 |
-| `agent-optimization-commands.test.js` | E2E | 23 |
-| `v5029-commands.test.js` | E2E | 14 |
-| **合计** | | **334** |
+### 5.3 Worktree 合并助手
 
-## 10. 已完成的增强 (v5.0.2.9)
+当前 Worktree 不只是隔离运行，还补了后处理能力：
 
-1. ~~**JSONL_SESSION 全面替换**~~: ✅ `agent-repl.js` 和 `session.js` 完整集成 — 创建/保存/恢复/列表均支持 JSONL 模式
-2. ~~**Background Tasks UI**~~: ✅ Web Panel 新增「后台任务」监控页面（Pinia store + Vue3 组件 + WS 协议）
-3. ~~**Worktree + Sub-Agent**~~: ✅ `SubAgentContext` 集成 `isolateTask()` — 子 Agent 自动在隔离 worktree 中执行
-4. ~~**Context Compression 自适应**~~: ✅ 30+ 模型 context window 注册表 + `adaptiveThresholds()` + `adaptToModel()` 动态切换
+- `worktree-diff`
+- `worktree-merge`
+- 文件级冲突摘要
+- `automationCandidates`
+- `previewEntrypoints`
 
-## 11. 后续规划
+### 5.4 压缩策略 A/B 测试
 
-1. **JSONL_SESSION 默认启用**: 经充分验证后将 `JSONL_SESSION` 默认值改为 `true`
-2. **Background Task Notifications**: 任务完成后通过 WebSocket 推送实时通知到 Web Panel
-3. **Worktree 合并助手**: 子 Agent 在 worktree 中完成工作后，提供 diff 预览和一键合并到主分支
-4. **压缩策略 A/B 测试**: 利用 `featureVariant()` 对比不同压缩阈值的效果
+当前已接入 `featureVariant()`：
+
+- 可对比不同压缩阈值或变体
+- 可在遥测中看到变体分布
+- 可在 Dashboard 中看到观测结果
+
+---
+
+## 6. 当前实现状态
+
+### 6.1 Harness 迁移
+
+相关模块当前已迁入：
+
+- `packages/cli/src/harness/feature-flags.js`
+- `packages/cli/src/harness/prompt-compressor.js`
+- `packages/cli/src/harness/compression-telemetry.js`
+- `packages/cli/src/harness/jsonl-session-store.js`
+- `packages/cli/src/harness/background-task-manager.js`
+- `packages/cli/src/harness/background-task-worker.js`
+- `packages/cli/src/harness/worktree-isolator.js`
+
+旧 `lib/` 路径保留兼容层。
+
+### 6.2 WebSocket 对齐
+
+当前与这批能力相关的 WS 协议已包括：
+
+- `tasks-list`
+- `tasks-detail`
+- `tasks-history`
+- `tasks-stop`
+- `task:notification`
+- `worktree-list`
+- `worktree-diff`
+- `worktree-merge`
+- `compression-stats`
+
+### 6.3 Web Panel 对齐
+
+前端当前已经可以消费这批增强能力中的主链结果：
+
+- 任务通知
+- 任务历史与详情
+- Worktree diff / merge 结果
+- 压缩观测摘要
+- 统一 runtime event
+
+---
+
+## 7. 当前最重要的四个落地结果
+
+### 7.1 后台任务增强
+
+已完成：
+
+- 任务历史分页检索
+- 任务输出摘要
+- 重启恢复
+- 多节点恢复策略基础能力
+- 实时通知
+
+### 7.2 Worktree 增强
+
+已完成：
+
+- 文件级冲突摘要
+- 自动化解决候选项
+- diff 预览入口
+- 一键合并协议
+
+### 7.3 压缩观测增强
+
+已完成：
+
+- `windowMs` 时间窗口筛选
+- `provider` / `model` 切片
+- 策略分布
+- 变体分布
+- Dashboard 展示
+
+### 7.4 会话迁移增强
+
+已完成：
+
+- 目录级 dry-run 报告
+- 迁移后抽样校验
+- 失败重试
+
+---
+
+## 8. 与模块 78 的关系
+
+模块 77 和模块 78 的关系需要明确区分：
+
+- 模块 77
+  - 关注“增强能力本身已经做了什么”
+- 模块 78
+  - 关注“整个 CLI Agent Runtime 如何重构边界”
+
+可以把两者理解为：
+
+- 77 是“能力层成果”
+- 78 是“架构层计划”
+
+当前这两者已经开始在主链上合流：
+
+- 能力模块迁入 `harness/`
+- 事件开始统一为 runtime event
+- 前端开始通过 `onRuntimeEvent()` 消费
+
+---
+
+## 9. 当前验证状态
+
+与本模块直接相关的当前验证结果：
+
+- CLI 定向单元：`130/130`
+- CLI 定向集成：`19/19`
+- CLI `ws-session-workflow` 集成：`16/16`
+- Web Panel 定向单元：`23/23`
+- Web Panel E2E：`29/29`
+- Web Panel 构建：通过
+- Docs Site 构建：通过
+
+当前已经明确验证到：
+
+- session record 在 CLI / WS / Web Panel 三层一致
+- task / worktree / compression 能力已接入主链
+- `onRuntimeEvent()` 可以驱动主干页面状态更新
+
+---
+
+## 10. 当前风险与边界
+
+### 10.1 不是所有页面都已经完全收口
+
+主干页面已开始统一，但边缘页面仍需要持续清查是否还有旧消息依赖。
+
+### 10.2 能力已落地，不代表架构重构已结束
+
+模块 77 的能力已经可用，但模块 78 的 Runtime / Tool Registry 主线仍在继续。
+
+### 10.3 文档必须持续跟代码一起更新
+
+这批能力跨越：
+
+- harness
+- ws
+- web-panel
+- docs-site
+
+任何一层落后，用户就会看到不一致描述。
+
+---
+
+## 11. 相关文件
+
+- `packages/cli/src/harness/feature-flags.js`
+- `packages/cli/src/harness/prompt-compressor.js`
+- `packages/cli/src/harness/compression-telemetry.js`
+- `packages/cli/src/harness/jsonl-session-store.js`
+- `packages/cli/src/harness/background-task-manager.js`
+- `packages/cli/src/harness/worktree-isolator.js`
+- `packages/cli/src/gateways/ws/task-protocol.js`
+- `packages/cli/src/gateways/ws/worktree-protocol.js`
+- `packages/web-panel/src/stores/tasks.js`
+- `packages/web-panel/src/stores/dashboard.js`
+
+---
+
+## 12. 结论
+
+模块 77 当前已经不再是“功能设想清单”，而是 CLI Agent 生产级能力的真实落地说明。
+
+这批能力的价值在于：
+
+- 让会话从脆弱状态变成可恢复状态
+- 让长任务从前台阻塞变成后台可管理状态
+- 让子 Agent 从污染主工作区变成隔离 worktree 执行
+- 让压缩和实验从黑箱行为变成可观测行为
+
+它和模块 78 共同构成当前 CLI Agent 重构的两条主线：
+
+- 一条是“能力已经做到了什么”
+- 一条是“架构接下来如何收口”

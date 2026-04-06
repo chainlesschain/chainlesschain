@@ -9,9 +9,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, existsSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createTaskRecord } from "../../src/runtime/contracts/task-record.js";
 
 const testDir = join(tmpdir(), `cc-v50210-integ-${Date.now()}`);
 
@@ -199,14 +200,9 @@ describe("Task notification WS protocol simulation", () => {
     mgr.on("task:complete", (task) => {
       broadcasts.push({
         type: "task:notification",
-        task: {
-          id: task.id,
-          status: task.status,
-          description: task.description,
-          completedAt: task.completedAt,
-          result: task.result,
-          error: task.error,
-        },
+        task: createTaskRecord(task, {
+          source: "background-task-manager",
+        }),
       });
     });
 
@@ -222,6 +218,7 @@ describe("Task notification WS protocol simulation", () => {
     expect(msg.type).toBe("task:notification");
     expect(msg.task.status).toBe("completed");
     expect(msg.task.result).toBe("test output");
+    expect(msg.task.meta.source).toBe("background-task-manager");
 
     // Verify serializable
     const json = JSON.stringify(msg);
@@ -480,6 +477,38 @@ describe("JSONL default true + Compression A/B cross-feature", () => {
     expect(summary.strategyDistribution[0].hits).toBeGreaterThan(0);
     expect(summary.providerDistribution[0].key).toBe("ollama");
     expect(summary.modelDistribution.length).toBeGreaterThan(0);
+  });
+
+  it("writes normalized telemetry records alongside raw stats", () => {
+    recordCompressionMetric(
+      {
+        strategy: "truncate",
+        originalTokens: 1000,
+        compressedTokens: 700,
+        saved: 300,
+        abVariant: "balanced",
+      },
+      {
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        source: "manual-compact",
+      },
+    );
+
+    const metricsFile = join(testDir, "metrics", "compression.jsonl");
+    const [line] = readFileSync(metricsFile, "utf-8").trim().split("\n");
+    const parsed = JSON.parse(line);
+
+    expect(parsed.record).toEqual(
+      expect.objectContaining({
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        source: "manual-compact",
+        strategy: "truncate",
+        savedTokens: 300,
+        variant: "balanced",
+      }),
+    );
   });
 
   it("migrates legacy JSON session and validates resulting JSONL", () => {

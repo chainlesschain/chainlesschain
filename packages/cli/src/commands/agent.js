@@ -6,8 +6,7 @@
  * AI reads files, writes code, runs commands, and explains what it's doing.
  */
 
-import { startAgentRepl } from "../repl/agent-repl.js";
-import { loadConfig } from "../lib/config-manager.js";
+import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 
 export function registerAgentCommand(program) {
   program
@@ -25,13 +24,13 @@ export function registerAgentCommand(program) {
     .option("--api-key <key>", "API key")
     .option("--session <id>", "Resume a previous agent session")
     .action(async (options) => {
-      const config = loadConfig();
-      await startAgentRepl({
-        model: options.model || config.llm?.model || "qwen2:7b",
-        provider: options.provider || config.llm?.provider || "ollama",
-        baseUrl: options.baseUrl || config.llm?.baseUrl,
-        apiKey: options.apiKey || config.llm?.apiKey,
+      const runtime = createAgentRuntimeFactory().createAgentRuntime({
+        model: options.model,
+        provider: options.provider,
+        baseUrl: options.baseUrl,
+        apiKey: options.apiKey,
         sessionId: options.session,
       });
+      await runtime.startAgentSession();
     });
 }

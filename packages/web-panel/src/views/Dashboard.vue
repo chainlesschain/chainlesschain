@@ -9,7 +9,7 @@
           {{
             isProject
               ? `项目「${cfg.projectName || '未命名'}」运行概览`
-              : 'ChainlessChain 全局运行状态'
+              : 'ChainlessChain 全局运行概览'
           }}
         </p>
       </div>
@@ -30,7 +30,7 @@
           <div style="color: #91caff; font-weight: 600;">{{ cfg.projectName || '项目' }}</div>
           <div style="color: #4a6fa5; font-size: 11px; font-family: monospace;">{{ cfg.projectRoot }}</div>
         </div>
-        <a-tag color="blue" style="margin-left: auto;">项目级面板</a-tag>
+        <a-tag color="blue" style="margin-left: auto;">项目面板</a-tag>
       </div>
     </a-card>
 
@@ -41,10 +41,7 @@
             <span class="stat-label">WebSocket Gateway</span>
             <a-badge :status="wsStatus === 'connected' ? 'success' : 'error'" />
           </div>
-          <div
-            class="stat-value"
-            :style="{ color: wsStatus === 'connected' ? '#52c41a' : '#888' }"
-          >
+          <div class="stat-value" :style="{ color: wsStatus === 'connected' ? '#52c41a' : '#888' }">
             {{ wsStatus === 'connected' ? '运行中' : '未连接' }}
           </div>
           <div class="stat-sub">端口 {{ cfg.wsPort || 18800 }} · {{ cfg.wsHost || '127.0.0.1' }}</div>
@@ -73,12 +70,7 @@
       </a-col>
 
       <a-col :xs="24" :sm="12" :lg="6">
-        <a-card
-          class="stat-card"
-          size="small"
-          style="cursor: pointer;"
-          @click="$router.push('/skills')"
-        >
+        <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/skills')">
           <div class="stat-header">
             <span class="stat-label">可用技能</span>
             <AppstoreOutlined style="color: #1677ff;" />
@@ -89,12 +81,7 @@
       </a-col>
 
       <a-col :xs="24" :sm="12" :lg="6">
-        <a-card
-          class="stat-card"
-          size="small"
-          style="cursor: pointer;"
-          @click="$router.push('/chat')"
-        >
+        <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/chat')">
           <div class="stat-header">
             <span class="stat-label">AI 会话</span>
             <MessageOutlined style="color: #722ed1;" />
@@ -123,12 +110,7 @@
       </a-col>
 
       <a-col :xs="24" :sm="8">
-        <a-card
-          class="stat-card"
-          size="small"
-          style="cursor: pointer;"
-          @click="$router.push('/mcp')"
-        >
+        <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/mcp')">
           <div class="stat-header">
             <span class="stat-label">MCP 工具</span>
             <ToolOutlined style="color: #13c2c2;" />
@@ -139,12 +121,7 @@
       </a-col>
 
       <a-col :xs="24" :sm="8">
-        <a-card
-          class="stat-card"
-          size="small"
-          style="cursor: pointer;"
-          @click="$router.push('/notes')"
-        >
+        <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/notes')">
           <div class="stat-header">
             <span class="stat-label">知识库笔记</span>
             <FileTextOutlined style="color: #faad14;" />
@@ -296,7 +273,7 @@
             <div class="telemetry-label">净节省率</div>
             <div class="telemetry-value">{{ formatPercent(compression.netSavingsRate) }}</div>
             <div class="telemetry-sub">
-              原始 {{ compression.totalOriginalTokens }} → 压缩后 {{ compression.totalCompressedTokens }}
+              原始 {{ compression.totalOriginalTokens }} -> 压缩后 {{ compression.totalCompressedTokens }}
             </div>
           </div>
         </a-col>
@@ -391,7 +368,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ReloadOutlined, ApiOutlined, RobotOutlined, AppstoreOutlined,
@@ -400,133 +377,34 @@ import {
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useChatStore } from '../stores/chat.js'
+import { useDashboardStore } from '../stores/dashboard.js'
 
 const router = useRouter()
 const ws = useWsStore()
 const chatStore = useChatStore()
+const dashboardStore = useDashboardStore()
 const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
 const wsStatus = computed(() => ws.status)
+const loading = computed(() => dashboardStore.loading)
+const statusLog = computed(() => dashboardStore.statusLog)
+const telemetryFilters = computed(() => dashboardStore.telemetryFilters)
+const compression = computed(() => dashboardStore.compression)
+const stats = computed(() => dashboardStore.stats)
 const variantEntries = computed(() => Object.entries(compression.value.variantDistribution || {}))
 const providerEntries = computed(() => compression.value.providerDistribution || [])
 const modelEntries = computed(() => compression.value.modelDistribution || [])
 
-const loading = ref(false)
-const statusLog = ref('')
-const telemetryFilters = ref({
-  windowPreset: 'all',
-  provider: '',
-  model: '',
-})
-const compression = ref({
-  samples: 0,
-  compressedSamples: 0,
-  hitRate: 0,
-  totalSavedTokens: 0,
-  averageSavedTokens: 0,
-  totalOriginalTokens: 0,
-  totalCompressedTokens: 0,
-  netSavingsRate: 0,
-  variantDistribution: {},
-  strategyDistribution: [],
-  providerDistribution: [],
-  modelDistribution: [],
-})
-const stats = ref({
-  activeLlm: null, activeModel: null,
-  skillCount: 0, sessionCount: 0,
-  appRunning: false, setupDone: false, edition: '',
-  mcpCount: null, noteCount: null,
-})
-
 async function refresh() {
-  loading.value = true
-  stats.value.wsStatus = ws.status
-  statusLog.value = ''
-
-  try {
-    const [statusResult, sessions] = await Promise.allSettled([
-      ws.execute('status', 15000),
-      ws.listSessions(),
-    ])
-
-    if (statusResult.status === 'fulfilled') {
-      const out = statusResult.value.output
-      statusLog.value = out.split('\n').slice(0, 20).join('\n')
-      parseStatus(out)
-    }
-    if (sessions.status === 'fulfilled') {
-      stats.value.sessionCount = sessions.value.length
-    }
-
-    Promise.allSettled([
-      ws.execute('skill sources', 15000),
-      ws.execute('llm providers', 15000),
-    ]).then(([skillResult, llmResult]) => {
-      if (skillResult.status === 'fulfilled') {
-        const m = skillResult.value.output.match(/(\d+)\s*(?:skills|技能)/i)
-        if (m) stats.value.skillCount = parseInt(m[1])
-      }
-      if (llmResult.status === 'fulfilled') {
-        const out = llmResult.value.output
-        const m = out.match(/active[:\s]+(\S+)/i)
-        if (m && !stats.value.activeLlm) stats.value.activeLlm = m[1]
-      }
-    })
-
-    ws.execute('mcp servers', 10000).then(({ output }) => {
-      const count = (output.match(/^[a-z]/gm) || []).length
-      stats.value.mcpCount = count
-    }).catch(() => { stats.value.mcpCount = 0 })
-
-    await refreshCompression()
-  } catch (_) {
-    // Best-effort
-  } finally {
-    loading.value = false
-  }
+  await dashboardStore.refresh()
 }
 
 async function refreshCompression() {
-  const payload = {
-    type: 'compression-stats',
-    windowMs: toWindowMs(telemetryFilters.value.windowPreset),
-  }
-  if (telemetryFilters.value.provider) payload.provider = telemetryFilters.value.provider
-  if (telemetryFilters.value.model) payload.model = telemetryFilters.value.model
-
-  try {
-    const result = await ws.sendRaw(payload, 10000)
-    compression.value = { ...compression.value, ...(result.summary || {}) }
-  } catch (_) {
-    // Best-effort
-  }
-}
-
-function parseStatus(out) {
-  stats.value.appRunning = out.includes('Desktop app running')
-  stats.value.setupDone = out.includes('Setup completed')
-  const ed = out.match(/Edition:\s+(\S+)/i)
-  if (ed) stats.value.edition = ed[1]
-  const llm = out.match(/LLM:\s+(\S+)\s+\(([^)]+)\)/i)
-  if (llm) {
-    stats.value.activeLlm = llm[1]
-    stats.value.activeModel = llm[2]
-  } else {
-    const l2 = out.match(/LLM:\s+(\S+)/i)
-    if (l2) stats.value.activeLlm = l2[1]
-  }
+  await dashboardStore.refreshCompression()
 }
 
 function formatPercent(value) {
   return `${((value || 0) * 100).toFixed(1)}%`
-}
-
-function toWindowMs(preset) {
-  if (preset === '1h') return 60 * 60 * 1000
-  if (preset === '24h') return 24 * 60 * 60 * 1000
-  if (preset === '7d') return 7 * 24 * 60 * 60 * 1000
-  return null
 }
 
 async function newAgentSession() {
@@ -534,7 +412,14 @@ async function newAgentSession() {
   router.push('/chat')
 }
 
-onMounted(() => setTimeout(refresh, 300))
+onMounted(() => {
+  dashboardStore.ensureRuntimeSubscription(ws)
+  setTimeout(refresh, 300)
+})
+
+onUnmounted(() => {
+  dashboardStore.stopRuntimeSubscription()
+})
 </script>
 
 <style scoped>

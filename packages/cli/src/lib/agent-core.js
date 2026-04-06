@@ -24,6 +24,13 @@ import { executeHooks, HookEvents } from "./hook-manager.js";
 import { detectPython } from "./cli-anything-bridge.js";
 import { findProjectRoot, loadProjectConfig } from "./project-detector.js";
 import { SubAgentContext } from "./sub-agent-context.js";
+import {
+  createLegacyAgentToolRegistry,
+  getRuntimeToolDescriptor,
+} from "../tools/legacy-agent-tools.js";
+import { createToolContext } from "../tools/tool-context.js";
+import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
+import { DEFAULT_TOOL_DESCRIPTORS } from "../tools/registry.js";
 
 // ─── Tool definitions ────────────────────────────────────────────────────
 
@@ -248,6 +255,36 @@ export const AGENT_TOOLS = [
     },
   },
 ];
+
+export const AGENT_TOOL_REGISTRY = createLegacyAgentToolRegistry(AGENT_TOOLS);
+const DEFAULT_TOOL_DESCRIPTOR_MAP = new Map(
+  DEFAULT_TOOL_DESCRIPTORS.map((descriptor) => [descriptor.name, descriptor]),
+);
+
+export function getAgentToolDefinitions({ names = null, disabledTools = [] } = {}) {
+  const allowedNames =
+    Array.isArray(names) && names.length > 0 ? new Set(names) : null;
+  const disabledNames = new Set(
+    Array.isArray(disabledTools) ? disabledTools : [],
+  );
+
+  return AGENT_TOOLS.filter((tool) => {
+    const name = tool?.function?.name;
+    if (!name) return false;
+    if (allowedNames && !allowedNames.has(name)) return false;
+    if (disabledNames.has(name)) return false;
+    return true;
+  });
+}
+
+export function getAgentToolDescriptors(options = {}) {
+  const allowedNames = new Set(
+    getAgentToolDefinitions(options).map((tool) => tool.function.name),
+  );
+  return AGENT_TOOL_REGISTRY.list({ enabledOnly: options.enabledOnly }).filter(
+    (descriptor) => allowedNames.has(descriptor.name),
+  );
+}
 
 // ─── Shared skill loader ──────────────────────────────────────────────────
 
@@ -514,6 +551,12 @@ export async function executeTool(name, args, context = {}) {
   const hookDb = context.hookDb || null;
   const skillLoader = context.skillLoader || _defaultSkillLoader;
   const cwd = context.cwd || process.cwd();
+  const runtimeDescriptor = getRuntimeToolDescriptor(name);
+  const toolContext = createToolContext({
+    toolName: runtimeDescriptor?.name || name,
+    cwd,
+    metadata: { descriptor: runtimeDescriptor },
+  });
 
   // Persona toolsDisabled guard
   const persona = _loadProjectPersona(cwd);
@@ -549,12 +592,15 @@ export async function executeTool(name, args, context = {}) {
         tool: name,
         args,
         timestamp: new Date().toISOString(),
+        descriptor: runtimeDescriptor,
+        context: toolContext,
       });
     } catch (_err) {
       // Hook failure should not block tool execution
     }
   }
 
+  const startTime = Date.now();
   let toolResult;
   try {
     toolResult = await executeToolInner(name, args, {
@@ -577,6 +623,19 @@ export async function executeTool(name, args, context = {}) {
     throw err;
   }
 
+  const durationMs = Date.now() - startTime;
+  const status = toolResult?.error ? "error" : "completed";
+  const telemetryRecord = createToolTelemetryRecord({
+    descriptor: runtimeDescriptor,
+    status,
+    durationMs,
+    sessionId: context.sessionId || null,
+    metadata: { args },
+  });
+  if (toolResult && typeof toolResult === "object") {
+    toolResult.toolTelemetryRecord = telemetryRecord;
+  }
+
   // PostToolUse hook
   if (hookDb) {
     try {
@@ -587,6 +646,8 @@ export async function executeTool(name, args, context = {}) {
           typeof toolResult === "object"
             ? JSON.stringify(toolResult).substring(0, 500)
             : String(toolResult).substring(0, 500),
+        descriptor: runtimeDescriptor,
+        context: toolContext,
       });
     } catch (_err) {
       // Non-critical
@@ -604,20 +665,44 @@ async function executeToolInner(
   args,
   { skillLoader, cwd, parentMessages },
 ) {
+  const runtimeDescriptor = getRuntimeToolDescriptor(name);
+  const buildPayload = (descriptor) =>
+    descriptor
+      ? {
+          name: descriptor.name,
+          kind: descriptor.kind || descriptor.category || descriptor.source,
+          category: descriptor.category,
+        }
+      : null;
+  const descriptorPayload = buildPayload(runtimeDescriptor);
+  const attachDescriptor = (payload, overrideDescriptor = null) => {
+    const descriptor = buildPayload(overrideDescriptor || runtimeDescriptor);
+    return descriptor ? { ...payload, toolDescriptor: descriptor } : payload;
+  };
+  const resolveShellDescriptor = (command) => {
+    const trimmed = (command || "").trim();
+    if (!trimmed) return null;
+    const parts = trimmed.split(/\s+/);
+    if (parts[0] === "git") return DEFAULT_TOOL_DESCRIPTOR_MAP.get("git");
+    if (parts[0] === "mcp" || parts.includes("mcp")) {
+      return DEFAULT_TOOL_DESCRIPTOR_MAP.get("mcp");
+    }
+    return DEFAULT_TOOL_DESCRIPTOR_MAP.get("shell");
+  };
   switch (name) {
     case "read_file": {
       const filePath = path.resolve(cwd, args.path);
       if (!fs.existsSync(filePath)) {
-        return { error: `File not found: ${filePath}` };
+        return attachDescriptor({ error: `File not found: ${filePath}` });
       }
       const content = fs.readFileSync(filePath, "utf8");
       if (content.length > 50000) {
-        return {
+        return attachDescriptor({
           content: content.substring(0, 50000) + "\n...(truncated)",
           size: content.length,
-        };
+        });
       }
-      return { content };
+      return attachDescriptor({ content });
     }
 
     case "write_file": {
@@ -627,21 +712,25 @@ async function executeToolInner(
         fs.mkdirSync(dir, { recursive: true });
       }
       fs.writeFileSync(filePath, args.content, "utf8");
-      return { success: true, path: filePath, size: args.content.length };
+      return attachDescriptor({
+        success: true,
+        path: filePath,
+        size: args.content.length,
+      });
     }
 
     case "edit_file": {
       const filePath = path.resolve(cwd, args.path);
       if (!fs.existsSync(filePath)) {
-        return { error: `File not found: ${filePath}` };
+        return attachDescriptor({ error: `File not found: ${filePath}` });
       }
       const content = fs.readFileSync(filePath, "utf8");
       if (!content.includes(args.old_string)) {
-        return { error: "old_string not found in file" };
+        return attachDescriptor({ error: "old_string not found in file" });
       }
       const newContent = content.replace(args.old_string, args.new_string);
       fs.writeFileSync(filePath, newContent, "utf8");
-      return { success: true, path: filePath };
+      return attachDescriptor({ success: true, path: filePath });
     }
 
     case "run_shell": {
@@ -652,22 +741,34 @@ async function executeToolInner(
           timeout: 60000,
           maxBuffer: 1024 * 1024,
         });
-        return { stdout: output.substring(0, 30000) };
+        const override = resolveShellDescriptor(args.command);
+        return attachDescriptor(
+          {
+            stdout: output.substring(0, 30000),
+          },
+          override || runtimeDescriptor,
+        );
       } catch (err) {
-        return {
-          error: err.message.substring(0, 2000),
-          stderr: (err.stderr || "").substring(0, 2000),
-          exitCode: err.status,
-        };
+        const override = resolveShellDescriptor(args.command);
+        return attachDescriptor(
+          {
+            error: err.message.substring(0, 2000),
+            stderr: (err.stderr || "").substring(0, 2000),
+            exitCode: err.status,
+          },
+          override || runtimeDescriptor,
+        );
       }
     }
 
     case "run_code": {
-      return _executeRunCode(args, cwd);
+      return attachDescriptor(await _executeRunCode(args, cwd));
     }
 
     case "spawn_sub_agent": {
-      return _executeSpawnSubAgent(args, { skillLoader, cwd, parentMessages });
+      return attachDescriptor(
+        await _executeSpawnSubAgent(args, { skillLoader, cwd, parentMessages }),
+      );
     }
 
     case "search_files": {
@@ -683,7 +784,9 @@ async function executeToolInner(
             encoding: "utf8",
             timeout: 10000,
           });
-          return { matches: output.trim().split("\n").slice(0, 20) };
+          return attachDescriptor({
+            matches: output.trim().split("\n").slice(0, 20),
+          });
         } else {
           const cmd =
             process.platform === "win32"
@@ -694,44 +797,47 @@ async function executeToolInner(
             encoding: "utf8",
             timeout: 10000,
           });
-          return {
+          return attachDescriptor({
             files: output.trim().split("\n").filter(Boolean).slice(0, 20),
-          };
+          });
         }
       } catch {
-        return { files: [], message: "No matches found" };
+        return attachDescriptor({
+          files: [],
+          message: "No matches found",
+        });
       }
     }
 
     case "list_dir": {
       const dirPath = args.path ? path.resolve(cwd, args.path) : cwd;
       if (!fs.existsSync(dirPath)) {
-        return { error: `Directory not found: ${dirPath}` };
+        return attachDescriptor({ error: `Directory not found: ${dirPath}` });
       }
       const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-      return {
+      return attachDescriptor({
         entries: entries.map((e) => ({
           name: e.name,
           type: e.isDirectory() ? "dir" : "file",
         })),
-      };
+      });
     }
 
     case "run_skill": {
       const allSkills = skillLoader.getResolvedSkills();
       if (allSkills.length === 0) {
-        return {
+        return attachDescriptor({
           error:
             "No skills found. Make sure you're in the ChainlessChain project root or have skills installed.",
-        };
+        });
       }
       const match = allSkills.find(
         (s) => s.id === args.skill_name || s.dirName === args.skill_name,
       );
       if (!match || !match.hasHandler) {
-        return {
+        return attachDescriptor({
           error: `Skill "${args.skill_name}" not found or has no handler. Use list_skills to see available skills.`,
-        };
+        });
       }
 
       // Check if skill requests isolation (via SKILL.md frontmatter)
@@ -746,19 +852,21 @@ async function executeToolInner(
         });
         try {
           const result = await subCtx.run(args.input);
-          return {
-            success: true,
-            isolated: true,
-            skill: args.skill_name,
-            summary: result.summary,
-            toolsUsed: result.toolsUsed,
-          };
-        } catch (err) {
-          return { error: `Isolated skill execution failed: ${err.message}` };
-        }
+        return attachDescriptor({
+          success: true,
+          isolated: true,
+          skill: args.skill_name,
+          summary: result.summary,
+          toolsUsed: result.toolsUsed,
+        });
+      } catch (err) {
+        return attachDescriptor({
+          error: `Isolated skill execution failed: ${err.message}`,
+        });
       }
+    }
 
-      try {
+    try {
         const handlerPath = path.join(match.skillDir, "handler.js");
         const imported = await import(
           `file://${handlerPath.replace(/\\/g, "/")}`
@@ -775,16 +883,18 @@ async function executeToolInner(
           workspacePath: cwd,
         };
         const result = await handler.execute(task, taskContext, match);
-        return result;
+        return attachDescriptor(result);
       } catch (err) {
-        return { error: `Skill execution failed: ${err.message}` };
+        return attachDescriptor({
+          error: `Skill execution failed: ${err.message}`,
+        });
       }
     }
 
     case "list_skills": {
       let skills = skillLoader.getResolvedSkills();
       if (skills.length === 0) {
-        return { error: "No skills found." };
+        return attachDescriptor({ error: "No skills found." });
       }
       if (args.category) {
         skills = skills.filter(
@@ -800,7 +910,7 @@ async function executeToolInner(
             s.category.toLowerCase().includes(q),
         );
       }
-      return {
+      return attachDescriptor({
         count: skills.length,
         skills: skills.map((s) => ({
           id: s.id,
@@ -809,11 +919,11 @@ async function executeToolInner(
           hasHandler: s.hasHandler,
           description: (s.description || "").substring(0, 80),
         })),
-      };
+      });
     }
 
     default:
-      return { error: `Unknown tool: ${name}` };
+      return attachDescriptor({ error: `Unknown tool: ${name}` });
   }
 }
 
@@ -1128,14 +1238,10 @@ async function _executeSpawnSubAgent(args, ctx) {
 export async function chatWithTools(rawMessages, options) {
   const { provider, model, baseUrl, apiKey, contextEngine: ce } = options;
 
-  // Filter tools based on persona.toolsDisabled
-  let tools = AGENT_TOOLS;
   const persona = _loadProjectPersona(options.cwd);
-  if (persona?.toolsDisabled?.length > 0) {
-    tools = AGENT_TOOLS.filter(
-      (t) => !persona.toolsDisabled.includes(t.function.name),
-    );
-  }
+  const tools = getAgentToolDefinitions({
+    disabledTools: persona?.toolsDisabled,
+  });
 
   const lastUserMsg = [...rawMessages].reverse().find((m) => m.role === "user");
   const messages = ce

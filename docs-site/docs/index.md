@@ -1,12 +1,10 @@
 ---
 layout: home
 
-<!-- 一致性更新：JSONL_SESSION 默认启用、task:notification 实时通知、Worktree 合并助手、COMPRESSION_AB A/B 测试均已完成。 -->
-
 hero:
   name: ChainlessChain
-  text: 去中心化个人AI管理平台
-  tagline: v5.0.2.2 进化版 | 军事级安全 | 完全去中心化 | AI原生 | 138技能 | 102 Phase | AI Agent 2.0 | Web3 深化 | 自进化AI | Headless CLI | Web管理界面 | CLI指令技能包(9包) | AI创作模板 | 5130+ Tests
+  text: 去中心化个人 AI 管理平台
+  tagline: v5.0.2.10 | CLI Agent Runtime | Web Panel | Headless CLI
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -23,67 +21,34 @@ hero:
 
 features:
   - icon: 🔐
-    title: 军事级安全
-    details: 基于U盾/SIMKey的硬件级加密保护，Signal协议端到端加密，数据完全自主掌控
-
-  - icon: 🌐
-    title: 完全去中心化
-    details: P2P网络(libp2p 3.1.2)，数据存储在用户自己的设备上，不依赖第三方云服务
-
-  - icon: 🧠
-    title: AI原生
-    details: 集成14+云LLM提供商 + Ollama本地部署，16个AI专用引擎，RAG增强检索
-
-  - icon: 📱
-    title: 跨设备协作
-    details: PC端、移动端无缝同步，P2P文件传输，支持Windows/Mac/Linux/Android/iOS
-
-  - icon: 💾
-    title: 知识库管理
-    details: 个人第二大脑，8个图分析算法，5种可视化方式，智能实体提取，AI增强检索
-
-  - icon: 👥
-    title: 去中心化社交
-    details: 基于W3C DID标准，WebRTC语音/视频通话，屏幕共享，群聊，消息转发
-
-  - icon: 🔌
-    title: MCP集成
-    details: Model Context Protocol支持，5个官方服务器，安全沙箱，UI管理
-
+    title: 安全优先
+    details: 支持本地优先、权限控制、会话持久化与远程访问保护。
   - icon: 🤖
-    title: Cowork多智能体协作
-    details: v5.0 AI Agent 2.0，A2A协议，工作流编排，层次化记忆，Agent经济，代码生成Agent，自进化AI，138内置技能
-
-  - icon: 🖥️
-    title: Computer Use
-    details: 类似Claude Computer Use的电脑操作能力，68+ IPC处理器，视觉AI定位，工作流引擎，操作录制回放
-
-  - icon: 🌐
-    title: 浏览器插件
-    details: 215个远程命令，完整浏览器自动化，网页操作/数据提取/调试工具，支持Chrome/Edge/Arc
-
-  - icon: 🏢
-    title: 企业版
-    details: 去中心化组织协作，RBAC权限，实时协作编辑，版本历史，评论讨论
-
-  - icon: 🎨
-    title: AI技能系统
-    details: 138个内置技能，Agent Skills开放标准，统一工具注册表(60+工具+8 MCP+138技能)，10个演示模板
-
-  - icon: ⛓️
-    title: 区块链 + Web3
-    details: 零知识证明引擎，跨链互操作(5链)，DID v2.0，DAO治理2.0，隐私计算(联邦学习/MPC/同态加密)
-
-  - icon: 🏗️
-    title: 企业级平台
-    details: 低代码应用构建，企业知识图谱(GraphRAG)，BI智能分析，工作流自动化(12连接器)，多租户SaaS引擎
+    title: AI 原生
+    details: 支持多 Provider、多模型、Agent 工作流、压缩策略与会话恢复。
+  - icon: 🧭
+    title: CLI + Web Panel
+    details: 同时提供 Headless CLI、Web 管理面板、任务监控与会话管理。
+  - icon: 🧪
+    title: 工程化验证
+    details: 单元、集成、E2E 与文档持续对齐，减少设计与实现偏移。
 ---
 
-> 2026-04-06 补充增强：后台任务历史分页、输出摘要与恢复策略，Worktree 冲突候选项与 diff 预览，压缩观测切片统计，以及会话迁移 dry-run / 抽样校验 / 重试能力已落地。
+> 2026-04-06 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测和会话迁移能力。
+
+## 当前验证结果
+
+- CLI 定向单元测试：`130/130`
+- CLI 定向集成测试：`19/19`
+- CLI `ws-session-workflow` 集成：`16/16`
+- Web Panel 定向单元测试：`23/23`
+- Web Panel E2E：`29/29`
+- Web Panel 构建：通过
+- Docs Site 构建：通过
 
 ## 快速开始
 
-### 方式一：CLI 一键安装（推荐）
+### 方式一：CLI 安装
 
 ```bash
 npm install -g chainlesschain
@@ -91,149 +56,73 @@ chainlesschain setup
 chainlesschain start
 ```
 
-详见 [CLI 命令行工具文档](/chainlesschain/cli)。
-
-### 方式二：源码开发
+### 方式二：源码运行
 
 ```bash
-# 克隆项目
 git clone https://github.com/chainlesschain/chainlesschain.git
 cd chainlesschain
-
-# 安装依赖
 npm install
-
-# 启动Docker服务
-cd backend/docker
-docker-compose up -d
-
-# 启动PC端
 npm run dev:desktop-vue
-
-# 启动移动端
-npm run dev:android
 ```
 
-### U盾/SIMKey厂家管理系统
+## 文档导航
 
-```bash
-# 克隆项目
-git clone https://github.com/chainlesschain/manufacturer-system.git
-cd manufacturer-system
+- [产品概览](/guide/introduction)
+- [快速开始](/guide/getting-started)
+- [CLI 文档](/chainlesschain/cli)
+- [Agent 架构优化](/chainlesschain/agent-optimization)
+- [Web 管理界面](/chainlesschain/cli-ui)
+- [WebSocket 服务](/chainlesschain/cli-serve)
+- [设计文档索引](/design/)
 
-# 一键启动(Docker)
-# Windows
-start.bat
+## 当前推荐阅读
 
-# Linux/Mac
-./start.sh
+如果你是从本轮 Runtime / Web Panel / 协议演进切入，建议优先看下面几页：
 
-# 访问系统
-# 前端: http://localhost
-# API文档: http://localhost:8080/api/swagger-ui.html
-# 默认账号: admin / admin123456
-```
+- [WebSocket 服务](/chainlesschain/cli-serve)
+- [Web 管理界面](/chainlesschain/cli-ui)
+- [Agent 架构优化](/chainlesschain/agent-optimization)
+- [设计模块 69：WebSocket 服务器接口](/design/modules/69-websocket-server)
+- [设计模块 73：Web 管理界面](/design/modules/73-web-ui)
+- [设计模块 75：Web 管理面板](/design/modules/75-web-panel)
+- [设计模块 78：CLI Agent Runtime 重构计划](/design/modules/78-cli-agent-runtime)
 
-## 核心产品
+## 本轮重点能力
 
-### 1. ChainlessChain 个人AI管理系统
+### CLI Agent Runtime 重构
 
-完全去中心化的个人AI助手平台（v5.0.2.2 进化版），整合知识库管理、社交网络和交易辅助三大核心功能，内置AI Agent 2.0生态、Web3深化、企业级平台、CLI分发系统、Web管理界面和AI创作模板。
+- 命令入口正在统一收口到 `Runtime / Gateway / Harness` 分层。
+- WebSocket 协议处理已拆到 `gateways/ws`，由 dispatcher 统一分发。
+- Web Panel 已通过 `onRuntimeEvent()` 开始消费统一 runtime event。
+- `session-created`、`session-resumed`、`session-list-result` 现在都带标准 `record`。
 
-**主要特性:**
+### 后台任务增强
 
-- 🔐 军事级安全 (U盾/SIMKey硬件加密 + Signal协议)
-- 🌐 完全去中心化 (P2P网络 + DHT)
-- 🧠 16个AI专用引擎 + 14+云LLM提供商
-- 📱 跨设备同步 (PC/移动端/浏览器扩展)
-- 🔌 MCP集成 + 138内置技能 + 统一工具注册表
-- 🎨 AI技能系统 (138技能 + Agent Skills标准 + 10演示模板)
-- 💻 Headless CLI (62命令 + 5核心包 + Agent REPL + 138技能 + Plan Mode + WebSocket Server + Sub-Agent Isolation v2 + CLI指令技能包9包 + AI创作模板)
-- ⛓️ 区块链集成 (15链 + 6个智能合约)
-- 🤖 AI Agent 2.0 (A2A协议、工作流编排、层次化记忆、多模态感知、Agent经济)
-- 🖥️ Computer Use (68+ IPC处理器，视觉AI，工作流引擎)
-- ⛓️ Web3深化 (ZKP引擎、跨链桥接、DID v2、隐私计算、DAO v2)
-- 🏗️ 企业平台 (低代码、知识图谱、BI分析、工作流自动化、多租户SaaS)
-- 🧬 自进化AI (持续学习、自我诊断、行为预测、能力评估)
+- 支持任务历史分页查询、任务详情输出摘要和多节点恢复策略基础能力。
+- 任务完成后通过 `task:notification` 实时推送到 Web Panel。
 
-[查看详细文档 →](/chainlesschain/overview)
+### Worktree 合并助手
 
-### 2. U盾/SIMKey厂家管理系统
+- 支持 `worktree-diff` 预览、`worktree-merge` 一键合并。
+- 冲突结果包含文件级摘要、自动化候选项和预览入口。
 
-功能完整的设备厂家管理平台，提供设备全生命周期管理、多平台APP发布、数据备份恢复等功能。
+### 压缩策略观测
 
-**主要功能:**
+- 支持 `windowMs`、`provider`、`model` 三个维度筛选。
+- Dashboard 展示命中率、节省 Token、策略分布和变体分布。
 
-- 💻 设备管理 (注册/激活/锁定/注销)
-- 📱 APP版本管理 (上传/发布/更新检查)
-- 💾 数据备份恢复 (加密备份/恢复到设备)
-- 👥 用户管理 (角色权限/操作审计)
+### 会话迁移
 
-[查看详细文档 →](/manufacturer/overview)
+- 支持旧 JSON 会话迁移到 JSONL。
+- 支持 dry-run 报告、抽样校验和失败重试。
 
-## 技术栈
+## 当前架构主线
 
-### 前端
+本轮文档已经把下面这条主线补齐到可阅读状态：
 
-- Vue 3.4 + Composition API
-- Ant Design Vue 4.1
-- Electron 39.2.7 (桌面端)
-- Jetpack Compose (Android)
-- SwiftUI (iOS)
-- libp2p 3.1.2 (P2P网络)
+- CLI 入口正在统一收口到 `Runtime / Gateway / Harness`
+- WebSocket 层从“大一统消息处理器”演进为 `gateways/ws`
+- Web Panel 主干页面开始通过 `onRuntimeEvent()` 消费统一事件
+- session / task / worktree / telemetry 开始共享标准 `record`
 
-### 后端
-
-- Spring Boot 3.1.11 + Java 17
-- MyBatis Plus 3.5.9
-- PostgreSQL 16 / SQLite
-- Redis 7.0
-- FastAPI (AI服务)
-- Ollama (本地AI模型)
-
-### 区块链
-
-- Ethereum / Polygon / 15链支持
-- Solidity智能合约 (6个合约)
-- Hardhat开发环境
-- MetaMask / WalletConnect
-
-### 统计数据
-
-- 📊 380,000+ 行代码
-- 🧩 384+ 个Vue组件
-- 🔌 735+ IPC处理器 (+178 v5.0)
-- 🧪 20,400+ 测试用例 (+646 v5.0)
-- 🎨 138个内置技能 + 统一工具注册表
-- 💻 63个CLI命令 + 5核心包 (5130+测试) + 6维Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything集成 + WebSocket Server + Web管理界面 + Sub-Agent Isolation v2 + CLI指令技能包(9包/101测试) + AI音视频/文档创作模板
-- 💾 95+ 张数据库表
-- 🏗️ 64个Pinia Store
-- 🔧 102个开发阶段完成 (Phase 1-102)
-
-## 社区与支持
-
-### 联系我们
-
-- 📧 **邮箱**: zhanglongfa@chainlesschain.com
-- 📞 **电话**: 400-1068-687
-- 💬 **微信**: [企业微信](https://work.weixin.qq.com/ca/cawcde653996f7ecb2)
-- 🌐 **官网**: https://www.chainlesschain.com
-
-### 加入社区
-
-- [GitHub](https://github.com/chainlesschain)
-- [论坛](https://community.chainlesschain.com)
-- [文档](https://docs.chainlesschain.com)
-
-## 开源许可
-
-本项目采用 [MIT License](https://opensource.org/licenses/MIT) 开源许可证。
-
-核心加密库采用 [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) 许可证。
-
----
-
-<div style="text-align: center; margin-top: 60px;">
-  <p style="font-size: 18px; font-weight: bold;">用技术捍卫隐私，用AI赋能个人</p>
-  <p style="color: #666;">Made with ❤️ by ChainlessChain Team</p>
-</div>
+如果你想从设计层继续深入，可以直接进入 [设计文档索引](/design/)，再顺着 69、73、75、78 四个模块继续看。

@@ -970,6 +970,7 @@ export default defineConfig({
             { text: "75 Vue3 Web管理面板 10模块+4主题 ⭐", link: "/design/modules/75-web-panel" },
             { text: "76 Skill Creator系统 ⭐", link: "/design/modules/76-skill-creator" },
             { text: "77 Agent架构优化 ⭐", link: "/design/modules/77-agent-optimization" },
+            { text: "78 CLI Agent Runtime重构计划 ⭐", link: "/design/modules/78-cli-agent-runtime" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

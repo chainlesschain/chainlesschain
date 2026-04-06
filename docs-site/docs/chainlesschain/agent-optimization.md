@@ -1,224 +1,274 @@
-# Agent 架构优化 (v5.0.2.10)
+# Agent 架构优化
 
-## 与实际代码一致性确认
+> 本页描述当前代码中已经落地的 Agent 增强能力，以及它们如何与 CLI Runtime、WebSocket 服务和 Web Panel 主链对齐。内容已对齐到 2026-04-06 的实现状态。
 
-以下能力已在代码中完成，不再属于“后续规划”：
+## 这页解决什么问题
 
-- `JSONL_SESSION` 默认值已为 `true`
+如果你在看 ChainlessChain 最近这轮演进，最容易混淆的是两件事：
+
+- “做了哪些新能力”
+- “整体架构怎么重构”
+
+这页主要回答前者，也就是：当前已经真正落地的 Agent 增强能力有哪些，它们现在在哪里、怎么用、和前端及 WS 协议的关系是什么。
+
+如果你更关心整体 Runtime 分层，请继续看：
+
+- [CLI Agent Runtime 重构计划](../design/modules/78-cli-agent-runtime)
+
+## 已经完成且与代码一致的能力
+
+以下能力已经在代码中完成，不再属于“后续规划”：
+
+- `JSONL_SESSION` 默认值已经为 `true`
 - 后台任务完成后会通过 `task:notification` 推送到 Web Panel
 - Worktree 已支持 `worktree-diff`、`worktree-merge`、`worktree-list`
-- `COMPRESSION_AB` 已接入 `featureVariant()` 做压缩阈值 A/B 对比
+- `COMPRESSION_AB` 已接入 `featureVariant()` 进行压缩阈值 A/B 对比
+- Web Panel 已开始统一消费 `onRuntimeEvent()`
+- `session-created`、`session-resumed`、`session-list-result` 已统一携带 `record`
 
-当前相关定向验证结果：
+当前相关验证结果：
 
-- CLI 定向单元测试：`130/130`
-- CLI 定向集成测试：`19/19`
-- Web Panel 定向单元测试：`12/12`
+- CLI 定向单元：`130/130`
+- CLI 定向集成：`19/19`
+- CLI `ws-session-workflow` 集成：`16/16`
+- Web Panel 定向单元：`23/23`
 - Web Panel E2E：`29/29`
 - Web Panel 构建：通过
+- Docs Site 构建：通过
 
-> 2026-04-06 补充增强：
-> 已新增任务历史分页检索、任务输出摘要、多节点恢复策略基础能力；
-> Worktree 冲突自动化候选项与 diff 预览入口；
-> 压缩观测时间窗口筛选及 provider/model 切片；
-> 旧 JSON 会话到 JSONL 的 dry-run 报告、抽样校验与失败重试。
+## 五个核心优化模块
 
-## v5.0.2.10 / 2026-04-06 补充增强
+### 1. Feature Flags
+
+负责统一特性开关与实验入口。
+
+当前关键点：
+
+- 支持环境变量、配置文件、默认值三层优先级
+- 支持 `featureVariant()` 做实验分流
+- `JSONL_SESSION` 默认开启
+- `COMPRESSION_AB` 已接入压缩实验
+
+### 2. Prompt Compressor
+
+负责上下文压缩与自动触发。
+
+当前已覆盖：
+
+- 去重
+- 截断
+- 摘要
+- SnipCompact
+- ContextCollapse
+
+并且已经进入压缩遥测与 Dashboard 观测面。
+
+### 3. JSONL Session Store
+
+负责会话持久化与恢复。
+
+当前已支持：
+
+- 追加式写入
+- compact 快照
+- 崩溃恢复
+- 会话迁移
+- dry-run
+- 抽样校验
+- 失败重试
+
+### 4. Background Task Manager
+
+负责把长任务从前台执行迁到后台执行。
+
+当前已支持：
+
+- 后台执行
+- 历史持久化
+- 重启恢复
+- 任务详情摘要
+- 历史分页查询
+- 实时通知
+
+### 5. Worktree Isolator
+
+负责子任务与子 Agent 的隔离执行。
+
+当前已支持：
+
+- 隔离 worktree
+- diff 预览
+- merge 助手
+- 文件级冲突摘要
+- 自动化候选项
+
+## 当前主链已经怎么接起来了
+
+这批能力现在已经不只是 CLI 内部功能，而是开始和 WS、前端与文档主链对齐。
+
+### WebSocket 服务侧
+
+当前相关协议包括：
+
+- `tasks-list`
+- `tasks-detail`
+- `tasks-history`
+- `tasks-stop`
+- `task:notification`
+- `worktree-list`
+- `worktree-diff`
+- `worktree-merge`
+- `compression-stats`
+
+### Web Panel 侧
+
+当前前端主干已经能消费这些能力的结果：
+
+- 任务页可以查询任务列表、详情、历史并接收通知
+- Dashboard 可以查看压缩统计和会话数
+- 会话相关消息统一带 `record`
+- 页面状态开始统一通过 `onRuntimeEvent()` 更新
+
+## 当前统一事件模型
+
+CLI、WS、Web Panel 三层已经开始共享统一 runtime event。
+
+核心事件包括：
+
+- `session:start`
+- `session:resume`
+- `session:end`
+- `session:message`
+- `turn:start`
+- `turn:end`
+- `task:notification`
+- `worktree:diff:ready`
+- `worktree:merge:completed`
+- `compression:summary`
+
+前端统一入口：
+
+- `packages/web-panel/src/stores/ws.js` 提供 `onRuntimeEvent()`
+
+当前已接入的主要消费点：
+
+- `tasks.js`
+- `chat.js`
+- `dashboard.js`
+- `Dashboard.vue`
+
+## 协议响应、统一事件与流式会话的边界
+
+这轮最容易混淆的不是功能点，而是消息边界。当前建议按三类理解：
+
+### 1. 协议响应
+
+例如：
+
+- `session-list-result`
+- `tasks-detail`
+- `worktree-diff`
+- `compression-stats`
+
+它们回答的是“这次请求拿到了什么”。
+
+### 2. Runtime Event
+
+例如：
+
+- `session:start`
+- `task:notification`
+- `worktree:diff:ready`
+- `compression:summary`
+
+它们回答的是“系统状态发生了什么变化”。
+
+### 3. Session Stream
+
+例如：
+
+- `response-token`
+- `response-complete`
+- `tool-executing`
+- `tool-result`
+- `question`
+
+它们回答的是“当前会话流正在输出什么”。
+
+当前口径是：
+
+- `ws.js` 负责把协议响应归一化为 runtime event
+- `chat.js` 继续直接消费 session stream
+- 这批流式会话消息目前不强行进入统一事件模型
+
+## Session Record 标准化
+
+本轮会话协议已经统一到 `session-record` contract。
+
+标准字段包括：
+
+- `id`
+- `type`
+- `provider`
+- `model`
+- `projectRoot`
+- `messageCount`
+- `history`
+- `status`
+
+当前已统一输出 `record` 的协议消息：
+
+- `session-created`
+- `session-resumed`
+- `session-list-result`
+
+这意味着：
+
+- 主动拉取会话列表
+- 恢复历史会话
+- Web Panel 订阅 runtime event
+
+都可以消费同一套 session summary 结构，而不再依赖零散字段拼装。
+
+## 这轮重点增强
 
 ### 后台任务
 
-- `tasks-history` 新增 `offset` / `limit` 分页能力。
-- 任务详情中新增 `outputSummary`，便于面板快速预览输出结果。
-- 恢复逻辑新增多节点策略基础能力：
-  - `claim-stale`
-  - `local-only`
-  - `observe-only`
+- `tasks-history` 支持 `offset` / `limit`
+- `tasks-detail` 支持 `outputSummary`
+- 支持多节点恢复策略基础能力
 
 ### Worktree
 
-- 冲突结果中新增 `automationCandidates`。
-- 冲突结果中新增 `diffPreview` 与 `previewEntrypoints`。
+- 冲突结果新增 `automationCandidates`
+- 预览结果新增 `previewEntrypoints`
 
 ### 压缩观测
 
-- `compression-stats` 支持 `windowMs`、`provider`、`model` 参数。
-- Dashboard 新增时间窗口、Provider、Model 三组筛选维度。
+- `compression-stats` 支持 `windowMs`、`provider`、`model`
+- Dashboard 支持时间窗口和 Provider / Model 切片
 
 ### 会话迁移
 
-- 新增 `migrateLegacySessionsBatch()`。
-- `session migrate` 支持 `--sample-size` 与 `--retry-failures`。
-- 迁移结果增加 summary 和 sampled validation 报告。
+- 支持目录级 dry-run 报告
+- 支持抽样校验
+- 支持失败重试
 
-### 本轮验证
+## 与 Runtime 重构的关系
 
-- CLI 定向单元：`130/130`
-- CLI 定向集成：`19/19`
-- Web Panel 定向单元：`12/12`
-- Web Panel E2E：`29/29`
+这页描述的是“能力已经做到了什么”，而 Runtime 重构页描述的是“边界接下来怎么继续收口”。
 
-> 5 个核心优化模块 + 4 项增强集成，借鉴 Claude Code 12 层渐进式 harness 架构，为 CLI Agent 提供特性门控、自适应上下文压缩、JSONL 会话持久化、后台任务监控和 Worktree 隔离。
+两页的关系是：
 
-## 快速开始
+- [Agent 架构优化](/chainlesschain/agent-optimization)
+  - 看已经落地的增强能力
+- [CLI Agent Runtime 重构计划](../design/modules/78-cli-agent-runtime)
+  - 看 Runtime / Gateway / Harness / Tool Registry 的阶段计划
 
-```bash
-# 查看所有特性标志
-chainlesschain config features list
+## 推荐继续阅读
 
-# 启用/禁用特性
-chainlesschain config features enable CONTEXT_SNIP
-chainlesschain config features disable CONTEXT_SNIP
-
-# 环境变量覆盖（优先级最高）
-CC_FLAG_CONTEXT_SNIP=true chainlesschain agent
-```
-
-## 五个优化模块
-
-### 1. Feature Flags（特性门控）
-
-渐进式发布系统，支持三级优先级控制：
-
-**优先级**: 环境变量 `CC_FLAG_<NAME>` > 配置文件 `config.features.<NAME>` > 默认值
-
-| 标志名 | 默认值 | 说明 |
-|--------|--------|------|
-| `BACKGROUND_TASKS` | false | 后台任务队列 |
-| `WORKTREE_ISOLATION` | false | Git Worktree 隔离 |
-| `CONTEXT_SNIP` | false | snipCompact 压缩策略 |
-| `CONTEXT_COLLAPSE` | false | contextCollapse 折叠策略 |
-| `JSONL_SESSION` | true | JSONL 追加式会话持久化 |
-| `COMPRESSION_AB` | `{ enabled: false, variant: "balanced" }` | 压缩策略 A/B 测试 |
-| `PROMPT_COMPRESSOR` | true | 提示压缩器（默认开启） |
-
-支持百分比灰度发布，基于确定性哈希实现 A/B 分流。
-
-### 2. Prompt Compressor（上下文压缩）
-
-5 策略流水线，自动管理 Agent 上下文窗口：
-
-| 策略 | 说明 | 门控 |
-|------|------|------|
-| 去重 (Deduplicate) | Jaccard 相似度去重 | 始终启用 |
-| 截断 (Truncate) | 保留最近 N 条消息 | 始终启用 |
-| 摘要 (Summarize) | LLM 生成历史摘要 | 始终启用 |
-| 清理 (SnipCompact) | 移除陈旧标记 | `CONTEXT_SNIP` |
-| 折叠 (ContextCollapse) | 折叠连续工具调用 | `CONTEXT_COLLAPSE` |
-
-**Token 估算**：中文 1.5 字符/token，英文 4 字符/token
-
-**自动触发**：消息数超过阈值或 token 数超限时自动压缩。
-
-**自适应策略** (v5.0.2.9 新增)：根据当前 LLM provider 的 context window 大小自动调整压缩阈值。例如：
-- Ollama 本地模型 (8k-32k): 更积极压缩，maxMessages ≈ 20
-- OpenAI GPT-4o (128k): 适中压缩，maxMessages ≈ 35
-- Anthropic Claude (200k): 宽松压缩，maxMessages ≈ 40
-- Gemini (1M): 最宽松，maxMessages = 50
-
-内置 30+ 模型的 context window 注册表 (`CONTEXT_WINDOWS`)，支持 `adaptToModel()` 动态切换。
-
-### 3. JSONL Session Store（会话持久化）
-
-**v5.0.2.10 默认启用**：`JSONL_SESSION` 默认值已经调整为 `true`，`agent-repl.js` 和所有 `session` 命令默认使用 JSONL 模式，替代全量 JSON 覆写；`session migrate` 同时支持目录级 dry-run、抽样校验与失败重试。
-
-- **崩溃恢复**：每条消息同步写入，进程异常终止后可从 JSONL 重建完整会话
-- **事件类型**：`session_start`、`user_message`、`assistant_message`、`compact`（快照）、`fork`（分支会话）
-- **增量写入**：Agent 每轮对话只追加 user + assistant 事件，不重写全量
-- **compact 检查点**：自动压缩后写入 compact 事件，包含压缩后的消息快照
-- **session 命令**：`session list` 合并显示 DB + JSONL 会话，`session show/resume` 优先使用 JSONL
-
-```bash
-# 启用 JSONL 会话
-chainlesschain config features enable JSONL_SESSION
-
-# 恢复历史会话
-chainlesschain agent --session <session-id>
-
-# 查看所有会话（合并 DB + JSONL）
-chainlesschain session list
-```
-
-### 4. Background Task Manager（后台任务）
-
-使用 `child_process.fork()` 实现后台执行：
-
-- **任务生命周期**：pending → running → completed/failed/cancelled
-- **IPC 心跳**：子进程定期上报进度和状态
-- **队列持久化**：任务元数据持久化到 JSONL，重启后可恢复
-- **Web Panel 监控** (v5.0.2.9 新增)：通过 `chainlesschain ui` 打开 Web 面板，在「后台任务」页面实时查看任务状态、停止运行中的任务
-
-**WS 协议**：
-- `{ type: "tasks-list" }` → 返回所有任务列表
-- `{ type: "tasks-detail", taskId }` → 返回任务详情与输出摘要
-- `{ type: "tasks-history", taskId, offset, limit }` → 分页返回任务历史
-- `{ type: "tasks-stop", taskId }` → 停止指定任务
-- `{ type: "compression-stats", windowMs?, provider?, model? }` → 返回压缩策略观测汇总
-- `{ type: "worktree-diff", taskId }` → 返回 worktree diff 预览入口
-- `{ type: "worktree-merge", taskId }` → 执行一键合并
-- `{ type: "task:notification", ... }` → 任务完成/失败后的实时通知事件
-
-```bash
-# 启用后台任务
-chainlesschain config features enable BACKGROUND_TASKS
-```
-
-### 5. Worktree Isolator（Git Worktree 隔离）
-
-为并发 Agent 任务提供独立工作目录：
-
-- **自动创建**：`isolateTask(name, fn)` 自动创建临时 worktree
-- **分支命名**：`agent/<taskName>-<timestamp>`
-- **自动清理**：任务完成后自动移除 worktree
-- **Sub-Agent 集成** (v5.0.2.9 新增)：`SubAgentContext` 启用 `WORKTREE_ISOLATION` 后，子 Agent 自动在独立 worktree 中运行，文件操作完全隔离
-
-```bash
-# 启用 Worktree 隔离
-chainlesschain config features enable WORKTREE_ISOLATION
-```
-
-## 配置示例
-
-```json
-{
-  "features": {
-    "PROMPT_COMPRESSOR": true,
-    "CONTEXT_SNIP": true,
-    "CONTEXT_COLLAPSE": true,
-    "JSONL_SESSION": true,
-    "BACKGROUND_TASKS": false,
-    "WORKTREE_ISOLATION": false
-  }
-}
-```
-
-## 测试覆盖
-
-| 文件 | 类型 | 测试数 |
-|------|------|--------|
-| `prompt-compressor.test.js` | 单元 | 24 |
-| `feature-flags.test.js` | 单元 | 27 |
-| `jsonl-session-store.test.js` | 单元 | 24 |
-| `background-task-manager.test.js` | 单元 | 23 |
-| `worktree-isolator.test.js` | 单元 | 12 |
-| `agent-optimization-extended.test.js` | 单元 | 56 |
-| `v5029-features.test.js` | 单元 | 33 |
-| `v5029-extended.test.js` | 单元 | 62 |
-| `agent-optimization-workflow.test.js` | 集成 | 23 |
-| `v50210-workflow.test.js` | 集成 | 19 |
-| `agent-optimization-commands.test.js` | E2E | 23 |
-| `v5029-commands.test.js` | E2E | 14 |
-| **本轮定向回归** | | **190** |
-
-本轮已实际通过的验证如下：
-
-- CLI 定向单元：`130/130`
-- CLI 定向集成：`19/19`
-- Web Panel 定向单元：`12/12`
-- Web Panel E2E：`29/29`
-- Web Panel 构建：通过
-
-## 相关文档
-
-- [设计文档 — 模块 77](../design/modules/77-agent-optimization) — 完整技术架构与实现细节
-- [CLI 配置管理 (config)](./cli-config) — 配置命令参考
-- [Agent 模式 (agent)](./cli-agent) — Agent 会话使用指南
+- [Web 管理界面 (ui)](./cli-ui)
+- [WebSocket 服务 (serve)](./cli-serve)
+- [设计文档：模块 69](../design/modules/69-websocket-server)
+- [设计文档：模块 77](../design/modules/77-agent-optimization)
+- [设计文档：模块 78](../design/modules/78-cli-agent-runtime)

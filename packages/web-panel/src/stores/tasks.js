@@ -65,16 +65,16 @@ export const useTasksStore = defineStore('tasks', () => {
   function _subscribeNotifications() {
     const ws = useWsStore()
     if (unsubscribeNotifications) return
-    const handler = (msg) => {
-      if (msg.type === 'task:notification' && msg.task) {
-        lastNotification.value = msg.task
+    const handler = (event) => {
+      if (event.type === 'task:notification' && event.payload?.task) {
+        lastNotification.value = event.payload.task
         // Refresh task list immediately
         fetchTasks()
         // Auto-clear notification after 8 seconds
         setTimeout(() => { lastNotification.value = null }, 8000)
       }
     }
-    unsubscribeNotifications = ws.onMessage(handler)
+    unsubscribeNotifications = ws.onRuntimeEvent(handler)
   }
 
   function formatDuration(ms) {

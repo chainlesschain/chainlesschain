@@ -203,4 +203,320 @@ describe('ws store — message routing', () => {
 
     await expect(p).rejects.toThrow('Command blocked')
   })
+
+  it('maps protocol messages into runtime events for panel subscribers', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const runtimeHandler = vi.fn()
+    store.onRuntimeEvent(runtimeHandler)
+
+    MockWebSocket._last._message({
+      type: 'task:notification',
+      task: { id: 'task-1', status: 'completed' },
+    })
+    MockWebSocket._last._message({
+      id: 'req-1',
+      type: 'compression-stats',
+      summary: { totalSavedTokens: 42 },
+    })
+
+    expect(runtimeHandler).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        type: 'task:notification',
+        kind: 'server',
+        payload: {
+          task: { id: 'task-1', status: 'completed' },
+        },
+      }),
+      expect.objectContaining({
+        type: 'task:notification',
+      }),
+    )
+    expect(runtimeHandler).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        type: 'compression:summary',
+        kind: 'server',
+        payload: expect.objectContaining({
+          requestId: 'req-1',
+          summary: { totalSavedTokens: 42 },
+        }),
+      }),
+      expect.objectContaining({
+        type: 'compression-stats',
+      }),
+    )
+  })
+
+  it('maps worktree protocol messages into runtime events with normalized record payloads', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const runtimeHandler = vi.fn()
+    store.onRuntimeEvent(runtimeHandler)
+
+    MockWebSocket._last._message({
+      id: 'req-worktree-1',
+      type: 'worktree-diff',
+      branch: 'agent/task-42',
+      summary: { changedFiles: 3 },
+      record: {
+        branch: 'agent/task-42',
+        summary: { changedFiles: 3 },
+        previewEntrypoints: [{ type: 'worktree-diff', branch: 'agent/task-42' }],
+      },
+    })
+    MockWebSocket._last._message({
+      id: 'req-worktree-2',
+      type: 'worktree-merged',
+      branch: 'agent/task-42',
+      summary: { conflictedFiles: 1 },
+      record: {
+        branch: 'agent/task-42',
+        summary: { conflictedFiles: 1 },
+        conflicts: [{ path: 'src/index.js', type: 'both_modified' }],
+        previewEntrypoints: [{ type: 'worktree-diff', branch: 'agent/task-42' }],
+      },
+    })
+
+    expect(runtimeHandler).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        type: 'worktree:diff:ready',
+        payload: expect.objectContaining({
+          requestId: 'req-worktree-1',
+          record: expect.objectContaining({
+            branch: 'agent/task-42',
+            summary: { changedFiles: 3 },
+          }),
+        }),
+      }),
+      expect.objectContaining({
+        type: 'worktree-diff',
+      }),
+    )
+    expect(runtimeHandler).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        type: 'worktree:merge:completed',
+        payload: expect.objectContaining({
+          requestId: 'req-worktree-2',
+          record: expect.objectContaining({
+            branch: 'agent/task-42',
+            summary: { conflictedFiles: 1 },
+            conflicts: [{ path: 'src/index.js', type: 'both_modified' }],
+          }),
+        }),
+      }),
+      expect.objectContaining({
+        type: 'worktree-merged',
+      }),
+    )
+  })
+
+  it('emits runtime events even when a response resolves a pending request', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const runtimeHandler = vi.fn()
+    store.onRuntimeEvent(runtimeHandler)
+
+    const request = store.sendRaw({ type: 'compression-stats' }, 5000)
+    await flushMicrotasks()
+    const req = MockWebSocket._last._sent.at(-1)
+
+    MockWebSocket._last._message({
+      id: req.id,
+      type: 'compression-stats',
+      summary: { totalSavedTokens: 64 },
+    })
+
+    await expect(request).resolves.toEqual(
+      expect.objectContaining({
+        type: 'compression-stats',
+        summary: { totalSavedTokens: 64 },
+      }),
+    )
+    expect(runtimeHandler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'compression:summary',
+        payload: expect.objectContaining({
+          requestId: req.id,
+          summary: { totalSavedTokens: 64 },
+        }),
+      }),
+      expect.objectContaining({
+        type: 'compression-stats',
+      }),
+    )
+  })
+
+  it('maps session protocol responses into runtime events with normalized record payloads', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const runtimeHandler = vi.fn()
+    store.onRuntimeEvent(runtimeHandler)
+
+    MockWebSocket._last._message({
+      type: 'session-created',
+      sessionId: 'sess-11',
+      sessionType: 'agent',
+      record: {
+        id: 'sess-11',
+        type: 'agent',
+        status: 'created',
+        messageCount: 0,
+      },
+    })
+    MockWebSocket._last._message({
+      type: 'session-resumed',
+      sessionId: 'sess-11',
+      history: [{ role: 'user', content: 'hello' }],
+      record: {
+        id: 'sess-11',
+        type: 'agent',
+        status: 'resumed',
+        history: [{ role: 'user', content: 'hello' }],
+        messageCount: 1,
+      },
+    })
+
+    expect(runtimeHandler).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        type: 'session:start',
+        sessionId: 'sess-11',
+        payload: expect.objectContaining({
+          sessionId: 'sess-11',
+          sessionType: 'agent',
+          record: expect.objectContaining({
+            id: 'sess-11',
+            type: 'agent',
+            status: 'created',
+            messageCount: 0,
+          }),
+        }),
+      }),
+      expect.objectContaining({
+        type: 'session-created',
+        sessionId: 'sess-11',
+      }),
+    )
+    expect(runtimeHandler).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        type: 'session:resume',
+        sessionId: 'sess-11',
+        payload: expect.objectContaining({
+          sessionId: 'sess-11',
+          historyCount: 1,
+          record: expect.objectContaining({
+            id: 'sess-11',
+            type: 'agent',
+            status: 'resumed',
+            messageCount: 1,
+          }),
+        }),
+      }),
+      expect.objectContaining({
+        type: 'session-resumed',
+        sessionId: 'sess-11',
+      }),
+    )
+  })
+
+  it('closeSession emits a synthetic session:end runtime event after success', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const runtimeHandler = vi.fn()
+    store.onRuntimeEvent(runtimeHandler)
+
+    const closePromise = store.closeSession('sess-9')
+    await flushMicrotasks()
+    const req = MockWebSocket._last._sent.at(-1)
+
+    MockWebSocket._last._message({
+      id: req.id,
+      type: 'result',
+      success: true,
+      sessionId: 'sess-9',
+    })
+
+    await closePromise
+    expect(runtimeHandler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'session:end',
+        sessionId: 'sess-9',
+        payload: { sessionId: 'sess-9' },
+      }),
+      expect.objectContaining({
+        type: 'result',
+        sessionId: 'sess-9',
+      }),
+    )
+  })
+
+  it('listSessions normalizes returned session records', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const request = store.listSessions()
+    await flushMicrotasks()
+    const req = MockWebSocket._last._sent.at(-1)
+
+    MockWebSocket._last._message({
+      id: req.id,
+      type: 'session-list-result',
+      sessions: [
+        {
+          id: 'sess-21',
+          type: 'agent',
+          status: 'active',
+          record: {
+            id: 'sess-21',
+            type: 'agent',
+            provider: 'openai',
+            model: 'gpt-4o-mini',
+            projectRoot: 'C:/code/demo',
+            messageCount: 3,
+            history: [{ role: 'user', content: 'hello' }],
+            status: 'active',
+          },
+        },
+      ],
+    })
+
+    await expect(request).resolves.toEqual([
+      expect.objectContaining({
+        id: 'sess-21',
+        type: 'agent',
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        projectRoot: 'C:/code/demo',
+        messageCount: 3,
+        status: 'active',
+        record: expect.objectContaining({
+          id: 'sess-21',
+          type: 'agent',
+          messageCount: 3,
+        }),
+      }),
+    ])
+  })
 })
