@@ -206,7 +206,203 @@ export function cleanupAgentWorktrees(repoDir) {
   return cleaned;
 }
 
+// ── Worktree Merge Assistant ────────────────────────────────────────────
+
+/**
+ * Get a diff preview between agent branch and base branch.
+ * Shows what would change if the agent's work were merged.
+ *
+ * @param {string} repoDir — Root of the git repository
+ * @param {string} branchName — Agent branch (e.g. "agent/task-123")
+ * @param {object} [options]
+ * @param {string} [options.baseBranch="HEAD"] — Branch to compare against
+ * @param {boolean} [options.stat=true] — Include diffstat summary
+ * @returns {{ files: Array<{path, insertions, deletions, status}>, summary: {filesChanged, insertions, deletions}, diff: string }}
+ */
+export function diffWorktree(repoDir, branchName, options = {}) {
+  const base = options.baseBranch || "HEAD";
+
+  // Get diff stat
+  const statOutput = gitExec(
+    `diff ${base}...${branchName} --stat --numstat`,
+    repoDir,
+  );
+
+  const files = [];
+  for (const line of statOutput.split("\n")) {
+    const match = line.match(/^(\d+|-)\t(\d+|-)\t(.+)$/);
+    if (match) {
+      files.push({
+        path: match[3].trim(),
+        insertions: match[1] === "-" ? 0 : parseInt(match[1], 10),
+        deletions: match[2] === "-" ? 0 : parseInt(match[2], 10),
+        status: _fileStatus(repoDir, base, branchName, match[3].trim()),
+      });
+    }
+  }
+
+  const totalInsertions = files.reduce((s, f) => s + f.insertions, 0);
+  const totalDeletions = files.reduce((s, f) => s + f.deletions, 0);
+
+  // Get full diff (limited to reasonable size)
+  let diff = "";
+  try {
+    diff = gitExec(`diff ${base}...${branchName}`, repoDir);
+    if (diff.length > 50000) {
+      diff = diff.slice(0, 50000) + "\n... [diff truncated at 50KB]";
+    }
+  } catch (_e) {
+    diff = "(unable to generate diff)";
+  }
+
+  return {
+    files,
+    summary: {
+      filesChanged: files.length,
+      insertions: totalInsertions,
+      deletions: totalDeletions,
+    },
+    diff,
+  };
+}
+
+/**
+ * Merge an agent branch into the current branch (one-click merge).
+ *
+ * @param {string} repoDir — Root of the git repository
+ * @param {string} branchName — Agent branch to merge
+ * @param {object} [options]
+ * @param {string} [options.strategy="merge"] — "merge" or "squash"
+ * @param {string} [options.message] — Custom commit message (for squash)
+ * @param {boolean} [options.deleteBranch=true] — Delete branch after merge
+ * @returns {{ success: boolean, strategy: string, message: string, conflicts?: string[] }}
+ */
+export function mergeWorktree(repoDir, branchName, options = {}) {
+  const strategy = options.strategy || "merge";
+  const deleteBranch = options.deleteBranch !== false;
+
+  try {
+    if (strategy === "squash") {
+      gitExec(`merge --squash ${branchName}`, repoDir);
+      const msg =
+        options.message ||
+        `feat: merge agent work from ${branchName} (squashed)`;
+      gitExec(`commit -m "${msg.replace(/"/g, '\\"')}"`, repoDir);
+    } else {
+      const msg =
+        options.message || `Merge branch '${branchName}' (agent task)`;
+      gitExec(
+        `merge ${branchName} --no-edit -m "${msg.replace(/"/g, '\\"')}"`,
+        repoDir,
+      );
+    }
+
+    // Delete branch after successful merge
+    if (deleteBranch) {
+      try {
+        gitExec(`branch -D "${branchName}"`, repoDir);
+      } catch (_e) {
+        // Non-critical
+      }
+    }
+
+    return {
+      success: true,
+      strategy,
+      message: `Successfully merged ${branchName} via ${strategy}`,
+    };
+  } catch (err) {
+    // Check for merge conflicts
+    const errMsg = err.message || String(err);
+    if (errMsg.includes("CONFLICT") || errMsg.includes("conflict")) {
+      // Abort the failed merge
+      try {
+        gitExec("merge --abort", repoDir);
+      } catch (_e) {
+        // Best effort
+      }
+
+      // List conflicting files
+      const conflicts = [];
+      const conflictMatch = errMsg.match(/CONFLICT[^:]*:\s*([^\n]+)/g);
+      if (conflictMatch) {
+        for (const c of conflictMatch) {
+          conflicts.push(c.replace(/^CONFLICT[^:]*:\s*/, "").trim());
+        }
+      }
+
+      return {
+        success: false,
+        strategy,
+        message: `Merge conflicts detected — manual resolution required`,
+        conflicts,
+      };
+    }
+
+    return {
+      success: false,
+      strategy,
+      message: `Merge failed: ${errMsg}`,
+    };
+  }
+}
+
+/**
+ * Get the commit log for an agent branch (what the agent did).
+ * @param {string} repoDir
+ * @param {string} branchName
+ * @param {string} [baseBranch="HEAD"]
+ * @returns {Array<{hash, message, date}>}
+ */
+export function worktreeLog(repoDir, branchName, baseBranch = "HEAD") {
+  try {
+    const output = gitExec(
+      `log ${baseBranch}..${branchName} --pretty=format:"%h|%s|%ci"`,
+      repoDir,
+    );
+    if (!output.trim()) return [];
+
+    return output
+      .trim()
+      .split("\n")
+      .map((line) => {
+        const parts = line.replace(/^"|"$/g, "").split("|");
+        return {
+          hash: parts[0],
+          message: parts[1] || "",
+          date: parts[2] || "",
+        };
+      });
+  } catch (_e) {
+    return [];
+  }
+}
+
 // ── Internal helpers ────────────────────────────────────────────────────
+
+function _fileStatus(repoDir, base, branch, filePath) {
+  try {
+    const output = gitExec(
+      `diff ${base}...${branch} --name-status -- "${filePath}"`,
+      repoDir,
+    );
+    const status = output.trim().charAt(0);
+    switch (status) {
+      case "A":
+        return "added";
+      case "D":
+        return "deleted";
+      case "M":
+        return "modified";
+      case "R":
+        return "renamed";
+      default:
+        return "modified";
+    }
+  } catch (_e) {
+    return "modified";
+  }
+}
 
 function _hasUncommittedChanges(worktreePath) {
   try {

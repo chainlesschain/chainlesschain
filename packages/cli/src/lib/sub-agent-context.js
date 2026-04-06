@@ -16,6 +16,9 @@ import {
   createWorktree,
   removeWorktree,
   isolateTask,
+  diffWorktree,
+  mergeWorktree,
+  worktreeLog,
 } from "./worktree-isolator.js";
 import { isGitRepo } from "./git-integration.js";
 
@@ -150,12 +153,29 @@ export class SubAgentContext {
         },
       );
 
-      // Annotate result with worktree info
+      // Annotate result with worktree info + diff preview
       if (result) {
+        let diffInfo = null;
+        let commits = [];
+        if (
+          hasChanges ||
+          worktreeLog(this._repoDir, `agent/${taskId}`).length > 0
+        ) {
+          try {
+            diffInfo = diffWorktree(this._repoDir, `agent/${taskId}`);
+            commits = worktreeLog(this._repoDir, `agent/${taskId}`);
+          } catch (_e) {
+            // Non-critical — diff preview is optional
+          }
+        }
         result.worktree = {
           branch,
           path: worktreePath,
           hasChanges,
+          diff: diffInfo,
+          commits,
+          merge: (options = {}) =>
+            mergeWorktree(this._repoDir, branch, options),
         };
       }
       return result;

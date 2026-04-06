@@ -12,7 +12,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { feature } from "./feature-flags.js";
+import { feature, featureVariant } from "./feature-flags.js";
 
 // ── Token estimation ────────────────────────────────────────────────────
 
@@ -136,27 +136,68 @@ export function getContextWindow(model, provider) {
 }
 
 /**
+ * A/B test variant multipliers for compression thresholds.
+ * Used when COMPRESSION_AB feature flag is enabled with a variant.
+ *
+ * - aggressive: Compress more aggressively (fewer messages, lower token budget)
+ * - balanced: Default behavior (no adjustment)
+ * - relaxed: Compress less (more messages, higher token budget)
+ */
+export const COMPRESSION_VARIANTS = {
+  aggressive: { tokenFactor: 0.4, messageFactor: 0.7 },
+  balanced: { tokenFactor: 0.6, messageFactor: 1.0 },
+  relaxed: { tokenFactor: 0.75, messageFactor: 1.3 },
+};
+
+/**
+ * Get the active compression variant (if A/B testing is enabled).
+ * @returns {{ variant: string, tokenFactor: number, messageFactor: number } | null}
+ */
+export function getCompressionVariant() {
+  if (!feature("COMPRESSION_AB")) return null;
+  const variant = featureVariant("COMPRESSION_AB") || "balanced";
+  return {
+    variant,
+    ...(COMPRESSION_VARIANTS[variant] || COMPRESSION_VARIANTS.balanced),
+  };
+}
+
+/**
  * Calculate adaptive compression thresholds based on context window.
  *
  * Strategy:
  * - maxTokens = 60% of context window (reserve 40% for system prompt + response)
  * - maxMessages scales with context: small ctx → 15, large ctx → 50
  * - For very large contexts (>128k), enable less aggressive compression
+ * - When COMPRESSION_AB is enabled, applies variant-specific multipliers
  *
  * @param {number} contextWindow — Context window in tokens
- * @returns {{ maxMessages: number, maxTokens: number, aggressive: boolean }}
+ * @returns {{ maxMessages: number, maxTokens: number, aggressive: boolean, variant?: string }}
  */
 export function adaptiveThresholds(contextWindow) {
-  const maxTokens = Math.floor(contextWindow * 0.6);
+  const abVariant = getCompressionVariant();
+  const tokenFactor = abVariant ? abVariant.tokenFactor : 0.6;
+
+  const maxTokens = Math.floor(contextWindow * tokenFactor);
   // Scale messages: 15 for 8k, 20 for 32k, 30 for 128k, 50 for 200k+
-  const maxMessages = Math.min(
+  let maxMessages = Math.min(
     50,
     Math.max(15, Math.floor(10 + Math.log2(contextWindow / 1024) * 5)),
   );
+
+  if (abVariant) {
+    maxMessages = Math.min(
+      50,
+      Math.max(15, Math.round(maxMessages * abVariant.messageFactor)),
+    );
+  }
+
   // Aggressive compression only for small context windows
   const aggressive = contextWindow < 32768;
 
-  return { maxMessages, maxTokens, aggressive };
+  const result = { maxMessages, maxTokens, aggressive };
+  if (abVariant) result.variant = abVariant.variant;
+  return result;
 }
 
 // ── PromptCompressor class ──────────────────────────────────────────────
@@ -262,18 +303,23 @@ export class PromptCompressor {
     }
 
     const compressedTokens = estimateMessagesTokens(result);
-    return {
-      messages: result,
-      stats: {
-        strategy: applied.join("+") || "none",
-        originalMessages: messages.length,
-        compressedMessages: result.length,
-        originalTokens,
-        compressedTokens,
-        saved: originalTokens - compressedTokens,
-        ratio: originalTokens > 0 ? compressedTokens / originalTokens : 1,
-      },
+    const stats = {
+      strategy: applied.join("+") || "none",
+      originalMessages: messages.length,
+      compressedMessages: result.length,
+      originalTokens,
+      compressedTokens,
+      saved: originalTokens - compressedTokens,
+      ratio: originalTokens > 0 ? compressedTokens / originalTokens : 1,
     };
+
+    // Include A/B variant info for comparison analysis
+    const abVariant = getCompressionVariant();
+    if (abVariant) {
+      stats.abVariant = abVariant.variant;
+    }
+
+    return { messages: result, stats };
   }
 
   /**
