@@ -1,4 +1,21 @@
-# Agent 架构优化 (v5.0.2.9)
+# Agent 架构优化 (v5.0.2.10)
+
+## 与实际代码一致性确认
+
+以下能力已在代码中完成，不再属于“后续规划”：
+
+- `JSONL_SESSION` 默认值已为 `true`
+- 后台任务完成后会通过 `task:notification` 推送到 Web Panel
+- Worktree 已支持 `worktree-diff`、`worktree-merge`、`worktree-list`
+- `COMPRESSION_AB` 已接入 `featureVariant()` 做压缩阈值 A/B 对比
+
+当前相关定向验证结果：
+
+- CLI 定向单元测试：`130/130`
+- CLI 定向集成测试：`19/19`
+- Web Panel 定向单元测试：`12/12`
+- Web Panel E2E：`29/29`
+- Web Panel 构建：通过
 
 > 2026-04-06 补充增强：
 > 已新增任务历史分页检索、任务输出摘要、多节点恢复策略基础能力；
@@ -35,8 +52,8 @@
 
 ### 本轮验证
 
-- CLI 定向单元：`125/125`
-- CLI 定向集成：`18/18`
+- CLI 定向单元：`130/130`
+- CLI 定向集成：`19/19`
 - Web Panel 定向单元：`12/12`
 - Web Panel E2E：`29/29`
 
@@ -70,7 +87,8 @@ CC_FLAG_CONTEXT_SNIP=true chainlesschain agent
 | `WORKTREE_ISOLATION` | false | Git Worktree 隔离 |
 | `CONTEXT_SNIP` | false | snipCompact 压缩策略 |
 | `CONTEXT_COLLAPSE` | false | contextCollapse 折叠策略 |
-| `JSONL_SESSION` | false | JSONL 追加式会话持久化 |
+| `JSONL_SESSION` | true | JSONL 追加式会话持久化 |
+| `COMPRESSION_AB` | `{ enabled: false, variant: "balanced" }` | 压缩策略 A/B 测试 |
 | `PROMPT_COMPRESSOR` | true | 提示压缩器（默认开启） |
 
 支持百分比灰度发布，基于确定性哈希实现 A/B 分流。
@@ -101,7 +119,7 @@ CC_FLAG_CONTEXT_SNIP=true chainlesschain agent
 
 ### 3. JSONL Session Store（会话持久化）
 
-**v5.0.2.9 全面集成**：启用 `JSONL_SESSION` 后，`agent-repl.js` 和所有 `session` 命令自动切换到 JSONL 模式，替代全量 JSON 覆写。
+**v5.0.2.10 默认启用**：`JSONL_SESSION` 默认值已经调整为 `true`，`agent-repl.js` 和所有 `session` 命令默认使用 JSONL 模式，替代全量 JSON 覆写；`session migrate` 同时支持目录级 dry-run、抽样校验与失败重试。
 
 - **崩溃恢复**：每条消息同步写入，进程异常终止后可从 JSONL 重建完整会话
 - **事件类型**：`session_start`、`user_message`、`assistant_message`、`compact`（快照）、`fork`（分支会话）
@@ -131,7 +149,13 @@ chainlesschain session list
 
 **WS 协议**：
 - `{ type: "tasks-list" }` → 返回所有任务列表
+- `{ type: "tasks-detail", taskId }` → 返回任务详情与输出摘要
+- `{ type: "tasks-history", taskId, offset, limit }` → 分页返回任务历史
 - `{ type: "tasks-stop", taskId }` → 停止指定任务
+- `{ type: "compression-stats", windowMs?, provider?, model? }` → 返回压缩策略观测汇总
+- `{ type: "worktree-diff", taskId }` → 返回 worktree diff 预览入口
+- `{ type: "worktree-merge", taskId }` → 执行一键合并
+- `{ type: "task:notification", ... }` → 任务完成/失败后的实时通知事件
 
 ```bash
 # 启用后台任务
@@ -173,17 +197,25 @@ chainlesschain config features enable WORKTREE_ISOLATION
 |------|------|--------|
 | `prompt-compressor.test.js` | 单元 | 24 |
 | `feature-flags.test.js` | 单元 | 27 |
-| `jsonl-session-store.test.js` | 单元 | 21 |
-| `background-task-manager.test.js` | 单元 | 20 |
+| `jsonl-session-store.test.js` | 单元 | 24 |
+| `background-task-manager.test.js` | 单元 | 23 |
 | `worktree-isolator.test.js` | 单元 | 12 |
 | `agent-optimization-extended.test.js` | 单元 | 56 |
 | `v5029-features.test.js` | 单元 | 33 |
 | `v5029-extended.test.js` | 单元 | 62 |
 | `agent-optimization-workflow.test.js` | 集成 | 23 |
-| `v5029-workflow.test.js` | 集成 | 19 |
+| `v50210-workflow.test.js` | 集成 | 19 |
 | `agent-optimization-commands.test.js` | E2E | 23 |
 | `v5029-commands.test.js` | E2E | 14 |
-| **合计** | | **334** |
+| **本轮定向回归** | | **190** |
+
+本轮已实际通过的验证如下：
+
+- CLI 定向单元：`130/130`
+- CLI 定向集成：`19/19`
+- Web Panel 定向单元：`12/12`
+- Web Panel E2E：`29/29`
+- Web Panel 构建：通过
 
 ## 相关文档
 

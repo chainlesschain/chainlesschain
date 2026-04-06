@@ -3,6 +3,8 @@
 > 2026-04-06 补充增强：
 > `77_Agent架构优化系统.md` 已继续补充任务历史分页、任务输出摘要、多节点恢复策略、
 > Worktree 自动化冲突候选项、压缩观测切片统计，以及会话迁移 dry-run / 抽样校验 / 重试机制。
+> 同时确认 `JSONL_SESSION` 默认启用、`task:notification` 实时通知、
+> Worktree 合并助手与 `COMPRESSION_AB` A/B 测试均已完成。
 
 本目录包含 ChainlessChain 系统的设计和架构文档。
 
