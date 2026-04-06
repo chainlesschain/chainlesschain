@@ -65,8 +65,7 @@ const FLAG_REGISTRY = {
   WORKTREE_ISOLATION:  { default: false, description: "Enable git worktree isolation" },
   CONTEXT_SNIP:        { default: false, description: "Enable snipCompact strategy" },
   CONTEXT_COLLAPSE:    { default: false, description: "Enable contextCollapse strategy" },
-  JSONL_SESSION:       { default: true, description: "Use JSONL session format" },
-  COMPRESSION_AB:      { default: { enabled: false, variant: "balanced" }, description: "Compression A/B testing" },
+  JSONL_SESSION:       { default: false, description: "Use JSONL session format" },
   PROMPT_COMPRESSOR:   { default: true,  description: "Enable prompt compressor" },
 };
 ```
@@ -244,26 +243,51 @@ chainlesschain config features disable CONTEXT_SNIP
 | `v5029-workflow.test.js` | 集成 | 19 |
 | `agent-optimization-commands.test.js` | E2E | 23 |
 | `v5029-commands.test.js` | E2E | 14 |
-| `v50210-features.test.js` | 单元 | 34 |
-| `v50210-workflow.test.js` | 集成 | 15 |
-| **合计** | | **383** |
+| **合计** | | **334** |
 
-## 10. 已完成的增强 (v5.0.2.10)
+## 10. 已完成的增强 (v5.0.2.9)
 
 1. ~~**JSONL_SESSION 全面替换**~~: ✅ `agent-repl.js` 和 `session.js` 完整集成 — 创建/保存/恢复/列表均支持 JSONL 模式
 2. ~~**Background Tasks UI**~~: ✅ Web Panel 新增「后台任务」监控页面（Pinia store + Vue3 组件 + WS 协议）
 3. ~~**Worktree + Sub-Agent**~~: ✅ `SubAgentContext` 集成 `isolateTask()` — 子 Agent 自动在隔离 worktree 中执行
 4. ~~**Context Compression 自适应**~~: ✅ 30+ 模型 context window 注册表 + `adaptiveThresholds()` + `adaptToModel()` 动态切换
-5. ~~**JSONL_SESSION 默认启用**~~: ✅ `feature("JSONL_SESSION")` 默认值已切换为 `true`
-6. ~~**Background Task Notifications**~~: ✅ Web Panel 已接入 `task:notification` 实时通知，并在任务完成后自动刷新列表
-7. ~~**Worktree 合并助手**~~: ✅ `ws-server` 已支持 `worktree-diff` / `worktree-merge` / `worktree-list`
-8. ~~**压缩策略 A/B 测试**~~: ✅ `COMPRESSION_AB` 标志位、`featureVariant()`、压缩统计与定向测试已落地
-9. ~~**任务历史持久化增强**~~: ✅ 后台任务支持重启恢复、详情查询、历史事件持久化与 `tasks-detail` / `tasks-history`
-10. ~~**Worktree 冲突处理优化**~~: ✅ 冲突返回文件级摘要、冲突类型统计与建议动作
-11. ~~**压缩策略观测面板**~~: ✅ Web Panel Dashboard 已展示压缩命中率、节省 token、净节省率与变体分布
-12. ~~**会话存储迁移工具**~~: ✅ `session migrate` / `session validate` 已支持旧 JSON 到 JSONL 的批量迁移与校验
 
-## 11. 测试与验证补充
+## 11. 2026-04-06 补充增强
+
+### 11.1 任务历史与恢复
+
+- `BackgroundTaskManager#getHistory(taskId, { offset, limit })` 已支持分页读取。
+- 任务完成后会生成 `outputSummary`，包含预览、行数、字符数和是否截断。
+- 恢复决策增加：
+  - `claim-stale`
+  - `local-only`
+  - `observe-only`
+- 恢复事件会记录 `previousOwnerNodeId`、`claimedByNodeId`、`policy`、`reason`。
+
+### 11.2 Worktree 冲突处理增强
+
+- 每个冲突文件补充 `automationCandidates`。
+- 每个冲突文件补充 `diffPreview`，包含命令、路由入口和预览片段。
+- merge 结果补充 `previewEntrypoints`，便于 Web/Agent 侧直接跳转。
+
+### 11.3 压缩观测增强
+
+- telemetry summary 支持 `windowMs`、`provider`、`model` 过滤。
+- summary 新增：
+  - `providerDistribution`
+  - `modelDistribution`
+- `agent-repl.js` 在记录 telemetry 时已补齐 provider / model 元数据。
+
+### 11.4 会话迁移增强
+
+- 新增批量迁移报告 `migrateLegacySessionsBatch()`。
+- 新增 `sampleMigratedSessionsValidation()` 抽样校验。
+- 单文件迁移支持失败重试。
+- CLI 命令新增：
+  - `--sample-size`
+  - `--retry-failures`
+
+### 11.5 补充测试结论
 
 - CLI 定向单元测试：`125/125`
 - CLI 定向集成测试：`18/18`
@@ -272,7 +296,7 @@ chainlesschain config features disable CONTEXT_SNIP
 
 ## 12. 后续规划
 
-1. **任务历史下一步**: 增加分页历史检索、任务输出摘要与多节点任务恢复策略
-2. **Worktree 下一步**: 为冲突建议补充更明确的自动化解决候选项和 diff 预览入口
-3. **压缩观测下一步**: 增加时间窗口筛选、按 provider/model 维度切片统计
-4. **会话迁移下一步**: 增加目录级 dry-run 报告、迁移后抽样校验与失败重试机制
+1. **JSONL_SESSION 默认启用**: 经充分验证后将 `JSONL_SESSION` 默认值改为 `true`
+2. **Background Task Notifications**: 任务完成后通过 WebSocket 推送实时通知到 Web Panel
+3. **Worktree 合并助手**: 子 Agent 在 worktree 中完成工作后，提供 diff 预览和一键合并到主分支
+4. **压缩策略 A/B 测试**: 利用 `featureVariant()` 对比不同压缩阈值的效果

@@ -320,7 +320,7 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
         conflictPaths.push(..._extractConflictPathsFromMessage(errMsg));
       }
       const conflicts = [...new Set(conflictPaths)].map((filePath) =>
-        _buildConflictSummary(repoDir, filePath),
+        _buildConflictSummary(repoDir, filePath, branchName),
       );
       const suggestions = _buildConflictSuggestions(conflicts);
 
@@ -346,6 +346,7 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
           ).length,
         },
         suggestions,
+        previewEntrypoints: conflicts.map((item) => item.diffPreview.route),
       };
     }
 
@@ -460,7 +461,7 @@ function _extractConflictPathsFromMessage(errMsg) {
   return paths;
 }
 
-function _buildConflictSummary(repoDir, filePath) {
+function _buildConflictSummary(repoDir, filePath, branchName) {
   const statusCode = _conflictStatusCode(repoDir, filePath);
   const type = _mapConflictType(statusCode);
 
@@ -469,6 +470,8 @@ function _buildConflictSummary(repoDir, filePath) {
     statusCode,
     type,
     suggestion: _suggestAction(type, filePath),
+    automationCandidates: _buildAutomationCandidates(type, filePath, branchName),
+    diffPreview: _buildDiffPreview(repoDir, filePath, branchName),
   };
 }
 
@@ -545,4 +548,109 @@ function _buildConflictSuggestions(conflicts) {
   }
 
   return suggestions;
+}
+
+function _buildAutomationCandidates(type, filePath, branchName) {
+  const common = [
+    {
+      id: "preview-diff",
+      label: "Preview diff",
+      confidence: "high",
+      command: `git diff HEAD...${branchName} -- "${filePath}"`,
+      description: `Inspect the branch delta for ${filePath} before resolving.`,
+    },
+  ];
+
+  switch (type) {
+    case "both_modified":
+      return [
+        {
+          id: "accept-current",
+          label: "Keep current branch",
+          confidence: "medium",
+          command: `git checkout --ours -- "${filePath}" && git add "${filePath}"`,
+          description: `Resolve ${filePath} by keeping the current branch version.`,
+        },
+        {
+          id: "accept-incoming",
+          label: "Keep agent branch",
+          confidence: "medium",
+          command: `git checkout --theirs -- "${filePath}" && git add "${filePath}"`,
+          description: `Resolve ${filePath} by taking the incoming agent version.`,
+        },
+        ...common,
+      ];
+    case "both_added":
+      return [
+        {
+          id: "rename-one-side",
+          label: "Rename one copy",
+          confidence: "low",
+          command: `git checkout --theirs -- "${filePath}"`,
+          description: `Restore the incoming version, then rename or merge it manually to keep both copies.`,
+        },
+        ...common,
+      ];
+    case "deleted_by_us":
+      return [
+        {
+          id: "restore-incoming",
+          label: "Restore file",
+          confidence: "medium",
+          command: `git checkout --theirs -- "${filePath}" && git add "${filePath}"`,
+          description: `Bring back ${filePath} from the agent branch.`,
+        },
+        {
+          id: "confirm-delete",
+          label: "Keep deletion",
+          confidence: "medium",
+          command: `git rm -- "${filePath}"`,
+          description: `Resolve by keeping the deletion on the current branch.`,
+        },
+        ...common,
+      ];
+    case "deleted_by_them":
+      return [
+        {
+          id: "restore-current",
+          label: "Keep current file",
+          confidence: "medium",
+          command: `git checkout --ours -- "${filePath}" && git add "${filePath}"`,
+          description: `Keep the current branch copy of ${filePath}.`,
+        },
+        {
+          id: "accept-delete",
+          label: "Accept deletion",
+          confidence: "medium",
+          command: `git rm -- "${filePath}"`,
+          description: `Resolve by accepting the deletion from the agent branch.`,
+        },
+        ...common,
+      ];
+    default:
+      return common;
+  }
+}
+
+function _buildDiffPreview(repoDir, filePath, branchName) {
+  const preview = {
+    filePath,
+    branch: branchName,
+    command: `git diff HEAD...${branchName} -- "${filePath}"`,
+    route: {
+      type: "worktree-diff",
+      branch: branchName,
+      filePath,
+    },
+  };
+
+  try {
+    const diff = gitExec(`diff HEAD...${branchName} -- "${filePath}"`, repoDir);
+    preview.snippet =
+      diff.length > 2000 ? `${diff.slice(0, 2000)}\n... [diff truncated]` : diff;
+  } catch (_e) {
+    preview.snippet = "";
+  }
+
+  return preview;
 }

@@ -87,6 +87,20 @@ describe("BackgroundTaskManager", () => {
       expect(manager.getHistory(task.id)[0].event).toBe("created");
     });
 
+    it("supports paginated history lookup", () => {
+      const task = manager.create({ command: "echo history" });
+      manager._recordHistory(task, "step-1");
+      manager._recordHistory(task, "step-2");
+      manager._recordHistory(task, "step-3");
+
+      const page = manager.getHistory(task.id, { offset: 1, limit: 2 });
+      expect(page.items).toHaveLength(2);
+      expect(page.total).toBe(4);
+      expect(page.items[0].event).toBe("step-1");
+      expect(page.hasMore).toBe(true);
+      expect(page.nextOffset).toBe(3);
+    });
+
     it("lists all tasks sorted by creation", () => {
       manager.create({ command: "echo 1" });
       manager.create({ command: "echo 2" });
@@ -190,6 +204,7 @@ describe("BackgroundTaskManager", () => {
       expect(handler).toHaveBeenCalledOnce();
       expect(handler.mock.calls[0][0].status).toBe(TaskStatus.COMPLETED);
       expect(handler.mock.calls[0][0].result).toBe("output");
+      expect(handler.mock.calls[0][0].outputSummary.preview).toContain("output");
     });
 
     it("emits task:complete on failure", () => {
@@ -241,6 +256,37 @@ describe("BackgroundTaskManager", () => {
       expect(restored.status).toBe(TaskStatus.PENDING);
       expect(restored.recoveredFromRestart).toBe(true);
       expect(recovered.getHistory(task.id).some((item) => item.event === "recovered")).toBe(true);
+      recovered.destroy();
+    });
+
+    it("skips recovery for foreign nodes when local-only policy is used", () => {
+      const foreignTask = {
+        id: "task-foreign",
+        type: "shell",
+        command: "echo foreign",
+        description: "foreign",
+        status: TaskStatus.RUNNING,
+        createdAt: Date.now() - 1000,
+        startedAt: Date.now() - 1000,
+        lastHeartbeat: Date.now() - 1000,
+        history: [{ event: "created", timestamp: Date.now() - 1000 }],
+        ownerNodeId: "node-b",
+      };
+      appendFileSync(
+        join(testDir, "tasks", "queue.jsonl"),
+        `${JSON.stringify(foreignTask)}\n`,
+        "utf-8",
+      );
+
+      const recovered = new BackgroundTaskManager({
+        recoverOnStart: true,
+        nodeId: "node-a",
+        recoveryPolicy: "local-only",
+      });
+      const restored = recovered.get("task-foreign");
+      expect(restored.status).toBe(TaskStatus.RUNNING);
+      expect(restored.recoveredFromRestart).toBe(false);
+      expect(recovered.getHistory("task-foreign").some((item) => item.event === "recovery-skipped")).toBe(true);
       recovered.destroy();
     });
   });

@@ -214,7 +214,10 @@ describe("worktree-isolator", () => {
       expect(result.summary.conflictedFiles).toBe(1);
       expect(result.conflicts[0].path).toBe("README.md");
       expect(result.conflicts[0].suggestion).toContain("README.md");
+      expect(result.conflicts[0].automationCandidates.length).toBeGreaterThan(0);
+      expect(result.conflicts[0].diffPreview.route.type).toBe("worktree-diff");
       expect(result.suggestions.length).toBeGreaterThan(0);
+      expect(result.previewEntrypoints[0].filePath).toBe("README.md");
     });
   });
 });

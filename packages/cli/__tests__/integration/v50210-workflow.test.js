@@ -51,6 +51,8 @@ const {
   appendCompactEvent,
   rebuildMessages,
   migrateLegacySessionFile,
+  migrateLegacySessionsBatch,
+  sampleMigratedSessionsValidation,
   validateJsonlSession,
 } = await import("../../src/lib/jsonl-session-store.js");
 const { BackgroundTaskManager, TaskStatus } =
@@ -274,11 +276,12 @@ describe("Task notification WS protocol simulation", () => {
       recoverOnStart: true,
     });
     const details = recovered.getDetails(task.id);
-    const history = recovered.getHistory(task.id);
+    const history = recovered.getHistory(task.id, { offset: 0, limit: 10 });
 
     expect(details.recoveredFromRestart).toBe(true);
     expect(details.recoverySourceStatus).toBe(TaskStatus.RUNNING);
-    expect(history.some((item) => item.event === "recovered")).toBe(true);
+    expect(history.items.some((item) => item.event === "recovered")).toBe(true);
+    expect(details.outputSummary).toBeNull();
     recovered.destroy();
   });
 });
@@ -361,6 +364,19 @@ describe("Worktree WS protocol messages", () => {
           type: "both_modified",
           suggestion:
             "Review both sides in src/lib/config.js and resolve conflict markers manually.",
+          automationCandidates: [
+            {
+              id: "accept-current",
+              label: "Keep current branch",
+            },
+          ],
+          diffPreview: {
+            route: {
+              type: "worktree-diff",
+              branch: "agent/task-123",
+              filePath: "src/lib/config.js",
+            },
+          },
         },
         {
           path: "src/main.js",
@@ -379,11 +395,19 @@ describe("Worktree WS protocol messages", () => {
         "Resolve 2 conflicted file(s), then rerun the merge.",
         "Start with files marked both_modified; they usually need direct hunk reconciliation.",
       ],
+      previewEntrypoints: [
+        {
+          type: "worktree-diff",
+          branch: "agent/task-123",
+          filePath: "src/lib/config.js",
+        },
+      ],
     };
     expect(response.success).toBe(false);
     expect(response.conflicts.length).toBe(2);
     expect(response.summary.conflictedFiles).toBe(2);
     expect(response.suggestions.length).toBeGreaterThan(0);
+    expect(response.previewEntrypoints[0].type).toBe("worktree-diff");
   });
 });
 
@@ -433,6 +457,9 @@ describe("JSONL default true + Compression A/B cross-feature", () => {
       compressedTokens: 700,
       saved: 300,
       abVariant: "balanced",
+    }, {
+      provider: "ollama",
+      model: "qwen2.5:7b",
     });
     recordCompressionMetric({
       strategy: "truncate+dedup",
@@ -440,6 +467,9 @@ describe("JSONL default true + Compression A/B cross-feature", () => {
       compressedTokens: 500,
       saved: 400,
       abVariant: "aggressive",
+    }, {
+      provider: "ollama",
+      model: "qwen2.5:14b",
     });
 
     const summary = getCompressionTelemetrySummary();
@@ -448,6 +478,8 @@ describe("JSONL default true + Compression A/B cross-feature", () => {
     expect(summary.variantDistribution.balanced).toBe(1);
     expect(summary.variantDistribution.aggressive).toBe(1);
     expect(summary.strategyDistribution[0].hits).toBeGreaterThan(0);
+    expect(summary.providerDistribution[0].key).toBe("ollama");
+    expect(summary.modelDistribution.length).toBeGreaterThan(0);
   });
 
   it("migrates legacy JSON session and validates resulting JSONL", () => {
@@ -473,5 +505,29 @@ describe("JSONL default true + Compression A/B cross-feature", () => {
     expect(migrated.migrated).toBe(true);
     expect(validation.valid).toBe(true);
     expect(validation.messageCount).toBe(2);
+  });
+
+  it("builds directory migration report with sampling", () => {
+    const legacyFileA = join(testDir, "sessions", "legacy-a.json");
+    const legacyFileB = join(testDir, "sessions", "legacy-b.json");
+    writeFileSync(
+      legacyFileA,
+      JSON.stringify({ id: "legacy-a", messages: [{ role: "user", content: "a" }] }),
+      "utf-8",
+    );
+    writeFileSync(
+      legacyFileB,
+      JSON.stringify({ id: "legacy-b", messages: [{ role: "assistant", content: "b" }] }),
+      "utf-8",
+    );
+
+    const report = migrateLegacySessionsBatch(join(testDir, "sessions"), {
+      sampleSize: 1,
+    });
+    const sample = sampleMigratedSessionsValidation(report.results, { sampleSize: 1 });
+
+    expect(report.summary.scanned).toBe(2);
+    expect(report.summary.failed).toBe(0);
+    expect(sample[0].valid).toBe(true);
   });
 });
