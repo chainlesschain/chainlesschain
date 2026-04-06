@@ -1,6 +1,6 @@
-# Agent 架构优化 (v5.0.2.9)
+# Agent 架构优化 (v5.0.2.10)
 
-> 5 个核心优化模块 + 4 项增强集成，借鉴 Claude Code 12 层渐进式 harness 架构，为 CLI Agent 提供特性门控、自适应上下文压缩、JSONL 会话持久化、后台任务监控和 Worktree 隔离。
+> 5 个核心优化模块 + 4 项增强集成，借鉴 Claude Code 12 层渐进式 harness 架构，为 CLI Agent 提供特性门控、自适应上下文压缩、JSONL 会话持久化、后台任务监控和 Worktree 隔离。v5.0.2.10 额外修复了 `COMPRESSION_AB` 默认值误判、后台任务 WebSocket 协议链路和任务面板渲染问题。
 
 ## 快速开始
 
@@ -30,7 +30,8 @@ CC_FLAG_CONTEXT_SNIP=true chainlesschain agent
 | `WORKTREE_ISOLATION` | false | Git Worktree 隔离 |
 | `CONTEXT_SNIP` | false | snipCompact 压缩策略 |
 | `CONTEXT_COLLAPSE` | false | contextCollapse 折叠策略 |
-| `JSONL_SESSION` | false | JSONL 追加式会话持久化 |
+| `JSONL_SESSION` | true | JSONL 追加式会话持久化 |
+| `COMPRESSION_AB` | `{ enabled: false, variant: "balanced" }` | 压缩策略 A/B 测试 |
 | `PROMPT_COMPRESSOR` | true | 提示压缩器（默认开启） |
 
 支持百分比灰度发布，基于确定性哈希实现 A/B 分流。
@@ -61,7 +62,7 @@ CC_FLAG_CONTEXT_SNIP=true chainlesschain agent
 
 ### 3. JSONL Session Store（会话持久化）
 
-**v5.0.2.9 全面集成**：启用 `JSONL_SESSION` 后，`agent-repl.js` 和所有 `session` 命令自动切换到 JSONL 模式，替代全量 JSON 覆写。
+**v5.0.2.10 默认启用**：`JSONL_SESSION` 已默认开启；`agent-repl.js` 和所有 `session` 命令自动切换到 JSONL 模式，替代全量 JSON 覆写。
 
 - **崩溃恢复**：每条消息同步写入，进程异常终止后可从 JSONL 重建完整会话
 - **事件类型**：`session_start`、`user_message`、`assistant_message`、`compact`（快照）、`fork`（分支会话）
@@ -143,7 +144,16 @@ chainlesschain config features enable WORKTREE_ISOLATION
 | `v5029-workflow.test.js` | 集成 | 19 |
 | `agent-optimization-commands.test.js` | E2E | 23 |
 | `v5029-commands.test.js` | E2E | 14 |
-| **合计** | | **334** |
+| `v50210-features.test.js` | 单元 | 34 |
+| `v50210-workflow.test.js` | 集成 | 15 |
+| **合计** | | **383** |
+
+## v5.0.2.10 修复摘要
+
+- `COMPRESSION_AB` 未启用时不再误判为 `balanced`，压缩统计中的 `abVariant` 仅在真正启用时出现。
+- `ws-server` 已改为 ESM 安全动态加载后台任务管理器，`tasks-list` / `tasks-stop` 可直接在服务端处理。
+- Web Panel 后台任务页改为直接使用任务协议，并在收到 `task:notification` 后自动刷新列表。
+- 本轮相关回归已完成：Web Panel 单元测试 12 项、CLI 定向单元测试 2977 项、CLI 定向集成测试 428 项全部通过。
 
 ## 相关文档
 

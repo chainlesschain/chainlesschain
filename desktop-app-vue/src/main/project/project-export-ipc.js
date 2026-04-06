@@ -7,8 +7,55 @@
  */
 
 const { logger } = require("../utils/logger.js");
+const { app } = require("electron");
 const path = require("path");
 const PathSecurity = require("./path-security.js");
+
+let databaseInitPromise = null;
+
+async function ensureDatabaseManager(database) {
+  if (
+    database?.db ||
+    database?.getProjectById ||
+    database?.getProjectFiles ||
+    database?.getDatabase
+  ) {
+    return database;
+  }
+
+  try {
+    const { getDatabase } = await import("../database.js");
+    return getDatabase();
+  } catch (_error) {
+    // Fall through to lazy initialization.
+  }
+
+  if (!databaseInitPromise) {
+    databaseInitPromise = (async () => {
+      const { DatabaseManager, setDatabase } = await import("../database.js");
+      const dbPath = path.join(
+        app.getPath("userData"),
+        "data",
+        "chainlesschain.db",
+      );
+      await require("fs").promises.mkdir(path.dirname(dbPath), {
+        recursive: true,
+      });
+      const manager = new DatabaseManager(dbPath, {
+        password: process.env.DEFAULT_PASSWORD || "123456",
+        encryptionEnabled: false,
+      });
+      await manager.initialize();
+      setDatabase(manager);
+      return manager;
+    })().catch((error) => {
+      databaseInitPromise = null;
+      throw error;
+    });
+  }
+
+  return databaseInitPromise;
+}
 
 /**
  * 注册项目导出分享相关的 IPC 处理器
@@ -40,6 +87,12 @@ function registerProjectExportIPC({
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
   const dialog = injectedDialog || electron.dialog;
+  let activeDatabase = database;
+
+  async function getActiveDatabase() {
+    activeDatabase = await ensureDatabaseManager(activeDatabase);
+    return activeDatabase;
+  }
 
   logger.info(
     "[Project Export IPC] Registering Project Export/Share IPC handlers...",
@@ -261,9 +314,7 @@ ${content.substring(0, 2000)}
       const { projectId, shareMode, expiresInDays, regenerateToken } = params;
       logger.info(`[Main] 分享项目: ${projectId}, 模式: ${shareMode}`);
 
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
 
       // 获取分享管理器
       let shareManager;
@@ -335,9 +386,7 @@ ${content.substring(0, 2000)}
     try {
       logger.info(`[Main] 获取项目分享信息: ${projectId}`);
 
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
 
       const { getShareManager } = require("./share-manager");
       const shareManager = getShareManager(database);
@@ -361,9 +410,7 @@ ${content.substring(0, 2000)}
     try {
       logger.info(`[Main] 删除项目分享: ${projectId}`);
 
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
 
       const { getShareManager } = require("./share-manager");
       const shareManager = getShareManager(database);
@@ -386,9 +433,7 @@ ${content.substring(0, 2000)}
     try {
       logger.info(`[Main] 访问分享项目: ${token}`);
 
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
 
       const { getShareManager } = require("./share-manager");
       const shareManager = getShareManager(database);
@@ -560,12 +605,21 @@ ${content.substring(0, 2000)}
 
       const fs = require("fs").promises;
       const projectConfig = getProjectConfig();
+      const db = database
+        ? database.db || null
+        : typeof getDatabaseConnection === "function"
+          ? getDatabaseConnection()
+          : null;
+      const projectPathCandidates = [
+        projectPath,
+        normalizedProjectPath,
+        `/${normalizedProjectPath}`,
+      ];
 
       // 1. 获取项目信息
-      const db = getDatabaseConnection();
-      const project = await db.get("SELECT * FROM projects WHERE id = ?", [
-        projectId,
-      ]);
+      const project = database?.getProjectById
+        ? database.getProjectById(projectId)
+        : await db?.get?.("SELECT * FROM projects WHERE id = ?", [projectId]);
       if (!project) {
         throw new Error("项目不存在");
       }
@@ -660,16 +714,26 @@ ${content.substring(0, 2000)}
   ipcMain.handle("project:export-file", async (_event, params) => {
     try {
       const { projectId, projectPath, targetPath, isDirectory } = params;
+      const normalizedProjectPath = String(projectPath || "").replace(
+        /^[/\\]+/,
+        "",
+      );
       logger.info(`[Main] 导出文件参数:`, params);
 
       const fs = require("fs").promises;
       const projectConfig = getProjectConfig();
+      const database = await getActiveDatabase();
+      const db = database?.db || null;
+      const projectPathCandidates = [
+        projectPath,
+        normalizedProjectPath,
+        `/${normalizedProjectPath}`,
+      ];
 
       // 1. 获取项目信息
-      const db = getDatabaseConnection();
-      const project = await db.get("SELECT * FROM projects WHERE id = ?", [
-        projectId,
-      ]);
+      const project = database?.getProjectById
+        ? database.getProjectById(projectId)
+        : await db?.get?.("SELECT * FROM projects WHERE id = ?", [projectId]);
       if (!project) {
         throw new Error("项目不存在");
       }
@@ -679,7 +743,7 @@ ${content.substring(0, 2000)}
         project.root_path || project.folder_path,
       );
       const safeSourcePath = PathSecurity.validateFilePath(
-        projectPath,
+        normalizedProjectPath,
         projectRoot,
       );
       logger.info(`[Main] 验证后的源路径: ${safeSourcePath}`);
@@ -688,15 +752,19 @@ ${content.substring(0, 2000)}
       // 3. 检查源文件/文件夹是否存在（优先从文件系统，其次从数据库）
       let fileExists = false;
       let stats = null;
+      let exportedIsDirectory = Boolean(isDirectory);
       try {
         await fs.access(safeSourcePath);
         stats = await fs.stat(safeSourcePath);
         fileExists = true;
       } catch (err) {
-        logger.info(`[Main] 文件系统中不存在，尝试从数据库导出: ${projectPath}`);
+        logger.info(
+          `[Main] 文件系统中不存在，尝试从数据库导出: ${projectPath}`,
+        );
       }
 
       if (fileExists && stats) {
+        exportedIsDirectory = stats.isDirectory();
         // 从文件系统导出
         if (stats.isDirectory()) {
           // 递归复制目录
@@ -713,13 +781,27 @@ ${content.substring(0, 2000)}
         }
       } else {
         // 从数据库导出
-        const dbFile = await db.get(
-          "SELECT * FROM project_files WHERE project_id = ? AND file_path = ? AND deleted = 0",
-          [projectId, projectPath]
-        );
+        const dbFile = database?.getProjectFiles
+          ? (database.getProjectFiles(projectId) || []).find((file) =>
+              projectPathCandidates.includes(file.file_path),
+            )
+          : await db?.get?.(
+              `SELECT * FROM project_files
+               WHERE project_id = ?
+                 AND deleted = 0
+                 AND file_path IN (?, ?, ?)`,
+              [
+                projectId,
+                projectPath,
+                normalizedProjectPath,
+                `/${normalizedProjectPath}`,
+              ],
+            );
 
         if (!dbFile) {
-          logger.error(`[Main] 文件不存在（文件系统和数据库均未找到）: ${projectPath}`);
+          logger.error(
+            `[Main] 文件不存在（文件系统和数据库均未找到）: ${projectPath}`,
+          );
           throw new Error(`源文件不存在: ${projectPath}`);
         }
 
@@ -738,7 +820,7 @@ ${content.substring(0, 2000)}
       return {
         success: true,
         path: targetPath,
-        isDirectory: stats.isDirectory(),
+        isDirectory: exportedIsDirectory,
       };
     } catch (error) {
       logger.error("[Main] 文件导出失败:", error);

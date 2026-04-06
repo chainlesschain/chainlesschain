@@ -8,12 +8,15 @@ import {
   ElectronApplication,
   Page,
 } from "@playwright/test";
+import fs from "fs";
 import path from "path";
 
 export interface ElectronTestContext {
   app: ElectronApplication;
   window: Page;
 }
+
+let hasResetTestProfile = false;
 
 /**
  * 启动Electron应用
@@ -25,28 +28,15 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     "../../desktop-app-vue/dist/main/index.js",
   );
 
-  // 设置固定的 userData 路径，确保配置文件能被读取（跨平台兼容）
   const os = require("os");
-  let userDataPath: string;
-  switch (process.platform) {
-    case "darwin":
-      userDataPath = path.join(
-        os.homedir(),
-        "Library",
-        "Application Support",
-        "chainlesschain",
-      );
-      break;
-    case "win32":
-      userDataPath = path.join(
-        os.homedir(),
-        "AppData",
-        "Roaming",
-        "chainlesschain",
-      );
-      break;
-    default: // Linux and others
-      userDataPath = path.join(os.homedir(), ".config", "chainlesschain");
+  const userDataPath = path.join(
+    os.tmpdir(),
+    "chainlesschain-e2e",
+    "desktop-vue",
+  );
+  if (!hasResetTestProfile) {
+    fs.rmSync(userDataPath, { recursive: true, force: true });
+    hasResetTestProfile = true;
   }
 
   // 启动Electron（增加超时时间，指定 userData 路径，添加测试环境参数）
@@ -71,6 +61,10 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       ...process.env,
       NODE_ENV: "test",
       ELECTRON_DISABLE_SECURITY_WARNINGS: "true",
+      SKIP_SLOW_INIT: "true",
+      MOCK_HARDWARE: "true",
+      MOCK_LLM: "true",
+      CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1",
       // Linux: 强制使用软件 OpenGL
       ...(process.platform === "linux" ? { LIBGL_ALWAYS_SOFTWARE: "1" } : {}),
     },
@@ -103,7 +97,154 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
     console.warn("Warning: electronAPI not found, but continuing anyway");
   }
 
+  const setupCompletedDuringLaunch = await ensureInitialSetup(window, userDataPath);
+  if (setupCompletedDuringLaunch) {
+    await app.close();
+    return launchElectronApp();
+  }
+  await loginIfNeeded(window);
+  await waitForTeamIpcReady(window);
+
   return { app, window };
+}
+
+async function ensureInitialSetup(window: Page, userDataPath: string): Promise<boolean> {
+  const setupStatus = await window.evaluate(async () => {
+    if ((window as any).electronAPI?.initialSetup?.getStatus) {
+      return await (window as any).electronAPI.initialSetup.getStatus();
+    }
+
+    if ((window as any).electron?.ipcRenderer) {
+      return await (window as any).electron.ipcRenderer.invoke(
+        "initial-setup:get-status",
+      );
+    }
+
+    return null;
+  });
+
+  if (!setupStatus || setupStatus.completed) {
+    return false;
+  }
+
+  const config = {
+    edition: "personal",
+    paths: {
+      projectRoot: path.join(userDataPath, "projects"),
+      database: path.join(userDataPath, "data", "chainlesschain.db"),
+    },
+    llm: {
+      provider: "ollama",
+      apiKey: "",
+      baseUrl: "",
+      model: "",
+    },
+    enterprise: {
+      serverUrl: "",
+      apiKey: "",
+      tenantId: "",
+    },
+  };
+
+  const result = await window.evaluate(async (setupConfig) => {
+    if ((window as any).electronAPI?.initialSetup?.complete) {
+      return await (window as any).electronAPI.initialSetup.complete(
+        setupConfig,
+      );
+    }
+
+    if ((window as any).electron?.ipcRenderer) {
+      return await (window as any).electron.ipcRenderer.invoke(
+        "initial-setup:complete",
+        setupConfig,
+      );
+    }
+
+    throw new Error("No initial setup IPC interface found");
+  }, config);
+
+  if (!result?.success) {
+    throw new Error(`Initial setup failed: ${result?.error || "unknown error"}`);
+  }
+
+  return true;
+}
+
+async function loginIfNeeded(window: Page): Promise<void> {
+  const hasLogin = await window.locator('[data-testid="login-container"]').count();
+  if (!hasLogin) {
+    return;
+  }
+
+  await performLogin(window);
+}
+
+async function waitForTeamIpcReady(window: Page): Promise<void> {
+  const deadline = Date.now() + 30000;
+  let lastError = "team IPC not ready";
+
+  while (Date.now() < deadline) {
+    try {
+      const result = await window.evaluate(async () => {
+        if ((window as any).electron?.ipcRenderer) {
+          return await (window as any).electron.ipcRenderer.invoke(
+            "team:get-teams",
+            {
+              orgId: "__e2e_probe__",
+              options: {},
+            },
+          );
+        }
+
+        if ((window as any).electronAPI?.team?.getTeams) {
+          return await (window as any).electronAPI.team.getTeams({
+            orgId: "__e2e_probe__",
+            options: {},
+          });
+        }
+
+        throw new Error("No team IPC interface found");
+      });
+
+      if (result && typeof result.success === "boolean") {
+        return;
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+
+    await window.waitForTimeout(1000);
+  }
+
+  throw new Error(`Timed out waiting for team IPC readiness: ${lastError}`);
+}
+
+async function performLogin(window: Page): Promise<void> {
+  await window.waitForSelector('[data-testid="login-container"]', {
+    timeout: 20000,
+  });
+
+  const usernameInput = window.locator('[data-testid="username-input"]');
+  const passwordInput = window.locator('[data-testid="password-input"]');
+  const loginButton = window.locator('[data-testid="login-button"]');
+
+  if (await usernameInput.count()) {
+    await usernameInput.fill("admin");
+  }
+
+  if (await passwordInput.count()) {
+    await passwordInput.fill("123456");
+    await passwordInput.press("Enter");
+  } else {
+    await loginButton.click();
+  }
+
+  await window.waitForTimeout(1500);
+
+  const stillOnLogin = await window.locator('[data-testid="login-container"]').count();
+  if (stillOnLogin) {
+    throw new Error("Login did not complete successfully");
+  }
 }
 
 /**
@@ -112,6 +253,9 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
 export async function closeElectronApp(
   app: ElectronApplication,
 ): Promise<void> {
+  if (!app) {
+    return;
+  }
   await app.close();
 }
 

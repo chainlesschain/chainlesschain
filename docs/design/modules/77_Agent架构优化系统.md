@@ -65,7 +65,8 @@ const FLAG_REGISTRY = {
   WORKTREE_ISOLATION:  { default: false, description: "Enable git worktree isolation" },
   CONTEXT_SNIP:        { default: false, description: "Enable snipCompact strategy" },
   CONTEXT_COLLAPSE:    { default: false, description: "Enable contextCollapse strategy" },
-  JSONL_SESSION:       { default: false, description: "Use JSONL session format" },
+  JSONL_SESSION:       { default: true, description: "Use JSONL session format" },
+  COMPRESSION_AB:      { default: { enabled: false, variant: "balanced" }, description: "Compression A/B testing" },
   PROMPT_COMPRESSOR:   { default: true,  description: "Enable prompt compressor" },
 };
 ```
@@ -243,18 +244,24 @@ chainlesschain config features disable CONTEXT_SNIP
 | `v5029-workflow.test.js` | 集成 | 19 |
 | `agent-optimization-commands.test.js` | E2E | 23 |
 | `v5029-commands.test.js` | E2E | 14 |
-| **合计** | | **334** |
+| `v50210-features.test.js` | 单元 | 34 |
+| `v50210-workflow.test.js` | 集成 | 15 |
+| **合计** | | **383** |
 
-## 10. 已完成的增强 (v5.0.2.9)
+## 10. 已完成的增强 (v5.0.2.10)
 
 1. ~~**JSONL_SESSION 全面替换**~~: ✅ `agent-repl.js` 和 `session.js` 完整集成 — 创建/保存/恢复/列表均支持 JSONL 模式
 2. ~~**Background Tasks UI**~~: ✅ Web Panel 新增「后台任务」监控页面（Pinia store + Vue3 组件 + WS 协议）
 3. ~~**Worktree + Sub-Agent**~~: ✅ `SubAgentContext` 集成 `isolateTask()` — 子 Agent 自动在隔离 worktree 中执行
 4. ~~**Context Compression 自适应**~~: ✅ 30+ 模型 context window 注册表 + `adaptiveThresholds()` + `adaptToModel()` 动态切换
+5. ~~**JSONL_SESSION 默认启用**~~: ✅ `feature("JSONL_SESSION")` 默认值已切换为 `true`
+6. ~~**Background Task Notifications**~~: ✅ Web Panel 已接入 `task:notification` 实时通知，并在任务完成后自动刷新列表
+7. ~~**Worktree 合并助手**~~: ✅ `ws-server` 已支持 `worktree-diff` / `worktree-merge` / `worktree-list`
+8. ~~**压缩策略 A/B 测试**~~: ✅ `COMPRESSION_AB` 标志位、`featureVariant()`、压缩统计与定向测试已落地
 
 ## 11. 后续规划
 
-1. **JSONL_SESSION 默认启用**: 经充分验证后将 `JSONL_SESSION` 默认值改为 `true`
-2. **Background Task Notifications**: 任务完成后通过 WebSocket 推送实时通知到 Web Panel
-3. **Worktree 合并助手**: 子 Agent 在 worktree 中完成工作后，提供 diff 预览和一键合并到主分支
-4. **压缩策略 A/B 测试**: 利用 `featureVariant()` 对比不同压缩阈值的效果
+1. **任务历史持久化增强**: 为后台任务增加重启恢复与任务详情历史查询
+2. **Worktree 冲突处理优化**: 合并冲突时返回更细粒度的文件级摘要与建议操作
+3. **压缩策略观测面板**: 在 Web Panel 中展示不同压缩策略的命中率、节省 token 与变体分布
+4. **会话存储迁移工具**: 提供旧 JSON 会话到 JSONL 会话的批量迁移与校验命令

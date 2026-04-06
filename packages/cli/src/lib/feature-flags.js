@@ -37,11 +37,16 @@ const FLAG_REGISTRY = {
   },
   JSONL_SESSION: {
     description: "Use JSONL append-only format for session persistence",
-    default: false,
+    default: true,
   },
   PROMPT_COMPRESSOR: {
     description: "Enable CLI prompt compressor (auto/snip/collapse)",
     default: true,
+  },
+  COMPRESSION_AB: {
+    description:
+      "A/B test compression thresholds (variants: aggressive, balanced, relaxed)",
+    default: { enabled: false, variant: "balanced" },
   },
 };
 
@@ -57,7 +62,14 @@ export function feature(name) {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return _percentageCheck(name, value);
   if (value && typeof value === "object") return Boolean(value.enabled);
-  return _getDefault(name);
+  const defaultValue = _getDefault(name);
+  if (typeof defaultValue === "boolean") return defaultValue;
+  if (typeof defaultValue === "number")
+    return _percentageCheck(name, defaultValue);
+  if (defaultValue && typeof defaultValue === "object") {
+    return Boolean(defaultValue.enabled);
+  }
+  return false;
 }
 
 /**

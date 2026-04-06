@@ -4701,9 +4701,18 @@ class DatabaseManager {
   ensureTaskBoardOwnerSchema() {
     try {
       const tableInfo = this.db.prepare("PRAGMA table_info(task_boards)").all();
+      const hasBoardType = tableInfo.some((col) => col.name === "board_type");
       const hasOwnerDid = tableInfo.some((col) => col.name === "owner_did");
       const hasIsArchived = tableInfo.some((col) => col.name === "is_archived");
       const hasOrgId = tableInfo.some((col) => col.name === "org_id");
+
+      if (!hasBoardType) {
+        logger.info("[Database] 添加 task_boards.board_type 列");
+        this.db.run(
+          "ALTER TABLE task_boards ADD COLUMN board_type TEXT DEFAULT 'kanban'",
+        );
+        this.saveToFile();
+      }
 
       if (!hasOwnerDid) {
         logger.info("[Database] 添加 task_boards.owner_did 列");

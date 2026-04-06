@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.9-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.10-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -22,7 +22,14 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.9 Evolution Edition (2026-04-04)
+## ⭐ 当前版本: v5.0.2.10 Evolution Edition (2026-04-06)
+
+### 最新修复 - Agent 架构优化修复与测试补强 (v5.0.2.10) ⭐
+- 修复 `COMPRESSION_AB` 默认值误判，未启用时不再被识别为 `balanced` 变体。
+- 修复 `ws-server` 中后台任务协议的 ESM 加载方式，`tasks-list` / `tasks-stop` 可直接工作。
+- 修复 Web Panel 后台任务页，改为直接走 `tasks-list` / `tasks-stop` 协议，并补齐 `sendRaw()`、通知订阅释放和页面渲染问题。
+- 新增并修正后台任务链路相关单元/集成测试。
+- 本次验证：Web Panel 单元测试 12 项通过；CLI 定向单元测试 2977 项通过；CLI 定向集成测试 428 项通过。
 
 ### 最新更新 - Agent 架构优化 (5 模块 + 4 增强 + 334 测试) ⭐
 
