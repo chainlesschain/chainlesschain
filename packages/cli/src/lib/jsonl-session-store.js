@@ -16,9 +16,10 @@ import {
   appendFileSync,
   readFileSync,
   readdirSync,
-  renameSync,
+  copyFileSync,
+  rmSync,
 } from "node:fs";
-import { join, basename } from "node:path";
+import { join, basename, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { getHomeDir } from "./paths.js";
 
@@ -234,4 +235,179 @@ export function sessionExists(sessionId) {
 export function getLastSessionId() {
   const sessions = listJsonlSessions({ limit: 1 });
   return sessions.length > 0 ? sessions[0].id : null;
+}
+
+export function migrateLegacySessions(sourceDir, options = {}) {
+  const directory = resolve(sourceDir || getSessionsDir());
+  if (!existsSync(directory)) {
+    throw new Error(`Directory not found: ${directory}`);
+  }
+
+  const files = readdirSync(directory).filter(
+    (file) =>
+      file.endsWith(".json") &&
+      !file.endsWith(".jsonl") &&
+      !file.endsWith(".migrated.json"),
+  );
+
+  const results = [];
+  for (const file of files) {
+    const filePath = join(directory, file);
+    results.push(migrateLegacySessionFile(filePath, options));
+  }
+  return results;
+}
+
+export function migrateLegacySessionFile(filePath, options = {}) {
+  const sourcePath = resolve(filePath);
+  const parsed = JSON.parse(readFileSync(sourcePath, "utf-8"));
+  const legacy = normalizeLegacySession(parsed, basename(sourcePath, ".json"));
+  const sessionId = legacy.id;
+
+  if (!options.force && sessionExists(sessionId)) {
+    return {
+      file: sourcePath,
+      sessionId,
+      skipped: true,
+      reason: "jsonl session already exists",
+    };
+  }
+
+  if (!options.dryRun) {
+    if (options.force && sessionExists(sessionId)) {
+      rmSync(sessionPath(sessionId), { force: true });
+    }
+    startSession(sessionId, legacy.meta);
+    for (const message of legacy.messages) {
+      appendLegacyMessage(sessionId, message);
+    }
+    if (legacy.summary) {
+      appendEvent(sessionId, "system", {
+        role: "system",
+        content: `[Migrated Summary]\n${legacy.summary}`,
+      });
+    }
+
+    if (options.archive !== false) {
+      copyFileSync(sourcePath, `${sourcePath}.migrated.json`);
+    }
+  }
+
+  return {
+    file: sourcePath,
+    sessionId,
+    migrated: true,
+    messageCount: legacy.messages.length,
+    archived: options.archive !== false && !options.dryRun,
+    dryRun: Boolean(options.dryRun),
+  };
+}
+
+export function validateJsonlSession(sessionId) {
+  const filePath = sessionPath(sessionId);
+  if (!existsSync(filePath)) {
+    return {
+      sessionId,
+      valid: false,
+      reason: "session file not found",
+      malformedLines: 0,
+      eventCount: 0,
+    };
+  }
+
+  const lines = readFileSync(filePath, "utf-8").split("\n");
+  let malformedLines = 0;
+  const events = [];
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    try {
+      events.push(JSON.parse(line));
+    } catch {
+      malformedLines++;
+    }
+  }
+
+  const hasStartEvent = events.some((event) => event.type === "session_start");
+  const messageCount = events.filter(
+    (event) =>
+      event.type === "user_message" || event.type === "assistant_message",
+  ).length;
+
+  return {
+    sessionId,
+    valid: malformedLines === 0 && hasStartEvent,
+    malformedLines,
+    eventCount: events.length,
+    messageCount,
+    hasStartEvent,
+  };
+}
+
+export function validateAllJsonlSessions(options = {}) {
+  const files = readdirSync(getSessionsDir())
+    .filter((file) => file.endsWith(".jsonl"))
+    .slice(0, options.limit || 1000);
+  return files.map((file) => validateJsonlSession(basename(file, ".jsonl")));
+}
+
+function normalizeLegacySession(payload, fallbackId) {
+  const messages = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.messages)
+      ? payload.messages
+      : [];
+
+  return {
+    id: payload?.id || fallbackId || `session-${Date.now()}`,
+    meta: {
+      title: payload?.title || payload?.name || fallbackId || "Migrated Session",
+      provider: payload?.provider || "",
+      model: payload?.model || "",
+    },
+    summary: payload?.summary || "",
+    messages: messages.map(normalizeLegacyMessage).filter(Boolean),
+  };
+}
+
+function normalizeLegacyMessage(message) {
+  if (!message) return null;
+  if (typeof message === "string") {
+    return { role: "user", content: message };
+  }
+
+  const role = message.role || message.sender || message.type || "user";
+  const content =
+    message.content ??
+    message.text ??
+    message.message ??
+    message.result ??
+    "";
+
+  return {
+    role,
+    content: typeof content === "string" ? content : JSON.stringify(content),
+    tool: message.tool || message.name || null,
+    args: message.args || message.arguments || null,
+  };
+}
+
+function appendLegacyMessage(sessionId, message) {
+  switch (message.role) {
+    case "assistant":
+      appendAssistantMessage(sessionId, message.content);
+      break;
+    case "tool":
+      appendToolResult(sessionId, message.tool || "legacy-tool", message.content);
+      break;
+    case "system":
+      appendEvent(sessionId, "system", {
+        role: "system",
+        content: message.content,
+      });
+      break;
+    default:
+      appendUserMessage(sessionId, message.content);
+      break;
+  }
 }

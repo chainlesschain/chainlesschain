@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdirSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, rmSync, existsSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -78,6 +78,13 @@ describe("BackgroundTaskManager", () => {
 
     it("returns null for unknown ID", () => {
       expect(manager.get("nonexistent")).toBeNull();
+    });
+
+    it("returns details and history for a task", () => {
+      const task = manager.create({ command: "echo history" });
+      const details = manager.getDetails(task.id);
+      expect(details.id).toBe(task.id);
+      expect(manager.getHistory(task.id)[0].event).toBe("created");
     });
 
     it("lists all tasks sorted by creation", () => {
@@ -218,6 +225,23 @@ describe("BackgroundTaskManager", () => {
       manager.create({ command: "echo test" });
       const queueFile = join(testDir, "tasks", "queue.jsonl");
       expect(existsSync(queueFile)).toBe(true);
+    });
+
+    it("recovers pending and running tasks on restart", () => {
+      const task = manager.create({ command: "echo recover" });
+      task.status = TaskStatus.RUNNING;
+      appendFileSync(
+        join(testDir, "tasks", "queue.jsonl"),
+        `${JSON.stringify(task)}\n`,
+        "utf-8",
+      );
+
+      const recovered = new BackgroundTaskManager({ recoverOnStart: true });
+      const restored = recovered.get(task.id);
+      expect(restored.status).toBe(TaskStatus.PENDING);
+      expect(restored.recoveredFromRestart).toBe(true);
+      expect(recovered.getHistory(task.id).some((item) => item.event === "recovered")).toBe(true);
+      recovered.destroy();
     });
   });
 });

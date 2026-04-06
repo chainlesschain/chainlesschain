@@ -155,6 +155,14 @@ chainlesschain config features enable WORKTREE_ISOLATION
 - Web Panel 后台任务页改为直接使用任务协议，并在收到 `task:notification` 后自动刷新列表。
 - 本轮相关回归已完成：Web Panel 单元测试 12 项、CLI 定向单元测试 2977 项、CLI 定向集成测试 428 项全部通过。
 
+## 2026-04-06 补充增强
+
+- 后台任务现在会持久化历史事件，并支持重启恢复、任务详情查询和历史查询；WS 新增 `tasks-detail` / `tasks-history`。
+- Worktree 合并冲突现在返回文件级摘要、冲突类型和建议动作，适合直接展示到 Web Panel 或 Agent 输出。
+- Prompt Compressor 新增压缩遥测落盘与聚合，Dashboard 已展示命中率、节省 token、净节省率和变体分布。
+- `session migrate` / `session validate` 已支持旧 JSON 会话向 JSONL 的批量迁移与结构校验。
+- 本次补充验证：CLI 定向单元 `125/125`、CLI 定向集成 `18/18`、Web Panel 定向单元 `12/12`、Web Panel E2E `29/29`。
+
 ## 相关文档
 
 - [设计文档 — 模块 77](../design/modules/77-agent-optimization) — 完整技术架构与实现细节

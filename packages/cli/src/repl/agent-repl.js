@@ -48,6 +48,7 @@ import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
 import { PromptCompressor } from "../lib/prompt-compressor.js";
 import { feature } from "../lib/feature-flags.js";
+import { recordCompressionMetric } from "../lib/compression-telemetry.js";
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
@@ -426,6 +427,7 @@ export async function startAgentRepl(options = {}) {
           await _compressor.compress(messages);
         messages.length = 0;
         messages.push(...compacted);
+        recordCompressionMetric(stats, { source: "manual-compact" });
         logger.info(
           `Compacted: ${stats.originalMessages} → ${stats.compressedMessages} messages, saved ${stats.saved} tokens (${stats.strategy})`,
         );
@@ -1126,6 +1128,7 @@ export async function startAgentRepl(options = {}) {
             await _compressor.compress(messages);
           messages.length = 0;
           messages.push(...compacted);
+          recordCompressionMetric(stats, { source: "auto-compact" });
           if (stats.saved > 0) {
             logger.verbose(
               `Auto-compacted: ${stats.strategy} (saved ${stats.saved} tokens)`,

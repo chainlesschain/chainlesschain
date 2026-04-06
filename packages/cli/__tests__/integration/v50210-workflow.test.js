@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdirSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -50,9 +50,15 @@ const {
   appendAssistantMessage,
   appendCompactEvent,
   rebuildMessages,
+  migrateLegacySessionFile,
+  validateJsonlSession,
 } = await import("../../src/lib/jsonl-session-store.js");
 const { BackgroundTaskManager, TaskStatus } =
   await import("../../src/lib/background-task-manager.js");
+const {
+  recordCompressionMetric,
+  getCompressionTelemetrySummary,
+} = await import("../../src/lib/compression-telemetry.js");
 
 beforeEach(() => {
   mockConfig = { features: {} };
@@ -250,6 +256,31 @@ describe("Task notification WS protocol simulation", () => {
     expect(new Set(ids).size).toBe(5); // All unique
     mgr.destroy();
   });
+
+  it("recovered task exposes detail history after restart", () => {
+    const mgr = new BackgroundTaskManager({ maxConcurrent: 5 });
+    const task = mgr.create({
+      type: "shell",
+      command: "echo recover",
+      description: "recover-me",
+    });
+    task.status = TaskStatus.RUNNING;
+    task.startedAt = Date.now();
+    mgr._persistTask(task, "running");
+    mgr.destroy();
+
+    const recovered = new BackgroundTaskManager({
+      maxConcurrent: 5,
+      recoverOnStart: true,
+    });
+    const details = recovered.getDetails(task.id);
+    const history = recovered.getHistory(task.id);
+
+    expect(details.recoveredFromRestart).toBe(true);
+    expect(details.recoverySourceStatus).toBe(TaskStatus.RUNNING);
+    expect(history.some((item) => item.event === "recovered")).toBe(true);
+    recovered.destroy();
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -324,10 +355,35 @@ describe("Worktree WS protocol messages", () => {
       success: false,
       strategy: "merge",
       message: "Merge conflicts detected — manual resolution required",
-      conflicts: ["src/lib/config.js", "src/main.js"],
+      conflicts: [
+        {
+          path: "src/lib/config.js",
+          type: "both_modified",
+          suggestion:
+            "Review both sides in src/lib/config.js and resolve conflict markers manually.",
+        },
+        {
+          path: "src/main.js",
+          type: "deleted_by_them",
+          suggestion:
+            "Decide whether src/main.js should stay deleted in the agent branch or be kept from the current branch.",
+        },
+      ],
+      summary: {
+        conflictedFiles: 2,
+        bothModified: 1,
+        bothAdded: 0,
+        deleteModify: 1,
+      },
+      suggestions: [
+        "Resolve 2 conflicted file(s), then rerun the merge.",
+        "Start with files marked both_modified; they usually need direct hunk reconciliation.",
+      ],
     };
     expect(response.success).toBe(false);
     expect(response.conflicts.length).toBe(2);
+    expect(response.summary.conflictedFiles).toBe(2);
+    expect(response.suggestions.length).toBeGreaterThan(0);
   });
 });
 
@@ -368,5 +424,54 @@ describe("JSONL default true + Compression A/B cross-feature", () => {
 
     const rebuilt = rebuildMessages(sid);
     expect(rebuilt.length).toBeLessThanOrEqual(compacted.length);
+  });
+
+  it("records compression telemetry summary for dashboard consumption", () => {
+    recordCompressionMetric({
+      strategy: "truncate",
+      originalTokens: 1000,
+      compressedTokens: 700,
+      saved: 300,
+      abVariant: "balanced",
+    });
+    recordCompressionMetric({
+      strategy: "truncate+dedup",
+      originalTokens: 900,
+      compressedTokens: 500,
+      saved: 400,
+      abVariant: "aggressive",
+    });
+
+    const summary = getCompressionTelemetrySummary();
+    expect(summary.samples).toBe(2);
+    expect(summary.totalSavedTokens).toBe(700);
+    expect(summary.variantDistribution.balanced).toBe(1);
+    expect(summary.variantDistribution.aggressive).toBe(1);
+    expect(summary.strategyDistribution[0].hits).toBeGreaterThan(0);
+  });
+
+  it("migrates legacy JSON session and validates resulting JSONL", () => {
+    const legacyFile = join(testDir, "sessions", "legacy-session.json");
+    writeFileSync(
+      legacyFile,
+      JSON.stringify({
+        id: "legacy-session",
+        title: "Legacy Session",
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        messages: [
+          { role: "user", content: "hello" },
+          { role: "assistant", content: "hi" },
+        ],
+      }),
+      "utf-8",
+    );
+
+    const migrated = migrateLegacySessionFile(legacyFile);
+    const validation = validateJsonlSession("legacy-session");
+
+    expect(migrated.migrated).toBe(true);
+    expect(validation.valid).toBe(true);
+    expect(validation.messageCount).toBe(2);
   });
 });

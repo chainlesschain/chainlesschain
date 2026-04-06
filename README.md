@@ -1991,3 +1991,10 @@ chainlesschain/
 - [🗂️ 统一工具注册表](./desktop-app-vue/src/main/ai-engine/unified-tool-registry.js) - 3大工具系统聚合
 - [📦 演示模板系统](./desktop-app-vue/src/main/templates/demo-template-loader.js) - 10个演示模板加载器
 - [🔧 工具浏览器](./desktop-app-vue/src/renderer/pages/ToolsExplorerPage.vue) - 按技能分组浏览工具
+## Agent 架构优化补充增强 (2026-04-06)
+
+- 后台任务新增重启恢复、任务详情查询与历史事件持久化，`ws-server` 补齐 `tasks-detail` / `tasks-history` 协议。
+- Worktree 合并冲突改为返回文件级摘要、冲突类型与建议操作，便于 Web/Agent 侧直接展示。
+- Prompt Compressor 新增压缩遥测落盘与聚合统计，Web Panel Dashboard 已展示命中率、节省 token、净节省率与变体分布。
+- 新增旧 JSON 会话到 JSONL 的批量迁移与校验命令：`chainlesschain session migrate` / `chainlesschain session validate`。
+- 本次验证：CLI 定向单元测试 `125/125`，CLI 定向集成测试 `18/18`，Web Panel 定向单元测试 `12/12`，Web Panel E2E `29/29`。
