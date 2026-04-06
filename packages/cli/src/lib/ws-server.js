@@ -296,6 +296,15 @@ export class ChainlessChainWSServer extends EventEmitter {
       case "tasks-stop":
         this._handleTasksStop(id, ws, message);
         break;
+      case "worktree-diff":
+        this._handleWorktreeDiff(id, ws, message);
+        break;
+      case "worktree-merge":
+        this._handleWorktreeMerge(id, ws, message);
+        break;
+      case "worktree-list":
+        this._handleWorktreeList(id, ws);
+        break;
       default:
         this._send(ws, {
           id,
@@ -390,13 +399,15 @@ export class ChainlessChainWSServer extends EventEmitter {
     }
   }
 
-  /** @private — list background tasks */
-  _handleTasksList(id, ws) {
+  /** @private – list background tasks */
+  async _handleTasksList(id, ws) {
     try {
-      const { BackgroundTaskManager } = require("./background-task-manager.js");
+      const { BackgroundTaskManager } =
+        await import("./background-task-manager.js");
       // Reuse singleton or create lightweight instance for listing
       if (!this._taskManager) {
         this._taskManager = new BackgroundTaskManager();
+        this._subscribeTaskNotifications();
       }
       const tasks = this._taskManager.list();
       this._send(ws, { id, type: "tasks-list", tasks });
@@ -405,9 +416,36 @@ export class ChainlessChainWSServer extends EventEmitter {
     }
   }
 
-  /** @private — stop a background task */
-  _handleTasksStop(id, ws, message) {
+  /** @private — subscribe to task completion events and broadcast to all clients */
+  _subscribeTaskNotifications() {
+    if (!this._taskManager || this._taskNotificationsSubscribed) return;
+    this._taskNotificationsSubscribed = true;
+
+    this._taskManager.on("task:complete", (task) => {
+      this._broadcast({
+        type: "task:notification",
+        task: {
+          id: task.id,
+          status: task.status,
+          description: task.description,
+          completedAt: task.completedAt,
+          result: task.result,
+          error: task.error,
+        },
+      });
+    });
+  }
+
+  /** @private – stop a background task */
+  async _handleTasksStop(id, ws, message) {
     try {
+      if (!this._taskManager) {
+        const { BackgroundTaskManager } =
+          await import("./background-task-manager.js");
+        this._taskManager = new BackgroundTaskManager();
+        this._subscribeTaskNotifications();
+      }
+
       if (this._taskManager && message.taskId) {
         this._taskManager.stop(message.taskId);
         this._send(ws, { id, type: "tasks-stopped", taskId: message.taskId });
@@ -424,6 +462,84 @@ export class ChainlessChainWSServer extends EventEmitter {
         id,
         type: "error",
         code: "TASKS_STOP_FAILED",
+        message: err.message,
+      });
+    }
+  }
+
+  /** @private — diff preview for agent worktree branch */
+  async _handleWorktreeDiff(id, ws, message) {
+    try {
+      const { diffWorktree } = await import("./worktree-isolator.js");
+      const { branch, baseBranch } = message;
+      if (!branch) {
+        this._send(ws, {
+          id,
+          type: "error",
+          code: "NO_BRANCH",
+          message: "branch required",
+        });
+        return;
+      }
+      const result = diffWorktree(process.cwd(), branch, { baseBranch });
+      this._send(ws, {
+        id,
+        type: "worktree-diff",
+        files: result.files,
+        summary: result.summary,
+      });
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "WORKTREE_DIFF_FAILED",
+        message: err.message,
+      });
+    }
+  }
+
+  /** @private — one-click merge of agent worktree branch */
+  async _handleWorktreeMerge(id, ws, message) {
+    try {
+      const { mergeWorktree } = await import("./worktree-isolator.js");
+      const { branch, strategy, commitMessage } = message;
+      if (!branch) {
+        this._send(ws, {
+          id,
+          type: "error",
+          code: "NO_BRANCH",
+          message: "branch required",
+        });
+        return;
+      }
+      const result = mergeWorktree(process.cwd(), branch, {
+        strategy: strategy || "merge",
+        message: commitMessage,
+      });
+      this._send(ws, { id, type: "worktree-merged", ...result });
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "WORKTREE_MERGE_FAILED",
+        message: err.message,
+      });
+    }
+  }
+
+  /** @private — list agent worktrees */
+  async _handleWorktreeList(id, ws) {
+    try {
+      const { listWorktrees } = await import("./worktree-isolator.js");
+      const worktrees = listWorktrees(process.cwd()).filter(
+        (wt) => wt.branch && wt.branch.startsWith("agent/"),
+      );
+      this._send(ws, { id, type: "worktree-list", worktrees });
+    } catch (err) {
+      this._send(ws, {
+        id,
+        type: "error",
+        code: "WORKTREE_LIST_FAILED",
         message: err.message,
       });
     }
@@ -907,6 +1023,15 @@ export class ChainlessChainWSServer extends EventEmitter {
         ws.send(JSON.stringify(data));
       } catch (_err) {
         // Connection may have just closed
+      }
+    }
+  }
+
+  /** @private — broadcast a message to all connected, authenticated clients */
+  _broadcast(data) {
+    for (const [, client] of this.clients) {
+      if (client.authenticated || !this.token) {
+        this._send(client.ws, data);
       }
     }
   }

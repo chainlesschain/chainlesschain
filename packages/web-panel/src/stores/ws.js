@@ -231,6 +231,7 @@ export const useWsStore = defineStore('ws', () => {
     status, error, wsUrl,
     connect, disconnect, waitConnected,
     onMessage, onSession,
+    sendRaw,
     execute, executeJson,
     createSession, sendSessionMessage, answerQuestion, listSessions, closeSession
   }

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v5.0.2.2 进化版 | 军事级安全 | 完全去中心化 | AI原生 | 138技能 | 102 Phase | AI Agent 2.0 | Web3 深化 | 自进化AI | Headless CLI | Web管理界面 | CLI指令技能包(9包) | AI创作模板 | 5130+ Tests
+  tagline: v5.0.2.10 进化版 | 军事级安全 | 完全去中心化 | AI原生 | 138技能 | 102 Phase | AI Agent 2.0 | Web3 深化 | 自进化AI | Headless CLI | Web管理界面 | CLI指令技能包(9包) | AI创作模板 | 5517+ Tests
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -134,7 +134,7 @@ start.bat
 
 ### 1. ChainlessChain 个人AI管理系统
 
-完全去中心化的个人AI助手平台（v5.0.2.2 进化版），整合知识库管理、社交网络和交易辅助三大核心功能，内置AI Agent 2.0生态、Web3深化、企业级平台、CLI分发系统、Web管理界面和AI创作模板。
+完全去中心化的个人AI助手平台（v5.0.2.10 进化版），整合知识库管理、社交网络和交易辅助三大核心功能，内置 AI Agent 2.0 生态、Web3 深化、企业级平台、CLI 分发系统、Web 管理界面和 AI 创作模板。
 
 **主要特性:**
 

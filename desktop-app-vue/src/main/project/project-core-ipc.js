@@ -7,11 +7,53 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
+const { app, ipcMain } = require("electron");
 const crypto = require("crypto");
+const path = require("path");
 const FileCacheManager = require("./file-cache-manager.js");
 const ConflictError = require("../errors/conflict-error.js");
 const { getSyncLockManager } = require("./sync-lock-manager.js");
+
+let databaseInitPromise = null;
+
+async function ensureDatabase(database) {
+  if (database?.db || database?.saveProject || database?.getProjectById) {
+    return database;
+  }
+
+  try {
+    const { getDatabase } = await import("../database.js");
+    return getDatabase();
+  } catch (_error) {
+    // Fall through to lazy initialization.
+  }
+
+  if (!databaseInitPromise) {
+    databaseInitPromise = (async () => {
+      const { DatabaseManager, setDatabase } = await import("../database.js");
+      const dbPath = path.join(
+        app.getPath("userData"),
+        "data",
+        "chainlesschain.db",
+      );
+      await require("fs").promises.mkdir(path.dirname(dbPath), {
+        recursive: true,
+      });
+      const manager = new DatabaseManager(dbPath, {
+        password: process.env.DEFAULT_PASSWORD || "123456",
+        encryptionEnabled: false,
+      });
+      await manager.initialize();
+      setDatabase(manager);
+      return manager;
+    })().catch((error) => {
+      databaseInitPromise = null;
+      throw error;
+    });
+  }
+
+  return databaseInitPromise;
+}
 
 /**
  * 注册所有 Project Core IPC 处理器
@@ -29,8 +71,18 @@ function registerProjectCoreIPC({
 }) {
   logger.info("[Project Core IPC] Registering Project Core IPC handlers...");
 
-  // 创建文件缓存管理器实例
-  const fileCacheManager = new FileCacheManager(database);
+  let activeDatabase = database;
+  let fileCacheManager = activeDatabase
+    ? new FileCacheManager(activeDatabase)
+    : null;
+
+  async function getActiveDatabase() {
+    activeDatabase = await ensureDatabase(activeDatabase);
+    if (!fileCacheManager) {
+      fileCacheManager = new FileCacheManager(activeDatabase);
+    }
+    return activeDatabase;
+  }
 
   // 获取同步锁管理器实例
   const syncLockManager = getSyncLockManager();
@@ -45,6 +97,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project:get-all", async (_event, userId, options = {}) => {
     try {
+      const database = await getActiveDatabase();
       const {
         offset = 0,
         limit = 0, // 0 表示不分页，返回所有
@@ -59,10 +112,6 @@ function registerProjectCoreIPC({
         sortBy,
         sortOrder,
       });
-
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
 
       const startTime = Date.now();
 
@@ -127,9 +176,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project:get", async (_event, projectId) => {
     try {
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
       const project = database.getProjectById(projectId);
       return removeUndefinedValues(project);
     } catch (error) {
@@ -159,7 +206,8 @@ function registerProjectCoreIPC({
       logger.info("[Main] 后端返回项目，键:", Object.keys(project || {}));
 
       // 保存到本地数据库
-      if (database && project) {
+      if (project) {
+        const database = await getActiveDatabase();
         // 先清理 project 中的 undefined，再保存到数据库
         const cleanedProject = _replaceUndefinedWithNull(project);
         logger.info(
@@ -609,7 +657,8 @@ function registerProjectCoreIPC({
       };
 
       // 保存到本地数据库
-      if (database) {
+      if (project) {
+        const database = await getActiveDatabase();
         await database.saveProject(project);
         logger.info("[Main] 项目已保存到本地数据库");
 
@@ -641,9 +690,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project:save", async (_event, project) => {
     try {
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
       // 清理输入的 project 中的 undefined 值
       const cleanProject = _replaceUndefinedWithNull(project);
       const saved = database.saveProject(cleanProject);
@@ -660,9 +707,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project:update", async (_event, projectId, updates) => {
     try {
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
 
       // 清理输入的 updates 中的 undefined 值
       const cleanUpdates = _replaceUndefinedWithNull(updates);
@@ -1213,9 +1258,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project:save-files", async (_event, projectId, files) => {
     try {
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
       database.saveProjectFiles(projectId, files);
       return { success: true };
     } catch (error) {
@@ -1809,10 +1852,7 @@ function registerProjectCoreIPC({
     "project:stats:start",
     async (_event, projectId, projectPath) => {
       try {
-        if (!database || !database.db) {
-          logger.warn("[Main] 数据库未初始化，跳过统计收集");
-          return { success: false, error: "数据库未初始化" };
-        }
+        const database = await getActiveDatabase();
 
         const { getStatsCollector } = require("./stats-collector");
         const statsCollector = getStatsCollector(database.db);
@@ -1839,10 +1879,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project:stats:stop", async (_event, projectId) => {
     try {
-      if (!database || !database.db) {
-        logger.warn("[Main] 数据库未初始化，跳过统计收集");
-        return { success: false, error: "数据库未初始化" };
-      }
+      const database = await getActiveDatabase();
 
       const { getStatsCollector } = require("./stats-collector");
       const statsCollector = getStatsCollector(database.db);
@@ -1868,9 +1905,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project:stats:get", async (_event, projectId) => {
     try {
-      if (!database || !database.db) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
 
       const { getStatsCollector } = require("./stats-collector");
       const statsCollector = getStatsCollector(database.db);
@@ -1894,9 +1929,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project:stats:update", async (_event, projectId) => {
     try {
-      if (!database || !database.db) {
-        throw new Error("数据库未初始化");
-      }
+      const database = await getActiveDatabase();
 
       const { getStatsCollector } = require("./stats-collector");
       const statsCollector = getStatsCollector(database.db);

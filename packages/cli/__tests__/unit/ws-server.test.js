@@ -12,6 +12,16 @@ import {
 } from "../../src/lib/ws-server.js";
 import WebSocket from "ws";
 
+const mockTaskManagerFactory = vi.fn();
+
+vi.mock("../../src/lib/background-task-manager.js", () => ({
+  BackgroundTaskManager: class MockBackgroundTaskManager {
+    constructor(...args) {
+      return mockTaskManagerFactory(...args);
+    }
+  },
+}));
+
 // ---------------------------------------------------------------------------
 // tokenizeCommand — pure function tests (no I/O)
 // ---------------------------------------------------------------------------
@@ -124,6 +134,10 @@ describe("ChainlessChainWSServer", () => {
       ws.on("message", handler);
     });
   }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   afterEach(async () => {
     if (server) {
@@ -623,6 +637,61 @@ describe("ChainlessChainWSServer", () => {
       expect(end.id).toBe("ev1");
       expect(end.exitCode).toBe(0);
 
+      ws.close();
+    });
+  });
+
+  describe("background task protocol", () => {
+    it("returns task list from the background task manager", async () => {
+      const list = vi.fn(() => [{ id: "task-1", status: "running" }]);
+      const on = vi.fn();
+      mockTaskManagerFactory.mockReturnValueOnce({
+        list,
+        on,
+      });
+
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port });
+      await server.start();
+
+      const ws = await connect(port);
+      const resp = await rpc(ws, { id: "tasks-1", type: "tasks-list" });
+
+      expect(resp).toEqual({
+        id: "tasks-1",
+        type: "tasks-list",
+        tasks: [{ id: "task-1", status: "running" }],
+      });
+      expect(list).toHaveBeenCalled();
+      ws.close();
+    });
+
+    it("stops a task through the background task manager", async () => {
+      const stop = vi.fn();
+      const on = vi.fn();
+      mockTaskManagerFactory.mockReturnValueOnce({
+        list: vi.fn(() => []),
+        stop,
+        on,
+      });
+
+      port = nextPort();
+      server = new ChainlessChainWSServer({ port });
+      await server.start();
+
+      const ws = await connect(port);
+      const resp = await rpc(ws, {
+        id: "tasks-2",
+        type: "tasks-stop",
+        taskId: "task-9",
+      });
+
+      expect(resp).toEqual({
+        id: "tasks-2",
+        type: "tasks-stopped",
+        taskId: "task-9",
+      });
+      expect(stop).toHaveBeenCalledWith("task-9");
       ws.close();
     });
   });
