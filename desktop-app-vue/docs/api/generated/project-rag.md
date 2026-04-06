@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/project-rag.js`
 
-**Generated**: 2026-03-25T06:25:43.691Z
+**Generated**: 2026-04-06T03:25:10.665Z
 
 ---
 
