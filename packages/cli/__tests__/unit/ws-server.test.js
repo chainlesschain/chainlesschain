@@ -13,6 +13,15 @@ import {
 import WebSocket from "ws";
 
 const mockTaskManagerFactory = vi.fn();
+const mockCompressionSummary = vi.fn(() => ({
+  samples: 3,
+  hitRate: 0.66,
+  totalSavedTokens: 120,
+  variantDistribution: { balanced: 2, aggressive: 1 },
+  strategyDistribution: [{ strategy: "truncate", hits: 2, hitRate: 0.66 }],
+  providerDistribution: [{ key: "ollama", samples: 3, hitRate: 0.66 }],
+  modelDistribution: [{ key: "qwen2.5:7b", samples: 3, hitRate: 0.66 }],
+}));
 
 vi.mock("../../src/lib/background-task-manager.js", () => ({
   BackgroundTaskManager: class MockBackgroundTaskManager {
@@ -23,13 +32,7 @@ vi.mock("../../src/lib/background-task-manager.js", () => ({
 }));
 
 vi.mock("../../src/lib/compression-telemetry.js", () => ({
-  getCompressionTelemetrySummary: vi.fn(() => ({
-    samples: 3,
-    hitRate: 0.66,
-    totalSavedTokens: 120,
-    variantDistribution: { balanced: 2, aggressive: 1 },
-    strategyDistribution: [{ strategy: "truncate", hits: 2, hitRate: 0.66 }],
-  })),
+  getCompressionTelemetrySummary: (...args) => mockCompressionSummary(...args),
 }));
 
 // ---------------------------------------------------------------------------
@@ -711,7 +714,14 @@ describe("ChainlessChainWSServer", () => {
         list: vi.fn(() => []),
         on,
         getDetails: vi.fn(() => ({ id: "task-5", recoveredFromRestart: true })),
-        getHistory: vi.fn(() => [{ event: "recovered" }]),
+        getHistory: vi.fn(() => ({
+          items: [{ event: "recovered" }],
+          total: 1,
+          offset: 0,
+          limit: 20,
+          hasMore: false,
+          nextOffset: null,
+        })),
       });
 
       port = nextPort();
@@ -739,7 +749,14 @@ describe("ChainlessChainWSServer", () => {
         id: "tasks-4",
         type: "tasks-history",
         taskId: "task-5",
-        history: [{ event: "recovered" }],
+        history: {
+          items: [{ event: "recovered" }],
+          total: 1,
+          offset: 0,
+          limit: 20,
+          hasMore: false,
+          nextOffset: null,
+        },
       });
       ws.close();
     });
@@ -753,11 +770,20 @@ describe("ChainlessChainWSServer", () => {
       const resp = await rpc(ws, {
         id: "compression-1",
         type: "compression-stats",
+        windowMs: 3600000,
+        provider: "ollama",
+        model: "qwen2.5:7b",
       });
 
       expect(resp.type).toBe("compression-stats");
       expect(resp.summary.totalSavedTokens).toBe(120);
       expect(resp.summary.variantDistribution.balanced).toBe(2);
+      expect(mockCompressionSummary).toHaveBeenCalledWith({
+        limit: undefined,
+        windowMs: 3600000,
+        provider: "ollama",
+        model: "qwen2.5:7b",
+      });
       ws.close();
     });
   });

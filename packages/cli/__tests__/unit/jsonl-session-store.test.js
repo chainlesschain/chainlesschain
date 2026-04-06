@@ -26,6 +26,8 @@ const {
   sessionExists,
   getLastSessionId,
   migrateLegacySessionFile,
+  migrateLegacySessionsBatch,
+  sampleMigratedSessionsValidation,
   validateJsonlSession,
 } = await import("../../src/lib/jsonl-session-store.js");
 
@@ -294,6 +296,56 @@ describe("jsonl-session-store", () => {
       expect(result.valid).toBe(true);
       expect(result.eventCount).toBe(2);
       expect(result.messageCount).toBe(1);
+    });
+
+    it("builds a dry-run batch migration report", () => {
+      writeFileSync(
+        join(sessionsDir, "legacy-a.json"),
+        JSON.stringify({ id: "legacy-a", messages: [{ role: "user", content: "a" }] }),
+        "utf-8",
+      );
+      writeFileSync(
+        join(sessionsDir, "legacy-b.json"),
+        JSON.stringify({ id: "legacy-b", messages: [{ role: "assistant", content: "b" }] }),
+        "utf-8",
+      );
+
+      const report = migrateLegacySessionsBatch(sessionsDir, { dryRun: true });
+      expect(report.summary.scanned).toBe(2);
+      expect(report.summary.migrated).toBe(2);
+      expect(report.summary.dryRun).toBe(true);
+    });
+
+    it("samples migrated sessions for validation", () => {
+      const file = join(sessionsDir, "legacy-sample.json");
+      writeFileSync(
+        file,
+        JSON.stringify({
+          id: "legacy-sample",
+          messages: [
+            { role: "user", content: "hello" },
+            { role: "assistant", content: "hi" },
+          ],
+        }),
+        "utf-8",
+      );
+
+      const migrated = migrateLegacySessionFile(file);
+      const sample = sampleMigratedSessionsValidation([migrated], { sampleSize: 1 });
+      expect(sample).toHaveLength(1);
+      expect(sample[0].valid).toBe(true);
+      expect(sample[0].matchesExpectedMessages).toBe(true);
+    });
+
+    it("reports failed migration attempts when source JSON is invalid", () => {
+      const brokenPath = join(sessionsDir, "broken.json");
+      writeFileSync(brokenPath, "{not-json", "utf-8");
+
+      const result = migrateLegacySessionFile(brokenPath, {
+        retryFailures: true,
+      });
+      expect(result.failed).toBe(true);
+      expect(result.attempts).toBeGreaterThan(1);
     });
   });
 });

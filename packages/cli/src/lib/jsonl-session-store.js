@@ -238,6 +238,10 @@ export function getLastSessionId() {
 }
 
 export function migrateLegacySessions(sourceDir, options = {}) {
+  return migrateLegacySessionsBatch(sourceDir, options).results;
+}
+
+export function migrateLegacySessionsBatch(sourceDir, options = {}) {
   const directory = resolve(sourceDir || getSessionsDir());
   if (!existsSync(directory)) {
     throw new Error(`Directory not found: ${directory}`);
@@ -255,51 +259,54 @@ export function migrateLegacySessions(sourceDir, options = {}) {
     const filePath = join(directory, file);
     results.push(migrateLegacySessionFile(filePath, options));
   }
-  return results;
+
+  const summary = buildMigrationSummary(results, {
+    directory,
+    dryRun: Boolean(options.dryRun),
+  });
+  const sampledValidation = options.dryRun
+    ? []
+    : sampleMigratedSessionsValidation(results, {
+        sampleSize: options.sampleSize,
+      });
+
+  return {
+    directory,
+    results,
+    summary,
+    sampledValidation,
+  };
 }
 
 export function migrateLegacySessionFile(filePath, options = {}) {
   const sourcePath = resolve(filePath);
-  const parsed = JSON.parse(readFileSync(sourcePath, "utf-8"));
-  const legacy = normalizeLegacySession(parsed, basename(sourcePath, ".json"));
-  const sessionId = legacy.id;
+  const maxAttempts = Math.max(
+    1,
+    (options.retryFailures ? 2 : 1) + Math.max(0, options.retryCount || 0),
+  );
+  let lastError = null;
 
-  if (!options.force && sessionExists(sessionId)) {
-    return {
-      file: sourcePath,
-      sessionId,
-      skipped: true,
-      reason: "jsonl session already exists",
-    };
-  }
-
-  if (!options.dryRun) {
-    if (options.force && sessionExists(sessionId)) {
-      rmSync(sessionPath(sessionId), { force: true });
-    }
-    startSession(sessionId, legacy.meta);
-    for (const message of legacy.messages) {
-      appendLegacyMessage(sessionId, message);
-    }
-    if (legacy.summary) {
-      appendEvent(sessionId, "system", {
-        role: "system",
-        content: `[Migrated Summary]\n${legacy.summary}`,
-      });
-    }
-
-    if (options.archive !== false) {
-      copyFileSync(sourcePath, `${sourcePath}.migrated.json`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = performLegacySessionMigration(sourcePath, options);
+      return {
+        ...result,
+        attempts: attempt,
+        retried: attempt > 1,
+      };
+    } catch (error) {
+      lastError = error;
     }
   }
 
   return {
     file: sourcePath,
-    sessionId,
-    migrated: true,
-    messageCount: legacy.messages.length,
-    archived: options.archive !== false && !options.dryRun,
+    sessionId: basename(sourcePath, ".json"),
+    migrated: false,
+    failed: true,
     dryRun: Boolean(options.dryRun),
+    attempts: maxAttempts,
+    reason: lastError?.message || "migration failed",
   };
 }
 
@@ -349,6 +356,95 @@ export function validateAllJsonlSessions(options = {}) {
     .filter((file) => file.endsWith(".jsonl"))
     .slice(0, options.limit || 1000);
   return files.map((file) => validateJsonlSession(basename(file, ".jsonl")));
+}
+
+export function sampleMigratedSessionsValidation(results, options = {}) {
+  const sampleSize = Math.max(0, parseInt(options.sampleSize || 3, 10));
+  const migrated = results.filter((item) => item.migrated && !item.dryRun);
+  return migrated.slice(0, sampleSize).map((item) => {
+    const validation = validateJsonlSession(item.sessionId);
+    return {
+      sessionId: item.sessionId,
+      file: item.file,
+      valid: validation.valid,
+      messageCount: validation.messageCount,
+      expectedMessageCount: item.messageCount,
+      matchesExpectedMessages: validation.messageCount === item.messageCount,
+      malformedLines: validation.malformedLines,
+    };
+  });
+}
+
+function performLegacySessionMigration(sourcePath, options) {
+  const parsed = JSON.parse(readFileSync(sourcePath, "utf-8"));
+  const legacy = normalizeLegacySession(parsed, basename(sourcePath, ".json"));
+  const sessionId = legacy.id;
+
+  if (!options.force && sessionExists(sessionId)) {
+    return {
+      file: sourcePath,
+      sessionId,
+      skipped: true,
+      reason: "jsonl session already exists",
+    };
+  }
+
+  if (!options.dryRun) {
+    if (options.force && sessionExists(sessionId)) {
+      rmSync(sessionPath(sessionId), { force: true });
+    }
+    startSession(sessionId, legacy.meta);
+    for (const message of legacy.messages) {
+      appendLegacyMessage(sessionId, message);
+    }
+    if (legacy.summary) {
+      appendEvent(sessionId, "system", {
+        role: "system",
+        content: `[Migrated Summary]\n${legacy.summary}`,
+      });
+    }
+
+    const validation = validateJsonlSession(sessionId);
+    if (!validation.valid || validation.messageCount !== legacy.messages.length) {
+      throw new Error(
+        `post-migration validation failed for ${sessionId} (${validation.messageCount}/${legacy.messages.length} messages)`,
+      );
+    }
+
+    if (options.archive !== false) {
+      copyFileSync(sourcePath, `${sourcePath}.migrated.json`);
+    }
+  }
+
+  return {
+    file: sourcePath,
+    sessionId,
+    migrated: true,
+    messageCount: legacy.messages.length,
+    archived: options.archive !== false && !options.dryRun,
+    dryRun: Boolean(options.dryRun),
+  };
+}
+
+function buildMigrationSummary(results, options = {}) {
+  const summary = {
+    directory: options.directory || null,
+    dryRun: Boolean(options.dryRun),
+    scanned: results.length,
+    migrated: 0,
+    skipped: 0,
+    failed: 0,
+    retries: 0,
+  };
+
+  for (const result of results) {
+    if (result.migrated) summary.migrated += 1;
+    if (result.skipped) summary.skipped += 1;
+    if (result.failed) summary.failed += 1;
+    if (result.retried) summary.retries += 1;
+  }
+
+  return summary;
 }
 
 function normalizeLegacySession(payload, fallbackId) {

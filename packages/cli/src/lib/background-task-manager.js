@@ -55,6 +55,10 @@ export class BackgroundTaskManager extends EventEmitter {
     this.maxConcurrent = options.maxConcurrent || 3;
     this.heartbeatTimeout = options.heartbeatTimeout || 60000;
     this.historyLimit = options.historyLimit || 50;
+    this.nodeId =
+      options.nodeId || process.env.CC_NODE_ID || `${process.pid}@${process.platform}`;
+    this.recoveryPolicy = options.recoveryPolicy || "claim-stale";
+    this.staleNodeTimeout = options.staleNodeTimeout || 5 * 60 * 1000;
     this.tasks = new Map(); // id -> task object
     this.processes = new Map(); // id -> child process
     this._checkInterval = null;
@@ -97,8 +101,11 @@ export class BackgroundTaskManager extends EventEmitter {
       result: null,
       error: null,
       history: [],
+      outputSummary: null,
       recoveredFromRestart: false,
       recoverySourceStatus: null,
+      ownerNodeId: spec.ownerNodeId || this.nodeId,
+      recoveryDecision: null,
     };
 
     this._recordHistory(task, "created", {
@@ -206,8 +213,24 @@ export class BackgroundTaskManager extends EventEmitter {
   /**
    * Get a task's persisted history.
    */
-  getHistory(taskId) {
-    return this.get(taskId)?.history || [];
+  getHistory(taskId, options = {}) {
+    const history = this.get(taskId)?.history || [];
+    const limit = Number.isFinite(options.limit) ? Math.max(1, options.limit) : null;
+    const offset = Number.isFinite(options.offset) ? Math.max(0, options.offset) : 0;
+
+    if (limit === null && offset === 0) {
+      return history;
+    }
+
+    const items = history.slice(offset, offset + limit);
+    return {
+      items,
+      total: history.length,
+      offset,
+      limit: limit || history.length,
+      hasMore: offset + items.length < history.length,
+      nextOffset: offset + items.length < history.length ? offset + items.length : null,
+    };
   }
 
   /**
@@ -287,6 +310,7 @@ export class BackgroundTaskManager extends EventEmitter {
     task.completedAt = Date.now();
     task.result = result;
     task.error = error;
+    task.outputSummary = this._buildOutputSummary({ result, error, status });
     this._recordHistory(task, "completed", { status, result, error });
     this._persistTask(task, "completed");
     this.emit("task:complete", task);
@@ -369,8 +393,11 @@ export class BackgroundTaskManager extends EventEmitter {
     const normalized = {
       ...task,
       history: Array.isArray(task.history) ? [...task.history] : [],
+      outputSummary: task.outputSummary || this._buildOutputSummary(task),
       recoveredFromRestart: Boolean(task.recoveredFromRestart),
       recoverySourceStatus: task.recoverySourceStatus || null,
+      ownerNodeId: task.ownerNodeId || this.nodeId,
+      recoveryDecision: task.recoveryDecision || null,
     };
 
     if (normalized.history.length === 0) {
@@ -388,20 +415,118 @@ export class BackgroundTaskManager extends EventEmitter {
     for (const task of this.tasks.values()) {
       if (!RECOVERABLE_TASK_STATUSES.has(task.status)) continue;
       const previousStatus = task.status;
+      const decision = this._decideRecovery(task);
+      task.recoveryDecision = decision;
+
+      if (!decision.shouldRecover) {
+        this._recordHistory(task, "recovery-skipped", {
+          fromStatus: previousStatus,
+          policy: decision.policy,
+          reason: decision.reason,
+          ownerNodeId: task.ownerNodeId || null,
+          candidateNodeId: this.nodeId,
+        });
+        this._persistTask(task, "recovery-skipped", {
+          fromStatus: previousStatus,
+          policy: decision.policy,
+          reason: decision.reason,
+        });
+        continue;
+      }
+
       task.status = TaskStatus.PENDING;
       task.startedAt = null;
       task.lastHeartbeat = null;
       task.completedAt = null;
       task.result = null;
       task.error = null;
+      task.outputSummary = null;
       task.recoveredFromRestart = true;
       task.recoverySourceStatus = previousStatus;
       task.recoveredAt = Date.now();
+      task.ownerNodeId = this.nodeId;
       this._recordHistory(task, "recovered", {
         fromStatus: previousStatus,
         status: task.status,
+        policy: decision.policy,
+        reason: decision.reason,
+        previousOwnerNodeId: decision.previousOwnerNodeId,
+        claimedByNodeId: this.nodeId,
       });
-      this._persistTask(task, "recovered", { fromStatus: previousStatus });
+      this._persistTask(task, "recovered", {
+        fromStatus: previousStatus,
+        policy: decision.policy,
+        reason: decision.reason,
+      });
+    }
+  }
+
+  _decideRecovery(task) {
+    const previousOwnerNodeId = task.ownerNodeId || null;
+    const sameNode = previousOwnerNodeId === this.nodeId || !previousOwnerNodeId;
+    const lastSeenAt = task.lastHeartbeat || task.startedAt || task.createdAt || 0;
+    const stale = Date.now() - lastSeenAt > this.staleNodeTimeout;
+
+    if (sameNode) {
+      return {
+        shouldRecover: true,
+        policy: this.recoveryPolicy,
+        reason: "same-node",
+        previousOwnerNodeId,
+      };
+    }
+
+    if (this.recoveryPolicy === "local-only") {
+      return {
+        shouldRecover: false,
+        policy: this.recoveryPolicy,
+        reason: "owned-by-other-node",
+        previousOwnerNodeId,
+      };
+    }
+
+    if (this.recoveryPolicy === "observe-only") {
+      return {
+        shouldRecover: false,
+        policy: this.recoveryPolicy,
+        reason: stale ? "foreign-node-stale-observed" : "foreign-node-active-observed",
+        previousOwnerNodeId,
+      };
+    }
+
+    return {
+      shouldRecover: stale,
+      policy: this.recoveryPolicy,
+      reason: stale ? "stale-foreign-node-claimed" : "foreign-node-still-fresh",
+      previousOwnerNodeId,
+    };
+  }
+
+  _buildOutputSummary(task = {}) {
+    const resultText = this._stringifyOutput(task.result);
+    const errorText = this._stringifyOutput(task.error);
+    const primary = errorText || resultText;
+
+    if (!primary) return null;
+
+    const lines = primary.split(/\r?\n/).filter(Boolean);
+    return {
+      kind: errorText ? "error" : "result",
+      status: task.status || null,
+      preview: primary.slice(0, 240),
+      lineCount: lines.length,
+      charCount: primary.length,
+      truncated: primary.length > 240,
+    };
+  }
+
+  _stringifyOutput(value) {
+    if (value == null) return "";
+    if (typeof value === "string") return value.trim();
+    try {
+      return JSON.stringify(value).trim();
+    } catch {
+      return String(value).trim();
     }
   }
 

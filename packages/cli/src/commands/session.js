@@ -19,6 +19,7 @@ import {
   sessionExists,
   readEvents,
   migrateLegacySessions,
+  migrateLegacySessionsBatch,
   validateJsonlSession,
   validateAllJsonlSessions,
 } from "../lib/jsonl-session-store.js";
@@ -312,17 +313,22 @@ export function registerSessionCommand(program) {
     .option("--dry-run", "Show what would migrate without writing files")
     .option("--force", "Overwrite existing JSONL sessions")
     .option("--no-archive", "Do not keep .migrated.json backups")
+    .option("--sample-size <n>", "Validate N migrated sessions after migration", "3")
+    .option("--retry-failures", "Retry failed migrations once")
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
       try {
-        const results = migrateLegacySessions(source, {
+        const report = migrateLegacySessionsBatch(source, {
           dryRun: options.dryRun,
           force: options.force,
           archive: options.archive,
+          sampleSize: parseInt(options.sampleSize, 10) || 3,
+          retryFailures: options.retryFailures,
         });
+        const results = report.results || migrateLegacySessions(source, options);
 
         if (options.json) {
-          console.log(JSON.stringify(results, null, 2));
+          console.log(JSON.stringify(report, null, 2));
           return;
         }
 
@@ -341,6 +347,23 @@ export function registerSessionCommand(program) {
           logger.log(
             `${chalk.green(options.dryRun ? "plan" : "migrated")} ${result.file} -> ${result.sessionId} (${result.messageCount} messages)`,
           );
+        }
+
+        logger.log(
+          chalk.gray(
+            `summary: scanned ${report.summary.scanned}, migrated ${report.summary.migrated}, skipped ${report.summary.skipped}, failed ${report.summary.failed}, retries ${report.summary.retries}`,
+          ),
+        );
+
+        if (report.sampledValidation?.length) {
+          for (const item of report.sampledValidation) {
+            const label = item.valid && item.matchesExpectedMessages
+              ? chalk.green("sample-ok")
+              : chalk.red("sample-fail");
+            logger.log(
+              `${label} ${item.sessionId} (${item.messageCount}/${item.expectedMessageCount} messages)`,
+            );
+          }
         }
       } catch (err) {
         logger.error(`Failed: ${err.message}`);

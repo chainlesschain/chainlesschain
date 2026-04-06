@@ -503,7 +503,10 @@ export class ChainlessChainWSServer extends EventEmitter {
         });
         return;
       }
-      const history = this._taskManager.getHistory(message.taskId);
+      const history = this._taskManager.getHistory(message.taskId, {
+        limit: message.limit,
+        offset: message.offset,
+      });
       this._send(ws, {
         id,
         type: "tasks-history",
@@ -606,6 +609,9 @@ export class ChainlessChainWSServer extends EventEmitter {
       );
       const summary = getCompressionTelemetrySummary({
         limit: message.limit,
+        windowMs: message.windowMs,
+        provider: message.provider,
+        model: message.model,
       });
       this._send(ws, { id, type: "compression-stats", summary });
     } catch (err) {

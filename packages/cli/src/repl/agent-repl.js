@@ -427,7 +427,11 @@ export async function startAgentRepl(options = {}) {
           await _compressor.compress(messages);
         messages.length = 0;
         messages.push(...compacted);
-        recordCompressionMetric(stats, { source: "manual-compact" });
+        recordCompressionMetric(stats, {
+          source: "manual-compact",
+          provider,
+          model,
+        });
         logger.info(
           `Compacted: ${stats.originalMessages} → ${stats.compressedMessages} messages, saved ${stats.saved} tokens (${stats.strategy})`,
         );
@@ -1128,7 +1132,11 @@ export async function startAgentRepl(options = {}) {
             await _compressor.compress(messages);
           messages.length = 0;
           messages.push(...compacted);
-          recordCompressionMetric(stats, { source: "auto-compact" });
+          recordCompressionMetric(stats, {
+            source: "auto-compact",
+            provider,
+            model: activeModel,
+          });
           if (stats.saved > 0) {
             logger.verbose(
               `Auto-compacted: ${stats.strategy} (saved ${stats.saved} tokens)`,

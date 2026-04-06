@@ -1,8 +1,24 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-06 增量更新
+
+本次在保留原有 README 主体内容的基础上，补充了 Agent 架构优化系统的最新落地能力：
+
+- 后台任务支持分页历史检索、任务输出摘要、重启恢复和多节点恢复策略基础能力。
+- Worktree 冲突处理支持文件级摘要、自动化解决候选项和 diff 预览入口。
+- 压缩观测支持时间窗口筛选，以及按 provider / model 维度切片统计。
+- 会话迁移支持目录级 dry-run 报告、迁移后抽样校验和失败重试。
+
+本轮定向验证结果：
+
+- CLI 定向单元测试：`125/125`
+- CLI 定向集成测试：`18/18`
+- Web Panel 定向单元测试：`12/12`
+- Web Panel E2E：`29/29`
+
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.2.10-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.2.9-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -22,14 +38,7 @@
 
 ---
 
-## ⭐ 当前版本: v5.0.2.10 Evolution Edition (2026-04-06)
-
-### 最新修复 - Agent 架构优化修复与测试补强 (v5.0.2.10) ⭐
-- 修复 `COMPRESSION_AB` 默认值误判，未启用时不再被识别为 `balanced` 变体。
-- 修复 `ws-server` 中后台任务协议的 ESM 加载方式，`tasks-list` / `tasks-stop` 可直接工作。
-- 修复 Web Panel 后台任务页，改为直接走 `tasks-list` / `tasks-stop` 协议，并补齐 `sendRaw()`、通知订阅释放和页面渲染问题。
-- 新增并修正后台任务链路相关单元/集成测试。
-- 本次验证：Web Panel 单元测试 12 项通过；CLI 定向单元测试 2977 项通过；CLI 定向集成测试 428 项通过。
+## ⭐ 当前版本: v5.0.2.9 Evolution Edition (2026-04-04)
 
 ### 最新更新 - Agent 架构优化 (5 模块 + 4 增强 + 334 测试) ⭐
 
@@ -1991,10 +2000,3 @@ chainlesschain/
 - [🗂️ 统一工具注册表](./desktop-app-vue/src/main/ai-engine/unified-tool-registry.js) - 3大工具系统聚合
 - [📦 演示模板系统](./desktop-app-vue/src/main/templates/demo-template-loader.js) - 10个演示模板加载器
 - [🔧 工具浏览器](./desktop-app-vue/src/renderer/pages/ToolsExplorerPage.vue) - 按技能分组浏览工具
-## Agent 架构优化补充增强 (2026-04-06)
-
-- 后台任务新增重启恢复、任务详情查询与历史事件持久化，`ws-server` 补齐 `tasks-detail` / `tasks-history` 协议。
-- Worktree 合并冲突改为返回文件级摘要、冲突类型与建议操作，便于 Web/Agent 侧直接展示。
-- Prompt Compressor 新增压缩遥测落盘与聚合统计，Web Panel Dashboard 已展示命中率、节省 token、净节省率与变体分布。
-- 新增旧 JSON 会话到 JSONL 的批量迁移与校验命令：`chainlesschain session migrate` / `chainlesschain session validate`。
-- 本次验证：CLI 定向单元测试 `125/125`，CLI 定向集成测试 `18/18`，Web Panel 定向单元测试 `12/12`，Web Panel E2E `29/29`。

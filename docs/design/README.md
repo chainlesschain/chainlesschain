@@ -1,8 +1,12 @@
 # 设计文档
 
+> 2026-04-06 补充增强：
+> `77_Agent架构优化系统.md` 已继续补充任务历史分页、任务输出摘要、多节点恢复策略、
+> Worktree 自动化冲突候选项、压缩观测切片统计，以及会话迁移 dry-run / 抽样校验 / 重试机制。
+
 本目录包含 ChainlessChain 系统的设计和架构文档。
 
-> **最新变更 (2026-04-06)**: Agent 架构优化系统完成 v5.0.2.10 修复补丁，修复 `COMPRESSION_AB` 默认值误判、后台任务 WebSocket 协议链路和 Web Panel 后台任务页渲染问题；新增定向测试并完成本地回归。前次更新：AI 文档创作模板 (`cc init --template ai-doc-creator`) — 自动生成 doc-generate（AI文档生成）+ libre-convert（LibreOffice格式转换）2个技能，127个新增测试全部通过。
+> **最新变更 (2026-03-17)**: AI 文档创作模板 (`cc init --template ai-doc-creator`) — 自动生成 doc-generate（AI文档生成）+ libre-convert（LibreOffice格式转换）2个技能，明确 LibreOffice 同时适合 workspace 技能与 cli-anything 注册，127个新增测试全部通过。前次更新：AI 音视频创作模板 (`cc init --template ai-media-creator`) — 自动生成 ComfyUI图像/视频技能 + 4后端TTS音频合成技能，114个新增测试全部通过。
 
 ## 文档结构
 
@@ -304,5 +308,4 @@ docs/design/
 
 ---
 
-**最后更新**: 2026-04-06 (v5.0.2.10, Agent 架构优化修复补丁 + Web Panel 后台任务链路修复 + CLI 定向回归测试通过)
-> **补充增强 (2026-04-06)**: Agent 架构优化系统已补齐 4 项落地能力：后台任务重启恢复与历史查询、Worktree 冲突文件级摘要、压缩策略观测面板、旧 JSON 会话到 JSONL 的批量迁移与校验命令。本次已完成定向单元/集成/Web Panel E2E 回归。
+**最后更新**: 2026-03-15 (v5.0.1, 138技能 + Phase 1-102+ 全部完成 + CLI 61命令/4500+测试 + CLI-Anything集成 + WebSocket Server Phase 2 有状态会话)

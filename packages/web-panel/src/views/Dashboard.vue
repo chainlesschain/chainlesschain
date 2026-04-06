@@ -1,11 +1,16 @@
 <template>
   <div>
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+    <div
+      style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;"
+    >
       <div>
         <h2 class="page-title">仪表板</h2>
         <p class="page-sub">
-          {{ isProject ? `项目「${cfg.projectName || '未命名'}」运行概览` : 'ChainlessChain 全局运行状态' }}
+          {{
+            isProject
+              ? `项目「${cfg.projectName || '未命名'}」运行概览`
+              : 'ChainlessChain 全局运行状态'
+          }}
         </p>
       </div>
       <a-button type="primary" ghost :loading="loading" @click="refresh">
@@ -14,8 +19,11 @@
       </a-button>
     </div>
 
-    <!-- Project Mode Banner -->
-    <a-card v-if="isProject" style="background: rgba(22,119,255,.08); border-color: rgba(22,119,255,.25); margin-bottom: 16px;" size="small">
+    <a-card
+      v-if="isProject"
+      style="background: rgba(22,119,255,.08); border-color: rgba(22,119,255,.25); margin-bottom: 16px;"
+      size="small"
+    >
       <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
         <FolderOutlined style="color: #1677ff; font-size: 18px;" />
         <div>
@@ -26,41 +34,51 @@
       </div>
     </a-card>
 
-    <!-- Primary Stats Row -->
     <a-row :gutter="[12, 12]" style="margin-bottom: 16px;">
-      <!-- WebSocket Gateway -->
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card class="stat-card gateway-card" size="small">
           <div class="stat-header">
             <span class="stat-label">WebSocket Gateway</span>
             <a-badge :status="wsStatus === 'connected' ? 'success' : 'error'" />
           </div>
-          <div class="stat-value" :style="{ color: wsStatus === 'connected' ? '#52c41a' : '#888' }">
+          <div
+            class="stat-value"
+            :style="{ color: wsStatus === 'connected' ? '#52c41a' : '#888' }"
+          >
             {{ wsStatus === 'connected' ? '运行中' : '未连接' }}
           </div>
           <div class="stat-sub">端口 {{ cfg.wsPort || 18800 }} · {{ cfg.wsHost || '127.0.0.1' }}</div>
         </a-card>
       </a-col>
 
-      <!-- Active LLM -->
       <a-col :xs="24" :sm="12" :lg="6">
         <a-card class="stat-card" size="small">
           <div class="stat-header">
-            <span class="stat-label">主 LLM</span>
+            <span class="stat-label">当前 LLM</span>
             <RobotOutlined style="color: #1677ff;" />
           </div>
-          <div class="stat-value" style="color: #91caff; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div
+            class="stat-value"
+            style="color: #91caff; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+          >
             {{ stats.activeLlm || '未配置' }}
           </div>
-          <div class="stat-sub" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div
+            class="stat-sub"
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+          >
             {{ stats.activeModel || '—' }}
           </div>
         </a-card>
       </a-col>
 
-      <!-- Skills -->
       <a-col :xs="24" :sm="12" :lg="6">
-        <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/skills')">
+        <a-card
+          class="stat-card"
+          size="small"
+          style="cursor: pointer;"
+          @click="$router.push('/skills')"
+        >
           <div class="stat-header">
             <span class="stat-label">可用技能</span>
             <AppstoreOutlined style="color: #1677ff;" />
@@ -70,9 +88,13 @@
         </a-card>
       </a-col>
 
-      <!-- Sessions -->
       <a-col :xs="24" :sm="12" :lg="6">
-        <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/chat')">
+        <a-card
+          class="stat-card"
+          size="small"
+          style="cursor: pointer;"
+          @click="$router.push('/chat')"
+        >
           <div class="stat-header">
             <span class="stat-label">AI 会话</span>
             <MessageOutlined style="color: #722ed1;" />
@@ -83,25 +105,30 @@
       </a-col>
     </a-row>
 
-    <!-- Secondary Stats Row -->
     <a-row :gutter="[12, 12]" style="margin-bottom: 16px;">
-      <!-- App Status -->
       <a-col :xs="24" :sm="8">
         <a-card class="stat-card" size="small">
           <div class="stat-header">
             <span class="stat-label">应用状态</span>
             <DesktopOutlined :style="{ color: stats.appRunning ? '#52c41a' : '#888' }" />
           </div>
-          <div class="stat-value" :style="{ color: stats.appRunning ? '#52c41a' : '#888', fontSize: '15px' }">
+          <div
+            class="stat-value"
+            :style="{ color: stats.appRunning ? '#52c41a' : '#888', fontSize: '15px' }"
+          >
             {{ stats.appRunning ? '运行中' : stats.setupDone ? '已初始化' : '未启动' }}
           </div>
           <div class="stat-sub">{{ stats.edition || 'Community' }} Edition</div>
         </a-card>
       </a-col>
 
-      <!-- MCP Tools -->
       <a-col :xs="24" :sm="8">
-        <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/mcp')">
+        <a-card
+          class="stat-card"
+          size="small"
+          style="cursor: pointer;"
+          @click="$router.push('/mcp')"
+        >
           <div class="stat-header">
             <span class="stat-label">MCP 工具</span>
             <ToolOutlined style="color: #13c2c2;" />
@@ -111,9 +138,13 @@
         </a-card>
       </a-col>
 
-      <!-- Notes -->
       <a-col :xs="24" :sm="8">
-        <a-card class="stat-card" size="small" style="cursor: pointer;" @click="$router.push('/notes')">
+        <a-card
+          class="stat-card"
+          size="small"
+          style="cursor: pointer;"
+          @click="$router.push('/notes')"
+        >
           <div class="stat-header">
             <span class="stat-label">知识库笔记</span>
             <FileTextOutlined style="color: #faad14;" />
@@ -124,9 +155,7 @@
       </a-col>
     </a-row>
 
-    <!-- Quick Actions + Status Log (2-col layout) -->
     <a-row :gutter="[16, 16]">
-      <!-- Quick Actions -->
       <a-col :xs="24" :lg="10">
         <a-card title="快速操作" style="background: var(--bg-card); border-color: var(--border-color); height: 100%;">
           <a-space direction="vertical" style="width: 100%;" size="middle">
@@ -134,19 +163,31 @@
               <template #icon><MessageOutlined /></template>
               {{ isProject ? '进入项目 Chat' : '新建 AI 对话' }}
             </a-button>
-            <a-button block @click="newAgentSession" style="background: rgba(114,46,209,.12); border-color: #722ed1; color: #722ed1;">
+            <a-button
+              block
+              @click="newAgentSession"
+              style="background: rgba(114,46,209,.12); border-color: #722ed1; color: #722ed1;"
+            >
               <template #icon><RobotOutlined /></template>
               启动 Agent 模式
             </a-button>
             <a-row :gutter="8">
               <a-col :span="12">
-                <a-button block @click="$router.push('/services')" style="background: var(--bg-card-hover); border-color: var(--border-color);">
+                <a-button
+                  block
+                  @click="$router.push('/services')"
+                  style="background: var(--bg-card-hover); border-color: var(--border-color);"
+                >
                   <template #icon><SettingOutlined /></template>
                   服务管理
                 </a-button>
               </a-col>
               <a-col :span="12">
-                <a-button block @click="$router.push('/logs')" style="background: var(--bg-card-hover); border-color: var(--border-color);">
+                <a-button
+                  block
+                  @click="$router.push('/logs')"
+                  style="background: var(--bg-card-hover); border-color: var(--border-color);"
+                >
                   <template #icon><FileTextOutlined /></template>
                   查看日志
                 </a-button>
@@ -154,13 +195,21 @@
             </a-row>
             <a-row :gutter="8">
               <a-col :span="12">
-                <a-button block @click="$router.push('/skills')" style="background: var(--bg-card-hover); border-color: var(--border-color);">
+                <a-button
+                  block
+                  @click="$router.push('/skills')"
+                  style="background: var(--bg-card-hover); border-color: var(--border-color);"
+                >
                   <template #icon><AppstoreOutlined /></template>
                   技能管理
                 </a-button>
               </a-col>
               <a-col :span="12">
-                <a-button block @click="$router.push('/providers')" style="background: var(--bg-card-hover); border-color: var(--border-color);">
+                <a-button
+                  block
+                  @click="$router.push('/providers')"
+                  style="background: var(--bg-card-hover); border-color: var(--border-color);"
+                >
                   <template #icon><ApiOutlined /></template>
                   LLM 配置
                 </a-button>
@@ -170,7 +219,6 @@
         </a-card>
       </a-col>
 
-      <!-- Status Log -->
       <a-col :xs="24" :lg="14">
         <a-card
           title="最近状态"
@@ -178,7 +226,7 @@
           :loading="loading"
         >
           <template #extra>
-            <a-button type="link" size="small" @click="$router.push('/logs')">查看更多 →</a-button>
+            <a-button type="link" size="small" @click="$router.push('/logs')">查看更多</a-button>
           </template>
           <pre class="status-log">{{ statusLog || '点击刷新加载系统状态...' }}</pre>
         </a-card>
@@ -190,12 +238,50 @@
       style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;"
       :loading="loading"
     >
+      <a-row :gutter="[12, 12]" style="margin-bottom: 12px;">
+        <a-col :xs="24" :md="8">
+          <div class="telemetry-filter">
+            <div class="telemetry-filter-label">时间窗口</div>
+            <a-select v-model:value="telemetryFilters.windowPreset" style="width: 100%;" @change="refreshCompression">
+              <a-select-option value="all">全部样本</a-select-option>
+              <a-select-option value="1h">近 1 小时</a-select-option>
+              <a-select-option value="24h">近 24 小时</a-select-option>
+              <a-select-option value="7d">近 7 天</a-select-option>
+            </a-select>
+          </div>
+        </a-col>
+        <a-col :xs="24" :md="8">
+          <div class="telemetry-filter">
+            <div class="telemetry-filter-label">Provider 切片</div>
+            <a-select v-model:value="telemetryFilters.provider" style="width: 100%;" @change="refreshCompression">
+              <a-select-option value="">全部 Provider</a-select-option>
+              <a-select-option v-for="item in providerEntries" :key="item.key" :value="item.key">
+                {{ item.key }}
+              </a-select-option>
+            </a-select>
+          </div>
+        </a-col>
+        <a-col :xs="24" :md="8">
+          <div class="telemetry-filter">
+            <div class="telemetry-filter-label">Model 切片</div>
+            <a-select v-model:value="telemetryFilters.model" style="width: 100%;" @change="refreshCompression">
+              <a-select-option value="">全部 Model</a-select-option>
+              <a-select-option v-for="item in modelEntries" :key="item.key" :value="item.key">
+                {{ item.key }}
+              </a-select-option>
+            </a-select>
+          </div>
+        </a-col>
+      </a-row>
+
       <a-row :gutter="[12, 12]">
         <a-col :xs="24" :sm="8">
           <div class="telemetry-card">
             <div class="telemetry-label">压缩命中率</div>
             <div class="telemetry-value">{{ formatPercent(compression.hitRate) }}</div>
-            <div class="telemetry-sub">{{ compression.compressedSamples }} / {{ compression.samples }} 次压缩产生了有效节省</div>
+            <div class="telemetry-sub">
+              {{ compression.compressedSamples }} / {{ compression.samples }} 次压缩产生了有效节省
+            </div>
           </div>
         </a-col>
         <a-col :xs="24" :sm="8">
@@ -209,7 +295,9 @@
           <div class="telemetry-card">
             <div class="telemetry-label">净节省率</div>
             <div class="telemetry-value">{{ formatPercent(compression.netSavingsRate) }}</div>
-            <div class="telemetry-sub">原始 {{ compression.totalOriginalTokens }} → 压缩后 {{ compression.totalCompressedTokens }}</div>
+            <div class="telemetry-sub">
+              原始 {{ compression.totalOriginalTokens }} → 压缩后 {{ compression.totalCompressedTokens }}
+            </div>
           </div>
         </a-col>
       </a-row>
@@ -220,7 +308,11 @@
             <div class="telemetry-section-title">策略命中分布</div>
             <div v-if="compression.strategyDistribution.length === 0" class="telemetry-empty">暂无压缩样本</div>
             <div v-else class="telemetry-list">
-              <div v-for="item in compression.strategyDistribution.slice(0, 6)" :key="item.strategy" class="telemetry-row">
+              <div
+                v-for="item in compression.strategyDistribution.slice(0, 6)"
+                :key="item.strategy"
+                class="telemetry-row"
+              >
                 <span>{{ item.strategy }}</span>
                 <span>{{ item.hits }} 次 · {{ formatPercent(item.hitRate) }}</span>
               </div>
@@ -240,9 +332,35 @@
           </div>
         </a-col>
       </a-row>
+
+      <a-row :gutter="[16, 16]" style="margin-top: 12px;">
+        <a-col :xs="24" :lg="12">
+          <div class="telemetry-section">
+            <div class="telemetry-section-title">Provider 切片</div>
+            <div v-if="providerEntries.length === 0" class="telemetry-empty">暂无 Provider 数据</div>
+            <div v-else class="telemetry-list">
+              <div v-for="item in providerEntries.slice(0, 6)" :key="item.key" class="telemetry-row">
+                <span>{{ item.key }}</span>
+                <span>{{ item.samples }} 次 · {{ formatPercent(item.hitRate) }}</span>
+              </div>
+            </div>
+          </div>
+        </a-col>
+        <a-col :xs="24" :lg="12">
+          <div class="telemetry-section">
+            <div class="telemetry-section-title">Model 切片</div>
+            <div v-if="modelEntries.length === 0" class="telemetry-empty">暂无 Model 数据</div>
+            <div v-else class="telemetry-list">
+              <div v-for="item in modelEntries.slice(0, 6)" :key="item.key" class="telemetry-row">
+                <span>{{ item.key }}</span>
+                <span>{{ item.samples }} 次 · {{ item.savedTokens }} saved</span>
+              </div>
+            </div>
+          </div>
+        </a-col>
+      </a-row>
     </a-card>
 
-    <!-- System Info -->
     <a-card title="运行信息" style="background: var(--bg-card); border-color: var(--border-color); margin-top: 16px;">
       <a-descriptions :column="{ xs: 1, sm: 2, lg: 3 }" size="small">
         <a-descriptions-item label="面板模式">
@@ -290,9 +408,16 @@ const cfg = window.__CC_CONFIG__ || {}
 const isProject = computed(() => cfg.mode === 'project')
 const wsStatus = computed(() => ws.status)
 const variantEntries = computed(() => Object.entries(compression.value.variantDistribution || {}))
+const providerEntries = computed(() => compression.value.providerDistribution || [])
+const modelEntries = computed(() => compression.value.modelDistribution || [])
 
 const loading = ref(false)
 const statusLog = ref('')
+const telemetryFilters = ref({
+  windowPreset: 'all',
+  provider: '',
+  model: '',
+})
 const compression = ref({
   samples: 0,
   compressedSamples: 0,
@@ -304,6 +429,8 @@ const compression = ref({
   netSavingsRate: 0,
   variantDistribution: {},
   strategyDistribution: [],
+  providerDistribution: [],
+  modelDistribution: [],
 })
 const stats = ref({
   activeLlm: null, activeModel: null,
@@ -318,7 +445,6 @@ async function refresh() {
   statusLog.value = ''
 
   try {
-    // Wave 1: Critical — status + sessions
     const [statusResult, sessions] = await Promise.allSettled([
       ws.execute('status', 15000),
       ws.listSessions(),
@@ -333,7 +459,6 @@ async function refresh() {
       stats.value.sessionCount = sessions.value.length
     }
 
-    // Wave 2: Skills + LLM (parallel, non-blocking)
     Promise.allSettled([
       ws.execute('skill sources', 15000),
       ws.execute('llm providers', 15000),
@@ -349,20 +474,32 @@ async function refresh() {
       }
     })
 
-    // Wave 3: MCP count (non-blocking)
     ws.execute('mcp servers', 10000).then(({ output }) => {
       const count = (output.match(/^[a-z]/gm) || []).length
       stats.value.mcpCount = count
     }).catch(() => { stats.value.mcpCount = 0 })
 
-    ws.sendRaw({ type: 'compression-stats' }, 10000).then((result) => {
-      compression.value = { ...compression.value, ...(result.summary || {}) }
-    }).catch(() => {})
-
+    await refreshCompression()
   } catch (_) {
     // Best-effort
   } finally {
     loading.value = false
+  }
+}
+
+async function refreshCompression() {
+  const payload = {
+    type: 'compression-stats',
+    windowMs: toWindowMs(telemetryFilters.value.windowPreset),
+  }
+  if (telemetryFilters.value.provider) payload.provider = telemetryFilters.value.provider
+  if (telemetryFilters.value.model) payload.model = telemetryFilters.value.model
+
+  try {
+    const result = await ws.sendRaw(payload, 10000)
+    compression.value = { ...compression.value, ...(result.summary || {}) }
+  } catch (_) {
+    // Best-effort
   }
 }
 
@@ -372,8 +509,10 @@ function parseStatus(out) {
   const ed = out.match(/Edition:\s+(\S+)/i)
   if (ed) stats.value.edition = ed[1]
   const llm = out.match(/LLM:\s+(\S+)\s+\(([^)]+)\)/i)
-  if (llm) { stats.value.activeLlm = llm[1]; stats.value.activeModel = llm[2] }
-  else {
+  if (llm) {
+    stats.value.activeLlm = llm[1]
+    stats.value.activeModel = llm[2]
+  } else {
     const l2 = out.match(/LLM:\s+(\S+)/i)
     if (l2) stats.value.activeLlm = l2[1]
   }
@@ -381,6 +520,13 @@ function parseStatus(out) {
 
 function formatPercent(value) {
   return `${((value || 0) * 100).toFixed(1)}%`
+}
+
+function toWindowMs(preset) {
+  if (preset === '1h') return 60 * 60 * 1000
+  if (preset === '24h') return 24 * 60 * 60 * 1000
+  if (preset === '7d') return 7 * 24 * 60 * 60 * 1000
+  return null
 }
 
 async function newAgentSession() {
@@ -410,7 +556,7 @@ onMounted(() => setTimeout(refresh, 300))
   padding: 10px 14px;
   color: var(--text-secondary);
   font-size: 11px;
-  font-family: 'Consolas', monospace;
+  font-family: "Consolas", monospace;
   max-height: 200px;
   overflow-y: auto;
   white-space: pre-wrap;
@@ -423,6 +569,15 @@ onMounted(() => setTimeout(refresh, 300))
   border-radius: 8px;
   padding: 14px;
   height: 100%;
+}
+.telemetry-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.telemetry-filter-label {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 .telemetry-label {
   color: var(--text-muted);

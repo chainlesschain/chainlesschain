@@ -37,6 +37,10 @@ export function recordCompressionMetric(stats, meta = {}) {
 export function getCompressionTelemetrySummary(options = {}) {
   const filePath = telemetryPath();
   const limit = options.limit || 500;
+  const windowMs = options.windowMs || null;
+  const provider = options.provider || null;
+  const model = options.model || null;
+  const now = Date.now();
   if (!existsSync(filePath)) {
     return emptyCompressionSummary();
   }
@@ -50,7 +54,11 @@ export function getCompressionTelemetrySummary(options = {}) {
   for (const line of lines) {
     try {
       const parsed = JSON.parse(line);
-      if (parsed?.stats) samples.push(parsed);
+      if (!parsed?.stats) continue;
+      if (windowMs && now - (parsed.timestamp || 0) > windowMs) continue;
+      if (provider && parsed?.meta?.provider !== provider) continue;
+      if (model && parsed?.meta?.model !== model) continue;
+      samples.push(parsed);
     } catch {
       // Skip malformed lines
     }
@@ -62,6 +70,8 @@ export function getCompressionTelemetrySummary(options = {}) {
 
   const variantDistribution = {};
   const strategyMap = new Map();
+  const providerMap = new Map();
+  const modelMap = new Map();
   let totalSavedTokens = 0;
   let totalOriginalTokens = 0;
   let totalCompressedTokens = 0;
@@ -91,6 +101,11 @@ export function getCompressionTelemetrySummary(options = {}) {
       current.savedTokens += stats.saved || 0;
       strategyMap.set(key, current);
     }
+
+    const providerKey = sample?.meta?.provider || "unknown";
+    const modelKey = sample?.meta?.model || "unknown";
+    accumulateSlice(providerMap, providerKey, stats);
+    accumulateSlice(modelMap, modelKey, stats);
   }
 
   const strategyDistribution = [...strategyMap.values()]
@@ -113,8 +128,16 @@ export function getCompressionTelemetrySummary(options = {}) {
       totalOriginalTokens > 0
         ? (totalOriginalTokens - totalCompressedTokens) / totalOriginalTokens
         : 0,
+    filters: {
+      limit,
+      windowMs,
+      provider,
+      model,
+    },
     variantDistribution,
     strategyDistribution,
+    providerDistribution: finalizeSliceDistribution(providerMap, samples.length),
+    modelDistribution: finalizeSliceDistribution(modelMap, samples.length),
   };
 }
 
@@ -136,7 +159,40 @@ function emptyCompressionSummary() {
     totalOriginalTokens: 0,
     totalCompressedTokens: 0,
     netSavingsRate: 0,
+    filters: {
+      limit: 500,
+      windowMs: null,
+      provider: null,
+      model: null,
+    },
     variantDistribution: {},
     strategyDistribution: [],
+    providerDistribution: [],
+    modelDistribution: [],
   };
+}
+
+function accumulateSlice(map, key, stats) {
+  const current = map.get(key) || {
+    key,
+    samples: 0,
+    compressedSamples: 0,
+    savedTokens: 0,
+  };
+  current.samples += 1;
+  current.savedTokens += stats.saved || 0;
+  if ((stats.saved || 0) > 0 || stats.strategy !== "none") {
+    current.compressedSamples += 1;
+  }
+  map.set(key, current);
+}
+
+function finalizeSliceDistribution(map, totalSamples) {
+  return [...map.values()]
+    .map((entry) => ({
+      ...entry,
+      hitRate: entry.samples > 0 ? entry.compressedSamples / entry.samples : 0,
+      share: totalSamples > 0 ? entry.samples / totalSamples : 0,
+    }))
+    .sort((a, b) => b.samples - a.samples);
 }
