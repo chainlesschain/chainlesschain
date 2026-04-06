@@ -1,6 +1,6 @@
 # Architecture Overview
 
-**Generated**: 2026-03-25T06:25:43.995Z
+**Generated**: 2026-04-06T03:25:10.971Z
 
 ---
 
@@ -19,7 +19,7 @@
 **Top 10 Largest Files**:
 
 1. `src/main/remote/browser-extension/background.js` - 444.4 KB
-2. `src/main/database.js` - 323.7 KB
+2. `src/main/database.js` - 324.0 KB
 3. `src/main/ipc/ipc-registry.js` - 193.6 KB
 4. `src/main/skill-tool-system/tools/system-tools.js` - 132.1 KB
 5. `src/main/skill-tool-system/tools/ai-tools.js` - 128.6 KB
