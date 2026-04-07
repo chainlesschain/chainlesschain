@@ -197,7 +197,7 @@ ipcDomainSplit: {
 
 ## 九、Phase 模块文件拆分 (H2)
 
-**版本**: v0.45.24
+**版本**: v0.45.25
 **完成日期**: 2026-04-07
 
 为降低单文件复杂度，将 `src/main/ipc/ipc-registry.js`（原 4925 行）中后半段独立的 Phase 注册块抽出到 `src/main/ipc/phases/` 子目录，按版本/批次分组。`registerAllIPC()` 通过统一的 `safeRegister` 钩子调用每个 Phase 模块的 registrar 函数。
@@ -207,6 +207,7 @@ ipcDomainSplit: {
 | 文件                                | 行数 | Phase 数 | 说明                                                          |
 | ----------------------------------- | ---: | -------: | ------------------------------------------------------------- |
 | `phases/phase-9-15-core.js`         |  259 |        7 | Cowork, Workflow Optimizations, Audit, Marketplace, Agents, SSO, UnifiedTools |
+| `phases/phase-16-20-skill-evo.js`   |  494 |        5 | Skill Pipeline/Workflow, Instinct, Cowork v2 Cross-device, ML Sched/LB/CICD/Docs, Self-Evolution |
 | `phases/phase-21-30-enterprise.js`  |  295 |       10 | Enterprise Org, IPFS, Analytics, Autonomous, AutoTuner, Multimodal, Skill Marketplace, Trading, DeFi, Crypto |
 | `phases/phase-31-ai-models.js`      |  261 |        7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn |
 | `phases/phase-33-40-collab-ops.js`  |  553 |        8 | Git P2P, Yjs Collab, Pipeline, Anomaly, NL Spec, Multimodal, Wire-up, Decentralized Network |
@@ -215,7 +216,7 @@ ipcDomainSplit: {
 | `phases/phase-51-57-v1-1.js`        |  268 |        7 | SIEM, PQC, Firmware OTA, Governance, Matrix, Terraform, Hardening |
 | `phases/phase-58-77-v2-v3.js`       |  757 |       20 | Federation, Reputation, SLA, Tech Learning, Autonomous Dev, Skill Service, Token, Inference, Trust Root, PQC Eco, Satellite, HSM, Protocol Fusion, AI Social, Storage, Anti-Censorship, EvoMap |
 | `phases/phase-q1-2027.js`           |   89 |        5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                      |
-| **合计**                            | 3034 |   **74** | —                                                             |
+| **合计**                            | 3528 |   **79** | —                                                             |
 
 ### 9.2 Registrar 契约
 
@@ -256,10 +257,10 @@ module.exports = { registerPhases42to50 };
 
 | 指标                       | 拆分前 | 拆分后 |     变化 |
 | -------------------------- | -----: | -----: | -------: |
-| `ipc-registry.js` 行数     |   4925 |   2150 |   −2775 |
-| 顶层 Phase 注册块          |     77 |      3 |    −74 |
-| `phases/` 目录文件数       |      0 |      9 |     +9 |
-| 总代码行数（含 phases）   |   4925 |   5184 |    +259 |
+| `ipc-registry.js` 行数     |   4925 |   1704 |   −3221 |
+| 顶层 Phase 注册块          |     77 |      2 |    −75 |
+| `phases/` 目录文件数       |      0 |     10 |    +10 |
+| 总代码行数（含 phases）   |   4925 |   5232 |    +307 |
 
 > 行数小幅增加来自每个 Phase 文件的头部注释和函数包装；换取的是单文件复杂度的大幅降低。
 
@@ -267,7 +268,7 @@ module.exports = { registerPhases42to50 };
 
 | 测试文件                                          | 测试数量 | 状态        |
 | ------------------------------------------------- | -------: | ----------- |
-| `src/main/ipc/__tests__/phase-modules.test.js`    |   **27** | ✅ 通过     |
+| `src/main/ipc/__tests__/phase-modules.test.js`    |   **30** | ✅ 通过     |
 
 测试通过 Mock `safeRegister` 验证每个 Phase 模块：
 
