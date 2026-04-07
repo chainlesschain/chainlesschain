@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/agents/data-analysis-agent.js`
 
-**Generated**: 2026-04-07T14:29:14.775Z
+**Generated**: 2026-04-07T14:35:12.806Z
 
 ---
 

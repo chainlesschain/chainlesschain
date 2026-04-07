@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/feature-extractor.js`
 
-**Generated**: 2026-04-07T14:29:14.769Z
+**Generated**: 2026-04-07T14:35:12.800Z
 
 ---
 

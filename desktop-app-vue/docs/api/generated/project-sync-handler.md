@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/project-sync-handler.js`
 
-**Generated**: 2026-04-07T14:29:14.692Z
+**Generated**: 2026-04-07T14:35:12.729Z
 
 ---
 

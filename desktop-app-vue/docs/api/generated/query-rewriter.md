@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/query-rewriter.js`
 
-**Generated**: 2026-04-07T14:29:14.680Z
+**Generated**: 2026-04-07T14:35:12.718Z
 
 ---
 
