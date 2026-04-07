@@ -197,22 +197,23 @@ ipcDomainSplit: {
 
 ## 九、Phase 模块文件拆分 (H2)
 
-**版本**: v0.45.22
+**版本**: v0.45.23
 **完成日期**: 2026-04-07
 
 为降低单文件复杂度，将 `src/main/ipc/ipc-registry.js`（原 4925 行）中后半段独立的 Phase 注册块抽出到 `src/main/ipc/phases/` 子目录，按版本/批次分组。`registerAllIPC()` 通过统一的 `safeRegister` 钩子调用每个 Phase 模块的 registrar 函数。
 
 ### 9.1 抽出文件清单
 
-| 文件                              | 行数 | Phase 数 | 说明                                                          |
-| --------------------------------- | ---: | -------: | ------------------------------------------------------------- |
-| `phases/phase-31-ai-models.js`    |  261 |        7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn |
-| `phases/phase-41-evomap-gep.js`   |  102 |        1 | EvoMap GEP Protocol                                           |
-| `phases/phase-42-50-v1-1.js`      |  450 |        9 | Social/AP, Compliance, SCIM, U-Key/FIDO2, Threshold, BLE, Recommend, Nostr, DLP |
-| `phases/phase-51-57-v1-1.js`      |  268 |        7 | SIEM, PQC, Firmware OTA, Governance, Matrix, Terraform, Hardening |
-| `phases/phase-58-77-v2-v3.js`     |  755 |       20 | Federation, Reputation, SLA, Tech Learning, Autonomous Dev, Skill Service, Token, Inference, Trust Root, PQC Eco, Satellite, HSM, Protocol Fusion, AI Social, Storage, Anti-Censorship, EvoMap |
-| `phases/phase-q1-2027.js`         |   89 |        5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                      |
-| **合计**                          | 1925 |   **49** | —                                                             |
+| 文件                                | 行数 | Phase 数 | 说明                                                          |
+| ----------------------------------- | ---: | -------: | ------------------------------------------------------------- |
+| `phases/phase-21-30-enterprise.js`  |  302 |       10 | Enterprise Org, IPFS, Analytics, Autonomous, AutoTuner, Multimodal, Skill Marketplace, Trading, DeFi, Crypto |
+| `phases/phase-31-ai-models.js`      |  261 |        7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn |
+| `phases/phase-41-evomap-gep.js`     |  102 |        1 | EvoMap GEP Protocol                                           |
+| `phases/phase-42-50-v1-1.js`        |  450 |        9 | Social/AP, Compliance, SCIM, U-Key/FIDO2, Threshold, BLE, Recommend, Nostr, DLP |
+| `phases/phase-51-57-v1-1.js`        |  268 |        7 | SIEM, PQC, Firmware OTA, Governance, Matrix, Terraform, Hardening |
+| `phases/phase-58-77-v2-v3.js`       |  755 |       20 | Federation, Reputation, SLA, Tech Learning, Autonomous Dev, Skill Service, Token, Inference, Trust Root, PQC Eco, Satellite, HSM, Protocol Fusion, AI Social, Storage, Anti-Censorship, EvoMap |
+| `phases/phase-q1-2027.js`           |   89 |        5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                      |
+| **合计**                            | 2227 |   **59** | —                                                             |
 
 ### 9.2 Registrar 契约
 
@@ -253,10 +254,10 @@ module.exports = { registerPhases42to50 };
 
 | 指标                       | 拆分前 | 拆分后 |     变化 |
 | -------------------------- | -----: | -----: | -------: |
-| `ipc-registry.js` 行数     |   4925 |   3121 |   −1804 |
-| 顶层 Phase 注册块          |     77 |     27 |    −50 |
-| `phases/` 目录文件数       |      0 |      6 |     +6 |
-| 总代码行数（含 phases）   |   4925 |   5046 |    +121 |
+| `ipc-registry.js` 行数     |   4925 |   2868 |   −2057 |
+| 顶层 Phase 注册块          |     77 |     17 |    −60 |
+| `phases/` 目录文件数       |      0 |      7 |     +7 |
+| 总代码行数（含 phases）   |   4925 |   5095 |    +170 |
 
 > 行数小幅增加来自每个 Phase 文件的头部注释和函数包装；换取的是单文件复杂度的大幅降低。
 
@@ -264,7 +265,7 @@ module.exports = { registerPhases42to50 };
 
 | 测试文件                                          | 测试数量 | 状态        |
 | ------------------------------------------------- | -------: | ----------- |
-| `src/main/ipc/__tests__/phase-modules.test.js`    |   **18** | ✅ 通过     |
+| `src/main/ipc/__tests__/phase-modules.test.js`    |   **21** | ✅ 通过     |
 
 测试通过 Mock `safeRegister` 验证每个 Phase 模块：
 
