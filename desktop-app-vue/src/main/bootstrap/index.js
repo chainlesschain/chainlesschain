@@ -171,7 +171,12 @@ async function bootstrapApplication(options = {}) {
         import("../config/unified-config-manager.js"),
         Promise.resolve(require("../config/database-config")),
       ]);
-    await Promise.all([prewarmUnifiedConfigManager(), prewarmAppConfig()]);
+    const { prewarmLLMConfig } = require("../llm/llm-config");
+    await Promise.all([
+      prewarmUnifiedConfigManager(),
+      prewarmAppConfig(),
+      prewarmLLMConfig(),
+    ]);
   } catch (error) {
     logger.warn(
       "[Bootstrap] 配置异步预热失败，将回退到同步初始化:",
