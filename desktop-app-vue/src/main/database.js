@@ -81,11 +81,35 @@ class DatabaseManager {
     this.encryptionPassword = options.password || null; // 加密密码
     this.encryptionEnabled = options.encryptionEnabled !== false; // 默认启用加密
 
-    // 🚀 性能优化：Prepared Statement 缓存
-    this.preparedStatements = new Map();
+    // 🚀 性能优化：Prepared Statement 缓存（LRU 策略，避免长期运行无界增长）
+    this.initializePreparedStatementCache();
 
     // 🚀 性能优化：查询结果缓存（使用LRU策略）
     this.initializeQueryCache();
+  }
+
+  /**
+   * 初始化 Prepared Statement 缓存（LRU 策略）
+   *
+   * 修复 H4: 长期运行的实例下，每条不同 SQL 都会缓存对应的 prepared statement，
+   * 历史上使用普通 Map 无淘汰机制，会导致内存随会话数线性增长。
+   */
+  initializePreparedStatementCache() {
+    try {
+      const LRU = require("lru-cache");
+      this.preparedStatements = new LRU({
+        max: 500, // 单连接最多缓存 500 条 prepared statement
+        // 注意：不能用 dispose 关闭 better-sqlite3 stmt，因为 caller 仍可能持有引用
+        // better-sqlite3 stmt 在被 GC 时会自动 finalize
+      });
+      logger.info("[Database] Prepared statement 缓存已初始化 (LRU, max=500)");
+    } catch (error) {
+      logger.warn(
+        "[Database] LRU 不可用，回退到无界 Map:",
+        error.message,
+      );
+      this.preparedStatements = new Map();
+    }
   }
 
   /**
@@ -136,9 +160,15 @@ class DatabaseManager {
 
   /**
    * 清除所有 Prepared Statements（用于数据库重置）
+   *
+   * 兼容 lru-cache v6 (reset) 和 v7+/Map (clear)
    */
   clearPreparedStatements() {
-    this.preparedStatements.clear();
+    if (typeof this.preparedStatements.reset === "function") {
+      this.preparedStatements.reset();
+    } else if (typeof this.preparedStatements.clear === "function") {
+      this.preparedStatements.clear();
+    }
     logger.info("[Database] Prepared statement缓存已清除");
   }
 

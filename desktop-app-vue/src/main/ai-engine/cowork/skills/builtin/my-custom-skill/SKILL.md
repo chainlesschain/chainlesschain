@@ -4,7 +4,8 @@ display-name: My Custom Skill
 description: A skill that does something useful
 version: 1.0.0
 category: general
-user-invocable: true
+experimental: true
+user-invocable: false
 tags: [my, custom, skill]
 capabilities: [my-custom-skill-action]
 handler: ./handler.js

@@ -53,6 +53,71 @@ class AgentOrchestrator extends EventEmitter {
       failedTasks: 0,
       agentUsage: {},
     };
+
+    // L1: 订阅 LLM 状态总线 — provider 切换 / 服务暂停时清理任务上下文
+    this._stateBusSubscriptions = [];
+    if (options.enableStateBus !== false) {
+      try {
+        const {
+          getLLMStateBus,
+          Events,
+        } = require("../../llm/llm-state-bus");
+        const bus = getLLMStateBus();
+        const onProviderChange = (payload) => {
+          this._log(
+            `LLM provider 变更,丢弃所有 active executions: ${JSON.stringify(payload)}`,
+          );
+          for (const [executionId] of this.activeExecutions) {
+            this.activeExecutions.delete(executionId);
+          }
+          this.emit("context-invalidated", { reason: "provider-change" });
+        };
+        const onPaused = (payload) => {
+          this._log(`LLM 服务暂停: ${payload?.reason || "unknown"}`);
+          this.emit("orchestrator-paused", payload);
+        };
+        const onResumed = (payload) => {
+          this._log("LLM 服务恢复");
+          this.emit("orchestrator-resumed", payload);
+        };
+        bus.on(Events.PROVIDER_CHANGED, onProviderChange);
+        bus.on(Events.MODEL_SWITCHED, onProviderChange);
+        bus.on(Events.SERVICE_PAUSED, onPaused);
+        bus.on(Events.SERVICE_RESUMED, onResumed);
+        this._stateBusSubscriptions.push(
+          [Events.PROVIDER_CHANGED, onProviderChange],
+          [Events.MODEL_SWITCHED, onProviderChange],
+          [Events.SERVICE_PAUSED, onPaused],
+          [Events.SERVICE_RESUMED, onResumed],
+        );
+      } catch (busError) {
+        logger.warn(
+          "[AgentOrchestrator] LLM 状态总线订阅失败:",
+          busError.message,
+        );
+      }
+    }
+  }
+
+  /**
+   * L1: 解绑状态总线订阅 (在销毁前调用)
+   */
+  unbindStateBus() {
+    if (
+      this._stateBusSubscriptions &&
+      this._stateBusSubscriptions.length > 0
+    ) {
+      try {
+        const { getLLMStateBus } = require("../../llm/llm-state-bus");
+        const bus = getLLMStateBus();
+        for (const [event, handler] of this._stateBusSubscriptions) {
+          bus.off(event, handler);
+        }
+      } catch (_unbindError) {
+        /* ignore */
+      }
+      this._stateBusSubscriptions = [];
+    }
   }
 
   // ==========================================

@@ -4,7 +4,8 @@ display-name: Handler Test Skill
 description: A test skill
 version: 1.0.0
 category: development
-user-invocable: true
+experimental: true
+user-invocable: false
 tags: [handler, test, skill]
 capabilities: [handler-test-skill-action]
 handler: ./handler.js
