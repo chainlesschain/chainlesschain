@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/document-engine.js`
 
-**Generated**: 2026-04-07T14:35:12.769Z
+**Generated**: 2026-04-07T15:25:32.413Z
 
 ---
 

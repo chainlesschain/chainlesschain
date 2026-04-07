@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image/ocr-service.js`
 
-**Generated**: 2026-04-07T14:35:12.756Z
+**Generated**: 2026-04-07T15:25:32.401Z
 
 ---
 

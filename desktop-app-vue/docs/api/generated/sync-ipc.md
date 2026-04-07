@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/sync-ipc.js`
 
-**Generated**: 2026-04-07T14:35:12.689Z
+**Generated**: 2026-04-07T15:25:32.324Z
 
 ---
 

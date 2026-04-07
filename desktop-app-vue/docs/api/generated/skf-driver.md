@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/skf-driver.js`
 
-**Generated**: 2026-04-07T14:35:12.678Z
+**Generated**: 2026-04-07T15:25:32.311Z
 
 ---
 
