@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/memory-hierarchy.js`
 
-**Generated**: 2026-04-07T09:15:40.374Z
+**Generated**: 2026-04-07T12:46:29.389Z
 
 ---
 

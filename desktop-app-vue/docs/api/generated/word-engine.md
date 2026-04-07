@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/word-engine.js`
 
-**Generated**: 2026-04-07T09:15:40.404Z
+**Generated**: 2026-04-07T12:46:29.420Z
 
 ---
 

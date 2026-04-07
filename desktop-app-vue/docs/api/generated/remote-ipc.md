@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/remote-ipc.js`
 
-**Generated**: 2026-04-07T09:15:40.348Z
+**Generated**: 2026-04-07T12:46:29.365Z
 
 ---
 

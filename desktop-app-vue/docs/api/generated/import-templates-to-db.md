@@ -2,7 +2,7 @@
 
 **Source**: `src/main/templates/import-templates-to-db.js`
 
-**Generated**: 2026-04-07T09:15:40.324Z
+**Generated**: 2026-04-07T12:46:29.341Z
 
 ---
 
