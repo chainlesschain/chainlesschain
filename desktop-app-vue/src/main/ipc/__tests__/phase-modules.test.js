@@ -19,6 +19,12 @@ const require = createRequire(import.meta.url);
 
 const PHASE_MODULES = [
   {
+    file: "../phases/phase-9-15-core",
+    exportName: "registerPhases9to15",
+    expectedRegistrations: 7, // Phases 9-15
+    needsRegisteredModules: true,
+  },
+  {
     file: "../phases/phase-21-30-enterprise",
     exportName: "registerPhases21to30",
     expectedRegistrations: 10, // Phases 21-30
@@ -29,6 +35,12 @@ const PHASE_MODULES = [
     exportName: "registerPhase31",
     expectedRegistrations: 7, // Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn
     needsRegisteredModules: false,
+  },
+  {
+    file: "../phases/phase-33-40-collab-ops",
+    exportName: "registerPhases33to40",
+    expectedRegistrations: 8, // Phases 33-40
+    needsRegisteredModules: true,
   },
   {
     file: "../phases/phase-41-evomap-gep",
