@@ -102,6 +102,20 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 
 **测试覆盖**：334 个测试（255 单元 + 42 集成 + 37 E2E），12 个测试文件，全部通过。
 
+### 技术债清理 - H3 database.js 拆分 (v0.45.31, 2026-04-07)
+
+将 `desktop-app-vue/src/main/database.js`（原 9470 行的巨型 `DatabaseManager` 类）中体量最大的 `createTables()` 方法（约 4012 行 SQL DDL）抽出到独立的 `database/database-schema.js` 模块。
+
+| 文件                                | 行数 | 说明                                                          |
+| ----------------------------------- | ---: | ------------------------------------------------------------- |
+| `database/database-schema.js`       | 4026 | 纯函数 `createTables(dbManager, logger)`，包含全部建表 DDL 与外键开关 |
+
+**做法**: 提取为 `function createTables(dbManager, logger)` 的纯函数，通过 `dbManager.db` 访问连接并回调 `dbManager.initDefaultSettings()` / `migrateDatabase()` / `ensureTaskBoardOwnerSchema()` / `saveToFile()`。`DatabaseManager.createTables()` 退化为单行委托。
+
+**效果**: `database.js` 由 9470 行减至 5462 行（**−4008，−42.3%**），行为字节级一致。`tests/unit/database/database.test.js`（22）+ `database-edge-cases.test.js`（15）+ `database-migration.test.js`（68）共 105 个测试全部通过。
+
+详见 [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) 第九节（H2 上下文）。
+
 ### 技术债清理 - H2 IPC Registry 拆分 (v0.45.30, 2026-04-07)
 
 将 `desktop-app-vue/src/main/ipc/ipc-registry.js` 后半段独立的 Phase 注册块抽出到 `src/main/ipc/phases/` 子目录，按版本/批次分组。
