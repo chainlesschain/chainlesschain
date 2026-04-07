@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/tool-composition-system.js`
 
-**Generated**: 2026-04-07T13:28:23.052Z
+**Generated**: 2026-04-07T13:38:43.993Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/handlers/remote-desktop-handler.js`
 
-**Generated**: 2026-04-07T13:28:22.965Z
+**Generated**: 2026-04-07T13:38:43.906Z
 
 ---
 
