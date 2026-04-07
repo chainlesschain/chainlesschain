@@ -54,6 +54,20 @@ chainlesschain config features disable CONTEXT_SNIP # Disable feature
 
 **Test Coverage**: 334 tests (255 unit + 42 integration + 37 E2E), 12 test files, all passing.
 
+### Tech-Debt Cleanup - H3 database.js Split (v0.45.31, 2026-04-07)
+
+Extracted the largest single block of `desktop-app-vue/src/main/database.js` — the ~4012-line `createTables()` SQL DDL method — out of the giant `DatabaseManager` class (originally 9470 lines) into a dedicated `database/database-schema.js` module.
+
+| File                                | Lines | Coverage                                                   |
+| ----------------------------------- | ----: | ---------------------------------------------------------- |
+| `database/database-schema.js`       |  4026 | Pure function `createTables(dbManager, logger)` containing every CREATE TABLE statement and the foreign-key toggle |
+
+**Approach**: extracted as a pure function `function createTables(dbManager, logger)` that uses `dbManager.db` for SQL execution and calls back into `dbManager.initDefaultSettings()` / `migrateDatabase()` / `ensureTaskBoardOwnerSchema()` / `saveToFile()`. `DatabaseManager.createTables()` becomes a one-line delegate.
+
+**Result**: `database.js` shrank from 9470 → 5462 lines (**−4008, −42.3%**), behavior byte-identical. All 105 database unit tests pass (`database.test.js` 22 + `database-edge-cases.test.js` 15 + `database-migration.test.js` 68).
+
+See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) §9 (H2 context).
+
 ### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.30, 2026-04-07)
 
 Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/main/ipc/ipc-registry.js` into `src/main/ipc/phases/`, grouped by version/batch.
