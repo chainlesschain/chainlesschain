@@ -201,8 +201,8 @@ class DatabaseAdapter {
       logger.info("[DatabaseAdapter] 开发模式：使用默认密码");
     }
 
-    // 加载已保存的元数据
-    const metadata = this.keyManager.loadKeyMetadata();
+    // 加载已保存的元数据 (M2: 异步)
+    const metadata = await this.keyManager.loadKeyMetadata();
 
     return await this.keyManager.getOrCreateKey({
       password: effectivePassword,

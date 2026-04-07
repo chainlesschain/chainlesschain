@@ -76,7 +76,7 @@ const mockKeyManagerInstance = {
     salt: "new-test-salt-hex",
   }),
   saveKeyMetadata: vi.fn().mockResolvedValue(undefined),
-  loadKeyMetadata: vi.fn().mockReturnValue(null),
+  loadKeyMetadata: vi.fn().mockResolvedValue(null),
   close: vi.fn().mockResolvedValue(undefined),
 };
 
@@ -198,7 +198,7 @@ describe("DatabaseAdapter", () => {
       key: "new-test-key-hex",
       salt: "new-test-salt-hex",
     });
-    mockKeyManagerInstance.loadKeyMetadata.mockReturnValue(null);
+    mockKeyManagerInstance.loadKeyMetadata.mockResolvedValue(null);
     mockKeyManagerInstance.saveKeyMetadata.mockResolvedValue(undefined);
     mockKeyManagerInstance.close.mockResolvedValue(undefined);
 
