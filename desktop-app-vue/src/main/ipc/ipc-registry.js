@@ -3067,166 +3067,150 @@ function registerAllIPC(dependencies) {
     // Phase 35: Dev Pipeline Orchestration (v3.0)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Dev Pipeline IPC...");
+    safeRegister("Dev Pipeline IPC", {
+      register: () => {
+        const {
+          getPipelineOrchestrator,
+        } = require("../ai-engine/cowork/pipeline-orchestrator");
+        const {
+          getRequirementParser,
+        } = require("../ai-engine/cowork/requirement-parser");
+        const {
+          registerPipelineIPC,
+        } = require("../ai-engine/cowork/pipeline-ipc");
 
-      const {
-        getPipelineOrchestrator,
-      } = require("../ai-engine/cowork/pipeline-orchestrator");
-      const {
-        getRequirementParser,
-      } = require("../ai-engine/cowork/requirement-parser");
-      const {
-        registerPipelineIPC,
-      } = require("../ai-engine/cowork/pipeline-ipc");
+        const pipelineOrchestrator = getPipelineOrchestrator();
+        const requirementParser = getRequirementParser();
 
-      const pipelineOrchestrator = getPipelineOrchestrator();
-      const requirementParser = getRequirementParser();
+        if (dependencies.database) {
+          requirementParser
+            .initialize(dependencies.database, {
+              codeKnowledgeGraph: registeredModules.codeKnowledgeGraph || null,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] RequirementParser init warning:",
+                err.message,
+              ),
+            );
+          pipelineOrchestrator
+            .initialize(dependencies.database, {
+              requirementParser,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] PipelineOrchestrator init warning:",
+                err.message,
+              ),
+            );
+        }
 
-      if (dependencies.database) {
-        requirementParser
-          .initialize(dependencies.database, {
-            codeKnowledgeGraph: registeredModules.codeKnowledgeGraph || null,
-          })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] RequirementParser init warning:",
-              err.message,
-            ),
-          );
-        pipelineOrchestrator
-          .initialize(dependencies.database, {
-            requirementParser,
-          })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] PipelineOrchestrator init warning:",
-              err.message,
-            ),
-          );
-      }
+        registerPipelineIPC({
+          pipelineOrchestrator,
+          requirementParser,
+        });
 
-      const { handlerCount: pipelineHandlerCount } = registerPipelineIPC({
-        pipelineOrchestrator,
-        requirementParser,
-      });
-
-      registeredModules.pipelineOrchestrator = pipelineOrchestrator;
-      registeredModules.requirementParser = requirementParser;
-
-      logger.info(
-        `[IPC Registry] ✓ Dev Pipeline IPC registered (${pipelineHandlerCount} handlers)`,
-      );
-    } catch (pipelineError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Dev Pipeline IPC registration failed (non-fatal):",
-        pipelineError.message,
-      );
-    }
+        registeredModules.pipelineOrchestrator = pipelineOrchestrator;
+        registeredModules.requirementParser = requirementParser;
+      },
+    });
 
     // ============================================================
     // Phase 36: Autonomous Ops — Anomaly Detection (v3.3)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Autonomous Ops IPC...");
+    safeRegister("Autonomous Ops IPC", {
+      register: () => {
+        const {
+          getAnomalyDetector,
+        } = require("../ai-engine/cowork/anomaly-detector");
+        const {
+          getIncidentClassifier,
+        } = require("../ai-engine/cowork/incident-classifier");
+        const {
+          registerAutonomousOpsIPC,
+        } = require("../ai-engine/cowork/autonomous-ops-ipc");
+        const {
+          getAutoRemediator,
+        } = require("../ai-engine/cowork/auto-remediator");
+        const {
+          getRollbackManager,
+        } = require("../ai-engine/cowork/rollback-manager");
+        const {
+          getAlertManager,
+        } = require("../ai-engine/cowork/alert-manager");
 
-      const {
-        getAnomalyDetector,
-      } = require("../ai-engine/cowork/anomaly-detector");
-      const {
-        getIncidentClassifier,
-      } = require("../ai-engine/cowork/incident-classifier");
-      const {
-        registerAutonomousOpsIPC,
-      } = require("../ai-engine/cowork/autonomous-ops-ipc");
-      const {
-        getAutoRemediator,
-      } = require("../ai-engine/cowork/auto-remediator");
-      const {
-        getRollbackManager,
-      } = require("../ai-engine/cowork/rollback-manager");
-      const { getAlertManager } = require("../ai-engine/cowork/alert-manager");
+        const anomalyDetector = getAnomalyDetector();
+        const incidentClassifier = getIncidentClassifier();
+        const autoRemediator = getAutoRemediator();
+        const rollbackManager = getRollbackManager();
+        const alertManager = getAlertManager();
 
-      const anomalyDetector = getAnomalyDetector();
-      const incidentClassifier = getIncidentClassifier();
-      const autoRemediator = getAutoRemediator();
-      const rollbackManager = getRollbackManager();
-      const alertManager = getAlertManager();
+        if (dependencies.database) {
+          anomalyDetector
+            .initialize(dependencies.database, {
+              errorMonitor: registeredModules.errorMonitor || null,
+              performanceMonitor: registeredModules.performanceMonitor || null,
+              incidentClassifier,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] AnomalyDetector init warning:",
+                err.message,
+              ),
+            );
+          incidentClassifier
+            .initialize(dependencies.database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] IncidentClassifier init warning:",
+                err.message,
+              ),
+            );
+          rollbackManager
+            .initialize(dependencies.database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] RollbackManager init warning:",
+                err.message,
+              ),
+            );
+          alertManager
+            .initialize(dependencies.database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] AlertManager init warning:",
+                err.message,
+              ),
+            );
+          autoRemediator
+            .initialize(dependencies.database, {
+              rollbackManager,
+              alertManager,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] AutoRemediator init warning:",
+                err.message,
+              ),
+            );
+        }
 
-      if (dependencies.database) {
-        anomalyDetector
-          .initialize(dependencies.database, {
-            errorMonitor: registeredModules.errorMonitor || null,
-            performanceMonitor: registeredModules.performanceMonitor || null,
-            incidentClassifier,
-          })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] AnomalyDetector init warning:",
-              err.message,
-            ),
-          );
-        incidentClassifier
-          .initialize(dependencies.database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] IncidentClassifier init warning:",
-              err.message,
-            ),
-          );
-        rollbackManager
-          .initialize(dependencies.database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] RollbackManager init warning:",
-              err.message,
-            ),
-          );
-        alertManager
-          .initialize(dependencies.database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] AlertManager init warning:",
-              err.message,
-            ),
-          );
-        autoRemediator
-          .initialize(dependencies.database, {
-            rollbackManager,
-            alertManager,
-          })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] AutoRemediator init warning:",
-              err.message,
-            ),
-          );
-      }
+        registerAutonomousOpsIPC({
+          anomalyDetector,
+          incidentClassifier,
+          autoRemediator,
+          rollbackManager,
+          alertManager,
+        });
 
-      const { handlerCount: opsHandlerCount } = registerAutonomousOpsIPC({
-        anomalyDetector,
-        incidentClassifier,
-        autoRemediator,
-        rollbackManager,
-        alertManager,
-      });
-
-      registeredModules.anomalyDetector = anomalyDetector;
-      registeredModules.incidentClassifier = incidentClassifier;
-      registeredModules.autoRemediator = autoRemediator;
-      registeredModules.rollbackManager = rollbackManager;
-      registeredModules.alertManager = alertManager;
-
-      logger.info(
-        `[IPC Registry] ✓ Autonomous Ops IPC registered (${opsHandlerCount} handlers)`,
-      );
-    } catch (opsError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Autonomous Ops IPC registration failed (non-fatal):",
-        opsError.message,
-      );
-    }
+        registeredModules.anomalyDetector = anomalyDetector;
+        registeredModules.incidentClassifier = incidentClassifier;
+        registeredModules.autoRemediator = autoRemediator;
+        registeredModules.rollbackManager = rollbackManager;
+        registeredModules.alertManager = alertManager;
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -3238,119 +3222,99 @@ function registerAllIPC(dependencies) {
     // Phase 37: NL Programming — Spec Translation (v3.1)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering NL Programming IPC...");
+    safeRegister("NL Programming IPC", {
+      register: () => {
+        const {
+          getSpecTranslator,
+        } = require("../ai-engine/cowork/spec-translator");
+        const {
+          registerNLProgrammingIPC,
+        } = require("../ai-engine/cowork/nl-programming-ipc");
 
-      const {
-        getSpecTranslator,
-      } = require("../ai-engine/cowork/spec-translator");
-      const {
-        registerNLProgrammingIPC,
-      } = require("../ai-engine/cowork/nl-programming-ipc");
+        const specTranslator = getSpecTranslator();
 
-      const specTranslator = getSpecTranslator();
+        if (dependencies.database) {
+          specTranslator
+            .initialize(dependencies.database, {
+              ckg: registeredModules.codeKnowledgeGraph || null,
+              llmService: registeredModules.llmService || null,
+              instinctManager: registeredModules.instinctManager || null,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] SpecTranslator init warning:",
+                err.message,
+              ),
+            );
+        }
 
-      if (dependencies.database) {
-        specTranslator
-          .initialize(dependencies.database, {
-            ckg: registeredModules.codeKnowledgeGraph || null,
-            llmService: registeredModules.llmService || null,
-            instinctManager: registeredModules.instinctManager || null,
-          })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] SpecTranslator init warning:",
-              err.message,
-            ),
-          );
-      }
+        registerNLProgrammingIPC({ specTranslator });
 
-      const { handlerCount: nlProgHandlerCount } = registerNLProgrammingIPC({
-        specTranslator,
-      });
-
-      registeredModules.specTranslator = specTranslator;
-
-      logger.info(
-        `[IPC Registry] ✓ NL Programming IPC registered (${nlProgHandlerCount} handlers)`,
-      );
-    } catch (nlProgError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  NL Programming IPC registration failed (non-fatal):",
-        nlProgError.message,
-      );
-    }
+        registeredModules.specTranslator = specTranslator;
+      },
+    });
 
     // ============================================================
     // Phase 38: Multimodal Collaboration (v3.2)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Multimodal Collaboration IPC...");
+    safeRegister("Multimodal Collaboration IPC", {
+      register: () => {
+        const {
+          getModalityFusion,
+        } = require("../ai-engine/cowork/modality-fusion");
+        const {
+          getDocumentParser,
+        } = require("../ai-engine/cowork/document-parser");
+        const {
+          getMultimodalContext,
+        } = require("../ai-engine/cowork/multimodal-context");
+        const {
+          registerMultimodalCollabIPC,
+        } = require("../ai-engine/cowork/multimodal-collab-ipc");
 
-      const {
-        getModalityFusion,
-      } = require("../ai-engine/cowork/modality-fusion");
-      const {
-        getDocumentParser,
-      } = require("../ai-engine/cowork/document-parser");
-      const {
-        getMultimodalContext,
-      } = require("../ai-engine/cowork/multimodal-context");
-      const {
-        registerMultimodalCollabIPC,
-      } = require("../ai-engine/cowork/multimodal-collab-ipc");
+        const documentParser = getDocumentParser();
+        const modalityFusion = getModalityFusion();
+        const multimodalContext = getMultimodalContext();
 
-      const documentParser = getDocumentParser();
-      const modalityFusion = getModalityFusion();
-      const multimodalContext = getMultimodalContext();
+        if (dependencies.database) {
+          documentParser
+            .initialize(dependencies.database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] DocumentParser init warning:",
+                err.message,
+              ),
+            );
+          modalityFusion
+            .initialize(dependencies.database, { documentParser })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] ModalityFusion init warning:",
+                err.message,
+              ),
+            );
+          multimodalContext
+            .initialize({ modalityFusion })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] MultimodalContext init warning:",
+                err.message,
+              ),
+            );
+        }
 
-      if (dependencies.database) {
-        documentParser
-          .initialize(dependencies.database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] DocumentParser init warning:",
-              err.message,
-            ),
-          );
-        modalityFusion
-          .initialize(dependencies.database, { documentParser })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] ModalityFusion init warning:",
-              err.message,
-            ),
-          );
-        multimodalContext
-          .initialize({ modalityFusion })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] MultimodalContext init warning:",
-              err.message,
-            ),
-          );
-      }
+        registerMultimodalCollabIPC({
+          modalityFusion,
+          documentParser,
+          multimodalContext,
+        });
 
-      const { handlerCount: mmHandlerCount } = registerMultimodalCollabIPC({
-        modalityFusion,
-        documentParser,
-        multimodalContext,
-      });
-
-      registeredModules.documentParser = documentParser;
-      registeredModules.modalityFusion = modalityFusion;
-      registeredModules.multimodalContext = multimodalContext;
-
-      logger.info(
-        `[IPC Registry] ✓ Multimodal Collaboration IPC registered (${mmHandlerCount} handlers)`,
-      );
-    } catch (mmError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Multimodal Collaboration IPC registration failed (non-fatal):",
-        mmError.message,
-      );
-    }
+        registeredModules.documentParser = documentParser;
+        registeredModules.modalityFusion = modalityFusion;
+        registeredModules.multimodalContext = multimodalContext;
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -3362,213 +3326,204 @@ function registerAllIPC(dependencies) {
     // Phase 39: Wire remaining deps (v3.0.C, v3.1.B, v3.2.B/C, v3.3.C)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Wiring Phase 39 dependencies...");
+    safeRegister("Phase 39 dependencies", {
+      register: () => {
+        // v3.0.C: DeployAgent + PostDeployMonitor
+        const { getDeployAgent } = require("../ai-engine/cowork/deploy-agent");
+        const {
+          getPostDeployMonitor,
+        } = require("../ai-engine/cowork/post-deploy-monitor");
+        const deployAgent = getDeployAgent();
+        const postDeployMonitor = getPostDeployMonitor();
 
-      // v3.0.C: DeployAgent + PostDeployMonitor
-      const { getDeployAgent } = require("../ai-engine/cowork/deploy-agent");
-      const {
-        getPostDeployMonitor,
-      } = require("../ai-engine/cowork/post-deploy-monitor");
-      const deployAgent = getDeployAgent();
-      const postDeployMonitor = getPostDeployMonitor();
-
-      if (dependencies.database) {
-        deployAgent
-          .initialize(dependencies.database, {
+        if (dependencies.database) {
+          deployAgent
+            .initialize(dependencies.database, {
+              rollbackManager: registeredModules.rollbackManager || null,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] DeployAgent init warning:",
+                err.message,
+              ),
+            );
+        }
+        postDeployMonitor
+          .initialize({
+            errorMonitor: registeredModules.errorMonitor || null,
+            performanceMonitor: registeredModules.performanceMonitor || null,
+            anomalyDetector: registeredModules.anomalyDetector || null,
             rollbackManager: registeredModules.rollbackManager || null,
           })
           .catch((err) =>
             logger.warn(
-              "[IPC Registry] DeployAgent init warning:",
+              "[IPC Registry] PostDeployMonitor init warning:",
               err.message,
             ),
           );
-      }
-      postDeployMonitor
-        .initialize({
-          errorMonitor: registeredModules.errorMonitor || null,
-          performanceMonitor: registeredModules.performanceMonitor || null,
-          anomalyDetector: registeredModules.anomalyDetector || null,
-          rollbackManager: registeredModules.rollbackManager || null,
-        })
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] PostDeployMonitor init warning:",
-            err.message,
-          ),
-        );
-      registeredModules.deployAgent = deployAgent;
-      registeredModules.postDeployMonitor = postDeployMonitor;
+        registeredModules.deployAgent = deployAgent;
+        registeredModules.postDeployMonitor = postDeployMonitor;
 
-      // v3.1.B: ProjectStyleAnalyzer
-      const {
-        getProjectStyleAnalyzer,
-      } = require("../ai-engine/cowork/project-style-analyzer");
-      const projectStyleAnalyzer = getProjectStyleAnalyzer();
+        // v3.1.B: ProjectStyleAnalyzer
+        const {
+          getProjectStyleAnalyzer,
+        } = require("../ai-engine/cowork/project-style-analyzer");
+        const projectStyleAnalyzer = getProjectStyleAnalyzer();
 
-      if (dependencies.database) {
-        projectStyleAnalyzer
-          .initialize(dependencies.database, {
-            ckg: registeredModules.codeKnowledgeGraph || null,
-            instinctManager: registeredModules.instinctManager || null,
-          })
+        if (dependencies.database) {
+          projectStyleAnalyzer
+            .initialize(dependencies.database, {
+              ckg: registeredModules.codeKnowledgeGraph || null,
+              instinctManager: registeredModules.instinctManager || null,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] ProjectStyleAnalyzer init warning:",
+                err.message,
+              ),
+            );
+        }
+        registeredModules.projectStyleAnalyzer = projectStyleAnalyzer;
+
+        // v3.2.B/C: ScreenRecorder + MultimodalOutput
+        const {
+          getScreenRecorder,
+        } = require("../ai-engine/cowork/screen-recorder");
+        const {
+          getMultimodalOutput,
+        } = require("../ai-engine/cowork/multimodal-output");
+        const screenRecorder = getScreenRecorder();
+        const multimodalOutput = getMultimodalOutput();
+
+        screenRecorder
+          .initialize()
           .catch((err) =>
             logger.warn(
-              "[IPC Registry] ProjectStyleAnalyzer init warning:",
+              "[IPC Registry] ScreenRecorder init warning:",
               err.message,
             ),
           );
-      }
-      registeredModules.projectStyleAnalyzer = projectStyleAnalyzer;
-
-      // v3.2.B/C: ScreenRecorder + MultimodalOutput
-      const {
-        getScreenRecorder,
-      } = require("../ai-engine/cowork/screen-recorder");
-      const {
-        getMultimodalOutput,
-      } = require("../ai-engine/cowork/multimodal-output");
-      const screenRecorder = getScreenRecorder();
-      const multimodalOutput = getMultimodalOutput();
-
-      screenRecorder
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] ScreenRecorder init warning:",
-            err.message,
-          ),
-        );
-      multimodalOutput
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] MultimodalOutput init warning:",
-            err.message,
-          ),
-        );
-      registeredModules.screenRecorder = screenRecorder;
-      registeredModules.multimodalOutput = multimodalOutput;
-
-      // v3.3.C: PostmortemGenerator
-      const {
-        getPostmortemGenerator,
-      } = require("../ai-engine/cowork/postmortem-generator");
-      const postmortemGenerator = getPostmortemGenerator();
-
-      if (dependencies.database) {
-        postmortemGenerator
-          .initialize(dependencies.database, {
-            llmService: registeredModules.llmService || null,
-            incidentClassifier: registeredModules.incidentClassifier || null,
-          })
+        multimodalOutput
+          .initialize()
           .catch((err) =>
             logger.warn(
-              "[IPC Registry] PostmortemGenerator init warning:",
+              "[IPC Registry] MultimodalOutput init warning:",
               err.message,
             ),
           );
-      }
-      registeredModules.postmortemGenerator = postmortemGenerator;
+        registeredModules.screenRecorder = screenRecorder;
+        registeredModules.multimodalOutput = multimodalOutput;
 
-      logger.info("[IPC Registry] ✓ Phase 39 dependencies wired");
-    } catch (phase39Error) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Phase 39 wiring failed (non-fatal):",
-        phase39Error.message,
-      );
-    }
+        // v3.3.C: PostmortemGenerator
+        const {
+          getPostmortemGenerator,
+        } = require("../ai-engine/cowork/postmortem-generator");
+        const postmortemGenerator = getPostmortemGenerator();
+
+        if (dependencies.database) {
+          postmortemGenerator
+            .initialize(dependencies.database, {
+              llmService: registeredModules.llmService || null,
+              incidentClassifier: registeredModules.incidentClassifier || null,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] PostmortemGenerator init warning:",
+                err.message,
+              ),
+            );
+        }
+        registeredModules.postmortemGenerator = postmortemGenerator;
+      },
+    });
 
     // ============================================================
     // Phase 40: Decentralized Agent Network (v4.0)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Decentralized Network IPC...");
+    safeRegister("Decentralized Network IPC", {
+      register: () => {
+        const { getAgentDID } = require("../ai-engine/cowork/agent-did");
+        const {
+          getFederatedAgentRegistry,
+        } = require("../ai-engine/cowork/federated-agent-registry");
+        const {
+          getAgentCredentialManager,
+        } = require("../ai-engine/cowork/agent-credential-manager");
+        const {
+          getCrossOrgTaskRouter,
+        } = require("../ai-engine/cowork/cross-org-task-router");
+        const {
+          getAgentReputation,
+        } = require("../ai-engine/cowork/agent-reputation");
+        const {
+          getAgentAuthenticator,
+        } = require("../ai-engine/cowork/agent-authenticator");
+        const {
+          registerDecentralizedNetworkIPC,
+        } = require("../ai-engine/cowork/decentralized-network-ipc");
 
-      const { getAgentDID } = require("../ai-engine/cowork/agent-did");
-      const {
-        getFederatedAgentRegistry,
-      } = require("../ai-engine/cowork/federated-agent-registry");
-      const {
-        getAgentCredentialManager,
-      } = require("../ai-engine/cowork/agent-credential-manager");
-      const {
-        getCrossOrgTaskRouter,
-      } = require("../ai-engine/cowork/cross-org-task-router");
-      const {
-        getAgentReputation,
-      } = require("../ai-engine/cowork/agent-reputation");
-      const {
-        getAgentAuthenticator,
-      } = require("../ai-engine/cowork/agent-authenticator");
-      const {
-        registerDecentralizedNetworkIPC,
-      } = require("../ai-engine/cowork/decentralized-network-ipc");
+        const agentDIDInstance = getAgentDID();
+        const federatedRegistry = getFederatedAgentRegistry();
+        const credentialManager = getAgentCredentialManager();
+        const taskRouter = getCrossOrgTaskRouter();
+        const reputationSystem = getAgentReputation();
+        const authenticator = getAgentAuthenticator();
 
-      const agentDIDInstance = getAgentDID();
-      const federatedRegistry = getFederatedAgentRegistry();
-      const credentialManager = getAgentCredentialManager();
-      const taskRouter = getCrossOrgTaskRouter();
-      const reputationSystem = getAgentReputation();
-      const authenticator = getAgentAuthenticator();
+        if (dependencies.database) {
+          agentDIDInstance
+            .initialize(dependencies.database)
+            .catch((err) =>
+              logger.warn("[IPC Registry] AgentDID init warning:", err.message),
+            );
+          federatedRegistry
+            .initialize(dependencies.database, { agentDID: agentDIDInstance })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] FederatedAgentRegistry init warning:",
+                err.message,
+              ),
+            );
+          credentialManager
+            .initialize(dependencies.database, { agentDID: agentDIDInstance })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] AgentCredentialManager init warning:",
+                err.message,
+              ),
+            );
+          reputationSystem
+            .initialize(dependencies.database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] AgentReputation init warning:",
+                err.message,
+              ),
+            );
+          taskRouter
+            .initialize(dependencies.database, {
+              federatedRegistry,
+              agentReputation: reputationSystem,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] CrossOrgTaskRouter init warning:",
+                err.message,
+              ),
+            );
+          authenticator
+            .initialize(dependencies.database, {
+              agentDID: agentDIDInstance,
+              credentialManager,
+            })
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] AgentAuthenticator init warning:",
+                err.message,
+              ),
+            );
+        }
 
-      if (dependencies.database) {
-        agentDIDInstance
-          .initialize(dependencies.database)
-          .catch((err) =>
-            logger.warn("[IPC Registry] AgentDID init warning:", err.message),
-          );
-        federatedRegistry
-          .initialize(dependencies.database, { agentDID: agentDIDInstance })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] FederatedAgentRegistry init warning:",
-              err.message,
-            ),
-          );
-        credentialManager
-          .initialize(dependencies.database, { agentDID: agentDIDInstance })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] AgentCredentialManager init warning:",
-              err.message,
-            ),
-          );
-        reputationSystem
-          .initialize(dependencies.database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] AgentReputation init warning:",
-              err.message,
-            ),
-          );
-        taskRouter
-          .initialize(dependencies.database, {
-            federatedRegistry,
-            agentReputation: reputationSystem,
-          })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] CrossOrgTaskRouter init warning:",
-              err.message,
-            ),
-          );
-        authenticator
-          .initialize(dependencies.database, {
-            agentDID: agentDIDInstance,
-            credentialManager,
-          })
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] AgentAuthenticator init warning:",
-              err.message,
-            ),
-          );
-      }
-
-      const { handlerCount: decentralizedCount } =
         registerDecentralizedNetworkIPC({
           agentDID: agentDIDInstance,
           federatedRegistry,
@@ -3578,22 +3533,14 @@ function registerAllIPC(dependencies) {
           authenticator,
         });
 
-      registeredModules.agentDID = agentDIDInstance;
-      registeredModules.federatedRegistry = federatedRegistry;
-      registeredModules.credentialManager = credentialManager;
-      registeredModules.taskRouter = taskRouter;
-      registeredModules.reputationSystem = reputationSystem;
-      registeredModules.authenticator = authenticator;
-
-      logger.info(
-        `[IPC Registry] ✓ Decentralized Network IPC registered (${decentralizedCount} handlers)`,
-      );
-    } catch (decentralizedError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Decentralized Network IPC registration failed (non-fatal):",
-        decentralizedError.message,
-      );
-    }
+        registeredModules.agentDID = agentDIDInstance;
+        registeredModules.federatedRegistry = federatedRegistry;
+        registeredModules.credentialManager = credentialManager;
+        registeredModules.taskRouter = taskRouter;
+        registeredModules.reputationSystem = reputationSystem;
+        registeredModules.authenticator = authenticator;
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
