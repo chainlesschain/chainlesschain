@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/database-concurrency.js`
 
-**Generated**: 2026-04-07T12:54:59.189Z
+**Generated**: 2026-04-07T13:28:22.926Z
 
 ---
 

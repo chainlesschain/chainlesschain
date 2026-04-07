@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/__tests__/file-sandbox.test.js`
 
-**Generated**: 2026-04-07T12:54:59.368Z
+**Generated**: 2026-04-07T13:28:23.114Z
 
 ---
 

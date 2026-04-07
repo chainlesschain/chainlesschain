@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/p2p-enhanced-manager.js`
 
-**Generated**: 2026-04-07T12:54:59.244Z
+**Generated**: 2026-04-07T13:28:22.980Z
 
 ---
 

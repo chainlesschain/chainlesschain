@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/intent-classifier.js`
 
-**Generated**: 2026-04-07T12:54:59.320Z
+**Generated**: 2026-04-07T13:28:23.055Z
 
 ---
 
