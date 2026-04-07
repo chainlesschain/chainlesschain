@@ -2,7 +2,7 @@
 
 **Source**: `src/main/identity-context/identity-context-ipc.js`
 
-**Generated**: 2026-04-07T09:15:40.394Z
+**Generated**: 2026-04-07T12:46:29.410Z
 
 ---
 

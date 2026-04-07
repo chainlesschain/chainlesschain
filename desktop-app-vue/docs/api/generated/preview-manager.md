@@ -2,7 +2,7 @@
 
 **Source**: `src/main/preview/preview-manager.js`
 
-**Generated**: 2026-04-07T09:15:40.362Z
+**Generated**: 2026-04-07T12:46:29.379Z
 
 ---
 

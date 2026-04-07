@@ -2,7 +2,7 @@
 
 **Source**: `src/main/browser/actions/clipboard-manager.js`
 
-**Generated**: 2026-04-07T09:15:40.424Z
+**Generated**: 2026-04-07T12:46:29.439Z
 
 ---
 
