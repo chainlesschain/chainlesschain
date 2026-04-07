@@ -54,7 +54,7 @@ chainlesschain config features disable CONTEXT_SNIP # Disable feature
 
 **Test Coverage**: 334 tests (255 unit + 42 integration + 37 E2E), 12 test files, all passing.
 
-### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.21, 2026-04-07)
+### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.22, 2026-04-07)
 
 Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/main/ipc/ipc-registry.js` into `src/main/ipc/phases/`, grouped by version/batch.
 

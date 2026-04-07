@@ -197,7 +197,7 @@ ipcDomainSplit: {
 
 ## 九、Phase 模块文件拆分 (H2)
 
-**版本**: v0.45.21
+**版本**: v0.45.22
 **完成日期**: 2026-04-07
 
 为降低单文件复杂度，将 `src/main/ipc/ipc-registry.js`（原 4925 行）中后半段独立的 Phase 注册块抽出到 `src/main/ipc/phases/` 子目录，按版本/批次分组。`registerAllIPC()` 通过统一的 `safeRegister` 钩子调用每个 Phase 模块的 registrar 函数。
