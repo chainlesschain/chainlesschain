@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/realtime-trading-engine.js`
 
-**Generated**: 2026-04-06T03:25:10.629Z
+**Generated**: 2026-04-07T07:21:45.792Z
 
 ---
 

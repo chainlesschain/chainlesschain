@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/checkpoint-validator.js`
 
-**Generated**: 2026-04-06T03:25:10.764Z
+**Generated**: 2026-04-07T07:21:45.926Z
 
 ---
 

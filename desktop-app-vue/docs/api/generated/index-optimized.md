@@ -2,7 +2,7 @@
 
 **Source**: `src/main/index-optimized.js`
 
-**Generated**: 2026-04-06T03:25:10.614Z
+**Generated**: 2026-04-07T07:21:45.777Z
 
 ---
 
@@ -50,20 +50,20 @@ registerSkillToolIPC()
 
 ---
 
-## registerAdvancedFeaturesIPC()
+## _registerAdvancedFeaturesIPCPlaceholder()
 
 ```javascript
-registerAdvancedFeaturesIPC()
+_registerAdvancedFeaturesIPCPlaceholder()
 ```
 
 * 注册高级特性 IPC
 
 ---
 
-## async initializeMCPSystem()
+## registerAdvancedFeaturesIPC()
 
 ```javascript
-async initializeMCPSystem()
+registerAdvancedFeaturesIPC()
 ```
 
 * 初始化 MCP 系统
