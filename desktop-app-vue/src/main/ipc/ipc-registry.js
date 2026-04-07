@@ -63,6 +63,46 @@ function _replaceUndefinedWithNull(obj) {
 }
 
 /**
+ * 安全注册 IPC 模块的辅助函数
+ *
+ * 封装重复的 try/catch + 日志模式，每个 phase 从 ~25 行降到 ~10 行。
+ *
+ * @param {string} name - 模块显示名 (e.g., "Cowork IPC")
+ * @param {Object} options
+ * @param {Function} options.register - 实际注册逻辑（同步函数）
+ * @param {number} [options.handlers] - handler 数量（用于日志）
+ * @param {string[]} [options.subDetails] - 子模块详情列表（"TeammateTool: 15 handlers"）
+ * @param {boolean} [options.fatal=false] - 失败时使用 error（true）还是 warn（false）
+ * @param {string} [options.continueMessage] - 失败后的提示
+ * @returns {boolean} 注册是否成功
+ */
+function safeRegister(name, options) {
+  const { register, handlers, subDetails = [], fatal = false, continueMessage } = options;
+  try {
+    logger.info(`[IPC Registry] Registering ${name}...`);
+    register();
+    const suffix = handlers != null ? ` (${handlers} handlers)` : "";
+    logger.info(`[IPC Registry] ✓ ${name} registered${suffix}`);
+    for (const detail of subDetails) {
+      logger.info(`[IPC Registry]   - ${detail}`);
+    }
+    return true;
+  } catch (err) {
+    const level = fatal ? "error" : "warn";
+    const icon = fatal ? "❌" : "⚠️ ";
+    const tag = fatal ? "" : " (non-fatal)";
+    logger[level](
+      `[IPC Registry] ${icon} ${name} registration failed${tag}:`,
+      err.message,
+    );
+    if (continueMessage) {
+      logger.info(`[IPC Registry] ⚠️  ${continueMessage}`);
+    }
+    return false;
+  }
+}
+
+/**
  * 注册所有 IPC 处理器
  * @param {Object} dependencies - 依赖对象，包含所有管理器实例
  * @param {Object} dependencies.app - ChainlessChainApp 实例
@@ -1688,28 +1728,25 @@ function registerAllIPC(dependencies) {
     // Phase 9: Cowork 多代理协作系统
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Cowork IPC...");
-      const { registerCoworkIPC } = require("../ai-engine/cowork/cowork-ipc");
-      registerCoworkIPC({
-        database: database || null,
-        mainWindow: mainWindow || null,
-      });
-      logger.info("[IPC Registry] ✓ Cowork IPC registered (44 handlers)");
-      logger.info("[IPC Registry]   - TeammateTool: 15 handlers");
-      logger.info("[IPC Registry]   - FileSandbox: 11 handlers");
-      logger.info("[IPC Registry]   - LongRunningTaskManager: 9 handlers");
-      logger.info("[IPC Registry]   - SkillRegistry: 5 handlers");
-      logger.info("[IPC Registry]   - Utilities: 4 handlers");
-    } catch (coworkError) {
-      logger.error(
-        "[IPC Registry] ❌ Cowork IPC registration failed:",
-        coworkError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠️  Continuing without Cowork functionality...",
-      );
-    }
+    safeRegister("Cowork IPC", {
+      handlers: 44,
+      subDetails: [
+        "TeammateTool: 15 handlers",
+        "FileSandbox: 11 handlers",
+        "LongRunningTaskManager: 9 handlers",
+        "SkillRegistry: 5 handlers",
+        "Utilities: 4 handlers",
+      ],
+      fatal: true,
+      continueMessage: "Continuing without Cowork functionality...",
+      register: () => {
+        const { registerCoworkIPC } = require("../ai-engine/cowork/cowork-ipc");
+        registerCoworkIPC({
+          database: database || null,
+          mainWindow: mainWindow || null,
+        });
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info("[IPC Registry] Phase 9 Complete: Cowork system ready!");
@@ -1719,30 +1756,25 @@ function registerAllIPC(dependencies) {
     // Phase 10: Workflow Optimizations
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Workflow Optimizations IPC...");
-      const {
-        registerWorkflowOptimizationsIPC,
-      } = require("./workflow-optimizations-ipc");
-      registerWorkflowOptimizationsIPC({
-        database: database || null,
-        aiEngineManager: aiEngineManager || null,
-      });
-      logger.info(
-        "[IPC Registry] ✓ Workflow Optimizations IPC registered (7 handlers)",
-      );
-      logger.info("[IPC Registry]   - Status & Statistics: 2 handlers");
-      logger.info("[IPC Registry]   - Toggle & Configuration: 3 handlers");
-      logger.info("[IPC Registry]   - Reports & Health: 2 handlers");
-    } catch (workflowError) {
-      logger.error(
-        "[IPC Registry] ❌ Workflow Optimizations IPC registration failed:",
-        workflowError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠️  Continuing without Workflow Optimizations dashboard...",
-      );
-    }
+    safeRegister("Workflow Optimizations IPC", {
+      handlers: 7,
+      subDetails: [
+        "Status & Statistics: 2 handlers",
+        "Toggle & Configuration: 3 handlers",
+        "Reports & Health: 2 handlers",
+      ],
+      fatal: true,
+      continueMessage: "Continuing without Workflow Optimizations dashboard...",
+      register: () => {
+        const {
+          registerWorkflowOptimizationsIPC,
+        } = require("./workflow-optimizations-ipc");
+        registerWorkflowOptimizationsIPC({
+          database: database || null,
+          aiEngineManager: aiEngineManager || null,
+        });
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -1754,94 +1786,80 @@ function registerAllIPC(dependencies) {
     // Phase 11: Enterprise Audit & Compliance (v0.34.0)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Enterprise Audit IPC...");
-      const { registerAuditIPC } = require("../audit/audit-ipc");
-      registerAuditIPC({ database: database || null });
-      logger.info(
-        "[IPC Registry] ✓ Enterprise Audit IPC registered (18 handlers)",
-      );
-      logger.info("[IPC Registry]   - Audit Logs: 4 handlers");
-      logger.info("[IPC Registry]   - Compliance: 6 handlers");
-      logger.info("[IPC Registry]   - Data Subject Requests: 6 handlers");
-      logger.info("[IPC Registry]   - Retention: 2 handlers");
-    } catch (auditError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Enterprise Audit IPC registration failed (non-fatal):",
-        auditError.message,
-      );
-    }
+    safeRegister("Enterprise Audit IPC", {
+      handlers: 18,
+      subDetails: [
+        "Audit Logs: 4 handlers",
+        "Compliance: 6 handlers",
+        "Data Subject Requests: 6 handlers",
+        "Retention: 2 handlers",
+      ],
+      register: () => {
+        const { registerAuditIPC } = require("../audit/audit-ipc");
+        registerAuditIPC({ database: database || null });
+      },
+    });
 
     // ============================================================
     // Phase 12: Plugin Marketplace (v0.34.0)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Plugin Marketplace IPC...");
-      const {
-        registerMarketplaceIPC,
-      } = require("../marketplace/marketplace-ipc");
-      registerMarketplaceIPC({ database: database || null });
-      logger.info(
-        "[IPC Registry] ✓ Plugin Marketplace IPC registered (22 handlers)",
-      );
-      logger.info("[IPC Registry]   - Browse: 6 handlers");
-      logger.info("[IPC Registry]   - Install: 6 handlers");
-      logger.info("[IPC Registry]   - Installed: 3 handlers");
-      logger.info("[IPC Registry]   - Rating: 3 handlers");
-      logger.info("[IPC Registry]   - Publish: 3 handlers");
-      logger.info("[IPC Registry]   - Config: 1 handler");
-    } catch (marketplaceError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Plugin Marketplace IPC registration failed (non-fatal):",
-        marketplaceError.message,
-      );
-    }
+    safeRegister("Plugin Marketplace IPC", {
+      handlers: 22,
+      subDetails: [
+        "Browse: 6 handlers",
+        "Install: 6 handlers",
+        "Installed: 3 handlers",
+        "Rating: 3 handlers",
+        "Publish: 3 handlers",
+        "Config: 1 handler",
+      ],
+      register: () => {
+        const {
+          registerMarketplaceIPC,
+        } = require("../marketplace/marketplace-ipc");
+        registerMarketplaceIPC({ database: database || null });
+      },
+    });
 
     // ============================================================
     // Phase 13: Specialized Multi-Agent System (v0.34.0)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Specialized Agents IPC...");
-      const { registerAgentsIPC } = require("../ai-engine/agents/agents-ipc");
-      registerAgentsIPC({ database: database || null });
-      logger.info(
-        "[IPC Registry] ✓ Specialized Agents IPC registered (16 handlers)",
-      );
-      logger.info("[IPC Registry]   - Templates: 5 handlers");
-      logger.info("[IPC Registry]   - Deploy: 4 handlers");
-      logger.info("[IPC Registry]   - Tasks: 3 handlers");
-      logger.info("[IPC Registry]   - Coordination: 2 handlers");
-      logger.info("[IPC Registry]   - Analytics: 2 handlers");
-    } catch (agentsError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Specialized Agents IPC registration failed (non-fatal):",
-        agentsError.message,
-      );
-    }
+    safeRegister("Specialized Agents IPC", {
+      handlers: 16,
+      subDetails: [
+        "Templates: 5 handlers",
+        "Deploy: 4 handlers",
+        "Tasks: 3 handlers",
+        "Coordination: 2 handlers",
+        "Analytics: 2 handlers",
+      ],
+      register: () => {
+        const { registerAgentsIPC } = require("../ai-engine/agents/agents-ipc");
+        registerAgentsIPC({ database: database || null });
+      },
+    });
 
     // ============================================================
     // Phase 14: SSO & Enterprise Authentication (v0.34.0)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering SSO IPC...");
-      const { registerSSOIPC } = require("../auth/sso-ipc");
-      registerSSOIPC({ database: database || null });
-      logger.info("[IPC Registry] ✓ SSO IPC registered (20 handlers)");
-      logger.info("[IPC Registry]   - Config: 5 handlers");
-      logger.info("[IPC Registry]   - Auth: 4 handlers");
-      logger.info("[IPC Registry]   - Identity: 4 handlers");
-      logger.info("[IPC Registry]   - Session: 3 handlers");
-      logger.info("[IPC Registry]   - SAML: 2 handlers");
-      logger.info("[IPC Registry]   - OIDC: 2 handlers");
-    } catch (ssoError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  SSO IPC registration failed (non-fatal):",
-        ssoError.message,
-      );
-    }
+    safeRegister("SSO IPC", {
+      handlers: 20,
+      subDetails: [
+        "Config: 5 handlers",
+        "Auth: 4 handlers",
+        "Identity: 4 handlers",
+        "Session: 3 handlers",
+        "SAML: 2 handlers",
+        "OIDC: 2 handlers",
+      ],
+      register: () => {
+        const { registerSSOIPC } = require("../auth/sso-ipc");
+        registerSSOIPC({ database: database || null });
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -1960,49 +1978,35 @@ function registerAllIPC(dependencies) {
     }
 
     // 🔥 Skill Metrics IPC (技能指标, 5 handlers)
-    logger.info("[IPC Registry] Registering Skill Metrics IPC...");
-    try {
-      const {
-        registerSkillMetricsIPC,
-      } = require("../ai-engine/cowork/skills/skill-metrics-ipc");
-      registerSkillMetricsIPC({});
-      logger.info("[IPC Registry] ✓ Skill Metrics IPC registered (5 handlers)");
-    } catch (metricsError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Skill Metrics IPC registration failed (non-fatal):",
-        metricsError.message,
-      );
-    }
+    safeRegister("Skill Metrics IPC", {
+      handlers: 5,
+      register: () => {
+        const {
+          registerSkillMetricsIPC,
+        } = require("../ai-engine/cowork/skills/skill-metrics-ipc");
+        registerSkillMetricsIPC({});
+      },
+    });
 
     // 🔥 Skill Workflow IPC (工作流引擎, 10 handlers)
-    logger.info("[IPC Registry] Registering Skill Workflow IPC...");
-    try {
-      const {
-        registerSkillWorkflowIPC,
-      } = require("../ai-engine/cowork/skills/skill-workflow-ipc");
-      registerSkillWorkflowIPC({});
-      logger.info(
-        "[IPC Registry] ✓ Skill Workflow IPC registered (10 handlers)",
-      );
-    } catch (workflowError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Skill Workflow IPC registration failed (non-fatal):",
-        workflowError.message,
-      );
-    }
+    safeRegister("Skill Workflow IPC", {
+      handlers: 10,
+      register: () => {
+        const {
+          registerSkillWorkflowIPC,
+        } = require("../ai-engine/cowork/skills/skill-workflow-ipc");
+        registerSkillWorkflowIPC({});
+      },
+    });
 
     // 🔥 Git Hook IPC (Git 钩子, 8 handlers)
-    logger.info("[IPC Registry] Registering Git Hook IPC...");
-    try {
-      const { registerGitHookIPC } = require("../hooks/git-hook-ipc");
-      registerGitHookIPC({ hookSystem });
-      logger.info("[IPC Registry] ✓ Git Hook IPC registered (8 handlers)");
-    } catch (gitHookError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Git Hook IPC registration failed (non-fatal):",
-        gitHookError.message,
-      );
-    }
+    safeRegister("Git Hook IPC", {
+      handlers: 8,
+      register: () => {
+        const { registerGitHookIPC } = require("../hooks/git-hook-ipc");
+        registerGitHookIPC({ hookSystem });
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info("[IPC Registry] Phase 16 Complete: v1.1.0 Ecosystem ready!");

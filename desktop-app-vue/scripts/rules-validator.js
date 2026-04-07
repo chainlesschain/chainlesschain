@@ -190,6 +190,33 @@ class RulesValidator {
           // 排除正则表达式字面量（安全检查工具中的模式匹配）
           const isRegexPattern = /^\s*\/.*\/[gimsuy]*/.test(line.trim());
 
+          // L6 修复: 排除测试文件、fixture 文件、demo 文件
+          // 这些文件中的"危险" SQL 是故意的测试样本
+          const fileBasename = path.basename(file);
+          const isTestOrFixture =
+            file.includes("__tests__") ||
+            file.includes(".test.") ||
+            file.includes(".spec.") ||
+            /-test\.js$/.test(fileBasename) ||
+            /-demo\.js$/.test(fileBasename) ||
+            /-fixture\.js$/.test(fileBasename) ||
+            /[/\\]fixtures[/\\]/.test(file);
+
+          // L6 修复: 排除 SQL 生成器/文档技能（输出 SQL 文本给用户而非执行）
+          const isSqlGeneratorSkill =
+            /skills[/\\]builtin[/\\]database-query[/\\]/.test(file) ||
+            /skills[/\\]builtin[/\\]db-migration[/\\]/.test(file) ||
+            /skills[/\\]builtin[/\\]sql-/.test(file);
+
+          // L6 修复: 多行 .prepare(`...`) 调用，prepare 关键字在前 3 行内
+          // 旧逻辑只查当前行的 db.prepare，导致 agent-templates.js / agent-coordinator.js
+          // (this.database.prepare) 等多行 prepare 误报
+          const contextStart = Math.max(0, index - 3);
+          const contextLines = lines.slice(contextStart, index + 1).join("\n");
+          const hasNearbyPrepare =
+            /\.\s*prepare\s*\(/.test(contextLines) ||
+            /\.\s*exec\s*\(\s*[`'"]/.test(contextLines);
+
           // 要求实际 SQL 语句结构（关键词后跟 SQL 语法），
           // 排除描述文本中偶然出现 SQL 关键词的情况（如 "Create optimized Dockerfiles"）
           const hasActualSQLStructure =
@@ -204,9 +231,11 @@ class RulesValidator {
           if (
             !isSafePlaceholder &&
             !isComment &&
-            !line.includes("db.prepare") &&
+            !hasNearbyPrepare &&
             !isLoggerCall &&
             !isRegexPattern &&
+            !isTestOrFixture &&
+            !isSqlGeneratorSkill &&
             hasActualSQLStructure
           ) {
             this.warnings.push({

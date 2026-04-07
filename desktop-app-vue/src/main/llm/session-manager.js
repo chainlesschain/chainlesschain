@@ -91,6 +91,48 @@ class SessionManager extends EventEmitter {
     // 内存缓存
     this.sessionCache = new Map();
 
+    // L1: 订阅 LLM 状态总线 — provider/model 切换时清空内存缓存
+    this._stateBusSubscriptions = [];
+    if (options.enableStateBus !== false) {
+      try {
+        const { getLLMStateBus, Events } = require("./llm-state-bus");
+        const bus = getLLMStateBus();
+        const onProviderChange = (payload) => {
+          logger.info(
+            "[SessionManager] LLM provider/model 变更,清空内存缓存",
+            payload,
+          );
+          this.sessionCache.clear();
+          this.emit("cache-invalidated", { reason: "provider-change" });
+        };
+        const onAllInvalidated = (payload) => {
+          logger.info("[SessionManager] 全局失效,清空所有缓存", payload);
+          this.sessionCache.clear();
+          this.emit("cache-invalidated", { reason: "all-invalidated" });
+        };
+        const onSessionInvalidated = (payload) => {
+          if (payload && payload.sessionId) {
+            this.sessionCache.delete(payload.sessionId);
+          }
+        };
+        bus.on(Events.PROVIDER_CHANGED, onProviderChange);
+        bus.on(Events.MODEL_SWITCHED, onProviderChange);
+        bus.on(Events.ALL_INVALIDATED, onAllInvalidated);
+        bus.on(Events.SESSION_INVALIDATED, onSessionInvalidated);
+        this._stateBusSubscriptions.push(
+          [Events.PROVIDER_CHANGED, onProviderChange],
+          [Events.MODEL_SWITCHED, onProviderChange],
+          [Events.ALL_INVALIDATED, onAllInvalidated],
+          [Events.SESSION_INVALIDATED, onSessionInvalidated],
+        );
+      } catch (busError) {
+        logger.warn(
+          "[SessionManager] LLM 状态总线订阅失败:",
+          busError.message,
+        );
+      }
+    }
+
     logger.info("[SessionManager] 初始化完成", {
       会话目录: this.sessionsDir,
       最大消息数: this.maxHistoryMessages,
@@ -129,6 +171,21 @@ class SessionManager extends EventEmitter {
   destroy() {
     this.stopBackgroundSummaryGenerator();
     this.sessionCache.clear();
+
+    // L1: 解绑状态总线订阅
+    if (this._stateBusSubscriptions && this._stateBusSubscriptions.length > 0) {
+      try {
+        const { getLLMStateBus } = require("./llm-state-bus");
+        const bus = getLLMStateBus();
+        for (const [event, handler] of this._stateBusSubscriptions) {
+          bus.off(event, handler);
+        }
+      } catch (_unbindError) {
+        /* ignore */
+      }
+      this._stateBusSubscriptions = [];
+    }
+
     logger.info("[SessionManager] 实例已销毁");
   }
 

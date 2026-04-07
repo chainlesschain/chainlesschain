@@ -186,6 +186,7 @@ describe("IPCMiddleware", () => {
         permissionChecks: 0,
         rateLimits: 0,
         activeRequests: 0,
+        cachedChannels: 0,
       });
     });
 

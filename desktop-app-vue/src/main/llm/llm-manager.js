@@ -94,6 +94,21 @@ class LLMManager extends EventEmitter {
     // 🔥 预算配置缓存（用于自动切换模型）
     this.budgetConfig = null;
 
+    // L1: 自动桥接到 LLM 状态总线，便于 session-manager / multi-agent 等订阅
+    // 失效广播。可通过 config.enableStateBus = false 关闭（用于测试）
+    this._stateBusUnbind = null;
+    if (config.enableStateBus !== false) {
+      try {
+        const { getLLMStateBus } = require("./llm-state-bus");
+        this._stateBusUnbind = getLLMStateBus().forwardFrom(this);
+      } catch (busError) {
+        logger.warn(
+          "[LLMManager] LLM 状态总线绑定失败（将不广播状态事件）:",
+          busError.message,
+        );
+      }
+    }
+
     // 🔥 Manus 优化（Context Engineering + Tool Masking）
     this.manusOptimizations = null;
     if (config.enableManusOptimizations !== false) {
@@ -1484,6 +1499,16 @@ class LLMManager extends EventEmitter {
     // 移除 TokenTracker 监听器
     if (this.tokenTracker) {
       this.tokenTracker.removeAllListeners("budget-alert");
+    }
+
+    // L1: 解绑状态总线转发
+    if (this._stateBusUnbind) {
+      try {
+        this._stateBusUnbind();
+      } catch (_unbindError) {
+        /* ignore */
+      }
+      this._stateBusUnbind = null;
     }
 
     this.conversationContext.clear();

@@ -4,7 +4,8 @@ display-name: Test Skill
 description: A test skill for unit testing
 version: 1.0.0
 category: development
-user-invocable: true
+experimental: true
+user-invocable: false
 tags: [test, skill]
 capabilities: [test-skill-action]
 handler: ./handler.js

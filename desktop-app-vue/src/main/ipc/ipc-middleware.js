@@ -13,6 +13,8 @@ class IPCMiddleware {
     this._permissionChecks = new Map();
     this._rateLimits = new Map();
     this._requestCounts = new Map();
+    // L4: per-channel wrapped handler cache (avoid double-wrap + O(1) channel index)
+    this._wrapCache = new Map();
   }
 
   /**
@@ -25,29 +27,43 @@ class IPCMiddleware {
    * @returns {Function} Wrapped handler
    */
   wrap(channel, handler, options = {}) {
-    return async (event, ...args) => {
+    // L4: return cached wrapper for identical (channel, handler, options) tuple
+    const cached = this._wrapCache.get(channel);
+    if (cached && cached.handler === handler && cached.options === options) {
+      return cached.wrapped;
+    }
+
+    // Pre-resolve options once to avoid per-call lookups
+    const rateLimit = options.rateLimit || null;
+    const rateLimitMax = rateLimit ? rateLimit.max : 0;
+    const rateLimitWindow = rateLimit ? rateLimit.windowMs || 60000 : 0;
+    const permissionName = options.permission || null;
+    // Resolve permission checker lazily — checker may be registered after wrap()
+    const middleware = this;
+
+    const wrapped = async (event, ...args) => {
       const startTime = Date.now();
 
       try {
-        // Rate limiting
-        if (options.rateLimit) {
+        // Rate limiting (pre-resolved config)
+        if (rateLimit) {
           const key = `${channel}-${event?.sender?.id || "unknown"}`;
-          const count = this._requestCounts.get(key) || 0;
-          if (count >= options.rateLimit.max) {
+          const count = middleware._requestCounts.get(key) || 0;
+          if (count >= rateLimitMax) {
             return { success: false, error: "Rate limit exceeded" };
           }
-          this._requestCounts.set(key, count + 1);
+          middleware._requestCounts.set(key, count + 1);
           setTimeout(() => {
-            this._requestCounts.set(
+            middleware._requestCounts.set(
               key,
-              Math.max(0, (this._requestCounts.get(key) || 1) - 1),
+              Math.max(0, (middleware._requestCounts.get(key) || 1) - 1),
             );
-          }, options.rateLimit.windowMs || 60000);
+          }, rateLimitWindow);
         }
 
-        // Permission check
-        if (options.permission) {
-          const checker = this._permissionChecks.get(options.permission);
+        // Permission check (lazy lookup, allows late registration)
+        if (permissionName) {
+          const checker = middleware._permissionChecks.get(permissionName);
           if (checker && !(await checker(event, ...args))) {
             return { success: false, error: "Permission denied" };
           }
@@ -56,7 +72,7 @@ class IPCMiddleware {
         const result = await handler(event, ...args);
 
         // Timing log
-        if (this._timingEnabled) {
+        if (middleware._timingEnabled) {
           const duration = Date.now() - startTime;
           if (duration > 1000) {
             logger.warn(
@@ -75,6 +91,27 @@ class IPCMiddleware {
         return { success: false, error: error.message };
       }
     };
+
+    this._wrapCache.set(channel, { handler, options, wrapped });
+    return wrapped;
+  }
+
+  /**
+   * Look up a previously wrapped handler by channel name (L4 — O(1) index)
+   * @param {string} channel
+   * @returns {Function|null}
+   */
+  getWrappedHandler(channel) {
+    const entry = this._wrapCache.get(channel);
+    return entry ? entry.wrapped : null;
+  }
+
+  /**
+   * Drop the cached wrapper for a channel (e.g., after re-registration)
+   * @param {string} channel
+   */
+  invalidateChannel(channel) {
+    this._wrapCache.delete(channel);
   }
 
   /**
@@ -103,6 +140,7 @@ class IPCMiddleware {
       permissionChecks: this._permissionChecks.size,
       rateLimits: this._rateLimits.size,
       activeRequests: this._requestCounts.size,
+      cachedChannels: this._wrapCache.size,
     };
   }
 }
