@@ -236,6 +236,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("conversation:delete", conversationId),
     createMessage: (messageData) =>
       ipcRenderer.invoke("conversation:create-message", messageData),
+    addMessage: (conversationId, messageData) =>
+      ipcRenderer.invoke("conversation:create-message", {
+        ...messageData,
+        conversation_id: conversationId,
+      }),
     updateMessage: (updateData) =>
       ipcRenderer.invoke("conversation:update-message", updateData),
     getMessages: (conversationId, options) =>
@@ -249,6 +254,49 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   // 系统配置管理
+  codingAgent: {
+    createSession: (options) =>
+      ipcRenderer.invoke("coding-agent:create-session", options),
+    resumeSession: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:resume-session", sessionId),
+    listSessions: () => ipcRenderer.invoke("coding-agent:list-sessions"),
+    sendMessage: (payload) =>
+      ipcRenderer.invoke("coding-agent:send-message", payload),
+    enterPlanMode: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:enter-plan-mode", sessionId),
+    showPlan: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:show-plan", sessionId),
+    approvePlan: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:approve-plan", sessionId),
+    confirmHighRiskExecution: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:confirm-high-risk-execution", sessionId),
+    rejectPlan: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:reject-plan", sessionId),
+    closeSession: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:close-session", sessionId),
+    cancelSession: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:cancel-session", sessionId),
+    getSessionState: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:get-session-state", sessionId),
+    getSessionEvents: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:get-session-events", sessionId),
+    listWorktrees: () => ipcRenderer.invoke("coding-agent:list-worktrees"),
+    getWorktreeDiff: (payload) =>
+      ipcRenderer.invoke("coding-agent:get-worktree-diff", payload),
+    previewWorktreeMerge: (payload) =>
+      ipcRenderer.invoke("coding-agent:preview-worktree-merge", payload),
+    mergeWorktree: (payload) =>
+      ipcRenderer.invoke("coding-agent:merge-worktree", payload),
+    applyWorktreeAutomation: (payload) =>
+      ipcRenderer.invoke("coding-agent:apply-worktree-automation", payload),
+    getStatus: () => ipcRenderer.invoke("coding-agent:get-status"),
+    onEvent: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("coding-agent:event", handler);
+      return () => ipcRenderer.removeListener("coding-agent:event", handler);
+    },
+  },
+
   config: {
     getAll: () => ipcRenderer.invoke("config:get-all"),
     get: (key) => ipcRenderer.invoke("config:get", key),

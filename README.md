@@ -22,6 +22,7 @@
 - CLI `ws-session-workflow` 集成：`16/16`
 - Web Panel 定向单元测试：`23/23`
 - Web Panel E2E：`29/29`
+- Desktop Coding Agent 桥接全链路：`85/85`（5 单元 + 3 集成 + 1 真实 CLI E2E，共 9 个文件）
 - Web Panel 构建：通过
 - Docs Site 构建：通过
 

@@ -256,19 +256,43 @@ export const AGENT_TOOLS = [
   },
 ];
 
+const STATIC_AGENT_TOOL_NAMES = new Set(
+  AGENT_TOOLS.map((tool) => tool.function.name),
+);
+
 export const AGENT_TOOL_REGISTRY = createLegacyAgentToolRegistry(AGENT_TOOLS);
 const DEFAULT_TOOL_DESCRIPTOR_MAP = new Map(
   DEFAULT_TOOL_DESCRIPTORS.map((descriptor) => [descriptor.name, descriptor]),
 );
 
-export function getAgentToolDefinitions({ names = null, disabledTools = [] } = {}) {
+function mergeToolDefinitions(baseTools = [], extraTools = []) {
+  const merged = new Map();
+
+  for (const tool of [...baseTools, ...extraTools]) {
+    const name = tool?.function?.name;
+    if (!name) continue;
+    merged.set(name, tool);
+  }
+
+  return Array.from(merged.values());
+}
+
+export function getAgentToolDefinitions({
+  names = null,
+  disabledTools = [],
+  extraTools = [],
+} = {}) {
   const allowedNames =
     Array.isArray(names) && names.length > 0 ? new Set(names) : null;
   const disabledNames = new Set(
     Array.isArray(disabledTools) ? disabledTools : [],
   );
+  const allTools = mergeToolDefinitions(
+    AGENT_TOOLS,
+    Array.isArray(extraTools) ? extraTools : [],
+  );
 
-  return AGENT_TOOLS.filter((tool) => {
+  return allTools.filter((tool) => {
     const name = tool?.function?.name;
     if (!name) return false;
     if (allowedNames && !allowedNames.has(name)) return false;
@@ -566,9 +590,35 @@ export async function executeTool(name, args, context = {}) {
     };
   }
 
+  const toolPolicies =
+    context.hostManagedToolPolicy?.tools ||
+    context.hostManagedToolPolicy?.toolPolicies ||
+    null;
+  const hostToolPolicy =
+    toolPolicies && typeof toolPolicies === "object"
+      ? toolPolicies[name]
+      : null;
+  const isExternalHostTool =
+    hostToolPolicy && !STATIC_AGENT_TOOL_NAMES.has(name);
+  if (hostToolPolicy && hostToolPolicy.allowed === false) {
+    return {
+      error: `[Host Policy] Tool "${name}" is blocked by desktop host policy. ${hostToolPolicy.reason || "Desktop approval has not been synchronized yet."}`,
+      policy: {
+        decision: hostToolPolicy.decision || "blocked",
+        requiresPlanApproval: hostToolPolicy.requiresPlanApproval === true,
+        requiresConfirmation: hostToolPolicy.requiresConfirmation === true,
+        riskLevel: hostToolPolicy.riskLevel || null,
+      },
+    };
+  }
+
   // Plan mode: check if tool is allowed
   const planManager = getPlanModeManager();
-  if (planManager.isActive() && !planManager.isToolAllowed(name)) {
+  if (
+    planManager.isActive() &&
+    !planManager.isToolAllowed(name) &&
+    !(isExternalHostTool && hostToolPolicy?.allowed === true)
+  ) {
     planManager.addPlanItem({
       title: `${name}: ${formatToolArgs(name, args)}`,
       tool: name,
@@ -607,6 +657,8 @@ export async function executeTool(name, args, context = {}) {
       skillLoader,
       cwd,
       parentMessages: context.parentMessages,
+      interaction: context.interaction,
+      hostManagedToolPolicy: context.hostManagedToolPolicy || null,
     });
   } catch (err) {
     if (hookDb) {
@@ -663,9 +715,22 @@ export async function executeTool(name, args, context = {}) {
 async function executeToolInner(
   name,
   args,
-  { skillLoader, cwd, parentMessages },
+  { skillLoader, cwd, parentMessages, interaction, hostManagedToolPolicy },
 ) {
   const runtimeDescriptor = getRuntimeToolDescriptor(name);
+  const hostToolPolicies =
+    hostManagedToolPolicy?.tools || hostManagedToolPolicy?.toolPolicies || null;
+  const hostToolPolicy =
+    hostToolPolicies && typeof hostToolPolicies === "object"
+      ? hostToolPolicies[name]
+      : null;
+  const hostToolDefinition = Array.isArray(
+    hostManagedToolPolicy?.toolDefinitions,
+  )
+    ? hostManagedToolPolicy.toolDefinitions.find(
+        (tool) => tool?.function?.name === name,
+      ) || null
+    : null;
   const buildPayload = (descriptor) =>
     descriptor
       ? {
@@ -852,21 +917,21 @@ async function executeToolInner(
         });
         try {
           const result = await subCtx.run(args.input);
-        return attachDescriptor({
-          success: true,
-          isolated: true,
-          skill: args.skill_name,
-          summary: result.summary,
-          toolsUsed: result.toolsUsed,
-        });
-      } catch (err) {
-        return attachDescriptor({
-          error: `Isolated skill execution failed: ${err.message}`,
-        });
+          return attachDescriptor({
+            success: true,
+            isolated: true,
+            skill: args.skill_name,
+            summary: result.summary,
+            toolsUsed: result.toolsUsed,
+          });
+        } catch (err) {
+          return attachDescriptor({
+            error: `Isolated skill execution failed: ${err.message}`,
+          });
+        }
       }
-    }
 
-    try {
+      try {
         const handlerPath = path.join(match.skillDir, "handler.js");
         const imported = await import(
           `file://${handlerPath.replace(/\\/g, "/")}`
@@ -923,6 +988,33 @@ async function executeToolInner(
     }
 
     default:
+      if (
+        hostToolDefinition &&
+        interaction &&
+        typeof interaction.requestHostTool === "function"
+      ) {
+        const hostedResult = await interaction.requestHostTool(name, args);
+        if (hostedResult?.success === false) {
+          return attachDescriptor({
+            error:
+              hostedResult.error || `Hosted tool execution failed: ${name}`,
+            policy: hostToolPolicy || null,
+          });
+        }
+
+        if (hostedResult?.result && typeof hostedResult.result === "object") {
+          return hostedResult.result;
+        }
+
+        return attachDescriptor({
+          result:
+            hostedResult &&
+            Object.prototype.hasOwnProperty.call(hostedResult, "result")
+              ? hostedResult.result
+              : hostedResult,
+        });
+      }
+
       return attachDescriptor({ error: `Unknown tool: ${name}` });
   }
 }
@@ -1241,6 +1333,7 @@ export async function chatWithTools(rawMessages, options) {
   const persona = _loadProjectPersona(options.cwd);
   const tools = getAgentToolDefinitions({
     disabledTools: persona?.toolsDisabled,
+    extraTools: options.hostManagedToolPolicy?.toolDefinitions || [],
   });
 
   const lastUserMsg = [...rawMessages].reverse().find((m) => m.role === "user");
@@ -1425,7 +1518,9 @@ export async function* agentLoop(messages, options) {
     hookDb: options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
     cwd: options.cwd || process.cwd(),
+    hostManagedToolPolicy: options.hostManagedToolPolicy || null,
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
+    interaction: options.interaction || null,
   };
 
   // ── Slot-filling phase ──────────────────────────────────────────────

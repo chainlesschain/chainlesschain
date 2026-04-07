@@ -158,8 +158,10 @@ export function cleanupAgentWorktrees(repoDir) {
 
 export function diffWorktree(repoDir, branchName, options = {}) {
   const base = options.baseBranch || "HEAD";
+  const filePath = options.filePath || null;
+  const fileArg = filePath ? ` -- "${filePath}"` : "";
   const statOutput = gitExec(
-    `diff ${base}...${branchName} --stat --numstat`,
+    `diff ${base}...${branchName} --stat --numstat${fileArg}`,
     repoDir,
   );
 
@@ -181,7 +183,7 @@ export function diffWorktree(repoDir, branchName, options = {}) {
 
   let diff = "";
   try {
-    diff = gitExec(`diff ${base}...${branchName}`, repoDir);
+    diff = gitExec(`diff ${base}...${branchName}${fileArg}`, repoDir);
     if (diff.length > 50000) {
       diff = `${diff.slice(0, 50000)}\n... [diff truncated at 50KB]`;
     }
@@ -197,6 +199,7 @@ export function diffWorktree(repoDir, branchName, options = {}) {
       deletions: totalDeletions,
     },
     diff,
+    filePath,
   };
 }
 
@@ -258,11 +261,14 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
         conflicts,
         summary: {
           conflictedFiles: conflicts.length,
-          bothModified: conflicts.filter((item) => item.type === "both_modified")
+          bothModified: conflicts.filter(
+            (item) => item.type === "both_modified",
+          ).length,
+          bothAdded: conflicts.filter((item) => item.type === "both_added")
             .length,
-          bothAdded: conflicts.filter((item) => item.type === "both_added").length,
-          deleteModify: conflicts.filter((item) =>
-            item.type === "deleted_by_us" || item.type === "deleted_by_them",
+          deleteModify: conflicts.filter(
+            (item) =>
+              item.type === "deleted_by_us" || item.type === "deleted_by_them",
           ).length,
         },
         suggestions,
@@ -275,6 +281,194 @@ export function mergeWorktree(repoDir, branchName, options = {}) {
       strategy,
       message: `Merge failed: ${errMsg}`,
     };
+  }
+}
+
+export function previewWorktreeMerge(repoDir, branchName, options = {}) {
+  const strategy = options.strategy || "merge";
+  const baseBranch = _resolveBaseBranchForMerge(repoDir, options.baseBranch);
+  const worktree = _findWorktreeByBranch(repoDir, branchName);
+  if (!worktree?.path) {
+    throw new Error(`Worktree not found for branch: ${branchName}`);
+  }
+
+  _abortMergeIfPresent(worktree.path);
+
+  let mergeStarted = false;
+  try {
+    gitExec(`merge ${baseBranch} --no-commit --no-ff`, worktree.path);
+    mergeStarted = true;
+
+    return {
+      success: true,
+      previewOnly: true,
+      strategy,
+      branch: branchName,
+      baseBranch,
+      message: `Merge preview is clean. ${branchName} can be merged into ${baseBranch} without conflicts.`,
+      summary: {
+        conflictedFiles: 0,
+        bothModified: 0,
+        bothAdded: 0,
+        deleteModify: 0,
+      },
+      conflicts: [],
+      suggestions: [
+        `No merge conflicts detected between ${branchName} and ${baseBranch}.`,
+        "You can proceed with the final merge when ready.",
+      ],
+      previewEntrypoints: [],
+    };
+  } catch (error) {
+    const errMsg = error.message || String(error);
+    const conflictPaths = _collectConflictFiles(worktree.path);
+    if (
+      errMsg.includes("CONFLICT") ||
+      errMsg.includes("conflict") ||
+      conflictPaths.length > 0
+    ) {
+      const normalizedPaths =
+        conflictPaths.length > 0
+          ? conflictPaths
+          : _extractConflictPathsFromMessage(errMsg);
+      const conflicts = [...new Set(normalizedPaths)].map((filePath) =>
+        _buildConflictSummary(worktree.path, filePath, branchName),
+      );
+      const suggestions = _buildConflictSuggestions(conflicts);
+
+      return {
+        success: false,
+        previewOnly: true,
+        strategy,
+        branch: branchName,
+        baseBranch,
+        message: "Merge preview detected conflicts - review before merging",
+        conflicts,
+        summary: {
+          conflictedFiles: conflicts.length,
+          bothModified: conflicts.filter(
+            (item) => item.type === "both_modified",
+          ).length,
+          bothAdded: conflicts.filter((item) => item.type === "both_added")
+            .length,
+          deleteModify: conflicts.filter(
+            (item) =>
+              item.type === "deleted_by_us" || item.type === "deleted_by_them",
+          ).length,
+        },
+        suggestions,
+        previewEntrypoints: conflicts.map((item) => item.diffPreview.route),
+      };
+    }
+
+    throw error;
+  } finally {
+    if (mergeStarted || _collectConflictFiles(worktree.path).length > 0) {
+      _abortMergeIfPresent(worktree.path);
+    }
+  }
+}
+
+export function applyWorktreeAutomationCandidate(
+  repoDir,
+  branchName,
+  options = {},
+) {
+  const filePath = options.filePath || null;
+  const candidateId = options.candidateId || null;
+  const conflictType = options.conflictType || null;
+  const baseBranch = _resolveBaseBranchForMerge(repoDir, options.baseBranch);
+
+  if (!filePath) {
+    throw new Error("filePath is required");
+  }
+  if (!candidateId) {
+    throw new Error("candidateId is required");
+  }
+
+  const worktree = _findWorktreeByBranch(repoDir, branchName);
+  if (!worktree?.path) {
+    throw new Error(`Worktree not found for branch: ${branchName}`);
+  }
+
+  const candidate = _resolveAutomationCandidate(
+    conflictType,
+    filePath,
+    branchName,
+    candidateId,
+  );
+  if (!candidate) {
+    throw new Error(`Unsupported automation candidate: ${candidateId}`);
+  }
+  if (candidate.executable !== true) {
+    throw new Error(`Automation candidate is advisory only: ${candidateId}`);
+  }
+
+  _abortMergeIfPresent(worktree.path);
+
+  let mergeStarted = false;
+  try {
+    gitExec(`merge ${baseBranch} --no-commit --no-ff`, worktree.path);
+    mergeStarted = true;
+  } catch (error) {
+    const errMsg = error.message || String(error);
+    const conflictFiles = _collectConflictFiles(worktree.path);
+    if (
+      !errMsg.includes("CONFLICT") &&
+      !errMsg.includes("conflict") &&
+      conflictFiles.length === 0
+    ) {
+      _abortMergeIfPresent(worktree.path);
+      throw error;
+    }
+    mergeStarted = true;
+  }
+
+  try {
+    const unresolvedFiles = _collectConflictFiles(worktree.path);
+    if (unresolvedFiles.length > 0) {
+      _applyAutomationResolution(worktree.path, candidateId, filePath);
+
+      const remainingFiles = _collectConflictFiles(worktree.path);
+      if (remainingFiles.includes(filePath)) {
+        throw new Error(
+          `Unable to resolve ${filePath} with automation candidate ${candidateId}`,
+        );
+      }
+      if (remainingFiles.length > 0) {
+        throw new Error(
+          `Automation candidate ${candidateId} only resolved ${filePath}. Remaining conflicted files: ${remainingFiles.join(", ")}`,
+        );
+      }
+    }
+
+    const commitMessage =
+      options.commitMessage ||
+      `Resolve ${filePath} via ${candidate.label || candidateId}`;
+    gitExec(`commit -m "${commitMessage.replace(/"/g, '\\"')}"`, worktree.path);
+
+    const diff = diffWorktree(repoDir, branchName, { baseBranch });
+    const filesChanged = diff.summary?.filesChanged || 0;
+
+    return {
+      success: true,
+      branch: branchName,
+      baseBranch,
+      filePath,
+      candidateId,
+      message:
+        filesChanged > 0
+          ? `${candidate.label || candidateId} applied in ${branchName}. Review the updated branch diff before merging.`
+          : `${candidate.label || candidateId} applied in ${branchName}. The branch is now aligned with ${baseBranch} for ${filePath}.`,
+      files: diff.files,
+      summary: diff.summary,
+      diff: diff.diff,
+    };
+  } catch (error) {
+    if (mergeStarted) {
+      _abortMergeIfPresent(worktree.path);
+    }
+    throw error;
   }
 }
 
@@ -361,7 +555,9 @@ function _collectConflictFiles(repoDir) {
 
 function _extractConflictPathsFromMessage(errMsg) {
   const paths = [];
-  const matches = String(errMsg).matchAll(/(?:Merge conflict in|CONFLICT [^:]+:\s*)([^\n]+)/g);
+  const matches = String(errMsg).matchAll(
+    /(?:Merge conflict in|CONFLICT [^:]+:\s*)([^\n]+)/g,
+  );
   for (const match of matches) {
     const value = match[1]?.trim();
     if (!value) continue;
@@ -380,7 +576,11 @@ function _buildConflictSummary(repoDir, filePath, branchName) {
     statusCode,
     type,
     suggestion: _suggestAction(type, filePath),
-    automationCandidates: _buildAutomationCandidates(type, filePath, branchName),
+    automationCandidates: _buildAutomationCandidates(
+      type,
+      filePath,
+      branchName,
+    ),
     diffPreview: _buildDiffPreview(repoDir, filePath, branchName),
   };
 }
@@ -466,6 +666,7 @@ function _buildAutomationCandidates(type, filePath, branchName) {
       id: "preview-diff",
       label: "Preview diff",
       confidence: "high",
+      executable: false,
       command: `git diff HEAD...${branchName} -- "${filePath}"`,
       description: `Inspect the branch delta for ${filePath} before resolving.`,
     },
@@ -478,6 +679,7 @@ function _buildAutomationCandidates(type, filePath, branchName) {
           id: "accept-current",
           label: "Keep current branch",
           confidence: "medium",
+          executable: true,
           command: `git checkout --ours -- "${filePath}" && git add "${filePath}"`,
           description: `Resolve ${filePath} by keeping the current branch version.`,
         },
@@ -485,6 +687,7 @@ function _buildAutomationCandidates(type, filePath, branchName) {
           id: "accept-incoming",
           label: "Keep agent branch",
           confidence: "medium",
+          executable: true,
           command: `git checkout --theirs -- "${filePath}" && git add "${filePath}"`,
           description: `Resolve ${filePath} by taking the incoming agent version.`,
         },
@@ -496,6 +699,7 @@ function _buildAutomationCandidates(type, filePath, branchName) {
           id: "rename-one-side",
           label: "Rename one copy",
           confidence: "low",
+          executable: false,
           command: `git checkout --theirs -- "${filePath}"`,
           description: `Restore the incoming version, then rename or merge it manually to keep both copies.`,
         },
@@ -507,6 +711,7 @@ function _buildAutomationCandidates(type, filePath, branchName) {
           id: "restore-incoming",
           label: "Restore file",
           confidence: "medium",
+          executable: true,
           command: `git checkout --theirs -- "${filePath}" && git add "${filePath}"`,
           description: `Bring back ${filePath} from the agent branch.`,
         },
@@ -514,6 +719,7 @@ function _buildAutomationCandidates(type, filePath, branchName) {
           id: "confirm-delete",
           label: "Keep deletion",
           confidence: "medium",
+          executable: true,
           command: `git rm -- "${filePath}"`,
           description: `Resolve by keeping the deletion on the current branch.`,
         },
@@ -525,6 +731,7 @@ function _buildAutomationCandidates(type, filePath, branchName) {
           id: "restore-current",
           label: "Keep current file",
           confidence: "medium",
+          executable: true,
           command: `git checkout --ours -- "${filePath}" && git add "${filePath}"`,
           description: `Keep the current branch copy of ${filePath}.`,
         },
@@ -532,6 +739,7 @@ function _buildAutomationCandidates(type, filePath, branchName) {
           id: "accept-delete",
           label: "Accept deletion",
           confidence: "medium",
+          executable: true,
           command: `git rm -- "${filePath}"`,
           description: `Resolve by accepting the deletion from the agent branch.`,
         },
@@ -557,10 +765,81 @@ function _buildDiffPreview(repoDir, filePath, branchName) {
   try {
     const diff = gitExec(`diff HEAD...${branchName} -- "${filePath}"`, repoDir);
     preview.snippet =
-      diff.length > 2000 ? `${diff.slice(0, 2000)}\n... [diff truncated]` : diff;
+      diff.length > 2000
+        ? `${diff.slice(0, 2000)}\n... [diff truncated]`
+        : diff;
   } catch (_e) {
     preview.snippet = "";
   }
 
   return preview;
+}
+
+function _findWorktreeByBranch(repoDir, branchName) {
+  return (
+    listWorktrees(repoDir).find((item) => item.branch === branchName) || null
+  );
+}
+
+function _resolveAutomationCandidate(type, filePath, branchName, candidateId) {
+  const typesToCheck = type
+    ? [type]
+    : ["both_modified", "both_added", "deleted_by_us", "deleted_by_them"];
+
+  for (const candidateType of typesToCheck) {
+    const candidate = _buildAutomationCandidates(
+      candidateType,
+      filePath,
+      branchName,
+    ).find((item) => item.id === candidateId);
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function _abortMergeIfPresent(repoDir) {
+  try {
+    gitExec("merge --abort", repoDir);
+  } catch (_e) {
+    // Ignore if there is no in-progress merge.
+  }
+}
+
+function _resolveBaseBranchForMerge(repoDir, baseBranch) {
+  if (baseBranch && baseBranch !== "HEAD") {
+    return baseBranch;
+  }
+
+  try {
+    return gitExec("rev-parse --abbrev-ref HEAD", repoDir) || "HEAD";
+  } catch (_e) {
+    return "HEAD";
+  }
+}
+
+function _applyAutomationResolution(repoDir, candidateId, filePath) {
+  switch (candidateId) {
+    case "accept-current":
+      gitExec(`checkout --theirs -- "${filePath}"`, repoDir);
+      gitExec(`add "${filePath}"`, repoDir);
+      return;
+    case "accept-incoming":
+    case "restore-incoming":
+      gitExec(`checkout --ours -- "${filePath}"`, repoDir);
+      gitExec(`add "${filePath}"`, repoDir);
+      return;
+    case "restore-current":
+      gitExec(`checkout --theirs -- "${filePath}"`, repoDir);
+      gitExec(`add "${filePath}"`, repoDir);
+      return;
+    case "confirm-delete":
+    case "accept-delete":
+      gitExec(`rm -- "${filePath}"`, repoDir);
+      return;
+    default:
+      throw new Error(`Unsupported automation resolution: ${candidateId}`);
+  }
 }

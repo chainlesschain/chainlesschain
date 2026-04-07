@@ -82,6 +82,7 @@ class ChainlessChainApp {
     this.dbEncryptionIPC = null;
     this.initialSetupIPC = null;
     this.deepLinkHandler = null;
+    this.codingAgentService = null;
 
     // 懒加载状态
     this.speechInitialized = false;
@@ -217,6 +218,8 @@ class ChainlessChainApp {
 
     // 初始化 MCP 系统
     await this.initializeMCPSystem();
+    this.initializeCodingAgentService();
+    this.registerAdvancedFeaturesIPC();
 
     // 创建主窗口
     this.splashWindow?.updateProgress("创建主窗口...", 95);
@@ -399,13 +402,53 @@ class ChainlessChainApp {
   /**
    * 注册高级特性 IPC
    */
-  registerAdvancedFeaturesIPC() {
+  _registerAdvancedFeaturesIPCPlaceholder() {
     // 这些将在 createWindow 后注册
   }
 
   /**
    * 初始化 MCP 系统
    */
+  registerAdvancedFeaturesIPC() {
+    try {
+      if (!this.codingAgentService) {
+        return;
+      }
+      const {
+        registerCodingAgentIPCV3,
+      } = require("./ai-engine/code-agent/coding-agent-ipc-v3");
+      registerCodingAgentIPCV3({ service: this.codingAgentService, ipcMain });
+      logger.info("[Main] Coding Agent IPC handlers registered");
+    } catch (error) {
+      logger.error("[Main] Coding Agent IPC registration failed:", error);
+    }
+  }
+
+  initializeCodingAgentService() {
+    if (this.codingAgentService) {
+      return;
+    }
+
+    try {
+      const {
+        CodingAgentSessionService,
+      } = require("./ai-engine/code-agent/coding-agent-session-service");
+      const repoRoot = path.resolve(__dirname, "../../..");
+      this.codingAgentService = new CodingAgentSessionService({
+        repoRoot,
+        projectRoot: repoRoot,
+        toolManager: this.toolManager || null,
+        mcpManager: this.mcpManager || null,
+      });
+      logger.info("[Main] Coding Agent Session Service initialized");
+    } catch (error) {
+      logger.error(
+        "[Main] Failed to initialize Coding Agent Session Service:",
+        error,
+      );
+    }
+  }
+
   async initializeMCPSystem() {
     try {
       const { MCPConfigLoader } = require("./mcp/mcp-config-loader");
@@ -487,6 +530,10 @@ class ChainlessChainApp {
       titleBarStyle: "hidden",
       titleBarOverlay: { color: "#ffffff", symbolColor: "#000000" },
     });
+
+    if (this.codingAgentService) {
+      this.codingAgentService.setMainWindow(this.mainWindow);
+    }
 
     if (process.env.NODE_ENV === "development") {
       const devServerUrl =
@@ -847,6 +894,11 @@ class ChainlessChainApp {
     if (this.mobileBridge) {
       await this.mobileBridge.disconnect();
       this.mobileBridge = null;
+    }
+
+    if (this.codingAgentService) {
+      await this.codingAgentService.shutdown();
+      this.codingAgentService = null;
     }
 
     const {

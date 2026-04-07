@@ -20,6 +20,8 @@ import {
 } from "./session-manager.js";
 import { buildSystemPrompt } from "./agent-core.js";
 import { SubAgentRegistry } from "./sub-agent-registry.js";
+import { createWorktree, removeWorktree } from "./worktree-isolator.js";
+import { isGitRepo } from "./git-integration.js";
 
 /**
  * @typedef {object} Session
@@ -32,7 +34,11 @@ import { SubAgentRegistry } from "./sub-agent-registry.js";
  * @property {string|null} apiKey
  * @property {string|null} baseUrl
  * @property {string} projectRoot
+ * @property {string} baseProjectRoot
  * @property {string|null} rulesContent
+ * @property {object|null} hostManagedToolPolicy
+ * @property {boolean} worktreeIsolation
+ * @property {object|null} worktree
  * @property {PlanModeManager} planManager
  * @property {CLIContextEngineering|null} contextEngine
  * @property {CLIPermanentMemory|null} permanentMemory
@@ -78,12 +84,13 @@ export class WSSessionManager {
    * @param {string} [options.model]
    * @param {string} [options.apiKey]
    * @param {string} [options.baseUrl]
+   * @param {object} [options.hostManagedToolPolicy]
    * @returns {{ sessionId: string }}
    */
   createSession(options = {}) {
     const sessionId = this._generateId();
     const type = options.type || "agent";
-    const projectRoot = options.projectRoot || this.defaultProjectRoot;
+    const baseProjectRoot = options.projectRoot || this.defaultProjectRoot;
     const cfgLlm = this.config?.llm || {};
     const provider = options.provider || cfgLlm.provider || "ollama";
     const model =
@@ -93,6 +100,16 @@ export class WSSessionManager {
     const baseUrl =
       options.baseUrl || cfgLlm.baseUrl || "http://localhost:11434";
     const apiKey = options.apiKey || cfgLlm.apiKey || null;
+    const worktreeIsolationRequested = options.worktreeIsolation === true;
+    const isolatedWorkspace = this._prepareSessionWorkspace(
+      baseProjectRoot,
+      sessionId,
+      {
+        worktreeIsolation: worktreeIsolationRequested,
+      },
+    );
+    const projectRoot = isolatedWorkspace.projectRoot;
+    const worktree = isolatedWorkspace.worktree;
 
     // Project context (rules.md, persona) is now loaded by buildSystemPrompt()
 
@@ -151,8 +168,12 @@ export class WSSessionManager {
       model,
       apiKey,
       baseUrl,
+      hostManagedToolPolicy: options.hostManagedToolPolicy || null,
       projectRoot,
+      baseProjectRoot,
       rulesContent: null,
+      worktreeIsolation: worktreeIsolationRequested,
+      worktree,
       planManager,
       contextEngine,
       permanentMemory,
@@ -226,8 +247,12 @@ export class WSSessionManager {
         model: dbSession.model || null,
         apiKey: null,
         baseUrl: "http://localhost:11434",
+        hostManagedToolPolicy: null,
         projectRoot: this.defaultProjectRoot,
+        baseProjectRoot: this.defaultProjectRoot,
         rulesContent: null,
+        worktreeIsolation: false,
+        worktree: null,
         planManager,
         contextEngine,
         permanentMemory,
@@ -284,6 +309,16 @@ export class WSSessionManager {
       session.planManager.removeAllListeners();
     }
 
+    if (session.worktree?.path && session.baseProjectRoot) {
+      try {
+        removeWorktree(session.baseProjectRoot, session.worktree.path, {
+          deleteBranch: true,
+        });
+      } catch (_err) {
+        // Best-effort cleanup.
+      }
+    }
+
     this.sessions.delete(sessionId);
   }
 
@@ -304,6 +339,9 @@ export class WSSessionManager {
         provider: session.provider,
         model: session.model,
         messageCount: session.messages.length,
+        baseProjectRoot: session.baseProjectRoot,
+        worktreeIsolation: session.worktreeIsolation === true,
+        worktree: session.worktree || null,
         createdAt: session.createdAt,
         lastActivity: session.lastActivity,
       });
@@ -347,6 +385,22 @@ export class WSSessionManager {
   }
 
   /**
+   * Update host-managed tool policy for an active session.
+   *
+   * @param {string} sessionId
+   * @param {object|null} hostManagedToolPolicy
+   * @returns {Session|null}
+   */
+  updateSessionPolicy(sessionId, hostManagedToolPolicy) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    session.hostManagedToolPolicy = hostManagedToolPolicy || null;
+    session.lastActivity = new Date().toISOString();
+    return session;
+  }
+
+  /**
    * Persist current messages for a session.
    */
   persistMessages(sessionId) {
@@ -360,5 +414,32 @@ export class WSSessionManager {
     }
 
     session.lastActivity = new Date().toISOString();
+  }
+
+  _prepareSessionWorkspace(projectRoot, sessionId, options = {}) {
+    if (options.worktreeIsolation !== true) {
+      return {
+        projectRoot,
+        worktree: null,
+      };
+    }
+
+    if (!isGitRepo(projectRoot)) {
+      throw new Error(
+        `Worktree isolation requires a git repository: ${projectRoot}`,
+      );
+    }
+
+    const branchName = `coding-agent/${sessionId}`;
+    const worktree = createWorktree(projectRoot, branchName);
+
+    return {
+      projectRoot: worktree.path,
+      worktree: {
+        branch: worktree.branch,
+        path: worktree.path,
+        baseProjectRoot: projectRoot,
+      },
+    };
   }
 }

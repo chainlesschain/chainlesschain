@@ -38,11 +38,12 @@ features:
 
 ## 当前验证结果
 
-- CLI 定向单元测试：`130/130`
-- CLI 定向集成测试：`19/19`
+- CLI `ws-runtime-events` 定向单测：`2/2`
+- CLI `tools-registry` 定向单测：`6/6`
+- CLI `agent-core` 定向单测：`66/66`
 - CLI `ws-session-workflow` 集成：`16/16`
-- Web Panel 定向单元测试：`23/23`
-- Web Panel E2E：`29/29`
+- CLI 本轮定向合计：`90/90`
+- Web Panel 定向单元测试：`27/27`
 - Web Panel 构建：通过
 - Docs Site 构建：通过
 
@@ -86,6 +87,7 @@ npm run dev:desktop-vue
 - [设计模块 73：Web 管理界面](/design/modules/73-web-ui)
 - [设计模块 75：Web 管理面板](/design/modules/75-web-panel)
 - [设计模块 78：CLI Agent Runtime 重构计划](/design/modules/78-cli-agent-runtime)
+- [Minimal Coding Agent 实施计划](/chainlesschain/minimal-coding-agent-plan)
 
 ## 本轮重点能力
 

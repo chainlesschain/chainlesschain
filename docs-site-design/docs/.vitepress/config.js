@@ -69,6 +69,14 @@ export default defineConfig({
             text: "v5.0.2.7 Skill Creator (76)",
             link: "/modules/m76-skill-creator",
           },
+          {
+            text: "v5.0.2.10 Agent 架构优化 (77)",
+            link: "/modules/m77-agent-optimization",
+          },
+          {
+            text: "v5.0.2.10 CLI Agent Runtime 重构 (78) ⭐NEW",
+            link: "/modules/m78-cli-agent-runtime",
+          },
         ],
       },
       {
@@ -78,6 +86,10 @@ export default defineConfig({
           { text: "数据同步方案", link: "/data-sync-design" },
           { text: "AI模型部署", link: "/ai-model-deploy" },
           { text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" },
+          {
+            text: "Minimal Coding Agent 实施计划",
+            link: "/MINIMAL_CODING_AGENT_PLAN",
+          },
         ],
       },
       {
@@ -106,6 +118,10 @@ export default defineConfig({
           items: [
             { text: "Hooks扩展系统", link: "/HOOKS_SYSTEM_DESIGN" },
             { text: "浏览器扩展规划", link: "/BROWSER_EXTENSION_PLAN" },
+            {
+              text: "Minimal Coding Agent 实施计划 ⭐NEW",
+              link: "/MINIMAL_CODING_AGENT_PLAN",
+            },
           ],
         },
         {
@@ -561,6 +577,20 @@ export default defineConfig({
             {
               text: "76 Skill Creator系统",
               link: "/modules/m76-skill-creator",
+            },
+          ],
+        },
+        {
+          text: "v5.0.2.10 Agent 架构与 Runtime 重构 (77-78) ⭐NEW",
+          collapsed: false,
+          items: [
+            {
+              text: "77 Agent 架构优化系统",
+              link: "/modules/m77-agent-optimization",
+            },
+            {
+              text: "78 CLI Agent Runtime 重构实施计划",
+              link: "/modules/m78-cli-agent-runtime",
             },
           ],
         },

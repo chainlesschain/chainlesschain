@@ -4,7 +4,7 @@
  * @description 定义 window.electronAPI 的类型
  */
 
-import type { IPCChannels, IPCResponse } from './ipc.d';
+import type { IPCChannels, IPCResponse } from "./ipc.d";
 
 // ==================== Electron API 接口 ====================
 
@@ -24,7 +24,10 @@ export interface UKeyAPI {
  * 认证 API
  */
 export interface AuthAPI {
-  verifyPassword(username: string, password: string): Promise<{ success: boolean; token?: string; error?: string }>;
+  verifyPassword(
+    username: string,
+    password: string,
+  ): Promise<{ success: boolean; token?: string; error?: string }>;
   logout(): Promise<void>;
   getSession(): Promise<{ user?: any; isAuthenticated: boolean }>;
 }
@@ -40,7 +43,10 @@ export interface DatabaseAPI {
   deleteKnowledgeItem(id: string): Promise<void>;
   searchKnowledgeItems(query: string): Promise<any[]>;
   query(sql: string, params?: any[]): Promise<any[]>;
-  run(sql: string, params?: any[]): Promise<{ changes: number; lastInsertRowid: number }>;
+  run(
+    sql: string,
+    params?: any[],
+  ): Promise<{ changes: number; lastInsertRowid: number }>;
 }
 
 /**
@@ -48,8 +54,14 @@ export interface DatabaseAPI {
  */
 export interface LLMAPI {
   checkStatus(): Promise<{ available: boolean; model?: string }>;
-  query(prompt: string, context?: any): Promise<{ response: string; usage?: any }>;
-  chat(messages: any[], options?: any): Promise<{ response: string; usage?: any }>;
+  query(
+    prompt: string,
+    context?: any,
+  ): Promise<{ response: string; usage?: any }>;
+  chat(
+    messages: any[],
+    options?: any,
+  ): Promise<{ response: string; usage?: any }>;
   streamChat(messages: any[], options?: any): Promise<void>;
   cancelStream(): Promise<void>;
 }
@@ -90,17 +102,30 @@ export interface FileAPI {
   mkdir(path: string): Promise<void>;
   readdir(path: string): Promise<string[]>;
   unlink(path: string): Promise<void>;
-  stat(path: string): Promise<{ size: number; mtime: Date; isDirectory: boolean }>;
-  selectFile(options?: { filters?: any[]; multiple?: boolean }): Promise<string | string[] | null>;
+  stat(
+    path: string,
+  ): Promise<{ size: number; mtime: Date; isDirectory: boolean }>;
+  selectFile(options?: {
+    filters?: any[];
+    multiple?: boolean;
+  }): Promise<string | string[] | null>;
   selectDirectory(): Promise<string | null>;
-  saveFile(options?: { defaultPath?: string; filters?: any[] }): Promise<string | null>;
+  saveFile(options?: {
+    defaultPath?: string;
+    filters?: any[];
+  }): Promise<string | null>;
 }
 
 /**
  * 对话框 API
  */
 export interface DialogAPI {
-  showMessage(options: { type?: string; title?: string; message: string; buttons?: string[] }): Promise<number>;
+  showMessage(options: {
+    type?: string;
+    title?: string;
+    message: string;
+    buttons?: string[];
+  }): Promise<number>;
   showError(title: string, content: string): Promise<void>;
   showInfo(title: string, content: string): Promise<void>;
   showConfirm(title: string, message: string): Promise<boolean>;
@@ -144,15 +169,38 @@ export interface ProjectAPI {
  * 模板 API
  */
 export interface TemplateAPI {
-  getAll(filters?: any): Promise<{ success: boolean; templates?: any[]; error?: string }>;
-  getById(id: string): Promise<{ success: boolean; template?: any; error?: string }>;
-  create(template: any): Promise<{ success: boolean; template?: any; id?: string; error?: string }>;
-  update(id: string, updates: any): Promise<{ success: boolean; template?: any; error?: string }>;
+  getAll(
+    filters?: any,
+  ): Promise<{ success: boolean; templates?: any[]; error?: string }>;
+  getById(
+    id: string,
+  ): Promise<{ success: boolean; template?: any; error?: string }>;
+  create(
+    template: any,
+  ): Promise<{ success: boolean; template?: any; id?: string; error?: string }>;
+  update(
+    id: string,
+    updates: any,
+  ): Promise<{ success: boolean; template?: any; error?: string }>;
   delete(id: string): Promise<{ success: boolean; error?: string }>;
-  recordUsage(templateId: string, userId?: string, projectId?: string, variables?: any): Promise<{ success: boolean; error?: string }>;
-  search(query: string, filters?: any): Promise<{ success: boolean; templates?: any[]; error?: string }>;
-  renderPrompt(id: string, vars: any): Promise<{ success: boolean; renderedPrompt?: string; error?: string }>;
-  duplicate(id: string, newName?: string): Promise<{ success: boolean; template?: any; error?: string }>;
+  recordUsage(
+    templateId: string,
+    userId?: string,
+    projectId?: string,
+    variables?: any,
+  ): Promise<{ success: boolean; error?: string }>;
+  search(
+    query: string,
+    filters?: any,
+  ): Promise<{ success: boolean; templates?: any[]; error?: string }>;
+  renderPrompt(
+    id: string,
+    vars: any,
+  ): Promise<{ success: boolean; renderedPrompt?: string; error?: string }>;
+  duplicate(
+    id: string,
+    newName?: string,
+  ): Promise<{ success: boolean; template?: any; error?: string }>;
   getStats(): Promise<any>;
 }
 
@@ -166,6 +214,230 @@ export interface ChatAPI {
   deleteSession(id: string): Promise<void>;
   getMessages(sessionId: string): Promise<any[]>;
   sendMessage(sessionId: string, message: string): Promise<any>;
+}
+
+export interface ConversationAPI {
+  create(conversationData: any): Promise<any>;
+  get(conversationId: string): Promise<any>;
+  getByProject(projectId: string): Promise<any>;
+  getRecent(options?: any): Promise<any>;
+  getAll(options?: any): Promise<any>;
+  update(conversationId: string, updates: any): Promise<any>;
+  delete(conversationId: string): Promise<any>;
+  createMessage(messageData: any): Promise<any>;
+  addMessage(conversationId: string, messageData: any): Promise<any>;
+  updateMessage(updateData: any): Promise<any>;
+  getMessages(conversationId: string, options?: any): Promise<any>;
+  deleteMessage(messageId: string): Promise<any>;
+  clearMessages(conversationId: string): Promise<any>;
+  agentChat(chatData: any): Promise<any>;
+}
+
+export interface CodingAgentEvent {
+  id: string;
+  type: string;
+  timestamp: string;
+  sessionId?: string | null;
+  requestId?: string | null;
+  payload: any;
+}
+
+export interface CodingAgentToolDescriptor {
+  name: string;
+  description: string;
+  inputSchema?: any;
+  isReadOnly: boolean;
+  riskLevel: "low" | "medium" | "high";
+  source: string;
+  managedMetadata?: any;
+}
+
+export interface CodingAgentToolSummary {
+  totalTools: number;
+  toolsByRisk: {
+    low: string[];
+    medium: string[];
+    high: string[];
+  };
+  toolsBySource?: Record<string, string[]>;
+  managedToolSupport: boolean;
+}
+
+export interface CodingAgentPermissionPolicy {
+  planModeRules: {
+    low: string;
+    medium: string;
+    high: string;
+  };
+  toolsByRisk: {
+    low: string[];
+    medium: string[];
+    high: string[];
+  };
+  toolsBySource?: Record<string, string[]>;
+}
+
+export interface CodingAgentSessionState {
+  sessionId: string;
+  status: string;
+  provider?: string | null;
+  model?: string | null;
+  projectRoot?: string | null;
+  baseProjectRoot?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  history?: Array<{ role: string; content: string }>;
+  pendingRequests?: string[];
+  lastPlanSummary?: string | null;
+  lastPlanItems?: any[];
+  planModeState?: string | null;
+  requiresHighRiskConfirmation?: boolean;
+  highRiskConfirmationGranted?: boolean;
+  highRiskToolNames?: string[];
+  worktreeIsolation?: boolean;
+  worktree?: {
+    branch?: string | null;
+    path?: string | null;
+    baseBranch?: string | null;
+    hasChanges?: boolean | null;
+    summary?: any;
+    conflicts?: any[];
+    previewEntrypoints?: any[];
+    meta?: any;
+  } | null;
+}
+
+export interface CodingAgentWorktreeRecord {
+  branch?: string | null;
+  path?: string | null;
+  baseBranch?: string | null;
+  hasChanges?: boolean | null;
+  summary?: any;
+  conflicts?: any[];
+  previewEntrypoints?: any[];
+  meta?: any;
+}
+
+export interface CodingAgentStatus {
+  connected: boolean;
+  host?: string;
+  port?: number | null;
+  tools?: CodingAgentToolDescriptor[];
+  toolSummary?: CodingAgentToolSummary | null;
+  permissionPolicy?: CodingAgentPermissionPolicy | null;
+}
+
+export interface CodingAgentAPI {
+  createSession(options?: any): Promise<any>;
+  resumeSession(sessionId: string): Promise<any>;
+  listSessions(): Promise<any>;
+  sendMessage(payload: { sessionId: string; content: string }): Promise<any>;
+  enterPlanMode(sessionId: string): Promise<any>;
+  showPlan(sessionId: string): Promise<any>;
+  approvePlan(sessionId: string): Promise<any>;
+  confirmHighRiskExecution(sessionId: string): Promise<any>;
+  rejectPlan(sessionId: string): Promise<any>;
+  closeSession(sessionId: string): Promise<any>;
+  cancelSession(sessionId: string): Promise<any>;
+  getSessionState(
+    sessionId: string,
+  ): Promise<{
+    success: boolean;
+    session?: CodingAgentSessionState;
+    error?: string;
+  }>;
+  getSessionEvents(
+    sessionId: string,
+  ): Promise<{ success: boolean; events?: CodingAgentEvent[]; error?: string }>;
+  listWorktrees(): Promise<{
+    success: boolean;
+    worktrees?: CodingAgentWorktreeRecord[];
+    error?: string;
+  }>;
+  getWorktreeDiff(payload: {
+    sessionId: string;
+    branch?: string;
+    baseBranch?: string | null;
+    filePath?: string | null;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    branch?: string;
+    filePath?: string | null;
+    files?: any[];
+    summary?: any;
+    diff?: string | null;
+    record?: CodingAgentWorktreeRecord | null;
+    error?: string;
+  }>;
+  mergeWorktree(payload: {
+    sessionId: string;
+    branch?: string;
+    strategy?: string;
+    commitMessage?: string | null;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    branch?: string;
+    strategy?: string;
+    message?: string | null;
+    summary?: any;
+    conflicts?: any[];
+    suggestions?: string[];
+    previewEntrypoints?: any[];
+    record?: CodingAgentWorktreeRecord | null;
+    error?: string;
+  }>;
+  previewWorktreeMerge(payload: {
+    sessionId: string;
+    branch?: string;
+    baseBranch?: string | null;
+    strategy?: string;
+  }): Promise<{
+    success: boolean;
+    previewOnly?: boolean;
+    sessionId?: string;
+    branch?: string;
+    baseBranch?: string | null;
+    strategy?: string;
+    message?: string | null;
+    summary?: any;
+    conflicts?: any[];
+    suggestions?: string[];
+    previewEntrypoints?: any[];
+    record?: CodingAgentWorktreeRecord | null;
+    error?: string;
+  }>;
+  applyWorktreeAutomation(payload: {
+    sessionId: string;
+    branch?: string;
+    baseBranch?: string | null;
+    filePath: string;
+    candidateId: string;
+    conflictType?: string | null;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    branch?: string;
+    baseBranch?: string | null;
+    filePath?: string | null;
+    candidateId?: string | null;
+    message?: string | null;
+    files?: any[];
+    summary?: any;
+    diff?: string | null;
+    record?: CodingAgentWorktreeRecord | null;
+    error?: string;
+  }>;
+  getStatus(): Promise<{
+    success: boolean;
+    server?: { connected?: boolean; host?: string; port?: number | null };
+    sessionCount?: number;
+    tools?: CodingAgentToolDescriptor[];
+    toolSummary?: CodingAgentToolSummary | null;
+    permissionPolicy?: CodingAgentPermissionPolicy | null;
+  }>;
+  onEvent(callback: (event: CodingAgentEvent) => void): () => void;
 }
 
 /**
@@ -245,6 +517,7 @@ export interface ElectronAPI {
   // 模块化 API
   ukey: UKeyAPI;
   auth: AuthAPI;
+  conversation: ConversationAPI;
   db: DatabaseAPI;
   llm: LLMAPI;
   git: GitAPI;
@@ -256,6 +529,7 @@ export interface ElectronAPI {
   project: ProjectAPI;
   template: TemplateAPI;
   chat: ChatAPI;
+  codingAgent: CodingAgentAPI;
   friend: FriendAPI;
   p2p: P2PAPI;
   did: DIDAPI;

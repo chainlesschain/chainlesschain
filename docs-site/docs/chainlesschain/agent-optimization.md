@@ -28,11 +28,12 @@
 
 当前相关验证结果：
 
-- CLI 定向单元：`130/130`
-- CLI 定向集成：`19/19`
+- CLI `ws-runtime-events`：`2/2`
+- CLI `tools-registry`：`6/6`
+- CLI `agent-core`：`66/66`
 - CLI `ws-session-workflow` 集成：`16/16`
-- Web Panel 定向单元：`23/23`
-- Web Panel E2E：`29/29`
+- CLI 本轮定向合计：`90/90`
+- Web Panel 定向单元：`27/27`
 - Web Panel 构建：通过
 - Docs Site 构建：通过
 

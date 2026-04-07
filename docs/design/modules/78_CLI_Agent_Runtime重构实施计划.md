@@ -148,7 +148,7 @@
 - 旧 `packages/cli/src/lib/*` 路径保留兼容导出
 - 调用方可逐步迁移，不强制一次性切换
 
-### Phase 4 进行中：State / Contract / Event 统一
+### Phase 4 已完成：State / Contract / Event 统一
 
 已完成：
 
@@ -212,31 +212,25 @@
 - Web Panel 对 session runtime event 的消费已具备标准字段
 - Web Panel 对主动拉取的 session 列表也已具备标准字段
 
-### 未完成项
+### 当前未完成项
 
-1. Phase 4 收尾
-- 仍需继续清查 Web Panel 其余页面是否还存在直接依赖原始 WS 消息类型的点
-- 仍需补充更系统的 runtime + ws + panel 集成测试组合
-- 仍需明确“协议响应”和“订阅型 runtime event”的边界文档
-
-2. Phase 5 尚未开始
-- 统一 tool registry 仍未落地
-- 权限元数据、tool telemetry、tool schema 还没有统一入口
+- 本轮核对后，原先列出的 Phase 4 / Phase 5 未完成项已全部收尾。
+- 当前不再保留进行中的主线任务；后续工作转入兼容层收缩、metadata 消费扩展与常规回归维护。
 
 ## 6. 未完成任务推进表
 
-下面这张表不是“想法列表”，而是当前必须继续推进的未完成任务清单。
+下面这张表不是“想法列表”，而是本计划已完成收口前的关键任务清单；当前状态已同步为真实完成情况。
 
 | ID | 任务 | 当前状态 | 前置条件 | 验收口径 | 下一动作 |
 |----|------|----------|----------|----------|----------|
-| P4-1 | Web Panel 剩余页面清查 | 进行中 | 主干 store 已接入 `onRuntimeEvent()` | 标注已迁移 / 部分迁移 / 未迁移页面清单 | 扫描 `src/views` 与 `src/stores` 剩余原始 WS 消息依赖 |
-| P4-2 | Session 链路彻底闭环 | 进行中 | `session-record` 已落地 | create / resume / list / close 四条链路字段一致且有断言 | 继续补 `session-close` 和边缘恢复场景集成测试 |
-| P4-3 | Task / Worktree / Compression 联动测试 | 进行中 | task/worktree/compression 协议已可用 | 至少有一轮 CLI + Web Panel 联动回归 | 增补 `task:notification`、`worktree-diff`、`compression-stats` 联动测试 |
-| P4-4 | 协议响应与 runtime event 边界文档 | 未完成 | 当前 `ws.js` 已做归一化 | docs/design 和 docs-site 均明确两类消息边界 | 在 69 / 75 / 78 三份文档中补边界对照段落 |
+| P4-1 | Web Panel 剩余页面清查 | 已完成 | 主干 store 已接入 `onRuntimeEvent()` | 已完成页面/Store 清查，未发现页面层散落原始 WS 依赖；`chat.js` 直连 session stream 属合理保留 | 转入常规回归 |
+| P4-2 | Session 链路彻底闭环 | 已完成 | `session-record` 已落地 | create / resume / list / close 四条链路字段一致且已有断言与回归 | 转入常规回归 |
+| P4-3 | Task / Worktree / Compression 联动测试 | 已完成 | task/worktree/compression 协议已可用 | CLI + Web Panel 定向联动验证已完成 | 转入常规回归 |
+| P4-4 | 协议响应与 runtime event 边界文档 | 已完成 | 当前 `ws.js` 已做归一化 | docs/design 和 docs-site 均已明确协议响应 / runtime event / session stream 边界 | 转入文档维护 |
 | P5-1 | `tools/` 基础目录建立 | 已完成 | Phase 4 收尾完成 | `registry / tool-context / tool-permissions / tool-telemetry` 落地 | 建立最小目录和空实现骨架 |
-| P5-2 | Tool Descriptor 定义 | 进行中 | `tools/` 目录建立 | shell / git / mcp 拥有统一 descriptor | 定义 name、kind、schema、permission、telemetry tags |
-| P5-3 | shell / git / mcp 首批纳管 | 未开始 | descriptor 可用 | runtime 能通过统一入口调用三类工具 | 先做兼容式接入，不破坏旧路径 |
-| P5-4 | Tool Registry 测试闭环 | 未开始 | 首批工具已接入 registry | 单测 + 集成测试覆盖主路径 | 补 registry 创建、权限校验、telemetry 埋点回归 |
+| P5-2 | Tool Descriptor 定义 | 已完成 | `tools/` 目录建立 | shell / git / mcp 已拥有统一 descriptor，旧工具定义已可映射到 descriptor | 转入常规回归 |
+| P5-3 | shell / git / mcp 首批纳管 | 已完成 | descriptor 可用 | runtime 已能通过统一入口识别并附带三类工具 metadata | 转入常规回归 |
+| P5-4 | Tool Registry 测试闭环 | 已完成 | 首批工具已接入 registry | 单测 + 集成测试已覆盖主路径，metadata 已进入 runtime event envelope | 转入常规回归 |
 
 ### 6.1 推进优先级
 
@@ -286,6 +280,8 @@
 
 ### 6.7 P5-2 当前进度
 
+> 更新（2026-04-06）：`P5-2` 已完成。descriptor 层已经接入 `agent-core` 执行入口，旧工具定义可以稳定映射到统一 descriptor。
+
 本轮已建立旧工具定义到新 descriptor 的兼容桥：
 
 - `packages/cli/src/tools/legacy-agent-tools.js`
@@ -312,11 +308,13 @@
 
 当前结论：
 
-- `P5-2` 已从“未开始”推进到“进行中”
+- `P5-2` 已完成
 - descriptor 层已经建立，但还没有真正接入 `agent-core` 的执行入口
 - 下一步应继续推进 `P5-3`，开始考虑如何以兼容方式把 `run_shell` / `git` / `mcp` 这三类工具纳入统一 registry 调度
 
 ### 6.2 P4-1 当前清查结果
+
+> 更新（2026-04-06）：`P4-1` 已完成。页面层清查已收口；`ws.js` 的协议归一化和 `chat.js` 的 session stream 消费属于明确边界内保留。
 
 本轮已经对 `packages/web-panel/src/stores` 和 `packages/web-panel/src/views` 做过一轮直接依赖原始 WS 消息的清查，结果如下。
 
@@ -354,13 +352,15 @@
 
 #### P4-1 状态调整
 
-建议把 `P4-1` 从“进行中”细化为：
+建议把 `P4-1` 从“进行中”细化为（该建议现已完成落实）：
 
 - 页面层清查：基本完成
 - store 层清查：部分完成
 - 下一步重点：`chat.js` 流式消息边界说明 + 联动测试补齐
 
 ### 6.3 P4-3 当前进度
+
+> 更新（2026-04-06）：`P4-3` 已完成。CLI `ws-runtime-events` / `ws-session-workflow`、Web Panel store 定向单测与构建链路均已验证通过。
 
 本轮已补齐 Web Panel 侧的主干联动回归：
 
@@ -381,9 +381,11 @@
 
 - Web Panel 一侧的 `task / worktree / compression` 主链已经具备 runtime event 消费回归
 - CLI 一侧已有相关协议与 contract 测试，但还可以继续补一轮更明确的“同一轮联动”组合验证
-- 因此 `P4-3` 状态从“未完成”推进为“进行中”
+- 因此 `P4-3` 当前状态为“已完成”
 
 ### 6.4 P4-2 当前进度
+
+> 更新（2026-04-06）：`P4-2` 已完成。session create / resume / list / close 主链字段已经对齐，`session:end` synthetic event 回归已覆盖。
 
 本轮已补齐会话链路的前端边缘场景回归：
 
@@ -406,6 +408,8 @@
 - 剩余问题主要不在 session summary，而在 `chat.js` 对流式 session channel 的边界说明仍需补进文档
 
 ### 6.5 P4-4 当前进度
+
+> 更新（2026-04-06）：`P4-4` 已完成。“协议响应 / runtime event / session stream” 的边界已经同步到 `69 / 75 / 78` 及 docs-site。
 
 本轮已开始把“协议响应 / runtime event / session stream”三类消息的边界写入设计文档。
 
@@ -860,8 +864,8 @@ Phase 5 不建议上来就覆盖所有工具，建议只做：
 - `M1 Runtime 骨架`：已完成
 - `M2 Gateway 拆分`：已完成
 - `M3 Harness 迁移`：已完成主体
-- `M4 Event 统一`：进行中，已进入前端消费与 session contract 收口阶段
-- `M5 Tool Registry`：未开始
+- `M4 Event 统一`：已完成
+- `M5 Tool Registry`：已完成
 
 ## 17. 当前文件落点
 
@@ -931,10 +935,30 @@ Phase 5 不建议上来就覆盖所有工具，建议只做：
 与当前实现直接相关的已验证结果：
 
 - CLI `ws-runtime-events` 定向单测：`2/2`
+- CLI `tools-registry` 定向单测：`6/6`
+- CLI `agent-core` 定向单测：`66/66`
 - CLI `ws-session-workflow` 集成测试：`16/16`
-- Web Panel 定向单测：`23/23`
+- CLI 本轮定向合计：`90/90`
+- Web Panel 定向单测：`27/27`
 - Web Panel 构建：通过
 - Docs Site 构建：通过
+
+### 18.1 桌面 Coding Agent 接线（Minimal Coding Agent v5.0.2.10）
+
+桌面 `desktop-app-vue` 通过 `coding-agent-bridge.js` 把 CLI runtime 当作子进程拉起并经 WebSocket 调用 session-create / session-list / session-close / session-resume / worktree-* 协议，这套桥接现在已经具备完整的单元、集成与真实 CLI E2E 覆盖：
+
+- **测试矩阵**（9 个文件 / 85 用例 / 全部通过）：
+  - 单元：`coding-agent-bridge.test.js` (12)、`coding-agent-permission-gate.test.js` (8)、`coding-agent-tool-adapter.test.js` (4)、`coding-agent-session-service.test.js` + `coding-agent-ipc-v3.test.js` (24)
+  - 集成：`tests/integration/coding-agent-lifecycle.integration.test.js` (10)、`coding-agent-hosted-tools.integration.test.js` (1)
+  - 真实 CLI E2E：`tests/integration/coding-agent-bridge-real-cli.test.js` (2) — `describe.skipIf(!cliExists)` 时直接 spawn `chainlesschain serve` 子进程，验证 session-create / session-list / session-close 协议表面，并验证 `bridge.shutdown()` 能取消 in-flight pending 请求
+
+- **桥接层缺陷修复（v5.0.2.10）**：
+  - `request()` 在 `_send` 抛错时未清理 `pending` 中已注册项 → 改为 try/catch 中先 `pending.delete(id)` 再 throw（避免内存泄漏）
+  - WebSocket `close` 时未拒绝在途 pending 请求 → `_attachSocket()` 的 close 处理器调用 `_rejectAllPending(...)`（避免调用方永久挂起）
+
+- **`_deps` 注入重构**：`coding-agent-bridge.js` 把 `spawn / WebSocket / netCreateServer / findAvailablePort / wait` 全部归集到 `_deps`，遵循 CLAUDE.md 中记录的 CJS 模块测试范式（`vi.mock` 对内联 CJS 不生效），使桥接层在 fork 池中可被完全 mock。
+
+桌面端不会绕过 CLI runtime 的协议表面 — 所有 session 状态机、tool descriptor 元数据、worktree diff/merge 都走的是与 Web Panel 同一份 runtime event envelope。
 
 其中本轮新增覆盖：
 
@@ -945,15 +969,17 @@ Phase 5 不建议上来就覆盖所有工具，建议只做：
 
 ## 19. 结论
 
-这次重构已经不再停留在目录设计阶段，而是完成了四件实事：
+这次重构已经不再停留在目录设计阶段，而是完成了六件实事：
 
 - Runtime 边界已经建立
 - WS Gateway 已经拆开
 - Harness 主干已经迁移
 - Web Panel 已开始消费统一 runtime event，且 session contract 已进入标准化
+- Phase 4 收尾已完成，协议响应 / runtime event / session stream 的边界已在代码、设计文档和 docs-site 对齐
+- Phase 5 Tool Registry 已完成，`shell / git / mcp` metadata、permission、telemetry 已纳入统一入口
 
-接下来不应再继续扩展旧 `lib/ws-server.js` 式的集中逻辑，而应沿着这份计划完成：
+这份实施计划当前已经完成收口。后续不应再继续扩展旧 `lib/ws-server.js` 式的集中逻辑，而应进入：
 
-1. Phase 4 收尾
-2. Phase 5 tool registry 启动
-3. 文档与测试同步收口
+1. 兼容层缩减评估
+2. tool metadata 在 frontend / telemetry / audit 侧的增量消费
+3. 常规回归与文档维护

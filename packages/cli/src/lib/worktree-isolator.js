@@ -6,6 +6,8 @@ export {
   isolateTask,
   cleanupAgentWorktrees,
   diffWorktree,
+  previewWorktreeMerge,
+  applyWorktreeAutomationCandidate,
   mergeWorktree,
   worktreeLog,
 } from "../harness/worktree-isolator.js";

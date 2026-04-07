@@ -30,6 +30,9 @@ const {
   pruneWorktrees,
   isolateTask,
   cleanupAgentWorktrees,
+  diffWorktree,
+  previewWorktreeMerge,
+  applyWorktreeAutomationCandidate,
   mergeWorktree,
 } = await import("../../src/lib/worktree-isolator.js");
 
@@ -202,7 +205,11 @@ describe("worktree-isolator", () => {
       execSync("git add README.md", { cwd: repoDir });
       execSync('git commit -m "main change"', { cwd: repoDir });
 
-      writeFileSync(join(worktree.path, "README.md"), "# branch change\n", "utf-8");
+      writeFileSync(
+        join(worktree.path, "README.md"),
+        "# branch change\n",
+        "utf-8",
+      );
       execSync("git add README.md", { cwd: worktree.path });
       execSync('git commit -m "branch change"', { cwd: worktree.path });
 
@@ -214,10 +221,114 @@ describe("worktree-isolator", () => {
       expect(result.summary.conflictedFiles).toBe(1);
       expect(result.conflicts[0].path).toBe("README.md");
       expect(result.conflicts[0].suggestion).toContain("README.md");
-      expect(result.conflicts[0].automationCandidates.length).toBeGreaterThan(0);
+      expect(result.conflicts[0].automationCandidates.length).toBeGreaterThan(
+        0,
+      );
       expect(result.conflicts[0].diffPreview.route.type).toBe("worktree-diff");
       expect(result.suggestions.length).toBeGreaterThan(0);
       expect(result.previewEntrypoints[0].filePath).toBe("README.md");
+      expect(result.conflicts[0].automationCandidates[0]).toHaveProperty(
+        "executable",
+      );
+    });
+  });
+
+  describe("previewWorktreeMerge", () => {
+    it("returns conflict summaries without mutating the isolated worktree branch", () => {
+      const worktree = createWorktree(repoDir, "agent/preview-branch");
+
+      writeFileSync(join(repoDir, "README.md"), "# main change\n", "utf-8");
+      execSync("git add README.md", { cwd: repoDir });
+      execSync('git commit -m "main change"', { cwd: repoDir });
+
+      writeFileSync(
+        join(worktree.path, "README.md"),
+        "# branch change\n",
+        "utf-8",
+      );
+      execSync("git add README.md", { cwd: worktree.path });
+      execSync('git commit -m "branch change"', { cwd: worktree.path });
+
+      const result = previewWorktreeMerge(repoDir, "agent/preview-branch", {
+        baseBranch: "HEAD",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.previewOnly).toBe(true);
+      expect(result.summary.conflictedFiles).toBe(1);
+      expect(result.conflicts[0].path).toBe("README.md");
+      expect(result.previewEntrypoints[0].filePath).toBe("README.md");
+      expect(() =>
+        execSync("git rev-parse --verify MERGE_HEAD", {
+          cwd: worktree.path,
+          encoding: "utf-8",
+          stdio: ["ignore", "pipe", "ignore"],
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe("applyWorktreeAutomationCandidate", () => {
+    it("applies a safe conflict resolution inside the isolated worktree branch", () => {
+      const worktree = createWorktree(repoDir, "agent/conflict-branch");
+
+      writeFileSync(join(repoDir, "README.md"), "# main change\n", "utf-8");
+      execSync("git add README.md", { cwd: repoDir });
+      execSync('git commit -m "main change"', { cwd: repoDir });
+
+      writeFileSync(
+        join(worktree.path, "README.md"),
+        "# branch change\n",
+        "utf-8",
+      );
+      execSync("git add README.md", { cwd: worktree.path });
+      execSync('git commit -m "branch change"', { cwd: worktree.path });
+
+      const result = applyWorktreeAutomationCandidate(
+        repoDir,
+        "agent/conflict-branch",
+        {
+          baseBranch: "HEAD",
+          filePath: "README.md",
+          candidateId: "accept-current",
+          conflictType: "both_modified",
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.filePath).toBe("README.md");
+      expect(result.summary.filesChanged).toBe(0);
+      expect(
+        execSync("git show HEAD:README.md", {
+          cwd: worktree.path,
+          encoding: "utf-8",
+        }),
+      ).toContain("# main change");
+    });
+  });
+
+  describe("diffWorktree", () => {
+    it("supports file-scoped diff previews", () => {
+      const worktree = createWorktree(repoDir, "agent/diff-branch");
+
+      writeFileSync(
+        join(worktree.path, "README.md"),
+        "# changed readme\n",
+        "utf-8",
+      );
+      writeFileSync(join(worktree.path, "notes.txt"), "new note\n", "utf-8");
+      execSync("git add README.md notes.txt", { cwd: worktree.path });
+      execSync('git commit -m "branch changes"', { cwd: worktree.path });
+
+      const result = diffWorktree(repoDir, "agent/diff-branch", {
+        filePath: "README.md",
+      });
+
+      expect(result.filePath).toBe("README.md");
+      expect(result.files).toHaveLength(1);
+      expect(result.files[0].path).toBe("README.md");
+      expect(result.diff).toContain("README.md");
+      expect(result.diff).not.toContain("notes.txt");
     });
   });
 });

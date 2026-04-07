@@ -101,18 +101,15 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
    * @param {object} [extra] - choices, default, etc.
    * @returns {Promise<string|boolean>}
    */
-  _ask(questionType, question, extra = {}) {
+  _request(message, options = {}) {
     return new Promise((resolve, reject) => {
       const requestId = this._requestId();
       this._pending.set(requestId, { resolve, reject });
 
       this._sendWs({
-        type: "question",
+        ...message,
         sessionId: this.sessionId,
         requestId,
-        questionType,
-        question,
-        ...extra,
       });
 
       // Timeout after 5 minutes
@@ -123,8 +120,17 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
             reject(new Error("Question timed out"));
           }
         },
-        5 * 60 * 1000,
+        options.timeoutMs || 5 * 60 * 1000,
       );
+    });
+  }
+
+  _ask(questionType, question, extra = {}) {
+    return this._request({
+      type: "question",
+      questionType,
+      question,
+      ...extra,
     });
   }
 
@@ -154,6 +160,26 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     if (pending) {
       this._pending.delete(requestId);
       pending.resolve(answer);
+    }
+  }
+
+  async requestHostTool(toolName, args = {}, extra = {}) {
+    return this._request(
+      {
+        type: "host-tool-call",
+        toolName,
+        args,
+        ...extra,
+      },
+      { timeoutMs: extra.timeoutMs || 60 * 1000 },
+    );
+  }
+
+  resolveHostTool(requestId, payload) {
+    const pending = this._pending.get(requestId);
+    if (pending) {
+      this._pending.delete(requestId);
+      pending.resolve(payload);
     }
   }
 
