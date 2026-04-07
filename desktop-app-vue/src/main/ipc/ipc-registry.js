@@ -638,57 +638,38 @@ function registerAllIPC(dependencies) {
 
     // 🔥 MCP 基础配置 IPC - 始终注册，允许用户通过UI启用/禁用MCP
     // 这是独立于MCP系统初始化的，因为用户需要先能配置MCP才能启用它
-    logger.info("[IPC Registry] Registering MCP Basic Config IPC (early)...");
-    try {
-      const { registerBasicMCPConfigIPC } = require("../mcp/mcp-ipc");
-      registerBasicMCPConfigIPC();
-      logger.info(
-        "[IPC Registry] ✓ MCP Basic Config IPC registered (early, 5 handlers)",
-      );
-    } catch (mcpError) {
-      logger.error(
-        "[IPC Registry] ❌ MCP Basic Config IPC registration failed:",
-        mcpError.message,
-      );
-    }
+    safeRegister("MCP Basic Config IPC (early)", {
+      register: () => {
+        const { registerBasicMCPConfigIPC } = require("../mcp/mcp-ipc");
+        registerBasicMCPConfigIPC();
+      },
+      handlers: 5,
+      fatal: true,
+    });
 
     // 系统窗口控制 - 提前注册 (不需要 mainWindow 的部分)
-    try {
-      logger.info("[IPC Registry] Registering System IPC (early)...");
-      const { registerSystemIPC } = require("../system/system-ipc");
-      registerSystemIPC({ mainWindow: mainWindow || null });
-      logger.info(
-        "[IPC Registry] ✓ System IPC registered (early, 16 handlers)",
-      );
-    } catch (systemError) {
-      logger.error(
-        "[IPC Registry] ✗ System IPC registration failed:",
-        systemError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+    safeRegister("System IPC (early)", {
+      register: () => {
+        const { registerSystemIPC } = require("../system/system-ipc");
+        registerSystemIPC({ mainWindow: mainWindow || null });
+      },
+      handlers: 16,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // 通知管理 - 提前注册
-    try {
-      logger.info("[IPC Registry] Registering Notification IPC (early)...");
-      const {
-        registerNotificationIPC,
-      } = require("../notification/notification-ipc");
-      registerNotificationIPC({ database: database || null });
-      logger.info(
-        "[IPC Registry] ✓ Notification IPC registered (early, 5 handlers)",
-      );
-    } catch (notificationError) {
-      logger.error(
-        "[IPC Registry] ✗ Notification IPC registration failed:",
-        notificationError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+    safeRegister("Notification IPC (early)", {
+      register: () => {
+        const {
+          registerNotificationIPC,
+        } = require("../notification/notification-ipc");
+        registerNotificationIPC({ database: database || null });
+      },
+      handlers: 5,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // ============================================================
     // 第三阶段模块 (社交网络 - DID, P2P, Social)
@@ -696,237 +677,185 @@ function registerAllIPC(dependencies) {
 
     // DID 身份管理 (函数模式 - 中等模块，24 handlers)
     if (didManager) {
-      try {
-        logger.info("[IPC Registry] Registering DID IPC...");
-        const { registerDIDIPC } = require("../did/did-ipc");
-        registerDIDIPC({ didManager });
-        logger.info("[IPC Registry] ✓ DID IPC registered (24 handlers)");
-      } catch (didError) {
-        logger.error(
-          "[IPC Registry] ✗ DID IPC registration failed:",
-          didError.message,
-        );
-        logger.info(
-          "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-        );
-      }
+      safeRegister("DID IPC", {
+        register: () => {
+          const { registerDIDIPC } = require("../did/did-ipc");
+          registerDIDIPC({ didManager });
+        },
+        handlers: 24,
+        fatal: true,
+        continueMessage: "Continuing with other IPC registrations...",
+      });
     }
 
     // P2P 网络通信 (函数模式 - 中等模块，18 handlers)
     if (p2pManager) {
-      try {
-        logger.info("[IPC Registry] Registering P2P IPC...");
-        const { registerP2PIPC } = require("../p2p/p2p-ipc");
-        registerP2PIPC({ p2pManager });
-        logger.info("[IPC Registry] ✓ P2P IPC registered (18 handlers)");
-
-        // 嵌入式信令服务器 (函数模式 - 小模块，11 handlers)
-        // Note: Signaling server IPC is registered with p2pManager as provider
-        // The signaling server may be started later during P2P initialization
-        logger.info("[IPC Registry] Registering Signaling Server IPC...");
-        const { registerSignalingIPC } = require("../p2p/signaling-ipc");
-        registerSignalingIPC({ p2pManager });
-        logger.info(
-          "[IPC Registry] ✓ Signaling Server IPC registered (11 handlers)",
-        );
-      } catch (p2pError) {
-        logger.error(
-          "[IPC Registry] ✗ P2P/Signaling IPC registration failed:",
-          p2pError.message,
-        );
-        logger.info(
-          "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-        );
-      }
+      safeRegister("P2P + Signaling IPC", {
+        register: () => {
+          const { registerP2PIPC } = require("../p2p/p2p-ipc");
+          registerP2PIPC({ p2pManager });
+          // 嵌入式信令服务器 (函数模式 - 小模块，11 handlers)
+          // Note: Signaling server IPC is registered with p2pManager as provider
+          const { registerSignalingIPC } = require("../p2p/signaling-ipc");
+          registerSignalingIPC({ p2pManager });
+        },
+        handlers: 29,
+        fatal: true,
+        continueMessage: "Continuing with other IPC registrations...",
+      });
     }
 
     // 外部设备文件管理 (函数模式 - 中等模块，15 handlers)
     if (p2pManager && database) {
       const externalFileManager = dependencies.externalFileManager;
       if (externalFileManager) {
-        try {
-          logger.info("[IPC Registry] Registering External Device File IPC...");
-          const {
-            registerExternalDeviceFileIPC,
-          } = require("../file/external-device-file-ipc");
-          registerExternalDeviceFileIPC(
-            require("electron").ipcMain,
-            externalFileManager,
-          );
-          logger.info(
-            "[IPC Registry] ✓ External Device File IPC registered (15 handlers)",
-          );
-        } catch (externalFileError) {
-          logger.error(
-            "[IPC Registry] ✗ External Device File IPC registration failed:",
-            externalFileError.message,
-          );
-          logger.info(
-            "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-          );
-        }
+        safeRegister("External Device File IPC", {
+          register: () => {
+            const {
+              registerExternalDeviceFileIPC,
+            } = require("../file/external-device-file-ipc");
+            registerExternalDeviceFileIPC(
+              require("electron").ipcMain,
+              externalFileManager,
+            );
+          },
+          handlers: 15,
+          fatal: true,
+          continueMessage: "Continuing with other IPC registrations...",
+        });
       }
     }
 
     // 社交网络 (函数模式 - 大模块，33 handlers: contact + friend + post + chat)
-    try {
-      logger.info("[IPC Registry] Registering Social IPC...");
-      const { registerSocialIPC } = require("../social/social-ipc");
-      registerSocialIPC({
-        contactManager: contactManager || null,
-        friendManager: friendManager || null,
-        postManager: postManager || null,
-        database: database || null,
-      });
-      if (!contactManager && !friendManager && !postManager && !database) {
-        logger.warn(
-          "[IPC Registry] ⚠ Social IPC registered with null dependencies (degraded mode)",
-        );
-      } else {
-        logger.info("[IPC Registry] ✓ Social IPC registered (33 handlers)");
-      }
-    } catch (socialError) {
-      logger.error(
-        "[IPC Registry] ✗ Social IPC registration failed:",
-        socialError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+    safeRegister("Social IPC", {
+      register: () => {
+        const { registerSocialIPC } = require("../social/social-ipc");
+        registerSocialIPC({
+          contactManager: contactManager || null,
+          friendManager: friendManager || null,
+          postManager: postManager || null,
+          database: database || null,
+        });
+        if (!contactManager && !friendManager && !postManager && !database) {
+          logger.warn(
+            "[IPC Registry] ⚠ Social IPC registered with null dependencies (degraded mode)",
+          );
+        }
+      },
+      handlers: 33,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // v0.39.0 — 通话 IPC (12 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Call IPC...");
-      const { registerCallIPC } = require("../social/call-ipc");
-      registerCallIPC({
-        callManager: dependencies.callManager || null,
-        mediaEngine: dependencies.mediaEngine || null,
-        callSignaling: dependencies.callSignaling || null,
-        sfuRelay: dependencies.sfuRelay || null,
-      });
-      logger.info("[IPC Registry] ✓ Call IPC registered (12 handlers)");
-    } catch (callError) {
-      logger.error(
-        "[IPC Registry] ✗ Call IPC registration failed (non-fatal):",
-        callError.message,
-      );
-    }
+    safeRegister("Call IPC", {
+      register: () => {
+        const { registerCallIPC } = require("../social/call-ipc");
+        registerCallIPC({
+          callManager: dependencies.callManager || null,
+          mediaEngine: dependencies.mediaEngine || null,
+          callSignaling: dependencies.callSignaling || null,
+          sfuRelay: dependencies.sfuRelay || null,
+        });
+      },
+      handlers: 12,
+      fatal: true,
+    });
 
     // v0.40.0 — 共享相册 IPC (12 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Album IPC...");
-      const { registerAlbumIPC } = require("../social/album-ipc");
-      registerAlbumIPC({
-        sharedAlbumManager: dependencies.sharedAlbumManager || null,
-        photoEncryptor: dependencies.photoEncryptor || null,
-        photoSync: dependencies.photoSync || null,
-        exifStripper: dependencies.exifStripper || null,
-      });
-      logger.info("[IPC Registry] ✓ Album IPC registered (12 handlers)");
-    } catch (albumError) {
-      logger.error(
-        "[IPC Registry] ✗ Album IPC registration failed (non-fatal):",
-        albumError.message,
-      );
-    }
+    safeRegister("Album IPC", {
+      register: () => {
+        const { registerAlbumIPC } = require("../social/album-ipc");
+        registerAlbumIPC({
+          sharedAlbumManager: dependencies.sharedAlbumManager || null,
+          photoEncryptor: dependencies.photoEncryptor || null,
+          photoSync: dependencies.photoSync || null,
+          exifStripper: dependencies.exifStripper || null,
+        });
+      },
+      handlers: 12,
+      fatal: true,
+    });
 
     // v0.41.0 — 社交协作编辑 IPC (12 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Social Collab IPC...");
-      const {
-        registerCollabSocialIPC,
-      } = require("../social/collab-social-ipc");
-      registerCollabSocialIPC({
-        collabEngine: dependencies.collabEngine || null,
-        collabSync: dependencies.collabSync || null,
-        collabAwareness: dependencies.collabAwareness || null,
-        docVersionManager: dependencies.docVersionManager || null,
-      });
-      logger.info(
-        "[IPC Registry] ✓ Social Collab IPC registered (12 handlers)",
-      );
-    } catch (collabError) {
-      logger.error(
-        "[IPC Registry] ✗ Social Collab IPC registration failed (non-fatal):",
-        collabError.message,
-      );
-    }
+    safeRegister("Social Collab IPC", {
+      register: () => {
+        const {
+          registerCollabSocialIPC,
+        } = require("../social/collab-social-ipc");
+        registerCollabSocialIPC({
+          collabEngine: dependencies.collabEngine || null,
+          collabSync: dependencies.collabSync || null,
+          collabAwareness: dependencies.collabAwareness || null,
+          docVersionManager: dependencies.docVersionManager || null,
+        });
+      },
+      handlers: 12,
+      fatal: true,
+    });
 
     // v0.42.0 — 社区/频道 IPC (24 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Community IPC...");
-      const { registerCommunityIPC } = require("../social/community-ipc");
-      registerCommunityIPC({
-        communityManager: dependencies.communityManager || null,
-        channelManager: dependencies.channelManager || null,
-        governanceEngine: dependencies.governanceEngine || null,
-        gossipProtocol: dependencies.gossipProtocol || null,
-        contentModerator: dependencies.contentModerator || null,
-      });
-      logger.info("[IPC Registry] ✓ Community IPC registered (24 handlers)");
-    } catch (communityError) {
-      logger.error(
-        "[IPC Registry] ✗ Community IPC registration failed (non-fatal):",
-        communityError.message,
-      );
-    }
+    safeRegister("Community IPC", {
+      register: () => {
+        const { registerCommunityIPC } = require("../social/community-ipc");
+        registerCommunityIPC({
+          communityManager: dependencies.communityManager || null,
+          channelManager: dependencies.channelManager || null,
+          governanceEngine: dependencies.governanceEngine || null,
+          gossipProtocol: dependencies.gossipProtocol || null,
+          contentModerator: dependencies.contentModerator || null,
+        });
+      },
+      handlers: 24,
+      fatal: true,
+    });
 
     // v0.43.0 — 时光机 IPC (15 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Time Machine IPC...");
-      const { registerTimeMachineIPC } = require("../social/time-machine-ipc");
-      registerTimeMachineIPC({
-        timeMachine: dependencies.timeMachine || null,
-        memoryGenerator: dependencies.memoryGenerator || null,
-        sentimentAnalyzer: dependencies.sentimentAnalyzer || null,
-        socialStats: dependencies.socialStats || null,
-      });
-      logger.info("[IPC Registry] ✓ Time Machine IPC registered (15 handlers)");
-    } catch (tmError) {
-      logger.error(
-        "[IPC Registry] ✗ Time Machine IPC registration failed (non-fatal):",
-        tmError.message,
-      );
-    }
+    safeRegister("Time Machine IPC", {
+      register: () => {
+        const {
+          registerTimeMachineIPC,
+        } = require("../social/time-machine-ipc");
+        registerTimeMachineIPC({
+          timeMachine: dependencies.timeMachine || null,
+          memoryGenerator: dependencies.memoryGenerator || null,
+          sentimentAnalyzer: dependencies.sentimentAnalyzer || null,
+          socialStats: dependencies.socialStats || null,
+        });
+      },
+      handlers: 15,
+      fatal: true,
+    });
 
     // v0.44.0 — 直播 IPC (12 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Livestream IPC...");
-      const { registerLivestreamIPC } = require("../social/livestream-ipc");
-      registerLivestreamIPC({
-        livestreamManager: dependencies.livestreamManager || null,
-        danmakuEngine: dependencies.danmakuEngine || null,
-      });
-      logger.info("[IPC Registry] ✓ Livestream IPC registered (12 handlers)");
-    } catch (lsError) {
-      logger.error(
-        "[IPC Registry] ✗ Livestream IPC registration failed (non-fatal):",
-        lsError.message,
-      );
-    }
+    safeRegister("Livestream IPC", {
+      register: () => {
+        const { registerLivestreamIPC } = require("../social/livestream-ipc");
+        registerLivestreamIPC({
+          livestreamManager: dependencies.livestreamManager || null,
+          danmakuEngine: dependencies.danmakuEngine || null,
+        });
+      },
+      handlers: 12,
+      fatal: true,
+    });
 
     // v0.45.0+ — 未来功能 IPC (38 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Future Social IPC...");
-      const { registerFutureIPC } = require("../social/future-ipc");
-      registerFutureIPC({
-        anonymousMode: dependencies.anonymousMode || null,
-        platformBridge: dependencies.platformBridge || null,
-        socialToken: dependencies.socialToken || null,
-        aiSocialAssistant: dependencies.aiSocialAssistant || null,
-        storageMarket: dependencies.storageMarket || null,
-        meshSocial: dependencies.meshSocial || null,
-      });
-      logger.info(
-        "[IPC Registry] ✓ Future Social IPC registered (38 handlers)",
-      );
-    } catch (futureError) {
-      logger.error(
-        "[IPC Registry] ✗ Future Social IPC registration failed (non-fatal):",
-        futureError.message,
-      );
-    }
+    safeRegister("Future Social IPC", {
+      register: () => {
+        const { registerFutureIPC } = require("../social/future-ipc");
+        registerFutureIPC({
+          anonymousMode: dependencies.anonymousMode || null,
+          platformBridge: dependencies.platformBridge || null,
+          socialToken: dependencies.socialToken || null,
+          aiSocialAssistant: dependencies.aiSocialAssistant || null,
+          storageMarket: dependencies.storageMarket || null,
+          meshSocial: dependencies.meshSocial || null,
+        });
+      },
+      handlers: 38,
+      fatal: true,
+    });
 
     // ============================================================
     // 第四阶段模块 (企业版 - VC, Organization, Identity Context)
@@ -934,93 +863,74 @@ function registerAllIPC(dependencies) {
 
     // 可验证凭证 (函数模式 - 小模块，10 handlers)
     if (vcManager) {
-      try {
-        logger.info("[IPC Registry] Registering VC IPC...");
-        const { registerVCIPC } = require("../vc/vc-ipc");
-        registerVCIPC({ vcManager });
-        logger.info("[IPC Registry] ✓ VC IPC registered (10 handlers)");
-      } catch (vcError) {
-        logger.error(
-          "[IPC Registry] ✗ VC IPC registration failed (non-fatal):",
-          vcError.message,
-        );
-      }
+      safeRegister("VC IPC", {
+        register: () => {
+          const { registerVCIPC } = require("../vc/vc-ipc");
+          registerVCIPC({ vcManager });
+        },
+        handlers: 10,
+        fatal: true,
+      });
     }
 
     // 身份上下文 (函数模式 - 小模块，7 handlers)
     if (identityContextManager) {
-      try {
-        logger.info("[IPC Registry] Registering Identity Context IPC...");
-        const {
-          registerIdentityContextIPC,
-        } = require("../identity-context/identity-context-ipc");
-        registerIdentityContextIPC({ identityContextManager });
-        logger.info(
-          "[IPC Registry] ✓ Identity Context IPC registered (7 handlers)",
-        );
-      } catch (icError) {
-        logger.error(
-          "[IPC Registry] ✗ Identity Context IPC registration failed (non-fatal):",
-          icError.message,
-        );
-      }
+      safeRegister("Identity Context IPC", {
+        register: () => {
+          const {
+            registerIdentityContextIPC,
+          } = require("../identity-context/identity-context-ipc");
+          registerIdentityContextIPC({ identityContextManager });
+        },
+        handlers: 7,
+        fatal: true,
+      });
     }
 
     // 组织管理 (函数模式 - 大模块，32 handlers)
     // 🔥 始终注册，handlers 内部会处理 organizationManager 为 null 的情况
-    try {
-      logger.info("[IPC Registry] Registering Organization IPC...");
-      logger.info("[IPC Registry] Organization 依赖状态:", {
-        organizationManager: !!organizationManager,
-        dbManager: !!dbManager,
-        versionManager: !!versionManager,
-      });
-      const {
-        registerOrganizationIPC,
-      } = require("../organization/organization-ipc");
-      registerOrganizationIPC({
-        organizationManager,
-        dbManager,
-        versionManager,
-      });
-      if (!organizationManager && !dbManager) {
-        logger.warn(
-          "[IPC Registry] ⚠️  Organization IPC registered with null dependencies",
-        );
-        logger.warn("[IPC Registry] 企业版功能将返回空数据直到依赖初始化");
-      } else {
-        logger.info(
-          "[IPC Registry] ✓ Organization IPC registered (32 handlers)",
-        );
-      }
-    } catch (orgError) {
-      logger.error(
-        "[IPC Registry] ✗ Organization IPC registration failed (non-fatal):",
-        orgError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+    logger.info("[IPC Registry] Organization 依赖状态:", {
+      organizationManager: !!organizationManager,
+      dbManager: !!dbManager,
+      versionManager: !!versionManager,
+    });
+    safeRegister("Organization IPC", {
+      register: () => {
+        const {
+          registerOrganizationIPC,
+        } = require("../organization/organization-ipc");
+        registerOrganizationIPC({
+          organizationManager,
+          dbManager,
+          versionManager,
+        });
+        if (!organizationManager && !dbManager) {
+          logger.warn(
+            "[IPC Registry] ⚠️  Organization IPC registered with null dependencies",
+          );
+          logger.warn("[IPC Registry] 企业版功能将返回空数据直到依赖初始化");
+        }
+      },
+      handlers: 32,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // 企业版仪表板 (函数模式 - 中模块，10 handlers)
-    try {
-      if (database) {
-        logger.info("[IPC Registry] Registering Dashboard IPC...");
-        const {
-          registerDashboardIPC,
-        } = require("../organization/dashboard-ipc");
-        registerDashboardIPC({
-          database,
-          organizationManager,
-        });
-        logger.info("[IPC Registry] ✓ Dashboard IPC registered (10 handlers)");
-      }
-    } catch (dashError) {
-      logger.error(
-        "[IPC Registry] ✗ Dashboard IPC registration failed (non-fatal):",
-        dashError.message,
-      );
+    if (database) {
+      safeRegister("Dashboard IPC", {
+        register: () => {
+          const {
+            registerDashboardIPC,
+          } = require("../organization/dashboard-ipc");
+          registerDashboardIPC({
+            database,
+            organizationManager,
+          });
+        },
+        handlers: 10,
+        fatal: true,
+      });
     }
 
     // 企业版权限管理扩展 (降级模式)
@@ -1034,122 +944,128 @@ function registerAllIPC(dependencies) {
     // 第五阶段模块 (项目管理 - 最大模块组，分为多个子模块)
     // ============================================================
 
-    try {
-      // 项目核心管理 (函数模式 - 大模块，34 handlers)
-      // 🔥 始终注册，handlers 内部会处理 database 为 null 的情况
-      logger.info("[IPC Registry] Registering Project Core IPC...");
-      const { registerProjectCoreIPC } = require("../project/project-core-ipc");
-      registerProjectCoreIPC({
-        database: database || null,
-        fileSyncManager,
-        removeUndefinedValues,
-        _replaceUndefinedWithNull,
-      });
-      if (!database) {
-        logger.info(
-          "[IPC Registry] ⚠️  Database not initialized (Project Core handlers registered with degraded functionality)",
-        );
-      }
-      logger.info("[IPC Registry] ✓ Project Core IPC registered (34 handlers)");
+    // 项目核心管理 (函数模式 - 大模块，34 handlers)
+    // 🔥 始终注册，handlers 内部会处理 database 为 null 的情况
+    safeRegister("Project Core IPC", {
+      register: () => {
+        const {
+          registerProjectCoreIPC,
+        } = require("../project/project-core-ipc");
+        registerProjectCoreIPC({
+          database: database || null,
+          fileSyncManager,
+          removeUndefinedValues,
+          _replaceUndefinedWithNull,
+        });
+        if (!database) {
+          logger.info(
+            "[IPC Registry] ⚠️  Database not initialized (Project Core handlers registered with degraded functionality)",
+          );
+        }
+      },
+      handlers: 34,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
-      // 项目AI功能 (函数模式 - 中等模块，16 handlers)
-      // 🔥 始终注册，handlers 内部会处理 llmManager/database 为 null 的情况
-      const { registerProjectAIIPC } = require("../project/project-ai-ipc");
-      registerProjectAIIPC({
-        database: database || null,
-        llmManager: llmManager || null,
-        aiEngineManager: aiEngineManager || null,
-        chatSkillBridge: chatSkillBridge || null,
-        mainWindow: mainWindow || null,
-        scanAndRegisterProjectFiles:
-          app?.scanAndRegisterProjectFiles?.bind(app) || null,
-        // 🔥 MCP 集成：传递 MCP 依赖用于项目AI会话工具调用
-        mcpClientManager,
-        mcpToolAdapter,
-      });
-      if (!database) {
-        logger.info(
-          "[IPC Registry] ⚠️  Database not initialized (Project AI handlers registered with degraded functionality)",
-        );
-      }
-      if (!llmManager) {
-        logger.info(
-          "[IPC Registry] ⚠️  LLM manager not initialized (Project AI handlers registered with degraded functionality)",
-        );
-      }
-      logger.info("[IPC Registry] ✓ Project AI IPC registered (16 handlers)");
+    // 项目AI功能 (函数模式 - 中等模块，16 handlers)
+    // 🔥 始终注册，handlers 内部会处理 llmManager/database 为 null 的情况
+    safeRegister("Project AI IPC", {
+      register: () => {
+        const { registerProjectAIIPC } = require("../project/project-ai-ipc");
+        registerProjectAIIPC({
+          database: database || null,
+          llmManager: llmManager || null,
+          aiEngineManager: aiEngineManager || null,
+          chatSkillBridge: chatSkillBridge || null,
+          mainWindow: mainWindow || null,
+          scanAndRegisterProjectFiles:
+            app?.scanAndRegisterProjectFiles?.bind(app) || null,
+          // 🔥 MCP 集成：传递 MCP 依赖用于项目AI会话工具调用
+          mcpClientManager,
+          mcpToolAdapter,
+        });
+        if (!database) {
+          logger.info(
+            "[IPC Registry] ⚠️  Database not initialized (Project AI handlers registered with degraded functionality)",
+          );
+        }
+        if (!llmManager) {
+          logger.info(
+            "[IPC Registry] ⚠️  LLM manager not initialized (Project AI handlers registered with degraded functionality)",
+          );
+        }
+      },
+      handlers: 16,
+      fatal: true,
+    });
 
-      // 项目导出分享 (函数模式 - 大模块，17 handlers)
-      // 🔥 始终注册，handlers 内部会处理 database/llmManager 为 null 的情况
-      logger.info("[IPC Registry] Registering Project Export/Share IPC...");
-      const {
-        registerProjectExportIPC,
-      } = require("../project/project-export-ipc");
+    // 项目导出分享 (函数模式 - 大模块，17 handlers)
+    // 🔥 始终注册，handlers 内部会处理 database/llmManager 为 null 的情况
+    safeRegister("Project Export/Share IPC", {
+      register: () => {
+        const {
+          registerProjectExportIPC,
+        } = require("../project/project-export-ipc");
+        const { getDatabaseConnection, saveDatabase } = require("../database");
+        const { getProjectConfig } = require("../project/project-config");
+        const { copyDirectory } = require("../utils/file-utils");
 
-      // 获取必要的依赖函数
-      const { getDatabaseConnection, saveDatabase } = require("../database");
-      const { getProjectConfig } = require("../project/project-config");
-      const { copyDirectory } = require("../utils/file-utils");
+        registerProjectExportIPC({
+          database: database || null,
+          llmManager: llmManager || null,
+          mainWindow: mainWindow || null,
+          getDatabaseConnection,
+          saveDatabase,
+          getProjectConfig,
+          copyDirectory,
+          convertSlidesToOutline: app.convertSlidesToOutline?.bind(app),
+        });
+      },
+      handlers: 17,
+      fatal: true,
+    });
 
-      registerProjectExportIPC({
-        database: database || null,
-        llmManager: llmManager || null,
-        mainWindow: mainWindow || null,
-        getDatabaseConnection,
-        saveDatabase,
-        getProjectConfig,
-        copyDirectory,
-        convertSlidesToOutline: app.convertSlidesToOutline?.bind(app),
-      });
-      logger.info(
-        "[IPC Registry] ✓ Project Export/Share IPC registered (17 handlers)",
-      );
+    // 项目RAG检索 (函数模式 - 中等模块，10 handlers)
+    safeRegister("Project RAG IPC", {
+      register: () => {
+        const { registerProjectRAGIPC } = require("../project/project-rag-ipc");
+        const { getProjectRAGManager } = require("../project/project-rag");
+        const {
+          getProjectConfig: getRagProjectConfig,
+        } = require("../project/project-config");
+        const RAGAPI = require("../project/rag-api");
 
-      // 项目RAG检索 (函数模式 - 中等模块，10 handlers)
-      logger.info("[IPC Registry] Registering Project RAG IPC...");
-      const { registerProjectRAGIPC } = require("../project/project-rag-ipc");
+        registerProjectRAGIPC({
+          getProjectRAGManager,
+          getProjectConfig: getRagProjectConfig,
+          RAGAPI,
+        });
+      },
+      handlers: 10,
+      fatal: true,
+    });
 
-      // 获取必要的依赖函数
-      const { getProjectRAGManager } = require("../project/project-rag");
-      const {
-        getProjectConfig: getRagProjectConfig,
-      } = require("../project/project-config");
-      const RAGAPI = require("../project/rag-api");
+    // 项目Git集成 (函数模式 - 大模块，14 handlers)
+    safeRegister("Project Git IPC", {
+      register: () => {
+        const { registerProjectGitIPC } = require("../project/project-git-ipc");
+        const {
+          getProjectConfig: getGitProjectConfig,
+        } = require("../project/project-config");
+        const GitAPI = require("../project/git-api");
 
-      registerProjectRAGIPC({
-        getProjectRAGManager,
-        getProjectConfig: getRagProjectConfig,
-        RAGAPI,
-      });
-      logger.info("[IPC Registry] ✓ Project RAG IPC registered (10 handlers)");
-
-      // 项目Git集成 (函数模式 - 大模块，14 handlers)
-      logger.info("[IPC Registry] Registering Project Git IPC...");
-      const { registerProjectGitIPC } = require("../project/project-git-ipc");
-
-      // 获取必要的依赖函数
-      const {
-        getProjectConfig: getGitProjectConfig,
-      } = require("../project/project-config");
-      const GitAPI = require("../project/git-api");
-
-      registerProjectGitIPC({
-        getProjectConfig: getGitProjectConfig,
-        GitAPI,
-        gitManager,
-        fileSyncManager,
-        mainWindow,
-      });
-      logger.info("[IPC Registry] ✓ Project Git IPC registered (14 handlers)");
-    } catch (projectCoreError) {
-      logger.error(
-        "[IPC Registry] ✗ Project core IPC block registration failed (non-fatal):",
-        projectCoreError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+        registerProjectGitIPC({
+          getProjectConfig: getGitProjectConfig,
+          GitAPI,
+          gitManager,
+          fileSyncManager,
+          mainWindow,
+        });
+      },
+      handlers: 14,
+      fatal: true,
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -1176,45 +1092,33 @@ function registerAllIPC(dependencies) {
     }
 
     // Office 文件操作 (类模式 - Office 文件处理)
-    try {
-      logger.info("[IPC Registry] Registering Office File IPC...");
-      const FileIPC = require("../ipc/file-ipc");
-      const fileIPC = new FileIPC();
-      fileIPC.registerHandlers(mainWindow);
-      logger.info("[IPC Registry] ✓ Office File IPC registered");
-    } catch (officeFileError) {
-      logger.error(
-        "[IPC Registry] ✗ Office File IPC registration failed:",
-        officeFileError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+    safeRegister("Office File IPC", {
+      register: () => {
+        const FileIPC = require("../ipc/file-ipc");
+        const fileIPC = new FileIPC();
+        fileIPC.registerHandlers(mainWindow);
+      },
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // 模板管理 (函数模式 - 大模块，20 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Template IPC...");
-      const { registerTemplateIPC } = require("../template/template-ipc");
-      registerTemplateIPC({
-        templateManager: templateManager || null,
-      });
-      if (!templateManager) {
-        logger.warn(
-          "[IPC Registry] ⚠ templateManager not initialized, Template IPC running in degraded mode",
-        );
-      } else {
-        logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
-      }
-    } catch (templateError) {
-      logger.error(
-        "[IPC Registry] ✗ Template IPC registration failed:",
-        templateError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+    safeRegister("Template IPC", {
+      register: () => {
+        const { registerTemplateIPC } = require("../template/template-ipc");
+        registerTemplateIPC({
+          templateManager: templateManager || null,
+        });
+        if (!templateManager) {
+          logger.warn(
+            "[IPC Registry] ⚠ templateManager not initialized, Template IPC running in degraded mode",
+          );
+        }
+      },
+      handlers: 20,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // 知识管理 (函数模式 - 中等模块，17 handlers)
     if (dbManager || versionManager || knowledgePaymentManager) {
@@ -1273,26 +1177,18 @@ function registerAllIPC(dependencies) {
       app.initializeSpeechManager &&
       typeof app.initializeSpeechManager === "function"
     ) {
-      try {
-        logger.info("[IPC Registry] Registering Speech IPC...");
-        const { registerSpeechIPC } = require("../speech/speech-ipc");
-
-        // 获取 initializeSpeechManager 函数
-        const initializeSpeechManager = app.initializeSpeechManager.bind(app);
-
-        registerSpeechIPC({
-          initializeSpeechManager,
-        });
-        logger.info("[IPC Registry] ✓ Speech IPC registered (34 handlers)");
-      } catch (speechError) {
-        logger.error(
-          "[IPC Registry] ❌ Speech IPC registration failed:",
-          speechError.message,
-        );
-        logger.info(
-          "[IPC Registry] ⚠️  Continuing with other IPC registrations...",
-        );
-      }
+      safeRegister("Speech IPC", {
+        register: () => {
+          const { registerSpeechIPC } = require("../speech/speech-ipc");
+          const initializeSpeechManager = app.initializeSpeechManager.bind(app);
+          registerSpeechIPC({
+            initializeSpeechManager,
+          });
+        },
+        handlers: 34,
+        fatal: true,
+        continueMessage: "Continuing with other IPC registrations...",
+      });
     } else {
       logger.info(
         "[IPC Registry] ⚠️  Speech IPC skipped (initializeSpeechManager not available)",
@@ -1435,106 +1331,87 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] ✓ Import IPC registered (5 handlers)");
     }
 
-    try {
-      logger.info("[IPC Registry] Registering Sync IPC...");
-      if (!syncManager) {
-        logger.warn(
-          "[IPC Registry] ⚠️ syncManager 未初始化，将注册降级的 Sync IPC handlers",
-        );
-      }
-      const { registerSyncIPC } = require("../sync/sync-ipc");
-      registerSyncIPC({ syncManager: syncManager || null });
-      logger.info("[IPC Registry] ✓ Sync IPC registered (4 handlers)");
-    } catch (syncError) {
-      logger.error(
-        "[IPC Registry] ✗ Sync IPC registration failed:",
-        syncError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+    safeRegister("Sync IPC", {
+      register: () => {
+        if (!syncManager) {
+          logger.warn(
+            "[IPC Registry] ⚠️ syncManager 未初始化，将注册降级的 Sync IPC handlers",
+          );
+        }
+        const { registerSyncIPC } = require("../sync/sync-ipc");
+        registerSyncIPC({ syncManager: syncManager || null });
+      },
+      handlers: 4,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // Notification IPC already registered early (line 305-311)
 
     // Preference Manager IPC
-    try {
-      logger.info("[IPC Registry] Registering Preference Manager IPC...");
-      const preferenceManager = app ? app.preferenceManager || null : null;
-      if (preferenceManager) {
-        const {
-          registerPreferenceManagerIPC,
-        } = require("../memory/preference-manager-ipc");
-        registerPreferenceManagerIPC({ preferenceManager });
-        logger.info(
-          "[IPC Registry] ✓ Preference Manager IPC registered (12 handlers)",
-        );
-      } else {
-        logger.warn(
-          "[IPC Registry] ⚠️ preferenceManager 未初始化，跳过 Preference IPC 注册",
-        );
-      }
-    } catch (preferenceError) {
-      logger.error(
-        "[IPC Registry] ✗ Preference Manager IPC registration failed:",
-        preferenceError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+    safeRegister("Preference Manager IPC", {
+      register: () => {
+        const preferenceManager = app ? app.preferenceManager || null : null;
+        if (preferenceManager) {
+          const {
+            registerPreferenceManagerIPC,
+          } = require("../memory/preference-manager-ipc");
+          registerPreferenceManagerIPC({ preferenceManager });
+        } else {
+          logger.warn(
+            "[IPC Registry] ⚠️ preferenceManager 未初始化，跳过 Preference IPC 注册",
+          );
+        }
+      },
+      handlers: 12,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // 对话管理 (函数模式 - 中等模块，17 handlers)
     // 注意：即使 database 为 null 也注册，handler 内部会处理 null 情况
     // 🔥 v2.0: 整合高级特性（SessionManager, Manus, Multi-Agent, RAG等）
-    try {
-      logger.info("[IPC Registry] Registering Conversation IPC...");
-      const {
-        registerConversationIPC,
-      } = require("../conversation/conversation-ipc");
-      registerConversationIPC({
-        database: database || null,
-        llmManager: llmManager || null,
-        mainWindow: mainWindow || null,
-        // 🔥 高级特性依赖
-        sessionManager,
-        agentOrchestrator,
-        ragManager: ragManager || null,
-        promptCompressor,
-        responseCache,
-        tokenTracker,
-        errorMonitor,
-      });
-      if (!database) {
-        logger.info(
-          "[IPC Registry] ⚠️  Database manager not initialized (handlers registered with degraded functionality)",
-        );
-      }
-      if (!llmManager) {
-        logger.info(
-          "[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)",
-        );
-      }
-      // 🔥 打印高级特性状态
-      logger.info(
-        "[IPC Registry] ✓ Conversation IPC registered (17 handlers)",
-        {
+    safeRegister("Conversation IPC", {
+      register: () => {
+        const {
+          registerConversationIPC,
+        } = require("../conversation/conversation-ipc");
+        registerConversationIPC({
+          database: database || null,
+          llmManager: llmManager || null,
+          mainWindow: mainWindow || null,
+          // 🔥 高级特性依赖
+          sessionManager,
+          agentOrchestrator,
+          ragManager: ragManager || null,
+          promptCompressor,
+          responseCache,
+          tokenTracker,
+          errorMonitor,
+        });
+        if (!database) {
+          logger.info(
+            "[IPC Registry] ⚠️  Database manager not initialized (handlers registered with degraded functionality)",
+          );
+        }
+        if (!llmManager) {
+          logger.info(
+            "[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)",
+          );
+        }
+        // 🔥 打印高级特性状态
+        logger.info("[IPC Registry] Conversation advanced features:", {
           sessionManager: !!sessionManager,
           agentOrchestrator: !!agentOrchestrator,
           ragManager: !!ragManager,
           promptCompressor: !!promptCompressor,
           tokenTracker: !!tokenTracker,
-        },
-      );
-    } catch (conversationError) {
-      logger.error(
-        "[IPC Registry] ✗ Conversation IPC registration failed:",
-        conversationError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
-      );
-    }
+        });
+      },
+      handlers: 17,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     // 文件同步监听 (函数模式 - 小模块，3 handlers)
     if (database) {
@@ -1580,51 +1457,46 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     // 工作流管道 (函数模式 - 中等模块，14 handlers)
-    logger.info("[IPC Registry] Registering Workflow IPC...");
-    try {
-      const { registerWorkflowIPC } = require("../workflow/workflow-ipc");
-      const { WorkflowManager } = require("../workflow/workflow-pipeline");
-      const ProgressEmitter = require("../utils/progress-emitter");
+    safeRegister("Workflow IPC", {
+      register: () => {
+        const { registerWorkflowIPC } = require("../workflow/workflow-ipc");
+        const { WorkflowManager } = require("../workflow/workflow-pipeline");
+        const ProgressEmitter = require("../utils/progress-emitter");
 
-      // 创建工作流管理器
-      const progressEmitter = new ProgressEmitter({
-        autoForwardToIPC: true,
-        throttleInterval: 100,
-      });
+        // 创建工作流管理器
+        const progressEmitter = new ProgressEmitter({
+          autoForwardToIPC: true,
+          throttleInterval: 100,
+        });
 
-      if (mainWindow) {
-        progressEmitter.setMainWindow(mainWindow);
-      }
+        if (mainWindow) {
+          progressEmitter.setMainWindow(mainWindow);
+        }
 
-      const workflowManager = new WorkflowManager({
-        progressEmitter,
-        llmService: llmManager,
-      });
+        const workflowManager = new WorkflowManager({
+          progressEmitter,
+          llmService: llmManager,
+        });
 
-      if (mainWindow) {
-        workflowManager.setMainWindow(mainWindow);
-      }
+        if (mainWindow) {
+          workflowManager.setMainWindow(mainWindow);
+        }
 
-      // 保存到 app 实例以便后续使用
-      if (app) {
-        app.workflowManager = workflowManager;
-        app.workflowProgressEmitter = progressEmitter;
-      }
+        // 保存到 app 实例以便后续使用
+        if (app) {
+          app.workflowManager = workflowManager;
+          app.workflowProgressEmitter = progressEmitter;
+        }
 
-      const workflowIPC = registerWorkflowIPC({ workflowManager });
-      if (workflowIPC) {
-        registeredModules.workflowIPC = workflowIPC;
-      }
-      logger.info("[IPC Registry] ✓ Workflow IPC registered (14 handlers)");
-    } catch (workflowError) {
-      logger.error(
-        "[IPC Registry] ❌ Workflow IPC registration failed:",
-        workflowError.message,
-      );
-      logger.info(
-        "[IPC Registry] ⚠️  Continuing with other IPC registrations...",
-      );
-    }
+        const workflowIPC = registerWorkflowIPC({ workflowManager });
+        if (workflowIPC) {
+          registeredModules.workflowIPC = workflowIPC;
+        }
+      },
+      handlers: 14,
+      fatal: true,
+      continueMessage: "Continuing with other IPC registrations...",
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
