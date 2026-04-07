@@ -136,15 +136,19 @@ class SkillLoader extends EventEmitter {
     const paths = this.getLayerPaths();
     const layerPath = paths[layer];
 
-    if (!fs.existsSync(layerPath)) {
-      logger.debug(`[SkillLoader] Layer path does not exist: ${layerPath}`);
-      return result;
+    // M2: 异步检查目录存在性，避免阻塞事件循环
+    let entries;
+    try {
+      entries = await fs.promises.readdir(layerPath, {
+        withFileTypes: true,
+      });
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        logger.debug(`[SkillLoader] Layer path does not exist: ${layerPath}`);
+        return result;
+      }
+      throw error;
     }
-
-    // 扫描目录
-    const entries = await fs.promises.readdir(layerPath, {
-      withFileTypes: true,
-    });
 
     for (const entry of entries) {
       if (!entry.isDirectory()) {
@@ -154,8 +158,10 @@ class SkillLoader extends EventEmitter {
       const skillDir = path.join(layerPath, entry.name);
       const skillMdPath = path.join(skillDir, "SKILL.md");
 
-      // 检查 SKILL.md 是否存在
-      if (!fs.existsSync(skillMdPath)) {
+      // M2: 异步检查 SKILL.md 是否存在
+      try {
+        await fs.promises.access(skillMdPath);
+      } catch {
         continue;
       }
 
@@ -325,7 +331,10 @@ class SkillLoader extends EventEmitter {
   async loadSingleSkill(skillDir, layer = "managed") {
     const skillMdPath = path.join(skillDir, "SKILL.md");
 
-    if (!fs.existsSync(skillMdPath)) {
+    // M2: 异步存在性检查
+    try {
+      await fs.promises.access(skillMdPath);
+    } catch {
       logger.warn(`[SkillLoader] No SKILL.md found in ${skillDir}`);
       return null;
     }
