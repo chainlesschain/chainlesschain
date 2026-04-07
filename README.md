@@ -102,19 +102,25 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 
 **测试覆盖**：334 个测试（255 单元 + 42 集成 + 37 E2E），12 个测试文件，全部通过。
 
-### 技术债清理 - H3 database.js 拆分 (v0.45.31~32, 2026-04-07)
+### 技术债清理 - H3 database.js 拆分 (v0.45.31~33, 2026-04-07)
 
 将 `desktop-app-vue/src/main/database.js`（原 9470 行的巨型 `DatabaseManager` 类）按职责切分到 `src/main/database/` 子目录。
 
 | 文件                                  |  行数 | 说明                                                          |
 | ------------------------------------- | ----: | ------------------------------------------------------------- |
-| `database/database-schema.js`         | 4026 | 纯函数 `createTables(dbManager, logger)`，全部建表 DDL（v0.45.31） |
-| `database/database-migrations.js`     | 1389 | `ensureTaskBoardOwnerSchema` / `migrateDatabase` / `runMigrationsOptimized` / `runMigrations` / `checkIfTableNeedsRebuild` / `rebuildProjects(Templates)Table` / `checkColumnExists`（v0.45.32） |
-| `database/database-settings.js`       |  531 | `initDefaultSettings` / `getSetting` / `getAllSettings` / `setSetting` / `updateSettings` / `deleteSetting` / `resetSettings`（v0.45.32） |
+| `database/database-schema.js`         | 4026 | 纯函数 `createTables`，全部建表 DDL（v0.45.31）                  |
+| `database/database-migrations.js`     | 1389 | 8 个迁移/重建方法（v0.45.32）                                    |
+| `database/database-settings.js`       |  531 | 7 个 settings 表 CRUD 方法（v0.45.32）                          |
+| `database/database-knowledge.js`      |  330 | 15 个 knowledge_items + tags + statistics 方法（v0.45.33）       |
+| `database/database-soft-delete.js`    |  212 | 7 个 soft-delete 与定期清理方法（v0.45.33）                       |
+| `database/database-graph.js`          |  465 | 9 个知识图谱关系方法（v0.45.33）                                  |
+| `database/database-projects.js`       |  591 | 10 个 projects + project_files 方法（v0.45.33）                  |
+| `database/database-conversations.js`  |  416 | 12 个 conversations + messages 方法（v0.45.33）                  |
+| **合计 (8 个子模块)**                  | 7960 | **69 个方法**抽出                                              |
 
 **做法**: 每个抽出的方法保持为纯函数 `fn(dbManager, logger, ...args)` 形式，通过 `dbManager.db` 访问连接、用 `dbManager.X()` 回调其他方法；`DatabaseManager` 中保留薄委托方法（`return _fn(this, logger, ...)`），保证公共 API 字节级不变。
 
-**效果**: `database.js` 由 9470 行减至 **3657 行**（**−5813，−61.4%**），共抽出 16 个方法到 3 个子模块。105+ 个数据库单元测试全部通过（database.test.js 22 + database-edge-cases.test.js 15 + database-migration.test.js 68 + 后续抽取保留）。
+**效果**: `database.js` 由 9470 行减至 **2052 行**（**−7418，−78.3%**），剩余主要是 init/teardown、查询基元（run/get/all/exec/prepare/transaction）、备份/切库等核心机制。127 个数据库单元测试全部通过（database.test.js 22 + database-edge-cases.test.js 37 + database-migration.test.js 68）。
 
 详见 [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) 第九节（H2 上下文）。
 
