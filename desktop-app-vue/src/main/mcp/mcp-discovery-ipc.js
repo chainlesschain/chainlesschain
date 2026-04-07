@@ -28,7 +28,7 @@ function registerMCPDiscoveryIPC(options = {}) {
       if (!discoveryManager) {
         return { success: false, error: "DiscoveryManager not initialized" };
       }
-      const discovered = discoveryManager.scanDirectories(
+      const discovered = await discoveryManager.scanDirectories(
         dirs && dirs.length > 0 ? dirs : null,
       );
       return { success: true, data: discovered, count: discovered.length };
@@ -105,10 +105,7 @@ function registerMCPDiscoveryIPC(options = {}) {
         await discoveryManager.restartServer(serverName);
         return { success: true };
       } catch (error) {
-        logger.error(
-          "[MCPDiscoveryIPC] restart-server error:",
-          error.message,
-        );
+        logger.error("[MCPDiscoveryIPC] restart-server error:", error.message);
         return { success: false, error: error.message };
       }
     },
