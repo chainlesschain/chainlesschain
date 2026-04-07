@@ -192,3 +192,96 @@ ipcDomainSplit: {
   unloadIdleAfterMs: 300000,          // 空闲Phase卸载时间（ms）
 }
 ```
+
+---
+
+## 九、Phase 模块文件拆分 (H2)
+
+**版本**: v0.45.21
+**完成日期**: 2026-04-07
+
+为降低单文件复杂度，将 `src/main/ipc/ipc-registry.js`（原 4925 行）中后半段独立的 Phase 注册块抽出到 `src/main/ipc/phases/` 子目录，按版本/批次分组。`registerAllIPC()` 通过统一的 `safeRegister` 钩子调用每个 Phase 模块的 registrar 函数。
+
+### 9.1 抽出文件清单
+
+| 文件                              | 行数 | Phase 数 | 说明                                                          |
+| --------------------------------- | ---: | -------: | ------------------------------------------------------------- |
+| `phases/phase-31-ai-models.js`    |  261 |        7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn |
+| `phases/phase-41-evomap-gep.js`   |  102 |        1 | EvoMap GEP Protocol                                           |
+| `phases/phase-42-50-v1-1.js`      |  450 |        9 | Social/AP, Compliance, SCIM, U-Key/FIDO2, Threshold, BLE, Recommend, Nostr, DLP |
+| `phases/phase-51-57-v1-1.js`      |  268 |        7 | SIEM, PQC, Firmware OTA, Governance, Matrix, Terraform, Hardening |
+| `phases/phase-58-77-v2-v3.js`     |  755 |       20 | Federation, Reputation, SLA, Tech Learning, Autonomous Dev, Skill Service, Token, Inference, Trust Root, PQC Eco, Satellite, HSM, Protocol Fusion, AI Social, Storage, Anti-Censorship, EvoMap |
+| `phases/phase-q1-2027.js`         |   89 |        5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                      |
+| **合计**                          | 1925 |   **49** | —                                                             |
+
+### 9.2 Registrar 契约
+
+每个 Phase 模块导出一个 `registerPhaseN({ safeRegister, logger, deps, registeredModules })` 形式的函数：
+
+```javascript
+// phases/phase-42-50-v1-1.js
+function registerPhases42to50({
+  safeRegister, // 来自 ipc-registry.js 的统一注册钩子
+  logger,       // logger 实例
+  deps,         // 等价于 dependencies 参数
+  registeredModules, // 跨 Phase 共享的模块表
+}) {
+  safeRegister("Social AI + ActivityPub IPC", {
+    register: () => { /* ... */ },
+  });
+  // ... 更多 safeRegister 调用
+}
+module.exports = { registerPhases42to50 };
+```
+
+`ipc-registry.js` 中的调用点：
+
+```javascript
+// 在 registerAllIPC(dependencies) 内部
+{
+  const { registerPhases42to50 } = require("./phases/phase-42-50-v1-1");
+  registerPhases42to50({
+    safeRegister,
+    logger,
+    deps: dependencies,
+    registeredModules,
+  });
+}
+```
+
+### 9.3 拆分前后对比
+
+| 指标                       | 拆分前 | 拆分后 |     变化 |
+| -------------------------- | -----: | -----: | -------: |
+| `ipc-registry.js` 行数     |   4925 |   3121 |   −1804 |
+| 顶层 Phase 注册块          |     77 |     27 |    −50 |
+| `phases/` 目录文件数       |      0 |      6 |     +6 |
+| 总代码行数（含 phases）   |   4925 |   5046 |    +121 |
+
+> 行数小幅增加来自每个 Phase 文件的头部注释和函数包装；换取的是单文件复杂度的大幅降低。
+
+### 9.4 测试覆盖
+
+| 测试文件                                          | 测试数量 | 状态        |
+| ------------------------------------------------- | -------: | ----------- |
+| `src/main/ipc/__tests__/phase-modules.test.js`    |   **18** | ✅ 通过     |
+
+测试通过 Mock `safeRegister` 验证每个 Phase 模块：
+
+1. 导出预期的 registrar 函数名
+2. 调用 `safeRegister` 的次数与 Phase 数量一致
+3. 每次注册都包含可调用的 `register()` 选项
+
+测试不会执行 Phase 内的 `register()` 回调，因此底层 IPC handler 由各域的 `*-ipc.test.js` 套件覆盖。
+
+### 9.5 路径调整提醒
+
+`phases/` 子目录下的文件比 `ipc-registry.js` 深一层，所有 `require()` 路径需在父目录前缀上多加一段 `../`：
+
+```javascript
+// 拆分前 (在 ipc-registry.js 中):
+require("../audit/siem-exporter")
+
+// 拆分后 (在 phases/phase-51-57-v1-1.js 中):
+require("../../audit/siem-exporter")
+```

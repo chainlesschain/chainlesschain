@@ -11,6 +11,7 @@
 **原因**: IPC handler 未注册
 
 **解决方案**:
+
 ```bash
 # 1. 重新构建主进程
 npm run build:main
@@ -27,13 +28,14 @@ node check-ipc-status.js
 **原因**: 重复注册
 
 **解决方案**:
+
 ```javascript
 // 使用 IPC Guard 防止重复注册
-if (ipcGuard.isModuleRegistered('my-module')) {
+if (ipcGuard.isModuleRegistered("my-module")) {
   return;
 }
 // ... 注册代码
-ipcGuard.markModuleRegistered('my-module');
+ipcGuard.markModuleRegistered("my-module");
 ```
 
 ### 错误 3: 依赖未定义 (undefined)
@@ -41,10 +43,11 @@ ipcGuard.markModuleRegistered('my-module');
 **原因**: 依赖未正确传递
 
 **解决方案**:
+
 ```javascript
 // 在 ipc-registry.js 中检查解构
 const {
-  syncManager,  // ⚠️ 确保在这里列出
+  syncManager, // ⚠️ 确保在这里列出
   // ... 其他依赖
 } = dependencies;
 
@@ -101,31 +104,31 @@ tail -f /path/to/app.log | grep "IPC"
 ```javascript
 // src/main/my-module/my-module-ipc.js
 
-const { ipcMain } = require('electron');
-const ipcGuard = require('../ipc-guard');
+const { ipcMain } = require("electron");
+const ipcGuard = require("../ipc-guard");
 
 function registerMyModuleIPC({ dependency1, dependency2 }) {
   // 防止重复注册
-  if (ipcGuard.isModuleRegistered('my-module-ipc')) {
-    console.log('[My Module IPC] Already registered, skipping...');
+  if (ipcGuard.isModuleRegistered("my-module-ipc")) {
+    console.log("[My Module IPC] Already registered, skipping...");
     return;
   }
 
   // 注册 handlers
-  ipcMain.handle('my-module:action', async (event, data) => {
+  ipcMain.handle("my-module:action", async (event, data) => {
     try {
       // 实现逻辑
       const result = await doSomething(data);
       return { success: true, data: result };
     } catch (error) {
-      console.error('[My Module IPC] Error:', error);
+      console.error("[My Module IPC] Error:", error);
       return { success: false, error: error.message };
     }
   });
 
   // 标记为已注册
-  ipcGuard.markModuleRegistered('my-module-ipc');
-  console.log('[My Module IPC] ✅ Registered 1 handler');
+  ipcGuard.markModuleRegistered("my-module-ipc");
+  console.log("[My Module IPC] ✅ Registered 1 handler");
 }
 
 module.exports = { registerMyModuleIPC };
@@ -134,17 +137,17 @@ module.exports = { registerMyModuleIPC };
 ### 在 IPC Registry 中注册
 
 ```javascript
-// src/main/ipc-registry.js
+// src/main/ipc/ipc-registry.js
 
 // 在 registerAllIPC 函数中添加
 try {
-  console.log('[IPC Registry] Registering My Module IPC...');
-  const { registerMyModuleIPC } = require('./my-module/my-module-ipc');
+  console.log("[IPC Registry] Registering My Module IPC...");
+  const { registerMyModuleIPC } = require("./my-module/my-module-ipc");
   registerMyModuleIPC({ dependency1, dependency2 });
-  console.log('[IPC Registry] ✓ My Module IPC registered');
+  console.log("[IPC Registry] ✓ My Module IPC registered");
 } catch (error) {
-  console.error('[IPC Registry] ❌ My Module IPC failed:', error.message);
-  console.log('[IPC Registry] ⚠️ Continuing...');
+  console.error("[IPC Registry] ❌ My Module IPC failed:", error.message);
+  console.log("[IPC Registry] ⚠️ Continuing...");
 }
 ```
 
@@ -153,11 +156,11 @@ try {
 ```javascript
 // src/preload/index.js
 
-contextBridge.exposeInMainWorld('electronAPI', {
+contextBridge.exposeInMainWorld("electronAPI", {
   // ... 其他 API
   myModule: {
-    action: (data) => ipcRenderer.invoke('my-module:action', data)
-  }
+    action: (data) => ipcRenderer.invoke("my-module:action", data),
+  },
 });
 ```
 
@@ -170,12 +173,12 @@ async function performAction() {
   try {
     const result = await window.electronAPI.myModule.action(data);
     if (result.success) {
-      console.log('Success:', result.data);
+      console.log("Success:", result.data);
     } else {
-      console.error('Error:', result.error);
+      console.error("Error:", result.error);
     }
   } catch (error) {
-    console.error('IPC call failed:', error);
+    console.error("IPC call failed:", error);
   }
 }
 ```
