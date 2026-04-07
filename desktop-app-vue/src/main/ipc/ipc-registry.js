@@ -1651,80 +1651,73 @@ function registerAllIPC(dependencies) {
     // Phase 15: Unified Tool Registry (v0.35.0)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Unified Tool Registry IPC...");
-      const {
-        UnifiedToolRegistry,
-      } = require("../ai-engine/unified-tool-registry");
-      const {
-        registerUnifiedToolsIPC,
-      } = require("../ai-engine/unified-tools-ipc");
-
-      const unifiedToolRegistry = new UnifiedToolRegistry();
-
-      // Bind available subsystems
-      const functionCaller = aiEngineManager?.functionCaller || null;
-      if (functionCaller) {
-        unifiedToolRegistry.bindFunctionCaller(functionCaller);
-      }
-      if (mcpToolAdapter) {
-        unifiedToolRegistry.bindMCPAdapter(mcpToolAdapter);
-      }
-
-      // Bind SkillRegistry (from skills-ipc singleton)
-      try {
+    safeRegister("Unified Tool Registry IPC", {
+      register: () => {
         const {
-          getSkillRegistry,
-        } = require("../ai-engine/cowork/skills/skill-registry");
-        const skillRegistry = getSkillRegistry?.();
-        if (skillRegistry) {
-          unifiedToolRegistry.bindSkillRegistry(skillRegistry);
+          UnifiedToolRegistry,
+        } = require("../ai-engine/unified-tool-registry");
+        const {
+          registerUnifiedToolsIPC,
+        } = require("../ai-engine/unified-tools-ipc");
+
+        const unifiedToolRegistry = new UnifiedToolRegistry();
+
+        // Bind available subsystems
+        const functionCaller = aiEngineManager?.functionCaller || null;
+        if (functionCaller) {
+          unifiedToolRegistry.bindFunctionCaller(functionCaller);
         }
-      } catch (srError) {
-        logger.warn(
-          "[IPC Registry] ⚠️  SkillRegistry not available for UnifiedToolRegistry:",
-          srError.message,
-        );
-      }
+        if (mcpToolAdapter) {
+          unifiedToolRegistry.bindMCPAdapter(mcpToolAdapter);
+        }
 
-      // Initialize asynchronously (non-blocking), then bind to ManusOptimizations
-      unifiedToolRegistry
-        .initialize()
-        .then(() => {
-          // Wire into ManusOptimizations so AI conversations get skill context in prompts
-          if (llmManager?.manusOptimizations?.bindUnifiedRegistry) {
-            llmManager.manusOptimizations.bindUnifiedRegistry(
-              unifiedToolRegistry,
-            );
-            logger.info(
-              "[IPC Registry] ✓ UnifiedToolRegistry bound to ManusOptimizations",
-            );
+        // Bind SkillRegistry (from skills-ipc singleton)
+        try {
+          const {
+            getSkillRegistry,
+          } = require("../ai-engine/cowork/skills/skill-registry");
+          const skillRegistry = getSkillRegistry?.();
+          if (skillRegistry) {
+            unifiedToolRegistry.bindSkillRegistry(skillRegistry);
           }
-        })
-        .catch((initError) => {
+        } catch (srError) {
           logger.warn(
-            "[IPC Registry] ⚠️  UnifiedToolRegistry initialization error:",
-            initError.message,
+            "[IPC Registry] ⚠️  SkillRegistry not available for UnifiedToolRegistry:",
+            srError.message,
           );
-        });
+        }
 
-      // Save to app instance
-      if (app) {
-        app.unifiedToolRegistry = unifiedToolRegistry;
-      }
+        // Initialize asynchronously (non-blocking), then bind to ManusOptimizations
+        unifiedToolRegistry
+          .initialize()
+          .then(() => {
+            // Wire into ManusOptimizations so AI conversations get skill context in prompts
+            if (llmManager?.manusOptimizations?.bindUnifiedRegistry) {
+              llmManager.manusOptimizations.bindUnifiedRegistry(
+                unifiedToolRegistry,
+              );
+              logger.info(
+                "[IPC Registry] ✓ UnifiedToolRegistry bound to ManusOptimizations",
+              );
+            }
+          })
+          .catch((initError) => {
+            logger.warn(
+              "[IPC Registry] ⚠️  UnifiedToolRegistry initialization error:",
+              initError.message,
+            );
+          });
 
-      // Register IPC handlers
-      registerUnifiedToolsIPC({ unifiedToolRegistry });
+        // Save to app instance
+        if (app) {
+          app.unifiedToolRegistry = unifiedToolRegistry;
+        }
 
-      logger.info(
-        "[IPC Registry] ✓ Unified Tool Registry IPC registered (8 handlers)",
-      );
-    } catch (unifiedError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Unified Tool Registry IPC registration failed (non-fatal):",
-        unifiedError.message,
-      );
-    }
+        // Register IPC handlers
+        registerUnifiedToolsIPC({ unifiedToolRegistry });
+      },
+      handlers: 8,
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -1741,21 +1734,15 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // 🔥 Skill Pipeline IPC (流水线引擎, 12 handlers)
-    logger.info("[IPC Registry] Registering Skill Pipeline IPC...");
-    try {
-      const {
-        registerSkillPipelineIPC,
-      } = require("../ai-engine/cowork/skills/skill-pipeline-ipc");
-      registerSkillPipelineIPC({ hookSystem });
-      logger.info(
-        "[IPC Registry] ✓ Skill Pipeline IPC registered (12 handlers)",
-      );
-    } catch (pipelineError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Skill Pipeline IPC registration failed (non-fatal):",
-        pipelineError.message,
-      );
-    }
+    safeRegister("Skill Pipeline IPC", {
+      register: () => {
+        const {
+          registerSkillPipelineIPC,
+        } = require("../ai-engine/cowork/skills/skill-pipeline-ipc");
+        registerSkillPipelineIPC({ hookSystem });
+      },
+      handlers: 12,
+    });
 
     // 🔥 Skill Metrics IPC (技能指标, 5 handlers)
     safeRegister("Skill Metrics IPC", {
@@ -1796,39 +1783,33 @@ function registerAllIPC(dependencies) {
     // Phase 17: Instinct Learning System (v0.39.0)
     // ============================================================
 
-    try {
-      logger.info("[IPC Registry] Registering Instinct Learning IPC...");
-      const { registerInstinctIPC } = require("../llm/instinct-ipc");
-      const { getInstinctManager } = require("../llm/instinct-manager");
+    safeRegister("Instinct Learning IPC", {
+      register: () => {
+        const { registerInstinctIPC } = require("../llm/instinct-ipc");
+        const { getInstinctManager } = require("../llm/instinct-manager");
 
-      const instinctManager = getInstinctManager();
-      const database = dependencies.database || null;
-      const permanentMemoryManager =
-        dependencies.permanentMemoryManager || null;
-      const hookSystem = dependencies.hookSystem || null;
+        const instinctManager = getInstinctManager();
+        const database = dependencies.database || null;
+        const permanentMemoryManager =
+          dependencies.permanentMemoryManager || null;
+        const hookSystem = dependencies.hookSystem || null;
 
-      if (database) {
-        instinctManager
-          .initialize(database, permanentMemoryManager, hookSystem)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] InstinctManager async init error (non-fatal):",
-              err.message,
-            ),
-          );
-      }
+        if (database) {
+          instinctManager
+            .initialize(database, permanentMemoryManager, hookSystem)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] InstinctManager async init error (non-fatal):",
+                err.message,
+              ),
+            );
+        }
 
-      registerInstinctIPC(instinctManager);
-      registeredModules.instinctManager = instinctManager;
-      logger.info(
-        "[IPC Registry] ✓ Instinct Learning IPC registered (11 handlers)",
-      );
-    } catch (instinctError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Instinct Learning IPC registration failed (non-fatal):",
-        instinctError.message,
-      );
-    }
+        registerInstinctIPC(instinctManager);
+        registeredModules.instinctManager = instinctManager;
+      },
+      handlers: 11,
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -1840,144 +1821,133 @@ function registerAllIPC(dependencies) {
     // Phase 18: Cowork v2.0.0 — Cross-device Collaboration (v0.39.0)
     // ============================================================
 
-    try {
-      logger.info(
-        "[IPC Registry] Registering Cowork v2.0.0 Cross-device IPC...",
-      );
+    safeRegister("Cowork v2.0.0 Cross-device IPC", {
+      register: () => {
+        const {
+          getP2PAgentNetwork,
+        } = require("../ai-engine/cowork/p2p-agent-network");
+        const {
+          getDeviceDiscovery,
+        } = require("../ai-engine/cowork/device-discovery");
+        const {
+          getHybridExecutor,
+        } = require("../ai-engine/cowork/hybrid-executor");
+        const {
+          getComputerUseBridge,
+        } = require("../ai-engine/cowork/computer-use-bridge");
+        const {
+          getCoworkAPIServer,
+        } = require("../ai-engine/cowork/cowork-api-server");
+        const {
+          getWebhookManager,
+        } = require("../ai-engine/cowork/webhook-manager");
+        const {
+          registerCoworkV2IPC,
+        } = require("../ai-engine/cowork/cowork-v2-ipc");
 
-      const {
-        getP2PAgentNetwork,
-      } = require("../ai-engine/cowork/p2p-agent-network");
-      const {
-        getDeviceDiscovery,
-      } = require("../ai-engine/cowork/device-discovery");
-      const {
-        getHybridExecutor,
-      } = require("../ai-engine/cowork/hybrid-executor");
-      const {
-        getComputerUseBridge,
-      } = require("../ai-engine/cowork/computer-use-bridge");
-      const {
-        getCoworkAPIServer,
-      } = require("../ai-engine/cowork/cowork-api-server");
-      const {
-        getWebhookManager,
-      } = require("../ai-engine/cowork/webhook-manager");
-      const {
-        registerCoworkV2IPC,
-      } = require("../ai-engine/cowork/cowork-v2-ipc");
+        const p2pNetwork = getP2PAgentNetwork();
+        const deviceDiscovery = getDeviceDiscovery();
+        const hybridExecutor = getHybridExecutor();
+        const computerUseBridge = getComputerUseBridge();
+        const coworkAPIServer = getCoworkAPIServer();
+        const webhookManager = getWebhookManager();
 
-      const p2pNetwork = getP2PAgentNetwork();
-      const deviceDiscovery = getDeviceDiscovery();
-      const hybridExecutor = getHybridExecutor();
-      const computerUseBridge = getComputerUseBridge();
-      const coworkAPIServer = getCoworkAPIServer();
-      const webhookManager = getWebhookManager();
+        // Wire dependencies
+        const database = dependencies.database || null;
+        const skillRegistry = registeredModules.skillRegistry || null;
+        const mobileBridge = dependencies.mobileBridge || null;
+        const teammateTool = registeredModules.teammateTool || null;
 
-      // Wire dependencies
-      const database = dependencies.database || null;
-      const skillRegistry = registeredModules.skillRegistry || null;
-      const mobileBridge = dependencies.mobileBridge || null;
-      const teammateTool = registeredModules.teammateTool || null;
+        // Initialize P2P Agent Network
+        p2pNetwork.mobileBridge = mobileBridge;
+        p2pNetwork.teammateTool = teammateTool;
+        p2pNetwork.skillRegistry = skillRegistry;
+        p2pNetwork.db = database;
+        p2pNetwork
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] P2PAgentNetwork init warning:",
+              err.message,
+            ),
+          );
 
-      // Initialize P2P Agent Network
-      p2pNetwork.mobileBridge = mobileBridge;
-      p2pNetwork.teammateTool = teammateTool;
-      p2pNetwork.skillRegistry = skillRegistry;
-      p2pNetwork.db = database;
-      p2pNetwork
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] P2PAgentNetwork init warning:",
-            err.message,
-          ),
-        );
+        // Initialize Device Discovery
+        deviceDiscovery.p2pNetwork = p2pNetwork;
+        deviceDiscovery.skillRegistry = skillRegistry;
+        deviceDiscovery.db = database;
+        deviceDiscovery
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] DeviceDiscovery init warning:",
+              err.message,
+            ),
+          );
 
-      // Initialize Device Discovery
-      deviceDiscovery.p2pNetwork = p2pNetwork;
-      deviceDiscovery.skillRegistry = skillRegistry;
-      deviceDiscovery.db = database;
-      deviceDiscovery
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] DeviceDiscovery init warning:",
-            err.message,
-          ),
-        );
+        // Initialize Hybrid Executor
+        hybridExecutor.p2pNetwork = p2pNetwork;
+        hybridExecutor.deviceDiscovery = deviceDiscovery;
+        hybridExecutor.skillRegistry = skillRegistry;
+        hybridExecutor
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] HybridExecutor init warning:",
+              err.message,
+            ),
+          );
 
-      // Initialize Hybrid Executor
-      hybridExecutor.p2pNetwork = p2pNetwork;
-      hybridExecutor.deviceDiscovery = deviceDiscovery;
-      hybridExecutor.skillRegistry = skillRegistry;
-      hybridExecutor
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] HybridExecutor init warning:",
-            err.message,
-          ),
-        );
+        // Initialize Computer Use Bridge
+        computerUseBridge.skillRegistry = skillRegistry;
+        computerUseBridge
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] ComputerUseBridge init warning:",
+              err.message,
+            ),
+          );
 
-      // Initialize Computer Use Bridge
-      computerUseBridge.skillRegistry = skillRegistry;
-      computerUseBridge
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] ComputerUseBridge init warning:",
-            err.message,
-          ),
-        );
+        // Initialize Cowork API Server (wires teammateTool, skills, etc.)
+        coworkAPIServer.teammateTool = teammateTool;
+        coworkAPIServer.skillRegistry = skillRegistry;
+        coworkAPIServer.hybridExecutor = hybridExecutor;
+        coworkAPIServer.deviceDiscovery = deviceDiscovery;
+        coworkAPIServer.webhookManager = webhookManager;
 
-      // Initialize Cowork API Server (wires teammateTool, skills, etc.)
-      coworkAPIServer.teammateTool = teammateTool;
-      coworkAPIServer.skillRegistry = skillRegistry;
-      coworkAPIServer.hybridExecutor = hybridExecutor;
-      coworkAPIServer.deviceDiscovery = deviceDiscovery;
-      coworkAPIServer.webhookManager = webhookManager;
+        // Initialize Webhook Manager
+        webhookManager.teammateTool = teammateTool;
+        webhookManager.p2pNetwork = p2pNetwork;
+        webhookManager.deviceDiscovery = deviceDiscovery;
+        webhookManager.db = database;
+        webhookManager
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] WebhookManager init warning:",
+              err.message,
+            ),
+          );
 
-      // Initialize Webhook Manager
-      webhookManager.teammateTool = teammateTool;
-      webhookManager.p2pNetwork = p2pNetwork;
-      webhookManager.deviceDiscovery = deviceDiscovery;
-      webhookManager.db = database;
-      webhookManager
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] WebhookManager init warning:",
-            err.message,
-          ),
-        );
+        // Register IPC handlers
+        registerCoworkV2IPC({
+          p2pNetwork,
+          deviceDiscovery,
+          hybridExecutor,
+          computerUseBridge,
+          coworkAPIServer,
+          webhookManager,
+        });
 
-      // Register IPC handlers
-      const { handlerCount } = registerCoworkV2IPC({
-        p2pNetwork,
-        deviceDiscovery,
-        hybridExecutor,
-        computerUseBridge,
-        coworkAPIServer,
-        webhookManager,
-      });
-
-      registeredModules.p2pNetwork = p2pNetwork;
-      registeredModules.deviceDiscovery = deviceDiscovery;
-      registeredModules.hybridExecutor = hybridExecutor;
-      registeredModules.computerUseBridge = computerUseBridge;
-      registeredModules.coworkAPIServer = coworkAPIServer;
-      registeredModules.webhookManager = webhookManager;
-
-      logger.info(
-        `[IPC Registry] ✓ Cowork v2.0.0 IPC registered (${handlerCount} handlers)`,
-      );
-    } catch (v2Error) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Cowork v2.0.0 IPC registration failed (non-fatal):",
-        v2Error.message,
-      );
-    }
+        registeredModules.p2pNetwork = p2pNetwork;
+        registeredModules.deviceDiscovery = deviceDiscovery;
+        registeredModules.hybridExecutor = hybridExecutor;
+        registeredModules.computerUseBridge = computerUseBridge;
+        registeredModules.coworkAPIServer = coworkAPIServer;
+        registeredModules.webhookManager = webhookManager;
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -1990,127 +1960,108 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     // 🔥 ML Task Scheduler (ML 驱动的任务调度, 8 handlers)
-    try {
-      logger.info("[IPC Registry] Registering ML Task Scheduler IPC...");
-      const {
-        MLTaskScheduler,
-      } = require("../ai-engine/cowork/ml-task-scheduler");
-      const {
-        registerMLSchedulerIPC,
-      } = require("../ai-engine/cowork/ml-task-scheduler-ipc");
+    safeRegister("ML Task Scheduler IPC", {
+      register: () => {
+        const {
+          MLTaskScheduler,
+        } = require("../ai-engine/cowork/ml-task-scheduler");
+        const {
+          registerMLSchedulerIPC,
+        } = require("../ai-engine/cowork/ml-task-scheduler-ipc");
 
-      const mlTaskScheduler = new MLTaskScheduler(database || null);
-      mlTaskScheduler
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] MLTaskScheduler async init error (non-fatal):",
-            err.message,
-          ),
-        );
+        const mlTaskScheduler = new MLTaskScheduler(database || null);
+        mlTaskScheduler
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] MLTaskScheduler async init error (non-fatal):",
+              err.message,
+            ),
+          );
 
-      registerMLSchedulerIPC(mlTaskScheduler);
-      registeredModules.mlTaskScheduler = mlTaskScheduler;
-      logger.info(
-        "[IPC Registry] ✓ ML Task Scheduler IPC registered (8 handlers)",
-      );
-    } catch (mlSchedulerError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  ML Task Scheduler IPC registration failed (non-fatal):",
-        mlSchedulerError.message,
-      );
-    }
+        registerMLSchedulerIPC(mlTaskScheduler);
+        registeredModules.mlTaskScheduler = mlTaskScheduler;
+      },
+      handlers: 8,
+    });
 
     // 🔥 Load Balancer (动态负载均衡, 8 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Load Balancer IPC...");
-      const { LoadBalancer } = require("../ai-engine/cowork/load-balancer");
-      const {
-        registerLoadBalancerIPC,
-      } = require("../ai-engine/cowork/load-balancer-ipc");
+    safeRegister("Load Balancer IPC", {
+      register: () => {
+        const { LoadBalancer } = require("../ai-engine/cowork/load-balancer");
+        const {
+          registerLoadBalancerIPC,
+        } = require("../ai-engine/cowork/load-balancer-ipc");
 
-      const loadBalancer = new LoadBalancer(null, null, database || null);
-      loadBalancer
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] LoadBalancer async init error (non-fatal):",
-            err.message,
-          ),
-        );
+        const loadBalancer = new LoadBalancer(null, null, database || null);
+        loadBalancer
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] LoadBalancer async init error (non-fatal):",
+              err.message,
+            ),
+          );
 
-      registerLoadBalancerIPC(loadBalancer);
-      registeredModules.loadBalancer = loadBalancer;
-      logger.info("[IPC Registry] ✓ Load Balancer IPC registered (8 handlers)");
-    } catch (loadBalancerError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Load Balancer IPC registration failed (non-fatal):",
-        loadBalancerError.message,
-      );
-    }
+        registerLoadBalancerIPC(loadBalancer);
+        registeredModules.loadBalancer = loadBalancer;
+      },
+      handlers: 8,
+    });
 
     // 🔥 CI/CD Optimizer (CI/CD 深度优化, 10 handlers)
-    try {
-      logger.info("[IPC Registry] Registering CI/CD Optimizer IPC...");
-      const { CICDOptimizer } = require("../ai-engine/cowork/cicd-optimizer");
-      const {
-        registerCICDOptimizerIPC,
-      } = require("../ai-engine/cowork/cicd-optimizer-ipc");
+    safeRegister("CI/CD Optimizer IPC", {
+      register: () => {
+        const { CICDOptimizer } = require("../ai-engine/cowork/cicd-optimizer");
+        const {
+          registerCICDOptimizerIPC,
+        } = require("../ai-engine/cowork/cicd-optimizer-ipc");
 
-      const cicdOptimizer = new CICDOptimizer(database || null, process.cwd());
-      cicdOptimizer
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] CICDOptimizer async init error (non-fatal):",
-            err.message,
-          ),
+        const cicdOptimizer = new CICDOptimizer(
+          database || null,
+          process.cwd(),
         );
+        cicdOptimizer
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] CICDOptimizer async init error (non-fatal):",
+              err.message,
+            ),
+          );
 
-      registerCICDOptimizerIPC(cicdOptimizer);
-      registeredModules.cicdOptimizer = cicdOptimizer;
-      logger.info(
-        "[IPC Registry] ✓ CI/CD Optimizer IPC registered (10 handlers)",
-      );
-    } catch (cicdError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  CI/CD Optimizer IPC registration failed (non-fatal):",
-        cicdError.message,
-      );
-    }
+        registerCICDOptimizerIPC(cicdOptimizer);
+        registeredModules.cicdOptimizer = cicdOptimizer;
+      },
+      handlers: 10,
+    });
 
     // 🔥 IPC API Doc Generator (API 文档自动生成, 6 handlers)
-    try {
-      logger.info("[IPC Registry] Registering API Doc Generator IPC...");
-      const {
-        IPCApiDocGenerator,
-      } = require("../ai-engine/cowork/ipc-api-doc-generator");
-      const {
-        registerApiDocsIPC,
-      } = require("../ai-engine/cowork/ipc-api-doc-generator-ipc");
+    safeRegister("API Doc Generator IPC", {
+      register: () => {
+        const {
+          IPCApiDocGenerator,
+        } = require("../ai-engine/cowork/ipc-api-doc-generator");
+        const {
+          registerApiDocsIPC,
+        } = require("../ai-engine/cowork/ipc-api-doc-generator-ipc");
 
-      const srcDir = require("path").join(__dirname, "..");
-      const apiDocGenerator = new IPCApiDocGenerator(srcDir);
-      apiDocGenerator
-        .initialize()
-        .catch((err) =>
-          logger.warn(
-            "[IPC Registry] IPCApiDocGenerator async init error (non-fatal):",
-            err.message,
-          ),
-        );
+        const srcDir = require("path").join(__dirname, "..");
+        const apiDocGenerator = new IPCApiDocGenerator(srcDir);
+        apiDocGenerator
+          .initialize()
+          .catch((err) =>
+            logger.warn(
+              "[IPC Registry] IPCApiDocGenerator async init error (non-fatal):",
+              err.message,
+            ),
+          );
 
-      registerApiDocsIPC(apiDocGenerator);
-      registeredModules.apiDocGenerator = apiDocGenerator;
-      logger.info(
-        "[IPC Registry] ✓ API Doc Generator IPC registered (6 handlers)",
-      );
-    } catch (apiDocsError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  API Doc Generator IPC registration failed (non-fatal):",
-        apiDocsError.message,
-      );
-    }
+        registerApiDocsIPC(apiDocGenerator);
+        registeredModules.apiDocGenerator = apiDocGenerator;
+      },
+      handlers: 6,
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -2122,127 +2073,120 @@ function registerAllIPC(dependencies) {
     // Phase 20: Self-Evolution & Knowledge Graph (v2.1.0)
     // ============================================================
 
-    try {
-      logger.info(
-        "[IPC Registry] Registering Self-Evolution & Knowledge Graph IPC...",
-      );
+    safeRegister("Self-Evolution & Knowledge Graph IPC", {
+      register: () => {
+        const {
+          getCodeKnowledgeGraph,
+        } = require("../ai-engine/cowork/code-knowledge-graph");
+        const {
+          getDecisionKnowledgeBase,
+        } = require("../ai-engine/cowork/decision-knowledge-base");
+        const {
+          getPromptOptimizer,
+        } = require("../ai-engine/cowork/prompt-optimizer");
+        const {
+          getSkillDiscoverer,
+        } = require("../ai-engine/cowork/skill-discoverer");
+        const {
+          getDebateReview,
+        } = require("../ai-engine/cowork/debate-review");
+        const {
+          getABComparator,
+        } = require("../ai-engine/cowork/ab-comparator");
+        const {
+          registerEvolutionIPC,
+        } = require("../ai-engine/cowork/evolution-ipc");
 
-      const {
-        getCodeKnowledgeGraph,
-      } = require("../ai-engine/cowork/code-knowledge-graph");
-      const {
-        getDecisionKnowledgeBase,
-      } = require("../ai-engine/cowork/decision-knowledge-base");
-      const {
-        getPromptOptimizer,
-      } = require("../ai-engine/cowork/prompt-optimizer");
-      const {
-        getSkillDiscoverer,
-      } = require("../ai-engine/cowork/skill-discoverer");
-      const { getDebateReview } = require("../ai-engine/cowork/debate-review");
-      const { getABComparator } = require("../ai-engine/cowork/ab-comparator");
-      const {
-        registerEvolutionIPC,
-      } = require("../ai-engine/cowork/evolution-ipc");
+        const evoDb = database || null;
+        const hookSystem = dependencies.hookSystem || null;
+        const marketplaceClient = registeredModules.marketplaceClient || null;
+        const teammateTool = registeredModules.teammateTool || null;
+        const agentCoordinator = registeredModules.agentCoordinator || null;
 
-      const database = dependencies.database || null;
-      const hookSystem = dependencies.hookSystem || null;
-      const marketplaceClient = registeredModules.marketplaceClient || null;
-      const teammateTool = registeredModules.teammateTool || null;
-      const agentCoordinator = registeredModules.agentCoordinator || null;
+        // Initialize managers
+        const codeKnowledgeGraph = getCodeKnowledgeGraph();
+        const decisionKnowledgeBase = getDecisionKnowledgeBase();
+        const promptOptimizer = getPromptOptimizer();
+        const skillDiscoverer = getSkillDiscoverer();
+        const debateReview = getDebateReview();
+        const abComparator = getABComparator();
 
-      // Initialize managers
-      const codeKnowledgeGraph = getCodeKnowledgeGraph();
-      const decisionKnowledgeBase = getDecisionKnowledgeBase();
-      const promptOptimizer = getPromptOptimizer();
-      const skillDiscoverer = getSkillDiscoverer();
-      const debateReview = getDebateReview();
-      const abComparator = getABComparator();
+        if (evoDb) {
+          codeKnowledgeGraph
+            .initialize(evoDb)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] CodeKnowledgeGraph init warning:",
+                err.message,
+              ),
+            );
+          decisionKnowledgeBase
+            .initialize(evoDb, hookSystem)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] DecisionKnowledgeBase init warning:",
+                err.message,
+              ),
+            );
+          promptOptimizer
+            .initialize(evoDb)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] PromptOptimizer init warning:",
+                err.message,
+              ),
+            );
+          skillDiscoverer
+            .initialize(evoDb, marketplaceClient, hookSystem)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] SkillDiscoverer init warning:",
+                err.message,
+              ),
+            );
+          debateReview
+            .initialize(evoDb, teammateTool, decisionKnowledgeBase)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] DebateReview init warning:",
+                err.message,
+              ),
+            );
+          abComparator
+            .initialize(evoDb, agentCoordinator, decisionKnowledgeBase)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] ABComparator init warning:",
+                err.message,
+              ),
+            );
+        }
 
-      if (database) {
-        codeKnowledgeGraph
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] CodeKnowledgeGraph init warning:",
-              err.message,
-            ),
+        // Wire CodeKnowledgeGraph into ContextEngineering
+        if (registeredModules.contextEngineering) {
+          registeredModules.contextEngineering.setCodeKnowledgeGraph(
+            codeKnowledgeGraph,
           );
-        decisionKnowledgeBase
-          .initialize(database, hookSystem)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] DecisionKnowledgeBase init warning:",
-              err.message,
-            ),
-          );
-        promptOptimizer
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] PromptOptimizer init warning:",
-              err.message,
-            ),
-          );
-        skillDiscoverer
-          .initialize(database, marketplaceClient, hookSystem)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] SkillDiscoverer init warning:",
-              err.message,
-            ),
-          );
-        debateReview
-          .initialize(database, teammateTool, decisionKnowledgeBase)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] DebateReview init warning:",
-              err.message,
-            ),
-          );
-        abComparator
-          .initialize(database, agentCoordinator, decisionKnowledgeBase)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] ABComparator init warning:",
-              err.message,
-            ),
-          );
-      }
+        }
 
-      // Wire CodeKnowledgeGraph into ContextEngineering
-      if (registeredModules.contextEngineering) {
-        registeredModules.contextEngineering.setCodeKnowledgeGraph(
+        // Register IPC handlers
+        registerEvolutionIPC({
           codeKnowledgeGraph,
-        );
-      }
+          decisionKnowledgeBase,
+          promptOptimizer,
+          skillDiscoverer,
+          debateReview,
+          abComparator,
+        });
 
-      // Register IPC handlers
-      const { handlerCount } = registerEvolutionIPC({
-        codeKnowledgeGraph,
-        decisionKnowledgeBase,
-        promptOptimizer,
-        skillDiscoverer,
-        debateReview,
-        abComparator,
-      });
-
-      registeredModules.codeKnowledgeGraph = codeKnowledgeGraph;
-      registeredModules.decisionKnowledgeBase = decisionKnowledgeBase;
-      registeredModules.promptOptimizer = promptOptimizer;
-      registeredModules.skillDiscoverer = skillDiscoverer;
-      registeredModules.debateReview = debateReview;
-      registeredModules.abComparator = abComparator;
-
-      logger.info(
-        `[IPC Registry] ✓ Self-Evolution & Knowledge Graph IPC registered (${handlerCount} handlers)`,
-      );
-    } catch (evolutionError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Self-Evolution & Knowledge Graph IPC registration failed (non-fatal):",
-        evolutionError.message,
-      );
-    }
+        registeredModules.codeKnowledgeGraph = codeKnowledgeGraph;
+        registeredModules.decisionKnowledgeBase = decisionKnowledgeBase;
+        registeredModules.promptOptimizer = promptOptimizer;
+        registeredModules.skillDiscoverer = skillDiscoverer;
+        registeredModules.debateReview = debateReview;
+        registeredModules.abComparator = abComparator;
+      },
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
@@ -2523,273 +2467,241 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     // 🔥 Benchmark System (模型性能基准测试, 9 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Benchmark IPC...");
-      const { BenchmarkManager } = require("../benchmark/benchmark-manager");
-      const { registerBenchmarkIPC } = require("../benchmark/benchmark-ipc");
+    safeRegister("Benchmark IPC", {
+      register: () => {
+        const { BenchmarkManager } = require("../benchmark/benchmark-manager");
+        const { registerBenchmarkIPC } = require("../benchmark/benchmark-ipc");
 
-      const benchmarkManager = new BenchmarkManager({
-        database: database || null,
-        llmManager: llmManager || null,
-      });
-      if (database) {
-        benchmarkManager
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] BenchmarkManager async init error (non-fatal):",
-              err.message,
-            ),
-          );
-      }
-      registerBenchmarkIPC({ benchmarkManager });
-      if (app) {
-        app.benchmarkManager = benchmarkManager;
-      }
-      logger.info("[IPC Registry] ✓ Benchmark IPC registered (9 handlers)");
-    } catch (benchmarkError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Benchmark IPC registration failed (non-fatal):",
-        benchmarkError.message,
-      );
-    }
+        const benchmarkManager = new BenchmarkManager({
+          database: database || null,
+          llmManager: llmManager || null,
+        });
+        if (database) {
+          benchmarkManager
+            .initialize(database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] BenchmarkManager async init error (non-fatal):",
+                err.message,
+              ),
+            );
+        }
+        registerBenchmarkIPC({ benchmarkManager });
+        if (app) {
+          app.benchmarkManager = benchmarkManager;
+        }
+      },
+      handlers: 9,
+    });
 
     // 🔥 Memory Augmented Generation (长期记忆增强, 8 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Memory Augmented IPC...");
-      const {
-        MemoryAugmentedGeneration,
-      } = require("../llm/memory-augmented-generation");
-      const {
-        UserPreferenceLearner,
-      } = require("../llm/user-preference-learner");
-      const {
-        BehaviorPatternAnalyzer,
-      } = require("../llm/behavior-pattern-analyzer");
-      const { registerMemoryAugIPC } = require("../llm/memory-augmented-ipc");
+    safeRegister("Memory Augmented IPC", {
+      register: () => {
+        const {
+          MemoryAugmentedGeneration,
+        } = require("../llm/memory-augmented-generation");
+        const {
+          UserPreferenceLearner,
+        } = require("../llm/user-preference-learner");
+        const {
+          BehaviorPatternAnalyzer,
+        } = require("../llm/behavior-pattern-analyzer");
+        const { registerMemoryAugIPC } = require("../llm/memory-augmented-ipc");
 
-      const memoryAugManager = new MemoryAugmentedGeneration({
-        database: database || null,
-      });
-      const preferenceLearner = new UserPreferenceLearner({
-        database: database || null,
-      });
-      const patternAnalyzer = new BehaviorPatternAnalyzer({
-        database: database || null,
-      });
+        const memoryAugManager = new MemoryAugmentedGeneration({
+          database: database || null,
+        });
+        const preferenceLearner = new UserPreferenceLearner({
+          database: database || null,
+        });
+        const patternAnalyzer = new BehaviorPatternAnalyzer({
+          database: database || null,
+        });
 
-      if (database) {
-        memoryAugManager
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] MemoryAugManager async init error (non-fatal):",
-              err.message,
-            ),
-          );
-        preferenceLearner
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] PreferenceLearner async init error (non-fatal):",
-              err.message,
-            ),
-          );
-        patternAnalyzer
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] PatternAnalyzer async init error (non-fatal):",
-              err.message,
-            ),
-          );
-      }
+        if (database) {
+          memoryAugManager
+            .initialize(database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] MemoryAugManager async init error (non-fatal):",
+                err.message,
+              ),
+            );
+          preferenceLearner
+            .initialize(database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] PreferenceLearner async init error (non-fatal):",
+                err.message,
+              ),
+            );
+          patternAnalyzer
+            .initialize(database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] PatternAnalyzer async init error (non-fatal):",
+                err.message,
+              ),
+            );
+        }
 
-      registerMemoryAugIPC({
-        memoryAugManager,
-        preferenceLearner,
-        patternAnalyzer,
-      });
+        registerMemoryAugIPC({
+          memoryAugManager,
+          preferenceLearner,
+          patternAnalyzer,
+        });
 
-      if (app) {
-        app.memoryAugManager = memoryAugManager;
-        app.preferenceLearner = preferenceLearner;
-        app.patternAnalyzer = patternAnalyzer;
-      }
-      logger.info(
-        "[IPC Registry] ✓ Memory Augmented IPC registered (8 handlers)",
-      );
-    } catch (magError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Memory Augmented IPC registration failed (non-fatal):",
-        magError.message,
-      );
-    }
+        if (app) {
+          app.memoryAugManager = memoryAugManager;
+          app.preferenceLearner = preferenceLearner;
+          app.patternAnalyzer = patternAnalyzer;
+        }
+      },
+      handlers: 8,
+    });
 
     // 🔥 Dual-Model Collaboration (Architect+Editor双模型协作, 7 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Dual-Model IPC...");
-      const {
-        DualModelManager,
-      } = require("../ai-engine/dual-model/dual-model-manager");
-      const {
-        registerDualModelIPC,
-      } = require("../ai-engine/dual-model/dual-model-ipc");
+    safeRegister("Dual-Model IPC", {
+      register: () => {
+        const {
+          DualModelManager,
+        } = require("../ai-engine/dual-model/dual-model-manager");
+        const {
+          registerDualModelIPC,
+        } = require("../ai-engine/dual-model/dual-model-ipc");
 
-      const dualModelManager = new DualModelManager({
-        database: database || null,
-        llmManager: llmManager || null,
-      });
-      if (database) {
-        dualModelManager
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] DualModelManager async init error (non-fatal):",
-              err.message,
-            ),
-          );
-      }
-      registerDualModelIPC({ dualModelManager });
-      if (app) {
-        app.dualModelManager = dualModelManager;
-      }
-      logger.info("[IPC Registry] ✓ Dual-Model IPC registered (7 handlers)");
-    } catch (dualModelError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Dual-Model IPC registration failed (non-fatal):",
-        dualModelError.message,
-      );
-    }
+        const dualModelManager = new DualModelManager({
+          database: database || null,
+          llmManager: llmManager || null,
+        });
+        if (database) {
+          dualModelManager
+            .initialize(database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] DualModelManager async init error (non-fatal):",
+                err.message,
+              ),
+            );
+        }
+        registerDualModelIPC({ dualModelManager });
+        if (app) {
+          app.dualModelManager = dualModelManager;
+        }
+      },
+      handlers: 7,
+    });
 
     // 🔥 Model Quantization (本地模型量化工具, 8 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Quantization IPC...");
-      const {
-        QuantizationManager,
-      } = require("../quantization/quantization-manager");
-      const {
-        registerQuantizationIPC,
-      } = require("../quantization/quantization-ipc");
+    safeRegister("Quantization IPC", {
+      register: () => {
+        const {
+          QuantizationManager,
+        } = require("../quantization/quantization-manager");
+        const {
+          registerQuantizationIPC,
+        } = require("../quantization/quantization-ipc");
 
-      const quantizationManager = new QuantizationManager({
-        database: database || null,
-      });
-      if (database) {
-        quantizationManager
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] QuantizationManager async init error (non-fatal):",
-              err.message,
-            ),
-          );
-      }
-      registerQuantizationIPC({ quantizationManager });
-      if (app) {
-        app.quantizationManager = quantizationManager;
-      }
-      logger.info("[IPC Registry] ✓ Quantization IPC registered (8 handlers)");
-    } catch (quantError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Quantization IPC registration failed (non-fatal):",
-        quantError.message,
-      );
-    }
+        const quantizationManager = new QuantizationManager({
+          database: database || null,
+        });
+        if (database) {
+          quantizationManager
+            .initialize(database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] QuantizationManager async init error (non-fatal):",
+                err.message,
+              ),
+            );
+        }
+        registerQuantizationIPC({ quantizationManager });
+        if (app) {
+          app.quantizationManager = quantizationManager;
+        }
+      },
+      handlers: 8,
+    });
 
     // 🔥 Model Fine-tuning (LoRA/QLoRA微调, 8 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Fine-tuning IPC...");
-      const {
-        FineTuningManager,
-      } = require("../fine-tuning/fine-tuning-manager");
-      const {
-        registerFineTuningIPC,
-      } = require("../fine-tuning/fine-tuning-ipc");
+    safeRegister("Fine-tuning IPC", {
+      register: () => {
+        const {
+          FineTuningManager,
+        } = require("../fine-tuning/fine-tuning-manager");
+        const {
+          registerFineTuningIPC,
+        } = require("../fine-tuning/fine-tuning-ipc");
 
-      const fineTuningManager = new FineTuningManager({
-        database: database || null,
-      });
-      if (database) {
-        fineTuningManager
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] FineTuningManager async init error (non-fatal):",
-              err.message,
-            ),
-          );
-      }
-      registerFineTuningIPC({ fineTuningManager });
-      if (app) {
-        app.fineTuningManager = fineTuningManager;
-      }
-      logger.info("[IPC Registry] ✓ Fine-tuning IPC registered (8 handlers)");
-    } catch (ftError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Fine-tuning IPC registration failed (non-fatal):",
-        ftError.message,
-      );
-    }
+        const fineTuningManager = new FineTuningManager({
+          database: database || null,
+        });
+        if (database) {
+          fineTuningManager
+            .initialize(database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] FineTuningManager async init error (non-fatal):",
+                err.message,
+              ),
+            );
+        }
+        registerFineTuningIPC({ fineTuningManager });
+        if (app) {
+          app.fineTuningManager = fineTuningManager;
+        }
+      },
+      handlers: 8,
+    });
 
     // 🔥 Whisper Voice Integration (Whisper语音识别, 6 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Whisper IPC...");
-      const { WhisperClient } = require("../speech/whisper-client");
-      const { registerWhisperIPC } = require("../speech/whisper-ipc");
+    safeRegister("Whisper IPC", {
+      register: () => {
+        const { WhisperClient } = require("../speech/whisper-client");
+        const { registerWhisperIPC } = require("../speech/whisper-ipc");
 
-      const whisperClient = new WhisperClient({});
-      registerWhisperIPC({
-        whisperClient,
-        llmManager: llmManager || null,
-        ttsManager: app?.ttsManager || null,
-      });
-      if (app) {
-        app.whisperClient = whisperClient;
-      }
-      logger.info("[IPC Registry] ✓ Whisper IPC registered (6 handlers)");
-    } catch (whisperError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Whisper IPC registration failed (non-fatal):",
-        whisperError.message,
-      );
-    }
+        const whisperClient = new WhisperClient({});
+        registerWhisperIPC({
+          whisperClient,
+          llmManager: llmManager || null,
+          ttsManager: app?.ttsManager || null,
+        });
+        if (app) {
+          app.whisperClient = whisperClient;
+        }
+      },
+      handlers: 6,
+    });
 
     // 🔥 Federated Learning (联邦学习, 10 handlers)
-    try {
-      logger.info("[IPC Registry] Registering Federated Learning IPC...");
-      const {
-        FederatedLearningManager,
-      } = require("../federated/federated-learning-manager");
-      const { registerFederatedIPC } = require("../federated/federated-ipc");
+    safeRegister("Federated Learning IPC", {
+      register: () => {
+        const {
+          FederatedLearningManager,
+        } = require("../federated/federated-learning-manager");
+        const { registerFederatedIPC } = require("../federated/federated-ipc");
 
-      const federatedManager = new FederatedLearningManager({
-        database: database || null,
-        p2pManager: p2pManager || null,
-      });
-      if (database) {
-        federatedManager
-          .initialize(database)
-          .catch((err) =>
-            logger.warn(
-              "[IPC Registry] FederatedManager async init error (non-fatal):",
-              err.message,
-            ),
-          );
-      }
-      registerFederatedIPC({ federatedManager });
-      if (app) {
-        app.federatedManager = federatedManager;
-      }
-      logger.info(
-        "[IPC Registry] ✓ Federated Learning IPC registered (10 handlers)",
-      );
-    } catch (fedError) {
-      logger.warn(
-        "[IPC Registry] ⚠️  Federated Learning IPC registration failed (non-fatal):",
-        fedError.message,
-      );
-    }
+        const federatedManager = new FederatedLearningManager({
+          database: database || null,
+          p2pManager: p2pManager || null,
+        });
+        if (database) {
+          federatedManager
+            .initialize(database)
+            .catch((err) =>
+              logger.warn(
+                "[IPC Registry] FederatedManager async init error (non-fatal):",
+                err.message,
+              ),
+            );
+        }
+        registerFederatedIPC({ federatedManager });
+        if (app) {
+          app.federatedManager = federatedManager;
+        }
+      },
+      handlers: 10,
+    });
 
     logger.info("[IPC Registry] ========================================");
     logger.info(
