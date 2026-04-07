@@ -102,13 +102,14 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 
 **测试覆盖**：334 个测试（255 单元 + 42 集成 + 37 E2E），12 个测试文件，全部通过。
 
-### 技术债清理 - H2 IPC Registry 拆分 (v0.45.24, 2026-04-07)
+### 技术债清理 - H2 IPC Registry 拆分 (v0.45.25, 2026-04-07)
 
 将 `desktop-app-vue/src/main/ipc/ipc-registry.js` 后半段独立的 Phase 注册块抽出到 `src/main/ipc/phases/` 子目录，按版本/批次分组。
 
 | 文件                                | 行数 | Phase 数 | 涵盖内容                                                                |
 | ----------------------------------- | ---: | -------: | ----------------------------------------------------------------------- |
 | `phases/phase-9-15-core.js`         |  259 |        7 | Cowork, Workflow Optimizations, Audit, Marketplace, Agents, SSO, UnifiedTools |
+| `phases/phase-16-20-skill-evo.js`   |  494 |        5 | Skill Pipeline/Workflow, Instinct, Cowork v2 Cross-device, ML Sched/LB/CICD/Docs, Self-Evolution |
 | `phases/phase-21-30-enterprise.js`  |  295 |       10 | Enterprise Org, IPFS, Analytics, Autonomous, AutoTuner, Multimodal, Skill Marketplace, Trading, DeFi, Crypto |
 | `phases/phase-31-ai-models.js`      |  261 |        7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn        |
 | `phases/phase-33-40-collab-ops.js`  |  553 |        8 | Git P2P, Yjs Collab, Pipeline, Anomaly, NL Spec, Multimodal, Wire-up, Decentralized Network |
@@ -118,7 +119,7 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 | `phases/phase-58-77-v2-v3.js`       |  757 |       20 | Federation, Reputation, Inference, Trust Root, Storage, EvoMap          |
 | `phases/phase-q1-2027.js`           |   89 |        5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                                |
 
-**效果**：`ipc-registry.js` 由 4925 行减至 2150 行（**−2775，−56.3%**），共抽出 9 个 Phase 模块、74 个 Phase。`phase-modules.test.js` 累计 27 个契约测试全部通过；修复 1 个旧路径 bug（`speech-manager-integration.test.js` 引用了已迁移的 `src/main/ipc-registry.js`）。
+**效果**：`ipc-registry.js` 由 4925 行减至 1704 行（**−3221，−65.4%**），共抽出 10 个 Phase 模块、79 个 Phase。`phase-modules.test.js` 累计 30 个契约测试全部通过。
 
 详见 [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) 第九节。
 
