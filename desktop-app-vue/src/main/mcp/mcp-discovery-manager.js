@@ -58,7 +58,9 @@ class MCPDiscoveryManager extends EventEmitter {
    * Start health monitoring and config change listening
    */
   start() {
-    if (this._running) {return;}
+    if (this._running) {
+      return;
+    }
     this._running = true;
 
     // Listen for config changes → hot-apply
@@ -97,7 +99,9 @@ class MCPDiscoveryManager extends EventEmitter {
    * Stop all monitoring and watching
    */
   stop() {
-    if (!this._running) {return;}
+    if (!this._running) {
+      return;
+    }
     this._running = false;
 
     // Stop health checks
@@ -130,54 +134,60 @@ class MCPDiscoveryManager extends EventEmitter {
   }
 
   /**
-   * Scan directories for MCP-compatible packages
+   * Scan directories for MCP-compatible packages (M2: async fs.promises)
    * @param {string[]} [dirs] - Directories to scan (defaults to this.scanDirs)
-   * @returns {Object[]} Discovered servers
+   * @returns {Promise<Object[]>} Discovered servers
    */
-  scanDirectories(dirs = null) {
+  async scanDirectories(dirs = null) {
     const dirsToScan = dirs || this.scanDirs;
     const discovered = [];
 
     for (const dir of dirsToScan) {
+      let entries;
       try {
-        if (!fs.existsSync(dir)) {
+        entries = await fs.promises.readdir(dir, { withFileTypes: true });
+      } catch (err) {
+        if (err.code === "ENOENT") {
           logger.warn(`[MCPDiscovery] Scan directory not found: ${dir}`);
+        } else {
+          logger.error(`[MCPDiscovery] Error scanning ${dir}: ${err.message}`);
+        }
+        continue;
+      }
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) {
           continue;
         }
-
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const entry of entries) {
-          if (!entry.isDirectory()) {continue;}
-
-          const pkgPath = path.join(dir, entry.name, "package.json");
-          if (!fs.existsSync(pkgPath)) {continue;}
-
-          try {
-            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-            if (pkg.mcp) {
-              const serverInfo = {
-                name: pkg.name || entry.name,
-                version: pkg.version || "0.0.0",
-                directory: path.join(dir, entry.name),
-                mcpConfig: pkg.mcp,
-                transport: pkg.mcp.transport || "stdio",
-                command: pkg.mcp.command || "node",
-                args: pkg.mcp.args || ["."],
-              };
-              discovered.push(serverInfo);
-              this.discoveredServers.set(serverInfo.name, serverInfo);
-              logger.info(
-                `[MCPDiscovery] Found MCP server: ${serverInfo.name} in ${dir}`,
-              );
-            }
-          } catch (parseErr) {
+        const pkgPath = path.join(dir, entry.name, "package.json");
+        let pkg;
+        try {
+          const content = await fs.promises.readFile(pkgPath, "utf-8");
+          pkg = JSON.parse(content);
+        } catch (parseErr) {
+          if (parseErr.code !== "ENOENT") {
             logger.warn(
               `[MCPDiscovery] Failed to parse ${pkgPath}: ${parseErr.message}`,
             );
           }
+          continue;
         }
-      } catch (err) {
-        logger.error(`[MCPDiscovery] Error scanning ${dir}: ${err.message}`);
+        if (pkg.mcp) {
+          const serverInfo = {
+            name: pkg.name || entry.name,
+            version: pkg.version || "0.0.0",
+            directory: path.join(dir, entry.name),
+            mcpConfig: pkg.mcp,
+            transport: pkg.mcp.transport || "stdio",
+            command: pkg.mcp.command || "node",
+            args: pkg.mcp.args || ["."],
+          };
+          discovered.push(serverInfo);
+          this.discoveredServers.set(serverInfo.name, serverInfo);
+          logger.info(
+            `[MCPDiscovery] Found MCP server: ${serverInfo.name} in ${dir}`,
+          );
+        }
       }
     }
 
@@ -304,7 +314,8 @@ class MCPDiscoveryManager extends EventEmitter {
     } catch (err) {
       const failures = current.failures + 1;
       const health = {
-        status: failures >= MAX_FAILURES_BEFORE_RESTART ? "unhealthy" : "degraded",
+        status:
+          failures >= MAX_FAILURES_BEFORE_RESTART ? "unhealthy" : "degraded",
         failures,
         lastCheck: Date.now(),
         error: err.message,
@@ -406,34 +417,41 @@ class MCPDiscoveryManager extends EventEmitter {
    */
   _startDirectoryWatching() {
     for (const dir of this.scanDirs) {
-      if (!fs.existsSync(dir)) {
-        logger.warn(`[MCPDiscovery] Watch directory not found: ${dir}`);
-        continue;
-      }
-
       try {
-        const watcher = fs.watch(dir, { recursive: false }, (eventType, filename) => {
-          if (!filename) {return;}
-          // Debounce: re-scan after changes
-          setTimeout(() => {
-            logger.info(
-              `[MCPDiscovery] Directory change detected in ${dir}, re-scanning...`,
-            );
-            this.scanDirectories([dir]);
-          }, 1000);
-        });
+        const watcher = fs.watch(
+          dir,
+          { recursive: false },
+          (eventType, filename) => {
+            if (!filename) {
+              return;
+            }
+            // Debounce: re-scan after changes
+            setTimeout(() => {
+              logger.info(
+                `[MCPDiscovery] Directory change detected in ${dir}, re-scanning...`,
+              );
+              this.scanDirectories([dir]).catch((err) => {
+                logger.error(`[MCPDiscovery] Re-scan failed: ${err.message}`);
+              });
+            }, 1000);
+          },
+        );
 
         this.dirWatchers.set(dir, watcher);
         logger.info(`[MCPDiscovery] Watching directory: ${dir}`);
       } catch (err) {
-        logger.error(
-          `[MCPDiscovery] Failed to watch ${dir}: ${err.message}`,
-        );
+        if (err.code === "ENOENT") {
+          logger.warn(`[MCPDiscovery] Watch directory not found: ${dir}`);
+        } else {
+          logger.error(`[MCPDiscovery] Failed to watch ${dir}: ${err.message}`);
+        }
       }
     }
 
-    // Initial scan
-    this.scanDirectories();
+    // Initial scan (fire-and-forget; result emitted via 'scan-complete')
+    this.scanDirectories().catch((err) => {
+      logger.error(`[MCPDiscovery] Initial scan failed: ${err.message}`);
+    });
   }
 }
 
