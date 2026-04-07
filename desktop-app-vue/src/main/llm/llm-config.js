@@ -157,12 +157,12 @@ class LLMConfig {
           logger.info("[LLMConfig] 检测到旧配置，已自动异步迁移并保存");
           await this.saveAsync();
         }
-        this._loadSensitiveFields();
+        await this._loadSensitiveFieldsAsync();
         this.loaded = true;
         logger.info("[LLMConfig] 配置异步加载成功");
       } else {
         logger.info("[LLMConfig] 配置文件不存在，使用默认配置");
-        this._loadSensitiveFields();
+        await this._loadSensitiveFieldsAsync();
         this.loaded = false;
       }
     } catch (error) {
@@ -380,6 +380,25 @@ class LLMConfig {
       }
     } catch (error) {
       logger.warn("[LLMConfig] 加载敏感配置失败:", error.message);
+    }
+  }
+
+  /**
+   * 异步从安全存储加载敏感字段（M2 启动期 IO 异步化）
+   * @private
+   */
+  async _loadSensitiveFieldsAsync() {
+    try {
+      const sensitiveData =
+        typeof this.secureStorage.loadAsync === "function"
+          ? await this.secureStorage.loadAsync()
+          : this.secureStorage.load();
+      if (sensitiveData) {
+        mergeSensitiveFields(this.config, sensitiveData);
+        logger.info("[LLMConfig] 敏感配置已异步加载");
+      }
+    } catch (error) {
+      logger.warn("[LLMConfig] 异步加载敏感配置失败:", error.message);
     }
   }
 
