@@ -260,7 +260,8 @@ function registerAIInitializers(factory) {
 
       const { MCPConfigLoader } = require("../mcp/mcp-config-loader");
       const mcpConfigLoader = new MCPConfigLoader();
-      const mcpConfig = mcpConfigLoader.load();
+      // M2: 异步加载，避免阻塞事件循环
+      const mcpConfig = await mcpConfigLoader.loadAsync();
 
       logger.info(
         "[AI] MCP配置加载结果:",
@@ -304,17 +305,10 @@ function registerAIInitializers(factory) {
       await mcpAdapter.initializeServers(mcpConfig);
 
       // 初始化MCP发现管理器（热加载 & 动态发现）
-      const {
-        MCPDiscoveryManager,
-      } = require("../mcp/mcp-discovery-manager");
-      const {
-        registerMCPDiscoveryIPC,
-      } = require("../mcp/mcp-discovery-ipc");
+      const { MCPDiscoveryManager } = require("../mcp/mcp-discovery-manager");
+      const { registerMCPDiscoveryIPC } = require("../mcp/mcp-discovery-ipc");
 
-      const mcpDiscovery = new MCPDiscoveryManager(
-        mcpManager,
-        mcpConfigLoader,
-      );
+      const mcpDiscovery = new MCPDiscoveryManager(mcpManager, mcpConfigLoader);
       mcpDiscovery.start();
       registerMCPDiscoveryIPC({ discoveryManager: mcpDiscovery });
 
@@ -385,9 +379,7 @@ function registerAIInitializers(factory) {
     name: "multimodalRouter",
     dependsOn: ["database", "llmManager"],
     async init(context) {
-      const {
-        MultimodalRouter,
-      } = require("../ai-engine/multimodal-router");
+      const { MultimodalRouter } = require("../ai-engine/multimodal-router");
       const visionManager = context.visionManager || null;
       const router = new MultimodalRouter({
         visionManager,

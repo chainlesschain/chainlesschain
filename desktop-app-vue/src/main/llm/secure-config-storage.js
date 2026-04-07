@@ -12,6 +12,7 @@
 const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
 const fs = require("fs");
+const fsp = require("fs").promises;
 const path = require("path");
 const { app, safeStorage } = require("electron");
 const os = require("os");
@@ -409,6 +410,41 @@ class SecureConfigStorage {
       return config;
     } catch (error) {
       logger.error("[SecureConfigStorage] 加载失败:", error);
+      return null;
+    }
+  }
+
+  /**
+   * 异步加载加密配置（M2 启动期 IO 异步化）
+   * @param {boolean} useCache - 是否使用缓存
+   * @returns {Promise<Object|null>}
+   */
+  async loadAsync(useCache = true) {
+    try {
+      if (useCache && this._cache && this._cacheTimestamp) {
+        if (Date.now() - this._cacheTimestamp < this._cacheTTL) {
+          return this._cache;
+        }
+      }
+      let exists = false;
+      try {
+        await fsp.access(this.storagePath);
+        exists = true;
+      } catch {
+        exists = false;
+      }
+      if (!exists) {
+        logger.info("[SecureConfigStorage] 加密配置文件不存在");
+        return null;
+      }
+      const encrypted = await fsp.readFile(this.storagePath);
+      const config = this.decrypt(encrypted);
+      this._cache = config;
+      this._cacheTimestamp = Date.now();
+      logger.info("[SecureConfigStorage] 配置已异步解密加载");
+      return config;
+    } catch (error) {
+      logger.error("[SecureConfigStorage] 异步加载失败:", error);
       return null;
     }
   }

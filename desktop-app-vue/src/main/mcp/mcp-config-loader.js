@@ -9,6 +9,7 @@
 
 const { logger } = require("../utils/logger.js");
 const fs = require("fs");
+const fsp = require("fs").promises;
 const path = require("path");
 const EventEmitter = require("events");
 const { getUnifiedConfigManager } = require("../config/unified-config-manager");
@@ -83,6 +84,60 @@ class MCPConfigLoader extends EventEmitter {
 
       this.emit("config-error", error);
 
+      return this.config;
+    }
+  }
+
+  /**
+   * Async load configuration (M2 启动期 IO 异步化)
+   * Uses fs.promises so the readFile/parse work moves off the event loop.
+   * @param {boolean} watch - Enable file watching for hot-reload
+   * @returns {Promise<Object>} MCP configuration
+   */
+  async loadAsync(watch = false) {
+    try {
+      logger.info("[MCPConfigLoader] Loading configuration (async)...");
+      let exists = false;
+      try {
+        await fsp.access(this.configPath);
+        exists = true;
+      } catch {
+        exists = false;
+      }
+      if (!exists) {
+        logger.warn(
+          `[MCPConfigLoader] Config file not found: ${this.configPath}`,
+        );
+        logger.warn("[MCPConfigLoader] Using default configuration");
+        this.config = this._getDefaultConfig();
+        return this.config;
+      }
+
+      const configContent = await fsp.readFile(this.configPath, "utf-8");
+      const fullConfig = JSON.parse(configContent);
+      this.config = fullConfig.mcp || this._getDefaultConfig();
+      this._validateConfig(this.config);
+      this.lastLoadTime = Date.now();
+
+      logger.info("[MCPConfigLoader] Configuration loaded successfully");
+      logger.info(`  Enabled: ${this.config.enabled}`);
+      logger.info(
+        `  Servers: ${Object.keys(this.config.servers || {}).length}`,
+      );
+
+      if (watch && !this.watchHandle) {
+        this._setupWatcher();
+      }
+
+      this.emit("config-loaded", this.config);
+      return this.config;
+    } catch (error) {
+      logger.error(
+        "[MCPConfigLoader] Failed to load configuration (async):",
+        error,
+      );
+      this.config = this._getDefaultConfig();
+      this.emit("config-error", error);
       return this.config;
     }
   }
