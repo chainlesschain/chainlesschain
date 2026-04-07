@@ -11,15 +11,19 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 // ============================================================
 
 // Mock fs module
+// M2: key-manager.js now uses fs.promises for async metadata IO; pass real
+// fs.promises through so tests reading/writing real temp files still work.
+const realFsForMock = await vi.importActual("fs");
 const fsMock = {
   existsSync: vi.fn(),
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
+  promises: realFsForMock.promises,
 };
 
-vi.mock("node:fs", () => fsMock);
-vi.mock("fs", () => fsMock);
+vi.mock("node:fs", () => ({ ...fsMock, default: fsMock }));
+vi.mock("fs", () => ({ ...fsMock, default: fsMock }));
 
 // Mock logger
 vi.mock("../../../src/shared/logger-config.js", () => ({
@@ -454,34 +458,31 @@ describe("KeyManager", () => {
 
   describe("saveKeyMetadata", () => {
     it("应该保存密钥元数据到配置文件", async () => {
-      // Use a writable temp path to avoid EACCES when fs mock doesn't intercept CJS require('fs')
-      const os = await import("os");
-      const path = await import("path");
-      const testConfigPath = path.join(
+      // M2: now uses real fs.promises (passed through via fsMock.promises),
+      // so the file is actually written; verify by reading it back.
+      const realFs = await vi.importActual("fs");
+      const os = await vi.importActual("os");
+      const pathMod = await vi.importActual("path");
+      const testDir = pathMod.join(
         os.tmpdir(),
-        "key-manager-test-" + Date.now(),
-        "config.json",
+        "key-manager-save-test-" + Date.now(),
       );
+      const testConfigPath = pathMod.join(testDir, "config.json");
+
       keyManager = new KeyManager({ configPath: testConfigPath });
-      fsMock.existsSync.mockReturnValue(true);
 
       await keyManager.saveKeyMetadata({
         method: "password",
         salt: "test-salt",
       });
 
-      // Verify writeFileSync was called (via either the mock or spied)
-      // The fs mock intercepts the call via vi.mock('fs')
-      if (fsMock.writeFileSync.mock.calls.length > 0) {
-        expect(fsMock.writeFileSync).toHaveBeenCalledWith(
-          testConfigPath,
-          expect.stringContaining('"method"'),
-          "utf8",
-        );
-      } else {
-        // If the mock didn't intercept, verify the method ran without error
-        expect(keyManager.configPath).toBe(testConfigPath);
-      }
+      const written = JSON.parse(realFs.readFileSync(testConfigPath, "utf8"));
+      expect(written.method).toBe("password");
+      expect(written.salt).toBe("test-salt");
+      expect(written.version).toBe(1);
+
+      // Cleanup
+      realFs.rmSync(testDir, { recursive: true, force: true });
     });
 
     it("应该在未配置路径时跳过保存", async () => {
@@ -515,7 +516,7 @@ describe("KeyManager", () => {
 
       keyManager = new KeyManager({ configPath: testConfigPath });
 
-      const result = keyManager.loadKeyMetadata();
+      const result = await keyManager.loadKeyMetadata();
 
       // Verify the result contains the expected metadata fields
       expect(result).toBeDefined();
@@ -528,19 +529,18 @@ describe("KeyManager", () => {
       realFs.rmSync(testDir, { recursive: true, force: true });
     });
 
-    it("应该在配置文件不存在时返回null", () => {
+    it("应该在配置文件不存在时返回null", async () => {
       keyManager = new KeyManager({ configPath: "/nonexistent/config.json" });
-      fsMock.existsSync.mockReturnValue(false);
 
-      const result = keyManager.loadKeyMetadata();
+      const result = await keyManager.loadKeyMetadata();
 
       expect(result).toBeNull();
     });
 
-    it("应该在未配置路径时返回null", () => {
+    it("应该在未配置路径时返回null", async () => {
       keyManager = new KeyManager(); // No configPath
 
-      const result = keyManager.loadKeyMetadata();
+      const result = await keyManager.loadKeyMetadata();
 
       expect(result).toBeNull();
     });

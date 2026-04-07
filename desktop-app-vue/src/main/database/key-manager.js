@@ -8,6 +8,7 @@
 const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
 const fs = require("fs");
+const fsp = fs.promises;
 const path = require("path");
 
 // 尝试加载U-Key管理器，如果不存在则使用模拟模式
@@ -243,10 +244,9 @@ class KeyManager {
       return;
     }
 
+    // M2: 异步 IO 避免阻塞事件循环
     const configDir = path.dirname(this.configPath);
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, { recursive: true });
-    }
+    await fsp.mkdir(configDir, { recursive: true });
 
     const data = {
       ...metadata,
@@ -254,24 +254,28 @@ class KeyManager {
       timestamp: new Date().toISOString(),
     };
 
-    fs.writeFileSync(this.configPath, JSON.stringify(data, null, 2), "utf8");
+    await fsp.writeFile(this.configPath, JSON.stringify(data, null, 2), "utf8");
 
     logger.info("[KeyManager] 密钥元数据已保存");
   }
 
   /**
    * 加载密钥元数据
-   * @returns {Object|null}
+   * M2: 异步 IO 避免阻塞事件循环
+   * @returns {Promise<Object|null>}
    */
-  loadKeyMetadata() {
-    if (!this.configPath || !fs.existsSync(this.configPath)) {
+  async loadKeyMetadata() {
+    if (!this.configPath) {
       return null;
     }
 
     try {
-      const data = fs.readFileSync(this.configPath, "utf8");
+      const data = await fsp.readFile(this.configPath, "utf8");
       return JSON.parse(data);
     } catch (error) {
+      if (error.code === "ENOENT") {
+        return null;
+      }
       logger.error("[KeyManager] 加载密钥元数据失败:", error);
       return null;
     }
