@@ -54,19 +54,25 @@ chainlesschain config features disable CONTEXT_SNIP # Disable feature
 
 **Test Coverage**: 334 tests (255 unit + 42 integration + 37 E2E), 12 test files, all passing.
 
-### Tech-Debt Cleanup - H3 database.js Split (v0.45.31~32, 2026-04-07)
+### Tech-Debt Cleanup - H3 database.js Split (v0.45.31~33, 2026-04-07)
 
 Splitting the giant 9470-line `DatabaseManager` class in `desktop-app-vue/src/main/database.js` into per-responsibility modules under `src/main/database/`.
 
 | File                                  | Lines | Coverage                                                   |
 | ------------------------------------- | ----: | ---------------------------------------------------------- |
-| `database/database-schema.js`         |  4026 | Pure function `createTables(dbManager, logger)` — all CREATE TABLE DDL (v0.45.31) |
-| `database/database-migrations.js`     |  1389 | `ensureTaskBoardOwnerSchema` / `migrateDatabase` / `runMigrationsOptimized` / `runMigrations` / `checkIfTableNeedsRebuild` / `rebuildProjects(Templates)Table` / `checkColumnExists` (v0.45.32) |
-| `database/database-settings.js`       |   531 | `initDefaultSettings` / `getSetting` / `getAllSettings` / `setSetting` / `updateSettings` / `deleteSetting` / `resetSettings` (v0.45.32) |
+| `database/database-schema.js`         |  4026 | Pure function `createTables` — all CREATE TABLE DDL (v0.45.31) |
+| `database/database-migrations.js`     |  1389 | 8 migration / rebuild methods (v0.45.32)                   |
+| `database/database-settings.js`       |   531 | 7 settings-table CRUD methods (v0.45.32)                   |
+| `database/database-knowledge.js`      |   330 | 15 knowledge_items + tags + statistics methods (v0.45.33)  |
+| `database/database-soft-delete.js`    |   212 | 7 soft-delete + periodic cleanup methods (v0.45.33)        |
+| `database/database-graph.js`          |   465 | 9 knowledge-graph relation methods (v0.45.33)              |
+| `database/database-projects.js`       |   591 | 10 projects + project_files methods (v0.45.33)             |
+| `database/database-conversations.js`  |   416 | 12 conversations + messages methods (v0.45.33)             |
+| **Total (8 sub-modules)**              |  7960 | **69 methods extracted**                                   |
 
-**Approach**: each extracted method becomes a pure function `fn(dbManager, logger, ...args)` that accesses `dbManager.db` for SQL and calls `dbManager.X()` for cross-method callbacks. `DatabaseManager` keeps thin delegate methods (`return _fn(this, logger, ...)`) so the public API is byte-identical.
+**Approach**: each extracted method is a pure function `fn(dbManager, logger, ...args)` that accesses `dbManager.db` for SQL and calls `dbManager.X()` for cross-method callbacks. `DatabaseManager` keeps thin delegate methods (`return _fn(this, logger, ...)`) so the public API is byte-identical.
 
-**Result**: `database.js` shrank from 9470 → **3657 lines** (**−5813, −61.4%**), 16 methods extracted across 3 sub-modules. All 105+ database unit tests still pass (database.test.js 22 + database-edge-cases.test.js 15 + database-migration.test.js 68).
+**Result**: `database.js` shrank from 9470 → **2052 lines** (**−7418, −78.3%**). What remains is init/teardown, query primitives (run/get/all/exec/prepare/transaction) and backup/switch-database core machinery. All 127 database unit tests pass.
 
 See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) §9 (H2 context).
 

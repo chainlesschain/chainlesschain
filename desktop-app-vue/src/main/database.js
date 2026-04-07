@@ -810,36 +810,10 @@ class DatabaseManager {
    * @returns {Array} 知识库项列表
    */
   getKnowledgeItems(limit = 100, offset = 0) {
-    // 数据库未初始化检查
-    if (!this.db) {
-      logger.warn("[Database] 数据库未初始化，无法获取知识库项");
-      return [];
-    }
-
-    const parsedLimit = Number(limit);
-    const parsedOffset = Number(offset);
-    const safeLimit =
-      Number.isFinite(parsedLimit) && parsedLimit > 0
-        ? Math.floor(parsedLimit)
-        : 100;
-    const safeOffset =
-      Number.isFinite(parsedOffset) && parsedOffset >= 0
-        ? Math.floor(parsedOffset)
-        : 0;
-
-    try {
-      const sql = `
-        SELECT * FROM knowledge_items
-        ORDER BY updated_at DESC
-        LIMIT ${safeLimit} OFFSET ${safeOffset}
-      `;
-
-      // Use the unified all() method which handles both sql.js and better-sqlite3
-      return this.all(sql);
-    } catch (error) {
-      logger.error("[Database] 获取知识库项失败:", error.message);
-      return [];
-    }
+    const {
+      getKnowledgeItems: _getKnowledgeItems,
+    } = require("./database/database-knowledge");
+    return _getKnowledgeItems(this, logger, (limit = 100), (offset = 0));
   }
 
   /**
@@ -848,16 +822,10 @@ class DatabaseManager {
    * @returns {Object|null} 知识库项
    */
   getKnowledgeItemById(id) {
-    if (!id || !this.db) {
-      return null;
-    }
-
-    try {
-      return this.get("SELECT * FROM knowledge_items WHERE id = ?", [id]);
-    } catch (error) {
-      logger.error("[Database] 获取知识库项失败:", error.message);
-      return null;
-    }
+    const {
+      getKnowledgeItemById: _getKnowledgeItemById,
+    } = require("./database/database-knowledge");
+    return _getKnowledgeItemById(this, logger, id);
   }
 
   /**
@@ -866,7 +834,10 @@ class DatabaseManager {
    * @returns {Object|null} 知识库项
    */
   getKnowledgeItem(id) {
-    return this.getKnowledgeItemById(id);
+    const {
+      getKnowledgeItem: _getKnowledgeItem,
+    } = require("./database/database-knowledge");
+    return _getKnowledgeItem(this, logger, id);
   }
 
   /**
@@ -875,18 +846,10 @@ class DatabaseManager {
    * @returns {Object|null} 知识库项
    */
   getKnowledgeItemByTitle(title) {
-    if (!title || !this.db) {
-      return null;
-    }
-
-    try {
-      return this.get("SELECT * FROM knowledge_items WHERE title = ? LIMIT 1", [
-        title,
-      ]);
-    } catch (error) {
-      logger.error("[Database] 根据标题获取知识库项失败:", error.message);
-      return null;
-    }
+    const {
+      getKnowledgeItemByTitle: _getKnowledgeItemByTitle,
+    } = require("./database/database-knowledge");
+    return _getKnowledgeItemByTitle(this, logger, title);
   }
 
   /**
@@ -894,17 +857,10 @@ class DatabaseManager {
    * @returns {Array} 知识库项列表
    */
   getAllKnowledgeItems() {
-    if (!this.db) {
-      logger.warn("[Database] 数据库未初始化，无法获取知识库项");
-      return [];
-    }
-
-    try {
-      return this.all("SELECT * FROM knowledge_items ORDER BY updated_at DESC");
-    } catch (error) {
-      logger.error("[Database] 获取所有知识库项失败:", error.message);
-      return [];
-    }
+    const {
+      getAllKnowledgeItems: _getAllKnowledgeItems,
+    } = require("./database/database-knowledge");
+    return _getAllKnowledgeItems(this, logger);
   }
 
   /**
@@ -913,48 +869,10 @@ class DatabaseManager {
    * @returns {Object} 创建的项目
    */
   addKnowledgeItem(item) {
-    const safeItem = item || {};
-    const id = safeItem.id || uuidv4();
-    const now = Date.now();
-    const rawTitle =
-      typeof safeItem.title === "string" ? safeItem.title.trim() : "";
-    const title = rawTitle || "Untitled";
-    const type =
-      typeof safeItem.type === "string" && safeItem.type
-        ? safeItem.type
-        : "note";
-    const content =
-      typeof safeItem.content === "string" ? safeItem.content : null;
-
-    this.db.run(
-      `
-      INSERT INTO knowledge_items (
-        id, title, type, content, content_path, embedding_path,
-        created_at, updated_at, git_commit_hash, device_id, sync_status
-      ) VALUES (?, COALESCE(NULLIF(?, ''), 'Untitled'), ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-      [
-        id,
-        title,
-        type,
-        content,
-        safeItem.content_path || null,
-        safeItem.embedding_path || null,
-        now,
-        now,
-        safeItem.git_commit_hash || null,
-        safeItem.device_id || null,
-        safeItem.sync_status || "pending",
-      ],
-    );
-
-    // 更新全文搜索索引
-    this.updateSearchIndex(id, title, content || "");
-
-    // 保存到文件
-    this.saveToFile();
-
-    return this.getKnowledgeItemById(id);
+    const {
+      addKnowledgeItem: _addKnowledgeItem,
+    } = require("./database/database-knowledge");
+    return _addKnowledgeItem(this, logger, item);
   }
 
   /**
@@ -964,63 +882,10 @@ class DatabaseManager {
    * @returns {Object|null} 更新后的项目
    */
   updateKnowledgeItem(id, updates) {
-    const now = Date.now();
-    const fields = [];
-    const values = [];
-
-    // 动态构建更新字段
-    if (updates.title !== undefined) {
-      fields.push("title = ?");
-      values.push(updates.title);
-    }
-    if (updates.type !== undefined) {
-      fields.push("type = ?");
-      values.push(updates.type);
-    }
-    if (updates.content !== undefined) {
-      fields.push("content = ?");
-      values.push(updates.content);
-    }
-    if (updates.content_path !== undefined) {
-      fields.push("content_path = ?");
-      values.push(updates.content_path);
-    }
-    if (updates.sync_status !== undefined) {
-      fields.push("sync_status = ?");
-      values.push(updates.sync_status);
-    }
-
-    // 总是更新 updated_at
-    fields.push("updated_at = ?");
-    values.push(now);
-
-    // 添加 WHERE 条件的 ID
-    values.push(id);
-
-    if (fields.length === 1) {
-      // 只有 updated_at，不需要更新
-      return this.getKnowledgeItemById(id);
-    }
-
-    this.db.run(
-      `
-      UPDATE knowledge_items
-      SET ${fields.join(", ")}
-      WHERE id = ?
-    `,
-      values,
-    );
-
-    // 更新全文搜索索引
-    const item = this.getKnowledgeItemById(id);
-    if (item) {
-      this.updateSearchIndex(id, item.title, item.content || "");
-    }
-
-    // 保存到文件
-    this.saveToFile();
-
-    return item;
+    const {
+      updateKnowledgeItem: _updateKnowledgeItem,
+    } = require("./database/database-knowledge");
+    return _updateKnowledgeItem(this, logger, id, updates);
   }
 
   /**
@@ -1029,13 +894,10 @@ class DatabaseManager {
    * @returns {boolean} 是否删除成功
    */
   deleteKnowledgeItem(id) {
-    // 删除搜索索引
-    this.run("DELETE FROM knowledge_search WHERE id = ?", [id]);
-
-    // 删除知识库项
-    this.run("DELETE FROM knowledge_items WHERE id = ?", [id]);
-
-    return true;
+    const {
+      deleteKnowledgeItem: _deleteKnowledgeItem,
+    } = require("./database/database-knowledge");
+    return _deleteKnowledgeItem(this, logger, id);
   }
 
   // ==================== 搜索功能 ====================
@@ -1046,21 +908,10 @@ class DatabaseManager {
    * @returns {Array} 搜索结果
    */
   searchKnowledge(query) {
-    if (!query || !query.trim()) {
-      return this.getKnowledgeItems();
-    }
-
-    // 使用 LIKE 搜索（sql.js 不支持 FTS5）
-    const pattern = `%${query}%`;
-    return this.all(
-      `
-      SELECT * FROM knowledge_items
-      WHERE title LIKE ? OR content LIKE ?
-      ORDER BY updated_at DESC
-      LIMIT 50
-    `,
-      [pattern, pattern],
-    );
+    const {
+      searchKnowledge: _searchKnowledge,
+    } = require("./database/database-knowledge");
+    return _searchKnowledge(this, logger, query);
   }
 
   /**
@@ -1070,17 +921,10 @@ class DatabaseManager {
    * @param {string} content - 内容
    */
   updateSearchIndex(id, title, content) {
-    // 先删除旧索引
-    this.db.run("DELETE FROM knowledge_search WHERE id = ?", [id]);
-
-    // 插入新索引
-    this.db.run(
-      `
-      INSERT INTO knowledge_search (id, title, content)
-      VALUES (?, ?, ?)
-    `,
-      [id, title, content],
-    );
+    const {
+      updateSearchIndex: _updateSearchIndex,
+    } = require("./database/database-knowledge");
+    return _updateSearchIndex(this, logger, id, title, content);
   }
 
   // ==================== 标签操作 ====================
@@ -1090,7 +934,10 @@ class DatabaseManager {
    * @returns {Array} 标签列表
    */
   getAllTags() {
-    return this.all("SELECT * FROM tags ORDER BY name");
+    const {
+      getAllTags: _getAllTags,
+    } = require("./database/database-knowledge");
+    return _getAllTags(this, logger);
   }
 
   /**
@@ -1100,26 +947,8 @@ class DatabaseManager {
    * @returns {Object} 创建的标签
    */
   createTag(name, color = "#1890ff") {
-    const id = uuidv4();
-    const now = Date.now();
-
-    try {
-      this.run(
-        `
-        INSERT INTO tags (id, name, color, created_at)
-        VALUES (?, ?, ?, ?)
-      `,
-        [id, name, color, now],
-      );
-
-      return { id, name, color, created_at: now };
-    } catch (error) {
-      if (error.message.includes("UNIQUE")) {
-        // 标签已存在，返回现有标签
-        return this.get("SELECT * FROM tags WHERE name = ?", [name]);
-      }
-      throw error;
-    }
+    const { createTag: _createTag } = require("./database/database-knowledge");
+    return _createTag(this, logger, name, (color = "#1890ff"));
   }
 
   /**
@@ -1128,14 +957,10 @@ class DatabaseManager {
    * @param {string} tagId - 标签ID
    */
   addTagToKnowledge(knowledgeId, tagId) {
-    this.db.run(
-      `
-      INSERT OR IGNORE INTO knowledge_tags (knowledge_id, tag_id, created_at)
-      VALUES (?, ?, ?)
-    `,
-      [knowledgeId, tagId, Date.now()],
-    );
-    this.saveToFile();
+    const {
+      addTagToKnowledge: _addTagToKnowledge,
+    } = require("./database/database-knowledge");
+    return _addTagToKnowledge(this, logger, knowledgeId, tagId);
   }
 
   /**
@@ -1144,14 +969,10 @@ class DatabaseManager {
    * @returns {Array} 标签列表
    */
   getKnowledgeTags(knowledgeId) {
-    return this.all(
-      `
-      SELECT t.* FROM tags t
-      JOIN knowledge_tags kt ON t.id = kt.tag_id
-      WHERE kt.knowledge_id = ?
-    `,
-      [knowledgeId],
-    );
+    const {
+      getKnowledgeTags: _getKnowledgeTags,
+    } = require("./database/database-knowledge");
+    return _getKnowledgeTags(this, logger, knowledgeId);
   }
 
   // ==================== 统计功能 ====================
@@ -1161,31 +982,10 @@ class DatabaseManager {
    * @returns {Object} 统计信息
    */
   getStatistics() {
-    const total = this.get("SELECT COUNT(*) as count FROM knowledge_items");
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTimestamp = today.getTime();
-
-    const todayCount = this.get(
-      "SELECT COUNT(*) as count FROM knowledge_items WHERE created_at >= ?",
-      [todayTimestamp],
-    );
-
-    const byType = this.all(`
-      SELECT type, COUNT(*) as count
-      FROM knowledge_items
-      GROUP BY type
-    `);
-
-    return {
-      total: total.count,
-      today: todayCount.count,
-      byType: byType.reduce((acc, item) => {
-        acc[item.type] = item.count;
-        return acc;
-      }, {}),
-    };
+    const {
+      getStatistics: _getStatistics,
+    } = require("./database/database-knowledge");
+    return _getStatistics(this, logger);
   }
 
   // ==================== 工具方法 ====================
@@ -1774,34 +1574,10 @@ class DatabaseManager {
    * @returns {boolean} 是否成功
    */
   softDelete(tableName, id) {
-    try {
-      // ✅ 安全验证：防止SQL注入
-      const safeTableName = SqlSecurity.validateTableName(
-        tableName,
-        SqlSecurity.getAllowedTables(),
-      );
-
-      const stmt = this.db.prepare(
-        `UPDATE ${safeTableName}
-         SET deleted = 1,
-             updated_at = ?,
-             sync_status = 'pending'
-         WHERE id = ?`,
-      );
-
-      stmt.run(Date.now(), id);
-      stmt.free();
-
-      this.saveToFile();
-      logger.info(`[Database] 软删除记录: table=${tableName}, id=${id}`);
-      return true;
-    } catch (error) {
-      logger.error(
-        `[Database] 软删除失败: table=${tableName}, id=${id}`,
-        error,
-      );
-      return false;
-    }
+    const {
+      softDelete: _softDelete,
+    } = require("./database/database-soft-delete");
+    return _softDelete(this, logger, tableName, id);
   }
 
   /**
@@ -1811,18 +1587,10 @@ class DatabaseManager {
    * @returns {Object} 删除结果统计 {success: number, failed: number}
    */
   batchSoftDelete(tableName, ids) {
-    let success = 0;
-    let failed = 0;
-
-    for (const id of ids) {
-      if (this.softDelete(tableName, id)) {
-        success++;
-      } else {
-        failed++;
-      }
-    }
-
-    return { success, failed };
+    const {
+      batchSoftDelete: _batchSoftDelete,
+    } = require("./database/database-soft-delete");
+    return _batchSoftDelete(this, logger, tableName, ids);
   }
 
   /**
@@ -1832,31 +1600,10 @@ class DatabaseManager {
    * @returns {boolean} 是否成功
    */
   restoreSoftDeleted(tableName, id) {
-    try {
-      // ✅ 安全验证：防止SQL注入
-      const safeTableName = SqlSecurity.validateTableName(
-        tableName,
-        SqlSecurity.getAllowedTables(),
-      );
-
-      const stmt = this.db.prepare(
-        `UPDATE ${safeTableName}
-         SET deleted = 0,
-             updated_at = ?,
-             sync_status = 'pending'
-         WHERE id = ?`,
-      );
-
-      stmt.run(Date.now(), id);
-      stmt.free();
-
-      this.saveToFile();
-      logger.info(`[Database] 恢复软删除记录: table=${tableName}, id=${id}`);
-      return true;
-    } catch (error) {
-      logger.error(`[Database] 恢复失败: table=${tableName}, id=${id}`, error);
-      return false;
-    }
+    const {
+      restoreSoftDeleted: _restoreSoftDeleted,
+    } = require("./database/database-soft-delete");
+    return _restoreSoftDeleted(this, logger, tableName, id);
   }
 
   /**
@@ -1866,36 +1613,10 @@ class DatabaseManager {
    * @returns {Object} 清理结果 {deleted: number, tableName: string}
    */
   cleanupSoftDeleted(tableName, olderThanDays = 30) {
-    const cutoffTime = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
-
-    try {
-      // ✅ 安全验证：防止SQL注入
-      const safeTableName = SqlSecurity.validateTableName(
-        tableName,
-        SqlSecurity.getAllowedTables(),
-      );
-
-      const stmt = this.db.prepare(
-        `DELETE FROM ${safeTableName}
-         WHERE deleted = 1
-           AND updated_at < ?`,
-      );
-
-      const info = stmt.run(cutoffTime);
-      stmt.free();
-
-      const deletedCount = info.changes || 0;
-
-      if (deletedCount > 0) {
-        this.saveToFile();
-        logger.info(`[Database] 清理${tableName}表: ${deletedCount}条记录`);
-      }
-
-      return { deleted: deletedCount, tableName };
-    } catch (error) {
-      logger.error(`[Database] 清理失败: table=${tableName}`, error);
-      return { deleted: 0, tableName, error: error.message };
-    }
+    const {
+      cleanupSoftDeleted: _cleanupSoftDeleted,
+    } = require("./database/database-soft-delete");
+    return _cleanupSoftDeleted(this, logger, tableName, (olderThanDays = 30));
   }
 
   /**
@@ -1904,27 +1625,10 @@ class DatabaseManager {
    * @returns {Array<Object>} 清理结果列表
    */
   cleanupAllSoftDeleted(olderThanDays = 30) {
-    const syncTables = [
-      "projects",
-      "project_files",
-      "knowledge_items",
-      "project_collaborators",
-      "project_comments",
-      "project_tasks",
-    ];
-
-    const results = [];
-    let totalDeleted = 0;
-
-    for (const tableName of syncTables) {
-      const result = this.cleanupSoftDeleted(tableName, olderThanDays);
-      results.push(result);
-      totalDeleted += result.deleted;
-    }
-
-    logger.info(`[Database] 总共清理 ${totalDeleted} 条软删除记录`);
-
-    return results;
+    const {
+      cleanupAllSoftDeleted: _cleanupAllSoftDeleted,
+    } = require("./database/database-soft-delete");
+    return _cleanupAllSoftDeleted(this, logger, (olderThanDays = 30));
   }
 
   /**
@@ -1932,45 +1636,10 @@ class DatabaseManager {
    * @returns {Object} 统计信息 {total: number, byTable: Object}
    */
   getSoftDeletedStats() {
-    const syncTables = [
-      "projects",
-      "project_files",
-      "knowledge_items",
-      "project_collaborators",
-      "project_comments",
-      "project_tasks",
-    ];
-
-    const stats = {
-      total: 0,
-      byTable: {},
-    };
-
-    for (const tableName of syncTables) {
-      try {
-        // ✅ 安全验证：即使是内部表名也验证
-        const safeTableName = SqlSecurity.validateTableName(
-          tableName,
-          SqlSecurity.getAllowedTables(),
-        );
-
-        const stmt = this.db.prepare(
-          `SELECT COUNT(*) as count FROM ${safeTableName} WHERE deleted = 1`,
-        );
-
-        stmt.step();
-        const count = stmt.getAsObject().count || 0;
-        stmt.free();
-
-        stats.byTable[tableName] = count;
-        stats.total += count;
-      } catch (error) {
-        logger.error(`[Database] 统计失败: table=${tableName}`, error);
-        stats.byTable[tableName] = 0;
-      }
-    }
-
-    return stats;
+    const {
+      getSoftDeletedStats: _getSoftDeletedStats,
+    } = require("./database/database-soft-delete");
+    return _getSoftDeletedStats(this, logger);
   }
 
   /**
@@ -1980,23 +1649,15 @@ class DatabaseManager {
    * @returns {Object} 定时器对象
    */
   startPeriodicCleanup(intervalHours = 24, retentionDays = 30) {
-    logger.info(
-      `[Database] 启动定期清理: 每${intervalHours}小时清理${retentionDays}天前的软删除记录`,
+    const {
+      startPeriodicCleanup: _startPeriodicCleanup,
+    } = require("./database/database-soft-delete");
+    return _startPeriodicCleanup(
+      this,
+      logger,
+      (intervalHours = 24),
+      (retentionDays = 30),
     );
-
-    // 立即执行一次
-    this.cleanupAllSoftDeleted(retentionDays);
-
-    // 定期执行
-    const timer = setInterval(
-      () => {
-        logger.info("[Database] 执行定期清理任务...");
-        this.cleanupAllSoftDeleted(retentionDays);
-      },
-      intervalHours * 60 * 60 * 1000,
-    );
-
-    return timer;
   }
 
   // ==================== 知识图谱操作 ====================
@@ -2011,18 +1672,16 @@ class DatabaseManager {
    * @returns {object} 创建的关系
    */
   addRelation(sourceId, targetId, type, weight = 1.0, metadata = null) {
-    const id = this.generateId();
-    const createdAt = Date.now();
-    const metadataStr = metadata ? JSON.stringify(metadata) : null;
-
-    const stmt = this.db.prepare(`
-      INSERT INTO knowledge_relations (id, source_id, target_id, relation_type, weight, metadata, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run([id, sourceId, targetId, type, weight, metadataStr, createdAt]);
-    stmt.free();
-
-    return { id, sourceId, targetId, type, weight, metadata, createdAt };
+    const { addRelation: _addRelation } = require("./database/database-graph");
+    return _addRelation(
+      this,
+      logger,
+      sourceId,
+      targetId,
+      type,
+      (weight = 1.0),
+      (metadata = null),
+    );
   }
 
   /**
@@ -2031,42 +1690,10 @@ class DatabaseManager {
    * @returns {number} 添加的关系数量
    */
   addRelations(relations) {
-    if (!relations || relations.length === 0) {
-      return 0;
-    }
-
-    const stmt = this.db.prepare(`
-      INSERT OR IGNORE INTO knowledge_relations (id, source_id, target_id, relation_type, weight, metadata, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    let count = 0;
-    relations.forEach((rel) => {
-      const id = this.generateId();
-      const createdAt = Date.now();
-      const metadataStr = rel.metadata ? JSON.stringify(rel.metadata) : null;
-
-      try {
-        stmt.run([
-          id,
-          rel.sourceId,
-          rel.targetId,
-          rel.type,
-          rel.weight || 1.0,
-          metadataStr,
-          createdAt,
-        ]);
-        count++;
-      } catch (error) {
-        logger.error(
-          `[Database] 添加关系失败 (${rel.sourceId} -> ${rel.targetId}):`,
-          error,
-        );
-      }
-    });
-
-    stmt.free();
-    return count;
+    const {
+      addRelations: _addRelations,
+    } = require("./database/database-graph");
+    return _addRelations(this, logger, relations);
   }
 
   /**
@@ -2076,35 +1703,10 @@ class DatabaseManager {
    * @returns {number} 删除的关系数量
    */
   deleteRelations(noteId, types = []) {
-    if (!noteId) {
-      return 0;
-    }
-
-    let query;
-    let params;
-
-    if (types && types.length > 0) {
-      const placeholders = types.map(() => "?").join(",");
-      query = `
-        DELETE FROM knowledge_relations
-        WHERE (source_id = ? OR target_id = ?)
-        AND relation_type IN (${placeholders})
-      `;
-      params = [noteId, noteId, ...types];
-    } else {
-      query = `
-        DELETE FROM knowledge_relations
-        WHERE source_id = ? OR target_id = ?
-      `;
-      params = [noteId, noteId];
-    }
-
-    const stmt = this.db.prepare(query);
-    stmt.run(params);
-    const changes = this.db.getRowsModified();
-    stmt.free();
-
-    return changes;
+    const {
+      deleteRelations: _deleteRelations,
+    } = require("./database/database-graph");
+    return _deleteRelations(this, logger, noteId, (types = []));
   }
 
   /**
@@ -2114,91 +1716,9 @@ class DatabaseManager {
    */
   getGraphData(options = {}) {
     const {
-      relationTypes = ["link", "tag", "semantic", "temporal"],
-      minWeight = 0.0,
-      nodeTypes = ["note", "document", "conversation", "web_clip"],
-      limit = 500,
-    } = options;
-
-    // 1. 查询涉及关系的所有笔记ID
-    const relationTypesList = relationTypes.map(() => "?").join(",");
-    const relStmt = this.db.prepare(`
-      SELECT DISTINCT source_id as id FROM knowledge_relations
-      WHERE relation_type IN (${relationTypesList}) AND weight >= ?
-      UNION
-      SELECT DISTINCT target_id as id FROM knowledge_relations
-      WHERE relation_type IN (${relationTypesList}) AND weight >= ?
-      LIMIT ?
-    `);
-    relStmt.bind([
-      ...relationTypes,
-      minWeight,
-      ...relationTypes,
-      minWeight,
-      limit,
-    ]);
-
-    const nodeIds = [];
-    while (relStmt.step()) {
-      nodeIds.push(relStmt.getAsObject().id);
-    }
-    relStmt.free();
-
-    // 2. 查询这些笔记的详细信息
-    const nodes = [];
-    if (nodeIds.length > 0) {
-      const nodeTypesFilter = nodeTypes.map(() => "?").join(",");
-      const idsFilter = nodeIds.map(() => "?").join(",");
-      const nodeStmt = this.db.prepare(`
-        SELECT id, title, type, created_at, updated_at
-        FROM knowledge_items
-        WHERE id IN (${idsFilter}) AND type IN (${nodeTypesFilter})
-      `);
-      nodeStmt.bind([...nodeIds, ...nodeTypes]);
-
-      while (nodeStmt.step()) {
-        const node = nodeStmt.getAsObject();
-        nodes.push({
-          id: node.id,
-          title: node.title,
-          type: node.type,
-          createdAt: node.created_at,
-          updatedAt: node.updated_at,
-        });
-      }
-      nodeStmt.free();
-    }
-
-    // 3. 查询这些节点之间的关系
-    const edges = [];
-    if (nodeIds.length > 0) {
-      const idsFilter = nodeIds.map(() => "?").join(",");
-      const relationTypesFilter = relationTypes.map(() => "?").join(",");
-      const edgeStmt = this.db.prepare(`
-        SELECT id, source_id, target_id, relation_type, weight, metadata
-        FROM knowledge_relations
-        WHERE source_id IN (${idsFilter})
-          AND target_id IN (${idsFilter})
-          AND relation_type IN (${relationTypesFilter})
-          AND weight >= ?
-      `);
-      edgeStmt.bind([...nodeIds, ...nodeIds, ...relationTypes, minWeight]);
-
-      while (edgeStmt.step()) {
-        const edge = edgeStmt.getAsObject();
-        edges.push({
-          id: edge.id,
-          source: edge.source_id,
-          target: edge.target_id,
-          type: edge.relation_type,
-          weight: edge.weight,
-          metadata: edge.metadata ? JSON.parse(edge.metadata) : null,
-        });
-      }
-      edgeStmt.free();
-    }
-
-    return { nodes, edges };
+      getGraphData: _getGraphData,
+    } = require("./database/database-graph");
+    return _getGraphData(this, logger, (options = {}));
   }
 
   /**
@@ -2207,29 +1727,10 @@ class DatabaseManager {
    * @returns {Array} 关系列表
    */
   getKnowledgeRelations(knowledgeId) {
-    const stmt = this.db.prepare(`
-      SELECT * FROM knowledge_relations
-      WHERE source_id = ? OR target_id = ?
-      ORDER BY weight DESC
-    `);
-    stmt.bind([knowledgeId, knowledgeId]);
-
-    const relations = [];
-    while (stmt.step()) {
-      const rel = stmt.getAsObject();
-      relations.push({
-        id: rel.id,
-        source: rel.source_id,
-        target: rel.target_id,
-        type: rel.relation_type,
-        weight: rel.weight,
-        metadata: rel.metadata ? JSON.parse(rel.metadata) : null,
-        createdAt: rel.created_at,
-      });
-    }
-    stmt.free();
-
-    return relations;
+    const {
+      getKnowledgeRelations: _getKnowledgeRelations,
+    } = require("./database/database-graph");
+    return _getKnowledgeRelations(this, logger, knowledgeId);
   }
 
   /**
@@ -2240,79 +1741,10 @@ class DatabaseManager {
    * @returns {object|null} 路径信息
    */
   findRelationPath(sourceId, targetId, maxDepth = 3) {
-    if (sourceId === targetId) {
-      return { nodes: [sourceId], edges: [], length: 0 };
-    }
-
-    // BFS算法
-    const queue = [{ id: sourceId, path: [sourceId], edgePath: [] }];
-    const visited = new Set([sourceId]);
-
-    // 获取所有关系（双向）
-    const stmt = this.db.prepare(`
-      SELECT source_id, target_id, id as edge_id, relation_type, weight
-      FROM knowledge_relations
-    `);
-
-    const graph = new Map();
-    while (stmt.step()) {
-      const rel = stmt.getAsObject();
-
-      // 正向边
-      if (!graph.has(rel.source_id)) {
-        graph.set(rel.source_id, []);
-      }
-      graph.get(rel.source_id).push({
-        to: rel.target_id,
-        edgeId: rel.edge_id,
-        type: rel.relation_type,
-        weight: rel.weight,
-      });
-
-      // 反向边（无向图）
-      if (!graph.has(rel.target_id)) {
-        graph.set(rel.target_id, []);
-      }
-      graph.get(rel.target_id).push({
-        to: rel.source_id,
-        edgeId: rel.edge_id,
-        type: rel.relation_type,
-        weight: rel.weight,
-      });
-    }
-    stmt.free();
-
-    // BFS搜索
-    while (queue.length > 0) {
-      const current = queue.shift();
-
-      if (current.path.length > maxDepth) {
-        continue;
-      }
-
-      const neighbors = graph.get(current.id) || [];
-      for (const neighbor of neighbors) {
-        if (neighbor.to === targetId) {
-          // 找到目标
-          return {
-            nodes: [...current.path, targetId],
-            edges: [...current.edgePath, neighbor.edgeId],
-            length: current.path.length,
-          };
-        }
-
-        if (!visited.has(neighbor.to)) {
-          visited.add(neighbor.to);
-          queue.push({
-            id: neighbor.to,
-            path: [...current.path, neighbor.to],
-            edgePath: [...current.edgePath, neighbor.edgeId],
-          });
-        }
-      }
-    }
-
-    return null; // 未找到路径
+    const {
+      findRelationPath: _findRelationPath,
+    } = require("./database/database-graph");
+    return _findRelationPath(this, logger, sourceId, targetId, (maxDepth = 3));
   }
 
   /**
@@ -2322,77 +1754,10 @@ class DatabaseManager {
    * @returns {object} { nodes, edges }
    */
   getKnowledgeNeighbors(knowledgeId, depth = 1) {
-    const allNodes = new Set([knowledgeId]);
-    const allEdges = new Map();
-    let currentLevel = [knowledgeId];
-
-    for (let d = 0; d < depth; d++) {
-      const nextLevel = [];
-
-      currentLevel.forEach((nodeId) => {
-        const stmt = this.db.prepare(`
-          SELECT id, source_id, target_id, relation_type, weight, metadata
-          FROM knowledge_relations
-          WHERE source_id = ? OR target_id = ?
-        `);
-        stmt.bind([nodeId, nodeId]);
-
-        while (stmt.step()) {
-          const edge = stmt.getAsObject();
-          const otherId =
-            edge.source_id === nodeId ? edge.target_id : edge.source_id;
-
-          if (!allNodes.has(otherId)) {
-            allNodes.add(otherId);
-            nextLevel.push(otherId);
-          }
-
-          if (!allEdges.has(edge.id)) {
-            allEdges.set(edge.id, {
-              id: edge.id,
-              source: edge.source_id,
-              target: edge.target_id,
-              type: edge.relation_type,
-              weight: edge.weight,
-              metadata: edge.metadata ? JSON.parse(edge.metadata) : null,
-            });
-          }
-        }
-        stmt.free();
-      });
-
-      currentLevel = nextLevel;
-    }
-
-    // 查询节点详情
-    const nodes = [];
-    const nodeIds = Array.from(allNodes);
-    if (nodeIds.length > 0) {
-      const idsFilter = nodeIds.map(() => "?").join(",");
-      const stmt = this.db.prepare(`
-        SELECT id, title, type, created_at, updated_at
-        FROM knowledge_items
-        WHERE id IN (${idsFilter})
-      `);
-      stmt.bind(nodeIds);
-
-      while (stmt.step()) {
-        const node = stmt.getAsObject();
-        nodes.push({
-          id: node.id,
-          title: node.title,
-          type: node.type,
-          createdAt: node.created_at,
-          updatedAt: node.updated_at,
-        });
-      }
-      stmt.free();
-    }
-
-    return {
-      nodes,
-      edges: Array.from(allEdges.values()),
-    };
+    const {
+      getKnowledgeNeighbors: _getKnowledgeNeighbors,
+    } = require("./database/database-graph");
+    return _getKnowledgeNeighbors(this, logger, knowledgeId, (depth = 1));
   }
 
   /**
@@ -2401,48 +1766,10 @@ class DatabaseManager {
    * @returns {number} 创建的关系数量
    */
   buildTagRelations() {
-    // 清除旧的标签关系
-    const deleteStmt = this.db.prepare(`
-      DELETE FROM knowledge_relations WHERE relation_type = 'tag'
-    `);
-    deleteStmt.step();
-    deleteStmt.free();
-
-    // 查询共享标签的笔记对
-    const stmt = this.db.prepare(`
-      SELECT
-        k1.knowledge_id as source_id,
-        k2.knowledge_id as target_id,
-        COUNT(*) as shared_tags
-      FROM knowledge_tags k1
-      JOIN knowledge_tags k2 ON k1.tag_id = k2.tag_id
-      WHERE k1.knowledge_id < k2.knowledge_id
-      GROUP BY k1.knowledge_id, k2.knowledge_id
-      HAVING shared_tags > 0
-    `);
-
-    const relations = [];
-    while (stmt.step()) {
-      const row = stmt.getAsObject();
-
-      // 计算权重：共享标签数 / 最大标签数
-      const source = this.getKnowledgeTags(row.source_id);
-      const target = this.getKnowledgeTags(row.target_id);
-      const maxTags = Math.max(source.length, target.length);
-      const weight = maxTags > 0 ? row.shared_tags / maxTags : 0;
-
-      relations.push({
-        sourceId: row.source_id,
-        targetId: row.target_id,
-        type: "tag",
-        weight: weight,
-        metadata: { sharedTags: row.shared_tags },
-      });
-    }
-    stmt.free();
-
-    // 批量插入
-    return this.addRelations(relations);
+    const {
+      buildTagRelations: _buildTagRelations,
+    } = require("./database/database-graph");
+    return _buildTagRelations(this, logger);
   }
 
   /**
@@ -2451,51 +1778,10 @@ class DatabaseManager {
    * @returns {number} 创建的关系数量
    */
   buildTemporalRelations(windowDays = 7) {
-    // 清除旧的时间关系
-    const deleteStmt = this.db.prepare(`
-      DELETE FROM knowledge_relations WHERE relation_type = 'temporal'
-    `);
-    deleteStmt.step();
-    deleteStmt.free();
-
-    const windowMs = windowDays * 24 * 60 * 60 * 1000;
-
-    // 查询时间接近的笔记对
-    const stmt = this.db.prepare(`
-      SELECT
-        k1.id as source_id,
-        k2.id as target_id,
-        k1.created_at as source_time,
-        k2.created_at as target_time
-      FROM knowledge_items k1
-      JOIN knowledge_items k2 ON k1.id < k2.id
-      WHERE ABS(k1.created_at - k2.created_at) <= ?
-      ORDER BY k1.created_at ASC
-    `);
-    stmt.bind([windowMs]);
-
-    const relations = [];
-    while (stmt.step()) {
-      const row = stmt.getAsObject();
-      const timeDiff = Math.abs(row.target_time - row.source_time);
-      const daysDiff = timeDiff / (24 * 60 * 60 * 1000);
-
-      // 权重：时间越近权重越高
-      const weight = 1 / (1 + daysDiff);
-
-      relations.push({
-        sourceId:
-          row.source_time < row.target_time ? row.source_id : row.target_id,
-        targetId:
-          row.source_time < row.target_time ? row.target_id : row.source_id,
-        type: "temporal",
-        weight: weight,
-        metadata: { daysDiff: daysDiff.toFixed(2) },
-      });
-    }
-    stmt.free();
-
-    return this.addRelations(relations);
+    const {
+      buildTemporalRelations: _buildTemporalRelations,
+    } = require("./database/database-graph");
+    return _buildTemporalRelations(this, logger, (windowDays = 7));
   }
 
   // ==================== 项目管理操作 ====================
@@ -2506,74 +1792,10 @@ class DatabaseManager {
    * @returns {Array} 项目列表
    */
   getProjects(userId, options = {}) {
-    if (!this.db) {
-      logger.error("[DatabaseManager] 数据库未初始化");
-      return [];
-    }
-
     const {
-      offset = 0,
-      limit = 0,
-      sortBy = "updated_at",
-      sortOrder = "DESC",
-    } = options;
-
-    // ✅ 安全验证：防止SQL注入
-    const safeSortBy = SqlSecurity.validateColumnName(sortBy, [
-      "id",
-      "name",
-      "created_at",
-      "updated_at",
-      "project_type",
-      "status",
-    ]);
-    const safeSortOrder = SqlSecurity.validateOrder(sortOrder);
-
-    let query = `
-      SELECT
-        id, user_id, name, description, project_type, status,
-        root_path, file_count, total_size, template_id, cover_image_url,
-        tags, metadata, created_at, updated_at, synced_at, sync_status
-      FROM projects
-      WHERE user_id = ? AND deleted = 0
-      ORDER BY ${safeSortBy} ${safeSortOrder}
-    `;
-
-    const params = [userId];
-
-    // 添加分页
-    if (limit > 0) {
-      const safeLimit = SqlSecurity.validateLimit(limit);
-      const safeOffset = SqlSecurity.validateOffset(offset);
-      query += " LIMIT ? OFFSET ?";
-      params.push(safeLimit, safeOffset);
-    }
-
-    const stmt = this.db.prepare(query);
-
-    let projects = [];
-    try {
-      projects = stmt.all(...params);
-    } catch (err) {
-      logger.error("[Database] getProjects 查询失败:", err);
-      // 返回空数组
-      return [];
-    }
-
-    // 清理每个项目中的 undefined 和 null 值
-    return projects.map((project) => {
-      const cleaned = {};
-      for (const key in project) {
-        if (Object.prototype.hasOwnProperty.call(project, key)) {
-          const value = project[key];
-          // 跳过 undefined 和 null
-          if (value !== undefined && value !== null) {
-            cleaned[key] = value;
-          }
-        }
-      }
-      return cleaned;
-    });
+      getProjects: _getProjects,
+    } = require("./database/database-projects");
+    return _getProjects(this, logger, userId, (options = {}));
   }
 
   /**
@@ -2582,24 +1804,10 @@ class DatabaseManager {
    * @returns {number} 项目总数
    */
   getProjectsCount(userId) {
-    if (!this.db) {
-      logger.error("[DatabaseManager] 数据库未初始化");
-      return 0;
-    }
-
-    const stmt = this.db.prepare(`
-      SELECT COUNT(*) as count
-      FROM projects
-      WHERE user_id = ? AND deleted = 0
-    `);
-
-    try {
-      const result = stmt.get(userId);
-      return result?.count || 0;
-    } catch (err) {
-      logger.error("[Database] getProjectsCount 查询失败:", err);
-      return 0;
-    }
+    const {
+      getProjectsCount: _getProjectsCount,
+    } = require("./database/database-projects");
+    return _getProjectsCount(this, logger, userId);
   }
 
   /**
@@ -2607,75 +1815,10 @@ class DatabaseManager {
    * @returns {Object} 数据库统计信息
    */
   getDatabaseStats() {
-    if (!this.db) {
-      return { error: "数据库未初始化" };
-    }
-
-    try {
-      const stats = {};
-
-      // 获取projects表统计
-      const projectsCount = this.db
-        .prepare("SELECT COUNT(*) as count FROM projects")
-        .get();
-      const projectsDeleted = this.db
-        .prepare("SELECT COUNT(*) as count FROM projects WHERE deleted = 1")
-        .get();
-      const projectsActive = this.db
-        .prepare("SELECT COUNT(*) as count FROM projects WHERE deleted = 0")
-        .get();
-
-      // 获取project_files表统计
-      const filesCount = this.db
-        .prepare("SELECT COUNT(*) as count FROM project_files")
-        .get();
-      const filesDeleted = this.db
-        .prepare(
-          "SELECT COUNT(*) as count FROM project_files WHERE deleted = 1",
-        )
-        .get();
-      const filesActive = this.db
-        .prepare(
-          "SELECT COUNT(*) as count FROM project_files WHERE deleted = 0",
-        )
-        .get();
-
-      // 获取所有用户ID
-      const users = this.db
-        .prepare("SELECT DISTINCT user_id FROM projects")
-        .all();
-
-      stats.projects = {
-        total: projectsCount.count,
-        active: projectsActive.count,
-        deleted: projectsDeleted.count,
-      };
-
-      stats.files = {
-        total: filesCount.count,
-        active: filesActive.count,
-        deleted: filesDeleted.count,
-      };
-
-      stats.users = users.map((u) => u.user_id);
-
-      // 获取数据库路径和大小
-      stats.dbPath = this.dbPath;
-      if (fs.existsSync(this.dbPath)) {
-        const fileStats = fs.statSync(this.dbPath);
-        stats.dbSize = fileStats.size;
-        stats.dbSizeMB = (fileStats.size / 1024 / 1024).toFixed(2) + " MB";
-        stats.dbModified = new Date(fileStats.mtime).toISOString();
-      }
-
-      // 是否使用加密
-      stats.encrypted = !!this.adapter;
-
-      return stats;
-    } catch (error) {
-      logger.error("[Database] getDatabaseStats 失败:", error);
-      return { error: error.message };
-    }
+    const {
+      getDatabaseStats: _getDatabaseStats,
+    } = require("./database/database-projects");
+    return _getDatabaseStats(this, logger);
   }
 
   /**
@@ -2684,49 +1827,10 @@ class DatabaseManager {
    * @returns {Object|null} 项目
    */
   getProjectById(projectId) {
-    logger.info(
-      "[Database] getProjectById 输入参数:",
-      projectId,
-      "type:",
-      typeof projectId,
-    );
-
-    const stmt = this.db.prepare("SELECT * FROM projects WHERE id = ?");
-
-    logger.info("[Database] 准备执行 stmt.get...");
-    let project;
-    try {
-      project = stmt.get(projectId);
-      logger.info(
-        "[Database] stmt.get 执行成功，结果:",
-        project ? "OK" : "NULL",
-      );
-    } catch (getError) {
-      logger.error("[Database] stmt.get 失败!");
-      logger.error("[Database] 查询参数 projectId:", projectId);
-      logger.error("[Database] 错误对象:", getError);
-      throw getError;
-    }
-
-    // 清理 undefined 值，SQLite 可能返回 undefined
-    if (!project) {
-      logger.info("[Database] 未找到项目，返回 null");
-      return null;
-    }
-
-    logger.info("[Database] 开始清理 undefined 值...");
-    const cleaned = {};
-    for (const key in project) {
-      if (
-        Object.prototype.hasOwnProperty.call(project, key) &&
-        project[key] !== undefined
-      ) {
-        cleaned[key] = project[key];
-      }
-    }
-
-    logger.info("[Database] 清理完成，返回键:", Object.keys(cleaned));
-    return cleaned;
+    const {
+      getProjectById: _getProjectById,
+    } = require("./database/database-projects");
+    return _getProjectById(this, logger, projectId);
   }
 
   /**
@@ -2735,174 +1839,10 @@ class DatabaseManager {
    * @returns {Object} 保存的项目
    */
   saveProject(project) {
-    // Check if database is initialized
-    if (!this.db) {
-      const errorMsg =
-        "数据库未初始化，无法保存项目。请检查数据库配置和加密设置。";
-      logger.error("[Database]", errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    const safeProject = project || {};
-    const projectType =
-      safeProject.project_type ?? safeProject.projectType ?? "web";
-    const userId = safeProject.user_id ?? safeProject.userId ?? "local-user";
-    const rootPath = safeProject.root_path ?? safeProject.rootPath ?? null;
-    const templateId =
-      safeProject.template_id ?? safeProject.templateId ?? null;
-    const coverImageUrl =
-      safeProject.cover_image_url ?? safeProject.coverImageUrl ?? null;
-    const fileCount = safeProject.file_count ?? safeProject.fileCount ?? 0;
-    const totalSize = safeProject.total_size ?? safeProject.totalSize ?? 0;
-    const tagsValue =
-      typeof safeProject.tags === "string"
-        ? safeProject.tags
-        : JSON.stringify(safeProject.tags || []);
-    const metadataValue =
-      typeof safeProject.metadata === "string"
-        ? safeProject.metadata
-        : JSON.stringify(safeProject.metadata || {});
-    // 确保时间戳是数字（毫秒），如果是字符串则转换
-    let createdAt =
-      safeProject.created_at ?? safeProject.createdAt ?? Date.now();
-    logger.info(
-      "[Database] createdAt 原始值:",
-      createdAt,
-      "type:",
-      typeof createdAt,
-    );
-    if (typeof createdAt === "string") {
-      createdAt = new Date(createdAt).getTime();
-      logger.info(
-        "[Database] createdAt 转换后:",
-        createdAt,
-        "type:",
-        typeof createdAt,
-      );
-    }
-
-    let updatedAt =
-      safeProject.updated_at ?? safeProject.updatedAt ?? Date.now();
-    logger.info(
-      "[Database] updatedAt 原始值:",
-      updatedAt,
-      "type:",
-      typeof updatedAt,
-    );
-    if (typeof updatedAt === "string") {
-      updatedAt = new Date(updatedAt).getTime();
-      logger.info(
-        "[Database] updatedAt 转换后:",
-        updatedAt,
-        "type:",
-        typeof updatedAt,
-      );
-    }
-
-    let syncedAt = safeProject.synced_at ?? safeProject.syncedAt ?? null;
-    logger.info(
-      "[Database] syncedAt 原始值:",
-      syncedAt,
-      "type:",
-      typeof syncedAt,
-    );
-    if (typeof syncedAt === "string") {
-      syncedAt = new Date(syncedAt).getTime();
-      logger.info(
-        "[Database] syncedAt 转换后:",
-        syncedAt,
-        "type:",
-        typeof syncedAt,
-      );
-    }
-
-    const syncStatus =
-      safeProject.sync_status ?? safeProject.syncStatus ?? "pending";
-    const deviceId = safeProject.device_id ?? safeProject.deviceId ?? null;
-    const deleted = safeProject.deleted ?? 0;
-    const categoryId =
-      safeProject.category_id ?? safeProject.categoryId ?? null;
-
-    const stmt = this.db.prepare(`
-      INSERT OR REPLACE INTO projects (
-        id, user_id, name, description, project_type, status,
-        root_path, file_count, total_size, template_id, cover_image_url,
-        tags, metadata, created_at, updated_at, sync_status, synced_at,
-        device_id, deleted, category_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const params = [
-      safeProject.id,
-      userId,
-      safeProject.name,
-      safeProject.description,
-      projectType,
-      safeProject.status || "active",
-      rootPath,
-      fileCount,
-      totalSize,
-      templateId,
-      coverImageUrl,
-      tagsValue,
-      metadataValue,
-      createdAt,
-      updatedAt,
-      syncStatus,
-      syncedAt,
-      deviceId,
-      deleted,
-      categoryId,
-    ].map((value) => (value === undefined ? null : value));
-
-    logger.info("[Database] 最终params准备绑定:");
-    params.forEach((param, index) => {
-      logger.info(
-        `  [${index}] ${typeof param} = ${param === undefined ? "UNDEFINED!" : param === null ? "NULL" : JSON.stringify(param).substring(0, 50)}`,
-      );
-    });
-
-    logger.info("[Database] 开始执行 stmt.run...");
-    try {
-      stmt.run(...params);
-      logger.info("[Database] stmt.run 执行成功");
-    } catch (runError) {
-      logger.error("[Database] stmt.run 失败!");
-      logger.error("[Database] 错误对象:", runError);
-      logger.error("[Database] 错误类型:", typeof runError);
-      logger.error("[Database] 错误消息:", runError?.message);
-      logger.error("[Database] 错误堆栈:", runError?.stack);
-      logger.error("[Database] 错误代码:", runError?.code);
-      throw runError;
-    }
-
-    // 不查询数据库，直接返回刚保存的数据（避免查询返回 undefined 字段）
-    logger.info("[Database] 直接返回 safeProject（不查询）");
-    const savedProject = {
-      id: safeProject.id,
-      user_id: userId,
-      name: safeProject.name,
-      description: safeProject.description,
-      project_type: projectType,
-      status: safeProject.status || "active",
-      root_path: rootPath,
-      file_count: fileCount,
-      total_size: totalSize,
-      template_id: templateId,
-      cover_image_url: coverImageUrl,
-      tags: tagsValue,
-      metadata: metadataValue,
-      created_at: createdAt,
-      updated_at: updatedAt,
-      sync_status: syncStatus,
-      synced_at: syncedAt,
-      device_id: deviceId,
-      deleted: deleted,
-      category_id: categoryId,
-    };
-
-    logger.info("[Database] saveProject 完成，返回结果");
-    return savedProject;
+    const {
+      saveProject: _saveProject,
+    } = require("./database/database-projects");
+    return _saveProject(this, logger, project);
   }
 
   /**
@@ -2912,60 +1852,10 @@ class DatabaseManager {
    * @returns {Object|null} 更新后的项目
    */
   updateProject(projectId, updates) {
-    const fields = [];
-    const values = [];
-
-    // 动态构建更新字段
-    const allowedFields = [
-      "name",
-      "description",
-      "status",
-      "tags",
-      "cover_image_url",
-      "file_count",
-      "total_size",
-      "sync_status",
-      "synced_at",
-      "root_path",
-      "folder_path",
-      "project_type",
-      "delivered_at",
-    ];
-
-    allowedFields.forEach((field) => {
-      if (updates[field] !== undefined) {
-        fields.push(`${field} = ?`);
-        if (field === "tags" || field === "metadata") {
-          values.push(
-            typeof updates[field] === "string"
-              ? updates[field]
-              : JSON.stringify(updates[field]),
-          );
-        } else {
-          values.push(updates[field]);
-        }
-      }
-    });
-
-    // 总是更新 updated_at
-    fields.push("updated_at = ?");
-    values.push(updates.updated_at || Date.now());
-
-    values.push(projectId);
-
-    if (fields.length === 1) {
-      return this.getProjectById(projectId);
-    }
-
-    this.db.run(
-      `
-      UPDATE projects SET ${fields.join(", ")} WHERE id = ?
-    `,
-      values,
-    );
-
-    this.saveToFile();
-    return this.getProjectById(projectId);
+    const {
+      updateProject: _updateProject,
+    } = require("./database/database-projects");
+    return _updateProject(this, logger, projectId, updates);
   }
 
   /**
@@ -2974,14 +1864,10 @@ class DatabaseManager {
    * @returns {boolean} 是否删除成功
    */
   deleteProject(projectId) {
-    // 删除项目文件
-    this.db.run("DELETE FROM project_files WHERE project_id = ?", [projectId]);
-
-    // 删除项目
-    this.db.run("DELETE FROM projects WHERE id = ?", [projectId]);
-
-    this.saveToFile();
-    return true;
+    const {
+      deleteProject: _deleteProject,
+    } = require("./database/database-projects");
+    return _deleteProject(this, logger, projectId);
   }
 
   /**
@@ -2990,12 +1876,10 @@ class DatabaseManager {
    * @returns {Array} 文件列表
    */
   getProjectFiles(projectId) {
-    const stmt = this.db.prepare(`
-      SELECT * FROM project_files
-      WHERE project_id = ? AND deleted = 0
-      ORDER BY file_path
-    `);
-    return stmt.all(projectId);
+    const {
+      getProjectFiles: _getProjectFiles,
+    } = require("./database/database-projects");
+    return _getProjectFiles(this, logger, projectId);
   }
 
   /**
@@ -3004,97 +1888,10 @@ class DatabaseManager {
    * @param {Array} files - 文件列表
    */
   saveProjectFiles(projectId, files) {
-    // Check if database is initialized
-    if (!this.db) {
-      const errorMsg =
-        "数据库未初始化，无法保存项目文件。请检查数据库配置和加密设置。";
-      logger.error("[Database]", errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    const safeFiles = Array.isArray(files) ? files : [];
-    this.transaction(() => {
-      const stmt = this.db.prepare(`
-        INSERT OR REPLACE INTO project_files (
-          id, project_id, file_path, file_name, file_type,
-          file_size, content, content_hash, version, fs_path, is_folder,
-          created_at, updated_at, sync_status, synced_at, device_id, deleted
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      safeFiles.forEach((file) => {
-        // 支持多种字段名格式：后端可能返回 path/type，前端可能使用 file_path/filePath
-        const rawPath = file.file_path ?? file.filePath ?? file.path ?? null;
-        const derivedName =
-          file.file_name ??
-          file.fileName ??
-          (rawPath ? rawPath.split(/[\\/]/).pop() : null);
-        const filePath = rawPath || derivedName || "";
-        const fileName = derivedName || filePath || "untitled";
-        const fileType = file.file_type ?? file.fileType ?? file.type ?? null;
-        const fileSize = file.file_size ?? file.fileSize ?? null;
-        const content = file.content ?? null;
-        const contentHash = file.content_hash ?? file.contentHash ?? null;
-        const version = file.version ?? 1;
-        const fsPath = file.fs_path ?? file.fsPath ?? null;
-        const syncStatus = file.sync_status ?? file.syncStatus ?? "pending";
-        const syncedAt = file.synced_at ?? file.syncedAt ?? null;
-        const deviceId = file.device_id ?? file.deviceId ?? null;
-        const deleted = file.deleted ?? 0;
-        const isFolder = file.is_folder ?? file.isFolder ?? 0;
-
-        // 如果没有file_size但有content，自动计算大小
-        let actualFileSize = fileSize;
-        if (!actualFileSize && content) {
-          if (typeof content === "string") {
-            // base64编码的内容
-            if (file.content_encoding === "base64") {
-              actualFileSize = Math.floor(content.length * 0.75); // base64解码后约为3/4
-            } else {
-              actualFileSize = Buffer.byteLength(content, "utf-8");
-            }
-          } else if (Buffer.isBuffer(content)) {
-            actualFileSize = content.length;
-          }
-        }
-        actualFileSize = actualFileSize || 0;
-
-        // 确保时间戳是数字（毫秒），如果是字符串则转换
-        let createdAt = file.created_at ?? file.createdAt ?? Date.now();
-        if (typeof createdAt === "string") {
-          createdAt = new Date(createdAt).getTime();
-        }
-
-        let updatedAt = file.updated_at ?? file.updatedAt ?? Date.now();
-        if (typeof updatedAt === "string") {
-          updatedAt = new Date(updatedAt).getTime();
-        }
-
-        const fileId = file.id || uuidv4();
-
-        const params = [
-          fileId,
-          projectId,
-          filePath,
-          fileName,
-          fileType,
-          actualFileSize,
-          content,
-          contentHash,
-          version,
-          fsPath,
-          isFolder,
-          createdAt,
-          updatedAt,
-          syncStatus,
-          syncedAt,
-          deviceId,
-          deleted,
-        ].map((value) => (value === undefined ? null : value));
-
-        stmt.run(...params);
-      });
-    });
+    const {
+      saveProjectFiles: _saveProjectFiles,
+    } = require("./database/database-projects");
+    return _saveProjectFiles(this, logger, projectId, files);
   }
 
   /**
@@ -3102,20 +1899,10 @@ class DatabaseManager {
    * @param {Object} fileUpdate - 文件更新数据
    */
   updateProjectFile(fileUpdate) {
-    const stmt = this.db.prepare(`
-      UPDATE project_files
-      SET content = ?, updated_at = ?, version = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(
-      fileUpdate.content,
-      fileUpdate.updated_at || Date.now(),
-      fileUpdate.version,
-      fileUpdate.id,
-    );
-
-    this.saveToFile();
+    const {
+      updateProjectFile: _updateProjectFile,
+    } = require("./database/database-projects");
+    return _updateProjectFile(this, logger, fileUpdate);
   }
 
   // ==================== 对话管理操作 ====================
@@ -3126,34 +1913,10 @@ class DatabaseManager {
    * @returns {Object} 创建的对话
    */
   createConversation(conversationData) {
-    const id =
-      conversationData.id ||
-      `conv_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const now = Date.now();
-
-    const stmt = this.db.prepare(`
-      INSERT INTO conversations (
-        id, title, knowledge_id, project_id, context_type, context_data,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      id,
-      conversationData.title || "新对话",
-      conversationData.knowledge_id || null,
-      conversationData.project_id || null,
-      conversationData.context_type || "global",
-      conversationData.context_data
-        ? JSON.stringify(conversationData.context_data)
-        : null,
-      conversationData.created_at || now,
-      conversationData.updated_at || now,
-    );
-
-    this.saveToFile();
-
-    return this.getConversationById(id);
+    const {
+      createConversation: _createConversation,
+    } = require("./database/database-conversations");
+    return _createConversation(this, logger, conversationData);
   }
 
   /**
@@ -3162,23 +1925,10 @@ class DatabaseManager {
    * @returns {Object|null} 对话对象
    */
   getConversationById(conversationId) {
-    const stmt = this.db.prepare("SELECT * FROM conversations WHERE id = ?");
-    const conversation = stmt.get(conversationId);
-
-    if (!conversation) {
-      return null;
-    }
-
-    // 解析 context_data
-    if (conversation.context_data) {
-      try {
-        conversation.context_data = JSON.parse(conversation.context_data);
-      } catch (_e) {
-        logger.error("解析 context_data 失败:", _e);
-      }
-    }
-
-    return conversation;
+    const {
+      getConversationById: _getConversationById,
+    } = require("./database/database-conversations");
+    return _getConversationById(this, logger, conversationId);
   }
 
   /**
@@ -3187,29 +1937,10 @@ class DatabaseManager {
    * @returns {Object|null} 对话对象
    */
   getConversationByProject(projectId) {
-    const stmt = this.db.prepare(`
-      SELECT * FROM conversations
-      WHERE project_id = ?
-      ORDER BY updated_at DESC
-      LIMIT 1
-    `);
-
-    const conversation = stmt.get(projectId);
-
-    if (!conversation) {
-      return null;
-    }
-
-    // 解析 context_data
-    if (conversation.context_data) {
-      try {
-        conversation.context_data = JSON.parse(conversation.context_data);
-      } catch (_e) {
-        logger.error("解析 context_data 失败:", _e);
-      }
-    }
-
-    return conversation;
+    const {
+      getConversationByProject: _getConversationByProject,
+    } = require("./database/database-conversations");
+    return _getConversationByProject(this, logger, projectId);
   }
 
   /**
@@ -3218,45 +1949,10 @@ class DatabaseManager {
    * @returns {Array} 对话列表
    */
   getConversations(options = {}) {
-    let query = "SELECT * FROM conversations WHERE 1=1";
-    const params = [];
-
-    if (options.project_id) {
-      query += " AND project_id = ?";
-      params.push(options.project_id);
-    }
-
-    if (options.knowledge_id) {
-      query += " AND knowledge_id = ?";
-      params.push(options.knowledge_id);
-    }
-
-    if (options.context_type) {
-      query += " AND context_type = ?";
-      params.push(options.context_type);
-    }
-
-    query += " ORDER BY updated_at DESC";
-
-    if (options.limit) {
-      query += " LIMIT ?";
-      params.push(options.limit);
-    }
-
-    const stmt = this.db.prepare(query);
-    const conversations = stmt.all(...params);
-
-    // 解析 context_data
-    return conversations.map((conv) => {
-      if (conv.context_data) {
-        try {
-          conv.context_data = JSON.parse(conv.context_data);
-        } catch (_e) {
-          logger.error("解析 context_data 失败:", _e);
-        }
-      }
-      return conv;
-    });
+    const {
+      getConversations: _getConversations,
+    } = require("./database/database-conversations");
+    return _getConversations(this, logger, (options = {}));
   }
 
   /**
@@ -3266,41 +1962,10 @@ class DatabaseManager {
    * @returns {Object|null} 更新后的对话
    */
   updateConversation(conversationId, updates) {
-    const fields = [];
-    const values = [];
-
-    const allowedFields = ["title", "context_type", "context_data"];
-
-    allowedFields.forEach((field) => {
-      if (updates[field] !== undefined) {
-        fields.push(`${field} = ?`);
-        if (field === "context_data" && typeof updates[field] !== "string") {
-          values.push(JSON.stringify(updates[field]));
-        } else {
-          values.push(updates[field]);
-        }
-      }
-    });
-
-    // 总是更新 updated_at
-    fields.push("updated_at = ?");
-    values.push(Date.now());
-
-    values.push(conversationId);
-
-    if (fields.length === 1) {
-      return this.getConversationById(conversationId);
-    }
-
-    this.db.run(
-      `
-      UPDATE conversations SET ${fields.join(", ")} WHERE id = ?
-    `,
-      values,
-    );
-
-    this.saveToFile();
-    return this.getConversationById(conversationId);
+    const {
+      updateConversation: _updateConversation,
+    } = require("./database/database-conversations");
+    return _updateConversation(this, logger, conversationId, updates);
   }
 
   /**
@@ -3309,16 +1974,10 @@ class DatabaseManager {
    * @returns {boolean} 是否删除成功
    */
   deleteConversation(conversationId) {
-    // 先删除相关消息
-    this.db.run("DELETE FROM messages WHERE conversation_id = ?", [
-      conversationId,
-    ]);
-
-    // 删除对话
-    this.db.run("DELETE FROM conversations WHERE id = ?", [conversationId]);
-
-    this.saveToFile();
-    return true;
+    const {
+      deleteConversation: _deleteConversation,
+    } = require("./database/database-conversations");
+    return _deleteConversation(this, logger, conversationId);
   }
 
   /**
@@ -3327,54 +1986,10 @@ class DatabaseManager {
    * @returns {Object} 创建的消息
    */
   createMessage(messageData) {
-    const id =
-      messageData.id ||
-      `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const now = Date.now();
-
-    // 确定message_type：优先使用messageData.type，否则根据role推断
-    let messageType = messageData.type || messageData.message_type;
-    if (!messageType) {
-      // 向后兼容：根据role推断message_type
-      if (messageData.role === "user") {
-        messageType = "USER";
-      } else if (messageData.role === "assistant") {
-        messageType = "ASSISTANT";
-      } else if (messageData.role === "system") {
-        messageType = "SYSTEM";
-      } else {
-        messageType = "ASSISTANT";
-      } // 默认值
-    }
-
-    // 序列化metadata为JSON字符串
-    const metadataStr = messageData.metadata
-      ? JSON.stringify(messageData.metadata)
-      : null;
-
-    const stmt = this.db.prepare(`
-      INSERT INTO messages (
-        id, conversation_id, role, content, timestamp, tokens, message_type, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      id,
-      messageData.conversation_id,
-      messageData.role,
-      messageData.content,
-      messageData.timestamp || now,
-      messageData.tokens || null,
-      messageType,
-      metadataStr,
-    );
-
-    this.saveToFile();
-
-    // 更新对话的 updated_at
-    this.updateConversation(messageData.conversation_id, {});
-
-    return this.getMessageById(id);
+    const {
+      createMessage: _createMessage,
+    } = require("./database/database-conversations");
+    return _createMessage(this, logger, messageData);
   }
 
   /**
@@ -3383,8 +1998,10 @@ class DatabaseManager {
    * @returns {Object|null} 消息对象
    */
   getMessageById(messageId) {
-    const stmt = this.db.prepare("SELECT * FROM messages WHERE id = ?");
-    return stmt.get(messageId);
+    const {
+      getMessageById: _getMessageById,
+    } = require("./database/database-conversations");
+    return _getMessageById(this, logger, messageId);
   }
 
   /**
@@ -3397,67 +2014,15 @@ class DatabaseManager {
    * @returns {Object} 包含消息列表和总数的对象
    */
   getMessagesByConversation(conversationId, options = {}) {
-    // ✅ 安全验证：防止SQL注入
-    const safeOrder = SqlSecurity.validateOrder(options.order || "ASC");
-    let query = `SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ${safeOrder}`;
-    const params = [conversationId];
-
-    // 添加分页支持
-    if (options.limit) {
-      const safeLimit = SqlSecurity.validateLimit(options.limit);
-      query += " LIMIT ?";
-      params.push(safeLimit);
-
-      if (options.offset) {
-        const safeOffset = SqlSecurity.validateOffset(options.offset);
-        query += " OFFSET ?";
-        params.push(safeOffset);
-      }
-    }
-
-    const stmt = this.db.prepare(query);
-    const rawMessages = stmt.all(...params);
-
-    // 反序列化metadata字段
-    const messages = rawMessages.map((msg) => {
-      if (msg.metadata) {
-        try {
-          msg.metadata = JSON.parse(msg.metadata);
-        } catch (_e) {
-          logger.warn("[Database] 无法解析消息metadata:", msg.id, _e);
-          msg.metadata = null;
-        }
-      }
-      // 向后兼容：如果没有message_type，根据role设置
-      if (!msg.message_type) {
-        if (msg.role === "user") {
-          msg.message_type = "USER";
-        } else if (msg.role === "assistant") {
-          msg.message_type = "ASSISTANT";
-        } else if (msg.role === "system") {
-          msg.message_type = "SYSTEM";
-        } else {
-          msg.message_type = "ASSISTANT";
-        }
-      }
-      return msg;
-    });
-
-    // 获取总消息数
-    const countStmt = this.db.prepare(
-      "SELECT COUNT(*) as total FROM messages WHERE conversation_id = ?",
+    const {
+      getMessagesByConversation: _getMessagesByConversation,
+    } = require("./database/database-conversations");
+    return _getMessagesByConversation(
+      this,
+      logger,
+      conversationId,
+      (options = {}),
     );
-    const countResult = countStmt.get(conversationId);
-    const total = countResult ? countResult.total : 0;
-
-    return {
-      messages,
-      total,
-      hasMore:
-        options.limit && options.offset
-          ? options.offset + options.limit < total
-          : false,
-    };
   }
 
   /**
@@ -3466,9 +2031,10 @@ class DatabaseManager {
    * @returns {boolean} 是否删除成功
    */
   deleteMessage(messageId) {
-    this.db.run("DELETE FROM messages WHERE id = ?", [messageId]);
-    this.saveToFile();
-    return true;
+    const {
+      deleteMessage: _deleteMessage,
+    } = require("./database/database-conversations");
+    return _deleteMessage(this, logger, messageId);
   }
 
   /**
@@ -3477,11 +2043,10 @@ class DatabaseManager {
    * @returns {boolean} 是否清空成功
    */
   clearConversationMessages(conversationId) {
-    this.db.run("DELETE FROM messages WHERE conversation_id = ?", [
-      conversationId,
-    ]);
-    this.saveToFile();
-    return true;
+    const {
+      clearConversationMessages: _clearConversationMessages,
+    } = require("./database/database-conversations");
+    return _clearConversationMessages(this, logger, conversationId);
   }
 
   /**
@@ -3497,90 +2062,9 @@ class DatabaseManager {
    */
   searchMessages(options = {}) {
     const {
-      query,
-      conversationId,
-      role,
-      limit = 50,
-      offset = 0,
-      order = "DESC",
-    } = options;
-
-    if (!query || !query.trim()) {
-      return { messages: [], total: 0, hasMore: false };
-    }
-
-    const searchPattern = `%${query.trim()}%`;
-    const params = [searchPattern];
-    const whereConditions = ["content LIKE ?"];
-
-    // 添加对话ID过滤
-    if (conversationId) {
-      whereConditions.push("conversation_id = ?");
-      params.push(conversationId);
-    }
-
-    // 添加角色过滤
-    if (role) {
-      whereConditions.push("role = ?");
-      params.push(role);
-    }
-
-    // 构建查询SQL
-    const whereClause = whereConditions.join(" AND ");
-    const orderClause = order === "ASC" ? "ASC" : "DESC";
-
-    // 查询消息
-    const messagesQuery = `
-      SELECT * FROM messages
-      WHERE ${whereClause}
-      ORDER BY timestamp ${orderClause}
-      LIMIT ? OFFSET ?
-    `;
-    params.push(limit, offset);
-
-    const stmt = this.db.prepare(messagesQuery);
-    const rawMessages = stmt.all(...params);
-
-    // 反序列化metadata字段
-    const messages = rawMessages.map((msg) => {
-      if (msg.metadata) {
-        try {
-          msg.metadata = JSON.parse(msg.metadata);
-        } catch (_e) {
-          logger.warn("[Database] 无法解析消息metadata:", msg.id, _e);
-          msg.metadata = null;
-        }
-      }
-      // 向后兼容：如果没有message_type，根据role设置
-      if (!msg.message_type) {
-        if (msg.role === "user") {
-          msg.message_type = "USER";
-        } else if (msg.role === "assistant") {
-          msg.message_type = "ASSISTANT";
-        } else if (msg.role === "system") {
-          msg.message_type = "SYSTEM";
-        } else {
-          msg.message_type = "ASSISTANT";
-        }
-      }
-      return msg;
-    });
-
-    // 获取总数
-    const countQuery = `
-      SELECT COUNT(*) as total FROM messages
-      WHERE ${whereClause}
-    `;
-    const countParams = params.slice(0, -2); // 移除limit和offset参数
-    const countStmt = this.db.prepare(countQuery);
-    const countResult = countStmt.get(...countParams);
-    const total = countResult ? countResult.total : 0;
-
-    return {
-      messages,
-      total,
-      hasMore: offset + limit < total,
-    };
+      searchMessages: _searchMessages,
+    } = require("./database/database-conversations");
+    return _searchMessages(this, logger, (options = {}));
   }
 
   // ==================== 系统配置管理 ====================
