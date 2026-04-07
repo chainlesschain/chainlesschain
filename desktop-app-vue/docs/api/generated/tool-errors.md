@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/tool-errors.js`
 
-**Generated**: 2026-04-07T13:50:37.316Z
+**Generated**: 2026-04-07T13:57:26.039Z
 
 ---
 

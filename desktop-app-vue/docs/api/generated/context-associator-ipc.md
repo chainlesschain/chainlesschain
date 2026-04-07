@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/context-associator-ipc.js`
 
-**Generated**: 2026-04-07T13:50:37.350Z
+**Generated**: 2026-04-07T13:57:26.075Z
 
 ---
 

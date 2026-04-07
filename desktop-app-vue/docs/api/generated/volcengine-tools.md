@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/volcengine-tools.js`
 
-**Generated**: 2026-04-07T13:50:37.355Z
+**Generated**: 2026-04-07T13:57:26.080Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image-gen/image-gen-manager.js`
 
-**Generated**: 2026-04-07T13:50:37.368Z
+**Generated**: 2026-04-07T13:57:26.092Z
 
 ---
 

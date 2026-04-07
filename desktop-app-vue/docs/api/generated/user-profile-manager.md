@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/user-profile-manager.js`
 
-**Generated**: 2026-04-07T13:50:37.409Z
+**Generated**: 2026-04-07T13:57:26.134Z
 
 ---
 
