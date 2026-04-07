@@ -2,7 +2,7 @@
 
 **Source**: `src/main/credit/credit-ipc.js`
 
-**Generated**: 2026-04-07T14:35:12.776Z
+**Generated**: 2026-04-07T15:25:32.420Z
 
 ---
 

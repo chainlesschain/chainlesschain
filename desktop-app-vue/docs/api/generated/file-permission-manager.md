@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/file-permission-manager.js`
 
-**Generated**: 2026-04-07T14:35:12.763Z
+**Generated**: 2026-04-07T15:25:32.407Z
 
 ---
 

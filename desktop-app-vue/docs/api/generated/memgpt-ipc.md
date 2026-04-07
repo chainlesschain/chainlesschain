@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/memgpt-ipc.js`
 
-**Generated**: 2026-04-07T14:35:12.736Z
+**Generated**: 2026-04-07T15:25:32.378Z
 
 ---
 

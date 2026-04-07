@@ -2,7 +2,7 @@
 
 **Source**: `src/main/bootstrap/trade-initializer.js`
 
-**Generated**: 2026-04-07T14:35:12.788Z
+**Generated**: 2026-04-07T15:25:32.435Z
 
 ---
 
