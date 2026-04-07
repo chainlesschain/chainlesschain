@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/automation-manager.js`
 
-**Generated**: 2026-04-07T13:57:26.061Z
+**Generated**: 2026-04-07T14:29:14.686Z
 
 ---
 

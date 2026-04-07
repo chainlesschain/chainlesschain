@@ -2,7 +2,7 @@
 
 **Source**: `src/main/browser/actions/session-manager.js`
 
-**Generated**: 2026-04-07T13:57:26.120Z
+**Generated**: 2026-04-07T14:29:14.750Z
 
 ---
 
