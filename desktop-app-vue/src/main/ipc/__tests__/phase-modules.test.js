@@ -19,6 +19,12 @@ const require = createRequire(import.meta.url);
 
 const PHASE_MODULES = [
   {
+    file: "../phases/phase-21-30-enterprise",
+    exportName: "registerPhases21to30",
+    expectedRegistrations: 10, // Phases 21-30
+    needsRegisteredModules: true,
+  },
+  {
     file: "../phases/phase-31-ai-models",
     exportName: "registerPhase31",
     expectedRegistrations: 7, // Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn
