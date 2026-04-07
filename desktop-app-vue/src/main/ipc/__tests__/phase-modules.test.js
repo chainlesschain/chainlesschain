@@ -19,6 +19,12 @@ const require = createRequire(import.meta.url);
 
 const PHASE_MODULES = [
   {
+    file: "../phases/phase-5-project",
+    exportName: "registerPhase5Project",
+    expectedRegistrations: 5, // Project Core/AI/Export/RAG/Git
+    needsRegisteredModules: true,
+  },
+  {
     file: "../phases/phase-9-15-core",
     exportName: "registerPhases9to15",
     expectedRegistrations: 7, // Phases 9-15
