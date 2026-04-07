@@ -19,6 +19,14 @@ const require = createRequire(import.meta.url);
 
 const PHASE_MODULES = [
   {
+    file: "../phases/phase-1-ai",
+    exportName: "registerPhase1AI",
+    // 22 safeRegister calls total: 21 unconditional + 1 gated on ragManager
+    // (RAG IPC). With null deps, only the 21 unconditional fire.
+    expectedRegistrations: 21,
+    needsRegisteredModules: false,
+  },
+  {
     file: "../phases/phase-3-4-social",
     exportName: "registerPhases3to4Social",
     // 9 unconditional safeRegister calls (Social, Call, Album, Social Collab,
