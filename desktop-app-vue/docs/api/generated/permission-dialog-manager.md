@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/permission-dialog-manager.js`
 
-**Generated**: 2026-04-07T14:29:14.687Z
+**Generated**: 2026-04-07T14:35:12.725Z
 
 ---
 

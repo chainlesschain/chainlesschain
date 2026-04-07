@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/git-api.js`
 
-**Generated**: 2026-04-07T14:29:14.685Z
+**Generated**: 2026-04-07T14:35:12.723Z
 
 ---
 

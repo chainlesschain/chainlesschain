@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/workflow/workflow-ipc.js`
 
-**Generated**: 2026-04-07T14:29:14.773Z
+**Generated**: 2026-04-07T14:35:12.804Z
 
 ---
 

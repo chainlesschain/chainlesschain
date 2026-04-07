@@ -2,7 +2,7 @@
 
 **Source**: `src/main/collaboration/collaboration-ipc.js`
 
-**Generated**: 2026-04-07T14:29:14.742Z
+**Generated**: 2026-04-07T14:35:12.779Z
 
 ---
 

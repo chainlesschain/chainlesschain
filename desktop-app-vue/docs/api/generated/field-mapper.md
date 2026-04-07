@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sync/field-mapper.js`
 
-**Generated**: 2026-04-07T14:29:14.649Z
+**Generated**: 2026-04-07T14:35:12.690Z
 
 ---
 

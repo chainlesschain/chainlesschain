@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/markdown-exporter.js`
 
-**Generated**: 2026-04-07T14:29:14.720Z
+**Generated**: 2026-04-07T14:35:12.759Z
 
 ---
 
