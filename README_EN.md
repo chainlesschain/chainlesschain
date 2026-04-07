@@ -54,7 +54,7 @@ chainlesschain config features disable CONTEXT_SNIP # Disable feature
 
 **Test Coverage**: 334 tests (255 unit + 42 integration + 37 E2E), 12 test files, all passing.
 
-### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.29, 2026-04-07)
+### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.30, 2026-04-07)
 
 Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/main/ipc/ipc-registry.js` into `src/main/ipc/phases/`, grouped by version/batch.
 
@@ -62,6 +62,8 @@ Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/mai
 | ----------------------------------- | ----: | -----: | ----------------------------------------------------------------------- |
 | `phases/phase-1-ai.js`              |   393 |      1 | LLM, PermanentMemory, Hooks, Plan/Skills, Context Eng, Token/Stream, Team Task, Permission, RAG, Browser (22 regs) |
 | `phases/phase-2-core.js`            |   135 |      1 | U-Key, Database, Git + critical early IPC (MCP basic config, System early, Notification early) — 6 regs |
+| `phases/phase-6-7-content.js`       |   197 |      2 | File, Office, Template, Knowledge, Prompt Template, Image (Phase 6) + Speech, Video, PDF, Document (Phase 7) |
+| `phases/phase-8-9-extras.js`        |   357 |      2 | Blockchain (lazy), Code/Review, Collaboration/Automation, KG/Credit, Plugin (lazy), Import, Sync/Pref/Conv, FileSync, Config, Category, Workflow |
 | `phases/phase-3-4-social.js`        |   306 |      2 | DID, P2P, Social (8 sub-modules), VC, Identity Context, Org, Dashboard  |
 | `phases/phase-5-project.js`         |   170 |      1 | Project Core/AI/Export/RAG/Git (5 sub-modules, 91 handlers)             |
 | `phases/phase-9-15-core.js`         |   259 |      7 | Cowork, Workflow Optimizations, Audit, Marketplace, Agents, SSO, UnifiedTools |
@@ -75,7 +77,7 @@ Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/mai
 | `phases/phase-58-77-v2-v3.js`       |   757 |     20 | Federation, Reputation, Inference, Trust Root, Storage, EvoMap          |
 | `phases/phase-q1-2027.js`           |    89 |      5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                                |
 
-**Result**: `ipc-registry.js` shrank from 4925 → 899 lines (**−4026, −81.7%**) across 14 extracted phase modules covering 84 phases. `phase-modules.test.js` now has 42 contract tests, all passing.
+**Result**: `ipc-registry.js` shrank from 4925 → 493 lines (**−4432, −90.0%**) across 16 extracted phase modules covering 88 phases. `phase-modules.test.js` now has 48 contract tests, all passing.
 
 See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) §9 for full details.
 
