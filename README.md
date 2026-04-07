@@ -102,6 +102,23 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 
 **测试覆盖**：334 个测试（255 单元 + 42 集成 + 37 E2E），12 个测试文件，全部通过。
 
+### 技术债清理 - H2 IPC Registry 拆分 (v0.45.21, 2026-04-07)
+
+将 `desktop-app-vue/src/main/ipc/ipc-registry.js` 后半段独立的 Phase 注册块抽出到 `src/main/ipc/phases/` 子目录，按版本/批次分组。
+
+| 文件                              | 行数 | Phase 数 | 涵盖内容                                                  |
+| --------------------------------- | ---: | -------: | --------------------------------------------------------- |
+| `phases/phase-31-ai-models.js`    |  261 |        7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn |
+| `phases/phase-41-evomap-gep.js`   |  102 |        1 | EvoMap GEP Protocol                                       |
+| `phases/phase-42-50-v1-1.js`      |  450 |        9 | Social/AP, Compliance, SCIM, U-Key/FIDO2, BLE, Nostr, DLP |
+| `phases/phase-51-57-v1-1.js`      |  268 |        7 | SIEM, PQC, Firmware OTA, Governance, Matrix, Terraform, Hardening |
+| `phases/phase-58-77-v2-v3.js`     |  755 |       20 | Federation, Reputation, Inference, Trust Root, Storage, EvoMap |
+| `phases/phase-q1-2027.js`         |   89 |        5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                  |
+
+**效果**：`ipc-registry.js` 由 4925 行减至 3121 行（−1804，−37%）。新增 `phase-modules.test.js` 18 个契约测试；修复 1 个旧路径 bug（`speech-manager-integration.test.js` 引用了已迁移的 `src/main/ipc-registry.js`）。
+
+详见 [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) 第九节。
+
 ### 历史更新 - Web 管理面板 10 模块 + 4 主题
 
 v5.0.2.8 对 Vue3 Web 管理面板进行全面扩展，新增 6 个功能模块并引入 4 种颜色主题：
