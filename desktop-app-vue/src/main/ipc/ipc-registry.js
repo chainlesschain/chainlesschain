@@ -3004,96 +3004,17 @@ function registerAllIPC(dependencies) {
 
     // ============================================================
     // Phase 41: EvoMap GEP Protocol Integration (v1.0.0)
+    // Extracted to ./phases/phase-41-evomap-gep.js
     // ============================================================
-
-    safeRegister("EvoMap GEP Protocol IPC", {
-      register: () => {
-        const { getEvoMapClient } = require("../evomap/evomap-client");
-        const {
-          getEvoMapNodeManager,
-        } = require("../evomap/evomap-node-manager");
-        const {
-          getEvoMapGeneSynthesizer,
-        } = require("../evomap/evomap-gene-synthesizer");
-        const {
-          getEvoMapAssetBridge,
-        } = require("../evomap/evomap-asset-bridge");
-        const { registerEvoMapIPC } = require("../evomap/evomap-ipc");
-
-        const evoMapClient = getEvoMapClient();
-        const evoMapNodeManager = getEvoMapNodeManager();
-        const evoMapSynthesizer = getEvoMapGeneSynthesizer();
-        const evoMapBridge = getEvoMapAssetBridge();
-
-        const database = dependencies.database || null;
-        const hookSystem = dependencies.hookSystem || null;
-        const didManager = registeredModules.didManager || null;
-        const instinctManager = registeredModules.instinctManager || null;
-        const decisionKnowledgeBase =
-          registeredModules.decisionKnowledgeBase || null;
-        const promptOptimizer = registeredModules.promptOptimizer || null;
-        const skillRegistry = registeredModules.skillRegistry || null;
-
-        if (database) {
-          evoMapNodeManager
-            .initialize(database, didManager, hookSystem)
-            .catch((err) =>
-              logger.warn(
-                "[IPC Registry] EvoMapNodeManager init warning:",
-                err.message,
-              ),
-            );
-          evoMapSynthesizer
-            .initialize(
-              database,
-              instinctManager,
-              decisionKnowledgeBase,
-              promptOptimizer,
-            )
-            .catch((err) =>
-              logger.warn(
-                "[IPC Registry] EvoMapGeneSynthesizer init warning:",
-                err.message,
-              ),
-            );
-          evoMapBridge
-            .initialize({
-              database,
-              client: evoMapClient,
-              nodeManager: evoMapNodeManager,
-              synthesizer: evoMapSynthesizer,
-              skillRegistry,
-              instinctManager,
-              hookSystem,
-            })
-            .catch((err) =>
-              logger.warn(
-                "[IPC Registry] EvoMapAssetBridge init warning:",
-                err.message,
-              ),
-            );
-        }
-
-        if (registeredModules.contextEngineering) {
-          registeredModules.contextEngineering.setEvoMapBridge(evoMapBridge);
-        }
-
-        registerEvoMapIPC({
-          nodeManager: evoMapNodeManager,
-          client: evoMapClient,
-          synthesizer: evoMapSynthesizer,
-          bridge: evoMapBridge,
-        });
-
-        registeredModules.evoMapBridge = evoMapBridge;
-        registeredModules.evoMapNodeManager = evoMapNodeManager;
-        registeredModules.evoMapClient = evoMapClient;
-      },
-    });
-
-    logger.info("[IPC Registry] ========================================");
-    logger.info("[IPC Registry] Phase 41 Complete: EvoMap GEP Protocol ready!");
-    logger.info("[IPC Registry] ========================================");
+    {
+      const { registerPhase41 } = require("./phases/phase-41-evomap-gep");
+      registerPhase41({
+        safeRegister,
+        logger,
+        deps: dependencies,
+        registeredModules,
+      });
+    }
 
     // ============================================================
     // Phase 42: Social AI + ActivityPub Bridge (v1.1.0)
@@ -4569,82 +4490,17 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
-    // Phase 4 (2027 Q1): WebAuthn, ZKP, Federated Learning, IPFS Cluster, GraphQL API
+    // Phase 4 (2027 Q1): WebAuthn, ZKP, FL, IPFS Cluster, GraphQL API
+    // Extracted to ./phases/phase-q1-2027.js
     // ============================================================
-
-    // 🔐 WebAuthn / Passkey Manager (10 handlers)
-    safeRegister("WebAuthn IPC", {
-      register: () => {
-        const {
-          registerWebAuthnIPC,
-        } = require("../ai-engine/cowork/webauthn-ipc");
-        registerWebAuthnIPC({
-          database: database || null,
-          mainWindow: mainWindow || null,
-        });
-      },
-      handlers: 10,
-    });
-
-    // 🔒 Zero-Knowledge Proof (14 handlers)
-    safeRegister("ZKP IPC", {
-      register: () => {
-        const { registerZKPIPC } = require("../ai-engine/cowork/zkp-ipc");
-        registerZKPIPC({
-          database: database || null,
-          mainWindow: mainWindow || null,
-        });
-      },
-      handlers: 14,
-    });
-
-    // 🧠 Federated Learning (14 handlers)
-    safeRegister("Federated Learning IPC", {
-      register: () => {
-        const {
-          registerFederatedLearningIPC,
-        } = require("../ai-engine/cowork/federated-learning-ipc");
-        registerFederatedLearningIPC({
-          database: database || null,
-          mainWindow: mainWindow || null,
-        });
-      },
-      handlers: 14,
-    });
-
-    // 📦 IPFS Cluster (12 handlers)
-    safeRegister("IPFS Cluster IPC", {
-      register: () => {
-        const {
-          registerIPFSClusterIPC,
-        } = require("../ai-engine/cowork/ipfs-cluster-ipc");
-        registerIPFSClusterIPC({
-          database: database || null,
-          mainWindow: mainWindow || null,
-        });
-      },
-      handlers: 12,
-    });
-
-    // 🔗 GraphQL API (8 handlers)
-    safeRegister("GraphQL API IPC", {
-      register: () => {
-        const {
-          registerGraphQLIPC,
-        } = require("../ai-engine/cowork/graphql-ipc");
-        registerGraphQLIPC({
-          database: database || null,
-          mainWindow: mainWindow || null,
-        });
-      },
-      handlers: 8,
-    });
-
-    logger.info("[IPC Registry] ========================================");
-    logger.info(
-      "[IPC Registry] 2027 Q1 Complete: WebAuthn + ZKP + FL + IPFS Cluster + GraphQL (58 handlers)!",
-    );
-    logger.info("[IPC Registry] ========================================");
+    {
+      const { registerPhaseQ12027 } = require("./phases/phase-q1-2027");
+      registerPhaseQ12027({
+        safeRegister,
+        logger,
+        deps: dependencies,
+      });
+    }
 
     // ============================================================
     // 注册统计
