@@ -54,13 +54,14 @@ chainlesschain config features disable CONTEXT_SNIP # Disable feature
 
 **Test Coverage**: 334 tests (255 unit + 42 integration + 37 E2E), 12 test files, all passing.
 
-### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.24, 2026-04-07)
+### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.25, 2026-04-07)
 
 Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/main/ipc/ipc-registry.js` into `src/main/ipc/phases/`, grouped by version/batch.
 
 | File                                | Lines | Phases | Coverage                                                                |
 | ----------------------------------- | ----: | -----: | ----------------------------------------------------------------------- |
 | `phases/phase-9-15-core.js`         |   259 |      7 | Cowork, Workflow Optimizations, Audit, Marketplace, Agents, SSO, UnifiedTools |
+| `phases/phase-16-20-skill-evo.js`   |   494 |      5 | Skill Pipeline/Workflow, Instinct, Cowork v2 Cross-device, ML Sched/LB/CICD/Docs, Self-Evolution |
 | `phases/phase-21-30-enterprise.js`  |   295 |     10 | Enterprise Org, IPFS, Analytics, Autonomous, AutoTuner, Multimodal, Skill Marketplace, Trading, DeFi, Crypto |
 | `phases/phase-31-ai-models.js`      |   261 |      7 | Benchmark, MemAug, DualModel, Quant, FineTune, Whisper, FedLearn        |
 | `phases/phase-33-40-collab-ops.js`  |   553 |      8 | Git P2P, Yjs Collab, Pipeline, Anomaly, NL Spec, Multimodal, Wire-up, Decentralized Network |
@@ -70,7 +71,7 @@ Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/mai
 | `phases/phase-58-77-v2-v3.js`       |   757 |     20 | Federation, Reputation, Inference, Trust Root, Storage, EvoMap          |
 | `phases/phase-q1-2027.js`           |    89 |      5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                                |
 
-**Result**: `ipc-registry.js` shrank from 4925 → 2150 lines (**−2775, −56.3%**) across 9 extracted phase modules covering 74 phases. `phase-modules.test.js` now has 27 contract tests, all passing. Fixed 1 stale-path bug (`speech-manager-integration.test.js` referenced the old `src/main/ipc-registry.js` location).
+**Result**: `ipc-registry.js` shrank from 4925 → 1704 lines (**−3221, −65.4%**) across 10 extracted phase modules covering 79 phases. `phase-modules.test.js` now has 30 contract tests, all passing.
 
 See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) §9 for full details.
 
