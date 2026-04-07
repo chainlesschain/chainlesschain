@@ -54,12 +54,13 @@ chainlesschain config features disable CONTEXT_SNIP # Disable feature
 
 **Test Coverage**: 334 tests (255 unit + 42 integration + 37 E2E), 12 test files, all passing.
 
-### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.26, 2026-04-07)
+### Tech-Debt Cleanup - H2 IPC Registry Split (v0.45.27, 2026-04-07)
 
 Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/main/ipc/ipc-registry.js` into `src/main/ipc/phases/`, grouped by version/batch.
 
 | File                                | Lines | Phases | Coverage                                                                |
 | ----------------------------------- | ----: | -----: | ----------------------------------------------------------------------- |
+| `phases/phase-3-4-social.js`        |   306 |      2 | DID, P2P, Social (8 sub-modules), VC, Identity Context, Org, Dashboard  |
 | `phases/phase-5-project.js`         |   170 |      1 | Project Core/AI/Export/RAG/Git (5 sub-modules, 91 handlers)             |
 | `phases/phase-9-15-core.js`         |   259 |      7 | Cowork, Workflow Optimizations, Audit, Marketplace, Agents, SSO, UnifiedTools |
 | `phases/phase-16-20-skill-evo.js`   |   494 |      5 | Skill Pipeline/Workflow, Instinct, Cowork v2 Cross-device, ML Sched/LB/CICD/Docs, Self-Evolution |
@@ -72,7 +73,7 @@ Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/mai
 | `phases/phase-58-77-v2-v3.js`       |   757 |     20 | Federation, Reputation, Inference, Trust Root, Storage, EvoMap          |
 | `phases/phase-q1-2027.js`           |    89 |      5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                                |
 
-**Result**: `ipc-registry.js` shrank from 4925 → 1595 lines (**−3330, −67.6%**) across 11 extracted phase modules covering 80 phases. `phase-modules.test.js` now has 33 contract tests, all passing.
+**Result**: `ipc-registry.js` shrank from 4925 → 1340 lines (**−3585, −72.8%**) across 12 extracted phase modules covering 82 phases. `phase-modules.test.js` now has 36 contract tests, all passing.
 
 See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) §9 for full details.
 
