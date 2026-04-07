@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/trading-analytics.js`
 
-**Generated**: 2026-04-07T13:57:26.021Z
+**Generated**: 2026-04-07T14:29:14.642Z
 
 ---
 

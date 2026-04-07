@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/signal-session-manager.js`
 
-**Generated**: 2026-04-07T13:57:26.067Z
+**Generated**: 2026-04-07T14:29:14.691Z
 
 ---
 

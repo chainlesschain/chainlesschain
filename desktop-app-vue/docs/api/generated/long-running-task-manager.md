@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/cowork/long-running-task-manager.js`
 
-**Generated**: 2026-04-07T13:57:26.147Z
+**Generated**: 2026-04-07T14:29:14.779Z
 
 ---
 

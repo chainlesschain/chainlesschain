@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/sdk/http-server.js`
 
-**Generated**: 2026-04-07T13:57:26.077Z
+**Generated**: 2026-04-07T14:29:14.703Z
 
 ---
 

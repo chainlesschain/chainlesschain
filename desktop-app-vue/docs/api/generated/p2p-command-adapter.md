@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/p2p-command-adapter.js`
 
-**Generated**: 2026-04-07T13:57:26.048Z
+**Generated**: 2026-04-07T14:29:14.674Z
 
 ---
 
