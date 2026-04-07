@@ -5,6 +5,7 @@
 
 const { logger } = require("../utils/logger.js");
 const fs = require("fs");
+const fsp = require("fs").promises;
 const path = require("path");
 const { app } = require("electron");
 
@@ -44,6 +45,69 @@ class AppConfigManager {
     this.configPath = this.getConfigPath();
     this.config = { ...DEFAULT_CONFIG };
     this.loaded = false;
+  }
+
+  /**
+   * 异步加载配置（M2 启动期 IO 异步化）
+   * 使用 fs.promises 将 readFile/mkdir/writeFile 移出事件循环。
+   */
+  async loadAsync() {
+    try {
+      let exists = false;
+      try {
+        await fsp.access(this.configPath);
+        exists = true;
+      } catch {
+        exists = false;
+      }
+      if (exists) {
+        const content = await fsp.readFile(this.configPath, "utf-8");
+        const savedConfig = JSON.parse(content);
+        this.config = {
+          ...DEFAULT_CONFIG,
+          database: {
+            ...DEFAULT_CONFIG.database,
+            ...(savedConfig.database || {}),
+          },
+          app: { ...DEFAULT_CONFIG.app, ...(savedConfig.app || {}) },
+          logging: {
+            ...DEFAULT_CONFIG.logging,
+            ...(savedConfig.logging || {}),
+          },
+        };
+        this.loaded = true;
+        logger.info("[AppConfig] 配置异步加载成功");
+      } else {
+        logger.info("[AppConfig] 配置文件不存在，使用默认配置");
+        this.loaded = false;
+        await this.saveAsync();
+      }
+    } catch (error) {
+      logger.error("[AppConfig] 异步加载配置失败:", error);
+      this.config = { ...DEFAULT_CONFIG };
+      this.loaded = false;
+    }
+    return this.config;
+  }
+
+  /**
+   * 异步保存配置
+   */
+  async saveAsync() {
+    try {
+      const dir = path.dirname(this.configPath);
+      await fsp.mkdir(dir, { recursive: true });
+      await fsp.writeFile(
+        this.configPath,
+        JSON.stringify(this.config, null, 2),
+        "utf-8",
+      );
+      logger.info("[AppConfig] 配置异步保存成功");
+      return true;
+    } catch (error) {
+      logger.error("[AppConfig] 异步配置保存失败:", error);
+      return false;
+    }
   }
 
   /**
@@ -463,7 +527,24 @@ let instance = null;
 function getAppConfig() {
   if (!instance) {
     instance = new AppConfigManager();
+  }
+  if (!instance.loaded) {
     instance.load();
+  }
+  return instance;
+}
+
+/**
+ * 异步预热应用配置（M2 启动期 IO 异步化）
+ * 在 bootstrap 早期 await 此函数，可将 readFile/mkdir/writeFile 移出事件循环。
+ * 完成后，所有同步 getAppConfig() 将走快路径。
+ */
+async function prewarmAppConfig() {
+  if (!instance) {
+    instance = new AppConfigManager();
+  }
+  if (!instance.loaded) {
+    await instance.loadAsync();
   }
   return instance;
 }
@@ -471,5 +552,6 @@ function getAppConfig() {
 module.exports = {
   AppConfigManager,
   getAppConfig,
+  prewarmAppConfig,
   DEFAULT_CONFIG,
 };
