@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/message-manager.js`
 
-**Generated**: 2026-04-07T13:50:37.344Z
+**Generated**: 2026-04-07T13:57:26.068Z
 
 ---
 

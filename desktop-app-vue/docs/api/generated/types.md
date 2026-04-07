@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/types.js`
 
-**Generated**: 2026-04-07T13:50:37.292Z
+**Generated**: 2026-04-07T13:57:26.014Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/enhanced-handler-example.js`
 
-**Generated**: 2026-04-07T13:50:37.321Z
+**Generated**: 2026-04-07T13:57:26.042Z
 
 ---
 
