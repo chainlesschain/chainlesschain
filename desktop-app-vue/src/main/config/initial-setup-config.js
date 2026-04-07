@@ -1,6 +1,11 @@
 const { logger } = require("../utils/logger.js");
 const fs = require("fs");
+const fsp = fs.promises;
 const path = require("path");
+
+// M2: 启动期预热缓存。prewarmInitialSetupConfig() 异步加载文件后存入此 Map，
+// 之后的同步 InitialSetupConfig 构造将命中缓存而避免阻塞 IO。
+const _prewarmedConfigs = new Map();
 
 const DEFAULT_CONFIG = {
   setupCompleted: false,
@@ -26,6 +31,12 @@ const DEFAULT_CONFIG = {
 class InitialSetupConfig {
   constructor(userDataPath) {
     this.configPath = path.join(userDataPath, "initial-setup-config.json");
+    // M2: 命中预热缓存则跳过同步加载
+    if (_prewarmedConfigs.has(this.configPath)) {
+      this.config = _prewarmedConfigs.get(this.configPath);
+      _prewarmedConfigs.delete(this.configPath);
+      return;
+    }
     this.config = this.load();
   }
 
@@ -164,4 +175,26 @@ class InitialSetupConfig {
   }
 }
 
+/**
+ * M2: 异步预热入口。bootstrap 早期 await 此函数后，
+ * 后续 `new InitialSetupConfig(userDataPath)` 将命中缓存避免阻塞 IO。
+ */
+async function prewarmInitialSetupConfig(userDataPath) {
+  const cfgPath = path.join(userDataPath, "initial-setup-config.json");
+  if (_prewarmedConfigs.has(cfgPath)) {
+    return;
+  }
+  const defaultConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  try {
+    const data = await fsp.readFile(cfgPath, "utf8");
+    _prewarmedConfigs.set(cfgPath, { ...defaultConfig, ...JSON.parse(data) });
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      logger.error("[InitialSetupConfig] 异步预热失败:", error.message);
+    }
+    _prewarmedConfigs.set(cfgPath, defaultConfig);
+  }
+}
+
 module.exports = InitialSetupConfig;
+module.exports.prewarmInitialSetupConfig = prewarmInitialSetupConfig;
