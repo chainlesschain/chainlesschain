@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/python-bridge.js`
 
-**Generated**: 2026-04-07T12:54:59.235Z
+**Generated**: 2026-04-07T13:28:22.971Z
 
 ---
 

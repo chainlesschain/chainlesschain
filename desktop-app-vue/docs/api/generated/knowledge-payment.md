@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/knowledge-payment.js`
 
-**Generated**: 2026-04-07T12:54:59.198Z
+**Generated**: 2026-04-07T13:28:22.935Z
 
 ---
 

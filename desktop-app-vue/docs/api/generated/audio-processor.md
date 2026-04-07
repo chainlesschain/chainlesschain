@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/audio-processor.js`
 
-**Generated**: 2026-04-07T12:54:59.207Z
+**Generated**: 2026-04-07T13:28:22.943Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/logging/batched-command-logger.js`
 
-**Generated**: 2026-04-07T12:54:59.229Z
+**Generated**: 2026-04-07T13:28:22.964Z
 
 ---
 
