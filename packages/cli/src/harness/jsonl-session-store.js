@@ -143,10 +143,18 @@ export function listJsonlSessions(options = {}) {
         updated_at: lastEvent
           ? new Date(lastEvent.timestamp).toISOString()
           : "",
+        _lastTs: lastEvent?.timestamp || 0,
+        _eventCount: events.length,
       };
     })
-    .sort((a, b) => (b.updated_at > a.updated_at ? 1 : -1))
-    .slice(0, limit);
+    .sort((a, b) => {
+      // Primary: numeric timestamp descending
+      if (b._lastTs !== a._lastTs) return b._lastTs - a._lastTs;
+      // Tiebreak when ms collides: more events = more recent activity
+      return b._eventCount - a._eventCount;
+    })
+    .slice(0, limit)
+    .map(({ _lastTs, _eventCount, ...rest }) => rest);
 
   return files;
 }

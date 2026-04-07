@@ -53,6 +53,7 @@ export class BackgroundTaskManager extends EventEmitter {
     this.tasks = new Map();
     this.processes = new Map();
     this._checkInterval = null;
+    this._createSeq = 0;
     if (options.recoverOnStart) {
       this._loadPersistedTasks({
         recoverPending: options.recoverPending !== false,
@@ -87,6 +88,7 @@ export class BackgroundTaskManager extends EventEmitter {
       recoverySourceStatus: null,
       ownerNodeId: spec.ownerNodeId || this.nodeId,
       recoveryDecision: null,
+      _seq: ++this._createSeq,
     };
 
     this._recordHistory(task, "created", {
@@ -199,7 +201,11 @@ export class BackgroundTaskManager extends EventEmitter {
     if (filter.status) {
       tasks = tasks.filter((task) => task.status === filter.status);
     }
-    return tasks.sort((a, b) => b.createdAt - a.createdAt);
+    return tasks.sort((a, b) => {
+      if (b.createdAt !== a.createdAt) return b.createdAt - a.createdAt;
+      // Tiebreak: insertion sequence (newer = higher _seq)
+      return (b._seq || 0) - (a._seq || 0);
+    });
   }
 
   stop(taskId) {
