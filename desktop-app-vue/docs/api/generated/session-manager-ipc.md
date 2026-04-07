@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/session-manager-ipc.js`
 
-**Generated**: 2026-04-07T12:46:29.396Z
+**Generated**: 2026-04-07T12:54:59.259Z
 
 ---
 

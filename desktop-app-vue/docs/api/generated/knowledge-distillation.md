@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/knowledge-distillation.js`
 
-**Generated**: 2026-04-07T12:46:29.453Z
+**Generated**: 2026-04-07T12:54:59.320Z
 
 ---
 

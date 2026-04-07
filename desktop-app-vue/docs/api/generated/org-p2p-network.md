@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/org-p2p-network.js`
 
-**Generated**: 2026-04-07T12:46:29.387Z
+**Generated**: 2026-04-07T12:54:59.247Z
 
 ---
 

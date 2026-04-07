@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/ai-engine-ipc.js`
 
-**Generated**: 2026-04-07T12:46:29.458Z
+**Generated**: 2026-04-07T12:54:59.326Z
 
 ---
 
