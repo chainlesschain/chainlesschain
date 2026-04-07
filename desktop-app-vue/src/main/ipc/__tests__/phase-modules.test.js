@@ -19,6 +19,15 @@ const require = createRequire(import.meta.url);
 
 const PHASE_MODULES = [
   {
+    file: "../phases/phase-3-4-social",
+    exportName: "registerPhases3to4Social",
+    // 9 unconditional safeRegister calls (Social, Call, Album, Social Collab,
+    // Community, Time Machine, Livestream, Future Social, Organization).
+    // 6 others are gated on non-null managers and won't fire with stub deps.
+    expectedRegistrations: 9,
+    needsRegisteredModules: true,
+  },
+  {
     file: "../phases/phase-5-project",
     exportName: "registerPhase5Project",
     expectedRegistrations: 5, // Project Core/AI/Export/RAG/Git
