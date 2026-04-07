@@ -102,13 +102,14 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 
 **测试覆盖**：334 个测试（255 单元 + 42 集成 + 37 E2E），12 个测试文件，全部通过。
 
-### 技术债清理 - H2 IPC Registry 拆分 (v0.45.28, 2026-04-07)
+### 技术债清理 - H2 IPC Registry 拆分 (v0.45.29, 2026-04-07)
 
 将 `desktop-app-vue/src/main/ipc/ipc-registry.js` 后半段独立的 Phase 注册块抽出到 `src/main/ipc/phases/` 子目录，按版本/批次分组。
 
 | 文件                                | 行数 | Phase 数 | 涵盖内容                                                                |
 | ----------------------------------- | ---: | -------: | ----------------------------------------------------------------------- |
 | `phases/phase-1-ai.js`              |  393 |        1 | LLM, PermanentMemory, Hooks, Plan/Skills, Context Eng, Token/Stream, Team Task, Permission, RAG, Browser (22 regs) |
+| `phases/phase-2-core.js`            |  135 |        1 | U-Key, Database, Git + critical early IPC (MCP basic config, System early, Notification early) — 6 regs |
 | `phases/phase-3-4-social.js`        |  306 |        2 | DID, P2P, Social (8 sub-modules), VC, Identity Context, Org, Dashboard  |
 | `phases/phase-5-project.js`         |  170 |        1 | Project Core/AI/Export/RAG/Git (5 sub-modules, 91 handlers)             |
 | `phases/phase-9-15-core.js`         |  259 |        7 | Cowork, Workflow Optimizations, Audit, Marketplace, Agents, SSO, UnifiedTools |
@@ -122,7 +123,7 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 | `phases/phase-58-77-v2-v3.js`       |  757 |       20 | Federation, Reputation, Inference, Trust Root, Storage, EvoMap          |
 | `phases/phase-q1-2027.js`           |   89 |        5 | WebAuthn, ZKP, FL, IPFS Cluster, GraphQL                                |
 
-**效果**：`ipc-registry.js` 由 4925 行减至 991 行（**−3934，−79.9%**），共抽出 13 个 Phase 模块、83 个 Phase。`phase-modules.test.js` 累计 39 个契约测试全部通过。
+**效果**：`ipc-registry.js` 由 4925 行减至 899 行（**−4026，−81.7%**），共抽出 14 个 Phase 模块、84 个 Phase。`phase-modules.test.js` 累计 42 个契约测试全部通过。
 
 详见 [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) 第九节。
 
