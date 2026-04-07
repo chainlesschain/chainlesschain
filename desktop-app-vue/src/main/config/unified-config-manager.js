@@ -32,6 +32,8 @@ import fs from "fs";
 import path from "path";
 import { app } from "electron";
 
+const fsp = fs.promises;
+
 /**
  * 获取配置目录路径
  * 优先使用 Electron 的 userData 目录，确保开发和生产环境一致
@@ -100,6 +102,10 @@ class UnifiedConfigManager {
    * - 合并环境变量
    */
   initialize() {
+    if (this._initialized) {
+      return;
+    }
+
     // 0. 尝试从项目根目录迁移配置
     this.migrateFromProjectRoot();
 
@@ -112,8 +118,151 @@ class UnifiedConfigManager {
     // 3. 验证配置
     this.validateConfig();
 
+    this._initialized = true;
     logger.info("[UnifiedConfigManager] 配置已加载");
     logger.info("[UnifiedConfigManager] 配置目录:", this.configDir);
+  }
+
+  /**
+   * 异步初始化（M2 启动期 IO 异步化）
+   * 使用 fs.promises 将 mkdir / 迁移 / 读取 操作移出事件循环。
+   * 完成后，后续 getUnifiedConfigManager() 的同步调用将走快路径。
+   */
+  async initializeAsync() {
+    if (this._initialized) {
+      return;
+    }
+
+    await this.migrateFromProjectRootAsync();
+    await this.ensureDirectoryStructureAsync();
+    await this.loadConfigAsync();
+    this.validateConfig();
+
+    this._initialized = true;
+    logger.info("[UnifiedConfigManager] 配置已异步加载");
+    logger.info("[UnifiedConfigManager] 配置目录:", this.configDir);
+  }
+
+  async migrateFromProjectRootAsync() {
+    try {
+      if (await this._existsAsync(this.configPath)) {
+        return;
+      }
+      const oldConfigPath = path.join(this.projectRootConfigDir, "config.json");
+      const oldRulesPath = path.join(this.projectRootConfigDir, "rules.md");
+      if (!(await this._existsAsync(oldConfigPath))) {
+        return;
+      }
+      logger.info(
+        "[UnifiedConfigManager] 检测到项目根目录的旧配置，开始异步迁移...",
+      );
+      await fsp.mkdir(this.configDir, { recursive: true });
+      await fsp.copyFile(oldConfigPath, this.configPath);
+      if (await this._existsAsync(oldRulesPath)) {
+        await fsp.copyFile(oldRulesPath, this.paths.rules);
+      }
+      await this._migrateDirectoryAsync(
+        path.join(this.projectRootConfigDir, "memory"),
+        this.paths.memory,
+      );
+      logger.info("[UnifiedConfigManager] 配置迁移完成");
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 异步迁移失败:", error);
+    }
+  }
+
+  async _migrateDirectoryAsync(srcDir, destDir) {
+    if (!(await this._existsAsync(srcDir))) {
+      return;
+    }
+    await fsp.mkdir(destDir, { recursive: true });
+    const items = await fsp.readdir(srcDir);
+    for (const item of items) {
+      const srcPath = path.join(srcDir, item);
+      const destPath = path.join(destDir, item);
+      const stat = await fsp.stat(srcPath);
+      if (stat.isDirectory()) {
+        await this._migrateDirectoryAsync(srcPath, destPath);
+      } else if (stat.isFile() && !(await this._existsAsync(destPath))) {
+        await fsp.copyFile(srcPath, destPath);
+      }
+    }
+  }
+
+  async ensureDirectoryStructureAsync() {
+    const filePaths = ["config", "rules"];
+    const dirEntries = Object.entries(this.paths).filter(
+      ([key]) => !filePaths.includes(key),
+    );
+    await Promise.all(
+      dirEntries.map(async ([, dirPath]) => {
+        await fsp.mkdir(dirPath, { recursive: true });
+      }),
+    );
+
+    if (!(await this._existsAsync(this.configPath))) {
+      let examplePath = path.join(this.configDir, "config.json.example");
+      if (!(await this._existsAsync(examplePath))) {
+        examplePath = path.join(
+          this.projectRootConfigDir,
+          "config.json.example",
+        );
+      }
+      if (await this._existsAsync(examplePath)) {
+        await fsp.copyFile(examplePath, this.configPath);
+        logger.info("[UnifiedConfigManager] 已从模板创建配置文件");
+      } else {
+        await fsp.writeFile(
+          this.configPath,
+          JSON.stringify(this.getDefaultConfig(), null, 2),
+          "utf-8",
+        );
+        logger.info("[UnifiedConfigManager] 已创建默认配置文件");
+      }
+    }
+
+    // .gitkeep 在后台异步处理（不阻塞启动）
+    setImmediate(() => {
+      try {
+        this.createGitkeepFiles();
+      } catch (_e) {
+        /* 非关键 */
+      }
+    });
+  }
+
+  async loadConfigAsync() {
+    try {
+      const configContent = await fsp.readFile(this.configPath, "utf-8");
+      const fileConfig = JSON.parse(configContent);
+      const envConfig = this.getEnvConfig();
+      this.config = this.mergeConfigs(
+        this.getDefaultConfig(),
+        fileConfig,
+        envConfig,
+      );
+      try {
+        await fsp.writeFile(
+          this.configPath,
+          JSON.stringify(this.config, null, 2),
+          "utf-8",
+        );
+      } catch (_e) {
+        /* 保存失败不影响启动 */
+      }
+    } catch (error) {
+      logger.error("[UnifiedConfigManager] 异步加载配置失败:", error);
+      this.config = this.getDefaultConfig();
+    }
+  }
+
+  async _existsAsync(p) {
+    try {
+      await fsp.access(p);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -997,7 +1146,24 @@ let unifiedConfigInstance = null;
 function getUnifiedConfigManager() {
   if (!unifiedConfigInstance) {
     unifiedConfigInstance = new UnifiedConfigManager();
+  }
+  if (!unifiedConfigInstance._initialized) {
     unifiedConfigInstance.initialize();
+  }
+  return unifiedConfigInstance;
+}
+
+/**
+ * 异步预热统一配置管理器（M2 启动期 IO 异步化）
+ * 在 bootstrap 早期 await 此函数，可将 mkdir/迁移/读取移出事件循环。
+ * 完成后，所有同步 getUnifiedConfigManager() 将走快路径。
+ */
+async function prewarmUnifiedConfigManager() {
+  if (!unifiedConfigInstance) {
+    unifiedConfigInstance = new UnifiedConfigManager();
+  }
+  if (!unifiedConfigInstance._initialized) {
+    await unifiedConfigInstance.initializeAsync();
   }
   return unifiedConfigInstance;
 }
@@ -1016,6 +1182,7 @@ function getCurrentConfigDir() {
 export {
   UnifiedConfigManager,
   getUnifiedConfigManager,
+  prewarmUnifiedConfigManager,
   getConfigDir,
   getCurrentConfigDir,
 };
