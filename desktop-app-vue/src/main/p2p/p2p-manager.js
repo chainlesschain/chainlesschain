@@ -564,25 +564,33 @@ class P2PManager extends EventEmitter {
 
     const peerIdPath = path.join(this.config.dataPath, "peer-id.json");
 
+    // M2: 异步加载 PeerId，避免阻塞事件循环
     try {
-      // 尝试加载现有 PeerId
-      if (fs.existsSync(peerIdPath)) {
-        const peerIdJSON = JSON.parse(fs.readFileSync(peerIdPath, "utf8"));
-        logger.info("[P2PManager] 加载现有 PeerId");
-        return await createFromJSON(peerIdJSON);
-      }
+      const peerIdJSON = JSON.parse(
+        await fs.promises.readFile(peerIdPath, "utf8"),
+      );
+      logger.info("[P2PManager] 加载现有 PeerId");
+      return await createFromJSON(peerIdJSON);
     } catch (error) {
-      logger.warn("[P2PManager] 加载 PeerId 失败，将生成新的:", error.message);
+      if (error.code !== "ENOENT") {
+        logger.warn(
+          "[P2PManager] 加载 PeerId 失败，将生成新的:",
+          error.message,
+        );
+      }
     }
 
-    // 生成新 PeerId 并保存
+    // 生成新 PeerId 并异步保存
     logger.info("[P2PManager] 生成新 PeerId");
     const peerId = await createEd25519PeerId();
 
     try {
-      fs.mkdirSync(path.dirname(peerIdPath), { recursive: true });
-      fs.writeFileSync(peerIdPath, JSON.stringify(peerId.toJSON(), null, 2));
-      logger.info("[P2PManager] PeerId 已保存到:", peerIdPath);
+      await fs.promises.mkdir(path.dirname(peerIdPath), { recursive: true });
+      await fs.promises.writeFile(
+        peerIdPath,
+        JSON.stringify(peerId.toJSON(), null, 2),
+      );
+      logger.info("[P2PManager] PeerId 已异步保存到:", peerIdPath);
     } catch (error) {
       logger.warn("[P2PManager] 保存 PeerId 失败:", error.message);
     }
@@ -2085,10 +2093,10 @@ class P2PManager extends EventEmitter {
             name: currentDevice.deviceName || os.hostname(),
             platform: `${os.platform()} ${os.release()}`,
           },
-          "DESKTOP"
+          "DESKTOP",
         );
         logger.info(
-          `[P2PManager] 本地设备已注册到信令服务器: ${currentDevice.deviceId}`
+          `[P2PManager] 本地设备已注册到信令服务器: ${currentDevice.deviceId}`,
         );
       }
 
