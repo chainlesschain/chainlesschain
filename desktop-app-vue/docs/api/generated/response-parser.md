@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/response-parser.js`
 
-**Generated**: 2026-04-07T12:46:29.453Z
+**Generated**: 2026-04-07T12:54:59.319Z
 
 ---
 

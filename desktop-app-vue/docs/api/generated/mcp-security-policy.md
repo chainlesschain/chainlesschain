@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-security-policy.js`
 
-**Generated**: 2026-04-07T12:46:29.391Z
+**Generated**: 2026-04-07T12:54:59.253Z
 
 ---
 

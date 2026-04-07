@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/credit-score.js`
 
-**Generated**: 2026-04-07T12:46:29.340Z
+**Generated**: 2026-04-07T12:54:59.198Z
 
 ---
 
