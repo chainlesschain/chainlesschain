@@ -815,6 +815,19 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.2.10 Minimal Coding Agent ⭐NEW",
+          items: [
+            {
+              text: "Minimal Coding Agent 实施计划",
+              link: "/chainlesschain/minimal-coding-agent-plan",
+            },
+            {
+              text: "CLI Agent Runtime 重构计划",
+              link: "/chainlesschain/cli-agent-runtime-plan",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },

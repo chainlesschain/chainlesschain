@@ -132,6 +132,8 @@ const MODULE_FILE_MAP = {
   "74_AI编排层系统.md": "m74-orchestration-layer.md",
   "75_Web管理面板.md": "m75-web-panel.md",
   "76_技能创建系统.md": "m76-skill-creator.md",
+  "77_Agent架构优化系统.md": "m77-agent-optimization.md",
+  "78_CLI_Agent_Runtime重构实施计划.md": "m78-cli-agent-runtime.md",
 };
 
 /**

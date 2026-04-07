@@ -47,6 +47,12 @@
 ### 想要了解技术选型？
 → 查看 [LOCAL_VS_AI_SERVICE_ANALYSIS.md](./LOCAL_VS_AI_SERVICE_ANALYSIS.md)
 
+### Coding Agent 实施计划
+- [MINIMAL_CODING_AGENT_IMPLEMENTATION_PLAN.md](./MINIMAL_CODING_AGENT_IMPLEMENTATION_PLAN.md) - 最小 Coding Agent 实施计划
+  - 架构决策
+  - 分阶段实施
+  - 文件映射与验收标准
+
 ---
 
 **最后更新**: 2026-01-09

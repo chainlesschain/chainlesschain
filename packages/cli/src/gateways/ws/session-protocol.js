@@ -9,9 +9,8 @@ async function ensureSessionHandler(server, ws, session) {
     return server.sessionHandlers.get(session.id);
   }
 
-  const { WebSocketInteractionAdapter } = await import(
-    "../../lib/interaction-adapter.js"
-  );
+  const { WebSocketInteractionAdapter } =
+    await import("../../lib/interaction-adapter.js");
   session.interaction = new WebSocketInteractionAdapter(ws, session.id);
 
   let handler;
@@ -45,8 +44,16 @@ export async function handleSessionCreate(server, id, ws, message) {
     return;
   }
 
-  const { sessionType, provider, model, apiKey, baseUrl, projectRoot } =
-    message;
+  const {
+    sessionType,
+    provider,
+    model,
+    apiKey,
+    baseUrl,
+    projectRoot,
+    hostManagedToolPolicy,
+    worktreeIsolation,
+  } = message;
 
   try {
     const { sessionId } = server.sessionManager.createSession({
@@ -56,6 +63,8 @@ export async function handleSessionCreate(server, id, ws, message) {
       apiKey,
       baseUrl,
       projectRoot,
+      hostManagedToolPolicy,
+      worktreeIsolation,
     });
 
     const session = server.sessionManager.getSession(sessionId);
@@ -65,6 +74,9 @@ export async function handleSessionCreate(server, id, ws, message) {
       provider,
       model,
       projectRoot: projectRoot || null,
+      baseProjectRoot: session?.baseProjectRoot || projectRoot || null,
+      worktreeIsolation: worktreeIsolation === true,
+      worktree: session?.worktree || null,
       status: "created",
     });
 
@@ -151,14 +163,14 @@ export async function handleSessionResume(server, id, ws, message) {
     RUNTIME_EVENTS.SESSION_RESUME,
     createRuntimeEvent(
       RUNTIME_EVENTS.SESSION_RESUME,
-        {
-          sessionId: session.id,
-          historyCount: history.length,
-          sessionType: session.type || null,
-          record,
-        },
-        { kind: "server", sessionId: session.id },
-      ),
+      {
+        sessionId: session.id,
+        historyCount: history.length,
+        sessionType: session.type || null,
+        record,
+      },
+      { kind: "server", sessionId: session.id },
+    ),
   );
 
   server._send(ws, {
@@ -216,6 +228,44 @@ export function handleSessionMessage(server, id, ws, message) {
         message: err.message,
       });
     });
+}
+
+export function handleSessionPolicyUpdate(server, id, ws, message) {
+  const { sessionId, hostManagedToolPolicy } = message;
+
+  if (!server.sessionManager) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "NO_SESSION_SUPPORT",
+      message: "Session support not configured",
+    });
+    return;
+  }
+
+  const session = server.sessionManager.updateSessionPolicy
+    ? server.sessionManager.updateSessionPolicy(
+        sessionId,
+        hostManagedToolPolicy,
+      )
+    : null;
+
+  if (!session) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "SESSION_NOT_FOUND",
+      message: `Session not found: ${sessionId}`,
+    });
+    return;
+  }
+
+  server._send(ws, {
+    id,
+    type: "session-policy-updated",
+    success: true,
+    sessionId,
+  });
 }
 
 export function handleSessionList(server, id, ws) {
@@ -304,6 +354,42 @@ export function handleSessionAnswer(server, id, ws, message) {
   const session = server.sessionManager.getSession(sessionId);
   if (session && session.interaction && session.interaction.resolveAnswer) {
     session.interaction.resolveAnswer(requestId, answer);
+  }
+
+  server._send(ws, { id, type: "result", success: true });
+}
+
+export function handleHostToolResult(server, id, ws, message) {
+  const { sessionId, requestId, success, result, error, toolName } = message;
+
+  if (!server.sessionManager) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "NO_SESSION_SUPPORT",
+      message: "Session support not configured",
+    });
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session || !session.interaction) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "SESSION_NOT_FOUND",
+      message: `Session not found: ${sessionId}`,
+    });
+    return;
+  }
+
+  if (typeof session.interaction.resolveHostTool === "function") {
+    session.interaction.resolveHostTool(requestId, {
+      success: success !== false,
+      result,
+      error: error || null,
+      toolName: toolName || null,
+    });
   }
 
   server._send(ws, { id, type: "result", success: true });

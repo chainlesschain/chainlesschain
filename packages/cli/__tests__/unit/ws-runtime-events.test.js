@@ -2,8 +2,11 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../../src/lib/worktree-isolator.js", () => ({
   diffWorktree: vi.fn(() => ({
-    files: [{ path: "README.md", insertions: 2, deletions: 1, status: "modified" }],
+    files: [
+      { path: "README.md", insertions: 2, deletions: 1, status: "modified" },
+    ],
     summary: { filesChanged: 1, insertions: 2, deletions: 1 },
+    diff: "diff --git a/README.md b/README.md\n+updated\n",
   })),
   mergeWorktree: vi.fn(() => ({
     success: true,
@@ -12,6 +15,7 @@ vi.mock("../../src/lib/worktree-isolator.js", () => ({
     summary: { conflictedFiles: 0 },
     conflicts: [],
     previewEntrypoints: [],
+    suggestions: [],
   })),
 }));
 
@@ -23,14 +27,14 @@ vi.mock("../../src/lib/compression-telemetry.js", () => ({
   })),
 }));
 
-import {
-  RUNTIME_EVENTS,
-} from "../../src/runtime/runtime-events.js";
+import { RUNTIME_EVENTS } from "../../src/runtime/runtime-events.js";
 import {
   handleSessionCreate,
   handleSessionResume,
   handleSessionMessage,
+  handleSessionPolicyUpdate,
   handleSessionClose,
+  handleHostToolResult,
 } from "../../src/gateways/ws/session-protocol.js";
 import {
   handleWorktreeDiff,
@@ -39,26 +43,36 @@ import {
 } from "../../src/gateways/ws/worktree-protocol.js";
 
 function createServer() {
+  const session = {
+    id: "sess-1",
+    type: "agent",
+    messages: [{ role: "user", content: "hello" }],
+    interaction: {
+      resolveHostTool: vi.fn(),
+    },
+  };
+
   return {
     emit: vi.fn(),
     _send: vi.fn(),
     sessionHandlers: new Map(),
     sessionManager: {
       createSession: vi.fn(() => ({ sessionId: "sess-1" })),
-      getSession: vi.fn(() => ({
-        id: "sess-1",
-        type: "agent",
-        messages: [{ role: "user", content: "hello" }],
-      })),
-      resumeSession: vi.fn(() => ({
-        id: "sess-1",
-        type: "agent",
-        messages: [{ role: "user", content: "hello" }],
-      })),
+      getSession: vi.fn(() => session),
+      resumeSession: vi.fn(() => session),
       closeSession: vi.fn(),
+      updateSessionPolicy: vi.fn(() => ({
+        id: "sess-1",
+        hostManagedToolPolicy: {
+          tools: {
+            run_shell: { allowed: false, decision: "require_confirmation" },
+          },
+        },
+      })),
       persistMessages: vi.fn(),
       db: null,
     },
+    _session: session,
   };
 }
 
@@ -76,6 +90,7 @@ describe("ws runtime event emission", () => {
       sessionType: "agent",
       provider: "openai",
       model: "gpt-4o-mini",
+      worktreeIsolation: true,
     });
 
     await handleSessionResume(server, "req-2", ws, {
@@ -111,6 +126,7 @@ describe("ws runtime event emission", () => {
             id: "sess-1",
             type: "agent",
             status: "created",
+            worktreeIsolation: true,
           }),
         }),
       }),
@@ -178,6 +194,7 @@ describe("ws runtime event emission", () => {
         type: "worktree:diff:ready",
         payload: expect.objectContaining({
           requestId: "req-5",
+          diff: expect.stringContaining("diff --git"),
           record: expect.objectContaining({
             branch: "agent/task-1",
           }),
@@ -190,6 +207,7 @@ describe("ws runtime event emission", () => {
         type: "worktree:merge:completed",
         payload: expect.objectContaining({
           requestId: "req-6",
+          suggestions: [],
           record: expect.objectContaining({
             branch: "agent/task-1",
           }),
@@ -211,6 +229,73 @@ describe("ws runtime event emission", () => {
             model: "gpt-4o-mini",
           }),
         }),
+      }),
+    );
+  });
+
+  it("acknowledges host-managed session policy updates", () => {
+    handleSessionPolicyUpdate(server, "req-8", ws, {
+      sessionId: "sess-1",
+      hostManagedToolPolicy: {
+        tools: {
+          run_shell: { allowed: false, decision: "require_confirmation" },
+        },
+      },
+    });
+
+    expect(server.sessionManager.updateSessionPolicy).toHaveBeenCalledWith(
+      "sess-1",
+      {
+        tools: {
+          run_shell: { allowed: false, decision: "require_confirmation" },
+        },
+      },
+    );
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-8",
+      type: "session-policy-updated",
+      success: true,
+      sessionId: "sess-1",
+    });
+  });
+
+  it("acknowledges host tool results and resolves the pending interaction", () => {
+    handleHostToolResult(server, "req-9", ws, {
+      sessionId: "sess-1",
+      requestId: "host-tool-1",
+      toolName: "mcp_weather_get_forecast",
+      success: true,
+      result: { forecast: "sunny" },
+    });
+
+    expect(server._session.interaction.resolveHostTool).toHaveBeenCalledWith(
+      "host-tool-1",
+      {
+        success: true,
+        result: { forecast: "sunny" },
+        error: null,
+        toolName: "mcp_weather_get_forecast",
+      },
+    );
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-9",
+      type: "result",
+      success: true,
+    });
+  });
+
+  it("passes worktree isolation through session creation", async () => {
+    await handleSessionCreate(server, "req-10", ws, {
+      sessionType: "agent",
+      projectRoot: "/repo",
+      worktreeIsolation: true,
+    });
+
+    expect(server.sessionManager.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent",
+        projectRoot: "/repo",
+        worktreeIsolation: true,
       }),
     );
   });

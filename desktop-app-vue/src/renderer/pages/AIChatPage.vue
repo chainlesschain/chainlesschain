@@ -217,13 +217,84 @@
                 Agent
               </a-button>
             </a-tooltip>
+            <a-tooltip v-if="agentMode" :title="worktreeIsolationTooltip">
+              <a-button
+                :type="worktreeIsolationEnabled ? 'primary' : 'default'"
+                size="small"
+                @click="toggleWorktreeIsolation"
+              >
+                Worktree
+              </a-button>
+            </a-tooltip>
+            <a-button
+              v-if="agentMode && currentSessionWorktreeIsolation"
+              size="small"
+              :loading="
+                codingAgentStore.worktreeLoading && worktreeReviewVisible
+              "
+              @click="handleOpenWorktreeReview"
+            >
+              Review
+            </a-button>
+            <a-button
+              v-if="agentMode"
+              size="small"
+              @click="handleEnterPlanMode"
+            >
+              {{ planActionLabel }}
+            </a-button>
+            <a-tooltip v-if="pendingPlanSummary" :title="pendingPlanSummary">
+              <a-button type="primary" size="small" @click="handleApprovePlan">
+                Approve
+              </a-button>
+            </a-tooltip>
+            <a-button
+              v-if="pendingPlanSummary"
+              danger
+              size="small"
+              @click="handleRejectPlan"
+            >
+              Reject
+            </a-button>
           </div>
+          <a-alert
+            v-if="currentWorktreeAlert"
+            class="coding-agent-alert"
+            type="info"
+            show-icon
+            message="Isolated workspace active"
+            :description="currentWorktreeAlert"
+          />
+          <a-alert
+            v-else-if="currentBlockedTool"
+            class="coding-agent-alert"
+            type="warning"
+            show-icon
+            :message="`Blocked tool: ${currentBlockedTool.toolName || 'unknown'}`"
+            :description="blockedToolDescription"
+          />
+          <a-alert
+            v-else-if="needsHighRiskConfirmation"
+            class="coding-agent-alert"
+            type="warning"
+            show-icon
+            message="High-risk confirmation required"
+            :description="highRiskConfirmationDescription"
+          />
+          <a-alert
+            v-else-if="currentApprovalRequest"
+            class="coding-agent-alert"
+            type="info"
+            show-icon
+            message="Plan approval required"
+            :description="approvalRequestDescription"
+          />
           <ConversationInput
             ref="inputRef"
             :placeholder="inputPlaceholder"
             :disabled="isThinking"
             :show-hint="true"
-            @submit="handleSubmitMessage"
+            @submit="handleSubmitAgentAwareMessage"
             @file-upload="handleFileUpload"
           />
         </div>
@@ -242,6 +313,485 @@
         placeholder="输入新的对话标题"
         @press-enter="handleRenameConfirm"
       />
+    </a-modal>
+    <a-modal
+      v-model:open="worktreeReviewVisible"
+      :title="worktreeReviewTitle"
+      width="820px"
+      :footer="null"
+    >
+      <div class="worktree-review">
+        <div class="worktree-review-actions">
+          <a-button
+            size="small"
+            :loading="codingAgentStore.worktreeLoading"
+            @click="handleRefreshWorktreeReview"
+          >
+            Refresh
+          </a-button>
+          <a-button
+            type="primary"
+            size="small"
+            :loading="worktreeMergeSubmitting"
+            @click="handleMergeCurrentWorktree"
+          >
+            Merge
+          </a-button>
+        </div>
+        <a-alert
+          class="coding-agent-alert"
+          type="info"
+          show-icon
+          message="Session worktree"
+          :description="
+            currentWorktreeAlert ||
+            'This session is using a dedicated worktree.'
+          "
+        />
+        <a-descriptions
+          bordered
+          size="small"
+          :column="1"
+          class="worktree-review-meta"
+        >
+          <a-descriptions-item label="Branch">
+            {{ currentSessionWorktreeBranch || "-" }}
+          </a-descriptions-item>
+          <a-descriptions-item label="Base branch">
+            {{ currentSessionWorktree?.baseBranch || "HEAD" }}
+          </a-descriptions-item>
+          <a-descriptions-item label="Workspace path">
+            {{ currentSessionWorktree?.path || "-" }}
+          </a-descriptions-item>
+        </a-descriptions>
+        <div class="worktree-review-section">
+          <div class="worktree-review-section-title">Diff summary</div>
+          <div class="worktree-summary-grid">
+            <div class="worktree-summary-card">
+              <span class="worktree-summary-label">Files</span>
+              <strong>
+                {{
+                  currentWorktreeDiffSummary?.filesChanged ??
+                  currentWorktreeDiffFiles.length
+                }}
+              </strong>
+            </div>
+            <div class="worktree-summary-card">
+              <span class="worktree-summary-label">Insertions</span>
+              <strong>
+                {{ currentWorktreeDiffSummary?.insertions ?? 0 }}
+              </strong>
+            </div>
+            <div class="worktree-summary-card">
+              <span class="worktree-summary-label">Deletions</span>
+              <strong>
+                {{ currentWorktreeDiffSummary?.deletions ?? 0 }}
+              </strong>
+            </div>
+          </div>
+        </div>
+        <div class="worktree-review-section">
+          <div class="worktree-review-section-title">Changed files</div>
+          <a-empty
+            v-if="currentWorktreeDiffFiles.length === 0"
+            description="No worktree diff loaded yet"
+          />
+          <div v-else class="worktree-file-list">
+            <div
+              v-for="file in currentWorktreeDiffFiles"
+              :key="file.path"
+              class="worktree-file-item"
+            >
+              <div class="worktree-file-header">
+                <span class="worktree-file-path">{{ file.path }}</span>
+                <div class="worktree-file-actions">
+                  <span class="worktree-file-status">{{
+                    file.status || "modified"
+                  }}</span>
+                  <a-button
+                    type="link"
+                    size="small"
+                    class="worktree-preview-button"
+                    :loading="
+                      isWorktreePreviewRouteLoading({
+                        type: 'worktree-diff',
+                        branch: currentSessionWorktreeBranch,
+                        filePath: file.path,
+                      })
+                    "
+                    @click="
+                      handleSelectWorktreePreview(
+                        {
+                          type: 'worktree-diff',
+                          branch: currentSessionWorktreeBranch,
+                          filePath: file.path,
+                        },
+                        { title: file.path },
+                      )
+                    "
+                  >
+                    Preview
+                  </a-button>
+                </div>
+              </div>
+              <div class="worktree-file-stats">
+                +{{ file.insertions || 0 }} / -{{ file.deletions || 0 }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="selectedWorktreePreview" class="worktree-review-section">
+          <div class="worktree-review-section-title worktree-preview-header">
+            <span>Focused preview</span>
+            <a-button
+              v-if="selectedWorktreePreview?.route"
+              size="small"
+              :loading="worktreePreviewLoading"
+              @click="handleRefreshSelectedWorktreePreview"
+            >
+              Refresh preview
+            </a-button>
+          </div>
+          <a-alert
+            class="coding-agent-alert"
+            type="info"
+            show-icon
+            :message="selectedWorktreePreviewTitle"
+            :description="selectedWorktreePreviewDescription"
+          />
+          <a-alert
+            v-if="worktreePreviewLoading"
+            class="coding-agent-alert"
+            type="info"
+            show-icon
+            message="Loading exact preview"
+            description="Fetching the latest file-scoped diff from the isolated worktree."
+          />
+          <pre
+            class="worktree-patch-preview"
+          ><code>{{ selectedWorktreePreview.content }}</code></pre>
+        </div>
+        <div class="worktree-review-section">
+          <div class="worktree-review-section-title">Patch preview</div>
+          <a-empty
+            v-if="!currentWorktreeDiffPatch"
+            description="No patch text available yet"
+          />
+          <pre
+            v-else
+            class="worktree-patch-preview"
+          ><code>{{ currentWorktreeDiffPatch }}</code></pre>
+        </div>
+        <div class="worktree-review-section">
+          <div class="worktree-review-section-title">Agent worktrees</div>
+          <a-empty
+            v-if="availableAgentWorktrees.length === 0"
+            description="No isolated agent worktrees found"
+          />
+          <div v-else class="worktree-file-list">
+            <div
+              v-for="worktree in availableAgentWorktrees"
+              :key="worktree.path || worktree.branch"
+              class="worktree-file-item"
+            >
+              <div class="worktree-file-header">
+                <span class="worktree-file-path">{{
+                  worktree.branch || "-"
+                }}</span>
+                <span class="worktree-file-status">{{
+                  worktree.hasChanges ? "dirty" : "clean"
+                }}</span>
+              </div>
+              <div class="worktree-file-stats">
+                {{ worktree.path || "-" }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="currentWorktreeMergeResult" class="worktree-review-section">
+          <div class="worktree-review-section-title">
+            {{ currentWorktreeMergeSectionTitle }}
+          </div>
+          <a-alert
+            class="coding-agent-alert"
+            :type="currentWorktreeMergeAlertType"
+            show-icon
+            :message="currentWorktreeMergeAlertMessage"
+            :description="
+              currentWorktreeMergeResult.message ||
+              currentWorktreeMergeAlertDescription
+            "
+          />
+          <a-alert
+            v-if="currentWorktreeMergePreviewDelta"
+            class="coding-agent-alert"
+            :type="currentWorktreeMergePreviewDelta.type"
+            show-icon
+            :message="currentWorktreeMergePreviewDelta.message"
+            :description="currentWorktreeMergePreviewDelta.description"
+          />
+          <div
+            v-if="worktreeDeltaSummaryCards.length > 0"
+            class="worktree-delta-summary-grid"
+          >
+            <button
+              v-for="item in worktreeDeltaSummaryCards"
+              :key="item.key"
+              type="button"
+              class="worktree-delta-summary-card"
+              :class="[
+                `worktree-delta-summary-card--${item.tone}`,
+                { 'worktree-delta-summary-card--active': item.active },
+              ]"
+              :aria-pressed="item.active"
+              @click="handleSelectWorktreeDeltaFilter(item.key)"
+            >
+              <span class="worktree-delta-summary-label">{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+            </button>
+          </div>
+          <div
+            v-if="filteredWorktreeAddedDeltaEntries.length > 0"
+            class="worktree-suggestion-list"
+          >
+            <div class="worktree-review-section-title">New conflict files</div>
+            <div class="worktree-delta-route-list">
+              <div
+                v-for="entry in filteredWorktreeAddedDeltaEntries"
+                :key="`added-${entry.filePath}`"
+                class="worktree-delta-route-item"
+              >
+                <a-button
+                  type="link"
+                  size="small"
+                  class="worktree-preview-button"
+                  :loading="
+                    isWorktreePreviewRouteLoading(
+                      buildWorktreeDeltaPreviewRoute(entry.filePath),
+                    )
+                  "
+                  @click="
+                    handleSelectWorktreePreview(
+                      buildWorktreeDeltaPreviewRoute(entry.filePath),
+                      { title: entry.filePath },
+                    )
+                  "
+                >
+                  {{ entry.filePath }}
+                </a-button>
+                <span
+                  class="worktree-delta-route-status"
+                  :class="`worktree-delta-route-status--${entry.state.tone}`"
+                >
+                  {{ entry.state.label }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            v-if="filteredWorktreeResolvedDeltaEntries.length > 0"
+            class="worktree-suggestion-list"
+          >
+            <div class="worktree-review-section-title">Resolved files</div>
+            <div class="worktree-delta-route-list">
+              <div
+                v-for="entry in filteredWorktreeResolvedDeltaEntries"
+                :key="`resolved-${entry.filePath}`"
+                class="worktree-delta-route-item"
+              >
+                <a-button
+                  type="link"
+                  size="small"
+                  class="worktree-preview-button"
+                  :loading="
+                    isWorktreePreviewRouteLoading(
+                      buildWorktreeDeltaPreviewRoute(entry.filePath),
+                    )
+                  "
+                  @click="
+                    handleSelectWorktreePreview(
+                      buildWorktreeDeltaPreviewRoute(entry.filePath),
+                      { title: entry.filePath },
+                    )
+                  "
+                >
+                  {{ entry.filePath }}
+                </a-button>
+                <span
+                  class="worktree-delta-route-status"
+                  :class="`worktree-delta-route-status--${entry.state.tone}`"
+                >
+                  {{ entry.state.label }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div
+            v-if="currentWorktreeMergeSuggestions.length > 0"
+            class="worktree-suggestion-list"
+          >
+            <div class="worktree-review-section-title">Next steps</div>
+            <div
+              v-for="suggestion in currentWorktreeMergeSuggestions"
+              :key="suggestion"
+              class="worktree-suggestion-item"
+            >
+              {{ suggestion }}
+            </div>
+          </div>
+          <div
+            v-if="currentWorktreePreviewEntrypoints.length > 0"
+            class="worktree-suggestion-list"
+          >
+            <div class="worktree-review-section-title">Preview routes</div>
+            <div
+              v-for="preview in currentWorktreePreviewEntrypoints"
+              :key="formatWorktreePreviewRoute(preview)"
+              class="worktree-suggestion-item"
+            >
+              <a-button
+                type="link"
+                size="small"
+                class="worktree-preview-button"
+                :loading="isWorktreePreviewRouteLoading(preview)"
+                @click="handleSelectWorktreePreview(preview)"
+              >
+                {{ formatWorktreePreviewRoute(preview) }}
+              </a-button>
+            </div>
+          </div>
+          <div
+            v-if="currentWorktreeConflicts.length > 0"
+            class="worktree-conflicts"
+          >
+            <div
+              v-for="conflict in currentWorktreeConflicts"
+              :key="conflict.path || conflict.filePath"
+              class="worktree-file-item"
+            >
+              <div class="worktree-file-header">
+                <span class="worktree-file-path">{{
+                  conflict.path || conflict.filePath || "Unknown file"
+                }}</span>
+                <span class="worktree-file-status">{{
+                  conflict.type || "conflict"
+                }}</span>
+              </div>
+              <div class="worktree-file-stats">
+                {{
+                  conflict.suggestion ||
+                  conflict.summary ||
+                  "Manual resolution required."
+                }}
+              </div>
+              <div
+                v-if="conflict.automationCandidates?.length > 0"
+                class="worktree-automation-list"
+              >
+                <div class="worktree-review-section-title">
+                  Suggested actions
+                </div>
+                <div
+                  v-for="candidate in conflict.automationCandidates"
+                  :key="`${conflict.path || conflict.filePath || 'conflict'}-${candidate.id}`"
+                  class="worktree-automation-item"
+                >
+                  <div class="worktree-automation-header">
+                    <span class="worktree-file-path">{{
+                      candidate.label || candidate.id
+                    }}</span>
+                    <span class="worktree-file-status">{{
+                      candidate.confidence || "manual"
+                    }}</span>
+                  </div>
+                  <div class="worktree-file-stats">
+                    {{
+                      candidate.description ||
+                      candidate.command ||
+                      "No description available."
+                    }}
+                  </div>
+                  <div
+                    v-if="candidate.command"
+                    class="worktree-automation-command"
+                  >
+                    <code>{{ candidate.command }}</code>
+                  </div>
+                  <div class="worktree-automation-actions">
+                    <a-button
+                      v-if="canExecuteWorktreeAutomationCandidate(candidate)"
+                      size="small"
+                      :loading="
+                        isWorktreeAutomationCandidateLoading(
+                          conflict,
+                          candidate,
+                        )
+                      "
+                      @click="
+                        handleApplyWorktreeAutomationCandidate(
+                          conflict,
+                          candidate,
+                        )
+                      "
+                    >
+                      Run safe action
+                    </a-button>
+                    <a-button
+                      v-if="candidate.command"
+                      size="small"
+                      @click="handleCopyWorktreeAutomationCommand(candidate)"
+                    >
+                      Copy command
+                    </a-button>
+                    <a-button
+                      size="small"
+                      type="primary"
+                      ghost
+                      @click="
+                        handlePrepareWorktreeAutomationCandidate(
+                          conflict,
+                          candidate,
+                        )
+                      "
+                    >
+                      Send to agent
+                    </a-button>
+                  </div>
+                </div>
+              </div>
+              <div
+                v-if="conflict.diffPreview?.route"
+                class="worktree-file-stats worktree-preview-route"
+              >
+                <a-button
+                  type="link"
+                  size="small"
+                  class="worktree-preview-button"
+                  :loading="
+                    isWorktreePreviewRouteLoading(conflict.diffPreview.route)
+                  "
+                  @click="
+                    handleSelectWorktreePreview(conflict.diffPreview.route, {
+                      title:
+                        conflict.path ||
+                        conflict.filePath ||
+                        'Conflict preview',
+                      snippet: conflict.diffPreview.snippet || '',
+                      filePath:
+                        conflict.path ||
+                        conflict.filePath ||
+                        conflict.diffPreview.route.filePath,
+                    })
+                  "
+                >
+                  Preview:
+                  {{ formatWorktreePreviewRoute(conflict.diffPreview.route) }}
+                </a-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </a-modal>
   </div>
 </template>
@@ -263,9 +813,12 @@ import {
 import ConversationInput from "@/components/projects/ConversationInput.vue";
 import BrowserPreview from "@/components/projects/BrowserPreview.vue";
 import StepDisplay from "@/components/projects/StepDisplay.vue";
+import { useCodingAgentStore } from "@/stores/coding-agent";
 import { marked } from "marked";
 
 const authStore = useAuthStore();
+const codingAgentStore = useCodingAgentStore();
+const agentLogger = createLogger("AIChatPageCodingAgent");
 
 // 响应式状态
 const conversations = ref([]);
@@ -278,6 +831,999 @@ const savingConversation = ref(false);
 
 // Agent mode state
 const agentMode = ref(false);
+const codingAgentSessionMap = ref({});
+const agentMessageByRequestId = ref({});
+const processedCodingAgentEventIds = new Set();
+const worktreeIsolationEnabled = ref(false);
+const WORKTREE_ISOLATION_STORAGE_KEY =
+  "coding-agent-worktree-isolation-enabled";
+const WORKTREE_DELTA_FILTER_ALL = "all";
+const worktreeReviewVisible = ref(false);
+const worktreeMergeSubmitting = ref(false);
+const selectedWorktreePreview = ref(null);
+const worktreePreviewLoading = ref(false);
+const worktreePreviewLoadingKey = ref("");
+const worktreeAutomationLoadingKey = ref("");
+const worktreeMergePreviewDelta = ref(null);
+const worktreeDeltaFilter = ref(WORKTREE_DELTA_FILTER_ALL);
+
+const currentCodingAgentSessionId = computed(() => {
+  if (!activeConversationId.value) {
+    return null;
+  }
+  return codingAgentSessionMap.value[activeConversationId.value] || null;
+});
+
+const pendingPlanSummary = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return null;
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return null;
+  }
+  return codingAgentStore.pendingPlanSummary || null;
+});
+
+const currentPlanModeState = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return null;
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return null;
+  }
+  return codingAgentStore.currentSession?.planModeState || null;
+});
+
+const currentApprovalRequest = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return null;
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return null;
+  }
+  if (currentPlanModeState.value !== "plan_ready") {
+    return null;
+  }
+  return codingAgentStore.latestApprovalRequest?.payload || null;
+});
+
+const currentBlockedTool = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return null;
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return null;
+  }
+  if (
+    !pendingPlanSummary.value &&
+    !codingAgentStore.requiresHighRiskConfirmation
+  ) {
+    return null;
+  }
+  return codingAgentStore.latestBlockedToolEvent?.payload || null;
+});
+
+const planActionLabel = computed(() => {
+  return currentPlanModeState.value && currentPlanModeState.value !== "inactive"
+    ? "Show Plan"
+    : "Plan";
+});
+
+const currentSessionWorktree = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return null;
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return null;
+  }
+  return codingAgentStore.currentSession?.worktree || null;
+});
+
+const currentSessionWorktreeIsolation = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return false;
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return false;
+  }
+  return codingAgentStore.currentSession?.worktreeIsolation === true;
+});
+
+const currentSessionWorktreeBranch = computed(() => {
+  return (
+    currentSessionWorktree.value?.branch ||
+    codingAgentStore.currentSessionWorktreeDiff?.branch ||
+    null
+  );
+});
+
+const worktreeIsolationTooltip = computed(() => {
+  if (currentSessionWorktreeIsolation.value) {
+    return currentSessionWorktree.value?.path
+      ? `Current session is isolated in ${currentSessionWorktree.value.path}. Toggling now only affects the next new agent session.`
+      : "Current session is isolated. Toggling now only affects the next new agent session.";
+  }
+
+  return worktreeIsolationEnabled.value
+    ? "New coding-agent sessions will start in a dedicated git worktree when the project is a git repo."
+    : "Use the shared workspace for new coding-agent sessions. Enable this before the first agent message if you want isolated edits.";
+});
+
+const currentWorktreeAlert = computed(() => {
+  if (!currentSessionWorktreeIsolation.value) {
+    return "";
+  }
+
+  const details = [];
+  const worktreePath = currentSessionWorktree.value?.path || null;
+  const baseProjectRoot =
+    codingAgentStore.currentSession?.baseProjectRoot || null;
+
+  if (worktreePath) {
+    details.push(`Workspace: ${worktreePath}`);
+  }
+
+  if (baseProjectRoot) {
+    details.push(`Base project: ${baseProjectRoot}`);
+  }
+
+  return (
+    details.join(" | ") ||
+    "This coding-agent session is running inside an isolated git worktree."
+  );
+});
+
+const worktreeReviewTitle = computed(() => {
+  return currentSessionWorktreeBranch.value
+    ? `Review Worktree: ${currentSessionWorktreeBranch.value}`
+    : "Review Worktree";
+});
+
+const availableAgentWorktrees = computed(() => {
+  return codingAgentStore.worktrees || [];
+});
+
+const currentWorktreeDiff = computed(() => {
+  return codingAgentStore.currentSessionWorktreeDiff || null;
+});
+
+const currentWorktreeDiffFiles = computed(() => {
+  return currentWorktreeDiff.value?.files || [];
+});
+
+const currentWorktreeDiffPathSet = computed(() => {
+  return new Set(
+    currentWorktreeDiffFiles.value
+      .map((file) => file?.path || null)
+      .filter(Boolean),
+  );
+});
+
+const currentWorktreeDiffSummary = computed(() => {
+  return (
+    currentWorktreeDiff.value?.summary ||
+    currentSessionWorktree.value?.summary ||
+    null
+  );
+});
+
+const currentWorktreeDiffPatch = computed(() => {
+  return currentWorktreeDiff.value?.diff || "";
+});
+
+const currentWorktreeMergeResult = computed(() => {
+  return codingAgentStore.currentSessionWorktreeMergeResult || null;
+});
+
+const currentWorktreeMergeSectionTitle = computed(() => {
+  return currentWorktreeMergeResult.value?.previewOnly
+    ? "Latest merge preview"
+    : "Latest merge result";
+});
+
+const currentWorktreeMergeAlertType = computed(() => {
+  return currentWorktreeMergeResult.value?.success ? "success" : "warning";
+});
+
+const currentWorktreeMergeAlertMessage = computed(() => {
+  if (!currentWorktreeMergeResult.value) {
+    return "";
+  }
+
+  if (currentWorktreeMergeResult.value.previewOnly) {
+    return currentWorktreeMergeResult.value.success
+      ? "Merge preview is clean"
+      : "Merge preview needs attention";
+  }
+
+  return currentWorktreeMergeResult.value.success
+    ? "Merge completed"
+    : "Merge needs attention";
+});
+
+const currentWorktreeMergeAlertDescription = computed(() => {
+  if (!currentWorktreeMergeResult.value) {
+    return "No merge message available.";
+  }
+
+  if (currentWorktreeMergeResult.value.previewOnly) {
+    return currentWorktreeMergeResult.value.success
+      ? "No conflicts are currently predicted for this worktree merge."
+      : "Conflicts are currently predicted for this worktree merge.";
+  }
+
+  return "No merge message available.";
+});
+
+const currentWorktreeMergePreviewDelta = computed(() => {
+  if (!currentWorktreeMergeResult.value?.previewOnly) {
+    return null;
+  }
+
+  return worktreeMergePreviewDelta.value;
+});
+
+const sortedWorktreeAddedDeltaEntries = computed(() => {
+  const filePaths = currentWorktreeMergePreviewDelta.value?.addedPaths || [];
+  return buildSortedWorktreeDeltaEntries(filePaths, "added");
+});
+
+const sortedWorktreeResolvedDeltaEntries = computed(() => {
+  const filePaths = currentWorktreeMergePreviewDelta.value?.resolvedPaths || [];
+  return buildSortedWorktreeDeltaEntries(filePaths, "resolved");
+});
+
+const filteredWorktreeAddedDeltaEntries = computed(() => {
+  return sortedWorktreeAddedDeltaEntries.value.filter((entry) => {
+    return matchesWorktreeDeltaFilter(entry, worktreeDeltaFilter.value);
+  });
+});
+
+const filteredWorktreeResolvedDeltaEntries = computed(() => {
+  return sortedWorktreeResolvedDeltaEntries.value.filter((entry) => {
+    return matchesWorktreeDeltaFilter(entry, worktreeDeltaFilter.value);
+  });
+});
+
+const worktreeDeltaSummaryCards = computed(() => {
+  const entries = [
+    ...sortedWorktreeAddedDeltaEntries.value,
+    ...sortedWorktreeResolvedDeltaEntries.value,
+  ];
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const summary = {
+    urgent: 0,
+    watch: 0,
+    clean: 0,
+  };
+
+  for (const entry of entries) {
+    const bucket = mapWorktreeDeltaToneToSummaryBucket(entry.state.tone);
+    summary[bucket] += 1;
+  }
+
+  return [
+    {
+      key: WORKTREE_DELTA_FILTER_ALL,
+      label: "All",
+      count: entries.length,
+      tone: "all",
+    },
+    { key: "urgent", label: "Urgent", count: summary.urgent, tone: "conflict" },
+    { key: "watch", label: "Watch", count: summary.watch, tone: "warning" },
+    { key: "clean", label: "Clean", count: summary.clean, tone: "clean" },
+  ]
+    .filter((item) => item.key === WORKTREE_DELTA_FILTER_ALL || item.count > 0)
+    .map((item) => ({
+      ...item,
+      active: item.key === worktreeDeltaFilter.value,
+    }));
+});
+
+const currentWorktreeMergeSuggestions = computed(() => {
+  return currentWorktreeMergeResult.value?.suggestions || [];
+});
+
+const currentWorktreePreviewEntrypoints = computed(() => {
+  return currentWorktreeMergeResult.value?.previewEntrypoints || [];
+});
+
+const selectedWorktreePreviewTitle = computed(() => {
+  if (!selectedWorktreePreview.value) {
+    return "";
+  }
+
+  return selectedWorktreePreview.value.title || "Focused preview";
+});
+
+const selectedWorktreePreviewRouteLabel = computed(() => {
+  if (!selectedWorktreePreview.value?.route) {
+    return "";
+  }
+
+  return formatWorktreePreviewRoute(selectedWorktreePreview.value.route);
+});
+
+const selectedWorktreePreviewDescription = computed(() => {
+  if (!selectedWorktreePreview.value) {
+    return "Preview generated from the current worktree diff.";
+  }
+
+  const details = [];
+  if (selectedWorktreePreviewRouteLabel.value) {
+    details.push(selectedWorktreePreviewRouteLabel.value);
+  }
+  if (selectedWorktreePreview.value.sourceLabel) {
+    details.push(`Source: ${selectedWorktreePreview.value.sourceLabel}`);
+  }
+  if (selectedWorktreePreview.value.filePath) {
+    details.push(`File: ${selectedWorktreePreview.value.filePath}`);
+  }
+  if (selectedWorktreePreview.value.refreshedAtLabel) {
+    details.push(`Updated: ${selectedWorktreePreview.value.refreshedAtLabel}`);
+  }
+
+  return (
+    details.join(" | ") || "Preview generated from the current worktree diff."
+  );
+});
+
+const currentWorktreeConflicts = computed(() => {
+  if (currentWorktreeMergeResult.value?.conflicts?.length) {
+    return currentWorktreeMergeResult.value.conflicts;
+  }
+
+  return currentSessionWorktree.value?.conflicts || [];
+});
+
+const getWorktreeConflictPath = (conflict) => {
+  return conflict?.path || conflict?.filePath || null;
+};
+
+const getWorktreeConflictType = (conflict) => {
+  return conflict?.type || "unmerged";
+};
+
+const formatWorktreeConflictTypeLabel = (type) => {
+  return String(type || "unmerged").replace(/_/g, " ");
+};
+
+const buildWorktreeConflictTypeCountMap = (conflicts) => {
+  return (conflicts || []).reduce((accumulator, conflict) => {
+    const type = getWorktreeConflictType(conflict);
+    accumulator[type] = (accumulator[type] || 0) + 1;
+    return accumulator;
+  }, {});
+};
+
+const formatWorktreeConflictTypeDelta = (previousConflicts, nextConflicts) => {
+  const previousCounts = buildWorktreeConflictTypeCountMap(previousConflicts);
+  const nextCounts = buildWorktreeConflictTypeCountMap(nextConflicts);
+  const changedTypes = [
+    ...new Set([...Object.keys(previousCounts), ...Object.keys(nextCounts)]),
+  ]
+    .filter((type) => (previousCounts[type] || 0) !== (nextCounts[type] || 0))
+    .sort();
+
+  if (changedTypes.length === 0) {
+    return "";
+  }
+
+  return changedTypes
+    .map((type) => {
+      return `${formatWorktreeConflictTypeLabel(type)}: ${previousCounts[type] || 0} -> ${nextCounts[type] || 0}`;
+    })
+    .join("; ");
+};
+
+const buildWorktreeMergePreviewDelta = (previousResult, nextResult) => {
+  if (!previousResult?.previewOnly || !nextResult?.previewOnly) {
+    return null;
+  }
+
+  const previousPaths = new Set(
+    (previousResult.conflicts || [])
+      .map((conflict) => getWorktreeConflictPath(conflict))
+      .filter(Boolean),
+  );
+  const nextPaths = new Set(
+    (nextResult.conflicts || [])
+      .map((conflict) => getWorktreeConflictPath(conflict))
+      .filter(Boolean),
+  );
+
+  const resolvedPaths = [...previousPaths].filter(
+    (filePath) => !nextPaths.has(filePath),
+  );
+  const addedPaths = [...nextPaths].filter(
+    (filePath) => !previousPaths.has(filePath),
+  );
+  const previousCount = previousPaths.size;
+  const currentCount = nextPaths.size;
+  const typeDelta = formatWorktreeConflictTypeDelta(
+    previousResult.conflicts || [],
+    nextResult.conflicts || [],
+  );
+
+  if (
+    resolvedPaths.length === 0 &&
+    addedPaths.length === 0 &&
+    previousCount === currentCount &&
+    !typeDelta
+  ) {
+    return null;
+  }
+
+  const detailParts = [`Conflicts: ${previousCount} -> ${currentCount}`];
+  if (typeDelta) {
+    detailParts.push(`Types: ${typeDelta}`);
+  }
+
+  if (currentCount === 0 && previousCount > 0) {
+    return {
+      type: "success",
+      message: "Conflict preview is now clean",
+      description: detailParts.join(" | "),
+      resolvedPaths,
+      addedPaths,
+    };
+  }
+
+  if (currentCount < previousCount) {
+    return {
+      type: "success",
+      message: "Conflict count dropped",
+      description: detailParts.join(" | "),
+      resolvedPaths,
+      addedPaths,
+    };
+  }
+
+  return {
+    type: "info",
+    message: "Conflict set changed",
+    description: detailParts.join(" | "),
+    resolvedPaths,
+    addedPaths,
+  };
+};
+
+const buildWorktreeDeltaPreviewRoute = (filePath) => {
+  return {
+    type: "worktree-diff",
+    branch:
+      currentWorktreeMergeResult.value?.branch ||
+      currentSessionWorktreeBranch.value ||
+      undefined,
+    filePath,
+  };
+};
+
+const getWorktreeDeltaFileStateMeta = (filePath, kind) => {
+  const stillChanged = currentWorktreeDiffPathSet.value.has(filePath);
+
+  if (kind === "resolved") {
+    return stillChanged
+      ? { label: "resolved, diff remains", tone: "resolved" }
+      : { label: "resolved and clean", tone: "clean" };
+  }
+
+  return stillChanged
+    ? { label: "new conflict, diff remains", tone: "conflict" }
+    : { label: "new conflict", tone: "warning" };
+};
+
+const getWorktreeDeltaFileStatePriority = (kind, state) => {
+  if (kind === "added") {
+    return state.tone === "conflict" ? 0 : 1;
+  }
+
+  return state.tone === "resolved" ? 2 : 3;
+};
+
+const mapWorktreeDeltaToneToSummaryBucket = (tone) => {
+  switch (tone) {
+    case "conflict":
+      return "urgent";
+    case "warning":
+    case "resolved":
+      return "watch";
+    case "clean":
+    default:
+      return "clean";
+  }
+};
+
+const matchesWorktreeDeltaFilter = (entry, filterKey) => {
+  if (!entry || filterKey === WORKTREE_DELTA_FILTER_ALL) {
+    return true;
+  }
+
+  return mapWorktreeDeltaToneToSummaryBucket(entry.state.tone) === filterKey;
+};
+
+const buildSortedWorktreeDeltaEntries = (filePaths, kind) => {
+  return [...(filePaths || [])]
+    .map((filePath) => {
+      const state = getWorktreeDeltaFileStateMeta(filePath, kind);
+      return {
+        filePath,
+        state,
+        priority: getWorktreeDeltaFileStatePriority(kind, state),
+      };
+    })
+    .sort((left, right) => {
+      if (left.priority !== right.priority) {
+        return left.priority - right.priority;
+      }
+      return left.filePath.localeCompare(right.filePath);
+    });
+};
+
+const handleSelectWorktreeDeltaFilter = (filterKey) => {
+  if (!filterKey || filterKey === worktreeDeltaFilter.value) {
+    worktreeDeltaFilter.value = WORKTREE_DELTA_FILTER_ALL;
+    return;
+  }
+
+  worktreeDeltaFilter.value = filterKey;
+};
+
+const formatWorktreePreviewRoute = (preview) => {
+  if (!preview) {
+    return "";
+  }
+
+  if (typeof preview === "string") {
+    return preview;
+  }
+
+  const parts = [];
+  if (preview.type) {
+    parts.push(preview.type);
+  }
+  if (preview.branch) {
+    parts.push(preview.branch);
+  }
+  if (preview.filePath) {
+    parts.push(preview.filePath);
+  }
+  return parts.join(" | ");
+};
+
+const getWorktreePreviewRouteKey = (preview) => {
+  if (!preview) {
+    return "";
+  }
+
+  if (typeof preview === "string") {
+    return preview;
+  }
+
+  return [
+    preview.type || "",
+    preview.branch || "",
+    preview.filePath || "",
+  ].join("::");
+};
+
+const isWorktreePreviewRouteLoading = (preview) => {
+  return (
+    worktreePreviewLoading.value &&
+    worktreePreviewLoadingKey.value === getWorktreePreviewRouteKey(preview)
+  );
+};
+
+const formatPreviewRefreshTime = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    return new Date(value).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+};
+
+const resolveWorktreePreviewSourceLabel = (source) => {
+  switch (source) {
+    case "host-file-diff":
+      return "Host exact diff";
+    case "conflict-snippet":
+      return "Conflict snippet";
+    case "cached-diff":
+      return "Cached worktree diff";
+    default:
+      return "Current worktree diff";
+  }
+};
+
+const getWorktreeAutomationCandidateKey = (conflict, candidate) => {
+  return [conflict?.path || conflict?.filePath || "", candidate?.id || ""].join(
+    "::",
+  );
+};
+
+const canExecuteWorktreeAutomationCandidate = (candidate) => {
+  return candidate?.executable === true;
+};
+
+const isWorktreeAutomationCandidateLoading = (conflict, candidate) => {
+  return (
+    codingAgentStore.worktreeLoading &&
+    worktreeAutomationLoadingKey.value ===
+      getWorktreeAutomationCandidateKey(conflict, candidate)
+  );
+};
+
+const escapeRegExp = (value) => {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const extractWorktreePatchForFile = (diffText, filePath) => {
+  if (!diffText || !filePath) {
+    return "";
+  }
+
+  const normalizedPath = String(filePath).replace(/\\/g, "/");
+  const pattern = new RegExp(
+    `^diff --git a/${escapeRegExp(normalizedPath)} b/${escapeRegExp(normalizedPath)}[\\s\\S]*?(?=^diff --git |\\Z)`,
+    "m",
+  );
+  const match = String(diffText).match(pattern);
+  return match?.[0] || "";
+};
+
+const buildWorktreePreviewPayload = (preview, options = {}) => {
+  const route = preview || null;
+  const filePath = options.filePath || route?.filePath || null;
+  const refreshedAt = options.refreshedAt || new Date().toISOString();
+  const content =
+    options.snippet ||
+    extractWorktreePatchForFile(currentWorktreeDiffPatch.value, filePath) ||
+    (filePath ? "" : currentWorktreeDiffPatch.value);
+  const source =
+    options.source || (options.snippet ? "conflict-snippet" : "cached-diff");
+
+  return {
+    route,
+    filePath,
+    title:
+      options.title ||
+      filePath ||
+      (route?.branch ? `Preview: ${route.branch}` : "Focused preview"),
+    content: content || "No preview content is available for this route yet.",
+    source,
+    sourceLabel: resolveWorktreePreviewSourceLabel(source),
+    refreshedAt,
+    refreshedAtLabel: formatPreviewRefreshTime(refreshedAt),
+  };
+};
+
+const handleSelectWorktreePreview = async (preview, options = {}) => {
+  worktreePreviewLoading.value = true;
+  worktreePreviewLoadingKey.value = getWorktreePreviewRouteKey(preview);
+
+  try {
+    if (preview?.type === "worktree-diff" && preview?.filePath) {
+      try {
+        const result = await codingAgentStore.loadWorktreePreview({
+          branch:
+            preview.branch || currentSessionWorktreeBranch.value || undefined,
+          baseBranch: currentSessionWorktree.value?.baseBranch || undefined,
+          filePath: preview.filePath,
+        });
+
+        selectedWorktreePreview.value = buildWorktreePreviewPayload(preview, {
+          ...options,
+          title: options.title || preview.filePath,
+          snippet: result.diff || options.snippet || "",
+          filePath: preview.filePath,
+          source: "host-file-diff",
+          refreshedAt: new Date().toISOString(),
+        });
+        return;
+      } catch (error) {
+        antMessage.warning(
+          "Failed to load file-specific preview, falling back to the cached diff: " +
+            error.message,
+        );
+      }
+    }
+
+    selectedWorktreePreview.value = buildWorktreePreviewPayload(preview, {
+      ...options,
+      source: options.snippet ? "conflict-snippet" : "cached-diff",
+      refreshedAt: new Date().toISOString(),
+    });
+  } finally {
+    worktreePreviewLoading.value = false;
+    worktreePreviewLoadingKey.value = "";
+  }
+};
+
+const handleRefreshSelectedWorktreePreview = async () => {
+  if (!selectedWorktreePreview.value?.route) {
+    return;
+  }
+
+  await handleSelectWorktreePreview(selectedWorktreePreview.value.route, {
+    title: selectedWorktreePreview.value.title,
+    filePath: selectedWorktreePreview.value.filePath,
+    snippet:
+      selectedWorktreePreview.value.source === "conflict-snippet"
+        ? selectedWorktreePreview.value.content
+        : "",
+  });
+};
+
+const truncateWorktreePreviewContent = (value, maxLength = 1800) => {
+  if (!value) {
+    return "";
+  }
+
+  const text = String(value).trim();
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength)}\n... [preview truncated]`;
+};
+
+const getRelevantConflictPreview = (conflict) => {
+  const targetPath = conflict?.path || conflict?.filePath || null;
+  const selectedRoute = selectedWorktreePreview.value?.route || null;
+  const selectedMatchesTarget =
+    targetPath &&
+    (selectedRoute?.filePath === targetPath ||
+      selectedWorktreePreview.value?.title === targetPath);
+
+  if (selectedMatchesTarget && selectedWorktreePreview.value?.content) {
+    return {
+      route: selectedRoute,
+      content: selectedWorktreePreview.value.content,
+    };
+  }
+
+  if (conflict?.diffPreview?.snippet) {
+    return {
+      route: conflict.diffPreview.route || null,
+      content: conflict.diffPreview.snippet,
+    };
+  }
+
+  if (selectedWorktreePreview.value?.content) {
+    return {
+      route: selectedRoute,
+      content: selectedWorktreePreview.value.content,
+    };
+  }
+
+  return null;
+};
+
+const buildWorktreeAutomationPrompt = (conflict, candidate) => {
+  const targetPath =
+    conflict?.path || conflict?.filePath || "the conflicted file";
+  const preview = getRelevantConflictPreview(conflict);
+  const lines = [
+    `Resolve the merge conflict for ${targetPath}.`,
+    "",
+    "Conflict context:",
+    `- File: ${targetPath}`,
+    `- Conflict type: ${conflict?.type || "unknown"}`,
+    `- Recommended approach: ${candidate?.label || candidate?.id || "manual resolution"}`,
+  ];
+
+  if (candidate?.confidence) {
+    lines.push(`- Candidate confidence: ${candidate.confidence}`);
+  }
+
+  if (conflict?.suggestion) {
+    lines.push(`- Conflict guidance: ${conflict.suggestion}`);
+  }
+
+  if (candidate?.description) {
+    lines.push(`- Candidate context: ${candidate.description}`);
+  }
+
+  if (candidate?.command) {
+    lines.push(`- Proposed command: ${candidate.command}`);
+  }
+
+  if (preview?.route) {
+    lines.push(`- Preview route: ${formatWorktreePreviewRoute(preview.route)}`);
+  }
+
+  if (preview?.content) {
+    lines.push("");
+    lines.push("Relevant diff preview:");
+    lines.push("```diff");
+    lines.push(truncateWorktreePreviewContent(preview.content));
+    lines.push("```");
+  }
+
+  lines.push("");
+  lines.push("Instructions:");
+  lines.push("- Explain the conflict and the chosen resolution briefly.");
+  lines.push("- Apply the resolution inside the isolated worktree.");
+  lines.push(
+    "- If shell commands are needed, follow the normal plan approval and high-risk confirmation flow before execution.",
+  );
+  lines.push(
+    "- After resolving, summarize the final file state and any remaining risks.",
+  );
+
+  return lines.join("\n");
+};
+
+const handleCopyWorktreeAutomationCommand = async (candidate) => {
+  if (!candidate?.command) {
+    antMessage.warning("No automation command is available for this action.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(candidate.command);
+    antMessage.success("Automation command copied.");
+  } catch (error) {
+    antMessage.error("Failed to copy automation command: " + error.message);
+  }
+};
+
+const handlePrepareWorktreeAutomationCandidate = async (
+  conflict,
+  candidate,
+) => {
+  const prompt = buildWorktreeAutomationPrompt(conflict, candidate);
+  if (!inputRef.value?.setText) {
+    antMessage.warning("The conversation input is not ready yet.");
+    return;
+  }
+
+  agentMode.value = true;
+  inputRef.value.setText(prompt);
+  await nextTick();
+  inputRef.value.focus?.();
+  antMessage.info(
+    "Suggested conflict resolution has been added to the input box.",
+  );
+};
+
+const handleApplyWorktreeAutomationCandidate = async (conflict, candidate) => {
+  const filePath = conflict?.path || conflict?.filePath || null;
+  if (!filePath || !candidate?.id) {
+    antMessage.warning(
+      "This automation candidate is missing the required file context.",
+    );
+    return;
+  }
+
+  const confirmed = await window.electronAPI.dialog.showConfirm(
+    "Run Safe Worktree Action",
+    `Apply "${candidate.label || candidate.id}" to ${filePath} inside the isolated agent worktree? This updates the agent branch only and clears the current conflict preview until you review the merge again.`,
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  worktreeAutomationLoadingKey.value = getWorktreeAutomationCandidateKey(
+    conflict,
+    candidate,
+  );
+
+  try {
+    await ensureCodingAgentSession();
+    const previousPreviewResult = currentWorktreeMergeResult.value?.previewOnly
+      ? currentWorktreeMergeResult.value
+      : null;
+    const result = await codingAgentStore.applyWorktreeAutomationCandidate({
+      branch: currentSessionWorktreeBranch.value || undefined,
+      baseBranch: currentSessionWorktree.value?.baseBranch || undefined,
+      filePath,
+      candidateId: candidate.id,
+      conflictType: conflict?.type || null,
+    });
+
+    if (
+      selectedWorktreePreview.value?.filePath &&
+      selectedWorktreePreview.value.filePath === filePath
+    ) {
+      await handleRefreshSelectedWorktreePreview();
+    }
+
+    const nextPreviewResult =
+      await codingAgentStore.previewCurrentWorktreeMerge({
+        branch: currentSessionWorktreeBranch.value || undefined,
+        baseBranch: currentSessionWorktree.value?.baseBranch || undefined,
+      });
+    worktreeMergePreviewDelta.value = buildWorktreeMergePreviewDelta(
+      previousPreviewResult,
+      nextPreviewResult,
+    );
+
+    antMessage.success(
+      result.message ||
+        `Applied ${candidate.label || candidate.id} in the isolated worktree.`,
+    );
+  } catch (error) {
+    antMessage.error(
+      "Failed to apply the safe worktree action: " + error.message,
+    );
+  } finally {
+    worktreeAutomationLoadingKey.value = "";
+  }
+};
+
+const approvalRequestDescription = computed(() => {
+  const policy = codingAgentStore.permissionPolicy;
+  const mediumTools = policy?.toolsByRisk?.medium || [];
+  const highTools = policy?.toolsByRisk?.high || [];
+  const details = [];
+
+  if (mediumTools.length > 0) {
+    details.push(`Plan approval unlocks: ${mediumTools.join(", ")}`);
+  }
+
+  if (highTools.length > 0) {
+    details.push(
+      `High-risk tools still need extra confirmation: ${highTools.join(", ")}`,
+    );
+  }
+
+  return (
+    details.join(". ") ||
+    "This plan includes controlled operations. Approve it before the agent can continue."
+  );
+});
+
+const blockedToolDescription = computed(() => {
+  if (!currentBlockedTool.value) {
+    return "";
+  }
+
+  const riskSuffix = currentBlockedTool.value.riskLevel
+    ? `Risk: ${currentBlockedTool.value.riskLevel}.`
+    : "";
+
+  return `${currentBlockedTool.value.reason || "The tool was blocked by the desktop permission gate."} ${riskSuffix}`.trim();
+});
+
+const currentHighRiskToolNames = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return [];
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return [];
+  }
+  return codingAgentStore.currentSession?.highRiskToolNames || [];
+});
+
+const needsHighRiskConfirmation = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return false;
+  }
+  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
+    return false;
+  }
+  return codingAgentStore.requiresHighRiskConfirmation;
+});
+
+const highRiskConfirmationDescription = computed(() => {
+  if (currentHighRiskToolNames.value.length === 0) {
+    return "This approved plan still needs explicit confirmation before high-risk steps can run.";
+  }
+
+  return `Confirm before continuing. High-risk tools: ${currentHighRiskToolNames.value.join(", ")}.`;
+});
 
 const toggleAgentMode = () => {
   agentMode.value = !agentMode.value;
@@ -288,6 +1834,119 @@ const toggleAgentMode = () => {
 
 // 重命名对话相关状态
 const renameModalVisible = ref(false);
+const toggleWorktreeIsolation = () => {
+  worktreeIsolationEnabled.value = !worktreeIsolationEnabled.value;
+  localStorage.setItem(
+    WORKTREE_ISOLATION_STORAGE_KEY,
+    worktreeIsolationEnabled.value ? "true" : "false",
+  );
+
+  antMessage.info(
+    worktreeIsolationEnabled.value
+      ? "Worktree isolation will be used for the next new coding-agent session."
+      : "New coding-agent sessions will use the shared workspace.",
+  );
+};
+
+const loadWorktreeReview = async () => {
+  const previousPreviewResult = currentWorktreeMergeResult.value?.previewOnly
+    ? currentWorktreeMergeResult.value
+    : null;
+  const branch = currentSessionWorktreeBranch.value;
+  await codingAgentStore.listWorktrees();
+  await codingAgentStore.loadCurrentWorktreeDiff({
+    branch: branch || undefined,
+    baseBranch: currentSessionWorktree.value?.baseBranch || undefined,
+  });
+  const nextPreviewResult = await codingAgentStore.previewCurrentWorktreeMerge({
+    branch: branch || undefined,
+    baseBranch: currentSessionWorktree.value?.baseBranch || undefined,
+  });
+  worktreeMergePreviewDelta.value = buildWorktreeMergePreviewDelta(
+    previousPreviewResult,
+    nextPreviewResult,
+  );
+
+  if (selectedWorktreePreview.value?.route) {
+    await handleSelectWorktreePreview(selectedWorktreePreview.value.route, {
+      title: selectedWorktreePreview.value.title,
+    });
+  }
+};
+
+const handleOpenWorktreeReview = async () => {
+  try {
+    await ensureCodingAgentSession();
+    if (!currentSessionWorktreeIsolation.value) {
+      antMessage.info(
+        "The current coding-agent session is not using an isolated worktree.",
+      );
+      return;
+    }
+
+    worktreeReviewVisible.value = true;
+    worktreeDeltaFilter.value = WORKTREE_DELTA_FILTER_ALL;
+    selectedWorktreePreview.value = null;
+    worktreeMergePreviewDelta.value = null;
+    await loadWorktreeReview();
+  } catch (error) {
+    antMessage.error("Failed to load worktree review: " + error.message);
+  }
+};
+
+const handleRefreshWorktreeReview = async () => {
+  try {
+    await loadWorktreeReview();
+    antMessage.success("Worktree review refreshed.");
+  } catch (error) {
+    antMessage.error("Failed to refresh worktree review: " + error.message);
+  }
+};
+
+const handleMergeCurrentWorktree = async () => {
+  try {
+    await ensureCodingAgentSession();
+    if (
+      !currentSessionWorktreeIsolation.value ||
+      !currentSessionWorktreeBranch.value
+    ) {
+      antMessage.warning("No isolated worktree is available for this session.");
+      return;
+    }
+
+    const confirmed = await window.electronAPI.dialog.showConfirm(
+      "Merge Worktree",
+      `Merge ${currentSessionWorktreeBranch.value} back into ${currentSessionWorktree.value?.baseBranch || "HEAD"}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    worktreeMergeSubmitting.value = true;
+    worktreeMergePreviewDelta.value = null;
+    const result = await codingAgentStore.mergeCurrentWorktree({
+      branch: currentSessionWorktreeBranch.value,
+      strategy: "merge",
+      commitMessage: `Merge ${currentSessionWorktreeBranch.value} (coding agent session)`,
+    });
+
+    await codingAgentStore.listWorktrees();
+
+    if (result.success) {
+      antMessage.success(result.message || "Worktree merged successfully.");
+    } else if (result.conflicts.length > 0) {
+      antMessage.warning(result.message || "Merge conflicts detected.");
+    } else {
+      antMessage.warning(result.message || "Worktree merge did not complete.");
+    }
+  } catch (error) {
+    antMessage.error("Failed to merge worktree: " + error.message);
+  } finally {
+    worktreeMergeSubmitting.value = false;
+  }
+};
+
 const renameConversation = ref(null);
 const newConversationTitle = ref("");
 
@@ -304,6 +1963,455 @@ const inputPlaceholder = computed(() => {
 });
 
 // 加载对话列表
+const findMessageById = (messageId) =>
+  messages.value.find((message) => message.id === messageId);
+
+const getPendingAgentMessage = (requestId) => {
+  if (!requestId) {
+    return null;
+  }
+  const messageId = agentMessageByRequestId.value[requestId];
+  return messageId ? findMessageById(messageId) : null;
+};
+
+const ensurePendingAgentMessage = (requestId, sessionId) => {
+  const existingMessage = getPendingAgentMessage(requestId);
+  if (existingMessage) {
+    return existingMessage;
+  }
+
+  const assistantMessage = {
+    id: `msg-${Date.now()}-agent-${Math.random().toString(36).slice(2, 8)}`,
+    role: "assistant",
+    content: "",
+    timestamp: Date.now(),
+    steps: [],
+    preview: null,
+    savedToMemory: false,
+    sessionId,
+    requestId,
+    persisted: false,
+  };
+
+  messages.value.push(assistantMessage);
+  if (requestId) {
+    agentMessageByRequestId.value = {
+      ...agentMessageByRequestId.value,
+      [requestId]: assistantMessage.id,
+    };
+  }
+  return assistantMessage;
+};
+
+const clearPendingAgentMessage = (requestId) => {
+  if (!requestId || !agentMessageByRequestId.value[requestId]) {
+    return;
+  }
+
+  const nextMapping = { ...agentMessageByRequestId.value };
+  delete nextMapping[requestId];
+  agentMessageByRequestId.value = nextMapping;
+};
+
+const createAgentStep = (event) => ({
+  id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  status: "running",
+  name: event.payload.display || event.payload.tool || "Tool execution",
+  title: event.payload.display || event.payload.tool || "Tool execution",
+  tool: event.payload.tool || "",
+  description: event.payload.display || "",
+  params: event.payload.args || {},
+  result: null,
+  error: null,
+  startedAt: event.timestamp,
+  logs: [
+    {
+      timestamp: event.timestamp,
+      level: "info",
+      message: `Executing ${event.payload.tool || "tool"}`,
+    },
+  ],
+});
+
+const getLatestRunningStep = (assistantMessage, toolName) => {
+  if (!assistantMessage?.steps?.length) {
+    return null;
+  }
+
+  for (let index = assistantMessage.steps.length - 1; index >= 0; index -= 1) {
+    const step = assistantMessage.steps[index];
+    if (step.tool === toolName && step.status === "running") {
+      return step;
+    }
+  }
+
+  return null;
+};
+
+const finalizeAgentSteps = (assistantMessage) => {
+  if (!assistantMessage?.steps?.length) {
+    return;
+  }
+
+  assistantMessage.steps.forEach((step) => {
+    if (step.status === "running") {
+      step.status = "completed";
+      step.logs = [
+        ...(step.logs || []),
+        {
+          timestamp: new Date().toISOString(),
+          level: "success",
+          message: "Step completed",
+        },
+      ];
+    }
+  });
+};
+
+const persistAssistantMessage = async (assistantMessage) => {
+  if (
+    !assistantMessage ||
+    assistantMessage.persisted ||
+    !activeConversationId.value
+  ) {
+    return;
+  }
+
+  try {
+    await window.electronAPI.conversation.addMessage(
+      activeConversationId.value,
+      {
+        role: "assistant",
+        content: assistantMessage.content,
+        steps: assistantMessage.steps || [],
+        preview: assistantMessage.preview || null,
+      },
+    );
+    assistantMessage.persisted = true;
+  } catch (error) {
+    agentLogger.error("persistAssistantMessage failed:", error);
+  }
+};
+
+const updateConversationTitleFromText = async (text) => {
+  const conversation = conversations.value.find(
+    (c) => c.id === activeConversationId.value,
+  );
+  const userMessageCount = messages.value.filter(
+    (message) => message.role === "user",
+  ).length;
+  if (!conversation || userMessageCount !== 1) {
+    return;
+  }
+
+  const newTitle = text.substring(0, 30) + (text.length > 30 ? "..." : "");
+  conversation.title = newTitle;
+  await window.electronAPI.conversation.update(activeConversationId.value, {
+    title: newTitle,
+  });
+};
+
+const ensureCodingAgentSession = async (
+  conversationId = activeConversationId.value,
+) => {
+  if (!conversationId) {
+    throw new Error("No active conversation");
+  }
+
+  const existingSessionId = codingAgentSessionMap.value[conversationId];
+  if (existingSessionId) {
+    if (codingAgentStore.currentSessionId !== existingSessionId) {
+      const resumed = await codingAgentStore.resumeSession(existingSessionId);
+      if (!resumed) {
+        throw new Error(
+          codingAgentStore.error || "Failed to resume coding agent session",
+        );
+      }
+    }
+    return existingSessionId;
+  }
+
+  const sessionId = await codingAgentStore.createSession({
+    worktreeIsolation: worktreeIsolationEnabled.value,
+  });
+  if (!sessionId) {
+    throw new Error(
+      codingAgentStore.error || "Failed to create coding agent session",
+    );
+  }
+
+  codingAgentSessionMap.value = {
+    ...codingAgentSessionMap.value,
+    [conversationId]: sessionId,
+  };
+
+  return sessionId;
+};
+
+const ensureHighRiskConfirmation = async () => {
+  if (!codingAgentStore.requiresHighRiskConfirmation) {
+    return true;
+  }
+
+  const toolNames = currentHighRiskToolNames.value;
+  const confirmed = await window.electronAPI.dialog.showConfirm(
+    "Confirm High-Risk Actions",
+    toolNames.length > 0
+      ? `This approved plan includes high-risk tools: ${toolNames.join(", ")}. Confirm to let the agent continue.`
+      : "This approved plan includes high-risk actions. Confirm to let the agent continue.",
+  );
+
+  if (!confirmed) {
+    antMessage.info("High-risk execution was not confirmed.");
+    return false;
+  }
+
+  await codingAgentStore.confirmHighRiskExecution();
+  return true;
+};
+
+const handleCodingAgentEvent = async (event) => {
+  if (!event?.id || processedCodingAgentEventIds.has(event.id)) {
+    return;
+  }
+
+  processedCodingAgentEventIds.add(event.id);
+
+  if (
+    event.sessionId &&
+    event.sessionId !== currentCodingAgentSessionId.value
+  ) {
+    return;
+  }
+
+  switch (event.type) {
+    case "tool-executing": {
+      const assistantMessage = ensurePendingAgentMessage(
+        event.requestId,
+        event.sessionId,
+      );
+      assistantMessage.steps = [
+        ...(assistantMessage.steps || []),
+        createAgentStep(event),
+      ];
+      break;
+    }
+    case "tool-result": {
+      const assistantMessage = ensurePendingAgentMessage(
+        event.requestId,
+        event.sessionId,
+      );
+      const step = getLatestRunningStep(assistantMessage, event.payload.tool);
+      if (step) {
+        step.status = event.payload.error ? "failed" : "completed";
+        step.result = event.payload.error ? step.result : event.payload.result;
+        step.error = event.payload.error || null;
+        step.logs = [
+          ...(step.logs || []),
+          {
+            timestamp: event.timestamp,
+            level: event.payload.error ? "error" : "success",
+            message: event.payload.error
+              ? `Tool failed: ${event.payload.error}`
+              : "Tool completed",
+          },
+        ];
+        if (step.startedAt) {
+          step.duration =
+            new Date(event.timestamp).getTime() -
+            new Date(step.startedAt).getTime();
+        }
+      }
+      break;
+    }
+    case "plan-ready": {
+      const assistantMessage = ensurePendingAgentMessage(
+        event.requestId,
+        event.sessionId,
+      );
+      assistantMessage.content = event.payload.summary
+        ? `${event.payload.summary}\n\n请审批后继续执行。`
+        : "计划已生成，等待审批。";
+      assistantMessage.timestamp = Date.now();
+      isThinking.value = false;
+      break;
+    }
+    case "approval-requested": {
+      antMessage.info(
+        "Plan ready. Approve it before write or shell steps can run.",
+      );
+      break;
+    }
+    case "high-risk-confirmation-required": {
+      const tools = event.payload.tools || [];
+      antMessage.warning(
+        tools.length > 0
+          ? `High-risk confirmation required for: ${tools.join(", ")}`
+          : "High-risk confirmation required before execution can continue.",
+      );
+      break;
+    }
+    case "high-risk-confirmed": {
+      antMessage.success("High-risk execution confirmed.");
+      break;
+    }
+    case "tool-blocked": {
+      const assistantMessage = ensurePendingAgentMessage(
+        event.requestId,
+        event.sessionId,
+      );
+      const toolName = event.payload.toolName || "tool";
+      let step = getLatestRunningStep(assistantMessage, toolName);
+
+      if (!step) {
+        step = {
+          id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          status: "failed",
+          name: toolName,
+          title: toolName,
+          tool: toolName,
+          description:
+            event.payload.reason || "Blocked by coding-agent permission policy",
+          params: {},
+          result: null,
+          error:
+            event.payload.reason || "Blocked by coding-agent permission policy",
+          startedAt: event.timestamp,
+          logs: [],
+        };
+        assistantMessage.steps = [...(assistantMessage.steps || []), step];
+      }
+
+      step.status = "failed";
+      step.error =
+        event.payload.reason || "Blocked by coding-agent permission policy";
+      step.logs = [
+        ...(step.logs || []),
+        {
+          timestamp: event.timestamp,
+          level: "warning",
+          message: event.payload.reason || `${toolName} was blocked`,
+        },
+      ];
+
+      if (!assistantMessage.content) {
+        assistantMessage.content = `Blocked ${toolName}. Review the plan and approve it before continuing.`;
+      }
+
+      antMessage.warning(event.payload.reason || `${toolName} was blocked`);
+      break;
+    }
+    case "response-complete": {
+      const assistantMessage = ensurePendingAgentMessage(
+        event.requestId,
+        event.sessionId,
+      );
+      assistantMessage.content =
+        event.payload.content || assistantMessage.content || "已完成";
+      assistantMessage.timestamp = Date.now();
+      finalizeAgentSteps(assistantMessage);
+      isThinking.value = false;
+      await persistAssistantMessage(assistantMessage);
+      clearPendingAgentMessage(event.requestId);
+      break;
+    }
+    case "command-response": {
+      const result = event.payload.result || {};
+      if (result.error) {
+        isThinking.value = false;
+        antMessage.error(result.error);
+      } else if (event.payload.command === "/plan approve") {
+        isThinking.value = true;
+        antMessage.success("计划已批准，继续执行中");
+      } else if (event.payload.command === "/plan reject") {
+        isThinking.value = false;
+        antMessage.info("计划已拒绝");
+      } else if (result.state === "analyzing") {
+        isThinking.value = false;
+        antMessage.info(result.message || "已进入计划模式");
+      }
+      break;
+    }
+    case "error": {
+      const assistantMessage = ensurePendingAgentMessage(
+        event.requestId,
+        event.sessionId,
+      );
+      assistantMessage.content = event.payload.message
+        ? `抱歉，Agent 执行失败：${event.payload.message}`
+        : "抱歉，Agent 执行失败。";
+      assistantMessage.timestamp = Date.now();
+      const failedStep = getLatestRunningStep(
+        assistantMessage,
+        assistantMessage.steps?.[assistantMessage.steps.length - 1]?.tool,
+      );
+      if (failedStep) {
+        failedStep.status = "failed";
+        failedStep.error = event.payload.message || "Unknown error";
+      }
+      isThinking.value = false;
+      await persistAssistantMessage(assistantMessage);
+      clearPendingAgentMessage(event.requestId);
+      antMessage.error(event.payload.message || "Coding agent error");
+      break;
+    }
+    default:
+      break;
+  }
+};
+
+const handleEnterPlanMode = async () => {
+  try {
+    await ensureCodingAgentSession();
+    if (
+      currentPlanModeState.value &&
+      currentPlanModeState.value !== "inactive"
+    ) {
+      await codingAgentStore.showPlan();
+      return;
+    }
+
+    await codingAgentStore.enterPlanMode();
+  } catch (error) {
+    antMessage.error("进入计划模式失败: " + error.message);
+  }
+};
+
+const handleApprovePlan = async () => {
+  try {
+    await ensureCodingAgentSession();
+    isThinking.value = true;
+    await codingAgentStore.approvePlan();
+    const confirmed = await ensureHighRiskConfirmation();
+    if (!confirmed) {
+      isThinking.value = false;
+      return;
+    }
+    const result = await codingAgentStore.sendMessage(
+      "Proceed with the approved plan and carry out the approved changes.",
+    );
+    if (!result?.success) {
+      throw new Error(
+        result?.error || "Failed to continue after plan approval",
+      );
+    }
+    ensurePendingAgentMessage(result.requestId, result.sessionId);
+  } catch (error) {
+    isThinking.value = false;
+    antMessage.error("批准计划失败: " + error.message);
+  }
+};
+
+const handleRejectPlan = async () => {
+  try {
+    await ensureCodingAgentSession();
+    await codingAgentStore.rejectPlan();
+    isThinking.value = false;
+  } catch (error) {
+    antMessage.error("拒绝计划失败: " + error.message);
+  }
+};
+
 const loadConversations = async () => {
   // 检查 API 是否可用
   if (!window.electronAPI?.conversation?.list) {
@@ -392,6 +2500,15 @@ const handleConversationClick = async (conversation) => {
 
   activeConversationId.value = conversation.id;
   await loadConversationMessages(conversation.id);
+
+  const sessionId = codingAgentSessionMap.value[conversation.id];
+  if (sessionId) {
+    try {
+      await codingAgentStore.resumeSession(sessionId);
+    } catch (error) {
+      agentLogger.warn("resume coding agent session failed:", error);
+    }
+  }
 };
 
 // 对话操作
@@ -416,6 +2533,11 @@ const handleConversationAction = async ({ action, conversation }) => {
         conversations.value = conversations.value.filter(
           (c) => c.id !== conversation.id,
         );
+        if (codingAgentSessionMap.value[conversation.id]) {
+          const nextSessionMap = { ...codingAgentSessionMap.value };
+          delete nextSessionMap[conversation.id];
+          codingAgentSessionMap.value = nextSessionMap;
+        }
         if (activeConversationId.value === conversation.id) {
           activeConversationId.value = conversations.value[0]?.id || "";
           if (activeConversationId.value) {
@@ -604,6 +2726,108 @@ const handleSubmitMessage = async ({ text, attachments }) => {
 };
 
 // 处理文件上传
+const handleSubmitAgentAwareMessage = async ({ text, attachments }) => {
+  if (!text.trim()) {
+    antMessage.warning("请输入消息内容");
+    return;
+  }
+
+  if (!activeConversationId.value) {
+    await handleNewConversation();
+  }
+
+  const userMessage = {
+    id: `msg-${Date.now()}`,
+    role: "user",
+    content: text,
+    timestamp: Date.now(),
+  };
+  messages.value.push(userMessage);
+
+  await nextTick();
+  scrollToBottom();
+
+  try {
+    await window.electronAPI.conversation.addMessage(
+      activeConversationId.value,
+      {
+        role: "user",
+        content: text,
+      },
+    );
+  } catch (error) {
+    logger.error("保存消息失败:", error);
+  }
+
+  isThinking.value = true;
+
+  try {
+    await updateConversationTitleFromText(text);
+
+    if (agentMode.value) {
+      await ensureCodingAgentSession();
+      const confirmed = await ensureHighRiskConfirmation();
+      if (!confirmed) {
+        isThinking.value = false;
+        return;
+      }
+      const result = await codingAgentStore.sendMessage(text);
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to send coding agent message");
+      }
+
+      ensurePendingAgentMessage(result.requestId, result.sessionId);
+      await nextTick();
+      scrollToBottom();
+      return;
+    }
+
+    const response = await window.electronAPI.llm.chat({
+      conversationId: activeConversationId.value,
+      message: text,
+      attachments: attachments,
+    });
+
+    const assistantMessage = {
+      id: `msg-${Date.now()}-ai`,
+      role: "assistant",
+      content: response.content,
+      timestamp: Date.now(),
+      steps: response.steps || [],
+      preview: response.preview || null,
+    };
+    messages.value.push(assistantMessage);
+
+    await window.electronAPI.conversation.addMessage(
+      activeConversationId.value,
+      {
+        role: "assistant",
+        content: response.content,
+        steps: response.steps,
+        preview: response.preview,
+      },
+    );
+
+    await nextTick();
+    scrollToBottom();
+  } catch (error) {
+    logger.error("AI响应失败:", error);
+    antMessage.error("AI响应失败: " + error.message);
+
+    messages.value.push({
+      id: `msg-${Date.now()}-error`,
+      role: "assistant",
+      content: "抱歉，我遇到了一些问题，暂时无法完成你的请求。请稍后重试。",
+      timestamp: Date.now(),
+    });
+    isThinking.value = false;
+  } finally {
+    if (!agentMode.value) {
+      isThinking.value = false;
+    }
+  }
+};
+
 const handleFileUpload = async (files) => {
   logger.info("上传文件:", files);
 
@@ -1023,6 +3247,10 @@ const handleKeyboard = (e) => {
 onMounted(async () => {
   await loadConversations();
   enhanceCodeBlocks();
+  codingAgentStore.initEventListeners();
+  await codingAgentStore.refreshStatus();
+  worktreeIsolationEnabled.value =
+    localStorage.getItem(WORKTREE_ISOLATION_STORAGE_KEY) === "true";
 
   // 注册键盘快捷键
   window.addEventListener("keydown", handleKeyboard);
@@ -1051,6 +3279,7 @@ onMounted(async () => {
 // 组件卸载时清理
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyboard);
+  codingAgentStore.disposeEventListeners();
 });
 
 // 监听消息变化，自动滚动并增强代码块
@@ -1061,6 +3290,19 @@ watch(
       scrollToBottom();
       enhanceCodeBlocks();
     });
+  },
+);
+
+watch(
+  () => codingAgentStore.events.length,
+  async () => {
+    const latestEvent =
+      codingAgentStore.events[codingAgentStore.events.length - 1];
+    if (!latestEvent) {
+      return;
+    }
+
+    await handleCodingAgentEvent(latestEvent);
   },
 );
 
@@ -1087,11 +3329,17 @@ defineExpose({
   handleNewConversation,
   handleConversationClick,
   handleConversationAction,
-  handleSubmitMessage,
+  handleSubmitAgentAwareMessage,
   handleFileUpload,
   handleNavClick,
   handleStepRetry,
   handleStepCancel,
+  handleEnterPlanMode,
+  handleApprovePlan,
+  handleRejectPlan,
+  handleOpenWorktreeReview,
+  handleRefreshWorktreeReview,
+  handleMergeCurrentWorktree,
   handleUserAction,
   renderMarkdown,
   formatTime,
@@ -1144,6 +3392,10 @@ defineExpose({
 }
 
 // 对话操作栏
+.coding-agent-alert {
+  margin: 0 0 12px;
+}
+
 .conversation-actions {
   display: flex;
   justify-content: flex-end;
@@ -1459,5 +3711,310 @@ defineExpose({
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
+}
+
+.worktree-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.worktree-review-meta {
+  margin-bottom: 16px;
+}
+
+.worktree-review-section {
+  margin-top: 16px;
+}
+
+.worktree-review-section-title {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.worktree-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.worktree-summary-card {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+
+  strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 20px;
+    color: #111827;
+  }
+}
+
+.worktree-summary-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.worktree-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.worktree-file-item {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.worktree-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.worktree-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.worktree-file-path {
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 12px;
+  color: #111827;
+  word-break: break-all;
+}
+
+.worktree-file-status {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.worktree-file-stats {
+  font-size: 12px;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+.worktree-patch-preview {
+  margin: 0;
+  max-height: 280px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #111827;
+  color: #e5e7eb;
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.worktree-suggestion-list {
+  margin-top: 12px;
+}
+
+.worktree-delta-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.worktree-delta-summary-card {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 12px;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #f9fafb;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+
+  strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 20px;
+    line-height: 1;
+  }
+}
+
+.worktree-delta-summary-card:hover {
+  transform: translateY(-1px);
+}
+
+.worktree-delta-summary-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.worktree-delta-summary-card--active {
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08);
+}
+
+.worktree-delta-summary-card--all {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.worktree-delta-summary-card--conflict {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.worktree-delta-summary-card--warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.worktree-delta-summary-card--clean {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.worktree-delta-summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.worktree-suggestion-item {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 12px;
+}
+
+.worktree-delta-route-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.worktree-delta-route-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f9fafb;
+}
+
+.worktree-delta-route-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.worktree-delta-route-status--clean {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+.worktree-delta-route-status--resolved {
+  color: #065f46;
+  background: #d1fae5;
+  border-color: #a7f3d0;
+}
+
+.worktree-delta-route-status--warning {
+  color: #92400e;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+.worktree-delta-route-status--conflict {
+  color: #991b1b;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.worktree-preview-button {
+  padding: 0;
+  height: auto;
+}
+
+.worktree-preview-route {
+  margin-top: 6px;
+  color: #4b5563;
+}
+
+.worktree-automation-list {
+  margin-top: 12px;
+}
+
+.worktree-automation-item {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.worktree-automation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.worktree-automation-command {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #111827;
+  color: #e5e7eb;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+
+  code {
+    color: inherit;
+    background: transparent;
+    padding: 0;
+  }
+}
+
+.worktree-automation-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.worktree-conflicts {
+  margin-top: 12px;
 }
 </style>

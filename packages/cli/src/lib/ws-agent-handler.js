@@ -83,6 +83,7 @@ export class WSAgentHandler {
         contextEngine: session.contextEngine,
         hookDb: this.db,
         cwd: session.projectRoot,
+        hostManagedToolPolicy: session.hostManagedToolPolicy || null,
         slotFiller,
         interaction: this.interaction,
       };

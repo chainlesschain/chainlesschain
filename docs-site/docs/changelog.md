@@ -22,21 +22,32 @@
 - `compression-stats` 的筛选参数文档
 - `cli-ui` 增补项目模式、全局模式、会话流转、联调要点说明
 - `agent-optimization` 增补五个核心优化模块与已完成增强集成说明
+- `minimal-coding-agent-plan` 文档同步代码实际进度：Phase 0–6 全部落地、9 个测试文件 85/85 通过
+- 新增 `coding-agent-bridge.test.js` 单元测试（12 用例），通过 `_deps` 注入覆盖桥接层并发场景
+- 新增 `coding-agent-lifecycle.integration.test.js`（10 用例）覆盖 19 个 IPC channel、plan-mode、high-risk gating、worktree 全流程
+- 新增 `coding-agent-bridge-real-cli.test.js`（2 用例）真实子进程启动 `chainlesschain serve` 端到端验证
 
 ### Fixed
 
+- `coding-agent-bridge.js`：`request()` 在 `_send` 抛错时未清理 `pending`，导致内存泄漏；现 try/catch 中先 `pending.delete(id)` 再 throw
+- `coding-agent-bridge.js`：WebSocket `close` 时未拒绝在途 pending 请求，调用方永久挂起；现 `_attachSocket()` 的 close 处理器调用 `_rejectAllPending(...)`
 - 修复 `docs-site` 首页、Agent 架构页、UI / Serve 文档页的中文乱码
 - 修复设计文档首页与运行时重构计划页的内容不同步问题
 - 修复模块 78 在文档站同步时未映射到稳定路由的问题
 - 修复模块 69 / 73 / 75 / 77 文本被压缩成提纲页的问题
+- 同步修正首页、Agent 架构页、UI 页中过期的验证结果数字
+- 文档站新增 `Minimal Coding Agent 实施计划`，与设计模块 78 一并入口化
+- 设计文档站补齐模块 77 / 78 的稳定路由与侧边栏入口
 
 ### Tests
 
-- CLI 定向单元：`130/130`
-- CLI 定向集成：`19/19`
+- CLI `ws-runtime-events`：`2/2`
+- CLI `tools-registry`：`6/6`
+- CLI `agent-core`：`66/66`
 - CLI `ws-session-workflow`：`16/16`
-- Web Panel 定向单元：`23/23`
-- Web Panel E2E：`29/29`
+- CLI 本轮定向合计：`90/90`
+- Web Panel 定向单元：`27/27`
+- Web Panel 构建：通过
 - Docs Site 构建：通过
 
 ## [5.0.2.8] - 2026-03-31

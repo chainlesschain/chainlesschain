@@ -12,7 +12,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { WebSocketServer } from "ws";
 import { createTaskRecord } from "../runtime/contracts/task-record.js";
-import { RUNTIME_EVENTS, createRuntimeEvent } from "../runtime/runtime-events.js";
+import {
+  RUNTIME_EVENTS,
+  createRuntimeEvent,
+} from "../runtime/runtime-events.js";
 import { createWsMessageDispatcher } from "../gateways/ws/message-dispatcher.js";
 import {
   handleTaskDetail,
@@ -22,9 +25,11 @@ import {
   handleSessionCreate,
   handleSessionResume,
   handleSessionMessage,
+  handleSessionPolicyUpdate,
   handleSessionList,
   handleSessionClose,
   handleSessionAnswer,
+  handleHostToolResult,
 } from "../gateways/ws/session-protocol.js";
 import {
   handleSlashCommand,
@@ -33,6 +38,8 @@ import {
 import {
   handleWorktreeDiff,
   handleWorktreeMerge,
+  handleWorktreeMergePreview,
+  handleWorktreeAutomationApply,
   handleWorktreeList,
   handleCompressionStats,
 } from "../gateways/ws/worktree-protocol.js";
@@ -354,7 +361,17 @@ export class ChainlessChainWSServer extends EventEmitter {
     return handleWorktreeMerge(this, id, ws, message);
   }
 
-  /** @private — list agent worktrees */
+  /** @private - dry-run merge preview for an agent worktree branch */
+  async _handleWorktreeMergePreview(id, ws, message) {
+    return handleWorktreeMergePreview(this, id, ws, message);
+  }
+
+  /** @private - apply a safe automation candidate inside an agent worktree */
+  async _handleWorktreeAutomationApply(id, ws, message) {
+    return handleWorktreeAutomationApply(this, id, ws, message);
+  }
+
+  /** @private - list agent worktrees */
   async _handleWorktreeList(id, ws) {
     return handleWorktreeList(this, id, ws);
   }
@@ -568,6 +585,11 @@ export class ChainlessChainWSServer extends EventEmitter {
   }
 
   /** @private */
+  _handleSessionPolicyUpdate(id, ws, message) {
+    return handleSessionPolicyUpdate(this, id, ws, message);
+  }
+
+  /** @private */
   _handleSessionList(id, ws) {
     return handleSessionList(this, id, ws);
   }
@@ -587,10 +609,15 @@ export class ChainlessChainWSServer extends EventEmitter {
     return handleSessionAnswer(this, id, ws, message);
   }
 
+  _handleHostToolResult(id, ws, message) {
+    return handleHostToolResult(this, id, ws, message);
+  }
+
   /** @private — ping/pong heartbeat to detect dead connections */
   async _ensureTaskManager() {
     if (this._taskManager) return this._taskManager;
-    const { BackgroundTaskManager } = await import("./background-task-manager.js");
+    const { BackgroundTaskManager } =
+      await import("./background-task-manager.js");
     this._taskManager = new BackgroundTaskManager({ recoverOnStart: true });
     this._subscribeTaskNotifications();
     return this._taskManager;

@@ -116,6 +116,24 @@ describe("WSAgentHandler", () => {
       });
     });
 
+    it("passes host-managed tool policy into the agent loop", async () => {
+      session.hostManagedToolPolicy = {
+        tools: {
+          run_shell: { allowed: false, decision: "require_confirmation" },
+        },
+      };
+      agentLoop.mockReturnValue(fakeAgentLoop([]));
+
+      await handler.handleMessage("Run a command", "req-1");
+
+      expect(agentLoop).toHaveBeenCalledWith(
+        session.messages,
+        expect.objectContaining({
+          hostManagedToolPolicy: session.hostManagedToolPolicy,
+        }),
+      );
+    });
+
     it("returns busy error when already processing", async () => {
       // Simulate a long-running loop
       let resolveLoop;

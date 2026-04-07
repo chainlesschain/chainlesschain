@@ -38,6 +38,18 @@ vi.mock("../../src/lib/agent-core.js", () => ({
   buildSystemPrompt: vi.fn(() => "You are a helpful assistant."),
 }));
 
+vi.mock("../../src/lib/worktree-isolator.js", () => ({
+  createWorktree: vi.fn((repoDir, branchName) => ({
+    path: `${repoDir}/.worktrees/${branchName.replace(/\//g, "-")}`,
+    branch: branchName,
+  })),
+  removeWorktree: vi.fn(),
+}));
+
+vi.mock("../../src/lib/git-integration.js", () => ({
+  isGitRepo: vi.fn(() => true),
+}));
+
 vi.mock("fs", () => ({
   default: {
     existsSync: vi.fn(() => false),
@@ -54,6 +66,11 @@ import {
   getSession as dbGetSession,
   listSessions as dbListSessions,
 } from "../../src/lib/session-manager.js";
+import {
+  createWorktree,
+  removeWorktree,
+} from "../../src/lib/worktree-isolator.js";
+import { isGitRepo } from "../../src/lib/git-integration.js";
 import fs from "fs";
 
 describe("WSSessionManager", () => {
@@ -202,6 +219,38 @@ describe("WSSessionManager", () => {
       const session = manager.getSession(sessionId);
       expect(session.status).toBe("active");
     });
+
+    it("stores host-managed tool policy when provided", () => {
+      const hostManagedToolPolicy = {
+        tools: {
+          write_file: { allowed: false, decision: "require_plan" },
+        },
+      };
+      const { sessionId } = manager.createSession({ hostManagedToolPolicy });
+      const session = manager.getSession(sessionId);
+      expect(session.hostManagedToolPolicy).toEqual(hostManagedToolPolicy);
+    });
+
+    it("creates an isolated worktree when requested", () => {
+      const { sessionId } = manager.createSession({
+        projectRoot: "/repo",
+        worktreeIsolation: true,
+      });
+      const session = manager.getSession(sessionId);
+
+      expect(isGitRepo).toHaveBeenCalledWith("/repo");
+      expect(createWorktree).toHaveBeenCalledWith(
+        "/repo",
+        `coding-agent/${sessionId}`,
+      );
+      expect(session.projectRoot).toContain("/repo/.worktrees/");
+      expect(session.baseProjectRoot).toBe("/repo");
+      expect(session.worktreeIsolation).toBe(true);
+      expect(session.worktree).toMatchObject({
+        branch: `coding-agent/${sessionId}`,
+        baseProjectRoot: "/repo",
+      });
+    });
   });
 
   describe("getSession", () => {
@@ -300,6 +349,22 @@ describe("WSSessionManager", () => {
       manager.closeSession("unknown-id");
       expect(dbSaveMessages).not.toHaveBeenCalled();
     });
+
+    it("cleans up the worktree when an isolated session closes", () => {
+      const { sessionId } = manager.createSession({
+        projectRoot: "/repo",
+        worktreeIsolation: true,
+      });
+      const session = manager.getSession(sessionId);
+
+      manager.closeSession(sessionId);
+
+      expect(removeWorktree).toHaveBeenCalledWith(
+        "/repo",
+        session.worktree.path,
+        { deleteBranch: true },
+      );
+    });
   });
 
   describe("listSessions", () => {
@@ -352,6 +417,27 @@ describe("WSSessionManager", () => {
     it("does nothing for unknown session", () => {
       manager.persistMessages("ghost");
       expect(dbSaveMessages).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("updateSessionPolicy", () => {
+    it("updates host-managed policy for an active session", () => {
+      const { sessionId } = manager.createSession();
+      const updated = manager.updateSessionPolicy(sessionId, {
+        tools: {
+          run_shell: { allowed: false, decision: "require_confirmation" },
+        },
+      });
+
+      expect(updated?.hostManagedToolPolicy).toEqual({
+        tools: {
+          run_shell: { allowed: false, decision: "require_confirmation" },
+        },
+      });
+    });
+
+    it("returns null for an unknown session", () => {
+      expect(manager.updateSessionPolicy("missing-session", {})).toBeNull();
     });
   });
 });

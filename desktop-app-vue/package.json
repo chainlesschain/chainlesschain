@@ -21,6 +21,8 @@
     "test:ui": "vitest --ui",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
+    "test:coding-agent:integration": "vitest run tests/integration/coding-agent-hosted-tools.integration.test.js",
+    "test:coding-agent:mvp": "node scripts/verify-coding-agent-mvp.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:health": "node tests/e2e/health-check.js",

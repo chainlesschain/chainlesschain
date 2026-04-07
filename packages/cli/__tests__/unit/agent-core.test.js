@@ -125,6 +125,31 @@ describe("agent tool registry compatibility", () => {
     expect(names).toContain("read_file");
   });
 
+  it("merges extra host-managed tool definitions into the available tool set", () => {
+    const filtered = getAgentToolDefinitions({
+      extraTools: [
+        {
+          type: "function",
+          function: {
+            name: "mcp_weather_get_forecast",
+            description: "Get a weather forecast",
+            parameters: {
+              type: "object",
+              properties: {
+                city: { type: "string" },
+              },
+              required: ["city"],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(filtered.map((tool) => tool.function.name)).toContain(
+      "mcp_weather_get_forecast",
+    );
+  });
+
   it("returns matching descriptors for filtered tool definitions", () => {
     const descriptors = getAgentToolDescriptors({
       names: ["read_file", "list_dir"],
@@ -154,7 +179,9 @@ describe("executeTool runtime metadata", () => {
     const result = await executeTool("run_shell", { command: "echo hi" });
     expect(result.toolTelemetryRecord).toBeDefined();
     expect(result.toolTelemetryRecord?.toolName).toBe("shell");
-    expect(["completed", "error"]).toContain(result.toolTelemetryRecord?.status);
+    expect(["completed", "error"]).toContain(
+      result.toolTelemetryRecord?.status,
+    );
   });
 
   it("maps git commands to the git descriptor", async () => {
@@ -576,6 +603,88 @@ describe("executeTool", () => {
 
     _mockProjectRoot = null;
     _mockProjectConfig = null;
+  });
+
+  it("blocks tool when desktop host policy denies it", async () => {
+    const result = await executeTool(
+      "run_shell",
+      { command: "echo should-not-run" },
+      {
+        cwd: tempDir,
+        hostManagedToolPolicy: {
+          tools: {
+            run_shell: {
+              allowed: false,
+              decision: "require_confirmation",
+              reason:
+                "High-risk tools require an explicit second confirmation.",
+              requiresConfirmation: true,
+              riskLevel: "high",
+            },
+          },
+        },
+      },
+    );
+
+    expect(result.error).toContain("[Host Policy]");
+    expect(result.error).toContain('Tool "run_shell" is blocked');
+    expect(result.policy).toMatchObject({
+      decision: "require_confirmation",
+      requiresConfirmation: true,
+      riskLevel: "high",
+    });
+  });
+
+  it("delegates unknown host-managed tools to the desktop interaction adapter", async () => {
+    const interaction = {
+      requestHostTool: vi.fn().mockResolvedValue({
+        success: true,
+        result: {
+          forecast: "sunny",
+        },
+      }),
+    };
+
+    const result = await executeTool(
+      "mcp_weather_get_forecast",
+      { city: "Shanghai" },
+      {
+        cwd: tempDir,
+        interaction,
+        hostManagedToolPolicy: {
+          toolDefinitions: [
+            {
+              type: "function",
+              function: {
+                name: "mcp_weather_get_forecast",
+                description: "Get a forecast",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    city: { type: "string" },
+                  },
+                  required: ["city"],
+                },
+              },
+            },
+          ],
+          tools: {
+            mcp_weather_get_forecast: {
+              allowed: true,
+              riskLevel: "low",
+            },
+          },
+        },
+      },
+    );
+
+    expect(interaction.requestHostTool).toHaveBeenCalledWith(
+      "mcp_weather_get_forecast",
+      { city: "Shanghai" },
+    );
+    expect(result).toMatchObject({
+      forecast: "sunny",
+    });
   });
 });
 
