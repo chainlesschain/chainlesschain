@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/multi-agent/agent-orchestrator.js`
 
-**Generated**: 2026-04-07T07:21:45.928Z
+**Generated**: 2026-04-07T09:15:40.446Z
 
 ---
 
@@ -33,6 +33,16 @@ class AgentOrchestrator extends EventEmitter
 ```
 
 * Agent 协调器
+
+---
+
+## unbindStateBus()
+
+```javascript
+unbindStateBus()
+```
+
+* L1: 解绑状态总线订阅 (在销毁前调用)
 
 ---
 

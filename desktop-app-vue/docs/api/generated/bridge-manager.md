@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/bridge-manager.js`
 
-**Generated**: 2026-04-07T07:21:45.911Z
+**Generated**: 2026-04-07T09:15:40.429Z
 
 ---
 
