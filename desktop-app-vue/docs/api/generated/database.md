@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database.js`
 
-**Generated**: 2026-04-07T07:21:45.777Z
+**Generated**: 2026-04-07T09:15:40.307Z
 
 ---
 
@@ -14,6 +14,19 @@ class DatabaseManager
 
 * 数据库管理类
  * 使用 SQLCipher（加密）或 sql.js 管理本地 SQLite 数据库
+
+---
+
+## initializePreparedStatementCache()
+
+```javascript
+initializePreparedStatementCache()
+```
+
+* 初始化 Prepared Statement 缓存（LRU 策略）
+   *
+   * 修复 H4: 长期运行的实例下，每条不同 SQL 都会缓存对应的 prepared statement，
+   * 历史上使用普通 Map 无淘汰机制，会导致内存随会话数线性增长。
 
 ---
 
@@ -46,6 +59,8 @@ clearPreparedStatements()
 ```
 
 * 清除所有 Prepared Statements（用于数据库重置）
+   *
+   * 兼容 lru-cache v6 (reset) 和 v7+/Map (clear)
 
 ---
 

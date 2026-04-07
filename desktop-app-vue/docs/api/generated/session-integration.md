@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/integrations/session-integration.js`
 
-**Generated**: 2026-04-07T07:21:45.892Z
+**Generated**: 2026-04-07T09:15:40.412Z
 
 ---
 

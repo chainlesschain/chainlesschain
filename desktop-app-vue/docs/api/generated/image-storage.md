@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image/image-storage.js`
 
-**Generated**: 2026-04-07T07:21:45.871Z
+**Generated**: 2026-04-07T09:15:40.394Z
 
 ---
 

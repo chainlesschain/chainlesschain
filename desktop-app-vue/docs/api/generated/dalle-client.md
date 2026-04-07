@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image-gen/dalle-client.js`
 
-**Generated**: 2026-04-07T07:21:45.870Z
+**Generated**: 2026-04-07T09:15:40.393Z
 
 ---
 

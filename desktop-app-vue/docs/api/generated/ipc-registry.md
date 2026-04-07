@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ipc/ipc-registry.js`
 
-**Generated**: 2026-04-07T07:21:45.867Z
+**Generated**: 2026-04-07T09:15:40.391Z
 
 ---
 
@@ -41,6 +41,27 @@ function _replaceUndefinedWithNull(obj)
 * 递归将对象中的 undefined 值替换为 null（用于 IPC 序列化）
  * @param {*} obj - 要处理的对象
  * @returns {*} 处理后的对象
+
+---
+
+## function safeRegister(name, options)
+
+```javascript
+function safeRegister(name, options)
+```
+
+* 安全注册 IPC 模块的辅助函数
+ *
+ * 封装重复的 try/catch + 日志模式，每个 phase 从 ~25 行降到 ~10 行。
+ *
+ * @param {string} name - 模块显示名 (e.g., "Cowork IPC")
+ * @param {Object} options
+ * @param {Function} options.register - 实际注册逻辑（同步函数）
+ * @param {number} [options.handlers] - handler 数量（用于日志）
+ * @param {string[]} [options.subDetails] - 子模块详情列表（"TeammateTool: 15 handlers"）
+ * @param {boolean} [options.fatal=false] - 失败时使用 error（true）还是 warn（false）
+ * @param {string} [options.continueMessage] - 失败后的提示
+ * @returns {boolean} 注册是否成功
 
 ---
 
