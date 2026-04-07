@@ -25,6 +25,12 @@ const PHASE_MODULES = [
     needsRegisteredModules: true,
   },
   {
+    file: "../phases/phase-16-20-skill-evo",
+    exportName: "registerPhases16to20",
+    expectedRegistrations: 11, // Phase 16 (4) + 17 (1) + 18 (1) + 19 (4) + 20 (1) = 11
+    needsRegisteredModules: true,
+  },
+  {
     file: "../phases/phase-21-30-enterprise",
     exportName: "registerPhases21to30",
     expectedRegistrations: 10, // Phases 21-30
