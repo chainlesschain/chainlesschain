@@ -2,7 +2,7 @@
 
 **Source**: `src/main/image-gen/image-gen-ipc.js`
 
-**Generated**: 2026-04-07T13:38:43.948Z
+**Generated**: 2026-04-07T13:50:37.368Z
 
 ---
 

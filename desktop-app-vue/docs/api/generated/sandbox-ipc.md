@@ -2,7 +2,7 @@
 
 **Source**: `src/main/sandbox/sandbox-ipc.js`
 
-**Generated**: 2026-04-07T13:38:43.898Z
+**Generated**: 2026-04-07T13:50:37.326Z
 
 ---
 
