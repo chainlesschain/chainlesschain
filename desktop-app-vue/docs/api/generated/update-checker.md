@@ -2,7 +2,7 @@
 
 **Source**: `src/main/system/update-checker.js`
 
-**Generated**: 2026-04-07T13:38:43.877Z
+**Generated**: 2026-04-07T13:50:37.303Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/device-manager.js`
 
-**Generated**: 2026-04-07T13:38:43.923Z
+**Generated**: 2026-04-07T13:50:37.345Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/image-engine.js`
 
-**Generated**: 2026-04-07T13:38:43.961Z
+**Generated**: 2026-04-07T13:50:37.380Z
 
 ---
 
