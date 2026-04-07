@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/llm-selector.js`
 
-**Generated**: 2026-04-06T03:25:10.692Z
+**Generated**: 2026-04-07T07:21:45.861Z
 
 ---
 

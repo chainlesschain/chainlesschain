@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/path-converter.js`
 
-**Generated**: 2026-04-06T03:25:10.704Z
+**Generated**: 2026-04-07T07:21:45.873Z
 
 ---
 

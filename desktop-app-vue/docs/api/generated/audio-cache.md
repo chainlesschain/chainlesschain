@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/audio-cache.js`
 
-**Generated**: 2026-04-06T03:25:10.637Z
+**Generated**: 2026-04-07T07:21:45.802Z
 
 ---
 

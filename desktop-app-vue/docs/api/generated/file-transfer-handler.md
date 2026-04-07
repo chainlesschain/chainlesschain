@@ -2,7 +2,7 @@
 
 **Source**: `src/main/remote/handlers/file-transfer-handler.js`
 
-**Generated**: 2026-04-06T03:25:10.659Z
+**Generated**: 2026-04-07T07:21:45.824Z
 
 ---
 
