@@ -2,7 +2,7 @@
 
 **Source**: `src/main/did/did-cache.js`
 
-**Generated**: 2026-04-07T13:28:23.022Z
+**Generated**: 2026-04-07T13:38:43.963Z
 
 ---
 

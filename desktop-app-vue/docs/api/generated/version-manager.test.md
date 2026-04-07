@@ -2,7 +2,7 @@
 
 **Source**: `src/main/knowledge/__tests__/version-manager.test.js`
 
-**Generated**: 2026-04-07T13:28:23.002Z
+**Generated**: 2026-04-07T13:38:43.943Z
 
 ---
 

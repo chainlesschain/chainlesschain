@@ -2,7 +2,7 @@
 
 **Source**: `src/main/monitoring/performance-monitor.js`
 
-**Generated**: 2026-04-07T13:28:22.985Z
+**Generated**: 2026-04-07T13:38:43.926Z
 
 ---
 

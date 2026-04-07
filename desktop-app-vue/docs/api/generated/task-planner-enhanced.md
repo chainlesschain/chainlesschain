@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/task-planner-enhanced.js`
 
-**Generated**: 2026-04-07T13:28:23.053Z
+**Generated**: 2026-04-07T13:38:43.994Z
 
 ---
 

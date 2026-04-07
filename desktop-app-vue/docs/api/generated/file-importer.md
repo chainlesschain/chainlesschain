@@ -2,7 +2,7 @@
 
 **Source**: `src/main/import/file-importer.js`
 
-**Generated**: 2026-04-07T13:28:23.006Z
+**Generated**: 2026-04-07T13:38:43.947Z
 
 ---
 
