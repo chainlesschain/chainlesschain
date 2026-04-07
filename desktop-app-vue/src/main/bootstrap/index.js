@@ -172,10 +172,16 @@ async function bootstrapApplication(options = {}) {
         Promise.resolve(require("../config/database-config")),
       ]);
     const { prewarmLLMConfig } = require("../llm/llm-config");
+    const {
+      prewarmInitialSetupConfig,
+    } = require("../config/initial-setup-config");
+    const { app: electronApp } = require("electron");
+    const userDataPath = electronApp.getPath("userData");
     await Promise.all([
       prewarmUnifiedConfigManager(),
       prewarmAppConfig(),
       prewarmLLMConfig(),
+      prewarmInitialSetupConfig(userDataPath),
     ]);
   } catch (error) {
     logger.warn(
