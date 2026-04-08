@@ -200,7 +200,14 @@ class Logger {
         fs.appendFileSync(logFile, output, "utf8");
         this.rotateLogsIfNeeded();
       } catch (error) {
-        logger.error("写入日志文件失败:", error);
+        // 不能调用 this.error / 模块级 logger.error — 会无限递归回到此 catch。
+        // 直接走 console.error 兜底，并禁用文件输出，避免后续每次写入都重复抛错。
+        try {
+          console.error("[logger] 写入日志文件失败:", error?.message || error);
+        } catch {
+          /* console 也坏了就放弃 */
+        }
+        this.config.file = false;
       }
     }
   }
