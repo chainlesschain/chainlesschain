@@ -605,20 +605,12 @@ ${content.substring(0, 2000)}
 
       const fs = require("fs").promises;
       const projectConfig = getProjectConfig();
-      const db = database
-        ? database.db || null
-        : typeof getDatabaseConnection === "function"
-          ? getDatabaseConnection()
-          : null;
-      const projectPathCandidates = [
-        projectPath,
-        normalizedProjectPath,
-        `/${normalizedProjectPath}`,
-      ];
+      const activeDb = await getActiveDatabase();
+      const db = activeDb?.db || null;
 
       // 1. 获取项目信息
-      const project = database?.getProjectById
-        ? database.getProjectById(projectId)
+      const project = activeDb?.getProjectById
+        ? activeDb.getProjectById(projectId)
         : await db?.get?.("SELECT * FROM projects WHERE id = ?", [projectId]);
       if (!project) {
         throw new Error("项目不存在");
