@@ -14,6 +14,10 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
+
 /**
  * 设备管理器类
  */
@@ -84,24 +88,27 @@ class DeviceManager extends EventEmitter {
 
     const devicePath = path.join(this.config.dataPath, "device.json");
 
+    // M2: 异步读取/写入，避免启动期阻塞事件循环
     try {
-      // 尝试加载现有设备
-      if (fs.existsSync(devicePath)) {
-        const deviceData = JSON.parse(fs.readFileSync(devicePath, "utf8"));
-        this.currentDevice = deviceData;
-        logger.info("[DeviceManager] 已加载现有设备");
-        return;
-      }
+      const content = await _deps.fsp.readFile(devicePath, "utf8");
+      this.currentDevice = JSON.parse(content);
+      logger.info("[DeviceManager] 已加载现有设备");
+      return;
     } catch (error) {
-      logger.warn("[DeviceManager] 加载设备失败，将生成新的:", error.message);
+      if (error.code !== "ENOENT") {
+        logger.warn("[DeviceManager] 加载设备失败，将生成新的:", error.message);
+      }
     }
 
     // 生成新设备并保存
     this.currentDevice = this.generateDevice();
 
     try {
-      fs.mkdirSync(path.dirname(devicePath), { recursive: true });
-      fs.writeFileSync(devicePath, JSON.stringify(this.currentDevice, null, 2));
+      await _deps.fsp.mkdir(path.dirname(devicePath), { recursive: true });
+      await _deps.fsp.writeFile(
+        devicePath,
+        JSON.stringify(this.currentDevice, null, 2),
+      );
       logger.info("[DeviceManager] 设备信息已保存到:", devicePath);
     } catch (error) {
       logger.warn("[DeviceManager] 保存设备信息失败:", error.message);
@@ -143,23 +150,25 @@ class DeviceManager extends EventEmitter {
 
     const devicesPath = path.join(this.config.dataPath, "devices.json");
 
+    // M2: 异步读取，避免启动期阻塞事件循环
     try {
-      if (fs.existsSync(devicesPath)) {
-        const devicesData = JSON.parse(fs.readFileSync(devicesPath, "utf8"));
+      const content = await _deps.fsp.readFile(devicesPath, "utf8");
+      const devicesData = JSON.parse(content);
 
-        // 重建设备映射
-        for (const [userId, devices] of Object.entries(devicesData)) {
-          this.devices.set(userId, devices);
-        }
-
-        logger.info(
-          "[DeviceManager] 已加载设备列表:",
-          this.devices.size,
-          "个用户",
-        );
+      // 重建设备映射
+      for (const [userId, devices] of Object.entries(devicesData)) {
+        this.devices.set(userId, devices);
       }
+
+      logger.info(
+        "[DeviceManager] 已加载设备列表:",
+        this.devices.size,
+        "个用户",
+      );
     } catch (error) {
-      logger.warn("[DeviceManager] 加载设备列表失败:", error.message);
+      if (error.code !== "ENOENT") {
+        logger.warn("[DeviceManager] 加载设备列表失败:", error.message);
+      }
     }
   }
 
@@ -425,3 +434,4 @@ class DeviceManager extends EventEmitter {
 }
 
 module.exports = DeviceManager;
+module.exports._deps = _deps;
