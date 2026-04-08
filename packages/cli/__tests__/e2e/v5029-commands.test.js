@@ -124,46 +124,32 @@ describe("v5029 session commands", () => {
     const stdout = result.stdout;
     let foundJson = false;
 
-    const extractBalanced = (src, startIdx) => {
-      const open = src[startIdx];
-      const close = open === "[" ? "]" : "}";
-      let depth = 0;
-      let inStr = false;
-      let escape = false;
-      for (let j = startIdx; j < src.length; j++) {
-        const c = src[j];
-        if (escape) {
-          escape = false;
-          continue;
-        }
-        if (inStr) {
-          if (c === "\\") escape = true;
-          else if (c === '"') inStr = false;
-          continue;
-        }
-        if (c === '"') {
-          inStr = true;
-          continue;
-        }
-        if (c === open) depth++;
-        else if (c === close) {
-          depth--;
-          if (depth === 0) return src.slice(startIdx, j + 1);
-        }
-      }
-      return null;
-    };
-
-    for (let i = 0; i < stdout.length && !foundJson; i++) {
-      const ch = stdout[i];
-      if (ch !== "[" && ch !== "{") continue;
-      const span = extractBalanced(stdout, i);
-      if (!span) continue;
+    // Strategy: scan from END of stdout backwards for any line that starts
+    // with `[` or `{`, then try to parse from that line through the rest of
+    // the buffer. The JSON output is always the LAST thing the command writes
+    // (logger noise comes earlier during bootstrap), so the last balanced
+    // span starting with `[` or `{` is the one we want. This is more robust
+    // than scanning forward, which can be confused by `[AppConfig]`-style log
+    // prefixes that look like JSON-array starts.
+    const lines = stdout.split(/\r?\n/);
+    for (let li = lines.length - 1; li >= 0 && !foundJson; li--) {
+      const trimmed = lines[li].trimStart();
+      if (!trimmed || (trimmed[0] !== "[" && trimmed[0] !== "{")) continue;
+      // Try parsing from this line forward to end of buffer.
+      const candidate = lines.slice(li).join("\n").trim();
       try {
-        JSON.parse(span);
+        JSON.parse(candidate);
         foundJson = true;
+        break;
       } catch {
-        /* not valid JSON at this offset */
+        // Not valid yet — try just this single line in case it is a one-liner
+        // surrounded by trailing noise.
+        try {
+          JSON.parse(trimmed);
+          foundJson = true;
+        } catch {
+          /* keep scanning earlier lines */
+        }
       }
     }
 
