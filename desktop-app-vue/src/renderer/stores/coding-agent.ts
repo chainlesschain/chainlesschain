@@ -11,6 +11,32 @@ import type {
 
 const codingAgentLogger = createLogger("coding-agent-store");
 
+const ASSISTANT_FINAL_EVENT_TYPES = ["assistant.final", "response-complete"];
+const APPROVAL_REQUEST_EVENT_TYPES = [
+  "approval.requested",
+  "approval-requested",
+];
+const BLOCKED_TOOL_EVENT_TYPES = ["tool.call.failed", "tool-blocked"];
+const SERVER_READY_EVENT_TYPES = ["runtime.server.ready", "server-ready"];
+const SERVER_STOPPED_EVENT_TYPES = ["runtime.server.stopped", "server-stopped"];
+const SESSION_STARTED_EVENT_TYPES = ["session.started", "session-created"];
+const SESSION_RESUMED_EVENT_TYPES = ["session.resumed", "session-resumed"];
+const STATUS_REFRESH_EVENT_TYPES = [
+  ...SERVER_READY_EVENT_TYPES,
+  "plan.updated",
+  "plan-generated",
+  "plan.approval_required",
+  ...APPROVAL_REQUEST_EVENT_TYPES,
+  ...BLOCKED_TOOL_EVENT_TYPES,
+];
+
+function matchesEventType(
+  type: string | undefined,
+  candidates: string[],
+): boolean {
+  return !!type && candidates.includes(type);
+}
+
 interface CodingAgentSessionSummary {
   id: string;
   type?: string;
@@ -112,7 +138,9 @@ export const useCodingAgentStore = defineStore("coding-agent", {
     latestAssistantMessage(): string | null {
       const response = [...this.sessionEvents]
         .reverse()
-        .find((event) => event.type === "response-complete");
+        .find((event) =>
+          matchesEventType(event.type, ASSISTANT_FINAL_EVENT_TYPES),
+        );
       return response?.payload?.content || null;
     },
 
@@ -124,7 +152,9 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       return (
         [...this.sessionEvents]
           .reverse()
-          .find((event) => event.type === "approval-requested") || null
+          .find((event) =>
+            matchesEventType(event.type, APPROVAL_REQUEST_EVENT_TYPES),
+          ) || null
       );
     },
 
@@ -132,7 +162,9 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       return (
         [...this.sessionEvents]
           .reverse()
-          .find((event) => event.type === "tool-blocked") || null
+          .find((event) =>
+            matchesEventType(event.type, BLOCKED_TOOL_EVENT_TYPES),
+          ) || null
       );
     },
 
@@ -725,11 +757,11 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         }
 
         if (!event.sessionId) {
-          if (event.type === "server-ready") {
+          if (matchesEventType(event.type, SERVER_READY_EVENT_TYPES)) {
             this.status.connected = true;
             this.status.host = event.payload?.host;
             this.status.port = event.payload?.port ?? null;
-          } else if (event.type === "server-stopped") {
+          } else if (matchesEventType(event.type, SERVER_STOPPED_EVENT_TYPES)) {
             this.status.connected = false;
           }
           return;
@@ -744,12 +776,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           });
         }
 
-        if (
-          event.type === "server-ready" ||
-          event.type === "plan-generated" ||
-          event.type === "approval-requested" ||
-          event.type === "tool-blocked"
-        ) {
+        if (matchesEventType(event.type, STATUS_REFRESH_EVENT_TYPES)) {
           this.refreshStatus().catch((error: any) => {
             codingAgentLogger.warn(
               "refreshStatus after event failed:",
@@ -759,8 +786,8 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         }
 
         if (
-          event.type === "session-created" ||
-          event.type === "session-resumed"
+          matchesEventType(event.type, SESSION_STARTED_EVENT_TYPES) ||
+          matchesEventType(event.type, SESSION_RESUMED_EVENT_TYPES)
         ) {
           this.loadSessions().catch((error: any) => {
             codingAgentLogger.warn(
