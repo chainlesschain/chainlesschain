@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database.js`
 
-**Generated**: 2026-04-08T12:26:28.612Z
+**Generated**: 2026-04-08T14:31:39.045Z
 
 ---
 

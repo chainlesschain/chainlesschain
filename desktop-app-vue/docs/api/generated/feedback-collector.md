@@ -2,7 +2,7 @@
 
 **Source**: `src/main/feedback/feedback-collector.js`
 
-**Generated**: 2026-04-08T12:26:28.713Z
+**Generated**: 2026-04-08T14:31:39.141Z
 
 ---
 
