@@ -325,6 +325,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:reject-patch", payload),
     getPatchSummary: (payload) =>
       ipcRenderer.invoke("coding-agent:get-patch-summary", payload),
+    createTaskGraph: (payload) =>
+      ipcRenderer.invoke("coding-agent:create-task-graph", payload),
+    addTaskNode: (payload) =>
+      ipcRenderer.invoke("coding-agent:add-task-node", payload),
+    updateTaskNode: (payload) =>
+      ipcRenderer.invoke("coding-agent:update-task-node", payload),
+    advanceTaskGraph: (payload) =>
+      ipcRenderer.invoke("coding-agent:advance-task-graph", payload),
+    getTaskGraph: (payload) =>
+      ipcRenderer.invoke("coding-agent:get-task-graph", payload),
     getStatus: () => ipcRenderer.invoke("coding-agent:get-status"),
     onEvent: (callback) => {
       const handler = (_event, data) => callback(data);

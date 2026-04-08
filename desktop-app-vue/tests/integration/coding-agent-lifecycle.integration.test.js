@@ -340,6 +340,137 @@ class MockBridge extends EventEmitter {
     };
   }
 
+  _taskGraphFor(sessionId) {
+    this.taskGraphs = this.taskGraphs || {};
+    return this.taskGraphs[sessionId] || null;
+  }
+
+  _normalizeTaskNode(raw) {
+    return {
+      id: raw.id,
+      title: raw.title || raw.id,
+      description: raw.description || null,
+      status: raw.status || "pending",
+      dependsOn: Array.isArray(raw.dependsOn) ? [...raw.dependsOn] : [],
+      metadata: raw.metadata || {},
+      createdAt: "t0",
+      updatedAt: "t0",
+      startedAt: null,
+      completedAt: null,
+      result: null,
+      error: null,
+    };
+  }
+
+  async createTaskGraph(sessionId, payload = {}) {
+    this.taskGraphs = this.taskGraphs || {};
+    const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+    const order = nodes.map((n) => n.id);
+    const nodeMap = {};
+    for (const n of nodes) {
+      nodeMap[n.id] = this._normalizeTaskNode(n);
+    }
+    const graph = {
+      graphId: payload.graphId || "graph-1",
+      title: payload.title || null,
+      description: payload.description || null,
+      status: "active",
+      createdAt: "t0",
+      updatedAt: "t0",
+      completedAt: null,
+      order,
+      nodes: nodeMap,
+    };
+    this.taskGraphs[sessionId] = graph;
+    return {
+      id: "task-graph-create-req",
+      type: "task-graph.created",
+      sessionId,
+      graph,
+    };
+  }
+
+  async addTaskNode(sessionId, node) {
+    const graph = this._taskGraphFor(sessionId);
+    if (!graph) {
+      return {
+        id: "task-graph-add-req",
+        type: "task-graph.node.added",
+        sessionId,
+        graph: null,
+        nodeId: node && node.id,
+      };
+    }
+    graph.nodes[node.id] = this._normalizeTaskNode(node);
+    graph.order.push(node.id);
+    return {
+      id: "task-graph-add-req",
+      type: "task-graph.node.added",
+      sessionId,
+      graph,
+      nodeId: node.id,
+    };
+  }
+
+  async updateTaskNode(sessionId, nodeId, updates = {}) {
+    const graph = this._taskGraphFor(sessionId);
+    if (!graph || !graph.nodes[nodeId]) {
+      return {
+        id: "task-graph-update-req",
+        type: "task-graph.node.updated",
+        sessionId,
+        graph,
+        nodeId,
+      };
+    }
+    Object.assign(graph.nodes[nodeId], updates);
+    graph.nodes[nodeId].updatedAt = "t1";
+    return {
+      id: "task-graph-update-req",
+      type: "task-graph.node.updated",
+      sessionId,
+      graph,
+      nodeId,
+    };
+  }
+
+  async advanceTaskGraph(sessionId) {
+    const graph = this._taskGraphFor(sessionId);
+    const becameReady = [];
+    if (graph) {
+      for (const id of graph.order) {
+        const node = graph.nodes[id];
+        if (node.status !== "pending") {
+          continue;
+        }
+        const ready = node.dependsOn.every((dep) => {
+          const d = graph.nodes[dep];
+          return d && (d.status === "completed" || d.status === "skipped");
+        });
+        if (ready) {
+          node.status = "ready";
+          becameReady.push(id);
+        }
+      }
+    }
+    return {
+      id: "task-graph-advance-req",
+      type: "task-graph.advanced",
+      sessionId,
+      graph,
+      becameReady,
+    };
+  }
+
+  async getTaskGraph(sessionId) {
+    return {
+      id: "task-graph-state-req",
+      type: "task-graph.state",
+      sessionId,
+      graph: this._taskGraphFor(sessionId),
+    };
+  }
+
   async ensureReady() {
     return { host: this.host, port: this.port };
   }
@@ -562,6 +693,8 @@ describe("Coding agent lifecycle integration", () => {
   it("registers all expected IPC channels", () => {
     expect(Object.keys(ipcMainMock.handlers).sort()).toEqual(
       [
+        "coding-agent:add-task-node",
+        "coding-agent:advance-task-graph",
         "coding-agent:apply-patch",
         "coding-agent:apply-worktree-automation",
         "coding-agent:approve-plan",
@@ -569,6 +702,7 @@ describe("Coding agent lifecycle integration", () => {
         "coding-agent:close-session",
         "coding-agent:confirm-high-risk-execution",
         "coding-agent:create-session",
+        "coding-agent:create-task-graph",
         "coding-agent:enter-plan-mode",
         "coding-agent:enter-review",
         "coding-agent:get-background-task",
@@ -580,6 +714,7 @@ describe("Coding agent lifecycle integration", () => {
         "coding-agent:get-session-state",
         "coding-agent:get-status",
         "coding-agent:get-sub-agent",
+        "coding-agent:get-task-graph",
         "coding-agent:get-worktree-diff",
         "coding-agent:interrupt",
         "coding-agent:list-background-tasks",
@@ -599,6 +734,7 @@ describe("Coding agent lifecycle integration", () => {
         "coding-agent:start-session",
         "coding-agent:stop-background-task",
         "coding-agent:submit-review-comment",
+        "coding-agent:update-task-node",
       ].sort(),
     );
   });
@@ -1121,6 +1257,93 @@ describe("Coding agent lifecycle integration", () => {
       success: false,
       error: "sessionId is required",
     });
+  });
+
+  it("runs the task graph lifecycle through IPC: create → add → update → advance → state", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const created = await ipcMainMock.handlers[
+      "coding-agent:create-task-graph"
+    ](
+      {},
+      {
+        sessionId: "session-x",
+        title: "Plan",
+        nodes: [{ id: "a" }, { id: "b", dependsOn: ["a"] }],
+      },
+    );
+    expect(created).toMatchObject({
+      success: true,
+      sessionId: "session-x",
+      graph: expect.objectContaining({
+        graphId: "graph-1",
+        title: "Plan",
+        order: ["a", "b"],
+      }),
+    });
+
+    const added = await ipcMainMock.handlers["coding-agent:add-task-node"](
+      {},
+      { sessionId: "session-x", node: { id: "c", dependsOn: ["b"] } },
+    );
+    expect(added).toMatchObject({
+      success: true,
+      nodeId: "c",
+      graph: expect.objectContaining({ order: ["a", "b", "c"] }),
+    });
+
+    const updated = await ipcMainMock.handlers["coding-agent:update-task-node"](
+      {},
+      {
+        sessionId: "session-x",
+        nodeId: "a",
+        updates: { status: "completed" },
+      },
+    );
+    expect(updated.graph.nodes.a.status).toBe("completed");
+
+    const advanced = await ipcMainMock.handlers[
+      "coding-agent:advance-task-graph"
+    ]({}, "session-x");
+    expect(advanced.becameReady).toEqual(["b"]);
+    expect(advanced.graph.nodes.b.status).toBe("ready");
+
+    const state = await ipcMainMock.handlers["coding-agent:get-task-graph"](
+      {},
+      "session-x",
+    );
+    expect(state.graph.nodes.a.status).toBe("completed");
+    expect(state.graph.nodes.b.status).toBe("ready");
+    expect(state.graph.nodes.c.status).toBe("pending");
+  });
+
+  it("rejects task graph handlers without a sessionId", async () => {
+    const create = await ipcMainMock.handlers["coding-agent:create-task-graph"](
+      {},
+      { nodes: [] },
+    );
+    expect(create).toEqual({
+      success: false,
+      error: "sessionId is required",
+    });
+
+    const advance = await ipcMainMock.handlers[
+      "coding-agent:advance-task-graph"
+    ]({}, {});
+    expect(advance).toEqual({
+      success: false,
+      error: "sessionId is required",
+    });
+  });
+
+  it("rejects add-task-node when node.id is missing", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const result = await ipcMainMock.handlers["coding-agent:add-task-node"](
+      {},
+      { sessionId: "session-x", node: {} },
+    );
+    expect(result).toEqual({ success: false, error: "node.id is required" });
   });
 
   it("emits session events to the renderer via webContents.send", async () => {

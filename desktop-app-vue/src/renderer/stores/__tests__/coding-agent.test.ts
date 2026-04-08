@@ -160,6 +160,166 @@ describe("useCodingAgentStore", () => {
         sessionId: "session-1",
         reviewState: null,
       }),
+      proposePatch: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        patch: {
+          patchId: "patch-1",
+          status: "pending",
+          origin: "tool",
+          reason: null,
+          requestId: null,
+          proposedAt: "t0",
+          resolvedAt: null,
+          resolvedBy: null,
+          files: [
+            {
+              index: 0,
+              path: "src/a.js",
+              op: "modify",
+              before: "old",
+              after: "new",
+              diff: null,
+              stats: { added: 1, removed: 1 },
+            },
+          ],
+          stats: { fileCount: 1, added: 1, removed: 1 },
+        },
+      }),
+      applyPatch: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        patch: {
+          patchId: "patch-1",
+          status: "applied",
+          origin: "tool",
+          reason: null,
+          requestId: null,
+          proposedAt: "t0",
+          resolvedAt: "t1",
+          resolvedBy: "user",
+          files: [],
+          stats: { fileCount: 1, added: 1, removed: 1 },
+        },
+      }),
+      rejectPatch: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        patch: {
+          patchId: "patch-1",
+          status: "rejected",
+          origin: "tool",
+          reason: null,
+          requestId: null,
+          proposedAt: "t0",
+          resolvedAt: "t1",
+          resolvedBy: "user",
+          rejectionReason: "no",
+          files: [],
+          stats: { fileCount: 1, added: 1, removed: 1 },
+        },
+      }),
+      getPatchSummary: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        summary: {
+          pending: [],
+          history: [],
+          totals: { fileCount: 0, added: 0, removed: 0 },
+        },
+      }),
+      createTaskGraph: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        graph: {
+          graphId: "graph-1",
+          title: "Plan",
+          description: null,
+          status: "active",
+          createdAt: "t0",
+          updatedAt: "t0",
+          completedAt: null,
+          order: ["a", "b"],
+          nodes: {
+            a: {
+              id: "a",
+              title: "a",
+              description: null,
+              status: "pending",
+              dependsOn: [],
+              metadata: {},
+              createdAt: "t0",
+              updatedAt: "t0",
+              startedAt: null,
+              completedAt: null,
+              result: null,
+              error: null,
+            },
+            b: {
+              id: "b",
+              title: "b",
+              description: null,
+              status: "pending",
+              dependsOn: ["a"],
+              metadata: {},
+              createdAt: "t0",
+              updatedAt: "t0",
+              startedAt: null,
+              completedAt: null,
+              result: null,
+              error: null,
+            },
+          },
+        },
+      }),
+      addTaskNode: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        nodeId: "c",
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a", "b", "c"],
+          nodes: {
+            a: { id: "a", status: "pending", dependsOn: [] },
+            b: { id: "b", status: "pending", dependsOn: ["a"] },
+            c: { id: "c", status: "pending", dependsOn: ["b"] },
+          },
+        },
+      }),
+      updateTaskNode: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        nodeId: "a",
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a", "b"],
+          nodes: {
+            a: { id: "a", status: "completed", dependsOn: [] },
+            b: { id: "b", status: "pending", dependsOn: ["a"] },
+          },
+        },
+      }),
+      advanceTaskGraph: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        becameReady: ["b"],
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a", "b"],
+          nodes: {
+            a: { id: "a", status: "completed", dependsOn: [] },
+            b: { id: "b", status: "ready", dependsOn: ["a"] },
+          },
+        },
+      }),
+      getTaskGraph: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        graph: null,
+      }),
       subscribeEvents: vi.fn(),
       onEvent: vi.fn(),
     };
@@ -582,6 +742,260 @@ describe("useCodingAgentStore", () => {
 
     expect(store.reviewStates["session-1"]?.status).toBe("approved");
     expect(store.isCurrentSessionBlockedByReview).toBe(false);
+  });
+
+  it("proposePatch stores the returned patch as pending", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+
+    const patch = await store.proposePatch({
+      files: [{ path: "src/a.js", op: "modify", before: "old", after: "new" }],
+    });
+
+    expect(codingAgentApi.proposePatch).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      files: [{ path: "src/a.js", op: "modify", before: "old", after: "new" }],
+      origin: "tool",
+      reason: null,
+      requestId: null,
+    });
+    expect(patch?.patchId).toBe("patch-1");
+    expect(store.currentSessionPendingPatches).toHaveLength(1);
+    expect(store.currentSessionHasPendingPatches).toBe(true);
+    expect(store.currentSessionPatchSummary?.totals.fileCount).toBe(1);
+  });
+
+  it("applyPatch moves the patch from pending to history", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+    await store.proposePatch({
+      files: [{ path: "src/a.js", op: "modify", before: "old", after: "new" }],
+    });
+    expect(store.currentSessionHasPendingPatches).toBe(true);
+
+    const patch = await store.applyPatch({ patchId: "patch-1" });
+
+    expect(codingAgentApi.applyPatch).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      patchId: "patch-1",
+      resolvedBy: "user",
+      note: null,
+    });
+    expect(patch?.status).toBe("applied");
+    expect(store.currentSessionHasPendingPatches).toBe(false);
+    expect(store.currentSessionPatchSummary?.history[0]?.patchId).toBe(
+      "patch-1",
+    );
+  });
+
+  it("rejectPatch marks the patch as rejected", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+    await store.proposePatch({
+      files: [{ path: "src/a.js", op: "modify" }],
+    });
+
+    const patch = await store.rejectPatch({
+      patchId: "patch-1",
+      reason: "no",
+    });
+
+    expect(codingAgentApi.rejectPatch).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      patchId: "patch-1",
+      resolvedBy: "user",
+      reason: "no",
+    });
+    expect(patch?.status).toBe("rejected");
+    expect(store.currentSessionHasPendingPatches).toBe(false);
+  });
+
+  it("fetchPatchSummary replaces the local summary", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+
+    const summary = await store.fetchPatchSummary();
+
+    expect(codingAgentApi.getPatchSummary).toHaveBeenCalledWith({
+      sessionId: "session-1",
+    });
+    expect(summary?.pending).toEqual([]);
+    expect(store.currentSessionPatchSummary?.totals.fileCount).toBe(0);
+  });
+
+  it("applies patch lifecycle events to per-session summaries", async () => {
+    const unsubscribe = vi.fn();
+    codingAgentApi.subscribeEvents.mockImplementation((handler: any) => {
+      handler({
+        id: "evt-patch-1",
+        type: "patch.proposed",
+        sessionId: "session-1",
+        payload: {
+          patch: {
+            patchId: "patch-9",
+            status: "pending",
+            origin: "tool",
+            reason: null,
+            requestId: null,
+            proposedAt: "t0",
+            resolvedAt: null,
+            resolvedBy: null,
+            files: [],
+            stats: { fileCount: 2, added: 5, removed: 3 },
+          },
+        },
+      });
+      handler({
+        id: "evt-patch-2",
+        type: "patch.applied",
+        sessionId: "session-1",
+        payload: {
+          patch: {
+            patchId: "patch-9",
+            status: "applied",
+            origin: "tool",
+            reason: null,
+            requestId: null,
+            proposedAt: "t0",
+            resolvedAt: "t1",
+            resolvedBy: "user",
+            files: [],
+            stats: { fileCount: 2, added: 5, removed: 3 },
+          },
+        },
+      });
+      return unsubscribe;
+    });
+
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+
+    store.initEventListeners();
+    await Promise.resolve();
+
+    expect(store.currentSessionHasPendingPatches).toBe(false);
+    expect(store.currentSessionPatchSummary?.history[0]?.patchId).toBe(
+      "patch-9",
+    );
+    expect(store.currentSessionPatchSummary?.history[0]?.status).toBe(
+      "applied",
+    );
+  });
+
+  it("createTaskGraph stores the graph for the current session", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+
+    const graph = await store.createTaskGraph({
+      title: "Plan",
+      nodes: [{ id: "a" }, { id: "b", dependsOn: ["a"] }],
+    });
+
+    expect(codingAgentApi.createTaskGraph).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      graphId: null,
+      title: "Plan",
+      description: null,
+      nodes: [{ id: "a" }, { id: "b", dependsOn: ["a"] }],
+    });
+    expect(graph?.graphId).toBe("graph-1");
+    expect(store.currentSessionTaskGraph?.order).toEqual(["a", "b"]);
+  });
+
+  it("addTaskNode appends a node to the current graph", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+
+    await store.addTaskNode({ node: { id: "c", dependsOn: ["b"] } });
+
+    expect(codingAgentApi.addTaskNode).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      node: { id: "c", dependsOn: ["b"] },
+    });
+    expect(store.currentSessionTaskGraph?.order).toEqual(["a", "b", "c"]);
+  });
+
+  it("updateTaskNode forwards updates and refreshes the graph", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+
+    await store.updateTaskNode({
+      nodeId: "a",
+      updates: { status: "completed" },
+    });
+
+    expect(codingAgentApi.updateTaskNode).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      nodeId: "a",
+      updates: { status: "completed" },
+    });
+    expect(store.currentSessionTaskGraph?.nodes.a.status).toBe("completed");
+  });
+
+  it("advanceTaskGraph promotes ready nodes and exposes them via getter", async () => {
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+
+    const result = await store.advanceTaskGraph();
+
+    expect(codingAgentApi.advanceTaskGraph).toHaveBeenCalledWith({
+      sessionId: "session-1",
+    });
+    expect(result.becameReady).toEqual(["b"]);
+    expect(store.currentSessionReadyTaskNodes.map((n) => n.id)).toEqual(["b"]);
+  });
+
+  it("applies task graph lifecycle events to the per-session graph", async () => {
+    const unsubscribe = vi.fn();
+    codingAgentApi.subscribeEvents.mockImplementation((handler: any) => {
+      handler({
+        id: "evt-tg-1",
+        type: "task-graph.created",
+        sessionId: "session-1",
+        payload: {
+          graph: {
+            graphId: "graph-evt",
+            status: "active",
+            order: ["x"],
+            nodes: { x: { id: "x", status: "pending", dependsOn: [] } },
+          },
+        },
+      });
+      handler({
+        id: "evt-tg-2",
+        type: "task-graph.node.completed",
+        sessionId: "session-1",
+        payload: {
+          nodeId: "x",
+          graph: {
+            graphId: "graph-evt",
+            status: "active",
+            order: ["x"],
+            nodes: { x: { id: "x", status: "completed", dependsOn: [] } },
+          },
+        },
+      });
+      return unsubscribe;
+    });
+
+    const { useCodingAgentStore } = await import("../coding-agent");
+    const store = useCodingAgentStore();
+    store.currentSessionId = "session-1";
+
+    store.initEventListeners();
+    await Promise.resolve();
+
+    expect(store.currentSessionTaskGraph?.graphId).toBe("graph-evt");
+    expect(store.currentSessionTaskGraph?.nodes.x.status).toBe("completed");
   });
 
   it("stopBackgroundTask refreshes tasks and harness state", async () => {

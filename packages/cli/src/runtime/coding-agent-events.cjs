@@ -108,6 +108,20 @@ const CODING_AGENT_EVENT_TYPES = Object.freeze({
   PATCH_APPLIED: "patch.applied",
   PATCH_REJECTED: "patch.rejected",
   PATCH_SUMMARY: "patch.summary",
+
+  // Persistent task graph + orchestrator — a session-scoped DAG of tasks
+  // with dependencies. The runtime serializes the graph to session metadata
+  // so it survives CLI restarts; the orchestrator advances the graph by
+  // marking ready nodes as `running` when their dependencies complete.
+  TASK_GRAPH_CREATED: "task-graph.created",
+  TASK_GRAPH_UPDATED: "task-graph.updated",
+  TASK_GRAPH_NODE_ADDED: "task-graph.node.added",
+  TASK_GRAPH_NODE_UPDATED: "task-graph.node.updated",
+  TASK_GRAPH_NODE_COMPLETED: "task-graph.node.completed",
+  TASK_GRAPH_NODE_FAILED: "task-graph.node.failed",
+  TASK_GRAPH_ADVANCED: "task-graph.advanced",
+  TASK_GRAPH_COMPLETED: "task-graph.completed",
+  TASK_GRAPH_STATE: "task-graph.state",
 });
 
 const VALID_TYPE_SET = new Set(Object.values(CODING_AGENT_EVENT_TYPES));

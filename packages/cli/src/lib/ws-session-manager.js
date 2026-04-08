@@ -352,6 +352,7 @@ export class WSSessionManager {
       reviewState: null,
       pendingPatches: new Map(),
       patchHistory: [],
+      taskGraph: null,
       interaction: null, // Set by ws-server after creation
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
@@ -464,6 +465,7 @@ export class WSSessionManager {
         patchHistory: Array.isArray(metadata.patchHistory)
           ? metadata.patchHistory
           : [],
+        taskGraph: this._hydrateTaskGraph(metadata.taskGraph),
         interaction: null,
         createdAt: dbSession.created_at,
         lastActivity: new Date().toISOString(),
@@ -961,6 +963,242 @@ export class WSSessionManager {
   }
 
   /**
+   * Create or replace the task graph for a session. A graph is a DAG of
+   * `nodes` keyed by id; each node has `{ id, title, status, dependsOn[],
+   * metadata }`. Returns the serialized graph.
+   */
+  createTaskGraph(sessionId, payload = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    const graphId = payload.graphId || `graph-${this._generateId()}`;
+    const now = new Date().toISOString();
+    const nodes = {};
+    const incomingNodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+    for (const raw of incomingNodes) {
+      if (!raw || !raw.id) continue;
+      nodes[raw.id] = this._normalizeTaskNode(raw, now);
+    }
+
+    const graph = {
+      graphId,
+      title: payload.title || null,
+      description: payload.description || null,
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+      completedAt: null,
+      nodes,
+      order: Object.keys(nodes),
+    };
+
+    session.taskGraph = graph;
+    session.lastActivity = now;
+    this._persistSessionState(sessionId);
+    return this._cloneTaskGraph(graph);
+  }
+
+  /**
+   * Add a node to the existing task graph. Fails if no graph exists or if
+   * the node id already exists.
+   */
+  addTaskNode(sessionId, payload = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.taskGraph) return null;
+    if (!payload || !payload.id) return null;
+    const graph = session.taskGraph;
+    if (graph.nodes[payload.id]) return null;
+
+    const now = new Date().toISOString();
+    graph.nodes[payload.id] = this._normalizeTaskNode(payload, now);
+    graph.order = [...(graph.order || []), payload.id];
+    graph.updatedAt = now;
+    session.lastActivity = now;
+    this._persistSessionState(sessionId);
+    return this._cloneTaskGraph(graph);
+  }
+
+  /**
+   * Update a node's status / metadata. Valid statuses: pending, ready,
+   * running, completed, failed, skipped.
+   */
+  updateTaskNode(sessionId, nodeId, updates = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.taskGraph) return null;
+    const graph = session.taskGraph;
+    const node = graph.nodes[nodeId];
+    if (!node) return null;
+
+    const now = new Date().toISOString();
+    if (updates.status) {
+      node.status = String(updates.status);
+      if (node.status === "running" && !node.startedAt) {
+        node.startedAt = now;
+      }
+      if (
+        node.status === "completed" ||
+        node.status === "failed" ||
+        node.status === "skipped"
+      ) {
+        node.completedAt = now;
+      }
+    }
+    if (updates.title !== undefined) node.title = updates.title;
+    if (updates.result !== undefined) node.result = updates.result;
+    if (updates.error !== undefined) node.error = updates.error;
+    if (updates.metadata !== undefined) {
+      node.metadata = { ...(node.metadata || {}), ...(updates.metadata || {}) };
+    }
+    node.updatedAt = now;
+    graph.updatedAt = now;
+
+    // Check graph completion
+    const allDone = Object.values(graph.nodes).every((n) =>
+      ["completed", "failed", "skipped"].includes(n.status),
+    );
+    if (allDone) {
+      graph.status = Object.values(graph.nodes).some(
+        (n) => n.status === "failed",
+      )
+        ? "failed"
+        : "completed";
+      graph.completedAt = now;
+    }
+
+    session.lastActivity = now;
+    this._persistSessionState(sessionId);
+    return this._cloneTaskGraph(graph);
+  }
+
+  /**
+   * Advance the task graph: mark any `pending` node whose dependencies are
+   * all `completed` (or `skipped`) as `ready`. Returns the list of node ids
+   * that became ready and the updated graph snapshot.
+   */
+  advanceTaskGraph(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.taskGraph) return null;
+    const graph = session.taskGraph;
+
+    const becameReady = [];
+    for (const node of Object.values(graph.nodes)) {
+      if (node.status !== "pending") continue;
+      const deps = Array.isArray(node.dependsOn) ? node.dependsOn : [];
+      const blocked = deps.some((depId) => {
+        const dep = graph.nodes[depId];
+        if (!dep) return true;
+        return dep.status !== "completed" && dep.status !== "skipped";
+      });
+      if (!blocked) {
+        node.status = "ready";
+        node.updatedAt = new Date().toISOString();
+        becameReady.push(node.id);
+      }
+    }
+
+    if (becameReady.length > 0) {
+      graph.updatedAt = new Date().toISOString();
+      session.lastActivity = graph.updatedAt;
+      this._persistSessionState(sessionId);
+    }
+
+    return {
+      graph: this._cloneTaskGraph(graph),
+      becameReady,
+    };
+  }
+
+  getTaskGraph(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.taskGraph) return null;
+    return this._cloneTaskGraph(session.taskGraph);
+  }
+
+  clearTaskGraph(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return false;
+    session.taskGraph = null;
+    session.lastActivity = new Date().toISOString();
+    this._persistSessionState(sessionId);
+    return true;
+  }
+
+  _normalizeTaskNode(raw, now) {
+    const status = raw.status || "pending";
+    return {
+      id: raw.id,
+      title: raw.title || raw.id,
+      description: raw.description || null,
+      status,
+      dependsOn: Array.isArray(raw.dependsOn)
+        ? raw.dependsOn.filter((x) => typeof x === "string")
+        : [],
+      metadata:
+        raw.metadata && typeof raw.metadata === "object" ? raw.metadata : {},
+      createdAt: raw.createdAt || now,
+      updatedAt: raw.updatedAt || now,
+      startedAt: raw.startedAt || null,
+      completedAt: raw.completedAt || null,
+      result: raw.result || null,
+      error: raw.error || null,
+    };
+  }
+
+  _cloneTaskGraph(graph) {
+    if (!graph) return null;
+    return {
+      graphId: graph.graphId,
+      title: graph.title,
+      description: graph.description,
+      status: graph.status,
+      createdAt: graph.createdAt,
+      updatedAt: graph.updatedAt,
+      completedAt: graph.completedAt,
+      order: Array.isArray(graph.order)
+        ? [...graph.order]
+        : Object.keys(graph.nodes || {}),
+      nodes: Object.fromEntries(
+        Object.entries(graph.nodes || {}).map(([id, node]) => [
+          id,
+          {
+            ...node,
+            dependsOn: [...(node.dependsOn || [])],
+            metadata: { ...(node.metadata || {}) },
+          },
+        ]),
+      ),
+    };
+  }
+
+  _hydrateTaskGraph(data) {
+    if (!data || typeof data !== "object") return null;
+    if (!data.graphId || !data.nodes) return null;
+    const nodes = {};
+    for (const [id, node] of Object.entries(data.nodes)) {
+      nodes[id] = this._normalizeTaskNode(
+        { ...node, id },
+        node.createdAt || new Date().toISOString(),
+      );
+    }
+    return {
+      graphId: data.graphId,
+      title: data.title || null,
+      description: data.description || null,
+      status: data.status || "active",
+      createdAt: data.createdAt || new Date().toISOString(),
+      updatedAt: data.updatedAt || new Date().toISOString(),
+      completedAt: data.completedAt || null,
+      order: Array.isArray(data.order) ? data.order : Object.keys(nodes),
+      nodes,
+    };
+  }
+
+  _serializeTaskGraph(graph) {
+    if (!graph) return null;
+    return this._cloneTaskGraph(graph);
+  }
+
+  /**
    * Persist current messages for a session.
    */
   persistMessages(sessionId) {
@@ -1046,6 +1284,7 @@ export class WSSessionManager {
       patchHistory: Array.isArray(session.patchHistory)
         ? session.patchHistory
         : [],
+      taskGraph: this._serializeTaskGraph(session.taskGraph),
     };
   }
 

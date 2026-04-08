@@ -1164,6 +1164,373 @@ export function handlePatchSummary(server, id, ws, message) {
   );
 }
 
+/**
+ * Helper: emit a task-graph.* envelope through the session's interaction
+ * adapter (same fan-out pattern as _emitPatchEvent).
+ */
+function _emitTaskGraphEvent(server, session, type, payload, ws) {
+  const envelope = createCodingAgentEvent(
+    type,
+    { ...(payload || {}), sessionId: session.id },
+    {
+      sessionId: session.id,
+      source: "cli-runtime",
+    },
+  );
+
+  const interaction = session && session.interaction;
+  if (interaction && typeof interaction.emit === "function") {
+    try {
+      interaction.emit(type, envelope.payload);
+      return;
+    } catch (_err) {
+      // Fall through to ws send below.
+    }
+  }
+
+  if (ws) {
+    server._send(ws, envelope);
+  }
+}
+
+/**
+ * Create a session-scoped task graph.
+ *
+ * Message shape:
+ *   { type: "task-graph-create", id, sessionId, title?, nodes: [...] }
+ */
+export function handleTaskGraphCreate(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  if (!Array.isArray(message.nodes)) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "INVALID_PAYLOAD",
+        "task-graph-create requires a nodes array",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const graph = server.sessionManager.createTaskGraph(sessionId, {
+    graphId: message.graphId,
+    title: message.title,
+    description: message.description,
+    nodes: message.nodes,
+  });
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.TASK_GRAPH_CREATED,
+      id,
+      { sessionId, graph },
+      sessionId,
+    ),
+  );
+
+  _emitTaskGraphEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.TASK_GRAPH_CREATED,
+    { graph },
+    ws,
+  );
+}
+
+/**
+ * Add a node to an existing task graph.
+ *
+ * Message shape:
+ *   { type: "task-graph-add-node", id, sessionId, node: { id, title, dependsOn? } }
+ */
+export function handleTaskGraphAddNode(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const node = message.node || null;
+  if (!node || !node.id) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "INVALID_PAYLOAD",
+        "task-graph-add-node requires node.id",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const graph = server.sessionManager.addTaskNode(sessionId, node);
+  if (!graph) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "TASK_GRAPH_ADD_FAILED",
+        "Unable to add node (no graph, or duplicate id)",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.TASK_GRAPH_NODE_ADDED,
+      id,
+      { sessionId, graph, nodeId: node.id },
+      sessionId,
+    ),
+  );
+
+  _emitTaskGraphEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.TASK_GRAPH_NODE_ADDED,
+    { graph, nodeId: node.id },
+    ws,
+  );
+}
+
+/**
+ * Update a task graph node (status, result, error, metadata).
+ *
+ * Message shape:
+ *   { type: "task-graph-update-node", id, sessionId, nodeId, updates: { status?, result?, error? } }
+ */
+export function handleTaskGraphUpdateNode(server, id, ws, message) {
+  const { sessionId, nodeId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  if (!nodeId) {
+    server._send(
+      ws,
+      envelopeError(id, "INVALID_PAYLOAD", "nodeId is required", sessionId),
+    );
+    return;
+  }
+
+  const graph = server.sessionManager.updateTaskNode(
+    sessionId,
+    nodeId,
+    message.updates || {},
+  );
+
+  if (!graph) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "TASK_GRAPH_NODE_NOT_FOUND",
+        `Task node not found: ${nodeId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const node = graph.nodes[nodeId];
+  let eventType = CODING_AGENT_EVENT_TYPES.TASK_GRAPH_NODE_UPDATED;
+  if (node && node.status === "completed") {
+    eventType = CODING_AGENT_EVENT_TYPES.TASK_GRAPH_NODE_COMPLETED;
+  } else if (node && node.status === "failed") {
+    eventType = CODING_AGENT_EVENT_TYPES.TASK_GRAPH_NODE_FAILED;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(eventType, id, { sessionId, graph, nodeId }, sessionId),
+  );
+
+  _emitTaskGraphEvent(server, session, eventType, { graph, nodeId }, ws);
+
+  if (graph.status === "completed" || graph.status === "failed") {
+    _emitTaskGraphEvent(
+      server,
+      session,
+      CODING_AGENT_EVENT_TYPES.TASK_GRAPH_COMPLETED,
+      { graph },
+      ws,
+    );
+  }
+}
+
+/**
+ * Advance the task graph: promote any pending node whose deps are satisfied.
+ *
+ * Message shape: { type: "task-graph-advance", id, sessionId }
+ */
+export function handleTaskGraphAdvance(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const result = server.sessionManager.advanceTaskGraph(sessionId);
+  if (!result) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "TASK_GRAPH_NOT_FOUND",
+        "No task graph on session",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.TASK_GRAPH_ADVANCED,
+      id,
+      { sessionId, graph: result.graph, becameReady: result.becameReady },
+      sessionId,
+    ),
+  );
+
+  _emitTaskGraphEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.TASK_GRAPH_ADVANCED,
+    { graph: result.graph, becameReady: result.becameReady },
+    ws,
+  );
+}
+
+/**
+ * Fetch the current task graph state.
+ *
+ * Message shape: { type: "task-graph-state", id, sessionId }
+ */
+export function handleTaskGraphState(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const graph = server.sessionManager.getTaskGraph(sessionId);
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.TASK_GRAPH_STATE,
+      id,
+      { sessionId, graph },
+      sessionId,
+    ),
+  );
+}
+
 export function handleHostToolResult(server, id, ws, message) {
   const { sessionId, requestId, success, result, error, toolName } = message;
 

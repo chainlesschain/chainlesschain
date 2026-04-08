@@ -207,6 +207,63 @@ describe("registerCodingAgentIPCV3", () => {
           totals: { fileCount: 0, added: 0, removed: 0 },
         },
       }),
+      createTaskGraph: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a"],
+          nodes: { a: { id: "a", status: "pending", dependsOn: [] } },
+        },
+      }),
+      addTaskNode: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        nodeId: "b",
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a", "b"],
+          nodes: {
+            a: { id: "a", status: "pending", dependsOn: [] },
+            b: { id: "b", status: "pending", dependsOn: ["a"] },
+          },
+        },
+      }),
+      updateTaskNode: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        nodeId: "a",
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a", "b"],
+          nodes: {
+            a: { id: "a", status: "completed", dependsOn: [] },
+            b: { id: "b", status: "pending", dependsOn: ["a"] },
+          },
+        },
+      }),
+      advanceTaskGraph: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        becameReady: ["b"],
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a", "b"],
+          nodes: {
+            a: { id: "a", status: "completed", dependsOn: [] },
+            b: { id: "b", status: "ready", dependsOn: ["a"] },
+          },
+        },
+      }),
+      getTaskGraph: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        graph: null,
+      }),
       getStatus: vi
         .fn()
         .mockReturnValue({ success: true, server: { connected: true } }),
@@ -718,6 +775,149 @@ describe("registerCodingAgentIPCV3", () => {
       { sessionId: "session-1" },
     );
     expect(reject).toEqual({ success: false, error: "patchId is required" });
+  });
+
+  it("delegates create-task-graph to the service with normalized payload", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const result = await ipcMainMock.handlers["coding-agent:create-task-graph"](
+      {},
+      {
+        sessionId: "session-1",
+        title: "Plan",
+        nodes: [{ id: "a" }],
+      },
+    );
+
+    expect(service.ensureReady).toHaveBeenCalled();
+    expect(service.createTaskGraph).toHaveBeenCalledWith("session-1", {
+      graphId: undefined,
+      title: "Plan",
+      description: undefined,
+      nodes: [{ id: "a" }],
+    });
+    expect(result.success).toBe(true);
+    expect(result.graph.graphId).toBe("graph-1");
+  });
+
+  it("delegates add-task-node to the service", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const result = await ipcMainMock.handlers["coding-agent:add-task-node"](
+      {},
+      { sessionId: "session-1", node: { id: "b", dependsOn: ["a"] } },
+    );
+
+    expect(service.addTaskNode).toHaveBeenCalledWith("session-1", {
+      id: "b",
+      dependsOn: ["a"],
+    });
+    expect(result.nodeId).toBe("b");
+  });
+
+  it("delegates update-task-node to the service", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const result = await ipcMainMock.handlers["coding-agent:update-task-node"](
+      {},
+      {
+        sessionId: "session-1",
+        nodeId: "a",
+        updates: { status: "completed" },
+      },
+    );
+
+    expect(service.updateTaskNode).toHaveBeenCalledWith("session-1", "a", {
+      status: "completed",
+    });
+    expect(result.graph.nodes.a.status).toBe("completed");
+  });
+
+  it("delegates advance-task-graph and supports a string sessionId", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    await ipcMainMock.handlers["coding-agent:advance-task-graph"](
+      {},
+      "session-1",
+    );
+    expect(service.advanceTaskGraph).toHaveBeenCalledWith("session-1");
+
+    await ipcMainMock.handlers["coding-agent:advance-task-graph"](
+      {},
+      { sessionId: "session-1" },
+    );
+    expect(service.advanceTaskGraph).toHaveBeenCalledTimes(2);
+  });
+
+  it("delegates get-task-graph and supports a string sessionId", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    await ipcMainMock.handlers["coding-agent:get-task-graph"]({}, "session-1");
+    expect(service.getTaskGraph).toHaveBeenCalledWith("session-1");
+  });
+
+  it("rejects task graph handlers without a sessionId", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const create = await ipcMainMock.handlers["coding-agent:create-task-graph"](
+      {},
+      {},
+    );
+    expect(create).toEqual({ success: false, error: "sessionId is required" });
+
+    const add = await ipcMainMock.handlers["coding-agent:add-task-node"](
+      {},
+      { node: { id: "x" } },
+    );
+    expect(add).toEqual({ success: false, error: "sessionId is required" });
+
+    const update = await ipcMainMock.handlers["coding-agent:update-task-node"](
+      {},
+      { nodeId: "x" },
+    );
+    expect(update).toEqual({ success: false, error: "sessionId is required" });
+
+    const advance = await ipcMainMock.handlers[
+      "coding-agent:advance-task-graph"
+    ]({}, {});
+    expect(advance).toEqual({ success: false, error: "sessionId is required" });
+
+    const state = await ipcMainMock.handlers["coding-agent:get-task-graph"](
+      {},
+      {},
+    );
+    expect(state).toEqual({ success: false, error: "sessionId is required" });
+  });
+
+  it("rejects add-task-node without node.id", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const missingNode = await ipcMainMock.handlers[
+      "coding-agent:add-task-node"
+    ]({}, { sessionId: "session-1" });
+    expect(missingNode).toEqual({
+      success: false,
+      error: "node.id is required",
+    });
+
+    const missingId = await ipcMainMock.handlers["coding-agent:add-task-node"](
+      {},
+      { sessionId: "session-1", node: {} },
+    );
+    expect(missingId).toEqual({
+      success: false,
+      error: "node.id is required",
+    });
+  });
+
+  it("rejects update-task-node without nodeId", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const result = await ipcMainMock.handlers["coding-agent:update-task-node"](
+      {},
+      { sessionId: "session-1" },
+    );
+    expect(result).toEqual({ success: false, error: "nodeId is required" });
   });
 
   it("returns a normalized failure payload when a handler throws", async () => {

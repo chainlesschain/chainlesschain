@@ -64,7 +64,7 @@ describe.skipIf(!cliExists)("CodingAgentBridge ↔ real CLI server (e2e)", () =>
       provider: "openai",
       model: "gpt-4o-mini",
     });
-    expect(created.type).toBe("session-created");
+    expect(created.type).toBe("session.started");
     expect(typeof created.sessionId).toBe("string");
     expect(created.sessionId.length).toBeGreaterThan(0);
     expect(created.record).toBeDefined();
@@ -76,13 +76,68 @@ describe.skipIf(!cliExists)("CodingAgentBridge ↔ real CLI server (e2e)", () =>
     //    not be installed in every CI environment. The protocol surface
     //    (type/array shape) is what we care about here.
     const list = await bridge.listSessions();
-    expect(list.type).toBe("session-list-result");
+    expect(list.type).toBe("session.list");
     expect(Array.isArray(list.sessions)).toBe(true);
 
-    // 3. closeSession returns a result message.
+    // 3. closeSession returns a command.response message.
     const closed = await bridge.closeSession(sessionId);
-    expect(closed.type).toBe("result");
+    expect(closed.type).toBe("command.response");
     expect(closed.success).toBe(true);
+  }, 120_000);
+
+  it("round-trips a task graph (create → add → update → advance → state) against real CLI", async () => {
+    bridge = new CodingAgentBridge({
+      cwd: repoRoot,
+      projectRoot: repoRoot,
+      cliEntry,
+    });
+
+    await bridge.ensureReady();
+
+    // Seed a session — the task graph lives on the session.
+    const created = await bridge.createSession({
+      provider: "openai",
+      model: "gpt-4o-mini",
+    });
+    const sessionId = created.sessionId;
+    expect(typeof sessionId).toBe("string");
+
+    // 1. createTaskGraph with two nodes (b depends on a)
+    const graphCreated = await bridge.createTaskGraph(sessionId, {
+      title: "Desktop E2E Plan",
+      nodes: [
+        { id: "a", title: "First step" },
+        { id: "b", title: "Second step", dependsOn: ["a"] },
+      ],
+    });
+    expect(graphCreated.graph).toBeDefined();
+    expect(graphCreated.graph.order).toEqual(["a", "b"]);
+    expect(graphCreated.graph.nodes.a.status).toBe("pending");
+
+    // 2. Add a third node depending on b
+    const added = await bridge.addTaskNode(sessionId, {
+      id: "c",
+      title: "Third step",
+      dependsOn: ["b"],
+    });
+    expect(added.graph.order).toEqual(["a", "b", "c"]);
+
+    // 3. Mark a as completed → bridge unwraps task-graph.node.completed
+    const updated = await bridge.updateTaskNode(sessionId, "a", {
+      status: "completed",
+    });
+    expect(updated.graph.nodes.a.status).toBe("completed");
+
+    // 4. Advance — b should become ready
+    const advanced = await bridge.advanceTaskGraph(sessionId);
+    expect(advanced.becameReady).toEqual(["b"]);
+    expect(advanced.graph.nodes.b.status).toBe("ready");
+    expect(advanced.graph.nodes.c.status).toBe("pending");
+
+    // 5. State query reflects persisted graph
+    const state = await bridge.getTaskGraph(sessionId);
+    expect(state.graph.nodes.a.status).toBe("completed");
+    expect(state.graph.nodes.b.status).toBe("ready");
   }, 120_000);
 
   it("rejects pending requests when bridge.shutdown() is called mid-flight", async () => {
