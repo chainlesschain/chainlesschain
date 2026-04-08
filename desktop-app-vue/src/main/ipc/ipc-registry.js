@@ -258,8 +258,6 @@ function registerAllIPC(dependencies) {
           ...dependencies,
           app,
           mainWindow,
-          mcpClientManager,
-          mcpToolAdapter,
           removeUndefinedValues,
           _replaceUndefinedWithNull,
         },
@@ -309,7 +307,6 @@ function registerAllIPC(dependencies) {
           mainWindow,
           aiEngineManager,
           llmManager,
-          mcpToolAdapter,
         },
         registeredModules,
       });
