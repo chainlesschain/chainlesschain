@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/call-history-ipc.js`
 
-**Generated**: 2026-04-08T08:54:59.092Z
+**Generated**: 2026-04-08T12:26:28.679Z
 
 ---
 

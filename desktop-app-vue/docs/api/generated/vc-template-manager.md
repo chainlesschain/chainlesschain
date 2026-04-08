@@ -2,7 +2,7 @@
 
 **Source**: `src/main/vc/vc-template-manager.js`
 
-**Generated**: 2026-04-08T08:54:59.035Z
+**Generated**: 2026-04-08T12:26:28.615Z
 
 ---
 

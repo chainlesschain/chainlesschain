@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/doc-generator.js`
 
-**Generated**: 2026-04-08T08:54:59.065Z
+**Generated**: 2026-04-08T12:26:28.653Z
 
 ---
 
