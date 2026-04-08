@@ -28,7 +28,12 @@ class MockBridge extends EventEmitter {
     this.sentMessages = [];
     this.policyUpdates = [];
     this.closedSessions = [];
+    this.interruptedSessions = [];
     this.resumed = [];
+    this.backgroundTasks = [
+      { id: "task-1", status: "running", title: "Analyze project" },
+      { id: "task-2", status: "completed", title: "Summarize diff" },
+    ];
     this.worktreeListResult = {
       worktrees: [
         {
@@ -59,6 +64,279 @@ class MockBridge extends EventEmitter {
       success: true,
       filePath: "src/a.js",
       candidateId: "auto-1",
+    };
+    this.subAgentRecords = {
+      "session-x": {
+        active: [
+          {
+            id: "sub-1",
+            parentId: "session-x",
+            role: "reviewer",
+            status: "active",
+            task: "Review diff",
+          },
+        ],
+        history: [
+          {
+            id: "sub-old",
+            parentId: "session-x",
+            role: "helper",
+            status: "completed",
+            task: "Find TODOs",
+          },
+        ],
+        stats: { active: 1, completed: 1 },
+      },
+    };
+  }
+
+  async listSubAgents(sessionId) {
+    const record = this.subAgentRecords[sessionId] || {
+      active: [],
+      history: [],
+      stats: null,
+    };
+    return {
+      id: "sub-agent-list-req",
+      type: "sub-agent.list",
+      ...record,
+    };
+  }
+
+  async getSubAgent(subAgentId, sessionId) {
+    const record = this.subAgentRecords[sessionId];
+    if (!record) {
+      return {
+        id: "sub-agent-get-req",
+        type: "sub-agent.list",
+        subAgent: null,
+      };
+    }
+    const match =
+      record.active.find((a) => a.id === subAgentId) ||
+      record.history.find((a) => a.id === subAgentId) ||
+      null;
+    return {
+      id: "sub-agent-get-req",
+      type: "sub-agent.list",
+      subAgent: match,
+    };
+  }
+
+  _reviewStateFor(sessionId) {
+    this.reviewStates = this.reviewStates || {};
+    return this.reviewStates[sessionId] || null;
+  }
+
+  async enterReview(sessionId, options = {}) {
+    this.reviewStates = this.reviewStates || {};
+    const state = {
+      reviewId: "review-x",
+      status: "pending",
+      reason: options.reason || null,
+      requestedBy: options.requestedBy || "user",
+      requestedAt: "t0",
+      resolvedAt: null,
+      resolvedBy: null,
+      decision: null,
+      blocking: options.blocking !== false,
+      comments: [],
+      checklist: options.checklist || [],
+    };
+    this.reviewStates[sessionId] = state;
+    return {
+      id: "review-enter-req",
+      type: "review.requested",
+      sessionId,
+      reviewState: state,
+    };
+  }
+
+  async submitReviewComment(sessionId, update = {}) {
+    const state = this._reviewStateFor(sessionId);
+    if (!state) {
+      return {
+        id: "review-submit-req",
+        type: "review.updated",
+        sessionId,
+        reviewState: null,
+      };
+    }
+    if (update.comment) {
+      state.comments.push({
+        id: `c-${state.comments.length + 1}`,
+        author: update.comment.author || "user",
+        content: update.comment.content || "",
+        timestamp: "t1",
+      });
+    }
+    return {
+      id: "review-submit-req",
+      type: "review.updated",
+      sessionId,
+      reviewState: state,
+    };
+  }
+
+  async resolveReview(sessionId, payload = {}) {
+    const state = this._reviewStateFor(sessionId);
+    if (!state) {
+      return {
+        id: "review-resolve-req",
+        type: "review.resolved",
+        sessionId,
+        reviewState: null,
+      };
+    }
+    state.status = payload.decision || "approved";
+    state.decision = payload.decision || "approved";
+    state.resolvedBy = payload.resolvedBy || "user";
+    state.resolvedAt = "t2";
+    state.blocking = false;
+    if (payload.summary) {
+      state.summary = payload.summary;
+    }
+    return {
+      id: "review-resolve-req",
+      type: "review.resolved",
+      sessionId,
+      reviewState: state,
+    };
+  }
+
+  async getReviewState(sessionId) {
+    return {
+      id: "review-status-req",
+      type: "review.state",
+      sessionId,
+      reviewState: this._reviewStateFor(sessionId),
+    };
+  }
+
+  _patchStateFor(sessionId) {
+    this.patchStates = this.patchStates || {};
+    if (!this.patchStates[sessionId]) {
+      this.patchStates[sessionId] = {
+        pending: new Map(),
+        history: [],
+        nextId: 1,
+      };
+    }
+    return this.patchStates[sessionId];
+  }
+
+  async proposePatch(sessionId, payload = {}) {
+    const store = this._patchStateFor(sessionId);
+    const files = Array.isArray(payload.files) ? payload.files : [];
+    if (files.length === 0) {
+      return {
+        id: "patch-propose-req",
+        type: "patch.proposed",
+        sessionId,
+        patch: null,
+      };
+    }
+    const patchId = `patch-${store.nextId++}`;
+    const patch = {
+      patchId,
+      status: "pending",
+      origin: payload.origin || "tool",
+      reason: payload.reason || null,
+      requestId: payload.requestId || null,
+      proposedAt: "t0",
+      resolvedAt: null,
+      resolvedBy: null,
+      files: files.map((f, i) => ({
+        index: i,
+        path: f.path,
+        op: f.op || "modify",
+        before: f.before || null,
+        after: f.after || null,
+        diff: f.diff || null,
+        stats: { added: 1, removed: 0 },
+      })),
+      stats: { fileCount: files.length, added: files.length, removed: 0 },
+    };
+    store.pending.set(patchId, patch);
+    return {
+      id: "patch-propose-req",
+      type: "patch.proposed",
+      sessionId,
+      patch,
+    };
+  }
+
+  async applyPatch(sessionId, patchId, options = {}) {
+    const store = this._patchStateFor(sessionId);
+    const patch = store.pending.get(patchId);
+    if (!patch) {
+      return {
+        id: "patch-apply-req",
+        type: "patch.applied",
+        sessionId,
+        patch: null,
+      };
+    }
+    patch.status = "applied";
+    patch.resolvedBy = options.resolvedBy || "user";
+    patch.resolvedAt = "t1";
+    if (options.note) {
+      patch.note = options.note;
+    }
+    store.pending.delete(patchId);
+    store.history.push(patch);
+    return {
+      id: "patch-apply-req",
+      type: "patch.applied",
+      sessionId,
+      patch,
+    };
+  }
+
+  async rejectPatch(sessionId, patchId, options = {}) {
+    const store = this._patchStateFor(sessionId);
+    const patch = store.pending.get(patchId);
+    if (!patch) {
+      return {
+        id: "patch-reject-req",
+        type: "patch.rejected",
+        sessionId,
+        patch: null,
+      };
+    }
+    patch.status = "rejected";
+    patch.resolvedBy = options.resolvedBy || "user";
+    patch.resolvedAt = "t2";
+    if (options.reason) {
+      patch.rejectionReason = options.reason;
+    }
+    store.pending.delete(patchId);
+    store.history.push(patch);
+    return {
+      id: "patch-reject-req",
+      type: "patch.rejected",
+      sessionId,
+      patch,
+    };
+  }
+
+  async getPatchSummary(sessionId) {
+    const store = this._patchStateFor(sessionId);
+    const pending = Array.from(store.pending.values());
+    const history = store.history;
+    return {
+      id: "patch-summary-req",
+      type: "patch.summary",
+      sessionId,
+      summary: {
+        pending,
+        history,
+        totals: {
+          fileCount: pending.length + history.length,
+          added: pending.length + history.length,
+          removed: 0,
+        },
+      },
     };
   }
 
@@ -121,6 +399,20 @@ class MockBridge extends EventEmitter {
     return { id: "session-close-req", type: "result", success: true };
   }
 
+  async interruptSession(sessionId) {
+    this.interruptedSessions.push(sessionId);
+    const message = {
+      id: "session-interrupt-req",
+      type: "session.interrupted",
+      sessionId,
+      interrupted: true,
+      wasProcessing: true,
+      interruptedRequestId: "session-message-req",
+    };
+    this.emit("message", message);
+    return message;
+  }
+
   async updateSessionPolicy(sessionId, hostManagedToolPolicy) {
     this.policyUpdates.push({ sessionId, hostManagedToolPolicy });
     return {
@@ -128,6 +420,48 @@ class MockBridge extends EventEmitter {
       type: "session-policy-updated",
       success: true,
       sessionId,
+    };
+  }
+
+  async listBackgroundTasks() {
+    return {
+      id: "tasks-list-req",
+      type: "tasks-list",
+      tasks: [...this.backgroundTasks],
+    };
+  }
+
+  async getBackgroundTask(taskId) {
+    return {
+      id: "tasks-detail-req",
+      type: "tasks-detail",
+      task: this.backgroundTasks.find((task) => task.id === taskId) || null,
+    };
+  }
+
+  async getBackgroundTaskHistory(taskId) {
+    return {
+      id: "tasks-history-req",
+      type: "tasks-history",
+      taskId,
+      history: {
+        items: [
+          { id: `${taskId}-1`, event: "created" },
+          { id: `${taskId}-2`, event: "started" },
+        ],
+        total: 2,
+      },
+    };
+  }
+
+  async stopBackgroundTask(taskId) {
+    this.backgroundTasks = this.backgroundTasks.map((task) =>
+      task.id === taskId ? { ...task, status: "stopped" } : task,
+    );
+    return {
+      id: "tasks-stop-req",
+      type: "tasks-stopped",
+      taskId,
     };
   }
 
@@ -228,6 +562,7 @@ describe("Coding agent lifecycle integration", () => {
   it("registers all expected IPC channels", () => {
     expect(Object.keys(ipcMainMock.handlers).sort()).toEqual(
       [
+        "coding-agent:apply-patch",
         "coding-agent:apply-worktree-automation",
         "coding-agent:approve-plan",
         "coding-agent:cancel-session",
@@ -235,21 +570,35 @@ describe("Coding agent lifecycle integration", () => {
         "coding-agent:confirm-high-risk-execution",
         "coding-agent:create-session",
         "coding-agent:enter-plan-mode",
+        "coding-agent:enter-review",
+        "coding-agent:get-background-task",
+        "coding-agent:get-background-task-history",
+        "coding-agent:get-harness-status",
+        "coding-agent:get-patch-summary",
+        "coding-agent:get-review-state",
         "coding-agent:get-session-events",
         "coding-agent:get-session-state",
         "coding-agent:get-status",
+        "coding-agent:get-sub-agent",
         "coding-agent:get-worktree-diff",
         "coding-agent:interrupt",
+        "coding-agent:list-background-tasks",
         "coding-agent:list-sessions",
+        "coding-agent:list-sub-agents",
         "coding-agent:list-worktrees",
         "coding-agent:merge-worktree",
         "coding-agent:preview-worktree-merge",
+        "coding-agent:propose-patch",
+        "coding-agent:reject-patch",
         "coding-agent:reject-plan",
+        "coding-agent:resolve-review",
         "coding-agent:respond-approval",
         "coding-agent:resume-session",
         "coding-agent:send-message",
         "coding-agent:show-plan",
         "coding-agent:start-session",
+        "coding-agent:stop-background-task",
+        "coding-agent:submit-review-comment",
       ].sort(),
     );
   });
@@ -269,8 +618,10 @@ describe("Coding agent lifecycle integration", () => {
     expect(interruptResult).toMatchObject({
       success: true,
       sessionId: "session-x",
+      interrupted: true,
     });
-    expect(bridge.closedSessions).toContain("session-x");
+    expect(bridge.interruptedSessions).toContain("session-x");
+    expect(bridge.closedSessions).not.toContain("session-x");
   });
 
   it("handles plan-mode lifecycle: enter → show → approve → reject", async () => {
@@ -512,6 +863,264 @@ describe("Coding agent lifecycle integration", () => {
     });
     expect(status.permissionPolicy).toBeDefined();
     expect(Array.isArray(status.tools)).toBe(true);
+  });
+
+  it("exposes harness background task APIs through IPC", async () => {
+    const harness = await ipcMainMock.handlers[
+      "coding-agent:get-harness-status"
+    ]({});
+    const tasks = await ipcMainMock.handlers[
+      "coding-agent:list-background-tasks"
+    ]({}, {});
+    const task = await ipcMainMock.handlers["coding-agent:get-background-task"](
+      {},
+      "task-1",
+    );
+    const history = await ipcMainMock.handlers[
+      "coding-agent:get-background-task-history"
+    ]({}, { taskId: "task-1", limit: 10 });
+    const stop = await ipcMainMock.handlers[
+      "coding-agent:stop-background-task"
+    ]({}, "task-1");
+
+    expect(harness).toMatchObject({
+      success: true,
+      harness: {
+        backgroundTasks: {
+          total: 2,
+          running: 1,
+          completed: 1,
+        },
+      },
+    });
+    expect(tasks).toEqual({
+      success: true,
+      tasks: expect.arrayContaining([
+        expect.objectContaining({ id: "task-1" }),
+      ]),
+    });
+    expect(task).toMatchObject({
+      success: true,
+      task: expect.objectContaining({ id: "task-1", status: "running" }),
+    });
+    expect(history).toMatchObject({
+      success: true,
+      taskId: "task-1",
+      history: expect.objectContaining({ total: 2 }),
+    });
+    expect(stop).toEqual({
+      success: true,
+      taskId: "task-1",
+    });
+  });
+
+  it("lists sub-agents scoped to a parent session through IPC", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const list = await ipcMainMock.handlers["coding-agent:list-sub-agents"](
+      {},
+      { sessionId: "session-x" },
+    );
+
+    expect(list).toMatchObject({
+      success: true,
+      sessionId: "session-x",
+    });
+    expect(list.active).toHaveLength(1);
+    expect(list.active[0]).toMatchObject({
+      id: "sub-1",
+      parentId: "session-x",
+      role: "reviewer",
+    });
+    expect(list.history).toHaveLength(1);
+    expect(list.history[0]).toMatchObject({
+      id: "sub-old",
+      status: "completed",
+    });
+  });
+
+  it("fetches a single sub-agent snapshot through IPC", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const result = await ipcMainMock.handlers["coding-agent:get-sub-agent"](
+      {},
+      { subAgentId: "sub-1", sessionId: "session-x" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      subAgent: expect.objectContaining({
+        id: "sub-1",
+        parentId: "session-x",
+      }),
+    });
+  });
+
+  it("rejects get-sub-agent without subAgentId", async () => {
+    const result = await ipcMainMock.handlers["coding-agent:get-sub-agent"](
+      {},
+      {},
+    );
+    expect(result).toEqual({
+      success: false,
+      error: "subAgentId is required",
+    });
+  });
+
+  it("runs the review lifecycle through IPC: enter → submit → resolve → status", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const entered = await ipcMainMock.handlers["coding-agent:enter-review"](
+      {},
+      {
+        sessionId: "session-x",
+        reason: "gate",
+        checklist: [{ id: "a", title: "Item A" }],
+      },
+    );
+    expect(entered).toMatchObject({
+      success: true,
+      reviewState: expect.objectContaining({
+        status: "pending",
+        blocking: true,
+      }),
+    });
+
+    const submitted = await ipcMainMock.handlers[
+      "coding-agent:submit-review-comment"
+    ](
+      {},
+      {
+        sessionId: "session-x",
+        comment: { author: "alice", content: "LGTM" },
+      },
+    );
+    expect(submitted.reviewState.comments).toHaveLength(1);
+    expect(submitted.reviewState.comments[0].author).toBe("alice");
+
+    const resolved = await ipcMainMock.handlers["coding-agent:resolve-review"](
+      {},
+      { sessionId: "session-x", decision: "approved", summary: "Ship it" },
+    );
+    expect(resolved).toMatchObject({
+      success: true,
+      reviewState: expect.objectContaining({
+        status: "approved",
+        decision: "approved",
+        blocking: false,
+        summary: "Ship it",
+      }),
+    });
+
+    const status = await ipcMainMock.handlers["coding-agent:get-review-state"](
+      {},
+      { sessionId: "session-x" },
+    );
+    expect(status.reviewState.status).toBe("approved");
+  });
+
+  it("rejects review handlers without a sessionId", async () => {
+    const enter = await ipcMainMock.handlers["coding-agent:enter-review"](
+      {},
+      {},
+    );
+    expect(enter).toEqual({ success: false, error: "sessionId is required" });
+
+    const resolve = await ipcMainMock.handlers["coding-agent:resolve-review"](
+      {},
+      { decision: "approved" },
+    );
+    expect(resolve).toEqual({
+      success: false,
+      error: "sessionId is required",
+    });
+  });
+
+  it("runs the patch lifecycle through IPC: propose → apply → summary", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const proposed = await ipcMainMock.handlers["coding-agent:propose-patch"](
+      {},
+      {
+        sessionId: "session-x",
+        origin: "tool",
+        reason: "add helper",
+        files: [{ path: "src/a.js", op: "create", after: "console.log(1)" }],
+      },
+    );
+    expect(proposed).toMatchObject({
+      success: true,
+      patch: expect.objectContaining({
+        patchId: expect.any(String),
+        status: "pending",
+      }),
+    });
+    const patchId = proposed.patch.patchId;
+
+    const applied = await ipcMainMock.handlers["coding-agent:apply-patch"](
+      {},
+      { sessionId: "session-x", patchId, note: "looks good" },
+    );
+    expect(applied.patch.status).toBe("applied");
+    expect(applied.patch.note).toBe("looks good");
+
+    const summary = await ipcMainMock.handlers[
+      "coding-agent:get-patch-summary"
+    ]({}, { sessionId: "session-x" });
+    expect(summary).toMatchObject({
+      success: true,
+      summary: expect.objectContaining({
+        pending: [],
+        history: expect.arrayContaining([
+          expect.objectContaining({ patchId, status: "applied" }),
+        ]),
+      }),
+    });
+  });
+
+  it("runs patch rejection through IPC", async () => {
+    await ipcMainMock.handlers["coding-agent:create-session"]({}, {});
+
+    const proposed = await ipcMainMock.handlers["coding-agent:propose-patch"](
+      {},
+      {
+        sessionId: "session-x",
+        files: [{ path: "src/b.js", after: "risky" }],
+      },
+    );
+    const patchId = proposed.patch.patchId;
+
+    const rejected = await ipcMainMock.handlers["coding-agent:reject-patch"](
+      {},
+      { sessionId: "session-x", patchId, reason: "too risky" },
+    );
+    expect(rejected.patch.status).toBe("rejected");
+    expect(rejected.patch.rejectionReason).toBe("too risky");
+  });
+
+  it("rejects patch handlers without a sessionId", async () => {
+    const propose = await ipcMainMock.handlers["coding-agent:propose-patch"](
+      {},
+      { files: [{ path: "a.js" }] },
+    );
+    expect(propose).toEqual({
+      success: false,
+      error: "sessionId is required",
+    });
+
+    const apply = await ipcMainMock.handlers["coding-agent:apply-patch"](
+      {},
+      { patchId: "p" },
+    );
+    expect(apply).toEqual({ success: false, error: "sessionId is required" });
+
+    const summary = await ipcMainMock.handlers[
+      "coding-agent:get-patch-summary"
+    ]({}, {});
+    expect(summary).toEqual({
+      success: false,
+      error: "sessionId is required",
+    });
   });
 
   it("emits session events to the renderer via webContents.send", async () => {

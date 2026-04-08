@@ -633,4 +633,255 @@ describe("WSSessionManager", () => {
       expect(manager.updateSessionPolicy("missing-session", {})).toBeNull();
     });
   });
+
+  describe("review mode", () => {
+    it("enterReview creates a pending review with normalized checklist", () => {
+      const { sessionId } = manager.createSession();
+      const state = manager.enterReview(sessionId, {
+        reason: "Human check before shipping",
+        requestedBy: "user",
+        checklist: [
+          { title: "Check migrations" },
+          { id: "lint", title: "Run lint" },
+        ],
+      });
+
+      expect(state).not.toBeNull();
+      expect(state.status).toBe("pending");
+      expect(state.blocking).toBe(true);
+      expect(state.reviewId).toMatch(/^review-/);
+      expect(state.reason).toBe("Human check before shipping");
+      expect(state.requestedBy).toBe("user");
+      expect(state.checklist).toHaveLength(2);
+      expect(state.checklist[0]).toEqual(
+        expect.objectContaining({ title: "Check migrations", done: false }),
+      );
+      expect(state.checklist[1].id).toBe("lint");
+      expect(state.comments).toEqual([]);
+      expect(manager.getReviewState(sessionId)).toBe(state);
+    });
+
+    it("enterReview is idempotent while a review is pending", () => {
+      const { sessionId } = manager.createSession();
+      const first = manager.enterReview(sessionId, { reason: "first" });
+      const second = manager.enterReview(sessionId, { reason: "second" });
+      expect(second).toBe(first);
+      expect(second.reason).toBe("first");
+    });
+
+    it("enterReview returns null for an unknown session", () => {
+      expect(manager.enterReview("ghost")).toBeNull();
+    });
+
+    it("isReviewBlocking reflects pending + blocking flag", () => {
+      const { sessionId } = manager.createSession();
+      expect(manager.isReviewBlocking(sessionId)).toBe(false);
+      manager.enterReview(sessionId, { reason: "gate" });
+      expect(manager.isReviewBlocking(sessionId)).toBe(true);
+    });
+
+    it("isReviewBlocking is false when blocking flag is explicitly false", () => {
+      const { sessionId } = manager.createSession();
+      manager.enterReview(sessionId, { reason: "advisory", blocking: false });
+      expect(manager.isReviewBlocking(sessionId)).toBe(false);
+    });
+
+    it("submitReviewComment appends a comment with generated metadata", () => {
+      const { sessionId } = manager.createSession();
+      manager.enterReview(sessionId, { reason: "check" });
+      const state = manager.submitReviewComment(sessionId, {
+        comment: { author: "alice", content: "LGTM so far" },
+      });
+      expect(state.comments).toHaveLength(1);
+      expect(state.comments[0]).toEqual(
+        expect.objectContaining({
+          author: "alice",
+          content: "LGTM so far",
+        }),
+      );
+      expect(state.comments[0].id).toBeDefined();
+      expect(state.comments[0].timestamp).toBeDefined();
+    });
+
+    it("submitReviewComment toggles checklist items by id", () => {
+      const { sessionId } = manager.createSession();
+      manager.enterReview(sessionId, {
+        reason: "check",
+        checklist: [
+          { id: "a", title: "Item A" },
+          { id: "b", title: "Item B" },
+        ],
+      });
+      const state = manager.submitReviewComment(sessionId, {
+        checklistItemId: "a",
+        checklistItemDone: true,
+        checklistItemNote: "verified",
+      });
+      expect(state.checklist[0]).toEqual(
+        expect.objectContaining({ id: "a", done: true, note: "verified" }),
+      );
+      expect(state.checklist[1].done).toBe(false);
+    });
+
+    it("submitReviewComment returns null when no pending review", () => {
+      const { sessionId } = manager.createSession();
+      expect(
+        manager.submitReviewComment(sessionId, { comment: { content: "x" } }),
+      ).toBeNull();
+    });
+
+    it("resolveReview marks the review as approved and unblocks the session", () => {
+      const { sessionId } = manager.createSession();
+      manager.enterReview(sessionId, { reason: "check" });
+      const state = manager.resolveReview(sessionId, {
+        decision: "approved",
+        resolvedBy: "user",
+        summary: "All good",
+      });
+      expect(state.status).toBe("approved");
+      expect(state.decision).toBe("approved");
+      expect(state.resolvedBy).toBe("user");
+      expect(state.summary).toBe("All good");
+      expect(state.blocking).toBe(false);
+      expect(manager.isReviewBlocking(sessionId)).toBe(false);
+    });
+
+    it("resolveReview supports rejected decision", () => {
+      const { sessionId } = manager.createSession();
+      manager.enterReview(sessionId, { reason: "check" });
+      const state = manager.resolveReview(sessionId, { decision: "rejected" });
+      expect(state.status).toBe("rejected");
+      expect(state.decision).toBe("rejected");
+      expect(state.blocking).toBe(false);
+    });
+
+    it("resolveReview is a no-op when review is not pending", () => {
+      const { sessionId } = manager.createSession();
+      manager.enterReview(sessionId, { reason: "check" });
+      const first = manager.resolveReview(sessionId, { decision: "approved" });
+      const second = manager.resolveReview(sessionId, { decision: "rejected" });
+      expect(second).toBe(first);
+      expect(second.status).toBe("approved");
+    });
+
+    it("getReviewState returns null for unknown session", () => {
+      expect(manager.getReviewState("ghost")).toBeNull();
+    });
+  });
+
+  describe("patch preview", () => {
+    it("proposePatch records pending files with computed stats", () => {
+      const { sessionId } = manager.createSession();
+      const patch = manager.proposePatch(sessionId, {
+        origin: "tool",
+        reason: "write new helper",
+        files: [
+          {
+            path: "src/a.js",
+            op: "create",
+            after: "line1\nline2\nline3",
+          },
+          {
+            path: "src/b.js",
+            op: "modify",
+            before: "old1\nold2",
+            after: "old1\nnew2\nnew3",
+          },
+        ],
+      });
+
+      expect(patch).not.toBeNull();
+      expect(patch.patchId).toMatch(/^patch-/);
+      expect(patch.status).toBe("pending");
+      expect(patch.files).toHaveLength(2);
+      expect(patch.files[0].stats).toEqual({ added: 3, removed: 0 });
+      expect(patch.files[1].stats.added).toBeGreaterThanOrEqual(1);
+      expect(patch.stats.fileCount).toBe(2);
+      expect(patch.stats.added).toBeGreaterThanOrEqual(3);
+      expect(manager.hasPendingPatches(sessionId)).toBe(true);
+    });
+
+    it("proposePatch returns null for missing session", () => {
+      expect(
+        manager.proposePatch("ghost", { files: [{ path: "x" }] }),
+      ).toBeNull();
+    });
+
+    it("proposePatch returns null when files array is empty", () => {
+      const { sessionId } = manager.createSession();
+      expect(manager.proposePatch(sessionId, { files: [] })).toBeNull();
+    });
+
+    it("applyPatch moves the patch to history and clears pending", () => {
+      const { sessionId } = manager.createSession();
+      const patch = manager.proposePatch(sessionId, {
+        files: [{ path: "a.js", after: "x" }],
+      });
+      const applied = manager.applyPatch(sessionId, patch.patchId, {
+        resolvedBy: "user",
+        note: "looks good",
+      });
+      expect(applied.status).toBe("applied");
+      expect(applied.note).toBe("looks good");
+      expect(manager.hasPendingPatches(sessionId)).toBe(false);
+      const summary = manager.getPatchSummary(sessionId);
+      expect(summary.pending).toHaveLength(0);
+      expect(summary.history).toHaveLength(1);
+      expect(summary.totals.fileCount).toBe(1);
+    });
+
+    it("applyPatch returns null for unknown patchId", () => {
+      const { sessionId } = manager.createSession();
+      expect(manager.applyPatch(sessionId, "nope")).toBeNull();
+    });
+
+    it("rejectPatch records the rejection reason in history", () => {
+      const { sessionId } = manager.createSession();
+      const patch = manager.proposePatch(sessionId, {
+        files: [{ path: "a.js", after: "x" }],
+      });
+      const rejected = manager.rejectPatch(sessionId, patch.patchId, {
+        reason: "risky change",
+      });
+      expect(rejected.status).toBe("rejected");
+      expect(rejected.rejectionReason).toBe("risky change");
+      const summary = manager.getPatchSummary(sessionId);
+      expect(summary.pending).toHaveLength(0);
+      expect(summary.history[0].status).toBe("rejected");
+    });
+
+    it("getPatchSummary aggregates pending + history totals", () => {
+      const { sessionId } = manager.createSession();
+      const p1 = manager.proposePatch(sessionId, {
+        files: [{ path: "a.js", after: "x\ny" }],
+      });
+      manager.proposePatch(sessionId, {
+        files: [{ path: "b.js", after: "z" }],
+      });
+      manager.applyPatch(sessionId, p1.patchId);
+
+      const summary = manager.getPatchSummary(sessionId);
+      expect(summary.pending).toHaveLength(1);
+      expect(summary.history).toHaveLength(1);
+      expect(summary.totals.fileCount).toBe(2);
+      expect(summary.totals.added).toBeGreaterThanOrEqual(3);
+    });
+
+    it("getPatchSummary returns null for unknown session", () => {
+      expect(manager.getPatchSummary("ghost")).toBeNull();
+    });
+
+    it("proposed patches survive metadata serialization round-trip", () => {
+      const { sessionId } = manager.createSession();
+      manager.proposePatch(sessionId, {
+        files: [{ path: "a.js", after: "hello" }],
+      });
+      const metadata = manager._serializeSessionMetadata(
+        manager.getSession(sessionId),
+      );
+      expect(Array.isArray(metadata.pendingPatches)).toBe(true);
+      expect(metadata.pendingPatches).toHaveLength(1);
+      expect(metadata.pendingPatches[0].files[0].path).toBe("a.js");
+    });
+  });
 });

@@ -359,6 +359,13 @@ class CodingAgentBridge extends EventEmitter {
     ]);
   }
 
+  async interruptSession(sessionId) {
+    return this.request("session-interrupt", { sessionId }, [
+      "session.interrupted",
+      "session-interrupted",
+    ]);
+  }
+
   async updateSessionPolicy(sessionId, hostManagedToolPolicy) {
     return this.request(
       "session-policy-update",
@@ -372,6 +379,30 @@ class CodingAgentBridge extends EventEmitter {
       "worktree.list",
       "worktree-list",
     ]);
+  }
+
+  async listBackgroundTasks() {
+    return this.request("tasks-list", {}, ["tasks-list"]);
+  }
+
+  async getBackgroundTask(taskId) {
+    return this.request("tasks-detail", { taskId }, ["tasks-detail"]);
+  }
+
+  async getBackgroundTaskHistory(taskId, options = {}) {
+    return this.request(
+      "tasks-history",
+      {
+        taskId,
+        limit: options.limit,
+        offset: options.offset,
+      },
+      ["tasks-history"],
+    );
+  }
+
+  async stopBackgroundTask(taskId) {
+    return this.request("tasks-stop", { taskId }, ["tasks-stopped"]);
   }
 
   async diffWorktree(branch, options = {}) {
@@ -422,6 +453,195 @@ class CodingAgentBridge extends EventEmitter {
       },
       ["worktree.automation-applied", "worktree-automation-applied"],
     );
+  }
+
+  /**
+   * List sub-agents spawned from a parent session. Passing no sessionId
+   * returns the global registry view (active + history across every session).
+   *
+   * @param {string} [sessionId]
+   * @returns {Promise<object>} unwrapped sub-agent.list payload
+   */
+  async listSubAgents(sessionId) {
+    return this.request("sub-agent-list", sessionId ? { sessionId } : {}, [
+      "sub-agent.list",
+    ]);
+  }
+
+  /**
+   * Fetch a single sub-agent snapshot by id.
+   * @param {string} subAgentId
+   * @param {string} [sessionId] - optional parent session hint
+   * @returns {Promise<object>} unwrapped sub-agent.list payload with .subAgent
+   */
+  async getSubAgent(subAgentId, sessionId) {
+    return this.request(
+      "sub-agent-get",
+      sessionId ? { subAgentId, sessionId } : { subAgentId },
+      ["sub-agent.list"],
+    );
+  }
+
+  /**
+   * Enter review mode on a session — blocks subsequent session-messages
+   * until the review is resolved (approved or rejected).
+   *
+   * @param {string} sessionId
+   * @param {object} [options]
+   * @param {string} [options.reason]
+   * @param {string} [options.requestedBy]
+   * @param {Array<{id?: string, title: string, note?: string}>} [options.checklist]
+   * @param {boolean} [options.blocking=true]
+   * @returns {Promise<object>} unwrapped review.requested payload
+   */
+  async enterReview(sessionId, options = {}) {
+    return this.request(
+      "review-enter",
+      {
+        sessionId,
+        reason: options.reason || null,
+        requestedBy: options.requestedBy || "user",
+        checklist: options.checklist || [],
+        blocking: options.blocking !== false,
+      },
+      ["review.requested"],
+    );
+  }
+
+  /**
+   * Submit a comment or toggle a checklist item on the current review.
+   *
+   * @param {string} sessionId
+   * @param {object} update
+   * @param {{author?: string, content: string}} [update.comment]
+   * @param {string} [update.checklistItemId]
+   * @param {boolean} [update.checklistItemDone]
+   * @param {string} [update.checklistItemNote]
+   * @returns {Promise<object>} unwrapped review.updated payload
+   */
+  async submitReviewComment(sessionId, update = {}) {
+    return this.request(
+      "review-submit",
+      {
+        sessionId,
+        comment: update.comment || null,
+        checklistItemId: update.checklistItemId || null,
+        checklistItemDone: update.checklistItemDone,
+        checklistItemNote: update.checklistItemNote,
+      },
+      ["review.updated"],
+    );
+  }
+
+  /**
+   * Resolve the active review with an approved/rejected decision.
+   * Unblocks the session-message gate.
+   *
+   * @param {string} sessionId
+   * @param {object} payload
+   * @param {"approved"|"rejected"} payload.decision
+   * @param {string} [payload.resolvedBy]
+   * @param {string} [payload.summary]
+   * @returns {Promise<object>} unwrapped review.resolved payload
+   */
+  async resolveReview(sessionId, payload = {}) {
+    return this.request(
+      "review-resolve",
+      {
+        sessionId,
+        decision: payload.decision || "approved",
+        resolvedBy: payload.resolvedBy || "user",
+        summary: payload.summary || null,
+      },
+      ["review.resolved"],
+    );
+  }
+
+  /**
+   * Fetch the current review state snapshot (null if none).
+   *
+   * @param {string} sessionId
+   * @returns {Promise<object>} unwrapped review.state payload
+   */
+  async getReviewState(sessionId) {
+    return this.request("review-status", { sessionId }, ["review.state"]);
+  }
+
+  /**
+   * Propose a patch (batch of file edits) for user preview.
+   *
+   * @param {string} sessionId
+   * @param {object} payload
+   * @param {Array<{path: string, op?: string, before?: string, after?: string, diff?: string, stats?: object}>} payload.files
+   * @param {string} [payload.origin]
+   * @param {string} [payload.reason]
+   * @param {string} [payload.requestId]
+   * @returns {Promise<object>} unwrapped patch.proposed payload
+   */
+  async proposePatch(sessionId, payload = {}) {
+    return this.request(
+      "patch-propose",
+      {
+        sessionId,
+        files: Array.isArray(payload.files) ? payload.files : [],
+        origin: payload.origin || "tool",
+        reason: payload.reason || null,
+        requestId: payload.requestId || null,
+      },
+      ["patch.proposed"],
+    );
+  }
+
+  /**
+   * Apply a previously-proposed patch.
+   *
+   * @param {string} sessionId
+   * @param {string} patchId
+   * @param {object} [options]
+   * @returns {Promise<object>} unwrapped patch.applied payload
+   */
+  async applyPatch(sessionId, patchId, options = {}) {
+    return this.request(
+      "patch-apply",
+      {
+        sessionId,
+        patchId,
+        resolvedBy: options.resolvedBy || "user",
+        note: options.note || null,
+      },
+      ["patch.applied"],
+    );
+  }
+
+  /**
+   * Reject/discard a previously-proposed patch.
+   *
+   * @param {string} sessionId
+   * @param {string} patchId
+   * @param {object} [options]
+   * @returns {Promise<object>} unwrapped patch.rejected payload
+   */
+  async rejectPatch(sessionId, patchId, options = {}) {
+    return this.request(
+      "patch-reject",
+      {
+        sessionId,
+        patchId,
+        resolvedBy: options.resolvedBy || "user",
+        reason: options.reason || null,
+      },
+      ["patch.rejected"],
+    );
+  }
+
+  /**
+   * Fetch the patch summary for a session (pending + history + totals).
+   *
+   * @param {string} sessionId
+   * @returns {Promise<object>} unwrapped patch.summary payload
+   */
+  async getPatchSummary(sessionId) {
+    return this.request("patch-summary", { sessionId }, ["patch.summary"]);
   }
 
   async sendMessage(sessionId, content) {

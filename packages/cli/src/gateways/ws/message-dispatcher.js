@@ -37,6 +37,8 @@ export function createWsMessageDispatcher(server) {
           server._handleSessionPolicyUpdate(id, ws, message),
         "session-list": () => server._handleSessionList(id, ws),
         "session-close": () => server._handleSessionClose(id, ws, message),
+        "session-interrupt": () =>
+          server._handleSessionInterrupt(id, ws, message),
         "slash-command": () => server._handleSlashCommand(id, ws, message),
         "session-answer": () => server._handleSessionAnswer(id, ws, message),
         "host-tool-result": () => server._handleHostToolResult(id, ws, message),
@@ -54,6 +56,16 @@ export function createWsMessageDispatcher(server) {
         "worktree-list": () => server._handleWorktreeList(id, ws),
         "compression-stats": () =>
           server._handleCompressionStats(id, ws, message),
+        "sub-agent-list": () => server._handleSubAgentList(id, ws, message),
+        "sub-agent-get": () => server._handleSubAgentGet(id, ws, message),
+        "review-enter": () => server._handleReviewEnter(id, ws, message),
+        "review-submit": () => server._handleReviewSubmit(id, ws, message),
+        "review-resolve": () => server._handleReviewResolve(id, ws, message),
+        "review-status": () => server._handleReviewStatus(id, ws, message),
+        "patch-propose": () => server._handlePatchPropose(id, ws, message),
+        "patch-apply": () => server._handlePatchApply(id, ws, message),
+        "patch-reject": () => server._handlePatchReject(id, ws, message),
+        "patch-summary": () => server._handlePatchSummary(id, ws, message),
       };
 
       const handler = routes[type];

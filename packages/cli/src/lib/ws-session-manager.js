@@ -349,6 +349,9 @@ export class WSSessionManager {
       planManager,
       contextEngine,
       permanentMemory,
+      reviewState: null,
+      pendingPatches: new Map(),
+      patchHistory: [],
       interaction: null, // Set by ws-server after creation
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
@@ -456,6 +459,11 @@ export class WSSessionManager {
         planManager,
         contextEngine,
         permanentMemory,
+        reviewState: metadata.reviewState || null,
+        pendingPatches: this._hydratePendingPatches(metadata.pendingPatches),
+        patchHistory: Array.isArray(metadata.patchHistory)
+          ? metadata.patchHistory
+          : [],
         interaction: null,
         createdAt: dbSession.created_at,
         lastActivity: new Date().toISOString(),
@@ -612,6 +620,347 @@ export class WSSessionManager {
   }
 
   /**
+   * Enter explicit review mode for a session. While in review, handlers
+   * MUST gate new sendMessage calls until the review is resolved. Reviewer
+   * sub-agents and human reviewers both feed into the same `comments` /
+   * `checklist` arrays.
+   *
+   * @param {string} sessionId
+   * @param {{
+   *   reason?: string,
+   *   requestedBy?: string,
+   *   checklist?: Array<{ id?: string, title: string, note?: string }>,
+   *   blocking?: boolean,
+   * }} [options]
+   */
+  enterReview(sessionId, options = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    // If already in pending review, return the existing state unchanged so
+    // callers can retry safely.
+    if (session.reviewState && session.reviewState.status === "pending") {
+      return session.reviewState;
+    }
+
+    const reviewId = `review-${this._generateId()}`;
+    const now = new Date().toISOString();
+    const checklist = Array.isArray(options.checklist)
+      ? options.checklist.map((item, index) => ({
+          id: item.id || `chk-${index}-${Date.now()}`,
+          title: item.title || `Item ${index + 1}`,
+          note: item.note || null,
+          done: false,
+        }))
+      : [];
+
+    session.reviewState = {
+      reviewId,
+      status: "pending",
+      reason: options.reason || null,
+      requestedBy: options.requestedBy || "user",
+      requestedAt: now,
+      resolvedAt: null,
+      resolvedBy: null,
+      decision: null,
+      blocking: options.blocking !== false,
+      comments: [],
+      checklist,
+    };
+    session.lastActivity = now;
+    this._persistSessionState(sessionId);
+    return session.reviewState;
+  }
+
+  /**
+   * Submit an incremental update to the active review — append a comment
+   * and/or toggle a checklist item. Returns the updated reviewState, or null
+   * if the session has no active review.
+   *
+   * @param {string} sessionId
+   * @param {{
+   *   comment?: { author?: string, content: string },
+   *   checklistItemId?: string,
+   *   checklistItemDone?: boolean,
+   *   checklistItemNote?: string,
+   * }} update
+   */
+  submitReviewComment(sessionId, update = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.reviewState) return null;
+    if (session.reviewState.status !== "pending") return null;
+
+    const now = new Date().toISOString();
+
+    if (update.comment && update.comment.content) {
+      session.reviewState.comments.push({
+        id: `cmt-${session.reviewState.comments.length}-${Date.now()}`,
+        author: update.comment.author || "user",
+        content: String(update.comment.content),
+        timestamp: now,
+      });
+    }
+
+    if (update.checklistItemId) {
+      const item = session.reviewState.checklist.find(
+        (c) => c.id === update.checklistItemId,
+      );
+      if (item) {
+        if (typeof update.checklistItemDone === "boolean") {
+          item.done = update.checklistItemDone;
+        }
+        if (typeof update.checklistItemNote === "string") {
+          item.note = update.checklistItemNote;
+        }
+      }
+    }
+
+    session.lastActivity = now;
+    this._persistSessionState(sessionId);
+    return session.reviewState;
+  }
+
+  /**
+   * Resolve the active review with an approved/rejected decision. After
+   * resolve the session can accept new messages again (reviewState becomes
+   * non-blocking but is retained for audit).
+   *
+   * @param {string} sessionId
+   * @param {{ decision: "approved"|"rejected", resolvedBy?: string, summary?: string }} payload
+   */
+  resolveReview(sessionId, payload = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.reviewState) return null;
+    if (session.reviewState.status !== "pending") {
+      return session.reviewState;
+    }
+
+    const decision =
+      payload.decision === "approved" || payload.decision === "rejected"
+        ? payload.decision
+        : "approved";
+
+    session.reviewState.status = decision;
+    session.reviewState.decision = decision;
+    session.reviewState.resolvedAt = new Date().toISOString();
+    session.reviewState.resolvedBy = payload.resolvedBy || "user";
+    session.reviewState.blocking = false;
+    if (payload.summary) {
+      session.reviewState.summary = String(payload.summary);
+    }
+
+    session.lastActivity = session.reviewState.resolvedAt;
+    this._persistSessionState(sessionId);
+    return session.reviewState;
+  }
+
+  /**
+   * Returns true when the session currently has a blocking review gate
+   * open. Callers (e.g. handleSessionMessage) should short-circuit with a
+   * REVIEW_BLOCKING error instead of running the agent turn.
+   */
+  isReviewBlocking(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.reviewState) return false;
+    return (
+      session.reviewState.status === "pending" &&
+      session.reviewState.blocking === true
+    );
+  }
+
+  getReviewState(sessionId) {
+    const session = this.sessions.get(sessionId);
+    return session ? session.reviewState || null : null;
+  }
+
+  /**
+   * Record a proposed patch on the session. Accepts one or more file hunks
+   * that a tool wanted to write but should be previewed before they land.
+   *
+   * @param {string} sessionId
+   * @param {{
+   *   files: Array<{
+   *     path: string,
+   *     op?: "create"|"modify"|"delete",
+   *     before?: string|null,
+   *     after?: string|null,
+   *     diff?: string|null,
+   *     stats?: { added?: number, removed?: number }
+   *   }>,
+   *   origin?: string,
+   *   reason?: string,
+   *   requestId?: string|null
+   * }} payload
+   * @returns {object|null} patch record, or null if the session is missing
+   */
+  proposePatch(sessionId, payload = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    const files = Array.isArray(payload.files) ? payload.files : [];
+    if (files.length === 0) return null;
+
+    const patchId = `patch-${this._generateId()}`;
+    const now = new Date().toISOString();
+    const normalizedFiles = files.map((file, index) => {
+      const op = file.op || (file.before == null ? "create" : "modify");
+      const stats = this._computePatchStats(file);
+      return {
+        index,
+        path: file.path || `unknown-${index}`,
+        op,
+        before: file.before == null ? null : String(file.before),
+        after: file.after == null ? null : String(file.after),
+        diff: file.diff == null ? null : String(file.diff),
+        stats,
+      };
+    });
+
+    const totalStats = normalizedFiles.reduce(
+      (acc, file) => ({
+        added: acc.added + (file.stats.added || 0),
+        removed: acc.removed + (file.stats.removed || 0),
+      }),
+      { added: 0, removed: 0 },
+    );
+
+    const patch = {
+      patchId,
+      status: "pending",
+      origin: payload.origin || "tool",
+      reason: payload.reason || null,
+      requestId: payload.requestId || null,
+      proposedAt: now,
+      resolvedAt: null,
+      resolvedBy: null,
+      files: normalizedFiles,
+      stats: {
+        fileCount: normalizedFiles.length,
+        added: totalStats.added,
+        removed: totalStats.removed,
+      },
+    };
+
+    if (!(session.pendingPatches instanceof Map)) {
+      session.pendingPatches = new Map();
+    }
+    session.pendingPatches.set(patchId, patch);
+    session.lastActivity = now;
+    this._persistSessionState(sessionId);
+    return patch;
+  }
+
+  /**
+   * Mark a pending patch as applied. Moves the record to patchHistory so it
+   * is still visible in the summary view but no longer counts as pending.
+   */
+  applyPatch(sessionId, patchId, options = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !(session.pendingPatches instanceof Map)) return null;
+    const patch = session.pendingPatches.get(patchId);
+    if (!patch) return null;
+
+    patch.status = "applied";
+    patch.resolvedAt = new Date().toISOString();
+    patch.resolvedBy = options.resolvedBy || "user";
+    if (options.note) {
+      patch.note = String(options.note);
+    }
+
+    session.pendingPatches.delete(patchId);
+    if (!Array.isArray(session.patchHistory)) {
+      session.patchHistory = [];
+    }
+    session.patchHistory.push(patch);
+    session.lastActivity = patch.resolvedAt;
+    this._persistSessionState(sessionId);
+    return patch;
+  }
+
+  /**
+   * Discard a pending patch. Same bookkeeping as applyPatch but records a
+   * "rejected" decision instead.
+   */
+  rejectPatch(sessionId, patchId, options = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !(session.pendingPatches instanceof Map)) return null;
+    const patch = session.pendingPatches.get(patchId);
+    if (!patch) return null;
+
+    patch.status = "rejected";
+    patch.resolvedAt = new Date().toISOString();
+    patch.resolvedBy = options.resolvedBy || "user";
+    if (options.reason) {
+      patch.rejectionReason = String(options.reason);
+    }
+
+    session.pendingPatches.delete(patchId);
+    if (!Array.isArray(session.patchHistory)) {
+      session.patchHistory = [];
+    }
+    session.patchHistory.push(patch);
+    session.lastActivity = patch.resolvedAt;
+    this._persistSessionState(sessionId);
+    return patch;
+  }
+
+  /**
+   * Return a flattened summary of all pending + resolved patches on the
+   * session. Shape matches what the renderer strip consumes:
+   *   { pending: [...], history: [...], totals: { added, removed, fileCount } }
+   */
+  getPatchSummary(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    const pending =
+      session.pendingPatches instanceof Map
+        ? Array.from(session.pendingPatches.values())
+        : [];
+    const history = Array.isArray(session.patchHistory)
+      ? session.patchHistory
+      : [];
+
+    const totals = [...pending, ...history].reduce(
+      (acc, patch) => ({
+        fileCount: acc.fileCount + (patch.stats?.fileCount || 0),
+        added: acc.added + (patch.stats?.added || 0),
+        removed: acc.removed + (patch.stats?.removed || 0),
+      }),
+      { fileCount: 0, added: 0, removed: 0 },
+    );
+
+    return { pending, history, totals };
+  }
+
+  hasPendingPatches(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !(session.pendingPatches instanceof Map)) return false;
+    return session.pendingPatches.size > 0;
+  }
+
+  _computePatchStats(file) {
+    if (file && file.stats && typeof file.stats === "object") {
+      return {
+        added: Number(file.stats.added) || 0,
+        removed: Number(file.stats.removed) || 0,
+      };
+    }
+    const before = file && typeof file.before === "string" ? file.before : "";
+    const after = file && typeof file.after === "string" ? file.after : "";
+    const beforeLines = before ? before.split(/\r?\n/).length : 0;
+    const afterLines = after ? after.split(/\r?\n/).length : 0;
+    // Rough heuristic when no explicit diff is provided: full replace counts
+    // the entire file as added/removed.
+    if (!before && after) return { added: afterLines, removed: 0 };
+    if (before && !after) return { added: 0, removed: beforeLines };
+    return {
+      added: Math.max(0, afterLines - beforeLines),
+      removed: Math.max(0, beforeLines - afterLines),
+    };
+  }
+
+  /**
    * Persist current messages for a session.
    */
   persistMessages(sessionId) {
@@ -689,7 +1038,27 @@ export class WSSessionManager {
       worktreeIsolation: session.worktreeIsolation === true,
       worktree: session.worktree || null,
       planSnapshot: this._serializePlanManager(session.planManager),
+      reviewState: session.reviewState || null,
+      pendingPatches:
+        session.pendingPatches instanceof Map
+          ? Array.from(session.pendingPatches.values())
+          : [],
+      patchHistory: Array.isArray(session.patchHistory)
+        ? session.patchHistory
+        : [],
     };
+  }
+
+  _hydratePendingPatches(list) {
+    const map = new Map();
+    if (Array.isArray(list)) {
+      for (const patch of list) {
+        if (patch && patch.patchId) {
+          map.set(patch.patchId, patch);
+        }
+      }
+    }
+    return map;
   }
 
   _serializePlanManager(planManager) {

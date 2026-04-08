@@ -131,3 +131,18 @@
 | 68 | [CLI-Anything 集成](./modules/68-cli-anything) | 外部软件 Agent 化 |
 | 69 | [WebSocket 服务器](./modules/69-websocket-server) | 远程 CLI/有状态会话 |
 | 70 | [Agent 智能增强](./modules/70-agent-intelligence) | agent-core/auto pip-install |
+
+### Agent Runtime 重构与 Coding Agent (Phase 71-79)
+
+| 编号 | 模块 | 说明 |
+|------|------|------|
+| 71 | [子代理隔离系统](./modules/71-sub-agent-isolation) | Phase 5 扩展候选 |
+| 71b | [AI 音视频创作模板](./modules/71b-ai-media-creator) | 媒体创作技能包 |
+| 72 | [AI 文档创作模板](./modules/72-ai-doc-creator) | 文档创作技能包 |
+| 73 | [Web 管理界面](./modules/73-web-ui) | 单页管理面板 |
+| 74 | [AI 编排层系统](./modules/74-orchestration-layer) | 多后端 Agent 路由 |
+| 75 | [Web 管理面板](./modules/75-web-panel) | Vue3 管理面板 |
+| 76 | [技能创建系统](./modules/76-skill-creator) | Skill 生成器 |
+| 77 | [Agent 架构优化系统](./modules/77-agent-optimization) | 后台任务/Worktree/压缩观测/会话迁移 |
+| 78 | [CLI Agent Runtime 重构](./modules/78-cli-agent-runtime) | runtime / gateway / harness 分层 |
+| 79 | [Coding Agent 系统](./modules/79-coding-agent) | 统一信封 v1.0 + Phase 5 最小 Harness + 真实 interrupt |

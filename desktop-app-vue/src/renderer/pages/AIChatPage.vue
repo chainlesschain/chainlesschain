@@ -260,6 +260,191 @@
             :message="`Blocked tool: ${currentBlockedTool.toolName || 'unknown'}`"
             :description="blockedToolDescription"
           />
+          <div v-if="showHarnessPanel" class="coding-agent-harness-panel">
+            <div class="harness-panel-header">
+              <div>
+                <div class="approval-panel-eyebrow">Coding Agent Harness</div>
+                <div class="approval-panel-title">Session operations</div>
+                <p class="approval-panel-summary">
+                  Track background work and isolated workspace usage for the
+                  active coding-agent session.
+                </p>
+              </div>
+              <a-button size="small" @click="handleRefreshHarnessPanel">
+                Refresh Harness
+              </a-button>
+            </div>
+            <div class="harness-stat-grid">
+              <div class="harness-stat-card">
+                <span class="harness-stat-label">Active sessions</span>
+                <strong class="harness-stat-value">
+                  {{ currentHarnessSessions.active }}
+                </strong>
+                <span class="harness-stat-meta">
+                  {{ currentHarnessSessions.waitingApproval }} waiting approval
+                </span>
+              </div>
+              <div class="harness-stat-card">
+                <span class="harness-stat-label">Tracked worktrees</span>
+                <strong class="harness-stat-value">
+                  {{ currentHarnessWorktrees.tracked }}
+                </strong>
+                <span class="harness-stat-meta">
+                  {{ currentHarnessWorktrees.dirty }} dirty
+                </span>
+              </div>
+              <div class="harness-stat-card">
+                <span class="harness-stat-label">Background tasks</span>
+                <strong class="harness-stat-value">
+                  {{ currentHarnessBackgroundTasks.total }}
+                </strong>
+                <span class="harness-stat-meta">
+                  {{ currentHarnessBackgroundTasks.running }} running /
+                  {{ currentHarnessBackgroundTasks.pending }} pending
+                </span>
+              </div>
+            </div>
+            <div class="harness-toolbar">
+              <div class="harness-filter-group">
+                <a-button
+                  size="small"
+                  :type="
+                    harnessTaskStatusFilter === 'active' ? 'primary' : 'default'
+                  "
+                  @click="handleSetHarnessTaskFilter('active')"
+                >
+                  Active
+                </a-button>
+                <a-button
+                  size="small"
+                  :type="
+                    harnessTaskStatusFilter === 'all' ? 'primary' : 'default'
+                  "
+                  @click="handleSetHarnessTaskFilter('all')"
+                >
+                  All
+                </a-button>
+                <a-button
+                  size="small"
+                  :type="
+                    harnessTaskStatusFilter === 'completed'
+                      ? 'primary'
+                      : 'default'
+                  "
+                  @click="handleSetHarnessTaskFilter('completed')"
+                >
+                  Completed
+                </a-button>
+                <a-button
+                  size="small"
+                  :type="
+                    harnessTaskStatusFilter === 'failed' ? 'primary' : 'default'
+                  "
+                  @click="handleSetHarnessTaskFilter('failed')"
+                >
+                  Failed
+                </a-button>
+              </div>
+              <input
+                v-model="harnessTaskSearchQuery"
+                class="harness-search-input"
+                type="text"
+                placeholder="Search task title, id, status..."
+              />
+            </div>
+            <div
+              v-if="visibleHarnessTasks.length > 0"
+              class="approval-panel-section"
+            >
+              <div class="approval-panel-label">
+                Background tasks
+                <span class="harness-results-count">
+                  {{ filteredHarnessTasks.length }} result(s)
+                </span>
+              </div>
+              <ul class="approval-step-list">
+                <li
+                  v-for="task in visibleHarnessTasks"
+                  :key="task.id"
+                  class="approval-step-item"
+                >
+                  <div class="approval-step-main">
+                    <span class="approval-step-title">
+                      {{ task.title || task.name || task.id }}
+                    </span>
+                    <a-tag>
+                      {{ task.status || "unknown" }}
+                    </a-tag>
+                  </div>
+                  <div
+                    v-if="task.summary || task.description"
+                    class="approval-step-description"
+                  >
+                    {{ task.summary || task.description }}
+                  </div>
+                  <div class="harness-task-actions">
+                    <a-button
+                      size="small"
+                      @click="handleInspectBackgroundTask(task.id)"
+                    >
+                      View Details
+                    </a-button>
+                    <a-button
+                      v-if="
+                        task.status === 'running' || task.status === 'pending'
+                      "
+                      size="small"
+                      danger
+                      @click="handleStopBackgroundTask(task.id)"
+                    >
+                      Stop Task
+                    </a-button>
+                  </div>
+                </li>
+              </ul>
+              <div
+                v-if="filteredHarnessTasks.length > HARNESS_TASKS_PER_PAGE"
+                class="harness-pagination"
+              >
+                <span class="harness-results-count">
+                  Showing {{ harnessTaskPageRange.start }}-{{
+                    harnessTaskPageRange.end
+                  }}
+                </span>
+                <div class="harness-task-actions">
+                  <a-button
+                    size="small"
+                    :disabled="harnessTaskPage <= 1"
+                    @click="handlePreviousHarnessTaskPage"
+                  >
+                    Previous Page
+                  </a-button>
+                  <span class="harness-page-indicator">
+                    Page {{ harnessTaskPage }} / {{ harnessTaskPageCount }}
+                  </span>
+                  <a-button
+                    size="small"
+                    :disabled="harnessTaskPage >= harnessTaskPageCount"
+                    @click="handleNextHarnessTaskPage"
+                  >
+                    Next Page
+                  </a-button>
+                </div>
+              </div>
+            </div>
+            <a-empty
+              v-else
+              description="No background tasks match the current filter."
+            />
+            <a-alert
+              v-if="selectedHarnessTask"
+              class="coding-agent-alert"
+              type="info"
+              show-icon
+              message="Task details ready"
+              :description="selectedHarnessTaskAlert"
+            />
+          </div>
           <div v-if="showApprovalPanel" class="coding-agent-approval-panel">
             <div class="approval-panel-header">
               <div>
@@ -386,6 +571,45 @@
                 @click="handleRejectHighRisk"
               >
                 Cancel High-Risk Actions
+              </a-button>
+            </div>
+          </div>
+          <div
+            v-if="agentMode && subAgentSummaryItems.length > 0"
+            class="coding-agent-sub-agent-strip"
+          >
+            <span class="sub-agent-strip-label">Sub-agents</span>
+            <a-tag
+              v-for="item in subAgentSummaryItems"
+              :key="item.id"
+              :color="item.color"
+            >
+              {{ item.label }}
+            </a-tag>
+          </div>
+          <div
+            v-if="agentMode && currentReviewState"
+            class="coding-agent-review-strip"
+          >
+            <a-alert
+              :type="reviewAlertType"
+              show-icon
+              :message="reviewAlertMessage"
+              :description="reviewAlertDescription"
+            />
+            <div
+              v-if="currentReviewState.status === 'pending'"
+              class="review-strip-actions"
+            >
+              <a-button
+                type="primary"
+                size="small"
+                @click="handleApproveReview"
+              >
+                Approve
+              </a-button>
+              <a-button danger size="small" @click="handleRejectReview">
+                Reject
               </a-button>
             </div>
           </div>
@@ -893,6 +1117,105 @@
         </div>
       </div>
     </a-modal>
+    <a-drawer
+      v-model:open="harnessTaskDrawerVisible"
+      title="Background Task Details"
+      width="520"
+      @close="handleCloseHarnessTaskDrawer"
+    >
+      <div v-if="selectedHarnessTask" class="harness-task-drawer">
+        <div class="approval-step-main">
+          <div class="approval-panel-label">Selected task</div>
+          <a-tag>
+            {{ selectedHarnessTask.status || "unknown" }}
+          </a-tag>
+        </div>
+        <div class="harness-task-detail-title">
+          {{
+            selectedHarnessTask.title ||
+            selectedHarnessTask.name ||
+            selectedHarnessTask.id
+          }}
+        </div>
+        <div class="harness-task-meta">
+          <span>Task ID: {{ selectedHarnessTask.id }}</span>
+          <span v-if="selectedHarnessTask.type">
+            Type: {{ selectedHarnessTask.type }}
+          </span>
+        </div>
+        <div
+          v-if="selectedHarnessTask.summary || selectedHarnessTask.description"
+          class="approval-step-description"
+        >
+          {{ selectedHarnessTask.summary || selectedHarnessTask.description }}
+        </div>
+        <div
+          v-if="selectedHarnessTaskHistoryItems.length > 0"
+          class="harness-history"
+        >
+          <div class="approval-panel-label">History</div>
+          <ul class="harness-history-list">
+            <li
+              v-for="(item, index) in selectedHarnessTaskHistoryItems"
+              :key="item.id || `${selectedHarnessTask.id}-history-${index}`"
+              class="harness-history-item"
+            >
+              <span class="harness-history-event">
+                {{ item.event || item.type || "event" }}
+              </span>
+              <span v-if="item.timestamp" class="harness-history-time">
+                {{ item.timestamp }}
+              </span>
+              <span
+                v-if="item.message || item.summary"
+                class="harness-history-message"
+              >
+                {{ item.message || item.summary }}
+              </span>
+            </li>
+          </ul>
+          <div class="harness-task-actions">
+            <a-button
+              v-if="selectedHarnessTaskHistoryHasMore"
+              size="small"
+              @click="handleLoadMoreBackgroundTaskHistory"
+            >
+              Load More History
+            </a-button>
+          </div>
+        </div>
+        <a-empty
+          v-else
+          description="No history entries available for this task yet."
+        />
+        <div class="harness-task-actions">
+          <a-button
+            size="small"
+            :disabled="!selectedHarnessTaskHasPrevious"
+            @click="handleNavigateHarnessTask(-1)"
+          >
+            Previous Task
+          </a-button>
+          <a-button
+            size="small"
+            :disabled="!selectedHarnessTaskHasNext"
+            @click="handleNavigateHarnessTask(1)"
+          >
+            Next Task
+          </a-button>
+          <a-button size="small" @click="handleCloseHarnessTaskDrawer">
+            Close
+          </a-button>
+          <a-button size="small" @click="handleClearBackgroundTaskSelection">
+            Clear Selection
+          </a-button>
+        </div>
+      </div>
+      <a-empty
+        v-else
+        description="Select a background task to inspect its details."
+      />
+    </a-drawer>
   </div>
 </template>
 
@@ -932,6 +1255,7 @@ const savingConversation = ref(false);
 // Agent mode state
 const agentMode = ref(false);
 const codingAgentSessionMap = ref({});
+const harnessUiStateByConversation = ref({});
 const agentMessageByRequestId = ref({});
 const processedCodingAgentEventIds = new Set();
 const worktreeIsolationEnabled = ref(false);
@@ -946,6 +1270,22 @@ const worktreePreviewLoadingKey = ref("");
 const worktreeAutomationLoadingKey = ref("");
 const worktreeMergePreviewDelta = ref(null);
 const worktreeDeltaFilter = ref(WORKTREE_DELTA_FILTER_ALL);
+const harnessTaskDrawerVisible = ref(false);
+const harnessTaskHistoryLimit = ref(10);
+const harnessTaskStatusFilter = ref("active");
+const harnessTaskSearchQuery = ref("");
+const harnessTaskPage = ref(1);
+const restoringHarnessUiState = ref(false);
+const HARNESS_TASKS_PER_PAGE = 5;
+
+const createDefaultHarnessUiState = () => ({
+  statusFilter: "active",
+  searchQuery: "",
+  page: 1,
+  drawerVisible: false,
+  selectedTaskId: null,
+  historyLimit: 10,
+});
 
 const currentCodingAgentSessionId = computed(() => {
   if (!activeConversationId.value) {
@@ -1040,6 +1380,188 @@ const approvalPolicyHighTools = computed(() => {
   return codingAgentStore.permissionPolicy?.toolsByRisk?.high || [];
 });
 
+const currentHarnessStatus = computed(() => {
+  if (!currentCodingAgentSessionId.value) {
+    return null;
+  }
+  return codingAgentStore.harnessStatus || null;
+});
+
+const currentHarnessSessions = computed(() => {
+  return (
+    currentHarnessStatus.value?.sessions || {
+      total: 0,
+      running: 0,
+      waitingApproval: 0,
+      active: 0,
+    }
+  );
+});
+
+const currentHarnessWorktrees = computed(() => {
+  return (
+    currentHarnessStatus.value?.worktrees || {
+      tracked: 0,
+      isolated: 0,
+      dirty: 0,
+    }
+  );
+});
+
+const currentHarnessBackgroundTasks = computed(() => {
+  return (
+    currentHarnessStatus.value?.backgroundTasks || {
+      total: 0,
+      pending: 0,
+      running: 0,
+      completed: 0,
+      failed: 0,
+      timeout: 0,
+    }
+  );
+});
+
+const filteredHarnessTasks = computed(() => {
+  const tasks = Array.isArray(codingAgentStore.backgroundTasks)
+    ? codingAgentStore.backgroundTasks
+    : [];
+
+  const search = harnessTaskSearchQuery.value.trim().toLowerCase();
+
+  return tasks.filter((task) => {
+    const status = task?.status || "unknown";
+    const matchesStatus =
+      harnessTaskStatusFilter.value === "all"
+        ? true
+        : harnessTaskStatusFilter.value === "active"
+          ? status === "running" || status === "pending"
+          : status === harnessTaskStatusFilter.value;
+
+    if (!matchesStatus) {
+      return false;
+    }
+
+    if (!search) {
+      return true;
+    }
+
+    const haystack = [
+      task?.title,
+      task?.name,
+      task?.id,
+      task?.status,
+      task?.summary,
+      task?.description,
+      task?.type,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(search);
+  });
+});
+
+const harnessTaskPageCount = computed(() => {
+  return Math.max(
+    1,
+    Math.ceil(filteredHarnessTasks.value.length / HARNESS_TASKS_PER_PAGE),
+  );
+});
+
+const visibleHarnessTasks = computed(() => {
+  const start = (harnessTaskPage.value - 1) * HARNESS_TASKS_PER_PAGE;
+  return filteredHarnessTasks.value.slice(
+    start,
+    start + HARNESS_TASKS_PER_PAGE,
+  );
+});
+
+const harnessTaskPageRange = computed(() => {
+  if (filteredHarnessTasks.value.length === 0) {
+    return { start: 0, end: 0 };
+  }
+
+  const start = (harnessTaskPage.value - 1) * HARNESS_TASKS_PER_PAGE + 1;
+  const end = Math.min(
+    filteredHarnessTasks.value.length,
+    start + HARNESS_TASKS_PER_PAGE - 1,
+  );
+
+  return { start, end };
+});
+
+const selectedHarnessTask = computed(() => {
+  return codingAgentStore.selectedBackgroundTask || null;
+});
+
+const selectedHarnessTaskHistoryItems = computed(() => {
+  const history = codingAgentStore.selectedBackgroundTaskHistory;
+  if (Array.isArray(history)) {
+    return history;
+  }
+  if (Array.isArray(history?.items)) {
+    return history.items;
+  }
+  return [];
+});
+
+const selectedHarnessTaskHistoryTotal = computed(() => {
+  const history = codingAgentStore.selectedBackgroundTaskHistory;
+  if (typeof history?.total === "number") {
+    return history.total;
+  }
+  return selectedHarnessTaskHistoryItems.value.length;
+});
+
+const selectedHarnessTaskHistoryHasMore = computed(() => {
+  return (
+    selectedHarnessTaskHistoryItems.value.length <
+    selectedHarnessTaskHistoryTotal.value
+  );
+});
+
+const selectedHarnessTaskIndex = computed(() => {
+  if (!selectedHarnessTask.value) {
+    return -1;
+  }
+  return filteredHarnessTasks.value.findIndex(
+    (task) => task?.id === selectedHarnessTask.value?.id,
+  );
+});
+
+const selectedHarnessTaskHasPrevious = computed(() => {
+  return selectedHarnessTaskIndex.value > 0;
+});
+
+const selectedHarnessTaskHasNext = computed(() => {
+  return (
+    selectedHarnessTaskIndex.value >= 0 &&
+    selectedHarnessTaskIndex.value < filteredHarnessTasks.value.length - 1
+  );
+});
+
+const selectedHarnessTaskAlert = computed(() => {
+  if (!selectedHarnessTask.value) {
+    return "";
+  }
+  const details = [`Task ID: ${selectedHarnessTask.value.id}`];
+  if (selectedHarnessTask.value.type) {
+    details.push(`Type: ${selectedHarnessTask.value.type}`);
+  }
+  details.push(
+    `${selectedHarnessTaskHistoryItems.value.length} history item(s) loaded`,
+  );
+  return details.join(" | ");
+});
+
+const showHarnessPanel = computed(() => {
+  return Boolean(
+    currentCodingAgentSessionId.value &&
+    (currentHarnessStatus.value || filteredHarnessTasks.value.length > 0),
+  );
+});
+
 const showApprovalPanel = computed(() => {
   return Boolean(
     currentApprovalRequest.value || needsHighRiskConfirmation.value,
@@ -1067,6 +1589,86 @@ const planActionLabel = computed(() => {
     ? "Show Plan"
     : "Plan";
 });
+
+const subAgentSummaryItems = computed(() => {
+  const bucket = codingAgentStore.currentSessionSubAgents;
+  if (!bucket) {
+    return [];
+  }
+  const active = (bucket.active || []).map((sub) => ({
+    id: sub.id,
+    color: "processing",
+    label: `▶ ${sub.role || "sub"}`,
+  }));
+  const recent = (bucket.history || []).slice(0, 3).map((sub) => ({
+    id: sub.id,
+    color: sub.status === "failed" ? "error" : "success",
+    label: `${sub.status === "failed" ? "✗" : "✓"} ${sub.role || "sub"}`,
+  }));
+  return [...active, ...recent];
+});
+
+const currentReviewState = computed(
+  () => codingAgentStore.currentSessionReviewState,
+);
+
+const reviewAlertType = computed(() => {
+  const state = currentReviewState.value;
+  if (!state) {
+    return "info";
+  }
+  if (state.status === "pending") {
+    return "warning";
+  }
+  if (state.status === "approved") {
+    return "success";
+  }
+  return "error";
+});
+
+const reviewAlertMessage = computed(() => {
+  const state = currentReviewState.value;
+  if (!state) {
+    return "";
+  }
+  if (state.status === "pending") {
+    return "Review in progress — new messages blocked";
+  }
+  if (state.status === "approved") {
+    return "Review approved";
+  }
+  return "Review rejected";
+});
+
+const reviewAlertDescription = computed(() => {
+  const state = currentReviewState.value;
+  if (!state) {
+    return "";
+  }
+  const parts = [];
+  if (state.reason) {
+    parts.push(state.reason);
+  }
+  if (state.summary) {
+    parts.push(state.summary);
+  }
+  if (state.checklist?.length) {
+    const done = state.checklist.filter((c) => c.done).length;
+    parts.push(`Checklist: ${done}/${state.checklist.length}`);
+  }
+  if (state.comments?.length) {
+    parts.push(`${state.comments.length} comment(s)`);
+  }
+  return parts.join(" · ");
+});
+
+async function handleApproveReview() {
+  await codingAgentStore.resolveReview({ decision: "approved" });
+}
+
+async function handleRejectReview() {
+  await codingAgentStore.resolveReview({ decision: "rejected" });
+}
 
 const currentSessionWorktree = computed(() => {
   if (!currentCodingAgentSessionId.value) {
@@ -2287,6 +2889,7 @@ const ensureCodingAgentSession = async (
         );
       }
     }
+    await refreshCodingAgentHarnessPanel({ silent: true });
     return existingSessionId;
   }
 
@@ -2304,6 +2907,7 @@ const ensureCodingAgentSession = async (
     [conversationId]: sessionId,
   };
 
+  await refreshCodingAgentHarnessPanel({ silent: true });
   return sessionId;
 };
 
@@ -2315,6 +2919,163 @@ const continueApprovedPlanExecution = async () => {
     throw new Error(result?.error || "Failed to continue after plan approval");
   }
   ensurePendingAgentMessage(result.requestId, result.sessionId);
+};
+
+const refreshCodingAgentHarnessPanel = async (options = {}) => {
+  const { silent = false } = options;
+  try {
+    await codingAgentStore.refreshHarnessStatus();
+    await codingAgentStore.loadBackgroundTasks();
+    if (!silent) {
+      antMessage.success("Coding-agent harness refreshed.");
+    }
+  } catch (error) {
+    if (!silent) {
+      antMessage.error("Failed to refresh coding-agent harness.");
+    }
+    agentLogger.warn("refresh coding agent harness failed:", error);
+  }
+};
+
+const handleRefreshHarnessPanel = async () => {
+  await refreshCodingAgentHarnessPanel();
+};
+
+const handleSetHarnessTaskFilter = (status) => {
+  harnessTaskStatusFilter.value = status;
+  harnessTaskPage.value = 1;
+};
+
+const handleNextHarnessTaskPage = () => {
+  harnessTaskPage.value = Math.min(
+    harnessTaskPage.value + 1,
+    harnessTaskPageCount.value,
+  );
+};
+
+const handlePreviousHarnessTaskPage = () => {
+  harnessTaskPage.value = Math.max(1, harnessTaskPage.value - 1);
+};
+
+const persistHarnessUiState = (conversationId = activeConversationId.value) => {
+  if (!conversationId) {
+    return;
+  }
+
+  harnessUiStateByConversation.value = {
+    ...harnessUiStateByConversation.value,
+    [conversationId]: {
+      statusFilter: harnessTaskStatusFilter.value,
+      searchQuery: harnessTaskSearchQuery.value,
+      page: harnessTaskPage.value,
+      drawerVisible: harnessTaskDrawerVisible.value,
+      selectedTaskId: codingAgentStore.selectedBackgroundTask?.id || null,
+      historyLimit: harnessTaskHistoryLimit.value,
+    },
+  };
+};
+
+const handleInspectBackgroundTask = async (taskId, options = {}) => {
+  const { openDrawer = true, silent = false, limit = 10 } = options;
+  try {
+    harnessTaskHistoryLimit.value = limit;
+    await codingAgentStore.fetchBackgroundTask(taskId);
+    await codingAgentStore.fetchBackgroundTaskHistory(taskId, {
+      limit: harnessTaskHistoryLimit.value,
+    });
+    harnessTaskDrawerVisible.value = openDrawer;
+  } catch (error) {
+    if (!silent) {
+      antMessage.error("Failed to load background task details.");
+    }
+    agentLogger.warn("inspect background task failed:", error);
+  }
+};
+
+const restoreHarnessUiState = async (conversationId, options = {}) => {
+  const { hydrateSelectedTask = false } = options;
+  const state =
+    harnessUiStateByConversation.value[conversationId] ||
+    createDefaultHarnessUiState();
+
+  restoringHarnessUiState.value = true;
+  try {
+    harnessTaskStatusFilter.value = state.statusFilter || "active";
+    harnessTaskSearchQuery.value = state.searchQuery || "";
+    harnessTaskPage.value = Math.max(1, state.page || 1);
+    harnessTaskDrawerVisible.value = state.drawerVisible === true;
+    harnessTaskHistoryLimit.value = state.historyLimit || 10;
+
+    if (!state.selectedTaskId || !hydrateSelectedTask) {
+      codingAgentStore.selectedBackgroundTask = null;
+      codingAgentStore.selectedBackgroundTaskHistory = null;
+      return;
+    }
+
+    await handleInspectBackgroundTask(state.selectedTaskId, {
+      openDrawer: state.drawerVisible === true,
+      silent: true,
+      limit: state.historyLimit || 10,
+    });
+  } finally {
+    await nextTick();
+    restoringHarnessUiState.value = false;
+  }
+};
+
+const handleLoadMoreBackgroundTaskHistory = async () => {
+  const taskId = codingAgentStore.selectedBackgroundTask?.id;
+  if (!taskId) {
+    return;
+  }
+
+  try {
+    harnessTaskHistoryLimit.value += 10;
+    await codingAgentStore.fetchBackgroundTaskHistory(taskId, {
+      limit: harnessTaskHistoryLimit.value,
+    });
+  } catch (error) {
+    antMessage.error("Failed to load more task history.");
+    agentLogger.warn("load more background task history failed:", error);
+  }
+};
+
+const handleNavigateHarnessTask = async (direction) => {
+  if (!selectedHarnessTask.value) {
+    return;
+  }
+
+  const nextIndex = selectedHarnessTaskIndex.value + direction;
+  const nextTask = filteredHarnessTasks.value[nextIndex];
+  if (!nextTask?.id) {
+    return;
+  }
+
+  await handleInspectBackgroundTask(nextTask.id);
+};
+
+const handleCloseHarnessTaskDrawer = () => {
+  harnessTaskDrawerVisible.value = false;
+};
+
+const handleClearBackgroundTaskSelection = () => {
+  harnessTaskDrawerVisible.value = false;
+  harnessTaskHistoryLimit.value = 10;
+  codingAgentStore.selectedBackgroundTask = null;
+  codingAgentStore.selectedBackgroundTaskHistory = null;
+};
+
+const handleStopBackgroundTask = async (taskId) => {
+  try {
+    await codingAgentStore.stopBackgroundTask(taskId);
+    if (codingAgentStore.selectedBackgroundTask?.id === taskId) {
+      await handleInspectBackgroundTask(taskId);
+    }
+    antMessage.success("Background task stopped.");
+  } catch (error) {
+    antMessage.error("Failed to stop background task.");
+    agentLogger.warn("stop background task failed:", error);
+  }
 };
 
 const ensureHighRiskConfirmation = async () => {
@@ -2343,6 +3104,7 @@ const handleCodingAgentEvent = async (event) => {
   }
 
   switch (event.type) {
+    case "tool.call.started":
     case "tool-executing": {
       const assistantMessage = ensurePendingAgentMessage(
         event.requestId,
@@ -2354,6 +3116,7 @@ const handleCodingAgentEvent = async (event) => {
       ];
       break;
     }
+    case "tool.call.completed":
     case "tool-result": {
       const assistantMessage = ensurePendingAgentMessage(
         event.requestId,
@@ -2382,6 +3145,7 @@ const handleCodingAgentEvent = async (event) => {
       }
       break;
     }
+    case "plan.approval_required":
     case "plan-ready": {
       const assistantMessage = ensurePendingAgentMessage(
         event.requestId,
@@ -2394,12 +3158,14 @@ const handleCodingAgentEvent = async (event) => {
       isThinking.value = false;
       break;
     }
+    case "approval.requested":
     case "approval-requested": {
       antMessage.info(
         "Plan ready. Approve it before write or shell steps can run.",
       );
       break;
     }
+    case "approval.high-risk.requested":
     case "high-risk-confirmation-required": {
       const tools = event.payload.tools || [];
       antMessage.warning(
@@ -2409,10 +3175,12 @@ const handleCodingAgentEvent = async (event) => {
       );
       break;
     }
+    case "approval.high-risk.granted":
     case "high-risk-confirmed": {
       antMessage.success("High-risk execution confirmed.");
       break;
     }
+    case "tool.call.failed":
     case "tool-blocked": {
       const assistantMessage = ensurePendingAgentMessage(
         event.requestId,
@@ -2459,6 +3227,7 @@ const handleCodingAgentEvent = async (event) => {
       antMessage.warning(event.payload.reason || `${toolName} was blocked`);
       break;
     }
+    case "assistant.final":
     case "response-complete": {
       const assistantMessage = ensurePendingAgentMessage(
         event.requestId,
@@ -2703,6 +3472,7 @@ const loadConversationMessages = async (conversationId) => {
 // 新建对话
 const handleNewConversation = async () => {
   try {
+    persistHarnessUiState();
     const conversation = await window.electronAPI.conversation.create({
       title: "新对话",
     });
@@ -2716,6 +3486,7 @@ const handleNewConversation = async () => {
 
     activeConversationId.value = conversation.id;
     messages.value = [];
+    await restoreHarnessUiState(conversation.id);
 
     antMessage.success("创建新对话成功");
   } catch (error) {
@@ -2730,6 +3501,7 @@ const handleConversationClick = async (conversation) => {
     return;
   }
 
+  persistHarnessUiState();
   activeConversationId.value = conversation.id;
   await loadConversationMessages(conversation.id);
 
@@ -2741,6 +3513,9 @@ const handleConversationClick = async (conversation) => {
       agentLogger.warn("resume coding agent session failed:", error);
     }
   }
+  await restoreHarnessUiState(conversation.id, {
+    hydrateSelectedTask: Boolean(sessionId),
+  });
 };
 
 // 对话操作
@@ -2761,6 +3536,9 @@ const handleConversationAction = async ({ action, conversation }) => {
       break;
     case "delete":
       try {
+        const nextHarnessUiState = { ...harnessUiStateByConversation.value };
+        delete nextHarnessUiState[conversation.id];
+        harnessUiStateByConversation.value = nextHarnessUiState;
         await window.electronAPI.conversation.delete(conversation.id);
         conversations.value = conversations.value.filter(
           (c) => c.id !== conversation.id,
@@ -2774,8 +3552,14 @@ const handleConversationAction = async ({ action, conversation }) => {
           activeConversationId.value = conversations.value[0]?.id || "";
           if (activeConversationId.value) {
             await loadConversationMessages(activeConversationId.value);
+            await restoreHarnessUiState(activeConversationId.value, {
+              hydrateSelectedTask: Boolean(
+                codingAgentSessionMap.value[activeConversationId.value],
+              ),
+            });
           } else {
             messages.value = [];
+            await restoreHarnessUiState("");
           }
         }
         antMessage.success("删除对话成功");
@@ -3480,6 +4264,7 @@ onMounted(async () => {
   enhanceCodeBlocks();
   codingAgentStore.initEventListeners();
   await codingAgentStore.refreshStatus();
+  await refreshCodingAgentHarnessPanel({ silent: true });
   worktreeIsolationEnabled.value =
     localStorage.getItem(WORKTREE_ISOLATION_STORAGE_KEY) === "true";
 
@@ -3537,7 +4322,40 @@ watch(
   },
 );
 
+watch(harnessTaskSearchQuery, () => {
+  if (restoringHarnessUiState.value) {
+    return;
+  }
+  harnessTaskPage.value = 1;
+});
+
+watch(
+  () => filteredHarnessTasks.value.length,
+  () => {
+    if (harnessTaskPage.value > harnessTaskPageCount.value) {
+      harnessTaskPage.value = harnessTaskPageCount.value;
+    }
+  },
+);
+
 // 暴露给测试使用
+watch(
+  [
+    harnessTaskStatusFilter,
+    harnessTaskSearchQuery,
+    harnessTaskPage,
+    harnessTaskDrawerVisible,
+    harnessTaskHistoryLimit,
+    () => codingAgentStore.selectedBackgroundTask?.id || null,
+  ],
+  () => {
+    if (restoringHarnessUiState.value) {
+      return;
+    }
+    persistHarnessUiState();
+  },
+);
+
 defineExpose({
   // 状态
   conversations,
@@ -3572,14 +4390,33 @@ defineExpose({
   handleRejectPlan,
   handleConfirmHighRisk,
   handleRejectHighRisk,
+  handleRefreshHarnessPanel,
+  handleSetHarnessTaskFilter,
+  handleNextHarnessTaskPage,
+  handlePreviousHarnessTaskPage,
+  persistHarnessUiState,
+  restoreHarnessUiState,
+  handleInspectBackgroundTask,
+  handleLoadMoreBackgroundTaskHistory,
+  handleNavigateHarnessTask,
+  handleCloseHarnessTaskDrawer,
+  handleClearBackgroundTaskSelection,
+  handleStopBackgroundTask,
   handleOpenWorktreeReview,
   handleRefreshWorktreeReview,
   handleMergeCurrentWorktree,
+  handleCodingAgentEvent,
   handleUserAction,
   renderMarkdown,
   formatTime,
   scrollToBottom,
   enhanceCodeBlocks,
+  harnessTaskDrawerVisible,
+  harnessTaskHistoryLimit,
+  harnessTaskStatusFilter,
+  harnessTaskSearchQuery,
+  harnessTaskPage,
+  harnessUiStateByConversation,
 });
 </script>
 
@@ -3629,6 +4466,154 @@ defineExpose({
 // 对话操作栏
 .coding-agent-alert {
   margin: 0 0 12px;
+}
+
+.coding-agent-harness-panel {
+  margin: 0 0 12px;
+  padding: 16px 18px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.08);
+}
+
+.harness-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.harness-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.harness-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.harness-search-input {
+  min-width: 220px;
+  flex: 1 1 220px;
+  padding: 8px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #0f172a;
+}
+
+.harness-results-count {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.harness-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.harness-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(147, 197, 253, 0.55);
+}
+
+.harness-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.harness-stat-value {
+  font-size: 22px;
+  line-height: 1;
+  color: #1e3a8a;
+}
+
+.harness-stat-meta {
+  font-size: 12px;
+  color: #475569;
+}
+
+.harness-task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.harness-task-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.harness-task-detail-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.harness-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.harness-history {
+  margin-top: 10px;
+}
+
+.harness-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.harness-history-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(191, 219, 254, 0.6);
+  font-size: 12px;
+  color: #334155;
+}
+
+.harness-history-event {
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.harness-history-time {
+  color: #64748b;
+}
+
+.harness-history-message {
+  flex: 1 1 100%;
 }
 
 .coding-agent-approval-panel {
@@ -3765,6 +4750,19 @@ defineExpose({
 }
 
 @media (max-width: 768px) {
+  .harness-panel-header {
+    flex-direction: column;
+  }
+
+  .harness-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .harness-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
   .approval-panel-header {
     flex-direction: column;
   }

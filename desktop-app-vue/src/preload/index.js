@@ -286,6 +286,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:get-session-state", sessionId),
     getSessionEvents: (sessionId) =>
       ipcRenderer.invoke("coding-agent:get-session-events", sessionId),
+    getHarnessStatus: () =>
+      ipcRenderer.invoke("coding-agent:get-harness-status"),
+    listBackgroundTasks: (payload = {}) =>
+      ipcRenderer.invoke("coding-agent:list-background-tasks", payload),
+    getBackgroundTask: (taskId) =>
+      ipcRenderer.invoke("coding-agent:get-background-task", taskId),
+    getBackgroundTaskHistory: (payload) =>
+      ipcRenderer.invoke("coding-agent:get-background-task-history", payload),
+    stopBackgroundTask: (taskId) =>
+      ipcRenderer.invoke("coding-agent:stop-background-task", taskId),
     listWorktrees: () => ipcRenderer.invoke("coding-agent:list-worktrees"),
     getWorktreeDiff: (payload) =>
       ipcRenderer.invoke("coding-agent:get-worktree-diff", payload),
@@ -295,6 +305,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:merge-worktree", payload),
     applyWorktreeAutomation: (payload) =>
       ipcRenderer.invoke("coding-agent:apply-worktree-automation", payload),
+    listSubAgents: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:list-sub-agents", { sessionId }),
+    getSubAgent: (payload) =>
+      ipcRenderer.invoke("coding-agent:get-sub-agent", payload),
+    enterReview: (payload) =>
+      ipcRenderer.invoke("coding-agent:enter-review", payload),
+    submitReviewComment: (payload) =>
+      ipcRenderer.invoke("coding-agent:submit-review-comment", payload),
+    resolveReview: (payload) =>
+      ipcRenderer.invoke("coding-agent:resolve-review", payload),
+    getReviewState: (payload) =>
+      ipcRenderer.invoke("coding-agent:get-review-state", payload),
+    proposePatch: (payload) =>
+      ipcRenderer.invoke("coding-agent:propose-patch", payload),
+    applyPatch: (payload) =>
+      ipcRenderer.invoke("coding-agent:apply-patch", payload),
+    rejectPatch: (payload) =>
+      ipcRenderer.invoke("coding-agent:reject-patch", payload),
+    getPatchSummary: (payload) =>
+      ipcRenderer.invoke("coding-agent:get-patch-summary", payload),
     getStatus: () => ipcRenderer.invoke("coding-agent:get-status"),
     onEvent: (callback) => {
       const handler = (_event, data) => callback(data);

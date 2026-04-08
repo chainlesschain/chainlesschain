@@ -85,8 +85,65 @@ class MockBridge extends EventEmitter {
     };
   }
 
+  async listBackgroundTasks() {
+    return {
+      tasks: [
+        {
+          id: "task-1",
+          status: "running",
+          description: "Run verification",
+        },
+        {
+          id: "task-2",
+          status: "completed",
+          description: "Build summary",
+        },
+      ],
+    };
+  }
+
+  async getBackgroundTask(taskId) {
+    return {
+      task: {
+        id: taskId,
+        status: "running",
+        description: "Run verification",
+      },
+    };
+  }
+
+  async getBackgroundTaskHistory(taskId) {
+    return {
+      taskId,
+      history: {
+        items: [{ event: "started" }, { event: "heartbeat" }],
+        total: 2,
+      },
+    };
+  }
+
+  async stopBackgroundTask(taskId) {
+    return {
+      type: "tasks-stopped",
+      taskId,
+    };
+  }
+
   async closeSession(sessionId) {
     return { id: "close-request", success: true, sessionId };
+  }
+
+  async interruptSession(sessionId) {
+    const message = {
+      id: "interrupt-request",
+      type: "session.interrupted",
+      sessionId,
+      interrupted: true,
+      wasProcessing: true,
+      interruptedRequestId: "session-message-1",
+    };
+    this.emit("message", message);
+    return message;
   }
 
   async listWorktrees() {
@@ -385,6 +442,80 @@ describe("CodingAgentSessionService", () => {
         type: CodingAgentEventType.WORKTREE_LIST,
       }),
     );
+  });
+
+  it("exposes background task data through the harness service methods", async () => {
+    const listResult = await service.listBackgroundTasks();
+    const detailResult = await service.getBackgroundTask("task-1");
+    const historyResult = await service.getBackgroundTaskHistory("task-1");
+    const stopResult = await service.stopBackgroundTask("task-1");
+
+    expect(listResult).toMatchObject({
+      success: true,
+      tasks: [
+        expect.objectContaining({ id: "task-1", status: "running" }),
+        expect.objectContaining({ id: "task-2", status: "completed" }),
+      ],
+    });
+    expect(detailResult).toMatchObject({
+      success: true,
+      task: expect.objectContaining({ id: "task-1" }),
+    });
+    expect(historyResult).toMatchObject({
+      success: true,
+      taskId: "task-1",
+      history: expect.objectContaining({
+        items: expect.any(Array),
+        total: 2,
+      }),
+    });
+    expect(stopResult).toEqual({
+      success: true,
+      taskId: "task-1",
+    });
+  });
+
+  it("aggregates harness status from sessions, worktrees, and background tasks", async () => {
+    await service.createSession({
+      worktreeIsolation: true,
+    });
+    bridge.emit("message", {
+      id: "worktree-dirty",
+      type: "worktree-diff",
+      sessionId: "session-1",
+      record: {
+        branch: "coding-agent/session-1",
+        path: "C:\\code\\chainlesschain\\.worktrees\\coding-agent-session-1",
+        hasChanges: true,
+      },
+    });
+
+    const result = await service.getHarnessStatus();
+
+    expect(result).toEqual({
+      success: true,
+      harness: {
+        sessions: {
+          total: 1,
+          running: 0,
+          waitingApproval: 0,
+          active: 1,
+        },
+        worktrees: {
+          tracked: 1,
+          isolated: 1,
+          dirty: 1,
+        },
+        backgroundTasks: {
+          total: 2,
+          pending: 0,
+          running: 1,
+          completed: 1,
+          failed: 0,
+          timeout: 0,
+        },
+      },
+    });
   });
 
   it("tracks plan mode transitions across enter, show, and approve", async () => {
@@ -1186,6 +1317,31 @@ describe("CodingAgentSessionService", () => {
     expect(
       events.events?.some(
         (event) => event.type === CodingAgentEventType.SESSION_CLOSED,
+      ),
+    ).toBe(true);
+  });
+
+  it("interrupts a session without closing it and emits a session-interrupted event", async () => {
+    await service.createSession();
+    const sent = await service.sendMessage("session-1", "Implement the change");
+    expect(sent.success).toBe(true);
+
+    const result = await service.interruptSession("session-1");
+    expect(result).toMatchObject({
+      success: true,
+      sessionId: "session-1",
+      interrupted: true,
+      wasProcessing: true,
+    });
+
+    const state = service.getSessionState("session-1");
+    expect(state.session?.status).toBe("ready");
+    expect(state.session?.pendingRequests).toEqual([]);
+
+    const events = service.getSessionEvents("session-1");
+    expect(
+      events.events?.some(
+        (event) => event.type === CodingAgentEventType.SESSION_INTERRUPTED,
       ),
     ).toBe(true);
   });

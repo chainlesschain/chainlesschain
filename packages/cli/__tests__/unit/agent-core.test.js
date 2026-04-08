@@ -1071,6 +1071,29 @@ describe("chatWithTools", () => {
     expect(capturedHeaders["Authorization"]).toBe("Bearer sk-test-key");
   });
 
+  it("forwards AbortSignal to provider fetch calls", async () => {
+    let capturedSignal;
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
+      capturedSignal = opts.signal;
+      return {
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "ok" },
+        }),
+      };
+    });
+
+    const controller = new AbortController();
+    await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "ollama",
+      model: "qwen2.5:7b",
+      baseUrl: "http://localhost:11434",
+      signal: controller.signal,
+    });
+
+    expect(capturedSignal).toBe(controller.signal);
+  });
+
   it("Missing API key throws appropriate error", async () => {
     // Save and clear env vars
     const savedKey = process.env.ANTHROPIC_API_KEY;
@@ -1136,6 +1159,22 @@ describe("agentLoop", () => {
     expect(events).toHaveLength(1);
     expect(events[0].type).toBe("response-complete");
     expect(events[0].content).toBe("Hello! How can I help?");
+  });
+
+  it("throws AbortError when the loop signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const iterator = agentLoop([{ role: "user", content: "Hi" }], {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+      signal: controller.signal,
+    });
+
+    await expect(iterator.next()).rejects.toMatchObject({
+      name: "AbortError",
+    });
   });
 
   it("yields tool-executing and tool-result events", async () => {

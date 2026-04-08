@@ -10,6 +10,7 @@ import { agentLoop, formatToolArgs } from "./agent-core.js";
 import { detectTaskType, selectModelForTask } from "./task-model-selector.js";
 import { PlanState } from "./plan-mode.js";
 import { CLISlotFiller } from "./slot-filler.js";
+import { createAbortError, isAbortError } from "./abort-utils.js";
 
 export class WSAgentHandler {
   /**
@@ -23,6 +24,8 @@ export class WSAgentHandler {
     this.interaction = interaction;
     this.db = db || null;
     this._processing = false;
+    this._abortController = null;
+    this._activeRequestId = null;
   }
 
   /**
@@ -42,6 +45,9 @@ export class WSAgentHandler {
     }
 
     this._processing = true;
+    const abortController = new AbortController();
+    this._abortController = abortController;
+    this._activeRequestId = requestId || null;
 
     try {
       const { session } = this;
@@ -93,6 +99,7 @@ export class WSAgentHandler {
         mcpClient: session.mcpClient || null,
         slotFiller,
         interaction: this.interaction,
+        signal: abortController.signal,
       };
 
       for await (const event of agentLoop(session.messages, loopOptions)) {
@@ -141,6 +148,10 @@ export class WSAgentHandler {
       // Update last activity
       session.lastActivity = new Date().toISOString();
     } catch (err) {
+      if (isAbortError(err) || abortController.signal.aborted) {
+        return;
+      }
+
       this.interaction.emit("error", {
         requestId,
         code: "AGENT_ERROR",
@@ -156,6 +167,43 @@ export class WSAgentHandler {
       }
     } finally {
       this._processing = false;
+      if (this._abortController === abortController) {
+        this._abortController = null;
+      }
+      if (this._activeRequestId === requestId) {
+        this._activeRequestId = null;
+      }
+    }
+  }
+
+  async interrupt() {
+    const wasProcessing = this._processing;
+    const interruptedRequestId = this._activeRequestId || null;
+    const reason = createAbortError("Session interrupted by client");
+
+    if (this._abortController && !this._abortController.signal.aborted) {
+      this._abortController.abort(reason);
+    }
+
+    if (typeof this.interaction?.rejectAllPending === "function") {
+      this.interaction.rejectAllPending(reason);
+    }
+
+    return {
+      sessionId: this.session?.id || null,
+      interrupted: true,
+      wasProcessing,
+      interruptedRequestId,
+    };
+  }
+
+  destroy() {
+    const reason = createAbortError("Session closed");
+    if (this._abortController && !this._abortController.signal.aborted) {
+      this._abortController.abort(reason);
+    }
+    if (typeof this.interaction?.rejectAllPending === "function") {
+      this.interaction.rejectAllPending(reason);
     }
   }
 

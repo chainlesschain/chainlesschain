@@ -28,8 +28,19 @@ import {
   handleSessionPolicyUpdate,
   handleSessionList,
   handleSessionClose,
+  handleSessionInterrupt,
   handleSessionAnswer,
   handleHostToolResult,
+  handleSubAgentList,
+  handleSubAgentGet,
+  handleReviewEnter,
+  handleReviewSubmit,
+  handleReviewResolve,
+  handleReviewStatus,
+  handlePatchPropose,
+  handlePatchApply,
+  handlePatchReject,
+  handlePatchSummary,
 } from "../gateways/ws/session-protocol.js";
 import {
   handleSlashCommand,
@@ -600,6 +611,11 @@ export class ChainlessChainWSServer extends EventEmitter {
   }
 
   /** @private */
+  _handleSessionInterrupt(id, ws, message) {
+    return handleSessionInterrupt(this, id, ws, message);
+  }
+
+  /** @private */
   _handleSlashCommand(id, ws, message) {
     return handleSlashCommand(this, id, ws, message);
   }
@@ -611,6 +627,56 @@ export class ChainlessChainWSServer extends EventEmitter {
 
   _handleHostToolResult(id, ws, message) {
     return handleHostToolResult(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleSubAgentList(id, ws, message) {
+    return handleSubAgentList(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleSubAgentGet(id, ws, message) {
+    return handleSubAgentGet(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleReviewEnter(id, ws, message) {
+    return handleReviewEnter(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleReviewSubmit(id, ws, message) {
+    return handleReviewSubmit(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleReviewResolve(id, ws, message) {
+    return handleReviewResolve(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleReviewStatus(id, ws, message) {
+    return handleReviewStatus(this, id, ws, message);
+  }
+
+  /** @private */
+  _handlePatchPropose(id, ws, message) {
+    return handlePatchPropose(this, id, ws, message);
+  }
+
+  /** @private */
+  _handlePatchApply(id, ws, message) {
+    return handlePatchApply(this, id, ws, message);
+  }
+
+  /** @private */
+  _handlePatchReject(id, ws, message) {
+    return handlePatchReject(this, id, ws, message);
+  }
+
+  /** @private */
+  _handlePatchSummary(id, ws, message) {
+    return handlePatchSummary(this, id, ws, message);
   }
 
   /** @private — ping/pong heartbeat to detect dead connections */

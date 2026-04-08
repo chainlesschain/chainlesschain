@@ -33,6 +33,7 @@ import {
 import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
 import { DEFAULT_TOOL_DESCRIPTORS } from "../tools/registry.js";
+import { isAbortError, throwIfAborted } from "./abort-utils.js";
 
 const { isReadOnlyGitCommand, normalizeGitCommand } = sharedCodingAgentPolicy;
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
@@ -719,6 +720,7 @@ export async function executeTool(name, args, context = {}) {
       cwd,
       parentMessages: context.parentMessages,
       interaction: context.interaction,
+      sessionId: context.sessionId || null,
       hostManagedToolPolicy: context.hostManagedToolPolicy || null,
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
@@ -784,6 +786,7 @@ async function executeToolInner(
     cwd,
     parentMessages,
     interaction,
+    sessionId,
     hostManagedToolPolicy,
     externalToolDescriptors,
     externalToolExecutors,
@@ -957,7 +960,13 @@ async function executeToolInner(
 
     case "spawn_sub_agent": {
       return attachDescriptor(
-        await _executeSpawnSubAgent(args, { skillLoader, cwd, parentMessages }),
+        await _executeSpawnSubAgent(args, {
+          skillLoader,
+          cwd,
+          parentMessages,
+          interaction,
+          sessionId,
+        }),
       );
     }
 
@@ -1393,7 +1402,7 @@ async function _executeRunCode(args, cwd) {
  * Creates an isolated SubAgentContext, runs it, and returns only the summary.
  *
  * @param {object} args - { role, task, context?, tools? }
- * @param {object} ctx - { skillLoader, cwd }
+ * @param {object} ctx - { skillLoader, cwd, parentMessages, interaction, sessionId }
  * @returns {Promise<object>}
  */
 async function _executeSpawnSubAgent(args, ctx) {
@@ -1415,13 +1424,34 @@ async function _executeSpawnSubAgent(args, ctx) {
     }
   }
 
+  // Link child to parent session so registry-scoped queries and
+  // session-close cascade cleanup can find it.
+  const parentSessionId = ctx.sessionId || null;
+  const interaction = ctx.interaction || null;
+
   const subCtx = SubAgentContext.create({
     role,
     task,
+    parentId: parentSessionId,
     inheritedContext: resolvedContext,
     allowedTools: allowedTools || null,
     cwd: ctx.cwd,
   });
+
+  const emit = (type, payload) => {
+    if (!interaction || typeof interaction.emit !== "function") return;
+    try {
+      interaction.emit(type, {
+        sessionId: parentSessionId,
+        subAgentId: subCtx.id,
+        parentSessionId,
+        role: subCtx.role,
+        ...payload,
+      });
+    } catch (_err) {
+      // Event emission is best-effort — never break the tool call
+    }
+  };
 
   try {
     // Notify registry if available
@@ -1436,6 +1466,13 @@ async function _executeSpawnSubAgent(args, ctx) {
       }
     }
 
+    emit("sub-agent.started", {
+      task: subCtx.task,
+      allowedTools: allowedTools || null,
+      maxIterations: subCtx.maxIterations,
+      createdAt: subCtx.createdAt,
+    });
+
     const result = await subCtx.run(task);
 
     // Complete in registry
@@ -1447,10 +1484,21 @@ async function _executeSpawnSubAgent(args, ctx) {
       }
     }
 
+    emit("sub-agent.completed", {
+      status: subCtx.status,
+      summary: result.summary,
+      toolsUsed: result.toolsUsed,
+      iterationCount: result.iterationCount,
+      tokenCount: result.tokenCount,
+      artifactCount: result.artifacts.length,
+      completedAt: subCtx.completedAt,
+    });
+
     return {
       success: true,
       subAgentId: subCtx.id,
       role: subCtx.role,
+      parentSessionId,
       summary: result.summary,
       toolsUsed: result.toolsUsed,
       iterationCount: result.iterationCount,
@@ -1458,10 +1506,18 @@ async function _executeSpawnSubAgent(args, ctx) {
     };
   } catch (err) {
     subCtx.forceComplete(err.message);
+
+    emit("sub-agent.failed", {
+      status: subCtx.status,
+      error: err.message,
+      completedAt: subCtx.completedAt,
+    });
+
     return {
       error: `Sub-agent failed: ${err.message}`,
       subAgentId: subCtx.id,
       role: subCtx.role,
+      parentSessionId,
     };
   }
 }
@@ -1477,7 +1533,14 @@ async function _executeSpawnSubAgent(args, ctx) {
  * @returns {Promise<object>} response with .message
  */
 export async function chatWithTools(rawMessages, options) {
-  const { provider, model, baseUrl, apiKey, contextEngine: ce } = options;
+  const {
+    provider,
+    model,
+    baseUrl,
+    apiKey,
+    contextEngine: ce,
+    signal,
+  } = options;
 
   const persona = _loadProjectPersona(options.cwd);
   const tools = getAgentToolDefinitions({
@@ -1496,10 +1559,13 @@ export async function chatWithTools(rawMessages, options) {
       })
     : rawMessages;
 
+  throwIfAborted(signal);
+
   if (provider === "ollama") {
     const response = await fetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal,
       body: JSON.stringify({
         model,
         messages,
@@ -1548,6 +1614,7 @@ export async function chatWithTools(rawMessages, options) {
         "x-api-key": key,
         "anthropic-version": "2023-06-01",
       },
+      signal,
       body: JSON.stringify(body),
     });
 
@@ -1608,6 +1675,7 @@ export async function chatWithTools(rawMessages, options) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
     },
+    signal,
     body: JSON.stringify({
       model: model || defaultModels[provider] || "gpt-4o-mini",
       messages,
@@ -1667,6 +1735,7 @@ function _normalizeAnthropicResponse(data) {
  */
 export async function* agentLoop(messages, options) {
   const MAX_ITERATIONS = 15;
+  const signal = options.signal || null;
   const toolContext = {
     hookDb: options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
@@ -1680,6 +1749,8 @@ export async function* agentLoop(messages, options) {
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
     interaction: options.interaction || null,
   };
+
+  throwIfAborted(signal);
 
   // ── Slot-filling phase ──────────────────────────────────────────────
   // Before calling the LLM, check if the user's message matches a known
@@ -1721,14 +1792,19 @@ export async function* agentLoop(messages, options) {
             }
           }
         }
-      } catch (_err) {
+      } catch (error) {
+        if (isAbortError(error) || signal?.aborted) {
+          throw error;
+        }
         // Slot-filling failure is non-critical — proceed to LLM
       }
     }
   }
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
+    throwIfAborted(signal);
     const result = await chatWithTools(messages, options);
+    throwIfAborted(signal);
     const msg = result?.message;
 
     if (!msg) {
@@ -1747,6 +1823,7 @@ export async function* agentLoop(messages, options) {
     messages.push(msg);
 
     for (const call of toolCalls) {
+      throwIfAborted(signal);
       const fn = call.function;
       const toolName = fn.name;
       let toolArgs;
@@ -1770,6 +1847,8 @@ export async function* agentLoop(messages, options) {
         toolResult = { error: err.message };
         toolError = err.message;
       }
+
+      throwIfAborted(signal);
 
       yield {
         type: "tool-result",

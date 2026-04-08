@@ -818,6 +818,10 @@ export default defineConfig({
           text: "v5.0.2.10 Minimal Coding Agent ⭐NEW",
           items: [
             {
+              text: "Coding Agent 系统",
+              link: "/chainlesschain/coding-agent",
+            },
+            {
               text: "Minimal Coding Agent 实施计划",
               link: "/chainlesschain/minimal-coding-agent-plan",
             },

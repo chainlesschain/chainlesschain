@@ -13,6 +13,7 @@ import {
   CODING_AGENT_EVENT_TYPES,
   LEGACY_TO_UNIFIED_TYPE,
 } from "../runtime/runtime-events.js";
+import { createAbortError } from "./abort-utils.js";
 
 // Whitelist of event types the CLI runtime should emit as unified envelopes
 // (with source: "cli-runtime"). Anything not in this set keeps the legacy
@@ -104,7 +105,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     super();
     this.ws = ws;
     this.sessionId = sessionId;
-    /** @type {Map<string, {resolve: Function, reject: Function}>} */
+    /** @type {Map<string, {resolve: Function, reject: Function, timeoutId: ReturnType<typeof setTimeout>|null}>} */
     this._pending = new Map();
     // Per-instance sequence tracker so monotonic sequences are scoped to
     // this WS session instead of leaking across sessions via the process-
@@ -127,24 +128,24 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
   _request(message, options = {}) {
     return new Promise((resolve, reject) => {
       const requestId = this._requestId();
-      this._pending.set(requestId, { resolve, reject });
+      const timeoutId = setTimeout(
+        () => {
+          const pending = this._pending.get(requestId);
+          if (!pending) {
+            return;
+          }
+          this._pending.delete(requestId);
+          reject(new Error("Question timed out"));
+        },
+        options.timeoutMs || 5 * 60 * 1000,
+      );
+      this._pending.set(requestId, { resolve, reject, timeoutId });
 
       this._sendWs({
         ...message,
         sessionId: this.sessionId,
         requestId,
       });
-
-      // Timeout after 5 minutes
-      setTimeout(
-        () => {
-          if (this._pending.has(requestId)) {
-            this._pending.delete(requestId);
-            reject(new Error("Question timed out"));
-          }
-        },
-        options.timeoutMs || 5 * 60 * 1000,
-      );
     });
   }
 
@@ -179,11 +180,7 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
    * Resolves the corresponding pending promise.
    */
   resolveAnswer(requestId, answer) {
-    const pending = this._pending.get(requestId);
-    if (pending) {
-      this._pending.delete(requestId);
-      pending.resolve(answer);
-    }
+    this._resolvePending(requestId, answer);
   }
 
   async requestHostTool(toolName, args = {}, extra = {}) {
@@ -199,10 +196,19 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
   }
 
   resolveHostTool(requestId, payload) {
-    const pending = this._pending.get(requestId);
-    if (pending) {
+    this._resolvePending(requestId, payload);
+  }
+
+  rejectAllPending(reason = createAbortError("Interaction interrupted")) {
+    const error =
+      reason instanceof Error ? reason : createAbortError(String(reason));
+
+    for (const [requestId, pending] of this._pending.entries()) {
       this._pending.delete(requestId);
-      pending.resolve(payload);
+      if (pending.timeoutId) {
+        clearTimeout(pending.timeoutId);
+      }
+      pending.reject(error);
     }
   }
 
@@ -244,5 +250,18 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         // Connection may have closed
       }
     }
+  }
+
+  _resolvePending(requestId, payload) {
+    const pending = this._pending.get(requestId);
+    if (!pending) {
+      return;
+    }
+
+    this._pending.delete(requestId);
+    if (pending.timeoutId) {
+      clearTimeout(pending.timeoutId);
+    }
+    pending.resolve(payload);
   }
 }

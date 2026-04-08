@@ -142,13 +142,15 @@ Renderer UI
 - Phase 2：CLI 主线已完成
 - Phase 3：Desktop 主链路已基本完成
 - Phase 4：主线已完成
-- Phase 5：未完成
+- Phase 5：最小 Harness 主线已完成，扩展能力未完成
 
 当前结论：
 
 - CLI 已具备多轮 coding session、工具合同、plan mode 门控、会话恢复、tool telemetry、独立 `git` 工具
 - Desktop 已打通 session service、IPC、preload、renderer store、审批 UI 和结构化事件信封
 - CLI runtime 已支持 trusted MCP auto-connect，并可将可信低风险 MCP 工具直接注入 coding session
+- `interrupt` 已从 `close-session` 别名收口为真实中断语义，CLI / Desktop 可中断正在执行的 turn，并保留 session 继续使用
+- Desktop 已补齐最小 harness 读写链路，可聚合 `sessions/worktrees/backgroundTasks` 状态，并提供后台任务查询、详情、历史、停止接口
 - MCP trusted / blocked 主线已落地，技能接入和更高阶 harness 仍未进入完成态
 
 ## Phase 0: 基线收敛
@@ -385,6 +387,7 @@ CLI 已完成
 - Desktop bridge / session-service 已补 MCP 跨进程回归，覆盖 `session-policy-update` 透传与 `resumeSession()` 后 host policy 重同步
 - Desktop integration 已补 IPC 别名与 hosted MCP 回归，覆盖 `start-session`、`respond-approval`、`interrupt` 和 hosted MCP resume 同步
 - Renderer store 已对齐共享 dot-case 事件协议，并补回归覆盖 `assistant.final`、`approval.requested`、`tool.call.failed`、`runtime.server.ready`
+- AIChatPage 已兼容共享 dot-case 事件协议，并补页面回归覆盖 `tool.call.started`、`tool.call.completed`、`assistant.final`、`approval.requested`、`approval.high-risk.*`
 
 当前限制：
 
@@ -394,10 +397,24 @@ CLI 已完成
 ## Phase 5: 高阶 Harness
 
 状态：
-未完成
+部分完成（最小 harness 已落地）
 
 目标：
 在核心链路稳定后再增加复杂能力。
+
+本轮已完成：
+
+- `CodingAgentSessionService.getHarnessStatus()`，统一聚合 `sessions/worktrees/backgroundTasks`
+- Desktop main / IPC / preload / renderer store 已补齐后台任务只读与停止接口
+- Desktop 聊天页已增加 harness 面板和后台任务详情抽屉，可查看会话/工作树/后台任务摘要，并执行刷新、停止后台任务、按状态筛选/搜索任务、分页浏览任务、查看历史、加载更多 history
+- Desktop integration / store / session-service / bridge / IPC 已补最小 harness 回归
+
+仍未完成：
+
+- 子代理委派
+- review mode
+- patch preview / diff 总结编排
+- 更高阶的持久化任务图与编排器
 
 候选能力：
 

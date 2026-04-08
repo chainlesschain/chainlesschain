@@ -1,5 +1,36 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-08 增量更新（Phase 5 最小 Harness + 真实 Interrupt）
+
+在 v1.0 统一信封落地后，本轮把 Coding Agent 的 **Phase 5 最小 Harness** 和 **真实 interrupt 语义** 主线收口：
+
+- **真实中断**：`coding-agent:interrupt` 不再是 `close-session` 别名。新增共享 `packages/cli/src/lib/abort-utils.js`（`AbortError` / `throwIfAborted` / `isAbortError`），CLI `ws-agent-handler` 在每个 turn 建立 `AbortController`，`agent-core` / `interaction-adapter` 感知到 abort 后会立即释放 pending 审批 / 工具调用、发出 `session.interrupted`，session 本身仍保留可继续使用。
+- **最小 Harness 主线**：`CodingAgentSessionService.getHarnessStatus()` 聚合 `sessions` / `worktrees` / `backgroundTasks`，新增 `list-background-tasks` / `get-background-task` / `get-background-task-history` / `stop-background-task` 四条 IPC，Desktop main → bridge → IPC v3 → preload → renderer store → AIChatPage 全链路补齐。
+- **Desktop Harness 面板**：`AIChatPage.vue` 新增 **Coding Agent Harness** 面板，展示会话 / worktree / 后台任务概览，支持 Refresh、View Details（详情 + 历史）、Stop Task。
+- **AIChatPage 点分小写事件迁移**：页面兼容共享 dot-case 事件协议，`tool.call.*` / `assistant.final` / `approval.*` 全部打通。
+
+本轮定向回归结果：
+
+- `interrupt` 主线（CLI agent-core / ws-agent-handler / interaction-adapter / abort-utils）：`6 files, 175 passed`
+- Phase 5 最小 harness（Desktop session-service / bridge / IPC v3 / renderer store / 集成）：`5 files, 84 passed`
+- AIChatPage harness 面板 + dot-case 事件页面回归：`tests/unit/pages/AIChatPage.test.js 69/69`
+- CLI `coding-agent-envelope-roundtrip` E2E：`7/7`
+- CLI `ws-session-workflow` 集成：`20/20`
+
+**2026-04-08 文档对齐回归（修改文件全量定向）**：
+
+| 类型 | 范围 | 通过 |
+| --- | --- | --- |
+| CLI 单元 | `agent-core` / `sub-agent-registry` / `ws-agent-handler` | `126/126` |
+| Desktop main 单元 | `coding-agent-bridge` / `coding-agent-ipc-v3` / `coding-agent-session-service` | `77/77` |
+| Renderer 单元 | `coding-agent` store / `AIChatPage` | `81/81` |
+| CLI 集成 | `ws-session-workflow` | `32/32` |
+| Desktop 集成 | `coding-agent-lifecycle` | `18/18` |
+| CLI E2E | `coding-agent-envelope-roundtrip`（真实 spawn `chainlesschain serve` + WS） | `7/7` |
+| **小计** | **6 套** | **`341/341`** |
+
+无 bug 修复，全部测试一次通过。详细设计与 IPC 列表：[docs/design/modules/79_Coding_Agent系统.md](./docs/design/modules/79_Coding_Agent系统.md) / 用户文档 [docs-site/docs/chainlesschain/coding-agent.md](./docs-site/docs/chainlesschain/coding-agent.md)。
+
 ## 2026-04-06 增量更新
 
 这轮不是只做版本号和测试数字同步，而是把前面几次落地的 Agent Runtime、Web Panel、协议与文档重新收束成一致状态，并补回被压短的入口说明。

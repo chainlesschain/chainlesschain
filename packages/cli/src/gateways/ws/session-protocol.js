@@ -236,6 +236,25 @@ export function handleSessionMessage(server, id, ws, message) {
     return;
   }
 
+  // Review-mode gate: while the session has a pending blocking review the
+  // user must resolve it (approve/reject) before any new agent turn runs.
+  if (
+    server.sessionManager &&
+    typeof server.sessionManager.isReviewBlocking === "function" &&
+    server.sessionManager.isReviewBlocking(sessionId)
+  ) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "REVIEW_BLOCKING",
+        "Session is in review mode — resolve the pending review before sending new messages.",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
   server.emit(
     RUNTIME_EVENTS.SESSION_MESSAGE,
     createRuntimeEvent(
@@ -380,6 +399,53 @@ export function handleSessionClose(server, id, ws, message) {
   );
 }
 
+export async function handleSessionInterrupt(server, id, ws, message) {
+  const { sessionId } = message;
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const handler = server.sessionHandlers.get(sessionId);
+  const result =
+    handler && typeof handler.interrupt === "function"
+      ? await handler.interrupt()
+      : {
+          sessionId,
+          interrupted: true,
+          wasProcessing: false,
+          interruptedRequestId: null,
+        };
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.SESSION_INTERRUPTED,
+      id,
+      result,
+      sessionId,
+    ),
+  );
+}
+
 export function handleSessionAnswer(server, id, ws, message) {
   const { sessionId, requestId, answer } = message;
 
@@ -402,6 +468,697 @@ export function handleSessionAnswer(server, id, ws, message) {
       CODING_AGENT_EVENT_TYPES.COMMAND_RESPONSE,
       id,
       { success: true },
+      sessionId,
+    ),
+  );
+}
+
+/**
+ * Query sub-agents spawned from a session.
+ *
+ * Message shape: { type: "sub-agent-list", id, sessionId }
+ * Returns: envelope with payload { sessionId, active: [...], history: [...] }
+ *
+ * If `sessionId` is omitted, returns the global registry view so diagnostic
+ * tools (e.g. `chainlesschain tasks list --sub-agents`) can inspect every
+ * active child agent in the runtime.
+ */
+export async function handleSubAgentList(server, id, ws, message) {
+  const sessionId = message?.sessionId || null;
+
+  try {
+    const { SubAgentRegistry } =
+      await import("../../lib/sub-agent-registry.js");
+    const registry = SubAgentRegistry.getInstance();
+
+    let payload;
+    if (sessionId) {
+      const scoped = registry.getByParent(sessionId);
+      payload = {
+        sessionId,
+        active: scoped.active,
+        history: scoped.history,
+        stats: registry.getStats(),
+      };
+    } else {
+      payload = {
+        sessionId: null,
+        active: registry.getActive(),
+        history: registry.getHistory(),
+        stats: registry.getStats(),
+      };
+    }
+
+    server._send(
+      ws,
+      envelopeResponse(
+        CODING_AGENT_EVENT_TYPES.SUB_AGENT_LIST,
+        id,
+        payload,
+        sessionId,
+      ),
+    );
+  } catch (err) {
+    server._send(
+      ws,
+      envelopeError(id, "SUB_AGENT_LIST_FAILED", err.message, sessionId),
+    );
+  }
+}
+
+/**
+ * Fetch a single sub-agent snapshot by id.
+ *
+ * Message shape: { type: "sub-agent-get", id, subAgentId, sessionId? }
+ * Returns: envelope carrying the registry snapshot (active or history) or
+ *          an error envelope when the id is unknown.
+ */
+export async function handleSubAgentGet(server, id, ws, message) {
+  const { subAgentId, sessionId } = message || {};
+
+  if (!subAgentId) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "MISSING_SUB_AGENT_ID",
+        "sub-agent-get requires a subAgentId",
+        sessionId || null,
+      ),
+    );
+    return;
+  }
+
+  try {
+    const { SubAgentRegistry } =
+      await import("../../lib/sub-agent-registry.js");
+    const snapshot = SubAgentRegistry.getInstance().getById(subAgentId);
+
+    if (!snapshot) {
+      server._send(
+        ws,
+        envelopeError(
+          id,
+          "SUB_AGENT_NOT_FOUND",
+          `Sub-agent not found: ${subAgentId}`,
+          sessionId || null,
+        ),
+      );
+      return;
+    }
+
+    server._send(
+      ws,
+      envelopeResponse(
+        CODING_AGENT_EVENT_TYPES.SUB_AGENT_LIST,
+        id,
+        {
+          sessionId: sessionId || snapshot.parentId || null,
+          subAgent: snapshot,
+        },
+        sessionId || snapshot.parentId || null,
+      ),
+    );
+  } catch (err) {
+    server._send(
+      ws,
+      envelopeError(id, "SUB_AGENT_GET_FAILED", err.message, sessionId || null),
+    );
+  }
+}
+
+/**
+ * Helper: emit a review.* envelope through the session's interaction adapter
+ * so every subscriber (bridge, renderer store) receives the same event
+ * stream other runtime events use. Falls back to directly sending over the
+ * current ws if the session has no interaction bound yet.
+ */
+function _emitReviewEvent(server, session, type, payload, ws) {
+  const envelope = createCodingAgentEvent(
+    type,
+    { ...(payload || {}), sessionId: session.id },
+    {
+      sessionId: session.id,
+      source: "cli-runtime",
+    },
+  );
+
+  const interaction = session && session.interaction;
+  if (interaction && typeof interaction.emit === "function") {
+    try {
+      interaction.emit(type, envelope.payload);
+      return;
+    } catch (_err) {
+      // Fall through to ws send below.
+    }
+  }
+
+  if (ws) {
+    server._send(ws, envelope);
+  }
+}
+
+/**
+ * Enter review mode — block sendMessage until the review is resolved.
+ *
+ * Message shape:
+ *   { type: "review-enter", id, sessionId, reason?, requestedBy?, checklist?, blocking? }
+ */
+export function handleReviewEnter(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const reviewState = server.sessionManager.enterReview(sessionId, {
+    reason: message.reason || null,
+    requestedBy: message.requestedBy || "user",
+    checklist: message.checklist || [],
+    blocking: message.blocking !== false,
+  });
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.REVIEW_REQUESTED,
+      id,
+      { sessionId, reviewState },
+      sessionId,
+    ),
+  );
+
+  _emitReviewEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.REVIEW_REQUESTED,
+    { reviewState },
+    ws,
+  );
+}
+
+/**
+ * Submit a comment or toggle a checklist item on the active review.
+ *
+ * Message shape:
+ *   { type: "review-submit", id, sessionId,
+ *     comment?: { author?, content },
+ *     checklistItemId?, checklistItemDone?, checklistItemNote? }
+ */
+export function handleReviewSubmit(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const updated = server.sessionManager.submitReviewComment(sessionId, {
+    comment: message.comment || null,
+    checklistItemId: message.checklistItemId || null,
+    checklistItemDone: message.checklistItemDone,
+    checklistItemNote: message.checklistItemNote,
+  });
+
+  if (!updated) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "REVIEW_NOT_PENDING",
+        "No pending review for this session",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.REVIEW_UPDATED,
+      id,
+      { sessionId, reviewState: updated },
+      sessionId,
+    ),
+  );
+
+  _emitReviewEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.REVIEW_UPDATED,
+    { reviewState: updated },
+    ws,
+  );
+}
+
+/**
+ * Resolve the active review with approved/rejected. Unblocks sendMessage.
+ *
+ * Message shape:
+ *   { type: "review-resolve", id, sessionId, decision, resolvedBy?, summary? }
+ */
+export function handleReviewResolve(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const resolved = server.sessionManager.resolveReview(sessionId, {
+    decision: message.decision,
+    resolvedBy: message.resolvedBy || "user",
+    summary: message.summary || null,
+  });
+
+  if (!resolved) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "REVIEW_NOT_PENDING",
+        "No pending review for this session",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.REVIEW_RESOLVED,
+      id,
+      { sessionId, reviewState: resolved },
+      sessionId,
+    ),
+  );
+
+  _emitReviewEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.REVIEW_RESOLVED,
+    { reviewState: resolved },
+    ws,
+  );
+}
+
+/**
+ * Fetch the current review state snapshot (or null if none).
+ *
+ * Message shape: { type: "review-status", id, sessionId }
+ */
+export function handleReviewStatus(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.REVIEW_STATE,
+      id,
+      { sessionId, reviewState: session.reviewState || null },
+      sessionId,
+    ),
+  );
+}
+
+/**
+ * Helper: emit a patch.* envelope through the session's interaction adapter
+ * (same fan-out pattern as _emitReviewEvent).
+ */
+function _emitPatchEvent(server, session, type, payload, ws) {
+  const envelope = createCodingAgentEvent(
+    type,
+    { ...(payload || {}), sessionId: session.id },
+    {
+      sessionId: session.id,
+      source: "cli-runtime",
+    },
+  );
+
+  const interaction = session && session.interaction;
+  if (interaction && typeof interaction.emit === "function") {
+    try {
+      interaction.emit(type, envelope.payload);
+      return;
+    } catch (_err) {
+      // Fall through to ws send below.
+    }
+  }
+
+  if (ws) {
+    server._send(ws, envelope);
+  }
+}
+
+/**
+ * Propose a patch (or batch of file edits) for preview.
+ *
+ * Message shape:
+ *   { type: "patch-propose", id, sessionId, files: [...], origin?, reason? }
+ */
+export function handlePatchPropose(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  if (!Array.isArray(message.files) || message.files.length === 0) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "INVALID_PAYLOAD",
+        "patch-propose requires a non-empty files array",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const patch = server.sessionManager.proposePatch(sessionId, {
+    files: message.files,
+    origin: message.origin || "tool",
+    reason: message.reason || null,
+    requestId: message.requestId || null,
+  });
+
+  if (!patch) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "PATCH_PROPOSE_FAILED",
+        "Unable to record patch",
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.PATCH_PROPOSED,
+      id,
+      { sessionId, patch },
+      sessionId,
+    ),
+  );
+
+  _emitPatchEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.PATCH_PROPOSED,
+    { patch },
+    ws,
+  );
+}
+
+/**
+ * Apply a previously-proposed patch.
+ *
+ * Message shape:
+ *   { type: "patch-apply", id, sessionId, patchId, resolvedBy?, note? }
+ */
+export function handlePatchApply(server, id, ws, message) {
+  const { sessionId, patchId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  if (!patchId) {
+    server._send(
+      ws,
+      envelopeError(id, "INVALID_PAYLOAD", "patchId is required", sessionId),
+    );
+    return;
+  }
+
+  const patch = server.sessionManager.applyPatch(sessionId, patchId, {
+    resolvedBy: message.resolvedBy || "user",
+    note: message.note || null,
+  });
+
+  if (!patch) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "PATCH_NOT_FOUND",
+        `Patch not found: ${patchId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.PATCH_APPLIED,
+      id,
+      { sessionId, patch },
+      sessionId,
+    ),
+  );
+
+  _emitPatchEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.PATCH_APPLIED,
+    { patch },
+    ws,
+  );
+}
+
+/**
+ * Reject/discard a previously-proposed patch.
+ *
+ * Message shape:
+ *   { type: "patch-reject", id, sessionId, patchId, resolvedBy?, reason? }
+ */
+export function handlePatchReject(server, id, ws, message) {
+  const { sessionId, patchId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  if (!patchId) {
+    server._send(
+      ws,
+      envelopeError(id, "INVALID_PAYLOAD", "patchId is required", sessionId),
+    );
+    return;
+  }
+
+  const patch = server.sessionManager.rejectPatch(sessionId, patchId, {
+    resolvedBy: message.resolvedBy || "user",
+    reason: message.reason || null,
+  });
+
+  if (!patch) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "PATCH_NOT_FOUND",
+        `Patch not found: ${patchId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.PATCH_REJECTED,
+      id,
+      { sessionId, patch },
+      sessionId,
+    ),
+  );
+
+  _emitPatchEvent(
+    server,
+    session,
+    CODING_AGENT_EVENT_TYPES.PATCH_REJECTED,
+    { patch },
+    ws,
+  );
+}
+
+/**
+ * Fetch the patch summary for a session (pending + history + totals).
+ *
+ * Message shape: { type: "patch-summary", id, sessionId }
+ */
+export function handlePatchSummary(server, id, ws, message) {
+  const { sessionId } = message || {};
+
+  if (!server.sessionManager) {
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
+    return;
+  }
+
+  const session = server.sessionManager.getSession(sessionId);
+  if (!session) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
+    return;
+  }
+
+  const summary = server.sessionManager.getPatchSummary(sessionId);
+
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.PATCH_SUMMARY,
+      id,
+      { sessionId, summary },
       sessionId,
     ),
   );
