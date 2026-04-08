@@ -4,13 +4,17 @@
  * 使用 isomorphic-git 实现Git功能
  */
 
-const git = require('isomorphic-git');
-const fs = require('fs');
-const path = require('path');
-const http = require('isomorphic-git/http/node');
-const { app } = require('electron');
-const EventEmitter = require('events');
-const { gitLog, gitError, gitWarn } = require('./git-config');
+const git = require("isomorphic-git");
+const fs = require("fs");
+const path = require("path");
+const http = require("isomorphic-git/http/node");
+const { app } = require("electron");
+const EventEmitter = require("events");
+const { gitLog, gitError, gitWarn } = require("./git-config");
+
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
 
 /**
  * Git管理器类
@@ -33,13 +37,13 @@ class GitManager extends EventEmitter {
 
     // Git 用户信息
     this.author = {
-      name: config.authorName || 'ChainlessChain User',
-      email: config.authorEmail || 'user@chainlesschain.com',
+      name: config.authorName || "ChainlessChain User",
+      email: config.authorEmail || "user@chainlesschain.com",
     };
 
     // 远程仓库配置
     this.remote = {
-      name: 'origin',
+      name: "origin",
       url: config.remoteUrl || null,
     };
 
@@ -51,44 +55,42 @@ class GitManager extends EventEmitter {
    * 获取默认仓库路径
    */
   getDefaultRepoPath() {
-    const userDataPath = app.getPath('userData');
-    return path.join(userDataPath, 'git-repo');
+    const userDataPath = app.getPath("userData");
+    return path.join(userDataPath, "git-repo");
   }
 
   /**
    * 初始化Git管理器
    */
   async initialize() {
-    gitLog('GitManager', '初始化Git管理器...');
-    gitLog('GitManager', '仓库路径:', this.repoPath);
+    gitLog("GitManager", "初始化Git管理器...");
+    gitLog("GitManager", "仓库路径:", this.repoPath);
 
     try {
-      // 确保目录存在
-      if (!fs.existsSync(this.repoPath)) {
-        fs.mkdirSync(this.repoPath, { recursive: true });
-      }
+      // 确保目录存在 (M2: 异步 mkdir，避免启动期阻塞事件循环)
+      await _deps.fsp.mkdir(this.repoPath, { recursive: true });
 
       // 检查是否已经是git仓库
       const isRepo = await this.isGitRepository();
 
       if (!isRepo) {
-        gitLog('GitManager', '初始化新的Git仓库...');
+        gitLog("GitManager", "初始化新的Git仓库...");
         await git.init({
           fs,
           dir: this.repoPath,
-          defaultBranch: 'main',
+          defaultBranch: "main",
         });
-        gitLog('GitManager', 'Git仓库初始化成功');
+        gitLog("GitManager", "Git仓库初始化成功");
       } else {
-        gitLog('GitManager', '使用现有Git仓库');
+        gitLog("GitManager", "使用现有Git仓库");
       }
 
       this.isInitialized = true;
-      this.emit('initialized');
+      this.emit("initialized");
 
       return true;
     } catch (error) {
-      gitError('GitManager', '初始化失败:', error);
+      gitError("GitManager", "初始化失败:", error);
       throw error;
     }
   }
@@ -98,8 +100,10 @@ class GitManager extends EventEmitter {
    */
   async isGitRepository() {
     try {
-      const gitDir = path.join(this.repoPath, '.git');
-      return fs.existsSync(gitDir);
+      // M2: 异步 stat，避免启动期阻塞事件循环
+      const gitDir = path.join(this.repoPath, ".git");
+      await _deps.fsp.stat(gitDir);
+      return true;
     } catch (error) {
       return false;
     }
@@ -111,15 +115,16 @@ class GitManager extends EventEmitter {
   async getStatus() {
     try {
       if (!this.isInitialized) {
-        throw new Error('Git管理器未初始化');
+        throw new Error("Git管理器未初始化");
       }
 
       // 获取当前分支
-      const branch = await git.currentBranch({
-        fs,
-        dir: this.repoPath,
-        fullname: false,
-      }) || 'main';
+      const branch =
+        (await git.currentBranch({
+          fs,
+          dir: this.repoPath,
+          fullname: false,
+        })) || "main";
 
       // 获取状态矩阵
       const statusMatrix = await git.statusMatrix({
@@ -158,7 +163,7 @@ class GitManager extends EventEmitter {
         lastSync,
       };
     } catch (error) {
-      gitError('GitManager', '获取状态失败:', error);
+      gitError("GitManager", "获取状态失败:", error);
       throw error;
     }
   }
@@ -250,8 +255,8 @@ class GitManager extends EventEmitter {
       });
 
       // 创建commit oid集合
-      const localOids = new Set(localCommits.map(c => c.oid));
-      const remoteOids = new Set(remoteCommits.map(c => c.oid));
+      const localOids = new Set(localCommits.map((c) => c.oid));
+      const remoteOids = new Set(remoteCommits.map((c) => c.oid));
 
       // 计算ahead: 本地有但远程没有的commits
       let ahead = 0;
@@ -277,7 +282,7 @@ class GitManager extends EventEmitter {
 
       return { ahead, behind };
     } catch (error) {
-      gitError('GitManager', '计算ahead/behind失败:', error);
+      gitError("GitManager", "计算ahead/behind失败:", error);
       // 出错时返回0，不影响其他功能
       return { ahead: 0, behind: 0 };
     }
@@ -299,12 +304,12 @@ class GitManager extends EventEmitter {
         });
       }
 
-      gitLog('GitManager', '文件已添加到暂存区:', paths);
-      this.emit('files-added', paths);
+      gitLog("GitManager", "文件已添加到暂存区:", paths);
+      this.emit("files-added", paths);
 
       return true;
     } catch (error) {
-      gitError('GitManager', '添加文件失败:', error);
+      gitError("GitManager", "添加文件失败:", error);
       throw error;
     }
   }
@@ -322,12 +327,12 @@ class GitManager extends EventEmitter {
         author: this.author,
       });
 
-      gitLog('GitManager', '提交成功:', sha);
-      this.emit('committed', { sha, message });
+      gitLog("GitManager", "提交成功:", sha);
+      this.emit("committed", { sha, message });
 
       return sha;
     } catch (error) {
-      gitError('GitManager', '提交失败:', error);
+      gitError("GitManager", "提交失败:", error);
       throw error;
     }
   }
@@ -338,7 +343,7 @@ class GitManager extends EventEmitter {
   async push() {
     try {
       if (!this.remote.url) {
-        throw new Error('未配置远程仓库');
+        throw new Error("未配置远程仓库");
       }
 
       const pushResult = await git.push({
@@ -348,16 +353,16 @@ class GitManager extends EventEmitter {
         remote: this.remote.name,
         onAuth: () => this.auth,
         onProgress: (progress) => {
-          this.emit('push-progress', progress);
+          this.emit("push-progress", progress);
         },
       });
 
-      gitLog('GitManager', '推送成功');
-      this.emit('pushed', pushResult);
+      gitLog("GitManager", "推送成功");
+      this.emit("pushed", pushResult);
 
       return pushResult;
     } catch (error) {
-      gitError('GitManager', '推送失败:', error);
+      gitError("GitManager", "推送失败:", error);
       throw error;
     }
   }
@@ -368,7 +373,7 @@ class GitManager extends EventEmitter {
   async pull() {
     try {
       if (!this.remote.url) {
-        throw new Error('未配置远程仓库');
+        throw new Error("未配置远程仓库");
       }
 
       // 先fetch
@@ -379,7 +384,7 @@ class GitManager extends EventEmitter {
         remote: this.remote.name,
         onAuth: () => this.auth,
         onProgress: (progress) => {
-          this.emit('pull-progress', progress);
+          this.emit("pull-progress", progress);
         },
       });
 
@@ -393,25 +398,27 @@ class GitManager extends EventEmitter {
           author: this.author,
         });
 
-        gitLog('GitManager', '拉取成功');
-        this.emit('pulled');
+        gitLog("GitManager", "拉取成功");
+        this.emit("pulled");
 
         return { success: true, hasConflicts: false };
       } catch (mergeError) {
         // 检查是否是合并冲突
-        if (mergeError.code === git.Errors.MergeNotSupportedError.code ||
-            mergeError.code === git.Errors.MergeConflictError.code ||
-            mergeError.message.includes('conflict')) {
-          gitWarn('GitManager', '检测到合并冲突');
+        if (
+          mergeError.code === git.Errors.MergeNotSupportedError.code ||
+          mergeError.code === git.Errors.MergeConflictError.code ||
+          mergeError.message.includes("conflict")
+        ) {
+          gitWarn("GitManager", "检测到合并冲突");
 
           const conflicts = await this.getConflictFiles();
-          this.emit('merge-conflict', { conflicts });
+          this.emit("merge-conflict", { conflicts });
 
           return {
             success: false,
             hasConflicts: true,
             conflicts,
-            error: '检测到合并冲突，需要手动解决',
+            error: "检测到合并冲突，需要手动解决",
           };
         }
 
@@ -419,7 +426,7 @@ class GitManager extends EventEmitter {
         throw mergeError;
       }
     } catch (error) {
-      gitError('GitManager', '拉取失败:', error);
+      gitError("GitManager", "拉取失败:", error);
       throw error;
     }
   }
@@ -441,12 +448,13 @@ class GitManager extends EventEmitter {
       for (const [filepath, head, workdir, stage] of statusMatrix) {
         // isomorphic-git 在冲突时会创建多个 stage entries
         // 我们需要检查文件内容是否包含冲突标记
-        if (workdir === 2) { // 文件存在于工作目录
+        if (workdir === 2) {
+          // 文件存在于工作目录
           const content = await this.readFile(filepath);
-          if (content && content.includes('<<<<<<<')) {
+          if (content && content.includes("<<<<<<<")) {
             conflicts.push({
               filepath,
-              status: 'conflict',
+              status: "conflict",
             });
           }
         }
@@ -454,7 +462,7 @@ class GitManager extends EventEmitter {
 
       return conflicts;
     } catch (error) {
-      gitError('GitManager', '获取冲突文件失败:', error);
+      gitError("GitManager", "获取冲突文件失败:", error);
       return [];
     }
   }
@@ -465,9 +473,9 @@ class GitManager extends EventEmitter {
   async readFile(filepath) {
     try {
       const fullPath = path.join(this.repoPath, filepath);
-      return fs.readFileSync(fullPath, 'utf8');
+      return fs.readFileSync(fullPath, "utf8");
     } catch (error) {
-      gitError('GitManager', `读取文件失败: ${filepath}`, error);
+      gitError("GitManager", `读取文件失败: ${filepath}`, error);
       return null;
     }
   }
@@ -479,7 +487,7 @@ class GitManager extends EventEmitter {
     try {
       const content = await this.readFile(filepath);
       if (!content) {
-        throw new Error('无法读取文件');
+        throw new Error("无法读取文件");
       }
 
       // 解析冲突标记
@@ -492,7 +500,7 @@ class GitManager extends EventEmitter {
         hasConflicts: conflicts.length > 0,
       };
     } catch (error) {
-      gitError('GitManager', `获取冲突内容失败: ${filepath}`, error);
+      gitError("GitManager", `获取冲突内容失败: ${filepath}`, error);
       throw error;
     }
   }
@@ -508,7 +516,7 @@ class GitManager extends EventEmitter {
    */
   parseConflictMarkers(content) {
     const conflicts = [];
-    const lines = content.split('\n');
+    const lines = content.split("\n");
 
     let inConflict = false;
     let currentConflict = null;
@@ -519,7 +527,7 @@ class GitManager extends EventEmitter {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      if (line.startsWith('<<<<<<<')) {
+      if (line.startsWith("<<<<<<<")) {
         // 冲突开始 (ours)
         inConflict = true;
         inOurs = true;
@@ -529,15 +537,15 @@ class GitManager extends EventEmitter {
         };
         oursLines = [];
         theirsLines = [];
-      } else if (line.startsWith('=======') && inConflict) {
+      } else if (line.startsWith("=======") && inConflict) {
         // 切换到 theirs
         inOurs = false;
-      } else if (line.startsWith('>>>>>>>') && inConflict) {
+      } else if (line.startsWith(">>>>>>>") && inConflict) {
         // 冲突结束
         currentConflict.endLine = i;
         currentConflict.theirsLabel = line.substring(8).trim();
-        currentConflict.ours = oursLines.join('\n');
-        currentConflict.theirs = theirsLines.join('\n');
+        currentConflict.ours = oursLines.join("\n");
+        currentConflict.theirs = theirsLines.join("\n");
 
         conflicts.push(currentConflict);
 
@@ -568,30 +576,35 @@ class GitManager extends EventEmitter {
     try {
       let resolvedContent;
 
-      if (resolution === 'manual' && content) {
+      if (resolution === "manual" && content) {
         // 使用手动解决的内容
         resolvedContent = content;
       } else {
         // 自动解决：选择 ours 或 theirs
         const conflictData = await this.getConflictContent(filepath);
 
-        if (resolution === 'ours') {
+        if (resolution === "ours") {
           // 保留 ours 部分
           resolvedContent = conflictData.fullContent;
           for (const conflict of conflictData.conflicts) {
-            const original = conflictData.fullContent.split('\n')
+            const original = conflictData.fullContent
+              .split("\n")
               .slice(conflict.startLine, conflict.endLine + 1)
-              .join('\n');
+              .join("\n");
             resolvedContent = resolvedContent.replace(original, conflict.ours);
           }
-        } else if (resolution === 'theirs') {
+        } else if (resolution === "theirs") {
           // 保留 theirs 部分
           resolvedContent = conflictData.fullContent;
           for (const conflict of conflictData.conflicts) {
-            const original = conflictData.fullContent.split('\n')
+            const original = conflictData.fullContent
+              .split("\n")
               .slice(conflict.startLine, conflict.endLine + 1)
-              .join('\n');
-            resolvedContent = resolvedContent.replace(original, conflict.theirs);
+              .join("\n");
+            resolvedContent = resolvedContent.replace(
+              original,
+              conflict.theirs,
+            );
           }
         } else {
           throw new Error(`无效的解决方式: ${resolution}`);
@@ -600,17 +613,17 @@ class GitManager extends EventEmitter {
 
       // 写入解决后的内容
       const fullPath = path.join(this.repoPath, filepath);
-      fs.writeFileSync(fullPath, resolvedContent, 'utf8');
+      fs.writeFileSync(fullPath, resolvedContent, "utf8");
 
       // 添加到暂存区
       await this.add(filepath);
 
-      gitLog('GitManager', `冲突已解决: ${filepath} (${resolution})`);
-      this.emit('conflict-resolved', { filepath, resolution });
+      gitLog("GitManager", `冲突已解决: ${filepath} (${resolution})`);
+      this.emit("conflict-resolved", { filepath, resolution });
 
       return true;
     } catch (error) {
-      gitError('GitManager', `解决冲突失败: ${filepath}`, error);
+      gitError("GitManager", `解决冲突失败: ${filepath}`, error);
       throw error;
     }
   }
@@ -622,7 +635,11 @@ class GitManager extends EventEmitter {
     try {
       // isomorphic-git 没有直接的 abort merge 命令
       // 我们需要重置到合并前的状态
-      const head = await git.resolveRef({ fs, dir: this.repoPath, ref: 'HEAD' });
+      const head = await git.resolveRef({
+        fs,
+        dir: this.repoPath,
+        ref: "HEAD",
+      });
 
       await git.checkout({
         fs,
@@ -631,12 +648,12 @@ class GitManager extends EventEmitter {
         force: true,
       });
 
-      gitLog('GitManager', '合并已中止');
-      this.emit('merge-aborted');
+      gitLog("GitManager", "合并已中止");
+      this.emit("merge-aborted");
 
       return true;
     } catch (error) {
-      gitError('GitManager', '中止合并失败:', error);
+      gitError("GitManager", "中止合并失败:", error);
       throw error;
     }
   }
@@ -644,7 +661,7 @@ class GitManager extends EventEmitter {
   /**
    * 完成合并（所有冲突解决后）
    */
-  async completeMerge(message = 'Merge completed') {
+  async completeMerge(message = "Merge completed") {
     try {
       // 检查是否还有冲突
       const conflicts = await this.getConflictFiles();
@@ -655,12 +672,12 @@ class GitManager extends EventEmitter {
       // 提交合并
       const sha = await this.commit(message);
 
-      gitLog('GitManager', '合并已完成');
-      this.emit('merge-completed', { sha });
+      gitLog("GitManager", "合并已完成");
+      this.emit("merge-completed", { sha });
 
       return { success: true, sha };
     } catch (error) {
-      gitError('GitManager', '完成合并失败:', error);
+      gitError("GitManager", "完成合并失败:", error);
       throw error;
     }
   }
@@ -674,7 +691,7 @@ class GitManager extends EventEmitter {
     try {
       const clonePath = targetPath || this.repoPath;
 
-      gitLog('GitManager', '克隆仓库:', url);
+      gitLog("GitManager", "克隆仓库:", url);
 
       await git.clone({
         fs,
@@ -683,16 +700,16 @@ class GitManager extends EventEmitter {
         url,
         onAuth: () => this.auth,
         onProgress: (progress) => {
-          this.emit('clone-progress', progress);
+          this.emit("clone-progress", progress);
         },
       });
 
-      gitLog('GitManager', '克隆成功');
-      this.emit('cloned', { url, path: clonePath });
+      gitLog("GitManager", "克隆成功");
+      this.emit("cloned", { url, path: clonePath });
 
       return true;
     } catch (error) {
-      gitError('GitManager', '克隆失败:', error);
+      gitError("GitManager", "克隆失败:", error);
       throw error;
     }
   }
@@ -702,7 +719,7 @@ class GitManager extends EventEmitter {
    * @param {string} url - 远程仓库URL
    * @param {string} name - 远程仓库名称
    */
-  async setRemote(url, name = 'origin') {
+  async setRemote(url, name = "origin") {
     try {
       await git.addRemote({
         fs,
@@ -713,8 +730,8 @@ class GitManager extends EventEmitter {
 
       this.remote = { name, url };
 
-      gitLog('GitManager', '远程仓库已配置:', url);
-      this.emit('remote-configured', { name, url });
+      gitLog("GitManager", "远程仓库已配置:", url);
+      this.emit("remote-configured", { name, url });
 
       return true;
     } catch (error) {
@@ -736,7 +753,7 @@ class GitManager extends EventEmitter {
         this.remote = { name, url };
         return true;
       } catch (updateError) {
-        gitError('GitManager', '配置远程仓库失败:', updateError);
+        gitError("GitManager", "配置远程仓库失败:", updateError);
         throw updateError;
       }
     }
@@ -748,7 +765,7 @@ class GitManager extends EventEmitter {
    */
   setAuth(auth) {
     this.auth = auth;
-    gitLog('GitManager', '认证信息已更新');
+    gitLog("GitManager", "认证信息已更新");
   }
 
   /**
@@ -758,7 +775,7 @@ class GitManager extends EventEmitter {
    */
   setAuthor(name, email) {
     this.author = { name, email };
-    gitLog('GitManager', '作者信息已更新:', this.author);
+    gitLog("GitManager", "作者信息已更新:", this.author);
   }
 
   /**
@@ -780,7 +797,7 @@ class GitManager extends EventEmitter {
         timestamp: new Date(commit.commit.author.timestamp * 1000),
       }));
     } catch (error) {
-      gitError('GitManager', '获取日志失败:', error);
+      gitError("GitManager", "获取日志失败:", error);
       return [];
     }
   }
@@ -807,9 +824,9 @@ class GitManager extends EventEmitter {
    * - 提交
    * - 推送
    */
-  async autoSync(message = 'Auto sync') {
+  async autoSync(message = "Auto sync") {
     try {
-      gitLog('GitManager', '开始自动同步...');
+      gitLog("GitManager", "开始自动同步...");
 
       // 获取状态
       const status = await this.getStatus();
@@ -822,8 +839,8 @@ class GitManager extends EventEmitter {
       ];
 
       if (allFiles.length === 0) {
-        gitLog('GitManager', '没有更改需要同步');
-        return { synced: false, message: '没有更改' };
+        gitLog("GitManager", "没有更改需要同步");
+        return { synced: false, message: "没有更改" };
       }
 
       // 添加所有文件
@@ -839,8 +856,8 @@ class GitManager extends EventEmitter {
         await this.push();
       }
 
-      gitLog('GitManager', '自动同步完成');
-      this.emit('auto-synced', { sha, files: allFiles.length });
+      gitLog("GitManager", "自动同步完成");
+      this.emit("auto-synced", { sha, files: allFiles.length });
 
       return {
         synced: true,
@@ -848,7 +865,7 @@ class GitManager extends EventEmitter {
         filesCount: allFiles.length,
       };
     } catch (error) {
-      gitError('GitManager', '自动同步失败:', error);
+      gitError("GitManager", "自动同步失败:", error);
       throw error;
     }
   }
@@ -857,10 +874,11 @@ class GitManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    gitLog('GitManager', '关闭Git管理器');
+    gitLog("GitManager", "关闭Git管理器");
     this.isInitialized = false;
-    this.emit('closed');
+    this.emit("closed");
   }
 }
 
 module.exports = GitManager;
+module.exports._deps = _deps;
