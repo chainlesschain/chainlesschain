@@ -10,7 +10,12 @@
 
 const { logger } = require("../utils/logger.js");
 const vm = require("vm");
+const fs = require("fs");
 const EventEmitter = require("events");
+
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
 
 class PluginSandbox extends EventEmitter {
   constructor(pluginId, pluginPath, manifest, pluginAPI) {
@@ -48,17 +53,20 @@ class PluginSandbox extends EventEmitter {
     try {
       this.state = "loading";
 
-      // 1. 读取插件代码
-      const fs = require("fs");
+      // 1. 读取插件代码 (M2: 异步读取，避免启动期阻塞事件循环)
       const path = require("path");
       const entryFile = this.manifest.main || "index.js";
       const entryPath = path.join(this.pluginPath, entryFile);
 
-      if (!fs.existsSync(entryPath)) {
-        throw new Error(`插件入口文件不存在: ${entryPath}`);
+      let code;
+      try {
+        code = await _deps.fsp.readFile(entryPath, "utf-8");
+      } catch (err) {
+        if (err.code === "ENOENT") {
+          throw new Error(`插件入口文件不存在: ${entryPath}`);
+        }
+        throw err;
       }
-
-      const code = fs.readFileSync(entryPath, "utf-8");
 
       // 2. 创建沙箱环境
       this.context = this.createSandboxContext();
@@ -470,3 +478,4 @@ class PluginSandbox extends EventEmitter {
 }
 
 module.exports = PluginSandbox;
+module.exports._deps = _deps;

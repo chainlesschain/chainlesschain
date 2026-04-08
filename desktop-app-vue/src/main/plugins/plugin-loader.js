@@ -97,24 +97,32 @@ class PluginLoader {
   }
 
   /**
-   * 加载插件manifest
+   * 加载插件manifest (M2: 异步读取，避免启动期阻塞事件循环)
    * @param {string} pluginPath - 插件路径
    * @returns {Promise<Object>} manifest对象
    */
   async loadManifest(pluginPath) {
     const manifestPath = path.join(pluginPath, "plugin.json");
 
-    if (!fs.existsSync(manifestPath)) {
+    let content;
+    try {
+      content = await fsp.readFile(manifestPath, "utf-8");
+    } catch (err) {
+      if (err.code !== "ENOENT") {
+        throw err;
+      }
       // 回退到 package.json
       const packagePath = path.join(pluginPath, "package.json");
-      if (fs.existsSync(packagePath)) {
-        return this.parsePackageJson(packagePath);
+      try {
+        return await this.parsePackageJson(packagePath);
+      } catch (err2) {
+        if (err2.code === "ENOENT") {
+          throw new Error("找不到 plugin.json 或 package.json");
+        }
+        throw err2;
       }
-
-      throw new Error("找不到 plugin.json 或 package.json");
     }
 
-    const content = fs.readFileSync(manifestPath, "utf-8");
     const manifest = JSON.parse(content);
 
     // 验证必需字段
@@ -124,12 +132,12 @@ class PluginLoader {
   }
 
   /**
-   * 从package.json解析插件manifest
+   * 从package.json解析插件manifest (M2: 异步)
    * @param {string} packagePath - package.json路径
-   * @returns {Object} manifest对象
+   * @returns {Promise<Object>} manifest对象
    */
-  parsePackageJson(packagePath) {
-    const content = fs.readFileSync(packagePath, "utf-8");
+  async parsePackageJson(packagePath) {
+    const content = await fsp.readFile(packagePath, "utf-8");
     const pkg = JSON.parse(content);
 
     // 检查是否有chainlesschain配置节
@@ -267,12 +275,16 @@ class PluginLoader {
     const entryFile = manifest.main || "index.js";
     const entryPath = path.join(pluginPath, entryFile);
 
-    if (!fs.existsSync(entryPath)) {
-      throw new Error(`插件入口文件不存在: ${entryPath}`);
+    // M2: 异步读取，避免启动期阻塞事件循环
+    let code;
+    try {
+      code = await fsp.readFile(entryPath, "utf-8");
+    } catch (err) {
+      if (err.code === "ENOENT") {
+        throw new Error(`插件入口文件不存在: ${entryPath}`);
+      }
+      throw err;
     }
-
-    // 读取代码
-    const code = fs.readFileSync(entryPath, "utf-8");
 
     return {
       code,
