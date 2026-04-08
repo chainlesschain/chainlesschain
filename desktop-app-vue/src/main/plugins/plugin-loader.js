@@ -10,6 +10,7 @@
 const { logger } = require("../utils/logger.js");
 const path = require("path");
 const fs = require("fs");
+const fsp = fs.promises;
 const { app } = require("electron");
 const { spawn } = require("child_process");
 
@@ -20,27 +21,30 @@ class PluginLoader {
     // 临时目录
     this.tempDir = path.join(app.getPath("temp"), "chainlesschain-plugins");
 
-    // 确保目录存在
-    this.ensureDirectories();
+    // M2: 启动期不再阻塞事件循环。目录创建延后到首次使用，
+    // 通过 _readyPromise 串联，避免重复 mkdir。
+    this._readyPromise = null;
   }
 
   /**
-   * 确保必要的目录存在
+   * 确保必要的目录存在 (M2: 异步、可记忆化)
+   * 公共方法在使用 pluginsDir/tempDir 前应 await 此方法。
    */
-  ensureDirectories() {
-    const dirs = [
-      this.pluginsDir,
-      path.join(this.pluginsDir, "official"),
-      path.join(this.pluginsDir, "community"),
-      path.join(this.pluginsDir, "custom"),
-      this.tempDir,
-    ];
-
-    for (const dir of dirs) {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+  async ensureDirectories() {
+    if (this._readyPromise) {
+      return this._readyPromise;
     }
+    this._readyPromise = (async () => {
+      const dirs = [
+        this.pluginsDir,
+        path.join(this.pluginsDir, "official"),
+        path.join(this.pluginsDir, "community"),
+        path.join(this.pluginsDir, "custom"),
+        this.tempDir,
+      ];
+      await Promise.all(dirs.map((dir) => fsp.mkdir(dir, { recursive: true })));
+    })();
+    return this._readyPromise;
   }
 
   /**
@@ -50,6 +54,7 @@ class PluginLoader {
    * @returns {Promise<string>} 插件路径
    */
   async resolve(source, options = {}) {
+    await this.ensureDirectories();
     logger.info(`[PluginLoader] 解析插件来源: ${source}`);
 
     // 1. 检查是否为本地路径
@@ -185,6 +190,7 @@ class PluginLoader {
    * @returns {Promise<string>} 安装后的路径
    */
   async install(sourcePath, manifest) {
+    await this.ensureDirectories();
     const category = manifest.category || "custom";
     const targetPath = path.join(this.pluginsDir, category, manifest.id);
 
@@ -223,6 +229,7 @@ class PluginLoader {
    * @returns {Promise<string>} 安装路径
    */
   async installFromNpm(packageName, options = {}) {
+    await this.ensureDirectories();
     const { version } = options;
     const versionSuffix = version ? `@${version}` : "";
     const fullPackage = `${packageName}${versionSuffix}`;
