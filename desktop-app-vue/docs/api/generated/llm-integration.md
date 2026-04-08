@@ -2,7 +2,7 @@
 
 **Source**: `src/main/cowork/integrations/llm-integration.js`
 
-**Generated**: 2026-04-08T14:31:39.154Z
+**Generated**: 2026-04-08T15:18:57.912Z
 
 ---
 

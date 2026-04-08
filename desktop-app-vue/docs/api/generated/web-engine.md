@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/web-engine.js`
 
-**Generated**: 2026-04-08T14:31:39.145Z
+**Generated**: 2026-04-08T15:18:57.903Z
 
 ---
 

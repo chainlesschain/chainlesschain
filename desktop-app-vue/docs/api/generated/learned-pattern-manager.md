@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/learned-pattern-manager.js`
 
-**Generated**: 2026-04-08T14:31:39.114Z
+**Generated**: 2026-04-08T15:18:57.869Z
 
 ---
 

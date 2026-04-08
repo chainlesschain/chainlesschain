@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/clean-old-tools.js`
 
-**Generated**: 2026-04-08T14:31:39.086Z
+**Generated**: 2026-04-08T15:18:57.836Z
 
 ---
 

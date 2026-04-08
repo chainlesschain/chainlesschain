@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/llava-client.js`
 
-**Generated**: 2026-04-08T14:31:39.125Z
+**Generated**: 2026-04-08T15:18:57.879Z
 
 ---
 

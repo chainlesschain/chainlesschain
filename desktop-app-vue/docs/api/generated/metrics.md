@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/metrics.js`
 
-**Generated**: 2026-04-08T14:31:39.096Z
+**Generated**: 2026-04-08T15:18:57.848Z
 
 ---
 
