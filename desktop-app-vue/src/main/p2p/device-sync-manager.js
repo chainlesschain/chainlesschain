@@ -10,6 +10,10 @@ const EventEmitter = require("events");
 const fs = require("fs");
 const path = require("path");
 
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
+
 /**
  * 消息状态
  */
@@ -93,23 +97,25 @@ class DeviceSyncManager extends EventEmitter {
 
     const queuePath = path.join(this.config.dataPath, "message-queue.json");
 
+    // M2: 异步读取，避免启动期阻塞事件循环
     try {
-      if (fs.existsSync(queuePath)) {
-        const queueData = JSON.parse(fs.readFileSync(queuePath, "utf8"));
+      const content = await _deps.fsp.readFile(queuePath, "utf8");
+      const queueData = JSON.parse(content);
 
-        // 转换为 Map
-        for (const [deviceId, messages] of Object.entries(queueData)) {
-          this.messageQueue.set(deviceId, messages);
-        }
-
-        logger.info(
-          "[DeviceSyncManager] 已加载消息队列:",
-          this.messageQueue.size,
-          "个设备",
-        );
+      // 转换为 Map
+      for (const [deviceId, messages] of Object.entries(queueData)) {
+        this.messageQueue.set(deviceId, messages);
       }
+
+      logger.info(
+        "[DeviceSyncManager] 已加载消息队列:",
+        this.messageQueue.size,
+        "个设备",
+      );
     } catch (error) {
-      logger.warn("[DeviceSyncManager] 加载消息队列失败:", error.message);
+      if (error.code !== "ENOENT") {
+        logger.warn("[DeviceSyncManager] 加载消息队列失败:", error.message);
+      }
     }
   }
 
@@ -124,7 +130,7 @@ class DeviceSyncManager extends EventEmitter {
     const queuePath = path.join(this.config.dataPath, "message-queue.json");
 
     try {
-      fs.mkdirSync(path.dirname(queuePath), { recursive: true });
+      await _deps.fsp.mkdir(path.dirname(queuePath), { recursive: true });
 
       // 转换 Map 为对象
       const queueData = {};
@@ -132,7 +138,7 @@ class DeviceSyncManager extends EventEmitter {
         queueData[deviceId] = messages;
       }
 
-      fs.writeFileSync(queuePath, JSON.stringify(queueData, null, 2));
+      await _deps.fsp.writeFile(queuePath, JSON.stringify(queueData, null, 2));
     } catch (error) {
       logger.warn("[DeviceSyncManager] 保存消息队列失败:", error.message);
     }
@@ -149,23 +155,25 @@ class DeviceSyncManager extends EventEmitter {
 
     const statusPath = path.join(this.config.dataPath, "message-status.json");
 
+    // M2: 异步读取，避免启动期阻塞事件循环
     try {
-      if (fs.existsSync(statusPath)) {
-        const statusData = JSON.parse(fs.readFileSync(statusPath, "utf8"));
+      const content = await _deps.fsp.readFile(statusPath, "utf8");
+      const statusData = JSON.parse(content);
 
-        // 转换为 Map
-        for (const [messageId, status] of Object.entries(statusData)) {
-          this.messageStatus.set(messageId, status);
-        }
-
-        logger.info(
-          "[DeviceSyncManager] 已加载消息状态:",
-          this.messageStatus.size,
-          "条消息",
-        );
+      // 转换为 Map
+      for (const [messageId, status] of Object.entries(statusData)) {
+        this.messageStatus.set(messageId, status);
       }
+
+      logger.info(
+        "[DeviceSyncManager] 已加载消息状态:",
+        this.messageStatus.size,
+        "条消息",
+      );
     } catch (error) {
-      logger.warn("[DeviceSyncManager] 加载消息状态失败:", error.message);
+      if (error.code !== "ENOENT") {
+        logger.warn("[DeviceSyncManager] 加载消息状态失败:", error.message);
+      }
     }
   }
 
@@ -180,7 +188,7 @@ class DeviceSyncManager extends EventEmitter {
     const statusPath = path.join(this.config.dataPath, "message-status.json");
 
     try {
-      fs.mkdirSync(path.dirname(statusPath), { recursive: true });
+      await _deps.fsp.mkdir(path.dirname(statusPath), { recursive: true });
 
       // 转换 Map 为对象
       const statusData = {};
@@ -188,7 +196,10 @@ class DeviceSyncManager extends EventEmitter {
         statusData[messageId] = status;
       }
 
-      fs.writeFileSync(statusPath, JSON.stringify(statusData, null, 2));
+      await _deps.fsp.writeFile(
+        statusPath,
+        JSON.stringify(statusData, null, 2),
+      );
     } catch (error) {
       logger.warn("[DeviceSyncManager] 保存消息状态失败:", error.message);
     }
@@ -589,3 +600,4 @@ module.exports = {
   MessageStatus,
   SyncMessageType,
 };
+module.exports._deps = _deps;
