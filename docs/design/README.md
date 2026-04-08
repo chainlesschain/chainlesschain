@@ -13,7 +13,8 @@
 - `modules/79_Coding_Agent系统.md`
   - §7.3 补齐真实 `interrupt` 语义：`AbortController` + `abort-utils.js` 链路，`rejectAllPending` 广播 `AbortError`，session 保留可继续使用。
   - §7.4 IPC 列表新增 `harness-status` / `list-background-tasks` / `get-background-task` / `get-background-task-history` / `stop-background-task` 五条通道。
-  - Phase 5 段落拆分为"最小集 ✅ / 扩展未完成"两部分，明确最小 harness 主线已落地，子代理委派 / review mode / patch preview / 任务图编排仍未完成。
+  - Phase 5 升级为"最小集 ✅ / CLI 扩展能力 ✅"：最小 harness 主线已落地，并补齐 **子代理委派** / **review mode** / **patch preview / diff 总结** / **持久化任务图与编排器** 四类 CLI 端扩展能力（详见模块 79 §Phase 5 扩展能力详细设计）。
+  - 新增 §Phase 5 扩展能力详细设计，列出四类能力的数据结构、状态机、WS 协议、事件清单、与最小 harness 的关系矩阵。
 - `modules/69_WebSocket服务器接口.md`
   - 已补回协议分层、请求响应示例、runtime event 对齐、session/task/worktree/compression 四类契约。
 - `modules/77_Agent架构优化系统.md`
