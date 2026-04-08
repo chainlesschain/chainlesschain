@@ -189,8 +189,12 @@ class DeviceManager extends EventEmitter {
         devicesData[userId] = devices;
       }
 
-      fs.mkdirSync(path.dirname(devicesPath), { recursive: true });
-      fs.writeFileSync(devicesPath, JSON.stringify(devicesData, null, 2));
+      // M2: 异步写入，避免阻塞事件循环
+      await _deps.fsp.mkdir(path.dirname(devicesPath), { recursive: true });
+      await _deps.fsp.writeFile(
+        devicesPath,
+        JSON.stringify(devicesData, null, 2),
+      );
       logger.info("[DeviceManager] 设备列表已保存");
     } catch (error) {
       logger.warn("[DeviceManager] 保存设备列表失败:", error.message);
