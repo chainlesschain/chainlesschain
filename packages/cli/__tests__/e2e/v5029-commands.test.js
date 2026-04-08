@@ -116,26 +116,49 @@ describe("v5029 session commands", () => {
   it("session list --json outputs parseable content", () => {
     const result = tryRun("session list --json --limit 5");
     expect(result.exitCode).toBe(0);
-    // Output may contain log lines before JSON.
-    // Try each line to find a valid JSON array.
-    const lines = result.stdout.trim().split("\n");
+    // Output may contain log lines before the JSON, and JSON itself may be
+    // multi-line (pretty-printed via JSON.stringify(..., null, 2)).
+    // Strategy: scan from the first '[' or '{' to the end and try to parse
+    // the resulting block; fall back to per-line scan; finally accept the
+    // single-line "[]" case for empty session lists.
+    const stdout = result.stdout;
     let foundJson = false;
-    for (const line of lines) {
-      const t = line.trim();
-      if (t.startsWith("[") || t.startsWith("{")) {
+
+    // Try slicing from each '[' / '{' to end of output and JSON.parse
+    for (let i = 0; i < stdout.length; i++) {
+      const ch = stdout[i];
+      if (ch === "[" || ch === "{") {
         try {
-          JSON.parse(t);
+          JSON.parse(stdout.slice(i).trim());
           foundJson = true;
           break;
         } catch {
-          /* not this line */
+          /* not a valid JSON start at this offset */
         }
       }
     }
-    // If no single-line JSON, the full output ending with [] is fine
-    if (!foundJson && result.stdout.trim().endsWith("[]")) {
+
+    // Per-line fallback (single-line JSON arrays/objects)
+    if (!foundJson) {
+      for (const line of stdout.trim().split("\n")) {
+        const t = line.trim();
+        if (t.startsWith("[") || t.startsWith("{")) {
+          try {
+            JSON.parse(t);
+            foundJson = true;
+            break;
+          } catch {
+            /* not this line */
+          }
+        }
+      }
+    }
+
+    // Empty-array fallback
+    if (!foundJson && stdout.trim().endsWith("[]")) {
       foundJson = true;
     }
+
     expect(foundJson).toBe(true);
   });
 
