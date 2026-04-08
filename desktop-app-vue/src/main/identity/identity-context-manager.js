@@ -14,6 +14,7 @@
 const { logger } = require("../utils/logger.js");
 const path = require("path");
 const fs = require("fs");
+const fsp = fs.promises;
 let SQLite;
 try {
   SQLite = require("better-sqlite3");
@@ -46,10 +47,8 @@ class IdentityContextManager extends EventEmitter {
     try {
       logger.info("初始化身份上下文管理器...");
 
-      // 1. 创建数据目录
-      if (!fs.existsSync(this.dataDir)) {
-        fs.mkdirSync(this.dataDir, { recursive: true });
-      }
+      // 1. 创建数据目录 (M2: 异步)
+      await fsp.mkdir(this.dataDir, { recursive: true });
 
       // 2. 打开身份上下文数据库
       this.identityDb = new SQLite(this.identityDbPath);
@@ -131,19 +130,35 @@ class IdentityContextManager extends EventEmitter {
       return;
     }
 
+    // M2: 异步路径检查
+    const oldExists = await this._pathExists(oldDbPath);
+    const personalExists = await this._pathExists(personalDbPath);
+
     // 如果存在旧数据库,重命名为个人数据库
-    if (fs.existsSync(oldDbPath) && !fs.existsSync(personalDbPath)) {
+    if (oldExists && !personalExists) {
       logger.info("检测到个人版数据库,正在迁移到企业版...");
-      fs.renameSync(oldDbPath, personalDbPath);
+      await fsp.rename(oldDbPath, personalDbPath);
       logger.info("✓ 数据库已重命名为 personal.db");
     }
 
     // 如果还没有个人数据库,创建一个空的
-    if (!fs.existsSync(personalDbPath)) {
+    if (!(await this._pathExists(personalDbPath))) {
       logger.info("创建新的个人数据库...");
       const personalDb = new SQLite(personalDbPath);
       personalDb.pragma("journal_mode = WAL");
       personalDb.close();
+    }
+  }
+
+  /**
+   * @private 异步存在性检查 (M2)
+   */
+  async _pathExists(p) {
+    try {
+      await fsp.access(p);
+      return true;
+    } catch {
+      return false;
     }
   }
 
