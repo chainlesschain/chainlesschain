@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/extended-tools-tts.js`
 
-**Generated**: 2026-04-08T08:35:35.495Z
+**Generated**: 2026-04-08T08:54:59.160Z
 
 ---
 

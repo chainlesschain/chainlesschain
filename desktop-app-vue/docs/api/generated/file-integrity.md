@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/file-integrity.js`
 
-**Generated**: 2026-04-08T08:35:35.349Z
+**Generated**: 2026-04-08T08:54:59.038Z
 
 ---
 

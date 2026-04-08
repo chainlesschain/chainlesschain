@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/project-config.js`
 
-**Generated**: 2026-04-08T08:35:35.401Z
+**Generated**: 2026-04-08T08:54:59.082Z
 
 ---
 

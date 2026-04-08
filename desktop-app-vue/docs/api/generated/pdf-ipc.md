@@ -2,7 +2,7 @@
 
 **Source**: `src/main/pdf/pdf-ipc.js`
 
-**Generated**: 2026-04-08T08:35:35.406Z
+**Generated**: 2026-04-08T08:54:59.087Z
 
 ---
 

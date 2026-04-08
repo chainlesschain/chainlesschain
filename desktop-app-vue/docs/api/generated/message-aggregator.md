@@ -2,7 +2,7 @@
 
 **Source**: `src/main/utils/message-aggregator.js`
 
-**Generated**: 2026-04-08T08:35:35.348Z
+**Generated**: 2026-04-08T08:54:59.037Z
 
 ---
 
