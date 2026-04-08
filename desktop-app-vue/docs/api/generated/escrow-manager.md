@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/escrow-manager.js`
 
-**Generated**: 2026-04-08T08:54:59.046Z
+**Generated**: 2026-04-08T12:26:28.628Z
 
 ---
 

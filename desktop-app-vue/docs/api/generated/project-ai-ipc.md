@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/project-ai-ipc.js`
 
-**Generated**: 2026-04-08T08:54:59.083Z
+**Generated**: 2026-04-08T12:26:28.669Z
 
 ---
 

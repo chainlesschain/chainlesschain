@@ -2,7 +2,7 @@
 
 **Source**: `src/main/conversation/stream-controller-manager.js`
 
-**Generated**: 2026-04-08T08:54:59.135Z
+**Generated**: 2026-04-08T12:26:28.728Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/app-config.js`
 
-**Generated**: 2026-04-08T08:54:59.136Z
+**Generated**: 2026-04-08T12:26:28.730Z
 
 ---
 
