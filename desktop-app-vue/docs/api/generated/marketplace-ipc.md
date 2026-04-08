@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/marketplace-ipc.js`
 
-**Generated**: 2026-04-08T12:26:28.742Z
+**Generated**: 2026-04-08T14:31:39.170Z
 
 ---
 

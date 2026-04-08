@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/organization-manager.js`
 
-**Generated**: 2026-04-08T12:26:28.680Z
+**Generated**: 2026-04-08T14:31:39.110Z
 
 ---
 
