@@ -644,6 +644,65 @@ class CodingAgentBridge extends EventEmitter {
     return this.request("patch-summary", { sessionId }, ["patch.summary"]);
   }
 
+  /**
+   * Create a task graph for a session (persistent DAG of tasks with deps).
+   */
+  async createTaskGraph(sessionId, payload = {}) {
+    return this.request(
+      "task-graph-create",
+      {
+        sessionId,
+        graphId: payload.graphId || null,
+        title: payload.title || null,
+        description: payload.description || null,
+        nodes: Array.isArray(payload.nodes) ? payload.nodes : [],
+      },
+      ["task-graph.created"],
+    );
+  }
+
+  /**
+   * Add a node to the active task graph.
+   */
+  async addTaskNode(sessionId, node) {
+    return this.request("task-graph-add-node", { sessionId, node }, [
+      "task-graph.node.added",
+    ]);
+  }
+
+  /**
+   * Update a task graph node (status / result / error / metadata).
+   */
+  async updateTaskNode(sessionId, nodeId, updates = {}) {
+    return this.request(
+      "task-graph-update-node",
+      { sessionId, nodeId, updates },
+      [
+        "task-graph.node.updated",
+        "task-graph.node.completed",
+        "task-graph.node.failed",
+      ],
+    );
+  }
+
+  /**
+   * Advance the task graph: promote pending nodes whose deps are satisfied.
+   */
+  async advanceTaskGraph(sessionId) {
+    return this.request("task-graph-advance", { sessionId }, [
+      "task-graph.advanced",
+    ]);
+  }
+
+  /**
+   * Fetch the current task graph state.
+   */
+  async getTaskGraph(sessionId) {
+    return this.request("task-graph-state", { sessionId }, [
+      "task-graph.state",
+    ]);
+  }
+
   async sendMessage(sessionId, content) {
     const response = await this.request("session-message", {
       sessionId,

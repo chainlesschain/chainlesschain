@@ -41,6 +41,11 @@ import {
   handlePatchApply,
   handlePatchReject,
   handlePatchSummary,
+  handleTaskGraphCreate,
+  handleTaskGraphAddNode,
+  handleTaskGraphUpdateNode,
+  handleTaskGraphAdvance,
+  handleTaskGraphState,
 } from "../gateways/ws/session-protocol.js";
 import {
   handleSlashCommand,
@@ -677,6 +682,31 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private */
   _handlePatchSummary(id, ws, message) {
     return handlePatchSummary(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleTaskGraphCreate(id, ws, message) {
+    return handleTaskGraphCreate(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleTaskGraphAddNode(id, ws, message) {
+    return handleTaskGraphAddNode(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleTaskGraphUpdateNode(id, ws, message) {
+    return handleTaskGraphUpdateNode(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleTaskGraphAdvance(id, ws, message) {
+    return handleTaskGraphAdvance(this, id, ws, message);
+  }
+
+  /** @private */
+  _handleTaskGraphState(id, ws, message) {
+    return handleTaskGraphState(this, id, ws, message);
   }
 
   /** @private — ping/pong heartbeat to detect dead connections */

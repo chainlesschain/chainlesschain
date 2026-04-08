@@ -38,6 +38,11 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:apply-patch",
   "coding-agent:reject-patch",
   "coding-agent:get-patch-summary",
+  "coding-agent:create-task-graph",
+  "coding-agent:add-task-node",
+  "coding-agent:update-task-node",
+  "coding-agent:advance-task-graph",
+  "coding-agent:get-task-graph",
   "coding-agent:get-status",
 ];
 
@@ -495,6 +500,96 @@ function registerCodingAgentIPCV3(options = {}) {
       return await service.getPatchSummary(sessionId);
     } catch (error) {
       logger.error("[CodingAgentIPCV3] get-patch-summary failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:create-task-graph", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId = payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      return await service.createTaskGraph(sessionId, {
+        graphId: payload.graphId,
+        title: payload.title,
+        description: payload.description,
+        nodes: payload.nodes,
+      });
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] create-task-graph failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:add-task-node", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId = payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      if (!payload.node || !payload.node.id) {
+        return { success: false, error: "node.id is required" };
+      }
+      return await service.addTaskNode(sessionId, payload.node);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] add-task-node failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:update-task-node", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId = payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      if (!payload.nodeId) {
+        return { success: false, error: "nodeId is required" };
+      }
+      return await service.updateTaskNode(
+        sessionId,
+        payload.nodeId,
+        payload.updates || {},
+      );
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] update-task-node failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle(
+    "coding-agent:advance-task-graph",
+    async (_event, payload = {}) => {
+      try {
+        await service.ensureReady();
+        const sessionId =
+          typeof payload === "string" ? payload : payload?.sessionId;
+        if (!sessionId) {
+          return { success: false, error: "sessionId is required" };
+        }
+        return await service.advanceTaskGraph(sessionId);
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] advance-task-graph failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle("coding-agent:get-task-graph", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId =
+        typeof payload === "string" ? payload : payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      return await service.getTaskGraph(sessionId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] get-task-graph failed:", error);
       return { success: false, error: error.message };
     }
   });

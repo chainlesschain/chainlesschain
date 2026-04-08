@@ -4,11 +4,16 @@ import type {
   CodingAgentBackgroundTask,
   CodingAgentEvent,
   CodingAgentHarnessStatus,
+  CodingAgentPatch,
+  CodingAgentPatchSummary,
   CodingAgentPermissionPolicy,
   CodingAgentReviewState,
   CodingAgentSessionState,
   CodingAgentStatus,
   CodingAgentSubAgentSnapshot,
+  CodingAgentTaskGraph,
+  CodingAgentTaskNode,
+  CodingAgentTaskNodeInput,
   CodingAgentToolDescriptor,
   CodingAgentWorktreeRecord,
 } from "@/types/electron.d";
@@ -42,6 +47,36 @@ const REVIEW_LIFECYCLE_EVENT_TYPES = [
   ...REVIEW_UPDATED_EVENT_TYPES,
   ...REVIEW_RESOLVED_EVENT_TYPES,
   ...REVIEW_STATE_EVENT_TYPES,
+];
+const PATCH_PROPOSED_EVENT_TYPES = ["patch.proposed"];
+const PATCH_APPLIED_EVENT_TYPES = ["patch.applied"];
+const PATCH_REJECTED_EVENT_TYPES = ["patch.rejected"];
+const PATCH_SUMMARY_EVENT_TYPES = ["patch.summary"];
+const PATCH_LIFECYCLE_EVENT_TYPES = [
+  ...PATCH_PROPOSED_EVENT_TYPES,
+  ...PATCH_APPLIED_EVENT_TYPES,
+  ...PATCH_REJECTED_EVENT_TYPES,
+  ...PATCH_SUMMARY_EVENT_TYPES,
+];
+const TASK_GRAPH_CREATED_EVENT_TYPES = ["task-graph.created"];
+const TASK_GRAPH_UPDATED_EVENT_TYPES = ["task-graph.updated"];
+const TASK_GRAPH_NODE_ADDED_EVENT_TYPES = ["task-graph.node.added"];
+const TASK_GRAPH_NODE_UPDATED_EVENT_TYPES = ["task-graph.node.updated"];
+const TASK_GRAPH_NODE_COMPLETED_EVENT_TYPES = ["task-graph.node.completed"];
+const TASK_GRAPH_NODE_FAILED_EVENT_TYPES = ["task-graph.node.failed"];
+const TASK_GRAPH_ADVANCED_EVENT_TYPES = ["task-graph.advanced"];
+const TASK_GRAPH_COMPLETED_EVENT_TYPES = ["task-graph.completed"];
+const TASK_GRAPH_STATE_EVENT_TYPES = ["task-graph.state"];
+const TASK_GRAPH_LIFECYCLE_EVENT_TYPES = [
+  ...TASK_GRAPH_CREATED_EVENT_TYPES,
+  ...TASK_GRAPH_UPDATED_EVENT_TYPES,
+  ...TASK_GRAPH_NODE_ADDED_EVENT_TYPES,
+  ...TASK_GRAPH_NODE_UPDATED_EVENT_TYPES,
+  ...TASK_GRAPH_NODE_COMPLETED_EVENT_TYPES,
+  ...TASK_GRAPH_NODE_FAILED_EVENT_TYPES,
+  ...TASK_GRAPH_ADVANCED_EVENT_TYPES,
+  ...TASK_GRAPH_COMPLETED_EVENT_TYPES,
+  ...TASK_GRAPH_STATE_EVENT_TYPES,
 ];
 const STATUS_REFRESH_EVENT_TYPES = [
   ...SERVER_READY_EVENT_TYPES,
@@ -130,6 +165,8 @@ interface CodingAgentState {
   latestWorktreeMergeResult: CodingAgentWorktreeMergeResult | null;
   subAgents: Record<string, CodingAgentSubAgentBucket>;
   reviewStates: Record<string, CodingAgentReviewState | null>;
+  patchSummaries: Record<string, CodingAgentPatchSummary | null>;
+  taskGraphs: Record<string, CodingAgentTaskGraph | null>;
   status: CodingAgentStatus;
   loading: boolean;
   worktreeLoading: boolean;
@@ -152,6 +189,8 @@ export const useCodingAgentStore = defineStore("coding-agent", {
     latestWorktreeMergeResult: null,
     subAgents: {},
     reviewStates: {},
+    patchSummaries: {},
+    taskGraphs: {},
     status: {
       connected: false,
       port: null,
@@ -256,6 +295,34 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         reviewState.status === "pending" &&
         reviewState.blocking === true
       );
+    },
+
+    currentSessionPatchSummary(state): CodingAgentPatchSummary | null {
+      const sessionId = state.currentSessionId;
+      if (!sessionId) return null;
+      return state.patchSummaries[sessionId] || null;
+    },
+
+    currentSessionPendingPatches(): CodingAgentPatch[] {
+      return this.currentSessionPatchSummary?.pending || [];
+    },
+
+    currentSessionHasPendingPatches(): boolean {
+      return this.currentSessionPendingPatches.length > 0;
+    },
+
+    currentSessionTaskGraph(state): CodingAgentTaskGraph | null {
+      const sessionId = state.currentSessionId;
+      if (!sessionId) return null;
+      return state.taskGraphs[sessionId] || null;
+    },
+
+    currentSessionReadyTaskNodes(): CodingAgentTaskNode[] {
+      const graph = this.currentSessionTaskGraph;
+      if (!graph) return [];
+      return graph.order
+        .map((id) => graph.nodes[id])
+        .filter((node) => node && node.status === "ready");
     },
 
     currentSessionWorktreeMergeResult(): CodingAgentWorktreeMergeResult | null {
@@ -612,6 +679,359 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       }
     },
 
+    _ensurePatchSummary(sessionId: string): CodingAgentPatchSummary {
+      if (!this.patchSummaries[sessionId]) {
+        this.patchSummaries[sessionId] = {
+          pending: [],
+          history: [],
+          totals: { fileCount: 0, added: 0, removed: 0 },
+        };
+      }
+      return this.patchSummaries[sessionId] as CodingAgentPatchSummary;
+    },
+
+    _applyPatchSummary(
+      sessionId: string,
+      summary: CodingAgentPatchSummary | null,
+    ): void {
+      if (!summary) {
+        this.patchSummaries[sessionId] = {
+          pending: [],
+          history: [],
+          totals: { fileCount: 0, added: 0, removed: 0 },
+        };
+        return;
+      }
+      this.patchSummaries[sessionId] = {
+        pending: Array.isArray(summary.pending) ? summary.pending : [],
+        history: Array.isArray(summary.history) ? summary.history : [],
+        totals: summary.totals || { fileCount: 0, added: 0, removed: 0 },
+      };
+    },
+
+    _upsertPendingPatch(sessionId: string, patch: CodingAgentPatch): void {
+      const summary = this._ensurePatchSummary(sessionId);
+      const idx = summary.pending.findIndex((p) => p.patchId === patch.patchId);
+      if (idx >= 0) {
+        summary.pending[idx] = patch;
+      } else {
+        summary.pending.push(patch);
+      }
+      summary.totals = this._recomputePatchTotals(summary.pending);
+    },
+
+    _resolvePendingPatch(sessionId: string, patch: CodingAgentPatch): void {
+      const summary = this._ensurePatchSummary(sessionId);
+      summary.pending = summary.pending.filter(
+        (p) => p.patchId !== patch.patchId,
+      );
+      const histIdx = summary.history.findIndex(
+        (p) => p.patchId === patch.patchId,
+      );
+      if (histIdx >= 0) {
+        summary.history[histIdx] = patch;
+      } else {
+        summary.history.unshift(patch);
+      }
+      if (summary.history.length > 100) {
+        summary.history.length = 100;
+      }
+      summary.totals = this._recomputePatchTotals(summary.pending);
+    },
+
+    _recomputePatchTotals(pending: CodingAgentPatch[]): {
+      fileCount: number;
+      added: number;
+      removed: number;
+    } {
+      return pending.reduce(
+        (acc, patch) => {
+          const stats = patch.stats || { fileCount: 0, added: 0, removed: 0 };
+          acc.fileCount += stats.fileCount || 0;
+          acc.added += stats.added || 0;
+          acc.removed += stats.removed || 0;
+          return acc;
+        },
+        { fileCount: 0, added: 0, removed: 0 },
+      );
+    },
+
+    async proposePatch(payload: {
+      sessionId?: string | null;
+      files: Array<{
+        path: string;
+        op?: "create" | "modify" | "delete";
+        before?: string | null;
+        after?: string | null;
+        diff?: string | null;
+        stats?: { added?: number; removed?: number };
+      }>;
+      origin?: string;
+      reason?: string | null;
+      requestId?: string | null;
+    }): Promise<CodingAgentPatch | null> {
+      const sessionId = payload.sessionId ?? this.currentSessionId;
+      if (!sessionId) return null;
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.proposePatch({
+          sessionId,
+          files: payload.files || [],
+          origin: payload.origin ?? "tool",
+          reason: payload.reason ?? null,
+          requestId: payload.requestId ?? null,
+        });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to propose patch");
+        }
+        const patch = (result.patch as CodingAgentPatch) || null;
+        if (patch) {
+          this._upsertPendingPatch(sessionId, patch);
+        }
+        return patch;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("proposePatch failed:", error);
+        return null;
+      }
+    },
+
+    async applyPatch(payload: {
+      sessionId?: string | null;
+      patchId: string;
+      resolvedBy?: string;
+      note?: string | null;
+    }): Promise<CodingAgentPatch | null> {
+      const sessionId = payload.sessionId ?? this.currentSessionId;
+      if (!sessionId || !payload.patchId) return null;
+      try {
+        const result = await (window as any).electronAPI.codingAgent.applyPatch(
+          {
+            sessionId,
+            patchId: payload.patchId,
+            resolvedBy: payload.resolvedBy ?? "user",
+            note: payload.note ?? null,
+          },
+        );
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to apply patch");
+        }
+        const patch = (result.patch as CodingAgentPatch) || null;
+        if (patch) {
+          this._resolvePendingPatch(sessionId, patch);
+        }
+        return patch;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("applyPatch failed:", error);
+        return null;
+      }
+    },
+
+    async rejectPatch(payload: {
+      sessionId?: string | null;
+      patchId: string;
+      resolvedBy?: string;
+      reason?: string | null;
+    }): Promise<CodingAgentPatch | null> {
+      const sessionId = payload.sessionId ?? this.currentSessionId;
+      if (!sessionId || !payload.patchId) return null;
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.rejectPatch({
+          sessionId,
+          patchId: payload.patchId,
+          resolvedBy: payload.resolvedBy ?? "user",
+          reason: payload.reason ?? null,
+        });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to reject patch");
+        }
+        const patch = (result.patch as CodingAgentPatch) || null;
+        if (patch) {
+          this._resolvePendingPatch(sessionId, patch);
+        }
+        return patch;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("rejectPatch failed:", error);
+        return null;
+      }
+    },
+
+    async fetchPatchSummary(
+      sessionId?: string | null,
+    ): Promise<CodingAgentPatchSummary | null> {
+      const targetId = sessionId ?? this.currentSessionId;
+      if (!targetId) return null;
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.getPatchSummary({ sessionId: targetId });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to fetch patch summary");
+        }
+        const summary = (result.summary as CodingAgentPatchSummary) || null;
+        this._applyPatchSummary(targetId, summary);
+        return summary;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("fetchPatchSummary failed:", error);
+        return null;
+      }
+    },
+
+    _applyTaskGraph(
+      sessionId: string,
+      graph: CodingAgentTaskGraph | null,
+    ): void {
+      this.taskGraphs[sessionId] = graph;
+    },
+
+    async createTaskGraph(payload: {
+      sessionId?: string | null;
+      graphId?: string | null;
+      title?: string | null;
+      description?: string | null;
+      nodes: CodingAgentTaskNodeInput[];
+    }): Promise<CodingAgentTaskGraph | null> {
+      const sessionId = payload.sessionId ?? this.currentSessionId;
+      if (!sessionId) return null;
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.createTaskGraph({
+          sessionId,
+          graphId: payload.graphId ?? null,
+          title: payload.title ?? null,
+          description: payload.description ?? null,
+          nodes: payload.nodes || [],
+        });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to create task graph");
+        }
+        const graph = (result.graph as CodingAgentTaskGraph) || null;
+        this._applyTaskGraph(sessionId, graph);
+        return graph;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("createTaskGraph failed:", error);
+        return null;
+      }
+    },
+
+    async addTaskNode(payload: {
+      sessionId?: string | null;
+      node: CodingAgentTaskNodeInput;
+    }): Promise<CodingAgentTaskGraph | null> {
+      const sessionId = payload.sessionId ?? this.currentSessionId;
+      if (!sessionId || !payload.node?.id) return null;
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.addTaskNode({
+          sessionId,
+          node: payload.node,
+        });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to add task node");
+        }
+        const graph = (result.graph as CodingAgentTaskGraph) || null;
+        this._applyTaskGraph(sessionId, graph);
+        return graph;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("addTaskNode failed:", error);
+        return null;
+      }
+    },
+
+    async updateTaskNode(payload: {
+      sessionId?: string | null;
+      nodeId: string;
+      updates: Partial<{
+        status: CodingAgentTaskNode["status"];
+        result: any;
+        error: any;
+        title: string;
+        description: string | null;
+        metadata: Record<string, any>;
+      }>;
+    }): Promise<CodingAgentTaskGraph | null> {
+      const sessionId = payload.sessionId ?? this.currentSessionId;
+      if (!sessionId || !payload.nodeId) return null;
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.updateTaskNode({
+          sessionId,
+          nodeId: payload.nodeId,
+          updates: payload.updates || {},
+        });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to update task node");
+        }
+        const graph = (result.graph as CodingAgentTaskGraph) || null;
+        this._applyTaskGraph(sessionId, graph);
+        return graph;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("updateTaskNode failed:", error);
+        return null;
+      }
+    },
+
+    async advanceTaskGraph(
+      sessionId?: string | null,
+    ): Promise<{ graph: CodingAgentTaskGraph | null; becameReady: string[] }> {
+      const targetId = sessionId ?? this.currentSessionId;
+      if (!targetId) return { graph: null, becameReady: [] };
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.advanceTaskGraph({ sessionId: targetId });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to advance task graph");
+        }
+        const graph = (result.graph as CodingAgentTaskGraph) || null;
+        this._applyTaskGraph(targetId, graph);
+        return {
+          graph,
+          becameReady: Array.isArray(result.becameReady)
+            ? result.becameReady
+            : [],
+        };
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("advanceTaskGraph failed:", error);
+        return { graph: null, becameReady: [] };
+      }
+    },
+
+    async fetchTaskGraph(
+      sessionId?: string | null,
+    ): Promise<CodingAgentTaskGraph | null> {
+      const targetId = sessionId ?? this.currentSessionId;
+      if (!targetId) return null;
+      try {
+        const result = await (
+          window as any
+        ).electronAPI.codingAgent.getTaskGraph({ sessionId: targetId });
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to fetch task graph");
+        }
+        const graph = (result.graph as CodingAgentTaskGraph) || null;
+        this._applyTaskGraph(targetId, graph);
+        return graph;
+      } catch (error: any) {
+        this.error = error.message;
+        codingAgentLogger.error("fetchTaskGraph failed:", error);
+        return null;
+      }
+    },
+
     async loadSessions(): Promise<void> {
       this.loading = true;
       try {
@@ -800,6 +1220,8 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       this._resetWorktreeState();
       delete this.subAgents[sessionId];
       delete this.reviewStates[sessionId];
+      delete this.patchSummaries[sessionId];
+      delete this.taskGraphs[sessionId];
       this.events = this.events.filter(
         (event) => event.sessionId !== sessionId,
       );
@@ -1175,6 +1597,37 @@ export const useCodingAgentStore = defineStore("coding-agent", {
           const targetSessionId = event.sessionId || payload.sessionId;
           if (targetSessionId) {
             this._applyReviewState(targetSessionId, reviewState);
+          }
+        }
+
+        if (matchesEventType(event.type, PATCH_LIFECYCLE_EVENT_TYPES)) {
+          const payload = event.payload || {};
+          const targetSessionId = event.sessionId || payload.sessionId;
+          if (targetSessionId) {
+            if (matchesEventType(event.type, PATCH_SUMMARY_EVENT_TYPES)) {
+              const summary =
+                (payload.summary as CodingAgentPatchSummary | null) || null;
+              this._applyPatchSummary(targetSessionId, summary);
+            } else {
+              const patch = (payload.patch as CodingAgentPatch | null) || null;
+              if (patch) {
+                if (matchesEventType(event.type, PATCH_PROPOSED_EVENT_TYPES)) {
+                  this._upsertPendingPatch(targetSessionId, patch);
+                } else {
+                  this._resolvePendingPatch(targetSessionId, patch);
+                }
+              }
+            }
+          }
+        }
+
+        if (matchesEventType(event.type, TASK_GRAPH_LIFECYCLE_EVENT_TYPES)) {
+          const payload = event.payload || {};
+          const targetSessionId = event.sessionId || payload.sessionId;
+          if (targetSessionId) {
+            const graph =
+              (payload.graph as CodingAgentTaskGraph | null) || null;
+            this._applyTaskGraph(targetSessionId, graph);
           }
         }
 

@@ -628,6 +628,132 @@ describe("CodingAgentBridge", () => {
     expect(result.history).toEqual([]);
   });
 
+  it("task graph helpers send the correct message types and payloads", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    bridge
+      .createTaskGraph("session-tg", {
+        title: "Plan",
+        nodes: [{ id: "a" }, { id: "b", dependsOn: ["a"] }],
+      })
+      .catch(() => undefined);
+    bridge
+      .addTaskNode("session-tg", { id: "c", dependsOn: ["b"] })
+      .catch(() => undefined);
+    bridge
+      .updateTaskNode("session-tg", "a", { status: "completed" })
+      .catch(() => undefined);
+    bridge.advanceTaskGraph("session-tg").catch(() => undefined);
+    bridge.getTaskGraph("session-tg").catch(() => undefined);
+
+    for (let i = 0; i < 15 && mockWs.sent.length < 5; i += 1) {
+      await Promise.resolve();
+    }
+    const parsed = mockWs.sent.map((raw) => JSON.parse(raw));
+    expect(parsed.map((m) => m.type)).toEqual([
+      "task-graph-create",
+      "task-graph-add-node",
+      "task-graph-update-node",
+      "task-graph-advance",
+      "task-graph-state",
+    ]);
+    expect(parsed[0]).toEqual(
+      expect.objectContaining({
+        sessionId: "session-tg",
+        title: "Plan",
+      }),
+    );
+    expect(parsed[0].nodes).toEqual([
+      { id: "a" },
+      { id: "b", dependsOn: ["a"] },
+    ]);
+    expect(parsed[1].node).toEqual({ id: "c", dependsOn: ["b"] });
+    expect(parsed[2]).toEqual(
+      expect.objectContaining({
+        sessionId: "session-tg",
+        nodeId: "a",
+        updates: { status: "completed" },
+      }),
+    );
+    expect(parsed[3].sessionId).toBe("session-tg");
+    expect(parsed[4].sessionId).toBe("session-tg");
+  });
+
+  it("createTaskGraph unwraps the task-graph.created envelope", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    const pending = bridge.createTaskGraph("session-tg", {
+      nodes: [{ id: "a" }],
+    });
+    for (let i = 0; i < 10 && mockWs.sent.length === 0; i += 1) {
+      await Promise.resolve();
+    }
+    const requestId = JSON.parse(mockWs.sent[0]).id;
+
+    mockWs.triggerMessage({
+      version: "1.0",
+      eventId: "evt-tg-1",
+      type: "task-graph.created",
+      requestId,
+      sessionId: "session-tg",
+      payload: {
+        sessionId: "session-tg",
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a"],
+          nodes: { a: { id: "a", status: "pending", dependsOn: [] } },
+        },
+      },
+    });
+
+    const result = await pending;
+    expect(result.type).toBe("task-graph.created");
+    expect(result.graph.graphId).toBe("graph-1");
+    expect(result.graph.order).toEqual(["a"]);
+  });
+
+  it("updateTaskNode accepts task-graph.node.completed envelope", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    const pending = bridge.updateTaskNode("session-tg", "a", {
+      status: "completed",
+    });
+    for (let i = 0; i < 10 && mockWs.sent.length === 0; i += 1) {
+      await Promise.resolve();
+    }
+    const requestId = JSON.parse(mockWs.sent[0]).id;
+
+    mockWs.triggerMessage({
+      version: "1.0",
+      eventId: "evt-tg-2",
+      type: "task-graph.node.completed",
+      requestId,
+      sessionId: "session-tg",
+      payload: {
+        sessionId: "session-tg",
+        nodeId: "a",
+        graph: {
+          graphId: "graph-1",
+          status: "active",
+          order: ["a", "b"],
+          nodes: {
+            a: { id: "a", status: "completed", dependsOn: [] },
+            b: { id: "b", status: "pending", dependsOn: ["a"] },
+          },
+        },
+      },
+    });
+
+    const result = await pending;
+    expect(result.type).toBe("task-graph.node.completed");
+    expect(result.nodeId).toBe("a");
+    expect(result.graph.nodes.a.status).toBe("completed");
+  });
+
   it("background task helpers send the correct message types", async () => {
     const bridge = new CodingAgentBridge({ cwd: "/repo" });
     await bridge.ensureReady();

@@ -884,4 +884,150 @@ describe("WSSessionManager", () => {
       expect(metadata.pendingPatches[0].files[0].path).toBe("a.js");
     });
   });
+
+  describe("task graph", () => {
+    let sessionId;
+
+    beforeEach(() => {
+      const result = manager.createSession();
+      sessionId = result.sessionId;
+    });
+
+    it("createTaskGraph stores normalized nodes and order", () => {
+      const graph = manager.createTaskGraph(sessionId, {
+        title: "Release",
+        nodes: [
+          { id: "a", title: "Build" },
+          { id: "b", title: "Test", dependsOn: ["a"] },
+          { id: "c", title: "Ship", dependsOn: ["b"] },
+        ],
+      });
+
+      expect(graph.title).toBe("Release");
+      expect(graph.status).toBe("active");
+      expect(graph.order).toEqual(["a", "b", "c"]);
+      expect(graph.nodes.a.status).toBe("pending");
+      expect(graph.nodes.b.dependsOn).toEqual(["a"]);
+    });
+
+    it("createTaskGraph returns null for missing session", () => {
+      expect(manager.createTaskGraph("ghost", { nodes: [] })).toBeNull();
+    });
+
+    it("addTaskNode rejects duplicate ids", () => {
+      manager.createTaskGraph(sessionId, {
+        nodes: [{ id: "a", title: "Build" }],
+      });
+      const result = manager.addTaskNode(sessionId, { id: "a", title: "dup" });
+      expect(result).toBeNull();
+    });
+
+    it("addTaskNode appends a new node to the graph", () => {
+      manager.createTaskGraph(sessionId, {
+        nodes: [{ id: "a", title: "Build" }],
+      });
+      const graph = manager.addTaskNode(sessionId, {
+        id: "b",
+        title: "Test",
+        dependsOn: ["a"],
+      });
+      expect(graph.order).toEqual(["a", "b"]);
+      expect(graph.nodes.b.title).toBe("Test");
+    });
+
+    it("updateTaskNode records timestamps for running/completed transitions", () => {
+      manager.createTaskGraph(sessionId, {
+        nodes: [{ id: "a", title: "Build" }],
+      });
+      const running = manager.updateTaskNode(sessionId, "a", {
+        status: "running",
+      });
+      expect(running.nodes.a.startedAt).toBeTruthy();
+
+      const done = manager.updateTaskNode(sessionId, "a", {
+        status: "completed",
+        result: { ok: true },
+      });
+      expect(done.nodes.a.completedAt).toBeTruthy();
+      expect(done.nodes.a.result).toEqual({ ok: true });
+      expect(done.status).toBe("completed");
+      expect(done.completedAt).toBeTruthy();
+    });
+
+    it("updateTaskNode marks graph as failed when any node fails", () => {
+      manager.createTaskGraph(sessionId, {
+        nodes: [
+          { id: "a", title: "A" },
+          { id: "b", title: "B" },
+        ],
+      });
+      manager.updateTaskNode(sessionId, "a", { status: "completed" });
+      const graph = manager.updateTaskNode(sessionId, "b", {
+        status: "failed",
+        error: "boom",
+      });
+      expect(graph.status).toBe("failed");
+      expect(graph.nodes.b.error).toBe("boom");
+    });
+
+    it("advanceTaskGraph promotes nodes whose dependencies are completed", () => {
+      manager.createTaskGraph(sessionId, {
+        nodes: [
+          { id: "a", title: "A" },
+          { id: "b", title: "B", dependsOn: ["a"] },
+          { id: "c", title: "C", dependsOn: ["b"] },
+        ],
+      });
+
+      // Initial advance: only "a" is unblocked
+      let result = manager.advanceTaskGraph(sessionId);
+      expect(result.becameReady).toEqual(["a"]);
+      expect(result.graph.nodes.a.status).toBe("ready");
+      expect(result.graph.nodes.b.status).toBe("pending");
+
+      // After completing "a", "b" unblocks
+      manager.updateTaskNode(sessionId, "a", { status: "completed" });
+      result = manager.advanceTaskGraph(sessionId);
+      expect(result.becameReady).toEqual(["b"]);
+    });
+
+    it("advanceTaskGraph returns empty ready list when nothing changes", () => {
+      manager.createTaskGraph(sessionId, {
+        nodes: [{ id: "a", title: "A", status: "running" }],
+      });
+      const result = manager.advanceTaskGraph(sessionId);
+      expect(result.becameReady).toEqual([]);
+    });
+
+    it("getTaskGraph returns null before the graph is created", () => {
+      expect(manager.getTaskGraph(sessionId)).toBeNull();
+    });
+
+    it("clearTaskGraph wipes the session graph", () => {
+      manager.createTaskGraph(sessionId, {
+        nodes: [{ id: "a", title: "A" }],
+      });
+      expect(manager.clearTaskGraph(sessionId)).toBe(true);
+      expect(manager.getTaskGraph(sessionId)).toBeNull();
+    });
+
+    it("task graph survives metadata serialization round-trip", () => {
+      manager.createTaskGraph(sessionId, {
+        graphId: "graph-x",
+        title: "Deploy",
+        nodes: [
+          { id: "a", title: "Build" },
+          { id: "b", title: "Ship", dependsOn: ["a"] },
+        ],
+      });
+      const metadata = manager._serializeSessionMetadata(
+        manager.getSession(sessionId),
+      );
+      expect(metadata.taskGraph).toBeTruthy();
+      expect(metadata.taskGraph.graphId).toBe("graph-x");
+      const hydrated = manager._hydrateTaskGraph(metadata.taskGraph);
+      expect(hydrated.nodes.b.dependsOn).toEqual(["a"]);
+      expect(hydrated.order).toEqual(["a", "b"]);
+    });
+  });
 });

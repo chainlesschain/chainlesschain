@@ -1463,4 +1463,343 @@ describe("Integration: WebSocket Session Workflow", () => {
     expect(resp.type).toBe("error");
     expect(resp.code).toBe("SESSION_NOT_FOUND");
   });
+
+  // ─── task-graph-* lifecycle ──────────────────────────────────────
+
+  function taskGraphSessionManager() {
+    const session = {
+      id: "test-session-1",
+      type: "agent",
+      provider: "ollama",
+      model: "qwen2.5:7b",
+      messages: [],
+      interaction: null,
+    };
+    let graph = null;
+    const clone = (g) => (g ? JSON.parse(JSON.stringify(g)) : null);
+
+    return mockSessionManager({
+      getSession: vi.fn().mockReturnValue(session),
+      createTaskGraph: vi.fn((sessionId, payload = {}) => {
+        const now = "2026-04-08T00:00:00Z";
+        const nodes = {};
+        const order = [];
+        for (const raw of payload.nodes || []) {
+          if (!raw || !raw.id) continue;
+          nodes[raw.id] = {
+            id: raw.id,
+            title: raw.title || raw.id,
+            status: raw.status || "pending",
+            dependsOn: raw.dependsOn || [],
+            createdAt: now,
+            updatedAt: now,
+            startedAt: null,
+            completedAt: null,
+            result: null,
+            error: null,
+            metadata: raw.metadata || {},
+          };
+          order.push(raw.id);
+        }
+        graph = {
+          graphId: payload.graphId || "graph-1",
+          title: payload.title || null,
+          description: payload.description || null,
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+          completedAt: null,
+          nodes,
+          order,
+        };
+        return clone(graph);
+      }),
+      addTaskNode: vi.fn((sessionId, node) => {
+        if (!graph || !node || !node.id || graph.nodes[node.id]) return null;
+        graph.nodes[node.id] = {
+          id: node.id,
+          title: node.title || node.id,
+          status: "pending",
+          dependsOn: node.dependsOn || [],
+          createdAt: "2026-04-08T00:00:00Z",
+          updatedAt: "2026-04-08T00:00:00Z",
+          startedAt: null,
+          completedAt: null,
+          result: null,
+          error: null,
+          metadata: {},
+        };
+        graph.order.push(node.id);
+        return clone(graph);
+      }),
+      updateTaskNode: vi.fn((sessionId, nodeId, updates = {}) => {
+        if (!graph || !graph.nodes[nodeId]) return null;
+        const node = graph.nodes[nodeId];
+        if (updates.status) node.status = updates.status;
+        if (updates.result !== undefined) node.result = updates.result;
+        if (updates.error !== undefined) node.error = updates.error;
+        node.updatedAt = "2026-04-08T00:00:01Z";
+        const allDone = Object.values(graph.nodes).every((n) =>
+          ["completed", "failed", "skipped"].includes(n.status),
+        );
+        if (allDone) {
+          graph.status = Object.values(graph.nodes).some(
+            (n) => n.status === "failed",
+          )
+            ? "failed"
+            : "completed";
+          graph.completedAt = "2026-04-08T00:00:02Z";
+        }
+        return clone(graph);
+      }),
+      advanceTaskGraph: vi.fn(() => {
+        if (!graph) return null;
+        const becameReady = [];
+        for (const node of Object.values(graph.nodes)) {
+          if (node.status !== "pending") continue;
+          const blocked = (node.dependsOn || []).some((depId) => {
+            const dep = graph.nodes[depId];
+            return !dep || dep.status !== "completed";
+          });
+          if (!blocked) {
+            node.status = "ready";
+            becameReady.push(node.id);
+          }
+        }
+        return { graph: clone(graph), becameReady };
+      }),
+      getTaskGraph: vi.fn(() => clone(graph)),
+    });
+  }
+
+  it("task-graph-create stores the graph and emits the envelope", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-graph",
+      type: "task-graph-create",
+      sessionId: "test-session-1",
+      title: "Release",
+      nodes: [
+        { id: "a", title: "Build" },
+        { id: "b", title: "Ship", dependsOn: ["a"] },
+      ],
+    });
+
+    expect(sm.createTaskGraph).toHaveBeenCalledWith(
+      "test-session-1",
+      expect.objectContaining({ title: "Release" }),
+    );
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("task-graph.created");
+    expect(resp.graph.order).toEqual(["a", "b"]);
+    expect(resp.graph.nodes.a.status).toBe("pending");
+  });
+
+  it("task-graph-create rejects missing nodes array", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-graph-bad",
+      type: "task-graph-create",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("INVALID_PAYLOAD");
+  });
+
+  it("task-graph-add-node appends a new node", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+    sm.createTaskGraph("test-session-1", {
+      nodes: [{ id: "a", title: "Build" }],
+    });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-add",
+      type: "task-graph-add-node",
+      sessionId: "test-session-1",
+      node: { id: "b", title: "Ship", dependsOn: ["a"] },
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("task-graph.node.added");
+    expect(resp.graph.order).toEqual(["a", "b"]);
+    expect(resp.nodeId).toBe("b");
+  });
+
+  it("task-graph-add-node fails on duplicate id", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+    sm.createTaskGraph("test-session-1", {
+      nodes: [{ id: "a", title: "Build" }],
+    });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-add-dup",
+      type: "task-graph-add-node",
+      sessionId: "test-session-1",
+      node: { id: "a", title: "Dup" },
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("TASK_GRAPH_ADD_FAILED");
+  });
+
+  it("task-graph-update-node emits node.completed on completion", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+    sm.createTaskGraph("test-session-1", {
+      nodes: [
+        { id: "a", title: "Build" },
+        { id: "b", title: "Ship" },
+      ],
+    });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-update",
+      type: "task-graph-update-node",
+      sessionId: "test-session-1",
+      nodeId: "a",
+      updates: { status: "completed", result: { ok: true } },
+    });
+
+    // First send is the envelopeResponse with the node event type.
+    const firstRaw = JSON.parse(ws.send.mock.calls[0][0]);
+    const resp = { ...firstRaw.payload, type: firstRaw.type };
+    expect(resp.type).toBe("task-graph.node.completed");
+    expect(resp.graph.nodes.a.result).toEqual({ ok: true });
+  });
+
+  it("task-graph-update-node emits node.failed on failure", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+    sm.createTaskGraph("test-session-1", {
+      nodes: [
+        { id: "a", title: "Build" },
+        { id: "b", title: "Ship" },
+      ],
+    });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-fail",
+      type: "task-graph-update-node",
+      sessionId: "test-session-1",
+      nodeId: "a",
+      updates: { status: "failed", error: "boom" },
+    });
+
+    const firstRaw = JSON.parse(ws.send.mock.calls[0][0]);
+    const resp = { ...firstRaw.payload, type: firstRaw.type };
+    expect(resp.type).toBe("task-graph.node.failed");
+  });
+
+  it("task-graph-update-node rejects missing nodeId", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-update-bad",
+      type: "task-graph-update-node",
+      sessionId: "test-session-1",
+      updates: { status: "completed" },
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("INVALID_PAYLOAD");
+  });
+
+  it("task-graph-advance promotes ready nodes", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+    sm.createTaskGraph("test-session-1", {
+      nodes: [
+        { id: "a", title: "A" },
+        { id: "b", title: "B", dependsOn: ["a"] },
+      ],
+    });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-advance",
+      type: "task-graph-advance",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("task-graph.advanced");
+    expect(resp.becameReady).toEqual(["a"]);
+    expect(resp.graph.nodes.a.status).toBe("ready");
+  });
+
+  it("task-graph-advance returns TASK_GRAPH_NOT_FOUND when no graph exists", async () => {
+    const sm = taskGraphSessionManager();
+    sm.advanceTaskGraph.mockReturnValueOnce(null);
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-advance-none",
+      type: "task-graph-advance",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("TASK_GRAPH_NOT_FOUND");
+  });
+
+  it("task-graph-state returns the current graph", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+    sm.createTaskGraph("test-session-1", {
+      nodes: [{ id: "a", title: "A" }],
+    });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-state",
+      type: "task-graph-state",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("task-graph.state");
+    expect(resp.graph.nodes.a.title).toBe("A");
+  });
+
+  it("task-graph-state returns null graph when unset", async () => {
+    const sm = taskGraphSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-state-empty",
+      type: "task-graph-state",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("task-graph.state");
+    expect(resp.graph).toBeNull();
+  });
+
+  it("task-graph-create returns SESSION_NOT_FOUND for unknown session", async () => {
+    const sm = taskGraphSessionManager();
+    sm.getSession.mockReturnValueOnce(null);
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-graph-ghost",
+      type: "task-graph-create",
+      sessionId: "ghost",
+      nodes: [{ id: "a" }],
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("SESSION_NOT_FOUND");
+  });
 });

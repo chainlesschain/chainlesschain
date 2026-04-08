@@ -271,6 +271,144 @@ describe("E2E: Coding Agent unified envelope round-trip", () => {
     expect(response.payload.message).toMatch(/branch required/);
   }, 20000);
 
+  it("task graph create → add → update → advance round-trips as envelopes", async () => {
+    const port = nextPort();
+    child = startServer(port);
+    ws = await waitForReady(port);
+
+    // First, seed a session so the task graph has somewhere to live.
+    const create = await sendAndCorrelate(ws, {
+      id: "e2e-tg-create-session",
+      type: "session-create",
+      sessionType: "agent",
+      provider: "ollama",
+      model: "qwen2.5:7b",
+    });
+    const sessionId = create.sessionId;
+
+    // 1) Create graph with two nodes (b depends on a)
+    const created = await sendAndCorrelate(ws, {
+      id: "e2e-tg-create",
+      type: "task-graph-create",
+      sessionId,
+      title: "E2E Plan",
+      nodes: [
+        { id: "a", title: "First step" },
+        { id: "b", title: "Second step", dependsOn: ["a"] },
+      ],
+    });
+    expect(isUnifiedEnvelope(created)).toBe(true);
+    expect(created.type).toBe("task-graph.created");
+    expect(created.sessionId).toBe(sessionId);
+    expect(created.payload.graph).toBeDefined();
+    expect(created.payload.graph.order).toEqual(["a", "b"]);
+    expect(created.payload.graph.nodes.a.status).toBe("pending");
+
+    // 2) Add a third node depending on b
+    const added = await sendAndCorrelate(ws, {
+      id: "e2e-tg-add",
+      type: "task-graph-add-node",
+      sessionId,
+      node: { id: "c", title: "Third step", dependsOn: ["b"] },
+    });
+    expect(isUnifiedEnvelope(added)).toBe(true);
+    expect(added.type).toBe("task-graph.node.added");
+    expect(added.payload.graph.order).toEqual(["a", "b", "c"]);
+
+    // 3) Mark node a as completed → expect task-graph.node.completed envelope
+    const updated = await sendAndCorrelate(ws, {
+      id: "e2e-tg-update",
+      type: "task-graph-update-node",
+      sessionId,
+      nodeId: "a",
+      updates: { status: "completed" },
+    });
+    expect(isUnifiedEnvelope(updated)).toBe(true);
+    expect(updated.type).toBe("task-graph.node.completed");
+    expect(updated.payload.graph.nodes.a.status).toBe("completed");
+
+    // 4) Advance — node b should become ready (its only dep, a, is done)
+    const advanced = await sendAndCorrelate(ws, {
+      id: "e2e-tg-advance",
+      type: "task-graph-advance",
+      sessionId,
+    });
+    expect(isUnifiedEnvelope(advanced)).toBe(true);
+    expect(advanced.type).toBe("task-graph.advanced");
+    expect(advanced.payload.becameReady).toEqual(["b"]);
+    expect(advanced.payload.graph.nodes.b.status).toBe("ready");
+    expect(advanced.payload.graph.nodes.c.status).toBe("pending");
+
+    // 5) State query
+    const state = await sendAndCorrelate(ws, {
+      id: "e2e-tg-state",
+      type: "task-graph-state",
+      sessionId,
+    });
+    expect(isUnifiedEnvelope(state)).toBe(true);
+    expect(state.type).toBe("task-graph.state");
+    expect(state.payload.graph.nodes.a.status).toBe("completed");
+    expect(state.payload.graph.nodes.b.status).toBe("ready");
+  }, 30000);
+
+  it("task-graph-create without nodes returns an envelope error", async () => {
+    const port = nextPort();
+    child = startServer(port);
+    ws = await waitForReady(port);
+
+    const create = await sendAndCorrelate(ws, {
+      id: "e2e-tg-create-session-2",
+      type: "session-create",
+      sessionType: "agent",
+      provider: "ollama",
+      model: "qwen2.5:7b",
+    });
+    const sessionId = create.sessionId;
+
+    const errResp = await sendAndCorrelate(ws, {
+      id: "e2e-tg-bad-create",
+      type: "task-graph-create",
+      sessionId,
+      // nodes intentionally missing
+    });
+
+    expect(isUnifiedEnvelope(errResp)).toBe(true);
+    expect(errResp.type).toBe("error");
+    expect(errResp.requestId).toBe("e2e-tg-bad-create");
+    expect(typeof errResp.payload.code).toBe("string");
+  }, 20000);
+
+  it("task-graph-state on a session with no graph returns null graph", async () => {
+    const port = nextPort();
+    child = startServer(port);
+    ws = await waitForReady(port);
+
+    const create = await sendAndCorrelate(ws, {
+      id: "e2e-tg-create-session-3",
+      type: "session-create",
+      sessionType: "agent",
+      provider: "ollama",
+      model: "qwen2.5:7b",
+    });
+    const sessionId = create.sessionId;
+
+    const state = await sendAndCorrelate(ws, {
+      id: "e2e-tg-state-empty",
+      type: "task-graph-state",
+      sessionId,
+    });
+
+    expect(isUnifiedEnvelope(state)).toBe(true);
+    // The CLI may return either task-graph.state with graph=null or an
+    // error envelope (TASK_GRAPH_NOT_FOUND). Both are acceptable contracts
+    // for "no graph yet" — the test just verifies we get a well-formed envelope.
+    if (state.type === "task-graph.state") {
+      expect(state.payload.graph).toBeNull();
+    } else {
+      expect(state.type).toBe("error");
+    }
+  }, 20000);
+
   it("envelope eventIds are unique across responses on the same socket", async () => {
     const port = nextPort();
     child = startServer(port);

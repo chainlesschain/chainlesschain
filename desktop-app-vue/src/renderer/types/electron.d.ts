@@ -609,6 +609,59 @@ export interface CodingAgentAPI {
     summary?: CodingAgentPatchSummary | null;
     error?: string;
   }>;
+  createTaskGraph(payload: {
+    sessionId: string;
+    graphId?: string | null;
+    title?: string | null;
+    description?: string | null;
+    nodes: CodingAgentTaskNodeInput[];
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    graph?: CodingAgentTaskGraph | null;
+    error?: string;
+  }>;
+  addTaskNode(payload: {
+    sessionId: string;
+    node: CodingAgentTaskNodeInput;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    graph?: CodingAgentTaskGraph | null;
+    nodeId?: string;
+    error?: string;
+  }>;
+  updateTaskNode(payload: {
+    sessionId: string;
+    nodeId: string;
+    updates: Partial<{
+      status: CodingAgentTaskNode["status"];
+      result: any;
+      error: any;
+      title: string;
+      description: string | null;
+      metadata: Record<string, any>;
+    }>;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    graph?: CodingAgentTaskGraph | null;
+    nodeId?: string;
+    error?: string;
+  }>;
+  advanceTaskGraph(payload: { sessionId: string } | string): Promise<{
+    success: boolean;
+    sessionId?: string;
+    graph?: CodingAgentTaskGraph | null;
+    becameReady?: string[];
+    error?: string;
+  }>;
+  getTaskGraph(payload: { sessionId: string } | string): Promise<{
+    success: boolean;
+    sessionId?: string;
+    graph?: CodingAgentTaskGraph | null;
+    error?: string;
+  }>;
   getStatus(): Promise<{
     success: boolean;
     server?: { connected?: boolean; host?: string; port?: number | null };
@@ -723,6 +776,48 @@ export interface CodingAgentPatchSummary {
   pending: CodingAgentPatch[];
   history: CodingAgentPatch[];
   totals: { fileCount: number; added: number; removed: number };
+}
+
+/**
+ * Persistent task graph snapshot produced by the CLI runtime. Each session can
+ * own a single DAG of task nodes — the orchestrator promotes pending nodes whose
+ * dependencies have all completed/skipped to "ready", and auto-completes the
+ * graph when every node reaches a terminal status.
+ */
+export interface CodingAgentTaskNodeInput {
+  id: string;
+  title?: string;
+  description?: string | null;
+  status?: "pending" | "ready" | "running" | "completed" | "failed" | "skipped";
+  dependsOn?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface CodingAgentTaskNode {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "pending" | "ready" | "running" | "completed" | "failed" | "skipped";
+  dependsOn: string[];
+  metadata: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  result: any;
+  error: any;
+}
+
+export interface CodingAgentTaskGraph {
+  graphId: string;
+  title: string | null;
+  description: string | null;
+  status: "active" | "completed" | "failed";
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  order: string[];
+  nodes: Record<string, CodingAgentTaskNode>;
 }
 
 /**

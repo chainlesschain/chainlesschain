@@ -66,6 +66,15 @@ export function createWsMessageDispatcher(server) {
         "patch-apply": () => server._handlePatchApply(id, ws, message),
         "patch-reject": () => server._handlePatchReject(id, ws, message),
         "patch-summary": () => server._handlePatchSummary(id, ws, message),
+        "task-graph-create": () =>
+          server._handleTaskGraphCreate(id, ws, message),
+        "task-graph-add-node": () =>
+          server._handleTaskGraphAddNode(id, ws, message),
+        "task-graph-update-node": () =>
+          server._handleTaskGraphUpdateNode(id, ws, message),
+        "task-graph-advance": () =>
+          server._handleTaskGraphAdvance(id, ws, message),
+        "task-graph-state": () => server._handleTaskGraphState(id, ws, message),
       };
 
       const handler = routes[type];

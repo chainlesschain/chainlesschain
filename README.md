@@ -1,5 +1,30 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-08 增量更新 #2（Phase 5 持久化任务图 + 编排器）
+
+继最小 Harness 之后，本轮把 Coding Agent 推进到 **Phase 5 持久化任务图 + 编排器** 主线，三层贯穿全部落地：
+
+- **CLI runtime**：`agent-core` 内置任务图模型（DAG 节点 + 状态机 + 拓扑序），`session-protocol` 新增 5 条消息 `task-graph-create` / `task-graph-add-node` / `task-graph-update-node` / `task-graph-advance` / `task-graph-state`，全部以统一信封返回；新增自动完成 / 失败传播 / `becameReady` 语义。
+- **Desktop main**：`CodingAgentBridge` 暴露 `createTaskGraph` / `addTaskNode` / `updateTaskNode` / `advanceTaskGraph` / `getTaskGraph` 5 个方法（自动拆封 9 类 `task-graph.*` 事件），`CodingAgentSessionService` 暴露领域 API，`coding-agent-ipc-v3` 新增 5 条 IPC 通道。
+- **Renderer**：`stores/coding-agent.ts` 新增 `taskGraphs: Record<sessionId, CodingAgentTaskGraph>` 状态、`currentSessionTaskGraph` / `currentSessionReadyTaskNodes` getters、5 个 actions、9 类 lifecycle 事件订阅；TypeScript 严格模式下完全可用。
+
+本轮回归（按层）：
+
+| 层 | 范围 | 通过 |
+| --- | --- | --- |
+| CLI 单元 | `agent-core` / `ws-agent-handler` | `109/109` |
+| CLI 集成 | `ws-session-workflow` | `52/52` |
+| CLI E2E | `coding-agent-envelope-roundtrip`（含任务图全链路） | `10/10` |
+| Desktop main 单元 | `coding-agent-bridge` / `coding-agent-ipc-v3` / `coding-agent-session-service` | `96/96` |
+| Desktop 集成 | `coding-agent-lifecycle` | `24/24` |
+| Desktop E2E | `coding-agent-bridge-real-cli`（真实 `chainlesschain serve` 子进程） | `3/3` |
+| Renderer 单元 | `coding-agent` store / `AIChatPage` | `91/91` |
+| **小计** | **7 套** | **`385/385`** |
+
+修复的 bug：`tests/integration/coding-agent-bridge-real-cli.test.js` 中 `session-created` / `session-list-result` / `result` 三处类型断言为 v1.0 信封落地前的旧值，已对齐为 `session.started` / `session.list` / `command.response`。
+
+详细设计、协议、测试矩阵：[docs/design/modules/79_Coding_Agent系统.md §12.5](./docs/design/modules/79_Coding_Agent系统.md) / [docs-site 镜像](./docs-site/docs/design/modules/79-coding-agent.md)。
+
 ## 2026-04-08 增量更新（Phase 5 最小 Harness + 真实 Interrupt）
 
 在 v1.0 统一信封落地后，本轮把 Coding Agent 的 **Phase 5 最小 Harness** 和 **真实 interrupt 语义** 主线收口：

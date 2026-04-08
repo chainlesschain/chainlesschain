@@ -939,6 +939,64 @@ class CodingAgentSessionService extends EventEmitter {
     };
   }
 
+  /**
+   * Create a session-scoped task graph. Each node has { id, title,
+   * dependsOn[], metadata }. The graph is persisted to session metadata.
+   */
+  async createTaskGraph(sessionId, payload = {}) {
+    const response = await this.bridge.createTaskGraph(sessionId, payload);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      graph: response.graph || null,
+    };
+  }
+
+  async addTaskNode(sessionId, node) {
+    const response = await this.bridge.addTaskNode(sessionId, node);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      graph: response.graph || null,
+      nodeId: response.nodeId || (node && node.id) || null,
+    };
+  }
+
+  async updateTaskNode(sessionId, nodeId, updates = {}) {
+    const response = await this.bridge.updateTaskNode(
+      sessionId,
+      nodeId,
+      updates,
+    );
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      graph: response.graph || null,
+      nodeId: response.nodeId || nodeId,
+    };
+  }
+
+  async advanceTaskGraph(sessionId) {
+    const response = await this.bridge.advanceTaskGraph(sessionId);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      graph: response.graph || null,
+      becameReady: Array.isArray(response.becameReady)
+        ? response.becameReady
+        : [],
+    };
+  }
+
+  async getTaskGraph(sessionId) {
+    const response = await this.bridge.getTaskGraph(sessionId);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      graph: response.graph || null,
+    };
+  }
+
   async getStatus() {
     const tools = await this.toolAdapter.listAvailableTools();
     const harness = await this.getHarnessStatus();

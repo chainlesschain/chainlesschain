@@ -1,5 +1,30 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-08 Update — Coding Agent Phase 5: Persistent Task Graph + Orchestrator
+
+The Coding Agent now ships with a **persistent task DAG and orchestrator** wired through all three layers:
+
+- **CLI runtime** (`packages/cli/src/lib/agent-core.js` + `gateways/ws/session-protocol.js`) — DAG model with `pending` / `ready` / `running` / `completed` / `failed` / `skipped` states, topological order, dependency-aware `advance` with `becameReady` semantics, and auto-completion. Five new WebSocket message types: `task-graph-create`, `task-graph-add-node`, `task-graph-update-node`, `task-graph-advance`, `task-graph-state` — all returned as v1.0 unified envelopes.
+- **Desktop main** (`coding-agent-bridge.js` + `coding-agent-session-service.js` + `coding-agent-ipc-v3.js`) — bridge unwraps 9 `task-graph.*` envelope types, service layer exposes domain APIs, IPC v3 adds 5 channels.
+- **Renderer** (`stores/coding-agent.ts`) — Pinia store holds `taskGraphs: Record<sessionId, CodingAgentTaskGraph>`, exposes `currentSessionTaskGraph` / `currentSessionReadyTaskNodes` getters, 5 actions, and live-updates from 9 lifecycle event types under TypeScript strict mode.
+
+Regression for this round (per layer):
+
+| Layer | Scope | Pass |
+| --- | --- | --- |
+| CLI unit | `agent-core` / `ws-agent-handler` | `109/109` |
+| CLI integration | `ws-session-workflow` | `52/52` |
+| CLI E2E | `coding-agent-envelope-roundtrip` (incl. full task-graph round-trip) | `10/10` |
+| Desktop main unit | `coding-agent-bridge` / `coding-agent-ipc-v3` / `coding-agent-session-service` | `96/96` |
+| Desktop integration | `coding-agent-lifecycle` | `24/24` |
+| Desktop E2E | `coding-agent-bridge-real-cli` (real `chainlesschain serve` subprocess) | `3/3` |
+| Renderer unit | `coding-agent` store / `AIChatPage` | `91/91` |
+| **Total** | **7 suites** | **`385/385`** |
+
+Bug fix: `tests/integration/coding-agent-bridge-real-cli.test.js` had three stale type assertions (`session-created` / `session-list-result` / `result`) left over from before the v1.0 envelope migration — corrected to `session.started` / `session.list` / `command.response`.
+
+Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md §12.5](./docs/design/modules/79_Coding_Agent系统.md) / [docs-site mirror](./docs-site/docs/design/modules/79-coding-agent.md).
+
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-v5.0.2.9-blue.svg)
