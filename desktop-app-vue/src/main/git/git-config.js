@@ -7,6 +7,10 @@ const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
 
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
+
 /**
  * 默认配置
  */
@@ -104,6 +108,33 @@ class GitConfig {
       this.loaded = false;
     }
 
+    return this.config;
+  }
+
+  /**
+   * 异步加载配置 (M2: 启动期使用，避免阻塞事件循环)
+   */
+  async loadAsync() {
+    try {
+      const content = await _deps.fsp.readFile(this.configPath, "utf8");
+      const savedConfig = JSON.parse(content);
+      this.config = {
+        ...DEFAULT_CONFIG,
+        ...savedConfig,
+      };
+      this.loaded = true;
+      if (this.config.enableLogging) {
+        logger.info("[GitConfig] 配置加载成功");
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        logger.error("[GitConfig] 配置加载失败:", error);
+        this.config = { ...DEFAULT_CONFIG };
+      } else if (DEFAULT_CONFIG.enableLogging) {
+        logger.info("[GitConfig] 配置文件不存在，使用默认配置");
+      }
+      this.loaded = false;
+    }
     return this.config;
   }
 
@@ -313,11 +344,24 @@ function getGitConfig() {
   return instance;
 }
 
+/**
+ * 异步获取 GitConfig 单例 (M2: 启动期使用)
+ */
+async function getGitConfigAsync() {
+  if (!instance) {
+    instance = new GitConfig();
+    await instance.loadAsync();
+  }
+  return instance;
+}
+
 module.exports = {
   GitConfig,
   getGitConfig,
+  getGitConfigAsync,
   DEFAULT_CONFIG,
   gitLog,
   gitError,
   gitWarn,
 };
+module.exports._deps = _deps;
