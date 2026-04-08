@@ -6,6 +6,7 @@
 
 本次已经完成并在代码中可用的能力包括：
 
+- **Coding Agent 统一事件信封 v1.0** 已在 CLI runtime / Desktop main / Web UI 三端落地：所有 WebSocket / IPC 响应共享 `{ version, eventId, type (点分小写), requestId, sessionId, source, payload }` 外壳；Desktop `CodingAgentBridge` 实现拆封 + 双 awaitTypes 灰度迁移，Web UI 通过 `web-ui-envelope.js` 提供 31 条 `UNIFIED_TO_LEGACY` 映射 + 浏览器内联兼容。详见 [docs/design/modules/79_Coding_Agent系统.md §5.7](./docs/design/modules/79_Coding_Agent系统.md)。
 - 后台任务支持分页历史检索、任务详情摘要、重启恢复和多节点恢复策略基础能力。
 - Worktree 冲突处理支持文件级摘要、自动化解决候选项和 diff 预览入口。
 - 压缩观测支持时间窗口筛选，以及按 `provider` / `model` 维度切片统计。
@@ -19,10 +20,14 @@
 
 - CLI 定向单元测试：`130/130`
 - CLI 定向集成测试：`19/19`
-- CLI `ws-session-workflow` 集成：`16/16`
+- CLI `ws-session-workflow` 集成：`19/19`
+- CLI `ws-runtime-events` 单元（envelope v1.0 发射）：`16/16`
+- CLI `web-ui-envelope` 单元（UNIFIED_TO_LEGACY + 浏览器内联源）：`28/28`
+- CLI `coding-agent-envelope-roundtrip` E2E（真实 spawn `chainlesschain serve` + WebSocket）：`7/7`
 - Web Panel 定向单元测试：`23/23`
 - Web Panel E2E：`29/29`
-- Desktop Coding Agent 桥接全链路：`85/85`（5 单元 + 3 集成 + 1 真实 CLI E2E，共 9 个文件）
+- Desktop Coding Agent 桥接全链路：`94/94`（含 9 个 v1.0 信封拆封新增用例）
+- Coding Agent 统一信封 v1.0 三端总测试：`408/408`
 - Web Panel 构建：通过
 - Docs Site 构建：通过
 
