@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/task-decomposition-enhancement.js`
 
-**Generated**: 2026-04-08T08:35:35.489Z
+**Generated**: 2026-04-08T08:54:59.156Z
 
 ---
 

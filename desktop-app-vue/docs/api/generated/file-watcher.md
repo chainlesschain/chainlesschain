@@ -2,7 +2,7 @@
 
 **Source**: `src/main/file/file-watcher.js`
 
-**Generated**: 2026-04-08T08:35:35.447Z
+**Generated**: 2026-04-08T08:54:59.121Z
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/bootstrap/core-initializer.js`
 
-**Generated**: 2026-04-08T08:35:35.478Z
+**Generated**: 2026-04-08T08:54:59.147Z
 
 ---
 

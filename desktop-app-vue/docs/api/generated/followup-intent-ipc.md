@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/followup-intent-ipc.js`
 
-**Generated**: 2026-04-08T08:35:35.494Z
+**Generated**: 2026-04-08T08:54:59.160Z
 
 ---
 

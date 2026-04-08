@@ -2,7 +2,7 @@
 
 **Source**: `src/main/organization/permission-middleware.js`
 
-**Generated**: 2026-04-08T08:35:35.412Z
+**Generated**: 2026-04-08T08:54:59.092Z
 
 ---
 
