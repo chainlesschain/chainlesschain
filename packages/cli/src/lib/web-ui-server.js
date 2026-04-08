@@ -12,6 +12,7 @@ import http from "http";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { getInlineSource as getEnvelopeInlineSource } from "./web-ui-envelope.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -654,7 +655,16 @@ function buildHtml({
     send({ type: 'session-list' });
   }
 
-  function handleMessage(msg) {
+  // Map unified envelope dot-case types back to legacy kebab-case so the
+  // existing switch table below keeps working without per-case rewrites.
+  // The CLI runtime wraps every coding-agent event in a v1.0 envelope.
+  // Source of truth lives in lib/web-ui-envelope.js — inlined here at
+  // build time so the browser bundle stays self-contained and the same
+  // unwrap logic is unit-testable in Node.
+  ${getEnvelopeInlineSource()}
+
+  function handleMessage(rawMsg) {
+    var msg = unwrapEnvelope(rawMsg);
     switch (msg.type) {
       case 'auth-result':
         if (msg.success) {
@@ -798,6 +808,8 @@ function buildHtml({
     ws.onmessage = ev => {
       let msg;
       try { msg = JSON.parse(ev.data); } catch { return; }
+      // Unwrap unified envelopes so the type compare below still matches.
+      msg = unwrapEnvelope(msg);
       if (msg.type === 'session-created' && msg.sessionId) {
         // Replace temp id
         sessions.delete(tempId);

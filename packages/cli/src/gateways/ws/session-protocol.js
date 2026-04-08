@@ -1,8 +1,33 @@
 import {
   RUNTIME_EVENTS,
   createRuntimeEvent,
+  createCodingAgentEvent,
+  CODING_AGENT_EVENT_TYPES,
 } from "../../runtime/runtime-events.js";
 import { createSessionRecord } from "../../runtime/contracts/session-record.js";
+
+// Build a unified envelope for a solicited WS response. The bridge correlates
+// by `requestId` (the inbound request's id) and unwraps `payload` for callers
+// so existing flat-shape consumers keep working unchanged.
+function envelopeResponse(type, id, payload, sessionId) {
+  return createCodingAgentEvent(type, payload || {}, {
+    requestId: id,
+    sessionId: sessionId || null,
+    source: "cli-runtime",
+  });
+}
+
+function envelopeError(id, code, message, sessionId) {
+  return createCodingAgentEvent(
+    CODING_AGENT_EVENT_TYPES.ERROR,
+    { code, message },
+    {
+      requestId: id,
+      sessionId: sessionId || null,
+      source: "cli-runtime",
+    },
+  );
+}
 
 async function ensureSessionHandler(server, ws, session) {
   if (server.sessionHandlers.has(session.id)) {
@@ -35,12 +60,14 @@ async function ensureSessionHandler(server, ws, session) {
 
 export async function handleSessionCreate(server, id, ws, message) {
   if (!server.sessionManager) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "NO_SESSION_SUPPORT",
-      message: "Session support not configured on this server",
-    });
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "NO_SESSION_SUPPORT",
+        "Session support not configured on this server",
+      ),
+    );
     return;
   }
 
@@ -51,6 +78,7 @@ export async function handleSessionCreate(server, id, ws, message) {
     apiKey,
     baseUrl,
     projectRoot,
+    enabledToolNames,
     hostManagedToolPolicy,
     worktreeIsolation,
   } = message;
@@ -63,6 +91,7 @@ export async function handleSessionCreate(server, id, ws, message) {
       apiKey,
       baseUrl,
       projectRoot,
+      enabledToolNames,
       hostManagedToolPolicy,
       worktreeIsolation,
     });
@@ -103,31 +132,30 @@ export async function handleSessionCreate(server, id, ws, message) {
       ),
     );
 
-    server._send(ws, {
-      id,
-      type: "session-created",
-      sessionId,
-      sessionType: sessionType || "agent",
-      record,
-    });
+    server._send(
+      ws,
+      envelopeResponse(
+        CODING_AGENT_EVENT_TYPES.SESSION_STARTED,
+        id,
+        {
+          sessionId,
+          sessionType: sessionType || "agent",
+          record,
+        },
+        sessionId,
+      ),
+    );
   } catch (err) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "SESSION_CREATE_FAILED",
-      message: err.message,
-    });
+    server._send(ws, envelopeError(id, "SESSION_CREATE_FAILED", err.message));
   }
 }
 
 export async function handleSessionResume(server, id, ws, message) {
   if (!server.sessionManager) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "NO_SESSION_SUPPORT",
-      message: "Session support not configured",
-    });
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
     return;
   }
 
@@ -135,12 +163,15 @@ export async function handleSessionResume(server, id, ws, message) {
   const session = server.sessionManager.resumeSession(sessionId);
 
   if (!session) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "SESSION_NOT_FOUND",
-      message: `Session not found: ${sessionId}`,
-    });
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
     return;
   }
 
@@ -173,13 +204,19 @@ export async function handleSessionResume(server, id, ws, message) {
     ),
   );
 
-  server._send(ws, {
-    id,
-    type: "session-resumed",
-    sessionId: session.id,
-    history,
-    record,
-  });
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.SESSION_RESUMED,
+      id,
+      {
+        sessionId: session.id,
+        history,
+        record,
+      },
+      session.id,
+    ),
+  );
 }
 
 export function handleSessionMessage(server, id, ws, message) {
@@ -187,12 +224,15 @@ export function handleSessionMessage(server, id, ws, message) {
   const handler = server.sessionHandlers.get(sessionId);
 
   if (!handler) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "SESSION_NOT_FOUND",
-      message: `No active session handler for: ${sessionId}`,
-    });
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `No active session handler for: ${sessionId}`,
+        sessionId,
+      ),
+    );
     return;
   }
 
@@ -221,12 +261,10 @@ export function handleSessionMessage(server, id, ws, message) {
       }
     })
     .catch((err) => {
-      server._send(ws, {
-        id,
-        type: "error",
-        code: "MESSAGE_FAILED",
-        message: err.message,
-      });
+      server._send(
+        ws,
+        envelopeError(id, "MESSAGE_FAILED", err.message, sessionId),
+      );
     });
 }
 
@@ -234,12 +272,10 @@ export function handleSessionPolicyUpdate(server, id, ws, message) {
   const { sessionId, hostManagedToolPolicy } = message;
 
   if (!server.sessionManager) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "NO_SESSION_SUPPORT",
-      message: "Session support not configured",
-    });
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
     return;
   }
 
@@ -251,31 +287,35 @@ export function handleSessionPolicyUpdate(server, id, ws, message) {
     : null;
 
   if (!session) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "SESSION_NOT_FOUND",
-      message: `Session not found: ${sessionId}`,
-    });
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
     return;
   }
 
-  server._send(ws, {
-    id,
-    type: "session-policy-updated",
-    success: true,
-    sessionId,
-  });
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.COMMAND_RESPONSE,
+      id,
+      { success: true, sessionId },
+      sessionId,
+    ),
+  );
 }
 
 export function handleSessionList(server, id, ws) {
   if (!server.sessionManager) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "NO_SESSION_SUPPORT",
-      message: "Session support not configured",
-    });
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
     return;
   }
 
@@ -290,11 +330,10 @@ export function handleSessionList(server, id, ws) {
         : [],
     }),
   }));
-  server._send(ws, {
-    id,
-    type: "session-list-result",
-    sessions,
-  });
+  server._send(
+    ws,
+    envelopeResponse(CODING_AGENT_EVENT_TYPES.SESSION_LIST, id, { sessions }),
+  );
 }
 
 export function handleSessionClose(server, id, ws, message) {
@@ -330,24 +369,25 @@ export function handleSessionClose(server, id, ws, message) {
     ),
   );
 
-  server._send(ws, {
-    id,
-    type: "result",
-    success: true,
-    sessionId,
-  });
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.COMMAND_RESPONSE,
+      id,
+      { success: true, sessionId },
+      sessionId,
+    ),
+  );
 }
 
 export function handleSessionAnswer(server, id, ws, message) {
   const { sessionId, requestId, answer } = message;
 
   if (!server.sessionManager) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "NO_SESSION_SUPPORT",
-      message: "Session support not configured",
-    });
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
     return;
   }
 
@@ -356,30 +396,39 @@ export function handleSessionAnswer(server, id, ws, message) {
     session.interaction.resolveAnswer(requestId, answer);
   }
 
-  server._send(ws, { id, type: "result", success: true });
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.COMMAND_RESPONSE,
+      id,
+      { success: true },
+      sessionId,
+    ),
+  );
 }
 
 export function handleHostToolResult(server, id, ws, message) {
   const { sessionId, requestId, success, result, error, toolName } = message;
 
   if (!server.sessionManager) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "NO_SESSION_SUPPORT",
-      message: "Session support not configured",
-    });
+    server._send(
+      ws,
+      envelopeError(id, "NO_SESSION_SUPPORT", "Session support not configured"),
+    );
     return;
   }
 
   const session = server.sessionManager.getSession(sessionId);
   if (!session || !session.interaction) {
-    server._send(ws, {
-      id,
-      type: "error",
-      code: "SESSION_NOT_FOUND",
-      message: `Session not found: ${sessionId}`,
-    });
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "SESSION_NOT_FOUND",
+        `Session not found: ${sessionId}`,
+        sessionId,
+      ),
+    );
     return;
   }
 
@@ -392,5 +441,13 @@ export function handleHostToolResult(server, id, ws, message) {
     });
   }
 
-  server._send(ws, { id, type: "result", success: true });
+  server._send(
+    ws,
+    envelopeResponse(
+      CODING_AGENT_EVENT_TYPES.COMMAND_RESPONSE,
+      id,
+      { success: true },
+      sessionId,
+    ),
+  );
 }

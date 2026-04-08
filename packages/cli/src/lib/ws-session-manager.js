@@ -9,19 +9,31 @@
 import { createHash } from "crypto";
 import fs from "fs";
 import path from "path";
-import { PlanModeManager } from "./plan-mode.js";
+import { ExecutionPlan, PlanModeManager, PlanState } from "./plan-mode.js";
 import { CLIContextEngineering } from "./cli-context-engineering.js";
 import { CLIPermanentMemory } from "./permanent-memory.js";
+import {
+  createTrustedMcpServerMap,
+  resolveMcpServerPolicy,
+  normalizeRiskLevel,
+  normalizeBoolean,
+  selectHigherRiskLevel,
+} from "../runtime/coding-agent-managed-tool-policy.cjs";
 import {
   createSession as dbCreateSession,
   saveMessages as dbSaveMessages,
   getSession as dbGetSession,
   listSessions as dbListSessions,
+  updateSession as dbUpdateSession,
 } from "./session-manager.js";
 import { buildSystemPrompt } from "./agent-core.js";
 import { SubAgentRegistry } from "./sub-agent-registry.js";
 import { createWorktree, removeWorktree } from "./worktree-isolator.js";
 import { isGitRepo } from "./git-integration.js";
+import {
+  CODING_AGENT_MVP_TOOL_NAMES,
+  listCodingAgentToolNames,
+} from "../runtime/coding-agent-contract.js";
 
 /**
  * @typedef {object} Session
@@ -36,7 +48,11 @@ import { isGitRepo } from "./git-integration.js";
  * @property {string} projectRoot
  * @property {string} baseProjectRoot
  * @property {string|null} rulesContent
+ * @property {string[]} enabledToolNames
  * @property {object|null} hostManagedToolPolicy
+ * @property {Array<object>} externalToolDefinitions
+ * @property {object} externalToolDescriptors
+ * @property {object} externalToolExecutors
  * @property {boolean} worktreeIsolation
  * @property {object|null} worktree
  * @property {PlanModeManager} planManager
@@ -58,9 +74,156 @@ export class WSSessionManager {
     this.db = options.db || null;
     this.config = options.config || {};
     this.defaultProjectRoot = options.defaultProjectRoot || process.cwd();
+    this.mcpClient = options.mcpClient || null;
+    this.allowedMcpServerNames = Array.isArray(options.allowedMcpServerNames)
+      ? options.allowedMcpServerNames
+      : null;
+    this.allowHighRiskMcpServers = options.allowHighRiskMcpServers === true;
+    this.trustedMcpServers = createTrustedMcpServerMap(
+      options.mcpServerRegistry || null,
+    );
 
     /** @type {Map<string, Session>} */
     this.sessions = new Map();
+  }
+
+  _normalizeEnabledToolNames(enabledToolNames) {
+    const knownToolNames = new Set(listCodingAgentToolNames());
+    const requested = Array.isArray(enabledToolNames)
+      ? enabledToolNames
+          .map((name) => String(name || "").trim())
+          .filter(Boolean)
+      : [];
+
+    const filtered = requested.filter((name) => knownToolNames.has(name));
+    if (filtered.length > 0) {
+      return [...new Set(filtered)];
+    }
+
+    return [...CODING_AGENT_MVP_TOOL_NAMES];
+  }
+
+  _buildSessionExternalTools() {
+    if (
+      !this.mcpClient ||
+      !(this.mcpClient.servers instanceof Map) ||
+      typeof this.mcpClient.listTools !== "function"
+    ) {
+      return {
+        definitions: [],
+        descriptors: {},
+        executors: {},
+      };
+    }
+
+    const definitions = [];
+    const descriptors = {};
+    const executors = {};
+    const seenNames = new Set();
+
+    for (const [serverName, serverState] of this.mcpClient.servers.entries()) {
+      const serverPolicy = resolveMcpServerPolicy(serverName, serverState, {
+        allowedMcpServerNames: this.allowedMcpServerNames,
+        trustedMcpServers: this.trustedMcpServers,
+        allowHighRiskMcpServers: this.allowHighRiskMcpServers,
+      });
+
+      if (!serverPolicy.allowed) {
+        continue;
+      }
+
+      const serverTools = Array.isArray(serverState?.tools)
+        ? serverState.tools
+        : this.mcpClient.listTools(serverName);
+
+      for (const mcpTool of Array.isArray(serverTools) ? serverTools : []) {
+        const parsedSchema = this._parseToolSchema(mcpTool?.inputSchema) ||
+          this._parseToolSchema(mcpTool?.input_schema) ||
+          this._parseToolSchema(mcpTool?.parameters_schema) || {
+            type: "object",
+            properties: {},
+          };
+        const riskLevel = selectHigherRiskLevel(
+          serverPolicy.securityLevel,
+          normalizeRiskLevel(mcpTool?.risk_level, null),
+        );
+        const isReadOnly =
+          normalizeBoolean(mcpTool?.isReadOnly, false) ||
+          normalizeBoolean(mcpTool?.is_read_only, false) ||
+          riskLevel === "low";
+
+        let toolName = `mcp_${serverName}_${mcpTool?.name || "tool"}`;
+        if (seenNames.has(toolName)) {
+          let index = 2;
+          let candidate = `${toolName}_${index}`;
+          while (seenNames.has(candidate)) {
+            index += 1;
+            candidate = `${toolName}_${index}`;
+          }
+          toolName = candidate;
+        }
+        seenNames.add(toolName);
+
+        const descriptor = {
+          name: toolName,
+          description: mcpTool?.description || `MCP tool from ${serverName}.`,
+          inputSchema: parsedSchema,
+          isReadOnly,
+          riskLevel,
+          source: `mcp:${serverName}`,
+          mcpMetadata: {
+            serverName,
+            trusted: serverPolicy.trusted === true,
+            securityLevel: serverPolicy.securityLevel,
+            requiredPermissions: serverPolicy.requiredPermissions || [],
+            capabilities: serverPolicy.capabilities || [],
+            originalToolName: mcpTool?.name || null,
+            tool: mcpTool || null,
+          },
+        };
+
+        definitions.push({
+          type: "function",
+          function: {
+            name: descriptor.name,
+            description: descriptor.description,
+            parameters: JSON.parse(JSON.stringify(descriptor.inputSchema)),
+          },
+        });
+        descriptors[descriptor.name] = descriptor;
+        executors[descriptor.name] = {
+          kind: "mcp",
+          serverName,
+          toolName: mcpTool?.name || null,
+        };
+      }
+    }
+
+    return {
+      definitions,
+      descriptors,
+      executors,
+    };
+  }
+
+  _parseToolSchema(value) {
+    if (!value) {
+      return null;
+    }
+
+    if (typeof value === "object") {
+      return value;
+    }
+
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch (_err) {
+      return null;
+    }
   }
 
   /**
@@ -101,6 +264,10 @@ export class WSSessionManager {
       options.baseUrl || cfgLlm.baseUrl || "http://localhost:11434";
     const apiKey = options.apiKey || cfgLlm.apiKey || null;
     const worktreeIsolationRequested = options.worktreeIsolation === true;
+    const enabledToolNames = this._normalizeEnabledToolNames(
+      options.enabledToolNames,
+    );
+    const externalTools = this._buildSessionExternalTools();
     const isolatedWorkspace = this._prepareSessionWorkspace(
       baseProjectRoot,
       sessionId,
@@ -168,7 +335,12 @@ export class WSSessionManager {
       model,
       apiKey,
       baseUrl,
+      mcpClient: this.mcpClient,
+      enabledToolNames,
       hostManagedToolPolicy: options.hostManagedToolPolicy || null,
+      externalToolDefinitions: externalTools.definitions,
+      externalToolDescriptors: externalTools.descriptors,
+      externalToolExecutors: externalTools.executors,
       projectRoot,
       baseProjectRoot,
       rulesContent: null,
@@ -182,6 +354,17 @@ export class WSSessionManager {
       lastActivity: new Date().toISOString(),
     };
 
+    if (this.db) {
+      try {
+        dbUpdateSession(this.db, sessionId, {
+          metadata: this._serializeSessionMetadata(session),
+        });
+      } catch (_err) {
+        // Non-critical
+      }
+    }
+
+    this._bindPlanManagerPersistence(session);
     this.sessions.set(sessionId, session);
 
     return { sessionId };
@@ -213,13 +396,23 @@ export class WSSessionManager {
         typeof dbSession.messages === "string"
           ? JSON.parse(dbSession.messages)
           : dbSession.messages || [];
-
-      const planManager = new PlanModeManager();
+      const metadata = this._normalizeSessionMetadata(dbSession.metadata);
+      const baseProjectRoot =
+        metadata.baseProjectRoot ||
+        metadata.projectRoot ||
+        this.defaultProjectRoot;
+      const workspace = this._restoreSessionWorkspace(
+        dbSession.id,
+        baseProjectRoot,
+        metadata,
+      );
+      const planManager = this._hydratePlanManager(metadata.planSnapshot);
+      const externalTools = this._buildSessionExternalTools();
       let contextEngine = null;
       let permanentMemory = null;
 
       try {
-        const memoryDir = path.join(this.defaultProjectRoot, "memory");
+        const memoryDir = path.join(workspace.projectRoot, "memory");
         permanentMemory = new CLIPermanentMemory({
           db: this.db,
           memoryDir,
@@ -240,19 +433,26 @@ export class WSSessionManager {
 
       const session = {
         id: dbSession.id,
-        type: "agent", // Default, since DB doesn't store type
+        type: metadata.sessionType || "agent",
         status: "active",
         messages,
         provider: dbSession.provider || "ollama",
         model: dbSession.model || null,
         apiKey: null,
-        baseUrl: "http://localhost:11434",
-        hostManagedToolPolicy: null,
-        projectRoot: this.defaultProjectRoot,
-        baseProjectRoot: this.defaultProjectRoot,
+        baseUrl: metadata.baseUrl || "http://localhost:11434",
+        mcpClient: this.mcpClient,
+        enabledToolNames: this._normalizeEnabledToolNames(
+          metadata.enabledToolNames,
+        ),
+        hostManagedToolPolicy: metadata.hostManagedToolPolicy || null,
+        externalToolDefinitions: externalTools.definitions,
+        externalToolDescriptors: externalTools.descriptors,
+        externalToolExecutors: externalTools.executors,
+        projectRoot: workspace.projectRoot,
+        baseProjectRoot,
         rulesContent: null,
-        worktreeIsolation: false,
-        worktree: null,
+        worktreeIsolation: metadata.worktreeIsolation === true,
+        worktree: workspace.worktree,
         planManager,
         contextEngine,
         permanentMemory,
@@ -261,6 +461,7 @@ export class WSSessionManager {
         lastActivity: new Date().toISOString(),
       };
 
+      this._bindPlanManagerPersistence(session);
       this.sessions.set(session.id, session);
       return session;
     } catch (_err) {
@@ -280,13 +481,7 @@ export class WSSessionManager {
     session.status = "closed";
 
     // Persist messages to DB
-    if (this.db) {
-      try {
-        dbSaveMessages(this.db, sessionId, session.messages);
-      } catch (_err) {
-        // Non-critical
-      }
-    }
+    this._persistSessionState(sessionId);
 
     // Auto-summarize into permanent memory
     if (session.permanentMemory && session.messages.length > 4) {
@@ -306,6 +501,13 @@ export class WSSessionManager {
 
     // Clean up plan manager listeners
     if (session.planManager) {
+      if (typeof session._planPersistenceCleanup === "function") {
+        try {
+          session._planPersistenceCleanup();
+        } catch (_err) {
+          // Non-critical.
+        }
+      }
       session.planManager.removeAllListeners();
     }
 
@@ -339,6 +541,7 @@ export class WSSessionManager {
         provider: session.provider,
         model: session.model,
         messageCount: session.messages.length,
+        enabledToolNames: session.enabledToolNames || [],
         baseProjectRoot: session.baseProjectRoot,
         worktreeIsolation: session.worktreeIsolation === true,
         worktree: session.worktree || null,
@@ -353,14 +556,21 @@ export class WSSessionManager {
         const dbSessions = dbListSessions(this.db, { limit: 20 });
         const inMemoryIds = new Set(this.sessions.keys());
         for (const dbs of dbSessions) {
+          const metadata = this._normalizeSessionMetadata(dbs.metadata);
           if (!inMemoryIds.has(dbs.id)) {
             results.push({
               id: dbs.id,
-              type: "unknown",
+              type: metadata.sessionType || "unknown",
               status: "persisted",
               provider: dbs.provider,
               model: dbs.model,
               messageCount: dbs.message_count,
+              enabledToolNames: Array.isArray(metadata.enabledToolNames)
+                ? metadata.enabledToolNames
+                : [],
+              baseProjectRoot: metadata.baseProjectRoot || null,
+              worktreeIsolation: metadata.worktreeIsolation === true,
+              worktree: metadata.worktree || null,
               createdAt: dbs.created_at,
               lastActivity: dbs.updated_at,
             });
@@ -397,6 +607,7 @@ export class WSSessionManager {
 
     session.hostManagedToolPolicy = hostManagedToolPolicy || null;
     session.lastActivity = new Date().toISOString();
+    this._persistSessionState(sessionId);
     return session;
   }
 
@@ -408,7 +619,12 @@ export class WSSessionManager {
     if (!session || !this.db) return;
 
     try {
-      dbSaveMessages(this.db, sessionId, session.messages);
+      dbSaveMessages(
+        this.db,
+        sessionId,
+        session.messages,
+        this._serializeSessionMetadata(session),
+      );
     } catch (_err) {
       // Non-critical
     }
@@ -440,6 +656,158 @@ export class WSSessionManager {
         path: worktree.path,
         baseProjectRoot: projectRoot,
       },
+    };
+  }
+
+  _persistSessionState(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !this.db) return;
+
+    try {
+      dbSaveMessages(
+        this.db,
+        sessionId,
+        session.messages,
+        this._serializeSessionMetadata(session),
+      );
+    } catch (_err) {
+      // Non-critical
+    }
+
+    session.lastActivity = new Date().toISOString();
+  }
+
+  _serializeSessionMetadata(session) {
+    return {
+      version: 1,
+      sessionType: session.type || "agent",
+      projectRoot: session.projectRoot || null,
+      baseProjectRoot: session.baseProjectRoot || session.projectRoot || null,
+      baseUrl: session.baseUrl || null,
+      hostManagedToolPolicy: session.hostManagedToolPolicy || null,
+      enabledToolNames: session.enabledToolNames || [],
+      worktreeIsolation: session.worktreeIsolation === true,
+      worktree: session.worktree || null,
+      planSnapshot: this._serializePlanManager(session.planManager),
+    };
+  }
+
+  _serializePlanManager(planManager) {
+    if (!planManager) {
+      return null;
+    }
+
+    return {
+      state: planManager.state || PlanState.INACTIVE,
+      currentPlan: planManager.currentPlan || null,
+      history: Array.isArray(planManager.history) ? planManager.history : [],
+      blockedToolLog: Array.isArray(planManager.blockedToolLog)
+        ? planManager.blockedToolLog
+        : [],
+    };
+  }
+
+  _normalizeSessionMetadata(metadata) {
+    if (!metadata) {
+      return {};
+    }
+
+    if (typeof metadata === "string") {
+      try {
+        return JSON.parse(metadata);
+      } catch (_err) {
+        return {};
+      }
+    }
+
+    return typeof metadata === "object" ? metadata : {};
+  }
+
+  _hydratePlanManager(snapshot) {
+    const planManager = new PlanModeManager();
+    if (!snapshot || typeof snapshot !== "object") {
+      return planManager;
+    }
+
+    planManager.state = snapshot.state || PlanState.INACTIVE;
+    planManager.currentPlan = snapshot.currentPlan
+      ? new ExecutionPlan(snapshot.currentPlan)
+      : null;
+    planManager.history = Array.isArray(snapshot.history)
+      ? snapshot.history.map((plan) => new ExecutionPlan(plan))
+      : [];
+    planManager.blockedToolLog = Array.isArray(snapshot.blockedToolLog)
+      ? [...snapshot.blockedToolLog]
+      : [];
+    return planManager;
+  }
+
+  _restoreSessionWorkspace(sessionId, baseProjectRoot, metadata = {}) {
+    const requestedWorktreeIsolation = metadata.worktreeIsolation === true;
+    const persistedWorktreePath = metadata.worktree?.path || null;
+
+    if (!requestedWorktreeIsolation) {
+      return {
+        projectRoot: metadata.projectRoot || baseProjectRoot,
+        worktree: null,
+      };
+    }
+
+    if (persistedWorktreePath && fs.existsSync(persistedWorktreePath)) {
+      return {
+        projectRoot: persistedWorktreePath,
+        worktree: {
+          ...(metadata.worktree || {}),
+          baseProjectRoot,
+        },
+      };
+    }
+
+    try {
+      return this._prepareSessionWorkspace(baseProjectRoot, sessionId, {
+        worktreeIsolation: true,
+      });
+    } catch (_err) {
+      return {
+        projectRoot: baseProjectRoot,
+        worktree: null,
+      };
+    }
+  }
+
+  _bindPlanManagerPersistence(session) {
+    if (
+      !session?.id ||
+      !session.planManager ||
+      typeof session.planManager.on !== "function"
+    ) {
+      return;
+    }
+
+    if (typeof session._planPersistenceCleanup === "function") {
+      session._planPersistenceCleanup();
+    }
+
+    const persist = () => this._persistSessionState(session.id);
+    const events = [
+      "enter",
+      "exit",
+      "item-added",
+      "plan-ready",
+      "plan-approved",
+      "tool-blocked",
+    ];
+
+    for (const eventName of events) {
+      session.planManager.on(eventName, persist);
+    }
+
+    session._planPersistenceCleanup = () => {
+      if (typeof session.planManager.off === "function") {
+        for (const eventName of events) {
+          session.planManager.off(eventName, persist);
+        }
+      }
     };
   }
 }

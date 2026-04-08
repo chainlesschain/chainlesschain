@@ -20,3 +20,15 @@ export {
   listLegacyAgentToolNames,
   getRuntimeToolDescriptor,
 } from "./legacy-agent-tools.js";
+export {
+  CODING_AGENT_MVP_TOOL_NAMES,
+  CODING_AGENT_EXTENSION_TOOL_NAMES,
+  createCodingAgentToolRegistry,
+  getCodingAgentRuntimeDescriptor,
+  getCodingAgentToolContract,
+  getCodingAgentToolContracts,
+  getCodingAgentToolPolicy,
+  isCodingAgentMvpTool,
+  listCodingAgentToolNames,
+  mapCodingAgentToolDefinition,
+} from "../runtime/coding-agent-contract.js";

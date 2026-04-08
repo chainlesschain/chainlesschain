@@ -1,4 +1,31 @@
 import { EventEmitter } from "node:events";
+import { createRequire } from "node:module";
+
+const requireCjs = createRequire(import.meta.url);
+const codingAgentEventsCjs = requireCjs("./coding-agent-events.cjs");
+
+/**
+ * Canonical Coding Agent event protocol — re-exported from the shared CJS
+ * module so the CLI runtime, the Desktop Main process and any future host
+ * all consume from the same source of truth.
+ *
+ * The legacy `RUNTIME_EVENTS` constants below remain for internal runtime
+ * bookkeeping (turn:start, server:start, etc.). They are NOT the wire
+ * protocol — when emitting events that cross the CLI/Desktop boundary,
+ * use `createCodingAgentEvent` and the `CODING_AGENT_EVENT_TYPES` enum.
+ */
+export const {
+  CODING_AGENT_EVENT_VERSION,
+  CODING_AGENT_EVENT_CHANNEL,
+  CODING_AGENT_EVENT_TYPES,
+  LEGACY_TO_UNIFIED_TYPE,
+  CodingAgentSequenceTracker,
+  defaultSequenceTracker,
+  createCodingAgentEvent,
+  wrapLegacyMessage,
+  validateCodingAgentEvent,
+  mapLegacyType,
+} = codingAgentEventsCjs;
 
 export const RUNTIME_EVENTS = {
   RUNTIME_START: "runtime:start",

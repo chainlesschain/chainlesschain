@@ -79,6 +79,22 @@ describe("session-manager", () => {
       expect(JSON.parse(rows[0].messages)).toEqual([]);
     });
 
+    it("stores metadata as JSON", () => {
+      createSession(db, {
+        id: "s-meta",
+        title: "Meta",
+        metadata: {
+          sessionType: "agent",
+          projectRoot: "/tmp/project",
+        },
+      });
+      const rows = db.data.get("llm_sessions") || [];
+      expect(JSON.parse(rows[0].metadata)).toEqual({
+        sessionType: "agent",
+        projectRoot: "/tmp/project",
+      });
+    });
+
     it("generates unique IDs when not specified", () => {
       const r1 = createSession(db, { title: "A" });
       const r2 = createSession(db, { title: "B" });
@@ -166,6 +182,19 @@ describe("session-manager", () => {
       expect(session.messages.length).toBe(1);
       expect(session.messages[0].content).toBe("new");
     });
+
+    it("updates metadata when provided", () => {
+      createSession(db, { id: "s1", title: "Test" });
+      saveMessages(db, "s1", [{ role: "user", content: "new" }], {
+        sessionType: "agent",
+        baseUrl: "http://localhost:11434",
+      });
+      const session = getSession(db, "s1");
+      expect(session.metadata).toEqual({
+        sessionType: "agent",
+        baseUrl: "http://localhost:11434",
+      });
+    });
   });
 
   // ── getSession ──
@@ -203,6 +232,22 @@ describe("session-manager", () => {
       createSession(db, { id: "s1", title: "Test" });
       const session = getSession(db, "s1");
       expect(session.messages).toEqual([]);
+    });
+
+    it("parses metadata JSON", () => {
+      createSession(db, {
+        id: "s1",
+        title: "Test",
+        metadata: {
+          sessionType: "agent",
+          worktreeIsolation: true,
+        },
+      });
+      const session = getSession(db, "s1");
+      expect(session.metadata).toEqual({
+        sessionType: "agent",
+        worktreeIsolation: true,
+      });
     });
 
     it("finds session by prefix match", () => {
@@ -258,11 +303,13 @@ describe("session-manager", () => {
         id: "s1",
         title: "Test",
         messages: [{ role: "user", content: "long text" }],
+        metadata: { sessionType: "agent" },
       });
       const sessions = listSessions(db);
       // listSessions selects specific columns, not messages
       expect(sessions[0].id).toBe("s1");
       expect(sessions[0].title).toBe("Test");
+      expect(sessions[0].metadata).toEqual({ sessionType: "agent" });
     });
   });
 
@@ -281,6 +328,18 @@ describe("session-manager", () => {
       updateSession(db, "s1", { summary: "A test summary" });
       const rows = db.data.get("llm_sessions") || [];
       expect(rows[0].summary).toBe("A test summary");
+    });
+
+    it("updates metadata", () => {
+      createSession(db, { id: "s1", title: "Test" });
+      updateSession(db, "s1", {
+        metadata: { sessionType: "chat", baseProjectRoot: "/repo" },
+      });
+      const session = getSession(db, "s1");
+      expect(session.metadata).toEqual({
+        sessionType: "chat",
+        baseProjectRoot: "/repo",
+      });
     });
   });
 

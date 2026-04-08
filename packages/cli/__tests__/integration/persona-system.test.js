@@ -19,6 +19,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { listCodingAgentToolNames } from "../../src/runtime/coding-agent-contract.js";
 
 // Mock plan-mode (required by agent-core)
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -44,6 +45,7 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
 
 const { buildSystemPrompt, getBaseSystemPrompt, executeTool, chatWithTools } =
   await import("../../src/lib/agent-core.js");
+const CODING_AGENT_TOOL_NAMES = listCodingAgentToolNames();
 
 describe("Integration: Persona System", () => {
   let tempDir;
@@ -342,7 +344,9 @@ This should NOT be auto-activated.`,
       expect(toolNames).not.toContain("write_file");
       expect(toolNames).toContain("read_file");
       expect(toolNames).toContain("search_files");
-      expect(capturedBody.tools.length).toBe(8); // 10 - 2 disabled
+      expect(capturedBody.tools.length).toBe(
+        CODING_AGENT_TOOL_NAMES.length - 2,
+      );
     });
 
     it("no filtering when no persona configured", async () => {
@@ -368,7 +372,7 @@ This should NOT be auto-activated.`,
           cwd: noProjectDir,
         });
 
-        expect(capturedBody.tools.length).toBe(10); // All tools
+        expect(capturedBody.tools.length).toBe(CODING_AGENT_TOOL_NAMES.length);
       } finally {
         rmSync(noProjectDir, { recursive: true, force: true });
       }

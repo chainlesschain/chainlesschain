@@ -22,11 +22,29 @@ function mockWs() {
   };
 }
 
-/** Parse the last JSON sent via ws.send */
+/** Parse the last JSON sent via ws.send. Unified envelopes (the v1.0
+ *  protocol the CLI runtime now emits) are unwrapped into a flat shape so
+ *  existing assertions like `resp.sessionId` / `resp.record` keep working.
+ *  The `id` field is reconstructed from the envelope's `requestId`. */
 function lastSent(ws) {
   const calls = ws.send.mock.calls;
   if (calls.length === 0) return null;
-  return JSON.parse(calls[calls.length - 1][0]);
+  const raw = JSON.parse(calls[calls.length - 1][0]);
+  if (
+    raw &&
+    raw.version === "1.0" &&
+    typeof raw.eventId === "string" &&
+    raw.payload &&
+    typeof raw.payload === "object"
+  ) {
+    return {
+      ...raw.payload,
+      type: raw.type,
+      id: raw.requestId,
+      _envelope: raw,
+    };
+  }
+  return raw;
 }
 
 /** Create a mock session manager with controllable returns */
@@ -120,7 +138,7 @@ describe("Integration: WebSocket Session Workflow", () => {
     });
 
     const resp = lastSent(ws);
-    expect(resp.type).toBe("session-created");
+    expect(resp.type).toBe("session.started");
     expect(resp.sessionId).toBe("test-session-1");
     expect(resp.id).toBe("req-1");
   });
@@ -139,7 +157,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       expect.objectContaining({ type: "agent" }),
     );
     const resp = lastSent(ws);
-    expect(resp.type).toBe("session-created");
+    expect(resp.type).toBe("session.started");
     expect(resp.sessionType).toBe("agent");
   });
 
@@ -166,7 +184,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       expect.objectContaining({ type: "chat" }),
     );
     const resp = lastSent(ws);
-    expect(resp.type).toBe("session-created");
+    expect(resp.type).toBe("session.started");
     expect(resp.sessionType).toBe("chat");
   });
 
@@ -216,11 +234,69 @@ describe("Integration: WebSocket Session Workflow", () => {
 
     expect(sm.resumeSession).toHaveBeenCalledWith("test-session-1");
     const resp = lastSent(ws);
-    expect(resp.type).toBe("session-resumed");
+    expect(resp.type).toBe("session.resumed");
     expect(resp.sessionId).toBe("test-session-1");
     expect(resp.history).toBeInstanceOf(Array);
     // System messages should be filtered out
     expect(resp.history.some((m) => m.role === "system")).toBe(false);
+  });
+
+  it("session-resume returns policy and plan metadata in the record", async () => {
+    const sm = mockSessionManager({
+      resumeSession: vi.fn().mockReturnValue({
+        id: "test-session-1",
+        type: "agent",
+        messages: [
+          { role: "system", content: "System prompt" },
+          { role: "user", content: "Previous message" },
+        ],
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        projectRoot: "/repo/.worktrees/test-session-1",
+        baseProjectRoot: "/repo",
+        hostManagedToolPolicy: {
+          tools: {
+            git: {
+              allowed: false,
+              decision: "require_confirmation",
+              planModeBehavior: "readonly-conditional",
+            },
+          },
+        },
+        worktreeIsolation: true,
+        worktree: {
+          branch: "coding-agent/test-session-1",
+          path: "/repo/.worktrees/test-session-1",
+          baseProjectRoot: "/repo",
+        },
+        planManager: { state: "approved" },
+        interaction: null,
+      }),
+    });
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-resume-record",
+      type: "session-resume",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("session.resumed");
+    expect(resp.record).toEqual(
+      expect.objectContaining({
+        id: "test-session-1",
+        type: "agent",
+        planModeState: "approved",
+        hasHostManagedToolPolicy: true,
+        worktreeIsolation: true,
+        baseProjectRoot: "/repo",
+        worktree: expect.objectContaining({
+          branch: "coding-agent/test-session-1",
+          path: "/repo/.worktrees/test-session-1",
+        }),
+      }),
+    );
   });
 
   // ─── session-list ──────────────────────────────────────────────────
@@ -235,7 +311,7 @@ describe("Integration: WebSocket Session Workflow", () => {
     });
 
     const resp = lastSent(ws);
-    expect(resp.type).toBe("session-list-result");
+    expect(resp.type).toBe("session.list");
     expect(resp.sessions).toBeInstanceOf(Array);
     expect(resp.sessions.length).toBe(1);
     expect(resp.sessions[0].id).toBe("test-session-1");
@@ -245,6 +321,114 @@ describe("Integration: WebSocket Session Workflow", () => {
         type: "agent",
         status: "active",
         messageCount: 0,
+      }),
+    );
+  });
+
+  it("session-create includes host policy and worktree metadata in the session record", async () => {
+    const hostManagedToolPolicy = {
+      tools: {
+        git: {
+          allowed: false,
+          decision: "require_confirmation",
+          planModeBehavior: "readonly-conditional",
+        },
+      },
+    };
+    const sm = mockSessionManager({
+      getSession: vi.fn().mockReturnValue({
+        id: "test-session-1",
+        type: "agent",
+        provider: "ollama",
+        model: "qwen2.5:7b",
+        projectRoot: "/repo/.worktrees/test-session-1",
+        baseProjectRoot: "/repo",
+        messages: [{ role: "system", content: "You are an assistant." }],
+        hostManagedToolPolicy,
+        worktreeIsolation: true,
+        worktree: {
+          branch: "coding-agent/test-session-1",
+          path: "/repo/.worktrees/test-session-1",
+          baseProjectRoot: "/repo",
+        },
+        planManager: { state: "analyzing" },
+        interaction: null,
+      }),
+    });
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-create-record",
+      type: "session-create",
+      sessionType: "agent",
+      projectRoot: "/repo",
+      hostManagedToolPolicy,
+      worktreeIsolation: true,
+    });
+
+    expect(sm.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "agent",
+        projectRoot: "/repo",
+        hostManagedToolPolicy,
+        worktreeIsolation: true,
+      }),
+    );
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("session.started");
+    expect(resp.record).toEqual(
+      expect.objectContaining({
+        id: "test-session-1",
+        type: "agent",
+        projectRoot: "/repo/.worktrees/test-session-1",
+        baseProjectRoot: "/repo",
+        planModeState: "analyzing",
+        hasHostManagedToolPolicy: true,
+        worktreeIsolation: true,
+        worktree: expect.objectContaining({
+          branch: "coding-agent/test-session-1",
+          path: "/repo/.worktrees/test-session-1",
+        }),
+      }),
+    );
+  });
+
+  it("session-policy-update persists host-managed policy changes", () => {
+    const updatedPolicy = {
+      tools: {
+        git: {
+          allowed: false,
+          decision: "require_confirmation",
+          planModeBehavior: "readonly-conditional",
+        },
+      },
+    };
+    const sm = mockSessionManager({
+      updateSessionPolicy: vi.fn().mockReturnValue({
+        id: "test-session-1",
+        hostManagedToolPolicy: updatedPolicy,
+      }),
+    });
+    setupServer(sm);
+
+    server._handleMessage("client-1", ws, {
+      id: "req-policy-update",
+      type: "session-policy-update",
+      sessionId: "test-session-1",
+      hostManagedToolPolicy: updatedPolicy,
+    });
+
+    expect(sm.updateSessionPolicy).toHaveBeenCalledWith(
+      "test-session-1",
+      updatedPolicy,
+    );
+    expect(lastSent(ws)).toEqual(
+      expect.objectContaining({
+        id: "req-policy-update",
+        type: "command.response",
+        success: true,
+        sessionId: "test-session-1",
       }),
     );
   });
@@ -270,7 +454,7 @@ describe("Integration: WebSocket Session Workflow", () => {
 
     expect(sm.closeSession).toHaveBeenCalledWith("test-session-1");
     const resp = lastSent(ws);
-    expect(resp.type).toBe("result");
+    expect(resp.type).toBe("command.response");
     expect(resp.success).toBe(true);
     expect(server.sessionHandlers.has("test-session-1")).toBe(false);
   });
@@ -408,7 +592,7 @@ describe("Integration: WebSocket Session Workflow", () => {
     });
 
     const resp = lastSent(ws);
-    expect(resp.type).toBe("session-resumed");
+    expect(resp.type).toBe("session.resumed");
     expect(resp.sessionId).toBe("resumed-session-1");
     // System messages should be filtered from history
     expect(resp.history.some((m) => m.role === "system")).toBe(false);
@@ -565,7 +749,7 @@ describe("Integration: WebSocket Session Workflow", () => {
       type: "session-create",
       sessionType: "agent",
     });
-    expect(lastSent(ws).type).toBe("session-created");
+    expect(lastSent(ws).type).toBe("session.started");
 
     // Step 2: Register a mock handler
     const mockHandler = {

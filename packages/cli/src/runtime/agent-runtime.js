@@ -15,11 +15,27 @@ import { startChatRepl } from "../gateways/repl/chat-repl.js";
 import { ChainlessChainWSServer } from "../gateways/ws/ws-server.js";
 import { WSSessionManager } from "../gateways/ws/ws-session-gateway.js";
 import { createWebUIServer } from "../gateways/ui/web-ui-server.js";
-import {
-  findProjectRoot,
-  loadProjectConfig,
-} from "../lib/project-detector.js";
+import { MCPClient, MCPServerConfig } from "../lib/mcp-client.js";
+import sharedManagedToolPolicy from "./coding-agent-managed-tool-policy.cjs";
+import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
 import { loadConfig } from "../lib/config-manager.js";
+
+const {
+  DEFAULT_ALLOWED_MCP_SERVER_NAMES,
+  createTrustedMcpServerMap,
+  resolveMcpServerPolicy,
+} = sharedManagedToolPolicy;
+
+const BUILTIN_CODING_AGENT_MCP_REGISTRY = Object.freeze({
+  trustedServers: [
+    {
+      id: "weather",
+      securityLevel: "low",
+      requiredPermissions: ["network:http"],
+      capabilities: ["tools", "resources"],
+    },
+  ],
+});
 
 function openBrowser(url) {
   try {
@@ -48,11 +64,15 @@ export class AgentRuntime {
       startChatRepl: deps.startChatRepl || startChatRepl,
       bootstrap: deps.bootstrap || bootstrap,
       createServer:
-        deps.createServer ||
-        ((options) => new ChainlessChainWSServer(options)),
+        deps.createServer || ((options) => new ChainlessChainWSServer(options)),
       createSessionManager:
         deps.createSessionManager ||
         ((options) => new WSSessionManager(options)),
+      createMcpClient: deps.createMcpClient || (() => new MCPClient()),
+      createMcpServerConfig:
+        deps.createMcpServerConfig || ((db) => new MCPServerConfig(db)),
+      mcpServerRegistry:
+        deps.mcpServerRegistry || BUILTIN_CODING_AGENT_MCP_REGISTRY,
       createWebServer:
         deps.createWebServer || ((options) => createWebUIServer(options)),
       findProjectRoot: deps.findProjectRoot || findProjectRoot,
@@ -105,22 +125,29 @@ export class AgentRuntime {
       return this.startAgentSession();
     }
 
-    throw new Error(`resumeSession is not supported for runtime kind "${this.kind}".`);
+    throw new Error(
+      `resumeSession is not supported for runtime kind "${this.kind}".`,
+    );
   }
 
   async runTurn(input, meta = {}) {
     if (typeof this.deps.runTurn !== "function") {
-      throw new Error(`runTurn is not configured for runtime kind "${this.kind}".`);
+      throw new Error(
+        `runTurn is not configured for runtime kind "${this.kind}".`,
+      );
     }
 
     const startedAt = Date.now();
-    this.emit(RUNTIME_EVENTS.TURN_START, createAgentTurnRecord({
-      kind: this.kind,
-      input,
-      meta,
-      sessionId: this.policy.sessionId || null,
-      startedAt,
-    }));
+    this.emit(
+      RUNTIME_EVENTS.TURN_START,
+      createAgentTurnRecord({
+        kind: this.kind,
+        input,
+        meta,
+        sessionId: this.policy.sessionId || null,
+        startedAt,
+      }),
+    );
 
     const result = await this.deps.runTurn({
       input,
@@ -130,15 +157,18 @@ export class AgentRuntime {
       context: this.context,
     });
 
-    this.emit(RUNTIME_EVENTS.TURN_END, createAgentTurnRecord({
-      kind: this.kind,
-      input,
-      meta,
-      result,
-      sessionId: this.policy.sessionId || null,
-      startedAt,
-      endedAt: Date.now(),
-    }));
+    this.emit(
+      RUNTIME_EVENTS.TURN_END,
+      createAgentTurnRecord({
+        kind: this.kind,
+        input,
+        meta,
+        result,
+        sessionId: this.policy.sessionId || null,
+        startedAt,
+        endedAt: Date.now(),
+      }),
+    );
 
     return result;
   }
@@ -169,14 +199,8 @@ export class AgentRuntime {
 
   async startServer() {
     const { logger: runtimeLogger } = this.deps;
-    const {
-      port,
-      maxConnections,
-      timeout,
-      token,
-      allowRemote,
-      project,
-    } = this.policy;
+    const { port, maxConnections, timeout, token, allowRemote, project } =
+      this.policy;
     let { host } = this.policy;
 
     if (Number.isNaN(port) || port < 1 || port > 65535) {
@@ -191,9 +215,11 @@ export class AgentRuntime {
     }
 
     let db = null;
+    let rawDb = null;
     try {
       const ctx = await this.deps.bootstrap({ skipDb: false });
-      db = ctx.db?.getDb?.() || null;
+      rawDb = ctx.db?.getDatabase?.() || ctx.db?.getDb?.() || null;
+      db = rawDb;
     } catch (_err) {
       runtimeLogger.log(
         chalk.yellow(
@@ -202,9 +228,16 @@ export class AgentRuntime {
       );
     }
 
+    const mcpClient = await this._initializeCodingAgentMcpClient(rawDb, {
+      logger: runtimeLogger,
+    });
+
     const sessionManager = this.deps.createSessionManager({
       db,
       defaultProjectRoot: project,
+      mcpClient,
+      allowedMcpServerNames: DEFAULT_ALLOWED_MCP_SERVER_NAMES,
+      mcpServerRegistry: this.deps.mcpServerRegistry,
     });
 
     const server = this.deps.createServer({
@@ -217,7 +250,9 @@ export class AgentRuntime {
     });
 
     server.on("connection", ({ clientId, ip }) => {
-      runtimeLogger.log(chalk.green(`  + Client connected: ${clientId} (${ip})`));
+      runtimeLogger.log(
+        chalk.green(`  + Client connected: ${clientId} (${ip})`),
+      );
     });
 
     server.on("disconnection", ({ clientId, reason }) => {
@@ -250,6 +285,9 @@ export class AgentRuntime {
       runtimeLogger.log(
         "\n" + chalk.yellow("Shutting down WebSocket server..."),
       );
+      if (mcpClient && typeof mcpClient.disconnectAll === "function") {
+        await mcpClient.disconnectAll().catch(() => undefined);
+      }
       await server.stop();
       process.exit(0);
     };
@@ -305,14 +343,15 @@ export class AgentRuntime {
       ? this.deps.loadProjectConfig(projectRoot)
       : null;
     const projectName =
-      projectConfig?.name ||
-      (projectRoot ? path.basename(projectRoot) : null);
+      projectConfig?.name || (projectRoot ? path.basename(projectRoot) : null);
     const mode = projectRoot ? "project" : "global";
 
     let db = null;
+    let rawDb = null;
     try {
       const ctx = await this.deps.bootstrap({ skipDb: false });
-      db = ctx.db?.getDb?.() || null;
+      rawDb = ctx.db?.getDatabase?.() || ctx.db?.getDb?.() || null;
+      db = rawDb;
     } catch (_err) {
       runtimeLogger.log(
         chalk.yellow(
@@ -322,10 +361,16 @@ export class AgentRuntime {
     }
 
     const appConfig = this.deps.loadConfig();
+    const mcpClient = await this._initializeCodingAgentMcpClient(rawDb, {
+      logger: runtimeLogger,
+    });
     const sessionManager = this.deps.createSessionManager({
       db,
       defaultProjectRoot: projectRoot || process.cwd(),
       config: appConfig,
+      mcpClient,
+      allowedMcpServerNames: DEFAULT_ALLOWED_MCP_SERVER_NAMES,
+      mcpServerRegistry: this.deps.mcpServerRegistry,
     });
 
     const wsServer = this.deps.createServer({
@@ -395,6 +440,9 @@ export class AgentRuntime {
 
     const shutdown = async () => {
       runtimeLogger.log("\n" + chalk.yellow("Shutting down UI server..."));
+      if (mcpClient && typeof mcpClient.disconnectAll === "function") {
+        await mcpClient.disconnectAll().catch(() => undefined);
+      }
       await Promise.all([
         new Promise((resolve) => httpServer.close(resolve)),
         wsServer.stop(),
@@ -413,5 +461,60 @@ export class AgentRuntime {
       projectRoot,
       projectName,
     };
+  }
+
+  async _initializeCodingAgentMcpClient(db, options = {}) {
+    if (!db) {
+      return null;
+    }
+
+    const trustedMcpServers = createTrustedMcpServerMap(
+      this.deps.mcpServerRegistry,
+    );
+    const configStore = this.deps.createMcpServerConfig(db);
+    const autoConnectServers =
+      typeof configStore?.getAutoConnect === "function"
+        ? configStore.getAutoConnect()
+        : [];
+    const eligibleServers = autoConnectServers.filter(
+      (server) =>
+        resolveMcpServerPolicy(
+          server?.name,
+          { state: "connected" },
+          {
+            allowedMcpServerNames: DEFAULT_ALLOWED_MCP_SERVER_NAMES,
+            trustedMcpServers,
+          },
+        ).allowed,
+    );
+
+    if (eligibleServers.length === 0) {
+      return null;
+    }
+
+    const mcpClient = this.deps.createMcpClient();
+    let connectedCount = 0;
+
+    for (const server of eligibleServers) {
+      try {
+        await mcpClient.connect(server.name, server);
+        connectedCount += 1;
+      } catch (err) {
+        options.logger?.log?.(
+          chalk.yellow(
+            `  Warning: MCP server "${server.name}" auto-connect failed: ${err.message}`,
+          ),
+        );
+      }
+    }
+
+    if (connectedCount === 0) {
+      if (typeof mcpClient.disconnectAll === "function") {
+        await mcpClient.disconnectAll().catch(() => undefined);
+      }
+      return null;
+    }
+
+    return mcpClient;
   }
 }

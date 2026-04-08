@@ -7,6 +7,25 @@
  */
 
 import { createHash } from "crypto";
+import {
+  createCodingAgentEvent,
+  CodingAgentSequenceTracker,
+  CODING_AGENT_EVENT_TYPES,
+  LEGACY_TO_UNIFIED_TYPE,
+} from "../runtime/runtime-events.js";
+
+// Whitelist of event types the CLI runtime should emit as unified envelopes
+// (with source: "cli-runtime"). Anything not in this set keeps the legacy
+// raw shape so non-coding-agent transports (host-tool callbacks, generic
+// progress events, etc.) are unaffected.
+const CODING_AGENT_EVENT_TYPE_SET = new Set([
+  ...Object.values(CODING_AGENT_EVENT_TYPES),
+  ...Object.keys(LEGACY_TO_UNIFIED_TYPE),
+]);
+
+function isCodingAgentEventType(type) {
+  return typeof type === "string" && CODING_AGENT_EVENT_TYPE_SET.has(type);
+}
 
 /**
  * Base class — subclasses must implement askInput, askSelect, askConfirm, emit.
@@ -87,6 +106,10 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     this.sessionId = sessionId;
     /** @type {Map<string, {resolve: Function, reject: Function}>} */
     this._pending = new Map();
+    // Per-instance sequence tracker so monotonic sequences are scoped to
+    // this WS session instead of leaking across sessions via the process-
+    // global default tracker.
+    this._sequenceTracker = new CodingAgentSequenceTracker();
   }
 
   /** Generate a unique request id */
@@ -184,6 +207,28 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
   }
 
   emit(eventType, data) {
+    // Coding-agent events flow as the unified envelope so the Desktop bridge
+    // (and any other consumer) sees a single canonical shape with
+    // source: "cli-runtime" baked in — no Bridge-layer translation needed.
+    if (isCodingAgentEventType(eventType)) {
+      const payload = data && typeof data === "object" ? { ...data } : {};
+      const requestId = payload.requestId || null;
+      const sessionId = payload.sessionId || this.sessionId || null;
+      delete payload.requestId;
+      delete payload.sessionId;
+
+      const envelope = createCodingAgentEvent(eventType, payload, {
+        sessionId,
+        requestId,
+        source: "cli-runtime",
+        tracker: this._sequenceTracker,
+      });
+      this._sendWs(envelope);
+      return;
+    }
+
+    // Non-coding-agent events (host-tool callbacks, generic progress, etc.)
+    // keep the legacy raw shape — they are not part of the v1.0 protocol.
     this._sendWs({
       type: eventType,
       sessionId: this.sessionId,

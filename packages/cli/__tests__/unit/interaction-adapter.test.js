@@ -205,7 +205,7 @@ describe("WebSocketInteractionAdapter", () => {
     expect(adapter._pending.size).toBe(0);
   });
 
-  it("emit sends via ws", () => {
+  it("emit sends non-coding-agent events as raw shape (backward compat)", () => {
     adapter.emit("progress", { percent: 50 });
 
     expect(ws.send).toHaveBeenCalledTimes(1);
@@ -213,6 +213,69 @@ describe("WebSocketInteractionAdapter", () => {
     expect(sent.type).toBe("progress");
     expect(sent.sessionId).toBe("session-123");
     expect(sent.percent).toBe(50);
+    // Raw shape — no envelope fields
+    expect(sent.version).toBeUndefined();
+    expect(sent.eventId).toBeUndefined();
+  });
+
+  it("emit wraps coding-agent legacy types as unified envelope with cli-runtime source", () => {
+    adapter.emit("tool-executing", {
+      requestId: "req-42",
+      tool: "edit_file",
+      args: { path: "foo.js" },
+      display: "edit_file foo.js",
+    });
+
+    expect(ws.send).toHaveBeenCalledTimes(1);
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.version).toBe("1.0");
+    expect(sent.type).toBe("tool.call.started");
+    expect(sent.source).toBe("cli-runtime");
+    expect(sent.sessionId).toBe("session-123");
+    expect(sent.requestId).toBe("req-42");
+    expect(sent.eventId).toEqual(expect.any(String));
+    expect(sent.sequence).toBe(1);
+    expect(sent.payload).toEqual({
+      tool: "edit_file",
+      args: { path: "foo.js" },
+      display: "edit_file foo.js",
+    });
+    // Envelope should NOT contain raw top-level fields
+    expect(sent.tool).toBeUndefined();
+    expect(sent.args).toBeUndefined();
+  });
+
+  it("emit wraps coding-agent dot-case unified types as envelope", () => {
+    adapter.emit("assistant.delta", {
+      requestId: "req-7",
+      text: "正在分析…",
+    });
+
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.type).toBe("assistant.delta");
+    expect(sent.source).toBe("cli-runtime");
+    expect(sent.requestId).toBe("req-7");
+    expect(sent.payload).toEqual({ text: "正在分析…" });
+  });
+
+  it("emit issues monotonically increasing sequences per requestId on same instance", () => {
+    adapter.emit("tool-executing", { requestId: "req-A", tool: "x" });
+    adapter.emit("tool-result", { requestId: "req-A", result: "ok" });
+    adapter.emit("response-complete", { requestId: "req-A", content: "done" });
+    adapter.emit("tool-executing", { requestId: "req-B", tool: "y" });
+
+    const calls = ws.send.mock.calls.map((c) => JSON.parse(c[0]));
+    expect(calls[0].sequence).toBe(1);
+    expect(calls[1].sequence).toBe(2);
+    expect(calls[2].sequence).toBe(3);
+    expect(calls[3].sequence).toBe(1); // new requestId resets sequence
+  });
+
+  it("emit falls back to adapter sessionId when payload omits it", () => {
+    adapter.emit("response-complete", { content: "hi" });
+    const sent = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(sent.sessionId).toBe("session-123");
+    expect(sent.type).toBe("assistant.final");
   });
 
   it("_sendWs handles closed connection by not sending", () => {

@@ -3,10 +3,27 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock all heavy dependencies before importing
 vi.mock("../../src/lib/plan-mode.js", () => ({
   PlanModeManager: vi.fn(() => ({
+    state: "inactive",
+    currentPlan: null,
+    history: [],
+    blockedToolLog: [],
     isActive: vi.fn(() => false),
     enterPlanMode: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
     removeAllListeners: vi.fn(),
   })),
+  PlanState: {
+    INACTIVE: "inactive",
+    ANALYZING: "analyzing",
+    APPROVED: "approved",
+  },
+  ExecutionPlan: class ExecutionPlan {
+    constructor(data = {}) {
+      Object.assign(this, data);
+      this.items = data.items || [];
+    }
+  },
 }));
 
 vi.mock("../../src/lib/cli-context-engineering.js", () => ({
@@ -31,6 +48,7 @@ vi.mock("../../src/lib/session-manager.js", () => ({
   saveMessages: vi.fn(),
   getSession: vi.fn(),
   listSessions: vi.fn(() => []),
+  updateSession: vi.fn(),
 }));
 
 vi.mock("../../src/lib/agent-core.js", () => ({
@@ -65,6 +83,7 @@ import {
   saveMessages as dbSaveMessages,
   getSession as dbGetSession,
   listSessions as dbListSessions,
+  updateSession as dbUpdateSession,
 } from "../../src/lib/session-manager.js";
 import {
   createWorktree,
@@ -72,6 +91,7 @@ import {
 } from "../../src/lib/worktree-isolator.js";
 import { isGitRepo } from "../../src/lib/git-integration.js";
 import fs from "fs";
+import { CODING_AGENT_MVP_TOOL_NAMES } from "../../src/runtime/coding-agent-contract.js";
 
 describe("WSSessionManager", () => {
   let manager;
@@ -231,6 +251,128 @@ describe("WSSessionManager", () => {
       expect(session.hostManagedToolPolicy).toEqual(hostManagedToolPolicy);
     });
 
+    it("defaults coding sessions to the MVP tool set", () => {
+      const { sessionId } = manager.createSession();
+      const session = manager.getSession(sessionId);
+
+      expect(session.enabledToolNames).toEqual(CODING_AGENT_MVP_TOOL_NAMES);
+    });
+
+    it("stores a normalized enabledToolNames allowlist when provided", () => {
+      const { sessionId } = manager.createSession({
+        enabledToolNames: ["run_code", "read_file", "read_file", "unknown"],
+      });
+      const session = manager.getSession(sessionId);
+
+      expect(session.enabledToolNames).toEqual(["run_code", "read_file"]);
+    });
+
+    it("builds direct session MCP tools from a trusted connected mcpClient", () => {
+      const mcpClient = {
+        servers: new Map([
+          [
+            "weather",
+            {
+              state: "connected",
+              tools: [
+                {
+                  name: "get_forecast",
+                  description: "Get weather forecast",
+                  inputSchema: {
+                    type: "object",
+                    properties: {
+                      city: { type: "string" },
+                    },
+                    required: ["city"],
+                  },
+                },
+              ],
+            },
+          ],
+        ]),
+        listTools: vi.fn((serverName) => {
+          const server = mcpClient.servers.get(serverName);
+          return server?.tools || [];
+        }),
+      };
+      const m = new WSSessionManager({
+        db: mockDb,
+        mcpClient,
+        mcpServerRegistry: {
+          trustedServers: [
+            {
+              id: "weather",
+              securityLevel: "low",
+              requiredPermissions: ["network:http"],
+              capabilities: ["tools"],
+            },
+          ],
+        },
+      });
+
+      const { sessionId } = m.createSession();
+      const session = m.getSession(sessionId);
+
+      expect(session.externalToolDefinitions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            function: expect.objectContaining({
+              name: "mcp_weather_get_forecast",
+            }),
+          }),
+        ]),
+      );
+      expect(session.externalToolDescriptors).toMatchObject({
+        mcp_weather_get_forecast: expect.objectContaining({
+          source: "mcp:weather",
+          riskLevel: "low",
+          isReadOnly: true,
+        }),
+      });
+      expect(session.externalToolExecutors).toMatchObject({
+        mcp_weather_get_forecast: {
+          kind: "mcp",
+          serverName: "weather",
+          toolName: "get_forecast",
+        },
+      });
+    });
+
+    it("persists resumable metadata for new sessions", () => {
+      const { sessionId } = manager.createSession({
+        type: "agent",
+        projectRoot: "/repo",
+        enabledToolNames: ["read_file", "run_code", "unknown"],
+        hostManagedToolPolicy: {
+          tools: {
+            run_shell: { allowed: false, decision: "require_confirmation" },
+          },
+        },
+      });
+
+      expect(dbUpdateSession).toHaveBeenCalledWith(
+        mockDb,
+        sessionId,
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            sessionType: "agent",
+            projectRoot: "/repo",
+            baseProjectRoot: "/repo",
+            enabledToolNames: ["read_file", "run_code"],
+            worktreeIsolation: false,
+            hostManagedToolPolicy: {
+              tools: {
+                run_shell: {
+                  allowed: false,
+                  decision: "require_confirmation",
+                },
+              },
+            },
+          }),
+        }),
+      );
+    });
+
     it("creates an isolated worktree when requested", () => {
       const { sessionId } = manager.createSession({
         projectRoot: "/repo",
@@ -282,14 +424,54 @@ describe("WSSessionManager", () => {
         provider: "openai",
         model: "gpt-4",
         messages: JSON.stringify([{ role: "system", content: "hello" }]),
+        metadata: JSON.stringify({
+          sessionType: "chat",
+          projectRoot: "/repo/project",
+          baseProjectRoot: "/repo/project",
+          baseUrl: "https://api.example.com",
+          enabledToolNames: ["read_file", "run_code"],
+          hostManagedToolPolicy: {
+            tools: {
+              write_file: { allowed: false, decision: "require_plan" },
+            },
+          },
+          worktreeIsolation: false,
+          planSnapshot: {
+            state: "approved",
+            currentPlan: {
+              id: "plan-1",
+              title: "Resume Plan",
+              items: [{ id: "item-1", title: "Edit file" }],
+            },
+            history: [],
+            blockedToolLog: [{ tool: "write_file" }],
+          },
+        }),
         created_at: "2026-01-01T00:00:00Z",
       });
 
       const session = manager.resumeSession("db-session-123");
       expect(session).not.toBeNull();
       expect(session.id).toBe("db-session-123");
+      expect(session.type).toBe("chat");
       expect(session.provider).toBe("openai");
       expect(session.model).toBe("gpt-4");
+      expect(session.baseUrl).toBe("https://api.example.com");
+      expect(session.projectRoot).toBe("/repo/project");
+      expect(session.baseProjectRoot).toBe("/repo/project");
+      expect(session.enabledToolNames).toEqual(["read_file", "run_code"]);
+      expect(session.hostManagedToolPolicy).toEqual({
+        tools: {
+          write_file: { allowed: false, decision: "require_plan" },
+        },
+      });
+      expect(session.planManager.state).toBe("approved");
+      expect(session.planManager.currentPlan).toMatchObject({
+        title: "Resume Plan",
+      });
+      expect(session.planManager.blockedToolLog).toEqual([
+        { tool: "write_file" },
+      ]);
       expect(session.messages).toEqual([{ role: "system", content: "hello" }]);
       expect(dbGetSession).toHaveBeenCalledWith(mockDb, "db-session-123");
     });
@@ -326,6 +508,13 @@ describe("WSSessionManager", () => {
         expect.arrayContaining([
           expect.objectContaining({ role: "user", content: "hello" }),
         ]),
+        expect.objectContaining({
+          sessionType: "agent",
+          projectRoot: expect.any(String),
+          planSnapshot: expect.objectContaining({
+            state: "inactive",
+          }),
+        }),
       );
     });
 
@@ -411,6 +600,10 @@ describe("WSSessionManager", () => {
         mockDb,
         sessionId,
         session.messages,
+        expect.objectContaining({
+          sessionType: "agent",
+          projectRoot: expect.any(String),
+        }),
       );
     });
 

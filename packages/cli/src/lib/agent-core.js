@@ -18,6 +18,8 @@ import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
 import os from "os";
+import sharedCodingAgentPolicy from "../runtime/coding-agent-policy.cjs";
+import sharedShellPolicy from "../runtime/coding-agent-shell-policy.cjs";
 import { getPlanModeManager } from "./plan-mode.js";
 import { CLISkillLoader } from "./skill-loader.js";
 import { executeHooks, HookEvents } from "./hook-manager.js";
@@ -31,6 +33,9 @@ import {
 import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
 import { DEFAULT_TOOL_DESCRIPTORS } from "../tools/registry.js";
+
+const { isReadOnlyGitCommand, normalizeGitCommand } = sharedCodingAgentPolicy;
+const { evaluateShellCommandPolicy } = sharedShellPolicy;
 
 // ─── Tool definitions ────────────────────────────────────────────────────
 
@@ -91,11 +96,34 @@ export const AGENT_TOOLS = [
     function: {
       name: "run_shell",
       description:
-        "Execute a shell command and return the output. Use for running tests, installing packages, git operations, etc.",
+        "Execute a shell command and return the output. Use for running tests, linting, builds, and other non-git workspace commands.",
       parameters: {
         type: "object",
         properties: {
           command: { type: "string", description: "Shell command to execute" },
+          cwd: {
+            type: "string",
+            description: "Working directory (optional)",
+          },
+        },
+        required: ["command"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git",
+      description:
+        "Run a git command inside the workspace. Use this instead of run_shell for git status, diff, log, commit, branch, and related repository operations.",
+      parameters: {
+        type: "object",
+        properties: {
+          command: {
+            type: "string",
+            description:
+              'Git subcommand to execute, for example "status", "diff --stat", or "log --oneline -5"',
+          },
           cwd: {
             type: "string",
             description: "Working directory (optional)",
@@ -287,6 +315,11 @@ export function getAgentToolDefinitions({
   const disabledNames = new Set(
     Array.isArray(disabledTools) ? disabledTools : [],
   );
+  const extraToolNames = new Set(
+    (Array.isArray(extraTools) ? extraTools : [])
+      .map((tool) => tool?.function?.name)
+      .filter(Boolean),
+  );
   const allTools = mergeToolDefinitions(
     AGENT_TOOLS,
     Array.isArray(extraTools) ? extraTools : [],
@@ -295,7 +328,9 @@ export function getAgentToolDefinitions({
   return allTools.filter((tool) => {
     const name = tool?.function?.name;
     if (!name) return false;
-    if (allowedNames && !allowedNames.has(name)) return false;
+    if (allowedNames && !allowedNames.has(name) && !extraToolNames.has(name)) {
+      return false;
+    }
     if (disabledNames.has(name)) return false;
     return true;
   });
@@ -407,6 +442,7 @@ Key behaviors:
 - When asked to modify code, read the file first, then edit it
 - When asked to create something, use write_file to create it
 - When asked to run/test something, use run_shell to execute it
+- When asked about git status, diff, log, or other repository operations, use the git tool instead of run_shell
 - When asked about files or code, use read_file and search_files to find information
 - You have multi-layer skills (built-in, marketplace, global, project-level) — use list_skills to discover them and run_skill to execute them
 - Always explain what you're doing and show results
@@ -575,7 +611,14 @@ export async function executeTool(name, args, context = {}) {
   const hookDb = context.hookDb || null;
   const skillLoader = context.skillLoader || _defaultSkillLoader;
   const cwd = context.cwd || process.cwd();
-  const runtimeDescriptor = getRuntimeToolDescriptor(name);
+  const planManager = context.planManager || getPlanModeManager();
+  const localToolDescriptor =
+    context.externalToolDescriptors &&
+    typeof context.externalToolDescriptors === "object"
+      ? context.externalToolDescriptors[name] || null
+      : null;
+  const runtimeDescriptor =
+    getRuntimeToolDescriptor(name) || localToolDescriptor;
   const toolContext = createToolContext({
     toolName: runtimeDescriptor?.name || name,
     cwd,
@@ -600,7 +643,21 @@ export async function executeTool(name, args, context = {}) {
       : null;
   const isExternalHostTool =
     hostToolPolicy && !STATIC_AGENT_TOOL_NAMES.has(name);
-  if (hostToolPolicy && hostToolPolicy.allowed === false) {
+  const isExternalLocalTool =
+    localToolDescriptor && !STATIC_AGENT_TOOL_NAMES.has(name);
+  const hostPolicyAllowsReadOnlyGit =
+    name === "git" &&
+    hostToolPolicy?.planModeBehavior === "readonly-conditional" &&
+    isReadOnlyGitCommand(args.command);
+  const localReadOnlyAllowedInPlanMode =
+    isExternalLocalTool &&
+    planManager.isActive() &&
+    localToolDescriptor?.isReadOnly === true;
+  if (
+    hostToolPolicy &&
+    hostToolPolicy.allowed === false &&
+    !hostPolicyAllowsReadOnlyGit
+  ) {
     return {
       error: `[Host Policy] Tool "${name}" is blocked by desktop host policy. ${hostToolPolicy.reason || "Desktop approval has not been synchronized yet."}`,
       policy: {
@@ -613,20 +670,24 @@ export async function executeTool(name, args, context = {}) {
   }
 
   // Plan mode: check if tool is allowed
-  const planManager = getPlanModeManager();
   if (
     planManager.isActive() &&
+    !(name === "git" && isReadOnlyGitCommand(args.command)) &&
     !planManager.isToolAllowed(name) &&
-    !(isExternalHostTool && hostToolPolicy?.allowed === true)
+    !(isExternalHostTool && hostToolPolicy?.allowed === true) &&
+    !localReadOnlyAllowedInPlanMode
   ) {
     planManager.addPlanItem({
       title: `${name}: ${formatToolArgs(name, args)}`,
       tool: name,
       params: args,
       estimatedImpact:
-        name === "run_shell" || name === "run_code"
+        name === "run_shell" ||
+        name === "run_code" ||
+        name === "git" ||
+        localToolDescriptor?.riskLevel === "high"
           ? "high"
-          : name === "write_file"
+          : name === "write_file" || localToolDescriptor?.riskLevel === "medium"
             ? "medium"
             : "low",
     });
@@ -659,6 +720,9 @@ export async function executeTool(name, args, context = {}) {
       parentMessages: context.parentMessages,
       interaction: context.interaction,
       hostManagedToolPolicy: context.hostManagedToolPolicy || null,
+      externalToolDescriptors: context.externalToolDescriptors || null,
+      externalToolExecutors: context.externalToolExecutors || null,
+      mcpClient: context.mcpClient || null,
     });
   } catch (err) {
     if (hookDb) {
@@ -715,9 +779,23 @@ export async function executeTool(name, args, context = {}) {
 async function executeToolInner(
   name,
   args,
-  { skillLoader, cwd, parentMessages, interaction, hostManagedToolPolicy },
+  {
+    skillLoader,
+    cwd,
+    parentMessages,
+    interaction,
+    hostManagedToolPolicy,
+    externalToolDescriptors,
+    externalToolExecutors,
+    mcpClient,
+  },
 ) {
-  const runtimeDescriptor = getRuntimeToolDescriptor(name);
+  const localToolDescriptor =
+    externalToolDescriptors && typeof externalToolDescriptors === "object"
+      ? externalToolDescriptors[name] || null
+      : null;
+  const runtimeDescriptor =
+    getRuntimeToolDescriptor(name) || localToolDescriptor;
   const hostToolPolicies =
     hostManagedToolPolicy?.tools || hostManagedToolPolicy?.toolPolicies || null;
   const hostToolPolicy =
@@ -754,6 +832,10 @@ async function executeToolInner(
     }
     return DEFAULT_TOOL_DESCRIPTOR_MAP.get("shell");
   };
+  const localToolExecutor =
+    externalToolExecutors && typeof externalToolExecutors === "object"
+      ? externalToolExecutors[name] || null
+      : null;
   switch (name) {
     case "read_file": {
       const filePath = path.resolve(cwd, args.path);
@@ -799,6 +881,18 @@ async function executeToolInner(
     }
 
     case "run_shell": {
+      const shellPolicy = evaluateShellCommandPolicy(args.command);
+      const override = resolveShellDescriptor(args.command);
+      if (!shellPolicy.allowed) {
+        return attachDescriptor(
+          {
+            error: `[Shell Policy] ${shellPolicy.reason}`,
+            shellCommandPolicy: shellPolicy,
+          },
+          override || runtimeDescriptor,
+        );
+      }
+
       try {
         const output = execSync(args.command, {
           cwd: args.cwd || cwd,
@@ -806,23 +900,54 @@ async function executeToolInner(
           timeout: 60000,
           maxBuffer: 1024 * 1024,
         });
-        const override = resolveShellDescriptor(args.command);
         return attachDescriptor(
           {
             stdout: output.substring(0, 30000),
+            shellCommandPolicy: shellPolicy,
           },
           override || runtimeDescriptor,
         );
       } catch (err) {
-        const override = resolveShellDescriptor(args.command);
         return attachDescriptor(
           {
             error: err.message.substring(0, 2000),
             stderr: (err.stderr || "").substring(0, 2000),
             exitCode: err.status,
+            shellCommandPolicy: shellPolicy,
           },
           override || runtimeDescriptor,
         );
+      }
+    }
+
+    case "git": {
+      const normalizedCommand = normalizeGitCommand(args.command);
+      if (!normalizedCommand) {
+        return attachDescriptor({
+          error: "Git command is required.",
+        });
+      }
+
+      try {
+        const output = execSync(`git ${normalizedCommand}`, {
+          cwd: args.cwd || cwd,
+          encoding: "utf8",
+          timeout: 60000,
+          maxBuffer: 1024 * 1024,
+        });
+        return attachDescriptor({
+          stdout: output.substring(0, 30000),
+          command: normalizedCommand,
+          readOnly: isReadOnlyGitCommand(normalizedCommand),
+        });
+      } catch (err) {
+        return attachDescriptor({
+          error: err.message.substring(0, 2000),
+          stderr: (err.stderr || "").substring(0, 2000),
+          exitCode: err.status,
+          command: normalizedCommand,
+          readOnly: isReadOnlyGitCommand(normalizedCommand),
+        });
       }
     }
 
@@ -988,6 +1113,30 @@ async function executeToolInner(
     }
 
     default:
+      if (localToolExecutor?.kind === "mcp") {
+        if (!mcpClient || typeof mcpClient.callTool !== "function") {
+          return attachDescriptor({
+            error: `MCP client is unavailable for tool: ${name}`,
+          });
+        }
+
+        try {
+          const result = await mcpClient.callTool(
+            localToolExecutor.serverName,
+            localToolExecutor.toolName,
+            args || {},
+          );
+          if (result && typeof result === "object") {
+            return attachDescriptor(result);
+          }
+          return attachDescriptor({ result });
+        } catch (err) {
+          return attachDescriptor({
+            error: `MCP tool execution failed: ${err.message}`,
+          });
+        }
+      }
+
       if (
         hostToolDefinition &&
         interaction &&
@@ -1332,8 +1481,12 @@ export async function chatWithTools(rawMessages, options) {
 
   const persona = _loadProjectPersona(options.cwd);
   const tools = getAgentToolDefinitions({
+    names: options.enabledToolNames,
     disabledTools: persona?.toolsDisabled,
-    extraTools: options.hostManagedToolPolicy?.toolDefinitions || [],
+    extraTools: [
+      ...(options.hostManagedToolPolicy?.toolDefinitions || []),
+      ...(options.extraToolDefinitions || []),
+    ],
   });
 
   const lastUserMsg = [...rawMessages].reverse().find((m) => m.role === "user");
@@ -1518,7 +1671,12 @@ export async function* agentLoop(messages, options) {
     hookDb: options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
     cwd: options.cwd || process.cwd(),
+    planManager: options.planManager || null,
+    sessionId: options.sessionId || null,
     hostManagedToolPolicy: options.hostManagedToolPolicy || null,
+    externalToolDescriptors: options.externalToolDescriptors || null,
+    externalToolExecutors: options.externalToolExecutors || null,
+    mcpClient: options.mcpClient || null,
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
     interaction: options.interaction || null,
   };
@@ -1645,6 +1803,8 @@ export function formatToolArgs(name, args) {
     case "edit_file":
       return args.path;
     case "run_shell":
+      return args.command;
+    case "git":
       return args.command;
     case "search_files":
       return args.pattern;

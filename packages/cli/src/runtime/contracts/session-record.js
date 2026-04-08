@@ -12,8 +12,21 @@ export function createSessionRecord(session = {}, extras = {}) {
     type: session.type || extras.sessionType || null,
     provider: session.provider || extras.provider || null,
     model: session.model || extras.model || null,
+    baseUrl: session.baseUrl || extras.baseUrl || null,
+    enabledToolNames: Array.isArray(extras.enabledToolNames)
+      ? extras.enabledToolNames
+      : Array.isArray(session.enabledToolNames)
+        ? session.enabledToolNames
+        : [],
     projectRoot: session.projectRoot || extras.projectRoot || null,
     baseProjectRoot: session.baseProjectRoot || extras.baseProjectRoot || null,
+    planModeState:
+      extras.planModeState ||
+      session.planManager?.state ||
+      session.planModeState ||
+      null,
+    hasHostManagedToolPolicy:
+      extras.hasHostManagedToolPolicy ?? !!session.hostManagedToolPolicy,
     worktreeIsolation:
       session.worktreeIsolation === true || extras.worktreeIsolation === true,
     worktree:

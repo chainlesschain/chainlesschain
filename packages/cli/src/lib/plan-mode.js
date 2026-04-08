@@ -2,7 +2,7 @@
  * Plan Mode for CLI Agent REPL
  *
  * During plan mode, the AI can only use read-only tools (read_file, search_files, list_dir, list_skills).
- * Write/execute tools (write_file, edit_file, run_shell, run_skill) are blocked until the plan is approved.
+ * Write/execute tools (write_file, edit_file, run_shell, git, run_skill) are blocked until the plan is approved.
  *
  * Lightweight port of desktop-app-vue/src/main/ai-engine/plan-mode/index.js
  */
@@ -48,6 +48,7 @@ const WRITE_TOOLS = new Set([
   "write_file",
   "edit_file",
   "run_shell",
+  "git",
   "run_skill",
 ]);
 
@@ -66,6 +67,7 @@ const TOOL_RISK_WEIGHTS = {
   edit_file: 2,
   run_skill: 2,
   run_shell: 3,
+  git: 3,
 };
 
 const IMPACT_MULTIPLIERS = {

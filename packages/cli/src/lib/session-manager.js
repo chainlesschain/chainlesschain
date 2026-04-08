@@ -16,11 +16,18 @@ function ensureSessionsTable(db) {
       model TEXT DEFAULT '',
       message_count INTEGER DEFAULT 0,
       messages TEXT DEFAULT '[]',
+      metadata TEXT DEFAULT '{}',
       summary TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `);
+
+  try {
+    db.exec("ALTER TABLE llm_sessions ADD COLUMN metadata TEXT DEFAULT '{}'");
+  } catch (_error) {
+    // Column already exists or ALTER TABLE is unsupported by the mock DB.
+  }
 }
 
 /**
@@ -34,13 +41,14 @@ export function createSession(db, options = {}) {
     `session-${Date.now()}-${createHash("sha256").update(Math.random().toString()).digest("hex").slice(0, 6)}`;
 
   db.prepare(
-    `INSERT INTO llm_sessions (id, title, provider, model, messages) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO llm_sessions (id, title, provider, model, messages, metadata) VALUES (?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     options.title || "Untitled",
     options.provider || "",
     options.model || "",
     JSON.stringify(options.messages || []),
+    JSON.stringify(options.metadata || {}),
   );
 
   return { id, title: options.title || "Untitled" };
@@ -71,14 +79,26 @@ export function addMessage(db, sessionId, role, content) {
 /**
  * Save all messages at once (batch update)
  */
-export function saveMessages(db, sessionId, messages) {
+export function saveMessages(db, sessionId, messages, metadata) {
   ensureSessionsTable(db);
 
-  const result = db
-    .prepare(
-      `UPDATE llm_sessions SET messages = ?, message_count = ?, updated_at = datetime('now') WHERE id = ?`,
-    )
-    .run(JSON.stringify(messages), messages.length, sessionId);
+  const hasMetadata = metadata !== undefined;
+  const result = hasMetadata
+    ? db
+        .prepare(
+          `UPDATE llm_sessions SET messages = ?, metadata = ?, message_count = ?, updated_at = datetime('now') WHERE id = ?`,
+        )
+        .run(
+          JSON.stringify(messages),
+          JSON.stringify(metadata || {}),
+          messages.length,
+          sessionId,
+        )
+    : db
+        .prepare(
+          `UPDATE llm_sessions SET messages = ?, message_count = ?, updated_at = datetime('now') WHERE id = ?`,
+        )
+        .run(JSON.stringify(messages), messages.length, sessionId);
 
   return { messageCount: messages.length, updated: result.changes > 0 };
 }
@@ -105,6 +125,10 @@ export function getSession(db, sessionId) {
   return {
     ...session,
     messages: JSON.parse(session.messages || "[]"),
+    metadata:
+      typeof session.metadata === "string"
+        ? JSON.parse(session.metadata || "{}")
+        : session.metadata || {},
   };
 }
 
@@ -119,11 +143,19 @@ export function listSessions(db, options = {}) {
   return db
     .prepare(
       `SELECT id, title, provider, model, message_count, summary, created_at, updated_at
+      , metadata
        FROM llm_sessions
        ORDER BY updated_at DESC
        LIMIT ?`,
     )
-    .all(limit);
+    .all(limit)
+    .map((session) => ({
+      ...session,
+      metadata:
+        typeof session.metadata === "string"
+          ? JSON.parse(session.metadata || "{}")
+          : session.metadata || {},
+    }));
 }
 
 /**
@@ -141,6 +173,11 @@ export function updateSession(db, sessionId, updates) {
     db.prepare(
       "UPDATE llm_sessions SET summary = ?, updated_at = datetime('now') WHERE id = ?",
     ).run(updates.summary, sessionId);
+  }
+  if (updates.metadata !== undefined) {
+    db.prepare(
+      "UPDATE llm_sessions SET metadata = ?, updated_at = datetime('now') WHERE id = ?",
+    ).run(JSON.stringify(updates.metadata || {}), sessionId);
   }
 }
 

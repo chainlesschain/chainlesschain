@@ -11,3 +11,17 @@ export { createSessionRecord } from "./contracts/session-record.js";
 export { createTaskRecord } from "./contracts/task-record.js";
 export { createWorktreeRecord } from "./contracts/worktree-record.js";
 export { createTelemetryRecord } from "./contracts/telemetry-record.js";
+export {
+  CODING_AGENT_MVP_TOOL_NAMES,
+  CODING_AGENT_EXTENSION_TOOL_NAMES,
+  createCodingAgentToolRegistry,
+  getCodingAgentRuntimeDescriptor,
+  getCodingAgentToolContract,
+  getCodingAgentToolContracts,
+  getCodingAgentToolPolicy,
+  isCodingAgentMvpTool,
+  listCodingAgentToolNames,
+  mapCodingAgentToolDefinition,
+} from "./coding-agent-contract.js";
+export { default as codingAgentManagedToolPolicy } from "./coding-agent-managed-tool-policy.cjs";
+export { default as codingAgentShellPolicy } from "./coding-agent-shell-policy.cjs";
