@@ -12,12 +12,21 @@ import path from "path";
 // ============================================================
 
 // Mock fs module
+const fsPromisesMock = {
+  access: vi.fn(),
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+  mkdir: vi.fn(),
+  unlink: vi.fn(),
+};
+
 const fsMock = {
   existsSync: vi.fn(),
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
   unlinkSync: vi.fn(),
+  promises: fsPromisesMock,
 };
 
 vi.mock("node:fs", () => fsMock);
@@ -165,6 +174,16 @@ describe("DatabaseAdapter", () => {
     fsMock.writeFileSync.mockReturnValue(undefined);
     fsMock.mkdirSync.mockReturnValue(undefined);
 
+    // M2: 异步 fs 默认行为 — access 拒绝（文件不存在）
+    fsPromisesMock.access.mockRejectedValue(
+      Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+    );
+    fsPromisesMock.readFile.mockRejectedValue(
+      Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+    );
+    fsPromisesMock.writeFile.mockResolvedValue(undefined);
+    fsPromisesMock.mkdir.mockResolvedValue(undefined);
+
     // Reset database mocks - must restore implementations cleared by mockReset
     mockEncryptedDb.open.mockClear();
     mockEncryptedDb.prepare.mockImplementation(() => ({
@@ -211,6 +230,13 @@ describe("DatabaseAdapter", () => {
     DatabaseAdapter = module.DatabaseAdapter;
     DatabaseEngine = module.DatabaseEngine;
     createDatabaseAdapter = module.createDatabaseAdapter;
+
+    // M2: 注入 fs.promises mock (vi.mock 无法拦截 fs.promises 的内联 CJS 模块)
+    if (module._deps) {
+      module._deps.fsp = fsPromisesMock;
+    } else if (module.default && module.default._deps) {
+      module.default._deps.fsp = fsPromisesMock;
+    }
   });
 
   afterEach(() => {
@@ -304,18 +330,22 @@ describe("DatabaseAdapter", () => {
   });
 
   describe("detectEngine", () => {
-    it("应该在存在加密数据库时返回SQLCipher", () => {
-      fsMock.existsSync.mockImplementation((path) => {
-        return path.includes(".encrypted.db");
+    it("应该在存在加密数据库时返回SQLCipher", async () => {
+      fsPromisesMock.access.mockImplementation((p) => {
+        return p.includes(".encrypted")
+          ? Promise.resolve()
+          : Promise.reject(
+              Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+            );
       });
 
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
-      const engine = adapter.detectEngine();
+      const engine = await adapter.detectEngine();
 
       expect(engine).toBe(DatabaseEngine.SQLCIPHER);
     });
 
-    it("应该在开发模式且无密码时返回sql.js", () => {
+    it("应该在开发模式且无密码时返回sql.js", async () => {
       process.env.NODE_ENV = "development";
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
@@ -323,82 +353,79 @@ describe("DatabaseAdapter", () => {
       });
       adapter.developmentMode = true;
 
-      fsMock.existsSync.mockReturnValue(false);
+      fsPromisesMock.access.mockRejectedValue(
+        Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      );
 
-      const engine = adapter.detectEngine();
+      const engine = await adapter.detectEngine();
 
       expect(engine).toBe(DatabaseEngine.SQL_JS);
     });
 
-    it("应该在启用加密时返回SQLCipher", () => {
+    it("应该在启用加密时返回SQLCipher", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
       });
 
-      fsMock.existsSync.mockReturnValue(false);
+      fsPromisesMock.access.mockRejectedValue(
+        Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      );
 
-      const engine = adapter.detectEngine();
+      const engine = await adapter.detectEngine();
 
       expect(engine).toBe(DatabaseEngine.SQLCIPHER);
     });
 
-    it("应该在禁用加密时返回sql.js", () => {
+    it("应该在禁用加密时返回sql.js", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: false,
       });
 
-      fsMock.existsSync.mockReturnValue(false);
+      fsPromisesMock.access.mockRejectedValue(
+        Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      );
 
-      const engine = adapter.detectEngine();
+      const engine = await adapter.detectEngine();
 
       expect(engine).toBe(DatabaseEngine.SQL_JS);
     });
   });
 
   describe("shouldMigrate", () => {
-    it("应该在原数据库存在但加密数据库不存在时返回true", () => {
+    it("应该在原数据库存在但加密数据库不存在时返回true", async () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
-      // Spy on shouldMigrate to test the logic indirectly
-      const result = adapter.shouldMigrate();
+      fsPromisesMock.access.mockImplementation((p) => {
+        return p === testDbPath
+          ? Promise.resolve()
+          : Promise.reject(
+              Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+            );
+      });
 
-      // In test environment with mocked fs, we verify the method exists and returns a boolean
-      expect(typeof result).toBe("boolean");
+      const result = await adapter.shouldMigrate();
+      expect(result).toBe(true);
     });
 
-    it("应该在原数据库不存在时返回false", () => {
+    it("应该在原数据库不存在时返回false", async () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
-      // Mock fs.existsSync to return false for both paths
-      const fs = require("fs");
-      const originalExistsSync = fs.existsSync;
-      fs.existsSync = vi.fn().mockReturnValue(false);
+      fsPromisesMock.access.mockRejectedValue(
+        Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      );
 
-      const result = adapter.shouldMigrate();
-
-      // Restore original
-      fs.existsSync = originalExistsSync;
-
-      // Should return false when database doesn't exist
+      const result = await adapter.shouldMigrate();
       expect(result).toBe(false);
     });
 
-    it("应该在加密数据库已存在时返回false", () => {
+    it("应该在加密数据库已存在时返回false", async () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
-      // Mock fs.existsSync to return true for both paths (both databases exist)
-      const fs = require("fs");
-      const originalExistsSync = fs.existsSync;
-      fs.existsSync = vi.fn().mockReturnValue(true);
+      fsPromisesMock.access.mockResolvedValue(undefined);
 
-      const result = adapter.shouldMigrate();
-
-      // Restore original
-      fs.existsSync = originalExistsSync;
-
-      // Should return false when encrypted database already exists
+      const result = await adapter.shouldMigrate();
       expect(result).toBe(false);
     });
   });
@@ -412,6 +439,9 @@ describe("DatabaseAdapter", () => {
       });
 
       fsMock.existsSync.mockReturnValue(false);
+      fsPromisesMock.access.mockRejectedValue(
+        Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      );
 
       // Spy on performMigration to prevent actual migration
       vi.spyOn(adapter, "performMigration").mockResolvedValue({
@@ -444,6 +474,9 @@ describe("DatabaseAdapter", () => {
       });
 
       fsMock.existsSync.mockReturnValue(false);
+      fsPromisesMock.access.mockRejectedValue(
+        Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      );
 
       await adapter.initialize();
 
@@ -489,6 +522,9 @@ describe("DatabaseAdapter", () => {
       fsMock.existsSync.mockImplementation((filePath) => {
         return filePath === testDbPath;
       });
+      fsPromisesMock.access.mockRejectedValue(
+        Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      );
 
       await adapter.initialize();
 
@@ -619,7 +655,11 @@ describe("DatabaseAdapter", () => {
         encryptionEnabled: false,
       });
 
-      fsMock.readFileSync.mockClear();
+      fsPromisesMock.readFile.mockClear();
+      // 默认 readFile 为 ENOENT (新数据库)
+      fsPromisesMock.readFile.mockRejectedValue(
+        Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+      );
 
       await adapter.initialize();
 
@@ -629,7 +669,8 @@ describe("DatabaseAdapter", () => {
       expect(db).toBeDefined();
       expect(db.run).toBeDefined();
       expect(db.exec).toBeDefined();
-      expect(fsMock.readFileSync).not.toHaveBeenCalled(); // New database shouldn't read from file
+      // M2: now uses fsp.readFile — invocation is expected, but should reject ENOENT
+      expect(fsPromisesMock.readFile).toHaveBeenCalled();
     });
 
     it("应该加载现有的sql.js数据库", async () => {
@@ -640,43 +681,25 @@ describe("DatabaseAdapter", () => {
 
       await adapter.initialize();
 
-      // Mock fs at runtime
-      const fs = require("fs");
-      const originalExistsSync = fs.existsSync;
-      const originalReadFileSync = fs.readFileSync;
-
-      let readFileCalled = false;
-      fs.existsSync = vi.fn().mockImplementation((filePath) => {
-        // Return true for sql.js WASM file and existing database
-        if (filePath.includes("sql-wasm.wasm")) {
-          return true;
-        }
-        if (filePath === testDbPath || filePath.includes("test.db")) {
-          return true;
-        }
-        return false;
-      });
-
+      // M2: 异步 readFile 返回数据 (现有数据库)
       const testBuffer = Buffer.from([1, 2, 3]);
-      fs.readFileSync = vi.fn().mockImplementation((filePath) => {
+      let readFileCalled = false;
+      fsPromisesMock.readFile.mockImplementation(async (filePath) => {
         if (filePath === testDbPath || filePath.includes("test.db")) {
           readFileCalled = true;
           return testBuffer;
         }
-        return originalReadFileSync(filePath);
+        const err = new Error("ENOENT");
+        err.code = "ENOENT";
+        throw err;
       });
 
       const db = await adapter.createSqlJsDatabase();
-
-      // Restore original
-      fs.existsSync = originalExistsSync;
-      fs.readFileSync = originalReadFileSync;
 
       // Verify existing database was loaded from file
       expect(db).toBeDefined();
       expect(db.run).toBeDefined();
       expect(db.exec).toBeDefined();
-      // File should have been read if database existed
       expect(readFileCalled).toBe(true);
     });
   });
@@ -1559,21 +1582,18 @@ describe("DatabaseAdapter", () => {
       expect(() => adapter.saveDatabase(mockSqlJsDb)).not.toThrow();
     });
 
-    it("应该处理符号链接循环", () => {
+    it("应该处理符号链接循环", async () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
-      const fs = require("fs");
-      const originalExistsSync = fs.existsSync;
+      // ELOOP from fs.promises.access — _pathExists swallows it as "not exists"
+      fsPromisesMock.access.mockRejectedValue(
+        Object.assign(new Error("ELOOP: too many symbolic links encountered"), {
+          code: "ELOOP",
+        }),
+      );
 
-      fs.existsSync = vi.fn().mockImplementation(() => {
-        const error = new Error("ELOOP: too many symbolic links encountered");
-        error.code = "ELOOP";
-        throw error;
-      });
-
-      expect(() => adapter.shouldMigrate()).toThrow("ELOOP");
-
-      fs.existsSync = originalExistsSync;
+      const result = await adapter.shouldMigrate();
+      expect(result).toBe(false);
     });
   });
 });

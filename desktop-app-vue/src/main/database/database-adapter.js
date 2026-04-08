@@ -8,6 +8,10 @@
 const { logger } = require("../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
+
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
 const { KeyManager } = require("./key-manager");
 const {
   createEncryptedDatabase,
@@ -59,10 +63,24 @@ class DatabaseAdapter {
   }
 
   /**
-   * 检测应该使用哪个引擎
-   * @returns {string} 引擎类型
+   * 异步路径存在性检查 (M2)
+   * @param {string} p
+   * @returns {Promise<boolean>}
    */
-  detectEngine() {
+  async _pathExists(p) {
+    try {
+      await _deps.fsp.access(p);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 检测应该使用哪个引擎 (M2: 异步)
+   * @returns {Promise<string>} 引擎类型
+   */
+  async detectEngine() {
     // 优先级：
     // 1. 如果存在 .encrypted 数据库 -> SQLCipher
     // 2. 开发模式且没有密码 -> sql.js（跳过加密）
@@ -71,7 +89,7 @@ class DatabaseAdapter {
 
     const encryptedDbPath = this.getEncryptedDbPath();
 
-    if (fs.existsSync(encryptedDbPath)) {
+    if (await this._pathExists(encryptedDbPath)) {
       logger.info("[DatabaseAdapter] 检测到加密数据库，使用 SQLCipher");
       return DatabaseEngine.SQLCIPHER;
     }
@@ -109,15 +127,15 @@ class DatabaseAdapter {
   async initialize() {
     logger.info("[DatabaseAdapter] 初始化数据库适配器...");
 
-    // 1. 检测引擎
-    this.engine = this.detectEngine();
+    // 1. 检测引擎 (M2: 异步)
+    this.engine = await this.detectEngine();
 
     // 2. 如果需要SQLCipher，初始化密钥管理器
     if (this.engine === DatabaseEngine.SQLCIPHER) {
       await this.initializeEncryption();
 
-      // 3. 检查是否需要迁移
-      if (this.autoMigrate && this.shouldMigrate()) {
+      // 3. 检查是否需要迁移 (M2: 异步)
+      if (this.autoMigrate && (await this.shouldMigrate())) {
         await this.performMigration();
       }
     }
@@ -143,14 +161,18 @@ class DatabaseAdapter {
   }
 
   /**
-   * 检查是否需要迁移
-   * @returns {boolean}
+   * 检查是否需要迁移 (M2: 异步)
+   * @returns {Promise<boolean>}
    */
-  shouldMigrate() {
+  async shouldMigrate() {
     const encryptedDbPath = this.getEncryptedDbPath();
 
     // 条件：原数据库存在 && 加密数据库不存在
-    return fs.existsSync(this.dbPath) && !fs.existsSync(encryptedDbPath);
+    const [srcExists, encExists] = await Promise.all([
+      this._pathExists(this.dbPath),
+      this._pathExists(encryptedDbPath),
+    ]);
+    return srcExists && !encExists;
   }
 
   /**
@@ -304,12 +326,15 @@ class DatabaseAdapter {
       },
     });
 
-    // 加载或创建数据库
+    // 加载或创建数据库 (M2: 异步读取，避免启动期阻塞事件循环)
     let db;
-    if (fs.existsSync(this.dbPath)) {
-      const buffer = fs.readFileSync(this.dbPath);
+    try {
+      const buffer = await _deps.fsp.readFile(this.dbPath);
       db = new SQL.Database(buffer);
-    } else {
+    } catch (err) {
+      if (err.code !== "ENOENT") {
+        throw err;
+      }
       db = new SQL.Database();
     }
 
@@ -452,4 +477,5 @@ module.exports = {
   DatabaseAdapter,
   DatabaseEngine,
   createDatabaseAdapter,
+  _deps,
 };
