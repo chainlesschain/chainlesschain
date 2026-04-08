@@ -83,7 +83,14 @@ export class WSAgentHandler {
         contextEngine: session.contextEngine,
         hookDb: this.db,
         cwd: session.projectRoot,
+        sessionId: session.id,
+        planManager: session.planManager,
+        enabledToolNames: session.enabledToolNames || null,
         hostManagedToolPolicy: session.hostManagedToolPolicy || null,
+        extraToolDefinitions: session.externalToolDefinitions || [],
+        externalToolDescriptors: session.externalToolDescriptors || {},
+        externalToolExecutors: session.externalToolExecutors || {},
+        mcpClient: session.mcpClient || null,
         slotFiller,
         interaction: this.interaction,
       };
@@ -372,7 +379,7 @@ export class WSAgentHandler {
         planManager.approvePlan();
         this.session.messages.push({
           role: "system",
-          content: `[PLAN APPROVED] The user has approved your plan with ${planManager.currentPlan.items.length} items. You can now use all tools including write_file, edit_file, run_shell, and run_skill. Execute the plan items in order.`,
+          content: `[PLAN APPROVED] The user has approved your plan with ${planManager.currentPlan.items.length} items. You can now use all tools including write_file, edit_file, run_shell, git, and run_skill. Execute the plan items in order.`,
         });
         this.interaction.emit("command-response", {
           requestId,

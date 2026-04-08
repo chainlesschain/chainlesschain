@@ -45,6 +45,7 @@ function createMockSession(overrides = {}) {
     baseUrl: "http://localhost:11434",
     projectRoot: "/test/project",
     rulesContent: null,
+    enabledToolNames: ["read_file", "search_files", "list_dir"],
     planManager: {
       isActive: vi.fn(() => false),
       enterPlanMode: vi.fn(),
@@ -130,6 +131,94 @@ describe("WSAgentHandler", () => {
         session.messages,
         expect.objectContaining({
           hostManagedToolPolicy: session.hostManagedToolPolicy,
+        }),
+      );
+    });
+
+    it("passes the session plan manager into the agent loop", async () => {
+      agentLoop.mockReturnValue(fakeAgentLoop([]));
+
+      await handler.handleMessage("Plan this change", "req-1");
+
+      expect(agentLoop).toHaveBeenCalledWith(
+        session.messages,
+        expect.objectContaining({
+          planManager: session.planManager,
+        }),
+      );
+    });
+
+    it("passes the session enabledToolNames into the agent loop", async () => {
+      agentLoop.mockReturnValue(fakeAgentLoop([]));
+
+      await handler.handleMessage(
+        "Use the coding session tool policy",
+        "req-1",
+      );
+
+      expect(agentLoop).toHaveBeenCalledWith(
+        session.messages,
+        expect.objectContaining({
+          enabledToolNames: session.enabledToolNames,
+        }),
+      );
+    });
+
+    it("passes direct external tool definitions and executors into the agent loop", async () => {
+      session.externalToolDefinitions = [
+        {
+          type: "function",
+          function: {
+            name: "mcp_weather_get_forecast",
+            description: "Get weather forecast",
+            parameters: {
+              type: "object",
+              properties: {
+                city: { type: "string" },
+              },
+            },
+          },
+        },
+      ];
+      session.externalToolDescriptors = {
+        mcp_weather_get_forecast: {
+          name: "mcp_weather_get_forecast",
+          riskLevel: "low",
+          isReadOnly: true,
+        },
+      };
+      session.externalToolExecutors = {
+        mcp_weather_get_forecast: {
+          kind: "mcp",
+          serverName: "weather",
+          toolName: "get_forecast",
+        },
+      };
+      session.mcpClient = { callTool: vi.fn() };
+      agentLoop.mockReturnValue(fakeAgentLoop([]));
+
+      await handler.handleMessage("Use direct MCP tools", "req-1");
+
+      expect(agentLoop).toHaveBeenCalledWith(
+        session.messages,
+        expect.objectContaining({
+          extraToolDefinitions: session.externalToolDefinitions,
+          externalToolDescriptors: session.externalToolDescriptors,
+          externalToolExecutors: session.externalToolExecutors,
+          mcpClient: session.mcpClient,
+        }),
+      );
+    });
+
+    it("passes the session id into the agent loop for telemetry correlation", async () => {
+      agentLoop.mockReturnValue(fakeAgentLoop([]));
+
+      await handler.handleMessage("Trace this turn", "req-1");
+
+      expect(agentLoop).toHaveBeenCalledWith(
+        session.messages,
+        expect.objectContaining({
+          sessionId: session.id,
         }),
       );
     });

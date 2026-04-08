@@ -92,6 +92,7 @@ describe("legacy agent tools bridge", () => {
         "write_file",
         "edit_file",
         "run_shell",
+        "git",
         "search_files",
         "list_dir",
         "run_skill",

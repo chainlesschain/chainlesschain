@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getRuntimeToolDescriptor } from "../../src/tools/legacy-agent-tools.js";
+import { CODING_AGENT_MVP_TOOL_NAMES } from "../../src/runtime/coding-agent-contract.js";
 
 // Mock plan-mode, skill-loader, hook-manager, project-detector before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -78,8 +79,8 @@ const {
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 
 describe("AGENT_TOOLS", () => {
-  it("has 10 tool definitions", () => {
-    expect(AGENT_TOOLS).toHaveLength(10);
+  it("has 11 tool definitions", () => {
+    expect(AGENT_TOOLS).toHaveLength(11);
   });
 
   it("each tool has type 'function' and function.name", () => {
@@ -96,6 +97,7 @@ describe("AGENT_TOOLS", () => {
     expect(names).toContain("write_file");
     expect(names).toContain("edit_file");
     expect(names).toContain("run_shell");
+    expect(names).toContain("git");
     expect(names).toContain("search_files");
     expect(names).toContain("list_dir");
     expect(names).toContain("run_skill");
@@ -166,6 +168,11 @@ describe("agent tool registry compatibility", () => {
     const descriptor = getRuntimeToolDescriptor("run_shell");
     expect(descriptor?.name).toBe("shell");
   });
+
+  it("maps git to the git runtime descriptor", () => {
+    const descriptor = getRuntimeToolDescriptor("git");
+    expect(descriptor?.name).toBe("git");
+  });
 });
 
 describe("executeTool runtime metadata", () => {
@@ -173,6 +180,7 @@ describe("executeTool runtime metadata", () => {
     const result = await executeTool("run_shell", { command: "echo hello" });
     expect(result.toolDescriptor?.name).toBe("shell");
     expect(result.stdout).toBeDefined();
+    expect(result.shellCommandPolicy?.decision).toBeDefined();
   });
 
   it("attaches a telemetry record for run_shell", async () => {
@@ -184,9 +192,68 @@ describe("executeTool runtime metadata", () => {
     );
   });
 
-  it("maps git commands to the git descriptor", async () => {
+  it("preserves sessionId in tool telemetry records", async () => {
+    const result = await executeTool(
+      "run_shell",
+      { command: "echo telemetry-session" },
+      { sessionId: "session-telemetry-1" },
+    );
+
+    expect(result.toolTelemetryRecord?.sessionId).toBe("session-telemetry-1");
+  });
+
+  it("reroutes git commands away from run_shell and points to the git descriptor", async () => {
     const result = await executeTool("run_shell", { command: "git status" });
     expect(result.toolDescriptor?.name).toBe("git");
+    expect(result.error).toContain("[Shell Policy]");
+    expect(result.error).toContain("dedicated git tool");
+    expect(result.shellCommandPolicy?.decision).toBe("reroute");
+  });
+
+  it("attaches the git descriptor for the dedicated git tool", async () => {
+    const result = await executeTool("git", { command: "status" });
+    expect(result.toolDescriptor?.name).toBe("git");
+  });
+
+  it("allows readonly git commands during plan mode", async () => {
+    const addPlanItem = vi.fn();
+    const planManager = {
+      isActive: () => true,
+      isToolAllowed: () => false,
+      addPlanItem,
+    };
+
+    const result = await executeTool(
+      "git",
+      { command: "status" },
+      { planManager },
+    );
+
+    expect(addPlanItem).not.toHaveBeenCalled();
+    expect(result.toolDescriptor?.name).toBe("git");
+  });
+
+  it("blocks mutating git commands during plan mode and records a plan item", async () => {
+    const addPlanItem = vi.fn();
+    const planManager = {
+      isActive: () => true,
+      isToolAllowed: () => false,
+      addPlanItem,
+    };
+
+    const result = await executeTool(
+      "git",
+      { command: "commit -m test" },
+      { planManager },
+    );
+
+    expect(result.error).toContain("[Plan Mode]");
+    expect(addPlanItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: "git",
+        estimatedImpact: "high",
+      }),
+    );
   });
 
   it("maps MCP commands to the mcp descriptor", async () => {
@@ -194,6 +261,21 @@ describe("executeTool runtime metadata", () => {
       command: "chainlesschain mcp call tools list",
     });
     expect(result.toolDescriptor?.name).toBe("mcp");
+  });
+
+  it("blocks explicitly dangerous shell commands", async () => {
+    const result = await executeTool("run_shell", {
+      command: "powershell -EncodedCommand AAAA",
+    });
+
+    expect(result.error).toContain("[Shell Policy]");
+    expect(result.shellCommandPolicy).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        decision: "deny",
+        ruleId: "powershell-encoded-command",
+      }),
+    );
   });
 });
 
@@ -585,6 +667,33 @@ describe("executeTool", () => {
     expect(result.error).toContain("blocked");
   });
 
+  it("prefers a session-scoped plan manager over the global singleton", async () => {
+    const sessionPlanManager = {
+      isActive: vi.fn(() => true),
+      isToolAllowed: vi.fn(() => false),
+      addPlanItem: vi.fn(),
+    };
+
+    const result = await executeTool(
+      "write_file",
+      { path: "scoped-blocked.txt", content: "x" },
+      {
+        cwd: tempDir,
+        planManager: sessionPlanManager,
+      },
+    );
+
+    expect(result.error).toContain("Plan Mode");
+    expect(sessionPlanManager.isActive).toHaveBeenCalled();
+    expect(sessionPlanManager.isToolAllowed).toHaveBeenCalledWith("write_file");
+    expect(sessionPlanManager.addPlanItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: "write_file",
+      }),
+    );
+    expect(fs.existsSync(join(tempDir, "scoped-blocked.txt"))).toBe(false);
+  });
+
   it("blocks tool when persona.toolsDisabled includes it", async () => {
     _mockProjectRoot = tempDir;
     _mockProjectConfig = {
@@ -633,6 +742,30 @@ describe("executeTool", () => {
       requiresConfirmation: true,
       riskLevel: "high",
     });
+  });
+
+  it("allows readonly git commands when desktop host policy marks git as readonly-conditional", async () => {
+    const result = await executeTool(
+      "git",
+      { command: "status" },
+      {
+        cwd: tempDir,
+        hostManagedToolPolicy: {
+          tools: {
+            git: {
+              allowed: false,
+              decision: "require_plan",
+              reason: "High-risk tools require an approved plan first.",
+              planModeBehavior: "readonly-conditional",
+              riskLevel: "high",
+            },
+          },
+        },
+      },
+    );
+
+    expect(result.error || "").not.toContain("[Host Policy]");
+    expect(result.toolDescriptor?.name).toBe("git");
   });
 
   it("delegates unknown host-managed tools to the desktop interaction adapter", async () => {
@@ -686,6 +819,51 @@ describe("executeTool", () => {
       forecast: "sunny",
     });
   });
+
+  it("executes direct session MCP tools through the local mcpClient", async () => {
+    const mcpClient = {
+      callTool: vi.fn().mockResolvedValue({
+        content: [{ type: "text", text: "Sunny" }],
+        isError: false,
+      }),
+    };
+
+    const result = await executeTool(
+      "mcp_weather_get_forecast",
+      { city: "Shanghai" },
+      {
+        cwd: tempDir,
+        mcpClient,
+        externalToolDescriptors: {
+          mcp_weather_get_forecast: {
+            name: "mcp_weather_get_forecast",
+            source: "mcp:weather",
+            riskLevel: "low",
+            isReadOnly: true,
+          },
+        },
+        externalToolExecutors: {
+          mcp_weather_get_forecast: {
+            kind: "mcp",
+            serverName: "weather",
+            toolName: "get_forecast",
+          },
+        },
+      },
+    );
+
+    expect(mcpClient.callTool).toHaveBeenCalledWith("weather", "get_forecast", {
+      city: "Shanghai",
+    });
+    expect(result).toMatchObject({
+      content: [{ type: "text", text: "Sunny" }],
+      isError: false,
+      toolDescriptor: expect.objectContaining({
+        name: "mcp_weather_get_forecast",
+        kind: "mcp:weather",
+      }),
+    });
+  });
 });
 
 describe("chatWithTools", () => {
@@ -728,7 +906,99 @@ describe("chatWithTools", () => {
     expect(toolNames).not.toContain("run_shell");
     expect(toolNames).not.toContain("run_code");
     expect(toolNames).toContain("read_file");
-    expect(capturedBody.tools.length).toBe(8); // 10 - 2 disabled
+    expect(capturedBody.tools.length).toBe(9); // 11 - 2 disabled
+  });
+
+  it("can limit coding sessions to the MVP tool set while still allowing host-managed tools", async () => {
+    let capturedBody;
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
+      capturedBody = JSON.parse(opts.body);
+      return {
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "mvp only" },
+        }),
+      };
+    });
+
+    await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+      enabledToolNames: CODING_AGENT_MVP_TOOL_NAMES,
+      hostManagedToolPolicy: {
+        toolDefinitions: [
+          {
+            type: "function",
+            function: {
+              name: "mcp_weather_get_forecast",
+              description: "Get the weather forecast",
+              parameters: {
+                type: "object",
+                properties: {
+                  city: { type: "string" },
+                },
+                required: ["city"],
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const toolNames = capturedBody.tools.map((tool) => tool.function.name);
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        "read_file",
+        "write_file",
+        "git",
+        "mcp_weather_get_forecast",
+      ]),
+    );
+    expect(toolNames).not.toContain("run_skill");
+    expect(toolNames).not.toContain("run_code");
+    expect(toolNames).not.toContain("spawn_sub_agent");
+  });
+
+  it("includes direct session external tool definitions alongside the MVP tool set", async () => {
+    let capturedBody;
+    globalThis.fetch = vi.fn().mockImplementation(async (_url, opts) => {
+      capturedBody = JSON.parse(opts.body);
+      return {
+        ok: true,
+        json: async () => ({
+          message: { role: "assistant", content: "direct external" },
+        }),
+      };
+    });
+
+    await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "ollama",
+      model: "test",
+      baseUrl: "http://localhost:11434",
+      enabledToolNames: CODING_AGENT_MVP_TOOL_NAMES,
+      extraToolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: "mcp_weather_get_forecast",
+            description: "Get the weather forecast",
+            parameters: {
+              type: "object",
+              properties: {
+                city: { type: "string" },
+              },
+              required: ["city"],
+            },
+          },
+        },
+      ],
+    });
+
+    const toolNames = capturedBody.tools.map((tool) => tool.function.name);
+    expect(toolNames).toContain("mcp_weather_get_forecast");
+    expect(toolNames).not.toContain("run_skill");
+    expect(toolNames).not.toContain("run_code");
   });
 
   it("Ollama provider: fetch URL contains /api/chat with tools", async () => {
@@ -752,7 +1022,7 @@ describe("chatWithTools", () => {
 
     expect(capturedUrl).toContain("/api/chat");
     expect(capturedBody.tools).toBeDefined();
-    expect(capturedBody.tools.length).toBe(10);
+    expect(capturedBody.tools.length).toBe(11);
     expect(capturedBody.model).toBe("qwen2.5:7b");
   });
 
