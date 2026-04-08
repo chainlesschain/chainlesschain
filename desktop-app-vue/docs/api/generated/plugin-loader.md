@@ -2,7 +2,7 @@
 
 **Source**: `src/main/plugins/plugin-loader.js`
 
-**Generated**: 2026-04-07T15:25:32.361Z
+**Generated**: 2026-04-08T08:35:35.403Z
 
 ---
 
@@ -21,13 +21,14 @@ const
 
 ---
 
-## ensureDirectories()
+## async ensureDirectories()
 
 ```javascript
-ensureDirectories()
+async ensureDirectories()
 ```
 
-* 确保必要的目录存在
+* 确保必要的目录存在 (M2: 异步、可记忆化)
+   * 公共方法在使用 pluginsDir/tempDir 前应 await 此方法。
 
 ---
 
@@ -62,21 +63,21 @@ isNpmPackage(source)
 async loadManifest(pluginPath)
 ```
 
-* 加载插件manifest
+* 加载插件manifest (M2: 异步读取，避免启动期阻塞事件循环)
    * @param {string} pluginPath - 插件路径
    * @returns {Promise<Object>} manifest对象
 
 ---
 
-## parsePackageJson(packagePath)
+## async parsePackageJson(packagePath)
 
 ```javascript
-parsePackageJson(packagePath)
+async parsePackageJson(packagePath)
 ```
 
-* 从package.json解析插件manifest
+* 从package.json解析插件manifest (M2: 异步)
    * @param {string} packagePath - package.json路径
-   * @returns {Object} manifest对象
+   * @returns {Promise<Object>} manifest对象
 
 ---
 

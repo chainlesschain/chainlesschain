@@ -2,7 +2,7 @@
 
 **Source**: `src/main/template/sync-templates-to-db.js`
 
-**Generated**: 2026-04-07T15:25:32.321Z
+**Generated**: 2026-04-08T08:35:35.363Z
 
 ---
 

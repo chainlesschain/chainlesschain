@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/ai-engine-manager.js`
 
-**Generated**: 2026-04-07T15:25:32.457Z
+**Generated**: 2026-04-08T08:35:35.499Z
 
 ---
 
@@ -39,13 +39,13 @@ async initializeWorkflowOptimizations()
 
 ---
 
-## _loadWorkflowConfig()
+## async _loadWorkflowConfigAsync()
 
 ```javascript
-_loadWorkflowConfig()
+async _loadWorkflowConfigAsync()
 ```
 
-* 加载工作流配置
+* 异步加载工作流配置 (M2: 启动期 IO 异步化)
    * @private
 
 ---

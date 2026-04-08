@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/database-adapter.js`
 
-**Generated**: 2026-04-07T15:25:32.417Z
+**Generated**: 2026-04-08T08:35:35.459Z
 
 ---
 
@@ -59,14 +59,26 @@ getDevDefaultPassword()
 
 ---
 
-## detectEngine()
+## async _pathExists(p)
 
 ```javascript
-detectEngine()
+async _pathExists(p)
 ```
 
-* 检测应该使用哪个引擎
-   * @returns {string} 引擎类型
+* 异步路径存在性检查 (M2)
+   * @param {string} p
+   * @returns {Promise<boolean>}
+
+---
+
+## async detectEngine()
+
+```javascript
+async detectEngine()
+```
+
+* 检测应该使用哪个引擎 (M2: 异步)
+   * @returns {Promise<string>} 引擎类型
 
 ---
 
@@ -101,14 +113,14 @@ async initializeEncryption()
 
 ---
 
-## shouldMigrate()
+## async shouldMigrate()
 
 ```javascript
-shouldMigrate()
+async shouldMigrate()
 ```
 
-* 检查是否需要迁移
-   * @returns {boolean}
+* 检查是否需要迁移 (M2: 异步)
+   * @returns {Promise<boolean>}
 
 ---
 

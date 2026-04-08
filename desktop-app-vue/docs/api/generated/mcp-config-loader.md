@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-config-loader.js`
 
-**Generated**: 2026-04-07T15:25:32.381Z
+**Generated**: 2026-04-08T08:35:35.420Z
 
 ---
 
@@ -30,6 +30,19 @@ load(watch = false)
 * Load configuration from file
    * @param {boolean} watch - Enable file watching for hot-reload
    * @returns {Object} MCP configuration
+
+---
+
+## async loadAsync(watch = false)
+
+```javascript
+async loadAsync(watch = false)
+```
+
+* Async load configuration (M2 启动期 IO 异步化)
+   * Uses fs.promises so the readFile/parse work moves off the event loop.
+   * @param {boolean} watch - Enable file watching for hot-reload
+   * @returns {Promise<Object>} MCP configuration
 
 ---
 

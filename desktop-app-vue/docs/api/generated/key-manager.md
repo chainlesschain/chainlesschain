@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/key-manager.js`
 
-**Generated**: 2026-04-07T15:25:32.416Z
+**Generated**: 2026-04-08T08:35:35.457Z
 
 ---
 
@@ -131,14 +131,15 @@ async saveKeyMetadata(metadata)
 
 ---
 
-## loadKeyMetadata()
+## async loadKeyMetadata()
 
 ```javascript
-loadKeyMetadata()
+async loadKeyMetadata()
 ```
 
 * 加载密钥元数据
-   * @returns {Object|null}
+   * M2: 异步 IO 避免阻塞事件循环
+   * @returns {Promise<Object|null>}
 
 ---
 

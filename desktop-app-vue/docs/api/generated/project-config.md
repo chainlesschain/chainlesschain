@@ -2,7 +2,7 @@
 
 **Source**: `src/main/project/project-config.js`
 
-**Generated**: 2026-04-07T15:25:32.359Z
+**Generated**: 2026-04-08T08:35:35.401Z
 
 ---
 
@@ -34,6 +34,36 @@ loadConfig()
 ```
 
 * 加载配置文件
+
+---
+
+## async initializeAsync()
+
+```javascript
+async initializeAsync()
+```
+
+* 异步初始化配置 (M2: 启动期 IO 异步化)
+
+---
+
+## async loadConfigAsync()
+
+```javascript
+async loadConfigAsync()
+```
+
+* 异步加载配置文件 (M2)
+
+---
+
+## async saveConfigAsync()
+
+```javascript
+async saveConfigAsync()
+```
+
+* 异步保存配置文件 (M2)
 
 ---
 
@@ -116,6 +146,17 @@ updateConfig(updates)
 ```
 
 * 更新配置
+
+---
+
+## async function getProjectConfigAsync()
+
+```javascript
+async function getProjectConfigAsync()
+```
+
+* 异步获取/初始化单例 (M2: 启动期 IO 异步化)
+ * 启动路径调用此函数，避免阻塞事件循环。
 
 ---
 

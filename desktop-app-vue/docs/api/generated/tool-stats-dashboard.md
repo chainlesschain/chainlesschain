@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/tool-stats-dashboard.js`
 
-**Generated**: 2026-04-07T15:25:32.336Z
+**Generated**: 2026-04-08T08:35:35.381Z
 
 ---
 
