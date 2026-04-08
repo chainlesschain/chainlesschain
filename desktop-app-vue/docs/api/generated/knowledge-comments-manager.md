@@ -2,7 +2,7 @@
 
 **Source**: `src/main/knowledge/knowledge-comments-manager.js`
 
-**Generated**: 2026-04-08T14:31:39.128Z
+**Generated**: 2026-04-08T15:18:57.883Z
 
 ---
 

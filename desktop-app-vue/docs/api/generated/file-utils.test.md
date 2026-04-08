@@ -2,7 +2,7 @@
 
 **Source**: `src/renderer/utils/__tests__/file-utils.test.js`
 
-**Generated**: 2026-04-08T14:31:39.240Z
+**Generated**: 2026-04-08T15:18:57.998Z
 
 ---
 

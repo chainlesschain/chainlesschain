@@ -2,7 +2,7 @@
 
 **Source**: `src/main/task/task-manager.js`
 
-**Generated**: 2026-04-08T14:31:39.064Z
+**Generated**: 2026-04-08T15:18:57.814Z
 
 ---
 
