@@ -102,6 +102,20 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 
 **测试覆盖**：334 个测试（255 单元 + 42 集成 + 37 E2E），12 个测试文件，全部通过。
 
+### 技术债清理 - M2 启动期 IO 异步化 + IPC Registry 收官 (v0.45.55~61, 2026-04-08)
+
+**M2 任务收官**：将启动关键路径上的同步 IO 全部转为 `fs.promises`，避免阻塞 Electron 主进程事件循环。共改造 11 个模块（unified-config-manager / ai-engine-config / tool-skill-mapper-config / mcp-config-loader / database-config / logger / git-auto-commit / project-config + 3 个 ai-engine-manager 变体），全部使用 `_deps` 注入模式以保持单元测试可 mock。同步 API 作为运行时快路径保留，启动路径调用 `loadAsync()` / `prewarmXxx()` / `getXxxAsync()`。
+
+**IPC Registry 收官**（v0.45.59~60）：
+
+- **修复隐藏 ReferenceError**：`ipc-registry.js` 的 Phase 5 / Phase 9-15 deps 构造曾用 `{ mcpClientManager, mcpToolAdapter }` 简写但顶部从未解构这两个标识符。一旦相关 phase 命中且 `dependencies` 缺失任一字段，整个 IPC 注册就会抛 `ReferenceError`。由于 `...dependencies` 已经覆盖了它们，删除两处冗余引用，行为不变。
+- **清理死解构块**：主文件顶部 30+ 行的 destructure（绝大多数项只解构出来又通过 `...dependencies` 转发）压缩到只剩 5 个本文件直接引用的 manager (`app` / `database` / `mainWindow` / `llmManager` / `aiEngineManager`)，其余通过 `...dependencies` 透传。
+- **效果**：`ipc-registry.js` 由 495 行减至 446 行（−49 行），职责收敛到 "协调注册顺序 + 工具函数 + 全局守卫"。
+
+**关键 Bug 修复**（v0.45.61）：`project-export-ipc.js` 的 `project:import-file` 处理器有 v0.45.13 引入的 copy-paste 死代码块，引用了 `projectPath` 和 `normalizedProjectPath` 两个未在该作用域定义的变量；只要进入该 handler 就抛 `ReferenceError`。彻底删除死块，改用 `getActiveDatabase()` 路径（与 export-file handler 一致）。同时补全 `project-export-ipc.test.js` 中 mockDatabase 的 `getProjectById` / `getProjectFiles` / `db.get` / `db.run` 接口，把原本静默失败的 3 个文件操作测试还原为真实断言。
+
+**测试覆盖**：本轮全面回归通过 — IPC 模块 89/89、Git 192/192、Project 212/212（修复了 3 个 pre-existing 失败）、AI Engine 1987/1987、CLI 单元 3053/3053。
+
 ### 技术债清理 - H3 database.js 拆分 (v0.45.31~33, 2026-04-07)
 
 将 `desktop-app-vue/src/main/database.js`（原 9470 行的巨型 `DatabaseManager` 类）按职责切分到 `src/main/database/` 子目录。

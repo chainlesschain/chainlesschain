@@ -295,3 +295,62 @@ require("../audit/siem-exporter")
 // 拆分后 (在 phases/phase-51-57-v1-1.js 中):
 require("../../audit/siem-exporter")
 ```
+
+### 9.6 收官 (v0.45.59~60)
+
+H2 拆分完成后，`ipc-registry.js` 的核心职责仍残留两处遗留物，于 v0.45.59~60 一并清理：
+
+**(a) 隐藏的 ReferenceError（v0.45.59）**
+
+Phase 5 / Phase 9-15 的 `deps` 构造曾用对象简写：
+
+```javascript
+// 旧代码 — 这两个标识符在函数顶部从未声明
+deps: {
+  ...dependencies,
+  app,
+  mainWindow,
+  mcpClientManager,   // ← 未声明
+  mcpToolAdapter,     // ← 未声明
+}
+```
+
+由于 `...dependencies` 已经覆盖了它们，简写引用纯属冗余 + 真实潜在 bug：只要 `dependencies` 入参缺失任一字段且相关 phase 命中，整个 IPC 注册会立即抛 `ReferenceError` 并被外层 try/catch 重抛，导致主进程启动失败。两处共 3 行删除即可修复。
+
+**(b) 死解构块（v0.45.60）**
+
+主文件顶部曾把 `dependencies` 中 30+ 个键全部解构到本地作用域：
+
+```javascript
+// 旧代码 — 30+ 行
+const {
+  app, database, mainWindow, llmManager,
+  ragManager, ukeyManager, gitManager, gitHotReload, didManager, p2pManager,
+  // skillManager, // Kept in dependencies for future use
+  imageUploader, fileImporter, templateManager,
+  // ... 25+ 行
+  versionManager,
+} = dependencies;
+```
+
+但本文件实际只直接引用其中 5 个 (`app` / `database` / `mainWindow` / `llmManager` / `aiEngineManager`)；其余全部经 `...dependencies` 透传给各 phase，重复解构纯属噪音。该解构块是 H2 拆分前各 phase 仍在主文件内联时的遗留——拆分后 phase 自己从 `deps` 解构需要的字段，主文件层不再需要它们。
+
+```javascript
+// 新代码
+const { app, database, mainWindow, llmManager, aiEngineManager } =
+  dependencies;
+```
+
+**指标变化**：
+
+| 指标                       | H2 完成时 | 收官后 | 变化 |
+| -------------------------- | --------: | -----: | ---: |
+| `ipc-registry.js` 行数     |       493 |    446 |  −47 |
+| 顶层冗余解构项             |       30+ |      0 | −30+ |
+| 隐藏 ReferenceError 风险点 |         2 |      0 |   −2 |
+
+### 9.7 M2 启动期 IO 异步化 — IPC Registry 关联
+
+`registerAllIPC()` 内部某些 phase 通过 `aiEngineManager.initialize()` 触发的 `getProjectConfig()` 调用是 M2（启动期同步 IO 异步化）任务的最后一块。v0.45.58 把 `project-config.js` 增加 `getProjectConfigAsync()` 工厂，并把 `ai-engine-manager.js` / `ai-engine-manager-p1.js` / `ai-engine-manager-optimized.js` 三个变体的 `initialize()` 方法改用 `await getProjectConfigAsync()`，从而消除了 IPC 注册路径上最后一处启动期 `existsSync` + `readFileSync` 调用。
+
+详见 `M2 启动期同步 IO 异步化` 任务（任务 #7）的总览，覆盖 11 个模块（unified-config-manager / ai-engine-config / tool-skill-mapper-config / mcp-config-loader / database-config / logger / git-auto-commit / project-config + 3 个 ai-engine-manager 变体）。所有改造均使用 `_deps` 注入模式以保持单元测试可 mock，同步 API 作为运行时快路径保留。
