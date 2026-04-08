@@ -241,6 +241,29 @@ console.log("权限拒绝次数:", aiStatus.middlewareStats.permissionDenied);
 - **最小加载**: 未使用的域保持未加载状态，减少攻击面
 - **默认策略**: `permissionGuard.defaultPolicy` 生产环境建议设为 `deny`
 
+## H2 IPC Registry 拆分收官 (v0.45.30 → v0.45.60)
+
+H2 任务把 `ipc-registry.js` 从 4925 行拆到 493 行（−4432，−90%），共抽出 16 个 phase 模块、88 个 phase。详见 `docs/design/modules/43_IPC域分割与懒加载系统.md` 第九节。
+
+收官阶段（v0.45.59~60）做了两件事：
+
+- **修掉两处隐藏的 ReferenceError**：Phase 5 / Phase 9-15 的 `deps` 构造曾用 `{ mcpClientManager, mcpToolAdapter }` 简写但顶部从未声明这两个标识符。由于 `...dependencies` 已经覆盖了它们，简写引用纯属冗余 + 真实潜在 bug——`dependencies` 入参缺失任一字段时立即抛 `ReferenceError`，导致主进程启动失败。
+- **清掉死解构块**：主文件顶部 30+ 行的 destructure（绝大多数项只解构出来又通过 `...dependencies` 转发）压缩到只剩 5 个本文件直接引用的 manager (`app` / `database` / `mainWindow` / `llmManager` / `aiEngineManager`)，其余通过 `...dependencies` 透传。
+
+最终 `ipc-registry.js` 从 493 → 446 行，职责收敛到 "协调注册顺序 + 工具函数 + 全局守卫"。
+
+## M2 启动期同步 IO 异步化 (v0.45.55~58)
+
+M2 任务的目标是把启动关键路径上的同步 IO 全部转为 `fs.promises`，避免阻塞 Electron 主进程事件循环。共改造 11 个模块：
+
+- **Config 加载层**：unified-config-manager / ai-engine-config / tool-skill-mapper-config / mcp-config-loader / database-config — 全部新增 `loadAsync()` + `prewarmXxx()` 入口
+- **Logger**：构造期 IO `setImmediate` 延迟到下个事件循环
+- **Git**：`git-auto-commit.isGitRepository()` 改用 `fs.promises.stat` + ENOENT/ENOTDIR 容错
+- **Project**：`project-config.js` 新增 `initializeAsync` / `loadConfigAsync` / `saveConfigAsync` + `getProjectConfigAsync()` 工厂
+- **AI Engine**：`ai-engine-manager.js` / `ai-engine-manager-p1.js` / `ai-engine-manager-optimized.js` 三个变体的 `initialize()` 改用 `await getProjectConfigAsync()`，消除 IPC 注册路径上最后一处启动期 `existsSync` + `readFileSync`
+
+所有改造均使用 `_deps` 注入模式（`module.exports._deps = _deps`）以保持单元测试可 mock，同步 API 作为运行时快路径保留。
+
 ## 相关文档
 
 - [DI 容器](/chainlesschain/di-container)
