@@ -42,11 +42,12 @@ class AIEngineManager {
       if (!this.llmManager) {
         const { getLLMManager } = require("../llm/llm-manager");
         const { getDatabase } = require("../database");
-        const { getProjectConfig } = require("../project/project-config");
+        const { getProjectConfigAsync } = require("../project/project-config");
 
         this.llmManager = getLLMManager();
         this.database = getDatabase();
-        this.projectConfig = getProjectConfig();
+        // M2: 异步加载，避免阻塞事件循环
+        this.projectConfig = await getProjectConfigAsync();
 
         // 确保LLM管理器已初始化
         if (!this.llmManager.isInitialized) {

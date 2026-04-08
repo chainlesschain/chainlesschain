@@ -3,6 +3,9 @@ const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
 
+// M2: 启动期 IO 异步化 — 通过 _deps 暴露 fs.promises 便于测试覆盖
+const _deps = { fsp: fs.promises };
+
 /**
  * 项目配置管理器
  * 管理项目存储根路径等配置
@@ -49,6 +52,59 @@ class ProjectConfig {
     } catch (error) {
       logger.error("[ProjectConfig] 加载配置失败:", error);
       this.config = this.getDefaultConfig();
+    }
+  }
+
+  /**
+   * 异步初始化配置 (M2: 启动期 IO 异步化)
+   */
+  async initializeAsync() {
+    const userDataPath = app.getPath("userData");
+    const configDir = path.join(userDataPath, "config");
+
+    // 确保配置目录存在 — 使用异步 mkdir + recursive
+    await _deps.fsp.mkdir(configDir, { recursive: true });
+
+    this.configPath = path.join(configDir, "project-config.json");
+
+    // 加载或创建配置
+    await this.loadConfigAsync();
+
+    logger.info("[ProjectConfig] 配置已加载 (async):", this.config);
+  }
+
+  /**
+   * 异步加载配置文件 (M2)
+   */
+  async loadConfigAsync() {
+    try {
+      const content = await _deps.fsp.readFile(this.configPath, "utf-8");
+      this.config = JSON.parse(content);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        // 创建默认配置
+        this.config = this.getDefaultConfig();
+        await this.saveConfigAsync();
+      } else {
+        logger.error("[ProjectConfig] 异步加载配置失败:", error);
+        this.config = this.getDefaultConfig();
+      }
+    }
+  }
+
+  /**
+   * 异步保存配置文件 (M2)
+   */
+  async saveConfigAsync() {
+    try {
+      await _deps.fsp.writeFile(
+        this.configPath,
+        JSON.stringify(this.config, null, 2),
+        "utf-8",
+      );
+      logger.info("[ProjectConfig] 配置已保存 (async)");
+    } catch (error) {
+      logger.error("[ProjectConfig] 异步保存配置失败:", error);
     }
   }
 
@@ -215,7 +271,23 @@ function getProjectConfig() {
   return projectConfigInstance;
 }
 
+/**
+ * 异步获取/初始化单例 (M2: 启动期 IO 异步化)
+ * 启动路径调用此函数，避免阻塞事件循环。
+ */
+async function getProjectConfigAsync() {
+  if (!projectConfigInstance) {
+    projectConfigInstance = new ProjectConfig();
+    await projectConfigInstance.initializeAsync();
+  } else if (!projectConfigInstance.config) {
+    await projectConfigInstance.initializeAsync();
+  }
+  return projectConfigInstance;
+}
+
 module.exports = {
   ProjectConfig,
   getProjectConfig,
+  getProjectConfigAsync,
 };
+module.exports._deps = _deps;
