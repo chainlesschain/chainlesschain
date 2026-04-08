@@ -384,6 +384,7 @@ CLI 已完成
 - WebSocket coding session 默认只暴露 MVP 工具；skill / run_code / sub-agent 已从默认上下文中移出，需要会话级显式启用
 - Desktop bridge / session-service 已补 MCP 跨进程回归，覆盖 `session-policy-update` 透传与 `resumeSession()` 后 host policy 重同步
 - Desktop integration 已补 IPC 别名与 hosted MCP 回归，覆盖 `start-session`、`respond-approval`、`interrupt` 和 hosted MCP resume 同步
+- Renderer store 已对齐共享 dot-case 事件协议，并补回归覆盖 `assistant.final`、`approval.requested`、`tool.call.failed`、`runtime.server.ready`
 
 当前限制：
 
