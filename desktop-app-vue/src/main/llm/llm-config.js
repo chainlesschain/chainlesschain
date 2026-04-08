@@ -183,7 +183,11 @@ class LLMConfig {
 
       const sensitiveData = extractSensitiveFields(this.config);
       if (Object.keys(sensitiveData).length > 0) {
-        const secureResult = this.secureStorage.save(sensitiveData);
+        // M2: 异步写入加密配置，避免启动期阻塞事件循环
+        const secureResult =
+          typeof this.secureStorage.saveAsync === "function"
+            ? await this.secureStorage.saveAsync(sensitiveData)
+            : this.secureStorage.save(sensitiveData);
         if (secureResult) {
           logger.info("[LLMConfig] 敏感配置已加密保存");
         }

@@ -81,8 +81,8 @@ class AIEngineManager {
    */
   async initializeWorkflowOptimizations() {
     try {
-      // 读取配置
-      const config = this._loadWorkflowConfig();
+      // 读取配置 (M2: 异步加载，避免启动期阻塞事件循环)
+      const config = await this._loadWorkflowConfigAsync();
 
       // 1. LLM决策引擎
       if (config.phase3.llmDecision.enabled) {
@@ -136,12 +136,12 @@ class AIEngineManager {
   }
 
   /**
-   * 加载工作流配置
+   * 异步加载工作流配置 (M2: 启动期 IO 异步化)
    * @private
    */
-  _loadWorkflowConfig() {
+  async _loadWorkflowConfigAsync() {
     try {
-      const fs = require("fs");
+      const fsp = require("fs").promises;
       const path = require("path");
       const configPath = path.join(
         process.cwd(),
@@ -149,11 +149,15 @@ class AIEngineManager {
         "config.json",
       );
 
-      if (fs.existsSync(configPath)) {
-        const data = fs.readFileSync(configPath, "utf-8");
+      try {
+        const data = await fsp.readFile(configPath, "utf-8");
         const config = JSON.parse(data);
         if (config.workflow && config.workflow.optimizations) {
           return config.workflow.optimizations;
+        }
+      } catch (error) {
+        if (error.code !== "ENOENT") {
+          throw error;
         }
       }
     } catch (error) {

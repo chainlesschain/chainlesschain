@@ -78,8 +78,19 @@ class Logger {
     this.currentLogFile = null;
     this.performanceMarks = new Map();
 
-    this.ensureLogDirectory();
-    this.rotateLogsIfNeeded();
+    // M2: 启动期 IO 异步化 — 将目录创建/日志轮转推迟到下个事件循环 tick，
+    // 避免在 logger 模块加载（被 src/main/** 处处 require）时阻塞主线程。
+    // 第一次写入前若目录尚未就绪，appendFileSync 会触发同步兜底。
+    this._initialized = false;
+    setImmediate(() => {
+      try {
+        this.ensureLogDirectory();
+        this.rotateLogsIfNeeded();
+        this._initialized = true;
+      } catch (error) {
+        console.error("日志器异步初始化失败:", error);
+      }
+    });
   }
 
   /**
