@@ -313,7 +313,8 @@ function registerAIInitializers(factory) {
       registerMCPDiscoveryIPC({ discoveryManager: mcpDiscovery });
 
       // Enable config file watching for hot-reload
-      mcpConfigLoader.load(true);
+      // M2: 异步加载，避免启动期阻塞事件循环
+      await mcpConfigLoader.loadAsync(true);
 
       logger.info("[AI] MCP系统初始化完成（含发现管理器）");
 
