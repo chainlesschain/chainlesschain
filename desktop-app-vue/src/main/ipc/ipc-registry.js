@@ -155,55 +155,9 @@ function registerAllIPC(dependencies) {
   }
 
   try {
-    // 解构所有依赖（便于后续传递给各个模块）
-    // 注意：部分依赖在此文件中未使用，但保留用于保持兼容性
-    const {
-      app,
-      database,
-      mainWindow,
-      llmManager,
-      ragManager,
-      ukeyManager,
-      gitManager,
-      gitHotReload,
-      didManager,
-      p2pManager,
-      // skillManager, // Kept in dependencies for future use
-      // toolManager, // Kept in dependencies for future use
-      imageUploader,
-      fileImporter,
-      templateManager,
-      promptTemplateManager,
-      knowledgePaymentManager,
-      creditScoreManager,
-      reviewManager,
-      vcTemplateManager,
-      identityContextManager,
-      aiEngineManager,
-      webEngine,
-      documentEngine,
-      dataEngine,
-      // projectStructureManager, // Kept for future use
-      // pluginManager, // Kept for future use
-      // webideManager, // Kept for future use
-      // statsCollector, // Kept for future use
-      fileSyncManager,
-      // previewManager, // Kept for future use
-      markdownExporter,
-      // nativeMessagingServer, // Kept for future use
-      gitAutoCommit,
-      // skillExecutor, // Kept for future use
-      // aiScheduler, // Kept for future use
-      chatSkillBridge,
-      syncManager,
-      contactManager,
-      friendManager,
-      postManager,
-      vcManager,
-      organizationManager,
-      dbManager,
-      versionManager,
-    } = dependencies;
+    // 解构本文件直接引用的依赖；其余通过 `...dependencies` 透传给各 phase
+    const { app, database, mainWindow, llmManager, aiEngineManager } =
+      dependencies;
 
     // ============================================================
     // 第一阶段模块 (AI 相关) — extracted to phases/phase-1-ai.js
