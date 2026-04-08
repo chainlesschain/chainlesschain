@@ -253,6 +253,12 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       }
     },
 
+    async startSession(
+      options: Record<string, any> = {},
+    ): Promise<string | null> {
+      return this.createSession(options);
+    },
+
     async resumeSession(sessionId: string): Promise<boolean> {
       this.loading = true;
       this.error = null;
@@ -279,9 +285,7 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       }
     },
 
-    async sendMessage(
-      content: string,
-    ): Promise<{
+    async sendMessage(content: string): Promise<{
       success: boolean;
       requestId?: string;
       sessionId?: string;
@@ -338,24 +342,40 @@ export const useCodingAgentStore = defineStore("coding-agent", {
 
     async approvePlan(): Promise<void> {
       if (!this.currentSessionId) return;
-      await (window as any).electronAPI.codingAgent.approvePlan(
-        this.currentSessionId,
-      );
+      await this.respondApproval({
+        approvalType: "plan",
+        decision: "granted",
+      });
+    },
+
+    async respondApproval(payload: {
+      decision: string;
+      approvalType?: string;
+      status?: string;
+      action?: string;
+    }): Promise<void> {
+      if (!this.currentSessionId) return;
+      await (window as any).electronAPI.codingAgent.respondApproval({
+        sessionId: this.currentSessionId,
+        ...payload,
+      });
+      await this.fetchSessionState(this.currentSessionId);
     },
 
     async confirmHighRiskExecution(): Promise<void> {
       if (!this.currentSessionId) return;
-      await (window as any).electronAPI.codingAgent.confirmHighRiskExecution(
-        this.currentSessionId,
-      );
-      await this.fetchSessionState(this.currentSessionId);
+      await this.respondApproval({
+        approvalType: "high-risk",
+        decision: "granted",
+      });
     },
 
     async rejectPlan(): Promise<void> {
       if (!this.currentSessionId) return;
-      await (window as any).electronAPI.codingAgent.rejectPlan(
-        this.currentSessionId,
-      );
+      await this.respondApproval({
+        approvalType: "plan",
+        decision: "denied",
+      });
     },
 
     async closeCurrentSession(): Promise<void> {
@@ -369,6 +389,13 @@ export const useCodingAgentStore = defineStore("coding-agent", {
         (event) => event.sessionId !== sessionId,
       );
       await this.loadSessions();
+    },
+
+    async interrupt(): Promise<void> {
+      if (!this.currentSessionId) return;
+      await (window as any).electronAPI.codingAgent.interrupt(
+        this.currentSessionId,
+      );
     },
 
     async listWorktrees(): Promise<CodingAgentWorktreeRecord[]> {
@@ -683,12 +710,15 @@ export const useCodingAgentStore = defineStore("coding-agent", {
       }
 
       const api = (window as any).electronAPI?.codingAgent;
-      if (!api?.onEvent) {
-        codingAgentLogger.warn("codingAgent.onEvent not available");
+      const subscribe = api?.subscribeEvents || api?.onEvent || null;
+      if (typeof subscribe !== "function") {
+        codingAgentLogger.warn(
+          "codingAgent event subscription API not available",
+        );
         return;
       }
 
-      this.unsubscribe = api.onEvent((event: CodingAgentEvent) => {
+      this.unsubscribe = subscribe((event: CodingAgentEvent) => {
         this.events.push(event);
         if (this.events.length > 500) {
           this.events.splice(0, this.events.length - 500);

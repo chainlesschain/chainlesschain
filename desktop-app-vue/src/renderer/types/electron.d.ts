@@ -329,19 +329,26 @@ export interface CodingAgentStatus {
 
 export interface CodingAgentAPI {
   createSession(options?: any): Promise<any>;
+  startSession(options?: any): Promise<any>;
   resumeSession(sessionId: string): Promise<any>;
   listSessions(): Promise<any>;
   sendMessage(payload: { sessionId: string; content: string }): Promise<any>;
   enterPlanMode(sessionId: string): Promise<any>;
   showPlan(sessionId: string): Promise<any>;
   approvePlan(sessionId: string): Promise<any>;
+  respondApproval(payload: {
+    sessionId: string;
+    approvalType?: string;
+    decision: string;
+    status?: string;
+    action?: string;
+  }): Promise<any>;
   confirmHighRiskExecution(sessionId: string): Promise<any>;
   rejectPlan(sessionId: string): Promise<any>;
   closeSession(sessionId: string): Promise<any>;
   cancelSession(sessionId: string): Promise<any>;
-  getSessionState(
-    sessionId: string,
-  ): Promise<{
+  interrupt(sessionId: string): Promise<any>;
+  getSessionState(sessionId: string): Promise<{
     success: boolean;
     session?: CodingAgentSessionState;
     error?: string;
@@ -438,6 +445,7 @@ export interface CodingAgentAPI {
     permissionPolicy?: CodingAgentPermissionPolicy | null;
   }>;
   onEvent(callback: (event: CodingAgentEvent) => void): () => void;
+  subscribeEvents(callback: (event: CodingAgentEvent) => void): () => void;
 }
 
 /**

@@ -257,6 +257,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   codingAgent: {
     createSession: (options) =>
       ipcRenderer.invoke("coding-agent:create-session", options),
+    startSession: (options) =>
+      ipcRenderer.invoke("coding-agent:start-session", options),
     resumeSession: (sessionId) =>
       ipcRenderer.invoke("coding-agent:resume-session", sessionId),
     listSessions: () => ipcRenderer.invoke("coding-agent:list-sessions"),
@@ -268,6 +270,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:show-plan", sessionId),
     approvePlan: (sessionId) =>
       ipcRenderer.invoke("coding-agent:approve-plan", sessionId),
+    respondApproval: (payload) =>
+      ipcRenderer.invoke("coding-agent:respond-approval", payload),
     confirmHighRiskExecution: (sessionId) =>
       ipcRenderer.invoke("coding-agent:confirm-high-risk-execution", sessionId),
     rejectPlan: (sessionId) =>
@@ -276,6 +280,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:close-session", sessionId),
     cancelSession: (sessionId) =>
       ipcRenderer.invoke("coding-agent:cancel-session", sessionId),
+    interrupt: (sessionId) =>
+      ipcRenderer.invoke("coding-agent:interrupt", sessionId),
     getSessionState: (sessionId) =>
       ipcRenderer.invoke("coding-agent:get-session-state", sessionId),
     getSessionEvents: (sessionId) =>
@@ -291,6 +297,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("coding-agent:apply-worktree-automation", payload),
     getStatus: () => ipcRenderer.invoke("coding-agent:get-status"),
     onEvent: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("coding-agent:event", handler);
+      return () => ipcRenderer.removeListener("coding-agent:event", handler);
+    },
+    subscribeEvents: (callback) => {
       const handler = (_event, data) => callback(data);
       ipcRenderer.on("coding-agent:event", handler);
       return () => ipcRenderer.removeListener("coding-agent:event", handler);

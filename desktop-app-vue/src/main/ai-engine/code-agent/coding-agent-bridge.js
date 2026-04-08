@@ -216,16 +216,46 @@ class CodingAgentBridge extends EventEmitter {
   }
 
   _handleMessage(message) {
-    if (message && message.id && this.pending.has(message.id)) {
-      const pending = this.pending.get(message.id);
+    // Detect unified envelope: version "1.0" + eventId + payload object.
+    // The CLI runtime now emits envelopes for all solicited responses; the
+    // bridge correlates by `requestId` (the inbound request's id, echoed back
+    // by the CLI) and unwraps `payload` so existing flat-shape callers in
+    // session-service keep working unchanged. Legacy raw messages are still
+    // accepted via `message.id` for graceful migration.
+    const isEnvelope =
+      message &&
+      message.version === "1.0" &&
+      typeof message.eventId === "string" &&
+      message.payload &&
+      typeof message.payload === "object";
+
+    const correlationId = isEnvelope
+      ? message.requestId
+      : message && message.id;
+
+    if (correlationId && this.pending.has(correlationId)) {
+      const pending = this.pending.get(correlationId);
       if (message.type === "error") {
-        this.pending.delete(message.id);
+        this.pending.delete(correlationId);
+        const errSrc = isEnvelope ? message.payload : message;
         pending.reject(
-          new Error(message.message || message.code || "Unknown WS error"),
+          new Error(errSrc.message || errSrc.code || "Unknown WS error"),
         );
       } else if (pending.awaitTypes.has(message.type)) {
-        this.pending.delete(message.id);
-        pending.resolve(message);
+        this.pending.delete(correlationId);
+        if (isEnvelope) {
+          // Unwrap envelope payload into a flat shape; reconstruct `id` from
+          // `requestId` so callers like `sendMessage` that read `response.id`
+          // still observe the bridge-generated request id.
+          pending.resolve({
+            ...message.payload,
+            type: message.type,
+            id: message.requestId,
+            _envelope: message,
+          });
+        } else {
+          pending.resolve(message);
+        }
       }
     }
 
@@ -302,32 +332,46 @@ class CodingAgentBridge extends EventEmitter {
         projectRoot: options.projectRoot || this.projectRoot,
         worktreeIsolation: options.worktreeIsolation === true,
       },
-      ["session-created"],
+      // Accept both unified envelope type and legacy kebab-case for the
+      // graceful migration window.
+      ["session.started", "session-created"],
     );
   }
 
   async resumeSession(sessionId) {
-    return this.request("session-resume", { sessionId }, ["session-resumed"]);
+    return this.request("session-resume", { sessionId }, [
+      "session.resumed",
+      "session-resumed",
+    ]);
   }
 
   async listSessions() {
-    return this.request("session-list", {}, ["session-list-result"]);
+    return this.request("session-list", {}, [
+      "session.list",
+      "session-list-result",
+    ]);
   }
 
   async closeSession(sessionId) {
-    return this.request("session-close", { sessionId }, ["result"]);
+    return this.request("session-close", { sessionId }, [
+      "command.response",
+      "result",
+    ]);
   }
 
   async updateSessionPolicy(sessionId, hostManagedToolPolicy) {
     return this.request(
       "session-policy-update",
       { sessionId, hostManagedToolPolicy },
-      ["session-policy-updated"],
+      ["command.response", "session-policy-updated"],
     );
   }
 
   async listWorktrees() {
-    return this.request("worktree-list", {}, ["worktree-list"]);
+    return this.request("worktree-list", {}, [
+      "worktree.list",
+      "worktree-list",
+    ]);
   }
 
   async diffWorktree(branch, options = {}) {
@@ -338,7 +382,7 @@ class CodingAgentBridge extends EventEmitter {
         baseBranch: options.baseBranch || null,
         filePath: options.filePath || null,
       },
-      ["worktree-diff"],
+      ["worktree.diff", "worktree-diff"],
     );
   }
 
@@ -350,7 +394,7 @@ class CodingAgentBridge extends EventEmitter {
         strategy: options.strategy || "merge",
         commitMessage: options.commitMessage || null,
       },
-      ["worktree-merged"],
+      ["worktree.merged", "worktree-merged"],
     );
   }
 
@@ -362,7 +406,7 @@ class CodingAgentBridge extends EventEmitter {
         baseBranch: options.baseBranch || null,
         strategy: options.strategy || "merge",
       },
-      ["worktree-merge-preview"],
+      ["worktree.merge-preview", "worktree-merge-preview"],
     );
   }
 
@@ -376,7 +420,7 @@ class CodingAgentBridge extends EventEmitter {
         candidateId: options.candidateId || null,
         conflictType: options.conflictType || null,
       },
-      ["worktree-automation-applied"],
+      ["worktree.automation-applied", "worktree-automation-applied"],
     );
   }
 

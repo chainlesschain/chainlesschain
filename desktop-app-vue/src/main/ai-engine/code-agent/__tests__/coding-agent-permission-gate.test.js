@@ -88,6 +88,40 @@ describe("CodingAgentPermissionGate", () => {
     });
   });
 
+  it("allows readonly git commands during plan mode", () => {
+    const gate = new CodingAgentPermissionGate();
+
+    const result = gate.evaluateToolCall({
+      toolName: "git",
+      session: { planModeState: "analyzing" },
+      toolArgs: { command: "status" },
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      decision: "allow",
+      riskLevel: RISK_LEVELS.LOW,
+      category: "read",
+    });
+  });
+
+  it("still blocks mutating git commands until plan approval", () => {
+    const gate = new CodingAgentPermissionGate();
+
+    const result = gate.evaluateToolCall({
+      toolName: "git",
+      session: { planModeState: "analyzing" },
+      toolArgs: { command: "commit -m test" },
+    });
+
+    expect(result).toMatchObject({
+      allowed: false,
+      decision: "require_plan",
+      riskLevel: RISK_LEVELS.HIGH,
+      requiresPlanApproval: true,
+    });
+  });
+
   it("honors an explicit managed-tool descriptor when evaluating tool calls", () => {
     const gate = new CodingAgentPermissionGate();
 

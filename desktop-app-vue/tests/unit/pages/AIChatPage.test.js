@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mount } from "@vue/test-utils";
+import { config, mount, flushPromises } from "@vue/test-utils";
 import AIChatPage from "@renderer/pages/AIChatPage.vue";
 import { nextTick } from "vue";
 
@@ -52,8 +52,39 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: () => mockAuthStore,
 }));
 
+const mockCodingAgentStore = vi.hoisted(() => ({
+  currentSessionId: null,
+  currentSession: null,
+  latestApprovalRequest: null,
+  latestBlockedToolEvent: null,
+  permissionPolicy: null,
+  requiresHighRiskConfirmation: false,
+  events: [],
+  error: null,
+  initEventListeners: vi.fn(),
+  disposeEventListeners: vi.fn(),
+  refreshStatus: vi.fn().mockResolvedValue(),
+  listWorktrees: vi.fn().mockResolvedValue([]),
+  resumeSession: vi.fn().mockResolvedValue(true),
+  startSession: vi.fn().mockResolvedValue("session-1"),
+  showPlan: vi.fn().mockResolvedValue(),
+  enterPlanMode: vi.fn().mockResolvedValue(),
+  respondApproval: vi.fn().mockResolvedValue(),
+  sendMessage: vi.fn().mockResolvedValue({
+    success: true,
+    requestId: "req-1",
+    sessionId: "session-1",
+  }),
+}));
+
+vi.mock("@/stores/coding-agent", () => ({
+  useCodingAgentStore: () => mockCodingAgentStore,
+}));
+
 // Hoist marked mock parse function so tests can access it
-const mockMarkedParse = vi.hoisted(() => vi.fn((content) => `<p>${content}</p>`));
+const mockMarkedParse = vi.hoisted(() =>
+  vi.fn((content) => `<p>${content}</p>`),
+);
 
 // Mock marked library - use class to properly support new Renderer() and method binding
 vi.mock("marked", () => {
@@ -95,6 +126,26 @@ vi.mock("@/components/projects/StepDisplay.vue", () => ({
   },
 }));
 
+const antDesignPageStubs = {
+  "a-button": true,
+  "a-dropdown": true,
+  "a-menu": true,
+  "a-menu-item": true,
+  "a-tooltip": true,
+  "a-alert": true,
+  "a-tag": true,
+  "a-input": true,
+  "a-modal": true,
+  "a-descriptions": true,
+  "a-descriptions-item": true,
+  "a-empty": true,
+};
+
+config.global.stubs = {
+  ...(config.global.stubs || {}),
+  ...antDesignPageStubs,
+};
+
 // Mock Ant Design Icons
 vi.mock("@ant-design/icons-vue", () => ({
   RobotOutlined: { name: "RobotOutlined", template: "<span>Robot</span>" },
@@ -103,6 +154,9 @@ vi.mock("@ant-design/icons-vue", () => ({
     name: "LoadingOutlined",
     template: "<span>Loading</span>",
   },
+  BookOutlined: { name: "BookOutlined", template: "<span>Book</span>" },
+  SaveOutlined: { name: "SaveOutlined", template: "<span>Save</span>" },
+  CheckOutlined: { name: "CheckOutlined", template: "<span>Check</span>" },
 }));
 
 // Mock logger
@@ -124,6 +178,32 @@ describe("AIChatPage", () => {
   let mockMessages;
 
   beforeEach(() => {
+    Object.assign(mockCodingAgentStore, {
+      currentSessionId: null,
+      currentSession: null,
+      latestApprovalRequest: null,
+      latestBlockedToolEvent: null,
+      permissionPolicy: null,
+      requiresHighRiskConfirmation: false,
+      events: [],
+      error: null,
+    });
+    mockCodingAgentStore.initEventListeners.mockClear();
+    mockCodingAgentStore.disposeEventListeners.mockClear();
+    mockCodingAgentStore.refreshStatus.mockClear();
+    mockCodingAgentStore.listWorktrees.mockClear();
+    mockCodingAgentStore.resumeSession.mockClear();
+    mockCodingAgentStore.startSession.mockClear();
+    mockCodingAgentStore.showPlan.mockClear();
+    mockCodingAgentStore.enterPlanMode.mockClear();
+    mockCodingAgentStore.respondApproval.mockClear();
+    mockCodingAgentStore.sendMessage.mockClear();
+    mockCodingAgentStore.sendMessage.mockResolvedValue({
+      success: true,
+      requestId: "req-1",
+      sessionId: "session-1",
+    });
+
     // Mock Electron API
     global.window = {
       electronAPI: {
@@ -202,9 +282,48 @@ describe("AIChatPage", () => {
   afterEach(() => {
     if (wrapper) {
       wrapper.unmount();
+      wrapper = null;
     }
     vi.clearAllMocks();
   });
+
+  const createPageMountOptions = () => ({
+    global: {
+      stubs: {
+        "a-avatar": true,
+        "a-modal": true,
+        "a-input": true,
+        "a-button": {
+          template: "<button @click=\"$emit('click')\"><slot /></button>",
+        },
+        "a-tag": {
+          template: '<span class="stub-tag"><slot /></span>',
+        },
+        "a-alert": {
+          props: ["message", "description"],
+          template:
+            '<div class="stub-alert"><span>{{ message }}</span><span>{{ description }}</span></div>',
+        },
+        "a-tooltip": {
+          template: '<div class="stub-tooltip"><slot /></div>',
+        },
+        ConversationInput: true,
+        BrowserPreview: true,
+        StepDisplay: true,
+      },
+    },
+  });
+
+  const mountApprovalPage = async () => {
+    wrapper = mount(AIChatPage, createPageMountOptions());
+    await nextTick();
+    await nextTick();
+    await nextTick();
+    wrapper.vm.codingAgentSessionMap = {
+      [wrapper.vm.activeConversationId]: "session-1",
+    };
+    await nextTick();
+  };
 
   describe("组件挂载和初始化", () => {
     it("应该正确挂载", () => {
@@ -1223,6 +1342,171 @@ describe("AIChatPage", () => {
       await nextTick();
 
       expect(wrapper.vm.isThinking).toBe(false);
+    });
+  });
+
+  describe("coding agent approval panel", () => {
+    it("renders plan approval details and actions", async () => {
+      mockCodingAgentStore.currentSessionId = "session-1";
+      mockCodingAgentStore.currentSession = {
+        sessionId: "session-1",
+        planModeState: "plan_ready",
+        lastPlanItems: [
+          {
+            id: "step-1",
+            title: "Edit file",
+            tool: "edit_file",
+            description: "Update the target component",
+          },
+          {
+            id: "step-2",
+            title: "Run verification",
+            tool: "run_shell",
+          },
+        ],
+        worktreeIsolation: true,
+      };
+      mockCodingAgentStore.latestApprovalRequest = {
+        payload: {
+          summary: "Review the generated plan before continuing.",
+          items: [
+            { id: "step-1", title: "Edit file", tool: "edit_file" },
+            { id: "step-2", title: "Run verification", tool: "run_shell" },
+          ],
+        },
+      };
+      mockCodingAgentStore.permissionPolicy = {
+        toolsByRisk: {
+          medium: ["edit_file"],
+          high: ["run_shell"],
+        },
+      };
+
+      await mountApprovalPage();
+
+      const text = wrapper.text();
+      expect(text).toContain("Plan approval required");
+      expect(text).toContain("Edit file");
+      expect(text).toContain("edit_file");
+      expect(text).toContain("run_shell");
+      expect(text).toContain("Approve Plan");
+      expect(text).toContain("Reject Plan");
+      expect(text).toContain("Isolated");
+    });
+
+    it("approves the plan from the approval panel and continues execution", async () => {
+      mockCodingAgentStore.currentSessionId = "session-1";
+      mockCodingAgentStore.currentSession = {
+        sessionId: "session-1",
+        planModeState: "plan_ready",
+        lastPlanItems: [],
+        worktreeIsolation: false,
+      };
+      mockCodingAgentStore.latestApprovalRequest = {
+        payload: {
+          summary: "Approve the generated plan.",
+          items: [],
+        },
+      };
+      mockCodingAgentStore.permissionPolicy = {
+        toolsByRisk: {
+          medium: ["edit_file"],
+          high: [],
+        },
+      };
+
+      await mountApprovalPage();
+
+      const approveButton = wrapper
+        .findAll("button")
+        .find((button) => button.text().trim() === "Approve Plan");
+
+      expect(approveButton).toBeTruthy();
+
+      await wrapper.vm.handleApprovePlan();
+      await flushPromises();
+
+      expect(mockCodingAgentStore.respondApproval).toHaveBeenCalledWith({
+        approvalType: "plan",
+        decision: "granted",
+      });
+      expect(mockCodingAgentStore.sendMessage).toHaveBeenCalledWith(
+        "Proceed with the approved plan and carry out the approved changes.",
+      );
+    });
+
+    it("confirms high-risk actions from the approval panel", async () => {
+      mockCodingAgentStore.currentSessionId = "session-1";
+      mockCodingAgentStore.currentSession = {
+        sessionId: "session-1",
+        planModeState: "approved",
+        lastPlanItems: [
+          { id: "step-1", title: "Run verification", tool: "run_shell" },
+        ],
+        highRiskToolNames: ["run_shell"],
+      };
+      mockCodingAgentStore.requiresHighRiskConfirmation = true;
+      mockCodingAgentStore.permissionPolicy = {
+        toolsByRisk: {
+          medium: [],
+          high: ["run_shell"],
+        },
+      };
+
+      await mountApprovalPage();
+
+      expect(wrapper.text()).toContain("High-risk confirmation required");
+      expect(wrapper.text()).toContain("Confirm High-Risk Actions");
+
+      const confirmButton = wrapper
+        .findAll("button")
+        .find((button) => button.text().trim() === "Confirm High-Risk Actions");
+
+      expect(confirmButton).toBeTruthy();
+
+      await wrapper.vm.handleConfirmHighRisk();
+      await flushPromises();
+
+      expect(mockCodingAgentStore.respondApproval).toHaveBeenCalledWith({
+        approvalType: "high-risk",
+        decision: "granted",
+      });
+      expect(mockCodingAgentStore.sendMessage).toHaveBeenCalledWith(
+        "Proceed with the approved plan and carry out the approved changes.",
+      );
+    });
+
+    it("cancels high-risk actions from the approval panel", async () => {
+      mockCodingAgentStore.currentSessionId = "session-1";
+      mockCodingAgentStore.currentSession = {
+        sessionId: "session-1",
+        planModeState: "approved",
+        lastPlanItems: [
+          { id: "step-1", title: "Run verification", tool: "run_shell" },
+        ],
+        highRiskToolNames: ["run_shell"],
+      };
+      mockCodingAgentStore.requiresHighRiskConfirmation = true;
+
+      await mountApprovalPage();
+
+      const cancelButton = wrapper
+        .findAll("button")
+        .find((button) => button.text().trim() === "Cancel High-Risk Actions");
+
+      expect(cancelButton).toBeTruthy();
+
+      await wrapper.vm.handleRejectHighRisk();
+      await flushPromises();
+
+      expect(mockCodingAgentStore.respondApproval).toHaveBeenCalledWith({
+        approvalType: "high-risk",
+        decision: "denied",
+      });
+      expect(mockCodingAgentStore.sendMessage).not.toHaveBeenCalled();
+      expect(mockMessage.info).toHaveBeenCalledWith(
+        "High-risk actions were cancelled.",
+      );
     });
   });
 });

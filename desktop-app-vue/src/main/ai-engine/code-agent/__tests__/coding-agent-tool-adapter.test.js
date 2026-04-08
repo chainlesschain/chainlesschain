@@ -16,12 +16,12 @@ const {
 } = require("../coding-agent-tool-adapter.js");
 
 describe("CodingAgentToolAdapter", () => {
-  it("exposes the six core coding-agent tools with stable metadata", () => {
+  it("exposes the seven core coding-agent tools with stable metadata", () => {
     const adapter = new CodingAgentToolAdapter();
 
     const tools = adapter.listCoreTools();
 
-    expect(tools).toHaveLength(6);
+    expect(tools).toHaveLength(7);
     expect(tools.map((tool) => tool.name)).toEqual(
       CORE_CODING_AGENT_TOOLS.map((tool) => tool.name),
     );
@@ -33,6 +33,12 @@ describe("CodingAgentToolAdapter", () => {
     expect(tools.find((tool) => tool.name === "run_shell")).toMatchObject({
       isReadOnly: false,
       riskLevel: "high",
+    });
+    expect(tools.find((tool) => tool.name === "git")).toMatchObject({
+      isReadOnly: false,
+      riskLevel: "high",
+      planModeBehavior: "readonly-conditional",
+      readOnlySubcommands: expect.arrayContaining(["status", "diff", "log"]),
     });
   });
 
@@ -106,7 +112,7 @@ describe("CodingAgentToolAdapter", () => {
 
     const tools = await adapter.listAvailableTools();
 
-    expect(tools).toHaveLength(7);
+    expect(tools).toHaveLength(8);
     expect(
       tools.find((tool) => tool.name === DEFAULT_ALLOWED_MANAGED_TOOL_NAMES[0]),
     ).toMatchObject({
@@ -173,5 +179,110 @@ describe("CodingAgentToolAdapter", () => {
     expect(tools.some((tool) => tool.name === "mcp_github_create_issue")).toBe(
       false,
     );
+  });
+
+  it("blocks untrusted MCP servers even when they are explicitly allowlisted", async () => {
+    const adapter = new CodingAgentToolAdapter({
+      allowedMcpServerNames: ["custom-weather"],
+      mcpManager: {
+        servers: new Map([["custom-weather", { state: "connected" }]]),
+        listTools: vi.fn().mockResolvedValue([
+          {
+            name: "get_forecast",
+            description: "Get weather from an untrusted server",
+            inputSchema: {
+              type: "object",
+              properties: {
+                city: { type: "string" },
+              },
+            },
+          },
+        ]),
+      },
+    });
+
+    const tools = await adapter.listAvailableTools();
+
+    expect(
+      tools.some((tool) => tool.name === "mcp_custom-weather_get_forecast"),
+    ).toBe(false);
+  });
+
+  it("keeps trusted high-risk MCP servers disabled unless explicitly opted in", async () => {
+    const mcpManager = {
+      servers: new Map([["github", { state: "connected" }]]),
+      listTools: vi.fn().mockResolvedValue([
+        {
+          name: "create_issue",
+          description: "Create a GitHub issue",
+          inputSchema: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+            },
+          },
+        },
+      ]),
+    };
+
+    const blockedAdapter = new CodingAgentToolAdapter({
+      allowedMcpServerNames: ["github"],
+      mcpManager,
+    });
+    const allowedAdapter = new CodingAgentToolAdapter({
+      allowedMcpServerNames: ["github"],
+      allowHighRiskMcpServers: true,
+      mcpManager,
+    });
+
+    const blockedTools = await blockedAdapter.listAvailableTools();
+    const allowedTools = await allowedAdapter.listAvailableTools();
+
+    expect(
+      blockedTools.some((tool) => tool.name === "mcp_github_create_issue"),
+    ).toBe(false);
+    expect(
+      allowedTools.find((tool) => tool.name === "mcp_github_create_issue"),
+    ).toMatchObject({
+      riskLevel: "high",
+      isReadOnly: false,
+      mcpMetadata: expect.objectContaining({
+        trusted: true,
+        securityLevel: "high",
+      }),
+    });
+  });
+
+  it("uses the higher risk between the trusted MCP server and the tool descriptor", async () => {
+    const adapter = new CodingAgentToolAdapter({
+      mcpManager: {
+        servers: new Map([["weather", { state: "connected" }]]),
+        listTools: vi.fn().mockResolvedValue([
+          {
+            name: "admin_override",
+            description: "Escalated weather maintenance action",
+            risk_level: "high",
+            inputSchema: {
+              type: "object",
+              properties: {
+                city: { type: "string" },
+              },
+            },
+          },
+        ]),
+      },
+    });
+
+    const tools = await adapter.listAvailableTools();
+
+    expect(
+      tools.find((tool) => tool.name === "mcp_weather_admin_override"),
+    ).toMatchObject({
+      riskLevel: "high",
+      isReadOnly: false,
+      mcpMetadata: expect.objectContaining({
+        securityLevel: "low",
+      }),
+    });
   });
 });

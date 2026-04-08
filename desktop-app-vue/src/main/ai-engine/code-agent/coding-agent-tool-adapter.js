@@ -1,4 +1,22 @@
 const mcpServerRegistry = require("../../mcp/servers/server-registry.json");
+const {
+  TOOL_POLICY_METADATA,
+  READ_ONLY_GIT_SUBCOMMANDS,
+} = require("../../../../../packages/cli/src/runtime/coding-agent-policy.cjs");
+const {
+  DEFAULT_ALLOWED_MANAGED_TOOL_NAMES,
+  DEFAULT_ALLOWED_MCP_SERVER_NAMES,
+  normalizeRiskLevel,
+  normalizeBoolean,
+  selectHigherRiskLevel,
+  createTrustedMcpServerMap,
+  resolveManagedToolPolicy,
+  resolveMcpServerPolicy,
+} = require("../../../../../packages/cli/src/runtime/coding-agent-managed-tool-policy.cjs");
+
+function getSharedPolicy(toolName) {
+  return TOOL_POLICY_METADATA[toolName] || null;
+}
 
 const CORE_CODING_AGENT_TOOLS = [
   {
@@ -14,8 +32,9 @@ const CORE_CODING_AGENT_TOOLS = [
       },
       required: ["path"],
     },
-    isReadOnly: true,
-    riskLevel: "low",
+    isReadOnly: getSharedPolicy("read_file")?.isReadOnly === true,
+    riskLevel: getSharedPolicy("read_file")?.riskLevel || "low",
+    planModeBehavior: getSharedPolicy("read_file")?.planModeBehavior || "allow",
     source: "desktop-core",
   },
   {
@@ -39,8 +58,10 @@ const CORE_CODING_AGENT_TOOLS = [
       },
       required: ["pattern"],
     },
-    isReadOnly: true,
-    riskLevel: "low",
+    isReadOnly: getSharedPolicy("search_files")?.isReadOnly === true,
+    riskLevel: getSharedPolicy("search_files")?.riskLevel || "low",
+    planModeBehavior:
+      getSharedPolicy("search_files")?.planModeBehavior || "allow",
     source: "desktop-core",
   },
   {
@@ -56,8 +77,9 @@ const CORE_CODING_AGENT_TOOLS = [
         },
       },
     },
-    isReadOnly: true,
-    riskLevel: "low",
+    isReadOnly: getSharedPolicy("list_dir")?.isReadOnly === true,
+    riskLevel: getSharedPolicy("list_dir")?.riskLevel || "low",
+    planModeBehavior: getSharedPolicy("list_dir")?.planModeBehavior || "allow",
     source: "desktop-core",
   },
   {
@@ -81,8 +103,10 @@ const CORE_CODING_AGENT_TOOLS = [
       },
       required: ["path", "old_string", "new_string"],
     },
-    isReadOnly: false,
-    riskLevel: "medium",
+    isReadOnly: getSharedPolicy("edit_file")?.isReadOnly === true,
+    riskLevel: getSharedPolicy("edit_file")?.riskLevel || "medium",
+    planModeBehavior:
+      getSharedPolicy("edit_file")?.planModeBehavior || "blocked",
     source: "desktop-core",
   },
   {
@@ -102,8 +126,10 @@ const CORE_CODING_AGENT_TOOLS = [
       },
       required: ["path", "content"],
     },
-    isReadOnly: false,
-    riskLevel: "medium",
+    isReadOnly: getSharedPolicy("write_file")?.isReadOnly === true,
+    riskLevel: getSharedPolicy("write_file")?.riskLevel || "medium",
+    planModeBehavior:
+      getSharedPolicy("write_file")?.planModeBehavior || "blocked",
     source: "desktop-core",
   },
   {
@@ -123,28 +149,36 @@ const CORE_CODING_AGENT_TOOLS = [
       },
       required: ["command"],
     },
-    isReadOnly: false,
-    riskLevel: "high",
+    isReadOnly: getSharedPolicy("run_shell")?.isReadOnly === true,
+    riskLevel: getSharedPolicy("run_shell")?.riskLevel || "high",
+    planModeBehavior:
+      getSharedPolicy("run_shell")?.planModeBehavior || "blocked",
+    source: "desktop-core",
+  },
+  {
+    name: "git",
+    description: "Run a git command in the controlled workspace runtime.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        command: {
+          type: "string",
+          description: "Git subcommand to execute, for example status or diff.",
+        },
+        cwd: {
+          type: "string",
+          description: "Optional working directory override.",
+        },
+      },
+      required: ["command"],
+    },
+    isReadOnly: getSharedPolicy("git")?.isReadOnly === true,
+    riskLevel: getSharedPolicy("git")?.riskLevel || "high",
+    planModeBehavior: getSharedPolicy("git")?.planModeBehavior || "blocked",
+    readOnlySubcommands: [...READ_ONLY_GIT_SUBCOMMANDS],
     source: "desktop-core",
   },
 ];
-
-const DEFAULT_ALLOWED_MANAGED_TOOL_NAMES = [
-  "info_searcher",
-  "format_output",
-  "json_parser",
-  "yaml_parser",
-  "base64_handler",
-];
-
-const DEFAULT_ALLOWED_MCP_SERVER_NAMES = ["weather"];
-
-const TRUSTED_MCP_SERVER_SECURITY_LEVELS = new Map(
-  (mcpServerRegistry?.trustedServers || []).map((server) => [
-    server.id,
-    server.securityLevel || "medium",
-  ]),
-);
 
 function cloneToolDescriptor(descriptor) {
   return {
@@ -173,38 +207,6 @@ function parseSchema(value) {
   }
 }
 
-function normalizeRiskLevel(value, fallback = "medium") {
-  if (value === "low" || value === "medium" || value === "high") {
-    return value;
-  }
-  if (typeof value === "number") {
-    if (value <= 1) {
-      return "low";
-    }
-    if (value === 2) {
-      return "medium";
-    }
-    return "high";
-  }
-  if (typeof value === "string" && /^\d+$/.test(value)) {
-    return normalizeRiskLevel(Number(value), fallback);
-  }
-  return fallback;
-}
-
-function normalizeBoolean(value, fallback = false) {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  if (typeof value === "number") {
-    return value !== 0;
-  }
-  if (typeof value === "string") {
-    return value === "1" || value.toLowerCase() === "true";
-  }
-  return fallback;
-}
-
 class CodingAgentToolAdapter {
   constructor(options = {}) {
     this.toolManager = options.toolManager || null;
@@ -218,6 +220,10 @@ class CodingAgentToolAdapter {
       Array.isArray(options.allowedMcpServerNames)
         ? options.allowedMcpServerNames
         : DEFAULT_ALLOWED_MCP_SERVER_NAMES,
+    );
+    this.allowHighRiskMcpServers = options.allowHighRiskMcpServers === true;
+    this.trustedMcpServers = createTrustedMcpServerMap(
+      options.mcpServerRegistry || mcpServerRegistry,
     );
     this.coreTools = CORE_CODING_AGENT_TOOLS.map(cloneToolDescriptor);
     this.coreToolMap = new Map(this.coreTools.map((tool) => [tool.name, tool]));
@@ -448,48 +454,18 @@ class CodingAgentToolAdapter {
   }
 
   _shouldIncludeManagedTool(managedTool) {
-    if (!managedTool?.name || this.hasTool(managedTool.name)) {
-      return false;
-    }
-
-    if (
-      this.allowedManagedToolNames.size > 0 &&
-      !this.allowedManagedToolNames.has(managedTool.name)
-    ) {
-      return false;
-    }
-
-    if (normalizeBoolean(managedTool.enabled, true) === false) {
-      return false;
-    }
-
-    if (normalizeBoolean(managedTool.deprecated, false) === true) {
-      return false;
-    }
-
-    return true;
+    return resolveManagedToolPolicy(managedTool, {
+      allowedManagedToolNames: this.allowedManagedToolNames,
+      coreToolNames: [...this.coreToolMap.keys()],
+    }).allowed;
   }
 
   _shouldIncludeMcpServer(serverName, serverState) {
-    if (!serverName) {
-      return false;
-    }
-
-    if (
-      this.allowedMcpServerNames.size > 0 &&
-      !this.allowedMcpServerNames.has(serverName)
-    ) {
-      return false;
-    }
-
-    if (
-      serverState?.state &&
-      !["connected", "ready"].includes(String(serverState.state).toLowerCase())
-    ) {
-      return false;
-    }
-
-    return true;
+    return resolveMcpServerPolicy(serverName, serverState, {
+      allowedMcpServerNames: this.allowedMcpServerNames,
+      trustedMcpServers: this.trustedMcpServers,
+      allowHighRiskMcpServers: this.allowHighRiskMcpServers,
+    }).allowed;
   }
 
   _mergeToolMetadata(baseTool, managedTool) {
@@ -520,11 +496,18 @@ class CodingAgentToolAdapter {
   }
 
   _normalizeMcpToolDescriptor(serverName, mcpTool) {
-    const normalizedRiskLevel = normalizeRiskLevel(
-      TRUSTED_MCP_SERVER_SECURITY_LEVELS.get(serverName) ||
-        mcpTool?.risk_level ||
-        "medium",
-      "medium",
+    const serverPolicy = resolveMcpServerPolicy(
+      serverName,
+      { state: "ready" },
+      {
+        allowedMcpServerNames: this.allowedMcpServerNames,
+        trustedMcpServers: this.trustedMcpServers,
+        allowHighRiskMcpServers: true,
+      },
+    );
+    const normalizedRiskLevel = selectHigherRiskLevel(
+      serverPolicy.securityLevel,
+      mcpTool?.risk_level,
     );
 
     return {
@@ -538,11 +521,16 @@ class CodingAgentToolAdapter {
         },
       isReadOnly:
         normalizeBoolean(mcpTool?.isReadOnly, false) ||
+        normalizeBoolean(mcpTool?.is_read_only, false) ||
         normalizedRiskLevel === "low",
       riskLevel: normalizedRiskLevel,
       source: `mcp:${serverName}`,
       mcpMetadata: {
         serverName,
+        trusted: serverPolicy.trusted === true,
+        securityLevel: serverPolicy.securityLevel,
+        requiredPermissions: serverPolicy.requiredPermissions || [],
+        capabilities: serverPolicy.capabilities || [],
         originalToolName: mcpTool?.name || null,
         tool: mcpTool || null,
       },

@@ -1,13 +1,10 @@
 const { PlanModeManager, PlanModeState } = require("../plan-mode/index.js");
 const { CodingAgentToolAdapter } = require("./coding-agent-tool-adapter.js");
-
-const RISK_LEVELS = {
-  LOW: "low",
-  MEDIUM: "medium",
-  HIGH: "high",
-};
-
-const PLAN_APPROVED_STATES = new Set(["approved", "executing", "completed"]);
+const {
+  PLAN_APPROVED_STATES,
+  RISK_LEVELS,
+  evaluateToolPolicy,
+} = require("../../../../../packages/cli/src/runtime/coding-agent-policy.cjs");
 
 class CodingAgentPermissionGate {
   constructor(options = {}) {
@@ -61,99 +58,34 @@ class CodingAgentPermissionGate {
   }
 
   evaluateToolCall(options = {}) {
-    const { toolName, session = null, confirmed = false } = options;
+    const {
+      toolName,
+      session = null,
+      confirmed = false,
+      toolArgs = null,
+    } = options;
 
     if (!toolName) {
       throw new Error("evaluateToolCall requires toolName");
     }
 
     const descriptor = this.getToolDescriptor(toolName, options);
-    const riskLevel =
-      descriptor?.riskLevel ||
-      this.getRiskLevel(toolName, { toolDescriptor: descriptor });
-    const category = this.getToolCategory(toolName);
     const planModeState = session?.planModeState || PlanModeState.INACTIVE;
-    const planApproved = PLAN_APPROVED_STATES.has(planModeState);
-
-    if (descriptor?.isReadOnly || riskLevel === RISK_LEVELS.LOW) {
-      return {
-        toolName,
-        allowed: true,
-        decision: "allow",
-        requiresPlanApproval: false,
-        requiresConfirmation: false,
-        reason: "Read-only tools are allowed without plan approval.",
-        riskLevel,
-        category,
-        planModeState,
-      };
-    }
-
-    if (riskLevel === RISK_LEVELS.MEDIUM) {
-      if (planApproved) {
-        return {
-          toolName,
-          allowed: true,
-          decision: "allow",
-          requiresPlanApproval: false,
-          requiresConfirmation: false,
-          reason: "Plan-approved write tool is allowed.",
-          riskLevel,
-          category,
-          planModeState,
-        };
-      }
-
-      return {
-        toolName,
-        allowed: false,
-        decision: "require_plan",
-        requiresPlanApproval: true,
-        requiresConfirmation: false,
-        reason: "Write tools require an approved plan before execution.",
-        riskLevel,
-        category,
-        planModeState,
-      };
-    }
-
-    if (!planApproved) {
-      return {
-        toolName,
-        allowed: false,
-        decision: "require_plan",
-        requiresPlanApproval: true,
-        requiresConfirmation: false,
-        reason: "High-risk tools require an approved plan first.",
-        riskLevel,
-        category,
-        planModeState,
-      };
-    }
-
-    if (!confirmed) {
-      return {
-        toolName,
-        allowed: false,
-        decision: "require_confirmation",
-        requiresPlanApproval: false,
-        requiresConfirmation: true,
-        reason: "High-risk tools require an explicit second confirmation.",
-        riskLevel,
-        category,
-        planModeState,
-      };
-    }
+    const evaluation = evaluateToolPolicy({
+      toolName,
+      toolDescriptor: descriptor,
+      planModeState,
+      confirmed,
+      toolArgs,
+    });
 
     return {
-      toolName,
-      allowed: true,
-      decision: "allow",
-      requiresPlanApproval: false,
-      requiresConfirmation: false,
-      reason: "High-risk tool confirmed after plan approval.",
-      riskLevel,
-      category,
+      ...evaluation,
+      category: evaluation.category || this.getToolCategory(toolName),
+      riskLevel:
+        evaluation.riskLevel ||
+        descriptor?.riskLevel ||
+        this.getRiskLevel(toolName, { toolDescriptor: descriptor }),
       planModeState,
     };
   }

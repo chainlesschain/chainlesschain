@@ -243,19 +243,6 @@
             >
               {{ planActionLabel }}
             </a-button>
-            <a-tooltip v-if="pendingPlanSummary" :title="pendingPlanSummary">
-              <a-button type="primary" size="small" @click="handleApprovePlan">
-                Approve
-              </a-button>
-            </a-tooltip>
-            <a-button
-              v-if="pendingPlanSummary"
-              danger
-              size="small"
-              @click="handleRejectPlan"
-            >
-              Reject
-            </a-button>
           </div>
           <a-alert
             v-if="currentWorktreeAlert"
@@ -266,29 +253,142 @@
             :description="currentWorktreeAlert"
           />
           <a-alert
-            v-else-if="currentBlockedTool"
+            v-if="currentBlockedTool"
             class="coding-agent-alert"
             type="warning"
             show-icon
             :message="`Blocked tool: ${currentBlockedTool.toolName || 'unknown'}`"
             :description="blockedToolDescription"
           />
-          <a-alert
-            v-else-if="needsHighRiskConfirmation"
-            class="coding-agent-alert"
-            type="warning"
-            show-icon
-            message="High-risk confirmation required"
-            :description="highRiskConfirmationDescription"
-          />
-          <a-alert
-            v-else-if="currentApprovalRequest"
-            class="coding-agent-alert"
-            type="info"
-            show-icon
-            message="Plan approval required"
-            :description="approvalRequestDescription"
-          />
+          <div v-if="showApprovalPanel" class="coding-agent-approval-panel">
+            <div class="approval-panel-header">
+              <div>
+                <div class="approval-panel-eyebrow">Coding Agent Gate</div>
+                <div class="approval-panel-title">
+                  {{ approvalPanelTitle }}
+                </div>
+                <p class="approval-panel-summary">
+                  {{ approvalPanelSummary }}
+                </p>
+              </div>
+              <div class="approval-panel-tags">
+                <a-tag v-if="currentApprovalRequest" color="blue"> Plan </a-tag>
+                <a-tag
+                  v-if="needsHighRiskConfirmation && !currentApprovalRequest"
+                  color="orange"
+                >
+                  High Risk
+                </a-tag>
+                <a-tag v-if="currentSessionWorktreeIsolation" color="cyan">
+                  Isolated
+                </a-tag>
+              </div>
+            </div>
+            <div
+              v-if="approvalPlanItems.length > 0"
+              class="approval-panel-section"
+            >
+              <div class="approval-panel-label">Planned steps</div>
+              <ul class="approval-step-list">
+                <li
+                  v-for="item in approvalPlanItems"
+                  :key="item.key"
+                  class="approval-step-item"
+                >
+                  <div class="approval-step-main">
+                    <span class="approval-step-title">{{ item.title }}</span>
+                    <a-tag v-if="item.tool">
+                      {{ item.tool }}
+                    </a-tag>
+                  </div>
+                  <div
+                    v-if="item.description"
+                    class="approval-step-description"
+                  >
+                    {{ item.description }}
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div
+              v-if="
+                approvalPolicyMediumTools.length > 0 ||
+                approvalPolicyHighTools.length > 0
+              "
+              class="approval-panel-section"
+            >
+              <div class="approval-panel-label">Tool access</div>
+              <div
+                v-if="approvalPolicyMediumTools.length > 0"
+                class="approval-tool-row"
+              >
+                <span class="approval-tool-label">After plan approval</span>
+                <div class="approval-tool-tags">
+                  <a-tag
+                    v-for="tool in approvalPolicyMediumTools"
+                    :key="`medium-${tool}`"
+                    color="gold"
+                  >
+                    {{ tool }}
+                  </a-tag>
+                </div>
+              </div>
+              <div
+                v-if="approvalPolicyHighTools.length > 0"
+                class="approval-tool-row"
+              >
+                <span class="approval-tool-label">Extra high-risk review</span>
+                <div class="approval-tool-tags">
+                  <a-tag
+                    v-for="tool in approvalPolicyHighTools"
+                    :key="`high-${tool}`"
+                    color="red"
+                  >
+                    {{ tool }}
+                  </a-tag>
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="needsHighRiskConfirmation && !currentApprovalRequest"
+              class="approval-panel-section approval-panel-section-warning"
+            >
+              <div class="approval-panel-label">High-risk confirmation</div>
+              <p class="approval-panel-summary">
+                {{ highRiskConfirmationDescription }}
+              </p>
+            </div>
+            <div class="approval-panel-actions">
+              <a-button
+                v-if="currentApprovalRequest"
+                type="primary"
+                @click="handleApprovePlan"
+              >
+                Approve Plan
+              </a-button>
+              <a-button
+                v-if="currentApprovalRequest"
+                danger
+                @click="handleRejectPlan"
+              >
+                Reject Plan
+              </a-button>
+              <a-button
+                v-if="needsHighRiskConfirmation && !currentApprovalRequest"
+                type="primary"
+                danger
+                @click="handleConfirmHighRisk"
+              >
+                Confirm High-Risk Actions
+              </a-button>
+              <a-button
+                v-if="needsHighRiskConfirmation && !currentApprovalRequest"
+                @click="handleRejectHighRisk"
+              >
+                Cancel High-Risk Actions
+              </a-button>
+            </div>
+          </div>
           <ConversationInput
             ref="inputRef"
             :placeholder="inputPlaceholder"
@@ -854,16 +954,6 @@ const currentCodingAgentSessionId = computed(() => {
   return codingAgentSessionMap.value[activeConversationId.value] || null;
 });
 
-const pendingPlanSummary = computed(() => {
-  if (!currentCodingAgentSessionId.value) {
-    return null;
-  }
-  if (codingAgentStore.currentSessionId !== currentCodingAgentSessionId.value) {
-    return null;
-  }
-  return codingAgentStore.pendingPlanSummary || null;
-});
-
 const currentPlanModeState = computed(() => {
   if (!currentCodingAgentSessionId.value) {
     return null;
@@ -887,6 +977,75 @@ const currentApprovalRequest = computed(() => {
   return codingAgentStore.latestApprovalRequest?.payload || null;
 });
 
+const approvalPanelTitle = computed(() => {
+  if (currentApprovalRequest.value) {
+    return "Plan approval required";
+  }
+
+  if (needsHighRiskConfirmation.value) {
+    return "High-risk confirmation required";
+  }
+
+  return "Approval required";
+});
+
+const approvalPanelSummary = computed(() => {
+  if (currentApprovalRequest.value) {
+    return approvalRequestDescription.value;
+  }
+
+  if (needsHighRiskConfirmation.value) {
+    return highRiskConfirmationDescription.value;
+  }
+
+  return "";
+});
+
+const approvalPlanItems = computed(() => {
+  const rawItems = Array.isArray(codingAgentStore.currentSession?.lastPlanItems)
+    ? codingAgentStore.currentSession.lastPlanItems
+    : Array.isArray(currentApprovalRequest.value?.items)
+      ? currentApprovalRequest.value.items
+      : [];
+
+  return rawItems.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        key: `plan-item-${index}`,
+        title: item,
+        tool: null,
+        description: null,
+      };
+    }
+
+    return {
+      key: item?.id || `plan-item-${index}`,
+      title:
+        item?.title ||
+        item?.summary ||
+        item?.name ||
+        item?.action ||
+        `Step ${index + 1}`,
+      tool: item?.tool || item?.toolName || null,
+      description: item?.description || item?.reason || null,
+    };
+  });
+});
+
+const approvalPolicyMediumTools = computed(() => {
+  return codingAgentStore.permissionPolicy?.toolsByRisk?.medium || [];
+});
+
+const approvalPolicyHighTools = computed(() => {
+  return codingAgentStore.permissionPolicy?.toolsByRisk?.high || [];
+});
+
+const showApprovalPanel = computed(() => {
+  return Boolean(
+    currentApprovalRequest.value || needsHighRiskConfirmation.value,
+  );
+});
+
 const currentBlockedTool = computed(() => {
   if (!currentCodingAgentSessionId.value) {
     return null;
@@ -895,7 +1054,7 @@ const currentBlockedTool = computed(() => {
     return null;
   }
   if (
-    !pendingPlanSummary.value &&
+    !currentApprovalRequest.value &&
     !codingAgentStore.requiresHighRiskConfirmation
   ) {
     return null;
@@ -2131,7 +2290,7 @@ const ensureCodingAgentSession = async (
     return existingSessionId;
   }
 
-  const sessionId = await codingAgentStore.createSession({
+  const sessionId = await codingAgentStore.startSession({
     worktreeIsolation: worktreeIsolationEnabled.value,
   });
   if (!sessionId) {
@@ -2148,26 +2307,25 @@ const ensureCodingAgentSession = async (
   return sessionId;
 };
 
+const continueApprovedPlanExecution = async () => {
+  const result = await codingAgentStore.sendMessage(
+    "Proceed with the approved plan and carry out the approved changes.",
+  );
+  if (!result?.success) {
+    throw new Error(result?.error || "Failed to continue after plan approval");
+  }
+  ensurePendingAgentMessage(result.requestId, result.sessionId);
+};
+
 const ensureHighRiskConfirmation = async () => {
   if (!codingAgentStore.requiresHighRiskConfirmation) {
     return true;
   }
 
-  const toolNames = currentHighRiskToolNames.value;
-  const confirmed = await window.electronAPI.dialog.showConfirm(
-    "Confirm High-Risk Actions",
-    toolNames.length > 0
-      ? `This approved plan includes high-risk tools: ${toolNames.join(", ")}. Confirm to let the agent continue.`
-      : "This approved plan includes high-risk actions. Confirm to let the agent continue.",
+  antMessage.warning(
+    "Confirm the pending high-risk actions in the approval panel before continuing.",
   );
-
-  if (!confirmed) {
-    antMessage.info("High-risk execution was not confirmed.");
-    return false;
-  }
-
-  await codingAgentStore.confirmHighRiskExecution();
-  return true;
+  return false;
 };
 
 const handleCodingAgentEvent = async (event) => {
@@ -2317,6 +2475,34 @@ const handleCodingAgentEvent = async (event) => {
     }
     case "command-response": {
       const result = event.payload.result || {};
+      if (!result.error && event.payload.command === "/plan approve") {
+        if (
+          currentHighRiskToolNames.value.length > 0 ||
+          codingAgentStore.requiresHighRiskConfirmation
+        ) {
+          isThinking.value = false;
+          antMessage.success(
+            "Plan approved. Waiting for high-risk confirmation.",
+          );
+        } else {
+          isThinking.value = true;
+          antMessage.success("Plan approved. Continuing execution.");
+        }
+        break;
+      }
+
+      if (!result.error && event.payload.command === "/plan reject") {
+        isThinking.value = false;
+        antMessage.info("Plan rejected.");
+        break;
+      }
+
+      if (!result.error && result.state === "analyzing") {
+        isThinking.value = false;
+        antMessage.info(result.message || "Plan mode enabled.");
+        break;
+      }
+
       if (result.error) {
         isThinking.value = false;
         antMessage.error(result.error);
@@ -2329,6 +2515,23 @@ const handleCodingAgentEvent = async (event) => {
       } else if (result.state === "analyzing") {
         isThinking.value = false;
         antMessage.info(result.message || "已进入计划模式");
+      }
+      break;
+    }
+    case "approval-granted": {
+      if (event.payload.approvalType === "high-risk") {
+        antMessage.success("High-risk actions confirmed.");
+      } else {
+        antMessage.success("Plan approval recorded.");
+      }
+      break;
+    }
+    case "approval-denied": {
+      isThinking.value = false;
+      if (event.payload.approvalType === "high-risk") {
+        antMessage.info("High-risk actions were not confirmed.");
+      } else {
+        antMessage.info("Plan approval was denied.");
       }
       break;
     }
@@ -2381,21 +2584,18 @@ const handleApprovePlan = async () => {
   try {
     await ensureCodingAgentSession();
     isThinking.value = true;
-    await codingAgentStore.approvePlan();
-    const confirmed = await ensureHighRiskConfirmation();
-    if (!confirmed) {
+    await codingAgentStore.respondApproval({
+      approvalType: "plan",
+      decision: "granted",
+    });
+    if (codingAgentStore.requiresHighRiskConfirmation) {
       isThinking.value = false;
+      antMessage.info(
+        "Plan approved. Confirm the high-risk actions in the approval panel to continue.",
+      );
       return;
     }
-    const result = await codingAgentStore.sendMessage(
-      "Proceed with the approved plan and carry out the approved changes.",
-    );
-    if (!result?.success) {
-      throw new Error(
-        result?.error || "Failed to continue after plan approval",
-      );
-    }
-    ensurePendingAgentMessage(result.requestId, result.sessionId);
+    await continueApprovedPlanExecution();
   } catch (error) {
     isThinking.value = false;
     antMessage.error("批准计划失败: " + error.message);
@@ -2405,10 +2605,42 @@ const handleApprovePlan = async () => {
 const handleRejectPlan = async () => {
   try {
     await ensureCodingAgentSession();
-    await codingAgentStore.rejectPlan();
+    await codingAgentStore.respondApproval({
+      approvalType: "plan",
+      decision: "denied",
+    });
     isThinking.value = false;
   } catch (error) {
     antMessage.error("拒绝计划失败: " + error.message);
+  }
+};
+
+const handleConfirmHighRisk = async () => {
+  try {
+    await ensureCodingAgentSession();
+    isThinking.value = true;
+    await codingAgentStore.respondApproval({
+      approvalType: "high-risk",
+      decision: "granted",
+    });
+    await continueApprovedPlanExecution();
+  } catch (error) {
+    isThinking.value = false;
+    antMessage.error("确认高风险操作失败: " + error.message);
+  }
+};
+
+const handleRejectHighRisk = async () => {
+  try {
+    await ensureCodingAgentSession();
+    await codingAgentStore.respondApproval({
+      approvalType: "high-risk",
+      decision: "denied",
+    });
+    isThinking.value = false;
+    antMessage.info("High-risk actions were cancelled.");
+  } catch (error) {
+    antMessage.error("取消高风险操作失败: " + error.message);
   }
 };
 
@@ -2523,7 +2755,7 @@ const handleConversationAction = async ({ action, conversation }) => {
       try {
         await window.electronAPI.conversation.toggleStar(conversation.id);
         conversation.is_starred = !conversation.is_starred;
-      } catch (error) {
+      } catch {
         antMessage.error("操作失败");
       }
       break;
@@ -2547,7 +2779,7 @@ const handleConversationAction = async ({ action, conversation }) => {
           }
         }
         antMessage.success("删除对话成功");
-      } catch (error) {
+      } catch {
         antMessage.error("删除对话失败");
       }
       break;
@@ -3093,7 +3325,7 @@ const scrollToBottom = () => {
 
 // 配置 marked
 marked.setOptions({
-  highlight: function (code, lang) {
+  highlight: function (code, _lang) {
     // highlight.js 会在 EnhancedCodeBlock 中处理
     return code;
   },
@@ -3103,7 +3335,6 @@ marked.setOptions({
 
 // 自定义 marked renderer 来增强代码块
 const renderer = new marked.Renderer();
-const originalCodeRenderer = renderer.code.bind(renderer);
 
 renderer.code = function (code, language) {
   // 为代码块添加特殊标记，以便后续处理
@@ -3270,7 +3501,7 @@ onMounted(async () => {
       }
       // 无论是否过期，都清除
       localStorage.removeItem("pendingInsertText");
-    } catch (e) {
+    } catch {
       localStorage.removeItem("pendingInsertText");
     }
   }
@@ -3311,6 +3542,7 @@ defineExpose({
   // 状态
   conversations,
   activeConversationId,
+  codingAgentSessionMap,
   messages,
   isThinking,
   messagesContainerRef,
@@ -3329,6 +3561,7 @@ defineExpose({
   handleNewConversation,
   handleConversationClick,
   handleConversationAction,
+  handleSubmitMessage,
   handleSubmitAgentAwareMessage,
   handleFileUpload,
   handleNavClick,
@@ -3337,6 +3570,8 @@ defineExpose({
   handleEnterPlanMode,
   handleApprovePlan,
   handleRejectPlan,
+  handleConfirmHighRisk,
+  handleRejectHighRisk,
   handleOpenWorktreeReview,
   handleRefreshWorktreeReview,
   handleMergeCurrentWorktree,
@@ -3394,6 +3629,154 @@ defineExpose({
 // 对话操作栏
 .coding-agent-alert {
   margin: 0 0 12px;
+}
+
+.coding-agent-approval-panel {
+  margin: 0 0 12px;
+  padding: 16px 18px;
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fff7ed 100%);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.08);
+}
+
+.approval-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.approval-panel-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b45309;
+  margin-bottom: 6px;
+}
+
+.approval-panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #7c2d12;
+}
+
+.approval-panel-summary {
+  margin: 6px 0 0;
+  color: #78350f;
+  line-height: 1.6;
+}
+
+.approval-panel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.approval-panel-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(180, 83, 9, 0.12);
+}
+
+.approval-panel-section-warning {
+  background: rgba(251, 191, 36, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.approval-panel-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #92400e;
+  margin-bottom: 10px;
+}
+
+.approval-step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.approval-step-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(245, 158, 11, 0.14);
+}
+
+.approval-step-main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.approval-step-title {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.approval-step-description {
+  margin-top: 6px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.approval-tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.approval-tool-row + .approval-tool-row {
+  margin-top: 10px;
+}
+
+.approval-tool-label {
+  min-width: 150px;
+  padding-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.approval-tool-tags {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.approval-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .approval-panel-header {
+    flex-direction: column;
+  }
+
+  .approval-panel-tags {
+    justify-content: flex-start;
+  }
+
+  .approval-tool-label {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 .conversation-actions {

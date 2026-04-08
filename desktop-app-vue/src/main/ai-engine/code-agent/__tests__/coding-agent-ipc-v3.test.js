@@ -54,17 +54,21 @@ describe("registerCodingAgentIPCV3", () => {
       confirmHighRiskExecution: vi
         .fn()
         .mockReturnValue({ success: true, highRiskConfirmationGranted: true }),
+      respondApproval: vi.fn().mockResolvedValue({
+        success: true,
+        sessionId: "session-1",
+        approvalType: "high-risk",
+        decision: "granted",
+      }),
       rejectPlan: vi
         .fn()
         .mockResolvedValue({ success: true, requestId: "plan-reject" }),
       closeSession: vi.fn().mockResolvedValue({ success: true }),
       cancelSession: vi.fn().mockResolvedValue({ success: true }),
-      getSessionState: vi
-        .fn()
-        .mockReturnValue({
-          success: true,
-          session: { sessionId: "session-1" },
-        }),
+      getSessionState: vi.fn().mockReturnValue({
+        success: true,
+        session: { sessionId: "session-1" },
+      }),
       getSessionEvents: vi.fn().mockReturnValue({ success: true, events: [] }),
       listWorktrees: vi
         .fn()
@@ -72,13 +76,11 @@ describe("registerCodingAgentIPCV3", () => {
       getWorktreeDiff: vi
         .fn()
         .mockResolvedValue({ success: true, branch: "coding-agent/session-1" }),
-      previewWorktreeMerge: vi
-        .fn()
-        .mockResolvedValue({
-          success: false,
-          branch: "coding-agent/session-1",
-          previewOnly: true,
-        }),
+      previewWorktreeMerge: vi.fn().mockResolvedValue({
+        success: false,
+        branch: "coding-agent/session-1",
+        previewOnly: true,
+      }),
       mergeWorktree: vi
         .fn()
         .mockResolvedValue({ success: true, branch: "coding-agent/session-1" }),
@@ -117,6 +119,20 @@ describe("registerCodingAgentIPCV3", () => {
     expect(result).toEqual({ success: true, requestId: "plan-show" });
   });
 
+  it("registers start-session as an alias of create-session", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const payload = { provider: "openai" };
+    const result = await ipcMainMock.handlers["coding-agent:start-session"](
+      {},
+      payload,
+    );
+
+    expect(service.ensureReady).toHaveBeenCalled();
+    expect(service.createSession).toHaveBeenCalledWith(payload);
+    expect(result).toEqual({ success: true, sessionId: "session-1" });
+  });
+
   it("delegates high-risk confirmation to the service", async () => {
     registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
 
@@ -128,6 +144,28 @@ describe("registerCodingAgentIPCV3", () => {
     expect(result).toEqual({
       success: true,
       highRiskConfirmationGranted: true,
+    });
+  });
+
+  it("delegates generic approval responses to the service", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const payload = {
+      sessionId: "session-1",
+      approvalType: "high-risk",
+      decision: "granted",
+    };
+    const result = await ipcMainMock.handlers["coding-agent:respond-approval"](
+      {},
+      payload,
+    );
+
+    expect(service.respondApproval).toHaveBeenCalledWith("session-1", payload);
+    expect(result).toEqual({
+      success: true,
+      sessionId: "session-1",
+      approvalType: "high-risk",
+      decision: "granted",
     });
   });
 
@@ -147,6 +185,18 @@ describe("registerCodingAgentIPCV3", () => {
       success: true,
       branch: "coding-agent/session-1",
     });
+  });
+
+  it("registers interrupt as an alias of cancel-session", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    const result = await ipcMainMock.handlers["coding-agent:interrupt"](
+      {},
+      "session-1",
+    );
+
+    expect(service.cancelSession).toHaveBeenCalledWith("session-1");
+    expect(result).toEqual({ success: true });
   });
 
   it("delegates worktree merge preview requests to the service", async () => {
