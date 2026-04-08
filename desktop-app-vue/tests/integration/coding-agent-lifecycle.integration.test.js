@@ -239,16 +239,38 @@ describe("Coding agent lifecycle integration", () => {
         "coding-agent:get-session-state",
         "coding-agent:get-status",
         "coding-agent:get-worktree-diff",
+        "coding-agent:interrupt",
         "coding-agent:list-sessions",
         "coding-agent:list-worktrees",
         "coding-agent:merge-worktree",
         "coding-agent:preview-worktree-merge",
         "coding-agent:reject-plan",
+        "coding-agent:respond-approval",
         "coding-agent:resume-session",
         "coding-agent:send-message",
         "coding-agent:show-plan",
+        "coding-agent:start-session",
       ].sort(),
     );
+  });
+
+  it("supports start-session alias and interrupt alias through the IPC layer", async () => {
+    const startResult = await ipcMainMock.handlers[
+      "coding-agent:start-session"
+    ]({}, {});
+    expect(startResult).toMatchObject({
+      success: true,
+      sessionId: "session-x",
+    });
+
+    const interruptResult = await ipcMainMock.handlers[
+      "coding-agent:interrupt"
+    ]({}, "session-x");
+    expect(interruptResult).toMatchObject({
+      success: true,
+      sessionId: "session-x",
+    });
+    expect(bridge.closedSessions).toContain("session-x");
   });
 
   it("handles plan-mode lifecycle: enter → show → approve → reject", async () => {
@@ -335,6 +357,48 @@ describe("Coding agent lifecycle integration", () => {
       sessionId: "session-x",
       content: "now go",
     });
+  });
+
+  it("routes generic high-risk approval through respond-approval", async () => {
+    await ipcMainMock.handlers["coding-agent:start-session"]({}, {});
+
+    bridge.emit("message", {
+      type: "plan-ready",
+      sessionId: "session-x",
+      summary: "Run dangerous shell",
+      items: [{ toolName: "run_shell", riskLevel: "high", title: "rm -rf" }],
+    });
+    await flushMicrotasks();
+
+    const approvalResult = await ipcMainMock.handlers[
+      "coding-agent:respond-approval"
+    ](
+      {},
+      {
+        sessionId: "session-x",
+        approvalType: "high-risk",
+        decision: "granted",
+      },
+    );
+    expect(approvalResult).toMatchObject({
+      success: true,
+      sessionId: "session-x",
+      approvalType: "high-risk",
+      decision: "granted",
+    });
+
+    const sendResult = await ipcMainMock.handlers["coding-agent:send-message"](
+      {},
+      { sessionId: "session-x", content: "continue" },
+    );
+    expect(sendResult.success).toBe(true);
+
+    const eventsResult = await ipcMainMock.handlers[
+      "coding-agent:get-session-events"
+    ]({}, "session-x");
+    expect(
+      eventsResult.events.some((event) => event.type === "approval.granted"),
+    ).toBe(true);
   });
 
   it("resumes a previous session and restores history", async () => {
@@ -455,6 +519,6 @@ describe("Coding agent lifecycle integration", () => {
     const renderedTypes = mainWindow.webContents.send.mock.calls
       .filter(([channel]) => channel === CODING_AGENT_EVENT_CHANNEL)
       .map(([, event]) => event.type);
-    expect(renderedTypes).toContain("session-created");
+    expect(renderedTypes).toContain("session.started");
   });
 });

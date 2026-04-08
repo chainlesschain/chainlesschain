@@ -3,6 +3,7 @@ const { logger } = require("../../utils/logger.js");
 
 const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:create-session",
+  "coding-agent:start-session",
   "coding-agent:resume-session",
   "coding-agent:list-sessions",
   "coding-agent:send-message",
@@ -10,9 +11,11 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:show-plan",
   "coding-agent:approve-plan",
   "coding-agent:confirm-high-risk-execution",
+  "coding-agent:respond-approval",
   "coding-agent:reject-plan",
   "coding-agent:close-session",
   "coding-agent:cancel-session",
+  "coding-agent:interrupt",
   "coding-agent:get-session-state",
   "coding-agent:get-session-events",
   "coding-agent:list-worktrees",
@@ -38,7 +41,7 @@ function registerCodingAgentIPCV3(options = {}) {
     CODING_AGENT_IPC_CHANNELS.forEach((channel) => ipc.removeHandler(channel));
   }
 
-  ipc.handle("coding-agent:create-session", async (_event, payload = {}) => {
+  const handleCreateSession = async (_event, payload = {}) => {
     try {
       await service.ensureReady();
       return await service.createSession(payload);
@@ -46,7 +49,9 @@ function registerCodingAgentIPCV3(options = {}) {
       logger.error("[CodingAgentIPCV3] create-session failed:", error);
       return { success: false, error: error.message };
     }
-  });
+  };
+  ipc.handle("coding-agent:create-session", handleCreateSession);
+  ipc.handle("coding-agent:start-session", handleCreateSession);
 
   ipc.handle("coding-agent:resume-session", async (_event, sessionId) => {
     try {
@@ -119,6 +124,15 @@ function registerCodingAgentIPCV3(options = {}) {
     },
   );
 
+  ipc.handle("coding-agent:respond-approval", async (_event, payload = {}) => {
+    try {
+      return await service.respondApproval(payload.sessionId, payload);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] respond-approval failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
   ipc.handle("coding-agent:reject-plan", async (_event, sessionId) => {
     try {
       return await service.rejectPlan(sessionId);
@@ -137,14 +151,16 @@ function registerCodingAgentIPCV3(options = {}) {
     }
   });
 
-  ipc.handle("coding-agent:cancel-session", async (_event, sessionId) => {
+  const handleCancelSession = async (_event, sessionId) => {
     try {
       return await service.cancelSession(sessionId);
     } catch (error) {
       logger.error("[CodingAgentIPCV3] cancel-session failed:", error);
       return { success: false, error: error.message };
     }
-  });
+  };
+  ipc.handle("coding-agent:cancel-session", handleCancelSession);
+  ipc.handle("coding-agent:interrupt", handleCancelSession);
 
   ipc.handle("coding-agent:get-session-state", async (_event, sessionId) => {
     try {

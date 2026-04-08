@@ -1,49 +1,42 @@
-const { randomUUID } = require("crypto");
+/**
+ * Coding Agent event envelope — re-exported from the canonical CLI runtime
+ * module so the Desktop Main process and the CLI runtime cannot drift apart.
+ *
+ * Source of truth: packages/cli/src/runtime/coding-agent-events.cjs
+ * Spec:            docs/design/modules/79_Coding_Agent系统.md §5
+ *
+ * The legacy `CodingAgentEventType` enum is preserved as an alias so the
+ * 40+ existing call sites in coding-agent-session-service.js keep working
+ * during the migration; new code should import `CODING_AGENT_EVENT_TYPES`
+ * (the dot-case unified set) directly.
+ */
 
-const CODING_AGENT_EVENT_CHANNEL = "coding-agent:event";
+const sharedCodingAgentEvents = require("../../../../../packages/cli/src/runtime/coding-agent-events.cjs");
 
-const CodingAgentEventType = {
-  SERVER_STARTING: "server-starting",
-  SERVER_READY: "server-ready",
-  SERVER_STOPPED: "server-stopped",
-  SESSION_CREATED: "session-created",
-  SESSION_RESUMED: "session-resumed",
-  SESSION_CLOSED: "session-closed",
-  SESSION_LIST: "session-list",
-  WORKTREE_LIST: "worktree-list",
-  WORKTREE_DIFF: "worktree-diff",
-  WORKTREE_MERGE_PREVIEW: "worktree-merge-preview",
-  WORKTREE_MERGED: "worktree-merged",
-  WORKTREE_AUTOMATION_APPLIED: "worktree-automation-applied",
-  MESSAGE_SENT: "message-sent",
-  RESPONSE_COMPLETE: "response-complete",
-  TOOL_EXECUTING: "tool-executing",
-  TOOL_RESULT: "tool-result",
-  TOOL_BLOCKED: "tool-blocked",
-  COMMAND_RESPONSE: "command-response",
-  PLAN_READY: "plan-ready",
-  PLAN_GENERATED: "plan-generated",
-  APPROVAL_REQUESTED: "approval-requested",
-  HIGH_RISK_CONFIRMATION_REQUIRED: "high-risk-confirmation-required",
-  HIGH_RISK_CONFIRMED: "high-risk-confirmed",
-  SLOT_FILLING: "slot-filling",
-  MODEL_SWITCH: "model-switch",
-  ERROR: "error",
-};
-
-function createCodingAgentEvent(type, payload = {}, meta = {}) {
-  return {
-    id: randomUUID(),
-    type,
-    timestamp: new Date().toISOString(),
-    sessionId: meta.sessionId || payload.sessionId || null,
-    requestId: meta.requestId || payload.requestId || payload.id || null,
-    payload,
-  };
-}
+const {
+  CODING_AGENT_EVENT_VERSION,
+  CODING_AGENT_EVENT_CHANNEL,
+  CODING_AGENT_EVENT_TYPES,
+  CodingAgentEventType,
+  LEGACY_TO_UNIFIED_TYPE,
+  CodingAgentSequenceTracker,
+  defaultSequenceTracker,
+  createCodingAgentEvent,
+  wrapLegacyMessage,
+  validateCodingAgentEvent,
+  mapLegacyType,
+} = sharedCodingAgentEvents;
 
 module.exports = {
+  CODING_AGENT_EVENT_VERSION,
   CODING_AGENT_EVENT_CHANNEL,
+  CODING_AGENT_EVENT_TYPES,
   CodingAgentEventType,
+  LEGACY_TO_UNIFIED_TYPE,
+  CodingAgentSequenceTracker,
+  defaultSequenceTracker,
   createCodingAgentEvent,
+  wrapLegacyMessage,
+  validateCodingAgentEvent,
+  mapLegacyType,
 };

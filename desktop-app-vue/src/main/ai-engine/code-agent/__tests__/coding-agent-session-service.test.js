@@ -16,6 +16,7 @@ vi.mock("../../../utils/logger.js", () => ({
 const {
   CODING_AGENT_EVENT_CHANNEL,
   CodingAgentEventType,
+  defaultSequenceTracker,
 } = require("../coding-agent-events.js");
 const {
   CodingAgentSessionService,
@@ -270,6 +271,9 @@ describe("CodingAgentSessionService", () => {
   let service;
 
   beforeEach(() => {
+    // Reset the process-global sequence tracker so each test sees fresh
+    // counters — until the SessionService gets its own per-instance tracker.
+    defaultSequenceTracker.reset();
     bridge = new MockBridge();
     mainWindow = {
       webContents: {
@@ -315,6 +319,26 @@ describe("CodingAgentSessionService", () => {
         }),
       }),
     });
+  });
+
+  it("emits events using the normalized coding-agent event envelope", async () => {
+    await service.createSession({
+      provider: "openai",
+      model: "gpt-4o-mini",
+    });
+
+    const event = service.getSessionEvents("session-1").events.at(0);
+    expect(event).toMatchObject({
+      version: "1.0",
+      source: "desktop-main",
+      sequence: 1,
+      sessionId: "session-1",
+      meta: expect.objectContaining({
+        __prepared: true,
+      }),
+    });
+    expect(event.eventId).toEqual(expect.any(String));
+    expect(event.id).toBe(event.eventId);
   });
 
   it("preserves worktree session metadata when isolation is requested", async () => {
@@ -414,21 +438,24 @@ describe("CodingAgentSessionService", () => {
     expect(state.session?.highRiskConfirmationGranted).toBe(false);
     expect(state.session?.highRiskToolNames).toEqual(["run_shell"]);
 
+    // After unifying the event protocol, plan/approval events use the
+    // canonical dot-case names from CODING_AGENT_EVENT_TYPES instead of
+    // the legacy kebab-case wire format. See coding-agent-events.cjs.
     const planEvents = service
       .getSessionEvents("session-1")
       .events.filter((event) =>
         [
-          "plan-ready",
-          "plan-generated",
-          "approval-requested",
-          "high-risk-confirmation-required",
+          "plan.approval_required",
+          "plan.updated",
+          "approval.requested",
+          "approval.high-risk.requested",
         ].includes(event.type),
       );
     expect(planEvents.map((event) => event.type)).toEqual([
-      "plan-ready",
-      "plan-generated",
-      "approval-requested",
-      "high-risk-confirmation-required",
+      "plan.approval_required",
+      "plan.updated",
+      "approval.requested",
+      "approval.high-risk.requested",
     ]);
 
     const approveResult = await service.approvePlan("session-1");
@@ -492,6 +519,38 @@ describe("CodingAgentSessionService", () => {
     });
   });
 
+  it("accepts generic approval responses for high-risk confirmation", async () => {
+    await service.createSession();
+
+    bridge.emit("message", {
+      id: "plan-1",
+      type: "plan-ready",
+      sessionId: "session-1",
+      summary: "Run a verification command",
+      items: [{ id: "item-1", title: "Run test", tool: "run_shell" }],
+    });
+
+    const result = await service.respondApproval("session-1", {
+      approvalType: "high-risk",
+      decision: "granted",
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      sessionId: "session-1",
+      approvalType: "high-risk",
+      decision: "granted",
+      highRiskConfirmationGranted: true,
+    });
+    expect(
+      service
+        .getSessionEvents("session-1")
+        .events.some(
+          (event) => event.type === CodingAgentEventType.APPROVAL_GRANTED,
+        ),
+    ).toBe(true);
+  });
+
   it("blocks follow-up messages until high-risk execution is explicitly confirmed", async () => {
     await service.createSession();
 
@@ -538,7 +597,7 @@ describe("CodingAgentSessionService", () => {
     ).toBe(true);
 
     const status = await service.getStatus();
-    expect(status.tools).toHaveLength(6);
+    expect(status.tools).toHaveLength(7);
     expect(status.permissionPolicy).toMatchObject({
       planModeRules: {
         low: "allow",
@@ -578,7 +637,7 @@ describe("CodingAgentSessionService", () => {
     await managedService.createSession();
     const status = await managedService.getStatus();
 
-    expect(status.tools).toHaveLength(7);
+    expect(status.tools).toHaveLength(8);
     expect(
       status.tools.find((tool) => tool.name === "info_searcher"),
     ).toMatchObject({
@@ -673,6 +732,104 @@ describe("CodingAgentSessionService", () => {
           }),
         }),
       }),
+    });
+  });
+
+  it("can opt in to trusted high-risk MCP servers and sync them into host policy", async () => {
+    const mcpService = new CodingAgentSessionService({
+      bridge,
+      mainWindow,
+      repoRoot: "C:\\code\\chainlesschain",
+      projectRoot: "C:\\code\\chainlesschain",
+      allowedMcpServerNames: ["github"],
+      allowHighRiskMcpServers: true,
+      mcpManager: {
+        servers: new Map([["github", { state: "connected" }]]),
+        listTools: vi.fn().mockResolvedValue([
+          {
+            name: "create_issue",
+            description: "Create a GitHub issue",
+            inputSchema: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+              },
+              required: ["title"],
+            },
+          },
+        ]),
+      },
+    });
+
+    await mcpService.createSession();
+    const status = await mcpService.getStatus();
+
+    expect(
+      status.tools.find((tool) => tool.name === "mcp_github_create_issue"),
+    ).toMatchObject({
+      source: "mcp:github",
+      riskLevel: "high",
+      isReadOnly: false,
+      mcpMetadata: expect.objectContaining({
+        trusted: true,
+        securityLevel: "high",
+      }),
+    });
+    expect(bridge.updatedPolicies.at(-1)).toMatchObject({
+      sessionId: "session-1",
+      hostManagedToolPolicy: expect.objectContaining({
+        tools: expect.objectContaining({
+          mcp_github_create_issue: expect.objectContaining({
+            riskLevel: "high",
+            requiresPlanApproval: true,
+            requiresConfirmation: false,
+          }),
+        }),
+      }),
+    });
+  });
+
+  it("re-syncs allowlisted MCP tools into host policy when a session is resumed", async () => {
+    const resumeBridge = new MockBridge();
+    const mcpService = new CodingAgentSessionService({
+      bridge: resumeBridge,
+      mainWindow,
+      repoRoot: "C:\\code\\chainlesschain",
+      projectRoot: "C:\\code\\chainlesschain",
+      mcpManager: {
+        servers: new Map([["weather", { state: "connected" }]]),
+        listTools: vi.fn().mockResolvedValue([
+          {
+            name: "get_forecast",
+            description: "Get the local weather forecast",
+            inputSchema: {
+              type: "object",
+              properties: {
+                city: { type: "string" },
+              },
+              required: ["city"],
+            },
+          },
+        ]),
+      },
+    });
+
+    await mcpService.resumeSession("session-1");
+
+    const latestPolicy = resumeBridge.updatedPolicies.at(-1);
+    expect(latestPolicy?.sessionId).toBe("session-1");
+    expect(
+      latestPolicy?.hostManagedToolPolicy?.toolDefinitions?.some(
+        (definition) =>
+          definition?.function?.name === "mcp_weather_get_forecast",
+      ),
+    ).toBe(true);
+    expect(
+      latestPolicy?.hostManagedToolPolicy?.tools?.mcp_weather_get_forecast,
+    ).toMatchObject({
+      allowed: true,
+      riskLevel: "low",
+      requiresPlanApproval: false,
     });
   });
 

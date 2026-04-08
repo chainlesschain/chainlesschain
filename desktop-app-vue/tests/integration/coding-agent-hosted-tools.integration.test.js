@@ -47,6 +47,21 @@ class MockBridge extends EventEmitter {
     return message;
   }
 
+  async resumeSession(sessionId) {
+    const message = {
+      id: "resume-request",
+      type: "session-resumed",
+      sessionId,
+      history: [{ role: "assistant", content: "restored hosted session" }],
+      record: {
+        provider: "openai",
+        model: "gpt-4o-mini",
+      },
+    };
+    this.emit("message", message);
+    return message;
+  }
+
   async updateSessionPolicy(sessionId, hostManagedToolPolicy) {
     this.updatedPolicies.push({ sessionId, hostManagedToolPolicy });
     return {
@@ -232,16 +247,16 @@ describe("Coding agent hosted tool integration", () => {
     ]({}, "session-1");
     expect(eventsResult.success).toBe(true);
     expect(
-      eventsResult.events.some((event) => event.type === "session-created"),
+      eventsResult.events.some((event) => event.type === "session.started"),
     ).toBe(true);
     expect(
-      eventsResult.events.some((event) => event.type === "tool-executing"),
+      eventsResult.events.some((event) => event.type === "tool.call.started"),
     ).toBe(true);
     expect(
-      eventsResult.events.some((event) => event.type === "tool-result"),
+      eventsResult.events.some((event) => event.type === "tool.call.completed"),
     ).toBe(true);
     expect(
-      eventsResult.events.some((event) => event.type === "response-complete"),
+      eventsResult.events.some((event) => event.type === "assistant.final"),
     ).toBe(true);
 
     const stateResult = await ipcMainMock.handlers[
@@ -264,11 +279,11 @@ describe("Coding agent hosted tool integration", () => {
       .map(([, event]) => event.type);
     expect(emittedEvents).toEqual(
       expect.arrayContaining([
-        "session-created",
-        "message-sent",
-        "tool-executing",
-        "tool-result",
-        "response-complete",
+        "session.started",
+        "request.accepted",
+        "tool.call.started",
+        "tool.call.completed",
+        "assistant.final",
       ]),
     );
   });
@@ -301,5 +316,40 @@ describe("Coding agent hosted tool integration", () => {
     expect(blockedResponse.toolName).toBe("run_shell");
     expect(blockedResponse.error).toMatch(/\[Host Policy\]/);
     expect(blockedResponse.error).toMatch(/run_shell/);
+  });
+
+  it("re-syncs hosted MCP tool policy when a session is resumed through IPC", async () => {
+    const result = await ipcMainMock.handlers["coding-agent:resume-session"](
+      {},
+      "session-1",
+    );
+    expect(result).toMatchObject({
+      success: true,
+      sessionId: "session-1",
+    });
+
+    const latestPolicy = bridge.updatedPolicies.at(-1);
+    expect(latestPolicy?.sessionId).toBe("session-1");
+    expect(
+      latestPolicy?.hostManagedToolPolicy?.toolDefinitions?.some(
+        (definition) =>
+          definition?.function?.name === "mcp_weather_get_forecast",
+      ),
+    ).toBe(true);
+    expect(
+      latestPolicy?.hostManagedToolPolicy?.tools?.mcp_weather_get_forecast,
+    ).toMatchObject({
+      allowed: true,
+      riskLevel: "low",
+      requiresPlanApproval: false,
+    });
+
+    const stateResult = await ipcMainMock.handlers[
+      "coding-agent:get-session-state"
+    ]({}, "session-1");
+    expect(stateResult.session.history.at(-1)).toMatchObject({
+      role: "assistant",
+      content: "restored hosted session",
+    });
   });
 });
