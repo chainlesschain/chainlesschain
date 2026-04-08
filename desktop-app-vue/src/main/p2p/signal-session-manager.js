@@ -18,6 +18,10 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
+
 // Signal 协议库
 let KeyHelper, SessionBuilder, SessionCipher, SignalProtocolAddress;
 
@@ -118,38 +122,37 @@ class SignalSessionManager extends EventEmitter {
       "signal-identity.json",
     );
 
+    // M2: 异步读取/写入，避免启动期阻塞事件循环
     try {
-      // 尝试加载现有身份
-      if (fs.existsSync(identityPath)) {
-        const identityData = JSON.parse(fs.readFileSync(identityPath, "utf8"));
+      const content = await _deps.fsp.readFile(identityPath, "utf8");
+      const identityData = JSON.parse(content);
 
-        // 重建身份密钥对 - 从 JSON 序列化格式转换回 ArrayBuffer
-        this.identityKeyPair = {
-          pubKey: this.arrayBufferFromObject(
-            identityData.identityKeyPair.pubKey,
-          ),
-          privKey: this.arrayBufferFromObject(
-            identityData.identityKeyPair.privKey,
-          ),
-        };
-        this.registrationId = identityData.registrationId;
+      // 重建身份密钥对 - 从 JSON 序列化格式转换回 ArrayBuffer
+      this.identityKeyPair = {
+        pubKey: this.arrayBufferFromObject(identityData.identityKeyPair.pubKey),
+        privKey: this.arrayBufferFromObject(
+          identityData.identityKeyPair.privKey,
+        ),
+      };
+      this.registrationId = identityData.registrationId;
 
-        // 存储到 Signal Store
-        await this.store.put("identityKey", this.identityKeyPair);
-        await this.store.put("registrationId", this.registrationId);
+      // 存储到 Signal Store
+      await this.store.put("identityKey", this.identityKeyPair);
+      await this.store.put("registrationId", this.registrationId);
 
-        logger.info("[SignalSession] 已加载现有身份");
-        return;
-      }
+      logger.info("[SignalSession] 已加载现有身份");
+      return;
     } catch (error) {
-      logger.warn("[SignalSession] 加载身份失败，将生成新的:", error.message);
+      if (error.code !== "ENOENT") {
+        logger.warn("[SignalSession] 加载身份失败，将生成新的:", error.message);
+      }
     }
 
     // 生成新身份并保存
     await this.generateIdentity();
 
     try {
-      fs.mkdirSync(path.dirname(identityPath), { recursive: true });
+      await _deps.fsp.mkdir(path.dirname(identityPath), { recursive: true });
 
       // 序列化身份数据 - 将 ArrayBuffer 转换为可序列化的数组
       const serializableIdentity = {
@@ -160,7 +163,7 @@ class SignalSessionManager extends EventEmitter {
         registrationId: this.registrationId,
       };
 
-      fs.writeFileSync(
+      await _deps.fsp.writeFile(
         identityPath,
         JSON.stringify(serializableIdentity, null, 2),
       );
@@ -773,3 +776,4 @@ class LocalSignalProtocolStore {
 }
 
 module.exports = SignalSessionManager;
+module.exports._deps = _deps;
