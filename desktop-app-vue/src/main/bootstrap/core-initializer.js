@@ -103,7 +103,7 @@ function registerCoreInitializers(factory) {
   // ========================================
   factory.register({
     name: "templateManager",
-    required: false,  // Non-critical, app can run without templates
+    required: false, // Non-critical, app can run without templates
     async init(context) {
       try {
         if (!context.database || !context.database.db) {
@@ -114,10 +114,13 @@ function registerCoreInitializers(factory) {
         // BUGFIX: Pass DatabaseManager instance (needs both db and saveToFile())
         const manager = new ProjectTemplateManager(context.database);
         await manager.initialize();
-        logger.info('[Bootstrap] ✓ TemplateManager initialized successfully');
+        logger.info("[Bootstrap] ✓ TemplateManager initialized successfully");
         return manager;
       } catch (error) {
-        logger.error('[Bootstrap] TemplateManager initialization failed:', error);
+        logger.error(
+          "[Bootstrap] TemplateManager initialization failed:",
+          error,
+        );
         // Return a mock manager to prevent IPC errors
         return {
           isMock: true,
@@ -141,12 +144,15 @@ function registerCoreInitializers(factory) {
           deleteTemplate: async () => true,
           recordTemplateUsage: async () => true,
           rateTemplate: async () => true,
-          renderPrompt: () => '',
-          renderTemplateString: () => '',
-          validateTemplate: () => ({ valid: false, errors: ['Template manager unavailable'] }),
-          previewTemplate: () => '',
+          renderPrompt: () => "",
+          renderTemplateString: () => "",
+          validateTemplate: () => ({
+            valid: false,
+            errors: ["Template manager unavailable"],
+          }),
+          previewTemplate: () => "",
           extractVariables: () => [],
-          getDefaultVariables: () => ({})
+          getDefaultVariables: () => ({}),
         };
       }
     },
@@ -447,9 +453,10 @@ function registerCoreInitializers(factory) {
     async init(context) {
       const GitManager = require("../git/git-manager");
       const MarkdownExporter = require("../git/markdown-exporter");
-      const { getGitConfig } = require("../git/git-config");
+      const { getGitConfigAsync } = require("../git/git-config");
 
-      const gitConfig = getGitConfig();
+      // M2: 异步加载 git 配置，避免启动期阻塞事件循环
+      const gitConfig = await getGitConfigAsync();
       if (!gitConfig.isEnabled()) {
         logger.info("[Core] Git同步未启用");
         return null;
