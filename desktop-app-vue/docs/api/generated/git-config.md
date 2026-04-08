@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-config.js`
 
-**Generated**: 2026-04-07T15:25:32.404Z
+**Generated**: 2026-04-08T08:35:35.443Z
 
 ---
 
@@ -53,6 +53,16 @@ load()
 ```
 
 * 加载配置
+
+---
+
+## async loadAsync()
+
+```javascript
+async loadAsync()
+```
+
+* 异步加载配置 (M2: 启动期使用，避免阻塞事件循环)
 
 ---
 
@@ -114,6 +124,16 @@ function gitLog(tag, ...args)
 
 * Git日志工具函数
  * 根据配置决定是否输出日志
+
+---
+
+## async function getGitConfigAsync()
+
+```javascript
+async function getGitConfigAsync()
+```
+
+* 异步获取 GitConfig 单例 (M2: 启动期使用)
 
 ---
 

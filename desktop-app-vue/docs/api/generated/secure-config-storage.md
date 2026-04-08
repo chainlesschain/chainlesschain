@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/secure-config-storage.js`
 
-**Generated**: 2026-04-07T15:25:32.387Z
+**Generated**: 2026-04-08T08:35:35.426Z
 
 ---
 
@@ -223,6 +223,30 @@ load(useCache = true)
 * 加载加密配置
    * @param {boolean} useCache - 是否使用缓存
    * @returns {Object|null} 配置对象或 null
+
+---
+
+## async saveAsync(config)
+
+```javascript
+async saveAsync(config)
+```
+
+* 异步保存加密配置 (M2 启动期 IO 异步化)
+   * @param {Object} config - 配置对象
+   * @returns {Promise<boolean>} 是否成功
+
+---
+
+## async loadAsync(useCache = true)
+
+```javascript
+async loadAsync(useCache = true)
+```
+
+* 异步加载加密配置（M2 启动期 IO 异步化）
+   * @param {boolean} useCache - 是否使用缓存
+   * @returns {Promise<Object|null>}
 
 ---
 

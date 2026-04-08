@@ -2,7 +2,7 @@
 
 **Source**: `src/main/identity/identity-context-manager.js`
 
-**Generated**: 2026-04-07T15:25:32.401Z
+**Generated**: 2026-04-08T08:35:35.440Z
 
 ---
 
@@ -52,6 +52,16 @@ async migrateIfNeeded()
 ```
 
 * 迁移现有数据(从个人版升级到企业版)
+
+---
+
+## async _pathExists(p)
+
+```javascript
+async _pathExists(p)
+```
+
+* @private 异步存在性检查 (M2)
 
 ---
 

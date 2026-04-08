@@ -2,7 +2,7 @@
 
 **Source**: `src/main/social/friend-manager.js`
 
-**Generated**: 2026-04-07T15:25:32.332Z
+**Generated**: 2026-04-08T08:35:35.377Z
 
 ---
 

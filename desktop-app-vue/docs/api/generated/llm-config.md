@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/llm-config.js`
 
-**Generated**: 2026-04-07T15:25:32.390Z
+**Generated**: 2026-04-08T08:35:35.428Z
 
 ---
 
@@ -47,6 +47,50 @@ getConfigPath()
 
 ---
 
+## async loadAsync()
+
+```javascript
+async loadAsync()
+```
+
+* 异步加载配置（M2 启动期 IO 异步化）
+   * 与 load() 共享合并/迁移逻辑，但 IO 通过 fs.promises 完成。
+
+---
+
+## async saveAsync()
+
+```javascript
+async saveAsync()
+```
+
+* 异步保存配置
+
+---
+
+## _applyMergedConfig(savedConfig)
+
+```javascript
+_applyMergedConfig(savedConfig)
+```
+
+* 合并已保存配置 + 默认配置（共享逻辑）
+   * @private
+
+---
+
+## _migrateLegacyVolcengine()
+
+```javascript
+_migrateLegacyVolcengine()
+```
+
+* 迁移旧版火山引擎模型名称（共享逻辑）
+   * @private
+   * @returns {boolean} 是否发生迁移
+
+---
+
 ## load()
 
 ```javascript
@@ -64,6 +108,17 @@ _loadSensitiveFields()
 ```
 
 * 从安全存储加载敏感字段
+   * @private
+
+---
+
+## async _loadSensitiveFieldsAsync()
+
+```javascript
+async _loadSensitiveFieldsAsync()
+```
+
+* 异步从安全存储加载敏感字段（M2 启动期 IO 异步化）
    * @private
 
 ---
@@ -135,6 +190,17 @@ getManagerConfig()
 ```
 
 * 获取管理器配置
+
+---
+
+## async function prewarmLLMConfig()
+
+```javascript
+async function prewarmLLMConfig()
+```
+
+* 异步预热 LLM 配置（M2 启动期 IO 异步化）
+ * 在 bootstrap 早期 await 此函数，可将 readFile/mkdir/writeFile 移出事件循环。
 
 ---
 

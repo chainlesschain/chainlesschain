@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/unified-config-manager.js`
 
-**Generated**: 2026-04-07T15:25:32.422Z
+**Generated**: 2026-04-08T08:35:35.465Z
 
 ---
 
@@ -74,6 +74,18 @@ initialize()
    * - 创建目录结构
    * - 加载配置文件
    * - 合并环境变量
+
+---
+
+## async initializeAsync()
+
+```javascript
+async initializeAsync()
+```
+
+* 异步初始化（M2 启动期 IO 异步化）
+   * 使用 fs.promises 将 mkdir / 迁移 / 读取 操作移出事件循环。
+   * 完成后，后续 getUnifiedConfigManager() 的同步调用将走快路径。
 
 ---
 
@@ -342,6 +354,18 @@ function getUnifiedConfigManager()
 ```
 
 * 获取统一配置管理器实例
+
+---
+
+## async function prewarmUnifiedConfigManager()
+
+```javascript
+async function prewarmUnifiedConfigManager()
+```
+
+* 异步预热统一配置管理器（M2 启动期 IO 异步化）
+ * 在 bootstrap 早期 await 此函数，可将 mkdir/迁移/读取移出事件循环。
+ * 完成后，所有同步 getUnifiedConfigManager() 将走快路径。
 
 ---
 

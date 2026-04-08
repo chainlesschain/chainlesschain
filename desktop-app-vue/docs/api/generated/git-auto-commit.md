@@ -2,14 +2,14 @@
 
 **Source**: `src/main/git/git-auto-commit.js`
 
-**Generated**: 2026-04-07T15:25:32.404Z
+**Generated**: 2026-04-08T08:35:35.443Z
 
 ---
 
-## const git = require('isomorphic-git');
+## const git = require("isomorphic-git");
 
 ```javascript
-const git = require('isomorphic-git');
+const git = require("isomorphic-git");
 ```
 
 * Git自动提交模块

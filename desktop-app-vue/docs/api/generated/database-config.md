@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/database-config.js`
 
-**Generated**: 2026-04-07T15:25:32.423Z
+**Generated**: 2026-04-08T08:35:35.466Z
 
 ---
 
@@ -34,6 +34,27 @@ class AppConfigManager
 ```
 
 * 应用配置管理器类
+
+---
+
+## async loadAsync()
+
+```javascript
+async loadAsync()
+```
+
+* 异步加载配置（M2 启动期 IO 异步化）
+   * 使用 fs.promises 将 readFile/mkdir/writeFile 移出事件循环。
+
+---
+
+## async saveAsync()
+
+```javascript
+async saveAsync()
+```
+
+* 异步保存配置
 
 ---
 
@@ -241,6 +262,18 @@ applyInitialSetup(initialConfig)
 
 * 批量应用初始设置配置
    * @param {Object} initialConfig - 来自 initial-setup-config.json 的配置
+
+---
+
+## async function prewarmAppConfig()
+
+```javascript
+async function prewarmAppConfig()
+```
+
+* 异步预热应用配置（M2 启动期 IO 异步化）
+ * 在 bootstrap 早期 await 此函数，可将 readFile/mkdir/writeFile 移出事件循环。
+ * 完成后，所有同步 getAppConfig() 将走快路径。
 
 ---
 

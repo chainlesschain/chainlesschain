@@ -2,14 +2,14 @@
 
 **Source**: `src/main/git/git-manager.js`
 
-**Generated**: 2026-04-07T15:25:32.404Z
+**Generated**: 2026-04-08T08:35:35.443Z
 
 ---
 
-## const git = require('isomorphic-git');
+## const git = require("isomorphic-git");
 
 ```javascript
-const git = require('isomorphic-git');
+const git = require("isomorphic-git");
 ```
 
 * Git 同步管理器
@@ -209,10 +209,10 @@ async abortMerge()
 
 ---
 
-## async completeMerge(message = 'Merge completed')
+## async completeMerge(message = "Merge completed")
 
 ```javascript
-async completeMerge(message = 'Merge completed')
+async completeMerge(message = "Merge completed")
 ```
 
 * 完成合并（所有冲突解决后）
@@ -231,10 +231,10 @@ async clone(url, targetPath = null)
 
 ---
 
-## async setRemote(url, name = 'origin')
+## async setRemote(url, name = "origin")
 
 ```javascript
-async setRemote(url, name = 'origin')
+async setRemote(url, name = "origin")
 ```
 
 * 配置远程仓库
@@ -287,10 +287,10 @@ async hasUncommittedChanges()
 
 ---
 
-## async autoSync(message = 'Auto sync')
+## async autoSync(message = "Auto sync")
 
 ```javascript
-async autoSync(message = 'Auto sync')
+async autoSync(message = "Auto sync")
 ```
 
 * 自动同步
