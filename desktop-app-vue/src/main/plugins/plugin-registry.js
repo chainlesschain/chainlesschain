@@ -1,4 +1,9 @@
 const { logger } = require("../utils/logger.js");
+const fs = require("fs");
+
+// M2: _deps injection so tests can mock fs.promises (vi.mock cannot
+// intercept fs.promises for inlined CJS modules)
+const _deps = { fsp: fs.promises };
 
 /**
  * PluginRegistry - 插件注册表
@@ -23,8 +28,7 @@ class PluginRegistry {
     logger.info("[PluginRegistry] 初始化插件注册表...");
 
     try {
-      // 读取并执行迁移脚本
-      const fs = require("fs");
+      // 读取并执行迁移脚本 (M2: 异步读取，避免启动期阻塞事件循环)
       const path = require("path");
 
       const migrationPath = path.join(
@@ -32,9 +36,17 @@ class PluginRegistry {
         "../database/migrations/001_plugin_system.sql",
       );
 
-      if (fs.existsSync(migrationPath)) {
-        const sql = fs.readFileSync(migrationPath, "utf-8");
+      let sql;
+      try {
+        sql = await _deps.fsp.readFile(migrationPath, "utf-8");
+      } catch (err) {
+        if (err.code !== "ENOENT") {
+          throw err;
+        }
+        sql = null;
+      }
 
+      if (sql) {
         // 移除注释行
         const cleanedSQL = sql
           .split("\n")
@@ -493,3 +505,4 @@ class PluginRegistry {
 }
 
 module.exports = PluginRegistry;
+module.exports._deps = _deps;
