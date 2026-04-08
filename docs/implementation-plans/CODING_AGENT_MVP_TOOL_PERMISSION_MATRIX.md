@@ -381,6 +381,7 @@ MVP 阶段默认拒绝：
 - Desktop MCP / host policy 定向回归通过：`3 files, 39 passed`
 - Desktop bridge / session-service MCP 跨进程回归通过：`2 files, 46 passed`
 - Desktop coding-agent integration 回归通过：`2 files, 15 passed`
+- Renderer coding-agent store 回归通过：`1 file, 8 passed`
 
 ## 13. 剩余缺口
 
