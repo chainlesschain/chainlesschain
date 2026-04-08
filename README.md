@@ -56,6 +56,8 @@
 
 无 bug 修复，全部测试一次通过。详细设计与 IPC 列表：[docs/design/modules/79_Coding_Agent系统.md](./docs/design/modules/79_Coding_Agent系统.md) / 用户文档 [docs-site/docs/chainlesschain/coding-agent.md](./docs-site/docs/chainlesschain/coding-agent.md)。
 
+**2026-04-08 文档补齐（Phase 5 扩展能力）**：用户文档 + 设计文档此前只覆盖最小 harness，本轮补齐 **子代理委派** / **review mode** / **patch preview / diff 总结** / **持久化任务图与编排器** 四类 Phase 5 CLI 扩展能力的协议、事件、WS 消息与数据结构说明。详见 [coding-agent.md "Phase 5 — 高阶 Harness"](./docs-site/docs/chainlesschain/coding-agent.md) 与 [设计模块 79 §Phase 5 扩展能力详细设计](./docs/design/modules/79_Coding_Agent系统.md)。
+
 ## 2026-04-06 增量更新
 
 这轮不是只做版本号和测试数字同步，而是把前面几次落地的 Agent Runtime、Web Panel、协议与文档重新收束成一致状态，并补回被压短的入口说明。
