@@ -78,6 +78,36 @@ const CODING_AGENT_EVENT_TYPES = Object.freeze({
   SERVER_STARTING: "runtime.server.starting",
   SERVER_READY: "runtime.server.ready",
   SERVER_STOPPED: "runtime.server.stopped",
+
+  // Sub-agent delegation — lifecycle of child agents spawned from a parent
+  // session via the spawn_sub_agent tool. Sequence within a parent requestId
+  // stays strictly increasing; parent session + sub-agent id are carried in
+  // the payload so UIs can group child events under the parent turn.
+  SUB_AGENT_STARTED: "sub-agent.started",
+  SUB_AGENT_PROGRESS: "sub-agent.progress",
+  SUB_AGENT_COMPLETED: "sub-agent.completed",
+  SUB_AGENT_FAILED: "sub-agent.failed",
+  SUB_AGENT_LIST: "sub-agent.list",
+
+  // Review mode — explicit human-in-the-loop (or reviewer sub-agent) gate.
+  // When a session enters review mode the runtime MUST block sendMessage
+  // until the review is resolved (approved / rejected). Comments can be
+  // submitted incrementally by either human reviewers via the UI or by a
+  // reviewer role sub-agent writing async findings back to the parent
+  // session.
+  REVIEW_REQUESTED: "review.requested",
+  REVIEW_UPDATED: "review.updated",
+  REVIEW_RESOLVED: "review.resolved",
+  REVIEW_STATE: "review.state",
+
+  // Patch preview / diff summary — proposed file edits that the user can
+  // preview, approve (apply) or reject before they land on disk. Used to
+  // surface a "diff summary" strip in the UI that batches multiple writes
+  // from a single turn into a reviewable hunk list.
+  PATCH_PROPOSED: "patch.proposed",
+  PATCH_APPLIED: "patch.applied",
+  PATCH_REJECTED: "patch.rejected",
+  PATCH_SUMMARY: "patch.summary",
 });
 
 const VALID_TYPE_SET = new Set(Object.values(CODING_AGENT_EVENT_TYPES));
@@ -330,6 +360,7 @@ const CodingAgentEventType = Object.freeze({
   SERVER_STOPPED: CODING_AGENT_EVENT_TYPES.SERVER_STOPPED,
   SESSION_CREATED: CODING_AGENT_EVENT_TYPES.SESSION_STARTED,
   SESSION_RESUMED: CODING_AGENT_EVENT_TYPES.SESSION_RESUMED,
+  SESSION_INTERRUPTED: CODING_AGENT_EVENT_TYPES.SESSION_INTERRUPTED,
   SESSION_CLOSED: CODING_AGENT_EVENT_TYPES.SESSION_CLOSED,
   SESSION_LIST: CODING_AGENT_EVENT_TYPES.SESSION_LIST,
   WORKTREE_LIST: CODING_AGENT_EVENT_TYPES.WORKTREE_LIST,

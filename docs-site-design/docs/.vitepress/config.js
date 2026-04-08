@@ -77,6 +77,10 @@ export default defineConfig({
             text: "v5.0.2.10 CLI Agent Runtime 重构 (78) ⭐NEW",
             link: "/modules/m78-cli-agent-runtime",
           },
+          {
+            text: "v5.0.2.10 Coding Agent 系统 (79) ⭐NEW",
+            link: "/modules/m79-coding-agent",
+          },
         ],
       },
       {
@@ -581,7 +585,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 Agent 架构与 Runtime 重构 (77-78) ⭐NEW",
+          text: "v5.0.2.10 Agent 架构与 Runtime 重构 (77-79) ⭐NEW",
           collapsed: false,
           items: [
             {
@@ -591,6 +595,10 @@ export default defineConfig({
             {
               text: "78 CLI Agent Runtime 重构实施计划",
               link: "/modules/m78-cli-agent-runtime",
+            },
+            {
+              text: "79 Coding Agent 系统",
+              link: "/modules/m79-coding-agent",
             },
           ],
         },

@@ -1,15 +1,19 @@
 # 设计文档
 
-> 本目录收录 ChainlessChain 的系统设计、模块设计、实施计划与阶段总结。这里不是简版提纲，而是面向实际研发、联调和回归验证的设计入口。内容已对齐到 2026-04-06 当前代码状态。
+> 本目录收录 ChainlessChain 的系统设计、模块设计、实施计划与阶段总结。这里不是简版提纲，而是面向实际研发、联调和回归验证的设计入口。内容已对齐到 2026-04-08 当前代码状态。
 
 ## 当前文档状态
 
-- 设计文档已重新对齐 CLI Agent Runtime 重构、WebSocket 协议拆分、Web Panel 统一事件入口、后台任务增强、Worktree 合并助手和会话迁移能力。
-- 模块 `69`、`77`、`78` 已补回较完整的说明，不再只保留短摘要。
+- 设计文档已重新对齐 CLI Agent Runtime 重构、WebSocket 协议拆分、Web Panel 统一事件入口、后台任务增强、Worktree 合并助手、会话迁移、以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt** 能力。
+- 模块 `69`、`77`、`78`、`79` 已补回较完整的说明，不再只保留短摘要。
 - 本目录是 `docs-site` 设计区的同步源，修改这里会在构建文档站时自动同步过去。
 
 ## 最近更新
 
+- `modules/79_Coding_Agent系统.md`
+  - §7.3 补齐真实 `interrupt` 语义：`AbortController` + `abort-utils.js` 链路，`rejectAllPending` 广播 `AbortError`，session 保留可继续使用。
+  - §7.4 IPC 列表新增 `harness-status` / `list-background-tasks` / `get-background-task` / `get-background-task-history` / `stop-background-task` 五条通道。
+  - Phase 5 段落拆分为"最小集 ✅ / 扩展未完成"两部分，明确最小 harness 主线已落地，子代理委派 / review mode / patch preview / 任务图编排仍未完成。
 - `modules/69_WebSocket服务器接口.md`
   - 已补回协议分层、请求响应示例、runtime event 对齐、session/task/worktree/compression 四类契约。
 - `modules/77_Agent架构优化系统.md`
@@ -113,15 +117,40 @@
 - 压缩观测支持时间窗口、`provider` / `model` 切片和变体分布。
 - JSON → JSONL 会话迁移支持 dry-run、抽样校验和失败重试。
 
+### 5. Coding Agent Phase 5 最小 Harness 与真实 Interrupt
+
+当前文档已经反映以下真实实现（2026-04-08）：
+
+- `coding-agent:interrupt` 不再是 `close-session` 的别名。CLI 侧新增共享 `packages/cli/src/lib/abort-utils.js`（`AbortError` / `throwIfAborted` / `isAbortError`），`ws-agent-handler` 每个 turn 新建 `AbortController`，`agent-core` / `interaction-adapter` 感知 abort 后会立即释放 pending 审批 / 工具调用、发出 `session.interrupted`，session 本身仍保留可继续使用。
+- Desktop `CodingAgentSessionService.getHarnessStatus()` 聚合 `sessions` / `worktrees` / `backgroundTasks` 三类概览，供 renderer 一次性读取。
+- IPC v3 + preload + renderer store 全链路补齐 `list-background-tasks` / `get-background-task` / `get-background-task-history` / `stop-background-task`。
+- `AIChatPage.vue` 新增 **Coding Agent Harness** 面板，展示会话 / worktree / 后台任务概览，支持 Refresh、View Details（详情 + 历史）、Stop Task。
+- AIChatPage 已迁移到点分小写事件协议，`tool.call.*` / `assistant.final` / `approval.*` / `approval.high-risk.*` 已打通。
+
 ## 当前验证摘要
 
-- CLI 定向单元：`130/130`
-- CLI 定向集成：`19/19`
-- CLI `ws-session-workflow` 集成：`16/16`
+- CLI 定向单元（含 `agent-core` / `ws-agent-handler` / `interaction-adapter` / `abort-utils` interrupt 主线）：`175/175`
+- CLI 定向集成（含 `ws-session-workflow`）：`20/20`
+- CLI `coding-agent-envelope-roundtrip` E2E：`7/7`
+- Desktop Coding Agent 主链路（bridge / ipc-v3 / session-service / permission-gate / tool-adapter / 集成 / store / AIChatPage）：`9 files, 197/197`
+- Phase 5 最小 harness 定向回归：`5 files, 84/84`
+- AIChatPage harness 面板 + dot-case 事件页面回归：`69/69`
 - Web Panel 定向单元：`23/23`
 - Web Panel E2E：`29/29`
 - Web Panel 构建：通过
 - Docs Site 构建：通过
+
+**2026-04-08 文档对齐回归（修改文件全量定向）**：
+
+| 类型 | 范围 | 通过 |
+| --- | --- | --- |
+| CLI 单元 | agent-core / sub-agent-registry / ws-agent-handler | 126/126 |
+| Desktop main 单元 | coding-agent-bridge / coding-agent-ipc-v3 / coding-agent-session-service | 77/77 |
+| Renderer 单元 | coding-agent store / AIChatPage | 81/81 |
+| CLI 集成 | ws-session-workflow | 32/32 |
+| Desktop 集成 | coding-agent-lifecycle | 18/18 |
+| CLI E2E | coding-agent-envelope-roundtrip | 7/7 |
+| **小计** | **6 套** | **341/341** |
 
 ## 目录说明
 

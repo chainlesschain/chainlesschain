@@ -325,6 +325,46 @@ export interface CodingAgentStatus {
   tools?: CodingAgentToolDescriptor[];
   toolSummary?: CodingAgentToolSummary | null;
   permissionPolicy?: CodingAgentPermissionPolicy | null;
+  harness?: CodingAgentHarnessStatus | null;
+}
+
+export interface CodingAgentBackgroundTask {
+  id: string;
+  type?: string;
+  command?: string;
+  cwd?: string;
+  description?: string;
+  status?: string;
+  createdAt?: number;
+  startedAt?: number | null;
+  completedAt?: number | null;
+  lastHeartbeat?: number | null;
+  result?: any;
+  error?: string | null;
+  outputSummary?: any;
+  history?: any[];
+}
+
+export interface CodingAgentHarnessStatus {
+  sessions: {
+    total: number;
+    running: number;
+    waitingApproval: number;
+    active: number;
+  };
+  worktrees: {
+    tracked: number;
+    isolated: number;
+    dirty: number;
+  };
+  backgroundTasks: {
+    total: number;
+    pending: number;
+    running: number;
+    completed: number;
+    failed: number;
+    timeout: number;
+  };
 }
 
 export interface CodingAgentAPI {
@@ -356,6 +396,36 @@ export interface CodingAgentAPI {
   getSessionEvents(
     sessionId: string,
   ): Promise<{ success: boolean; events?: CodingAgentEvent[]; error?: string }>;
+  getHarnessStatus(): Promise<{
+    success: boolean;
+    harness?: CodingAgentHarnessStatus;
+    error?: string;
+  }>;
+  listBackgroundTasks(payload?: { status?: string }): Promise<{
+    success: boolean;
+    tasks?: CodingAgentBackgroundTask[];
+    error?: string;
+  }>;
+  getBackgroundTask(taskId: string): Promise<{
+    success: boolean;
+    task?: CodingAgentBackgroundTask | null;
+    error?: string;
+  }>;
+  getBackgroundTaskHistory(payload: {
+    taskId: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    success: boolean;
+    taskId?: string;
+    history?: any;
+    error?: string;
+  }>;
+  stopBackgroundTask(taskId: string): Promise<{
+    success: boolean;
+    taskId?: string;
+    error?: string;
+  }>;
   listWorktrees(): Promise<{
     success: boolean;
     worktrees?: CodingAgentWorktreeRecord[];
@@ -436,6 +506,109 @@ export interface CodingAgentAPI {
     record?: CodingAgentWorktreeRecord | null;
     error?: string;
   }>;
+  listSubAgents(sessionId?: string | null): Promise<{
+    success: boolean;
+    sessionId?: string | null;
+    active?: CodingAgentSubAgentSnapshot[];
+    history?: CodingAgentSubAgentSnapshot[];
+    stats?: {
+      active?: number;
+      completed?: number;
+      historySize?: number;
+      totalTokens?: number;
+      avgDurationMs?: number;
+    } | null;
+    error?: string;
+  }>;
+  getSubAgent(payload: {
+    subAgentId: string;
+    sessionId?: string | null;
+  }): Promise<{
+    success: boolean;
+    subAgent?: CodingAgentSubAgentSnapshot | null;
+    error?: string;
+  }>;
+  enterReview(payload: {
+    sessionId: string;
+    reason?: string | null;
+    requestedBy?: string;
+    checklist?: Array<{ id?: string; title: string; note?: string }>;
+    blocking?: boolean;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    reviewState?: CodingAgentReviewState | null;
+    error?: string;
+  }>;
+  submitReviewComment(payload: {
+    sessionId: string;
+    comment?: { author?: string; content: string } | null;
+    checklistItemId?: string | null;
+    checklistItemDone?: boolean;
+    checklistItemNote?: string;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    reviewState?: CodingAgentReviewState | null;
+    error?: string;
+  }>;
+  resolveReview(payload: {
+    sessionId: string;
+    decision: "approved" | "rejected";
+    resolvedBy?: string;
+    summary?: string | null;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    reviewState?: CodingAgentReviewState | null;
+    error?: string;
+  }>;
+  getReviewState(payload: { sessionId: string } | string): Promise<{
+    success: boolean;
+    sessionId?: string;
+    reviewState?: CodingAgentReviewState | null;
+    error?: string;
+  }>;
+  proposePatch(payload: {
+    sessionId: string;
+    files: CodingAgentPatchFileInput[];
+    origin?: string;
+    reason?: string | null;
+    requestId?: string | null;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    patch?: CodingAgentPatch | null;
+    error?: string;
+  }>;
+  applyPatch(payload: {
+    sessionId: string;
+    patchId: string;
+    resolvedBy?: string;
+    note?: string | null;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    patch?: CodingAgentPatch | null;
+    error?: string;
+  }>;
+  rejectPatch(payload: {
+    sessionId: string;
+    patchId: string;
+    resolvedBy?: string;
+    reason?: string | null;
+  }): Promise<{
+    success: boolean;
+    sessionId?: string;
+    patch?: CodingAgentPatch | null;
+    error?: string;
+  }>;
+  getPatchSummary(payload: { sessionId: string } | string): Promise<{
+    success: boolean;
+    sessionId?: string;
+    summary?: CodingAgentPatchSummary | null;
+    error?: string;
+  }>;
   getStatus(): Promise<{
     success: boolean;
     server?: { connected?: boolean; host?: string; port?: number | null };
@@ -446,6 +619,110 @@ export interface CodingAgentAPI {
   }>;
   onEvent(callback: (event: CodingAgentEvent) => void): () => void;
   subscribeEvents(callback: (event: CodingAgentEvent) => void): () => void;
+}
+
+/**
+ * Sub-agent snapshot returned by listSubAgents / getSubAgent. Mirrors the
+ * SubAgentContext.toJSON() shape produced by the CLI runtime. `status` is
+ * "active" for running children and "completed" for finished entries pulled
+ * from the ring-buffer history.
+ */
+export interface CodingAgentSubAgentSnapshot {
+  id: string;
+  parentId?: string | null;
+  role: string;
+  task: string;
+  status: "active" | "completed" | "failed";
+  messageCount?: number;
+  toolsUsed?: string[];
+  tokenCount?: number;
+  iterationCount?: number;
+  createdAt?: string;
+  completedAt?: string | null;
+  summary?: string;
+  durationMs?: number;
+  worktree?: { path: string; branch: string } | null;
+}
+
+/**
+ * Review mode snapshot produced by the CLI runtime. Mirrors the
+ * `session.reviewState` shape returned by `ws-session-manager.js` — a session
+ * is considered blocked for new sendMessage calls while `status === "pending"`
+ * and `blocking === true`.
+ */
+export interface CodingAgentReviewComment {
+  id: string;
+  author: string;
+  content: string;
+  timestamp: string;
+}
+
+export interface CodingAgentReviewChecklistItem {
+  id: string;
+  title: string;
+  note?: string | null;
+  done: boolean;
+}
+
+export interface CodingAgentReviewState {
+  reviewId: string;
+  status: "pending" | "approved" | "rejected";
+  reason: string | null;
+  requestedBy: string;
+  requestedAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  decision: "approved" | "rejected" | null;
+  blocking: boolean;
+  comments: CodingAgentReviewComment[];
+  checklist: CodingAgentReviewChecklistItem[];
+  summary?: string;
+}
+
+/**
+ * Patch preview snapshot produced by the CLI runtime. Each patch batches
+ * one or more file edits that the agent proposed via a tool call but should
+ * be previewed before they land on disk. The renderer surfaces these as a
+ * "diff summary" strip with per-file stats.
+ */
+export interface CodingAgentPatchFileInput {
+  path: string;
+  op?: "create" | "modify" | "delete";
+  before?: string | null;
+  after?: string | null;
+  diff?: string | null;
+  stats?: { added?: number; removed?: number };
+}
+
+export interface CodingAgentPatchFile {
+  index: number;
+  path: string;
+  op: "create" | "modify" | "delete";
+  before: string | null;
+  after: string | null;
+  diff: string | null;
+  stats: { added: number; removed: number };
+}
+
+export interface CodingAgentPatch {
+  patchId: string;
+  status: "pending" | "applied" | "rejected";
+  origin: string;
+  reason: string | null;
+  requestId: string | null;
+  proposedAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  files: CodingAgentPatchFile[];
+  stats: { fileCount: number; added: number; removed: number };
+  note?: string;
+  rejectionReason?: string;
+}
+
+export interface CodingAgentPatchSummary {
+  pending: CodingAgentPatch[];
+  history: CodingAgentPatch[];
+  totals: { fileCount: number; added: number; removed: number };
 }
 
 /**

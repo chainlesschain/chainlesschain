@@ -209,24 +209,60 @@ await window.electron.invoke('coding-agent:respond-approval', {
   decision: 'granted',
 })
 
-// 5. 中断 / 关闭
+// 5. 真实中断（保留 session）或彻底关闭
 await window.electron.invoke('coding-agent:interrupt', { sessionId })
 await window.electron.invoke('coding-agent:close-session', { sessionId })
+
+// 6. 最小 Harness：聚合状态 + 后台任务
+const harness = await window.electron.invoke('coding-agent:harness-status')
+// { sessions: { total, running, waitingApproval, active },
+//   worktrees: { tracked, isolated, dirty },
+//   backgroundTasks: { total, pending, running, completed, failed, timeout } }
+
+const tasks = await window.electron.invoke('coding-agent:list-background-tasks')
+const task = await window.electron.invoke('coding-agent:get-background-task', { taskId })
+const history = await window.electron.invoke('coding-agent:get-background-task-history', { taskId, limit: 10 })
+await window.electron.invoke('coding-agent:stop-background-task', { taskId })
 ```
+
+> **注意**：`coding-agent:interrupt` 已从 `close-session` 的别名收口为**真实中断**语义 —— 它会通过
+> CLI runtime 的 `AbortController` 终止当前正在执行的 turn（工具调用 / 模型流），但保留 session，
+> 用户仍可继续对话或恢复。如果要彻底关闭 session，请显式调用 `coding-agent:close-session`。
 
 ### IPC 通道列表
 
 | 通道 | 方向 | 说明 |
 | --- | --- | --- |
-| `coding-agent:start-session` | R → M | 创建会话 |
+| `coding-agent:start-session` | R → M | 创建会话（`start-session` 为 `create-session` 别名） |
 | `coding-agent:resume-session` | R → M | 恢复历史会话 |
 | `coding-agent:send-message` | R → M | 发送用户消息 |
-| `coding-agent:interrupt` | R → M | 中断当前请求 |
-| `coding-agent:close-session` | R → M | 关闭会话 |
-| `coding-agent:respond-approval` | R → M | 回传审批结果 |
+| `coding-agent:interrupt` | R → M | 真实中断当前 turn（保留 session） |
+| `coding-agent:close-session` | R → M | 关闭并清理 session |
+| `coding-agent:respond-approval` | R → M | 回传审批结果（plan / high-risk 通用） |
 | `coding-agent:list-sessions` | R → M | 查询会话列表 |
 | `coding-agent:get-session-state` | R → M | 查询会话状态 |
+| `coding-agent:harness-status` | R → M | 聚合 sessions / worktrees / backgroundTasks 概览 |
+| `coding-agent:list-background-tasks` | R → M | 列出后台任务 |
+| `coding-agent:get-background-task` | R → M | 读取单个后台任务详情 |
+| `coding-agent:get-background-task-history` | R → M | 读取后台任务事件历史 |
+| `coding-agent:stop-background-task` | R → M | 停止运行中的后台任务 |
 | `coding-agent:subscribe-events` | M → R | 推送事件流 |
+
+### Harness 面板（Desktop）
+
+Desktop 聊天页 (`AIChatPage.vue`) 已在审批面板上方新增 **Coding Agent Harness** 面板。
+只要当前 session 存在且有 harness 状态或后台任务，面板会自动展示：
+
+- **Active sessions** —— `total` / `waitingApproval` 数量
+- **Tracked worktrees** —— `tracked` / `dirty` 数量
+- **Background tasks** —— `running` / `pending` 数量
+- 高优先级（`running` / `pending`）后台任务列表，支持：
+  - `View Details` —— 调用 `get-background-task` + `get-background-task-history`，在侧栏展示
+  - `Stop Task` —— 调用 `stop-background-task`，中断运行中的后台任务
+  - `Refresh Harness` —— 同时刷新 `harness-status` 和后台任务列表
+
+所有这些 IPC 都通过 renderer 的 `useCodingAgentStore()` 包装暴露为 reactive 状态：
+`harnessStatus` / `backgroundTasks` / `selectedBackgroundTask` / `selectedBackgroundTaskHistory`。
 
 ## 配置参考
 
@@ -270,6 +306,84 @@ curl / wget
 powershell -EncodedCommand
 ```
 
+### 工具最小契约
+
+每个 MVP 工具都有稳定 schema 与执行规则。以下是每个工具的输入示例与约束。
+
+#### `read_file`
+
+```json
+{ "path": "packages/cli/src/runtime/runtime-factory.js" }
+```
+
+- 路径必须在工作区内
+- 默认仅处理文本文件，PDF/图片后置
+- 大文件需截断并返回截断标记
+
+#### `list_dir`
+
+```json
+{ "path": "desktop-app-vue/src/main", "depth": 2 }
+```
+
+- 限制最大深度
+- 限制最大返回项数
+
+#### `search_files`
+
+```json
+{ "query": "code-agent-ipc", "path": "desktop-app-vue/src/main", "mode": "content" }
+```
+
+- 优先使用 `rg`
+- 限制结果条数
+- 返回文件路径与上下文片段
+
+#### `edit_file`
+
+```json
+{
+  "path": "desktop-app-vue/src/main/ipc/ipc-registry.js",
+  "edits": [{ "oldText": "old snippet", "newText": "new snippet" }]
+}
+```
+
+- 首版优先精确替换
+- 不支持工作区外写入
+- 必须先经过 plan + approval
+
+#### `write_file`
+
+```json
+{ "path": "docs/implementation-plans/new-doc.md", "content": "# title" }
+```
+
+- 新建文件允许
+- 覆盖现有文件需更高风险提示
+- 必须先经过 plan + approval
+
+#### `run_shell`
+
+```json
+{ "command": "npm run test:jest", "cwd": "C:\\code\\chainlesschain", "timeoutMs": 120000 }
+```
+
+- 默认仅工作区内运行
+- 首版尽量限制到只读 / 验证型命令
+- 高风险命令必须审批
+- 结构化返回 `exitCode` / `stdout` / `stderr`
+- CLI 已显式拦截：`run_shell` 调用 `git`、删除类命令、网络下载命令、`powershell -EncodedCommand`
+
+#### `git`
+
+```json
+{ "command": "status", "cwd": "C:\\code\\chainlesschain" }
+```
+
+- 只读子命令（计划阶段例外）：`status` / `diff` / `log` / `show` / `rev-parse`
+- 高风险子命令：`commit` / `push` / `reset` / `checkout` / `rebase` / `clean`
+- 首版不默认开放破坏性 Git 命令
+
 ### 错误码
 
 ```text
@@ -285,6 +399,104 @@ SESSION_PERSISTENCE_FAILED
 CONTEXT_COMPACTION_FAILED
 RUNTIME_INTERNAL_ERROR
 ```
+
+## 实施阶段与里程碑
+
+Coding Agent 采用渐进式落地，主线分为 6 个阶段（Phase 0–5）。每个阶段都有明确的退出标准，避免 MVP 范围失控。
+
+### 实施原则
+
+- **先复用，再重构** —— 优先复用 CLI runtime / tool registry / prompt compressor / session store / worktree isolator / desktop plan mode / desktop MCP，不在 Electron Main 复制一套独立 agent kernel
+- **首版范围必须收紧** —— 只解决一条最小可用链路：读代码 → 查代码 → 产出计划 → 改文件 → 跑受控命令 → 流式展示
+- **内核与宿主解耦** —— runtime kernel 只放 CLI 侧，桌面端只做 host / bridge / permission UI / event consumer
+- **安全先于自治** —— 在工具权限模型、会话持久化、事件协议、Desktop 审批流稳定前，不引入长期后台自治、多代理常驻协作、自进化等高复杂度行为
+
+### 阶段状态总览
+
+| 阶段 | 状态 | 说明 |
+| --- | --- | --- |
+| **Phase 0** 基线收敛 | ✅ 完成 | 事件协议、MVP 工具矩阵、Desktop ↔ CLI bridge 时序定义 |
+| **Phase 1** MVP Runtime Kernel | ✅ CLI 完成 | 多轮 session loop / 工具调度 / 流式事件 / 持久化 hook |
+| **Phase 2** 权限与安全 Harness | ✅ CLI 完成 | 工具权限统一 / Plan Mode 门控 / 共享 allow-deny-ask 策略 |
+| **Phase 3** Desktop Bridge | ✅ 主链路完成 | session service / bridge / IPC v3 / 事件转发 / 审批 UI |
+| **Phase 4** MCP 与技能接入 | ✅ 主线完成 | trusted MCP auto-connect / 共享 managed-tool policy；skill 按需装载待续 |
+| **Phase 5** 高阶 Harness | 🔄 最小集完成 | harness 状态聚合 / 后台任务 / 真实 interrupt 完成；子代理、review mode、patch preview 待续 |
+
+### Phase 0 — 基线收敛
+
+- 盘点 CLI runtime 真实可复用 API
+- 盘点 desktop code-agent / plan-mode / MCP 接入点
+- 定义统一事件协议（v1.0 信封）
+- 定义 MVP 工具清单与权限矩阵
+- 定义 Desktop 到 CLI 的 bridge 时序
+
+**退出标准**：会话协议确定 / MVP 工具范围确定 / CLI 与 Desktop 职责边界确定。
+
+### Phase 1 — MVP Runtime Kernel（CLI ✅）
+
+- session 创建与恢复
+- 多轮消息循环
+- 工具调度 + 流式事件
+- prompt compression hook
+- session persistence hook
+
+**已落地**：`packages/cli/src/lib/agent-core.js` / `coding-agent-contract.js` / `legacy-agent-tools.js` / `session-manager.js` / `ws-session-manager.js` / `ws-agent-handler.js`
+
+### Phase 2 — 权限与安全 Harness（CLI ✅）
+
+- 工具描述 + 权限级别统一
+- 写入 / 执行 / 删除 / 高风险 Git 接入 plan mode
+- 审批检查点
+- CLI 与 Desktop 共享 allow / deny / ask 语义
+- 工具执行边界 telemetry tags
+
+**关键模块**：`coding-agent-contract.js`（工具元数据）、`plan-mode.js`（计划门控）、`coding-agent-policy.cjs`（共享策略）、`coding-agent-shell-policy.cjs`（命令策略）
+
+### Phase 3 — Desktop Bridge（✅ 主链路完成）
+
+- 构建 Main 进程 session service
+- 构建 Electron IPC 到 CLI runtime 的桥接层
+- 注册新的 coding-agent v3 IPC
+- 把 session 事件流推送给 renderer
+- 保留旧 one-shot `code-agent:*` 接口的兼容层
+
+**新增模块**：`coding-agent-session-service.js` / `coding-agent-bridge.js` / `coding-agent-permission-gate.js` / `coding-agent-events.js` / `coding-agent-ipc-v3.js`
+
+### Phase 4 — MCP 与技能接入（✅ 主线完成）
+
+- 通过 runtime registry 暴露 MCP 工具
+- 按权限级别 + 信任来源对 MCP 工具分类
+- skill 作为按需上下文或工具扩展接入
+- 默认关闭高风险或未知来源 MCP server
+
+**已落地**：`coding-agent-managed-tool-policy.cjs`（共享 allowlist + trusted server 判定 + 高风险 MCP opt-in）、`agent-runtime.js`（trusted MCP auto-connect）、`coding-agent-tool-adapter.js`（共享 managed/MCP 策略消费）
+
+### Phase 5 — 高阶 Harness（🔄 最小集完成）
+
+**本轮已完成**：
+
+- `CodingAgentSessionService.getHarnessStatus()` 聚合 sessions / worktrees / backgroundTasks
+- 后台任务只读 + 停止 API（list / get / history / stop）
+- Desktop **Coding Agent Harness** 面板（刷新 / 详情抽屉 / 历史 / 筛选 / 分页）
+- `coding-agent:interrupt` 收口为真实中断（共享 `abort-utils.js` + `AbortController`）
+
+**仍未完成**：
+
+- 子代理委派
+- review mode
+- patch preview / diff 总结编排
+- 更高阶持久化任务图与编排器
+
+**原则**：每项高阶能力必须是可选层，基础 coding agent 在不启用时仍可正常工作。
+
+## 主要风险与缓解
+
+| 风险 | 描述 | 缓解措施 |
+| --- | --- | --- |
+| **双内核分叉** | CLI 与 Desktop 演化成两套不同 agent 实现 | 只保留一个 runtime kernel，Desktop 只做宿主与桥接 |
+| **权限行为不一致** | CLI 与 Desktop 对允许 / 拒绝的理解不一致 | 统一工具元数据模型与策略词汇表（`coding-agent-policy.cjs`） |
+| **上下文膨胀** | 大仓库与长会话快速耗尽上下文窗口 | 尽早接入 prompt compression 与 session summarization |
+| **MVP 过度设计** | 首版引入过多模块，范围失控 | 严格控制在 6-7 个工具与一套稳定 session 协议 |
 
 ## 性能指标
 
@@ -340,6 +552,12 @@ Renderer：
 
 - `desktop-app-vue/src/renderer/stores/__tests__/coding-agent.test.ts`
 - `desktop-app-vue/tests/unit/pages/AIChatPage.test.js`
+
+### 本轮新增测试（Phase 5 最小 Harness + 真实 interrupt）
+
+- **`interrupt` 真实中断链路**：CLI `agent-core` / `ws-agent-handler` / `interaction-adapter` 新增共享 `abort-utils.js`（`AbortError` / `throwIfAborted`）—— 单元 + 集成 + e2e 定向回归 `6 files, 175 passed`
+- **最小 harness 聚合链路**：Desktop `coding-agent-session-service` / `coding-agent-bridge` / `coding-agent-ipc-v3` / renderer store / AIChatPage 补齐 `getHarnessStatus` + `list/get/history/stop background-task` 回归 `5 files, 84 passed`
+- **AIChatPage harness 面板**：`tests/unit/pages/AIChatPage.test.js` 新增 `coding agent harness panel` / `coding agent dot-case events` 两个 describe，总 `69 passed`
 
 ## 故障排查
 

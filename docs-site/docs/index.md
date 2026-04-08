@@ -34,18 +34,31 @@ features:
     details: 单元、集成、E2E 与文档持续对齐，减少设计与实现偏移。
 ---
 
-> 2026-04-06 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测和会话迁移能力。
+> 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 
 ## 当前验证结果
 
-- CLI `ws-runtime-events` 定向单测：`2/2`
-- CLI `tools-registry` 定向单测：`6/6`
-- CLI `agent-core` 定向单测：`66/66`
-- CLI `ws-session-workflow` 集成：`16/16`
-- CLI 本轮定向合计：`90/90`
+- CLI 定向单元（含 `agent-core` / `ws-agent-handler` / `interaction-adapter` / `abort-utils` 真实 interrupt 主线）：`175/175`
+- CLI `ws-session-workflow` 集成：`20/20`
+- CLI `coding-agent-envelope-roundtrip` E2E：`7/7`
+- Desktop Coding Agent 主链路（bridge / ipc-v3 / session-service / permission-gate / tool-adapter / 集成 / store / AIChatPage）：`9 files, 197/197`
+- Phase 5 最小 harness 定向回归：`5 files, 84/84`
+- AIChatPage harness 面板 + dot-case 事件页面回归：`69/69`
 - Web Panel 定向单元测试：`27/27`
 - Web Panel 构建：通过
 - Docs Site 构建：通过
+
+**2026-04-08 文档对齐回归（修改文件全量定向）**：
+
+| 类型 | 范围 | 通过 |
+| --- | --- | --- |
+| CLI 单元 | agent-core / sub-agent-registry / ws-agent-handler | 126/126 |
+| Desktop main 单元 | coding-agent-bridge / coding-agent-ipc-v3 / coding-agent-session-service | 77/77 |
+| Renderer 单元 | coding-agent store / AIChatPage | 81/81 |
+| CLI 集成 | ws-session-workflow | 32/32 |
+| Desktop 集成 | coding-agent-lifecycle | 18/18 |
+| CLI E2E | coding-agent-envelope-roundtrip | 7/7 |
+| **小计** | **6 套** | **341/341** |
 
 ## 快速开始
 
@@ -87,6 +100,8 @@ npm run dev:desktop-vue
 - [设计模块 73：Web 管理界面](/design/modules/73-web-ui)
 - [设计模块 75：Web 管理面板](/design/modules/75-web-panel)
 - [设计模块 78：CLI Agent Runtime 重构计划](/design/modules/78-cli-agent-runtime)
+- [设计模块 79：Coding Agent 系统](/design/modules/79-coding-agent)
+- [Coding Agent 用户文档](/chainlesschain/coding-agent)
 - [Minimal Coding Agent 实施计划](/chainlesschain/minimal-coding-agent-plan)
 
 ## 本轮重点能力
@@ -117,6 +132,14 @@ npm run dev:desktop-vue
 
 - 支持旧 JSON 会话迁移到 JSONL。
 - 支持 dry-run 报告、抽样校验和失败重试。
+
+### Coding Agent Phase 5 最小 Harness 与真实 Interrupt
+
+- `coding-agent:interrupt` 已从 `close-session` 别名收口为**真实中断**语义：CLI runtime 通过共享 `abort-utils.js` + `AbortController` 终止当前正在执行的 turn，同时保留 session 可继续使用。
+- `CodingAgentSessionService.getHarnessStatus()` 一次性聚合 `sessions` / `worktrees` / `backgroundTasks` 三类概览。
+- 新增五条 IPC：`harness-status` / `list-background-tasks` / `get-background-task` / `get-background-task-history` / `stop-background-task`，Desktop main → bridge → IPC v3 → preload → renderer store 全链路打通。
+- Desktop 聊天页 (`AIChatPage.vue`) 新增 **Coding Agent Harness** 面板，展示会话 / worktree / 后台任务概览，支持 Refresh、View Details（详情 + 历史）、Stop Task。
+- AIChatPage 已迁移到点分小写事件协议：`tool.call.*` / `assistant.final` / `approval.*` / `approval.high-risk.*`。
 
 ## 当前架构主线
 

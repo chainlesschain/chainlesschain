@@ -138,6 +138,67 @@ describe("sub-agent-registry", () => {
     });
   });
 
+  // ─── Parent-scoped queries ───────────────────────────────
+
+  describe("getByParent()", () => {
+    it("returns only active + history entries matching parentId", () => {
+      registry.register(
+        createMockSubCtx({ id: "sub-p1-a", parentId: "session-p1" }),
+      );
+      registry.register(
+        createMockSubCtx({ id: "sub-p1-b", parentId: "session-p1" }),
+      );
+      registry.register(
+        createMockSubCtx({ id: "sub-p2", parentId: "session-p2" }),
+      );
+
+      // Complete one p1 child so it moves into history
+      registry.complete("sub-p1-b", { summary: "first done", tokenCount: 10 });
+
+      const scoped = registry.getByParent("session-p1");
+      expect(scoped.active.map((a) => a.id)).toEqual(["sub-p1-a"]);
+      expect(scoped.history).toHaveLength(1);
+      expect(scoped.history[0].id).toBe("sub-p1-b");
+
+      // Other session is not leaked into the scoped view
+      const otherView = registry.getByParent("session-p2");
+      expect(otherView.active.map((a) => a.id)).toEqual(["sub-p2"]);
+      expect(otherView.history).toHaveLength(0);
+    });
+
+    it("returns empty arrays for missing parentId", () => {
+      const result = registry.getByParent(null);
+      expect(result.active).toEqual([]);
+      expect(result.history).toEqual([]);
+    });
+  });
+
+  describe("getById()", () => {
+    it("finds an active sub-agent snapshot by id", () => {
+      registry.register(createMockSubCtx({ id: "sub-find-1" }));
+      const found = registry.getById("sub-find-1");
+      expect(found).toBeTruthy();
+      expect(found.id).toBe("sub-find-1");
+      expect(found.status).toBe("active");
+    });
+
+    it("finds a completed sub-agent in history", () => {
+      registry.register(createMockSubCtx({ id: "sub-find-2" }));
+      registry.complete("sub-find-2", {
+        summary: "archived",
+        tokenCount: 5,
+      });
+      const found = registry.getById("sub-find-2");
+      expect(found).toBeTruthy();
+      expect(found.summary).toBe("archived");
+    });
+
+    it("returns null for unknown id", () => {
+      expect(registry.getById("does-not-exist")).toBeNull();
+      expect(registry.getById(null)).toBeNull();
+    });
+  });
+
   // ─── Cleanup ──────────────────────────────────────────────
 
   describe("cleanup()", () => {

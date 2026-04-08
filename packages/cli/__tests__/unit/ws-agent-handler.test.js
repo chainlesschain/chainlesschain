@@ -75,6 +75,7 @@ function createMockInteraction() {
   return {
     emit: vi.fn(),
     askInput: vi.fn(),
+    rejectAllPending: vi.fn(),
   };
 }
 
@@ -223,6 +224,16 @@ describe("WSAgentHandler", () => {
       );
     });
 
+    it("passes an abort signal into the agent loop", async () => {
+      agentLoop.mockReturnValue(fakeAgentLoop([]));
+
+      await handler.handleMessage("Interruptible turn", "req-1");
+
+      const loopOptions = agentLoop.mock.calls.at(-1)?.[1];
+      expect(loopOptions?.signal).toBeInstanceOf(AbortSignal);
+      expect(loopOptions?.signal?.aborted).toBe(false);
+    });
+
     it("returns busy error when already processing", async () => {
       // Simulate a long-running loop
       let resolveLoop;
@@ -337,6 +348,41 @@ describe("WSAgentHandler", () => {
       });
 
       await handler.handleMessage("err", "req-1");
+      expect(handler._processing).toBe(false);
+    });
+
+    it("interrupts an active turn without emitting an AGENT_ERROR", async () => {
+      agentLoop.mockImplementation((_messages, options) =>
+        (async function* () {
+          await new Promise((resolve, reject) => {
+            options.signal.addEventListener(
+              "abort",
+              () => reject(options.signal.reason),
+              { once: true },
+            );
+          });
+        })(),
+      );
+
+      const pending = handler.handleMessage("long running", "req-1");
+      await Promise.resolve();
+
+      const result = await handler.interrupt();
+      await pending;
+
+      expect(result).toMatchObject({
+        sessionId: "test-session-1",
+        interrupted: true,
+        wasProcessing: true,
+        interruptedRequestId: "req-1",
+      });
+      expect(interaction.rejectAllPending).toHaveBeenCalled();
+      expect(interaction.emit).not.toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          code: "AGENT_ERROR",
+        }),
+      );
       expect(handler._processing).toBe(false);
     });
   });

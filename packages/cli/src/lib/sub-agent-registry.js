@@ -132,6 +132,40 @@ export class SubAgentRegistry {
   }
 
   /**
+   * Get a single sub-agent snapshot by id — checks active first, then history.
+   * @param {string} id
+   * @returns {object|null}
+   */
+  getById(id) {
+    if (!id) return null;
+    const active = this._active.get(id);
+    if (active) return active.toJSON();
+    const historyEntry = this._completed
+      .toArray()
+      .find((record) => record.id === id);
+    return historyEntry || null;
+  }
+
+  /**
+   * Get active + recent sub-agents belonging to a parent session.
+   * Used by the WS sub-agent-list query and by UI consumers that need to
+   * render only the child agents spawned from a specific parent turn.
+   *
+   * @param {string} parentId
+   * @returns {{ active: Array<object>, history: Array<object> }}
+   */
+  getByParent(parentId) {
+    if (!parentId) return { active: [], history: [] };
+    const active = [...this._active.values()]
+      .filter((ctx) => ctx.parentId === parentId)
+      .map((ctx) => ctx.toJSON());
+    const history = this._completed
+      .toArray()
+      .filter((record) => record.parentId === parentId);
+    return { active, history };
+  }
+
+  /**
    * Get completion history (most recent last).
    * @returns {Array<object>}
    */

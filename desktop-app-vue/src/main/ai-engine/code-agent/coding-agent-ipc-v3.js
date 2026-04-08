@@ -18,11 +18,26 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:interrupt",
   "coding-agent:get-session-state",
   "coding-agent:get-session-events",
+  "coding-agent:get-harness-status",
+  "coding-agent:list-background-tasks",
+  "coding-agent:get-background-task",
+  "coding-agent:get-background-task-history",
+  "coding-agent:stop-background-task",
   "coding-agent:list-worktrees",
   "coding-agent:get-worktree-diff",
   "coding-agent:preview-worktree-merge",
   "coding-agent:merge-worktree",
   "coding-agent:apply-worktree-automation",
+  "coding-agent:list-sub-agents",
+  "coding-agent:get-sub-agent",
+  "coding-agent:enter-review",
+  "coding-agent:submit-review-comment",
+  "coding-agent:resolve-review",
+  "coding-agent:get-review-state",
+  "coding-agent:propose-patch",
+  "coding-agent:apply-patch",
+  "coding-agent:reject-patch",
+  "coding-agent:get-patch-summary",
   "coding-agent:get-status",
 ];
 
@@ -160,7 +175,14 @@ function registerCodingAgentIPCV3(options = {}) {
     }
   };
   ipc.handle("coding-agent:cancel-session", handleCancelSession);
-  ipc.handle("coding-agent:interrupt", handleCancelSession);
+  ipc.handle("coding-agent:interrupt", async (_event, sessionId) => {
+    try {
+      return await service.interruptSession(sessionId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] interrupt failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
 
   ipc.handle("coding-agent:get-session-state", async (_event, sessionId) => {
     try {
@@ -176,6 +198,60 @@ function registerCodingAgentIPCV3(options = {}) {
       return service.getSessionEvents(sessionId);
     } catch (error) {
       logger.error("[CodingAgentIPCV3] get-session-events failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:get-harness-status", async () => {
+    try {
+      return await service.getHarnessStatus();
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] get-harness-status failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle(
+    "coding-agent:list-background-tasks",
+    async (_event, payload = {}) => {
+      try {
+        return await service.listBackgroundTasks(payload);
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] list-background-tasks failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle("coding-agent:get-background-task", async (_event, taskId) => {
+    try {
+      return await service.getBackgroundTask(taskId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] get-background-task failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle(
+    "coding-agent:get-background-task-history",
+    async (_event, payload = {}) => {
+      try {
+        return await service.getBackgroundTaskHistory(payload.taskId, payload);
+      } catch (error) {
+        logger.error(
+          "[CodingAgentIPCV3] get-background-task-history failed:",
+          error,
+        );
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle("coding-agent:stop-background-task", async (_event, taskId) => {
+    try {
+      return await service.stopBackgroundTask(taskId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] stop-background-task failed:", error);
       return { success: false, error: error.message };
     }
   });
@@ -240,6 +316,188 @@ function registerCodingAgentIPCV3(options = {}) {
       }
     },
   );
+
+  ipc.handle("coding-agent:list-sub-agents", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId =
+        typeof payload === "string" ? payload : payload?.sessionId || null;
+      return await service.listSubAgents(sessionId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] list-sub-agents failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:get-sub-agent", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const subAgentId =
+        typeof payload === "string" ? payload : payload?.subAgentId;
+      const sessionId =
+        typeof payload === "string" ? null : payload?.sessionId || null;
+      if (!subAgentId) {
+        return {
+          success: false,
+          error: "subAgentId is required",
+        };
+      }
+      return await service.getSubAgent(subAgentId, sessionId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] get-sub-agent failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:enter-review", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId =
+        typeof payload === "string" ? payload : payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      const options = typeof payload === "string" ? {} : payload;
+      return await service.enterReview(sessionId, {
+        reason: options.reason,
+        requestedBy: options.requestedBy,
+        checklist: options.checklist,
+        blocking: options.blocking,
+      });
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] enter-review failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle(
+    "coding-agent:submit-review-comment",
+    async (_event, payload = {}) => {
+      try {
+        await service.ensureReady();
+        const sessionId = payload?.sessionId;
+        if (!sessionId) {
+          return { success: false, error: "sessionId is required" };
+        }
+        return await service.submitReviewComment(sessionId, {
+          comment: payload.comment,
+          checklistItemId: payload.checklistItemId,
+          checklistItemDone: payload.checklistItemDone,
+          checklistItemNote: payload.checklistItemNote,
+        });
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] submit-review-comment failed:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  ipc.handle("coding-agent:resolve-review", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId = payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      return await service.resolveReview(sessionId, {
+        decision: payload.decision,
+        resolvedBy: payload.resolvedBy,
+        summary: payload.summary,
+      });
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] resolve-review failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:get-review-state", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId =
+        typeof payload === "string" ? payload : payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      return await service.getReviewState(sessionId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] get-review-state failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:propose-patch", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId = payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      return await service.proposePatch(sessionId, {
+        files: payload.files,
+        origin: payload.origin,
+        reason: payload.reason,
+        requestId: payload.requestId,
+      });
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] propose-patch failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:apply-patch", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId = payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      if (!payload.patchId) {
+        return { success: false, error: "patchId is required" };
+      }
+      return await service.applyPatch(sessionId, payload.patchId, {
+        resolvedBy: payload.resolvedBy,
+        note: payload.note,
+      });
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] apply-patch failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:reject-patch", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId = payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      if (!payload.patchId) {
+        return { success: false, error: "patchId is required" };
+      }
+      return await service.rejectPatch(sessionId, payload.patchId, {
+        resolvedBy: payload.resolvedBy,
+        reason: payload.reason,
+      });
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] reject-patch failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipc.handle("coding-agent:get-patch-summary", async (_event, payload = {}) => {
+    try {
+      await service.ensureReady();
+      const sessionId =
+        typeof payload === "string" ? payload : payload?.sessionId;
+      if (!sessionId) {
+        return { success: false, error: "sessionId is required" };
+      }
+      return await service.getPatchSummary(sessionId);
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] get-patch-summary failed:", error);
+      return { success: false, error: error.message };
+    }
+  });
 
   ipc.handle("coding-agent:get-status", async () => {
     try {

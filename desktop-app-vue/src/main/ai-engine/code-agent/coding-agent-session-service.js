@@ -290,6 +290,23 @@ class CodingAgentSessionService extends EventEmitter {
     };
   }
 
+  async interruptSession(sessionId) {
+    const session = this._requireSession(sessionId);
+    const response = await this.bridge.interruptSession(sessionId);
+
+    session.status = "ready";
+    session.updatedAt = new Date().toISOString();
+    this._removePendingRequestsForSession(session);
+
+    return {
+      success: response?.interrupted !== false,
+      sessionId,
+      interrupted: response?.interrupted !== false,
+      wasProcessing: response?.wasProcessing === true,
+      interruptedRequestId: response?.interruptedRequestId || null,
+    };
+  }
+
   async listWorktrees() {
     const response = await this.bridge.listWorktrees();
     this._emitEvent(
@@ -749,8 +766,182 @@ class CodingAgentSessionService extends EventEmitter {
     };
   }
 
+  async listBackgroundTasks(options = {}) {
+    const response = await this.bridge.listBackgroundTasks();
+    let tasks = Array.isArray(response.tasks) ? response.tasks : [];
+
+    if (options.status) {
+      tasks = tasks.filter((task) => task?.status === options.status);
+    }
+
+    return {
+      success: true,
+      tasks,
+    };
+  }
+
+  async getBackgroundTask(taskId) {
+    const response = await this.bridge.getBackgroundTask(taskId);
+    return {
+      success: true,
+      task: response.task || null,
+    };
+  }
+
+  async getBackgroundTaskHistory(taskId, options = {}) {
+    const response = await this.bridge.getBackgroundTaskHistory(
+      taskId,
+      options,
+    );
+    return {
+      success: true,
+      taskId,
+      history: response.history || [],
+    };
+  }
+
+  async stopBackgroundTask(taskId) {
+    const response = await this.bridge.stopBackgroundTask(taskId);
+    return {
+      success:
+        response?.taskId === taskId || response?.type === "tasks-stopped",
+      taskId: response?.taskId || taskId,
+    };
+  }
+
+  /**
+   * List sub-agents scoped to a parent session (or global if none given).
+   *
+   * Sub-agents are spawned from inside the CLI runtime via the
+   * `spawn_sub_agent` tool; this IPC surface lets the renderer show the
+   * child-agent roster alongside the normal session list without having to
+   * subscribe to every lifecycle event.
+   */
+  async listSubAgents(sessionId) {
+    const response = await this.bridge.listSubAgents(sessionId);
+    return {
+      success: true,
+      sessionId: sessionId || null,
+      active: Array.isArray(response.active) ? response.active : [],
+      history: Array.isArray(response.history) ? response.history : [],
+      stats: response.stats || null,
+    };
+  }
+
+  async getSubAgent(subAgentId, sessionId) {
+    const response = await this.bridge.getSubAgent(subAgentId, sessionId);
+    return {
+      success: true,
+      subAgent: response.subAgent || null,
+    };
+  }
+
+  /**
+   * Enter review mode on a session. Subsequent sendMessage calls are
+   * rejected with REVIEW_BLOCKING by the CLI runtime until the review
+   * is resolved via `resolveReview`.
+   */
+  async enterReview(sessionId, options = {}) {
+    const response = await this.bridge.enterReview(sessionId, options);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      reviewState: response.reviewState || null,
+    };
+  }
+
+  /**
+   * Append a comment and/or toggle a checklist item on the active review.
+   */
+  async submitReviewComment(sessionId, update = {}) {
+    const response = await this.bridge.submitReviewComment(sessionId, update);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      reviewState: response.reviewState || null,
+    };
+  }
+
+  /**
+   * Resolve the current review with approved/rejected and unblock the
+   * session message gate.
+   */
+  async resolveReview(sessionId, payload = {}) {
+    const response = await this.bridge.resolveReview(sessionId, payload);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      reviewState: response.reviewState || null,
+    };
+  }
+
+  /**
+   * Fetch the current review snapshot (null if no review is active).
+   */
+  async getReviewState(sessionId) {
+    const response = await this.bridge.getReviewState(sessionId);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      reviewState: response.reviewState || null,
+    };
+  }
+
+  /**
+   * Propose a patch (batch of file edits) for user preview. The patch is
+   * stored on the CLI session's pendingPatches map and surfaced to the
+   * renderer via the patch.proposed event envelope.
+   */
+  async proposePatch(sessionId, payload = {}) {
+    const response = await this.bridge.proposePatch(sessionId, payload);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      patch: response.patch || null,
+    };
+  }
+
+  /**
+   * Apply a previously-proposed patch. Note: physical file writes are the
+   * caller's responsibility — this method only records the decision on the
+   * session state.
+   */
+  async applyPatch(sessionId, patchId, options = {}) {
+    const response = await this.bridge.applyPatch(sessionId, patchId, options);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      patch: response.patch || null,
+    };
+  }
+
+  /**
+   * Reject/discard a previously-proposed patch.
+   */
+  async rejectPatch(sessionId, patchId, options = {}) {
+    const response = await this.bridge.rejectPatch(sessionId, patchId, options);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      patch: response.patch || null,
+    };
+  }
+
+  /**
+   * Fetch the patch summary for a session.
+   */
+  async getPatchSummary(sessionId) {
+    const response = await this.bridge.getPatchSummary(sessionId);
+    return {
+      success: true,
+      sessionId: response.sessionId || sessionId,
+      summary: response.summary || null,
+    };
+  }
+
   async getStatus() {
     const tools = await this.toolAdapter.listAvailableTools();
+    const harness = await this.getHarnessStatus();
     return {
       success: true,
       server: {
@@ -762,6 +953,42 @@ class CodingAgentSessionService extends EventEmitter {
       tools,
       toolSummary: this.toolAdapter.summarizeTools(tools),
       permissionPolicy: this.permissionGate.getPolicySummary({ tools }),
+      harness: harness.harness,
+    };
+  }
+
+  async getHarnessStatus() {
+    const tasksResult = await this.listBackgroundTasks().catch(() => ({
+      success: false,
+      tasks: [],
+    }));
+    const tasks = Array.isArray(tasksResult.tasks) ? tasksResult.tasks : [];
+    const sessions = [...this.sessions.values()];
+
+    return {
+      success: true,
+      harness: {
+        sessions: {
+          total: sessions.length,
+          running: sessions.filter((session) => session.status === "running")
+            .length,
+          waitingApproval: sessions.filter(
+            (session) => session.status === "waiting_approval",
+          ).length,
+          active: sessions.filter((session) => session.status !== "closed")
+            .length,
+        },
+        worktrees: {
+          tracked: sessions.filter((session) => session.worktree).length,
+          isolated: sessions.filter(
+            (session) => session.worktreeIsolation === true,
+          ).length,
+          dirty: sessions.filter(
+            (session) => session.worktree?.hasChanges === true,
+          ).length,
+        },
+        backgroundTasks: this._summarizeBackgroundTasks(tasks),
+      },
     };
   }
 
@@ -989,6 +1216,10 @@ class CodingAgentSessionService extends EventEmitter {
           });
         }
         this._completePendingRequest(session, event.requestId);
+        break;
+      case CODING_AGENT_EVENT_TYPES.SESSION_INTERRUPTED:
+        session.status = "ready";
+        this._removePendingRequestsForSession(session);
         break;
       case CODING_AGENT_EVENT_TYPES.PLAN_APPROVAL_REQUIRED:
         session.status = "waiting_approval";
@@ -1338,6 +1569,26 @@ class CodingAgentSessionService extends EventEmitter {
       return "high-risk";
     }
     return "plan";
+  }
+
+  _summarizeBackgroundTasks(tasks = []) {
+    const summary = {
+      total: tasks.length,
+      pending: 0,
+      running: 0,
+      completed: 0,
+      failed: 0,
+      timeout: 0,
+    };
+
+    for (const task of tasks) {
+      const status = String(task?.status || "").toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(summary, status)) {
+        summary[status] += 1;
+      }
+    }
+
+    return summary;
   }
 
   _prepareEventEnvelope(event) {

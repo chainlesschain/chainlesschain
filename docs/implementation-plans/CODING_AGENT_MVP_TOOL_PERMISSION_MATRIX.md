@@ -352,6 +352,13 @@ MVP 阶段默认拒绝：
 - managed tool / MCP 共享策略模块：已完成
 - coding session 默认 MVP tool allowlist：已完成
 - CLI runtime MCP auto-connect 主线：已完成
+- `interrupt` 真实中断链路：已完成
+- 最小 harness 状态聚合与后台任务接口：Desktop 已完成
+- Desktop harness 面板入口：已完成
+- Desktop 后台任务详情抽屉与 history 分页：已完成
+- Desktop 后台任务 history “load more” 交互：已完成
+- Desktop 后台任务状态筛选 / 搜索 / 抽屉任务切换：已完成
+- Desktop 后台任务分页浏览：已完成
 
 已验证测试：
 
@@ -382,9 +389,14 @@ MVP 阶段默认拒绝：
 - Desktop bridge / session-service MCP 跨进程回归通过：`2 files, 46 passed`
 - Desktop coding-agent integration 回归通过：`2 files, 15 passed`
 - Renderer coding-agent store 回归通过：`1 file, 8 passed`
+- AIChatPage coding-agent 页面回归通过：`1 file, 65 passed`
+- interrupt 主线定向回归通过：`6 files, 175 passed`
+- Phase 5 最小 harness 定向回归通过：`5 files, 84 passed`
+- AIChatPage harness 面板 / 详情抽屉 / history / filter / pagination 页面回归通过：`1 file, 75 passed`
 
 ## 13. 剩余缺口
 
 - `run_shell` 命令白名单仍偏约定式，尚未完全配置化
 - skill 按需装载边界还没有继续下探，当前只完成了 managed tool / MCP 主线
-- Desktop 侧还可以继续补 renderer/IPC/CLI 端到端回归，验证策略和事件语义完全一致
+- Desktop 侧还可以继续补 renderer/IPC/CLI 端到端回归，验证策略、事件语义与 harness 状态完全一致
+- Phase 5 仍缺子代理、review mode、任务图编排等更高阶 harness 能力

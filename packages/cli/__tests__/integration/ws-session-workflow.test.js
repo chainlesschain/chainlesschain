@@ -459,6 +459,47 @@ describe("Integration: WebSocket Session Workflow", () => {
     expect(server.sessionHandlers.has("test-session-1")).toBe(false);
   });
 
+  it("session-interrupt routes to the handler without closing the session", async () => {
+    const sm = mockSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-create",
+      type: "session-create",
+    });
+
+    const mockHandler = {
+      handleMessage: vi.fn().mockResolvedValue(undefined),
+      handleSlashCommand: vi.fn(),
+      interrupt: vi.fn().mockResolvedValue({
+        sessionId: "test-session-1",
+        interrupted: true,
+        wasProcessing: true,
+        interruptedRequestId: "req-msg",
+      }),
+    };
+    server.sessionHandlers.set("test-session-1", mockHandler);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-interrupt",
+      type: "session-interrupt",
+      sessionId: "test-session-1",
+    });
+
+    expect(mockHandler.interrupt).toHaveBeenCalled();
+    expect(sm.closeSession).not.toHaveBeenCalled();
+    expect(lastSent(ws)).toEqual(
+      expect.objectContaining({
+        id: "req-interrupt",
+        type: "session.interrupted",
+        sessionId: "test-session-1",
+        interrupted: true,
+        wasProcessing: true,
+        interruptedRequestId: "req-msg",
+      }),
+    );
+  });
+
   // ─── slash-command ─────────────────────────────────────────────────
 
   it("slash-command routes to handler", () => {
@@ -780,5 +821,646 @@ describe("Integration: WebSocket Session Workflow", () => {
     expect(sm.closeSession).toHaveBeenCalledWith("test-session-1");
     expect(mockHandler.destroy).toHaveBeenCalled();
     expect(server.sessionHandlers.has("test-session-1")).toBe(false);
+  });
+
+  // ─── sub-agent-list / sub-agent-get ────────────────────────────────
+
+  it("sub-agent-list scopes to a parent session", async () => {
+    const { SubAgentRegistry } =
+      await import("../../src/lib/sub-agent-registry.js");
+    SubAgentRegistry.resetInstance();
+    const registry = SubAgentRegistry.getInstance();
+
+    // Seed the registry with two children on our session plus one foreign child
+    const makeCtx = (id, parentId, role) => ({
+      id,
+      parentId,
+      role,
+      task: `task for ${id}`,
+      status: "active",
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      result: null,
+      _tokenCount: 0,
+      _toolsUsed: [],
+      _iterationCount: 0,
+      toJSON() {
+        return {
+          id: this.id,
+          parentId: this.parentId,
+          role: this.role,
+          task: this.task,
+          status: this.status,
+        };
+      },
+      forceComplete() {
+        this.status = "completed";
+      },
+    });
+    registry.register(makeCtx("sub-a", "test-session-1", "review"));
+    registry.register(makeCtx("sub-b", "test-session-1", "search"));
+    registry.register(makeCtx("sub-c", "other-session", "review"));
+    // Move one child into history
+    registry.complete("sub-b", { summary: "done", tokenCount: 0 });
+
+    setupServer(mockSessionManager());
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-sublist",
+      type: "sub-agent-list",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("sub-agent.list");
+    expect(resp.id).toBe("req-sublist");
+    expect(resp.sessionId).toBe("test-session-1");
+    expect(resp.active.map((a) => a.id)).toEqual(["sub-a"]);
+    expect(resp.history.map((h) => h.id)).toEqual(["sub-b"]);
+    // Foreign session leaks are guarded
+    expect(resp.active.concat(resp.history).some((a) => a.id === "sub-c")).toBe(
+      false,
+    );
+
+    SubAgentRegistry.resetInstance();
+  });
+
+  it("sub-agent-get returns a single snapshot", async () => {
+    const { SubAgentRegistry } =
+      await import("../../src/lib/sub-agent-registry.js");
+    SubAgentRegistry.resetInstance();
+    const registry = SubAgentRegistry.getInstance();
+
+    registry.register({
+      id: "sub-one",
+      parentId: "test-session-1",
+      role: "summarizer",
+      task: "summarize",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      result: null,
+      _tokenCount: 0,
+      _toolsUsed: [],
+      _iterationCount: 0,
+      toJSON() {
+        return { id: this.id, parentId: this.parentId, status: this.status };
+      },
+      forceComplete() {
+        this.status = "completed";
+      },
+    });
+
+    setupServer(mockSessionManager());
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-subget",
+      type: "sub-agent-get",
+      sessionId: "test-session-1",
+      subAgentId: "sub-one",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("sub-agent.list");
+    expect(resp.id).toBe("req-subget");
+    expect(resp.subAgent).toEqual(
+      expect.objectContaining({ id: "sub-one", parentId: "test-session-1" }),
+    );
+
+    SubAgentRegistry.resetInstance();
+  });
+
+  it("sub-agent-get returns an error for unknown id", async () => {
+    const { SubAgentRegistry } =
+      await import("../../src/lib/sub-agent-registry.js");
+    SubAgentRegistry.resetInstance();
+
+    setupServer(mockSessionManager());
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-subget-missing",
+      type: "sub-agent-get",
+      sessionId: "test-session-1",
+      subAgentId: "sub-nope",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("SUB_AGENT_NOT_FOUND");
+    expect(resp.id).toBe("req-subget-missing");
+
+    SubAgentRegistry.resetInstance();
+  });
+
+  it("sub-agent-get rejects missing subAgentId", async () => {
+    setupServer(mockSessionManager());
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-subget-bare",
+      type: "sub-agent-get",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("MISSING_SUB_AGENT_ID");
+  });
+
+  // ─── review-enter / review-submit / review-resolve / review-status ──
+
+  function reviewSessionManager() {
+    const state = { reviewState: null };
+    const session = {
+      id: "test-session-1",
+      type: "agent",
+      provider: "ollama",
+      model: "qwen2.5:7b",
+      messages: [],
+      interaction: null,
+      get reviewState() {
+        return state.reviewState;
+      },
+    };
+    return mockSessionManager({
+      getSession: vi.fn().mockReturnValue(session),
+      enterReview: vi.fn((sessionId, opts = {}) => {
+        if (state.reviewState && state.reviewState.status === "pending") {
+          return state.reviewState;
+        }
+        state.reviewState = {
+          reviewId: "review-abc",
+          status: "pending",
+          reason: opts.reason || null,
+          requestedBy: opts.requestedBy || "user",
+          requestedAt: "2026-04-08T00:00:00Z",
+          resolvedAt: null,
+          resolvedBy: null,
+          decision: null,
+          blocking: opts.blocking !== false,
+          comments: [],
+          checklist: Array.isArray(opts.checklist) ? opts.checklist : [],
+        };
+        return state.reviewState;
+      }),
+      submitReviewComment: vi.fn((sessionId, update = {}) => {
+        if (!state.reviewState || state.reviewState.status !== "pending") {
+          return null;
+        }
+        if (update.comment) {
+          state.reviewState.comments.push({
+            id: "c-1",
+            author: update.comment.author || "user",
+            content: update.comment.content || "",
+            timestamp: "2026-04-08T00:00:01Z",
+          });
+        }
+        if (update.checklistItemId) {
+          const item = state.reviewState.checklist.find(
+            (c) => c.id === update.checklistItemId,
+          );
+          if (item) {
+            if (typeof update.checklistItemDone === "boolean") {
+              item.done = update.checklistItemDone;
+            }
+            if (update.checklistItemNote !== undefined) {
+              item.note = update.checklistItemNote;
+            }
+          }
+        }
+        return state.reviewState;
+      }),
+      resolveReview: vi.fn((sessionId, payload = {}) => {
+        if (!state.reviewState || state.reviewState.status !== "pending") {
+          return state.reviewState;
+        }
+        state.reviewState.status = payload.decision || "approved";
+        state.reviewState.decision = payload.decision || "approved";
+        state.reviewState.resolvedBy = payload.resolvedBy || "user";
+        state.reviewState.resolvedAt = "2026-04-08T00:00:02Z";
+        state.reviewState.blocking = false;
+        if (payload.summary) state.reviewState.summary = payload.summary;
+        return state.reviewState;
+      }),
+      isReviewBlocking: vi.fn(() => {
+        return (
+          !!state.reviewState &&
+          state.reviewState.status === "pending" &&
+          state.reviewState.blocking === true
+        );
+      }),
+      getReviewState: vi.fn(() => state.reviewState),
+    });
+  }
+
+  it("review-enter creates a pending review and emits the envelope", async () => {
+    const sm = reviewSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-renter",
+      type: "review-enter",
+      sessionId: "test-session-1",
+      reason: "gate",
+      checklist: [{ id: "a", title: "Item A" }],
+    });
+
+    expect(sm.enterReview).toHaveBeenCalledWith(
+      "test-session-1",
+      expect.objectContaining({ reason: "gate", blocking: true }),
+    );
+    // review-enter emits a response envelope AND an event envelope,
+    // so grab the first (response) send explicitly.
+    const firstRaw = JSON.parse(ws.send.mock.calls[0][0]);
+    const resp = {
+      ...firstRaw.payload,
+      type: firstRaw.type,
+      id: firstRaw.requestId,
+    };
+    expect(resp.type).toBe("review.requested");
+    expect(resp.id).toBe("req-renter");
+    expect(resp.sessionId).toBe("test-session-1");
+    expect(resp.reviewState).toEqual(
+      expect.objectContaining({ status: "pending", reviewId: "review-abc" }),
+    );
+  });
+
+  it("session-message is blocked with REVIEW_BLOCKING while review is pending", async () => {
+    const sm = reviewSessionManager();
+    setupServer(sm);
+
+    // Register a handler so we get past the SESSION_NOT_FOUND guard
+    const mockHandler = {
+      handleMessage: vi.fn().mockResolvedValue(undefined),
+      handleSlashCommand: vi.fn(),
+    };
+    server.sessionHandlers.set("test-session-1", mockHandler);
+
+    // Enter review first
+    sm.enterReview("test-session-1", { reason: "block" });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-blocked",
+      type: "session-message",
+      sessionId: "test-session-1",
+      content: "hi",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("REVIEW_BLOCKING");
+    expect(mockHandler.handleMessage).not.toHaveBeenCalled();
+  });
+
+  it("review-submit appends a comment", async () => {
+    const sm = reviewSessionManager();
+    setupServer(sm);
+    sm.enterReview("test-session-1", { reason: "check" });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-rsubmit",
+      type: "review-submit",
+      sessionId: "test-session-1",
+      comment: { author: "alice", content: "looks good" },
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("review.updated");
+    expect(resp.reviewState.comments).toHaveLength(1);
+    expect(resp.reviewState.comments[0]).toEqual(
+      expect.objectContaining({ author: "alice", content: "looks good" }),
+    );
+  });
+
+  it("review-submit returns REVIEW_NOT_PENDING if there is no active review", async () => {
+    const sm = reviewSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-rsubmit-err",
+      type: "review-submit",
+      sessionId: "test-session-1",
+      comment: { content: "nope" },
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("REVIEW_NOT_PENDING");
+  });
+
+  it("review-resolve unblocks the session and records the decision", async () => {
+    const sm = reviewSessionManager();
+    setupServer(sm);
+    sm.enterReview("test-session-1", { reason: "check" });
+    expect(sm.isReviewBlocking("test-session-1")).toBe(true);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-rresolve",
+      type: "review-resolve",
+      sessionId: "test-session-1",
+      decision: "approved",
+      summary: "Ship it",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("review.resolved");
+    expect(resp.reviewState.status).toBe("approved");
+    expect(resp.reviewState.decision).toBe("approved");
+    expect(resp.reviewState.summary).toBe("Ship it");
+    expect(sm.isReviewBlocking("test-session-1")).toBe(false);
+  });
+
+  it("review-status returns the current review state", async () => {
+    const sm = reviewSessionManager();
+    setupServer(sm);
+    sm.enterReview("test-session-1", { reason: "inspect" });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-rstatus",
+      type: "review-status",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("review.state");
+    expect(resp.reviewState).toEqual(
+      expect.objectContaining({ status: "pending", reason: "inspect" }),
+    );
+  });
+
+  it("review-status returns null when no review is active", async () => {
+    const sm = reviewSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-rstatus-null",
+      type: "review-status",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("review.state");
+    expect(resp.reviewState).toBeNull();
+  });
+
+  it("review-enter returns SESSION_NOT_FOUND for unknown session", async () => {
+    const sm = reviewSessionManager();
+    sm.getSession.mockReturnValueOnce(null);
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-rbad",
+      type: "review-enter",
+      sessionId: "ghost",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("SESSION_NOT_FOUND");
+  });
+
+  // ─── patch-propose / patch-apply / patch-reject / patch-summary ──
+
+  function patchSessionManager() {
+    const session = {
+      id: "test-session-1",
+      type: "agent",
+      provider: "ollama",
+      model: "qwen2.5:7b",
+      messages: [],
+      interaction: null,
+    };
+    const pending = new Map();
+    const history = [];
+    let nextId = 1;
+    return mockSessionManager({
+      getSession: vi.fn().mockReturnValue(session),
+      proposePatch: vi.fn((sessionId, payload = {}) => {
+        if (!Array.isArray(payload.files) || payload.files.length === 0) {
+          return null;
+        }
+        const patchId = `patch-${nextId++}`;
+        const patch = {
+          patchId,
+          status: "pending",
+          origin: payload.origin || "tool",
+          reason: payload.reason || null,
+          requestId: payload.requestId || null,
+          proposedAt: "2026-04-08T00:00:00Z",
+          resolvedAt: null,
+          resolvedBy: null,
+          files: payload.files.map((f, i) => ({
+            index: i,
+            path: f.path,
+            op: f.op || "modify",
+            before: f.before || null,
+            after: f.after || null,
+            diff: f.diff || null,
+            stats: { added: 1, removed: 0 },
+          })),
+          stats: { fileCount: payload.files.length, added: 1, removed: 0 },
+        };
+        pending.set(patchId, patch);
+        return patch;
+      }),
+      applyPatch: vi.fn((sessionId, patchId, opts = {}) => {
+        const patch = pending.get(patchId);
+        if (!patch) return null;
+        patch.status = "applied";
+        patch.resolvedBy = opts.resolvedBy || "user";
+        patch.resolvedAt = "2026-04-08T00:00:01Z";
+        if (opts.note) patch.note = opts.note;
+        pending.delete(patchId);
+        history.push(patch);
+        return patch;
+      }),
+      rejectPatch: vi.fn((sessionId, patchId, opts = {}) => {
+        const patch = pending.get(patchId);
+        if (!patch) return null;
+        patch.status = "rejected";
+        patch.resolvedBy = opts.resolvedBy || "user";
+        patch.resolvedAt = "2026-04-08T00:00:02Z";
+        if (opts.reason) patch.rejectionReason = opts.reason;
+        pending.delete(patchId);
+        history.push(patch);
+        return patch;
+      }),
+      getPatchSummary: vi.fn(() => ({
+        pending: Array.from(pending.values()),
+        history,
+        totals: {
+          fileCount: pending.size + history.length,
+          added: pending.size + history.length,
+          removed: 0,
+        },
+      })),
+    });
+  }
+
+  it("patch-propose records a pending patch and emits the envelope", async () => {
+    const sm = patchSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-propose",
+      type: "patch-propose",
+      sessionId: "test-session-1",
+      origin: "tool",
+      reason: "add helper",
+      files: [{ path: "src/a.js", op: "create", after: "console.log('hi')" }],
+    });
+
+    expect(sm.proposePatch).toHaveBeenCalledWith(
+      "test-session-1",
+      expect.objectContaining({
+        origin: "tool",
+        reason: "add helper",
+      }),
+    );
+    // First send is response envelope, second is event fan-out
+    const firstRaw = JSON.parse(ws.send.mock.calls[0][0]);
+    const resp = {
+      ...firstRaw.payload,
+      type: firstRaw.type,
+      id: firstRaw.requestId,
+    };
+    expect(resp.type).toBe("patch.proposed");
+    expect(resp.id).toBe("req-propose");
+    expect(resp.patch).toEqual(
+      expect.objectContaining({
+        patchId: "patch-1",
+        status: "pending",
+      }),
+    );
+  });
+
+  it("patch-propose rejects empty files arrays with INVALID_PAYLOAD", async () => {
+    const sm = patchSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-propose-bad",
+      type: "patch-propose",
+      sessionId: "test-session-1",
+      files: [],
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("INVALID_PAYLOAD");
+  });
+
+  it("patch-apply moves a pending patch to applied status", async () => {
+    const sm = patchSessionManager();
+    setupServer(sm);
+    sm.proposePatch("test-session-1", {
+      files: [{ path: "a.js", after: "x" }],
+    });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-apply",
+      type: "patch-apply",
+      sessionId: "test-session-1",
+      patchId: "patch-1",
+      resolvedBy: "user",
+      note: "approved",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("patch.applied");
+    expect(resp.patch.status).toBe("applied");
+    expect(resp.patch.note).toBe("approved");
+  });
+
+  it("patch-apply returns PATCH_NOT_FOUND for unknown patchId", async () => {
+    const sm = patchSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-apply-bad",
+      type: "patch-apply",
+      sessionId: "test-session-1",
+      patchId: "nope",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("PATCH_NOT_FOUND");
+  });
+
+  it("patch-apply requires a patchId", async () => {
+    const sm = patchSessionManager();
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-apply-bad2",
+      type: "patch-apply",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("INVALID_PAYLOAD");
+  });
+
+  it("patch-reject discards a pending patch with reason", async () => {
+    const sm = patchSessionManager();
+    setupServer(sm);
+    sm.proposePatch("test-session-1", {
+      files: [{ path: "a.js", after: "x" }],
+    });
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-reject",
+      type: "patch-reject",
+      sessionId: "test-session-1",
+      patchId: "patch-1",
+      reason: "risky",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("patch.rejected");
+    expect(resp.patch.status).toBe("rejected");
+    expect(resp.patch.rejectionReason).toBe("risky");
+  });
+
+  it("patch-summary returns pending + history + totals", async () => {
+    const sm = patchSessionManager();
+    setupServer(sm);
+    sm.proposePatch("test-session-1", {
+      files: [{ path: "a.js", after: "x" }],
+    });
+    sm.proposePatch("test-session-1", {
+      files: [{ path: "b.js", after: "y" }],
+    });
+    sm.applyPatch("test-session-1", "patch-1");
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-summary",
+      type: "patch-summary",
+      sessionId: "test-session-1",
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("patch.summary");
+    expect(resp.summary.pending).toHaveLength(1);
+    expect(resp.summary.history).toHaveLength(1);
+    expect(resp.summary.totals.fileCount).toBe(2);
+  });
+
+  it("patch-propose returns SESSION_NOT_FOUND for unknown session", async () => {
+    const sm = patchSessionManager();
+    sm.getSession.mockReturnValueOnce(null);
+    setupServer(sm);
+
+    await server._handleMessage("client-1", ws, {
+      id: "req-nopatch",
+      type: "patch-propose",
+      sessionId: "ghost",
+      files: [{ path: "a.js" }],
+    });
+
+    const resp = lastSent(ws);
+    expect(resp.type).toBe("error");
+    expect(resp.code).toBe("SESSION_NOT_FOUND");
   });
 });

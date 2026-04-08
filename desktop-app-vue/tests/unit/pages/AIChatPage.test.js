@@ -61,6 +61,9 @@ const mockCodingAgentStore = vi.hoisted(() => ({
   requiresHighRiskConfirmation: false,
   events: [],
   error: null,
+  currentSessionReviewState: null,
+  isCurrentSessionBlockedByReview: false,
+  reviewStates: {},
   initEventListeners: vi.fn(),
   disposeEventListeners: vi.fn(),
   refreshStatus: vi.fn().mockResolvedValue(),
@@ -70,6 +73,10 @@ const mockCodingAgentStore = vi.hoisted(() => ({
   showPlan: vi.fn().mockResolvedValue(),
   enterPlanMode: vi.fn().mockResolvedValue(),
   respondApproval: vi.fn().mockResolvedValue(),
+  enterReview: vi.fn().mockResolvedValue(null),
+  submitReviewComment: vi.fn().mockResolvedValue(null),
+  resolveReview: vi.fn().mockResolvedValue(null),
+  fetchReviewStatus: vi.fn().mockResolvedValue(null),
   sendMessage: vi.fn().mockResolvedValue({
     success: true,
     requestId: "req-1",
@@ -169,6 +176,8 @@ vi.mock("@/utils/logger", () => ({
   createLogger: vi.fn(() => ({
     info: vi.fn(),
     error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
@@ -187,6 +196,9 @@ describe("AIChatPage", () => {
       requiresHighRiskConfirmation: false,
       events: [],
       error: null,
+      currentSessionReviewState: null,
+      isCurrentSessionBlockedByReview: false,
+      reviewStates: {},
     });
     mockCodingAgentStore.initEventListeners.mockClear();
     mockCodingAgentStore.disposeEventListeners.mockClear();

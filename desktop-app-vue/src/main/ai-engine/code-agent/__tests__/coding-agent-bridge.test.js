@@ -376,6 +376,281 @@ describe("CodingAgentBridge", () => {
     ]);
   });
 
+  it("sub-agent helpers send the correct message types and scope payloads", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    bridge.listSubAgents("session-abc").catch(() => undefined);
+    bridge.listSubAgents().catch(() => undefined);
+    bridge.getSubAgent("sub-xyz", "session-abc").catch(() => undefined);
+    bridge.getSubAgent("sub-only").catch(() => undefined);
+
+    for (let i = 0; i < 15 && mockWs.sent.length < 4; i += 1) {
+      await Promise.resolve();
+    }
+    const parsed = mockWs.sent.map((raw) => JSON.parse(raw));
+    const types = parsed.map((m) => m.type);
+    expect(types).toEqual([
+      "sub-agent-list",
+      "sub-agent-list",
+      "sub-agent-get",
+      "sub-agent-get",
+    ]);
+    // Scoped list carries sessionId; global list omits it entirely.
+    expect(parsed[0].sessionId).toBe("session-abc");
+    expect(parsed[1].sessionId).toBeUndefined();
+    // get with session hint attaches both ids; bare get only sends subAgentId.
+    expect(parsed[2]).toEqual(
+      expect.objectContaining({
+        subAgentId: "sub-xyz",
+        sessionId: "session-abc",
+      }),
+    );
+    expect(parsed[3]).toEqual(
+      expect.objectContaining({ subAgentId: "sub-only" }),
+    );
+    expect(parsed[3].sessionId).toBeUndefined();
+  });
+
+  it("review helpers send the correct message types and payloads", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    bridge
+      .enterReview("session-rv", {
+        reason: "gate",
+        checklist: [{ id: "a", title: "Item A" }],
+      })
+      .catch(() => undefined);
+    bridge
+      .submitReviewComment("session-rv", {
+        comment: { author: "alice", content: "looks good" },
+      })
+      .catch(() => undefined);
+    bridge
+      .resolveReview("session-rv", { decision: "approved", summary: "Ship it" })
+      .catch(() => undefined);
+    bridge.getReviewState("session-rv").catch(() => undefined);
+
+    for (let i = 0; i < 15 && mockWs.sent.length < 4; i += 1) {
+      await Promise.resolve();
+    }
+    const parsed = mockWs.sent.map((raw) => JSON.parse(raw));
+    expect(parsed.map((m) => m.type)).toEqual([
+      "review-enter",
+      "review-submit",
+      "review-resolve",
+      "review-status",
+    ]);
+    expect(parsed[0]).toEqual(
+      expect.objectContaining({
+        sessionId: "session-rv",
+        reason: "gate",
+        blocking: true,
+      }),
+    );
+    expect(parsed[0].checklist).toEqual([{ id: "a", title: "Item A" }]);
+    expect(parsed[1].comment).toEqual({
+      author: "alice",
+      content: "looks good",
+    });
+    expect(parsed[2]).toEqual(
+      expect.objectContaining({
+        decision: "approved",
+        summary: "Ship it",
+      }),
+    );
+    expect(parsed[3].sessionId).toBe("session-rv");
+  });
+
+  it("patch helpers send the correct message types and payloads", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    bridge
+      .proposePatch("session-pt", {
+        origin: "tool",
+        reason: "add helper",
+        files: [{ path: "a.js", op: "create", after: "hi" }],
+      })
+      .catch(() => undefined);
+    bridge
+      .applyPatch("session-pt", "patch-1", { note: "ok" })
+      .catch(() => undefined);
+    bridge
+      .rejectPatch("session-pt", "patch-2", { reason: "risky" })
+      .catch(() => undefined);
+    bridge.getPatchSummary("session-pt").catch(() => undefined);
+
+    for (let i = 0; i < 15 && mockWs.sent.length < 4; i += 1) {
+      await Promise.resolve();
+    }
+    const parsed = mockWs.sent.map((raw) => JSON.parse(raw));
+    expect(parsed.map((m) => m.type)).toEqual([
+      "patch-propose",
+      "patch-apply",
+      "patch-reject",
+      "patch-summary",
+    ]);
+    expect(parsed[0]).toEqual(
+      expect.objectContaining({
+        sessionId: "session-pt",
+        origin: "tool",
+        reason: "add helper",
+      }),
+    );
+    expect(parsed[0].files).toEqual([
+      { path: "a.js", op: "create", after: "hi" },
+    ]);
+    expect(parsed[1]).toEqual(
+      expect.objectContaining({
+        sessionId: "session-pt",
+        patchId: "patch-1",
+        note: "ok",
+      }),
+    );
+    expect(parsed[2]).toEqual(
+      expect.objectContaining({
+        patchId: "patch-2",
+        reason: "risky",
+      }),
+    );
+    expect(parsed[3]).toEqual(
+      expect.objectContaining({ sessionId: "session-pt" }),
+    );
+  });
+
+  it("proposePatch unwraps the patch.proposed envelope", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    const pending = bridge.proposePatch("session-pt", {
+      files: [{ path: "a.js", after: "hi" }],
+    });
+    for (let i = 0; i < 10 && mockWs.sent.length === 0; i += 1) {
+      await Promise.resolve();
+    }
+    const requestId = JSON.parse(mockWs.sent[0]).id;
+
+    mockWs.triggerMessage({
+      version: "1.0",
+      eventId: "evt-pt-1",
+      type: "patch.proposed",
+      requestId,
+      sessionId: "session-pt",
+      payload: {
+        sessionId: "session-pt",
+        patch: {
+          patchId: "patch-1",
+          status: "pending",
+          files: [
+            {
+              index: 0,
+              path: "a.js",
+              op: "create",
+              stats: { added: 1, removed: 0 },
+            },
+          ],
+          stats: { fileCount: 1, added: 1, removed: 0 },
+        },
+      },
+    });
+
+    const result = await pending;
+    expect(result.type).toBe("patch.proposed");
+    expect(result.patch.patchId).toBe("patch-1");
+    expect(result.patch.status).toBe("pending");
+  });
+
+  it("enterReview unwraps the review.requested envelope", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    const pending = bridge.enterReview("session-rv", { reason: "check" });
+    for (let i = 0; i < 10 && mockWs.sent.length === 0; i += 1) {
+      await Promise.resolve();
+    }
+    const requestId = JSON.parse(mockWs.sent[0]).id;
+
+    mockWs.triggerMessage({
+      version: "1.0",
+      eventId: "evt-rv-1",
+      type: "review.requested",
+      requestId,
+      sessionId: "session-rv",
+      payload: {
+        sessionId: "session-rv",
+        reviewState: {
+          reviewId: "review-1",
+          status: "pending",
+          blocking: true,
+          comments: [],
+          checklist: [],
+        },
+      },
+    });
+
+    const result = await pending;
+    expect(result.type).toBe("review.requested");
+    expect(result.reviewState.status).toBe("pending");
+    expect(result.reviewState.reviewId).toBe("review-1");
+  });
+
+  it("listSubAgents unwraps the sub-agent.list envelope", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    const pending = bridge.listSubAgents("session-xyz");
+    for (let i = 0; i < 10 && mockWs.sent.length === 0; i += 1) {
+      await Promise.resolve();
+    }
+    const requestId = JSON.parse(mockWs.sent[0]).id;
+
+    mockWs.triggerMessage({
+      version: "1.0",
+      eventId: "evt-1",
+      type: "sub-agent.list",
+      requestId,
+      sessionId: "session-xyz",
+      payload: {
+        sessionId: "session-xyz",
+        active: [{ id: "sub-1", parentId: "session-xyz", status: "active" }],
+        history: [],
+        stats: { active: 1, completed: 0 },
+      },
+    });
+
+    const result = await pending;
+    expect(result.type).toBe("sub-agent.list");
+    expect(result.active).toEqual([
+      { id: "sub-1", parentId: "session-xyz", status: "active" },
+    ]);
+    expect(result.history).toEqual([]);
+  });
+
+  it("background task helpers send the correct message types", async () => {
+    const bridge = new CodingAgentBridge({ cwd: "/repo" });
+    await bridge.ensureReady();
+
+    bridge.listBackgroundTasks().catch(() => undefined);
+    bridge.getBackgroundTask("task-1").catch(() => undefined);
+    bridge
+      .getBackgroundTaskHistory("task-1", { limit: 20, offset: 0 })
+      .catch(() => undefined);
+    bridge.stopBackgroundTask("task-1").catch(() => undefined);
+
+    for (let i = 0; i < 10 && mockWs.sent.length < 4; i += 1) {
+      await Promise.resolve();
+    }
+    const types = mockWs.sent.map((raw) => JSON.parse(raw).type);
+    expect(types).toEqual([
+      "tasks-list",
+      "tasks-detail",
+      "tasks-history",
+      "tasks-stop",
+    ]);
+  });
+
   it("shutdown rejects pending and kills the server process", async () => {
     const bridge = new CodingAgentBridge({ cwd: "/repo" });
     await bridge.ensureReady();
