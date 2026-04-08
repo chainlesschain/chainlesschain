@@ -415,6 +415,31 @@ class SecureConfigStorage {
   }
 
   /**
+   * 异步保存加密配置 (M2 启动期 IO 异步化)
+   * @param {Object} config - 配置对象
+   * @returns {Promise<boolean>} 是否成功
+   */
+  async saveAsync(config) {
+    try {
+      const dir = path.dirname(this.storagePath);
+      await fsp.mkdir(dir, { recursive: true });
+
+      const encrypted = this.encrypt(config);
+      await fsp.writeFile(this.storagePath, encrypted);
+
+      // 清除缓存
+      this._cache = null;
+      this._cacheTimestamp = null;
+
+      logger.info("[SecureConfigStorage] 配置已异步加密保存");
+      return true;
+    } catch (error) {
+      logger.error("[SecureConfigStorage] 异步保存失败:", error);
+      return false;
+    }
+  }
+
+  /**
    * 异步加载加密配置（M2 启动期 IO 异步化）
    * @param {boolean} useCache - 是否使用缓存
    * @returns {Promise<Object|null>}
