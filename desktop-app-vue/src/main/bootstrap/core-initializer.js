@@ -252,7 +252,7 @@ function registerCoreInitializers(factory) {
     ],
     async init(context) {
       const { LLMManager } = require("../llm/llm-manager");
-      const { getLLMConfig } = require("../llm/llm-config");
+      const { prewarmLLMConfig } = require("../llm/llm-config");
       const { getTestModeConfig } = require("../config/test-mode-config");
 
       // 检查测试模式
@@ -262,8 +262,8 @@ function registerCoreInitializers(factory) {
         return testModeConfig.getMockLLMService();
       }
 
-      // 从配置加载
-      const llmConfig = getLLMConfig();
+      // 从配置加载 (M2: 异步预热，避免启动期阻塞事件循环)
+      const llmConfig = await prewarmLLMConfig();
       const managerConfig = llmConfig.getManagerConfig();
 
       // 添加辅助服务

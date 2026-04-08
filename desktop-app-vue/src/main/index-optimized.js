@@ -191,12 +191,14 @@ class ChainlessChainApp {
 
     // 初始化 Initial Setup IPC
     if (this.database) {
-      const { getLLMConfig } = require("./llm/llm-config");
+      // M2: 异步预热 LLM 配置，避免启动期阻塞事件循环
+      const { prewarmLLMConfig } = require("./llm/llm-config");
+      const llmConfig = await prewarmLLMConfig();
       this.initialSetupIPC = new InitialSetupIPC(
         app,
         this.database,
         getAppConfig(),
-        getLLMConfig(),
+        llmConfig,
       );
       if (this.dbEncryptionIPC) {
         this.dbEncryptionIPC.setDatabaseManager(this.database);

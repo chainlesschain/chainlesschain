@@ -230,12 +230,14 @@ class ChainlessChainApp {
     // 初始化 Initial Setup IPC
     // IMPORTANT: Always create InitialSetupIPC to ensure IPC handlers are registered
     // even if database initialization fails. This prevents "检查设置状态失败" errors in App.vue
-    const { getLLMConfig } = require("./llm/llm-config");
+    // M2: 异步预热 LLM 配置，避免启动期阻塞事件循环
+    const { prewarmLLMConfig } = require("./llm/llm-config");
+    const llmConfig = await prewarmLLMConfig();
     this.initialSetupIPC = new InitialSetupIPC(
       app,
       this.database, // Pass null if database initialization failed
       getAppConfig(),
-      getLLMConfig(),
+      llmConfig,
     );
 
     // Set database manager for encryption IPC if both exist
