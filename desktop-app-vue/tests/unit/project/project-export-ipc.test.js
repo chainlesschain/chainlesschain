@@ -70,25 +70,27 @@ describe('Project Export IPC', () => {
       }),
     };
 
-    // Mock database
+    // Mock database — exposes both raw `db.prepare` and high-level helpers
+    // (`getProjectById`/`getProjectFiles`) so handlers using either path work.
+    const projectRow = {
+      id: 'project-123',
+      name: 'Test Project',
+      root_path: '/data/projects/project-123',
+    };
     mockDatabase = {
       prepare: vi.fn(() => ({
-        get: vi.fn(() => ({
-          id: 'project-123',
-          name: 'Test Project',
-          root_path: '/data/projects/project-123',
-        })),
+        get: vi.fn(() => projectRow),
         run: vi.fn(),
       })),
+      getProjectById: vi.fn(() => projectRow),
+      getProjectFiles: vi.fn(() => []),
       db: {
         prepare: vi.fn(() => ({
-          get: vi.fn(() => ({
-            id: 'project-123',
-            name: 'Test Project',
-            root_path: '/data/projects/project-123',
-          })),
+          get: vi.fn(() => projectRow),
           run: vi.fn(),
         })),
+        get: vi.fn(async () => projectRow),
+        run: vi.fn(async () => ({})),
       },
     };
 
