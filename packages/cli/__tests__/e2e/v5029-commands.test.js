@@ -116,47 +116,55 @@ describe("v5029 session commands", () => {
   it("session list --json outputs parseable content", () => {
     const result = tryRun("session list --json --limit 5");
     expect(result.exitCode).toBe(0);
-    // Output may contain log lines before the JSON, and JSON itself may be
-    // multi-line (pretty-printed via JSON.stringify(..., null, 2)).
-    // Strategy: scan from the first '[' or '{' to the end and try to parse
-    // the resulting block; fall back to per-line scan; finally accept the
-    // single-line "[]" case for empty session lists.
+    // Output may contain log lines before AND after the JSON, and the JSON
+    // itself may be multi-line (pretty-printed via JSON.stringify(..., null,
+    // 2)). Strategy: locate each '[' / '{', then walk forward counting
+    // brackets while respecting strings/escapes to find the matching close,
+    // then JSON.parse the balanced span.
     const stdout = result.stdout;
     let foundJson = false;
 
-    // Try slicing from each '[' / '{' to end of output and JSON.parse
-    for (let i = 0; i < stdout.length; i++) {
+    const extractBalanced = (src, startIdx) => {
+      const open = src[startIdx];
+      const close = open === "[" ? "]" : "}";
+      let depth = 0;
+      let inStr = false;
+      let escape = false;
+      for (let j = startIdx; j < src.length; j++) {
+        const c = src[j];
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (inStr) {
+          if (c === "\\") escape = true;
+          else if (c === '"') inStr = false;
+          continue;
+        }
+        if (c === '"') {
+          inStr = true;
+          continue;
+        }
+        if (c === open) depth++;
+        else if (c === close) {
+          depth--;
+          if (depth === 0) return src.slice(startIdx, j + 1);
+        }
+      }
+      return null;
+    };
+
+    for (let i = 0; i < stdout.length && !foundJson; i++) {
       const ch = stdout[i];
-      if (ch === "[" || ch === "{") {
-        try {
-          JSON.parse(stdout.slice(i).trim());
-          foundJson = true;
-          break;
-        } catch {
-          /* not a valid JSON start at this offset */
-        }
+      if (ch !== "[" && ch !== "{") continue;
+      const span = extractBalanced(stdout, i);
+      if (!span) continue;
+      try {
+        JSON.parse(span);
+        foundJson = true;
+      } catch {
+        /* not valid JSON at this offset */
       }
-    }
-
-    // Per-line fallback (single-line JSON arrays/objects)
-    if (!foundJson) {
-      for (const line of stdout.trim().split("\n")) {
-        const t = line.trim();
-        if (t.startsWith("[") || t.startsWith("{")) {
-          try {
-            JSON.parse(t);
-            foundJson = true;
-            break;
-          } catch {
-            /* not this line */
-          }
-        }
-      }
-    }
-
-    // Empty-array fallback
-    if (!foundJson && stdout.trim().endsWith("[]")) {
-      foundJson = true;
     }
 
     expect(foundJson).toBe(true);
