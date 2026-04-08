@@ -453,7 +453,8 @@ class ChainlessChainApp {
     try {
       const { MCPConfigLoader } = require("./mcp/mcp-config-loader");
       const mcpConfigLoader = new MCPConfigLoader();
-      const mcpConfig = mcpConfigLoader.load();
+      // M2: 启动期改用异步加载，避免阻塞事件循环
+      const mcpConfig = await mcpConfigLoader.loadAsync();
 
       if (mcpConfig.enabled) {
         logger.info("[Main] MCP系统已启用，开始懒加载...");
