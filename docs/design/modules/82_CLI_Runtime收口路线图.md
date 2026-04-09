@@ -1,6 +1,6 @@
 # 82. CLI Runtime 收口路线图
 
-> **状态：Phase 2–6b 已完成 · Phase 7 待启动** · 最后更新：2026-04-09 · 适用范围：`packages/cli` + `desktop-app-vue`
+> **状态：Phase 0–7 全部完成 · 收口闭环** · 最后更新：2026-04-09 · 适用范围：`packages/cli` + `desktop-app-vue`
 >
 > 关联设计：[78. CLI Agent Runtime 重构实施计划](./78-cli-agent-runtime) · [79. Coding Agent 系统](./79-coding-agent) · [81. Tool Descriptor 统一](./81-tool-descriptor-unification)
 >
@@ -24,7 +24,7 @@
 | Phase 6a-1 | ✅ 完成 | `ws-server.js` 760 行 → shim,canonical 在 `src/gateways/ws/ws-server.js` |
 | Phase 6b | ✅ 完成 (2026-04-09) | `agent-core.js` 1651 行 → shim (canonical `src/runtime/agent-core.js`);`ws-agent-handler.js` 476 行 → shim (canonical `src/gateways/ws/ws-agent-handler.js`) |
 | Phase 6c | ✅ 完成 | 6 个 lib 实体全部 `@deprecated` 标注完成,新增 `runtime-convergence-shims.test.js` 作为回归护栏 (41 tests) |
-| Phase 7 | ⬜ 待启动 | parity harness / mock provider / golden transcript |
+| Phase 7 | ✅ 完成 (2026-04-09) | parity harness 8 步全部落地 (agent loop / plan approval / shell policy / MCP invoke / plugin tool / session resume / worktree isolation / Desktop bridge envelope)；mock LLM provider + JSONL session store harness 已发布 |
 
 **Phase 6b 完结快照 (2026-04-09):** 原计划 6 个 lib 实体 5151 行全部退化为 `@deprecated` re-export shim。canonical 实体分布:
 
@@ -243,23 +243,33 @@ Desktop Main
 
 **验收标准**：重复实现数量明显下降；新目录承担真实实现；不再出现同类功能在 `lib` 与 `runtime / harness` 各维护一份。
 
-### Phase 7：建 parity harness
+### Phase 7：建 parity harness ✅ 完成 (2026-04-09)
 
 **目标**：建立可重放、可比较、可自动回归的 agent 行为测试。
 
-**要做的事**：引入 mock provider / mock MCP server / golden transcript / golden event stream；固化 turn-level parity test、resume / recovery parity test、Desktop bridge roundtrip parity test。
+**落地成果**：`mock-llm-provider.js` + `jsonl-session-store.js` harness 已就绪；8 个 parity 测试文件全部落地在 `packages/cli/__tests__/integration/parity-*.test.js`，driving `agentLoop` (或子系统) with 确定性 mock provider，byte-level 锁定 event 流。
 
-**建议测试矩阵**：agent loop parity · plan approval parity · shell policy parity · MCP invoke parity · plugin tool parity · session resume parity · worktree isolation parity · Desktop bridge envelope parity。
+**测试矩阵（8 步全部完成）**：
 
-**重点文件**：
+| 步骤 | 范围 | 测试文件 | 提交 |
+|---|---|---|---|
+| Step 1 | agent loop parity | `parity-agent-loop.test.js` | Phase 7 prior |
+| Step 2 | plan approval parity | `parity-plan-approval.test.js` | Phase 7 prior |
+| Step 3 | shell policy parity (DENY / REROUTE / ALLOW) | `parity-shell-policy.test.js` | Phase 7 prior |
+| Step 4 | MCP invoke parity (success / error / unavailable / scalar wrap) | `parity-mcp-invoke.test.js` | `8b937994a` |
+| Step 5 | plugin tool parity (via `run_skill`) | `parity-plugin-tool.test.js` | `ccc582790` |
+| Step 6 | session resume parity (JSONL round-trip + compact boundary) | `parity-session-resume.test.js` | `2324b3817` |
+| Step 7 | worktree isolation parity (real `git init` + cwd flip) | `parity-worktree-isolation.test.js` | `b28dfcd4d` |
+| Step 8 | Desktop bridge envelope parity (legacy↔envelope roundtrip) | `parity-envelope-bridge.test.js` | `897df3f81` |
 
-- `packages/cli/__tests__/unit/agent-runtime.test.js`
-- `packages/cli/__tests__/integration/agent-core-integration.test.js`
-- `packages/cli/__tests__/e2e/coding-agent-envelope-roundtrip.test.js`
-- `desktop-app-vue/tests/integration/coding-agent-bridge-real-cli.test.js`
-- `desktop-app-vue/tests/integration/coding-agent-lifecycle.integration.test.js`
+**关键 harness 组件**：
 
-**验收标准**：给定固定 mock 输入，可稳定得到同一组 event / record；session 恢复流程可 deterministic 回归；Desktop 与 CLI 的 roundtrip 协议可自动验证。
+- `packages/cli/src/harness/mock-llm-provider.js` — 脚本化 `chatFn` 注入点，支持 `expect(messages)` 前置断言 + `assertDrained()` 消费保护
+- `packages/cli/src/harness/jsonl-session-store.js` — canonical append-only session store（`startSession` / `append*` / `rebuildMessages` / `validateJsonlSession`）
+- `packages/cli/src/lib/sub-agent-context.js` — `SubAgentContext.create({ llmOptions.chatFn })` 将 mock provider 注入 sub-agent 循环
+- `HOME` / `USERPROFILE` env 覆盖模式，跨平台 hermetic session 路径隔离
+
+**验收标准**：✅ 给定固定 mock 输入，可稳定得到同一组 event / record；✅ session 恢复流程 deterministic 回归（含 compact 边界与 malformed line 容错）；✅ Desktop 与 CLI 的 envelope roundtrip 协议可自动验证（58 tests 覆盖 validate / wrap / unwrap / 数据驱动 roundtrip）。
 
 ## 5. 文件级改造清单
 
@@ -326,18 +336,20 @@ Desktop Main
 
 ## 8. 完成定义
 
-当满足以下条件时，认为收口完成：
+当满足以下条件时，认为收口完成（✅ 2026-04-09 全部达成）：
 
-1. `packages/cli` 成为唯一 canonical runtime
-2. Desktop 不再维护平行 MCP / plugin / session 真相
-3. runtime state 全部具备统一 record / event / JSON 输出
-4. `doctor` / `status` 能直接定位运行时问题
-5. 关键 agent 行为具备 parity harness 回归能力
+1. ✅ `packages/cli` 成为唯一 canonical runtime — 6 个 lib 实体 5151 行全部退化为 shim，`runtime-convergence-shims.test.js` 静态回归护栏
+2. ✅ Desktop 不再维护平行 MCP / plugin / session 真相 — Phase 3/4 收口到 `harness/mcp-client.js` + `harness/plugin-manager.js`
+3. ✅ runtime state 全部具备统一 record / event / JSON 输出 — coding-agent envelope v1.0 (`runtime/coding-agent-events.cjs`) + `web-ui-envelope.js` 双向适配
+4. ✅ `doctor` / `status` 能直接定位运行时问题 — Phase 5 落地稳定 schema `chainlesschain.doctor.v1` / `chainlesschain.status.v1`
+5. ✅ 关键 agent 行为具备 parity harness 回归能力 — Phase 7 八步 parity 测试全部落地
 
 ## 9. 下一步建议
 
-优先启动以下 3 个小任务，不要一上来大规模重构：
+收口路线图已闭环。后续维护方向：
 
-1. 审计 `commands/*` 到 `runtime-factory` 的入口一致性
-2. 列一份 CLI MCP 与 Desktop MCP 的功能对照表
-3. 给 `doctor --json` 和 `status --json` 先定义稳定字段草案
+1. **shim 删除窗口**：6 个 `@deprecated` lib shim 已有回归护栏保护，可在一个小版本的 deprecation 期之后统一删除（需先扫全仓库确认无外部 consumer）
+2. **parity harness 扩展**：当新增 runtime 行为（如新 tool / 新事件类型）时，按 `parity-*.test.js` 模板补一组 deterministic 测试
+3. **envelope 协议版本化**：若未来需要 v2.0 envelope，在 `runtime/coding-agent-events.cjs` 加 version gate，`unwrapEnvelope` 侧按 version 分支
+
+原"下一步建议"中的 3 个小任务已全部完成（入口一致性 → Phase 1；MCP 功能对照 → Phase 3；doctor/status 稳定字段 → Phase 5）。
