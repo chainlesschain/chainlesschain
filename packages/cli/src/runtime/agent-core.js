@@ -1650,9 +1650,15 @@ export async function* agentLoop(messages, options) {
     }
   }
 
+  // Phase 7 parity harness hook: tests can inject a mock LLM function via
+  // `options.chatFn` to drive the loop deterministically without hitting a
+  // real provider. Production code path is unchanged — the fallback is the
+  // real `chatWithTools`.
+  const llmCall = options.chatFn || chatWithTools;
+
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     throwIfAborted(signal);
-    const result = await chatWithTools(messages, options);
+    const result = await llmCall(messages, options);
     throwIfAborted(signal);
     const msg = result?.message;
 
