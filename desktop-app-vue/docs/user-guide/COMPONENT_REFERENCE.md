@@ -1,8 +1,8 @@
 # Component Reference
 
-**Generated**: 2026-04-08T15:18:58.063Z
+**Generated**: 2026-04-09T06:50:46.821Z
 
-**Total Components**: 562
+**Total Components**: 563
 
 ---
 
@@ -1961,6 +1961,14 @@
 ### ConditionNode
 
 **File**: `src/renderer/components/workflow/ConditionNode.vue`
+
+---
+
+### CanonicalWorkflowPanel
+
+**File**: `src/renderer/components/workflow/CanonicalWorkflowPanel.vue`
+
+**Description**: Session list
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/function-caller.js`
 
-**Generated**: 2026-04-08T15:18:57.942Z
+**Generated**: 2026-04-09T06:50:46.709Z
 
 ---
 
@@ -20,6 +20,39 @@ const
  * - 保持工具定义不变以优化 KV-Cache
  *
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+
+---
+
+## function normalizeToolSchema(schema =
+
+```javascript
+function normalizeToolSchema(schema =
+```
+
+* Normalize a tool schema to the canonical descriptor shape.
+ *
+ * Guarantees:
+ * - `inputSchema` is preferred as source of truth; falls back to legacy `parameters`
+ * - `parameters` is always mirrored from `inputSchema`
+ * - Canonical fields (category, riskLevel, isReadOnly, plan-mode flags ...)
+ *   survive the round-trip when present on the input
+
+---
+
+## function buildMaskingPayload(name, normalizedSchema, handler)
+
+```javascript
+function buildMaskingPayload(name, normalizedSchema, handler)
+```
+
+* Project a normalized schema into the argument shape expected by
+ * `ToolMaskingSystem.registerTool`. Only keeps canonical fields plus the
+ * synchronized handler — never leaks internal registry state.
+ *
+ * @param {string} name
+ * @param {Object} normalizedSchema
+ * @param {Function} handler
+ * @returns {Object}
 
 ---
 
@@ -189,6 +222,13 @@ getAvailableTools()
 ```
 
 * 获取所有可用工具
+   *
+   * Returns canonical descriptors: `inputSchema` is source of truth,
+   * `parameters` is a mirror, and any canonical fields (category, riskLevel,
+   * isReadOnly, availableInPlanMode, ...) declared on the tool schema are
+   * surfaced verbatim so downstream consumers don't need to re-read them
+   * from a different registry.
+   *
    * @returns {Array} 工具列表
 
 ---

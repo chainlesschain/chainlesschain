@@ -2,7 +2,7 @@
 
 **Source**: `src/main/trade/contract-engine.js`
 
-**Generated**: 2026-04-08T15:18:57.812Z
+**Generated**: 2026-04-09T06:50:46.594Z
 
 ---
 

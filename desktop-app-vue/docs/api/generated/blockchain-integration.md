@@ -2,7 +2,7 @@
 
 **Source**: `src/main/blockchain/blockchain-integration.js`
 
-**Generated**: 2026-04-08T15:18:57.930Z
+**Generated**: 2026-04-09T06:50:46.700Z
 
 ---
 
