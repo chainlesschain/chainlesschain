@@ -4,20 +4,21 @@
 >
 > 关联文档：[CLI Agent Runtime 重构计划](./cli-agent-runtime-plan) · [Minimal Coding Agent 实施计划](./minimal-coding-agent-plan) · [Canonical Tool Descriptor](./coding-agent-tool-descriptor-unification-plan) · [边界冻结 ADR](../../../docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR)
 
-## 当前进度 (2026-04-09 基线审计)
+## 当前进度 (2026-04-09 Phase 6b 完成)
 
 | 阶段 | 状态 | 说明 |
 |---|---|---|
 | Phase 0 — 冻结边界 | ✅ 完成 | ADR 已签发 (`docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR.md`) |
 | Phase 1 — 收口入口层 | ✅ 完成 | `agent/chat/serve/ui` 四个命令均经过 `createAgentRuntimeFactory()`;`AgentRuntime` 520 行已齐备 |
-| Phase 2 — 收口 session 与 event | 🟡 部分完成 | `src/lib/jsonl-session-store.js` (22 行) 和 `prompt-compressor.js` (10 行) 已是 re-export shim;`gateways/repl/agent-repl.js` 已是 1 行 re-export;剩余 `ws-session-manager.js` (1421 行) 待迁移 |
-| Phase 3 — 收口 MCP | ⬜ 待启动 | `src/lib/mcp-client.js` 413 行 + Desktop `mcp-client-manager.js` 仍并行 |
-| Phase 4 — 收口 plugin/skill | ⬜ 待启动 | `src/lib/plugin-manager.js` 430 行 + Desktop `plugins/*` 仍并行 |
-| Phase 5 — 升级 doctor/status | ⬜ 待启动 | 仍偏安装诊断 |
-| Phase 6 — 清理兼容层 | ⬜ 待启动 | `agent-core.js` (1651)、`ws-server.js` (760)、`ws-agent-handler.js` (476) 仍承载真实实现 |
+| Phase 2 — 收口 session 与 event | ✅ 完成 | `src/lib/jsonl-session-store.js`、`prompt-compressor.js` 均已挂 `@deprecated` re-export;`gateways/repl/agent-repl.js` 已是 1 行 re-export |
+| Phase 3 — 收口 MCP | ✅ 完成 | `mcp-client.js` 迁移到 `harness/mcp-client.js`;`src/lib/mcp-client.js` 为 `@deprecated` 再导出 |
+| Phase 4 — 收口 plugin/skill | ✅ 完成 | `plugin-manager.js` 迁移到 `harness/plugin-manager.js`;`src/lib/plugin-manager.js` 为 `@deprecated` 再导出;`commands/plugin.js` 直连 canonical 路径 |
+| Phase 5 — 升级 doctor/status | ✅ 完成 | `runtime/diagnostics.js` 纯数据采集;`doctor --json` / `status --json` 落地稳定 schema (`chainlesschain.doctor.v1` / `chainlesschain.status.v1`),满足 D6 |
+| Phase 6a — ws-server & ws-session-manager 反向迁移 | ✅ 完成 | `ws-server.js` (760 行) → `gateways/ws/ws-server.js`;`ws-session-manager.js` (1421 行) → `gateways/ws/ws-session-gateway.js`;两处 `src/lib/*` 均为 `@deprecated` 再导出 |
+| Phase 6b — agent-core & ws-agent-handler 反向迁移 | ✅ 完成 | `agent-core.js` (1651 行) → `runtime/agent-core.js`;`ws-agent-handler.js` (476 行) → `gateways/ws/ws-agent-handler.js`;生产调用点 (`repl/agent-repl.js`、`gateways/ws/session-protocol.js`、`gateways/ws/ws-session-gateway.js`) 直连 canonical;`src/lib/*` 均为 `@deprecated` 再导出 |
 | Phase 7 — parity harness | ⬜ 待启动 | 无 mock provider / golden transcript |
 
-**真实剩余工作量: 6 个 lib 实体文件 (~5151 行) 需要迁移到 runtime / gateways / harness。** 详见「关键文件 → 待收口的兼容层」。
+**兼容层当前状态:** 6 个历史 lib 实体文件 (~5151 行) 已全部退化为 `@deprecated` re-export shim。`src/lib/*` 冻结为兼容层,新增代码默认落到 `runtime/`、`gateways/`、`harness/`、`tools/`、`contracts/`。
 
 ## 概述
 
