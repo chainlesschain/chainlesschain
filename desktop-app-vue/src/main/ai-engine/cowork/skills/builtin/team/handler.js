@@ -11,8 +11,9 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   SessionStateManager,
 } = require("../../../../code-agent/session-state-manager.js");
+const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
 
-const _deps = { SessionStateManager };
+const _deps = { SessionStateManager, runHook };
 
 const VALID_ROLES = new Set([
   "executor",
@@ -154,10 +155,29 @@ module.exports = {
     }));
 
     try {
+      await _deps.runHook("pre-execute", {
+        projectRoot,
+        sessionId,
+        payload: { mode: "team", size, role, assignments },
+      });
+    } catch (hookErr) {
+      return {
+        success: false,
+        error: hookErr.message,
+        message: `$team vetoed by pre-execute hook: ${hookErr.message}`,
+      };
+    }
+
+    try {
       manager.appendProgress(
         sessionId,
         `[team] spawned ${size}×${role} with ${steps.length} steps`,
       );
+      await _deps.runHook("post-execute", {
+        projectRoot,
+        sessionId,
+        payload: { mode: "team", size, role, assignments },
+      });
     } catch (err) {
       // appendProgress enforces approved plan — already checked above,
       // so this path should not trigger. Log and keep going.

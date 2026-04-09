@@ -10,8 +10,9 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   SessionStateManager,
 } = require("../../../../code-agent/session-state-manager.js");
+const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
 
-const _deps = { SessionStateManager };
+const _deps = { SessionStateManager, runHook };
 
 function resolveSessionId(task, context) {
   return (
@@ -56,7 +57,17 @@ module.exports = {
     // Approve-only mode
     if (task?.params?.approve === true) {
       try {
+        await _deps.runHook("pre-plan", {
+          projectRoot,
+          sessionId,
+          payload: { mode: "approve" },
+        });
         const file = manager.approvePlan(sessionId);
+        await _deps.runHook("post-plan", {
+          projectRoot,
+          sessionId,
+          payload: { mode: "approve", planFile: file, approved: true },
+        });
         return {
           success: true,
           result: { sessionId, planFile: file, approved: true, stage: "plan" },
@@ -92,11 +103,21 @@ module.exports = {
       : [];
 
     try {
+      await _deps.runHook("pre-plan", {
+        projectRoot,
+        sessionId,
+        payload: { mode: "write", title, steps, tradeoffs },
+      });
       const file = manager.writePlan(sessionId, {
         title,
         steps,
         tradeoffs,
         approved: false,
+      });
+      await _deps.runHook("post-plan", {
+        projectRoot,
+        sessionId,
+        payload: { mode: "write", planFile: file, approved: false },
       });
       const rel = path.relative(projectRoot, file);
       return {

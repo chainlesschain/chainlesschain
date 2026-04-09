@@ -365,3 +365,135 @@ describe("$team handler", () => {
     expect(buckets).toEqual([["a", "d"], ["b", "e"], ["c"]]);
   });
 });
+
+describe("lifecycle hook integration", () => {
+  let projectRoot;
+
+  beforeEach(() => {
+    projectRoot = makeTmpRoot();
+  });
+
+  afterEach(() => {
+    cleanup(projectRoot);
+  });
+
+  function writeHook(event, body) {
+    const dir = path.join(projectRoot, ".chainlesschain", "hooks");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, `${event}.js`), body, "utf-8");
+  }
+
+  it("fires post-intent after $deep-interview writes intent.md", async () => {
+    writeHook(
+      "post-intent",
+      `const fs = require("fs");
+       const path = require("path");
+       module.exports = async (ctx) => {
+         fs.writeFileSync(
+           path.join(ctx.projectRoot, "hook-intent.log"),
+           ctx.sessionId,
+         );
+       };`,
+    );
+    const result = await deepInterview.execute(
+      { params: { goal: "test", sessionId: "hooked" } },
+      { projectRoot },
+    );
+    expect(result.success).toBe(true);
+    const marker = fs.readFileSync(
+      path.join(projectRoot, "hook-intent.log"),
+      "utf-8",
+    );
+    expect(marker).toBe("hooked");
+  });
+
+  it("pre-plan veto aborts $ralplan writePlan", async () => {
+    await deepInterview.execute(
+      { params: { goal: "test", sessionId: "veto" } },
+      { projectRoot },
+    );
+    writeHook(
+      "pre-plan",
+      `module.exports = async () => { throw new Error("policy: not in business hours"); };`,
+    );
+    const result = await ralplan.execute(
+      { params: { sessionId: "veto", title: "t", steps: ["s1"] } },
+      { projectRoot },
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not in business hours/);
+    // plan.md must NOT have been written
+    const planFile = path.join(
+      projectRoot,
+      ".chainlesschain",
+      "sessions",
+      "veto",
+      "plan.md",
+    );
+    expect(fs.existsSync(planFile)).toBe(false);
+  });
+
+  it("pre-execute veto aborts $ralph progress append", async () => {
+    await deepInterview.execute(
+      { params: { goal: "g", sessionId: "blocked" } },
+      { projectRoot },
+    );
+    await ralplan.execute(
+      { params: { sessionId: "blocked", title: "t", steps: ["s1"] } },
+      { projectRoot },
+    );
+    await ralplan.execute(
+      { params: { sessionId: "blocked", approve: true } },
+      { projectRoot },
+    );
+    writeHook(
+      "pre-execute",
+      `module.exports = async () => { throw new Error("lockdown"); };`,
+    );
+    const result = await ralph.execute(
+      { params: { sessionId: "blocked", note: "start" } },
+      { projectRoot },
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/lockdown/);
+    const progressFile = path.join(
+      projectRoot,
+      ".chainlesschain",
+      "sessions",
+      "blocked",
+      "progress.log",
+    );
+    expect(fs.existsSync(progressFile)).toBe(false);
+  });
+
+  it("pre-execute veto aborts $team dispatch", async () => {
+    await deepInterview.execute(
+      { params: { goal: "g", sessionId: "teamveto" } },
+      { projectRoot },
+    );
+    await ralplan.execute(
+      {
+        params: {
+          sessionId: "teamveto",
+          title: "t",
+          steps: ["s1", "s2", "s3"],
+        },
+      },
+      { projectRoot },
+    );
+    await ralplan.execute(
+      { params: { sessionId: "teamveto", approve: true } },
+      { projectRoot },
+    );
+    writeHook(
+      "pre-execute",
+      `module.exports = async () => { throw new Error("team blocked"); };`,
+    );
+    const result = await team.execute(
+      { params: { sessionId: "teamveto", size: 3, role: "executor" } },
+      { projectRoot },
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/team blocked/);
+  });
+});

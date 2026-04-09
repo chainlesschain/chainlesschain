@@ -11,8 +11,9 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   SessionStateManager,
 } = require("../../../../code-agent/session-state-manager.js");
+const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
 
-const _deps = { SessionStateManager };
+const _deps = { SessionStateManager, runHook };
 
 function resolveSessionId(task, context) {
   return (
@@ -74,7 +75,17 @@ module.exports = {
     ).toString();
 
     try {
+      await _deps.runHook("pre-execute", {
+        projectRoot,
+        sessionId,
+        payload: { mode: "ralph", note },
+      });
       const file = manager.appendProgress(sessionId, `[ralph] ${note}`);
+      await _deps.runHook("post-execute", {
+        projectRoot,
+        sessionId,
+        payload: { mode: "ralph", progressFile: file },
+      });
       const rel = path.relative(projectRoot, file);
       return {
         success: true,

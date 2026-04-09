@@ -244,6 +244,119 @@ Workflow sessions (2):
 
 设计上**只读**：CLI 不修改状态文件。修改走 workflow 技能或 IPC。这让 CLI 成为安全的"巡查"入口，适合 `cc session workflow --json` 接其他工具链（脚本、CI、监控）。
 
+## Phase 3.5：AIChatPage 输入拦截
+
+在桌面端 AI 聊天页直接输入 `$deep-interview / $ralplan / $ralph / $team ...` 就能触发工作流，不经过 LLM，也不需要先启动 Coding Agent 会话。
+
+工作原理：`handleSubmitAgentAwareMessage` 拦截正则 `^\s*\$(deep-interview|ralplan|ralph|team)\b`，通过 `window.electronAPI.codingAgent.runWorkflowCommand` 走 IPC 进入 `workflow-command-runner`，在 Electron 主进程内直接执行技能 handler，把结果作为 `assistant` 消息 push 回对话。消息对象额外携带 `workflow: { skill, result }` 便于未来做自定义渲染。
+
+暴露的两个 IPC 通道（见 `coding-agent-ipc-v3.js`）：
+
+- `coding-agent:check-workflow-command` — 纯正则探测，用于 UI 在发送前做是否拦截的判断
+- `coding-agent:run-workflow-command` — 实际执行，返回 `{ success, skill, result, message, guidance, error }`
+
+## Phase 4：生命周期 Hooks
+
+你可以把自定义脚本放在 `<projectRoot>/.chainlesschain/hooks/<event>.js`，工作流会在关键节点自动调用它们，用于审计、通知、CI 触发、策略拦截等场景。
+
+### 支持的事件
+
+| 事件 | 触发点 | Veto 语义 |
+|---|---|---|
+| `pre-intent` | `$deep-interview` 写 `intent.md` 之前 | 抛异常可阻止 |
+| `post-intent` | `$deep-interview` 写完 `intent.md` 之后 | 仅记录 |
+| `pre-plan` | `$ralplan` 写 `plan.md` 或 `--approve` 之前 | 抛异常可阻止 |
+| `post-plan` | `$ralplan` 写/审批完成之后 | 仅记录 |
+| `pre-execute` | `$ralph` / `$team` 追加进度之前 | 抛异常可阻止 |
+| `post-execute` | `$ralph` / `$team` 追加进度之后 | 仅记录 |
+| `pre-done` / `post-done` | 预留给未来的 `$done` 技能 | — |
+
+规则：
+- **`pre-*` hook 抛异常** → 步骤被否决，返回 `{ success: false, error }` 给调用者，不会写入状态文件
+- **`post-*` hook 抛异常** → 只记录日志，步骤已经完成，不再回滚
+- **默认超时** 30 秒；`pre-*` 超时等同抛异常，会否决步骤
+- **缺失的 hook 文件** → 直接跳过，无需显式配置
+- **热重载**：每次调用都会清除 `require` 缓存，编辑 hook 文件后无需重启应用
+
+### Hook 合约
+
+```javascript
+// .chainlesschain/hooks/pre-plan.js
+module.exports = async ({ event, sessionId, projectRoot, payload }) => {
+  // event:      "pre-plan"
+  // sessionId:  当前会话 id
+  // projectRoot: 绝对路径
+  // payload:    { mode: "write"|"approve", title, steps, tradeoffs, planFile, approved }
+
+  // 抛异常 → 否决（仅 pre-* 生效）
+  if (new Date().getHours() < 9) {
+    throw new Error("policy: plans must be approved during business hours");
+  }
+  // 可选：返回值会放进 runner 结果的 data 字段
+  return { policyVersion: "2026-04" };
+};
+```
+
+也支持 `module.exports = { run: async (ctx) => {...} }` 或 `module.exports.default` 的形式。
+
+### 典型用途
+
+**审计日志** — `post-plan.js` 把每次计划写入到企业审计系统：
+
+```javascript
+const fs = require("fs");
+const path = require("path");
+module.exports = async (ctx) => {
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    session: ctx.sessionId,
+    ...ctx.payload,
+  });
+  fs.appendFileSync(path.join(ctx.projectRoot, "audit.log"), line + "\n");
+};
+```
+
+**Slack / 飞书通知** — `post-execute.js` 推送执行进度到团队频道：
+
+```javascript
+module.exports = async (ctx) => {
+  if (!process.env.SLACK_WEBHOOK) return;
+  await fetch(process.env.SLACK_WEBHOOK, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text: `[${ctx.sessionId}] ${ctx.payload.mode} executed`,
+    }),
+  });
+};
+```
+
+**策略拦截** — `pre-plan.js` 阻止敏感目录被写入新计划：
+
+```javascript
+module.exports = async (ctx) => {
+  const forbidden = ["production-secrets", "infra/prod"];
+  if (forbidden.some((w) => JSON.stringify(ctx.payload).includes(w))) {
+    throw new Error("policy: plan references forbidden production paths");
+  }
+};
+```
+
+**CI 触发** — `post-plan.js` 在 `approved: true` 时起一次 dry-run：
+
+```javascript
+const { execSync } = require("child_process");
+module.exports = async (ctx) => {
+  if (ctx.payload.mode === "approve" && ctx.payload.approved) {
+    execSync("gh workflow run dry-run.yml", { cwd: ctx.projectRoot });
+  }
+};
+```
+
+### 安全注意事项
+
+hook 跑在 Electron 主进程里、拥有完整 Node.js 权限。只放自己或自己团队编辑的脚本，不要执行来自不可信来源的 hook 文件。
+
 ## 后续路线图
 
 | Phase | 内容 | 状态 |
@@ -251,8 +364,8 @@ Workflow sessions (2):
 | Phase 1 | 4 workflow skills | ✅ 完成 |
 | Phase 2 | SessionStateManager | ✅ 完成 |
 | Phase 3 | `$xxx` 解析器 + 分派器 + CLI 检查器 | ✅ 完成 |
-| Phase 3.5 | AIChatPage UI 集成（autocomplete + 输入拦截） | 🔜 计划中 |
-| Phase 4 | Lifecycle hooks (`.chainlesschain/hooks/`) | 🔜 计划中 |
+| Phase 3.5 | AIChatPage UI 集成 | ✅ 完成 |
+| Phase 4 | Lifecycle hooks (`.chainlesschain/hooks/`) | ✅ 完成 |
 | Phase 5 | Git worktree team runtime | 🔜 按需 |
 
 ## 相关文档
