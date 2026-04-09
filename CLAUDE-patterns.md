@@ -2,8 +2,160 @@
 
 > 记录项目中已验证的架构模式和解决方案，供 AI 助手和开发者参考
 >
-> **版本**: v1.3.0
-> **最后更新**: 2026-03-10
+> **版本**: v1.4.0
+> **最后更新**: 2026-04-09
+
+---
+
+## 代码编辑模式
+
+### Pattern: Hashline — 内容哈希锚定行编辑 (v5.0.2.9)
+
+**问题**: `edit_file` 使用精确字符串匹配进行替换，对空白漂移（自动格式化、缩进调整）、行号漂移（并发编辑）极度脆弱。oh-my-openagent 实测显示行号方案成功率仅 6.7%，而哈希锚定方案可达 68.3%。
+
+**解决方案**:
+
+```js
+// 1. 读文件时以 hashed:true 拿到带哈希标记的内容
+await executeTool("read_file", { path: "foo.js", hashed: true });
+// → "a3Kp9Z| const x = 1;\nbB7rLm| const y = 2;"
+
+// 2. 用哈希作为锚点替换单行
+await executeTool("edit_file_hashed", {
+  path: "foo.js",
+  anchor_hash: "a3Kp9Z",
+  expected_line: "const x = 1;", // 第二层安全检查，防哈希碰撞
+  new_line: "const x = 42;",
+});
+```
+
+**哈希算法**: `base64url(sha256(line.trim())).slice(0, 6)`
+
+- 6 字符足够防碰撞（~680 亿空间），够短不污染 LLM 上下文
+- `.trim()` 使哈希对缩进/尾随空白不敏感 — 抗自动格式化漂移
+- 空行统一编码为 `______`（6 个下划线），避免模型"看到哈希就假设有内容"
+
+**三种错误返回（self-healing）**:
+
+- `hash_mismatch` — 锚点不存在，提示重新读文件
+- `ambiguous_anchor` — 多行哈希相同，返回 `matches[]` 和 `current_snippet`（带新鲜哈希的上下文）让模型重试
+- `content_mismatch` — 哈希命中但 `expected_line` 对不上（第二层安全检查失败）
+
+**关键实现位置**:
+
+- `packages/cli/src/lib/hashline.js` — 纯函数：`hashLine` / `annotateLines` / `findByHash` / `replaceByHash` / `snippetAround`
+- `packages/cli/src/runtime/agent-core.js` — `read_file` (hashed 模式) + `edit_file_hashed` handler
+- `packages/cli/src/runtime/coding-agent-contract-shared.cjs` — `edit_file_hashed` 契约
+- `packages/cli/src/runtime/coding-agent-policy.cjs` — 策略元数据（MEDIUM risk，与 edit_file 同级）
+
+**测试**: `__tests__/unit/hashline.test.js` (29 tests) + `__tests__/unit/agent-core-edit-hashed.test.js` (12 tests)
+
+**权限**: 与 `edit_file` 同级（MEDIUM，`availableInPlanMode: false`，`requiresPlanApproval: true`），无需新增 Plan Mode / Permission Gate 规则。
+
+**灵感来源**: oh-my-openagent 的 Hashline 设计
+
+---
+
+### Pattern: Hooks 三件套 — 会话级钩子触发 (v5.0.2.9)
+
+**问题**: CLI `hook-manager.js` 定义了 28 个 `HookEvents`，但只有 `PreToolUse`/`PostToolUse`/`ToolError` 被 `runtime/agent-core.js` 实际触发。`SessionStart` / `UserPromptSubmit` / `SessionEnd` 这三个会话级钩子是死代码 —— 定义了但从未被调用，用户注册了也不会执行。
+
+**解决方案** (借鉴 oh-my-openagent 的 hooks 三件套):
+
+新增 `src/lib/session-hooks.js` 作为会话级钩子的唯一触发点，在 `repl/agent-repl.js` 的三个生命周期位置调用：
+
+```js
+// agent-repl.js
+import { fireSessionHook } from "../lib/session-hooks.js";
+import { HookEvents } from "../lib/hook-manager.js";
+
+// 1. SessionStart — banner 之后，prompt() 之前
+await fireSessionHook(_hookDb, HookEvents.SessionStart, {
+  sessionId, provider, model, cwd: process.cwd(),
+});
+
+// 2. UserPromptSubmit — rl.on("line") 内，messages.push 之前
+await fireSessionHook(_hookDb, HookEvents.UserPromptSubmit, {
+  sessionId, prompt: trimmed, messageCount: messages.length,
+});
+
+// 3. SessionEnd — rl.on("close") 内，shutdown() 之前
+await fireSessionHook(_hookDb, HookEvents.SessionEnd, {
+  sessionId, messageCount: messages.length,
+});
+```
+
+**关键设计**:
+- **事件白名单**: `SESSION_HOOK_EVENTS` 冻结数组，非三件套事件直接抛错，防止静默 no-op（executeHooks 内部会按事件过滤，typo 会悄悄没效果）
+- **fire-and-forget**: 匹配现有 `PreToolUse` 约定 —— 钩子失败永远不能中断 REPL。helper 吞掉所有内部错误返回 `[]`
+- **观察性而非控制**: 首版不支持 abort / rewrite prompt。如需 gate prompt，用户应通过钩子返回码 + 独立包装层实现，不要塞进 helper
+- **`hookDb === null` → no-op**: REPL 在没有 DB 模式下运行时自动跳过所有钩子
+- **时间戳注入**: helper 自动往 context 里塞 `timestamp: ISO-string`，和 PreToolUse 保持一致
+
+**关键实现位置**:
+- `packages/cli/src/lib/session-hooks.js` — `fireSessionHook(hookDb, eventName, context)` + `SESSION_HOOK_EVENTS`
+- `packages/cli/src/repl/agent-repl.js` — 三个 fire 站点（SessionStart/UserPromptSubmit/SessionEnd）
+- tool-level 钩子继续由 `runtime/agent-core.js` 触发 —— 两层钩子各司其职
+
+**测试**: `__tests__/unit/session-hooks.test.js` (15 tests — 白名单、no-op、stats 累计、优先级顺序、broken db 容错)
+
+**未来可扩展**:
+- `UserPromptSubmit` 可以解析钩子 stdout 作为 rewritten prompt（omo 风格）
+- `AssistantResponse` 同样是死代码，可用相同 helper 在 `agentLoop` 返回点补一个第四位
+
+**灵感来源**: oh-my-openagent 的 hooks 三件套
+
+---
+
+### Pattern: Skill-Embedded MCP — 技能内联 MCP 服务器 (v5.0.2.9)
+
+**问题**: MCP 服务器目前必须预注册在 DB 中，所有注册的 MCP 工具在每次 agent 会话启动时全量暴露给 LLM。当技能数量增长到 130+ 时，会造成"工具爆炸"问题：模型上下文里塞满大量不相关的 MCP 工具，token 消耗大、工具选择困难。
+
+**解决方案** (借鉴 oh-my-openagent 的 "Skill-Embedded MCPs" 设计):
+
+技能在自己的 SKILL.md body 里用 fenced code block 直接声明所需的 MCP 服务器，运行时只在该技能激活期间 mount，技能退出后 unmount。
+
+```markdown
+---
+name: weather-agent
+description: Query weather using MCP
+---
+
+This skill fetches live weather data.
+
+## MCP Servers
+
+\`\`\`mcp-servers
+[
+  {
+    "name": "weather",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-weather"]
+  }
+]
+\`\`\`
+
+## Instructions
+...
+```
+
+**关键设计**:
+
+- **Fenced code block 而非 YAML frontmatter**: 零改动现有 simple YAML parser，markdown 语法干净，编辑器高亮友好（可用 ```` ```json mcp-servers ```` 变体）
+- **纯函数解析 + 验证**: `parseSkillMcpServers(body)` 返回经过 `validateMcpServerConfig` 过滤的 frozen 配置数组；无效条目（缺 name/command、非对象）自动跳过
+- **容错 mount**: `mountSkillMcpServers(client, skill)` 单个服务器失败不会中断其他服务器，失败项收集到 `skipped` 数组并通过 `onWarn` 回调上报
+- **disconnectAll 回退**: `unmountSkillMcpServers` 优先调用 `mcpClient.disconnect(name)`；若 client 没有单点 disconnect，自动回退到 `disconnectAll()`
+- **零破坏**: 未声明 `mcp-servers` 块的技能 `skill.mcpServers = []`，现有技能无需迁移
+
+**关键实现位置**:
+
+- `packages/cli/src/lib/skill-mcp.js` — `parseSkillMcpServers` / `validateMcpServerConfig` / `mountSkillMcpServers` / `unmountSkillMcpServers`
+- `packages/cli/src/lib/skill-loader.js` — `_loadFromDir` 填充 `skill.mcpServers`
+- 消费方（future phase）：agent-runtime 在 `run_skill` 工具路径 mount/unmount；context engineering 基于当前激活的技能过滤 MCP 工具集
+
+**测试**: `__tests__/unit/skill-mcp.test.js` (26 tests) + 现有 `skill-loader.test.js` (28 tests) 回归通过
+
+**灵感来源**: oh-my-openagent 的 Skill-Embedded MCPs 设计
 
 ---
 
@@ -90,6 +242,47 @@ class LLMManager {
 ```
 
 **实现位置**: `desktop-app-vue/src/main/llm/llm-manager.js`
+
+---
+
+### Pattern: 类别路由 (Category Routing, v5.0.2.9)
+
+**问题**: 138 个 SKILL.md 如果硬编码 `model: claude-opus-4-6`，换 provider 时得全部改一遍；而且 cowork/agent 代码里也会散落模型字符串。
+
+**解决方案** (借鉴 oh-my-openagent 的 category 路由思路):
+
+Skill 声明 *类别* 而非 model，运行时根据 **用户当前 `llm-config.js` 已配置的 provider** 自动挑选最优匹配。
+
+```javascript
+// llm-manager.js
+const LLM_CATEGORIES = {
+  QUICK:     "quick",     // 补全/简单改写  → 优先本地 ollama
+  DEEP:      "deep",      // 长上下文/架构  → 优先 anthropic/openai
+  REASONING: "reasoning", // 推理密集        → 优先 deepseek/o1
+  VISION:    "vision",    // 多模态          → 优先 gemini/gpt-4o
+  CREATIVE:  "creative",  // 文案/UI        → 优先 anthropic
+};
+
+// 从 SKILL.md 现有字段反推 category（零迁移成本）
+inferCategoryFromModelHints({ "context-window": "large", capability: "reasoning" })
+// → "reasoning"
+
+// 解析到具体 provider + model
+llmManager.resolveCategory("deep")
+// → { provider: "anthropic", model: "claude-3-opus-...", options: { maxTokens: 8192 } }
+
+// Skill 驱动（便捷写法）
+llmManager.resolveCategory(undefined, { skill })
+```
+
+**关键设计**:
+- **"已配置"判定**: `ollama` 始终可用（本地），`custom` 需 `baseURL`，其他需 `apiKey`
+- **纯新增，零破坏**: `chat()` 完全不改；老的 `model:` / `modelHints.preferred` 照常工作
+- **缓存**: 结果缓存到 `this._categoryMappingCache`，`rebuildCategoryMapping()` 强制刷新（应对配置变更）
+- **`_deps` 注入**: `getLLMConfig` 通过 `_deps` 懒加载，Vitest 测试可覆盖
+
+**实现位置**: `desktop-app-vue/src/main/llm/llm-manager.js` (末尾 Category Routing 段)
+**测试**: `desktop-app-vue/src/main/llm/__tests__/llm-manager-category-routing.test.js` (26 tests)
 
 ---
 

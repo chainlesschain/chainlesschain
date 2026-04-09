@@ -85,8 +85,8 @@ const {
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 
 describe("AGENT_TOOLS", () => {
-  it("has 11 tool definitions", () => {
-    expect(AGENT_TOOLS).toHaveLength(11);
+  it("has 12 tool definitions", () => {
+    expect(AGENT_TOOLS).toHaveLength(12);
   });
 
   it("is derived from the canonical coding-agent contract", () => {
@@ -106,6 +106,7 @@ describe("AGENT_TOOLS", () => {
     expect(names).toContain("read_file");
     expect(names).toContain("write_file");
     expect(names).toContain("edit_file");
+    expect(names).toContain("edit_file_hashed");
     expect(names).toContain("run_shell");
     expect(names).toContain("git");
     expect(names).toContain("search_files");
@@ -926,7 +927,7 @@ describe("chatWithTools", () => {
     expect(toolNames).not.toContain("run_shell");
     expect(toolNames).not.toContain("run_code");
     expect(toolNames).toContain("read_file");
-    expect(capturedBody.tools.length).toBe(9); // 11 - 2 disabled
+    expect(capturedBody.tools.length).toBe(10); // 12 - 2 disabled
   });
 
   it("can limit coding sessions to the MVP tool set while still allowing host-managed tools", async () => {
@@ -1042,7 +1043,7 @@ describe("chatWithTools", () => {
 
     expect(capturedUrl).toContain("/api/chat");
     expect(capturedBody.tools).toBeDefined();
-    expect(capturedBody.tools.length).toBe(11);
+    expect(capturedBody.tools.length).toBe(12);
     expect(capturedBody.model).toBe("qwen2.5:7b");
   });
 

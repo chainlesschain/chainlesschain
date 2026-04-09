@@ -101,6 +101,45 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     },
   },
   {
+    name: "edit_file_hashed",
+    title: "Edit File (Hash-Anchored)",
+    kind: "filesystem",
+    tier: "mvp",
+    description:
+      "Replace a single line in a file, anchored by its content hash. Use this instead of edit_file for robust edits: each line of read_file output (with hashed:true) is tagged with a 6-char hash like 'a3Kp9Z| const x = ...'. Pass the hash as anchor_hash, the current line as expected_line, and the replacement as new_line. Rejects edits if the line drifted (hash mismatch) — retry by re-reading the file with hashed:true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string", description: "File path" },
+        anchor_hash: {
+          type: "string",
+          description:
+            "6-char base64url hash of the line to replace (from read_file with hashed:true)",
+        },
+        expected_line: {
+          type: "string",
+          description:
+            "Current content of the line — used as a second-layer check against hash collisions. Compared after .trim().",
+        },
+        new_line: {
+          type: "string",
+          description:
+            "Replacement line content (without the hash tag prefix). Preserve the original indentation.",
+        },
+      },
+      required: ["path", "anchor_hash", "expected_line", "new_line"],
+    },
+    ...TOOL_POLICY_METADATA.edit_file_hashed,
+    permissions: {
+      level: "elevated",
+      scopes: ["filesystem:write"],
+    },
+    telemetry: {
+      category: "filesystem",
+      tags: ["tool:edit_file_hashed", "contract:coding-agent", "tier:mvp"],
+    },
+  },
+  {
     name: "run_shell",
     title: "Run Shell",
     kind: "shell",
