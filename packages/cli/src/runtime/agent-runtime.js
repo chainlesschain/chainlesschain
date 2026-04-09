@@ -15,7 +15,7 @@ import { startChatRepl } from "../gateways/repl/chat-repl.js";
 import { ChainlessChainWSServer } from "../gateways/ws/ws-server.js";
 import { WSSessionManager } from "../gateways/ws/ws-session-gateway.js";
 import { createWebUIServer } from "../gateways/ui/web-ui-server.js";
-import { MCPClient, MCPServerConfig } from "../lib/mcp-client.js";
+import { MCPClient, MCPServerConfig } from "../harness/mcp-client.js";
 import sharedManagedToolPolicy from "./coding-agent-managed-tool-policy.cjs";
 import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
 import { loadConfig } from "../lib/config-manager.js";

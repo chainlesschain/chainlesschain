@@ -7,7 +7,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
-import { MCPClient, MCPServerConfig } from "../lib/mcp-client.js";
+import { MCPClient, MCPServerConfig } from "../harness/mcp-client.js";
 
 // Singleton MCP client for session reuse
 let mcpClient = null;
