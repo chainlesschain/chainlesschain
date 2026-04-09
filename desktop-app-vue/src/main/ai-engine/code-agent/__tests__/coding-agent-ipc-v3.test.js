@@ -934,4 +934,51 @@ describe("registerCodingAgentIPCV3", () => {
 
     expect(result).toEqual({ success: false, error: "send failed" });
   });
+
+  it("registers workflow command channels", () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+
+    expect(
+      ipcMainMock.handlers["coding-agent:check-workflow-command"],
+    ).toBeTypeOf("function");
+    expect(
+      ipcMainMock.handlers["coding-agent:run-workflow-command"],
+    ).toBeTypeOf("function");
+    expect(CODING_AGENT_IPC_CHANNELS).toContain(
+      "coding-agent:check-workflow-command",
+    );
+    expect(CODING_AGENT_IPC_CHANNELS).toContain(
+      "coding-agent:run-workflow-command",
+    );
+  });
+
+  it("check-workflow-command matches $deep-interview and rejects plain text", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+    const handler = ipcMainMock.handlers["coding-agent:check-workflow-command"];
+
+    expect(await handler({}, "$deep-interview build a CLI")).toEqual({
+      matched: true,
+    });
+    expect(await handler({}, "  $ralplan --approve ")).toEqual({
+      matched: true,
+    });
+    expect(await handler({}, "hello world")).toEqual({ matched: false });
+    expect(await handler({}, "")).toEqual({ matched: false });
+  });
+
+  it("run-workflow-command validates text payload", async () => {
+    registerCodingAgentIPCV3({ service, ipcMain: ipcMainMock });
+    const handler = ipcMainMock.handlers["coding-agent:run-workflow-command"];
+
+    expect(await handler({}, {})).toEqual({
+      success: false,
+      matched: false,
+      error: "text is required",
+    });
+    expect(await handler({}, { text: 123 })).toEqual({
+      success: false,
+      matched: false,
+      error: "text is required",
+    });
+  });
 });

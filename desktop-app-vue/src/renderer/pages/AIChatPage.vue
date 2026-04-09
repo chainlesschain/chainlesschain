@@ -3780,6 +3780,45 @@ const handleSubmitAgentAwareMessage = async ({ text, attachments }) => {
   try {
     await updateConversationTitleFromText(text);
 
+    // Intercept workflow commands ($deep-interview / $ralplan / $ralph / $team)
+    // These run in-process through the skill handlers and bypass the coding
+    // agent / LLM pipeline — their state lives in .chainlesschain/sessions/.
+    if (/^\s*\$(deep-interview|ralplan|ralph|team)\b/i.test(text)) {
+      const wfResult = await window.electronAPI.codingAgent.runWorkflowCommand({
+        text,
+        sessionId: codingAgentStore.activeSessionId || undefined,
+      });
+
+      const body = wfResult?.success
+        ? [wfResult.message, wfResult.guidance].filter(Boolean).join("\n\n")
+        : `工作流命令执行失败: ${wfResult?.error || "未知错误"}`;
+
+      const wfMessage = {
+        id: `msg-${Date.now()}-workflow`,
+        role: "assistant",
+        content: body,
+        timestamp: Date.now(),
+        workflow: wfResult?.success
+          ? { skill: wfResult.skill, result: wfResult.result }
+          : undefined,
+      };
+      messages.value.push(wfMessage);
+
+      try {
+        await window.electronAPI.conversation.addMessage(
+          activeConversationId.value,
+          { role: "assistant", content: body },
+        );
+      } catch (error) {
+        logger.error("保存工作流消息失败:", error);
+      }
+
+      isThinking.value = false;
+      await nextTick();
+      scrollToBottom();
+      return;
+    }
+
     if (agentMode.value) {
       await ensureCodingAgentSession();
       const confirmed = await ensureHighRiskConfirmation();

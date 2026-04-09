@@ -670,6 +670,24 @@ export interface CodingAgentAPI {
     toolSummary?: CodingAgentToolSummary | null;
     permissionPolicy?: CodingAgentPermissionPolicy | null;
   }>;
+  // Canonical workflow commands ($deep-interview / $ralplan / $ralph / $team)
+  checkWorkflowCommand(text: string): Promise<{
+    matched: boolean;
+    error?: string;
+  }>;
+  runWorkflowCommand(payload: {
+    text: string;
+    sessionId?: string;
+    projectRoot?: string;
+  }): Promise<{
+    success: boolean;
+    matched: boolean;
+    skill?: "deep-interview" | "ralplan" | "ralph" | "team";
+    result?: Record<string, unknown>;
+    message?: string;
+    guidance?: string;
+    error?: string;
+  }>;
   onEvent(callback: (event: CodingAgentEvent) => void): () => void;
   subscribeEvents(callback: (event: CodingAgentEvent) => void): () => void;
 }
