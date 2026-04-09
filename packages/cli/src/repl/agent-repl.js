@@ -36,7 +36,7 @@ import {
   appendCompactEvent,
   rebuildMessages,
   sessionExists,
-} from "../lib/jsonl-session-store.js";
+} from "../harness/jsonl-session-store.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
 import { createChatFn } from "../lib/cowork-adapter.js";
@@ -46,9 +46,11 @@ import {
 } from "../lib/task-model-selector.js";
 import { CLIPermanentMemory } from "../lib/permanent-memory.js";
 import { CLIAutonomousAgent, GoalStatus } from "../lib/autonomous-agent.js";
-import { PromptCompressor } from "../lib/prompt-compressor.js";
+import { PromptCompressor } from "../harness/prompt-compressor.js";
 import { feature } from "../lib/feature-flags.js";
 import { recordCompressionMetric } from "../lib/compression-telemetry.js";
+import { fireSessionHook } from "../lib/session-hooks.js";
+import { HookEvents } from "../lib/hook-manager.js";
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
@@ -259,6 +261,15 @@ export async function startAgentRepl(options = {}) {
     rl.setPrompt(getPrompt());
     rl.prompt();
   };
+
+  // Fire SessionStart hook (fire-and-forget; hook failures never break REPL)
+  await fireSessionHook(_hookDb, HookEvents.SessionStart, {
+    sessionId,
+    provider,
+    model,
+    cwd: process.cwd(),
+  });
+
   prompt();
 
   rl.on("line", async (input) => {
@@ -1042,6 +1053,13 @@ export async function startAgentRepl(options = {}) {
       return;
     }
 
+    // Fire UserPromptSubmit hook (fire-and-forget; observational only)
+    await fireSessionHook(_hookDb, HookEvents.UserPromptSubmit, {
+      sessionId,
+      prompt: trimmed,
+      messageCount: messages.length,
+    });
+
     // Add user message
     messages.push({ role: "user", content: trimmed });
 
@@ -1221,6 +1239,12 @@ export async function startAgentRepl(options = {}) {
         // Non-critical
       }
     }
+    // Fire SessionEnd hook before shutdown (fire-and-forget)
+    await fireSessionHook(_hookDb, HookEvents.SessionEnd, {
+      sessionId,
+      messageCount: messages.length,
+    });
+
     // Shutdown runtime
     try {
       await shutdown();

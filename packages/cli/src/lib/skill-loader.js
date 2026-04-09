@@ -13,6 +13,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { getElectronUserDataDir } from "./paths.js";
 import { findProjectRoot } from "./project-detector.js";
+import { parseSkillMcpServers } from "./skill-mcp.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -225,6 +226,9 @@ export class CLISkillLoader {
             dirName: entry.name,
             hasHandler: fs.existsSync(path.join(dir, entry.name, "handler.js")),
             body,
+            // Skill-Embedded MCP: inline server declarations in a
+            // ```mcp-servers fenced code block. Empty array if absent.
+            mcpServers: parseSkillMcpServers(body),
             source: layer,
             skillDir: path.join(dir, entry.name),
           });

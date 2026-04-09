@@ -43,6 +43,10 @@ import {
   replaceByHash,
   snippetAround,
 } from "../lib/hashline.js";
+import {
+  mountSkillMcpServers,
+  unmountSkillMcpServers,
+} from "../lib/skill-mcp.js";
 
 const { isReadOnlyGitCommand, normalizeGitCommand } = sharedCodingAgentPolicy;
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
@@ -871,6 +875,31 @@ async function executeToolInner(
         }
       }
 
+      // Skill-Embedded MCP: mount the skill's declared MCP servers for
+      // the duration of handler.execute, then unmount in finally. The
+      // handler may use them via taskContext.mcpClient. If mcpClient is
+      // null (no MCP set up for this session), skip silently.
+      let mountedMcpServers = [];
+      const hasSkillMcps =
+        Array.isArray(match.mcpServers) && match.mcpServers.length > 0;
+      if (hasSkillMcps && mcpClient) {
+        try {
+          const mountResult = await mountSkillMcpServers(mcpClient, match, {
+            onWarn: (msg) => {
+              // Non-fatal — logged as warning, skipped servers captured
+              // in mountResult.skipped.
+              // eslint-disable-next-line no-console
+              console.warn(msg);
+            },
+          });
+          mountedMcpServers = mountResult.mounted;
+        } catch (err) {
+          return attachDescriptor({
+            error: `Skill MCP mount failed: ${err.message}`,
+          });
+        }
+      }
+
       try {
         const handlerPath = path.join(match.skillDir, "handler.js");
         const imported = await import(
@@ -886,6 +915,11 @@ async function executeToolInner(
         const taskContext = {
           projectRoot: cwd,
           workspacePath: cwd,
+          // Expose the MCP client + mounted servers so the skill handler
+          // can call MCP tools directly without going through the agent
+          // loop. Handlers that don't need MCP can ignore these.
+          mcpClient: mcpClient || null,
+          mountedMcpServers,
         };
         const result = await handler.execute(task, taskContext, match);
         return attachDescriptor(result);
@@ -893,6 +927,14 @@ async function executeToolInner(
         return attachDescriptor({
           error: `Skill execution failed: ${err.message}`,
         });
+      } finally {
+        if (mountedMcpServers.length > 0 && mcpClient) {
+          try {
+            await unmountSkillMcpServers(mcpClient, mountedMcpServers);
+          } catch (_err) {
+            // Non-critical — mount/unmount errors don't fail the skill
+          }
+        }
       }
     }
 

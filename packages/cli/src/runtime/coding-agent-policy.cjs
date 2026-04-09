@@ -74,6 +74,16 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "plan",
     isReadOnly: false,
   },
+  edit_file_hashed: {
+    riskLevel: RISK_LEVELS.MEDIUM,
+    category: TOOL_CATEGORIES.WRITE,
+    availableInPlanMode: false,
+    planModeBehavior: "blocked",
+    requiresPlanApproval: true,
+    requiresConfirmation: false,
+    approvalFlow: "plan",
+    isReadOnly: false,
+  },
   write_file: {
     riskLevel: RISK_LEVELS.MEDIUM,
     category: TOOL_CATEGORIES.WRITE,

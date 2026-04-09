@@ -1904,9 +1904,290 @@ LLMManager.prototype.compressContent = function (content, type) {
   return this.manusOptimizations.compress(content, type);
 };
 
+// ============================================================================
+// Category Routing (v5.0.2.9 — inspired by oh-my-openagent)
+//
+// Skills declare *categories* (deep / quick / reasoning / vision / creative)
+// instead of hard-coding provider/model. Routing resolves a category to a
+// concrete { provider, model, options } by scanning the user's configured
+// providers in llm-config.js. Zero SKILL.md migration required — category
+// is inferred from existing modelHints (context-window / capability).
+//
+// Design notes: see CLAUDE-patterns.md "类别路由" + memory entry.
+// ============================================================================
+
+/**
+ * 5 个标准类别。新增类别需同时更新 CATEGORY_PROVIDER_PRIORITY 和 CATEGORY_OPTIONS。
+ */
+const LLM_CATEGORIES = Object.freeze({
+  QUICK: "quick", // 快速 / 补全 / 简单改写
+  DEEP: "deep", // 长上下文 / 架构分析 / 重构
+  REASONING: "reasoning", // 推理密集（o1 / deepseek-r1 / claude thinking）
+  VISION: "vision", // 多模态（截图 / OCR / 图像理解）
+  CREATIVE: "creative", // 文案 / UI / 高发散
+});
+
+/**
+ * 每个类别的 provider 优先级列表。顺序即偏好。
+ * 实际选择时会用"已配置"过滤（ollama 始终配置，custom 需 baseURL，其余需 apiKey）。
+ */
+const CATEGORY_PROVIDER_PRIORITY = Object.freeze({
+  quick: [
+    "ollama",
+    "deepseek",
+    "volcengine",
+    "openai",
+    "anthropic",
+    "gemini",
+    "mistral",
+    "custom",
+  ],
+  deep: [
+    "anthropic",
+    "openai",
+    "volcengine",
+    "deepseek",
+    "gemini",
+    "mistral",
+    "custom",
+    "ollama",
+  ],
+  reasoning: [
+    "deepseek",
+    "anthropic",
+    "openai",
+    "volcengine",
+    "gemini",
+    "mistral",
+    "custom",
+    "ollama",
+  ],
+  vision: ["gemini", "openai", "anthropic", "volcengine", "custom", "ollama"],
+  creative: [
+    "anthropic",
+    "openai",
+    "gemini",
+    "volcengine",
+    "deepseek",
+    "mistral",
+    "custom",
+    "ollama",
+  ],
+});
+
+/**
+ * 类别附加的生成参数（合并到 options）。
+ */
+const CATEGORY_OPTIONS = Object.freeze({
+  quick: { temperature: 0.3 },
+  deep: { maxTokens: 8192 },
+  reasoning: { temperature: 0.1 },
+  vision: { requireMultimodal: true },
+  creative: { temperature: 0.9 },
+});
+
+/**
+ * 判断一个 provider 是否"已配置"（有有效凭据或 URL）。
+ * @param {string} provider
+ * @param {object} fullConfig - 来自 LLMConfig.getAll()
+ */
+function isProviderConfigured(provider, fullConfig) {
+  if (!fullConfig) {
+    return false;
+  }
+  const section = fullConfig[provider];
+  if (!section || typeof section !== "object") {
+    return false;
+  }
+  switch (provider) {
+    case "ollama":
+      // 本地服务始终视为可用（客户端会在调用时检测可达性）
+      return Boolean(section.url);
+    case "custom":
+      return Boolean(section.baseURL);
+    default:
+      return Boolean(section.apiKey);
+  }
+}
+
+/**
+ * 从 SKILL.md 的 modelHints 反推类别（无需修改任何 SKILL.md）。
+ * 规则：
+ *   context-window: large + capability: reasoning → reasoning
+ *   context-window: large                          → deep
+ *   capability: vision                             → vision
+ *   capability: reasoning                          → reasoning
+ *   capability: creative                           → creative
+ *   default                                        → quick
+ * @param {object} modelHints - skill.modelHints
+ * @returns {string} category
+ */
+function inferCategoryFromModelHints(modelHints) {
+  if (!modelHints || typeof modelHints !== "object") {
+    return LLM_CATEGORIES.QUICK;
+  }
+  const contextWindow =
+    modelHints["context-window"] || modelHints.contextWindow;
+  const capability = modelHints.capability;
+  const isLargeContext =
+    contextWindow === "large" || contextWindow === "xlarge";
+  if (isLargeContext && capability === "reasoning") {
+    return LLM_CATEGORIES.REASONING;
+  }
+  if (isLargeContext) {
+    return LLM_CATEGORIES.DEEP;
+  }
+  if (capability === "vision") {
+    return LLM_CATEGORIES.VISION;
+  }
+  if (capability === "reasoning") {
+    return LLM_CATEGORIES.REASONING;
+  }
+  if (capability === "creative") {
+    return LLM_CATEGORIES.CREATIVE;
+  }
+  return LLM_CATEGORIES.QUICK;
+}
+
+/**
+ * 给定类别 + 完整 llm-config，选出最匹配的 provider 和它当前配置的 model。
+ * 如果没有任何 provider 配置，退回到 { provider: fallbackProvider, model: "" }。
+ * @returns {{ provider: string, model: string, options: object } | null}
+ */
+function pickProviderForCategory(category, fullConfig, fallbackProvider) {
+  const priority = CATEGORY_PROVIDER_PRIORITY[category];
+  if (!priority) {
+    return null;
+  }
+  for (const provider of priority) {
+    if (isProviderConfigured(provider, fullConfig)) {
+      const section = fullConfig[provider] || {};
+      return {
+        provider,
+        model: section.model || "",
+        options: { ...CATEGORY_OPTIONS[category] },
+      };
+    }
+  }
+  // 无配置时退回到当前激活的 provider
+  if (fallbackProvider && fullConfig[fallbackProvider]) {
+    return {
+      provider: fallbackProvider,
+      model: fullConfig[fallbackProvider].model || "",
+      options: { ...CATEGORY_OPTIONS[category] },
+    };
+  }
+  return null;
+}
+
+/**
+ * 依赖注入点（Vitest 拦不住 CJS require，必须用 _deps 注入模式）。
+ * 测试中：mod._deps.getLLMConfig = vi.fn(() => fakeConfig);
+ */
+const _deps = {
+  getLLMConfig: null, // 懒加载，避免循环依赖
+};
+
+function _loadLLMConfig() {
+  if (_deps.getLLMConfig) {
+    return _deps.getLLMConfig();
+  }
+  // 真正的 require 放这里，延迟加载避免 require 循环
+  const { getLLMConfig } = require("./llm-config");
+  return getLLMConfig();
+}
+
+/**
+ * 解析类别到具体的 provider+model。
+ * 结果缓存在 this._categoryMappingCache，rebuildCategoryMapping() 可强制刷新。
+ *
+ * @param {string} category - 五个 LLM_CATEGORIES 之一
+ * @param {object} [opts]
+ * @param {object} [opts.skill] - 如果给 skill 对象，先尝试用它的 modelHints 反推
+ * @returns {{ provider: string, model: string, options: object } | null}
+ */
+LLMManager.prototype.resolveCategory = function (category, opts = {}) {
+  // Skill 驱动：如果给了 skill 且没指定 category，先反推
+  let targetCategory = category;
+  if (!targetCategory && opts.skill) {
+    targetCategory = inferCategoryFromModelHints(opts.skill.modelHints);
+  }
+  if (!targetCategory || !CATEGORY_PROVIDER_PRIORITY[targetCategory]) {
+    logger.warn(
+      `[LLMManager] resolveCategory: unknown category "${targetCategory}", falling back to quick`,
+    );
+    targetCategory = LLM_CATEGORIES.QUICK;
+  }
+
+  // 缓存命中
+  if (!this._categoryMappingCache) {
+    this._categoryMappingCache = new Map();
+  }
+  if (this._categoryMappingCache.has(targetCategory)) {
+    return this._categoryMappingCache.get(targetCategory);
+  }
+
+  // 构建 mapping
+  let llmConfig;
+  try {
+    llmConfig = _loadLLMConfig();
+  } catch (err) {
+    logger.warn(
+      "[LLMManager] resolveCategory: 无法加载 llm-config，使用当前 provider",
+      err && err.message,
+    );
+    const result = {
+      provider: this.provider,
+      model: this.config.model || "",
+      options: { ...CATEGORY_OPTIONS[targetCategory] },
+    };
+    this._categoryMappingCache.set(targetCategory, result);
+    return result;
+  }
+
+  const fullConfig = llmConfig.getAll ? llmConfig.getAll() : llmConfig;
+  const activeProvider = (fullConfig && fullConfig.provider) || this.provider;
+  const result = pickProviderForCategory(
+    targetCategory,
+    fullConfig,
+    activeProvider,
+  );
+  if (result) {
+    this._categoryMappingCache.set(targetCategory, result);
+  }
+  return result;
+};
+
+/**
+ * 从 skill 对象推断类别（便捷方法）。
+ * @param {object} skill - { modelHints: {...} }
+ * @returns {string}
+ */
+LLMManager.prototype.inferCategoryFromSkill = function (skill) {
+  return inferCategoryFromModelHints(skill && skill.modelHints);
+};
+
+/**
+ * 强制刷新类别缓存。在 llm-config 变更后调用。
+ */
+LLMManager.prototype.rebuildCategoryMapping = function () {
+  if (this._categoryMappingCache) {
+    this._categoryMappingCache.clear();
+  }
+  logger.info("[LLMManager] 类别路由缓存已清空");
+};
+
 module.exports = {
   LLMManager,
   LLMProviders,
   getLLMManager,
   TaskTypes, // 导出任务类型枚举，方便外部使用
+  // Category routing exports (v5.0.2.9)
+  LLM_CATEGORIES,
+  CATEGORY_PROVIDER_PRIORITY,
+  CATEGORY_OPTIONS,
+  inferCategoryFromModelHints,
+  pickProviderForCategory,
+  isProviderConfigured,
+  _deps, // 测试注入点
 };
