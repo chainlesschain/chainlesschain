@@ -4,6 +4,7 @@
  */
 
 import fs from "fs";
+import path from "path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { bootstrap, shutdown } from "../runtime/bootstrap.js";
@@ -24,6 +25,10 @@ import {
   validateAllJsonlSessions,
 } from "../lib/jsonl-session-store.js";
 import { feature } from "../lib/feature-flags.js";
+import {
+  listWorkflowSessions,
+  readWorkflowSession,
+} from "../lib/workflow-state-reader.js";
 
 export function registerSessionCommand(program) {
   const session = program
@@ -313,7 +318,11 @@ export function registerSessionCommand(program) {
     .option("--dry-run", "Show what would migrate without writing files")
     .option("--force", "Overwrite existing JSONL sessions")
     .option("--no-archive", "Do not keep .migrated.json backups")
-    .option("--sample-size <n>", "Validate N migrated sessions after migration", "3")
+    .option(
+      "--sample-size <n>",
+      "Validate N migrated sessions after migration",
+      "3",
+    )
     .option("--retry-failures", "Retry failed migrations once")
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
@@ -325,7 +334,8 @@ export function registerSessionCommand(program) {
           sampleSize: parseInt(options.sampleSize, 10) || 3,
           retryFailures: options.retryFailures,
         });
-        const results = report.results || migrateLegacySessions(source, options);
+        const results =
+          report.results || migrateLegacySessions(source, options);
 
         if (options.json) {
           console.log(JSON.stringify(report, null, 2));
@@ -357,9 +367,10 @@ export function registerSessionCommand(program) {
 
         if (report.sampledValidation?.length) {
           for (const item of report.sampledValidation) {
-            const label = item.valid && item.matchesExpectedMessages
-              ? chalk.green("sample-ok")
-              : chalk.red("sample-fail");
+            const label =
+              item.valid && item.matchesExpectedMessages
+                ? chalk.green("sample-ok")
+                : chalk.red("sample-fail");
             logger.log(
               `${label} ${item.sessionId} (${item.messageCount}/${item.expectedMessageCount} messages)`,
             );
@@ -389,12 +400,100 @@ export function registerSessionCommand(program) {
 
         const results = Array.isArray(result) ? result : [result];
         for (const item of results) {
-          const label = item.valid ? chalk.green("valid") : chalk.red("invalid");
+          const label = item.valid
+            ? chalk.green("valid")
+            : chalk.red("invalid");
           logger.log(
             `${label} ${item.sessionId} (${item.eventCount} events, ${item.messageCount || 0} messages, malformed: ${item.malformedLines})`,
           );
           if (!item.valid && item.reason) {
             logger.log(`  ${chalk.gray(item.reason)}`);
+          }
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // session workflow — inspect canonical coding workflow state
+  // Reads .chainlesschain/sessions/<id>/{intent.md,plan.md,progress.log,mode.json}
+  // written by the 4 workflow skills ($deep-interview/$ralplan/$ralph/$team).
+  session
+    .command("workflow")
+    .description("Inspect coding workflow state (.chainlesschain/sessions/)")
+    .argument("[id]", "Workflow session ID (omit to list all)")
+    .option("--json", "Output as JSON")
+    .option("--cwd <path>", "Project root (defaults to process.cwd())")
+    .action((id, options) => {
+      try {
+        const projectRoot = path.resolve(options.cwd || process.cwd());
+
+        if (!id) {
+          const items = listWorkflowSessions(projectRoot);
+          if (options.json) {
+            console.log(JSON.stringify(items, null, 2));
+            return;
+          }
+          if (items.length === 0) {
+            logger.info("No workflow sessions under .chainlesschain/sessions/");
+            logger.info(
+              'Start one with: $deep-interview "<your goal>" in the coding agent',
+            );
+            return;
+          }
+          logger.log(chalk.bold(`Workflow sessions (${items.length}):\n`));
+          for (const s of items) {
+            const approvedTag = s.approved
+              ? chalk.green("approved")
+              : s.hasPlan
+                ? chalk.yellow("unapproved")
+                : chalk.gray("no-plan");
+            logger.log(
+              `  ${chalk.cyan(s.sessionId)}  ${chalk.white(s.stage || "?")}  ${approvedTag}  ${chalk.gray(s.updatedAt || "")}`,
+            );
+          }
+          return;
+        }
+
+        const data = readWorkflowSession(projectRoot, id);
+        if (!data) {
+          logger.error(`Workflow session "${id}" not found`);
+          process.exit(1);
+        }
+        if (options.json) {
+          console.log(JSON.stringify(data, null, 2));
+          return;
+        }
+        logger.log(chalk.bold(`\nSession: ${data.sessionId}`));
+        logger.log(
+          `Stage:  ${data.mode?.stage || chalk.gray("(unset)")}    Approved: ${
+            data.planApproved ? chalk.green("yes") : chalk.yellow("no")
+          }`,
+        );
+        logger.log(chalk.gray(`Dir:    ${data.dir}\n`));
+
+        if (data.intent) {
+          logger.log(chalk.bold("── intent.md ──"));
+          logger.log(data.intent.trim());
+          logger.log("");
+        } else {
+          logger.log(chalk.gray("(no intent.md — run $deep-interview first)"));
+        }
+
+        if (data.plan) {
+          logger.log(chalk.bold("── plan.md ──"));
+          logger.log(data.plan.trim());
+          logger.log("");
+        } else {
+          logger.log(chalk.gray("(no plan.md — run $ralplan)"));
+        }
+
+        if (data.progress) {
+          logger.log(chalk.bold("── progress.log (tail) ──"));
+          const lines = data.progress.trim().split("\n");
+          for (const line of lines.slice(-20)) {
+            logger.log(`  ${line}`);
           }
         }
       } catch (err) {
