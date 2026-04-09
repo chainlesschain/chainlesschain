@@ -14,6 +14,9 @@ const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
   CodingAgentToolAdapter,
 } = require("../coding-agent-tool-adapter.js");
+const {
+  getCodingAgentToolContract,
+} = require("../../../../../../packages/cli/src/runtime/coding-agent-contract-shared.cjs");
 
 describe("CodingAgentToolAdapter", () => {
   it("exposes the seven core coding-agent tools with stable metadata", () => {
@@ -26,8 +29,19 @@ describe("CodingAgentToolAdapter", () => {
       CORE_CODING_AGENT_TOOLS.map((tool) => tool.name),
     );
     expect(tools.find((tool) => tool.name === "read_file")).toMatchObject({
+      title: "Read File",
+      kind: "filesystem",
+      category: "read",
       isReadOnly: true,
       riskLevel: "low",
+      permissions: {
+        level: "readonly",
+        scopes: ["filesystem:read"],
+      },
+      telemetry: {
+        category: "filesystem",
+        tags: expect.arrayContaining(["tool:read_file", "contract:coding-agent"]),
+      },
       source: "desktop-core",
     });
     expect(tools.find((tool) => tool.name === "run_shell")).toMatchObject({
@@ -39,6 +53,23 @@ describe("CodingAgentToolAdapter", () => {
       riskLevel: "high",
       planModeBehavior: "readonly-conditional",
       readOnlySubcommands: expect.arrayContaining(["status", "diff", "log"]),
+    });
+  });
+
+  it("derives core tool schemas from the shared coding-agent contract", () => {
+    const adapter = new CodingAgentToolAdapter();
+    const definitions = adapter.getToolDefinitions();
+    const readFileContract = getCodingAgentToolContract("read_file");
+
+    expect(
+      definitions.find((tool) => tool.function.name === "read_file"),
+    ).toEqual({
+      type: "function",
+      function: {
+        name: "read_file",
+        description: readFileContract.description,
+        parameters: readFileContract.inputSchema,
+      },
     });
   });
 
@@ -67,8 +98,21 @@ describe("CodingAgentToolAdapter", () => {
 
     expect(tool).toMatchObject({
       name: "write_file",
+      title: "Write File",
+      kind: "filesystem",
+      category: "write",
       description: "Managed description",
       riskLevel: "medium",
+      planModeBehavior: "blocked",
+      requiresPlanApproval: true,
+      permissions: {
+        level: "elevated",
+        scopes: ["filesystem:write"],
+      },
+      telemetry: {
+        category: "filesystem",
+        tags: expect.arrayContaining(["tool:write_file", "contract:coding-agent"]),
+      },
       source: "desktop-tool-manager:tool-1",
       isReadOnly: false,
     });
@@ -116,9 +160,17 @@ describe("CodingAgentToolAdapter", () => {
     expect(
       tools.find((tool) => tool.name === DEFAULT_ALLOWED_MANAGED_TOOL_NAMES[0]),
     ).toMatchObject({
+      title: "Info Searcher",
+      kind: "managed",
+      category: "read",
       source: "desktop-tool-manager:tool-2",
       riskLevel: "low",
       isReadOnly: true,
+      availableInPlanMode: true,
+      permissions: {
+        level: "readonly",
+        scopes: ["tool:invoke"],
+      },
     });
     expect(tools.some((tool) => tool.name === "git_commit")).toBe(false);
   });
@@ -172,9 +224,16 @@ describe("CodingAgentToolAdapter", () => {
           `mcp_${DEFAULT_ALLOWED_MCP_SERVER_NAMES[0]}_get_forecast`,
       ),
     ).toMatchObject({
+      title: "Weather Get Forecast",
+      kind: "mcp",
+      category: "read",
       source: `mcp:${DEFAULT_ALLOWED_MCP_SERVER_NAMES[0]}`,
       riskLevel: "low",
       isReadOnly: true,
+      permissions: {
+        level: "readonly",
+        scopes: expect.arrayContaining(["mcp:invoke", "network:http"]),
+      },
     });
     expect(tools.some((tool) => tool.name === "mcp_github_create_issue")).toBe(
       false,
@@ -244,8 +303,15 @@ describe("CodingAgentToolAdapter", () => {
     expect(
       allowedTools.find((tool) => tool.name === "mcp_github_create_issue"),
     ).toMatchObject({
+      kind: "mcp",
+      category: "execute",
       riskLevel: "high",
       isReadOnly: false,
+      requiresConfirmation: true,
+      permissions: {
+        level: "elevated",
+        scopes: expect.arrayContaining(["mcp:invoke"]),
+      },
       mcpMetadata: expect.objectContaining({
         trusted: true,
         securityLevel: "high",
@@ -278,6 +344,7 @@ describe("CodingAgentToolAdapter", () => {
     expect(
       tools.find((tool) => tool.name === "mcp_weather_admin_override"),
     ).toMatchObject({
+      category: "execute",
       riskLevel: "high",
       isReadOnly: false,
       mcpMetadata: expect.objectContaining({

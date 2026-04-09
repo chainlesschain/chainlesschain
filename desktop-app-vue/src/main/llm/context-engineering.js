@@ -14,6 +14,16 @@
 
 import crypto from "crypto";
 
+function getToolSchema(tool) {
+  return (
+    tool?.inputSchema ||
+    tool?.parameters ||
+    tool?.function?.parameters ||
+    tool?.input_schema ||
+    {}
+  );
+}
+
 /**
  * 上下文工程管理器
  */
@@ -593,8 +603,7 @@ class ContextEngineering {
       const name = tool.name || tool.function?.name || `tool_${index}`;
       const description =
         tool.description || tool.function?.description || "No description";
-      const parameters =
-        tool.parameters || tool.function?.parameters || tool.input_schema || {};
+      const parameters = getToolSchema(tool);
 
       return `### ${name}
 ${description}
@@ -664,7 +673,7 @@ ${JSON.stringify(parameters, null, 2)}`;
       for (const tool of skillTools) {
         let paramStr = "";
         try {
-          paramStr = JSON.stringify(tool.parameters || {}, null, 2);
+          paramStr = JSON.stringify(getToolSchema(tool), null, 2);
           if (paramStr.length > MAX_PARAMS_LENGTH) {
             paramStr = paramStr.slice(0, MAX_PARAMS_LENGTH) + "\n...}";
           }
@@ -686,7 +695,7 @@ ${JSON.stringify(parameters, null, 2)}`;
       for (const tool of ungroupedTools) {
         let paramStr = "";
         try {
-          paramStr = JSON.stringify(tool.parameters || {}, null, 2);
+          paramStr = JSON.stringify(getToolSchema(tool), null, 2);
           if (paramStr.length > MAX_PARAMS_LENGTH) {
             paramStr = paramStr.slice(0, MAX_PARAMS_LENGTH) + "\n...}";
           }

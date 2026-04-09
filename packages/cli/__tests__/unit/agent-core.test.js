@@ -4,8 +4,14 @@ import path from "node:path";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getRuntimeToolDescriptor } from "../../src/tools/legacy-agent-tools.js";
-import { CODING_AGENT_MVP_TOOL_NAMES } from "../../src/runtime/coding-agent-contract.js";
+import {
+  getRuntimeToolDescriptor,
+  getRuntimeToolDescriptorByCommand,
+} from "../../src/tools/legacy-agent-tools.js";
+import {
+  CODING_AGENT_MVP_TOOL_NAMES,
+  getCodingAgentFunctionToolDefinitions,
+} from "../../src/runtime/coding-agent-contract.js";
 
 // Mock plan-mode, skill-loader, hook-manager, project-detector before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -81,6 +87,10 @@ const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 describe("AGENT_TOOLS", () => {
   it("has 11 tool definitions", () => {
     expect(AGENT_TOOLS).toHaveLength(11);
+  });
+
+  it("is derived from the canonical coding-agent contract", () => {
+    expect(AGENT_TOOLS).toEqual(getCodingAgentFunctionToolDefinitions());
   });
 
   it("each tool has type 'function' and function.name", () => {
@@ -172,6 +182,16 @@ describe("agent tool registry compatibility", () => {
   it("maps git to the git runtime descriptor", () => {
     const descriptor = getRuntimeToolDescriptor("git");
     expect(descriptor?.name).toBe("git");
+  });
+
+  it("maps shell commands to runtime descriptors through the shared resolver", () => {
+    expect(getRuntimeToolDescriptorByCommand("git diff --stat")?.name).toBe(
+      "git",
+    );
+    expect(
+      getRuntimeToolDescriptorByCommand("chainlesschain mcp list")?.name,
+    ).toBe("mcp");
+    expect(getRuntimeToolDescriptorByCommand("echo ok")?.name).toBe("shell");
   });
 });
 

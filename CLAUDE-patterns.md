@@ -733,6 +733,64 @@ generateSkillFromMCPServer(serverName, catalogEntry, tools) {
 
 ---
 
+## Canonical Tool Descriptor 规范 (v5.0.2.9)
+
+> 设计文档：`docs/design/modules/83_工具描述规范统一.md`
+
+### Pattern: `inputSchema` 为真源，`parameters` 只读镜像
+
+**问题**: CLI / Desktop Main / Renderer / MCP 四端曾经有 5 套工具定义源，字段漂移导致 Plan Mode、Permission Gate、function-calling schema 行为不一致。
+
+**解决方案**:
+
+```js
+// Canonical shape (详见 unified-tool-registry.js / tool-masking.js)
+{
+  name: "read_file",                        // 必填
+  inputSchema: { type: "object", ... },     // 真源，必填
+  parameters: { type: "object", ... },      // 只读镜像，由 normalizer 自动从 inputSchema 派生
+  // 身份
+  title, description, kind, source, category,
+  // 权限 & Plan Mode
+  isReadOnly, riskLevel, permissions,
+  availableInPlanMode, requiresPlanApproval, requiresConfirmation, approvalFlow,
+  // Telemetry / Skill 关联
+  telemetry, skillName, skillCategory, instructions, examples, tags,
+}
+```
+
+**强制规则**:
+
+- **禁止手工双写** `inputSchema` + `parameters`。写路径只允许三种形态：
+  1. 只写 `inputSchema`，由 normalizer 产出 `parameters` 镜像（推荐）
+  2. 只写 legacy `parameters`，由 normalizer 反向镜像 `inputSchema`（FunctionCaller 工具注册端）
+  3. 在 canonicalize helper 中显式 `parameters: inputSchema` 或 `inputSchema: parameters`（`tool-masking.js` / `computer-use-tools.js` / `mcp-ipc.js`）
+- **读路径统一用 fallback 链**: `tool.inputSchema || tool.parameters || { type: "object", properties: {} }`，永远不要只读 `parameters`
+- **权限语义必须随 descriptor 走**: Permission Gate / Plan Mode 只读 `isReadOnly` / `riskLevel` / `availableInPlanMode` / `requiresPlanApproval`，禁止用工具名硬编码白名单
+- **对外必 clone**: `unified-tool-registry` 从缓存 Map 取出的 descriptor 在暴露给 IPC / Renderer 前必须 `cloneValue()`，防止消费方污染缓存
+- **默认 Plan Mode 收紧**: 未显式标注 `availableInPlanMode: true` 的工具按需要审批处理
+
+**关键实现位置**:
+
+- `packages/cli/src/runtime/coding-agent-contract-shared.cjs` — CLI 真源契约
+- `desktop-app-vue/src/main/ai-engine/code-agent/coding-agent-tool-adapter.js` — Desktop 从 contract 派生
+- `desktop-app-vue/src/main/ai-engine/unified-tool-registry.js` — `createUnifiedToolDescriptor()` + clone-on-read
+- `desktop-app-vue/src/main/ai-engine/tool-masking.js` — `toCanonicalDescriptor()` + `_projectCanonical()` + `CANONICAL_TOOL_FIELDS`
+- `desktop-app-vue/src/main/ai-engine/function-caller.js` — `buildMaskingPayload()` 透传 canonical 字段
+- `desktop-app-vue/src/main/ai-engine/tools/computer-use-tools.js` — `canonicalizeComputerUseTool()`
+- `desktop-app-vue/src/main/mcp/mcp-ipc.js` — IPC 序列化镜像
+- `desktop-app-vue/src/main/llm/context-engineering.js` — LLM prompt 组装 (inputSchema 优先)
+- `desktop-app-vue/src/renderer/stores/unified-tools.ts` — Renderer 只读 `inputSchema`
+
+**新增工具的正确姿势**:
+
+1. CLI core 工具：在 `coding-agent-contract-shared.cjs` 新增 entry，写 `inputSchema`，不要写 `parameters`
+2. Desktop FunctionCaller 工具：在 `extended-tools*.js` 里按旧 `parameters` 写法即可，normalizer 自动产出 canonical shape
+3. MCP 工具：由 `mcp-tool-adapter.js` / `unified-tool-registry.js` 自动规范化，工具源码不用关心
+4. 技能绑定工具：SKILL.md 里只声明 `tools` 字段（工具名数组），元数据由技能 loader 注入
+
+---
+
 ## 技能系统模式 (v0.35.0)
 
 ### Pattern: 四层技能加载

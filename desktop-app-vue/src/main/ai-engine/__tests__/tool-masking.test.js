@@ -47,6 +47,8 @@ const {
   ToolMaskingSystem,
   getToolMaskingSystem,
   TASK_PHASE_STATE_MACHINE,
+  CANONICAL_TOOL_FIELDS,
+  toCanonicalDescriptor,
 } = require('../tool-masking');
 
 describe('ToolMaskingSystem', () => {
@@ -786,6 +788,222 @@ describe('getToolMaskingSystem', () => {
     const instance2 = getToolMaskingSystem();
 
     expect(instance1).toBe(instance2);
+  });
+});
+
+describe('canonical tool descriptor', () => {
+  let system;
+
+  beforeEach(() => {
+    system = new ToolMaskingSystem({ logMaskChanges: false });
+  });
+
+  describe('toCanonicalDescriptor', () => {
+    it('mirrors parameters into inputSchema when inputSchema is absent', () => {
+      const descriptor = toCanonicalDescriptor({
+        name: 'legacy_tool',
+        parameters: { type: 'object', properties: { path: { type: 'string' } } },
+      });
+
+      expect(descriptor.inputSchema).toBe(descriptor.parameters);
+      expect(descriptor.inputSchema.properties.path.type).toBe('string');
+    });
+
+    it('prefers inputSchema over parameters when both are provided', () => {
+      const inputSchema = { type: 'object', properties: { a: { type: 'number' } } };
+      const descriptor = toCanonicalDescriptor({
+        name: 'dual_tool',
+        inputSchema,
+        parameters: { type: 'object', properties: { b: { type: 'string' } } },
+      });
+
+      expect(descriptor.inputSchema).toBe(inputSchema);
+      expect(descriptor.parameters).toBe(inputSchema);
+    });
+
+    it('preserves canonical metadata fields', () => {
+      const descriptor = toCanonicalDescriptor({
+        name: 'safe_tool',
+        parameters: { type: 'object', properties: {} },
+        description: 'read-only tool',
+        title: 'Safe Tool',
+        category: 'filesystem',
+        riskLevel: 'low',
+        isReadOnly: true,
+        availableInPlanMode: true,
+        requiresPlanApproval: false,
+      });
+
+      expect(descriptor.description).toBe('read-only tool');
+      expect(descriptor.title).toBe('Safe Tool');
+      expect(descriptor.category).toBe('filesystem');
+      expect(descriptor.riskLevel).toBe('low');
+      expect(descriptor.isReadOnly).toBe(true);
+      expect(descriptor.availableInPlanMode).toBe(true);
+      expect(descriptor.requiresPlanApproval).toBe(false);
+    });
+
+    it('falls back to an empty JSON Schema when no schema is provided', () => {
+      const descriptor = toCanonicalDescriptor({ name: 'empty_tool' });
+      expect(descriptor.inputSchema).toEqual({ type: 'object', properties: {} });
+      expect(descriptor.parameters).toBe(descriptor.inputSchema);
+    });
+
+    it('drops unknown extra fields to keep the shape predictable', () => {
+      const descriptor = toCanonicalDescriptor({
+        name: 'weird_tool',
+        parameters: {},
+        __internal_hack__: 'should-be-dropped',
+        randomStuff: 42,
+      });
+
+      expect(descriptor).not.toHaveProperty('__internal_hack__');
+      expect(descriptor).not.toHaveProperty('randomStuff');
+    });
+  });
+
+  describe('registerTool canonicalizes the stored descriptor', () => {
+    it('mirrors parameters to inputSchema when registering a legacy shape', () => {
+      system.registerTool({
+        name: 'legacy_reader',
+        description: 'legacy-shape tool',
+        parameters: { type: 'object', properties: { path: { type: 'string' } } },
+        handler: vi.fn(),
+      });
+
+      const stored = system.allTools.get('legacy_reader');
+      expect(stored.inputSchema).toBeDefined();
+      expect(stored.parameters).toBe(stored.inputSchema);
+    });
+
+    it('retains canonical metadata fields on the stored tool', () => {
+      system.registerTool({
+        name: 'git_commit',
+        description: 'commit files',
+        inputSchema: { type: 'object', properties: { message: { type: 'string' } } },
+        riskLevel: 'high',
+        isReadOnly: false,
+        category: 'git',
+        availableInPlanMode: false,
+        requiresPlanApproval: true,
+        handler: vi.fn(),
+      });
+
+      const stored = system.allTools.get('git_commit');
+      expect(stored.riskLevel).toBe('high');
+      expect(stored.isReadOnly).toBe(false);
+      expect(stored.category).toBe('git');
+      expect(stored.availableInPlanMode).toBe(false);
+      expect(stored.requiresPlanApproval).toBe(true);
+    });
+  });
+
+  describe('getAllToolDefinitions returns canonical descriptors', () => {
+    beforeEach(() => {
+      system.registerTool({
+        name: 'file_reader',
+        description: 'read files',
+        parameters: { type: 'object', properties: { path: { type: 'string' } } },
+        category: 'filesystem',
+        isReadOnly: true,
+        riskLevel: 'low',
+        availableInPlanMode: true,
+        handler: vi.fn(),
+      });
+
+      system.registerTool({
+        name: 'shell_exec',
+        description: 'run a shell command',
+        inputSchema: { type: 'object', properties: { command: { type: 'string' } } },
+        category: 'shell',
+        isReadOnly: false,
+        riskLevel: 'high',
+        availableInPlanMode: false,
+        requiresPlanApproval: true,
+        handler: vi.fn(),
+      });
+    });
+
+    it('exposes inputSchema as the source of truth and parameters as a mirror', () => {
+      const defs = system.getAllToolDefinitions();
+      for (const def of defs) {
+        expect(def.inputSchema).toBeDefined();
+        expect(def.parameters).toBe(def.inputSchema);
+      }
+    });
+
+    it('carries risk / read-only / plan-mode fields verbatim', () => {
+      const defs = system.getAllToolDefinitions();
+      const reader = defs.find((d) => d.name === 'file_reader');
+      const shell = defs.find((d) => d.name === 'shell_exec');
+
+      expect(reader.isReadOnly).toBe(true);
+      expect(reader.riskLevel).toBe('low');
+      expect(reader.availableInPlanMode).toBe(true);
+      expect(reader.category).toBe('filesystem');
+
+      expect(shell.isReadOnly).toBe(false);
+      expect(shell.riskLevel).toBe('high');
+      expect(shell.availableInPlanMode).toBe(false);
+      expect(shell.requiresPlanApproval).toBe(true);
+      expect(shell.category).toBe('shell');
+    });
+
+    it('never leaks handler or registeredAt to consumers', () => {
+      const defs = system.getAllToolDefinitions();
+      for (const def of defs) {
+        expect(def).not.toHaveProperty('handler');
+        expect(def).not.toHaveProperty('registeredAt');
+      }
+    });
+  });
+
+  describe('getAvailableToolDefinitions returns canonical descriptors', () => {
+    it('preserves canonical fields on the filtered subset', () => {
+      system.registerTool({
+        name: 'safe_read',
+        description: 'safe reader',
+        parameters: {},
+        isReadOnly: true,
+        riskLevel: 'low',
+        handler: vi.fn(),
+      });
+      system.registerTool({
+        name: 'risky_write',
+        description: 'risky writer',
+        parameters: {},
+        isReadOnly: false,
+        riskLevel: 'high',
+        handler: vi.fn(),
+      });
+
+      system.setToolAvailability('risky_write', false);
+
+      const defs = system.getAvailableToolDefinitions();
+      expect(defs).toHaveLength(1);
+      expect(defs[0].name).toBe('safe_read');
+      expect(defs[0].isReadOnly).toBe(true);
+      expect(defs[0].riskLevel).toBe('low');
+      expect(defs[0].parameters).toBe(defs[0].inputSchema);
+    });
+  });
+
+  describe('CANONICAL_TOOL_FIELDS', () => {
+    it('contains all fields the unified registry expects', () => {
+      for (const expected of [
+        'title',
+        'description',
+        'kind',
+        'source',
+        'category',
+        'isReadOnly',
+        'riskLevel',
+        'availableInPlanMode',
+        'requiresPlanApproval',
+      ]) {
+        expect(CANONICAL_TOOL_FIELDS).toContain(expected);
+      }
+    });
   });
 });
 

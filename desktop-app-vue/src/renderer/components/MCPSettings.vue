@@ -873,7 +873,35 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'name'">
-            <code style="color: #1890ff">{{ record.name }}</code>
+            <div>
+              <code style="color: #1890ff">{{ record.name }}</code>
+              <div
+                v-if="record.title && record.title !== record.name"
+                style="font-size: 12px; color: rgba(0, 0, 0, 0.45)"
+              >
+                {{ record.title }}
+              </div>
+            </div>
+          </template>
+
+          <template v-else-if="column.key === 'category'">
+            <a-tag :color="getToolCategoryColor(record.category)">
+              {{ getToolCategoryLabel(record.category) }}
+            </a-tag>
+          </template>
+
+          <template v-else-if="column.key === 'risk'">
+            <a-space>
+              <a-tag :color="getToolRiskColor(record.riskLevel)">
+                {{ getToolRiskLabel(record.riskLevel) }}
+              </a-tag>
+              <a-tag
+                v-if="record.isReadOnly"
+                color="green"
+              >
+                只读
+              </a-tag>
+            </a-space>
           </template>
 
           <template v-if="column.key === 'actions'">
@@ -908,6 +936,27 @@
         />
 
         <!-- 参数输入表单 -->
+        <a-space
+          wrap
+          style="margin-bottom: 16px"
+        >
+          <a-tag :color="getToolCategoryColor(selectedTool.category)">
+            {{ getToolCategoryLabel(selectedTool.category) }}
+          </a-tag>
+          <a-tag :color="getToolRiskColor(selectedTool.riskLevel)">
+            风险: {{ getToolRiskLabel(selectedTool.riskLevel) }}
+          </a-tag>
+          <a-tag
+            v-if="selectedTool.isReadOnly"
+            color="green"
+          >
+            只读
+          </a-tag>
+          <a-tag color="blue">
+            参数 {{ toolParameters.length }}
+          </a-tag>
+        </a-space>
+
         <a-form layout="vertical">
           <template v-if="toolParameters.length > 0">
             <a-divider orientation="left">
@@ -1378,7 +1427,19 @@ const toolColumns = [
     title: "工具名称",
     dataIndex: "name",
     key: "name",
-    width: 200,
+    width: 220,
+  },
+  {
+    title: "Category",
+    dataIndex: "category",
+    key: "category",
+    width: 120,
+  },
+  {
+    title: "Risk",
+    dataIndex: "riskLevel",
+    key: "risk",
+    width: 140,
   },
   {
     title: "描述",
@@ -1391,6 +1452,68 @@ const toolColumns = [
     width: 100,
   },
 ];
+
+const normalizeToolSchema = (tool) => {
+  return tool?.inputSchema || tool?.parameters || { type: "object", properties: {} };
+};
+
+const normalizeToolDescriptor = (tool) => {
+  const schema = normalizeToolSchema(tool);
+  const isReadOnly = tool?.isReadOnly === true;
+  return {
+    ...tool,
+    title: tool?.title || tool?.name || "",
+    inputSchema: schema,
+    parameters: schema,
+    category: tool?.category || (isReadOnly ? "read" : "execute"),
+    riskLevel: tool?.riskLevel || (isReadOnly ? "low" : "medium"),
+    isReadOnly,
+  };
+};
+
+const getToolCategoryColor = (category) => {
+  const colors = {
+    read: "green",
+    write: "orange",
+    delete: "red",
+    execute: "blue",
+    skill: "purple",
+    filesystem: "cyan",
+    git: "geekblue",
+  };
+  return colors[category] || "default";
+};
+
+const getToolCategoryLabel = (category) => {
+  const labels = {
+    read: "Read",
+    write: "Write",
+    delete: "Delete",
+    execute: "Execute",
+    skill: "Skill",
+    filesystem: "Filesystem",
+    git: "Git",
+  };
+  return labels[category] || category || "Unknown";
+};
+
+const getToolRiskColor = (riskLevel) => {
+  const colors = {
+    low: "green",
+    medium: "orange",
+    high: "red",
+  };
+  return colors[riskLevel] || "default";
+};
+
+const getToolRiskLabel = (riskLevel) => {
+  const labels = {
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+  };
+  return labels[riskLevel] || riskLevel || "Unknown";
+};
 
 // 计算属性
 const serversWithStatus = computed(() => {
@@ -1428,11 +1551,11 @@ const averageLatency = computed(() => {
 
 // 解析工具参数定义
 const toolParameters = computed(() => {
-  if (!selectedTool.value?.inputSchema?.properties) {
+  const schema = normalizeToolSchema(selectedTool.value);
+  if (!schema?.properties) {
     return [];
   }
 
-  const schema = selectedTool.value.inputSchema;
   const required = schema.required || [];
 
   return Object.entries(schema.properties).map(([name, prop]) => ({
@@ -1754,7 +1877,9 @@ const showServerTools = async (server) => {
     });
 
     if (result.success) {
-      serverTools.value = result.tools;
+      serverTools.value = (result.tools || []).map((tool) =>
+        normalizeToolDescriptor(tool),
+      );
       toolsModalVisible.value = true;
     } else {
       throw new Error(result.error);
@@ -1768,7 +1893,7 @@ const showServerTools = async (server) => {
 };
 
 const testTool = (tool) => {
-  selectedTool.value = tool;
+  selectedTool.value = normalizeToolDescriptor(tool);
 
   // 重置状态
   Object.keys(toolTestArgs).forEach((key) => delete toolTestArgs[key]);
@@ -1778,8 +1903,8 @@ const testTool = (tool) => {
   toolTestResult.value = null;
 
   // 初始化参数默认值
-  if (tool.inputSchema?.properties) {
-    const schema = tool.inputSchema;
+  const schema = normalizeToolSchema(tool);
+  if (schema?.properties) {
     const required = schema.required || [];
 
     Object.entries(schema.properties).forEach(([name, prop]) => {
@@ -1820,7 +1945,7 @@ const executeToolTest = async () => {
     } else {
       // 使用表单数据
       args = {};
-      const schema = selectedTool.value.inputSchema || {};
+      const schema = normalizeToolSchema(selectedTool.value);
       const properties = schema.properties || {};
 
       for (const [key, value] of Object.entries(toolTestArgs)) {
@@ -1844,7 +1969,7 @@ const executeToolTest = async () => {
     }
 
     // 验证必填参数
-    const schema = selectedTool.value.inputSchema || {};
+    const schema = normalizeToolSchema(selectedTool.value);
     const required = schema.required || [];
     for (const reqParam of required) {
       if (args[reqParam] === undefined || args[reqParam] === "") {

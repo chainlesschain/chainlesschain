@@ -18,6 +18,7 @@ const ExtendedTools = require("./extended-tools");
 const {
   getToolMaskingSystem,
   TASK_PHASE_STATE_MACHINE,
+  CANONICAL_TOOL_FIELDS,
 } = require("./tool-masking");
 const ExtendedTools2 = require("./extended-tools-2");
 const ExtendedTools3 = require("./extended-tools-3");
@@ -56,6 +57,51 @@ const {
   getComputerUseTools,
   registerComputerUseTools,
 } = require("./extended-tools-computeruse");
+
+/**
+ * Normalize a tool schema to the canonical descriptor shape.
+ *
+ * Guarantees:
+ * - `inputSchema` is preferred as source of truth; falls back to legacy `parameters`
+ * - `parameters` is always mirrored from `inputSchema`
+ * - Canonical fields (category, riskLevel, isReadOnly, plan-mode flags ...)
+ *   survive the round-trip when present on the input
+ */
+function normalizeToolSchema(schema = {}) {
+  const parameters = schema?.inputSchema || schema?.parameters || {};
+  return {
+    ...schema,
+    inputSchema: parameters,
+    parameters,
+  };
+}
+
+/**
+ * Project a normalized schema into the argument shape expected by
+ * `ToolMaskingSystem.registerTool`. Only keeps canonical fields plus the
+ * synchronized handler — never leaks internal registry state.
+ *
+ * @param {string} name
+ * @param {Object} normalizedSchema
+ * @param {Function} handler
+ * @returns {Object}
+ */
+function buildMaskingPayload(name, normalizedSchema, handler) {
+  const payload = {
+    name,
+    inputSchema: normalizedSchema.inputSchema,
+    parameters: normalizedSchema.parameters,
+    handler,
+  };
+
+  for (const field of CANONICAL_TOOL_FIELDS) {
+    if (normalizedSchema[field] !== undefined) {
+      payload[field] = normalizedSchema[field];
+    }
+  }
+
+  return payload;
+}
 
 class FunctionCaller {
   constructor(options = {}) {
@@ -130,12 +176,13 @@ class FunctionCaller {
     }
 
     for (const [name, tool] of this.tools) {
-      this.toolMasking.registerTool({
-        name,
-        description: tool.schema?.description || "",
-        parameters: tool.schema?.parameters || {},
-        handler: tool.handler,
-      });
+      const schema = normalizeToolSchema(tool.schema);
+      // Canonical sync: pass inputSchema + mirrored parameters + risk/permission
+      // flags so masking system exposes the same descriptor shape as the
+      // unified tool registry.
+      this.toolMasking.registerTool(
+        buildMaskingPayload(name, schema, tool.handler),
+      );
     }
 
     logger.info(`[FunctionCaller] 已同步 ${this.tools.size} 个工具到掩码系统`);
@@ -919,21 +966,20 @@ function initializeInteractions() {
       hooksWrapped = true;
     }
 
+    const normalizedSchema = normalizeToolSchema(schema);
+
     this.tools.set(name, {
       name,
       handler: wrappedHandler,
-      schema,
+      schema: normalizedSchema,
       _hooksWrapped: hooksWrapped,
     });
 
-    // 🔥 同步到掩码系统
+    // 🔥 同步到掩码系统（canonical shape）
     if (this.toolMasking) {
-      this.toolMasking.registerTool({
-        name,
-        description: schema?.description || "",
-        parameters: schema?.parameters || {},
-        handler: wrappedHandler,
-      });
+      this.toolMasking.registerTool(
+        buildMaskingPayload(name, normalizedSchema, wrappedHandler),
+      );
     }
 
     logger.info(
@@ -1046,14 +1092,31 @@ function initializeInteractions() {
 
   /**
    * 获取所有可用工具
+   *
+   * Returns canonical descriptors: `inputSchema` is source of truth,
+   * `parameters` is a mirror, and any canonical fields (category, riskLevel,
+   * isReadOnly, availableInPlanMode, ...) declared on the tool schema are
+   * surfaced verbatim so downstream consumers don't need to re-read them
+   * from a different registry.
+   *
    * @returns {Array} 工具列表
    */
   getAvailableTools() {
-    return Array.from(this.tools.values()).map((tool) => ({
-      name: tool.name,
-      description: tool.schema?.description || tool.description || "",
-      parameters: tool.schema?.parameters || tool.parameters || {},
-    }));
+    return Array.from(this.tools.values()).map((tool) => {
+      const schema = normalizeToolSchema(tool.schema || tool);
+      const descriptor = {
+        name: tool.name,
+        description: schema.description || tool.description || "",
+        inputSchema: schema.inputSchema,
+        parameters: schema.parameters,
+      };
+      for (const field of CANONICAL_TOOL_FIELDS) {
+        if (schema[field] !== undefined && descriptor[field] === undefined) {
+          descriptor[field] = schema[field];
+        }
+      }
+      return descriptor;
+    });
   }
 
   /**
@@ -1362,12 +1425,13 @@ function initializeInteractions() {
     const tools = [];
     for (const [name, tool] of this.tools) {
       if (FunctionCaller.AGENT_CHAT_TOOL_NAMES.has(name)) {
+        const schema = normalizeToolSchema(tool.schema || tool);
         tools.push({
           type: "function",
           function: {
             name: tool.name,
-            description: tool.schema?.description || tool.description || "",
-            parameters: tool.schema?.parameters || tool.parameters || {},
+            description: schema.description || tool.description || "",
+            parameters: schema.parameters,
           },
         });
       }

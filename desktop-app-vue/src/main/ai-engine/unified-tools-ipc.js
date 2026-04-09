@@ -202,7 +202,12 @@ function registerUnifiedToolsIPC({ unifiedToolRegistry }) {
       const tools = unifiedToolRegistry.getAllTools();
       const executors = tools.map((t) => ({
         name: t.name,
+        title: t.title || t.name,
         source: t.source,
+        kind: t.kind || t.source,
+        category: t.category || t.skillCategory || null,
+        riskLevel: t.riskLevel || "medium",
+        isReadOnly: t.isReadOnly === true,
         available: t.available,
         hasExecutor: !!unifiedToolRegistry.getToolExecutor(t.name),
         skillName: t.skillName,

@@ -159,6 +159,8 @@ chainlesschain config features enable CONTEXT_SNIP  # 启用特性
 chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 ```
 
+**Canonical Tool Descriptor 收口 (v5.0.2.9) ⭐**：CLI runtime ↔ Desktop Main ↔ Renderer ↔ MCP 全链路使用同一份 `inputSchema` 为真源的工具描述 shape。`parameters` 退化为只读镜像，`riskLevel` / `isReadOnly` / `availableInPlanMode` 等权限字段成为 Permission Gate 与 Plan Mode 的唯一输入。详见 [docs/design/modules/83_工具描述规范统一.md](./docs/design/modules/83_工具描述规范统一.md) 与 [用户文档](./docs-site/docs/chainlesschain/coding-agent-tool-descriptor-unification-plan.md)。
+
 **CLAUDE.md 优化**：从 32KB/724 行精简至 4.3KB/117 行，提取 6 个 path-scoped `.claude/rules/` 规则文件 + `@include` 指令。
 
 **Bug 修复**：`PromptCompressor.compress(null)` 崩溃 → 安全返回空数组。

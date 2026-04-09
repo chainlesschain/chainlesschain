@@ -12,15 +12,34 @@ import { defineStore } from 'pinia';
 
 export interface UnifiedTool {
   name: string;
+  title?: string;
+  kind?: string;
   description: string;
+  inputSchema?: Record<string, unknown>;
   parameters: Record<string, unknown>;
   source: 'builtin' | 'mcp' | 'skill-handler' | 'builtin-skill' | 'mcp-auto' | 'tool-group';
+  category?: string | null;
   skillName: string | null;
   skillCategory: string | null;
   instructions: string;
   examples: ToolExample[];
   tags: string[];
   available: boolean;
+  isReadOnly?: boolean;
+  riskLevel?: 'low' | 'medium' | 'high';
+  availableInPlanMode?: boolean;
+  planModeBehavior?: string;
+  requiresPlanApproval?: boolean;
+  requiresConfirmation?: boolean;
+  approvalFlow?: string;
+  permissions?: {
+    level?: string;
+    scopes?: string[];
+  };
+  telemetry?: {
+    category?: string;
+    tags?: string[];
+  };
   _score?: number;
 }
 
@@ -70,6 +89,10 @@ export const useUnifiedToolsStore = defineStore('unified-tools', {
     /** All unique categories from skills */
     categories(state): string[] {
       const cats = new Set<string>();
+      for (const tool of state.tools) {
+        if (tool.category) cats.add(tool.category);
+        else if (tool.skillCategory) cats.add(tool.skillCategory);
+      }
       for (const skill of state.skills) {
         if (skill.category) cats.add(skill.category);
       }
@@ -93,7 +116,11 @@ export const useUnifiedToolsStore = defineStore('unified-tools', {
         result = result.filter((t) => t.source === state.filterSource);
       }
       if (state.filterCategory) {
-        result = result.filter((t) => t.skillCategory === state.filterCategory);
+        result = result.filter(
+          (t) =>
+            t.category === state.filterCategory ||
+            t.skillCategory === state.filterCategory
+        );
       }
       if (state.searchKeyword) {
         const kw = state.searchKeyword.toLowerCase();

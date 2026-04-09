@@ -193,14 +193,53 @@ function resolveToolPolicy(toolName, descriptor = null) {
     base.riskLevel = normalizeRiskLevel(descriptor.riskLevel, base.riskLevel);
   }
 
+  if (descriptor?.category) {
+    base.category = descriptor.category;
+  }
+
+  if (typeof descriptor?.availableInPlanMode === "boolean") {
+    base.availableInPlanMode = descriptor.availableInPlanMode;
+  }
+
+  if (descriptor?.planModeBehavior) {
+    base.planModeBehavior = descriptor.planModeBehavior;
+  }
+
+  if (typeof descriptor?.requiresPlanApproval === "boolean") {
+    base.requiresPlanApproval = descriptor.requiresPlanApproval;
+  }
+
+  if (typeof descriptor?.requiresConfirmation === "boolean") {
+    base.requiresConfirmation = descriptor.requiresConfirmation;
+  }
+
+  if (descriptor?.approvalFlow) {
+    base.approvalFlow = descriptor.approvalFlow;
+  }
+
+  if (Array.isArray(descriptor?.readOnlySubcommands)) {
+    base.readOnlySubcommands = [...descriptor.readOnlySubcommands];
+  }
+
   if (descriptor?.isReadOnly === true) {
     base.isReadOnly = true;
     base.riskLevel = RISK_LEVELS.LOW;
-    base.availableInPlanMode = true;
-    base.planModeBehavior = "allow";
-    base.requiresPlanApproval = false;
-    base.requiresConfirmation = false;
-    base.approvalFlow = "auto";
+    base.category = descriptor?.category || TOOL_CATEGORIES.READ;
+    if (typeof descriptor?.availableInPlanMode !== "boolean") {
+      base.availableInPlanMode = true;
+    }
+    if (!descriptor?.planModeBehavior) {
+      base.planModeBehavior = "allow";
+    }
+    if (typeof descriptor?.requiresPlanApproval !== "boolean") {
+      base.requiresPlanApproval = false;
+    }
+    if (typeof descriptor?.requiresConfirmation !== "boolean") {
+      base.requiresConfirmation = false;
+    }
+    if (!descriptor?.approvalFlow) {
+      base.approvalFlow = "auto";
+    }
   }
 
   return base;

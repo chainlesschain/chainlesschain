@@ -10,10 +10,50 @@
 const { logger } = require('../../utils/logger');
 
 /**
- * Computer Use 工具集
- * 符合 OpenAI Function Calling / Claude Tool Use 格式
+ * Canonicalize a raw Computer Use tool definition into the descriptor shape
+ * used across CLI runtime, Desktop main, and Renderer.
+ *
+ * - `inputSchema` mirrors `parameters` (source of truth)
+ * - Read-only tools (screenshots, analyze) are marked `isReadOnly: true`
+ * - Write tools (click/type/navigate) are `high` risk and blocked in Plan Mode
+ *
+ * @private
+ * @param {Object} raw
+ * @returns {Object}
  */
-const ComputerUseTools = {
+function canonicalizeComputerUseTool(raw) {
+  const isReadOnly =
+    raw.name === 'browser_screenshot' ||
+    raw.name === 'desktop_screenshot' ||
+    raw.name === 'analyze_page';
+
+  // Canonical read order: prefer `inputSchema` (source of truth) and fall
+  // back to legacy `parameters`. Empty-object fallback guarantees the
+  // canonical shape even for tools with no input arguments.
+  const schema =
+    raw.inputSchema || raw.parameters || { type: 'object', properties: {} };
+
+  return {
+    ...raw,
+    // Canonical schema fields — inputSchema is the source of truth, parameters
+    // is kept as a read-only mirror for backwards compatibility.
+    inputSchema: schema,
+    parameters: schema,
+    // Canonical metadata
+    kind: 'builtin',
+    source: 'computer-use',
+    isReadOnly,
+    riskLevel: isReadOnly ? 'medium' : 'high',
+    availableInPlanMode: isReadOnly,
+    requiresPlanApproval: !isReadOnly,
+  };
+}
+
+/**
+ * Computer Use 工具集
+ * 符合 OpenAI Function Calling / Claude Tool Use 格式 + canonical descriptor
+ */
+const RawComputerUseTools = {
   /**
    * 浏览器坐标点击
    */
@@ -302,6 +342,19 @@ const ComputerUseTools = {
 };
 
 /**
+ * Canonicalized Computer Use tools. Each entry mirrors `parameters` into
+ * `inputSchema` and carries risk / plan-mode metadata so the unified tool
+ * registry and permission gate see the same descriptor shape regardless of
+ * registration path.
+ */
+const ComputerUseTools = Object.fromEntries(
+  Object.entries(RawComputerUseTools).map(([key, raw]) => [
+    key,
+    canonicalizeComputerUseTool(raw),
+  ]),
+);
+
+/**
  * 工具执行器
  */
 class ComputerUseToolExecutor {
@@ -498,6 +551,7 @@ class ComputerUseToolExecutor {
 
   /**
    * 获取工具定义（OpenAI 格式）
+   * Uses canonical `inputSchema` as source of truth.
    * @returns {Array}
    */
   static getOpenAITools() {
@@ -506,20 +560,21 @@ class ComputerUseToolExecutor {
       function: {
         name: tool.name,
         description: tool.description,
-        parameters: tool.parameters
+        parameters: tool.inputSchema || tool.parameters
       }
     }));
   }
 
   /**
    * 获取工具定义（Claude 格式）
+   * Uses canonical `inputSchema` as source of truth.
    * @returns {Array}
    */
   static getClaudeTools() {
     return Object.values(ComputerUseTools).map(tool => ({
       name: tool.name,
       description: tool.description,
-      input_schema: tool.parameters
+      input_schema: tool.inputSchema || tool.parameters
     }));
   }
 }

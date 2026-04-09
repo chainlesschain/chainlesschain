@@ -350,6 +350,30 @@ describe('FunctionCaller', () => {
       });
     });
 
+    it('should normalize inputSchema when syncing a registered tool', () => {
+      const handler = vi.fn();
+      const schema = {
+        description: 'Schema-first tool',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            path: { type: 'string' }
+          },
+          required: ['path']
+        }
+      };
+
+      vi.clearAllMocks();
+      functionCaller.registerTool('schema_tool', handler, schema);
+
+      expect(mockToolMasking.registerTool).toHaveBeenCalledWith({
+        name: 'schema_tool',
+        description: 'Schema-first tool',
+        parameters: schema.inputSchema,
+        handler
+      });
+    });
+
     it('should warn when overwriting existing tool', () => {
       const { logger } = require('../../../src/main/utils/logger.js');
 
@@ -679,9 +703,183 @@ describe('FunctionCaller', () => {
       expect(tools[0]).toHaveProperty('parameters');
     });
 
+    it('should expose canonical inputSchema alongside parameters', () => {
+      const handler = vi.fn();
+      const inputSchema = {
+        type: 'object',
+        properties: {
+          query: { type: 'string' }
+        }
+      };
+
+      functionCaller.registerTool('schema_tool', handler, {
+        description: 'Schema tool',
+        inputSchema
+      });
+
+      const tool = functionCaller
+        .getAvailableTools()
+        .find((entry) => entry.name === 'schema_tool');
+
+      expect(tool.inputSchema).toEqual(inputSchema);
+      expect(tool.parameters).toEqual(inputSchema);
+    });
+
+    it('should forward canonical risk/plan-mode fields to getAvailableTools', () => {
+      functionCaller.registerTool('canonical_tool', vi.fn(), {
+        description: 'A canonical tool',
+        inputSchema: { type: 'object', properties: { path: { type: 'string' } } },
+        category: 'filesystem',
+        isReadOnly: true,
+        riskLevel: 'low',
+        availableInPlanMode: true,
+        requiresPlanApproval: false
+      });
+
+      const tool = functionCaller
+        .getAvailableTools()
+        .find((entry) => entry.name === 'canonical_tool');
+
+      expect(tool.category).toBe('filesystem');
+      expect(tool.isReadOnly).toBe(true);
+      expect(tool.riskLevel).toBe('low');
+      expect(tool.availableInPlanMode).toBe(true);
+      expect(tool.requiresPlanApproval).toBe(false);
+    });
+
+    it('should propagate canonical fields into the masking system', () => {
+      functionCaller.registerTool('shell_exec', vi.fn(), {
+        description: 'run shell',
+        inputSchema: { type: 'object', properties: { cmd: { type: 'string' } } },
+        category: 'shell',
+        isReadOnly: false,
+        riskLevel: 'high',
+        availableInPlanMode: false,
+        requiresPlanApproval: true
+      });
+
+      const maskDefs = functionCaller.getAllToolDefinitions();
+      const masked = maskDefs.find((entry) => entry.name === 'shell_exec');
+
+      expect(masked).toBeDefined();
+      expect(masked.inputSchema).toBeDefined();
+      expect(masked.parameters).toEqual(masked.inputSchema);
+      expect(masked.riskLevel).toBe('high');
+      expect(masked.isReadOnly).toBe(false);
+      expect(masked.category).toBe('shell');
+      expect(masked.availableInPlanMode).toBe(false);
+      expect(masked.requiresPlanApproval).toBe(true);
+      // never leak internal state
+      expect(masked).not.toHaveProperty('handler');
+      expect(masked).not.toHaveProperty('registeredAt');
+    });
+
     it('should check if tool exists', () => {
       expect(functionCaller.hasTool('file_reader')).toBe(true);
       expect(functionCaller.hasTool('non_existent')).toBe(false);
+    });
+
+    it('should propagate ALL canonical fields through buildMaskingPayload', () => {
+      const fullSchema = {
+        description: 'Full canonical tool',
+        title: 'Full Canonical',
+        inputSchema: { type: 'object', properties: { q: { type: 'string' } } },
+        kind: 'builtin',
+        source: 'fc-test',
+        category: 'search',
+        isReadOnly: true,
+        riskLevel: 'low',
+        permissions: { fs: 'read' },
+        telemetry: { metric: 'fc.search' },
+        availableInPlanMode: true,
+        requiresPlanApproval: false,
+        requiresConfirmation: false,
+        approvalFlow: 'auto',
+        planModeBehavior: 'allow',
+        skillName: 'search-kit',
+        skillCategory: 'knowledge',
+        instructions: 'Use this to search corpus.',
+        examples: [{ input: { q: 'hi' }, output: 'hi' }],
+        tags: ['search', 'kit'],
+      };
+
+      functionCaller.registerTool('full_canonical', vi.fn(), fullSchema);
+
+      const masked = functionCaller
+        .getAllToolDefinitions()
+        .find((entry) => entry.name === 'full_canonical');
+
+      expect(masked).toBeDefined();
+      // Schema mirror
+      expect(masked.inputSchema).toEqual(fullSchema.inputSchema);
+      expect(masked.parameters).toEqual(fullSchema.inputSchema);
+      // Every canonical field survives
+      expect(masked.title).toBe('Full Canonical');
+      expect(masked.kind).toBe('builtin');
+      expect(masked.source).toBe('fc-test');
+      expect(masked.category).toBe('search');
+      expect(masked.isReadOnly).toBe(true);
+      expect(masked.riskLevel).toBe('low');
+      expect(masked.permissions).toEqual({ fs: 'read' });
+      expect(masked.telemetry).toEqual({ metric: 'fc.search' });
+      expect(masked.availableInPlanMode).toBe(true);
+      expect(masked.requiresPlanApproval).toBe(false);
+      expect(masked.requiresConfirmation).toBe(false);
+      expect(masked.approvalFlow).toBe('auto');
+      expect(masked.planModeBehavior).toBe('allow');
+      expect(masked.skillName).toBe('search-kit');
+      expect(masked.skillCategory).toBe('knowledge');
+      expect(masked.instructions).toBe('Use this to search corpus.');
+      expect(masked.examples).toEqual([{ input: { q: 'hi' }, output: 'hi' }]);
+      expect(masked.tags).toEqual(['search', 'kit']);
+      // Never leak internal state
+      expect(masked).not.toHaveProperty('handler');
+      expect(masked).not.toHaveProperty('registeredAt');
+    });
+
+    it('should not leak undefined canonical fields when registration omits them', () => {
+      functionCaller.registerTool('minimal_tool', vi.fn(), {
+        description: 'Minimal',
+        inputSchema: { type: 'object', properties: {} },
+      });
+
+      const masked = functionCaller
+        .getAllToolDefinitions()
+        .find((entry) => entry.name === 'minimal_tool');
+
+      expect(masked).toBeDefined();
+      // Fields that were never set must NOT appear as `undefined` keys
+      expect('riskLevel' in masked).toBe(false);
+      expect('isReadOnly' in masked).toBe(false);
+      expect('availableInPlanMode' in masked).toBe(false);
+      expect('skillName' in masked).toBe(false);
+    });
+  });
+
+  describe('Agent Chat Tools', () => {
+    beforeEach(() => {
+      functionCaller = new FunctionCaller();
+    });
+
+    it('should use normalized inputSchema for agent chat definitions', () => {
+      const inputSchema = {
+        type: 'object',
+        properties: {
+          filePath: { type: 'string' }
+        },
+        required: ['filePath']
+      };
+
+      functionCaller.registerTool('file_reader', vi.fn(), {
+        description: 'Read a file',
+        inputSchema
+      });
+
+      const tool = functionCaller
+        .getAgentChatTools()
+        .find((entry) => entry.function.name === 'file_reader');
+
+      expect(tool.function.parameters).toEqual(inputSchema);
     });
   });
 
