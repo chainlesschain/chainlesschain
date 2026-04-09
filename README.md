@@ -1,5 +1,16 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-09 增量更新（CLI Runtime 收口闭环 — Phase 7 Parity Harness）
+
+CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图.md`）Phase 0–7 全部落地，统一 Coding Agent envelope 协议 v1.0 在 CLI / Desktop / Web UI 三端达成字节级对齐：
+
+- **8 步 parity 测试矩阵全绿（91 tests）**：envelope 契约 / sequence tracker / legacy↔unified 双向映射 / WS server 透传 / JSONL session store / SubAgentContext worktree 隔离 / mock LLM provider / desktop bridge envelope parity
+- **shim 明确标注**：`src/lib/agent-core.js`(26L) / `src/lib/ws-server.js`(16L) / `src/lib/ws-agent-handler.js`(12L) 全部降级为 @deprecated 薄 shim，canonical 实现收归 `src/runtime/` 与 `src/gateways/ws/`
+- **新增测试**：`packages/cli/__tests__/integration/parity-envelope-bridge.test.js`（58 tests）覆盖 `createCodingAgentEvent` / `CodingAgentSequenceTracker` / `wrapLegacyMessage` / `unwrapEnvelope` 全路径
+- **收口完成定义 5 项准则全部达成**：单一入口 · envelope 协议统一 · parity harness 全绿 · shim 迁移窗口标注 · 文档同步
+
+详情见 [82 路线图](./docs/design/modules/82_CLI_Runtime收口路线图.md) §8 完成定义与 [CHANGELOG.md](./CHANGELOG.md) Unreleased 段。
+
 ## 2026-04-09 增量更新（ADR Phase E — Canonical Workflow 智能路由收口）
 
 继规范工作流 Phase A–D 之后,本轮把 ADR `LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION` 的 **Phase E 智能路由** 主线一次性落地:

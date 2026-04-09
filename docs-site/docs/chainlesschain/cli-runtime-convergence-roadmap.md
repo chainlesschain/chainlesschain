@@ -1,10 +1,10 @@
 # CLI Runtime 收口路线图
 
-> **状态：In Progress** · 最后更新：2026-04-09 · 适用范围：`packages/cli` + `desktop-app-vue` · 目标周期：6 周
+> **状态：✅ 已完成 (收口闭环)** · 最后更新：2026-04-09 · 适用范围：`packages/cli` + `desktop-app-vue`
 >
 > 关联文档：[CLI Agent Runtime 重构计划](./cli-agent-runtime-plan) · [Minimal Coding Agent 实施计划](./minimal-coding-agent-plan) · [Canonical Tool Descriptor](./coding-agent-tool-descriptor-unification-plan) · [边界冻结 ADR](../../../docs/implementation-plans/CLI_RUNTIME_CONVERGENCE_ADR)
 
-## 当前进度 (2026-04-09 Phase 6b 完成)
+## 当前进度 (2026-04-09 Phase 7 完成 — 收口闭环)
 
 | 阶段 | 状态 | 说明 |
 |---|---|---|
@@ -16,9 +16,39 @@
 | Phase 5 — 升级 doctor/status | ✅ 完成 | `runtime/diagnostics.js` 纯数据采集;`doctor --json` / `status --json` 落地稳定 schema (`chainlesschain.doctor.v1` / `chainlesschain.status.v1`),满足 D6 |
 | Phase 6a — ws-server & ws-session-manager 反向迁移 | ✅ 完成 | `ws-server.js` (760 行) → `gateways/ws/ws-server.js`;`ws-session-manager.js` (1421 行) → `gateways/ws/ws-session-gateway.js`;两处 `src/lib/*` 均为 `@deprecated` 再导出 |
 | Phase 6b — agent-core & ws-agent-handler 反向迁移 | ✅ 完成 | `agent-core.js` (1651 行) → `runtime/agent-core.js`;`ws-agent-handler.js` (476 行) → `gateways/ws/ws-agent-handler.js`;生产调用点 (`repl/agent-repl.js`、`gateways/ws/session-protocol.js`、`gateways/ws/ws-session-gateway.js`) 直连 canonical;`src/lib/*` 均为 `@deprecated` 再导出 |
-| Phase 7 — parity harness | ⬜ 待启动 | 无 mock provider / golden transcript |
+| Phase 7 — parity harness | ✅ 完成 | 8 步 parity 测试全部落地 (91 tests)，`mock-llm-provider.js` + `jsonl-session-store.js` harness 发布 |
 
 **兼容层当前状态:** 6 个历史 lib 实体文件 (~5151 行) 已全部退化为 `@deprecated` re-export shim。`src/lib/*` 冻结为兼容层,新增代码默认落到 `runtime/`、`gateways/`、`harness/`、`tools/`、`contracts/`。
+
+## Phase 7 Parity Harness 落地清单
+
+| Step | 范围 | 测试文件 | 用例数 | 提交 |
+|---|---|---|---|---|
+| 1 | agent loop parity | `__tests__/integration/parity-agent-loop.test.js` | 4 | Phase 7 前 3 步 |
+| 2 | plan approval parity | `parity-plan-approval.test.js` | 4 | |
+| 3 | shell policy parity (DENY / REROUTE / ALLOW) | `parity-shell-policy.test.js` | 6 | |
+| 4 | MCP invoke parity (success / error / unavailable / scalar wrap) | `parity-mcp-invoke.test.js` | 4 | `8b937994a` |
+| 5 | plugin tool parity (via `run_skill`) | `parity-plugin-tool.test.js` | 4 | `ccc582790` |
+| 6 | session resume parity (JSONL round-trip + compact boundary) | `parity-session-resume.test.js` | 6 | `2324b3817` |
+| 7 | worktree isolation parity (real `git init` + cwd flip) | `parity-worktree-isolation.test.js` | 5 | `b28dfcd4d` |
+| 8 | Desktop bridge envelope parity (legacy↔envelope roundtrip) | `parity-envelope-bridge.test.js` | 58 | `897df3f81` |
+
+合计 **91 parity tests** + **41 runtime-convergence-shims regression tests** = **132 硬回归护栏**。
+
+**Harness 组件:**
+
+- `packages/cli/src/harness/mock-llm-provider.js` — 脚本化 `chatFn` 注入点，支持 `expect(messages)` 前置断言 + `assertDrained()` 消费保护
+- `packages/cli/src/harness/jsonl-session-store.js` — canonical append-only session store (`startSession` / `append*` / `rebuildMessages` / `validateJsonlSession`)
+- `packages/cli/src/lib/sub-agent-context.js` — `SubAgentContext.create({ llmOptions.chatFn })` 把 mock provider 注入 sub-agent 循环
+- `HOME` / `USERPROFILE` env 覆盖模式 — 跨平台 hermetic session 路径隔离
+
+## 收口完成定义 (全部达成)
+
+1. ✅ `packages/cli` 成为唯一 canonical runtime — 6 个 lib 实体 5151 行全部退化为 shim
+2. ✅ Desktop 不再维护平行 MCP / plugin / session 真相 — Phase 3/4 收口 + envelope 协议锁定
+3. ✅ runtime state 全部具备统一 record / event / JSON 输出 — envelope v1.0 + `web-ui-envelope.js` 双向适配
+4. ✅ `doctor` / `status` 能直接定位运行时问题 — 稳定 schema `chainlesschain.doctor.v1` / `chainlesschain.status.v1`
+5. ✅ 关键 agent 行为具备 parity harness 回归能力 — 8 步 parity 测试全部落地
 
 ## 概述
 
