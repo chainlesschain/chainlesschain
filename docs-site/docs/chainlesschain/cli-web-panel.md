@@ -1,10 +1,10 @@
-# Vue3 Web 管理面板 (ui – v5.0.2.11)
+# Vue3 Web 管理面板 (ui – v5.0.2.12)
 
-> **版本**: v5.0.2.11 | 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
+> **版本**: v5.0.2.12 | 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
 
 > **v5.0.2.6 起**：通过 `npm install -g chainlesschain` 安装的用户**无需手动构建**，面板已内置于包中，直接运行 `chainlesschain ui` 即可。
 
-`chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **15 个功能模块**，支持 **4 种颜色主题**，并清晰区分项目级和全局两种工作模式。
+`chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **23 个功能模块**，支持 **4 种颜色主题**，并清晰区分项目级和全局两种工作模式。
 
 ## 快速开始
 
@@ -27,9 +27,9 @@ chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
 
 启动后访问：`http://127.0.0.1:18810`
 
-## 十五个功能模块
+## 二十三个功能模块
 
-侧边栏分四组：**概览**（仪表板/对话/服务/日志）、**配置**（技能/LLM 配置/MCP 工具）、**数据**（笔记/记忆/定时任务/后台任务）、**高级**（安全中心/P2P 网络/Git 与数据/项目管理）。
+侧边栏分七组：**概览**（仪表板/对话/服务/日志）、**配置**（技能/LLM 配置/MCP 工具）、**数据**（笔记/记忆/定时任务/后台任务）、**高级**（安全中心/权限管理/P2P 网络/备份同步/Git 与数据/项目管理）、**企业**（钱包管理/组织管理/使用分析/模板中心）、**扩展**（RSS 订阅/身份认证）。
 
 ### 🏠 仪表板 (Dashboard)
 
@@ -134,6 +134,62 @@ chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
 - **环境诊断**：`doctor` 命令输出
 - 命令：`status`、`config list`、`init --template`、`doctor`
 
+### 💰 钱包管理 (Wallet)
+
+- **钱包列表**：地址、名称、默认标记、余额
+- **资产管理**：Token/NFT/数据资产注册与查看
+- **转账历史**：转账操作、交易记录分页
+- 命令：`wallet list/create/set-default/assets/transfer/history --json`
+
+### 🏢 组织管理 (Organization)
+
+- **组织列表**：创建组织、详情查看
+- **成员管理**：邀请、角色分配（admin/member/viewer）、团队管理
+- **审批管理**：提交、批准、拒绝审批请求
+- 命令：`org list/create/show/members/invite/teams/approvals --json`
+
+### 📊 使用分析 (Analytics)
+
+- **Token 用量统计**：按时段筛选（今天/本周/本月/全部）
+- **Provider 分布表**：按 provider/model 切片的调用量与成本
+- **缓存状态**：命中数、节省 Token 数、过期清理
+- 命令：`tokens show/breakdown/recent/cache --json`
+
+### 📋 模板中心 (Templates)
+
+- **9 个项目模板**：一键初始化（code-project、medical-triage 等）
+- **BI 模板**：从 CLI 动态加载
+- **Prompt 模板**：localStorage 持久化，支持分类与复制
+- 命令：`init --template`、`bi templates --json`
+
+### 🔐 权限管理 (Permissions)
+
+- **RBAC 角色列表**：角色、权限标签、用户数
+- **权限检查**：输入用户 ID 与权限名快速验证
+- **审计日志**：事件列表与统计卡片
+- 命令：`auth roles/check`、`audit log/stats --json`
+
+### 📰 RSS 订阅 (RssFeed)
+
+- **订阅源管理**：添加/刷新/删除 RSS 源
+- **文章阅读**：按源筛选、可展开摘要、标记已读
+- **统计卡片**：订阅数、文章数、未读数、最后刷新
+- 命令：`rss add/list/articles/refresh/remove --json`
+
+### 💾 备份恢复 (Backup)
+
+- **备份管理**：创建备份、备份列表、一键恢复
+- **数据同步**：同步状态、推送/拉取、冲突管理
+- **IPFS 存储**：节点状态、文件固定/取消固定
+- 命令：`backup create/list/restore`、`sync status/push/pull`、`ipfs status/pins --json`
+
+### 🔑 身份认证 (WebAuthn)
+
+- **WebAuthn 凭证**：注册、列表、删除
+- **SSO 配置**：OIDC/SAML/LDAP 提供商设置
+- **双因素认证**：TOTP 启用/禁用、恢复码生成
+- 命令：`webauthn list/register/delete`、`sso status`、`auth 2fa enable/disable --json`
+
 ## 颜色主题
 
 面板支持 4 种颜色主题，可在顶部导航栏右上角切换：
@@ -204,14 +260,22 @@ packages/web-panel/           Vue3 + Vite + Ant Design Vue
 ├── src/stores/dashboard.js   Dashboard 统计状态
 ├── src/utils/parsers.js      纯函数解析层（技能/状态/笔记/MCP/记忆/Cron）
 ├── src/style.css             全局 CSS 变量驱动主题系统
-├── src/views/                15 个页面视图
+├── src/views/                23 个页面视图
 │   ├── Security.vue          安全中心（DID/加密/审计）
 │   ├── P2P.vue               P2P 网络（设备/消息/同步）
 │   ├── Git.vue               Git 与数据（仓库/导入导出）
 │   ├── Projects.vue          项目管理（模板/诊断）
-│   └── ...                   其余 11 个页面
+│   ├── Wallet.vue            钱包管理（资产/转账）
+│   ├── Organization.vue      组织管理（成员/审批）
+│   ├── Analytics.vue         使用分析（Token/成本）
+│   ├── Templates.vue         模板中心（项目/BI/Prompt）
+│   ├── Permissions.vue       权限管理（RBAC/审计）
+│   ├── RssFeed.vue           RSS 订阅（源/文章）
+│   ├── Backup.vue            备份恢复（同步/IPFS）
+│   ├── WebAuthn.vue          身份认证（SSO/2FA）
+│   └── ...                   其余 11 个基础页面
 └── src/components/
-    ├── AppLayout.vue         四组侧边栏（概览/配置/数据/高级）+ 主题切换器
+    ├── AppLayout.vue         七组侧边栏（概览/配置/数据/高级/企业/扩展）+ 主题切换器
     └── MarkdownRenderer.vue  Markdown 渲染（主题感知）
 ```
 
@@ -289,15 +353,16 @@ return { output: output || stderr, exitCode: result.exitCode ?? 0 }
 
 ## 与旧版对比
 
-| 特性 | v5.0.2.6 | v5.0.2.8 | v5.0.2.11 |
-|------|-----------|-----------|-----------|
-| 功能模块数 | 4 | 10 | **15**（新增安全/P2P/Git/项目管理/后台任务）|
-| 颜色主题 | 仅深色 | **4 种** | 4 种 |
-| Provider 列表 | 不含国产模型 | **10 个** | 10 个 + **LLM 参数设置面板** |
-| 技能数量显示 | ❌ 始终为 0 | ✅ 正确 | ✅ 正确 |
-| v1.0 Envelope 协议 | — | ❌ 超时 | ✅ requestId 关联 + payload flatten |
-| Chat 流式消息 | — | ❌ dot-case 不兼容 | ✅ DOT_TO_LEGACY_TYPE 映射 |
-| Desktop 功能迁移 | — | — | ✅ DID/P2P/Git/Projects |
+| 特性 | v5.0.2.6 | v5.0.2.8 | v5.0.2.11 | v5.0.2.12 |
+|------|-----------|-----------|-----------|-----------|
+| 功能模块数 | 4 | 10 | 15 | **23**（+钱包/组织/分析/模板/权限/RSS/备份/认证）|
+| 颜色主题 | 仅深色 | **4 种** | 4 种 | 4 种 |
+| Provider 列表 | 不含国产模型 | **10 个** | 10 个 + **LLM 参数设置面板** | 10 个 |
+| 技能数量显示 | ❌ 始终为 0 | ✅ 正确 | ✅ 正确 | ✅ 正确 |
+| v1.0 Envelope 协议 | — | ❌ 超时 | ✅ requestId 关联 + payload flatten | ✅ |
+| Chat 流式消息 | — | ❌ dot-case 不兼容 | ✅ DOT_TO_LEGACY_TYPE 映射 | ✅ |
+| Desktop 功能迁移 | — | — | ✅ DID/P2P/Git/Projects | ✅ 企业+扩展 8 页 |
+| 侧边栏分组 | 1 组 | 3 组 | 4 组 | **7 组** |
 
 ## 测试覆盖
 
@@ -309,11 +374,13 @@ return { output: output || stderr, exitCode: result.exitCode ?? 0 }
 | `chat-store.test.js` | 单元 | 15 |
 | `tasks-store.test.js` | 单元 | 8 |
 | `dashboard-store.test.js` | 单元 | 6 |
-| `new-pages.test.js` | 单元 | 75 |
-| `cli-commands.test.js` | 集成 | 12 |
+| `new-pages.test.js` | 单元 | 83 |
+| `batch-pages.test.js` | 单元 | 309 |
+| `web-ui-server.test.js` | 集成 | 23 |
+| `cli-commands.test.js` | 集成 | 17 |
 | `ws-protocol-compat.test.js` | E2E | 12 |
-| `panel.test.js` | E2E | 24+ |
-| **Web Panel 合计** | | **266+** |
+| `panel.test.js` | E2E | 46 |
+| **Web Panel 合计** | | **621** |
 
 ## 相关文档
 

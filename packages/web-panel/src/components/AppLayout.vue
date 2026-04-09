@@ -66,9 +66,23 @@
           <a-menu-item-group>
             <template #title><span class="group-label">高 级</span></template>
             <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template>安全中心</a-menu-item>
+            <a-menu-item key="permissions"><template #icon><LockOutlined /></template>权限管理</a-menu-item>
             <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>P2P 网络</a-menu-item>
+            <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template>备份同步</a-menu-item>
             <a-menu-item key="git"><template #icon><CodeOutlined /></template>Git 与数据</a-menu-item>
             <a-menu-item key="projects"><template #icon><ProjectOutlined /></template>项目管理</a-menu-item>
+          </a-menu-item-group>
+          <a-menu-item-group>
+            <template #title><span class="group-label">企 业</span></template>
+            <a-menu-item key="wallet"><template #icon><WalletOutlined /></template>钱包管理</a-menu-item>
+            <a-menu-item key="organization"><template #icon><TeamOutlined /></template>组织管理</a-menu-item>
+            <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template>使用分析</a-menu-item>
+            <a-menu-item key="templates"><template #icon><BlockOutlined /></template>模板中心</a-menu-item>
+          </a-menu-item-group>
+          <a-menu-item-group>
+            <template #title><span class="group-label">扩 展</span></template>
+            <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template>RSS 订阅</a-menu-item>
+            <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template>身份认证</a-menu-item>
           </a-menu-item-group>
         </template>
         <template v-else>
@@ -87,9 +101,19 @@
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
           <a-menu-divider class="divider-sm" />
           <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
+          <a-menu-item key="permissions"><template #icon><LockOutlined /></template></a-menu-item>
           <a-menu-item key="p2p"><template #icon><WifiOutlined /></template></a-menu-item>
+          <a-menu-item key="backup"><template #icon><CloudUploadOutlined /></template></a-menu-item>
           <a-menu-item key="git"><template #icon><CodeOutlined /></template></a-menu-item>
           <a-menu-item key="projects"><template #icon><ProjectOutlined /></template></a-menu-item>
+          <a-menu-divider class="divider-sm" />
+          <a-menu-item key="wallet"><template #icon><WalletOutlined /></template></a-menu-item>
+          <a-menu-item key="organization"><template #icon><TeamOutlined /></template></a-menu-item>
+          <a-menu-item key="analytics"><template #icon><BarChartOutlined /></template></a-menu-item>
+          <a-menu-item key="templates"><template #icon><BlockOutlined /></template></a-menu-item>
+          <a-menu-divider class="divider-sm" />
+          <a-menu-item key="rssfeed"><template #icon><ReadOutlined /></template></a-menu-item>
+          <a-menu-item key="webauthn"><template #icon><KeyOutlined /></template></a-menu-item>
         </template>
       </a-menu>
 
@@ -152,7 +176,9 @@ import {
   FolderOutlined, GlobalOutlined, InfoCircleOutlined,
   ControlOutlined, FileTextOutlined, CloudServerOutlined,
   BookOutlined, BranchesOutlined, ClockCircleOutlined, ThunderboltOutlined,
-  SafetyCertificateOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
+  SafetyCertificateOutlined, LockOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
+  WalletOutlined, TeamOutlined, BarChartOutlined, BlockOutlined, CloudUploadOutlined,
+  ReadOutlined, KeyOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

@@ -70,7 +70,7 @@ chainlesschain ui --web-panel-dir /custom/dist
 
 ## 页面能力概览
 
-当前 Web Panel 覆盖 15 个页面，分为四大类：
+当前 Web Panel 覆盖 23 个页面，分为七大类：
 
 **概览**：Dashboard、AI 对话、服务管理、日志查看
 
@@ -78,7 +78,11 @@ chainlesschain ui --web-panel-dir /custom/dist
 
 **数据**：笔记管理、记忆文件、定时任务、后台任务
 
-**高级**：安全中心、P2P 网络、Git 与数据、项目管理
+**高级**：安全中心、权限管理、P2P 网络、备份同步、Git 与数据、项目管理
+
+**企业**：钱包管理、组织管理、使用分析、模板中心
+
+**扩展**：RSS 订阅、身份认证
 
 ### Dashboard
 
@@ -347,9 +351,9 @@ Git 页面包含两个 Tab：
 
 ## 当前验证
 
-- Web Panel 单元测试：`218/218`（7 个文件）
-- Web Panel 集成测试：`12/12`
-- Web Panel E2E：`12/12`（WS 协议兼容） + SPA 路由测试
+- Web Panel 单元测试：`523/523`（9 个文件，含批次 1+2 页面解析测试）
+- Web Panel 集成测试：`40/40`（web-ui-server + CLI 命令集成）
+- Web Panel E2E：`12/12`（WS 协议兼容） + `46` SPA 路由 + 资源文件测试
 - Web Panel 构建：通过
 
 ## 关联文档

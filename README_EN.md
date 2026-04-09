@@ -82,7 +82,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5517%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5700%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
@@ -177,6 +177,26 @@ Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/mai
 **Result**: `ipc-registry.js` shrank from 4925 → 493 lines (**−4432, −90.0%**) across 16 extracted phase modules covering 88 phases. `phase-modules.test.js` now has 48 contract tests, all passing.
 
 See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) §9 for full details.
+
+### History - Web Panel: 23 Modules Enterprise Expansion (v5.0.2.12)
+
+v5.0.2.12 expands Web Panel from 15 to **23 modules** with enterprise and extension features:
+
+**Batch 1 (Enterprise)**:
+- 💰 **Wallet** — Wallet list, asset management, transfer history
+- 🏢 **Organization** — Org management, members, teams, approvals
+- 📊 **Analytics** — Token usage, cost breakdown, cache status
+- 📋 **Templates** — 9 project templates, BI templates, prompt templates
+
+**Batch 2 (Extensions)**:
+- 🔐 **Permissions** — RBAC roles, permission checks, audit logs
+- 📰 **RssFeed** — Feed management, article reading, statistics
+- 💾 **Backup** — Backup management, data sync, IPFS storage
+- 🔑 **WebAuthn** — WebAuthn credentials, SSO config, 2FA
+
+**Sidebar**: Expanded from 4 to 7 groups (Overview/Config/Data/Advanced/Enterprise/Extensions)
+
+**Tests**: Web Panel total **621** (523 unit + 40 integration + 58 E2E)
 
 ### History - Web Panel: 15 Modules + v1.0 Protocol Fix (v5.0.2.11)
 

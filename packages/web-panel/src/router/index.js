@@ -18,9 +18,17 @@ const routes = [
       { path: 'cron',       name: 'Cron',        component: () => import('../views/Cron.vue') },
       { path: 'tasks',      name: 'Tasks',       component: () => import('../views/Tasks.vue') },
       { path: 'security',   name: 'Security',    component: () => import('../views/Security.vue') },
+      { path: 'permissions', name: 'Permissions', component: () => import('../views/Permissions.vue') },
       { path: 'p2p',         name: 'P2P',         component: () => import('../views/P2P.vue') },
       { path: 'git',         name: 'Git',         component: () => import('../views/Git.vue') },
       { path: 'projects',    name: 'Projects',    component: () => import('../views/Projects.vue') },
+      { path: 'wallet',      name: 'Wallet',      component: () => import('../views/Wallet.vue') },
+      { path: 'organization', name: 'Organization', component: () => import('../views/Organization.vue') },
+      { path: 'analytics',   name: 'Analytics',   component: () => import('../views/Analytics.vue') },
+      { path: 'templates',   name: 'Templates',   component: () => import('../views/Templates.vue') },
+      { path: 'backup',      name: 'Backup',      component: () => import('../views/Backup.vue') },
+      { path: 'rssfeed',     name: 'RssFeed',     component: () => import('../views/RssFeed.vue') },
+      { path: 'webauthn',    name: 'WebAuthn',    component: () => import('../views/WebAuthn.vue') },
     ]
   }
 ]
