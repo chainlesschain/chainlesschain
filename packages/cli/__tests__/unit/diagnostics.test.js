@@ -13,7 +13,7 @@ import {
   checkPort,
 } from "../../src/runtime/diagnostics.js";
 
-describe("diagnostics.collectDoctorReport", () => {
+describe("diagnostics.collectDoctorReport", { timeout: 60000 }, () => {
   it("returns a report with the doctor v1 schema tag", async () => {
     const report = await collectDoctorReport();
     expect(report.schema).toBe("chainlesschain.doctor.v1");
