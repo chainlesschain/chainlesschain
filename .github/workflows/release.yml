@@ -636,6 +636,12 @@ jobs:
             VERSION="${GITHUB_REF#refs/tags/}"
           fi
           VERSION="${VERSION#v}"
+          # npm requires semver (3-segment). If tag has 4+ segments (e.g. 5.0.2.13),
+          # use the version from package.json instead.
+          if echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then
+            VERSION=$(node -p "require('./packages/cli/package.json').version")
+            echo "⚠️ Tag has 4-segment version, using package.json version: $VERSION"
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "📦 Resolved version: $VERSION"
 
