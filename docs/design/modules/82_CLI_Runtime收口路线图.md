@@ -1,6 +1,6 @@
 # 82. CLI Runtime 收口路线图
 
-> **状态：In Progress** · 最后更新：2026-04-09 · 适用范围：`packages/cli` + `desktop-app-vue` · 目标周期：5 周 (原 6 周,Phase 0/1 已完成)
+> **状态：Phase 2–6b 已完成 · Phase 7 待启动** · 最后更新：2026-04-09 · 适用范围：`packages/cli` + `desktop-app-vue`
 >
 > 关联设计：[78. CLI Agent Runtime 重构实施计划](./78-cli-agent-runtime) · [79. Coding Agent 系统](./79-coding-agent) · [81. Tool Descriptor 统一](./81-tool-descriptor-unification)
 >
@@ -17,20 +17,27 @@
 | Phase 0 | ✅ 完成 | ADR `CLI_RUNTIME_CONVERGENCE_ADR.md` 已签发 |
 | Phase 1 | ✅ 完成 | `agent/chat/serve/ui` 四命令均走 `createAgentRuntimeFactory()`;`runtime-factory.js` 导出 `createAgentRuntime/createChatRuntime/createServerRuntime/createUiRuntime`;`AgentRuntime` 类 520 行齐全 |
 | Phase 2 | 🟡 部分完成 | `src/lib/jsonl-session-store.js` (22 行) 与 `prompt-compressor.js` (10 行) 已是 re-export shim;canonical 实现在 `src/harness/jsonl-session-store.js` (461 行);`gateways/repl/agent-repl.js` (1 行) 已是 re-export,canonical 在 `src/repl/agent-repl.js` (~1100 行) |
-| Phase 3–7 | ⬜ 待启动 | 详见下方遗留工作量 |
+| Phase 2 剩余 | ✅ 完成 (Phase 6a-2) | `ws-session-manager.js` 1421 行 → 13 行 shim,canonical 在 `src/gateways/ws/ws-session-gateway.js` |
+| Phase 3 | ✅ 完成 | `mcp-client.js` 413 行 → shim,canonical 在 `src/harness/mcp-client.js` |
+| Phase 4 | ✅ 完成 | `plugin-manager.js` 430 行 → shim,canonical 在 `src/harness/plugin-manager.js` |
+| Phase 5 | ✅ 完成 | `doctor --json` / `status --json` 稳定字段落地,schema `chainlesschain.doctor.v1` / `chainlesschain.status.v1` 已发布 |
+| Phase 6a-1 | ✅ 完成 | `ws-server.js` 760 行 → shim,canonical 在 `src/gateways/ws/ws-server.js` |
+| Phase 6b | ✅ 完成 (2026-04-09) | `agent-core.js` 1651 行 → shim (canonical `src/runtime/agent-core.js`);`ws-agent-handler.js` 476 行 → shim (canonical `src/gateways/ws/ws-agent-handler.js`) |
+| Phase 6c | ✅ 完成 | 6 个 lib 实体全部 `@deprecated` 标注完成,新增 `runtime-convergence-shims.test.js` 作为回归护栏 (41 tests) |
+| Phase 7 | ⬜ 待启动 | parity harness / mock provider / golden transcript |
 
-**真实遗留工作量集中在 6 个 `src/lib/*` 实体文件,合计约 5151 行:**
+**Phase 6b 完结快照 (2026-04-09):** 原计划 6 个 lib 实体 5151 行全部退化为 `@deprecated` re-export shim。canonical 实体分布:
 
-| 文件 | 行数 | 归属阶段 |
-|---|---|---|
-| `src/lib/agent-core.js` | 1651 | Phase 6 |
-| `src/lib/ws-session-manager.js` | 1421 | Phase 2 剩余 / Phase 6 |
-| `src/lib/ws-server.js` | 760 | Phase 6 |
-| `src/lib/ws-agent-handler.js` | 476 | Phase 6 |
-| `src/lib/plugin-manager.js` | 430 | Phase 4 |
-| `src/lib/mcp-client.js` | 413 | Phase 3 |
+| 原 lib 文件 | 原行数 | shim 行数 | canonical 位置 |
+|---|---|---|---|
+| `src/lib/agent-core.js` | 1651 | 27 | `src/runtime/agent-core.js` |
+| `src/lib/ws-session-manager.js` | 1421 | 13 | `src/gateways/ws/ws-session-gateway.js` |
+| `src/lib/ws-server.js` | 760 | 13 | `src/gateways/ws/ws-server.js` |
+| `src/lib/ws-agent-handler.js` | 476 | 13 | `src/gateways/ws/ws-agent-handler.js` |
+| `src/lib/plugin-manager.js` | 430 | ≤40 | `src/harness/plugin-manager.js` |
+| `src/lib/mcp-client.js` | 413 | ≤40 | `src/harness/mcp-client.js` |
 
-值得注意的是,`gateways/ws/ws-server.js` 和 `gateways/ws/ws-session-gateway.js` 已经是 re-export 空壳 — 说明之前有人开了头但未完成迁移。Phase 6 的任务是把实体代码**移入**这些空壳目标位置,而不是新建一套并列实现。
+规则 D3 (`src/lib/*` 冻结为兼容层) 由新增回归测试 `packages/cli/__tests__/integration/runtime-convergence-shims.test.js` 护栏,静态解析确保 shim `@deprecated` 横幅、≤ 40 行、canonical 全部命名导出被 re-export、9 个生产调用点不回退到 shim 路径。
 
 
 
