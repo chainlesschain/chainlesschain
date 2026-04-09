@@ -380,7 +380,7 @@ describe("agent-core execution limits (used by agent-repl)", () => {
     "..",
     "..",
     "src",
-    "lib",
+    "runtime",
     "agent-core.js",
   );
 
@@ -424,7 +424,7 @@ describe("agent-core TOOLS includes run_code (used by agent-repl)", () => {
     "..",
     "..",
     "src",
-    "lib",
+    "runtime",
     "agent-core.js",
   );
 
@@ -462,7 +462,7 @@ describe("agent-core TOOLS includes run_code (used by agent-repl)", () => {
       "agent-repl.js",
     );
     const content = readFileSync(agentReplPath, "utf8");
-    expect(content).toContain('from "../lib/agent-core.js"');
+    expect(content).toContain('from "../runtime/agent-core.js"');
     expect(content).toContain("AGENT_TOOLS");
     expect(content).toContain("formatToolArgs");
     expect(content).toContain("coreExecuteTool");

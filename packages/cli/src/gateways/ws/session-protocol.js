@@ -46,7 +46,7 @@ async function ensureSessionHandler(server, ws, session) {
       interaction: session.interaction,
     });
   } else {
-    const { WSAgentHandler } = await import("../../lib/ws-agent-handler.js");
+    const { WSAgentHandler } = await import("./ws-agent-handler.js");
     handler = new WSAgentHandler({
       session,
       interaction: session.interaction,

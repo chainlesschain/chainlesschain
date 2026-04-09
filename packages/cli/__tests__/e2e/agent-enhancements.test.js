@@ -44,7 +44,7 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
   // ─── Source code validations ──────────────────────────────
 
   describe("agent source validations (agent-core + agent-repl)", () => {
-    const agentCorePath = join(cliRoot, "src", "lib", "agent-core.js");
+    const agentCorePath = join(cliRoot, "src", "runtime", "agent-core.js");
     const agentReplPath = join(cliRoot, "src", "repl", "agent-repl.js");
     let coreContent;
     let replContent;
@@ -57,7 +57,7 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
     it("agent-repl should be readable and import from agent-core", () => {
       replContent = readFileSync(agentReplPath, "utf8");
       expect(replContent.length).toBeGreaterThan(500);
-      expect(replContent).toContain('from "../lib/agent-core.js"');
+      expect(replContent).toContain('from "../runtime/agent-core.js"');
     });
 
     it("should define run_code tool with python/node/bash in agent-core", () => {
@@ -215,7 +215,7 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
     });
 
     it("agent-core source includes auto-install and agent-scripts references", () => {
-      const agentCorePath = join(cliRoot, "src", "lib", "agent-core.js");
+      const agentCorePath = join(cliRoot, "src", "runtime", "agent-core.js");
       const content = readFileSync(agentCorePath, "utf8");
       expect(content).toContain("auto-install");
       expect(content).toContain("agent-scripts");
@@ -226,7 +226,7 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
     });
 
     it("agent-core exports buildSystemPrompt for persona support", () => {
-      const agentCorePath = join(cliRoot, "src", "lib", "agent-core.js");
+      const agentCorePath = join(cliRoot, "src", "runtime", "agent-core.js");
       const content = readFileSync(agentCorePath, "utf8");
       expect(content).toContain("export function buildSystemPrompt");
       expect(content).toContain("_loadProjectPersona");

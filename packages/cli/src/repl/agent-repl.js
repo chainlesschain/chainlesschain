@@ -55,7 +55,7 @@ import {
   executeTool as coreExecuteTool,
   agentLoop as coreAgentLoop,
   formatToolArgs,
-} from "../lib/agent-core.js";
+} from "../runtime/agent-core.js";
 
 /**
  * Reference to the runtime DB for hook execution (set during startAgentRepl)
