@@ -23,7 +23,7 @@ import {
   migrateLegacySessionsBatch,
   validateJsonlSession,
   validateAllJsonlSessions,
-} from "../lib/jsonl-session-store.js";
+} from "../harness/jsonl-session-store.js";
 import { feature } from "../lib/feature-flags.js";
 import {
   listWorkflowSessions,
