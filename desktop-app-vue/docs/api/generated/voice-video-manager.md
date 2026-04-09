@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/voice-video-manager.js`
 
-**Generated**: 2026-04-08T15:18:57.859Z
+**Generated**: 2026-04-09T06:50:46.637Z
 
 ---
 

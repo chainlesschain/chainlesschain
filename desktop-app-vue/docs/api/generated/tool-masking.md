@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ai-engine/tool-masking.js`
 
-**Generated**: 2026-04-08T15:18:57.936Z
+**Generated**: 2026-04-09T06:50:46.705Z
 
 ---
 
@@ -23,6 +23,39 @@ const
  * 4. 支持状态机驱动 - 根据任务阶段自动调整
  *
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+
+---
+
+## const CANONICAL_TOOL_FIELDS = [
+
+```javascript
+const CANONICAL_TOOL_FIELDS = [
+```
+
+* Canonical tool descriptor keys that must round-trip through the masking system
+ * intact. `inputSchema` is the source of truth; `parameters` is kept as a
+ * read-only mirror for backwards compatibility with older consumers.
+ *
+ * 与 `unified-tool-registry.createUnifiedToolDescriptor` 保持一致。
+
+---
+
+## function toCanonicalDescriptor(raw =
+
+```javascript
+function toCanonicalDescriptor(raw =
+```
+
+* Build a canonical tool descriptor from a raw registration payload.
+ *
+ * Guarantees:
+ * - `inputSchema` is preferred; falls back to legacy `parameters`
+ * - `parameters` is always a mirror of `inputSchema`
+ * - Unknown extra fields are dropped to keep the shape predictable
+ *
+ * @private
+ * @param {Object} raw - Raw registration payload
+ * @returns {Object} Canonical descriptor (excluding handler/registeredAt)
 
 ---
 
@@ -162,6 +195,22 @@ isToolAvailable(toolName)
 
 ---
 
+## _projectCanonical(tool)
+
+```javascript
+_projectCanonical(tool)
+```
+
+* Project a stored tool into a canonical descriptor for external consumers.
+   * Strips internal fields (`handler`, `registeredAt`) and guarantees
+   * `inputSchema` / `parameters` are present and mirrored.
+   *
+   * @private
+   * @param {Object} tool - Stored tool entry
+   * @returns {Object} Canonical descriptor
+
+---
+
 ## getAllToolDefinitions()
 
 ```javascript
@@ -169,6 +218,11 @@ getAllToolDefinitions()
 ```
 
 * 获取工具定义（始终返回完整列表，用于 LLM 上下文）
+   *
+   * Returns canonical descriptors: `inputSchema` is the source of truth,
+   * `parameters` is a mirror. Additional canonical fields (category,
+   * riskLevel, isReadOnly, availableInPlanMode ...) are preserved when set.
+   *
    * @returns {Array} 所有工具定义
 
 ---
@@ -180,6 +234,9 @@ getAvailableToolDefinitions()
 ```
 
 * 获取可用工具定义（用于验证）
+   *
+   * Returns canonical descriptors filtered by the current availability mask.
+   *
    * @returns {Array} 可用工具定义
 
 ---

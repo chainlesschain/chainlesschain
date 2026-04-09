@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-ipc.js`
 
-**Generated**: 2026-04-08T15:18:57.870Z
+**Generated**: 2026-04-09T06:50:46.648Z
 
 ---
 
@@ -21,10 +21,10 @@ const
 
 ---
 
-## function registerBasicMCPConfigIPC()
+## function registerBasicMCPConfigIPC(_deps =
 
 ```javascript
-function registerBasicMCPConfigIPC()
+function registerBasicMCPConfigIPC(_deps =
 ```
 
 * Register basic MCP config IPC handlers (always needed, even when MCP is disabled)
@@ -83,10 +83,10 @@ ipcMain.handle(
 
 ---
 
-## function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy)
+## function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, _deps =
 
 ```javascript
-function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy)
+function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, _deps =
 ```
 
 * Register all MCP-related IPC handlers

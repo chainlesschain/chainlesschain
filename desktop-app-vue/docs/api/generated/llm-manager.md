@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/llm-manager.js`
 
-**Generated**: 2026-04-08T15:18:57.879Z
+**Generated**: 2026-04-09T06:50:46.655Z
 
 ---
 
@@ -724,6 +724,129 @@ LLMManager.prototype.compressContent = function (content, type)
  * @param {any} content - 原始内容
  * @param {string} type - 内容类型
  * @returns {Object} 压缩后的引用
+
+---
+
+## const LLM_CATEGORIES = Object.freeze(
+
+```javascript
+const LLM_CATEGORIES = Object.freeze(
+```
+
+* 5 个标准类别。新增类别需同时更新 CATEGORY_PROVIDER_PRIORITY 和 CATEGORY_OPTIONS。
+
+---
+
+## const CATEGORY_PROVIDER_PRIORITY = Object.freeze(
+
+```javascript
+const CATEGORY_PROVIDER_PRIORITY = Object.freeze(
+```
+
+* 每个类别的 provider 优先级列表。顺序即偏好。
+ * 实际选择时会用"已配置"过滤（ollama 始终配置，custom 需 baseURL，其余需 apiKey）。
+
+---
+
+## const CATEGORY_OPTIONS = Object.freeze(
+
+```javascript
+const CATEGORY_OPTIONS = Object.freeze(
+```
+
+* 类别附加的生成参数（合并到 options）。
+
+---
+
+## function isProviderConfigured(provider, fullConfig)
+
+```javascript
+function isProviderConfigured(provider, fullConfig)
+```
+
+* 判断一个 provider 是否"已配置"（有有效凭据或 URL）。
+ * @param {string} provider
+ * @param {object} fullConfig - 来自 LLMConfig.getAll()
+
+---
+
+## function inferCategoryFromModelHints(modelHints)
+
+```javascript
+function inferCategoryFromModelHints(modelHints)
+```
+
+* 从 SKILL.md 的 modelHints 反推类别（无需修改任何 SKILL.md）。
+ * 规则：
+ *   context-window: large + capability: reasoning → reasoning
+ *   context-window: large                          → deep
+ *   capability: vision                             → vision
+ *   capability: reasoning                          → reasoning
+ *   capability: creative                           → creative
+ *   default                                        → quick
+ * @param {object} modelHints - skill.modelHints
+ * @returns {string} category
+
+---
+
+## function pickProviderForCategory(category, fullConfig, fallbackProvider)
+
+```javascript
+function pickProviderForCategory(category, fullConfig, fallbackProvider)
+```
+
+* 给定类别 + 完整 llm-config，选出最匹配的 provider 和它当前配置的 model。
+ * 如果没有任何 provider 配置，退回到 { provider: fallbackProvider, model: "" }。
+ * @returns {{ provider: string, model: string, options: object } | null}
+
+---
+
+## const _deps =
+
+```javascript
+const _deps =
+```
+
+* 依赖注入点（Vitest 拦不住 CJS require，必须用 _deps 注入模式）。
+ * 测试中：mod._deps.getLLMConfig = vi.fn(() => fakeConfig);
+
+---
+
+## LLMManager.prototype.resolveCategory = function (category, opts =
+
+```javascript
+LLMManager.prototype.resolveCategory = function (category, opts =
+```
+
+* 解析类别到具体的 provider+model。
+ * 结果缓存在 this._categoryMappingCache，rebuildCategoryMapping() 可强制刷新。
+ *
+ * @param {string} category - 五个 LLM_CATEGORIES 之一
+ * @param {object} [opts]
+ * @param {object} [opts.skill] - 如果给 skill 对象，先尝试用它的 modelHints 反推
+ * @returns {{ provider: string, model: string, options: object } | null}
+
+---
+
+## LLMManager.prototype.inferCategoryFromSkill = function (skill)
+
+```javascript
+LLMManager.prototype.inferCategoryFromSkill = function (skill)
+```
+
+* 从 skill 对象推断类别（便捷方法）。
+ * @param {object} skill - { modelHints: {...} }
+ * @returns {string}
+
+---
+
+## LLMManager.prototype.rebuildCategoryMapping = function ()
+
+```javascript
+LLMManager.prototype.rebuildCategoryMapping = function ()
+```
+
+* 强制刷新类别缓存。在 llm-config 变更后调用。
 
 ---
 

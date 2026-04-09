@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/config-ipc.js`
 
-**Generated**: 2026-04-08T15:18:57.915Z
+**Generated**: 2026-04-09T06:50:46.687Z
 
 ---
 

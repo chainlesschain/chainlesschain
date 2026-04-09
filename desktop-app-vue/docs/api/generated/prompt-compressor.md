@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/prompt-compressor.js`
 
-**Generated**: 2026-04-08T15:18:57.877Z
+**Generated**: 2026-04-09T06:50:46.654Z
 
 ---
 
