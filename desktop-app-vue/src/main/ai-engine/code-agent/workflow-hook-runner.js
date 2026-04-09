@@ -8,7 +8,9 @@
  *   pre-intent / post-intent   — around $deep-interview writeIntent
  *   pre-plan / post-plan       — around $ralplan writePlan and approvePlan
  *   pre-execute / post-execute — around $ralph / $team execute()
- *   pre-done / post-done       — around marking a session DONE
+ *   pre-verify / post-verify   — around $verify running checks
+ *   pre-complete / post-complete — around $complete writing summary.md
+ *   pre-done / post-done       — around marking a session DONE (legacy)
  *
  * Hook file contract: exports an async function (CJS default or `run` export)
  *   module.exports = async ({ event, sessionId, projectRoot, payload }) => { ... }
@@ -34,6 +36,10 @@ const HOOK_EVENTS = Object.freeze([
   "post-plan",
   "pre-execute",
   "post-execute",
+  "pre-verify",
+  "post-verify",
+  "pre-complete",
+  "post-complete",
   "pre-done",
   "post-done",
 ]);

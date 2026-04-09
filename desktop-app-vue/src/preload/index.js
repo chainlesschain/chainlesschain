@@ -353,6 +353,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
     },
   },
 
+  // Phase D: read-only bridge to canonical workflow session state
+  // (.chainlesschain/sessions/<id>/ — stage, tasks.json, verify.json).
+  workflowSession: {
+    list: () => ipcRenderer.invoke("workflow-session:list"),
+    get: (sessionId) => ipcRenderer.invoke("workflow-session:get", sessionId),
+    listMembers: (parentId) =>
+      ipcRenderer.invoke("workflow-session:list-members", parentId),
+    classifyIntake: (input) =>
+      ipcRenderer.invoke("workflow-session:classify-intake", input),
+  },
+
   config: {
     getAll: () => ipcRenderer.invoke("config:get-all"),
     get: (key) => ipcRenderer.invoke("config:get", key),

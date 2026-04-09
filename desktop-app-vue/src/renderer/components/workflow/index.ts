@@ -6,13 +6,21 @@
  * v0.27.0: 新建文件
  */
 
-import WorkflowProgress from './WorkflowProgress.vue';
-import StageDetail from './StageDetail.vue';
-import QualityGateCard from './QualityGateCard.vue';
-import StepTimeline from './StepTimeline.vue';
-import WorkflowSummary from './WorkflowSummary.vue';
+import WorkflowProgress from "./WorkflowProgress.vue";
+import StageDetail from "./StageDetail.vue";
+import QualityGateCard from "./QualityGateCard.vue";
+import StepTimeline from "./StepTimeline.vue";
+import WorkflowSummary from "./WorkflowSummary.vue";
+import CanonicalWorkflowPanel from "./CanonicalWorkflowPanel.vue";
 
-export { WorkflowProgress, StageDetail, QualityGateCard, StepTimeline, WorkflowSummary };
+export {
+  WorkflowProgress,
+  StageDetail,
+  QualityGateCard,
+  StepTimeline,
+  WorkflowSummary,
+  CanonicalWorkflowPanel,
+};
 
 export default {
   WorkflowProgress,
@@ -20,4 +28,5 @@ export default {
   QualityGateCard,
   StepTimeline,
   WorkflowSummary,
+  CanonicalWorkflowPanel,
 };

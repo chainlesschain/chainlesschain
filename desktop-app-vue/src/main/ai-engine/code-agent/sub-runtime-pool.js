@@ -43,6 +43,169 @@ const _deps = {
   now: () => Date.now(),
 };
 
+// ─────────────────────────────────────────────────────────────────────
+// Structured-task scheduler helpers (Phase B — ADR §8.3).
+//
+// These are pure functions exported for direct unit testing. They do not
+// touch the filesystem or spawn processes. See docs/design/modules/
+// 81_轻量多Agent编排系统.md for the design rationale.
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * True if two filesystem scope paths claim overlapping subtrees. Overlap
+ * means one is an ancestor of the other (including identity). Paths are
+ * normalized to forward slashes with trailing separator stripped.
+ */
+function scopePathsOverlap(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") {
+    return false;
+  }
+  const na = a.replace(/\\/g, "/").replace(/\/+$/, "") + "/";
+  const nb = b.replace(/\\/g, "/").replace(/\/+$/, "") + "/";
+  return na === nb || na.startsWith(nb) || nb.startsWith(na);
+}
+
+/**
+ * True if two structured assignments share any overlapping scope path.
+ * Assignments without a scopePaths array (legacy shape) are treated as
+ * "no claim" so they do not force serialization — opting out by omission.
+ */
+function hasScopeConflict(a, b) {
+  const sa = Array.isArray(a?.scopePaths) ? a.scopePaths : [];
+  const sb = Array.isArray(b?.scopePaths) ? b.scopePaths : [];
+  if (sa.length === 0 || sb.length === 0) {
+    return false;
+  }
+  for (const x of sa) {
+    for (const y of sb) {
+      if (scopePathsOverlap(x, y)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Topological waves of a structured task set. Each wave is an array of
+ * assignments whose dependencies are all satisfied by prior waves. Waves
+ * run as sequential barriers.
+ *
+ * Input assignments must carry `taskId`. `dependsOn` entries pointing at
+ * tasks that are not in the input set are ignored (treated as satisfied).
+ *
+ * Throws on cycles.
+ */
+function topoWaves(assignments) {
+  const byId = new Map();
+  for (const a of assignments) {
+    if (!a || !a.taskId) {
+      continue;
+    }
+    byId.set(a.taskId, a);
+  }
+  if (byId.size === 0) {
+    return [];
+  }
+  const remainingDeps = new Map();
+  for (const [id, a] of byId) {
+    const deps = (a.dependsOn || []).filter((d) => byId.has(d));
+    remainingDeps.set(id, new Set(deps));
+  }
+  const waves = [];
+  const placed = new Set();
+  while (placed.size < byId.size) {
+    const wave = [];
+    for (const [id, deps] of remainingDeps) {
+      if (placed.has(id)) {
+        continue;
+      }
+      if (deps.size === 0) {
+        wave.push(byId.get(id));
+      }
+    }
+    if (wave.length === 0) {
+      const pending = [...remainingDeps.keys()].filter((id) => !placed.has(id));
+      throw new Error(
+        `topoWaves: dependency cycle detected among tasks [${pending.join(", ")}]`,
+      );
+    }
+    waves.push(wave);
+    for (const node of wave) {
+      placed.add(node.taskId);
+    }
+    for (const [id, deps] of remainingDeps) {
+      if (placed.has(id)) {
+        continue;
+      }
+      for (const placedId of placed) {
+        deps.delete(placedId);
+      }
+    }
+  }
+  return waves;
+}
+
+/**
+ * Group assignments within a single wave into scope-conflict serialization
+ * groups. Assignments in the same group share at least one overlapping
+ * scope path (directly or transitively) and must run sequentially.
+ * Different groups have no scope conflicts and run in parallel.
+ *
+ * Implementation: union-find over pairwise hasScopeConflict edges.
+ */
+function scopeGroups(wave) {
+  if (!Array.isArray(wave) || wave.length === 0) {
+    return [];
+  }
+  const parent = new Map();
+  const find = (x) => {
+    let cur = x;
+    while (parent.get(cur) !== cur) {
+      parent.set(cur, parent.get(parent.get(cur)));
+      cur = parent.get(cur);
+    }
+    return cur;
+  };
+  const union = (a, b) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) {
+      parent.set(ra, rb);
+    }
+  };
+  for (const t of wave) {
+    parent.set(t.taskId, t.taskId);
+  }
+  for (let i = 0; i < wave.length; i++) {
+    for (let j = i + 1; j < wave.length; j++) {
+      if (hasScopeConflict(wave[i], wave[j])) {
+        union(wave[i].taskId, wave[j].taskId);
+      }
+    }
+  }
+  const groups = new Map();
+  for (const t of wave) {
+    const root = find(t.taskId);
+    if (!groups.has(root)) {
+      groups.set(root, []);
+    }
+    groups.get(root).push(t);
+  }
+  return [...groups.values()];
+}
+
+function isStructuredAssignments(assignments) {
+  return (
+    Array.isArray(assignments) &&
+    assignments.some(
+      (a) =>
+        a &&
+        (a.taskId || Array.isArray(a.dependsOn) || Array.isArray(a.scopePaths)),
+    )
+  );
+}
+
 function waitForReady(child, timeoutMs) {
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -168,6 +331,18 @@ class SubRuntimePool extends EventEmitter {
     if (assignments.length === 0) {
       return [];
     }
+
+    // Phase B: auto-select the structured scheduler when assignments carry
+    // taskId / dependsOn / scopePaths. Legacy plan-bucket callers keep the
+    // original parallel-all path unchanged.
+    if (isStructuredAssignments(assignments)) {
+      return await this._dispatchStructured({
+        projectRoot,
+        sessionId,
+        assignments,
+      });
+    }
+
     if (assignments.length > this.maxSize) {
       throw new Error(
         `SubRuntimePool: assignment count ${assignments.length} exceeds maxSize ${this.maxSize}`,
@@ -180,6 +355,67 @@ class SubRuntimePool extends EventEmitter {
       ),
     );
     return results;
+  }
+
+  /**
+   * Structured dispatch: topological waves + intra-wave scope-group
+   * serialization. Failed dependencies block downstream tasks with a
+   * synthetic "blocked by failed dependency" result (they are not
+   * dispatched to a real child). Results are returned in the same order
+   * as the input `assignments`.
+   */
+  async _dispatchStructured({ projectRoot, sessionId, assignments }) {
+    const waves = topoWaves(assignments);
+    const resultsById = new Map();
+
+    for (const wave of waves) {
+      const groups = scopeGroups(wave);
+      await Promise.all(
+        groups.map(async (group) => {
+          // Each conflict group runs its tasks sequentially. Groups run
+          // in parallel. We do not enforce maxSize on the wave width —
+          // the planner is expected to size the task set; enforcing it
+          // here would silently drop work.
+          for (const assignment of group) {
+            const unmetDeps = (assignment.dependsOn || []).filter((id) => {
+              const r = resultsById.get(id);
+              return r && !r.success;
+            });
+            if (unmetDeps.length > 0) {
+              resultsById.set(assignment.taskId, {
+                taskId: assignment.taskId,
+                memberIdx: assignment.memberIdx,
+                success: false,
+                error: `blocked by failed dependency: ${unmetDeps.join(", ")}`,
+                progressEvents: [],
+                blocked: true,
+              });
+              continue;
+            }
+            const result = await this._runSingle({
+              projectRoot,
+              sessionId,
+              assignment,
+            });
+            resultsById.set(assignment.taskId, {
+              taskId: assignment.taskId,
+              ...result,
+            });
+          }
+        }),
+      );
+    }
+
+    return assignments.map(
+      (a) =>
+        resultsById.get(a.taskId) || {
+          taskId: a.taskId,
+          memberIdx: a.memberIdx,
+          success: false,
+          error: "not scheduled",
+          progressEvents: [],
+        },
+    );
   }
 
   async _runSingle({ projectRoot, sessionId, assignment }) {
@@ -300,4 +536,16 @@ class SubRuntimePool extends EventEmitter {
   }
 }
 
-module.exports = { SubRuntimePool, _deps, wrapChild, HARD_CAP, DEFAULT_MAX };
+module.exports = {
+  SubRuntimePool,
+  _deps,
+  wrapChild,
+  HARD_CAP,
+  DEFAULT_MAX,
+  // Phase B scheduler helpers — exported for unit tests and external reuse.
+  scopePathsOverlap,
+  hasScopeConflict,
+  topoWaves,
+  scopeGroups,
+  isStructuredAssignments,
+};

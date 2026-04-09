@@ -3,10 +3,7 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <div class="header-left">
-        <a-button
-          type="text"
-          @click="goBack"
-        >
+        <a-button type="text" @click="goBack">
           <ArrowLeftOutlined />
         </a-button>
         <h1>工作流监控</h1>
@@ -16,37 +13,25 @@
           <ReloadOutlined />
           刷新
         </a-button>
-        <a-button
-          type="primary"
-          @click="showCreateModal"
-        >
+        <a-button type="primary" @click="showCreateModal">
           <PlusOutlined />
           新建工作流
         </a-button>
       </div>
     </div>
 
+    <!-- Phase D: canonical workflow session panel (read-only from SessionStateManager) -->
+    <CanonicalWorkflowPanel v-if="!selectedWorkflowId" />
+
     <!-- 工作流列表 -->
-    <div
-      v-if="!selectedWorkflowId"
-      class="workflows-list"
-    >
-      <a-empty
-        v-if="workflows.length === 0"
-        description="暂无工作流"
-      >
-        <a-button
-          type="primary"
-          @click="showCreateModal"
-        >
+    <div v-if="!selectedWorkflowId" class="workflows-list">
+      <a-empty v-if="workflows.length === 0" description="暂无工作流">
+        <a-button type="primary" @click="showCreateModal">
           创建第一个工作流
         </a-button>
       </a-empty>
 
-      <div
-        v-else
-        class="workflow-cards"
-      >
+      <div v-else class="workflow-cards">
         <a-card
           v-for="workflow in workflows"
           :key="workflow.workflowId"
@@ -123,15 +108,9 @@
     </div>
 
     <!-- 工作流详情 -->
-    <div
-      v-else
-      class="workflow-detail"
-    >
+    <div v-else class="workflow-detail">
       <div class="detail-header">
-        <a-button
-          type="text"
-          @click="selectedWorkflowId = null"
-        >
+        <a-button type="text" @click="selectedWorkflowId = null">
           <ArrowLeftOutlined />
           返回列表
         </a-button>
@@ -165,14 +144,8 @@
       @ok="handleCreateWorkflow"
       @cancel="createModalVisible = false"
     >
-      <a-form
-        :model="createForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="工作流名称"
-          required
-        >
+      <a-form :model="createForm" layout="vertical">
+        <a-form-item label="工作流名称" required>
           <a-input
             v-model:value="createForm.title"
             placeholder="请输入工作流名称"
@@ -185,10 +158,7 @@
             :rows="3"
           />
         </a-form-item>
-        <a-form-item
-          label="用户请求"
-          required
-        >
+        <a-form-item label="用户请求" required>
           <a-textarea
             v-model:value="createForm.userRequest"
             placeholder="描述您想要完成的任务"
@@ -217,6 +187,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons-vue";
 import { WorkflowProgress, WorkflowSummary } from "@/components/workflow";
+import CanonicalWorkflowPanel from "@/components/workflow/CanonicalWorkflowPanel.vue";
 
 const router = useRouter();
 

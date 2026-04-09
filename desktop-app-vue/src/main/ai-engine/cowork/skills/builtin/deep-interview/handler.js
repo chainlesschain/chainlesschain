@@ -12,8 +12,11 @@ const {
   SessionStateManager,
 } = require("../../../../code-agent/session-state-manager.js");
 const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
+const {
+  classifyIntake,
+} = require("../../../../code-agent/intake-classifier.js");
 
-const _deps = { SessionStateManager, runHook };
+const _deps = { SessionStateManager, runHook, classifyIntake };
 
 function resolveSessionId(task, context) {
   return (
@@ -57,6 +60,12 @@ module.exports = {
     const nonGoals = Array.isArray(task?.params?.nonGoals)
       ? task.params.nonGoals
       : [];
+    const scopePaths = Array.isArray(task?.params?.scopePaths)
+      ? task.params.scopePaths
+      : [];
+    const fileHints = Array.isArray(task?.params?.fileHints)
+      ? task.params.fileHints
+      : [];
 
     const projectRoot = resolveProjectRoot(context);
     const sessionId = resolveSessionId(task, context);
@@ -83,7 +92,40 @@ module.exports = {
         payload: { intentFile, goal },
       });
 
+      // Classifier is pure & side-effect-free — cheap hint for the next step.
+      // It does NOT gate anything; the user/LLM still chooses $ralph vs $team.
+      let routingHint = null;
+      try {
+        routingHint = _deps.classifyIntake({
+          request: goal,
+          scopePaths,
+          fileHints,
+          sessionId,
+        });
+        // Persist onto mode.json so $ralplan / UI can read it later without
+        // re-running the classifier. Non-fatal if the write fails.
+        if (routingHint) {
+          try {
+            manager.setRoutingHint(sessionId, routingHint);
+          } catch (persistErr) {
+            logger.warn(
+              `[deep-interview] setRoutingHint failed (non-fatal): ${persistErr.message}`,
+            );
+          }
+        }
+      } catch (classifyErr) {
+        logger.warn(
+          `[deep-interview] classifyIntake failed (non-fatal): ${classifyErr.message}`,
+        );
+      }
+
       const relPath = path.relative(projectRoot, intentFile);
+      const hintSuffix = routingHint
+        ? `\n\nRouting hint: $${routingHint.decision} ` +
+          `(confidence=${routingHint.confidence}, ` +
+          `complexity=${routingHint.complexity}, ` +
+          `reason=${routingHint.reason})`
+        : "";
       return {
         success: true,
         result: {
@@ -91,17 +133,26 @@ module.exports = {
           intentFile,
           relativePath: relPath,
           stage: "intent",
+          routingHint,
         },
         message:
           `Intent captured → ${relPath}\n\n` +
           `Next: ask the user any remaining clarification questions, ` +
-          `then run $ralplan to turn this intent into an approved plan.`,
+          `then run $ralplan to turn this intent into an approved plan.` +
+          hintSuffix,
         guidance: [
           "You are at stage INTENT of the canonical coding workflow.",
           "Review intent.md and ask the user any follow-up questions needed to",
           "resolve ambiguity in goal, scope, boundaries, or non-goals.",
           "When the user confirms the intent is complete, advance to $ralplan.",
-        ].join(" "),
+          routingHint
+            ? `Routing hint (non-binding): classifier suggests $${routingHint.decision}` +
+              ` — ${routingHint.reason}. Prefer $team for multi-scope parallel work,` +
+              ` $ralph for focused single-scope changes.`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
       };
     } catch (err) {
       return {

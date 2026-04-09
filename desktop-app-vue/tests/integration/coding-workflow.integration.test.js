@@ -266,3 +266,188 @@ describe("canonical coding workflow — full integration", () => {
     expect(isWorkflowCommand("no prefix")).toBe(false);
   });
 });
+
+// ────────────────────────────────────────────────────────────────────
+// Phase E: intake classifier + routingHint persistence + IPC bridge
+// ────────────────────────────────────────────────────────────────────
+describe("canonical coding workflow — Phase E integration", () => {
+  let projectRoot;
+  const deepInterview = require("../../src/main/ai-engine/cowork/skills/builtin/deep-interview/handler.js");
+  const {
+    registerWorkflowSessionIPC,
+    CHANNELS,
+  } = require("../../src/main/ai-engine/code-agent/workflow-session-ipc.js");
+
+  function makeFakeIpcMain() {
+    const handlers = new Map();
+    return {
+      handlers,
+      handle(ch, fn) {
+        handlers.set(ch, fn);
+      },
+      removeHandler(ch) {
+        handlers.delete(ch);
+      },
+      invoke(ch, ...args) {
+        const fn = handlers.get(ch);
+        if (!fn) {
+          throw new Error(`no handler for ${ch}`);
+        }
+        return fn({}, ...args);
+      },
+    };
+  }
+
+  beforeEach(() => {
+    projectRoot = makeTmpRoot();
+  });
+  afterEach(() => cleanup(projectRoot));
+
+  it("$deep-interview persists routingHint onto mode.json (ralph for single-scope)", async () => {
+    const r = await deepInterview.execute(
+      {
+        params: {
+          goal: "fix a typo in README",
+          sessionId: "hint-single",
+        },
+      },
+      { projectRoot },
+    );
+    expect(r.success).toBe(true);
+    expect(r.result.routingHint.decision).toBe("ralph");
+
+    const manager = new SessionStateManager({ projectRoot });
+    const mode = manager.getStage("hint-single");
+    expect(mode.routingHint).toBeTruthy();
+    expect(mode.routingHint.decision).toBe("ralph");
+    // stage still intent despite hint persistence
+    expect(mode.stage).toBe(STAGES.INTENT);
+  });
+
+  it("routingHint survives stage transitions through $ralplan approve", async () => {
+    const sessionId = "hint-survives";
+    // Multi-scope → team hint
+    await deepInterview.execute(
+      {
+        params: {
+          goal: "wire main and renderer and cli",
+          sessionId,
+          scopePaths: [
+            "desktop-app-vue/src/main/a.js",
+            "desktop-app-vue/src/renderer/b.ts",
+            "packages/cli/src/c.js",
+          ],
+        },
+      },
+      { projectRoot },
+    );
+    const manager = new SessionStateManager({ projectRoot });
+    expect(manager.getStage(sessionId).routingHint.decision).toBe("team");
+
+    // advance through $ralplan → approve → verify hint persists
+    const r2 = await runWorkflowCommand("$ralplan Initial", {
+      projectRoot,
+      sessionId,
+    });
+    expect(r2.success).toBe(true);
+    expect(manager.getStage(sessionId).routingHint.decision).toBe("team");
+    expect(manager.getStage(sessionId).routingHint.scopeCount).toBe(3);
+
+    const r3 = await runWorkflowCommand("$ralplan --approve", {
+      projectRoot,
+      sessionId,
+    });
+    expect(r3.success).toBe(true);
+    const finalMode = manager.getStage(sessionId);
+    expect(finalMode.stage).toBe(STAGES.PLAN);
+    expect(finalMode.routingHint.decision).toBe("team");
+    expect(finalMode.routingHint.recommendedConcurrency).toBeGreaterThanOrEqual(
+      2,
+    );
+  });
+
+  it("workflow-session IPC surfaces routingHint through mode field", async () => {
+    const sessionId = "hint-via-ipc";
+    await deepInterview.execute(
+      {
+        params: {
+          goal: "multi-module refactor",
+          sessionId,
+          scopePaths: [
+            "desktop-app-vue/src/main/x.js",
+            "backend/project-service/y.java",
+          ],
+        },
+      },
+      { projectRoot },
+    );
+
+    const ipc = makeFakeIpcMain();
+    registerWorkflowSessionIPC({ ipcMain: ipc, projectRoot });
+    expect(CHANNELS).toContain("workflow-session:classify-intake");
+
+    const getRes = await ipc.invoke("workflow-session:get", sessionId);
+    expect(getRes.success).toBe(true);
+    expect(getRes.state.mode.routingHint).toBeTruthy();
+    expect(getRes.state.mode.routingHint.decision).toBe("team");
+    expect(getRes.state.mode.routingHint.scopeCount).toBe(2);
+  });
+
+  it("classify-intake IPC channel enriches via tasks.json for an existing session", async () => {
+    const sessionId = "hint-tasks-enrich";
+    // Seed intent + approved plan + tasks.json with cross-module scopes
+    const manager = new SessionStateManager({ projectRoot });
+    manager.writeIntent(sessionId, { goal: "ship" });
+    manager.writePlan(sessionId, { title: "P", steps: ["a", "b"] });
+    manager.approvePlan(sessionId);
+    manager.writeTasks(sessionId, {
+      tasks: [
+        {
+          id: "t1",
+          status: "pending",
+          scopePaths: ["desktop-app-vue/src/main/a.js"],
+        },
+        {
+          id: "t2",
+          status: "pending",
+          scopePaths: ["backend/project-service/b.java"],
+        },
+      ],
+    });
+
+    const ipc = makeFakeIpcMain();
+    registerWorkflowSessionIPC({ ipcMain: ipc, projectRoot });
+
+    const res = await ipc.invoke("workflow-session:classify-intake", {
+      sessionId,
+      request: "continue execution",
+    });
+    expect(res.success).toBe(true);
+    expect(res.classification.decision).toBe("team");
+    expect(res.classification.scopeCount).toBe(2);
+    expect(res.classification.boundaries.sort()).toEqual(
+      ["backend/project-service", "desktop-app-vue/src/main"].sort(),
+    );
+  });
+
+  it("classifier failure inside $deep-interview is non-fatal and leaves hint null", async () => {
+    const original = deepInterview._deps.classifyIntake;
+    deepInterview._deps.classifyIntake = () => {
+      throw new Error("classifier broken");
+    };
+    try {
+      const r = await deepInterview.execute(
+        { params: { goal: "x", sessionId: "hint-fail" } },
+        { projectRoot },
+      );
+      expect(r.success).toBe(true);
+      expect(r.result.routingHint).toBeNull();
+      const manager = new SessionStateManager({ projectRoot });
+      const mode = manager.getStage("hint-fail");
+      expect(mode.stage).toBe(STAGES.INTENT);
+      expect(mode.routingHint).toBeUndefined();
+    } finally {
+      deepInterview._deps.classifyIntake = original;
+    }
+  });
+});

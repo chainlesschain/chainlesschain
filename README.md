@@ -1,5 +1,44 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-09 增量更新（ADR Phase E — Canonical Workflow 智能路由收口）
+
+继规范工作流 Phase A–D 之后,本轮把 ADR `LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION` 的 **Phase E 智能路由** 主线一次性落地:
+
+- **Intake classifier (纯函数)**: `desktop-app-vue/src/main/ai-engine/code-agent/intake-classifier.js` —
+  输入 `{ request, scopePaths, fileHints, sessionId }`,输出
+  `{ decision: "ralph"|"team", confidence, complexity, scopeCount, boundaries, testHeavy,
+  signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边界检测
+  (`desktop-app-vue/src/main` / `src/renderer` / `packages/cli` / `backend/*` 等);多作用域
+  → `$team`,单作用域 → `$ralph`。**非强制门控** — 仅作为 `routingHint` 建议。
+- **持久化到 `mode.json`**: `SessionStateManager.setRoutingHint()` 通过 `_updateMode` merge-write,
+  `$deep-interview` 写入 `intent.md` 后自动落盘;hint 跨阶段存活 (`ralplan` → `approve` →
+  `ralph`/`team` 都能读到)。classifier 抛错不会阻塞 happy path,routingHint 降级为 `null`。
+- **IPC 只读通道**: `workflow-session:classify-intake` — Renderer 可在已有 session 上二次触发
+  classifier,自动从 `tasks.json` 的 `scopePaths` 聚合作用域。
+- **Renderer 可视化**: `CanonicalWorkflowPanel.vue` 展示 `routingHint` (decision tag / complexity /
+  confidence / scopeCount / recommendedConcurrency / reason / suggestedRoles); Pinia store
+  `useWorkflowSessionStore` 新增 `classifyIntake()` action 和 `lastClassification` state。
+
+本轮回归:
+
+| 层                          | 范围                                                         | 通过      |
+| --------------------------- | ------------------------------------------------------------ | --------- |
+| Main 单元 (classifier)      | `intake-classifier.test.js`                                  | `20/20`   |
+| Main 单元 (IPC)             | `workflow-session-ipc.test.js` (含 classify-intake)          | `18/18`   |
+| Main 单元 (handler)         | `workflow-skills.test.js` (含 routingHint 持久化 / 容错)    | `55/55`   |
+| Renderer store 单元         | `workflow-session.test.ts` (含 classifyIntake 3 用例)        | `13/13`   |
+| Main 集成                   | `coding-workflow.integration.test.js` Phase E describe       | `10/10`   |
+| E2E 集成 (handler → store)  | `canonical-workflow-phase-e.integration.test.js`             | `7/7`     |
+| **小计**                    | **6 套**                                                     | **`123/123`** |
+
+关键设计:classifier 以 `routingHint` 非门控字段存在,`_updateMode` merge-write 让 hint 自动
+跨阶段存活,`loadFullState` 直接返回完整 `mode`,IPC/Renderer 零改动即可消费。
+
+详细设计:[docs/design/modules/80_规范工作流系统.md](./docs/design/modules/80_规范工作流系统.md) /
+[81_轻量多Agent编排系统.md §10 Phase E](./docs/design/modules/81_轻量多Agent编排系统.md) /
+[docs-site 镜像](./docs-site/docs/chainlesschain/coding-workflow.md) / ADR:
+[LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md](./docs/implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md)。
+
 ## 2026-04-08 增量更新 #2（Phase 5 持久化任务图 + 编排器）
 
 继最小 Harness 之后，本轮把 Coding Agent 推进到 **Phase 5 持久化任务图 + 编排器** 主线，三层贯穿全部落地：

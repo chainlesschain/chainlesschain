@@ -1,5 +1,44 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-09 Update — Canonical Workflow ADR Phase E: Intake Classifier + Routing Hint
+
+Phase E of the `LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION` ADR lands end-to-end, closing the
+canonical coding workflow (Phase A–E all shipped):
+
+- **Pure-function intake classifier** (`desktop-app-vue/src/main/ai-engine/code-agent/intake-classifier.js`):
+  takes `{ request, scopePaths, fileHints, sessionId }` and returns
+  `{ decision: "ralph" | "team", confidence, complexity, scopeCount, boundaries, testHeavy,
+  signals, reason, recommendedConcurrency, suggestedRoles }`. Monorepo boundary detection
+  across `desktop-app-vue/src/main`, `src/renderer`, `packages/cli`, `backend/*` etc. Multi-scope →
+  `$team`; single-scope → `$ralph`. **Non-gating** — surfaced only as `routingHint`.
+- **Persistence on `mode.json`**: new `SessionStateManager.setRoutingHint()` merge-writes via
+  `_updateMode`. `$deep-interview` calls the classifier right after writing `intent.md`, so the
+  hint survives every subsequent stage transition (`ralplan` → `approve` → `ralph`/`team`).
+  Classifier throws degrade gracefully to `routingHint: null` without breaking the happy path.
+- **Read-only IPC**: `workflow-session:classify-intake` lets the Renderer re-run the classifier
+  on an existing session, auto-aggregating scopes from `tasks.json`.
+- **Renderer visualization**: `CanonicalWorkflowPanel.vue` renders the `routingHint` block
+  (decision tag / complexity / confidence / scopeCount / recommendedConcurrency / reason /
+  suggestedRoles). `useWorkflowSessionStore` exposes a `classifyIntake()` action and
+  `lastClassification` state.
+
+Regression this round:
+
+| Layer                              | Suites                                                      | Passing       |
+| ---------------------------------- | ----------------------------------------------------------- | ------------- |
+| Main unit (classifier)             | `intake-classifier.test.js`                                 | `20/20`       |
+| Main unit (IPC)                    | `workflow-session-ipc.test.js` (+classify-intake)           | `18/18`       |
+| Main unit (handler)                | `workflow-skills.test.js` (+routingHint persist/fallback)   | `55/55`       |
+| Renderer store unit                | `workflow-session.test.ts` (+classifyIntake × 3)            | `13/13`       |
+| Main integration                   | `coding-workflow.integration.test.js` Phase E describe      | `10/10`       |
+| E2E integration (handler → store)  | `canonical-workflow-phase-e.integration.test.js`            | `7/7`         |
+| **Total**                          | **6 suites**                                                | **`123/123`** |
+
+Design details: [docs/design/modules/80_规范工作流系统.md](./docs/design/modules/80_规范工作流系统.md),
+[81_轻量多Agent编排系统.md §10 Phase E](./docs/design/modules/81_轻量多Agent编排系统.md),
+[docs-site mirror](./docs-site/docs/chainlesschain/coding-workflow.md), ADR:
+[LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md](./docs/implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md).
+
 ## 2026-04-08 Update — Coding Agent Phase 5: Persistent Task Graph + Orchestrator
 
 The Coding Agent now ships with a **persistent task DAG and orchestrator** wired through all three layers:

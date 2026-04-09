@@ -1,6 +1,6 @@
 # Coding Agent 规范工作流 (Canonical Workflow)
 
-> **版本: v1.1 | 状态: ✅ Phase 1+2+3 已上线 | 4 workflow skills + SessionStateManager + `$` 快捷解析 + CLI 检查器 | 47 测试通过**
+> **版本: v2.0 | 状态: ✅ Phase 1–5 + ADR Phase A–E 全部上线 | 5 workflow skills + SessionStateManager + Sub-runtime Pool + 智能路由分类器 + 只读 IPC/Pinia store/UI 面板 | 215+ 测试通过**
 
 ChainlessChain Coding Agent 借鉴 [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) 的 **4 步规范工作流** —— 在现有 138 个技能之上，为 Coding Agent 提供一条"澄清 → 规划 → 审批 → 执行"的固定默认路径。
 
@@ -417,6 +417,121 @@ cat .chainlesschain/sessions/my-session.m0-executor/progress.log
 - 子 runtime **不携带** AI engine / 数据库 / IPC / MCP —— 只有 SessionStateManager 和进度写入能力。想在子 runtime 里跑真 LLM，需要父 runtime 先把工作拆成"文件 diff 粒度"的 step，由子 runtime 按步骤执行
 - 子 runtime 是**一次性**的：跑完一个 assignment 就退出，没有复用。换取的是"失败隔离 = 进程边界"的清晰心智模型
 
+## 智能路由 (ADR Phase E)
+
+从 v2.0 开始,`$deep-interview` 在写完 `intent.md` 之后会自动运行一个纯函数分类器,给出 `$ralph` vs `$team` 的**建议**(非门控,用户/LLM 完全可以忽略)。
+
+### 分类器输入
+
+```javascript
+{
+  request: "wire main and renderer",          // 自然语言描述
+  scopePaths: ["src/main/a.js", "src/renderer/b.ts"],  // 可选的显式路径
+  fileHints: ["package.json"],                // 可选的相关文件
+  sessionId: "s1",                            // 可选;提供时自动富化 tasks.json scopes
+  concurrency: 3,                             // 用户期望的最大并发(默认 3, 上限 6)
+}
+```
+
+### 分类器输出
+
+```javascript
+{
+  decision: "team",                 // "ralph" | "team"
+  confidence: "high",               // "low" | "medium" | "high"
+  complexity: "moderate",           // "trivial" | "simple" | "moderate" | "complex"
+  scopeCount: 2,
+  boundaries: ["desktop-app-vue/src/main", "desktop-app-vue/src/renderer"],
+  testHeavy: false,
+  signals: ["multi-scope", "cross-cutting-phrase"],
+  reason: "2 distinct monorepo boundaries",
+  recommendedConcurrency: 2,
+  suggestedRoles: ["executor/main", "executor/ui"]
+}
+```
+
+### 路由规则
+
+| 条件 | 决策 | 置信度 |
+|---|---|---|
+| `scopeCount >= 2` (跨 2+ monorepo 边界) | `team` | high |
+| 命中 cross-cutting 短语(`main and renderer`, `across modules`) | `team` | low |
+| 命中 trivial 短语(`typo`, `rename`, `whitespace`, `docstring`) | `ralph` | high |
+| 单 scope 明确 | `ralph` | high |
+| 默认 | `ralph` | medium |
+
+### Monorepo 边界桶
+
+分类器预定义 11 个仓库边界,用于判断 scopePaths 是否跨模块:
+
+- `desktop-app-vue/src/main` / `src/renderer` / `src/preload` / `tests`
+- `packages/cli/src` / `__tests__`
+- `backend/project-service` / `backend/ai-service`
+- `android-app` / `ios-app` / `docs`
+
+### 建议的持久化
+
+分类器结果通过 `SessionStateManager.setRoutingHint()` 合并写入 `mode.json`:
+
+```json
+{
+  "stage": "intent",
+  "updatedAt": "2026-04-09T03:40:39.312Z",
+  "routingHint": {
+    "decision": "team",
+    "confidence": "high",
+    "scopeCount": 2,
+    "recommendedConcurrency": 2,
+    "suggestedRoles": ["executor/main", "executor/ui"],
+    "reason": "2 distinct monorepo boundaries"
+  }
+}
+```
+
+**关键不变式**:`routingHint` 通过 `_updateMode` 合并写入,天然保证跨 stage 迁移(`intent → plan → execute → verify → complete`)不丢失。后续阶段可以读取但不能依赖它做门控。
+
+### 使用示例
+
+```bash
+# CLI: 通过 session 读取路由建议
+chainlesschain session workflow s1
+# → Stage: intent · Routing hint: $team (confidence=high, reason="2 distinct monorepo boundaries")
+
+# Renderer: Workflow Monitor 面板里有独立的 "Routing Hint" 行,显示 decision tag/complexity/reason/suggested roles
+```
+
+### IPC 通道
+
+```typescript
+// Preload 层:
+window.electronAPI.workflowSession.classifyIntake({
+  request: "add OAuth to API",
+  scopePaths: ["backend/auth/oauth.js"],
+})
+// → { success: true, classification: { decision: "ralph", ... } }
+```
+
+### Pinia Store
+
+```typescript
+const store = useWorkflowSessionStore();
+await store.refreshList();
+await store.selectSession("s1");
+// 读取建议:
+const hint = store.currentState.mode.routingHint;
+// 或主动分类:
+const result = await store.classifyIntake({ request: "anything" });
+```
+
+### 为什么是非门控?
+
+分类器是**提示型**工具,有两个原因:
+
+1. **避免误路由** —— 启发式不可能 100% 准确,强制路由会把正确的 ralph 任务错误地塞给 team
+2. **保留用户最终权威** —— Coding Agent 的 LLM 可能比分类器更懂"这是不是一个 typo"
+
+分类器抛错也不影响 `$deep-interview` 的主流程:`result.routingHint` 降级为 `null`,session 状态照写。
+
 ## 后续路线图
 
 | Phase | 内容 | 状态 |
@@ -426,11 +541,18 @@ cat .chainlesschain/sessions/my-session.m0-executor/progress.log
 | Phase 3 | `$xxx` 解析器 + 分派器 + CLI 检查器 | ✅ 完成 |
 | Phase 3.5 | AIChatPage UI 集成 | ✅ 完成 |
 | Phase 4 | Lifecycle hooks (`.chainlesschain/hooks/`) | ✅ 完成 |
-| Phase 5 | Sub-runtime Pool（真 spawn Electron-main 子 runtime） | ✅ 完成 |
+| Phase 5 | Sub-runtime Pool(真 spawn Electron-main 子 runtime) | ✅ 完成 |
+| ADR Phase A | tasks.json / verify.json / fix-loop retries 状态扩展 | ✅ 完成 |
+| ADR Phase B | `$team` 按 scopePaths 拆分(不再平均分步骤) | ✅ 完成 |
+| ADR Phase C | `$verify` / `$complete` + 门控(verify.status 必须 passed) | ✅ 完成 |
+| ADR Phase D | Workflow Monitor UI 收敛(session view + task readiness + verify checks) | ✅ 完成 |
+| ADR Phase E | Intake classifier + routingHint 持久化 + UI 可视化 | ✅ 完成 |
 | Phase 6 | Git worktree integration | 🔜 按需 |
 
 ## 相关文档
 
-- 设计文档：`docs/design/modules/80_规范工作流系统.md`
-- OMX 原版：<https://github.com/Yeachan-Heo/oh-my-codex>
-- Coding Agent 系统：[coding-agent.md](./coding-agent.md)
+- 设计文档:`docs/design/modules/80_规范工作流系统.md`
+- ADR 讨论:`docs/design/modules/81_轻量多Agent编排系统.md`
+- ADR 实施计划:`docs/implementation-plans/LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION_ADR.md`
+- OMX 原版:<https://github.com/Yeachan-Heo/oh-my-codex>
+- Coding Agent 系统:[coding-agent.md](./coding-agent.md)

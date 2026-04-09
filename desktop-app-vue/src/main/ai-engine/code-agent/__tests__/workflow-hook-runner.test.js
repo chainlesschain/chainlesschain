@@ -34,7 +34,13 @@ describe("workflow-hook-runner", () => {
   it("exposes the canonical event list", () => {
     expect(HOOK_EVENTS).toContain("pre-intent");
     expect(HOOK_EVENTS).toContain("post-done");
-    expect(HOOK_EVENTS).toHaveLength(8);
+    // Phase C added pre/post-verify and pre/post-complete alongside
+    // the original 8 events (intent/plan/execute/done × pre/post).
+    expect(HOOK_EVENTS).toContain("pre-verify");
+    expect(HOOK_EVENTS).toContain("post-verify");
+    expect(HOOK_EVENTS).toContain("pre-complete");
+    expect(HOOK_EVENTS).toContain("post-complete");
+    expect(HOOK_EVENTS).toHaveLength(12);
   });
 
   it("returns skipped when the hook file does not exist", async () => {
