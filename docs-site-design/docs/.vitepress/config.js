@@ -78,8 +78,12 @@ export default defineConfig({
             link: "/modules/m78-cli-agent-runtime",
           },
           {
-            text: "v5.0.2.10 Coding Agent 系统 (79) ⭐NEW",
+            text: "v5.0.2.10 Coding Agent 系统 (79)",
             link: "/modules/m79-coding-agent",
+          },
+          {
+            text: "v5.0.2.10 Runtime收口 (80-83) ⭐NEW",
+            link: "/modules/m80-canonical-workflow",
           },
         ],
       },
@@ -585,7 +589,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 Agent 架构与 Runtime 重构 (77-79) ⭐NEW",
+          text: "v5.0.2.10 Agent 架构与 Runtime 重构 (77-83) ⭐NEW",
           collapsed: false,
           items: [
             {
@@ -599,6 +603,22 @@ export default defineConfig({
             {
               text: "79 Coding Agent 系统",
               link: "/modules/m79-coding-agent",
+            },
+            {
+              text: "80 规范工作流系统",
+              link: "/modules/m80-canonical-workflow",
+            },
+            {
+              text: "81 轻量多Agent编排系统",
+              link: "/modules/m81-sub-runtime-pool",
+            },
+            {
+              text: "82 CLI Runtime 收口路线图",
+              link: "/modules/m82-cli-runtime-convergence",
+            },
+            {
+              text: "83 工具描述规范统一",
+              link: "/modules/m83-tool-descriptor-unification",
             },
           ],
         },

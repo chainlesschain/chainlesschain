@@ -136,6 +136,8 @@ const MODULE_FILE_MAP = {
   "78_CLI_Agent_Runtime重构实施计划.md": "78-cli-agent-runtime.md",
   "79_Coding_Agent系统.md": "79-coding-agent.md",
   "80_规范工作流系统.md": "80-canonical-workflow.md",
+  "81_轻量多Agent编排系统.md": "81-sub-runtime-pool.md",
+  "82_CLI_Runtime收口路线图.md": "82-cli-runtime-convergence.md",
   "83_工具描述规范统一.md": "83-tool-descriptor-unification.md",
 };
 
@@ -193,21 +195,33 @@ function escapeVueTags(content) {
       "style", "script", "link", "meta",
     ]);
 
-    let escapedLine = line.replace(
-      /(?<!`)(<([a-zA-Z][a-zA-Z0-9_-]*)>)(?!`)/g,
-      (match, full, tag) => {
+    // 先把行内代码 `...` 替换为占位符，避免误转义行内代码中的 <tag>
+    const inlineCodeSpans = [];
+    const lineWithPlaceholders = line.replace(/`[^`]+`/g, (match) => {
+      inlineCodeSpans.push(match);
+      return `\x00INLINE${inlineCodeSpans.length - 1}\x00`;
+    });
+
+    let escapedLine = lineWithPlaceholders.replace(
+      /<([a-zA-Z][a-zA-Z0-9_-]*)>/g,
+      (match, tag) => {
         if (htmlTags.has(tag.toLowerCase())) return match;
-        return "`" + full + "`";
+        return "`" + match + "`";
       },
     );
 
     escapedLine = escapedLine.replace(
-      /(?<!`)(<\/([a-zA-Z][a-zA-Z0-9_-]*)>)(?!`)/g,
-      (match, full, tag) => {
+      /<\/([a-zA-Z][a-zA-Z0-9_-]*)>/g,
+      (match, tag) => {
         if (htmlTags.has(tag.toLowerCase())) return match;
-        return "`" + full + "`";
+        return "`" + match + "`";
       },
     );
+
+    // 恢复行内代码占位符
+    escapedLine = escapedLine.replace(/\x00INLINE(\d+)\x00/g, (_, idx) => {
+      return inlineCodeSpans[parseInt(idx)];
+    });
 
     result.push(escapedLine);
   }
