@@ -424,6 +424,24 @@ class ChainlessChainApp {
     } catch (error) {
       logger.error("[Main] Coding Agent IPC registration failed:", error);
     }
+
+    // Phase D (ADR §11): read-only bridge from SessionStateManager to the
+    // renderer's canonical-workflow panel. Uses a function-valued
+    // projectRoot so switching workspaces later won't require re-register.
+    try {
+      const {
+        registerWorkflowSessionIPC,
+      } = require("./ai-engine/code-agent/workflow-session-ipc");
+      registerWorkflowSessionIPC({
+        ipcMain,
+        projectRoot: () =>
+          this.codingAgentService?.projectRoot ||
+          path.resolve(__dirname, "../../.."),
+      });
+      logger.info("[Main] workflow-session IPC handlers registered");
+    } catch (error) {
+      logger.error("[Main] workflow-session IPC registration failed:", error);
+    }
   }
 
   initializeCodingAgentService() {
