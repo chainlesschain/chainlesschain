@@ -11,8 +11,9 @@ const { logger } = require("../../../../../utils/logger.js");
 const {
   SessionStateManager,
 } = require("../../../../code-agent/session-state-manager.js");
+const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
 
-const _deps = { SessionStateManager };
+const _deps = { SessionStateManager, runHook };
 
 function resolveSessionId(task, context) {
   return (
@@ -61,11 +62,25 @@ module.exports = {
     const sessionId = resolveSessionId(task, context);
 
     try {
+      // pre-intent hook: can veto by throwing
+      await _deps.runHook("pre-intent", {
+        projectRoot,
+        sessionId,
+        payload: { goal, clarifications, nonGoals },
+      });
+
       const manager = new _deps.SessionStateManager({ projectRoot });
       const intentFile = manager.writeIntent(sessionId, {
         goal,
         clarifications,
         nonGoals,
+      });
+
+      // post-intent hook: errors are logged but non-blocking
+      await _deps.runHook("post-intent", {
+        projectRoot,
+        sessionId,
+        payload: { intentFile, goal },
       });
 
       const relPath = path.relative(projectRoot, intentFile);
