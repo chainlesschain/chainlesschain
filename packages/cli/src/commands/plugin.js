@@ -23,7 +23,7 @@ import {
   installPluginSkills,
   removePluginSkills,
   getPluginSkills,
-} from "../lib/plugin-manager.js";
+} from "../harness/plugin-manager.js";
 
 export function registerPluginCommand(program) {
   const plugin = program
