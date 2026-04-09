@@ -122,12 +122,14 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
     expect(r.body).toContain('__CC_CONFIG__')
   })
 
-  // All 15 hash-based SPA routes — the server just returns index.html for all
+  // All 23 hash-based SPA routes — the server just returns index.html for all
   const SPA_ROUTES = [
     '/dashboard', '/chat', '/services', '/logs',
     '/skills', '/providers', '/mcp',
     '/notes', '/memory', '/cron',
     '/security', '/p2p', '/git', '/projects', '/tasks',
+    '/permissions', '/wallet', '/organization', '/analytics',
+    '/templates', '/backup', '/rssfeed', '/webauthn',
   ]
 
   for (const route of SPA_ROUTES) {
@@ -327,7 +329,7 @@ describe('chainlesschain ui — built Vue3 panel assets', () => {
   })
 
   it('all new page chunks exist in built assets', () => {
-    const expectedPrefixes = ['Services', 'Logs', 'Notes', 'McpTools', 'Memory', 'Cron', 'Security', 'P2P', 'Git', 'Projects']
+    const expectedPrefixes = ['Services', 'Logs', 'Notes', 'McpTools', 'Memory', 'Cron', 'Security', 'P2P', 'Git', 'Projects', 'Permissions', 'Wallet', 'Organization', 'Analytics', 'Templates', 'Backup', 'RssFeed', 'WebAuthn']
     for (const prefix of expectedPrefixes) {
       const found = assetFiles.some(f => f.startsWith(prefix) && f.endsWith('.js'))
       expect(found, `Missing chunk for ${prefix}`).toBe(true)

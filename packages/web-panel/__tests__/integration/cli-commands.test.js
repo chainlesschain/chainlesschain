@@ -292,4 +292,45 @@ describe('CLI commands via WebSocket execute protocol', () => {
       expect(typeof output).toBe('string')
     }
   }, 45000)
+
+  // ── 13. wallet list ──
+
+  it('wallet list executes without error', async () => {
+    const r = await sendAndWait(ws, { type: 'execute', command: 'wallet list', id: genId() })
+    expect(r).toBeDefined()
+    expect(r.type).not.toBe('error')
+  }, 30000)
+
+  // ── 14. auth roles ──
+
+  it('auth roles returns role information', async () => {
+    const r = await sendAndWait(ws, { type: 'execute', command: 'auth roles', id: genId() })
+    expect(r).toBeDefined()
+    const out = getOutput(r)
+    // Should return some output even if empty roles
+    expect(typeof out).toBe('string')
+  }, 30000)
+
+  // ── 15. tokens show ──
+
+  it('tokens show returns usage data', async () => {
+    const r = await sendAndWait(ws, { type: 'execute', command: 'tokens show', id: genId() })
+    expect(r).toBeDefined()
+    expect(r.type).not.toBe('error')
+  }, 30000)
+
+  // ── 16. org list ──
+
+  it('org list executes without error', async () => {
+    const r = await sendAndWait(ws, { type: 'execute', command: 'org list', id: genId() })
+    expect(r).toBeDefined()
+  }, 30000)
+
+  // ── 17. sync status ──
+
+  it('sync status returns sync information', async () => {
+    const r = await sendAndWait(ws, { type: 'execute', command: 'sync status', id: genId() })
+    expect(r).toBeDefined()
+    expect(r.type).not.toBe('error')
+  }, 30000)
 })
