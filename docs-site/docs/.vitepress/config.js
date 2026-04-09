@@ -822,6 +822,10 @@ export default defineConfig({
               link: "/chainlesschain/coding-agent",
             },
             {
+              text: "规范工作流 ($deep-interview/$ralplan/$ralph/$team)",
+              link: "/chainlesschain/coding-workflow",
+            },
+            {
               text: "Minimal Coding Agent 实施计划",
               link: "/chainlesschain/minimal-coding-agent-plan",
             },
@@ -988,6 +992,8 @@ export default defineConfig({
             { text: "76 Skill Creator系统 ⭐", link: "/design/modules/76-skill-creator" },
             { text: "77 Agent架构优化 ⭐", link: "/design/modules/77-agent-optimization" },
             { text: "78 CLI Agent Runtime重构计划 ⭐", link: "/design/modules/78-cli-agent-runtime" },
+            { text: "79 Coding Agent系统 ⭐", link: "/design/modules/79-coding-agent" },
+            { text: "80 规范工作流系统 ⭐NEW", link: "/design/modules/80-canonical-workflow" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

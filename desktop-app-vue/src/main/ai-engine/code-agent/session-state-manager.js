@@ -236,6 +236,103 @@ class SessionStateManager {
     this._setStage(sessionId, STAGES.DONE);
   }
 
+  // ── member sessions ($team fan-out) ───────────────────────────────
+  /**
+   * Derive a member session id from a parent id + role + index.
+   * Format: "<parentId>.m<idx>-<role>"  (passes safeSessionId regex).
+   */
+  memberSessionId(parentId, memberIdx, role) {
+    safeSessionId(parentId);
+    if (typeof memberIdx !== "number" || memberIdx < 0) {
+      throw new Error("memberSessionId: memberIdx must be >= 0");
+    }
+    const safeRole = String(role || "executor").replace(/[^A-Za-z0-9]/g, "");
+    return `${parentId}.m${memberIdx}-${safeRole}`;
+  }
+
+  /**
+   * Create a member session that copies the parent's approved plan.
+   * Each member owns its own directory so concurrent writes cannot collide.
+   * The parent session is NOT modified.
+   */
+  createMemberSession(parentId, memberIdx, { role, steps = [] } = {}) {
+    const parentPlan = this.readPlan(parentId);
+    if (!parentPlan) {
+      throw new Error(
+        `createMemberSession: parent "${parentId}" has no plan.md`,
+      );
+    }
+    if (!parentPlan.approved) {
+      throw new Error(
+        `createMemberSession: parent "${parentId}" plan is not approved`,
+      );
+    }
+
+    const memberId = this.memberSessionId(parentId, memberIdx, role);
+    const dir = this.ensureSession(memberId);
+
+    // Write a dedicated intent so G1 (intent→plan) passes for the member.
+    const parentIntent = this.readIntent(parentId) || "";
+    _deps.fs.writeFileSync(
+      path.join(dir, "intent.md"),
+      `# Intent (member of ${parentId})\n\n` +
+        `**Member:** ${memberId}\n` +
+        `**Role:** ${role || "executor"}\n` +
+        `**Created:** ${nowIso()}\n\n` +
+        `## Parent Goal\n\n${parentIntent || "_(inherited)_"}\n`,
+      "utf-8",
+    );
+
+    // Write the member plan: inherit parent's title, override steps with the
+    // slice assigned to this member, mark approved so appendProgress passes.
+    const title = `${role || "executor"} slice of ${parentId}`;
+    const body = [
+      "---",
+      `session: ${memberId}`,
+      `parent: ${parentId}`,
+      "approved: true",
+      `updated: ${nowIso()}`,
+      "---",
+      "",
+      `# Plan: ${title}`,
+      "",
+      "## Steps",
+      "",
+      ...steps.map((s, i) => `${i + 1}. ${s}`),
+      "",
+    ].join("\n");
+    _deps.fs.writeFileSync(path.join(dir, "plan.md"), body, "utf-8");
+    this._setStage(memberId, STAGES.EXECUTE);
+    return { memberId, dir };
+  }
+
+  /**
+   * List all member sessions belonging to a parent. Returns sorted member ids.
+   */
+  listMemberSessions(parentId) {
+    safeSessionId(parentId);
+    if (!_deps.fs.existsSync(this.rootDir)) {
+      return [];
+    }
+    const prefix = `${parentId}.m`;
+    return _deps.fs
+      .readdirSync(this.rootDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && e.name.startsWith(prefix))
+      .map((e) => e.name)
+      .sort();
+  }
+
+  /**
+   * Convenience: read progress from every member of a parent session.
+   * Returns [{ memberId, progress }, ...] (skips empty).
+   */
+  readMemberProgress(parentId) {
+    return this.listMemberSessions(parentId).map((memberId) => ({
+      memberId,
+      progress: this.readProgress(memberId),
+    }));
+  }
+
   // ── listing ───────────────────────────────────────────────────────
   listSessions() {
     if (!_deps.fs.existsSync(this.rootDir)) {
