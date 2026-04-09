@@ -23,7 +23,7 @@ const mockCompressionSummary = vi.fn(() => ({
   modelDistribution: [{ key: "qwen2.5:7b", samples: 3, hitRate: 0.66 }],
 }));
 
-vi.mock("../../src/lib/background-task-manager.js", () => ({
+vi.mock("../../src/harness/background-task-manager.js", () => ({
   BackgroundTaskManager: class MockBackgroundTaskManager {
     constructor(...args) {
       return mockTaskManagerFactory(...args);
