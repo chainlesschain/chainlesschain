@@ -1,5 +1,9 @@
 const { ipcMain } = require("electron");
 const { logger } = require("../../utils/logger.js");
+const {
+  runWorkflowCommand,
+  isWorkflowCommand,
+} = require("./workflow-command-runner.js");
 
 const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:create-session",
@@ -44,6 +48,8 @@ const CODING_AGENT_IPC_CHANNELS = [
   "coding-agent:advance-task-graph",
   "coding-agent:get-task-graph",
   "coding-agent:get-status",
+  "coding-agent:run-workflow-command",
+  "coding-agent:check-workflow-command",
 ];
 
 function registerCodingAgentIPCV3(options = {}) {
@@ -602,6 +608,47 @@ function registerCodingAgentIPCV3(options = {}) {
       return { success: false, error: error.message };
     }
   });
+
+  // ── Canonical workflow commands ($deep-interview / $ralplan / $ralph / $team)
+  // These do NOT go through the CLI WS bridge. Workflow state is project-local
+  // under <projectRoot>/.chainlesschain/sessions/ and the handlers execute in
+  // the Electron main process directly.
+  ipc.handle("coding-agent:check-workflow-command", async (_event, text) => {
+    try {
+      return { matched: isWorkflowCommand(text) };
+    } catch (error) {
+      logger.error("[CodingAgentIPCV3] check-workflow-command failed:", error);
+      return { matched: false, error: error.message };
+    }
+  });
+
+  ipc.handle(
+    "coding-agent:run-workflow-command",
+    async (_event, payload = {}) => {
+      try {
+        const { text, sessionId, projectRoot } = payload;
+        if (!text || typeof text !== "string") {
+          return {
+            success: false,
+            matched: false,
+            error: "text is required",
+          };
+        }
+        const ctx = {
+          sessionId: sessionId || undefined,
+          projectRoot: projectRoot || service.projectRoot || process.cwd(),
+        };
+        return await runWorkflowCommand(text, ctx);
+      } catch (error) {
+        logger.error("[CodingAgentIPCV3] run-workflow-command failed:", error);
+        return {
+          success: false,
+          matched: false,
+          error: error.message,
+        };
+      }
+    },
+  );
 }
 
 module.exports = {

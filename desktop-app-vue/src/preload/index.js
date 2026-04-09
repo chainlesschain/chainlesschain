@@ -336,6 +336,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getTaskGraph: (payload) =>
       ipcRenderer.invoke("coding-agent:get-task-graph", payload),
     getStatus: () => ipcRenderer.invoke("coding-agent:get-status"),
+    // Canonical workflow commands ($deep-interview / $ralplan / $ralph / $team)
+    checkWorkflowCommand: (text) =>
+      ipcRenderer.invoke("coding-agent:check-workflow-command", text),
+    runWorkflowCommand: (payload) =>
+      ipcRenderer.invoke("coding-agent:run-workflow-command", payload),
     onEvent: (callback) => {
       const handler = (_event, data) => callback(data);
       ipcRenderer.on("coding-agent:event", handler);
