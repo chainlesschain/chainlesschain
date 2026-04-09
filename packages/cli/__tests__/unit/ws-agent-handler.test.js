@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock agent-core
-vi.mock("../../src/lib/agent-core.js", () => ({
+// Mock agent-core (canonical runtime path — Phase 6b)
+vi.mock("../../src/runtime/agent-core.js", () => ({
   agentLoop: vi.fn(),
   formatToolArgs: vi.fn((tool, args) => `${tool}(${JSON.stringify(args)})`),
 }));
@@ -27,7 +27,7 @@ vi.mock("../../src/lib/plan-mode.js", () => ({
 }));
 
 import { WSAgentHandler } from "../../src/lib/ws-agent-handler.js";
-import { agentLoop } from "../../src/lib/agent-core.js";
+import { agentLoop } from "../../src/runtime/agent-core.js";
 import {
   detectTaskType,
   selectModelForTask,

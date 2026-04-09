@@ -34,7 +34,7 @@ import {
   listSessions as dbListSessions,
   updateSession as dbUpdateSession,
 } from "../../lib/session-manager.js";
-import { buildSystemPrompt } from "../../lib/agent-core.js";
+import { buildSystemPrompt } from "../../runtime/agent-core.js";
 import { SubAgentRegistry } from "../../lib/sub-agent-registry.js";
 import {
   createWorktree,
