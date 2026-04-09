@@ -252,6 +252,10 @@ describe("UnifiedToolRegistry", () => {
       const tool = registry.tools.get("file_reader");
       expect(tool.source).toBe("builtin");
       expect(tool.description).toBe("Read files");
+      expect(tool.title).toBe("File Reader");
+      expect(tool.kind).toBe("builtin");
+      expect(tool.category).toBe(tool.skillCategory || "execute");
+      expect(tool.parameters).toEqual(tool.inputSchema);
     });
   });
 
@@ -297,7 +301,9 @@ describe("UnifiedToolRegistry", () => {
       const tool = registry.tools.get("browser_click");
       expect(tool.skillName).toBe("browser-automation");
       expect(tool.skillCategory).toBe("automation");
+      expect(tool.category).toBe("automation");
       expect(tool.instructions).toBe("Use browser-navigate first.");
+      expect(tool.tags).toContain("skill:browser-automation");
     });
   });
 
@@ -403,6 +409,7 @@ describe("UnifiedToolRegistry", () => {
       const stats = registry.getStats();
       expect(stats.totalTools).toBe(2);
       expect(stats.bySource.builtin).toBe(2);
+      expect(stats.byCategory.execute).toBe(2);
     });
   });
 
@@ -434,6 +441,191 @@ describe("UnifiedToolRegistry", () => {
 
       const tools = registry.getToolsBySkill("nonexistent");
       expect(tools).toEqual([]);
+    });
+  });
+
+  describe("MCP → FunctionCaller canonical fallback", () => {
+    it("should prefer fcTool.inputSchema over fcTool.parameters", async () => {
+      const registry = new UnifiedToolRegistry();
+
+      const canonicalSchema = {
+        type: "object",
+        properties: { query: { type: "string" } },
+        required: ["query"],
+      };
+      const legacySchema = {
+        type: "object",
+        properties: { legacy: { type: "string" } },
+      };
+
+      const mockFC = {
+        getAllToolDefinitions: () => [
+          {
+            name: "brave_web_search",
+            description: "Brave search",
+            // canonical field + legacy field intentionally different to
+            // assert which one is picked up by the fallback chain
+            inputSchema: canonicalSchema,
+            parameters: legacySchema,
+          },
+        ],
+        isToolAvailable: () => true,
+      };
+
+      const mockMCPAdapter = {
+        getMCPTools: () => [
+          {
+            toolId: "brave_web_search",
+            serverName: "brave-search",
+            originalToolName: "web_search",
+          },
+        ],
+        on: vi.fn(),
+      };
+
+      registry.bindFunctionCaller(mockFC);
+      registry.bindMCPAdapter(mockMCPAdapter);
+      await registry.initialize();
+
+      const ctx = registry.getToolContext("brave_web_search");
+      expect(ctx).toBeTruthy();
+      const tool = ctx.tool;
+      expect(tool.source).toBe("mcp");
+      // Must read inputSchema first, not legacy parameters
+      expect(tool.inputSchema).toEqual(canonicalSchema);
+      // `parameters` on canonical descriptor is a mirror of inputSchema
+      expect(tool.parameters).toEqual(canonicalSchema);
+    });
+
+    it("should fall through inputSchema → parameters → function.parameters → input_schema", async () => {
+      const registry = new UnifiedToolRegistry();
+      const targetSchema = {
+        type: "object",
+        properties: { url: { type: "string" } },
+      };
+
+      const mockFC = {
+        getAllToolDefinitions: () => [
+          {
+            name: "fetch_url",
+            description: "fetch",
+            // All canonical shapes omitted — only the deepest OpenAI-wrapped
+            // shape carries the schema
+            function: { parameters: targetSchema },
+          },
+        ],
+        isToolAvailable: () => true,
+      };
+
+      const mockMCPAdapter = {
+        getMCPTools: () => [
+          { toolId: "fetch_url", serverName: "fetch", originalToolName: "fetch_url" },
+        ],
+        on: vi.fn(),
+      };
+
+      registry.bindFunctionCaller(mockFC);
+      registry.bindMCPAdapter(mockMCPAdapter);
+      await registry.initialize();
+
+      const ctx = registry.getToolContext("fetch_url");
+      expect(ctx).toBeTruthy();
+      expect(ctx.tool.inputSchema).toEqual(targetSchema);
+    });
+
+    it("should fall back to empty schema when FunctionCaller has no match", async () => {
+      const registry = new UnifiedToolRegistry();
+
+      const mockFC = {
+        getAllToolDefinitions: () => [],
+        isToolAvailable: () => true,
+      };
+
+      const mockMCPAdapter = {
+        getMCPTools: () => [
+          { toolId: "unknown_mcp_tool", serverName: "srv", originalToolName: "t" },
+        ],
+        on: vi.fn(),
+      };
+
+      registry.bindFunctionCaller(mockFC);
+      registry.bindMCPAdapter(mockMCPAdapter);
+      await registry.initialize();
+
+      const ctx = registry.getToolContext("unknown_mcp_tool");
+      expect(ctx).toBeTruthy();
+      const tool = ctx.tool;
+      // Descriptor still has canonical shape, schema falls back to empty object
+      expect(tool.inputSchema).toBeDefined();
+      expect(tool.parameters).toEqual(tool.inputSchema);
+      expect(tool.description).toContain("srv");
+    });
+  });
+
+  describe("clone-on-read (canonical descriptor mutation safety)", () => {
+    async function setupRegistry() {
+      const registry = new UnifiedToolRegistry();
+      const mockFC = {
+        getAllToolDefinitions: () => [
+          {
+            name: "git_status",
+            description: "git",
+            inputSchema: {
+              type: "object",
+              properties: { cwd: { type: "string" } },
+            },
+            category: "git",
+            riskLevel: "low",
+            isReadOnly: true,
+          },
+        ],
+        isToolAvailable: () => true,
+      };
+      registry.bindFunctionCaller(mockFC);
+      await registry.initialize();
+      return registry;
+    }
+
+    it("getAllTools(): mutating returned descriptor does not corrupt registry", async () => {
+      const registry = await setupRegistry();
+      const firstRead = registry.getAllTools();
+      const victim = firstRead.find((t) => t.name === "git_status");
+
+      // Attempt to poison the descriptor
+      victim.riskLevel = "high";
+      victim.inputSchema.properties.cwd.type = "number";
+      victim.tags = ["poisoned"];
+
+      const secondRead = registry.getAllTools();
+      const fresh = secondRead.find((t) => t.name === "git_status");
+
+      expect(fresh.riskLevel).toBe("low");
+      expect(fresh.inputSchema.properties.cwd.type).toBe("string");
+      // tags may be auto-generated; just ensure poison did not leak
+      expect(fresh.tags).not.toContain("poisoned");
+    });
+
+    it("getToolContext(): mutating returned descriptor does not corrupt registry", async () => {
+      const registry = await setupRegistry();
+      const a = registry.getToolContext("git_status");
+      expect(a).toBeTruthy();
+      a.tool.description = "POISONED";
+      a.tool.inputSchema.properties.cwd.description = "poisoned";
+
+      const b = registry.getToolContext("git_status");
+      expect(b.tool.description).not.toBe("POISONED");
+      expect(b.tool.inputSchema.properties.cwd.description).not.toBe("poisoned");
+    });
+
+    it("getAllTools() returns a fresh array on each call", async () => {
+      const registry = await setupRegistry();
+      const first = registry.getAllTools();
+      const second = registry.getAllTools();
+      expect(first).not.toBe(second);
+      // Mutating the array itself must not affect subsequent reads
+      first.push({ name: "ghost" });
+      const third = registry.getAllTools();
+      expect(third.find((t) => t.name === "ghost")).toBeUndefined();
     });
   });
 
@@ -515,7 +707,13 @@ describe("ContextEngineering Skill Integration", () => {
         {
           name: "file_reader",
           description: "Read a file",
-          parameters: { path: { type: "string" } },
+          inputSchema: {
+            type: "object",
+            properties: {
+              path: { type: "string" },
+            },
+            required: ["path"],
+          },
           available: true,
           skillName: "file-ops",
         },
@@ -537,6 +735,7 @@ describe("ContextEngineering Skill Integration", () => {
     expect(toolMsg.content).toContain("File Operations");
     expect(toolMsg.content).toContain("Read before write.");
     expect(toolMsg.content).toContain("file_reader");
+    expect(toolMsg.content).toContain('"path"');
   });
 
   it("should fall back to regular serialization without unifiedRegistry", () => {

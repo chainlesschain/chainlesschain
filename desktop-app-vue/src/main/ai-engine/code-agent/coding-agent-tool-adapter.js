@@ -1,7 +1,11 @@
 const mcpServerRegistry = require("../../mcp/servers/server-registry.json");
 const {
-  TOOL_POLICY_METADATA,
-  READ_ONLY_GIT_SUBCOMMANDS,
+  getCodingAgentToolContracts,
+} = require("../../../../../packages/cli/src/runtime/coding-agent-contract-shared.cjs");
+const {
+  resolveToolPolicy,
+  TOOL_CATEGORIES,
+  RISK_LEVELS,
 } = require("../../../../../packages/cli/src/runtime/coding-agent-policy.cjs");
 const {
   DEFAULT_ALLOWED_MANAGED_TOOL_NAMES,
@@ -14,178 +18,172 @@ const {
   resolveMcpServerPolicy,
 } = require("../../../../../packages/cli/src/runtime/coding-agent-managed-tool-policy.cjs");
 
-function getSharedPolicy(toolName) {
-  return TOOL_POLICY_METADATA[toolName] || null;
-}
-
-const CORE_CODING_AGENT_TOOLS = [
-  {
-    name: "read_file",
-    description: "Read a file from the current workspace.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "Workspace-relative or absolute file path to read.",
-        },
-      },
-      required: ["path"],
-    },
-    isReadOnly: getSharedPolicy("read_file")?.isReadOnly === true,
-    riskLevel: getSharedPolicy("read_file")?.riskLevel || "low",
-    planModeBehavior: getSharedPolicy("read_file")?.planModeBehavior || "allow",
-    source: "desktop-core",
-  },
-  {
-    name: "search_files",
-    description: "Search file names or file contents inside the workspace.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        pattern: {
-          type: "string",
-          description: "Glob pattern or text query to search for.",
-        },
-        directory: {
-          type: "string",
-          description: "Optional directory root for the search.",
-        },
-        content_search: {
-          type: "boolean",
-          description: "When true, search file contents instead of names.",
-        },
-      },
-      required: ["pattern"],
-    },
-    isReadOnly: getSharedPolicy("search_files")?.isReadOnly === true,
-    riskLevel: getSharedPolicy("search_files")?.riskLevel || "low",
-    planModeBehavior:
-      getSharedPolicy("search_files")?.planModeBehavior || "allow",
-    source: "desktop-core",
-  },
-  {
-    name: "list_dir",
-    description: "List the contents of a workspace directory.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description:
-            "Directory path to inspect. Defaults to the workspace root.",
-        },
-      },
-    },
-    isReadOnly: getSharedPolicy("list_dir")?.isReadOnly === true,
-    riskLevel: getSharedPolicy("list_dir")?.riskLevel || "low",
-    planModeBehavior: getSharedPolicy("list_dir")?.planModeBehavior || "allow",
-    source: "desktop-core",
-  },
-  {
-    name: "edit_file",
-    description: "Edit an existing file by replacing exact text.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "Target file path.",
-        },
-        old_string: {
-          type: "string",
-          description: "Exact text to replace.",
-        },
-        new_string: {
-          type: "string",
-          description: "Replacement text.",
-        },
-      },
-      required: ["path", "old_string", "new_string"],
-    },
-    isReadOnly: getSharedPolicy("edit_file")?.isReadOnly === true,
-    riskLevel: getSharedPolicy("edit_file")?.riskLevel || "medium",
-    planModeBehavior:
-      getSharedPolicy("edit_file")?.planModeBehavior || "blocked",
-    source: "desktop-core",
-  },
-  {
-    name: "write_file",
-    description: "Create or overwrite a workspace file.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "Target file path.",
-        },
-        content: {
-          type: "string",
-          description: "Full file content to write.",
-        },
-      },
-      required: ["path", "content"],
-    },
-    isReadOnly: getSharedPolicy("write_file")?.isReadOnly === true,
-    riskLevel: getSharedPolicy("write_file")?.riskLevel || "medium",
-    planModeBehavior:
-      getSharedPolicy("write_file")?.planModeBehavior || "blocked",
-    source: "desktop-core",
-  },
-  {
-    name: "run_shell",
-    description: "Execute a shell command in the controlled workspace runtime.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        command: {
-          type: "string",
-          description: "Shell command to execute.",
-        },
-        cwd: {
-          type: "string",
-          description: "Optional working directory override.",
-        },
-      },
-      required: ["command"],
-    },
-    isReadOnly: getSharedPolicy("run_shell")?.isReadOnly === true,
-    riskLevel: getSharedPolicy("run_shell")?.riskLevel || "high",
-    planModeBehavior:
-      getSharedPolicy("run_shell")?.planModeBehavior || "blocked",
-    source: "desktop-core",
-  },
-  {
-    name: "git",
-    description: "Run a git command in the controlled workspace runtime.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        command: {
-          type: "string",
-          description: "Git subcommand to execute, for example status or diff.",
-        },
-        cwd: {
-          type: "string",
-          description: "Optional working directory override.",
-        },
-      },
-      required: ["command"],
-    },
-    isReadOnly: getSharedPolicy("git")?.isReadOnly === true,
-    riskLevel: getSharedPolicy("git")?.riskLevel || "high",
-    planModeBehavior: getSharedPolicy("git")?.planModeBehavior || "blocked",
-    readOnlySubcommands: [...READ_ONLY_GIT_SUBCOMMANDS],
-    source: "desktop-core",
-  },
-];
-
 function cloneToolDescriptor(descriptor) {
   return {
     ...descriptor,
     inputSchema: JSON.parse(JSON.stringify(descriptor.inputSchema || {})),
+    permissions: JSON.parse(JSON.stringify(descriptor.permissions || {})),
+    telemetry: JSON.parse(JSON.stringify(descriptor.telemetry || {})),
+    managedMetadata: descriptor.managedMetadata || null,
+    mcpMetadata: descriptor.mcpMetadata
+      ? JSON.parse(JSON.stringify(descriptor.mcpMetadata))
+      : null,
+    readOnlySubcommands: Array.isArray(descriptor.readOnlySubcommands)
+      ? [...descriptor.readOnlySubcommands]
+      : undefined,
   };
 }
+
+function humanizeToolName(name) {
+  return String(name || "")
+    .trim()
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function buildPermissions({
+  sourceKind,
+  isReadOnly,
+  riskLevel,
+  requiredPermissions = [],
+}) {
+  const scopes = [];
+  if (sourceKind === "mcp") {
+    scopes.push("mcp:invoke");
+  } else if (sourceKind === "managed") {
+    scopes.push("tool:invoke");
+  } else {
+    scopes.push("tool:execute");
+  }
+
+  for (const permission of requiredPermissions) {
+    if (!scopes.includes(permission)) {
+      scopes.push(permission);
+    }
+  }
+
+  return {
+    level: isReadOnly
+      ? "readonly"
+      : riskLevel === RISK_LEVELS.HIGH
+        ? "elevated"
+        : "standard",
+    scopes,
+  };
+}
+
+function buildTelemetry({ name, category, sourceKind }) {
+  return {
+    category: category || "execute",
+    tags: [`tool:${name}`, `source:${sourceKind}`],
+  };
+}
+
+function createCanonicalToolDescriptor(base = {}, overrides = {}) {
+  const merged = {
+    ...base,
+    ...overrides,
+  };
+  const normalizedRiskLevel = normalizeRiskLevel(
+    merged.riskLevel,
+    base.riskLevel || "medium",
+  );
+  const isReadOnly =
+    normalizeBoolean(merged.isReadOnly, false) || normalizedRiskLevel === "low";
+  const policy = resolveToolPolicy(merged.name, {
+    riskLevel: normalizedRiskLevel,
+    isReadOnly,
+  });
+  const sourceKind = merged.sourceKind || "managed";
+  const category =
+    merged.category ||
+    (isReadOnly ? TOOL_CATEGORIES.READ : null) ||
+    policy.category ||
+    TOOL_CATEGORIES.EXECUTE;
+
+  return {
+    ...merged,
+    title: merged.title || humanizeToolName(merged.name),
+    kind: merged.kind || sourceKind,
+    category,
+    inputSchema: JSON.parse(
+      JSON.stringify(merged.inputSchema || { type: "object", properties: {} }),
+    ),
+    isReadOnly,
+    riskLevel: normalizedRiskLevel,
+    availableInPlanMode:
+      typeof merged.availableInPlanMode === "boolean"
+        ? merged.availableInPlanMode
+        : policy.availableInPlanMode,
+    planModeBehavior: merged.planModeBehavior || policy.planModeBehavior,
+    requiresPlanApproval:
+      typeof merged.requiresPlanApproval === "boolean"
+        ? merged.requiresPlanApproval
+        : policy.requiresPlanApproval,
+    requiresConfirmation:
+      typeof merged.requiresConfirmation === "boolean"
+        ? merged.requiresConfirmation
+        : normalizedRiskLevel === RISK_LEVELS.HIGH
+          ? true
+          : policy.requiresConfirmation,
+    approvalFlow: merged.approvalFlow || policy.approvalFlow,
+    permissions:
+      merged.permissions ||
+      buildPermissions({
+        sourceKind,
+        isReadOnly,
+        riskLevel: normalizedRiskLevel,
+        requiredPermissions: merged.requiredPermissions,
+      }),
+    telemetry:
+      merged.telemetry ||
+      buildTelemetry({
+        name: merged.name,
+        category,
+        sourceKind,
+      }),
+  };
+}
+
+function mapContractToCoreTool(contract) {
+  const descriptor = createCanonicalToolDescriptor(
+    {
+      title: contract.title,
+      kind: contract.kind,
+      category: contract.category,
+      permissions: JSON.parse(JSON.stringify(contract.permissions || {})),
+      telemetry: JSON.parse(JSON.stringify(contract.telemetry || {})),
+      availableInPlanMode: contract.availableInPlanMode,
+      requiresPlanApproval: contract.requiresPlanApproval,
+      requiresConfirmation: contract.requiresConfirmation,
+      approvalFlow: contract.approvalFlow,
+    },
+    {
+      sourceKind: "core",
+      name: contract.name,
+      description: contract.description || "",
+      inputSchema: JSON.parse(
+        JSON.stringify(contract.inputSchema || { type: "object", properties: {} }),
+      ),
+      isReadOnly: contract.isReadOnly === true,
+      riskLevel: contract.riskLevel || "medium",
+      planModeBehavior: contract.planModeBehavior || "blocked",
+      source: "desktop-core",
+    },
+  );
+
+  if (Array.isArray(contract.readOnlySubcommands)) {
+    descriptor.readOnlySubcommands = [...contract.readOnlySubcommands];
+  }
+
+  return descriptor;
+}
+
+const CORE_CODING_AGENT_TOOLS = getCodingAgentToolContracts({
+  tier: "mvp",
+}).map(mapContractToCoreTool);
 
 function parseSchema(value) {
   if (!value) {
@@ -205,6 +203,79 @@ function parseSchema(value) {
   } catch (_error) {
     return null;
   }
+}
+
+function createManagedToolDescriptor(baseTool, managedTool) {
+  const parsedSchema = parseSchema(managedTool?.input_schema) ||
+    parseSchema(managedTool?.schema) ||
+    parseSchema(managedTool?.parameters_schema) ||
+    baseTool?.inputSchema || { type: "object", properties: {} };
+  const normalizedRiskLevel = normalizeRiskLevel(
+    managedTool?.risk_level,
+    baseTool?.riskLevel || "medium",
+  );
+  const inferredReadOnly =
+    normalizeBoolean(managedTool?.is_read_only, false) ||
+    normalizedRiskLevel === "low";
+
+  return createCanonicalToolDescriptor(baseTool ? cloneToolDescriptor(baseTool) : {}, {
+    sourceKind: "managed",
+    name: managedTool?.name || baseTool?.name || null,
+    title:
+      managedTool?.title ||
+      managedTool?.display_name ||
+      baseTool?.title ||
+      humanizeToolName(managedTool?.name || baseTool?.name),
+    kind: baseTool?.kind || "managed",
+    description: managedTool?.description || baseTool?.description || "",
+    inputSchema: JSON.parse(JSON.stringify(parsedSchema)),
+    isReadOnly: baseTool?.isReadOnly ?? inferredReadOnly,
+    riskLevel: normalizedRiskLevel,
+    source: managedTool?.id
+      ? `desktop-tool-manager:${managedTool.id}`
+      : baseTool?.source || "desktop-core",
+    managedMetadata: managedTool || null,
+  });
+}
+
+function createMcpToolDescriptor(serverName, mcpTool, serverPolicy) {
+  const normalizedRiskLevel = selectHigherRiskLevel(
+    serverPolicy.securityLevel,
+    mcpTool?.risk_level,
+  );
+
+  return createCanonicalToolDescriptor({
+    sourceKind: "mcp",
+    name: `mcp_${serverName}_${mcpTool?.name || "tool"}`,
+    title:
+      mcpTool?.title ||
+      humanizeToolName(`${serverName}_${mcpTool?.name || "tool"}`),
+    kind: "mcp",
+    description: mcpTool?.description || `MCP tool from ${serverName}.`,
+    inputSchema: parseSchema(mcpTool?.inputSchema) ||
+      parseSchema(mcpTool?.input_schema) ||
+      parseSchema(mcpTool?.parameters_schema) || {
+        type: "object",
+        properties: {},
+      },
+    isReadOnly:
+      normalizeBoolean(mcpTool?.isReadOnly, false) ||
+      normalizeBoolean(mcpTool?.is_read_only, false) ||
+      normalizedRiskLevel === "low",
+    riskLevel: normalizedRiskLevel,
+    source: `mcp:${serverName}`,
+    requiredPermissions: serverPolicy.requiredPermissions || [],
+    requiresConfirmation: normalizedRiskLevel === RISK_LEVELS.HIGH,
+    mcpMetadata: {
+      serverName,
+      trusted: serverPolicy.trusted === true,
+      securityLevel: serverPolicy.securityLevel,
+      requiredPermissions: serverPolicy.requiredPermissions || [],
+      capabilities: serverPolicy.capabilities || [],
+      originalToolName: mcpTool?.name || null,
+      tool: mcpTool || null,
+    },
+  });
 }
 
 class CodingAgentToolAdapter {
@@ -469,30 +540,7 @@ class CodingAgentToolAdapter {
   }
 
   _mergeToolMetadata(baseTool, managedTool) {
-    const parsedSchema = parseSchema(managedTool?.input_schema) ||
-      parseSchema(managedTool?.schema) ||
-      parseSchema(managedTool?.parameters_schema) ||
-      baseTool?.inputSchema || { type: "object", properties: {} };
-    const normalizedRiskLevel = normalizeRiskLevel(
-      managedTool?.risk_level,
-      baseTool?.riskLevel || "medium",
-    );
-    const inferredReadOnly =
-      normalizeBoolean(managedTool?.is_read_only, false) ||
-      normalizedRiskLevel === "low";
-
-    return {
-      ...(baseTool ? cloneToolDescriptor(baseTool) : {}),
-      name: managedTool?.name || baseTool?.name || null,
-      description: managedTool?.description || baseTool?.description || "",
-      inputSchema: JSON.parse(JSON.stringify(parsedSchema)),
-      isReadOnly: baseTool?.isReadOnly ?? inferredReadOnly,
-      riskLevel: normalizedRiskLevel,
-      source: managedTool?.id
-        ? `desktop-tool-manager:${managedTool.id}`
-        : baseTool?.source || "desktop-core",
-      managedMetadata: managedTool || null,
-    };
+    return createManagedToolDescriptor(baseTool, managedTool);
   }
 
   _normalizeMcpToolDescriptor(serverName, mcpTool) {
@@ -505,36 +553,7 @@ class CodingAgentToolAdapter {
         allowHighRiskMcpServers: true,
       },
     );
-    const normalizedRiskLevel = selectHigherRiskLevel(
-      serverPolicy.securityLevel,
-      mcpTool?.risk_level,
-    );
-
-    return {
-      name: `mcp_${serverName}_${mcpTool?.name || "tool"}`,
-      description: mcpTool?.description || `MCP tool from ${serverName}.`,
-      inputSchema: parseSchema(mcpTool?.inputSchema) ||
-        parseSchema(mcpTool?.input_schema) ||
-        parseSchema(mcpTool?.parameters_schema) || {
-          type: "object",
-          properties: {},
-        },
-      isReadOnly:
-        normalizeBoolean(mcpTool?.isReadOnly, false) ||
-        normalizeBoolean(mcpTool?.is_read_only, false) ||
-        normalizedRiskLevel === "low",
-      riskLevel: normalizedRiskLevel,
-      source: `mcp:${serverName}`,
-      mcpMetadata: {
-        serverName,
-        trusted: serverPolicy.trusted === true,
-        securityLevel: serverPolicy.securityLevel,
-        requiredPermissions: serverPolicy.requiredPermissions || [],
-        capabilities: serverPolicy.capabilities || [],
-        originalToolName: mcpTool?.name || null,
-        tool: mcpTool || null,
-      },
-    };
+    return createMcpToolDescriptor(serverName, mcpTool, serverPolicy);
   }
 
   _refreshToolDescriptorCache(tools = []) {

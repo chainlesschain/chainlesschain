@@ -84,6 +84,30 @@ describe('ContextEngineering', () => {
       expect(result.messages[1].content).toContain('search');
     });
 
+    it('should serialize canonical inputSchema when parameters are omitted', () => {
+      const result = contextEngine.buildOptimizedPrompt({
+        systemPrompt: 'You are a helpful assistant.',
+        messages: [],
+        tools: [
+          {
+            name: 'read_file',
+            description: 'Read a file',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                path: { type: 'string' },
+              },
+              required: ['path'],
+            },
+          },
+        ],
+      });
+
+      expect(result.messages[1].content).toContain('read_file');
+      expect(result.messages[1].content).toContain('"path"');
+      expect(result.messages[1].content).toContain('"required"');
+    });
+
     it('should sort tools by name for deterministic serialization', () => {
       const result = contextEngine.buildOptimizedPrompt({
         systemPrompt: 'Test',

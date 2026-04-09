@@ -16,6 +16,66 @@ const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
 /**
+ * Canonical tool descriptor keys that must round-trip through the masking system
+ * intact. `inputSchema` is the source of truth; `parameters` is kept as a
+ * read-only mirror for backwards compatibility with older consumers.
+ *
+ * 与 `unified-tool-registry.createUnifiedToolDescriptor` 保持一致。
+ */
+const CANONICAL_TOOL_FIELDS = [
+  "title",
+  "description",
+  "kind",
+  "source",
+  "category",
+  "isReadOnly",
+  "riskLevel",
+  "permissions",
+  "telemetry",
+  "availableInPlanMode",
+  "requiresPlanApproval",
+  "requiresConfirmation",
+  "approvalFlow",
+  "planModeBehavior",
+  "skillName",
+  "skillCategory",
+  "instructions",
+  "examples",
+  "tags",
+];
+
+/**
+ * Build a canonical tool descriptor from a raw registration payload.
+ *
+ * Guarantees:
+ * - `inputSchema` is preferred; falls back to legacy `parameters`
+ * - `parameters` is always a mirror of `inputSchema`
+ * - Unknown extra fields are dropped to keep the shape predictable
+ *
+ * @private
+ * @param {Object} raw - Raw registration payload
+ * @returns {Object} Canonical descriptor (excluding handler/registeredAt)
+ */
+function toCanonicalDescriptor(raw = {}) {
+  const inputSchema =
+    raw.inputSchema || raw.parameters || { type: "object", properties: {} };
+
+  const descriptor = {
+    name: raw.name,
+    inputSchema,
+    parameters: inputSchema,
+  };
+
+  for (const field of CANONICAL_TOOL_FIELDS) {
+    if (raw[field] !== undefined) {
+      descriptor[field] = raw[field];
+    }
+  }
+
+  return descriptor;
+}
+
+/**
  * 工具掩码管理器
  */
 class ToolMaskingSystem extends EventEmitter {
@@ -69,9 +129,14 @@ class ToolMaskingSystem extends EventEmitter {
       throw new Error("Tool must have a name");
     }
 
-    // 存储工具定义
+    // Canonical descriptor shape: `inputSchema` is source of truth,
+    // `parameters` is a read-only mirror. Unknown raw fields are dropped.
+    const canonical = toCanonicalDescriptor(tool);
+
+    // 存储工具定义（保留 handler 与 registeredAt 仅用于内部执行）
     this.allTools.set(name, {
-      ...tool,
+      ...canonical,
+      handler: tool.handler,
       registeredAt: Date.now(),
     });
 
@@ -264,29 +329,52 @@ class ToolMaskingSystem extends EventEmitter {
   }
 
   /**
+   * Project a stored tool into a canonical descriptor for external consumers.
+   * Strips internal fields (`handler`, `registeredAt`) and guarantees
+   * `inputSchema` / `parameters` are present and mirrored.
+   *
+   * @private
+   * @param {Object} tool - Stored tool entry
+   * @returns {Object} Canonical descriptor
+   */
+  _projectCanonical(tool) {
+    // eslint-disable-next-line no-unused-vars
+    const { handler: _h, registeredAt: _r, ...canonical } = tool;
+    const inputSchema =
+      canonical.inputSchema || canonical.parameters || { type: "object", properties: {} };
+    return {
+      ...canonical,
+      inputSchema,
+      parameters: inputSchema,
+    };
+  }
+
+  /**
    * 获取工具定义（始终返回完整列表，用于 LLM 上下文）
+   *
+   * Returns canonical descriptors: `inputSchema` is the source of truth,
+   * `parameters` is a mirror. Additional canonical fields (category,
+   * riskLevel, isReadOnly, availableInPlanMode ...) are preserved when set.
+   *
    * @returns {Array} 所有工具定义
    */
   getAllToolDefinitions() {
-    return Array.from(this.allTools.values()).map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-    }));
+    return Array.from(this.allTools.values()).map((tool) =>
+      this._projectCanonical(tool),
+    );
   }
 
   /**
    * 获取可用工具定义（用于验证）
+   *
+   * Returns canonical descriptors filtered by the current availability mask.
+   *
    * @returns {Array} 可用工具定义
    */
   getAvailableToolDefinitions() {
     return Array.from(this.allTools.values())
       .filter((tool) => this.availableMask.has(tool.name))
-      .map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-      }));
+      .map((tool) => this._projectCanonical(tool));
   }
 
   /**
@@ -606,4 +694,8 @@ module.exports = {
   ToolMaskingSystem,
   getToolMaskingSystem,
   TASK_PHASE_STATE_MACHINE,
+  // Exposed for consumers that need to build canonical descriptors without
+  // going through the registry (e.g. function-caller sync path, tests).
+  CANONICAL_TOOL_FIELDS,
+  toCanonicalDescriptor,
 };

@@ -81,6 +81,17 @@ All entry files are relative to `desktop-app-vue/src/`.
 
 ## System Details
 
+### Canonical Tool Descriptor (v5.0.2.9)
+
+- **Single source of truth**: CLI runtime contract (`coding-agent-contract-shared.cjs`) is the canonical origin for all core tool schemas
+- **Unified shape**: `inputSchema` is the schema source of truth; `parameters` is a read-only mirror kept for backwards compatibility
+- **Canonical fields**: `name`, `title`, `kind`, `source`, `category`, `inputSchema`, `parameters`, `isReadOnly`, `riskLevel`, `permissions`, `telemetry`, `availableInPlanMode`, `requiresPlanApproval`, `requiresConfirmation`, `approvalFlow`
+- **Permission semantics**: Plan Mode and Permission Gate read the same fields across CLI and Desktop — no tool-name whitelists
+- **End-to-end propagation**: CLI runtime → Electron main (FunctionCaller, UnifiedToolRegistry, MCP adapter) → Renderer stores/components → MCP settings UI
+- **Design doc**: [`docs/design/modules/83_工具描述规范统一.md`](./docs/design/modules/83_工具描述规范统一.md)
+- **User doc**: [`docs-site/docs/chainlesschain/coding-agent-tool-descriptor-unification-plan.md`](./docs-site/docs/chainlesschain/coding-agent-tool-descriptor-unification-plan.md)
+- **Test coverage**: contract↔adapter, registry normalization, IPC serialization, renderer stores, MCP UI, plus FC→registry integration test
+
 ### Skills System
 
 - **4-layer loading**: bundled → marketplace → managed → workspace (higher priority overrides)

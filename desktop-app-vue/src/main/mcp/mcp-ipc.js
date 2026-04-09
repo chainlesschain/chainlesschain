@@ -8,7 +8,38 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
+const { ipcMain: electronIpcMain } = require("electron");
+
+let injectedIpcMain = null;
+
+function humanizeToolName(name) {
+  return String(name || "")
+    .trim()
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function serializeToolForIPC(tool, serverName = null) {
+  const inputSchema = tool.inputSchema || tool.parameters || { type: "object" };
+  const isReadOnly = tool.isReadOnly === true;
+  const riskLevel = tool.riskLevel || (isReadOnly ? "low" : "medium");
+
+  return {
+    name: tool.name,
+    title: tool.title || humanizeToolName(tool.name),
+    description: tool.description,
+    inputSchema,
+    parameters: inputSchema,
+    kind: tool.kind || "mcp",
+    source: "mcp",
+    category: tool.category || (isReadOnly ? "read" : "execute"),
+    riskLevel,
+    isReadOnly,
+    ...(serverName ? { serverName } : {}),
+  };
+}
 
 // 跟踪基础配置IPC是否已注册
 let basicConfigIPCRegistered = false;
@@ -17,7 +48,8 @@ let basicConfigIPCRegistered = false;
  * Register basic MCP config IPC handlers (always needed, even when MCP is disabled)
  * This allows users to enable/disable MCP through the UI
  */
-function registerBasicMCPConfigIPC() {
+function registerBasicMCPConfigIPC(_deps = {}) {
+  const ipcMain = _deps.ipcMain || injectedIpcMain || electronIpcMain;
   if (basicConfigIPCRegistered) {
     logger.info(
       "[MCP IPC] Basic config IPC handlers already registered, skipping",
@@ -171,7 +203,9 @@ function registerBasicMCPConfigIPC() {
  * @param {MCPToolAdapter} mcpAdapter - MCP tool adapter instance
  * @param {MCPSecurityPolicy} securityPolicy - Security policy instance
  */
-function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
+function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy, _deps = {}) {
+  const ipcMain = _deps.ipcMain || electronIpcMain;
+  injectedIpcMain = ipcMain;
   logger.info("[MCP IPC] Registering full MCP IPC handlers");
 
   // 确保基础配置 IPC 已注册
@@ -327,24 +361,18 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     try {
       let tools;
 
-      // Helper to serialize tool for IPC
-      const serializeTool = (t, srvName = null) => ({
-        name: t.name,
-        description: t.description,
-        inputSchema: t.inputSchema,
-        ...(srvName ? { serverName: srvName } : {}),
-      });
-
       if (serverName) {
         // List tools from specific server
         const rawTools = await mcpManager.listTools(serverName);
-        tools = rawTools.map((t) => serializeTool(t));
+        tools = rawTools.map((t) => serializeToolForIPC(t));
       } else {
         // List tools from all connected servers
         tools = [];
         for (const [srvName] of mcpManager.servers.entries()) {
           const serverTools = await mcpManager.listTools(srvName);
-          tools.push(...serverTools.map((t) => serializeTool(t, srvName)));
+          tools.push(
+            ...serverTools.map((t) => serializeToolForIPC(t, srvName)),
+          );
         }
       }
 

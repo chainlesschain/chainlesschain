@@ -175,8 +175,33 @@ describe("CodingAgentPermissionGate", () => {
       allowed: true,
       decision: "allow",
       riskLevel: RISK_LEVELS.LOW,
+      category: "read",
       requiresPlanApproval: false,
       requiresConfirmation: false,
+    });
+  });
+
+  it("uses canonical dynamic descriptor fields for managed tools", () => {
+    const gate = new CodingAgentPermissionGate();
+
+    const result = gate.evaluateToolCall({
+      toolName: "info_searcher",
+      toolDescriptor: {
+        name: "info_searcher",
+        category: "read",
+        isReadOnly: true,
+        riskLevel: RISK_LEVELS.LOW,
+        availableInPlanMode: true,
+        planModeBehavior: "allow",
+      },
+      session: { planModeState: "inactive" },
+    });
+
+    expect(result).toMatchObject({
+      allowed: true,
+      decision: "allow",
+      category: "read",
+      riskLevel: RISK_LEVELS.LOW,
     });
   });
 

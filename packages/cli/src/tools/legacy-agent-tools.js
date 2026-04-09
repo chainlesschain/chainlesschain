@@ -1,6 +1,7 @@
 import {
   createCodingAgentToolRegistry,
   getCodingAgentRuntimeDescriptor,
+  getCodingAgentRuntimeDescriptorByCommand,
   listCodingAgentToolNames,
   mapCodingAgentToolDefinition,
 } from "../runtime/coding-agent-contract.js";
@@ -23,4 +24,8 @@ export function listLegacyAgentToolNames() {
 
 export function getRuntimeToolDescriptor(toolName) {
   return getCodingAgentRuntimeDescriptor(toolName);
+}
+
+export function getRuntimeToolDescriptorByCommand(command) {
+  return getCodingAgentRuntimeDescriptorByCommand(command);
 }

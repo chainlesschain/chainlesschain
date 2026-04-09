@@ -28,11 +28,15 @@ import { findProjectRoot, loadProjectConfig } from "./project-detector.js";
 import { SubAgentContext } from "./sub-agent-context.js";
 import {
   createLegacyAgentToolRegistry,
+  getRuntimeToolDescriptorByCommand,
   getRuntimeToolDescriptor,
 } from "../tools/legacy-agent-tools.js";
+import {
+  getCodingAgentFunctionToolDefinitions,
+  listCodingAgentToolNames,
+} from "../runtime/coding-agent-contract.js";
 import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
-import { DEFAULT_TOOL_DESCRIPTORS } from "../tools/registry.js";
 import { isAbortError, throwIfAborted } from "./abort-utils.js";
 
 const { isReadOnlyGitCommand, normalizeGitCommand } = sharedCodingAgentPolicy;
@@ -40,259 +44,13 @@ const { evaluateShellCommandPolicy } = sharedShellPolicy;
 
 // ─── Tool definitions ────────────────────────────────────────────────────
 
-export const AGENT_TOOLS = [
-  {
-    type: "function",
-    function: {
-      name: "read_file",
-      description: "Read a file's content",
-      parameters: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "File path to read" },
-        },
-        required: ["path"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "write_file",
-      description: "Write content to a file (create or overwrite)",
-      parameters: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "File path" },
-          content: { type: "string", description: "File content" },
-        },
-        required: ["path", "content"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "edit_file",
-      description: "Replace a specific string in a file with new content",
-      parameters: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "File path" },
-          old_string: {
-            type: "string",
-            description: "Exact string to find and replace",
-          },
-          new_string: {
-            type: "string",
-            description: "Replacement string",
-          },
-        },
-        required: ["path", "old_string", "new_string"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "run_shell",
-      description:
-        "Execute a shell command and return the output. Use for running tests, linting, builds, and other non-git workspace commands.",
-      parameters: {
-        type: "object",
-        properties: {
-          command: { type: "string", description: "Shell command to execute" },
-          cwd: {
-            type: "string",
-            description: "Working directory (optional)",
-          },
-        },
-        required: ["command"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "git",
-      description:
-        "Run a git command inside the workspace. Use this instead of run_shell for git status, diff, log, commit, branch, and related repository operations.",
-      parameters: {
-        type: "object",
-        properties: {
-          command: {
-            type: "string",
-            description:
-              'Git subcommand to execute, for example "status", "diff --stat", or "log --oneline -5"',
-          },
-          cwd: {
-            type: "string",
-            description: "Working directory (optional)",
-          },
-        },
-        required: ["command"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "search_files",
-      description: "Search for files by name pattern or content",
-      parameters: {
-        type: "object",
-        properties: {
-          pattern: {
-            type: "string",
-            description: "Glob pattern or search string",
-          },
-          directory: {
-            type: "string",
-            description: "Directory to search in (default: cwd)",
-          },
-          content_search: {
-            type: "boolean",
-            description: "If true, search file contents instead of names",
-          },
-        },
-        required: ["pattern"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "list_dir",
-      description: "List contents of a directory",
-      parameters: {
-        type: "object",
-        properties: {
-          path: {
-            type: "string",
-            description: "Directory path (default: cwd)",
-          },
-        },
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "run_skill",
-      description:
-        "Run a built-in ChainlessChain skill. Available skills include: code-review, summarize, translate, refactor, unit-test, debug, explain-code, browser-automation, data-analysis, git-history-analyzer, and 130+ more. Use list_skills first to discover available skills.",
-      parameters: {
-        type: "object",
-        properties: {
-          skill_name: {
-            type: "string",
-            description:
-              "Name of the skill to run (e.g. code-review, summarize, translate)",
-          },
-          input: {
-            type: "string",
-            description: "Input text or parameters for the skill",
-          },
-        },
-        required: ["skill_name", "input"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "list_skills",
-      description:
-        "List available built-in skills, optionally filtered by category or keyword",
-      parameters: {
-        type: "object",
-        properties: {
-          category: {
-            type: "string",
-            description:
-              "Filter by category (e.g. development, automation, data)",
-          },
-          query: {
-            type: "string",
-            description: "Search keyword to filter skills",
-          },
-        },
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "run_code",
-      description:
-        "Write and execute code in Python, Node.js, or Bash. Use this when the user needs data processing, calculations, file batch operations, API calls, or any task best solved with a script. Scripts are saved for reference. Missing Python packages are auto-installed.",
-      parameters: {
-        type: "object",
-        properties: {
-          language: {
-            type: "string",
-            enum: ["python", "node", "bash"],
-            description: "Programming language",
-          },
-          code: { type: "string", description: "Code to execute" },
-          timeout: {
-            type: "number",
-            description: "Execution timeout in seconds (default: 60, max: 300)",
-          },
-          persist: {
-            type: "boolean",
-            description:
-              "If true (default), save script in .chainlesschain/agent-scripts/. If false, use temp file and clean up.",
-          },
-        },
-        required: ["language", "code"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "spawn_sub_agent",
-      description:
-        "Spawn an isolated sub-agent to handle a subtask. The sub-agent has its own context and message history, and only returns a summary result. Use this for tasks that benefit from focused, independent execution (e.g. code review, summarization, translation).",
-      parameters: {
-        type: "object",
-        properties: {
-          role: {
-            type: "string",
-            description:
-              "Sub-agent role (e.g. code-review, summarizer, translator, debugger)",
-          },
-          task: {
-            type: "string",
-            description: "Task description for the sub-agent",
-          },
-          context: {
-            type: "string",
-            description:
-              "Optional condensed context from the parent agent to pass to the sub-agent",
-          },
-          tools: {
-            type: "array",
-            items: { type: "string" },
-            description:
-              'Optional tool whitelist for the sub-agent (e.g. ["read_file", "search_files"]). If omitted, all tools are available.',
-          },
-        },
-        required: ["role", "task"],
-      },
-    },
-  },
-];
+export const AGENT_TOOLS = getCodingAgentFunctionToolDefinitions();
 
 const STATIC_AGENT_TOOL_NAMES = new Set(
-  AGENT_TOOLS.map((tool) => tool.function.name),
+  listCodingAgentToolNames(),
 );
 
 export const AGENT_TOOL_REGISTRY = createLegacyAgentToolRegistry(AGENT_TOOLS);
-const DEFAULT_TOOL_DESCRIPTOR_MAP = new Map(
-  DEFAULT_TOOL_DESCRIPTORS.map((descriptor) => [descriptor.name, descriptor]),
-);
 
 function mergeToolDefinitions(baseTools = [], extraTools = []) {
   const merged = new Map();
@@ -825,16 +583,6 @@ async function executeToolInner(
     const descriptor = buildPayload(overrideDescriptor || runtimeDescriptor);
     return descriptor ? { ...payload, toolDescriptor: descriptor } : payload;
   };
-  const resolveShellDescriptor = (command) => {
-    const trimmed = (command || "").trim();
-    if (!trimmed) return null;
-    const parts = trimmed.split(/\s+/);
-    if (parts[0] === "git") return DEFAULT_TOOL_DESCRIPTOR_MAP.get("git");
-    if (parts[0] === "mcp" || parts.includes("mcp")) {
-      return DEFAULT_TOOL_DESCRIPTOR_MAP.get("mcp");
-    }
-    return DEFAULT_TOOL_DESCRIPTOR_MAP.get("shell");
-  };
   const localToolExecutor =
     externalToolExecutors && typeof externalToolExecutors === "object"
       ? externalToolExecutors[name] || null
@@ -885,7 +633,7 @@ async function executeToolInner(
 
     case "run_shell": {
       const shellPolicy = evaluateShellCommandPolicy(args.command);
-      const override = resolveShellDescriptor(args.command);
+      const override = getRuntimeToolDescriptorByCommand(args.command);
       if (!shellPolicy.allowed) {
         return attachDescriptor(
           {

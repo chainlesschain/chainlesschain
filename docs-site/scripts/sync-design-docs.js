@@ -136,6 +136,7 @@ const MODULE_FILE_MAP = {
   "78_CLI_Agent_Runtime重构实施计划.md": "78-cli-agent-runtime.md",
   "79_Coding_Agent系统.md": "79-coding-agent.md",
   "80_规范工作流系统.md": "80-canonical-workflow.md",
+  "83_工具描述规范统一.md": "83-tool-descriptor-unification.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）

@@ -9,6 +9,169 @@
 
 const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
+const {
+  getCodingAgentToolContract,
+} = require("../../../../packages/cli/src/runtime/coding-agent-contract-shared.cjs");
+
+function cloneValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function humanizeToolName(name) {
+  return String(name || "")
+    .trim()
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function inferCategory({ contract, explicitCategory, skillCategory, source, isReadOnly }) {
+  if (contract?.category) {
+    return contract.category;
+  }
+  // Explicit category on the raw descriptor wins over inference rules so that
+  // canonical tools can self-report their category without relying on
+  // read-only / source heuristics.
+  if (explicitCategory) {
+    return explicitCategory;
+  }
+  if (skillCategory && skillCategory !== "mcp") {
+    return skillCategory;
+  }
+  if (isReadOnly) {
+    return "read";
+  }
+  if (source === "mcp") {
+    return "execute";
+  }
+  if (source === "skill-handler") {
+    return "skill";
+  }
+  return "execute";
+}
+
+function buildPermissions({ source, isReadOnly, contract }) {
+  if (contract?.permissions) {
+    return cloneValue(contract.permissions);
+  }
+
+  const scopes = [];
+  if (source === "mcp") {
+    scopes.push("mcp:invoke");
+  } else if (source === "skill-handler") {
+    scopes.push("skill:execute");
+  } else {
+    scopes.push("tool:execute");
+  }
+
+  return {
+    level: isReadOnly ? "readonly" : "standard",
+    scopes,
+  };
+}
+
+function buildTelemetry({
+  name,
+  source,
+  category,
+  contract,
+  tags = [],
+  rawTelemetry,
+}) {
+  // Merge precedence: contract.telemetry (trusted) > raw.telemetry (caller)
+  // > synthesized defaults. Tags from all sources are unioned so authors
+  // can add labels without clobbering category / source telemetry.
+  const base = contract?.telemetry
+    ? cloneValue(contract.telemetry)
+    : rawTelemetry
+      ? cloneValue(rawTelemetry)
+      : { category };
+
+  const mergedTags = new Set([
+    ...(base.tags || []),
+    `tool:${name}`,
+    `source:${source}`,
+    ...tags,
+  ]);
+  base.tags = Array.from(mergedTags);
+  if (!base.category) {
+    base.category = category;
+  }
+  return base;
+}
+
+function createUnifiedToolDescriptor(raw = {}) {
+  const contract = getCodingAgentToolContract(raw.name);
+  const inputSchema =
+    raw.inputSchema || raw.parameters || { type: "object", properties: {} };
+  const isReadOnly =
+    raw.isReadOnly === true || contract?.isReadOnly === true || false;
+  const riskLevel =
+    raw.riskLevel || contract?.riskLevel || (isReadOnly ? "low" : "medium");
+  const category = inferCategory({
+    contract,
+    explicitCategory: raw.category,
+    skillCategory: raw.skillCategory,
+    source: raw.source,
+    isReadOnly,
+  });
+
+  return {
+    name: raw.name,
+    title: raw.title || contract?.title || humanizeToolName(raw.name),
+    kind: raw.kind || contract?.kind || raw.source || "custom",
+    description: raw.description || contract?.description || "",
+    inputSchema: cloneValue(inputSchema),
+    parameters: cloneValue(inputSchema),
+    source: raw.source || "builtin",
+    available: raw.available !== false,
+    isReadOnly,
+    riskLevel,
+    category,
+    availableInPlanMode:
+      typeof raw.availableInPlanMode === "boolean"
+        ? raw.availableInPlanMode
+        : contract?.availableInPlanMode || isReadOnly,
+    planModeBehavior:
+      raw.planModeBehavior ||
+      contract?.planModeBehavior ||
+      (isReadOnly ? "allow" : "blocked"),
+    requiresPlanApproval:
+      typeof raw.requiresPlanApproval === "boolean"
+        ? raw.requiresPlanApproval
+        : contract?.requiresPlanApproval || (!isReadOnly && riskLevel !== "low"),
+    requiresConfirmation:
+      typeof raw.requiresConfirmation === "boolean"
+        ? raw.requiresConfirmation
+        : contract?.requiresConfirmation || false,
+    approvalFlow: raw.approvalFlow || contract?.approvalFlow || "policy",
+    permissions: buildPermissions({
+      source: raw.source,
+      isReadOnly,
+      contract,
+    }),
+    telemetry: buildTelemetry({
+      name: raw.name,
+      source: raw.source || "builtin",
+      category,
+      contract,
+      tags: raw.tags || [],
+      rawTelemetry: raw.telemetry,
+    }),
+    skillName: raw.skillName || null,
+    skillCategory: raw.skillCategory || null,
+    instructions: raw.instructions || "",
+    examples: Array.isArray(raw.examples) ? [...raw.examples] : [],
+    tags: Array.isArray(raw.tags) ? [...raw.tags] : [],
+    executorKey: raw.executorKey || raw.name,
+    skillHandlerId: raw.skillHandlerId || null,
+  };
+}
+
+function cloneToolDescriptor(tool) {
+  return tool ? cloneValue(tool) : null;
+}
 
 class UnifiedToolRegistry extends EventEmitter {
   constructor() {
@@ -225,7 +388,7 @@ class UnifiedToolRegistry extends EventEmitter {
    * @returns {SkillManifestEntry[]}
    */
   getSkillManifest() {
-    return Array.from(this.skills.values());
+    return Array.from(this.skills.values()).map((skill) => cloneValue(skill));
   }
 
   /**
@@ -241,7 +404,7 @@ class UnifiedToolRegistry extends EventEmitter {
       result.push({
         name: tool.name,
         description: tool.description,
-        parameters: tool.parameters || {},
+        parameters: cloneValue(tool.inputSchema || tool.parameters || {}),
       });
     }
     return result;
@@ -260,7 +423,10 @@ class UnifiedToolRegistry extends EventEmitter {
     }
 
     const skill = tool.skillName ? this.skills.get(tool.skillName) : null;
-    return { tool, skill: skill || null };
+    return {
+      tool: cloneToolDescriptor(tool),
+      skill: skill ? cloneValue(skill) : null,
+    };
   }
 
   /**
@@ -273,7 +439,10 @@ class UnifiedToolRegistry extends EventEmitter {
     if (!skill) {
       return [];
     }
-    return skill.toolNames.map((name) => this.tools.get(name)).filter(Boolean);
+    return skill.toolNames
+      .map((name) => this.tools.get(name))
+      .filter(Boolean)
+      .map((tool) => cloneToolDescriptor(tool));
   }
 
   /**
@@ -281,7 +450,7 @@ class UnifiedToolRegistry extends EventEmitter {
    * @returns {UnifiedTool[]}
    */
   getAllTools() {
-    return Array.from(this.tools.values());
+    return Array.from(this.tools.values()).map((tool) => cloneToolDescriptor(tool));
   }
 
   /**
@@ -313,7 +482,7 @@ class UnifiedToolRegistry extends EventEmitter {
         score += 15;
       }
       if (score > 0) {
-        results.push({ ...tool, _score: score });
+        results.push({ ...cloneToolDescriptor(tool), _score: score });
       }
     }
     results.sort((a, b) => b._score - a._score);
@@ -329,7 +498,7 @@ class UnifiedToolRegistry extends EventEmitter {
     const byCategory = {};
     for (const tool of this.tools.values()) {
       bySource[tool.source] = (bySource[tool.source] || 0) + 1;
-      const cat = tool.skillCategory || "uncategorized";
+      const cat = tool.category || tool.skillCategory || "uncategorized";
       byCategory[cat] = (byCategory[cat] || 0) + 1;
     }
     return {
@@ -371,19 +540,34 @@ class UnifiedToolRegistry extends EventEmitter {
         continue;
       }
 
-      this.tools.set(name, {
+      this.tools.set(
         name,
-        description: def.description || def.function?.description || "",
-        parameters:
-          def.parameters || def.function?.parameters || def.input_schema || {},
-        source: "builtin",
-        skillName: null,
-        skillCategory: null,
-        instructions: "",
-        examples: [],
-        tags: [],
-        available: this.functionCaller.isToolAvailable?.(def.name) !== false,
-      });
+        createUnifiedToolDescriptor({
+          // Forward ALL canonical fields from FunctionCaller — `getAllToolDefinitions()`
+          // already emits canonical-shaped descriptors via `buildMaskingPayload()`.
+          ...def,
+          name,
+          description: def.description || def.function?.description || "",
+          // Canonical read order: prefer `inputSchema`, then fall back to
+          // legacy `parameters` / OpenAI-wrapped `function.parameters` /
+          // Claude-style `input_schema`.
+          inputSchema:
+            def.inputSchema ||
+            def.parameters ||
+            def.function?.parameters ||
+            def.input_schema ||
+            {},
+          source: "builtin",
+          skillName: def.skillName || null,
+          skillCategory: def.skillCategory || null,
+          instructions: def.instructions || "",
+          examples: Array.isArray(def.examples) ? def.examples : [],
+          tags: Array.isArray(def.tags)
+            ? Array.from(new Set([...def.tags, "source:builtin"]))
+            : ["source:builtin"],
+          available: this.functionCaller.isToolAvailable?.(def.name) !== false,
+        }),
+      );
     }
 
     logger.info(
@@ -432,7 +616,9 @@ class UnifiedToolRegistry extends EventEmitter {
         if (fcTool) {
           description =
             fcTool.description || fcTool.function?.description || "";
+          // Canonical read order: inputSchema → legacy parameters → input_schema
           parameters =
+            fcTool.inputSchema ||
             fcTool.parameters ||
             fcTool.function?.parameters ||
             fcTool.input_schema ||
@@ -440,18 +626,24 @@ class UnifiedToolRegistry extends EventEmitter {
         }
       }
 
-      this.tools.set(name, {
+      this.tools.set(
         name,
-        description: description || `MCP tool from ${mt.serverName}`,
-        parameters,
-        source: "mcp",
-        skillName: null,
-        skillCategory: "mcp",
-        instructions: "",
-        examples: [],
-        tags: ["mcp", mt.serverName].filter(Boolean),
-        available: true,
-      });
+        createUnifiedToolDescriptor({
+          name,
+          description: description || `MCP tool from ${mt.serverName}`,
+          inputSchema: parameters,
+          source: "mcp",
+          kind: "mcp",
+          skillName: null,
+          skillCategory: "mcp",
+          instructions: "",
+          examples: [],
+          tags: ["mcp", mt.serverName, `server:${mt.serverName}`].filter(
+            Boolean,
+          ),
+          available: true,
+        }),
+      );
     }
 
     // Auto-generate skills for each MCP server
@@ -486,7 +678,9 @@ class UnifiedToolRegistry extends EventEmitter {
           return {
             ...mt,
             description: toolEntry?.description || "",
-            inputSchema: toolEntry?.parameters || {},
+            inputSchema: cloneValue(
+              toolEntry?.inputSchema || toolEntry?.parameters || {},
+            ),
           };
         });
         const skillManifest = this.mcpSkillGenerator.generateSkillFromMCPServer(
@@ -546,10 +740,29 @@ class UnifiedToolRegistry extends EventEmitter {
       for (const tn of toolNames) {
         const tool = this.tools.get(tn);
         if (tool) {
-          tool.skillName = manifest.name;
-          tool.skillCategory = manifest.category;
-          tool.instructions = manifest.instructions;
-          tool.examples = manifest.examples;
+          // Drop the previously-inferred `category` so that skill-driven
+          // re-classification re-runs `inferCategory` with the new
+          // `skillCategory`. Without this, the old inferred value (e.g.
+          // "execute") would be treated as an explicit override.
+          const { category: _priorCategory, ...toolWithoutCategory } = tool;
+          void _priorCategory;
+          this.tools.set(
+            tn,
+            createUnifiedToolDescriptor({
+              ...toolWithoutCategory,
+              skillName: manifest.name,
+              skillCategory: manifest.category,
+              instructions: manifest.instructions,
+              examples: manifest.examples,
+              tags: Array.from(
+                new Set([
+                  ...(tool.tags || []),
+                  `skill:${manifest.name}`,
+                  `category:${manifest.category}`,
+                ]),
+              ),
+            }),
+          );
         }
       }
     }
@@ -590,10 +803,27 @@ class UnifiedToolRegistry extends EventEmitter {
       for (const toolName of mapping.skill.toolNames) {
         const tool = this.tools.get(toolName);
         if (tool) {
-          tool.skillName = mapping.skill.name;
-          tool.skillCategory = mapping.skill.category;
-          tool.instructions = mapping.skill.instructions;
-          tool.examples = mapping.skill.examples;
+          // Drop prior inferred `category` so skill-driven re-classification
+          // re-runs through `inferCategory`.
+          const { category: _priorCategory, ...toolWithoutCategory } = tool;
+          void _priorCategory;
+          this.tools.set(
+            toolName,
+            createUnifiedToolDescriptor({
+              ...toolWithoutCategory,
+              skillName: mapping.skill.name,
+              skillCategory: mapping.skill.category,
+              instructions: mapping.skill.instructions,
+              examples: mapping.skill.examples,
+              tags: Array.from(
+                new Set([
+                  ...(tool.tags || []),
+                  `skill:${mapping.skill.name}`,
+                  `category:${mapping.skill.category}`,
+                ]),
+              ),
+            }),
+          );
         }
       }
     }

@@ -3,7 +3,9 @@ import {
   CODING_AGENT_EXTENSION_TOOL_NAMES,
   CODING_AGENT_MVP_TOOL_NAMES,
   createCodingAgentToolRegistry,
+  getCodingAgentFunctionToolDefinitions,
   getCodingAgentRuntimeDescriptor,
+  getCodingAgentRuntimeDescriptorByCommand,
   getCodingAgentToolContract,
   getCodingAgentToolPolicy,
   isCodingAgentMvpTool,
@@ -98,6 +100,7 @@ describe("coding-agent contract", () => {
     expect(getCodingAgentToolContract("run_shell")).toMatchObject({
       name: "run_shell",
       tier: "mvp",
+      description: expect.stringContaining("shell command"),
       riskLevel: "high",
       availableInPlanMode: false,
       requiresPlanApproval: true,
@@ -110,6 +113,43 @@ describe("coding-agent contract", () => {
       availableInPlanMode: false,
       requiresPlanApproval: true,
     });
+  });
+
+  it("derives function-calling definitions from the canonical contract", () => {
+    const definitions = getCodingAgentFunctionToolDefinitions({
+      names: ["read_file", "run_shell"],
+    });
+
+    expect(definitions).toEqual([
+      {
+        type: "function",
+        function: {
+          name: "read_file",
+          description: "Read a file's content",
+          parameters: {
+            type: "object",
+            properties: {
+              path: {
+                type: "string",
+                description: "File path to read",
+              },
+            },
+            required: ["path"],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "run_shell",
+          description: expect.stringContaining("shell command"),
+          parameters: expect.objectContaining({
+            type: "object",
+            required: ["command"],
+          }),
+        },
+      },
+    ]);
   });
 
   it("maps tool definitions into registry descriptors using the contract", () => {
@@ -141,6 +181,26 @@ describe("coding-agent contract", () => {
       name: "git",
     });
     expect(getCodingAgentRuntimeDescriptor("read_file")).toBeNull();
+  });
+
+  it("resolves runtime descriptors from shell command strings", () => {
+    expect(getCodingAgentRuntimeDescriptorByCommand("git status")).toMatchObject(
+      {
+        name: "git",
+      },
+    );
+    expect(
+      getCodingAgentRuntimeDescriptorByCommand(
+        "chainlesschain mcp call tools list",
+      ),
+    ).toMatchObject({
+      name: "mcp",
+    });
+    expect(getCodingAgentRuntimeDescriptorByCommand("echo hello")).toMatchObject(
+      {
+        name: "shell",
+      },
+    );
   });
 
   it("can distinguish MVP tools from extension tools", () => {
