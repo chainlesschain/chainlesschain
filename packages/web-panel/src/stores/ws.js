@@ -16,79 +16,89 @@ function createRuntimeEvent(type, payload = {}, context = {}) {
 }
 
 function normalizeRuntimeEvent(msg) {
-  switch (msg?.type) {
+  const type = msg?.type
+  const payload = msg?.payload || {}
+  switch (type) {
     case 'task:notification':
-      return createRuntimeEvent('task:notification', { task: msg.task }, { kind: 'server' })
+      return createRuntimeEvent('task:notification', { task: msg.task || payload.task }, { kind: 'server' })
     case 'session-created':
+    case 'session.started':
       return createRuntimeEvent(
         'session:start',
         {
-          sessionId: msg.sessionId,
-          sessionType: msg.sessionType || null,
+          sessionId: msg.sessionId || payload.sessionId,
+          sessionType: msg.sessionType || payload.sessionType || null,
           record:
-            msg.record || {
-              id: msg.sessionId,
-              type: msg.sessionType || null,
+            msg.record || payload.record || {
+              id: msg.sessionId || payload.sessionId,
+              type: msg.sessionType || payload.sessionType || null,
               status: 'created',
               history: [],
               messageCount: 0,
             },
         },
-        { kind: 'server', sessionId: msg.sessionId },
+        { kind: 'server', sessionId: msg.sessionId || payload.sessionId },
       )
     case 'session-resumed':
+    case 'session.resumed': {
+      const sid = msg.sessionId || payload.sessionId
+      const history = msg.history || payload.history || []
       return createRuntimeEvent(
         'session:resume',
         {
-          sessionId: msg.sessionId,
-          history: msg.history || [],
-          historyCount: Array.isArray(msg.history) ? msg.history.length : 0,
+          sessionId: sid,
+          history,
+          historyCount: Array.isArray(history) ? history.length : 0,
           record:
-            msg.record || {
-              id: msg.sessionId,
+            msg.record || payload.record || {
+              id: sid,
               type: null,
               status: 'resumed',
-              history: msg.history || [],
-              messageCount: Array.isArray(msg.history) ? msg.history.length : 0,
+              history,
+              messageCount: Array.isArray(history) ? history.length : 0,
             },
         },
-        { kind: 'server', sessionId: msg.sessionId },
+        { kind: 'server', sessionId: sid },
       )
+    }
     case 'worktree-diff':
+    case 'worktree.diff':
       return createRuntimeEvent(
         'worktree:diff:ready',
         {
-          requestId: msg.id || null,
+          requestId: msg.requestId || msg.id || null,
           record:
-            msg.record || {
-              branch: msg.branch || null,
-              summary: msg.summary || null,
-              previewEntrypoints: [{ type: 'worktree-diff', branch: msg.branch || null }],
+            msg.record || payload.record || {
+              branch: msg.branch || payload.branch || null,
+              summary: msg.summary || payload.summary || null,
+              previewEntrypoints: [{ type: 'worktree-diff', branch: msg.branch || payload.branch || null }],
             },
         },
         { kind: 'server' },
       )
     case 'worktree-merged':
+    case 'worktree.merged':
       return createRuntimeEvent(
         'worktree:merge:completed',
         {
-          requestId: msg.id || null,
+          requestId: msg.requestId || msg.id || null,
           record:
-            msg.record || {
-              branch: msg.branch || null,
-              summary: msg.summary || null,
-              conflicts: msg.conflicts || [],
-              previewEntrypoints: msg.previewEntrypoints || [],
+            msg.record || payload.record || {
+              branch: msg.branch || payload.branch || null,
+              summary: msg.summary || payload.summary || null,
+              conflicts: msg.conflicts || payload.conflicts || [],
+              previewEntrypoints: msg.previewEntrypoints || payload.previewEntrypoints || [],
             },
         },
         { kind: 'server' },
       )
     case 'compression-stats':
+    case 'context.compaction.completed':
       return createRuntimeEvent(
         'compression:summary',
         {
-          requestId: msg.id || null,
-          summary: msg.summary || {},
+          requestId: msg.requestId || msg.id || null,
+          summary: msg.summary || payload.summary || {},
         },
         { kind: 'server' },
       )
@@ -200,28 +210,53 @@ export const useWsStore = defineStore('ws', () => {
     status.value = 'disconnected'
   }
 
+  /**
+   * Flatten a v1.0 Coding Agent envelope into a legacy-compatible shape.
+   * v1.0 envelopes carry data in `payload`, use `requestId` for correlation,
+   * and dot-case types (e.g. "session.started"). Legacy messages use flat
+   * top-level fields, `id` for correlation, and kebab-case types.
+   */
+  function flattenEnvelope(msg) {
+    if (!msg.version && !msg.payload) return msg
+    const payload = msg.payload || {}
+    return {
+      ...msg,
+      ...payload,
+      // Keep the original envelope type (consumers handle both formats)
+      type: msg.type,
+      // Ensure sessionId is top-level (may come from envelope or payload)
+      sessionId: msg.sessionId || payload.sessionId || null,
+    }
+  }
+
   function handleMessage(msg) {
-    const { type, id } = msg
+    const { type } = msg
+    // v1.0 envelope uses requestId for correlation; legacy uses id
+    const correlationId = msg.requestId || msg.id
     let wasPending = false
 
     // Resolve pending one-shot requests
-    if (id && pending.has(id)) {
-      const { resolve, reject, timeout } = pending.get(id)
+    if (correlationId && pending.has(correlationId)) {
+      const { resolve, reject, timeout } = pending.get(correlationId)
       clearTimeout(timeout)
-      pending.delete(id)
+      pending.delete(correlationId)
       wasPending = true
+      const flat = flattenEnvelope(msg)
+      // Stamp the correlation id so consumers can read it as .id
+      flat.id = correlationId
       if (type === 'error') {
-        reject(new Error(msg.message || 'Unknown error'))
+        reject(new Error(flat.message || 'Unknown error'))
       } else {
-        resolve(msg)
+        resolve(flat)
       }
     }
 
-    // Streaming session events
-    const sessionId = msg.sessionId
+    // Streaming session events — use envelope sessionId or payload sessionId
+    const sessionId = msg.sessionId || (msg.payload && msg.payload.sessionId) || null
     if (sessionId && streamHandlers.has(sessionId)) {
+      const flat = flattenEnvelope(msg)
       const handlers = streamHandlers.get(sessionId)
-      handlers.forEach(h => h(msg))
+      handlers.forEach(h => h(flat))
     }
 
     // Global event bus (for listeners registered via onMessage)

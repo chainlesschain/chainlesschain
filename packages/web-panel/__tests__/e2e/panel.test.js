@@ -3,7 +3,7 @@
  *
  * Spawns the real CLI binary and verifies:
  * - Server starts successfully
- * - All 10 SPA routes return 200 (via SPA fallback)
+ * - All 15 SPA routes return 200 (via SPA fallback)
  * - __CC_CONFIG__ is injected in both project and global modes
  * - Static assets are served
  * - --web-panel-dir option is respected
@@ -122,11 +122,12 @@ describe('chainlesschain ui — basic startup and SPA routes', () => {
     expect(r.body).toContain('__CC_CONFIG__')
   })
 
-  // All 10 hash-based SPA routes — the server just returns index.html for all
+  // All 15 hash-based SPA routes — the server just returns index.html for all
   const SPA_ROUTES = [
     '/dashboard', '/chat', '/services', '/logs',
     '/skills', '/providers', '/mcp',
     '/notes', '/memory', '/cron',
+    '/security', '/p2p', '/git', '/projects', '/tasks',
   ]
 
   for (const route of SPA_ROUTES) {
@@ -326,7 +327,7 @@ describe('chainlesschain ui — built Vue3 panel assets', () => {
   })
 
   it('all new page chunks exist in built assets', () => {
-    const expectedPrefixes = ['Services', 'Logs', 'Notes', 'McpTools', 'Memory', 'Cron']
+    const expectedPrefixes = ['Services', 'Logs', 'Notes', 'McpTools', 'Memory', 'Cron', 'Security', 'P2P', 'Git', 'Projects']
     for (const prefix of expectedPrefixes) {
       const found = assetFiles.some(f => f.startsWith(prefix) && f.endsWith('.js'))
       expect(found, `Missing chunk for ${prefix}`).toBe(true)

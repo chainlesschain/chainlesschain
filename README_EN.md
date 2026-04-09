@@ -178,6 +178,26 @@ Extracted the trailing self-contained Phase blocks from `desktop-app-vue/src/mai
 
 See [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) §9 for full details.
 
+### History - Web Panel: 15 Modules + v1.0 Protocol Fix (v5.0.2.11)
+
+v5.0.2.11 expands Web Panel from 10 to **15 modules**, fixes v1.0 Coding Agent Envelope protocol compatibility, and adds 4 advanced management pages migrated from Desktop:
+
+**v1.0 Envelope Protocol Fix**:
+- `ws.js`: `requestId` priority correlation + `flattenEnvelope()` + dot-case `normalizeRuntimeEvent()`
+- `chat.js`: `DOT_TO_LEGACY_TYPE` mapping (`assistant.delta` → `response-token`, etc.)
+- `agent-runtime.js`: `startServer()` loads config for sessionManager
+
+**5 New Pages**:
+- 🔒 **Security** — DID identity management, file encryption/decryption, audit logs
+- 📡 **P2P** — Device list, pairing, messaging, sync status
+- 🔀 **Git** — Repository status, auto-commit, import/export
+- 📁 **Projects** — 6 template initialization, status cards, environment diagnostics
+- ⚡ **Tasks** — Task list/details/history/notifications
+
+**Providers Enhanced**: New LLM parameter settings panel (provider/model/apiKey/baseUrl/temperature/maxTokens)
+
+**Tests**: Web Panel total **266+** (218 unit + 12 integration + 12 E2E + SPA route tests)
+
 ### History - Web Panel: 10 Modules + 4 Themes
 
 v5.0.2.8 expands the Vue3 Web Management Panel with 6 new pages and a 4-theme color system:

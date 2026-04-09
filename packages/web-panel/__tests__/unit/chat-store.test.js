@@ -176,6 +176,94 @@ describe('chat store', () => {
     expect(store.currentSessionId).toBe('sess-b')
   })
 
+  it('handles v1.0 assistant.delta and assistant.final event types', async () => {
+    createSession.mockResolvedValueOnce('sess-v1')
+    const store = useChatStore()
+    await store.createSession('chat')
+
+    const sessionHandler = sessionHandlers.get('sess-v1')
+    expect(sessionHandler).toBeDefined()
+
+    // Send user message
+    await store.sendMessage('sess-v1', 'hi')
+
+    // v1.0 streaming token (assistant.delta)
+    sessionHandler({
+      type: 'assistant.delta',
+      sessionId: 'sess-v1',
+      payload: { delta: 'Hello' },
+    })
+    sessionHandler({
+      type: 'assistant.delta',
+      sessionId: 'sess-v1',
+      payload: { delta: ' world' },
+    })
+
+    expect(store.streaming['sess-v1'].content).toBe('Hello world')
+    expect(store.streaming['sess-v1'].active).toBe(true)
+
+    // v1.0 response complete (assistant.final)
+    sessionHandler({
+      type: 'assistant.final',
+      sessionId: 'sess-v1',
+      payload: { content: 'Hello world!' },
+    })
+
+    expect(store.streaming['sess-v1'].active).toBe(false)
+    const msgs = store.getMessages('sess-v1')
+    expect(msgs[msgs.length - 1]).toEqual(
+      expect.objectContaining({ role: 'assistant', content: 'Hello world!' }),
+    )
+    expect(store.isLoading).toBe(false)
+  })
+
+  it('handles v1.0 tool.call.started and tool.call.completed', async () => {
+    createSession.mockResolvedValueOnce('sess-tool')
+    const store = useChatStore()
+    await store.createSession('agent')
+
+    const sessionHandler = sessionHandlers.get('sess-tool')
+
+    sessionHandler({
+      type: 'tool.call.started',
+      sessionId: 'sess-tool',
+      payload: { toolName: 'read_file', input: { path: '/tmp/test.js' } },
+    })
+
+    const msgs = store.getMessages('sess-tool')
+    expect(msgs[0]).toEqual(
+      expect.objectContaining({ role: 'tool', tool: 'read_file', status: 'running' }),
+    )
+
+    sessionHandler({
+      type: 'tool.call.completed',
+      sessionId: 'sess-tool',
+      payload: { toolName: 'read_file', result: 'file contents' },
+    })
+
+    expect(msgs[0].status).toBe('done')
+    expect(msgs[0].result).toBe('file contents')
+  })
+
+  it('handles v1.0 error events in chat as assistant messages', async () => {
+    createSession.mockResolvedValueOnce('sess-err')
+    const store = useChatStore()
+    await store.createSession('chat')
+
+    const sessionHandler = sessionHandlers.get('sess-err')
+    await store.sendMessage('sess-err', 'test')
+
+    sessionHandler({
+      type: 'error',
+      sessionId: 'sess-err',
+      payload: { message: 'API key required for volcengine' },
+    })
+
+    const msgs = store.getMessages('sess-err')
+    expect(msgs[msgs.length - 1].content).toContain('API key required')
+    expect(store.isLoading).toBe(false)
+  })
+
   it('switchSession resumes history when local cache is empty', async () => {
     listSessions.mockResolvedValueOnce([{ id: 'sess-4', type: 'chat', title: 'cached' }])
     resumeSession.mockResolvedValueOnce({

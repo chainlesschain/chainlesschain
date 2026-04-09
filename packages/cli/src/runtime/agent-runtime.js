@@ -228,6 +228,7 @@ export class AgentRuntime {
       );
     }
 
+    const appConfig = this.deps.loadConfig();
     const mcpClient = await this._initializeCodingAgentMcpClient(rawDb, {
       logger: runtimeLogger,
     });
@@ -235,6 +236,7 @@ export class AgentRuntime {
     const sessionManager = this.deps.createSessionManager({
       db,
       defaultProjectRoot: project,
+      config: appConfig,
       mcpClient,
       allowedMcpServerNames: DEFAULT_ALLOWED_MCP_SERVER_NAMES,
       mcpServerRegistry: this.deps.mcpServerRegistry,

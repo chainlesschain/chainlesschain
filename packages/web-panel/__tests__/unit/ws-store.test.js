@@ -470,6 +470,116 @@ describe('ws store — message routing', () => {
     )
   })
 
+  it('resolves pending request using requestId from v1.0 envelope', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const p = store.sendRaw({ type: 'session-create', sessionType: 'chat' }, 5000)
+    await flushMicrotasks()
+    const req = MockWebSocket._last._sent.at(-1)
+
+    // Server responds with v1.0 envelope: id is a new eventId, requestId is the correlation id
+    MockWebSocket._last._message({
+      version: '1.0',
+      eventId: 'evt-random-uuid',
+      id: 'evt-random-uuid',          // NOT the request id
+      type: 'session.started',        // dot-case
+      requestId: req.id,              // the original request id
+      sessionId: 'sess-42',
+      payload: { sessionId: 'sess-42', sessionType: 'chat' },
+    })
+
+    const result = await p
+    expect(result.sessionId).toBe('sess-42')
+    expect(result.id).toBe(req.id)  // flattened to correlation id
+  })
+
+  it('flattens v1.0 payload fields into resolved message', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const p = store.sendRaw({ type: 'session-list' }, 5000)
+    await flushMicrotasks()
+    const req = MockWebSocket._last._sent.at(-1)
+
+    MockWebSocket._last._message({
+      version: '1.0',
+      id: 'evt-uuid-2',
+      type: 'session.list',
+      requestId: req.id,
+      payload: { sessions: [{ id: 'sess-1', type: 'agent' }] },
+    })
+
+    const result = await p
+    expect(result.sessions).toEqual([{ id: 'sess-1', type: 'agent' }])
+  })
+
+  it('routes v1.0 session events to stream handlers using payload.sessionId', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const handler = vi.fn()
+    store.onSession('sess-77', handler)
+
+    MockWebSocket._last._message({
+      version: '1.0',
+      id: 'evt-uuid-3',
+      type: 'assistant.delta',
+      requestId: 'req-1',
+      sessionId: 'sess-77',
+      payload: { sessionId: 'sess-77', delta: 'Hello' },
+    })
+
+    expect(handler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'assistant.delta',
+        sessionId: 'sess-77',
+        delta: 'Hello',
+      }),
+    )
+  })
+
+  it('maps v1.0 session.started to session:start runtime event', async () => {
+    const store = useWsStore()
+    store.connect()
+    MockWebSocket._last._open()
+    await Promise.resolve()
+
+    const runtimeHandler = vi.fn()
+    store.onRuntimeEvent(runtimeHandler)
+
+    MockWebSocket._last._message({
+      version: '1.0',
+      id: 'evt-uuid-4',
+      type: 'session.started',
+      requestId: 'req-2',
+      sessionId: 'sess-99',
+      payload: {
+        sessionId: 'sess-99',
+        sessionType: 'chat',
+        record: { id: 'sess-99', type: 'chat', status: 'created', messageCount: 0 },
+      },
+    })
+
+    expect(runtimeHandler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'session:start',
+        sessionId: 'sess-99',
+        payload: expect.objectContaining({
+          sessionId: 'sess-99',
+          sessionType: 'chat',
+        }),
+      }),
+      expect.anything(),
+    )
+  })
+
   it('listSessions normalizes returned session records', async () => {
     const store = useWsStore()
     store.connect()
