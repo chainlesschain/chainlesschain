@@ -56,7 +56,7 @@ vi.mock("../../src/lib/agent-core.js", () => ({
   buildSystemPrompt: vi.fn(() => "You are a helpful assistant."),
 }));
 
-vi.mock("../../src/lib/worktree-isolator.js", () => ({
+vi.mock("../../src/harness/worktree-isolator.js", () => ({
   createWorktree: vi.fn((repoDir, branchName) => ({
     path: `${repoDir}/.worktrees/${branchName.replace(/\//g, "-")}`,
     branch: branchName,
