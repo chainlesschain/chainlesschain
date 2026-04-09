@@ -1,5 +1,16 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-09 Update — CLI Runtime Convergence Complete (Phase 7 Parity Harness)
+
+The CLI Runtime Convergence roadmap (`docs/design/modules/82_CLI_Runtime收口路线图.md`) Phase 0–7 is fully landed. The unified Coding Agent envelope protocol v1.0 achieves byte-level alignment across CLI / Desktop / Web UI:
+
+- **8-step parity test matrix all green (91 tests)**: envelope contract, sequence tracker, legacy↔unified bidirectional mapping, WS server passthrough, JSONL session store, SubAgentContext worktree isolation, mock LLM provider, desktop bridge envelope parity
+- **Shims annotated**: `src/lib/agent-core.js`(26L) / `src/lib/ws-server.js`(16L) / `src/lib/ws-agent-handler.js`(12L) degraded to @deprecated thin shims; canonical implementations live in `src/runtime/` and `src/gateways/ws/`
+- **New test**: `packages/cli/__tests__/integration/parity-envelope-bridge.test.js` (58 tests) covering `createCodingAgentEvent` / `CodingAgentSequenceTracker` / `wrapLegacyMessage` / `unwrapEnvelope` full path
+- **5 completion criteria all met**: single entry point · envelope protocol unified · parity harness green · shim migration window annotated · docs synced
+
+See [roadmap §8](./docs/design/modules/82_CLI_Runtime收口路线图.md) for completion criteria and [CHANGELOG.md](./CHANGELOG.md) Unreleased section.
+
 ## 2026-04-09 Update — Canonical Workflow ADR Phase E: Intake Classifier + Routing Hint
 
 Phase E of the `LIGHTWEIGHT_MULTI_AGENT_ORCHESTRATION` ADR lands end-to-end, closing the
