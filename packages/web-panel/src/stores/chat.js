@@ -5,6 +5,22 @@ import { useWsStore } from './ws.js'
 const DEFAULT_CHAT_TITLE = '新对话'
 const DEFAULT_AGENT_TITLE = '新 Agent'
 
+/**
+ * Map v1.0 Coding Agent dot-case event types to legacy kebab-case types
+ * that the handleSessionMsg switch statement already handles.
+ */
+const DOT_TO_LEGACY_TYPE = {
+  'assistant.delta': 'response-token',
+  'assistant.final': 'response-complete',
+  'assistant.message': 'response-complete',
+  'tool.call.started': 'tool-executing',
+  'tool.call.completed': 'tool-result',
+  'tool.call.failed': 'tool-result',
+  'slot.filling': 'question',
+  'approval.requested': 'question',
+  'error': 'error',
+}
+
 export const useChatStore = defineStore('chat', () => {
   const sessions = ref([])
   const currentSessionId = ref(null)
@@ -111,12 +127,19 @@ export const useChatStore = defineStore('chat', () => {
   function handleSessionMsg(sessionId, msg) {
     const msgs = getMessages(sessionId)
 
-    if (msg.type === 'response-token') {
+    // Normalize v1.0 dot-case type → legacy kebab-case
+    const type = DOT_TO_LEGACY_TYPE[msg.type] || msg.type
+    // v1.0 envelopes carry data in payload; flatten for field access
+    const p = msg.payload || {}
+
+    if (type === 'response-token') {
       if (!streaming[sessionId]) streaming[sessionId] = { content: '', active: true }
-      streaming[sessionId].content += (msg.token || '')
+      // v1.0 uses payload.delta or payload.content; legacy uses msg.token
+      const token = msg.token || p.token || p.delta || p.content || ''
+      streaming[sessionId].content += token
       streaming[sessionId].active = true
-    } else if (msg.type === 'response-complete') {
-      const content = msg.content || streaming[sessionId]?.content || ''
+    } else if (type === 'response-complete') {
+      const content = msg.content || p.content || streaming[sessionId]?.content || ''
       msgs.push({ role: 'assistant', content, timestamp: Date.now() })
       if (streaming[sessionId]) {
         streaming[sessionId].content = ''
@@ -131,25 +154,34 @@ export const useChatStore = defineStore('chat', () => {
         session.messageCount = msgs.filter((item) => item.role !== 'tool').length
       }
       isLoading.value = false
-    } else if (msg.type === 'tool-executing') {
+    } else if (type === 'tool-executing') {
       msgs.push({
         role: 'tool',
-        tool: msg.tool,
-        input: msg.input,
+        tool: msg.tool || p.tool || p.toolName || 'unknown',
+        input: msg.input || p.input || p.args || null,
         status: 'running',
         timestamp: Date.now(),
       })
-    } else if (msg.type === 'tool-result') {
-      const last = [...msgs].reverse().find((item) => item.role === 'tool' && item.tool === msg.tool)
+    } else if (type === 'tool-result') {
+      const toolName = msg.tool || p.tool || p.toolName || 'unknown'
+      const last = [...msgs].reverse().find((item) => item.role === 'tool' && item.tool === toolName)
       if (last) {
-        last.result = msg.result
+        last.result = msg.result || p.result || p.output || null
         last.status = 'done'
       }
-    } else if (msg.type === 'question') {
+    } else if (type === 'question') {
       pendingQuestion[sessionId] = {
-        requestId: msg.requestId || msg.id,
-        question: msg.question,
-        choices: msg.choices || [],
+        requestId: msg.requestId || p.requestId || msg.id,
+        question: msg.question || p.question || p.message || '',
+        choices: msg.choices || p.choices || p.options || [],
+      }
+    } else if (type === 'error') {
+      // Surface errors in the chat as assistant messages
+      const errMsg = msg.message || p.message || 'Unknown error'
+      msgs.push({ role: 'assistant', content: `Error: ${errMsg}`, timestamp: Date.now() })
+      isLoading.value = false
+      if (streaming[sessionId]) {
+        streaming[sessionId].active = false
       }
     }
   }

@@ -63,6 +63,13 @@
             <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template>定时任务</a-menu-item>
             <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template>后台任务</a-menu-item>
           </a-menu-item-group>
+          <a-menu-item-group>
+            <template #title><span class="group-label">高 级</span></template>
+            <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template>安全中心</a-menu-item>
+            <a-menu-item key="p2p"><template #icon><WifiOutlined /></template>P2P 网络</a-menu-item>
+            <a-menu-item key="git"><template #icon><CodeOutlined /></template>Git 与数据</a-menu-item>
+            <a-menu-item key="projects"><template #icon><ProjectOutlined /></template>项目管理</a-menu-item>
+          </a-menu-item-group>
         </template>
         <template v-else>
           <a-menu-item key="dashboard"><template #icon><DashboardOutlined /></template></a-menu-item>
@@ -78,6 +85,11 @@
           <a-menu-item key="memory"><template #icon><BranchesOutlined /></template></a-menu-item>
           <a-menu-item key="cron"><template #icon><ClockCircleOutlined /></template></a-menu-item>
           <a-menu-item key="tasks"><template #icon><ThunderboltOutlined /></template></a-menu-item>
+          <a-menu-divider class="divider-sm" />
+          <a-menu-item key="security"><template #icon><SafetyCertificateOutlined /></template></a-menu-item>
+          <a-menu-item key="p2p"><template #icon><WifiOutlined /></template></a-menu-item>
+          <a-menu-item key="git"><template #icon><CodeOutlined /></template></a-menu-item>
+          <a-menu-item key="projects"><template #icon><ProjectOutlined /></template></a-menu-item>
         </template>
       </a-menu>
 
@@ -140,6 +152,7 @@ import {
   FolderOutlined, GlobalOutlined, InfoCircleOutlined,
   ControlOutlined, FileTextOutlined, CloudServerOutlined,
   BookOutlined, BranchesOutlined, ClockCircleOutlined, ThunderboltOutlined,
+  SafetyCertificateOutlined, WifiOutlined, CodeOutlined, ProjectOutlined,
 } from '@ant-design/icons-vue'
 import { useWsStore } from '../stores/ws.js'
 import { useThemeStore, THEMES } from '../stores/theme.js'

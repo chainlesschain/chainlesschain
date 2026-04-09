@@ -132,8 +132,9 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 - CLI `ws-runtime-events` 单元（envelope v1.0 发射）：`16/16`
 - CLI `web-ui-envelope` 单元（UNIFIED_TO_LEGACY + 浏览器内联源）：`28/28`
 - CLI `coding-agent-envelope-roundtrip` E2E（真实 spawn `chainlesschain serve` + WebSocket）：`7/7`
-- Web Panel 定向单元测试：`23/23`
-- Web Panel E2E：`29/29`
+- Web Panel 单元测试：`218/218`（含 v1.0 envelope 兼容 + 新页面解析逻辑）
+- Web Panel 集成测试：`12/12`（CLI 命令集成）
+- Web Panel E2E：`12/12`（WS 协议兼容）+ SPA 路由测试
 - Desktop Coding Agent 桥接全链路：`94/94`（含 9 个 v1.0 信封拆封新增用例）
 - Coding Agent 统一信封 v1.0 三端总测试：`408/408`
 - Web Panel 构建：通过
@@ -279,6 +280,26 @@ chainlesschain config features disable CONTEXT_SNIP # 禁用特性
 **效果**：`ipc-registry.js` 由 4925 行减至 493 行（**−4432，−90.0%**），共抽出 16 个 Phase 模块、88 个 Phase。`phase-modules.test.js` 累计 48 个契约测试全部通过。
 
 详见 [`docs/design/modules/43_IPC域分割与懒加载系统.md`](docs/design/modules/43_IPC域分割与懒加载系统.md) 第九节。
+
+### 历史更新 - Web 管理面板 15 模块 + v1.0 协议修复 (v5.0.2.11)
+
+v5.0.2.11 将 Web 管理面板从 10 个模块扩展到 **15 个模块**，修复 v1.0 Coding Agent Envelope 协议兼容性问题，并新增从 Desktop 迁移的 4 个高级管理页面：
+
+**v1.0 Envelope 协议修复**：
+- `ws.js`：`requestId` 优先关联 + `flattenEnvelope()` payload 合并 + `normalizeRuntimeEvent()` dot-case 支持
+- `chat.js`：`DOT_TO_LEGACY_TYPE` 映射（`assistant.delta` → `response-token` 等）
+- `agent-runtime.js`：`startServer()` 加载 config 传给 sessionManager
+
+**新增 5 个功能页面**：
+- 🔒 **安全中心 (Security)** — DID 身份管理、文件加解密、审计日志
+- 📡 **P2P 网络 (P2P)** — 设备列表、配对、消息发送、同步状态
+- 🔀 **Git 与数据 (Git)** — 仓库状态、自动提交、导入导出
+- 📁 **项目管理 (Projects)** — 6 模板初始化、状态卡片、环境诊断
+- ⚡ **后台任务 (Tasks)** — 任务列表/详情/历史/通知
+
+**Providers 增强**：新增 LLM 参数设置面板（provider/model/apiKey/baseUrl/temperature/maxTokens）
+
+**测试覆盖**：Web Panel 测试总数达 **266+**（218 单元 + 12 集成 + 12 E2E + SPA 路由测试）
 
 ### 历史更新 - Web 管理面板 10 模块 + 4 主题
 

@@ -17,6 +17,10 @@ const routes = [
       { path: 'memory',     name: 'Memory',      component: () => import('../views/Memory.vue') },
       { path: 'cron',       name: 'Cron',        component: () => import('../views/Cron.vue') },
       { path: 'tasks',      name: 'Tasks',       component: () => import('../views/Tasks.vue') },
+      { path: 'security',   name: 'Security',    component: () => import('../views/Security.vue') },
+      { path: 'p2p',         name: 'P2P',         component: () => import('../views/P2P.vue') },
+      { path: 'git',         name: 'Git',         component: () => import('../views/Git.vue') },
+      { path: 'projects',    name: 'Projects',    component: () => import('../views/Projects.vue') },
     ]
   }
 ]

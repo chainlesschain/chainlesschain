@@ -1,10 +1,10 @@
-# Vue3 Web 管理面板 (ui – v5.0.2.8)
+# Vue3 Web 管理面板 (ui – v5.0.2.11)
 
-> **版本**: v5.0.2.8 | 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
+> **版本**: v5.0.2.11 | 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
 
 > **v5.0.2.6 起**：通过 `npm install -g chainlesschain` 安装的用户**无需手动构建**，面板已内置于包中，直接运行 `chainlesschain ui` 即可。
 
-`chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **10 个功能模块**，支持 **4 种颜色主题**，并清晰区分项目级和全局两种工作模式。
+`chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **15 个功能模块**，支持 **4 种颜色主题**，并清晰区分项目级和全局两种工作模式。
 
 ## 快速开始
 
@@ -27,9 +27,9 @@ chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
 
 启动后访问：`http://127.0.0.1:18810`
 
-## 十个功能模块
+## 十五个功能模块
 
-侧边栏分三组：**概览**（仪表板）、**配置**（对话/技能/LLM 配置/服务/日志）、**数据**（笔记/MCP 工具/记忆/定时任务）。
+侧边栏分四组：**概览**（仪表板/对话/服务/日志）、**配置**（技能/LLM 配置/MCP 工具）、**数据**（笔记/记忆/定时任务/后台任务）、**高级**（安全中心/P2P 网络/Git 与数据/项目管理）。
 
 ### 🏠 仪表板 (Dashboard)
 
@@ -98,6 +98,42 @@ chainlesschain ui --web-panel-dir /custom/dist   # 指定 dist 目录
 - 启用/禁用切换
 - 手动执行
 
+### ⚡ 后台任务 (Tasks)
+
+- 任务列表浏览（状态、进度）
+- 任务详情查看
+- 任务历史分页
+- 实时 `task:notification` 接收
+- 任务停止操作
+
+### 🔒 安全中心 (Security)
+
+- **DID 身份管理**：身份列表、创建新 DID、默认标记、签名验证弹窗
+- **文件加解密**：AES-256-GCM 加密/解密，文件路径输入
+- **审计日志**：事件列表（管道分隔/时间戳前缀两种格式）、统计卡片
+- 命令：`did list/create/sign`、`encrypt/decrypt file`、`audit log/stats`
+
+### 📡 P2P 网络 (P2P)
+
+- **设备列表**：Peer ID、名称、在线/离线状态
+- **配对设备**：设备名称输入、确认弹窗
+- **发送消息**：选择 Peer、消息输入
+- **同步状态**：在线/离线、待同步数、推送/拉取操作
+- 命令：`p2p peers/pair/send`、`sync status/push/pull`
+
+### 🔀 Git 与数据 (Git)
+
+- **Git 仓库**（Tab 1）：分支显示、变更文件计数、自动提交（带确认弹窗）
+- **导入导出**（Tab 2）：Markdown/PDF/Evernote 导入、静态站点导出
+- 命令：`git status/auto-commit`、`import markdown/pdf/evernote`、`export site`
+
+### 📁 项目管理 (Projects)
+
+- **项目状态卡片**：系统运行状态、LLM 提供商、初始化状态、配置加载
+- **6 个项目模板**：code-project、medical-triage、agriculture-expert、general-assistant、ai-media-creator、ai-doc-creator
+- **环境诊断**：`doctor` 命令输出
+- 命令：`status`、`config list`、`init --template`、`doctor`
+
 ## 颜色主题
 
 面板支持 4 种颜色主题，可在顶部导航栏右上角切换：
@@ -164,10 +200,18 @@ packages/web-panel/           Vue3 + Vite + Ant Design Vue
 ├── src/stores/chat.js        会话与消息状态
 ├── src/stores/skills.js      技能列表与过滤
 ├── src/stores/providers.js   LLM Provider 管理
+├── src/stores/tasks.js       后台任务状态
+├── src/stores/dashboard.js   Dashboard 统计状态
 ├── src/utils/parsers.js      纯函数解析层（技能/状态/笔记/MCP/记忆/Cron）
 ├── src/style.css             全局 CSS 变量驱动主题系统
+├── src/views/                15 个页面视图
+│   ├── Security.vue          安全中心（DID/加密/审计）
+│   ├── P2P.vue               P2P 网络（设备/消息/同步）
+│   ├── Git.vue               Git 与数据（仓库/导入导出）
+│   ├── Projects.vue          项目管理（模板/诊断）
+│   └── ...                   其余 11 个页面
 └── src/components/
-    ├── AppLayout.vue         分组侧边栏 + 主题切换器
+    ├── AppLayout.vue         四组侧边栏（概览/配置/数据/高级）+ 主题切换器
     └── MarkdownRenderer.vue  Markdown 渲染（主题感知）
 ```
 
@@ -205,6 +249,24 @@ packages/web-panel/           Vue3 + Vite + Ant Design Vue
 经典 HTML（AI 对话基础功能，自动回退）
 ```
 
+## 关键 Bug 修复（v5.0.2.11）
+
+### v1.0 Coding Agent Envelope 协议不兼容（v5.0.2.9）
+
+**根因**：v1.0 Envelope 协议使用 `createCodingAgentEvent()` 构建响应，`msg.id` 是新生成的 `eventId`（非请求 ID），客户端用 `msg.id` 匹配 pending promise 永远匹配不上，导致所有 session 操作超时。
+
+**修复**（`ws.js`）：
+- 优先用 `msg.requestId` 匹配 pending，fallback 到 `msg.id`
+- `flattenEnvelope()` 将 `payload` 合并到顶层
+- `normalizeRuntimeEvent()` 同时处理 dot-case 和 kebab-case 类型
+
+**修复**（`chat.js`）：
+- `DOT_TO_LEGACY_TYPE` 映射表：`assistant.delta` → `response-token`、`assistant.final` → `response-complete` 等
+- `handleSessionMsg()` 自动规范化 v1.0 类型到 legacy 类型
+
+**修复**（`agent-runtime.js`）：
+- `startServer()` 加载 config 并传给 sessionManager，解决 LLM 默认配置缺失
+
 ## 关键 Bug 修复（v5.0.2.8）
 
 ### 技能列表始终显示 0
@@ -227,14 +289,15 @@ return { output: output || stderr, exitCode: result.exitCode ?? 0 }
 
 ## 与旧版对比
 
-| 特性 | v5.0.2.6 | v5.0.2.8 |
-|------|-----------|-----------|
-| 功能模块数 | 4 | **10**（新增服务/日志/笔记/MCP/记忆/Cron）|
-| 颜色主题 | 仅深色 | **4 种**（深色/浅色/海蓝/绿野）|
-| Provider 列表 | 不含国产模型 | **10 个**含火山引擎/通义千问/Kimi/MiniMax |
-| 技能数量显示 | ❌ 始终为 0 | ✅ 正确显示 138+ |
-| 浅色主题适配 | ❌ 部分组件仍显黑色 | ✅ 全量 CSS 变量适配 |
-| 中文乱码 | 5 处 U+FFFD | ✅ 已全部修复 |
+| 特性 | v5.0.2.6 | v5.0.2.8 | v5.0.2.11 |
+|------|-----------|-----------|-----------|
+| 功能模块数 | 4 | 10 | **15**（新增安全/P2P/Git/项目管理/后台任务）|
+| 颜色主题 | 仅深色 | **4 种** | 4 种 |
+| Provider 列表 | 不含国产模型 | **10 个** | 10 个 + **LLM 参数设置面板** |
+| 技能数量显示 | ❌ 始终为 0 | ✅ 正确 | ✅ 正确 |
+| v1.0 Envelope 协议 | — | ❌ 超时 | ✅ requestId 关联 + payload flatten |
+| Chat 流式消息 | — | ❌ dot-case 不兼容 | ✅ DOT_TO_LEGACY_TYPE 映射 |
+| Desktop 功能迁移 | — | — | ✅ DID/P2P/Git/Projects |
 
 ## 测试覆盖
 
@@ -243,9 +306,14 @@ return { output: output || stderr, exitCode: result.exitCode ?? 0 }
 | `parsers.test.js` | 单元 | 85 |
 | `theme.test.js` | 单元 | 17 |
 | `ws-store.test.js` | 单元 | 12 |
-| `web-ui-server.test.js`（集成） | 集成 | 23 |
-| `panel.test.js` | E2E | 20 |
-| **Web Panel 合计** | | **157** |
+| `chat-store.test.js` | 单元 | 15 |
+| `tasks-store.test.js` | 单元 | 8 |
+| `dashboard-store.test.js` | 单元 | 6 |
+| `new-pages.test.js` | 单元 | 75 |
+| `cli-commands.test.js` | 集成 | 12 |
+| `ws-protocol-compat.test.js` | E2E | 12 |
+| `panel.test.js` | E2E | 24+ |
+| **Web Panel 合计** | | **266+** |
 
 ## 相关文档
 
