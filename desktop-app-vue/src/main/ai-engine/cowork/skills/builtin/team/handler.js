@@ -12,8 +12,18 @@ const {
   SessionStateManager,
 } = require("../../../../code-agent/session-state-manager.js");
 const { runHook } = require("../../../../code-agent/workflow-hook-runner.js");
+const {
+  SubRuntimePool,
+} = require("../../../../code-agent/sub-runtime-pool.js");
 
-const _deps = { SessionStateManager, runHook };
+// All side-effect entry points go through `_deps` so tests can inject fakes.
+// `SubRuntimePoolCtor` defaults to the real pool; unit tests override it with
+// a dry-run stub that does not spawn any processes.
+const _deps = {
+  SessionStateManager,
+  runHook,
+  SubRuntimePoolCtor: SubRuntimePool,
+};
 
 const VALID_ROLES = new Set([
   "executor",
@@ -168,15 +178,63 @@ module.exports = {
       };
     }
 
+    // Decide whether to actually spawn sub-runtimes or just plan the fan-out.
+    // Default: real spawn. Tests and `--dry-run` skip spawning but still
+    // validate the routing and write the parent progress marker.
+    const dryRun =
+      task?.params?.dryRun === true || task?.params?.dryRun === "true";
+
+    let dispatchResults = null;
+    if (!dryRun) {
+      const pool = new _deps.SubRuntimePoolCtor({ maxSize: size });
+      try {
+        dispatchResults = await pool.dispatch({
+          projectRoot,
+          sessionId,
+          assignments: assignments.map((a, idx) => ({
+            memberIdx: idx,
+            role: a.role,
+            steps: a.steps,
+          })),
+        });
+      } catch (err) {
+        await pool.shutdown();
+        return {
+          success: false,
+          error: `sub-runtime dispatch failed: ${err.message}`,
+          message: `$team dispatch failed: ${err.message}`,
+        };
+      } finally {
+        await pool.shutdown();
+      }
+    }
+
+    // Aggregate progress into the *parent* log as a single writer so there
+    // is no contention with the member sessions' own progress.log files.
     try {
-      manager.appendProgress(
-        sessionId,
-        `[team] spawned ${size}×${role} with ${steps.length} steps`,
-      );
+      if (dryRun) {
+        manager.appendProgress(
+          sessionId,
+          `[team] planned ${size}×${role} with ${steps.length} steps (dry-run)`,
+        );
+      } else {
+        manager.appendProgress(
+          sessionId,
+          `[team] dispatched ${size}×${role} with ${steps.length} steps`,
+        );
+        for (const res of dispatchResults || []) {
+          const tag = res.success ? "ok" : "fail";
+          const memberLabel = res.memberId || `m${res.memberIdx}`;
+          manager.appendProgress(
+            sessionId,
+            `[team] ${memberLabel} ${tag}${res.error ? `: ${res.error}` : ""}`,
+          );
+        }
+      }
       await _deps.runHook("post-execute", {
         projectRoot,
         sessionId,
-        payload: { mode: "team", size, role, assignments },
+        payload: { mode: "team", size, role, assignments, dispatchResults },
       });
     } catch (err) {
       // appendProgress enforces approved plan — already checked above,
@@ -184,8 +242,9 @@ module.exports = {
       logger.warn(`[team] appendProgress failed: ${err.message}`);
     }
 
+    const allOk = !dispatchResults || dispatchResults.every((r) => r.success);
     return {
-      success: true,
+      success: allOk,
       result: {
         sessionId,
         stage: "execute",
@@ -193,9 +252,13 @@ module.exports = {
         size,
         role,
         assignments,
+        dispatchResults,
+        dryRun,
       },
       message:
-        `Team dispatch ready: ${size}×${role}, ${steps.length} steps distributed.\n\n` +
+        (dryRun
+          ? `Team dispatch planned (dry-run): ${size}×${role}, ${steps.length} steps distributed.\n\n`
+          : `Team dispatch complete: ${size}×${role}, ${steps.length} steps distributed across ${dispatchResults?.length || 0} sub-runtime(s).\n\n`) +
         assignments
           .map(
             (a) =>
@@ -203,13 +266,21 @@ module.exports = {
               a.steps.join("\n    - "),
           )
           .join("\n") +
-        `\n\nDispatch each member via the cowork / coding-agent runtime, ` +
-        `then aggregate progress back to session "${sessionId}".`,
+        (dispatchResults
+          ? `\n\nSub-runtime results:\n` +
+            dispatchResults
+              .map(
+                (r) =>
+                  `  • ${r.memberId || `m${r.memberIdx}`}: ${r.success ? "ok" : "FAIL — " + r.error}`,
+              )
+              .join("\n")
+          : ""),
       guidance: [
         "You are at stage EXECUTE (team) of the canonical coding workflow.",
-        "Spawn the assignments through the cowork runtime, monitor each",
-        "member's progress, and aggregate results. Only mark the session",
-        "done after every member has verified their steps.",
+        "Each member ran in its own Electron-main sub-runtime against an",
+        "isolated member session directory. Inspect member progress logs",
+        "under .chainlesschain/sessions/<parent>.m<N>-<role>/progress.log",
+        "before marking the parent session done.",
       ].join(" "),
     };
   },

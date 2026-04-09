@@ -10,6 +10,8 @@
 
 ## 最近更新
 
+- `modules/80_规范工作流系统.md`
+  - 新增模块：规范编码工作流（`$deep-interview → $ralplan → $ralph/$team`）四阶段状态机、SessionStateManager 门控（G1/G2）、Phase 3.5 AIChatPage 输入拦截、Phase 4 生命周期 Hooks（8 事件 / 30s timeout / require.cache 热重载 / pre-veto 传播 / post-swallow）。
 - `modules/79_Coding_Agent系统.md`
   - §7.3 补齐真实 `interrupt` 语义：`AbortController` + `abort-utils.js` 链路，`rejectAllPending` 广播 `AbortError`，session 保留可继续使用。
   - §7.4 IPC 列表新增 `harness-status` / `list-background-tasks` / `get-background-task` / `get-background-task-history` / `stop-background-task` 五条通道。

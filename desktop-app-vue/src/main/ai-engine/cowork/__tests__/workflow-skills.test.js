@@ -278,10 +278,33 @@ describe("$ralph handler", () => {
 
 describe("$team handler", () => {
   let projectRoot;
+  let originalPoolCtor;
   const sessionId = "s1";
+
+  // Fake pool that fulfills the dispatch contract without spawning anything.
+  // Each assignment is reported as a successful member run.
+  class FakeSubRuntimePool {
+    constructor() {}
+    async dispatch({ assignments }) {
+      return assignments.map((a) => ({
+        memberIdx: a.memberIdx,
+        memberId: `${sessionId}.m${a.memberIdx}-${a.role}`,
+        success: true,
+        progressEvents: a.steps.map((step, i) => ({
+          type: "progress",
+          step,
+          index: i,
+          total: a.steps.length,
+        })),
+      }));
+    }
+    async shutdown() {}
+  }
 
   beforeEach(async () => {
     projectRoot = makeTmpRoot();
+    originalPoolCtor = team._deps.SubRuntimePoolCtor;
+    team._deps.SubRuntimePoolCtor = FakeSubRuntimePool;
     await deepInterview.execute(
       { params: { goal: "g", sessionId } },
       { projectRoot },
@@ -297,7 +320,10 @@ describe("$team handler", () => {
       { projectRoot },
     );
   });
-  afterEach(() => cleanup(projectRoot));
+  afterEach(() => {
+    team._deps.SubRuntimePoolCtor = originalPoolCtor;
+    cleanup(projectRoot);
+  });
 
   it("refuses without approved plan", async () => {
     const res = await team.execute(
