@@ -29,6 +29,10 @@ export const useChatStore = defineStore('chat', () => {
   const pendingQuestion = reactive({})
   const isLoading = ref(false)
   let unsubscribeRuntimeEvents = null
+  // Track which sessions already have a WS handler registered so we never
+  // register a second one (the Set in ws.js can't deduplicate anonymous
+  // arrow functions, which would cause every AI response to be pushed twice).
+  const _registeredChannels = new Set()
 
   function getMessages(sessionId) {
     if (!messages[sessionId]) messages[sessionId] = []
@@ -48,6 +52,8 @@ export const useChatStore = defineStore('chat', () => {
   function ensureSessionChannel(sessionId, ws = useWsStore()) {
     if (!messages[sessionId]) messages[sessionId] = []
     if (!streaming[sessionId]) streaming[sessionId] = { content: '', active: false }
+    if (_registeredChannels.has(sessionId)) return
+    _registeredChannels.add(sessionId)
     ws.onSession(sessionId, (msg) => handleSessionMsg(sessionId, msg))
   }
 

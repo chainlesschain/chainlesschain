@@ -158,7 +158,7 @@ export const THEMES = {
 }
 
 export const useThemeStore = defineStore('theme', () => {
-  const current = ref(localStorage.getItem(STORAGE_KEY) || 'dark')
+  const current = ref(localStorage.getItem(STORAGE_KEY) || 'light')
 
   const config = computed(() => THEMES[current.value] || THEMES.dark)
   const antdTheme = computed(() => config.value.antd)
