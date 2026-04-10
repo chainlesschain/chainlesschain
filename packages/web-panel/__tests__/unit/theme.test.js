@@ -76,9 +76,9 @@ describe('useThemeStore', () => {
     setActivePinia(createPinia())
   })
 
-  it('defaults to dark theme', () => {
+  it('defaults to light theme', () => {
     const store = useThemeStore()
-    expect(store.current).toBe('dark')
+    expect(store.current).toBe('light')
   })
 
   it('reads saved theme from localStorage', () => {
@@ -102,7 +102,7 @@ describe('useThemeStore', () => {
   it('setTheme ignores unknown theme names', () => {
     const store = useThemeStore()
     store.setTheme('unknown-theme')
-    expect(store.current).toBe('dark') // unchanged
+    expect(store.current).toBe('light') // unchanged
   })
 
   it('antdTheme computed returns correct antd config', () => {
@@ -128,6 +128,6 @@ describe('useThemeStore', () => {
   it('init applies CSS variables to document', () => {
     const store = useThemeStore()
     store.init()
-    expect(styleMap['--bg-base']).toBe(THEMES.dark.vars['--bg-base'])
+    expect(styleMap['--bg-base']).toBe(THEMES.light.vars['--bg-base'])
   })
 })

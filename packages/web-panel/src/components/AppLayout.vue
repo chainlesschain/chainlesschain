@@ -222,6 +222,11 @@ onMounted(() => ws.connect())
   border-right: 1px solid var(--border-color);
   transition: background 0.25s;
 }
+:deep(.ant-layout-sider-children) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .main-area { background: var(--bg-base); }
 
 /* ── Logo ─────────────────────────────────────────────────────────────── */
@@ -267,6 +272,9 @@ onMounted(() => ws.connect())
   margin-top: 2px;
   user-select: none;
   background: transparent !important;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .group-label {
   color: var(--group-title);
@@ -286,9 +294,7 @@ onMounted(() => ws.connect())
 
 /* ── Sidebar footer ───────────────────────────────────────────────────── */
 .sidebar-footer {
-  position: absolute;
-  bottom: 48px;
-  left: 0; right: 0;
+  flex-shrink: 0;
   padding: 8px 18px;
   display: flex;
   align-items: center;
