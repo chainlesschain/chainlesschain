@@ -202,12 +202,51 @@ GC 策略:
 
 ---
 
+## Filecoin 存储证明
+
+### 概述
+
+Filecoin 存储模块提供去中心化持久存储，支持与矿工签订存储交易并验证存储证明。
+
+### 存储交易管理
+
+```javascript
+// 创建存储交易
+const deal = await filecoinStorage.storeToFilecoin(cid, size, options);
+// { dealId, cid, minerId, status: "active", duration, price }
+
+// 验证存储证明 (PoRep / PoSt)
+const verification = await filecoinStorage.verifyStorageProof(dealId, {
+  type: "porep",       // porep | post
+  proofData: "...",    // 证明数据
+  commitment: "...",   // SHA-256 承诺值（可选，PoSt 用）
+  sectorId: 42,
+  challengeIndex: 7
+});
+// { verified: true, type: "porep", verifiedAt: "2026-04-12T..." }
+
+// 续约存储交易
+const renewed = await filecoinStorage.renewDeal(dealId, 518400);
+// { dealId, additionalEpochs: 518400, newExpiry, renewalCount, additionalPrice }
+
+// 按条件查询交易列表
+const deals = await filecoinStorage.listDeals({ status: "active", minerId: "f01234" });
+```
+
+### 证明验证规则
+
+| 证明类型 | 验证方式 | 说明 |
+|---------|---------|------|
+| PoRep (复制证明) | 检查 proofData 长度 ≥ 32 字节 | 验证矿工确实存储了数据副本 |
+| PoSt (时空证明) | SHA-256(dealCid + sectorId + challengeIndex) 与 commitment 比对 | 验证矿工持续存储数据 |
+
 ## 关键文件
 
 | 文件                            | 职责                      |
 | ------------------------------- | ------------------------- |
 | `src/main/ipfs/ipfs-manager.js` | IPFS 管理器核心（双引擎） |
 | `src/main/ipfs/ipfs-ipc.js`     | IPFS IPC 处理器           |
+| `src/main/ipfs/filecoin-storage.js` | Filecoin 存储证明与交易管理 |
 | `src/renderer/stores/ipfs.ts`   | IPFS 状态管理             |
 
 ---

@@ -845,6 +845,15 @@ export default defineConfig({
           ],
         },
         {
+          text: "Hermes Agent 对标 ⭐NEW",
+          items: [
+            {
+              text: "Hermes Agent 对标实施 (6 Phase)",
+              link: "/chainlesschain/hermes-agent-parity",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
@@ -1007,6 +1016,7 @@ export default defineConfig({
             { text: "82 CLI Runtime收口路线图 ⭐NEW", link: "/design/modules/82-cli-runtime-convergence" },
             { text: "83 工具描述规范统一 ⭐NEW", link: "/design/modules/83-tool-descriptor-unification" },
             { text: "84 自主学习闭环系统 ⭐NEW", link: "/design/modules/84-autonomous-learning-loop" },
+            { text: "85 Hermes Agent对标 ⭐NEW", link: "/design/modules/85-hermes-agent-parity" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

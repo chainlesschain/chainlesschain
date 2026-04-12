@@ -52,11 +52,18 @@ export class CLIAutonomousAgent extends EventEmitter {
   /**
    * Initialize with required dependencies.
    */
-  initialize({ llmChat, toolExecutor, hookManager, maxIterations } = {}) {
+  initialize({
+    llmChat,
+    toolExecutor,
+    hookManager,
+    maxIterations,
+    iterationBudget,
+  } = {}) {
     this._llmChat = llmChat || null;
     this._toolExecutor = toolExecutor || null;
     this._hookManager = hookManager || null;
     if (maxIterations) this._maxIterations = maxIterations;
+    this._iterationBudget = iterationBudget || null; // shared budget from caller
     this._initialized = true;
   }
 

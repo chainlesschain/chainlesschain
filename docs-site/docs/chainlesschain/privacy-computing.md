@@ -322,11 +322,37 @@ CREATE INDEX IF NOT EXISTS idx_privacy_model_status ON privacy_models(status);
 | 同态加密性能慢     | 优先使用 Paillier（加法），BFV 仅用于必须全同态的场景 |
 | TEE 远程证明失败   | 检查 SGX 驱动版本和 BIOS 设置                         |
 
+## 实现细节
+
+### 联邦学习 (FedAvg)
+
+基于 FedAvg 算法的真实加权梯度聚合实现：
+- 参与方通过 `submitUpdate(modelId, participantId, { gradients, sampleCount })` 提交本地训练结果
+- 聚合器按 `sampleCount` 加权平均所有参与方的梯度更新
+- 所有参与方提交后自动触发聚合，轮次自动递进（`currentRound++`）
+- 支持多轮训练直到达到目标轮数或精度
+
+### 安全多方计算 (Shamir 秘密共享)
+
+在 128-bit 素数域 F_p 上实现真实的 Shamir (t, n) 秘密共享：
+- 构造 t-1 次随机多项式 f(x)，其中 f(0) = secret
+- 为每个参与方生成 share = (i, f(i) mod p)
+- 通过 Lagrange 插值从任意 t 个 shares 重构秘密
+- 支持 `sum`、`average`、`max`、`min` 四种安全聚合操作
+
+### 差分隐私 (Laplace 噪声)
+
+实现真实的 Laplace 机制噪声注入：
+- 噪声采样：`noise = Laplace(0, sensitivity / epsilon)`，使用逆 CDF 方法
+- 对数值数据添加校准噪声后发布
+- 追踪累积隐私预算（sequential composition）：每次查询消耗 ε，总预算耗尽后拒绝新查询
+
 ## 关键文件
 
 | 文件 | 职责 |
 | --- | --- |
 | `src/main/crypto/privacy-computing-manager.js` | 隐私计算核心引擎 |
+| `src/main/crypto/privacy-computing.js` | 隐私计算算法库（FedAvg/Shamir/Laplace） |
 | `src/main/crypto/privacy-computing-ipc.js` | IPC 处理器（8 个） |
 | `src/main/crypto/federated-learning.js` | 联邦学习训练引擎 |
 | `src/main/crypto/mpc-engine.js` | 安全多方计算（Shamir/Beaver） |

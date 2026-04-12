@@ -571,7 +571,7 @@ function buildHtml({
   const btnQuestionSubmit = $('btn-question-submit');
   const tabBtns = document.querySelectorAll('.tab-btn');
 
-  // ── Init mode badge ─────────────────────────────────────────────────��────
+  // ── Init mode badge ──────────────────────────────────────────────────────
   if (CFG.mode === 'project') {
     modeBadge.innerHTML =
       '<div id="project-badge">' +

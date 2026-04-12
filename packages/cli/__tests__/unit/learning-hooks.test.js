@@ -38,7 +38,7 @@ describe("learning-hooks", () => {
     };
   }
 
-  // ── onUserPromptSubmit ─���────────────────────���─────
+  // ── onUserPromptSubmit ────────────────────────────
 
   describe("onUserPromptSubmit", () => {
     it("starts a trajectory and sets currentTrajectoryId", () => {
@@ -158,7 +158,7 @@ describe("learning-hooks", () => {
     });
   });
 
-  // ── onResponseComplete ───────────��────────────────
+  // ── onResponseComplete ────────────────────────────
 
   describe("onResponseComplete", () => {
     it("completes the trajectory and resets currentTrajectoryId", () => {

@@ -103,15 +103,25 @@ chainlesschain lowcode export app-001 --format json --json
 
 导出应用的完整定义，包括页面、组件、数据源配置和资产文件。
 
-### lowcode deploy — 部署配置
+### lowcode deploy — 部署应用
 
 ```bash
-chainlesschain lowcode deploy <app-id> --target web
-chainlesschain lowcode deploy app-001 --target desktop --json
-chainlesschain lowcode deploy app-001 --target mobile
+chainlesschain lowcode deploy <app-id>
+chainlesschain lowcode deploy <app-id> --output ./dist
 ```
 
-为应用配置部署目标和参数。`--target` 指定部署平台。
+将已发布的应用部署为静态网站。生成 `index.html`、`app.js`、`style.css` 三个文件到输出目录。
+
+**前置条件**: 应用必须先通过 `lowcode publish` 发布后才能部署。
+
+**输出文件**:
+- `index.html` — 包含组件布局的响应式 HTML 页面
+- `app.js` — 应用逻辑和组件交互脚本
+- `style.css` — 组件样式（Grid 布局、卡片式组件）
+
+**默认输出目录**: `.chainlesschain/deploys/<app-id>/`
+
+部署完成后应用状态自动更新为 `deployed`。
 
 ## 内置组件
 

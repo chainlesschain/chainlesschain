@@ -19,6 +19,7 @@ import {
   rollbackApp,
   exportApp,
   listApps,
+  deployApp,
 } from "../lib/app-builder.js";
 
 export function registerLowcodeCommand(program) {
@@ -307,14 +308,28 @@ export function registerLowcodeCommand(program) {
   // lowcode deploy <app-id>
   lowcode
     .command("deploy")
-    .description("Deploy application (placeholder)")
+    .description("Deploy application as static HTML bundle")
     .argument("<app-id>", "Application ID")
-    .action(async (appId) => {
-      logger.log(
-        chalk.yellow(
-          `Deploy for app ${chalk.cyan(appId)} is a placeholder. ` +
-            "Full deployment support coming in a future release.",
-        ),
-      );
+    .option("-o, --output <dir>", "Output directory for the deploy bundle")
+    .action(async (appId, options) => {
+      const spinner = ora("Deploying application...").start();
+      let ctx;
+      try {
+        ctx = await bootstrap();
+        ensureLowcodeTables(ctx.db);
+        const result = deployApp(ctx.db, appId, {
+          outputDir: options.output || undefined,
+        });
+        spinner.succeed(
+          chalk.green(`App ${chalk.cyan(appId)} deployed successfully`),
+        );
+        logger.log(`  Output:    ${chalk.cyan(result.outputDir)}`);
+        logger.log(`  Files:     ${result.files.join(", ")}`);
+        logger.log(`  Deployed:  ${result.deployedAt}`);
+      } catch (err) {
+        spinner.fail(chalk.red(`Deploy failed: ${err.message}`));
+      } finally {
+        if (ctx) await shutdown(ctx);
+      }
     });
 }

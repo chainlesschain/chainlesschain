@@ -780,6 +780,33 @@ async function executeToolInner(
       );
     }
 
+    case "search_sessions": {
+      try {
+        const { SessionSearchIndex } = await import("../lib/session-search.js");
+        const { bootstrap } = await import("./bootstrap.js");
+        const ctx = await bootstrap({ verbose: false });
+        if (!ctx.db) {
+          return attachDescriptor({
+            error: "Database not available for session search",
+          });
+        }
+        const index = new SessionSearchIndex(ctx.db);
+        index.ensureTables();
+        const results = index.search(args.query, {
+          limit: args.limit || 10,
+        });
+        return attachDescriptor({
+          query: args.query,
+          results,
+          count: results.length,
+        });
+      } catch (err) {
+        return attachDescriptor({
+          error: `Session search failed: ${err.message}`,
+        });
+      }
+    }
+
     case "search_files": {
       const dir = args.directory ? path.resolve(cwd, args.directory) : cwd;
       try {
@@ -1583,7 +1610,12 @@ function _normalizeAnthropicResponse(data) {
  * @param {object} options - provider, model, baseUrl, apiKey, contextEngine, hookDb, skillLoader, cwd, slotFiller, interaction
  */
 export async function* agentLoop(messages, options) {
-  const MAX_ITERATIONS = 15;
+  // Shared iteration budget — replaces hardcoded MAX_ITERATIONS.
+  // When options.iterationBudget is provided (e.g. from parent agent),
+  // the same budget instance is shared, so parent+child consume from one pool.
+  const { IterationBudget, WarningLevel } =
+    await import("../lib/iteration-budget.js");
+  const budget = options.iterationBudget || new IterationBudget();
   const signal = options.signal || null;
   const toolContext = {
     hookDb: options.hookDb || null,
@@ -1656,8 +1688,36 @@ export async function* agentLoop(messages, options) {
   // real `chatWithTools`.
   const llmCall = options.chatFn || chatWithTools;
 
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
+  while (budget.hasRemaining()) {
+    budget.consume();
     throwIfAborted(signal);
+
+    // Emit progressive warnings (once per level)
+    const level = budget.warningLevel();
+    if (
+      level === WarningLevel.WARNING &&
+      !budget.hasWarned(WarningLevel.WARNING)
+    ) {
+      budget.recordWarning(WarningLevel.WARNING);
+      yield {
+        type: "iteration-warning",
+        level,
+        message: budget.toWarningMessage(),
+        budget: budget.toSummary(),
+      };
+    } else if (
+      level === WarningLevel.WRAPPING_UP &&
+      !budget.hasWarned(WarningLevel.WRAPPING_UP)
+    ) {
+      budget.recordWarning(WarningLevel.WRAPPING_UP);
+      yield {
+        type: "iteration-warning",
+        level,
+        message: budget.toWarningMessage(),
+        budget: budget.toSummary(),
+      };
+    }
+
     const result = await llmCall(messages, options);
     throwIfAborted(signal);
     const msg = result?.message;
@@ -1705,6 +1765,13 @@ export async function* agentLoop(messages, options) {
 
       throwIfAborted(signal);
 
+      // Append budget warning to tool result so the LLM sees it
+      const warningMsg = budget.toWarningMessage();
+      const resultStr = JSON.stringify(toolResult).substring(0, 5000);
+      const toolContent = warningMsg
+        ? `${resultStr}\n\n${warningMsg}`
+        : resultStr;
+
       yield {
         type: "tool-result",
         tool: toolName,
@@ -1714,15 +1781,17 @@ export async function* agentLoop(messages, options) {
 
       messages.push({
         role: "tool",
-        content: JSON.stringify(toolResult).substring(0, 5000),
+        content: toolContent,
         tool_call_id: call.id,
       });
     }
   }
 
+  // Budget exhausted — yield exhaustion event + final message
+  yield { type: "iteration-budget-exhausted", budget: budget.toSummary() };
   yield {
     type: "response-complete",
-    content: "(Reached max tool call iterations)",
+    content: `(Iteration budget exhausted — ${budget.toSummary()})`,
   };
 }
 
@@ -1754,6 +1823,8 @@ export function formatToolArgs(name, args) {
       return `${args.language} (${(args.code || "").length} chars)`;
     case "spawn_sub_agent":
       return `[${args.role}] ${(args.task || "").substring(0, 60)}`;
+    case "search_sessions":
+      return `"${(args.query || "").substring(0, 60)}"`;
     default:
       return JSON.stringify(args).substring(0, 60);
   }

@@ -125,6 +125,16 @@ const TOOL_POLICY_METADATA = Object.freeze({
     approvalFlow: "auto",
     isReadOnly: true,
   },
+  search_sessions: {
+    riskLevel: RISK_LEVELS.LOW,
+    category: TOOL_CATEGORIES.SEARCH,
+    availableInPlanMode: true,
+    planModeBehavior: "allow",
+    requiresPlanApproval: false,
+    requiresConfirmation: false,
+    approvalFlow: "auto",
+    isReadOnly: true,
+  },
   run_skill: {
     riskLevel: RISK_LEVELS.MEDIUM,
     category: TOOL_CATEGORIES.SKILL,

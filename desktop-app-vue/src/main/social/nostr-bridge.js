@@ -15,6 +15,7 @@ import { logger } from "../utils/logger.js";
 import EventEmitter from "events";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
+import WebSocket from "ws";
 
 // ============================================================
 // Constants
@@ -31,6 +32,9 @@ const EVENT_KINDS = {
   REACTION: 7,
 };
 
+const RECONNECT_BASE_DELAY = 1000;
+const RECONNECT_MAX_DELAY = 60000;
+
 // ============================================================
 // NostrBridge
 // ============================================================
@@ -43,6 +47,8 @@ class NostrBridge extends EventEmitter {
     this._relays = new Map(); // relayUrl → { ws, status, subscriptions }
     this._subscriptions = new Map();
     this._eventBuffer = [];
+    this._reconnectTimers = new Map();
+    this._reconnectAttempts = new Map();
   }
 
   /**
@@ -104,7 +110,9 @@ class NostrBridge extends EventEmitter {
    * Load saved relays from database
    */
   async _loadSavedRelays() {
-    if (!this.database || !this.database.db) {return;}
+    if (!this.database || !this.database.db) {
+      return;
+    }
 
     try {
       const stmt = this.database.db.prepare("SELECT * FROM nostr_relays");
@@ -130,7 +138,7 @@ class NostrBridge extends EventEmitter {
   async addRelay(url) {
     if (!url || (!url.startsWith("ws://") && !url.startsWith("wss://"))) {
       throw new Error(
-        `Invalid relay URL: ${url}. Must start with ws:// or wss://`
+        `Invalid relay URL: ${url}. Must start with ws:// or wss://`,
       );
     }
 
@@ -148,7 +156,7 @@ class NostrBridge extends EventEmitter {
     if (this.database && this.database.db) {
       try {
         const stmt = this.database.db.prepare(
-          "INSERT OR IGNORE INTO nostr_relays (id, url, status) VALUES (?, ?, ?)"
+          "INSERT OR IGNORE INTO nostr_relays (id, url, status) VALUES (?, ?, ?)",
         );
         stmt.run(id, url, "disconnected");
       } catch (err) {
@@ -172,7 +180,8 @@ class NostrBridge extends EventEmitter {
       return { success: false, message: "Relay not found" };
     }
 
-    // Disconnect if connected
+    // Cancel reconnect and disconnect
+    this._cancelReconnect(url);
     if (relay.ws) {
       try {
         relay.ws.close();
@@ -186,7 +195,7 @@ class NostrBridge extends EventEmitter {
     if (this.database && this.database.db) {
       try {
         const stmt = this.database.db.prepare(
-          "DELETE FROM nostr_relays WHERE url = ?"
+          "DELETE FROM nostr_relays WHERE url = ?",
         );
         stmt.run(url);
       } catch (err) {
@@ -214,37 +223,220 @@ class NostrBridge extends EventEmitter {
       return { success: true, message: "Already connected" };
     }
 
-    try {
-      // WebSocket connection stub - actual ws dependency not available
-      // In production, this would use the 'ws' package or native WebSocket
-      logger.info(`[NostrBridge] Connecting to relay: ${url}`);
-      relay.status = "connecting";
-      this.emit("relay:connecting", { url });
+    // Cancel any pending reconnect for this relay
+    this._cancelReconnect(url);
 
-      // Stub: simulate successful connection
-      // Real implementation: relay.ws = new WebSocket(url);
-      relay.status = "connected";
-      relay.ws = { readyState: 1, close: () => {} }; // Mock ws object
+    logger.info(`[NostrBridge] Connecting to relay: ${url}`);
+    relay.status = "connecting";
+    this.emit("relay:connecting", { url });
 
-      if (this.database && this.database.db) {
-        try {
-          const stmt = this.database.db.prepare(
-            "UPDATE nostr_relays SET status = ?, last_connected = ? WHERE url = ?"
+    return new Promise((resolve, reject) => {
+      try {
+        const ws = new WebSocket(url);
+
+        const connectTimeout = setTimeout(() => {
+          ws.terminate();
+          relay.status = "error";
+          reject(new Error(`Connection timeout for relay: ${url}`));
+        }, 10000);
+
+        ws.on("open", () => {
+          clearTimeout(connectTimeout);
+          relay.ws = ws;
+          relay.status = "connected";
+          this._reconnectAttempts.delete(url);
+
+          if (this.database && this.database.db) {
+            try {
+              this.database.db
+                .prepare(
+                  "UPDATE nostr_relays SET status = ?, last_connected = ? WHERE url = ?",
+                )
+                .run("connected", Date.now(), url);
+            } catch (err) {
+              logger.error("[NostrBridge] Failed to update relay status:", err);
+            }
+          }
+
+          this.emit("relay:connected", { url });
+          logger.info(`[NostrBridge] Connected to relay: ${url}`);
+          resolve({ success: true, url, status: "connected" });
+        });
+
+        ws.on("message", (data) => {
+          this._handleRelayMessage(url, data);
+        });
+
+        ws.on("close", () => {
+          relay.ws = null;
+          relay.status = "disconnected";
+          this.emit("relay:disconnected", { url });
+          logger.info(`[NostrBridge] Disconnected from relay: ${url}`);
+          this._scheduleReconnect(url);
+        });
+
+        ws.on("error", (err) => {
+          clearTimeout(connectTimeout);
+          relay.status = "error";
+          logger.error(
+            `[NostrBridge] WebSocket error for ${url}:`,
+            err.message,
           );
-          stmt.run("connected", Date.now(), url);
-        } catch (err) {
-          logger.error("[NostrBridge] Failed to update relay status:", err);
-        }
+          this.emit("relay:error", { url, error: err.message });
+        });
+      } catch (err) {
+        relay.status = "error";
+        logger.error(`[NostrBridge] Failed to connect to relay ${url}:`, err);
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * Handle incoming NIP-01 relay message
+   * @param {string} url - Relay URL
+   * @param {Buffer|string} data - Raw WebSocket message
+   */
+  _handleRelayMessage(url, data) {
+    try {
+      const message = JSON.parse(
+        typeof data === "string" ? data : data.toString("utf8"),
+      );
+      if (!Array.isArray(message) || message.length < 2) {
+        return;
       }
 
-      this.emit("relay:connected", { url });
-      logger.info(`[NostrBridge] Connected to relay: ${url}`);
-      return { success: true, url, status: "connected" };
+      const [type] = message;
+
+      switch (type) {
+        case "EVENT": {
+          // ["EVENT", <subscription_id>, <event JSON>]
+          const [, subscriptionId, event] = message;
+          if (event && event.id) {
+            this._storeIncomingEvent(event, url);
+            this.emit("event:received", {
+              event,
+              subscriptionId,
+              relayUrl: url,
+            });
+          }
+          break;
+        }
+        case "EOSE": {
+          // ["EOSE", <subscription_id>] — End of stored events
+          const [, subscriptionId] = message;
+          this.emit("subscription:eose", { subscriptionId, relayUrl: url });
+          break;
+        }
+        case "OK": {
+          // ["OK", <event_id>, <accepted>, <message>]
+          const [, eventId, accepted, reason] = message;
+          this.emit("event:status", {
+            eventId,
+            accepted,
+            reason,
+            relayUrl: url,
+          });
+          break;
+        }
+        case "NOTICE": {
+          // ["NOTICE", <message>]
+          const [, notice] = message;
+          logger.info(`[NostrBridge] Notice from ${url}: ${notice}`);
+          this.emit("relay:notice", { notice, relayUrl: url });
+          break;
+        }
+        default:
+          logger.debug(
+            `[NostrBridge] Unknown message type from ${url}: ${type}`,
+          );
+      }
     } catch (err) {
-      relay.status = "error";
-      logger.error(`[NostrBridge] Failed to connect to relay ${url}:`, err);
-      throw err;
+      logger.error(
+        `[NostrBridge] Failed to parse message from ${url}:`,
+        err.message,
+      );
     }
+  }
+
+  /**
+   * Store an event received from a relay
+   * @param {Object} event - Nostr event
+   * @param {string} relayUrl - Source relay URL
+   */
+  _storeIncomingEvent(event, relayUrl) {
+    if (!this.database || !this.database.db) {
+      return;
+    }
+    try {
+      this.database.db
+        .prepare(
+          `INSERT OR IGNORE INTO nostr_events (id, pubkey, kind, content, tags, sig, created_at, relay_url, imported)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        )
+        .run(
+          event.id,
+          event.pubkey,
+          event.kind,
+          event.content || "",
+          JSON.stringify(event.tags || []),
+          event.sig || "",
+          event.created_at,
+          relayUrl,
+        );
+    } catch (err) {
+      logger.error(
+        "[NostrBridge] Failed to store incoming event:",
+        err.message,
+      );
+    }
+  }
+
+  /**
+   * Schedule reconnect with exponential backoff
+   * @param {string} url - Relay URL
+   */
+  _scheduleReconnect(url) {
+    if (!this._relays.has(url)) {
+      return;
+    }
+    const attempts = this._reconnectAttempts.get(url) || 0;
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY * Math.pow(2, attempts),
+      RECONNECT_MAX_DELAY,
+    );
+    this._reconnectAttempts.set(url, attempts + 1);
+
+    logger.info(
+      `[NostrBridge] Scheduling reconnect to ${url} in ${delay}ms (attempt ${attempts + 1})`,
+    );
+    const timer = setTimeout(async () => {
+      this._reconnectTimers.delete(url);
+      if (this._relays.has(url)) {
+        try {
+          await this.connectRelay(url);
+        } catch (err) {
+          logger.error(
+            `[NostrBridge] Reconnect to ${url} failed:`,
+            err.message,
+          );
+        }
+      }
+    }, delay);
+    this._reconnectTimers.set(url, timer);
+  }
+
+  /**
+   * Cancel pending reconnect for a relay
+   * @param {string} url - Relay URL
+   */
+  _cancelReconnect(url) {
+    const timer = this._reconnectTimers.get(url);
+    if (timer) {
+      clearTimeout(timer);
+      this._reconnectTimers.delete(url);
+    }
+    this._reconnectAttempts.delete(url);
   }
 
   /**
@@ -258,8 +450,13 @@ class NostrBridge extends EventEmitter {
       return { success: false, message: "Relay not found" };
     }
 
+    // Cancel any pending reconnect — intentional disconnect should not auto-reconnect
+    this._cancelReconnect(url);
+
     if (relay.ws) {
       try {
+        // Remove close listener to prevent auto-reconnect on intentional disconnect
+        relay.ws.removeAllListeners("close");
         relay.ws.close();
       } catch (_err) {
         // Intentionally empty - connection may already be closed
@@ -273,7 +470,7 @@ class NostrBridge extends EventEmitter {
     if (this.database && this.database.db) {
       try {
         const stmt = this.database.db.prepare(
-          "UPDATE nostr_relays SET status = ? WHERE url = ?"
+          "UPDATE nostr_relays SET status = ? WHERE url = ?",
         );
         stmt.run("disconnected", url);
       } catch (err) {
@@ -300,8 +497,7 @@ class NostrBridge extends EventEmitter {
       throw new Error("Event kind is required");
     }
 
-    const authorPubkey =
-      pubkey || crypto.randomBytes(32).toString("hex");
+    const authorPubkey = pubkey || crypto.randomBytes(32).toString("hex");
     const createdAt = Math.floor(Date.now() / 1000);
 
     // NIP-01 event structure
@@ -327,21 +523,23 @@ class NostrBridge extends EventEmitter {
     // Send to write-enabled relays
     let sentCount = 0;
     for (const [relayUrl, relay] of this._relays) {
-      if (relay.status === "connected" && relay.ws) {
+      if (
+        relay.status === "connected" &&
+        relay.ws &&
+        relay.ws.readyState === WebSocket.OPEN
+      ) {
         try {
           // NIP-01: ["EVENT", <event JSON>]
           const message = JSON.stringify(["EVENT", event]);
-          // Stub: relay.ws.send(message);
+          relay.ws.send(message);
           sentCount++;
-          logger.info(
-            `[NostrBridge] Event sent to relay: ${relayUrl}`
-          );
+          logger.info(`[NostrBridge] Event sent to relay: ${relayUrl}`);
 
           // Update relay event count
           if (this.database && this.database.db) {
             try {
               const stmt = this.database.db.prepare(
-                "UPDATE nostr_relays SET event_count = event_count + 1 WHERE url = ?"
+                "UPDATE nostr_relays SET event_count = event_count + 1 WHERE url = ?",
               );
               stmt.run(relayUrl);
             } catch (_err) {
@@ -351,7 +549,7 @@ class NostrBridge extends EventEmitter {
         } catch (err) {
           logger.error(
             `[NostrBridge] Failed to send event to ${relayUrl}:`,
-            err
+            err,
           );
         }
       }
@@ -362,7 +560,7 @@ class NostrBridge extends EventEmitter {
       try {
         const stmt = this.database.db.prepare(
           `INSERT OR IGNORE INTO nostr_events (id, pubkey, kind, content, tags, sig, created_at, relay_url, imported)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         );
         stmt.run(
           event.id,
@@ -373,7 +571,7 @@ class NostrBridge extends EventEmitter {
           event.sig,
           event.created_at,
           null,
-          0
+          0,
         );
       } catch (err) {
         logger.error("[NostrBridge] Failed to store event in DB:", err);
@@ -382,7 +580,7 @@ class NostrBridge extends EventEmitter {
 
     this.emit("event:published", { event, sentCount });
     logger.info(
-      `[NostrBridge] Event published: ${id} (sent to ${sentCount} relays)`
+      `[NostrBridge] Event published: ${id} (sent to ${sentCount} relays)`,
     );
 
     return { success: true, event, sentCount };
@@ -441,7 +639,7 @@ class NostrBridge extends EventEmitter {
     if (this.database && this.database.db) {
       try {
         const stmt = this.database.db.prepare(
-          "SELECT * FROM nostr_relays ORDER BY url"
+          "SELECT * FROM nostr_relays ORDER BY url",
         );
         const dbRelays = stmt.all();
 
