@@ -89,7 +89,9 @@ describe("skill-improver", () => {
     });
 
     it("returns empty meta for content without frontmatter", () => {
-      const { meta, body } = parseSkillFrontmatter("# No frontmatter\nJust text");
+      const { meta, body } = parseSkillFrontmatter(
+        "# No frontmatter\nJust text",
+      );
       expect(meta).toEqual({});
       expect(body).toBe("# No frontmatter\nJust text");
     });
@@ -136,7 +138,9 @@ describe("skill-improver", () => {
       const messages = buildCorrectionPrompt(SAMPLE_SKILL, {
         userMessage: "Don't use npm, use pnpm instead",
         previousToolChain: [{ tool: "run_shell", args: { cmd: "npm build" } }],
-        correctedToolChain: [{ tool: "run_shell", args: { cmd: "pnpm build" } }],
+        correctedToolChain: [
+          { tool: "run_shell", args: { cmd: "pnpm build" } },
+        ],
       });
       expect(messages).toHaveLength(2);
       expect(messages[1].content).toContain("pnpm");
@@ -306,7 +310,9 @@ describe("skill-improver", () => {
       const result = await improver.updateFromCorrection("deploy-app", {
         userMessage: "Use pnpm not npm",
         previousToolChain: [{ tool: "run_shell", args: { cmd: "npm build" } }],
-        correctedToolChain: [{ tool: "run_shell", args: { cmd: "pnpm build" } }],
+        correctedToolChain: [
+          { tool: "run_shell", args: { cmd: "pnpm build" } },
+        ],
       });
 
       expect(result.improved).toBe(true);
@@ -432,14 +438,26 @@ describe("skill-improver", () => {
     it("finds and improves skills with better trajectories available", async () => {
       // Create a synthesized trajectory with moderate score
       const id1 = store.startTrajectory("s1", "deploy");
-      store.appendToolCall(id1, { tool: "run_shell", args: {}, result: "ok", durationMs: 10, status: "completed" });
+      store.appendToolCall(id1, {
+        tool: "run_shell",
+        args: {},
+        result: "ok",
+        durationMs: 10,
+        status: "completed",
+      });
       store.completeTrajectory(id1, { finalResponse: "done" });
       store.setOutcomeScore(id1, 0.7, "auto");
       store.markSynthesized(id1, "deploy-app");
 
       // Create a better trajectory with similar tools
       const id2 = store.startTrajectory("s2", "deploy fast");
-      store.appendToolCall(id2, { tool: "run_shell", args: {}, result: "ok", durationMs: 5, status: "completed" });
+      store.appendToolCall(id2, {
+        tool: "run_shell",
+        args: {},
+        result: "ok",
+        durationMs: 5,
+        status: "completed",
+      });
       store.completeTrajectory(id2, { finalResponse: "done faster" });
       store.setOutcomeScore(id2, 0.95, "user");
 
@@ -475,9 +493,9 @@ describe("skill-improver", () => {
     });
 
     it("parses JSON from LLM response", async () => {
-      const mockLLM = vi.fn().mockResolvedValue(
-        'Here is the result: {"name":"test"} done',
-      );
+      const mockLLM = vi
+        .fn()
+        .mockResolvedValue('Here is the result: {"name":"test"} done');
       const imp = new SkillImprover(db, mockLLM, store);
       const result = await imp._callLLM([{ role: "user", content: "hi" }]);
       expect(result).toEqual({ name: "test" });

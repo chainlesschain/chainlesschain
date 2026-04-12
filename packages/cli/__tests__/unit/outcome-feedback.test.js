@@ -61,27 +61,30 @@ describe("outcome-feedback", () => {
     });
 
     it("returns false for different consecutive tools", () => {
-      expect(hasRetries([
-        { tool: "read_file" },
-        { tool: "edit_file" },
-        { tool: "run_shell" },
-      ])).toBe(false);
+      expect(
+        hasRetries([
+          { tool: "read_file" },
+          { tool: "edit_file" },
+          { tool: "run_shell" },
+        ]),
+      ).toBe(false);
     });
 
     it("returns true for consecutive same tool", () => {
-      expect(hasRetries([
-        { tool: "run_shell" },
-        { tool: "run_shell" },
-      ])).toBe(true);
+      expect(hasRetries([{ tool: "run_shell" }, { tool: "run_shell" }])).toBe(
+        true,
+      );
     });
 
     it("returns true when retry is in middle of chain", () => {
-      expect(hasRetries([
-        { tool: "read_file" },
-        { tool: "run_shell" },
-        { tool: "run_shell" },
-        { tool: "edit_file" },
-      ])).toBe(true);
+      expect(
+        hasRetries([
+          { tool: "read_file" },
+          { tool: "run_shell" },
+          { tool: "run_shell" },
+          { tool: "edit_file" },
+        ]),
+      ).toBe(true);
     });
   });
 
@@ -178,23 +181,41 @@ describe("outcome-feedback", () => {
     });
 
     it("detects English negation patterns", () => {
-      expect(detectCorrection("That's not right", prevTraj).isCorrection).toBe(true);
-      expect(detectCorrection("wrong, redo it", prevTraj).isCorrection).toBe(true);
-      expect(detectCorrection("don't do that", prevTraj).isCorrection).toBe(true);
-      expect(detectCorrection("try again please", prevTraj).isCorrection).toBe(true);
-      expect(detectCorrection("That is incorrect", prevTraj).isCorrection).toBe(true);
+      expect(detectCorrection("That's not right", prevTraj).isCorrection).toBe(
+        true,
+      );
+      expect(detectCorrection("wrong, redo it", prevTraj).isCorrection).toBe(
+        true,
+      );
+      expect(detectCorrection("don't do that", prevTraj).isCorrection).toBe(
+        true,
+      );
+      expect(detectCorrection("try again please", prevTraj).isCorrection).toBe(
+        true,
+      );
+      expect(detectCorrection("That is incorrect", prevTraj).isCorrection).toBe(
+        true,
+      );
     });
 
     it("detects Chinese negation patterns", () => {
-      expect(detectCorrection("不对，重新来", prevTraj).isCorrection).toBe(true);
+      expect(detectCorrection("不对，重新来", prevTraj).isCorrection).toBe(
+        true,
+      );
       expect(detectCorrection("错了", prevTraj).isCorrection).toBe(true);
       expect(detectCorrection("别这样做", prevTraj).isCorrection).toBe(true);
     });
 
     it("returns false for normal follow-up messages", () => {
-      expect(detectCorrection("thanks, looks good", prevTraj).isCorrection).toBe(false);
-      expect(detectCorrection("now deploy it", prevTraj).isCorrection).toBe(false);
-      expect(detectCorrection("what about tests?", prevTraj).isCorrection).toBe(false);
+      expect(
+        detectCorrection("thanks, looks good", prevTraj).isCorrection,
+      ).toBe(false);
+      expect(detectCorrection("now deploy it", prevTraj).isCorrection).toBe(
+        false,
+      );
+      expect(detectCorrection("what about tests?", prevTraj).isCorrection).toBe(
+        false,
+      );
     });
 
     it("detects reference to previous file with correction language", () => {
@@ -220,7 +241,13 @@ describe("outcome-feedback", () => {
   describe("scoreTrajectory", () => {
     it("auto-scores and backfills the trajectory", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "read_file", args: {}, result: "ok", durationMs: 10, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 10,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
 
       const score = feedback.scoreTrajectory(id);
@@ -266,7 +293,13 @@ describe("outcome-feedback", () => {
 
     it("overrides auto-score with user source", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "t1", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "t1",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
 
       // Auto score first
@@ -286,7 +319,13 @@ describe("outcome-feedback", () => {
   describe("checkCorrection", () => {
     it("detects correction and downgrades score", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "edit_file", args: { path: "a.js" }, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "edit_file",
+        args: { path: "a.js" },
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
       feedback.scoreTrajectory(id);
 
@@ -300,11 +339,20 @@ describe("outcome-feedback", () => {
 
     it("does not downgrade for non-correction", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "t1", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "t1",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
       feedback.scoreTrajectory(id);
 
-      const result = feedback.checkCorrection("great, now do the next step", id);
+      const result = feedback.checkCorrection(
+        "great, now do the next step",
+        id,
+      );
       expect(result.isCorrection).toBe(false);
 
       const traj = store.getTrajectory(id);
@@ -321,11 +369,24 @@ describe("outcome-feedback", () => {
 
   describe("propagateFeedback", () => {
     it("propagates high score to instinct as tool preference", async () => {
-      const { recordInstinct } = await import("../../src/lib/instinct-manager.js");
+      const { recordInstinct } =
+        await import("../../src/lib/instinct-manager.js");
 
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "read_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
-      store.appendToolCall(id, { tool: "edit_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "edit_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
       store.setOutcomeScore(id, 0.9, "auto");
 
@@ -339,10 +400,17 @@ describe("outcome-feedback", () => {
     });
 
     it("propagates low score to instinct as workflow to avoid", async () => {
-      const { recordInstinct } = await import("../../src/lib/instinct-manager.js");
+      const { recordInstinct } =
+        await import("../../src/lib/instinct-manager.js");
 
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "run_shell", args: {}, result: "fail", durationMs: 0, status: "error" });
+      store.appendToolCall(id, {
+        tool: "run_shell",
+        args: {},
+        result: "fail",
+        durationMs: 0,
+        status: "error",
+      });
       store.completeTrajectory(id, { finalResponse: "failed" });
       store.setOutcomeScore(id, 0.2, "auto");
 
@@ -356,16 +424,28 @@ describe("outcome-feedback", () => {
     });
 
     it("propagates to evolution system", async () => {
-      const { assessCapability } = await import("../../src/lib/evolution-system.js");
+      const { assessCapability } =
+        await import("../../src/lib/evolution-system.js");
 
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "read_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
       store.setOutcomeScore(id, 0.85, "auto");
 
       feedback.propagateFeedback(id);
 
-      expect(assessCapability).toHaveBeenCalledWith(db, "read_file", 0.85, "tool");
+      expect(assessCapability).toHaveBeenCalledWith(
+        db,
+        "read_file",
+        0.85,
+        "tool",
+      );
     });
 
     it("no-ops for unscored trajectory", () => {
@@ -379,11 +459,18 @@ describe("outcome-feedback", () => {
     });
 
     it("does not propagate mid-range scores to instinct", async () => {
-      const { recordInstinct } = await import("../../src/lib/instinct-manager.js");
+      const { recordInstinct } =
+        await import("../../src/lib/instinct-manager.js");
       vi.clearAllMocks();
 
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "t1", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "t1",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
       store.setOutcomeScore(id, 0.5, "auto");
 

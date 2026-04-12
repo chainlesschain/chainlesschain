@@ -107,10 +107,7 @@ describe("E2E: learning commands", () => {
     });
 
     it("learning command is registered in index.js", () => {
-      const src = readFileSync(
-        join(cliRoot, "src", "index.js"),
-        "utf-8",
-      );
+      const src = readFileSync(join(cliRoot, "src", "index.js"), "utf-8");
       expect(src).toContain("registerLearningCommand");
       expect(src).toContain("import { registerLearningCommand }");
     });

@@ -80,7 +80,12 @@ describe("reflection-engine", () => {
     it("counts across multiple trajectories", () => {
       const trajs = [
         { toolChain: [{ tool: "a", status: "completed" }] },
-        { toolChain: [{ tool: "a", status: "completed" }, { tool: "b", status: "error" }] },
+        {
+          toolChain: [
+            { tool: "a", status: "completed" },
+            { tool: "b", status: "error" },
+          ],
+        },
       ];
 
       const { toolUsage, totalTools } = computeToolStats(trajs);
@@ -237,11 +242,7 @@ describe("reflection-engine", () => {
     it("produces a report from trajectories", async () => {
       createTrajectory(["read_file", "edit_file"], 0.8);
       createTrajectory(["read_file", "run_shell"], 0.6);
-      createTrajectory(
-        ["run_shell", "run_shell"],
-        0.3,
-        ["error", "completed"],
-      );
+      createTrajectory(["run_shell", "run_shell"], 0.3, ["error", "completed"]);
 
       const engine = new ReflectionEngine(db, null, store);
       const report = await engine.reflect();
@@ -300,9 +301,7 @@ describe("reflection-engine", () => {
       await engine.reflect();
 
       const logs = db.data.get("skill_improvement_log") || [];
-      const reflectionLog = logs.find(
-        (l) => l.trigger_type === "reflection",
-      );
+      const reflectionLog = logs.find((l) => l.trigger_type === "reflection");
       expect(reflectionLog).toBeDefined();
       expect(reflectionLog.skill_name).toBe("_reflection");
     });
@@ -371,11 +370,7 @@ describe("reflection-engine", () => {
     it("identifies error-prone tools in reflection report", async () => {
       // Create trajectories with shell errors
       for (let i = 0; i < 3; i++) {
-        createTrajectory(
-          ["run_shell", "run_shell"],
-          0.3,
-          ["error", "error"],
-        );
+        createTrajectory(["run_shell", "run_shell"], 0.3, ["error", "error"]);
       }
       // And some clean ones
       createTrajectory(["read_file", "edit_file"], 0.9);

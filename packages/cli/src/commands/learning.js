@@ -28,9 +28,8 @@ export function registerLearningCommand(program) {
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
-        const { TrajectoryStore } = await import(
-          "../lib/learning/trajectory-store.js"
-        );
+        const { TrajectoryStore } =
+          await import("../lib/learning/trajectory-store.js");
         const store = new TrajectoryStore(db);
         const stats = store.getStats();
 
@@ -68,9 +67,8 @@ export function registerLearningCommand(program) {
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
-        const { TrajectoryStore } = await import(
-          "../lib/learning/trajectory-store.js"
-        );
+        const { TrajectoryStore } =
+          await import("../lib/learning/trajectory-store.js");
         const store = new TrajectoryStore(db);
 
         const trajs = store.getRecent({
@@ -98,9 +96,7 @@ export function registerLearningCommand(program) {
                   `${t.toolCount} tools | score: ${scoreStr}${synthStr}`,
               );
               if (t.userIntent) {
-                logger.log(
-                  `    ${chalk.dim(t.userIntent.slice(0, 80))}`,
-                );
+                logger.log(`    ${chalk.dim(t.userIntent.slice(0, 80))}`);
               }
             }
           }
@@ -126,12 +122,10 @@ export function registerLearningCommand(program) {
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
-        const { TrajectoryStore } = await import(
-          "../lib/learning/trajectory-store.js"
-        );
-        const { ReflectionEngine } = await import(
-          "../lib/learning/reflection-engine.js"
-        );
+        const { TrajectoryStore } =
+          await import("../lib/learning/trajectory-store.js");
+        const { ReflectionEngine } =
+          await import("../lib/learning/reflection-engine.js");
         const store = new TrajectoryStore(db);
         const engine = new ReflectionEngine(db, null, store);
 
@@ -143,9 +137,7 @@ export function registerLearningCommand(program) {
           console.log(JSON.stringify(report, null, 2));
         } else {
           logger.log(chalk.bold("Reflection Report"));
-          logger.log(
-            `  Period:         ${chalk.dim(report.timestamp)}`,
-          );
+          logger.log(`  Period:         ${chalk.dim(report.timestamp)}`);
           logger.log(
             `  Trajectories:   ${chalk.cyan(report.totalTrajectories)}`,
           );
@@ -204,12 +196,10 @@ export function registerLearningCommand(program) {
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
-        const { TrajectoryStore } = await import(
-          "../lib/learning/trajectory-store.js"
-        );
-        const { SkillSynthesizer } = await import(
-          "../lib/learning/skill-synthesizer.js"
-        );
+        const { TrajectoryStore } =
+          await import("../lib/learning/trajectory-store.js");
+        const { SkillSynthesizer } =
+          await import("../lib/learning/skill-synthesizer.js");
         const store = new TrajectoryStore(db);
         const synthesizer = new SkillSynthesizer(db, null, store);
 
@@ -259,9 +249,8 @@ export function registerLearningCommand(program) {
           process.exit(1);
         }
         const db = ctx.db.getDatabase();
-        const { TrajectoryStore } = await import(
-          "../lib/learning/trajectory-store.js"
-        );
+        const { TrajectoryStore } =
+          await import("../lib/learning/trajectory-store.js");
         const store = new TrajectoryStore(db);
 
         const days = parseInt(options.days, 10);

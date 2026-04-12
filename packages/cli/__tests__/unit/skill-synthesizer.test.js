@@ -104,9 +104,9 @@ describe("skill-synthesizer", () => {
     });
 
     it("limits to 4 words", () => {
-      expect(
-        generateSkillName("run all unit tests in parallel mode"),
-      ).toBe("run-all-unit-tests");
+      expect(generateSkillName("run all unit tests in parallel mode")).toBe(
+        "run-all-unit-tests",
+      );
     });
 
     it("strips special characters", () => {
@@ -132,7 +132,12 @@ describe("skill-synthesizer", () => {
       const messages = buildExtractionPrompt({
         userIntent: "deploy app",
         toolChain: [
-          { tool: "run_shell", args: { cmd: "npm build" }, status: "completed", durationMs: 500 },
+          {
+            tool: "run_shell",
+            args: { cmd: "npm build" },
+            status: "completed",
+            durationMs: 500,
+          },
         ],
         finalResponse: "Deployed successfully",
       });
@@ -154,7 +159,9 @@ describe("skill-synthesizer", () => {
     it("truncates long args", () => {
       const longArg = "a".repeat(500);
       const messages = buildExtractionPrompt({
-        toolChain: [{ tool: "t1", args: { data: longArg }, status: "completed" }],
+        toolChain: [
+          { tool: "t1", args: { data: longArg }, status: "completed" },
+        ],
       });
       // Args truncated to 200 chars in JSON.stringify slice
       expect(messages[1].content.length).toBeLessThan(1000);
@@ -240,7 +247,14 @@ describe("skill-synthesizer", () => {
 
     it("synthesizes a skill from eligible trajectories", async () => {
       // Create 3 similar trajectories with 6 tools each (>= minToolCount 5)
-      const tools = ["read_file", "edit_file", "run_shell", "read_file", "edit_file", "run_shell"];
+      const tools = [
+        "read_file",
+        "edit_file",
+        "run_shell",
+        "read_file",
+        "edit_file",
+        "run_shell",
+      ];
       createScoredTrajectory(tools, 0.9);
       createScoredTrajectory(tools, 0.85);
       createScoredTrajectory(tools, 0.8);
@@ -301,7 +315,9 @@ describe("skill-synthesizer", () => {
 
       const result = await synthesizer.synthesize();
       expect(result.created).toHaveLength(0);
-      expect(result.skipped.some((s) => s.includes("not applicable"))).toBe(true);
+      expect(result.skipped.some((s) => s.includes("not applicable"))).toBe(
+        true,
+      );
     });
 
     it("skips duplicate fingerprints", async () => {
@@ -416,9 +432,11 @@ describe("skill-synthesizer", () => {
     });
 
     it("parses valid JSON from LLM response", async () => {
-      const mockLLM = vi.fn().mockResolvedValue(
-        'Some text before {"name":"test","procedure":["a"]} and after',
-      );
+      const mockLLM = vi
+        .fn()
+        .mockResolvedValue(
+          'Some text before {"name":"test","procedure":["a"]} and after',
+        );
       const synth = new SkillSynthesizer(db, mockLLM, store);
       const result = await synth._extractPattern({ toolChain: [] });
       expect(result).toEqual({ name: "test", procedure: ["a"] });
@@ -442,9 +460,27 @@ describe("skill-synthesizer", () => {
 
     it("returns true when a matching synthesized trajectory exists", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "a", args: {}, result: "ok", durationMs: 0, status: "completed" });
-      store.appendToolCall(id, { tool: "b", args: {}, result: "ok", durationMs: 0, status: "completed" });
-      store.appendToolCall(id, { tool: "c", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "a",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "b",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "c",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
       store.markSynthesized(id, "existing");
 
@@ -454,8 +490,20 @@ describe("skill-synthesizer", () => {
 
     it("returns false for non-overlapping fingerprints", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "x", args: {}, result: "ok", durationMs: 0, status: "completed" });
-      store.appendToolCall(id, { tool: "y", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "x",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "y",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
       store.markSynthesized(id, "other");
 
@@ -482,10 +530,9 @@ describe("skill-synthesizer", () => {
       });
       const result = await synth._persistSkill("my-skill", "# content");
 
-      expect(mockFs.promises.mkdir).toHaveBeenCalledWith(
-        "/out/my-skill",
-        { recursive: true },
-      );
+      expect(mockFs.promises.mkdir).toHaveBeenCalledWith("/out/my-skill", {
+        recursive: true,
+      });
       expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
         "/out/my-skill/SKILL.md",
         "# content",

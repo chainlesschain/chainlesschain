@@ -78,7 +78,9 @@ export class TrajectoryStore {
     if (!trajectoryId) return;
 
     const row = this.db
-      .prepare("SELECT tool_chain, tool_count FROM learning_trajectories WHERE id = ?")
+      .prepare(
+        "SELECT tool_chain, tool_count FROM learning_trajectories WHERE id = ?",
+      )
       .get(trajectoryId);
     if (!row) return;
 
@@ -112,7 +114,12 @@ export class TrajectoryStore {
          SET tool_chain = ?, tool_count = ?, complexity_level = ?
          WHERE id = ?`,
       )
-      .run(JSON.stringify(chain), newCount, classifyComplexity(newCount), trajectoryId);
+      .run(
+        JSON.stringify(chain),
+        newCount,
+        classifyComplexity(newCount),
+        trajectoryId,
+      );
   }
 
   /**
@@ -171,7 +178,9 @@ export class TrajectoryStore {
   markSynthesized(trajectoryId, skillName) {
     if (!trajectoryId) return;
     this.db
-      .prepare("UPDATE learning_trajectories SET synthesized_skill = ? WHERE id = ?")
+      .prepare(
+        "UPDATE learning_trajectories SET synthesized_skill = ? WHERE id = ?",
+      )
       .run(skillName, trajectoryId);
   }
 
@@ -307,26 +316,24 @@ export class TrajectoryStore {
    * @returns {{total:number, complex:number, scored:number, synthesized:number}}
    */
   getStats() {
-    const total =
-      this.db.prepare("SELECT COUNT(*) as c FROM learning_trajectories").get().c;
-    const complex =
-      this.db
-        .prepare(
-          "SELECT COUNT(*) as c FROM learning_trajectories WHERE complexity_level = 'complex'",
-        )
-        .get().c;
-    const scored =
-      this.db
-        .prepare(
-          "SELECT COUNT(*) as c FROM learning_trajectories WHERE outcome_score IS NOT NULL",
-        )
-        .get().c;
-    const synthesized =
-      this.db
-        .prepare(
-          "SELECT COUNT(*) as c FROM learning_trajectories WHERE synthesized_skill IS NOT NULL",
-        )
-        .get().c;
+    const total = this.db
+      .prepare("SELECT COUNT(*) as c FROM learning_trajectories")
+      .get().c;
+    const complex = this.db
+      .prepare(
+        "SELECT COUNT(*) as c FROM learning_trajectories WHERE complexity_level = 'complex'",
+      )
+      .get().c;
+    const scored = this.db
+      .prepare(
+        "SELECT COUNT(*) as c FROM learning_trajectories WHERE outcome_score IS NOT NULL",
+      )
+      .get().c;
+    const synthesized = this.db
+      .prepare(
+        "SELECT COUNT(*) as c FROM learning_trajectories WHERE synthesized_skill IS NOT NULL",
+      )
+      .get().c;
     return { total, complex, scored, synthesized };
   }
 
@@ -375,7 +382,9 @@ export class TrajectoryStore {
     }
 
     const tags = this.db
-      .prepare("SELECT tag FROM learning_trajectory_tags WHERE trajectory_id = ?")
+      .prepare(
+        "SELECT tag FROM learning_trajectory_tags WHERE trajectory_id = ?",
+      )
       .all(row.id)
       .map((r) => r.tag);
 

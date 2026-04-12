@@ -13,10 +13,7 @@
  *   - EvolutionSystem (capability assessment)
  */
 
-import {
-  INSTINCT_CATEGORIES,
-  recordInstinct,
-} from "../instinct-manager.js";
+import { INSTINCT_CATEGORIES, recordInstinct } from "../instinct-manager.js";
 import { assessCapability } from "../evolution-system.js";
 
 // ── Auto-scoring ────────────────────────────────────────
@@ -71,9 +68,19 @@ export function autoScore(trajectory) {
  * Negation patterns for correction detection (Chinese + English).
  */
 const NEGATION_PATTERNS = [
-  /不[是对]/, /错了/, /重[新做来]/, /别这样/, /不要这样/,
-  /not\s+right/i, /wrong/i, /redo/i, /don't/i, /undo/i,
-  /try\s+again/i, /that's\s+not/i, /incorrect/i,
+  /不[是对]/,
+  /错了/,
+  /重[新做来]/,
+  /别这样/,
+  /不要这样/,
+  /not\s+right/i,
+  /wrong/i,
+  /redo/i,
+  /don't/i,
+  /undo/i,
+  /try\s+again/i,
+  /that's\s+not/i,
+  /incorrect/i,
 ];
 
 /**
@@ -183,7 +190,11 @@ export class OutcomeFeedback {
       // Downgrade the previous trajectory's score
       const currentScore = prevTraj.outcomeScore ?? 0.5;
       const newScore = Math.max(0, currentScore - 0.3);
-      this.trajectoryStore.setOutcomeScore(previousTrajectoryId, newScore, "user");
+      this.trajectoryStore.setOutcomeScore(
+        previousTrajectoryId,
+        newScore,
+        "user",
+      );
     }
     return result;
   }
@@ -214,11 +225,7 @@ export class OutcomeFeedback {
       } else if (score <= 0.3 && uniqueTools.length > 0) {
         // Low score → record as workflow to avoid
         const toolPattern = `avoid: ${uniqueTools.join(" → ")}`;
-        recordInstinct(
-          this.db,
-          INSTINCT_CATEGORIES.WORKFLOW,
-          toolPattern,
-        );
+        recordInstinct(this.db, INSTINCT_CATEGORIES.WORKFLOW, toolPattern);
       }
     } catch (_err) {
       // Instinct propagation failure is non-critical
