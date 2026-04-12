@@ -384,9 +384,9 @@ describe("agent-core execution limits (used by agent-repl)", () => {
     "agent-core.js",
   );
 
-  it("MAX_ITERATIONS should be 15", () => {
+  it("uses IterationBudget for iteration limits", () => {
     const content = readFileSync(agentCorePath, "utf8");
-    expect(content).toContain("MAX_ITERATIONS = 15");
+    expect(content).toContain("IterationBudget");
   });
 
   it("run_shell timeout should be 60000ms", () => {

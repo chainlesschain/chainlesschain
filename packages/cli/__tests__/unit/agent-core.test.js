@@ -85,8 +85,8 @@ const {
 const { getPlanModeManager } = await import("../../src/lib/plan-mode.js");
 
 describe("AGENT_TOOLS", () => {
-  it("has 12 tool definitions", () => {
-    expect(AGENT_TOOLS).toHaveLength(12);
+  it("has 13 tool definitions", () => {
+    expect(AGENT_TOOLS).toHaveLength(13);
   });
 
   it("is derived from the canonical coding-agent contract", () => {
@@ -927,7 +927,7 @@ describe("chatWithTools", () => {
     expect(toolNames).not.toContain("run_shell");
     expect(toolNames).not.toContain("run_code");
     expect(toolNames).toContain("read_file");
-    expect(capturedBody.tools.length).toBe(10); // 12 - 2 disabled
+    expect(capturedBody.tools.length).toBe(11); // 13 - 2 disabled
   });
 
   it("can limit coding sessions to the MVP tool set while still allowing host-managed tools", async () => {
@@ -1043,7 +1043,7 @@ describe("chatWithTools", () => {
 
     expect(capturedUrl).toContain("/api/chat");
     expect(capturedBody.tools).toBeDefined();
-    expect(capturedBody.tools.length).toBe(12);
+    expect(capturedBody.tools.length).toBe(13);
     expect(capturedBody.model).toBe("qwen2.5:7b");
   });
 
@@ -1291,7 +1291,7 @@ describe("agentLoop", () => {
 
     const lastEvent = events[events.length - 1];
     expect(lastEvent.type).toBe("response-complete");
-    expect(lastEvent.content).toContain("max tool call iterations");
+    expect(lastEvent.content).toContain("Iteration budget exhausted");
 
     // Should have 15 iterations * 2 events (executing + result) + 1 final
     const executingCount = events.filter(
