@@ -47,6 +47,7 @@ import { registerA2aCommand } from "./commands/a2a.js";
 // Phase 7: Security & Evolution
 import { registerSandboxCommand } from "./commands/sandbox.js";
 import { registerEvolutionCommand } from "./commands/evolution.js";
+import { registerLearningCommand } from "./commands/learning.js";
 
 // Phase 7: EvoMap Federation + DAO Governance
 import { registerDaoCommand } from "./commands/dao.js";
@@ -168,6 +169,7 @@ export function createProgram() {
   // Phase 7: Security & Evolution
   registerSandboxCommand(program);
   registerEvolutionCommand(program);
+  registerLearningCommand(program);
 
   // Phase 7: EvoMap Federation + DAO Governance
   registerDaoCommand(program);

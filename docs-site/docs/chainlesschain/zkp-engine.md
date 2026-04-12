@@ -4,6 +4,10 @@
 
 ChainlessChain 零知识证明引擎（ZKP Engine）提供 zk-SNARK/zk-STARK 本地证明生成能力，基于 Groth16 证明系统和 Circom 电路编译器，支持隐私交易和选择性披露的身份证明，在不泄露原始数据的前提下验证声明的真实性。
 
+## 概述
+
+零知识证明引擎是 ChainlessChain 的隐私计算核心模块，基于 Groth16/PLONK/STARK 证明系统在本地生成零知识证明。它支持 Circom DSL 编写和编译自定义算术电路，提供隐私交易证明（隐藏交易金额和参与方）和 DID 身份选择性披露能力，在不泄露原始数据的前提下验证声明的真实性。
+
 ## 核心特性
 
 - 🔐 **zk-SNARK/zk-STARK**: 本地生成零知识证明，无需可信第三方

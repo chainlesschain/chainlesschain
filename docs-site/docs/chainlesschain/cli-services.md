@@ -2,6 +2,10 @@
 
 > 管理 Docker 后端服务的启动、停止、日志查看和镜像更新。依赖 Docker 和 Docker Compose。
 
+## 概述
+
+`services` 命令通过 Docker Compose 管理 ChainlessChain 的后端服务（PostgreSQL、Redis、Ollama、Qdrant 等），提供一键启停、日志查看和镜像更新功能。支持指定特定服务进行操作，适合开发调试和生产环境的服务编排。
+
 ## 核心特性
 
 - 🔹 **服务启停**: 一键启动/停止 Docker 后端服务

@@ -4,6 +4,10 @@
 
 自治 Agent Runner 是一个基于 ReAct (Reason-Act-Observe) 循环的自主任务执行引擎，能够将复杂目标分解为可执行步骤并自主完成。
 
+## 概述
+
+自治 Agent Runner 是 ChainlessChain 的自主任务执行引擎，基于 ReAct（Reason-Act-Observe）推理闭环驱动。它能将复杂目标自动分解为可执行步骤链，支持最多 3 个目标并发执行、失败自动重试与重新规划、检查点断点恢复，以及不确定情况下的用户交互确认。
+
 ## 核心特性
 
 - 🧠 **ReAct 循环**: Reason-Act-Observe 推理闭环，自主决策下一步行动

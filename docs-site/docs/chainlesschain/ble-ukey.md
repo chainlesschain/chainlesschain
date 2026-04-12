@@ -2,6 +2,10 @@
 
 > **Phase 47 | v1.1.0-alpha | 4 IPC 处理器 | 扩展现有驱动注册**
 
+## 概述
+
+BLE U-Key 模块为 ChainlessChain 的硬件安全密钥提供蓝牙无线通信能力，扩展现有 USB U-Key 驱动。系统通过自定义 GATT 服务发送 APDU 命令，支持 USB/BLE 双通道自动切换、断线自动重连、BLE 4.2+ 安全配对加密，让用户无需 USB 线缆即可完成数字签名等安全操作。
+
 ## 核心特性
 
 - 📡 **BLE GATT 通信**: 通过自定义 GATT 服务发送 APDU 命令，兼容现有 USB 接口

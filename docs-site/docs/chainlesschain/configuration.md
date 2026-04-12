@@ -2,7 +2,9 @@
 
 > **系统配置 | 统一配置目录 `.chainlesschain/` | 环境变量 > config.json > 默认值**
 
-ChainlessChain 的配置文件采用 JSON 格式，支持多种配置方式，桌面端与 CLI 共享统一配置。
+## 概述
+
+ChainlessChain 采用统一配置目录 `.chainlesschain/` 集中管理所有配置，桌面端与 CLI 共享同一份 config.json 文件。配置优先级为环境变量 > config.json > 默认值，支持敏感字段加密存储和 JSON Schema 验证。
 
 ## 核心特性
 

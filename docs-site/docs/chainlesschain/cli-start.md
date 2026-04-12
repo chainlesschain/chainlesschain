@@ -2,6 +2,10 @@
 
 > 启动 ChainlessChain 桌面应用程序，支持 GUI 模式和 headless 模式（仅后端服务）。
 
+## 概述
+
+`start` 命令用于启动 ChainlessChain 桌面应用，支持 GUI 模式和 headless 模式（仅启动 Docker 后端服务）。启动前会自动检查配置完成状态和应用是否已在运行，可通过 `--services` 选项同时启动 Docker 后端服务。
+
 ## 核心特性
 
 - 🔹 **桌面启动**: 启动 Electron 桌面 GUI 应用

@@ -409,6 +409,84 @@ ngrok http 18820
 # 将 ngrok 给出的 HTTPS URL 填写到 IM 平台的 Webhook 设置中
 ```
 
+## 核心特性
+
+- **自动检测 AI CLI** — 自动发现已安装的 claude、codex 命令行工具及 API 密钥（Gemini、OpenAI、Ollama 等），零配置即可启动
+- **5 种路由策略** — round-robin（加权轮询）、primary（主备切换）、parallel-all（并行竞速取优）、by-type（按任务类型路由）、weighted（按权重分配）
+- **Webhook 通知集成** — 支持企业微信、钉钉、飞书、Telegram 四大平台的双向集成，既可推送结果通知，也可接收 IM 指令触发任务
+- **WebSocket 实时集成** — 通过 `chainlesschain serve` 的 WS 连接触发编排任务，实时接收进度事件和最终结果
+- **CI/CD 闭环验证** — Agent 执行完成后自动运行 CI 命令，失败时将错误日志作为上下文让 Agent 重试，支持配置最大重试次数
+- **多 Agent 并行执行** — 支持同时调度多个 AI 后端并行处理子任务，自动分解大型任务为可并行的子任务
+
+## 系统架构
+
+```
+用户指令 (CLI / WebSocket / Webhook)
+        │
+        ▼
+┌──────────────────────────────────┐
+│        orchestrate.js            │  CLI 命令入口，解析参数
+│        (Commander)               │
+└──────────┬───────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│        agent-router.js           │  检测已安装的 AI 工具和 API 密钥
+│  ┌─────────────────────────────┐ │  维护后端列表及权重
+│  │ autoDetect()                │ │  根据策略选择执行后端
+│  │ selectBackend(strategy)     │ │
+│  └─────────────────────────────┘ │
+└──────────┬───────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│        orchestrator.js           │  任务分解 → 子任务分发 → CI 验证 → 重试
+│  ┌────┐  ┌────┐  ┌────┐         │
+│  │ 分解 │→│ 路由 │→│ CI  │→ 通知  │
+│  └────┘  └────┘  └────┘         │
+└──────────┬───────────────────────┘
+           │
+     ┌─────┴─────┬────────────┐
+     ▼           ▼            ▼
+┌─────────┐ ┌─────────┐ ┌──────────┐
+│ claude- │ │ Gemini  │ │ Ollama   │
+│ code-   │ │ /OpenAI │ │ (local)  │
+│ bridge  │ │ API     │ │          │
+└─────────┘ └─────────┘ └──────────┘
+                │
+                ▼
+┌──────────────────────────────────┐
+│        notifiers/                │  通知渠道
+│  telegram / wecom / dingtalk /   │
+│  feishu                          │
+└──────────────────────────────────┘
+```
+
+## 安全考虑
+
+| 安全措施 | 说明 |
+|----------|------|
+| Webhook 本地绑定 | Webhook 服务器默认绑定 `127.0.0.1`，不对外暴露，需通过 Nginx 反代或 ngrok 显式暴露 |
+| API 密钥管理 | 所有 AI 后端的 API 密钥通过环境变量传递，不在配置文件或日志中明文存储 |
+| 任务输出隔离 | 任务执行结果和代码变更仅保留在本地工作目录，不会自动上传至外部通知服务 |
+| 通知内容脱敏 | 推送到 IM 平台的通知仅包含任务状态摘要（ID、状态、耗时），不包含代码内容或敏感上下文 |
+| CI 命令限制 | CI 验证命令在本地项目目录中执行，受限于当前用户权限 |
+| Claude Code 沙箱 | 当使用 Claude Code 作为后端时，继承其内置的文件读写权限控制 |
+
+## 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `packages/cli/src/commands/orchestrate.js` | CLI 命令入口，解析参数并调用 Orchestrator |
+| `packages/cli/src/lib/orchestrator.js` | 核心编排器，负责任务分解、子任务分发、CI 验证和重试逻辑 |
+| `packages/cli/src/lib/agent-router.js` | Agent 路由器，自动检测后端、维护权重、实现 5 种路由策略 |
+| `packages/cli/src/lib/claude-code-bridge.js` | Claude Code CLI 桥接器，通过 `spawn` 调用 `claude -p` 并解析流式输出 |
+| `packages/cli/src/lib/notifiers/telegram.js` | Telegram Bot 通知推送 |
+| `packages/cli/src/lib/notifiers/wecom.js` | 企业微信 Webhook 通知推送 |
+| `packages/cli/src/lib/notifiers/dingtalk.js` | 钉钉 Webhook 通知推送（支持加签） |
+| `packages/cli/src/lib/notifiers/feishu.js` | 飞书 Webhook 通知推送（支持签名校验和 challenge 验证） |
+| `packages/cli/src/lib/ws-server.js` | WebSocket 服务器中的 `orchestrate` 消息处理 |
+
 ## 相关文档
 
 - [WebSocket 服务器 (serve)](./cli-serve) — WebSocket API 接口

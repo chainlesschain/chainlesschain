@@ -4,6 +4,10 @@
 
 ChainlessChain Agent 安全沙箱 2.0（Agent Sandbox v2）提供基于 WebAssembly 的隔离执行环境，配合细粒度权限白名单、资源配额管控、完整审计日志和 AI 行为监控，确保 Agent 在安全可控的环境中运行。
 
+## 概述
+
+Agent 安全沙箱 2.0 是 ChainlessChain 的 Agent 隔离执行环境，基于 WebAssembly 实现内存安全的沙箱隔离。系统提供文件/网络/系统调用级别的细粒度权限白名单、CPU/内存/存储/带宽的资源配额管控、完整操作审计日志，以及基于 AI 的实时行为分析与异常自动拦截能力。
+
 ## 核心特性
 
 - 🔒 **WASM 隔离**: WebAssembly 沙箱隔离执行，内存安全，防止逃逸

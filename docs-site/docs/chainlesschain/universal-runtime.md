@@ -4,6 +4,10 @@
 
 ChainlessChain 统一应用运行时实现了 Desktop / Web / Mobile 三端统一代码库架构，基于 Electron + Capacitor + Web 三合一方案。内置 Plugin SDK 2.0（TypeScript SDK + CLI 脚手架）、无重启热更新、火焰图性能分析器和 CRDT 增强同步引擎，为跨平台一致性体验提供基础设施。
 
+## 概述
+
+统一应用运行时是 ChainlessChain 的跨平台基础设施层，通过 Electron + Capacitor + Web 三合一架构实现 95%+ 业务逻辑共享。它提供 Plugin SDK 2.0 用于插件开发与热重载、基于 Module Federation 的无重启热更新、火焰图性能分析器定位 CPU/内存热点，以及基于 Yjs CRDT 的多设备状态同步引擎（延迟 < 100ms）。
+
 ## 核心特性
 
 - 🖥️ **三端统一代码库**: Electron（Desktop）+ Capacitor（iOS/Android）+ 纯 Web，共享 95%+ 业务逻辑，平台差异通过 Adapter 层抽象

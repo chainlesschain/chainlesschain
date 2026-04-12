@@ -4,6 +4,10 @@
 
 本指南将帮助您在不同平台上安装和配置ChainlessChain个人AI系统。
 
+## 概述
+
+本文档提供 ChainlessChain 在 Windows、macOS、Linux 桌面端及 Android/iOS 移动端的完整安装部署指南，涵盖安装包安装、源码构建、Docker 后端服务部署、首次启动配置向导以及从 Notion/Evernote/Obsidian 等平台的数据迁移方法。
+
 ## 核心特性
 
 - 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端

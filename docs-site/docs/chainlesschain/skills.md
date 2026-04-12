@@ -4,6 +4,10 @@
 
 Skills 系统提供 138 个内置技能，使用 Markdown 定义技能(SKILL.md)，支持四层加载、Agent Skills 开放标准(13扩展字段)、门控检查和自定义命令。v1.2.1 研究社区技能生态补充6个高频技能(brainstorming/debugging-strategies/api-design/frontend-design/create-pr/doc-coauthoring)，Handler 覆盖率 138/138 (100%)。
 
+## 概述
+
+Skills 技能系统是 ChainlessChain AI 引擎的核心能力扩展框架，通过 SKILL.md Markdown 格式定义技能的提示词、工具集、参数和门控检查。系统内置 138 个技能覆盖开发、测试、安全、DevOps 等 18 个类别，采用四层加载机制（workspace > managed > marketplace > bundled）支持优先级覆盖，并通过统一工具注册表聚合 FunctionCaller、MCP 和 Skills 三大工具系统。
+
 ## 核心特性
 
 - 🛠️ **138 内置技能**: 覆盖开发、测试、自动化、知识、安全、DevOps 等 18 个类别，100% Handler 覆盖

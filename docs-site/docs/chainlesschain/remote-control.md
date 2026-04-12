@@ -2,6 +2,10 @@
 
 > **版本: v0.27.0+ | 完整的桌面应用远程控制能力**
 
+## 概述
+
+远程控制系统允许通过浏览器插件（Chrome/Edge）和移动端（Android/iOS）远程控制 ChainlessChain Desktop 应用，实现跨设备的无缝操作体验。系统基于 WebSocket 本地通信（仅监听 127.0.0.1:18790），提供四级权限体系（READ/WRITE/EXECUTE/ADMIN）、AI 命令代理、命令审计追踪和速率限制保护。
+
 远程控制系统允许通过浏览器插件和移动端远程控制 ChainlessChain Desktop 应用，实现跨设备的无缝操作体验。
 
 ## 核心特性

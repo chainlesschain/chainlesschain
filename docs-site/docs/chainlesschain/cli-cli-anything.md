@@ -158,7 +158,91 @@ CLI-Anything 技能不会覆盖内置或市场层技能，但会被项目级 wor
 | `--json` | 所有子命令 | 以 JSON 格式输出 |
 | `--force` | register | 覆盖已有注册 |
 
-## 故障排除
+## 核心特性
+
+- **自动发现**: 扫描系统 PATH 中所有 `cli-anything-*` 可执行文件，自动识别工具名、路径和子命令
+- **一键注册**: 解析工具 `--help` 输出，自动生成 SKILL.md 元数据和 handler.js 执行处理器
+- **版本检测**: 通过 `doctor` 子命令检测 Python 版本、CLI-Anything 版本和已安装工具数量
+- **健康检查**: 环境诊断覆盖 Python 解释器、pip 包状态、PATH 工具三个维度
+- **Agent 可调用**: 注册后的工具自动出现在 managed 技能层，Agent REPL 通过 `run_skill` 工具直接调用
+- **参数验证**: 生成的 handler.js 通过 `execSync` 调用原始 CLI 工具，输入参数由外部工具自身校验
+
+## 系统架构
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  CLI-Anything (Python)         ChainlessChain CLI Bridge         │
+│  ──────────────────           ────────────────────────           │
+│  /cli-anything ./gimp         chainlesschain cli-anything scan   │
+│        │                              │                          │
+│        ▼                              ▼                          │
+│  cli-anything-gimp ───────── scanPathForTools() 扫描 PATH        │
+│  (生成到 PATH)                        │                          │
+│                                       ▼                          │
+│                              parseToolHelp(command)               │
+│                              解析 --help 输出                     │
+│                                       │                          │
+│                                       ▼                          │
+│                              registerTool(db, name, opts)        │
+│                              ├─ 生成 SKILL.md (元数据)            │
+│                              ├─ 生成 handler.js (execSync 包装)   │
+│                              └─ 写入 cli_anything_tools 表        │
+│                                       │                          │
+│                                       ▼                          │
+│                              <userData>/skills/cli-anything-gimp/ │
+│                              (managed 层，skill-loader 自动加载)   │
+│                                       │                          │
+│                                       ▼                          │
+│                              Agent REPL → run_skill 调用          │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+核心流程: **scan** (发现 PATH 中工具) → **detect** (解析 --help 获取描述和子命令) → **register** (生成 SKILL.md + handler.js + 写入 DB) → **skill wrapper** (managed 层技能) → **Agent 调用** (通过 `run_skill`)
+
+## 使用示例
+
+### 完整工作流
+
+```bash
+# 1. 检查环境是否就绪
+chainlesschain cli-anything doctor
+
+# 2. 扫描系统中已有的 CLI-Anything 工具
+chainlesschain cli-anything scan
+
+# 3. 注册特定工具为 ChainlessChain 技能
+chainlesschain cli-anything register gimp
+
+# 4. 查看已注册工具
+chainlesschain cli-anything list
+
+# 5. 在 Agent 中使用
+chainlesschain agent
+> "用 GIMP 把这张图片裁剪为 800x600"
+
+# 6. 移除不需要的注册
+chainlesschain cli-anything remove gimp
+```
+
+### JSON 输出 (适合脚本集成)
+
+```bash
+chainlesschain cli-anything doctor --json
+chainlesschain cli-anything scan --json
+chainlesschain cli-anything list --json
+```
+
+### LibreOffice 注册示例 (与 ai-doc-creator 配合)
+
+```bash
+# 注册 soffice 命令行工具
+chainlesschain cli-anything register soffice
+
+# Agent 即可调用 LibreOffice 进行文档转换
+chainlesschain skill run cli-anything-soffice "convert-to pdf document.docx"
+```
+
+## 故障排查
 
 ### Python 未检测到
 
@@ -167,7 +251,12 @@ CLI-Anything 技能不会覆盖内置或市场层技能，但会被项目级 wor
 python3 --version
 # 或
 python --version
+
+# Windows 用户可能需要使用 py 启动器
+py --version
 ```
+
+`detectPython()` 按顺序尝试 `python`/`python3`/`py` (Windows) 或 `python3`/`python` (Linux/macOS)，找到第一个可用的解释器即返回。
 
 ### CLI-Anything 未安装
 
@@ -184,3 +273,59 @@ python3 -m pip install cli-anything
 ```bash
 chainlesschain agent  # 新会话自动扫描 managed 层
 ```
+
+### 注册冲突 (工具已注册)
+
+```
+Error: Tool "gimp" already registered. Use --force to overwrite.
+```
+
+使用 `--force` 选项覆盖已有注册：
+
+```bash
+chainlesschain cli-anything register gimp --force
+```
+
+### 工具不在 PATH 中
+
+`scan` 返回空列表时，确认 CLI-Anything 生成的可执行文件在系统 PATH 中：
+
+```bash
+# 检查 PATH 中是否有 cli-anything-* 前缀的可执行文件
+which cli-anything-gimp    # Linux/macOS
+where cli-anything-gimp    # Windows
+```
+
+### 版本不匹配
+
+如果工具更新后行为异常，重新注册以刷新 SKILL.md 和 handler.js：
+
+```bash
+chainlesschain cli-anything register gimp --force
+```
+
+## 安全考虑
+
+- **PATH 限定**: 只扫描和注册系统 PATH 中已存在的 `cli-anything-*` 可执行文件，不会下载或安装任何外部程序
+- **参数透传**: handler.js 通过 `execSync` 将用户输入作为命令行参数传递给原始工具，由工具自身负责参数校验和权限控制
+- **超时保护**: 所有子进程调用设置 60 秒超时（`timeout: 60000`），防止工具挂起
+- **工作目录隔离**: 执行时使用 `context.projectRoot` 或 `process.cwd()` 作为工作目录
+- **无特权提升**: 注册的技能以当前用户权限运行，不涉及 sudo 或管理员提权
+- **数据库记录**: 所有注册操作记录在 `cli_anything_tools` 表中，可通过 `list` 和 `remove` 审计和清理
+
+## 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `packages/cli/src/commands/cli-anything.js` | 命令注册入口（doctor/scan/register/list/remove 五个子命令） |
+| `packages/cli/src/lib/cli-anything-bridge.js` | 核心桥接库（Python 检测、PATH 扫描、--help 解析、技能生成、DB 操作） |
+| `packages/cli/src/lib/paths.js` | `getElectronUserDataDir()` 提供 managed 层技能目录路径 |
+| `<userData>/skills/cli-anything-*/SKILL.md` | 生成的技能元数据文件 |
+| `<userData>/skills/cli-anything-*/handler.js` | 生成的执行处理器（CJS，execSync 包装） |
+
+## 相关文档
+
+- [技能系统](./cli-skill) — 完整技能命令参考，包括四层加载和 `run_skill` 调用
+- [CLI 指令技能包](./cli-skill-packs) — 另一种技能包生成机制（9 域 CLI 指令包装）
+- [AI 文档创作模板](../design/modules/72-ai-doc-creator) — LibreOffice (soffice) 作为 cli-anything 注册示例
+- [代理模式](./cli-agent) — Agent REPL 中使用注册的技能

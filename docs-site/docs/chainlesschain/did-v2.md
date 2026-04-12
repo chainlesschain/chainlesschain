@@ -2,7 +2,9 @@
 
 > **版本: v4.2.0 | 状态: ✅ 生产就绪 | 8 IPC Handlers | 3 数据库表 | Phase 90**
 
-ChainlessChain DID v2.0 实现 W3C DID 规范的完整支持，提供可验证展示（Verifiable Presentations）、身份恢复（社交恢复 + 多因子）、跨平台漫游（Desktop↔Mobile↔Web）和信誉可移植性，为下一代去中心化身份管理奠定基础。
+## 概述
+
+DID v2.0 实现 W3C DID Core v2.0 完整规范，在 v1.0 基础上新增可验证展示（VP）、身份恢复（社交恢复 + 多因子）、跨平台漫游（Desktop/Mobile/Web 三端无缝迁移）和信誉可移植性。支持选择性披露和零知识证明，为去中心化身份管理提供生产级解决方案。
 
 ## 核心特性
 

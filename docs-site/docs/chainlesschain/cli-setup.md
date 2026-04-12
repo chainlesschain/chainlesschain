@@ -2,6 +2,10 @@
 
 > 引导用户完成 ChainlessChain 的首次配置，包括环境检查、版本选择、LLM 配置、二进制下载和 Docker 服务启动。
 
+## 概述
+
+`setup` 命令提供一个 8 步交互式向导，引导用户完成 ChainlessChain 的首次配置。向导依次执行环境检查、配置目录初始化、版本选择、LLM 提供商配置、桌面应用下载和 Docker 服务启动，完成后将所有配置写入本地 `config.json`。
+
 ## 核心特性
 
 - 🔹 **环境检查**: 自动检测 Node.js 版本、Docker、Docker Compose

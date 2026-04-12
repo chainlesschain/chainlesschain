@@ -377,6 +377,114 @@ export MINIMAX_API_KEY=xxxxxxxxxxxx
 
 ---
 
+## 核心特性
+
+- **10 大 LLM 提供商** — 内置 Ollama、OpenAI、Anthropic、DeepSeek、Volcengine（豆包）、DashScope（阿里）、Google Gemini、Kimi（月之暗面）、MiniMax（海螺AI）、Mistral AI
+- **3 种中转模式** — 直连官方 API、通过第三方中转站代理、自建 Nginx/One-API 网关转发
+- **`--base-url` 统一覆盖** — 所有 AI 命令（ask/chat/agent）支持 `--base-url` 参数，将请求转发到任意 OpenAI 兼容端点
+- **API 密钥管理** — 支持命令行参数、环境变量、配置文件三级优先级，密钥不落盘到日志
+- **模型智能选择** — Agent 模式下根据任务类型自动选择最优模型（代码任务→代码模型，复杂推理→旗舰模型）
+- **流式输出** — 所有提供商支持 SSE 流式响应，实时输出 token
+- **自定义 Provider 注册** — 通过 `chainlesschain llm add` 注册企业自建模型服务、vLLM、TGI 等推理框架
+
+## 系统架构
+
+```
+用户命令 (ask / chat / agent)
+        │
+        ▼
+┌──────────────────────────────────┐
+│     CLI AI 命令层                │
+│  --provider / --base-url /       │
+│  --api-key / --model             │
+└──────────┬───────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│     LLM Provider 路由层          │
+│  ┌─────────────────────────────┐ │
+│  │ 优先级：命令行 > 环境变量    │ │
+│  │         > 配置文件 > 默认值  │ │
+│  └─────────────────────────────┘ │
+└──────────┬───────────────────────┘
+           │
+     ┌─────┴──────┬──────────┬──────────┐
+     ▼            ▼          ▼          ▼
+┌─────────┐ ┌─────────┐ ┌────────┐ ┌─────────┐
+│ Ollama  │ │ OpenAI  │ │Anthropic│ │ Custom  │
+│ (local) │ │ /中转站 │ │ Claude │ │ Provider│
+│ :11434  │ │ /v1     │ │ /v1    │ │ --base  │
+└─────────┘ └─────────┘ └────────┘ └─────────┘
+     │            │          │          │
+     └────────────┴──────────┴──────────┘
+                    │
+                    ▼
+            LLM API 响应 (SSE 流式 / JSON)
+```
+
+## 使用示例
+
+```bash
+# 列出所有支持的 LLM 提供商
+chainlesschain llm providers
+
+# 切换活跃提供商
+chainlesschain llm switch anthropic
+
+# 测试当前提供商连通性
+chainlesschain llm test
+
+# 通过中转站使用 GPT-4o
+chainlesschain ask "解释量子计算" \
+  --provider openai \
+  --base-url https://oa.api2d.net/v1 \
+  --api-key fk-xxxxxx \
+  --model gpt-4o
+
+# 使用火山引擎（豆包）
+export VOLCENGINE_API_KEY=ark-xxxxxxxxxxxx
+chainlesschain chat --provider volcengine
+
+# 注册自定义提供商（企业自建模型）
+chainlesschain llm add my-llm \
+  --display-name "My LLM" \
+  --base-url https://my-llm-service.com/v1 \
+  --api-key-env MY_LLM_KEY \
+  --models "model-a,model-b"
+
+# 使用本地 vLLM 部署的模型
+chainlesschain chat \
+  --provider openai \
+  --base-url http://localhost:8000/v1 \
+  --api-key dummy \
+  --model my-finetuned-llama
+```
+
+## 安全考虑
+
+| 安全措施 | 说明 |
+|----------|------|
+| API 密钥本地存储 | 密钥通过环境变量或本地配置文件管理，不会传输至第三方服务 |
+| 密钥不落日志 | CLI 输出和日志中自动脱敏 API 密钥，避免泄露 |
+| 端点验证 | `--base-url` 指定的端点需为 HTTPS（中转站）或本地地址（Ollama/vLLM），CLI 不会向未验证端点发送密钥 |
+| 本地模型优先 | 默认使用本地 Ollama 模型，敏感数据不出境；仅在用户显式指定云端提供商时才发送到外部 API |
+| 中转站风险提示 | 第三方中转站由其运营方管理，API 密钥和请求内容经过中转站服务器，用户需自行评估信任度 |
+| 环境变量隔离 | 每个提供商使用独立的环境变量名（`OPENAI_API_KEY`、`ANTHROPIC_API_KEY` 等），避免密钥混用 |
+
+## 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `packages/cli/src/lib/llm-providers/` | LLM 提供商适配器目录，每个提供商一个文件 |
+| `packages/cli/src/lib/llm-providers/index.js` | 提供商注册表和路由入口 |
+| `packages/cli/src/lib/llm-providers/ollama.js` | Ollama 本地模型适配器 |
+| `packages/cli/src/lib/llm-providers/openai.js` | OpenAI 适配器（同时用于中转站和 One-API） |
+| `packages/cli/src/lib/llm-providers/anthropic.js` | Anthropic Claude 适配器（Messages API 格式） |
+| `packages/cli/src/lib/llm-providers/volcengine.js` | 火山引擎（豆包）适配器 |
+| `packages/cli/src/lib/llm-providers/deepseek.js` | DeepSeek 适配器 |
+| `packages/cli/src/lib/llm-providers/gemini.js` | Google Gemini 适配器 |
+| `packages/cli/src/commands/llm.js` | `chainlesschain llm` 命令入口（providers/switch/test/add/remove） |
+
 ## 故障排查
 
 | 问题                               | 解决方案                                                                 |

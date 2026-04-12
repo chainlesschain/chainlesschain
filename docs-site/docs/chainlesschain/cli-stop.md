@@ -2,6 +2,10 @@
 
 > 停止 ChainlessChain 桌面应用和/或 Docker 后端服务。
 
+## 概述
+
+`stop` 命令用于优雅停止 ChainlessChain 桌面应用和/或 Docker 后端服务。默认仅停止桌面应用，通过 `--services` 仅停止 Docker 服务，通过 `--all` 同时停止两者。停止前会自动检测运行状态，未运行时给出友好提示。
+
 ## 核心特性
 
 - 🔹 **停止应用**: 停止桌面 Electron 应用进程

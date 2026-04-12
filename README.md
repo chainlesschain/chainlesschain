@@ -551,6 +551,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **Phase 8 区块链与企业** — Agent 经济系统 (微支付+资源市场+NFT) + 零知识证明引擎 (Groth16+选择性披露) + BI 智能分析 (NL→SQL+异常检测)
 - ✅ **Phase 9 低代码与多Agent** — 低代码平台 (15+组件+版本管理) + 多Agent协调器 + DI服务容器
 - ✅ **Agent 智能增强** — auto pip-install + 脚本持久化 + 错误分类(5类) + 环境检测 + agent-core 提取去重 + Desktop agent 模式
+- ✅ **自主学习闭环** — 执行轨迹存储 + 自动评分(3信号源) + 技能自动合成(Jaccard去重) + 技能持续改进(3触发器) + 周期性自省 (224 tests)
 - ✅ **子代理隔离系统 v2** — SubAgentContext 上下文隔离 + spawn_sub_agent 工具 + 命名空间化记忆 + 作用域上下文引擎 + 角色工具白名单 + 三级摘要策略 + 生命周期注册表 + 沙箱化执行环境 + 资源限制 + 父子通信协议
 - ✅ **CI/CD 自动发布** — GitHub Actions 自动 `npm publish --provenance` + 供应链安全
 - ✅ **Agent Context Engineering** — 6维上下文注入 (Instinct/Memory/BM25 Notes/Task/Permanent Memory/Compaction Summary) + KV-Cache优化 + 稳定前缀缓存 + 智能压缩 + 可恢复压缩摘要 + 会话恢复 (`--session`)

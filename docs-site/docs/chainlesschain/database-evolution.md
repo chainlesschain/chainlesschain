@@ -2,7 +2,9 @@
 
 > **版本: v4.0.0-alpha | 状态: ✅ 生产就绪 | 4 IPC Handlers | 3 数据库表 | 版本化迁移 + 流式查询构建 + 索引优化**
 
-ChainlessChain 数据库演进框架为 SQLite/SQLCipher 提供版本化迁移管理、流式查询构建和自动索引优化能力。MigrationManager 支持正向/回滚迁移并记录完整变更历史，QueryBuilder 提供类型安全的链式 SQL 构建，IndexOptimizer 基于查询日志自动推荐和创建索引。
+## 概述
+
+数据库演进框架为 SQLite/SQLCipher 提供版本化迁移管理、流式查询构建和自动索引优化三大能力。MigrationManager 支持正向/回滚迁移并记录完整变更历史，QueryBuilder 提供防注入的链式 SQL 构建，IndexOptimizer 基于查询日志自动推荐和创建索引以优化性能。
 
 ## 核心特性
 

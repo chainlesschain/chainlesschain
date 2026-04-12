@@ -2,6 +2,10 @@
 
 > **当前版本: v5.0.1.8 进化版 | 138桌面技能 + 28 Android技能 | 102 Phase | AI Agent 2.0 + Web3深化 + 企业平台 + 自进化AI + CLI 62命令/2700+测试 + Agent Context Engineering + Autonomous Agent + EvoMap + 10 LLM Providers + 3 Proxy Relays + Task Model Selector + CLI-Anything Integration + WebSocket Server + Sub-Agent Isolation v2 + Phase 7-8 企业CLI + Persona系统 + 4600+ Tests**
 
+## 概述
+
+ChainlessChain 是一个完全去中心化的个人 AI 管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能。系统通过 U-Key/SIMKey 硬件加密和本地 AI 模型提供军事级隐私保护，支持 138 个桌面内置技能、28 个 Android 技能、64 个 CLI 命令以及 14+ 云端 LLM 和本地 Ollama 模型集成。
+
 ChainlessChain是一个完全去中心化的个人AI管理系统，整合知识库管理、去中心化社交和交易辅助三大核心功能，通过U盾/SIMKey硬件加密和本地AI模型，为用户提供军事级隐私保护的个人数据管理平台。
 
 **v1.1.0新增**: 全栈智能化 — Cowork v3.0 全自动开发流水线（需求→部署DAG编排）、v3.1 自然语言编程（NL→代码9步翻译）、v3.2 多模态协作（音频/图像/文档/屏幕/文本五模态融合）、v3.3 自主运维（告警/Playbook/事故报告）、v4.0 去中心化代理网络（Agent DID/联邦发现/跨组织协作/信誉系统）。**Q2 2026主线升级** — Phase 42: AI社交助手增强（话题分析/关系图谱/上下文回复）+ActivityPub桥接（双向互通Mastodon/Misskey）、Phase 43: SOC2合规包（自动证据收集）+数据分类分级（PII/PHI/PCI）、Phase 44: SCIM 2.0用户同步（Azure AD/Okta）、Phase 45: 统一密钥管理（U盾+SIMKey+TEE三端统一）+FIDO2 WebAuthn（无密码登录）+跨平台USB驱动（macOS/Linux）。共新增44个后端模块、118个IPC处理器、9个前端页面、7个Pinia Store、23张数据库表。**Q3 2026安全与社交增强** — Phase 46: 门限签名（Shamir 2-of-3）+生物特征绑定（TEE）、Phase 47: BLE U-Key（GATT蓝牙通信）、Phase 48: 内容推荐（本地兴趣画像/协同过滤）、Phase 49: Nostr桥接（NIP-01/02/04）、Phase 50: 数据防泄漏DLP（策略引擎/拦截审计）、Phase 51: SIEM集成（CEF/LEEF/JSON导出）。**代码质量** — 全项目ES6模块迁移，Node.js协议导入规范化。

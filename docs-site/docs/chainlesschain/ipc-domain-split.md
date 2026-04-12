@@ -4,6 +4,10 @@
 
 ChainlessChain IPC 域分割系统将单体 `index.js` 中的 200+ IPC handler 按业务领域拆分为 10 个独立域文件，并通过 LazyPhaseLoader 实现按需加载，显著降低启动时间和内存占用。IPC Middleware 层提供速率限制、权限检查和性能计时等横切关注点。
 
+## 概述
+
+IPC 域分割与懒加载系统将 200+ IPC handler 按业务领域拆分为 10 个独立域文件（core/ai/enterprise/social/security 等），通过 LazyPhaseLoader 实现按需加载，未使用的域零内存开销。系统配套 IPC Middleware 管道提供速率限制、RBAC 权限校验和执行计时等横切关注点，支持预测性预加载和域加载状态实时监控。
+
 ## 核心特性
 
 - 📂 **10 域文件拆分**: core / ai / enterprise / social / security / p2p / evomap / infra / marketplace / autonomous

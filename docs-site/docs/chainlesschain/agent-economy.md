@@ -4,6 +4,10 @@
 
 ChainlessChain Agent 经济系统（Agent Economy）为 AI Agent 生态提供完整的经济基础设施，包括微支付状态通道、计算资源交易市场、贡献证明机制、Agent NFT 身份和收益自动分配，实现去中心化的 Agent 价值交换网络。
 
+## 概述
+
+Agent 经济系统为去中心化 AI Agent 生态提供价值交换基础设施。系统支持基于 State Channel 的链下微支付、GPU/存储/带宽等计算资源的市场化交易、Proof of Contribution 贡献量化机制，以及 Agent NFT 身份铸造和基于贡献比例的收益自动分配。
+
 ## 核心特性
 
 - 💳 **微支付通道**: State Channel 链下支付，毫秒级结算，极低手续费

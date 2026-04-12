@@ -2,6 +2,10 @@
 
 > `chainlesschain ui` 会启动本地 Web 管理面板，并自动连接内置 WebSocket 服务。当前文档已对齐统一 runtime event、session record、后台任务增强、Worktree 合并助手和压缩观测的最新实现。
 
+## 概述
+
+`ui` 命令启动本地浏览器管理界面（HTTP 端口 18810 + WebSocket 端口 18800），将 CLI 已有能力以可视化方式呈现，覆盖 23 个页面（Dashboard、AI 对话、服务管理、技能配置、安全中心、P2P 网络等）。支持项目模式和全局模式，前端通过统一事件模型与 Runtime/WS Gateway 实时通信。
+
 ## 这是什么
 
 `chainlesschain ui` 是 ChainlessChain 的本地浏览器管理界面。它的目标不是替代 CLI，而是把 CLI 已有能力以更适合观察、切换和联调的方式呈现出来。

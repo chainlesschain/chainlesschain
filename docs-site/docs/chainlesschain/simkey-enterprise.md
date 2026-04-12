@@ -6,6 +6,10 @@
 
 > 基础功能请参阅 [SIMKey 基础指南](/chainlesschain/simkey) | 高级功能请参阅 [SIMKey 高级安全功能](/chainlesschain/simkey-advanced)
 
+## 概述
+
+SIMKey 企业版功能模块面向大规模组织部署场景，提供 eSIM OTA 远程批量配置、TEE 可信执行环境深度集成（ARM TrustZone/Intel SGX 双重硬件签名）、跨运营商 SIMKey 身份漫游、基于 BBS+/Bulletproofs 的零知识证明、天通一号卫星通信 SIM 支持以及 SIMKey + HSM 门限签名联合认证等企业级安全能力。
+
 ## 核心特性
 
 - 📡 **eSIM OTA 远程配置**: 基于 GSMA SGP.22 标准，支持企业批量密钥部署和 Profile 管理

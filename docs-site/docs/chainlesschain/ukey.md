@@ -4,6 +4,10 @@
 
 U盾（USB Key）是ChainlessChain PC端的安全核心，提供硬件级的密钥保护。
 
+## 概述
+
+U盾集成模块是 ChainlessChain PC 端的硬件安全核心，通过 USB 安全芯片实现私钥永不导出的密钥保护。Windows 平台通过 Koffi FFI 调用 SIMKey SDK，macOS/Linux 自动降级为软件模拟模式，并支持 BLE/NFC 无线 U盾和生物识别认证，所有关键操作（签名、加密、数据库密钥管理）均需 U盾物理确认。
+
 ## 核心特性
 
 - 🔐 **私钥永不导出**: 密钥在安全芯片内生成和使用，永不离开硬件

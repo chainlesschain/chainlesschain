@@ -4,6 +4,10 @@
 
 ChainlessChain采用多层加密架构，确保数据在存储、传输和使用过程中的安全。
 
+## 概述
+
+ChainlessChain 数据加密模块提供从存储到传输的多层加密保护体系，涵盖 SQLCipher 全库加密、Signal 协议端到端加密、TLS 1.3 传输加密以及 ZKP/FHE/MPC 隐私计算能力。系统同时支持国密 SM2/SM3/SM4/SM9 算法，通过 U 盾硬件密钥管理和 PBKDF2 派生确保密钥安全，满足企业级安全与合规需求。
+
 ## 核心特性
 
 - 🗄️ **存储加密**: SQLCipher AES-256 全库加密，文件 AES-256-GCM 加密

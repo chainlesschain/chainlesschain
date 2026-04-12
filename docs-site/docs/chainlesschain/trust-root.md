@@ -4,6 +4,10 @@
 
 ChainlessChain Trinity Trust Root 实现了 U-Key + SIMKey + TEE 三位一体的统一信任根体系。通过证明链验证、安全启动校验、硬件指纹绑定和跨设备密钥同步，构建从硬件到应用的完整信任链路。
 
+## 概述
+
+三位一体信任根是 ChainlessChain 的硬件级安全基础，通过 U-Key、SIMKey 和 TEE 三步证明链构建从硬件到应用的完整信任链路。系统支持设备信任等级实时监控（verified/unverified/compromised）、硬件指纹绑定防止密钥迁移攻击，以及在双方均已验证的设备之间进行加密密钥同步。
+
 ## 核心特性
 
 - 🔐 **证明链验证**: U-Key → SIMKey → TEE 三步证明链，逐层验证硬件可信

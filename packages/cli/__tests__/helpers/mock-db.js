@@ -356,6 +356,12 @@ export class MockDatabase {
         return (row[ltMatch[1]] || "") < params.shift();
       }
 
+      // IS NOT NULL
+      const isNotNullMatch = trimmed.match(/(\w+)\s+IS\s+NOT\s+NULL/i);
+      if (isNotNullMatch) {
+        return row[isNotNullMatch[1]] != null;
+      }
+
       // IS NULL
       if (trimmed.match(/(\w+)\s+IS\s+NULL/i)) {
         const col = trimmed.match(/(\w+)\s+IS\s+NULL/i)[1];

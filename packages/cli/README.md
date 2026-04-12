@@ -183,7 +183,7 @@ chainlesschain llm models               # List installed Ollama models
 chainlesschain llm models --json        # JSON output
 chainlesschain llm test                 # Test Ollama connectivity
 chainlesschain llm test --provider openai --api-key sk-...
-chainlesschain llm providers            # List 8 built-in LLM providers
+chainlesschain llm providers            # List 10 built-in LLM providers
 chainlesschain llm add-provider <name>  # Add custom provider
 chainlesschain llm switch <name>        # Switch active provider
 ```
@@ -198,7 +198,7 @@ chainlesschain a --model llama3         # Short alias
 chainlesschain agent --provider openai --api-key sk-...
 ```
 
-Built-in tools: `read_file`, `write_file`, `edit_file`, `run_shell`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`
+Built-in tools (12): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `run_shell`, `git`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`
 
 Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-driven planning with skill recommendations), `/model`, `/provider`, `/clear`, `/compact`, `/task`, `/session`, `/stats`, `/auto` (autonomous agent), `/cowork` (multi-agent collaboration), `/sub-agents` (show active/completed sub-agents)
 
@@ -701,6 +701,38 @@ chainlesschain evolution learn --domain nlp            # Incremental learning
 chainlesschain evolution status                        # Evolution status
 ```
 
+### `chainlesschain learning <action>`
+
+Autonomous learning loop — tracks execution trajectories, auto-synthesizes skills from successful patterns, and performs periodic self-reflection.
+
+```bash
+chainlesschain learning stats                          # Learning loop statistics overview
+chainlesschain learning stats --json                   # JSON output
+chainlesschain learning trajectories                   # Recent 20 execution trajectories
+chainlesschain learning trajectories -n 50             # Specify count
+chainlesschain learning trajectories --session <id>    # Filter by session
+chainlesschain learning trajectories --json            # JSON output
+chainlesschain learning reflect                        # Manual self-reflection trigger
+chainlesschain learning reflect --json                 # JSON reflection report
+chainlesschain learning synthesize                     # Scan and synthesize new skills
+chainlesschain learning synthesize --json              # JSON output
+chainlesschain learning cleanup                        # Clean up trajectories older than 90 days
+chainlesschain learning cleanup --days 30              # Custom retention period
+chainlesschain learning cleanup --json                 # JSON output
+```
+
+**Core modules** (7 files in `src/lib/learning/`):
+
+| Module               | Description                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| **TrajectoryStore**  | Records complete execution trajectories (intent → tool chain → result → response)   |
+| **OutcomeFeedback**  | Auto-scoring + user feedback + correction detection (Chinese & English)              |
+| **SkillSynthesizer** | Extracts reusable patterns from complex successful trajectories into SKILL.md       |
+| **SkillImprover**    | Three improvement triggers: error repair, user correction, better trajectory compare |
+| **ReflectionEngine** | Periodic self-review with tool stats, score trends, error-prone tool identification  |
+| **LearningHooks**    | REPL lifecycle integration — captures prompts, tool calls, responses, session events |
+| **LearningTables**   | SQLite schema creation for trajectories, tags, and improvement logs                  |
+
 ---
 
 ## Phase 8: Blockchain & Enterprise Analytics
@@ -1139,17 +1171,19 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 
 ### Supported LLM Providers
 
-| Provider               | Default Model     | API Key Required |
-| ---------------------- | ----------------- | ---------------- |
-| Ollama (Local)         | qwen2.5:7b        | No               |
-| OpenAI                 | gpt-4o            | Yes              |
-| Anthropic              | claude-sonnet-4-6 | Yes              |
-| DashScope (Alibaba)    | qwen-max          | Yes              |
-| DeepSeek               | deepseek-chat     | Yes              |
-| Gemini (Google)        | gemini-pro        | Yes              |
-| Mistral                | mistral-large     | Yes              |
-| Volcengine (ByteDance) | doubao-1.5-pro    | Yes              |
-| Custom                 | —                 | Yes              |
+| Provider                    | Default Model              | API Key Required |
+| --------------------------- | -------------------------- | ---------------- |
+| Ollama (Local)              | qwen2.5:7b                 | No               |
+| OpenAI                      | gpt-4o                     | Yes              |
+| Anthropic                   | claude-opus-4-6            | Yes              |
+| DeepSeek                    | deepseek-chat              | Yes              |
+| DashScope (Alibaba)         | qwen-turbo                 | Yes              |
+| Google Gemini               | gemini-2.0-flash           | Yes              |
+| Mistral AI                  | mistral-large-latest       | Yes              |
+| Volcengine (火山引擎/豆包)  | doubao-seed-1-6-251015     | Yes              |
+| Kimi (月之暗面)             | moonshot-v1-auto           | Yes              |
+| MiniMax (海螺AI)            | MiniMax-Text-01            | Yes              |
+| Custom                      | —                          | Yes              |
 
 ## File Structure
 
@@ -1168,7 +1202,7 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 ```bash
 cd packages/cli
 npm install
-npm test                # Run all tests (5200+ tests across 133+ files)
+npm test                # Run all tests (5400+ tests across 201+ files)
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # End-to-end tests
@@ -1185,16 +1219,19 @@ npm run test:e2e        # End-to-end tests
 | Unit — Skill Packs        | 2       | 57+      | All passing     |
 | Unit — AI Templates       | 2       | 130+     | All passing     |
 | Unit — Web UI             | 1       | 46       | All passing     |
+| Unit — Learning           | 7       | 177      | All passing     |
 | Integration               | 13      | 230+     | All passing     |
 | Integration — WS session  | 1       | 12       | All passing     |
 | Integration — AI Handlers | 2       | 100+     | All passing     |
 | Integration — Web UI      | 1       | 29       | All passing     |
+| Integration — Learning    | 1       | 12       | All passing     |
 | E2E                       | 15      | 260+     | All passing     |
 | E2E — Skill Packs         | 1       | 23+      | All passing     |
 | E2E — AI Templates        | 4       | 65+      | All passing     |
 | E2E — Web UI              | 1       | 24       | All passing     |
+| E2E — Learning            | 1       | 16       | All passing     |
 | Core packages (external)  | —       | 118      | All passing     |
-| **CLI Total**             | **133** | **3155** | **All passing** |
+| **CLI Total**             | **201** | **3360** | **All passing** |
 
 ## License
 
