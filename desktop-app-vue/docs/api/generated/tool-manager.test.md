@@ -2,7 +2,7 @@
 
 **Source**: `src/main/skill-tool-system/__tests__/tool-manager.test.js`
 
-**Generated**: 2026-04-09T06:50:46.619Z
+**Generated**: 2026-04-12T15:08:28.418Z
 
 ---
 
