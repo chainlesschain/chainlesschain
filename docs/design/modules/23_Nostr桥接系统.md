@@ -259,5 +259,23 @@ nostr: {
 
 ---
 
-**文档版本**: 1.0.0
-**最后更新**: 2026-02-28
+## 实现更新记录
+
+### 2026-04-12 — 真实 WebSocket 连接替换 mock
+
+原 `nostr-bridge.js` 使用 mock WebSocket 对象，`publishEvent()` 的 `ws.send()` 为注释 stub。已替换为真实实现：
+
+- 使用 `ws` 模块建立真实 WebSocket 连接
+- 完整 NIP-01 消息处理: `["EVENT", ...]`、`["EOSE", ...]`、`["OK", ...]`、`["NOTICE", ...]`
+- 指数退避重连: 1s → 2s → 4s → ... → 60s 最大间隔
+- `publishEvent()` 实际调用 `ws.send()` 发送到所有已连接中继
+- 连接状态独立追踪: `connected` / `disconnected` / `error`
+
+新增测试: `nostr-bridge-ws.test.js` (26 tests)
+
+详见: [85_文档代码差距补全.md §2.1](./85_文档代码差距补全.md)
+
+---
+
+**文档版本**: 1.1.0
+**最后更新**: 2026-04-12
