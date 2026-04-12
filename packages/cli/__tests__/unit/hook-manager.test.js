@@ -54,9 +54,9 @@ describe("Hook Manager", () => {
   });
 
   describe("HookEvents", () => {
-    it("defines 28 event types", () => {
+    it("defines 30 event types", () => {
       const eventCount = Object.keys(HookEvents).length;
-      expect(eventCount).toBe(28);
+      expect(eventCount).toBe(30);
     });
 
     it("includes IPC events", () => {
