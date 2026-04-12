@@ -2,7 +2,7 @@
 
 **Source**: `src/main/git/git-manager.js`
 
-**Generated**: 2026-04-09T06:50:46.668Z
+**Generated**: 2026-04-12T15:08:28.464Z
 
 ---
 

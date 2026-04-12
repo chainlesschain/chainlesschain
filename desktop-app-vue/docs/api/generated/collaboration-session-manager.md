@@ -2,7 +2,7 @@
 
 **Source**: `src/main/knowledge/collaboration-session-manager.js`
 
-**Generated**: 2026-04-09T06:50:46.660Z
+**Generated**: 2026-04-12T15:08:28.456Z
 
 ---
 

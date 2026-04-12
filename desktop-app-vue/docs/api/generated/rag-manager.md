@@ -2,7 +2,7 @@
 
 **Source**: `src/main/rag/rag-manager.js`
 
-**Generated**: 2026-04-09T06:50:46.627Z
+**Generated**: 2026-04-12T15:08:28.425Z
 
 ---
 

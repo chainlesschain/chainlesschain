@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/local-tts-client.js`
 
-**Generated**: 2026-04-09T06:50:46.602Z
+**Generated**: 2026-04-12T15:08:28.401Z
 
 ---
 
@@ -19,6 +19,16 @@ const EventEmitter = require("events");
  *
  * @module local-tts-client
  * @version 1.0.0
+
+---
+
+## const _deps =
+
+```javascript
+const _deps =
+```
+
+@type {{ fs: typeof fs, https: any, http: any, fsSync: typeof import('fs') }}
 
 ---
 
@@ -104,9 +114,20 @@ getModels()
 async downloadModel(modelId)
 ```
 
-* Download a model
-   * @param {string} modelId - Model ID to download
-   * @returns {Promise<Object>} Download result
+* Download a Piper voice model from GitHub releases
+   * @param {string} modelId - Model ID from PIPER_MODELS (e.g. "en_US-lessac-medium")
+   * @returns {Promise<Object>} Download result with paths to .onnx and .json files
+
+---
+
+## _downloadFile(url, destPath)
+
+```javascript
+_downloadFile(url, destPath)
+```
+
+* Download a file via HTTPS with redirect following
+   * @private
 
 ---
 

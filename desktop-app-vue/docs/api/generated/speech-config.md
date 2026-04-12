@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/speech-config.js`
 
-**Generated**: 2026-04-09T06:50:46.601Z
+**Generated**: 2026-04-12T15:08:28.400Z
 
 ---
 
