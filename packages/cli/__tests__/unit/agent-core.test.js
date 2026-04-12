@@ -1293,11 +1293,11 @@ describe("agentLoop", () => {
     expect(lastEvent.type).toBe("response-complete");
     expect(lastEvent.content).toContain("Iteration budget exhausted");
 
-    // Should have 15 iterations * 2 events (executing + result) + 1 final
+    // Should have DEFAULT_BUDGET (50) iterations * 2 events (executing + result) + 1 final
     const executingCount = events.filter(
       (e) => e.type === "tool-executing",
     ).length;
-    expect(executingCount).toBe(15);
+    expect(executingCount).toBe(50);
   });
 
   it("yields slot-filling events when slotFiller detects missing slots", async () => {
