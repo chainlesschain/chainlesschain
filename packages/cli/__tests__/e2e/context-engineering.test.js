@@ -68,17 +68,24 @@ describe("E2E: Context Engineering CLI integration", () => {
 
     it("CLIContextEngineering builds messages without db", () => {
       return import("../../src/lib/cli-context-engineering.js").then((mod) => {
-        const engine = new mod.CLIContextEngineering({ db: null });
-        const result = engine.buildOptimizedMessages(
-          [
-            { role: "system", content: "test system prompt" },
-            { role: "user", content: "hello" },
-          ],
-          { userQuery: "hello" },
-        );
-        expect(result.length).toBe(2);
-        expect(result[0].role).toBe("system");
-        expect(result[1].role).toBe("user");
+        // Mock readUserProfile to avoid filesystem dependency in CI
+        const origReadProfile = mod._deps.readUserProfile;
+        mod._deps.readUserProfile = () => "";
+        try {
+          const engine = new mod.CLIContextEngineering({ db: null });
+          const result = engine.buildOptimizedMessages(
+            [
+              { role: "system", content: "test system prompt" },
+              { role: "user", content: "hello" },
+            ],
+            { userQuery: "hello" },
+          );
+          expect(result.length).toBe(2);
+          expect(result[0].role).toBe("system");
+          expect(result[1].role).toBe("user");
+        } finally {
+          mod._deps.readUserProfile = origReadProfile;
+        }
       });
     });
 

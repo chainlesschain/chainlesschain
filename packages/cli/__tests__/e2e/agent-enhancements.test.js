@@ -96,9 +96,9 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
       expect(replContent).toContain('options.model || "qwen2.5:7b"');
     });
 
-    it("should have MAX_ITERATIONS = 15 in agent-core", () => {
+    it("should use IterationBudget in agent-core", () => {
       coreContent = coreContent || readFileSync(agentCorePath, "utf8");
-      expect(coreContent).toContain("MAX_ITERATIONS = 15");
+      expect(coreContent).toContain("IterationBudget");
     });
 
     it("should have enhanced system prompt with run_code guidance in agent-core", () => {
