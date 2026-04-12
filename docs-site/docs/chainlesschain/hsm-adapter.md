@@ -4,6 +4,10 @@
 
 ChainlessChain HSM Adapter 提供统一的硬件安全模块（HSM）接口，支持 YubiKey、Ledger、Trezor 等主流硬件设备的自动发现、连接和加密操作。系统内置 FIPS 140-3 合规追踪，确保所有密码学操作满足企业级安全标准。
 
+## 概述
+
+HSM Adapter 模块为多厂商硬件安全设备（YubiKey、Ledger、Trezor 及通用 PKCS#11 设备）提供统一的连接和加密操作接口，支持 RSA-2048、ECDSA-P256、ML-KEM-768 等算法。系统内置 FIPS 140-3 合规等级评估和实时状态监控，通过 4 个 IPC 接口提供设备管理、加密操作和合规报告能力。
+
 ## 核心特性
 
 - 🔌 **多厂商统一接口**: 支持 YubiKey、Ledger、Trezor 及通用 HSM 设备

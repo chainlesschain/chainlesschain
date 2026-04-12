@@ -2,6 +2,72 @@
 
 > 内置系统技能，用于创建、测试、优化和验证自定义技能。v1.2.0 新增 LLM 驱动的描述优化循环。
 
+## 概述
+
+Skill Creator 是 ChainlessChain 内置的系统级技能（category: system），用于创建、测试、优化和验证自定义 AI 技能。它遵循 Agent Skills 开放标准，自动生成包含 YAML frontmatter 的 `SKILL.md` 声明文件和 `handler.js` 执行逻辑。v1.2.0 新增 LLM 驱动的描述优化循环（`optimize-description`），通过自动生成评估查询集、迭代改写描述、评分对比的闭环流程，持续提升技能的触发精度。
+
+## 系统架构
+
+### 技能创建流水线
+
+```
+用户输入 → parseInput() 解析意图
+  → 匹配动作 (create/test/optimize/validate/...)
+  → [create] 推断 category → 选择内置模板 → 生成 SKILL.md + handler.js → 写入 workspace 层
+  → [test] 加载目标 handler.js → 执行 execute() → 返回结果
+  → [validate] 检查 SKILL.md frontmatter 必填字段 + handler.js 可加载性
+```
+
+### optimize-description 优化循环
+
+```
+读取 SKILL.md description
+  → callLLM() 生成 20 条 eval 查询（10 应触发 / 10 不应触发）
+  → 60/40 分割为训练集 / 测试集
+  → evaluateDescriptionDetailed() 在测试集上评估基线分
+  → 迭代（最多 N 次）:
+      → 在训练集找出失败案例
+      → improveDescription() 由 LLM 改写描述
+      → 测试集重新评分，更高则记录为最优
+  → 写回 SKILL.md（仅在有改进时）
+  → 保存结果至 <skillDir>/.opt-workspace/results.json
+```
+
+LLM 调用通过 `callLLM()` 桥接，内部使用 `spawnSync` 调用 `chainlesschain ask` 命令，因此依赖 CLI 运行环境。
+
+## 故障排查
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| 创建技能时返回已有内容 | 同名技能目录已存在 | 设计预期行为，不会覆盖已有技能。若需重建，先 `skill remove <name>` 再重新创建 |
+| `optimize-description` 返回提示信息而非优化结果 | LLM 不可用（Ollama 未启动、API Key 未配置等） | 确保 `chainlesschain ask "test"` 能正常返回结果；检查 Ollama 服务或云端 provider 配置 |
+| `optimize-description` 生成 eval 查询不足 | LLM 返回的查询数 < 4 条 | 检查当前模型能力，尝试切换到更大的模型；或手动执行 `optimize`（静态检查）替代 |
+| `validate` 报缺少必填字段 | SKILL.md frontmatter 缺少 `name`、`description` 或 `handler` | 补全 YAML frontmatter 中的必填字段 |
+| `validate` 报 handler.js 加载失败 | handler.js 存在语法错误或 `require()` 依赖缺失 | 在 Node.js 中直接 `require("./handler.js")` 排查具体错误 |
+| 中途 LLM 调用失败 | 网络超时或服务中断 | 循环自动终止，写回当前最优描述（非原始描述）；可再次运行继续优化 |
+
+## 安全考虑
+
+| 方面 | 说明 |
+|------|------|
+| 文件写入范围 | 技能文件仅写入 workspace 层（`~/.chainlesschain/skills/`），不触碰 bundled 或系统目录 |
+| 文件系统访问 | handler.js 通过 `_deps` 注入 `fs` 模块，测试时可完全替换为 mock，生产环境受限于 Node.js 进程权限 |
+| LLM 调用 | 遵循用户当前 provider 配置（本地 Ollama 或云端），不额外发起未授权的网络请求 |
+| 生成的 handler.js | 在 Agent sandbox 环境中执行，受 Plan Mode 和 Permission Gate 约束 |
+| 敏感数据 | 技能描述通过 LLM 优化时仅传递技能名称和描述文本，不包含用户私有数据 |
+
+## 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/skill-creator/SKILL.md` | 技能声明文件（YAML frontmatter + 使用说明） |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/skill-creator/handler.js` | 核心执行逻辑：parseInput、create/test/optimize/validate 等全部动作处理 |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/skill-loader.js` | 技能加载器，四层加载机制（bundled → marketplace → managed → workspace） |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/index.js` | 技能注册表入口，管理技能生命周期 |
+| `desktop-app-vue/src/main/ai-engine/cowork/skills/__tests__/v1.2.0-skill-creator.test.js` | 单元测试（50 tests，_deps 注入 mock） |
+| `packages/cli/__tests__/integration/skill-creator-handler.test.js` | 集成测试（12 tests，跨模块生命周期验证） |
+| `packages/cli/__tests__/e2e/skill-creator-commands.test.js` | E2E 测试（14 tests，完整 CLI 命令行验证） |
+
 ## 快速开始
 
 ```bash

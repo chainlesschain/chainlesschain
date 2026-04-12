@@ -2,6 +2,10 @@
 
 > **版本: v3.2.0 | 状态: ✅ 生产就绪 | 4 IPC Handlers | 1 数据库表 | ML-KEM/ML-DSA 后量子密码**
 
+## 概述
+
+PQC 全生态迁移系统实现了 P2P、DID、存储、消息、认证、U-Key 六大子系统从 RSA-2048 到后量子安全算法（ML-KEM-768/ML-DSA-65）的全面迁移。系统支持按子系统独立追踪迁移进度、SIMKey 固件级 PQC 升级，以及一键验证全系统迁移完整性。
+
 ChainlessChain PQC Ecosystem 实现了全系统范围的后量子密码学迁移，覆盖 P2P、DID、存储、消息、认证、U-Key 六大子系统。支持 ML-KEM/ML-DSA 算法替换、SIMKey 固件 PQC 更新、混合到纯 PQC 迁移路径，以及按子系统的迁移进度追踪。
 
 ## 核心特性

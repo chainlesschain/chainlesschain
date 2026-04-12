@@ -2,6 +2,10 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+## 概述
+
+`llm` 命令用于管理大语言模型的提供商、模型和连通性，内置支持 10 个 LLM 提供商（含火山引擎、OpenAI、Anthropic、DeepSeek 等）。提供模型列表查看、API 连通性测试、提供商动态切换等功能，Agent 模式下还支持根据任务类型智能选择最佳模型。
+
 ## 核心特性
 
 - 🔌 **10 个提供商**: Volcengine(豆包)、OpenAI、Anthropic、DeepSeek、DashScope、Gemini、Kimi(月之暗面)、MiniMax(海螺AI)、Mistral、Ollama + 3 种中转站

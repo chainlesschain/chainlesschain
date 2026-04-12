@@ -288,6 +288,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | `org`      | create, list, show, delete, invite, members, team-create, teams, approval-submit, approvals, approve, reject | Organization management (Phase 5) |
 | `plugin`   | list, install, remove, enable, disable, update, info, search, registry, summary | Plugin marketplace (Phase 5) |
 | `init`     | --template, --yes, --bare                      | Project initialization (4 templates: code-project/data-science/devops/empty) |
+| `learning` | stats, trajectories, reflect, synthesize, cleanup | Autonomous learning loop (trajectory tracking + skill synthesis + self-reflection) |
 | `cowork`   | debate, compare, analyze, status               | Multi-agent collaboration (debate review + A/B comparison + code analysis) |
 | `skill`    | list, run, info, search, categories, add, remove, sources | Multi-layer skill system (4 layers: bundled/marketplace/managed/workspace) |
 

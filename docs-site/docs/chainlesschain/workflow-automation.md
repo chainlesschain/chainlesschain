@@ -4,6 +4,10 @@
 
 ChainlessChain 工作流自动化引擎提供类 Zapier/n8n 的可视化工作流编排能力，内置 12 种主流 SaaS 连接器，支持 Webhook/定时/事件/条件四种触发模式，以及数据转换、过滤、聚合的完整 Pipeline 处理链。通过工作流市场实现模板共享与复用。
 
+## 概述
+
+工作流自动化引擎是 ChainlessChain 的 SaaS 集成与任务编排平台，类似 Zapier/n8n 的可视化工作流编排。内置 Gmail、Slack、GitHub、Jira 等 12 种连接器，支持 Webhook 实时触发、Cron 定时调度、事件驱动和条件触发四种模式，通过 Transform/Filter/Aggregate Pipeline 处理链实现数据流转，并提供工作流市场支持模板共享与一键部署。
+
 ## 核心特性
 
 - 🔌 **12 种内置连接器**: Gmail / Slack / GitHub / Jira / Notion / Confluence / Trello / Asana / Linear / Discord / Telegram / Webhook，覆盖主流办公与开发场景

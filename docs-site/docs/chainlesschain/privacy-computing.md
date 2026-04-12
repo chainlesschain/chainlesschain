@@ -2,6 +2,10 @@
 
 > **版本: v4.2.0 | 状态: ✅ 生产就绪 | 8 IPC Handlers | 2 数据库表 | Phase 91**
 
+## 概述
+
+隐私计算框架提供端到端的隐私保护能力，在数据不出域的前提下实现协作计算和模型训练。系统集成联邦学习（FedAvg/FedProx）、安全多方计算（Shamir 秘密共享/Beaver 三元组）、差分隐私（Laplace/Gaussian 噪声注入）、同态加密（Paillier 加法同态/BFV 全同态）和 TEE 可信执行环境五大隐私计算技术。
+
 ChainlessChain 隐私计算框架提供端到端的隐私保护能力，支持联邦学习、安全多方计算（Shamir/Beaver）、差分隐私（Laplace/Gaussian）、同态加密（Paillier/BFV）和可信执行环境（TEE）集成，在数据不出域的前提下实现协作计算和模型训练。
 
 ## 核心特性

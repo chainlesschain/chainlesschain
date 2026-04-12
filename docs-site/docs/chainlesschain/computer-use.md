@@ -2,7 +2,9 @@
 
 > **版本: v0.33.0 | 68+ IPC处理器 | 类似 Claude Computer Use**
 
-Computer Use 是 ChainlessChain 的核心功能模块，提供类似 Anthropic Claude Computer Use 的电脑操作能力，支持浏览器自动化和桌面级操作，让 AI 能够真正"看到"和"操作"您的电脑。
+## 概述
+
+Computer Use 模块赋予 AI 直接操作电脑的能力，支持像素级坐标操作、Vision AI 元素定位、桌面截图与键鼠控制等功能。内置工作流引擎支持条件分支、循环和并行任务编排，配合安全模式（权限控制 + 区域限制 + 操作审计）确保自动化操作的安全可控。
 
 ## 核心特性
 

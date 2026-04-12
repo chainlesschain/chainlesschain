@@ -6,6 +6,10 @@
 
 > 基础功能请参阅 [SIMKey 基础指南](/chainlesschain/simkey) | 企业版功能请参阅 [SIMKey 企业版](/chainlesschain/simkey-enterprise)
 
+## 概述
+
+SIMKey 高级安全功能模块在基础 SIM 卡安全能力之上，提供面向未来的增强安全特性。包括 iOS eSIM 支持（通过 Secure Enclave 实现无物理 SIM 卡的硬件级安全）、5G 超级 SIM 卡优化（签名速度提升 3-5 倍）、NFC 离线签名、多 SIM 卡智能切换、SIM 卡健康监控以及量子抗性算法支持。
+
 ## 核心特性
 
 - 📱 **iOS eSIM 支持**: 通过 Apple eSIM API + Secure Enclave 实现无物理 SIM 卡的硬件级安全

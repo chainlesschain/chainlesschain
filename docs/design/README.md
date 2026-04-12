@@ -10,6 +10,8 @@
 
 ## 最近更新
 
+- `modules/84_自主学习闭环系统.md`
+  - 新增模块：自主学习闭环系统（Autonomous Learning Loop v1.0）。TrajectoryStore 轨迹存储 → OutcomeFeedback 结果反馈 → SkillSynthesizer 技能合成 → SkillImprover 技能改进 → ReflectionEngine 周期性自省。P0-P3 全部完成，224 tests。
 - `modules/80_规范工作流系统.md`
   - 新增模块：规范编码工作流（`$deep-interview → $ralplan → $ralph/$team`）四阶段状态机、SessionStateManager 门控（G1/G2）、Phase 3.5 AIChatPage 输入拦截、Phase 4 生命周期 Hooks（8 事件 / 30s timeout / require.cache 热重载 / pre-veto 传播 / post-swallow）。
 - `modules/79_Coding_Agent系统.md`

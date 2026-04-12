@@ -422,6 +422,7 @@ chainlesschain start    # Launch application (or: cc start / clc start / clchain
 - ✅ **WebSocket Server** — `serve` command exposes all CLI commands over WebSocket, supports execute/stream/cancel + token auth + heartbeat + injection protection
 - ✅ **WebSocket Stateful Sessions** — Create/resume/manage agent/chat sessions over WS, with project context binding, SlotFiller parameter filling (9 intent types auto-detected), InteractivePlanner interactive planning (2503 tests/113 files)
 - ✅ **Agent Intelligence** — Auto pip-install for Python packages + script persistence + error classification (5 types) + environment detection + agent-core extraction
+- ✅ **Autonomous Learning Loop** — Execution trajectory tracking + auto-scoring (3 signal sources) + skill synthesis from successful patterns + skill improvement (3 triggers) + periodic self-reflection (224 tests)
 - ✅ **Sub-Agent Isolation v2** — SubAgentContext isolated execution + spawn_sub_agent tool + namespaced memory + scoped context engineering + role-based tool whitelist + 3-level summarization + lifecycle registry + sandboxed execution environment + resource limits + parent-child communication protocol
 - ✅ **DAO Governance v2** — Quadratic voting + vote delegation + treasury management + proposal lifecycle (`dao` command)
 - ✅ **Security & Compliance CLI** — Compliance management (GDPR/SOC2/HIPAA/ISO27001) + DLP + SIEM log export + Post-Quantum Cryptography (PQC)

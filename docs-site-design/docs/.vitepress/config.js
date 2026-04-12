@@ -620,6 +620,10 @@ export default defineConfig({
               text: "83 工具描述规范统一",
               link: "/modules/m83-tool-descriptor-unification",
             },
+            {
+              text: "84 自主学习闭环系统 ⭐NEW",
+              link: "/modules/m84-autonomous-learning-loop",
+            },
           ],
         },
         {

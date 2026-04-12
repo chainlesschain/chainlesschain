@@ -2,14 +2,20 @@
 
 > **v5.0.1.9 新增** — 将 62 个 CLI 指令按功能域自动封装为 **9 个 Agent 可调用技能包**，实现 Agent 对 CLI 指令的结构化感知与智能调用。
 
+## 概述
+
+CLI 指令技能包系统将 ChainlessChain 的 63 条 CLI 指令按功能域分组，自动生成 9 个 Agent 可调用的技能包。每个技能包包含 SKILL.md 元数据和 handler.js 执行处理器，部署到 workspace 技能层（`~/.chainlesschain/skills/`），使 Agent REPL 能够通过 `run_skill` 工具结构化地调用 CLI 指令。
+
+与 [CLI-Anything 集成](./cli-cli-anything)（注册外部第三方工具）不同，技能包系统专门包装 ChainlessChain 自身的 CLI 指令，区分四种执行模式（direct/llm-query/agent/hybrid），确保 Agent 不会盲目调用交互式指令。
+
 ## 核心特性
 
-- 🤖 **9 个域技能包**: 覆盖 62 条 CLI 指令，按功能域分组
-- 🔀 **执行模式区分**: `direct` / `llm-query` / `agent` / `hybrid` 四种模式明确标注，Agent 不再盲目调用
-- 🔄 **自动同步机制**: SHA-256 哈希检测指令集变化，只更新有变化的包
-- 📦 **postinstall 自动触发**: `npm install -g chainlesschain` 后自动生成技能包，开箱即用
-- 🏗️ **三种 Handler 模板**: DirectHandler / AgentHandler / HybridHandler 自动生成
-- ✅ **101 个测试**: 57 单元 + 21 集成 + 23 E2E，全部通过
+- 9 个域技能包，覆盖 63 条 CLI 指令，按功能域分组
+- 执行模式区分: `direct` / `llm-query` / `agent` / `hybrid` 四种模式明确标注，Agent 不再盲目调用
+- 自动同步机制: SHA-256 哈希检测指令集变化，只更新有变化的包
+- postinstall 自动触发: `npm install -g chainlesschain` 后自动生成技能包，开箱即用
+- 三种 Handler 模板: DirectHandler / AgentHandler / HybridHandler 自动生成
+- 101 个测试: 57 单元 + 21 集成 + 23 E2E，全部通过
 
 ## 快速开始
 
@@ -190,8 +196,100 @@ handler: handler.js
 ---
 ```
 
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  schema.js                    generator.js                          │
+│  ──────────                   ────────────                          │
+│  CLI_PACK_DOMAINS (9 域)  →   generateCliPacks()                    │
+│  ├─ cli-knowledge-pack        ├─ computePackHash() 计算版本哈希      │
+│  ├─ cli-identity-pack         ├─ readExistingHash() 读取已有哈希     │
+│  ├─ cli-infra-pack            ├─ generateSkillMd() 生成 SKILL.md    │
+│  ├─ cli-ai-query-pack         └─ generate*Handler() 生成 handler.js │
+│  ├─ cli-agent-mode-pack           ├─ DirectHandler (spawnSync)      │
+│  ├─ cli-web3-pack                 ├─ AgentHandler (返回使用说明)     │
+│  ├─ cli-security-pack             └─ HybridHandler (混合路由)       │
+│  ├─ cli-enterprise-pack                    │                        │
+│  └─ cli-integration-pack                   ▼                        │
+│                               ~/.chainlesschain/skills/cli-*-pack/  │
+│                               (workspace 技能层)                     │
+│                                            │                        │
+│                                            ▼                        │
+│                               skill-loader 自动加载 → Agent REPL    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**数据流**: `schema.js` 定义 9 个域 (指令分组 + 执行模式) → `generator.js` 逐域计算 SHA-256 哈希，比对已有文件 → 变化时生成 SKILL.md + handler.js → 写入 workspace 层技能目录 → `skill-loader` 在 Agent 会话启动时自动加载
+
+**哈希算法**: `SHA-256(PACK_SCHEMA_VERSION | CLI版本 | 域Key | 排序后指令列表)[0:16]`，任一因子变化即触发重新生成。
+
+## 故障排查
+
+### sync-cli 命令无输出或报错
+
+```bash
+# 确认 CLI 已全局安装
+chainlesschain --version
+
+# 强制重新生成所有包
+chainlesschain skill sync-cli --force
+
+# 预览变化（不写入文件）
+chainlesschain skill sync-cli --dry-run
+```
+
+### 包哈希不匹配导致反复重新生成
+
+哈希基于 `PACK_SCHEMA_VERSION`、CLI `package.json` 中的 `version` 字段和域指令列表三个维度。如果 CLI 版本频繁变化（如本地开发中），每次 sync 都会检测到变化并重新生成。
+
+```bash
+# 查看当前哈希状态
+chainlesschain skill sync-cli --dry-run --json
+```
+
+### handler 执行报错 "指令不在此技能包中"
+
+输入的第一个词必须匹配该包定义的指令名。检查 `schema.js` 中对应域的 `commands` 字段确认支持的指令列表。
+
+```bash
+# 正确: 第一个词是指令名
+chainlesschain skill run cli-knowledge-pack "note list"
+
+# 错误: 多余前缀
+chainlesschain skill run cli-knowledge-pack "chainlesschain note list"
+```
+
+### Agent 模式指令静默失败
+
+`chat` 和 `agent` 等交互式 REPL 指令无法通过 `spawnSync` 子进程调用。`cli-agent-mode-pack` 的 handler 会返回结构化使用说明而非执行指令，这是设计预期行为。
+
+### postinstall 未自动触发
+
+确认 `packages/cli/package.json` 的 `scripts.postinstall` 配置正确，且全局安装时 npm 有权限写入技能目录。
+
+## 安全考虑
+
+- **同权限执行**: 技能包通过 `spawnSync("chainlesschain", args)` 调用 CLI 子进程，以当前用户权限运行，无特权提升
+- **指令白名单**: 每个 handler.js 内置 `VALID_COMMANDS` Set，只允许该域定义的指令通过，输入的第一个词必须匹配白名单
+- **Shell 注入防护**: 输入通过自定义 tokenizer 解析（处理单引号/双引号），拆分为参数数组后传给 `spawnSync`，不进行 shell 字符串拼接
+- **超时保护**: 所有子进程设置 30 秒超时 (`timeout: 30000`)
+- **无远程代码执行**: 技能包仅包装本地 CLI 指令，不涉及远程服务器调用或代码下载
+- **可审计**: 生成的 handler.js 包含 "自动生成 -- 请勿手动修改" 注释，所有生成/删除操作可通过 `sync-cli --dry-run` 预览
+
+## 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `packages/cli/src/lib/skill-packs/schema.js` | 9 域定义（`CLI_PACK_DOMAINS`）、执行模式说明、Agent 模式指令集、schema 版本 |
+| `packages/cli/src/lib/skill-packs/generator.js` | 包生成器（哈希计算、SKILL.md 生成、三种 handler 模板、批量生成/检查/删除） |
+| `packages/cli/src/commands/skill.js` | `sync-cli` 子命令注册入口 |
+| `~/.chainlesschain/skills/cli-*-pack/SKILL.md` | 生成的技能元数据（含 `execution-mode`、`cli-version-hash` 扩展字段） |
+| `~/.chainlesschain/skills/cli-*-pack/handler.js` | 生成的执行处理器（CJS，DirectHandler/AgentHandler/HybridHandler 三种模板） |
+
 ## 相关文档
 
 - [技能系统](./cli-skill) — 完整技能命令参考，包括 `sync-cli` 子命令
+- [CLI-Anything 集成](./cli-cli-anything) — 注册外部第三方 CLI 工具为技能（不同于技能包系统）
 - [代理模式](./cli-agent) — 在 Agent 对话中使用技能包
 - [设计文档：CLI 指令技能包系统](../design/modules/60b-cli-skill-packs) — 完整技术设计

@@ -2,7 +2,9 @@
 
 > **版本: v4.0.0-alpha | 状态: ✅ 生产就绪 | 4 IPC Handlers | 依赖注入容器 + 共享缓存 + 事件总线 + 资源池**
 
-ChainlessChain 共享资源层为主进程各模块提供统一的依赖注入、缓存管理、事件通信和资源池化能力。ServiceContainer 支持循环依赖检测和生命周期管理，SharedCacheManager 提供 LRU+TTL 多策略缓存，EventBus 实现跨模块发布/订阅，ResourcePool 管理数据库连接等有限资源。
+## 概述
+
+共享资源层为 Electron 主进程各模块提供统一的基础设施，包括 ServiceContainer（依赖注入 + 循环依赖检测）、SharedCacheManager（LRU+TTL 多策略缓存）、EventBus（发布/订阅通信）和 ResourcePool（连接池管理）。四大组件协同工作，解耦模块间依赖并统一管理共享资源的生命周期。
 
 ## 核心特性
 

@@ -139,6 +139,7 @@ const MODULE_FILE_MAP = {
   "81_轻量多Agent编排系统.md": "m81-sub-runtime-pool.md",
   "82_CLI_Runtime收口路线图.md": "m82-cli-runtime-convergence.md",
   "83_工具描述规范统一.md": "m83-tool-descriptor-unification.md",
+  "84_自主学习闭环系统.md": "m84-autonomous-learning-loop.md",
 };
 
 /**

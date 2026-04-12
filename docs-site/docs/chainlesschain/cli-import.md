@@ -2,6 +2,10 @@
 
 > 从外部来源导入知识 — 支持 Markdown、Evernote、Notion 和 PDF 格式
 
+## 概述
+
+`import` 命令用于从多种外部来源批量导入知识到本地知识库，支持 Markdown 目录、Evernote ENEX 导出文件、Notion 导出目录和 PDF 文档四种格式。导入的内容存入加密的 SQLite 数据库，保留标签等元信息，便于后续搜索和管理。
+
 ## 核心特性
 
 - 🔹 **Markdown 导入**: 批量导入目录中的 `.md` 文件

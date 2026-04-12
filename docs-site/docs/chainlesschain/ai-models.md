@@ -4,6 +4,10 @@
 
 ChainlessChain 支持多种AI模型，包括本地部署和云端API，满足不同的使用需求。桌面端默认使用火山引擎豆包(VolcEngine Doubao)，支持 Ollama 本地模型自动回退，后端 AI Service 支持 14+ 云LLM提供商。
 
+## 概述
+
+AI 模型配置模块管理 ChainlessChain 的多模型接入与智能路由。系统集成 14+ LLM 提供商（Ollama、OpenAI、Anthropic、DeepSeek、火山引擎等），通过 Multi-Model Router 按任务复杂度自动选择最优模型，支持多模态视觉理解、KV-Cache Context Engineering 优化和云端失败自动回退本地模型。
+
 ## 核心特性
 
 - 🤖 **14+ 提供商**: Ollama、OpenAI、Anthropic、DeepSeek、火山引擎等全面集成

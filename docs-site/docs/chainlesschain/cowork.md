@@ -2,6 +2,10 @@
 
 > **版本: v4.0 | 状态: ✅ 生产就绪 | 238 IPC Handlers | 95 内置技能 | 21 数据库表 | ~90% 测试覆盖率**
 
+## 概述
+
+Cowork 是 ChainlessChain 的生产级多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现，提供智能任务分配、并行执行和协同工作流能力。系统包含 95 个内置技能、13 核心操作、文件沙箱、Agent 池化、P2P 跨设备代理网络和去中心化代理联邦等完整功能矩阵。
+
 ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、95 内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成、Instinct 学习系统、Orchestrate 编排工作流、Verification Loop 验证流水线、**P2P 跨设备代理网络、设备能力发现、混合执行策略、Computer Use Bridge、RESTful API 服务、Webhook 事件推送**、全自动开发流水线、自然语言编程（NL→Spec）、多模态协作（音视频/图像/文档融合）、自主运维（异常检测/自动修复/告警）以及**去中心化代理网络（Agent DID / 联邦发现 / 跨组织路由 / 信誉系统）**。
 
 ## 核心特性

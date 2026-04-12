@@ -2,7 +2,9 @@
 
 > **版本: v4.2.0 | 状态: ✅ 生产就绪 | 8 IPC Handlers | 3 数据库表 | Phase 89**
 
-ChainlessChain 跨链互操作协议（Cross-Chain Bridge）支持 EVM 兼容链（Ethereum/Polygon/BSC/Arbitrum）与非 EVM 链（Solana/Cosmos IBC）之间的资产桥接，提供 HTLC 原子交换、跨链消息传递和多链统一视图，实现去中心化的跨链价值流通。
+## 概述
+
+跨链互操作协议实现 EVM 兼容链（Ethereum/Polygon/BSC/Arbitrum）与非 EVM 链（Solana/Cosmos IBC）之间的资产桥接和消息传递。通过 HTLC 原子交换实现无需信任的跨链资产交换，并提供多链统一视图聚合各链资产余额和交易历史。
 
 ## 核心特性
 

@@ -2,7 +2,9 @@
 
 > **版本: v4.1.0 | 状态: ✅ 生产就绪 | 8 IPC Handlers | Phase 86**
 
-ChainlessChain 代码生成 Agent 2.0（Code Agent v2）提供全栈代码生成、Git 感知上下文、实时安全审查、项目脚手架和 CI/CD 自动配置能力，支持 JavaScript/TypeScript/Python/Java/Go/Rust 多语言，是开发者的智能编程助手。
+## 概述
+
+代码生成 Agent 2.0 是 ChainlessChain 的智能编程助手，能够根据自然语言描述生成多语言全栈代码，并集成 Git 感知上下文和实时安全审查能力。支持 JavaScript、TypeScript、Python、Java、Go、Rust 六种语言，提供项目脚手架生成和 CI/CD 自动配置功能。
 
 ## 核心特性
 

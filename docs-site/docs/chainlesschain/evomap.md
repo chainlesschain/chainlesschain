@@ -4,6 +4,10 @@
 
 EvoMap GEP-A2A (Gene-Evolution Protocol — Agent-to-Agent) 是 ChainlessChain 的全球 Agent 知识共享协议集成模块。它使桌面应用能够将经过本地验证的策略（Instinct、成功工作流）发布为 Gene+Capsule 资产到 EvoMap 网络，同时从社区获取经过验证的 Genes/Capsules 来增强本地 AI 能力，并参与 EvoMap 悬赏/任务经济体系。获取的社区知识通过 Context Engineering 自动注入 LLM 提示词。
 
+## 概述
+
+EvoMap GEP 协议集成模块实现了本地 AI 知识与全球社区之间的双向流通。它将高置信度的 Instinct 和成功工作流自动转换为 Gene+Capsule 资产发布到 EvoMap 网络，同时从社区获取经验证的策略并通过 Context Engineering 注入 LLM 提示词，支持信用经济和任务悬赏体系。系统提供 25 个 IPC 接口、3 张数据表和隐私优先的 opt-in 机制。
+
 ## 核心特性
 
 - 🧬 **Gene 合成**: 将高置信度 Instinct、成功决策、工作流模板自动转换为 GEP Gene+Capsule 资产

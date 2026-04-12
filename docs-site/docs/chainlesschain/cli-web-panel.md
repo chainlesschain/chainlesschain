@@ -1,8 +1,53 @@
-# Vue3 Web 管理面板 (ui – v5.0.2.12)
+# Vue3 Web 管理面板 (ui -- v5.0.2.12)
 
 > **版本**: v5.0.2.12 | 参考 [ClawPanel](https://github.com/qingchencloud/clawpanel) 设计，构建为独立 Vue3 前端应用。
 
 > **v5.0.2.6 起**：通过 `npm install -g chainlesschain` 安装的用户**无需手动构建**，面板已内置于包中，直接运行 `chainlesschain ui` 即可。
+
+## 概述
+
+`chainlesschain ui` 启动一个本地 HTTP 服务器，提供基于 Vue3 + Ant Design Vue 的 Web 管理面板。面板通过 WebSocket 连接到 `chainlesschain serve` 的 WS 服务端，将 CLI 的全部能力以可视化界面呈现，无需记忆命令行语法即可完成 AI 对话、技能管理、LLM 配置、安全管理、P2P 网络等操作。
+
+面板包含 23 个功能模块，支持 4 种颜色主题（深色/浅色/海蓝/绿野），并根据运行目录自动区分项目级和全局两种工作模式。
+
+## 核心特性
+
+- **23 个功能模块**: 覆盖仪表板、AI 对话、技能管理、LLM 配置、服务状态、运行日志、笔记管理、MCP 工具、记忆系统、定时任务、后台任务、安全中心、P2P 网络、Git 与数据、项目管理、钱包管理、组织管理、使用分析、模板中心、权限管理、RSS 订阅、备份恢复、身份认证
+- **4 种颜色主题**: 通过 CSS 自定义属性驱动，主题偏好自动持久化到 localStorage
+- **实时 WebSocket 连接**: 指数退避自动重连，`waitConnected` 保证首次连接就绪后再发送请求
+- **响应式设计**: 七组侧边栏导航，适配不同屏幕尺寸
+- **项目级 / 全局模式**: 自动检测当前目录是否含 `.chainlesschain/`，切换对应的工作模式
+- **流式 AI 对话**: 支持 Chat/Agent 双模式，逐 token 流式渲染，工具调用可视化
+- **Markdown 渲染**: marked.js + highlight.js 实现代码高亮
+- **纯函数解析层**: `parsers.js` 集中处理技能/状态/笔记/MCP/记忆/Cron 等数据的解析逻辑
+
+## 系统架构
+
+```
+浏览器 (Vue3 SPA)
+    │
+    ├── HTTP GET (静态资源)
+    │       ▼
+    │   ┌───────────────────────┐
+    │   │  HTTP Server          │
+    │   │  (web-ui-server.js)   │
+    │   │  ├── 静态文件服务      │
+    │   │  └── 运行时配置注入    │
+    │   └───────────────────────┘
+    │
+    └── WebSocket (ws://127.0.0.1:18800)
+            ▼
+        ┌───────────────────────┐
+        │  WS Server            │
+        │  (ws-server.js)       │
+        │  └── CLI Runtime      │
+        └───────────────────────┘
+```
+
+- **HTTP Server** (`web-ui-server.js`): 提供 Vue3 构建产物的静态文件服务，启动时将 WS 端口、token、项目路径等运行时配置注入到 HTML 页面的 `window.__CC_CONFIG__` 中
+- **WS 连接** (`ws.js` store): 浏览器端通过 WebSocket 连接到 CLI 的 WS 服务端，所有命令执行和数据获取都通过 WS 协议完成
+- **Pinia Stores**: `ws.js`（连接管理）、`theme.js`（主题）、`chat.js`（会话）、`skills.js`（技能）、`providers.js`（LLM）、`tasks.js`（任务）、`dashboard.js`（统计）
+- **三路面板检测**: 优先使用 `--web-panel-dir` 指定目录，其次查找源码构建产物 `packages/web-panel/dist/`，最后使用 npm 包内置产物 `src/assets/web-panel/`，全部未找到时回退到经典单页 HTML
 
 `chainlesschain ui` 现已升级为完整的 Vue3 管理面板，包含 **23 个功能模块**，支持 **4 种颜色主题**，并清晰区分项目级和全局两种工作模式。
 
@@ -382,8 +427,114 @@ return { output: output || stderr, exitCode: result.exitCode ?? 0 }
 | `panel.test.js` | E2E | 46 |
 | **Web Panel 合计** | | **621** |
 
+## 故障排查
+
+### 端口冲突
+
+**症状**: `Error: listen EADDRINUSE :::18810` 或 `:::18800`
+
+**解决方案**:
+
+```bash
+# 使用自定义端口
+chainlesschain ui --port 9000 --ws-port 9001
+
+# 检查占用进程
+# Windows
+netstat -ano | findstr :18810
+# Linux/macOS
+lsof -i :18810
+```
+
+### WebSocket 连接失败
+
+**症状**: 面板加载后仪表板显示 "WebSocket 未连接"，所有数据为空
+
+**排查步骤**:
+
+1. 检查浏览器控制台是否有 WS 连接错误
+2. 确认 WS 端口（默认 18800）未被防火墙阻止
+3. 如果使用了 `--token`，确认面板启动时也传入了相同的 token
+4. 检查 `--ws-port` 是否与实际 WS 服务端口一致
+5. 面板内置指数退避重连机制，等待几秒后观察是否自动恢复
+
+### 面板未找到 / 回退到经典 HTML
+
+**症状**: 启动时提示 "Vue3 panel not found, falling back to classic HTML"
+
+**解决方案**:
+
+```bash
+# npm 安装用户：重新安装
+npm install -g chainlesschain
+
+# 源码用户：手动构建
+npm run build:web-panel
+
+# 显式指定 dist 目录
+chainlesschain ui --web-panel-dir /path/to/packages/web-panel/dist
+```
+
+### 主题切换不生效
+
+**症状**: 切换主题后页面颜色未改变
+
+**排查步骤**:
+
+1. 检查浏览器 localStorage 中 `cc_theme` 的值
+2. 尝试清除 localStorage 后刷新页面
+3. 确认未使用浏览器扩展覆盖页面样式
+
+### 技能列表显示 0
+
+**症状**: 技能管理页面技能数量为 0
+
+**原因**: 这是 v5.0.2.8 之前的已知 Bug，WS 响应字段不匹配。升级到 v5.0.2.8+ 即可解决。如仍出现，检查 WS 连接状态和 CLI 版本。
+
+## 安全考虑
+
+### XSS 防护
+
+运行时配置通过 `window.__CC_CONFIG__` 注入到 HTML `<script>` 标签中。为防止 XSS 攻击，JSON 值经过 Unicode 转义处理：
+
+- `<` 转义为 `\u003c`
+- `>` 转义为 `\u003e`
+- `&` 转义为 `\u0026`
+
+这确保即使配置值中包含恶意 HTML 标签，也不会被浏览器解析执行。
+
+### Token 认证
+
+通过 `--token` 参数设置认证 token 后，WS 连接建立时需先通过认证才能执行任何命令。建议在非本机访问场景下始终启用 token。
+
+### 本地绑定
+
+默认绑定 `127.0.0.1`，仅允许本机访问。如需远程访问，需显式指定 `--host 0.0.0.0` 并配合 `--token` 使用。
+
+### 命令注入防护
+
+WS 服务端使用安全的命令分词器（`tokenizeCommand`）解析命令字符串，不使用 `shell: true`，从根本上防止 shell 注入攻击。
+
+## 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `packages/cli/src/commands/ui.js` | `ui` 命令注册与参数解析 |
+| `packages/cli/src/lib/web-ui-server.js` | HTTP 服务器（静态文件服务 + 运行时配置注入 + 经典 HTML 回退） |
+| `packages/cli/src/lib/web-ui-envelope.js` | Envelope 协议内联源码 |
+| `packages/web-panel/` | Vue3 前端应用源码 |
+| `packages/web-panel/src/stores/ws.js` | WebSocket 连接管理（指数退避重连） |
+| `packages/web-panel/src/stores/theme.js` | 主题状态管理（4 主题 + localStorage 持久化） |
+| `packages/web-panel/src/stores/chat.js` | 会话与消息状态 |
+| `packages/web-panel/src/utils/parsers.js` | 纯函数解析层（技能/状态/笔记/MCP/记忆/Cron） |
+| `packages/web-panel/src/views/` | 23 个页面视图组件 |
+| `packages/web-panel/src/components/AppLayout.vue` | 七组侧边栏布局 + 主题切换器 |
+| `packages/web-panel/src/style.css` | 全局 CSS 变量驱动的主题系统 |
+
 ## 相关文档
 
-- [设计文档 — 模块 75](../design/modules/75-web-panel) — 完整技术架构文档
-- [WebSocket 服务器 (serve)](./cli-serve) — 程序化 API 接口
-- [技能系统 (skill)](./cli-skill) — 技能管理详情
+- [设计文档 -- 模块 75](../design/modules/75-web-panel) -- 完整技术架构文档
+- [WebSocket 服务器 (serve)](./cli-serve) -- WS 协议详情与服务端配置
+- [技能系统 (skill)](./cli-skill) -- 技能管理详情
+- [AI Orchestration](./cli-orchestrate) -- 多 AI 后端调度
+- [Coding Agent](./coding-agent) -- 编程 Agent 会话

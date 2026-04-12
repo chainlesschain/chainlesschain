@@ -2,7 +2,9 @@
 
 > **版本: v0.27.0+ | 基于 Manus AI 最佳实践 | KV-Cache 优化**
 
-Context Engineering 模块实现了 KV-Cache 友好的 Prompt 构建策略，基于 [Manus AI 博客](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus) 的最佳实践。通过稳定的 Prompt 前缀、只追加模式、显式缓存断点和任务目标重述，最大化 LLM 推理时的 KV-Cache 命中率，降低延迟与 Token 开销。
+## 概述
+
+Context Engineering 模块负责为 LLM 构建 KV-Cache 友好的上下文，通过稳定前缀、只追加模式和显式缓存断点最大化缓存命中率。支持 6 维上下文自动注入（Instinct/Memory/BM25/Task 等）、可恢复压缩和任务目标重述，有效降低推理延迟与 Token 开销。
 
 ## 核心特性
 

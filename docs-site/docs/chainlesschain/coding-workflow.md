@@ -2,7 +2,9 @@
 
 > **版本: v2.0 | 状态: ✅ Phase 1–5 + ADR Phase A–E 全部上线 | 5 workflow skills + SessionStateManager + Sub-runtime Pool + 智能路由分类器 + 只读 IPC/Pinia store/UI 面板 | 215+ 测试通过**
 
-ChainlessChain Coding Agent 借鉴 [oh-my-codex (OMX)](https://github.com/Yeachan-Heo/oh-my-codex) 的 **4 步规范工作流** —— 在现有 138 个技能之上，为 Coding Agent 提供一条"澄清 → 规划 → 审批 → 执行"的固定默认路径。
+## 概述
+
+Coding Agent 规范工作流定义了一条"澄清需求 → 生成计划 → 审批 → 执行"的强制编码路径，通过持久化的 intent.md 和 plan.md 文件在阶段间传递交接物，防止"需求不清就开写"的失败模式。该工作流包含 5 个技能（deep-interview、ralplan、ralph、team、session-state），支持子运行时池和智能路由分类。
 
 ## 核心理念
 

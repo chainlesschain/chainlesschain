@@ -3,6 +3,20 @@
 > **版本**: v5.0.2.1
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。
 
+## 概述
+
+AI 文档创作模板是 ChainlessChain CLI 的项目初始化模板之一，通过 `cc init --template ai-doc-creator` 一键配置完整的 AI 文档创作环境。它将 LLM 驱动的内容生成与本地文档格式转换工具链（pandoc、LibreOffice、Python）相结合，支持从 Markdown 到 DOCX/PDF/XLSX/PPTX 的全格式文档生命周期管理。所有处理均在本地完成，文档内容不会上传至外部服务。
+
+## 核心特性
+
+- **AI 文档生成** — 通过自然语言描述生成结构化文档，支持报告、方案、手册、README 四种风格，可自定义大纲
+- **多格式输出** — 内置 Markdown/HTML 输出，通过 pandoc 和 LibreOffice 扩展支持 DOCX、PDF、ODT、CSV、PNG 等格式
+- **AI 文档编辑** — 对现有文档进行智能修改、翻译、摘要提取，自动生成 `_edited` 副本不覆盖原文件
+- **公式与图表保留** — Excel 编辑使用 `data_only=False` 模式保留公式；PowerPoint 编辑仅修改文字，跳过图表形状
+- **Persona 自动激活** — 初始化后 Agent 模式自动加载"AI文档助手"角色，支持自然语言批量任务
+- **cli-anything 集成** — LibreOffice 和 pandoc 可通过 `cli-anything register` 注册为独立技能，支持宏执行等高级功能
+- **格式转换引擎** — LibreOffice 无头模式驱动，支持 9 种目标格式的相互转换
+
 `cc init --template ai-doc-creator` 在项目目录中一键配置 AI 文档创作环境，自动生成 **Persona（AI文档助手）** 和 3 个工作区层技能。
 
 ## 三个文档技能
@@ -169,6 +183,63 @@ chainlesschain cli-anything register pandoc
 | `doc-edit .xlsx` 报错 | 安装 `pip install openpyxl` |
 | `doc-edit .pptx` 报错 | 安装 `pip install python-pptx` |
 | `doc-edit .docx` 输出格式损坏 | 优先安装 pandoc；没有 pandoc 时回退使用 LibreOffice |
+
+## 系统架构
+
+AI 文档创作模板由 3 个工作区技能组成，各司其职并可组合使用：
+
+```
+用户输入 (自然语言 / 文件路径)
+        │
+        ▼
+┌───────────────────┐     ┌───────────────────┐     ┌───────────────────┐
+│   doc-generate    │     │  libre-convert    │     │     doc-edit      │
+│                   │     │                   │     │                   │
+│ LLM → Markdown   │────▶│ LibreOffice 无头  │     │ 读取 → LLM 修改  │
+│ pandoc → DOCX    │     │ 模式格式转换      │     │ → 写回新文件      │
+│ soffice → PDF    │     │ (9 种目标格式)    │     │                   │
+└───────────────────┘     └───────────────────┘     └───────────────────┘
+        │                         │                         │
+        ▼                         ▼                         ▼
+  md / html / docx / pdf    pdf / docx / html /      {name}_edited.{ext}
+                            odt / csv / png ...
+```
+
+**处理路径按文件类型分流：**
+
+| 文件类型 | doc-edit 处理方式 |
+|----------|------------------|
+| `.md` / `.txt` / `.html` | 直接读取 → LLM 修改 → 写回 |
+| `.docx` | pandoc 转 Markdown → LLM 修改 → pandoc 转回 DOCX（回退 LibreOffice） |
+| `.xlsx` | Python + openpyxl 读取（`data_only=False` 保留公式）→ LLM 修改 → 写回 |
+| `.pptx` | Python + python-pptx 读取文本 → LLM 修改 → 仅更新文字 run，跳过图表 shape |
+
+## 安全考虑
+
+| 安全措施 | 说明 |
+|----------|------|
+| 临时文件清理 | Python 临时脚本通过 `os.tmpdir()` 创建，在 `finally` 块中自动删除 |
+| 无外部上传 | 所有文档处理均在本地完成，文件内容不会发送至外部服务（LLM 调用除外） |
+| 本地工具执行 | pandoc 和 LibreOffice 均为本地安装的可信程序，不涉及网络传输 |
+| Python 脚本隔离 | xlsx/pptx 编辑通过生成一次性 Python 脚本执行，脚本仅操作指定文件 |
+| 不覆盖原文件 | `doc-edit` 输出为 `{baseName}_edited.{ext}`，始终保留原始文件 |
+| LLM 本地优先 | 默认使用本地 Ollama 模型处理文档内容，敏感数据不出境 |
+
+## 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `packages/cli/src/commands/init.js` | 模板定义入口，包含 3 个技能的 SKILL.md 和 handler 源码 |
+| `.chainlesschain/skills/doc-generate/SKILL.md` | doc-generate 技能定义（项目初始化后生成） |
+| `.chainlesschain/skills/doc-generate/handler.js` | doc-generate 处理器：LLM 生成 → pandoc/soffice 转换 |
+| `.chainlesschain/skills/libre-convert/SKILL.md` | libre-convert 技能定义（项目初始化后生成） |
+| `.chainlesschain/skills/libre-convert/handler.js` | libre-convert 处理器：LibreOffice 无头模式格式转换 |
+| `.chainlesschain/skills/doc-edit/SKILL.md` | doc-edit 技能定义（项目初始化后生成） |
+| `.chainlesschain/skills/doc-edit/handler.js` | doc-edit 处理器：按文件类型分流修改 |
+| `.chainlesschain/config.json` | Persona 配置（AI文档助手角色） |
+| `.chainlesschain/rules.md` | LibreOffice + pandoc + cli-anything 集成规则 |
+| `packages/cli/__tests__/unit/init-ai-doc-creator.test.js` | 单元测试（70 tests） |
+| `packages/cli/__tests__/integration/ai-doc-creator-handlers.test.js` | 集成测试（47 tests） |
 
 ## 相关文档
 

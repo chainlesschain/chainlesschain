@@ -2,6 +2,10 @@
 
 > 本页描述当前代码中已经落地的 Agent 增强能力，以及它们如何与 CLI Runtime、WebSocket 服务和 Web Panel 主链对齐。内容已对齐到 2026-04-06 的实现状态。
 
+## 概述
+
+本文档梳理 ChainlessChain 近期已落地的 Agent 架构优化能力，包括 JSONL 会话、后台任务通知、Worktree 支持、压缩 A/B 测试和 Runtime 事件统一消费等。文档聚焦于"做了哪些新能力"以及它们在 CLI Runtime、WebSocket 协议和 Web Panel 中的对齐关系。
+
 ## 这页解决什么问题
 
 如果你在看 ChainlessChain 最近这轮演进，最容易混淆的是两件事：

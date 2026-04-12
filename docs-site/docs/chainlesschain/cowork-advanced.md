@@ -2,7 +2,9 @@
 
 > **版本: v1.1.0-v2.1.0 | Instinct 学习 | Orchestrate 编排 | Verification Loop | 流水线引擎 | Git Hooks**
 
-本文档涵盖 Cowork 多智能体协作系统的高级功能，包括 v1.1.0 和 v1.2.0 引入的进阶特性。
+## 概述
+
+Cowork 高级功能涵盖多智能体协作系统的进阶能力，包括 Instinct 学习系统（自动提取可复用模式）、Orchestrate 编排工作流（4 种多代理模板）、Verification Loop 验证流水线（6 阶段自动化验证）以及 Git Hooks 集成。配合技能懒加载和流水线引擎，实现复杂任务的高效自动化编排。
 
 > 基础功能请参阅 [Cowork 核心文档](/chainlesschain/cowork) | 路线图请参阅 [Cowork 路线图](/chainlesschain/cowork-roadmap)
 

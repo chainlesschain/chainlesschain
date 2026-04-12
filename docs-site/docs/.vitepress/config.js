@@ -836,6 +836,15 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.2.13 自主学习闭环 ⭐NEW",
+          items: [
+            {
+              text: "自主学习闭环系统",
+              link: "/chainlesschain/autonomous-learning-loop",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
@@ -997,6 +1006,7 @@ export default defineConfig({
             { text: "81 轻量多Agent编排 ⭐NEW", link: "/design/modules/81-sub-runtime-pool" },
             { text: "82 CLI Runtime收口路线图 ⭐NEW", link: "/design/modules/82-cli-runtime-convergence" },
             { text: "83 工具描述规范统一 ⭐NEW", link: "/design/modules/83-tool-descriptor-unification" },
+            { text: "84 自主学习闭环系统 ⭐NEW", link: "/design/modules/84-autonomous-learning-loop" },
             { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },

@@ -4,6 +4,10 @@
 
 ChainlessChain A2A (Agent-to-Agent) 协议引擎实现 Google A2A 开放标准，使不同来源的 AI Agent 能够互相发现、协商能力和协作完成任务。通过 JSON-LD Agent Card 实现去中心化发现，支持完整的任务生命周期管理和实时订阅更新。
 
+## 概述
+
+A2A 协议引擎是 ChainlessChain 实现跨平台 Agent 互操作的核心模块，遵循 Google A2A 开放标准。它通过 JSON-LD Agent Card 实现 Agent 的去中心化发现与能力声明，并提供完整的任务提交、执行、状态订阅等生命周期管理能力，支持 SSE 实时推送和能力自动匹配。
+
 ## 核心特性
 
 - 🌐 **Google A2A 标准**: 完整实现 A2A 协议规范，跨平台互操作
