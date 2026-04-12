@@ -1,5 +1,52 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-12 增量更新（文档-代码差距补全 — 7 项全部完成 + 166 测试）
+
+对 84 个设计文档与实际代码进行全面比对，补全 7 处文档-代码差距，所有功能从 mock/占位符升级为真实实现：
+
+- **Nostr WebSocket 真实连接**: 替换 mock 对象为真实 `ws` WebSocket，完整 NIP-01 消息处理（EVENT/EOSE/OK/NOTICE），指数退避自动重连（1s→60s）
+- **Low-Code Deploy 命令**: 实现静态站点生成（index.html + app.js + style.css），支持 `--output` 指定输出目录，应用状态自动更新为 `deployed`
+- **ZKP 真实证明逻辑**: BN254 有限域（256-bit）上的 R1CS 约束系统 + Fiat-Shamir 启发式证明，替换 `mock-a-`/`mock-b-`/`mock-c-` 占位符，`verifyProof()` 实现真实验证
+- **隐私计算真实算法**: FedAvg 加权梯度聚合 + Shamir 秘密共享（128-bit 素数域 + Lagrange 插值）+ Laplace 噪声差分隐私
+- **协作引擎好友可见性**: 查询 `friends` 表检查双向好友关系，替换邀请检查 fallback
+- **Filecoin 存储证明**: PoRep/PoSt 证明验证 + SHA-256 承诺检查 + 交易续约 + 条件查询
+- **TTS 模型自动下载**: HTTPS 下载 + 重定向跟随 + 事件进度通知 + 断点检测
+
+| 层 | 范围 | 通过 |
+| --- | --- | --- |
+| 单元 | zkp-engine / privacy-computing / filecoin-storage / nostr-bridge-ws / local-tts-client / app-builder / collab-engine | `139/139` |
+| 集成 | crypto-privacy / filecoin-nostr / lowcode-deploy | `17/17` |
+| E2E | gap-fill-commands（CLI 端到端） | `10/10` |
+| **小计** | **10 文件** | **`166/166`** |
+
+修改 9 个源文件，新增 10 个测试文件。同步更新用户文档（docs-site）和设计文档。
+
+详细设计：[docs/design/modules/85_文档代码差距补全.md](./docs/design/modules/85_文档代码差距补全.md)
+
+## 2026-04-12 增量更新（Hermes Agent 对标 — 6 Phase 全部落地）
+
+对标 Nous Research Hermes Agent，系统性补齐 CLI Agent 的 6 项高影响力差距，全部向后兼容，纯 CLI 侧实现：
+
+- **Phase 1 迭代预算**：`IterationBudget` 共享引用替换硬编码 `MAX_ITERATIONS=15`，默认 50，父子 Agent 共享同一实例，70%/90%/100% 三级渐进警告，`CC_ITERATION_BUDGET` 环境变量可配
+- **Phase 2 跨会话 FTS 搜索**：SQLite FTS5 虚拟表 `session_fts`，`/search <query>` REPL 命令，`search_sessions` Agent 工具，`SessionEnd` 钩子自动索引，`reindexAll()` 回填
+- **Phase 3 USER.md + 冻结提示词**：`~/.chainlesschain/USER.md` 持久用户画像（2000 字符上限 + AI 凝练），注入上下文工程 instinct/memory 之间，系统提示词会话级冻结不可变，`/profile` REPL 命令
+- **Phase 4 零摩擦插件加载**：扫描 `~/.chainlesschain/plugins/*.js`，自动注入 tools/hooks/commands，DB 注册插件优先覆盖同名文件插件
+- **Phase 5 Docker/SSH 执行后端**：`ExecutionBackend` 抽象层 + `createBackend()` 工厂，Local/Docker(exec+run)/SSH 三种后端，`run_shell`/`run_code` 透明路由
+- **Phase 6 消息网关**：`GatewayBase` 会话管理 + 限流 + 响应分片，Telegram MarkdownV2 formatter，Discord 2000 字符分割 + `codeBlock`/`quoteBlock` 辅助
+
+本轮测试矩阵：
+
+| 层 | 范围 | 通过 |
+| --- | --- | --- |
+| 单元 | iteration-budget / session-search / user-profile / plugin-autodiscovery / execution-backend / gateway-base | `206/206` |
+| 集成 | hermes-parity-workflow（6 Phase 跨模块协作） | `25/25` |
+| E2E | hermes-parity-commands（CLI 端到端全链路） | `22/22` |
+| **小计** | **8 文件** | **`253/253`** |
+
+新增 8 个源文件（~1400 行），修改 9 个现有文件，新增 REPL 命令 `/search`、`/profile`。
+
+详细设计：[docs/design/modules/85_Hermes_Agent对标实施方案.md](./docs/design/modules/85_Hermes_Agent对标实施方案.md) / [用户文档](./docs-site/docs/chainlesschain/hermes-agent-parity.md) / [英文设计文档](./docs-site/docs/design/modules/85-hermes-agent-parity.md)。
+
 ## 2026-04-09 增量更新（CLI Runtime 收口闭环 — Phase 7 Parity Harness）
 
 CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图.md`）Phase 0–7 全部落地，统一 Coding Agent envelope 协议 v1.0 在 CLI / Desktop / Web UI 三端达成字节级对齐：
@@ -169,7 +216,7 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5700%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5850%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)

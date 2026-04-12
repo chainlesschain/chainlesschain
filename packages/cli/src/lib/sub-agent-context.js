@@ -42,7 +42,8 @@ export class SubAgentContext {
    * @param {string} [options.parentId] - Parent context ID (null for root)
    * @param {string|null} [options.inheritedContext] - Condensed context from parent
    * @param {string[]} [options.allowedTools] - Tool whitelist (null = all tools)
-   * @param {number} [options.maxIterations] - Iteration limit
+   * @param {number} [options.maxIterations] - Iteration limit (fallback if no budget)
+   * @param {import('./iteration-budget.js').IterationBudget} [options.iterationBudget] - Shared iteration budget (takes priority over maxIterations)
    * @param {number} [options.tokenBudget] - Optional token budget
    * @param {object} [options.db] - Database instance
    * @param {object} [options.permanentMemory] - Permanent memory instance
@@ -61,6 +62,7 @@ export class SubAgentContext {
     this.role = options.role || "general";
     this.task = options.task || "";
     this.maxIterations = options.maxIterations || DEFAULT_MAX_ITERATIONS;
+    this.iterationBudget = options.iterationBudget || null; // shared budget from parent
     this.tokenBudget = options.tokenBudget || null;
     this.inheritedContext = options.inheritedContext || null;
     this.allowedTools = options.allowedTools || null; // null = all
@@ -207,13 +209,16 @@ export class SubAgentContext {
     // Build filtered tool list
     const tools = this._getFilteredTools();
 
-    // Merge LLM options
+    // Merge LLM options — pass shared iteration budget if available
     const options = {
       ...this._llmOptions,
       contextEngine: this.contextEngine,
       cwd: this.cwd,
       ...loopOptions,
     };
+    if (this.iterationBudget) {
+      options.iterationBudget = this.iterationBudget;
+    }
 
     try {
       // Use a separate messages array for the agent loop

@@ -51,6 +51,7 @@ import { feature } from "../lib/feature-flags.js";
 import { recordCompressionMetric } from "../lib/compression-telemetry.js";
 import { fireSessionHook } from "../lib/session-hooks.js";
 import { HookEvents } from "../lib/hook-manager.js";
+import { IterationBudget } from "../lib/iteration-budget.js";
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
@@ -91,6 +92,12 @@ async function agentLoop(messages, options) {
       } else if (event.result?.success) {
         process.stdout.write(chalk.green(`  Done\n`));
       }
+    } else if (event.type === "iteration-warning") {
+      process.stdout.write(chalk.yellow(`\n  ${event.message}\n`));
+    } else if (event.type === "iteration-budget-exhausted") {
+      process.stdout.write(
+        chalk.red(`\n  [Budget Exhausted] ${event.budget}\n`),
+      );
     } else if (event.type === "response-complete") {
       return event.content;
     }
@@ -313,6 +320,12 @@ export async function startAgentRepl(options = {}) {
       );
       logger.log(
         `  ${chalk.cyan("/cowork")}     Multi-agent collaboration (debate, compare)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/search")}     Search past sessions (/search <query>)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/profile")}    Show/edit user profile (USER.md)`,
       );
       logger.log(
         `  ${chalk.cyan("/plan")}       Enter plan mode (read-only analysis first)`,
@@ -554,6 +567,100 @@ export async function startAgentRepl(options = {}) {
         logger.info(`Active task: ${stats.hasTask}`);
       } else {
         logger.info("Context engine not available");
+      }
+      prompt();
+      return;
+    }
+
+    // Session search
+    if (trimmed.startsWith("/search")) {
+      const searchQuery = trimmed.slice(7).trim();
+      if (!searchQuery) {
+        logger.info("Usage: /search <query>");
+        prompt();
+        return;
+      }
+      if (!db) {
+        logger.info("Database not available for session search");
+        prompt();
+        return;
+      }
+      try {
+        const { SessionSearchIndex } = await import("../lib/session-search.js");
+        const index = new SessionSearchIndex(db);
+        index.ensureTables();
+        const results = index.search(searchQuery, { limit: 10 });
+        if (results.length === 0) {
+          logger.info(
+            "No results found. Try /search after a few sessions, or run reindex.",
+          );
+        } else {
+          logger.log(chalk.bold(`\nSearch results for "${searchQuery}":\n`));
+          for (const r of results) {
+            const snippet = (r.snippet || "").substring(0, 120);
+            logger.log(
+              `  ${chalk.cyan(r.sessionId.substring(0, 20))} [${chalk.dim(r.role)}] ${snippet}`,
+            );
+          }
+          logger.log("");
+        }
+      } catch (err) {
+        logger.error(`Search failed: ${err.message}`);
+      }
+      prompt();
+      return;
+    }
+
+    // User profile commands
+    if (trimmed.startsWith("/profile")) {
+      const profileArg = trimmed.slice(8).trim();
+      try {
+        const { readUserProfile, updateUserProfile, getUserProfilePath } =
+          await import("../lib/user-profile.js");
+
+        if (!profileArg || profileArg === "show") {
+          const content = readUserProfile();
+          if (content) {
+            logger.log(chalk.bold("\nUser Profile (USER.md):\n"));
+            logger.log(content);
+            logger.log(chalk.dim(`\nPath: ${getUserProfilePath()}`));
+            logger.log("");
+          } else {
+            logger.info(
+              `No user profile yet. Use /profile set <content> or let the agent learn your preferences.`,
+            );
+          }
+        } else if (profileArg.startsWith("set ")) {
+          const newContent = profileArg.slice(4).trim();
+          if (!newContent) {
+            logger.info("Usage: /profile set <content>");
+          } else {
+            const result = updateUserProfile(newContent);
+            if (result.written) {
+              logger.info(
+                `Profile updated (${result.length} chars${result.truncated ? ", truncated" : ""})`,
+              );
+            } else {
+              logger.error("Failed to write profile");
+            }
+          }
+        } else if (profileArg === "clear") {
+          updateUserProfile("");
+          logger.info("Profile cleared.");
+        } else if (profileArg === "path") {
+          logger.info(`Profile path: ${getUserProfilePath()}`);
+        } else {
+          logger.log(chalk.bold("\nProfile Commands:"));
+          logger.log(`  ${chalk.cyan("/profile")}          Show user profile`);
+          logger.log(
+            `  ${chalk.cyan("/profile set <content>")} Update profile`,
+          );
+          logger.log(`  ${chalk.cyan("/profile clear")}    Clear profile`);
+          logger.log(`  ${chalk.cyan("/profile path")}     Show file path`);
+          logger.log("");
+        }
+      } catch (err) {
+        logger.error(`Profile command failed: ${err.message}`);
       }
       prompt();
       return;
@@ -1108,12 +1215,14 @@ export async function startAgentRepl(options = {}) {
 
     try {
       process.stdout.write("\n");
+      const iterationBudget = new IterationBudget({ owner: sessionId });
       const response = await agentLoop(messages, {
         provider,
         model: activeModel,
         baseUrl,
         apiKey,
         contextEngine,
+        iterationBudget,
       });
 
       if (response) {

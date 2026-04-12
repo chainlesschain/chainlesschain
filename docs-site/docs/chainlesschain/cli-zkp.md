@@ -115,11 +115,20 @@ chainlesschain zkp proofs --json
                     ┌────────────────┼────────────────┐
                     ▼                ▼                ▼
              电路编译器          证明生成器          身份证明器
-           (DSL → R1CS)      (Groth16 方案)     (选择性披露)
+           (DSL → R1CS)      (Fiat-Shamir)      (选择性披露)
+              BN254域             SHA-256          Commitment
                     │                │                │
                     ▼                ▼                ▼
             zkp_circuits       zkp_proofs        身份属性缓存
 ```
+
+### 技术细节
+
+- **有限域**: BN254 曲线阶 (256-bit 素数 `2188824287...5808495617`)
+- **R1CS 约束**: 每个约束 `A[i] · w × B[i] · w = C[i] · w`，其中 w 为 witness 向量
+- **证明元素**: `pi_a = H(witness, vk.alpha)`, `pi_b = H(witness, vk.beta)`, `pi_c = H(pi_a, pi_b, public_inputs, vk.delta)`
+- **验证**: 重新计算 `expected_pi_c` 并与提交的 `pi_c` 比较，篡改任何元素均可检测
+- **身份证明**: 基于 SHA-256 的承诺方案，对所有 claim 排序后计算全局承诺
 
 ## 使用示例
 

@@ -1,5 +1,52 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## 2026-04-12 Update — Documentation-Code Gap Fill (All 7 Items Complete + 166 Tests)
+
+Comprehensive comparison of 84 design documents against the codebase, closing 7 documentation-code gaps. All features upgraded from mock/placeholder to real implementations:
+
+- **Nostr Real WebSocket**: Replaced mock objects with real `ws` WebSocket connections. Full NIP-01 message handling (EVENT/EOSE/OK/NOTICE). Exponential backoff reconnection (1s→60s max).
+- **Low-Code Deploy Command**: Static site generation (index.html + app.js + style.css). `--output` flag for custom directory. App status auto-updated to `deployed`.
+- **ZKP Real Proof Logic**: R1CS constraint system over BN254 finite field (256-bit) + Fiat-Shamir heuristic proofs. Replaced `mock-a-`/`mock-b-`/`mock-c-` placeholders. Real `verifyProof()` implementation.
+- **Privacy Computing Real Algorithms**: FedAvg weighted gradient aggregation + Shamir Secret Sharing (128-bit prime field + Lagrange interpolation) + Laplace noise differential privacy.
+- **Collab Engine Friend Visibility**: Query `friends` table for bidirectional friend check, replacing invite-only fallback.
+- **Filecoin Storage Proofs**: PoRep/PoSt proof verification + SHA-256 commitment checks + deal renewal + filtered queries.
+- **TTS Model Auto-Download**: HTTPS download with redirect following + progress events + breakpoint detection.
+
+| Tier | Scope | Pass |
+| --- | --- | --- |
+| Unit | zkp-engine / privacy-computing / filecoin-storage / nostr-bridge-ws / local-tts-client / app-builder / collab-engine | `139/139` |
+| Integration | crypto-privacy / filecoin-nostr / lowcode-deploy | `17/17` |
+| E2E | gap-fill-commands (CLI end-to-end) | `10/10` |
+| **Total** | **10 files** | **`166/166`** |
+
+9 source files modified, 10 test files added. User docs (docs-site) and design docs synced.
+
+Design doc: [docs/design/modules/85_文档代码差距补全.md](./docs/design/modules/85_文档代码差距补全.md)
+
+## 2026-04-12 Update — Hermes Agent Parity (All 6 Phases Complete)
+
+Systematic gap closure against Nous Research's Hermes Agent framework. Six backward-compatible phases implemented entirely in `packages/cli/`:
+
+- **Phase 1 Iteration Budget**: Shared `IterationBudget` replaces hardcoded `MAX_ITERATIONS=15` (default: 50). Parent and child agents share the same instance. Progressive warnings at 70%/90%/100%. Configurable via `CC_ITERATION_BUDGET` env var.
+- **Phase 2 Cross-Session FTS Search**: SQLite FTS5 virtual table `session_fts`. `/search <query>` REPL command. `search_sessions` agent tool. Auto-indexed on `SessionEnd` hook. `reindexAll()` backfill for existing sessions.
+- **Phase 3 USER.md + Frozen Prompt**: Persistent `~/.chainlesschain/USER.md` user profile (2000 char cap + AI consolidation). Injected into context engineering between instinct and memory. System prompt frozen at session start. `/profile` REPL command.
+- **Phase 4 Zero-Friction Plugin Loading**: Auto-scan `~/.chainlesschain/plugins/*.js`. Tools, hooks, and commands auto-registered. DB-registered plugins override file-drop plugins with same name.
+- **Phase 5 Docker/SSH Execution Backends**: `ExecutionBackend` abstraction + `createBackend()` factory. Local, Docker (exec + run), and SSH backends. Transparent routing for `run_shell`/`run_code`.
+- **Phase 6 Messaging Gateways**: `GatewayBase` with session management, rate limiting, and response splitting. Telegram MarkdownV2 formatter. Discord 2000-char splitter with `codeBlock`/`quoteBlock` helpers.
+
+Test matrix:
+
+| Tier | Scope | Pass |
+| --- | --- | --- |
+| Unit | iteration-budget / session-search / user-profile / plugin-autodiscovery / execution-backend / gateway-base | `206/206` |
+| Integration | hermes-parity-workflow (6-phase cross-module collaboration) | `25/25` |
+| E2E | hermes-parity-commands (CLI end-to-end full chain) | `22/22` |
+| **Total** | **8 files** | **`253/253`** |
+
+8 new source files (~1,400 lines), 9 modified files. New REPL commands: `/search`, `/profile`.
+
+Design doc: [docs/design/modules/85_Hermes_Agent对标实施方案.md](./docs/design/modules/85_Hermes_Agent对标实施方案.md) / [user doc (Chinese)](./docs-site/docs/chainlesschain/hermes-agent-parity.md) / [design doc (English)](./docs-site/docs/design/modules/85-hermes-agent-parity.md).
+
 ## 2026-04-09 Update — CLI Runtime Convergence Complete (Phase 7 Parity Harness)
 
 The CLI Runtime Convergence roadmap (`docs/design/modules/82_CLI_Runtime收口路线图.md`) Phase 0–7 is fully landed. The unified Coding Agent envelope protocol v1.0 achieves byte-level alignment across CLI / Desktop / Web UI:
@@ -82,7 +129,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-5700%2B-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-5850%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-138-blue.svg)
 ![Phases](https://img.shields.io/badge/phases-102-brightgreen.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)

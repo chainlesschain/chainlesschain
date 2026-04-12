@@ -58,6 +58,8 @@ export const HookEvents = {
   PostGitCommit: "PostGitCommit",
   PreGitPush: "PreGitPush",
   CIFailure: "CIFailure",
+  IterationWarning: "IterationWarning",
+  IterationBudgetExhausted: "IterationBudgetExhausted",
 };
 
 /**

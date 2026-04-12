@@ -12,6 +12,7 @@ import { generateInstinctPrompt } from "./instinct-manager.js";
 import { recallMemory } from "./hierarchical-memory.js";
 import { BM25Search } from "./bm25-search.js";
 import { createHash } from "crypto";
+import { readUserProfile } from "./user-profile.js";
 
 // Exported for test injection
 export const _deps = {
@@ -19,6 +20,7 @@ export const _deps = {
   recallMemory,
   BM25Search,
   createHash,
+  readUserProfile,
 };
 
 // ─── System prompt cleaning regexes (match desktop KV-Cache optimization) ───
@@ -103,6 +105,19 @@ export class CLIContextEngineering {
       } catch (_err) {
         // Instinct injection failed — skip silently
       }
+    }
+
+    // 2b. User profile injection (USER.md)
+    try {
+      const profile = _deps.readUserProfile();
+      if (profile) {
+        result.push({
+          role: "system",
+          content: `## User Profile\n${profile}`,
+        });
+      }
+    } catch (_err) {
+      // User profile injection failed — skip silently
     }
 
     // 3. Memory injection (scoped: higher threshold, namespace-aware)

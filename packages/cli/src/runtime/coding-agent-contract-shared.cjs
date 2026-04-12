@@ -403,6 +403,41 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
       tags: ["tool:spawn_sub_agent", "contract:coding-agent", "tier:extension"],
     },
   },
+  {
+    name: "search_sessions",
+    title: "Search Sessions",
+    kind: "search",
+    tier: "extension",
+    description:
+      "Search across all past agent session conversations using full-text search. Useful for finding prior context, decisions, or code discussed in previous sessions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query (supports natural language keywords)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of results to return (default: 10)",
+        },
+      },
+      required: ["query"],
+    },
+    ...TOOL_POLICY_METADATA.search_sessions,
+    permissions: {
+      level: "readonly",
+      scopes: ["session:read"],
+    },
+    telemetry: {
+      category: "search",
+      tags: [
+        "tool:search_sessions",
+        "contract:coding-agent",
+        "tier:extension",
+      ],
+    },
+  },
 ]);
 
 const CODING_AGENT_MVP_TOOL_NAMES = Object.freeze(

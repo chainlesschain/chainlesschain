@@ -148,7 +148,11 @@ class SocialCollabEngine extends EventEmitter {
    * @param {string} [options.visibility='private'] - Visibility level
    * @returns {Object} Created document
    */
-  async createDocument({ title, contentType = ContentType.MARKDOWN, visibility = Visibility.PRIVATE }) {
+  async createDocument({
+    title,
+    contentType = ContentType.MARKDOWN,
+    visibility = Visibility.PRIVATE,
+  }) {
     try {
       const currentDid = this._getCurrentDid();
       if (!currentDid) {
@@ -163,11 +167,13 @@ class SocialCollabEngine extends EventEmitter {
       const now = Date.now();
       const docId = uuidv4();
 
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO social_collab_documents (
           id, title, content_type, owner_did, visibility, status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
-      `).run(docId, title.trim(), contentType, currentDid, visibility, now, now);
+      `,
+      ).run(docId, title.trim(), contentType, currentDid, visibility, now, now);
 
       const document = {
         id: docId,
@@ -233,12 +239,17 @@ class SocialCollabEngine extends EventEmitter {
         try {
           yjsHandle = await this.yjsCollabManager.openDocument(docId);
         } catch (err) {
-          logger.warn("[SocialCollabEngine] Yjs open failed, continuing without CRDT:", err.message);
+          logger.warn(
+            "[SocialCollabEngine] Yjs open failed, continuing without CRDT:",
+            err.message,
+          );
         }
       }
 
       this.emit("document:opened", { docId, userDid: currentDid });
-      logger.info(`[SocialCollabEngine] Document ${docId} opened by ${currentDid}`);
+      logger.info(
+        `[SocialCollabEngine] Document ${docId} opened by ${currentDid}`,
+      );
 
       return {
         success: true,
@@ -282,7 +293,9 @@ class SocialCollabEngine extends EventEmitter {
       }
 
       this.emit("document:closed", { docId, userDid: currentDid });
-      logger.info(`[SocialCollabEngine] Document ${docId} closed by ${currentDid}`);
+      logger.info(
+        `[SocialCollabEngine] Document ${docId} closed by ${currentDid}`,
+      );
 
       return { success: true };
     } catch (error) {
@@ -299,7 +312,11 @@ class SocialCollabEngine extends EventEmitter {
    * @param {string} [options.permission='editor'] - Permission level
    * @returns {Object} Invitation result
    */
-  async inviteCollaborator({ docId, inviteeDid, permission = InvitePermission.EDITOR }) {
+  async inviteCollaborator({
+    docId,
+    inviteeDid,
+    permission = InvitePermission.EDITOR,
+  }) {
     try {
       const currentDid = this._getCurrentDid();
       if (!currentDid) {
@@ -329,11 +346,13 @@ class SocialCollabEngine extends EventEmitter {
       const inviteId = uuidv4();
 
       // Use INSERT OR REPLACE to handle the UNIQUE constraint
-      db.prepare(`
+      db.prepare(
+        `
         INSERT OR REPLACE INTO social_collab_invites (
           id, doc_id, inviter_did, invitee_did, permission, status, created_at
         ) VALUES (?, ?, ?, ?, ?, 'pending', ?)
-      `).run(inviteId, docId, currentDid, inviteeDid, permission, now);
+      `,
+      ).run(inviteId, docId, currentDid, inviteeDid, permission, now);
 
       const invite = {
         id: inviteId,
@@ -346,7 +365,9 @@ class SocialCollabEngine extends EventEmitter {
       };
 
       this.emit("invite:sent", invite);
-      logger.info(`[SocialCollabEngine] Invite sent to ${inviteeDid} for doc ${docId}`);
+      logger.info(
+        `[SocialCollabEngine] Invite sent to ${inviteeDid} for doc ${docId}`,
+      );
 
       return { success: true, invite };
     } catch (error) {
@@ -363,7 +384,11 @@ class SocialCollabEngine extends EventEmitter {
    * @param {number} [options.offset=0] - Offset for pagination
    * @returns {Object} List of documents
    */
-  async getMyDocuments({ status = DocStatus.ACTIVE, limit = 50, offset = 0 } = {}) {
+  async getMyDocuments({
+    status = DocStatus.ACTIVE,
+    limit = 50,
+    offset = 0,
+  } = {}) {
     try {
       const currentDid = this._getCurrentDid();
       if (!currentDid) {
@@ -372,12 +397,16 @@ class SocialCollabEngine extends EventEmitter {
 
       const db = this.database.db || this.database.getDatabase();
 
-      const documents = db.prepare(`
+      const documents = db
+        .prepare(
+          `
         SELECT * FROM social_collab_documents
         WHERE owner_did = ? AND status = ?
         ORDER BY updated_at DESC
         LIMIT ? OFFSET ?
-      `).all(currentDid, status, limit, offset);
+      `,
+        )
+        .all(currentDid, status, limit, offset);
 
       return {
         success: true,
@@ -405,14 +434,18 @@ class SocialCollabEngine extends EventEmitter {
 
       const db = this.database.db || this.database.getDatabase();
 
-      const documents = db.prepare(`
+      const documents = db
+        .prepare(
+          `
         SELECT d.*, i.permission as invite_permission, i.inviter_did
         FROM social_collab_documents d
         INNER JOIN social_collab_invites i ON d.id = i.doc_id
         WHERE i.invitee_did = ? AND i.status = 'accepted' AND d.status = 'active'
         ORDER BY d.updated_at DESC
         LIMIT ? OFFSET ?
-      `).all(currentDid, limit, offset);
+      `,
+        )
+        .all(currentDid, limit, offset);
 
       return {
         success: true,
@@ -423,7 +456,10 @@ class SocialCollabEngine extends EventEmitter {
         })),
       };
     } catch (error) {
-      logger.error("[SocialCollabEngine] Error getting shared documents:", error);
+      logger.error(
+        "[SocialCollabEngine] Error getting shared documents:",
+        error,
+      );
       return { success: false, documents: [], error: error.message };
     }
   }
@@ -456,11 +492,13 @@ class SocialCollabEngine extends EventEmitter {
       const db = this.database.db || this.database.getDatabase();
       const now = Date.now();
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE social_collab_documents
         SET status = 'archived', updated_at = ?
         WHERE id = ?
-      `).run(now, docId);
+      `,
+      ).run(now, docId);
 
       // Close the document if it's open
       if (this.openDocuments.has(docId)) {
@@ -490,9 +528,13 @@ class SocialCollabEngine extends EventEmitter {
 
       const db = this.database.db || this.database.getDatabase();
 
-      const row = db.prepare(`
+      const row = db
+        .prepare(
+          `
         SELECT * FROM social_collab_documents WHERE id = ?
-      `).get(docId);
+      `,
+        )
+        .get(docId);
 
       if (!row) {
         return null;
@@ -519,9 +561,13 @@ class SocialCollabEngine extends EventEmitter {
 
       const db = this.database.db || this.database.getDatabase();
 
-      const invite = db.prepare(`
+      const invite = db
+        .prepare(
+          `
         SELECT * FROM social_collab_invites WHERE id = ? AND invitee_did = ?
-      `).get(inviteId, currentDid);
+      `,
+        )
+        .get(inviteId, currentDid);
 
       if (!invite) {
         throw new Error("Invite not found");
@@ -531,12 +577,20 @@ class SocialCollabEngine extends EventEmitter {
         throw new Error("Invite already processed");
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE social_collab_invites SET status = 'accepted' WHERE id = ?
-      `).run(inviteId);
+      `,
+      ).run(inviteId);
 
-      this.emit("invite:accepted", { inviteId, docId: invite.doc_id, userDid: currentDid });
-      logger.info(`[SocialCollabEngine] Invite ${inviteId} accepted by ${currentDid}`);
+      this.emit("invite:accepted", {
+        inviteId,
+        docId: invite.doc_id,
+        userDid: currentDid,
+      });
+      logger.info(
+        `[SocialCollabEngine] Invite ${inviteId} accepted by ${currentDid}`,
+      );
 
       return { success: true, docId: invite.doc_id };
     } catch (error) {
@@ -559,20 +613,32 @@ class SocialCollabEngine extends EventEmitter {
 
       const db = this.database.db || this.database.getDatabase();
 
-      const invite = db.prepare(`
+      const invite = db
+        .prepare(
+          `
         SELECT * FROM social_collab_invites WHERE id = ? AND invitee_did = ?
-      `).get(inviteId, currentDid);
+      `,
+        )
+        .get(inviteId, currentDid);
 
       if (!invite) {
         throw new Error("Invite not found");
       }
 
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE social_collab_invites SET status = 'rejected' WHERE id = ?
-      `).run(inviteId);
+      `,
+      ).run(inviteId);
 
-      this.emit("invite:rejected", { inviteId, docId: invite.doc_id, userDid: currentDid });
-      logger.info(`[SocialCollabEngine] Invite ${inviteId} rejected by ${currentDid}`);
+      this.emit("invite:rejected", {
+        inviteId,
+        docId: invite.doc_id,
+        userDid: currentDid,
+      });
+      logger.info(
+        `[SocialCollabEngine] Invite ${inviteId} rejected by ${currentDid}`,
+      );
 
       return { success: true };
     } catch (error) {
@@ -594,13 +660,17 @@ class SocialCollabEngine extends EventEmitter {
 
       const db = this.database.db || this.database.getDatabase();
 
-      const invites = db.prepare(`
+      const invites = db
+        .prepare(
+          `
         SELECT i.*, d.title as doc_title, d.content_type, d.owner_did
         FROM social_collab_invites i
         INNER JOIN social_collab_documents d ON i.doc_id = d.id
         WHERE i.invitee_did = ? AND i.status = 'pending' AND d.status = 'active'
         ORDER BY i.created_at DESC
-      `).all(currentDid);
+      `,
+        )
+        .all(currentDid);
 
       return {
         success: true,
@@ -618,7 +688,10 @@ class SocialCollabEngine extends EventEmitter {
         })),
       };
     } catch (error) {
-      logger.error("[SocialCollabEngine] Error getting pending invites:", error);
+      logger.error(
+        "[SocialCollabEngine] Error getting pending invites:",
+        error,
+      );
       return { success: false, invites: [], error: error.message };
     }
   }
@@ -647,9 +720,11 @@ class SocialCollabEngine extends EventEmitter {
       return this._hasAcceptedInvite(docId, userDid);
     }
 
-    // Friends visibility: need friend check (not implemented in this module)
-    // For now, check invites as fallback
+    // Friends visibility: check friend relationship or accepted invite
     if (document.visibility === Visibility.FRIENDS) {
+      if (this._isFriend(document.ownerDid, userDid)) {
+        return true;
+      }
       return this._hasAcceptedInvite(docId, userDid);
     }
 
@@ -662,12 +737,39 @@ class SocialCollabEngine extends EventEmitter {
   _hasAcceptedInvite(docId, userDid) {
     const db = this.database.db || this.database.getDatabase();
 
-    const invite = db.prepare(`
+    const invite = db
+      .prepare(
+        `
       SELECT id FROM social_collab_invites
       WHERE doc_id = ? AND invitee_did = ? AND status = 'accepted'
-    `).get(docId, userDid);
+    `,
+      )
+      .get(docId, userDid);
 
     return !!invite;
+  }
+
+  /**
+   * Check if two users are friends (accepted friendship in either direction)
+   */
+  _isFriend(ownerDid, userDid) {
+    try {
+      const db = this.database.db || this.database.getDatabase();
+      const row = db
+        .prepare(
+          `
+        SELECT id FROM friends
+        WHERE ((user_did = ? AND friend_did = ?) OR (user_did = ? AND friend_did = ?))
+          AND status = 'accepted'
+        LIMIT 1
+      `,
+        )
+        .get(ownerDid, userDid, userDid, ownerDid);
+      return !!row;
+    } catch (_err) {
+      // friends table may not exist; fall back gracefully
+      return false;
+    }
   }
 
   /**

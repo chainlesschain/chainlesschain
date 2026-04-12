@@ -15,6 +15,9 @@ const fs = require("fs").promises;
 const os = require("os");
 const { logger } = require("../utils/logger.js");
 
+/** @type {{ fs: typeof fs, https: any, http: any, fsSync: typeof import('fs') }} */
+const _deps = { fs, https: null, http: null, fsSync: null };
+
 /**
  * Piper voice models
  */
@@ -278,16 +281,144 @@ class LocalTTSClient extends EventEmitter {
   }
 
   /**
-   * Download a model
-   * @param {string} modelId - Model ID to download
-   * @returns {Promise<Object>} Download result
+   * Download a Piper voice model from GitHub releases
+   * @param {string} modelId - Model ID from PIPER_MODELS (e.g. "en_US-lessac-medium")
+   * @returns {Promise<Object>} Download result with paths to .onnx and .json files
    */
   async downloadModel(modelId) {
-    // Model download would typically be handled by a separate utility
-    // This is a placeholder for the API
-    throw new Error(
-      "Model download not implemented. Please download models manually from https://github.com/rhasspy/piper/releases",
-    );
+    if (!modelId) {
+      throw new Error("Model ID is required");
+    }
+
+    const modelInfo = PIPER_MODELS[modelId];
+    if (!modelInfo) {
+      throw new Error(
+        `Unknown model: ${modelId}. Available: ${Object.keys(PIPER_MODELS).join(", ")}`,
+      );
+    }
+
+    // Ensure models directory exists
+    if (!this.config.modelsDir) {
+      this.config.modelsDir = path.join(
+        os.homedir(),
+        ".local",
+        "share",
+        "piper",
+        "voices",
+      );
+    }
+    await _deps.fs.mkdir(this.config.modelsDir, { recursive: true });
+
+    const onnxPath = path.join(this.config.modelsDir, `${modelId}.onnx`);
+    const jsonPath = path.join(this.config.modelsDir, `${modelId}.onnx.json`);
+
+    // Check if already downloaded
+    try {
+      await _deps.fs.access(onnxPath);
+      await _deps.fs.access(jsonPath);
+      logger.info(`[LocalTTSClient] Model ${modelId} already exists`);
+      return { modelId, onnxPath, jsonPath, alreadyExists: true };
+    } catch {
+      // Not downloaded yet, proceed
+    }
+
+    // Piper models are hosted on Hugging Face / GitHub
+    const baseUrl = `https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/${modelInfo.language.replace("-", "_")}/${modelId}/${modelId}`;
+
+    this.emit("download-start", { modelId, language: modelInfo.language });
+
+    try {
+      // Download .onnx model file
+      this.emit("download-progress", { modelId, file: "onnx", progress: 0 });
+      await this._downloadFile(`${baseUrl}.onnx`, onnxPath);
+      this.emit("download-progress", { modelId, file: "onnx", progress: 100 });
+
+      // Download .onnx.json config file
+      this.emit("download-progress", { modelId, file: "json", progress: 0 });
+      await this._downloadFile(`${baseUrl}.onnx.json`, jsonPath);
+      this.emit("download-progress", { modelId, file: "json", progress: 100 });
+
+      // Register the newly downloaded model
+      let config = {};
+      try {
+        const configData = await _deps.fs.readFile(jsonPath, "utf-8");
+        config = JSON.parse(configData);
+      } catch {
+        // Use PIPER_MODELS defaults
+      }
+
+      this.models[modelId] = {
+        path: onnxPath,
+        configPath: jsonPath,
+        language: config.language || modelInfo.language,
+        name: modelId,
+        quality: modelInfo.quality,
+        sampleRate: config.audio?.sample_rate || modelInfo.sampleRate,
+      };
+
+      this.emit("download-complete", { modelId });
+      logger.info(`[LocalTTSClient] Downloaded model: ${modelId}`);
+      return { modelId, onnxPath, jsonPath, alreadyExists: false };
+    } catch (error) {
+      // Clean up partial downloads
+      await _deps.fs.unlink(onnxPath).catch(() => {});
+      await _deps.fs.unlink(jsonPath).catch(() => {});
+      this.emit("download-error", { modelId, error: error.message });
+      throw new Error(`Failed to download model ${modelId}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Download a file via HTTPS with redirect following
+   * @private
+   */
+  _downloadFile(url, destPath) {
+    const https = _deps.https || require("https");
+    const http = _deps.http || require("http");
+    const fsSync = _deps.fsSync || require("fs");
+
+    return new Promise((resolve, reject) => {
+      const makeRequest = (requestUrl, redirectCount = 0) => {
+        if (redirectCount > 5) {
+          return reject(new Error("Too many redirects"));
+        }
+
+        const client = requestUrl.startsWith("https") ? https : http;
+        client
+          .get(requestUrl, (response) => {
+            // Follow redirects
+            if (
+              response.statusCode >= 300 &&
+              response.statusCode < 400 &&
+              response.headers.location
+            ) {
+              response.resume();
+              return makeRequest(response.headers.location, redirectCount + 1);
+            }
+
+            if (response.statusCode !== 200) {
+              response.resume();
+              return reject(
+                new Error(`HTTP ${response.statusCode} for ${requestUrl}`),
+              );
+            }
+
+            const fileStream = fsSync.createWriteStream(destPath);
+            response.pipe(fileStream);
+            fileStream.on("finish", () => {
+              fileStream.close();
+              resolve();
+            });
+            fileStream.on("error", (err) => {
+              fsSync.unlink(destPath, () => {});
+              reject(err);
+            });
+          })
+          .on("error", reject);
+      };
+
+      makeRequest(url);
+    });
   }
 
   /**
@@ -474,4 +605,5 @@ class LocalTTSClient extends EventEmitter {
 module.exports = {
   LocalTTSClient,
   PIPER_MODELS,
+  _deps,
 };

@@ -94,6 +94,36 @@ chainlesschain nostr map-did "did:chainless:abc123" "npub1xyz..."
 | `nostr_relays` | 中继节点（URL、状态、事件计数、最后连接时间） |
 | `nostr_events` | 事件记录（事件 ID、公钥、类型、内容、标签、签名、时间戳） |
 
+## 连接架构
+
+### WebSocket 连接
+
+Nostr 桥接使用真实 WebSocket（`ws` 模块）连接中继节点，支持：
+
+- **自动重连**: 连接断开后使用指数退避策略自动重连（1s → 2s → 4s → ... → 60s 最大间隔）
+- **NIP-01 消息处理**: 完整支持 `["EVENT", ...]`、`["EOSE", ...]`、`["OK", ...]`、`["NOTICE", ...]` 四种标准消息类型
+- **多中继并发**: 事件同时发布到所有已连接的中继，统计成功/失败计数
+- **连接状态管理**: 每个中继独立追踪 `connected` / `disconnected` / `error` 状态
+
+```
+连接生命周期:
+1. new WebSocket(relayUrl) → ws.on("open") → status: connected
+2. ws.on("message") → 解析 NIP-01 消息 → 分发到事件处理器
+3. ws.on("close") → status: disconnected → 调度指数退避重连
+4. ws.on("error") → status: error → 记录错误日志
+```
+
+### 事件发布流程
+
+```
+publishEvent(content, kind, tags)
+  → 构造 NIP-01 事件对象
+  → 序列化为 JSON
+  → 遍历所有 status=connected 的中继
+  → ws.send(["EVENT", event]) 
+  → 统计 sentCount / failedCount
+```
+
 ## 系统架构
 
 ```
@@ -102,21 +132,28 @@ chainlesschain nostr map-did "did:chainless:abc123" "npub1xyz..."
                 ┌───────────────────────┼───────────────────────┐
                 ▼                       ▼                       ▼
           中继管理                 事件引擎                 身份桥接
-     (添加/列出)           (发布/查询/过滤)          (密钥生成/DID映射)
-                ▼                       ▼
-         nostr_relays            nostr_events
+     (WebSocket连接)        (发布/查询/NIP-01)        (密钥生成/DID映射)
+     (指数退避重连)                  ▼                       ▼
+                ▼              nostr_events           DID ↔ Nostr 映射
+         nostr_relays
 ```
 
 ## 关键文件
 
 - `packages/cli/src/commands/nostr.js` — 命令实现
 - `packages/cli/src/lib/nostr-bridge.js` — Nostr 桥接库
+- `desktop-app-vue/src/main/social/nostr-bridge.js` — Desktop Nostr 引擎（真实 WebSocket + NIP-01）
 
 ## 测试
 
 ```bash
-npx vitest run __tests__/unit/nostr-bridge.test.js
+# CLI 单元测试
+cd packages/cli && npx vitest run __tests__/unit/nostr-bridge.test.js
 # 22 tests, all pass
+
+# Desktop WebSocket 单元测试
+cd desktop-app-vue && npx vitest run tests/unit/social/nostr-bridge-ws
+# 26 tests, all pass
 ```
 
 ## 使用示例
