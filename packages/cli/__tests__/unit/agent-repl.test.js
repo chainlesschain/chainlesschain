@@ -519,13 +519,20 @@ describe("agent-repl context engineering integration", () => {
     expect(typeof ceMod.CLIContextEngineering).toBe("function");
 
     // Verify CLIContextEngineering works in isolation
-    const engine = new ceMod.CLIContextEngineering({ db: null });
-    const result = engine.buildOptimizedMessages(
-      [{ role: "system", content: "test" }],
-      { userQuery: "hello" },
-    );
-    expect(result).toHaveLength(1);
-    expect(result[0].role).toBe("system");
+    // Mock readUserProfile to avoid filesystem dependency in CI
+    const origReadProfile = ceMod._deps.readUserProfile;
+    ceMod._deps.readUserProfile = () => "";
+    try {
+      const engine = new ceMod.CLIContextEngineering({ db: null });
+      const result = engine.buildOptimizedMessages(
+        [{ role: "system", content: "test" }],
+        { userQuery: "hello" },
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].role).toBe("system");
+    } finally {
+      ceMod._deps.readUserProfile = origReadProfile;
+    }
   });
 
   it("getBaseSystemPrompt includes cwd", async () => {
