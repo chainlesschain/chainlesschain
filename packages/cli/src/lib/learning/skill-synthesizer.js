@@ -67,13 +67,15 @@ export function fingerprintsOverlap(fp1, fp2, threshold = 0.7) {
  */
 export function generateSkillName(userIntent) {
   if (!userIntent) return "auto-learned-skill";
-  return userIntent
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fff\s-]/g, "")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 4)
-    .join("-") || "auto-learned-skill";
+  return (
+    userIntent
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fff\s-]/g, "")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 4)
+      .join("-") || "auto-learned-skill"
+  );
 }
 
 // ── LLM prompt template ─────────────────────────────────
@@ -129,9 +131,7 @@ export function generateSkillMd(pattern, trajectoryId, confidence = 0.7) {
   const procedure = (pattern.procedure || [])
     .map((step, i) => `${i + 1}. ${step}`)
     .join("\n");
-  const pitfalls = (pattern.pitfalls || [])
-    .map((p) => `- ${p}`)
-    .join("\n");
+  const pitfalls = (pattern.pitfalls || []).map((p) => `- ${p}`).join("\n");
 
   return `---
 name: ${pattern.name}
@@ -202,7 +202,9 @@ export class SkillSynthesizer {
         });
 
         if (similar.length < this.minSimilar) {
-          skipped.push(`${traj.id}: insufficient similar trajectories (${similar.length}/${this.minSimilar})`);
+          skipped.push(
+            `${traj.id}: insufficient similar trajectories (${similar.length}/${this.minSimilar})`,
+          );
           continue;
         }
 
@@ -222,7 +224,11 @@ export class SkillSynthesizer {
 
         // Generate and persist
         const skillName = pattern.name || generateSkillName(traj.userIntent);
-        const content = generateSkillMd(pattern, traj.id, traj.outcomeScore || 0.7);
+        const content = generateSkillMd(
+          pattern,
+          traj.id,
+          traj.outcomeScore || 0.7,
+        );
 
         if (this.outputDir) {
           await this._persistSkill(skillName, content);

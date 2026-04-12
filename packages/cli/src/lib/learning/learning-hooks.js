@@ -48,7 +48,8 @@ export function onUserPromptSubmit(ctx, prompt) {
  * @param {{tool:string, args:any, result:any, durationMs?:number, status?:string}} record
  */
 export function onPostToolUse(ctx, record) {
-  if (!ctx || !ctx.enabled || !ctx.trajectoryStore || !ctx.currentTrajectoryId) return;
+  if (!ctx || !ctx.enabled || !ctx.trajectoryStore || !ctx.currentTrajectoryId)
+    return;
   try {
     ctx.trajectoryStore.appendToolCall(ctx.currentTrajectoryId, record);
   } catch (_err) {
@@ -63,7 +64,8 @@ export function onPostToolUse(ctx, record) {
  * @returns {object|null} completed trajectory or null
  */
 export function onResponseComplete(ctx, data) {
-  if (!ctx || !ctx.enabled || !ctx.trajectoryStore || !ctx.currentTrajectoryId) return null;
+  if (!ctx || !ctx.enabled || !ctx.trajectoryStore || !ctx.currentTrajectoryId)
+    return null;
   try {
     const trajectory = ctx.trajectoryStore.completeTrajectory(
       ctx.currentTrajectoryId,

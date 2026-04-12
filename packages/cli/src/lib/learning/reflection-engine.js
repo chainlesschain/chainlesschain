@@ -77,8 +77,7 @@ export function computeScoreTrend(trajectories) {
   const firstAvg =
     firstHalf.reduce((sum, t) => sum + t.outcomeScore, 0) / firstHalf.length;
   const secondAvg =
-    secondHalf.reduce((sum, t) => sum + t.outcomeScore, 0) /
-    secondHalf.length;
+    secondHalf.reduce((sum, t) => sum + t.outcomeScore, 0) / secondHalf.length;
 
   const delta = secondAvg - firstAvg;
   let trend = "stable";

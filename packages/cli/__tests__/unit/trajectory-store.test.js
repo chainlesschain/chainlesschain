@@ -110,13 +110,35 @@ describe("trajectory-store", () => {
 
     it("appends multiple tool calls in order", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "read_file", args: {}, result: "ok", durationMs: 10, status: "completed" });
-      store.appendToolCall(id, { tool: "edit_file", args: {}, result: "ok", durationMs: 20, status: "completed" });
-      store.appendToolCall(id, { tool: "run_shell", args: {}, result: "ok", durationMs: 30, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 10,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "edit_file",
+        args: {},
+        result: "ok",
+        durationMs: 20,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "run_shell",
+        args: {},
+        result: "ok",
+        durationMs: 30,
+        status: "completed",
+      });
 
       const traj = store.getTrajectory(id);
       expect(traj.toolChain).toHaveLength(3);
-      expect(traj.toolChain.map((t) => t.tool)).toEqual(["read_file", "edit_file", "run_shell"]);
+      expect(traj.toolChain.map((t) => t.tool)).toEqual([
+        "read_file",
+        "edit_file",
+        "run_shell",
+      ]);
       expect(traj.toolCount).toBe(3);
     });
 
@@ -124,25 +146,67 @@ describe("trajectory-store", () => {
       const id = store.startTrajectory("s1", "test");
 
       // 1 tool → simple
-      store.appendToolCall(id, { tool: "t1", args: {}, result: "", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "t1",
+        args: {},
+        result: "",
+        durationMs: 0,
+        status: "completed",
+      });
       expect(store.getTrajectory(id).complexityLevel).toBe("simple");
 
       // 3 tools → moderate
-      store.appendToolCall(id, { tool: "t2", args: {}, result: "", durationMs: 0, status: "completed" });
-      store.appendToolCall(id, { tool: "t3", args: {}, result: "", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "t2",
+        args: {},
+        result: "",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "t3",
+        args: {},
+        result: "",
+        durationMs: 0,
+        status: "completed",
+      });
       expect(store.getTrajectory(id).complexityLevel).toBe("moderate");
 
       // 6 tools → complex
-      store.appendToolCall(id, { tool: "t4", args: {}, result: "", durationMs: 0, status: "completed" });
-      store.appendToolCall(id, { tool: "t5", args: {}, result: "", durationMs: 0, status: "completed" });
-      store.appendToolCall(id, { tool: "t6", args: {}, result: "", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "t4",
+        args: {},
+        result: "",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "t5",
+        args: {},
+        result: "",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id, {
+        tool: "t6",
+        args: {},
+        result: "",
+        durationMs: 0,
+        status: "completed",
+      });
       expect(store.getTrajectory(id).complexityLevel).toBe("complex");
     });
 
     it("truncates large results to 500 chars", () => {
       const id = store.startTrajectory("s1", "test");
       const longResult = "x".repeat(1000);
-      store.appendToolCall(id, { tool: "read_file", args: {}, result: longResult, durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "read_file",
+        args: {},
+        result: longResult,
+        durationMs: 0,
+        status: "completed",
+      });
 
       const traj = store.getTrajectory(id);
       expect(traj.toolChain[0].result.length).toBeLessThanOrEqual(515); // 500 + "...[truncated]"
@@ -151,7 +215,13 @@ describe("trajectory-store", () => {
 
     it("serializes object results as JSON", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "search", args: {}, result: { found: true, count: 5 }, durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "search",
+        args: {},
+        result: { found: true, count: 5 },
+        durationMs: 0,
+        status: "completed",
+      });
 
       const traj = store.getTrajectory(id);
       expect(traj.toolChain[0].result).toContain("found");
@@ -171,7 +241,11 @@ describe("trajectory-store", () => {
     });
 
     it("no-ops when trajectoryId does not exist", () => {
-      store.appendToolCall("nonexistent-id", { tool: "t1", args: {}, result: "ok" });
+      store.appendToolCall("nonexistent-id", {
+        tool: "t1",
+        args: {},
+        result: "ok",
+      });
       // Should not throw
     });
   });
@@ -181,7 +255,13 @@ describe("trajectory-store", () => {
   describe("completeTrajectory", () => {
     it("sets final response and completed_at", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "t1", args: {}, result: "ok", durationMs: 10, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "t1",
+        args: {},
+        result: "ok",
+        durationMs: 10,
+        status: "completed",
+      });
 
       const traj = store.completeTrajectory(id, { finalResponse: "Done!" });
       expect(traj.finalResponse).toBe("Done!");
@@ -202,7 +282,10 @@ describe("trajectory-store", () => {
 
     it("handles empty tags array", () => {
       const id = store.startTrajectory("s1", "test");
-      const traj = store.completeTrajectory(id, { finalResponse: "ok", tags: [] });
+      const traj = store.completeTrajectory(id, {
+        finalResponse: "ok",
+        tags: [],
+      });
       expect(traj.tags).toEqual([]);
     });
 
@@ -294,7 +377,10 @@ describe("trajectory-store", () => {
       createComplexTrajectory("s1", 3, 0.9); // too few tools
       createComplexTrajectory("s1", 6, 0.3); // score too low
 
-      const results = store.findComplexUnprocessed({ minToolCount: 5, minScore: 0.7 });
+      const results = store.findComplexUnprocessed({
+        minToolCount: 5,
+        minScore: 0.7,
+      });
       expect(results.length).toBe(2);
     });
 
@@ -302,7 +388,10 @@ describe("trajectory-store", () => {
       const id = createComplexTrajectory("s1", 6, 0.9);
       store.markSynthesized(id, "some-skill");
 
-      const results = store.findComplexUnprocessed({ minToolCount: 5, minScore: 0.7 });
+      const results = store.findComplexUnprocessed({
+        minToolCount: 5,
+        minScore: 0.7,
+      });
       expect(results.length).toBe(0);
     });
 
@@ -313,7 +402,10 @@ describe("trajectory-store", () => {
       const completedId = createComplexTrajectory("s1", 6, 0.9);
       // completedId is completed (via createComplexTrajectory)
 
-      const results = store.findComplexUnprocessed({ minToolCount: 5, minScore: 0.7 });
+      const results = store.findComplexUnprocessed({
+        minToolCount: 5,
+        minScore: 0.7,
+      });
       expect(results.length).toBe(1);
       expect(results[0].id).toBe(completedId);
     });
@@ -323,7 +415,11 @@ describe("trajectory-store", () => {
         createComplexTrajectory("s1", 6, 0.9);
       }
 
-      const results = store.findComplexUnprocessed({ minToolCount: 5, minScore: 0.7, limit: 3 });
+      const results = store.findComplexUnprocessed({
+        minToolCount: 5,
+        minScore: 0.7,
+        limit: 3,
+      });
       expect(results.length).toBe(3);
     });
 
@@ -339,31 +435,73 @@ describe("trajectory-store", () => {
   describe("findSimilar", () => {
     it("finds trajectories with similar tool sets", () => {
       const id1 = store.startTrajectory("s1", "task A");
-      store.appendToolCall(id1, { tool: "read_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
-      store.appendToolCall(id1, { tool: "edit_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
-      store.appendToolCall(id1, { tool: "run_shell", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id1, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id1, {
+        tool: "edit_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id1, {
+        tool: "run_shell",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id1, { finalResponse: "done" });
 
-      const results = store.findSimilar(["read_file", "edit_file", "run_shell"]);
+      const results = store.findSimilar([
+        "read_file",
+        "edit_file",
+        "run_shell",
+      ]);
       expect(results.length).toBe(1);
       expect(results[0].similarity).toBe(1); // exact match
     });
 
     it("calculates Jaccard similarity correctly", () => {
       const id1 = store.startTrajectory("s1", "task");
-      store.appendToolCall(id1, { tool: "read_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
-      store.appendToolCall(id1, { tool: "edit_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id1, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
+      store.appendToolCall(id1, {
+        tool: "edit_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id1, { finalResponse: "done" });
 
       // Query with 3 tools, 2 overlap → Jaccard = 2/3 ≈ 0.67
-      const results = store.findSimilar(["read_file", "edit_file", "git"], { minSimilarity: 0.5 });
+      const results = store.findSimilar(["read_file", "edit_file", "git"], {
+        minSimilarity: 0.5,
+      });
       expect(results.length).toBe(1);
       expect(results[0].similarity).toBeCloseTo(2 / 3, 2);
     });
 
     it("filters by minimum similarity", () => {
       const id1 = store.startTrajectory("s1", "task");
-      store.appendToolCall(id1, { tool: "read_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id1, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id1, { finalResponse: "done" });
 
       // Query: {read_file, edit_file, run_shell, git} vs {read_file}
@@ -377,7 +515,13 @@ describe("trajectory-store", () => {
 
     it("excludes specified trajectory ID", () => {
       const id1 = store.startTrajectory("s1", "task");
-      store.appendToolCall(id1, { tool: "read_file", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id1, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id1, { finalResponse: "done" });
 
       const results = store.findSimilar(["read_file"], { excludeId: id1 });
@@ -432,7 +576,13 @@ describe("trajectory-store", () => {
       // 1 complex
       const id = store.startTrajectory("s1", "complex");
       for (let i = 0; i < 6; i++) {
-        store.appendToolCall(id, { tool: `t${i}`, args: {}, result: "ok", durationMs: 0, status: "completed" });
+        store.appendToolCall(id, {
+          tool: `t${i}`,
+          args: {},
+          result: "ok",
+          durationMs: 0,
+          status: "completed",
+        });
       }
       // 1 simple
       store.startTrajectory("s1", "simple");
@@ -451,7 +601,12 @@ describe("trajectory-store", () => {
 
     it("returns zeros for empty store", () => {
       const stats = store.getStats();
-      expect(stats).toEqual({ total: 0, complex: 0, scored: 0, synthesized: 0 });
+      expect(stats).toEqual({
+        total: 0,
+        complex: 0,
+        scored: 0,
+        synthesized: 0,
+      });
     });
   });
 

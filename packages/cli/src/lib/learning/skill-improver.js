@@ -470,10 +470,7 @@ export class SkillImprover {
   _applyCorrectionPatch(body, suggestion) {
     let result = body;
 
-    if (
-      suggestion.updatedProcedure &&
-      suggestion.updatedProcedure.length > 0
-    ) {
+    if (suggestion.updatedProcedure && suggestion.updatedProcedure.length > 0) {
       const newProcedure = suggestion.updatedProcedure
         .map((step, i) => `${i + 1}. ${step}`)
         .join("\n");

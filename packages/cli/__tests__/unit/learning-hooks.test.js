@@ -103,13 +103,35 @@ describe("learning-hooks", () => {
     it("appends multiple tool calls in order", () => {
       const ctx = makeCtx();
       onUserPromptSubmit(ctx, "test");
-      onPostToolUse(ctx, { tool: "read_file", args: {}, result: "ok", durationMs: 10, status: "completed" });
-      onPostToolUse(ctx, { tool: "edit_file", args: {}, result: "ok", durationMs: 20, status: "completed" });
-      onPostToolUse(ctx, { tool: "run_shell", args: {}, result: "ok", durationMs: 30, status: "completed" });
+      onPostToolUse(ctx, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 10,
+        status: "completed",
+      });
+      onPostToolUse(ctx, {
+        tool: "edit_file",
+        args: {},
+        result: "ok",
+        durationMs: 20,
+        status: "completed",
+      });
+      onPostToolUse(ctx, {
+        tool: "run_shell",
+        args: {},
+        result: "ok",
+        durationMs: 30,
+        status: "completed",
+      });
 
       const traj = store.getTrajectory(ctx.currentTrajectoryId);
       expect(traj.toolChain).toHaveLength(3);
-      expect(traj.toolChain.map((t) => t.tool)).toEqual(["read_file", "edit_file", "run_shell"]);
+      expect(traj.toolChain.map((t) => t.tool)).toEqual([
+        "read_file",
+        "edit_file",
+        "run_shell",
+      ]);
     });
 
     it("no-ops when no currentTrajectoryId", () => {
@@ -128,7 +150,10 @@ describe("learning-hooks", () => {
           throw new Error("DB error");
         },
       };
-      const ctx = makeCtx({ trajectoryStore: brokenStore, currentTrajectoryId: "t1" });
+      const ctx = makeCtx({
+        trajectoryStore: brokenStore,
+        currentTrajectoryId: "t1",
+      });
       onPostToolUse(ctx, { tool: "t1", args: {} }); // should not throw
     });
   });
@@ -139,7 +164,13 @@ describe("learning-hooks", () => {
     it("completes the trajectory and resets currentTrajectoryId", () => {
       const ctx = makeCtx();
       onUserPromptSubmit(ctx, "build project");
-      onPostToolUse(ctx, { tool: "run_shell", args: {}, result: "ok", durationMs: 100, status: "completed" });
+      onPostToolUse(ctx, {
+        tool: "run_shell",
+        args: {},
+        result: "ok",
+        durationMs: 100,
+        status: "completed",
+      });
 
       const result = onResponseComplete(ctx, {
         finalResponse: "Build successful",
@@ -167,7 +198,10 @@ describe("learning-hooks", () => {
           throw new Error("fail");
         },
       };
-      const ctx = makeCtx({ trajectoryStore: brokenStore, currentTrajectoryId: "t1" });
+      const ctx = makeCtx({
+        trajectoryStore: brokenStore,
+        currentTrajectoryId: "t1",
+      });
       const result = onResponseComplete(ctx, {});
       expect(result).toBeNull();
       expect(ctx.currentTrajectoryId).toBeNull();
@@ -233,12 +267,32 @@ describe("learning-hooks", () => {
       expect(ctx.currentTrajectoryId).toBe("traj-1");
 
       // Agent uses tools
-      onPostToolUse(ctx, { tool: "read_file", args: { path: "auth.js" }, result: "code", durationMs: 10, status: "completed" });
-      onPostToolUse(ctx, { tool: "edit_file", args: { path: "auth.js" }, result: "ok", durationMs: 20, status: "completed" });
-      onPostToolUse(ctx, { tool: "run_shell", args: { cmd: "npm test" }, result: "pass", durationMs: 3000, status: "completed" });
+      onPostToolUse(ctx, {
+        tool: "read_file",
+        args: { path: "auth.js" },
+        result: "code",
+        durationMs: 10,
+        status: "completed",
+      });
+      onPostToolUse(ctx, {
+        tool: "edit_file",
+        args: { path: "auth.js" },
+        result: "ok",
+        durationMs: 20,
+        status: "completed",
+      });
+      onPostToolUse(ctx, {
+        tool: "run_shell",
+        args: { cmd: "npm test" },
+        result: "pass",
+        durationMs: 3000,
+        status: "completed",
+      });
 
       // Agent responds
-      const traj = onResponseComplete(ctx, { finalResponse: "Refactored auth module" });
+      const traj = onResponseComplete(ctx, {
+        finalResponse: "Refactored auth module",
+      });
       expect(traj.toolCount).toBe(3);
       expect(traj.userIntent).toBe("refactor auth module");
       expect(traj.complexityLevel).toBe("moderate");

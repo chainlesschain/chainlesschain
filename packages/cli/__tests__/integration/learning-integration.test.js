@@ -85,12 +85,33 @@ describe("learning-loop integration", () => {
       expect(ctx.currentTrajectoryId).toBe("traj-1");
 
       // Agent uses tools
-      onPostToolUse(ctx, { tool: "read_file", args: { path: "auth.js" }, result: "code...", durationMs: 15, status: "completed" });
-      onPostToolUse(ctx, { tool: "edit_file", args: { path: "auth.js" }, result: "ok", durationMs: 25, status: "completed" });
-      onPostToolUse(ctx, { tool: "run_shell", args: { cmd: "npm test" }, result: "pass", durationMs: 3000, status: "completed" });
+      onPostToolUse(ctx, {
+        tool: "read_file",
+        args: { path: "auth.js" },
+        result: "code...",
+        durationMs: 15,
+        status: "completed",
+      });
+      onPostToolUse(ctx, {
+        tool: "edit_file",
+        args: { path: "auth.js" },
+        result: "ok",
+        durationMs: 25,
+        status: "completed",
+      });
+      onPostToolUse(ctx, {
+        tool: "run_shell",
+        args: { cmd: "npm test" },
+        result: "pass",
+        durationMs: 3000,
+        status: "completed",
+      });
 
       // Agent responds
-      const traj = onResponseComplete(ctx, { finalResponse: "Auth module refactored", tags: ["refactor"] });
+      const traj = onResponseComplete(ctx, {
+        finalResponse: "Auth module refactored",
+        tags: ["refactor"],
+      });
       expect(traj.toolCount).toBe(3);
       expect(traj.complexityLevel).toBe("moderate");
 
@@ -114,7 +135,13 @@ describe("learning-loop integration", () => {
 
       // First turn: agent does something
       onUserPromptSubmit(ctx, "fix the login bug");
-      onPostToolUse(ctx, { tool: "edit_file", args: { path: "login.js" }, result: "ok", durationMs: 10, status: "completed" });
+      onPostToolUse(ctx, {
+        tool: "edit_file",
+        args: { path: "login.js" },
+        result: "ok",
+        durationMs: 10,
+        status: "completed",
+      });
       onResponseComplete(ctx, { finalResponse: "Fixed" });
       feedback.scoreTrajectory("traj-1");
 
@@ -122,7 +149,10 @@ describe("learning-loop integration", () => {
       expect(before.outcomeScore).toBeCloseTo(0.8, 5);
 
       // User corrects: "wrong, that's not right"
-      const result = feedback.checkCorrection("wrong, redo the login fix", "traj-1");
+      const result = feedback.checkCorrection(
+        "wrong, redo the login fix",
+        "traj-1",
+      );
       expect(result.isCorrection).toBe(true);
 
       const after = store.getTrajectory("traj-1");
@@ -130,7 +160,8 @@ describe("learning-loop integration", () => {
     });
 
     it("propagates high score to instinct system", async () => {
-      const { recordInstinct } = await import("../../src/lib/instinct-manager.js");
+      const { recordInstinct } =
+        await import("../../src/lib/instinct-manager.js");
 
       const ctx = {
         trajectoryStore: store,
@@ -140,8 +171,20 @@ describe("learning-loop integration", () => {
       };
 
       onUserPromptSubmit(ctx, "deploy app");
-      onPostToolUse(ctx, { tool: "read_file", args: {}, result: "ok", durationMs: 5, status: "completed" });
-      onPostToolUse(ctx, { tool: "run_shell", args: {}, result: "ok", durationMs: 100, status: "completed" });
+      onPostToolUse(ctx, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 5,
+        status: "completed",
+      });
+      onPostToolUse(ctx, {
+        tool: "run_shell",
+        args: {},
+        result: "ok",
+        durationMs: 100,
+        status: "completed",
+      });
       onResponseComplete(ctx, { finalResponse: "Deployed" });
 
       // Score high enough for instinct propagation
@@ -174,7 +217,14 @@ describe("learning-loop integration", () => {
 
     it("synthesizes a skill from multiple similar high-scoring trajectories", async () => {
       // Simulate 3 similar coding sessions via hooks
-      const tools = ["read_file", "edit_file", "run_shell", "read_file", "edit_file", "run_shell"];
+      const tools = [
+        "read_file",
+        "edit_file",
+        "run_shell",
+        "read_file",
+        "edit_file",
+        "run_shell",
+      ];
       for (let i = 0; i < 3; i++) {
         const ctx = {
           trajectoryStore: store,
@@ -184,7 +234,13 @@ describe("learning-loop integration", () => {
         };
         onUserPromptSubmit(ctx, "refactor code");
         for (const t of tools) {
-          onPostToolUse(ctx, { tool: t, args: {}, result: "ok", durationMs: 10, status: "completed" });
+          onPostToolUse(ctx, {
+            tool: t,
+            args: {},
+            result: "ok",
+            durationMs: 10,
+            status: "completed",
+          });
         }
         onResponseComplete(ctx, { finalResponse: "done" });
         feedback.scoreTrajectory(ctx.currentTrajectoryId || `traj-${i + 1}`);
@@ -217,7 +273,9 @@ describe("learning-loop integration", () => {
 
       // Verify at least one trajectory is marked as synthesized
       const allTrajs = store.getRecent({ limit: 10 });
-      const synthesized = allTrajs.filter((t) => t.synthesizedSkill === "code-refactor");
+      const synthesized = allTrajs.filter(
+        (t) => t.synthesizedSkill === "code-refactor",
+      );
       expect(synthesized.length).toBeGreaterThanOrEqual(1);
 
       // Verify SKILL.md was written
@@ -267,37 +325,65 @@ Tests pass
     it("improves a synthesized skill when a better trajectory appears", async () => {
       // Create original synthesized trajectory
       const id1 = store.startTrajectory("s1", "refactor");
-      store.appendToolCall(id1, { tool: "read_file", args: {}, result: "ok", durationMs: 10, status: "completed" });
+      store.appendToolCall(id1, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 10,
+        status: "completed",
+      });
       store.completeTrajectory(id1, { finalResponse: "done" });
       store.setOutcomeScore(id1, 0.7, "auto");
       store.markSynthesized(id1, "code-refactor");
 
       // Better trajectory appears
       const id2 = store.startTrajectory("s2", "refactor v2");
-      store.appendToolCall(id2, { tool: "read_file", args: {}, result: "ok", durationMs: 5, status: "completed" });
-      store.appendToolCall(id2, { tool: "edit_file", args: {}, result: "ok", durationMs: 5, status: "completed" });
+      store.appendToolCall(id2, {
+        tool: "read_file",
+        args: {},
+        result: "ok",
+        durationMs: 5,
+        status: "completed",
+      });
+      store.appendToolCall(id2, {
+        tool: "edit_file",
+        args: {},
+        result: "ok",
+        durationMs: 5,
+        status: "completed",
+      });
       store.completeTrajectory(id2, { finalResponse: "done better" });
       store.setOutcomeScore(id2, 0.95, "user");
 
       mockLLM.mockResolvedValue(
         JSON.stringify({
           improvements: "Added editing step for more complete workflow",
-          mergedProcedure: ["Read file", "Edit with improvements", "Run tests", "Verify output"],
+          mergedProcedure: [
+            "Read file",
+            "Edit with improvements",
+            "Run tests",
+            "Verify output",
+          ],
           mergedPitfalls: ["Backup first", "Check file permissions"],
           updatedVerification: "Tests pass + output verified",
           confidence: 0.9,
         }),
       );
 
-      const improver = new SkillImprover(db, mockLLM, store, { skillsDir: "/skills" });
-      const result = await improver.improveFromBetterTrajectory("code-refactor", {
-        userIntent: "refactor v2",
-        outcomeScore: 0.95,
-        toolChain: [
-          { tool: "read_file", args: {}, status: "completed" },
-          { tool: "edit_file", args: {}, status: "completed" },
-        ],
+      const improver = new SkillImprover(db, mockLLM, store, {
+        skillsDir: "/skills",
       });
+      const result = await improver.improveFromBetterTrajectory(
+        "code-refactor",
+        {
+          userIntent: "refactor v2",
+          outcomeScore: 0.95,
+          toolChain: [
+            { tool: "read_file", args: {}, status: "completed" },
+            { tool: "edit_file", args: {}, status: "completed" },
+          ],
+        },
+      );
 
       expect(result.improved).toBe(true);
 
@@ -316,13 +402,20 @@ Tests pass
       mockLLM.mockResolvedValue(
         JSON.stringify({
           diagnosis: "Missing npm install step",
-          fixedProcedure: ["Install dependencies", "Read file", "Edit file", "Run tests"],
+          fixedProcedure: [
+            "Install dependencies",
+            "Read file",
+            "Edit file",
+            "Run tests",
+          ],
           newPitfalls: ["Always run npm install first"],
           confidence: 0.85,
         }),
       );
 
-      const improver = new SkillImprover(db, mockLLM, store, { skillsDir: "/skills" });
+      const improver = new SkillImprover(db, mockLLM, store, {
+        skillsDir: "/skills",
+      });
       const result = await improver.repairFromError("code-refactor", {
         error: "npm: command not found",
         toolChain: [{ tool: "run_shell", status: "error" }],
@@ -381,18 +474,42 @@ Tests pass
 
       // Turn 1
       onUserPromptSubmit(ctx, "read the config");
-      onPostToolUse(ctx, { tool: "read_file", args: { path: "config.json" }, result: "{}", durationMs: 5, status: "completed" });
+      onPostToolUse(ctx, {
+        tool: "read_file",
+        args: { path: "config.json" },
+        result: "{}",
+        durationMs: 5,
+        status: "completed",
+      });
       onResponseComplete(ctx, { finalResponse: "Config loaded" });
 
       // Turn 2
       onUserPromptSubmit(ctx, "update the config");
-      onPostToolUse(ctx, { tool: "read_file", args: { path: "config.json" }, result: "{}", durationMs: 5, status: "completed" });
-      onPostToolUse(ctx, { tool: "edit_file", args: { path: "config.json" }, result: "ok", durationMs: 10, status: "completed" });
+      onPostToolUse(ctx, {
+        tool: "read_file",
+        args: { path: "config.json" },
+        result: "{}",
+        durationMs: 5,
+        status: "completed",
+      });
+      onPostToolUse(ctx, {
+        tool: "edit_file",
+        args: { path: "config.json" },
+        result: "ok",
+        durationMs: 10,
+        status: "completed",
+      });
       onResponseComplete(ctx, { finalResponse: "Config updated" });
 
       // Turn 3 — with error
       onUserPromptSubmit(ctx, "deploy");
-      onPostToolUse(ctx, { tool: "run_shell", args: { cmd: "deploy" }, result: "fail", durationMs: 5000, status: "error" });
+      onPostToolUse(ctx, {
+        tool: "run_shell",
+        args: { cmd: "deploy" },
+        result: "fail",
+        durationMs: 5000,
+        status: "error",
+      });
       onResponseComplete(ctx, { finalResponse: "Deploy failed" });
 
       // Verify 3 independent trajectories
@@ -424,7 +541,13 @@ Tests pass
   describe("edge cases", () => {
     it("handles rapid score overrides: auto → user → correction", () => {
       const id = store.startTrajectory("s1", "test");
-      store.appendToolCall(id, { tool: "t1", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id, {
+        tool: "t1",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id, { finalResponse: "done" });
 
       // Auto score
@@ -445,7 +568,13 @@ Tests pass
     it("stats reflect scored and synthesized counts correctly", () => {
       // Create 3 trajectories, score 2, synthesize 1
       const id1 = store.startTrajectory("s1", "test1");
-      store.appendToolCall(id1, { tool: "t1", args: {}, result: "ok", durationMs: 0, status: "completed" });
+      store.appendToolCall(id1, {
+        tool: "t1",
+        args: {},
+        result: "ok",
+        durationMs: 0,
+        status: "completed",
+      });
       store.completeTrajectory(id1, { finalResponse: "done" });
       store.setOutcomeScore(id1, 0.9, "auto");
       store.markSynthesized(id1, "my-skill");

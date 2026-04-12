@@ -723,11 +723,11 @@ chainlesschain learning cleanup --json                 # JSON output
 
 **Core modules** (7 files in `src/lib/learning/`):
 
-| Module               | Description                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------- |
-| **TrajectoryStore**  | Records complete execution trajectories (intent → tool chain → result → response)   |
+| Module               | Description                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| **TrajectoryStore**  | Records complete execution trajectories (intent → tool chain → result → response)    |
 | **OutcomeFeedback**  | Auto-scoring + user feedback + correction detection (Chinese & English)              |
-| **SkillSynthesizer** | Extracts reusable patterns from complex successful trajectories into SKILL.md       |
+| **SkillSynthesizer** | Extracts reusable patterns from complex successful trajectories into SKILL.md        |
 | **SkillImprover**    | Three improvement triggers: error repair, user correction, better trajectory compare |
 | **ReflectionEngine** | Periodic self-review with tool stats, score trends, error-prone tool identification  |
 | **LearningHooks**    | REPL lifecycle integration — captures prompts, tool calls, responses, session events |
@@ -1171,19 +1171,19 @@ Configuration is stored at `~/.chainlesschain/config.json`. The CLI creates and 
 
 ### Supported LLM Providers
 
-| Provider                    | Default Model              | API Key Required |
-| --------------------------- | -------------------------- | ---------------- |
-| Ollama (Local)              | qwen2.5:7b                 | No               |
-| OpenAI                      | gpt-4o                     | Yes              |
-| Anthropic                   | claude-opus-4-6            | Yes              |
-| DeepSeek                    | deepseek-chat              | Yes              |
-| DashScope (Alibaba)         | qwen-turbo                 | Yes              |
-| Google Gemini               | gemini-2.0-flash           | Yes              |
-| Mistral AI                  | mistral-large-latest       | Yes              |
-| Volcengine (火山引擎/豆包)  | doubao-seed-1-6-251015     | Yes              |
-| Kimi (月之暗面)             | moonshot-v1-auto           | Yes              |
-| MiniMax (海螺AI)            | MiniMax-Text-01            | Yes              |
-| Custom                      | —                          | Yes              |
+| Provider                   | Default Model          | API Key Required |
+| -------------------------- | ---------------------- | ---------------- |
+| Ollama (Local)             | qwen2.5:7b             | No               |
+| OpenAI                     | gpt-4o                 | Yes              |
+| Anthropic                  | claude-opus-4-6        | Yes              |
+| DeepSeek                   | deepseek-chat          | Yes              |
+| DashScope (Alibaba)        | qwen-turbo             | Yes              |
+| Google Gemini              | gemini-2.0-flash       | Yes              |
+| Mistral AI                 | mistral-large-latest   | Yes              |
+| Volcengine (火山引擎/豆包) | doubao-seed-1-6-251015 | Yes              |
+| Kimi (月之暗面)            | moonshot-v1-auto       | Yes              |
+| MiniMax (海螺AI)           | MiniMax-Text-01        | Yes              |
+| Custom                     | —                      | Yes              |
 
 ## File Structure
 
