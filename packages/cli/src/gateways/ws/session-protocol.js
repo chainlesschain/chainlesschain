@@ -81,6 +81,7 @@ export async function handleSessionCreate(server, id, ws, message) {
     enabledToolNames,
     hostManagedToolPolicy,
     worktreeIsolation,
+    systemPromptExtension,
   } = message;
 
   try {
@@ -94,6 +95,7 @@ export async function handleSessionCreate(server, id, ws, message) {
       enabledToolNames,
       hostManagedToolPolicy,
       worktreeIsolation,
+      systemPromptExtension,
     });
 
     const session = server.sessionManager.getSession(sessionId);

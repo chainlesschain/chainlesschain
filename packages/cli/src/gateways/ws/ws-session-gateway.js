@@ -318,7 +318,12 @@ export class WSSessionManager {
     }
 
     // Build initial system prompt (includes persona + rules.md)
-    const systemPrompt = buildSystemPrompt(projectRoot);
+    let systemPrompt = buildSystemPrompt(projectRoot);
+
+    // Append optional extension (e.g. cowork template instructions)
+    if (options.systemPromptExtension) {
+      systemPrompt += "\n\n" + options.systemPromptExtension;
+    }
 
     const messages = [{ role: "system", content: systemPrompt }];
 

@@ -354,10 +354,19 @@ export const useWsStore = defineStore('ws', () => {
   }
 
   // Create a chat/agent session
-  async function createSession(sessionType = 'chat', projectRoot = null) {
+  async function createSession(sessionType = 'chat', projectRoot = null, options = {}) {
     await waitConnected(8000)
     const id = genId()
-    const result = await sendRaw({ type: 'session-create', id, sessionType, projectRoot: projectRoot || cfg.projectRoot || null })
+    const payload = {
+      type: 'session-create',
+      id,
+      sessionType,
+      projectRoot: projectRoot || cfg.projectRoot || null,
+    }
+    if (options.systemPromptExtension) {
+      payload.systemPromptExtension = options.systemPromptExtension
+    }
+    const result = await sendRaw(payload)
     return result.sessionId
   }
 

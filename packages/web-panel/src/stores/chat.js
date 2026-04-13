@@ -112,10 +112,10 @@ export const useChatStore = defineStore('chat', () => {
     sessions.value = await ws.listSessions()
   }
 
-  async function createSession(type = 'chat') {
+  async function createSession(type = 'chat', options = {}) {
     const ws = useWsStore()
     ensureRuntimeSubscription(ws)
-    const sessionId = await ws.createSession(type)
+    const sessionId = await ws.createSession(type, null, options)
 
     upsertSession({
       id: sessionId,
