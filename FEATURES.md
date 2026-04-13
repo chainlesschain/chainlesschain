@@ -18,6 +18,7 @@ All entry files are relative to `desktop-app-vue/src/`.
 | ErrorMonitor AI Diagnostics   | `main/monitoring/error-monitor.js`                                       | [`ERROR_MONITOR.md`](docs/features/ERROR_MONITOR.md)                               |
 | Manus Optimizations           | `main/llm/manus-optimizations.js`                                        | [`MANUS_OPTIMIZATION_GUIDE.md`](docs/MANUS_OPTIMIZATION_GUIDE.md)                  |
 | Cowork Multi-Agent            | `main/ai-engine/cowork/`                                                 | [`COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md)                     |
+| Web Cowork 日常任务协作       | `cli/src/lib/cowork-task-*.js` + `web-panel/src/views/Cowork.vue`        | [`86_Web_Cowork`](docs/design/modules/86_Web_Cowork日常任务协作系统.md)             |
 | Permanent Memory              | `main/llm/permanent-memory-manager.js`                                   | [`PERMANENT_MEMORY_INTEGRATION.md`](docs/features/PERMANENT_MEMORY_INTEGRATION.md) |
 | Hooks System                  | `main/hooks/index.js`                                                    | [`HOOKS_SYSTEM_DESIGN.md`](docs/design/HOOKS_SYSTEM_DESIGN.md)                     |
 | Hybrid Search Engine          | `main/rag/hybrid-search-engine.js`, `main/rag/bm25-search.js`            | —                                                                                  |
