@@ -105,6 +105,7 @@ export class WSAgentHandler {
         externalToolDescriptors: session.externalToolDescriptors || {},
         externalToolExecutors: session.externalToolExecutors || {},
         mcpClient: session.mcpClient || null,
+        shellPolicyOverrides: session.shellPolicyOverrides || null,
         slotFiller,
         interaction: this.interaction,
         signal: abortController.signal,

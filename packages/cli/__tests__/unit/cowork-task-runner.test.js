@@ -162,7 +162,10 @@ describe("cowork-task-runner", () => {
       userMessage: "分析 sales.csv 的月度趋势",
     });
 
-    expect(_mockRun).toHaveBeenCalledWith("分析 sales.csv 的月度趋势");
+    expect(_mockRun).toHaveBeenCalledWith(
+      "分析 sales.csv 的月度趋势",
+      expect.any(Object),
+    );
   });
 
   // ─── Error handling ───────────────────────────────────────
@@ -237,4 +240,45 @@ describe("cowork-task-runner", () => {
       expect(result.templateId).toBe(tid);
     });
   }
+
+  // ─── shellPolicyOverrides passthrough ─────────────────────
+
+  it("passes shellPolicyOverrides for web-research template", async () => {
+    await runCoworkTask({
+      templateId: "web-research",
+      userMessage: "搜索最新 AI 新闻",
+    });
+
+    expect(_mockRun).toHaveBeenCalledWith(
+      "搜索最新 AI 新闻",
+      expect.objectContaining({
+        shellPolicyOverrides: ["network-download"],
+      }),
+    );
+  });
+
+  it("passes shellPolicyOverrides for network-tools template", async () => {
+    await runCoworkTask({
+      templateId: "network-tools",
+      userMessage: "ping example.com",
+    });
+
+    expect(_mockRun).toHaveBeenCalledWith(
+      "ping example.com",
+      expect.objectContaining({
+        shellPolicyOverrides: ["network-download"],
+      }),
+    );
+  });
+
+  it("passes empty loopOptions for templates without overrides", async () => {
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "转换文件",
+    });
+
+    // loopOptions should be an empty object (no shellPolicyOverrides)
+    const loopOpts = _mockRun.mock.calls[0][1];
+    expect(loopOpts.shellPolicyOverrides).toBeUndefined();
+  });
 });

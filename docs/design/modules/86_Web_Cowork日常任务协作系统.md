@@ -1593,3 +1593,29 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 | 前端 Cowork | `cowork.js` | `execute()` 将模板提示词通过 `systemPromptExtension` 注入，用户消息保持干净 |
 
 **新增测试**: `cowork-session-extension.test.js` (5 tests)
+
+---
+
+### Bug Fix 2: Agent 无法执行网络请求 (v0.45.80)
+
+**问题**: Cowork 页面选择"信息检索与调研"或"网络工具"模板时，Agent 无法执行 curl/wget 等网络命令，返回 "Network download commands are blocked by the coding-agent shell policy"。
+
+**根因**: `coding-agent-shell-policy.cjs` 的 `network-download` 规则将 `curl`/`wget`/`Invoke-WebRequest`/`iwr` 硬性 DENY，无论会话上下文。
+
+**修复**: 引入 `shellPolicyOverrides` 机制 — 特定模板可声明需要放行的 shell policy rule ID，在创建 session 时透传到 agentLoop，由 `evaluateShellCommandPolicy` 将匹配的 DENY 规则降级为 WARN (allowed)。
+
+| 层 | 文件 | 变更 |
+|---|------|------|
+| Shell Policy | `coding-agent-shell-policy.cjs` | `evaluateShellCommandPolicy()` 新增 `options.overrideRuleIds` 参数 |
+| Agent Core | `agent-core.js` | `toolContext` 和 `executeToolInner` 传递 `shellPolicyOverrides` |
+| Agent Handler | `ws-agent-handler.js` | `loopOptions` 传递 `session.shellPolicyOverrides` |
+| Session Gateway | `ws-session-gateway.js` | session 对象存储 `shellPolicyOverrides` |
+| Session Protocol | `session-protocol.js` | 从 WS 消息解构并透传 `shellPolicyOverrides` |
+| Templates (后端) | `cowork-task-templates.js` | `web-research`、`network-tools` 声明 `shellPolicyOverrides: ["network-download"]` |
+| Templates (前端) | `cowork.js` store | 对应模板声明 `shellPolicyOverrides`，`execute()` 创建 session 时传递 |
+| WS Store | `ws.js` store | `createSession()` 发送 `shellPolicyOverrides` 字段 |
+| Task Runner | `cowork-task-runner.js` | 从模板读取 overrides 传给 `subAgent.run(msg, loopOptions)` |
+
+**安全设计**: 仅 `web-research` 和 `network-tools` 两个模板声明 override，其他模板和普通 agent 会话仍受 DENY 保护。Override 只能降级为 WARN (不能绕过 REROUTE)。
+
+**新增/更新测试**: shell-policy +5, templates +4, runner +3, session-extension +2 = 14 tests

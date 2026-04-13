@@ -79,4 +79,58 @@ describe("coding-agent shell policy", () => {
       }),
     );
   });
+
+  describe("overrideRuleIds", () => {
+    it("downgrades a DENY rule to WARN when its ID is in overrideRuleIds", () => {
+      const result = evaluateShellCommandPolicy(
+        "curl https://example.com/api",
+        { overrideRuleIds: ["network-download"] },
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          allowed: true,
+          decision: SHELL_POLICY_DECISIONS.WARN,
+          ruleId: "network-download",
+        }),
+      );
+      expect(result.reason).toContain("overridden by session policy");
+    });
+
+    it("still blocks rules not in overrideRuleIds", () => {
+      const result = evaluateShellCommandPolicy("rm -rf /tmp/foo", {
+        overrideRuleIds: ["network-download"],
+      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          allowed: false,
+          decision: SHELL_POLICY_DECISIONS.DENY,
+          ruleId: "dangerous-delete",
+        }),
+      );
+    });
+
+    it("allows wget when network-download is overridden", () => {
+      const result = evaluateShellCommandPolicy(
+        "wget https://example.com/file.zip",
+        { overrideRuleIds: ["network-download"] },
+      );
+      expect(result.allowed).toBe(true);
+      expect(result.ruleId).toBe("network-download");
+    });
+
+    it("ignores empty overrideRuleIds array", () => {
+      const result = evaluateShellCommandPolicy("curl https://example.com", {
+        overrideRuleIds: [],
+      });
+      expect(result.allowed).toBe(false);
+      expect(result.ruleId).toBe("network-download");
+    });
+
+    it("ignores non-array overrideRuleIds", () => {
+      const result = evaluateShellCommandPolicy("curl https://example.com", {
+        overrideRuleIds: "network-download",
+      });
+      expect(result.allowed).toBe(false);
+    });
+  });
 });

@@ -109,4 +109,30 @@ describe("systemPromptExtension in session-create", () => {
     const code = sent.code || sent.payload?.code;
     expect(code).toBe("NO_SESSION_SUPPORT");
   });
+
+  it("passes shellPolicyOverrides to createSession", async () => {
+    await handleSessionCreate(server, "req-ext-6", ws, {
+      sessionType: "agent",
+      systemPromptExtension: "## 信息检索",
+      shellPolicyOverrides: ["network-download"],
+    });
+
+    expect(mockCreateSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shellPolicyOverrides: ["network-download"],
+      }),
+    );
+  });
+
+  it("passes undefined shellPolicyOverrides when not provided", async () => {
+    await handleSessionCreate(server, "req-ext-7", ws, {
+      sessionType: "agent",
+    });
+
+    expect(mockCreateSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shellPolicyOverrides: undefined,
+      }),
+    );
+  });
 });
