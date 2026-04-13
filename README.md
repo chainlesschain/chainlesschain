@@ -622,6 +622,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **Persona 系统** — 项目级 AI 角色配置 (`persona show/set/reset`)，自动替换默认编码助手，工具权限控制，自动激活 Persona Skill
 - ✅ **多层技能系统** — 4 层优先级 (bundled < marketplace < managed < workspace)，`skill add/remove/sources/sync-cli` 自定义技能管理；**9 个 CLI 指令技能包**自动封装 62 条指令
 - ✅ **多智能体协作** (`cowork`) — 多视角辩论审查 + A/B 方案对比 + 代码知识图谱分析
+- ✅ **Web Cowork 日常任务协作** — 10 类任务模板 + 开源工具优先 + cli-anything 桥接 + 自动安装 (79 tests)
 - ✅ **插件技能集成** — 插件可声明并安装技能到 marketplace 层
 
 ---
