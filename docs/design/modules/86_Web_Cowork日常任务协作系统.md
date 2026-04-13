@@ -1541,3 +1541,36 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 - 工作流编排 — 可视化拖拽构建复杂流水线
 - 多用户协作 — P2P 共享任务模板和执行结果
 - 学习进化 — Agent 从历史执行中学习优化策略
+
+---
+
+## 实施记录
+
+### 2026-04-13 — 初版实现
+
+**已完成模块**:
+
+| 层 | 文件 | 说明 |
+|---|------|------|
+| 后端模板 | `packages/cli/src/lib/cowork-task-templates.js` | 10 任务模板 + OPEN_SOURCE_FIRST_PROMPT + 自动安装规则 |
+| 后端运行器 | `packages/cli/src/lib/cowork-task-runner.js` | runCoworkTask() → SubAgentContext.create() → run() |
+| WS 处理器 | `packages/cli/src/gateways/ws/action-protocol.js` | handleCoworkTask() — cowork:started / cowork:done |
+| WS 路由 | `packages/cli/src/gateways/ws/message-dispatcher.js` | "cowork-task" 路由注册 |
+| WS 服务器 | `packages/cli/src/gateways/ws/ws-server.js` | _handleCoworkTask() 委托 |
+| 前端页面 | `packages/web-panel/src/views/Cowork.vue` | 模板选择 + 消息展示 + 文件拖放 |
+| 前端 Store | `packages/web-panel/src/stores/cowork.js` | execute() + executeDirectWs() 双通道 |
+| 前端路由 | `packages/web-panel/src/router/index.js` | /cowork 路由 |
+| 侧边栏 | `packages/web-panel/src/components/AppLayout.vue` | "日常协作"菜单项 |
+
+**测试覆盖**:
+
+| 文件 | 测试数 | 类型 |
+|------|--------|------|
+| `__tests__/unit/cowork-task-templates.test.js` | 23 | 单元 |
+| `__tests__/unit/cowork-task-runner.test.js` | 25 | 单元 |
+| `__tests__/unit/cowork-action-protocol.test.js` | 9 | 单元 |
+| `__tests__/integration/cowork-task-workflow.test.js` | 11 | 集成 |
+| `__tests__/e2e/cowork-task-e2e.test.js` | 11 | E2E |
+| **合计** | **79** | |
+
+**用户文档**: `docs-site/docs/chainlesschain/web-cowork.md`

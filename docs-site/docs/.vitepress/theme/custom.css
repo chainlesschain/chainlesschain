@@ -1,0 +1,16 @@
+/* Widen sidebar to prevent long Chinese text from being truncated */
+:root {
+  --vp-sidebar-width: 340px;
+}
+
+/* Ensure sidebar text wraps instead of being cut off */
+.VPSidebar .VPSidebarItem .text {
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+/* Slightly smaller font for sidebar items to fit more text */
+.VPSidebar .VPSidebarItem.level-1 .text {
+  font-size: 13px;
+  line-height: 1.4;
+}
