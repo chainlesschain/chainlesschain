@@ -556,6 +556,7 @@ async function executeToolInner(
     externalToolDescriptors,
     externalToolExecutors,
     mcpClient,
+    shellPolicyOverrides,
   },
 ) {
   const localToolDescriptor =
@@ -694,7 +695,10 @@ async function executeToolInner(
     }
 
     case "run_shell": {
-      const shellPolicy = evaluateShellCommandPolicy(args.command);
+      const shellPolicyOpts = shellPolicyOverrides
+        ? { overrideRuleIds: shellPolicyOverrides }
+        : {};
+      const shellPolicy = evaluateShellCommandPolicy(args.command, shellPolicyOpts);
       const override = getRuntimeToolDescriptorByCommand(args.command);
       if (!shellPolicy.allowed) {
         return attachDescriptor(
@@ -1629,6 +1633,7 @@ export async function* agentLoop(messages, options) {
     mcpClient: options.mcpClient || null,
     parentMessages: messages, // pass parent messages for sub-agent auto-condensation
     interaction: options.interaction || null,
+    shellPolicyOverrides: options.shellPolicyOverrides || null,
   };
 
   throwIfAborted(signal);

@@ -192,4 +192,39 @@ describe("cowork-task-templates", () => {
       expect(sharedPrompt).toContain("UB-Mannheim.TesseractOCR");
     });
   });
+
+  // ─── shellPolicyOverrides ─────────────────────────────────
+
+  describe("shellPolicyOverrides", () => {
+    it("web-research template has network-download override", () => {
+      const tpl = TASK_TEMPLATES["web-research"];
+      expect(tpl.shellPolicyOverrides).toEqual(["network-download"]);
+    });
+
+    it("network-tools template has network-download override", () => {
+      const tpl = TASK_TEMPLATES["network-tools"];
+      expect(tpl.shellPolicyOverrides).toEqual(["network-download"]);
+    });
+
+    it("other templates do not have shellPolicyOverrides", () => {
+      const noOverrideIds = [
+        "doc-convert",
+        "media-process",
+        "data-analysis",
+        "image-process",
+        "code-helper",
+        "system-admin",
+        "file-organize",
+        "learning-assist",
+      ];
+      for (const id of noOverrideIds) {
+        expect(TASK_TEMPLATES[id].shellPolicyOverrides).toBeUndefined();
+      }
+    });
+
+    it("free-mode template does not have shellPolicyOverrides", () => {
+      const tpl = getTemplate(null);
+      expect(tpl.shellPolicyOverrides).toBeUndefined();
+    });
+  });
 });

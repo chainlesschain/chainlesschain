@@ -43,6 +43,7 @@ export const TASK_TEMPLATES = [
     description: '网页抓取、API 调用、多源信息汇总',
     examples: ['调研 AI Agent 框架对比', '查询实时汇率', '抓取网页内容并翻译'],
     acceptsFiles: false,
+    shellPolicyOverrides: ['network-download'],
   },
   {
     id: 'image-process',
@@ -88,6 +89,7 @@ export const TASK_TEMPLATES = [
     description: 'API 调试、网页抓取、网络诊断',
     examples: ['测试 API 接口', '抓取网页图片链接', 'ping 测试网络延迟'],
     acceptsFiles: false,
+    shellPolicyOverrides: ['network-download'],
   },
   {
     id: 'learning-assist',
@@ -201,8 +203,14 @@ cli-anything 已注册技能 > 直接调用开源工具 CLI > Python/Node 开源
 
     messages.value.push({ role: 'user', content: message, timestamp: Date.now() })
 
+    // Build session options with system prompt extension + shell policy overrides
+    const sessionOpts = { systemPromptExtension }
+    if (tpl?.shellPolicyOverrides) {
+      sessionOpts.shellPolicyOverrides = tpl.shellPolicyOverrides
+    }
+
     // Create an agent session with system prompt extension injected server-side
-    const sessionId = await chatStore.createSession('agent', { systemPromptExtension })
+    const sessionId = await chatStore.createSession('agent', sessionOpts)
     agentSessionId.value = sessionId
     await chatStore.sendMessage(sessionId, userMessage)
   }

@@ -73,9 +73,15 @@ export async function runCoworkTask(options = {}) {
 
   const taskId = subAgent.id;
 
+  // Build loop options — pass shell policy overrides if template declares them
+  const loopOptions = {};
+  if (Array.isArray(template.shellPolicyOverrides) && template.shellPolicyOverrides.length) {
+    loopOptions.shellPolicyOverrides = template.shellPolicyOverrides;
+  }
+
   // Run the agent with the user's message
   try {
-    const result = await subAgent.run(userMessage);
+    const result = await subAgent.run(userMessage, loopOptions);
     return {
       taskId,
       status: subAgent.status,

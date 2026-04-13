@@ -165,7 +165,7 @@ function normalizeShellCommand(command) {
   return splitFirstCommandSegment(command).replace(/\s+/g, " ").trim();
 }
 
-function evaluateShellCommandPolicy(command) {
+function evaluateShellCommandPolicy(command, options = {}) {
   const normalized = normalizeShellCommand(command);
   const tokens = tokenizeShellCommand(normalized);
   const firstToken = (tokens[0] || "").toLowerCase();
@@ -177,6 +177,11 @@ function evaluateShellCommandPolicy(command) {
     firstToken,
     secondToken,
   };
+
+  // Rule IDs that should be downgraded from DENY to WARN (e.g. cowork web-research)
+  const overrideRuleIds = Array.isArray(options.overrideRuleIds)
+    ? new Set(options.overrideRuleIds)
+    : new Set();
 
   if (!normalized) {
     return {
@@ -190,6 +195,16 @@ function evaluateShellCommandPolicy(command) {
 
   const blockedRule = BLOCKED_SHELL_RULES.find((rule) => rule.test(context));
   if (blockedRule) {
+    // If the rule is overridden, downgrade from DENY to WARN (allowed)
+    if (overrideRuleIds.has(blockedRule.id)) {
+      return {
+        allowed: true,
+        decision: SHELL_POLICY_DECISIONS.WARN,
+        reason: `${blockedRule.reason} (overridden by session policy)`,
+        ruleId: blockedRule.id,
+        normalizedCommand: normalized,
+      };
+    }
     return {
       allowed: false,
       decision: blockedRule.decision,

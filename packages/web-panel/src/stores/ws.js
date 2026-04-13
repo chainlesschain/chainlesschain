@@ -366,6 +366,9 @@ export const useWsStore = defineStore('ws', () => {
     if (options.systemPromptExtension) {
       payload.systemPromptExtension = options.systemPromptExtension
     }
+    if (Array.isArray(options.shellPolicyOverrides) && options.shellPolicyOverrides.length) {
+      payload.shellPolicyOverrides = options.shellPolicyOverrides
+    }
     const result = await sendRaw(payload)
     return result.sessionId
   }

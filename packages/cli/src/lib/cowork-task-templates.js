@@ -194,6 +194,7 @@ ${ERROR_RECOVERY_PROMPT}`,
     category: "research",
     acceptsFiles: false,
     fileTypes: [],
+    shellPolicyOverrides: ["network-download"],
     systemPromptExtension: `你是信息检索与调研专家。
 
 ## 核心能力
@@ -394,6 +395,7 @@ ${ERROR_RECOVERY_PROMPT}`,
     category: "network",
     acceptsFiles: false,
     fileTypes: [],
+    shellPolicyOverrides: ["network-download"],
     systemPromptExtension: `你是网络诊断与工具专家。
 
 ## 核心能力

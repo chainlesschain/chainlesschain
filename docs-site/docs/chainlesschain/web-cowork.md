@@ -299,20 +299,21 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 
 | 文件 | 测试数 | 类型 |
 |------|--------|------|
-| `__tests__/unit/cowork-task-templates.test.js` | 23 | 单元测试 |
-| `__tests__/unit/cowork-task-runner.test.js` | 25 | 单元测试 |
+| `__tests__/unit/cowork-task-templates.test.js` | 27 | 单元测试 |
+| `__tests__/unit/cowork-task-runner.test.js` | 28 | 单元测试 |
 | `__tests__/unit/cowork-action-protocol.test.js` | 9 | 单元测试 |
-| `__tests__/unit/cowork-session-extension.test.js` | 5 | 单元测试 |
+| `__tests__/unit/cowork-session-extension.test.js` | 7 | 单元测试 |
+| `__tests__/unit/coding-agent-shell-policy.test.js` | 10 | 单元测试 (含 overrides) |
 | `__tests__/integration/cowork-task-workflow.test.js` | 11 | 集成测试 |
 | `__tests__/e2e/cowork-task-e2e.test.js` | 11 | E2E 测试 |
-| **合计** | **87** | |
+| **合计** | **103** | |
 
 ## 当前验证
 
-- 单元测试: `62/62` 通过
+- 单元测试: `81/81` 通过
 - 集成测试: `11/11` 通过
 - E2E 测试: `11/11` 通过
-- 回归测试 (action-protocol): `3/3` 通过
+- 回归测试 (agent-core + action-protocol): `127/127` 通过
 - Web Panel 构建: 通过
 
 ## 相关文档

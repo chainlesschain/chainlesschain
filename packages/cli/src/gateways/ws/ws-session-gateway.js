@@ -369,6 +369,7 @@ export class WSSessionManager {
       pendingPatches: new Map(),
       patchHistory: [],
       taskGraph: null,
+      shellPolicyOverrides: options.shellPolicyOverrides || null,
       interaction: null, // Set by ws-server after creation
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
