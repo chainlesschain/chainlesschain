@@ -623,6 +623,37 @@ chainlesschain cowork analyze <path>                   # Code analysis (style/kn
 chainlesschain cowork status                           # Show cowork status
 ```
 
+### Web Cowork: Daily Task Collaboration (v0.45.77)
+
+Web-based daily task collaboration via the `/#/cowork` page. Powered by SubAgentContext + agentLoop, with 10 task templates covering common daily tasks. Prioritizes open-source CLI tools (ffmpeg, pandoc, ImageMagick, Tesseract, etc.) via cli-anything bridge, with automatic tool installation (winget > choco > pip > npm).
+
+**10 Task Templates**:
+
+| Template ID       | Name         | Category  | Accepts Files |
+| ----------------- | ------------ | --------- | ------------- |
+| `doc-convert`     | 文档格式转换 | document  | ✅            |
+| `media-process`   | 音视频处理   | media     | ✅            |
+| `data-analysis`   | 数据分析     | data      | ✅            |
+| `web-research`    | 网络调研     | research  | ❌            |
+| `image-process`   | 图片处理     | image     | ✅            |
+| `code-helper`     | 代码辅助     | code      | ✅            |
+| `system-admin`    | 系统管理     | system    | ❌            |
+| `file-organize`   | 文件整理     | file      | ✅            |
+| `network-tools`   | 网络工具     | network   | ❌            |
+| `learning-assist` | 学习辅助     | education | ✅            |
+
+**Usage**: Navigate to `http://127.0.0.1:18810/#/cowork` after starting `chainlesschain ui`. Select a template or use free mode, describe your task, and optionally attach files.
+
+**WebSocket Protocol**:
+
+```
+→ { type: "cowork-task", templateId: "doc-convert", userMessage: "转换PDF", files: [] }
+← { type: "cowork:started", templateId: "doc-convert" }
+← { type: "cowork:done", taskId, status, templateName, summary, artifacts, toolsUsed, iterationCount }
+```
+
+**Key files**: `src/lib/cowork-task-templates.js` (10 templates), `src/lib/cowork-task-runner.js` (pipeline), `src/gateways/ws/action-protocol.js` (WS handler). **Tests**: 79 (57 unit + 11 integration + 11 E2E).
+
 ---
 
 ## Phase 6: AI Core (Hooks, Workflow, Memory, A2A)
