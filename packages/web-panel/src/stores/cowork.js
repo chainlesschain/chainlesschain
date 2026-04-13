@@ -186,25 +186,25 @@ cli-anything 已注册技能 > 直接调用开源工具 CLI > Python/Node 开源
     const chatStore = useChatStore()
     isRunning.value = true
 
-    // Build full message with template context + files + auto-install instructions
+    // Build system prompt extension from template + auto-install rules
     const tpl = selectedTemplate.value
-    let fullMessage = ''
-    // Inject auto-install rules
-    fullMessage += AUTO_INSTALL_PROMPT + '\n'
+    let systemPromptExtension = AUTO_INSTALL_PROMPT
     if (tpl) {
-      fullMessage += `[任务类型: ${tpl.name}]\n\n`
+      systemPromptExtension += `\n\n## 当前任务类型: ${tpl.name}\n${tpl.description || ''}`
     }
-    fullMessage += message
+
+    // Build user message (only the actual user content + files)
+    let userMessage = message
     if (files.value.length) {
-      fullMessage += `\n\n[用户提供的文件: ${files.value.join(', ')}]`
+      userMessage += `\n\n[用户提供的文件: ${files.value.join(', ')}]`
     }
 
     messages.value.push({ role: 'user', content: message, timestamp: Date.now() })
 
-    // Create an agent session and send the message
-    const sessionId = await chatStore.createSession('agent')
+    // Create an agent session with system prompt extension injected server-side
+    const sessionId = await chatStore.createSession('agent', { systemPromptExtension })
     agentSessionId.value = sessionId
-    await chatStore.sendMessage(sessionId, fullMessage)
+    await chatStore.sendMessage(sessionId, userMessage)
   }
 
   /**

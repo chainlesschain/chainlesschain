@@ -1,0 +1,1 @@
+.memory-list[data-v-ebb07e22]{display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto}.memory-item[data-v-ebb07e22]{background:var(--bg-card-hover);border:1px solid var(--border-color);border-radius:6px;padding:10px 14px;transition:border-color .2s}.memory-item[data-v-ebb07e22]:hover{border-color:var(--text-muted)}
