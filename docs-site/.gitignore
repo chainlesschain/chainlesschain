@@ -1,6 +1,8 @@
 node_modules/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+docs/.vitepress/.temp/
+/.vitepress/
 *.tar.gz
 
 # 同步产物（源文件在 docs/design/）
