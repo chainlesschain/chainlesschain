@@ -855,6 +855,27 @@ export default defineConfig({
           ],
         },
         {
+          text: "v5.0.2.14 Web Cowork 日常协作 ⭐NEW",
+          items: [
+            {
+              text: "日常任务协作 (Web Cowork)",
+              link: "/chainlesschain/web-cowork",
+            },
+            {
+              text: "多智能体协作 (cowork)",
+              link: "/chainlesschain/cowork",
+            },
+            {
+              text: "协作高级功能",
+              link: "/chainlesschain/cowork-advanced",
+            },
+            {
+              text: "协作路线图",
+              link: "/chainlesschain/cowork-roadmap",
+            },
+          ],
+        },
+        {
           text: "产品规划",
           items: [
             { text: "产品演进路线图", link: "/chainlesschain/product-roadmap" },
