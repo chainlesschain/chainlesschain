@@ -48,7 +48,11 @@ import {
   handleTaskGraphAdvance,
   handleTaskGraphState,
 } from "./session-protocol.js";
-import { handleSlashCommand, handleOrchestrate } from "./action-protocol.js";
+import {
+  handleSlashCommand,
+  handleOrchestrate,
+  handleCoworkTask,
+} from "./action-protocol.js";
 import {
   handleWorktreeDiff,
   handleWorktreeMerge,
@@ -292,6 +296,11 @@ export class ChainlessChainWSServer extends EventEmitter {
    */
   async _handleOrchestrate(id, ws, message) {
     return handleOrchestrate(this, id, ws, message);
+  }
+
+  /** @private — run a cowork daily task via SubAgentContext */
+  async _handleCoworkTask(id, ws, message) {
+    return handleCoworkTask(this, id, ws, message);
   }
 
   /** @private – list background tasks */

@@ -111,6 +111,7 @@ export default defineConfig({
           text: "企业版功能",
           items: [
             { text: "多智能体协作", link: "/chainlesschain/cowork" },
+            { text: "日常任务协作", link: "/chainlesschain/web-cowork" },
             { text: "会话管理器", link: "/chainlesschain/session-manager" },
             { text: "钩子系统", link: "/chainlesschain/hooks" },
             { text: "权限系统", link: "/chainlesschain/permissions" },
@@ -1017,7 +1018,9 @@ export default defineConfig({
             { text: "83 工具描述规范统一 ⭐NEW", link: "/design/modules/83-tool-descriptor-unification" },
             { text: "84 自主学习闭环系统 ⭐NEW", link: "/design/modules/84-autonomous-learning-loop" },
             { text: "85 Hermes Agent对标 ⭐NEW", link: "/design/modules/85-hermes-agent-parity" },
-            { text: "60b CLI指令技能包系统 ⭐", link: "/design/modules/60b-cli-skill-packs" },
+            { text: "85b 文档代码差距补全 ⭐NEW", link: "/design/modules/85b-doc-code-gap-fill" },
+            { text: "86 Web Cowork协作 ⭐NEW", link: "/design/modules/86-web-cowork" },
+            { text: "60b CLI指令技能包 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },
       ],

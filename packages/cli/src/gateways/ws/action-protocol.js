@@ -1,3 +1,55 @@
+export async function handleCoworkTask(server, id, ws, message) {
+  const { templateId = null, userMessage, files = [] } = message;
+
+  if (!userMessage || typeof userMessage !== "string") {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "INVALID_MESSAGE",
+      message: "userMessage field required",
+    });
+    return;
+  }
+
+  try {
+    const { runCoworkTask } = await import("../../lib/cowork-task-runner.js");
+
+    server._send(ws, {
+      id,
+      type: "cowork:started",
+      templateId,
+    });
+
+    const result = await runCoworkTask({
+      templateId,
+      userMessage,
+      files,
+      cwd: server.projectRoot || process.cwd(),
+      llmOptions: {},
+    });
+
+    server._send(ws, {
+      id,
+      type: "cowork:done",
+      taskId: result.taskId,
+      status: result.status,
+      templateId: result.templateId,
+      templateName: result.templateName,
+      summary: result.result?.summary || "",
+      artifacts: result.result?.artifacts || [],
+      toolsUsed: result.result?.toolsUsed || [],
+      iterationCount: result.result?.iterationCount || 0,
+    });
+  } catch (err) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "COWORK_FAILED",
+      message: err.message,
+    });
+  }
+}
+
 export function handleSlashCommand(server, id, ws, message) {
   const { sessionId, command } = message;
   const handler = server.sessionHandlers.get(sessionId);
@@ -36,7 +88,8 @@ export async function handleOrchestrate(server, id, ws, message) {
   }
 
   try {
-    const { Orchestrator, TASK_SOURCE } = await import("../../lib/orchestrator.js");
+    const { Orchestrator, TASK_SOURCE } =
+      await import("../../lib/orchestrator.js");
 
     const orch = new Orchestrator({
       cwd: cwd || server.projectRoot || process.cwd(),
