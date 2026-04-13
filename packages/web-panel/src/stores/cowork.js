@@ -207,6 +207,45 @@ cli-anything 已注册技能 > 直接调用开源工具 CLI > Python/Node 开源
     await chatStore.sendMessage(sessionId, fullMessage)
   }
 
+  /**
+   * Execute task via direct WS cowork-task message.
+   * Uses the backend cowork-task-runner with SubAgentContext.
+   * This is the preferred path — template prompt injection happens server-side.
+   */
+  async function executeDirectWs(message) {
+    const wsStore = useWsStore()
+    isRunning.value = true
+
+    messages.value.push({ role: 'user', content: message, timestamp: Date.now() })
+
+    try {
+      await wsStore.waitConnected(8000)
+      const res = await wsStore.sendRaw({
+        type: 'cowork-task',
+        templateId: selectedTemplate.value?.id || null,
+        userMessage: message,
+        files: files.value,
+      }, 300000) // 5 min timeout for long-running tasks
+
+      messages.value.push({
+        role: 'assistant',
+        content: res.summary || '(No output)',
+        timestamp: Date.now(),
+        toolsUsed: res.toolsUsed || [],
+        iterationCount: res.iterationCount || 0,
+      })
+      result.value = res
+    } catch (err) {
+      messages.value.push({
+        role: 'assistant',
+        content: `Error: ${err.message}`,
+        timestamp: Date.now(),
+      })
+    } finally {
+      isRunning.value = false
+    }
+  }
+
   const currentAgentMessages = computed(() => {
     if (!agentSessionId.value) return []
     const chatStore = useChatStore()
@@ -248,7 +287,7 @@ cli-anything 已注册技能 > 直接调用开源工具 CLI > Python/Node 开源
     agentSessionId,
     currentAgentMessages, currentStreaming, currentQuestion,
     selectTemplate, reset, addFile, removeFile,
-    execute, sendFollowUp, answerQuestion,
+    execute, executeDirectWs, sendFollowUp, answerQuestion,
     TASK_TEMPLATES,
   }
 })

@@ -141,6 +141,8 @@ const MODULE_FILE_MAP = {
   "83_工具描述规范统一.md": "83-tool-descriptor-unification.md",
   "84_自主学习闭环系统.md": "84-autonomous-learning-loop.md",
   "85_Hermes_Agent对标实施方案.md": "85-hermes-agent-parity.md",
+  "85_文档代码差距补全.md": "85b-doc-code-gap-fill.md",
+  "86_Web_Cowork日常任务协作系统.md": "86-web-cowork.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）
