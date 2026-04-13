@@ -8,6 +8,7 @@ const routes = [
       { path: '', redirect: '/dashboard' },
       { path: 'dashboard',  name: 'Dashboard',  component: () => import('../views/Dashboard.vue') },
       { path: 'chat',       name: 'Chat',        component: () => import('../views/Chat.vue') },
+      { path: 'cowork',     name: 'Cowork',      component: () => import('../views/Cowork.vue') },
       { path: 'services',   name: 'Services',    component: () => import('../views/Services.vue') },
       { path: 'logs',       name: 'Logs',        component: () => import('../views/Logs.vue') },
       { path: 'skills',     name: 'Skills',      component: () => import('../views/Skills.vue') },
