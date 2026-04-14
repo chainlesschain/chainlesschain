@@ -106,10 +106,10 @@
           <!-- Tool call -->
           <div v-if="msg.role === 'tool'" class="tool-msg">
             <a-collapse ghost size="small">
-              <a-collapse-panel
-                :header="`🔧 ${msg.tool} ${msg.status === 'running' ? '(执行中...)' : '✓'}`"
-                class="tool-collapse"
-              >
+              <a-collapse-panel class="tool-collapse">
+                <template #header>
+                  <ToolOutlined /> {{ msg.tool }} {{ msg.status === 'running' ? '(执行中...)' : '✓' }}
+                </template>
                 <pre class="tool-input">{{ JSON.stringify(msg.input, null, 2) }}</pre>
                 <div v-if="msg.result" class="tool-result-box">
                   <pre class="tool-result">{{ typeof msg.result === 'string' ? msg.result : JSON.stringify(msg.result, null, 2) }}</pre>
@@ -193,6 +193,7 @@ import {
   RocketOutlined, SendOutlined, ThunderboltOutlined, FolderOpenOutlined,
   FileTextOutlined, PlayCircleOutlined, BarChartOutlined, SearchOutlined,
   PictureOutlined, CodeOutlined, DesktopOutlined, GlobalOutlined, ReadOutlined,
+  ToolOutlined,
 } from '@ant-design/icons-vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
