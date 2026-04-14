@@ -19,15 +19,19 @@ export async function handleCoworkTask(server, id, ws, message) {
   _runningTasks.set(trackingId, ac);
 
   try {
-    const { runCoworkTask, runCoworkTaskParallel } =
+    const { runCoworkTask, runCoworkTaskParallel, runCoworkDebate } =
       await import("../../lib/cowork-task-runner.js");
     const { getTemplate } = await import("../../lib/cowork-task-templates.js");
 
-    // Determine if parallel mode should be used
+    // Determine execution mode: debate > parallel > sequential
     const template = getTemplate(templateId);
+    const useDebate =
+      message.mode === "debate" ||
+      (message.mode !== "agent" && template.mode === "debate");
     const useParallel =
-      message.parallel === true ||
-      (message.parallel !== false && template.parallelStrategy === "always");
+      !useDebate &&
+      (message.parallel === true ||
+        (message.parallel !== false && template.parallelStrategy === "always"));
 
     server._send(ws, {
       id,
@@ -35,9 +39,14 @@ export async function handleCoworkTask(server, id, ws, message) {
       templateId,
       trackingId,
       parallel: useParallel,
+      mode: useDebate ? "debate" : "agent",
     });
 
-    const runner = useParallel ? runCoworkTaskParallel : runCoworkTask;
+    const runner = useDebate
+      ? runCoworkDebate
+      : useParallel
+        ? runCoworkTaskParallel
+        : runCoworkTask;
 
     const result = await runner({
       templateId,
@@ -51,6 +60,9 @@ export async function handleCoworkTask(server, id, ws, message) {
             agents: message.agents || 3,
             strategy: message.strategy,
           }
+        : {}),
+      ...(useDebate && message.perspectives
+        ? { perspectives: message.perspectives }
         : {}),
       onProgress: (progress) => {
         server._send(ws, {
@@ -78,6 +90,15 @@ export async function handleCoworkTask(server, id, ws, message) {
       tokenCount: result.result?.tokenCount || 0,
       parallel: result.parallel || false,
       subtaskCount: result.result?.subtaskCount || 0,
+      mode: result.mode || (useDebate ? "debate" : "agent"),
+      ...(useDebate
+        ? {
+            verdict: result.result?.verdict,
+            consensusScore: result.result?.consensusScore,
+            reviews: result.result?.reviews || [],
+            perspectives: result.result?.perspectives || [],
+          }
+        : {}),
     });
   } catch (err) {
     server._send(ws, {

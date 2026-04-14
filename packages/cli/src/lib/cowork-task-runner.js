@@ -7,14 +7,14 @@
  * @module cowork-task-runner
  */
 
-import { existsSync, mkdirSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SubAgentContext } from "./sub-agent-context.js";
 import { getTemplate } from "./cowork-task-templates.js";
 
 // ─── Dependencies (overridable for testing) ──────────────────────────────────
 
-export const _deps = { existsSync, mkdirSync, appendFileSync };
+export const _deps = { existsSync, mkdirSync, appendFileSync, readFileSync };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -275,6 +275,126 @@ export async function runCoworkTaskParallel(options = {}) {
         toolsUsed: [],
         iterationCount: 0,
         subtaskCount: 0,
+      },
+    };
+    _appendHistory(cwd, entry, userMessage);
+    return entry;
+  }
+}
+
+// ─── Debate Runner (Multi-perspective Review) ───────────────────────────────
+
+/**
+ * Run a cowork task in debate mode — multiple reviewer perspectives converge
+ * into a final verdict via moderator synthesis.
+ *
+ * @param {object} options
+ * @param {string|null} options.templateId - Should be "code-review" or null
+ * @param {string} options.userMessage - Target description / review instructions
+ * @param {string[]} [options.files] - File paths to review (concatenated as code body)
+ * @param {string[]} [options.perspectives] - Override template perspectives
+ * @param {string} [options.cwd] - Working directory for history
+ * @param {object} [options.llmOptions] - LLM provider/model/key
+ * @param {function} [options.onProgress] - Progress callback
+ * @returns {Promise<{ taskId, status, result }>}
+ */
+export async function runCoworkDebate(options = {}) {
+  const {
+    templateId = "code-review",
+    userMessage,
+    files = [],
+    perspectives,
+    cwd = process.cwd(),
+    llmOptions = {},
+    onProgress = null,
+  } = options;
+
+  if (!userMessage || typeof userMessage !== "string") {
+    throw new Error("userMessage is required");
+  }
+
+  if (files.length > 0) {
+    const missing = files.filter((f) => !_deps.existsSync(f));
+    if (missing.length > 0) {
+      throw new Error(`File(s) not found: ${missing.join(", ")}`);
+    }
+  }
+
+  const template = getTemplate(templateId);
+  const reviewPerspectives = perspectives ||
+    template.debatePerspectives || [
+      "performance",
+      "security",
+      "maintainability",
+    ];
+
+  // Build code body from files (or from userMessage if no files provided)
+  let code = "";
+  if (files.length > 0) {
+    const chunks = files.map((f) => {
+      try {
+        return `// ===== ${f} =====\n${_deps.readFileSync(f, "utf-8")}`;
+      } catch (err) {
+        return `// ===== ${f} (read error: ${err.message}) =====`;
+      }
+    });
+    code = chunks.join("\n\n");
+  } else {
+    code = userMessage;
+  }
+
+  const taskId = `cowork-debate-${Date.now()}`;
+
+  if (onProgress) {
+    onProgress({ type: "debate-started", perspectives: reviewPerspectives });
+  }
+
+  try {
+    const { startDebate } = await import("./cowork/debate-review-cli.js");
+    const debateResult = await startDebate({
+      target: userMessage,
+      code,
+      perspectives: reviewPerspectives,
+      llmOptions,
+    });
+
+    if (onProgress) {
+      onProgress({ type: "debate-completed", verdict: debateResult.verdict });
+    }
+
+    const entry = {
+      taskId,
+      status: "completed",
+      templateId: template.id,
+      templateName: template.name,
+      mode: "debate",
+      result: {
+        summary: debateResult.summary,
+        verdict: debateResult.verdict,
+        consensusScore: debateResult.consensusScore,
+        reviews: debateResult.reviews,
+        perspectives: debateResult.perspectives,
+        artifacts: [],
+        tokenCount: 0,
+        toolsUsed: [],
+        iterationCount: debateResult.reviews.length + 1,
+      },
+    };
+    _appendHistory(cwd, entry, userMessage);
+    return entry;
+  } catch (err) {
+    const entry = {
+      taskId,
+      status: "failed",
+      templateId: template.id,
+      templateName: template.name,
+      mode: "debate",
+      result: {
+        summary: `Debate failed: ${err.message}`,
+        artifacts: [],
+        tokenCount: 0,
+        toolsUsed: [],
+        iterationCount: 0,
       },
     };
     _appendHistory(cwd, entry, userMessage);

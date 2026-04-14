@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../../src/lib/cowork-task-runner.js", () => ({
   runCoworkTask: vi.fn(),
   runCoworkTaskParallel: vi.fn(),
+  runCoworkDebate: vi.fn(),
 }));
 
 // Mock cowork-task-templates
@@ -23,6 +24,7 @@ import {
 import {
   runCoworkTask,
   runCoworkTaskParallel,
+  runCoworkDebate,
 } from "../../src/lib/cowork-task-runner.js";
 import { getTemplate } from "../../src/lib/cowork-task-templates.js";
 
@@ -88,6 +90,7 @@ describe("handleCoworkTask (action-protocol)", () => {
       templateId: "doc-convert",
       trackingId: "cowork-req-3",
       parallel: false,
+      mode: "agent",
     });
 
     // Second call: cowork:done
@@ -105,6 +108,7 @@ describe("handleCoworkTask (action-protocol)", () => {
       tokenCount: 0,
       parallel: false,
       subtaskCount: 0,
+      mode: "agent",
     });
   });
 
@@ -478,5 +482,165 @@ describe("handleCoworkTask parallel routing", () => {
     );
     expect(doneCall[1].parallel).toBe(true);
     expect(doneCall[1].subtaskCount).toBe(3);
+  });
+});
+
+describe("handleCoworkTask debate routing", () => {
+  let server;
+  let ws;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    server = {
+      _send: vi.fn(),
+      projectRoot: "/test/project",
+    };
+    ws = { readyState: 1 };
+
+    runCoworkTask.mockResolvedValue({
+      taskId: "sub-seq",
+      status: "completed",
+      templateId: "doc-convert",
+      templateName: "文档格式转换",
+      result: {
+        summary: "OK",
+        artifacts: [],
+        toolsUsed: [],
+        iterationCount: 1,
+        tokenCount: 0,
+      },
+    });
+
+    runCoworkDebate.mockResolvedValue({
+      taskId: "cowork-debate-1",
+      status: "completed",
+      templateId: "code-review",
+      templateName: "代码评审",
+      mode: "debate",
+      result: {
+        summary: "Overall NEEDS_WORK due to security concern.",
+        verdict: "NEEDS_WORK",
+        consensusScore: 70,
+        reviews: [
+          {
+            perspective: "security",
+            role: "Security Reviewer",
+            review: "Issue",
+            verdict: "NEEDS_WORK",
+          },
+        ],
+        perspectives: ["security"],
+        artifacts: [],
+        tokenCount: 0,
+        toolsUsed: [],
+        iterationCount: 2,
+      },
+    });
+
+    getTemplate.mockReturnValue({
+      id: "doc-convert",
+      name: "文档格式转换",
+      parallelStrategy: "none",
+    });
+  });
+
+  it("uses runCoworkDebate when message.mode is 'debate'", async () => {
+    await handleCoworkTask(server, "req-d1", ws, {
+      userMessage: "review this code",
+      mode: "debate",
+    });
+
+    expect(runCoworkDebate).toHaveBeenCalled();
+    expect(runCoworkTask).not.toHaveBeenCalled();
+  });
+
+  it("uses debate when template.mode is 'debate'", async () => {
+    getTemplate.mockReturnValue({
+      id: "code-review",
+      name: "代码评审",
+      mode: "debate",
+      parallelStrategy: "none",
+    });
+
+    await handleCoworkTask(server, "req-d2", ws, {
+      templateId: "code-review",
+      userMessage: "审一下",
+    });
+
+    expect(runCoworkDebate).toHaveBeenCalled();
+  });
+
+  it("passes perspectives override to debate runner", async () => {
+    await handleCoworkTask(server, "req-d3", ws, {
+      userMessage: "review",
+      mode: "debate",
+      perspectives: ["architecture", "security"],
+    });
+
+    expect(runCoworkDebate).toHaveBeenCalledWith(
+      expect.objectContaining({ perspectives: ["architecture", "security"] }),
+    );
+  });
+
+  it("includes verdict, consensusScore, reviews in cowork:done", async () => {
+    await handleCoworkTask(server, "req-d4", ws, {
+      userMessage: "review",
+      mode: "debate",
+    });
+
+    const doneCall = server._send.mock.calls.find(
+      (c) => c[1].type === "cowork:done",
+    );
+    expect(doneCall[1].mode).toBe("debate");
+    expect(doneCall[1].verdict).toBe("NEEDS_WORK");
+    expect(doneCall[1].consensusScore).toBe(70);
+    expect(doneCall[1].reviews).toHaveLength(1);
+  });
+
+  it("includes mode:debate in cowork:started", async () => {
+    await handleCoworkTask(server, "req-d5", ws, {
+      userMessage: "review",
+      mode: "debate",
+    });
+
+    const startedCall = server._send.mock.calls.find(
+      (c) => c[1].type === "cowork:started",
+    );
+    expect(startedCall[1].mode).toBe("debate");
+  });
+
+  it("debate takes precedence over parallel when both requested", async () => {
+    getTemplate.mockReturnValue({
+      id: "code-review",
+      name: "代码评审",
+      mode: "debate",
+      parallelStrategy: "always",
+    });
+
+    await handleCoworkTask(server, "req-d6", ws, {
+      templateId: "code-review",
+      userMessage: "审",
+    });
+
+    expect(runCoworkDebate).toHaveBeenCalled();
+    expect(runCoworkTaskParallel).not.toHaveBeenCalled();
+  });
+
+  it("message.mode='agent' overrides template debate mode", async () => {
+    getTemplate.mockReturnValue({
+      id: "code-review",
+      name: "代码评审",
+      mode: "debate",
+      parallelStrategy: "none",
+    });
+
+    await handleCoworkTask(server, "req-d7", ws, {
+      templateId: "code-review",
+      userMessage: "审",
+      mode: "agent",
+    });
+
+    expect(runCoworkTask).toHaveBeenCalled();
+    expect(runCoworkDebate).not.toHaveBeenCalled();
   });
 });

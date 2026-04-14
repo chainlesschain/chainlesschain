@@ -34,6 +34,8 @@ export const useCoworkStore = defineStore('cowork', () => {
   const history = ref([])
   const parallelMode = ref(false)
   const parallelAgents = ref(3)
+  const debateMode = ref(false)
+  const debatePerspectives = ref([])
 
   // Sync isRunning with chatStore.isLoading for session mode
   const chatStore = useChatStore()
@@ -165,6 +167,15 @@ export const useCoworkStore = defineStore('cowork', () => {
         payload.agents = parallelAgents.value
       }
 
+      // Add debate mode options — auto-enabled when template.mode === 'debate'
+      const tpl = selectedTemplate.value
+      if (debateMode.value || tpl?.mode === 'debate') {
+        payload.mode = 'debate'
+        if (debatePerspectives.value.length) {
+          payload.perspectives = debatePerspectives.value
+        }
+      }
+
       const res = await wsStore.sendRaw(payload, 300000) // 5 min timeout for long-running tasks
 
       messages.value.push({
@@ -174,6 +185,7 @@ export const useCoworkStore = defineStore('cowork', () => {
         toolsUsed: res.toolsUsed || [],
         iterationCount: res.iterationCount || 0,
       })
+      // Preserve debate fields (verdict, reviews, consensusScore) on the result object
       result.value = res
     } catch (err) {
       messages.value.push({
@@ -242,5 +254,6 @@ export const useCoworkStore = defineStore('cowork', () => {
     loadTemplates, templates, lastRequest, retry,
     history, loadHistory,
     parallelMode, parallelAgents,
+    debateMode, debatePerspectives,
   }
 })

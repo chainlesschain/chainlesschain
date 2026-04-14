@@ -463,6 +463,32 @@ ${OPEN_SOURCE_FIRST_PROMPT}
 ${FILE_HANDLING_PROMPT}
 ${ERROR_RECOVERY_PROMPT}`,
   },
+
+  "code-review": {
+    id: "code-review",
+    name: "代码评审",
+    category: "development",
+    acceptsFiles: true,
+    fileTypes: [
+      ".js",
+      ".ts",
+      ".py",
+      ".go",
+      ".rs",
+      ".java",
+      ".kt",
+      ".cpp",
+      ".c",
+      ".rb",
+      ".php",
+      ".vue",
+    ],
+    mode: "debate",
+    debatePerspectives: ["performance", "security", "maintainability"],
+    systemPromptExtension: `你是多视角代码评审的协调者。
+将代码分发给多个专业评审员独立评审，最后综合输出裁决。
+`,
+  },
 };
 
 /**
@@ -574,6 +600,15 @@ const UI_METADATA = {
     description: "文档翻译、内容总结、论文分析",
     examples: ["翻译 PDF 摘要", "总结长文档要点", "解释代码工作原理"],
   },
+  "code-review": {
+    icon: "SafetyCertificateOutlined",
+    description: "多视角评审（性能 / 安全 / 可维护性），综合裁决",
+    examples: [
+      "评审这个函数的安全问题",
+      "从性能角度审查这段代码",
+      "评审 PR 的可维护性",
+    ],
+  },
 };
 
 /**
@@ -594,6 +629,10 @@ export function getTemplatesForUI() {
       examples: ui.examples || [],
       acceptsFiles: tpl.acceptsFiles,
       parallelStrategy: tpl.parallelStrategy || "none",
+      mode: tpl.mode || "agent",
+      ...(tpl.debatePerspectives
+        ? { debatePerspectives: tpl.debatePerspectives }
+        : {}),
       ...(tpl.shellPolicyOverrides
         ? { shellPolicyOverrides: tpl.shellPolicyOverrides }
         : {}),

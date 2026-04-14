@@ -200,8 +200,30 @@
         </div>
       </div>
 
+      <!-- Debate result panel -->
+      <div v-if="store.result?.mode === 'debate' && !store.isRunning" class="debate-panel">
+        <div class="debate-verdict">
+          <a-tag :color="verdictColor(store.result.verdict)">{{ store.result.verdict }}</a-tag>
+          <span class="consensus">共识 {{ store.result.consensusScore || 0 }}/100</span>
+        </div>
+        <a-collapse ghost size="small">
+          <a-collapse-panel
+            v-for="(review, i) in store.result.reviews || []"
+            :key="i"
+            class="review-collapse"
+          >
+            <template #header>
+              <a-tag :color="verdictColor(review.verdict)">{{ review.verdict }}</a-tag>
+              {{ review.role }}
+            </template>
+            <div class="review-body" v-html="renderMarkdown(review.review)"></div>
+          </a-collapse-panel>
+        </a-collapse>
+      </div>
+
       <!-- Task stats -->
       <div v-if="store.result && !store.isRunning" class="task-stats">
+        <a-tag v-if="store.result.mode === 'debate'" color="magenta">debate</a-tag>
         <a-tag v-if="store.result.parallel" color="purple">{{ store.result.subtaskCount || 0 }} subtasks</a-tag>
         <a-tag color="geekblue">{{ store.result.iterationCount || 0 }} iterations</a-tag>
         <a-tag color="cyan">~{{ (store.result.tokenCount || 0).toLocaleString() }} tokens</a-tag>
@@ -246,7 +268,7 @@ import {
   RocketOutlined, SendOutlined, ThunderboltOutlined, FolderOpenOutlined,
   FileTextOutlined, PlayCircleOutlined, BarChartOutlined, SearchOutlined,
   PictureOutlined, CodeOutlined, DesktopOutlined, GlobalOutlined, ReadOutlined,
-  ToolOutlined, HistoryOutlined,
+  ToolOutlined, HistoryOutlined, SafetyCertificateOutlined,
 } from '@ant-design/icons-vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
@@ -276,7 +298,7 @@ const showHistory = ref(false)
 const iconMap = {
   FileTextOutlined, PlayCircleOutlined, BarChartOutlined, SearchOutlined,
   PictureOutlined, CodeOutlined, DesktopOutlined, FolderOpenOutlined,
-  GlobalOutlined, ReadOutlined,
+  GlobalOutlined, ReadOutlined, SafetyCertificateOutlined,
 }
 
 const quickExamples = [
@@ -300,6 +322,13 @@ const agentMessages = computed(() => store.currentAgentMessages)
 
 function renderMarkdown(text) {
   try { return DOMPurify.sanitize(marked(text || '')) } catch { return DOMPurify.sanitize(text || '') }
+}
+
+function verdictColor(verdict) {
+  if (verdict === 'APPROVE') return 'green'
+  if (verdict === 'REJECT') return 'red'
+  if (verdict === 'ERROR') return 'default'
+  return 'orange'
 }
 
 function basename(filepath) {
@@ -571,6 +600,20 @@ onMounted(() => {
 }
 .question-text { color: #aaa; font-size: 13px; }
 .question-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* Debate panel */
+.debate-panel {
+  border-top: 1px solid var(--border-color);
+  padding: 12px 16px;
+  background: var(--bg-card-hover);
+}
+.debate-verdict {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 8px; font-size: 13px;
+}
+.consensus { color: var(--text-muted); font-size: 12px; }
+.review-collapse { border-bottom: 1px solid var(--border-color); }
+.review-body { font-size: 12px; line-height: 1.6; color: var(--text-primary); padding: 4px 0; }
 
 /* Task stats */
 .task-stats {
