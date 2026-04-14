@@ -117,6 +117,22 @@ export function handleSlashCommand(server, id, ws, message) {
   handler.handleSlashCommand(command, id);
 }
 
+export async function handleCoworkTemplates(server, id, ws) {
+  try {
+    const { getTemplatesForUI } =
+      await import("../../lib/cowork-task-templates.js");
+    const templates = getTemplatesForUI();
+    server._send(ws, { id, type: "cowork:templates", templates });
+  } catch (err) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "TEMPLATES_FAILED",
+      message: err.message,
+    });
+  }
+}
+
 export async function handleOrchestrate(server, id, ws, message) {
   const {
     task,

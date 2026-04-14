@@ -10,7 +10,7 @@
 
       <div class="template-list">
         <div
-          v-for="tpl in TASK_TEMPLATES"
+          v-for="tpl in store.templates"
           :key="tpl.id"
           class="template-card"
           :class="{ active: store.selectedTemplate?.id === tpl.id }"
@@ -206,7 +206,7 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-import { useCoworkStore, TASK_TEMPLATES } from '../stores/cowork.js'
+import { useCoworkStore } from '../stores/cowork.js'
 import { useChatStore } from '../stores/chat.js'
 
 marked.setOptions({
@@ -305,6 +305,7 @@ watch([agentMessages, () => store.currentStreaming], () => {
 
 onMounted(() => {
   chatStore.loadSessions()
+  store.loadTemplates()
 })
 </script>
 
