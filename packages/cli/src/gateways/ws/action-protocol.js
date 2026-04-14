@@ -39,6 +39,7 @@ export async function handleCoworkTask(server, id, ws, message) {
       artifacts: result.result?.artifacts || [],
       toolsUsed: result.result?.toolsUsed || [],
       iterationCount: result.result?.iterationCount || 0,
+      tokenCount: result.result?.tokenCount || 0,
     });
   } catch (err) {
     server._send(ws, {
