@@ -82,7 +82,34 @@ describe("handleCoworkTask (action-protocol)", () => {
       artifacts: [],
       toolsUsed: ["run_shell"],
       iterationCount: 5,
+      tokenCount: 0,
     });
+  });
+
+  it("forwards tokenCount from result to cowork:done", async () => {
+    runCoworkTask.mockResolvedValue({
+      taskId: "sub-tok",
+      status: "completed",
+      templateId: "data-analysis",
+      templateName: "数据分析",
+      result: {
+        summary: "分析完成",
+        artifacts: [],
+        toolsUsed: ["run_code"],
+        iterationCount: 8,
+        tokenCount: 12500,
+      },
+    });
+
+    await handleCoworkTask(server, "req-tok", ws, {
+      templateId: "data-analysis",
+      userMessage: "分析数据",
+    });
+
+    const doneCall = server._send.mock.calls.find(
+      (c) => c[1].type === "cowork:done",
+    );
+    expect(doneCall[1].tokenCount).toBe(12500);
   });
 
   it("calls runCoworkTask with correct parameters", async () => {

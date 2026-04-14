@@ -155,6 +155,13 @@
         </div>
       </div>
 
+      <!-- Task stats -->
+      <div v-if="store.result && !store.isRunning" class="task-stats">
+        <a-tag color="geekblue">{{ store.result.iterationCount || 0 }} iterations</a-tag>
+        <a-tag color="cyan">~{{ (store.result.tokenCount || 0).toLocaleString() }} tokens</a-tag>
+        <a-tag v-if="store.result.toolsUsed?.length" color="green">{{ store.result.toolsUsed.length }} tools</a-tag>
+      </div>
+
       <!-- Input area -->
       <div class="input-area">
         <div v-if="store.selectedTemplate" class="input-context">
@@ -500,6 +507,13 @@ onMounted(() => {
 }
 .question-text { color: #aaa; font-size: 13px; }
 .question-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* Task stats */
+.task-stats {
+  display: flex; gap: 6px; padding: 6px 16px;
+  border-top: 1px solid var(--border-color);
+  justify-content: flex-end;
+}
 
 /* Input area */
 .input-area {
