@@ -3,6 +3,7 @@ import {
   TASK_TEMPLATES,
   getTemplate,
   listTemplateIds,
+  getTemplatesForUI,
 } from "../../src/lib/cowork-task-templates.js";
 
 describe("cowork-task-templates", () => {
@@ -225,6 +226,50 @@ describe("cowork-task-templates", () => {
     it("free-mode template does not have shellPolicyOverrides", () => {
       const tpl = getTemplate(null);
       expect(tpl.shellPolicyOverrides).toBeUndefined();
+    });
+  });
+
+  // ─── getTemplatesForUI() ─────────────────────────────────
+
+  describe("getTemplatesForUI()", () => {
+    it("returns an array with 10 templates", () => {
+      const ui = getTemplatesForUI();
+      expect(ui).toHaveLength(10);
+    });
+
+    it("each template has required UI fields", () => {
+      for (const tpl of getTemplatesForUI()) {
+        expect(typeof tpl.id).toBe("string");
+        expect(typeof tpl.name).toBe("string");
+        expect(typeof tpl.icon).toBe("string");
+        expect(typeof tpl.category).toBe("string");
+        expect(typeof tpl.description).toBe("string");
+        expect(Array.isArray(tpl.examples)).toBe(true);
+        expect(typeof tpl.acceptsFiles).toBe("boolean");
+      }
+    });
+
+    it("does not include systemPromptExtension", () => {
+      for (const tpl of getTemplatesForUI()) {
+        expect(tpl.systemPromptExtension).toBeUndefined();
+      }
+    });
+
+    it("includes shellPolicyOverrides only for network templates", () => {
+      const ui = getTemplatesForUI();
+      const webResearch = ui.find((t) => t.id === "web-research");
+      const networkTools = ui.find((t) => t.id === "network-tools");
+      const docConvert = ui.find((t) => t.id === "doc-convert");
+
+      expect(webResearch.shellPolicyOverrides).toEqual(["network-download"]);
+      expect(networkTools.shellPolicyOverrides).toEqual(["network-download"]);
+      expect(docConvert.shellPolicyOverrides).toBeUndefined();
+    });
+
+    it("icon names end with Outlined", () => {
+      for (const tpl of getTemplatesForUI()) {
+        expect(tpl.icon).toMatch(/Outlined$/);
+      }
     });
   });
 });

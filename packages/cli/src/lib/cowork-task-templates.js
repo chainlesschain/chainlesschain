@@ -493,3 +493,106 @@ ${ERROR_RECOVERY_PROMPT}`,
 export function listTemplateIds() {
   return Object.keys(TASK_TEMPLATES);
 }
+
+// ─── UI Metadata ─────────────────────────────────────────────────────────────
+
+const UI_METADATA = {
+  "doc-convert": {
+    icon: "FileTextOutlined",
+    description: "Word、Markdown、HTML、PDF 之间的格式互转",
+    examples: [
+      "把 report.docx 转成 PDF",
+      "合并多个 Markdown 为一个文档",
+      "把 Excel 导出为 PDF",
+    ],
+  },
+  "media-process": {
+    icon: "PlayCircleOutlined",
+    description: "视频压缩、音频提取、格式转换、剪辑",
+    examples: [
+      "提取 MP4 的音频",
+      "压缩视频到 50MB 以内",
+      "剪辑 10:30 到 25:00 的片段",
+    ],
+  },
+  "data-analysis": {
+    icon: "BarChartOutlined",
+    description: "CSV/Excel 分析、统计、可视化图表",
+    examples: [
+      "分析 sales.csv 的月度趋势",
+      "清洗数据去重修复格式",
+      "比较两个 CSV 的差异",
+    ],
+  },
+  "web-research": {
+    icon: "SearchOutlined",
+    description: "网页抓取、API 调用、多源信息汇总",
+    examples: ["调研 AI Agent 框架对比", "查询实时汇率", "抓取网页内容并翻译"],
+  },
+  "image-process": {
+    icon: "PictureOutlined",
+    description: "批量压缩、格式转换、加水印、OCR",
+    examples: ["批量压缩到 500KB", "加水印文字", "识别图上的文字 (OCR)"],
+  },
+  "code-helper": {
+    icon: "CodeOutlined",
+    description: "生成脚本、调试代码、自动化任务",
+    examples: [
+      "写一个批量重命名脚本",
+      "调试这段报错代码",
+      "生成 REST API 脚手架",
+    ],
+  },
+  "system-admin": {
+    icon: "DesktopOutlined",
+    description: "磁盘分析、进程管理、日志分析",
+    examples: [
+      "查看磁盘使用情况",
+      "找出最大的 10 个文件",
+      "列出占用端口的进程",
+    ],
+  },
+  "file-organize": {
+    icon: "FolderOpenOutlined",
+    description: "批量重命名、分类整理、查找重复",
+    examples: [
+      "按文件类型分类整理",
+      "批量重命名去空格",
+      "打包排除 node_modules",
+    ],
+  },
+  "network-tools": {
+    icon: "GlobalOutlined",
+    description: "API 调试、网页抓取、网络诊断",
+    examples: ["测试 API 接口", "抓取网页图片链接", "ping 测试网络延迟"],
+  },
+  "learning-assist": {
+    icon: "ReadOutlined",
+    description: "文档翻译、内容总结、论文分析",
+    examples: ["翻译 PDF 摘要", "总结长文档要点", "解释代码工作原理"],
+  },
+};
+
+/**
+ * Get all templates formatted for UI consumption.
+ * Returns an array of template objects with id, name, icon, category,
+ * description, examples, acceptsFiles, and optional shellPolicyOverrides.
+ * @returns {object[]}
+ */
+export function getTemplatesForUI() {
+  return Object.values(TASK_TEMPLATES).map((tpl) => {
+    const ui = UI_METADATA[tpl.id] || {};
+    return {
+      id: tpl.id,
+      name: tpl.name,
+      icon: ui.icon || "AppstoreOutlined",
+      category: tpl.category,
+      description: ui.description || "",
+      examples: ui.examples || [],
+      acceptsFiles: tpl.acceptsFiles,
+      ...(tpl.shellPolicyOverrides
+        ? { shellPolicyOverrides: tpl.shellPolicyOverrides }
+        : {}),
+    };
+  });
+}
