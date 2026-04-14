@@ -107,6 +107,23 @@ export class SubAgentContext {
     // Optional abort signal for cancellation
     this._signal = options.signal || null;
 
+    // Optional MCP / external tool plumbing. These are forwarded into the
+    // agentLoop options so MCP-backed tools (e.g. from a cowork template's
+    // `mcpServers`) appear in the LLM's tool list and route through
+    // `mcpClient.callTool()` in agent-core's default-case dispatch.
+    this._extraToolDefinitions = Array.isArray(options.extraToolDefinitions)
+      ? options.extraToolDefinitions
+      : [];
+    this._externalToolDescriptors =
+      options.externalToolDescriptors && typeof options.externalToolDescriptors === "object"
+        ? options.externalToolDescriptors
+        : {};
+    this._externalToolExecutors =
+      options.externalToolExecutors && typeof options.externalToolExecutors === "object"
+        ? options.externalToolExecutors
+        : {};
+    this._mcpClient = options.mcpClient || null;
+
     // Build isolated system prompt
     const basePrompt = buildSystemPrompt(this.cwd);
     const rolePrompt = `\n\n## Sub-Agent Role: ${this.role}\nYou are a focused sub-agent with the role "${this.role}". Your task is:\n${this.task}\n\nStay focused on this specific task. Be concise and return results directly.`;
@@ -224,6 +241,29 @@ export class SubAgentContext {
     };
     if (this.iterationBudget) {
       options.iterationBudget = this.iterationBudget;
+    }
+
+    // Forward MCP / external tool plumbing into the agent loop
+    if (this._extraToolDefinitions.length > 0) {
+      options.extraToolDefinitions = [
+        ...(options.extraToolDefinitions || []),
+        ...this._extraToolDefinitions,
+      ];
+    }
+    if (Object.keys(this._externalToolDescriptors).length > 0) {
+      options.externalToolDescriptors = {
+        ...(options.externalToolDescriptors || {}),
+        ...this._externalToolDescriptors,
+      };
+    }
+    if (Object.keys(this._externalToolExecutors).length > 0) {
+      options.externalToolExecutors = {
+        ...(options.externalToolExecutors || {}),
+        ...this._externalToolExecutors,
+      };
+    }
+    if (this._mcpClient) {
+      options.mcpClient = this._mcpClient;
     }
 
     try {

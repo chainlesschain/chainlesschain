@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SubAgentContext } from "./sub-agent-context.js";
 import { getTemplate } from "./cowork-task-templates.js";
+import { mountTemplateMcpTools } from "./cowork-mcp-tools.js";
 
 // ─── Dependencies (overridable for testing) ──────────────────────────────────
 
@@ -75,6 +76,21 @@ export async function runCoworkTask(options = {}) {
 
   const task = taskParts.join("\n");
 
+  // Mount template-declared MCP servers (best-effort, failures are tolerated)
+  const mcp = await mountTemplateMcpTools(template, {
+    onWarn: (msg) => {
+      if (onProgress) onProgress({ type: "mcp-warning", message: msg });
+    },
+  });
+  if (onProgress && (mcp.mounted.length > 0 || mcp.skipped.length > 0)) {
+    onProgress({
+      type: "mcp-mounted",
+      mounted: mcp.mounted,
+      skipped: mcp.skipped.map((s) => s.name),
+      toolCount: mcp.extraToolDefinitions.length,
+    });
+  }
+
   // Create isolated sub-agent context
   const subAgent = SubAgentContext.create({
     role: `cowork-${template.id}`,
@@ -87,6 +103,10 @@ export async function runCoworkTask(options = {}) {
     cwd,
     onProgress,
     signal,
+    extraToolDefinitions: mcp.extraToolDefinitions,
+    externalToolDescriptors: mcp.externalToolDescriptors,
+    externalToolExecutors: mcp.externalToolExecutors,
+    mcpClient: mcp.mcpClient,
   });
 
   const taskId = subAgent.id;
@@ -128,6 +148,8 @@ export async function runCoworkTask(options = {}) {
     };
     _appendHistory(cwd, entry, userMessage);
     return entry;
+  } finally {
+    await mcp.cleanup();
   }
 }
 
