@@ -31,6 +31,7 @@ export const useCoworkStore = defineStore('cowork', () => {
   const result = ref(null)
   const agentSessionId = ref(null)
   const lastRequest = ref(null)
+  const history = ref([])
 
   // Sync isRunning with chatStore.isLoading for session mode
   const chatStore = useChatStore()
@@ -79,6 +80,22 @@ export const useCoworkStore = defineStore('cowork', () => {
       }
     } catch (_err) {
       // Keep DEFAULT_TEMPLATES as fallback
+    }
+  }
+
+  /**
+   * Load task history from backend via WS.
+   */
+  async function loadHistory() {
+    const wsStore = useWsStore()
+    try {
+      await wsStore.waitConnected(5000)
+      const res = await wsStore.sendRaw({ type: 'cowork-history', limit: 50 }, 10000)
+      if (res?.entries) {
+        history.value = res.entries
+      }
+    } catch (_err) {
+      // Keep empty history as fallback
     }
   }
 
@@ -213,5 +230,6 @@ export const useCoworkStore = defineStore('cowork', () => {
     selectTemplate, reset, addFile, removeFile,
     execute, executeDirectWs, sendFollowUp, answerQuestion,
     loadTemplates, templates, lastRequest, retry,
+    history, loadHistory,
   }
 })

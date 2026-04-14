@@ -117,6 +117,41 @@ export function handleSlashCommand(server, id, ws, message) {
   handler.handleSlashCommand(command, id);
 }
 
+export async function handleCoworkHistory(server, id, ws, message) {
+  const { limit = 50 } = message;
+  const cwd = server.projectRoot || process.cwd();
+
+  try {
+    const { readFileSync, existsSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const histPath = join(cwd, ".chainlesschain", "cowork", "history.jsonl");
+
+    if (!existsSync(histPath)) {
+      server._send(ws, { id, type: "cowork:history", entries: [] });
+      return;
+    }
+
+    const lines = readFileSync(histPath, "utf-8").split("\n").filter(Boolean);
+    const entries = [];
+    for (const line of lines.slice(-limit)) {
+      try {
+        entries.push(JSON.parse(line));
+      } catch (_e) {
+        // skip malformed lines
+      }
+    }
+
+    server._send(ws, { id, type: "cowork:history", entries });
+  } catch (err) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "HISTORY_FAILED",
+      message: err.message,
+    });
+  }
+}
+
 export async function handleCoworkTemplates(server, id, ws) {
   try {
     const { getTemplatesForUI } =
