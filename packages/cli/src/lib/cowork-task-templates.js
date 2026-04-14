@@ -636,6 +636,15 @@ export function getTemplatesForUI() {
       ...(tpl.shellPolicyOverrides
         ? { shellPolicyOverrides: tpl.shellPolicyOverrides }
         : {}),
+      ...(Array.isArray(tpl.mcpServers) && tpl.mcpServers.length > 0
+        ? {
+            mcpServers: tpl.mcpServers.map((s) => ({
+              name: s.name,
+              command: s.command,
+              args: Array.isArray(s.args) ? s.args : [],
+            })),
+          }
+        : {}),
     };
   });
 }

@@ -24,6 +24,25 @@ vi.mock("../../src/lib/cowork/debate-review-cli.js", () => {
   };
 });
 
+// Mock cowork-mcp-tools so the runner doesn't try to spawn real servers
+vi.mock("../../src/lib/cowork-mcp-tools.js", () => {
+  const mockCleanup = vi.fn(async () => {});
+  const mockMount = vi.fn(async () => ({
+    mcpClient: null,
+    mounted: [],
+    skipped: [],
+    extraToolDefinitions: [],
+    externalToolDescriptors: {},
+    externalToolExecutors: {},
+    cleanup: mockCleanup,
+  }));
+  return {
+    mountTemplateMcpTools: mockMount,
+    _mockMount: mockMount,
+    _mockCleanup: mockCleanup,
+  };
+});
+
 import {
   runCoworkTask,
   runCoworkTaskParallel,
@@ -36,6 +55,10 @@ import {
   _mockCreate,
   _mockRun,
 } from "../../src/lib/sub-agent-context.js";
+import {
+  _mockMount,
+  _mockCleanup,
+} from "../../src/lib/cowork-mcp-tools.js";
 
 describe("cowork-task-runner", () => {
   beforeEach(() => {
@@ -418,6 +441,65 @@ describe("cowork-task-runner", () => {
     });
 
     expect(result.status).toBe("completed");
+  });
+
+  // ─── MCP integration ──────────────────────────────────────
+
+  it("calls mountTemplateMcpTools with the resolved template", async () => {
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "转换文档",
+    });
+
+    expect(_mockMount).toHaveBeenCalledOnce();
+    const [template] = _mockMount.mock.calls[0];
+    expect(template.id).toBe("doc-convert");
+  });
+
+  it("forwards MCP tool plumbing to SubAgentContext.create", async () => {
+    const fakeDef = {
+      type: "function",
+      function: {
+        name: "mcp__fetch__get",
+        description: "GET URL",
+        parameters: { type: "object", properties: {} },
+      },
+    };
+    const fakeDesc = { name: "mcp__fetch__get", kind: "mcp", serverName: "fetch" };
+    const fakeExec = { kind: "mcp", serverName: "fetch", toolName: "get" };
+    const fakeClient = { connect: vi.fn(), callTool: vi.fn() };
+    _mockMount.mockResolvedValueOnce({
+      mcpClient: fakeClient,
+      mounted: ["fetch"],
+      skipped: [],
+      extraToolDefinitions: [fakeDef],
+      externalToolDescriptors: { "mcp__fetch__get": fakeDesc },
+      externalToolExecutors: { "mcp__fetch__get": fakeExec },
+      cleanup: _mockCleanup,
+    });
+
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "调用 MCP 工具",
+    });
+
+    const opts = _mockCreate.mock.calls[0][0];
+    expect(opts.extraToolDefinitions).toEqual([fakeDef]);
+    expect(opts.externalToolDescriptors).toEqual({ "mcp__fetch__get": fakeDesc });
+    expect(opts.externalToolExecutors).toEqual({ "mcp__fetch__get": fakeExec });
+    expect(opts.mcpClient).toBe(fakeClient);
+  });
+
+  it("always calls cleanup(), even when the sub-agent throws", async () => {
+    _mockRun.mockRejectedValueOnce(new Error("agent exploded"));
+
+    const result = await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "失败任务",
+    });
+
+    expect(result.status).toBe("failed");
+    expect(_mockCleanup).toHaveBeenCalledOnce();
   });
 });
 
