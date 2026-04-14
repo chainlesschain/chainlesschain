@@ -290,6 +290,141 @@ export function registerCoworkCommand(program) {
       }
     });
 
+  // cowork cron — schedule daily tasks
+  const cron = cowork
+    .command("cron")
+    .description("Schedule Cowork tasks on a cron expression");
+
+  cron
+    .command("list")
+    .description("List all scheduled Cowork tasks")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { loadSchedules } = await import("../lib/cowork-cron.js");
+      const schedules = loadSchedules(process.cwd());
+      if (options.json) {
+        console.log(JSON.stringify(schedules, null, 2));
+        return;
+      }
+      if (schedules.length === 0) {
+        logger.log(chalk.gray("No scheduled tasks."));
+        return;
+      }
+      logger.log(chalk.bold(`\n${schedules.length} scheduled task(s):\n`));
+      for (const s of schedules) {
+        const flag = s.enabled ? chalk.green("✓") : chalk.gray("✗");
+        logger.log(
+          `  ${flag} ${chalk.cyan(s.id)}  ${chalk.yellow(s.cron)}  [${s.templateId || "free"}]`,
+        );
+        logger.log(chalk.gray(`    ${s.userMessage.slice(0, 80)}`));
+        if (s.lastRunAt) {
+          logger.log(
+            chalk.gray(`    last run: ${s.lastRunAt} (${s.lastStatus})`),
+          );
+        }
+      }
+      logger.log("");
+    });
+
+  cron
+    .command("add")
+    .description("Add a scheduled Cowork task")
+    .requiredOption("--cron <expr>", "5-field cron expression (e.g. '0 9 * * 1-5')")
+    .requiredOption("--message <text>", "Task prompt / user message")
+    .option("--template <id>", "Template id (e.g. doc-convert); omit for free mode")
+    .option("--files <list>", "Comma-separated absolute file paths", "")
+    .action(async (options) => {
+      const { addSchedule } = await import("../lib/cowork-cron.js");
+      try {
+        const entry = addSchedule(process.cwd(), {
+          cron: options.cron,
+          templateId: options.template || null,
+          userMessage: options.message,
+          files: options.files
+            ? options.files.split(",").map((f) => f.trim()).filter(Boolean)
+            : [],
+        });
+        logger.log(chalk.green(`✓ Added schedule ${entry.id}`));
+        logger.log(chalk.gray(`  cron: ${entry.cron}`));
+        logger.log(chalk.gray(`  template: ${entry.templateId || "free"}`));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  cron
+    .command("remove <id>")
+    .description("Remove a scheduled task by id")
+    .action(async (id) => {
+      const { removeSchedule } = await import("../lib/cowork-cron.js");
+      if (removeSchedule(process.cwd(), id)) {
+        logger.log(chalk.green(`✓ Removed ${id}`));
+      } else {
+        logger.error(`Schedule not found: ${id}`);
+        process.exit(1);
+      }
+    });
+
+  cron
+    .command("enable <id>")
+    .description("Enable a scheduled task")
+    .action(async (id) => {
+      const { setScheduleEnabled } = await import("../lib/cowork-cron.js");
+      if (setScheduleEnabled(process.cwd(), id, true)) {
+        logger.log(chalk.green(`✓ Enabled ${id}`));
+      } else {
+        logger.error(`Schedule not found: ${id}`);
+        process.exit(1);
+      }
+    });
+
+  cron
+    .command("disable <id>")
+    .description("Disable a scheduled task (keeps the record)")
+    .action(async (id) => {
+      const { setScheduleEnabled } = await import("../lib/cowork-cron.js");
+      if (setScheduleEnabled(process.cwd(), id, false)) {
+        logger.log(chalk.yellow(`✓ Disabled ${id}`));
+      } else {
+        logger.error(`Schedule not found: ${id}`);
+        process.exit(1);
+      }
+    });
+
+  cron
+    .command("run")
+    .description(
+      "Start the cron scheduler in the foreground (Ctrl-C to stop)",
+    )
+    .option("--interval <ms>", "Tick interval in ms (default 60000)", "60000")
+    .action(async (options) => {
+      const [{ CoworkCronScheduler, _deps: cronDeps }, { runCoworkTask }] =
+        await Promise.all([
+          import("../lib/cowork-cron.js"),
+          import("../lib/cowork-task-runner.js"),
+        ]);
+      // Inject the runner so the scheduler doesn't require a circular import
+      cronDeps.runTask = runCoworkTask;
+
+      const scheduler = new CoworkCronScheduler({
+        cwd: process.cwd(),
+        intervalMs: parseInt(options.interval, 10) || 60_000,
+        onEvent: (e) => {
+          const ts = new Date().toISOString();
+          logger.log(chalk.gray(`[${ts}] ${JSON.stringify(e)}`));
+        },
+      });
+      scheduler.start();
+      logger.log(
+        chalk.green("Cowork cron scheduler running. Press Ctrl-C to stop."),
+      );
+      process.on("SIGINT", () => {
+        scheduler.stop();
+        process.exit(0);
+      });
+    });
+
   // cowork status — show collaboration state
   cowork
     .command("status")
@@ -305,6 +440,9 @@ export function registerCoworkCommand(program) {
       );
       logger.log(
         `    ${chalk.cyan("cowork analyze <path>")}    Code analysis (style/knowledge-graph/decisions)`,
+      );
+      logger.log(
+        `    ${chalk.cyan("cowork cron list|add|remove|run")}  Schedule recurring Cowork tasks`,
       );
       logger.log("");
       logger.log(
