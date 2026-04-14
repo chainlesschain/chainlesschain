@@ -1,3 +1,6 @@
+// Track running cowork tasks for cancellation
+const _runningTasks = new Map();
+
 export async function handleCoworkTask(server, id, ws, message) {
   const { templateId = null, userMessage, files = [] } = message;
 
@@ -11,6 +14,10 @@ export async function handleCoworkTask(server, id, ws, message) {
     return;
   }
 
+  const ac = new AbortController();
+  const trackingId = `cowork-${id}`;
+  _runningTasks.set(trackingId, ac);
+
   try {
     const { runCoworkTask } = await import("../../lib/cowork-task-runner.js");
 
@@ -18,6 +25,7 @@ export async function handleCoworkTask(server, id, ws, message) {
       id,
       type: "cowork:started",
       templateId,
+      trackingId,
     });
 
     const result = await runCoworkTask({
@@ -26,6 +34,7 @@ export async function handleCoworkTask(server, id, ws, message) {
       files,
       cwd: server.projectRoot || process.cwd(),
       llmOptions: {},
+      signal: ac.signal,
       onProgress: (progress) => {
         server._send(ws, {
           id,
@@ -57,6 +66,36 @@ export async function handleCoworkTask(server, id, ws, message) {
       type: "error",
       code: "COWORK_FAILED",
       message: err.message,
+    });
+  } finally {
+    _runningTasks.delete(trackingId);
+  }
+}
+
+export function handleCoworkCancel(server, id, ws, message) {
+  const { trackingId } = message;
+
+  if (!trackingId) {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "INVALID_MESSAGE",
+      message: "trackingId field required",
+    });
+    return;
+  }
+
+  const ac = _runningTasks.get(trackingId);
+  if (ac) {
+    ac.abort();
+    _runningTasks.delete(trackingId);
+    server._send(ws, { id, type: "cowork:cancelled", trackingId });
+  } else {
+    server._send(ws, {
+      id,
+      type: "error",
+      code: "TASK_NOT_FOUND",
+      message: `No running cowork task: ${trackingId}`,
     });
   }
 }

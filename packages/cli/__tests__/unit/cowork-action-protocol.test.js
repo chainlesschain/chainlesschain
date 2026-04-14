@@ -5,7 +5,10 @@ vi.mock("../../src/lib/cowork-task-runner.js", () => ({
   runCoworkTask: vi.fn(),
 }));
 
-import { handleCoworkTask } from "../../src/gateways/ws/action-protocol.js";
+import {
+  handleCoworkTask,
+  handleCoworkCancel,
+} from "../../src/gateways/ws/action-protocol.js";
 import { runCoworkTask } from "../../src/lib/cowork-task-runner.js";
 
 describe("handleCoworkTask (action-protocol)", () => {
@@ -68,6 +71,7 @@ describe("handleCoworkTask (action-protocol)", () => {
       id: "req-3",
       type: "cowork:started",
       templateId: "doc-convert",
+      trackingId: "cowork-req-3",
     });
 
     // Second call: cowork:done
@@ -157,6 +161,7 @@ describe("handleCoworkTask (action-protocol)", () => {
       cwd: "/test/project",
       llmOptions: {},
       onProgress: expect.any(Function),
+      signal: expect.any(AbortSignal),
     });
   });
 
@@ -225,5 +230,108 @@ describe("handleCoworkTask (action-protocol)", () => {
     expect(doneCall[1].summary).toBe("");
     expect(doneCall[1].artifacts).toEqual([]);
     expect(doneCall[1].toolsUsed).toEqual([]);
+  });
+
+  it("includes trackingId in cowork:started response", async () => {
+    await handleCoworkTask(server, "req-track", ws, {
+      templateId: "code-helper",
+      userMessage: "写代码",
+    });
+
+    const startedCall = server._send.mock.calls.find(
+      (c) => c[1].type === "cowork:started",
+    );
+    expect(startedCall[1].trackingId).toBe("cowork-req-track");
+  });
+
+  it("passes signal to runCoworkTask", async () => {
+    await handleCoworkTask(server, "req-sig", ws, {
+      userMessage: "任务",
+    });
+
+    expect(runCoworkTask).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+});
+
+describe("handleCoworkCancel (action-protocol)", () => {
+  let server;
+  let ws;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    server = {
+      _send: vi.fn(),
+      projectRoot: "/test/project",
+    };
+    ws = { readyState: 1 };
+  });
+
+  it("returns INVALID_MESSAGE when trackingId is missing", () => {
+    handleCoworkCancel(server, "req-c1", ws, {});
+
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-c1",
+      type: "error",
+      code: "INVALID_MESSAGE",
+      message: "trackingId field required",
+    });
+  });
+
+  it("returns TASK_NOT_FOUND for unknown trackingId", () => {
+    handleCoworkCancel(server, "req-c2", ws, {
+      trackingId: "cowork-unknown",
+    });
+
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-c2",
+      type: "error",
+      code: "TASK_NOT_FOUND",
+      message: "No running cowork task: cowork-unknown",
+    });
+  });
+
+  it("aborts a running task and sends cowork:cancelled", async () => {
+    // Start a task that never resolves (simulates a long-running task)
+    let resolveTask;
+    runCoworkTask.mockReturnValue(
+      new Promise((resolve) => {
+        resolveTask = resolve;
+      }),
+    );
+
+    // handleCoworkTask is async — kick it off without awaiting
+    const taskPromise = handleCoworkTask(server, "req-c3", ws, {
+      userMessage: "长任务",
+    });
+
+    // Wait a tick for the cowork:started message to be sent
+    await new Promise((r) => setTimeout(r, 10));
+
+    const trackingId = "cowork-req-c3";
+
+    // Cancel the task
+    handleCoworkCancel(server, "req-c3-cancel", ws, { trackingId });
+
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-c3-cancel",
+      type: "cowork:cancelled",
+      trackingId,
+    });
+
+    // Verify the signal was aborted
+    const capturedOpts = runCoworkTask.mock.calls[0][0];
+    expect(capturedOpts.signal.aborted).toBe(true);
+
+    // Resolve the pending task to clean up
+    resolveTask({
+      taskId: "sub-cancelled",
+      status: "cancelled",
+      templateId: null,
+      templateName: "自由模式",
+      result: { summary: "已取消" },
+    });
+    await taskPromise;
   });
 });

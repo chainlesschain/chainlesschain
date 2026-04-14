@@ -44,6 +44,7 @@ export function createWsMessageDispatcher(server) {
         "host-tool-result": () => server._handleHostToolResult(id, ws, message),
         orchestrate: () => server._handleOrchestrate(id, ws, message),
         "cowork-task": () => server._handleCoworkTask(id, ws, message),
+        "cowork-cancel": () => server._handleCoworkCancel(id, ws, message),
         "tasks-list": () => server._handleTasksList(id, ws),
         "tasks-stop": () => server._handleTasksStop(id, ws, message),
         "tasks-detail": () => server._handleTaskDetail(id, ws, message),
