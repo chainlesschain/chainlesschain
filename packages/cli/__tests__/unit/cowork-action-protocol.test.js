@@ -3,13 +3,28 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock cowork-task-runner
 vi.mock("../../src/lib/cowork-task-runner.js", () => ({
   runCoworkTask: vi.fn(),
+  runCoworkTaskParallel: vi.fn(),
+}));
+
+// Mock cowork-task-templates
+vi.mock("../../src/lib/cowork-task-templates.js", () => ({
+  getTemplate: vi.fn(() => ({
+    id: "doc-convert",
+    name: "文档格式转换",
+    parallelStrategy: "none",
+  })),
+  getTemplatesForUI: vi.fn(() => []),
 }));
 
 import {
   handleCoworkTask,
   handleCoworkCancel,
 } from "../../src/gateways/ws/action-protocol.js";
-import { runCoworkTask } from "../../src/lib/cowork-task-runner.js";
+import {
+  runCoworkTask,
+  runCoworkTaskParallel,
+} from "../../src/lib/cowork-task-runner.js";
+import { getTemplate } from "../../src/lib/cowork-task-templates.js";
 
 describe("handleCoworkTask (action-protocol)", () => {
   let server;
@@ -72,6 +87,7 @@ describe("handleCoworkTask (action-protocol)", () => {
       type: "cowork:started",
       templateId: "doc-convert",
       trackingId: "cowork-req-3",
+      parallel: false,
     });
 
     // Second call: cowork:done
@@ -87,6 +103,8 @@ describe("handleCoworkTask (action-protocol)", () => {
       toolsUsed: ["run_shell"],
       iterationCount: 5,
       tokenCount: 0,
+      parallel: false,
+      subtaskCount: 0,
     });
   });
 
@@ -242,6 +260,7 @@ describe("handleCoworkTask (action-protocol)", () => {
       (c) => c[1].type === "cowork:started",
     );
     expect(startedCall[1].trackingId).toBe("cowork-req-track");
+    expect(startedCall[1].parallel).toBe(false);
   });
 
   it("passes signal to runCoworkTask", async () => {
@@ -333,5 +352,131 @@ describe("handleCoworkCancel (action-protocol)", () => {
       result: { summary: "已取消" },
     });
     await taskPromise;
+  });
+});
+
+describe("handleCoworkTask parallel routing", () => {
+  let server;
+  let ws;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    server = {
+      _send: vi.fn(),
+      projectRoot: "/test/project",
+    };
+    ws = { readyState: 1 };
+
+    runCoworkTask.mockResolvedValue({
+      taskId: "sub-seq",
+      status: "completed",
+      templateId: "doc-convert",
+      templateName: "文档格式转换",
+      result: {
+        summary: "OK",
+        artifacts: [],
+        toolsUsed: [],
+        iterationCount: 1,
+        tokenCount: 100,
+      },
+    });
+
+    runCoworkTaskParallel.mockResolvedValue({
+      taskId: "orch-par",
+      status: "completed",
+      templateId: "web-research",
+      templateName: "信息检索与调研",
+      parallel: true,
+      result: {
+        summary: "并行完成",
+        artifacts: [],
+        toolsUsed: [],
+        iterationCount: 2,
+        tokenCount: 500,
+        subtaskCount: 3,
+      },
+    });
+
+    getTemplate.mockReturnValue({
+      id: "doc-convert",
+      name: "文档格式转换",
+      parallelStrategy: "none",
+    });
+  });
+
+  it("uses runCoworkTask when parallel not requested", async () => {
+    await handleCoworkTask(server, "req-seq", ws, {
+      userMessage: "转换文档",
+    });
+
+    expect(runCoworkTask).toHaveBeenCalled();
+    expect(runCoworkTaskParallel).not.toHaveBeenCalled();
+  });
+
+  it("uses runCoworkTaskParallel when message.parallel is true", async () => {
+    await handleCoworkTask(server, "req-par", ws, {
+      userMessage: "并行调研",
+      parallel: true,
+    });
+
+    expect(runCoworkTaskParallel).toHaveBeenCalled();
+    expect(runCoworkTask).not.toHaveBeenCalled();
+  });
+
+  it("uses parallel when template.parallelStrategy is 'always'", async () => {
+    getTemplate.mockReturnValue({
+      id: "web-research",
+      name: "信息检索与调研",
+      parallelStrategy: "always",
+    });
+
+    await handleCoworkTask(server, "req-always", ws, {
+      templateId: "web-research",
+      userMessage: "调研",
+    });
+
+    expect(runCoworkTaskParallel).toHaveBeenCalled();
+  });
+
+  it("does NOT use parallel when message.parallel is false even with always strategy", async () => {
+    getTemplate.mockReturnValue({
+      id: "web-research",
+      name: "信息检索与调研",
+      parallelStrategy: "always",
+    });
+
+    await handleCoworkTask(server, "req-no", ws, {
+      templateId: "web-research",
+      userMessage: "调研",
+      parallel: false,
+    });
+
+    expect(runCoworkTask).toHaveBeenCalled();
+    expect(runCoworkTaskParallel).not.toHaveBeenCalled();
+  });
+
+  it("passes agents count to parallel runner", async () => {
+    await handleCoworkTask(server, "req-agents", ws, {
+      userMessage: "并行任务",
+      parallel: true,
+      agents: 5,
+    });
+
+    expect(runCoworkTaskParallel).toHaveBeenCalledWith(
+      expect.objectContaining({ agents: 5 }),
+    );
+  });
+
+  it("includes parallel and subtaskCount in cowork:done", async () => {
+    await handleCoworkTask(server, "req-done", ws, {
+      userMessage: "并行任务",
+      parallel: true,
+    });
+
+    const doneCall = server._send.mock.calls.find(
+      (c) => c[1].type === "cowork:done",
+    );
+    expect(doneCall[1].parallel).toBe(true);
+    expect(doneCall[1].subtaskCount).toBe(3);
   });
 });

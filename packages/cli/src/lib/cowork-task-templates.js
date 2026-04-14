@@ -158,6 +158,7 @@ ${ERROR_RECOVERY_PROMPT}`,
     name: "数据分析",
     category: "data",
     acceptsFiles: true,
+    parallelStrategy: "auto",
     fileTypes: [".csv", ".xlsx", ".xls", ".json", ".tsv", ".sqlite", ".db"],
     systemPromptExtension: `你是数据分析专家。
 
@@ -194,6 +195,7 @@ ${ERROR_RECOVERY_PROMPT}`,
     category: "research",
     acceptsFiles: false,
     fileTypes: [],
+    parallelStrategy: "auto",
     shellPolicyOverrides: ["network-download"],
     systemPromptExtension: `你是信息检索与调研专家。
 
@@ -270,6 +272,7 @@ ${ERROR_RECOVERY_PROMPT}`,
     name: "代码辅助",
     category: "development",
     acceptsFiles: true,
+    parallelStrategy: "auto",
     fileTypes: [
       ".js",
       ".ts",
@@ -590,6 +593,7 @@ export function getTemplatesForUI() {
       description: ui.description || "",
       examples: ui.examples || [],
       acceptsFiles: tpl.acceptsFiles,
+      parallelStrategy: tpl.parallelStrategy || "none",
       ...(tpl.shellPolicyOverrides
         ? { shellPolicyOverrides: tpl.shellPolicyOverrides }
         : {}),

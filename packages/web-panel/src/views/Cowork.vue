@@ -110,6 +110,22 @@
           <component :is="iconMap[store.selectedTemplate.icon] || RocketOutlined" class="ready-icon" />
           <span class="ready-name">{{ store.selectedTemplate.name }}</span>
         </div>
+
+        <!-- Parallel mode toggle -->
+        <div v-if="store.selectedTemplate.parallelStrategy && store.selectedTemplate.parallelStrategy !== 'none'" class="parallel-toggle">
+          <a-switch v-model:checked="store.parallelMode" size="small" />
+          <span class="parallel-label">多 Agent 并行</span>
+          <a-input-number
+            v-if="store.parallelMode"
+            v-model:value="store.parallelAgents"
+            :min="2"
+            :max="10"
+            size="small"
+            class="agent-count"
+          />
+          <span v-if="store.parallelMode" class="parallel-hint">个 Agent</span>
+        </div>
+
         <div class="ready-examples">
           <div class="example-label">试试这些:</div>
           <div
@@ -186,6 +202,7 @@
 
       <!-- Task stats -->
       <div v-if="store.result && !store.isRunning" class="task-stats">
+        <a-tag v-if="store.result.parallel" color="purple">{{ store.result.subtaskCount || 0 }} subtasks</a-tag>
         <a-tag color="geekblue">{{ store.result.iterationCount || 0 }} iterations</a-tag>
         <a-tag color="cyan">~{{ (store.result.tokenCount || 0).toLocaleString() }} tokens</a-tag>
         <a-tag v-if="store.result.toolsUsed?.length" color="green">{{ store.result.toolsUsed.length }} tools</a-tag>
@@ -464,6 +481,21 @@ onMounted(() => {
 }
 .ready-icon { font-size: 28px; color: #1677ff; }
 .ready-name { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+
+/* Parallel toggle */
+.parallel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  background: var(--bg-card-hover);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+.parallel-label { font-size: 13px; color: var(--text-primary); }
+.agent-count { width: 60px; }
+.parallel-hint { font-size: 12px; color: var(--text-muted); }
 
 .ready-examples { text-align: center; }
 .example-label { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
