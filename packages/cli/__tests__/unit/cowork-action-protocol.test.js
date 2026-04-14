@@ -112,6 +112,37 @@ describe("handleCoworkTask (action-protocol)", () => {
     expect(doneCall[1].tokenCount).toBe(12500);
   });
 
+  it("passes onProgress callback that sends cowork:progress messages", async () => {
+    await handleCoworkTask(server, "req-prog", ws, {
+      templateId: "code-helper",
+      userMessage: "写脚本",
+    });
+
+    // Verify onProgress function was passed
+    expect(runCoworkTask).toHaveBeenCalledWith(
+      expect.objectContaining({ onProgress: expect.any(Function) }),
+    );
+
+    // Extract the captured callback and invoke it to verify WS plumbing
+    const capturedOpts = runCoworkTask.mock.calls[0][0];
+    server._send.mockClear();
+    capturedOpts.onProgress({
+      type: "tool-executing",
+      tool: "run_shell",
+      iterationCount: 1,
+      tokenCount: 100,
+    });
+
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-prog",
+      type: "cowork:progress",
+      event: "tool-executing",
+      tool: "run_shell",
+      iterationCount: 1,
+      tokenCount: 100,
+    });
+  });
+
   it("calls runCoworkTask with correct parameters", async () => {
     await handleCoworkTask(server, "req-4", ws, {
       templateId: "media-process",
@@ -125,6 +156,7 @@ describe("handleCoworkTask (action-protocol)", () => {
       files: ["/tmp/video.mp4"],
       cwd: "/test/project",
       llmOptions: {},
+      onProgress: expect.any(Function),
     });
   });
 

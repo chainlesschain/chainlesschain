@@ -101,6 +101,9 @@ export class SubAgentContext {
     // LLM options for chatWithTools
     this._llmOptions = options.llmOptions || {};
 
+    // Optional progress callback for streaming events to consumers
+    this._onProgress = options.onProgress || null;
+
     // Build isolated system prompt
     const basePrompt = buildSystemPrompt(this.cwd);
     const rolePrompt = `\n\n## Sub-Agent Role: ${this.role}\nYou are a focused sub-agent with the role "${this.role}". Your task is:\n${this.task}\n\nStay focused on this specific task. Be concise and return results directly.`;
@@ -251,6 +254,20 @@ export class SubAgentContext {
           lastContent = event.content || "";
           // Estimate token count from response content (~4 chars per token)
           this._tokenCount += Math.ceil((lastContent.length || 0) / 4);
+        }
+
+        // Emit progress to consumer if callback provided
+        if (this._onProgress) {
+          try {
+            this._onProgress({
+              type: event.type,
+              tool: event.tool || null,
+              iterationCount: this._iterationCount,
+              tokenCount: this._tokenCount,
+            });
+          } catch (_e) {
+            // Never let progress callback failures break the agent loop
+          }
         }
 
         // Enforce token budget

@@ -26,6 +26,16 @@ export async function handleCoworkTask(server, id, ws, message) {
       files,
       cwd: server.projectRoot || process.cwd(),
       llmOptions: {},
+      onProgress: (progress) => {
+        server._send(ws, {
+          id,
+          type: "cowork:progress",
+          event: progress.type,
+          tool: progress.tool,
+          iterationCount: progress.iterationCount,
+          tokenCount: progress.tokenCount,
+        });
+      },
     });
 
     server._send(ws, {
