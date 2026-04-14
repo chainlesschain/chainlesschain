@@ -52,6 +52,7 @@ import {
   handleSlashCommand,
   handleOrchestrate,
   handleCoworkTask,
+  handleCoworkCancel,
 } from "./action-protocol.js";
 import {
   handleWorktreeDiff,
@@ -301,6 +302,11 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — run a cowork daily task via SubAgentContext */
   async _handleCoworkTask(id, ws, message) {
     return handleCoworkTask(this, id, ws, message);
+  }
+
+  /** @private — cancel a running cowork task */
+  _handleCoworkCancel(id, ws, message) {
+    return handleCoworkCancel(this, id, ws, message);
   }
 
   /** @private – list background tasks */

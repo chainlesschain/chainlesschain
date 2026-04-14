@@ -104,6 +104,9 @@ export class SubAgentContext {
     // Optional progress callback for streaming events to consumers
     this._onProgress = options.onProgress || null;
 
+    // Optional abort signal for cancellation
+    this._signal = options.signal || null;
+
     // Build isolated system prompt
     const basePrompt = buildSystemPrompt(this.cwd);
     const rolePrompt = `\n\n## Sub-Agent Role: ${this.role}\nYou are a focused sub-agent with the role "${this.role}". Your task is:\n${this.task}\n\nStay focused on this specific task. Be concise and return results directly.`;
@@ -268,6 +271,12 @@ export class SubAgentContext {
           } catch (_e) {
             // Never let progress callback failures break the agent loop
           }
+        }
+
+        // Check abort signal
+        if (this._signal?.aborted) {
+          this.forceComplete("cancelled");
+          break;
         }
 
         // Enforce token budget
