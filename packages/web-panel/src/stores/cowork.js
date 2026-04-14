@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useWsStore } from './ws.js'
 import { useChatStore } from './chat.js'
 
@@ -111,6 +111,17 @@ export const useCoworkStore = defineStore('cowork', () => {
   const result = ref(null)
   const agentSessionId = ref(null)
 
+  // Sync isRunning with chatStore.isLoading for session mode
+  const chatStore = useChatStore()
+  watch(
+    () => chatStore.isLoading,
+    (loading) => {
+      if (!loading && agentSessionId.value) {
+        isRunning.value = false
+      }
+    },
+  )
+
   /** Pick a template (or null for free mode). */
   function selectTemplate(tpl) {
     selectedTemplate.value = tpl
@@ -185,7 +196,6 @@ cli-anything 已注册技能 > 直接调用开源工具 CLI > Python/Node 开源
    * a system prompt extension from the selected template.
    */
   async function execute(message) {
-    const chatStore = useChatStore()
     isRunning.value = true
 
     // Build system prompt extension from template + auto-install rules
