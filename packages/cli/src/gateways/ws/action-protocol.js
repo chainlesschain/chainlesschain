@@ -19,22 +19,39 @@ export async function handleCoworkTask(server, id, ws, message) {
   _runningTasks.set(trackingId, ac);
 
   try {
-    const { runCoworkTask } = await import("../../lib/cowork-task-runner.js");
+    const { runCoworkTask, runCoworkTaskParallel } =
+      await import("../../lib/cowork-task-runner.js");
+    const { getTemplate } = await import("../../lib/cowork-task-templates.js");
+
+    // Determine if parallel mode should be used
+    const template = getTemplate(templateId);
+    const useParallel =
+      message.parallel === true ||
+      (message.parallel !== false && template.parallelStrategy === "always");
 
     server._send(ws, {
       id,
       type: "cowork:started",
       templateId,
       trackingId,
+      parallel: useParallel,
     });
 
-    const result = await runCoworkTask({
+    const runner = useParallel ? runCoworkTaskParallel : runCoworkTask;
+
+    const result = await runner({
       templateId,
       userMessage,
       files,
       cwd: server.projectRoot || process.cwd(),
       llmOptions: {},
       signal: ac.signal,
+      ...(useParallel
+        ? {
+            agents: message.agents || 3,
+            strategy: message.strategy,
+          }
+        : {}),
       onProgress: (progress) => {
         server._send(ws, {
           id,
@@ -59,6 +76,8 @@ export async function handleCoworkTask(server, id, ws, message) {
       toolsUsed: result.result?.toolsUsed || [],
       iterationCount: result.result?.iterationCount || 0,
       tokenCount: result.result?.tokenCount || 0,
+      parallel: result.parallel || false,
+      subtaskCount: result.result?.subtaskCount || 0,
     });
   } catch (err) {
     server._send(ws, {

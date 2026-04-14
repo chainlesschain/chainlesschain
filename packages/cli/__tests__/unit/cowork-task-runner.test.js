@@ -15,7 +15,11 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
   };
 });
 
-import { runCoworkTask, _deps } from "../../src/lib/cowork-task-runner.js";
+import {
+  runCoworkTask,
+  runCoworkTaskParallel,
+  _deps,
+} from "../../src/lib/cowork-task-runner.js";
 import {
   SubAgentContext,
   _mockCreate,
@@ -403,5 +407,209 @@ describe("cowork-task-runner", () => {
     });
 
     expect(result.status).toBe("completed");
+  });
+});
+
+// ─── Parallel Runner ─────────────────────────────────────────────────────────
+
+// Mock orchestrator for parallel tests
+vi.mock("../../src/lib/orchestrator.js", () => {
+  const mockAddTask = vi.fn();
+  const mockStopCronWatch = vi.fn();
+  const mockOn = vi.fn();
+  const MockOrchestrator = vi.fn(() => ({
+    addTask: mockAddTask,
+    stopCronWatch: mockStopCronWatch,
+    on: mockOn,
+    notifier: { addWebSocketChannel: vi.fn() },
+  }));
+  return {
+    Orchestrator: MockOrchestrator,
+    TASK_SOURCE: { CLI: "cli" },
+    _mockAddTask: mockAddTask,
+    _mockStopCronWatch: mockStopCronWatch,
+    _mockOn: mockOn,
+    _MockOrchestrator: MockOrchestrator,
+  };
+});
+
+import {
+  _mockAddTask,
+  _mockStopCronWatch,
+  _mockOn,
+  _MockOrchestrator,
+} from "../../src/lib/orchestrator.js";
+
+describe("runCoworkTaskParallel", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _deps.existsSync = vi.fn(() => true);
+    _deps.mkdirSync = vi.fn();
+    _deps.appendFileSync = vi.fn();
+    _mockAddTask.mockResolvedValue({
+      id: "orch-task-001",
+      status: "completed",
+      retries: 0,
+      subtasks: [{ id: "s1" }, { id: "s2" }],
+      agentResults: [
+        { output: "Agent 1 completed analysis" },
+        { output: "Agent 2 completed research" },
+      ],
+    });
+  });
+
+  it("returns parallel result with correct structure", async () => {
+    const result = await runCoworkTaskParallel({
+      templateId: "web-research",
+      userMessage: "调研 AI 框架对比",
+    });
+
+    expect(result.parallel).toBe(true);
+    expect(result.status).toBe("completed");
+    expect(result.templateId).toBe("web-research");
+    expect(result.result.subtaskCount).toBe(2);
+    expect(result.result.summary).toContain("Agent 1 completed analysis");
+    expect(result.result.summary).toContain("Agent 2 completed research");
+  });
+
+  it("creates Orchestrator with correct maxParallel", async () => {
+    await runCoworkTaskParallel({
+      templateId: "data-analysis",
+      userMessage: "分析数据",
+      agents: 5,
+    });
+
+    expect(_MockOrchestrator).toHaveBeenCalledWith(
+      expect.objectContaining({ maxParallel: 5 }),
+    );
+  });
+
+  it("caps agents at 10", async () => {
+    await runCoworkTaskParallel({
+      templateId: "data-analysis",
+      userMessage: "分析数据",
+      agents: 20,
+    });
+
+    expect(_MockOrchestrator).toHaveBeenCalledWith(
+      expect.objectContaining({ maxParallel: 10 }),
+    );
+  });
+
+  it("defaults to 3 agents", async () => {
+    await runCoworkTaskParallel({
+      templateId: "data-analysis",
+      userMessage: "分析数据",
+    });
+
+    expect(_MockOrchestrator).toHaveBeenCalledWith(
+      expect.objectContaining({ maxParallel: 3 }),
+    );
+  });
+
+  it("includes template info in orchestrator task", async () => {
+    await runCoworkTaskParallel({
+      templateId: "web-research",
+      userMessage: "调研 React 框架",
+    });
+
+    const taskArg = _mockAddTask.mock.calls[0][0];
+    expect(taskArg).toContain("信息检索与调研");
+    expect(taskArg).toContain("调研 React 框架");
+  });
+
+  it("includes files in orchestrator task", async () => {
+    await runCoworkTaskParallel({
+      templateId: "data-analysis",
+      userMessage: "分析数据",
+      files: ["/data/sales.csv"],
+    });
+
+    const taskArg = _mockAddTask.mock.calls[0][0];
+    expect(taskArg).toContain("/data/sales.csv");
+  });
+
+  it("throws when userMessage is missing", async () => {
+    await expect(
+      runCoworkTaskParallel({ templateId: "web-research" }),
+    ).rejects.toThrow("userMessage is required");
+  });
+
+  it("validates file paths", async () => {
+    _deps.existsSync = vi.fn((f) => f !== "/missing.csv");
+
+    await expect(
+      runCoworkTaskParallel({
+        templateId: "data-analysis",
+        userMessage: "分析",
+        files: ["/existing.csv", "/missing.csv"],
+      }),
+    ).rejects.toThrow("File(s) not found: /missing.csv");
+  });
+
+  it("returns failed status on orchestrator error", async () => {
+    _mockAddTask.mockRejectedValue(new Error("Orchestrator crashed"));
+
+    const result = await runCoworkTaskParallel({
+      templateId: "web-research",
+      userMessage: "调研",
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.parallel).toBe(true);
+    expect(result.result.summary).toContain("Orchestrator crashed");
+  });
+
+  it("wires onProgress to orchestrator events", async () => {
+    const onProgress = vi.fn();
+
+    await runCoworkTaskParallel({
+      templateId: "web-research",
+      userMessage: "调研",
+      onProgress,
+    });
+
+    // Should register event listeners
+    expect(_mockOn).toHaveBeenCalled();
+    const eventNames = _mockOn.mock.calls.map((c) => c[0]);
+    expect(eventNames).toContain("task:added");
+    expect(eventNames).toContain("agent:output");
+  });
+
+  it("appends parallel result to history", async () => {
+    await runCoworkTaskParallel({
+      templateId: "web-research",
+      userMessage: "调研 AI",
+      cwd: "/test/project",
+    });
+
+    expect(_deps.appendFileSync).toHaveBeenCalledTimes(1);
+    const record = JSON.parse(_deps.appendFileSync.mock.calls[0][1].trim());
+    expect(record.parallel).toBe(true);
+    expect(record.userMessage).toBe("调研 AI");
+  });
+
+  it("passes strategy to Orchestrator when provided", async () => {
+    await runCoworkTaskParallel({
+      templateId: "data-analysis",
+      userMessage: "分析",
+      strategy: "parallel-all",
+    });
+
+    expect(_MockOrchestrator).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agents: { strategy: "parallel-all" },
+      }),
+    );
+  });
+
+  it("uses free mode when templateId is null", async () => {
+    const result = await runCoworkTaskParallel({
+      templateId: null,
+      userMessage: "并行执行任务",
+    });
+
+    expect(result.templateId).toBe("free");
+    expect(result.parallel).toBe(true);
   });
 });

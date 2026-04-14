@@ -32,6 +32,8 @@ export const useCoworkStore = defineStore('cowork', () => {
   const agentSessionId = ref(null)
   const lastRequest = ref(null)
   const history = ref([])
+  const parallelMode = ref(false)
+  const parallelAgents = ref(3)
 
   // Sync isRunning with chatStore.isLoading for session mode
   const chatStore = useChatStore()
@@ -150,12 +152,20 @@ export const useCoworkStore = defineStore('cowork', () => {
 
     try {
       await wsStore.waitConnected(8000)
-      const res = await wsStore.sendRaw({
+      const payload = {
         type: 'cowork-task',
         templateId: selectedTemplate.value?.id || null,
         userMessage: message,
         files: files.value,
-      }, 300000) // 5 min timeout for long-running tasks
+      }
+
+      // Add parallel mode options
+      if (parallelMode.value) {
+        payload.parallel = true
+        payload.agents = parallelAgents.value
+      }
+
+      const res = await wsStore.sendRaw(payload, 300000) // 5 min timeout for long-running tasks
 
       messages.value.push({
         role: 'assistant',
@@ -231,5 +241,6 @@ export const useCoworkStore = defineStore('cowork', () => {
     execute, executeDirectWs, sendFollowUp, answerQuestion,
     loadTemplates, templates, lastRequest, retry,
     history, loadHistory,
+    parallelMode, parallelAgents,
   }
 })

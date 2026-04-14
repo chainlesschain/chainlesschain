@@ -131,6 +131,157 @@ export async function runCoworkTask(options = {}) {
   }
 }
 
+// ─── Parallel Runner (Orchestrator) ──────────────────────────────────────────
+
+/**
+ * Run a cowork task using the Orchestrator for multi-agent parallel execution.
+ *
+ * @param {object} options - Same as runCoworkTask, plus:
+ * @param {number} [options.agents] - Number of parallel agents (default 3, max 10)
+ * @param {string} [options.strategy] - Routing strategy (default "round-robin")
+ * @param {function} [options.onProgress] - Progress callback
+ * @param {AbortSignal} [options.signal] - Cancellation signal
+ * @returns {Promise<{ taskId: string, status: string, result: object }>}
+ */
+export async function runCoworkTaskParallel(options = {}) {
+  const {
+    templateId = null,
+    userMessage,
+    files = [],
+    cwd = process.cwd(),
+    agents = 3,
+    strategy,
+    onProgress = null,
+    signal = null,
+  } = options;
+
+  if (!userMessage || typeof userMessage !== "string") {
+    throw new Error("userMessage is required");
+  }
+
+  if (files.length > 0) {
+    const missing = files.filter((f) => !_deps.existsSync(f));
+    if (missing.length > 0) {
+      throw new Error(`File(s) not found: ${missing.join(", ")}`);
+    }
+  }
+
+  const template = getTemplate(templateId);
+
+  // Build full task description for the orchestrator
+  const taskParts = [
+    `[Cowork Template: ${template.name}]`,
+    template.systemPromptExtension,
+    `\n## 用户需求\n${userMessage}`,
+  ];
+  if (files.length > 0) {
+    taskParts.push(`\n## 用户提供的文件\n${files.join("\n")}`);
+  }
+  const fullTask = taskParts.join("\n");
+
+  try {
+    const { Orchestrator, TASK_SOURCE } = await import("./orchestrator.js");
+
+    const orch = new Orchestrator({
+      cwd,
+      maxParallel: Math.min(parseInt(agents, 10) || 3, 10),
+      ciCommand: "echo ok",
+      agents: strategy ? { strategy } : undefined,
+      verbose: false,
+    });
+
+    // Wire progress events
+    if (onProgress) {
+      orch.on("task:added", (t) =>
+        onProgress({
+          type: "orchestrator-started",
+          taskId: t.id,
+          subtaskCount: 0,
+        }),
+      );
+      orch.on("task:decomposed", (t) =>
+        onProgress({
+          type: "orchestrator-decomposed",
+          taskId: t.id,
+          subtaskCount: t.subtasks?.length || 0,
+        }),
+      );
+      orch.on("agents:dispatched", (ev) =>
+        onProgress({
+          type: "agents-dispatched",
+          agentCount: ev.agents?.length || 0,
+        }),
+      );
+      orch.on("agent:output", (ev) =>
+        onProgress({
+          type: "agent-progress",
+          agentIndex: ev.agentIndex,
+          status: ev.status,
+          output: ev.output?.slice(0, 200),
+        }),
+      );
+    }
+
+    // Handle cancellation
+    if (signal) {
+      signal.addEventListener(
+        "abort",
+        () => {
+          orch.stopCronWatch();
+        },
+        { once: true },
+      );
+    }
+
+    const orchResult = await orch.addTask(fullTask, {
+      source: TASK_SOURCE.CLI,
+      cwd,
+      runCI: false,
+      notify: false,
+    });
+
+    const entry = {
+      taskId: orchResult.id,
+      status: orchResult.status === "completed" ? "completed" : "failed",
+      templateId: template.id,
+      templateName: template.name,
+      parallel: true,
+      agentCount: agents,
+      result: {
+        summary:
+          orchResult.agentResults
+            ?.map((r) => r.output?.slice(0, 500))
+            .join("\n---\n") || "Parallel execution completed",
+        artifacts: [],
+        tokenCount: 0,
+        toolsUsed: [],
+        iterationCount: orchResult.retries || 0,
+        subtaskCount: orchResult.subtasks?.length || 0,
+      },
+    };
+    _appendHistory(cwd, entry, userMessage);
+    return entry;
+  } catch (err) {
+    const entry = {
+      taskId: `cowork-parallel-${Date.now()}`,
+      status: "failed",
+      templateId: template.id,
+      templateName: template.name,
+      parallel: true,
+      result: {
+        summary: `Parallel task failed: ${err.message}`,
+        artifacts: [],
+        tokenCount: 0,
+        toolsUsed: [],
+        iterationCount: 0,
+        subtaskCount: 0,
+      },
+    };
+    _appendHistory(cwd, entry, userMessage);
+    return entry;
+  }
+}
+
 // ─── History Persistence ─────────────────────────────────────────────────────
 
 function _appendHistory(cwd, entry, userMessage) {
