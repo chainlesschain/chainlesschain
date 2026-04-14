@@ -123,11 +123,85 @@ describe("E2E: template content verification", () => {
 
 // ─── WS dispatcher route verification ─────────────────────────────
 
-describe("E2E: message-dispatcher cowork-task route", () => {
+describe("E2E: message-dispatcher routes", () => {
   it("dispatcher recognizes cowork-task type", () => {
     const out = nodeEval(
       "import('./src/gateways/ws/message-dispatcher.js').then(m => { let called = false; const s = { _send: () => {}, _handleCoworkTask: () => { called = true; }, clients: new Map([['c1', { authenticated: true }]]), token: null }; const d = m.createWsMessageDispatcher(s); d.dispatch('c1', {}, { id: 't1', type: 'cowork-task' }); console.log(called); })",
     );
     expect(out).toBe("true");
+  });
+
+  it("dispatcher recognizes cowork-cancel type", () => {
+    const out = nodeEval(
+      "import('./src/gateways/ws/message-dispatcher.js').then(m => { let called = false; const s = { _send: () => {}, _handleCoworkCancel: () => { called = true; }, clients: new Map([['c1', { authenticated: true }]]), token: null }; const d = m.createWsMessageDispatcher(s); d.dispatch('c1', {}, { id: 't2', type: 'cowork-cancel' }); console.log(called); })",
+    );
+    expect(out).toBe("true");
+  });
+
+  it("dispatcher recognizes cowork-templates type", () => {
+    const out = nodeEval(
+      "import('./src/gateways/ws/message-dispatcher.js').then(m => { let called = false; const s = { _send: () => {}, _handleCoworkTemplates: () => { called = true; }, clients: new Map([['c1', { authenticated: true }]]), token: null }; const d = m.createWsMessageDispatcher(s); d.dispatch('c1', {}, { id: 't3', type: 'cowork-templates' }); console.log(called); })",
+    );
+    expect(out).toBe("true");
+  });
+
+  it("dispatcher recognizes cowork-history type", () => {
+    const out = nodeEval(
+      "import('./src/gateways/ws/message-dispatcher.js').then(m => { let called = false; const s = { _send: () => {}, _handleCoworkHistory: () => { called = true; }, clients: new Map([['c1', { authenticated: true }]]), token: null }; const d = m.createWsMessageDispatcher(s); d.dispatch('c1', {}, { id: 't4', type: 'cowork-history' }); console.log(called); })",
+    );
+    expect(out).toBe("true");
+  });
+});
+
+// ─── New exports verification ───────────────────────────────────
+
+describe("E2E: new module exports", () => {
+  it("cowork-task-templates exports getTemplatesForUI", () => {
+    const out = nodeEval(
+      "import('./src/lib/cowork-task-templates.js').then(m => console.log(typeof m.getTemplatesForUI))",
+    );
+    expect(out).toBe("function");
+  });
+
+  it("getTemplatesForUI returns 10 templates with icon field", () => {
+    const out = nodeEval(
+      "import('./src/lib/cowork-task-templates.js').then(m => { const t = m.getTemplatesForUI(); console.log(t.length + '|' + t.every(x => x.icon && x.description !== undefined)); })",
+    );
+    expect(out).toBe("10|true");
+  });
+
+  it("getTemplatesForUI does not leak systemPromptExtension", () => {
+    const out = nodeEval(
+      "import('./src/lib/cowork-task-templates.js').then(m => { const t = m.getTemplatesForUI(); console.log(t.some(x => x.systemPromptExtension !== undefined)); })",
+    );
+    expect(out).toBe("false");
+  });
+
+  it("action-protocol exports handleCoworkCancel", () => {
+    const out = nodeEval(
+      "import('./src/gateways/ws/action-protocol.js').then(m => console.log(typeof m.handleCoworkCancel))",
+    );
+    expect(out).toBe("function");
+  });
+
+  it("action-protocol exports handleCoworkTemplates", () => {
+    const out = nodeEval(
+      "import('./src/gateways/ws/action-protocol.js').then(m => console.log(typeof m.handleCoworkTemplates))",
+    );
+    expect(out).toBe("function");
+  });
+
+  it("action-protocol exports handleCoworkHistory", () => {
+    const out = nodeEval(
+      "import('./src/gateways/ws/action-protocol.js').then(m => console.log(typeof m.handleCoworkHistory))",
+    );
+    expect(out).toBe("function");
+  });
+
+  it("cowork-task-runner exports _deps for testing", () => {
+    const out = nodeEval(
+      "import('./src/lib/cowork-task-runner.js').then(m => console.log(typeof m._deps.existsSync + '|' + typeof m._deps.mkdirSync + '|' + typeof m._deps.appendFileSync))",
+    );
+    expect(out).toBe("function|function|function");
   });
 });

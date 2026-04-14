@@ -17,7 +17,7 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
   };
 });
 
-import { runCoworkTask } from "../../src/lib/cowork-task-runner.js";
+import { runCoworkTask, _deps } from "../../src/lib/cowork-task-runner.js";
 import {
   TASK_TEMPLATES,
   getTemplate,
@@ -28,6 +28,10 @@ import { _createMock } from "../../src/lib/sub-agent-context.js";
 describe("cowork task workflow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock filesystem ops so tests don't need real files
+    _deps.existsSync = vi.fn(() => true);
+    _deps.mkdirSync = vi.fn();
+    _deps.appendFileSync = vi.fn();
     _createMock.mockImplementation((opts) => ({
       id: "sub-intg-001",
       status: "completed",
@@ -168,7 +172,6 @@ describe("cowork task workflow", () => {
   // ─── WS action-protocol integration ──────────────────────────
 
   it("handleCoworkTask delegates to runCoworkTask", async () => {
-    // Import the handler directly
     const { handleCoworkTask } =
       await import("../../src/gateways/ws/action-protocol.js");
 
@@ -184,7 +187,6 @@ describe("cowork task workflow", () => {
       files: ["/tmp/doc.docx"],
     });
 
-    // Should have sent cowork:started + cowork:done
     const types = server._send.mock.calls.map((c) => c[1].type);
     expect(types).toContain("cowork:started");
     expect(types).toContain("cowork:done");
@@ -194,5 +196,150 @@ describe("cowork task workflow", () => {
     );
     expect(done[1].status).toBe("completed");
     expect(done[1].templateId).toBe("doc-convert");
+  });
+
+  // ─── Cancel integration ─────────────────────────────────────
+
+  it("handleCoworkCancel aborts a running task via AbortSignal", async () => {
+    const { handleCoworkTask, handleCoworkCancel } =
+      await import("../../src/gateways/ws/action-protocol.js");
+
+    let resolveTask;
+    _createMock.mockImplementation(() => ({
+      id: "sub-cancel-001",
+      status: "cancelled",
+      run: vi.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveTask = resolve;
+          }),
+      ),
+    }));
+
+    const server = { _send: vi.fn(), projectRoot: "/test" };
+    const ws = {};
+
+    const taskPromise = handleCoworkTask(server, "req-cancel", ws, {
+      userMessage: "长任务",
+    });
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    handleCoworkCancel(server, "req-c", ws, {
+      trackingId: "cowork-req-cancel",
+    });
+
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-c",
+      type: "cowork:cancelled",
+      trackingId: "cowork-req-cancel",
+    });
+
+    resolveTask({ summary: "cancelled" });
+    await taskPromise;
+  });
+
+  // ─── Progress integration ───────────────────────────────────
+
+  it("handleCoworkTask sends cowork:progress when onProgress fires", async () => {
+    const { handleCoworkTask } =
+      await import("../../src/gateways/ws/action-protocol.js");
+
+    const server = { _send: vi.fn(), projectRoot: "/test" };
+    const ws = {};
+
+    await handleCoworkTask(server, "req-prog", ws, {
+      templateId: "code-helper",
+      userMessage: "写脚本",
+    });
+
+    // Verify onProgress was passed to SubAgentContext
+    const opts = _createMock.mock.calls.find(
+      (c) => c[0].role === "cowork-code-helper",
+    );
+    expect(opts[0].onProgress).toBeTypeOf("function");
+  });
+
+  // ─── Templates WS integration ──────────────────────────────
+
+  it("handleCoworkTemplates returns template list via WS", async () => {
+    const { handleCoworkTemplates } =
+      await import("../../src/gateways/ws/action-protocol.js");
+
+    const server = { _send: vi.fn() };
+    const ws = {};
+
+    await handleCoworkTemplates(server, "req-tpl", ws);
+
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-tpl",
+      type: "cowork:templates",
+      templates: expect.any(Array),
+    });
+
+    const templates = server._send.mock.calls[0][1].templates;
+    expect(templates.length).toBe(10);
+    expect(templates[0]).toHaveProperty("icon");
+    expect(templates[0]).toHaveProperty("description");
+    expect(templates[0]).toHaveProperty("examples");
+    // Should NOT include systemPromptExtension
+    expect(templates[0].systemPromptExtension).toBeUndefined();
+  });
+
+  // ─── History WS integration ─────────────────────────────────
+
+  it("handleCoworkHistory returns empty when no history file", async () => {
+    const { handleCoworkHistory } =
+      await import("../../src/gateways/ws/action-protocol.js");
+
+    const server = { _send: vi.fn(), projectRoot: "/nonexistent" };
+    const ws = {};
+
+    await handleCoworkHistory(server, "req-hist", ws, { limit: 10 });
+
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-hist",
+      type: "cowork:history",
+      entries: [],
+    });
+  });
+
+  // ─── History persistence integration ────────────────────────
+
+  it("runCoworkTask writes history entry after completion", async () => {
+    _deps.appendFileSync = vi.fn();
+
+    await runCoworkTask({
+      templateId: "data-analysis",
+      userMessage: "分析数据集",
+      cwd: "/proj",
+    });
+
+    expect(_deps.appendFileSync).toHaveBeenCalledTimes(1);
+    const record = JSON.parse(_deps.appendFileSync.mock.calls[0][1].trim());
+    expect(record.userMessage).toBe("分析数据集");
+    expect(record.templateId).toBe("data-analysis");
+    expect(record.status).toBe("completed");
+    expect(record.timestamp).toBeDefined();
+  });
+
+  // ─── Token count propagation ────────────────────────────────
+
+  it("handleCoworkTask includes tokenCount in cowork:done", async () => {
+    const { handleCoworkTask } =
+      await import("../../src/gateways/ws/action-protocol.js");
+
+    const server = { _send: vi.fn(), projectRoot: "/test" };
+    const ws = {};
+
+    await handleCoworkTask(server, "req-tok", ws, {
+      userMessage: "测试",
+    });
+
+    const done = server._send.mock.calls.find(
+      (c) => c[1].type === "cowork:done",
+    );
+    expect(done[1]).toHaveProperty("tokenCount");
+    expect(done[1].tokenCount).toBe(1200);
   });
 });
