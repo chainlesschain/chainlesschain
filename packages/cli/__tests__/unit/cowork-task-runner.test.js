@@ -15,11 +15,22 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
   };
 });
 
+// Mock debate-review-cli module
+vi.mock("../../src/lib/cowork/debate-review-cli.js", () => {
+  const mockStartDebate = vi.fn();
+  return {
+    startDebate: mockStartDebate,
+    _mockStartDebate: mockStartDebate,
+  };
+});
+
 import {
   runCoworkTask,
   runCoworkTaskParallel,
+  runCoworkDebate,
   _deps,
 } from "../../src/lib/cowork-task-runner.js";
+import { _mockStartDebate } from "../../src/lib/cowork/debate-review-cli.js";
 import {
   SubAgentContext,
   _mockCreate,
@@ -611,5 +622,186 @@ describe("runCoworkTaskParallel", () => {
 
     expect(result.templateId).toBe("free");
     expect(result.parallel).toBe(true);
+  });
+});
+
+// ─── Debate Runner ───────────────────────────────────────────────────────────
+
+describe("runCoworkDebate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _deps.existsSync = vi.fn(() => true);
+    _deps.mkdirSync = vi.fn();
+    _deps.appendFileSync = vi.fn();
+    _deps.readFileSync = vi.fn(() => "function foo() { return 42; }");
+    _mockStartDebate.mockResolvedValue({
+      target: "test",
+      perspectives: ["performance", "security", "maintainability"],
+      reviews: [
+        {
+          perspective: "performance",
+          role: "Performance Reviewer",
+          review: "OK",
+          verdict: "APPROVE",
+        },
+        {
+          perspective: "security",
+          role: "Security Reviewer",
+          review: "Issue",
+          verdict: "NEEDS_WORK",
+        },
+        {
+          perspective: "maintainability",
+          role: "Maintainability Reviewer",
+          review: "Good",
+          verdict: "APPROVE",
+        },
+      ],
+      verdict: "NEEDS_WORK",
+      consensusScore: 75,
+      summary: "Overall decent, fix the security issue.",
+    });
+  });
+
+  it("returns debate result with verdict and reviews", async () => {
+    const result = await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "评审这个函数",
+    });
+
+    expect(result.status).toBe("completed");
+    expect(result.mode).toBe("debate");
+    expect(result.result.verdict).toBe("NEEDS_WORK");
+    expect(result.result.consensusScore).toBe(75);
+    expect(result.result.reviews).toHaveLength(3);
+    expect(result.result.summary).toContain("security");
+  });
+
+  it("reads file contents when files provided", async () => {
+    _deps.readFileSync = vi.fn(() => "const x = 1;");
+
+    await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "Review this",
+      files: ["/src/foo.js"],
+    });
+
+    expect(_deps.readFileSync).toHaveBeenCalledWith("/src/foo.js", "utf-8");
+    const callArgs = _mockStartDebate.mock.calls[0][0];
+    expect(callArgs.code).toContain("const x = 1;");
+    expect(callArgs.code).toContain("/src/foo.js");
+  });
+
+  it("uses userMessage as code body when no files provided", async () => {
+    await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "function inlineCode() { return 1; }",
+    });
+
+    const callArgs = _mockStartDebate.mock.calls[0][0];
+    expect(callArgs.code).toContain("function inlineCode");
+  });
+
+  it("validates file paths before starting debate", async () => {
+    _deps.existsSync = vi.fn((f) => f !== "/missing.js");
+
+    await expect(
+      runCoworkDebate({
+        userMessage: "review",
+        files: ["/missing.js"],
+      }),
+    ).rejects.toThrow("File(s) not found: /missing.js");
+    expect(_mockStartDebate).not.toHaveBeenCalled();
+  });
+
+  it("uses template debatePerspectives by default", async () => {
+    await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "review",
+    });
+
+    const callArgs = _mockStartDebate.mock.calls[0][0];
+    expect(callArgs.perspectives).toEqual([
+      "performance",
+      "security",
+      "maintainability",
+    ]);
+  });
+
+  it("allows custom perspectives override", async () => {
+    await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "review",
+      perspectives: ["architecture", "correctness"],
+    });
+
+    const callArgs = _mockStartDebate.mock.calls[0][0];
+    expect(callArgs.perspectives).toEqual(["architecture", "correctness"]);
+  });
+
+  it("throws when userMessage missing", async () => {
+    await expect(runCoworkDebate({})).rejects.toThrow(
+      "userMessage is required",
+    );
+  });
+
+  it("emits debate-started and debate-completed progress events", async () => {
+    const onProgress = vi.fn();
+
+    await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "review",
+      onProgress,
+    });
+
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "debate-started" }),
+    );
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "debate-completed",
+        verdict: "NEEDS_WORK",
+      }),
+    );
+  });
+
+  it("returns failed status when startDebate throws", async () => {
+    _mockStartDebate.mockRejectedValue(new Error("LLM offline"));
+
+    const result = await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "review",
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.result.summary).toContain("LLM offline");
+  });
+
+  it("handles read errors gracefully with error marker", async () => {
+    _deps.readFileSync = vi.fn(() => {
+      throw new Error("EACCES");
+    });
+
+    await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "review",
+      files: ["/protected.js"],
+    });
+
+    const callArgs = _mockStartDebate.mock.calls[0][0];
+    expect(callArgs.code).toContain("read error: EACCES");
+  });
+
+  it("appends debate result to history", async () => {
+    await runCoworkDebate({
+      templateId: "code-review",
+      userMessage: "review",
+      cwd: "/test/proj",
+    });
+
+    expect(_deps.appendFileSync).toHaveBeenCalledTimes(1);
+    const record = JSON.parse(_deps.appendFileSync.mock.calls[0][1].trim());
+    expect(record.mode).toBe("debate");
+    expect(record.status).toBe("completed");
   });
 });

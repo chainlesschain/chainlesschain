@@ -10,8 +10,8 @@ describe("cowork-task-templates", () => {
   // ─── TASK_TEMPLATES object ────────────────────────────────
 
   describe("TASK_TEMPLATES", () => {
-    it("has exactly 10 templates", () => {
-      expect(Object.keys(TASK_TEMPLATES)).toHaveLength(10);
+    it("has exactly 11 templates", () => {
+      expect(Object.keys(TASK_TEMPLATES)).toHaveLength(11);
     });
 
     it("contains all expected template IDs", () => {
@@ -26,6 +26,7 @@ describe("cowork-task-templates", () => {
         "file-organize",
         "network-tools",
         "learning-assist",
+        "code-review",
       ];
       expect(Object.keys(TASK_TEMPLATES).sort()).toEqual(expectedIds.sort());
     });
@@ -39,20 +40,28 @@ describe("cowork-task-templates", () => {
         expect(typeof tpl.acceptsFiles).toBe("boolean");
         expect(Array.isArray(tpl.fileTypes)).toBe(true);
         expect(typeof tpl.systemPromptExtension).toBe("string");
-        expect(tpl.systemPromptExtension.length).toBeGreaterThan(100);
+        // Debate-mode templates have shorter coordinator prompts (not used in agent loop)
+        const minLen = tpl.mode === "debate" ? 20 : 100;
+        expect(tpl.systemPromptExtension.length).toBeGreaterThan(minLen);
       }
     });
 
-    it("all templates include open-source-first prompt", () => {
-      for (const tpl of Object.values(TASK_TEMPLATES)) {
+    it("all agent-mode templates include open-source-first prompt", () => {
+      const agentTemplates = Object.values(TASK_TEMPLATES).filter(
+        (t) => t.mode !== "debate",
+      );
+      for (const tpl of agentTemplates) {
         expect(tpl.systemPromptExtension).toContain("开源工具优先");
         expect(tpl.systemPromptExtension).toContain("cli-anything");
         expect(tpl.systemPromptExtension).toContain("winget");
       }
     });
 
-    it("all templates include error recovery prompt", () => {
-      for (const tpl of Object.values(TASK_TEMPLATES)) {
+    it("all agent-mode templates include error recovery prompt", () => {
+      const agentTemplates = Object.values(TASK_TEMPLATES).filter(
+        (t) => t.mode !== "debate",
+      );
+      for (const tpl of agentTemplates) {
         expect(tpl.systemPromptExtension).toContain("错误恢复策略");
       }
     });
@@ -169,12 +178,13 @@ describe("cowork-task-templates", () => {
   // ─── listTemplateIds() ────────────────────────────────────
 
   describe("listTemplateIds()", () => {
-    it("returns array of 10 IDs", () => {
+    it("returns array of 11 IDs", () => {
       const ids = listTemplateIds();
-      expect(ids).toHaveLength(10);
+      expect(ids).toHaveLength(11);
       expect(ids).toContain("doc-convert");
       expect(ids).toContain("media-process");
       expect(ids).toContain("learning-assist");
+      expect(ids).toContain("code-review");
     });
 
     it("matches TASK_TEMPLATES keys", () => {
@@ -232,9 +242,9 @@ describe("cowork-task-templates", () => {
   // ─── getTemplatesForUI() ─────────────────────────────────
 
   describe("getTemplatesForUI()", () => {
-    it("returns an array with 10 templates", () => {
+    it("returns an array with 11 templates", () => {
       const ui = getTemplatesForUI();
-      expect(ui).toHaveLength(10);
+      expect(ui).toHaveLength(11);
     });
 
     it("each template has required UI fields", () => {
