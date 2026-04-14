@@ -15,7 +15,7 @@ vi.mock("../../src/lib/sub-agent-context.js", () => {
   };
 });
 
-import { runCoworkTask } from "../../src/lib/cowork-task-runner.js";
+import { runCoworkTask, _deps } from "../../src/lib/cowork-task-runner.js";
 import {
   SubAgentContext,
   _mockCreate,
@@ -25,6 +25,8 @@ import {
 describe("cowork-task-runner", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: all files exist
+    _deps.existsSync = vi.fn(() => true);
     _mockRun.mockResolvedValue({
       summary: "Task completed successfully",
       artifacts: [],
@@ -120,6 +122,45 @@ describe("cowork-task-runner", () => {
     const opts = _mockCreate.mock.calls[0][0];
     // The task should NOT contain the "## 用户提供的文件" dynamic section header
     expect(opts.task).not.toContain("## 用户提供的文件");
+  });
+
+  // ─── File path validation ─────────────────────────────────
+
+  it("throws when a provided file does not exist", async () => {
+    _deps.existsSync = vi.fn((f) => f !== "/missing.txt");
+
+    await expect(
+      runCoworkTask({
+        templateId: "doc-convert",
+        userMessage: "转换文档",
+        files: ["/existing.txt", "/missing.txt"],
+      }),
+    ).rejects.toThrow("File(s) not found: /missing.txt");
+    expect(_mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("passes validation when all files exist", async () => {
+    _deps.existsSync = vi.fn(() => true);
+
+    const result = await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "转换文档",
+      files: ["/a.docx", "/b.md"],
+    });
+
+    expect(result.status).toBe("completed");
+    expect(_deps.existsSync).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips validation when no files provided", async () => {
+    _deps.existsSync = vi.fn();
+
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "转换文档",
+    });
+
+    expect(_deps.existsSync).not.toHaveBeenCalled();
   });
 
   it("passes cwd to SubAgentContext", async () => {

@@ -7,8 +7,13 @@
  * @module cowork-task-runner
  */
 
+import { existsSync } from "node:fs";
 import { SubAgentContext } from "./sub-agent-context.js";
 import { getTemplate } from "./cowork-task-templates.js";
+
+// ─── Dependencies (overridable for testing) ──────────────────────────────────
+
+export const _deps = { existsSync };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -47,6 +52,14 @@ export async function runCoworkTask(options = {}) {
     throw new Error("userMessage is required");
   }
 
+  // Validate file paths before starting
+  if (files.length > 0) {
+    const missing = files.filter((f) => !_deps.existsSync(f));
+    if (missing.length > 0) {
+      throw new Error(`File(s) not found: ${missing.join(", ")}`);
+    }
+  }
+
   // Resolve template
   const template = getTemplate(templateId);
 
@@ -75,7 +88,10 @@ export async function runCoworkTask(options = {}) {
 
   // Build loop options — pass shell policy overrides if template declares them
   const loopOptions = {};
-  if (Array.isArray(template.shellPolicyOverrides) && template.shellPolicyOverrides.length) {
+  if (
+    Array.isArray(template.shellPolicyOverrides) &&
+    template.shellPolicyOverrides.length
+  ) {
     loopOptions.shellPolicyOverrides = template.shellPolicyOverrides;
   }
 
