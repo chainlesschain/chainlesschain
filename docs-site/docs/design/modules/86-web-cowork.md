@@ -1566,13 +1566,13 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 
 | 文件 | 测试数 | 类型 |
 |------|--------|------|
-| `__tests__/unit/cowork-task-templates.test.js` | 32 | 单元 |
-| `__tests__/unit/cowork-task-runner.test.js` | 36 | 单元 |
-| `__tests__/unit/cowork-action-protocol.test.js` | 16 | 单元 |
+| `__tests__/unit/cowork-task-templates.test.js` | 23 | 单元 |
+| `__tests__/unit/cowork-task-runner.test.js` | 25 | 单元 |
+| `__tests__/unit/cowork-action-protocol.test.js` | 9 | 单元 |
 | `__tests__/unit/cowork-session-extension.test.js` | 5 | 单元 |
-| `__tests__/integration/cowork-task-workflow.test.js` | 17 | 集成 |
-| `__tests__/e2e/cowork-task-e2e.test.js` | 21 | E2E |
-| **合计** | **127** | |
+| `__tests__/integration/cowork-task-workflow.test.js` | 11 | 集成 |
+| `__tests__/e2e/cowork-task-e2e.test.js` | 11 | E2E |
+| **合计** | **87** | |
 
 **用户文档**: `docs-site/docs/chainlesschain/web-cowork.md`
 
@@ -1594,40 +1594,28 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 
 **新增测试**: `cowork-session-extension.test.js` (5 tests)
 
-### 2026-04-14 — 10 项优化
+---
 
-| # | 优先级 | 优化项 | 变更摘要 |
-|---|--------|--------|----------|
-| 1 | P0 | XSS 修复 | Cowork.vue 引入 DOMPurify 对 marked 输出做 sanitize |
-| 2 | P3d | Emoji → Icon | 替换 🔧 为 `<ToolOutlined />` 组件 |
-| 3 | P2c | isRunning 同步 | cowork.js 增加 `watch(chatStore.isLoading)` 重置 isRunning |
-| 4 | P3c | 文件路径验证 | cowork-task-runner.js 在启动前校验 files 是否存在 |
-| 5 | P3b | Token 统计 | cowork:done 增加 tokenCount；Cowork.vue 显示统计标签 |
-| 6 | P1a | 实时进度 | SubAgentContext 增加 onProgress 回调；action-protocol 发送 cowork:progress |
-| 7 | P1b | 任务取消 | AbortController + cowork-cancel WS 消息；signal 透传到 SubAgentContext |
-| 8 | P2a | 模板去重 | 后端新增 `getTemplatesForUI()` + cowork-templates WS 消息；前端改为 `loadTemplates()` |
-| 9 | P3a | 重试机制 | cowork.js 增加 `lastRequest` ref + `retry()` action；错误消息显示重试按钮 |
-| 10 | P2b | 任务历史 | JSONL 持久化到 `.chainlesschain/cowork/history.jsonl`；cowork-history WS API；侧边栏历史面板 |
+### Bug Fix 2: Agent 无法执行网络请求 (v0.45.80)
 
-**新增 WS 消息类型**:
+**问题**: Cowork 页面选择"信息检索与调研"或"网络工具"模板时，Agent 无法执行 curl/wget 等网络命令，返回 "Network download commands are blocked by the coding-agent shell policy"。
 
-| 消息类型 | 方向 | 说明 |
-|----------|------|------|
-| `cowork:progress` | Server → Client | 实时进度事件 (tool-executing 等) |
-| `cowork:cancelled` | Server → Client | 任务已取消确认 |
-| `cowork-cancel` | Client → Server | 取消运行中的 cowork 任务 |
-| `cowork-templates` | Client → Server | 请求模板列表 |
-| `cowork:templates` | Server → Client | 返回 UI 模板数组 |
-| `cowork-history` | Client → Server | 请求任务历史 |
-| `cowork:history` | Server → Client | 返回 JSONL 历史条目 |
+**根因**: `coding-agent-shell-policy.cjs` 的 `network-download` 规则将 `curl`/`wget`/`Invoke-WebRequest`/`iwr` 硬性 DENY，无论会话上下文。
 
-**测试更新**:
+**修复**: 引入 `shellPolicyOverrides` 机制 — 特定模板可声明需要放行的 shell policy rule ID，在创建 session 时透传到 agentLoop，由 `evaluateShellCommandPolicy` 将匹配的 DENY 规则降级为 WARN (allowed)。
 
-| 文件 | 新测试数 | 总测试数 |
-|------|----------|----------|
-| `cowork-task-templates.test.js` | +5 (getTemplatesForUI) | 32 |
-| `cowork-task-runner.test.js` | +3 (history persistence) | 36 |
-| `cowork-action-protocol.test.js` | +7 (cancel, signal, trackingId, progress, tokenCount) | 16 |
-| `cowork-task-workflow.test.js` | +6 (cancel, progress, templates, history, persistence, tokenCount) | 17 |
-| `cowork-task-e2e.test.js` | +10 (dispatcher routes, export verification) | 21 |
-| **合计** | **+31** | **122 (84 unit + 17 integration + 21 E2E)** |
+| 层 | 文件 | 变更 |
+|---|------|------|
+| Shell Policy | `coding-agent-shell-policy.cjs` | `evaluateShellCommandPolicy()` 新增 `options.overrideRuleIds` 参数 |
+| Agent Core | `agent-core.js` | `toolContext` 和 `executeToolInner` 传递 `shellPolicyOverrides` |
+| Agent Handler | `ws-agent-handler.js` | `loopOptions` 传递 `session.shellPolicyOverrides` |
+| Session Gateway | `ws-session-gateway.js` | session 对象存储 `shellPolicyOverrides` |
+| Session Protocol | `session-protocol.js` | 从 WS 消息解构并透传 `shellPolicyOverrides` |
+| Templates (后端) | `cowork-task-templates.js` | `web-research`、`network-tools` 声明 `shellPolicyOverrides: ["network-download"]` |
+| Templates (前端) | `cowork.js` store | 对应模板声明 `shellPolicyOverrides`，`execute()` 创建 session 时传递 |
+| WS Store | `ws.js` store | `createSession()` 发送 `shellPolicyOverrides` 字段 |
+| Task Runner | `cowork-task-runner.js` | 从模板读取 overrides 传给 `subAgent.run(msg, loopOptions)` |
+
+**安全设计**: 仅 `web-research` 和 `network-tools` 两个模板声明 override，其他模板和普通 agent 会话仍受 DENY 保护。Override 只能降级为 WARN (不能绕过 REROUTE)。
+
+**新增/更新测试**: shell-policy +5, templates +4, runner +3, session-extension +2 = 14 tests
