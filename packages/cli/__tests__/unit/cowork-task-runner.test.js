@@ -27,6 +27,8 @@ describe("cowork-task-runner", () => {
     vi.clearAllMocks();
     // Default: all files exist
     _deps.existsSync = vi.fn(() => true);
+    _deps.mkdirSync = vi.fn();
+    _deps.appendFileSync = vi.fn();
     _mockRun.mockResolvedValue({
       summary: "Task completed successfully",
       artifacts: [],
@@ -346,5 +348,60 @@ describe("cowork-task-runner", () => {
     // loopOptions should be an empty object (no shellPolicyOverrides)
     const loopOpts = _mockRun.mock.calls[0][1];
     expect(loopOpts.shellPolicyOverrides).toBeUndefined();
+  });
+
+  // ─── History persistence ─────────────────────────────────
+
+  it("appends completed task to history.jsonl", async () => {
+    _deps.mkdirSync = vi.fn();
+    _deps.appendFileSync = vi.fn();
+
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "转换文档",
+      cwd: "/test/project",
+    });
+
+    expect(_deps.mkdirSync).toHaveBeenCalledWith(
+      expect.stringContaining("cowork"),
+      { recursive: true },
+    );
+    expect(_deps.appendFileSync).toHaveBeenCalledTimes(1);
+    const [filePath, content] = _deps.appendFileSync.mock.calls[0];
+    expect(filePath).toContain("history.jsonl");
+    const record = JSON.parse(content.trim());
+    expect(record.taskId).toBe("sub-test-123456");
+    expect(record.userMessage).toBe("转换文档");
+    expect(record.timestamp).toBeDefined();
+  });
+
+  it("appends failed task to history.jsonl", async () => {
+    _deps.mkdirSync = vi.fn();
+    _deps.appendFileSync = vi.fn();
+    _mockRun.mockRejectedValue(new Error("LLM failed"));
+
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "失败任务",
+      cwd: "/test/project",
+    });
+
+    expect(_deps.appendFileSync).toHaveBeenCalledTimes(1);
+    const record = JSON.parse(_deps.appendFileSync.mock.calls[0][1].trim());
+    expect(record.status).toBe("failed");
+  });
+
+  it("does not fail task when history write throws", async () => {
+    _deps.mkdirSync = vi.fn(() => {
+      throw new Error("Permission denied");
+    });
+    _deps.appendFileSync = vi.fn();
+
+    const result = await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "正常任务",
+    });
+
+    expect(result.status).toBe("completed");
   });
 });

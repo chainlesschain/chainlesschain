@@ -7,13 +7,14 @@
  * @module cowork-task-runner
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, appendFileSync } from "node:fs";
+import { join } from "node:path";
 import { SubAgentContext } from "./sub-agent-context.js";
 import { getTemplate } from "./cowork-task-templates.js";
 
 // ─── Dependencies (overridable for testing) ──────────────────────────────────
 
-export const _deps = { existsSync };
+export const _deps = { existsSync, mkdirSync, appendFileSync };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -102,15 +103,17 @@ export async function runCoworkTask(options = {}) {
   // Run the agent with the user's message
   try {
     const result = await subAgent.run(userMessage, loopOptions);
-    return {
+    const entry = {
       taskId,
       status: subAgent.status,
       templateId: template.id,
       templateName: template.name,
       result,
     };
+    _appendHistory(cwd, entry, userMessage);
+    return entry;
   } catch (err) {
-    return {
+    const entry = {
       taskId,
       status: "failed",
       templateId: template.id,
@@ -123,5 +126,28 @@ export async function runCoworkTask(options = {}) {
         iterationCount: 0,
       },
     };
+    _appendHistory(cwd, entry, userMessage);
+    return entry;
+  }
+}
+
+// ─── History Persistence ─────────────────────────────────────────────────────
+
+function _appendHistory(cwd, entry, userMessage) {
+  try {
+    const histDir = join(cwd, ".chainlesschain", "cowork");
+    _deps.mkdirSync(histDir, { recursive: true });
+    const record = {
+      ...entry,
+      userMessage,
+      timestamp: new Date().toISOString(),
+    };
+    _deps.appendFileSync(
+      join(histDir, "history.jsonl"),
+      JSON.stringify(record) + "\n",
+      "utf-8",
+    );
+  } catch (_e) {
+    // Best-effort — don't fail the task for history write errors
   }
 }

@@ -67,6 +67,27 @@
           @pressEnter="addManualFile"
         />
       </div>
+
+      <!-- History -->
+      <div v-if="store.history.length" class="history-section">
+        <div class="history-header" @click="showHistory = !showHistory">
+          <HistoryOutlined /> 历史记录 ({{ store.history.length }})
+        </div>
+        <div v-if="showHistory" class="history-list">
+          <div
+            v-for="(h, idx) in store.history.slice().reverse().slice(0, 20)"
+            :key="idx"
+            class="history-item"
+            :class="h.status"
+          >
+            <div class="history-summary">{{ h.userMessage }}</div>
+            <div class="history-meta">
+              <span>{{ h.templateName || '自由模式' }}</span>
+              <span>{{ h.status }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Right Panel: Execution -->
@@ -208,7 +229,7 @@ import {
   RocketOutlined, SendOutlined, ThunderboltOutlined, FolderOpenOutlined,
   FileTextOutlined, PlayCircleOutlined, BarChartOutlined, SearchOutlined,
   PictureOutlined, CodeOutlined, DesktopOutlined, GlobalOutlined, ReadOutlined,
-  ToolOutlined,
+  ToolOutlined, HistoryOutlined,
 } from '@ant-design/icons-vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
@@ -233,6 +254,7 @@ const messagesEl = ref(null)
 const isDragging = ref(false)
 const manualFilePath = ref('')
 const hasInteracted = ref(false)
+const showHistory = ref(false)
 
 const iconMap = {
   FileTextOutlined, PlayCircleOutlined, BarChartOutlined, SearchOutlined,
@@ -314,6 +336,7 @@ watch([agentMessages, () => store.currentStreaming], () => {
 onMounted(() => {
   chatStore.loadSessions()
   store.loadTemplates()
+  store.loadHistory()
 })
 </script>
 
@@ -559,4 +582,21 @@ onMounted(() => {
 }
 :deep(.bubble.assistant p) { margin: 0 0 8px; }
 :deep(.bubble.assistant p:last-child) { margin: 0; }
+
+/* History section */
+.history-section { margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 8px; }
+.history-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #888; cursor: pointer; padding: 4px 0;
+}
+.history-header:hover { color: #1677ff; }
+.history-list { max-height: 200px; overflow-y: auto; }
+.history-item {
+  padding: 6px 8px; border-radius: 6px; margin-bottom: 4px;
+  background: var(--bg-card-hover); cursor: default;
+}
+.history-item.failed { border-left: 2px solid #ff4d4f; }
+.history-item.completed { border-left: 2px solid #52c41a; }
+.history-summary { font-size: 12px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-meta { display: flex; justify-content: space-between; font-size: 10px; color: #888; margin-top: 2px; }
 </style>
