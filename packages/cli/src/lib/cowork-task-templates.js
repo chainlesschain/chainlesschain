@@ -496,23 +496,49 @@ ${ERROR_RECOVERY_PROMPT}`,
  * @param {string|null} templateId
  * @returns {object} Template definition
  */
+/**
+ * Extra template registry for installed user templates. The marketplace
+ * loader populates this at CLI startup via `setUserTemplates()`. Keeping
+ * it local lets `getTemplate()` / `getTemplatesForUI()` stay synchronous
+ * while still returning user-installed templates.
+ */
+let _userTemplates = {};
+
+/** Called by the marketplace / CLI to register installed user templates. */
+export function setUserTemplates(templates) {
+  _userTemplates = {};
+  if (Array.isArray(templates)) {
+    for (const tpl of templates) {
+      if (tpl?.id) _userTemplates[tpl.id] = tpl;
+    }
+  }
+}
+
+/** Read-only accessor for tests. */
+export function getUserTemplates() {
+  return { ..._userTemplates };
+}
+
 export function getTemplate(templateId) {
-  if (!templateId || !TASK_TEMPLATES[templateId]) {
-    return {
-      id: "free",
-      name: "自由模式",
-      category: "general",
-      acceptsFiles: true,
-      fileTypes: [],
-      systemPromptExtension: `你是一个全能助手，可以处理用户提出的任何日常任务。
+  if (templateId && TASK_TEMPLATES[templateId]) {
+    return TASK_TEMPLATES[templateId];
+  }
+  if (templateId && _userTemplates[templateId]) {
+    return _userTemplates[templateId];
+  }
+  return {
+    id: "free",
+    name: "自由模式",
+    category: "general",
+    acceptsFiles: true,
+    fileTypes: [],
+    systemPromptExtension: `你是一个全能助手，可以处理用户提出的任何日常任务。
 根据任务类型自动选择最合适的工具和方法。
 
 ${OPEN_SOURCE_FIRST_PROMPT}
 ${FILE_HANDLING_PROMPT}
 ${ERROR_RECOVERY_PROMPT}`,
-    };
-  }
-  return TASK_TEMPLATES[templateId];
+  };
 }
 
 /**
@@ -520,7 +546,7 @@ ${ERROR_RECOVERY_PROMPT}`,
  * @returns {string[]}
  */
 export function listTemplateIds() {
-  return Object.keys(TASK_TEMPLATES);
+  return [...Object.keys(TASK_TEMPLATES), ...Object.keys(_userTemplates)];
 }
 
 // ─── UI Metadata ─────────────────────────────────────────────────────────────
@@ -618,8 +644,17 @@ const UI_METADATA = {
  * @returns {object[]}
  */
 export function getTemplatesForUI() {
-  return Object.values(TASK_TEMPLATES).map((tpl) => {
+  const builtIn = Object.values(TASK_TEMPLATES).map((tpl) => {
     const ui = UI_METADATA[tpl.id] || {};
+    return { tpl, ui, source: "builtin" };
+  });
+  const userInstalled = Object.values(_userTemplates).map((tpl) => ({
+    tpl,
+    // User templates carry their own ui metadata inline
+    ui: { icon: tpl.icon, description: tpl.description, examples: tpl.examples },
+    source: "user",
+  }));
+  return [...builtIn, ...userInstalled].map(({ tpl, ui, source }) => {
     return {
       id: tpl.id,
       name: tpl.name,
@@ -627,6 +662,7 @@ export function getTemplatesForUI() {
       category: tpl.category,
       description: ui.description || "",
       examples: ui.examples || [],
+      source,
       acceptsFiles: tpl.acceptsFiles,
       parallelStrategy: tpl.parallelStrategy || "none",
       mode: tpl.mode || "agent",
