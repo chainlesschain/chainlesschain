@@ -125,6 +125,14 @@
           <div v-else class="assistant-msg">
             <div class="avatar">AI</div>
             <div class="bubble assistant" v-html="renderMarkdown(msg.content)"></div>
+            <a-button
+              v-if="msg.content?.startsWith('Error:') && !store.isRunning && store.lastRequest"
+              size="small"
+              type="link"
+              @click="store.retry()"
+            >
+              重试
+            </a-button>
           </div>
         </div>
 

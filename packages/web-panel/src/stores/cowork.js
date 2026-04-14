@@ -30,6 +30,7 @@ export const useCoworkStore = defineStore('cowork', () => {
   const messages = ref([])
   const result = ref(null)
   const agentSessionId = ref(null)
+  const lastRequest = ref(null)
 
   // Sync isRunning with chatStore.isLoading for session mode
   const chatStore = useChatStore()
@@ -54,6 +55,7 @@ export const useCoworkStore = defineStore('cowork', () => {
     result.value = null
     isRunning.value = false
     agentSessionId.value = null
+    lastRequest.value = null
   }
 
   function addFile(filePath) {
@@ -86,6 +88,7 @@ export const useCoworkStore = defineStore('cowork', () => {
    * a system prompt extension from the selected template.
    */
   async function execute(message) {
+    lastRequest.value = { mode: 'session', message }
     isRunning.value = true
 
     // Template prompt injection happens server-side;
@@ -122,6 +125,7 @@ export const useCoworkStore = defineStore('cowork', () => {
    * This is the preferred path — template prompt injection happens server-side.
    */
   async function executeDirectWs(message) {
+    lastRequest.value = { mode: 'direct', message }
     const wsStore = useWsStore()
     isRunning.value = true
 
@@ -180,6 +184,17 @@ export const useCoworkStore = defineStore('cowork', () => {
     chatStore.answerQuestion(agentSessionId.value, answer)
   }
 
+  /** Retry the last failed request. */
+  async function retry() {
+    if (!lastRequest.value) return
+    const { mode, message } = lastRequest.value
+    if (mode === 'direct') {
+      await executeDirectWs(message)
+    } else {
+      await execute(message)
+    }
+  }
+
   async function sendFollowUp(message) {
     if (!agentSessionId.value) return
     const chatStore = useChatStore()
@@ -197,6 +212,6 @@ export const useCoworkStore = defineStore('cowork', () => {
     currentAgentMessages, currentStreaming, currentQuestion,
     selectTemplate, reset, addFile, removeFile,
     execute, executeDirectWs, sendFollowUp, answerQuestion,
-    loadTemplates, templates,
+    loadTemplates, templates, lastRequest, retry,
   }
 })
