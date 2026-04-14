@@ -195,6 +195,7 @@ import {
   PictureOutlined, CodeOutlined, DesktopOutlined, GlobalOutlined, ReadOutlined,
 } from '@ant-design/icons-vue'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import { useCoworkStore, TASK_TEMPLATES } from '../stores/cowork.js'
@@ -243,7 +244,7 @@ const inputPlaceholder = computed(() => {
 const agentMessages = computed(() => store.currentAgentMessages)
 
 function renderMarkdown(text) {
-  try { return marked(text || '') } catch { return text || '' }
+  try { return DOMPurify.sanitize(marked(text || '')) } catch { return DOMPurify.sanitize(text || '') }
 }
 
 function basename(filepath) {
