@@ -10,8 +10,12 @@
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SubAgentContext } from "./sub-agent-context.js";
-import { getTemplate } from "./cowork-task-templates.js";
+import {
+  getTemplate,
+  setUserTemplates,
+} from "./cowork-task-templates.js";
 import { mountTemplateMcpTools } from "./cowork-mcp-tools.js";
+import { listUserTemplates } from "./cowork-template-marketplace.js";
 
 // ─── Dependencies (overridable for testing) ──────────────────────────────────
 
@@ -62,6 +66,13 @@ export async function runCoworkTask(options = {}) {
     if (missing.length > 0) {
       throw new Error(`File(s) not found: ${missing.join(", ")}`);
     }
+  }
+
+  // Merge user-installed templates (marketplace) into the registry before resolving
+  try {
+    setUserTemplates(listUserTemplates(cwd));
+  } catch (_e) {
+    // Non-fatal — marketplace absence should not break task execution
   }
 
   // Resolve template

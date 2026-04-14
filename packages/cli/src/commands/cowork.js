@@ -290,6 +290,159 @@ export function registerCoworkCommand(program) {
       }
     });
 
+  // cowork template — marketplace subcommands
+  const tpl = cowork
+    .command("template")
+    .description("Cowork template marketplace (search/install/publish via EvoMap)");
+
+  tpl
+    .command("search [query]")
+    .description("Search for Cowork templates on the EvoMap hub")
+    .option("--limit <n>", "Max results", "20")
+    .option("--json", "Output as JSON")
+    .action(async (query, options) => {
+      const [{ searchTemplates, _deps: mpDeps }, { EvoMapClient }] =
+        await Promise.all([
+          import("../lib/cowork-template-marketplace.js"),
+          import("../lib/evomap-client.js"),
+        ]);
+      mpDeps.evomapClient = new EvoMapClient();
+      try {
+        const results = await searchTemplates(query || "", {
+          limit: parseInt(options.limit, 10) || 20,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(results, null, 2));
+          return;
+        }
+        if (results.length === 0) {
+          logger.info("No templates found.");
+          return;
+        }
+        logger.log(chalk.bold(`\n${results.length} template(s) found:\n`));
+        for (const g of results) {
+          logger.log(
+            `  ${chalk.cyan(g.id)} ${chalk.gray("v" + (g.version || "?"))} by ${g.author || "unknown"}`,
+          );
+          if (g.description) {
+            logger.log(chalk.gray(`    ${g.description.slice(0, 100)}`));
+          }
+          logger.log(
+            chalk.gray(
+              `    downloads: ${g.downloads || 0}  rating: ${g.rating || "N/A"}`,
+            ),
+          );
+        }
+        logger.log("");
+      } catch (err) {
+        logger.error(`Search failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  tpl
+    .command("install <geneId>")
+    .description("Install a Cowork template from the EvoMap hub")
+    .action(async (geneId) => {
+      const [{ installTemplate, _deps: mpDeps }, { EvoMapClient }] =
+        await Promise.all([
+          import("../lib/cowork-template-marketplace.js"),
+          import("../lib/evomap-client.js"),
+        ]);
+      mpDeps.evomapClient = new EvoMapClient();
+      try {
+        const template = await installTemplate(process.cwd(), geneId);
+        logger.log(
+          chalk.green(`✓ Installed template '${template.id}' (${template.name})`),
+        );
+      } catch (err) {
+        logger.error(`Install failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  tpl
+    .command("list")
+    .description("List locally installed Cowork templates")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { listUserTemplates } = await import(
+        "../lib/cowork-template-marketplace.js"
+      );
+      const templates = listUserTemplates(process.cwd());
+      if (options.json) {
+        console.log(JSON.stringify(templates, null, 2));
+        return;
+      }
+      if (templates.length === 0) {
+        logger.info("No user templates installed.");
+        return;
+      }
+      logger.log(chalk.bold(`\n${templates.length} installed template(s):\n`));
+      for (const t of templates) {
+        logger.log(
+          `  ${chalk.cyan(t.id)} — ${t.name} ${chalk.gray("[" + t.category + "]")}`,
+        );
+      }
+      logger.log("");
+    });
+
+  tpl
+    .command("remove <id>")
+    .description("Remove an installed Cowork template")
+    .action(async (id) => {
+      const { removeUserTemplate } = await import(
+        "../lib/cowork-template-marketplace.js"
+      );
+      if (removeUserTemplate(process.cwd(), id)) {
+        logger.log(chalk.green(`✓ Removed '${id}'`));
+      } else {
+        logger.error(`Template not installed: ${id}`);
+        process.exit(1);
+      }
+    });
+
+  tpl
+    .command("publish <templateId>")
+    .description("Publish a built-in or installed Cowork template to EvoMap")
+    .requiredOption("--author <name>", "Author name for the published gene")
+    .option("--version <v>", "Gene version", "1.0.0")
+    .option("--description <text>", "Gene description")
+    .option("--tags <list>", "Comma-separated tags")
+    .action(async (templateId, options) => {
+      const [
+        { publishTemplate, toShareableTemplate, _deps: mpDeps },
+        { getTemplate },
+        { EvoMapClient },
+      ] = await Promise.all([
+        import("../lib/cowork-template-marketplace.js"),
+        import("../lib/cowork-task-templates.js"),
+        import("../lib/evomap-client.js"),
+      ]);
+      mpDeps.evomapClient = new EvoMapClient();
+
+      const template = getTemplate(templateId);
+      if (template.id === "free") {
+        logger.error(`Unknown template: ${templateId}`);
+        process.exit(1);
+      }
+      const shareable = toShareableTemplate(template);
+      try {
+        const result = await publishTemplate(shareable, {
+          author: options.author,
+          version: options.version,
+          description: options.description,
+          tags: options.tags ? options.tags.split(",").map((t) => t.trim()) : [],
+        });
+        logger.log(
+          chalk.green(`✓ Published ${result?.id || shareable.id}`),
+        );
+      } catch (err) {
+        logger.error(`Publish failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
   // cowork cron — schedule daily tasks
   const cron = cowork
     .command("cron")
