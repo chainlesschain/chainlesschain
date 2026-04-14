@@ -202,12 +202,12 @@ class SkillSynthesizer {
 你是一个技能提取专家。分析以下执行轨迹，提取可复用的工作流模式。
 
 ## 执行轨迹
-用户意图: {{userIntent}}
+用户意图: \{\{userIntent\}\}
 工具调用链:
-{{#each toolChain}}
-  {{@index}}. {{tool}}({{args}}) → {{status}} ({{durationMs}}ms)
-{{/each}}
-最终响应: {{finalResponse}}
+\{\{#each toolChain\}\}
+  \{\{@index\}\}. \{\{tool\}\}(\{\{args\}\}) → \{\{status\}\} (\{\{durationMs\}\}ms)
+\{\{/each\}\}
+最终响应: \{\{finalResponse\}\}
 
 ## 要求
 提取为以下结构:
@@ -225,27 +225,27 @@ class SkillSynthesizer {
 
 ```yaml
 ---
-name: {{extracted-name}}
-description: {{extracted-description}}
+name: \{\{extracted-name\}\}
+description: \{\{extracted-description\}\}
 version: 1.0.0
 category: auto-learned
-tags: [auto-synthesized, {{domain-tags}}]
+tags: [auto-synthesized, \{\{domain-tags\}\}]
 metadata:
   source: trajectory
-  trajectory_id: {{trajectoryId}}
-  confidence: {{pattern-match-score}}
+  trajectory_id: \{\{trajectoryId\}\}
+  confidence: \{\{pattern-match-score\}\}
   created_by: learning-loop
-tools: [{{tool-list}}]
+tools: [\{\{tool-list\}\}]
 ---
 
 ## Procedure
-{{extracted-steps}}
+\{\{extracted-steps\}\}
 
 ## Pitfalls
-{{extracted-pitfalls}}
+\{\{extracted-pitfalls\}\}
 
 ## Verification
-{{extracted-verification}}
+\{\{extracted-verification\}\}
 ```
 
 **去重策略**:

@@ -1522,25 +1522,434 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 
 ---
 
-## 十、未来演进
+## 十、未来演进 — 9 项详细实施计划
 
-### 10.1 短期 (v5.0.3.x)
+> **制定日期**: 2026-04-14
+> **依赖关系**: F1(Orchestrator) 独立；F2(Debate) 独立；F3(模板市场) 依赖 EvoMap；F4(定时任务) 独立；F5(移动端) 依赖 F3；F6(MCP) 独立；F7(工作流) 依赖 F1；F8(P2P) 依赖 F3；F9(学习) 依赖历史系统
+> **推荐实施顺序**: F1 → F2 → F6 → F4 → F3 → F9 → F7 → F5 → F8
 
-- 支持 Orchestrator 多 Agent 并行模式（适合大型调研任务）
-- 支持 Cowork Debate 模式（多视角审查方案）
-- 模板市场 — 社区共享任务模板
+### F1: Orchestrator 多 Agent 并行模式 — 短期 (v5.0.3.1)
 
-### 10.2 中期 (v5.1.x)
+**目标**: Cowork 任务可选择使用 Orchestrator 进行多 Agent 并行执行，适合大型调研、多文件批处理、多维分析等需要拆分子任务的场景。
 
-- 定时任务集成 — 定期执行 cowork 任务（如每日报告）
-- 移动端入口 — Android App 的 Cowork 页面
-- MCP 工具集成 — 模板可声明所需的 MCP 服务器（复用 Skill-Embedded MCP 模式）
+**架构设计**:
 
-### 10.3 长期
+```
+用户 → Cowork.vue (选择"并行模式") → cowork.js store
+  → WS: { type: "cowork-task", parallel: true, agents: 3 }
+    → action-protocol.js: handleCoworkTask()
+      → if parallel: Orchestrator.addTask() (复用现有编排器)
+      → else: runCoworkTask() (现有单 Agent 路径)
+```
 
-- 工作流编排 — 可视化拖拽构建复杂流水线
-- 多用户协作 — P2P 共享任务模板和执行结果
-- 学习进化 — Agent 从历史执行中学习优化策略
+**实现文件与变更**:
+
+| 文件 | 变更 |
+|------|------|
+| `cowork-task-templates.js` | 每个模板增加 `parallelStrategy` 字段 (none/auto/always)；`web-research`、`data-analysis` 默认 auto |
+| `cowork-task-runner.js` | 新增 `runCoworkTaskParallel(opts)` — 调用 `Orchestrator.addTask()`，透传 `onProgress`/`signal` |
+| `action-protocol.js` | `handleCoworkTask()` 根据 `message.parallel` 或模板 `parallelStrategy` 选择执行路径 |
+| `web-panel/stores/cowork.js` | `executeDirectWs()` 增加 `parallel` 选项；监听 `orchestrate:event` 消息更新多 Agent 进度 |
+| `web-panel/views/Cowork.vue` | 模板卡片增加"并行模式"开关；进度区域展示多 Agent 状态面板 (agent-1: running, agent-2: done...) |
+
+**WS 消息扩展**:
+
+| 消息类型 | 说明 |
+|----------|------|
+| `cowork:agent-progress` | Server → Client，单个 Agent 的进度 `{ agentIndex, status, tool, iteration }` |
+| `cowork:subtask-done` | Server → Client，子任务完成 `{ subtaskIndex, summary, artifacts }` |
+
+**关键决策**:
+- 复用 `Orchestrator` 而非新建并行引擎 — 减少代码重复，利用已有的 AgentRouter + 重试 + CI 集成
+- 模板的 `parallelStrategy: "auto"` 表示由 Orchestrator 的 `_decompose()` 自动决定是否拆分
+- 最大并行数限制为 `Math.min(message.agents || 3, 10)`
+
+**测试计划**: 单元 8 + 集成 4 + E2E 3 = **15 tests**
+
+---
+
+### F2: Cowork Debate 模式 — 短期 (v5.0.3.2)
+
+**目标**: 用户提交方案/代码/文档，多个 Agent 从不同视角（性能/安全/可维护性/成本/用户体验）进行审查辩论，最终输出综合评审报告。
+
+**架构设计**:
+
+```
+用户 → Cowork.vue (选择"方案审查"模板) → cowork.js store
+  → WS: { type: "cowork-task", templateId: "debate-review", perspectives: [...] }
+    → action-protocol.js → cowork-task-runner.js
+      → debate-review-cli.js: startDebate({ target, perspectives })
+        → N 个并行 LLM 调用 (每个视角一个)
+        → 仲裁者 LLM 综合 → { reviews, verdict, verdictReason }
+```
+
+**实现文件与变更**:
+
+| 文件 | 变更 |
+|------|------|
+| `cowork-task-templates.js` | 新增 `debate-review` 模板 (第 11 个)，包含 5 个默认视角 |
+| `cowork-task-runner.js` | 检测 `templateId === "debate-review"` 时调用 `startDebate()` 而非 `SubAgentContext` |
+| `cowork/debate-review-cli.js` | 已存在；需适配 `onProgress` 回调 — 每个视角完成时通知 |
+| `action-protocol.js` | `handleCoworkTask()` 透传 `perspectives` 参数 |
+| `web-panel/stores/cowork.js` | 解析 debate 结果结构 `{ reviews[], verdict }` 并渲染 |
+| `web-panel/views/Cowork.vue` | 新增 Debate 结果视图 — 分栏展示各视角评审 + 最终裁定 |
+
+**UI 设计**:
+- 审查过程中: 显示 5 个视角卡片，每个显示进度条 (0/1)
+- 审查完成: 每个视角展开/收起评审详情，顶部高亮裁定结果 (通过/有风险/建议修改)
+- 用户可自定义视角列表 (如添加"合规性"、移除"性能")
+
+**关键决策**:
+- 复用 `debate-review-cli.js` 的 `startDebate()` 而非重写 — 该模块已有 25 个测试验证
+- A/B Compare (`ab-comparator-cli.js`) 作为 `debate-review` 模板的子模式 — 用户选择"方案对比"时自动路由
+
+**测试计划**: 单元 6 + 集成 3 + E2E 2 = **11 tests**
+
+---
+
+### F3: 模板市场 — 社区共享任务模板 — 短期 (v5.0.3.3)
+
+**目标**: 用户可发布自定义 Cowork 模板到 EvoMap Hub，其他用户可搜索、下载、安装社区模板。
+
+**架构设计**:
+
+```
+EvoMap Hub (远程)
+  ↑ publish(template)     ↓ search/download
+模板市场 UI ← cowork-template-market.js ← evomap-client.js
+  ↓ install                ↓ uninstall
+~/.chainlesschain/cowork/community-templates/  (本地)
+  ↓ loadCommunityTemplates()
+cowork-task-templates.js (合并: 内置 10 + 社区 N)
+```
+
+**实现文件与变更**:
+
+| 文件 | 变更 |
+|------|------|
+| `src/lib/cowork-template-market.js` | **新建** — `searchTemplates(query)`, `downloadTemplate(id)`, `publishTemplate(template)`, `installTemplate(gene)`, `uninstallTemplate(id)`, `listInstalled()` |
+| `cowork-task-templates.js` | 新增 `loadCommunityTemplates(cwd)` — 扫描 `~/.chainlesschain/cowork/community-templates/*.json`；`getTemplate()` 合并内置 + 社区 |
+| `action-protocol.js` | 新增 `handleCoworkMarket(server, id, ws, message)` — search/install/publish 路由 |
+| `message-dispatcher.js` | 新增 `"cowork-market"` 路由 |
+| `ws-server.js` | 新增 `_handleCoworkMarket()` 委托 |
+| `web-panel/stores/cowork.js` | 新增 `marketTemplates` ref + `searchMarket(query)` + `installFromMarket(id)` |
+| `web-panel/views/Cowork.vue` | 新增"模板市场"按钮 → 弹窗/侧边栏展示社区模板列表 (搜索 + 安装 + 评分) |
+
+**模板市场 JSON 格式** (EvoMap Gene 扩展):
+
+```json
+{
+  "id": "community-pdf-optimizer",
+  "name": "PDF 优化大师",
+  "description": "批量压缩、合并、分割 PDF 文件",
+  "author": "user123",
+  "version": "1.0.0",
+  "category": "doc-convert",
+  "icon": "FilePdfOutlined",
+  "examples": ["压缩 report.pdf 到 5MB 以下", "合并 3 个 PDF"],
+  "systemPromptExtension": "...",
+  "shellPolicyOverrides": [],
+  "downloads": 1234,
+  "rating": 4.5
+}
+```
+
+**关键决策**:
+- 复用 `EvoMapClient` 的 `search/download/publish` API — 社区模板作为 EvoMap Gene 的 `category: "cowork-template"` 子类
+- 本地安装路径 `~/.chainlesschain/cowork/community-templates/` — 与 JSONL 历史同级
+- 安全: 社区模板的 `systemPromptExtension` 不能声明 `shellPolicyOverrides`，仅内置模板可放行危险命令
+
+**测试计划**: 单元 10 + 集成 4 + E2E 3 = **17 tests**
+
+---
+
+### F4: 定时任务集成 — 中期 (v5.1.1)
+
+**目标**: 用户可配置 Cowork 任务定期自动执行（如每日生成代码质量报告、每周清理临时文件、定时同步数据）。
+
+**架构设计**:
+
+```
+用户 → Cowork.vue ("定时执行"按钮) → cron 配置面板
+  → WS: { type: "cowork-cron-create", schedule: "0 9 * * *", templateId, userMessage, files }
+    → action-protocol.js → cowork-cron-manager.js
+      → node-cron scheduler → 到时间 → runCoworkTask() → 结果写 history.jsonl
+                                       → WS 通知在线用户
+```
+
+**实现文件与变更**:
+
+| 文件 | 变更 |
+|------|------|
+| `src/lib/cowork-cron-manager.js` | **新建** — `CronManager` 类：`addJob(schedule, taskConfig)`, `removeJob(jobId)`, `listJobs()`, `pauseJob(jobId)`, `resumeJob(jobId)` |
+| `cowork-task-runner.js` | `runCoworkTask()` 增加 `source: "cron"` 标识，history 记录中区分手动/定时 |
+| `action-protocol.js` | 新增 `handleCoworkCronCreate/Delete/List()` |
+| `message-dispatcher.js` | 新增 `"cowork-cron-create"`, `"cowork-cron-delete"`, `"cowork-cron-list"` 路由 |
+| `ws-server.js` | 启动时 `cronManager.loadPersisted()` 恢复已保存的 cron 任务；新增 3 个委托方法 |
+| `web-panel/stores/cowork.js` | 新增 `cronJobs` ref + `createCron(schedule, config)` + `loadCronJobs()` |
+| `web-panel/views/Cowork.vue` | 模板选择后增加"定时执行"开关 → 展开 cron 表达式选择器 (预设: 每天/每周/每月/自定义) |
+
+**持久化**: `~/.chainlesschain/cowork/cron-jobs.json` — JSON 数组，每条包含 `{ id, schedule, templateId, userMessage, files, enabled, createdAt, lastRunAt }`
+
+**关键决策**:
+- 使用 `node-cron` (已有 Orchestrator 的 `startCronWatch` 先例) 而非系统 crontab — 跨平台
+- Cron 任务执行结果通过 `cowork:cron-result` WS 消息推送给在线客户端
+- 服务器关闭时 cron 任务自然停止，重启时从持久化文件恢复
+- 最短间隔限制 5 分钟，防止滥用
+
+**测试计划**: 单元 8 + 集成 3 + E2E 2 = **13 tests**
+
+---
+
+### F5: 移动端入口 — Android App 的 Cowork 页面 — 中期 (v5.1.2)
+
+**目标**: Android App 增加"日常协作"页面，通过 P2P Bridge 连接桌面端/CLI 执行 Cowork 任务。
+
+**架构设计**:
+
+```
+Android App (Jetpack Compose)
+  CoworkScreen.kt → CoworkViewModel.kt
+    → P2PSkillBridge → WebSocket → CLI WS Server
+      → handleCoworkTask() → SubAgentContext → 结果返回
+                           ← cowork:progress / cowork:done
+```
+
+**实现文件与变更**:
+
+| 目录/文件 | 变更 |
+|-----------|------|
+| `android-app/feature-ai/.../cowork/ui/CoworkScreen.kt` | **新建** — Compose UI：模板网格 + 消息输入 + 文件选择 + 进度卡片 |
+| `android-app/feature-ai/.../cowork/ui/CoworkViewModel.kt` | **新建** — StateFlow`<CoworkUiState>`，WebSocket 通信，任务管理 |
+| `android-app/feature-ai/.../cowork/model/CoworkModels.kt` | **新建** — `CoworkTemplate`, `CoworkTask`, `CoworkResult` data classes |
+| `android-app/feature-ai/.../cowork/service/CoworkService.kt` | **新建** — 通过 `P2PSkillBridge` / 直接 WebSocket 发送 cowork-task 消息 |
+| `android-app/app/.../navigation/AppNavigation.kt` | 新增 `cowork` 路由 |
+| `android-app/app/.../screens/MainScreen.kt` | 底部导航增加"协作"入口 |
+
+**UI 设计 (Material 3)**:
+- 顶部: 模板横向滚动卡片 (复用后端 `getTemplatesForUI()` 返回的 icon/description)
+- 中间: 消息列表 (用户输入 + Agent 响应)
+- 底部: 输入栏 + 文件附件按钮 + 发送按钮
+- 进度: BottomSheet 展示当前工具执行、迭代计数、token 消耗
+
+**关键决策**:
+- 模板列表通过 WS `cowork-templates` 消息从 CLI 后端获取 — 不在 Android 端重复定义
+- 文件路径: Android 端选择文件后上传到桌面端 `~/Downloads/cowork-upload/`，然后传递路径
+- 离线支持: 模板列表本地缓存 (Room)，任务执行必须在线
+
+**测试计划**: ViewModel 单元 6 + Service 集成 4 = **10 tests** (Kotlin)
+
+---
+
+### F6: MCP 工具集成 — 中期 (v5.1.3)
+
+**目标**: Cowork 任务模板可声明所需的 MCP 服务器，任务启动时自动 mount，结束后 unmount。复用已有的 Skill-Embedded MCP 模式。
+
+**架构设计**:
+
+```
+模板定义: TASK_TEMPLATES["data-analysis"].mcpServers = [
+  { name: "sqlite", command: "npx", args: ["-y", "@modelcontextprotocol/server-sqlite"] }
+]
+
+runCoworkTask() 流程:
+  1. getTemplate(templateId)
+  2. if template.mcpServers → mountSkillMcpServers(mcpClient, { mcpServers })
+  3. SubAgentContext.create() → run()  (MCP 工具已可用)
+  4. unmountSkillMcpServers(mcpClient, mountedNames)
+```
+
+**实现文件与变更**:
+
+| 文件 | 变更 |
+|------|------|
+| `cowork-task-templates.js` | 部分模板增加 `mcpServers` 字段：`data-analysis` → sqlite-server；`web-research` → fetch-server；`doc-convert` → filesystem-server |
+| `cowork-task-runner.js` | `runCoworkTask()` 启动前调用 `mountSkillMcpServers()`，finally 块调用 `unmountSkillMcpServers()`；通过 `opts.mcpClient` 获取 MCP 客户端实例 |
+| `action-protocol.js` | `handleCoworkTask()` 从 `server` 获取 `mcpClient` 传入 runner |
+| `ws-server.js` | 确保 `mcpClient` 实例可被 action-protocol 访问 |
+| `getTemplatesForUI()` | 返回 `mcpServers` 的服务器名列表 (不含 command/args — 安全) |
+
+**社区模板 MCP 声明** (F3 联动):
+```json
+{
+  "mcpServers": [
+    { "name": "github", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"] }
+  ]
+}
+```
+
+**关键决策**:
+- 直接复用 `skill-mcp.js` 的 `mountSkillMcpServers()` / `unmountSkillMcpServers()` — 零重复代码
+- MCP 服务器安装通过 `npx -y` 自动下载，用户无需手动安装
+- 社区模板的 MCP 声明需要安全审核 — 仅白名单内的 MCP 服务器允许自动 mount
+- 容错: mount 失败不阻塞任务执行，降级为无 MCP 工具模式
+
+**测试计划**: 单元 6 + 集成 3 + E2E 2 = **11 tests**
+
+---
+
+### F7: 工作流编排 — 长期 (v5.2.1)
+
+**目标**: 用户可将多个 Cowork 模板串联成工作流（DAG），实现复杂的多步骤自动化流水线。支持可视化拖拽编排。
+
+**架构设计**:
+
+```
+工作流定义 (DAG):
+  Stage 1: web-research "调研竞品"
+    ↓ (artifacts → Stage 2 input)
+  Stage 2: data-analysis "分析数据"
+    ↓
+  Stage 3: doc-convert "生成报告"
+
+存储: workflow-engine.js 的 workflows 表
+执行: cowork-workflow-executor.js → 逐 stage 调用 runCoworkTask()
+```
+
+**实现文件与变更**:
+
+| 文件 | 变更 |
+|------|------|
+| `src/lib/cowork-workflow-executor.js` | **新建** — `executeWorkflow(workflowId, db, opts)`: 读取 DAG → 拓扑排序 → 逐 stage 执行 `runCoworkTask()` → stage 间传递 artifacts |
+| `src/lib/workflow-engine.js` | 扩展 stage type: 新增 `"cowork"` 类型 (已有 `"action"` / `"approval"`) |
+| `action-protocol.js` | 新增 `handleCoworkWorkflow()` — 创建/执行/查询工作流 |
+| `message-dispatcher.js` | 新增 `"cowork-workflow"` 路由 |
+| `web-panel/views/CoworkWorkflow.vue` | **新建** — 可视化 DAG 编辑器 (基于 @vue-flow/core 拖拽) |
+| `web-panel/stores/cowork.js` | 新增 `workflows` ref + `createWorkflow()` + `runWorkflow()` |
+| `web-panel/router/index.js` | 新增 `/cowork/workflow` 路由 |
+
+**可视化编辑器设计**:
+- 左侧: 模板面板 (拖出节点)
+- 中间: DAG 画布 (连线表示数据流)
+- 右侧: 节点属性面板 (配置 userMessage、files、条件分支)
+- 底部: 运行按钮 + 执行日志
+
+**Stage 间数据传递**:
+```text
+{
+  "stages": [
+    { "id": "s1", "templateId": "web-research", "userMessage": "调研 {input.topic}", "next": ["s2"] },
+    { "id": "s2", "templateId": "data-analysis", "userMessage": "分析 {s1.artifacts}", "next": ["s3"] },
+    { "id": "s3", "templateId": "doc-convert", "userMessage": "生成报告 {s2.summary}", "next": [] }
+  ]
+}
+```
+
+**关键决策**:
+- 复用 `workflow-engine.js` 的 DAG 校验 (`validateDAG`) 和存储模型
+- Stage 类型扩展为 `"cowork"` — 每个 stage 本质是一次 `runCoworkTask()` 调用
+- `{s1.artifacts}` 模板变量在执行时替换为前一 stage 的实际输出
+- 可视化编辑器使用 `@vue-flow/core` (Vue 3 的 React Flow 等价物)
+- 并行 stage 支持: DAG 中无依赖的 stage 可并行执行 (复用 F1 的 Orchestrator)
+
+**测试计划**: 单元 12 + 集成 5 + E2E 3 = **20 tests**
+
+---
+
+### F8: 多用户协作 — P2P 共享任务模板和执行结果 — 长期 (v5.2.2)
+
+**目标**: 通过 P2P 网络，团队成员可共享 Cowork 模板、发送任务执行结果、协同编辑工作流。
+
+**架构设计**:
+
+```
+用户 A (发送方)                    用户 B (接收方)
+Cowork.vue → "分享" 按钮            收到 P2P 消息
+  → p2p-manager.sendMessage()        → 解析 cowork-share 类型
+    → Signal 协议加密                   → 弹窗: "用户A分享了模板/结果"
+      → P2P 网络传输                      → 安装模板 / 查看结果
+```
+
+**实现文件与变更**:
+
+| 文件 | 变更 |
+|------|------|
+| `src/lib/cowork-p2p-sharing.js` | **新建** — `shareTemplate(peerId, template)`, `shareResult(peerId, result)`, `handleIncoming(message)` |
+| `src/lib/p2p-manager.js` | 新增消息类型: `cowork-template-share`, `cowork-result-share` |
+| `action-protocol.js` | 新增 `handleCoworkShare()` — 封装 P2P 发送 |
+| `web-panel/views/Cowork.vue` | 任务完成后增加"分享给..."按钮 → 选择在线 Peer → 发送 |
+| `web-panel/stores/cowork.js` | 新增 `sharedItems` ref + `shareTemplate()` + `shareResult()` |
+
+**P2P 消息格式**:
+```json
+{
+  "type": "cowork-template-share",
+  "from": "did:key:z6Mk...",
+  "template": { "id": "custom-pdf", "name": "PDF 处理", "systemPromptExtension": "..." },
+  "signature": "..."
+}
+```
+
+**关键决策**:
+- 复用 Signal Protocol 端到端加密 — 模板/结果在传输中加密
+- 接收方需手动确认安装 — 防止恶意模板自动执行
+- 结果分享只传 summary + artifacts 元数据，不传完整 LLM 对话历史 (隐私)
+- DID 签名验证发送方身份
+
+**测试计划**: 单元 8 + 集成 4 + E2E 2 = **14 tests**
+
+---
+
+### F9: 学习进化 — Agent 从历史执行中学习优化策略 — 长期 (v5.2.3)
+
+**目标**: 系统自动分析 Cowork 任务历史 (`history.jsonl`)，识别高效执行模式，自动优化模板的系统提示词和工具选择。
+
+**架构设计**:
+
+```
+history.jsonl (执行记录)
+  → cowork-learning-engine.js
+    → trajectory-store.js: 记录工具链
+    → reflection-engine.js: 定期分析
+    → skill-improver.js: 优化提示词
+      → 更新 TASK_TEMPLATES[templateId].systemPromptExtension
+```
+
+**实现文件与变更**:
+
+| 文件 | 变更 |
+|------|------|
+| `src/lib/cowork-learning-engine.js` | **新建** — `CoworkLearningEngine` 类：`analyzeHistory(limit)` 读取 JSONL → 按模板分组 → 统计成功率/平均 token/工具频率；`suggestOptimization(templateId)` 生成提示词优化建议；`applyOptimization(templateId, patch)` 更新模板 |
+| `cowork-task-runner.js` | 任务完成后调用 `trajectory-store.appendToolCall()` 记录工具链 |
+| `src/lib/learning/trajectory-store.js` | 增加 `cowork` 来源类型 |
+| `src/lib/learning/reflection-engine.js` | 增加 Cowork 模板的反思维度 |
+| `action-protocol.js` | 新增 `handleCoworkLearning()` — 查询学习建议、应用优化 |
+| `web-panel/views/Cowork.vue` | 管理面板增加"学习洞察"标签 — 展示模板使用统计、优化建议、一键应用 |
+
+**学习维度**:
+
+| 维度 | 指标 | 优化方向 |
+|------|------|----------|
+| 成功率 | 完成 vs 失败次数 | 失败率高的模板 → 分析失败原因 → 补充提示词 |
+| Token 效率 | 平均 token / 每次执行 | token 消耗高 → 精简提示词、减少迭代 |
+| 工具频率 | 最常用的工具 Top-5 | 常用工具优先推荐给 Agent |
+| 用户反馈 | 重试率、取消率 | 重试率高 → 结果质量需改善 |
+| 执行时间 | 平均耗时 | 耗时异常 → 检查是否有死循环模式 |
+
+**关键决策**:
+- 复用已有的 `trajectory-store` + `reflection-engine` + `skill-improver` 三件套
+- 优化建议需人工确认 — 不自动修改模板提示词 (防止 prompt 漂移)
+- 学习数据仅本地存储 — 不上传到 EvoMap Hub (隐私)
+- 最小样本: 每个模板至少执行 10 次后才产生有意义的分析
+
+**测试计划**: 单元 10 + 集成 4 + E2E 2 = **16 tests**
+
+---
+
+### 总览
+
+| # | 功能 | 阶段 | 版本 | 新文件数 | 修改文件数 | 预估测试数 |
+|---|------|------|------|---------|-----------|-----------|
+| F1 | Orchestrator 并行 | 短期 | v5.0.3.1 | 0 | 5 | 15 |
+| F2 | Debate 审查 | 短期 | v5.0.3.2 | 0 | 6 | 11 |
+| F3 | 模板市场 | 短期 | v5.0.3.3 | 1 | 6 | 17 |
+| F4 | 定时任务 | 中期 | v5.1.1 | 1 | 5 | 13 |
+| F5 | 移动端入口 | 中期 | v5.1.2 | 4 | 2 | 10 |
+| F6 | MCP 集成 | 中期 | v5.1.3 | 0 | 5 | 11 |
+| F7 | 工作流编排 | 长期 | v5.2.1 | 2 | 4 | 20 |
+| F8 | P2P 协作 | 长期 | v5.2.2 | 1 | 4 | 14 |
+| F9 | 学习进化 | 长期 | v5.2.3 | 1 | 5 | 16 |
+| | **合计** | | | **10** | **42** | **127** |
 
 ---
 

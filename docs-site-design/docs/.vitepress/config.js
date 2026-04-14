@@ -621,8 +621,20 @@ export default defineConfig({
               link: "/modules/m83-tool-descriptor-unification",
             },
             {
-              text: "84 自主学习闭环系统 ⭐NEW",
+              text: "84 自主学习闭环系统",
               link: "/modules/m84-autonomous-learning-loop",
+            },
+            {
+              text: "85 Hermes Agent对标实施方案",
+              link: "/modules/m85-hermes-agent-parity",
+            },
+            {
+              text: "85b 文档代码差距补全",
+              link: "/modules/m85b-doc-code-gap-fill",
+            },
+            {
+              text: "86 Web Cowork日常任务协作系统 ⭐NEW",
+              link: "/modules/m86-web-cowork",
             },
           ],
         },

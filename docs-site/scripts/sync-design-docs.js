@@ -182,7 +182,8 @@ function escapeVueTags(content) {
     }
 
     if (inCodeBlock) {
-      result.push(line);
+      // 代码块内也需要转义 {{ }} — VitePress 仍会解析 Vue mustache
+      result.push(line.replace(/\{\{([^}]+)\}\}/g, "\\{\\{$1\\}\\}"));
       continue;
     }
 
@@ -221,6 +222,11 @@ function escapeVueTags(content) {
         return "`" + match + "`";
       },
     );
+
+    // 转义 {{ }} mustache 插值（Vue 模板语法）— 包裹为行内代码
+    escapedLine = escapedLine.replace(/\{\{([^}]+)\}\}/g, (match) => {
+      return "`" + match + "`";
+    });
 
     // 恢复行内代码占位符
     escapedLine = escapedLine.replace(/\x00INLINE(\d+)\x00/g, (_, idx) => {
