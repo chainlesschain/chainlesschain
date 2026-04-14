@@ -46,6 +46,7 @@ export async function runCoworkTask(options = {}) {
     llmOptions = {},
     maxIterations = DEFAULT_MAX_ITERATIONS,
     tokenBudget = DEFAULT_TOKEN_BUDGET,
+    onProgress = null,
   } = options;
 
   if (!userMessage || typeof userMessage !== "string") {
@@ -82,6 +83,7 @@ export async function runCoworkTask(options = {}) {
     db,
     llmOptions,
     cwd,
+    onProgress,
   });
 
   const taskId = subAgent.id;

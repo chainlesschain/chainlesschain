@@ -163,6 +163,31 @@ describe("cowork-task-runner", () => {
     expect(_deps.existsSync).not.toHaveBeenCalled();
   });
 
+  // ─── onProgress callback ──────────────────────────────────
+
+  it("forwards onProgress callback to SubAgentContext", async () => {
+    const onProgress = vi.fn();
+
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "转换文档",
+      onProgress,
+    });
+
+    const opts = _mockCreate.mock.calls[0][0];
+    expect(opts.onProgress).toBe(onProgress);
+  });
+
+  it("does not pass onProgress when not provided", async () => {
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "转换文档",
+    });
+
+    const opts = _mockCreate.mock.calls[0][0];
+    expect(opts.onProgress).toBeNull();
+  });
+
   it("passes cwd to SubAgentContext", async () => {
     await runCoworkTask({
       templateId: "code-helper",
