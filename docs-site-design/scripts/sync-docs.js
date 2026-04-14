@@ -140,6 +140,9 @@ const MODULE_FILE_MAP = {
   "82_CLI_Runtime收口路线图.md": "m82-cli-runtime-convergence.md",
   "83_工具描述规范统一.md": "m83-tool-descriptor-unification.md",
   "84_自主学习闭环系统.md": "m84-autonomous-learning-loop.md",
+  "85_Hermes_Agent对标实施方案.md": "m85-hermes-agent-parity.md",
+  "85_文档代码差距补全.md": "m85b-doc-code-gap-fill.md",
+  "86_Web_Cowork日常任务协作系统.md": "m86-web-cowork.md",
 };
 
 /**
@@ -179,7 +182,8 @@ function escapeVueTags(content) {
     }
 
     if (inCodeBlock) {
-      result.push(line);
+      // 代码块内也需要转义 {{ }} — VitePress 仍会解析 Vue mustache
+      result.push(line.replace(/\{\{([^}]+)\}\}/g, "\\{\\{$1\\}\\}"));
       continue;
     }
 
@@ -263,6 +267,11 @@ function escapeVueTags(content) {
         return "`" + match + "`";
       },
     );
+
+    // 转义 {{ }} mustache 插值（Vue 模板语法）— 包裹为行内代码
+    escapedLine = escapedLine.replace(/\{\{([^}]+)\}\}/g, (match) => {
+      return "`" + match + "`";
+    });
 
     // 恢复行内代码占位符
     escapedLine = escapedLine.replace(/\x00INLINE(\d+)\x00/g, (_, idx) => {
