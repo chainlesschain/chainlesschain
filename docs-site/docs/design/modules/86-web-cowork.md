@@ -1566,13 +1566,13 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 
 | 文件 | 测试数 | 类型 |
 |------|--------|------|
-| `__tests__/unit/cowork-task-templates.test.js` | 23 | 单元 |
-| `__tests__/unit/cowork-task-runner.test.js` | 25 | 单元 |
-| `__tests__/unit/cowork-action-protocol.test.js` | 9 | 单元 |
+| `__tests__/unit/cowork-task-templates.test.js` | 32 | 单元 |
+| `__tests__/unit/cowork-task-runner.test.js` | 36 | 单元 |
+| `__tests__/unit/cowork-action-protocol.test.js` | 16 | 单元 |
 | `__tests__/unit/cowork-session-extension.test.js` | 5 | 单元 |
-| `__tests__/integration/cowork-task-workflow.test.js` | 11 | 集成 |
-| `__tests__/e2e/cowork-task-e2e.test.js` | 11 | E2E |
-| **合计** | **87** | |
+| `__tests__/integration/cowork-task-workflow.test.js` | 17 | 集成 |
+| `__tests__/e2e/cowork-task-e2e.test.js` | 21 | E2E |
+| **合计** | **127** | |
 
 **用户文档**: `docs-site/docs/chainlesschain/web-cowork.md`
 
@@ -1628,4 +1628,6 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 | `cowork-task-templates.test.js` | +5 (getTemplatesForUI) | 32 |
 | `cowork-task-runner.test.js` | +3 (history persistence) | 36 |
 | `cowork-action-protocol.test.js` | +7 (cancel, signal, trackingId, progress, tokenCount) | 16 |
-| **合计** | **+15** | **84** |
+| `cowork-task-workflow.test.js` | +6 (cancel, progress, templates, history, persistence, tokenCount) | 17 |
+| `cowork-task-e2e.test.js` | +10 (dispatcher routes, export verification) | 21 |
+| **合计** | **+31** | **122 (84 unit + 17 integration + 21 E2E)** |

@@ -337,15 +337,15 @@ Session 模式在创建会话时通过 `session-create` 消息的 `systemPromptE
 | `__tests__/unit/cowork-action-protocol.test.js` | 16 | 单元测试 |
 | `__tests__/unit/cowork-session-extension.test.js` | 7 | 单元测试 |
 | `__tests__/unit/coding-agent-shell-policy.test.js` | 10 | 单元测试 (含 overrides) |
-| `__tests__/integration/cowork-task-workflow.test.js` | 11 | 集成测试 |
-| `__tests__/e2e/cowork-task-e2e.test.js` | 11 | E2E 测试 |
-| **合计** | **118** | |
+| `__tests__/integration/cowork-task-workflow.test.js` | 17 | 集成测试 |
+| `__tests__/e2e/cowork-task-e2e.test.js` | 21 | E2E 测试 |
+| **合计** | **139** | |
 
 ## 当前验证
 
-- 单元测试: `96/96` 通过
-- 集成测试: `11/11` 通过
-- E2E 测试: `11/11` 通过
+- 单元测试: `101/101` 通过
+- 集成测试: `17/17` 通过
+- E2E 测试: `21/21` 通过
 - 回归测试 (agent-core + action-protocol): `127/127` 通过
 - Web Panel 构建: 通过
 
