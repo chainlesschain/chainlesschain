@@ -31,12 +31,13 @@ debate-r. ab-comp. code-kg/decision-kb/project-style
                     │
                     ▼
               v0.46.0 新模块
-        cowork-cron.js      (F4 调度器，5 字段 POSIX cron + JSONL 持久化)
+        cowork-cron.js      (F6 调度器，5 字段 POSIX cron + JSONL 持久化)
         cowork-workflow.js  (F7 DAG 编排，批次并行 + 占位符 + 失败降级)
         cowork-learning.js  (F9 只读历史学习，token 重叠 × successRate)
         cowork-share.js     (F8 canonical-JSON + SHA-256 包)
         cowork-template-marketplace.js (F3 本地模板市场)
-        cowork-task-runner.js / -templates.js (F1-F2 日常任务 10 模板)
+        cowork-task-runner.js / -templates.js (F1-F2 日常任务 11 模板，含 code_review)
+        F4 共享学习 / F5 Android 远程调用（feature-cowork-remote 桥接）
 ```
 
 ## 概述

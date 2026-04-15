@@ -1,6 +1,8 @@
 # Cowork 多智能体协作系统
 
-> **版本: v4.0 | 状态: ✅ 生产就绪 | 238 IPC Handlers | 95 内置技能 | 21 数据库表 | ~90% 测试覆盖率**
+> **版本: v4.0 (CLI Cowork Evolution v0.46.0, 2026-04-15) | 状态: ✅ 生产就绪 | 238 IPC Handlers | 95 内置技能 | 21 数据库表 | ~90% 测试覆盖率**
+>
+> CLI 侧最新进化：Cowork Evolution v0.46.0 完成 F1–F9 九项能力（共享学习 / 决策回放 / 任务模板扩展至 11 / 自动观察 / 签名 P2P 共享 等），并同步 open-agents 对标 Phase 1–5（16 内置工具 / Sub-Agent Profiles / prepareCall 上下文注入 / provider-options 三层深合并）。
 
 ## 概述
 

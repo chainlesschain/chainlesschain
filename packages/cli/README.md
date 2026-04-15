@@ -198,7 +198,7 @@ chainlesschain a --model llama3         # Short alias
 chainlesschain agent --provider openai --api-key sk-...
 ```
 
-Built-in tools (12): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `run_shell`, `git`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`
+Built-in tools (16): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `run_shell`, `git`, `search_files`, `search_sessions`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`, `web_fetch`, `todo_write`, `ask_user_question`
 
 Agent slash commands: `/plan` (plan mode), `/plan interactive <request>` (LLM-driven planning with skill recommendations), `/model`, `/provider`, `/clear`, `/compact`, `/task`, `/session`, `/stats`, `/auto` (autonomous agent), `/cowork` (multi-agent collaboration), `/sub-agents` (show active/completed sub-agents)
 
@@ -623,11 +623,11 @@ chainlesschain cowork analyze <path>                   # Code analysis (style/kn
 chainlesschain cowork status                           # Show cowork status
 ```
 
-### Web Cowork: Daily Task Collaboration (v0.45.77)
+### Web Cowork: Daily Task Collaboration (v0.46.0)
 
-Web-based daily task collaboration via the `/#/cowork` page. Powered by SubAgentContext + agentLoop, with 10 task templates covering common daily tasks. Prioritizes open-source CLI tools (ffmpeg, pandoc, ImageMagick, Tesseract, etc.) via cli-anything bridge, with automatic tool installation (winget > choco > pip > npm).
+Web-based daily task collaboration via the `/#/cowork` page. Powered by SubAgentContext + agentLoop, with 11 task templates covering common daily tasks. Prioritizes open-source CLI tools (ffmpeg, pandoc, ImageMagick, Tesseract, etc.) via cli-anything bridge, with automatic tool installation (winget > choco > pip > npm).
 
-**10 Task Templates**:
+**11 Task Templates**:
 
 | Template ID       | Name         | Category  | Accepts Files |
 | ----------------- | ------------ | --------- | ------------- |
@@ -637,6 +637,7 @@ Web-based daily task collaboration via the `/#/cowork` page. Powered by SubAgent
 | `web-research`    | 网络调研     | research  | ❌            |
 | `image-process`   | 图片处理     | image     | ✅            |
 | `code-helper`     | 代码辅助     | code      | ✅            |
+| `code_review`     | 代码评审     | code      | ✅            |
 | `system-admin`    | 系统管理     | system    | ❌            |
 | `file-organize`   | 文件整理     | file      | ✅            |
 | `network-tools`   | 网络工具     | network   | ❌            |
@@ -652,7 +653,7 @@ Web-based daily task collaboration via the `/#/cowork` page. Powered by SubAgent
 ← { type: "cowork:done", taskId, status, templateName, summary, artifacts, toolsUsed, iterationCount }
 ```
 
-**Key files**: `src/lib/cowork-task-templates.js` (10 templates), `src/lib/cowork-task-runner.js` (pipeline), `src/gateways/ws/action-protocol.js` (WS handler). **Tests**: 79 (57 unit + 11 integration + 11 E2E).
+**Key files**: `src/lib/cowork-task-templates.js` (11 templates), `src/lib/cowork-task-runner.js` (pipeline), `src/gateways/ws/action-protocol.js` (WS handler). **Tests**: 79+ (57 unit + 11 integration + 11 E2E).
 
 ### Cowork Workflow Editor (v0.47.0, N1)
 
