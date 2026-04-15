@@ -697,13 +697,41 @@ function registerVideoIPC({ videoImporter, mainWindow, llmManager }) {
     }
   });
 
-  logger.info("[Video IPC] ✓ 24 handlers registered (+6 new)");
+  // ============================================================
+  // AI 视频生成 (1 handler)
+  // ============================================================
+
+  /**
+   * 文生视频 — 调用 Volcengine Seedance 真实 API，取代此前的
+   * FFmpeg 纯色+drawtext 占位实现。
+   */
+  ipcMain.handle("video:generate", async (_event, params) => {
+    try {
+      const { generateVideo } = require("./video-generator.js");
+      const result = await generateVideo({
+        ...params,
+        onProgress: (p) => {
+          if (mainWindow) {
+            mainWindow.webContents.send("video:generate:progress", p);
+          }
+        },
+      });
+      logger.info("[Video] 视频生成完成", result.path);
+      return result;
+    } catch (error) {
+      logger.error("[Video] 视频生成失败:", error);
+      throw error;
+    }
+  });
+
+  logger.info("[Video IPC] ✓ 25 handlers registered");
   logger.info("[Video IPC] - 4 file selection & import handlers");
   logger.info("[Video IPC] - 5 video management handlers");
   logger.info("[Video IPC] - 9 video editing handlers");
   logger.info(
     "[Video IPC] - 6 advanced editing handlers (filters, audio, subtitles)",
   );
+  logger.info("[Video IPC] - 1 AI generation handler (Volcengine Seedance)");
 }
 
 module.exports = {

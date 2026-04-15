@@ -992,6 +992,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     compress: (params) =>
       ipcRenderer.invoke("video:compress", removeUndefined(params)),
     getInfo: (videoPath) => ipcRenderer.invoke("video:getInfo", videoPath),
+    generate: (params) =>
+      ipcRenderer.invoke("video:generate", removeUndefined(params)),
+    onGenerateProgress: (cb) => {
+      const h = (_e, p) => cb(p);
+      ipcRenderer.on("video:generate:progress", h);
+      return () => ipcRenderer.removeListener("video:generate:progress", h);
+    },
   },
 
   // 提示词模板管理
