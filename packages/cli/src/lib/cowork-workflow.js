@@ -31,6 +31,10 @@ import {
   appendFileSync,
 } from "node:fs";
 import { join } from "node:path";
+import { evaluate as evalExpr, resolveReference } from "./workflow-expr.js";
+
+/** Maximum number of items a single forEach step can expand into. */
+export const MAX_FAN_OUT = 500;
 
 export const _deps = {
   existsSync,
@@ -86,6 +90,19 @@ export function validateWorkflow(wf) {
       }
       if (s.dependsOn && !Array.isArray(s.dependsOn)) {
         errors.push(`steps[${i}].dependsOn must be an array`);
+      }
+      if (s.when !== undefined && typeof s.when !== "string") {
+        errors.push(`steps[${i}].when must be a string expression`);
+      }
+      if (s.forEach !== undefined) {
+        const f = s.forEach;
+        const ok =
+          Array.isArray(f) || (typeof f === "string" && f.trim().length > 0);
+        if (!ok) {
+          errors.push(
+            `steps[${i}].forEach must be an array or reference string`,
+          );
+        }
       }
     }
     // Check dependsOn references exist
@@ -176,6 +193,64 @@ export function planBatches(steps) {
     }
   }
   return batches;
+}
+
+// ─── forEach expansion ───────────────────────────────────────────────────────
+
+/**
+ * Resolve the array source for a `forEach` step. Accepts either:
+ *   - an array literal (returned verbatim)
+ *   - a `${...}` reference string resolving to an array on a prior step result
+ *
+ * Throws if the resolved value isn't an array or exceeds MAX_FAN_OUT.
+ */
+export function resolveForEachItems(forEach, resultsById) {
+  if (Array.isArray(forEach)) {
+    if (forEach.length > MAX_FAN_OUT) {
+      throw new Error(
+        `forEach array exceeds MAX_FAN_OUT=${MAX_FAN_OUT} (got ${forEach.length})`,
+      );
+    }
+    return forEach;
+  }
+  if (typeof forEach === "string") {
+    const trimmed = forEach.trim();
+    // Accept bare `${...}` wrapper; resolve inner ref.
+    const m = trimmed.match(/^\$\{(.+)\}$/);
+    if (!m) {
+      throw new Error(`forEach ref must be wrapped in \${...}: ${trimmed}`);
+    }
+    const value = resolveReference(m[1].trim(), { step: resultsById });
+    if (!Array.isArray(value)) {
+      throw new Error(
+        `forEach ref did not resolve to an array: ${trimmed} (got ${typeof value})`,
+      );
+    }
+    if (value.length > MAX_FAN_OUT) {
+      throw new Error(
+        `forEach expansion exceeds MAX_FAN_OUT=${MAX_FAN_OUT} (got ${value.length})`,
+      );
+    }
+    return value;
+  }
+  throw new Error("forEach must be an array or reference string");
+}
+
+/** Substitute `${item}` tokens in a template string. Non-string → stringify. */
+export function substituteItem(template, item) {
+  if (typeof template !== "string") return template;
+  const repl = typeof item === "string" ? item : JSON.stringify(item);
+  return template.replace(/\$\{item\}/g, repl);
+}
+
+/** Evaluate a step's `when` expression. Missing expression → always true. */
+export function shouldRunStep(step, resultsById) {
+  if (!step.when) return true;
+  try {
+    return evalExpr(step.when, { step: resultsById });
+  } catch (err) {
+    throw new Error(`invalid when on step '${step.id}': ${err.message}`);
+  }
 }
 
 // ─── Placeholder substitution ────────────────────────────────────────────────
@@ -309,18 +384,95 @@ export async function executeWorkflow(options = {}) {
     }
 
     for (const chunk of chunks) {
-      const promises = chunk.map(async (step) => {
+      // Expand forEach / when into concrete tasks for this chunk
+      const runnable = []; // { step, message, recordId, parentId }
+      const preOutcomes = []; // outcomes produced synchronously (skipped)
+      for (const step of chunk) {
         if (anyFailure && !continueOnError) {
-          return {
+          const outcome = {
             id: step.id,
             status: "skipped",
             taskId: null,
             result: { summary: "skipped due to earlier failure" },
           };
+          resultsById.set(step.id, outcome);
+          preOutcomes.push(outcome);
+          continue;
+        }
+        // when-gate
+        let runThis = true;
+        try {
+          runThis = shouldRunStep(step, resultsById);
+        } catch (err) {
+          anyFailure = true;
+          const outcome = {
+            id: step.id,
+            status: "failed",
+            taskId: null,
+            result: { summary: err.message },
+          };
+          resultsById.set(step.id, outcome);
+          preOutcomes.push(outcome);
+          continue;
+        }
+        if (!runThis) {
+          const outcome = {
+            id: step.id,
+            status: "skipped",
+            taskId: null,
+            result: { summary: "when-condition false" },
+          };
+          resultsById.set(step.id, outcome);
+          preOutcomes.push(outcome);
+          continue;
+        }
+        // forEach-expansion
+        if (step.forEach !== undefined) {
+          let items;
+          try {
+            items = resolveForEachItems(step.forEach, resultsById);
+          } catch (err) {
+            anyFailure = true;
+            const outcome = {
+              id: step.id,
+              status: "failed",
+              taskId: null,
+              result: { summary: err.message },
+            };
+            resultsById.set(step.id, outcome);
+            preOutcomes.push(outcome);
+            continue;
+          }
+          if (items.length === 0) {
+            const outcome = {
+              id: step.id,
+              status: "skipped",
+              taskId: null,
+              result: { summary: "forEach items empty" },
+            };
+            resultsById.set(step.id, outcome);
+            preOutcomes.push(outcome);
+            continue;
+          }
+          for (let k = 0; k < items.length; k++) {
+            const childId = `${step.id}[${k}]`;
+            const withItem = substituteItem(step.message, items[k]);
+            const msg = substitutePlaceholders(withItem, resultsById);
+            runnable.push({
+              step,
+              message: msg,
+              recordId: childId,
+              parentId: step.id,
+            });
+          }
+          continue;
         }
         const message = substitutePlaceholders(step.message, resultsById);
-        if (onStepStart) onStepStart({ stepId: step.id, message });
+        runnable.push({ step, message, recordId: step.id, parentId: null });
+      }
 
+      const promises = runnable.map(async ({ step, message, recordId }) => {
+        if (onStepStart) onStepStart({ stepId: recordId, message });
         try {
           const entry = await _deps.runTask({
             templateId: step.templateId || null,
@@ -330,31 +482,55 @@ export async function executeWorkflow(options = {}) {
             llmOptions,
           });
           const outcome = {
-            id: step.id,
+            id: recordId,
             status: entry.status,
             taskId: entry.taskId,
             result: entry.result,
           };
-          resultsById.set(step.id, outcome);
+          resultsById.set(recordId, outcome);
           if (entry.status !== "completed") anyFailure = true;
           if (onStepComplete) onStepComplete(outcome);
           return outcome;
         } catch (err) {
           anyFailure = true;
           const outcome = {
-            id: step.id,
+            id: recordId,
             status: "failed",
             taskId: null,
             result: { summary: `Step threw: ${err.message}` },
           };
-          resultsById.set(step.id, outcome);
+          resultsById.set(recordId, outcome);
           if (onStepComplete) onStepComplete(outcome);
           return outcome;
         }
       });
 
       const results = await Promise.all(promises);
-      stepOutcomes.push(...results);
+      stepOutcomes.push(...preOutcomes, ...results);
+
+      // Aggregate forEach children into a parent entry so downstream
+      // `${step.<parent>.summary}` references still work.
+      const byParent = new Map();
+      for (let k = 0; k < runnable.length; k++) {
+        const r = runnable[k];
+        if (!r.parentId) continue;
+        if (!byParent.has(r.parentId)) byParent.set(r.parentId, []);
+        byParent.get(r.parentId).push(results[k]);
+      }
+      for (const [parentId, children] of byParent) {
+        const allOk = children.every((c) => c.status === "completed");
+        const anyOk = children.some((c) => c.status === "completed");
+        const status = allOk ? "completed" : anyOk ? "partial" : "failed";
+        resultsById.set(parentId, {
+          id: parentId,
+          status,
+          taskId: null,
+          result: {
+            summary: children.map((c) => c.result?.summary ?? "").join("\n"),
+            children: children.length,
+          },
+        });
+      }
     }
 
     if (anyFailure && !continueOnError) break;

@@ -905,6 +905,74 @@ export function registerCoworkCommand(program) {
       logger.log("");
     });
 
+  learning
+    .command("suggest")
+    .description("Suggest systemPromptExtension patches from failure history")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { loadHistory, suggestPromptPatch } =
+        await import("../lib/cowork-learning.js");
+      const patches = suggestPromptPatch(loadHistory(process.cwd()));
+      if (options.json) {
+        console.log(JSON.stringify(patches, null, 2));
+        return;
+      }
+      if (patches.length === 0) {
+        logger.log(
+          chalk.gray(
+            "No patch suggestions — not enough history (need ≥10 runs and ≥3 failures per template).",
+          ),
+        );
+        return;
+      }
+      logger.log(chalk.bold(`\nSuggested patches (${patches.length}):\n`));
+      for (const p of patches) {
+        const color =
+          p.confidence === "high"
+            ? chalk.red
+            : p.confidence === "medium"
+              ? chalk.yellow
+              : chalk.gray;
+        logger.log(
+          `  ${chalk.cyan(p.templateId)}  ${color(p.confidence)}  runs=${p.runs}  failures=${p.failures} (${Math.round(p.failureRate * 100)}%)`,
+        );
+        logger.log(chalk.gray(`    ${p.patch}`));
+      }
+      logger.log(
+        chalk.dim(
+          "\n  Apply with: cc cowork learning apply <templateId>  (writes to user-templates/)",
+        ),
+      );
+      logger.log("");
+    });
+
+  learning
+    .command("apply <templateId>")
+    .description("Apply a suggested patch to the user-templates layer")
+    .option("--json", "Output as JSON")
+    .action(async (templateId, options) => {
+      const { loadHistory, suggestPromptPatch, applyPromptPatch } =
+        await import("../lib/cowork-learning.js");
+      const patches = suggestPromptPatch(loadHistory(process.cwd()));
+      const match = patches.find((p) => p.templateId === templateId);
+      if (!match) {
+        logger.error(
+          `No qualifying patch for template '${templateId}'. Run 'cowork learning suggest' to see available patches.`,
+        );
+        process.exit(1);
+      }
+      const result = applyPromptPatch(process.cwd(), match);
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+      logger.log(
+        chalk.green(
+          `✓ Applied patch to ${chalk.cyan(result.templateId)} (${result.file}).`,
+        ),
+      );
+    });
+
   // cowork status — show collaboration state
   cowork
     .command("status")

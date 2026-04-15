@@ -1960,6 +1960,7 @@ history.jsonl (执行记录)
 
 > **制定日期**: 2026-04-15
 > 以下为 F1–F9 全部落地之后的新方向，均为本次尚未实现的真·未来项。
+> **完整设计**: 见 [87-cowork-evolution-n1-n7.md](./87-cowork-evolution-n1-n7.md)（含每个 N 项的文件级变更表、测试计划、风险与 ADR）。
 
 ### N1: Workflow 可视化编辑器（Web / Desktop）— 短期
 

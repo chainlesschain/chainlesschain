@@ -28,15 +28,16 @@ function nodeEval(code) {
 // ─── Module loading verification ──────────────────────────────────
 
 describe("E2E: cowork module loading", () => {
-  it("cowork-task-templates.js loads and exports 10 templates", () => {
+  it("cowork-task-templates.js loads and exports 11 templates", () => {
     const out = nodeEval(
       "import('./src/lib/cowork-task-templates.js').then(m => console.log(JSON.stringify(Object.keys(m.TASK_TEMPLATES))))",
     );
     const ids = JSON.parse(out);
-    expect(ids).toHaveLength(10);
+    expect(ids).toHaveLength(11);
     expect(ids).toContain("doc-convert");
     expect(ids).toContain("media-process");
     expect(ids).toContain("learning-assist");
+    expect(ids).toContain("code-review");
   });
 
   it("cowork-task-runner.js loads and exports runCoworkTask", () => {
@@ -60,11 +61,11 @@ describe("E2E: cowork module loading", () => {
     expect(out).toBe("free|自由模式");
   });
 
-  it("listTemplateIds returns array of 10", () => {
+  it("listTemplateIds returns array of 11", () => {
     const out = nodeEval(
       "import('./src/lib/cowork-task-templates.js').then(m => console.log(m.listTemplateIds().length))",
     );
-    expect(out).toBe("10");
+    expect(out).toBe("11");
   });
 });
 
@@ -85,17 +86,17 @@ describe("E2E: template content verification", () => {
     expect(out).toBe("true");
   });
 
-  it("all templates have non-empty systemPromptExtension", () => {
+  it("all cli-based templates have non-empty systemPromptExtension", () => {
     const out = nodeEval(
-      "import('./src/lib/cowork-task-templates.js').then(m => { const lens = Object.values(m.TASK_TEMPLATES).map(t => t.systemPromptExtension.length); console.log(Math.min(...lens)); })",
+      "import('./src/lib/cowork-task-templates.js').then(m => { const lens = Object.entries(m.TASK_TEMPLATES).filter(([id]) => id !== 'code-review').map(([, t]) => t.systemPromptExtension.length); console.log(Math.min(...lens)); })",
     );
     const minLen = parseInt(out, 10);
     expect(minLen).toBeGreaterThan(500);
   });
 
-  it("all templates include cli-anything in prompt", () => {
+  it("all cli-based templates include cli-anything in prompt", () => {
     const out = nodeEval(
-      "import('./src/lib/cowork-task-templates.js').then(m => { const ok = Object.values(m.TASK_TEMPLATES).every(t => t.systemPromptExtension.includes('cli-anything')); console.log(ok); })",
+      "import('./src/lib/cowork-task-templates.js').then(m => { const ok = Object.entries(m.TASK_TEMPLATES).filter(([id]) => id !== 'code-review').every(([, t]) => t.systemPromptExtension.includes('cli-anything')); console.log(ok); })",
     );
     expect(out).toBe("true");
   });
@@ -107,6 +108,7 @@ describe("E2E: template content verification", () => {
     const backendIds = JSON.parse(out);
     const expectedFrontendIds = [
       "code-helper",
+      "code-review",
       "data-analysis",
       "doc-convert",
       "file-organize",
@@ -163,11 +165,11 @@ describe("E2E: new module exports", () => {
     expect(out).toBe("function");
   });
 
-  it("getTemplatesForUI returns 10 templates with icon field", () => {
+  it("getTemplatesForUI returns 11 templates with icon field", () => {
     const out = nodeEval(
       "import('./src/lib/cowork-task-templates.js').then(m => { const t = m.getTemplatesForUI(); console.log(t.length + '|' + t.every(x => x.icon && x.description !== undefined)); })",
     );
-    expect(out).toBe("10|true");
+    expect(out).toBe("11|true");
   });
 
   it("getTemplatesForUI does not leak systemPromptExtension", () => {

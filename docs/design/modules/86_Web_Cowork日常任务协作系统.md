@@ -1522,11 +1522,14 @@ Node.js 同理，通过 `npm install` 安装缺失模块后重试。
 
 ---
 
-## 十、未来演进 — 9 项详细实施计划
+## 十、历史规划 — F1–F9 详细实施计划（已全部落地 v0.46.0）
 
-> **制定日期**: 2026-04-14
+> **制定日期**: 2026-04-14 · **完成日期**: 2026-04-15
+> **状态**: ✅ 全部实现 — 详见本文末尾「2026-04-15 — Cowork Evolution v0.46.0」实施记录
 > **依赖关系**: F1(Orchestrator) 独立；F2(Debate) 独立；F3(模板市场) 依赖 EvoMap；F4(定时任务) 独立；F5(移动端) 依赖 F3；F6(MCP) 独立；F7(工作流) 依赖 F1；F8(P2P) 依赖 F3；F9(学习) 依赖历史系统
-> **推荐实施顺序**: F1 → F2 → F6 → F4 → F3 → F9 → F7 → F5 → F8
+> **实际实施顺序**: F3 → F4 → F6 → F9 → F7 → F5 → F8 → F1 → F2
+
+> 📝 本节保留原规划文本作为设计溯源参考。真正的后续演进方向见「十一、未来演进」。
 
 ### F1: Orchestrator 多 Agent 并行模式 — 短期 (v5.0.3.1)
 
@@ -1720,7 +1723,7 @@ Android App (Jetpack Compose)
 | 目录/文件 | 变更 |
 |-----------|------|
 | `android-app/feature-ai/.../cowork/ui/CoworkScreen.kt` | **新建** — Compose UI：模板网格 + 消息输入 + 文件选择 + 进度卡片 |
-| `android-app/feature-ai/.../cowork/ui/CoworkViewModel.kt` | **新建** — StateFlow<CoworkUiState>，WebSocket 通信，任务管理 |
+| `android-app/feature-ai/.../cowork/ui/CoworkViewModel.kt` | **新建** — StateFlow`<CoworkUiState>`，WebSocket 通信，任务管理 |
 | `android-app/feature-ai/.../cowork/model/CoworkModels.kt` | **新建** — `CoworkTemplate`, `CoworkTask`, `CoworkResult` data classes |
 | `android-app/feature-ai/.../cowork/service/CoworkService.kt` | **新建** — 通过 `P2PSkillBridge` / 直接 WebSocket 发送 cowork-task 消息 |
 | `android-app/app/.../navigation/AppNavigation.kt` | 新增 `cowork` 路由 |
@@ -1953,6 +1956,116 @@ history.jsonl (执行记录)
 
 ---
 
+## 十一、未来演进（v0.46.0 之后）
+
+> **制定日期**: 2026-04-15
+> 以下为 F1–F9 全部落地之后的新方向，均为本次尚未实现的真·未来项。
+> **完整设计**: 见 [87-cowork-evolution-n1-n7.md](./87-cowork-evolution-n1-n7.md)（含每个 N 项的文件级变更表、测试计划、风险与 ADR）。
+
+### N1: Workflow 可视化编辑器（Web / Desktop）— 短期
+
+**问题**: 当前 `cowork workflow add` 要求用户手写 JSON 定义 DAG，门槛偏高；Web 面板仅能 list/run。
+
+**目标**: 在 `packages/web-panel` 新增 `/cowork/workflow` 页面，基于 Vue Flow 提供节点拖拽编辑、依赖连线、占位符提示、保存即下发 WS。
+
+**主要文件**:
+- `packages/web-panel/src/views/WorkflowEditor.vue`（新建）
+- `packages/cli/src/gateways/ws/action-protocol.js` — 新增 `handleWorkflowSave()` / `handleWorkflowRun()`
+- `packages/cli/src/gateways/ws/message-dispatcher.js` — 新增 `workflow-save` / `workflow-run`
+
+**预估**: 单元 8 + 集成 5 + E2E 3 = 16 tests。
+
+---
+
+### N2: Learning 反馈闭环 — 中期
+
+**问题**: F9 `cowork-learning.js` 只做只读分析（推荐/统计/失败归因），未把洞察回灌到模板。
+
+**目标**: 在 `learning` 子树新增 `suggest` + `apply` 命令 — 基于 `summarizeFailures` 生成 systemPromptExtension patch 建议，经用户确认后写回用户模板（不覆盖内置模板）。
+
+**关键约束**:
+- 只产出建议，不自动改 — 与 CLAUDE.md "no auto prompt drift" 原则一致
+- 每个模板需至少 ≥10 次历史调用才生成建议
+- patch 写入 `user-templates/` 层（不碰 bundled）
+
+**预估**: 单元 12 + 集成 4 = 16 tests。
+
+---
+
+### N3: Workflow 条件分支与循环 — 中期
+
+**问题**: 当前 DAG 是「单向无环 + 全步必跑」模型，不支持「if 上游 summary 含 X 则走 B，否则走 C」「对数组每项各跑一次」。
+
+**目标**: 扩展 step 定义：
+```json
+{ "id": "branch", "when": "${step.fetch.summary} contains 'error'", "message": "..." }
+{ "id": "fanout", "forEach": "${step.list.items}", "message": "process ${item}" }
+```
+
+**实现点**: `cowork-workflow.js` 的 `planBatches` 增加条件跳过、`substitutePlaceholders` 增加表达式求值（沙箱，仅允许点访问 / contains / length）。
+
+**预估**: 单元 18 + 集成 6 = 24 tests。
+
+---
+
+### N4: P2P 包签名升级（可选 DID）— 中期
+
+**问题**: F8 `cowork-share.js` 当前用 canonical-JSON + SHA-256，仅防损坏不防伪造。
+
+**目标**: `buildPacket({ did, privateKey })` 可选注入 Ed25519 签名（复用 `packages/cli/src/lib/did.js`）。读包时若签名存在则验签并附带 `signer.did` 给导入者信任决策使用。未签名包继续向后兼容。
+
+**预估**: 单元 15 + 集成 3 = 18 tests。
+
+---
+
+### N5: Cron 秒级 + 非标准别名 — 短期
+
+**问题**: 当前 `parseCron` 仅支持 5 字段 POSIX + `dow` 0/7 等价。不支持 `@hourly` / `@daily` 别名与秒字段。
+
+**目标**: 增加 6 字段模式（首字段为秒）+ 5 个别名快捷语法，`validateCron` 对应扩展。
+
+**预估**: 单元 10 tests。
+
+---
+
+### N6: Cowork 可观测性 — 中期
+
+**问题**: 任务失败仅通过 history.jsonl 的 summary 记录；长运行无统一看板。
+
+**目标**: 新增 `cowork observe` 子命令 — 从 history / workflow-history / schedules 聚合出仪表盘数据，`--serve` 启动本地 HTTP 小页面（复用 `web-ui-server.js` 模式）展示：
+- 近 7 日任务数 / 成功率 / 平均 token
+- Top-5 失败模板 + 最常见 summary
+- 活跃 cron 任务与下一次触发时间
+
+**预估**: 单元 8 + 集成 5 + E2E 3 = 16 tests。
+
+---
+
+### N7: 模板市场 EvoMap 集成 — 长期
+
+**问题**: F3 模板市场是本地层，`cowork template publish` 仅生成 JSON，不上链/不广播。
+
+**目标**: 与 `packages/cli/src/commands/evomap.js` 打通，`publish` 可选上传到用户配置的 EvoMap Hub；`search --hub` 拉取社区模板列表。走既有 DID/签名/声誉模型。
+
+**预估**: 单元 12 + 集成 6 = 18 tests。
+
+---
+
+### 总览（未来演进）
+
+| # | 功能 | 阶段 | 预估测试 |
+|---|------|------|---------|
+| N1 | Workflow 可视化编辑器 | 短期 | 16 |
+| N2 | Learning 反馈闭环 | 中期 | 16 |
+| N3 | Workflow 条件分支 / forEach | 中期 | 24 |
+| N4 | P2P 包签名升级 (DID) | 中期 | 18 |
+| N5 | Cron 秒级 + 别名 | 短期 | 10 |
+| N6 | Cowork 可观测性仪表盘 | 中期 | 16 |
+| N7 | 模板市场 EvoMap 集成 | 长期 | 18 |
+| | **合计** | | **118** |
+
+---
+
 ## 实施记录
 
 ### 2026-04-13 — 初版实现
@@ -2066,3 +2179,71 @@ history.jsonl (执行记录)
 **安全设计**: 仅 `web-research` 和 `network-tools` 两个模板声明 override，其他模板和普通 agent 会话仍受 DENY 保护。Override 只能降级为 WARN (不能绕过 REROUTE)。
 
 **新增/更新测试**: shell-policy +5, templates +4, runner +3, session-extension +2 = 14 tests
+
+---
+
+## 2026-04-15 — Cowork Evolution v0.46.0（9 项演进特性）
+
+本节汇总 v0.45.81 → v0.46.0 的 9 项 Cowork 演进（F1–F9，均为 CLI 层新模块或扩展）。
+
+### 新增模块概览
+
+| 特性 | 模块 | CLI 入口 | 测试 |
+|------|------|----------|------|
+| F1 Orchestrator 并行 | `cowork-task-runner.js` `runCoworkTaskParallel` | `cowork` (parallel 模式) | 既有 runner 测试 |
+| F2 Debate 多视角评审 | `cowork-task-runner.js` `runCoworkDebate` + `cowork/debate-review-cli.js` | `cowork debate` | 既有 runner 测试 |
+| F3 模板市场 | `cowork-template-marketplace.js` | `cowork template search\|install\|list\|remove\|publish` | 17 单元 |
+| F4 定时调度 | `cowork-cron.js` + `CoworkCronScheduler` | `cowork cron list\|add\|remove\|enable\|disable\|run` | 31 单元 |
+| F5 Android 远程技能 | `pc-cowork-daily.md` / `pc-cowork-workflow.md` (REMOTE skills) | Android `/pc-cowork-daily` / `/pc-cowork-workflow` | Android SkillLoader 自动加载 |
+| F6 MCP 工具挂载 | `cowork-mcp-tools.js` + `cowork-task-templates.js` `mcpServers` | 模板声明式 | 既有 runner 测试 + MCP plumbing |
+| F7 Workflow DAG | `cowork-workflow.js` | `cowork workflow list\|show\|add <file>\|remove\|run <id>` | 22 单元 |
+| F8 P2P 共享 | `cowork-share.js` (canonical-JSON + SHA-256 包) | `cowork share export-template\|export-result\|import\|verify` | 22 单元 |
+| F9 学习引擎 | `cowork-learning.js` | `cowork learning stats\|recommend\|failures` | 13 单元 |
+
+### 关键设计决策
+
+- **`_deps` 注入**：所有新模块都导出可变 `_deps` 对象（fs/time/runner），遵循 cli-dev.md 规范，Vitest 测试可覆盖而不依赖 `vi.mock`。
+- **ESM/ESM 循环避免**：`cowork-workflow.js` 和 `cowork-cron.js` 通过 `_deps.runTask` 接收 runner，CLI 入口在执行前注入，避免静态 import 环。
+- **持久化统一**：所有新模块统一读写 `.chainlesschain/cowork/`（`workflows/`、`user-templates/`、`shared-results/`、`workflow-history.jsonl`、`schedules.jsonl`、`history.jsonl`），与既有 BackgroundTaskManager JSONL 模式对齐。
+- **packet 格式**：F8 使用 canonical JSON + SHA-256 而非完整签名，防数据损坏而非身份伪造；未来接入 DID 签名即可升级。
+- **推荐评分**：F9 用 `overlap × (0.5 + successRate/2)` 保证新模板有机会被推荐（最低权重 0.5），避免冷启动陷阱。
+
+### 测试计数（v0.46.0 新增）
+
+| 文件 | 测试数 |
+|------|--------|
+| `cowork-learning.test.js` | 13 |
+| `cowork-workflow.test.js` | 22 |
+| `cowork-share.test.js` | 22 |
+| **合计** | **57** |
+
+既有 cowork 测试（template-marketplace 17 + cron 31 + task-runner 63）全部通过，累计 168 测试。
+
+### CLI 命令总览
+
+```
+cowork
+├── debate <file>          (F2)
+├── compare <prompt>       (F2)
+├── analyze <path>
+├── template               (F3)
+│   ├── search [query]
+│   ├── install <id>
+│   ├── list
+│   ├── remove <id>
+│   └── publish
+├── cron                   (F4)
+│   ├── list / add / remove / enable / disable / run
+├── learning               (F9)
+│   ├── stats
+│   ├── recommend <message...>
+│   └── failures
+├── workflow               (F7)
+│   ├── list / show / add <file> / remove / run <id>
+├── share                  (F8)
+│   ├── export-template <id> --out <file>
+│   ├── export-result <taskId> --out <file>
+│   ├── import <file>
+│   └── verify <file>
+└── status
+```

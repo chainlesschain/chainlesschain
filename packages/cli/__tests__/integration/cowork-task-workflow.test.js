@@ -278,7 +278,7 @@ describe("cowork task workflow", () => {
     });
 
     const templates = server._send.mock.calls[0][1].templates;
-    expect(templates.length).toBe(10);
+    expect(templates.length).toBe(11);
     expect(templates[0]).toHaveProperty("icon");
     expect(templates[0]).toHaveProperty("description");
     expect(templates[0]).toHaveProperty("examples");

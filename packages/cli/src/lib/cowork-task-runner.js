@@ -10,10 +10,7 @@
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SubAgentContext } from "./sub-agent-context.js";
-import {
-  getTemplate,
-  setUserTemplates,
-} from "./cowork-task-templates.js";
+import { getTemplate, setUserTemplates } from "./cowork-task-templates.js";
 import { mountTemplateMcpTools } from "./cowork-mcp-tools.js";
 import { listUserTemplates } from "./cowork-template-marketplace.js";
 
@@ -80,6 +77,19 @@ export async function runCoworkTask(options = {}) {
 
   // Build the task prompt with template context + files
   const taskParts = [template.systemPromptExtension];
+
+  // N2: apply learning-layer patch for this template if one exists
+  try {
+    const { loadUserTemplate } = await import("./cowork-learning.js");
+    const override = loadUserTemplate(cwd, template.id);
+    if (override?.systemPromptExtension) {
+      taskParts.push(
+        `\n## 历史学习补丁 (learning patch)\n${override.systemPromptExtension}`,
+      );
+    }
+  } catch (_e) {
+    // Non-fatal — learning overrides are optional
+  }
 
   if (files.length > 0) {
     taskParts.push(`\n## 用户提供的文件\n${files.join("\n")}`);

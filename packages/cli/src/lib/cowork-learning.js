@@ -14,10 +14,28 @@
  * @module cowork-learning
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  appendFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
-export const _deps = { existsSync, readFileSync };
+export const _deps = {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  appendFileSync,
+  now: () => new Date(),
+};
+
+/** Minimum historical runs before a template qualifies for a patch suggestion. */
+export const MIN_RUNS_FOR_PATCH = 10;
+/** Minimum distinct failures needed to trigger a suggestion. */
+export const MIN_FAILURES_FOR_PATCH = 3;
 
 // ─── Loading ─────────────────────────────────────────────────────────────────
 
@@ -246,4 +264,175 @@ export function summarizeFailures(history, options = {}) {
   }
   out.sort((a, b) => b.failureCount - a.failureCount);
   return out;
+}
+
+// ─── N2: Feedback loop — suggest + apply prompt patches ──────────────────────
+
+/**
+ * Classify suggestion confidence based on sample size and failure rate.
+ * Thresholds mirror the design doc in 87-cowork-evolution-n1-n7.md.
+ */
+function _classifyConfidence(runs, failures) {
+  const rate = runs > 0 ? failures / runs : 0;
+  if (runs >= 30 && rate >= 0.4) return "high";
+  if (runs >= 20 && rate >= 0.25) return "medium";
+  return "low";
+}
+
+/**
+ * Extract short hint phrases from a batch of failure summaries — cheap
+ * heuristic without LLM. Picks the top N most-repeated normalized tokens
+ * longer than 3 chars (we use this to compose a human-readable patch body).
+ */
+function _extractHintPhrases(summaries, maxHints = 3) {
+  const counts = new Map();
+  for (const s of summaries) {
+    const txt = (s?.summary || "").toLowerCase();
+    if (!txt) continue;
+    for (const word of txt.split(/[^\p{L}\p{N}]+/u)) {
+      if (word.length < 4) continue;
+      counts.set(word, (counts.get(word) || 0) + (s.count || 1));
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, maxHints)
+    .map(([w]) => w);
+}
+
+/**
+ * Build a prompt patch for one template based on its failure analysis.
+ * Returns null when below thresholds.
+ */
+export function buildPatchForTemplate(statsEntry, failureEntry) {
+  if (!statsEntry || !failureEntry) return null;
+  if (statsEntry.runs < MIN_RUNS_FOR_PATCH) return null;
+  if (failureEntry.failureCount < MIN_FAILURES_FOR_PATCH) return null;
+
+  const hints = _extractHintPhrases(failureEntry.commonSummaries);
+  const confidence = _classifyConfidence(
+    statsEntry.runs,
+    failureEntry.failureCount,
+  );
+  const lines = [];
+  lines.push(
+    `Historical failure pattern detected (${failureEntry.failureCount}/${statsEntry.runs} runs failed).`,
+  );
+  if (hints.length > 0) {
+    lines.push(
+      `Common terms in failures: ${hints.join(", ")}. When relevant, double-check assumptions around these areas before proceeding.`,
+    );
+  }
+  return {
+    templateId: statsEntry.templateId,
+    templateName: statsEntry.templateName,
+    runs: statsEntry.runs,
+    failures: failureEntry.failureCount,
+    failureRate: +(failureEntry.failureCount / statsEntry.runs).toFixed(2),
+    confidence,
+    patch: lines.join(" "),
+    hints,
+    sampleSummaries: failureEntry.commonSummaries.slice(0, 3),
+  };
+}
+
+/**
+ * Scan history and return one suggested patch per qualifying template.
+ * Pure: never writes to disk. Call `applyPromptPatch` to persist.
+ *
+ * @param {Array<object>} history
+ * @returns {Array<{
+ *   templateId, templateName, runs, failures, failureRate,
+ *   confidence, patch, hints, sampleSummaries,
+ * }>}
+ */
+export function suggestPromptPatch(history) {
+  const stats = computeTemplateStats(history);
+  const failures = summarizeFailures(history);
+  const failuresById = new Map(failures.map((f) => [f.templateId, f]));
+  const out = [];
+  for (const s of stats) {
+    const f = failuresById.get(s.templateId);
+    if (!f) continue;
+    const patch = buildPatchForTemplate(s, f);
+    if (patch) out.push(patch);
+  }
+  // Highest-confidence first, then biggest failure count
+  const order = { high: 3, medium: 2, low: 1 };
+  out.sort(
+    (a, b) =>
+      order[b.confidence] - order[a.confidence] || b.failures - a.failures,
+  );
+  return out;
+}
+
+function _userTemplatesDir(cwd) {
+  return join(cwd, ".chainlesschain", "cowork", "user-templates");
+}
+
+function _patchesLogFile(cwd) {
+  return join(cwd, ".chainlesschain", "cowork", "learning-patches.jsonl");
+}
+
+/**
+ * Load an existing user-override template JSON (or null if none).
+ */
+export function loadUserTemplate(cwd, templateId) {
+  const file = join(_userTemplatesDir(cwd), `${templateId}.json`);
+  if (!_deps.existsSync(file)) return null;
+  try {
+    return JSON.parse(_deps.readFileSync(file, "utf-8"));
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
+ * Persist a patch to the user-templates layer and append an audit record.
+ * Never modifies the bundled templates. Always additive — existing patches
+ * for the same template are concatenated with a newline so history is
+ * preserved.
+ *
+ * @param {string} cwd
+ * @param {object} patch - output from `suggestPromptPatch`
+ * @returns {{ templateId, file, systemPromptExtension }}
+ */
+export function applyPromptPatch(cwd, patch) {
+  if (!patch || !patch.templateId) {
+    throw new Error("patch must include templateId");
+  }
+  const dir = _userTemplatesDir(cwd);
+  _deps.mkdirSync(dir, { recursive: true });
+
+  const existing = loadUserTemplate(cwd, patch.templateId);
+  const prev = existing?.systemPromptExtension || "";
+  const extended = prev ? `${prev}\n\n${patch.patch}` : patch.patch;
+  const doc = {
+    templateId: patch.templateId,
+    templateName: patch.templateName,
+    systemPromptExtension: extended,
+    updatedAt: _deps.now().toISOString(),
+  };
+  const file = join(dir, `${patch.templateId}.json`);
+  _deps.writeFileSync(file, JSON.stringify(doc, null, 2), "utf-8");
+
+  // Audit trail — never pruned automatically
+  _deps.appendFileSync(
+    _patchesLogFile(cwd),
+    JSON.stringify({
+      appliedAt: _deps.now().toISOString(),
+      templateId: patch.templateId,
+      confidence: patch.confidence,
+      runs: patch.runs,
+      failures: patch.failures,
+      patch: patch.patch,
+    }) + "\n",
+    "utf-8",
+  );
+
+  return {
+    templateId: patch.templateId,
+    file,
+    systemPromptExtension: extended,
+  };
 }
