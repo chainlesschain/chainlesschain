@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/llm-manager.js`
 
-**Generated**: 2026-04-15T08:45:16.136Z
+**Generated**: 2026-04-15T10:14:17.394Z
 
 ---
 
@@ -185,14 +185,27 @@ getContext(conversationId)
 
 ---
 
-## async embeddings(text)
+## async embeddings(text, options =
 
 ```javascript
-async embeddings(text)
+async embeddings(text, options =
 ```
 
 * 生成嵌入向量
    * @param {string} text - 文本
+
+---
+
+## resolveAudioAdapter()
+
+```javascript
+resolveAudioAdapter()
+```
+
+* Resolve the AUDIO category and return an adapter capable of
+   * speech-to-text / text-to-speech. Returns null if no audio-capable
+   * provider is configured. Callers (whisper bridge, TTS pipeline) can
+   * use this instead of hardcoding `this.adapters.openai`.
 
 ---
 

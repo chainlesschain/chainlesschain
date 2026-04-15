@@ -2,7 +2,7 @@
 
 **Source**: `src/main/social/group-chat-manager.js`
 
-**Generated**: 2026-04-15T08:45:16.089Z
+**Generated**: 2026-04-15T10:14:17.344Z
 
 ---
 
