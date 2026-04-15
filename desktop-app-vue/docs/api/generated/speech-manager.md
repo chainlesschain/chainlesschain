@@ -2,7 +2,7 @@
 
 **Source**: `src/main/speech/speech-manager.js`
 
-**Generated**: 2026-04-15T08:45:16.085Z
+**Generated**: 2026-04-15T10:14:17.336Z
 
 ---
 

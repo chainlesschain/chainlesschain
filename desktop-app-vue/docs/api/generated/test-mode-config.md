@@ -2,7 +2,7 @@
 
 **Source**: `src/main/config/test-mode-config.js`
 
-**Generated**: 2026-04-15T08:45:16.163Z
+**Generated**: 2026-04-15T10:14:17.427Z
 
 ---
 
