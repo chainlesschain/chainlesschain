@@ -698,7 +698,10 @@ async function executeToolInner(
       const shellPolicyOpts = shellPolicyOverrides
         ? { overrideRuleIds: shellPolicyOverrides }
         : {};
-      const shellPolicy = evaluateShellCommandPolicy(args.command, shellPolicyOpts);
+      const shellPolicy = evaluateShellCommandPolicy(
+        args.command,
+        shellPolicyOpts,
+      );
       const override = getRuntimeToolDescriptorByCommand(args.command);
       if (!shellPolicy.allowed) {
         return attachDescriptor(
@@ -782,6 +785,80 @@ async function executeToolInner(
           sessionId,
         }),
       );
+    }
+
+    case "web_fetch": {
+      try {
+        const { webFetch } = await import("../lib/web-fetch.js");
+        let webFetchConfig = {};
+        try {
+          const { loadProjectConfig: _lpc, findProjectRoot: _fpr } =
+            await import("../lib/project-detector.js");
+          const projectRoot = _fpr(cwd);
+          if (projectRoot) {
+            const cfg = _lpc(projectRoot);
+            webFetchConfig = cfg?.webFetch || {};
+          }
+        } catch (_err) {
+          // Config optional — use defaults
+        }
+        const result = await webFetch(args.url, {
+          format: args.format,
+          maxBytes: args.maxBytes,
+          timeout: args.timeout,
+          config: webFetchConfig,
+        });
+        return attachDescriptor(result);
+      } catch (err) {
+        return attachDescriptor({ error: `web_fetch failed: ${err.message}` });
+      }
+    }
+
+    case "todo_write": {
+      try {
+        const { writeTodos } = await import("../lib/todo-manager.js");
+        const result = writeTodos(sessionId, args.todos);
+        if (!result.success) {
+          return attachDescriptor({ error: result.error });
+        }
+        return attachDescriptor({
+          success: true,
+          count: result.count,
+          summary: result.summary,
+        });
+      } catch (err) {
+        return attachDescriptor({ error: `todo_write failed: ${err.message}` });
+      }
+    }
+
+    case "ask_user_question": {
+      if (!interaction || typeof interaction.askUser !== "function") {
+        return attachDescriptor({
+          error: "user_not_reachable",
+          hint: "Non-interactive context (headless/gateway). Proceed autonomously using best judgement.",
+        });
+      }
+      try {
+        const answer = await interaction.askUser({
+          question: args.question,
+          options: Array.isArray(args.options) ? args.options : null,
+          multiSelect: args.multiSelect === true,
+          timeoutMs:
+            typeof args.timeoutMs === "number" ? args.timeoutMs : 60000,
+          sessionId,
+        });
+        return attachDescriptor({ answer });
+      } catch (err) {
+        if (err && err.code === "USER_TIMEOUT") {
+          return attachDescriptor({
+            error: "user_timeout",
+            hint: "User did not respond in time. Proceed with best judgement.",
+          });
+        }
+        return attachDescriptor({
+          error: `ask_user_question failed: ${err.message}`,
+        });
+      }
     }
 
     case "search_sessions": {
@@ -1285,11 +1362,39 @@ async function _executeRunCode(args, cwd) {
  * @returns {Promise<object>}
  */
 async function _executeSpawnSubAgent(args, ctx) {
-  const { role, task, context: inheritedContext, tools: allowedTools } = args;
+  const {
+    role,
+    task,
+    context: inheritedContext,
+    tools: explicitTools,
+    profile: profileName,
+  } = args;
 
   if (!role || !task) {
     return { error: "Both 'role' and 'task' are required for spawn_sub_agent" };
   }
+
+  // Phase 3: resolve declarative profile if requested. Explicit tools/context
+  // override profile defaults; missing fields fall back to the profile.
+  let profile = null;
+  if (profileName) {
+    try {
+      const { getSubAgentProfile } =
+        await import("../lib/sub-agent-profiles.js");
+      profile = getSubAgentProfile(profileName);
+      if (!profile) {
+        return {
+          error: `Unknown sub-agent profile: "${profileName}". Valid: explorer|executor|design`,
+        };
+      }
+    } catch (_err) {
+      // profile module optional — proceed without
+    }
+  }
+
+  const allowedTools = Array.isArray(explicitTools)
+    ? explicitTools
+    : profile?.toolAllowlist || null;
 
   // Auto-condense parent context if caller didn't provide explicit context
   let resolvedContext = inheritedContext || null;
@@ -1315,6 +1420,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     inheritedContext: resolvedContext,
     allowedTools: allowedTools || null,
     cwd: ctx.cwd,
+    profile: profile || null,
   });
 
   const emit = (type, payload) => {
@@ -1723,7 +1829,33 @@ export async function* agentLoop(messages, options) {
       };
     }
 
-    const result = await llmCall(messages, options);
+    // Turn-scoped context injection (open-agents prepareCall parity).
+    // prepareCall runs fresh each iteration and returns an ephemeral
+    // system-message supplement that is NOT persisted to messages history.
+    let callMessages = messages;
+    if (typeof options.prepareCall === "function") {
+      try {
+        const hook = await options.prepareCall({
+          iteration: budget.consumed,
+          cwd: toolContext.cwd,
+          sessionId: toolContext.sessionId,
+        });
+        if (
+          hook &&
+          typeof hook.systemSuffix === "string" &&
+          hook.systemSuffix
+        ) {
+          callMessages = [
+            ...messages,
+            { role: "system", content: hook.systemSuffix },
+          ];
+        }
+      } catch (_e) {
+        // prepareCall failures are non-critical — proceed with original messages
+      }
+    }
+
+    const result = await llmCall(callMessages, options);
     throwIfAborted(signal);
     const msg = result?.message;
 

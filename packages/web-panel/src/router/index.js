@@ -17,6 +17,7 @@ const routes = [
       { path: 'notes',      name: 'Notes',       component: () => import('../views/Notes.vue') },
       { path: 'memory',     name: 'Memory',      component: () => import('../views/Memory.vue') },
       { path: 'cron',       name: 'Cron',        component: () => import('../views/Cron.vue') },
+      { path: 'workflow',   name: 'Workflow',    component: () => import('../views/WorkflowEditor.vue') },
       { path: 'tasks',      name: 'Tasks',       component: () => import('../views/Tasks.vue') },
       { path: 'security',   name: 'Security',    component: () => import('../views/Security.vue') },
       { path: 'permissions', name: 'Permissions', component: () => import('../views/Permissions.vue') },

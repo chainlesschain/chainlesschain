@@ -258,3 +258,188 @@ describe("import helpers", () => {
     );
   });
 });
+
+// ─── N4: DID signature tests ─────────────────────────────────────────────────
+
+import crypto from "node:crypto";
+
+function makeSigner() {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519", {
+    publicKeyEncoding: { type: "spki", format: "der" },
+    privateKeyEncoding: { type: "pkcs8", format: "der" },
+  });
+  const pubHex = publicKey.toString("hex");
+  const privHex = privateKey.toString("hex");
+  const hash = crypto
+    .createHash("sha256")
+    .update(Buffer.from(pubHex, "hex"))
+    .digest();
+  const did = `did:chainless:${hash.toString("base64url").slice(0, 32)}`;
+  return { did, publicKey: pubHex, privateKey: privHex };
+}
+
+describe("N4: signed packets", () => {
+  it("buildPacket with signer produces signature field", () => {
+    const signer = makeSigner();
+    const pkt = buildPacket({
+      kind: "template",
+      payload: { id: "t1" },
+      signer,
+    });
+    expect(pkt.signature).toBeDefined();
+    expect(pkt.signature.alg).toBe("Ed25519");
+    expect(pkt.signature.did).toBe(signer.did);
+    expect(pkt.signature.publicKey).toBe(signer.publicKey);
+    expect(typeof pkt.signature.sig).toBe("string");
+    // base64url, no padding
+    expect(pkt.signature.sig).not.toMatch(/=/);
+  });
+
+  it("verifyPacket accepts valid signed packet", () => {
+    const signer = makeSigner();
+    const pkt = buildPacket({
+      kind: "template",
+      payload: { id: "t1" },
+      signer,
+    });
+    const { valid, errors, signed } = verifyPacket(pkt);
+    expect(valid).toBe(true);
+    expect(errors).toEqual([]);
+    expect(signed).toBe(true);
+  });
+
+  it("verifyPacket rejects tampered payload in signed packet", () => {
+    const signer = makeSigner();
+    const pkt = buildPacket({
+      kind: "template",
+      payload: { id: "t1" },
+      signer,
+    });
+    pkt.payload.id = "t2";
+    const { valid, errors } = verifyPacket(pkt);
+    expect(valid).toBe(false);
+    // Checksum mismatch fires first (signature over same body)
+    expect(errors.join(" ")).toMatch(/checksum|signature/);
+  });
+
+  it("verifyPacket rejects mutated signature bytes", () => {
+    const signer = makeSigner();
+    const pkt = buildPacket({
+      kind: "template",
+      payload: { id: "t1" },
+      signer,
+    });
+    // flip a middle char to guarantee byte change
+    const mid = Math.floor(pkt.signature.sig.length / 2);
+    const orig = pkt.signature.sig[mid];
+    const flipped = orig === "A" ? "B" : "A";
+    pkt.signature.sig =
+      pkt.signature.sig.slice(0, mid) +
+      flipped +
+      pkt.signature.sig.slice(mid + 1);
+    const { valid, errors } = verifyPacket(pkt);
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/signature invalid|verify error/);
+  });
+
+  it("verifyPacket rejects did/publicKey mismatch", () => {
+    const signer = makeSigner();
+    const other = makeSigner();
+    const pkt = buildPacket({
+      kind: "template",
+      payload: { id: "t1" },
+      signer,
+    });
+    pkt.signature.did = other.did;
+    const { valid, errors } = verifyPacket(pkt);
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/does not match/);
+  });
+
+  it("verifyPacket rejects unsupported alg", () => {
+    const signer = makeSigner();
+    const pkt = buildPacket({
+      kind: "template",
+      payload: { id: "t1" },
+      signer,
+    });
+    pkt.signature.alg = "RSA";
+    const { valid, errors } = verifyPacket(pkt);
+    expect(valid).toBe(false);
+    expect(errors.join(" ")).toMatch(/unsupported alg/);
+  });
+
+  it("buildPacket rejects did not matching publicKey", () => {
+    const signer = makeSigner();
+    const other = makeSigner();
+    expect(() =>
+      buildPacket({
+        kind: "template",
+        payload: { id: "t1" },
+        signer: { ...signer, did: other.did },
+      }),
+    ).toThrow(/does not match/);
+  });
+
+  it("buildPacket rejects missing signer keys", () => {
+    expect(() =>
+      buildPacket({
+        kind: "template",
+        payload: { id: "t1" },
+        signer: { did: "did:chainless:xxx" },
+      }),
+    ).toThrow(/privateKey.*publicKey|required/);
+  });
+
+  it("unsigned packet still verifies (v0.46 backward compat)", () => {
+    const pkt = buildPacket({ kind: "template", payload: { id: "t1" } });
+    expect(pkt.signature).toBeUndefined();
+    const { valid, signed } = verifyPacket(pkt);
+    expect(valid).toBe(true);
+    expect(signed).toBe(false);
+  });
+
+  it("readPacket({requireSigned:true}) rejects unsigned", () => {
+    installFakeFs();
+    const pkt = buildPacket({ kind: "template", payload: { id: "t1" } });
+    writePacket("/tmp/p.json", pkt);
+    expect(() => readPacket("/tmp/p.json", { requireSigned: true })).toThrow(
+      /signature required/,
+    );
+  });
+
+  it("readPacket({trustedDids}) rejects untrusted signer", () => {
+    installFakeFs();
+    const signer = makeSigner();
+    const pkt = buildPacket({
+      kind: "template",
+      payload: { id: "t1" },
+      signer,
+    });
+    writePacket("/tmp/p.json", pkt);
+    expect(() =>
+      readPacket("/tmp/p.json", { trustedDids: ["did:chainless:other"] }),
+    ).toThrow(/not in trusted/);
+  });
+
+  it("readPacket({trustedDids}) accepts matching signer", () => {
+    installFakeFs();
+    const signer = makeSigner();
+    const pkt = buildPacket({
+      kind: "template",
+      payload: { id: "t1" },
+      signer,
+    });
+    writePacket("/tmp/p.json", pkt);
+    const out = readPacket("/tmp/p.json", { trustedDids: [signer.did] });
+    expect(out.signature.did).toBe(signer.did);
+  });
+
+  it("checksum-only corruption reports checksum error independently", () => {
+    const pkt = buildPacket({ kind: "template", payload: { id: "t1" } });
+    pkt.checksum = "0".repeat(64);
+    const { valid, errors } = verifyPacket(pkt);
+    expect(valid).toBe(false);
+    expect(errors.some((e) => e.includes("checksum"))).toBe(true);
+  });
+});

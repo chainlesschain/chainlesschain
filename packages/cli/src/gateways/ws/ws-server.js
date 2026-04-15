@@ -55,6 +55,11 @@ import {
   handleCoworkCancel,
   handleCoworkTemplates,
   handleCoworkHistory,
+  handleWorkflowList,
+  handleWorkflowGet,
+  handleWorkflowSave,
+  handleWorkflowRemove,
+  handleWorkflowRun,
 } from "./action-protocol.js";
 import {
   handleWorktreeDiff,
@@ -319,6 +324,22 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — return cowork task history */
   _handleCoworkHistory(id, ws, message) {
     return handleCoworkHistory(this, id, ws, message);
+  }
+
+  _handleWorkflowList(id, ws) {
+    return handleWorkflowList(this, id, ws);
+  }
+  _handleWorkflowGet(id, ws, message) {
+    return handleWorkflowGet(this, id, ws, message);
+  }
+  _handleWorkflowSave(id, ws, message) {
+    return handleWorkflowSave(this, id, ws, message);
+  }
+  _handleWorkflowRemove(id, ws, message) {
+    return handleWorkflowRemove(this, id, ws, message);
+  }
+  _handleWorkflowRun(id, ws, message) {
+    return handleWorkflowRun(this, id, ws, message);
   }
 
   /** @private – list background tasks */
