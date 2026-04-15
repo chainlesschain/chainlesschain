@@ -26,7 +26,13 @@ function humanizeToolName(name) {
     .join(" ");
 }
 
-function inferCategory({ contract, explicitCategory, skillCategory, source, isReadOnly }) {
+function inferCategory({
+  contract,
+  explicitCategory,
+  skillCategory,
+  source,
+  isReadOnly,
+}) {
   if (contract?.category) {
     return contract.category;
   }
@@ -103,8 +109,8 @@ function buildTelemetry({
 
 function createUnifiedToolDescriptor(raw = {}) {
   const contract = getCodingAgentToolContract(raw.name);
-  const inputSchema =
-    raw.inputSchema || raw.parameters || { type: "object", properties: {} };
+  const inputSchema = raw.inputSchema ||
+    raw.parameters || { type: "object", properties: {} };
   const isReadOnly =
     raw.isReadOnly === true || contract?.isReadOnly === true || false;
   const riskLevel =
@@ -140,7 +146,8 @@ function createUnifiedToolDescriptor(raw = {}) {
     requiresPlanApproval:
       typeof raw.requiresPlanApproval === "boolean"
         ? raw.requiresPlanApproval
-        : contract?.requiresPlanApproval || (!isReadOnly && riskLevel !== "low"),
+        : contract?.requiresPlanApproval ||
+          (!isReadOnly && riskLevel !== "low"),
     requiresConfirmation:
       typeof raw.requiresConfirmation === "boolean"
         ? raw.requiresConfirmation
@@ -393,12 +400,42 @@ class UnifiedToolRegistry extends EventEmitter {
 
   /**
    * Get tools formatted for LLM function-calling
+   * @param {Object} [options]
+   * @param {string|string[]} [options.activeSkillNames] — if provided, only tools
+   *   belonging to these skills (plus tools in `alwaysAvailable`) are returned.
+   *   Omit or pass null for the legacy full-list behavior.
+   * @param {string[]} [options.alwaysAvailable] — tool names that must pass through
+   *   the filter regardless of skill (e.g., core file ops). Normalized.
    * @returns {Array} OpenAI-compatible tool definitions
    */
-  getToolsForLLM() {
+  getToolsForLLM(options = {}) {
+    const { activeSkillNames = null, alwaysAvailable = [] } = options;
+
+    let allowedToolNames = null;
+    if (activeSkillNames) {
+      const skillList = Array.isArray(activeSkillNames)
+        ? activeSkillNames
+        : [activeSkillNames];
+      allowedToolNames = new Set();
+      for (const skillName of skillList) {
+        const skill = this.skills.get(skillName);
+        if (skill?.toolNames) {
+          for (const n of skill.toolNames) {
+            allowedToolNames.add(n);
+          }
+        }
+      }
+      for (const n of alwaysAvailable) {
+        allowedToolNames.add(this._normalizeToolName(n));
+      }
+    }
+
     const result = [];
     for (const tool of this.tools.values()) {
       if (!tool.available) {
+        continue;
+      }
+      if (allowedToolNames && !allowedToolNames.has(tool.name)) {
         continue;
       }
       result.push({
@@ -450,7 +487,9 @@ class UnifiedToolRegistry extends EventEmitter {
    * @returns {UnifiedTool[]}
    */
   getAllTools() {
-    return Array.from(this.tools.values()).map((tool) => cloneToolDescriptor(tool));
+    return Array.from(this.tools.values()).map((tool) =>
+      cloneToolDescriptor(tool),
+    );
   }
 
   /**

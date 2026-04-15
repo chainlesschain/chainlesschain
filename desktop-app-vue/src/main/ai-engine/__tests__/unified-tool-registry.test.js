@@ -193,4 +193,65 @@ describe("UnifiedToolRegistry", () => {
     expect(freshContext.skill.description).toBe("Automates repetitive work");
     expect(registry.getStats().byCategory.automation).toBe(1);
   });
+
+  it("filters getToolsForLLM by activeSkillNames", () => {
+    registry.bindFunctionCaller({
+      getAllToolDefinitions: vi.fn(() => [
+        {
+          name: "tool-a",
+          description: "A",
+          parameters: { type: "object", properties: {} },
+        },
+        {
+          name: "tool-b",
+          description: "B",
+          parameters: { type: "object", properties: {} },
+        },
+        {
+          name: "file_read",
+          description: "always-on",
+          parameters: { type: "object", properties: {} },
+        },
+      ]),
+      isToolAvailable: vi.fn(() => true),
+    });
+    registry.bindSkillRegistry({
+      getAllSkills: vi.fn(() => [
+        { skillId: "skill-a", name: "Skill A", tools: ["tool-a"] },
+        { skillId: "skill-b", name: "Skill B", tools: ["tool-b"] },
+      ]),
+      on: vi.fn(),
+    });
+
+    registry._importFunctionCallerTools();
+    registry._importSkills();
+
+    // No filter → all tools
+    expect(
+      registry
+        .getToolsForLLM()
+        .map((t) => t.name)
+        .sort(),
+    ).toEqual(["file_read", "tool_a", "tool_b"]);
+
+    // Filter by active skill
+    const filtered = registry.getToolsForLLM({ activeSkillNames: "skill-a" });
+    expect(filtered.map((t) => t.name)).toEqual(["tool_a"]);
+
+    // Filter + alwaysAvailable
+    const withAlways = registry.getToolsForLLM({
+      activeSkillNames: ["skill-a"],
+      alwaysAvailable: ["file_read"],
+    });
+    expect(withAlways.map((t) => t.name).sort()).toEqual([
+      "file_read",
+      "tool_a",
+    ]);
+
+    // Multiple active skills
+    const multi = registry.getToolsForLLM({
+      activeSkillNames: ["skill-a", "skill-b"],
+    });
+    expect(multi.map((t) => t.name).sort()).toEqual(["tool_a", "tool_b"]);
+  });
 });
