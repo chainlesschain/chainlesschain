@@ -1,0 +1,199 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const templates = [
+  { id: 'doc-convert',   name: '文档格式转换', desc: '批量 Word → PDF、Word ↔ Markdown、PPT → 图片',   tools: 'pandoc · LibreOffice' },
+  { id: 'media-process', name: '音视频处理',   desc: '视频压缩、提取音频、剪辑拼接、格式转换',         tools: 'ffmpeg · yt-dlp' },
+  { id: 'data-analysis', name: '数据分析',     desc: 'CSV / Excel 统计分析、生成图表、透视汇总',       tools: 'pandas · matplotlib' },
+  { id: 'web-research',  name: '信息检索调研', desc: '自动抓取网页、整理要点、生成调研报告',           tools: 'curl · BeautifulSoup' },
+  { id: 'image-process', name: '图片处理',     desc: '批量压缩、格式转换、OCR 识别文字',               tools: 'ImageMagick · Tesseract' },
+  { id: 'code-helper',   name: '代码辅助',     desc: '脚本生成、代码审查、重构建议',                   tools: 'Python · Node.js' },
+  { id: 'system-admin',  name: '系统运维',     desc: '磁盘分析、进程排查、服务管理',                   tools: '系统命令' },
+  { id: 'file-organize', name: '文件整理',     desc: '批量重命名、按规则归档、解压缩',                 tools: 'pathlib · 7-Zip' },
+  { id: 'network-tools', name: '网络工具',     desc: '端口扫描、DNS 查询、延迟测试',                   tools: 'curl · nslookup' },
+  { id: 'custom',        name: '自定义任务',   desc: '用自然语言描述，Agent 自动编排工具链',           tools: '任意可执行工具' },
+];
+
+const modules = [
+  { path: '/#/cowork',   name: 'Cowork 协作',   desc: '10 类任务模板 + 自然语言描述 → 自动执行' },
+  { path: '/#/chat',     name: 'AI 对话',       desc: '流式对话、多模型切换、会话历史检索' },
+  { path: '/#/skills',   name: '技能市场',       desc: '138 内置 Skills，市场/管理/工作区四层加载' },
+  { path: '/#/agent',    name: 'Agent 模式',    desc: 'Claude Code 风格的 agentic 循环，读写文件、跑命令' },
+  { path: '/#/tools',    name: '工具浏览器',     desc: '统一工具注册表，FunctionCaller + MCP + Skills 聚合' },
+  { path: '/#/settings', name: '系统设置',       desc: 'LLM Provider、Ollama、主题、配置同步' },
+];
+---
+<BaseLayout
+  title="Web 版 — 浏览器里的 Cowork 工作台 | ChainlessChain"
+  description="ChainlessChain Web 版：一条命令 cc ui 启动，浏览器打开 http://localhost:18810 即用。10 类任务模板、自然语言编排、自动工具安装、WebSocket 实时进度。本地运行，数据不出机。"
+  canonical="https://www.chainlesschain.com/web"
+>
+  <!-- HERO -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="absolute top-20 right-0 w-[500px] h-[500px] rounded-full bg-ember/10 blur-3xl pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">WEB · Cowork Edition</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          浏览器里的<br/><span class="italic text-ember">Cowork 工作台</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          不装桌面版，不学命令行 — 一条 <code class="font-mono bg-cream px-2 py-0.5 rounded">cc ui</code> 起服务，浏览器打开就是完整工作台。
+          10 类任务模板覆盖普通人高频场景，自然语言描述需求，Agent 自动装工具、跑流程、流式回传结果。
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap gap-3">
+          <a href="/cli" class="btn-ember">先装 CLI →</a>
+          <a href="https://docs.chainlesschain.com/chainlesschain/web-cowork.html" class="btn-ghost" rel="noopener">Web Cowork 文档 ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- START -->
+  <section class="pb-16">
+    <div class="container-wide">
+      <div class="max-w-4xl p-8 rounded-2xl border border-line bg-paper">
+        <div class="font-mono text-xs text-ember uppercase tracking-wider mb-4">30 秒启动</div>
+        <pre class="font-mono text-sm leading-relaxed overflow-x-auto"><code># 1. 安装 CLI（只需一次）
+npm i -g chainlesschain
+
+# 2. 启动 Web 面板
+cc ui
+
+# 3. 浏览器打开
+# → http://localhost:18810/#/cowork</code></pre>
+        <p class="mt-5 text-sm text-muted leading-relaxed">
+          HTTP 端口 <code class="font-mono bg-cream px-1.5 py-0.5 rounded">18810</code>、WebSocket 端口 <code class="font-mono bg-cream px-1.5 py-0.5 rounded">18800</code>，全部绑 localhost，
+          服务跑在你自己机器上 — 无账号、无云端、无遥测。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOT -->
+  <section class="pb-20">
+    <div class="container-wide">
+      <figure class="border border-ink/10 rounded-xl overflow-hidden shadow-xl bg-paper">
+        <img
+          src="/screenshots/cowork.png"
+          alt="Web Cowork 界面 · 10 个任务模板 + 自然语言输入"
+          width="1400"
+          height="900"
+          loading="eager"
+          class="block w-full h-auto"
+        />
+      </figure>
+      <p class="mt-3 text-center text-xs text-muted">Web Cowork · 任务模板 + 流式进度</p>
+    </div>
+  </section>
+
+  <!-- TEMPLATES -->
+  <section class="py-16 md:py-24 bg-cream/40">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="font-mono text-xs text-ember uppercase tracking-wider mb-3">10 类任务模板</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">普通人的高频场景，<span class="italic text-ember">开箱即用</span>。</h2>
+        <p class="mt-5 text-lg text-muted leading-relaxed">
+          每个模板背后是一组预置工具链 + 提示词。选模板 → 描述需求 → Agent 自动装依赖、跑流程、给结果。不用记命令、不用调参数。
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {templates.map((t) => (
+          <div class="group p-6 rounded-xl border border-line bg-paper hover:border-ember hover:-translate-y-0.5 transition-all">
+            <div class="font-mono text-[10px] text-muted mb-2">{t.id}</div>
+            <h3 class="font-display text-xl mb-2 group-hover:text-ember transition-colors">{t.name}</h3>
+            <p class="text-sm text-muted leading-relaxed mb-3">{t.desc}</p>
+            <div class="font-mono text-[11px] text-ink/60">{t.tools}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">从一句话到执行结果。</h2>
+      <div class="grid md:grid-cols-4 gap-6">
+        {[
+          ['01', '描述需求',   '用自然语言说出你想做的事，不用学命令行语法。'],
+          ['02', '自动编排',   'Agent 解析意图，挑选模板、调用技能、编排工具链。'],
+          ['03', '按需装工具', '缺什么装什么 — winget / choco / pip / npm 自动跑。'],
+          ['04', '流式回传',   'WebSocket 推送每一步输出，不用等到结束才知道结果。'],
+        ].map(([n, t, d]) => (
+          <div class="p-6 rounded-xl border border-line bg-paper">
+            <div class="font-mono text-xs text-ember mb-3">{n}</div>
+            <h3 class="font-display text-lg mb-2">{t}</h3>
+            <p class="text-sm text-muted leading-relaxed">{d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section class="py-16 md:py-24 bg-cream/40">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="font-mono text-xs text-ember uppercase tracking-wider mb-3">不止 Cowork</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">Web 面板的<span class="italic text-ember">六大模块</span>。</h2>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {modules.map((m) => (
+          <div class="p-6 rounded-xl border border-line bg-paper">
+            <div class="font-mono text-[11px] text-ember mb-2">http://localhost:18810{m.path}</div>
+            <h3 class="font-display text-xl mb-2">{m.name}</h3>
+            <p class="text-sm text-muted leading-relaxed">{m.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY WEB -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">为什么选 Web 版？</h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="p-7 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-xs text-ember mb-3">零安装门槛</div>
+          <h3 class="font-display text-xl mb-2">浏览器打开即用</h3>
+          <p class="text-sm text-muted leading-relaxed">
+            不用下桌面版安装包，不用过 Electron 初始化。CLI 装好后 <code class="font-mono">cc ui</code> 一条命令起服务。
+          </p>
+        </div>
+        <div class="p-7 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-xs text-ember mb-3">全量本地</div>
+          <h3 class="font-display text-xl mb-2">localhost 绑定</h3>
+          <p class="text-sm text-muted leading-relaxed">
+            HTTP / WebSocket 都绑 127.0.0.1。数据、模型、密钥都在你自己的机器上 — 关机即断网隔离。
+          </p>
+        </div>
+        <div class="p-7 rounded-2xl border border-line bg-paper">
+          <div class="font-mono text-xs text-ember mb-3">随时切换</div>
+          <h3 class="font-display text-xl mb-2">三端一致体验</h3>
+          <p class="text-sm text-muted leading-relaxed">
+            CLI / Web / 桌面版共享同一套 Skill 与配置。同一个技能在三端表现一致，换端不换脑。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-20 md:py-28 bg-ink text-cream">
+    <div class="container-wide text-center">
+      <h2 class="text-4xl md:text-5xl leading-tight mb-6">
+        一条命令，<span class="italic text-ember">浏览器里开工</span>。
+      </h2>
+      <p class="text-lg text-muted-dark mb-10 max-w-2xl mx-auto">
+        不用学新工具、不用配环境、不用交账号。你的机器、你的数据、你的节奏。
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href="/cli" class="btn-ember">安装 CLI →</a>
+        <a href="https://docs.chainlesschain.com/chainlesschain/web-cowork.html" class="btn-ghost" rel="noopener">查看文档 ↗</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

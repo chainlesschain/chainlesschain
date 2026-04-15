@@ -1,5 +1,27 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-15 增量更新（Open-Agents 对标补齐 — Phase 1–5 全部落地 + 140 测试）
+
+对 `packages/cli` Agent Runtime 做 vercel-labs/open-agents（2025-12）的系统性对标补齐。**既有优势（`edit_file_hashed` / `git` 工具 / FTS5 搜索 / 138 skills / sub-runtime-pool / 4 层记忆 / Hooks 三件套）保持不动**，只补齐五个维度的空白：
+
+- **Phase 1 — 3 个 agent 工具**：`web_fetch`（SSRF 默认拒绝私网 + markdown 输出）、`todo_write`（会话级存储 + 单 in_progress 约束）、`ask_user_question`（结构化提问暂停 agent）。AGENT_TOOLS 从 13 扩到 16
+- **Phase 2 — Skill `$ARGUMENTS`**：SKILL.md body 支持 `$ARGUMENTS` / `$1..$N` 占位符 + `Skill directory: <abs>` 自动前置
+- **Phase 3 — Sub-agent Profiles**：声明式 `explorer` / `executor` / `design` registry，`spawn_sub_agent` 契约新增 `profile` 字段，profile 提供 `toolAllowlist` + `systemPrompt` + `maxIterations` 默认
+- **Phase 4 — prepareCall turn-scoped context**：agent-core 每轮 LLM 调用前注入 transient system suffix（cwd/git branch@sha+dirty/sessionId/iteration），不污染持久化历史
+- **Phase 5 — Provider-options 三层深合并**：`mergeProviderOptions(provider, modelId, callOverrides)` — defaults ← modelId 推断 ← callOverrides；`undefined` 显式擦除字段语义
+
+| 层 | 范围 | 通过 |
+| --- | --- | --- |
+| 单元 | sub-agent-profiles / turn-context / provider-options / agent-core-prepare-call / todo-manager / web-fetch / skill-loader-arguments | `95/95` |
+| 集成 | `parity-open-agents-loop.test.js`（chatFn mock + 每轮 suffix + todo/web_fetch 端到端） | `4/4` |
+| E2E | `parity-open-agents.test.js`（spawn CLI 真二进制 + 模块导入检查） | `9/9` |
+| **小计** | **3 层** | **`108/108` 新增，217/217 累计，0 回归** |
+
+用户文档：[docs-site/docs/design/modules/88-open-agents-parity](./docs-site/docs/design/modules/88-open-agents-parity.md)
+设计文档：[docs/design/modules/88_OpenAgents对标补齐方案](./docs/design/modules/88_OpenAgents对标补齐方案.md)
+
+---
+
 ## 2026-04-15 增量更新（Cowork Evolution v0.46.0 — F1–F9 九项演进全部落地 + 83 测试）
 
 对 `packages/cli` 的 Cowork 多智能体协作系统做一轮端到端演进，把 2026-04-14 规划的 F1–F9 九项特性全部实现：

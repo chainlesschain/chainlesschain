@@ -1,0 +1,53 @@
+---
+const pathname = Astro.url.pathname;
+const isActive = (p) => pathname === p || (p !== '/' && pathname.startsWith(p));
+const nav = [
+  { href: '/cli', label: 'CLI' },
+  { href: '/web', label: 'Web 版' },
+  { href: '/desktop', label: '桌面版' },
+  { href: '/security', label: '安全' },
+  { href: '/enterprise', label: '企业版' },
+  { href: '/about', label: '关于' },
+];
+---
+<header class="sticky top-0 z-40 bg-paper/80 backdrop-blur-md border-b border-line">
+  <!-- Contact strip -->
+  <div class="bg-ink text-cream/80 text-xs">
+    <div class="container-wide flex items-center justify-between py-1.5">
+      <span class="font-mono tracking-wider">CHAINLESSCHAIN · 厦门无链之链科技</span>
+      <div class="flex items-center gap-4">
+        <a href="tel:400-1068-687" class="font-mono hover:text-ember transition-colors">☎ 400-1068-687</a>
+        <a href="mailto:zhanglongfa@chainlesschain.com" class="hidden sm:inline hover:text-ember transition-colors">zhanglongfa@chainlesschain.com</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-wide flex items-center justify-between py-4">
+    <a href="/" class="flex items-center gap-3">
+      <picture>
+        <source srcset="/logo.webp" type="image/webp" />
+        <img src="/logo.png" alt="ChainlessChain" width="32" height="32" class="w-8 h-8 object-contain" />
+      </picture>
+      <span class="font-display text-xl tracking-tight">
+        chainless<span class="text-ember">·</span>chain
+      </span>
+    </a>
+
+    <nav class="hidden md:flex items-center gap-1 text-sm">
+      {nav.map((item) => (
+        <a
+          href={item.href}
+          class:list={[
+            'px-3 py-2 rounded-md transition-colors',
+            isActive(item.href) ? 'text-ember' : 'text-ink hover:text-ember',
+          ]}
+        >{item.label}</a>
+      ))}
+      <span class="w-px h-4 bg-line mx-2"></span>
+      <a href="https://docs.chainlesschain.com" class="px-3 py-2 text-muted hover:text-ink transition-colors" rel="noopener">文档 ↗</a>
+      <a href="https://design.chainlesschain.com" class="px-3 py-2 text-muted hover:text-ink transition-colors" rel="noopener">设计 ↗</a>
+    </nav>
+
+    <a href="/cli" class="btn-ember text-sm py-2 px-4">开始使用 →</a>
+  </div>
+</header>
