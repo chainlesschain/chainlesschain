@@ -1,0 +1,237 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const menu = [
+  ['UI 品牌化', '替换 Logo、配色、命名与启动动画，打造专属品牌形象'],
+  ['私有化部署', 'Docker / Kubernetes 全套部署包，完全离网运行，零外部依赖'],
+  ['行业 Skills', '医疗分诊、法律起草、科研辅助、金融合规 — 按行业深度定制'],
+  ['U-Key 批量签发', '批量密钥生成、管理、撤销；与企业 CA / HSM 联动'],
+  ['SSO + SCIM', 'SAML 2.0 / OIDC 单点登录，SCIM 2.0 自动同步 Azure AD / Okta'],
+  ['审计合规', '完整审计日志、SOC2 证据收集、等保三级合规报告'],
+  ['DLP + SIEM', '数据防泄漏策略引擎 + CEF / LEEF / JSON 日志导出到 SIEM'],
+  ['数据模型扩展', '按业务字段扩展数据库 Schema，提供 ORM 与迁移工具'],
+];
+
+const industries = [
+  ['制造', '供应链协作、OCR 录单、AI 报数、Excel Git 版本控制'],
+  ['医疗', '分诊辅助、病例管理、符合 HIPAA 的数据隔离'],
+  ['法律', '合同起草、案例检索、时效管理'],
+  ['科研', '文献总结、实验记录、跨机构协作'],
+  ['政企', '内网部署、国密算法、等保三级'],
+];
+---
+<BaseLayout
+  title="企业版 — 为企业量身定制的去中心化 AI 系统 | ChainlessChain"
+  description="ChainlessChain 企业版：私有化部署、UI 品牌化、行业 Skills 定制、SSO + SCIM、审计合规、U-Key 批量签发。为医疗、法律、科研、政企客户提供从 POC 到交付的全流程服务。400-1068-687"
+  canonical="https://www.chainlesschain.com/enterprise"
+>
+  <section class="relative overflow-hidden bg-ink text-cream">
+    <div class="absolute inset-0 bg-grid-ink opacity-50 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-24 md:pt-28 md:pb-32">
+      <div class="max-w-4xl">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-line-dark text-muted-dark mb-6 animate-fade-in">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full"></span> ENTERPRISE
+        </div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          为企业量身定制的<br/><span class="italic text-ember">去中心化 AI 系统</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted-dark leading-relaxed max-w-3xl">
+          从需求沟通到 POC 验证，从行业定制到运维交付。我们做的不是标准化 SaaS，是一套在你机房里运行、按你业务流程重塑的 AI 底座。
+        </p>
+        <div class="animate-fade-in-delay-3 mt-10">
+          <a href="tel:400-1068-687" class="inline-flex items-center gap-3 px-8 py-4 rounded-md bg-ember text-ink font-display text-2xl hover:bg-ember-dark transition-colors">
+            <span>☎</span><span>400-1068-687</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 steps -->
+  <section class="py-20 md:py-28">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-14">
+        <div class="chip mb-6">交付流程</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">四步，从沟通到上线。</h2>
+      </div>
+      <div class="grid md:grid-cols-4 gap-6">
+        {[
+          ['01', '需求沟通', '免费电话或线上会议，30 分钟理清核心诉求与边界'],
+          ['02', '方案设计', '7 个工作日输出技术方案、预算、里程碑'],
+          ['03', 'POC 验证', '2–4 周交付可运行的 POC，真实数据跑通核心流程'],
+          ['04', '交付运维', '私有化部署 + 培训 + 年度运维支持'],
+        ].map(([n, title, desc]) => (
+          <div class="p-6 rounded-2xl border border-line hover:border-ember transition-colors">
+            <div class="font-mono text-xs text-ember mb-4">{n}</div>
+            <h3 class="font-display text-2xl mb-3">{title}</h3>
+            <p class="text-sm text-muted leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Menu -->
+  <section class="py-20 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">8 大定制方向</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">按需组合，按需付费。</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-[1px] bg-line rounded-2xl overflow-hidden border border-line">
+        {menu.map(([title, desc], i) => (
+          <div class="bg-paper p-8">
+            <div class="flex items-baseline gap-4 mb-3">
+              <span class="font-mono text-xs text-muted">{String(i + 1).padStart(2, '0')}</span>
+              <h3 class="font-display text-2xl">{title}</h3>
+            </div>
+            <p class="text-muted leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Industries -->
+  <section class="py-20 md:py-28">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">行业经验</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">已落地的行业场景。</h2>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {industries.map(([name, desc]) => (
+          <div class="p-8 rounded-2xl border border-line">
+            <h3 class="font-display text-3xl text-ember mb-3">{name}</h3>
+            <p class="text-sm text-muted leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 工厂案例深挖 ═══════════════════════════════ -->
+  <section class="py-20 md:py-28 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">旗舰案例 · 制造业</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          链厂数据管家 —<br/>
+          <span class="italic text-ember">工厂供应链 AI 协作平台</span>
+        </h2>
+        <p class="mt-6 text-lg text-muted leading-relaxed">
+          把 Excel 搬进浏览器，把 AI 装进工厂。从物料单据录入到领导驾驶舱报数，全链路数字化。
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <div class="p-8 rounded-2xl bg-paper border border-line">
+          <div class="font-mono text-xs text-ember mb-3">01 · 浏览器内 Excel 协作</div>
+          <h3 class="font-display text-2xl mb-3">OnlyOffice 深度集成</h3>
+          <p class="text-sm text-muted leading-relaxed mb-4">多人实时编辑同一份 Excel，Socket.IO 毫秒级同步单元格；保存自动 Git 提交，支持完整历史回滚与 diff 对比。不用装 Office，不用传文件，全在浏览器里。</p>
+          <div class="text-xs font-mono text-muted">OnlyOffice · Socket.IO · simple-git</div>
+        </div>
+        <div class="p-8 rounded-2xl bg-paper border border-line">
+          <div class="font-mono text-xs text-ember mb-3">02 · AI Text-to-SQL</div>
+          <h3 class="font-display text-2xl mb-3">业务员中文问数据</h3>
+          <p class="text-sm text-muted leading-relaxed mb-4">"本月万节公斤销量多少？" "对比去年同期增长率" — AI 自动生成 SQL 查询运营数据库，直接返回表格与图表。不懂 SQL 也能做数据分析。</p>
+          <div class="text-xs font-mono text-muted">Ollama / Anthropic · SQLite · Drizzle ORM</div>
+        </div>
+        <div class="p-8 rounded-2xl bg-paper border border-line">
+          <div class="font-mono text-xs text-ember mb-3">03 · OCR 单据录入</div>
+          <h3 class="font-display text-2xl mb-3">拍单据自动入库</h3>
+          <p class="text-sm text-muted leading-relaxed mb-4">采购员手机拍物料单 / 送货单，上传后 AI 识别 + 结构化入库。告别手工 Excel 抄单，减少 90% 录入错误。</p>
+          <div class="text-xs font-mono text-muted">Vision OCR · 结构化 Schema · 审核工作流</div>
+        </div>
+        <div class="p-8 rounded-2xl bg-paper border border-line">
+          <div class="font-mono text-xs text-ember mb-3">04 · Git 版本控制</div>
+          <h3 class="font-display text-2xl mb-3">改错能回滚的 Excel</h3>
+          <p class="text-sm text-muted leading-relaxed mb-4">每一次保存自动提交 Git，谁改的、改了啥、什么时候改的，一清二楚。月底对账发现数据异常，一键回滚到任意历史版本。</p>
+          <div class="text-xs font-mono text-muted">simple-git · 自动提交 · diff 可视化</div>
+        </div>
+      </div>
+
+      <div class="p-8 rounded-2xl bg-ink text-cream">
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <div class="font-mono text-xs text-ember mb-3">适用场景</div>
+            <ul class="space-y-2 text-sm text-muted-dark">
+              <li>· 供应链 / 物料管理：BOM 清单、采购订单、入库出库</li>
+              <li>· 生产计划：排产表、产能平衡、瓶颈分析</li>
+              <li>· 成本核算：单位成本、毛利率、报表自动生成</li>
+              <li>· 质检追溯：批次信息、缺陷统计、溯源查询</li>
+              <li>· 领导驾驶舱：多维看板、AI 问答、异常预警</li>
+            </ul>
+          </div>
+          <div class="md:text-right">
+            <div class="font-mono text-xs text-muted-dark mb-3">联系我们定制工厂版</div>
+            <a href="tel:400-1068-687" class="inline-flex items-center gap-3 px-6 py-3 rounded-md bg-ember text-ink font-display text-xl hover:bg-ember-dark transition-colors">
+              <span>☎</span><span>400-1068-687</span>
+            </a>
+            <div class="text-xs text-muted-dark mt-3">工作日 9:00–18:00 · 免费 POC 咨询</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact form (mailto) -->
+  <section class="py-20 bg-ink text-cream">
+    <div class="container-wide grid md:grid-cols-2 gap-16 items-start">
+      <div>
+        <h2 class="text-4xl md:text-5xl leading-tight mb-6">或者，<br/>留下你的需求。</h2>
+        <p class="text-muted-dark mb-8">我们会在 1 个工作日内与你联系，提供免费需求评估。</p>
+        <div class="space-y-3 text-sm">
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">电话</span><a href="tel:400-1068-687" class="font-mono text-ember hover:text-cream">400-1068-687</a></div>
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">邮箱</span><a href="mailto:zhanglongfa@chainlesschain.com" class="hover:text-ember">zhanglongfa@chainlesschain.com</a></div>
+          <div class="flex gap-3"><span class="font-mono text-muted-dark w-16">工作时间</span><span>周一至周五 9:00–18:00</span></div>
+        </div>
+      </div>
+
+      <form id="enterprise-form" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">公司</span>
+            <input type="text" name="company" required class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none" />
+          </label>
+          <label class="block">
+            <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">姓名</span>
+            <input type="text" name="name" required class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none" />
+          </label>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">邮箱</span>
+            <input type="email" name="email" required class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none" />
+          </label>
+          <label class="block">
+            <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">电话</span>
+            <input type="tel" name="phone" class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none" />
+          </label>
+        </div>
+        <label class="block">
+          <span class="text-xs font-mono text-muted-dark uppercase tracking-wider">需求描述</span>
+          <textarea name="message" rows="5" required class="mt-1 w-full bg-line-dark/40 border border-line-dark rounded-md px-3 py-2 text-cream focus:border-ember focus:outline-none"></textarea>
+        </label>
+        <button type="submit" class="w-full py-3 rounded-md bg-ember text-ink font-medium hover:bg-ember-dark transition-colors">发送需求 →</button>
+        <p class="text-xs text-muted-dark">点击发送将打开你的邮件客户端，信息不经过本网站服务器。</p>
+      </form>
+    </div>
+  </section>
+
+  <script is:inline>
+    document.getElementById('enterprise-form')?.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var f = e.target;
+      var subject = encodeURIComponent('[企业需求] ' + (f.company.value || '') + ' · ' + (f.name.value || ''));
+      var body = encodeURIComponent(
+        '公司：' + f.company.value + '\n' +
+        '姓名：' + f.name.value + '\n' +
+        '邮箱：' + f.email.value + '\n' +
+        '电话：' + (f.phone.value || '未填写') + '\n\n' +
+        '需求描述：\n' + f.message.value
+      );
+      window.location.href = 'mailto:zhanglongfa@chainlesschain.com?subject=' + subject + '&body=' + body;
+    });
+  </script>
+</BaseLayout>

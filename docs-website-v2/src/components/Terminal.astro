@@ -1,0 +1,67 @@
+---
+// Animated terminal cycling through 3 demos using CSS keyframes
+---
+<div class="term-window">
+  <div class="term-head">
+    <span class="term-dot"></span>
+    <span class="term-dot"></span>
+    <span class="term-dot"></span>
+    <span class="term-title">~/workspace — chainlesschain</span>
+  </div>
+  <div class="term-body">
+    <div class="term-cycle" id="term-cycle">
+      <div class="term-slide">
+        <div><span class="term-prompt">$</span> cc chat</div>
+        <div class="term-comment"># 进入本地 AI 对话 · Ollama qwen2:7b</div>
+        <div><span class="term-accent">›</span> <span class="term-out">总结 ./docs 目录下最近更新的三篇文档</span></div>
+        <div class="term-out">🤔 正在检索本地 RAG 向量库...</div>
+        <div class="term-out">✓ web-cowork.md · 10 类任务模板 + 自动依赖安装</div>
+        <div class="term-out">✓ cli-agent.md · Claude Code 风格 agent 会话</div>
+        <div class="term-out">✓ skills.md · 138 桌面 Skills + 9 CLI Skill Packs<span class="term-caret"></span></div>
+      </div>
+      <div class="term-slide">
+        <div><span class="term-prompt">$</span> cc cowork analyze ./src</div>
+        <div class="term-comment"># 多 Agent 并行审查 · 性能 / 安全 / 可维护性</div>
+        <div class="term-out">⧖ spawning 3 sub-runtimes...</div>
+        <div class="term-out">  ├── <span class="term-accent">performance</span> reviewer · claude-opus</div>
+        <div class="term-out">  ├── <span class="term-accent">security</span>    reviewer · deepseek-r1</div>
+        <div class="term-out">  └── <span class="term-accent">maintainability</span> reviewer · qwen2:7b</div>
+        <div class="term-out">✓ 12 findings · 3 critical · report.md<span class="term-caret"></span></div>
+      </div>
+      <div class="term-slide">
+        <div><span class="term-prompt">$</span> cc skill run code-review "Review app.js"</div>
+        <div class="term-comment"># 调用 Skill Pack · 138 内置 / 9 领域包</div>
+        <div class="term-out">📦 loaded skill: code-review@1.2.0</div>
+        <div class="term-out">🔧 mounted MCP: filesystem, git</div>
+        <div class="term-out">⚙  hashline edit · 3 blocks patched</div>
+        <div class="term-out">✓ 67 lines reviewed · 4 suggestions written<span class="term-caret"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .term-cycle { position: relative; }
+  .term-slide {
+    opacity: 0;
+    animation: termCycle 15s infinite;
+  }
+  .term-slide:nth-child(1) { animation-delay: 0s; }
+  .term-slide:nth-child(2) {
+    animation-delay: 5s;
+    position: absolute; top: 0; left: 0; right: 0;
+  }
+  .term-slide:nth-child(3) {
+    animation-delay: 10s;
+    position: absolute; top: 0; left: 0; right: 0;
+  }
+  @keyframes termCycle {
+    0%, 2% { opacity: 0; transform: translateY(4px); }
+    5%, 30% { opacity: 1; transform: translateY(0); }
+    33%, 100% { opacity: 0; transform: translateY(-4px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .term-slide { opacity: 1 !important; animation: none !important; position: static !important; }
+    .term-slide:not(:first-child) { display: none; }
+  }
+</style>

@@ -1,0 +1,320 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const categories = [
+  {
+    name: '系统管理',
+    key: 'system',
+    cmds: [
+      ['setup', '交互式初始化向导'],
+      ['start', '启动桌面应用'],
+      ['stop', '停止应用'],
+      ['status', '显示状态'],
+      ['services up', '启动 Docker 依赖服务'],
+      ['config list', '查看当前配置'],
+      ['update', '检查更新'],
+      ['doctor', '诊断运行环境'],
+    ],
+  },
+  {
+    name: '无头命令（免 GUI）',
+    key: 'headless',
+    cmds: [
+      ['db init', '初始化数据库'],
+      ['note add', '新建笔记（含标签）'],
+      ['note list', '列出笔记'],
+      ['note search', '全文搜索'],
+      ['chat', '交互式 AI 对话（流式）'],
+      ['chat --agent', 'Agentic 模式（读写文件）'],
+      ['ask', '单次 AI 查询'],
+      ['llm models', '列出已安装模型'],
+      ['llm test', '测试 LLM 连通性'],
+      ['agent', 'Claude Code 风格 agent 会话'],
+      ['skill list', '列出所有 Skills（4 层）'],
+      ['skill run', '运行指定 Skill'],
+      ['skill sync-cli', '生成 / 更新 9 CLI Skill Packs'],
+      ['skill add', '创建自定义项目 skill'],
+    ],
+  },
+  {
+    name: 'AI 智能层',
+    key: 'ai',
+    cmds: [
+      ['search', 'BM25 混合搜索'],
+      ['tokens show', 'Token 使用追踪'],
+      ['memory add', '持久化记忆'],
+      ['session list', '会话管理'],
+    ],
+  },
+  {
+    name: '知识 & 内容',
+    key: 'content',
+    cmds: [
+      ['import markdown', '导入 Markdown 目录'],
+      ['import evernote', '导入 Evernote 备份'],
+      ['import pdf', '导入 PDF'],
+      ['export site', '导出为静态 HTML'],
+      ['git status', 'Git 集成状态'],
+      ['git auto-commit', '自动提交修改'],
+    ],
+  },
+  {
+    name: 'MCP & 外部集成',
+    key: 'mcp',
+    cmds: [
+      ['mcp servers', '列出 MCP 服务器'],
+      ['mcp add', '添加 MCP 服务器'],
+      ['mcp tools', '列出可用工具'],
+      ['browse fetch', '抓取网页'],
+      ['browse scrape', '爬取元素'],
+      ['llm providers', '列出 10 LLM 提供商'],
+      ['llm switch', '切换当前 provider'],
+      ['instinct show', '查看学习偏好'],
+    ],
+  },
+  {
+    name: '安全 & 身份',
+    key: 'security',
+    cmds: [
+      ['did create', '创建 DID 身份（Ed25519）'],
+      ['did list', '列出全部身份'],
+      ['did sign', '用默认 DID 签名'],
+      ['encrypt file', 'AES-256-GCM 文件加密'],
+      ['decrypt file', '解密文件'],
+      ['auth roles', '列出 RBAC 角色'],
+      ['auth check', '检查权限'],
+      ['audit log', '最近审计事件'],
+      ['audit stats', '审计统计'],
+    ],
+  },
+  {
+    name: 'P2P / 区块链 / 企业',
+    key: 'p2p',
+    cmds: [
+      ['p2p peers', '列出 P2P 节点'],
+      ['p2p send', '发送加密消息'],
+      ['p2p pair', '配对设备'],
+      ['sync status', '同步状态'],
+      ['sync push / pull', '推拉数据'],
+      ['wallet create', '创建钱包'],
+      ['wallet assets', '列出数字资产'],
+      ['wallet transfer', '转移资产'],
+      ['org create', '创建组织'],
+      ['org invite', '邀请成员'],
+      ['plugin list / install', '插件管理'],
+    ],
+  },
+  {
+    name: '初始化 & Persona',
+    key: 'init',
+    cmds: [
+      ['init', '交互式项目初始化'],
+      ['init --template code-project', '代码项目模板'],
+      ['init --template medical-triage', '医疗分诊模板'],
+      ['init --template ai-doc-creator', 'AI 文档创作模板'],
+      ['persona show / set / reset', 'Persona 管理'],
+    ],
+  },
+  {
+    name: 'Cowork 多智能体',
+    key: 'cowork',
+    cmds: [
+      ['cowork debate', '多视角代码审查'],
+      ['cowork compare', 'A/B 方案对比'],
+      ['cowork analyze', '代码分析'],
+      ['cowork status', '查看 cowork 状态'],
+    ],
+  },
+  {
+    name: 'AI 核心：Hooks / Workflow / Memory / A2A',
+    key: 'core',
+    cmds: [
+      ['hook list / add / run', '钩子管理'],
+      ['workflow create / run / templates', '工作流'],
+      ['hmemory store / recall / consolidate', '分层记忆'],
+      ['a2a register / discover / submit', 'Agent 间协议'],
+    ],
+  },
+  {
+    name: '安全 & 进化',
+    key: 'evolution',
+    cmds: [
+      ['sandbox create / exec / audit', '沙箱'],
+      ['evolution assess / diagnose / learn', '系统进化'],
+      ['evomap federation', 'EvoMap 联邦'],
+      ['evomap gov', '治理投票'],
+      ['dao propose / vote / delegate', 'DAO 治理'],
+    ],
+  },
+  {
+    name: '区块链 & 合规',
+    key: 'enterprise',
+    cmds: [
+      ['economy pay / market / nft', '经济层'],
+      ['zkp compile / prove / verify', '零知识证明'],
+      ['bi query / dashboard', 'BI 引擎'],
+      ['compliance evidence / report', '合规证据'],
+      ['dlp scan / incidents', '数据防泄漏'],
+      ['siem targets / export', 'SIEM 集成'],
+      ['pqc keys / generate / migrate', '后量子密码'],
+      ['nostr / matrix / scim / terraform', '协议桥接'],
+    ],
+  },
+  {
+    name: 'Server & Web Panel',
+    key: 'server',
+    cmds: [
+      ['serve', 'WebSocket 服务器（18800）'],
+      ['ui', 'Web 管理面板（18810）'],
+    ],
+  },
+  {
+    name: 'AI Orchestration',
+    key: 'orch',
+    cmds: [
+      ['orchestrate "task"', '自动检测 Agent 后端'],
+      ['orchestrate detect', '检测 Claude Code / Codex'],
+      ['orchestrate --webhook', 'Webhook 服务（企微 / 钉钉 / 飞书）'],
+    ],
+  },
+];
+
+const packs = [
+  { name: 'cli-knowledge-pack', type: 'direct', desc: 'note / search / session 等知识命令' },
+  { name: 'cli-identity-pack', type: 'direct', desc: 'did / auth / encrypt 身份与加密' },
+  { name: 'cli-infra-pack', type: 'direct', desc: 'db / services / doctor 基础设施' },
+  { name: 'cli-ai-query-pack', type: 'llm-query', desc: 'chat / ask / llm 智能问答' },
+  { name: 'cli-agent-mode-pack', type: 'agent', desc: 'agent / cowork 多智能体' },
+  { name: 'cli-web3-pack', type: 'direct', desc: 'wallet / nft / dao 链上操作' },
+  { name: 'cli-security-pack', type: 'direct', desc: 'audit / sandbox / dlp 安全合规' },
+  { name: 'cli-enterprise-pack', type: 'direct', desc: 'org / scim / terraform 企业' },
+  { name: 'cli-integration-pack', type: 'hybrid', desc: 'mcp / browse / nostr 集成桥接' },
+];
+---
+<BaseLayout
+  title="CLI 工具 — 64 命令 · 138 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
+  description="ChainlessChain CLI：64 条命令、138 内置 Skills、9 个 Skill Packs、本地 Ollama + 10 LLM Providers。Agent 模式、Cowork 多智能体、MCP 生态，全部在终端完成。"
+  canonical="https://www.chainlesschain.com/cli"
+>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-16 md:pt-28 md:pb-20">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">CLI · v0.46.0</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          你的终端，<br/><span class="italic text-ember">就是 AI 工作台</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          64 条命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
+        </p>
+
+        <!-- Install tabs -->
+        <div class="animate-fade-in-delay-3 mt-10">
+          <div class="flex flex-wrap gap-2 mb-3" id="install-tabs">
+            <button class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md bg-ink text-cream" data-tab="npm">npm</button>
+            <button class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md bg-cream text-ink border border-line" data-tab="yarn">yarn</button>
+            <button class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md bg-cream text-ink border border-line" data-tab="pnpm">pnpm</button>
+            <button class="tab-btn font-mono text-xs px-3 py-1.5 rounded-md bg-cream text-ink border border-line" data-tab="bun">bun</button>
+          </div>
+          <div class="term-window max-w-2xl">
+            <div class="term-head">
+              <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+              <span class="term-title">install</span>
+            </div>
+            <div class="term-body">
+              <div data-tab-panel="npm"><span class="term-prompt">$</span> npm i -g chainlesschain</div>
+              <div data-tab-panel="yarn" hidden><span class="term-prompt">$</span> yarn global add chainlesschain</div>
+              <div data-tab-panel="pnpm" hidden><span class="term-prompt">$</span> pnpm add -g chainlesschain</div>
+              <div data-tab-panel="bun" hidden><span class="term-prompt">$</span> bun add -g chainlesschain</div>
+              <div class="term-comment mt-3"># 支持 chainlesschain / cc / clc / clchain 四种别名</div>
+              <div class="term-out">$ cc --help</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Commands by category -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="flex items-baseline justify-between mb-10">
+        <h2 class="text-4xl md:text-5xl">全部 64 条命令</h2>
+        <span class="font-mono text-sm text-muted">{categories.length} 大类</span>
+      </div>
+      <div class="space-y-3">
+        {categories.map((cat, i) => (
+          <details class="group border border-line rounded-xl bg-paper overflow-hidden" open={i < 3}>
+            <summary class="flex items-center justify-between cursor-pointer p-5 list-none">
+              <div class="flex items-center gap-4">
+                <span class="font-mono text-xs text-muted">{String(i + 1).padStart(2, '0')}</span>
+                <span class="font-display text-xl">{cat.name}</span>
+                <span class="chip">{cat.cmds.length} 项</span>
+              </div>
+              <span class="text-muted group-open:rotate-180 transition-transform">▾</span>
+            </summary>
+            <div class="px-5 pb-5 grid md:grid-cols-2 gap-2">
+              {cat.cmds.map(([cmd, desc]) => (
+                <div class="flex gap-3 items-start py-2 border-t border-line/60">
+                  <code class="font-mono text-sm text-ember whitespace-nowrap">cc {cmd}</code>
+                  <span class="text-sm text-muted flex-1">{desc}</span>
+                </div>
+              ))}
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 Skill Packs -->
+  <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-12">
+        <div class="chip mb-6">CLI Skill Packs · 9 个领域包</div>
+        <h2 class="text-4xl md:text-5xl leading-tight">
+          一条命令，<br/><span class="italic text-ember">自动生成全部 Skill 绑定</span>。
+        </h2>
+        <p class="mt-6 text-lg text-muted">
+          <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc skill sync-cli</code> 自动生成 9 个领域 Skill Packs，内置 101 条测试，开箱即用。
+        </p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-4">
+        {packs.map((p) => (
+          <div class="p-6 rounded-xl bg-paper border border-line">
+            <div class="flex items-center justify-between mb-2">
+              <code class="font-mono text-sm text-ink">{p.name}</code>
+              <span class="text-[10px] font-mono uppercase tracking-wider text-ember">{p.type}</span>
+            </div>
+            <p class="text-sm text-muted">{p.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 text-center">
+    <div class="container-wide">
+      <h2 class="text-4xl md:text-5xl mb-6">完整 API 参考</h2>
+      <p class="text-muted mb-8">参数、示例、配置 — 都在开发文档。</p>
+      <a href="https://docs.chainlesschain.com" rel="noopener" class="btn-ember">阅读 CLI 文档 ↗</a>
+    </div>
+  </section>
+
+  <script is:inline>
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      var tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(function (b) {
+        var active = b.dataset.tab === tab;
+        b.classList.toggle('bg-ink', active); b.classList.toggle('text-cream', active);
+        b.classList.toggle('bg-cream', !active); b.classList.toggle('text-ink', !active);
+        b.classList.toggle('border', !active); b.classList.toggle('border-line', !active);
+      });
+      document.querySelectorAll('[data-tab-panel]').forEach(function (p) {
+        p.hidden = p.dataset.tabPanel !== tab;
+      });
+    });
+  </script>
+</BaseLayout>

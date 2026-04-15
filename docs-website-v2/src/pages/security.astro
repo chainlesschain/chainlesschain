@@ -1,0 +1,193 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="硬件加密与数据主权 — U-Key · SIMKey · Signal · 本地 Ollama | ChainlessChain"
+  description="ChainlessChain 安全架构：U-Key/SIMKey 硬件芯片（私钥永不导出）、AES-256 + SQLCipher 全量加密、Signal 协议端到端、本地 Ollama 推理。4 项发明专利，等保三级认证。"
+  canonical="https://www.chainlesschain.com/security"
+>
+  <section class="relative overflow-hidden bg-ink text-cream">
+    <div class="absolute inset-0 bg-grid-ink opacity-50 pointer-events-none"></div>
+    <div class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-ember/10 blur-3xl pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-24 md:pt-32 md:pb-32">
+      <div class="max-w-4xl">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-line-dark text-muted-dark mb-6 animate-fade-in">
+          <span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 安全架构
+        </div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          密钥从不<br/><span class="italic text-ember">离开你的设备</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted-dark leading-relaxed max-w-3xl">
+          从硬件芯片到本地模型，我们在每一层都选择了"数据不出境"的实现。
+          不是"承诺不上云"，是"物理上无法上云"。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture diagram -->
+  <section class="py-16 md:py-24">
+    <div class="container-wide">
+      <div class="max-w-3xl mb-10">
+        <h2 class="text-3xl md:text-4xl mb-4">数据流向，看得见的边界</h2>
+        <p class="text-muted">加粗的实线是数据会流经的路径，被划掉的虚线是被切断的路径。</p>
+      </div>
+      <div class="rounded-2xl border border-line p-6 md:p-10 bg-cream/40">
+        <svg viewBox="0 0 900 380" class="w-full h-auto" role="img" aria-label="ChainlessChain 安全架构图">
+          <style>
+            .node { fill: #FAF9F5; stroke: #1E1E1C; stroke-width: 1.5; }
+            .node-dark { fill: #1E1E1C; stroke: #1E1E1C; stroke-width: 1.5; }
+            .node-ember { fill: #D97757; stroke: #D97757; }
+            .label { font-family: 'Instrument Serif', serif; font-size: 16px; fill: #1E1E1C; }
+            .label-light { font-family: 'Instrument Serif', serif; font-size: 16px; fill: #F4F3ED; }
+            .caption { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: #6B6A65; }
+            .flow { stroke: #1E1E1C; stroke-width: 2; fill: none; }
+            .blocked { stroke: #D97757; stroke-width: 2; fill: none; stroke-dasharray: 4 4; }
+          </style>
+          <!-- User -->
+          <rect x="30" y="160" width="140" height="60" rx="8" class="node" />
+          <text x="100" y="185" text-anchor="middle" class="label">用户</text>
+          <text x="100" y="205" text-anchor="middle" class="caption">You</text>
+
+          <!-- U-Key / SIMKey -->
+          <rect x="220" y="100" width="180" height="80" rx="8" class="node-ember" />
+          <text x="310" y="130" text-anchor="middle" class="label-light">U-Key · SIMKey</text>
+          <text x="310" y="150" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#1E1E1C">私钥永不导出</text>
+          <text x="310" y="165" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#1E1E1C">AES-256 · ECC</text>
+
+          <!-- Encrypted DB -->
+          <rect x="220" y="210" width="180" height="80" rx="8" class="node" />
+          <text x="310" y="240" text-anchor="middle" class="label">SQLCipher 数据库</text>
+          <text x="310" y="260" text-anchor="middle" class="caption">AES-256 加密</text>
+          <text x="310" y="275" text-anchor="middle" class="caption">密钥由 U-Key 管理</text>
+
+          <!-- Local Ollama -->
+          <rect x="450" y="160" width="200" height="60" rx="8" class="node-dark" />
+          <text x="550" y="185" text-anchor="middle" class="label-light">本地 Ollama</text>
+          <text x="550" y="205" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="#D97757">qwen2 · llama3 · deepseek</text>
+
+          <!-- P2P -->
+          <rect x="450" y="60" width="200" height="60" rx="8" class="node" />
+          <text x="550" y="85" text-anchor="middle" class="label">P2P · Signal 协议</text>
+          <text x="550" y="105" text-anchor="middle" class="caption">端到端加密</text>
+
+          <!-- Cloud (crossed) -->
+          <rect x="720" y="160" width="140" height="60" rx="8" fill="none" stroke="#D97757" stroke-width="1.5" stroke-dasharray="4 4" />
+          <text x="790" y="185" text-anchor="middle" class="label" fill="#D97757">云端 / 服务器</text>
+          <text x="790" y="205" text-anchor="middle" class="caption" fill="#D97757">数据永不上云</text>
+          <line x1="730" y1="170" x2="850" y2="210" stroke="#D97757" stroke-width="2" />
+          <line x1="850" y1="170" x2="730" y2="210" stroke="#D97757" stroke-width="2" />
+
+          <!-- Flows -->
+          <path d="M 170 190 L 220 140" class="flow" marker-end="url(#arrow)" />
+          <path d="M 170 190 L 220 250" class="flow" marker-end="url(#arrow)" />
+          <path d="M 400 190 L 450 190" class="flow" marker-end="url(#arrow)" />
+          <path d="M 400 140 L 450 90" class="flow" marker-end="url(#arrow)" />
+          <path d="M 650 190 L 720 190" class="blocked" />
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#1E1E1C"/>
+            </marker>
+          </defs>
+
+          <!-- Legend -->
+          <text x="30" y="340" class="caption">━━ 实际数据流</text>
+          <text x="180" y="340" class="caption" fill="#D97757">- - - 被切断的路径</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detailed sections -->
+  <section class="py-16">
+    <div class="container-wide space-y-20">
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">01</div>
+          <h3 class="font-display text-3xl">U-Key</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">USB 安全芯片，Windows 平台通过 Koffi FFI 直连 SIMKey SDK。</p>
+          <p class="prose-muted mb-4">密钥在安全芯片内生成与使用，永不离开硬件。签名、加密、数据库密钥管理均需 U 盾物理确认，多次 PIN 错误自动锁定。macOS / Linux 自动降级为软件模拟模式。</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip">Koffi FFI</span>
+            <span class="chip">PIN 保护</span>
+            <span class="chip">BLE / NFC 无线</span>
+            <span class="chip">生物识别</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">02</div>
+          <h3 class="font-display text-3xl">SIMKey</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">SIM 卡硬件安全，Android OMAPI / iOS eSIM API 接入。</p>
+          <p class="prose-muted mb-4">利用 SIM 卡内置安全芯片，覆盖三大运营商 USIM 与 5G 超级 SIM 卡。12 大安全增强：eSIM OTA、NFC 离线签名、TEE 深度集成、量子抗性、卫星通信 SIM、HSM 联合认证。</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip">OMAPI</span>
+            <span class="chip">eSIM</span>
+            <span class="chip">TEE 集成</span>
+            <span class="chip">卫星通信</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">03</div>
+          <h3 class="font-display text-3xl">AES-256 · SQLCipher</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">本地数据库全量加密，密钥由 U-Key 守护。</p>
+          <p class="prose-muted">SQLite + SQLCipher，WAL 模式 + busy_timeout 保证并发，参数化查询防注入。密钥从不以明文落盘，每次解锁都需硬件签名。</p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">04</div>
+          <h3 class="font-display text-3xl">Signal 协议</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">P2P 消息端到端加密 · Double Ratchet。</p>
+          <p class="prose-muted">前向安全 + 后向安全。离线消息队列 + 自动重发。结合 libp2p + WebRTC 实现 NAT 穿透。</p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">05</div>
+          <h3 class="font-display text-3xl">本地 Ollama</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">敏感数据强制本地模型推理。</p>
+          <p class="prose-muted">LLMManager 智能路由：敏感标记 → Ollama；普通任务 → 用户选择的 provider。14+ 云 LLM 可选但绝不默认。所有 prompt / response 在本地留痕。</p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">06</div>
+          <h3 class="font-display text-3xl">合规与认证</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">等保三级 · 4 项发明专利 · 团体标准参编。</p>
+          <p class="prose-muted">参编 <span class="font-mono">T/ZGCMCA 023—2025</span> AI 团体标准。企业版支持完整的审计日志、DLP 策略引擎、SIEM 导出（CEF / LEEF / JSON）、SOC2 证据自动收集。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24 bg-ink text-cream">
+    <div class="container-wide text-center max-w-3xl mx-auto">
+      <h2 class="text-4xl md:text-5xl mb-6">对安全有更严格要求？</h2>
+      <p class="text-muted-dark text-lg mb-8">我们为金融、医疗、政企客户提供门限签名、HSM 集成、PQC 迁移等深度定制方案。</p>
+      <a href="tel:400-1068-687" class="inline-flex items-center gap-3 px-8 py-4 rounded-md bg-ember text-ink font-display text-2xl hover:bg-ember-dark transition-colors">
+        <span>☎</span><span class="tracking-tight">400-1068-687</span>
+      </a>
+    </div>
+  </section>
+</BaseLayout>

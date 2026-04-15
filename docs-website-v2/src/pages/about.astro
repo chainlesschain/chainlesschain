@@ -1,0 +1,69 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout
+  title="关于我们 — 厦门无链之链科技有限公司 | ChainlessChain"
+  description="厦门无链之链科技有限公司 — 专注于去中心化个人 AI 管理系统。地址：厦门自由贸易试验区象屿路93号。咨询电话 400-1068-687。"
+  canonical="https://www.chainlesschain.com/about"
+>
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
+    <div class="container-wide relative pt-20 pb-24 md:pt-28 md:pb-32">
+      <div class="max-w-4xl">
+        <div class="chip mb-6 animate-fade-in">关于</div>
+        <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
+          我们相信，<br/>数据主权<br/><span class="italic text-ember">属于每一个人</span>。
+        </h1>
+        <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
+          厦门无链之链科技有限公司 · ChainlessChain · 专注于去中心化个人 AI 管理系统的研发与落地。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16">
+    <div class="container-wide grid md:grid-cols-2 gap-16">
+      <div>
+        <h2 class="font-display text-4xl mb-6">公司介绍</h2>
+        <div class="space-y-4 text-muted leading-relaxed">
+          <p>我们是一家专注于硬件加密与本地 AI 的科技公司。相信 AI 的未来，不只是云端的黑盒模型，更是每一个人手中能掌控的工具。</p>
+          <p>从 2020 年起，我们把 U-Key / SIMKey 硬件加密、Signal 协议、本地 Ollama 推理拼接成一套完整的个人 AI 底座。不做云端代销，不做数据中间商。</p>
+          <p>代码开源，协议开放，欢迎审计。</p>
+        </div>
+      </div>
+      <div>
+        <h2 class="font-display text-4xl mb-6">团队</h2>
+        <div class="space-y-4 text-muted leading-relaxed">
+          <p>团队成员来自互联网安全、区块链、AI 算法、硬件加密等多个领域，平均行业经验 8 年以上。</p>
+          <p>我们参编了 AI 团体标准 <span class="font-mono text-ink">T/ZGCMCA 023—2025</span>，拥有 4 项发明专利，完成了等保三级认证。</p>
+          <p>但我们最看重的，是把"数据主权"这件事，认认真真做到每一行代码里。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="py-16 bg-cream/50 border-y border-line">
+    <div class="container-wide grid md:grid-cols-3 gap-10">
+      <div>
+        <div class="font-mono text-xs text-muted uppercase tracking-wider mb-3">地址</div>
+        <div class="font-display text-2xl leading-snug mb-2">厦门 · 自由贸易试验区</div>
+        <div class="text-muted">象屿路93号厦门国际航运中心 C 栋 4 层 431 单元 H</div>
+      </div>
+      <div>
+        <div class="font-mono text-xs text-muted uppercase tracking-wider mb-3">联系</div>
+        <a href="tel:400-1068-687" class="block font-display text-2xl text-ember hover:text-ember-dark mb-2">400-1068-687</a>
+        <a href="mailto:zhanglongfa@chainlesschain.com" class="text-muted hover:text-ink break-all">zhanglongfa@chainlesschain.com</a>
+      </div>
+      <div>
+        <div class="font-mono text-xs text-muted uppercase tracking-wider mb-3">资质</div>
+        <ul class="space-y-1.5 text-sm">
+          <li>✓ 4 项发明专利</li>
+          <li>✓ 等保三级认证</li>
+          <li>✓ T/ZGCMCA 023—2025 参编</li>
+          <li>✓ 备案号 <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="text-ink/50 hover:text-ink/70">闽ICP备2025105973号-1</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

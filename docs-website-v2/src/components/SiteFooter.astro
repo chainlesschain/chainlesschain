@@ -1,0 +1,72 @@
+---
+const year = new Date().getFullYear();
+---
+<footer class="mt-32 border-t border-line bg-paper">
+  <div class="container-wide py-16 grid grid-cols-2 md:grid-cols-5 gap-10">
+    <div class="col-span-2">
+      <div class="flex items-center gap-3 mb-4">
+        <picture>
+          <source srcset="/logo.webp" type="image/webp" />
+          <img src="/logo.png" alt="ChainlessChain" width="32" height="32" class="w-8 h-8 object-contain" />
+        </picture>
+        <span class="font-display text-xl tracking-tight">chainless<span class="text-ember">·</span>chain</span>
+      </div>
+      <p class="text-sm text-muted leading-relaxed max-w-xs">
+        让数据主权回归个人，AI 效率触手可及。基于 CLI 与硬件加密的去中心化个人 AI 管理系统。
+      </p>
+      <div class="mt-6 space-y-1.5 text-sm">
+        <a href="tel:400-1068-687" class="flex items-center gap-2 text-ink hover:text-ember transition-colors">
+          <span class="font-mono">☎</span><span class="font-mono tracking-wide">400-1068-687</span>
+        </a>
+        <a href="mailto:zhanglongfa@chainlesschain.com" class="flex items-center gap-2 text-ink hover:text-ember transition-colors">
+          <span class="font-mono">✉</span><span>zhanglongfa@chainlesschain.com</span>
+        </a>
+      </div>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-mono tracking-widest text-muted uppercase mb-4">产品</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href="/cli" class="hover:text-ember transition-colors">CLI 工具</a></li>
+        <li><a href="/desktop" class="hover:text-ember transition-colors">桌面版</a></li>
+        <li><a href="/security" class="hover:text-ember transition-colors">硬件加密</a></li>
+        <li><a href="/enterprise" class="hover:text-ember transition-colors">企业版</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-mono tracking-widest text-muted uppercase mb-4">资源</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href="https://docs.chainlesschain.com" rel="noopener" class="hover:text-ember transition-colors">开发文档 ↗</a></li>
+        <li><a href="https://design.chainlesschain.com" rel="noopener" class="hover:text-ember transition-colors">设计文档 ↗</a></li>
+        <li><a href="https://github.com/chainlesschain/chainlesschain" target="_blank" rel="noopener" class="hover:text-ember transition-colors">GitHub ↗</a></li>
+        <li><a href="https://gitee.com/chainlesschaincn/chainlesschain" target="_blank" rel="noopener" class="hover:text-ember transition-colors">Gitee ↗</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="text-xs font-mono tracking-widest text-muted uppercase mb-4">公司</h4>
+      <ul class="space-y-2 text-sm">
+        <li><a href="/about" class="hover:text-ember transition-colors">关于我们</a></li>
+        <li><a href="/enterprise" class="hover:text-ember transition-colors">商务合作</a></li>
+        <li><a href="tel:400-1068-687" class="hover:text-ember transition-colors">400-1068-687</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="border-t border-line">
+    <div class="container-wide py-6 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-muted">
+      <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+        <span>© {year} 厦门无链之链科技有限公司 · 自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H</span>
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="text-ink/50 hover:text-ink/70">闽ICP备2025105973号-1</a>
+      </div>
+      <div class="flex items-center gap-4 font-mono">
+        <span>v5.0.2.10</span>
+        <span>·</span>
+        <span>等保三级认证</span>
+        <span>·</span>
+        <span>T/ZGCMCA 023—2025</span>
+      </div>
+    </div>
+  </div>
+</footer>

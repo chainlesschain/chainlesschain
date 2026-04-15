@@ -1,0 +1,215 @@
+---
+import '../styles/global.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+
+const {
+  title = 'ChainlessChain 无链之链 — 让数据主权回归个人，AI效率触手可及',
+  description = 'CLI 驱动的本地 AI × 硬件级加密。64 条 CLI 命令、138 个内置 Skills、U-Key/SIMKey 硬件保护、Signal 端到端加密。为每一个想掌控自己数据的人而建。咨询电话：400-1068-687',
+  canonical = 'https://www.chainlesschain.com/',
+  ogImage = '/og-image.svg',
+  jsonLd = null,
+} = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content="ChainlessChain,无链之链,CLI,本地AI,Ollama,U盾,SIMKey,硬件加密,Cowork,多智能体,Skills,Signal协议,SQLCipher,去中心化,个人AI知识库,厦门无链之链,400-1068-687" />
+    <meta name="author" content="厦门无链之链科技有限公司" />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`https://www.chainlesschain.com${ogImage}`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="ChainlessChain" />
+    <meta property="og:locale" content="zh_CN" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={`https://www.chainlesschain.com${ogImage}`} />
+
+    <!-- Local SEO -->
+    <meta name="contact" content="400-1068-687" />
+    <meta name="email" content="zhanglongfa@chainlesschain.com" />
+    <meta name="geo.region" content="CN-FJ" />
+    <meta name="geo.placename" content="厦门" />
+    <meta name="geo.position" content="24.479834;118.089425" />
+
+    <meta name="theme-color" content="#FAF9F5" />
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo-32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/logo-64.png" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/logo-128.png" />
+    <link rel="apple-touch-icon" sizes="128x128" href="/logo-128.png" />
+    <link rel="shortcut icon" href="/logo-32.png" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- JSON-LD: SoftwareApplication -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'ChainlessChain',
+      alternateName: '无链之链',
+      description: '基于 CLI 驱动的本地 AI 与 U-Key/SIMKey 硬件加密的去中心化个人 AI 管理系统',
+      applicationCategory: 'ProductivityApplication',
+      operatingSystem: 'Windows, macOS, Linux, Android, iOS',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'CNY', availability: 'https://schema.org/InStock' },
+      provider: {
+        '@type': 'Organization',
+        name: '厦门无链之链科技有限公司',
+        telephone: '+86-400-1068-687',
+        email: 'zhanglongfa@chainlesschain.com',
+        address: {
+          '@type': 'PostalAddress',
+          addressCountry: 'CN',
+          addressRegion: '福建省',
+          addressLocality: '厦门市',
+          streetAddress: '自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H',
+        },
+      },
+      softwareVersion: '5.0.2.10',
+      featureList: ['CLI 64 命令', '138 内置 Skills', 'Cowork 多智能体', 'U-Key/SIMKey 硬件加密', 'Signal E2E 加密', '本地 Ollama 部署'],
+    })} />
+
+    <!-- JSON-LD: Organization -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: '厦门无链之链科技有限公司',
+      alternateName: 'ChainlessChain',
+      url: 'https://www.chainlesschain.com',
+      logo: 'https://www.chainlesschain.com/logo.png',
+      telephone: '+86-400-1068-687',
+      email: 'zhanglongfa@chainlesschain.com',
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'CN',
+        addressRegion: '福建省',
+        addressLocality: '厦门市',
+        postalCode: '361000',
+        streetAddress: '自由贸易试验区象屿路93号厦门国际航运中心C栋4层431单元H',
+      },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        telephone: '+86-400-1068-687',
+        contactType: 'customer service',
+        areaServed: 'CN',
+        availableLanguage: ['zh-CN', 'en'],
+      },
+    })} />
+
+    <!-- JSON-LD: WebSite -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'ChainlessChain 官网',
+      url: 'https://www.chainlesschain.com',
+    })} />
+
+    {jsonLd && <script type="application/ld+json" is:inline set:html={JSON.stringify(jsonLd)} />}
+  </head>
+  <body>
+    <!-- Page Loader (full replica of legacy loading.css) -->
+    <div id="page-loader">
+      <div class="loader-container">
+        <div class="loader-particle"></div>
+        <div class="loader-particle"></div>
+        <div class="loader-particle"></div>
+        <div class="loader-particle"></div>
+
+        <div class="loader-logo-wrapper">
+          <div class="loader-glow"></div>
+          <div class="loader-shadow"></div>
+          <div class="loader-ring-outer"></div>
+          <div class="loader-ring-inner"></div>
+          <picture>
+            <source srcset="/logo.webp" type="image/webp" />
+            <img src="/logo-optimized.png" alt="ChainlessChain" class="loader-logo" />
+          </picture>
+        </div>
+
+        <div class="loader-text">ChainlessChain</div>
+        <div class="loader-tip">无链之链 · 让数据主权回归个人</div>
+
+        <div class="loader-progress-container">
+          <div class="loader-progress-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <SiteHeader />
+    <main>
+      <slot />
+    </main>
+    <SiteFooter />
+
+    <!-- Replicated loading.js behavior: sim 0→90% every 200ms, complete on load, 5s fallback -->
+    <script is:inline>
+      (function () {
+        var loader = document.getElementById('page-loader');
+        var bar = document.querySelector('.loader-progress-bar');
+        if (!loader || !bar) return;
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce) {
+          bar.style.width = '100%';
+          loader.classList.add('loaded');
+          setTimeout(function () { if (loader.parentNode) loader.parentNode.removeChild(loader); }, 100);
+          return;
+        }
+        var progress = 0; var iv = null;
+        function upd(v) { bar.style.width = v + '%'; }
+        iv = setInterval(function () {
+          if (progress < 90) {
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
+            upd(progress);
+          }
+        }, 200);
+        function done() {
+          if (iv) { clearInterval(iv); iv = null; }
+          progress = 100; upd(100);
+          setTimeout(function () {
+            loader.classList.add('loaded');
+            setTimeout(function () { if (loader.parentNode) loader.parentNode.removeChild(loader); }, 500);
+          }, 300);
+        }
+        if (document.readyState === 'complete') done();
+        else window.addEventListener('load', done);
+        setTimeout(function () { if (progress < 100) done(); }, 5000);
+      })();
+    </script>
+
+    <!-- Click-to-copy for install commands -->
+    <script is:inline>
+      document.addEventListener('click', function (e) {
+        var el = e.target.closest('[data-copy]');
+        if (!el) return;
+        var text = el.getAttribute('data-copy');
+        navigator.clipboard && navigator.clipboard.writeText(text).then(function () {
+          var original = el.getAttribute('data-original') || el.innerHTML;
+          if (!el.getAttribute('data-original')) el.setAttribute('data-original', original);
+          el.innerHTML = '<span>✓ 已复制</span>';
+          setTimeout(function () { el.innerHTML = original; }, 1400);
+        });
+      });
+    </script>
+  </body>
+</html>
