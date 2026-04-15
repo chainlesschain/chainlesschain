@@ -136,22 +136,16 @@ describe("Canonical Tool Descriptor — FC → Registry integration", () => {
   });
 
   it("read-only canonical defaults are respected when fields are omitted", async () => {
-    fc.registerTool(
-      "bare_reader",
-      async () => ({ ok: true }),
-      {
-        description: "minimal",
-        inputSchema: { type: "object" },
-        isReadOnly: true,
-      },
-    );
+    fc.registerTool("bare_reader", async () => ({ ok: true }), {
+      description: "minimal",
+      inputSchema: { type: "object" },
+      isReadOnly: true,
+    });
 
     registry.bindFunctionCaller(fc);
     await registry.initialize();
 
-    const reg = registry
-      .getAllTools()
-      .find((t) => t.name === "bare_reader");
+    const reg = registry.getAllTools().find((t) => t.name === "bare_reader");
     expect(reg).toBeDefined();
     // read-only tools default to `low` risk and `allow` plan-mode behavior
     expect(reg.isReadOnly).toBe(true);
@@ -163,35 +157,81 @@ describe("Canonical Tool Descriptor — FC → Registry integration", () => {
   });
 
   it("mutating the registry clone does not corrupt subsequent reads", async () => {
-    fc.registerTool(
-      "mutation_target",
-      async () => ({ ok: true }),
-      {
-        description: "probe",
-        inputSchema: {
-          type: "object",
-          properties: { x: { type: "string" } },
-        },
-        riskLevel: "low",
-        isReadOnly: true,
+    fc.registerTool("mutation_target", async () => ({ ok: true }), {
+      description: "probe",
+      inputSchema: {
+        type: "object",
+        properties: { x: { type: "string" } },
       },
-    );
+      riskLevel: "low",
+      isReadOnly: true,
+    });
 
     registry.bindFunctionCaller(fc);
     await registry.initialize();
 
-    const a = registry
-      .getAllTools()
-      .find((t) => t.name === "mutation_target");
+    const a = registry.getAllTools().find((t) => t.name === "mutation_target");
     a.riskLevel = "high";
     a.inputSchema.properties.x.type = "number";
     a.tags = ["poisoned"];
 
-    const b = registry
-      .getAllTools()
-      .find((t) => t.name === "mutation_target");
+    const b = registry.getAllTools().find((t) => t.name === "mutation_target");
     expect(b.riskLevel).toBe("low");
     expect(b.inputSchema.properties.x.type).toBe("string");
     expect(b.tags).not.toContain("poisoned");
+  });
+
+  it("getToolsForLLM filters by activeSkillNames end-to-end", async () => {
+    fc.registerTool("search_web", async () => ({ ok: true }), {
+      description: "web search",
+      inputSchema: { type: "object", properties: {} },
+    });
+    fc.registerTool("file_read", async () => ({ ok: true }), {
+      description: "read file",
+      inputSchema: { type: "object", properties: {} },
+      isReadOnly: true,
+    });
+    fc.registerTool("shell_exec", async () => ({ ok: true }), {
+      description: "run shell",
+      inputSchema: { type: "object", properties: {} },
+    });
+
+    registry.bindFunctionCaller(fc);
+    registry.bindSkillRegistry({
+      getAllSkills: () => [
+        {
+          skillId: "web-skill",
+          name: "web-skill",
+          tools: ["search_web"],
+        },
+      ],
+      on: () => {},
+    });
+    await registry.initialize();
+
+    // No filter: all available tools
+    const unfiltered = registry.getToolsForLLM();
+    const unfilteredNames = unfiltered.map((t) => t.name).sort();
+    expect(unfilteredNames).toEqual(
+      expect.arrayContaining(["file_read", "search_web", "shell_exec"]),
+    );
+
+    // Filter by active skill — only its tools surface
+    const scoped = registry.getToolsForLLM({ activeSkillNames: "web-skill" });
+    expect(scoped.map((t) => t.name)).toEqual(["search_web"]);
+
+    // alwaysAvailable lets core tools pass through
+    const scopedPlus = registry.getToolsForLLM({
+      activeSkillNames: "web-skill",
+      alwaysAvailable: ["file_read"],
+    });
+    expect(scopedPlus.map((t) => t.name).sort()).toEqual([
+      "file_read",
+      "search_web",
+    ]);
+
+    // Unknown skill → empty (unless alwaysAvailable is provided)
+    const empty = registry.getToolsForLLM({ activeSkillNames: "nope" });
+    expect(empty).toEqual([]);
   });
 });

@@ -814,24 +814,11 @@ MaterialTheme(colorScheme = animatedColorScheme, ...)
 
 ### Issue: Git pre-commit hook 运行全量测试导致提交缓慢
 
-**症状**: `git commit` 触发 pre-commit hook 运行 desktop-app-vue 全量 Vitest 测试（10k+ 用例），耗时 ~11 分钟，且部分测试有不稳定超时失败
+**症状** (历史): `git commit` 触发 pre-commit hook 运行 desktop-app-vue 全量 Vitest 测试（10k+ 用例），耗时 ~11 分钟
 
-**原因**: pre-commit hook 配置运行了完整测试套件而非仅验证受影响的文件
+**解决方案**: `.husky/pre-commit` 已改为仅用 `lint-staged`（只处理暂存文件）+ 检测暂存的 `.ts/.tsx/.vue` 才跑 `typecheck-staged.js`；`.husky/pre-push` 仅跑 `type-check`。全量测试移至 CI。
 
-**临时解决方案**:
-
-```bash
-# 跳过 hook（仅当确认改动无关 JS/TS 代码时使用）
-git commit --no-verify -m "message"
-```
-
-**建议改进**:
-
-1. **按路径过滤**: hook 中检测改动文件路径，仅修改 `desktop-app-vue/` 时才跑桌面端测试
-2. **使用 lint-staged**: 仅对暂存文件运行相关测试
-3. **拆分快速/慢速测试**: pre-commit 仅运行快速测试，push 时运行全量
-
-**状态**: 使用 `--no-verify` 临时绕过，待优化 hook 配置
+**状态**: 已解决 — 参见 `.husky/pre-commit` 和 `.husky/pre-push`
 
 ---
 
