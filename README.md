@@ -610,6 +610,19 @@ chainlesschain cli-anything register soffice                      # 注册 Libre
 
 ---
 
+### 最新更新 - AI 视频生成 (Volcengine Seedance)
+
+桌面端接入火山方舟 Seedance 文生视频 API，通过 `window.api.video.generate({prompt, outputPath, ratio, duration, imageUrl})` 生成真实 AI 视频：
+
+- ✅ **Seedance 全模型支持** — `doubao-seedance-1.0-lite` / `1.5-pro` / `pixeldance`，支持文生视频与首帧图驱动
+- ✅ **流式进度事件** — `video:generate:progress` 上报 `task-created / status-update / downloading / complete`
+- ✅ **轮询容错** — 5s 间隔、10 分钟超时，自动区分 `queued / running / succeeded / failed`
+- ✅ **15 测试全绿** — 9 单元 + 4 集成 + 2 全链路，全部使用 mock 避免真实计费
+- 📖 使用文档 `docs-site/docs/chainlesschain/ai-video-generation.md`
+- 📖 架构设计 `docs/design/modules/90_AI视频生成_Volcengine_Seedance.md`
+
+---
+
 ### 历史更新 - AI 音视频创作模板
 
 `cc init --template ai-media-creator` 一条命令配置完整的 AI 音视频创作工作区，自动生成 3 个媒体技能：

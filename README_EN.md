@@ -406,6 +406,19 @@ chainlesschain cli-anything register soffice                          # Register
 
 ---
 
+### Latest - AI Video Generation (Volcengine Seedance)
+
+The desktop app now integrates Volcengine Ark Seedance text-to-video API via `window.api.video.generate({prompt, outputPath, ratio, duration, imageUrl})`:
+
+- ✅ **Full Seedance lineup** — `doubao-seedance-1.0-lite` / `1.5-pro` / `pixeldance`, text-to-video and first-frame image-driven modes
+- ✅ **Streaming progress** — `video:generate:progress` emits `task-created / status-update / downloading / complete`
+- ✅ **Robust polling** — 5s interval, 10-min timeout, handles `queued / running / succeeded / failed`
+- ✅ **15 tests green** — 9 unit + 4 integration + 2 full-chain, all mocked (no real-API billing)
+- 📖 User docs: `docs-site/docs/chainlesschain/ai-video-generation.md`
+- 📖 Design: `docs/design/modules/90_AI视频生成_Volcengine_Seedance.md`
+
+---
+
 ### History - AI Media Creator Template
 
 `cc init --template ai-media-creator` sets up a complete AI media creation workspace in one command, auto-generating 3 media skills:

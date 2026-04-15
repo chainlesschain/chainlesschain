@@ -69,6 +69,7 @@ const DEFAULT_CONFIG = {
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
     model: "doubao-seed-1-6-251015", // 使用最新版本（注意：下划线格式，带版本号）
     embeddingModel: "doubao-embedding-text-240715", // 嵌入模型（最新版本，支持中英双语）
+    videoModel: "doubao-seedance-1.0-lite", // 文生视频模型（Seedance 系列）
   },
 
   // Google Gemini配置
