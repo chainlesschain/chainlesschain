@@ -2,7 +2,7 @@
 
 **Source**: `src/main/database/database-adapter.js`
 
-**Generated**: 2026-04-12T15:08:28.476Z
+**Generated**: 2026-04-15T06:45:25.488Z
 
 ---
 

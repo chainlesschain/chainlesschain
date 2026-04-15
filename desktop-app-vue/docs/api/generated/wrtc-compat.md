@@ -2,7 +2,7 @@
 
 **Source**: `src/main/p2p/wrtc-compat.js`
 
-**Generated**: 2026-04-12T15:08:28.435Z
+**Generated**: 2026-04-15T06:45:25.436Z
 
 ---
 
