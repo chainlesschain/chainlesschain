@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/transports/http-sse-transport.js`
 
-**Generated**: 2026-04-12T15:08:28.446Z
+**Generated**: 2026-04-15T06:45:25.449Z
 
 ---
 

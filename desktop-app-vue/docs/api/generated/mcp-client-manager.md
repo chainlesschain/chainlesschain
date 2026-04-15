@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/mcp-client-manager.js`
 
-**Generated**: 2026-04-12T15:08:28.445Z
+**Generated**: 2026-04-15T06:45:25.449Z
 
 ---
 
