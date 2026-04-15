@@ -4,6 +4,12 @@ import {
   computeTemplateStats,
   recommendTemplate,
   summarizeFailures,
+  suggestPromptPatch,
+  buildPatchForTemplate,
+  applyPromptPatch,
+  loadUserTemplate,
+  MIN_RUNS_FOR_PATCH,
+  MIN_FAILURES_FOR_PATCH,
   _deps,
 } from "../../src/lib/cowork-learning.js";
 

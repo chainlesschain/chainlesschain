@@ -16,20 +16,21 @@
  *     lastStatus: "completed"|"failed"|null,
  *   }
  *
- * The scheduler ticks every 60s. Each tick it reloads schedules and runs
- * any whose cron expression matches the current minute (rounded down).
- * A schedule only runs once per minute, even if the tick fires twice.
+ * The scheduler ticks every 60s by default. If any schedule uses a 6-field
+ * (seconds-aware) cron expression, the tick rate auto-adapts to 1s.
+ * Each tick reloads schedules and runs any whose cron matches the current
+ * minute (or second, if 6-field). A schedule only runs once per fire-window.
+ *
+ * Supported cron syntax:
+ *   - 5 fields: minute hour dom month dow              (POSIX)
+ *   - 6 fields: second minute hour dom month dow       (Quartz-like, seconds first)
+ *   - Aliases:  @yearly @annually @monthly @weekly @daily @midnight @hourly
  *
  * @module cowork-cron
  */
 
 import crypto from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const _deps = {
@@ -48,8 +49,38 @@ const FIELD_RANGES = [
   [0, 23], // hour
   [1, 31], // day-of-month
   [1, 12], // month
-  [0, 6],  // day-of-week (0=Sun, 6=Sat). 7 also maps to 0.
+  [0, 6], // day-of-week (0=Sun, 6=Sat). 7 also maps to 0.
 ];
+
+const SECOND_RANGE = [0, 59];
+
+/**
+ * Non-standard alias → 5-field expression. Aliases never carry seconds.
+ */
+export const ALIASES = Object.freeze({
+  "@yearly": "0 0 1 1 *",
+  "@annually": "0 0 1 1 *",
+  "@monthly": "0 0 1 * *",
+  "@weekly": "0 0 * * 0",
+  "@daily": "0 0 * * *",
+  "@midnight": "0 0 * * *",
+  "@hourly": "0 * * * *",
+});
+
+/**
+ * Expand a cron alias (e.g. "@daily") into its 5-field equivalent.
+ * Returns the original string unchanged if not an alias.
+ */
+export function _expandExpr(expr) {
+  if (typeof expr !== "string") return expr;
+  const trimmed = expr.trim();
+  if (trimmed.startsWith("@")) {
+    const alias = ALIASES[trimmed.toLowerCase()];
+    if (!alias) throw new Error(`unknown cron alias: ${trimmed}`);
+    return alias;
+  }
+  return trimmed;
+}
 
 /**
  * Parse a single cron field into a Set of matching integers.
@@ -106,45 +137,74 @@ export function parseCronField(field, [min, max]) {
 }
 
 /**
- * Parse a 5-field cron expression. Returns a match function.
+ * Parse a 5- or 6-field cron expression (or alias). Returns a match function
+ * with `.hasSeconds` boolean property indicating whether the expression
+ * carries seconds resolution.
  *
  * @param {string} expr
- * @returns {(date: Date) => boolean}
+ * @returns {((date: Date) => boolean) & { hasSeconds: boolean }}
  */
 export function parseCron(expr) {
   if (typeof expr !== "string") {
     throw new Error("cron expression must be a string");
   }
-  const parts = expr.trim().split(/\s+/);
-  if (parts.length !== 5) {
+  const expanded = _expandExpr(expr);
+  const parts = expanded.split(/\s+/);
+  if (parts.length !== 5 && parts.length !== 6) {
     throw new Error(
-      `cron must have 5 fields (minute hour dom month dow), got ${parts.length}`,
+      `cron must have 5 or 6 fields (got ${parts.length}); use 6-field for seconds resolution or alias like @daily`,
     );
   }
-  const [minute, hour, dom, month, dow] = parts.map((p, i) =>
-    parseCronField(p, FIELD_RANGES[i]),
-  );
-  return function matches(date) {
+  const hasSeconds = parts.length === 6;
+  let second = null;
+  let minute, hour, dom, month, dow;
+  if (hasSeconds) {
+    second = parseCronField(parts[0], SECOND_RANGE);
+    [minute, hour, dom, month, dow] = parts
+      .slice(1)
+      .map((p, i) => parseCronField(p, FIELD_RANGES[i]));
+  } else {
+    [minute, hour, dom, month, dow] = parts.map((p, i) =>
+      parseCronField(p, FIELD_RANGES[i]),
+    );
+  }
+
+  // Pre-compute restriction flags for POSIX dom/dow OR-semantics
+  const domField = hasSeconds ? parts[3] : parts[2];
+  const dowField = hasSeconds ? parts[5] : parts[4];
+  const domRestricted = domField !== "*";
+  const dowRestricted = dowField !== "*";
+
+  function matches(date) {
+    const s = date.getSeconds();
     const m = date.getMinutes();
     const h = date.getHours();
     const D = date.getDate();
     const M = date.getMonth() + 1; // JS month is 0-based
     const W = date.getDay();
+    if (hasSeconds && !second.has(s)) return false;
     if (!minute.has(m)) return false;
     if (!hour.has(h)) return false;
     if (!month.has(M)) return false;
     // POSIX: if both dom and dow are restricted (not *), match is OR.
-    // If only one is restricted, that one applies. If both *, always match.
-    const partsRaw = expr.trim().split(/\s+/);
-    const domRestricted = partsRaw[2] !== "*";
-    const dowRestricted = partsRaw[4] !== "*";
     if (domRestricted && dowRestricted) {
       return dom.has(D) || dow.has(W);
     }
     if (domRestricted) return dom.has(D);
     if (dowRestricted) return dow.has(W);
     return true;
-  };
+  }
+  matches.hasSeconds = hasSeconds;
+  return matches;
+}
+
+/** Returns true if the cron expression carries seconds resolution. */
+export function hasSecondsResolution(expr) {
+  try {
+    return parseCron(expr).hasSeconds;
+  } catch (_e) {
+    return false;
+  }
 }
 
 /** Validate a cron expression — returns null if valid, error string otherwise. */
@@ -254,6 +314,8 @@ export function updateScheduleRunState(cwd, id, { lastRunAt, lastStatus }) {
 export class CoworkCronScheduler {
   constructor(options = {}) {
     this.cwd = options.cwd || process.cwd();
+    // If caller pins intervalMs we honor it; else auto-adapt based on schedules.
+    this._intervalPinned = typeof options.intervalMs === "number";
     this.intervalMs = options.intervalMs || 60_000;
     this.onEvent = options.onEvent || null; // (event) => void
     this._timer = null;
@@ -263,9 +325,36 @@ export class CoworkCronScheduler {
 
   start() {
     if (this._timer) return;
-    this._tick(); // immediate first tick so tests don't wait 60s
+    this._adaptInterval(); // pick 1s vs 60s based on current schedules
+    this._tick(); // immediate first tick so tests don't wait
     this._timer = setInterval(() => this._tick(), this.intervalMs);
     this._emit({ type: "scheduler-started", intervalMs: this.intervalMs });
+  }
+
+  /**
+   * Re-evaluate desired tick rate. If any active schedule uses seconds, drop
+   * to 1s; else use 60s. No-op if caller pinned intervalMs.
+   */
+  _adaptInterval() {
+    if (this._intervalPinned) return;
+    let schedules = [];
+    try {
+      schedules = loadSchedules(this.cwd);
+    } catch (_e) {
+      // ignore — keep current interval
+    }
+    const wantSeconds = schedules.some(
+      (s) => s.enabled !== false && hasSecondsResolution(s.cron),
+    );
+    const desired = wantSeconds ? 1000 : 60_000;
+    if (desired !== this.intervalMs) {
+      this.intervalMs = desired;
+      if (this._timer) {
+        clearInterval(this._timer);
+        this._timer = setInterval(() => this._tick(), this.intervalMs);
+        this._emit({ type: "scheduler-retuned", intervalMs: this.intervalMs });
+      }
+    }
   }
 
   stop() {
@@ -288,7 +377,6 @@ export class CoworkCronScheduler {
 
   async _tick() {
     const now = _deps.now();
-    const minuteKey = _minuteKey(now);
     let schedules;
     try {
       schedules = loadSchedules(this.cwd);
@@ -297,18 +385,24 @@ export class CoworkCronScheduler {
       return;
     }
 
+    // Re-adapt interval if schedule set changed (added/removed seconds-aware)
+    this._adaptInterval();
+
     for (const s of schedules) {
       if (!s.enabled) continue;
-      const fireKey = `${s.id}:${minuteKey}`;
-      if (this._firedKeys.has(fireKey)) continue;
-      if (this._running.has(s.id)) continue;
-      let isDue = false;
+      let matcher;
       try {
-        isDue = parseCron(s.cron)(now);
+        matcher = parseCron(s.cron);
       } catch (err) {
         this._emit({ type: "invalid-cron", id: s.id, error: err.message });
         continue;
       }
+      const fireKey = `${s.id}:${
+        matcher.hasSeconds ? _secondKey(now) : _minuteKey(now)
+      }`;
+      if (this._firedKeys.has(fireKey)) continue;
+      if (this._running.has(s.id)) continue;
+      const isDue = matcher(now);
       if (!isDue) continue;
 
       this._firedKeys.add(fireKey);
@@ -373,4 +467,8 @@ export class CoworkCronScheduler {
 
 function _minuteKey(date) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}-${date.getMinutes()}`;
+}
+
+function _secondKey(date) {
+  return `${_minuteKey(date)}-${date.getSeconds()}`;
 }

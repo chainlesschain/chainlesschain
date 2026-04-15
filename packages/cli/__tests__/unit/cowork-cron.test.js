@@ -11,6 +11,9 @@ import {
   setScheduleEnabled,
   updateScheduleRunState,
   CoworkCronScheduler,
+  ALIASES,
+  _expandExpr,
+  hasSecondsResolution,
   _deps,
 } from "../../src/lib/cowork-cron.js";
 
@@ -67,7 +70,7 @@ describe("parseCronField", () => {
 
 describe("parseCron", () => {
   it("rejects non-5-field expressions", () => {
-    expect(() => parseCron("* * *")).toThrow(/5 fields/);
+    expect(() => parseCron("* * *")).toThrow(/5 or 6 fields/);
   });
 
   it("'* * * * *' matches every minute", () => {
@@ -108,7 +111,7 @@ describe("validateCron", () => {
   });
 
   it("returns error string for invalid", () => {
-    expect(validateCron("not a cron")).toMatch(/5 fields|invalid/);
+    expect(validateCron("not a cron")).toMatch(/5 or 6 fields|invalid/);
   });
 });
 
@@ -344,5 +347,176 @@ describe("CoworkCronScheduler", () => {
     expect(sched._timer).toBeTruthy();
     sched.stop();
     expect(sched._timer).toBeNull();
+  });
+});
+
+// ─── N5: aliases + seconds resolution ────────────────────────────────────────
+
+describe("N5: cron aliases", () => {
+  it("expands @daily → '0 0 * * *'", () => {
+    expect(_expandExpr("@daily")).toBe("0 0 * * *");
+  });
+
+  it("expands @hourly → '0 * * * *'", () => {
+    expect(_expandExpr("@hourly")).toBe("0 * * * *");
+  });
+
+  it("expands @yearly and @annually identically", () => {
+    expect(_expandExpr("@yearly")).toBe(_expandExpr("@annually"));
+  });
+
+  it("is case-insensitive on the alias name", () => {
+    expect(_expandExpr("@DAILY")).toBe("0 0 * * *");
+  });
+
+  it("throws on unknown alias", () => {
+    expect(() => _expandExpr("@bogus")).toThrow(/unknown cron alias/i);
+  });
+
+  it("validateCron accepts all 7 aliases", () => {
+    for (const a of Object.keys(ALIASES)) {
+      expect(validateCron(a)).toBeNull();
+    }
+  });
+
+  it("parseCron('@daily') matches midnight, rejects 09:00", () => {
+    const m = parseCron("@daily");
+    expect(m(new Date(2026, 3, 15, 0, 0))).toBe(true);
+    expect(m(new Date(2026, 3, 15, 9, 0))).toBe(false);
+  });
+});
+
+describe("N5: cron 6-field (seconds) resolution", () => {
+  it("parseCron accepts 6-field expression and reports hasSeconds", () => {
+    const m = parseCron("30 * * * * *");
+    expect(m.hasSeconds).toBe(true);
+  });
+
+  it("parseCron(5-field).hasSeconds is false", () => {
+    expect(parseCron("0 9 * * *").hasSeconds).toBe(false);
+  });
+
+  it("matches at the specified second only", () => {
+    const m = parseCron("30 0 12 * * *"); // 12:00:30 daily
+    expect(m(new Date(2026, 3, 15, 12, 0, 30))).toBe(true);
+    expect(m(new Date(2026, 3, 15, 12, 0, 31))).toBe(false);
+    expect(m(new Date(2026, 3, 15, 12, 1, 30))).toBe(false);
+  });
+
+  it("supports */N step in seconds field", () => {
+    const m = parseCron("*/15 * * * * *"); // every 15 seconds
+    expect(m(new Date(2026, 3, 15, 12, 0, 0))).toBe(true);
+    expect(m(new Date(2026, 3, 15, 12, 0, 15))).toBe(true);
+    expect(m(new Date(2026, 3, 15, 12, 0, 30))).toBe(true);
+    expect(m(new Date(2026, 3, 15, 12, 0, 7))).toBe(false);
+  });
+
+  it("rejects 4-field expression with helpful error", () => {
+    expect(() => parseCron("0 9 * *")).toThrow(/5 or 6 fields/);
+  });
+
+  it("rejects 7-field expression", () => {
+    expect(() => parseCron("0 0 0 9 * * *")).toThrow(/5 or 6 fields/);
+  });
+
+  it("hasSecondsResolution returns false for invalid expr", () => {
+    expect(hasSecondsResolution("garbage")).toBe(false);
+  });
+
+  it("hasSecondsResolution returns true only for 6-field", () => {
+    expect(hasSecondsResolution("0 0 * * *")).toBe(false);
+    expect(hasSecondsResolution("0 0 0 * * *")).toBe(true);
+    expect(hasSecondsResolution("@daily")).toBe(false);
+  });
+});
+
+describe("N5: scheduler adaptive interval", () => {
+  beforeEach(() => {
+    installFakeFs();
+    _deps.runTask = vi.fn(async () => ({ taskId: "t1", status: "completed" }));
+  });
+
+  it("defaults to 60s when no schedules use seconds", () => {
+    saveSchedules("/p", [
+      {
+        id: "s1",
+        cron: "0 9 * * *",
+        userMessage: "x",
+        files: [],
+        enabled: true,
+      },
+    ]);
+    const sched = new CoworkCronScheduler({ cwd: "/p" });
+    sched._adaptInterval();
+    expect(sched.intervalMs).toBe(60_000);
+  });
+
+  it("drops to 1s when any enabled schedule uses 6-field cron", () => {
+    saveSchedules("/p", [
+      {
+        id: "s1",
+        cron: "0 9 * * *",
+        userMessage: "x",
+        files: [],
+        enabled: true,
+      },
+      {
+        id: "s2",
+        cron: "*/5 * * * * *",
+        userMessage: "y",
+        files: [],
+        enabled: true,
+      },
+    ]);
+    const sched = new CoworkCronScheduler({ cwd: "/p" });
+    sched._adaptInterval();
+    expect(sched.intervalMs).toBe(1_000);
+  });
+
+  it("ignores disabled seconds-aware schedules when adapting", () => {
+    saveSchedules("/p", [
+      {
+        id: "s1",
+        cron: "*/5 * * * * *",
+        userMessage: "y",
+        files: [],
+        enabled: false,
+      },
+    ]);
+    const sched = new CoworkCronScheduler({ cwd: "/p" });
+    sched._adaptInterval();
+    expect(sched.intervalMs).toBe(60_000);
+  });
+
+  it("honors caller-pinned intervalMs (no auto-adapt)", () => {
+    saveSchedules("/p", [
+      {
+        id: "s1",
+        cron: "*/5 * * * * *",
+        userMessage: "y",
+        files: [],
+        enabled: true,
+      },
+    ]);
+    const sched = new CoworkCronScheduler({ cwd: "/p", intervalMs: 30_000 });
+    sched._adaptInterval();
+    expect(sched.intervalMs).toBe(30_000);
+  });
+
+  it("addSchedule accepts @daily alias", () => {
+    const entry = addSchedule("/p", {
+      cron: "@daily",
+      userMessage: "morning report",
+    });
+    expect(entry.cron).toBe("@daily");
+    expect(validateCron(entry.cron)).toBeNull();
+  });
+
+  it("addSchedule accepts 6-field seconds cron", () => {
+    const entry = addSchedule("/p", {
+      cron: "*/10 * * * * *",
+      userMessage: "tick",
+    });
+    expect(entry.cron).toBe("*/10 * * * * *");
   });
 });
