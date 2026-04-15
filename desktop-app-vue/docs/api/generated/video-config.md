@@ -2,7 +2,7 @@
 
 **Source**: `src/main/video/video-config.js`
 
-**Generated**: 2026-04-15T06:45:25.374Z
+**Generated**: 2026-04-15T08:45:16.066Z
 
 ---
 

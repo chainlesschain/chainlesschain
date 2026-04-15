@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/context-engineering.js`
 
-**Generated**: 2026-04-15T06:45:25.458Z
+**Generated**: 2026-04-15T08:45:16.137Z
 
 ---
 
@@ -263,6 +263,24 @@ _cleanSystemPrompt(systemPrompt)
 ```
 
 * 清理 System Prompt，移除动态内容
+   * @private
+
+---
+
+## _filterMcpToolsByServer(tools, whitelist)
+
+```javascript
+_filterMcpToolsByServer(tools, whitelist)
+```
+
+* Restrict MCP tools to a whitelist of server names (Skill-Embedded MCP).
+   * Non-MCP tools (FunctionCaller, skill-bound, etc.) are passed through
+   * untouched. MCP tools are identified by `source === "mcp"` or by the
+   * "mcp" tag; the server is read from `serverName`/tags `server:<name>`.
+   *
+   * @param {Array} tools
+   * @param {Set<string>|Array<string>} whitelist
+   * @returns {Array}
    * @private
 
 ---

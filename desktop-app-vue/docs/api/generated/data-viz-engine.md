@@ -2,7 +2,7 @@
 
 **Source**: `src/main/engines/data-viz-engine.js`
 
-**Generated**: 2026-04-15T06:45:25.483Z
+**Generated**: 2026-04-15T08:45:16.156Z
 
 ---
 

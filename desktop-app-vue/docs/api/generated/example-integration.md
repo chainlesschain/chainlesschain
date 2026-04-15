@@ -2,7 +2,7 @@
 
 **Source**: `src/main/mcp/examples/example-integration.js`
 
-**Generated**: 2026-04-15T06:45:25.450Z
+**Generated**: 2026-04-15T08:45:16.130Z
 
 ---
 

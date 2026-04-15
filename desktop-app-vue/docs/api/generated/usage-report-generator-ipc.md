@@ -2,7 +2,7 @@
 
 **Source**: `src/main/memory/usage-report-generator-ipc.js`
 
-**Generated**: 2026-04-15T06:45:25.445Z
+**Generated**: 2026-04-15T08:45:16.126Z
 
 ---
 

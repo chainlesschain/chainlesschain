@@ -2,7 +2,7 @@
 
 **Source**: `src/main/ukey/xinjinke-driver.js`
 
-**Generated**: 2026-04-15T06:45:25.377Z
+**Generated**: 2026-04-15T08:45:16.070Z
 
 ---
 
