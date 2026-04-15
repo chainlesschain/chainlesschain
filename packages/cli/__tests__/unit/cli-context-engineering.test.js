@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+﻿import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   CLIContextEngineering,
   _deps,
@@ -24,6 +24,7 @@ describe("CLIContextEngineering", () => {
         return [];
       }
     };
+    _deps.readUserProfile = vi.fn(() => "");
     engine = new CLIContextEngineering({ db: null });
   });
 
@@ -32,7 +33,7 @@ describe("CLIContextEngineering", () => {
     Object.assign(_deps, originalDeps);
   });
 
-  // ── db=null graceful degradation ──
+  // 鈹€鈹€ db=null graceful degradation 鈹€鈹€
 
   describe("db=null degradation", () => {
     it("returns cleaned messages without injections when db is null", () => {
@@ -63,7 +64,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Instinct injection ──
+  // 鈹€鈹€ Instinct injection 鈹€鈹€
 
   describe("instinct injection", () => {
     it("injects instinct prompt when db is available", () => {
@@ -118,7 +119,27 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Memory injection ──
+  // 鈹€鈹€ User profile injection 鈹€鈹€
+
+  describe("user profile injection", () => {
+    it("injects USER.md content as system message when available", () => {
+      _deps.readUserProfile = vi.fn(
+        () => "Prefers TypeScript and concise answers.",
+      );
+
+      const result = engine.buildOptimizedMessages(
+        [{ role: "system", content: "sys" }],
+        { userQuery: "test" },
+      );
+
+      const profileMsg = result.find(
+        (m) => m.role === "system" && m.content.includes("User Profile"),
+      );
+      expect(profileMsg).toBeDefined();
+      expect(profileMsg.content).toContain("TypeScript");
+    });
+  });
+  // 鈹€鈹€ Memory injection 鈹€鈹€
 
   describe("memory injection", () => {
     it("injects memory results as system message", () => {
@@ -168,7 +189,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── BM25 Notes injection ──
+  // 鈹€鈹€ BM25 Notes injection 鈹€鈹€
 
   describe("notes injection", () => {
     it("injects BM25 search results from notes", () => {
@@ -205,7 +226,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── smartCompact ──
+  // 鈹€鈹€ smartCompact 鈹€鈹€
 
   describe("smartCompact", () => {
     it("preserves system prompt", () => {
@@ -283,7 +304,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── recordError ──
+  // 鈹€鈹€ recordError 鈹€鈹€
 
   describe("recordError", () => {
     it("records errors and includes them in messages", () => {
@@ -325,7 +346,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Task management ──
+  // 鈹€鈹€ Task management 鈹€鈹€
 
   describe("setTask / task reminder", () => {
     it("injects task reminder into messages", () => {
@@ -351,9 +372,9 @@ describe("CLIContextEngineering", () => {
       );
       expect(taskMsg).toBeDefined();
       expect(taskMsg.content).toContain("Refactor authentication module");
-      expect(taskMsg.content).toContain("✓ Review current code");
-      expect(taskMsg.content).toContain("→ Extract auth service");
-      expect(taskMsg.content).toContain("○ Add unit tests");
+      expect(taskMsg.content).toContain("Review current code");
+      expect(taskMsg.content).toContain("Extract auth service");
+      expect(taskMsg.content).toContain("Add unit tests");
     });
 
     it("clears task", () => {
@@ -364,7 +385,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── System prompt cleaning ──
+  // 鈹€鈹€ System prompt cleaning 鈹€鈹€
 
   describe("system prompt cleaning", () => {
     it("replaces timestamps with [DATE]", () => {
@@ -411,7 +432,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── getStats ──
+  // 鈹€鈹€ getStats 鈹€鈹€
 
   describe("getStats", () => {
     it("returns correct stats without db", () => {
@@ -431,7 +452,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Conversation history cleaning ──
+  // 鈹€鈹€ Conversation history cleaning 鈹€鈹€
 
   describe("conversation history cleaning", () => {
     it("strips metadata fields from conversation messages", () => {
@@ -493,7 +514,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Edge cases ──
+  // 鈹€鈹€ Edge cases 鈹€鈹€
 
   describe("edge cases", () => {
     it("handles empty messages array", () => {
@@ -572,7 +593,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Full pipeline integration ──
+  // 鈹€鈹€ Full pipeline integration 鈹€鈹€
 
   describe("full pipeline", () => {
     it("builds complete message with all injections", () => {
@@ -624,7 +645,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── updateTaskProgress ──
+  // 鈹€鈹€ updateTaskProgress 鈹€鈹€
 
   describe("updateTaskProgress", () => {
     it("updates by step index", () => {
@@ -645,7 +666,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── reindexNotes ──
+  // 鈹€鈹€ reindexNotes 鈹€鈹€
 
   describe("reindexNotes", () => {
     it("resets notes index state without db", () => {
@@ -674,7 +695,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── smartCompact edge cases ──
+  // 鈹€鈹€ smartCompact edge cases 鈹€鈹€
 
   describe("smartCompact edge cases", () => {
     it("handles messages with only system prompt", () => {
@@ -737,7 +758,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Resumable compaction summaries ──
+  // 鈹€鈹€ Resumable compaction summaries 鈹€鈹€
 
   describe("resumable compaction summaries", () => {
     it("generates summaries for discarded pairs", () => {
@@ -774,8 +795,8 @@ describe("CLIContextEngineering", () => {
 
     it("includes summaries in buildOptimizedMessages", () => {
       engine._compactionSummaries = [
-        '- Q: "how to setup" → install npm packages',
-        '- Q: "run tests" → [used tools] npm test output',
+        '- Q: "how to setup" 鈫?install npm packages',
+        '- Q: "run tests" 鈫?[used tools] npm test output',
       ];
 
       const result = engine.buildOptimizedMessages(
@@ -825,7 +846,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Stable prefix cache ──
+  // 鈹€鈹€ Stable prefix cache 鈹€鈹€
 
   describe("stable prefix cache", () => {
     it("caches stable prefix and reuses on subsequent calls", () => {
@@ -890,7 +911,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Permanent memory injection ──
+  // 鈹€鈹€ Permanent memory injection 鈹€鈹€
 
   describe("permanent memory injection", () => {
     it("injects permanent memory results when available", () => {
@@ -967,7 +988,7 @@ describe("CLIContextEngineering", () => {
     });
   });
 
-  // ── Stats enhancements ──
+  // 鈹€鈹€ Stats enhancements 鈹€鈹€
 
   describe("enhanced stats", () => {
     it("includes compactionSummaries count", () => {

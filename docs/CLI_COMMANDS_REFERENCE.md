@@ -54,6 +54,30 @@ chainlesschain memory add "remember this" # Persistent memory
 chainlesschain session list      # Session management
 ```
 
+## Managed Agents Parity (session-core)
+
+Phase D2 / E1 / E2 — shared with Desktop via `@chainlesschain/session-core`.
+All three persist under `~/.chainlesschain/`.
+
+```bash
+# Scoped memory (MemoryStore — memory-store.json)
+chainlesschain memory store "Prefers TypeScript" --scope global --category preference
+chainlesschain memory store "Asked about P2P" --scope session --scope-id sess_123 --tags p2p,q
+chainlesschain memory recall "typescript" --scope global --json
+chainlesschain memory recall --tags p2p --limit 20
+
+# Per-session approval policy (ApprovalGate — approval-policies.json)
+chainlesschain session policy sess_123                        # show current
+chainlesschain session policy sess_123 --set trusted          # strict | trusted | autopilot
+chainlesschain session policy sess_123 --json
+
+# Beta feature flags (BetaFlags — beta-flags.json)
+# Flag format: <feature>-<YYYY-MM-DD>
+chainlesschain config beta list [--json]
+chainlesschain config beta enable idle-park-2026-05-01
+chainlesschain config beta disable idle-park-2026-05-01
+```
+
 ## Phase 2: Knowledge & Content Management
 
 ```bash

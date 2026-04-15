@@ -416,6 +416,40 @@ export function registerSessionCommand(program) {
       }
     });
 
+  // session policy — Managed Agents parity Phase E1 approval policy
+  session
+    .command("policy")
+    .description("Show or set per-session approval policy")
+    .argument("<id>", "Session ID")
+    .option("--set <policy>", "strict | trusted | autopilot")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const { getApprovalGate } =
+          await import("../lib/session-core-singletons.js");
+        const gate = await getApprovalGate();
+        if (options.set) {
+          gate.setSessionPolicy(id, options.set);
+          // give persistence a tick before the CLI process exits
+          await new Promise((r) => setImmediate(r));
+          logger.success(
+            `Session ${chalk.gray(id.slice(0, 12))} policy → ${chalk.cyan(options.set)}`,
+          );
+        }
+        const current = gate.getSessionPolicy(id);
+        if (options.json) {
+          console.log(JSON.stringify({ sessionId: id, policy: current }));
+        } else if (!options.set) {
+          logger.log(
+            `Session ${chalk.gray(id.slice(0, 12))} policy: ${chalk.cyan(current)}`,
+          );
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
   // session workflow — inspect canonical coding workflow state
   // Reads .chainlesschain/sessions/<id>/{intent.md,plan.md,progress.log,mode.json}
   // written by the 4 workflow skills ($deep-interview/$ralplan/$ralph/$team).

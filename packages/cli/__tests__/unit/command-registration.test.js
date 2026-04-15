@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 
 /**
  * Unit tests for command registration in index.js
@@ -195,6 +195,18 @@ describe("command registration", () => {
     expect(subNames).toContain("delete");
   });
 
+  it("config command has beta subcommands", async () => {
+    const { createProgram } = await import("../../src/index.js");
+    const program = createProgram();
+    const config = program.commands.find((c) => c.name() === "config");
+    expect(config).toBeDefined();
+    const beta = config.commands.find((c) => c.name() === "beta");
+    expect(beta).toBeDefined();
+    const subNames = beta.commands.map((c) => c.name());
+    expect(subNames).toContain("list");
+    expect(subNames).toContain("enable");
+    expect(subNames).toContain("disable");
+  });
   // Phase 2 command tests
   it("import command has correct subcommands", async () => {
     const { createProgram } = await import("../../src/index.js");

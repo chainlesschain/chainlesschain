@@ -1,0 +1,50 @@
+{
+  "name": "@chainlesschain/session-core",
+  "version": "0.1.0",
+  "description": "Session lifecycle, trace store, agent definition, idle parker — shared by Desktop and CLI (Managed Agents parity)",
+  "type": "commonjs",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./session-handle": "./lib/session-handle.js",
+    "./trace-store": "./lib/trace-store.js",
+    "./agent-definition": "./lib/agent-definition.js",
+    "./session-manager": "./lib/session-manager.js",
+    "./idle-parker": "./lib/idle-parker.js",
+    "./agent-group": "./lib/agent-group.js",
+    "./shared-task-list": "./lib/shared-task-list.js",
+    "./memory-store": "./lib/memory-store.js",
+    "./memory-consolidator": "./lib/memory-consolidator.js",
+    "./approval-gate": "./lib/approval-gate.js",
+    "./beta-flags": "./lib/beta-flags.js",
+    "./stream-router": "./lib/stream-router.js",
+    "./file-adapters": "./lib/file-adapters.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "lib/"
+  ],
+  "keywords": [
+    "chainlesschain",
+    "session",
+    "agent",
+    "managed-agents"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chainlesschain/chainlesschain.git",
+    "directory": "packages/session-core"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
+}

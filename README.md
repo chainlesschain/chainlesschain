@@ -1,5 +1,27 @@
-# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
+﻿# ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## 2026-04-16 增量更新（Managed Agents 对标 — session-core A-F 落地 + CLI 命令接入）
+
+对 Anthropic Claude Managed Agents 做本地优先版本的运行时对标，新增共享包 `@chainlesschain/session-core`，把 Session / Trace / Team-Subagent 语义 / Scoped Memory / Approval Policy / Beta Flags / Stream Router 抽到 CLI 与 Desktop 可共用的一层。
+
+本轮确认并补齐的落地项：
+
+- `session-core` 已完成 Phase A-F，当前测试 `293/293`
+- CLI 已接入 `chainlesschain memory recall|store`、`chainlesschain session policy`、`chainlesschain config beta list|enable|disable`
+- 本地持久化文件已落地：`memory-store.json`、`beta-flags.json`、`approval-policies.json`
+- 补齐针对性测试并修复 CLI 上下文工程测试中的真实 `USER.md` 泄漏问题
+
+| 层 | 范围 | 通过 |
+| --- | --- | --- |
+| 共享包 | `@chainlesschain/session-core` | `293/293` |
+| 单元 | `session-core-singletons` / `cli-context-engineering` / `command-registration` | `85/85` |
+| 集成 | `managed-agents-cli.integration.test.js` | `3/3` |
+| E2E | `managed-agents-commands.test.js` | `6/6` |
+
+用户文档：[docs-site/docs/chainlesschain/managed-agents-parity](./docs-site/docs/chainlesschain/managed-agents-parity.md)
+设计文档：[docs/design/modules/91_Managed_Agents对标计划](./docs/design/modules/91_Managed_Agents对标计划.md)
+
+---
 ## 2026-04-15 增量更新（Open-Agents 对标补齐 — Phase 1–5 全部落地 + 140 测试）
 
 对 `packages/cli` Agent Runtime 做 vercel-labs/open-agents（2025-12）的系统性对标补齐。**既有优势（`edit_file_hashed` / `git` 工具 / FTS5 搜索 / 138 skills / sub-runtime-pool / 4 层记忆 / Hooks 三件套）保持不动**，只补齐五个维度的空白：
@@ -284,7 +306,25 @@ CLI Runtime 收口路线图（`docs/design/modules/82_CLI_Runtime收口路线图
 
 ## ⭐ 当前版本: v5.0.2.10 Evolution Edition (2026-04-06)
 
-### 最新更新 - v5.0.2.9 Polish Round (2026-04-15) 🆕
+### 最新更新 - Managed Agents 对标 · CLI 持久化收口 (2026-04-16) 🆕
+
+`@chainlesschain/session-core` 的 MemoryStore / ApprovalGate / BetaFlags 三条基础能力现已通过 CLI 全链路跨进程持久化（Phase D2/E1/E2 集成收口）：
+
+**新命令**：
+```bash
+chainlesschain memory store "..." --scope global|session|agent [--scope-id ID]
+chainlesschain memory recall "query" --scope ... --tags ... --json
+chainlesschain session policy <id> [--set strict|trusted|autopilot] [--json]
+chainlesschain config beta list|enable|disable <feature>-<YYYY-MM-DD>
+```
+
+**Bug 修复**：ApprovalGate 原本仅保留进程内 per-session policy，CLI `session policy --set` 设置后进程退出即丢失。新增 `createApprovalGateFileAdapter` 桥接 `~/.chainlesschain/approval-policies.json`，跨进程可恢复。
+
+**持久化文件**：`~/.chainlesschain/memory-store.json` / `beta-flags.json` / `approval-policies.json`（原子写入 + 损坏文件自动回退空对象）。
+
+**测试**：session-core 293 tests (+9)、CLI Managed Agents 19 tests（5 unit + 8 integration + 6 e2e）全绿。详见 [命令文档](./docs-site/docs/chainlesschain/managed-agents-cli.md) / [总览文档](./docs-site/docs/chainlesschain/managed-agents-parity.md) 与 [设计文档](./docs/design/modules/91_Managed_Agents对标计划.md) v1.9。
+
+### 最新更新 - v5.0.2.9 Polish Round (2026-04-15)
 
 本轮联合落地 6 项优化，新增 145 测试（unit 131 + integration 11 + e2e 3）全绿，全部向后兼容：
 
@@ -2379,3 +2419,5 @@ chainlesschain/
 - [🗂️ 统一工具注册表](./desktop-app-vue/src/main/ai-engine/unified-tool-registry.js) - 3大工具系统聚合
 - [📦 演示模板系统](./desktop-app-vue/src/main/templates/demo-template-loader.js) - 10个演示模板加载器
 - [🔧 工具浏览器](./desktop-app-vue/src/renderer/pages/ToolsExplorerPage.vue) - 按技能分组浏览工具
+
+
