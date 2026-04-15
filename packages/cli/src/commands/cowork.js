@@ -587,6 +587,134 @@ export function registerCoworkCommand(program) {
       });
     });
 
+  // cowork workflow — chain multiple Cowork tasks into a DAG
+  const workflow = cowork
+    .command("workflow")
+    .description("Define and execute multi-step Cowork workflows (DAG)");
+
+  workflow
+    .command("list")
+    .description("List saved workflows")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      const { listWorkflows } = await import("../lib/cowork-workflow.js");
+      const wfs = listWorkflows(process.cwd());
+      if (options.json) {
+        console.log(JSON.stringify(wfs, null, 2));
+        return;
+      }
+      if (wfs.length === 0) {
+        logger.log(chalk.gray("No workflows saved."));
+        return;
+      }
+      logger.log(chalk.bold(`\n${wfs.length} workflow(s):\n`));
+      for (const wf of wfs) {
+        logger.log(
+          `  ${chalk.cyan(wf.id)}  ${wf.name}  (${wf.steps.length} steps)`,
+        );
+      }
+      logger.log("");
+    });
+
+  workflow
+    .command("show <id>")
+    .description("Show a workflow definition")
+    .action(async (id) => {
+      const { getWorkflow } = await import("../lib/cowork-workflow.js");
+      const wf = getWorkflow(process.cwd(), id);
+      if (!wf) {
+        logger.error(`Workflow not found: ${id}`);
+        process.exit(1);
+      }
+      console.log(JSON.stringify(wf, null, 2));
+    });
+
+  workflow
+    .command("add <file>")
+    .description("Add a workflow from a JSON definition file")
+    .action(async (file) => {
+      const fs = await import("node:fs");
+      const { saveWorkflow } = await import("../lib/cowork-workflow.js");
+      try {
+        const body = fs.readFileSync(file, "utf-8");
+        const wf = JSON.parse(body);
+        saveWorkflow(process.cwd(), wf);
+        logger.log(chalk.green(`✓ Saved workflow '${wf.id}'`));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
+  workflow
+    .command("remove <id>")
+    .description("Remove a saved workflow")
+    .action(async (id) => {
+      const { removeWorkflow } = await import("../lib/cowork-workflow.js");
+      if (removeWorkflow(process.cwd(), id)) {
+        logger.log(chalk.green(`✓ Removed '${id}'`));
+      } else {
+        logger.error(`Workflow not found: ${id}`);
+        process.exit(1);
+      }
+    });
+
+  workflow
+    .command("run <id>")
+    .description("Execute a saved workflow end-to-end")
+    .option("--continue-on-error", "Keep running after a step fails", false)
+    .option("--max-parallel <n>", "Max parallel steps per batch", "4")
+    .action(async (id, options) => {
+      const [
+        { getWorkflow, executeWorkflow, _deps: wfDeps },
+        { runCoworkTask },
+      ] = await Promise.all([
+        import("../lib/cowork-workflow.js"),
+        import("../lib/cowork-task-runner.js"),
+      ]);
+      const wf = getWorkflow(process.cwd(), id);
+      if (!wf) {
+        logger.error(`Workflow not found: ${id}`);
+        process.exit(1);
+      }
+      wfDeps.runTask = runCoworkTask;
+
+      logger.log(
+        chalk.bold(
+          `\nExecuting workflow '${wf.name}' (${wf.steps.length} steps)...`,
+        ),
+      );
+      try {
+        const result = await executeWorkflow({
+          workflow: wf,
+          cwd: process.cwd(),
+          maxParallel: parseInt(options.maxParallel, 10) || 4,
+          continueOnError: !!options.continueOnError,
+          onStepStart: ({ stepId }) =>
+            logger.log(chalk.gray(`  → step ${stepId} ...`)),
+          onStepComplete: (out) => {
+            const flag =
+              out.status === "completed"
+                ? chalk.green("✓")
+                : out.status === "skipped"
+                  ? chalk.gray("—")
+                  : chalk.red("✗");
+            logger.log(`  ${flag} ${out.id}  (${out.status})`);
+          },
+        });
+        const color =
+          result.status === "completed"
+            ? chalk.green
+            : result.status === "partial"
+              ? chalk.yellow
+              : chalk.red;
+        logger.log(color(`\nWorkflow ${result.status}.\n`));
+      } catch (err) {
+        logger.error(err.message);
+        process.exit(1);
+      }
+    });
+
   // cowork learning — analyze historical runs
   const learning = cowork
     .command("learning")
@@ -705,6 +833,9 @@ export function registerCoworkCommand(program) {
       );
       logger.log(
         `    ${chalk.cyan("cowork learning stats|recommend|failures")}  Analyze run history`,
+      );
+      logger.log(
+        `    ${chalk.cyan("cowork workflow list|show|add|remove|run")}  DAG of chained Cowork tasks`,
       );
       logger.log("");
       logger.log(
