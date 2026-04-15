@@ -1,4 +1,4 @@
-import { defineConfig } from "vitepress";
+﻿import { defineConfig } from "vitepress";
 
 export default defineConfig({
   title: "ChainlessChain 文档",
@@ -521,6 +521,10 @@ export default defineConfig({
               text: "会话管理 (session)",
               link: "/chainlesschain/cli-session",
             },
+            {
+              text: "Managed Agents 对标 (memory/session/beta)",
+              link: "/chainlesschain/managed-agents-cli",
+            },
           ],
         },
         {
@@ -855,6 +859,15 @@ export default defineConfig({
           ],
         },
         {
+          text: "Managed Agents 对标 ⭐NEW",
+          items: [
+            {
+              text: "Managed Agents 对标与 CLI 接入",
+              link: "/chainlesschain/managed-agents-parity",
+            },
+          ],
+        },
+        {
           text: "v5.0.2.14 Web Cowork 日常协作 ⭐NEW",
           items: [
             {
@@ -1042,6 +1055,7 @@ export default defineConfig({
             { text: "85b 文档代码差距补全 ⭐NEW", link: "/design/modules/85b-doc-code-gap-fill" },
             { text: "86 Web Cowork协作 ⭐NEW", link: "/design/modules/86-web-cowork" },
             { text: "88 Open-Agents 对标 ⭐NEW", link: "/design/modules/88-open-agents-parity" },
+            { text: "91 Managed Agents 对标 ⭐NEW", link: "/design/modules/91-managed-agents-parity" },
             { text: "60b CLI指令技能包 ⭐", link: "/design/modules/60b-cli-skill-packs" },
           ],
         },
@@ -1161,3 +1175,4 @@ export default defineConfig({
     darkModeSwitchTitle: "切换到深色模式",
   },
 });
+

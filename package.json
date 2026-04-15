@@ -17,6 +17,7 @@
     "packages/core-ai",
     "packages/core-social",
     "packages/core-blockchain",
+    "packages/session-core",
     "packages/cli"
   ],
   "scripts": {

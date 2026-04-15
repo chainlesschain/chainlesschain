@@ -129,6 +129,73 @@ export function registerConfigCommand(program) {
         logger.info("Reset cancelled");
       }
     });
+
+  // config beta — Managed Agents parity Phase E2 beta flags
+  const beta = cmd
+    .command("beta")
+    .description("Manage beta / experimental feature flags");
+
+  beta
+    .command("list", { isDefault: true })
+    .description("List enabled and known beta flags")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      try {
+        const { getBetaFlags } =
+          await import("../lib/session-core-singletons.js");
+        const flags = await getBetaFlags();
+        const out = flags.list();
+        if (options.json) {
+          console.log(JSON.stringify(out, null, 2));
+          return;
+        }
+        logger.log(chalk.bold("Enabled beta flags:"));
+        if (out.enabled.length === 0) logger.log(chalk.gray("  (none)"));
+        for (const f of out.enabled) logger.log(`  ${chalk.green("✓")} ${f}`);
+        if (out.known.length > out.enabled.length) {
+          const disabled = out.known.filter((f) => !out.enabled.includes(f));
+          logger.log(chalk.bold("\nKnown (disabled):"));
+          for (const f of disabled) logger.log(`  ${chalk.gray("·")} ${f}`);
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  beta
+    .command("enable")
+    .description("Enable a beta flag (format: <feature>-<YYYY-MM-DD>)")
+    .argument("<flag>")
+    .action(async (flag) => {
+      try {
+        const { getBetaFlags } =
+          await import("../lib/session-core-singletons.js");
+        const flags = await getBetaFlags();
+        flags.enable(flag);
+        logger.success(`Enabled: ${chalk.cyan(flag)}`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  beta
+    .command("disable")
+    .description("Disable a beta flag")
+    .argument("<flag>")
+    .action(async (flag) => {
+      try {
+        const { getBetaFlags } =
+          await import("../lib/session-core-singletons.js");
+        const flags = await getBetaFlags();
+        flags.disable(flag);
+        logger.success(`Disabled: ${chalk.cyan(flag)}`);
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
 }
 
 function printConfig(obj, indent = "") {

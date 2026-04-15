@@ -239,6 +239,100 @@ export function registerMemoryCommand(program) {
       }
     });
 
+  // memory recall — Managed Agents parity Phase D2 (session-core MemoryStore)
+  memory
+    .command("recall")
+    .description("Recall scoped memory (session-core MemoryStore)")
+    .argument("[query]", "Query string")
+    .option("--scope <scope>", "session | agent | global")
+    .option(
+      "--scope-id <id>",
+      "Session or agent id (required for session/agent)",
+    )
+    .option("--category <cat>", "Filter by category")
+    .option("--tags <tags>", "Comma-separated tags")
+    .option("-n, --limit <n>", "Max results", "10")
+    .option("--json", "Output as JSON")
+    .action(async (query, options) => {
+      try {
+        const { getMemoryStore } =
+          await import("../lib/session-core-singletons.js");
+        const store = getMemoryStore();
+        const tags = options.tags
+          ? options.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : null;
+        const results = store.recall({
+          query: query || "",
+          scope: options.scope,
+          scopeId: options.scopeId,
+          category: options.category,
+          tags,
+          limit: Math.max(1, parseInt(options.limit) || 10),
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify(results, null, 2));
+        } else if (results.length === 0) {
+          logger.info("No scoped memory entries matched.");
+        } else {
+          logger.log(
+            chalk.bold(`Scoped memory (${results.length} results):\n`),
+          );
+          for (const m of results) {
+            logger.log(
+              `  ${chalk.gray(m.id.slice(0, 12))}  ${chalk.cyan(m.scope)}${m.scopeId ? ":" + m.scopeId.slice(0, 12) : ""}  ${chalk.yellow(m.category)}  rel=${m.relevance?.toFixed(2) ?? "?"}`,
+            );
+            logger.log(`    ${chalk.white(m.content.substring(0, 160))}`);
+          }
+        }
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+  // memory store — add to session-core MemoryStore (separate from DB-backed memory add)
+  memory
+    .command("store")
+    .description("Write a scoped memory (session-core MemoryStore)")
+    .argument("<content>")
+    .requiredOption("--scope <scope>", "session | agent | global")
+    .option("--scope-id <id>", "Required for session/agent scope")
+    .option("--category <cat>", "Category", "general")
+    .option("--tags <tags>", "Comma-separated tags")
+    .option("--json", "Output as JSON")
+    .action(async (content, options) => {
+      try {
+        const { getMemoryStore } =
+          await import("../lib/session-core-singletons.js");
+        const store = getMemoryStore();
+        const tags = options.tags
+          ? options.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [];
+        const m = store.add({
+          scope: options.scope,
+          scopeId: options.scopeId || null,
+          category: options.category,
+          content,
+          tags,
+        });
+        if (options.json) console.log(JSON.stringify(m, null, 2));
+        else
+          logger.success(
+            `Stored ${chalk.gray(m.id.slice(0, 12))} [${chalk.cyan(m.scope)}/${m.category}]`,
+          );
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
   // memory file
   memory
     .command("file")

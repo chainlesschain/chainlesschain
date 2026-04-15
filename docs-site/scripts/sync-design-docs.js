@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 同步设计文档到 VitePress docs/design/ 目录
  * 从 docs/design/ (项目根) 复制所有 .md 文件
  * - 中文文件名转为 ASCII（与 config.js sidebar 链接一致）
@@ -143,6 +143,10 @@ const MODULE_FILE_MAP = {
   "85_Hermes_Agent对标实施方案.md": "85-hermes-agent-parity.md",
   "85_文档代码差距补全.md": "85b-doc-code-gap-fill.md",
   "86_Web_Cowork日常任务协作系统.md": "86-web-cowork.md",
+  "88_OpenAgents对标补齐方案.md": "88-open-agents-parity.md",
+  "89_v5.0.2.9_六项优化_设计说明.md": "89-runtime-six-enhancements.md",
+  "90_AI视频生成_Volcengine_Seedance.md": "90-ai-video-generation-seedance.md",
+  "91_Managed_Agents对标计划.md": "91-managed-agents-parity.md",
 };
 
 // 构建反向映射（用于 rewriteInternalLinks）
@@ -307,3 +311,5 @@ console.log(`同步设计文档: ${sourceDir} → ${targetDir}`);
 console.log("文件名映射: 中文 → ASCII (与 config.js sidebar 一致)\n");
 const fileCount = syncDir(sourceDir, targetDir, true);
 console.log(`\n完成: 同步了 ${fileCount} 个文件`);
+
+

@@ -146,6 +146,21 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ## ⭐ Current Version: v5.0.2.9 Evolution Edition (2026-04-04)
 
+### Latest Update - Managed Agents Parity · CLI Persistence (2026-04-16) 🆕
+
+Three baseline Managed Agents capabilities from `@chainlesschain/session-core` — MemoryStore, ApprovalGate, BetaFlags — are now fully wired into the CLI with cross-process JSON persistence:
+
+```bash
+chainlesschain memory store "..." --scope global|session|agent [--scope-id ID]
+chainlesschain memory recall "query" --scope ... --tags ... --json
+chainlesschain session policy <id> [--set strict|trusted|autopilot]
+chainlesschain config beta list|enable|disable <feature>-<YYYY-MM-DD>
+```
+
+**Bug fix**: `ApprovalGate` previously only held per-session policies in-process, so `session policy --set` was lost on CLI exit. Added `createApprovalGateFileAdapter` writing to `~/.chainlesschain/approval-policies.json` with atomic rename + safe-load fallback.
+
+**Tests**: session-core 293 tests (+9), CLI Managed Agents 19 tests (5 unit + 8 integration + 6 e2e) all green. See [user guide](./docs-site/docs/chainlesschain/managed-agents-cli.md) and [design doc](./docs/design/modules/91_Managed_Agents对标计划.md) v1.9.
+
 ### Latest Update - Agent Architecture Optimization (5 Modules + 4 Enhancements + 334 Tests) ⭐
 
 v5.0.2.9 implements 5 core optimization modules + 4 enhancement integrations inspired by Claude Code's 12-layer progressive harness architecture:
